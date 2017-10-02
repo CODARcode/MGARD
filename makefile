@@ -2,8 +2,8 @@
 CXX= g++
 CC = gcc
 
-CXXFLAGS= -c -std=c++11 -Wall -Wfatal-errors -I$(INC) 
-CCFLAGS=  -c -Wall -Wfatal-errors -I$(INC)
+CXXFLAGS= -c -std=c++11 -Wall -Wfatal-errors -I$(INC) -O3 
+CCFLAGS=  -c -Wall -Wfatal-errors -I$(INC) -O3
 LDFLAGS = -lz
 
 SRC=src
