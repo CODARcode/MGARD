@@ -1,40 +1,52 @@
 
 CXX= g++
 CC = gcc
+#Using $(CXX) rather than $(CC) to link against C++ standard library.
+LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
+MKDIR=mkdir
+RMDIR=rmdir --ignore-fail-on-non-empty
 
-CXXFLAGS= -c -pg -std=c++11 -Wall -Wfatal-errors -I$(INC) -O3 
-CCFLAGS=  -c -pg -Wall -Wfatal-errors -I$(INC) -O3
+
+
+CXXFLAGS= -c -std=c++11 -Wall -Wfatal-errors -I$(INC) -O3 
+CFLAGS=  -c -Wall -Wfatal-errors -I$(INC) -O3
+
 LDFLAGS = -lz
+ARFLAGS = rcs
 
 SRC=src
 INC=include
 OBJ=obj
 
+vpath %.o $(OBJ)
+vpath %.c $(SRC)
+vpath %.cpp $(SRC)
 
-VPATH=src
 SOURCES=cmgard.c mgard.cpp mgard_capi.cpp 
-OBJECTS=cmgard.o mgard.o mgard_capi.o 
-OBJECTS2=$(patsubst %.o,obj/%.o, cmgard.o mgard.o mgard_capi.o)
-
+OBJECTS=$(foreach SOURCE,$(basename $(SOURCES)),$(OBJ)/$(SOURCE).o)
 
 EXECUTABLE=cmgard
 LIB=libmgard.a
 
+.PHONY: all clean
 
-all: $(SOURCES) $(EXECUTABLE) $(LIB) 
+all: $(EXECUTABLE) $(LIB)
 
 $(EXECUTABLE): $(OBJECTS) 
-	$(CXX) -o $@ $(OBJECTS2) $(LDFLAGS) 
+	$(LINK.o) -o $@ $^
 
-.cpp.o:
-	$(CXX) $(CXXFLAGS)  $< -o  $(OBJ)/$@
+$(OBJ)/%.o: %.cpp | $(OBJ)
+	$(COMPILE.cpp) $< -o $@
 
-.c.o:
-	$(CC) $(CCFLAGS)    $< -o  $(OBJ)/$@
+$(OBJ)/%.o: %.c | $(OBJ)
+	$(COMPILE.c) $< -o $@
+
+$(OBJ):
+	$(MKDIR) $@
 
 $(LIB): $(OBJECTS)
-	ar rcs $(LIB)  $(OBJECTS2)
+	$(AR) $(ARFLAGS) $(LIB) $^
 
 clean:
-	$(RM) *.o cmgard $(OBJ)/*.o $(LIB)
-
+	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB)
+	if [ -d $(OBJ) ]; then $(RMDIR) $(OBJ); fi

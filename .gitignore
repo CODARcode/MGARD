@@ -1,0 +1,8 @@
+#Archives.
+*.a
+
+#Object files.
+*.o
+
+#Executable.
+cmgard
