@@ -47,7 +47,7 @@
 
 extern unsigned char *mgard_compress(int itype_flag, void *data, int *out_size, int nrow, int ncol, void* tol);
 
-extern unsigned char *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol);
+extern void *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol);
 
 
 #endif

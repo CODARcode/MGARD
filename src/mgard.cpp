@@ -142,7 +142,7 @@ refactor_qz (int nrow, int ncol, double *v, int &outsize, double tol)
 }  
 
 
-void* recompose_udq(int nrow, int ncol, unsigned char *data, int data_len)
+double* recompose_udq(int nrow, int ncol, unsigned char *data, int data_len)
 {
   int size_ratio = sizeof(double)/sizeof(int);
 

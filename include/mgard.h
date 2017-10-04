@@ -164,7 +164,7 @@ namespace mgard
   unsigned char *
     refactor_qz (int nrow, int ncol, double *v, int &outsize, double tol);
 
-  void*
+  double*
     recompose_udq(int nrow, int ncol, unsigned char *data, int data_len);
   
   int

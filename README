@@ -23,7 +23,7 @@ unsigned char *mgard_compress(int itype_flag, void *data, int
      tol: Upper bound for desired tolerance
      
 
-unsigned char *mgard_decompress(int itype_flag, unsigned char *data,
+void *mgard_decompress(int itype_flag, unsigned char *data,
 int data_len, int nrow, int ncol): Returns float/double pointer to array of decompressed data 
 
      itype_flag: Data type, 0 for float, 1 for double
