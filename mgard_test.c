@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
     }
 
   free(mgard_out_buff);
-  
+  printf ("Rel. L-infty error tolerance: %10.5E \n", tol);
   printf ("Rel. L-infty error: %10.5E \n", norm/norm0);
 
   if( norm/norm0 < tol)

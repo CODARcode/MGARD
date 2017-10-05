@@ -1,17 +1,17 @@
 
 CXX= g++
 CC = gcc
-#Using $(CXX) rather than $(CC) to link against C++ standard library.
-LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
+
+LINK.o = $(CC) $(LDFLAGS) $(TARGET_ARCH)
 MKDIR=mkdir
 RMDIR=rmdir --ignore-fail-on-non-empty
 
 
 
-CXXFLAGS= -c -std=c++11 -Wall -Wfatal-errors -I$(INC) -O3 
+CXXFLAGS= -c -std=c++11 -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
 CFLAGS=  -c -Wall -Wfatal-errors -I$(INC) -O3
 
-LDFLAGS = -lz
+LDFLAGS = -lz -lm -lstdc++
 ARFLAGS = rcs
 
 SRC=src
@@ -22,7 +22,8 @@ vpath %.o $(OBJ)
 vpath %.c $(SRC)
 vpath %.cpp $(SRC)
 
-SOURCES=cmgard.c mgard.cpp mgard_capi.cpp 
+#SOURCES=cmgard.c mgard.cpp mgard_capi.cpp
+SOURCES=mgard_tes.c mgard.cpp mgard_capi.cpp 
 OBJECTS=$(foreach SOURCE,$(basename $(SOURCES)),$(OBJ)/$(SOURCE).o)
 
 EXECUTABLE=cmgard
