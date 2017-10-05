@@ -161,6 +161,10 @@ namespace mgard
     resample_2d (const double *inbuf, double*  outbuf, const int nrow,
                  const int ncol, const int nrow_new, const int ncol_new);
 
+  void
+    resample_2d_inv2 (const double *inbuf, double*  outbuf, const int nrow,
+                 const int ncol, const int nrow_new, const int ncol_new);
+
   unsigned char *
     refactor_qz (int nrow, int ncol, double *v, int &outsize, double tol);
 

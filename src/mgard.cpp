@@ -110,8 +110,11 @@ refactor_qz (int nrow, int ncol, double *v, int &outsize, double tol)
       std::vector<double> col_vec (nrow_new);
       std::vector<double> v_new (nrow_new * ncol_new);
 
-      mgard::resample_2d (v, v_new.data(), nrow, ncol, nrow_new,
-                          ncol_new); // interpolate to (2^q + 1) x (2^p + 1)
+      //      mgard::resample_2d (v, v_new.data(), nrow, ncol, nrow_new,
+      //                    ncol_new); // interpolate to (2^q + 1) x (2^p + 1)
+
+    mgard::resample_2d (v, v_new.data(), nrow, ncol, nrow_new,
+                        ncol_new); // interpolate to (2^q + 1) x (2^p + 1)
       free(v);//free input buffer!
 
       std::vector<double> work (nrow_new * ncol_new);
@@ -212,7 +215,7 @@ double* recompose_udq(int nrow, int ncol, unsigned char *data, int data_len)
       mgard::recompose(nrow_new, ncol_new, l_target, v.data(),  work, row_vec, col_vec);
       work.clear();
       double *vo = (double *)malloc (nrow*ncol*sizeof(double));
-      mgard::resample_2d(v.data(), vo,  nrow_new, ncol_new, nrow, ncol);
+      mgard::resample_2d (v.data(), vo,  nrow_new, ncol_new, nrow, ncol);
 
       return vo;
     }
@@ -1192,6 +1195,48 @@ resample_1d (const double *inbuf, double *outbuf, const int ncol,
   outbuf[ncol_new - 1] = inbuf[ncol - 1];
 }
 
+
+void
+resample_1d_inv2 (const double *inbuf, double *outbuf, const int ncol,
+             const int ncol_new)
+{
+  double hx_o = 1.0 / double(ncol - 1);
+  double hx = 1.0 / double(ncol_new - 1); // x-spacing
+  double hx_ratio = (hx_o / hx);          // ratio of x-spacing resampled/orig
+
+  for (int icol = 0; icol < ncol_new - 1; ++icol)
+    {
+      int i_left = floor (icol / hx_ratio);
+      int i_right = i_left + 1;
+
+      double x1 = double(i_left) * hx_o;
+      double x2 = double(i_right) * hx_o;
+
+      double y1 = inbuf[i_left];
+      double y2 = inbuf[i_right];
+      double x = double(icol) * hx;
+
+      double d1 = std::pow(x1 - x, 4.0 );
+      double d2 = std::pow(x2 - x, 4.0 );
+      
+      
+      if( d1 == 0)
+        {
+          outbuf[icol] = y1;
+        }
+      else if( d2 == 0)
+        {
+          outbuf[icol] = y2;
+        }
+      else{
+        double dsum = 1.0/d1 + 1.0/d2;
+        outbuf[icol] =  (y1/d1 + y2/d2)/dsum;
+      }
+    }
+
+  outbuf[ncol_new - 1] = inbuf[ncol - 1];
+}
+
 void
 resample_2d (const double *inbuf, double *outbuf, const int nrow,
              const int ncol, const int nrow_new, const int ncol_new)
@@ -1240,6 +1285,111 @@ resample_2d (const double *inbuf, double *outbuf, const int nrow,
 
   // last-row
   resample_1d (&inbuf[get_index (ncol, nrow - 1, 0)],
+               &outbuf[get_index (ncol_new, nrow_new - 1, 0)], ncol, ncol_new);
+}
+
+
+
+
+
+void
+resample_2d_inv2 (const double *inbuf, double *outbuf, const int nrow,
+             const int ncol, const int nrow_new, const int ncol_new)
+{
+  double hx_o = 1.0 / double(ncol - 1);
+  double hx = 1.0 / double(ncol_new - 1); // x-spacing
+  double hx_ratio = (hx_o / hx);          // ratio of x-spacing resampled/orig
+
+  double hy_o = 1.0 / double(nrow - 1);
+  double hy = 1.0 / double(nrow_new - 1); // x-spacing
+  double hy_ratio = (hy_o / hy);          // ratio of x-spacing resampled/orig
+
+  for (int irow = 0; irow < nrow_new - 1; ++irow)
+    {
+      int i_bot = floor (irow / hy_ratio);
+      int i_top = i_bot + 1;
+
+      double y = double(irow) * hy;
+      double y1 = double(i_bot) * hy_o;
+      double y2 = double(i_top) * hy_o;
+
+      for (int jcol = 0; jcol < ncol_new - 1; ++jcol)
+        {
+          int j_left = floor (jcol / hx_ratio);
+          int j_right = j_left + 1;
+
+          double x = double(jcol) * hx;
+          double x1 = double(j_left) * hx_o;
+          double x2 = double(j_right) * hx_o;
+
+          double q11 = inbuf[get_index (ncol, i_bot, j_left)];
+          double q12 = inbuf[get_index (ncol, i_top, j_left)];
+          double q21 = inbuf[get_index (ncol, i_bot, j_right)];
+          double q22 = inbuf[get_index (ncol, i_top, j_right)];
+
+          double d11 = (std::pow(x1 - x, 2.0 ) +  std::pow(y1 - y, 2.0 ));
+          double d12 = (std::pow(x1 - x, 2.0 ) +  std::pow(y2 - y, 2.0 ));
+          double d21 = (std::pow(x2 - x, 2.0 ) +  std::pow(y1 - y, 2.0 ));
+          double d22 = (std::pow(x2 - x, 2.0 ) +  std::pow(y2 - y, 2.0 ));
+
+          
+          if( d11 == 0 )
+            {
+              outbuf[get_index (ncol_new, irow, jcol)] = q11;
+            }
+          else if (d12 == 0)
+            {
+              outbuf[get_index (ncol_new, irow, jcol)] = q12;
+            }
+          else if (d21 == 0)
+            {
+              outbuf[get_index (ncol_new, irow, jcol)] = q21;
+            }
+          else if (d22 == 0)
+            {
+              outbuf[get_index (ncol_new, irow, jcol)] = q22;
+            }
+          else
+            {
+              d11 = std::pow(d11, 1.5);
+              d12 = std::pow(d12, 1.5);
+              d21 = std::pow(d21, 1.5);         
+              d22 = std::pow(d22, 1.5);         
+              
+              double dsum = 1.0/(d11) + 1.0/(d12) + 1.0/(d21) + 1.0/(d22);
+              //std::cout <<  (q11/d11 + q12/d12 + q21/d21 + q22/d22)/dsum << "\n";
+              //              std::cout <<  dsum << "\n";
+          
+              outbuf[get_index (ncol_new, irow, jcol)] = (q11/d11 + q12/d12 + q21/d21 + q22/d22)/dsum;
+            }
+
+        }
+
+      // last column
+      double q1 = inbuf[get_index (ncol, i_bot, ncol - 1)];
+      double q2 = inbuf[get_index (ncol, i_top, ncol - 1)];
+
+      double d1 = std::pow(y1 - y, 4.0 );
+      double d2 = std::pow(y2 - y, 4.0 );
+
+      if( d1 == 0)
+        {
+          outbuf[get_index (ncol_new, irow, ncol_new - 1)] = q1;
+        }
+      else if( d2 == 0)
+        {
+          outbuf[get_index (ncol_new, irow, ncol_new - 1)] = q2;
+        }
+      else{
+        double dsum = 1.0/d1 + 1.0/d2;
+        outbuf[get_index (ncol_new, irow, ncol_new - 1)] = (q1/d1 + q2/d2)/dsum;
+                   
+      }
+
+    }
+
+  // last-row
+  resample_1d_inv2 (&inbuf[get_index (ncol, nrow - 1, 0)],
                &outbuf[get_index (ncol_new, nrow_new - 1, 0)], ncol, ncol_new);
 }
 
