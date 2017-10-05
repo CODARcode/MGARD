@@ -51,6 +51,8 @@
 
 #include "mgard_capi.h" 
 
+#define print_red "\e[31m"
+
 int main(int argc, char *argv[])
 {
   int i, j, nrow, ncol;
@@ -58,12 +60,14 @@ int main(int argc, char *argv[])
 
   if(argc < 6)
     {
-      fprintf (stderr, "%s: Not enough arguments! Usage: %s infile outfile tolerance\n", argv[0], argv[0]);
+      fprintf (stderr, "%s: Not enough arguments! Usage: %s infile outfile nrow ncol tolerance\n", argv[0], argv[0]);
       return 1;
     }
   else
     {
-      tol = atof(argv[5]);
+      nrow = atoi(argv[3]);
+      ncol = atoi(argv[4]);
+      tol  = atof(argv[5]);
     }
   
 
@@ -144,12 +148,12 @@ int main(int argc, char *argv[])
 
   if( norm/norm0 < tol)
     {
-      printf("SUCCESS: Error tolerance met!\n");
+      printf("\x1b[32mSUCCESS: Error tolerance met! \x1b[0m \n");
       return 0;
     }
   else{
-      printf("FAILURE: Error tolerance not met!\n");
-      return 1;
+    printf("\x1b[31mFAILURE: Error tolerance NOT met! \x1b[0m \n");
+    return 1;
   }
   
 
