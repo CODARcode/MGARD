@@ -51,7 +51,7 @@ namespace mgard
 
 
 unsigned char *
-refactor_qz (int nrow, int ncol, double *v, int &outsize, double tol)
+refactor_qz (int nrow, int ncol, const double *u, int &outsize, double tol)
 {
 
   if (mgard::is_2kplus1 (nrow)
@@ -62,10 +62,11 @@ refactor_qz (int nrow, int ncol, double *v, int &outsize, double tol)
 
       std::vector<double> row_vec (ncol);
       std::vector<double> col_vec (nrow);
-      std::vector<double> work (nrow * ncol);
+      std::vector<double> v(u, u+nrow*ncol), work(nrow * ncol);
 
+      
       int l_target = nlevel - 1;
-      mgard::refactor (nrow, ncol, l_target, v, work, row_vec, col_vec);
+      mgard::refactor (nrow, ncol, l_target, v.data(), work, row_vec, col_vec);
       work.clear ();
       row_vec.clear ();
       col_vec.clear ();
@@ -74,8 +75,7 @@ refactor_qz (int nrow, int ncol, double *v, int &outsize, double tol)
       std::vector<int> qv (nrow * ncol + size_ratio);
 
       tol /= nlevel + 1;
-      mgard::quantize_2D_iterleave (nrow, ncol, v, qv, tol);
-      free(v); //destroy input buffer
+      mgard::quantize_2D_iterleave (nrow, ncol, v.data(), qv, tol);
       
       std::vector<unsigned char> out_data;
       mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
@@ -86,61 +86,61 @@ refactor_qz (int nrow, int ncol, double *v, int &outsize, double tol)
     }
   else
     {
-      int nlevel_col = floor (std::log2 (ncol - 2)) + 1;
-      int ncol_new = std::pow (2, nlevel_col) + 1;
-      int nlevel_row;
-      int nrow_new;
+    //   int nlevel_col = floor (std::log2 (ncol - 2)) + 1;
+    //   int ncol_new = std::pow (2, nlevel_col) + 1;
+    //   int nlevel_row;
+    //   int nrow_new;
       
-      if (nrow == 1)
-        {
-          nrow_new = 1; 
-        }
-      else if(nrow >= 3)
-        {
-          nlevel_row = floor (std::log2 (nrow - 2)) + 1;
-          nrow_new = std::pow (2, nlevel_row) + 1;
-        }
+    //   if (nrow == 1)
+    //     {
+    //       nrow_new = 1; 
+    //     }
+    //   else if(nrow >= 3)
+    //     {
+    //       nlevel_row = floor (std::log2 (nrow - 2)) + 1;
+    //       nrow_new = std::pow (2, nlevel_row) + 1;
+    //     }
 
-      int nlevel_new;
+    //   int nlevel_new;
       
-      mgard::set_number_of_levels (nrow_new, ncol_new, nlevel_new);
-      int l_target = nlevel_new - 1;
+    //   mgard::set_number_of_levels (nrow_new, ncol_new, nlevel_new);
+    //   int l_target = nlevel_new - 1;
 
-      std::vector<double> row_vec (ncol_new);
-      std::vector<double> col_vec (nrow_new);
-      std::vector<double> v_new (nrow_new * ncol_new);
+    //   std::vector<double> row_vec (ncol_new);
+    //   std::vector<double> col_vec (nrow_new);
+    //   std::vector<double> v_new (nrow_new * ncol_new);
 
-      //      mgard::resample_2d (v, v_new.data(), nrow, ncol, nrow_new,
-      //                    ncol_new); // interpolate to (2^q + 1) x (2^p + 1)
+    //   //      mgard::resample_2d (v, v_new.data(), nrow, ncol, nrow_new,
+    //   //                    ncol_new); // interpolate to (2^q + 1) x (2^p + 1)
 
-    mgard::resample_2d (v, v_new.data(), nrow, ncol, nrow_new,
-                        ncol_new); // interpolate to (2^q + 1) x (2^p + 1)
-      free(v);//free input buffer!
+    // mgard::resample_2d (v, v_new.data(), nrow, ncol, nrow_new,
+    //                     ncol_new); // interpolate to (2^q + 1) x (2^p + 1)
+    //   free(v);//free input buffer!
 
-      std::vector<double> work (nrow_new * ncol_new);
-      mgard::refactor (nrow_new, ncol_new, l_target, v_new.data (), work,
-                       row_vec, col_vec);
+    //   std::vector<double> work (nrow_new * ncol_new);
+    //   mgard::refactor (nrow_new, ncol_new, l_target, v_new.data (), work,
+    //                    row_vec, col_vec);
 
-      work.clear ();
-      col_vec.clear ();
-      row_vec.clear ();
+    //   work.clear ();
+    //   col_vec.clear ();
+    //   row_vec.clear ();
 
-      int size_ratio = sizeof (double) / sizeof (int);
-      std::vector<int> qv (nrow_new * ncol_new + size_ratio);
+    //   int size_ratio = sizeof (double) / sizeof (int);
+    //   std::vector<int> qv (nrow_new * ncol_new + size_ratio);
 
-      tol /= nlevel_new + 1;
-      mgard::quantize_2D_iterleave (nrow_new, ncol_new, v_new.data (), qv,
-                                    tol);
-      v_new.clear ();
+    //   tol /= nlevel_new + 1;
+    //   mgard::quantize_2D_iterleave (nrow_new, ncol_new, v_new.data (), qv,
+    //                                 tol);
+    //   v_new.clear ();
 
-      std::vector<unsigned char> out_data;
-      mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
+    //   std::vector<unsigned char> out_data;
+    //   mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
 
-      outsize = out_data.size ();
-      //      std::cout << "Compressed size: " << outsize << "\n";
-      unsigned char *buffer = (unsigned char *)malloc (outsize);
-      std::copy (out_data.begin (), out_data.end (), buffer);
-      return buffer;
+    //   outsize = out_data.size ();
+    //   //      std::cout << "Compressed size: " << outsize << "\n";
+    //   unsigned char *buffer = (unsigned char *)malloc (outsize);
+    //   std::copy (out_data.begin (), out_data.end (), buffer);
+    //   return buffer;
     }
 }  
 
