@@ -43,7 +43,7 @@
 
 
 #include "mgard.h"
-
+#include "mgard_nuni.h"
 namespace mgard_common
 {
 
@@ -476,7 +476,7 @@ namespace mgard_gen
   {
     
     //    return (*get_ref(coords, n, no, i+stride) - *get_ref(coords, n, no, i));
-    return (coords[get_lindex(n, no, i+stride)] - coords[get_lindex(n, no, i)]);
+    return (get_lindex(n, no, i+stride) - get_lindex(n, no, i));
   }
 
 
@@ -906,6 +906,7 @@ void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n,
     int stride = 1;
     pi_Ql_first(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec, col_vec); //(I-\Pi u) this is the initial move to 2^k+1 nodes
 
+
     mgard_cannon::copy_level(nrow, ncol, l, v,  work);
     mgard_gen::assign_num_level_l(0, work.data(), 0.0, nr, nc, nrow, ncol);
 
@@ -920,11 +921,9 @@ void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n,
           }
         
         mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
-        
-        restrict_first(row_vec, coords_x, nc, ncol);
-        
 
-        
+        restrict_first(row_vec, coords_x, nc, ncol);
+
         for(int jcol = 0; jcol < ncol; ++jcol)
           {
             work[mgard_common::get_index(ncol, irow, jcol)] = row_vec[jcol] ;
@@ -932,22 +931,23 @@ void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n,
         
       }
 
-for(int irow = 0;  irow < nr; ++irow)
-  {
-    int ir = get_lindex(nr, nrow, irow);
-    for(int jcol = 0; jcol < ncol; ++jcol)
+    for(int irow = 0;  irow < nr; ++irow)
       {
-        row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
-      }
-    solve_tridiag_M_l(0,  row_vec, coords_x, nc, ncol);
+        int ir = get_lindex(nr, nrow, irow);
+        for(int jcol = 0; jcol < ncol; ++jcol)
+          {
+            row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
+          }
 
-    for(int jcol = 0; jcol < ncol; ++jcol)
-      {
-        work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol] ;
+        solve_tridiag_M_l(0,  row_vec, coords_x, nc, ncol);
+
+        for(int jcol = 0; jcol < ncol; ++jcol)
+          {
+            work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol] ;
+          }
       }
-  }
  
-    //      std::cout << "Row sweep done!"<<"\n";
+    //    std::cout << "Row sweep done!"<<"\n";
 
     // column-sweep
     if (nrow > 1) //do this if we have an 2-dimensional array
@@ -990,6 +990,7 @@ for(int irow = 0;  irow < nr; ++irow)
       }
         // Solved for (z_l, phi_l) = (c_{l+1}, vl)
     add_level_l(0, v, work.data(),  nr,  nc,  nrow,  ncol);
+
   }
 
 
@@ -1071,7 +1072,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
   void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
   {
     //refactor
-
+    //    std::cout << "I am the general refactorer!" <<"\n";
    for (int l = 0; l < l_target; ++l)
      {
        int stride = std::pow(2,l);//current stride
@@ -1154,7 +1155,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
 
         assign_num_level_l(l, work.data(),  0.0,  nr,  nc,  nrow,  ncol);
 
-        std::cout << "recomposing-rowsweep" << "\n";
+        //        std::cout << "recomposing-rowsweep" << "\n";
         //  l = 0;
         // row-sweep
         for(int irow = 0;  irow < nr; ++irow)
@@ -1208,7 +1209,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
               }
           }
         subtract_level_l(l, work.data(), v,  nr,  nc,  nrow,  ncol); //do -(Qu - zl)
-        std::cout << "recomposing-rowsweep2" << "\n";
+        //        std::cout << "recomposing-rowsweep2" << "\n";
 
       //   //int Pstride = stride/2; //finer stride
 
@@ -1251,11 +1252,12 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
                   }
               }
           }
-        std::cout << "last step" << "\n";
+
 
         assign_num_level_l(l, v, 0.0, nr, nc, nrow, ncol);
         subtract_level_l(l-1, v, work.data(),  nr,  nc,  nrow,  ncol);
       }
+    //    std::cout << "last step" << "\n";
   }
 
 
@@ -1369,7 +1371,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
 
 
         subtract_level_l(0, work.data(), v,  nr,  nc,  nrow,  ncol); //do -(Qu - zl)
-        std::cout << "recomposing-rowsweep2" << "\n";
+        //        std::cout << "recomposing-rowsweep2" << "\n";
 
 
     //     //   //int Pstride = stride/2; //finer stride
@@ -1393,7 +1395,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
           }
 
 
-    //   //   std::cout << "recomposing-colsweep2" << "\n";
+
     //     // column-sweep, this is the slow one! Need something like column_copy
         if( nrow > 1)
           {
@@ -1414,10 +1416,11 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
               }
           }
         
-        //     std::cout << "last step" << "\n";
+
 
         assign_num_level_l(0, v, 0.0, nr, nc, nrow, ncol);
         mgard_cannon::subtract_level(nrow,  ncol, 0, v, work.data() );
+
   }
 
 
