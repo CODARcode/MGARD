@@ -166,7 +166,7 @@ namespace mgard
                  const int ncol, const int nrow_new, const int ncol_new);
 
   unsigned char *
-    refactor_qz (int nrow, int ncol, double *v, int &outsize, double tol);
+    refactor_qz (int nrow, int ncol, const double *v, int &outsize, double tol);
 
   double*
     recompose_udq(int nrow, int ncol, unsigned char *data, int data_len);
