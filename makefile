@@ -6,7 +6,8 @@ LINK.o = $(CC) $(LDFLAGS) $(TARGET_ARCH)
 MKDIR=mkdir
 RMDIR=rmdir --ignore-fail-on-non-empty
 
-CXXFLAGS= -c -std=c++11 -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
+#CXXFLAGS= -c -std=c++11 -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
+CXXFLAGS= -c  -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
 CFLAGS=  -c -Wall -Wfatal-errors -I$(INC) -O3
 
 LDFLAGS = -lz -lm -lstdc++
@@ -21,7 +22,7 @@ vpath %.c $(SRC)
 vpath %.cpp $(SRC)
 
 #SOURCES=cmgard.c mgard.cpp mgard_capi.cpp
-SOURCES=mgard_test.c mgard.cpp mgard_capi.cpp 
+SOURCES=mgard_test.c mgard.cpp mgard_nuni.cpp mgard_capi.cpp 
 OBJECTS=$(foreach SOURCE,$(basename $(SOURCES)),$(OBJ)/$(SOURCE).o)
 
 EXECUTABLE=mgard_test
@@ -29,7 +30,7 @@ LIB=libmgard.a
 
 .PHONY: all clean test
 
-all: $(EXECUTABLE) $(LIB) test
+all: $(EXECUTABLE) $(LIB) test test2
 
 $(EXECUTABLE): $(OBJECTS) 
 	$(LINK.o) -o $@ $^
@@ -47,7 +48,10 @@ $(LIB): $(OBJECTS)
 	$(AR) $(ARFLAGS) $(LIB) $^
 
 test: $(EXECUTABLE)
-	./$(EXECUTABLE) data/u3_2049x2049 tar 2049 2049 1e-2
+	./$(EXECUTABLE) data/u3_513x513_orig data/u3_513x513.mgard  513 513 1e-2
+
+test2: $(EXECUTABLE)
+	./$(EXECUTABLE) data/cldlow_1800x3600_orig data/cldlow_1800x3600.mgard  1800 3600 1e-3
 clean:
 	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB)
 	if [ -d $(OBJ) ]; then $(RMDIR) $(OBJ); fi
