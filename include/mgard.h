@@ -127,10 +127,10 @@ namespace mgard
 
   void
     quantize_2D_iterleave (const int nrow, const int ncol, double *v,
-                           std::vector<int> &work, double tol);
+                           std::vector<int> &work, double norm, double tol);
 
   void
-    dequantize_2D_iterleave (const int nrow, const int ncol, double *v,
+    dequantize_2D_iterleave (const int nrow, const int ncol, double *v, 
                              const std::vector<int> &work);
 
   void

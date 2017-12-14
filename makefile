@@ -51,7 +51,7 @@ test: $(EXECUTABLE)
 	./$(EXECUTABLE) data/u3_513x513_orig data/u3_513x513.mgard  513 513 1e-2
 
 test2: $(EXECUTABLE)
-	./$(EXECUTABLE) data/cldlow_1800x3600_orig data/cldlow_1800x3600.mgard  1800 3600 1e-3
+	./$(EXECUTABLE) data/data_600x400_orig data/data_600x400.mgard  600 400 1e-3
 clean:
 	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB)
 	if [ -d $(OBJ) ]; then $(RMDIR) $(OBJ); fi

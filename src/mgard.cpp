@@ -59,13 +59,15 @@ refactor_qz (int nrow, int ncol, const double *u, int &outsize, double tol)
   std::vector<double> col_vec (nrow);
   std::vector<double> v(u, u+nrow*ncol), work(nrow * ncol);
 
+  double norm = mgard_common::max_norm(v);
+
+  
   if (mgard::is_2kplus1 (nrow)
       && mgard::is_2kplus1 (ncol)) // input is (2^q + 1) x (2^p + 1)
     {
       int nlevel;
       mgard::set_number_of_levels (nrow, ncol, nlevel);
-
-      
+      tol /= float (nlevel + 1);      
       
       int l_target = nlevel - 1;
       mgard::refactor (nrow, ncol, l_target, v.data(), work, row_vec, col_vec);
@@ -76,8 +78,8 @@ refactor_qz (int nrow, int ncol, const double *u, int &outsize, double tol)
       int size_ratio = sizeof (double) / sizeof (int);
       std::vector<int> qv (nrow * ncol + size_ratio);
 
-      tol /= nlevel + 1;
-      mgard::quantize_2D_iterleave (nrow, ncol, v.data(), qv, tol);
+
+      mgard::quantize_2D_iterleave (nrow, ncol, v.data(), qv, norm, tol);
       
       std::vector<unsigned char> out_data;
       mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
@@ -96,6 +98,7 @@ refactor_qz (int nrow, int ncol, const double *u, int &outsize, double tol)
       int nr = std::pow(2, nlevel_y ) + 1; //nrow new
 
       int nlevel = std::min(nlevel_x, nlevel_y);
+      tol /= nlevel + 1;
       
       std::cout << "Got: " << nlevel << " \t "<< tol <<"\n";
       std::cout << "Tog: " << nr << " \t "<< nc <<"\n";
@@ -114,8 +117,7 @@ refactor_qz (int nrow, int ncol, const double *u, int &outsize, double tol)
       std::vector<int> qv (nrow * ncol + size_ratio);
 
       tol /= nlevel + 1;
-      mgard::quantize_2D_iterleave (nrow, ncol, v.data (), qv,
-                                    tol);
+      mgard::quantize_2D_iterleave (nrow, ncol, v.data (), qv, norm, tol);
 
       std::vector<unsigned char> out_data;
       mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
@@ -686,21 +688,15 @@ qwrite_level_2D (const int nrow, const int ncol, const int nlevel, const int l,
 
 void
 quantize_2D_iterleave (const int nrow, const int ncol, double *v,
-                       std::vector<int> &work, double tol)
+                       std::vector<int> &work, double norm, double tol)
 {
   //  std::cout << "Tolerance: " << tol << "\n";
-  double norm = 0;
   int size_ratio = sizeof (double) / sizeof (int);
 
-  for (int index = 0; index < nrow * ncol; ++index)
-    {
-      double ntest = std::abs (v[index]);
-      if (ntest > norm)
-        norm = ntest;
-    }
+
   //std::cout << "Norm of sorts: " << norm << "\n";
 
-  double quantizer = norm * tol;
+  double quantizer = 2.0*norm * tol;
   //std::cout << "Quantization factor: " << quantizer << "\n";
   std::memcpy (work.data (), &quantizer, sizeof (double));
 
