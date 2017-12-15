@@ -443,15 +443,16 @@ namespace mgard_gen
     // no: original number of points
     // n : number of points at next coarser level (L-1) with  2^k+1 nodes
     // may not work for the last element!
+    double *ref;
     if(i != n-1)
       {
-        return &v[floor(( (double) no-2.0)/( (double) n-2.0)*i)];        
+        ref = &v[floor(( (double) no-2.0)/( (double) n-2.0)*i)];        
       }
     else if( i == n-1 )
       {
-        return &v[no-1];
+        ref =  &v[no-1];
       }
-
+    return ref;
     //    return &v[floor(((no-2)/(n-2))*i ) ];
   }
   
@@ -460,16 +461,18 @@ namespace mgard_gen
   {
     // no: original number of points
     // n : number of points at next coarser level (L-1) with  2^k+1 nodes
-    
+    int lindex;
     //    return floor((no-2)/(n-2)*i);
     if(i != n-1)
       {
-        return  floor(( (double) no-2.0)/( (double) n-2.0)*i);
+        lindex = floor(( (double) no-2.0)/( (double) n-2.0)*i);
       }
     else if ( i == n-1)
       {
-        return no-1;
+        lindex = no-1;
       }
+
+    return lindex;
   }
   
   inline  double get_h_l(const std::vector<double>& coords, const int n, const int no, int i, int stride)
