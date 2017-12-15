@@ -1144,7 +1144,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
   {
         // recompose
-    std::cout << "recomposing" << "\n";
+    //    std::cout << "recomposing" << "\n";
     for (int l = l_target ; l > 0 ; --l)
       {
 

@@ -192,7 +192,7 @@ double* recompose_udq(int nrow, int ncol, unsigned char *data, int data_len)
 
       mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
       mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
-      std::cout << "Recomposing done!!!" << "\n";
+      //      std::cout << "Recomposing done!!!" << "\n";
 
       return v;
     }
