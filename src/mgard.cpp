@@ -99,9 +99,7 @@ refactor_qz (int nrow, int ncol, const double *u, int &outsize, double tol)
 
       int nlevel = std::min(nlevel_x, nlevel_y);
       tol /= nlevel + 1;
-      
-      std::cout << "Got: " << nlevel << " \t "<< tol <<"\n";
-      std::cout << "Tog: " << nr << " \t "<< nc <<"\n";
+
       int l_target = nlevel-1;
 
 
