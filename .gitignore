@@ -6,3 +6,6 @@
 
 #Executable.
 cmgard
+
+#MGARD compressed output
+*.mgard
