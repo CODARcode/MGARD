@@ -186,7 +186,7 @@ namespace mgard_common
   void qwrite_2D_interleave( const int nrow, const int ncol, const int nlevel,  const int  l,   double* v, double tol, double norm, const std::string outfile)
   {
 
-    int stride = std::pow(2,l);//current stride
+    //    int stride = std::pow(2,l);//current stride
 
     tol /=  (double) (nlevel + 1);
 
@@ -596,7 +596,7 @@ namespace mgard_gen
 
     int stride = 1;//current stride
     //  int Pstride = stride/2; //finer stride
-    int Cstride = 2; // coarser stride
+    //    int Cstride = 2; // coarser stride
 
     
     for(int irow = 0;  irow < nr; irow += stride) // Do the rows existing  in the coarser level
@@ -631,12 +631,11 @@ namespace mgard_gen
         for(int jcol = 0;  jcol < nc; jcol += stride) // Do the columns existing  in the coarser level
           {
             int jcol_r = get_lindex(nc, ncol, jcol);
-            int jr  = get_lindex(nc, ncol, jcol);
-            int jrP = get_lindex(nc, ncol, jcol+1); 
+            //            int jr  = get_lindex(nc, ncol, jcol);
+            //int jrP = get_lindex(nc, ncol, jcol+1); 
 
             for(int irow = 0;  irow < nrow; ++irow)
               {
-                int irow_r = get_lindex(nr, nrow, irow);
                 col_vec[irow] = v[mgard_common::get_index(ncol, irow, jcol_r)];
               }
 
@@ -644,7 +643,6 @@ namespace mgard_gen
 
             for(int irow = 0;  irow < nrow; ++irow)
               {
-                int irow_r = get_lindex(nr, nrow, irow);
                 v[mgard_common::get_index(ncol, irow, jcol_r)] = col_vec[irow];
               }
 
@@ -907,7 +905,7 @@ void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n,
   {
 
     int l = 0;
-    int stride = 1;
+    //    int stride = 1;
     pi_Ql_first(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec, col_vec); //(I-\Pi)u this is the initial move to 2^k+1 nodes
 
 
@@ -1430,8 +1428,8 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
 void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol, const int nlevel,  const int  l,   double* v, double tol, double norm, const std::string outfile)
   {
 
-    int stride = std::pow(2,l);//current stride
-    int Cstride = 2*stride;
+    //    int stride = std::pow(2,l);//current stride
+    //    int Cstride = 2*stride;
     tol /=  (double) (nlevel + 1);
 
     double coeff = 2.0*norm*tol;
