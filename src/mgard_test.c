@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
   /* fclose(qfile); */
   
   
-  printf ("In size:  %10d  Out size: %10d  Compression ratio: %10d \n", lSize, out_size, lSize/out_size);
+  printf ("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
   
   double* mgard_out_buff; 
   
