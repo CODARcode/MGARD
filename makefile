@@ -6,7 +6,7 @@ LINK.o = $(CC) $(LDFLAGS) $(TARGET_ARCH)
 MKDIR=mkdir
 RMDIR=rmdir --ignore-fail-on-non-empty
 
-#CXXFLAGS= -c -std=c++11 -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
+
 CXXFLAGS= -c  -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
 CFLAGS=  -c -Wall -Wfatal-errors -I$(INC) -O3
 
@@ -21,7 +21,7 @@ vpath %.o $(OBJ)
 vpath %.c $(SRC)
 vpath %.cpp $(SRC)
 
-#SOURCES=cmgard.c mgard.cpp mgard_capi.cpp
+
 SOURCES=mgard_test.c mgard.cpp mgard_nuni.cpp mgard_capi.cpp 
 OBJECTS=$(foreach SOURCE,$(basename $(SOURCES)),$(OBJ)/$(SOURCE).o)
 

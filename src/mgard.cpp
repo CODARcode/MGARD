@@ -694,8 +694,8 @@ quantize_2D_iterleave (const int nrow, const int ncol, double *v,
 
   //std::cout << "Norm of sorts: " << norm << "\n";
 
-  //  double quantizer = 2.0*norm * tol;
-  double quantizer = norm * tol;
+  //    double quantizer = 2.0*norm * tol;
+    double quantizer = 2.0*norm * tol;
   //std::cout << "Quantization factor: " << quantizer << "\n";
   std::memcpy (work.data (), &quantizer, sizeof (double));
 
