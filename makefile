@@ -2,7 +2,7 @@
 CXX= g++
 CC = gcc
 
-LINK.o = $(CC) $(LDFLAGS) $(TARGET_ARCH)
+LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
 MKDIR=mkdir
 RMDIR=rmdir --ignore-fail-on-non-empty
 
