@@ -91,51 +91,6 @@ extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_
 
 
 
-
-extern "C" void mgard_sirius_compress(int itype_flag,  double  *data, unsigned char *compressed_coarse, unsigned char *compressed_fine, int &out_size_1, int &out_size_2, int nrow, int ncol, double *tol_coarse, double *tol_fine)
-{ 
-
-  assert (ncol > 3);
-  assert (nrow >= 1);
-
-  if(itype_flag == 0)
-    {
-      // float *v   = static_cast<float*>(data);
-      // float *tolc = static_cast<float*>(tol_coarse);
-      // float *tolf = static_cast<float*>(tol_fine);
-      assert (*tol_coarse >= 1e-8);
-      assert (*tol_fine >= 1e-8);
-      
-      //mgard_compressed_ptr = mgard::refactor_qz_float(nrow, ncol, v, out_size, *tol);
-
-      //return mgard_compressed_ptr;
-    }
-  else if(itype_flag == 1)
-    {
-      // double *v   = static_cast<double*>(data);
-      // double *tolc = static_cast<double*>(tol_coarse);
-      // double *tolf = static_cast<double*>(tol_fine);
-
-      assert (*tol_coarse >= 1e-8);
-      assert (*tol_fine >= 1e-8);
-
-      
-      compressed_coarse = mgard::refactor_qz(nrow, ncol, data, out_size_1, *tol_coarse);
-      compressed_fine   = mgard::refactor_qz(nrow, ncol, data, out_size_2, *tol_fine);
-
-      // std::string out_file = "test.dat";
-      // std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
-      // outfile.write( reinterpret_cast<char*>( compressed_fine ),  out_size_2);
-    }
-  else
-    {
-      std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
-
-    }
-  
-}
-
-
 extern "C" void *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, int nrow, int ncol)
 {
   assert (ncol > 3);
@@ -173,32 +128,6 @@ extern "C" void *mgard_decompress(int itype_flag,  unsigned char *data, int data
 }
 
 
-extern "C" void mgard_sirius_decompress(int itype_flag,  unsigned char *data_coarse, unsigned char *data_fine, double *v_coarse, double *v_fine, int data_len_coarse, int data_len_fine, int nrow, int ncol)
-{
-  assert (ncol > 3);
-  assert (nrow >= 1);
 
-  if(itype_flag == 0)
-    {
-      std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
-    }
-  else if(itype_flag == 1)
-    {
-      
-      v_coarse = mgard::recompose_udq(nrow, ncol, data_coarse, data_len_coarse);
-      v_fine   = mgard::recompose_udq(nrow, ncol, data_fine  , data_len_fine);
-
-    }
-  else
-    {
-      std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
-
-      //      float* mgard_decompressed_ptr;
-
-      //mgard_decompressed_ptr = mgard::recompose_udq_float(nrow, ncol, v, out_size, *tol);
-
-    }
-  
-}
 
 
