@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 
   qfile = fopen ( argv[2] , "wb" );
 
-  char* outbuffer = ((char*)mgard_comp_buff);
+  char * outbuffer = ((char*)mgard_comp_buff);
   
   result = fwrite (mgard_out_buff, 1, lSize, qfile);
   fclose(qfile);
