@@ -10,6 +10,7 @@ endif()
 project(MGARD VERSION 0.1)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Default to a Release build if not specified
 if(NOT CMAKE_BUILD_TYPE)
