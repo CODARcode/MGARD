@@ -24,7 +24,7 @@
 // Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
 // Corresponding Author: Ozan Tugluk
 //
-// version: 0.0.0.1
+// version: 0.0.0.2
 //
 // This file is part of MGARD.
 //
@@ -41,148 +41,95 @@ namespace mgard
 
 
 unsigned char *
-refactor_qz (int nrow, int ncol, const double *u, int &outsize, double tol)
+refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double tol)
 {
-
-  std::vector<double> row_vec (ncol);
-  std::vector<double> col_vec (nrow);
-  std::vector<double> v(u, u+nrow*ncol), work(nrow * ncol);
-
-  double norm = mgard_common::max_norm(v);
-
+  int nlevel;
+  std::vector<double> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
+  std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
   
-  if (mgard::is_2kplus1 (nrow)
-      && mgard::is_2kplus1 (ncol)) // input is (2^q + 1) x (2^p + 1)
-    {
-      int nlevel;
-      mgard::set_number_of_levels (nrow, ncol, nlevel);
-      tol /= float (nlevel + 1);      
-      
-      int l_target = nlevel - 1;
-      mgard::refactor (nrow, ncol, l_target, v.data(), work, row_vec, col_vec);
-      work.clear ();
-      row_vec.clear ();
-      col_vec.clear ();
-
-      int size_ratio = sizeof (double) / sizeof (int);
-      std::vector<int> qv (nrow * ncol + size_ratio);
-
-
-      mgard::quantize_2D_iterleave (nrow, ncol, v.data(), qv, norm, tol);
-      
-      std::vector<unsigned char> out_data;
-      mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
-      outsize = out_data.size ();
-      unsigned char *buffer = (unsigned char *)malloc (outsize);
-      std::copy (out_data.begin (), out_data.end (), buffer);
-      return buffer;
-    }
-  else
-    {
-      std::vector<double> coords_x, coords_y;
-      int nlevel_x = std::log2(ncol-1);
-      int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-
-      int nlevel_y = std::log2(nrow-1);
-      int nr = std::pow(2, nlevel_y ) + 1; //nrow new
-
-      int nlevel = std::min(nlevel_x, nlevel_y);
-      tol /= nlevel + 1;
-
-      int l_target = nlevel-1;
+  double s = 0; // Defaulting to L2 compression for a start. 
+  double norm = 1;//defaulting to absolute L2 for a start
+  
+  int nlevel_x = std::log2(ncol-1);
+  int nc = std::pow(2, nlevel_x ) + 1; //ncol new
+  
+  int nlevel_y = std::log2(nrow-1);
+  int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
+  
+  int nlevel_z = std::log2(nfib-1);
+  int nf = std::pow(2, nlevel_z ) + 1; //nfib new
+  
+  nlevel = std::min(nlevel_x, nlevel_y);
+  nlevel = std::min(nlevel, nlevel_z);
+  
+  int l_target = nlevel-1;
 
 
-      mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+  mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
-      mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+  mgard_gen::refactor_3D (nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
+  
+  work.clear();
+  work2d.clear();
 
-      work.clear ();
-      col_vec.clear ();
-      row_vec.clear ();
+    
+  int size_ratio = sizeof (double) / sizeof (int);
+  std::vector<int> qv (nrow * ncol * nfib + size_ratio);
 
-      int size_ratio = sizeof (double) / sizeof (int);
-      std::vector<int> qv (nrow * ncol + size_ratio);
+  //  tol /= nlevel + 1;
+  mgard_gen::quantize_3D(nr, nc, nf, nrow, ncol, nfib, nlevel, v.data (), qv, norm, tol);
 
-      tol /= nlevel + 1;
-      mgard::quantize_2D_iterleave (nrow, ncol, v.data (), qv, norm, tol);
+  std::vector<unsigned char> out_data;
+  mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
 
-      std::vector<unsigned char> out_data;
-      mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
+  outsize = out_data.size ();
+  unsigned char *buffer = (unsigned char *)malloc (outsize);
+  std::copy (out_data.begin (), out_data.end (), buffer);
+  return buffer;
 
-      outsize = out_data.size ();
-      unsigned char *buffer = (unsigned char *)malloc (outsize);
-      std::copy (out_data.begin (), out_data.end (), buffer);
-      return buffer;
-    }
 }  
 
 
-double* recompose_udq(int nrow, int ncol, unsigned char *data, int data_len)
-{
-  int size_ratio = sizeof(double)/sizeof(int);
+  double* recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len)
+  {
+    int size_ratio = sizeof(double)/sizeof(int);
+    std::vector<double> coords_x, coords_y, coords_z;
+    std::vector<int> out_data(nrow*ncol*nfib + size_ratio);
+    std::vector<double> work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
+    
+    double s = 0; // Defaulting to L2 compression for a start. 
+    double norm = 1;//defaulting to absolute L2 for a start
+  
+    int nlevel_x = std::log2(ncol-1);
+    int nc = std::pow(2, nlevel_x ) + 1; //ncol new
+    
+    int nlevel_y = std::log2(nrow-1);
+    int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
+    
+    int nlevel_z = std::log2(nfib-1);
+    int nf = std::pow(2, nlevel_z ) + 1; //nfib new
+    
+    nlevel = std::min(nlevel_x, nlevel_y);
+    nlevel = std::min(nlevel, nlevel_z);
+    
+    int l_target = nlevel-1;
+    
+    
+    mgard::decompress_memory(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+    
+    double *v = (double *)malloc (nrow*ncol*nfib*sizeof(double));
 
-  if (mgard::is_2kplus1 (nrow)
-      && mgard::is_2kplus1 (ncol)) // input is (2^q + 1) x (2^p + 1)
-    {
-      int ncol_new = ncol;
-      int nrow_new = nrow;
+
+    mgard_gen::dequant_3D(  nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel,  nlevel, v.data(), work.data(), coords_x, coords_y,  coords_z, s );
       
-      int nlevel_new;
-      mgard::set_number_of_levels (nrow_new, ncol_new, nlevel_new);
-      int l_target = nlevel_new-1;
-
       
-      std::vector<int> out_data(nrow_new*ncol_new + size_ratio);
+    mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
+    
+    mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, coords_x, coords_y, coords_z);
 
-      mgard::decompress_memory(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
-
-      
-      double *v = (double *)malloc (nrow_new*ncol_new*sizeof(double));
-
-      mgard::dequantize_2D_iterleave(nrow_new, ncol_new, v, out_data) ;
-      out_data.clear();
-      
-      std::vector<double> row_vec(ncol_new);
-      std::vector<double> col_vec(nrow_new);
-      std::vector<double> work(nrow_new*ncol_new);
-
-      mgard::recompose(nrow_new, ncol_new, l_target, v,  work, row_vec, col_vec);
-      
-      return v;
-
-    }
-  else
-    {
-      std::vector<double> coords_x, coords_y;
-      
-      int nlevel_x = std::log2(ncol-1);
-      int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-
-      int nlevel_y = std::log2(nrow-1);
-      int nr = std::pow(2, nlevel_y ) + 1; //nrow new
-
-      int nlevel = std::min(nlevel_x, nlevel_y);
-
-      int l_target = nlevel-1;
-      
-      std::vector<int> out_data(nrow*ncol + size_ratio);
-
-      mgard::decompress_memory(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
-
-      double *v = (double *)malloc (nrow*ncol*sizeof(double));
-
-      mgard::dequantize_2D_iterleave(nrow, ncol, v, out_data) ;
-      
-      std::vector<double> row_vec(ncol);
-      std::vector<double> col_vec(nrow);
-      std::vector<double> work(nrow*ncol);
-
-      mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
-      mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
-      //      std::cout << "Recomposing done!!!" << "\n";
-
-      return v;
-    }
+    
+    return v;
+  }
 }
 
   

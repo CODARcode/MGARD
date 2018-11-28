@@ -35,7 +35,7 @@
 
 #include "mgard.h"
 
-extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_size, int nrow, int ncol, void* tol_in)
+extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_size, int nrow, int ncol, int nfib, void* tol_in)
 { 
 
   assert (ncol > 3);
@@ -61,7 +61,7 @@ extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_
       
       unsigned char* mgard_compressed_ptr;
 
-      mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, v, out_size, *tol);
+      mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, *tol);
 
       return mgard_compressed_ptr;
     }
@@ -83,7 +83,7 @@ extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_
 
 
 
-extern "C" void *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, int nrow, int ncol)
+extern "C" void *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, int nrow, int ncol, int nfib)
 {
   assert (ncol > 3);
   assert (nrow >= 1);
@@ -104,7 +104,7 @@ extern "C" void *mgard_decompress(int itype_flag,  unsigned char *data, int data
 
       //      mgard_decompressed_ptr = static_cast<double*> (mgard::recompose_udq(nrow, ncol, data, data_len));
 
-      mgard_decompressed_ptr = mgard::recompose_udq(nrow, ncol, data, data_len);
+      mgard_decompressed_ptr = mgard::recompose_udq(nrow, ncol, nfib, data, data_len);
       return mgard_decompressed_ptr;
     }
   else
