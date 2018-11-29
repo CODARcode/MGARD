@@ -24,7 +24,7 @@
 // Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
 // Corresponding Author: Ozan Tugluk
 //
-// version: 0.0.0.1
+// version: 0.0.0.2
 //
 // This file is part of MGARD.
 //
@@ -36,9 +36,9 @@
 #ifndef MGARD_H
 #define MGARD_H
 
-#include<cmath>
-#include<vector>
-#include<iostream>
+#include <cmath>
+#include <vector>
+#include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <iterator>
@@ -46,6 +46,15 @@
 #include <assert.h>
 #include <zlib.h>
 #include <cstring>
+#include <iomanip>
+#include <fstream>
+#include <random>
+#include <algorithm>
+#include <iterator>
+#include <sstream>
+#include <string>
+
+#include <zlib.h>
 
 namespace mgard
 
@@ -157,10 +166,10 @@ namespace mgard
                  const int ncol, const int nrow_new, const int ncol_new);
 
   unsigned char *
-    refactor_qz (int nrow, int ncol, const double *v, int &outsize, double tol);
+    refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol);
 
   double*
-    recompose_udq(int nrow, int ncol, unsigned char *data, int data_len);
+    recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len);
   
   int
     parse_cmdl (int argc, char **argv, int &nrow, int &ncol, double &tol,

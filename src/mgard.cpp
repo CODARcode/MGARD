@@ -77,7 +77,7 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   std::vector<int> qv (nrow * ncol * nfib + size_ratio);
 
   //  tol /= nlevel + 1;
-  mgard_gen::quantize_3D(nr, nc, nf, nrow, ncol, nfib, nlevel, v.data (), qv, norm, tol);
+  mgard_gen::quantize_3D(nr, nc, nf, nrow, ncol, nfib, nlevel, v.data (), qv, coords_x, coords_y, coords_z, s, norm, tol);
 
   std::vector<unsigned char> out_data;
   mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
@@ -92,6 +92,7 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 
   double* recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len)
   {
+    int nlevel;
     int size_ratio = sizeof(double)/sizeof(int);
     std::vector<double> coords_x, coords_y, coords_z;
     std::vector<int> out_data(nrow*ncol*nfib + size_ratio);
@@ -120,17 +121,17 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
     double *v = (double *)malloc (nrow*ncol*nfib*sizeof(double));
 
 
-    mgard_gen::dequant_3D(  nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel,  nlevel, v.data(), work.data(), coords_x, coords_y,  coords_z, s );
+    mgard_gen::dequantize_3D(  nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v, out_data, coords_x, coords_y,  coords_z, s );
       
       
-    mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
+    mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, work2d, coords_x, coords_y, coords_z);
     
-    mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, coords_x, coords_y, coords_z);
+    mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, coords_x, coords_y, coords_z);
 
     
     return v;
   }
-}
+  //}
 
   
 inline int
