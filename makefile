@@ -56,7 +56,7 @@ $(LIB): $(OBJECTS)
 	$(AR) $(ARFLAGS) $(LIB) $^
 
 test: $(EXECUTABLE)
-	./$(EXECUTABLE) data/testdouble_8_8_128.dat data/testdouble_8_8_128.mgard  8 8 128 1e-2
+	./$(EXECUTABLE) data/zort_111_160_15.dat data/zort_111_160_15.mgard  111 160 15 1e-5
 
 # test: $(EXECUTABLE)
 # 	./$(EXECUTABLE) data/u3_513x513_orig data/u3_513x513.mgard  51 51 51 1e-2

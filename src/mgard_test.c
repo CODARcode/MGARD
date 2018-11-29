@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
   double* in_buff = (double*) malloc (sizeof(char)*lSize);
 
   memcpy (in_buff, buffer, lSize);
-
+  
    
   unsigned char* mgard_comp_buff;
   
@@ -106,27 +106,27 @@ int main(int argc, char *argv[])
 
 
   FILE *qfile;
-  qfile = fopen ( argv[2] , "wb" );
+  /* qfile = fopen ( argv[2] , "wb" ); */
 
-  char* outbuffer = ((char*)mgard_comp_buff);
+  /* char* outbuffer = ((char*)mgard_comp_buff); */
     
-  result = fwrite (outbuffer, 1, out_size, qfile);
-  fclose(qfile);
+  /* result = fwrite (outbuffer, 1, out_size, qfile); */
+  /* fclose(qfile); */
   
   
   printf ("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
   
-  //  double* mgard_out_buff; 
+   double* mgard_out_buff;
   
-  //  mgard_out_buff = mgard_decompress(iflag, mgard_comp_buff, out_size,  nrow,  ncol, nfib); 
+   mgard_out_buff = mgard_decompress(iflag, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
 
 
-  /* qfile = fopen ( argv[2] , "wb" ); */
+  qfile = fopen ( argv[2] , "wb" );
 
-  /* char * outbuffer = ((char*)mgard_comp_buff); */
+  char * outbuffer = ((char*)mgard_comp_buff);
   
-  /* result = fwrite (mgard_out_buff, 1, lSize, qfile); */
-  /* fclose(qfile); */
+  result = fwrite (mgard_out_buff, 1, lSize, qfile);
+  fclose(qfile);
 
   /* double norm = 0; */
 

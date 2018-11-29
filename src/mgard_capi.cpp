@@ -58,7 +58,7 @@ extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_
       double *v   = static_cast<double*>(data);
       double *tol = static_cast<double*>(tol_in);
       assert (*tol >= 1e-8);
-      
+      //      std::cout << "Input "  << v[100] << std::endl;
       unsigned char* mgard_compressed_ptr;
 
       mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, *tol);

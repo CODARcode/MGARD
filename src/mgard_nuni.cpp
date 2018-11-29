@@ -740,7 +740,7 @@ namespace mgard_gen
       }
   
     norm /= 6.0;
-    std::cout << norm << "\t";
+    //    std::cout << norm << "\t";
     return norm;
   }
 
@@ -939,7 +939,7 @@ namespace mgard_gen
         
         double vol =  std::sqrt(dx*dy*dz);
 	vol *= std::pow(2, s*(nlevel-ilevel)); //2^-2sl with l=0, s = 0.5
-        // std::cout << "Volume : " << ilevel << "\t"<< vol << std::endl;
+        std::cout << "Volume : " << ilevel << "\t"<< vol << std::endl;
         // std::cout << "Stride : " << stride << "\t"<< vol << std::endl;
         
         for(int kfib = 0; kfib < nf; kfib += stride)
@@ -1200,7 +1200,7 @@ namespace mgard_gen
     dz = get_h_l(coords_z, nf, nfib, 0, stride);
     
     vol =  std::sqrt(dx*dy*dz);
-    // std::cout << "Volume : " << nlevel << "\t"<< vol << std::endl;
+    std::cout << "Volume : " << nlevel << "\t"<< vol << std::endl;
     // std::cout << "Stride : " << stride << "\t"<< vol << std::endl;
     
     for(int irow = 0;  irow < nr; irow += stride)
@@ -3839,8 +3839,8 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol, con
 
 void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel,  double* v, std::vector<int>& work, const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z, double s, double norm, double tol)
     {
-    double coeff = tol; 
-    std::memcpy (work.data (), &coeff, sizeof (double));
+    double coeff = norm*tol; 
+    std::memcpy (work.data(), &coeff, sizeof (double));
     int size_ratio = sizeof (double) / sizeof (int);
     int prune_count = 0;
 
@@ -3856,7 +3856,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
     double vol =  std::sqrt(dx*dy*dz);
     vol *= std::pow(2, s*(nlevel+1)); //2^-2sl with l=0, s = 0.5
     //    vol = 1;
-    //    std::cout << "Volume -1: " << vol << std::endl;
+    std::cout << "Volume -1: " << vol << std::endl;
+    //std::cout << "quantizer "  << coeff << std::endl;
     
     for(int kfib = 0; kfib < nf - 1; ++kfib)
       {
@@ -3871,6 +3872,7 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
                   {
                     double val = v[mgard_common::get_index3(ncol, nfib, irow, jcol, kf + 1)];
                     int quantum =  (int)(val/(coeff/vol));
+                    //std::cout << "quantized "  << val << std::endl;
                     work[count] = quantum;
                     ++count;
                   }
@@ -3898,6 +3900,7 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
                   {
                     double val = v[mgard_common::get_index3(ncol, nfib, ir + 1, jcol, kf)];
                     int quantum =  (int)(val/(coeff/vol));
+                    //                    std::cout << "quantized "  << val << std::endl;
                     work[count] = quantum;
                     ++count_row;
                     ++count;
@@ -3946,7 +3949,7 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
         
         double vol =  std::sqrt(dx*dy*dz);
 	vol *= std::pow(2, s*(nlevel-ilevel)); //2^-2sl with l=0, s = 0.5
-        // std::cout << "Volume : " << ilevel << "\t"<< vol << std::endl;
+        std::cout << "Volume : " << ilevel << "\t"<< vol << std::endl;
         // std::cout << "Stride : " << stride << "\t"<< vol << std::endl;
         
         for(int kfib = 0; kfib < nf; kfib += stride)
@@ -4018,7 +4021,7 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
     
     vol =  std::sqrt(dx*dy*dz);
     //    vol *= std::pow(2, 0);
-    // std::cout << "Volume : " << nlevel << "\t"<< vol << std::endl;
+    std::cout << "Volume : " << nlevel << "\t"<< vol << std::endl;
     // std::cout << "Stride : " << stride << "\t"<< vol << std::endl;
     
     for(int irow = 0;  irow < nr; irow += stride)
@@ -4037,8 +4040,10 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
               }
           }
       }
-    
+
+    std::cout << "Wrote out: " << count <<"\n";
   }
+
 
 void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel, double* v, std::vector<int>& work , const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z, double s)
   {
@@ -4047,11 +4052,12 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
     double q; //quantizing factor
     
     std::memcpy (&q, work.data(), sizeof (double));
-        
+       
+    
     double dx = mgard_gen::get_h_l(coords_x, ncol, ncol, 0, 1);
     double dy = mgard_gen::get_h_l(coords_y, nrow, nrow, 0, 1);
     double dz = mgard_gen::get_h_l(coords_z, nfib, nfib, 0, 1);
-    
+
     double vol =  std::sqrt(dx*dy*dz); 
     vol *= std::pow(2, s*(nlevel+1)); //2^-2sl with l=0, s = 0.5
 
@@ -4070,7 +4076,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
               {
                 for(int jcol = 0;  jcol < ncol; ++jcol )
                   {
-                    v[mgard_common::get_index3(ncol, nfib, irow, jcol, kf + 1)] = q*work[imeg]/vol ;
+                    double val = (double) work[imeg];
+                    v[mgard_common::get_index3(ncol, nfib, irow, jcol, kf + 1)] = q*val/vol ;
                     ++imeg;
                    
                   }
@@ -4096,7 +4103,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
                 //  std::cout <<"Skipped row: "  << ir + 1 << "\n";
                 for(int jcol = 0;  jcol < ncol; ++jcol )
                   {
-                    v[mgard_common::get_index3(ncol, nfib, ir + 1, jcol, kf)] = q*work[imeg]/vol ;
+                    double val = work[imeg];
+                    v[mgard_common::get_index3(ncol, nfib, ir + 1, jcol, kf)] = q*val/vol ;
                     ++imeg; 
                   }
               }
@@ -4113,7 +4121,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
                 int jcP  = mgard_gen::get_lindex(nc,  ncol,  jcol+1);
                 if(jcP != jc + 1)//skipped a column
                   {
-                    v[mgard_common::get_index3(ncol, nfib, ir, jc + 1, kf)] = q*work[imeg]/vol ;
+                    double val = (double) work[imeg];
+                    v[mgard_common::get_index3(ncol, nfib, ir, jc + 1, kf)] = q*val/vol ;
                     ++imeg;
 
                   }
@@ -4140,8 +4149,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
         
         double vol =  std::sqrt(dx*dy*dz);
 	vol *= std::pow(2, s*(nlevel-ilevel)); //2^-2sl with l=0, s = 0.5
-        // std::cout << "Volume : " << ilevel << "\t"<< vol << std::endl;
-        // std::cout << "Stride : " << stride << "\t"<< vol << std::endl;
+        std::cout << "Volume : " << ilevel << "\t"<< vol << std::endl;
+        std::cout << "Stride : " << stride << "\t"<< vol << std::endl;
         
         for(int kfib = 0; kfib < nf; kfib += stride)
           {
@@ -4158,7 +4167,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
                       for(int jcol = Cstride;  jcol < nc; jcol += Cstride)
                         {
                           int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
-                          v[mgard_common::get_index3(ncol, nfib, ir,jc - stride, kf)] = q*work[imeg]/vol ;
+                          double val = (double) work[imeg];
+                          v[mgard_common::get_index3(ncol, nfib, ir,jc - stride, kf)] = q*val/vol ;
                           ++imeg; ;
                         }
                     
@@ -4167,7 +4177,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
                       for(int jcol = 0;  jcol < nc; jcol += stride)
                         {
                           int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
-                          v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*work[imeg]/vol ;
+                          double val = (double) work[imeg];
+                          v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val/vol ;
                           ++imeg; ;;
                         
                         }
@@ -4183,7 +4194,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
                   for(int jcol = 0;  jcol < nc; jcol += stride) 
                     {
                       int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
-                      v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*work[imeg]/vol ;
+                      double val = (double) work[imeg];
+                      v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val/vol ;
                           ++imeg; ;;
                     }
                 }
@@ -4201,8 +4213,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
     dz = get_h_l(coords_z, nf, nfib, 0, stride);
     
     vol =  std::sqrt(dx*dy*dz);
-    // std::cout << "Volume : " << nlevel << "\t"<< vol << std::endl;
-    // std::cout << "Stride : " << stride << "\t"<< vol << std::endl;
+    std::cout << "Volume : " << nlevel << "\t"<< vol << std::endl;
+    std::cout << "Stride : " << stride << "\t"<< vol << std::endl;
     
     for(int irow = 0;  irow < nr; irow += stride)
       {
@@ -4213,7 +4225,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
             for(int kfib = 0; kfib < nf; kfib += stride)
               {
                 int kf = mgard_gen::get_lindex(nf, nfib, kfib);
-                v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*work[imeg]/vol ;
+                double val = (double) work[imeg];
+                v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val/vol ;
                 ++imeg; ;;
               }
           }

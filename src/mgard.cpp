@@ -46,9 +46,10 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   int nlevel;
   std::vector<double> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
   std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
-  
+
+  std::cout << "Input++ "  << v[100] << std::endl;
   double s = 0; // Defaulting to L2 compression for a start. 
-  double norm = 1;//defaulting to absolute L2 for a start
+
   
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
@@ -68,10 +69,15 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
+  norm = std::sqrt(norm);
+      
+  std::cout << "L2 norm? "  << norm << std::endl;
   
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::refactor_3D (nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
+  mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
   
   work.clear();
   work2d.clear();
@@ -98,18 +104,19 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   {
     int nlevel;
     int size_ratio = sizeof(double)/sizeof(int);
-    std::vector<double> coords_x, coords_y, coords_z;
+    std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
     std::vector<int> out_data(nrow*ncol*nfib + size_ratio);
     std::vector<double> work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
     
     double s = 0; // Defaulting to L2 compression for a start. 
     double norm = 1;//defaulting to absolute L2 for a start
 
-      //dummy equispaced coordinates
+    //      dummy equispaced coordinates
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
     std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
+    std::cout <<"**** coord check : "  << coords_x[4] << "\n";
     
     int nlevel_x = std::log2(ncol-1);
     int nc = std::pow(2, nlevel_x ) + 1; //ncol new
@@ -131,7 +138,7 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
     double *v = (double *)malloc (nrow*ncol*nfib*sizeof(double));
 
 
-    mgard_gen::dequantize_3D(  nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v, out_data, coords_x, coords_y,  coords_z, s );
+    mgard_gen::dequantize_3D( nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v, out_data, coords_x, coords_y,  coords_z, s );
       
       
     mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, work2d, coords_x, coords_y, coords_z);
