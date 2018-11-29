@@ -43,7 +43,7 @@
 
 int main(int argc, char *argv[])
 {
-  int i, j, nrow, ncol;
+  int i, j, nrow, ncol, nfib;
   double tol;
 
   if(argc < 6)
@@ -55,7 +55,8 @@ int main(int argc, char *argv[])
     {
       nrow = atoi(argv[3]);
       ncol = atoi(argv[4]);
-      tol  = atof(argv[5]);
+      nfib = atoi(argv[5]);
+      tol  = atof(argv[6]);
     }
   
 
@@ -88,68 +89,68 @@ int main(int argc, char *argv[])
    
   unsigned char* mgard_comp_buff;
   
-  double norm0 = 0;
-  for(i = 0; i<nrow; ++i)
-    {
-      for(j = 0; j<ncol; ++j)
-        {
-          double temp = fabs(in_buff[ncol*i+j]);
-          if(temp > norm0) norm0 = temp;
-        }
-    }
+  /* double norm0 = 0; */
+  /* for(i = 0; i<nrow; ++i) */
+  /*   { */
+  /*     for(j = 0; j<ncol; ++j) */
+  /*       { */
+  /*         double temp = fabs(in_buff[ncol*i+j]); */
+  /*         if(temp > norm0) norm0 = temp; */
+  /*       } */
+  /*   } */
 
   int iflag = 1; //0 -> float, 1 -> double
   int out_size;
 
-  mgard_comp_buff = mgard_compress(iflag, in_buff, &out_size,  nrow,  ncol, &tol );
+  mgard_comp_buff = mgard_compress(iflag, in_buff, &out_size,  nrow,  ncol, nfib, &tol );
 
 
   FILE *qfile;
-  /* qfile = fopen ( argv[2] , "wb" ); */
+  qfile = fopen ( argv[2] , "wb" );
 
-  /* char* outbuffer = ((char*)mgard_comp_buff); */
+  char* outbuffer = ((char*)mgard_comp_buff);
     
-  /* result = fwrite (outbuffer, 1, out_size, qfile); */
-  /* fclose(qfile); */
+  result = fwrite (outbuffer, 1, out_size, qfile);
+  fclose(qfile);
   
   
   printf ("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
   
-  double* mgard_out_buff; 
+  //  double* mgard_out_buff; 
   
-  mgard_out_buff = mgard_decompress(iflag, mgard_comp_buff, out_size,  nrow,  ncol); 
+  //  mgard_out_buff = mgard_decompress(iflag, mgard_comp_buff, out_size,  nrow,  ncol, nfib); 
 
 
-  qfile = fopen ( argv[2] , "wb" );
+  /* qfile = fopen ( argv[2] , "wb" ); */
 
-  char * outbuffer = ((char*)mgard_comp_buff);
+  /* char * outbuffer = ((char*)mgard_comp_buff); */
   
-  result = fwrite (mgard_out_buff, 1, lSize, qfile);
-  fclose(qfile);
+  /* result = fwrite (mgard_out_buff, 1, lSize, qfile); */
+  /* fclose(qfile); */
 
-  double norm = 0;
+  /* double norm = 0; */
 
-  for(i = 0; i<nrow; ++i)
-    {
-      for(j = 0; j<ncol; ++j)
-        {
-          double temp = fabs( in_buff[ncol*i+j] - mgard_out_buff[ncol*i+j] );
-          if(temp > norm) norm = temp;
-        }
-    }
+  /* for(i = 0; i<nrow; ++i) */
+  /*   { */
+  /*     for(j = 0; j<ncol; ++j) */
+  /*       { */
+  /*         double temp = fabs( in_buff[ncol*i+j] - mgard_out_buff[ncol*i+j] ); */
+  /*         if(temp > norm) norm = temp; */
+  /*       } */
+  /*   } */
 
-  printf ("Rel. L-infty error tolerance: %10.5E \n", tol);
-  printf ("Rel. L-infty error: %10.5E \n", norm/norm0);
+  /* printf ("Rel. L-infty error tolerance: %10.5E \n", tol); */
+  /* printf ("Rel. L-infty error: %10.5E \n", norm/norm0); */
 
-  if( norm/norm0 < tol)
-    {
-      printf("\x1b[32mSUCCESS: Error tolerance met! \x1b[0m \n");
-      return 0;
-    }
-  else{
-    printf("\x1b[31mFAILURE: Error tolerance NOT met! \x1b[0m \n");
-    return 1;
-  }
+  /* if( norm/norm0 < tol) */
+  /*   { */
+  /*     printf("\x1b[32mSUCCESS: Error tolerance met! \x1b[0m \n"); */
+  /*     return 0; */
+  /*   } */
+  /* else{ */
+  /*   printf("\x1b[31mFAILURE: Error tolerance NOT met! \x1b[0m \n"); */
+  /*   return 1; */
+  /* } */
   
 
 }

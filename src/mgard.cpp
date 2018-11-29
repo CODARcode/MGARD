@@ -64,7 +64,11 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   
   int l_target = nlevel-1;
 
-
+  //dummy equispaced coordinates
+  std::iota(std::begin(coords_x), std::end(coords_x), 0);
+  std::iota(std::begin(coords_y), std::end(coords_y), 0);
+  std::iota(std::begin(coords_z), std::end(coords_z), 0);
+  
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
   mgard_gen::refactor_3D (nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
@@ -100,7 +104,13 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
     
     double s = 0; // Defaulting to L2 compression for a start. 
     double norm = 1;//defaulting to absolute L2 for a start
-  
+
+      //dummy equispaced coordinates
+    std::iota(std::begin(coords_x), std::end(coords_x), 0);
+    std::iota(std::begin(coords_y), std::end(coords_y), 0);
+    std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+    
     int nlevel_x = std::log2(ncol-1);
     int nc = std::pow(2, nlevel_x ) + 1; //ncol new
     

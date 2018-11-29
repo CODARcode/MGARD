@@ -56,13 +56,16 @@ $(LIB): $(OBJECTS)
 	$(AR) $(ARFLAGS) $(LIB) $^
 
 test: $(EXECUTABLE)
-	./$(EXECUTABLE) data/u3_513x513_orig data/u3_513x513.mgard  513 513 1e-2
+	./$(EXECUTABLE) data/testdouble_8_8_128.dat data/testdouble_8_8_128.mgard  8 8 128 1e-2
 
-test2: $(EXECUTABLE)
-	./$(EXECUTABLE) data/data_600x400_orig data/data_600x400.mgard  600 400 1e-3
+# test: $(EXECUTABLE)
+# 	./$(EXECUTABLE) data/u3_513x513_orig data/u3_513x513.mgard  51 51 51 1e-2
 
-test3: $(SIRIUS_EXEC)
-	./$(SIRIUS_EXEC) data/data_600x400_orig data/data_600x400_coarse.mgard data/data_600x400_fine.mgard  600 400 1e-2 1e-3
+# test2: $(EXECUTABLE)
+# 	./$(EXECUTABLE) data/data_600x400_orig data/data_600x400.mgard  60 400 10 1e-3
+
+# test3: $(SIRIUS_EXEC)
+# 	./$(SIRIUS_EXEC) data/data_600x400_orig data/data_600x400_coarse.mgard data/data_600x400_fine.mgard  600 400 1e-2 1e-3
 
 clean:
 	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB) $(SIRIUS_EXEC)

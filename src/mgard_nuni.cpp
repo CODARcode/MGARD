@@ -3840,12 +3840,13 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol, con
 void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel,  double* v, std::vector<int>& work, const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z, double s, double norm, double tol)
     {
     double coeff = tol; 
-
+    std::memcpy (work.data (), &coeff, sizeof (double));
+    int size_ratio = sizeof (double) / sizeof (int);
     int prune_count = 0;
 
     //    double s = 0.0;
     int count = 0;
-
+    count += size_ratio;
      //level -1, first level for non 2^k+1
 
     double dx = mgard_gen::get_h_l(coords_x, ncol, ncol, 0, 1);
