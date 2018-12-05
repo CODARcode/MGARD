@@ -75,7 +75,7 @@ extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_
       else if (nrow > 1 )
         {
           assert (nrow > 3);
-          //          mgard_compressed_ptr = mgard::refactor_qz_1D(nrow, ncol, v, out_size, *tol);
+          //          mgard_compressed_ptr = mgard::refactor_qz_1D(nrow, v, out_size, *tol);
         }
 
       
@@ -116,11 +116,34 @@ extern "C" void *mgard_decompress(int itype_flag,  unsigned char *data, int data
   else if(itype_flag == 1)
     {
       
-      double* mgard_decompressed_ptr;
+      double* mgard_decompressed_ptr = nullptr;
 
       //      mgard_decompressed_ptr = static_cast<double*> (mgard::recompose_udq(nrow, ncol, data, data_len));
 
-      mgard_decompressed_ptr = mgard::recompose_udq(nrow, ncol, nfib, data, data_len);
+
+
+      if(nrow > 1 && ncol > 1 && nfib > 1)
+        {
+          assert (nrow > 3);
+          assert (ncol > 3);
+          assert (nfib > 3);
+
+          mgard_decompressed_ptr = mgard::recompose_udq(nrow, ncol, nfib, data, data_len);
+      
+        }
+      else if (nrow > 1 && ncol > 1)
+        {
+          assert (nrow > 3);
+          assert (ncol > 3);
+          
+          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol, data, data_len);
+        }
+      else if (nrow > 1 )
+        {
+          assert (nrow > 3);
+          //          mgard_decompressed_ptr = mgard::recompose_udq_1D(nrow,  data, data_len);
+        }
+      
       return mgard_decompressed_ptr;
     }
   else

@@ -176,6 +176,12 @@ namespace mgard
   
   double*
     recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len);
+
+  unsigned char *
+    refactor_qz_1D (int nrow,  const double *v, int &outsize, double tol);
+  
+  double*
+    recompose_udq_1D(int nrow,  unsigned char *data, int data_len);
   
   int
     parse_cmdl (int argc, char **argv, int &nrow, int &ncol, double &tol,

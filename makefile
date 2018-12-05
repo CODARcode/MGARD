@@ -59,7 +59,7 @@ test: $(EXECUTABLE)
 	./$(EXECUTABLE) data/zort_111_160_15.dat data/zort_111_160_15.mgard  111 160 15 1e-5
 
  test2: $(EXECUTABLE)
-	./$(EXECUTABLE) data/u3_513x513_orig data/u3_513x513.mgard   513  513 1  1e-2
+	./$(EXECUTABLE) data/u3_513x513_orig data/u3_513x513.mgard   513  513 1  1e-5
 
 # test2: $(EXECUTABLE)
 # 	./$(EXECUTABLE) data/data_600x400_orig data/data_600x400.mgard  60 400 10 1e-3

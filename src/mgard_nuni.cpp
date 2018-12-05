@@ -2792,7 +2792,7 @@ void refactor_3D(const int nr, const int nc, const int nf, const int nrow, const
 void compute_zl(const int nr, const int nc, const int nrow, const int ncol,  const int l_target,  std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
   {
         // recompose
-    std::cout << "recomposing" << "\n";
+    //    std::cout << "recomposing" << "\n";
     //    for (int l = l_target ; l > 0 ; --l)
     //  {
     int l = l_target;
@@ -3201,7 +3201,7 @@ void recompose_3D(const int nr, const int nc, const int nf, const int nrow, cons
     std::vector<double> row_vec(ncol);
     std::vector<double> col_vec(nrow);
 
-    std::cout << "recomposing" << "\n";
+    //    std::cout << "recomposing" << "\n";
     for (int l = l_target ; l > 0 ; --l)
       {
 
