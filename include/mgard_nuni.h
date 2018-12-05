@@ -185,7 +185,7 @@ namespace mgard_gen
 
   void restrict_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no);
 
-  double ml2_norm3(const int  l, int nr, int nc, int nf, int nrow, int ncol, int nfib,  std::vector<double>& v,  std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z);
+  double ml2_norm3(const int  l, int nr, int nc, int nf, int nrow, int ncol, int nfib,  const std::vector<double>& v,  std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z);
 
   void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no);
 

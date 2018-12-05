@@ -2408,12 +2408,14 @@ void restrict_l(const int  l, std::vector<double>& v,  std::vector<double>& coor
 
 
 
-  double ml2_norm3(const int  l, int nr, int nc, int nf, int nrow, int ncol, int nfib,  std::vector<double>& v,  std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z)
+  double ml2_norm3(const int  l, int nr, int nc, int nf, int nrow, int ncol, int nfib,  const std::vector<double>& v,  std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z)
   {
         
     int stride = std::pow(2,l);
+    int Cstride = stride;
     std::vector<double> work(v);
     std::vector<double> row_vec(ncol), col_vec(nrow), fib_vec(nfib);
+  
     
      for (int kfib = 0; kfib < nf; kfib += stride)
          {
@@ -2426,6 +2428,10 @@ void restrict_l(const int  l, std::vector<double>& v,  std::vector<double>& coor
                    row_vec[jcol] = work[mgard_common::get_index3(ncol,nfib,ir,jcol,kf)];
                  }
                mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol );
+               for(int jcol = 0;  jcol < nc; ++jcol)
+                 {
+                   work[mgard_common::get_index3(ncol,nfib,ir,jcol,kf)] = row_vec[jcol] ;
+                 }
              }
          }
 
@@ -2437,9 +2443,13 @@ void restrict_l(const int  l, std::vector<double>& v,  std::vector<double>& coor
              int jr  = get_lindex(nc,  ncol,  jcol);
              for(int irow = 0;  irow < nrow; ++irow)
                {
-                 col_vec[irow] = col_vec[irow] = work[mgard_common::get_index3(ncol,nfib,irow,jr,kf)] ;
+                 col_vec[irow] =  work[mgard_common::get_index3(ncol,nfib,irow,jr,kf)] ;
                }
              mgard_gen::mass_mult_l(l,  col_vec, coords_y, nr, nrow);
+             for(int irow = 0;  irow < nrow; ++irow)
+               {
+                 work[mgard_common::get_index3(ncol,nfib,irow,jr,kf)] = col_vec[irow] ;
+               }
            }
        }
 
@@ -2454,26 +2464,30 @@ void restrict_l(const int  l, std::vector<double>& v,  std::vector<double>& coor
                  fib_vec[kfib] = work[mgard_common::get_index3(ncol, nfib, ir, jr, kfib)];
                }
              mgard_gen::mass_mult_l(l,  fib_vec, coords_z, nf, nfib);
+             for (int kfib = 0; kfib < nfib; ++kfib)
+               {
+                 work[mgard_common::get_index3(ncol, nfib, ir, jr, kfib)] = fib_vec[kfib] ;
+               }
            }
        }
 
+    double norm = ( std::inner_product( v.begin(), v.end(), work.begin(), 0.0d)  );    
 
-     double norm = 0.0;
+     // double norm = 0;
+     //   for(int irow = 0;  irow < nr; irow += stride) 
+     //     {
+     //       int ir = get_lindex(nr, nrow, irow); 
+     //       for(int jcol = 0;  jcol < nc; jcol += stride)
+     //         {
+     //           int jr = get_lindex(nc, ncol, jcol);  
+     //           for (int kfib = 0; kfib < nf; kfib += stride)
+     //             {
+     //               int kf = get_lindex(nf, nfib, kfib);
 
-       for(int irow = 0;  irow < nr; irow += stride) 
-         {
-           int ir = get_lindex(nr, nrow, irow); 
-           for(int jcol = 0;  jcol < nc; jcol += stride)
-             {
-               int jr = get_lindex(nc, ncol, jcol);  
-               for (int kfib = 0; kfib < nf; kfib += stride)
-                 {
-                   int kf = get_lindex(nf, nfib, kfib);
-
-                   norm += work[mgard_common::get_index3(ncol, nfib, ir, jr, kf)] * v[mgard_common::get_index3(ncol, nfib, ir, jr, kf)];
-                 }
-             }
-         }
+     //               norm += work[mgard_common::get_index3(ncol, nfib, ir, jr, kf)] * v[mgard_common::get_index3(ncol, nfib, ir, jr, kf)];
+     //             }
+     //         }
+     //     }
 
        return norm/216.0; // account for missing 1/6 factors in M_{x,y,z}
      
@@ -4052,7 +4066,8 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
     double q; //quantizing factor
     
     std::memcpy (&q, work.data(), sizeof (double));
-       
+
+    std::cout << "Read quantizeredert " << q << "\n";
     
     double dx = mgard_gen::get_h_l(coords_x, ncol, ncol, 0, 1);
     double dy = mgard_gen::get_h_l(coords_y, nrow, nrow, 0, 1);

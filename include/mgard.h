@@ -142,7 +142,7 @@ namespace mgard
                      std::vector<uint8_t> &out_data);
 
   void
-    decompress_memory (const void *src, int srcLen, void *dst, int dstLen);
+    decompress_memory (const void *src, int srcLen, int *dst, int dstLen);
 
   void
     qread_level_2D (const int nrow, const int ncol, const int nlevel, double *v,
@@ -170,6 +170,12 @@ namespace mgard
 
   double*
     recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len);
+
+  unsigned char *
+    refactor_qz_2D (int nrow, int ncol, const double *v, int &outsize, double tol);
+  
+  double*
+    recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len);
   
   int
     parse_cmdl (int argc, char **argv, int &nrow, int &ncol, double &tol,

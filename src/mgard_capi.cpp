@@ -38,8 +38,6 @@
 extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_size, int nrow, int ncol, int nfib, void* tol_in)
 { 
 
-  assert (ncol > 3);
-  assert (nrow >= 1);
 
   if(itype_flag == 0)
     {
@@ -47,7 +45,7 @@ extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_
       float *tol = static_cast<float*>(tol_in);
       assert (*tol >= 1e-8);
       
-      unsigned char* mgard_compressed_ptr;
+      unsigned char* mgard_compressed_ptr = nullptr;
 
       //mgard_compressed_ptr = mgard::refactor_qz_float(nrow, ncol, v, out_size, *tol);
 
@@ -59,10 +57,28 @@ extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_
       double *tol = static_cast<double*>(tol_in);
       assert (*tol >= 1e-8);
       //      std::cout << "Input "  << v[100] << std::endl;
-      unsigned char* mgard_compressed_ptr;
+      unsigned char* mgard_compressed_ptr = nullptr;
+      if(nrow > 1 && ncol > 1 && nfib > 1)
+        {
+          assert (nrow > 3);
+          assert (ncol > 3);
+          assert (nfib > 3);
+          
+          mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, *tol);
+        }
+      else if (nrow > 1 && ncol > 1)
+        {
+          assert (nrow > 3);
+          assert (ncol > 3);
+          mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, *tol);
+        }
+      else if (nrow > 1 )
+        {
+          assert (nrow > 3);
+          //          mgard_compressed_ptr = mgard::refactor_qz_1D(nrow, ncol, v, out_size, *tol);
+        }
 
-      mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, *tol);
-
+      
       return mgard_compressed_ptr;
     }
   else
@@ -72,7 +88,7 @@ extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_
       float *tol = static_cast<float*>(tol_in);
       assert (*tol >= 1e-8);
       
-      unsigned char* mgard_compressed_ptr;
+      unsigned char* mgard_compressed_ptr = nullptr;
 
       //mgard_compressed_ptr = mgard::refactor_qz_float(nrow, ncol, v, out_size, *tol);
 
