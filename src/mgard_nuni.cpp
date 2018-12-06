@@ -2842,7 +2842,7 @@ void compute_zl(const int nr, const int nc, const int nrow, const int ncol,  con
 
         //assign_num_level_l(l, work.data(),  0.0,  nr,  nc,  nrow,  ncol);
 
-        std::cout << "recomposing-rowsweep" << "\n";
+        //        std::cout << "recomposing-rowsweep" << "\n";
         //  l = 0;
         // row-sweep
         for(int irow = 0;  irow < nr; irow += 1)
@@ -3514,7 +3514,7 @@ void postp_3D(const int nr, const int nc, const int nf, const int nrow, const in
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
   {
         // recompose
-    std::cout << "recomposing" << "\n";
+    //    std::cout << "recomposing" << "\n";
     //    for (int l = l_target ; l > 0 ; --l)
     //  {
     int l = l_target;
@@ -3526,7 +3526,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
 
         //assign_num_level_l(l, work.data(),  0.0,  nr,  nc,  nrow,  ncol);
 
-        std::cout << "recomposing-rowsweep" << "\n";
+        //        std::cout << "recomposing-rowsweep" << "\n";
         //  l = 0;
         // row-sweep
         for(int irow = 0;  irow < nr; ++irow)
@@ -3580,7 +3580,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
               }
           }
         //        subtract_level_l(l, work.data(), v,  nr,  nc,  nrow,  ncol); //do -(Qu - zl)
-        std::cout << "recomposing-rowsweep2" << "\n";
+        //        std::cout << "recomposing-rowsweep2" << "\n";
 
       //   //int Pstride = stride/2; //finer stride
 
@@ -3721,7 +3721,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
 
 
         subtract_level_l(0, work.data(), v,  nr,  nc,  nrow,  ncol); //do -(Qu - zl)
-        std::cout << "recomposing-rowsweep2" << "\n";
+        //        std::cout << "recomposing-rowsweep2" << "\n";
 
 
     //     //   //int Pstride = stride/2; //finer stride

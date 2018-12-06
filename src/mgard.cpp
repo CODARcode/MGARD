@@ -68,7 +68,8 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 
   //  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
 
-  double norm = mgard_common::max_norm(v)/(nlevel+1);
+  double norm = mgard_common::max_norm(v);
+  tol /= nlevel + 1 ;
   double s = 0; // Defaulting to L8' compression for a start. 
 
   //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s != 8'
@@ -221,9 +222,11 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
 
       mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
 
-            
-      mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-      
+
+      for (int l = l_target; l < l_target + 1; ++l)
+        {
+          mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+        }
       
       work.clear ();
       col_vec.clear ();
@@ -307,7 +310,11 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       std::vector<double> col_vec(nrow);
       std::vector<double> work(nrow*ncol);
 
-      mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
+      for (int l = l_target ; l > 0 ; --l)
+        {
+          mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
+        }
+      
       mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
       //      std::cout << "Recomposing done!!!" << "\n";
 
@@ -878,7 +885,7 @@ quantize_2D_iterleave (const int nrow, const int ncol, double *v,
   //std::cout << "Norm of sorts: " << norm << "\n";
 
   //    double quantizer = 2.0*norm * tol;
-    double quantizer = 2.0*norm * tol;
+    double quantizer = norm * tol;
   //std::cout << "Quantization factor: " << quantizer << "\n";
   std::memcpy (work.data (), &quantizer, sizeof (double));
 

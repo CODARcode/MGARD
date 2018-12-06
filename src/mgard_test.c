@@ -89,15 +89,15 @@ int main(int argc, char *argv[])
    
   unsigned char* mgard_comp_buff;
   
-  /* double norm0 = 0; */
-  /* for(i = 0; i<nrow; ++i) */
-  /*   { */
-  /*     for(j = 0; j<ncol; ++j) */
-  /*       { */
-  /*         double temp = fabs(in_buff[ncol*i+j]); */
-  /*         if(temp > norm0) norm0 = temp; */
-  /*       } */
-  /*   } */
+  double norm0 = 0;
+  for(i = 0; i<nrow; ++i)
+    {
+      for(j = 0; j<ncol; ++j)
+        {
+          double temp = fabs(in_buff[ncol*i+j]);
+          if(temp > norm0) norm0 = temp;
+        }
+    }
 
   int iflag = 1; //0 -> float, 1 -> double
   int out_size;
@@ -129,29 +129,26 @@ int main(int argc, char *argv[])
   /* result = fwrite (outbuffer, 1, lSize, qfile); */
   fclose(qfile);
 
-  /* double norm = 0; */
+  double norm = 0;
 
-  /* for(i = 0; i<nrow; ++i) */
-  /*   { */
-  /*     for(j = 0; j<ncol; ++j) */
-  /*       { */
-  /*         double temp = fabs( in_buff[ncol*i+j] - mgard_out_buff[ncol*i+j] ); */
-  /*         if(temp > norm) norm = temp; */
-  /*       } */
-  /*   } */
+  for(i = 0; i < nrow*ncol*nfib; ++i)
+    {
+      double temp = fabs( in_buff[i] - mgard_out_buff[i] );
+          if(temp > norm) norm = temp;
+    }
 
-  /* printf ("Rel. L-infty error tolerance: %10.5E \n", tol); */
-  /* printf ("Rel. L-infty error: %10.5E \n", norm/norm0); */
+  printf ("Rel. L-infty error tolerance: %10.5E \n", tol);
+  printf ("Rel. L-infty error: %10.5E \n", norm/norm0);
 
-  /* if( norm/norm0 < tol) */
-  /*   { */
-  /*     printf("\x1b[32mSUCCESS: Error tolerance met! \x1b[0m \n"); */
-  /*     return 0; */
-  /*   } */
-  /* else{ */
-  /*   printf("\x1b[31mFAILURE: Error tolerance NOT met! \x1b[0m \n"); */
-  /*   return 1; */
-  /* } */
+  if( norm/norm0 < tol)
+    {
+      printf("\x1b[32mSUCCESS: Error tolerance met! \x1b[0m \n");
+      return 0;
+    }
+  else{
+    printf("\x1b[31mFAILURE: Error tolerance NOT met! \x1b[0m \n");
+    return 1;
+  }
   
 
 }
