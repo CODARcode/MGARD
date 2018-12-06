@@ -75,7 +75,7 @@ extern "C" unsigned char *mgard_compress(int itype_flag,  void  *data, int &out_
       else if (nrow > 1 )
         {
           assert (nrow > 3);
-          //          mgard_compressed_ptr = mgard::refactor_qz_1D(nrow, v, out_size, *tol);
+          //mgard_compressed_ptr = mgard::refactor_qz_1D(nrow, v, out_size, *tol);
         }
 
       
@@ -141,7 +141,7 @@ extern "C" void *mgard_decompress(int itype_flag,  unsigned char *data, int data
       else if (nrow > 1 )
         {
           assert (nrow > 3);
-          //          mgard_decompressed_ptr = mgard::recompose_udq_1D(nrow,  data, data_len);
+          //mgard_decompressed_ptr = mgard::recompose_udq_1D(nrow,  data, data_len);
         }
       
       return mgard_decompressed_ptr;
@@ -150,7 +150,7 @@ extern "C" void *mgard_decompress(int itype_flag,  unsigned char *data, int data
     {
       std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
 
-      float* mgard_decompressed_ptr;
+      float* mgard_decompressed_ptr = nullptr;
 
       //mgard_decompressed_ptr = mgard::recompose_udq_float(nrow, ncol, v, out_size, *tol);
 

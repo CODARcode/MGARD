@@ -1324,10 +1324,11 @@ namespace mgard_gen
 
         if (i_logicP != i_logic+1)
           {
-            //          std::cout << i_logic +1 << "\t" << i_logicP<<"\n";
+
             double h1 = mgard_common::get_dist(coords, i_logic,  i_logic+1);
             double h2 = mgard_common::get_dist(coords, i_logic + 1, i_logicP);
-            double hsum = h1+h2;           
+            double hsum = h1+h2;
+
             v[i_logic + 1] -= (h2*v[i_logic] + h1*v[i_logicP] )/hsum;          
           }
 
@@ -1351,7 +1352,7 @@ namespace mgard_gen
         for (int jcol = 0; jcol < ncol; ++jcol)
           {
             // int jcol_r = get_lindex(nc, ncol, jcol);
-            // std::cerr << irow_r << "\t"<< jcol_r << "\n";
+            //            std::cerr <<  mgard_common::get_index(ncol, irow_r, jcol) << "\n";
 
             row_vec[jcol] = v[mgard_common::get_index(ncol, irow_r, jcol)];
           }
@@ -2265,6 +2266,7 @@ void sub3_level(const int  l, double* v, double* work, int nrow, int ncol, int n
   {
     int l = 0;
     int stride = 1;
+    std::cout << "piqleing \n";
     pi_Ql_first(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec, col_vec); //(I-\Pi u) this is the initial move to 2^k+1 nodes
 
     mgard_cannon::copy_level(nrow, ncol, l, v,  work);
@@ -2515,7 +2517,43 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
   // *get_ref(v, n,  no,  n-1-Pstride) = ( h2*(*get_ref(v, n,  no,  n-1-stride)) + h1*(v.back()) )/hsum;
   
 }
+
+// void
+// refactor_1D ( const int l_target, std::vector<double>& v,  std::vector<double>& work,  std::vector<double>& coords, int n, int no)
+// {
+//   mgard_gen::pi_lminus1_first(v, coords, n, no);
+//   mgard_common::copy_level(0, v,  work);
+//   mgard_gen::assign_num_level_l(0, work, 0.0, n, no);
   
+//   mass_mult(0, work, coords);
+//   restrict_first(work, coords, n, no);
+  
+//   solve_tridiag_M_l(0, work, coords, n, no);
+//   add_level_l(0, v,  work, n, no);
+
+//   for (int l = 0; l <= l_target; ++l)
+//     {
+      
+//       pi_lminus1_l(l, v, coords, n, no);
+
+//       copy_level_l(l, v,  work, n, no);
+
+//       assign_num_level_l(l+1, work, 0.0, n, no);
+
+//       mass_mult_l(l, work, coords, n, no);
+
+      
+//       restrict_l(l+1, work, coords, n, no);
+
+//       solve_tridiag_M_l(l+1, work, coords, n, no);
+
+//       add_level_l(l+1, v,  work, n, no);
+  
+//     }
+// }
+
+
+
   void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
   {
     //refactor

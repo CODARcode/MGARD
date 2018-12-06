@@ -46,10 +46,6 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   int nlevel;
   std::vector<double> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
   std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
-
-
-
-
   
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
@@ -206,7 +202,11 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
     }
   else
     {
-      std::vector<double> coords_x, coords_y;
+      std::vector<double> coords_x(ncol), coords_y(nrow);
+      
+      std::iota(std::begin(coords_x), std::end(coords_x), 0);
+      std::iota(std::begin(coords_y), std::end(coords_y), 0);
+      
       int nlevel_x = std::log2(ncol-1);
       int nc = std::pow(2, nlevel_x ) + 1; //ncol new
 
@@ -221,8 +221,10 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
 
       mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
 
+            
       mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-
+      
+      
       work.clear ();
       col_vec.clear ();
       row_vec.clear ();
@@ -279,7 +281,9 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
     }
   else
     {
-      std::vector<double> coords_x, coords_y;
+      std::vector<double> coords_x(ncol), coords_y(nrow);
+      std::iota(std::begin(coords_x), std::end(coords_x), 0);
+      std::iota(std::begin(coords_y), std::end(coords_y), 0);
       
       int nlevel_x = std::log2(ncol-1);
       int nc = std::pow(2, nlevel_x ) + 1; //ncol new
@@ -310,7 +314,71 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       return v;
     }
 }
+
+
+//   unsigned char *
+//   refactor_qz_1D (int nrow,  const double *u, int &outsize, double tol)
+//   {
+    
+//   std::vector<double> v(u, u+nrow), work(nrow);
+
+//   double norm = mgard_common::max_norm(v);
+
+//   std::vector<double> coords_x;
+//   int nlevel = std::log2(nrow-1);
+//   int nr = std::pow(2, nlevel ) + 1; //ncol new
+//   int l_target = nlevel-1;
+
+//   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   
+//   //  mgard::refactor_1D(nlevel-1, v,   work, coords_x,  nr,  nrow );
+
+//   work.clear ();
+
+//   int size_ratio = sizeof (double) / sizeof (int);
+//   std::vector<int> qv (nrow * ncol + size_ratio);
+
+//   tol /= nlevel + 1;
+//   mgard::quantize_2D_iterleave (nrow, 1, v.data (), qv, norm, tol);
+
+//   std::vector<unsigned char> out_data;
+//   mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
+
+//   outsize = out_data.size ();
+//   unsigned char *buffer = (unsigned char *)malloc (outsize);
+//   std::copy (out_data.begin (), out_data.end (), buffer);
+//   return buffer;
+// }
+
+
+//  double* recompose_udq_1D(int nrow,  unsigned char *data, int data_len)
+//   {
+//   int size_ratio = sizeof(double)/sizeof(int);
+//     {
+//       std::vector<double> coords_x;
+      
+//       int nlevel = std::log2(nrow-1);
+//       int nc = std::pow(2, nlevel ) + 1; //ncol new
+// k
+//       int l_target = nlevel-1;
+      
+//       std::vector<int> out_data(nrow + size_ratio);
+
+//       std::iota(std::begin(coords_x), std::end(coords_x), 0);
+
+//       mgard::decompress_memory(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+
+//       double *v = (double *)malloc (nrow*sizeof(double));
+
+//       mgard::dequantize_2D_iterleave(nrow, 1, v, out_data) ;
+      
+//       std::vector<double> work(nrow);
+
+//       mgard::recompose_1D(nlevel, v,   work, coords_x,  nr,  nrow );
+
+//       return v;
+//     }
+// }
   
 inline int
 get_index (const int ncol, const int i, const int j)
@@ -1052,6 +1120,7 @@ set_number_of_levels (const int nrow, const int ncol, int &nlevel)
       nlevel = std::min (nlevel_x, nlevel_y);
     }
 }
+
 
 void
 refactor (const int nrow, const int ncol, const int l_target, double *v,

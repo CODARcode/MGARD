@@ -189,6 +189,8 @@ namespace mgard_gen
 
   void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no);
 
+  void refactor_1D ( const int l_target, std::vector<double>& v,  std::vector<double>& work,  std::vector<double>& coords, int n, int no);
+    
   void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec );
   
   void refactor_2D_first(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec );
