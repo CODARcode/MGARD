@@ -222,8 +222,8 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       int l_target = nlevel-1;
 
       
-      //      mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-      mgard_gen::refactor_2D_first(nr, nc,  nrow, ncol,  l_target, v.data(), work, coords_x, coords_y,  row_vec, col_vec);
+      mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+
       mgard_gen::refactor_2D_full(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
       
       work.clear ();
@@ -264,7 +264,6 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       std::vector<int> out_data(nrow_new*ncol_new + size_ratio);
 
       mgard::decompress_memory(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
-
       
       double *v = (double *)malloc (nrow_new*ncol_new*sizeof(double));
 
@@ -283,6 +282,7 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
   else
     {
       std::vector<double> coords_x(ncol), coords_y(nrow);
+
       std::iota(std::begin(coords_x), std::end(coords_x), 0);
       std::iota(std::begin(coords_y), std::end(coords_y), 0);
       

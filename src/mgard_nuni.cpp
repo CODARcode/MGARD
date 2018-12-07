@@ -2268,16 +2268,12 @@ void sub3_level(const int  l, double* v, double* work, int nrow, int ncol, int n
 
   }
 
-    void project_first(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
-    {
-      
-    }
   
   void prep_2D(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
   {
     int l = 0;
     int stride = 1;
-    //std::cout << "piqleing \n";
+    
     pi_Ql_first(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec, col_vec); //(I-\Pi u) this is the initial move to 2^k+1 nodes
 
     mgard_cannon::copy_level(nrow, ncol, l, v,  work);
@@ -2285,9 +2281,7 @@ void sub3_level(const int  l, double* v, double* work, int nrow, int ncol, int n
 
     // row-sweep
     for(int irow = 0;  irow < nrow; ++irow)
-    //    for(int irow = 0;  irow < nrow; ++irow)
       {
-        //  int ir = get_lindex(nr, nrow, irow); // get the real location of logical index irow
         for(int jcol = 0; jcol < ncol; ++jcol)
           {
             row_vec[jcol] = work[mgard_common::get_index(ncol, irow, jcol)];
@@ -2306,23 +2300,23 @@ void sub3_level(const int  l, double* v, double* work, int nrow, int ncol, int n
         
       }
 
-for(int irow = 0;  irow < nr; ++irow)
-  {
-    int ir = get_lindex(nr, nrow, irow);
-    for(int jcol = 0; jcol < ncol; ++jcol)
+    for(int irow = 0;  irow < nr; ++irow)
       {
-        row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
+        int ir = get_lindex(nr, nrow, irow);
+        for(int jcol = 0; jcol < ncol; ++jcol)
+          {
+            row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
+          }
+        solve_tridiag_M_l(0,  row_vec, coords_x, nc, ncol);
+        
+        for(int jcol = 0; jcol < ncol; ++jcol)
+          {
+            work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol] ;
+          }
       }
-    solve_tridiag_M_l(0,  row_vec, coords_x, nc, ncol);
-
-    for(int jcol = 0; jcol < ncol; ++jcol)
-      {
-        work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol] ;
-      }
-  }
- 
+    
     //      std::cout << "Row sweep done!"<<"\n";
-
+    
     // column-sweep
     if (nrow > 1) //do this if we have an 2-dimensional array
       {
@@ -2358,7 +2352,7 @@ for(int irow = 0;  irow < nr; ++irow)
 
             for(int irow = 0;  irow < nrow; ++irow)
               {
-                //work[mgard_common::get_index(ncol, irow, jr )] = col_vec[irow];
+                work[mgard_common::get_index(ncol, irow, jr )] = col_vec[irow];
               }
           }
       }
@@ -3232,80 +3226,6 @@ void prep_3D(const int nr, const int nc, const int nf, const int nrow, const int
           
         }
     }
-  // for(int irow = 0; irow < nr; irow += stride)
-  //   {
-  //     //int ir = irow;
-  //     int ir = get_lindex(nr, nrow, irow);
-  //     for(int kfib = 0; kfib < nf; kfib += stride)
-  //       {
-  //         int kf = get_lindex(nf, nfib, kfib);
-  //         for(int jc = 0; jc < ncol; jc += stride)
-  //           {
-  //             row_vec[jc] = work[mgard_common::get_index3(ncol,nfib,ir,jc,kf)];
-  //           }
-  //         //        assign_num_level(0, row_vec, 0.0, nr, nrow);
-  //         mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
-  //         mgard_gen::restrict_first(row_vec, coords_x, nr, nrow);
-  //         mgard_gen::solve_tridiag_M_l(0,  row_vec, coords_x, nr, nrow);
-  //         for(int jcol = 0; jcol < nc; jcol += stride)
-  //           {
-  //             int jr = get_lindex(nc, ncol, jcol); 
-  //             work[mgard_common::get_index3(ncol,nfib,ir,jr,kf)] = row_vec[jr] ;
-  //           }
-          
-  //       }
-  //   }
-
-  // for(int jc = 0; jc < nc; jc += stride)
-  //   {
-  //     int jr = get_lindex(nc, ncol, jc); 
-  //     for(int kfib = 0; kfib < nfib; ++kfib)
-  //       {
-  //         int kf = get_lindex(nf, nfib, kfib);
-  //         for(int irow = 0; irow < nrow; irow += stride)
-  //           {
-  //             col_vec[irow] = work[mgard_common::get_index3(ncol,nfib,irow,jc,kf)];
-  //           }
-  //         //          assign_num_level(0, col_vec, 0.0, nc, ncol);
-  //         mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
-  //         mgard_gen::restrict_first(col_vec, coords_y, nc, ncol);
-  //         mgard_gen::solve_tridiag_M_l(0,  col_vec, coords_y, nc, ncol);
-  //         for(int irow = 0; irow < nr; irow += stride)
-  //           {
-  //             int ir = get_lindex(nr, nrow, irow);
-  //             work[mgard_common::get_index3(ncol,nfib,ir,jc,kf)] = col_vec[ir] ;
-  //           }
-          
-  //       }
-  //   }
-
-  
-  
-
-  // for(int irow = 0; irow < nr; irow += stride)
-  // //    for(int ir = 0; ir < nrow; ir += stride)
-  //   {
-  //     int ir = get_lindex(nr, nrow, irow);
-  //     //      for(int jc = 0; jc < ncol; jc += stride)
-  //       for(int jcol = 0; jcol < nc; jcol += stride)
-  //       {
-  //         int jc  = get_lindex(nc,  ncol,  jcol);
-  //         for(int kfib = 0; kfib < nfib; ++kfib)
-  //           {
-  //             fib_vec[kfib] = work[mgard_common::get_index3(ncol,nfib,ir,jc,kfib)];
-  //           }
-  //         //          assign_num_level(0, fib_vec, 0.0, nf, nfib);
-  //         mgard_cannon::mass_matrix_multiply(l, fib_vec, coords_z);
-  //         mgard_gen::restrict_first(fib_vec, coords_z, nf, nfib);
-  //         mgard_gen::solve_tridiag_M_l(l,  fib_vec, coords_z, nf, nfib);
-  //         for(int kfib = 0; kfib < nf; ++kfib)
-  //           {
-  //             int kf = get_lindex(nf, nfib, kfib);
-  //             work[mgard_common::get_index3(ncol,nfib,ir,jc,kf)] = fib_vec[kf] ;
-  //           }
-          
-  //       }
-  //   }
 
   add3_level_l(0, v, work.data(),  nr,  nc, nf,  nrow,  ncol, nfib);
        
@@ -3845,7 +3765,6 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
 
     for(int irow = 0;  irow < nrow; ++irow)
       {
-        //        int ir = get_lindex(nr, nrow, irow);
         for(int jcol = 0; jcol < ncol; ++jcol)
           {
             row_vec[jcol] = work[mgard_common::get_index(ncol, irow, jcol)];
@@ -3879,7 +3798,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
           }
       }
 
-    //   //   std::cout << "recomposing-colsweep" << "\n";
+
 
     //     // column-sweep, this is the slow one! Need something like column_copy
         if( nrow > 1) // check if we have 1-D array..
