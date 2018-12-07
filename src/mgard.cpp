@@ -224,7 +224,13 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       
       mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
 
-      mgard_gen::refactor_2D_full(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+
+      // std::string out_file = "yarrak";
+      // std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
+      // outfile.write( reinterpret_cast<char*>( v.data() ), nrow*ncol*sizeof(double) );
+
+                    
+      mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
       
       work.clear ();
       col_vec.clear ();
@@ -308,7 +314,7 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       std::vector<double> col_vec(nrow);
       std::vector<double> work(nrow*ncol);
 
-      mgard_gen::recompose_2D_full(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
+      mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
       
       
       mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
