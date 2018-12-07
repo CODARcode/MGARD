@@ -166,6 +166,17 @@ namespace mgard_common
     return (coords[j] - coords[i]);
   }
 
+
+  // inline double get_h(const std::vector<double>& coords, int i, int stride)
+  // {
+  //   return (i+ stride - i);
+  // }
+
+  // inline double get_dist(const std::vector<double>& coords, int i, int j)
+  // {
+  //   return (j - i);
+  // }
+  
   void qread_2D_interleave( const int nrow, const int ncol, const int nlevel, double* v, std::string infile)
   {
     int buff_size = 128*1024;
@@ -2266,7 +2277,7 @@ void sub3_level(const int  l, double* v, double* work, int nrow, int ncol, int n
   {
     int l = 0;
     int stride = 1;
-    std::cout << "piqleing \n";
+    //std::cout << "piqleing \n";
     pi_Ql_first(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec, col_vec); //(I-\Pi u) this is the initial move to 2^k+1 nodes
 
     mgard_cannon::copy_level(nrow, ncol, l, v,  work);
@@ -2622,6 +2633,79 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
         // Solved for (z_l, phi_l) = (c_{l+1}, vl)
         //        add_level_l(l+1, v, work.data(),  nr,  nc,  nrow,  ncol);
         //}
+
+
+  }
+
+
+ void refactor_2D_full(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
+{
+    //refactor
+
+  for (int l = 0; l < l_target ; ++l)
+    {
+    
+       int stride = std::pow(2,l);//current stride
+       int Cstride = stride*2; // coarser stride
+
+       // -> change funcs in pi_QL to use _l functions, otherwise distances are wrong!!!
+       pi_Ql(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec, col_vec); //rename!. v@l has I-\Pi_l Q_l+1 u
+
+       copy_level_l(l,  v,  work.data(),  nr,  nc,  nrow,  ncol);
+       assign_num_level_l(l+1, work.data(),  0.0,  nr,  nc,  nrow,  ncol);
+
+        // row-sweep
+        for(int irow = 0;  irow < nr; ++irow)
+          {
+            int ir = get_lindex(nr, nrow, irow);
+            for(int jcol = 0; jcol < ncol; ++jcol)
+              {
+                row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
+              }
+
+            mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol );
+
+            mgard_gen::restrict_l(l+1, row_vec, coords_x, nc, ncol );
+
+            mgard_gen::solve_tridiag_M_l(l+1, row_vec, coords_x, nc, ncol );
+
+            for(int jcol = 0; jcol < ncol; ++jcol)
+              {
+                work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol] ;
+              }
+
+          }
+
+
+        // column-sweep
+        if (nrow > 1) //do this if we have an 2-dimensional array
+          {
+            for(int jcol = 0;  jcol < nc; jcol += Cstride)
+              {
+                int jr  = get_lindex(nc,  ncol,  jcol);
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    col_vec[irow] = work[mgard_common::get_index(ncol, irow, jr)] ;
+                  }
+
+
+                mgard_gen::mass_mult_l(l,  col_vec, coords_y, nr, nrow);
+                mgard_gen::restrict_l(l+1, col_vec, coords_y, nr, nrow);
+                mgard_gen::solve_tridiag_M_l(l+1,  col_vec, coords_y, nr, nrow);
+
+
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    work[mgard_common::get_index(ncol, irow, jr)]  = col_vec[irow] ;
+                  }
+
+              }
+          }
+
+
+        // Solved for (z_l, phi_l) = (c_{l+1}, vl)
+               add_level_l(l+1, v, work.data(),  nr,  nc,  nrow,  ncol);
+        }
 
 
   }
@@ -3629,6 +3713,125 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
         // subtract_level_l(l-1, v, work.data(),  nr,  nc,  nrow,  ncol);
         //      }
   }
+
+
+void recompose_2D_full(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
+ {
+        // recompose
+    //    std::cout << "recomposing" << "\n";
+   for (int l = l_target ; l > 0 ; --l)
+     {
+    
+        int stride = std::pow(2,l);//current stride
+        int Pstride = stride/2;
+
+        copy_level_l(l-1,  v,  work.data(),  nr,  nc,  nrow,  ncol);
+        assign_num_level_l(l, work.data(),  0.0,  nr,  nc,  nrow,  ncol);
+
+        //        std::cout << "recomposing-rowsweep" << "\n";
+        //  l = 0;
+        // row-sweep
+        for(int irow = 0;  irow < nr; ++irow)
+          {
+            int ir = get_lindex(nr, nrow, irow);
+            for(int jcol = 0; jcol < ncol; ++jcol)
+              {
+                row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
+              }
+
+
+            mgard_gen::mass_mult_l(l-1, row_vec, coords_x, nc, ncol );
+
+            mgard_gen::restrict_l(l, row_vec, coords_x, nc, ncol );
+
+            mgard_gen::solve_tridiag_M_l(l, row_vec, coords_x, nc, ncol );
+
+
+            for(int jcol = 0; jcol < ncol; ++jcol)
+              {
+                work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol] ;
+              }
+
+          }
+
+      //   std::cout << "recomposing-colsweep" << "\n";
+
+        // column-sweep, this is the slow one! Need something like column_copy
+        if( nrow > 1) // check if we have 1-D array..
+          {
+            for(int jcol = 0;  jcol < nc; jcol += stride)
+              {
+                int jr  = get_lindex(nc,  ncol,  jcol);
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    col_vec[irow] = work[mgard_common::get_index(ncol, irow, jr )];
+                  }
+
+                
+                mgard_gen::mass_mult_l(l-1, col_vec, coords_y, nr, nrow );
+            
+                mgard_gen::restrict_l(l, col_vec, coords_y, nr, nrow );
+
+                mgard_gen::solve_tridiag_M_l(l, col_vec, coords_y, nr, nrow );
+            
+
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    work[mgard_common::get_index(ncol, irow, jr )] = col_vec[irow] ;
+                  }
+              }
+          }
+        //        subtract_level_l(l, work.data(), v,  nr,  nc,  nrow,  ncol); //do -(Qu - zl)
+        //        std::cout << "recomposing-rowsweep2" << "\n";
+
+      //   //int Pstride = stride/2; //finer stride
+
+      //   // row-sweep
+        for(int irow = 0;  irow < nr; irow += stride )
+          {
+            int ir = get_lindex(nr, nrow, irow);
+            for(int jcol = 0; jcol < ncol; ++jcol)
+              {
+                row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
+              }
+
+            mgard_gen::prolongate_l( l, row_vec, coords_x, nc, ncol);
+
+            for(int jcol = 0; jcol < ncol; ++jcol)
+              {
+                work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol];
+              }
+
+          }
+
+
+      //   std::cout << "recomposing-colsweep2" << "\n";
+        // column-sweep, this is the slow one! Need something like column_copy
+        if( nrow > 1)
+          {
+            for(int jcol = 0;  jcol < nc; jcol+= Pstride)
+              {
+                int jr  = get_lindex(nc,  ncol,  jcol);
+                for(int irow = 0;  irow < nrow; ++irow ) //copy all rows
+                  {
+                    col_vec[irow] = work[mgard_common::get_index(ncol,irow, jr)];
+                  }
+
+                mgard_gen::prolongate_l(l,  col_vec, coords_y, nr, nrow);
+
+                for(int irow = 0;  irow < nrow; ++irow )
+                  {
+                    work[mgard_common::get_index(ncol,irow, jr)] = col_vec[irow] ;
+                  }
+              }
+          }
+        // std::cout << "last step" << "\n";
+
+        assign_num_level_l(l, v, 0.0, nr, nc, nrow, ncol);
+        subtract_level_l(l-1, v, work.data(),  nr,  nc,  nrow,  ncol);
+ }
+}
+  
 
 
 

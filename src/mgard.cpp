@@ -203,10 +203,12 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
     }
   else
     {
+
       std::vector<double> coords_x(ncol), coords_y(nrow);
       
       std::iota(std::begin(coords_x), std::end(coords_x), 0);
       std::iota(std::begin(coords_y), std::end(coords_y), 0);
+
       
       int nlevel_x = std::log2(ncol-1);
       int nc = std::pow(2, nlevel_x ) + 1; //ncol new
@@ -219,14 +221,10 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
 
       int l_target = nlevel-1;
 
-
-      mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-
-
-      for (int l = l_target; l < l_target + 1; ++l)
-        {
-          mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-        }
+      
+      //      mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+      mgard_gen::refactor_2D_first(nr, nc,  nrow, ncol,  l_target, v.data(), work, coords_x, coords_y,  row_vec, col_vec);
+      mgard_gen::refactor_2D_full(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
       
       work.clear ();
       col_vec.clear ();
@@ -310,10 +308,8 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       std::vector<double> col_vec(nrow);
       std::vector<double> work(nrow*ncol);
 
-      for (int l = l_target ; l > 0 ; --l)
-        {
-          mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
-        }
+      mgard_gen::recompose_2D_full(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
+      
       
       mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
       //      std::cout << "Recomposing done!!!" << "\n";
@@ -974,7 +970,7 @@ compress_memory (void *in_data, size_t in_data_size,
 {
   std::vector<uint8_t> buffer;
 
-  const size_t BUFSIZE = 128 * 1024;
+  const size_t BUFSIZE = 2048 * 1024;
   uint8_t temp_buffer[BUFSIZE];
 
   z_stream strm;
