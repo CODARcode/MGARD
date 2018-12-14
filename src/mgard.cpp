@@ -172,7 +172,7 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
   std::vector<double> col_vec (nrow);
   std::vector<double> v(u, u+nrow*ncol), work(nrow * ncol);
 
-  double norm = mgard_common::max_norm(v);
+  double norm = mgard_2d::mgard_common::max_norm(v);
 
   
   if (mgard::is_2kplus1 (nrow)
@@ -220,17 +220,10 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       tol /= nlevel + 1;
 
       int l_target = nlevel-1;
+      l_target = 0;
+      mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
 
-      
-      mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-
-
-      // std::string out_file = "yarrak";
-      // std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
-      // outfile.write( reinterpret_cast<char*>( v.data() ), nrow*ncol*sizeof(double) );
-
-                    
-      mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+      mgard_2d::mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
       
       work.clear ();
       col_vec.clear ();
@@ -300,8 +293,9 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
 
       int nlevel = std::min(nlevel_x, nlevel_y);
 
-      int l_target = nlevel-1;
-      
+      //      int l_target = nlevel-1;
+
+      int l_target = 0;
       std::vector<int> out_data(nrow*ncol + size_ratio);
 
       mgard::decompress_memory(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
@@ -314,11 +308,11 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       std::vector<double> col_vec(nrow);
       std::vector<double> work(nrow*ncol);
 
-      mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
+
+      mgard_2d::mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
       
-      
-      mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
-      //      std::cout << "Recomposing done!!!" << "\n";
+      mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
+
 
       return v;
     }
