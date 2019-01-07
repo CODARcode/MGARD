@@ -79,14 +79,14 @@ add_test(NAME mgard_test1
     COMMAND $<TARGET_FILE:mgard_test> 
     ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig 
     ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard  
-    513 513 1e-2
+    513 513 1 1e-2
 )
   
 add_test(NAME mgard_test2
     COMMAND $<TARGET_FILE:mgard_test> 
     ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig 
     ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400.mgard 
-    600 400 1e-2
+    600 400 1 1e-2
 )
 
 
