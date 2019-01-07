@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.6)
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -8,9 +7,6 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
 endif()
 
 project(MGARD VERSION 0.1)
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Default to a Release build if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -44,8 +40,15 @@ target_include_directories(mgard
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-
 target_link_libraries(mgard PRIVATE ZLIB::ZLIB)
+
+# Make sure we require C++11.  Use meta-compile features if available,
+# otherwise use specific language features
+if(NOT (CMAKE_VERSION VERSION_LESS 3.9))
+  target_compile_features(mgard PUBLIC cxx_std_11)
+else()
+  target_compile_features(mgard PUBLIC cxx_auto_type cxx_nullptr)
+endif()
 
 install(
   TARGETS mgard EXPORT mgard
