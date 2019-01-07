@@ -6,7 +6,13 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     "separate from the source directory")
 endif()
 
-project(MGARD VERSION 0.1)
+# Extract the version string from the header file and setup the project version
+# accordingly
+file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/include/mgard.h MGARD_VERSION
+  REGEX "// version: "
+  LIMIT_COUNT 1)
+string(REGEX MATCH "[0-9]+(\.[0-9])+" MGARD_VERSION "${MGARD_VERSION}")
+project(MGARD VERSION ${MGARD_VERSION})
 
 # Some boilerplate to setup nice output directories
 set(CMAKE_INSTALL_BINDIR bin CACHE STRING "Installation runtime subdirectory")
@@ -70,6 +76,12 @@ if(NOT (CMAKE_VERSION VERSION_LESS 3.9))
 else()
   target_compile_features(mgard PUBLIC cxx_auto_type cxx_nullptr)
 endif()
+
+# Set library version information
+set_target_properties(mgard PROPERTIES
+  VERSION ${MGARD_VERSION}
+  SOVERSION ${MGARD_VERSION_MAJOR}
+)
 
 install(
   TARGETS mgard EXPORT mgard
