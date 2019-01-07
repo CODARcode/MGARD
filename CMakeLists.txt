@@ -64,38 +64,43 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-message("-- Installation prefix: ${CMAKE_INSTALL_PREFIX}")
-message("        bin: ${CMAKE_INSTALL_BINDIR}")
-message("        lib: ${CMAKE_INSTALL_LIBDIR}")
-message("    include: ${CMAKE_INSTALL_INCLUDEDIR}")
-message("-- Build Type:   ${CMAKE_BUILD_TYPE}")
-
 # Create executables under build/bin
-enable_testing()
+include(CTest)
+if(BUILD_TESTING)
+  enable_testing()
+  add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.c)
+  target_link_libraries(mgard_test mgard)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.c)
-target_link_libraries(mgard_test mgard)
-
-add_test(NAME mgard_test1
-    COMMAND $<TARGET_FILE:mgard_test> 
-    ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig 
-    ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard  
-    513 513 1 1e-2
-)
+  add_test(NAME mgard_test1
+    COMMAND mgard_test
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
+      513 513 1 1e-2
+  )
   
-add_test(NAME mgard_test2
-    COMMAND $<TARGET_FILE:mgard_test> 
-    ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig 
-    ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400.mgard 
-    600 400 1 1e-2
-)
+  add_test(NAME mgard_test2
+    COMMAND mgard_test
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400.mgard
+      600 400 1 1e-2
+  )
 
+  add_test(NAME mgard_test3
+    COMMAND mgard_test
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.dat
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.mgard
+      11 160 15 1e-3
+  )
+endif()
 
-add_test(NAME mgard_test3
-    COMMAND $<TARGET_FILE:mgard_test> 
-    ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.dat 
-    ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.mgard 
-    11 160 15 1e-3
-)
+message("-- Configuration summary:")
+message("")
+message("  Installation prefix: ${CMAKE_INSTALL_PREFIX}")
+message("         bin: ${CMAKE_INSTALL_BINDIR}")
+message("         lib: ${CMAKE_INSTALL_LIBDIR}")
+message("     include: ${CMAKE_INSTALL_INCLUDEDIR}")
+message("")
+message("  Build Type: ${CMAKE_BUILD_TYPE}")
+message("  Shared Lib: ${BUILD_SHARED_LIBS}")
+message("     Testing: ${BUILD_TESTING}")
+
