@@ -51,27 +51,14 @@ endif()
 find_package(ZLIB REQUIRED)
 
 # Set library
-set(SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard.cpp
-                 ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_capi.cpp
-                 ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_nuni.cpp
-   )
-   
-add_library(mgard ${SOURCE_FILES})
-#target_include_directories(mgard
-#  PUBLIC
-#    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#)
-set(CMAKE_INSTALL_BINDIR bin CACHE STRING "Installation runtime subdirectory")
-set(CMAKE_INSTALL_LIBDIR lib CACHE STRING "Installation library subdirectory")
-set(CMAKE_INSTALL_INCLUDEDIR include
-  CACHE STRING "Installation include subdirectory")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
-    ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
- 
+add_library(mgard
+  src/mgard.cpp       include/mgard.h
+  src/mgard_capi.cpp  include/mgard_capi.h
+  src/mgard_nuni.cpp  include/mgard_nuni.h
+)
 target_include_directories(mgard
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(mgard PRIVATE ZLIB::ZLIB)
