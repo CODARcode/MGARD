@@ -8,8 +8,42 @@ endif()
 
 project(MGARD VERSION 0.1)
 
-# Default to a Release build if not specified
-if(NOT CMAKE_BUILD_TYPE)
+# Some boilerplate to setup nice output directories
+set(CMAKE_INSTALL_BINDIR bin CACHE STRING "Installation runtime subdirectory")
+set(CMAKE_INSTALL_LIBDIR lib CACHE STRING "Installation library subdirectory")
+set(CMAKE_INSTALL_INCLUDEDIR include
+  CACHE STRING "Installation include subdirectory")
+if(NOT CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+    ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
+endif()
+if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
+    ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
+endif()
+if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY
+    ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
+endif()
+
+# Setup shared library defaults.  If explicitly specified somehow, then default
+# to that.  Otherwise base the default on whether or not shared libs are even
+# supported (oddities of the CrayPE).
+include(CMakeDependentOption)
+get_property(SHARED_LIBS_SUPPORTED GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS)
+cmake_dependent_option(BUILD_SHARED_LIBS
+  "Build shared libraries (so/dylib/dll)." ${SHARED_LIBS_SUPPORTED}
+  "SHARED_LIBS_SUPPORTED" OFF
+)
+mark_as_advanced(BUILD_SHARED_LIBS)
+
+# Always build with PIC support if available
+if(SHARED_LIBS_SUPPORTED)
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+# Default to a release build if not specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
 
