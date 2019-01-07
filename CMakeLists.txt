@@ -89,8 +89,6 @@ add_test(NAME mgard_test2
     600 400 1e-2
 )
 
-add_executable(mgard_sirius_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_sirius_test.c)
-target_link_libraries(mgard_sirius_test mgard)
 
 add_test(NAME mgard_test3
     COMMAND $<TARGET_FILE:mgard_test> 
