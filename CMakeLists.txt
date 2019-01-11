@@ -19,6 +19,14 @@ set(CMAKE_INSTALL_BINDIR bin CACHE STRING "Installation runtime subdirectory")
 set(CMAKE_INSTALL_LIBDIR lib CACHE STRING "Installation library subdirectory")
 set(CMAKE_INSTALL_INCLUDEDIR include
   CACHE STRING "Installation include subdirectory")
+if(WIN32 AND NOT CYGWIN)
+  set(CMAKE_INSTALL_CMAKEDIR CMake
+    CACHE STRING "Installation CMake subdirectory")
+else()
+  set(CMAKE_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/mgard
+    CACHE STRING "Installation CMake subdirectory")
+endif()
+
 if(NOT CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
     ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
@@ -84,7 +92,7 @@ set_target_properties(mgard PROPERTIES
 )
 
 install(
-  TARGETS mgard EXPORT mgard
+  TARGETS mgard EXPORT mgard-targets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -126,12 +134,41 @@ if(BUILD_TESTING)
   )
 endif()
 
+# Add all targets to the build-tree export set
+export(TARGETS mgard NAMESPACE mgard::
+  FILE "${PROJECT_BINARY_DIR}/mgard-targets.cmake"
+)
+
+# Create the mgard-config.cmake and mgard-config-version files
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  "${PROJECT_BINARY_DIR}/mgard-config-version.cmake"
+  COMPATIBILITY SameMajorVersion
+)
+configure_file(mgard-config.cmake.in
+  "${PROJECT_BINARY_DIR}/mgard-config.cmake" @ONLY
+)
+
+# Install the mgard-config.cmake and mgard-config-version.cmake
+install(
+  FILES
+    "${PROJECT_BINARY_DIR}/mgard-config.cmake"
+    "${PROJECT_BINARY_DIR}/mgard-config-version.cmake"
+  DESTINATION "${CMAKE_INSTALL_CMAKEDIR}" COMPONENT dev
+)
+
+# Install the export set for use with the install-tree
+install(EXPORT mgard-targets NAMESPACE mgard::
+  DESTINATION "${CMAKE_INSTALL_CMAKEDIR}" COMPONENT dev
+)
+
 message("-- Configuration summary:")
 message("")
 message("  Installation prefix: ${CMAKE_INSTALL_PREFIX}")
 message("         bin: ${CMAKE_INSTALL_BINDIR}")
 message("         lib: ${CMAKE_INSTALL_LIBDIR}")
 message("     include: ${CMAKE_INSTALL_INCLUDEDIR}")
+message("       cmake: ${CMAKE_INSTALL_CMAKEDIR}")
 message("")
 message("  Build Type: ${CMAKE_BUILD_TYPE}")
 message("  Shared Lib: ${BUILD_SHARED_LIBS}")
