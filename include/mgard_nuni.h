@@ -93,7 +93,7 @@ namespace mgard_cannon
     
   void pi_lminus1(const int  l, std::vector<double>& v,  const std::vector<double>& coords);
     
-  void restrict(const int  l, std::vector<double>& v, const std::vector<double>& coords);
+  void restriction(const int  l, std::vector<double>& v, const std::vector<double>& coords);
     
   void prolongate(const int  l, std::vector<double>& v, const std::vector<double>& coords);
 
@@ -159,7 +159,7 @@ namespace mgard_gen
 
   void assign_num_level_l(const int  l, double* v, double num, int nr, int nc, const int nrow, const int ncol);
 
-  void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n, int no);
+  void restriction_first(std::vector<double>& v,  std::vector<double>& coords, int n, int no);
 
 
   void solve_tridiag_M_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no);
@@ -183,7 +183,7 @@ namespace mgard_gen
   void mass_mult_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, const int n, const int no);
 
 
-  void restrict_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no);
+  void restriction_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no);
 
   double ml2_norm3(const int  l, int nr, int nc, int nf, int nrow, int ncol, int nfib,  const std::vector<double>& v,  std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z);
 
@@ -279,7 +279,7 @@ namespace mgard_cannon
   void pi_lminus1(const int  l, std::vector<double>& v,  const std::vector<double>& coords);
 
 
-  void restrict(const int  l, std::vector<double>& v, const std::vector<double>& coords);
+  void restriction(const int  l, std::vector<double>& v, const std::vector<double>& coords);
 
 
 
@@ -338,7 +338,7 @@ namespace mgard_gen
   void assign_num_level_l(const int  l, double* v, double num, int nr, int nc, const int nrow, const int ncol);
   
 
-  void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n, int no);
+  void restriction_first(std::vector<double>& v,  std::vector<double>& coords, int n, int no);
 
 
   void solve_tridiag_M_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no);
@@ -358,7 +358,7 @@ namespace mgard_gen
   void mass_mult_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, const int n, const int no);
 
 
-  void restrict_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no);
+  void restriction_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no);
 
 
 

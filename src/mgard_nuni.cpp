@@ -508,13 +508,13 @@ namespace mgard_cannon
       }
   }
 
-  void restrict(const int  l, std::vector<double>& v, const std::vector<double>& coords)
+  void restriction(const int  l, std::vector<double>& v, const std::vector<double>& coords)
   {
     int stride = std::pow(2,l);
     int Pstride = stride/2;//finer stride
     int n = v.size();
     
-    // calculate the result of restriction
+    // calculate the result of restrictionion
 
     double h1 = mgard_common::get_h(coords, 0, Pstride);
     double h2 = mgard_common::get_h(coords, Pstride , Pstride);
@@ -2067,16 +2067,16 @@ void  assign_num_level(const int  l, std::vector<double>& v , double num, int n,
       }
   }
 
-void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n, int no)
+void restriction_first(std::vector<double>& v,  std::vector<double>& coords, int n, int no)
   {
-    // calculate the result of restriction
+    // calculate the result of restrictionion
 
     for(int i =  0; i < n - 1; ++i) //loop over the logical array
       {
         int i_logic  = get_lindex(n,  no,  i);
         int i_logicP = get_lindex(n,  no, i+1);
         
-        if (i_logicP != i_logic+1) // next real memory location was jumped over, so need to restrict
+        if (i_logicP != i_logic+1) // next real memory location was jumped over, so need to restriction
           {
              double h1 = mgard_common::get_h(coords, i_logic,  1);
              double h2 = mgard_common::get_h(coords, i_logic + 1, 1);
@@ -2289,7 +2289,7 @@ void sub3_level(const int  l, double* v, double* work, int nrow, int ncol, int n
         
         mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
         
-        restrict_first(row_vec, coords_x, nc, ncol);
+        restriction_first(row_vec, coords_x, nc, ncol);
         
 
         
@@ -2330,7 +2330,7 @@ void sub3_level(const int  l, double* v, double* work, int nrow, int ncol, int n
             
             mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
             
-            restrict_first(col_vec, coords_y, nr, nrow);
+            restriction_first(col_vec, coords_y, nr, nrow);
 
             
             
@@ -2388,12 +2388,12 @@ void sub3_level(const int  l, double* v, double* work, int nrow, int ncol, int n
     v.back() = get_h_l(coords, n, no, n-stride-1, stride) * temp1 + 2*get_h_l(coords, n, no, n-stride-1, stride)*v.back() ;
   }
 
-void restrict_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no)
+void restriction_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no)
 {
     int stride = std::pow(2,l);
     int Pstride = stride/2;//finer stride
     
-    // calculate the result of restriction
+    // calculate the result of restrictionion
 
     double h1 = get_h_l(coords,n, no, 0, Pstride);
     double h2 = get_h_l(coords,n, no, Pstride , Pstride);
@@ -2531,7 +2531,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
 //   mgard_gen::assign_num_level_l(0, work, 0.0, n, no);
   
 //   mass_mult(0, work, coords);
-//   restrict_first(work, coords, n, no);
+//   restriction_first(work, coords, n, no);
   
 //   solve_tridiag_M_l(0, work, coords, n, no);
 //   add_level_l(0, v,  work, n, no);
@@ -2548,7 +2548,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
 //       mass_mult_l(l, work, coords, n, no);
 
       
-//       restrict_l(l+1, work, coords, n, no);
+//       restriction_l(l+1, work, coords, n, no);
 
 //       solve_tridiag_M_l(l+1, work, coords, n, no);
 
@@ -2586,7 +2586,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
 
             mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol );
 
-            mgard_gen::restrict_l(l+1, row_vec, coords_x, nc, ncol );
+            mgard_gen::restriction_l(l+1, row_vec, coords_x, nc, ncol );
 
             mgard_gen::solve_tridiag_M_l(l+1, row_vec, coords_x, nc, ncol );
 
@@ -2611,7 +2611,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
 
 
                 mgard_gen::mass_mult_l(l,  col_vec, coords_y, nr, nrow);
-                mgard_gen::restrict_l(l+1, col_vec, coords_y, nr, nrow);
+                mgard_gen::restriction_l(l+1, col_vec, coords_y, nr, nrow);
                 mgard_gen::solve_tridiag_M_l(l+1,  col_vec, coords_y, nr, nrow);
 
 
@@ -2659,7 +2659,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
 
 //             mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol );
 
-//             mgard_gen::restrict_l(l+1, row_vec, coords_x, nc, ncol );
+//             mgard_gen::restriction_l(l+1, row_vec, coords_x, nc, ncol );
 
 //             mgard_gen::solve_tridiag_M_l(l+1, row_vec, coords_x, nc, ncol );
 
@@ -2684,7 +2684,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
 
 
 //                 mgard_gen::mass_mult_l(l,  col_vec, coords_y, nr, nrow);
-//                 mgard_gen::restrict_l(l+1, col_vec, coords_y, nr, nrow);
+//                 mgard_gen::restriction_l(l+1, col_vec, coords_y, nr, nrow);
 //                 mgard_gen::solve_tridiag_M_l(l+1,  col_vec, coords_y, nr, nrow);
 
 
@@ -2719,7 +2719,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
         
         mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
         
-        restrict_first(row_vec, coords_x, nc, ncol);
+        restriction_first(row_vec, coords_x, nc, ncol);
         
         
         for(int jcol = 0; jcol < ncol; ++jcol)
@@ -2761,7 +2761,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
                 
                 mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
                 
-                mgard_gen::restrict_first(col_vec, coords_y, nr, nrow);
+                mgard_gen::restriction_first(col_vec, coords_y, nr, nrow);
 
             
 
@@ -2887,7 +2887,7 @@ void refactor_3D(const int nr, const int nc, const int nf, const int nrow, const
                    fib_vec[kfib] = work[mgard_common::get_index3(ncol,nfib,ir,jc,kfib)];
                  }
                mgard_gen::mass_mult_l(l,  fib_vec, coords_z, nf, nfib);
-               mgard_gen::restrict_l(l+1, fib_vec, coords_z, nf, nfib);
+               mgard_gen::restriction_l(l+1, fib_vec, coords_z, nf, nfib);
                mgard_gen::solve_tridiag_M_l(l+1,  fib_vec, coords_z, nf, nfib);
                for(int kfib = 0; kfib < nfib; ++kfib)
                  {
@@ -2934,7 +2934,7 @@ void compute_zl(const int nr, const int nc, const int nrow, const int ncol,  con
 
             mgard_gen::mass_mult_l(l-1, row_vec, coords_x, nc, ncol );
 
-            mgard_gen::restrict_l(l, row_vec, coords_x, nc, ncol );
+            mgard_gen::restriction_l(l, row_vec, coords_x, nc, ncol );
 
             mgard_gen::solve_tridiag_M_l(l, row_vec, coords_x, nc, ncol );
 
@@ -2962,7 +2962,7 @@ void compute_zl(const int nr, const int nc, const int nrow, const int ncol,  con
                 
                 mgard_gen::mass_mult_l(l-1, col_vec, coords_y, nr, nrow );
             
-                mgard_gen::restrict_l(l, col_vec, coords_y, nr, nrow );
+                mgard_gen::restriction_l(l, col_vec, coords_y, nr, nrow );
 
                 mgard_gen::solve_tridiag_M_l(l, col_vec, coords_y, nr, nrow );
             
@@ -2991,7 +2991,7 @@ void compute_zl_last(const int nr, const int nc, const int nrow, const int ncol,
         
         mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
         
-        restrict_first(row_vec, coords_x, nc, ncol);
+        restriction_first(row_vec, coords_x, nc, ncol);
         
         
         for(int jcol = 0; jcol < ncol; ++jcol)
@@ -3033,7 +3033,7 @@ void compute_zl_last(const int nr, const int nc, const int nrow, const int ncol,
                 
                 mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
                 
-                mgard_gen::restrict_first(col_vec, coords_y, nr, nrow);
+                mgard_gen::restriction_first(col_vec, coords_y, nr, nrow);
 
             
 
@@ -3064,14 +3064,14 @@ void compute_zl_last(const int nr, const int nc, const int nrow, const int ncol,
 
 void prolongate_last(std::vector<double>& v,  std::vector<double>& coords, int n, int no)
   {
-    // calculate the result of restriction
+    // calculate the result of restrictionion
 
     for(int i =  0; i < n - 1; ++i) //loop over the logical array
       {
         int i_logic  = get_lindex(n,  no,  i);
         int i_logicP = get_lindex(n,  no, i+1);
         
-        if (i_logicP != i_logic+1) // next real memory location was jumped over, so need to restrict
+        if (i_logicP != i_logic+1) // next real memory location was jumped over, so need to restriction
           {
             double h1 = mgard_common::get_h(coords, i_logic,  1);
             double h2 = mgard_common::get_h(coords, i_logic + 1, 1);
@@ -3216,7 +3216,7 @@ void prep_3D(const int nr, const int nc, const int nf, const int nrow, const int
               fib_vec[kfib] = work[mgard_common::get_index3(ncol,nfib,ir,jc,kfib)];
             }
           mgard_cannon::mass_matrix_multiply(l, fib_vec, coords_z);
-          mgard_gen::restrict_first(fib_vec, coords_z, nf, nfib);
+          mgard_gen::restriction_first(fib_vec, coords_z, nf, nfib);
           mgard_gen::solve_tridiag_M_l(l,  fib_vec, coords_z, nf, nfib);
           for(int kfib = 0; kfib < nfib; ++kfib)
             {
@@ -3281,7 +3281,7 @@ void recompose_3D(const int nr, const int nc, const int nf, const int nrow, cons
 
                 mgard_gen::mass_mult_l(l-1, fib_vec, coords_z, nf, nfib );
                 
-                mgard_gen::restrict_l(l, fib_vec, coords_z, nf, nfib );
+                mgard_gen::restriction_l(l, fib_vec, coords_z, nf, nfib );
                 
                 mgard_gen::solve_tridiag_M_l(l, fib_vec, coords_z, nf, nfib );
 
@@ -3373,7 +3373,7 @@ void postp_3D(const int nr, const int nc, const int nf, const int nrow, const in
               fib_vec[kfib] = work[mgard_common::get_index3(ncol,nfib,ir,jc,kfib)];
             }
           mgard_cannon::mass_matrix_multiply(l, fib_vec, coords_z);
-          mgard_gen::restrict_first(fib_vec, coords_z, nf, nfib);
+          mgard_gen::restriction_first(fib_vec, coords_z, nf, nfib);
           mgard_gen::solve_tridiag_M_l(l,  fib_vec, coords_z, nf, nfib);
           for(int kfib = 0; kfib < nfib; ++kfib)
             {
@@ -3400,7 +3400,7 @@ void postp_3D(const int nr, const int nc, const int nf, const int nrow, const in
     //         //            mgard_gen::mass_mult_l(l, fib_vec, coords_z, nfib, nfib );
     //         //            assign_num_level(0, row_vec, 0.0, nr, nrow);
     //         mgard_cannon::mass_matrix_multiply(l, row_vec, coords_x);
-    //         mgard_gen::restrict_first(row_vec, coords_x, nr, nrow );
+    //         mgard_gen::restriction_first(row_vec, coords_x, nr, nrow );
             
     //         mgard_gen::solve_tridiag_M_l(l, row_vec, coords_x, nr, nrow );
 
@@ -3427,7 +3427,7 @@ void postp_3D(const int nr, const int nc, const int nf, const int nrow, const in
     //           }
     //         //            assign_num_level(0, col_vec, 0.0, nc, ncol);
     //         mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
-    //         mgard_gen::restrict_first(col_vec, coords_y, nc, ncol);
+    //         mgard_gen::restriction_first(col_vec, coords_y, nc, ncol);
     //         mgard_gen::solve_tridiag_M_l(0,  col_vec, coords_y, nc, ncol);
     //         for(int irow = 0; irow < nr; irow += stride)
     //           {
@@ -3456,7 +3456,7 @@ void postp_3D(const int nr, const int nc, const int nf, const int nrow, const in
     //         //            mgard_gen::mass_mult_l(l, fib_vec, coords_z, nfib, nfib );
     //         //            assign_num_level(0, fib_vec, 0.0, nf, nfib);
     //         mgard_cannon::mass_matrix_multiply(l, fib_vec, coords_z);
-    //         mgard_gen::restrict_first(fib_vec, coords_z, nf, nfib );
+    //         mgard_gen::restriction_first(fib_vec, coords_z, nf, nfib );
             
     //         mgard_gen::solve_tridiag_M_l(l, fib_vec, coords_z, nf, nfib );
             
@@ -3544,7 +3544,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
 
             mgard_gen::mass_mult_l(l-1, row_vec, coords_x, nc, ncol );
 
-            mgard_gen::restrict_l(l, row_vec, coords_x, nc, ncol );
+            mgard_gen::restriction_l(l, row_vec, coords_x, nc, ncol );
 
             mgard_gen::solve_tridiag_M_l(l, row_vec, coords_x, nc, ncol );
 
@@ -3572,7 +3572,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
                 
                 mgard_gen::mass_mult_l(l-1, col_vec, coords_y, nr, nrow );
             
-                mgard_gen::restrict_l(l, col_vec, coords_y, nr, nrow );
+                mgard_gen::restriction_l(l, col_vec, coords_y, nr, nrow );
 
                 mgard_gen::solve_tridiag_M_l(l, col_vec, coords_y, nr, nrow );
             
@@ -3657,7 +3657,7 @@ void recompose_2D_full(const int nr, const int nc, const int nrow, const int nco
 
             mgard_gen::mass_mult_l(l-1, row_vec, coords_x, nc, ncol );
 
-            mgard_gen::restrict_l(l, row_vec, coords_x, nc, ncol );
+            mgard_gen::restriction_l(l, row_vec, coords_x, nc, ncol );
 
             mgard_gen::solve_tridiag_M_l(l, row_vec, coords_x, nc, ncol );
 
@@ -3684,7 +3684,7 @@ void recompose_2D_full(const int nr, const int nc, const int nrow, const int nco
                 
                 mgard_gen::mass_mult_l(l-1, col_vec, coords_y, nr, nrow );
             
-                mgard_gen::restrict_l(l, col_vec, coords_y, nr, nrow );
+                mgard_gen::restriction_l(l, col_vec, coords_y, nr, nrow );
 
                 mgard_gen::solve_tridiag_M_l(l, col_vec, coords_y, nr, nrow );
             
@@ -3758,7 +3758,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
         
         mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
         
-        restrict_first(row_vec, coords_x, nc, ncol);
+        restriction_first(row_vec, coords_x, nc, ncol);
         
         
         for(int jcol = 0; jcol < ncol; ++jcol)
@@ -3800,7 +3800,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
                 
                 mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
                 
-                mgard_gen::restrict_first(col_vec, coords_y, nr, nrow);
+                mgard_gen::restriction_first(col_vec, coords_y, nr, nrow);
 
             
 
@@ -4632,13 +4632,13 @@ namespace mgard_cannon
       }
   }
 
-  void restrict(const int  l, std::vector<double>& v, const std::vector<double>& coords)
+  void restriction(const int  l, std::vector<double>& v, const std::vector<double>& coords)
   {
     int stride = std::pow(2,l);
     int Pstride = stride/2;//finer stride
     int n = v.size();
     
-    // calculate the result of restriction
+    // calculate the result of restrictionion
 
     double h1 = mgard_common::get_h(coords, 0, Pstride);
     double h2 = mgard_common::get_h(coords, Pstride , Pstride);
@@ -5153,16 +5153,16 @@ namespace mgard_gen
       }
   }
 
-void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n, int no)
+void restriction_first(std::vector<double>& v,  std::vector<double>& coords, int n, int no)
   {
-    // calculate the result of restriction
+    // calculate the result of restrictionion
 
     for(int i =  0; i < n - 1; ++i) //loop over the logical array
       {
         int i_logic  = get_lindex(n,  no,  i);
         int i_logicP = get_lindex(n,  no, i+1);
         
-        if (i_logicP != i_logic+1) // next real memory location was jumped over, so need to restrict
+        if (i_logicP != i_logic+1) // next real memory location was jumped over, so need to restriction
           {
              double h1 = mgard_common::get_h(coords, i_logic,  1);
              double h2 = mgard_common::get_h(coords, i_logic + 1, 1);
@@ -5283,7 +5283,7 @@ void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n,
         
         mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
         
-        restrict_first(row_vec, coords_x, nc, ncol);
+        restriction_first(row_vec, coords_x, nc, ncol);
         
         
         for(int jcol = 0; jcol < ncol; ++jcol)
@@ -5325,7 +5325,7 @@ void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n,
                 
                 mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
                 
-                mgard_gen::restrict_first(col_vec, coords_y, nr, nrow);
+                mgard_gen::restriction_first(col_vec, coords_y, nr, nrow);
 
             
 
@@ -5381,12 +5381,12 @@ void restrict_first(std::vector<double>& v,  std::vector<double>& coords, int n,
     v.back() = get_h_l(coords, n, no, n-stride-1, stride) * temp1 + 2*get_h_l(coords, n, no, n-stride-1, stride)*v.back() ;
   }
 
-void restrict_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no)
+void restriction_l(const int  l, std::vector<double>& v,  std::vector<double>& coords, int n, int no)
 {
     int stride = std::pow(2,l);
     int Pstride = stride/2;//finer stride
     
-    // calculate the result of restriction
+    // calculate the result of restrictionion
 
     double h1 = get_h_l(coords,n, no, 0, Pstride);
     double h2 = get_h_l(coords,n, no, Pstride , Pstride);
@@ -5455,7 +5455,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
 
             mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol );
 
-            mgard_gen::restrict_l(l+1, row_vec, coords_x, nc, ncol );
+            mgard_gen::restriction_l(l+1, row_vec, coords_x, nc, ncol );
 
             mgard_gen::solve_tridiag_M_l(l+1, row_vec, coords_x, nc, ncol );
 
@@ -5480,7 +5480,7 @@ void prolongate_l(const int  l, std::vector<double>& v,  std::vector<double>& co
 
 
                 mgard_gen::mass_mult_l(l,  col_vec, coords_y, nr, nrow);
-                mgard_gen::restrict_l(l+1, col_vec, coords_y, nr, nrow);
+                mgard_gen::restriction_l(l+1, col_vec, coords_y, nr, nrow);
                 mgard_gen::solve_tridiag_M_l(l+1,  col_vec, coords_y, nr, nrow);
 
 
@@ -5529,7 +5529,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
 
             mgard_gen::mass_mult_l(l-1, row_vec, coords_x, nc, ncol );
 
-            mgard_gen::restrict_l(l, row_vec, coords_x, nc, ncol );
+            mgard_gen::restriction_l(l, row_vec, coords_x, nc, ncol );
 
             mgard_gen::solve_tridiag_M_l(l, row_vec, coords_x, nc, ncol );
 
@@ -5557,7 +5557,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
                 
                 mgard_gen::mass_mult_l(l-1, col_vec, coords_y, nr, nrow );
             
-                mgard_gen::restrict_l(l, col_vec, coords_y, nr, nrow );
+                mgard_gen::restriction_l(l, col_vec, coords_y, nr, nrow );
 
                 mgard_gen::solve_tridiag_M_l(l, col_vec, coords_y, nr, nrow );
             
@@ -5624,14 +5624,14 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,  c
 
 void prolongate_last(std::vector<double>& v,  std::vector<double>& coords, int n, int no)
   {
-    // calculate the result of restriction
+    // calculate the result of restrictionion
 
     for(int i =  0; i < n - 1; ++i) //loop over the logical array
       {
         int i_logic  = get_lindex(n,  no,  i);
         int i_logicP = get_lindex(n,  no, i+1);
         
-        if (i_logicP != i_logic+1) // next real memory location was jumped over, so need to restrict
+        if (i_logicP != i_logic+1) // next real memory location was jumped over, so need to restriction
           {
             double h1 = mgard_common::get_h(coords, i_logic,  1);
             double h2 = mgard_common::get_h(coords, i_logic + 1, 1);
@@ -5660,7 +5660,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
         
         mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
         
-        restrict_first(row_vec, coords_x, nc, ncol);
+        restriction_first(row_vec, coords_x, nc, ncol);
         
         
         for(int jcol = 0; jcol < ncol; ++jcol)
@@ -5702,7 +5702,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,  const
                 
                 mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
                 
-                mgard_gen::restrict_first(col_vec, coords_y, nr, nrow);
+                mgard_gen::restriction_first(col_vec, coords_y, nr, nrow);
 
             
 

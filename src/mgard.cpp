@@ -516,12 +516,12 @@ solve_tridiag_M (const int l, std::vector<double> &v)
 }
 
 void
-restrict (const int l, std::vector<double> &v)
+restriction (const int l, std::vector<double> &v)
 {
   int stride = std::pow (2, l);
   int Pstride = stride / 2;
 
-  // calculate the result of restriction
+  // calculate the result of restrictionion
   auto it = v.begin () + Pstride;
   v.front () += 0.5 * (*it); // first element
   for (auto it = std::begin (v) + stride; it <= std::end (v) - stride;
@@ -1156,7 +1156,7 @@ refactor (const int nrow, const int ncol, const int l_target, double *v,
 
           mass_matrix_multiply (l, row_vec);
 
-          restrict (l + 1, row_vec);
+          restriction (l + 1, row_vec);
 
           solve_tridiag_M (l + 1, row_vec);
 
@@ -1179,7 +1179,7 @@ refactor (const int nrow, const int ncol, const int l_target, double *v,
 
               mass_matrix_multiply (l, col_vec);
 
-              restrict (l + 1, col_vec);
+              restriction (l + 1, col_vec);
               solve_tridiag_M (l + 1, col_vec);
 
               for (int irow = 0; irow < nrow; ++irow)
@@ -1228,7 +1228,7 @@ recompose (const int nrow, const int ncol, const int l_target, double *v,
 
           mass_matrix_multiply (l - 1, row_vec);
 
-          restrict (l, row_vec);
+          restriction (l, row_vec);
           solve_tridiag_M (l, row_vec);
 
           for (int jcol = 0; jcol < ncol; ++jcol)
@@ -1249,7 +1249,7 @@ recompose (const int nrow, const int ncol, const int l_target, double *v,
 
               mass_matrix_multiply (l - 1, col_vec);
 
-              restrict (l, col_vec);
+              restriction (l, col_vec);
               solve_tridiag_M (l, col_vec);
 
               for (int irow = 0; irow < nrow; ++irow)
