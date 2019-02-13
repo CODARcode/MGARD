@@ -35,13 +35,14 @@ LIB=libmgard.a
 
 .PHONY: all clean test
 
-all: $(EXECUTABLE) $(LIB) $(SIRIUS_EXEC) test test2 test3
+#all: $(EXECUTABLE) $(LIB) $(SIRIUS_EXEC) test test2 test3
+all: $(EXECUTABLE) $(LIB) test test2 test3
 
 $(EXECUTABLE): $(OBJECTS) 
 	$(LINK.o) -o $@ $^
 
-$(SIRIUS_EXEC): $(OBJECTS_SIRIUS) 
-	$(LINK.o) -o $@ $^
+#$(SIRIUS_EXEC): $(OBJECTS_SIRIUS) 
+#	$(LINK.o) -o $@ $^
 
 $(OBJ)/%.o: %.cpp | $(OBJ)
 	$(COMPILE.cpp) $< -o $@
