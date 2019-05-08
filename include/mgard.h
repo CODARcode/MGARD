@@ -138,11 +138,18 @@ namespace mgard
 
 
   void
-    compress_memory (void *in_data, size_t in_data_size,
+    compress_memory_blosc (void *in_data, size_t in_data_size,
                      std::vector<uint8_t> &out_data);
 
   void
-    decompress_memory (const void *src, int srcLen, int *dst, int dstLen);
+    compress_memory_z (void *in_data, size_t in_data_size,
+                     std::vector<uint8_t> &out_data);
+
+  void
+    decompress_memory_blosc (const void *src, int srcLen, int *dst, int dstLen);
+
+  void
+    decompress_memory_z (const void *src, int srcLen, int *dst, int dstLen);
 
   void
     qread_level_2D (const int nrow, const int ncol, const int nlevel, double *v,

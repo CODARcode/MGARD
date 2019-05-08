@@ -7,14 +7,14 @@ MKDIR=mkdir
 RMDIR=rmdir --ignore-fail-on-non-empty
 
 
-CXXFLAGS= -c  -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
+CXXFLAGS= -std=c++11 -c  -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
 CFLAGS=  -c -Wall -Wfatal-errors -I$(INC) -O3
 
-LDFLAGS = -lz -lm -lstdc++
+LDFLAGS = -lz -lm -lstdc++ -std=c++11 -L/ccs/proj/e2e/qliu/blosc/lib -lblosc -pthread
 ARFLAGS = rcs
 
 SRC=src
-INC=include
+INC=include -I/ccs/proj/e2e/qliu/blosc/include
 OBJ=obj
 
 vpath %.o $(OBJ)
@@ -39,10 +39,10 @@ LIB=libmgard.a
 all: $(EXECUTABLE) $(LIB) test test2 test3
 
 $(EXECUTABLE): $(OBJECTS) 
-	$(LINK.o) -o $@ $^
+	$(LINK.o) -o $@ $^ $(LDFLAGS)
 
 #$(SIRIUS_EXEC): $(OBJECTS_SIRIUS) 
-#	$(LINK.o) -o $@ $^
+#	$(LINK.o) -o $@ $^ $(LDFLAGS)
 
 $(OBJ)/%.o: %.cpp | $(OBJ)
 	$(COMPILE.cpp) $< -o $@
