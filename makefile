@@ -10,11 +10,11 @@ RMDIR=rmdir --ignore-fail-on-non-empty
 CXXFLAGS= -std=c++11 -c  -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
 CFLAGS=  -c -Wall -Wfatal-errors -I$(INC) -O3
 
-LDFLAGS = -lz -lm -lstdc++ -std=c++11 -L/ccs/proj/e2e/qliu/blosc/lib -lblosc -pthread
+LDFLAGS = -lz -lm -lstdc++ -std=c++11 -L./blosc/lib -lblosc -pthread
 ARFLAGS = rcs
 
 SRC=src
-INC=include -I/ccs/proj/e2e/qliu/blosc/include
+INC=include -I./blosc/include
 OBJ=obj
 
 vpath %.o $(OBJ)
