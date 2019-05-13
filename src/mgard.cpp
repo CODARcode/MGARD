@@ -32,7 +32,8 @@
 // See accompanying file Copyright.txt for details.
 //
 
-
+#include <chrono>
+#include <blosc.h>
 #include "mgard.h"
 #include "mgard_nuni.h"
 
@@ -94,7 +95,7 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 
   mgard::quantize_2D_iterleave (nrow, ncol*nfib, v.data(), qv, norm, tol);
   std::vector<unsigned char> out_data;
-  mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
+  mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
 
   outsize = out_data.size ();
   unsigned char *buffer = (unsigned char *)malloc (outsize);
@@ -137,7 +138,7 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
     int l_target = nlevel-1;
     
     
-    mgard::decompress_memory(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+    mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
     
     double *v = (double *)malloc (nrow*ncol*nfib*sizeof(double));
 
@@ -195,7 +196,7 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       mgard::quantize_2D_iterleave (nrow, ncol, v.data(), qv, norm, tol);
       
       std::vector<unsigned char> out_data;
-      mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
+      mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
       outsize = out_data.size ();
       unsigned char *buffer = (unsigned char *)malloc (outsize);
       std::copy (out_data.begin (), out_data.end (), buffer);
@@ -236,7 +237,7 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       mgard::quantize_2D_iterleave (nrow, ncol, v.data (), qv, norm, tol);
 
       std::vector<unsigned char> out_data;
-      mgard::compress_memory (qv.data (), sizeof (int) * qv.size (), out_data);
+      mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
 
       outsize = out_data.size ();
       unsigned char *buffer = (unsigned char *)malloc (outsize);
@@ -262,7 +263,7 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       
       std::vector<int> out_data(nrow_new*ncol_new + size_ratio);
 
-      mgard::decompress_memory(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+      mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
       
       double *v = (double *)malloc (nrow_new*ncol_new*sizeof(double));
 
@@ -298,7 +299,7 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       int l_target = 0;
       std::vector<int> out_data(nrow*ncol + size_ratio);
 
-      mgard::decompress_memory(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+      mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
 
       double *v = (double *)malloc (nrow*ncol*sizeof(double));
 
@@ -965,8 +966,52 @@ qwrite_2D_interleave (const int nrow, const int ncol, const int nlevel,
 }
 
 void
-compress_memory (void *in_data, size_t in_data_size,
-                 std::vector<uint8_t> &out_data)
+compress_memory_blosc (void *in_data, size_t in_data_size,
+                       std::vector<uint8_t> &out_data)
+{
+  std::cout << "compress_memory_blosc: " << in_data_size<<std::endl;
+  auto t1 = std::chrono::high_resolution_clock::now();
+  std::vector<uint8_t> buffer;
+
+  uint8_t * temp_buffer = (uint8_t *) malloc (in_data_size);
+  assert (temp_buffer);
+
+  /* Initialize the Blosc compressor */
+  blosc_init();
+
+  blosc_set_compressor("zstd");
+  //blosc_set_compressor("zlib");
+  //blosc_set_compressor("lz4");
+  //blosc_set_compressor("lz4hc");
+  //blosc_set_compressor("snappy");
+  //blosc_set_compressor("blosclz");
+
+  //blosc_set_nthreads(4);
+  /* Compress with clevel=5 and shuffle active  */
+  size_t csize = blosc_compress(9, BLOSC_NOSHUFFLE, sizeof(uint8_t),
+                                in_data_size, in_data,
+                                temp_buffer, in_data_size);
+
+  const char* compressor;
+
+  /* Before any blosc_compress() the compressor must be blosclz */
+  compressor = blosc_get_compressor();
+
+  std::cout << "compressor = " << compressor << " ;csize = " << csize << std::endl;
+  buffer.insert (buffer.end (), temp_buffer, temp_buffer + csize);
+  out_data.swap (buffer);
+
+  blosc_destroy();
+
+  auto t2 = std::chrono::high_resolution_clock::now();
+
+  std::cout << "compress_memory_blosc done: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
+              << " milliseconds\n" << std::endl;
+}
+
+void
+compress_memory_z (void *in_data, size_t in_data_size,
+                  std::vector<uint8_t> &out_data)
 {
   std::vector<uint8_t> buffer;
 
@@ -1016,7 +1061,17 @@ compress_memory (void *in_data, size_t in_data_size,
 }
 
 void
-decompress_memory (const void *src, int srcLen, int *dst, int dstLen)
+decompress_memory_blosc (const void *src, int srcLen, int *dst, int dstLen)
+{
+  blosc_init();
+
+  blosc_decompress(src, dst, dstLen);
+
+  blosc_destroy();
+}
+
+void
+decompress_memory_z (const void *src, int srcLen, int *dst, int dstLen)
 {
   z_stream strm = { 0 };
   strm.total_in = strm.avail_in = srcLen;
