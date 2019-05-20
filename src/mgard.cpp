@@ -42,7 +42,7 @@ namespace mgard
 
 
 unsigned char *
-refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double tol)
+refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double tol, double s)
 {
   int nlevel;
   std::vector<double> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
@@ -69,9 +69,11 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 
   //  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
 
-  double norm = mgard_common::max_norm(v);
+  //  double norm = mgard_common::max_norm(v);
+
+  double norm = 1.0; // absolute s-norm, need a switch for relative errors
   tol /= nlevel + 1 ;
-  double s = 0; // Defaulting to L8' compression for a start. 
+  //  double s = 0; // Defaulting to L8' compression for a start. 
 
   //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s != 8'
         
@@ -105,7 +107,7 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 }  
   
   
-  double* recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len)
+  double* recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len, double s)
   {
     int nlevel;
     int size_ratio = sizeof(double)/sizeof(int);
@@ -113,8 +115,8 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
     std::vector<int> out_data(nrow*ncol*nfib + size_ratio);
     std::vector<double> work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
     
-    double s = 0; // Defaulting to L2 compression for a start. 
-    double norm = 1;//defaulting to absolute L2 for a start
+    //    double s = 0; // Defaulting to L2 compression for a start. 
+    double norm = 1;//defaulting to absolute s, may switch to relative
 
     //      dummy equispaced coordinates
     std::iota(std::begin(coords_x), std::end(coords_x), 0);

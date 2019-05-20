@@ -44,11 +44,11 @@
 int main(int argc, char *argv[])
 {
   int i, j, nrow, ncol, nfib;
-  double tol;
+  double tol, s;
 
-  if(argc < 6)
+  if(argc < 7)
     {
-      fprintf (stderr, "%s: Not enough arguments! Usage: %s infile outfile nrow ncol tolerance\n", argv[0], argv[0]);
+      fprintf (stderr, "%s: Not enough arguments! Usage: %s infile outfile nrow ncol tolerance, s\n", argv[0], argv[0]);
       return 1;
     }
   else
@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
       ncol = atoi(argv[4]);
       nfib = atoi(argv[5]);
       tol  = atof(argv[6]);
+      s    = atof(argv[7]);
     }
   
 
@@ -102,7 +103,7 @@ int main(int argc, char *argv[])
   int iflag = 1; //0 -> float, 1 -> double
   int out_size;
 
-  mgard_comp_buff = mgard_compress(iflag, in_buff, &out_size,  nrow,  ncol, nfib, &tol );
+  mgard_comp_buff = mgard_compress(iflag, in_buff, &out_size,  nrow,  ncol, nfib, &tol, s );
 
 
   FILE *qfile;
@@ -118,7 +119,7 @@ int main(int argc, char *argv[])
   
   double* mgard_out_buff;
   
-  mgard_out_buff = mgard_decompress(iflag, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
+  mgard_out_buff = mgard_decompress(iflag, mgard_comp_buff, out_size,  nrow,  ncol, nfib, s);
 
   
   qfile = fopen ( argv[2] , "wb" );

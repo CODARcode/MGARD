@@ -173,10 +173,10 @@ namespace mgard
                  const int ncol, const int nrow_new, const int ncol_new);
 
   unsigned char *
-    refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol);
+  refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol, double s);
 
   double*
-    recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len);
+  recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len, double s);
 
   unsigned char *
     refactor_qz_2D (int nrow, int ncol, const double *v, int &outsize, double tol);

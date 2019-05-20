@@ -36,9 +36,9 @@
 #ifndef MGARD_CAPI_H
 #define MGARD_CAPI_H
 
-extern unsigned char *mgard_compress(int itype_flag, void *data, int *out_size, int nrow, int ncol, int nfib, void* tol);
+extern unsigned char *mgard_compress(int itype_flag, void *data, int *out_size, int nrow, int ncol, int nfib, void* tol, double s);
 
-extern void *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib);
+extern void *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib, double s);
 
 
 #endif
