@@ -1,4 +1,3 @@
-
 CXX= g++
 CC = gcc
 
@@ -6,16 +5,20 @@ LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
 MKDIR=mkdir
 RMDIR=rmdir --ignore-fail-on-non-empty
 
+SRC=src
+IDIR1=include
+IDIR2=blosc/include
+INC=$(IDIR1) $(IDIR2) 
+INC_PARAMS=$(foreach d, $(INC), -I$d)
+OBJ=obj
 
-CXXFLAGS= -std=c++11 -c  -Wall -Wfatal-errors -I$(INC) -O3 -fPIC
-CFLAGS=  -c -Wall -Wfatal-errors -I$(INC) -O3
 
-LDFLAGS = -lz -lm -lstdc++ -std=c++11 -L./blosc/lib -lblosc -pthread
+CXXFLAGS= -std=c++11 -c  -Wall -Wfatal-errors $(INC_PARAMS)  -O3 -fPIC
+CFLAGS=  -c -Wall -Wfatal-errors $(INC_PARAMS) -O3
+
+LDFLAGS = -lz -lm -lstdc++ -pthread  -Lblosc/lib/ -lblosc  -Wl,-R -Wl,blosc/lib/ 
 ARFLAGS = rcs
 
-SRC=src
-INC=include -I./blosc/include
-OBJ=obj
 
 vpath %.o $(OBJ)
 vpath %.c $(SRC)
