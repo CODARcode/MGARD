@@ -10,4 +10,6 @@ cmake -DCMAKE_INSTALL_PREFIX=../../blosc ..
 #ccmake ..
 cmake --build . --target install
 
-rm -rf v1.16.3 c-blosc-* v1.16.3
+cd ../..
+
+rm -rf c-blosc-* v1.16.3*
