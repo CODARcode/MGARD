@@ -6,6 +6,8 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     "separate from the source directory")
 endif()
 
+list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
 # Extract the version string from the header file and setup the project version
 # accordingly
 file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/include/mgard.h MGARD_VERSION
@@ -63,6 +65,7 @@ endif()
 
 # Dependencies
 find_package(ZLIB REQUIRED)
+find_package(BLOSC REQUIRED)
 
 # Set library
 add_library(mgard
@@ -112,7 +115,7 @@ include(CTest)
 if(BUILD_TESTING)
   enable_testing()
   add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.c)
-  target_link_libraries(mgard_test mgard)
+  target_link_libraries(mgard_test mgard blosc)
 
   add_test(NAME mgard_test1
     COMMAND mgard_test
