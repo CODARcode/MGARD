@@ -69,18 +69,18 @@ find_package(BLOSC REQUIRED)
 
 # Set library
 add_library(mgard
-  src/mgard.cpp       include/mgard.h blosc/include/blosc.h
-  src/mgard_capi.cpp  include/mgard_capi.h blosc/include/blosc.h
-  src/mgard_nuni.cpp  include/mgard_nuni.h blosc/include/blosc.h
+  src/mgard.cpp       include/mgard.h
+  src/mgard_capi.cpp  include/mgard_capi.h
+  src/mgard_nuni.cpp  include/mgard_nuni.h
 )
 target_include_directories(mgard
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/blosc/include>
+  $<BUILD_INTERFACE:${BLOSC_INCLUDE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(mgard PRIVATE ZLIB::ZLIB)
-target_link_libraries(mgard PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/blosc/lib/libblosc.so)
+target_link_libraries(mgard PRIVATE ${BLOSC_LIBRARIES})
 
 # Make sure we require C++11.  Use meta-compile features if available,
 # otherwise use specific language features
