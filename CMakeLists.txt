@@ -115,7 +115,7 @@ include(CTest)
 if(BUILD_TESTING)
   enable_testing()
   add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.c)
-  target_link_libraries(mgard_test mgard blosc)
+  target_link_libraries(mgard_test mgard ${BLOSC_LIBRARIES})
 
   add_test(NAME mgard_test1
     COMMAND mgard_test
