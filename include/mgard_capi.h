@@ -31,14 +31,25 @@
 // MGARD is distributed under the OSI-approved Apache License, Version 2.0.
 // See accompanying file Copyright.txt for details.
 //
+//
+#ifdef __cplusplus
+#define EXTERN 
+extern "C" {
+#else 
+#define EXTERN extern
+#endif
 
 
 #ifndef MGARD_CAPI_H
 #define MGARD_CAPI_H
 
-extern unsigned char *mgard_compress(int itype_flag, void *data, int *out_size, int nrow, int ncol, int nfib, void* tol, double s);
+EXTERN char *mgard_compress(int itype_flag, void *data, int *out_size, int nrow, int ncol, int nfib, void* tol, double s);
 
-extern void *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib, double s);
+EXTERN void *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib, double s);
 
 
 #endif
+
+#ifdef __cplusplus
+}
+#endif 
