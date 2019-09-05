@@ -1,12 +1,2 @@
-#include <iostream>
-
-#include "tests.hpp"
-#include "test_measure.hpp"
-
-int main() {
-    std::cout << "TESTING MEASURE ..." << std::endl;
-    test_measure();
-
-    std::cout << "PASSED ALL TESTS" << std::endl;
-    return 0;
-}
+#define CATCH_CONFIG_MAIN
+#include "catch2/catch.hpp"
