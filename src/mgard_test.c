@@ -39,7 +39,9 @@
 
 #include "mgard_capi.h" 
 
-#define print_red "\e[31m"
+#define ANSI_RED "\x1b[31m"
+#define ANSI_GREEN "\x1b[32m"
+#define ANSI_RESET "\x1b[0m"
 
 void print_usage_message(char *argv[], FILE *fp) {
   fprintf(fp, "Usage: %s infile outfile nrow ncol nfib tolerance s\n", argv[0]);
@@ -93,15 +95,11 @@ int main(int argc, char *argv[])
   long num_doubles = nrow * ncol * nfib;
   long num_bytes = sizeof(double) * num_doubles;
 
-  FILE * pFile;
-  long lSize;
-  char * buffer;
-
+  FILE *pFile;
   pFile = fopen ( infile , "rb" );
   if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
-
   fseek (pFile , 0 , SEEK_END);
-  lSize = ftell (pFile);
+  long lSize = ftell (pFile);
   rewind (pFile);
 
   if (lSize != num_bytes) {
@@ -115,63 +113,45 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  buffer = (char*) malloc (sizeof(char)*lSize);
+  double *buffer = (double *) malloc (sizeof(char)*lSize);
   if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
 
   result = fread (buffer,1,lSize,pFile);
   if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
-
   fclose (pFile);
 
-  
-  double* in_buff = (double*) malloc (sizeof(char)*lSize);
-
-  memcpy (in_buff, buffer, lSize);
-  
-   
-  unsigned char* mgard_comp_buff;
-  
   double data_L_inf_norm = 0;
   for(int i = 0; i < num_doubles; ++i)
   {
-    double temp = fabs(in_buff[i]);
+    double temp = fabs(buffer[i]);
     if(temp > data_L_inf_norm) data_L_inf_norm = temp;
   }
+
+  double *in_buff = (double *) malloc(sizeof(double) * num_doubles);
+  memcpy(in_buff, buffer, sizeof(double) * num_doubles);
 
   int iflag = 1; //0 -> float, 1 -> double
   int out_size;
 
-  mgard_comp_buff = mgard_compress(iflag, in_buff, &out_size,  nrow,  ncol, nfib, &tol, s );
+  unsigned char *mgard_comp_buff;
+  mgard_comp_buff = mgard_compress(iflag, in_buff, &out_size, nrow, ncol, nfib, &tol, s);
+  free(in_buff);
 
-
-  FILE *qfile;
-  /* qfile = fopen ( argv[2] , "wb" ); */
-
-  /* char* outbuffer = ((char*)mgard_comp_buff); */
-    
-  /* result = fwrite (outbuffer, 1, out_size, qfile); */
-  /* fclose(qfile); */
-  
-  
   printf ("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
-  
+
   double* mgard_out_buff;
-  
   mgard_out_buff = mgard_decompress(iflag, mgard_comp_buff, out_size,  nrow,  ncol, nfib, s);
 
-  
+  FILE *qfile;
   qfile = fopen ( outfile , "wb" );
-
-  char * outbuffer = ((char*)mgard_out_buff);
-  
   result = fwrite (mgard_out_buff, 1, lSize, qfile);
-  /* result = fwrite (outbuffer, 1, lSize, qfile); */
   fclose(qfile);
+  if (result != lSize) {fputs ("Writing error",stderr); exit (4);}
 
   double error_L_inf_norm = 0;
   for(int i = 0; i < num_doubles; ++i)
   {
-      double temp = fabs( in_buff[i] - mgard_out_buff[i] );
+      double temp = fabs( buffer[i] - mgard_out_buff[i] );
       if(temp > error_L_inf_norm) error_L_inf_norm = temp;
   }
   double relative_L_inf_error = error_L_inf_norm / data_L_inf_norm;
@@ -196,13 +176,11 @@ int main(int argc, char *argv[])
 
   if( relative_L_inf_error < tol)
     {
-      printf("\x1b[32mSUCCESS: Error tolerance met! \x1b[0m \n");
+      printf(ANSI_GREEN "SUCCESS: Error tolerance met!" ANSI_RESET "\n");
       return 0;
     }
   else{
-    printf("\x1b[31mFAILURE: Error tolerance NOT met! \x1b[0m \n");
+    printf(ANSI_RED "FAILURE: Error tolerance NOT met!" ANSI_RESET "\n");
     return 1;
   }
-  
-
 }
