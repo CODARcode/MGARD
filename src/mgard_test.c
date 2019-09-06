@@ -61,7 +61,6 @@ void print_help_message(char *argv[], FILE *fp) {
 
 int main(int argc, char *argv[])
 {
-  int i, j;
   size_t result;
 
   if (argc == 2 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h"))) {
@@ -91,6 +90,8 @@ int main(int argc, char *argv[])
     tol  = atof(argv[6]);
     s    = atof(argv[7]);
   }
+  long num_doubles = nrow * ncol * nfib;
+  long num_bytes = sizeof(double) * num_doubles;
 
   FILE * pFile;
   long lSize;
@@ -103,12 +104,22 @@ int main(int argc, char *argv[])
   lSize = ftell (pFile);
   rewind (pFile);
 
+  if (lSize != num_bytes) {
+    fprintf(
+      stderr,
+      "%s contains %lu bytes when %lu were expected. Exiting.\n",
+      infile,
+      lSize,
+      num_bytes
+    );
+    return 1;
+  }
+
   buffer = (char*) malloc (sizeof(char)*lSize);
   if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
 
   result = fread (buffer,1,lSize,pFile);
   if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
-
 
   fclose (pFile);
 
@@ -120,15 +131,12 @@ int main(int argc, char *argv[])
    
   unsigned char* mgard_comp_buff;
   
-  double norm0 = 0;
-  for(i = 0; i<nrow; ++i)
-    {
-      for(j = 0; j<ncol; ++j)
-        {
-          double temp = fabs(in_buff[ncol*i+j]);
-          if(temp > norm0) norm0 = temp;
-        }
-    }
+  double data_L_inf_norm = 0;
+  for(int i = 0; i < num_doubles; ++i)
+  {
+    double temp = fabs(in_buff[i]);
+    if(temp > data_L_inf_norm) data_L_inf_norm = temp;
+  }
 
   int iflag = 1; //0 -> float, 1 -> double
   int out_size;
@@ -160,13 +168,13 @@ int main(int argc, char *argv[])
   /* result = fwrite (outbuffer, 1, lSize, qfile); */
   fclose(qfile);
 
-  double norm = 0;
-
-  for(i = 0; i < nrow*ncol*nfib; ++i)
-    {
+  double error_L_inf_norm = 0;
+  for(int i = 0; i < num_doubles; ++i)
+  {
       double temp = fabs( in_buff[i] - mgard_out_buff[i] );
-          if(temp > norm) norm = temp;
-    }
+      if(temp > error_L_inf_norm) error_L_inf_norm = temp;
+  }
+  double relative_L_inf_error = error_L_inf_norm / data_L_inf_norm;
 
   //Maximum length (plus one for terminating byte) of norm name.
   size_t N = 10;
@@ -184,9 +192,9 @@ int main(int argc, char *argv[])
     norm_name[1] = 0;
   }
   printf ("Rel. %s error tolerance: %10.5E \n", norm_name, tol);
-  printf ("Rel. L^infty error: %10.5E \n", norm/norm0);
+  printf ("Rel. L^infty error: %10.5E \n", relative_L_inf_error);
 
-  if( norm/norm0 < tol)
+  if( relative_L_inf_error < tol)
     {
       printf("\x1b[32mSUCCESS: Error tolerance met! \x1b[0m \n");
       return 0;
