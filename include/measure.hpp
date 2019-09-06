@@ -7,38 +7,7 @@
 //!
 //![LNoGR]: https://people.eecs.berkeley.edu/~jrs/meshpapers/robnotes.pdf
 
-#include <cstddef>
-
 namespace helpers {
-
-//!Find the Euclidean inner product of two vectors.
-//!
-//!\param [in] a First vector, of size `D`.
-//!\param [in] b Second vector, of size `D`.
-//!
-//!\return Euclidean inner product of the vectors.
-template <std::size_t D>
-double inner_product(double const * const a, double const * const b);
-
-//!Find the Euclidean norm of a vector.
-//!
-//!\param [in] a Vector, of size `D`.
-//!
-//!\return Euclidean norm of the vector.
-template <std::size_t D>
-double norm(double const * const a);
-
-//!Subtract one vector from another.
-//!
-//!\param [in] a Subtrahend, of size `D`.
-//!\param [in] b Minuend, of size `D`.
-//!\param [out] c Difference, of size `D`.
-template <std::size_t D>
-void subtract_into(
-    double const * const a,
-    double const * const b,
-    double * const c
-);
 
 //!Find the signed area of a parallelogram.
 //!
@@ -91,5 +60,4 @@ double tet_measure(double const * const p);
 
 }
 
-#include "measure.tpp"
 #endif
