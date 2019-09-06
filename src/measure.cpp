@@ -1,5 +1,26 @@
 #include "measure.hpp"
 
+#include "blaspp/blas.hh"
+
+#include <cmath>
+#include <cstddef>
+
+//!Subtract one vector from another.
+//!
+//!\param [in] D Size of `a`, `b`, and `c`.
+//!\param [in] a Subtrahend, of size `D`.
+//!\param [in] b Minuend, of size `D`.
+//!\param [out] c Difference, of size `D`.
+static void subtract_into(
+    const std::size_t D,
+    double const * const a,
+    double const * const b,
+    double * const c
+) {
+    blas::copy(D, a, 1, c, 1);
+    blas::axpy(D, -1, b, 1, c, 1);
+}
+
 namespace helpers {
 
 double orient_2d(
@@ -8,8 +29,8 @@ double orient_2d(
     double buffer[2][2];
     double * const r = buffer[0];
     double * const s = buffer[1];
-    subtract_into<2>(a, c, r);
-    subtract_into<2>(b, c, s);
+    subtract_into(2, a, c, r);
+    subtract_into(2, b, c, s);
     return r[0] * s[1] - r[1] * s[0];
 }
 
@@ -23,9 +44,9 @@ double orient_3d(
     double * const r = buffer[0];
     double * const s = buffer[1];
     double * const q = buffer[2];
-    subtract_into<3>(a, d, r);
-    subtract_into<3>(b, d, s);
-    subtract_into<3>(c, d, q);
+    subtract_into(3, a, d, r);
+    subtract_into(3, b, d, s);
+    subtract_into(3, c, d, q);
     return (
         r[0] * (s[1] * q[2] - s[2] * q[1]) -
         r[1] * (s[0] * q[2] - s[2] * q[0]) +
@@ -33,12 +54,11 @@ double orient_3d(
     );
 }
 
-
 double edge_measure(double const * const p) {
     double buffer[1][3];
     double * const r = buffer[0];
-    subtract_into<3>(p + 0, p + 3, r);
-    return norm<3>(r);
+    subtract_into(3, p + 0, p + 3, r);
+    return blas::nrm2(3, r, 1);
 }
 
 double tri_measure(double const * const p) {
@@ -62,7 +82,7 @@ double tri_measure(double const * const p) {
         }
         cross_product[i] = orient_2d(a, b, c);
     }
-    return norm<3>(cross_product) / 2;
+    return blas::nrm2(3, cross_product, 1) / 2;
 }
 
 double tet_measure(double const * const p) {
