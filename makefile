@@ -15,7 +15,7 @@ OBJ=obj
 CXXFLAGS= -std=c++11 -c  -Wall -Wfatal-errors $(INC_PARAMS)  -O3 -fPIC
 CFLAGS=  -c -Wall -Wfatal-errors $(INC_PARAMS) -O3
 
-LDFLAGS = -lz -lm -lstdc++
+LDFLAGS = -lz 
 ARFLAGS = rcs
 
 
@@ -24,14 +24,13 @@ vpath %.c $(SRC)
 vpath %.cpp $(SRC)
 
 
-SOURCES=mgard.cpp mgard_nuni.cpp mgard_api.cpp 
+SOURCES=mgard_test.cpp mgard.cpp mgard_nuni.cpp mgard_api.cpp 
 OBJECTS=$(foreach SOURCE,$(basename $(SOURCES)),$(OBJ)/$(SOURCE).o)
 
-SOURCES_SIRIUS=mgard_sirius_test.c mgard.cpp mgard_nuni.cpp mgard_api.cpp 
-OBJECTS_SIRIUS=$(foreach SOURCE,$(basename $(SOURCES_SIRIUS)),$(OBJ)/$(SOURCE).o)
+# SOURCES_SIRIUS=mgard_sirius_test.c mgard.cpp mgard_nuni.cpp mgard_api.cpp 
+# OBJECTS_SIRIUS=$(foreach SOURCE,$(basename $(SOURCES_SIRIUS)),$(OBJ)/$(SOURCE).o)
 
 EXECUTABLE=mgard_test
-SIRIUS_EXEC=mgard_sirius_test
 
 LIB=libmgard.a
 

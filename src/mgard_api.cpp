@@ -159,9 +159,6 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
   else
     {
       std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
-      // const float *v = static_cast<const float*>(data);
-      // float *tol = static_cast<float*>(tol_in);
-      //      assert (*tol >= 1e-8);
       
       unsigned char* mgard_compressed_ptr = nullptr;
 
@@ -179,9 +176,7 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
   //Perform compression preserving the tolerance in s norm by defaulting to the L-2 norm
   if(itype_flag == 0)
     {
-      // float *v   = static_cast<float*>(data);
-      // float *tol = static_cast<float*>(tol_in);
-
+ 
       double tol = tol_in;
       assert (tol >= 1e-8);
       
@@ -193,11 +188,9 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
     }
   else if(itype_flag == 1)
     {
-      // double *v   = static_cast<double*>(data);
-      // double *tol = static_cast<double*>(tol_in);
+ 
       double tol = tol_in;
       assert (tol >= 1e-8);
-      //      std::cout << "Input "  << v[100] << std::endl;
       unsigned char* mgard_compressed_ptr = nullptr;
       if(nrow > 1 && ncol > 1 && nfib > 1)
         {
