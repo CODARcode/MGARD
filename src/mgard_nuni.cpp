@@ -4398,7 +4398,414 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
     std::cout << "Mega count : "<< imeg << "\n";
   
   }
+
+    void project_2D_non_canon(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
+  {
+    for(int irow = 0;  irow < nrow; ++irow)
+      {
+        for(int jcol = 0; jcol < ncol; ++jcol)
+          {
+            row_vec[jcol] = work[mgard_common::get_index(ncol, irow, jcol)];
+          }
+        
+        mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
+        
+        restriction_first(row_vec, coords_x, nc, ncol);
+        
+        
+        for(int jcol = 0; jcol < ncol; ++jcol)
+          {
+            work[mgard_common::get_index(ncol, irow, jcol)] = row_vec[jcol] ;
+          }
+
+      }
+
+    for(int irow = 0;  irow < nr; ++irow)
+      {
+        int ir = get_lindex(nr, nrow, irow);
+        for(int jcol = 0; jcol < ncol; ++jcol)
+          {
+            row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
+          }
+        
+        mgard_gen::solve_tridiag_M_l(0, row_vec, coords_x, nc, ncol );
+
+        for(int jcol = 0; jcol < ncol; ++jcol)
+          {
+            work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol] ;
+          }
+      }
+
+
+        if( nrow > 1) // check if we have 1-D array..
+          {
+            for(int jcol = 0;  jcol < ncol; ++jcol)
+              {
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    col_vec[irow] = work[mgard_common::get_index(ncol, irow, jcol )];
+                  }
+
+                
+                mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
+                
+                mgard_gen::restriction_first(col_vec, coords_y, nr, nrow);
+
+            
+
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    work[mgard_common::get_index(ncol, irow, jcol)] = col_vec[irow] ;
+                  }
+              }
+            
+            for(int jcol = 0;  jcol < nc; ++jcol)
+              {
+                int jr  = get_lindex(nc,  ncol,  jcol);
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    col_vec[irow] = work[mgard_common::get_index(ncol, irow, jr )];
+                  }
+
+                mgard_gen::solve_tridiag_M_l(0, col_vec, coords_y, nr, nrow );
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    work[mgard_common::get_index(ncol, irow, jr )] = col_vec[irow] ;
+                  }
+              }
+          }
+
+  }
+
+void project_non_canon(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& work2d, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z,  std::vector<double>& norm_vec)
+{
+  int l = 0;
+  int stride = 1;
   
+  std::vector<double> v2d(nrow*ncol), fib_vec(nfib);
+  std::vector<double> row_vec(ncol);
+  std::vector<double> col_vec(nrow);
+
+  mgard_gen::copy3_level(0,  v,  work.data(),  nrow,  ncol, nfib);  
+  
+  for (int kfib = 0; kfib < nfib; kfib += stride)
+    {
+      mgard_common::copy_slice(work.data(), work2d, nrow, ncol, nfib, kfib);
+      mgard_gen::project_2D_non_canon(nr, nc,  nrow, ncol,  l, v2d.data(), work2d, coords_x, coords_y,  row_vec, col_vec);
+      mgard_common::copy_from_slice(work.data(), work2d, nrow, ncol, nfib, kfib);
+    }
+
+
+  for(int irow = 0; irow < nr; irow += stride)
+    {
+      int ir = get_lindex(nr, nrow, irow);
+        for(int jcol = 0; jcol < nc; jcol += stride)
+        {
+          int jc  = get_lindex(nc,  ncol,  jcol);
+          for(int kfib = 0; kfib < nfib; ++kfib)
+            {
+              fib_vec[kfib] = work[mgard_common::get_index3(ncol,nfib,ir,jc,kfib)];
+            }
+          mgard_cannon::mass_matrix_multiply(l, fib_vec, coords_z);
+          mgard_gen::restriction_first(fib_vec, coords_z, nf, nfib);
+          mgard_gen::solve_tridiag_M_l(l,  fib_vec, coords_z, nf, nfib);
+          for(int kfib = 0; kfib < nfib; ++kfib)
+            {
+              work[mgard_common::get_index3(ncol,nfib,ir,jc,kfib)] = fib_vec[kfib] ;
+            }
+
+          
+        }
+    }
+  
+
+
+  copy3_level_l(0, work.data(), v,  nr,  nc,  nf,  nrow,  ncol,  nfib);
+  //  gard_gen::assign3_level_l(0, work.data(),  0.0,  nr,  nc, nf,  nrow,  ncol, nfib);
+  double norm = mgard_gen::ml2_norm3(0, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z);
+  std::cout << "sqL2 norm init: "<< std::sqrt(norm) << "\n";
+  norm_vec[0] = norm;
+}
+
+
+
+
+void project_2D(const int nr, const int nc, const int nrow, const int ncol,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& row_vec, std::vector<double>& col_vec )
+  {
+     int l = l_target;
+       int stride = std::pow(2,l);//current stride
+       int Cstride = stride*2; // coarser stride
+
+ 
+        // row-sweep
+        for(int irow = 0;  irow < nr; ++irow)
+          {
+            int ir = get_lindex(nr, nrow, irow);
+            for(int jcol = 0; jcol < ncol; ++jcol)
+              {
+                row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
+              }
+
+            mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol );
+
+            mgard_gen::restriction_l(l+1, row_vec, coords_x, nc, ncol );
+
+            mgard_gen::solve_tridiag_M_l(l+1, row_vec, coords_x, nc, ncol );
+
+            for(int jcol = 0; jcol < ncol; ++jcol)
+              {
+                work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol] ;
+              }
+
+          }
+
+
+        // column-sweep
+        if (nrow > 1) //do this if we have an 2-dimensional array
+          {
+            for(int jcol = 0;  jcol < nc; jcol += Cstride)
+              {
+                int jr  = get_lindex(nc,  ncol,  jcol);
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    col_vec[irow] = work[mgard_common::get_index(ncol, irow, jr)] ;
+                  }
+
+
+                mgard_gen::mass_mult_l(l,  col_vec, coords_y, nr, nrow);
+                mgard_gen::restriction_l(l+1, col_vec, coords_y, nr, nrow);
+                mgard_gen::solve_tridiag_M_l(l+1,  col_vec, coords_y, nr, nrow);
+
+
+                for(int irow = 0;  irow < nrow; ++irow)
+                  {
+                    work[mgard_common::get_index(ncol, irow, jr)]  = col_vec[irow] ;
+                  }
+
+              }
+          }
+ }
+
+void project_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib,  const int l_target, double* v, std::vector<double>& work, std::vector<double>& work2d, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, std::vector<double>& norm_vec)
+{
+
+  std::vector<double> v2d(nrow*ncol), fib_vec(nfib);
+  std::vector<double> row_vec(ncol);
+  std::vector<double> col_vec(nrow);
+  
+  int nlevel_x = std::log2(nc-1);
+  int nlevel_y = std::log2(nr-1);
+  int nlevel_z = std::log2(nf-1);
+
+  // mgard_gen::copy3_level_l(0,  v,  work.data(),  nr,  nc, nf,  nrow,  ncol, nfib);
+  // double norm = mgard_gen::ml2_norm3_ng(0, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z); 
+  // std::cout << "sqL2 norm: "<< (norm) << "\n";
+  // norm_vec[0] = norm;
+
+   for (int l = 0; l < l_target; ++l)
+     {
+       int stride = std::pow(2,l);
+       int Cstride = 2*stride;
+
+       int xsize = std::pow(2, nlevel_x -l ) + 1;
+       int ysize = std::pow(2, nlevel_y -l ) + 1;
+       int zsize = std::pow(2, nlevel_z -l ) + 1;
+
+
+
+       //       mgard_gen::copy3_level_l(l,  v,  work.data(),  nr,  nc, nf,  nrow,  ncol, nfib);
+
+       
+       for (int kfib = 0; kfib < nf; kfib += stride)
+         {
+           int kf = get_lindex(nf, nfib, kfib); // get the real location of logical index irow
+           mgard_common::copy_slice(work.data(), work2d, nrow, ncol, nfib, kf);
+           mgard_gen::project_2D(nr, nc,  nrow, ncol,  l, v2d.data(), work2d, coords_x, coords_y,  row_vec, col_vec);
+           mgard_common::copy_from_slice(work.data(), work2d, nrow, ncol, nfib, kf);
+         }
+       
+       for(int irow = 0; irow < nr; irow += Cstride)
+         {
+           int ir = get_lindex(nr, nrow, irow);
+           for(int jcol = 0; jcol < nc; jcol += Cstride)
+             {
+               int jc  = get_lindex(nc,  ncol,  jcol);
+               for(int kfib = 0; kfib < nfib; ++kfib)
+                 {
+                   fib_vec[kfib] = work[mgard_common::get_index3(ncol,nfib,ir,jc,kfib)];
+                 }
+               mgard_gen::mass_mult_l(l,  fib_vec, coords_z, nf, nfib);
+               mgard_gen::restriction_l(l+1, fib_vec, coords_z, nf, nfib);
+               mgard_gen::solve_tridiag_M_l(l+1,  fib_vec, coords_z, nf, nfib);
+               for(int kfib = 0; kfib < nfib; ++kfib)
+                 {
+                   work[mgard_common::get_index3(ncol,nfib,ir,jc,kfib)] = fib_vec[kfib] ;
+                 }
+          
+             }
+         }
+  
+       //       mgard_gen::copy3_level_l(l,  work.data(), v,  nr,  nc, nf,  nrow,  ncol, nfib);
+       norm_vec[l+1] = mgard_gen::ml2_norm3(l+1, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z);
+       std::cout << "sqL2 norm : "<< l+1 <<"\t"<<(norm_vec[l+1]) << "\n";
+
+     }
+   
+   double norm = mgard_gen::ml2_norm3(l_target, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z); 
+    std::cout << "sqL2 norm: "<< std::sqrt(norm) << "\n";
+    norm_vec[l_target + 1] = norm;
+
+}
+
+
+double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, double (*qoi) (std::vector<double>), double s)
+{
+
+  std::vector<double> xi(nrow*ncol*nfib);  
+  int nsize = xi.size();
+
+  std::vector<double> work2d(nrow*ncol), temp(nsize), row_vec(ncol), col_vec(nrow), fib_vec(nfib);
+
+  
+  for(int i = 0; i < nsize; ++i)
+    {
+      temp[i] = 1.0;
+      xi[i] = qoi(temp);
+      temp[i] = 0.0;
+    }
+
+  
+  int stride = 1;
+
+  for (int kfib = 0; kfib < nfib; kfib += stride)
+    {
+      mgard_common::copy_slice(xi.data(), work2d, nrow, ncol, nfib, kfib);
+
+      for(int irow = 0;  irow < nrow; ++irow)
+  	{
+  	  for(int jcol = 0; jcol < ncol; ++jcol)
+  	    {
+  	      row_vec[jcol] = work2d[mgard_common::get_index(ncol, irow, jcol)];
+  	    }
+	  
+  	  mgard_cannon::solve_tridiag_M(0, row_vec, coords_x);
+	  
+  	  for(int jcol = 0; jcol < ncol; ++jcol)
+  	    {
+  	      work2d[mgard_common::get_index(ncol, irow, jcol)] = row_vec[jcol] ;
+  	    }
+  	}
+
+      
+      if( nrow > 1) // check if we have 1-D array..
+  	{
+  	  for(int jcol = 0;  jcol < ncol; ++jcol)
+  	    {
+  	      for(int irow = 0;  irow < nrow; ++irow)
+  		{
+  		  col_vec[irow] = work2d[mgard_common::get_index(ncol, irow, jcol )];
+  		}
+	      
+  	      mgard_cannon::solve_tridiag_M(0, col_vec, coords_y);
+  	      for(int irow = 0;  irow < nrow; ++irow)
+  		{
+  		  work2d[mgard_common::get_index(ncol, irow, jcol )] = col_vec[irow] ;
+  		}
+  	    }
+  	}
+      
+
+      mgard_common::copy_from_slice(xi.data(), work2d, nrow, ncol, nfib, kfib);
+    }
+
+  
+  
+  for(int irow = 0; irow < nrow; irow += stride)
+    {
+      for(int jcol = 0; jcol < ncol; jcol += stride)
+        {
+          for(int kfib = 0; kfib < nfib; ++kfib)
+            {
+              fib_vec[kfib] = xi[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)];
+            }
+          mgard_cannon::solve_tridiag_M(0,  fib_vec, coords_z);
+          for(int kfib = 0; kfib < nfib; ++kfib)
+            {
+              xi[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] = fib_vec[kfib] ;
+            }
+          
+        }
+    }
+
+  for (int i = 0 ; i < xi.size(); ++i)
+    {
+      xi[i] *= 216.0; //account for the (1/6)^3 factors in the mass matrix
+    }
+
+
+  std::ofstream outfile("zubi", std::ios::out | std::ios::binary);
+  outfile.write( reinterpret_cast<char*>( xi.data() ), nrow*ncol*nfib*sizeof(double) );  
+  std::cout <<  "System solved \n";
+
+  int nlevel_x = std::log2(ncol-1);
+  int nc = std::pow(2, nlevel_x ) + 1; //ncol new
+  
+  int nlevel_y = std::log2(nrow-1);
+  int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
+  
+  int nlevel_z = std::log2(nfib-1);
+  int nf = std::pow(2, nlevel_z ) + 1; //nfib new
+  
+  int  nlevel = std::min(nlevel_x, nlevel_y);
+  nlevel = std::min(nlevel, nlevel_z);
+
+  double norm = 0 ;
+  
+  int l_target = nlevel-1;
+
+  std::vector<double> work(nrow*ncol*nfib);
+  std::vector<double> norm_vec(nlevel+1);
+
+  double norm2 =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib,   xi, coords_x, coords_y, coords_z);
+
+  
+  mgard_gen::project_non_canon(nr, nc, nf, nrow, ncol, nfib, l_target, xi.data(),  work, work2d, coords_x, coords_y, coords_z, norm_vec);
+
+
+  mgard_gen::project_3D(nr, nc, nf, nrow, ncol, nfib, l_target, xi.data(),  xi, work2d, coords_x, coords_y, coords_z, norm_vec);
+
+  
+  double norm0 =  mgard_gen::ml2_norm3(nlevel,  nr,  nc,  nf,  nrow,  ncol,  nfib,   xi, coords_x, coords_y, coords_z);
+
+  double sum = 0.0;
+  double norm_l = 0.0;
+  double norm_lm1 = 0.0;
+
+
+  for (int i = 1; i < nlevel + 1 ; ++i)
+    {
+      
+      norm_lm1 = norm_vec[i-1];
+      norm_l = norm_vec[i];
+      double diff = std::abs(norm_lm1 - norm_l);
+      sum += diff;
+    }
+
+  
+  for (int i = 0; i < nlevel + 1 ; ++i)
+    {
+      
+      std::cout << i << "\t" << norm_vec[i] << "\n";
+    }
+
+  sum += norm_l;
+  sum  = std::sqrt(sum); // check this is equal to |X_L| (s=0)
+
+
+
+  return sum;
+}
+
 }
 
 namespace mgard_2d

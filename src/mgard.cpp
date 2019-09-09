@@ -33,7 +33,7 @@
 //
 
 #include <chrono>
-#include <blosc.h>
+//#include <blosc.h>
 #include "mgard.h"
 #include "mgard_nuni.h"
 
@@ -42,7 +42,7 @@ namespace mgard
 
 
 unsigned char *
-refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double tol, double s)
+refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double tol)
 {
   int nlevel;
   std::vector<double> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
@@ -69,9 +69,9 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 
   //  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
 
-  //  double norm = mgard_common::max_norm(v);
+  double norm = mgard_common::max_norm(v);
 
-  double norm = 1.0; // absolute s-norm, need a switch for relative errors
+  //  double norm = 1.0; // absolute s-norm, need a switch for relative errors
   tol /= nlevel + 1 ;
   //  double s = 0; // Defaulting to L8' compression for a start. 
 
@@ -89,24 +89,148 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   int size_ratio = sizeof (double) / sizeof (int);
   std::vector<int> qv (nrow * ncol * nfib + size_ratio);
 
-  //  tol /= nlevel + 1;
-  //  mgard_gen::quantize_3D(nr, nc, nf, nrow, ncol, nfib, nlevel, v.data (), qv, coords_x, coords_y, coords_z, s, norm, tol);
-  //  std::string out_file =  "yarrrak.dat";
-  //  std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
-  //outfile.write( reinterpret_cast<char*>( qv ), qv.size()*sizeof(int) );
 
   mgard::quantize_2D_iterleave (nrow, ncol*nfib, v.data(), qv, norm, tol);
   std::vector<unsigned char> out_data;
-  mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
+  //  mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
+
+  mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
 
   outsize = out_data.size ();
   unsigned char *buffer = (unsigned char *)malloc (outsize);
   std::copy (out_data.begin (), out_data.end (), buffer);
   return buffer;
 
-}  
+}
+
+
+  unsigned char *
+  refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double tol, double (*qoi) (int, int, int, std::vector<double>), double s)
+{
+  int nlevel;
+  std::vector<double> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
+  std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
   
+  int nlevel_x = std::log2(ncol-1);
+  int nc = std::pow(2, nlevel_x ) + 1; //ncol new
   
+  int nlevel_y = std::log2(nrow-1);
+  int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
+  
+  int nlevel_z = std::log2(nfib-1);
+  int nf = std::pow(2, nlevel_z ) + 1; //nfib new
+  
+  nlevel = std::min(nlevel_x, nlevel_y);
+  nlevel = std::min(nlevel, nlevel_z);
+  
+  int l_target = nlevel-1;
+
+  //dummy equispaced coordinates
+  std::iota(std::begin(coords_x), std::end(coords_x), 0);
+  std::iota(std::begin(coords_y), std::end(coords_y), 0);
+  std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+  //  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
+
+  double norm = mgard_common::max_norm(v);
+
+  //  double norm = 1.0; // absolute s-norm, need a switch for relative errors
+  tol /= nlevel + 1 ;
+  //  double s = 0; // Defaulting to L8' compression for a start. 
+
+  //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s != 8'
+        
+  
+  mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
+
+  mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
+  
+  work.clear();
+  work2d.clear();
+
+    
+  int size_ratio = sizeof (double) / sizeof (int);
+  std::vector<int> qv (nrow * ncol * nfib + size_ratio);
+
+
+  mgard::quantize_2D_iterleave (nrow, ncol*nfib, v.data(), qv, norm, tol);
+  std::vector<unsigned char> out_data;
+  //  mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
+
+  mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
+
+  outsize = out_data.size ();
+  unsigned char *buffer = (unsigned char *)malloc (outsize);
+  std::copy (out_data.begin (), out_data.end (), buffer);
+  return buffer;
+
+}
+ 
+
+  unsigned char *
+  refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double tol,  double s)
+{
+  int nlevel;
+  std::vector<double> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
+  std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
+  
+  int nlevel_x = std::log2(ncol-1);
+  int nc = std::pow(2, nlevel_x ) + 1; //ncol new
+  
+  int nlevel_y = std::log2(nrow-1);
+  int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
+  
+  int nlevel_z = std::log2(nfib-1);
+  int nf = std::pow(2, nlevel_z ) + 1; //nfib new
+  
+  nlevel = std::min(nlevel_x, nlevel_y);
+  nlevel = std::min(nlevel, nlevel_z);
+  
+  int l_target = nlevel-1;
+
+  //dummy equispaced coordinates
+  std::iota(std::begin(coords_x), std::end(coords_x), 0);
+  std::iota(std::begin(coords_y), std::end(coords_y), 0);
+  std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+  //  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
+
+  double norm = mgard_common::max_norm(v);
+
+  //  double norm = 1.0; // absolute s-norm, need a switch for relative errors
+  tol /= nlevel + 1 ;
+  //  double s = 0; // Defaulting to L8' compression for a start. 
+
+  //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s != 8'
+        
+  
+  mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
+
+  mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
+  
+  work.clear();
+  work2d.clear();
+
+    
+  int size_ratio = sizeof (double) / sizeof (int);
+  std::vector<int> qv (nrow * ncol * nfib + size_ratio);
+
+
+  mgard::quantize_2D_iterleave (nrow, ncol*nfib, v.data(), qv, norm, tol);
+  std::vector<unsigned char> out_data;
+  //  mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
+
+  mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
+
+  outsize = out_data.size ();
+  unsigned char *buffer = (unsigned char *)malloc (outsize);
+  std::copy (out_data.begin (), out_data.end (), buffer);
+  return buffer;
+
+}
+  
+
+
   double* recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len, double s)
   {
     int nlevel;
@@ -140,8 +264,9 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
     int l_target = nlevel-1;
     
     
-    mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
-    
+    //    mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+
+    mgard::decompress_memory_z (data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
     double *v = (double *)malloc (nrow*ncol*nfib*sizeof(double));
 
 
@@ -198,7 +323,8 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       mgard::quantize_2D_iterleave (nrow, ncol, v.data(), qv, norm, tol);
       
       std::vector<unsigned char> out_data;
-      mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
+      //      mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
+      mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
       outsize = out_data.size ();
       unsigned char *buffer = (unsigned char *)malloc (outsize);
       std::copy (out_data.begin (), out_data.end (), buffer);
@@ -239,7 +365,8 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       mgard::quantize_2D_iterleave (nrow, ncol, v.data (), qv, norm, tol);
 
       std::vector<unsigned char> out_data;
-      mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
+      //      mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
+      mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
 
       outsize = out_data.size ();
       unsigned char *buffer = (unsigned char *)malloc (outsize);
@@ -265,7 +392,9 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       
       std::vector<int> out_data(nrow_new*ncol_new + size_ratio);
 
-      mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+      //      mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+
+      mgard::decompress_memory_z(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
       
       double *v = (double *)malloc (nrow_new*ncol_new*sizeof(double));
 
@@ -301,7 +430,9 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol)
       int l_target = 0;
       std::vector<int> out_data(nrow*ncol + size_ratio);
 
-      mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+      //      mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+
+      mgard::decompress_memory_z(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
 
       double *v = (double *)malloc (nrow*ncol*sizeof(double));
 
@@ -967,49 +1098,49 @@ qwrite_2D_interleave (const int nrow, const int ncol, const int nlevel,
   gzclose (out_file);
 }
 
-void
-compress_memory_blosc (void *in_data, size_t in_data_size,
-                       std::vector<uint8_t> &out_data)
-{
-  std::cout << "compress_memory_blosc: " << in_data_size<<std::endl;
-  auto t1 = std::chrono::high_resolution_clock::now();
-  std::vector<uint8_t> buffer;
+// void
+// compress_memory_blosc (void *in_data, size_t in_data_size,
+//                        std::vector<uint8_t> &out_data)
+// {
+//   std::cout << "compress_memory_blosc: " << in_data_size<<std::endl;
+//   auto t1 = std::chrono::high_resolution_clock::now();
+//   std::vector<uint8_t> buffer;
 
-  uint8_t * temp_buffer = (uint8_t *) malloc (in_data_size);
-  assert (temp_buffer);
+//   uint8_t * temp_buffer = (uint8_t *) malloc (in_data_size);
+//   assert (temp_buffer);
 
-  /* Initialize the Blosc compressor */
-  blosc_init();
+//   /* Initialize the Blosc compressor */
+//   blosc_init();
 
-  blosc_set_compressor("zstd");
-  //blosc_set_compressor("zlib");
-  //blosc_set_compressor("lz4");
-  //blosc_set_compressor("lz4hc");
-  //blosc_set_compressor("snappy");
-  //blosc_set_compressor("blosclz");
+//   blosc_set_compressor("zstd");
+//   //blosc_set_compressor("zlib");
+//   //blosc_set_compressor("lz4");
+//   //blosc_set_compressor("lz4hc");
+//   //blosc_set_compressor("snappy");
+//   //blosc_set_compressor("blosclz");
 
-  //blosc_set_nthreads(4);
-  /* Compress with clevel=5 and shuffle active  */
-  size_t csize = blosc_compress(9, BLOSC_NOSHUFFLE, sizeof(uint8_t),
-                                in_data_size, in_data,
-                                temp_buffer, in_data_size);
+//   //blosc_set_nthreads(4);
+//   /* Compress with clevel=5 and shuffle active  */
+//   size_t csize = blosc_compress(9, BLOSC_NOSHUFFLE, sizeof(uint8_t),
+//                                 in_data_size, in_data,
+//                                 temp_buffer, in_data_size);
 
-  const char* compressor;
+//   const char* compressor;
 
-  /* Before any blosc_compress() the compressor must be blosclz */
-  compressor = blosc_get_compressor();
+//   /* Before any blosc_compress() the compressor must be blosclz */
+//   compressor = blosc_get_compressor();
 
-  std::cout << "compressor = " << compressor << " ;csize = " << csize << std::endl;
-  buffer.insert (buffer.end (), temp_buffer, temp_buffer + csize);
-  out_data.swap (buffer);
+//   std::cout << "compressor = " << compressor << " ;csize = " << csize << std::endl;
+//   buffer.insert (buffer.end (), temp_buffer, temp_buffer + csize);
+//   out_data.swap (buffer);
 
-  blosc_destroy();
+//   blosc_destroy();
 
-  auto t2 = std::chrono::high_resolution_clock::now();
+//   auto t2 = std::chrono::high_resolution_clock::now();
 
-  std::cout << "compress_memory_blosc done: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-              << " milliseconds\n" << std::endl;
-}
+//   std::cout << "compress_memory_blosc done: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
+//               << " milliseconds\n" << std::endl;
+// }
 
 void
 compress_memory_z (void *in_data, size_t in_data_size,
@@ -1062,15 +1193,15 @@ compress_memory_z (void *in_data, size_t in_data_size,
   out_data.swap (buffer);
 }
 
-void
-decompress_memory_blosc (const void *src, int srcLen, int *dst, int dstLen)
-{
-  blosc_init();
+// void
+// decompress_memory_blosc (const void *src, int srcLen, int *dst, int dstLen)
+// {
+//   blosc_init();
 
-  blosc_decompress(src, dst, dstLen);
+//   blosc_decompress(src, dst, dstLen);
 
-  blosc_destroy();
-}
+//   blosc_destroy();
+// }
 
 void
 decompress_memory_z (const void *src, int srcLen, int *dst, int dstLen)

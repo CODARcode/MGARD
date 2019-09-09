@@ -24,7 +24,7 @@
 // Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
 // Corresponding Author: Ozan Tugluk
 //
-// version: 0.0.0.1
+// version: 0.0.0.2
 //
 // This file is part of MGARD.
 //
@@ -33,12 +33,19 @@
 //
 
 
-#ifndef MGARD_CAPI_H
-#define MGARD_CAPI_H
+#ifndef MGARD_API_H
+#define MGARD_API_H
 
-extern unsigned char *mgard_compress(int itype_flag, void *data, int *out_size, int nrow, int ncol, int nfib, void* tol, double s);
+unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol); // relative L-infty compression
 
-extern void *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib, double s);
+unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol, double s = 0); // s-norm compression
+
+unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol, double (*qoi) (int, int, int, std::vector<double>), double s = 0 ); // s-norm compression with quantity of interest
+
+
+double  *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib); // decompress L-infty compressed data
+
+double  *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib, double s = 0); // decompress s-norm
 
 
 #endif

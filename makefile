@@ -1,5 +1,4 @@
 CXX= g++
-CC = gcc
 
 LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
 MKDIR=mkdir
@@ -7,8 +6,8 @@ RMDIR=rmdir --ignore-fail-on-non-empty
 
 SRC=src
 IDIR1=include
-IDIR2=blosc/include
-INC=$(IDIR1) $(IDIR2) 
+#IDIR2=blosc/include
+INC=$(IDIR1) #$(IDIR2) 
 INC_PARAMS=$(foreach d, $(INC), -I$d)
 OBJ=obj
 
@@ -16,7 +15,7 @@ OBJ=obj
 CXXFLAGS= -std=c++11 -c  -Wall -Wfatal-errors $(INC_PARAMS)  -O3 -fPIC
 CFLAGS=  -c -Wall -Wfatal-errors $(INC_PARAMS) -O3
 
-LDFLAGS = -lz -lm -lstdc++ -pthread  -Lblosc/lib/ -lblosc  -Wl,-R -Wl,blosc/lib/ 
+LDFLAGS = -lz -lm -lstdc++
 ARFLAGS = rcs
 
 
@@ -25,10 +24,10 @@ vpath %.c $(SRC)
 vpath %.cpp $(SRC)
 
 
-SOURCES=mgard_test.c mgard.cpp mgard_nuni.cpp mgard_capi.cpp 
+SOURCES=mgard.cpp mgard_nuni.cpp mgard_api.cpp 
 OBJECTS=$(foreach SOURCE,$(basename $(SOURCES)),$(OBJ)/$(SOURCE).o)
 
-SOURCES_SIRIUS=mgard_sirius_test.c mgard.cpp mgard_nuni.cpp mgard_capi.cpp 
+SOURCES_SIRIUS=mgard_sirius_test.c mgard.cpp mgard_nuni.cpp mgard_api.cpp 
 OBJECTS_SIRIUS=$(foreach SOURCE,$(basename $(SOURCES_SIRIUS)),$(OBJ)/$(SOURCE).o)
 
 EXECUTABLE=mgard_test
@@ -39,7 +38,7 @@ LIB=libmgard.a
 .PHONY: all clean test
 
 #all: $(EXECUTABLE) $(LIB) $(SIRIUS_EXEC) test test2 test3
-all: $(EXECUTABLE) $(LIB) test test2 test3
+all: $(EXECUTABLE) $(LIB) 
 
 $(EXECUTABLE): $(OBJECTS) 
 	$(LINK.o) -o $@ $^ $(LDFLAGS)
@@ -59,17 +58,6 @@ $(OBJ):
 $(LIB): $(OBJECTS)
 	$(AR) $(ARFLAGS) $(LIB) $^
 
-test: $(EXECUTABLE)
-	./$(EXECUTABLE) data/zort_111_160_15.dat data/zort_111_160_15.mgard 111 160 15 1e-3 0
-
-test2: $(EXECUTABLE)
-	./$(EXECUTABLE) data/u3_513x513_orig data/u3_513x513.mgard   513  513 1  1e-3 0
-
-test3: $(EXECUTABLE)
-	./$(EXECUTABLE) data/data_600x400_orig data/data_600x400.mgard  600 400 1 1e-3 0
-
-#test3: $(SIRIUS_EXEC)
-#	./$(SIRIUS_EXEC) data/data_600x400_orig data/data_600x400_coarse.mgard data/data_600x400_fine.mgard  600 400 1e-2 1e-3
 
 clean:
 	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB) $(SIRIUS_EXEC)

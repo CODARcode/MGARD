@@ -172,8 +172,15 @@ namespace mgard
     resample_2d_inv2 (const double *inbuf, double*  outbuf, const int nrow,
                  const int ncol, const int nrow_new, const int ncol_new);
 
+
   unsigned char *
-  refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol, double s);
+  refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol);
+  
+  unsigned char *
+  refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol, double s = 0 ) ;
+
+  unsigned char *
+  refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol, double (*qoi) (int, int, int, std::vector<double>), double s = 0 ) ;
 
   double*
   recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len, double s);
