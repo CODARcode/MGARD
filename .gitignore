@@ -1,11 +1,9 @@
 #Archives.
 *.a
 
-#Object files.
-*.o
-
-#Executable.
-cmgard
+#Compilation outputs.
+obj/
+bin/
 
 #MGARD compressed output
 *.mgard
