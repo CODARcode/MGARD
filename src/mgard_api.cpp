@@ -32,8 +32,9 @@
 // See accompanying file Copyright.txt for details.
 //
 
-
 #include "mgard.h"
+#include "mgard_api.h"
+
 
  unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in)
 
@@ -234,9 +235,7 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
   
 }
 
-
-
- void *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, int nrow, int ncol, int nfib, double s)
+double *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, int nrow, int ncol, int nfib)
 {
   assert (ncol > 3);
   assert (nrow >= 1);
@@ -248,7 +247,68 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
 
       //      mgard_decompressed_ptr = mgard::recompose_udq_float(nrow, ncol, v, out_size, *tol);
 
-      return mgard_decompressed_ptr;
+      //      return mgard_decompressed_ptr;
+    }
+  else if(itype_flag == 1)
+    {
+      
+      double* mgard_decompressed_ptr = nullptr;
+      
+      //      mgard_decompressed_ptr = static_cast<double*> (mgard::recompose_udq(nrow, ncol, data, data_len));
+
+
+
+      if(nrow > 1 && ncol > 1 && nfib > 1)
+        {
+          assert (nrow > 3);
+          assert (ncol > 3);
+          assert (nfib > 3);
+	  
+          mgard_decompressed_ptr = mgard::recompose_udq(nrow, ncol, nfib, data, data_len);
+          return mgard_decompressed_ptr;      
+        }
+      else if (nrow > 1 && ncol > 1)
+        {
+          assert (nrow > 3);
+          assert (ncol > 3);
+          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol, data, data_len);
+          //          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol, data, data_len);
+          return mgard_decompressed_ptr;
+        }
+      else if (nrow > 1 )
+        {
+          assert (nrow > 3);
+          //mgard_decompressed_ptr = mgard::recompose_udq_1D(nrow,  data, data_len);
+        }
+      
+
+    }
+  else
+    {
+      std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
+
+      float* mgard_decompressed_ptr = nullptr;
+
+      //mgard_decompressed_ptr = mgard::recompose_udq_float(nrow, ncol, v, out_size, *tol);
+
+    }
+  
+}
+
+
+double  *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, int nrow, int ncol, int nfib, double s)
+{
+  assert (ncol > 3);
+  assert (nrow >= 1);
+
+  if(itype_flag == 0)
+    {
+      
+      float* mgard_decompressed_ptr;
+
+      //      mgard_decompressed_ptr = mgard::recompose_udq_float(nrow, ncol, v, out_size, *tol);
+
+      //      return mgard_decompressed_ptr;
     }
   else if(itype_flag == 1)
     {
@@ -295,6 +355,7 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
     }
   
 }
+
 
 
 

@@ -36,14 +36,11 @@
 #ifndef MGARD_API_H
 #define MGARD_API_H
 
-#include <chrono>
 #include "mgard.h"
-#include "mgard_nuni.h"
-
 
 unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol); // relative L-infty compression
 
-unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol, double s = 0); // s-norm compression
+unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol, double s); // s-norm compression
 
 unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol, double (*qoi) (int, int, int, std::vector<double>), double s = 0 ); // s-norm compression with quantity of interest
 

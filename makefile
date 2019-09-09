@@ -12,11 +12,13 @@ INC_PARAMS=$(foreach d, $(INC), -I$d)
 OBJ=obj
 
 
-CXXFLAGS= -std=c++11 -c  -Wall -Wfatal-errors $(INC_PARAMS)  -O3 -fPIC
-CFLAGS=  -c -Wall -Wfatal-errors $(INC_PARAMS) -O3
+#CXXFLAGS= -std=c++11 -c  -Wall -Wfatal-errors $(INC_PARAMS)  -O3 -fPIC
+#CFLAGS=  -c -Wall -Wfatal-errors $(INC_PARAMS) -O3
+CFLAGS=  -c -S(INC_PARAMS) -O3
+CXXFLAGS= -std=c++11   $(INC_PARAMS)  -O3 -fPIC
 
 LDFLAGS = -lz 
-ARFLAGS = rcs
+ARFLAGS = -rcs
 
 
 vpath %.o $(OBJ)
@@ -56,7 +58,6 @@ $(OBJ):
 
 $(LIB): $(OBJECTS)
 	$(AR) $(ARFLAGS) $(LIB) $^
-
 
 clean:
 	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB) $(SIRIUS_EXEC)

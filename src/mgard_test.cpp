@@ -59,7 +59,7 @@ double qoi_x(const int nrow, const int ncol, const int nfib, std::vector<double>
         {
           for(int kfib = 0; kfib < nfib; ++kfib)
             {
-	      if (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0)
+	      if (u[ncol] != 0)
 		return jcol*jcol/2.0;
             }
           
@@ -93,14 +93,14 @@ double qoi_one(const int nrow, const int ncol, const int nfib, std::vector<doubl
         {
           for(int kfib = 0; kfib < nfib; ++kfib)
             {
-	      if((irow == 0 || irow  == nrow -1) && (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
-		++type_indicator;
+	      // if((irow == 0 || irow  == nrow -1) && (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
+	      // 	++type_indicator;
 
-	      if((jcol == 0 || jcol  == ncol -1) && (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
-		++type_indicator;
+	      // if((jcol == 0 || jcol  == ncol -1) && (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
+	      // 	++type_indicator;
 	      
-	      if((kfib == 0 || kfib  == nfib -1) && (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
-		++type_indicator;
+	      // if((kfib == 0 || kfib  == nfib -1) && (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
+	      // 	++type_indicator;
             }
           
         }
@@ -222,7 +222,9 @@ int main(int argc, char**argv)
   
   std::vector<double> norm_vec(nlevel+1);
 
-  unsigned char* test = mgard_compress(2, v.data(), &out_size,  nrow,  ncol,  nfib,  tol,  funp, s);
+  unsigned char* test;
+
+  test = mgard_compress(1, v.data(), &out_size,  nrow,  ncol,  nfib,  tol,  funp, s);
 
 
   return 0;

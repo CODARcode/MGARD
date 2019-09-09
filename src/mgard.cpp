@@ -224,7 +224,51 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 }
  
 
+  double* recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len)
+  {
+    int nlevel;
+    int size_ratio = sizeof(double)/sizeof(int);
+    std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
+    std::vector<int> out_data(nrow*ncol*nfib + size_ratio);
+    std::vector<double> work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
+    
 
+    //      dummy equispaced coordinates
+    std::iota(std::begin(coords_x), std::end(coords_x), 0);
+    std::iota(std::begin(coords_y), std::end(coords_y), 0);
+    std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+    //    std::cout <<"**** coord check : "  << coords_x[4] << "\n";
+    
+    int nlevel_x = std::log2(ncol-1);
+    int nc = std::pow(2, nlevel_x ) + 1; //ncol new
+    
+    int nlevel_y = std::log2(nrow-1);
+    int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
+    
+    int nlevel_z = std::log2(nfib-1);
+    int nf = std::pow(2, nlevel_z ) + 1; //nfib new
+    
+    nlevel = std::min(nlevel_x, nlevel_y);
+    nlevel = std::min(nlevel, nlevel_z);
+    
+    int l_target = nlevel-1;
+    
+    
+    //    mgard::decompress_memory_blosc(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+
+    mgard::decompress_memory_z (data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+    double *v = (double *)malloc (nrow*ncol*nfib*sizeof(double));
+    
+    
+    mgard::dequantize_2D_iterleave(nrow, ncol*nfib, v, out_data) ;
+    
+    mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, work2d, coords_x, coords_y, coords_z);
+    
+    mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, coords_x, coords_y, coords_z);
+
+    return v;
+  }
   
 
 

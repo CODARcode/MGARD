@@ -56,6 +56,9 @@
 
 #include <zlib.h>
 
+#include "mgard_nuni.h"
+
+
 namespace mgard
 
 {
@@ -182,6 +185,9 @@ namespace mgard
   unsigned char *
   refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol, double (*qoi) (int, int, int, std::vector<double>), double s ) ;
 
+  double*
+  recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len);
+  
   double*
   recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len, double s);
 
