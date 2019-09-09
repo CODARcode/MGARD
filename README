@@ -23,7 +23,7 @@ unsigned char *mgard_compress(int itype_flag, void *data, int
      nfib: Number of "fiber" of matrix, should have been tubes though!
      tol: Upper bound for desired tolerance
      qoi: Function pointer to the quantity of interest
-     s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call, otherwise dfaults to zero.
+     s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
 
 void *mgard_decompress(int itype_flag, unsigned char *data,
 int data_len, int nrow, int ncol, int nfib,[s=0]): Returns float/double pointer to array of decompressed data 
@@ -35,7 +35,7 @@ int data_len, int nrow, int ncol, int nfib,[s=0]): Returns float/double pointer 
      nrow: Number of rows of matrix
      ncol: Number of columns of matrix
      nfib: Number of "fiber" of matrix, should have been tubes though!
-     s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call, otherwise dfaults to zero.
+     s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
 
 
 
