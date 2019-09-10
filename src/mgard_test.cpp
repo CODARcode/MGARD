@@ -36,6 +36,10 @@
 
 
 #include "mgard_api.h"
+// #include "mgard.h"
+// #include "mgard_nuni.h"
+
+
 
 double qoi(const int nrow, const int ncol, const int nfib, std::vector<double> u)
 {
@@ -224,8 +228,8 @@ int main(int argc, char**argv)
 
   unsigned char* test;
 
-  test = mgard_compress(1, v.data(), &out_size,  nrow,  ncol,  nfib,  tol,  funp, s);
-
+  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib,  tol);
+  //  test = mgard::refactor_qz_2D(nrow, ncol, v.data(), out_size, tol);
 
   return 0;
 				     

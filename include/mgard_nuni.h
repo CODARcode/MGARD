@@ -229,7 +229,7 @@ namespace mgard_gen
 
   void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol, const int nlevel,  const int  l,   double* v, double tol, double norm, const std::string outfile);
 
-  double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, double (*qoi) (std::vector<double>), double s);
+  double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, double (*qoi) (int, int, int, std::vector<double>), double s);
 }
 
 namespace mgard_2d

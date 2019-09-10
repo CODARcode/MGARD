@@ -4658,7 +4658,7 @@ void project_3D(const int nr, const int nc, const int nf, const int nrow, const 
 }
 
 
-double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, double (*qoi) (std::vector<double>), double s)
+double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, double (*qoi) (int, int, int, std::vector<double>), double s)
 {
 
   std::vector<double> xi(nrow*ncol*nfib);  
@@ -4670,7 +4670,7 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
   for(int i = 0; i < nsize; ++i)
     {
       temp[i] = 1.0;
-      xi[i] = qoi(temp);
+      xi[i] = qoi(nrow, ncol, nfib, temp);
       temp[i] = 0.0;
     }
 

@@ -32,11 +32,11 @@
 // See accompanying file Copyright.txt for details.
 //
 
-#include "mgard.h"
+
 #include "mgard_api.h"
+#include "mgard.h"
 
-
- unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in)
+unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in)
 
  //Perform compression preserving the tolerance in the L-infty norm
 { 
@@ -198,8 +198,12 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
           assert (nrow > 3);
           assert (ncol > 3);
           assert (nfib > 3);
+
+	  std::vector<double> coords_x,  coords_y, coords_z;
 	  
-          mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, qoi, s);
+	  double xi_norm =  mgard_gen::qoi_norm(nrow,  ncol,  nfib, coords_x,  coords_y, coords_z, qoi, s);
+	  tol *= xi_norm;
+          mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, qoi, -s);
           return mgard_compressed_ptr;
                 
         }
@@ -355,9 +359,5 @@ double  *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, in
     }
   
 }
-
-
-
-
 
 

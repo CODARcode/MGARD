@@ -1,36 +1,29 @@
 CXX= g++
 
-LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
+
 MKDIR=mkdir
 RMDIR=rmdir --ignore-fail-on-non-empty
 
 SRC=src
-IDIR1=include
-#IDIR2=blosc/include
-INC=$(IDIR1) #$(IDIR2) 
+INC=include
 INC_PARAMS=$(foreach d, $(INC), -I$d)
 OBJ=obj
 
+CXXFLAGS= -c -std=c++11   $(INC_PARAMS)  -O3 -fPIC
 
-#CXXFLAGS= -std=c++11 -c  -Wall -Wfatal-errors $(INC_PARAMS)  -O3 -fPIC
-#CFLAGS=  -c -Wall -Wfatal-errors $(INC_PARAMS) -O3
-CFLAGS=  -c -S(INC_PARAMS) -O3
-CXXFLAGS= -std=c++11   $(INC_PARAMS)  -O3 -fPIC
-
-LDFLAGS = -lz 
+LDFLAGS = -lz -fPIC
 ARFLAGS = -rcs
 
 
+LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
+COMPILE.cpp = $(CXX) $(CXXFLAGS)
+
 vpath %.o $(OBJ)
-vpath %.c $(SRC)
 vpath %.cpp $(SRC)
 
 
-SOURCES=mgard_test.cpp mgard.cpp mgard_nuni.cpp mgard_api.cpp 
+SOURCES=mgard_test.cpp mgard_api.cpp mgard.cpp mgard_nuni.cpp  
 OBJECTS=$(foreach SOURCE,$(basename $(SOURCES)),$(OBJ)/$(SOURCE).o)
-
-# SOURCES_SIRIUS=mgard_sirius_test.c mgard.cpp mgard_nuni.cpp mgard_api.cpp 
-# OBJECTS_SIRIUS=$(foreach SOURCE,$(basename $(SOURCES_SIRIUS)),$(OBJ)/$(SOURCE).o)
 
 EXECUTABLE=mgard_test
 
@@ -38,20 +31,14 @@ LIB=libmgard.a
 
 .PHONY: all clean test
 
-#all: $(EXECUTABLE) $(LIB) $(SIRIUS_EXEC) test test2 test3
 all: $(EXECUTABLE) $(LIB) 
 
 $(EXECUTABLE): $(OBJECTS) 
 	$(LINK.o) -o $@ $^ $(LDFLAGS)
 
-#$(SIRIUS_EXEC): $(OBJECTS_SIRIUS) 
-#	$(LINK.o) -o $@ $^ $(LDFLAGS)
 
 $(OBJ)/%.o: %.cpp | $(OBJ)
 	$(COMPILE.cpp) $< -o $@
-
-$(OBJ)/%.o: %.c | $(OBJ)
-	$(COMPILE.c) $< -o $@
 
 $(OBJ):
 	$(MKDIR) $@

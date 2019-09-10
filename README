@@ -39,7 +39,9 @@ int data_len, int nrow, int ncol, int nfib,[s=0]): Returns float/double pointer 
 
 
 
-For more information consult the following papers. Consult/cite [1] for univariate data, [2] for multivariate and [3] for quantities of interest. Paper [1] should be the first reference to glimpse into the theory behind MGARD.
+For more information consult the following papers. You are free to use the software under the condition that we ask that in any publications resulting from the use of MGARD contains  citations to  [1] for univariate data, [2] for multivariate and [3] for quantities of interest.
+
+Paper [1] should be the first reference to glimpse into the theory behind MGARD.
 
 1) Multilevel Techniques for Compression and Reduction of Scientific Data—The Univariate case
 M Ainsworth, O Tugluk, B Whitney, K Scott. Computing and Visualization in Science, 8, 2018

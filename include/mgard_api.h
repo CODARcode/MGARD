@@ -32,18 +32,31 @@
 // See accompanying file Copyright.txt for details.
 //
 
+#include "mgard.h"
+
 
 #ifndef MGARD_API_H
 #define MGARD_API_H
 
-#include "mgard.h"
 
-unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol); // relative L-infty compression
+//comments!!!!
+/// Use this version of mgard_compress to compress your data with a tolerance measured in  relative L-infty norm
+unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol);
 
-unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol, double s); // s-norm compression
+// Use this version of mgard_compress to compress your data with a tolerance measured in  relative s-norm.
+//Set s=0 for L2-norm
+unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol, double s);
 
-unsigned char *mgard_compress(int itype_flag, double  *data, int *out_size, int nrow, int ncol, int nfib, double tol, double (*qoi) (int, int, int, std::vector<double>), double s = 0 ); // s-norm compression with quantity of interest
+// Use this version of mgard_compress to compress your data with a tolerance measured in  relative s-norm
+// where the tolerance is specified for a quantity of interest qoi
+unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol, double (*qoi) (int, int, int, std::vector<double>), double s );
 
+// Use this version of mgard_compress to compute the  s-norm of a quantity of interest.
+double  mgard_compress( int nrow, int ncol, int nfib,  double (*qoi) (int, int, int, std::vector<double>), double s );
+ 
+ // Use this version of mgard_compress to compress your data with a tolerance in -s norm
+ // with given s-norm of quantity of interest qoi
+unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol, double norm_of_qoi, double s );
 
 double  *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib); // decompress L-infty compressed data
 
