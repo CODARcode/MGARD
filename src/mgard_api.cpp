@@ -365,7 +365,7 @@ double  *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, in
 }
 
 
-double mgard_compress(int nrow, int ncol, int nfib, double tol_in, double (*qoi) (int, int, int, std::vector<double>), double s)
+double mgard_compress(int nrow, int ncol, int nfib, double (*qoi) (int, int, int, std::vector<double>), double s)
 {
   std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
   //dummy equispaced coordinates

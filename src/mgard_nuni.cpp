@@ -569,7 +569,7 @@ namespace mgard_cannon
     int nlevel = static_cast<int> (std::log2(v.size() - 1));
     //    std::cout << nlevel;
     int nc = std::pow(2,nlevel - l) + 1 ;
-    std::vector<double> coeff(nc);
+    std::vector<double> coeff(n);
     int counter = 1;
     coeff.front() = am;
 
@@ -2430,12 +2430,12 @@ void restriction_l(const int  l, std::vector<double>& v,  std::vector<double>& c
            for(int irow = 0;  irow < nr; irow += stride)
              {
                int ir = get_lindex(nr, nrow, irow);
-               for(int jcol = 0;  jcol < nc; ++jcol)
+               for(int jcol = 0;  jcol < ncol; ++jcol)
                  {
                    row_vec[jcol] = work[mgard_common::get_index3(ncol,nfib,ir,jcol,kf)];
                  }
                mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol );
-               for(int jcol = 0;  jcol < nc; ++jcol)
+               for(int jcol = 0;  jcol < ncol; ++jcol)
                  {
                    work[mgard_common::get_index3(ncol,nfib,ir,jcol,kf)] = row_vec[jcol] ;
                  }
@@ -4522,9 +4522,9 @@ void project_non_canon(const int nr, const int nc, const int nf, const int nrow,
 
   copy3_level_l(0, work.data(), v,  nr,  nc,  nf,  nrow,  ncol,  nfib);
   //  gard_gen::assign3_level_l(0, work.data(),  0.0,  nr,  nc, nf,  nrow,  ncol, nfib);
-  double norm = mgard_gen::ml2_norm3(0, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z);
-  std::cout << "sqL2 norm init: "<< std::sqrt(norm) << "\n";
-  norm_vec[0] = norm;
+  // double norm = mgard_gen::ml2_norm3(0, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z);
+  // std::cout << "sqL2 norm init: "<< std::sqrt(norm) << "\n";
+  // norm_vec[0] = norm;
 }
 
 
@@ -4647,12 +4647,12 @@ void project_3D(const int nr, const int nc, const int nf, const int nrow, const 
   
        //       mgard_gen::copy3_level_l(l,  work.data(), v,  nr,  nc, nf,  nrow,  ncol, nfib);
        norm_vec[l+1] = mgard_gen::ml2_norm3(l+1, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z);
-       std::cout << "sqL2 norm : "<< l+1 <<"\t"<<(norm_vec[l+1]) << "\n";
+       std::cout << "sqL2 norm : "<< l <<"\t"<<(norm_vec[l+1]) << "\n";
 
      }
    
    double norm = mgard_gen::ml2_norm3(l_target, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z); 
-    std::cout << "sqL2 norm: "<< std::sqrt(norm) << "\n";
+   std::cout << "sqL2 norm lasto 0: "<< std::sqrt(norm) << "\n";
     norm_vec[l_target + 1] = norm;
 
 }
@@ -4666,6 +4666,7 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
 
   std::vector<double> work2d(nrow*ncol), temp(nsize), row_vec(ncol), col_vec(nrow), fib_vec(nfib);
 
+  //  std::cout << "Helllo qoiiq \n"; 
   
   for(int i = 0; i < nsize; ++i)
     {
@@ -4674,13 +4675,13 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
       temp[i] = 0.0;
     }
 
-  
+  //  std::cout << "Helllo rhsq \n"; 
   int stride = 1;
 
   for (int kfib = 0; kfib < nfib; kfib += stride)
     {
       mgard_common::copy_slice(xi.data(), work2d, nrow, ncol, nfib, kfib);
-
+      //  std::cout << kfib <<" slice copy \n"; 
       for(int irow = 0;  irow < nrow; ++irow)
   	{
   	  for(int jcol = 0; jcol < ncol; ++jcol)
@@ -4689,13 +4690,13 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
   	    }
 	  
   	  mgard_cannon::solve_tridiag_M(0, row_vec, coords_x);
-	  
+	  //  std::cout << kfib <<" trisolve  \n"; 
   	  for(int jcol = 0; jcol < ncol; ++jcol)
   	    {
   	      work2d[mgard_common::get_index(ncol, irow, jcol)] = row_vec[jcol] ;
   	    }
   	}
-
+      //std::cout << "rowq \n"; 
       
       if( nrow > 1) // check if we have 1-D array..
   	{
@@ -4718,7 +4719,7 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
       mgard_common::copy_from_slice(xi.data(), work2d, nrow, ncol, nfib, kfib);
     }
 
-  
+  //  std::cout << "colq \n"; 
   
   for(int irow = 0; irow < nrow; irow += stride)
     {
@@ -4737,12 +4738,23 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
         }
     }
 
+  //  std::cout <<  "sinamekeiu \n";
   for (int i = 0 ; i < xi.size(); ++i)
     {
       xi[i] *= 216.0; //account for the (1/6)^3 factors in the mass matrix
     }
 
+  // for (int i = 0 ; i < coords_z.size(); ++i)
+  //   {
+  //     std::cout << coords_z[i] <<"\n";
+  //   }
 
+
+  double norm22 =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib,   xi, coords_x, coords_y, coords_z);
+
+  std::cout<< "Normish thingy " << std::sqrt(norm22) <<"\n";
+
+  
   std::ofstream outfile("zubi", std::ios::out | std::ios::binary);
   outfile.write( reinterpret_cast<char*>( xi.data() ), nrow*ncol*nfib*sizeof(double) );  
   std::cout <<  "System solved \n";
@@ -4759,16 +4771,15 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
   int  nlevel = std::min(nlevel_x, nlevel_y);
   nlevel = std::min(nlevel, nlevel_z);
 
-  double norm = 0 ;
   
   int l_target = nlevel-1;
 
   std::vector<double> work(nrow*ncol*nfib);
   std::vector<double> norm_vec(nlevel+1);
 
-  double norm2 =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib,   xi, coords_x, coords_y, coords_z);
-
-  
+  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib,   xi, coords_x, coords_y, coords_z);
+  norm_vec[0] = norm;
+    
   mgard_gen::project_non_canon(nr, nc, nf, nrow, ncol, nfib, l_target, xi.data(),  work, work2d, coords_x, coords_y, coords_z, norm_vec);
 
 
@@ -4781,13 +4792,13 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
   double norm_l = 0.0;
   double norm_lm1 = 0.0;
 
-
-  for (int i = 1; i < nlevel + 1 ; ++i)
+  norm_vec[nlevel] = 0 ;
+  for (int i = nlevel ; i != 0  ; --i)
     {
       
       norm_lm1 = norm_vec[i-1];
       norm_l = norm_vec[i];
-      double diff = std::abs(norm_lm1 - norm_l);
+      double diff = norm_l - norm_lm1;
       sum += diff;
     }
 
@@ -4798,8 +4809,7 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
       std::cout << i << "\t" << norm_vec[i] << "\n";
     }
 
-  sum += norm_l;
-  sum  = std::sqrt(sum); // check this is equal to |X_L| (s=0)
+  sum  = std::sqrt(std::abs(sum)); // check this is equal to |X_L| (s=0)
 
 
 
@@ -5100,7 +5110,7 @@ namespace mgard_cannon
     int nlevel = static_cast<int> (std::log2(v.size() - 1));
     //    std::cout << nlevel;
     int nc = std::pow(2,nlevel - l) + 1 ;
-    std::vector<double> coeff(nc);
+    std::vector<double> coeff(n);
     int counter = 1;
     coeff.front() = am;
 
@@ -5597,7 +5607,7 @@ void restriction_first(std::vector<double>& v,  std::vector<double>& coords, int
     int nlevel = static_cast<int> (std::log2(n - 1));
     //    std::cout << nlevel;
     int nc = std::pow(2,nlevel - l) + 1 ;
-    std::vector<double> coeff(nc);
+    std::vector<double> coeff(v.size());
     int counter = 1;
     coeff.front() = am;
 

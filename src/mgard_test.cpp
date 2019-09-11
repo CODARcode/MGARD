@@ -40,6 +40,11 @@
 // #include "mgard_nuni.h"
 
 
+inline int get_index3(const int ncol, const int nfib, const int i, const int j, const int k)
+{
+  return (ncol*i + j)*nfib + k;
+}
+
 
 double qoi(const int nrow, const int ncol, const int nfib, std::vector<double> u)
 {
@@ -63,8 +68,8 @@ double qoi_x(const int nrow, const int ncol, const int nfib, std::vector<double>
         {
           for(int kfib = 0; kfib < nfib; ++kfib)
             {
-	      if (u[ncol] != 0)
-		return jcol*jcol/2.0;
+	      if  (u[get_index3(ncol,nfib,irow,jcol,kfib)] != 0)
+		return jcol;
             }
           
         }
@@ -97,14 +102,14 @@ double qoi_one(const int nrow, const int ncol, const int nfib, std::vector<doubl
         {
           for(int kfib = 0; kfib < nfib; ++kfib)
             {
-	      // if((irow == 0 || irow  == nrow -1) && (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
-	      // 	++type_indicator;
+	      if((irow == 0 || irow  == nrow -1) && (u[get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
+	       	++type_indicator;
 
-	      // if((jcol == 0 || jcol  == ncol -1) && (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
-	      // 	++type_indicator;
+	      if((jcol == 0 || jcol  == ncol -1) && (u[get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
+	       	++type_indicator;
 	      
-	      // if((kfib == 0 || kfib  == nfib -1) && (u[mgard_common::get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
-	      // 	++type_indicator;
+	      if((kfib == 0 || kfib  == nfib -1) && (u[get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
+	       	++type_indicator;
             }
           
         }
@@ -201,7 +206,7 @@ int main(int argc, char**argv)
   std::ifstream infile(in_file, std::ios::in | std::ios::binary);
   std::ifstream cordfile(coord_file, std::ios::in | std::ios::binary);
   
-  infile.read( reinterpret_cast<char*>( v.data() ), nrow*ncol*nfib*sizeof(double) );
+  //  infile.read( reinterpret_cast<char*>( v.data() ), nrow*ncol*nfib*sizeof(double) );
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
@@ -222,16 +227,22 @@ int main(int argc, char**argv)
   
   int l_target = nlevel-1;
 
-  auto funp = &qoi_one ;  
+  auto funp = &qoi_x ;  
   
   std::vector<double> norm_vec(nlevel+1);
 
   unsigned char* test;
 
-  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib,  tol);
+  //  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib,  tol);
   //  test = mgard::refactor_qz_2D(nrow, ncol, v.data(), out_size, tol);
 
-  free(test);
+  //  free(test);
+
+
+  double xnorm = mgard_compress(nrow,  ncol,  nfib,  funp, 0);
+
+
+  std::cout << xnorm << "\n";
   return 0;
 				     
   
