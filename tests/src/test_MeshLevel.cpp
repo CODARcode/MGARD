@@ -119,8 +119,20 @@ TEST_CASE("MeshLevel construction", "[MeshLevel]") {
     REQUIRE(mesh.measure(mesh.edges[6]) == Approx(6));
 
     double triangle_areas[num_tris] = {20, 10.5, 15, 12};
-    for (std::size_t i = 0; i < num_tris; ++i) {
-        REQUIRE(mesh.measure(mesh.elements[i]) == Approx(triangle_areas[i]));
+    SECTION("measures without precomputing") {
+        for (std::size_t i = 0; i < num_tris; ++i) {
+            REQUIRE(
+                mesh.measure(mesh.elements[i]) == Approx(triangle_areas[i])
+            );
+        }
+    }
+    SECTION("measures with precomputing") {
+        mesh.precompute_element_measures();
+        for (std::size_t i = 0; i < num_tris; ++i) {
+            REQUIRE(
+                mesh.measure(mesh.elements[i]) == Approx(triangle_areas[i])
+            );
+        }
     }
 }
 
