@@ -231,6 +231,7 @@ int main(int argc, char**argv)
   test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib,  tol);
   //  test = mgard::refactor_qz_2D(nrow, ncol, v.data(), out_size, tol);
 
+  free(test);
   return 0;
 				     
   

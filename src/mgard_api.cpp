@@ -199,8 +199,12 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
           assert (ncol > 3);
           assert (nfib > 3);
 
-	  std::vector<double> coords_x,  coords_y, coords_z;
-	  
+	  std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
+	    //dummy equispaced coordinates
+	  std::iota(std::begin(coords_x), std::end(coords_x), 0);
+	  std::iota(std::begin(coords_y), std::end(coords_y), 0);
+	  std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
 	  double xi_norm =  mgard_gen::qoi_norm(nrow,  ncol,  nfib, coords_x,  coords_y, coords_z, qoi, s);
 	  tol *= xi_norm;
           mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, qoi, -s);
@@ -361,3 +365,23 @@ double  *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, in
 }
 
 
+double mgard_compress(int nrow, int ncol, int nfib, double tol_in, double (*qoi) (int, int, int, std::vector<double>), double s)
+{
+  std::vector<double> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
+  //dummy equispaced coordinates
+  std::iota(std::begin(coords_x), std::end(coords_x), 0);
+  std::iota(std::begin(coords_y), std::end(coords_y), 0);
+  std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+  double xi_norm =  mgard_gen::qoi_norm(nrow,  ncol,  nfib, coords_x,  coords_y, coords_z, qoi, s);
+
+  return xi_norm;
+}
+
+
+unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in, double norm_of_qoi, double s)
+{
+  tol_in *= norm_of_qoi;
+  return mgard_compress(itype_flag, v, out_size,  nrow,  ncol,  nfib,  tol_in, s);
+
+}
