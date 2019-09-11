@@ -37,9 +37,13 @@
 #ifndef MGARD_QOI_H
 #define MGARD_QOI_H
 
+namespace mgard_qoi
+{
+  
 double qoi_ave(const int nrow, const int ncol, const int nfib, std::vector<double> u);
 
 float  qoi_ave(const int nrow, const int ncol, const int nfib, std::vector<float> u);
 
+}
 
 #endif
