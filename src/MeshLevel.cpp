@@ -9,71 +9,73 @@
 
 #define IS_ELEMENT(type) (moab::MBTRI <= type && type <= moab::MBPOLYHEDRON)
 
-//TODO: `{edge,tri,tet}_measure` work on blocks of elements.
 
-double edge_measure(
-    moab::Interface const * const impl,
-    const moab::EntityHandle edge
-) {
-    moab::ErrorCode ecode;
-    std::vector<moab::EntityHandle> connectivity;
-    ecode = impl->get_connectivity(&edge, 1, connectivity);
-    MB_CHK_ERR_RET_VAL(ecode, -1);
-    const std::size_t N = connectivity.size();
-    assert(N == 2);
-    std::vector<double> coordinates(3 * N);
-    ecode = impl->get_coords(connectivity.data(), N, coordinates.data());
-    MB_CHK_ERR_RET_VAL(ecode, -1);
-    return helpers::edge_measure(coordinates.data());
-}
+class EntityMeasureFunction {
+    public:
+        EntityMeasureFunction(const moab::EntityType type) {
+            switch (type) {
+                case (moab::MBEDGE):
+                    f = helpers::edge_measure;
+                    expected_connectivity_size = 2;
+                    break;
+                case (moab::MBTRI):
+                    f = helpers::tri_measure;
+                    expected_connectivity_size = 3;
+                    break;
+                case (moab::MBTET):
+                    f = helpers::tet_measure;
+                    expected_connectivity_size = 4;
+                    break;
+                default:
+                    throw std::invalid_argument(
+                        "can only find measures of edges, triangles, and "
+                        "tetrahedra"
+                    );
+            }
+        }
 
-double tri_measure(
-    moab::Interface * const impl,
-    const moab::EntityHandle tri
-) {
-    moab::ErrorCode ecode;
-    std::vector<moab::EntityHandle> connectivity;
-    ecode = impl->get_connectivity(&tri, 1, connectivity);
-    MB_CHK_ERR_RET_VAL(ecode, -1);
-    const std::size_t N = connectivity.size();
-    assert(N == 3);
-    std::vector<double> coordinates(3 * N);
-    ecode = impl->get_coords(connectivity.data(), N, coordinates.data());
-    MB_CHK_ERR_RET_VAL(ecode, -1);
-    return helpers::tri_measure(coordinates.data());
-}
+        moab::ErrorCode operator()(
+            moab::Interface const * const impl,
+            const moab::EntityHandle handle,
+            double *measure
+        ) const {
+            moab::ErrorCode ecode;
 
-double tet_measure(
-    moab::Interface * const impl,
-    const moab::EntityHandle tet
-) {
-    moab::ErrorCode ecode;
-    std::vector<moab::EntityHandle> connectivity;
-    ecode = impl->get_connectivity(&tet, 1, connectivity);
-    MB_CHK_ERR_RET_VAL(ecode, -1);
-    const std::size_t N = connectivity.size();
-    assert(N == 4);
-    std::vector<double> coordinates(3 * N);
-    ecode = impl->get_coords(connectivity.data(), N, coordinates.data());
-    MB_CHK_ERR_RET_VAL(ecode, -1);
-    return helpers::tet_measure(coordinates.data());
-}
+            std::vector<moab::EntityHandle> connectivity;
+            ecode = impl->get_connectivity(&handle, 1, connectivity);
+            MB_CHK_ERR(ecode);
+            const std::size_t N = connectivity.size();
+            assert(N == expected_connectivity_size);
+            std::vector<double> coordinates(3 * N);
+            ecode = impl->get_coords(
+                connectivity.data(), N, coordinates.data()
+            );
+            MB_CHK_ERR(ecode);
+            *measure = f(coordinates.data());
+            return moab::MB_SUCCESS;
+        }
 
-double element_measure(
-    moab::Interface * const impl,
-    const moab::EntityHandle element
-) {
-    const moab::EntityType type = impl->type_from_handle(element);
-    if (type == moab::MBTRI) {
-        return tri_measure(impl, element);
-    } else if (type == moab::MBTET) {
-        return tet_measure(impl, element);
-    } else {
-        throw std::invalid_argument(
-            "can only find measures of triangles and tetrahedra"
-        );
-    }
-}
+        //Can imagine rewriting this to fetch all the connectivity data and
+        //vertex coordinates at once.
+        moab::ErrorCode operator()(
+            moab::Interface const * const impl,
+            const moab::Range handles,
+            double *measures
+        ) const {
+            for (auto iter = handles.begin(); iter != handles.end(); ++iter) {
+                moab::ErrorCode ecode = this->operator()(
+                    impl, *iter, measures++
+                );
+                MB_CHK_ERR_CONT(ecode);
+            }
+            return moab::MB_SUCCESS;
+        }
+
+    private:
+        //Function to compute the measure from the coordinates of the vertices.
+        double (*f)(double const * const);
+        std::size_t expected_connectivity_size;
+};
 
 namespace mgard {
 
@@ -125,31 +127,49 @@ std::size_t MeshLevel::element_index(const moab::EntityHandle element) const {
 
 double MeshLevel::measure(const moab::EntityHandle handle) const {
     const::moab::EntityType type = impl->type_from_handle(handle);
-    //Can't imagine ever needing the measure of a node.
-    if (type == moab::MBEDGE) {
-        //Can add an `edge_measures` member if we end up needing these a lot.
-        return edge_measure(impl, handle);
-    } else if (IS_ELEMENT(type)) {
-        if (!element_measures.empty()) {
-            return element_measures.at(element_index(handle));
-        } else {
-            return element_measure(impl, handle);
-        }
+    if (IS_ELEMENT(type) && !element_measures.empty()) {
+        //Can add an `edge_measures` member if we end up needing those a lot. In
+        //that case, I think it'd be nicer to have something like
+        //    std::map<moab::EntityType, std::vector<double>> measures;
+        //or (probably more properly)
+        //    std::vector<double> measures[moab::MBMAXTYPE];
+        //In the same vein, could replace `nodes`/`edges`/`elements` members
+        //with
+        //    moab::Range entities[moab::MBMAXTYPE];
+        //and combined `{node,edge,element}_index` into a single function.
+        return element_measures.at(element_index(handle));
     } else {
-        throw std::invalid_argument(
-            "can only find measures of edges and elements"
+        double measure;
+        moab::ErrorCode ecode = EntityMeasureFunction(type)(
+            impl, handle, &measure
         );
+        MB_CHK_ERR_CONT(ecode);
+        return measure;
     }
 }
 
 void MeshLevel::precompute_element_measures() {
-    if (!element_measures.empty()) {
+    if (!element_measures.empty() || elements.empty()) {
         return;
     }
-    assert(element_measures.size() == 0);
-    element_measures.reserve(elements.size());
-    for (auto iter = elements.begin(); iter != elements.end(); ++iter) {
-        element_measures.push_back(element_measure(impl, *iter));
+    assert(element_measures.empty());
+    element_measures.resize(elements.size());
+    //We checked above that `elements` is not empty.
+    const moab::EntityType type = impl->type_from_handle(elements.front());
+    if (type == impl->type_from_handle(elements.back())) {
+        moab::ErrorCode ecode = EntityMeasureFunction(type)(
+            impl, elements, element_measures.data()
+        );
+        MB_CHK_ERR_CONT(ecode);
+        return;
+    } {
+        std::size_t i = 0;
+        for (auto element : elements) {
+            moab::ErrorCode ecode = EntityMeasureFunction(
+                impl->type_from_handle(element)
+            )(impl, element, &element_measures.at(i++));
+            MB_CHK_ERR_CONT(ecode);
+        }
     }
 }
 
