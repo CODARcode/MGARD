@@ -33,12 +33,39 @@
 //
 
 
-
-
+#include <dlfcn.h> // dlopen
+#include <typeinfo>       // operator typeid
+#include <cxxabi.h>
 #include "mgard_api.h"
 // #include "mgard.h"
 // #include "mgard_nuni.h"
 
+template <class T>
+std::string
+type_name()
+{
+    typedef typename std::remove_reference<T>::type TR;
+    std::unique_ptr<char, void(*)(void*)> own
+           (
+#ifndef _MSC_VER
+                abi::__cxa_demangle(typeid(TR).name(), nullptr,
+                                           nullptr, nullptr),
+#else
+                nullptr,
+#endif
+                std::free
+           );
+    std::string r = own != nullptr ? own.get() : typeid(TR).name();
+    if (std::is_const<TR>::value)
+        r += " const";
+    if (std::is_volatile<TR>::value)
+        r += " volatile";
+    if (std::is_lvalue_reference<T>::value)
+        r += "&";
+    else if (std::is_rvalue_reference<T>::value)
+        r += "&&";
+    return r;
+}
 
 inline int get_index3(const int ncol, const int nfib, const int i, const int j, const int k)
 {
@@ -46,11 +73,11 @@ inline int get_index3(const int ncol, const int nfib, const int i, const int j, 
 }
 
 
-double qoi(const int nrow, const int ncol, const int nfib, std::vector<double> u)
-{
-  int i = 100;
-  return u[i];
-}
+// double qoi(const int nrow, const int ncol, const int nfib, std::vector<double> u)
+// {
+//   int i = 100;
+//   return u[i];
+// }
 
 
 
@@ -224,10 +251,53 @@ int main(int argc, char**argv)
   std::vector<unsigned char> out_data;
   int out_size;
       
-  
-  int l_target = nlevel-1;
 
-  auto funp = &qoi_x ;  
+
+  //-- dlopen bit --//
+    // open library
+    void* handle = dlopen("./qoi.so", RTLD_LAZY);
+    if (!handle) {
+        std::cerr << "dlopen error: " << dlerror() << '\n';
+        return 1;
+    }
+
+    // load symbol
+    typedef double (*qoi_t)(int, int, int, double*);
+
+    //    clear errors, find symbol, check errors
+    dlerror();
+    qoi_t qoi = (qoi_t) dlsym(handle, "_Z3qoiiiiPd");
+    const char *dlsym_error = dlerror();
+    if (dlsym_error) {
+        std::cerr << "dlsym error: " << dlsym_error << '\n';
+        dlclose(handle);
+        return 1;
+    }
+  
+  //-- dlopen --//
+
+
+    // std::vector<double> temp(nrow*ncol*nfib);  
+    // int nsize = nrow*ncol*nfib;
+    // for(int i = 0; i < nsize; ++i)
+    // {
+    //   temp[i] = 1.0;
+    //   std::cout <<  qoi(nrow, ncol, nfib, temp.data()) << "\n"; 
+    //   temp[i] = 0.0;
+    // }
+
+    auto funp = &qoi_one ;
+
+    //    auto pqoi = &qoi ;
+
+
+
+    std::cout << " pi is: " << typeid(qoi).name() << '\n';
+    std::cout << " pi is: " << typeid(funp).name() << '\n';
+    int l_target = nlevel-1;
+
+    std::cout << "pointer to qoi is " << type_name<decltype((qoi))>() << '\n';
+    std::cout << "funp is " << type_name<decltype((funp))>() << '\n';
   
   std::vector<double> norm_vec(nlevel+1);
 
@@ -239,10 +309,11 @@ int main(int argc, char**argv)
   //  free(test);
 
 
-  double xnorm = mgard_compress(nrow,  ncol,  nfib,  funp, 0);
+  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, 0);
 
+  
 
-  std::cout << xnorm << "\n";
+  //  std::cout << xnorm << "\n";
   return 0;
 				     
   

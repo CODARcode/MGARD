@@ -53,6 +53,8 @@ unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int 
 
 // Use this version of mgard_compress to compute the  s-norm of a quantity of interest.
 double  mgard_compress( int nrow, int ncol, int nfib,  double (*qoi) (int, int, int, std::vector<double>), double s );
+// c-compatible version
+double  mgard_compress( int nrow, int ncol, int nfib,  double (*qoi) (int, int, int, double*), double s );
  
  // Use this version of mgard_compress to compress your data with a tolerance in -s norm
  // with given s-norm of quantity of interest qoi
