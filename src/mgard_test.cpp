@@ -158,17 +158,23 @@ double qoi_one(const int nrow, const int ncol, const int nfib, std::vector<doubl
 }
 
 
-int  parse_cmdl(int argc, char**argv, int& nrow, int& ncol, int& nfib, double& tol, double& s, std::string& in_file, std::string& coord_file)
+int  parse_cmdl(int argc, char**argv, int& nrow, int& ncol, int& nfib, double& tol, double& s, std::string& in_file, std::string& coord_file, std::string& shared_obj, std::string& function_handle)
   {
     if ( argc >= 6 )
       {
         in_file    = argv[1];
         coord_file = argv[2];
-        nrow =  strtol ((argv[3]), NULL, 0) ; //number of rows
+
+	nrow =  strtol ((argv[3]), NULL, 0) ; //number of rows
         ncol =  strtol ((argv[4]), NULL, 0) ; // number of columns
         nfib =  strtol ((argv[5]), NULL, 0) ; // number of columns
-        tol  =  strtod ((argv[6]), 0) ; // error tolerance
-        tol  =  strtod ((argv[7]), 0) ; // error tolerance
+
+	tol  =  strtod ((argv[6]), 0) ; // error tolerance
+        s    =  strtod ((argv[7]), 0) ; // error tolerance
+
+	shared_obj    = argv[8];
+        function_handle = argv[9];
+	
 	
         assert( in_file.size() != 0 );
         assert( ncol > 3  );
@@ -213,15 +219,19 @@ void set_level(const int nrow, const int ncol, const int nfib, int& nlevel)
   }
 
 
+
+
+/// --- MAIN ---///
+
 int main(int argc, char**argv)
 {
 
   double tol, s, norm;
   int nrow, ncol, nfib, nlevel;
-  std::string in_file, coord_file, out_file, zip_file;
+  std::string in_file, coord_file, out_file, zip_file, shared_obj, function_handle;
 
   // -- get commandline params --//
-  parse_cmdl(argc, argv, nrow, ncol, nfib, tol, s, in_file, coord_file);
+  parse_cmdl(argc, argv, nrow, ncol, nfib, tol, s, in_file, coord_file, shared_obj, function_handle);
 
   std::vector<double> v(nrow*ncol*nfib), coords_x(ncol), coords_y(nrow), coords_z(nfib);
   
@@ -255,7 +265,8 @@ int main(int argc, char**argv)
 
   //-- dlopen bit --//
     // open library
-    void* handle = dlopen("./qoi.so", RTLD_LAZY);
+  //    void* handle = dlopen("./qoi.so", RTLD_LAZY);
+  void* handle = dlopen(shared_obj.c_str(), RTLD_LAZY);
     if (!handle) {
         std::cerr << "dlopen error: " << dlerror() << '\n';
         return 1;
@@ -266,7 +277,9 @@ int main(int argc, char**argv)
 
     //    clear errors, find symbol, check errors
     dlerror();
-    qoi_t qoi = (qoi_t) dlsym(handle, "_Z3qoiiiiPd");
+    //    qoi_t qoi = (qoi_t) dlsym(handle, "_Z4qoi2iiiPd");
+    //    qoi_t qoi = (qoi_t) dlsym(handle, "qoi");
+    qoi_t qoi = (qoi_t) dlsym(handle, function_handle.c_str());
     const char *dlsym_error = dlerror();
     if (dlsym_error) {
         std::cerr << "dlsym error: " << dlsym_error << '\n';
@@ -276,22 +289,12 @@ int main(int argc, char**argv)
   
   //-- dlopen --//
 
-
-    // std::vector<double> temp(nrow*ncol*nfib);  
-    // int nsize = nrow*ncol*nfib;
-    // for(int i = 0; i < nsize; ++i)
-    // {
-    //   temp[i] = 1.0;
-    //   std::cout <<  qoi(nrow, ncol, nfib, temp.data()) << "\n"; 
-    //   temp[i] = 0.0;
-    // }
-
     auto funp = &qoi_one ;
-
+    
     //    auto pqoi = &qoi ;
-
-
-
+    
+    
+    
     std::cout << " pi is: " << typeid(qoi).name() << '\n';
     std::cout << " pi is: " << typeid(funp).name() << '\n';
     int l_target = nlevel-1;
@@ -303,10 +306,6 @@ int main(int argc, char**argv)
 
   unsigned char* test;
 
-  //  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib,  tol);
-  //  test = mgard::refactor_qz_2D(nrow, ncol, v.data(), out_size, tol);
-
-  //  free(test);
 
 
   double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, 0);
@@ -320,3 +319,15 @@ int main(int argc, char**argv)
 
  
 }
+
+
+
+
+
+  //  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib,  tol);
+  //  test = mgard::refactor_qz_2D(nrow, ncol, v.data(), out_size, tol);
+
+  //  free(test);
+
+
+  //  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, 0);

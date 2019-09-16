@@ -2478,23 +2478,23 @@ void restriction_l(const int  l, std::vector<double>& v,  std::vector<double>& c
            }
        }
 
-    double norm = ( std::inner_product( v.begin(), v.end(), work.begin(), 0.0d)  );    
+     //    double norm = ( std::inner_product( v.begin(), v.end(), work.begin(), 0.0d)  );    
 
-     // double norm = 0;
-     //   for(int irow = 0;  irow < nr; irow += stride) 
-     //     {
-     //       int ir = get_lindex(nr, nrow, irow); 
-     //       for(int jcol = 0;  jcol < nc; jcol += stride)
-     //         {
-     //           int jr = get_lindex(nc, ncol, jcol);  
-     //           for (int kfib = 0; kfib < nf; kfib += stride)
-     //             {
-     //               int kf = get_lindex(nf, nfib, kfib);
+     double norm = 0;
+       for(int irow = 0;  irow < nr; irow += stride) 
+         {
+           int ir = get_lindex(nr, nrow, irow); 
+           for(int jcol = 0;  jcol < nc; jcol += stride)
+             {
+               int jr = get_lindex(nc, ncol, jcol);  
+               for (int kfib = 0; kfib < nf; kfib += stride)
+                 {
+                   int kf = get_lindex(nf, nfib, kfib);
 
-     //               norm += work[mgard_common::get_index3(ncol, nfib, ir, jr, kf)] * v[mgard_common::get_index3(ncol, nfib, ir, jr, kf)];
-     //             }
-     //         }
-     //     }
+                   norm += work[mgard_common::get_index3(ncol, nfib, ir, jr, kf)] * v[mgard_common::get_index3(ncol, nfib, ir, jr, kf)];
+                 }
+             }
+         }
 
        return norm/216.0; // account for missing 1/6 factors in M_{x,y,z}
      
@@ -4651,9 +4651,24 @@ void project_3D(const int nr, const int nc, const int nf, const int nrow, const 
 
      }
    
-   double norm = mgard_gen::ml2_norm3(l_target, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z); 
+   double norm = mgard_gen::ml2_norm3(l_target + 1, nr, nc, nf, nrow, ncol, nfib, work, coords_x, coords_y, coords_z); 
    std::cout << "sqL2 norm lasto 0: "<< std::sqrt(norm) << "\n";
-    norm_vec[l_target + 1] = norm;
+   norm_vec[l_target + 1] = norm;
+
+   int stride = std::pow(2,l_target+1);
+   for(int irow = 0; irow < nr; irow += stride)
+     {
+       int ir = get_lindex(nr, nrow, irow);
+       for(int jcol = 0; jcol < nc; jcol += stride)
+   	 {
+   	   int jc  = get_lindex(nc,  ncol,  jcol);
+   	   for(int kfib = 0; kfib < nf; kfib += stride)
+   	     {
+   	       int kf  = get_lindex(nf,  nfib,  kfib);
+   	       std::cout << work[mgard_common::get_index3(ncol,nfib,ir,jc,kf)] << "\n";
+   	     }
+   	 }
+     }
 
 }
 
