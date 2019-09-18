@@ -5,7 +5,8 @@
 
 #include <cstddef>
 
-#include "moab/Core.hpp"
+#include "moab/EntityType.hpp"
+#include "moab/Interface.hpp"
 
 namespace mgard {
 
@@ -36,37 +37,82 @@ class MeshLevel {
             const moab::EntityHandle mesh_set
         );
 
-        //!Find the measure of an edge of element of the mesh.
+        //!Find the measure of an entity of the mesh.
         //!
-        //!\param handle Handle of an edge or element of the mesh.
+        //!Note that only edges, triangles, and tetrahedra are supported here.
         //!
-        //!\return Measure of the edge or element.
-        double measure(const moab::EntityHandle handle) const;
+        //!\param handle Handle of the entity.
+        //!
+        //!\return Measure of the entity.
+        double measure(const moab::EntityHandle handle);
 
         //!Compute and store the measures of the elements of the mesh.
-        void precompute_element_measures();
+        //!
+        //!Additionally, store for each node the sum of the measures of the
+        //!elements containing that node. The reciprocals of these values are
+        //the diagonal entries of the mass matrix preconditioner.
+        moab::ErrorCode precompute_element_measures();
+
+        //!Find the index of a mesh entity.
+        //!
+        //!\param handle Handle of the entity.
+        //!
+        //!\return Index of the entity.
+        std::size_t index(const moab::EntityHandle handle) const;
 
         //!Apply the mass matrix to a vector of nodal values.
         //!
-        //!\param [in] x Vector of nodal values.
+        //!\param [in] v Vector of nodal values.
         //!\param [out] b Vector of integrals against hat functions.
-        void mass_matrix_matvec(double const * const x, double * const b);
+        void mass_matrix_matvec(double const * const v, double * const b);
+
+        //!Apply the mass matrix to a vector of nodal values.
+        //!
+        //!\overload
+        //!
+        //!\param [in] N Size of the system.
+        //!\param [in] v Vector of nodal values.
+        //!\param [out] b Vector of integrals against hat functions.
+        void mass_matrix_matvec(
+            const std::size_t N, double const * const v, double * const b
+        );
 
         //!MOAB interface to which the mesh is associated.
         moab::Interface *impl;
-        //!Nodes of the mesh.
-        moab::Range nodes;
-        //!Edges of the mesh.
-        moab::Range edges;
-        //!Elements of the mesh.
-        moab::Range elements;
+
+        //MOAB entities composing the mesh.
+        moab::Range entities[moab::MBMAXTYPE];
+
+        //Entity type of elements (currently `moab::MBTRI` or `moab::MBTET`).
+        moab::EntityType element_type;
+
+        //Topological dimension of the mesh.
+        std::size_t topological_dimension;
+
+        //Number of nodes associated to each element of the mesh.
+        std::size_t num_nodes_per_element;
+
+    protected:
+        //!Ensure that a system has one degree of freedom per node.
+        //!
+        //!\param N Expected system size.
+        void check_system_size(const std::size_t N) const;
 
     private:
-        std::vector<double> element_measures;
+        std::vector<double> measures[moab::MBMAXTYPE];
+        //!For each node, the sum of the measures of the elements containing
+        //that node.
+        std::vector<double> preconditioner_divisors;
 
-        std::size_t node_index(const moab::EntityHandle node) const;
-        std::size_t edge_index(const moab::EntityHandle edge) const;
-        std::size_t element_index(const moab::EntityHandle element) const;
+        void populate_from_element_type();
+
+        //!Compute the measures of entities of a certain type.
+        //!
+        //!This function fills in `measures[type]`. If `type` is `element_type`,
+        //!it will also fill in `preconditioner_divisors`.
+        //!
+        //!\param type Type of entities to measure.
+        moab::ErrorCode precompute_measures(const moab::EntityType type);
 };
 
 }
