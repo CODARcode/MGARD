@@ -7,200 +7,245 @@
 
 #include "measure.hpp"
 
-#define IS_ELEMENT(type) (moab::MBTRI <= type && type <= moab::MBPOLYHEDRON)
+typedef double (*EntityMeasureFunction)(double const * const);
 
-
-class EntityMeasureFunction {
-    public:
-        EntityMeasureFunction(const moab::EntityType type) {
-            switch (type) {
-                case (moab::MBEDGE):
-                    f = helpers::edge_measure;
-                    expected_connectivity_size = 2;
-                    break;
-                case (moab::MBTRI):
-                    f = helpers::tri_measure;
-                    expected_connectivity_size = 3;
-                    break;
-                case (moab::MBTET):
-                    f = helpers::tet_measure;
-                    expected_connectivity_size = 4;
-                    break;
-                default:
-                    throw std::invalid_argument(
-                        "can only find measures of edges, triangles, and "
-                        "tetrahedra"
-                    );
-            }
-        }
-
-        moab::ErrorCode operator()(
-            moab::Interface const * const impl,
-            const moab::EntityHandle handle,
-            double *measure
-        ) const {
-            moab::ErrorCode ecode;
-
-            std::vector<moab::EntityHandle> connectivity;
-            ecode = impl->get_connectivity(&handle, 1, connectivity);
-            MB_CHK_ERR(ecode);
-            const std::size_t N = connectivity.size();
-            assert(N == expected_connectivity_size);
-            std::vector<double> coordinates(3 * N);
-            ecode = impl->get_coords(
-                connectivity.data(), N, coordinates.data()
-            );
-            MB_CHK_ERR(ecode);
-            *measure = f(coordinates.data());
-            return moab::MB_SUCCESS;
-        }
-
-        //Can imagine rewriting this to fetch all the connectivity data and
-        //vertex coordinates at once.
-        moab::ErrorCode operator()(
-            moab::Interface const * const impl,
-            const moab::Range handles,
-            double *measures
-        ) const {
-            for (auto iter = handles.begin(); iter != handles.end(); ++iter) {
-                moab::ErrorCode ecode = this->operator()(
-                    impl, *iter, measures++
-                );
-                MB_CHK_ERR_CONT(ecode);
-            }
-            return moab::MB_SUCCESS;
-        }
-
-    private:
-        //Function to compute the measure from the coordinates of the vertices.
-        double (*f)(double const * const);
-        std::size_t expected_connectivity_size;
+//For each entity type we get the number of vertices an entity of that type has
+//(zero for default) and a pointer to a function that computes the measure of an
+//entity of that type given a block of doubles with three coordinates for each
+//vertex of the entity.
+static std::pair<
+    std::size_t, EntityMeasureFunction
+> emf_data[moab::MBMAXTYPE] = {
+    {0, NULL}, //MBVERTEX
+    {2, helpers::edge_measure}, //MBEDGE
+    {3, helpers::tri_measure}, //MBTRI
+    {0, NULL}, //MBQUAD
+    {0, NULL}, //MBPOLYGON
+    {4, helpers::tet_measure}, //MBTET
+    {0, NULL}, //MBPYRAMID
+    {0, NULL}, //MBPRISM
+    {0, NULL}, //MBKNIFE
+    {0, NULL}, //MBHEX
+    {0, NULL}, //MBPOLYHEDRON
+    {0, NULL} //MBENTITYSET
+  //MBMAXTYPE
 };
 
 namespace mgard {
+
+//Public member functions.
+
+void MeshLevel::populate_from_element_type() {
+    switch (element_type) {
+        case moab::MBTRI:
+            topological_dimension = 2;
+            num_nodes_per_element = 3;
+            break;
+        case moab::MBTET:
+            topological_dimension = 3;
+            num_nodes_per_element = 4;
+            break;
+        default:
+            throw std::invalid_argument(
+                "elements must be triangles or tetrahedra"
+            );
+    }
+}
 
 MeshLevel::MeshLevel(
     moab::Interface * const impl,
     const moab::Range nodes,
     const moab::Range edges,
     const moab::Range elements
-) :
+):
     impl(impl),
-    nodes(nodes),
-    edges(edges),
-    elements(elements) {
+    element_type(moab::MBMAXTYPE)
+{
+    entities[moab::MBVERTEX] = nodes;
+    entities[moab::MBEDGE] = edges;
+    if (!elements.empty()) {
+        element_type = impl->type_from_handle(elements.front());
+        assert(element_type == impl->type_from_handle(elements.back()));
+        entities[element_type] = elements;
+        populate_from_element_type();
+    }
 }
 
 MeshLevel::MeshLevel(
     moab::Interface * const impl,
     const moab::EntityHandle mesh_set
-) :
-    impl(impl) {
-        moab::ErrorCode ecode;
-
-        ecode = impl->get_entities_by_type(mesh_set, moab::MBVERTEX, nodes);
+):
+    impl(impl)
+{
+    moab::ErrorCode ecode;
+    for (
+        moab::EntityType type = moab::MBVERTEX;
+        type != moab::MBMAXTYPE;
+        ++type
+    ) {
+        ecode = impl->get_entities_by_type(mesh_set, type, entities[type]);
         MB_CHK_ERR_RET(ecode);
-        ecode = impl->get_entities_by_type(mesh_set, moab::MBEDGE, edges);
-        MB_CHK_ERR_RET(ecode);
-        ecode = impl->get_entities_by_type(mesh_set, moab::MBTRI, elements);
-        MB_CHK_ERR_RET(ecode);
-}
-
-std::size_t MeshLevel::node_index(const moab::EntityHandle node) const {
-    assert(impl->type_from_handle(node) == moab::MBVERTEX);
-    assert(nodes.psize() == 1);
-    return node - nodes.front();
-}
-
-std::size_t MeshLevel::edge_index(const moab::EntityHandle edge) const {
-    assert(impl->type_from_handle(edge) == moab::MBEDGE);
-    assert(edges.psize() == 1);
-    return edge - edges.front();
-}
-
-std::size_t MeshLevel::element_index(const moab::EntityHandle element) const {
-    const moab::EntityType type = impl->type_from_handle(element);
-    assert(IS_ELEMENT(type));
-    assert(elements.psize() == 1);
-    return element - elements.front();
-}
-
-double MeshLevel::measure(const moab::EntityHandle handle) const {
-    const::moab::EntityType type = impl->type_from_handle(handle);
-    if (IS_ELEMENT(type) && !element_measures.empty()) {
-        //Can add an `edge_measures` member if we end up needing those a lot. In
-        //that case, I think it'd be nicer to have something like
-        //    std::map<moab::EntityType, std::vector<double>> measures;
-        //or (probably more properly)
-        //    std::vector<double> measures[moab::MBMAXTYPE];
-        //In the same vein, could replace `nodes`/`edges`/`elements` members
-        //with
-        //    moab::Range entities[moab::MBMAXTYPE];
-        //and combined `{node,edge,element}_index` into a single function.
-        return element_measures.at(element_index(handle));
-    } else {
-        double measure;
-        moab::ErrorCode ecode = EntityMeasureFunction(type)(
-            impl, handle, &measure
-        );
-        MB_CHK_ERR_CONT(ecode);
-        return measure;
     }
-}
-
-void MeshLevel::precompute_element_measures() {
-    if (!element_measures.empty() || elements.empty()) {
-        return;
-    }
-    assert(element_measures.empty());
-    element_measures.resize(elements.size());
-    //We checked above that `elements` is not empty.
-    const moab::EntityType type = impl->type_from_handle(elements.front());
-    if (type == impl->type_from_handle(elements.back())) {
-        moab::ErrorCode ecode = EntityMeasureFunction(type)(
-            impl, elements, element_measures.data()
-        );
-        MB_CHK_ERR_CONT(ecode);
-        return;
-    } {
-        std::size_t i = 0;
-        for (auto element : elements) {
-            moab::ErrorCode ecode = EntityMeasureFunction(
-                impl->type_from_handle(element)
-            )(impl, element, &element_measures.at(i++));
-            MB_CHK_ERR_CONT(ecode);
+    std::size_t num_element_types = 0;
+    for (
+        moab::EntityType type = moab::MBTRI;
+        type <= moab::MBPOLYHEDRON;
+        ++type
+    ) {
+        if (!entities[type].empty()) {
+            ++num_element_types;
+            element_type = type;
         }
     }
+    if (num_element_types > 1) {
+        throw std::invalid_argument(
+            "all elements must be of the same type"
+        );
+    } else if (num_element_types == 1) {
+        if (!(element_type == moab::MBTRI || element_type == moab::MBTET)) {
+            throw std::invalid_argument(
+                "elements must be triangles or tetrahedra"
+            );
+        }
+        populate_from_element_type();
+    }
+}
+
+//TODO: look into allowing `type` to be passed here (or just for internal use).
+std::size_t MeshLevel::index(const moab::EntityHandle handle) const {
+    const moab::EntityType type = impl->type_from_handle(handle);
+    const moab::Range &range = entities[type];
+    assert(range.psize() == 1);
+    assert(!range.empty());
+    if (!(range.front() <= handle && handle <= range.back())) {
+        throw std::out_of_range("attempt to find index of entity not in mesh");
+    }
+    return handle - range.front();
+}
+
+double MeshLevel::measure(const moab::EntityHandle handle) {
+    const::moab::EntityType type = impl->type_from_handle(handle);
+    if (measures[type].empty()) {
+        moab::ErrorCode ecode = precompute_measures(type);
+        MB_CHK_ERR_CONT(ecode);
+    }
+    return measures[type].at(index(handle));
+}
+
+moab::ErrorCode MeshLevel::precompute_element_measures() {
+    return precompute_measures(element_type);
 }
 
 void MeshLevel::mass_matrix_matvec(double const * const v, double * const b) {
-    moab::ErrorCode ecode;
-    const std::size_t N = nodes.size();
-    for (std::size_t i = 0; i < N; ++i) {
-        b[i] = 0;
+    const std::size_t N = entities[moab::MBVERTEX].size();
+    for (double *p = b; p != b + N; ++p) {
+        *p = 0;
     }
-    const int d = impl->dimension_from_handle(elements.front());
-    assert(d == impl->dimension_from_handle(elements.back()));
+    moab::ErrorCode ecode = precompute_element_measures();
+    MB_CHK_ERR_CONT(ecode);
+    const moab::Range &elements = entities[element_type];
     for (moab::EntityHandle element : elements) {
-        const double measure_factor = measure(element) / ((d + 1) * (d + 2));
+        const double measure_factor = measure(element) / (
+            (topological_dimension + 1) * (topological_dimension + 2)
+        );
         moab::EntityHandle const *connectivity;
         int n;
-        ecode = impl->get_connectivity(element, connectivity, n);
+        moab::ErrorCode ecode = impl->get_connectivity(
+            element, connectivity, n
+        );
         MB_CHK_ERR_RET(ecode);
         //Pairs `(i, u)` where `i` is the global index of a node and `u` is
         //`v[i]`, the value of the function there.
         std::vector<std::pair<std::size_t, double>> nodal_pairs(n);
         double nodal_values_sum = 0;
-        for (int i = 0; i < n; ++i) {
+        assert(n >= 0);
+        for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
             std::pair<std::size_t, double> &pair = nodal_pairs.at(i);
             nodal_values_sum += (
-                pair.second = v[pair.first = node_index(connectivity[i])]
+                pair.second = v[pair.first = index(connectivity[i])]
             );
         }
         for (std::pair<std::size_t, double> pair : nodal_pairs) {
             b[pair.first] += measure_factor * (nodal_values_sum + pair.second);
         }
     }
+}
+
+void MeshLevel::mass_matrix_matvec(
+    const std::size_t N, double const * const v, double * const b
+) {
+    check_system_size(N);
+    return mass_matrix_matvec(v, b);
+}
+
+//Protected member functions.
+
+void MeshLevel::check_system_size(const std::size_t N) const {
+    if (N != entities[moab::MBVERTEX].size()) {
+        throw std::invalid_argument("system size incorrect");
+    }
+}
+
+//Private member functions.
+
+moab::ErrorCode MeshLevel::precompute_measures(const moab::EntityType type) {
+    if (entities[type].empty() || !measures[type].empty()) {
+        return moab::MB_SUCCESS;
+    }
+    measures[type].resize(entities[type].size());
+
+    const bool computing_element_measures = type == element_type;
+    if (computing_element_measures) {
+        if (!preconditioner_divisors.empty()) {
+            throw std::logic_error(
+                "preconditioner divisors unexpectedly nonempty"
+            );
+        }
+        preconditioner_divisors.resize(entities[moab::MBVERTEX].size(), 0);
+    }
+
+    std::pair<std::size_t, EntityMeasureFunction> datum = emf_data[type];
+    const std::size_t expected_connectivity_size = datum.first;
+    const EntityMeasureFunction f = datum.second;
+    if (f == NULL) {
+        throw std::invalid_argument(
+            "can only find measures of edges, triangles, and tetrahedra"
+        );
+    }
+
+    std::vector<double> _coordinates(3 * expected_connectivity_size);
+    //Just for consistency with `connectivity` below.
+    double * const coordinates = _coordinates.data();
+    std::vector<double>::iterator p = measures[type].begin();
+    for (moab::EntityHandle handle : entities[type]) {
+        moab::ErrorCode ecode;
+
+        moab::EntityHandle const *connectivity;
+        int num_nodes;
+        ecode = impl->get_connectivity(handle, connectivity, num_nodes);
+        MB_CHK_ERR(ecode);
+        assert(num_nodes >= 0);
+        assert(
+            static_cast<std::size_t>(num_nodes) == expected_connectivity_size
+        );
+
+        ecode = impl->get_coords(connectivity, num_nodes, coordinates);
+        MB_CHK_ERR(ecode);
+
+        const double volume = *p++ = f(coordinates);
+        //Increment for each node in the element the total measure of the
+        //elements containing that node.
+        if (computing_element_measures) {
+            for (
+                moab::EntityHandle const *q = connectivity;
+                q != connectivity + num_nodes;
+                ++q
+            ) {
+                preconditioner_divisors.at(index(*q)) += volume;
+            }
+        }
+    }
+    return moab::MB_SUCCESS;
 }
 
 }

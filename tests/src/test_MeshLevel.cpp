@@ -111,18 +111,23 @@ TEST_CASE("MeshLevel construction", "[MeshLevel]") {
         mbcore, num_nodes, num_edges, num_tris, 2,
         coordinates, edge_connectivity, tri_connectivity
     );
+    REQUIRE(mesh.topological_dimension == 2);
+    REQUIRE(mesh.element_type == moab::MBTRI);
 
     //Don't want to deal with a lot of nonrational lengths, so I'm only checking
     //a few.
-    REQUIRE(mesh.measure(mesh.edges[0]) == Approx(5));
-    REQUIRE(mesh.measure(mesh.edges[3]) == Approx(7));
-    REQUIRE(mesh.measure(mesh.edges[6]) == Approx(6));
+    const moab::Range &edges = mesh.entities[moab::MBEDGE];
+    REQUIRE(mesh.measure(edges[0]) == Approx(5));
+    REQUIRE(mesh.measure(edges[3]) == Approx(7));
+    REQUIRE(mesh.measure(edges[6]) == Approx(6));
 
+    const moab::Range &elements = mesh.entities[mesh.element_type];
     double triangle_areas[num_tris] = {20, 10.5, 15, 12};
     SECTION("measures without precomputing") {
+        //`precompute_measures` should be called by `measure`.
         for (std::size_t i = 0; i < num_tris; ++i) {
             REQUIRE(
-                mesh.measure(mesh.elements[i]) == Approx(triangle_areas[i])
+                mesh.measure(elements[i]) == Approx(triangle_areas[i])
             );
         }
     }
@@ -130,7 +135,7 @@ TEST_CASE("MeshLevel construction", "[MeshLevel]") {
         mesh.precompute_element_measures();
         for (std::size_t i = 0; i < num_tris; ++i) {
             REQUIRE(
-                mesh.measure(mesh.elements[i]) == Approx(triangle_areas[i])
+                mesh.measure(elements[i]) == Approx(triangle_areas[i])
             );
         }
     }
@@ -167,6 +172,8 @@ TEST_CASE("MeshLevel mass matrix matvec", "[MeshLevel]") {
             mbcore, num_nodes, num_edges, num_tris, 2,
             coordinates, edge_connectivity, tri_connectivity
         );
+        REQUIRE(mesh.topological_dimension == 2);
+        REQUIRE(mesh.element_type == moab::MBTRI);
 
         //These products were obtained using the Python implementation.
         const std::size_t num_trials = 8;
@@ -233,13 +240,16 @@ TEST_CASE("MeshLevel mass matrix matvec", "[MeshLevel]") {
             mbcore, num_nodes, num_edges, num_tets, 3,
             coordinates, edge_connectivity, tet_connectivity
         );
+        REQUIRE(mesh.topological_dimension == 3);
+        REQUIRE(mesh.element_type == moab::MBTET);
         double u[num_nodes] = {-8, -7, 3, 0, 10};
         double b[num_nodes];
         mesh.mass_matrix_matvec(u, b);
 
+        const moab::Range &elements = mesh.entities[mesh.element_type];
         double measures[num_tets];
         for (std::size_t i = 0; i < num_tets; ++i) {
-            measures[i] = mesh.measure(mesh.elements[i]);
+            measures[i] = mesh.measure(elements[i]);
         }
 
         double expected[num_nodes];
