@@ -7,7 +7,7 @@ DIR_INC := include
 DIR_BIN := bin
 
 CPPFLAGS = -I$(DIR_INC) -I$(HOME)/include
-CXXFLAGS = -Wfatal-errors -Wall -Wextra
+CXXFLAGS = -std=c++17 -Wfatal-errors -Wall -Wextra
 
 DIRTY = $(DIRTY_OBJECT_FILES) $(DIRTY_EXECUTABLE_FILES)
 DIRTY_OBJECT_FILES =
