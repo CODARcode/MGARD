@@ -6,11 +6,13 @@
 
 #include <cstddef>
 
+#include <functional>
+
 namespace helpers {
 
-typedef void (*LinearOperator)(
-    const std::size_t, double const * const, double * const
-);
+typedef std::function<
+    void (const std::size_t, double const * const, double * const)
+> LinearOperator;
 
 //!Use the preconditioned conjugate method to solve `Ax = b` for `x`.
 //!
