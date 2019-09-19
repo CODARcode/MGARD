@@ -5,6 +5,8 @@
 
 #include <cstddef>
 
+#include <utility>
+
 namespace helpers {
 
 class LinearOperator {
@@ -21,6 +23,9 @@ class LinearOperator {
         //!
         //!\param N Dimension of domain and range.
         LinearOperator(const std::size_t N);
+
+        //!Return the dimensions of the domain and range.
+        std::pair<std::size_t, std::size_t> dimensions() const;
 
         //!Report whether the associated matrix is square.
         bool is_square() const;
