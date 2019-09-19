@@ -1,32 +1,77 @@
 #include "catch2/catch.hpp"
 
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 
 #include "blaspp/blas.hh"
 
+#include "LinearOperator.hpp"
 #include "pcg.hpp"
 
-static void simple_diagonal_matvec(
-    const std::size_t N, double const * const x, double * const y
-) {
-    for (std::size_t i = 0; i < N; ++i) {
-        y[i] = (3 + (i % 5)) * x[i];
-    }
-}
+class SimpleDiagonalMatvec: public helpers::LinearOperator {
+    public:
+        SimpleDiagonalMatvec(const std::size_t N):
+            helpers::LinearOperator(N)
+        {
+        }
 
-static void identity_matvec(
-    const std::size_t N, double const * const x, double * const y
-) {
-    blas::copy(N, x, 1, y, 1);
-}
+    private:
+        virtual void do_operator_parentheses(
+            double const * const x, double * const y
+        ) const override {
+            assert(is_square());
+            for (std::size_t i = 0; i < range_dimension; ++i) {
+                y[i] = (3 + (i % 5)) * x[i];
+            }
+        }
+};
+
+class Identity: public helpers::LinearOperator {
+    public:
+        Identity(const std::size_t N):
+            helpers::LinearOperator(N)
+        {
+        }
+
+    private:
+        virtual void do_operator_parentheses(
+            double const * const x, double * const y
+        ) const override {
+            assert(is_square());
+            blas::copy(domain_dimension, x, 1, y, 1);
+        }
+};
+
+class FunctionOperator: public helpers::LinearOperator {
+    public:
+        FunctionOperator(
+            const std::size_t N,
+            void (*const f)(double const * const, double * const)
+        ):
+            helpers::LinearOperator(N),
+            f(f)
+        {
+        }
+
+    private:
+        void (*f)(double const * const, double * const);
+
+        virtual void do_operator_parentheses(
+            double const * const x, double * const b
+        ) const override {
+            assert(is_square());
+            assert(domain_dimension == 4);
+            return f(x, b);
+        }
+};
 
 //Mass matrix corresponding to 1D mesh with three elements with volumes of, left
 //to right, 3, 4, and 1. Nodes also numbered left to right.
 static void mass_matrix_matvec(
-    const std::size_t N, double const * const x, double * const y
+    double const * const x, double * const y
 ) {
-    assert(N == 4);
+    const std::size_t N = 4;
     for (std::size_t i = 0; i < N; ++i) {
         y[i] = 0;
     }
@@ -44,7 +89,7 @@ static void mass_matrix_matvec(
 }
 
 static void diagonal_scaling(
-    const std::size_t, double const * const x, double * const y
+    double const * const x, double * const y
 ) {
     y[0] = x[0] / (3);
     y[1] = x[1] / (3 + 4);
@@ -56,9 +101,11 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
     SECTION("diagonal system") {
         const std::size_t Ns[4] = {1, 11, 111, 1111};
         for (std::size_t N : Ns) {
-            double *b = (double *) malloc(N * sizeof(*b));
-            double *x = (double *) malloc(N * sizeof(*x));
-            double *buffer = (double *) malloc(4 * N * sizeof(*x));
+            const SimpleDiagonalMatvec A(N);
+            const Identity P(N);
+            double * const b = (double *) malloc(N * sizeof(*b));
+            double * const x = (double *) malloc(N * sizeof(*x));
+            double * const buffer = (double *) malloc(4 * N * sizeof(*x));
 
             for (std::size_t i = 0; i < N; ++i) {
                 b[i] = 4 + (i % 7);
@@ -67,16 +114,12 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
 
             //With `x` initialized to zeroes.
             {
-                double relative_error = helpers::pcg(
-                    N, simple_diagonal_matvec, b, identity_matvec, x, buffer
-                );
+                double relative_error = helpers::pcg(A, b, P, x, buffer);
                 REQUIRE(relative_error < 1e-6);
             }
             //With `x` already the solution.
             {
-                double relative_error = helpers::pcg(
-                    N, simple_diagonal_matvec, b, identity_matvec, x, buffer
-                );
+                double relative_error = helpers::pcg(A, b, P, x, buffer);
                 REQUIRE(relative_error < 1e-6);
             }
             //With `x` initialized to something wrong.
@@ -84,20 +127,32 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
                 for (std::size_t i = 0; i < N; ++i) {
                     x[i] = i % 2 ? 1 : -1;
                 }
-                double relative_error = helpers::pcg(
-                    N, simple_diagonal_matvec, b, identity_matvec, x, buffer
-                );
+                double relative_error = helpers::pcg(A, b, P, x, buffer);
                 REQUIRE(relative_error < 1e-6);
             }
 
             //Testing approximate elementwise accuracy.
             {
-                simple_diagonal_matvec(N, x, buffer);
+                A(x, buffer);
                 bool all_close = true;
                 for (std::size_t i = 0; i < N; ++i) {
                     all_close = all_close && std::abs(buffer[i] - b[i]) < 1e-3;
                 }
                 REQUIRE(all_close);
+            }
+
+            //With `b` initialized to zeroes.
+            {
+                for (double *p = b; p != b + N; ++p) {
+                    *p = 0;
+                }
+                double relative_error = helpers::pcg(A, b, P, x, buffer);
+                REQUIRE(relative_error == 0);
+                bool all_zero = true;
+                for (double *p = x; p != x + N; ++p) {
+                    all_zero = all_zero && *p == 0;
+                }
+                REQUIRE(all_zero);
             }
 
             free(buffer);
@@ -107,18 +162,20 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
     }
     SECTION("mass matrix system") {
         const std::size_t N = 4;
+        const FunctionOperator A(N, mass_matrix_matvec);
+        const FunctionOperator P(N, diagonal_scaling);
         double x[N];
         double b[N] = {2, -1, -10, 4};
         double buffer[4 * N];
         double rtols[3] = {1e-1, 1e-4, 1e-7};
         for (double rtol : rtols) {
             const double relative_error = helpers::pcg(
-                N, mass_matrix_matvec, b, diagonal_scaling, x, buffer, rtol
+                A, b, P, x, buffer, rtol
             );
             const double b_norm = blas::nrm2(N, b, 1);
             //Populate the first bit of `buffer` with the residual.
             blas::copy(N, b, 1, buffer, 1);
-            mass_matrix_matvec(N, x, buffer + N);
+            A(x, buffer + N);
             blas::axpy(N, -1, buffer + N, 1, buffer, 1);
             const double residual_norm = blas::nrm2(N, buffer, 1);
             REQUIRE(residual_norm < rtol * b_norm);

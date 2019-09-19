@@ -1,5 +1,6 @@
 #include "pcg.hpp"
 
+#include <stdexcept>
 #include <utility>
 
 #include "blaspp/blas.hh"
@@ -15,33 +16,50 @@ namespace helpers {
 //!\param [out] residual Buffer in which residual will be saved.
 static inline void calculate_residual(
     const std::size_t N,
-    LinearOperator A,
+    const LinearOperator &A,
     double const * const b,
     double const * const x,
     double * const residual
 ) {
     //Could use `std::invoke` here (and elsewhere).
-    A(N, x, residual);
+    A(x, residual);
     blas::axpy(N, -1, b, 1, residual, 1);
     blas::scal(N, -1, residual, 1);
 }
 
 double pcg(
-    const std::size_t N,
-    LinearOperator A,
+    const LinearOperator &A,
     double const * const b,
-    LinearOperator P,
+    const LinearOperator &P,
     double * const x,
     double * const buffer,
     const double rtol,
     const std::size_t max_iterations
 ) {
+    if (!(A.is_square() and P.is_square())) {
+        throw std::invalid_argument(
+            "system matrix and preconditioner must both be square"
+        );
+    }
+    const std::pair<std::size_t, std::size_t> A_dimensions = A.dimensions();
+    //Not claiming that I could generalize this to nonsquare systems.
+    if (A_dimensions.second != P.dimensions().first) {
+        throw std::invalid_argument(
+            "system matrix and preconditioner must have the same shape"
+        );
+    }
+    const std::size_t N = A_dimensions.first;
     const std::size_t RESIDUAL_RECALCULATION_ITERVAL = 1 << 5;
-    double * const residual = buffer + 0 * N;
+    double *_buffer = buffer;
+    double * const residual = _buffer;
+    _buffer += N;
     //We'll swap these below.
-    double *pc_residual = buffer + 1 * N;
-    double *direction = buffer + 2 * N;
-    double * const Adirection = buffer + 3 * N;
+    double *pc_residual = _buffer;
+    _buffer += N;
+    double *direction = _buffer;
+    _buffer += N;
+    double * const Adirection = _buffer;
+    _buffer += N;
 
     if (!(0 <= rtol && rtol <= 1)) {
         throw std::invalid_argument("`rtol` must be in [0, 1].");
@@ -52,8 +70,8 @@ double pcg(
     //`alpha_denominator` or the check on the iteration count should trigger
     //eventually.) Better to immediately return.
     if (!b_norm) {
-        for (std::size_t i = 0; i < N; ++i) {
-            x[i] = 0;
+        for (double *p = x; p != x + N; ++p) {
+            *p = 0;
         }
         return 0;
     }
@@ -63,7 +81,7 @@ double pcg(
     if (residual_norm <= atol) {
         return residual_norm / b_norm;
     }
-    P(N, residual, pc_residual);
+    P(residual, pc_residual);
     blas::copy(N, pc_residual, 1, direction, 1);
     //This should be the inner product of `direction` and `pc_residual`. Here,
     //since they're the same, we can just find the norm of one and square it.
@@ -71,7 +89,7 @@ double pcg(
     beta_numerator *= beta_numerator;
     for (std::size_t num_iter = 0; num_iter < max_iterations; ++num_iter) {
         double alpha_numerator = beta_numerator;
-        A(N, direction, Adirection);
+        A(direction, Adirection);
         const double alpha_denominator = blas::dot(
             N, Adirection, 1, direction, 1
             );
@@ -94,7 +112,7 @@ double pcg(
         if (residual_norm <= atol) {
             return residual_norm / b_norm;
         }
-        P(N, residual, pc_residual);
+        P(residual, pc_residual);
         beta_numerator = blas::dot(N, pc_residual, 1, residual, 1);
         const double beta = beta_numerator / alpha_numerator;
         //This is an attempt to accomplish
