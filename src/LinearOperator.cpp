@@ -13,6 +13,10 @@ LinearOperator::LinearOperator(const std::size_t N):
 {
 }
 
+std::pair<std::size_t, std::size_t> LinearOperator::dimensions() const {
+    return {domain_dimension, range_dimension};
+}
+
 bool LinearOperator::is_square() const {
     return domain_dimension == range_dimension;
 }
