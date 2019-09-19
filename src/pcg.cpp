@@ -20,6 +20,7 @@ static inline void calculate_residual(
     double const * const x,
     double * const residual
 ) {
+    //Could use `std::invoke` here (and elsewhere).
     A(N, x, residual);
     blas::axpy(N, -1, b, 1, residual, 1);
     blas::scal(N, -1, residual, 1);
