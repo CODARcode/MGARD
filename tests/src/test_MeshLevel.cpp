@@ -113,6 +113,7 @@ TEST_CASE("MeshLevel construction", "[MeshLevel]") {
     );
     REQUIRE(mesh.topological_dimension == 2);
     REQUIRE(mesh.element_type == moab::MBTRI);
+    REQUIRE(mesh.ndof() == num_nodes);
 
     //Don't want to deal with a lot of nonrational lengths, so I'm only checking
     //a few.
@@ -174,6 +175,7 @@ TEST_CASE("MeshLevel mass matrix matvec", "[MeshLevel]") {
         );
         REQUIRE(mesh.topological_dimension == 2);
         REQUIRE(mesh.element_type == moab::MBTRI);
+        REQUIRE(mesh.ndof() == num_nodes);
 
         //These products were obtained using the Python implementation.
         const std::size_t num_trials = 8;
@@ -242,6 +244,7 @@ TEST_CASE("MeshLevel mass matrix matvec", "[MeshLevel]") {
         );
         REQUIRE(mesh.topological_dimension == 3);
         REQUIRE(mesh.element_type == moab::MBTET);
+        REQUIRE(mesh.ndof() == num_nodes);
         double u[num_nodes] = {-8, -7, 3, 0, 10};
         double b[num_nodes];
         mesh.mass_matrix_matvec(u, b);

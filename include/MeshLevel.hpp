@@ -37,6 +37,9 @@ class MeshLevel {
             const moab::EntityHandle mesh_set
         );
 
+        //!Report the number of degrees of freedom of the mesh.
+        std::size_t ndof() const;
+
         //!Find the measure of an entity of the mesh.
         //!
         //!Note that only edges, triangles, and tetrahedra are supported here.
@@ -105,6 +108,8 @@ class MeshLevel {
         std::vector<double> preconditioner_divisors;
 
         void populate_from_element_type();
+
+        virtual std::size_t do_ndof() const;
 
         //!Compute the measures of entities of a certain type.
         //!
