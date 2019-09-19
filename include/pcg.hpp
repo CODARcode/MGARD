@@ -8,15 +8,12 @@
 
 #include <functional>
 
-namespace helpers {
+#include "LinearOperator.hpp"
 
-typedef std::function<
-    void (const std::size_t, double const * const, double * const)
-> LinearOperator;
+namespace helpers {
 
 //!Use the preconditioned conjugate method to solve `Ax = b` for `x`.
 //!
-//!\param [in] N Size of the system.
 //!\param [in] A Symmetric, positive definite matrix.
 //!\param [in] b Righthand side of the system.
 //!\param [in] preconditioner Symmetric, positive definite matrix approximating
@@ -33,10 +30,9 @@ typedef std::function<
 //!\return The ratio of the norm of the residual to the norm of the righthand
 //!side. Zero if the righthand side is zero.
 double pcg(
-    const std::size_t N,
-    LinearOperator A,
+    const LinearOperator &A,
     double const * const b,
-    LinearOperator P,
+    const LinearOperator &P,
     double * const x,
     double * const buffer,
     const double rtol = 1e-9,
