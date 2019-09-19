@@ -35,23 +35,6 @@ namespace mgard {
 
 //Public member functions.
 
-void MeshLevel::populate_from_element_type() {
-    switch (element_type) {
-        case moab::MBTRI:
-            topological_dimension = 2;
-            num_nodes_per_element = 3;
-            break;
-        case moab::MBTET:
-            topological_dimension = 3;
-            num_nodes_per_element = 4;
-            break;
-        default:
-            throw std::invalid_argument(
-                "elements must be triangles or tetrahedra"
-            );
-    }
-}
-
 MeshLevel::MeshLevel(
     moab::Interface * const impl,
     const moab::Range nodes,
@@ -111,6 +94,10 @@ MeshLevel::MeshLevel(
     }
 }
 
+std::size_t MeshLevel::ndof() const {
+    return do_ndof();
+}
+
 //TODO: look into allowing `type` to be passed here (or just for internal use).
 std::size_t MeshLevel::index(const moab::EntityHandle handle) const {
     const moab::EntityType type = impl->type_from_handle(handle);
@@ -137,8 +124,7 @@ moab::ErrorCode MeshLevel::precompute_element_measures() {
 }
 
 void MeshLevel::mass_matrix_matvec(double const * const v, double * const b) {
-    const std::size_t N = entities[moab::MBVERTEX].size();
-    for (double *p = b; p != b + N; ++p) {
+    for (double *p = b; p != b + ndof(); ++p) {
         *p = 0;
     }
     moab::ErrorCode ecode = precompute_element_measures();
@@ -181,12 +167,33 @@ void MeshLevel::mass_matrix_matvec(
 //Protected member functions.
 
 void MeshLevel::check_system_size(const std::size_t N) const {
-    if (N != entities[moab::MBVERTEX].size()) {
+    if (N != ndof()) {
         throw std::invalid_argument("system size incorrect");
     }
 }
 
 //Private member functions.
+
+void MeshLevel::populate_from_element_type() {
+    switch (element_type) {
+        case moab::MBTRI:
+            topological_dimension = 2;
+            num_nodes_per_element = 3;
+            break;
+        case moab::MBTET:
+            topological_dimension = 3;
+            num_nodes_per_element = 4;
+            break;
+        default:
+            throw std::invalid_argument(
+                "elements must be triangles or tetrahedra"
+            );
+    }
+}
+
+std::size_t MeshLevel::do_ndof() const {
+    return entities[moab::MBVERTEX].size();
+}
 
 moab::ErrorCode MeshLevel::precompute_measures(const moab::EntityType type) {
     if (entities[type].empty() || !measures[type].empty()) {
@@ -201,7 +208,7 @@ moab::ErrorCode MeshLevel::precompute_measures(const moab::EntityType type) {
                 "preconditioner divisors unexpectedly nonempty"
             );
         }
-        preconditioner_divisors.resize(entities[moab::MBVERTEX].size(), 0);
+        preconditioner_divisors.resize(ndof(), 0);
     }
 
     std::pair<std::size_t, EntityMeasureFunction> datum = emf_data[type];
