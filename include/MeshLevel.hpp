@@ -47,7 +47,7 @@ class MeshLevel {
         //!\param handle Handle of the entity.
         //!
         //!\return Measure of the entity.
-        double measure(const moab::EntityHandle handle);
+        double measure(const moab::EntityHandle handle) const;
 
         //!Find the measure of the union of the elements containing a node.
         //!
@@ -55,14 +55,14 @@ class MeshLevel {
         //!`preconditioner_divisors`.
         //!
         //!\param node Handle of the node.
-        double containing_elements_measure(const moab::EntityHandle node);
+        double containing_elements_measure(const moab::EntityHandle node) const;
 
         //!Compute and store the measures of the elements of the mesh.
         //!
         //!Additionally, store for each node the sum of the measures of the
         //!elements containing that node. The reciprocals of these values are
         //the diagonal entries of the mass matrix preconditioner.
-        moab::ErrorCode precompute_element_measures();
+        moab::ErrorCode precompute_element_measures() const;
 
         //!Find the index of a mesh entity.
         //!
@@ -93,10 +93,10 @@ class MeshLevel {
         void check_system_size(const std::size_t N) const;
 
     private:
-        std::vector<double> measures[moab::MBMAXTYPE];
+        mutable std::vector<double> measures[moab::MBMAXTYPE];
         //!For each node, the sum of the measures of the elements containing
         //that node.
-        std::vector<double> preconditioner_divisors;
+        mutable std::vector<double> preconditioner_divisors;
 
         void populate_from_element_type();
 
@@ -108,7 +108,7 @@ class MeshLevel {
         //!it will also fill in `preconditioner_divisors`.
         //!
         //!\param type Type of entities to measure.
-        moab::ErrorCode precompute_measures(const moab::EntityType type);
+        moab::ErrorCode precompute_measures(const moab::EntityType type) const;
 };
 
 }

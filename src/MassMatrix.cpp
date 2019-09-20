@@ -8,14 +8,16 @@ namespace mgard {
 
 //Public member functions.
 
-MassMatrix::MassMatrix(MeshLevel * const mesh):
+MassMatrix::MassMatrix(MeshLevel const * const mesh):
     helpers::LinearOperator(mesh->ndof()),
     mesh(mesh)
 {
     mesh->precompute_element_measures();
 }
 
-MassMatrixPreconditioner::MassMatrixPreconditioner(MeshLevel * const mesh):
+MassMatrixPreconditioner::MassMatrixPreconditioner(
+    MeshLevel const * const mesh
+):
     helpers::LinearOperator(mesh->ndof()),
     mesh(mesh)
 {
