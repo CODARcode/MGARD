@@ -6,8 +6,6 @@
 
 #include <cstddef>
 
-#include <functional>
-
 #include "LinearOperator.hpp"
 
 namespace helpers {

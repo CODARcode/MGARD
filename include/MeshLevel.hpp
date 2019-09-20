@@ -49,6 +49,14 @@ class MeshLevel {
         //!\return Measure of the entity.
         double measure(const moab::EntityHandle handle);
 
+        //!Find the measure of the union of the elements containing a node.
+        //!
+        //!This function exists to give the mass matrix preconditioner access to
+        //!`preconditioner_divisors`.
+        //!
+        //!\param node Handle of the node.
+        double containing_elements_measure(const moab::EntityHandle node);
+
         //!Compute and store the measures of the elements of the mesh.
         //!
         //!Additionally, store for each node the sum of the measures of the
@@ -62,23 +70,6 @@ class MeshLevel {
         //!
         //!\return Index of the entity.
         std::size_t index(const moab::EntityHandle handle) const;
-
-        //!Apply the mass matrix to a vector of nodal values.
-        //!
-        //!\param [in] v Vector of nodal values.
-        //!\param [out] b Vector of integrals against hat functions.
-        void mass_matrix_matvec(double const * const v, double * const b);
-
-        //!Apply the mass matrix to a vector of nodal values.
-        //!
-        //!\overload
-        //!
-        //!\param [in] N Size of the system.
-        //!\param [in] v Vector of nodal values.
-        //!\param [out] b Vector of integrals against hat functions.
-        void mass_matrix_matvec(
-            const std::size_t N, double const * const v, double * const b
-        );
 
         //!MOAB interface to which the mesh is associated.
         moab::Interface *impl;

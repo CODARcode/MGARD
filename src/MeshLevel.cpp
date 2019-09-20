@@ -112,56 +112,25 @@ std::size_t MeshLevel::index(const moab::EntityHandle handle) const {
 
 double MeshLevel::measure(const moab::EntityHandle handle) {
     const::moab::EntityType type = impl->type_from_handle(handle);
-    if (measures[type].empty()) {
-        moab::ErrorCode ecode = precompute_measures(type);
-        MB_CHK_ERR_CONT(ecode);
-    }
+    precompute_measures(type);
+    moab::ErrorCode ecode = precompute_measures(type);
+    MB_CHK_ERR_CONT(ecode);
     return measures[type].at(index(handle));
+}
+
+double MeshLevel::containing_elements_measure(const moab::EntityHandle node) {
+    const moab::EntityType type = impl->type_from_handle(node);
+    if (type != moab::MBVERTEX) {
+        throw std::domain_error(
+            "can only find measure of elements containing a node"
+        );
+    }
+    precompute_element_measures();
+    return preconditioner_divisors.at(index(node));
 }
 
 moab::ErrorCode MeshLevel::precompute_element_measures() {
     return precompute_measures(element_type);
-}
-
-void MeshLevel::mass_matrix_matvec(double const * const v, double * const b) {
-    for (double *p = b; p != b + ndof(); ++p) {
-        *p = 0;
-    }
-    moab::ErrorCode ecode = precompute_element_measures();
-    MB_CHK_ERR_CONT(ecode);
-    const moab::Range &elements = entities[element_type];
-    for (moab::EntityHandle element : elements) {
-        const double measure_factor = measure(element) / (
-            (topological_dimension + 1) * (topological_dimension + 2)
-        );
-        moab::EntityHandle const *connectivity;
-        int n;
-        moab::ErrorCode ecode = impl->get_connectivity(
-            element, connectivity, n
-        );
-        MB_CHK_ERR_RET(ecode);
-        //Pairs `(i, u)` where `i` is the global index of a node and `u` is
-        //`v[i]`, the value of the function there.
-        std::vector<std::pair<std::size_t, double>> nodal_pairs(n);
-        double nodal_values_sum = 0;
-        assert(n >= 0);
-        for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
-            std::pair<std::size_t, double> &pair = nodal_pairs.at(i);
-            nodal_values_sum += (
-                pair.second = v[pair.first = index(connectivity[i])]
-            );
-        }
-        for (std::pair<std::size_t, double> pair : nodal_pairs) {
-            b[pair.first] += measure_factor * (nodal_values_sum + pair.second);
-        }
-    }
-}
-
-void MeshLevel::mass_matrix_matvec(
-    const std::size_t N, double const * const v, double * const b
-) {
-    check_system_size(N);
-    return mass_matrix_matvec(v, b);
 }
 
 //Protected member functions.
