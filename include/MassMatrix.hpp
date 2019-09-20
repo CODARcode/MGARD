@@ -10,10 +10,10 @@ namespace mgard {
 
 class MassMatrix: public helpers::LinearOperator {
     public:
-        MassMatrix(MeshLevel * const mesh);
+        MassMatrix(MeshLevel const * const mesh);
 
     private:
-        MeshLevel * mesh;
+        MeshLevel const * mesh;
 
         virtual void do_operator_parentheses(
             double const * const x, double * const b
@@ -22,10 +22,10 @@ class MassMatrix: public helpers::LinearOperator {
 
 class MassMatrixPreconditioner: public helpers::LinearOperator {
     public:
-        MassMatrixPreconditioner(MeshLevel * const mesh);
+        MassMatrixPreconditioner(MeshLevel const * const mesh);
 
     private:
-        MeshLevel * mesh;
+        MeshLevel const * mesh;
 
         virtual void do_operator_parentheses(
             double const * const x, double * const b

@@ -110,7 +110,7 @@ std::size_t MeshLevel::index(const moab::EntityHandle handle) const {
     return handle - range.front();
 }
 
-double MeshLevel::measure(const moab::EntityHandle handle) {
+double MeshLevel::measure(const moab::EntityHandle handle) const {
     const::moab::EntityType type = impl->type_from_handle(handle);
     precompute_measures(type);
     moab::ErrorCode ecode = precompute_measures(type);
@@ -118,7 +118,9 @@ double MeshLevel::measure(const moab::EntityHandle handle) {
     return measures[type].at(index(handle));
 }
 
-double MeshLevel::containing_elements_measure(const moab::EntityHandle node) {
+double MeshLevel::containing_elements_measure(
+    const moab::EntityHandle node
+) const {
     const moab::EntityType type = impl->type_from_handle(node);
     if (type != moab::MBVERTEX) {
         throw std::domain_error(
@@ -129,7 +131,7 @@ double MeshLevel::containing_elements_measure(const moab::EntityHandle node) {
     return preconditioner_divisors.at(index(node));
 }
 
-moab::ErrorCode MeshLevel::precompute_element_measures() {
+moab::ErrorCode MeshLevel::precompute_element_measures() const {
     return precompute_measures(element_type);
 }
 
@@ -164,7 +166,9 @@ std::size_t MeshLevel::do_ndof() const {
     return entities[moab::MBVERTEX].size();
 }
 
-moab::ErrorCode MeshLevel::precompute_measures(const moab::EntityType type) {
+moab::ErrorCode MeshLevel::precompute_measures(
+    const moab::EntityType type
+) const {
     if (entities[type].empty() || !measures[type].empty()) {
         return moab::MB_SUCCESS;
     }
