@@ -141,19 +141,11 @@ namespace mgard
     zwrite_2D_interleave (std::vector<int> &qv, const std::string outfile);
 
 
-  void
-    compress_memory_blosc (void *in_data, size_t in_data_size,
-                     std::vector<uint8_t> &out_data);
 
   void
     compress_memory_z (void *in_data, size_t in_data_size,
                      std::vector<uint8_t> &out_data);
 
-  void
-    decompress_memory_blosc (const void *src, int srcLen, int *dst, int dstLen);
-
-  void
-    decompress_memory_z (const void *src, int srcLen, int *dst, int dstLen);
 
   void
     qread_level_2D (const int nrow, const int ncol, const int nlevel, double *v,
@@ -220,6 +212,12 @@ namespace mgard
     recompose (const int nrow, const int ncol, const int l_target, double *v,
                std::vector<double> &work, std::vector<double> &row_vec,
                std::vector<double> &col_vec);
+
+
+ void
+    decompress_memory_z (const void *src, int srcLen, int *dst, int dstLen);
+
+  
 }
   
 #endif

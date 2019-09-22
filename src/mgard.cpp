@@ -85,10 +85,10 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   std::vector<int> qv (nrow * ncol * nfib + size_ratio);
 
 
-  mgard::quantize_2D_iterleave (nrow, ncol*nfib, v.data(), qv, norm, tol);
+  mgard::quantize_2D_iterleave (nrow, ncol*nfib, v.data(), qv, norm, tol); // rename this to quantize Linfty or smthng!!!!
+  
   std::vector<unsigned char> out_data;
-  //  mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
-
+  
   mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
 
   outsize = out_data.size ();
@@ -127,10 +127,10 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 
   //  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
 
-  double norm = mgard_common::max_norm(v);
+  //  double norm = mgard_common::max_norm(v);
 
   //  double norm = 1.0; // absolute s-norm, need a switch for relative errors
-  tol /= nlevel + 1 ;
+  //tol /= nlevel + 1 ;
   //  double s = 0; // Defaulting to L8' compression for a start. 
 
   //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s != 8'
@@ -148,7 +148,8 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   std::vector<int> qv (nrow * ncol * nfib + size_ratio);
 
 
-  mgard::quantize_2D_iterleave (nrow, ncol*nfib, v.data(), qv, norm, tol);
+  mgard_gen::quantize_3D(nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v.data(), qv, coords_x, coords_y, coords_z,  s,  1.0,  tol);
+
   std::vector<unsigned char> out_data;
   //  mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
 
@@ -259,8 +260,7 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 
     mgard::decompress_memory_z (data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
     double *v = (double *)malloc (nrow*ncol*nfib*sizeof(double));
-    
-    
+        
     mgard::dequantize_2D_iterleave(nrow, ncol*nfib, v, out_data) ;
     
     mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, work2d, coords_x, coords_y, coords_z);
@@ -313,8 +313,8 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 
     //    outfile.write( reinterpret_cast<char*>( out_data.data() ), (nrow*ncol*nfib + size_ratio)*sizeof(int) );
     
-    //    mgard_gen::dequantize_3D( nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v, out_data, coords_x, coords_y,  coords_z, s );    
-    mgard::dequantize_2D_iterleave(nrow, ncol*nfib, v, out_data) ;
+    mgard_gen::dequantize_3D( nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v, out_data, coords_x, coords_y,  coords_z, s );    
+    //    mgard::dequantize_2D_iterleave(nrow, ncol*nfib, v, out_data) ;
     
     //    mgard_common::qread_2D_interleave(nrow,  ncol, nlevel, work.data(), out_file);
 

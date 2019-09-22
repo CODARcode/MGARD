@@ -243,12 +243,13 @@ int main(int argc, char**argv)
   std::ifstream infile(in_file, std::ios::in | std::ios::binary);
   std::ifstream cordfile(coord_file, std::ios::in | std::ios::binary);
   
-  //  infile.read( reinterpret_cast<char*>( v.data() ), nrow*ncol*nfib*sizeof(double) );
+  infile.read( reinterpret_cast<char*>( v.data() ), nrow*ncol*nfib*sizeof(double) );
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
   
-
+  std::cout << "Read input\n";
+  
   //-- set and creat output files -- //
   out_file = in_file +   std::to_string(tol) + "_y.dat";
   zip_file = in_file +   std::to_string(tol) + ".gz";
@@ -308,11 +309,25 @@ int main(int argc, char**argv)
 
 
 
-  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, 0);
+  //  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, 0);
 
-  
+  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, 0.0);
+  //  outfile.write(reinterpret_cast<char*> (test), out_size );  
 
-  //  std::cout << xnorm << "\n";
+  //  std::vector<double> dtest(nrow*ncol*nfib);
+
+  double *dtest;
+  dtest = mgard_decompress(1, test, out_size,  nrow,  ncol,  nfib, 0.0);
+  outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(double) );  
+
+
+  free(test);
+  free(dtest);
+  std::cout << "xnorm " << out_size << "\n";
+
+
+
+
   return 0;
 				     
   

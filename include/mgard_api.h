@@ -39,30 +39,45 @@
 #define MGARD_API_H
 
 
+
+// MGARD double //
+
 //comments!!!!
 /// Use this version of mgard_compress to compress your data with a tolerance measured in  relative L-infty norm
-unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol);
+
+unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol); // ... 1
 
 // Use this version of mgard_compress to compress your data with a tolerance measured in  relative s-norm.
 //Set s=0 for L2-norm
-unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol, double s);
+// 2)
+unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol, double s); // ... 2
 
-// Use this version of mgard_compress to compress your data with a tolerance measured in  relative s-norm
-// where the tolerance is specified for a quantity of interest qoi
-unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol, double (*qoi) (int, int, int, std::vector<double>), double s );
+// Use this version of mgard_compress to compress your data to preserve the error in a given quantity of interest
+// Here qoi denotes the quantity of interest  which is a bounded linear functional in s-norm.
+// This version recomputes the s-norm of the supplied linear functional every time it is invoked. If the same functional
+// is to be reused for different sets of data then you are recommended to use one of the functions below (4, 5) to compute and store the norm and call MGARD using (6).
+// 
+unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol, double (*qoi) (int, int, int, std::vector<double>), double s ); // ... 3
 
-// Use this version of mgard_compress to compute the  s-norm of a quantity of interest.
-double  mgard_compress( int nrow, int ncol, int nfib,  double (*qoi) (int, int, int, std::vector<double>), double s );
+// Use this version of mgard_compress to compute the  s-norm of a quantity of interest. Store this for further use if you wish to work with the same qoi in the future for different datasets.
+double  mgard_compress( int nrow, int ncol, int nfib,  double (*qoi) (int, int, int, std::vector<double>), double s ); // ... 4
 // c-compatible version
-double  mgard_compress( int nrow, int ncol, int nfib,  double (*qoi) (int, int, int, double*), double s );
+double  mgard_compress( int nrow, int ncol, int nfib,  double (*qoi) (int, int, int, double*), double s ); // ... 5
  
  // Use this version of mgard_compress to compress your data with a tolerance in -s norm
  // with given s-norm of quantity of interest qoi
-unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol, double norm_of_qoi, double s );
+unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int nrow, int ncol, int nfib, double tol, double norm_of_qoi, double s ); // ... 6
+
 
 double  *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib); // decompress L-infty compressed data
 
 double  *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int nrow, int ncol, int nfib, double s); // decompress s-norm
 
 
+
+// MGARD float //
+
 #endif
+
+
+//CORRECT THE spelling of canonical
