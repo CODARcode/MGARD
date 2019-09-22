@@ -311,13 +311,13 @@ int main(int argc, char**argv)
 
   //  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, 0);
 
-  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, 0.0);
+  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, s);
   //  outfile.write(reinterpret_cast<char*> (test), out_size );  
 
   //  std::vector<double> dtest(nrow*ncol*nfib);
 
   double *dtest;
-  dtest = mgard_decompress(1, test, out_size,  nrow,  ncol,  nfib, 0.0);
+  dtest = mgard_decompress(1, test, out_size,  nrow,  ncol,  nfib, s);
   outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(double) );  
 
 

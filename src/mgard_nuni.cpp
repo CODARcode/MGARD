@@ -858,7 +858,7 @@ namespace mgard_gen
     double dz = mgard_gen::get_h_l(coords_z, nfib, nfib, 0, 1);
     
     double vol =  std::sqrt(dx*dy*dz);
-    vol *= std::pow(2, s*(nlevel+1)); //2^-2sl with l=0, s = 0.5
+    vol *= std::pow(2, s*(nlevel)); //2^-2sl with l=0, s = 0.5
     //    vol = 1;
     //    std::cout << "Volume -1: " << vol << std::endl;
     
@@ -1064,7 +1064,7 @@ namespace mgard_gen
     double dz = mgard_gen::get_h_l(coords_z, nfib, nfib, 0, 1);
     
     double vol =  std::sqrt(dx*dy*dz); 
-    vol *= std::pow(2, s*(nlevel+1)); //2^-2sl with l=0, s = 0.5
+    vol *= std::pow(2, s*(nlevel)); //2^-2sl with l=0, s = 0.5
     //    std::cout << "Volume -1: " << vol << std::endl;
 
     int imeg = 0 ; //mega-counter
@@ -3996,6 +3996,351 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol, con
 
   }
 
+void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel,  double* v, std::vector<int>& work, const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z,  double norm, double tol)
+{
+
+  // L-infty version of per lvel quantizer
+  double coeff = norm*tol/( nlevel + 1 );
+  std::memcpy (work.data(), &coeff, sizeof (double));
+  int size_ratio = sizeof (double) / sizeof (int);
+  int prune_count = 0;
+
+  int count = 0;
+  count += size_ratio;
+
+  //level -1, first level for non 2^k+1
+    
+  for(int kfib = 0; kfib < nf - 1; ++kfib)
+    {
+      int kf  = mgard_gen::get_lindex(nf, nfib, kfib);
+        int kfp = mgard_gen::get_lindex(nf, nfib, kfib + 1);
+        
+        if( kfp != kf + 1)//skipped a plane
+          {
+            for(int irow = 0;  irow < nrow; ++irow )
+              {
+                for(int jcol = 0;  jcol < ncol; ++jcol )
+                  {
+                    double val = v[mgard_common::get_index3(ncol, nfib, irow, jcol, kf + 1)];
+                    int quantum =  (int)(val/coeff);
+                    work[count] = quantum;
+                    ++count;
+                  }
+              }
+          }
+      }
+
+    
+
+    for (int kfib = 0; kfib < nf ; ++kfib)
+      {
+        int kf  = mgard_gen::get_lindex(nf, nfib, kfib);
+        for(int irow = 0;  irow < nr - 1 ; ++irow )
+          {
+            int ir = mgard_gen::get_lindex(nr, nrow, irow);
+            int irP = mgard_gen::get_lindex(nr, nrow, irow + 1);
+            if( irP != ir + 1) //skipped a row
+              {
+                //  std::cout <<"Skipped row: "  << ir + 1 << "\n";
+                for(int jcol = 0;  jcol < ncol; ++jcol )
+                  {
+                    double val = v[mgard_common::get_index3(ncol, nfib, ir + 1, jcol, kf)];
+                    int quantum =  (int)(val/coeff);
+                    //                    std::cout << "quantized "  << val << std::endl;
+                    work[count] = quantum;
+                    ++count;
+                  }
+              }
+          }
+        
+        for(int irow = 0;  irow < nr  ; ++irow )
+          {
+            int ir = mgard_gen::get_lindex(nr, nrow, irow);
+            
+            for(int jcol = 0;  jcol < nc - 1 ; ++jcol)
+              {
+                int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+                int jcP  = mgard_gen::get_lindex(nc,  ncol,  jcol+1);
+                if(jcP != jc + 1)//skipped a column
+                  {
+                    double val = v[mgard_common::get_index3(ncol, nfib, ir, jc + 1, kf)];
+                    int quantum =  (int)(val/(coeff));
+                    work[count] = quantum;
+                    ++count;
+                    //                    std::cout <<"Skipped col: " << ir << "\t" << jc + 1 << "\n";
+                  }
+              }
+          }
+      }
+
+    //std::cout << "Wrote : "<< count_row <<"\t" << count_col << "\t" << count_sol << "\n";
+    
+
+    
+    // // 2^k+1 part //
+
+    
+    for(int ilevel = 0; ilevel < nlevel ; ++ilevel)
+      {
+        int stride = std::pow(2,ilevel);
+        int Cstride = 2*stride;
+
+        int fib_counter = 0;
+
+        
+        for(int kfib = 0; kfib < nf; kfib += stride)
+          {
+            int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+            int row_counter = 0;
+
+            if(fib_counter % 2 == 0)
+              {
+              for(int irow = 0;  irow < nr; irow += stride)
+                {
+                  int ir = mgard_gen::get_lindex(nr, nrow, irow);
+                  if( row_counter % 2 == 0)
+                    {
+                      for(int jcol = Cstride;  jcol < nc; jcol += Cstride)
+                        {
+                          int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol - stride );
+                          double val = v[mgard_common::get_index3(ncol, nfib, ir,jc, kf)];
+                          int quantum =  (int)(val/(coeff));
+                          work[count] = quantum;                                              
+                          ++count;
+                          //                          outfile.write(reinterpret_cast<char*>( &v[mgard_common::get_index3(ncol, nfib, ir,jc - stride, kf)] ), sizeof(double) ); 
+                        //                  std::cout <<  v[irow][icol - stride] << "\t";
+                        }
+                    
+                    }else
+                    {
+                      for(int jcol = 0;  jcol < nc; jcol += stride)
+                        {
+                          int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+                          double val = v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)];
+                          int quantum =  (int)(val/(coeff));
+                          work[count] = quantum;
+                          ++count;
+                          //         outfile.write(reinterpret_cast<char*>( &v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] ), sizeof(double) ); 
+                    //                  std::cout <<  v[irow][icol] << "\t";
+                        }
+                
+                    }
+                  ++row_counter;
+                }
+              }
+            else{
+              for(int irow = 0;  irow < nr; irow += stride)
+                {
+                  int ir = mgard_gen::get_lindex(nr, nrow, irow);
+                  for(int jcol = 0;  jcol < nc; jcol += stride) 
+                    {
+                      int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+                      double val = v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)];
+                      int quantum =  (int)(val/(coeff));
+                      work[count] = quantum;
+                      ++count;
+                      //                      outfile.write(reinterpret_cast<char*>( &v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] ), sizeof(double) );
+                    }
+                }
+            }
+            ++fib_counter;
+          }
+      }
+        
+
+    // last level -> L=0
+    int stride = std::pow(2,nlevel);   
+    
+    for(int irow = 0;  irow < nr; irow += stride)
+      {
+        int ir = mgard_gen::get_lindex(nr, nrow, irow);
+        for(int jcol = 0;  jcol < nc; jcol += stride) 
+          {
+            int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+            for(int kfib = 0; kfib < nf; kfib += stride)
+              {
+                int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+                double val = v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)];
+                int quantum =  (int)(val/(coeff));
+                work[count] = quantum;
+                ++count;
+              }
+          }
+      }
+
+    std::cout << "Wrote out: " << count <<"\n";
+  }
+
+
+// void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel,  double* v, std::vector<int>& work, const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z,  double norm, double tol)
+// {
+
+//   // L-infty version of per lvel quantizer
+//   double coeff = norm*tol/( nlevel + 1 );
+//   std::memcpy (work.data(), &coeff, sizeof (double));
+//   int size_ratio = sizeof (double) / sizeof (int);
+//   int prune_count = 0;
+
+//   std::cout << "Quantizer" << coeff << "\n";
+
+//   int count = 0;
+//   count += size_ratio;
+
+//   //level -1, first level for non 2^k+1
+    
+//   for(int kfib = 0; kfib < nf - 1; ++kfib)
+//     {
+//       int kf  = mgard_gen::get_lindex(nf, nfib, kfib);
+//         int kfp = mgard_gen::get_lindex(nf, nfib, kfib + 1);
+        
+//         if( kfp != kf + 1)//skipped a plane
+//           {
+//             for(int irow = 0;  irow < nrow; ++irow )
+//               {
+//                 for(int jcol = 0;  jcol < ncol; ++jcol )
+//                   {
+//                     double val = v[mgard_common::get_index3(ncol, nfib, irow, jcol, kf + 1)];
+//                     int quantum =  (int)(val/coeff);
+//                     work[count] = quantum;
+//                     ++count;
+//                   }
+//               }
+//           }
+//       }
+
+    
+
+//     for (int kfib = 0; kfib < nf ; ++kfib)
+//       {
+//         int kf  = mgard_gen::get_lindex(nf, nfib, kfib);
+//         for(int irow = 0;  irow < nr - 1 ; ++irow )
+//           {
+//             int ir = mgard_gen::get_lindex(nr, nrow, irow);
+//             int irP = mgard_gen::get_lindex(nr, nrow, irow + 1);
+//             if( irP != ir + 1) //skipped a row
+//               {
+//                 //  std::cout <<"Skipped row: "  << ir + 1 << "\n";
+//                 for(int jcol = 0;  jcol < ncol; ++jcol )
+//                   {
+//                     double val = v[mgard_common::get_index3(ncol, nfib, ir + 1, jcol, kf)];
+//                     int quantum =  (int)(val/coeff);
+//                     //                    std::cout << "quantized "  << val << std::endl;
+//                     work[count] = quantum;
+//                     ++count;
+//                   }
+//               }
+//           }
+        
+//         for(int irow = 0;  irow < nr  ; ++irow )
+//           {
+//             int ir = mgard_gen::get_lindex(nr, nrow, irow);
+            
+//             for(int jcol = 0;  jcol < nc - 1 ; ++jcol)
+//               {
+//                 int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+//                 int jcP  = mgard_gen::get_lindex(nc,  ncol,  jcol+1);
+//                 if(jcP != jc + 1)//skipped a column
+//                   {
+//                     double val = v[mgard_common::get_index3(ncol, nfib, ir, jc + 1, kf)];
+//                     int quantum =  (int)(val/(coeff));
+//                     work[count] = quantum;
+//                     ++count;
+//                     //                    std::cout <<"Skipped col: " << ir << "\t" << jc + 1 << "\n";
+//                   }
+//               }
+//           }
+//       }
+
+//     //std::cout << "Wrote : "<< count_row <<"\t" << count_col << "\t" << count_sol << "\n";
+    
+
+    
+//     // // 2^k+1 part //
+
+    
+//     for(int ilevel = 0; ilevel < nlevel ; ++ilevel)
+//       {
+//         int stride = std::pow(2,ilevel);
+//         int Cstride = 2*stride;
+
+//         int fib_counter = 0;
+
+        
+//         for(int kfib = 0; kfib < nf; kfib += stride)
+//           {
+//             int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+//               for(int irow = 0;  irow < nr; irow += stride)
+//                 {
+//                   int ir = mgard_gen::get_lindex(nr, nrow, irow);
+//                       for(int jcol = stride;  jcol < nc - 1 ; jcol += Cstride)
+//                         {
+//                           int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+//                           double val = v[mgard_common::get_index3(ncol, nfib, ir,jc , kf)];
+//                           int quantum =  (int)(val/(coeff));
+//                           work.push_back(quantum);                                                                        ++count;
+//                         }
+// 		}
+// 	  }
+
+
+// 	for(int kfib = 0; kfib < nf; kfib += stride)
+//           {
+//             int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+//               for(int jcol = 0;  jcol < nc; jcol += stride)
+//                 {
+//                   int jc = mgard_gen::get_lindex(nc, ncol, jcol);
+//                       for(int irow = stride;  irow < nr - 1 ; irow += Cstride)
+//                         {
+//                           int ir  = mgard_gen::get_lindex(nr, nrow, irow);
+//                           double val = v[mgard_common::get_index3(ncol, nfib, ir,jc , kf)];
+//                           int quantum =  (int)(val/(coeff));
+//                           work.push_back(quantum);                                                                        ++count;
+//                         }
+// 		}
+// 	  }
+
+
+// 	for(int irow = 0;  irow < nr; irow += stride)
+//           {
+// 	    int ir  = mgard_gen::get_lindex(nr, nrow, irow);
+	    
+//               for(int jcol = 0;  jcol < nc; jcol += stride)
+//                 {
+//                   int jc = mgard_gen::get_lindex(nc, ncol, jcol);
+//                       for(int kfib = stride;  kfib < nf - 1 ; kfib += Cstride)
+//                         {
+// 			  int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+//                           double val = v[mgard_common::get_index3(ncol, nfib, ir,jc , kf)];
+//                           int quantum =  (int)(val/(coeff));
+//                           work.push_back(quantum);                                                                        ++count;
+//                         }
+// 		}
+// 	  }
+
+//       }
+
+//     // last level -> L=0
+//     int stride = std::pow(2,nlevel);   
+    
+//     for(int irow = 0;  irow < nr; irow += stride)
+//       {
+//         int ir = mgard_gen::get_lindex(nr, nrow, irow);
+//         for(int jcol = 0;  jcol < nc; jcol += stride) 
+//           {
+//             int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+//             for(int kfib = 0; kfib < nf; kfib += stride)
+//               {
+//                 int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+//                 double val = v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)];
+//                 int quantum =  (int)(val/(coeff));
+//                 work[count] = quantum;
+//                 ++count;
+//               }
+//           }
+//       }
+
+//     std::cout << "Wrote out: " << count <<"\n";
+//   }
 
 void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel,  double* v, std::vector<int>& work, const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z, double s, double norm, double tol)
     {
@@ -4014,7 +4359,7 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
     double dz = mgard_gen::get_h_l(coords_z, nfib, nfib, 0, 1);
     
     double vol =  std::sqrt(dx*dy*dz);
-    vol *= std::pow(2, s*(nlevel+1)); //2^-2sl with l=0, s = 0.5
+    vol *= std::pow(2, s*(nlevel)); //2^-2sl with l=0, s = 0.5
     //    vol = 1;
     std::cout << "Volume -1: " << vol << std::endl;
     //std::cout << "quantizer "  << coeff << std::endl;
@@ -4126,8 +4471,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
                     {
                       for(int jcol = Cstride;  jcol < nc; jcol += Cstride)
                         {
-                          int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
-                          double val = v[mgard_common::get_index3(ncol, nfib, ir,jc - stride, kf)];
+                          int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol-stride);
+                          double val = v[mgard_common::get_index3(ncol, nfib, ir,jc, kf)];
                           int quantum =  (int)(val/(coeff/vol));
                           work[count] = quantum;                                              
                           ++count;
@@ -4204,6 +4549,252 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
     std::cout << "Wrote out: " << count <<"\n";
   }
 
+void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel, double* v, std::vector<int>& work , const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z)
+  {
+    
+    int size_ratio = sizeof (double) / sizeof (int);
+    double q; //quantizing factor
+    
+    std::memcpy (&q, work.data(), sizeof (double));
+
+    std::cout << "Read quantizeredert val" << q << "\n";
+    
+
+    int imeg = 0 ; //mega-counter
+
+    imeg += size_ratio;
+
+
+
+    
+    for(int kfib = 0; kfib < nf - 1; ++kfib)
+      {
+        int kf  = mgard_gen::get_lindex(nf, nfib, kfib);
+        int kfp = mgard_gen::get_lindex(nf, nfib, kfib + 1);
+        
+        if( kfp != kf + 1)//skipped a plane
+          {
+            for(int irow = 0;  irow < nrow; ++irow )
+              {
+                for(int jcol = 0;  jcol < ncol; ++jcol )
+                  {
+                    double val = (double) work[imeg];
+                    v[mgard_common::get_index3(ncol, nfib, irow, jcol, kf + 1)] = q*val ;
+                    ++imeg;
+                   
+                  }
+              }
+          }
+      }
+
+    
+
+    for (int kfib = 0; kfib < nf ; ++kfib)
+      {
+        int kf  = mgard_gen::get_lindex(nf, nfib, kfib);
+        for(int irow = 0;  irow < nr - 1 ; ++irow )
+          {
+            int ir = mgard_gen::get_lindex(nr, nrow, irow);
+            int irP = mgard_gen::get_lindex(nr, nrow, irow + 1);
+            if( irP != ir + 1) //skipped a row
+              {
+                //  std::cout <<"Skipped row: "  << ir + 1 << "\n";
+                for(int jcol = 0;  jcol < ncol; ++jcol )
+                  {
+                    double val = work[imeg];
+                    v[mgard_common::get_index3(ncol, nfib, ir + 1, jcol, kf)] = q*val ;
+                    ++imeg; 
+                  }
+              }
+          }
+        
+        for(int irow = 0;  irow < nr  ; ++irow )
+          {
+            int ir = mgard_gen::get_lindex(nr, nrow, irow);
+            
+            //      std::cout <<"Non skipped row: "  << ir  << "\n";
+            for(int jcol = 0;  jcol < nc - 1 ; ++jcol)
+              {
+                int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+                int jcP  = mgard_gen::get_lindex(nc,  ncol,  jcol+1);
+                if(jcP != jc + 1)//skipped a column
+                  {
+                    double val = (double) work[imeg];
+                    v[mgard_common::get_index3(ncol, nfib, ir, jc + 1, kf)] = q*val ;
+                    ++imeg;
+
+                  }
+              }
+          }
+      }
+
+    //std::cout << "Wrote : "<< count_row <<"\t" << count_col << "\t" << count_sol << "\n";
+    
+
+
+    // // 2^k+1 part //
+
+    // for(int ilevel = 0; ilevel < nlevel ; ++ilevel)
+    //   {
+    //     int stride = std::pow(2,ilevel);
+    //     int Cstride = 2*stride;
+
+    //     int fib_counter = 0;
+
+        
+    //     for(int kfib = 0; kfib < nf; kfib += stride)
+    //       {
+    //         int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+    //           for(int irow = 0;  irow < nr; irow += stride)
+    //             {
+    //               int ir = mgard_gen::get_lindex(nr, nrow, irow);
+    //                   for(int jcol = stride;  jcol < nc - 1 ; jcol += Cstride)
+    //                     {
+    //                       int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+
+    // 			  double val = (double) work[imeg];
+    // 			  v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val ;
+    // 			  ++imeg; ;
+    // //    
+    // 			  //                          double val = v[mgard_common::get_index3(ncol, nfib, ir,jc , kf)];
+    // 			  //                          int quantum =  (int)(val/(coeff));
+    //                       //work.push_back(quantum);                                                                        ++count;
+    //                     }
+    // 		}
+    // 	  }
+
+
+    // 	for(int kfib = 0; kfib < nf; kfib += stride)
+    //       {
+    //         int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+    //           for(int jcol = 0;  jcol < nc; jcol += stride)
+    //             {
+    //               int jc = mgard_gen::get_lindex(nc, ncol, jcol);
+    //                   for(int irow = stride;  irow < nr - 1 ; irow += Cstride)
+    //                     {
+    //                       int ir  = mgard_gen::get_lindex(nr, nrow, irow);
+    // 			  double val = (double) work[imeg];
+    // 			  v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val ;
+    // 			  imeg++;
+    //                     }
+    // 		}
+    // 	  }
+
+
+    // 	for(int irow = 0;  irow < nr; irow += stride)
+    //       {
+    // 	    int ir  = mgard_gen::get_lindex(nr, nrow, irow);
+	    
+    //           for(int jcol = 0;  jcol < nc; jcol += stride)
+    //             {
+    //               int jc = mgard_gen::get_lindex(nc, ncol, jcol);
+    //                   for(int kfib = stride;  kfib < nf - 1 ; kfib += Cstride)
+    //                     {
+    // 			  int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+    // 			  double val = (double) work[imeg];
+    // 			  v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val ;
+    // 			  imeg++;
+
+    //                     }
+    // 		}
+    // 	  }
+
+    //   }
+
+
+
+
+
+    
+    for(int ilevel = 0; ilevel < nlevel ; ++ilevel)
+      {
+
+
+	
+        int stride = std::pow(2,ilevel);
+        int Cstride = 2*stride;
+
+        int fib_counter = 0;
+
+        
+        for(int kfib = 0; kfib < nf; kfib += stride)
+          {
+            int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+            int row_counter = 0;
+
+            if(fib_counter % 2 == 0)
+              {
+              for(int irow = 0;  irow < nr; irow += stride)
+                {
+                  int ir = mgard_gen::get_lindex(nr, nrow, irow);
+                  if( row_counter % 2 == 0)
+                    {
+                      for(int jcol = Cstride;  jcol < nc; jcol += Cstride)
+                        {
+                          int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol - stride );
+                          double val = (double) work[imeg];
+                          v[mgard_common::get_index3(ncol, nfib, ir,jc , kf)] = q*val ;
+                          ++imeg; ;
+                        }
+                    
+                    }else
+                    {
+                      for(int jcol = 0;  jcol < nc; jcol += stride)
+                        {
+                          int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+                          double val = (double) work[imeg];
+                          v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val ;
+                          ++imeg; ;;
+                        
+                        }
+                
+                    }
+                  ++row_counter;
+                }
+              }
+            else{
+              for(int irow = 0;  irow < nr; irow += stride)
+                {
+                  int ir = mgard_gen::get_lindex(nr, nrow, irow);
+                  for(int jcol = 0;  jcol < nc; jcol += stride) 
+                    {
+                      int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+                      double val = (double) work[imeg];
+                      v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val ;
+                          ++imeg; ;;
+                    }
+                }
+            }
+            ++fib_counter;
+          }
+      }
+        
+
+
+    // last level
+    int stride = std::pow(2,nlevel);
+    
+    for(int irow = 0;  irow < nr; irow += stride)
+      {
+        int ir = mgard_gen::get_lindex(nr, nrow, irow);
+        for(int jcol = 0;  jcol < nc; jcol += stride) 
+          {
+            int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+            for(int kfib = 0; kfib < nf; kfib += stride)
+              {
+                int kf = mgard_gen::get_lindex(nf, nfib, kfib);
+                double val = (double) work[imeg];
+                v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val ;
+                ++imeg; ;;
+              }
+          }
+      }
+    
+
+
+    std::cout << "Mega count : "<< imeg << "\n";
+  
+  }
 
 void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel, double* v, std::vector<int>& work , const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z, double s)
   {
@@ -4220,7 +4811,7 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
     double dz = mgard_gen::get_h_l(coords_z, nfib, nfib, 0, 1);
 
     double vol =  std::sqrt(dx*dy*dz); 
-    vol *= std::pow(2, s*(nlevel+1)); //2^-2sl with l=0, s = 0.5
+    vol *= std::pow(2, s*(nlevel)); //2^-2sl with l=0, s = 0.5
 
     int imeg = 0 ; //mega-counter
 
@@ -4327,9 +4918,9 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, con
                     {
                       for(int jcol = Cstride;  jcol < nc; jcol += Cstride)
                         {
-                          int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
+                          int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol - stride);
                           double val = (double) work[imeg];
-                          v[mgard_common::get_index3(ncol, nfib, ir,jc - stride, kf)] = q*val/vol ;
+                          v[mgard_common::get_index3(ncol, nfib, ir,jc , kf)] = q*val/vol ;
                           ++imeg; ;
                         }
                     
