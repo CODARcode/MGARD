@@ -22,6 +22,7 @@ namespace mgard {
 
 typedef MeshLevel (*MeshRefiner)(const MeshLevel &);
 
+//!Hierarchy of meshes produced by refining an initial mesh.
 class MeshHierarchy {
     public:
         MeshHierarchy(const std::vector<MeshLevel> &meshes);
