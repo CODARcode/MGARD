@@ -9,6 +9,7 @@
 
 namespace helpers {
 
+//!Linear operator with respect to some fixed bases.
 class LinearOperator {
     public:
         //!Constructor.

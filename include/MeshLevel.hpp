@@ -10,6 +10,7 @@
 
 namespace mgard {
 
+//!Triangular or tetrahedral mesh (either freestanding or part of a hierarchy).
 class MeshLevel {
     public:
         //!Constructor.
