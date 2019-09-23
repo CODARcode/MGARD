@@ -5405,7 +5405,7 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
       norm_lm1 = norm_vec[i-1];
       norm_l = norm_vec[i];
       double diff = norm_l - norm_lm1;
-      sum += diff;
+      sum += std::pow(2, 2*s*(nlevel-i)) * diff;
     }
 
   
@@ -5565,7 +5565,7 @@ double qoi_norm(int nrow, int ncol, int nfib, std::vector<double>& coords_x, std
       norm_lm1 = norm_vec[i-1];
       norm_l = norm_vec[i];
       double diff = norm_l - norm_lm1;
-      sum += diff;
+      sum += std::pow(2.0, 2.0*s*(nlevel-i)) * diff;
     }
 
   

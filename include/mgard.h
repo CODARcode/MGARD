@@ -175,8 +175,16 @@ namespace mgard
   unsigned char *
   refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol, double s) ;
 
+
   unsigned char *
-  refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol, double (*qoi) (int, int, int, std::vector<double>), double s ) ;
+  refactor_qz (int nrow, int ncol, int nfib, std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z, const double *v, int &outsize, double tol);
+  
+  unsigned char *
+  refactor_qz (int nrow, int ncol, int nfib, std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z, const double *v, int &outsize, double tol, double s) ;
+
+  
+  // unsigned char *
+  // refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol, double (*qoi) (int, int, int, std::vector<double>), double s ) ;
 
   double*
   recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len);

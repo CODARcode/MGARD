@@ -172,7 +172,9 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
 
 
 
-unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in, double (*qoi) (int, int, int, std::vector<double>), double s)
+//unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in, double (*qoi) (int, int, int, std::vector<double>), double s)
+
+unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in, double (*qoi) (int, int, int, double*), double s)
 {
   //Perform compression preserving the tolerance in s norm by defaulting to the L-2 norm
   if(itype_flag == 0)
@@ -207,7 +209,7 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
 
 	  double xi_norm =  mgard_gen::qoi_norm(nrow,  ncol,  nfib, coords_x,  coords_y, coords_z, qoi, s);
 	  tol *= xi_norm;
-          mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, qoi, -s);
+          mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, -s);
           return mgard_compressed_ptr;
                 
         }

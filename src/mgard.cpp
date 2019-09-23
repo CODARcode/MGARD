@@ -62,6 +62,8 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   
   int l_target = nlevel-1;
 
+
+  std::cout << "Linfinity\n" ;
   //dummy equispaced coordinates
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
@@ -125,11 +127,15 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-  //  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
+  //double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
 
-  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib, v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
+  double norm = 1.0;
 
-  norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
+  // if ( std::abs(0) < 1e-10 )
+  //   {
+  //     norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib, v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
+      
+  // norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
   
   std::cout << "My 2-norm is: " << norm << "\n";
 
@@ -195,14 +201,18 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
 
   //  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
 
-  double norm = mgard_common::max_norm(v);
+  // double norm = mgard_common::max_norm(v);
 
   //  double norm = 1.0; // absolute s-norm, need a switch for relative errors
-  tol /= nlevel + 1 ;
+  //  tol /= nlevel + 1 ;
   //  double s = 0; // Defaulting to L8' compression for a start. 
 
   //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s != 8'
-        
+
+  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib, v, coords_x, coords_y, coords_z);
+
+  norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
+
   
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
@@ -215,8 +225,9 @@ refactor_qz (int nrow, int ncol, int nfib, const double *u, int &outsize, double
   int size_ratio = sizeof (double) / sizeof (int);
   std::vector<int> qv (nrow * ncol * nfib + size_ratio);
 
+  mgard_gen::quantize_3D(nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm,  tol); 
 
-  mgard::quantize_2D_iterleave (nrow, ncol*nfib, v.data(), qv, norm, tol);
+
   std::vector<unsigned char> out_data;
   //  mgard::compress_memory_blosc (qv.data (), sizeof (int) * qv.size (), out_data);
 

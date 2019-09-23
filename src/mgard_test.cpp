@@ -112,7 +112,6 @@ double qoi_ave(const int nrow, const int ncol, const int nfib, std::vector<doubl
   
   return sum/u.size();
 }
-
 double qoi_one(const int nrow, const int ncol, const int nfib, std::vector<double> u)
 {
   double qov = 1.0;
@@ -255,7 +254,7 @@ int main(int argc, char**argv)
   zip_file = in_file +   std::to_string(tol) + ".gz";
   
   std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
-  std::ofstream zipfile(zip_file, std::ios::in | std::ios::binary);
+  std::ofstream zipfile(zip_file, std::ios::out | std::ios::binary);
 
 
   //-- call the compressor --//
@@ -292,12 +291,12 @@ int main(int argc, char**argv)
 
     auto funp = &qoi_one ;
     
-    //    auto pqoi = &qoi ;
+    auto pqoi = &qoi ;
     
     
     
-    std::cout << " pi is: " << typeid(qoi).name() << '\n';
-    std::cout << " pi is: " << typeid(funp).name() << '\n';
+    // std::cout << " pi is: " << typeid(qoi).name() << '\n';
+    // std::cout << " pi is: " << typeid(funp).name() << '\n';
     int l_target = nlevel-1;
 
     std::cout << "pointer to qoi is " << type_name<decltype((qoi))>() << '\n';
@@ -308,11 +307,13 @@ int main(int argc, char**argv)
   unsigned char* test;
 
 
+  //  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, s);
 
-  //  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, 0);
-
+  //  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, qoi, s);
   test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, s);
-  //  outfile.write(reinterpret_cast<char*> (test), out_size );  
+  std::cout << "Outto size" << out_size << "\n";
+
+  zipfile.write(reinterpret_cast<char*> (test), out_size );  
 
   //  std::vector<double> dtest(nrow*ncol*nfib);
 
@@ -321,9 +322,9 @@ int main(int argc, char**argv)
   outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(double) );  
 
 
-  free(test);
-  free(dtest);
-  std::cout << "xnorm " << out_size << "\n";
+   free(test);
+   free(dtest);
+  // std::cout << "xnorm " << out_size << "\n";
 
 
 
