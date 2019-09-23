@@ -5,6 +5,7 @@ DIR_SRC := src
 DIR_OBJ := obj
 DIR_INC := include
 DIR_BIN := bin
+DIR_DOC := doc
 
 CPPFLAGS = -I$(DIR_INC) -I$(HOME)/include
 CXXFLAGS = -std=c++17 -Wfatal-errors -Wall -Wextra
@@ -55,6 +56,14 @@ check: $(TESTS@EXECUTABLE)
 
 $(eval $(call link-cpp,$(foreach STEM,$(STEMS) $(TESTS@STEMS),$(call stem-to-object,$(STEM))),$(TESTS@EXECUTABLE)))
 
+.PHONY: doc
+doc:
+	doxygen .doxygen
+
+.PHONY:
+doc-clean:
+	$(RM) --recursive $(DIR_DOC)
+
 .PHONY: clean
-clean:
+clean: doc-clean
 	$(RM) $(DIRTY)
