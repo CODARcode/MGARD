@@ -1,5 +1,7 @@
 #ifndef MASSMATRIX_HPP
 #define MASSMATRIX_HPP
+//!\file
+//!\brief Mass matrix and preconditioner for continuous piecewise linears.
 
 #include <cstddef>
 
@@ -8,6 +10,8 @@
 
 namespace mgard {
 
+//!Mass matrix for continuous piecewise linear functions defined on a
+//!`MeshLevel`.
 class MassMatrix: public helpers::LinearOperator {
     public:
         MassMatrix(MeshLevel const * const mesh);
@@ -20,6 +24,7 @@ class MassMatrix: public helpers::LinearOperator {
         ) const override;
 };
 
+//!Preconditioner for `MassMatrix`.
 class MassMatrixPreconditioner: public helpers::LinearOperator {
     public:
         MassMatrixPreconditioner(MeshLevel const * const mesh);
