@@ -14,11 +14,15 @@ DIRTY = $(DIRTY_OBJECT_FILES) $(DIRTY_EXECUTABLE_FILES)
 DIRTY_OBJECT_FILES =
 DIRTY_EXECUTABLE_FILES =
 
-STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy
+#Tested but not compiled.
+HEADERS_WITHOUT_IMPLEMENTATIONS := utilities
+HELPER_STEMS := measure LinearOperator pcg
+MGARD_STEMS := MassMatrix MeshLevel MeshHierarchy
+STEMS = $(HELPER_STEMS) $(MGARD_STEMS)
 
 TESTS@DIR_ROOT := tests
 TESTS@DIR_INC := $(TESTS@DIR_ROOT)/$(DIR_INC)
-TESTS@STEMS := $(foreach STEM,$(STEMS),test_$(STEM)) test_utilities main
+TESTS@STEMS := $(foreach STEM,$(STEMS) $(HEADERS_WITHOUT_IMPLEMENTATIONS),test_$(STEM)) testing_utilities main
 TESTS@EXECUTABLE := $(DIR_BIN)/tests
 
 define stem-to-source

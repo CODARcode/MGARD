@@ -9,7 +9,7 @@
 #include "MeshLevel.hpp"
 #include "pcg.hpp"
 
-#include "test_utilities.hpp"
+#include "testing_utilities.hpp"
 
 TEST_CASE("MeshLevel construction", "[MeshLevel]") {
     moab::Core mbcore;
