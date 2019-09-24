@@ -58,17 +58,18 @@ moab::ErrorCode MeshHierarchy::recompose(double * const u, void *buffer) {
 //Protected member functions.
 
 MeshHierarchy::MeshHierarchy(
-    const MeshLevel &mesh,
-    const MeshRefiner refiner,
-    const std::size_t L
+    const MeshLevel &mesh, MeshRefiner &refiner, const std::size_t _L
 ):
-    meshes({mesh})
+    MeshHierarchy({mesh})
 {
+    //`this->L` is now set to zero. We'll increment it every time to append to
+    //`meshes`.
     //Reserving rather than resizing so we don't need to provide a default
     //constructor for `MeshLevel`.
-    meshes.reserve(L + 1);
-    for (std::size_t i = 0; i + 1 != L; ++i) {
-        meshes.push_back(refiner(meshes.at(i)));
+    meshes.reserve(_L + 1);
+    for (std::size_t i = 0; i < _L; ++i) {
+        meshes.push_back(refiner(meshes.back()));
+        ++L;
     }
 }
 
@@ -250,6 +251,10 @@ bool MeshHierarchy::is_new_node(
     moab::EntityHandle node, const std::size_t l
 ) const {
     check_mesh_index_bounds(l);
+    const MeshLevel &mesh = meshes.at(l);
+    if (mesh.impl->type_from_handle(node) != moab::MBVERTEX) {
+        throw std::domain_error("entity not node as claimed");
+    }
     return do_is_new_node(node, l);
 }
 

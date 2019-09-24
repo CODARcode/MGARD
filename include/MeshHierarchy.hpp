@@ -1,11 +1,15 @@
 #ifndef MESHHIERARCHY_HPP
 #define MESHHIERARCHY_HPP
+//!file
+//!brief Increasing hierarchy of meshes, with the ability to decompose and
+//!recompose functions given on the finest mesh of that hierarchy.
 
 #include <cstddef>
 
 #include <vector>
 
 #include "MeshLevel.hpp"
+#include "MeshRefiner.hpp"
 
 namespace mgard {
 
@@ -20,11 +24,12 @@ namespace mgard {
 //corresponding to coarser levels were separated by stride 2^n. Something to
 //return to if necessary.
 
-typedef MeshLevel (*MeshRefiner)(const MeshLevel &);
-
 //!Hierarchy of meshes produced by refining an initial mesh.
 class MeshHierarchy {
     public:
+        //!Constructor.
+        //!
+        //!\param meshes Meshes of the hierarchy, from coarsest to finest.
         MeshHierarchy(const std::vector<MeshLevel> &meshes);
 
         //!Report the number of degrees of freedom in the finest MeshLevel.
@@ -47,10 +52,15 @@ class MeshHierarchy {
         std::size_t scratch_space_needed() const;
 
     protected:
+        //!Constructor.
+        //!
+        //!\override
+        //!
+        //!\param mesh Coarsest mesh in the hierarchy.
+        //!\param refiner Function object to refine the meshes.
+        //!\param L Number of times to refine the initial mesh.
         MeshHierarchy(
-            const MeshLevel &mesh,
-            const MeshRefiner refiner,
-            const std::size_t L
+            const MeshLevel &mesh, MeshRefiner &refiner, const std::size_t L
         );
 
         //!MeshLevels in the hierarchy, ordered from coarsest to finest.
