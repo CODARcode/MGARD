@@ -9,7 +9,7 @@
 #include "MassMatrix.hpp"
 #include "pcg.hpp"
 
-#include "test_utilities.hpp"
+#include "testing_utilities.hpp"
 
 TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
     SECTION("triangles") {

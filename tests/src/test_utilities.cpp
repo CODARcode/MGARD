@@ -1,73 +1,59 @@
-#include "test_utilities.hpp"
+#include "catch2/catch.hpp"
 
-#include <cassert>
+#include <cstddef>
 
-#include "moab/EntityType.hpp"
+#include <algorithm>
 
-mgard::MeshLevel make_mesh_level(
-    moab::Interface &mbcore,
-    const std::size_t num_nodes,
-    const std::size_t num_edges,
-    const std::size_t num_elements,
-    const std::size_t dimension,
-    double const * const coordinates,
-    //The elements of both this and `element_connectivity` are just offsets, to
-    //be added to the `moab::EntityHandle` of the first vertex.
-    std::size_t  const * const edge_connectivity,
-    std::size_t const * const element_connectivity
-) {
-    moab::ErrorCode ecode;
+#include "utilities.hpp"
 
-    moab::Range nodes;
-    ecode = mbcore.create_vertices(coordinates, num_nodes, nodes);
-    MB_CHK_ERR_CONT(ecode);
-    assert(nodes.psize() == 1);
+TEST_CASE("PseudoArray iteration", "[utilities]") {
+    int values[10] = {0, 1, 4, 9, 16, 25, 36, 0, -2, 1};
 
-    moab::Range edges;
-    for (std::size_t i = 0; i < num_edges; ++i) {
-        //Local connectivity vector.
-        std::vector<moab::EntityHandle> connectivity(2, nodes.front());
-        for (std::size_t j = 0; j < 2; ++j) {
-            connectivity.at(j) += edge_connectivity[2 * i + j];
+    SECTION("comparison with manual iteration") {
+        const std::size_t ns[5] = {0, 1, 5, 9, 10};
+        for (std::size_t n : ns) {
+            std::vector<int> manual;
+            manual.reserve(n);
+            for (std::size_t i = 0; i < n; ++i) {
+                manual.push_back(values[i]);
+            }
+
+            std::vector<int> pseudo;
+            pseudo.reserve(n);
+            for (int value : helpers::PseudoArray(values, n)) {
+                pseudo.push_back(value);
+            }
+
+            REQUIRE(std::equal(manual.begin(), manual.end(), pseudo.begin()));
         }
-        moab::EntityHandle handle;
-        ecode = mbcore.create_element(
-            moab::MBEDGE, connectivity.data(), connectivity.size(), handle
-        );
-        MB_CHK_ERR_CONT(ecode);
-        edges.insert(handle);
     }
-    assert(edges.psize() == 1);
 
-    moab::Range elements;
-    //Nodes per element.
-    std::size_t n;
-    moab::EntityType element_type;
-    switch (dimension) {
-        case 2:
-            n = 3;
-            element_type = moab::MBTRI;
-            break;
-        case 3:
-            n = 4;
-            element_type = moab::MBTET;
-            break;
-        default:
-            throw std::invalid_argument("`dimension` must be 2 or 3.");
-    }
-    for (std::size_t i = 0; i < num_elements; ++i) {
-        //Local connectivity vector.
-        std::vector<moab::EntityHandle> connectivity(n, nodes.front());
-        for (std::size_t j = 0; j < n; ++j) {
-            connectivity.at(j) += element_connectivity[n * i + j];
+    SECTION("signed lengths") {
+        const std::size_t ns[2] = {0, 8};
+        for (std::size_t n : ns) {
+            std::vector<int> normal;
+            normal.reserve(n);
+            for (int value : helpers::PseudoArray(values, n)) {
+                normal.push_back(value);
+            }
+
+            std::vector<int> integral;
+            integral.reserve(n);
+            for (
+                int value : helpers::PseudoArray(values, static_cast<int>(n))
+            ) {
+                integral.push_back(value);
+            };
+
+            REQUIRE(std::equal(normal.begin(), normal.end(), integral.begin()));
         }
-        moab::EntityHandle handle;
-        ecode = mbcore.create_element(
-            element_type, connectivity.data(), connectivity.size(), handle
-        );
-        MB_CHK_ERR_CONT(ecode);
-        elements.insert(handle);
     }
-    assert(elements.psize() == 1);
-    return mgard::MeshLevel(&mbcore, nodes, edges, elements);
+
+    SECTION("construction exceptions") {
+        //There's no check against `p` being `NULL`.
+        REQUIRE_NOTHROW(helpers::PseudoArray<int>(NULL, 1));
+
+        //On the other hand, negative lengths are not allowed.
+        REQUIRE_THROWS(helpers::PseudoArray<double>(NULL, -1));
+    }
 }
