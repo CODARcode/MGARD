@@ -307,10 +307,10 @@ int main(int argc, char**argv)
   unsigned char* test;
 
 
-  //  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, s);
+  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, s);
 
   //  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, qoi, s);
-  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, s);
+  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, s );
   std::cout << "Outto size" << out_size << "\n";
 
   zipfile.write(reinterpret_cast<char*> (test), out_size );  
