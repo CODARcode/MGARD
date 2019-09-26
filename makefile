@@ -50,9 +50,16 @@ $2: $1
 DIRTY_EXECUTABLE_FILES += $2
 endef
 
+.PHONY: all
+all: $(foreach STEM,$(STEMS),$(call stem-to-object,$(STEM)))
+
 $(eval $(foreach STEM,$(TESTS@STEMS),$(call stem-to-object,$(STEM))): CPPFLAGS += -I$(TESTS@DIR_INC))
 $(foreach STEM,$(TESTS@STEMS),$(eval $(call compile-cpp,$(call TESTS@stem-to-source,$(STEM)),$(call stem-to-object,$(STEM)))))
 $(foreach STEM,$(STEMS),$(eval $(call compile-cpp,$(call stem-to-source,$(STEM)),$(call stem-to-object,$(STEM)))))
+
+.PHONY: debug
+debug: CXXFLAGS += -g
+debug: clean all
 
 .PHONY: check
 check: $(TESTS@EXECUTABLE)
