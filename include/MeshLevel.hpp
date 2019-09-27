@@ -32,10 +32,13 @@ class MeshLevel {
         //!
         //!\param impl MOAB interface.
         //!\param mesh_set Meshset from which the nodes, edges, and elements of
-        //!the mesh will be extracted.
+        //!the mesh will be extracted. Defaults to the root set.
+        //!
+        //!The edges will be created if they are missing. If elements are
+        //!provided, the edges will be recalculated from them.
         MeshLevel(
             moab::Interface * const impl,
-            const moab::EntityHandle mesh_set
+            const moab::EntityHandle mesh_set = 0
         );
 
         //!Report the number of degrees of freedom of the mesh.
@@ -99,7 +102,12 @@ class MeshLevel {
         //that node.
         mutable std::vector<double> preconditioner_divisors;
 
+        //!Initialize `topological_dimension` and `num_nodes_per_element` from
+        //!`element_type`.
         void populate_from_element_type();
+
+        //!Fill out the edges list from the elements.
+        void get_edges_from_elements();
 
         virtual std::size_t do_ndof() const;
 

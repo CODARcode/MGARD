@@ -2,6 +2,8 @@
 
 #include <cstddef>
 
+#include <set>
+
 #include "moab/Core.hpp"
 
 #include "blaspp/blas.hh"
@@ -10,6 +12,40 @@
 #include "pcg.hpp"
 
 #include "testing_utilities.hpp"
+
+typedef std::set<moab::EntityHandle> Edge;
+
+static std::set<Edge> make_edges_from_offsets(
+    const moab::Range &nodes,
+    const std::set<std::set<std::size_t>> edges_by_offsets
+) {
+    std::set<Edge> edges;
+    for (std::set<std::size_t> edge_by_offsets : edges_by_offsets) {
+        Edge edge;
+        for (std::size_t offset : edge_by_offsets) {
+            edge.insert(nodes[offset]);
+        }
+        edges.insert(edge);
+    }
+    return edges;
+}
+
+static moab::ErrorCode check_edges(
+    mgard::MeshLevel &mesh, const std::set<Edge> &expected_edges
+) {
+    moab::ErrorCode ecode;
+    std::set<Edge> edges;
+    for (const moab::EntityHandle e : mesh.entities[moab::MBEDGE]) {
+        moab::EntityHandle const *connectivity;
+        int num_nodes;
+        ecode = mesh.impl->get_connectivity(e, connectivity, num_nodes);
+        MB_CHK_ERR(ecode);
+        assert(num_nodes == 2);
+        edges.insert(Edge(connectivity, connectivity + num_nodes));
+    }
+    REQUIRE(edges == expected_edges);
+    return moab::MB_SUCCESS;
+}
 
 TEST_CASE("MeshLevel construction", "[MeshLevel]") {
     moab::Core mbcore;
@@ -75,4 +111,63 @@ TEST_CASE("MeshLevel construction", "[MeshLevel]") {
             );
         }
     }
+}
+
+TEST_CASE("edge generation", "[MeshLevel]") {
+    moab::ErrorCode ecode;
+    moab::Core mbcore;
+
+    const std::size_t num_nodes = 5;
+    const std::size_t num_tris = 4;
+
+    const double coordinates[3 * num_nodes] = {
+        0, 0, 1,
+        3, 0, 2,
+        3, 3, 2,
+        0, 3, 0,
+        2, 1, 3,
+    };
+    const std::size_t tri_connectivity[3 * num_tris] = {
+        0, 1, 4,
+        1, 2, 4,
+        2, 3, 4,
+        3, 0, 4
+    };
+
+    moab::Range nodes;
+    ecode = mbcore.create_vertices(coordinates, num_nodes, nodes);
+
+    for (std::size_t i = 0; i < num_tris; ++i) {
+        moab::EntityHandle triangle;
+        moab::EntityHandle connectivity[3];
+        for (std::size_t j = 0; j < 3; ++j) {
+            connectivity[j] = nodes[tri_connectivity[3 * i + j]];
+        }
+        ecode = mbcore.create_element(
+            moab::MBTRI, connectivity, 3, triangle
+        );
+        MB_CHK_ERR_RET(ecode);
+    }
+
+    mgard::MeshLevel mesh(&mbcore);
+
+    REQUIRE(mesh.ndof() == num_nodes);
+    REQUIRE(mesh.entities[moab::MBTRI].size() == num_tris);
+    REQUIRE(mesh.entities[moab::MBEDGE].size() == 8);
+    check_edges(
+        mesh,
+        make_edges_from_offsets(
+            mesh.entities[moab::MBVERTEX],
+            {
+                {0, 1},
+                {1, 2},
+                {2, 3},
+                {3, 0},
+                {0, 4},
+                {1, 4},
+                {2, 4},
+                {3, 4}
+            }
+        )
+    );
 }
