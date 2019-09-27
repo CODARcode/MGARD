@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <utility>
 
+#include "moab/Interface.hpp"
+
 #include "measure.hpp"
 
 typedef double (*EntityMeasureFunction)(double const * const);
@@ -91,6 +93,7 @@ MeshLevel::MeshLevel(
             );
         }
         populate_from_element_type();
+        get_edges_from_elements();
     }
 }
 
@@ -160,6 +163,18 @@ void MeshLevel::populate_from_element_type() {
                 "elements must be triangles or tetrahedra"
             );
     }
+}
+
+void MeshLevel::get_edges_from_elements() {
+    moab::ErrorCode ecode = impl->get_adjacencies(
+        entities[element_type],
+        1,
+        true,
+        entities[moab::MBEDGE],
+        moab::Interface::UNION
+    );
+    MB_CHK_ERR_RET(ecode);
+    assert(entities[moab::MBEDGE].psize() == 1);
 }
 
 std::size_t MeshLevel::do_ndof() const {
