@@ -45,7 +45,9 @@ void MassMatrix::do_operator_parentheses(
         moab::ErrorCode ecode = mesh->impl->get_connectivity(
             element, connectivity, n
         );
-        MB_CHK_ERR_RET(ecode);
+        if (ecode != moab::MB_SUCCESS) {
+            throw std::runtime_error("failed to get element connectivity");
+        }
         //Pairs `(i, v)` where `i` is the global index of a node and `v` is
         //`x[i]`, the value of the function there.
         std::vector<std::pair<std::size_t, double>> nodal_pairs(n);
