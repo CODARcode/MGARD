@@ -16,3 +16,5 @@ mgard::MeshLevel make_mesh_level(
     std::size_t  const * const edge_connectivity,
     std::size_t const * const element_connectivity
 );
+
+void require_moab_success(const moab::ErrorCode ecode);

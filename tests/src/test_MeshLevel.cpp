@@ -136,6 +136,7 @@ TEST_CASE("edge generation", "[MeshLevel]") {
 
     moab::Range nodes;
     ecode = mbcore.create_vertices(coordinates, num_nodes, nodes);
+    require_moab_success(ecode);
 
     for (std::size_t i = 0; i < num_tris; ++i) {
         moab::EntityHandle triangle;
@@ -146,7 +147,7 @@ TEST_CASE("edge generation", "[MeshLevel]") {
         ecode = mbcore.create_element(
             moab::MBTRI, connectivity, 3, triangle
         );
-        MB_CHK_ERR_RET(ecode);
+        require_moab_success(ecode);
     }
 
     mgard::MeshLevel mesh(&mbcore);

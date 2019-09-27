@@ -106,7 +106,7 @@ TEST_CASE("refining multiple triangles", "[UniformMeshRefiner]") {
         {{6, -4, 0}, {8, -4, 0}, {8, -2, 0}},
         {{6, -2, 0}, {8, -2, 0}, {8,  0, 0}}
     });
-    MB_CHK_ERR_CONT(ecode);
+    require_moab_success(ecode);
 }
 
 TEST_CASE("refining triangle multiply", "[UniformMeshRefiner]") {
@@ -166,5 +166,5 @@ TEST_CASE("refining triangle multiply", "[UniformMeshRefiner]") {
         {{7.5,   3, z}, {7.5, 4.5, z}, { 10, 4.5, z}},
         {{7.5, 4.5, z}, { 10, 4.5, z}, { 10,   6, z}},
     });
-    MB_CHK_ERR_CONT(ecode);
+    require_moab_success(ecode);
 }
