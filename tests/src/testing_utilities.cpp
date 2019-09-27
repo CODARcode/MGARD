@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <stdexcept>
+
 #include "moab/EntityType.hpp"
 
 mgard::MeshLevel make_mesh_level(
@@ -20,7 +22,7 @@ mgard::MeshLevel make_mesh_level(
 
     moab::Range nodes;
     ecode = mbcore.create_vertices(coordinates, num_nodes, nodes);
-    MB_CHK_ERR_CONT(ecode);
+    require_moab_success(ecode);
     assert(nodes.psize() == 1);
 
     moab::Range edges;
@@ -34,7 +36,7 @@ mgard::MeshLevel make_mesh_level(
         ecode = mbcore.create_element(
             moab::MBEDGE, connectivity.data(), connectivity.size(), handle
         );
-        MB_CHK_ERR_CONT(ecode);
+        require_moab_success(ecode);
         edges.insert(handle);
     }
     assert(edges.psize() == 1);
@@ -65,9 +67,15 @@ mgard::MeshLevel make_mesh_level(
         ecode = mbcore.create_element(
             element_type, connectivity.data(), connectivity.size(), handle
         );
-        MB_CHK_ERR_CONT(ecode);
+        require_moab_success(ecode);
         elements.insert(handle);
     }
     assert(elements.psize() == 1);
     return mgard::MeshLevel(&mbcore, nodes, edges, elements);
+}
+
+void require_moab_success(const moab::ErrorCode ecode) {
+    if (ecode != moab::MB_SUCCESS) {
+        throw std::runtime_error("MOAB error encountered");
+    }
 }
