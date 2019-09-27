@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -69,7 +70,12 @@ MeshLevel::MeshLevel(
         ++type
     ) {
         ecode = impl->get_entities_by_type(mesh_set, type, entities[type]);
-        MB_CHK_ERR_RET(ecode);
+        if (ecode != moab::MB_SUCCESS) {
+            std::stringstream message;
+            message << "failed to get entities of type ";
+            message << type;
+            throw std::runtime_error(message.str());
+        }
     }
     std::size_t num_element_types = 0;
     for (
@@ -117,7 +123,9 @@ double MeshLevel::measure(const moab::EntityHandle handle) const {
     const::moab::EntityType type = impl->type_from_handle(handle);
     precompute_measures(type);
     moab::ErrorCode ecode = precompute_measures(type);
-    MB_CHK_ERR_CONT(ecode);
+    if (ecode != moab::MB_SUCCESS) {
+        throw std::runtime_error("failed to precompute measures");
+    }
     return measures[type].at(index(handle));
 }
 
@@ -173,7 +181,9 @@ void MeshLevel::get_edges_from_elements() {
         entities[moab::MBEDGE],
         moab::Interface::UNION
     );
-    MB_CHK_ERR_RET(ecode);
+    if (ecode != moab::MB_SUCCESS) {
+        throw std::runtime_error("failed to get element adjacencies");
+    }
     assert(entities[moab::MBEDGE].psize() == 1);
 }
 

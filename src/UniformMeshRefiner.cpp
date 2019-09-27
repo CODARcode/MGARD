@@ -41,14 +41,18 @@ MeshLevel UniformMeshRefiner::do_operator_parentheses(const MeshLevel &mesh) {
     moab::Range NODES;
     moab::Range EDGES;
     ecode = bisect_edges(mesh, NODES, EDGES);
-    MB_CHK_ERR_CONT(ecode);
+    if (ecode != moab::MB_SUCCESS) {
+        throw std::runtime_error("failed to bisect edges");
+    }
 
     //TODO: include the edges of the new elements!
     moab::Range ELEMENTS;
     switch (mesh.topological_dimension) {
         case 2:
             ecode = quadrisect_triangles(mesh, NODES, EDGES, ELEMENTS);
-            MB_CHK_ERR_CONT(ecode);
+            if (ecode != moab::MB_SUCCESS) {
+                throw std::runtime_error("failed to quadrisect triangles");
+            }
             break;
         case 3:
             throw std::logic_error("tetrahedron refinement not implemented");
@@ -180,7 +184,9 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
             ecode = mesh.impl->get_connectivity(
                 edge, edge_connectivity, edge_num_nodes
             );
-            MB_CHK_ERR_CONT(ecode);
+            if (ecode != moab::MB_SUCCESS) {
+                throw std::runtime_error("failed to get edge connectivity");
+            }
             assert(edge_num_nodes == 2);
 
             opposites.insert({
