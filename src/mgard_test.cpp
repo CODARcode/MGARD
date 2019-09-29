@@ -235,7 +235,8 @@ int main(int argc, char**argv)
   std::vector<double> v(nrow*ncol*nfib), coords_x(ncol), coords_y(nrow), coords_z(nfib);
   
   //-- set level hierarchy --//
-  set_level( nrow,  ncol,  nfib,  nlevel);
+  //  set_level( nrow,  ncol,  nfib,  nlevel);
+  set_level( nrow,  ncol,  nrow,  nlevel);
   
   
   //-- read input file and set dummy coordinates --//
@@ -245,7 +246,7 @@ int main(int argc, char**argv)
   infile.read( reinterpret_cast<char*>( v.data() ), nrow*ncol*nfib*sizeof(double) );
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
-  std::iota(std::begin(coords_z), std::end(coords_z), 0);
+  //  std::iota(std::begin(coords_z), std::end(coords_z), 0);
   
   std::cout << "Read input\n";
   
@@ -307,7 +308,7 @@ int main(int argc, char**argv)
   unsigned char* test;
 
 
-  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, s);
+  //  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, s);
 
   //  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, qoi, s);
   test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  1, tol, s );

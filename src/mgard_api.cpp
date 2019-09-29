@@ -42,21 +42,17 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
 { 
   if(itype_flag == 0)
     {
-      // float *v   = static_cast<float*>(data);
-      // float *tol = static_cast<float*>(tol_in);
+
       double tol = tol_in;
       assert (tol >= 1e-8);
       
       unsigned char* mgard_compressed_ptr = nullptr;
 
-      //mgard_compressed_ptr = mgard::refactor_qz_float(nrow, ncol, v, out_size, *tol);
 
       return mgard_compressed_ptr;
     }
   else if(itype_flag == 1)
     {
-      // double *v   = static_cast<double*>(data);
-      // double *tol = static_cast<double*>(tol_in);
       double tol = tol_in;
       assert (tol >= 1e-8);
       unsigned char* mgard_compressed_ptr = nullptr;
@@ -80,25 +76,76 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
       else if (nrow > 1 )
         {
           assert (nrow > 3);
-          //mgard_compressed_ptr = mgard::refactor_qz_1D(nrow, v, out_size, *tol);
+	  std::cerr <<"MGARD: Let us know if you need 1D compression...\n";
+	  return nullptr;
         }
 
       
     }
   else
     {
-      std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
-      // const float *v = static_cast<const float*>(data);
-      // float *tol = static_cast<float*>(tol_in);
+      std::cerr <<"MGARD: Unknown data type...\n";
 
       double tol = tol_in;
       assert (tol >= 1e-8);
       
       unsigned char* mgard_compressed_ptr = nullptr;
 
-      //mgard_compressed_ptr = mgard::refactor_qz_float(nrow, ncol, v, out_size, *tol);
 
       return mgard_compressed_ptr;
+    }
+  
+}
+
+
+
+unsigned char *mgard_compress(int itype_flag, double  *v, int &out_size, int nrow, int ncol, int nfib, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z , double tol)
+ //Perform compression preserving the tolerance in the L-infty norm, arbitrary tensor grids
+{ 
+  if(itype_flag == 0)
+    {
+
+      assert (tol >= 1e-8);
+      
+      unsigned char* mgard_compressed_ptr = nullptr;
+
+
+      return mgard_compressed_ptr;
+    }
+  else if(itype_flag == 1)
+    {
+      assert (tol >= 1e-8);
+      unsigned char* mgard_compressed_ptr = nullptr;
+      if(nrow > 1 && ncol > 1 && nfib > 1)
+        {
+          assert (nrow > 3);
+          assert (ncol > 3);
+          assert (nfib > 3);
+          
+	  mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, coords_x, coords_y, coords_z, v, out_size, tol);
+          return mgard_compressed_ptr;
+                
+        }
+      else if (nrow > 1 && ncol > 1)
+        {
+          assert (nrow > 3);
+          assert (ncol > 3);
+          mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, coords_x, coords_y, v, out_size, tol);
+          return mgard_compressed_ptr;
+        }
+      else if (nrow > 1 )
+        {
+          assert (nrow > 3);
+	  std::cerr <<"MGARD: Let us know if you need 1D compression...\n";
+	  return nullptr;
+        }
+
+      
+    }
+  else
+    {
+      std::cerr <<"MGARD: Unknown data type exiting...\n";
+      return nullptr;
     }
   
 }
@@ -108,28 +155,23 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
 
 unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in, double s )
 {
-  //Perform compression preserving the tolerance in s norm by defaulting to the L-2 norm
+  //Perform compression preserving the tolerance in s norm by defaulting to the s-norm
   if(itype_flag == 0)
     {
-      // float *v   = static_cast<float*>(data);
-      // float *tol = static_cast<float*>(tol_in);
+
 
       double tol = tol_in;
       assert (tol >= 1e-8);
       
       unsigned char* mgard_compressed_ptr = nullptr;
 
-      //mgard_compressed_ptr = mgard::refactor_qz_float(nrow, ncol, v, out_size, *tol);
-
       return mgard_compressed_ptr;
     }
   else if(itype_flag == 1)
     {
-      // double *v   = static_cast<double*>(data);
-      // double *tol = static_cast<double*>(tol_in);
       double tol = tol_in;
       assert (tol >= 1e-8);
-      //      std::cout << "Input "  << v[100] << std::endl;
+
       unsigned char* mgard_compressed_ptr = nullptr;
       if(nrow > 1 && ncol > 1 && nfib > 1)
         {
@@ -146,26 +188,23 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
           assert (nrow > 3);
           assert (ncol > 3);
           mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol, s);
-          //          mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, *tol);
+	  
           return mgard_compressed_ptr;
         }
       else if (nrow > 1 )
         {
           assert (nrow > 3);
-          //mgard_compressed_ptr = mgard::refactor_qz_1D(nrow, v, out_size, *tol);
+	  std::cerr <<"MGARD: Let us know if you need 1D compression...\n";
+	  return nullptr;
         }
 
       
     }
   else
     {
-      std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
-      
-      unsigned char* mgard_compressed_ptr = nullptr;
+      std::cerr <<"MGARD: Unknown data type...\n";
 
-      //mgard_compressed_ptr = mgard::refactor_qz_float(nrow, ncol, v, out_size, *tol);
-
-      return mgard_compressed_ptr;
+      return nullptr;
     }
   
 }
