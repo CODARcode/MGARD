@@ -511,7 +511,7 @@ refactor_qz_2D (int nrow, int ncol, const double *u, int &outsize, double tol, d
       int size_ratio = sizeof (double) / sizeof (int);
       std::vector<int> qv (nrow * ncol + size_ratio);
 
-      mgard_gen::quantize_2D(nrow,  ncol, nrow,  ncol,  nlevel, v.data(), qv, coords_x, coords_y,  s, norm,  tol); 
+      mgard_gen::quantize_2D(nr,  nc, nrow,  ncol,  nlevel, v.data(), qv, coords_x, coords_y,  s, norm,  tol); 
     
 
       std::vector<unsigned char> out_data;
