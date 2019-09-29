@@ -39,8 +39,6 @@
 #define MGARD_API_H
 
 
-
-
 /// Use this version of mgard_compress to compress your data with a tolerance measured in  relative L-infty norm, version 1 for equispaced grids, 1a for tensor product grids with arbitrary spacing 
 
 unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int n1, int n2, int n3, double tol); // ...  1
