@@ -130,11 +130,11 @@ namespace mgard
                      double *v, double tol, const std::string outfile);
 
   void
-    quantize_2D_iterleave (const int nrow, const int ncol, double *v,
+    quantize_2D_interleave (const int nrow, const int ncol, double *v,
                            std::vector<int> &work, double norm, double tol);
 
   void
-    dequantize_2D_iterleave (const int nrow, const int ncol, double *v, 
+    dequantize_2D_interleave (const int nrow, const int ncol, double *v, 
                              const std::vector<int> &work);
 
   void
@@ -194,9 +194,15 @@ namespace mgard
 
   unsigned char *
     refactor_qz_2D (int nrow, int ncol, const double *v, int &outsize, double tol);
+
+  unsigned char *
+  refactor_qz_2D (int nrow, int ncol, const double *v, int &outsize, double tol, double s);
   
   double*
     recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len);
+
+  double*
+  recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len, double s);
 
   unsigned char *
     refactor_qz_1D (int nrow,  const double *v, int &outsize, double tol);

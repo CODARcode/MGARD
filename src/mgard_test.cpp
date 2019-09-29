@@ -310,7 +310,7 @@ int main(int argc, char**argv)
   double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, s);
 
   //  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, qoi, s);
-  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, s );
+  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  1, tol, s );
   std::cout << "Outto size" << out_size << "\n";
 
   zipfile.write(reinterpret_cast<char*> (test), out_size );  
@@ -318,12 +318,12 @@ int main(int argc, char**argv)
   //  std::vector<double> dtest(nrow*ncol*nfib);
 
   double *dtest;
-  dtest = mgard_decompress(1, test, out_size,  nrow,  ncol,  nfib, s);
+  dtest = mgard_decompress(1, test, out_size,  nrow,  ncol,  1, s);
   outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(double) );  
 
-
-   free(test);
-   free(dtest);
+  //
+  free(test);
+  free(dtest);
   // std::cout << "xnorm " << out_size << "\n";
 
 

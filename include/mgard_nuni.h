@@ -133,11 +133,13 @@ namespace mgard_gen
     
   void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel,  double* v, std::vector<int>& work, const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z, double s, double norm, double tol);
 
+  void quantize_2D(const int nr, const int nc,  const int nrow, const int ncol, const int nlevel,  double* v, std::vector<int>& work, const std::vector<double>& coords_x, const std::vector<double>& coords_y, double s, double norm, double tol);
 
     void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel, double* v, std::vector<int>& out_data , const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z);
     
   void dequantize_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel, double* v, std::vector<int>& out_data , const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z, double s);
 
+  void dequantize_2D(const int nr, const int nc,  const int nrow, const int ncol, const int nlevel,  double* v, std::vector<int>& work, const std::vector<double>& coords_x, const std::vector<double>& coords_y, double s);
   
 
   void dequant_3D(const int nr, const int nc, const int nf, const int nrow, const int ncol, const int nfib, const int nlevel,  const int  l,   double* v, double* work , const std::vector<double>& coords_x, const std::vector<double>& coords_y, const std::vector<double>& coords_z, double s);

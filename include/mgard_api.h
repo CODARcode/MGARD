@@ -52,6 +52,7 @@ unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int 
 //Set s=0 for L2-norm
 // 2)
 unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int n1, int n2, int n3, double tol, double s); // ... 2
+unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int n1, int n2, int n3, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, double tol, double s); // ... 1a
 
 // Use this version of mgard_compress to compress your data to preserve the error in a given quantity of interest
 // Here qoi denotes the quantity of interest  which is a bounded linear functional in s-norm.

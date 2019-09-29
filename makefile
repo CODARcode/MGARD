@@ -9,7 +9,7 @@ INC=include
 INC_PARAMS=$(foreach d, $(INC), -I$d)
 OBJ=obj
 
-CXXFLAGS= -c -std=c++11   $(INC_PARAMS)  -O3 -fPIC 
+CXXFLAGS= -c -std=c++11   $(INC_PARAMS) -pg  -O3 -fPIC 
 
 LDFLAGS = -lz -ldl
 ARFLAGS = -rcs
