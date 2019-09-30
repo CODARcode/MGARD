@@ -448,7 +448,7 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
 
 
 
-// //FLOAT versions
+// // //FLOAT versions
 
 
 // unsigned char *mgard_compress(int itype_flag,  float  *v, int &out_size, int nrow, int ncol, int nfib, float tol_in)
@@ -703,7 +703,7 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
   
 // }
 
-// float *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, int nrow, int ncol, int nfib)
+// float *mgard_decompress(float itype_flag,  unsigned char *data, int data_len, int nrow, int ncol, int nfib)
 // {
 //   assert (ncol > 3);
 //   assert (nrow >= 1);
@@ -861,4 +861,4 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
 
 // }
 
-// // FLOAT end
+// // // FLOAT end
