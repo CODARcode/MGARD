@@ -1,3 +1,5 @@
+DEBUG ?= 0
+
 LDFLAGS = -L$(HOME)/lib -L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib
 LDLIBS = -lMOAB -lhdf5_hl -lhdf5 -llapack -lblas -lblaspp -lz -lm
 
@@ -9,6 +11,10 @@ DIR_DOC := doc
 
 CPPFLAGS = -I$(DIR_INC) -I$(HOME)/include
 CXXFLAGS = -std=c++17 -Wfatal-errors -Wall -Wextra
+
+ifneq ($(DEBUG), 0)
+CXXFLAGS += -g -fsanitize=address -fsanitize=undefined
+endif
 
 DIRTY = $(DIRTY_OBJECT_FILES) $(DIRTY_EXECUTABLE_FILES)
 DIRTY_OBJECT_FILES =
@@ -56,10 +62,6 @@ all: $(foreach STEM,$(STEMS),$(call stem-to-object,$(STEM)))
 $(eval $(foreach STEM,$(TESTS@STEMS),$(call stem-to-object,$(STEM))): CPPFLAGS += -I$(TESTS@DIR_INC))
 $(foreach STEM,$(TESTS@STEMS),$(eval $(call compile-cpp,$(call TESTS@stem-to-source,$(STEM)),$(call stem-to-object,$(STEM)))))
 $(foreach STEM,$(STEMS),$(eval $(call compile-cpp,$(call stem-to-source,$(STEM)),$(call stem-to-object,$(STEM)))))
-
-.PHONY: debug
-debug: CXXFLAGS += -g
-debug: clean all
 
 .PHONY: check
 check: $(TESTS@EXECUTABLE)
