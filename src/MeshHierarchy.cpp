@@ -304,7 +304,11 @@ std::size_t MeshHierarchy::do_scratch_space_needed() const {
 }
 
 std::size_t MeshHierarchy::do_scratch_space_needed_for_decomposition() const {
-    return L ? 6 * ndof(L - 1) : 0;
+    return L ? 6 * ndof(L - 1) * sizeof(double) : 0;
+}
+
+std::size_t MeshHierarchy::do_scratch_space_needed_for_recomposition() const {
+    return L ? 6 * ndof(L - 1) * sizeof(double) : 0;
 }
 
 double MeshHierarchy::do_measure(
