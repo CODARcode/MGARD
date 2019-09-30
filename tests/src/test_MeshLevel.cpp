@@ -103,12 +103,44 @@ TEST_CASE("MeshLevel construction", "[MeshLevel]") {
             );
         }
     }
+
     SECTION("measures with precomputing") {
         mesh.precompute_element_measures();
         for (std::size_t i = 0; i < num_tris; ++i) {
             REQUIRE(
                 mesh.measure(elements[i]) == Approx(triangle_areas[i])
             );
+        }
+    }
+
+    SECTION("connectivity member function") {
+        const moab::Range &_nodes = mesh.entities[moab::MBVERTEX];
+        const moab::Range &_edges = mesh.entities[moab::MBEDGE];
+        const moab::Range &_triangles = mesh.entities[moab::MBTRI];
+        {
+            std::set<moab::EntityHandle> nodes;
+            const moab::EntityHandle t = _triangles[2];
+            for (const moab::EntityHandle node : mesh.connectivity(t)) {
+                nodes.insert(node);
+            }
+            std::set<moab::EntityHandle> expected_nodes = {
+                _nodes[1], _nodes[3], _nodes[4]
+            };
+            REQUIRE(nodes == expected_nodes);
+        }
+        {
+            std::set<moab::EntityHandle> nodes;
+            const moab::EntityHandle e = _edges.back();
+            for (const moab::EntityHandle node : mesh.connectivity(e)) {
+                nodes.insert(node);
+            }
+            std::set<moab::EntityHandle> expected_nodes = {
+                _nodes[4], _nodes[5]
+            };
+            REQUIRE(nodes == expected_nodes);
+        }
+        {
+            REQUIRE_THROWS(mesh.connectivity(_nodes.back()));
         }
     }
 }

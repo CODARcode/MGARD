@@ -15,16 +15,16 @@
 //!
 //!\return Node opposite the edge.
 static moab::EntityHandle find_node_opposite_edge(
-    moab::EntityHandle const * const triangle_connectivity,
-    moab::EntityHandle const * const edge_connectivity
+    const helpers::PseudoArray<const moab::EntityHandle> triangle_connectivity,
+    const helpers::PseudoArray<const moab::EntityHandle> edge_connectivity
 ) {
-    helpers::PseudoArray xs(triangle_connectivity, 3);
-    helpers::PseudoArray ys(edge_connectivity, 2);
-    for (moab::EntityHandle x : xs) {
+    moab::EntityHandle const * const _begin = edge_connectivity.begin();
+    moab::EntityHandle const * const _end = edge_connectivity.end();
+    for (moab::EntityHandle x : triangle_connectivity) {
         //Look for this node in the edge.
-        moab::EntityHandle const * const p = std::find(ys.begin(), ys.end(), x);
+        moab::EntityHandle const * const p = std::find(_begin, _end, x);
         //If we don't find it, the node is opposite the edge.
-        if (p == ys.end()) {
+        if (p == _end) {
             return x;
         }
     }
@@ -45,7 +45,6 @@ MeshLevel UniformMeshRefiner::do_operator_parentheses(const MeshLevel &mesh) {
         throw std::runtime_error("failed to bisect edges");
     }
 
-    //TODO: include the edges of the new elements!
     moab::Range ELEMENTS;
     switch (mesh.topological_dimension) {
         case 2:
@@ -104,21 +103,11 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(
     for (std::size_t i = 0; i < nedges; ++i) {
         const moab::EntityHandle edge = edges[i];
         const moab::EntityHandle midpoint = NEW_NODES[i];
-
-        moab::EntityHandle const *connectivity;
-        int num_nodes;
-        ecode = mesh.impl->get_connectivity(edge, connectivity, num_nodes);
-        MB_CHK_ERR(ecode);
-        assert(num_nodes == 2);
-
         moab::EntityHandle EDGE_CONNECTIVITY[2];
         EDGE_CONNECTIVITY[0] = midpoint;
         double * const p = midpoint_coordinates.data() + 3 * i;
         double * const q = endpoint_coordinates.data();
-        for (
-            moab::EntityHandle endpoint :
-                helpers::PseudoArray(connectivity, num_nodes)
-        ) {
+        for (const moab::EntityHandle endpoint : mesh.connectivity(edge)) {
             EDGE_CONNECTIVITY[1] = endpoint;
             moab::EntityHandle EDGE;
             ecode = mesh.impl->create_element(
@@ -161,16 +150,14 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
     //Similarly for the edges.
     moab::EntityHandle most_recent_edge = EDGES.back();
     for (moab::EntityHandle element : elements) {
-        moab::EntityHandle const *element_connectivity;
-        int element_num_nodes;
-        ecode = mesh.impl->get_connectivity(
-            element, element_connectivity, element_num_nodes
-        );
-        assert(element_num_nodes == 3);
+        const helpers::PseudoArray<
+            const moab::EntityHandle
+        > element_connectivity = mesh.connectivity(element);
 
         std::vector<moab::EntityHandle> edges;
         edges.reserve(3);
         ecode = mesh.impl->get_adjacencies(&element, 1, 1, false, edges);
+        MB_CHK_ERR(ecode);
         assert(edges.size() == 3);
 
         //For each node in the original element, the midpoint of the opposite
@@ -179,20 +166,9 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
         std::unordered_map<moab::EntityHandle, moab::EntityHandle> opposites;
 
         for (moab::EntityHandle edge : edges) {
-            moab::EntityHandle const *edge_connectivity;
-            int edge_num_nodes;
-            ecode = mesh.impl->get_connectivity(
-                edge, edge_connectivity, edge_num_nodes
-            );
-            if (ecode != moab::MB_SUCCESS) {
-                throw std::runtime_error("failed to get edge connectivity");
-            }
-            assert(edge_num_nodes == 2);
-
             opposites.insert({
                 find_node_opposite_edge(
-                    element_connectivity,
-                    edge_connectivity
+                    element_connectivity, mesh.connectivity(edge)
                 ),
                 //The new nodes were created with the same ordering as the old
                 //edges. The `i`th node is the midpoint of the `i`th edge.
@@ -213,6 +189,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
             ecode = mesh.impl->create_element(
                 moab::MBTRI, ELEMENT_CONNECTIVITY, 3, ELEMENT
             );
+            MB_CHK_ERR(ecode);
             assert(ELEMENT == ++most_recent_element);
         }
 
@@ -225,6 +202,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
             ecode = mesh.impl->create_element(
                 moab::MBTRI, ELEMENT_CONNECTIVITY, 3, ELEMENT
             );
+            MB_CHK_ERR(ecode);
             assert(ELEMENT == ++most_recent_element);
         }
         //Add the corresponding edges.
@@ -236,6 +214,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
             ecode = mesh.impl->create_element(
                 moab::MBEDGE, EDGE_CONNECTIVITY, 2, EDGE
             );
+            MB_CHK_ERR(ecode);
             assert(EDGE == ++most_recent_edge);
         }
     }

@@ -169,18 +169,8 @@ moab::ErrorCode UniformMeshHierarchy::do_interpolate_old_to_new_and_axpy(
     //TODO: *If* you're doing this multiple times, probably worth defining an
     //iterator to give you the pairs `{child, {parent1, parent2}}`.
     for (const moab::EntityHandle edge : mesh.entities[moab::MBEDGE]) {
-        moab::EntityHandle const *connectivity;
-        int num_nodes;
-        moab::ErrorCode ecode = mesh.impl->get_connectivity(
-            edge, connectivity, num_nodes
-        );
-        MB_CHK_ERR(ecode);
-        assert(num_nodes == 2);
         double interpolant = 0;
-        for (
-            const moab::EntityHandle node :
-                helpers::PseudoArray(connectivity, 2)
-        ) {
+        for (const moab::EntityHandle node : mesh.connectivity(edge)) {
             interpolant += u[mesh.index(node)];
         }
         interpolant *= 0.5;
@@ -254,23 +244,12 @@ UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
             std::vector<std::pair<moab::EntityHandle, double>>
         > interpolation_key;
 
-        //We'll be finding these nodes again (piecemeal, edge by edge) below.
-        //Could therefore eliminate this call if it's slow.
-        moab::EntityHandle const *connectivity;
-        int num_nodes;
-        ecode = mesh.impl->get_connectivity(t, connectivity, num_nodes);
-        MB_CHK_ERR(ecode);
-        assert(num_nodes >= 0);
-        assert(
-            static_cast<std::size_t>(num_nodes) == mesh.num_nodes_per_element
-        );
         //Mapping a node x on the coarse grid to contributions to the integral
         //of the multilevel component against φ(·, x).
         std::unordered_map<moab::EntityHandle, double> local_b;
-        for (
-            moab::EntityHandle x :
-                helpers::PseudoArray(connectivity, num_nodes)
-        ) {
+        //We'll be finding these nodes again (piecemeal, edge by edge) below.
+        //Could therefore eliminate this call if it's slow.
+        for (const moab::EntityHandle x : mesh.connectivity(t)) {
             interpolation_key.insert({replica(x, l - 1, l), {{x, 1}}});
             local_b.insert({x, 0});
         }
@@ -280,16 +259,12 @@ UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
         MB_CHK_ERR(ecode);
         for (moab::EntityHandle edge : edges) {
             const moab::EntityHandle MIDPOINT = get_midpoint(edge, l - 1, l);
-            moab::EntityHandle const *edge_connectivity;
-            int edge_num_nodes;
-            ecode = mesh.impl->get_connectivity(
-                edge, edge_connectivity, edge_num_nodes
-            );
-            MB_CHK_ERR(ecode);
-            assert(edge_num_nodes == 2);
+            const helpers::PseudoArray<
+                const moab::EntityHandle
+            > connectivity = mesh.connectivity(edge);
             interpolation_key.insert({
                 MIDPOINT, {
-                    {edge_connectivity[0], 0.5}, {edge_connectivity[1], 0.5}
+                    {connectivity[0], 0.5}, {connectivity[1], 0.5}
                 }
             });
         }
@@ -299,19 +274,10 @@ UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
             const double measure_factor = (
                 measure(T, l) / measure_factor_denominator
             );
-            moab::EntityHandle const *CONNECTIVITY;
-            int NUM_NODES;
-            ecode = MESH.impl->get_connectivity(T, CONNECTIVITY, NUM_NODES);
-            MB_CHK_ERR(ecode);
-            assert(NUM_NODES >= 0);
-            assert(
-                static_cast<std::size_t>(NUM_NODES) ==
-                MESH.num_nodes_per_element
-            );
-            for (
-                moab::EntityHandle X :
-                    helpers::PseudoArray(CONNECTIVITY, NUM_NODES)
-            ) {
+            const helpers::PseudoArray<
+                const moab::EntityHandle
+            > CONNECTIVITY = MESH.connectivity(T);
+            for (const moab::EntityHandle X : CONNECTIVITY) {
                 //We're decomposing the input, a multilevel component, into a
                 //sum of hat functions on the fine level (Φ(·, X)s). The
                 //multilevel component is zero on the old nodes, so the
@@ -320,10 +286,7 @@ UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
                 if (!is_new_node(X, l)) {
                     continue;
                 }
-                for (
-                    const moab::EntityHandle Y :
-                        helpers::PseudoArray(CONNECTIVITY, NUM_NODES)
-                ) {
+                for (const moab::EntityHandle Y : CONNECTIVITY) {
                     //Integration of Φ(·; X) against Φ(·; Y) over `T` (scaled by
                     //the value the input takes at X (that is, the coefficient
                     //of Φ(·; X)).
