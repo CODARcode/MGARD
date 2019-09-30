@@ -34,38 +34,8 @@
 
 
 #include <dlfcn.h> // dlopen
-#include <typeinfo>       // operator typeid
-#include <cxxabi.h>
-#include "mgard_api.h"
-// #include "mgard.h"
-// #include "mgard_nuni.h"
 
-template <class T>
-std::string
-type_name()
-{
-    typedef typename std::remove_reference<T>::type TR;
-    std::unique_ptr<char, void(*)(void*)> own
-           (
-#ifndef _MSC_VER
-                abi::__cxa_demangle(typeid(TR).name(), nullptr,
-                                           nullptr, nullptr),
-#else
-                nullptr,
-#endif
-                std::free
-           );
-    std::string r = own != nullptr ? own.get() : typeid(TR).name();
-    if (std::is_const<TR>::value)
-        r += " const";
-    if (std::is_volatile<TR>::value)
-        r += " volatile";
-    if (std::is_lvalue_reference<T>::value)
-        r += "&";
-    else if (std::is_rvalue_reference<T>::value)
-        r += "&&";
-    return r;
-}
+#include "mgard_api.h"
 
 inline int get_index3(const int ncol, const int nfib, const int i, const int j, const int k)
 {
@@ -73,21 +43,12 @@ inline int get_index3(const int ncol, const int nfib, const int i, const int j, 
 }
 
 
-// double qoi(const int nrow, const int ncol, const int nfib, std::vector<double> u)
-// {
-//   int i = 100;
-//   return u[i];
-// }
-
 
 
 double qoi_x(const int nrow, const int ncol, const int nfib, std::vector<double> u)
 {
 
   int type_indicator = 0 ;
-  // int nrow = 111;
-  // int ncol = 160;
-  // int nfib = 15;
 
   for(int irow = 0; irow < nrow; ++irow )
     {
@@ -112,14 +73,12 @@ double qoi_ave(const int nrow, const int ncol, const int nfib, std::vector<doubl
   
   return sum/u.size();
 }
+
 double qoi_one(const int nrow, const int ncol, const int nfib, std::vector<double> u)
 {
   double qov = 1.0;
 
   int type_indicator = 0 ;
-  // int nrow = 111;
-  // int ncol = 160;
-  // int nfib = 15;
   double h;
   
   for(int irow = 0; irow < nrow; ++irow )
@@ -244,9 +203,6 @@ int main(int argc, char**argv)
   std::ifstream cordfile(coord_file, std::ios::in | std::ios::binary);
   
   infile.read( reinterpret_cast<char*>( v.data() ), nrow*ncol*nfib*sizeof(double) );
-  std::iota(std::begin(coords_x), std::end(coords_x), 0);
-  std::iota(std::begin(coords_y), std::end(coords_y), 0);
-  //  std::iota(std::begin(coords_z), std::end(coords_z), 0);
   
   std::cout << "Read input\n";
   
@@ -256,78 +212,55 @@ int main(int argc, char**argv)
   
   std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
   std::ofstream zipfile(zip_file, std::ios::out | std::ios::binary);
-
-
-  //-- call the compressor --//
-  std::vector<unsigned char> out_data;
+  
   int out_size;
       
-
 
   //-- dlopen bit --//
     // open library
   //    void* handle = dlopen("./qoi.so", RTLD_LAZY);
   void* handle = dlopen(shared_obj.c_str(), RTLD_LAZY);
-    if (!handle) {
-        std::cerr << "dlopen error: " << dlerror() << '\n';
-        return 1;
-    }
-
-    // load symbol
-    typedef double (*qoi_t)(int, int, int, double*);
-
-    //    clear errors, find symbol, check errors
-    dlerror();
-    //    qoi_t qoi = (qoi_t) dlsym(handle, "_Z4qoi2iiiPd");
-    //    qoi_t qoi = (qoi_t) dlsym(handle, "qoi");
-    qoi_t qoi = (qoi_t) dlsym(handle, function_handle.c_str());
-    const char *dlsym_error = dlerror();
-    if (dlsym_error) {
-        std::cerr << "dlsym error: " << dlsym_error << '\n';
-        dlclose(handle);
-        return 1;
-    }
+  if (!handle) {
+    std::cerr << "dlopen error: " << dlerror() << '\n';
+    return 1;
+  }
+  
+  // load symbol
+  typedef double (*qoi_t)(int, int, int, double*);
+  
+  //    clear errors, find symbol, check errors
+  dlerror();
+  //    qoi_t qoi = (qoi_t) dlsym(handle, "_Z4qoi2iiiPd");
+  //    qoi_t qoi = (qoi_t) dlsym(handle, "qoi");
+  qoi_t qoi = (qoi_t) dlsym(handle, function_handle.c_str());
+  const char *dlsym_error = dlerror();
+  if (dlsym_error) {
+    std::cerr << "dlsym error: " << dlsym_error << '\n';
+    dlclose(handle);
+    return 1;
+  }
   
   //-- dlopen --//
 
-    auto funp = &qoi_one ;
-    
-    auto pqoi = &qoi ;
-    
-    
-    
-    // std::cout << " pi is: " << typeid(qoi).name() << '\n';
-    // std::cout << " pi is: " << typeid(funp).name() << '\n';
-    int l_target = nlevel-1;
 
-    std::cout << "pointer to qoi is " << type_name<decltype((qoi))>() << '\n';
-    std::cout << "funp is " << type_name<decltype((funp))>() << '\n';
   
-  std::vector<double> norm_vec(nlevel+1);
-
   unsigned char* test;
-
-
   //  double xnorm = mgard_compress(nrow,  ncol,  nfib,  qoi, s);
 
   //  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, qoi, s);
-  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  1, tol, s );
+  test = mgard_compress(1, v.data(), out_size,  nrow,  ncol,  nfib, tol, s );
   std::cout << "Outto size" << out_size << "\n";
 
   zipfile.write(reinterpret_cast<char*> (test), out_size );  
 
-  //  std::vector<double> dtest(nrow*ncol*nfib);
-
   double *dtest;
-  dtest = mgard_decompress(1, test, out_size,  nrow,  ncol,  1, s);
+  dtest = mgard_decompress(1, test, out_size,  nrow,  ncol,  nfib, s);
   outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(double) );  
 
   //
   free(test);
   free(dtest);
   // std::cout << "xnorm " << out_size << "\n";
-
-
 
 
   return 0;
