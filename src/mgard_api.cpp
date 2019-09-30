@@ -48,7 +48,6 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
       
       unsigned char* mgard_compressed_ptr = nullptr;
 
-
       return mgard_compressed_ptr;
     }
   else if(itype_flag == 1)
@@ -85,12 +84,7 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
   else
     {
       std::cerr <<"MGARD: Unknown data type...\n";
-
-      double tol = tol_in;
-      assert (tol >= 1e-8);
-      
       unsigned char* mgard_compressed_ptr = nullptr;
-
 
       return mgard_compressed_ptr;
     }
@@ -451,3 +445,420 @@ unsigned char *mgard_compress(int itype_flag,  double  *v, int &out_size, int nr
   return mgard_compress(itype_flag, v, out_size,  nrow,  ncol,  nfib,  tol_in, s);
 
 }
+
+
+
+// //FLOAT versions
+
+
+// unsigned char *mgard_compress(int itype_flag,  float  *v, int &out_size, int nrow, int ncol, int nfib, float tol_in)
+
+//  //Perform compression preserving the tolerance in the L-infty norm
+// { 
+//   if(itype_flag == 0)
+//     {
+
+//       float tol = tol_in;
+//       assert (tol >= 1e-8);
+      
+//       unsigned char* mgard_compressed_ptr = nullptr;
+
+//       return mgard_compressed_ptr;
+//     }
+//   else if(itype_flag == 1)
+//     {
+//       float tol = tol_in;
+//       assert (tol >= 1e-8);
+//       unsigned char* mgard_compressed_ptr = nullptr;
+//       if(nrow > 1 && ncol > 1 && nfib > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           assert (nfib > 3);
+          
+// 	  mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol);
+//           return mgard_compressed_ptr;
+                
+//         }
+//       else if (nrow > 1 && ncol > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol);
+//           return mgard_compressed_ptr;
+//         }
+//       else if (nrow > 1 )
+//         {
+//           assert (nrow > 3);
+// 	  std::cerr <<"MGARD: Let us know if you need 1D compression...\n";
+// 	  return nullptr;
+//         }
+
+      
+//     }
+//   else
+//     {
+//       std::cerr <<"MGARD: Unknown data type...\n";
+//       unsigned char* mgard_compressed_ptr = nullptr;
+
+//       return mgard_compressed_ptr;
+//     }
+  
+// }
+
+
+
+// unsigned char *mgard_compress(int itype_flag, float  *v, int &out_size, int nrow, int ncol, int nfib, std::vector<float>& coords_x, std::vector<float>& coords_y, std::vector<float>& coords_z , float tol)
+//  //Perform compression preserving the tolerance in the L-infty norm, arbitrary tensor grids
+// { 
+//   if(itype_flag == 0)
+//     {
+
+//       assert (tol >= 1e-8);
+      
+//       unsigned char* mgard_compressed_ptr = nullptr;
+
+
+//       return mgard_compressed_ptr;
+//     }
+//   else if(itype_flag == 1)
+//     {
+//       assert (tol >= 1e-8);
+//       unsigned char* mgard_compressed_ptr = nullptr;
+//       if(nrow > 1 && ncol > 1 && nfib > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           assert (nfib > 3);
+          
+// 	  mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, coords_x, coords_y, coords_z, v, out_size, tol);
+//           return mgard_compressed_ptr;
+                
+//         }
+//       else if (nrow > 1 && ncol > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, coords_x, coords_y, v, out_size, tol);
+//           return mgard_compressed_ptr;
+//         }
+//       else if (nrow > 1 )
+//         {
+//           assert (nrow > 3);
+// 	  std::cerr <<"MGARD: Let us know if you need 1D compression...\n";
+// 	  return nullptr;
+//         }
+
+      
+//     }
+//   else
+//     {
+//       std::cerr <<"MGARD: Unknown data type exiting...\n";
+//       return nullptr;
+//     }
+  
+// }
+
+
+
+
+// unsigned char *mgard_compress(int itype_flag,  float  *v, int &out_size, int nrow, int ncol, int nfib, float tol_in, float s )
+// {
+//   //Perform compression preserving the tolerance in s norm by defaulting to the s-norm
+//   if(itype_flag == 0)
+//     {
+
+
+//       float tol = tol_in;
+//       assert (tol >= 1e-8);
+      
+//       unsigned char* mgard_compressed_ptr = nullptr;
+
+//       return mgard_compressed_ptr;
+//     }
+//   else if(itype_flag == 1)
+//     {
+//       float tol = tol_in;
+//       assert (tol >= 1e-8);
+
+//       unsigned char* mgard_compressed_ptr = nullptr;
+//       if(nrow > 1 && ncol > 1 && nfib > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           assert (nfib > 3);
+          
+//           mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, s);
+//           return mgard_compressed_ptr;
+                
+//         }
+//       else if (nrow > 1 && ncol > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol, s);
+	  
+//           return mgard_compressed_ptr;
+//         }
+//       else if (nrow > 1 )
+//         {
+//           assert (nrow > 3);
+// 	  std::cerr <<"MGARD: Let us know if you need 1D compression...\n";
+// 	  return nullptr;
+//         }
+
+      
+//     }
+//   else
+//     {
+//       std::cerr <<"MGARD: Unknown data type...\n";
+
+//       return nullptr;
+//     }
+  
+// }
+
+
+
+// //unsigned char *mgard_compress(int itype_flag,  float  *v, int &out_size, int nrow, int ncol, int nfib, float tol_in, float (*qoi) (int, int, int, std::vector<float>), float s)
+
+// unsigned char *mgard_compress(int itype_flag,  float  *v, int &out_size, int nrow, int ncol, int nfib, float tol_in, float (*qoi) (int, int, int, float*), float s)
+// {
+//   //Perform compression preserving the tolerance in s norm by defaulting to the L-2 norm
+//   if(itype_flag == 0)
+//     {
+ 
+//       float tol = tol_in;
+//       assert (tol >= 1e-8);
+      
+//       unsigned char* mgard_compressed_ptr = nullptr;
+
+//       //mgard_compressed_ptr = mgard::refactor_qz_float(nrow, ncol, v, out_size, *tol);
+
+//       return mgard_compressed_ptr;
+//     }
+//   else if(itype_flag == 1)
+//     {
+ 
+//       float tol = tol_in;
+//       assert (tol >= 1e-8);
+//       unsigned char* mgard_compressed_ptr = nullptr;
+//       if(nrow > 1 && ncol > 1 && nfib > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           assert (nfib > 3);
+
+// 	  std::vector<float> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
+// 	    //dummy equispaced coordinates
+// 	  std::iota(std::begin(coords_x), std::end(coords_x), 0);
+// 	  std::iota(std::begin(coords_y), std::end(coords_y), 0);
+// 	  std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+// 	  float xi_norm =  mgard_gen::qoi_norm(nrow,  ncol,  nfib, coords_x,  coords_y, coords_z, qoi, s);
+// 	  tol *= xi_norm;
+//           mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, -s);
+//           return mgard_compressed_ptr;
+                
+//         }
+//       else if (nrow > 1 && ncol > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+
+// 	  std::vector<float> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
+// 	  //dummy equispaced coordinates
+// 	  std::iota(std::begin(coords_x), std::end(coords_x), 0);
+// 	  std::iota(std::begin(coords_y), std::end(coords_y), 0);
+// 	  std::iota(std::begin(coords_z), std::end(coords_z), 0);
+	  
+
+// 	  float xi_norm =  mgard_gen::qoi_norm(nrow,  ncol,  nfib, coords_x,  coords_y, coords_z, qoi, s);
+// 	  tol *= xi_norm;
+
+//           mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol, -s);
+//           return mgard_compressed_ptr;
+//         }
+//       else if (nrow > 1 )
+//         {
+//           assert (nrow > 3);
+//           //mgard_compressed_ptr = mgard::refactor_qz_1D(nrow, v, out_size, *tol);
+//         }
+
+      
+//     }
+//   else
+//     {
+//       std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
+//       // const float *v = static_cast<const float*>(data);
+//       // float *tol = static_cast<float*>(tol_in);
+//       // assert (*tol >= 1e-8);
+      
+//       unsigned char* mgard_compressed_ptr = nullptr;
+
+//       //mgard_compressed_ptr = mgard::refactor_qz_float(nrow, ncol, v, out_size, *tol);
+
+//       return mgard_compressed_ptr;
+//     }
+  
+// }
+
+// float *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, int nrow, int ncol, int nfib)
+// {
+//   assert (ncol > 3);
+//   assert (nrow >= 1);
+
+//   if(itype_flag == 0)
+//     {
+      
+//       float* mgard_decompressed_ptr;
+
+//       //      mgard_decompressed_ptr = mgard::recompose_udq_float(nrow, ncol, v, out_size, *tol);
+
+//       //      return mgard_decompressed_ptr;
+//     }
+//   else if(itype_flag == 1)
+//     {
+      
+//       float* mgard_decompressed_ptr = nullptr;
+      
+//       //      mgard_decompressed_ptr = static_cast<float*> (mgard::recompose_udq(nrow, ncol, data, data_len));
+
+
+
+//       if(nrow > 1 && ncol > 1 && nfib > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           assert (nfib > 3);
+	  
+//           mgard_decompressed_ptr = mgard::recompose_udq(nrow, ncol, nfib, data, data_len);
+//           return mgard_decompressed_ptr;      
+//         }
+//       else if (nrow > 1 && ncol > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol, data, data_len);
+//           //          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol, data, data_len);
+//           return mgard_decompressed_ptr;
+//         }
+//       else if (nrow > 1 )
+//         {
+//           assert (nrow > 3);
+//           //mgard_decompressed_ptr = mgard::recompose_udq_1D(nrow,  data, data_len);
+//         }
+      
+
+//     }
+//   else
+//     {
+//       std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
+
+//       float* mgard_decompressed_ptr = nullptr;
+
+//       //mgard_decompressed_ptr = mgard::recompose_udq_float(nrow, ncol, v, out_size, *tol);
+
+//     }
+  
+// }
+
+
+// float  *mgard_decompress(int itype_flag,  unsigned char *data, int data_len, int nrow, int ncol, int nfib, float s)
+// {
+//   assert (ncol > 3);
+//   assert (nrow >= 1);
+
+//   if(itype_flag == 0)
+//     {
+      
+//       float* mgard_decompressed_ptr;
+
+//       //      mgard_decompressed_ptr = mgard::recompose_udq_float(nrow, ncol, v, out_size, *tol);
+
+//       //      return mgard_decompressed_ptr;
+//     }
+//   else if(itype_flag == 1)
+//     {
+      
+//       float* mgard_decompressed_ptr = nullptr;
+
+//       //      mgard_decompressed_ptr = static_cast<float*> (mgard::recompose_udq(nrow, ncol, data, data_len));
+
+
+
+//       if(nrow > 1 && ncol > 1 && nfib > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           assert (nfib > 3);
+
+//           mgard_decompressed_ptr = mgard::recompose_udq(nrow, ncol, nfib, data, data_len, s);
+//           return mgard_decompressed_ptr;      
+//         }
+//       else if (nrow > 1 && ncol > 1)
+//         {
+//           assert (nrow > 3);
+//           assert (ncol > 3);
+//           mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol, data, data_len, s);
+//           //          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol, data, data_len);
+//           return mgard_decompressed_ptr;
+//         }
+//       else if (nrow > 1 )
+//         {
+//           assert (nrow > 3);
+//           //mgard_decompressed_ptr = mgard::recompose_udq_1D(nrow,  data, data_len);
+//         }
+      
+
+//     }
+//   else
+//     {
+//       std::cerr <<"MGARD: Unknown data type, assuming 32-bit floats...\n";
+
+//       float* mgard_decompressed_ptr = nullptr;
+
+//       //mgard_decompressed_ptr = mgard::recompose_udq_float(nrow, ncol, v, out_size, *tol);
+
+//     }
+  
+// }
+
+
+// float mgard_compress(int nrow, int ncol, int nfib, float (*qoi) (int, int, int, std::vector<float>), float s)
+// {
+//   std::vector<float> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
+//   //dummy equispaced coordinates
+//   std::iota(std::begin(coords_x), std::end(coords_x), 0);
+//   std::iota(std::begin(coords_y), std::end(coords_y), 0);
+//   std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+//   float xi_norm =  mgard_gen::qoi_norm(nrow,  ncol,  nfib, coords_x,  coords_y, coords_z, qoi, s);
+
+//   return xi_norm;
+// }
+
+
+
+// float mgard_compress(int nrow, int ncol, int nfib, float (*qoi) (int, int, int, float*), float s)
+// {
+//   std::vector<float> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
+//   //dummy equispaced coordinates
+//   std::iota(std::begin(coords_x), std::end(coords_x), 0);
+//   std::iota(std::begin(coords_y), std::end(coords_y), 0);
+//   std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+//   float xi_norm =  mgard_gen::qoi_norm(nrow,  ncol,  nfib, coords_x,  coords_y, coords_z, qoi, s);
+
+//   return xi_norm;
+// }
+
+
+// unsigned char *mgard_compress(int itype_flag,  float  *v, int &out_size, int nrow, int ncol, int nfib, float tol_in, float norm_of_qoi, double s)
+// {
+//   tol_in *= norm_of_qoi;
+//   return mgard_compress(itype_flag, v, out_size,  nrow,  ncol,  nfib,  tol_in, s);
+
+// }
+
+// // FLOAT end
