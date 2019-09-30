@@ -146,6 +146,38 @@ moab::ErrorCode MeshLevel::precompute_element_measures() const {
     return precompute_measures(element_type);
 }
 
+helpers::PseudoArray<const moab::EntityHandle> MeshLevel::connectivity(
+    const moab::EntityHandle handle
+) const {
+    std::size_t expected_num_nodes;
+    const moab::EntityType type = impl->type_from_handle(handle);
+    if (type == moab::MBEDGE) {
+        expected_num_nodes = 2;
+    } else if (type == element_type) {
+        expected_num_nodes = num_nodes_per_element;
+    } else {
+        throw std::domain_error(
+            "can only find connectivity of edges and elements"
+        );
+    }
+    //Could additionally check that the entity is in the mesh.
+    moab::EntityHandle const *connectivity;
+    int num_nodes;
+    moab::ErrorCode ecode = impl->get_connectivity(
+        handle, connectivity, num_nodes
+    );
+    if (ecode != moab::MB_SUCCESS) {
+        throw std::runtime_error("failed to get entity connectivity");
+    }
+    if (
+        num_nodes < 0 ||
+            static_cast<std::size_t>(num_nodes) != expected_num_nodes
+    ) {
+        throw std::runtime_error("entity connectivity had unexpected size");
+    }
+    return helpers::PseudoArray(connectivity, expected_num_nodes);
+}
+
 //Protected member functions.
 
 void MeshLevel::check_system_size(const std::size_t N) const {
@@ -219,34 +251,22 @@ moab::ErrorCode MeshLevel::precompute_measures(
     }
 
     std::vector<double> _coordinates(3 * expected_connectivity_size);
-    //Just for consistency with `connectivity` below.
     double * const coordinates = _coordinates.data();
     std::vector<double>::iterator p = measures[type].begin();
     for (moab::EntityHandle handle : entities[type]) {
-        moab::ErrorCode ecode;
-
-        moab::EntityHandle const *connectivity;
-        int num_nodes;
-        ecode = impl->get_connectivity(handle, connectivity, num_nodes);
-        MB_CHK_ERR(ecode);
-        assert(num_nodes >= 0);
-        assert(
-            static_cast<std::size_t>(num_nodes) == expected_connectivity_size
+        helpers::PseudoArray<const moab::EntityHandle> conn = (
+            connectivity(handle)
         );
-
-        ecode = impl->get_coords(connectivity, num_nodes, coordinates);
+        moab::ErrorCode ecode = impl->get_coords(
+            conn.data, conn.size, coordinates
+        );
         MB_CHK_ERR(ecode);
-
         const double volume = *p++ = f(coordinates);
         //Increment for each node in the element the total measure of the
         //elements containing that node.
         if (computing_element_measures) {
-            for (
-                moab::EntityHandle const *q = connectivity;
-                q != connectivity + num_nodes;
-                ++q
-            ) {
-                preconditioner_divisors.at(index(*q)) += volume;
+            for (const moab::EntityHandle node : conn) {
+                preconditioner_divisors.at(index(node)) += volume;
             }
         }
     }

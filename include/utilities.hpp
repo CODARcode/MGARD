@@ -9,28 +9,31 @@ namespace helpers {
 
 //!Mimic an array for range-based for loops.
 template <typename T>
-class PseudoArray {
-    public:
-        //!Constructor.
-        //!
-        //!\param p Pointer to the first element in the array.
-        //!\param N Length of the array.
-        PseudoArray(T * const p, const std::size_t N);
+struct PseudoArray {
+    //!Constructor.
+    //!
+    //!\param p Pointer to the first element in the array.
+    //!\param N Length of the array.
+    PseudoArray(T * const data, const std::size_t size);
 
-        //!Constructor.
-        //!
-        //!\override
-        PseudoArray(T * const p, const int N);
+    //!Constructor.
+    //!
+    //!\override
+    PseudoArray(T * const data, const int size);
 
-        //!Return an iterator to the beginning of the array.
-        T * begin() const;
+    //!Return an iterator to the beginning of the array.
+    T * begin() const;
 
-        //!Return an iterator to the end of the array.
-        T * end() const;
+    //!Return an iterator to the end of the array.
+    T * end() const;
 
-    private:
-        T * const p;
-        const std::size_t N;
+    T operator[](const std::size_t i) const;
+
+    //!Pointer to the first element of the array.
+    T * const data;
+
+    //!Length of the array.
+    const std::size_t size;
 };
 
 }

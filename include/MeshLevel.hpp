@@ -8,6 +8,8 @@
 #include "moab/EntityType.hpp"
 #include "moab/Interface.hpp"
 
+#include "utilities.hpp"
+
 namespace mgard {
 
 //!Triangular or tetrahedral mesh (either freestanding or part of a hierarchy).
@@ -74,6 +76,13 @@ class MeshLevel {
         //!
         //!\return Index of the entity.
         std::size_t index(const moab::EntityHandle handle) const;
+
+        //!Find the connectivity of an edge or element.
+        //!
+        //!\param
+        helpers::PseudoArray<const moab::EntityHandle> connectivity(
+            const moab::EntityHandle handle
+        ) const;
 
         //!MOAB interface to which the mesh is associated.
         moab::Interface *impl;
