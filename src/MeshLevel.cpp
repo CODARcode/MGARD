@@ -111,8 +111,8 @@ std::size_t MeshLevel::ndof() const {
 std::size_t MeshLevel::index(const moab::EntityHandle handle) const {
     const moab::EntityType type = impl->type_from_handle(handle);
     const moab::Range &range = entities[type];
-    assert(range.psize() == 1);
     assert(!range.empty());
+    assert(range.psize() == 1);
     if (!(range.front() <= handle && handle <= range.back())) {
         throw std::out_of_range("attempt to find index of entity not in mesh");
     }

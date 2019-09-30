@@ -23,7 +23,7 @@ DIRTY_EXECUTABLE_FILES =
 #Tested but not compiled.
 HEADERS_WITHOUT_IMPLEMENTATIONS := utilities
 HELPER_STEMS := measure LinearOperator pcg
-MGARD_STEMS := MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner
+MGARD_STEMS := MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy
 STEMS = $(HELPER_STEMS) $(MGARD_STEMS)
 
 TESTS@DIR_ROOT := tests
