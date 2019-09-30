@@ -57,8 +57,18 @@ moab::ErrorCode MeshHierarchy::recompose(double * const u, void *buffer) {
 
 //Protected member functions.
 
+//I am not positive that the following is correct. Take it as an explanation of
+//why I made the argument type `std::function`.
+//`refiner` is intended to be a `MeshRefiner`. If we were to specify its type as
+//`MeshRefiner`, it would need to be passed as a pointer or reference because
+//`MeshRefiner` is an abstract type. But when `UniformMeshHierarchy` calls this
+//constructor we want to pass a temporary `UniformMeshRefiner`, so it has to be
+//a const reference. But what if we want `refiner` to keep some state between
+//refinements or something?
 MeshHierarchy::MeshHierarchy(
-    const MeshLevel &mesh, MeshRefiner &refiner, const std::size_t _L
+    const MeshLevel &mesh,
+    std::function<MeshLevel (const MeshLevel &)> refiner,
+    const std::size_t _L
 ):
     MeshHierarchy({mesh})
 {
