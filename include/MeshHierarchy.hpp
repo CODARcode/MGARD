@@ -6,10 +6,10 @@
 
 #include <cstddef>
 
+#include <functional>
 #include <vector>
 
 #include "MeshLevel.hpp"
-#include "MeshRefiner.hpp"
 
 namespace mgard {
 
@@ -60,7 +60,9 @@ class MeshHierarchy {
         //!\param refiner Function object to refine the meshes.
         //!\param L Number of times to refine the initial mesh.
         MeshHierarchy(
-            const MeshLevel &mesh, MeshRefiner &refiner, const std::size_t L
+            const MeshLevel &mesh,
+            std::function<MeshLevel (const MeshLevel &)> refiner,
+            const std::size_t L
         );
 
         //!MeshLevels in the hierarchy, ordered from coarsest to finest.
@@ -70,7 +72,7 @@ class MeshHierarchy {
         std::size_t L;
 
         //!Scratch space for use in hierarchy operations if no external buffer
-        //if provided.
+        //!if provided.
         std::vector<char> scratch_space;
 
         //!Report the number of degrees of freedom in a MeshLevel.
