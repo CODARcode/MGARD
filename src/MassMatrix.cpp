@@ -1,8 +1,10 @@
+#include "MassMatrix.hpp"
+
 #include <cassert>
 
 #include <stdexcept>
 
-#include "MassMatrix.hpp"
+#include "utilities.hpp"
 
 namespace mgard {
 
@@ -40,24 +42,15 @@ void MassMatrix::do_operator_parentheses(
         const double measure_factor = (
             mesh->measure(element) / measure_factor_divisor
         );
-        moab::EntityHandle const *connectivity;
-        int n;
-        moab::ErrorCode ecode = mesh->impl->get_connectivity(
-            element, connectivity, n
-        );
-        if (ecode != moab::MB_SUCCESS) {
-            throw std::runtime_error("failed to get element connectivity");
-        }
         //Pairs `(i, v)` where `i` is the global index of a node and `v` is
         //`x[i]`, the value of the function there.
-        std::vector<std::pair<std::size_t, double>> nodal_pairs(n);
+        std::vector<std::pair<std::size_t, double>> nodal_pairs;
+        nodal_pairs.reserve(mesh->num_nodes_per_element);
         double nodal_values_sum = 0;
-        assert(n >= 0);
-        for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
-            std::pair<std::size_t, double> &pair = nodal_pairs.at(i);
-            nodal_values_sum += (
-                pair.second = x[pair.first = mesh->index(connectivity[i])]
-            );
+        for (const moab::EntityHandle node : mesh->connectivity(element)) {
+            std::pair<std::size_t, double> pair;
+            nodal_values_sum += pair.second = x[pair.first = mesh->index(node)];
+            nodal_pairs.push_back(pair);
         }
         for (std::pair<std::size_t, double> pair : nodal_pairs) {
             b[pair.first] += measure_factor * (nodal_values_sum + pair.second);
