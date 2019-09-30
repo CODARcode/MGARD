@@ -72,7 +72,7 @@ MeshHierarchy::MeshHierarchy(
 ):
     MeshHierarchy({mesh})
 {
-    //`this->L` is now set to zero. We'll increment it every time to append to
+    //`this->L` is now set to zero. We'll increment it every time we append to
     //`meshes`.
     //Reserving rather than resizing so we don't need to provide a default
     //constructor for `MeshLevel`.
@@ -168,7 +168,8 @@ moab::ErrorCode MeshHierarchy::recompose(
     //This leaves us with `(I - Π_{l - 1})Q_{l}u` on `N_new` and
     //`Π_{l - 1}Q_{l}u` on `N_old`. Once we update the values on `N_new` by
     //adding the interpolant we'll have `Q_{l}u` on `N`.
-    add_interpolant_from_coarser_level_to_new_values(u, l);
+    ecode = add_interpolant_from_coarser_level_to_new_values(u, l);
+    MB_CHK_ERR(ecode);
 
     return (l != L) ? recompose(u, l + 1, buffer) : moab::MB_SUCCESS;
 }
@@ -247,6 +248,10 @@ moab::Range MeshHierarchy::get_children(
     check_mesh_index_bounds(l);
     check_mesh_index_bounds(m);
     check_mesh_indices_nondecreasing(l, m);
+    const MeshLevel &mesh = meshes.at(l);
+    if (mesh.impl->type_from_handle(t) != mesh.element_type) {
+        throw std::domain_error("can only find children of elements");
+    }
     return do_get_children(t, l, m);
 }
 
