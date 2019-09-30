@@ -223,10 +223,10 @@ class MeshHierarchy {
         virtual std::size_t do_scratch_space_needed() const;
 
         virtual
-        std::size_t do_scratch_space_needed_for_decomposition() const = 0;
+        std::size_t do_scratch_space_needed_for_decomposition() const;
 
         virtual
-        std::size_t do_scratch_space_needed_for_recomposition() const = 0;
+        std::size_t do_scratch_space_needed_for_recomposition() const;
 
         virtual moab::EntityHandle do_replica(
             const moab::EntityHandle node,
