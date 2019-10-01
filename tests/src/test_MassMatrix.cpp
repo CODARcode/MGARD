@@ -13,38 +13,19 @@
 
 TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
     SECTION("triangles") {
-        moab::Core mbcore;
+        moab::ErrorCode ecode;
         const std::size_t num_nodes = 5;
         const std::size_t num_edges = 7;
         const std::size_t num_tris = 3;
-        const double coordinates[3 * num_nodes] = {
-            0, 0, 1,
-            3, 0, 1,
-            0, 4, 1,
-            6, 4, 1,
-            1.5, -3, 1,
-        };
-        const std::size_t edge_connectivity[2 * num_edges] = {
-            0, 1,
-            1, 2,
-            2, 0,
-            1, 3,
-            3, 2,
-            0, 4,
-            4, 1,
-        };
-        const std::size_t tri_connectivity[3 * num_tris] = {
-            0, 1, 2,
-            2, 1, 3,
-            1, 0, 4,
-        };
-        mgard::MeshLevel mesh = make_mesh_level(
-            mbcore, num_nodes, num_edges, num_tris, 2,
-            coordinates, edge_connectivity, tri_connectivity
-        );
+        moab::Core mbcore;
+        ecode = mbcore.load_file(mesh_path("lopsided.msh").c_str());
+        require_moab_success(ecode);
+        mgard::MeshLevel mesh(mbcore);
         REQUIRE(mesh.topological_dimension == 2);
         REQUIRE(mesh.element_type == moab::MBTRI);
         REQUIRE(mesh.ndof() == num_nodes);
+        REQUIRE(mesh.entities[moab::MBEDGE].size() == num_edges);
+        REQUIRE(mesh.entities[moab::MBTRI].size() == num_tris);
         mgard::MassMatrix M(&mesh);
         mgard::MassMatrixPreconditioner P(&mesh);
 
@@ -110,39 +91,19 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
     }
 
     SECTION("tetrahedra") {
+        moab::ErrorCode ecode;
         moab::Core mbcore;
         const std::size_t num_nodes = 5;
         const std::size_t num_edges = 9;
         const std::size_t num_tets = 2;
-        const double coordinates[3 * num_nodes] = {
-            0, 0, 0,
-            5, 1, 0,
-            -1, 3, 0,
-            0, 0, 4,
-            3, 2, 3
-        };
-        const std::size_t edge_connectivity[2 * num_edges] = {
-            0, 1,
-            0, 2,
-            0, 3,
-            1, 2,
-            1, 3,
-            2, 3,
-            2, 4,
-            1, 4,
-            3, 4
-        };
-        const std::size_t tet_connectivity[4 * num_tets] = {
-            0, 1, 2, 3,
-            2, 1, 3, 4
-        };
-        mgard::MeshLevel mesh = make_mesh_level(
-            mbcore, num_nodes, num_edges, num_tets, 3,
-            coordinates, edge_connectivity, tet_connectivity
-        );
+        ecode = mbcore.load_file(mesh_path("hexahedron.msh").c_str());
+        require_moab_success(ecode);
+        mgard::MeshLevel mesh(mbcore);
         REQUIRE(mesh.topological_dimension == 3);
         REQUIRE(mesh.element_type == moab::MBTET);
         REQUIRE(mesh.ndof() == num_nodes);
+        REQUIRE(mesh.entities[moab::MBEDGE].size() == num_edges);
+        REQUIRE(mesh.entities[moab::MBTET].size() == num_tets);
         double u[num_nodes] = {-8, -7, 3, 0, 10};
         double b[num_nodes];
         mgard::MassMatrix M(&mesh);
@@ -208,4 +169,3 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
         }
     }
 }
-

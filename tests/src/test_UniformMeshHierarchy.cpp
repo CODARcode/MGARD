@@ -14,55 +14,11 @@
 #include "UniformMeshHierarchy.hpp"
 
 TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
-    const std::size_t num_nodes = 9;
-    const std::size_t num_edges = 16;
-    const std::size_t num_elements = 8;
-
-    const double coordinates[3 * num_nodes] = {
-         0,  0,  0,
-        -6,  2, -1,
-        -1,  4,  1,
-         1,  7,  2,
-         3,  4, -1,
-         6,  4, -2,
-         5,  0,  0,
-         4, -2,  1,
-         1,  2, -1
-    };
-    const std::size_t edge_connectivity[2 * num_edges] = {
-        0, 1,
-        1, 2,
-        2, 3,
-        3, 4,
-        4, 5,
-        5, 6,
-        6, 7,
-        7, 0,
-        0, 2,
-        2, 4,
-        4, 6,
-        6, 0,
-        0, 8,
-        2, 8,
-        4, 8,
-        6, 8
-    };
-    const std::size_t element_connectivity[3 * num_elements] = {
-        0, 2, 1,
-        0, 8, 2,
-        8, 0, 6,
-        4, 8, 6,
-        2, 8, 4,
-        0, 7, 6,
-        6, 5, 4,
-        4, 3, 2
-    };
-
+    moab::ErrorCode ecode;
     moab::Core mbcore;
-    const mgard::MeshLevel mesh = make_mesh_level(
-        mbcore, num_nodes, num_edges, num_elements, 2,
-        coordinates, edge_connectivity, element_connectivity
-    );
+    ecode = mbcore.load_file(mesh_path("pyramid.msh").c_str());
+    require_moab_success(ecode);
+    const mgard::MeshLevel mesh(mbcore);
     mgard::UniformMeshHierarchy hierarchy(mesh, 2);
     REQUIRE(hierarchy.L == 2);
 
