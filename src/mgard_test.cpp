@@ -254,7 +254,8 @@ int main(int argc, char**argv)
   zipfile.write(reinterpret_cast<char*> (test), out_size );  
 
   double *dtest;
-  dtest = mgard_decompress(1, test, out_size,  nrow,  ncol,  nfib, s);
+  double q;
+  dtest = mgard_decompress(1, q, test, out_size,  nrow,  ncol,  nfib, s);
   outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(double) );  
 
   //

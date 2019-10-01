@@ -34,7 +34,6 @@
 
 #include "mgard.h"
 
-
 #ifndef MGARD_API_H
 #define MGARD_API_H
 
@@ -73,15 +72,16 @@ unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int 
 unsigned char *mgard_compress(int itype_flag, double  *data, int &out_size, int n1, int n2, int n3, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z , double tol, double norm_of_qoi, double s ); // ... 6a
 
 
-double  *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int n1, int n2, int n3); // decompress L-infty compressed data
-double  *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int n1, int n2, int n3, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z ); // decompress L-infty compressed data
+double  *mgard_decompress(int itype_flag, double& quantizer, unsigned char *data, int data_len, int n1, int n2, int n3); // decompress L-infty compressed data
+double  *mgard_decompress(int itype_flag, double& quantizer, unsigned char *data, int data_len, int n1, int n2, int n3, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z ); // decompress L-infty compressed data
 
-double  *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int n1, int n2, int n3, double s); // decompress s-norm
-double  *mgard_decompress(int itype_flag, unsigned char *data, int data_len, int n1, int n2, int n3, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, double s); // decompress s-norm
+double  *mgard_decompress(int itype_flag, double& quantizer, unsigned char *data, int data_len, int n1, int n2, int n3, double s); // decompress s-norm
+double  *mgard_decompress(int itype_flag, double& quantizer, unsigned char *data, int data_len, int n1, int n2, int n3, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, double s); // decompress s-norm
+
 
 
 
 #endif
 
 
-//CORRECT THE spelling of canonical
+
