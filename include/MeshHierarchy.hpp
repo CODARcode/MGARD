@@ -25,6 +25,7 @@ namespace mgard {
 //return to if necessary.
 
 //!Hierarchy of meshes produced by refining an initial mesh.
+
 class MeshHierarchy {
     public:
         //!Constructor.
@@ -34,6 +35,11 @@ class MeshHierarchy {
 
         //!Report the number of degrees of freedom in the finest MeshLevel.
         std::size_t ndof() const;
+
+        //!Report the number of degrees of freedom in a MeshLevel.
+        //!
+        //!\param l Index of the MeshLevel.
+        std::size_t ndof(const std::size_t l) const;
 
         //!Transform from nodal coefficients to multilevel coefficients.
         //!
@@ -51,6 +57,12 @@ class MeshHierarchy {
         //!hierarchy operations.
         std::size_t scratch_space_needed() const;
 
+        //!MeshLevels in the hierarchy, ordered from coarsest to finest.
+        std::vector<MeshLevel> meshes;
+
+        //!Index of finest MeshLevel.
+        std::size_t L;
+
     protected:
         //!Constructor.
         //!
@@ -65,20 +77,9 @@ class MeshHierarchy {
             const std::size_t L
         );
 
-        //!MeshLevels in the hierarchy, ordered from coarsest to finest.
-        std::vector<MeshLevel> meshes;
-
-        //!Index of finest MeshLevel.
-        std::size_t L;
-
         //!Scratch space for use in hierarchy operations if no external buffer
         //!if provided.
         std::vector<char> scratch_space;
-
-        //!Report the number of degrees of freedom in a MeshLevel.
-        //!
-        //!\param l Index of the MeshLevel.
-        std::size_t ndof(const std::size_t l) const;
 
         //!Report the amount of scratch space (in bytes) needed for
         //!decomposition.
@@ -222,11 +223,9 @@ class MeshHierarchy {
 
         virtual std::size_t do_scratch_space_needed() const;
 
-        virtual
-        std::size_t do_scratch_space_needed_for_decomposition() const;
+        virtual std::size_t do_scratch_space_needed_for_decomposition() const;
 
-        virtual
-        std::size_t do_scratch_space_needed_for_recomposition() const;
+        virtual std::size_t do_scratch_space_needed_for_recomposition() const;
 
         virtual moab::EntityHandle do_replica(
             const moab::EntityHandle node,
