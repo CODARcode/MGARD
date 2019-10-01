@@ -130,6 +130,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
                 double relative_error = helpers::pcg(A, b, P, x, buffer);
                 REQUIRE(relative_error < 1e-6);
             }
+            //Note that I've gotten `nan`s with `x` *un*initialized.
 
             //Testing approximate elementwise accuracy.
             {
@@ -165,6 +166,9 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
         const FunctionOperator A(N, mass_matrix_matvec);
         const FunctionOperator P(N, diagonal_scaling);
         double x[N];
+        for (double *p = x; p != x + N; ++p) {
+            *p = 0;
+        }
         double b[N] = {2, -1, -10, 4};
         double buffer[4 * N];
         double rtols[3] = {1e-1, 1e-4, 1e-7};
