@@ -36,7 +36,7 @@
 #include "mgard_api_float.h"
 #include "mgard_float.h"
 
-//FLOAT version of API
+// FLOAT version of MGARD API //
 
 unsigned char *mgard_compress(int itype_flag,  float  *v, int &out_size, int nrow, int ncol, int nfib, float tol_in)
 
