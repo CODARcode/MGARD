@@ -62,7 +62,7 @@ moab::EntityHandle UniformMeshHierarchy::get_parent(
     check_mesh_index_bounds(m);
     check_mesh_indices_nondecreasing(m, l);
     const MeshLevel &MESH = meshes.at(l);
-    if (MESH.impl->type_from_handle(element) != MESH.element_type) {
+    if (MESH.impl.type_from_handle(element) != MESH.element_type) {
         throw std::domain_error("can only find parent of element");
     }
     return do_get_parent(element, l, m);
@@ -109,7 +109,7 @@ moab::Range UniformMeshHierarchy::do_get_children(
     //                           t12
     //                           t13
     //where `t00` is the `0`th child of `t0` and so on.
-    const moab::EntityType type = mesh.impl->type_from_handle(t);
+    const moab::EntityType type = mesh.impl.type_from_handle(t);
     const moab::Range &ENTITIES = MESH.entities[type];
     assert(ENTITIES.psize() == 1);
     return moab::Range(ENTITIES[n * index], ENTITIES[n * (index + 1) - 1]);
@@ -130,7 +130,7 @@ double UniformMeshHierarchy::do_measure(
 ) const {
     const MeshLevel &MESH = meshes.at(l);
     return (
-        (!l || MESH.impl->type_from_handle(handle) != MESH.element_type) ?
+        (!l || MESH.impl.type_from_handle(handle) != MESH.element_type) ?
             //Copied from `MeshHierarchy::do_measure`. Can't directly call that
             //method since it's private. Not sure what's best. Calling
             //`MeshHierarchy::measure` gets us back here (and eventually to a
@@ -255,7 +255,7 @@ UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
         }
 
         std::vector<moab::EntityHandle> edges;
-        ecode = mesh.impl->get_adjacencies(&t, 1, 1, false, edges);
+        ecode = mesh.impl.get_adjacencies(&t, 1, 1, false, edges);
         MB_CHK_ERR(ecode);
         for (moab::EntityHandle edge : edges) {
             const moab::EntityHandle MIDPOINT = get_midpoint(edge, l - 1, l);

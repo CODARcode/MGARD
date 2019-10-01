@@ -22,7 +22,7 @@ class MeshLevel {
         //!\param edges Edges of the mesh.
         //!\param elements Elements of the mesh.
         MeshLevel(
-            moab::Interface * const impl,
+            moab::Interface &impl,
             const moab::Range nodes,
             const moab::Range edges,
             const moab::Range elements
@@ -39,7 +39,7 @@ class MeshLevel {
         //!The edges will be created if they are missing. If elements are
         //!provided, the edges will be recalculated from them.
         MeshLevel(
-            moab::Interface * const impl,
+            moab::Interface &impl,
             const moab::EntityHandle mesh_set = 0
         );
 
@@ -85,7 +85,7 @@ class MeshLevel {
         ) const;
 
         //!MOAB interface to which the mesh is associated.
-        moab::Interface *impl;
+        moab::Interface &impl;
 
         //MOAB entities composing the mesh.
         moab::Range entities[moab::MBMAXTYPE];

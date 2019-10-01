@@ -23,7 +23,7 @@ static moab::ErrorCode check_elements(
     for (const moab::EntityHandle t : MESH.entities[MESH.element_type]) {
         moab::EntityHandle const *connectivity;
         int num_nodes;
-        ecode = MESH.impl->get_connectivity(t, connectivity, num_nodes);
+        ecode = MESH.impl.get_connectivity(t, connectivity, num_nodes);
         MB_CHK_ERR(ecode);
         assert(num_nodes == 3);
         Element element;
@@ -32,7 +32,7 @@ static moab::ErrorCode check_elements(
         )) {
             NodeCoordinates xyz;
             //Could look this up ahead of time.
-            ecode = MESH.impl->get_coords(&x, 1, xyz.data());
+            ecode = MESH.impl.get_coords(&x, 1, xyz.data());
             MB_CHK_ERR(ecode);
             element.insert(xyz);
         }

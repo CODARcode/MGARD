@@ -249,7 +249,7 @@ moab::Range MeshHierarchy::get_children(
     check_mesh_index_bounds(m);
     check_mesh_indices_nondecreasing(l, m);
     const MeshLevel &mesh = meshes.at(l);
-    if (mesh.impl->type_from_handle(t) != mesh.element_type) {
+    if (mesh.impl.type_from_handle(t) != mesh.element_type) {
         throw std::domain_error("can only find children of elements");
     }
     return do_get_children(t, l, m);
@@ -267,7 +267,7 @@ bool MeshHierarchy::is_new_node(
 ) const {
     check_mesh_index_bounds(l);
     const MeshLevel &mesh = meshes.at(l);
-    if (mesh.impl->type_from_handle(node) != moab::MBVERTEX) {
+    if (mesh.impl.type_from_handle(node) != moab::MBVERTEX) {
         throw std::domain_error("entity not node as claimed");
     }
     return do_is_new_node(node, l);
