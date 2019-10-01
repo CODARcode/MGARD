@@ -1,7 +1,7 @@
 DEBUG ?= 0
 
 LDFLAGS = -L$(HOME)/lib -L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib
-LDLIBS = -lMOAB -lhdf5_hl -lhdf5 -llapack -lblas -lblaspp -lz -lm
+LDLIBS = -lMOAB -lhdf5_hl -lhdf5 -llapack -lblas -lblaspp -lz -lstdc++fs -lm
 
 DIR_SRC := src
 DIR_OBJ := obj

@@ -44,44 +44,10 @@ static moab::ErrorCode check_elements(
 
 TEST_CASE("refining multiple triangles", "[UniformMeshRefiner]") {
     moab::ErrorCode ecode;
-
     moab::Core mbcore;
-    const std::size_t num_nodes = 5;
-    const std::size_t num_edges = 7;
-    const std::size_t num_elements = 3;
-
-    const double coordinates[3 * num_nodes] = {
-        0,  0, 0,
-        8,  0, 0,
-        0,  6, 0,
-        4, -4, 0,
-        8, -4, 0
-    };
-    const std::size_t edge_connectivity[2 * num_edges] = {
-        0, 1,
-        1, 2,
-        2, 0,
-        0, 3,
-        3, 1,
-        3, 4,
-        4, 1
-    };
-    const std::size_t element_connectivity[3 * num_elements] = {
-        0, 1, 2,
-        0, 3, 1,
-        3, 1, 4
-    };
-
-    mgard::MeshLevel mesh = make_mesh_level(
-        mbcore,
-        num_nodes,
-        num_edges,
-        num_elements,
-        2,
-        coordinates,
-        edge_connectivity,
-        element_connectivity
-    );
+    ecode = mbcore.load_file(mesh_path("seated.msh").c_str());
+    require_moab_success(ecode);
+    mgard::MeshLevel mesh(mbcore);
 
     mgard::UniformMeshRefiner refiner;
     mgard::MeshLevel MESH = refiner(mesh);
@@ -111,43 +77,28 @@ TEST_CASE("refining multiple triangles", "[UniformMeshRefiner]") {
 
 TEST_CASE("refining triangle multiply", "[UniformMeshRefiner]") {
     moab::ErrorCode ecode;
-
     moab::Core mbcore;
-    const std::size_t num_nodes = 3;
-    const std::size_t num_edges = 3;
-    const std::size_t num_elements = 1;
-    const double z = 2.478923;
+    ecode = mbcore.load_file(mesh_path("triangle.msh").c_str());
+    require_moab_success(ecode);
+    mgard::MeshLevel mesh(mbcore);
 
-    const double coordinates[3 * num_nodes] = {
-        0,  0, z,
-        10,  0, z,
-        10,  6, z,
-    };
-    const std::size_t edge_connectivity[2 * num_edges] = {
-        0, 1,
-        1, 2,
-        2, 0
-    };
-    const std::size_t element_connectivity[3 * num_elements] = {
-        0, 1, 2
-    };
-
-    mgard::MeshLevel mesh = make_mesh_level(
-        mbcore,
-        num_nodes,
-        num_edges,
-        num_elements,
-        2,
-        coordinates,
-        edge_connectivity,
-        element_connectivity
-    );
     mgard::UniformMeshRefiner refiner;
     mgard::MeshLevel MESH = refiner(refiner(mesh));
+
     REQUIRE(MESH.ndof() == 15);
     REQUIRE(MESH.entities[moab::MBEDGE].size() == 30);
     REQUIRE(MESH.entities[moab::MBTRI].size() == 16);
 
+    double z;
+    //All the nodes have the same `z` coordinate.
+    {
+        double const *_x;
+        double const *_y;
+        double const *_z;
+        const moab::EntityHandle node = mesh.entities[moab::MBVERTEX].front();
+        ecode = mbcore.get_coords(node, _x, _y, _z);
+        z = *_z;
+    }
     ecode = check_elements(MESH, {
         {{  0,   0, z}, {2.5,   0, z}, {2.5, 1.5, z}},
         {{2.5,   0, z}, {  5,   0, z}, {  5, 1.5, z}},

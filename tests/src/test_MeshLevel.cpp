@@ -48,43 +48,18 @@ static moab::ErrorCode check_edges(
 }
 
 TEST_CASE("MeshLevel construction", "[MeshLevel]") {
-    moab::Core mbcore;
-
     const std::size_t num_nodes = 6;
     const std::size_t num_edges = 9;
     const std::size_t num_tris = 4;
-    const double coordinates[3 * num_nodes] = {
-        0, 0, 0,
-        5, 0, 0,
-        12, 0, 0,
-        0, 8, 0,
-        5, 6, 0,
-        9, 3, 0
-    };
-    const std::size_t edge_connectivity[2 * num_edges] = {
-        0, 1,
-        1, 3,
-        3, 0,
-        1, 2,
-        2, 5,
-        5, 1,
-        1, 4,
-        4, 3,
-        5, 4
-    };
-    const std::size_t tri_connectivity[3 * num_tris] = {
-        0, 1, 3,
-        1, 2, 5,
-        1, 4, 3,
-        1, 5, 4
-    };
-    mgard::MeshLevel mesh = make_mesh_level(
-        mbcore, num_nodes, num_edges, num_tris, 2,
-        coordinates, edge_connectivity, tri_connectivity
-    );
+    moab::Core mbcore;
+    mbcore.load_file(mesh_path("slope.msh").c_str());
+    mgard::MeshLevel mesh(mbcore);
+
     REQUIRE(mesh.topological_dimension == 2);
     REQUIRE(mesh.element_type == moab::MBTRI);
     REQUIRE(mesh.ndof() == num_nodes);
+    REQUIRE(mesh.entities[moab::MBEDGE].size() == num_edges);
+    REQUIRE(mesh.entities[moab::MBTRI].size() == num_tris);
 
     //Don't want to deal with a lot of nonrational lengths, so I'm only checking
     //a few.
