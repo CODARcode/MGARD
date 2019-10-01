@@ -4,37 +4,37 @@ data. The technique is based on the theory of multigrid methods. This
 archive presents a preliminary C++ language API for integration with
 existing software, use at your own risk!
 
-The API consists of a header file: include/mgard_api.h
+The double precision API consists of a header file: include/mgard_api.h, for single precision the header file is include/mgard_api_float.h
 
 Users need only include this header file, and link against the static
 library libmgard.a.
 
 This header file provides prototypes for the following overloaded functions:
 
-unsigned char *mgard_compress(int itype_flag, void *data, int
-*out_size, int nrow, int ncol, int nfib, void* tol, [qoi, s =0]) : Returns pointer to unsigned char array of compressed data
+unsigned char *mgard_compress(int itype_flag, double/float *data, int
+*out_size, int n1, int n2, int n3, double/float tol, [qoi, s = infinity]) : Returns pointer to unsigned char array of compressed data
                       
      itype_flag: Data type, 0 for float, 1 for double
      data : Pointer to the input buffer (interpreted as 2D matrix) to compress with MGARD,
             this buffer will be destroyed!
      out_size: size of input data, returns compressed size on exit
-     nrow: Number of rows of matrix
-     ncol: Number of columns of matrix
-     nfib: Number of "fiber" of matrix, should have been tubes though!
+     n1: Size of first dimension
+     n2: Size of second dimension
+     n3: Size of third dimension
      tol: Upper bound for desired tolerance
      qoi: Function pointer to the quantity of interest
      s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
 
 void *mgard_decompress(int itype_flag, unsigned char *data,
-int data_len, int nrow, int ncol, int nfib,[s=0]): Returns float/double pointer to array of decompressed data 
+int data_len, int n1, int n2, int n3,[s = infinity]): Returns float/double pointer to array of decompressed data 
 
      itype_flag: Data type, 0 for float, 1 for double
      data : Pointer to the input buffer (interpreted as 2D matrix) to decompress with MGARD,
             this buffer will be destroyed!
      data_len: size of input data in bytes
-     nrow: Number of rows of matrix
-     ncol: Number of columns of matrix
-     nfib: Number of "fiber" of matrix, should have been tubes though!
+     n1: Size of first dimension
+     n2: Size of second dimension
+     n3: Size of third dimension
      s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
 
 
