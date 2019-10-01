@@ -223,11 +223,11 @@ namespace mgard
   float*
   recompose_udq_2D(int nrow, int ncol, std::vector<float>& coords_x,  std::vector<float>& coords_y, unsigned char *data, int data_len, float s);
 
-  unsigned char *
-    refactor_qz_1D (int nrow,  const float *v, int &outsize, float tol);
+  // unsigned char *
+  //   refactor_qz_1D (int nrow,  const float *v, int &outsize, float tol);
   
-  float*
-    recompose_udq_1D(int nrow,  unsigned char *data, int data_len);
+  // float*
+  //   recompose_udq_1D(int nrow,  unsigned char *data, int data_len);
   
   int
     parse_cmdl (int argc, char **argv, int &nrow, int &ncol, float &tol,

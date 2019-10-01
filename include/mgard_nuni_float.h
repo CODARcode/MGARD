@@ -63,10 +63,6 @@ namespace mgard_common
 
   void qread_2D_interleave( const int nrow, const int ncol, const int nlevel, float* v, std::string infile);
 
-  inline short encode(float x);
-
-  inline float decode(short x);
-
   void qread_2D_bin( const int nrow, const int ncol, const int nlevel, float* v, std::string infile);
 
   void qwrite_2D_bin( const int nrow, const int ncol, const int nlevel,  const int  l,   float* v, float tol, float norm, const std::string outfile);
