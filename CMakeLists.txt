@@ -124,24 +124,24 @@ if(BUILD_TESTING)
   target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
 
   add_test(NAME mgard_test1
-    COMMAND mgard_test
+    COMMAND mgard_test 0
       ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
       ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
-      513 513 1 1e-2 0 ${CMAKE_CURRENT_SOURCE_DIR}/include/qoi.so qoi_x
+      513 513 1 1e-2 0 
   )
   
   add_test(NAME mgard_test2
-    COMMAND mgard_test
+    COMMAND mgard_test 0
       ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig
       ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400.mgard
-      600 400 1 1e-2 0 ${CMAKE_CURRENT_SOURCE_DIR}/include/qoi.so qoi_x
+      600 400 1 1e-2 1 
   )
 
   add_test(NAME mgard_test3
-    COMMAND mgard_test
+    COMMAND mgard_test 0
       ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.dat
       ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.mgard
-      11 160 15 1e-3 0 ${CMAKE_CURRENT_SOURCE_DIR}/include/qoi.so qoi_x
+      11 160 15 1e-3 2 
   )
 endif()
 
