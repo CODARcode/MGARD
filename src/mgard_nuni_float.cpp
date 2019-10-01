@@ -701,10 +701,10 @@ namespace mgard_gen
       {
         return &v[floor(( (float) no-2.0)/( (float) n-2.0)*i)];        
       }
-    else if( i == n-1 )
-      {
+    // else if( i == n-1 )
+    //   {
         return &v[no-1];
-      }
+	//      }
 
     //    return &v[floor(((no-2)/(n-2))*i ) ];
   }
@@ -720,10 +720,10 @@ namespace mgard_gen
       {
         return  floor(( (float) no-2.0)/( (float) n-2.0)*i);
       }
-    else if ( i == n-1)
-      {
+    // else if ( i == n-1)
+    //   {
         return no-1;
-      }
+	//      }
   }
   
   inline  float get_h_l(const std::vector<float>& coords, const int n, const int no, int i, int stride)
