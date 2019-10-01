@@ -38,7 +38,7 @@ static moab::ErrorCode check_edges(
     for (const moab::EntityHandle e : mesh.entities[moab::MBEDGE]) {
         moab::EntityHandle const *connectivity;
         int num_nodes;
-        ecode = mesh.impl->get_connectivity(e, connectivity, num_nodes);
+        ecode = mesh.impl.get_connectivity(e, connectivity, num_nodes);
         MB_CHK_ERR(ecode);
         assert(num_nodes == 2);
         edges.insert(Edge(connectivity, connectivity + num_nodes));
@@ -182,7 +182,7 @@ TEST_CASE("edge generation", "[MeshLevel]") {
         require_moab_success(ecode);
     }
 
-    mgard::MeshLevel mesh(&mbcore);
+    mgard::MeshLevel mesh(mbcore);
 
     REQUIRE(mesh.ndof() == num_nodes);
     REQUIRE(mesh.entities[moab::MBTRI].size() == num_tris);

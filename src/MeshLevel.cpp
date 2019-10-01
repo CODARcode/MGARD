@@ -39,7 +39,7 @@ namespace mgard {
 //Public member functions.
 
 MeshLevel::MeshLevel(
-    moab::Interface * const impl,
+    moab::Interface &impl,
     const moab::Range nodes,
     const moab::Range edges,
     const moab::Range elements
@@ -50,15 +50,15 @@ MeshLevel::MeshLevel(
     entities[moab::MBVERTEX] = nodes;
     entities[moab::MBEDGE] = edges;
     if (!elements.empty()) {
-        element_type = impl->type_from_handle(elements.front());
-        assert(element_type == impl->type_from_handle(elements.back()));
+        element_type = impl.type_from_handle(elements.front());
+        assert(element_type == impl.type_from_handle(elements.back()));
         entities[element_type] = elements;
         populate_from_element_type();
     }
 }
 
 MeshLevel::MeshLevel(
-    moab::Interface * const impl,
+    moab::Interface &impl,
     const moab::EntityHandle mesh_set
 ):
     impl(impl)
@@ -69,7 +69,7 @@ MeshLevel::MeshLevel(
         type != moab::MBMAXTYPE;
         ++type
     ) {
-        ecode = impl->get_entities_by_type(mesh_set, type, entities[type]);
+        ecode = impl.get_entities_by_type(mesh_set, type, entities[type]);
         if (ecode != moab::MB_SUCCESS) {
             std::stringstream message;
             message << "failed to get entities of type ";
@@ -109,7 +109,7 @@ std::size_t MeshLevel::ndof() const {
 
 //TODO: look into allowing `type` to be passed here (or just for internal use).
 std::size_t MeshLevel::index(const moab::EntityHandle handle) const {
-    const moab::EntityType type = impl->type_from_handle(handle);
+    const moab::EntityType type = impl.type_from_handle(handle);
     const moab::Range &range = entities[type];
     assert(!range.empty());
     assert(range.psize() == 1);
@@ -120,7 +120,7 @@ std::size_t MeshLevel::index(const moab::EntityHandle handle) const {
 }
 
 double MeshLevel::measure(const moab::EntityHandle handle) const {
-    const::moab::EntityType type = impl->type_from_handle(handle);
+    const::moab::EntityType type = impl.type_from_handle(handle);
     precompute_measures(type);
     moab::ErrorCode ecode = precompute_measures(type);
     if (ecode != moab::MB_SUCCESS) {
@@ -132,7 +132,7 @@ double MeshLevel::measure(const moab::EntityHandle handle) const {
 double MeshLevel::containing_elements_measure(
     const moab::EntityHandle node
 ) const {
-    const moab::EntityType type = impl->type_from_handle(node);
+    const moab::EntityType type = impl.type_from_handle(node);
     if (type != moab::MBVERTEX) {
         throw std::domain_error(
             "can only find measure of elements containing a node"
@@ -150,7 +150,7 @@ helpers::PseudoArray<const moab::EntityHandle> MeshLevel::connectivity(
     const moab::EntityHandle handle
 ) const {
     std::size_t expected_num_nodes;
-    const moab::EntityType type = impl->type_from_handle(handle);
+    const moab::EntityType type = impl.type_from_handle(handle);
     if (type == moab::MBEDGE) {
         expected_num_nodes = 2;
     } else if (type == element_type) {
@@ -163,7 +163,7 @@ helpers::PseudoArray<const moab::EntityHandle> MeshLevel::connectivity(
     //Could additionally check that the entity is in the mesh.
     moab::EntityHandle const *connectivity;
     int num_nodes;
-    moab::ErrorCode ecode = impl->get_connectivity(
+    moab::ErrorCode ecode = impl.get_connectivity(
         handle, connectivity, num_nodes
     );
     if (ecode != moab::MB_SUCCESS) {
@@ -206,7 +206,7 @@ void MeshLevel::populate_from_element_type() {
 }
 
 void MeshLevel::get_edges_from_elements() {
-    moab::ErrorCode ecode = impl->get_adjacencies(
+    moab::ErrorCode ecode = impl.get_adjacencies(
         entities[element_type],
         1,
         true,
@@ -257,7 +257,7 @@ moab::ErrorCode MeshLevel::precompute_measures(
         helpers::PseudoArray<const moab::EntityHandle> conn = (
             connectivity(handle)
         );
-        moab::ErrorCode ecode = impl->get_coords(
+        moab::ErrorCode ecode = impl.get_coords(
             conn.data, conn.size, coordinates
         );
         MB_CHK_ERR(ecode);

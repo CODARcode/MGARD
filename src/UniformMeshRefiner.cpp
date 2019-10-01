@@ -79,13 +79,13 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(
     std::vector<double> midpoint_coordinates(3 * nedges, 0);
     //Similarly.
     std::vector<double> endpoint_coordinates(3 * nnodes);
-    ecode = mesh.impl->get_coords(nodes, endpoint_coordinates.data());
+    ecode = mesh.impl.get_coords(nodes, endpoint_coordinates.data());
 
     moab::Range NEW_NODES;
     //We'll reset the coordinates below. Creating the nodes now lets us iterate
     //over the edges just once, finding the coordinates of the midpoints and
     //creating the new edges in the same loop.
-    ecode = mesh.impl->create_vertices(
+    ecode = mesh.impl.create_vertices(
         midpoint_coordinates.data(), nedges, NEW_NODES
     );
     //From the MOAB documentation:
@@ -110,7 +110,7 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(
         for (const moab::EntityHandle endpoint : mesh.connectivity(edge)) {
             EDGE_CONNECTIVITY[1] = endpoint;
             moab::EntityHandle EDGE;
-            ecode = mesh.impl->create_element(
+            ecode = mesh.impl.create_element(
                 moab::MBEDGE, EDGE_CONNECTIVITY, 2, EDGE
             );
             assert(EDGE == ++most_recent_edge);
@@ -118,7 +118,7 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(
         }
         blas::scal(3, 0.5, p, 1);
     }
-    ecode = mesh.impl->set_coords(NEW_NODES, midpoint_coordinates.data());
+    ecode = mesh.impl.set_coords(NEW_NODES, midpoint_coordinates.data());
     MB_CHK_ERR(ecode);
 
     NODES.insert(nodes.front(), NEW_NODES.back());
@@ -156,7 +156,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
 
         std::vector<moab::EntityHandle> edges;
         edges.reserve(3);
-        ecode = mesh.impl->get_adjacencies(&element, 1, 1, false, edges);
+        ecode = mesh.impl.get_adjacencies(&element, 1, 1, false, edges);
         MB_CHK_ERR(ecode);
         assert(edges.size() == 3);
 
@@ -186,7 +186,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
                 ELEMENT_CONNECTIVITY[j] = opposites.at(element_connectivity[k]);
             }
             moab::EntityHandle ELEMENT;
-            ecode = mesh.impl->create_element(
+            ecode = mesh.impl.create_element(
                 moab::MBTRI, ELEMENT_CONNECTIVITY, 3, ELEMENT
             );
             MB_CHK_ERR(ecode);
@@ -199,7 +199,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
         }
         {
             moab::EntityHandle ELEMENT;
-            ecode = mesh.impl->create_element(
+            ecode = mesh.impl.create_element(
                 moab::MBTRI, ELEMENT_CONNECTIVITY, 3, ELEMENT
             );
             MB_CHK_ERR(ecode);
@@ -211,7 +211,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
             EDGE_CONNECTIVITY[0] = ELEMENT_CONNECTIVITY[i];
             EDGE_CONNECTIVITY[1] = ELEMENT_CONNECTIVITY[(i + 1) % 3];
             moab::EntityHandle EDGE;
-            ecode = mesh.impl->create_element(
+            ecode = mesh.impl.create_element(
                 moab::MBEDGE, EDGE_CONNECTIVITY, 2, EDGE
             );
             MB_CHK_ERR(ecode);

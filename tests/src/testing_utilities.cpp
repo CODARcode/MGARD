@@ -71,7 +71,7 @@ mgard::MeshLevel make_mesh_level(
         elements.insert(handle);
     }
     assert(elements.psize() == 1);
-    return mgard::MeshLevel(&mbcore, nodes, edges, elements);
+    return mgard::MeshLevel(mbcore, nodes, edges, elements);
 }
 
 void require_moab_success(const moab::ErrorCode ecode) {
