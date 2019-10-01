@@ -73,6 +73,9 @@ add_library(mgard
   src/mgard.cpp       include/mgard.h
   src/mgard_api.cpp  include/mgard_api.h
   src/mgard_nuni.cpp  include/mgard_nuni.h
+  src/mgard_float.cpp       include/mgard_float.h
+  src/mgard_api_float.cpp  include/mgard_api_float.h
+  src/mgard_nuni_float.cpp  include/mgard_nuni_float.h
 )
 target_include_directories(mgard
   PUBLIC
@@ -107,6 +110,9 @@ install(
   FILES include/mgard.h 
         include/mgard_api.h
         include/mgard_nuni.h
+	include/mgard_float.h 
+        include/mgard_api_float.h
+        include/mgard_nuni_float.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
