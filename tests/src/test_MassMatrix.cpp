@@ -81,6 +81,9 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
                 REQUIRE(all_close);
 
                 double w[num_nodes];
+                for (double *p = w; p != w + num_nodes; ++p) {
+                    *p = 0;
+                }
                 double buffer[4 * num_nodes];
                 helpers::pcg(M, b, P, w, buffer);
                 for (std::size_t j = 0; j < num_nodes; ++j) {
@@ -155,6 +158,9 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
         {
             double w[num_nodes];
             double buffer[4 * num_nodes];
+            for (double *p = w; p != w + num_nodes; ++p) {
+                *p = 0;
+            }
             helpers::pcg(M, b, P, w, buffer);
 
             double result[num_nodes];
