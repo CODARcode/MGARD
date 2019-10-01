@@ -32,6 +32,8 @@
 // See accompanying file Copyright.txt for details.
 //
 
+// DOUBLE PRECISON version of MGARD API //
+
 #include "mgard.h"
 
 #ifndef MGARD_API_H
@@ -77,7 +79,6 @@ double  *mgard_decompress(int itype_flag, double& quantizer, unsigned char *data
 
 double  *mgard_decompress(int itype_flag, double& quantizer, unsigned char *data, int data_len, int n1, int n2, int n3, double s); // decompress s-norm
 double  *mgard_decompress(int itype_flag, double& quantizer, unsigned char *data, int data_len, int n1, int n2, int n3, std::vector<double>& coords_x, std::vector<double>& coords_y, std::vector<double>& coords_z, double s); // decompress s-norm
-
 
 
 
