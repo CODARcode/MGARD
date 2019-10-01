@@ -13,7 +13,7 @@ mgard::MeshLevel make_mesh_level(
     double const * const coordinates,
     //The elements of both this and `element_connectivity` are just offsets, to
     //be added to the `moab::EntityHandle` of the first vertex.
-    std::size_t  const * const edge_connectivity,
+    std::size_t const * const edge_connectivity,
     std::size_t const * const element_connectivity
 );
 
