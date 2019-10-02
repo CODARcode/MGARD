@@ -137,6 +137,7 @@ int  parse_cmdl(int argc, char**argv, bool& inf_flag, bool& qoi_flag, int& nrow,
 	  {
 	    inf_flag = false;
 	    s    =  strtod ((argv[8]), 0) ; // error tolerance
+	    std::cerr << s << " compression selected \n";
 	  }
 	else
 	  {
@@ -147,7 +148,7 @@ int  parse_cmdl(int argc, char**argv, bool& inf_flag, bool& qoi_flag, int& nrow,
 
 	if(argv[9] != NULL) // dynamic load quantity of intereset
 	  {
-	    std::cerr << "L infinity compression selected \n";
+	    std::cerr << "Using qoi" << function_handle <<  "\n";
 	    shared_obj    = argv[9];
 	    function_handle = argv[10];
 	    qoi_flag = true;
@@ -258,7 +259,7 @@ int main(int argc, char**argv)
 	    }
 	  
 	}
-      std::cout << "Compressed size" << out_size << "\n";
+      //std::cout  << "Compressed size" << out_size << "\n";
 
       zipfile.write(reinterpret_cast<char*> (compressed_data), out_size );  
 
@@ -313,7 +314,7 @@ int main(int argc, char**argv)
       	{
       	  compressed_data = mgard_compress(itype, v.data(), out_size,  nrow,  ncol,  nfib, tolf, sf );
       	}
-      std::cout << "Compressed size" << out_size << "\n";
+      //std::cout  << "Compressed size" << out_size << "\n";
 
       zipfile.write(reinterpret_cast<char*> (compressed_data), out_size );  
 

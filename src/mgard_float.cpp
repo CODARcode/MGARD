@@ -61,7 +61,7 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
   int l_target = nlevel-1;
 
 
-  std::cout << "Linfinity\n" ;
+  //std::cout  << "Linfinity\n" ;
   //dummy equispaced coordinates
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
@@ -187,7 +187,7 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
       
   // norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
   
-  std::cout << "My 2-norm is: " << norm << "\n";
+  //std::cout  << "My 2-norm is: " << norm << "\n";
 
   //  float norm = 1.0; // absolute s-norm, need a switch for relative errors
   //tol /= nlevel + 1 ;
@@ -254,7 +254,7 @@ refactor_qz (int nrow, int ncol, int nfib, std::vector<float>& coords_x,  std::v
       
   // norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
   
-  std::cout << "My 2-norm is: " << norm << "\n";
+  //std::cout  << "My 2-norm is: " << norm << "\n";
 
   //  float norm = 1.0; // absolute s-norm, need a switch for relative errors
   //tol /= nlevel + 1 ;
@@ -368,7 +368,7 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
     std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-    //    std::cout <<"**** coord check : "  << coords_x[4] << "\n";
+    //    //std::cout  <<"**** coord check : "  << coords_x[4] << "\n";
     
     int nlevel_x = std::log2(ncol-1);
     int nc = std::pow(2, nlevel_x ) + 1; //ncol new
@@ -449,7 +449,7 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
     std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-    //    std::cout <<"**** coord check : "  << coords_x[4] << "\n";
+    //    //std::cout  <<"**** coord check : "  << coords_x[4] << "\n";
     
     int nlevel_x = std::log2(ncol-1);
     int nc = std::pow(2, nlevel_x ) + 1; //ncol new
@@ -1279,12 +1279,12 @@ print_level_2D (const int nrow, const int ncol, const int l, float *v)
 
   for (int irow = 0; irow < nrow; irow += stride)
     {
-      std::cout << "\n";
+      //std::cout  << "\n";
       for (int jcol = 0; jcol < ncol; jcol += stride)
         {
-          std::cout << v[get_index (ncol, irow, jcol)] << "\t";
+          //std::cout  << v[get_index (ncol, irow, jcol)] << "\t";
         }
-      std::cout << "\n";
+      //std::cout  << "\n";
     }
 }
 
@@ -1590,8 +1590,8 @@ qwrite_level_2D (const int nrow, const int ncol, const int nlevel, const int l,
         }
     }
 
-  std::cout << "Pruned : " << prune_count << " Reduction : "
-            << (float)nrow * ncol / (nrow * ncol - prune_count) << "\n";
+  //std::cout  << "Pruned : " << prune_count << " Reduction : "
+  //            << (float)nrow * ncol / (nrow * ncol - prune_count) << "\n";
   gzclose (out_file);
 }
 
@@ -1599,15 +1599,15 @@ void
 quantize_2D_interleave (const int nrow, const int ncol, float *v,
                        std::vector<int> &work, float norm, float tol)
 {
-  //  std::cout << "Tolerance: " << tol << "\n";
+  //  //std::cout  << "Tolerance: " << tol << "\n";
   int size_ratio = sizeof (float) / sizeof (int);
 
 
-  //std::cout << "Norm of sorts: " << norm << "\n";
+  ////std::cout  << "Norm of sorts: " << norm << "\n";
 
   //    float quantizer = 2.0*norm * tol;
     float quantizer = norm * tol;
-  //std::cout << "Quantization factor: " << quantizer << "\n";
+  ////std::cout  << "Quantization factor: " << quantizer << "\n";
   std::memcpy (work.data (), &quantizer, sizeof (float));
 
   int prune_count = 0;
@@ -1620,7 +1620,7 @@ quantize_2D_interleave (const int nrow, const int ncol, float *v,
         ++prune_count;
     }
 
-  //std::cout << "Pruned : " << prune_count << " Reduction : "
+  ////std::cout  << "Pruned : " << prune_count << " Reduction : "
   //          << (float)2 * nrow * ncol / (nrow * ncol - prune_count) << "\n";
 }
 
@@ -1663,7 +1663,7 @@ qwrite_2D_interleave (const int nrow, const int ncol, const int nlevel,
   tol /= (float)(nlevel + 1);
 
   float coeff = norm * tol;
-  std::cout << "Quantization factor: " << coeff << "\n";
+  //std::cout  << "Quantization factor: " << coeff << "\n";
 
   gzFile out_file = gzopen (outfile.c_str (), "w6b");
   int prune_count = 0;
@@ -1677,8 +1677,8 @@ qwrite_2D_interleave (const int nrow, const int ncol, const int nlevel,
       gzwrite (out_file, &quantum, sizeof (int));
     }
 
-  std::cout << "Pruned : " << prune_count << " Reduction : "
-            << (float)nrow * ncol / (nrow * ncol - prune_count) << "\n";
+  //std::cout  << "Pruned : " << prune_count << " Reduction : "
+  //            << (float)nrow * ncol / (nrow * ncol - prune_count) << "\n";
   gzclose (out_file);
 }
 
@@ -1697,7 +1697,7 @@ qread_level_2D (const int nrow, const int ncol, const int nlevel, float *v,
   float coeff;
 
   gzFile in_file_z = gzopen (infile.c_str (), "r");
-  std::cout << in_file_z << "\n";
+  //std::cout  << in_file_z << "\n";
 
   unzipped_bytes = gzread (in_file_z, unzip_buffer,
                            sizeof (float)); // read the quantization constant
@@ -1707,7 +1707,7 @@ qread_level_2D (const int nrow, const int ncol, const int nlevel, float *v,
   while (true)
     {
       unzipped_bytes = gzread (in_file_z, unzip_buffer, buff_size);
-      std::cout << unzipped_bytes << "\n";
+      //std::cout  << unzipped_bytes << "\n";
       if (unzipped_bytes > 0)
         {
           total_bytes += unzipped_bytes;
@@ -1730,7 +1730,7 @@ qread_level_2D (const int nrow, const int ncol, const int nlevel, float *v,
 }
 
 //       unzippedBytes = gzread(inFileZ, unzipBuffer, buff_size);
-//       std::cout << "Read: "<< unzippedBytes <<"\n";
+//       //std::cout  << "Read: "<< unzippedBytes <<"\n";
 //       std::memcpy(&v[irow][0], &unzipBuffer, unzippedBytes);
 //     }
 
@@ -1746,7 +1746,7 @@ refactor (const int nrow, const int ncol, const int l_target, float *v,
           std::vector<float> &col_vec)
 {
   // refactor
-  //  std::cout << "refactoring" << "\n";
+  //  //std::cout  << "refactoring" << "\n";
 
   for (int l = 0; l < l_target; ++l)
     {
@@ -1957,8 +1957,8 @@ resample_1d (const float *inbuf, float *outbuf, const int ncol,
       float y1 = inbuf[i_left];
       float y2 = inbuf[i_right];
       float x = float(icol) * hx;
-      //      std::cout <<  x1 << "\t" << x2 << "\t" << x << "\t"<< "\n";
-      // std::cout <<  y1 << "\t" << y2 << "\t" << "\n";
+      //      //std::cout  <<  x1 << "\t" << x2 << "\t" << x << "\t"<< "\n";
+      // //std::cout  <<  y1 << "\t" << y2 << "\t" << "\n";
 
       outbuf[icol] = interp_0d (x1, x2, y1, y2, x);
       //      std:: cout << mgard_interp_0d( x1,  x2,  y1,  y2,  x) << "\n";
@@ -2129,8 +2129,8 @@ resample_2d_inv2 (const float *inbuf, float *outbuf, const int nrow,
               d22 = std::pow(d22, 1.5);         
               
               float dsum = 1.0/(d11) + 1.0/(d12) + 1.0/(d21) + 1.0/(d22);
-              //std::cout <<  (q11/d11 + q12/d12 + q21/d21 + q22/d22)/dsum << "\n";
-              //              std::cout <<  dsum << "\n";
+              ////std::cout  <<  (q11/d11 + q12/d12 + q21/d21 + q22/d22)/dsum << "\n";
+              //              //std::cout  <<  dsum << "\n";
           
               outbuf[get_index (ncol_new, irow, jcol)] = (q11/d11 + q12/d12 + q21/d21 + q22/d22)/dsum;
             }
