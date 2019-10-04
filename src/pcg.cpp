@@ -53,7 +53,7 @@ double PCGStoppingCriteria::tolerance(const double rhs_norm) const {
     return std::max(absolute, relative * rhs_norm);
 }
 
-double pcg(
+PCGDiagnostics pcg(
     const LinearOperator &A,
     double const * const b,
     const LinearOperator &P,
@@ -86,25 +86,29 @@ double pcg(
     double * const Adirection = _buffer;
     _buffer += N;
 
+    //These variables are updated both inside and outside the loop. Declaring/
+    //defining them here will make the assignments look the same (I always
+    //momentarily wonder about constness).
+    double residual_norm;
+    double beta_numerator;
+
     const double b_norm = blas::nrm2(N, b, 1);
-    //If this quantity is zero, `atol` will be set to zero and our
-    //iteration will never 'naturally' end. (The check on
-    //`alpha_denominator` or the check on the iteration count should trigger
-    //eventually.) Better to immediately return.
+    //`PCGCriteria::tolerance` expects a nonzero righthand side norm. We can
+    //just return immediately in this case.
     if (b_norm == 0) {
         for (double *p = x; p != x + N; ++p) {
             *p = 0;
         }
-        return 0;
+        return {true, 0, 0};
     }
     const double atol = criteria.tolerance(b_norm);
     calculate_residual(N, A, b, x, residual);
-    double residual_norm = blas::nrm2(N, residual, 1);
+    residual_norm = blas::nrm2(N, residual, 1);
     if (residual_norm <= atol) {
-        return residual_norm / b_norm;
+        return {true, residual_norm, 0};
     }
     P(residual, pc_residual);
-    double beta_numerator = blas::dot(N, residual, 1, pc_residual, 1);
+    beta_numerator = blas::dot(N, residual, 1, pc_residual, 1);
     blas::copy(N, pc_residual, 1, direction, 1);
     for (
         std::size_t num_iter = 0;
@@ -120,7 +124,9 @@ double pcg(
         //`direction` is the zero vector. In that case, further iterations will
         //have no effect and we might as well exit now.
         if (alpha_denominator == 0) {
-            return residual_norm / b_norm;
+            //`num_iter` rather than `num_iter + 1` because we haven't updated
+            //`x` yet.
+            return {false, residual_norm, num_iter};
         }
         const double alpha = alpha_numerator / alpha_denominator;
         blas::axpy(N, alpha, direction, 1, x, 1);
@@ -133,7 +139,7 @@ double pcg(
         }
         residual_norm = blas::nrm2(N, residual, 1);
         if (residual_norm <= atol) {
-            return residual_norm / b_norm;
+            return {true, residual_norm, num_iter + 1};
         }
         P(residual, pc_residual);
         beta_numerator = blas::dot(N, pc_residual, 1, residual, 1);
@@ -148,7 +154,7 @@ double pcg(
         //to `pc_residual` in the last line.
         blas::axpy(N, beta, pc_residual, 1, direction, 1);
     }
-    return residual_norm / b_norm;
+    return {false, residual_norm, criteria.max_iterations};
 }
 
 }

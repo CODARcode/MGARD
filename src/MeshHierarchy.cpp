@@ -1,5 +1,7 @@
 #include "MeshHierarchy.hpp"
 
+#include <cassert>
+
 #include <algorithm>
 #include <type_traits>
 
@@ -353,7 +355,10 @@ MeshHierarchy::do_calculate_correction_from_multilevel_component(
     for (double *p = correction; p != correction + n; ++p) {
         *p = 0;
     }
-    helpers::pcg(M, b, P, correction, pcg_buffer);
+    const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+        M, b, P, correction, pcg_buffer
+    );
+    assert(diagnostics.converged);
     return moab::MB_SUCCESS;
 }
 

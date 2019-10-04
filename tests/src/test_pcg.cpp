@@ -111,24 +111,34 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
                 b[i] = 4 + (i % 7);
                 x[i] = 0;
             }
+            const double b_norm = blas::nrm2(N, b, 1);
 
             //With `x` initialized to zeroes.
             {
-                double relative_error = helpers::pcg(A, b, P, x, buffer);
-                REQUIRE(relative_error < 1e-6);
+                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                    A, b, P, x, buffer
+                );
+                REQUIRE(diagnostics.converged);
+                REQUIRE(diagnostics.residual_norm <= 1e-6 * b_norm);
             }
             //With `x` already the solution.
             {
-                double relative_error = helpers::pcg(A, b, P, x, buffer);
-                REQUIRE(relative_error < 1e-6);
+                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                    A, b, P, x, buffer
+                );
+                REQUIRE(diagnostics.converged);
+                REQUIRE(diagnostics.residual_norm <= 1e-6 * b_norm);
             }
             //With `x` initialized to something wrong.
             {
                 for (std::size_t i = 0; i < N; ++i) {
                     x[i] = i % 2 ? 1 : -1;
                 }
-                double relative_error = helpers::pcg(A, b, P, x, buffer);
-                REQUIRE(relative_error < 1e-6);
+                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                    A, b, P, x, buffer
+                );
+                REQUIRE(diagnostics.converged);
+                REQUIRE(diagnostics.residual_norm <= 1e-6 * b_norm);
             }
             //Note that I've gotten `nan`s with `x` *un*initialized.
 
@@ -147,8 +157,10 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
                 for (double *p = b; p != b + N; ++p) {
                     *p = 0;
                 }
-                double relative_error = helpers::pcg(A, b, P, x, buffer);
-                REQUIRE(relative_error == 0);
+                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                    A, b, P, x, buffer
+                );
+                REQUIRE(diagnostics.residual_norm == 0);
                 bool all_zero = true;
                 for (double *p = x; p != x + N; ++p) {
                     all_zero = all_zero && *p == 0;
@@ -170,8 +182,9 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
             *p = 0;
         }
         double b[N] = {2, -1, -10, 4};
+        const double b_norm = blas::nrm2(N, b, 1);
         double buffer[4 * N];
-        helpers::PCGStoppingCriteria criterias[4] = {
+        helpers::PCGStoppingCriteria criterias[7] = {
             helpers::PCGStoppingCriteria(1e-1,    0),
             helpers::PCGStoppingCriteria(1e-4,    0),
             helpers::PCGStoppingCriteria(1e-7,    0),
@@ -181,10 +194,9 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
             helpers::PCGStoppingCriteria(1e-2, 1e-2)
         };
         for (helpers::PCGStoppingCriteria criteria : criterias) {
-            const double relative_error = helpers::pcg(
+            const helpers::PCGDiagnostics diagnostics = helpers::pcg(
                 A, b, P, x, buffer, criteria
             );
-            const double b_norm = blas::nrm2(N, b, 1);
             //Populate the first bit of `buffer` with the residual.
             blas::copy(N, b, 1, buffer, 1);
             A(x, buffer + N);
@@ -194,7 +206,9 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
                 criteria.absolute, criteria.relative * b_norm
             ));
             if (criteria.absolute <= 0) {
-                REQUIRE(relative_error <= criteria.relative);
+                REQUIRE(
+                    diagnostics.residual_norm <= criteria.relative * b_norm
+                );
             }
         }
     }

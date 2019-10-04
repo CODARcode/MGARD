@@ -44,6 +44,13 @@ struct PCGStoppingCriteria {
     double tolerance(const double rhs_norm) const;
 };
 
+//!Diagnostics for PCG run.
+struct PCGDiagnostics {
+    bool converged;
+    double residual_norm;
+    std::size_t num_iterations;
+};
+
 //!Use the preconditioned conjugate method to solve `Ax = b` for `x`.
 //!
 //!\param [in] A Symmetric, positive definite matrix.
@@ -59,9 +66,8 @@ struct PCGStoppingCriteria {
 //!`max_iterations` iterations, the algorithm will stop even if the error exceeds
 //!the tolerance.
 //!
-//!\return The ratio of the norm of the residual to the norm of the righthand
-//!side. Zero if the righthand side is zero.
-double pcg(
+//!\return Diagnostics of the PCG run.
+PCGDiagnostics pcg(
     const LinearOperator &A,
     double const * const b,
     const LinearOperator &P,
