@@ -352,9 +352,7 @@ MeshHierarchy::do_calculate_correction_from_multilevel_component(
     //Invert the system to obtain `Q_{l - 1}u - Π_{l - 1}Q_{l}u` on `N_old`.
     const MassMatrix M(&mesh);
     const MassMatrixPreconditioner P(&mesh);
-    for (double *p = correction; p != correction + n; ++p) {
-        *p = 0;
-    }
+    std::fill(correction, correction + n, 0);
     const helpers::PCGDiagnostics diagnostics = helpers::pcg(
         M, b, P, correction, pcg_buffer
     );

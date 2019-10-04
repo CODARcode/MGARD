@@ -1,7 +1,6 @@
 #include "MassMatrix.hpp"
 
-#include <cassert>
-
+#include <algorithm>
 #include <stdexcept>
 
 #include "utilities.hpp"
@@ -31,9 +30,7 @@ MassMatrixPreconditioner::MassMatrixPreconditioner(
 void MassMatrix::do_operator_parentheses(
     double const * const x, double * const b
 ) const {
-    for (double *p = b; p != b + range_dimension; ++p) {
-        *p = 0;
-    }
+    std::fill(b, b + range_dimension, 0);
     const moab::Range &elements = mesh->entities[mesh->element_type];
     const std::size_t measure_factor_divisor = (
         (mesh->topological_dimension + 1) * (mesh->topological_dimension + 2)
