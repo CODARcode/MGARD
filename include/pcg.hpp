@@ -38,7 +38,7 @@ struct PCGStoppingCriteria {
 
     //!Compute the overall absolute tolerance to use when solving a system.
     //!
-    //!\param N rhs_norm Norm of the righthand side.
+    //!\param rhs_norm Norm of the righthand side.
     //!
     //!\return Absolute tolerance to use when solving the system.
     double tolerance(const double rhs_norm) const;
@@ -46,8 +46,13 @@ struct PCGStoppingCriteria {
 
 //!Diagnostics for PCG run.
 struct PCGDiagnostics {
+    //!Whether the iteration converged or was halted for some other reason.
     bool converged;
+
+    //!Norm of the residual `b - Ax`.
     double residual_norm;
+
+    //!Number of iterations performed.
     std::size_t num_iterations;
 };
 
@@ -55,16 +60,11 @@ struct PCGDiagnostics {
 //!
 //!\param [in] A Symmetric, positive definite matrix.
 //!\param [in] b Righthand side of the system.
-//!\param [in] preconditioner Symmetric, positive definite matrix approximating
+//!\param [in] P Symmetric, positive definite matrix approximating
 //!the inverse of `A`.
 //!\param [in, out] x Starting point for the iteration.
 //!\param [in] buffer Buffer of size `4 * N` for use in the algorithm.
-//!\param [in] rtol Relative error threshold for stopping iteration. If the l²
-//!norm of the residual falls below `rtol` times the l² norm of the righthand
-//!side, the algorithm will stop.
-//!\param [in] max_iterations Condition for stopping iteration. After
-//!`max_iterations` iterations, the algorithm will stop even if the error exceeds
-//!the tolerance.
+//!\param [in] criteria Stopping criteria for the iteration.
 //!
 //!\return Diagnostics of the PCG run.
 PCGDiagnostics pcg(

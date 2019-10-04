@@ -7,6 +7,7 @@
 
 namespace mgard {
 
+//!Function object that refines meshes.
 class MeshRefiner {
     public:
         //!Refine a mesh.

@@ -11,6 +11,7 @@
 
 namespace mgard {
 
+//!Function object that uniformly refines meshes.
 class UniformMeshRefiner: public MeshRefiner {
     private:
         virtual MeshLevel do_operator_parentheses(

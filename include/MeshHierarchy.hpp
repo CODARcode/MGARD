@@ -1,7 +1,7 @@
 #ifndef MESHHIERARCHY_HPP
 #define MESHHIERARCHY_HPP
-//!file
-//!brief Increasing hierarchy of meshes, with the ability to decompose and
+//!\file
+//!\brief Increasing hierarchy of meshes, with the ability to decompose and
 //!recompose functions given on the finest mesh of that hierarchy.
 
 #include <cstddef>
@@ -25,7 +25,6 @@ namespace mgard {
 //return to if necessary.
 
 //!Hierarchy of meshes produced by refining an initial mesh.
-
 class MeshHierarchy {
     public:
         //!Constructor.
@@ -66,7 +65,7 @@ class MeshHierarchy {
     protected:
         //!Constructor.
         //!
-        //!\override
+        //!\overload
         //!
         //!\param mesh Coarsest mesh in the hierarchy.
         //!\param refiner Function object to refine the meshes.
@@ -136,7 +135,7 @@ class MeshHierarchy {
 
         //!Interpolate the 'old' values onto the 'new' nodes and subtract.
         //!
-        //!\param [in, out] Nodal values of the input function.
+        //!\param [in, out] u Nodal values of the input function.
         //!\param [in] l Index of the MeshLevel.
         moab::ErrorCode subtract_interpolant_from_coarser_level_from_new_values(
             double * const u, const std::size_t l
@@ -144,7 +143,7 @@ class MeshHierarchy {
 
         //!Interpolate the 'old' values onto the 'new' nodes and add.
         //!
-        //!\param [in, out] Nodal values of the input function.
+        //!\param [in, out] u Nodal values of the input function.
         //!\param [in] l Index of the MeshLevel.
         moab::ErrorCode add_interpolant_from_coarser_level_to_new_values(
             double * const u, const std::size_t l
@@ -153,7 +152,7 @@ class MeshHierarchy {
         //!Add the correction to the values on the 'old' nodes.
         //!
         //!\param [in, out] u Nodal values of the input function.
-        //!\param [in] Index of the MeshLevel.
+        //!\param [in] l Index of the MeshLevel.
         //!\param [in] correction Nodal values of the correction.
         moab::ErrorCode add_correction_to_old_values(
             double * const u,
@@ -164,7 +163,7 @@ class MeshHierarchy {
         //!Subtract the correction from the values on the 'old' nodes.
         //!
         //!\param [in, out] u Nodal values of the input function.
-        //!\param [in] Index of the MeshLevel.
+        //!\param [in] l Index of the MeshLevel.
         //!\param [in] correction Nodal values of the correction.
         moab::ErrorCode subtract_correction_from_old_values(
             double * const u,
@@ -201,7 +200,7 @@ class MeshHierarchy {
         //!Determine whether a node is 'new' to a mesh in the hierarchy.
         //!
         //!\param node Handle of the node.
-        //\!param l Index of the mesh.
+        //!\param l Index of the mesh.
         bool is_new_node(moab::EntityHandle node, const std::size_t l) const;
 
         //!Find the measure of an entity of a mesh in the hierarchy.
@@ -210,12 +209,22 @@ class MeshHierarchy {
         //!\param l Index of the mesh.
         double measure(moab::EntityHandle handle, const std::size_t l) const;
 
+        //!Check that a mesh index is in bounds.
+        //!
+        //!\param l Mesh index.
         void check_mesh_index_bounds(const std::size_t l) const;
 
+        //!Check that a pair of mesh indices are nondecreasing.
+        //!
+        //!\param l Smaller (nonlarger) mesh index.
+        //!\param m Larger (nonsmaller) mesh index.
         void check_mesh_indices_nondecreasing(
             const std::size_t l, const std::size_t m
         ) const;
 
+        //!Check that a mesh index is nonzero.
+        //!
+        //!\param l Mesh index.
         void check_mesh_index_nonzero(const std::size_t l) const;
 
     private:
