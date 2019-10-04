@@ -14,9 +14,13 @@ namespace mgard {
 //!`MeshLevel`.
 class MassMatrix: public helpers::LinearOperator {
     public:
+        //!Constructor.
+        //!
+        //!\param mesh Pointer to underlying mesh.
         MassMatrix(MeshLevel const * const mesh);
 
     private:
+        //!Pointer to underlying mesh.
         MeshLevel const * mesh;
 
         virtual void do_operator_parentheses(
@@ -27,9 +31,13 @@ class MassMatrix: public helpers::LinearOperator {
 //!Preconditioner for `MassMatrix`.
 class MassMatrixPreconditioner: public helpers::LinearOperator {
     public:
+        //!Constructor.
+        //!
+        //!\param mesh Pointer to underlying mesh.
         MassMatrixPreconditioner(MeshLevel const * const mesh);
 
     private:
+        //!Pointer to underlying mesh.
         MeshLevel const * mesh;
 
         virtual void do_operator_parentheses(

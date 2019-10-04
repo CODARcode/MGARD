@@ -12,13 +12,13 @@ template <typename T>
 struct PseudoArray {
     //!Constructor.
     //!
-    //!\param p Pointer to the first element in the array.
-    //!\param N Length of the array.
+    //!\param data Pointer to the first element in the array.
+    //!\param size Length of the array.
     PseudoArray(T * const data, const std::size_t size);
 
     //!Constructor.
     //!
-    //!\override
+    //!\overload
     PseudoArray(T * const data, const int size);
 
     //!Return an iterator to the beginning of the array.
@@ -27,6 +27,9 @@ struct PseudoArray {
     //!Return an iterator to the end of the array.
     T * end() const;
 
+    //!Read an entry of the array.
+    //!
+    //!\param i Index.
     T operator[](const std::size_t i) const;
 
     //!Pointer to the first element of the array.

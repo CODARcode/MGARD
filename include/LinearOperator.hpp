@@ -15,12 +15,12 @@ class LinearOperator {
         //!Constructor.
         //!
         //!\param N Dimension of domain.
-        //!\param N Dimension of range.
+        //!\param M Dimension of range.
         LinearOperator(const std::size_t N, const std::size_t M);
 
         //!Constructor.
         //!
-        //!\override
+        //!\overload
         //!
         //!\param N Dimension of domain and range.
         LinearOperator(const std::size_t N);
