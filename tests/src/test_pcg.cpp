@@ -72,9 +72,7 @@ static void mass_matrix_matvec(
     double const * const x, double * const y
 ) {
     const std::size_t N = 4;
-    for (std::size_t i = 0; i < N; ++i) {
-        y[i] = 0;
-    }
+    std::fill(y, y + N, 0);
     //Left element, with volume 3.
     y[0] += 3 * (2 * x[0] + 1 * x[1]);
     y[1] += 3 * (2 * x[1] + 1 * x[0]);
@@ -154,9 +152,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
 
             //With `b` initialized to zeroes.
             {
-                for (double *p = b; p != b + N; ++p) {
-                    *p = 0;
-                }
+                std::fill(b, b + N, 0);
                 const helpers::PCGDiagnostics diagnostics = helpers::pcg(
                     A, b, P, x, buffer
                 );
@@ -178,9 +174,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
         const FunctionOperator A(N, mass_matrix_matvec);
         const FunctionOperator P(N, diagonal_scaling);
         double x[N];
-        for (double *p = x; p != x + N; ++p) {
-            *p = 0;
-        }
+        std::fill(x, x + N, 0);
         double b[N] = {2, -1, -10, 4};
         const double b_norm = blas::nrm2(N, b, 1);
         double buffer[4 * N];

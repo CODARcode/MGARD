@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -96,9 +97,7 @@ PCGDiagnostics pcg(
     //`PCGCriteria::tolerance` expects a nonzero righthand side norm. We can
     //just return immediately in this case.
     if (b_norm == 0) {
-        for (double *p = x; p != x + N; ++p) {
-            *p = 0;
-        }
+        std::fill(x, x + N, 0);
         return {true, 0, 0};
     }
     const double atol = criteria.tolerance(b_norm);
