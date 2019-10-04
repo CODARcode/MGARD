@@ -208,9 +208,7 @@ UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
     moab::ErrorCode ecode;
     //`l` is checked to be nonzero in the caller.
     const std::size_t n = ndof(l - 1);
-    for (double *p = b; p != b + n; ++p) {
-        *p = 0;
-    }
+    std::fill(b, b + n, 0);
     const MeshLevel &mesh = meshes.at(l - 1);
     const MeshLevel &MESH = meshes.at(l);
     //Copied from `MeshLevel::mass_matrix_matvec`.
