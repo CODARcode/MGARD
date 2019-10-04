@@ -1,5 +1,8 @@
 #ifndef UNIFORMMESHHIERARCHY_HPP
 #define UNIFORMMESHHIERARCHY_HPP
+//!\file
+//!\brief Increasing hierarchy of meshes produced by repeatedly uniformly
+//!refining an initial mesh.
 
 #include <vector>
 
@@ -18,7 +21,7 @@ class UniformMeshHierarchy: public MeshHierarchy {
 
         //!Constructor.
         //!
-        //!\override
+        //!\overload
         //!
         //!\param mesh Coarsest mesh in the hierarchy.
         //!\param L Number of times to refine the initial mesh.

@@ -79,7 +79,7 @@ class MeshLevel {
 
         //!Find the connectivity of an edge or element.
         //!
-        //!\param
+        //!\param handle Handle of the edge or element.
         helpers::PseudoArray<const moab::EntityHandle> connectivity(
             const moab::EntityHandle handle
         ) const;
@@ -87,16 +87,16 @@ class MeshLevel {
         //!MOAB interface to which the mesh is associated.
         moab::Interface &impl;
 
-        //MOAB entities composing the mesh.
+        //!MOAB entities composing the mesh.
         moab::Range entities[moab::MBMAXTYPE];
 
-        //Entity type of elements (currently `moab::MBTRI` or `moab::MBTET`).
+        //!Entity type of elements (currently `moab::MBTRI` or `moab::MBTET`).
         moab::EntityType element_type;
 
-        //Topological dimension of the mesh.
+        //!Topological dimension of the mesh.
         std::size_t topological_dimension;
 
-        //Number of nodes associated to each element of the mesh.
+        //!Number of nodes associated to each element of the mesh.
         std::size_t num_nodes_per_element;
 
     protected:
