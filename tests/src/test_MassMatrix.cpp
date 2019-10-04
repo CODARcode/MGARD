@@ -85,7 +85,10 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
                     *p = 0;
                 }
                 double buffer[4 * num_nodes];
-                helpers::pcg(M, b, P, w, buffer);
+                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                    M, b, P, w, buffer
+                );
+                REQUIRE(diagnostics.converged);
                 for (std::size_t j = 0; j < num_nodes; ++j) {
                     all_close = all_close && w[j] == Approx(vs[i][j]);
                 }
@@ -161,7 +164,10 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
             for (double *p = w; p != w + num_nodes; ++p) {
                 *p = 0;
             }
-            helpers::pcg(M, b, P, w, buffer);
+            const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                M, b, P, w, buffer
+            );
+            REQUIRE(diagnostics.converged);
 
             double result[num_nodes];
             M(w, result);
