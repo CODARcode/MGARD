@@ -10,6 +10,40 @@
 
 namespace helpers {
 
+//!Stopping criteria for PCG algorithm.
+struct PCGStoppingCriteria {
+    //!Constructor.
+    //!
+    //!\param relative Relative tolerance.
+    //!\param absolute Absolute tolerance.
+    //!\param max_iterations Maximum number of PCG iterations.
+    //!
+    //!`relative` must be no more than 1. To indicate that a tolerance should
+    //!be ignored, pass a nonpositive value. At least one tolerance must be
+    //!positive.
+    PCGStoppingCriteria(
+        const double relative = 1e-9,
+        const double absolute = 1e-12,
+        const std::size_t max_iterations = 1 << 15
+    );
+
+    //!Relative tolerance;
+    double relative;
+
+    //!Absolute tolerance;
+    double absolute;
+
+    //!Maximum number of PCG iterations.
+    std::size_t max_iterations;
+
+    //!Compute the overall absolute tolerance to use when solving a system.
+    //!
+    //!\param N rhs_norm Norm of the righthand side.
+    //!
+    //!\return Absolute tolerance to use when solving the system.
+    double tolerance(const double rhs_norm) const;
+};
+
 //!Use the preconditioned conjugate method to solve `Ax = b` for `x`.
 //!
 //!\param [in] A Symmetric, positive definite matrix.
@@ -33,8 +67,7 @@ double pcg(
     const LinearOperator &P,
     double * const x,
     double * const buffer,
-    const double rtol = 1e-9,
-    const std::size_t max_iterations = 1 << 10
+    const PCGStoppingCriteria criteria = PCGStoppingCriteria()
 );
 
 }

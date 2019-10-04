@@ -13,7 +13,7 @@ CPPFLAGS = -I$(DIR_INC) -I$(HOME)/include
 CXXFLAGS = -std=c++17 -Wfatal-errors -Wall -Wextra
 
 ifneq ($(DEBUG), 0)
-CXXFLAGS += -g -fsanitize=address -fsanitize=undefined
+CXXFLAGS += -DDEBUG -g -fsanitize=address -fsanitize=undefined
 endif
 
 DIRTY = $(DIRTY_OBJECT_FILES) $(DIRTY_EXECUTABLE_FILES)

@@ -171,10 +171,18 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
         }
         double b[N] = {2, -1, -10, 4};
         double buffer[4 * N];
-        double rtols[3] = {1e-1, 1e-4, 1e-7};
-        for (double rtol : rtols) {
+        helpers::PCGStoppingCriteria criterias[4] = {
+            helpers::PCGStoppingCriteria(1e-1,    0),
+            helpers::PCGStoppingCriteria(1e-4,    0),
+            helpers::PCGStoppingCriteria(1e-7,    0),
+            helpers::PCGStoppingCriteria(   0, 1e-2),
+            helpers::PCGStoppingCriteria(   0, 1e-4),
+            helpers::PCGStoppingCriteria(   0, 1e-6),
+            helpers::PCGStoppingCriteria(1e-2, 1e-2)
+        };
+        for (helpers::PCGStoppingCriteria criteria : criterias) {
             const double relative_error = helpers::pcg(
-                A, b, P, x, buffer, rtol
+                A, b, P, x, buffer, criteria
             );
             const double b_norm = blas::nrm2(N, b, 1);
             //Populate the first bit of `buffer` with the residual.
@@ -182,8 +190,12 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
             A(x, buffer + N);
             blas::axpy(N, -1, buffer + N, 1, buffer, 1);
             const double residual_norm = blas::nrm2(N, buffer, 1);
-            REQUIRE(residual_norm < rtol * b_norm);
-            REQUIRE(relative_error <= rtol);
+            REQUIRE(residual_norm <= std::max(
+                criteria.absolute, criteria.relative * b_norm
+            ));
+            if (criteria.absolute <= 0) {
+                REQUIRE(relative_error <= criteria.relative);
+            }
         }
     }
 }
