@@ -1,11 +1,11 @@
 #include "pcg.hpp"
 
+#include <cassert>
+
 #include <stdexcept>
 #include <utility>
 
 #include "blaspp/blas.hh"
-
-namespace helpers {
 
 //!Calculate the residual 'from scratch.'
 //!
@@ -16,7 +16,7 @@ namespace helpers {
 //!\param [out] residual Buffer in which residual will be saved.
 static inline void calculate_residual(
     const std::size_t N,
-    const LinearOperator &A,
+    const helpers::LinearOperator &A,
     double const * const b,
     double const * const x,
     double * const residual
@@ -27,14 +27,39 @@ static inline void calculate_residual(
     blas::scal(N, -1, residual, 1);
 }
 
+namespace helpers {
+
+PCGStoppingCriteria::PCGStoppingCriteria(
+    const double relative,
+    const double absolute,
+    const std::size_t max_iterations
+):
+    relative(relative),
+    absolute(absolute),
+    max_iterations(max_iterations)
+{
+    if (relative <= 0 && absolute <= 0) {
+        throw std::invalid_argument("must provide a positive tolerance");
+    }
+    if (relative > 1) {
+        throw std::invalid_argument(
+            "relative tolerance cannot be greater than 1"
+        );
+    }
+}
+
+double PCGStoppingCriteria::tolerance(const double rhs_norm) const {
+    assert(rhs_norm >= 0);
+    return std::max(absolute, relative * rhs_norm);
+}
+
 double pcg(
     const LinearOperator &A,
     double const * const b,
     const LinearOperator &P,
     double * const x,
     double * const buffer,
-    const double rtol,
-    const std::size_t max_iterations
+    const PCGStoppingCriteria criteria
 ) {
     if (!(A.is_square() and P.is_square())) {
         throw std::invalid_argument(
@@ -61,42 +86,40 @@ double pcg(
     double * const Adirection = _buffer;
     _buffer += N;
 
-    if (!(0 <= rtol && rtol <= 1)) {
-        throw std::invalid_argument("`rtol` must be in [0, 1].");
-    }
     const double b_norm = blas::nrm2(N, b, 1);
     //If this quantity is zero, `atol` will be set to zero and our
     //iteration will never 'naturally' end. (The check on
     //`alpha_denominator` or the check on the iteration count should trigger
     //eventually.) Better to immediately return.
-    if (!b_norm) {
+    if (b_norm == 0) {
         for (double *p = x; p != x + N; ++p) {
             *p = 0;
         }
         return 0;
     }
-    const double atol = rtol * b_norm;
+    const double atol = criteria.tolerance(b_norm);
     calculate_residual(N, A, b, x, residual);
     double residual_norm = blas::nrm2(N, residual, 1);
     if (residual_norm <= atol) {
         return residual_norm / b_norm;
     }
     P(residual, pc_residual);
+    double beta_numerator = blas::dot(N, residual, 1, pc_residual, 1);
     blas::copy(N, pc_residual, 1, direction, 1);
-    //This should be the inner product of `direction` and `pc_residual`. Here,
-    //since they're the same, we can just find the norm of one and square it.
-    double beta_numerator = blas::nrm2(N, pc_residual, 1);;
-    beta_numerator *= beta_numerator;
-    for (std::size_t num_iter = 0; num_iter < max_iterations; ++num_iter) {
-        double alpha_numerator = beta_numerator;
+    for (
+        std::size_t num_iter = 0;
+        num_iter < criteria.max_iterations;
+        ++num_iter
+    ) {
+        const double alpha_numerator = beta_numerator;
         A(direction, Adirection);
         const double alpha_denominator = blas::dot(
             N, Adirection, 1, direction, 1
-            );
+        );
         //`A` is symmetric positive definite, so this should only happen when
         //`direction` is the zero vector. In that case, further iterations will
         //have no effect and we might as well exit now.
-        if (!alpha_denominator) {
+        if (alpha_denominator == 0) {
             return residual_norm / b_norm;
         }
         const double alpha = alpha_numerator / alpha_denominator;
