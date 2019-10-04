@@ -13,7 +13,7 @@ class DoNothingOperator: public helpers::LinearOperator {
         }
 };
 
-TEST_CASE("basic member functions") {
+TEST_CASE("basic member functions", "[LinearOperator]") {
     {
         DoNothingOperator A(5, 4);
         REQUIRE(!A.is_square());
