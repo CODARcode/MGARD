@@ -8,7 +8,7 @@ INC=include
 INC_PARAMS=$(foreach d, $(INC), -I$d)
 OBJ=obj
 
-CXXFLAGS= -std=c++11 $(INC_PARAMS) -O3 -fPIC
+CXXFLAGS= -std=c++11 $(INC_PARAMS) -fPIC
 
 LDFLAGS = -lz -ldl
 ARFLAGS = -rcs
@@ -18,7 +18,7 @@ ifdef DEBUG
 	CXXFLAGS += -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 	LDFLAGS += -fsanitize=address -fsanitize=undefined
 else
-	CXXFLAGS += -march=native -ffast-math -fno-finite-math-only
+	CXXFLAGS +=  -O3 -march=native -ffast-math -fno-finite-math-only
 endif
 
 
@@ -54,8 +54,8 @@ $(LIB): $(OBJECTS)
 	$(AR) $(ARFLAGS) $(LIB) $^
 
 clean:
-	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB) $(SIRIUS_EXEC)
+	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB) $(SIRIUS_EXEC) speed.x
 	if [ -d $(OBJ) ]; then $(RMDIR) $(OBJ); fi
 
-speed.x:
-	$(CXX) $(CXXFLAGS) -o $@ benchmark/bench.cpp  -lbenchmark -lbenchmark_main
+speed.x: $(LIB)
+	$(CXX) $(CXXFLAGS) -o $@ benchmark/bench.cpp  -lbenchmark -lbenchmark_main $(TARGET_ARCH) $(LDFLAGS) libmgard.a
