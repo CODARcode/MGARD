@@ -1,6 +1,5 @@
 CXX= g++
 
-
 MKDIR=mkdir
 RMDIR=rmdir --ignore-fail-on-non-empty
 
@@ -9,20 +8,28 @@ INC=include
 INC_PARAMS=$(foreach d, $(INC), -I$d)
 OBJ=obj
 
-CXXFLAGS= -c -std=c++11   $(INC_PARAMS)   -O3 -fPIC 
+CXXFLAGS= -std=c++11 $(INC_PARAMS) -O3 -fPIC
 
 LDFLAGS = -lz -ldl
 ARFLAGS = -rcs
 
+ifdef DEBUG
+	# Compiling with sanitizers during development is simply essential:
+	CXXFLAGS += -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+	LDFLAGS += -fsanitize=address -fsanitize=undefined
+else
+	CXXFLAGS += -march=native -ffast-math -fno-finite-math-only
+endif
+
 
 LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
-COMPILE.cpp = $(CXX) $(CXXFLAGS)
+COMPILE.cpp = $(CXX) $(CXXFLAGS) -c
 
 vpath %.o $(OBJ)
 vpath %.cpp $(SRC)
 
 
-SOURCES=mgard_test.cpp mgard_api.cpp mgard.cpp mgard_nuni.cpp  mgard_api_float.cpp mgard_float.cpp mgard_nuni_float.cpp  
+SOURCES=mgard_test.cpp mgard_api.cpp mgard.cpp mgard_nuni.cpp  mgard_api_float.cpp mgard_float.cpp mgard_nuni_float.cpp
 OBJECTS=$(foreach SOURCE,$(basename $(SOURCES)),$(OBJ)/$(SOURCE).o)
 
 EXECUTABLE=mgard_test
@@ -31,9 +38,9 @@ LIB=libmgard.a
 
 .PHONY: all clean test
 
-all: $(EXECUTABLE) $(LIB) 
+all: $(EXECUTABLE) $(LIB)
 
-$(EXECUTABLE): $(OBJECTS) 
+$(EXECUTABLE): $(OBJECTS)
 	$(LINK.o) -o $@ $^ $(LDFLAGS)
 
 
@@ -49,3 +56,6 @@ $(LIB): $(OBJECTS)
 clean:
 	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB) $(SIRIUS_EXEC)
 	if [ -d $(OBJ) ]; then $(RMDIR) $(OBJ); fi
+
+speed.x:
+	$(CXX) $(CXXFLAGS) -o $@ benchmark/bench.cpp  -lbenchmark -lbenchmark_main
