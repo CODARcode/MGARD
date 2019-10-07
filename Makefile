@@ -57,5 +57,5 @@ clean:
 	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB) $(SIRIUS_EXEC) speed.x
 	if [ -d $(OBJ) ]; then $(RMDIR) $(OBJ); fi
 
-speed.x: $(LIB)
-	$(CXX) $(CXXFLAGS) -o $@ benchmark/bench.cpp  -lbenchmark -lbenchmark_main $(TARGET_ARCH) $(LDFLAGS) libmgard.a
+speed.x: $(LIB) benchmark/bench.cpp
+	$(CXX) $(CXXFLAGS) -o $@ benchmark/bench.cpp  -lbenchmark -lbenchmark_main -pthread $(TARGET_ARCH) $(LDFLAGS) $(LIB)

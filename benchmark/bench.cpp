@@ -15,7 +15,6 @@ static void BM_MGARD(benchmark::State& state) {
   int out_size;
   double tol = 1e-3;
   for (auto _ : state) {
-    // This code gets timed
     benchmark::DoNotOptimize(mgard_compress(/* double = 0 */ 0, v.data(), out_size,  4,  v.size()/4,  1, tol));
   }
 
