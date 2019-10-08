@@ -14,7 +14,7 @@ LDFLAGS = -lz -ldl
 ARFLAGS = -rcs
 
 ifdef DEBUG
-	# Compiling with sanitizers during development is simply essential:
+# Compiling with sanitizers during development is simply essential:
 	CXXFLAGS += -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 	LDFLAGS += -fsanitize=address -fsanitize=undefined
 else
