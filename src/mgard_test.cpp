@@ -195,12 +195,22 @@ int main(int argc, char**argv)
   int nrow, ncol, nfib, nlevel;
   std::string in_file, coord_file, out_file, zip_file, shared_obj, function_handle;
 
-  int out_size;
+  int out_size, itype;
 
   unsigned char* compressed_data;
   
   // -- get commandline params --//
-  int itype    = strtol ((argv[1]), NULL, 0) ;
+  
+  if(argv[1] != NULL) // we at least have the data type
+    {
+      itype   = strtol ((argv[1]), NULL, 0) ;
+    }
+  else
+    {
+      std::cerr << "No data type specified, exiting...\n";
+      return -1;
+    }
+  
   
   if ( itype == 0 ) //double
     {
