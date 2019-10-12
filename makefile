@@ -21,7 +21,7 @@ DIRTY_OBJECT_FILES =
 DIRTY_EXECUTABLE_FILES =
 
 #Tested but not compiled.
-HEADERS_WITHOUT_IMPLEMENTATIONS := utilities
+HEADERS_WITHOUT_IMPLEMENTATIONS := utilities UniformEdgeFamilies
 HELPER_STEMS := measure LinearOperator pcg
 MGARD_STEMS := MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy
 STEMS = $(HELPER_STEMS) $(MGARD_STEMS)
