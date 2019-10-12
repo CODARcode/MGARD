@@ -17,7 +17,7 @@
 //!\param [out] residual Buffer in which residual will be saved.
 static inline void calculate_residual(
     const std::size_t N,
-    const helpers::LinearOperator &A,
+    const mgard::LinearOperator &A,
     double const * const b,
     double const * const x,
     double * const residual
@@ -28,9 +28,11 @@ static inline void calculate_residual(
     blas::scal(N, -1, residual, 1);
 }
 
-namespace helpers {
+namespace mgard {
 
-PCGStoppingCriteria::PCGStoppingCriteria(
+namespace pcg {
+
+StoppingCriteria::StoppingCriteria(
     const double relative,
     const double absolute,
     const std::size_t max_iterations
@@ -49,18 +51,18 @@ PCGStoppingCriteria::PCGStoppingCriteria(
     }
 }
 
-double PCGStoppingCriteria::tolerance(const double rhs_norm) const {
+double StoppingCriteria::tolerance(const double rhs_norm) const {
     assert(rhs_norm >= 0);
     return std::max(absolute, relative * rhs_norm);
 }
 
-PCGDiagnostics pcg(
+Diagnostics pcg(
     const LinearOperator &A,
     double const * const b,
     const LinearOperator &P,
     double * const x,
     double * const buffer,
-    const PCGStoppingCriteria criteria
+    const StoppingCriteria criteria
 ) {
     if (!(A.is_square() and P.is_square())) {
         throw std::invalid_argument(
@@ -94,8 +96,8 @@ PCGDiagnostics pcg(
     double beta_numerator;
 
     const double b_norm = blas::nrm2(N, b, 1);
-    //`PCGCriteria::tolerance` expects a nonzero righthand side norm. We can
-    //just return immediately in this case.
+    //`Criteria::tolerance` expects a nonzero righthand side norm. We can just
+    //return immediately in this case.
     if (b_norm == 0) {
         std::fill(x, x + N, 0);
         return {true, 0, 0};
@@ -154,6 +156,8 @@ PCGDiagnostics pcg(
         blas::axpy(N, beta, pc_residual, 1, direction, 1);
     }
     return {false, residual_norm, criteria.max_iterations};
+}
+
 }
 
 }

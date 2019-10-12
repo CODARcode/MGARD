@@ -27,7 +27,7 @@ static moab::ErrorCode check_elements(
         MB_CHK_ERR(ecode);
         assert(num_nodes == 3);
         Element element;
-        for (const moab::EntityHandle x : helpers::PseudoArray(
+        for (const moab::EntityHandle x : mgard::PseudoArray(
                 connectivity, num_nodes
         )) {
             NodeCoordinates xyz;

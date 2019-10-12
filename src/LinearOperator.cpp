@@ -1,6 +1,6 @@
 #include "LinearOperator.hpp"
 
-namespace helpers {
+namespace mgard {
 
 LinearOperator::LinearOperator(const std::size_t N, const std::size_t M):
     domain_dimension(N),
