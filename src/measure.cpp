@@ -21,7 +21,7 @@ static void subtract_into(
     blas::axpy(D, -1, b, 1, c, 1);
 }
 
-namespace helpers {
+namespace mgard {
 
 double orient_2d(
     double const * const a, double const * const b, double const * const c

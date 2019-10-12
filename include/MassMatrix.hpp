@@ -12,7 +12,7 @@ namespace mgard {
 
 //!Mass matrix for continuous piecewise linear functions defined on a
 //!`MeshLevel`.
-class MassMatrix: public helpers::LinearOperator {
+class MassMatrix: public LinearOperator {
     public:
         //!Constructor.
         //!
@@ -29,7 +29,7 @@ class MassMatrix: public helpers::LinearOperator {
 };
 
 //!Preconditioner for `MassMatrix`.
-class MassMatrixPreconditioner: public helpers::LinearOperator {
+class MassMatrixPreconditioner: public LinearOperator {
     public:
         //!Constructor.
         //!

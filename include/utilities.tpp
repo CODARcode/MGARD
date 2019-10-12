@@ -1,6 +1,6 @@
 #include <stdexcept>
 
-namespace helpers {
+namespace mgard {
 
 template <typename T>
 PseudoArray<T>::PseudoArray(T * const data, const std::size_t size):

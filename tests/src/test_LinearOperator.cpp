@@ -2,9 +2,9 @@
 
 #include "LinearOperator.hpp"
 
-class DoNothingOperator: public helpers::LinearOperator {
+class DoNothingOperator: public mgard::LinearOperator {
     public:
-        using helpers::LinearOperator::LinearOperator;
+        using mgard::LinearOperator::LinearOperator;
 
     private:
         virtual void do_operator_parentheses(

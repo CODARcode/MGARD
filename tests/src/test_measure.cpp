@@ -12,9 +12,9 @@ TEST_CASE("`orient_2d`", "[measure]") {
     const double a[N] = {5, 3};
     const double b[N] = {3, 4};
     const double c[N] = {3, 3};
-    REQUIRE(helpers::orient_2d(a, b, c) == 2);
-    REQUIRE(helpers::orient_2d(b, a, c) == -2);
-    REQUIRE(helpers::orient_2d(a, a, c) == 0);
+    REQUIRE(mgard::orient_2d(a, b, c) == 2);
+    REQUIRE(mgard::orient_2d(b, a, c) == -2);
+    REQUIRE(mgard::orient_2d(a, a, c) == 0);
 }
 
 TEST_CASE("`orient_3d`", "[measure]") {
@@ -25,8 +25,8 @@ TEST_CASE("`orient_3d`", "[measure]") {
     const double c[N] = {8, 8, 0};
     const double d[N] = {-4, 22, -1};
     const double determinant = 428;
-    REQUIRE(helpers::orient_3d(a, b, c, d) == determinant);
-    REQUIRE(helpers::orient_3d(a, b, d, c) == -determinant);
+    REQUIRE(mgard::orient_3d(a, b, c, d) == determinant);
+    REQUIRE(mgard::orient_3d(a, b, d, c) == -determinant);
 }
 
 TEST_CASE("edge measure", "[measure]") {
@@ -35,7 +35,7 @@ TEST_CASE("edge measure", "[measure]") {
         0, 0, 0,
         1,-2, 3
     };
-    const double base_length = helpers::edge_measure(a);
+    const double base_length = mgard::edge_measure(a);
     REQUIRE(base_length == Approx(std::sqrt(14)));
 
     SECTION("edge measure respects translation invariance") {
@@ -45,7 +45,7 @@ TEST_CASE("edge measure", "[measure]") {
         for (std::size_t i = 0; i < N; i += 3) {
             blas::axpy(3, 1, shift, 1, b + i, 1);
         }
-        REQUIRE(helpers::edge_measure(b) == Approx(base_length));
+        REQUIRE(mgard::edge_measure(b) == Approx(base_length));
     }
 
     SECTION("edge measure behaves properly under dilation") {
@@ -57,7 +57,7 @@ TEST_CASE("edge measure", "[measure]") {
             blas::scal(N, factor, b, 1);
             //Relying on `factor` being nonnegative here.
             const double expected = factor * base_length;
-            REQUIRE(helpers::edge_measure(b) == Approx(expected));
+            REQUIRE(mgard::edge_measure(b) == Approx(expected));
         }
     }
 
@@ -65,7 +65,7 @@ TEST_CASE("edge measure", "[measure]") {
         double b[N];
         blas::copy(3, a + 0, 1, b + 3, 1);
         blas::copy(3, a + 3, 1, b + 0, 1);
-        REQUIRE(helpers::edge_measure(b) == Approx(base_length));
+        REQUIRE(mgard::edge_measure(b) == Approx(base_length));
     }
 }
 
@@ -76,7 +76,7 @@ TEST_CASE("triangle measure", "[measure]") {
         0, 2, 0,
         0, 4, -2
     };
-    const double base_area = helpers::tri_measure(a);
+    const double base_area = mgard::tri_measure(a);
     {
         const double expected = 4.242640687119284;
         REQUIRE(base_area == Approx(expected));
@@ -89,7 +89,7 @@ TEST_CASE("triangle measure", "[measure]") {
         for (std::size_t i = 0; i < N; i += 3) {
             blas::axpy(3, 1, shift, 1, b + i, 1);
         }
-        REQUIRE(helpers::tri_measure(b) == Approx(base_area));
+        REQUIRE(mgard::tri_measure(b) == Approx(base_area));
     }
 
     SECTION("triangle measure behaves properly under dilation") {
@@ -100,7 +100,7 @@ TEST_CASE("triangle measure", "[measure]") {
             //Scale all vertices at once.
             blas::scal(N, factor, b, 1);
             const double expected = factor * factor * base_area;
-            REQUIRE(helpers::tri_measure(b) == Approx(expected));
+            REQUIRE(mgard::tri_measure(b) == Approx(expected));
         }
     }
 
@@ -109,7 +109,7 @@ TEST_CASE("triangle measure", "[measure]") {
         blas::copy(3, a + 0, 1, b + 3, 1);
         blas::copy(3, a + 3, 1, b + 6, 1);
         blas::copy(3, a + 6, 1, b + 0, 1);
-        REQUIRE(helpers::tri_measure(b) == Approx(base_area));
+        REQUIRE(mgard::tri_measure(b) == Approx(base_area));
     }
 }
 
@@ -121,7 +121,7 @@ TEST_CASE("tetrahedron measure", "[measure]") {
         0, 2, 0,
         0, 0, -4
     };
-    const double base_volume = helpers::tet_measure(a);
+    const double base_volume = mgard::tet_measure(a);
     {
         const double expected = 8. / 6.;
         REQUIRE(base_volume == Approx(expected));
@@ -134,7 +134,7 @@ TEST_CASE("tetrahedron measure", "[measure]") {
         for (std::size_t i = 0; i < N; i += 3) {
             blas::axpy(3, 1, shift, 1, b + i, 1);
         }
-        REQUIRE(helpers::tet_measure(b) == Approx(base_volume));
+        REQUIRE(mgard::tet_measure(b) == Approx(base_volume));
     }
 
     SECTION("tetrahedron measure behaves properly under dilation") {
@@ -146,7 +146,7 @@ TEST_CASE("tetrahedron measure", "[measure]") {
             blas::scal(N, factor, b, 1);
             //Relying on `factor` being nonnegative here.
             const double expected = factor * factor * factor * base_volume;
-            REQUIRE(helpers::tet_measure(b) == Approx(expected));
+            REQUIRE(mgard::tet_measure(b) == Approx(expected));
         }
     }
 
@@ -156,6 +156,6 @@ TEST_CASE("tetrahedron measure", "[measure]") {
         blas::copy(3, a + 3, 1, b + 0, 1);
         blas::copy(3, a + 6, 1, b + 9, 1);
         blas::copy(3, a + 9, 1, b + 3, 1);
-        REQUIRE(helpers::tet_measure(b) == Approx(base_volume));
+        REQUIRE(mgard::tet_measure(b) == Approx(base_volume));
     }
 }

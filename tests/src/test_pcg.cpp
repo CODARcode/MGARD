@@ -9,10 +9,10 @@
 #include "LinearOperator.hpp"
 #include "pcg.hpp"
 
-class SimpleDiagonalMatvec: public helpers::LinearOperator {
+class SimpleDiagonalMatvec: public mgard::LinearOperator {
     public:
         SimpleDiagonalMatvec(const std::size_t N):
-            helpers::LinearOperator(N)
+            mgard::LinearOperator(N)
         {
         }
 
@@ -27,10 +27,10 @@ class SimpleDiagonalMatvec: public helpers::LinearOperator {
         }
 };
 
-class Identity: public helpers::LinearOperator {
+class Identity: public mgard::LinearOperator {
     public:
         Identity(const std::size_t N):
-            helpers::LinearOperator(N)
+            mgard::LinearOperator(N)
         {
         }
 
@@ -43,13 +43,13 @@ class Identity: public helpers::LinearOperator {
         }
 };
 
-class FunctionOperator: public helpers::LinearOperator {
+class FunctionOperator: public mgard::LinearOperator {
     public:
         FunctionOperator(
             const std::size_t N,
             void (*const f)(double const * const, double * const)
         ):
-            helpers::LinearOperator(N),
+            mgard::LinearOperator(N),
             f(f)
         {
         }
@@ -113,7 +113,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
 
             //With `x` initialized to zeroes.
             {
-                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                const mgard::pcg::Diagnostics diagnostics = mgard::pcg::pcg(
                     A, b, P, x, buffer
                 );
                 REQUIRE(diagnostics.converged);
@@ -121,7 +121,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
             }
             //With `x` already the solution.
             {
-                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                const mgard::pcg::Diagnostics diagnostics = mgard::pcg::pcg(
                     A, b, P, x, buffer
                 );
                 REQUIRE(diagnostics.converged);
@@ -132,7 +132,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
                 for (std::size_t i = 0; i < N; ++i) {
                     x[i] = i % 2 ? 1 : -1;
                 }
-                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                const mgard::pcg::Diagnostics diagnostics = mgard::pcg::pcg(
                     A, b, P, x, buffer
                 );
                 REQUIRE(diagnostics.converged);
@@ -153,7 +153,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
             //With `b` initialized to zeroes.
             {
                 std::fill(b, b + N, 0);
-                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                const mgard::pcg::Diagnostics diagnostics = mgard::pcg::pcg(
                     A, b, P, x, buffer
                 );
                 REQUIRE(diagnostics.residual_norm == 0);
@@ -178,17 +178,17 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
         double b[N] = {2, -1, -10, 4};
         const double b_norm = blas::nrm2(N, b, 1);
         double buffer[4 * N];
-        helpers::PCGStoppingCriteria criterias[7] = {
-            helpers::PCGStoppingCriteria(1e-1,    0),
-            helpers::PCGStoppingCriteria(1e-4,    0),
-            helpers::PCGStoppingCriteria(1e-7,    0),
-            helpers::PCGStoppingCriteria(   0, 1e-2),
-            helpers::PCGStoppingCriteria(   0, 1e-4),
-            helpers::PCGStoppingCriteria(   0, 1e-6),
-            helpers::PCGStoppingCriteria(1e-2, 1e-2)
+        mgard::pcg::StoppingCriteria criterias[7] = {
+            mgard::pcg::StoppingCriteria(1e-1,    0),
+            mgard::pcg::StoppingCriteria(1e-4,    0),
+            mgard::pcg::StoppingCriteria(1e-7,    0),
+            mgard::pcg::StoppingCriteria(   0, 1e-2),
+            mgard::pcg::StoppingCriteria(   0, 1e-4),
+            mgard::pcg::StoppingCriteria(   0, 1e-6),
+            mgard::pcg::StoppingCriteria(1e-2, 1e-2)
         };
-        for (helpers::PCGStoppingCriteria criteria : criterias) {
-            const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+        for (mgard::pcg::StoppingCriteria criteria : criterias) {
+            const mgard::pcg::Diagnostics diagnostics = mgard::pcg::pcg(
                 A, b, P, x, buffer, criteria
             );
             //Populate the first bit of `buffer` with the residual.
