@@ -7,7 +7,7 @@
 
 #include <utility>
 
-namespace helpers {
+namespace mgard {
 
 //!Linear operator with respect to some fixed bases.
 class LinearOperator {

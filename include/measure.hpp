@@ -7,7 +7,7 @@
 //!
 //![LNoGR]: https://people.eecs.berkeley.edu/~jrs/meshpapers/robnotes.pdf
 
-namespace helpers {
+namespace mgard {
 
 //!Find the signed area of a parallelogram.
 //!

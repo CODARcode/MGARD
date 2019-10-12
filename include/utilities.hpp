@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-namespace helpers {
+namespace mgard {
 
 //!Mimic an array for range-based for loops.
 template <typename T>

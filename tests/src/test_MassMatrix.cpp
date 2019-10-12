@@ -83,7 +83,7 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
                 double w[num_nodes];
                 std::fill(w, w + num_nodes, 0);
                 double buffer[4 * num_nodes];
-                const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+                const mgard::pcg::Diagnostics diagnostics = mgard::pcg::pcg(
                     M, b, P, w, buffer
                 );
                 REQUIRE(diagnostics.converged);
@@ -160,7 +160,7 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
             double w[num_nodes];
             double buffer[4 * num_nodes];
             std::fill(w, w + num_nodes, 0);
-            const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+            const mgard::pcg::Diagnostics diagnostics = mgard::pcg::pcg(
                 M, b, P, w, buffer
             );
             REQUIRE(diagnostics.converged);

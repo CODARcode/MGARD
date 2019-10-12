@@ -20,7 +20,7 @@ TEST_CASE("PseudoArray iteration", "[utilities]") {
 
             std::vector<int> pseudo;
             pseudo.reserve(n);
-            for (int value : helpers::PseudoArray(values, n)) {
+            for (int value : mgard::PseudoArray(values, n)) {
                 pseudo.push_back(value);
             }
 
@@ -33,14 +33,14 @@ TEST_CASE("PseudoArray iteration", "[utilities]") {
         for (std::size_t n : ns) {
             std::vector<int> normal;
             normal.reserve(n);
-            for (int value : helpers::PseudoArray(values, n)) {
+            for (int value : mgard::PseudoArray(values, n)) {
                 normal.push_back(value);
             }
 
             std::vector<int> integral;
             integral.reserve(n);
             for (
-                int value : helpers::PseudoArray(values, static_cast<int>(n))
+                int value : mgard::PseudoArray(values, static_cast<int>(n))
             ) {
                 integral.push_back(value);
             };
@@ -51,9 +51,9 @@ TEST_CASE("PseudoArray iteration", "[utilities]") {
 
     SECTION("construction exceptions") {
         //There's no check against `p` being `NULL`.
-        REQUIRE_NOTHROW(helpers::PseudoArray<int>(NULL, 1));
+        REQUIRE_NOTHROW(mgard::PseudoArray<int>(NULL, 1));
 
         //On the other hand, negative lengths are not allowed.
-        REQUIRE_THROWS(helpers::PseudoArray<double>(NULL, -1));
+        REQUIRE_THROWS(mgard::PseudoArray<double>(NULL, -1));
     }
 }

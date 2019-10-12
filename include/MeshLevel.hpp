@@ -80,7 +80,7 @@ class MeshLevel {
         //!Find the connectivity of an edge or element.
         //!
         //!\param handle Handle of the edge or element.
-        helpers::PseudoArray<const moab::EntityHandle> connectivity(
+        PseudoArray<const moab::EntityHandle> connectivity(
             const moab::EntityHandle handle
         ) const;
 

@@ -15,8 +15,8 @@
 //!
 //!\return Node opposite the edge.
 static moab::EntityHandle find_node_opposite_edge(
-    const helpers::PseudoArray<const moab::EntityHandle> triangle_connectivity,
-    const helpers::PseudoArray<const moab::EntityHandle> edge_connectivity
+    const mgard::PseudoArray<const moab::EntityHandle> triangle_connectivity,
+    const mgard::PseudoArray<const moab::EntityHandle> edge_connectivity
 ) {
     moab::EntityHandle const * const _begin = edge_connectivity.begin();
     moab::EntityHandle const * const _end = edge_connectivity.end();
@@ -150,7 +150,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
     //Similarly for the edges.
     moab::EntityHandle most_recent_edge = EDGES.back();
     for (moab::EntityHandle element : elements) {
-        const helpers::PseudoArray<
+        const PseudoArray<
             const moab::EntityHandle
         > element_connectivity = mesh.connectivity(element);
 

@@ -353,7 +353,7 @@ MeshHierarchy::do_calculate_correction_from_multilevel_component(
     const MassMatrix M(&mesh);
     const MassMatrixPreconditioner P(&mesh);
     std::fill(correction, correction + n, 0);
-    const helpers::PCGDiagnostics diagnostics = helpers::pcg(
+    const pcg::Diagnostics diagnostics = pcg::pcg(
         M, b, P, correction, pcg_buffer
     );
     assert(diagnostics.converged);

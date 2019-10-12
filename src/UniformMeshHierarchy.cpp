@@ -261,7 +261,7 @@ UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
             const double measure_factor = (
                 measure(T, l) / measure_factor_denominator
             );
-            const helpers::PseudoArray<
+            const PseudoArray<
                 const moab::EntityHandle
             > CONNECTIVITY = MESH.connectivity(T);
             for (const moab::EntityHandle X : CONNECTIVITY) {

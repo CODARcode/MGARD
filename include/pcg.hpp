@@ -8,10 +8,14 @@
 
 #include "LinearOperator.hpp"
 
-namespace helpers {
+namespace mgard {
+
+//!Implementation of the preconditioned conjugate gradient method and associated
+//!objects.
+namespace pcg {
 
 //!Stopping criteria for PCG algorithm.
-struct PCGStoppingCriteria {
+struct StoppingCriteria {
     //!Constructor.
     //!
     //!\param relative Relative tolerance.
@@ -21,7 +25,7 @@ struct PCGStoppingCriteria {
     //!`relative` must be no more than 1. To indicate that a tolerance should
     //!be ignored, pass a nonpositive value. At least one tolerance must be
     //!positive.
-    PCGStoppingCriteria(
+    StoppingCriteria(
         const double relative = 1e-9,
         const double absolute = 1e-12,
         const std::size_t max_iterations = 1 << 15
@@ -45,7 +49,7 @@ struct PCGStoppingCriteria {
 };
 
 //!Diagnostics for PCG run.
-struct PCGDiagnostics {
+struct Diagnostics {
     //!Whether the iteration converged or was halted for some other reason.
     bool converged;
 
@@ -67,14 +71,16 @@ struct PCGDiagnostics {
 //!\param [in] criteria Stopping criteria for the iteration.
 //!
 //!\return Diagnostics of the PCG run.
-PCGDiagnostics pcg(
+Diagnostics pcg(
     const LinearOperator &A,
     double const * const b,
     const LinearOperator &P,
     double * const x,
     double * const buffer,
-    const PCGStoppingCriteria criteria = PCGStoppingCriteria()
+    const StoppingCriteria criteria = StoppingCriteria()
 );
+
+}
 
 }
 

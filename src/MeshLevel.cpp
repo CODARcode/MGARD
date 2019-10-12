@@ -20,11 +20,11 @@ static std::pair<
     std::size_t, EntityMeasureFunction
 > emf_data[moab::MBMAXTYPE] = {
     {0, NULL}, //MBVERTEX
-    {2, helpers::edge_measure}, //MBEDGE
-    {3, helpers::tri_measure}, //MBTRI
+    {2, mgard::edge_measure}, //MBEDGE
+    {3, mgard::tri_measure}, //MBTRI
     {0, NULL}, //MBQUAD
     {0, NULL}, //MBPOLYGON
-    {4, helpers::tet_measure}, //MBTET
+    {4, mgard::tet_measure}, //MBTET
     {0, NULL}, //MBPYRAMID
     {0, NULL}, //MBPRISM
     {0, NULL}, //MBKNIFE
@@ -146,7 +146,7 @@ moab::ErrorCode MeshLevel::precompute_element_measures() const {
     return precompute_measures(element_type);
 }
 
-helpers::PseudoArray<const moab::EntityHandle> MeshLevel::connectivity(
+PseudoArray<const moab::EntityHandle> MeshLevel::connectivity(
     const moab::EntityHandle handle
 ) const {
     std::size_t expected_num_nodes;
@@ -175,7 +175,7 @@ helpers::PseudoArray<const moab::EntityHandle> MeshLevel::connectivity(
     ) {
         throw std::runtime_error("entity connectivity had unexpected size");
     }
-    return helpers::PseudoArray(connectivity, expected_num_nodes);
+    return PseudoArray(connectivity, expected_num_nodes);
 }
 
 //Protected member functions.
@@ -254,9 +254,7 @@ moab::ErrorCode MeshLevel::precompute_measures(
     double * const coordinates = _coordinates.data();
     std::vector<double>::iterator p = measures[type].begin();
     for (moab::EntityHandle handle : entities[type]) {
-        helpers::PseudoArray<const moab::EntityHandle> conn = (
-            connectivity(handle)
-        );
+        PseudoArray<const moab::EntityHandle> conn = connectivity(handle);
         moab::ErrorCode ecode = impl.get_coords(
             conn.data, conn.size, coordinates
         );
