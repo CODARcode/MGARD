@@ -68,18 +68,6 @@ moab::EntityHandle UniformMeshHierarchy::get_parent(
     return do_get_parent(element, l, m);
 }
 
-moab::EntityHandle UniformMeshHierarchy::get_midpoint(
-    const moab::EntityHandle edge, const std::size_t l, const std::size_t m
-) const {
-    check_mesh_index_bounds(l);
-    check_mesh_index_bounds(m);
-    assert(m == l + 1);
-    const MeshLevel &mesh = meshes.at(l);
-    const MeshLevel &MESH = meshes.at(m);
-    const std::size_t n = ndof(l);
-    return MESH.entities[moab::MBVERTEX][n + mesh.index(edge)];
-}
-
 //Private member functions.
 moab::EntityHandle UniformMeshHierarchy::do_replica(
     const moab::EntityHandle node, const std::size_t l, const std::size_t m
@@ -161,20 +149,22 @@ moab::ErrorCode UniformMeshHierarchy::do_interpolate_old_to_new_and_axpy(
         return moab::MB_SUCCESS;
     }
     const MeshLevel &mesh = meshes.at(l - 1);
-    //`p` now points to the value at the first 'new' node. These 'new' nodes
-    //have the same ordering as the 'old' edges.
-    //TODO: Look into whether you're doing this multiple times and consider a
-    //function.
-    double *p = u + ndof(l - 1);
-    //TODO: *If* you're doing this multiple times, probably worth defining an
-    //iterator to give you the pairs `{child, {parent1, parent2}}`.
-    for (const moab::EntityHandle edge : mesh.entities[moab::MBEDGE]) {
-        double interpolant = 0;
-        for (const moab::EntityHandle node : mesh.connectivity(edge)) {
-            interpolant += u[mesh.index(node)];
-        }
-        interpolant *= 0.5;
-        *p++ += alpha * interpolant;
+    const MeshLevel &MESH = meshes.at(l);
+    //Using `edge_families` is a little inefficient here, because we find the
+    //midpoint of the edge and then the index of the midpoint when we know that
+    //the new nodes and the edges have the same ordering. We could instead do
+    //something like
+    //    //`p` now points to the value at the first 'new' node. These 'new'
+    //    //nodes have the same ordering as the 'old' edges.
+    //    double *p = u + ndof(l - 1);
+    //    //Later, inside the loop:
+    //    *p++ = alpha * interpolant;
+    for (const EdgeFamily family : edge_families(l - 1)) {
+        const std::array<moab::EntityHandle, 2> &endpoints = family.endpoints;
+        const double interpolant = 0.5 * (
+            u[mesh.index(endpoints.at(0))] + u[mesh.index(endpoints.at(1))]
+        );
+        u[MESH.index(family.midpoint)] += alpha * interpolant;
     }
     return moab::MB_SUCCESS;
 }
@@ -255,14 +245,13 @@ UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
         std::vector<moab::EntityHandle> edges;
         ecode = mesh.impl.get_adjacencies(&t, 1, 1, false, edges);
         MB_CHK_ERR(ecode);
-        for (moab::EntityHandle edge : edges) {
-            const moab::EntityHandle MIDPOINT = get_midpoint(edge, l - 1, l);
-            const helpers::PseudoArray<
-                const moab::EntityHandle
-            > connectivity = mesh.connectivity(edge);
+        const EdgeFamilyIterable<
+            std::vector<moab::EntityHandle>::iterator
+        > &families = edge_families(l - 1, edges.begin(), edges.end());
+        for (const EdgeFamily family : families) {
             interpolation_key.insert({
-                MIDPOINT, {
-                    {connectivity[0], 0.5}, {connectivity[1], 0.5}
+                family.midpoint, {
+                    {family.endpoints.at(0), 0.5}, {family.endpoints.at(1), 0.5}
                 }
             });
         }
@@ -314,6 +303,33 @@ moab::EntityHandle UniformMeshHierarchy::do_get_parent(
     return mesh.entities[mesh.element_type][
         MESH.index(element) / num_children(m, l)
     ];
+}
+
+//Could somehow pull out the checks on `l` and `l + 1` and the definitions of
+//`mesh` and `MESH`, but I'm a bit nervous about allowing arbitrary mesh pairs
+//to be provided.
+EdgeFamilyIterable<moab::Range::iterator>
+UniformMeshHierarchy::edge_families(const std::size_t l) const {
+    check_mesh_index_bounds(l);
+    check_mesh_index_bounds(l + 1);
+    const MeshLevel &mesh = meshes.at(l);
+    const MeshLevel &MESH = meshes.at(l + 1);
+    const moab::Range &edges = mesh.entities[moab::MBEDGE];
+    return EdgeFamilyIterable(
+        mesh, MESH, edges.begin(), edges.end()
+    );
+}
+
+template <typename T>
+EdgeFamilyIterable<T>
+UniformMeshHierarchy::edge_families(
+    const std::size_t l, const T begin, const T end
+) const {
+    check_mesh_index_bounds(l);
+    check_mesh_index_bounds(l + 1);
+    const MeshLevel &mesh = meshes.at(l);
+    const MeshLevel &MESH = meshes.at(l + 1);
+    return EdgeFamilyIterable<T>(mesh, MESH, begin, end);
 }
 
 }
