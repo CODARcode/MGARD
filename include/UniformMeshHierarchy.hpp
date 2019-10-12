@@ -8,6 +8,7 @@
 
 #include "MeshLevel.hpp"
 #include "MeshHierarchy.hpp"
+#include "UniformEdgeFamilies.hpp"
 
 namespace mgard {
 
@@ -52,20 +53,6 @@ class UniformMeshHierarchy: public MeshHierarchy {
         //!\param m Index of the coarse mesh.
         moab::EntityHandle get_parent(
             const moab::EntityHandle element,
-            const std::size_t l,
-            const std::size_t m
-        ) const;
-
-        //!Find the midpoint of an edge in the mesh immediately finer.
-        //!
-        //!\param edge Handle of the edge in the coarse mesh.
-        //!\param l Index of the coarse mesh.
-        //!\param m Index of the fine mesh produced by refining the coarse mesh.
-        //!
-        //!\return Handle of the node in the fine mesh located at the midpoint
-        //!of the edge.
-        moab::EntityHandle get_midpoint(
-            const moab::EntityHandle edge,
             const std::size_t l,
             const std::size_t m
         ) const;
@@ -122,6 +109,22 @@ class UniformMeshHierarchy: public MeshHierarchy {
             const moab::EntityHandle element,
             const std::size_t l,
             const std::size_t m
+        ) const;
+
+        //!Allow a user to iterate over a group of edges.
+        //!
+        //!\param l Index of the mesh begin refined. Must be less than `L`.
+        EdgeFamilyIterable<moab::Range::iterator>
+        edge_families(const std::size_t l) const;
+
+        //!\override
+        //!
+        //!\param l Index of the mesh begin refined. Must be less than `L`.
+        //!\param begin Beginning of edge range.
+        //!\param end End of edge range.
+        template <typename T>
+        EdgeFamilyIterable<T> edge_families(
+            const std::size_t l, const T begin, const T end
         ) const;
 };
 
