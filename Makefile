@@ -8,7 +8,7 @@ INC=include
 INC_PARAMS=$(foreach d, $(INC), -I$d)
 OBJ=obj
 
-CXXFLAGS= -std=c++11 $(INC_PARAMS) -fPIC
+CXXFLAGS= -std=c++11 $(INC_PARAMS) -fPIC -g
 
 LDFLAGS = -lz -ldl
 ARFLAGS = -rcs
@@ -57,5 +57,5 @@ clean:
 	$(RM) $(EXECUTABLE) $(OBJECTS) $(LIB) $(SIRIUS_EXEC) speed.x
 	if [ -d $(OBJ) ]; then $(RMDIR) $(OBJ); fi
 
-speed.x: $(LIB) benchmark/bench.cpp
-	$(CXX) $(CXXFLAGS) -o $@ benchmark/bench.cpp  -lbenchmark -lbenchmark_main -pthread $(TARGET_ARCH) $(LDFLAGS) $(LIB)
+speed.x: benchmark/bench.cpp $(LIB)
+	$(CXX) $(CXXFLAGS) -fno-omit-frame-pointer -o $@ -I./include $< -L./ -lbenchmark -lmgard -lz -pthread
