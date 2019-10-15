@@ -71,7 +71,7 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
 
   float norm = mgard_common::max_norm(v);
   
-  tol /= nlevel + 1 ;
+  tol /= nlevel + 2 ;
   
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
@@ -123,7 +123,7 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
 
   float norm = mgard_common::max_norm(v);
   
-  tol /= nlevel + 1 ;
+  tol /= nlevel + 2 ;
   
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
@@ -181,21 +181,15 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
 
   float norm = 1.0;
 
-  // if ( std::abs(0) < 1e-10 )
-  //   {
-  //     norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib, v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
-      
-  // norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
+  if ( std::abs(0) < 1e-10 )
+    {
+      norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib, v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
+      norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
+    }      
+
   
   //std::cout  << "My 2-norm is: " << norm << "\n";
 
-  //  float norm = 1.0; // absolute s-norm, need a switch for relative errors
-  //tol /= nlevel + 1 ;
-  //  float s = 0; // Defaulting to L8' compression for a start. 
-
-  //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s != 8'
-        
-  //  norm = 1.0;
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
@@ -244,25 +238,15 @@ refactor_qz (int nrow, int ncol, int nfib, std::vector<float>& coords_x,  std::v
   int l_target = nlevel-1;
 
 
-  //float norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
-
   float norm = 1.0;
 
-  // if ( std::abs(0) < 1e-10 )
-  //   {
-  //     norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib, v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
+  if ( std::abs(0) < 1e-10 )
+    {
+      norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib, v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
       
-  // norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
-  
-  //std::cout  << "My 2-norm is: " << norm << "\n";
+      norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
+    }
 
-  //  float norm = 1.0; // absolute s-norm, need a switch for relative errors
-  //tol /= nlevel + 1 ;
-  //  float s = 0; // Defaulting to L8' compression for a start. 
-
-  //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s != 8'
-        
-  //  norm = 1.0;
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
@@ -642,7 +626,7 @@ refactor_qz_2D (int nrow, int ncol, std::vector<float>& coords_x, std::vector<fl
   int nr = std::pow(2, nlevel_y ) + 1; //nrow new
   
   int nlevel = std::min(nlevel_x, nlevel_y);
-  tol /= nlevel + 1;
+  tol /= nlevel + 2;
   
   int l_target = nlevel-1;
   l_target = 0;

@@ -18,7 +18,7 @@ ifdef DEBUG
 	CXXFLAGS += -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
 	LDFLAGS += -fsanitize=address -fsanitize=undefined
 else
-	CXXFLAGS +=  -O3 -march=native -ffast-math -fno-finite-math-only
+	CXXFLAGS +=  -O3 -march=native 
 endif
 
 

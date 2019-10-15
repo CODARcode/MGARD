@@ -3957,7 +3957,7 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow, const
 {
 
   // L-infty version of per level quantizer, reorders MGARDized coeffs. per level
-  double coeff = norm*tol/( nlevel + 1 );
+  double coeff = norm*tol/( nlevel + 2 ); // account for the  possible projection to 2^k+1
   std::memcpy (work.data(), &coeff, sizeof (double));
   int size_ratio = sizeof (double) / sizeof (int);
   int prune_count = 0;
