@@ -123,6 +123,10 @@ install(
         include/mgard_api_float.h
         include/mgard_nuni_float.h
   	include/mgard_api_cuda.h
+        include/mgard_cuda.h
+	include/mgard_cuda_compacted.h
+	include/mgard_cuda_helper.h
+	include/mgard_cuda_helper_internal.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
