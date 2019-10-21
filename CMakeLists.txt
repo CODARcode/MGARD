@@ -15,7 +15,7 @@ file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/include/mgard.h MGARD_VERSION
   REGEX "// version: "
   LIMIT_COUNT 1)
 string(REGEX MATCH "[0-9]+(\.[0-9])+" MGARD_VERSION "${MGARD_VERSION}")
-project(MGARD VERSION ${MGARD_VERSION})
+project(MGARD VERSION ${MGARD_VERSION} LANGUAGES C CXX CUDA)
 
 # Some boilerplate to setup nice output directories
 set(CMAKE_INSTALL_BINDIR bin CACHE STRING "Installation runtime subdirectory")
@@ -116,34 +116,34 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-# Create executables under build/bin
-include(CTest)
-if(BUILD_TESTING)
-  enable_testing()
-  add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
-  target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
+# # Create executables under build/bin
+# include(CTest)
+# if(BUILD_TESTING)
+#   enable_testing()
+#   add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
+#   target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
 
-  add_test(NAME mgard_test1
-    COMMAND mgard_test 0
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
-      513 513 1 1e-2 0 
-  )
+#   add_test(NAME mgard_test1
+#     COMMAND mgard_test 0
+#       ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
+#       ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
+#       513 513 1 1e-2 0 
+#   )
   
-  add_test(NAME mgard_test2
-    COMMAND mgard_test 0
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400.mgard
-      600 400 1 1e-2 1 
-  )
+#   add_test(NAME mgard_test2
+#     COMMAND mgard_test 0
+#       ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig
+#       ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400.mgard
+#       600 400 1 1e-2 1 
+#   )
 
-  add_test(NAME mgard_test3
-    COMMAND mgard_test 0
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.dat
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.mgard
-      11 160 15 1e-3 2 
-  )
-endif()
+#   add_test(NAME mgard_test3
+#     COMMAND mgard_test 0
+#       ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.dat
+#       ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.mgard
+#       11 160 15 1e-3 2 
+#   )
+# endif()
 
 # Add all targets to the build-tree export set
 export(TARGETS mgard NAMESPACE mgard::
@@ -179,6 +179,103 @@ install(
   FILES "${PROJECT_BINARY_DIR}/mgard.pc"
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT dev
 )
+
+######## Build CUDA version ########
+
+# Set library
+add_library(mgard-cuda
+  src/mgard.cpp            include/mgard.h
+  src/mgard_api.cpp  include/mgard_api.h
+  src/mgard_nuni.cpp  include/mgard_nuni.h
+  src/mgard_float.cpp       include/mgard_float.h
+  src/mgard_api_float.cpp  include/mgard_api_float.h
+  src/mgard_nuni_float.cpp  include/mgard_nuni_float.h
+  src/mgard_cuda.cu       include/mgard_cuda.h
+  src/mgard_api_cuda.cpp  include/mgard_api_cuda.h
+  src/mgard_cuda_compacted.cu       include/mgard_cuda_compacted.h
+  src/mgard_cuda_helper.cu          include/mgard_cuda_helper.h
+  src/mgard_cuda_helper_internal.cu include/mgard_cuda_helper_internal.h
+)
+
+target_include_directories(mgard-cuda
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_link_libraries(mgard-cuda PRIVATE ZLIB::ZLIB  ${CMAKE_DL_LIBS})
+
+# Make sure we require C++11.  Use meta-compile features if available,
+# otherwise use specific language features
+if(NOT (CMAKE_VERSION VERSION_LESS 3.9))
+  target_compile_features(mgard-cuda PUBLIC cxx_std_11)
+else()
+  target_compile_features(mgard-cuda PUBLIC cxx_auto_type cxx_nullptr)
+endif()
+
+# Set library version information
+set_target_properties(mgard-cuda PROPERTIES
+  VERSION ${MGARD_VERSION}
+  SOVERSION ${MGARD_VERSION_MAJOR}
+  CUDA_SEPARABLE_COMPILATION ON
+)
+
+SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DCPU=0 -DGPU=1")
+SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DCPU=0 -DGPU=1")
+
+# Create executables under build/bin
+include(CTest)
+if(BUILD_TESTING)
+  enable_testing()
+  add_executable(mgard_test_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test_cuda.cpp)
+  target_link_libraries(mgard_test_cuda mgard-cuda  ${CMAKE_DL_LIBS})
+  set_target_properties(mgard_test_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+  
+  add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
+  target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
+
+  add_test(NAME mgard_test1
+    COMMAND mgard_test 0
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
+      513 513 1 1e-2 0 
+  )
+  
+  add_test(NAME mgard_test2
+    COMMAND mgard_test 0
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400.mgard
+      600 400 1 1e-2 1 
+  )
+
+  add_test(NAME mgard_test3
+    COMMAND mgard_test 0
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.dat
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.mgard
+      11 160 15 1e-3 2 
+  )
+
+  add_test(NAME mgard_test1_cuda
+    COMMAND mgard_test_cuda 0
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
+      513 513 1 1e-2 0 
+  )
+  
+  add_test(NAME mgard_test2_cuda
+    COMMAND mgard_test_cuda 0
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400.mgard
+      600 400 1 1e-2 1 
+  )
+
+  add_test(NAME mgard_test3_cuda
+    COMMAND mgard_test_cuda 0
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.dat
+      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.mgard
+      11 160 15 1e-3 2 
+  )
+endif()
+
 
 message("-- Configuration summary:")
 message("")
