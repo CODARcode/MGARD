@@ -237,6 +237,15 @@ install(
 #SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DCPU=0 -DGPU=1")
 
 # Create executables under build/bin
+
+#add_executable(mgard_check ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_check.cpp)
+#target_link_libraries(mgard_check mgard  ${CMAKE_DL_LIBS})
+#set_target_properties(mgard_check PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+#add_executable(mgard_check_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_check_cuda.cpp)
+#target_link_libraries(mgard_check_cuda mgard  ${CMAKE_DL_LIBS})
+#set_target_properties(mgard_check_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
 include(CTest)
 if(BUILD_TESTING)
   enable_testing()
@@ -247,6 +256,15 @@ if(BUILD_TESTING)
   add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
   target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
   set_target_properties(mgard_test PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+  add_executable(mgard_check ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_check.cpp)
+  target_link_libraries(mgard_check mgard  ${CMAKE_DL_LIBS})
+  set_target_properties(mgard_check PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+  add_executable(mgard_check_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_check_cuda.cpp)
+  target_link_libraries(mgard_check_cuda mgard  ${CMAKE_DL_LIBS})
+  set_target_properties(mgard_check_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
 
   add_test(NAME mgard_test1
     COMMAND mgard_test 0
@@ -289,6 +307,22 @@ if(BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.mgard
       11 160 15 1e-3 2 
   )
+  add_test(NAME mgard_correctness_check
+    COMMAND mgard_check 
+	${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
+	${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
+	513 513 1 0.001 0
+  )
+  add_test(NAME mgard_correctness_check_cuda
+    COMMAND mgard_check_cuda 
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
+        513 513 1 0.001 0
+  )
+
+
+
+
 endif()
 
 
