@@ -470,7 +470,6 @@ void solve_tridiag_M(const int l, std::vector<float> &v,
   int counter = 1;
   coeff.front() = am;
 
-  ////std::cout  <<  am<< "\t"<< bm<<"\n";
   // forward sweep
   for (int i = stride; i < n - 1; i += stride) {
     h1 = mgard_common::get_h(coords, i - stride, stride);
@@ -651,7 +650,6 @@ float l2_norm2(const int l, int nr, int nc, int nrow, int ncol,
     }
 
     float temp = l2_norm(l, nc, ncol, row_vec, coords_x);
-    ////std::cout  << temp << "\t";
 
     col_vec[ir] = temp;
   }
@@ -806,9 +804,6 @@ void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
       }
     }
   }
-
-  ////std::cout  << "Wrote : "<< count_row <<"\t" << count_col << "\t" <<
-  ///count_sol << "\n";
 
   // // 2^k+1 part //
 
@@ -1725,7 +1720,6 @@ void solve_tridiag_M_l(const int l, std::vector<float> &v,
   int counter = 1;
   coeff.front() = am;
 
-  ////std::cout  <<  am<< "\t"<< bm<<"\n";
   // forward sweep
   for (int i = stride; i < n - 1; i += stride) {
     h1 = get_h_l(coords, n, no, i - stride, stride);
@@ -3570,9 +3564,6 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
     }
   }
 
-  ////std::cout  << "Wrote : "<< count_row <<"\t" << count_col << "\t" <<
-  ///count_sol << "\n";
-
   // // 2^k+1 part //
 
   for (int ilevel = 0; ilevel < nlevel; ++ilevel) {
@@ -3743,9 +3734,6 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
     }
   }
 
-  ////std::cout  << "Wrote : "<< count_row <<"\t" << count_col << "\t" <<
-  ///count_sol << "\n";
-
   // // 2^k+1 part //
 
   for (int ilevel = 0; ilevel < nlevel; ++ilevel) {
@@ -3913,77 +3901,7 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow,
     }
   }
 
-  ////std::cout  << "Wrote : "<< count_row <<"\t" << count_col << "\t" <<
-  ///count_sol << "\n";
-
   // // 2^k+1 part //
-
-  // for(int ilevel = 0; ilevel < nlevel ; ++ilevel)
-  //   {
-  //     int stride = std::pow(2,ilevel);
-  //     int Cstride = 2*stride;
-
-  //     int fib_counter = 0;
-
-  //     for(int kfib = 0; kfib < nf; kfib += stride)
-  //       {
-  //         int kf = mgard_gen::get_lindex(nf, nfib, kfib);
-  //           for(int irow = 0;  irow < nr; irow += stride)
-  //             {
-  //               int ir = mgard_gen::get_lindex(nr, nrow, irow);
-  //                   for(int jcol = stride;  jcol < nc - 1 ; jcol += Cstride)
-  //                     {
-  //                       int jc  = mgard_gen::get_lindex(nc,  ncol,  jcol);
-
-  // 			  float val = (float) work[imeg];
-  // 			  v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val
-  // ;
-  // 			  ++imeg; ;
-  // //
-  // 			  //                          float val =
-  // v[mgard_common::get_index3(ncol, nfib, ir,jc , kf)];
-  // 			  //                          int quantum =
-  // (int)(val/(coeff));
-  //                       //work.push_back(quantum); ++count;
-  //                     }
-  // 		}
-  // 	  }
-
-  // 	for(int kfib = 0; kfib < nf; kfib += stride)
-  //       {
-  //         int kf = mgard_gen::get_lindex(nf, nfib, kfib);
-  //           for(int jcol = 0;  jcol < nc; jcol += stride)
-  //             {
-  //               int jc = mgard_gen::get_lindex(nc, ncol, jcol);
-  //                   for(int irow = stride;  irow < nr - 1 ; irow += Cstride)
-  //                     {
-  //                       int ir  = mgard_gen::get_lindex(nr, nrow, irow);
-  // 			  float val = (float) work[imeg];
-  // 			  v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val
-  // ; 			  imeg++;
-  //                     }
-  // 		}
-  // 	  }
-
-  // 	for(int irow = 0;  irow < nr; irow += stride)
-  //       {
-  // 	    int ir  = mgard_gen::get_lindex(nr, nrow, irow);
-
-  //           for(int jcol = 0;  jcol < nc; jcol += stride)
-  //             {
-  //               int jc = mgard_gen::get_lindex(nc, ncol, jcol);
-  //                   for(int kfib = stride;  kfib < nf - 1 ; kfib += Cstride)
-  //                     {
-  // 			  int kf = mgard_gen::get_lindex(nf, nfib, kfib);
-  // 			  float val = (float) work[imeg];
-  // 			  v[mgard_common::get_index3(ncol, nfib, ir, jc, kf)] = q*val
-  // ; 			  imeg++;
-
-  //                     }
-  // 		}
-  // 	  }
-
-  //   }
 
   for (int ilevel = 0; ilevel < nlevel; ++ilevel) {
 
@@ -4137,9 +4055,6 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow,
       }
     }
   }
-
-  ////std::cout  << "Wrote : "<< count_row <<"\t" << count_col << "\t" <<
-  ///count_sol << "\n";
 
   // // 2^k+1 part //
 
@@ -4626,7 +4541,6 @@ float qoi_norm(int nrow, int ncol, int nfib, std::vector<float> &coords_x,
         work2d[mgard_common::get_index(ncol, irow, jcol)] = row_vec[jcol];
       }
     }
-    ////std::cout  << "rowq \n";
 
     if (nrow > 1) // check if we have 1-D array..
     {
@@ -4770,7 +4684,6 @@ float qoi_norm(int nrow, int ncol, int nfib, std::vector<float> &coords_x,
         work2d[mgard_common::get_index(ncol, irow, jcol)] = row_vec[jcol];
       }
     }
-    ////std::cout  << "rowq \n";
 
     if (nrow > 1) // check if we have 1-D array..
     {
@@ -5140,7 +5053,6 @@ void solve_tridiag_M(const int l, std::vector<float> &v,
   int counter = 1;
   coeff.front() = am;
 
-  ////std::cout  <<  am<< "\t"<< bm<<"\n";
   // forward sweep
   for (int i = stride; i < n - 1; i += stride) {
     h1 = mgard_common::get_h(coords, i - stride, stride);
@@ -5595,7 +5507,6 @@ void solve_tridiag_M_l(const int l, std::vector<float> &v,
   int counter = 1;
   coeff.front() = am;
 
-  ////std::cout  <<  am<< "\t"<< bm<<"\n";
   // forward sweep
   for (int i = stride; i < n - 1; i += stride) {
     h1 = get_h_l(coords, n, no, i - stride, stride);
