@@ -11,8 +11,8 @@ library `libmgard.a`.
 This header file provides prototypes for the following overloaded functions:
 
 ```
-unsigned char *mgard_compress(int itype_flag, double/float *data, int
-*out_size, int n1, int n2, int n3, double/float tol, [qoi, s = infinity])
+unsigned char *mgard_compress(int itype_flag, double/float *data, int& out_size,
+                              int n1, int n2, int n3, double/float tol, [qoi, s = infinity])
 ```
 
 It returns a pointer to an `unsigned char` array of compressed data.
