@@ -1,36 +1,10 @@
 // Copyright 2017, Brown University, Providence, RI.
-//
-//                         All Rights Reserved
-//
-// Permission to use, copy, modify, and distribute this software and
-// its documentation for any purpose other than its incorporation into a
-// commercial product or service is hereby granted without fee, provided
-// that the above copyright notice appear in all copies and that both
-// that copyright notice and this permission notice appear in supporting
-// documentation, and that the name of Brown University not be used in
-// advertising or publicity pertaining to distribution of the software
-// without specific, written prior permission.
-//
-// BROWN UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
-// INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY
-// PARTICULAR PURPOSE.  IN NO EVENT SHALL BROWN UNIVERSITY BE LIABLE FOR
-// ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-// WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-// ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-// OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-//
-//
 // MGARD: MultiGrid Adaptive Reduction of Data
 // Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
 // Corresponding Author: Ozan Tugluk
 //
 // version: 0.0.0.2
-//
-// This file is part of MGARD.
-//
-// MGARD is distributed under the OSI-approved Apache License, Version 2.0.
-// See accompanying file Copyright.txt for details.
-//
+// See LICENSE for details.
 
 #include "mgard_float.h"
 #include "mgard_nuni_float.h"
@@ -45,19 +19,19 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
   int nlevel;
   std::vector<float> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
   std::vector<float> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
-  
+
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-  
+
   int nlevel_y = std::log2(nrow-1);
   int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
-  
+
   int nlevel_z = std::log2(nfib-1);
   int nf = std::pow(2, nlevel_z ) + 1; //nfib new
-  
+
   nlevel = std::min(nlevel_x, nlevel_y);
   nlevel = std::min(nlevel, nlevel_z);
-  
+
   int l_target = nlevel-1;
 
 
@@ -70,25 +44,25 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
   //  float norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,  nfib,   v, coords_x, coords_y, coords_z);
 
   float norm = mgard_common::max_norm(v);
-  
+
   tol /= nlevel + 2 ;
-  
+
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
-  
+
   work.clear();
   work2d.clear();
 
-    
+
   int size_ratio = sizeof (float) / sizeof (int);
   std::vector<int> qv (nrow * ncol * nfib + size_ratio);
 
 
   mgard::quantize_2D_interleave (nrow, ncol*nfib, v.data(), qv, norm, tol); // rename this to quantize Linfty or smthng!!!!
-  
+
   std::vector<unsigned char> out_data;
-  
+
   mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
 
   outsize = out_data.size ();
@@ -104,43 +78,43 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
 {
   int nlevel;
   std::vector<float> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
-  
-  
+
+
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-  
+
   int nlevel_y = std::log2(nrow-1);
   int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
-  
+
   int nlevel_z = std::log2(nfib-1);
   int nf = std::pow(2, nlevel_z ) + 1; //nfib new
-  
+
   nlevel = std::min(nlevel_x, nlevel_y);
   nlevel = std::min(nlevel, nlevel_z);
-  
+
   int l_target = nlevel-1;
 
 
   float norm = mgard_common::max_norm(v);
-  
+
   tol /= nlevel + 2 ;
-  
+
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
-  
+
   work.clear();
   work2d.clear();
 
-    
+
   int size_ratio = sizeof (float) / sizeof (int);
   std::vector<int> qv (nrow * ncol * nfib + size_ratio);
 
 
   mgard::quantize_2D_interleave (nrow, ncol*nfib, v.data(), qv, norm, tol); // rename this to quantize Linfty or smthng!!!!
-  
+
   std::vector<unsigned char> out_data;
-  
+
   mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
 
   outsize = out_data.size ();
@@ -157,19 +131,19 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
   int nlevel;
   std::vector<float> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
   std::vector<float> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
-  
+
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-  
+
   int nlevel_y = std::log2(nrow-1);
   int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
-  
+
   int nlevel_z = std::log2(nfib-1);
   int nf = std::pow(2, nlevel_z ) + 1; //nfib new
-  
+
   nlevel = std::min(nlevel_x, nlevel_y);
   nlevel = std::min(nlevel, nlevel_z);
-  
+
   int l_target = nlevel-1;
 
   //dummy equispaced coordinates
@@ -185,25 +159,25 @@ refactor_qz (int nrow, int ncol, int nfib, const float *u, int &outsize, float t
     {
       norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib, v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
       norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
-    }      
+    }
 
-  
+
   //std::cout  << "My 2-norm is: " << norm << "\n";
 
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
-  
+
   work.clear();
   work2d.clear();
 
-    
+
   int size_ratio = sizeof (float) / sizeof (int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
   // qv.reserve(nrow * ncol * nfib + size_ratio);
   //  qv[0] = 0; qv[1] =0;
 
-  mgard_gen::quantize_3D(nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm,  tol); 
+  mgard_gen::quantize_3D(nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm,  tol);
 
   std::vector<unsigned char> out_data;
 
@@ -222,19 +196,19 @@ refactor_qz (int nrow, int ncol, int nfib, std::vector<float>& coords_x,  std::v
 {
   int nlevel;
   std::vector<float> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
-  
+
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-  
+
   int nlevel_y = std::log2(nrow-1);
   int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
-  
+
   int nlevel_z = std::log2(nfib-1);
   int nf = std::pow(2, nlevel_z ) + 1; //nfib new
-  
+
   nlevel = std::min(nlevel_x, nlevel_y);
   nlevel = std::min(nlevel, nlevel_z);
-  
+
   int l_target = nlevel-1;
 
 
@@ -243,22 +217,22 @@ refactor_qz (int nrow, int ncol, int nfib, std::vector<float>& coords_x,  std::v
   if ( std::abs(0) < 1e-10 )
     {
       norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol,  nfib, v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
-      
+
       norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
     }
 
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
-  
+
   work.clear();
   work2d.clear();
 
-    
+
   int size_ratio = sizeof (float) / sizeof (int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
-  mgard_gen::quantize_3D(nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm,  tol); 
+  mgard_gen::quantize_3D(nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm,  tol);
 
   std::vector<unsigned char> out_data;
 
@@ -277,19 +251,19 @@ refactor_qz (int nrow, int ncol, int nfib, std::vector<float>& coords_x,  std::v
   int nlevel;
   std::vector<float> v(u, u + nrow*ncol*nfib), work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
   std::vector<float> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
-  
+
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-  
+
   int nlevel_y = std::log2(nrow-1);
   int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
-  
+
   int nlevel_z = std::log2(nfib-1);
   int nf = std::pow(2, nlevel_z ) + 1; //nfib new
-  
+
   nlevel = std::min(nlevel_x, nlevel_y);
   nlevel = std::min(nlevel, nlevel_z);
-  
+
   int l_target = nlevel-1;
 
   //dummy equispaced coordinates
@@ -303,7 +277,7 @@ refactor_qz (int nrow, int ncol, int nfib, std::vector<float>& coords_x,  std::v
 
   //  float norm = 1.0; // absolute s-norm, need a switch for relative errors
   //  tol /= nlevel + 1 ;
-  //  float s = 0; // Defaulting to L8' compression for a start. 
+  //  float s = 0; // Defaulting to L8' compression for a start.
 
   //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s != 8'
 
@@ -311,19 +285,19 @@ refactor_qz (int nrow, int ncol, int nfib, std::vector<float>& coords_x,  std::v
 
   norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
 
-  
+
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
 
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(),  work, work2d, coords_x, coords_y, coords_z);
-  
+
   work.clear();
   work2d.clear();
 
-    
+
   int size_ratio = sizeof (float) / sizeof (int);
   std::vector<int> qv (nrow * ncol * nfib + size_ratio);
 
-  mgard_gen::quantize_3D(nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm,  tol); 
+  mgard_gen::quantize_3D(nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm,  tol);
 
 
   std::vector<unsigned char> out_data;
@@ -336,7 +310,7 @@ refactor_qz (int nrow, int ncol, int nfib, std::vector<float>& coords_x,  std::v
   return buffer;
 
 }
- 
+
 
 float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *data, int data_len)
   {
@@ -345,7 +319,7 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
     std::vector<float> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
     std::vector<int> out_data(nrow*ncol*nfib + size_ratio);
     std::vector<float> work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
-    
+
 
     //      dummy equispaced coordinates
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
@@ -353,28 +327,28 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
     std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
     //    //std::cout  <<"**** coord check : "  << coords_x[4] << "\n";
-    
+
     int nlevel_x = std::log2(ncol-1);
     int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-    
+
     int nlevel_y = std::log2(nrow-1);
     int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
-    
+
     int nlevel_z = std::log2(nfib-1);
     int nf = std::pow(2, nlevel_z ) + 1; //nfib new
-    
+
     nlevel = std::min(nlevel_x, nlevel_y);
     nlevel = std::min(nlevel, nlevel_z);
-    
+
     int l_target = nlevel-1;
 
     mgard::decompress_memory_z (data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
     float *v = (float *)malloc (nrow*ncol*nfib*sizeof(float));
-        
+
     mgard::dequantize_2D_interleave(nrow, ncol*nfib, v, out_data) ;
-    
+
     mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, work2d, coords_x, coords_y, coords_z);
-    
+
     mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, coords_x, coords_y, coords_z);
 
     return v;
@@ -388,33 +362,33 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
     int size_ratio = sizeof(float)/sizeof(int);
     std::vector<int> out_data(nrow*ncol*nfib + size_ratio);
     std::vector<float> work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
-    
+
     int nlevel_x = std::log2(ncol-1);
     int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-    
+
     int nlevel_y = std::log2(nrow-1);
     int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
-    
+
     int nlevel_z = std::log2(nfib-1);
     int nf = std::pow(2, nlevel_z ) + 1; //nfib new
-    
+
     nlevel = std::min(nlevel_x, nlevel_y);
     nlevel = std::min(nlevel, nlevel_z);
-    
+
     int l_target = nlevel-1;
 
     mgard::decompress_memory_z (data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
     float *v = (float *)malloc (nrow*ncol*nfib*sizeof(float));
-        
+
     mgard::dequantize_2D_interleave(nrow, ncol*nfib, v, out_data) ;
-    
+
     mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, work2d, coords_x, coords_y, coords_z);
-    
+
     mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, coords_x, coords_y, coords_z);
 
     return v;
   }
-  
+
 
 
   float* recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len, float s)
@@ -424,8 +398,8 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
     std::vector<float> coords_x(ncol), coords_y(nrow), coords_z(nfib); // coordinate arrays
     std::vector<int> out_data(nrow*ncol*nfib + size_ratio);
     std::vector<float> work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
-    
-    //    float s = 0; // Defaulting to L2 compression for a start. 
+
+    //    float s = 0; // Defaulting to L2 compression for a start.
     float norm = 1;//defaulting to absolute s, may switch to relative
 
     //      dummy equispaced coordinates
@@ -434,19 +408,19 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
     std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
     //    //std::cout  <<"**** coord check : "  << coords_x[4] << "\n";
-    
+
     int nlevel_x = std::log2(ncol-1);
     int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-    
+
     int nlevel_y = std::log2(nrow-1);
     int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
-    
+
     int nlevel_z = std::log2(nfib-1);
     int nf = std::pow(2, nlevel_z ) + 1; //nfib new
-    
+
     nlevel = std::min(nlevel_x, nlevel_y);
     nlevel = std::min(nlevel, nlevel_z);
-    
+
     int l_target = nlevel-1;
 
     mgard::decompress_memory_z (data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
@@ -454,20 +428,20 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
 
 
     //    outfile.write( reinterpret_cast<char*>( out_data.data() ), (nrow*ncol*nfib + size_ratio)*sizeof(int) );
-    
-    mgard_gen::dequantize_3D( nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v, out_data, coords_x, coords_y,  coords_z, s);    
+
+    mgard_gen::dequantize_3D( nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v, out_data, coords_x, coords_y,  coords_z, s);
     //    mgard::dequantize_2D_interleave(nrow, ncol*nfib, v, out_data) ;
-    
+
     //    mgard_common::qread_2D_interleave(nrow,  ncol, nlevel, work.data(), out_file);
 
     // mgard_gen::dequant_3D(  nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel,  nlevel, v, work.data(), coords_x, coords_y,  coords_z, s );
-    
+
     // std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
 
 
     //    w
     mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, work2d, coords_x, coords_y, coords_z);
-    
+
     mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, coords_x, coords_y, coords_z);
 
     //    outfile.write( reinterpret_cast<char*>( v ), nrow*ncol*nfib*sizeof(float) ;)
@@ -483,22 +457,22 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
 
     std::vector<int> out_data(nrow*ncol*nfib + size_ratio);
     std::vector<float> work(nrow * ncol * nfib), work2d(nrow*ncol); //duplicate data and create work array
-    
-    //    float s = 0; // Defaulting to L2 compression for a start. 
+
+    //    float s = 0; // Defaulting to L2 compression for a start.
     float norm = 1;//defaulting to absolute s, may switch to relative
-    
+
     int nlevel_x = std::log2(ncol-1);
     int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-    
+
     int nlevel_y = std::log2(nrow-1);
     int nr = std::pow(2, nlevel_y ) + 1 ; //nrow new
-    
+
     int nlevel_z = std::log2(nfib-1);
     int nf = std::pow(2, nlevel_z ) + 1; //nfib new
-    
+
     nlevel = std::min(nlevel_x, nlevel_y);
     nlevel = std::min(nlevel, nlevel_z);
-    
+
     int l_target = nlevel-1;
 
     mgard::decompress_memory_z (data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
@@ -506,20 +480,20 @@ float* recompose_udq(float dummyf, int nrow, int ncol, int nfib, unsigned char *
 
 
     //    outfile.write( reinterpret_cast<char*>( out_data.data() ), (nrow*ncol*nfib + size_ratio)*sizeof(int) );
-    
-    mgard_gen::dequantize_3D( nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v, out_data, coords_x, coords_y,  coords_z, s);    
+
+    mgard_gen::dequantize_3D( nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel, v, out_data, coords_x, coords_y,  coords_z, s);
     //    mgard::dequantize_2D_interleave(nrow, ncol*nfib, v, out_data) ;
-    
+
     //    mgard_common::qread_2D_interleave(nrow,  ncol, nlevel, work.data(), out_file);
 
     // mgard_gen::dequant_3D(  nr,  nc,  nf,  nrow,  ncol,  nfib,  nlevel,  nlevel, v, work.data(), coords_x, coords_y,  coords_z, s );
-    
+
     // std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
 
 
     //    w
     mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, work2d, coords_x, coords_y, coords_z);
-    
+
     mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v,  work, coords_x, coords_y, coords_z);
 
     //    outfile.write( reinterpret_cast<char*>( v ), nrow*ncol*nfib*sizeof(float) ;)
@@ -536,14 +510,14 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol)
 
   float norm = mgard_2d::mgard_common::max_norm(v);
 
-  
+
   if (mgard::is_2kplus1 (nrow)
       && mgard::is_2kplus1 (ncol)) // input is (2^q + 1) x (2^p + 1)
     {
       int nlevel;
       mgard::set_number_of_levels (nrow, ncol, nlevel);
-      tol /= float (nlevel + 1);      
-      
+      tol /= float (nlevel + 1);
+
       int l_target = nlevel - 1;
       mgard::refactor (nrow, ncol, l_target, v.data(), work, row_vec, col_vec);
       work.clear ();
@@ -555,7 +529,7 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol)
 
 
       mgard::quantize_2D_interleave (nrow, ncol, v.data(), qv, norm, tol);
-      
+
       std::vector<unsigned char> out_data;
 
       mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
@@ -568,11 +542,11 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol)
     {
 
       std::vector<float> coords_x(ncol), coords_y(nrow);
-      
+
       std::iota(std::begin(coords_x), std::end(coords_x), 0);
       std::iota(std::begin(coords_y), std::end(coords_y), 0);
 
-      
+
       int nlevel_x = std::log2(ncol-1);
       int nc = std::pow(2, nlevel_x ) + 1; //ncol new
 
@@ -587,7 +561,7 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol)
       mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
 
       mgard_2d::mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-      
+
       work.clear ();
       col_vec.clear ();
       row_vec.clear ();
@@ -618,36 +592,36 @@ refactor_qz_2D (int nrow, int ncol, std::vector<float>& coords_x, std::vector<fl
   std::vector<float> v(u, u+nrow*ncol), work(nrow * ncol);
 
   float norm = mgard_2d::mgard_common::max_norm(v);
-  
+
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
-  
+
   int nlevel_y = std::log2(nrow-1);
   int nr = std::pow(2, nlevel_y ) + 1; //nrow new
-  
+
   int nlevel = std::min(nlevel_x, nlevel_y);
   tol /= nlevel + 2;
-  
+
   int l_target = nlevel-1;
   l_target = 0;
   mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-  
+
   mgard_2d::mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-  
+
   work.clear ();
   col_vec.clear ();
   row_vec.clear ();
-  
+
   int size_ratio = sizeof (float) / sizeof (int);
   std::vector<int> qv (nrow * ncol + size_ratio);
-  
+
   tol /= nlevel + 1;
   mgard::quantize_2D_interleave (nrow, ncol, v.data (), qv, norm, tol);
-  
+
   std::vector<unsigned char> out_data;
 
   mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
-  
+
   outsize = out_data.size ();
   unsigned char *buffer = (unsigned char *)malloc (outsize);
   std::copy (out_data.begin (), out_data.end (), buffer);
@@ -666,14 +640,14 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol, flo
 
   float norm = mgard_2d::mgard_common::max_norm(v);
 
-  
+
   if (mgard::is_2kplus1 (nrow)
       && mgard::is_2kplus1 (ncol)) // input is (2^q + 1) x (2^p + 1)
     {
       int nlevel;
       mgard::set_number_of_levels (nrow, ncol, nlevel);
-      tol /= float (nlevel + 1);      
-      
+      tol /= float (nlevel + 1);
+
       int l_target = nlevel - 1;
       mgard::refactor (nrow, ncol, l_target, v.data(), work, row_vec, col_vec);
       work.clear ();
@@ -681,7 +655,7 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol, flo
       col_vec.clear ();
 
       std::vector<float> coords_x(ncol), coords_y(nrow);
-      
+
       std::iota(std::begin(coords_x), std::end(coords_x), 0);
       std::iota(std::begin(coords_y), std::end(coords_y), 0);
 
@@ -691,9 +665,9 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol, flo
 
       //mgard::quantize_2D_interleave (nrow, ncol, v.data(), qv, norm, tol);
 
-      mgard_gen::quantize_2D(nrow,  ncol, nrow,  ncol,  nlevel, v.data(), qv, coords_x, coords_y,  s, norm,  tol); 
+      mgard_gen::quantize_2D(nrow,  ncol, nrow,  ncol,  nlevel, v.data(), qv, coords_x, coords_y,  s, norm,  tol);
 
-      
+
       std::vector<unsigned char> out_data;
 
       mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
@@ -706,11 +680,11 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol, flo
     {
 
       std::vector<float> coords_x(ncol), coords_y(nrow);
-      
+
       std::iota(std::begin(coords_x), std::end(coords_x), 0);
       std::iota(std::begin(coords_y), std::end(coords_y), 0);
 
-      
+
       int nlevel_x = std::log2(ncol-1);
       int nc = std::pow(2, nlevel_x ) + 1; //ncol new
 
@@ -725,7 +699,7 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol, flo
       mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
 
       mgard_2d::mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-      
+
       work.clear ();
       col_vec.clear ();
       row_vec.clear ();
@@ -733,8 +707,8 @@ refactor_qz_2D (int nrow, int ncol, const float *u, int &outsize, float tol, flo
       int size_ratio = sizeof (float) / sizeof (int);
       std::vector<int> qv (nrow * ncol + size_ratio);
 
-      mgard_gen::quantize_2D(nr,  nc, nrow,  ncol,  nlevel, v.data(), qv, coords_x, coords_y,  s, norm,  tol); 
-    
+      mgard_gen::quantize_2D(nr,  nc, nrow,  ncol,  nlevel, v.data(), qv, coords_x, coords_y,  s, norm,  tol);
+
 
       std::vector<unsigned char> out_data;
 
@@ -757,7 +731,7 @@ refactor_qz_2D (int nrow, int ncol, std::vector<float>& coords_x, std::vector<fl
   std::vector<float> v(u, u+nrow*ncol), work(nrow * ncol);
 
   float norm = mgard_2d::mgard_common::max_norm(v);
-      
+
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
 
@@ -772,7 +746,7 @@ refactor_qz_2D (int nrow, int ncol, std::vector<float>& coords_x, std::vector<fl
   mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
 
   mgard_2d::mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
-      
+
   work.clear ();
   col_vec.clear ();
   row_vec.clear ();
@@ -780,8 +754,8 @@ refactor_qz_2D (int nrow, int ncol, std::vector<float>& coords_x, std::vector<fl
   int size_ratio = sizeof (float) / sizeof (int);
   std::vector<int> qv (nrow * ncol + size_ratio);
 
-  mgard_gen::quantize_2D(nr,  nc, nrow,  ncol,  nlevel, v.data(), qv, coords_x, coords_y,  s, norm,  tol); 
-    
+  mgard_gen::quantize_2D(nr,  nc, nrow,  ncol,  nlevel, v.data(), qv, coords_x, coords_y,  s, norm,  tol);
+
 
   std::vector<unsigned char> out_data;
 
@@ -802,27 +776,27 @@ float* recompose_udq_2D(float dummyf, int nrow, int ncol, unsigned char *data, i
     {
       int ncol_new = ncol;
       int nrow_new = nrow;
-      
+
       int nlevel_new;
       mgard::set_number_of_levels (nrow_new, ncol_new, nlevel_new);
       int l_target = nlevel_new-1;
 
-      
+
       std::vector<int> out_data(nrow_new*ncol_new + size_ratio);
 
       mgard::decompress_memory_z(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
-      
+
       float *v = (float *)malloc (nrow_new*ncol_new*sizeof(float));
 
       mgard::dequantize_2D_interleave(nrow_new, ncol_new, v, out_data) ;
       out_data.clear();
-      
+
       std::vector<float> row_vec(ncol_new);
       std::vector<float> col_vec(nrow_new);
       std::vector<float> work(nrow_new*ncol_new);
 
       mgard::recompose(nrow_new, ncol_new, l_target, v,  work, row_vec, col_vec);
-      
+
       return v;
 
     }
@@ -832,7 +806,7 @@ float* recompose_udq_2D(float dummyf, int nrow, int ncol, unsigned char *data, i
 
       std::iota(std::begin(coords_x), std::end(coords_x), 0);
       std::iota(std::begin(coords_y), std::end(coords_y), 0);
-      
+
       int nlevel_x = std::log2(ncol-1);
       int nc = std::pow(2, nlevel_x ) + 1; //ncol new
 
@@ -852,14 +826,14 @@ float* recompose_udq_2D(float dummyf, int nrow, int ncol, unsigned char *data, i
       float *v = (float *)malloc (nrow*ncol*sizeof(float));
 
       mgard::dequantize_2D_interleave(nrow, ncol, v, out_data) ;
-      
+
       std::vector<float> row_vec(ncol);
       std::vector<float> col_vec(nrow);
       std::vector<float> work(nrow*ncol);
 
 
       mgard_2d::mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
-      
+
       mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
 
 
@@ -872,8 +846,8 @@ float* recompose_udq_2D(float dummyf, int nrow, int ncol, unsigned char *data, i
  float* recompose_udq_2D(int nrow, int ncol, std::vector<float>& coords_x,  std::vector<float>& coords_y, unsigned char *data, int data_len)
   {
   int size_ratio = sizeof(float)/sizeof(int);
-  
- 
+
+
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
 
@@ -893,14 +867,14 @@ float* recompose_udq_2D(float dummyf, int nrow, int ncol, unsigned char *data, i
   float *v = (float *)malloc (nrow*ncol*sizeof(float));
 
   mgard::dequantize_2D_interleave(nrow, ncol, v, out_data) ;
-      
+
   std::vector<float> row_vec(ncol);
   std::vector<float> col_vec(nrow);
   std::vector<float> work(nrow*ncol);
 
 
   mgard_2d::mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
-      
+
   mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
 
 
@@ -918,33 +892,33 @@ float* recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len, f
     {
       int ncol_new = ncol;
       int nrow_new = nrow;
-      
+
       int nlevel_new;
       mgard::set_number_of_levels (nrow_new, ncol_new, nlevel_new);
       int l_target = nlevel_new-1;
 
       std::vector<float> coords_x(ncol), coords_y(nrow);
-      
+
       std::iota(std::begin(coords_x), std::end(coords_x), 0);
       std::iota(std::begin(coords_y), std::end(coords_y), 0);
 
-      
+
       std::vector<int> out_data(nrow_new*ncol_new + size_ratio);
 
        mgard::decompress_memory_z(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
-      
+
       float *v = (float *)malloc (nrow_new*ncol_new*sizeof(float));
 
       //      mgard::dequantize_2D_interleave(nrow_new, ncol_new, v, out_data) ;
       mgard_gen::dequantize_2D(nrow,  ncol,  nrow,  ncol,  nlevel_new, v, out_data,  coords_x,  coords_y,  s);
       out_data.clear();
-      
+
       std::vector<float> row_vec(ncol_new);
       std::vector<float> col_vec(nrow_new);
       std::vector<float> work(nrow_new*ncol_new);
 
       mgard::recompose(nrow_new, ncol_new, l_target, v,  work, row_vec, col_vec);
-      
+
       return v;
 
     }
@@ -954,7 +928,7 @@ float* recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len, f
 
       std::iota(std::begin(coords_x), std::end(coords_x), 0);
       std::iota(std::begin(coords_y), std::end(coords_y), 0);
-      
+
       int nlevel_x = std::log2(ncol-1);
       int nc = std::pow(2, nlevel_x ) + 1; //ncol new
 
@@ -974,14 +948,14 @@ float* recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len, f
 
       mgard_gen::dequantize_2D(nr,  nc,  nrow,  ncol,  nlevel, v, out_data,  coords_x,  coords_y,  s);
 
-      
+
       std::vector<float> row_vec(ncol);
       std::vector<float> col_vec(nrow);
       std::vector<float> work(nrow*ncol);
 
 
       mgard_2d::mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
-      
+
       mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
 
 
@@ -993,7 +967,7 @@ float* recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len, f
 float* recompose_udq_2D(int nrow, int ncol, std::vector<float>& coords_x,  std::vector<float>& coords_y, unsigned char *data, int data_len, float s)
   {
   int size_ratio = sizeof(float)/sizeof(int);
-      
+
   int nlevel_x = std::log2(ncol-1);
   int nc = std::pow(2, nlevel_x ) + 1; //ncol new
 
@@ -1013,14 +987,14 @@ float* recompose_udq_2D(int nrow, int ncol, std::vector<float>& coords_x,  std::
 
   mgard_gen::dequantize_2D(nr,  nc,  nrow,  ncol,  nlevel, v, out_data,  coords_x,  coords_y,  s);
 
-      
+
   std::vector<float> row_vec(ncol);
   std::vector<float> col_vec(nrow);
   std::vector<float> work(nrow*ncol);
 
 
   mgard_2d::mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
-      
+
   mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
 
 
@@ -1031,7 +1005,7 @@ float* recompose_udq_2D(int nrow, int ncol, std::vector<float>& coords_x,  std::
 //   unsigned char *
 //   refactor_qz_1D (int nrow,  const float *u, int &outsize, float tol)
 //   {
-    
+
 //   std::vector<float> v(u, u+nrow), work(nrow);
 
 //   float norm = mgard_common::max_norm(v);
@@ -1042,7 +1016,7 @@ float* recompose_udq_2D(int nrow, int ncol, std::vector<float>& coords_x,  std::
 //   int l_target = nlevel-1;
 
 //   std::iota(std::begin(coords_x), std::end(coords_x), 0);
-  
+
 //   //  mgard::refactor_1D(nlevel-1, v,   work, coords_x,  nr,  nrow );
 
 //   work.clear ();
@@ -1068,12 +1042,12 @@ float* recompose_udq_2D(int nrow, int ncol, std::vector<float>& coords_x,  std::
 //   int size_ratio = sizeof(float)/sizeof(int);
 //     {
 //       std::vector<float> coords_x;
-      
+
 //       int nlevel = std::log2(nrow-1);
 //       int nc = std::pow(2, nlevel ) + 1; //ncol new
 // k
 //       int l_target = nlevel-1;
-      
+
 //       std::vector<int> out_data(nrow + size_ratio);
 
 //       std::iota(std::begin(coords_x), std::end(coords_x), 0);
@@ -1083,7 +1057,7 @@ float* recompose_udq_2D(int nrow, int ncol, std::vector<float>& coords_x,  std::
 //       float *v = (float *)malloc (nrow*sizeof(float));
 
 //       mgard::dequantize_2D_interleave(nrow, 1, v, out_data) ;
-      
+
 //       std::vector<float> work(nrow);
 
 //       mgard::recompose_1D(nlevel, v,   work, coords_x,  nr,  nrow );
@@ -1091,7 +1065,7 @@ float* recompose_udq_2D(int nrow, int ncol, std::vector<float>& coords_x,  std::
 //       return v;
 //     }
 // }
-  
+
 inline int
 get_index (const int ncol, const int i, const int j)
 {
@@ -1103,7 +1077,7 @@ is_2kplus1 (float num)
 {
   float frac_part, f_level, int_part;
   if (num == 1) return 1;
-  
+
   f_level = std::log2 (num - 1);
   frac_part = modff (f_level, &int_part);
 
@@ -1974,8 +1948,8 @@ resample_1d_inv2 (const float *inbuf, float *outbuf, const int ncol,
 
       float d1 = std::pow(x1 - x, 4.0 );
       float d2 = std::pow(x2 - x, 4.0 );
-      
-      
+
+
       if( d1 == 0)
         {
           outbuf[icol] = y1;
@@ -2088,7 +2062,7 @@ resample_2d_inv2 (const float *inbuf, float *outbuf, const int nrow,
           float d21 = (std::pow(x2 - x, 2.0 ) +  std::pow(y1 - y, 2.0 ));
           float d22 = (std::pow(x2 - x, 2.0 ) +  std::pow(y2 - y, 2.0 ));
 
-          
+
           if( d11 == 0 )
             {
               outbuf[get_index (ncol_new, irow, jcol)] = q11;
@@ -2109,13 +2083,13 @@ resample_2d_inv2 (const float *inbuf, float *outbuf, const int nrow,
             {
               d11 = std::pow(d11, 1.5);
               d12 = std::pow(d12, 1.5);
-              d21 = std::pow(d21, 1.5);         
-              d22 = std::pow(d22, 1.5);         
-              
+              d21 = std::pow(d21, 1.5);
+              d22 = std::pow(d22, 1.5);
+
               float dsum = 1.0/(d11) + 1.0/(d12) + 1.0/(d21) + 1.0/(d22);
               ////std::cout  <<  (q11/d11 + q12/d12 + q21/d21 + q22/d22)/dsum << "\n";
               //              //std::cout  <<  dsum << "\n";
-          
+
               outbuf[get_index (ncol_new, irow, jcol)] = (q11/d11 + q12/d12 + q21/d21 + q22/d22)/dsum;
             }
 
@@ -2139,7 +2113,7 @@ resample_2d_inv2 (const float *inbuf, float *outbuf, const int nrow,
       else{
         float dsum = 1.0/d1 + 1.0/d2;
         outbuf[get_index (ncol_new, irow, ncol_new - 1)] = (q1/d1 + q2/d2)/dsum;
-                   
+
       }
 
     }

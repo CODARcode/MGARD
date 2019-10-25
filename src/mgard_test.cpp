@@ -1,36 +1,8 @@
 // Copyright 2017, Brown University, Providence, RI.
-//
-//                         All Rights Reserved
-//
-// Permission to use, copy, modify, and distribute this software and
-// its documentation for any purpose other than its incorporation into a
-// commercial product or service is hereby granted without fee, provided
-// that the above copyright notice appear in all copies and that both
-// that copyright notice and this permission notice appear in supporting
-// documentation, and that the name of Brown University not be used in
-// advertising or publicity pertaining to distribution of the software
-// without specific, written prior permission.
-//
-// BROWN UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
-// INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY
-// PARTICULAR PURPOSE.  IN NO EVENT SHALL BROWN UNIVERSITY BE LIABLE FOR
-// ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-// WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-// ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-// OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-//
-//
 // MGARD: MultiGrid Adaptive Reduction of Data
 // Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
 // Corresponding Author: Ozan Tugluk
-//
-// version: 0.0.0.2
-//
-// This file is part of MGARD.
-//
-// MGARD is distributed under the OSI-approved Apache License, Version 2.0.
-// See accompanying file Copyright.txt for details.
-//
+// See LICENSE for details.
 
 
 #include <dlfcn.h> // dlopen
@@ -59,7 +31,7 @@ double qoi_x(const int nrow, const int ncol, const int nfib, std::vector<double>
 	      if  (u[get_index3(ncol,nfib,irow,jcol,kfib)] != 0)
 		return jcol;
             }
-          
+
         }
     }
 }
@@ -70,7 +42,7 @@ double qoi_ave(const int nrow, const int ncol, const int nfib, std::vector<doubl
   double  sum = 0;
 
   for ( double x : u ) sum += x;
-  
+
   return sum/u.size();
 }
 
@@ -80,7 +52,7 @@ double qoi_one(const int nrow, const int ncol, const int nfib, std::vector<doubl
 
   int type_indicator = 0 ;
   double h;
-  
+
   for(int irow = 0; irow < nrow; ++irow )
     {
       for(int jcol = 0; jcol < ncol; ++jcol )
@@ -92,11 +64,11 @@ double qoi_one(const int nrow, const int ncol, const int nfib, std::vector<doubl
 
 	      if((jcol == 0 || jcol  == ncol -1) && (u[get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
 	       	++type_indicator;
-	      
+
 	      if((kfib == 0 || kfib  == nfib -1) && (u[get_index3(ncol,nfib,irow,jcol,kfib)] != 0))
 	       	++type_indicator;
             }
-          
+
         }
     }
 
@@ -104,11 +76,11 @@ double qoi_one(const int nrow, const int ncol, const int nfib, std::vector<doubl
     {
     case 0:
       return 1.0;
-    case 1: 
+    case 1:
       return 0.5;
-    case 2: 
+    case 2:
       return 0.25;
-    case 3: 
+    case 3:
       return 0.125;
     default:
       return 1.0;
@@ -123,7 +95,7 @@ int  parse_cmdl(int argc, char**argv, bool& inf_flag, bool& qoi_flag, int& nrow,
       {
 	inf_flag = true;  //assume Linfty compression
 	qoi_flag = false; //assume no dload qoi
-	
+
         in_file    = argv[2];
         coord_file = argv[3];
 
@@ -154,7 +126,7 @@ int  parse_cmdl(int argc, char**argv, bool& inf_flag, bool& qoi_flag, int& nrow,
 	    qoi_flag = true;
 	  }
 
-	
+
         assert( in_file.size() != 0 );
         assert( ncol > 3  );
         assert( nrow >= 1 );
@@ -191,16 +163,16 @@ int main(int argc, char**argv)
 
   double tol, s;
   float  tolf, sf;
-  
+
   int nrow, ncol, nfib, nlevel;
   std::string in_file, coord_file, out_file, zip_file, shared_obj, function_handle;
 
   int out_size, itype;
 
   unsigned char* compressed_data;
-  
+
   // -- get commandline params --//
-  
+
   if(argv[1] != NULL) // we at least have the data type
     {
       itype   = strtol ((argv[1]), NULL, 0) ;
@@ -210,8 +182,8 @@ int main(int argc, char**argv)
       std::cerr << "No data type specified, exiting...\n";
       return -1;
     }
-  
-  
+
+
   if ( itype == 0 ) //double
     {
       parse_cmdl(argc, argv, inf_flag, qoi_flag, nrow, ncol, nfib, tol, s, in_file, coord_file, shared_obj, function_handle);
@@ -220,16 +192,16 @@ int main(int argc, char**argv)
       //-- read input file and set dummy coordinates --//
       std::ifstream infile(in_file, std::ios::in | std::ios::binary);
       std::ifstream cordfile(coord_file, std::ios::in | std::ios::binary);
-      
+
       infile.read( reinterpret_cast<char*>( v.data() ), nrow*ncol*nfib*sizeof(double) );
 
         //-- set and creat output files -- //
       out_file = in_file +   std::to_string(tol) + "_y.dat";
       zip_file = in_file +   std::to_string(tol) + ".gz";
-      
+
       std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
       std::ofstream zipfile(zip_file, std::ios::out | std::ios::binary);
-      
+
 
       //compress in memory
       if(inf_flag)
@@ -247,7 +219,7 @@ int main(int argc, char**argv)
 		std::cerr << "dlopen error: " << dlerror() << '\n';
 		return 1;
 	      }
-  
+
 	      // load symbol
 	      typedef double (*qoi_t)(int, int, int, double*);
 	      dlerror();
@@ -258,7 +230,7 @@ int main(int argc, char**argv)
 		dlclose(handle);
 		return 1;
 	      }
-  
+
 	      //-- dlopen --//
 
 	      compressed_data = mgard_compress(itype, v.data(), out_size,  nrow,  ncol,  nfib, tol, qoi, s );
@@ -267,13 +239,13 @@ int main(int argc, char**argv)
 	    {
 	      compressed_data = mgard_compress(itype, v.data(), out_size,  nrow,  ncol,  nfib, tol, s );
 	    }
-	  
+
 	}
       //std::cout  << "Compressed size" << out_size << "\n";
 
-      zipfile.write(reinterpret_cast<char*> (compressed_data), out_size );  
+      zipfile.write(reinterpret_cast<char*> (compressed_data), out_size );
 
-      
+
       // decompress in memory
       double *dtest;
       double dummy;
@@ -287,14 +259,14 @@ int main(int argc, char**argv)
 	  dtest = mgard_decompress(itype, dummy, compressed_data, out_size,  nrow,  ncol,  nfib, s);
 	}
 
-      outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(double) );  
+      outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(double) );
 
       free(dtest);
       free(compressed_data);
 
     }
 
-  
+
   else if ( itype == 1 ) //float
     {
       parse_cmdl(argc, argv, inf_flag, qoi_flag, nrow, ncol, nfib, tolf, sf, in_file, coord_file, shared_obj, function_handle);
@@ -304,16 +276,16 @@ int main(int argc, char**argv)
       //-- read input file and set dummy coordinates --//
       std::ifstream infile(in_file, std::ios::in | std::ios::binary);
       std::ifstream cordfile(coord_file, std::ios::in | std::ios::binary);
-      
+
       infile.read( reinterpret_cast<char*>( v.data() ), nrow*ncol*nfib*sizeof(float) );
 
         //-- set and creat output files -- //
       out_file = in_file +   std::to_string(tol) + "_y.dat";
       zip_file = in_file +   std::to_string(tol) + ".gz";
-      
+
       std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
       std::ofstream zipfile(zip_file, std::ios::out | std::ios::binary);
-      
+
 
       //compress in memory
       if(inf_flag)
@@ -326,7 +298,7 @@ int main(int argc, char**argv)
       	}
       //std::cout  << "Compressed size" << out_size << "\n";
 
-      zipfile.write(reinterpret_cast<char*> (compressed_data), out_size );  
+      zipfile.write(reinterpret_cast<char*> (compressed_data), out_size );
 
       // decompress in memory
       float *dtest;
@@ -341,17 +313,15 @@ int main(int argc, char**argv)
 	  dtest = mgard_decompress(itype, dummy, compressed_data, out_size,  nrow,  ncol,  nfib, sf);
 	}
 
-      outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(float));  
+      outfile.write(reinterpret_cast<char*> (dtest), nrow*ncol*nfib*sizeof(float));
 
       free(dtest);
       free(compressed_data);
     }
-  
-  
+
+
 
   return 0;
 
- 
+
 }
-
-

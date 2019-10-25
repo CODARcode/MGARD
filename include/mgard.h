@@ -1,36 +1,10 @@
 // Copyright 2017, Brown University, Providence, RI.
-//
-//                         All Rights Reserved
-//
-// Permission to use, copy, modify, and distribute this software and
-// its documentation for any purpose other than its incorporation into a
-// commercial product or service is hereby granted without fee, provided
-// that the above copyright notice appear in all copies and that both
-// that copyright notice and this permission notice appear in supporting
-// documentation, and that the name of Brown University not be used in
-// advertising or publicity pertaining to distribution of the software
-// without specific, written prior permission.
-//
-// BROWN UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
-// INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY
-// PARTICULAR PURPOSE.  IN NO EVENT SHALL BROWN UNIVERSITY BE LIABLE FOR
-// ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-// WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-// ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-// OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-//
-//
 // MGARD: MultiGrid Adaptive Reduction of Data
 // Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
 // Corresponding Author: Ozan Tugluk
 //
 // version: 0.0.0.2
-//
-// This file is part of MGARD.
-//
-// MGARD is distributed under the OSI-approved Apache License, Version 2.0.
-// See accompanying file Copyright.txt for details.
-//
+// See LICENSE for details.
 
 
 #ifndef MGARD_H
@@ -63,8 +37,8 @@
 namespace mgard
 
 {
-  
-  
+
+
   inline int
     get_index (const int ncol, const int i, const int j);
 
@@ -134,7 +108,7 @@ namespace mgard
                            std::vector<int> &work, double norm, double tol);
 
   void
-    dequantize_2D_interleave (const int nrow, const int ncol, double *v, 
+    dequantize_2D_interleave (const int nrow, const int ncol, double *v,
                              const std::vector<int> &work);
 
   void
@@ -171,28 +145,28 @@ namespace mgard
 
   unsigned char *
   refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol);
-  
+
   unsigned char *
   refactor_qz (int nrow, int ncol, int nfib, const double *v, int &outsize, double tol, double s) ;
 
 
   unsigned char *
   refactor_qz (int nrow, int ncol, int nfib, std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z, const double *v, int &outsize, double tol);
-  
+
   unsigned char *
   refactor_qz (int nrow, int ncol, int nfib, std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z, const double *v, int &outsize, double tol, double s) ;
 
 
   unsigned char *
   refactor_qz_2D (int nrow, int ncol, const double *v, int &outsize, double tol);
-  
+
   unsigned char *
   refactor_qz_2D (int nrow, int ncol, const double *v, int &outsize, double tol, double s);
-  
-  
+
+
   unsigned char *
   refactor_qz_2D (int nrow, int ncol, std::vector<double>& coords_x, std::vector<double>& coords_y, const double *v, int &outsize, double tol);
-  
+
   unsigned char *
   refactor_qz_2D (int nrow, int ncol, std::vector<double>& coords_x, std::vector<double>& coords_y, const double *v, int &outsize, double tol, double s);
 
@@ -202,7 +176,7 @@ namespace mgard
 
   double*
   recompose_udq(int nrow, int ncol, int nfib, std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z, unsigned char *data, int data_len);
-  
+
   double*
   recompose_udq(int nrow, int ncol, int nfib, unsigned char *data, int data_len, double s);
 
@@ -210,7 +184,7 @@ namespace mgard
   double*
   recompose_udq(int nrow, int ncol, int nfib, std::vector<double>& coords_x,  std::vector<double>& coords_y,  std::vector<double>& coords_z, unsigned char *data, int data_len, double s);
 
-  
+
   double*
     recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len);
 
@@ -219,23 +193,23 @@ namespace mgard
 
   double*
   recompose_udq_2D(int nrow, int ncol, std::vector<double>& coords_x,  std::vector<double>& coords_y, unsigned char *data, int data_len);
-  
+
   double*
   recompose_udq_2D(int nrow, int ncol, std::vector<double>& coords_x,  std::vector<double>& coords_y, unsigned char *data, int data_len, double s);
 
   unsigned char *
     refactor_qz_1D (int nrow,  const double *v, int &outsize, double tol);
-  
+
   double*
     recompose_udq_1D(int nrow,  unsigned char *data, int data_len);
-  
+
   int
     parse_cmdl (int argc, char **argv, int &nrow, int &ncol, double &tol,
                 std::string &in_file);
-  
+
   bool
     is_2kplus1 (double num);
-  
+
   void
     refactor (const int nrow, const int ncol, const int l_target, double *v,
               std::vector<double> &work, std::vector<double> &row_vec,
@@ -250,7 +224,7 @@ namespace mgard
  void
     decompress_memory_z (const void *src, int srcLen, int *dst, int dstLen);
 
-  
+
 }
-  
+
 #endif
