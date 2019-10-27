@@ -181,7 +181,7 @@ int main(int argc, char *argv[]) {
     if (varPoint.Shape().size() > 0 || varCell.Shape().size() > 0) {
       varPoint.SetSelection(
           {{0, 0}, {varPoint.Shape()[0], varPoint.Shape()[1]}});
-      varCell.SetSelection( {{0, 0}, {varCell.Shape()[0], varCell.Shape()[1]}});
+      varCell.SetSelection({{0, 0}, {varCell.Shape()[0], varCell.Shape()[1]}});
       varNormal.SetSelection(
           {{0, 0}, {varNormal.Shape()[0], varNormal.Shape()[1]}});
 

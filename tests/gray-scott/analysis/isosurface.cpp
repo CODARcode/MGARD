@@ -150,7 +150,7 @@ void write_adios(adios2::Engine &writer,
 
   if (!rank) {
     std::cout << "isosurface at step " << step << " writing out " << totalCells 
-	      << " cells and " << totalPoints << " points" << std::endl;
+              << " cells and " << totalPoints << " points" << std::endl;
   }
 
   writer.Put(varOutStep, step);

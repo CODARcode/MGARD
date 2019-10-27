@@ -66,7 +66,7 @@ void compute_pdf(const std::vector<T> &data,
       if (data[start_data + j] > max || data[start_data + j] < min) {
         std::cout << " data[" << start * slice_size + start_data + j
                   << "] = " << data[start_data + j]
-                  << " is out of [min,max] = [" << min << "," << max << "]" 
+                  << " is out of [min,max] = [" << min << "," << max << "]"
                   << std::endl;
         }
       size_t bin = static_cast<size_t>(
