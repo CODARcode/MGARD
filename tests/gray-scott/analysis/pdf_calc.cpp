@@ -66,18 +66,18 @@ void compute_pdf(const std::vector<T> &data,
       if (data[start_data + j] > max || data[start_data + j] < min) {
         std::cout << " data[" << start * slice_size + start_data + j
                   << "] = " << data[start_data + j]
-                  << " is out of [min,max] = [" << min << "," << max
-                  << "]" << std::endl;
+                  << " is out of [min,max] = [" << min << "," << max << "]" 
+                  << std::endl;
         }
-        size_t bin = static_cast<size_t>(
-            std::floor((data[start_data + j] - min) / binWidth));
-        if (bin == nbins) {
-          bin = nbins - 1;
-        }
-        ++pdf[start_pdf + bin];
+      size_t bin = static_cast<size_t>(
+          std::floor((data[start_data + j] - min) / binWidth));
+      if (bin == nbins) {
+        bin = nbins - 1;
       }
-      start_pdf += nbins;
-      start_data += slice_size;
+      ++pdf[start_pdf + bin];
+    }
+    start_pdf += nbins;
+    start_data += slice_size;
   }
   return;
 }
@@ -113,7 +113,8 @@ int main(int argc, char *argv[]) {
 
   if (argc < 3) {
     std::cout << "Not enough arguments\n";
-    if (rank == 0) printUsage();
+    if (rank == 0)
+      printUsage();
     MPI_Finalize();
     return 0;
   }
@@ -127,13 +128,15 @@ int main(int argc, char *argv[]) {
 
   if (argc >= 4) {
     int value = std::stoi(argv[3]);
-    if (value > 0) nbins = static_cast<size_t>(value);
+    if (value > 0)
+      nbins = static_cast<size_t>(value);
   }
 
   if (argc >= 5) {
     std::string value = argv[4];
     std::transform(value.begin(), value.end(), value.begin(), ::tolower);
-    if (value == "yes") write_inputvars = true;
+    if (value == "yes")
+      write_inputvars = true;
   }
 
   std::size_t u_global_size, v_global_size;

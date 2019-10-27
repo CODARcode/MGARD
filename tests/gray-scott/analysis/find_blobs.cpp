@@ -131,8 +131,7 @@ int main(int argc, char *argv[]) {
 
   if (procs != 1) {
     if (rank == 0) {
-      std::cerr << "find_blobs only supports serial execution"
-                << std::endl;
+      std::cerr << "find_blobs only supports serial execution" << std::endl;
     }
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
@@ -182,8 +181,7 @@ int main(int argc, char *argv[]) {
     if (varPoint.Shape().size() > 0 || varCell.Shape().size() > 0) {
       varPoint.SetSelection(
           {{0, 0}, {varPoint.Shape()[0], varPoint.Shape()[1]}});
-      varCell.SetSelection(
-          {{0, 0}, {varCell.Shape()[0], varCell.Shape()[1]}});
+      varCell.SetSelection( {{0, 0}, {varCell.Shape()[0], varCell.Shape()[1]}});
       varNormal.SetSelection(
           {{0, 0}, {varNormal.Shape()[0], varNormal.Shape()[1]}});
 

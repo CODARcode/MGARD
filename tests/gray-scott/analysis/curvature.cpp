@@ -31,7 +31,7 @@ vtkSmartPointer<vtkPolyData> read_mesh(const std::vector<double> &bufPoints,
   auto points = vtkSmartPointer<vtkPoints>::New();
   points->SetNumberOfPoints(nPoints);
   for (vtkIdType i = 0; i < nPoints; i++) {
-      points->SetPoint(i, &bufPoints[i * 3]);
+    points->SetPoint(i, &bufPoints[i * 3]);
   }
 
   auto polys = vtkSmartPointer<vtkCellArray>::New();
@@ -142,8 +142,7 @@ int main(int argc, char *argv[]) {
     if (varPoint.Shape().size() > 0 || varCell.Shape().size() > 0) {
       varPoint.SetSelection(
           {{0, 0}, {varPoint.Shape()[0], varPoint.Shape()[1]}});
-      varCell.SetSelection(
-          {{0, 0}, {varCell.Shape()[0], varCell.Shape()[1]}});
+      varCell.SetSelection( {{0, 0}, {varCell.Shape()[0], varCell.Shape()[1]}});
       varNormal.SetSelection(
           {{0, 0}, {varNormal.Shape()[0], varNormal.Shape()[1]}});
 

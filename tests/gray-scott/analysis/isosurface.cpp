@@ -32,8 +32,7 @@ compute_isosurface(const adios2::Variable<double> &varField,
   importer->SetDataOrigin(varField.Start()[2], varField.Start()[1],
                           varField.Start()[0]);
   importer->SetWholeExtent(0, varField.Count()[2] - 1, 0,
-                           varField.Count()[1] - 1, 0,
-                           varField.Count()[0] - 1);
+                           varField.Count()[1] - 1, 0, varField.Count()[0] - 1);
   importer->SetDataExtentToWholeExtent();
   importer->SetDataScalarTypeToDouble();
   importer->SetNumberOfScalarComponents(1);
@@ -150,9 +149,8 @@ void write_adios(adios2::Engine &writer,
   }
 
   if (!rank) {
-    std::cout << "isosurface at step " << step << " writing out "
-              << totalCells << " cells and " << totalPoints << " points"
-              << std::endl;
+    std::cout << "isosurface at step " << step << " writing out " << totalCells 
+	      << " cells and " << totalPoints << " points" << std::endl;
   }
 
   writer.Put(varOutStep, step);
@@ -192,8 +190,7 @@ int main(int argc, char *argv[]) {
   if (argc < 4) {
     if (rank == 0) {
       std::cerr << "Too few arguments" << std::endl;
-      std::cout << "Usage: isosurface input output isovalues..."
-                << std::endl;
+      std::cout << "Usage: isosurface input output isovalues..." << std::endl;
     }
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
@@ -216,7 +213,8 @@ int main(int argc, char *argv[]) {
 
   auto varPoint = outIO.DefineVariable<double>("point", {1, 3}, {0, 0}, {1, 3});
   auto varCell = outIO.DefineVariable<int>("cell", {1, 3}, {0, 0}, {1, 3});
-  auto varNormal = outIO.DefineVariable<double>("normal", {1, 3}, {0, 0}, {1, 3});
+  auto varNormal =
+      outIO.DefineVariable<double>("normal", {1, 3}, {0, 0}, {1, 3});
   auto varOutStep = outIO.DefineVariable<int>("step");
 
   std::vector<double> u;
@@ -272,7 +270,7 @@ int main(int argc, char *argv[]) {
     }
 
     varU.SetSelection(
-	{{offset_x, offset_y, offset_z},
+        {{offset_x, offset_y, offset_z},
          {size_x + (px != npx - 1 ? 1 : 0), size_y + (py != npy - 1 ? 1 : 0),
           size_z + (pz != npz - 1 ? 1 : 0)}});
 
