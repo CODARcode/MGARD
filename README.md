@@ -29,6 +29,7 @@ The arguments are:
      qoi: Function pointer to the quantity of interest
      s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
 
+# These APIs are outdated and will be updated. 
 The next overload is
 
 ```
