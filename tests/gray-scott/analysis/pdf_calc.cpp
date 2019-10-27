@@ -68,7 +68,7 @@ void compute_pdf(const std::vector<T> &data,
                   << "] = " << data[start_data + j]
                   << " is out of [min,max] = [" << min << "," << max << "]"
                   << std::endl;
-        }
+      }
       size_t bin = static_cast<size_t>(
           std::floor((data[start_data + j] - min) / binWidth));
       if (bin == nbins) {
