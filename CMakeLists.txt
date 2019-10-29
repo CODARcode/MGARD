@@ -195,13 +195,6 @@ if(BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
       513 513 1 1e-2 0 
   )
-
-  add_test(NAME mgard_test1
-    COMMAND mgard_test 0
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
-      513 513 1 1e-2 0 
-  )
   
   add_test(NAME mgard_test2
     COMMAND mgard_test 0
