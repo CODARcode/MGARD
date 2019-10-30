@@ -13,4 +13,6 @@ fi
 
 cd ${SOURCE_DIR}
 
+./gray-scott
+
 exit 0

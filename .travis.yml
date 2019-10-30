@@ -18,7 +18,7 @@ install:
   - tar -xf cmake-3.7.2-Linux-x86_64.tar.gz
   - export PATH="${PWD}/cmake-3.7.2-Linux-x86_64/bin:${PATH}"
   - tar -xf v2.5.0.tar.gz
-  - pushd ADIOS2-2.5.0 && mkdir build && pushd build && cmake -DADIOS2_USE_MPI=ON -DMGARD_ROOT=/opt/mgard -DCMAKE_INSTALL_PREFIX=/opt/adios2 ..  && make && sudo make install && popd && popd
+  - pushd ADIOS2-2.5.0 && mkdir build && pushd build && cmake -DADIOS2_USE_MPI=ON ..  && make && sudo make install && popd && popd
   - export PATH="${PWD}/ADIOS2-2.5.0/bin:${PATH}"
   - popd
   - pip install --user flake8
