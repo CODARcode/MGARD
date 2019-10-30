@@ -963,9 +963,8 @@ double *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
 
     int nlevel = std::min(nlevel_x, nlevel_y);
 
-    //      int l_target = nlevel-1;
+    int l_target = nlevel-1;
 
-    int l_target = 0;
     std::vector<int> out_data(nrow * ncol + size_ratio);
 
     mgard::decompress_memory_z(data, data_len, out_data.data(),
@@ -1003,10 +1002,9 @@ double *recompose_udq_2D(int nrow, int ncol, std::vector<double> &coords_x,
 
   int nlevel = std::min(nlevel_x, nlevel_y);
 
-  //      int l_target = nlevel-1;
+  int l_target = nlevel-1;
 
-  int l_target = 0;
-  std::vector<int> out_data(nrow * ncol + size_ratio);
+    std::vector<int> out_data(nrow * ncol + size_ratio);
 
   mgard::decompress_memory_z(data, data_len, out_data.data(),
                              out_data.size() * sizeof(int));
