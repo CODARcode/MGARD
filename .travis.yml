@@ -9,6 +9,7 @@ before_install:
   - pushd ${HOME}
   - wget http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
   - wget http://www.cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz
+  - wget https://github.com/ornladios/ADIOS2/archive/v2.5.0.tar.gz
   - popd
 install:
   - pushd ${HOME}
@@ -16,6 +17,9 @@ install:
   - export PATH="${PWD}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin:${PATH}"
   - tar -xf cmake-3.7.2-Linux-x86_64.tar.gz
   - export PATH="${PWD}/cmake-3.7.2-Linux-x86_64/bin:${PATH}"
+  - tar -xf v2.5.0.tar.gz
+  - pushd ADIOS2-2.5.0 && cmake -DADIOS2_USE_MPI=ON -DMGARD_ROOT=/opt/mgard -DCMAKE_INSTALL_PREFIX=/opt/adios2 ..  && make && sudo make install && popd
+  - export PATH="${PWD}/ADIOS2-2.5.0/bin:${PATH}"
   - popd
   - pip install --user flake8
   - git config --global clangformat.binary ${HOME}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin/clang-format
@@ -25,6 +29,7 @@ env:
     - BUILD_MATRIX_ENTRY=format
     - BUILD_MATRIX_ENTRY=analyze
     - BUILD_MATRIX_ENTRY=check
+    - BUILD_MATRIX_ENTRY=skel-gs  
 script:
   - git reset --hard ${TRAVIS_PULL_REQUEST_SHA}
   - ${TRAVIS_BUILD_DIR}/scripts/travis/run.sh
