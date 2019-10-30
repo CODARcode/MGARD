@@ -33,14 +33,12 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
 
   int l_target = nlevel - 1;
 
-  // std::cout  << "Linfinity\n" ;
+
   // dummy equispaced coordinates
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-  //  double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,
-  //  nfib,   v, coords_x, coords_y, coords_z);
 
   double norm = mgard_common::max_norm(v);
 
