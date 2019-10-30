@@ -157,7 +157,7 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const float *u,
 
   float norm = 1.0;
 
-  if (std::abs(0) < 1e-10) {
+  if (std::abs(s) < 1e-10) {
     norm =
         mgard_gen::ml2_norm3(0, nrow, ncol, nfib, nrow, ncol, nfib, v, coords_x,
                              coords_y, coords_z); // mgard_common::max_norm(v);
@@ -218,7 +218,7 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib,
 
   float norm = 1.0;
 
-  if (std::abs(0) < 1e-10) {
+  if (std::abs(s) < 1e-10) {
     norm =
         mgard_gen::ml2_norm3(0, nrow, ncol, nfib, nrow, ncol, nfib, v, coords_x,
                              coords_y, coords_z); // mgard_common::max_norm(v);

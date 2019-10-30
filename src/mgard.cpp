@@ -152,28 +152,18 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-  // double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,
-  // nfib,   v, coords_x, coords_y, coords_z);
 
   double norm = 1.0;
 
-  // if ( std::abs(0) < 1e-10 )
-  //   {
-  //     norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol, nfib,
-  //     v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
+  if ( std::abs(s) < 1e-10 )
+    {
+      norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol, nfib,
+				  v, coords_x, coords_y, coords_z);
 
-  // norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
+      norm = std::sqrt(norm/(nrow*nfib*ncol)); //<- quant scaling goes here for s
+    }
 
-  // std::cout  << "My 2-norm is: " << norm << "\n";
 
-  //  double norm = 1.0; // absolute s-norm, need a switch for relative errors
-  // tol /= nlevel + 1 ;
-  //  double s = 0; // Defaulting to L8' compression for a start.
-
-  //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s
-  //  != 8'
-
-  //  norm = 1.0;
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
                      work2d, coords_x, coords_y, coords_z);
 
@@ -185,8 +175,6 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
 
   int size_ratio = sizeof(double) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
-  // qv.reserve(nrow * ncol * nfib + size_ratio);
-  //  qv[0] = 0; qv[1] =0;
 
   mgard_gen::quantize_3D(nr, nc, nf, nrow, ncol, nfib, nlevel, v.data(), qv,
                          coords_x, coords_y, coords_z, s, norm, tol);
@@ -224,28 +212,18 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib,
 
   int l_target = nlevel - 1;
 
-  // double norm =  mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib ,  nrow,  ncol,
-  // nfib,   v, coords_x, coords_y, coords_z);
 
+  
   double norm = 1.0;
+  
+  if ( std::abs(s) < 1e-10 )
+    {
+      norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol, nfib,
+				  v, coords_x, coords_y, coords_z);
+      
+      norm = std::sqrt(norm/(nrow*nfib*ncol)); //<- quant scaling goes here for s
+    }
 
-  // if ( std::abs(0) < 1e-10 )
-  //   {
-  //     norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol, nfib,
-  //     v, coords_x, coords_y, coords_z);//mgard_common::max_norm(v);
-
-  // norm = std::sqrt(norm)/std::sqrt(nrow*ncol*nfib);
-
-  // std::cout  << "My 2-norm is: " << norm << "\n";
-
-  //  double norm = 1.0; // absolute s-norm, need a switch for relative errors
-  // tol /= nlevel + 1 ;
-  //  double s = 0; // Defaulting to L8' compression for a start.
-
-  //  norm = std::sqrt(norm/(nrow*nfib*ncol)); <- quant scaling goes here for s
-  //  != 8'
-
-  //  norm = 1.0;
   mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
                      work2d, coords_x, coords_y, coords_z);
 
