@@ -25,7 +25,7 @@ The arguments are:
      n1: Size of first dimension
      n2: Size of second dimension
      n3: Size of third dimension
-     tol: Upper bound for desired tolerance
+     tol: Upper bound for desired tolerance. Note that this tolerance is relative not absolute: ||u - C[u]||_s \le tol*||u||_s
      qoi: Function pointer to the quantity of interest
      s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
 
