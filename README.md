@@ -52,9 +52,16 @@ The arguments are:
 The `qoi` function pointer must compute the quantity of interest, *Q(v)*.
 Its only use is to estimate the Besov *s*-norm of the operator *Q*; if this can be derived independently, then there is no need to provide it.
 
-
 Paper [1] should be the first reference to glimpse into the theory behind MGARD.
 For more information consult [2] and [3]:
+
+## Caveats
+
+If you use a certain value of `s` to compress your data, *you must use the same value of `s` to decompress it*.
+You cannot agnostically decompress the compressed representation, and the value of `s` is not stored in the compressed stream.
+In addition, there is currently no way to detect if an inconsistent value of `s` has been passed, so the code returns corrupted data silently.
+
+If you forget the value of `s` that you used to compress your data, then your data is gone.
 
 1) Multilevel Techniques for Compression and Reduction of Scientific Data—The Univariate case
 M Ainsworth, O Tugluk, B Whitney, K Scott. Computing and Visualization in Science, 8, 2018
