@@ -30,11 +30,11 @@ unstructured@CXXFLAGS := -std=c++17 -Wfatal-errors -Wall -Wextra
 
 structured@LDFLAGS :=
 unstructured@LDFLAGS := -L$(HOME)/.local/lib -Wl,-rpath=$(HOME)/.local/lib
-benchmarks@LDFLAGS := -L$(HOME)/.local/lib
+benchmarks@LDFLAGS := $(unstructured@LDFLAGS)
 
 structured@LDLIBS := -lz -ldl
 unstructured@LDLIBS := -lMOAB -lhdf5_hl -lhdf5 -llapack -lblas -lblaspp -lz -lstdc++fs -lm
-benchmarks@LDLIBS := -lbenchmark -lbenchmark_main -pthread $(structured@LDLIBS)
+benchmarks@LDLIBS := -lbenchmark -lbenchmark_main -pthread $(structured@LDLIBS) $(unstructured@LDLIBS)
 
 dirty@FILES =
 dirty@DIRECTORIES =
@@ -55,14 +55,14 @@ tests@STEMS := $(foreach STEM,$(unstructured@STEMS) $(unstructured@HEADER_ONLY),
 tests@EXECUTABLE := $(DIR_BIN)/tests
 
 tests@SCRIPT := $(DIR_BIN)/mgard_test
-LIB := $(DIR_LIB)/libmgard.a
+structured@LIB := $(DIR_LIB)/libmgard.a
 
 benchmarks@DIR_SRC := benchmark
 benchmarks@STEM := bench
 benchmarks@EXECUTABLE := $(DIR_BIN)/speed
 
 .PHONY: all
-all: $(LIB) $(tests@SCRIPT)
+all: $(structured@LIB) $(tests@SCRIPT)
 
 define create-directory
 $1:
@@ -123,7 +123,7 @@ $(foreach STEM,$(structured@STEMS),$(eval $(call compile-cpp,$(call stem-to-sour
 $(foreach STEM,$(unstructured@STEMS),$(eval $(call compile-cpp,$(call stem-to-source,$(STEM)),$(call stem-to-object,$(STEM)))))
 $(foreach STEM,$(tests@STEMS),$(eval $(call compile-cpp,$(call tests@stem-to-source,$(STEM)),$(call stem-to-object,$(STEM)))))
 
-$(eval $(call archive-cpp,$(foreach STEM,$(structured@MGARD_STEMS),$(call stem-to-object,$(STEM))),$(LIB)))
+$(eval $(call archive-cpp,$(foreach STEM,$(structured@MGARD_STEMS),$(call stem-to-object,$(STEM))),$(structured@LIB)))
 
 #Guessing I should have compiled `blaspp` with the path to `openblas`.
 .PHONY: check
@@ -147,7 +147,7 @@ $(benchmarks@EXECUTABLE): LDFLAGS += $(benchmarks@LDFLAGS)
 $(benchmarks@EXECUTABLE): LDLIBS += $(benchmarks@LDLIBS)
 
 $(eval $(call compile-cpp,$(benchmarks@SOURCE),$(benchmarks@OBJECT)))
-$(eval $(call link-cpp,$(benchmarks@OBJECT) $(LIB),$(benchmarks@EXECUTABLE)))
+$(eval $(call link-cpp,$(benchmarks@OBJECT) $(structured@LIB) $(foreach STEM,$(unstructured@MGARD_STEMS),$(call stem-to-object,$(STEM))),$(benchmarks@EXECUTABLE)))
 
 .PHONY: benchmarks
 benchmarks: $(benchmarks@EXECUTABLE)
