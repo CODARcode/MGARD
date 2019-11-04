@@ -3,6 +3,7 @@
 #include <random>
 #include <string>
 
+#include "blaspp/blas.hh"
 #include "moab/Core.hpp"
 
 #include "mgard_api.h"
@@ -39,10 +40,19 @@ static mgard::UniformMeshHierarchy read_mesh_and_refine(
     return mgard::UniformMeshHierarchy(mgard::MeshLevel(mbcore), L);
 }
 
+static void normalize(std::vector<double> &u) {
+    const std::size_t N = u.size();
+    const std::size_t stride = 1;
+    double * const p = u.data();
+    const double norm = blas::nrm2(N, p, stride);;
+    blas::scal(N, 1 / norm, p, stride);
+}
+
 static void BM_unstructured_decompose(
     benchmark::State &state, const std::string &filename
 ) {
     std::default_random_engine gen;
+    gen.seed(2987);
     std::uniform_real_distribution<double> dis(-1, 1);
 
     const int64_t L = state.range(0);
@@ -59,8 +69,13 @@ static void BM_unstructured_decompose(
 
     //Could preallocate buffer needed for decomposition.
     for (auto _ : state) {
-        moab::ErrorCode ecode = hierarchy.decompose(u.data());
+        moab::ErrorCode ecode;
+        benchmark::DoNotOptimize(ecode = hierarchy.decompose(u.data()));
         assert(ecode == moab::MB_SUCCESS);
+
+        //Normalize `u` to prevent blowup. We could turn off the timing for
+        //this, but it's `O(N)` so it shouldn't affect the complexity.
+        normalize(u);
     }
 
     //Could alternatively count up all the entities in all the levels.
@@ -78,6 +93,7 @@ static void BM_unstructured_recompose(
     benchmark::State &state, const std::string &filename
 ) {
     std::default_random_engine gen;
+    gen.seed(2340);
     std::uniform_real_distribution<double> dis(-2, 0);
 
     const int64_t L = state.range(0);
@@ -94,8 +110,13 @@ static void BM_unstructured_recompose(
 
     //Could preallocate buffer needed for recomposition.
     for (auto _ : state) {
-        moab::ErrorCode ecode = hierarchy.recompose(u.data());
+        moab::ErrorCode ecode;
+        benchmark::DoNotOptimize(ecode = hierarchy.recompose(u.data()));
         assert(ecode == moab::MB_SUCCESS);
+
+        //Normalize `u` to prevent blowup. We could turn off the timing for
+        //this, but it's `O(N)` so it shouldn't affect the complexity.
+        normalize(u);
     }
 
     //Could alternatively count up all the entities in all the levels.
