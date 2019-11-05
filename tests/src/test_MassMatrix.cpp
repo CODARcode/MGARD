@@ -4,7 +4,7 @@
 
 #include <cmath>
 
-#include "blaspp/blas.hh"
+#include "blas.hpp"
 
 #include "MassMatrix.hpp"
 #include "pcg.hpp"
@@ -128,7 +128,7 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
                     -12 * measures[0] + 6 * measures[1],
                     16 * measures[1]
                 };
-                blas::scal(num_nodes, 1.0 / 20.0, expected, 1);
+                blas::scal(num_nodes, 1.0 / 20.0, expected);
                 bool all_close = true;
                 for (std::size_t i = 0; i < num_nodes; ++i) {
                     all_close = all_close && b[i] == Approx(expected[i]);
@@ -168,10 +168,10 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
             double result[num_nodes];
             M(w, result);
 
-            blas::copy(num_nodes, u, 1, buffer, 1);
-            blas::axpy(num_nodes, -1, w, 1, buffer, 1);
+            blas::copy(num_nodes, u, buffer);
+            blas::axpy(num_nodes, -1.0, w, buffer);
             double square_relative_error = (
-                blas::nrm2(num_nodes, buffer, 1) / blas::nrm2(num_nodes, u, 1)
+                blas::nrm2(num_nodes, buffer) / blas::nrm2(num_nodes, u)
             );
             REQUIRE(std::abs(square_relative_error) < 1e-6);
         }

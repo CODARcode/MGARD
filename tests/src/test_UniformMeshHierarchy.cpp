@@ -9,7 +9,7 @@
 #include <random>
 #include <set>
 
-#include "blaspp/blas.hh"
+#include "blas.hpp"
 
 #include "moab/Core.hpp"
 
@@ -64,9 +64,9 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
         std::vector<double> copy = u;
         hierarchy.decompose(u.data());
         hierarchy.recompose(u.data());
-        blas::axpy(N, -1, u.data(), 1, copy.data(), 1);
+        blas::axpy(N, -1.0, u.data(), copy.data());
         std::vector<double> &errors = copy;
-        REQUIRE(std::abs(blas::nrm2(N, errors.data(), 1)) < 1e-9 * N);
+        REQUIRE(std::abs(blas::nrm2(N, errors.data())) < 1e-9 * N);
     }
 
     SECTION("recompose inverts decompose") {
@@ -76,9 +76,9 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
         std::vector<double> copy = u;
         hierarchy.recompose(u.data());
         hierarchy.decompose(u.data());
-        blas::axpy(N, -1, u.data(), 1, copy.data(), 1);
+        blas::axpy(N, -1.0, u.data(), copy.data());
         std::vector<double> &errors = copy;
-        REQUIRE(std::abs(blas::nrm2(N, errors.data(), 1)) < 1e-9 * N);
+        REQUIRE(std::abs(blas::nrm2(N, errors.data())) < 1e-9 * N);
     }
 
     SECTION("multilevel coefficients depend linearly on nodal coefficients") {
@@ -91,18 +91,18 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
         const double alpha = distribution(generator);
         std::vector<double> w(N);
         //`w = u + alpha * v`.
-        blas::copy(N, u.data(), 1, w.data(), 1);
-        blas::axpy(N, alpha, v.data(), 1, w.data(), 1);
+        blas::copy(N, u.data(), w.data());
+        blas::axpy(N, alpha, v.data(), w.data());
         hierarchy.decompose(u.data());
         hierarchy.decompose(v.data());
         hierarchy.decompose(w.data());
         //Copy just overwrite `u` instead.
         std::vector<double> expected(N);
-        blas::copy(N, u.data(), 1, expected.data(), 1);
-        blas::axpy(N, alpha, v.data(), 1, expected.data(), 1);
-        blas::axpy(N, -1, w.data(), 1, expected.data(), 1);
+        blas::copy(N, u.data(), expected.data());
+        blas::axpy(N, alpha, v.data(), expected.data());
+        blas::axpy(N, -1.0, w.data(), expected.data());
         std::vector<double> &errors = expected;
-        REQUIRE(std::abs(blas::nrm2(N, errors.data(), 1)) < 1e-9 * N);
+        REQUIRE(std::abs(blas::nrm2(N, errors.data())) < 1e-9 * N);
     }
 }
 
@@ -135,15 +135,15 @@ TEST_CASE("comparison with Python implementation", "[UniformMeshHierarchy]") {
     double mc;
     while (f >> xyz[0] >> xyz[1] >> xyz[2] >> nc >> mc) {
         //Fine because this mesh doesn't have a node at the origin.
-        const double xyz_norm = blas::nrm2(3, xyz, 1);
+        const double xyz_norm = blas::nrm2(3, xyz);
         double min_distance = std::numeric_limits<double>::max();
         std::size_t i;
         double const *_xyz = coordinates.data();
         double difference[3];
         for (std::size_t j = 0; j < N; ++j) {
-            blas::copy(3, xyz, 1, difference, 1);
-            blas::axpy(3, -1, _xyz, 1, difference, 1);
-            const double distance = blas::nrm2(3, difference, 1);
+            blas::copy(3, xyz, difference);
+            blas::axpy(3, -1.0, _xyz, difference);
+            const double distance = blas::nrm2(3, difference);
             if (distance < min_distance) {
                 min_distance = distance;
                 i = j;

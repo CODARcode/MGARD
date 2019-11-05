@@ -1,6 +1,6 @@
 #include "measure.hpp"
 
-#include "blaspp/blas.hh"
+#include "blas.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -17,8 +17,8 @@ static void subtract_into(
     double const * const b,
     double * const c
 ) {
-    blas::copy(D, a, 1, c, 1);
-    blas::axpy(D, -1, b, 1, c, 1);
+    blas::copy(D, a, c);
+    blas::axpy(D, -1.0, b, c);
 }
 
 namespace mgard {
@@ -58,7 +58,7 @@ double edge_measure(double const * const p) {
     double buffer[1][3];
     double * const r = buffer[0];
     subtract_into(3, p + 0, p + 3, r);
-    return blas::nrm2(3, r, 1);
+    return blas::nrm2(3, r);
 }
 
 double tri_measure(double const * const p) {
@@ -82,7 +82,7 @@ double tri_measure(double const * const p) {
         }
         cross_product[i] = orient_2d(a, b, c);
     }
-    return blas::nrm2(3, cross_product, 1) / 2;
+    return blas::nrm2(3, cross_product) / 2;
 }
 
 double tet_measure(double const * const p) {
