@@ -1,10 +1,11 @@
 #include "UniformMeshRefiner.hpp"
 
+#include <cassert>
 #include <cstddef>
 
 #include <unordered_map>
 
-#include "blaspp/blas.hh"
+#include "blas.hpp"
 
 #include "utilities.hpp"
 
@@ -114,9 +115,9 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(
                 moab::MBEDGE, EDGE_CONNECTIVITY, 2, EDGE
             );
             assert(EDGE == ++most_recent_edge);
-            blas::axpy(3, 1, q + 3 * mesh.index(endpoint), 1, p, 1);
+            blas::axpy(3, 1.0, q + 3 * mesh.index(endpoint), p);
         }
-        blas::scal(3, 0.5, p, 1);
+        blas::scal(3, 0.5, p);
     }
     ecode = mesh.impl.set_coords(NEW_NODES, midpoint_coordinates.data());
     MB_CHK_ERR(ecode);

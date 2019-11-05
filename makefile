@@ -1,6 +1,8 @@
+CXXFLAGS += -g -fno-omit-frame-pointer
+
 ifdef DEBUG
 # Compiling with sanitizers during development is simply essential:
-	CXXFLAGS += -g -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+	CXXFLAGS += -fsanitize=address -fsanitize=undefined
 	LDFLAGS += -fsanitize=address -fsanitize=undefined
 else
 	CXXFLAGS += -O3 -march=native -ffast-math -fno-finite-math-only
@@ -33,7 +35,7 @@ unstructured@LDFLAGS := -L$(HOME)/.local/lib -Wl,-rpath=$(HOME)/.local/lib
 benchmarks@LDFLAGS := $(unstructured@LDFLAGS)
 
 structured@LDLIBS := -lz -ldl
-unstructured@LDLIBS := -lMOAB -lhdf5_hl -lhdf5 -llapack -lblas -lblaspp -lz -lstdc++fs -lm
+unstructured@LDLIBS := -lMOAB -lhdf5_hl -lhdf5 -llapack -lz -lstdc++fs -lm
 benchmarks@LDLIBS := -lbenchmark -lbenchmark_main -pthread $(structured@LDLIBS) $(unstructured@LDLIBS)
 
 dirty@FILES =
@@ -44,7 +46,7 @@ structured@TEST_STEMS := mgard_test
 structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
 
 #Tested but not compiled. `$(STEM).hpp` exists, `$(STEM).tpp` might exist, and `$(STEM).cpp` does not exist.
-unstructured@HEADER_ONLY := utilities UniformEdgeFamilies
+unstructured@HEADER_ONLY := blas utilities UniformEdgeFamilies
 unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy
 unstructured@STEMS = $(unstructured@MGARD_STEMS)
 
@@ -125,10 +127,9 @@ $(foreach STEM,$(tests@STEMS),$(eval $(call compile-cpp,$(call tests@stem-to-sou
 
 $(eval $(call archive-cpp,$(foreach STEM,$(structured@MGARD_STEMS),$(call stem-to-object,$(STEM))),$(structured@LIB)))
 
-#Guessing I should have compiled `blaspp` with the path to `openblas`.
 .PHONY: check
 check: $(tests@EXECUTABLE)
-	LD_LIBRARY_PATH=$(HOME)/.local/lib ./$<
+	./$<
 
 $(tests@SCRIPT): LDFLAGS += $(structured@LDFLAGS)
 $(tests@SCRIPT): LDLIBS += $(structured@LDLIBS)

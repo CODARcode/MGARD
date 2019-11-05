@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include "blaspp/blas.hh"
+#include "blas.hpp"
 
 //!Calculate the residual 'from scratch.'
 //!
@@ -24,8 +24,8 @@ static inline void calculate_residual(
 ) {
     //Could use `std::invoke` here (and elsewhere).
     A(x, residual);
-    blas::axpy(N, -1, b, 1, residual, 1);
-    blas::scal(N, -1, residual, 1);
+    blas::axpy(N, -1.0, b, residual);
+    blas::scal(N, -1.0, residual);
 }
 
 namespace mgard {
@@ -95,7 +95,7 @@ Diagnostics pcg(
     double residual_norm;
     double beta_numerator;
 
-    const double b_norm = blas::nrm2(N, b, 1);
+    const double b_norm = blas::nrm2(N, b);
     //`Criteria::tolerance` expects a nonzero righthand side norm. We can just
     //return immediately in this case.
     if (b_norm == 0) {
@@ -104,13 +104,14 @@ Diagnostics pcg(
     }
     const double atol = criteria.tolerance(b_norm);
     calculate_residual(N, A, b, x, residual);
-    residual_norm = blas::nrm2(N, residual, 1);
+    residual_norm = blas::nrm2(N, residual);
     if (residual_norm <= atol) {
         return {true, residual_norm, 0};
     }
     P(residual, pc_residual);
-    beta_numerator = blas::dot(N, residual, 1, pc_residual, 1);
-    blas::copy(N, pc_residual, 1, direction, 1);
+    //Presumably `dot` in general.
+    beta_numerator = blas::dotu(N, residual, pc_residual);
+    blas::copy(N, pc_residual, direction);
     for (
         std::size_t num_iter = 0;
         num_iter < criteria.max_iterations;
@@ -118,9 +119,7 @@ Diagnostics pcg(
     ) {
         const double alpha_numerator = beta_numerator;
         A(direction, Adirection);
-        const double alpha_denominator = blas::dot(
-            N, Adirection, 1, direction, 1
-        );
+        const double alpha_denominator = blas::dotu(N, Adirection, direction);
         //`A` is symmetric positive definite, so this should only happen when
         //`direction` is the zero vector. In that case, further iterations will
         //have no effect and we might as well exit now.
@@ -130,20 +129,20 @@ Diagnostics pcg(
             return {false, residual_norm, num_iter};
         }
         const double alpha = alpha_numerator / alpha_denominator;
-        blas::axpy(N, alpha, direction, 1, x, 1);
+        blas::axpy(N, alpha, direction, x);
         if ((num_iter + 1) % RESIDUAL_RECALCULATION_ITERVAL) {
             //Recalculate the residual.
             calculate_residual(N, A, b, x, residual);
         } else {
             //Update the residual.
-            blas::axpy(N, -alpha, Adirection, 1, residual, 1);
+            blas::axpy(N, -alpha, Adirection, residual);
         }
-        residual_norm = blas::nrm2(N, residual, 1);
+        residual_norm = blas::nrm2(N, residual);
         if (residual_norm <= atol) {
             return {true, residual_norm, num_iter + 1};
         }
         P(residual, pc_residual);
-        beta_numerator = blas::dot(N, pc_residual, 1, residual, 1);
+        beta_numerator = blas::dotu(N, pc_residual, residual);
         const double beta = beta_numerator / alpha_numerator;
         //This is an attempt to accomplish
         //    direction = beta * direction + pc_residual
@@ -153,7 +152,7 @@ Diagnostics pcg(
         std::swap(direction, pc_residual);
         //Then we add `beta * direction`, only `direction` had its name changed
         //to `pc_residual` in the last line.
-        blas::axpy(N, beta, pc_residual, 1, direction, 1);
+        blas::axpy(N, beta, pc_residual, direction);
     }
     return {false, residual_norm, criteria.max_iterations};
 }
