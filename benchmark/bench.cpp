@@ -3,7 +3,7 @@
 #include <random>
 #include <string>
 
-#include "blaspp/blas.hh"
+#include "blas.hpp"
 #include "moab/Core.hpp"
 
 #include "mgard_api.h"
@@ -42,10 +42,9 @@ static mgard::UniformMeshHierarchy read_mesh_and_refine(
 
 static void normalize(std::vector<double> &u) {
     const std::size_t N = u.size();
-    const std::size_t stride = 1;
     double * const p = u.data();
-    const double norm = blas::nrm2(N, p, stride);;
-    blas::scal(N, 1 / norm, p, stride);
+    const double norm = blas::nrm2(N, p);;
+    blas::scal(N, 1 / norm, p);
 }
 
 static void BM_unstructured_decompose(

@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-#include "blaspp/blas.hh"
+#include "blas.hpp"
 
 #include "measure.hpp"
 
@@ -40,10 +40,10 @@ TEST_CASE("edge measure", "[measure]") {
 
     SECTION("edge measure respects translation invariance") {
         double b[N];
-        blas::copy(N, a, 1, b, 1);
+        blas::copy(N, a, b);
         const double shift[3] = {2, -10, 5};
         for (std::size_t i = 0; i < N; i += 3) {
-            blas::axpy(3, 1, shift, 1, b + i, 1);
+            blas::axpy(3, 1.0, shift, b + i);
         }
         REQUIRE(mgard::edge_measure(b) == Approx(base_length));
     }
@@ -52,9 +52,9 @@ TEST_CASE("edge measure", "[measure]") {
         const double factors[3] = {0.5, 2, 5};
         for (double factor : factors) {
             double b[N];
-            blas::copy(6, a, 1, b, 1);
+            blas::copy(6, a, b);
             //Scale both endpoints at once.
-            blas::scal(N, factor, b, 1);
+            blas::scal(N, factor, b);
             //Relying on `factor` being nonnegative here.
             const double expected = factor * base_length;
             REQUIRE(mgard::edge_measure(b) == Approx(expected));
@@ -63,8 +63,8 @@ TEST_CASE("edge measure", "[measure]") {
 
     SECTION("edge measure invariant under permutation") {
         double b[N];
-        blas::copy(3, a + 0, 1, b + 3, 1);
-        blas::copy(3, a + 3, 1, b + 0, 1);
+        blas::copy(3, a + 0, b + 3);
+        blas::copy(3, a + 3, b + 0);
         REQUIRE(mgard::edge_measure(b) == Approx(base_length));
     }
 }
@@ -84,10 +84,10 @@ TEST_CASE("triangle measure", "[measure]") {
 
     SECTION("triangle measure respects translation invariance") {
         double b[N];
-        blas::copy(N, a, 1, b, 1);
+        blas::copy(N, a, b);
         const double shift[3] = {21, 21, 3};
         for (std::size_t i = 0; i < N; i += 3) {
-            blas::axpy(3, 1, shift, 1, b + i, 1);
+            blas::axpy(3, 1.0, shift, b + i);
         }
         REQUIRE(mgard::tri_measure(b) == Approx(base_area));
     }
@@ -96,9 +96,9 @@ TEST_CASE("triangle measure", "[measure]") {
         const double factors[3] = {0.01, 121, 920};
         for (double factor : factors) {
             double b[N];
-            blas::copy(N, a, 1, b, 1);
+            blas::copy(N, a, b);
             //Scale all vertices at once.
-            blas::scal(N, factor, b, 1);
+            blas::scal(N, factor, b);
             const double expected = factor * factor * base_area;
             REQUIRE(mgard::tri_measure(b) == Approx(expected));
         }
@@ -106,9 +106,9 @@ TEST_CASE("triangle measure", "[measure]") {
 
     SECTION("triangle measure invariant under permutation") {
         double b[N];
-        blas::copy(3, a + 0, 1, b + 3, 1);
-        blas::copy(3, a + 3, 1, b + 6, 1);
-        blas::copy(3, a + 6, 1, b + 0, 1);
+        blas::copy(3, a + 0, b + 3);
+        blas::copy(3, a + 3, b + 6);
+        blas::copy(3, a + 6, b + 0);
         REQUIRE(mgard::tri_measure(b) == Approx(base_area));
     }
 }
@@ -129,10 +129,10 @@ TEST_CASE("tetrahedron measure", "[measure]") {
 
     SECTION("tetrahedron measure respects translation invariance") {
         double b[N];
-        blas::copy(N, a, 1, b, 1);
+        blas::copy(N, a, b);
         const double shift[3] = {-3, 17, 92};
         for (std::size_t i = 0; i < N; i += 3) {
-            blas::axpy(3, 1, shift, 1, b + i, 1);
+            blas::axpy(3, 1.0, shift, b + i);
         }
         REQUIRE(mgard::tet_measure(b) == Approx(base_volume));
     }
@@ -141,9 +141,9 @@ TEST_CASE("tetrahedron measure", "[measure]") {
         const double factors[3] = {0.375, 1.8, 12};
         for (double factor : factors) {
             double b[N];
-            blas::copy(N, a, 1, b, 1);
+            blas::copy(N, a, b);
             //Scale all vertices at once.
-            blas::scal(N, factor, b, 1);
+            blas::scal(N, factor, b);
             //Relying on `factor` being nonnegative here.
             const double expected = factor * factor * factor * base_volume;
             REQUIRE(mgard::tet_measure(b) == Approx(expected));
@@ -152,10 +152,10 @@ TEST_CASE("tetrahedron measure", "[measure]") {
 
     SECTION("tetrahedron measure invariant under permutation") {
         double b[N];
-        blas::copy(3, a + 0, 1, b + 6, 1);
-        blas::copy(3, a + 3, 1, b + 0, 1);
-        blas::copy(3, a + 6, 1, b + 9, 1);
-        blas::copy(3, a + 9, 1, b + 3, 1);
+        blas::copy(3, a + 0, b + 6);
+        blas::copy(3, a + 3, b + 0);
+        blas::copy(3, a + 6, b + 9);
+        blas::copy(3, a + 9, b + 3);
         REQUIRE(mgard::tet_measure(b) == Approx(base_volume));
     }
 }

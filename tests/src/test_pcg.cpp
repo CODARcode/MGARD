@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstddef>
 
-#include "blaspp/blas.hh"
+#include "blas.hpp"
 
 #include "LinearOperator.hpp"
 #include "pcg.hpp"
@@ -39,7 +39,7 @@ class Identity: public mgard::LinearOperator {
             double const * const x, double * const y
         ) const override {
             assert(is_square());
-            blas::copy(domain_dimension, x, 1, y, 1);
+            blas::copy(domain_dimension, x, y);
         }
 };
 
@@ -83,7 +83,7 @@ static void mass_matrix_matvec(
     y[2] += 1 * (2 * x[2] + 1 * x[3]);
     y[3] += 1 * (2 * x[3] + 1 * x[2]);
     //Scale.
-    blas::scal(N, 1.0 / 6.0, y, 1);
+    blas::scal(N, 1.0 / 6.0, y);
 }
 
 static void diagonal_scaling(
@@ -109,7 +109,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
                 b[i] = 4 + (i % 7);
                 x[i] = 0;
             }
-            const double b_norm = blas::nrm2(N, b, 1);
+            const double b_norm = blas::nrm2(N, b);
 
             //With `x` initialized to zeroes.
             {
@@ -176,7 +176,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
         double x[N];
         std::fill(x, x + N, 0);
         double b[N] = {2, -1, -10, 4};
-        const double b_norm = blas::nrm2(N, b, 1);
+        const double b_norm = blas::nrm2(N, b);
         double buffer[4 * N];
         mgard::pcg::StoppingCriteria criterias[7] = {
             mgard::pcg::StoppingCriteria(1e-1,    0),
@@ -192,10 +192,10 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
                 A, b, P, x, buffer, criteria
             );
             //Populate the first bit of `buffer` with the residual.
-            blas::copy(N, b, 1, buffer, 1);
+            blas::copy(N, b, buffer);
             A(x, buffer + N);
-            blas::axpy(N, -1, buffer + N, 1, buffer, 1);
-            const double residual_norm = blas::nrm2(N, buffer, 1);
+            blas::axpy(N, -1.0, buffer + N, buffer);
+            const double residual_norm = blas::nrm2(N, buffer);
             REQUIRE(residual_norm <= std::max(
                 criteria.absolute, criteria.relative * b_norm
             ));

@@ -6,8 +6,6 @@
 
 #include "moab/Core.hpp"
 
-#include "blaspp/blas.hh"
-
 #include "MeshLevel.hpp"
 #include "pcg.hpp"
 
