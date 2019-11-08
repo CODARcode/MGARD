@@ -26,8 +26,8 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
         REQUIRE(mesh.ndof() == num_nodes);
         REQUIRE(mesh.entities[moab::MBEDGE].size() == num_edges);
         REQUIRE(mesh.entities[moab::MBTRI].size() == num_tris);
-        mgard::MassMatrix M(&mesh);
-        mgard::MassMatrixPreconditioner P(&mesh);
+        mgard::MassMatrix M(mesh);
+        mgard::MassMatrixPreconditioner P(mesh);
 
         SECTION("preconditioner") {
             double v[num_nodes] = {3, -1, 2, -4, -5};
@@ -110,9 +110,9 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
         REQUIRE(mesh.entities[moab::MBTET].size() == num_tets);
         double u[num_nodes] = {-8, -7, 3, 0, 10};
         double b[num_nodes];
-        mgard::MassMatrix M(&mesh);
+        mgard::MassMatrix M(mesh);
         M(u, b);
-        mgard::MassMatrixPreconditioner P(&mesh);
+        mgard::MassMatrixPreconditioner P(mesh);
         const moab::Range &elements = mesh.entities[mesh.element_type];
         double measures[num_tets];
         for (std::size_t i = 0; i < num_tets; ++i) {

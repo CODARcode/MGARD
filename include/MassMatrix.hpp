@@ -16,12 +16,12 @@ class MassMatrix: public LinearOperator {
     public:
         //!Constructor.
         //!
-        //!\param mesh Pointer to underlying mesh.
-        MassMatrix(MeshLevel const * const mesh);
+        //!\param mesh Underlying mesh.
+        MassMatrix(const MeshLevel &mesh);
 
     private:
-        //!Pointer to underlying mesh.
-        MeshLevel const * mesh;
+        //!Underlying mesh.
+        const MeshLevel &mesh;
 
         virtual void do_operator_parentheses(
             double const * const x, double * const b
@@ -33,12 +33,12 @@ class MassMatrixPreconditioner: public LinearOperator {
     public:
         //!Constructor.
         //!
-        //!\param mesh Pointer to underlying mesh.
-        MassMatrixPreconditioner(MeshLevel const * const mesh);
+        //!\param mesh Underlying mesh.
+        MassMatrixPreconditioner(const MeshLevel &mesh);
 
     private:
-        //!Pointer to underlying mesh.
-        MeshLevel const * mesh;
+        //!Underlying mesh.
+        const MeshLevel &mesh;
 
         virtual void do_operator_parentheses(
             double const * const x, double * const b
