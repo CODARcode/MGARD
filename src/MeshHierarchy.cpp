@@ -350,8 +350,8 @@ MeshHierarchy::do_calculate_correction_from_multilevel_component(
     moab::ErrorCode ecode = apply_mass_matrix_to_multilevel_component(u, l, b);
     MB_CHK_ERR(ecode);
     //Invert the system to obtain `Q_{l - 1}u - Π_{l - 1}Q_{l}u` on `N_old`.
-    const MassMatrix M(&mesh);
-    const MassMatrixPreconditioner P(&mesh);
+    const MassMatrix M(mesh);
+    const MassMatrixPreconditioner P(mesh);
     std::fill(correction, correction + n, 0);
     const pcg::Diagnostics diagnostics = pcg::pcg(
         M, b, P, correction, pcg_buffer
