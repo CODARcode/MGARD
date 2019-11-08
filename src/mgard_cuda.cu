@@ -3,6 +3,7 @@
 #include "mgard_cuda_helper_internal.h"
 #include "mgard_cuda.h"
 #include "mgard_cuda_compacted.h"
+#include "mgard_nuni_2d_cuda.h"
 #include "mgard.h"
 #include <iomanip> 
 #include <iostream>
@@ -101,7 +102,9 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
 
       int l_target = nlevel-1;
       l_target = 0;
-      mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+      //mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+      mgard_2d::mgard_gen::prep_2D_cuda(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+
 
       mgard_2d::mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
       
