@@ -101,7 +101,6 @@ class EdgeFamilyIterable {
         //!Return an iterator to the end of the iterable.
         iterator end() const;
 
-
         //!Mesh containing the edges in question.
         const MeshLevel &mesh;
 
