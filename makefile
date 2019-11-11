@@ -20,7 +20,7 @@ DIR_BIN := bin
 DIR_LIB := lib
 DIR_DOC := doc
 
-CPPFLAGS = $(foreach DIR,$(DIRECTORIES_INCLUDE),-I$(DIR))
+CPPFLAGS += $(foreach DIR,$(DIRECTORIES_INCLUDE),-I$(DIR))
 
 #Below we'll set `DIRECTORIES_INCLUDE` to one of these.
 structured@DIRECTORIES_INCLUDE := $(DIR_INC)
@@ -47,7 +47,7 @@ structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
 
 #Tested but not compiled. `$(STEM).hpp` exists, `$(STEM).tpp` might exist, and `$(STEM).cpp` does not exist.
 unstructured@HEADER_ONLY := blas utilities UniformEdgeFamilies
-unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy
+unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy UniformRestriction
 unstructured@STEMS = $(unstructured@MGARD_STEMS)
 
 tests@DIR_ROOT := tests
