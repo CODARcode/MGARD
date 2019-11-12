@@ -40,11 +40,7 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
                 v[4] / 4.5
             };
             P(v, b);
-            bool all_close = true;
-            for (std::size_t i = 0; i < num_nodes; ++i) {
-                all_close = all_close && b[i] == Approx(expected[i]);
-            }
-            REQUIRE(all_close);
+            require_vector_equality(b, expected, num_nodes);
         }
 
         SECTION("mass matrix") {
@@ -74,11 +70,7 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
             for (std::size_t i = 0; i < num_trials; ++i) {
                 double b[num_nodes];
                 M(vs[i], b);
-                bool all_close = true;
-                for (std::size_t j = 0; j < num_nodes; ++j) {
-                    all_close = all_close && b[j] == Approx(expecteds[i][j]);
-                }
-                REQUIRE(all_close);
+                require_vector_equality(b, expecteds[i], num_nodes);
 
                 double w[num_nodes];
                 std::fill(w, w + num_nodes, 0);
@@ -87,9 +79,7 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
                     M, b, P, w, buffer
                 );
                 REQUIRE(diagnostics.converged);
-                for (std::size_t j = 0; j < num_nodes; ++j) {
-                    all_close = all_close && w[j] == Approx(vs[i][j]);
-                }
+                require_vector_equality(w, vs[i], num_nodes, 1e-9);
             }
         }
     }
@@ -129,11 +119,7 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
                     16 * measures[1]
                 };
                 blas::scal(num_nodes, 1.0 / 20.0, expected);
-                bool all_close = true;
-                for (std::size_t i = 0; i < num_nodes; ++i) {
-                    all_close = all_close && b[i] == Approx(expected[i]);
-                }
-                REQUIRE(all_close);
+                require_vector_equality(b, expected, num_nodes);
             }
         }
 
@@ -149,11 +135,7 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
             expected[4] /= measures[1];
             double v[num_nodes];
             P(b, v);
-            bool all_close = true;
-            for (std::size_t i = 0; i < num_nodes; ++i) {
-                all_close = all_close && v[i] == Approx(expected[i]);
-            }
-            REQUIRE(all_close);
+            require_vector_equality(v, expected, num_nodes);
         }
 
         {

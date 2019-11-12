@@ -23,21 +23,13 @@ TEST_CASE("uniform functional restriction", "[UniformRestriction]") {
             std::vector<double> F = {4, 6, 10, 12, 1, 5, 8, 7, 9, 11, 2, 3};
             std::vector<double> expected = {11, 18.5, 23, 22, 3.5};
             R(F.data(), f.data());
-            bool all_close = true;
-            for (std::size_t i = 0; i < f.size(); ++i) {
-                all_close = all_close && f.at(i) == Approx(expected.at(i));
-            }
-            REQUIRE(all_close);
+            require_vector_equality(f, expected);
         }
         {
             std::vector<double> F = {2, 3, 5, 6, 0, -2, 4, -3, -4, -5, 1, -1};
             std::vector<double> expected = {0, 1.5, 3, 1.5, 0};
             R(F.data(), f.data());
-            bool all_close = true;
-            for (std::size_t i = 0; i < f.size(); ++i) {
-                all_close = all_close && f.at(i) == Approx(expected.at(i));
-            }
-            REQUIRE(all_close);
+            require_vector_equality(f, expected);
         }
     }
 }
