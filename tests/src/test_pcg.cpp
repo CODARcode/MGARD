@@ -9,6 +9,8 @@
 #include "LinearOperator.hpp"
 #include "pcg.hpp"
 
+#include "testing_utilities.hpp"
+
 class SimpleDiagonalMatvec: public mgard::LinearOperator {
     public:
         SimpleDiagonalMatvec(const std::size_t N):
@@ -143,11 +145,7 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
             //Testing approximate elementwise accuracy.
             {
                 A(x, buffer);
-                bool all_close = true;
-                for (std::size_t i = 0; i < N; ++i) {
-                    all_close = all_close && std::abs(buffer[i] - b[i]) < 1e-3;
-                }
-                REQUIRE(all_close);
+                require_vector_equality(buffer, b, N, 1e-3);
             }
 
             //With `b` initialized to zeroes.

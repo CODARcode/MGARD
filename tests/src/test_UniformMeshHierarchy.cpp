@@ -64,9 +64,7 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
         std::vector<double> copy = u;
         hierarchy.decompose(u.data());
         hierarchy.recompose(u.data());
-        blas::axpy(N, -1.0, u.data(), copy.data());
-        std::vector<double> &errors = copy;
-        REQUIRE(std::abs(blas::nrm2(N, errors.data())) < 1e-9 * N);
+        require_vector_equality(u, copy);
     }
 
     SECTION("recompose inverts decompose") {
@@ -76,9 +74,7 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
         std::vector<double> copy = u;
         hierarchy.recompose(u.data());
         hierarchy.decompose(u.data());
-        blas::axpy(N, -1.0, u.data(), copy.data());
-        std::vector<double> &errors = copy;
-        REQUIRE(std::abs(blas::nrm2(N, errors.data())) < 1e-9 * N);
+        require_vector_equality(u, copy);
     }
 
     SECTION("multilevel coefficients depend linearly on nodal coefficients") {
@@ -100,9 +96,7 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
         std::vector<double> expected(N);
         blas::copy(N, u.data(), expected.data());
         blas::axpy(N, alpha, v.data(), expected.data());
-        blas::axpy(N, -1.0, w.data(), expected.data());
-        std::vector<double> &errors = expected;
-        REQUIRE(std::abs(blas::nrm2(N, errors.data())) < 1e-9 * N);
+        require_vector_equality(w, expected);
     }
 }
 

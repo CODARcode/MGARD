@@ -1,7 +1,5 @@
 #include "testing_utilities.hpp"
 
-#include <cassert>
-
 #include <stdexcept>
 
 #include "moab/EntityType.hpp"
