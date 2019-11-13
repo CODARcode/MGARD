@@ -22,6 +22,12 @@ Real dotu(const std::size_t N, Real const *p, Real const *q);
 template <typename Real>
 Real nrm2(const std::size_t N, Real const *p);
 
+//!Add a multiple of one vector to another.
+//!
+//!\param [in] N Size of the vectors.
+//!\param [in] alpha Factor by which to scale the first vector.
+//!\param [in] p First vector, to be scaled and added to the second.
+//!\param [in, out] q Second vector, to be added to.
 template <typename Real>
 void axpy(const std::size_t N, const Real alpha, Real const *p, Real *q);
 
