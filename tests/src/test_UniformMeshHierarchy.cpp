@@ -100,7 +100,10 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
     }
 }
 
-TEST_CASE("comparison with Python implementation", "[UniformMeshHierarchy]") {
+TEST_CASE(
+    "comparison with Python implementation: refinement and decomposition",
+    "[UniformMeshHierarchy]"
+) {
     moab::ErrorCode ecode;
     moab::Core mbcore;
     ecode = mbcore.load_file(mesh_path("circle.msh").c_str());
