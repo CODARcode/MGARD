@@ -47,7 +47,7 @@ structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
 
 #Tested but not compiled. `$(STEM).hpp` exists, `$(STEM).tpp` might exist, and `$(STEM).cpp` does not exist.
 unstructured@HEADER_ONLY := blas utilities UniformEdgeFamilies
-unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy UniformRestriction
+unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy UniformRestriction norms
 unstructured@STEMS = $(unstructured@MGARD_STEMS)
 
 tests@DIR_ROOT := tests
