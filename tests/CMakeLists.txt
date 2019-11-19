@@ -4,3 +4,4 @@
 #------------------------------------------------------------------------------#
 
 add_subdirectory(gray-scott)
+add_subdirectory(cosine)
