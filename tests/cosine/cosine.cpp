@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
   unsigned char *compressed_data = 0;
 
   for (int i = 0; i < npoints; i++) {
-     v[i] = cos(i * 2 * pi / npoints);
+    v[i] = cos(i * 2 * pi / npoints);
   }
 
   compressed_data = mgard_compress(0, v, out_size, 16, npoints / 16, 1, tol);
