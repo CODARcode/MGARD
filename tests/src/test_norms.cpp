@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include <algorithm>
+#include <random>
 #include <vector>
 
 #include "moab/Core.hpp"

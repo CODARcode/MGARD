@@ -2,7 +2,14 @@
 
 #include "moab/Core.hpp"
 
+#include <cassert>
 #include <cmath>
+#include <cstddef>
+#include <utility>
+
+#include <random>
+#include <string>
+#include <vector>
 
 #include "blas.hpp"
 
@@ -157,5 +164,63 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
             );
             REQUIRE(std::abs(square_relative_error) < 1e-6);
         }
+    }
+}
+
+static void test_ContiguousSubsetMassMatrix(
+    const std::string &filename, const std::size_t i, const std::size_t n
+) {
+    moab::Core mbcore;
+    moab::ErrorCode ecode;
+    ecode = mbcore.load_file(mesh_path(filename).c_str());
+    require_moab_success(ecode);
+    mgard::MeshLevel mesh(mbcore);
+    const moab::Range &nodes = mesh.entities[moab::MBVERTEX];
+
+    const std::size_t N = mesh.ndof();
+    assert(N >= n);
+    const moab::Range subset(nodes[i], nodes[i + n - 1]);
+    assert(subset.size() == n);
+
+    std::random_device device;
+    std::default_random_engine generator(device());
+    std::uniform_real_distribution<double> distribution(-5, 0);
+    std::vector<double> u_(n);
+    std::vector<double> U_(N, 0);
+    std::vector<double> RHS_(N);
+    for (double &value : u_) {
+        value = distribution(generator);
+    }
+    blas::copy(n, u_.data(), U_.data() + i);
+    double * const u = u_.data();
+    double * const U = U_.data();
+    double * const RHS = RHS_.data();
+
+    const mgard::MassMatrix M(mesh);
+    M(U, RHS);
+    const double U_sq_norm = blas::dotu(N, U, RHS);
+
+    double * const rhs = RHS;
+    const mgard::ContiguousSubsetMassMatrix csM(mesh, subset);
+    std::pair<std::size_t, std::size_t> dimensions = csM.dimensions();
+    REQUIRE(csM.is_square());
+    REQUIRE(dimensions.first == n);
+    csM(u, rhs);
+    const double u_sq_norm = blas::dotu(n, u, rhs);
+
+    REQUIRE(U_sq_norm >= 0);
+    REQUIRE(u_sq_norm >= 0);
+    REQUIRE(u_sq_norm == Approx(U_sq_norm));
+}
+
+TEST_CASE("contiguous subset mass matrix", "[MassMatrix]") {
+    SECTION("triangles") {
+        test_ContiguousSubsetMassMatrix("circle.msh", 10, 30);
+        test_ContiguousSubsetMassMatrix("circle.msh", 50, 5);
+    }
+    SECTION("tetrahedra") {
+        //Would be good to test a bigger example.
+        test_ContiguousSubsetMassMatrix("hexahedron.msh", 0, 1);
+        test_ContiguousSubsetMassMatrix("hexahedron.msh", 3, 2);
     }
 }
