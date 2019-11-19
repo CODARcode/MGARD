@@ -9,6 +9,7 @@
 #include "mgard_api.h"
 
 #include "MeshLevel.hpp"
+#include "MassMatrix.hpp"
 #include "UniformMeshHierarchy.hpp"
 
 static void BM_MGARD(benchmark::State& state) {
@@ -126,5 +127,40 @@ BENCHMARK_CAPTURE(BM_unstructured_recompose, circle, "circle.msh")
     ->DenseRange(1, 6, 1)->Complexity()->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(BM_unstructured_recompose, pyramid, "pyramid.msh")
     ->DenseRange(3, 8, 1)->Complexity()->Unit(benchmark::kMillisecond);
+
+static void BM_unstructured_mass_matrix(
+    benchmark::State &state, const std::string &filename
+) {
+    std::default_random_engine gen;
+    gen.seed(3319);
+    std::uniform_real_distribution<double> dis(-5, 0);
+
+    const int64_t L = state.range(0);
+    moab::Core mbcore;
+    mgard::UniformMeshHierarchy hierarchy = read_mesh_and_refine(
+        mbcore, filename, L
+    );
+
+    const std::size_t N = hierarchy.ndof();
+    std::vector<double> u_(N);
+    std::vector<double> rhs_(N);
+    for (double &x : u_) {
+        x = dis(gen);
+    }
+    double * const u = u_.data();
+    double * const rhs = rhs_.data();
+    const mgard::MeshLevel &MESH = hierarchy.meshes.back();
+    const mgard::MassMatrix M(MESH);
+
+    for (auto _ : state) {
+        M(u, rhs);
+        benchmark::DoNotOptimize(rhs[0]);
+    }
+
+    state.SetComplexityN(N);
+    state.SetBytesProcessed(state.iterations() * N * sizeof(double));
+}
+BENCHMARK_CAPTURE(BM_unstructured_mass_matrix, circle, "circle.msh")
+    ->DenseRange(2, 7, 1)->Complexity()->Unit(benchmark::kMillisecond);
 
 BENCHMARK_MAIN();
