@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   }
 
   compressed_data = mgard_compress(0, v, out_size, 16, npoints / 16, 1, tol);
-  cout << "Original size = " << npoints * 8 << " out_size = " << out_size 
+  cout << "Original size = " << npoints * 8 << " out_size = " << out_size
        << " CR = " << npoints * 8.0 / out_size << endl;
 
   double quantizer;
