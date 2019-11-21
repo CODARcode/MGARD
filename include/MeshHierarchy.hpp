@@ -9,6 +9,7 @@
 #include <functional>
 #include <vector>
 
+#include "data.hpp"
 #include "MeshLevel.hpp"
 
 namespace mgard {
@@ -59,26 +60,34 @@ class MeshHierarchy {
         //!
         //!\param [in] u Values associated to nodes.
         //!\param [in] l Index of the MeshLevel.
-        double * on_old_nodes(double * const u, const std::size_t l) const;
+        double * on_old_nodes(
+            const HierarchyCoefficients<double> u, const std::size_t l
+        ) const;
 
         //!Access the subset of a dataset associated to the 'new' nodes of a
         //!level.
         //!
         //!\param [in] u Values associated to nodes.
         //!\param [in] l Index of the MeshLevel.
-        double * on_new_nodes(double * const u, const std::size_t l) const;
+        double * on_new_nodes(
+            const HierarchyCoefficients<double> u, const std::size_t l
+        ) const;
 
         //!Transform from nodal coefficients to multilevel coefficients.
         //!
         //!\param [in, out] u Nodal values of the input function.
         //!\param [in] buffer Scratch space.
-        moab::ErrorCode decompose(double * const u, void *buffer = NULL);
+        MultilevelCoefficients<double> decompose(
+            const NodalCoefficients<double> u, void *buffer = NULL
+        );
 
         //!Transform from multilevel coefficients to nodal coefficients.
         //!
         //!\param [in, out] u Multilevel coefficients of the input function.
         //!\param [in] buffer Scratch space.
-        moab::ErrorCode recompose(double * const u, void *buffer = NULL);
+        NodalCoefficients<double> recompose(
+            const MultilevelCoefficients<double> u, void *buffer = NULL
+        );
 
         //!Report the amount of scratch space (in bytes) needed for all
         //!hierarchy operations.
@@ -123,7 +132,9 @@ class MeshHierarchy {
         //!\param [in] l Index of the MeshLevel to start at.
         //!\param [in] buffer Scratch space.
         moab::ErrorCode decompose(
-            double * const u, const std::size_t l, void * const buffer
+            const NodalCoefficients<double> u,
+            const std::size_t l,
+            void * const buffer
         ) const;
 
         //!Transform from multilevel coefficients to nodal coefficients,
@@ -133,7 +144,9 @@ class MeshHierarchy {
         //!\param [in] l Index of the MeshLevel to start at. Must be nonzero!
         //!\param [in] buffer Scratch space.
         moab::ErrorCode recompose(
-            double * const u, const std::size_t l, void * const buffer
+            const MultilevelCoefficients<double> u,
+            const std::size_t l,
+            void * const buffer
         ) const;
 
         //!Project a multilevel component onto the next coarser level.
@@ -143,7 +156,7 @@ class MeshHierarchy {
         //!\param [out] correction Nodal values of the projection.
         //!\param [in] buffer Scratch space.
         moab::ErrorCode calculate_correction_from_multilevel_component(
-            double const * const u,
+            const HierarchyCoefficients<double> u,
             const std::size_t l,
             double * const correction,
             void * const buffer
@@ -158,7 +171,9 @@ class MeshHierarchy {
         //!\param [in] l Index of the MeshLevel.
         //!\param [out] b Matrix–vector product.
         moab::ErrorCode apply_mass_matrix_to_multilevel_component(
-            double const * const u, const std::size_t l, double * const b
+            const HierarchyCoefficients<double> u,
+            const std::size_t l,
+            double * const b
         ) const;
 
         //!Interpolate the 'old' values onto the 'new' nodes and subtract.
@@ -166,7 +181,7 @@ class MeshHierarchy {
         //!\param [in, out] u Nodal values of the input function.
         //!\param [in] l Index of the MeshLevel.
         moab::ErrorCode subtract_interpolant_from_coarser_level_from_new_values(
-            double * const u, const std::size_t l
+            const HierarchyCoefficients<double> u, const std::size_t l
         ) const;
 
         //!Interpolate the 'old' values onto the 'new' nodes and add.
@@ -174,7 +189,7 @@ class MeshHierarchy {
         //!\param [in, out] u Nodal values of the input function.
         //!\param [in] l Index of the MeshLevel.
         moab::ErrorCode add_interpolant_from_coarser_level_to_new_values(
-            double * const u, const std::size_t l
+            const HierarchyCoefficients<double> u, const std::size_t l
         ) const;
 
         //!Add the correction to the values on the 'old' nodes.
@@ -183,7 +198,7 @@ class MeshHierarchy {
         //!\param [in] l Index of the MeshLevel.
         //!\param [in] correction Nodal values of the correction.
         moab::ErrorCode add_correction_to_old_values(
-            double * const u,
+            const HierarchyCoefficients<double> u,
             const std::size_t l,
             double const * const correction
         ) const;
@@ -194,7 +209,7 @@ class MeshHierarchy {
         //!\param [in] l Index of the MeshLevel.
         //!\param [in] correction Nodal values of the correction.
         moab::ErrorCode subtract_correction_from_old_values(
-            double * const u,
+            const HierarchyCoefficients<double> u,
             const std::size_t l,
             double const * const correction
         ) const;
@@ -229,13 +244,17 @@ class MeshHierarchy {
         //!
         //!\param node Handle of the node.
         //!\param l Index of the mesh.
-        bool is_new_node(moab::EntityHandle node, const std::size_t l) const;
+        bool is_new_node(
+            const moab::EntityHandle node, const std::size_t l
+        ) const;
 
         //!Find the measure of an entity of a mesh in the hierarchy.
         //!
         //!\param handle Handle of the entity.
         //!\param l Index of the mesh.
-        double measure(moab::EntityHandle handle, const std::size_t l) const;
+        double measure(
+            const moab::EntityHandle handle, const std::size_t l
+        ) const;
 
         //!Check that a mesh index is in bounds.
         //!
@@ -259,11 +278,11 @@ class MeshHierarchy {
         virtual std::size_t do_ndof(const std::size_t l) const;
 
         virtual double * do_on_old_nodes(
-            double * const u, const std::size_t l
+            const HierarchyCoefficients<double> u, const std::size_t
         ) const;
 
         virtual double * do_on_new_nodes(
-            double * const u, const std::size_t l
+            const HierarchyCoefficients<double> u, const std::size_t l
         ) const;
 
         virtual std::size_t do_scratch_space_needed() const;
@@ -285,7 +304,7 @@ class MeshHierarchy {
         ) const = 0;
 
         virtual bool do_is_new_node(
-            moab::EntityHandle node, const std::size_t l
+            const moab::EntityHandle node, const std::size_t l
         ) const = 0;
 
         virtual double do_measure(
@@ -299,7 +318,9 @@ class MeshHierarchy {
         //!\param [in] l Index of the MeshLevel.
         //!\param [in] alpha Factor by which to scale the interpolant.
         virtual moab::ErrorCode do_interpolate_old_to_new_and_axpy(
-            double * const u, std::size_t l, const double alpha
+            const HierarchyCoefficients<double> u,
+            const std::size_t l,
+            const double alpha
         ) const = 0;
 
         //!Scale a function on the 'old' nodes and add to the 'old' values.
@@ -309,7 +330,7 @@ class MeshHierarchy {
         //!\param [in] alpha Factor by which to scale the function.
         //!\param [in] correction Function to be scaled and added.
         virtual moab::ErrorCode do_old_values_axpy(
-            double * const u,
+            const HierarchyCoefficients<double> u,
             std::size_t l,
             const double alpha,
             double const * const correction
@@ -317,14 +338,16 @@ class MeshHierarchy {
 
         virtual
         moab::ErrorCode do_calculate_correction_from_multilevel_component(
-            double const * const u,
+            const HierarchyCoefficients<double> u,
             const std::size_t l,
             double * const correction,
             void * const buffer
         ) const;
 
         virtual moab::ErrorCode do_apply_mass_matrix_to_multilevel_component(
-            double const * const u, const std::size_t l, double * const b
+            const HierarchyCoefficients<double> u,
+            const std::size_t l,
+            double * const b
         ) const = 0;
 };
 

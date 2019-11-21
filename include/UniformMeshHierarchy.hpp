@@ -71,7 +71,7 @@ class UniformMeshHierarchy: public MeshHierarchy {
         ) const override;
 
         virtual bool do_is_new_node(
-            moab::EntityHandle node, const std::size_t l
+            const moab::EntityHandle node, const std::size_t l
         ) const override;
 
         virtual double do_measure(
@@ -85,7 +85,9 @@ class UniformMeshHierarchy: public MeshHierarchy {
         //!\param [in] l Index of the MeshLevel.
         //!\param [in] alpha Factor by which to scale the interpolant.
         virtual moab::ErrorCode do_interpolate_old_to_new_and_axpy(
-            double * const u, std::size_t l, const double alpha
+            const HierarchyCoefficients<double> u,
+            std::size_t l,
+            const double alpha
         ) const override;
 
         //!Scale a function on the 'old' nodes and add to the 'old' values.
@@ -95,14 +97,16 @@ class UniformMeshHierarchy: public MeshHierarchy {
         //!\param [in] alpha Factor by which to scale the function.
         //!\param [in] correction Function to be scaled and added.
         virtual moab::ErrorCode do_old_values_axpy(
-            double * const u,
+            const HierarchyCoefficients<double> u,
             std::size_t l,
             const double alpha,
             double const * const correction
         ) const override;
 
         virtual moab::ErrorCode do_apply_mass_matrix_to_multilevel_component(
-            double const * const u, const std::size_t l, double * const b
+            const HierarchyCoefficients<double> u,
+            const std::size_t l,
+            double * const b
         ) const override;
 
         virtual moab::EntityHandle do_get_parent(

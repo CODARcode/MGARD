@@ -18,6 +18,9 @@
 #include "MeshLevel.hpp"
 #include "UniformMeshHierarchy.hpp"
 
+//These tests call `decompose` and `recompose` in the old style and read the
+//transformed coefficients from the same identifier.
+
 TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
     moab::ErrorCode ecode;
     moab::Core mbcore;
