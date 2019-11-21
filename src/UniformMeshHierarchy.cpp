@@ -129,19 +129,6 @@ double UniformMeshHierarchy::do_measure(
     );
 }
 
-        //!Interpolate the 'old' values onto the 'new' nodes, scale, and add to
-        //!'new' values.
-        //!
-        //!\param [in, out] u Nodal values of the input function.
-        //!\param [in] l Index of the MeshLevel.
-        //!\param [in] alpha Factor by which to scale the interpolant.
-
-//!Interpolate the 'old' values onto the 'new' nodes, scale, and add to
-//!'new' values.
-//!
-//!\param [in, out] u Nodal values of the input function.
-//!\param [in] l Index of the MeshLevel.
-//!\param [in] alpha Factor by which to scale the interpolant.
 moab::ErrorCode UniformMeshHierarchy::do_interpolate_old_to_new_and_axpy(
     double * const u, std::size_t l, const double alpha
 ) const {
@@ -169,12 +156,6 @@ moab::ErrorCode UniformMeshHierarchy::do_interpolate_old_to_new_and_axpy(
     return moab::MB_SUCCESS;
 }
 
-//!Scale a function on the 'old' nodes and add to the 'old' values.
-//!
-//!\param [in, out] u Nodal values of the input function.
-//!\param [in] l Index of the MeshLevel.
-//!\param [in] alpha Factor by which to scale the function.
-//!\param [in] correction Function to be scaled and added.
 moab::ErrorCode UniformMeshHierarchy::do_old_values_axpy(
     double * const u,
     std::size_t l,
@@ -183,7 +164,7 @@ moab::ErrorCode UniformMeshHierarchy::do_old_values_axpy(
 ) const {
     //`l` is checked to be nonzero in the caller.
     const std::size_t n = ndof(l - 1);
-    double *p = u;
+    double *p = on_old_nodes(u, l);
     double const *q = correction;
     for (std::size_t i = 0; i < n; ++i) {
         *p++ += alpha * *q++;
