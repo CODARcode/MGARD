@@ -32,7 +32,7 @@ case ${BUILD_MATRIX_ENTRY} in
     fi
     ;;
   test-gs)
-    echo "Running gray-scott"
+    echo "Running tests"
     if ! ${SOURCE_DIR}/scripts/travis/run-gs.sh; then
       exit 1;
     fi
