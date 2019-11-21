@@ -18,7 +18,6 @@ cd ${SOURCE_DIR}
 if [ $? -eq 0 ]
 then
   echo "Successfully compress/decompress consine"
-  exit 0
 else
   echo "Error in compressing/decompressing consine" >&2
   exit 1
@@ -29,9 +28,9 @@ fi
 if [ $? -eq 0 ]
 then
   echo "Successfully compress/decompress constant3d"
-  exit 0
 else
   echo "Error in compressing/decompressing constant3d" >&2
   exit 1
 fi
 
+exit 0
