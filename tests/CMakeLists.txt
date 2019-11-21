@@ -3,5 +3,8 @@
 # accompanying file Copyright.txt for details.
 #------------------------------------------------------------------------------#
 
-add_subdirectory(gray-scott)
+if(ADIOS2_FOUND)
+  add_subdirectory(gray-scott)
+endif()
+
 add_subdirectory(cosine)

@@ -13,6 +13,6 @@ fi
 
 cd ${SOURCE_DIR}
 
-./gray-scott
+./build/bin/cosine
 
-exit 0
+exit $EXITCODE
