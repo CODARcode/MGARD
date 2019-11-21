@@ -51,7 +51,7 @@ static double s_norm(
     {
         const std::size_t N = hierarchy.ndof();
         const std::size_t n = (
-            hierarchy.L ? hierarchy.meshes.at(hierarchy.L - 1).ndof() : 0
+            hierarchy.L ? hierarchy.ndof(hierarchy.L - 1) : 0
         );
         scratch_sizes[0] = std::max(4 * n + n, N);
         scratch_sizes[1] = n;

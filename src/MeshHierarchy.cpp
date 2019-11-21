@@ -27,6 +27,25 @@ std::size_t MeshHierarchy::ndof() const {
     return ndof(L);
 }
 
+std::size_t MeshHierarchy::ndof(const std::size_t l) const {
+    check_mesh_index_bounds(l);
+    return do_ndof(l);
+}
+
+double * MeshHierarchy::on_old_nodes(
+    double * const u, const std::size_t l
+) const {
+    check_mesh_index_bounds(l);
+    return do_on_old_nodes(u, l);
+}
+
+double * MeshHierarchy::on_new_nodes(
+    double * const u, const std::size_t l
+) const {
+    check_mesh_index_bounds(l);
+    return do_on_new_nodes(u, l);
+}
+
 std::size_t MeshHierarchy::scratch_space_needed() const {
     return do_scratch_space_needed();
 }
@@ -85,11 +104,6 @@ MeshHierarchy::MeshHierarchy(
     }
 }
 
-std::size_t MeshHierarchy::ndof(const std::size_t l) const {
-    check_mesh_index_bounds(l);
-    return do_ndof(l);
-}
-
 std::size_t MeshHierarchy::scratch_space_needed_for_decomposition() const {
     return do_scratch_space_needed_for_decomposition();
 }
@@ -98,9 +112,9 @@ std::size_t MeshHierarchy::scratch_space_needed_for_recomposition() const {
     return do_scratch_space_needed_for_recomposition();
 }
 
-//Let `N` be the set of nodes in level `l`. `N` is the disjoint union of
-//`N_old`, the set of nodes in level `l - 1`, and `N_new`, the set of nodes
-//'new' to level `l`.
+//Let `nodes(l)` be the set of nodes in level `l`. `nodes(l)` is the disjoint
+//union of `old_nodes(l)`, the set of nodes in level `l - 1`, and
+//`new_nodes(l)`, the set of nodes 'new' to level `l`.
 
 moab::ErrorCode MeshHierarchy::decompose(
     double * const u, const std::size_t l, void * const buffer
@@ -120,11 +134,11 @@ moab::ErrorCode MeshHierarchy::decompose(
 
     //At this stage, the values on `N` encode `Q_{l}u`.
 
-    //Subtract the interpolant onto level `l` from the values on `N_new`.
+    //Subtract the interpolant onto level `l` from the values on `new_nodes(l)`.
     ecode = subtract_interpolant_from_coarser_level_from_new_values(u, l);
     MB_CHK_ERR(ecode);
-    //This leaves `(I - Π_{l - 1})Q_{l}u` encoded on `N_new` and
-    //`Π_{l - 1}Q_{l}u` encoded on `N_old`.
+    //This leaves `(I - Π_{l - 1})Q_{l}u` encoded on `new_nodes(l)` and
+    //`Π_{l - 1}Q_{l}u` encoded on `old_nodes(l)`.
 
     //Compute the correction `Q_{l - 1}u - Π_{l - 1}Q_{l}u` from the multilevel
     //component `(I - Π_{l - 1})Q_{l}u`.
@@ -133,8 +147,8 @@ moab::ErrorCode MeshHierarchy::decompose(
     );
     MB_CHK_ERR(ecode);
 
-    //Add the correction to `Π_{l - 1}Q_{l}u`, stored on `N_old`, to obtain
-    //`Q_{l - 1}u` on `N_old`.
+    //Add the correction to `Π_{l - 1}Q_{l}u`, stored on `old_nodes(l)`, to
+    //obtain `Q_{l - 1}u` on `old_nodes(l)`.
     ecode = add_correction_to_old_values(u, l, correction);
     MB_CHK_ERR(ecode);
 
@@ -154,8 +168,8 @@ moab::ErrorCode MeshHierarchy::recompose(
     double * const correction = reinterpret_cast<double *>(_buffer);
     _buffer += 1 * n * sizeof(*correction);
 
-    //We start with `Q_{l - 1}u` on `N_old` and the multilevel component
-    //`(I - Π_{l - 1})Q_{l}u` on `N_new`. The first step is to transform
+    //We start with `Q_{l - 1}u` on `old_nodes(l)` and the multilevel component
+    //`(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)`. The first step is to transform
     //`Q_{l - 1}u` to `Π_{l - 1}Q_{l}u`. This is done by projecting
     //`(I - Π_{l - 1})Q_{l}u` to level `l - 1` (computing the 'correction') and
     //subtracting from `Q_{l - 1}u`.
@@ -163,13 +177,13 @@ moab::ErrorCode MeshHierarchy::recompose(
         u, l, correction, static_cast<void *>(_buffer)
     );
     MB_CHK_ERR(ecode);
-    //We now subtract the correction from `Q_{l - 1}u` on `N_old`.
+    //We now subtract the correction from `Q_{l - 1}u` on `old_nodes(l)`.
     ecode = subtract_correction_from_old_values(u, l, correction);
     MB_CHK_ERR(ecode);
 
-    //This leaves us with `(I - Π_{l - 1})Q_{l}u` on `N_new` and
-    //`Π_{l - 1}Q_{l}u` on `N_old`. Once we update the values on `N_new` by
-    //adding the interpolant we'll have `Q_{l}u` on `N`.
+    //This leaves us with `(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)` and
+    //`Π_{l - 1}Q_{l}u` on `old_nodes(l)`. Once we update the values on
+    //`new_nodes(l)` by adding the interpolant we'll have `Q_{l}u` on `N`.
     ecode = add_interpolant_from_coarser_level_to_new_values(u, l);
     MB_CHK_ERR(ecode);
 
@@ -302,6 +316,18 @@ std::size_t MeshHierarchy::do_ndof(const std::size_t l) const {
     return meshes.at(l).ndof();
 }
 
+double * MeshHierarchy::do_on_old_nodes(
+    double * const u, const std::size_t l
+) const {
+    return u;
+}
+
+double * MeshHierarchy::do_on_new_nodes(
+    double * const u, const std::size_t l
+) const {
+    return u + (l ? ndof(l - 1) : 0);
+}
+
 std::size_t MeshHierarchy::do_scratch_space_needed() const {
     std::vector<std::size_t> sizes = {
         scratch_space_needed_for_decomposition(),
@@ -349,7 +375,8 @@ MeshHierarchy::do_calculate_correction_from_multilevel_component(
     //Apply the mass matrix to get the righthand side of our system.
     moab::ErrorCode ecode = apply_mass_matrix_to_multilevel_component(u, l, b);
     MB_CHK_ERR(ecode);
-    //Invert the system to obtain `Q_{l - 1}u - Π_{l - 1}Q_{l}u` on `N_old`.
+    //Invert the system to obtain `Q_{l - 1}u - Π_{l - 1}Q_{l}u` on
+    //`old_nodes(l)`.
     const MassMatrix M(mesh);
     const MassMatrixPreconditioner P(mesh);
     std::fill(correction, correction + n, 0);

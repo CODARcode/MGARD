@@ -13,18 +13,32 @@
 
 namespace mgard {
 
-//I would like to allow `u` in `{de,re}compose` to be something other than
-//`double *.` `double *` seems to force certain assumptions.
-//    1. The nodal values are contiguous.
-//    2. The nodal values have the same order as the nodes.
-//    3. The nodal values corresponding to coarser levels are grouped together,
-//       and probably at the start of `u`.
-//We may well want to violate these assumptions. For example, in the structured
-//1D case the nodal values had the same order as the nodes but the values
-//corresponding to coarser levels were separated by stride 2^n. Something to
-//return to if necessary.
-
 //!Hierarchy of meshes produced by refining an initial mesh.
+//!
+//!We make a few assumptions about the ordering of the nodes and the associated
+//!values.
+//!    - The values of any associated dataset have the same ordering as the
+//!      nodes. This allows us to use `u[mesh.index(node)]` to get the value
+//!      associated to `node`.
+//!    - Meshes in a hierarchy agree on the index of nodes they have in common.
+//!      That is, if `node` is a node in `mesh`, `NODE` is a node in `MESH`, and
+//!      `node` and `NODE` are the same physical node, then `mesh.index(node) ==
+//!      MESH.index(NODE)`.
+//!    - Let `new_nodes(l)` be the set of 'new' nodes in mesh `l` (those
+//!      introduced in the refinement of mesh `l - 1` or, for `l` zero, all the
+//!      nodes in the original, coarsest mesh). The ordering is then
+//!        -# `new_nodes(0)`
+//!        -# `new_nodes(1)`
+//!        -# `new_nodes(2)`
+//!        -# and so on.
+//!      Consequences:
+//!        - The values associated to `new_nodes(l)` are contiguous.
+//!        - Let `old_nodes(l)` be the set of 'old' nodes in mesh `l` (those
+//!          also present in mesh `l - 1`). Then the values associated to
+//!          `old_nodes(l)` are contiguous.
+//!        - The ordering for the nodes in mesh `l` is
+//!            -# `old_nodes(l)`
+//!            -# `new_nodes(l)`.
 class MeshHierarchy {
     public:
         //!Constructor.
@@ -39,6 +53,20 @@ class MeshHierarchy {
         //!
         //!\param l Index of the MeshLevel.
         std::size_t ndof(const std::size_t l) const;
+
+        //!Access the subset of a dataset associated to the 'old' nodes of a
+        //!level.
+        //!
+        //!\param [in] u Values associated to nodes.
+        //!\param [in] l Index of the MeshLevel.
+        double * on_old_nodes(double * const u, const std::size_t l) const;
+
+        //!Access the subset of a dataset associated to the 'new' nodes of a
+        //!level.
+        //!
+        //!\param [in] u Values associated to nodes.
+        //!\param [in] l Index of the MeshLevel.
+        double * on_new_nodes(double * const u, const std::size_t l) const;
 
         //!Transform from nodal coefficients to multilevel coefficients.
         //!
@@ -229,6 +257,14 @@ class MeshHierarchy {
 
     private:
         virtual std::size_t do_ndof(const std::size_t l) const;
+
+        virtual double * do_on_old_nodes(
+            double * const u, const std::size_t l
+        ) const;
+
+        virtual double * do_on_new_nodes(
+            double * const u, const std::size_t l
+        ) const;
 
         virtual std::size_t do_scratch_space_needed() const;
 
