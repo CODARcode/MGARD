@@ -42,8 +42,8 @@ int main(int argc, char **argv) {
        << " The achieved error = " << max_abserr / max << endl;
 
   if (tol >= max_abserr / max) {
-    return 1;
-  } else {
     return 0;
+  } else {
+    return 1;
   }
 }
