@@ -104,7 +104,7 @@ moab::Range UniformMeshHierarchy::do_get_children(
 }
 
 bool UniformMeshHierarchy::do_is_new_node(
-    moab::EntityHandle node, const std::size_t l
+    const moab::EntityHandle node, const std::size_t l
 ) const {
     const MeshLevel &MESH = meshes.at(l);
     //The value isn't needed when `l` is zero, but calling `index` will catch
@@ -130,7 +130,9 @@ double UniformMeshHierarchy::do_measure(
 }
 
 moab::ErrorCode UniformMeshHierarchy::do_interpolate_old_to_new_and_axpy(
-    double * const u, std::size_t l, const double alpha
+    const HierarchyCoefficients<double> u,
+    const std::size_t l,
+    const double alpha
 ) const {
     if (!l) {
         return moab::MB_SUCCESS;
@@ -149,15 +151,16 @@ moab::ErrorCode UniformMeshHierarchy::do_interpolate_old_to_new_and_axpy(
     for (const EdgeFamily family : edge_families(l - 1)) {
         const std::array<moab::EntityHandle, 2> &endpoints = family.endpoints;
         const double interpolant = 0.5 * (
-            u[mesh.index(endpoints.at(0))] + u[mesh.index(endpoints.at(1))]
+            u.data[mesh.index(endpoints.at(0))] +
+            u.data[mesh.index(endpoints.at(1))]
         );
-        u[MESH.index(family.midpoint)] += alpha * interpolant;
+        u.data[MESH.index(family.midpoint)] += alpha * interpolant;
     }
     return moab::MB_SUCCESS;
 }
 
 moab::ErrorCode UniformMeshHierarchy::do_old_values_axpy(
-    double * const u,
+    const HierarchyCoefficients<double> u,
     std::size_t l,
     const double alpha,
     double const * const correction
@@ -174,7 +177,9 @@ moab::ErrorCode UniformMeshHierarchy::do_old_values_axpy(
 
 moab::ErrorCode
 UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
-    double const * const u, const std::size_t l, double * const b
+    const HierarchyCoefficients<double> u,
+    const std::size_t l,
+    double * const b
 ) const {
     moab::ErrorCode ecode;
     //`l` is checked to be nonzero in the caller.
@@ -259,7 +264,7 @@ UniformMeshHierarchy::do_apply_mass_matrix_to_multilevel_component(
                     //the value the input takes at X (that is, the coefficient
                     //of Φ(·; X)).
                     //This is really not great. Have to think.
-                    double integral = u[MESH.index(X)] * measure_factor *
+                    double integral = u.data[MESH.index(X)] * measure_factor *
                         (X == Y ? 2 : 1);
                     //For each φ(·, y) that Φ(·, Y) is 'a part of', credit the
                     //integral against Φ(·, Y) in part or in full to φ(·, y).

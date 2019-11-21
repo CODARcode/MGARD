@@ -3,6 +3,7 @@
 //!\file
 //!\brief Function space norms.
 
+#include "data.hpp"
 #include "MeshHierarchy.hpp"
 
 namespace mgard {
@@ -19,7 +20,9 @@ namespace mgard {
 //!the '`s` norm' is calculated. When `s` is zero, this norm is equal to the
 //!`L^2` norm.
 double norm(
-    double const * const u, const MeshHierarchy &hierarchy, const double s
+    const NodalCoefficients<double> u,
+    const MeshHierarchy &hierarchy,
+    const double s
 );
 
 }

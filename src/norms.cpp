@@ -18,30 +18,34 @@
 namespace mgard {
 
 static double L_infinity_norm(
-    double const * const u, const MeshHierarchy &hierarchy
+    const NodalCoefficients<double> u, const MeshHierarchy &hierarchy
 ) {
     //This could be done with something like `std::transform_reduce` once it's
     //available. Could also use `blas::iamax`.
     double maximum = 0;
-    for (const double x : PseudoArray(u, hierarchy.ndof())) {
+    for (const double x : PseudoArray(u.data, hierarchy.ndof())) {
         maximum = std::max(maximum, std::abs(x));
     };
     return maximum;
 }
 
-static double L_2_norm(double const * const u, const MeshHierarchy &hierarchy) {
+static double L_2_norm(
+    const NodalCoefficients<double> u, const MeshHierarchy &hierarchy
+) {
     const std::size_t N = hierarchy.ndof();
     const MassMatrix M(hierarchy.meshes.back());
     //TODO: Allow memory buffer to be passed in.
     std::vector<double> scratch(N);
     //This variable name comes from `s_norm`. Not solving any systems here.
     double * const rhs = scratch.data();
-    M(u, rhs);
-    return std::sqrt(blas::dotu(N, u, rhs));
+    M(u.data, rhs);
+    return std::sqrt(blas::dotu(N, u.data, rhs));
 }
 
 static double s_norm(
-    double const * const u, const MeshHierarchy &hierarchy, const double s
+    const NodalCoefficients<double> u,
+    const MeshHierarchy &hierarchy,
+    const double s
 ) {
     //Square `L^2` norms of the `L^2` projections of `u` onto the levels in the
     //hierarchy, ordered from finest to coarsest.
@@ -76,10 +80,11 @@ static double s_norm(
         double *_buffer = scratch.data();
         rhs = _buffer;
         _buffer += scratch_sizes[0];
-        //I would assign `projection` to `u` here for consistency, but `u`
+        //TODO: currently inaccurate. Try converting.
+        //I would assign `projection` to `u.data` here for consistency, but `u`
         //points to `const double` while `projection` points to `double`.
-        M(u, rhs);
-        squares_for_norm.at(l) = blas::dotu(n, u, rhs);
+        M(u.data, rhs);
+        squares_for_norm.at(l) = blas::dotu(n, u.data, rhs);
 
         RHS = rhs;
         rhs = _buffer;
@@ -138,7 +143,9 @@ static double s_norm(
 }
 
 double norm(
-    double const * const u, const MeshHierarchy &hierarchy, const double s
+    const NodalCoefficients<double> u,
+    const MeshHierarchy &hierarchy,
+    const double s
 ) {
     if (s == std::numeric_limits<double>::infinity()) {
         return L_infinity_norm(u, hierarchy);

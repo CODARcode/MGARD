@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include <algorithm>
+#include <stdexcept>
 #include <type_traits>
 
 #include "pcg.hpp"
@@ -33,14 +34,14 @@ std::size_t MeshHierarchy::ndof(const std::size_t l) const {
 }
 
 double * MeshHierarchy::on_old_nodes(
-    double * const u, const std::size_t l
+    const HierarchyCoefficients<double> u, const std::size_t l
 ) const {
     check_mesh_index_bounds(l);
     return do_on_old_nodes(u, l);
 }
 
 double * MeshHierarchy::on_new_nodes(
-    double * const u, const std::size_t l
+    const HierarchyCoefficients<double> u, const std::size_t l
 ) const {
     check_mesh_index_bounds(l);
     return do_on_new_nodes(u, l);
@@ -50,7 +51,9 @@ std::size_t MeshHierarchy::scratch_space_needed() const {
     return do_scratch_space_needed();
 }
 
-moab::ErrorCode MeshHierarchy::decompose(double * const u, void *buffer) {
+MultilevelCoefficients<double> MeshHierarchy::decompose(
+    const NodalCoefficients<double> u, void *buffer
+) {
     if (buffer == NULL) {
         const std::size_t N = scratch_space_needed_for_decomposition();
         if (scratch_space.size() < N) {
@@ -58,10 +61,16 @@ moab::ErrorCode MeshHierarchy::decompose(double * const u, void *buffer) {
         }
         buffer = scratch_space.data();
     }
-    return decompose(u, L, buffer);
+    const moab::ErrorCode ecode = decompose(u, L, buffer);
+    if (ecode != moab::MB_SUCCESS) {
+        throw std::runtime_error("MOAB error in decomposition");
+    }
+    return MultilevelCoefficients<double>(u.data);
 }
 
-moab::ErrorCode MeshHierarchy::recompose(double * const u, void *buffer) {
+NodalCoefficients<double> MeshHierarchy::recompose(
+    const MultilevelCoefficients<double> u, void *buffer
+) {
     if (buffer == NULL) {
         const std::size_t N = scratch_space_needed_for_recomposition();
         if (scratch_space.size() < N) {
@@ -73,7 +82,13 @@ moab::ErrorCode MeshHierarchy::recompose(double * const u, void *buffer) {
     //nothing is set up to consider -1 a valid mesh index (no least because
     //`l` is unsigned). So, though nothing is done on level 0, we can't handle
     //that elegantly (run `recompose(u, 0, buffer)` to no effect).
-    return L ? recompose(u, 1, buffer) : moab::MB_SUCCESS;
+    if (L) {
+        const moab::ErrorCode ecode = recompose(u, 1, buffer);
+        if (ecode != moab::MB_SUCCESS) {
+            throw std::runtime_error("MOAB error in recomposition");
+        }
+    }
+    return NodalCoefficients<double>(u.data);
 }
 
 //Protected member functions.
@@ -117,7 +132,7 @@ std::size_t MeshHierarchy::scratch_space_needed_for_recomposition() const {
 //`new_nodes(l)`, the set of nodes 'new' to level `l`.
 
 moab::ErrorCode MeshHierarchy::decompose(
-    double * const u, const std::size_t l, void * const buffer
+    const NodalCoefficients<double> u, const std::size_t l, void * const buffer
 ) const {
     check_mesh_index_bounds(l);
     if (!l) {
@@ -157,7 +172,9 @@ moab::ErrorCode MeshHierarchy::decompose(
 }
 
 moab::ErrorCode MeshHierarchy::recompose(
-    double * const u, const std::size_t l, void * const buffer
+    const MultilevelCoefficients<double> u,
+    const std::size_t l,
+    void * const buffer
 ) const {
     check_mesh_index_bounds(l);
     check_mesh_index_nonzero(l);
@@ -191,7 +208,7 @@ moab::ErrorCode MeshHierarchy::recompose(
 }
 
 moab::ErrorCode MeshHierarchy::calculate_correction_from_multilevel_component(
-    double const * const u,
+    const HierarchyCoefficients<double> u,
     const std::size_t l,
     double * const correction,
     void * const buffer
@@ -204,7 +221,7 @@ moab::ErrorCode MeshHierarchy::calculate_correction_from_multilevel_component(
 }
 
 moab::ErrorCode MeshHierarchy::apply_mass_matrix_to_multilevel_component(
-    double const * const u, const std::size_t l, double * const b
+    const HierarchyCoefficients<double> u, const std::size_t l, double * const b
 ) const {
     check_mesh_index_bounds(l);
     check_mesh_index_nonzero(l);
@@ -213,7 +230,7 @@ moab::ErrorCode MeshHierarchy::apply_mass_matrix_to_multilevel_component(
 
 moab::ErrorCode
 MeshHierarchy::subtract_interpolant_from_coarser_level_from_new_values(
-    double * const u, const std::size_t l
+    const HierarchyCoefficients<double> u, const std::size_t l
 ) const {
     check_mesh_index_bounds(l);
     check_mesh_index_nonzero(l);
@@ -222,7 +239,7 @@ MeshHierarchy::subtract_interpolant_from_coarser_level_from_new_values(
 
 moab::ErrorCode
 MeshHierarchy::add_interpolant_from_coarser_level_to_new_values(
-    double * const u, const std::size_t l
+    const HierarchyCoefficients<double> u, const std::size_t l
 ) const {
     check_mesh_index_bounds(l);
     check_mesh_index_nonzero(l);
@@ -230,7 +247,7 @@ MeshHierarchy::add_interpolant_from_coarser_level_to_new_values(
 }
 
 moab::ErrorCode MeshHierarchy::add_correction_to_old_values(
-    double * const u,
+    const HierarchyCoefficients<double> u,
     const std::size_t l,
     double const * const correction
 ) const {
@@ -240,7 +257,7 @@ moab::ErrorCode MeshHierarchy::add_correction_to_old_values(
 }
 
 moab::ErrorCode MeshHierarchy::subtract_correction_from_old_values(
-    double * const u,
+    const HierarchyCoefficients<double> u,
     const std::size_t l,
     double const * const correction
 ) const {
@@ -272,14 +289,14 @@ moab::Range MeshHierarchy::get_children(
 }
 
 double MeshHierarchy::measure(
-    moab::EntityHandle handle, const std::size_t l
+    const moab::EntityHandle handle, const std::size_t l
 ) const {
     check_mesh_index_bounds(l);
     return do_measure(handle, l);
 }
 
 bool MeshHierarchy::is_new_node(
-    moab::EntityHandle node, const std::size_t l
+    const moab::EntityHandle node, const std::size_t l
 ) const {
     check_mesh_index_bounds(l);
     const MeshLevel &mesh = meshes.at(l);
@@ -317,15 +334,15 @@ std::size_t MeshHierarchy::do_ndof(const std::size_t l) const {
 }
 
 double * MeshHierarchy::do_on_old_nodes(
-    double * const u, const std::size_t l
+    const HierarchyCoefficients<double> u, const std::size_t
 ) const {
-    return u;
+    return u.data;
 }
 
 double * MeshHierarchy::do_on_new_nodes(
-    double * const u, const std::size_t l
+    const HierarchyCoefficients<double> u, const std::size_t l
 ) const {
-    return u + (l ? ndof(l - 1) : 0);
+    return u.data + (l ? ndof(l - 1) : 0);
 }
 
 std::size_t MeshHierarchy::do_scratch_space_needed() const {
@@ -352,7 +369,7 @@ double MeshHierarchy::do_measure(
 
 moab::ErrorCode
 MeshHierarchy::do_calculate_correction_from_multilevel_component(
-    double const * const u,
+    const HierarchyCoefficients<double> u,
     const std::size_t l,
     double * const correction,
     void * const buffer
