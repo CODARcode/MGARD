@@ -13,6 +13,6 @@ fi
 
 cd ${SOURCE_DIR}
 
-./build/bin/cosine
+./build/bin/mgard_test
 
 exit $EXITCODE
