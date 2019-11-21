@@ -15,4 +15,23 @@ cd ${SOURCE_DIR}
 
 ./build/bin/cosine
 
-exit $EXITCODE
+if [ $? -eq 0 ]
+then
+  echo "Successfully compress/decompress consine"
+  exit 0
+else
+  echo "Error in compressing/decompressing consine" >&2
+  exit 1
+fi
+
+./build/bin/constant3d
+
+if [ $? -eq 0 ]
+then
+  echo "Successfully compress/decompress constant3d"
+  exit 0
+else
+  echo "Error in compressing/decompressing constant3d" >&2
+  exit 1
+fi
+
