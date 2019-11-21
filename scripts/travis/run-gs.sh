@@ -13,6 +13,7 @@ fi
 
 cd ${SOURCE_DIR}
 
+echo ${PWD}
 ./bin/cosine
 
 exit $EXITCODE
