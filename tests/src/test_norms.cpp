@@ -39,9 +39,9 @@ TEST_CASE("basic norm properties", "[norms]") {
 
     SECTION("absolute homogeneity") {
         std::vector<double> u_(N);
-        double * const u = u_.data();
         //Likely not needed. Not checking now.
         std::fill(u_.begin(), u_.end(), 0);
+        mgard::NodalCoefficients u(u_.data());
         for (const double s : smoothness_parameters) {
             REQUIRE(mgard::norm(u, hierarchy, s) == 0);
         }
@@ -51,11 +51,11 @@ TEST_CASE("basic norm properties", "[norms]") {
         }
 
         std::vector<double> copy_(N);
-        double * const copy = copy_.data();
+        mgard::NodalCoefficients copy(copy_.data());
         for (const double s : smoothness_parameters) {
-            blas::copy(N, u, copy);
+            blas::copy(N, u.data, copy.data);
             const double alpha = distribution(generator);
-            blas::scal(N, alpha, copy);
+            blas::scal(N, alpha, copy.data);
             REQUIRE(mgard::norm(copy, hierarchy, s) == Approx(
                 std::abs(alpha) * mgard::norm(u, hierarchy, s)
             ));
@@ -64,18 +64,18 @@ TEST_CASE("basic norm properties", "[norms]") {
 
     SECTION("triangle inequality") {
         std::vector<double> u_(N);
-        double * const u = u_.data();
         std::vector<double> v_(N);
-        double * const v = v_.data();
+        std::vector<double> w_ = u_;
         for (double &value : u_) {
             value = distribution(generator);
         }
         for (double &value : v_) {
             value = distribution(generator);
         }
-        std::vector<double> w_ = u_;
-        double * const w = w_.data();
-        blas::axpy(N, 1.0, v, u);
+        mgard::NodalCoefficients u(u_.data());
+        mgard::NodalCoefficients v(v_.data());
+        mgard::NodalCoefficients w(w_.data());
+        blas::axpy(N, 1.0, v.data, u.data);
         for (const double s : smoothness_parameters) {
             REQUIRE(
                 mgard::norm(w, hierarchy, s) <=
@@ -95,8 +95,6 @@ TEST_CASE("comparison with Python implementation: norms", "[norms]") {
     const std::size_t N = hierarchy.ndof();
 
     std::vector<double> u_(N);
-    double * const u = u_.data();
-
     const moab::Range &NODES = hierarchy.meshes.back().entities[moab::MBVERTEX];
     for (std::size_t i = 0; i < N; ++i) {
         double xyz[3];
@@ -107,6 +105,7 @@ TEST_CASE("comparison with Python implementation: norms", "[norms]") {
         const double z = xyz[2];
         u_.at(i) = std::sin(5 * x) + 2 * std::cos(32 * y) - std::sin(x * y * z);
     }
+    mgard::NodalCoefficients u(u_.data());
 
     REQUIRE(mgard::norm(u, hierarchy,  inf) == Approx(2.99974381309398));
     REQUIRE(mgard::norm(u, hierarchy, -1.5) == Approx(1.041534180771523));

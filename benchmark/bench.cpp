@@ -8,6 +8,7 @@
 
 #include "mgard_api.h"
 
+#include "data.hpp"
 #include "MeshLevel.hpp"
 #include "MassMatrix.hpp"
 #include "UniformMeshHierarchy.hpp"
@@ -62,20 +63,21 @@ static void BM_unstructured_decompose(
     );
 
     const std::size_t N = hierarchy.ndof();
-    std::vector<double> u(N);
-    for (double &x : u) {
+    std::vector<double> u_(N);
+    for (double &x : u_) {
         x = dis(gen);
     }
+    mgard::NodalCoefficients<double> u(u_.data());
 
     //Could preallocate buffer needed for decomposition.
     for (auto _ : state) {
         moab::ErrorCode ecode;
-        benchmark::DoNotOptimize(ecode = hierarchy.decompose(u.data()));
+        benchmark::DoNotOptimize(hierarchy.decompose(u));
         assert(ecode == moab::MB_SUCCESS);
 
         //Normalize `u` to prevent blowup. We could turn off the timing for
         //this, but it's `O(N)` so it shouldn't affect the complexity.
-        normalize(u);
+        normalize(u_);
     }
 
     //Could alternatively count up all the entities in all the levels.
@@ -103,20 +105,21 @@ static void BM_unstructured_recompose(
     );
 
     const std::size_t N = hierarchy.ndof();
-    std::vector<double> u(N);
-    for (double &x : u) {
+    std::vector<double> u_(N);
+    for (double &x : u_) {
         x = dis(gen);
     }
+    mgard::MultilevelCoefficients<double> u(u_.data());
 
     //Could preallocate buffer needed for recomposition.
     for (auto _ : state) {
         moab::ErrorCode ecode;
-        benchmark::DoNotOptimize(ecode = hierarchy.recompose(u.data()));
+        benchmark::DoNotOptimize(hierarchy.recompose(u));
         assert(ecode == moab::MB_SUCCESS);
 
         //Normalize `u` to prevent blowup. We could turn off the timing for
         //this, but it's `O(N)` so it shouldn't affect the complexity.
-        normalize(u);
+        normalize(u_);
     }
 
     //Could alternatively count up all the entities in all the levels.
