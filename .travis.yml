@@ -20,7 +20,7 @@ install:
   - popd
   - pip install --user flake8
   - git config --global clangformat.binary ${HOME}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin/clang-format
-  - mkdir build && pushd build && cmake .. && make && popd build
+  - mkdir build && pushd build && cmake .. && make && popd
   - ./scripts/travis/build-cppcheck.sh
 env:
   matrix:
