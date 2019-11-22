@@ -4,6 +4,7 @@ dist: xenial
 addons:
   apt:
     packages:
+      - mpich
       - libmpich-dev
 before_install:
   - pushd ${HOME}

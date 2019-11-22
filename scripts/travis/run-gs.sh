@@ -33,4 +33,7 @@ else
   exit 1
 fi
 
+cp tests/gray-scott/adios2.xml .
+mpirun -n 3 build/bin/gray-scott tests/gray-scott/simulation/settings-files.json
+
 exit 0
