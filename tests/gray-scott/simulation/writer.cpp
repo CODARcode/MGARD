@@ -107,20 +107,17 @@ void Writer::write(int step, const GrayScott &sim)
         std::vector<double> u = sim.u_noghost();
         std::vector<double> v = sim.v_noghost();
 
-	double tol = 0.001;
-	int outsize;
+        double tol = 0.001;
+        int outsize;
         unsigned char *compressed_data = 0;
 
-	compressed_data = mgard_compress(0, u.data(), outsize,
-		                         sim.size_x, sim.size_y,
-					 sim.size_z, tol);
+        compressed_data = mgard_compress(0, u.data(), outsize, sim.size_x,
+                                         sim.size_y, sim.size_z, tol);
         double quantizer;
-        double *decompressed_data = mgard_decompress(0, quantizer,
-			                             compressed_data, outsize,
-						     sim.size_x, sim.size_y,
-						     sim.size_z);
-	std::cout << "Variable u is decompressed. "
-	          << std::endl;
+        double *decompressed_data =
+            mgard_decompress(0, quantizer, compressed_data, outsize, sim.size_x,
+                             sim.size_y, sim.size_z);
+        std::cout << "Variable u is decompressed. " << std::endl;
         writer.BeginStep();
         writer.Put<int>(var_step, &step);
         writer.Put<double>(var_u, u.data());
