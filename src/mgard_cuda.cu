@@ -106,7 +106,7 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       mgard_2d::mgard_gen::prep_2D_cuda(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
 
 
-      mgard_2d::mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
+      mgard_2d::mgard_gen::refactor_2D_cuda(nr, nc, nrow, ncol, l_target, v.data(),  work, coords_x, coords_y, row_vec, col_vec);
       
       work.clear ();
       col_vec.clear ();

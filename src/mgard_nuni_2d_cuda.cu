@@ -132,31 +132,31 @@ _mass_matrix_multiply_row_cuda(int nrow,       int ncol,
                               int row_stride, int col_stride,
                               double * dv,    int lddv,
                               double * dcoords_x) {
-    //int stride = pow (2, l); // current stride
+  //int stride = pow (2, l); // current stride
 
-    int idx = (threadIdx.x + blockIdx.x * blockDim.x) * row_stride;
-    //int y = threadIdx.y * stride;
-    for (int x = idx; x < nrow; x += (blockDim.x * gridDim.x) * row_stride) {
-        //printf("thread working on %d \n", x);
-        double * vec = dv + x * lddv;
-        register double temp1, temp2;
-        temp1 = vec[0];
-        printf("thread %d working on %f\n", idx, temp1);
-        vec[0] = 2.0 * mgard_common::get_h_cuda(dcoords_x, 0, col_stride) * temp1 + 
-        				       mgard_common::get_h_cuda(dcoords_x, 0, col_stride) * vec[col_stride];
-        for (int i = col_stride; i < ncol - col_stride; i += col_stride) {
-            temp2 = vec[i];
-            vec[i] = mgard_common::get_h_cuda(dcoords_x, i - col_stride, col_stride) * temp1 + 
-                     2 * 
-                     		(mgard_common::get_h_cuda(dcoords_x, i - col_stride, col_stride) +
-                     		 mgard_common::get_h_cuda(dcoords_x, i,              col_stride)) *
-        						 temp2 + 
-        						 mgard_common::get_h_cuda(dcoords_x, i, col_stride) * vec[i + col_stride];
-            temp1 = temp2;
-        }
-        vec[ncol-1] = mgard_common::get_h_cuda(dcoords_x, ncol - col_stride - 1, col_stride) * temp1 +
-        				  2 * mgard_common::get_h_cuda(dcoords_x, ncol - col_stride - 1, col_stride) * vec[ncol-1];
+  int idx = (threadIdx.x + blockIdx.x * blockDim.x) * row_stride;
+  //int y = threadIdx.y * stride;
+  for (int x = idx; x < nrow; x += (blockDim.x * gridDim.x) * row_stride) {
+    //printf("thread working on %d \n", x);
+    double * vec = dv + x * lddv;
+    register double temp1, temp2;
+    temp1 = vec[0];
+    printf("thread %d working on %f\n", idx, temp1);
+    vec[0] = 2.0 * mgard_common::get_h_cuda(dcoords_x, 0, col_stride) * temp1 + 
+    				       mgard_common::get_h_cuda(dcoords_x, 0, col_stride) * vec[col_stride];
+    for (int i = col_stride; i < ncol - col_stride; i += col_stride) {
+        temp2 = vec[i];
+        vec[i] = mgard_common::get_h_cuda(dcoords_x, i - col_stride, col_stride) * temp1 + 
+                 2 * 
+                 		(mgard_common::get_h_cuda(dcoords_x, i - col_stride, col_stride) +
+                 		 mgard_common::get_h_cuda(dcoords_x, i,              col_stride)) *
+    						 temp2 + 
+    						 mgard_common::get_h_cuda(dcoords_x, i, col_stride) * vec[i + col_stride];
+        temp1 = temp2;
     }
+    vec[ncol-1] = mgard_common::get_h_cuda(dcoords_x, ncol - col_stride - 1, col_stride) * temp1 +
+    				  2 * mgard_common::get_h_cuda(dcoords_x, ncol - col_stride - 1, col_stride) * vec[ncol-1];
+  }
 }
 
 
@@ -207,9 +207,9 @@ void mass_matrix_multiply_row_cuda(int nrow,       int ncol,
 
   int B = 16;
 
-	int total_thread = ceil(nrow/row_stride);
+	int total_thread = ceil((float)nrow/row_stride);
   int tb = min(B, total_thread);
-  int grid = ceil(total_thread/tb);
+  int grid = ceil((float)total_thread/tb);
   dim3 threadsPerBlock(tb, 1);
   dim3 blockPerGrid(grid, 1);
 
@@ -229,6 +229,83 @@ void mass_matrix_multiply_row_cuda(int nrow,       int ncol,
 }
 
 
+
+__global__ void 
+_mass_matrix_multiply_col_cuda(int nrow,       int ncol, 
+                              int row_stride, int col_stride,
+                              double * dv,    int lddv,
+                              double * dcoords_y) {
+  //int stride = pow (2, l); // current stride
+
+  int idx = (threadIdx.x + blockIdx.x * blockDim.x) * col_stride;
+  //int y = threadIdx.y * stride;
+  for (int x = idx; x < ncol; x += (blockDim.x * gridDim.x) * col_stride) {
+    //printf("thread working on %d \n", x);
+    double * vec = dv + x;
+    register double temp1, temp2;
+    temp1 = vec[0];
+    //printf("thread %d working on %f\n", idx, temp1);
+    vec[0] = 2.0 * mgard_common::get_h_cuda(dcoords_y, 0, row_stride) * temp1 + 
+    				       mgard_common::get_h_cuda(dcoords_y, 0, row_stride) * vec[row_stride * lddv];
+    for (int i = row_stride; i < nrow - row_stride; i += row_stride) {
+      temp2 = vec[i * lddv];
+      vec[i * lddv] = mgard_common::get_h_cuda(dcoords_y, i - row_stride, row_stride) * temp1 + 
+               2 * 
+               		(mgard_common::get_h_cuda(dcoords_y, i - row_stride, row_stride) +
+               		 mgard_common::get_h_cuda(dcoords_y, i,              row_stride)) *
+  						 temp2 + 
+  						 mgard_common::get_h_cuda(dcoords_y, i, row_stride) * vec[(i + row_stride)  * lddv];
+      temp1 = temp2;
+    }
+    vec[(nrow-1) * lddv] = mgard_common::get_h_cuda(dcoords_y, nrow - row_stride - 1, row_stride) * temp1 +
+    				  2 * mgard_common::get_h_cuda(dcoords_y, nrow - row_stride - 1, row_stride) * vec[(nrow-1) * lddv];
+  }
+}
+
+
+void mass_matrix_multiply_col_cuda(int nrow,       int ncol, 
+															     int row_stride, int col_stride,
+                                   double * v,    int ldv,
+                                   double * coords_y) {
+  //print_matrix(nrow, ncol, v, nrow);
+  double * dv;
+  int lddv;
+
+  size_t dv_pitch;
+	cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
+	lddv = dv_pitch / sizeof(double);
+	cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
+	             v,     ldv  * sizeof(double), 
+	             ncol * sizeof(double), nrow, 
+	             H2D);
+
+	double * dcoords_y;
+	cudaMallocHelper((void**)&dcoords_y, nrow * sizeof(double));
+	cudaMemcpyHelper(dcoords_y, coords_y, nrow * sizeof(double), H2D);
+
+  int B = 16;
+
+	int total_thread = ceil((float)ncol/col_stride);
+  int tb = min(B, total_thread);
+  int grid = ceil((float)total_thread/tb);
+  dim3 threadsPerBlock(tb, 1);
+  dim3 blockPerGrid(grid, 1);
+
+  std::cout << "thread block: " << tb << std::endl;
+  std::cout << "grid: " << grid << std::endl;
+
+  _mass_matrix_multiply_col_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol, 
+                              																			row_stride, col_stride,
+                              																			dv,         lddv,
+                              																			dcoords_y);
+  gpuErrchk(cudaGetLastError ()); 
+
+  cudaMemcpy2DHelper(v,     ldv  * sizeof(double), 
+			  					   dv,    lddv * sizeof(double), 
+				             ncol * sizeof(double), nrow, 
+				             D2H);
+}
+
 void mass_matrix_multiply_cuda(const int l, std::vector<double> &v,
                           const std::vector<double> &coords) {
 	int stride = std::pow(2, l); // current stride
@@ -237,7 +314,7 @@ void mass_matrix_multiply_cuda(const int l, std::vector<double> &v,
 
   // Mass matrix times nodal value-vec
   temp1 = v.front(); // save u(0) for later use
-  printf("working on %f\n", temp1);
+  //printf("working on %f\n", temp1);
   v.front() = 2.0 * mgard_common::get_h_cuda(coords.data(), 0, stride) * temp1 +
               mgard_common::get_h_cuda(coords.data(), 0, stride) * v[stride];
   for (int i = stride; i <= n - 1 - stride; i += stride) {
@@ -261,7 +338,8 @@ void mass_matrix_multiply_cuda(const int l, std::vector<double> &v,
 
 namespace mgard_gen {
 
-inline int get_lindex_cuda(const int n, const int no, const int i) {
+__host__ __device__ int
+get_lindex_cuda(const int n, const int no, const int i) {
   // no: original number of points
   // n : number of points at next coarser level (L-1) with  2^k+1 nodes
   int lindex;
@@ -275,14 +353,16 @@ inline int get_lindex_cuda(const int n, const int no, const int i) {
   return lindex;
 }
 
-inline double get_h_l_cuda(const std::vector<double> &coords, const int n,
-                      const int no, int i, int stride) {
+__host__ __device__ double 
+get_h_l_cuda(const double * coords, const int n,
+             const int no, int i, int stride) {
 
   //    return (*get_ref_cuda(coords, n, no, i+stride) - *get_ref_cuda(coords, n, no, i));
   return (get_lindex_cuda(n, no, i + stride) - get_lindex_cuda(n, no, i));
 }
 
-inline double *get_ref_cuda(std::vector<double> &v, const int n, const int no,
+__host__ __device__ double *
+get_ref_cuda(double * v, const int n, const int no,
                        const int i) // return reference to logical element
 {
   // no: original number of points
@@ -290,7 +370,7 @@ inline double *get_ref_cuda(std::vector<double> &v, const int n, const int no,
   // may not work for the last element!
   double *ref;
   if (i != n - 1) {
-    ref = &v[floor(((double)no - 2.0) / ((double)n - 2.0) * i)];
+    ref = &v[(int)floor(((double)no - 2.0) / ((double)n - 2.0) * i)];
   } else if (i == n - 1) {
     ref = &v[no - 1];
   }
@@ -298,8 +378,43 @@ inline double *get_ref_cuda(std::vector<double> &v, const int n, const int no,
   //    return &v[floor(((no-2)/(n-2))*i ) ];
 }
 
+__host__ __device__ double *
+get_ref_row_cuda(double * v, int ldv, const int n, const int no,
+                       const int i) // return reference to logical element
+{
+  // no: original number of points
+  // n : number of points at next coarser level (L-1) with  2^k+1 nodes
+  // may not work for the last element!
+  double *ref;
+  if (i != n - 1) {
+    ref = &v[(int)floor(((double)no - 2.0) / ((double)n - 2.0) * i)];
+  } else if (i == n - 1) {
+    ref = &v[no - 1];
+  }
+  return ref;
+  //    return &v[floor(((no-2)/(n-2))*i ) ];
+}
+
+__host__ __device__ double *
+get_ref_col_cuda(double * v, int ldv, const int n, const int no,
+                       const int i) // return reference to logical element
+{
+  // no: original number of points
+  // n : number of points at next coarser level (L-1) with  2^k+1 nodes
+  // may not work for the last element!
+  double *ref;
+  if (i != n - 1) {
+    ref = &v[((int)floor(((double)no - 2.0) / ((double)n - 2.0) * i)) * ldv];
+  } else if (i == n - 1) {
+    ref = &v[(no - 1) * ldv];
+  }
+  return ref;
+  //    return &v[floor(((no-2)/(n-2))*i ) ];
+}
+
+
 __global__ void 
-_pi_Ql_first_cuda_row(const int nr, const int nc,
+_pi_Ql_first_row_cuda(const int nr, const int nc,
 									   const int nrow, const int ncol,
 									   int * irow, int * icolP,
 									   double * coords_x, double * coords_y,
@@ -308,7 +423,7 @@ _pi_Ql_first_cuda_row(const int nr, const int nc,
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-  if (x < ncol-nc && y < nrow) {
+  if (x < ncol-nc && y < nr) {
     int r = irow[y];
     int c = icolP[x];
     //printf ("thread (%d, %d) working on (%d, %d): %f\n", y, x, r, c, dv[mgard_common::get_index_cuda(lddv, r, c    )]);
@@ -327,7 +442,7 @@ _pi_Ql_first_cuda_row(const int nr, const int nc,
 
 
 __global__ void 
-_pi_Ql_first_cuda_col(const int nr, const int nc,
+_pi_Ql_first_col_cuda(const int nr, const int nc,
 									   const int nrow, const int ncol,
 									   int * irowP, int * icol,
 									   double * coords_x, double * coords_y,
@@ -355,7 +470,7 @@ _pi_Ql_first_cuda_col(const int nr, const int nc,
 
 
 __global__ void 
-_pi_Ql_first_cuda_center(const int nr, const int nc,
+_pi_Ql_first_center_cuda(const int nr, const int nc,
 										   const int nrow, const int ncol,
 										   int * dirowP, int * dicolP,
 										   double * dcoords_x, double * dcoords_y,
@@ -514,17 +629,17 @@ void pi_Ql_first_cuda(const int nr, const int nc, const int nrow, const int ncol
 	int B = 16;
 
 	int total_thread_x = ncol-nc;
-  int total_thread_y = nrow;
+  int total_thread_y = nr;
   int tbx = min(B, total_thread_x);
   int tby = min(B, total_thread_y);
-  int gridx = ceil(total_thread_x/tbx);
-  int gridy = ceil(total_thread_y/tby);
+  int gridx = ceil((float)total_thread_x/tbx);
+  int gridy = ceil((float)total_thread_y/tby);
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
-  // std::cout << "thread block: " << tbx << ", " << tby <<std::endl;
-  // std::cout << "grid: " << gridx << ", " << gridy <<std::endl;
-  _pi_Ql_first_cuda_row<<<blockPerGrid, threadsPerBlock>>>(nr, nc,
+  std::cout << "thread block: " << tbx << ", " << tby <<std::endl;
+  std::cout << "grid: " << gridx << ", " << gridy <<std::endl;
+  _pi_Ql_first_row_cuda<<<blockPerGrid, threadsPerBlock>>>(nr, nc,
 																							         nrow, ncol,
 																							   			 dirow_idx, dicolP_idx,
 																							   			 dcoords_x, dcoords_y,
@@ -532,15 +647,15 @@ void pi_Ql_first_cuda(const int nr, const int nc, const int nrow, const int ncol
   gpuErrchk(cudaGetLastError ()); 
 
 
-  total_thread_x = ncol;
+  total_thread_x = nc;
   total_thread_y = nrow-nr;
   tbx = min(B, total_thread_x);
   tby = min(B, total_thread_y);
-  gridx = ceil(total_thread_x/tbx);
-  gridy = ceil(total_thread_y/tby);
+  gridx = ceil((float)total_thread_x/tbx);
+  gridy = ceil((float)total_thread_y/tby);
   dim3 threadsPerBlock2(tbx, tby);
   dim3 blockPerGrid2(gridx, gridy);
-  _pi_Ql_first_cuda_col<<<blockPerGrid2, threadsPerBlock2>>>(nr, nc,
+  _pi_Ql_first_col_cuda<<<blockPerGrid2, threadsPerBlock2>>>(nr, nc,
 																									         nrow, ncol,
 																									   			 dirowP_idx, dicol_idx,
 																									   			 dcoords_x, dcoords_y,
@@ -552,11 +667,11 @@ void pi_Ql_first_cuda(const int nr, const int nc, const int nrow, const int ncol
   total_thread_y = nrow-nr;
   tbx = min(B, total_thread_x);
   tby = min(B, total_thread_y);
-  gridx = ceil(total_thread_x/tbx);
-  gridy = ceil(total_thread_y/tby);
+  gridx = ceil((float)total_thread_x/tbx);
+  gridy = ceil((float)total_thread_y/tby);
   dim3 threadsPerBlock3(tbx, tby);
   dim3 blockPerGrid3(gridx, gridy);
-  _pi_Ql_first_cuda_center<<<blockPerGrid3, threadsPerBlock3>>>(nr, nc,
+  _pi_Ql_first_center_cuda<<<blockPerGrid3, threadsPerBlock3>>>(nr, nc,
                                                                 nrow,       ncol,
                                                                 dirowP_idx, dicolP_idx,
                                                                 dcoords_x,  dcoords_y,
@@ -771,8 +886,8 @@ void assign_num_level_l_cuda(const int l, double *v, double num, int nr, int nc,
   int total_thread_y = nr;
   int tbx = min(B, total_thread_x);
   int tby = min(B, total_thread_y);
-  int gridx = ceil(total_thread_x/tbx);
-  int gridy = ceil(total_thread_y/tby);
+  int gridx = ceil((float)total_thread_x/tbx);
+  int gridy = ceil((float)total_thread_y/tby);
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
@@ -848,9 +963,9 @@ void restriction_first_row_cuda(int nrow,       int ncol,
 
   int B = 16;
 
-	int total_thread = ceil(nrow/row_stride);
+	int total_thread = ceil((float)nrow/row_stride);
   int tb = min(B, total_thread);
-  int grid = ceil(total_thread/tb);
+  int grid = ceil((float)total_thread/tb);
   dim3 threadsPerBlock(tb, 1);
   dim3 blockPerGrid(grid, 1);
 
@@ -868,6 +983,75 @@ void restriction_first_row_cuda(int nrow,       int ncol,
 				             ncol * sizeof(double), nrow, 
 				             D2H);
 }
+
+
+__global__ void
+_restriction_first_col_cuda(int nrow,       int ncol,
+														int * irowP, int nr, int col_stride,
+														double * dv,    int lddv,
+														double * dcoords_y) {
+	int idx = (threadIdx.x + blockIdx.x * blockDim.x) * col_stride;
+  //int y = threadIdx.y * stride;
+  for (int x = idx; x < ncol; x += (blockDim.x * gridDim.x) * col_stride) {
+    //printf("thread working on %d \n", x);
+    double * vec = dv + x;
+    for (int i = 0; i < nrow-nr; i++) {
+    	double h1 = mgard_common::get_h_cuda(dcoords_y, irowP[i] - 1, 1);
+      double h2 = mgard_common::get_h_cuda(dcoords_y, irowP[i]    , 1);
+      double hsum = h1 + h2;
+      vec[(irowP[i] - 1) * lddv] += h2 * vec[irowP[i] * lddv] / hsum;
+      vec[(irowP[i] + 1) * lddv] += h1 * vec[irowP[i] * lddv] / hsum;
+    }
+  }
+}
+
+void restriction_first_col_cuda(int nrow,       int ncol, 
+															  int * irowP, int nr, int col_stride,
+                                double * v,    int ldv,
+                                double * coords_y) {
+  //print_matrix(nrow, ncol, v, nrow);
+  double * dv;
+  int lddv;
+
+  size_t dv_pitch;
+	cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
+	lddv = dv_pitch / sizeof(double);
+	cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
+	             v,     ldv  * sizeof(double), 
+	             ncol * sizeof(double), nrow, 
+	             H2D);
+
+	double * dcoords_y;
+	cudaMallocHelper((void**)&dcoords_y, nrow * sizeof(double));
+	cudaMemcpyHelper(dcoords_y, coords_y, nrow * sizeof(double), H2D);
+
+	int * dirowP;
+	cudaMallocHelper((void**)&dirowP, (nrow-nr) * sizeof(int));
+	cudaMemcpyHelper(dirowP, irowP, (nrow-nr) * sizeof(int), H2D);	
+
+  int B = 16;
+
+	int total_thread = ceil((float)ncol/col_stride);
+  int tb = min(B, total_thread);
+  int grid = ceil((float)total_thread/tb);
+  dim3 threadsPerBlock(tb, 1);
+  dim3 blockPerGrid(grid, 1);
+
+  std::cout << "thread block: " << tb << std::endl;
+  std::cout << "grid: " << grid << std::endl;
+
+  _restriction_first_col_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol, 
+                          																			 dirowP, nr, col_stride,
+                          																			 dv,         lddv,
+                          																			 dcoords_y);
+  gpuErrchk(cudaGetLastError ()); 
+
+  cudaMemcpy2DHelper(v,     ldv  * sizeof(double), 
+			  					   dv,    lddv * sizeof(double), 
+				             ncol * sizeof(double), nrow, 
+				             D2H);
+}
+
 
 
 
@@ -894,6 +1078,211 @@ void restriction_first_cuda(std::vector<double> &v, std::vector<double> &coords,
   }
 }
 
+__global__ void
+_solve_tridiag_M_l_row_cuda(int nrow,   int ncol,
+                             int nr,    int nc,
+                             int * irow, int col_stride,
+                            double * dv, int lddv, double * dcoords_x) {
+  int idx0 = threadIdx.x + blockIdx.x * blockDim.x;
+  //printf("thread %d, nr = %d\n", idx0, nr);
+  double am, bm, h1, h2;
+   for (int idx = idx0; idx < nr; idx += blockDim.x * gridDim.x) {
+   	//printf("thread %d, nr = %d, idx = %d\n", idx0, nr, idx);
+    int r = irow[idx];
+    //printf("thread %d working on row %d \n", idx0, r);
+    double * vec = dv + r * lddv;
+    am = 2.0 * get_h_l_cuda(dcoords_x, nc, ncol, 0, col_stride);
+    bm = get_h_l_cuda(dcoords_x, nc, ncol, 0, col_stride) / am;
+
+    double * coeff = new double[ncol];
+    int counter = 1;
+    coeff[0] = am;
+    for (int i = col_stride; i < nc - 1; i += col_stride) {
+    	h1 = get_h_l_cuda(dcoords_x, nc, ncol, i - col_stride, col_stride);
+    	h2 = get_h_l_cuda(dcoords_x, nc, ncol, i, col_stride);
+
+    	*get_ref_row_cuda(vec, lddv, nc, ncol, i) -= *get_ref_row_cuda(vec, lddv, nc, ncol, i - col_stride) * bm;
+
+    	am = 2.0 * (h1 + h2) - bm * h1;
+    	bm = h2 / am;
+
+    	coeff[counter] = am;
+    	++counter;
+
+    }
+    h2 = get_h_l_cuda(dcoords_x, nc, ncol, nc - 1 - col_stride, col_stride);
+    am = 2.0 * h2 - bm * h2;
+
+    vec[ncol - 1] -= *get_ref_row_cuda(vec, lddv, nc, ncol, nc - 1 - col_stride) * bm;
+    coeff[counter] = am;
+
+    vec[ncol - 1] /= am;
+    --counter;
+
+    for (int i = nc - 1 - col_stride; i >= 0; i -= col_stride) {
+    	h2 = get_h_l_cuda(dcoords_x, nc, ncol, i, col_stride);
+    	*get_ref_row_cuda(vec, lddv, nc, ncol, i) =
+        (*get_ref_row_cuda(vec, lddv, nc, ncol, i) - h2 * (*get_ref_row_cuda(vec, lddv, nc, ncol, i + col_stride))) /
+        coeff[counter];
+    	--counter;
+    }
+   }
+
+}
+
+
+void
+solve_tridiag_M_l_row_cuda(int nrow,   int ncol,
+                           int nr,    int nc,
+                           int * irow, int col_stride,
+                           double * v, int ldv, double * coords_x) {
+	double * dv;
+  int lddv;
+
+  size_t dv_pitch;
+	cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
+	lddv = dv_pitch / sizeof(double);
+	cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
+	             			  v,  ldv  * sizeof(double), 
+	             			 ncol * sizeof(double), nrow, 
+	             			 H2D);
+
+	double * dcoords_x;
+	cudaMallocHelper((void**)&dcoords_x, ncol * sizeof(double));
+	cudaMemcpyHelper(dcoords_x, coords_x, ncol * sizeof(double), H2D);
+
+	int * dirow;
+	cudaMallocHelper((void**)&dirow, nr * sizeof(int));
+	cudaMemcpyHelper( dirow, irow, nr * sizeof(int), H2D);	
+
+  int B = 16;
+
+	int total_thread = nr;
+  int tb = min(B, total_thread);
+  int grid = ceil((float)total_thread/tb);
+  dim3 threadsPerBlock(tb, 1);
+  dim3 blockPerGrid(grid, 1);
+
+  std::cout << "thread block: " << tb << std::endl;
+  std::cout << "grid: " << grid << std::endl;
+
+  _solve_tridiag_M_l_row_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,   ncol,
+                             																		 nr,     nc,
+                                                                 dirow,  col_stride,
+                            																     dv,     lddv, dcoords_x);
+  gpuErrchk(cudaGetLastError ()); 
+
+  cudaMemcpy2DHelper(v,     ldv  * sizeof(double), 
+			  					   dv,    lddv * sizeof(double), 
+				             ncol * sizeof(double), nrow, 
+				             D2H);
+
+}
+
+
+__global__ void
+_solve_tridiag_M_l_col_cuda(int nrow,   int ncol,
+                             int nr,    int nc,
+                             int row_stride, int * icol,
+                            double * dv, int lddv, double * dcoords_y) {
+  int idx0 = threadIdx.x + blockIdx.x * blockDim.x;
+  //printf("thread %d, nr = %d\n", idx0, nr);
+  double am, bm, h1, h2;
+   for (int idx = idx0; idx < nc; idx += blockDim.x * gridDim.x) {
+    //printf("thread %d, nr = %d, idx = %d\n", idx0, nr, idx);
+    int c = icol[idx];
+    //printf("thread %d working on row %d \n", idx0, r);
+    double * vec = dv + c;
+    am = 2.0 * get_h_l_cuda(dcoords_y, nr, nrow, 0, row_stride);
+    bm = get_h_l_cuda(dcoords_y, nr, nrow, 0, row_stride) / am;
+
+    double * coeff = new double[nrow];
+    int counter = 1;
+    coeff[0] = am;
+    for (int i = row_stride; i < nr - 1; i += row_stride) {
+      h1 = get_h_l_cuda(dcoords_y, nr, nrow, i - row_stride, row_stride);
+      h2 = get_h_l_cuda(dcoords_y, nr, nrow, i, row_stride);
+
+      *get_ref_col_cuda(vec, lddv, nr, nrow, i) -= *get_ref_col_cuda(vec, lddv, nr, nrow, i - row_stride) * bm;
+
+      am = 2.0 * (h1 + h2) - bm * h1;
+      bm = h2 / am;
+
+      coeff[counter] = am;
+      ++counter;
+
+    }
+    h2 = get_h_l_cuda(dcoords_y, nr, nrow, nr - 1 - row_stride, row_stride);
+    am = 2.0 * h2 - bm * h2;
+
+    vec[(nrow - 1) * lddv] -= *get_ref_col_cuda(vec, lddv, nr, nrow, nr - 1 - row_stride) * bm;
+    coeff[counter] = am;
+
+    vec[(ncol - 1) * lddv] /= am;
+    --counter;
+
+    for (int i = nr - 1 - row_stride; i >= 0; i -= row_stride) {
+      h2 = get_h_l_cuda(dcoords_y, nr, nrow, i, row_stride);
+      *get_ref_col_cuda(vec, lddv, nr, nrow, i) =
+        (*get_ref_col_cuda(vec, lddv, nr, nrow, i) - h2 * (*get_ref_col_cuda(vec, lddv, nr, nrow, i + row_stride))) /
+        coeff[counter];
+      --counter;
+    }
+   }
+
+}
+
+
+void
+solve_tridiag_M_l_col_cuda(int nrow,   int ncol,
+                           int nr,    int nc,
+                           int row_stride, int * icol,
+                           double * v, int ldv, double * coords_y) {
+  double * dv;
+  int lddv;
+
+  size_t dv_pitch;
+  cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
+  lddv = dv_pitch / sizeof(double);
+  cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
+                      v,  ldv  * sizeof(double), 
+                     ncol * sizeof(double), nrow, 
+                     H2D);
+
+  double * dcoords_y;
+  cudaMallocHelper((void**)&dcoords_y, nrow * sizeof(double));
+  cudaMemcpyHelper(dcoords_y, coords_y, nrow * sizeof(double), H2D);
+
+  int * dicol;
+  cudaMallocHelper((void**)&dicol, nc * sizeof(int));
+  cudaMemcpyHelper( dicol, icol, nc * sizeof(int), H2D);  
+
+  int B = 16;
+
+  int total_thread = nc;
+  int tb = min(B, total_thread);
+  int grid = ceil((float)total_thread/tb);
+  dim3 threadsPerBlock(tb, 1);
+  dim3 blockPerGrid(grid, 1);
+
+  std::cout << "thread block: " << tb << std::endl;
+  std::cout << "grid: " << grid << std::endl;
+
+  _solve_tridiag_M_l_col_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,   ncol,
+                                                                 nr,     nc,
+                                                                 row_stride,  dicol,
+                                                                 dv,     lddv, dcoords_y);
+  gpuErrchk(cudaGetLastError ()); 
+
+  cudaMemcpy2DHelper(v,     ldv  * sizeof(double), 
+                     dv,    lddv * sizeof(double), 
+                     ncol * sizeof(double), nrow, 
+                     D2H);
+
+}
+
+
+
 
 void solve_tridiag_M_l_cuda(const int l, std::vector<double> &v,
                        std::vector<double> &coords, int n, int no) {
@@ -903,10 +1292,10 @@ void solve_tridiag_M_l_cuda(const int l, std::vector<double> &v,
 
   double am, bm, h1, h2;
   am = 2.0 *
-       get_h_l_cuda(coords, n, no, 0, stride); // first element of upper diagonal U.
+       get_h_l_cuda(coords.data(), n, no, 0, stride); // first element of upper diagonal U.
 
   //    bm = get_h_cuda(coords, 0, stride) / am;
-  bm = get_h_l_cuda(coords, n, no, 0, stride) / am;
+  bm = get_h_l_cuda(coords.data(), n, no, 0, stride) / am;
   int nlevel = static_cast<int>(std::log2(n - 1));
   //    //std::cout  << nlevel;
   int nc = std::pow(2, nlevel - l) + 1;
@@ -917,10 +1306,10 @@ void solve_tridiag_M_l_cuda(const int l, std::vector<double> &v,
   ////std::cout  <<  am<< "\t"<< bm<<"\n";
   // forward sweep
   for (int i = stride; i < n - 1; i += stride) {
-    h1 = get_h_l_cuda(coords, n, no, i - stride, stride);
-    h2 = get_h_l_cuda(coords, n, no, i, stride);
+    h1 = get_h_l_cuda(coords.data(), n, no, i - stride, stride);
+    h2 = get_h_l_cuda(coords.data(), n, no, i, stride);
 
-    *get_ref_cuda(v, n, no, i) -= *get_ref_cuda(v, n, no, i - stride) * bm;
+    *get_ref_cuda(v.data(), n, no, i) -= *get_ref_cuda(v.data(), n, no, i - stride) * bm;
 
     am = 2.0 * (h1 + h2) - bm * h1;
     bm = h2 / am;
@@ -929,11 +1318,11 @@ void solve_tridiag_M_l_cuda(const int l, std::vector<double> &v,
     ++counter;
   }
 
-  h2 = get_h_l_cuda(coords, n, no, n - 1 - stride, stride);
+  h2 = get_h_l_cuda(coords.data(), n, no, n - 1 - stride, stride);
   am = 2.0 * h2 - bm * h2;
 
   //    *get_ref_cuda(v, n, no, n-1) -= *get_ref_cuda(v, n, no, n-1-stride)*bm;
-  v.back() -= *get_ref_cuda(v, n, no, n - 1 - stride) * bm;
+  v.back() -= *get_ref_cuda(v.data(), n, no, n - 1 - stride) * bm;
   coeff.at(counter) = am;
 
   // backward sweep
@@ -943,9 +1332,9 @@ void solve_tridiag_M_l_cuda(const int l, std::vector<double> &v,
   --counter;
 
   for (int i = n - 1 - stride; i >= 0; i -= stride) {
-    h2 = get_h_l_cuda(coords, n, no, i, stride);
-    *get_ref_cuda(v, n, no, i) =
-        (*get_ref_cuda(v, n, no, i) - h2 * (*get_ref_cuda(v, n, no, i + stride))) /
+    h2 = get_h_l_cuda(coords.data(), n, no, i, stride);
+    *get_ref_cuda(v.data(), n, no, i) =
+        (*get_ref_cuda(v.data(), n, no, i) - h2 * (*get_ref_cuda(v.data(), n, no, i + stride))) /
         coeff.at(counter);
 
     //        *get_ref_cuda(v, n, no, i) = 3  ;
@@ -954,22 +1343,119 @@ void solve_tridiag_M_l_cuda(const int l, std::vector<double> &v,
   }
 }
 
-
-void add_level_l_cuda(const int l, double *v, double *work, int nr, int nc, int nrow,
-                 int ncol) {
-  // v += work at level l
-
-  int stride = std::pow(2, l); // current stride
-
-  for (int irow = 0; irow < nr; irow += stride) {
-    int ir = get_lindex_cuda(nr, nrow, irow);
-    for (int jcol = 0; jcol < nc; jcol += stride) {
-      int jr = get_lindex_cuda(nc, ncol, jcol);
-      v[mgard_common::get_index_cuda(ncol, ir, jr)] +=
-          work[mgard_common::get_index_cuda(ncol, ir, jr)];
+__global__ void 
+_add_level_l_cuda(int nrow,       int ncol, 
+               int nr,          int nc,
+               int row_stride, int col_stride,
+               int * irow,     int * icol,
+               double * dv,    int lddv, 
+               double * dwork, int lddwork) {
+    //int stride = pow (2, l); // current stride
+    //int Cstride = stride * 2; // coarser stride
+    int idx_x = (blockIdx.x * blockDim.x + threadIdx.x) * col_stride;
+    int idx_y = (blockIdx.y * blockDim.y + threadIdx.y) * row_stride;
+    //printf("x = %d, y = %d, stride = %d \n", x,y,stride);
+    for (int y = idx_y; y < nc; y += blockDim.y * gridDim.y * row_stride) {
+      for (int x = idx_x; x < nr; x += blockDim.x * gridDim.x * col_stride) {
+        
+        int r = irow[y];
+        int c = icol[x];
+        dv[get_idx(lddv, r, c)] += dwork[get_idx(lddwork, r, c)];
+        //printf("x = %d, y = %d, stride = %d, v = %f \n", x,y,stride, work[get_idx(ncol, x, y)]);
+        //y += blockDim.y * gridDim.y * stride;
+      }
+        //x += blockDim.x * gridDim.x * stride;
     }
-  }
 }
+
+void add_level_l_cuda(int nrow,       int ncol, 
+               int nr,          int nc,
+               int row_stride, int col_stride,
+               int * irow,     int * icol,
+               double * v,    int ldv, 
+               double * work, int ldwork) {
+  double * dv;
+  int lddv;
+
+  size_t dv_pitch;
+  cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
+  lddv = dv_pitch / sizeof(double);
+  cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
+                      v,  ldv  * sizeof(double), 
+                     ncol * sizeof(double), nrow, 
+                     H2D);
+
+  double * dwork;
+  int lddwork;
+
+  size_t dwork_pitch;
+  cudaMallocPitchHelper((void**)&dwork, &dwork_pitch, ncol * sizeof(double), nrow);
+  lddwork = dwork_pitch / sizeof(double);
+  cudaMemcpy2DHelper(dwork, lddwork * sizeof(double), 
+                      work,  ldwork  * sizeof(double), 
+                     ncol * sizeof(double), nrow, 
+                     H2D);
+
+  int * dicol;
+  cudaMallocHelper((void**)&dicol, nc * sizeof(int));
+  cudaMemcpyHelper( dicol, icol, nc * sizeof(int), H2D);  
+
+  int * dirow;
+  cudaMallocHelper((void**)&dirow, nr * sizeof(int));
+  cudaMemcpyHelper( dirow, irow, nr * sizeof(int), H2D);  
+
+
+  int B = 16;
+  int total_thread_x = nc/col_stride;
+  int total_thread_y = nr/row_stride;
+  int tbx = min(B, total_thread_x);
+  int tby = min(B, total_thread_y);
+  int gridx = ceil((float)total_thread_x/tbx);
+  int gridy = ceil((float)total_thread_y/tby);
+  dim3 threadsPerBlock(tbx, tby);
+  dim3 blockPerGrid(gridx, gridy);
+
+  //std::cout << "thread block: " << tbx << ", " << tby <<std::endl;
+  //std::cout << "grid: " << gridx << ", " << gridy <<std::endl;
+  _add_level_l_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol,
+                                                       nr,         nc,
+                                                      row_stride, col_stride, 
+                                                      dirow,      dicol,
+                                                      dv,         lddv,
+                                                      dwork,      lddwork);
+
+
+  gpuErrchk(cudaGetLastError ()); 
+
+  cudaMemcpy2DHelper(v,     ldv  * sizeof(double), 
+                     dv,    lddv * sizeof(double), 
+                     ncol * sizeof(double), nrow, 
+                     D2H);
+
+  cudaMemcpy2DHelper(work,     ldwork  * sizeof(double), 
+                     dwork,    lddwork * sizeof(double), 
+                     ncol * sizeof(double), nrow, 
+                     D2H);
+}
+
+
+
+
+// void add_level_l_cuda(const int l, double *v, double *work, int nr, int nc, int nrow,
+//                  int ncol) {
+//   // v += work at level l
+
+//   int stride = std::pow(2, l); // current stride
+
+//   for (int irow = 0; irow < nr; irow += stride) {
+//     int ir = get_lindex_cuda(nr, nrow, irow);
+//     for (int jcol = 0; jcol < nc; jcol += stride) {
+//       int jr = get_lindex_cuda(nc, ncol, jcol);
+//       v[mgard_common::get_index_cuda(ncol, ir, jr)] +=
+//           work[mgard_common::get_index_cuda(ncol, ir, jr)];
+//     }
+//   }
+// }
 
 
 void prep_2D_cuda(const int nr, const int nc, const int nrow, const int ncol,
@@ -1050,6 +1536,11 @@ void prep_2D_cuda(const int nr, const int nc, const int nrow, const int ncol,
 		  											 work.data(), ldwork,
 		  											 coords_x.data());
 
+  col_stride = 1;
+	solve_tridiag_M_l_row_cuda(nrow,   ncol,
+                             nr,     nc,
+                             irow,   col_stride,
+                             work.data(), ldwork, coords_x.data());
 
   for (int i = 0; i < nrow; ++i) {
     //        int ir = get_lindex_cuda(nr, nrow, irow);
@@ -1072,7 +1563,7 @@ void prep_2D_cuda(const int nr, const int nc, const int nrow, const int ncol,
       row_vec[j] = work[mgard_common::get_index_cuda(ncol, ir, j)];
     }
 
-    mgard_gen::solve_tridiag_M_l_cuda(0, row_vec, coords_x, nc, ncol);
+    //mgard_gen::solve_tridiag_M_l_cuda(0, row_vec, coords_x, nc, ncol);
 
     for (int j = 0; j < ncol; ++j) {
       work[mgard_common::get_index_cuda(ncol, ir, j)] = row_vec[j];
@@ -1084,15 +1575,34 @@ void prep_2D_cuda(const int nr, const int nc, const int nrow, const int ncol,
   //     // column-sweep, this is the slow one! Need something like column_copy
   if (nrow > 1) // check if we have 1-D array..
   {
+  	row_stride = 1;
+  	col_stride = 1;
+  	mgard_cannon::mass_matrix_multiply_col_cuda(nrow,       ncol,
+  																						row_stride, col_stride,
+  																						work.data(), ldwork,
+  																						coords_y.data());
+
+  	restriction_first_col_cuda(nrow, ncol,
+		  											 irowP, nr, col_stride,
+		  											 work.data(), ldwork,
+		  											 coords_y.data());
+
+    solve_tridiag_M_l_col_cuda(nrow,   ncol,
+                             nr,     nc,
+                             row_stride,   icol,
+                             work.data(), ldwork, coords_y.data());
+
+
+  	
     for (int j = 0; j < ncol; ++j) {
       //      int jr  = get_lindex_cuda(nc,  ncol,  jcol);
       for (int i = 0; i < nrow; ++i) {
         col_vec[i] = work[mgard_common::get_index_cuda(ncol, i, j)];
       }
 
-      mgard_cannon::mass_matrix_multiply_cuda(0, col_vec, coords_y);
+      //mgard_cannon::mass_matrix_multiply_cuda(0, col_vec, coords_y);
 
-      mgard_gen::restriction_first_cuda(col_vec, coords_y, nr, nrow);
+      //mgard_gen::restriction_first_cuda(col_vec, coords_y, nr, nrow);
 
       for (int i = 0; i < nrow; ++i) {
         work[mgard_common::get_index_cuda(ncol, i, j)] = col_vec[i];
@@ -1105,17 +1615,186 @@ void prep_2D_cuda(const int nr, const int nc, const int nrow, const int ncol,
         col_vec[i] = work[mgard_common::get_index_cuda(ncol, i, jr)];
       }
 
-      mgard_gen::solve_tridiag_M_l_cuda(0, col_vec, coords_y, nr, nrow);
+      //mgard_gen::solve_tridiag_M_l_cuda(0, col_vec, coords_y, nr, nrow);
       for (int i = 0; i < nrow; ++i) {
         work[mgard_common::get_index_cuda(ncol, i, jr)] = col_vec[i];
       }
     }
   }
-  add_level_l_cuda(0, v, work.data(), nr, nc, nrow, ncol);
+  //add_level_l_cuda(0, v, work.data(), nr, nc, nrow, ncol);
+  row_stride = 1;
+  col_stride = 1;
+  add_level_l_cuda(nrow, ncol, nc, nr, row_stride, col_stride, 
+                   irow, icol, v, ldv, work.data(), ldwork);
+}
+
+__global__ void 
+_pi_Ql_row_cuda(const int nr, const int nc,
+                     const int nrow, const int ncol,
+                     int * irow, int * icol,
+                     double * coords_x, double * coords_y,
+                     double * dv, int lddv) {
+
+  int x0 = blockIdx.x * blockDim.x + threadIdx.x;
+  int y0 = blockIdx.y * blockDim.y + threadIdx.y;
+
+  for (int y = y0; y < nr; y += blockDim.y * gridDim.y) {
+    for (int x = x0; x < nc; x += blockDim.x * gridDim.x) {
+      int r = irow[y];
+      int c = icol[x];
+      //printf ("thread (%d, %d) working on (%d, %d): %f\n", y, x, r, c, dv[mgard_common::get_index_cuda(lddv, r, c    )]);
+      register double center = dv[mgard_common::get_index_cuda(lddv, r, c    )];
+      register double left   = dv[mgard_common::get_index_cuda(lddv, r, c - 1)];
+      register double right  = dv[mgard_common::get_index_cuda(lddv, r, c + 1)];
+      register double h1     = mgard_common::get_dist_cuda(coords_x, c - 1, c    );
+      register double h2     = mgard_common::get_dist_cuda(coords_x, c,     c + 1);
+
+      center -= (h2 * left + h1 * right) / (h1 + h2);
+
+      dv[mgard_common::get_index_cuda(lddv, r, c    )] = center;
+    }
+  }
+
 }
 
 
+__global__ void 
+_pi_Ql_col_cuda(const int nr, const int nc,
+                     const int nrow, const int ncol,
+                     int * irowP, int * icol,
+                     double * coords_x, double * coords_y,
+                     double * dv, int lddv) {
 
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (x < ncol && y < nrow-nr) {
+    int r = irowP[y];
+    int c = icol[x];
+    //printf ("thread (%d, %d) working on (%d, %d): %f\n", y, x, r, c, dv[mgard_common::get_index_cuda(lddv, r, c    )]);
+    register double center = dv[mgard_common::get_index_cuda(lddv, r,     c)];
+    register double up   = dv[mgard_common::get_index_cuda(lddv,   r - 1, c)];
+    register double down  = dv[mgard_common::get_index_cuda(lddv, r + 1, c)];
+    register double h1     = mgard_common::get_dist_cuda(coords_x, r - 1, r    );
+    register double h2     = mgard_common::get_dist_cuda(coords_x, r,     r + 1);
+
+    center -= (h2 * up + h1 * down) / (h1 + h2);
+
+    dv[mgard_common::get_index_cuda(lddv, r, c    )] = center;
+  }
+
+}
+
+
+__global__ void 
+_pi_Ql_center_cuda(const int nr, const int nc,
+                       const int nrow, const int ncol,
+                       int * dirowP, int * dicolP,
+                       double * dcoords_x, double * dcoords_y,
+                       double * dv, int lddv) {
+
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (x < ncol-nc && y < nrow-nr) {
+    int r = dirowP[y];
+    int c = dicolP[x];
+    //printf ("thread (%d, %d) working on (%d, %d): %f\n", y, x, r, c, dv[mgard_common::get_index_cuda(lddv, r, c    )]);
+    register double center    = dv[mgard_common::get_index_cuda(lddv, r,     c    )];
+    register double upleft    = dv[mgard_common::get_index_cuda(lddv, r - 1, c - 1)];
+    register double upright   = dv[mgard_common::get_index_cuda(lddv, r - 1, c + 1)];
+    register double downleft  = dv[mgard_common::get_index_cuda(lddv, r + 1, c - 1)];
+    register double downright = dv[mgard_common::get_index_cuda(lddv, r + 1, c + 1)];
+
+
+    register double x1 = 0.0;
+    register double y1 = 0.0;
+
+    register double x2 = mgard_common::get_dist_cuda(dcoords_x, c - 1, c + 1);
+    register double y2 = mgard_common::get_dist_cuda(dcoords_y, r - 1, r + 1);
+
+    register double x = mgard_common::get_dist_cuda(dcoords_x, c, c + 1);
+    register double y = mgard_common::get_dist_cuda(dcoords_y, r, r + 1);
+
+    double temp =
+            mgard_common::interp_2d_cuda(upleft, downleft, upright, downright, x1, x2, y1, y2, x, y);
+
+    center -= temp;
+
+    dv[mgard_common::get_index_cuda(lddv, r, c    )] = center;
+  }
+
+}
+
+void pi_Ql_cuda(const int nr, const int nc, const int nrow, const int ncol,
+           const int l, double *v, const std::vector<double> &coords_x,
+           const std::vector<double> &coords_y, std::vector<double> &row_vec,
+           std::vector<double> &col_vec) {
+
+
+
+}
+
+
+void refactor_2D_cuda(const int nr, const int nc, const int nrow, const int ncol,
+                 const int l_target, double *v, std::vector<double> &work,
+                 std::vector<double> &coords_x, std::vector<double> &coords_y,
+                 std::vector<double> &row_vec, std::vector<double> &col_vec) {
+  // refactor
+  //    //std::cout  << "I am the general refactorer!" <<"\n";
+  for (int l = 0; l < l_target; ++l) {
+    int stride = std::pow(2, l); // current stride
+    int Cstride = stride * 2;    // coarser stride
+
+    // -> change funcs in pi_QL to use _l functions, otherwise distances are
+    // wrong!!!
+    pi_Ql(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec,
+          col_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
+
+    copy_level_l(l, v, work.data(), nr, nc, nrow, ncol);
+    assign_num_level_l(l + 1, work.data(), 0.0, nr, nc, nrow, ncol);
+
+    // row-sweep
+    for (int irow = 0; irow < nr; ++irow) {
+      int ir = get_lindex_cuda(nr, nrow, irow);
+      for (int jcol = 0; jcol < ncol; ++jcol) {
+        row_vec[jcol] = work[mgard_common::get_index_cuda(ncol, ir, jcol)];
+      }
+
+      mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol);
+
+      mgard_gen::restriction_l(l + 1, row_vec, coords_x, nc, ncol);
+
+      mgard_gen::solve_tridiag_M_l(l + 1, row_vec, coords_x, nc, ncol);
+
+      for (int jcol = 0; jcol < ncol; ++jcol) {
+        work[mgard_common::get_index_cuda(ncol, ir, jcol)] = row_vec[jcol];
+      }
+    }
+
+    // column-sweep
+    if (nrow > 1) // do this if we have an 2-dimensional array
+    {
+      for (int jcol = 0; jcol < nc; jcol += Cstride) {
+        int jr = get_lindex_cuda(nc, ncol, jcol);
+        for (int irow = 0; irow < nrow; ++irow) {
+          col_vec[irow] = work[mgard_common::get_index_cuda(ncol, irow, jr)];
+        }
+
+        mgard_gen::mass_mult_l(l, col_vec, coords_y, nr, nrow);
+        mgard_gen::restriction_l(l + 1, col_vec, coords_y, nr, nrow);
+        mgard_gen::solve_tridiag_M_l(l + 1, col_vec, coords_y, nr, nrow);
+
+        for (int irow = 0; irow < nrow; ++irow) {
+          work[mgard_common::get_index_cuda(ncol, irow, jr)] = col_vec[irow];
+        }
+      }
+    }
+
+    // Solved for (z_l, phi_l) = (c_{l+1}, vl)
+    add_level_l(l + 1, v, work.data(), nr, nc, nrow, ncol);
+  }
+}
 
 
 
