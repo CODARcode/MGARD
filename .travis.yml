@@ -17,6 +17,8 @@ install:
   - export PATH="${PWD}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin:${PATH}"
   - tar -xf cmake-3.7.2-Linux-x86_64.tar.gz
   - export PATH="${PWD}/cmake-3.7.2-Linux-x86_64/bin:${PATH}"
+  - tar -xf v2.5.0.tar.gz
+  - pushd ADIOS2-2.5.0 && mkdir build && pushd build && cmake -DADIOS2_USE_MPI=ON ..  && make && sudo make install && popd && popd
   - popd
   - pip install --user flake8
   - git config --global clangformat.binary ${HOME}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin/clang-format
