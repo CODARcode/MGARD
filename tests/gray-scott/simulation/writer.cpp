@@ -1,5 +1,5 @@
-#include "mgard_api.h"
 #include "writer.h"
+#include "mgard_api.h"
 
 void define_bpvtk_attribute(const Settings &s, adios2::IO &io)
 {
