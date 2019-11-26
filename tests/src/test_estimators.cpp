@@ -14,6 +14,7 @@
 #include "data.hpp"
 #include "MeshLevel.hpp"
 #include "UniformMeshHierarchy.hpp"
+#include "norms.hpp"
 #include "estimators.hpp"
 
 #include "testing_utilities.hpp"
@@ -74,4 +75,41 @@ TEST_CASE("comparison with Python implementation: estimators", "[estimators]") {
         mgard::estimator(u_mc, hierarchy,  1.5).unscaled ==
             Approx(914.1806446523887)
     );
+}
+
+TEST_CASE("estimators should track norms", "[estimators]") {
+    moab::ErrorCode ecode;
+    moab::Core mbcore;
+    ecode = mbcore.load_file(mesh_path("pyramid.msh").c_str());
+    require_moab_success(ecode);
+    mgard::MeshLevel mesh(mbcore);
+    mgard::UniformMeshHierarchy hierarchy(mesh, 3);
+    const std::size_t N = hierarchy.ndof();
+    std::vector<double> smoothness_parameters = {
+        -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5
+    };
+
+    std::vector<double> u_(N);
+    std::random_device device;
+    std::default_random_engine generator(device());
+    std::uniform_real_distribution<double> distribution(-1, 1);
+    for (double &value : u_) {
+        value = distribution(generator);
+    }
+    const mgard::NodalCoefficients<double> u_nc(u_.data());
+
+    std::vector<double> norms;
+    for (const double s : smoothness_parameters) {
+        norms.push_back(mgard::norm(u_nc, hierarchy, s));
+    }
+
+    const mgard::MultilevelCoefficients u_mc = hierarchy.decompose(u_nc);
+    for (std::size_t i = 0; i < smoothness_parameters.size(); ++i) {
+        const double s = smoothness_parameters.at(i);
+        const double norm = norms.at(i);
+        const mgard::SandwichBounds sandwich = mgard::estimator(
+            u_mc, hierarchy, s
+        );
+        REQUIRE((sandwich.lower <= norm && norm <= sandwich.upper));
+    }
 }
