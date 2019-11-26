@@ -11,6 +11,7 @@
 
 #include "blas.hpp"
 
+#include "data.hpp"
 #include "MeshLevel.hpp"
 #include "UniformMeshHierarchy.hpp"
 #include "norms.hpp"
