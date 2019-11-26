@@ -9,6 +9,9 @@
 #include <functional>
 #include <vector>
 
+#include "moab/Types.hpp"
+#include "moab/Range.hpp"
+
 #include "data.hpp"
 #include "MeshLevel.hpp"
 
@@ -54,6 +57,16 @@ class MeshHierarchy {
         //!
         //!\param l Index of the MeshLevel.
         std::size_t ndof(const std::size_t l) const;
+
+        //!Access the 'old' nodes of a level.
+        //!
+        //!\param [in] Index of the MeshLevel.
+        moab::Range old_nodes(const std::size_t l) const;
+
+        //!Access the 'new' nodes of a level.
+        //!
+        //!\param [in] Index of the MeshLevel.
+        moab::Range new_nodes(const std::size_t l) const;
 
         //!Access the subset of a dataset associated to the 'old' nodes of a
         //!level.
@@ -276,6 +289,10 @@ class MeshHierarchy {
 
     private:
         virtual std::size_t do_ndof(const std::size_t l) const;
+
+        virtual moab::Range do_old_nodes(const std::size_t l) const;
+
+        virtual moab::Range do_new_nodes(const std::size_t l) const;
 
         virtual double * do_on_old_nodes(
             const HierarchyCoefficients<double> u, const std::size_t

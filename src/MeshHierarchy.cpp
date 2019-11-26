@@ -33,6 +33,16 @@ std::size_t MeshHierarchy::ndof(const std::size_t l) const {
     return do_ndof(l);
 }
 
+moab::Range MeshHierarchy::old_nodes(const std::size_t l) const {
+    check_mesh_index_bounds(l);
+    return do_old_nodes(l);
+}
+
+moab::Range MeshHierarchy::new_nodes(const std::size_t l) const {
+    check_mesh_index_bounds(l);
+    return do_new_nodes(l);
+}
+
 double * MeshHierarchy::on_old_nodes(
     const HierarchyCoefficients<double> u, const std::size_t l
 ) const {
@@ -331,6 +341,23 @@ void MeshHierarchy::check_mesh_index_nonzero(const std::size_t l) const {
 
 std::size_t MeshHierarchy::do_ndof(const std::size_t l) const {
     return meshes.at(l).ndof();
+}
+
+moab::Range MeshHierarchy::do_old_nodes(const std::size_t l) const {
+    if (!l) {
+        return moab::Range();
+    } else {
+        const moab::Range &nodes = meshes.at(l).entities[moab::MBVERTEX];
+        const moab::EntityHandle start = nodes.front();
+        const std::size_t n = ndof(l - 1);
+        assert(n);
+        return moab::Range(start, start + n - 1);
+    }
+}
+
+moab::Range MeshHierarchy::do_new_nodes(const std::size_t l) const {
+    const moab::Range &nodes = meshes.at(l).entities[moab::MBVERTEX];
+    return moab::Range(nodes.front() + (l ? ndof(l - 1) : 0), nodes.back());
 }
 
 double * MeshHierarchy::do_on_old_nodes(
