@@ -124,9 +124,7 @@ if(BUILD_TESTING)
   add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
   target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
 
-  if(ADIOS2_FOUND)
-    add_subdirectory(tests)
-  endif()
+  add_subdirectory(tests)
 
   add_test(NAME mgard_test1
     COMMAND mgard_test 0
