@@ -4,25 +4,26 @@ dist: xenial
 addons:
   apt:
     packages:
+      - mpich
       - libmpich-dev
 before_install:
   - pushd ${HOME}
   - wget http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-  - wget http://www.cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz
+  - wget https://github.com/Kitware/CMake/releases/download/v3.15.5/cmake-3.15.5-Linux-x86_64.tar.gz
   - wget https://github.com/ornladios/ADIOS2/archive/v2.5.0.tar.gz
   - popd
 install:
   - pushd ${HOME}
   - tar -xf clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
   - export PATH="${PWD}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin:${PATH}"
-  - tar -xf cmake-3.7.2-Linux-x86_64.tar.gz
-  - export PATH="${PWD}/cmake-3.7.2-Linux-x86_64/bin:${PATH}"
+  - tar -xf cmake-3.15.5-Linux-x86_64.tar.gz
+  - export PATH="${PWD}/cmake-3.15.5-Linux-x86_64/bin:${PATH}"
   - tar -xf v2.5.0.tar.gz
   - pushd ADIOS2-2.5.0 && mkdir build && pushd build && cmake -DADIOS2_USE_MPI=ON ..  && make && sudo make install && popd && popd
-  - export PATH="${PWD}/ADIOS2-2.5.0/bin:${PATH}"
   - popd
   - pip install --user flake8
   - git config --global clangformat.binary ${HOME}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin/clang-format
+  - mkdir build && pushd build && cmake .. && make && popd
   - ./scripts/travis/build-cppcheck.sh
 env:
   matrix:

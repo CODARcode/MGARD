@@ -16,7 +16,7 @@ unsigned char *mgard_compress(int itype_flag, float *v, int &out_size, int nrow,
 {
 
   float tol = tol_in;
-  assert(tol >= 1e-8);
+  assert(tol >= 1e-7);
   unsigned char *mgard_compressed_ptr = nullptr;
   if (nrow > 1 && ncol > 1 && nfib > 1) {
     assert(nrow > 3);
@@ -49,7 +49,7 @@ unsigned char *mgard_compress(int itype_flag, float *v, int &out_size, int nrow,
 // tensor grids
 {
 
-  assert(tol >= 1e-8);
+  assert(tol >= 1e-7);
   unsigned char *mgard_compressed_ptr = nullptr;
   if (nrow > 1 && ncol > 1 && nfib > 1) {
     assert(nrow > 3);
@@ -80,7 +80,7 @@ unsigned char *mgard_compress(int itype_flag, float *v, int &out_size, int nrow,
   // Perform compression preserving the tolerance in s norm by defaulting to the
   // s-norm
   float tol = tol_in;
-  assert(tol >= 1e-8);
+  assert(tol >= 1e-7);
 
   unsigned char *mgard_compressed_ptr = nullptr;
   if (nrow > 1 && ncol > 1 && nfib > 1) {
@@ -118,7 +118,7 @@ unsigned char *mgard_compress(int itype_flag, float *v, int &out_size, int nrow,
   // Perform compression preserving the tolerance in s norm by defaulting to the
   // L-2 norm
   float tol = tol_in;
-  assert(tol >= 1e-8);
+  assert(tol >= 1e-7);
   unsigned char *mgard_compressed_ptr = nullptr;
   if (nrow > 1 && ncol > 1 && nfib > 1) {
     assert(nrow > 3);

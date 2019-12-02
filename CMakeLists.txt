@@ -186,9 +186,7 @@ if(BUILD_TESTING)
   target_link_libraries(mgard_check_cuda mgard  ${CMAKE_DL_LIBS})
   set_target_properties(mgard_check_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-  if(ADIOS2_FOUND)
-    add_subdirectory(tests)
-  endif()
+  add_subdirectory(tests)
 
   add_test(NAME mgard_test1
     COMMAND mgard_test 0

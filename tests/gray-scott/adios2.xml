@@ -30,7 +30,8 @@
             <parameter key="OpenTimeoutSecs" value="10.0"/>
         </engine>
 
-        <!-- Compress variables -->
+	<!-- Compress variables -->
+	<!--
         <variable name="U">
             <operation type="mgard">
                 <parameter key="accuracy" value="0.1"/>
@@ -42,7 +43,8 @@
                 <parameter key="accuracy" value="0.1"/>
                 <parameter key="s" value="0"/>
             </operation>
-        </variable>
+	</variable>
+        -->
     </io>
 
     <!--====================================
