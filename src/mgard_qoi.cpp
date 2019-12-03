@@ -10,24 +10,12 @@
 
 namespace mgard_qoi {
 
-double qoi_ave(const int nrow, const int ncol, const int nfib,
-               std::vector<double> u) {
-  double sum = 0;
+double qoi_ave(
+    const int nrow, const int ncol, const int nfib, std::vector<double> u
+);
 
-  for (double x : u)
-    sum += x;
-
-  return sum / u.size();
-}
-
-float qoi_ave(const int nrow, const int ncol, const int nfib,
-              std::vector<float> u) {
-  float sum = 0;
-
-  for (double x : u)
-    sum += x;
-
-  return sum / u.size();
-}
+float qoi_ave(
+    const int nrow, const int ncol, const int nfib, std::vector<float> u
+);
 
 } // namespace mgard_qoi

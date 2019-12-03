@@ -18,4 +18,5 @@ Real qoi_ave(const int nrow, const int ncol, const int nfib,
 
 } // namespace mgard_qoi
 
+#include "mgard_qoi.tpp"
 #endif
