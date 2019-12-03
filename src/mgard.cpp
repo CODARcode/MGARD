@@ -318,7 +318,7 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
   return buffer;
 }
 
-double *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
+double *recompose_udq(double, int nrow, int ncol, int nfib, unsigned char *data,
                       int data_len) {
   int nlevel;
   int size_ratio = sizeof(double) / sizeof(int);
@@ -796,7 +796,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<double> &coords_x,
   return buffer;
 }
 
-double *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
+double *recompose_udq_2D(double, int nrow, int ncol, unsigned char *data,
                          int data_len) {
   int size_ratio = sizeof(double) / sizeof(int);
 

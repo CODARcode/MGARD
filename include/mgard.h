@@ -136,8 +136,8 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<double> &coords_x,
                               std::vector<double> &coords_y, const double *v,
                               int &outsize, double tol, double s);
 
-double *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
-                      int data_len);
+double *recompose_udq(double dummyd, int nrow, int ncol, int nfib,
+                      unsigned char *data, int data_len);
 
 double *recompose_udq(int nrow, int ncol, int nfib,
                       std::vector<double> &coords_x,
@@ -154,7 +154,8 @@ double *recompose_udq(int nrow, int ncol, int nfib,
                       std::vector<double> &coords_z, unsigned char *data,
                       int data_len, double s);
 
-double *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len);
+double *recompose_udq_2D(double dummyd, int nrow, int ncol, unsigned char *data,
+                         int data_len);
 
 double *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
                          double s);
