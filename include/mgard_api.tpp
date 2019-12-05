@@ -193,16 +193,16 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
     assert(ncol > 3);
     assert(nfib > 3);
 
-    Real dummy;
-    mgard_decompressed_ptr =
-        mgard::recompose_udq(dummy, nrow, ncol, nfib, data, data_len);
+    mgard_decompressed_ptr = mgard::recompose_udq<Real>(
+        nrow, ncol, nfib, data, data_len
+    );
     return mgard_decompressed_ptr;
   } else if (nrow > 1 && ncol > 1) {
     assert(nrow > 3);
     assert(ncol > 3);
-    Real dummy;
-    mgard_decompressed_ptr =
-        mgard::recompose_udq_2D(dummy, nrow, ncol, data, data_len);
+    mgard_decompressed_ptr = mgard::recompose_udq_2D<Real>(
+        nrow, ncol, data, data_len
+    );
     //          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol,
     //          data, data_len);
     return mgard_decompressed_ptr;
