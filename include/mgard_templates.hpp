@@ -5,8 +5,6 @@ namespace mgard
 
 {
 
-inline int get_index(const int ncol, const int i, const int j);
-
 template <typename Real>
 inline Real interp_2d(Real q11, Real q12, Real q21, Real q22,
                       Real x1, Real x2, Real y1, Real y2, Real x,
@@ -78,16 +76,9 @@ template <typename Real>
 void dequantize_2D_interleave(const int nrow, const int ncol, Real *v,
                               const std::vector<int> &work);
 
-void zwrite_2D_interleave(std::vector<int> &qv, const std::string outfile);
-
-void compress_memory_z(void *in_data, size_t in_data_size,
-                       std::vector<uint8_t> &out_data);
-
 template <typename Real>
 void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
                     std::string infile);
-
-void set_number_of_levels(const int nrow, const int ncol, int &nlevel);
 
 template <typename Real>
 void resample_1d(const Real *inbuf, Real *outbuf, const int ncol,
@@ -145,11 +136,6 @@ template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
                     int data_len);
 
-//This was originally only declared for single-precision.
-template <typename Real>
-Real *recompose_udq(Real dummyf, int nrow, int ncol, int nfib,
-                    unsigned char *data, int data_len);
-
 template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib,
                     std::vector<Real> &coords_x,
@@ -170,11 +156,6 @@ Real *recompose_udq(int nrow, int ncol, int nfib,
 
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len);
-
-//This was originally only declared for single-precision.
-template <typename Real>
-Real *recompose_udq_2D(Real dummyf, int nrow, int ncol, unsigned char *data,
-                       int data_len);
 
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
@@ -204,9 +185,6 @@ int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
                std::string &in_file);
 
 template <typename Real>
-bool is_2kplus1(Real num);
-
-template <typename Real>
 void refactor(const int nrow, const int ncol, const int l_target, Real *v,
               std::vector<Real> &work, std::vector<Real> &row_vec,
               std::vector<Real> &col_vec);
@@ -216,6 +194,6 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
                std::vector<Real> &work, std::vector<Real> &row_vec,
                std::vector<Real> &col_vec);
 
-void decompress_memory_z(const void *src, int srcLen, int *dst, int dstLen);
-
 } // namespace mgard
+
+#include "mgard.tpp"

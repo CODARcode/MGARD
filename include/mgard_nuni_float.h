@@ -9,7 +9,8 @@
 #ifndef MGARD_NUNI_FLOAT_H
 #define MGARD_NUNI_FLOAT_H
 
-#include "mgard_float.h"
+#include <string>
+#include <vector>
 
 namespace mgard_common {
 

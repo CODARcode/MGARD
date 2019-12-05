@@ -9,7 +9,8 @@
 #ifndef MGARD_NUNI_H
 #define MGARD_NUNI_H
 
-#include "mgard.h"
+#include <string>
+#include <vector>
 
 namespace mgard_common {
 

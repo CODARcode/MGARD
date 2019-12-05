@@ -7,7 +7,17 @@
 // See LICENSE for details.
 
 #include "mgard_nuni.h"
-#include "mgard.h"
+
+#include <cassert>
+#include <cmath>
+#include <cstring>
+
+#include <sys/stat.h>
+
+#include "zlib.h"
+
+#include <fstream>
+#include <iostream>
 
 namespace mgard_common {
 
