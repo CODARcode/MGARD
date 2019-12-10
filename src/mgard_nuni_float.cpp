@@ -55,28 +55,6 @@ int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, int &nfib,
   }
 }
 
-bool is_2kplus1(float num) {
-  float frac_part, f_level, int_part;
-
-  f_level = std::log2(num - 1);
-  frac_part = modff(f_level, &int_part);
-
-  if (frac_part == 0) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-inline int get_index(const int ncol, const int i, const int j) {
-  return ncol * i + j;
-}
-
-inline int get_index3(const int ncol, const int nfib, const int i, const int j,
-                      const int k) {
-  return (ncol * i + j) * nfib + k;
-}
-
 float max_norm(const std::vector<float> &v) {
   float norm = 0;
 
@@ -4839,23 +4817,6 @@ int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, float &tol,
               << "\n";
     throw std::runtime_error("Too few arguments, exiting...");
   }
-}
-
-bool is_2kplus1(float num) {
-  float frac_part, f_level, int_part;
-
-  f_level = std::log2(num - 1);
-  frac_part = modff(f_level, &int_part);
-
-  if (frac_part == 0) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-inline int get_index(const int ncol, const int i, const int j) {
-  return ncol * i + j;
 }
 
 float max_norm(const std::vector<float> &v) {

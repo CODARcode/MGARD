@@ -72,6 +72,7 @@ find_package(ADIOS2)
 # Set library
 add_library(mgard
   src/mgard.cpp       include/mgard.h
+  src/mgard_mesh.cpp  include/mgard_mesh.hpp
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/mgard_api.cpp  include/mgard_api.h
   src/mgard_nuni.cpp  include/mgard_nuni.h
@@ -110,6 +111,7 @@ install(
 
 install(
   FILES include/mgard.h 
+        include/mgard_mesh.hpp
         include/mgard_compress.hpp
         include/mgard_api.h
         include/mgard_nuni.h
