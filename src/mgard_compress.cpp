@@ -7,9 +7,8 @@
 
 namespace mgard {
 
-void compress_memory_z(
-    void *in_data, size_t in_data_size, std::vector<uint8_t> &out_data
-) {
+void compress_memory_z(void *in_data, size_t in_data_size,
+                       std::vector<uint8_t> &out_data) {
   std::vector<uint8_t> buffer;
 
   const size_t BUFSIZE = 2048 * 1024;
@@ -87,4 +86,4 @@ void decompress_memory_z(const void *src, int srcLen, int *dst, int dstLen) {
   //    return ret;
 }
 
-}
+} // namespace mgard

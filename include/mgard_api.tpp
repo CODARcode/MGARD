@@ -19,8 +19,8 @@
 #include "mgard_nuni_float.h"
 
 template <typename Real>
-unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
-                              int nrow, int ncol, int nfib, Real tol_in)
+unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
+                              int ncol, int nfib, Real tol_in)
 
 // Perform compression preserving the tolerance in the L-infty norm
 {
@@ -53,9 +53,8 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
 }
 
 template <typename Real>
-unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
-                              int nrow, int ncol, int nfib,
-                              std::vector<Real> &coords_x,
+unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
+                              int ncol, int nfib, std::vector<Real> &coords_x,
                               std::vector<Real> &coords_y,
                               std::vector<Real> &coords_z, Real tol)
 // Perform compression preserving the tolerance in the L-infty norm, arbitrary
@@ -89,9 +88,8 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
 }
 
 template <typename Real>
-unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
-                              int nrow, int ncol, int nfib, Real tol_in,
-                              Real s) {
+unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
+                              int ncol, int nfib, Real tol_in, Real s) {
   // Perform compression preserving the tolerance in s norm by defaulting to the
   // s-norm
   Real tol = tol_in;
@@ -128,10 +126,9 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
 // std::vector<Real>), Real s)
 
 template <typename Real>
-unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
-                              int nrow, int ncol, int nfib, Real tol_in,
-                              Real (*qoi)(int, int, int, Real *),
-                              Real s) {
+unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
+                              int ncol, int nfib, Real tol_in,
+                              Real (*qoi)(int, int, int, Real *), Real s) {
   // Perform compression preserving the tolerance in s norm by defaulting to the
   // L-2 norm
   Real tol = tol_in;
@@ -150,7 +147,7 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
     std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
     Real xi_norm = mgard_gen::qoi_norm(nrow, ncol, nfib, coords_x, coords_y,
-                                         coords_z, qoi, s);
+                                       coords_z, qoi, s);
     tol *= xi_norm;
     mgard_compressed_ptr =
         mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, -s);
@@ -168,7 +165,7 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
     std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
     Real xi_norm = mgard_gen::qoi_norm(nrow, ncol, nfib, coords_x, coords_y,
-                                         coords_z, qoi, s);
+                                       coords_z, qoi, s);
     tol *= xi_norm;
 
     mgard_compressed_ptr =
@@ -185,7 +182,7 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
 
 template <typename Real>
 Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
-                         int data_len, int nrow, int ncol, int nfib) {
+                       int data_len, int nrow, int ncol, int nfib) {
   Real *mgard_decompressed_ptr = nullptr;
 
   if (nrow > 1 && ncol > 1 && nfib > 1) {
@@ -193,16 +190,14 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
     assert(ncol > 3);
     assert(nfib > 3);
 
-    mgard_decompressed_ptr = mgard::recompose_udq<Real>(
-        nrow, ncol, nfib, data, data_len
-    );
+    mgard_decompressed_ptr =
+        mgard::recompose_udq<Real>(nrow, ncol, nfib, data, data_len);
     return mgard_decompressed_ptr;
   } else if (nrow > 1 && ncol > 1) {
     assert(nrow > 3);
     assert(ncol > 3);
-    mgard_decompressed_ptr = mgard::recompose_udq_2D<Real>(
-        nrow, ncol, data, data_len
-    );
+    mgard_decompressed_ptr =
+        mgard::recompose_udq_2D<Real>(nrow, ncol, data, data_len);
     //          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol,
     //          data, data_len);
     return mgard_decompressed_ptr;
@@ -217,7 +212,7 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
 
 template <typename Real>
 Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
-                         int data_len, int nrow, int ncol, int nfib, Real s) {
+                       int data_len, int nrow, int ncol, int nfib, Real s) {
 
   Real *mgard_decompressed_ptr = nullptr;
 
@@ -246,8 +241,7 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
 
 template <typename Real>
 Real mgard_compress(int nrow, int ncol, int nfib,
-                    Real (*qoi)(int, int, int, std::vector<Real>),
-                    Real s) {
+                    Real (*qoi)(int, int, int, std::vector<Real>), Real s) {
   std::vector<Real> coords_x(ncol), coords_y(nrow),
       coords_z(nfib); // coordinate arrays
   // dummy equispaced coordinates
@@ -256,7 +250,7 @@ Real mgard_compress(int nrow, int ncol, int nfib,
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
   Real xi_norm = mgard_gen::qoi_norm(nrow, ncol, nfib, coords_x, coords_y,
-                                       coords_z, qoi, s);
+                                     coords_z, qoi, s);
 
   return xi_norm;
 }
@@ -272,15 +266,15 @@ Real mgard_compress(int nrow, int ncol, int nfib,
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
   Real xi_norm = mgard_gen::qoi_norm(nrow, ncol, nfib, coords_x, coords_y,
-                                       coords_z, qoi, s);
+                                     coords_z, qoi, s);
 
   return xi_norm;
 }
 
 template <typename Real>
-unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size,
-                              int nrow, int ncol, int nfib, Real tol_in,
-                              Real norm_of_qoi, Real s) {
+unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
+                              int ncol, int nfib, Real tol_in, Real norm_of_qoi,
+                              Real s) {
   tol_in *= norm_of_qoi;
   return mgard_compress(itype_flag, v, out_size, nrow, ncol, nfib, tol_in, s);
 }

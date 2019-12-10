@@ -5,7 +5,7 @@ namespace mgard_qoi {
 
 template <typename Real>
 Real qoi_ave(const int nrow, const int ncol, const int nfib,
-               std::vector<Real> u) {
+             std::vector<Real> u) {
   Real sum = 0;
 
   for (Real x : u)
