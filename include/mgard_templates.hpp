@@ -6,9 +6,8 @@ namespace mgard
 {
 
 template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22,
-                      Real x1, Real x2, Real y1, Real y2, Real x,
-                      Real y);
+inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+                      Real y1, Real y2, Real x, Real y);
 
 template <typename Real>
 inline Real interp_0d(const Real x1, const Real x2, const Real y1,
@@ -20,8 +19,7 @@ void mass_matrix_multiply(const int l, std::vector<Real> &v);
 template <typename Real>
 void solve_tridiag_M(const int l, std::vector<Real> &v);
 
-template <typename Real>
-void restriction(const int l, std::vector<Real> &v);
+template <typename Real> void restriction(const int l, std::vector<Real> &v);
 
 template <typename Real>
 void interpolate_from_level_nMl(const int l, std::vector<Real> &v);
@@ -37,8 +35,7 @@ template <typename Real>
 void write_level_2D_exc(const int nrow, const int ncol, const int l, Real *v,
                         std::ofstream &outfile);
 
-template <typename Real>
-void pi_lminus1(const int l, std::vector<Real> &v0);
+template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v0);
 
 template <typename Real>
 void pi_Ql(const int nrow, const int ncol, const int l, Real *v,
@@ -65,8 +62,7 @@ void compute_correction_loadv(const int l, std::vector<Real> &v);
 
 template <typename Real>
 void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
-                     const int l, Real *v, Real tol,
-                     const std::string outfile);
+                     const int l, Real *v, Real tol, const std::string outfile);
 
 template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
@@ -101,18 +97,16 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *v,
                            int &outsize, Real tol, Real s);
 
 template <typename Real>
-unsigned char *refactor_qz(int nrow, int ncol, int nfib,
-                           std::vector<Real> &coords_x,
-                           std::vector<Real> &coords_y,
-                           std::vector<Real> &coords_z, const Real *v,
-                           int &outsize, Real tol);
+unsigned char *
+refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
+            std::vector<Real> &coords_y, std::vector<Real> &coords_z,
+            const Real *v, int &outsize, Real tol);
 
 template <typename Real>
-unsigned char *refactor_qz(int nrow, int ncol, int nfib,
-                           std::vector<Real> &coords_x,
-                           std::vector<Real> &coords_y,
-                           std::vector<Real> &coords_z, const Real *v,
-                           int &outsize, Real tol, Real s);
+unsigned char *
+refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
+            std::vector<Real> &coords_y, std::vector<Real> &coords_z,
+            const Real *v, int &outsize, Real tol, Real s);
 
 template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *v, int &outsize,
@@ -137,10 +131,8 @@ Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
                     int data_len);
 
 template <typename Real>
-Real *recompose_udq(int nrow, int ncol, int nfib,
-                    std::vector<Real> &coords_x,
-                    std::vector<Real> &coords_y,
-                    std::vector<Real> &coords_z,
+Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
+                    std::vector<Real> &coords_y, std::vector<Real> &coords_z,
                     unsigned char *data, int data_len);
 
 template <typename Real>
@@ -148,10 +140,8 @@ Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
                     int data_len, Real s);
 
 template <typename Real>
-Real *recompose_udq(int nrow, int ncol, int nfib,
-                    std::vector<Real> &coords_x,
-                    std::vector<Real> &coords_y,
-                    std::vector<Real> &coords_z,
+Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
+                    std::vector<Real> &coords_y, std::vector<Real> &coords_z,
                     unsigned char *data, int data_len, Real s);
 
 template <typename Real>
@@ -171,12 +161,11 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
                        std::vector<Real> &coords_y, unsigned char *data,
                        int data_len, Real s);
 
-//This was originally only declared for double-precision.
+// This was originally only declared for double-precision.
 template <typename Real>
-unsigned char *refactor_qz_1D(int nrow, const Real *v, int &outsize,
-                              Real tol);
+unsigned char *refactor_qz_1D(int nrow, const Real *v, int &outsize, Real tol);
 
-//This was originally only declared for double-precision.
+// This was originally only declared for double-precision.
 template <typename Real>
 Real *recompose_udq_1D(int nrow, unsigned char *data, int data_len);
 

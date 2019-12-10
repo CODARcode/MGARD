@@ -9,7 +9,6 @@
 #define MGARD_FLOAT_H
 // Single-precision/`float` version of header.
 
-
 #include <assert.h>
 #include <sys/stat.h>
 

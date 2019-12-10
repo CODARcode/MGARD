@@ -21,37 +21,33 @@
 #include "mgard_nuni_float.h"
 
 static int log2(int n) {
-    if (n <= 0) {
-        throw std::domain_error("can only take logarithm of positive numbers");
+  if (n <= 0) {
+    throw std::domain_error("can only take logarithm of positive numbers");
+  }
+  int exp;
+  for (exp = -1; n; ++exp, n >>= 1)
+    ;
+  return exp;
+}
+
+static int nlevel_from_size(const int n) { return log2(n - 1); }
+
+static int size_from_nlevel(const int n) { return (1 << n) + 1; }
+
+template <std::size_t N> struct Dimensions2kPlus1 {
+  Dimensions2kPlus1(const std::array<int, N> input_) {
+    nlevel = std::numeric_limits<int>::max();
+    for (std::size_t i = 0; i < N; ++i) {
+      const int exp = nlevel_from_size(input.at(i) = input_.at(i));
+      rnded.at(i) = size_from_nlevel(exp);
+      nlevel = std::min(nlevel, (nlevels.at(i) = exp));
     }
-    int exp;
-    for (exp = -1; n; ++exp, n >>= 1);
-    return exp;
-}
+  }
 
-static int nlevel_from_size(const int n) {
-    return log2(n - 1);
-}
-
-static int size_from_nlevel(const int n) {
-    return (1 << n) + 1;
-}
-
-template <std::size_t N>
-struct Dimensions2kPlus1 {
-    Dimensions2kPlus1(const std::array<int, N> input_) {
-        nlevel = std::numeric_limits<int>::max();
-        for (std::size_t i = 0; i < N; ++i) {
-            const int exp = nlevel_from_size(input.at(i) = input_.at(i));
-            rnded.at(i) = size_from_nlevel(exp);
-            nlevel = std::min(nlevel, (nlevels.at(i) = exp));
-        }
-    }
-
-    std::array<int, N> input;
-    std::array<int, N> rnded;
-    std::array<int, N> nlevels;
-    int nlevel;
+  std::array<int, N> input;
+  std::array<int, N> rnded;
+  std::array<int, N> nlevels;
+  int nlevel;
 };
 
 static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
@@ -63,10 +59,10 @@ static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
   }
 }
 
-//These are also used in `mgard_nuni.cpp` and `mgard_nuni_float.cpp`.
+// These are also used in `mgard_nuni.cpp` and `mgard_nuni_float.cpp`.
 static bool is_2kplus1(const int n) {
-    //Could also use `nlevel_from_size` here.
-    return n == 1 || n == size_from_nlevel(nlevel_from_size(n));
+  // Could also use `nlevel_from_size` here.
+  return n == 1 || n == size_from_nlevel(nlevel_from_size(n));
 }
 
 static inline int get_index(const int ncol, const int i, const int j) {
@@ -92,20 +88,16 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
 
   Real norm = mgard_common::max_norm(v);
 
-  //TODO: in the `float` implementation, we divide by `nlevel + 2`.
+  // TODO: in the `float` implementation, we divide by `nlevel + 2`.
   tol /= dims.nlevel + 1;
 
-  mgard_gen::prep_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::prep_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0],
+                     dims.input[1], dims.input[2], l_target, v.data(), work,
+                     work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::refactor_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::refactor_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                         dims.input[0], dims.input[1], dims.input[2], l_target,
+                         v.data(), work, work2d, coords_x, coords_y, coords_z);
 
   work.clear();
   work2d.clear();
@@ -128,11 +120,10 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
 }
 
 template <typename Real>
-unsigned char *refactor_qz(int nrow, int ncol, int nfib,
-                           std::vector<Real> &coords_x,
-                           std::vector<Real> &coords_y,
-                           std::vector<Real> &coords_z, const Real *u,
-                           int &outsize, Real tol) {
+unsigned char *
+refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
+            std::vector<Real> &coords_y, std::vector<Real> &coords_z,
+            const Real *u, int &outsize, Real tol) {
   std::vector<Real> v(u, u + nrow * ncol * nfib), work(nrow * ncol * nfib),
       work2d(nrow * ncol); // duplicate data and create work array
 
@@ -141,20 +132,16 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib,
 
   Real norm = mgard_common::max_norm(v);
 
-  //TODO: in the `float` implementation, we divide by `nlevel + 2`.
+  // TODO: in the `float` implementation, we divide by `nlevel + 2`.
   tol /= dims.nlevel + 1;
 
-  mgard_gen::prep_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::prep_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0],
+                     dims.input[1], dims.input[2], l_target, v.data(), work,
+                     work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::refactor_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::refactor_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                         dims.input[0], dims.input[1], dims.input[2], l_target,
+                         v.data(), work, work2d, coords_x, coords_y, coords_z);
 
   work.clear();
   work2d.clear();
@@ -195,23 +182,20 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
   Real norm = 1.0;
 
   if (std::abs(s) < 1e-10) {
-      norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol, nfib,
-          v, coords_x, coords_y, coords_z);
+    norm = mgard_gen::ml2_norm3(0, nrow, ncol, nfib, nrow, ncol, nfib, v,
+                                coords_x, coords_y, coords_z);
 
-      norm = std::sqrt(norm/(nrow*nfib*ncol)); //<- quant scaling goes here for s
+    norm = std::sqrt(norm /
+                     (nrow * nfib * ncol)); //<- quant scaling goes here for s
   }
 
-  mgard_gen::prep_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::prep_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0],
+                     dims.input[1], dims.input[2], l_target, v.data(), work,
+                     work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::refactor_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::refactor_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                         dims.input[0], dims.input[1], dims.input[2], l_target,
+                         v.data(), work, work2d, coords_x, coords_y, coords_z);
 
   work.clear();
   work2d.clear();
@@ -219,11 +203,10 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
   int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
-  mgard_gen::quantize_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      dims.nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm, tol
-  );
+  mgard_gen::quantize_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                         dims.input[0], dims.input[1], dims.input[2],
+                         dims.nlevel, v.data(), qv, coords_x, coords_y,
+                         coords_z, s, norm, tol);
 
   std::vector<unsigned char> out_data;
 
@@ -236,11 +219,10 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
 }
 
 template <typename Real>
-unsigned char *refactor_qz(int nrow, int ncol, int nfib,
-                           std::vector<Real> &coords_x,
-                           std::vector<Real> &coords_y,
-                           std::vector<Real> &coords_z, const Real *u,
-                           int &outsize, Real tol, Real s) {
+unsigned char *
+refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
+            std::vector<Real> &coords_y, std::vector<Real> &coords_z,
+            const Real *u, int &outsize, Real tol, Real s) {
   std::vector<Real> v(u, u + nrow * ncol * nfib), work(nrow * ncol * nfib),
       work2d(nrow * ncol); // duplicate data and create work array
 
@@ -250,22 +232,19 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib,
   Real norm = 1.0;
 
   if (std::abs(s) < 1e-10) {
-      norm = mgard_gen::ml2_norm3(0,  nrow,  ncol,  nfib,  nrow,  ncol, nfib,
-          v, coords_x, coords_y, coords_z);
-      norm = std::sqrt(norm/(nrow*nfib*ncol)); //<- quant scaling goes here for s
+    norm = mgard_gen::ml2_norm3(0, nrow, ncol, nfib, nrow, ncol, nfib, v,
+                                coords_x, coords_y, coords_z);
+    norm = std::sqrt(norm /
+                     (nrow * nfib * ncol)); //<- quant scaling goes here for s
   }
 
-  mgard_gen::prep_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::prep_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0],
+                     dims.input[1], dims.input[2], l_target, v.data(), work,
+                     work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::refactor_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::refactor_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                         dims.input[0], dims.input[1], dims.input[2], l_target,
+                         v.data(), work, work2d, coords_x, coords_y, coords_z);
 
   work.clear();
   work2d.clear();
@@ -273,11 +252,10 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib,
   int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
-  mgard_gen::quantize_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      dims.nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm, tol
-  );
+  mgard_gen::quantize_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                         dims.input[0], dims.input[1], dims.input[2],
+                         dims.nlevel, v.data(), qv, coords_x, coords_y,
+                         coords_z, s, norm, tol);
 
   std::vector<unsigned char> out_data;
 
@@ -290,10 +268,9 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib,
 }
 
 template <typename Real>
-unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
-                           int &outsize, Real tol,
-                           Real (*qoi)(int, int, int, std::vector<Real>),
-                           Real s) {
+unsigned char *
+refactor_qz(int nrow, int ncol, int nfib, const Real *u, int &outsize, Real tol,
+            Real (*qoi)(int, int, int, std::vector<Real>), Real s) {
   std::vector<Real> v(u, u + nrow * ncol * nfib), work(nrow * ncol * nfib),
       work2d(nrow * ncol); // duplicate data and create work array
   std::vector<Real> coords_x(ncol), coords_y(nrow),
@@ -320,21 +297,17 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
   //  != 8'
 
   Real norm = mgard_gen::ml2_norm3(0, nrow, ncol, nfib, nrow, ncol, nfib, v,
-                                     coords_x, coords_y, coords_z);
+                                   coords_x, coords_y, coords_z);
 
   norm = std::sqrt(norm) / std::sqrt(nrow * ncol * nfib);
 
-  mgard_gen::prep_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::prep_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0],
+                     dims.input[1], dims.input[2], l_target, v.data(), work,
+                     work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::refactor_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v.data(), work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::refactor_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                         dims.input[0], dims.input[1], dims.input[2], l_target,
+                         v.data(), work, work2d, coords_x, coords_y, coords_z);
 
   work.clear();
   work2d.clear();
@@ -342,11 +315,10 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
   int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
-  mgard_gen::quantize_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      dims.nlevel, v.data(), qv, coords_x, coords_y, coords_z, s, norm, tol
-  );
+  mgard_gen::quantize_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                         dims.input[0], dims.input[1], dims.input[2],
+                         dims.nlevel, v.data(), qv, coords_x, coords_y,
+                         coords_z, s, norm, tol);
 
   std::vector<unsigned char> out_data;
 
@@ -360,7 +332,7 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
 
 template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
-                      int data_len) {
+                    int data_len) {
   int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<Real> coords_x(ncol), coords_y(nrow),
       coords_z(nfib); // coordinate arrays
@@ -385,27 +357,21 @@ Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
 
   mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
 
-  mgard_gen::recompose_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v, work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::recompose_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                          dims.input[0], dims.input[1], dims.input[2], l_target,
+                          v, work, work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::postp_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v, work, coords_x, coords_y, coords_z
-  );
+  mgard_gen::postp_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                      dims.input[0], dims.input[1], dims.input[2], l_target, v,
+                      work, coords_x, coords_y, coords_z);
 
   return v;
 }
 
 template <typename Real>
-Real *recompose_udq(int nrow, int ncol, int nfib,
-                      std::vector<Real> &coords_x,
-                      std::vector<Real> &coords_y,
-                      std::vector<Real> &coords_z, unsigned char *data,
-                      int data_len) {
+Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
+                    std::vector<Real> &coords_y, std::vector<Real> &coords_z,
+                    unsigned char *data, int data_len) {
   int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> out_data(nrow * ncol * nfib + size_ratio);
   std::vector<Real> work(nrow * ncol * nfib),
@@ -421,24 +387,20 @@ Real *recompose_udq(int nrow, int ncol, int nfib,
 
   mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
 
-  mgard_gen::recompose_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v, work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::recompose_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                          dims.input[0], dims.input[1], dims.input[2], l_target,
+                          v, work, work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::postp_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v, work, coords_x, coords_y, coords_z
-  );
+  mgard_gen::postp_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                      dims.input[0], dims.input[1], dims.input[2], l_target, v,
+                      work, coords_x, coords_y, coords_z);
 
   return v;
 }
 
 template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
-                      int data_len, Real s) {
+                    int data_len, Real s) {
   int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<Real> coords_x(ncol), coords_y(nrow),
       coords_z(nfib); // coordinate arrays
@@ -468,10 +430,8 @@ Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
   //    (nrow*ncol*nfib + size_ratio)*sizeof(int) );
 
   mgard_gen::dequantize_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      dims.nlevel, v, out_data, coords_x, coords_y, coords_z, s
-  );
+      dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0], dims.input[1],
+      dims.input[2], dims.nlevel, v, out_data, coords_x, coords_y, coords_z, s);
   //    mgard::dequantize_2D_interleave(nrow, ncol*nfib, v, out_data) ;
 
   //    mgard_common::qread_2D_interleave(nrow,  ncol, nlevel, work.data(),
@@ -487,17 +447,13 @@ Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
   // std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
 
   //    w
-  mgard_gen::recompose_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v, work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::recompose_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                          dims.input[0], dims.input[1], dims.input[2], l_target,
+                          v, work, work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::postp_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v, work, coords_x, coords_y, coords_z
-  );
+  mgard_gen::postp_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                      dims.input[0], dims.input[1], dims.input[2], l_target, v,
+                      work, coords_x, coords_y, coords_z);
 
   //    outfile.write( reinterpret_cast<char*>( v ),
   //    nrow*ncol*nfib*sizeof(Real) ;)
@@ -506,11 +462,9 @@ Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
 //}
 
 template <typename Real>
-Real *recompose_udq(int nrow, int ncol, int nfib,
-                      std::vector<Real> &coords_x,
-                      std::vector<Real> &coords_y,
-                      std::vector<Real> &coords_z, unsigned char *data,
-                      int data_len, Real s) {
+Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
+                    std::vector<Real> &coords_y, std::vector<Real> &coords_z,
+                    unsigned char *data, int data_len, Real s) {
   int size_ratio = sizeof(Real) / sizeof(int);
 
   std::vector<int> out_data(nrow * ncol * nfib + size_ratio);
@@ -532,10 +486,8 @@ Real *recompose_udq(int nrow, int ncol, int nfib,
   //    (nrow*ncol*nfib + size_ratio)*sizeof(int) );
 
   mgard_gen::dequantize_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      dims.nlevel, v, out_data, coords_x, coords_y, coords_z, s
-  );
+      dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0], dims.input[1],
+      dims.input[2], dims.nlevel, v, out_data, coords_x, coords_y, coords_z, s);
   //    mgard::dequantize_2D_interleave(nrow, ncol*nfib, v, out_data) ;
 
   //    mgard_common::qread_2D_interleave(nrow,  ncol, nlevel, work.data(),
@@ -551,17 +503,13 @@ Real *recompose_udq(int nrow, int ncol, int nfib,
   // std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
 
   //    w
-  mgard_gen::recompose_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v, work, work2d, coords_x, coords_y, coords_z
-  );
+  mgard_gen::recompose_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                          dims.input[0], dims.input[1], dims.input[2], l_target,
+                          v, work, work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::postp_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2],
-      dims.input[0], dims.input[1], dims.input[2],
-      l_target, v, work, coords_x, coords_y, coords_z
-  );
+  mgard_gen::postp_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
+                      dims.input[0], dims.input[1], dims.input[2], l_target, v,
+                      work, coords_x, coords_y, coords_z);
 
   //    outfile.write( reinterpret_cast<char*>( v ),
   //    nrow*ncol*nfib*sizeof(Real) ;)
@@ -614,17 +562,13 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
 
     const int l_target = dims.nlevel - 1;
 
-    mgard_2d::mgard_gen::prep_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        l_target, v.data(), work, coords_x, coords_y, row_vec, col_vec
-    );
+    mgard_2d::mgard_gen::prep_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                 dims.input[1], l_target, v.data(), work,
+                                 coords_x, coords_y, row_vec, col_vec);
 
     mgard_2d::mgard_gen::refactor_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        l_target, v.data(), work, coords_x, coords_y, row_vec, col_vec
-    );
+        dims.rnded[0], dims.rnded[1], dims.input[0], dims.input[1], l_target,
+        v.data(), work, coords_x, coords_y, row_vec, col_vec);
 
     work.clear();
     col_vec.clear();
@@ -660,22 +604,18 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 
   const Dimensions2kPlus1<2> dims({nrow, ncol});
 
-  //TODO: in the `float` implementation, we divide by `nlevel + 2`.
+  // TODO: in the `float` implementation, we divide by `nlevel + 2`.
   tol /= dims.nlevel + 1;
 
   const int l_target = dims.nlevel - 1;
 
-  mgard_2d::mgard_gen::prep_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      l_target, v.data(), work, coords_x, coords_y, row_vec, col_vec
-  );
+  mgard_2d::mgard_gen::prep_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                               dims.input[1], l_target, v.data(), work,
+                               coords_x, coords_y, row_vec, col_vec);
 
-  mgard_2d::mgard_gen::refactor_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      l_target, v.data(), work, coords_x, coords_y, row_vec, col_vec
-  );
+  mgard_2d::mgard_gen::refactor_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                   dims.input[1], l_target, v.data(), work,
+                                   coords_x, coords_y, row_vec, col_vec);
 
   work.clear();
   col_vec.clear();
@@ -751,17 +691,13 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
 
     const int l_target = dims.nlevel - 1;
 
-    mgard_2d::mgard_gen::prep_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        l_target, v.data(), work, coords_x, coords_y, row_vec, col_vec
-    );
+    mgard_2d::mgard_gen::prep_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                 dims.input[1], l_target, v.data(), work,
+                                 coords_x, coords_y, row_vec, col_vec);
 
     mgard_2d::mgard_gen::refactor_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        l_target, v.data(), work, coords_x, coords_y, row_vec, col_vec
-    );
+        dims.rnded[0], dims.rnded[1], dims.input[0], dims.input[1], l_target,
+        v.data(), work, coords_x, coords_y, row_vec, col_vec);
 
     work.clear();
     col_vec.clear();
@@ -770,11 +706,9 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(nrow * ncol + size_ratio);
 
-    mgard_gen::quantize_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        dims.nlevel, v.data(), qv, coords_x, coords_y, s, norm, tol
-    );
+    mgard_gen::quantize_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                           dims.input[1], dims.nlevel, v.data(), qv, coords_x,
+                           coords_y, s, norm, tol);
 
     std::vector<unsigned char> out_data;
 
@@ -803,17 +737,13 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 
   const int l_target = dims.nlevel - 1;
 
-  mgard_2d::mgard_gen::prep_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      l_target, v.data(), work, coords_x, coords_y, row_vec, col_vec
-  );
+  mgard_2d::mgard_gen::prep_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                               dims.input[1], l_target, v.data(), work,
+                               coords_x, coords_y, row_vec, col_vec);
 
-  mgard_2d::mgard_gen::refactor_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      l_target, v.data(), work, coords_x, coords_y, row_vec, col_vec
-  );
+  mgard_2d::mgard_gen::refactor_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                   dims.input[1], l_target, v.data(), work,
+                                   coords_x, coords_y, row_vec, col_vec);
 
   work.clear();
   col_vec.clear();
@@ -822,11 +752,9 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
   int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol + size_ratio);
 
-  mgard_gen::quantize_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      dims.nlevel, v.data(), qv, coords_x, coords_y, s, norm, tol
-  );
+  mgard_gen::quantize_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                         dims.input[1], dims.nlevel, v.data(), qv, coords_x,
+                         coords_y, s, norm, tol);
 
   std::vector<unsigned char> out_data;
 
@@ -839,8 +767,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 }
 
 template <typename Real>
-Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
-                         int data_len) {
+Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len) {
   int size_ratio = sizeof(Real) / sizeof(int);
 
   if (is_2kplus1(nrow) && is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
@@ -895,16 +822,12 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
     std::vector<Real> work(nrow * ncol);
 
     mgard_2d::mgard_gen::recompose_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        l_target, v, work, coords_x, coords_y, row_vec, col_vec
-    );
+        dims.rnded[0], dims.rnded[1], dims.input[0], dims.input[1], l_target, v,
+        work, coords_x, coords_y, row_vec, col_vec);
 
-    mgard_2d::mgard_gen::postp_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        l_target, v, work, coords_x, coords_y, row_vec, col_vec
-    );
+    mgard_2d::mgard_gen::postp_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                  dims.input[1], l_target, v, work, coords_x,
+                                  coords_y, row_vec, col_vec);
 
     return v;
   }
@@ -912,12 +835,12 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
 
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
-                         std::vector<Real> &coords_y, unsigned char *data,
-                         int data_len) {
+                       std::vector<Real> &coords_y, unsigned char *data,
+                       int data_len) {
   int size_ratio = sizeof(Real) / sizeof(int);
 
   const Dimensions2kPlus1<2> dims({nrow, ncol});
-  const int l_target = dims.nlevel-1;
+  const int l_target = dims.nlevel - 1;
 
   std::vector<int> out_data(nrow * ncol + size_ratio);
 
@@ -933,24 +856,20 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
   std::vector<Real> col_vec(nrow);
   std::vector<Real> work(nrow * ncol);
 
-  mgard_2d::mgard_gen::recompose_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      l_target, v, work, coords_x, coords_y, row_vec, col_vec
-  );
+  mgard_2d::mgard_gen::recompose_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                    dims.input[1], l_target, v, work, coords_x,
+                                    coords_y, row_vec, col_vec);
 
-  mgard_2d::mgard_gen::postp_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      l_target, v, work, coords_x, coords_y, row_vec, col_vec
-  );
+  mgard_2d::mgard_gen::postp_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                dims.input[1], l_target, v, work, coords_x,
+                                coords_y, row_vec, col_vec);
 
   return v;
 }
 
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
-                         Real s) {
+                       Real s) {
   int size_ratio = sizeof(Real) / sizeof(int);
 
   if (is_2kplus1(nrow) && is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
@@ -1004,27 +923,21 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
 
     Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
 
-    mgard_gen::dequantize_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        dims.nlevel, v, out_data, coords_x, coords_y, s
-    );
+    mgard_gen::dequantize_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                             dims.input[1], dims.nlevel, v, out_data, coords_x,
+                             coords_y, s);
 
     std::vector<Real> row_vec(ncol);
     std::vector<Real> col_vec(nrow);
     std::vector<Real> work(nrow * ncol);
 
     mgard_2d::mgard_gen::recompose_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        l_target, v, work, coords_x, coords_y, row_vec, col_vec
-    );
+        dims.rnded[0], dims.rnded[1], dims.input[0], dims.input[1], l_target, v,
+        work, coords_x, coords_y, row_vec, col_vec);
 
-    mgard_2d::mgard_gen::postp_2D(
-        dims.rnded[0], dims.rnded[1],
-        dims.input[0], dims.input[1],
-        l_target, v, work, coords_x, coords_y, row_vec, col_vec
-    );
+    mgard_2d::mgard_gen::postp_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                  dims.input[1], l_target, v, work, coords_x,
+                                  coords_y, row_vec, col_vec);
 
     return v;
   }
@@ -1032,8 +945,8 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
 
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
-                         std::vector<Real> &coords_y, unsigned char *data,
-                         int data_len, Real s) {
+                       std::vector<Real> &coords_y, unsigned char *data,
+                       int data_len, Real s) {
   int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> out_data(nrow * ncol + size_ratio);
 
@@ -1045,27 +958,21 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 
   Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
 
-  mgard_gen::dequantize_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      dims.nlevel, v, out_data, coords_x, coords_y, s
-  );
+  mgard_gen::dequantize_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                           dims.input[1], dims.nlevel, v, out_data, coords_x,
+                           coords_y, s);
 
   std::vector<Real> row_vec(ncol);
   std::vector<Real> col_vec(nrow);
   std::vector<Real> work(nrow * ncol);
 
-  mgard_2d::mgard_gen::recompose_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      l_target, v, work, coords_x, coords_y, row_vec, col_vec
-  );
+  mgard_2d::mgard_gen::recompose_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                    dims.input[1], l_target, v, work, coords_x,
+                                    coords_y, row_vec, col_vec);
 
-  mgard_2d::mgard_gen::postp_2D(
-      dims.rnded[0], dims.rnded[1],
-      dims.input[0], dims.input[1],
-      l_target, v, work, coords_x, coords_y, row_vec, col_vec
-  );
+  mgard_2d::mgard_gen::postp_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
+                                dims.input[1], l_target, v, work, coords_x,
+                                coords_y, row_vec, col_vec);
 
   return v;
 }
@@ -1112,7 +1019,7 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 //     {
 //       std::vector<Real> coords_x;
 
-//This looks wrong: `nc` depends on `nrow`, not `ncol`.
+// This looks wrong: `nc` depends on `nrow`, not `ncol`.
 //       int nlevel = std::log2(nrow-1);
 //       int nc = std::pow(2, nlevel ) + 1; //ncol new
 // k
@@ -1235,8 +1142,7 @@ void solve_tridiag_M(const int l, std::vector<Real> &v) {
   }
 }
 
-template <typename Real>
-void restriction(const int l, std::vector<Real> &v) {
+template <typename Real> void restriction(const int l, std::vector<Real> &v) {
   int stride = std::pow(2, l);
   int Pstride = stride / 2;
 
@@ -1318,8 +1224,7 @@ void write_level_2D_exc(const int nrow, const int ncol, const int l, Real *v,
   }
 }
 
-template <typename Real>
-void pi_lminus1(const int l, std::vector<Real> &v0) {
+template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v0) {
   int nlevel = nlevel_from_size(v0.size());
   int my_level = nlevel - l;
   int stride = std::pow(2, l); // current stride
@@ -1803,9 +1708,8 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
 }
 
 template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22,
-                        Real x1, Real x2, Real y1, Real y2, Real x,
-                        Real y) {
+inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+                      Real y1, Real y2, Real x, Real y) {
   Real x2x1, y2y1, x2x, y2y, yy1, xx1;
   x2x1 = x2 - x1;
   y2y1 = y2 - y1;
@@ -1820,7 +1724,7 @@ inline Real interp_2d(Real q11, Real q12, Real q21, Real q22,
 
 template <typename Real>
 inline Real interp_0d(const Real x1, const Real x2, const Real y1,
-                        const Real y2, const Real x) {
+                      const Real y2, const Real x) {
   // do a linear interpolation between (x1, y1) and (x2, y2)
   return (((x2 - x) * y1 + (x - x1) * y2) / (x2 - x1));
 }
@@ -1830,7 +1734,7 @@ void resample_1d(const Real *inbuf, Real *outbuf, const int ncol,
                  const int ncol_new) {
   Real hx_o = 1.0 / Real(ncol - 1);
   Real hx = 1.0 / Real(ncol_new - 1); // x-spacing
-  Real hx_ratio = (hx_o / hx);          // ratio of x-spacing resampled/orig
+  Real hx_ratio = (hx_o / hx);        // ratio of x-spacing resampled/orig
 
   for (int icol = 0; icol < ncol_new - 1; ++icol) {
     int i_left = floor(icol / hx_ratio);
@@ -1857,7 +1761,7 @@ void resample_1d_inv2(const Real *inbuf, Real *outbuf, const int ncol,
                       const int ncol_new) {
   Real hx_o = 1.0 / Real(ncol - 1);
   Real hx = 1.0 / Real(ncol_new - 1); // x-spacing
-  Real hx_ratio = (hx_o / hx);          // ratio of x-spacing resampled/orig
+  Real hx_ratio = (hx_o / hx);        // ratio of x-spacing resampled/orig
 
   for (int icol = 0; icol < ncol_new - 1; ++icol) {
     int i_left = floor(icol / hx_ratio);
@@ -1891,11 +1795,11 @@ void resample_2d(const Real *inbuf, Real *outbuf, const int nrow,
                  const int ncol, const int nrow_new, const int ncol_new) {
   Real hx_o = 1.0 / Real(ncol - 1);
   Real hx = 1.0 / Real(ncol_new - 1); // x-spacing
-  Real hx_ratio = (hx_o / hx);          // ratio of x-spacing resampled/orig
+  Real hx_ratio = (hx_o / hx);        // ratio of x-spacing resampled/orig
 
   Real hy_o = 1.0 / Real(nrow - 1);
   Real hy = 1.0 / Real(nrow_new - 1); // x-spacing
-  Real hy_ratio = (hy_o / hy);          // ratio of x-spacing resampled/orig
+  Real hy_ratio = (hy_o / hy);        // ratio of x-spacing resampled/orig
 
   for (int irow = 0; irow < nrow_new - 1; ++irow) {
     int i_bot = floor(irow / hy_ratio);
@@ -1939,11 +1843,11 @@ void resample_2d_inv2(const Real *inbuf, Real *outbuf, const int nrow,
                       const int ncol, const int nrow_new, const int ncol_new) {
   Real hx_o = 1.0 / Real(ncol - 1);
   Real hx = 1.0 / Real(ncol_new - 1); // x-spacing
-  Real hx_ratio = (hx_o / hx);          // ratio of x-spacing resampled/orig
+  Real hx_ratio = (hx_o / hx);        // ratio of x-spacing resampled/orig
 
   Real hy_o = 1.0 / Real(nrow - 1);
   Real hy = 1.0 / Real(nrow_new - 1); // x-spacing
-  Real hy_ratio = (hy_o / hy);          // ratio of x-spacing resampled/orig
+  Real hy_ratio = (hy_o / hy);        // ratio of x-spacing resampled/orig
 
   for (int irow = 0; irow < nrow_new - 1; ++irow) {
     int i_bot = floor(irow / hy_ratio);
