@@ -13,60 +13,20 @@
 
 #include <cstddef>
 
-#include <array>
 #include <stdexcept>
 
 #include "mgard_compress.hpp"
+#include "mgard_mesh.hpp"
 #include "mgard_nuni.h"
 #include "mgard_nuni_float.h"
-
-static int log2(int n) {
-  if (n <= 0) {
-    throw std::domain_error("can only take logarithm of positive numbers");
-  }
-  int exp;
-  for (exp = -1; n; ++exp, n >>= 1)
-    ;
-  return exp;
-}
-
-static int nlevel_from_size(const int n) { return log2(n - 1); }
-
-static int size_from_nlevel(const int n) { return (1 << n) + 1; }
-
-template <std::size_t N> struct Dimensions2kPlus1 {
-  Dimensions2kPlus1(const std::array<int, N> input_) {
-    nlevel = std::numeric_limits<int>::max();
-    for (std::size_t i = 0; i < N; ++i) {
-      const int exp = nlevel_from_size(input.at(i) = input_.at(i));
-      rnded.at(i) = size_from_nlevel(exp);
-      nlevel = std::min(nlevel, (nlevels.at(i) = exp));
-    }
-  }
-
-  std::array<int, N> input;
-  std::array<int, N> rnded;
-  std::array<int, N> nlevels;
-  int nlevel;
-};
 
 static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
   // set the depth of levels in isotropic case
   if (nrow == 1) {
-    nlevel = Dimensions2kPlus1<1>({ncol}).nlevel;
+    nlevel = mgard::Dimensions2kPlus1<1>({ncol}).nlevel;
   } else if (nrow > 1) {
-    nlevel = Dimensions2kPlus1<2>({nrow, ncol}).nlevel;
+    nlevel = mgard::Dimensions2kPlus1<2>({nrow, ncol}).nlevel;
   }
-}
-
-// These are also used in `mgard_nuni.cpp` and `mgard_nuni_float.cpp`.
-static bool is_2kplus1(const int n) {
-  // Could also use `nlevel_from_size` here.
-  return n == 1 || n == size_from_nlevel(nlevel_from_size(n));
-}
-
-static inline int get_index(const int ncol, const int i, const int j) {
-  return ncol * i + j;
 }
 
 namespace mgard {

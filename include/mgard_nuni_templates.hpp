@@ -8,13 +8,6 @@ int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, int &nfib,
                Real &tol, Real &s, std::string &in_file,
                std::string &coord_file);
 
-template <typename Real> bool is_2kplus1(Real num);
-
-inline int get_index(const int ncol, const int i, const int j);
-
-inline int get_index3(const int ncol, const int nfib, const int i, const int j,
-                      const int k);
-
 template <typename Real> Real max_norm(const std::vector<Real> &v);
 
 template <typename Real>
@@ -127,8 +120,6 @@ namespace mgard_gen {
 template <typename Real>
 inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
                      const int i); // return reference to logical element
-
-inline int get_lindex(const int n, const int no, const int i);
 
 template <typename Real>
 inline Real get_h_l(const std::vector<Real> &coords, const int n, const int no,
@@ -458,10 +449,6 @@ template <typename Real>
 int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
                std::string &in_file, std::string &coord_file);
 
-template <typename Real> bool is_2kplus1(Real num);
-
-inline int get_index(const int ncol, const int i, const int j);
-
 template <typename Real> Real max_norm(const std::vector<Real> &v);
 
 template <typename Real>
@@ -530,8 +517,6 @@ namespace mgard_gen {
 template <typename Real>
 inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
                      const int i);
-
-inline int get_lindex(const int n, const int no, const int i);
 
 template <typename Real>
 inline Real get_h_l(const std::vector<Real> &coords, const int n, const int no,

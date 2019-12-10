@@ -8,11 +8,7 @@
 
 #include "mgard_api.h"
 #include "mgard_api_float.h"
-
-inline int get_index3(const int ncol, const int nfib, const int i, const int j,
-                      const int k) {
-  return (ncol * i + j) * nfib + k;
-}
+#include "mgard_mesh.hpp"
 
 double qoi_x(const int nrow, const int ncol, const int nfib,
              std::vector<double> u) {
@@ -22,7 +18,7 @@ double qoi_x(const int nrow, const int ncol, const int nfib,
   for (int irow = 0; irow < nrow; ++irow) {
     for (int jcol = 0; jcol < ncol; ++jcol) {
       for (int kfib = 0; kfib < nfib; ++kfib) {
-        if (u[get_index3(ncol, nfib, irow, jcol, kfib)] != 0)
+        if (u[mgard::get_index3(ncol, nfib, irow, jcol, kfib)] != 0)
           return jcol;
       }
     }
@@ -50,15 +46,15 @@ double qoi_one(const int nrow, const int ncol, const int nfib,
     for (int jcol = 0; jcol < ncol; ++jcol) {
       for (int kfib = 0; kfib < nfib; ++kfib) {
         if ((irow == 0 || irow == nrow - 1) &&
-            (u[get_index3(ncol, nfib, irow, jcol, kfib)] != 0))
+            (u[mgard::get_index3(ncol, nfib, irow, jcol, kfib)] != 0))
           ++type_indicator;
 
         if ((jcol == 0 || jcol == ncol - 1) &&
-            (u[get_index3(ncol, nfib, irow, jcol, kfib)] != 0))
+            (u[mgard::get_index3(ncol, nfib, irow, jcol, kfib)] != 0))
           ++type_indicator;
 
         if ((kfib == 0 || kfib == nfib - 1) &&
-            (u[get_index3(ncol, nfib, irow, jcol, kfib)] != 0))
+            (u[mgard::get_index3(ncol, nfib, irow, jcol, kfib)] != 0))
           ++type_indicator;
       }
     }
