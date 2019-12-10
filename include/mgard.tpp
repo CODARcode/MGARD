@@ -9,16 +9,15 @@
 #define MGARD_TPP
 
 #include "mgard.h"
-#include "mgard_float.h"
 
 #include <cstddef>
 
+#include <numeric>
 #include <stdexcept>
 
 #include "mgard_compress.hpp"
 #include "mgard_mesh.hpp"
 #include "mgard_nuni.h"
-#include "mgard_nuni_float.h"
 
 static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
   // set the depth of levels in isotropic case

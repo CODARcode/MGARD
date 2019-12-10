@@ -29,7 +29,7 @@ vpath %.o $(OBJ)
 vpath %.cpp $(SRC)
 
 
-SOURCES=mgard_test.cpp mgard_api.cpp mgard.cpp mgard_mesh.cpp mgard_compress.cpp mgard_nuni.cpp mgard_api_float.cpp mgard_float.cpp mgard_nuni_float.cpp
+SOURCES=mgard_test.cpp mgard_api.cpp mgard.cpp mgard_mesh.cpp mgard_compress.cpp mgard_nuni.cpp
 OBJECTS=$(foreach SOURCE,$(basename $(SOURCES)),$(OBJ)/$(SOURCE).o)
 
 EXECUTABLE=mgard_test

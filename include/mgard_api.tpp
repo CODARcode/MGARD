@@ -14,9 +14,7 @@
 #include <numeric>
 
 #include "mgard.h"
-#include "mgard_float.h"
 #include "mgard_nuni.h"
-#include "mgard_nuni_float.h"
 
 template <typename Real>
 unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
