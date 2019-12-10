@@ -7,7 +7,6 @@
 #include <dlfcn.h> // dlopen
 
 #include "mgard_api.h"
-#include "mgard_api_float.h"
 #include "mgard_mesh.hpp"
 
 double qoi_x(const int nrow, const int ncol, const int nfib,
