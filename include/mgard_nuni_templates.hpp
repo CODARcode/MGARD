@@ -440,9 +440,11 @@ template <typename Real>
 Real qoi_norm(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
               std::vector<Real> &coords_y, std::vector<Real> &coords_z,
               Real (*qoi)(int, int, int, Real *), Real s);
+
 } // namespace mgard_gen
 
 namespace mgard_2d {
+
 namespace mgard_common {
 
 template <typename Real>
@@ -624,3 +626,5 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
 } // namespace mgard_gen
 
 } // namespace mgard_2d
+
+#include "mgard_nuni.tpp"
