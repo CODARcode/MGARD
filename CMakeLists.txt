@@ -125,23 +125,20 @@ if(BUILD_TESTING)
   add_subdirectory(tests)
 
   add_test(NAME mgard_test1
-    COMMAND mgard_test 0
+    COMMAND mgard_test double
       ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513.mgard
       513 513 1 1e-2 0 
   )
   
   add_test(NAME mgard_test2
-    COMMAND mgard_test 0
+    COMMAND mgard_test double
       ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400.mgard
       600 400 1 1e-2 1 
   )
 
   add_test(NAME mgard_test3
-    COMMAND mgard_test 0
+    COMMAND mgard_test double
       ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.dat
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.mgard
       11 160 15 1e-3 2 
   )
 endif()
