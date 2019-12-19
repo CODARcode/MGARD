@@ -26,41 +26,6 @@
 
 namespace mgard_common {
 
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, int &nfib,
-               Real &tol, Real &s, std::string &in_file,
-               std::string &coord_file) {
-  if (argc >= 7) {
-    in_file = argv[1];
-    coord_file = argv[2];
-    nrow = strtol((argv[3]), NULL, 0); // number of rows
-    ncol = strtol((argv[4]), NULL, 0); // number of columns
-    nfib = strtol((argv[5]), NULL, 0); // number of columns
-    tol = strtod((argv[6]), 0);        // error tolerance
-    s = strtod((argv[7]), 0);          // norm to compress in
-
-    assert(in_file.size() != 0);
-    assert(ncol > 3);
-    assert(nrow >= 1);
-    //        assert( tol  >= 1e-8);
-
-    struct stat file_stats;
-    int flag = stat(in_file.c_str(), &file_stats);
-
-    if (flag != 0) // can't stat file somehow
-    {
-      throw std::runtime_error(
-          "Cannot stat input file! Nothing to be done, exiting...");
-    }
-
-    return 1;
-  } else {
-    std::cerr << "Usage: " << argv[0] << " inputfile nrow ncol tol"
-              << "\n";
-    throw std::runtime_error("Too few arguments, exiting...");
-  }
-}
-
 template <typename Real> Real max_norm(const std::vector<Real> &v) {
   Real norm = 0;
 
@@ -4678,38 +4643,6 @@ Real qoi_norm(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 namespace mgard_2d {
 
 namespace mgard_common {
-
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
-               std::string &in_file, std::string &coord_file) {
-  if (argc >= 5) {
-    in_file = argv[1];
-    coord_file = argv[2];
-    nrow = strtol((argv[3]), NULL, 0); // number of rows
-    ncol = strtol((argv[4]), NULL, 0); // number of columns
-    tol = strtod((argv[5]), 0);        // error tolerance
-
-    assert(in_file.size() != 0);
-    assert(ncol > 3);
-    assert(nrow >= 1);
-    assert(tol >= 1e-8);
-
-    struct stat file_stats;
-    int flag = stat(in_file.c_str(), &file_stats);
-
-    if (flag != 0) // can't stat file somehow
-    {
-      throw std::runtime_error(
-          "Cannot stat input file! Nothing to be done, exiting...");
-    }
-
-    return 1;
-  } else {
-    std::cerr << "Usage: " << argv[0] << " inputfile nrow ncol tol"
-              << "\n";
-    throw std::runtime_error("Too few arguments, exiting...");
-  }
-}
 
 template <typename Real> Real max_norm(const std::vector<Real> &v) {
   Real norm = 0;

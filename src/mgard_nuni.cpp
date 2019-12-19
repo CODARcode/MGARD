@@ -2,16 +2,6 @@
 
 namespace mgard_common {
 
-template <>
-int parse_cmdl<float>(int argc, char **argv, int &nrow, int &ncol, int &nfib,
-                      float &tol, float &s, std::string &in_file,
-                      std::string &coord_file);
-
-template <>
-int parse_cmdl<double>(int argc, char **argv, int &nrow, int &ncol, int &nfib,
-                       double &tol, double &s, std::string &in_file,
-                       std::string &coord_file);
-
 template <> float max_norm<float>(const std::vector<float> &v);
 
 template <> double max_norm<double>(const std::vector<double> &v);
@@ -987,14 +977,6 @@ qoi_norm<double>(int nrow, int ncol, int nfib, std::vector<double> &coords_x,
 namespace mgard_2d {
 
 namespace mgard_common {
-
-template <>
-int parse_cmdl<float>(int argc, char **argv, int &nrow, int &ncol, float &tol,
-                      std::string &in_file, std::string &coord_file);
-
-template <>
-int parse_cmdl<double>(int argc, char **argv, int &nrow, int &ncol, double &tol,
-                       std::string &in_file, std::string &coord_file);
 
 template <> float max_norm<float>(const std::vector<float> &v);
 

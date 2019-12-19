@@ -13,11 +13,6 @@
 
 namespace mgard_common {
 
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, int &nfib,
-               Real &tol, Real &s, std::string &in_file,
-               std::string &coord_file);
-
 template <typename Real> Real max_norm(const std::vector<Real> &v);
 
 template <typename Real>
@@ -456,10 +451,6 @@ Real qoi_norm(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 namespace mgard_2d {
 
 namespace mgard_common {
-
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
-               std::string &in_file, std::string &coord_file);
 
 template <typename Real> Real max_norm(const std::vector<Real> &v);
 

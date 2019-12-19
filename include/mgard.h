@@ -182,9 +182,6 @@ unsigned char *refactor_qz_1D(int ncol, const Real *v, int &outsize, Real tol);
 template <typename Real>
 Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len);
 
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
-               std::string &in_file);
 // Gary new
 template <typename Real>
 void refactor_1D(const int ncol, const int l_target, Real *v,

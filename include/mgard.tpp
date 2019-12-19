@@ -1142,37 +1142,6 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 // }
 
 template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
-               std::string &in_file) {
-  if (argc >= 5) {
-    in_file = argv[1];
-    nrow = strtol((argv[2]), NULL, 0); // number of rows
-    ncol = strtol((argv[3]), NULL, 0); // number of columns
-    tol = strtod((argv[4]), 0);        // error tolerance
-
-    assert(in_file.size() != 0);
-    assert(ncol > 3);
-    assert(nrow >= 1);
-    assert(tol >= 1e-8);
-
-    struct stat file_stats;
-    int flag = stat(in_file.c_str(), &file_stats);
-
-    if (flag != 0) // can't stat file somehow
-    {
-      throw std::runtime_error(
-          "Cannot stat input file! Nothing to be done, exiting...");
-    }
-
-    return 1;
-  } else {
-    std::cerr << "Usage: " << argv[0] << " inputfile nrow ncol tol"
-              << "\n";
-    throw std::runtime_error("Too few arguments, exiting...");
-  }
-}
-
-template <typename Real>
 void mass_matrix_multiply(const int l, std::vector<Real> &v) {
 
   int stride = std::pow(2, l);

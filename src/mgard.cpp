@@ -356,14 +356,6 @@ template <>
 double *recompose_udq_1D<double>(int nrow, unsigned char *data, int data_len);
 
 template <>
-int parse_cmdl<float>(int argc, char **argv, int &nrow, int &ncol, float &tol,
-                      std::string &in_file);
-
-template <>
-int parse_cmdl<double>(int argc, char **argv, int &nrow, int &ncol, double &tol,
-                       std::string &in_file);
-
-template <>
 void refactor<float>(const int nrow, const int ncol, const int l_target,
                      float *v, std::vector<float> &work,
                      std::vector<float> &row_vec, std::vector<float> &col_vec);
