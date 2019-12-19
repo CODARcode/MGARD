@@ -16,14 +16,11 @@ template <std::size_t N> struct Dimensions2kPlus1 {
   int nlevel;
 };
 
-template
-struct Dimensions2kPlus1<1>;
+template struct Dimensions2kPlus1<1>;
 
-template
-struct Dimensions2kPlus1<2>;
+template struct Dimensions2kPlus1<2>;
 
-template
-struct Dimensions2kPlus1<3>;
+template struct Dimensions2kPlus1<3>;
 
 // As of this writing, these are only needed in the implementations of the
 //`Dimensions2kPlus1` constructor and `is_2kplus1`.

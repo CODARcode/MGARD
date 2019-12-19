@@ -1807,7 +1807,8 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
               col_vec); //(I-\Pi u) this is the initial move to 2^k+1 nodes
 
   mgard_cannon::copy_level(nrow, ncol, l, v, work);
-  mgard_gen::assign_num_level_l(0, work.data(), 0.0, nr, nc, nrow, ncol);
+  mgard_gen::assign_num_level_l(0, work.data(), static_cast<Real>(0.0), nr, nc,
+                                nrow, ncol);
 
   // row-sweep
   for (int irow = 0; irow < nrow; ++irow) {
@@ -2924,7 +2925,8 @@ void recompose_2D_full(const int nr, const int nc, const int nrow,
     int Pstride = stride / 2;
 
     copy_level_l(l - 1, v, work.data(), nr, nc, nrow, ncol);
-    assign_num_level_l(l, work.data(), 0.0, nr, nc, nrow, ncol);
+    assign_num_level_l(l, work.data(), static_cast<Real>(0.0), nr, nc, nrow,
+                       ncol);
 
     for (int irow = 0; irow < nr; ++irow) {
       int ir = mgard::get_lindex(nr, nrow, irow);
@@ -2996,7 +2998,7 @@ void recompose_2D_full(const int nr, const int nc, const int nrow,
       }
     }
 
-    assign_num_level_l(l, v, 0.0, nr, nc, nrow, ncol);
+    assign_num_level_l(l, v, static_cast<Real>(0.0), nr, nc, nrow, ncol);
     subtract_level_l(l - 1, v, work.data(), nr, nc, nrow, ncol);
   }
 }
@@ -3008,7 +3010,8 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
               std::vector<Real> &row_vec, std::vector<Real> &col_vec) {
   mgard_cannon::copy_level(nrow, ncol, 0, v, work);
 
-  assign_num_level_l(0, work.data(), 0.0, nr, nc, nrow, ncol);
+  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), nr, nc, nrow,
+                     ncol);
 
   for (int irow = 0; irow < nrow; ++irow) {
     for (int jcol = 0; jcol < ncol; ++jcol) {
@@ -3107,7 +3110,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
 
   //     //std::cout  << "last step" << "\n";
 
-  assign_num_level_l(0, v, 0.0, nr, nc, nrow, ncol);
+  assign_num_level_l(0, v, static_cast<Real>(0.0), nr, nc, nrow, ncol);
   mgard_cannon::subtract_level(nrow, ncol, 0, v, work.data());
 }
 
@@ -5078,8 +5081,8 @@ void pi_lminus1_first(std::vector<Real> &v, const std::vector<Real> &coords,
 }
 
 template <typename Real>
-void pi_Ql_first(const int nc, const int ncol,
-                 const int l, Real *v, const std::vector<Real> &coords_x,
+void pi_Ql_first(const int nc, const int ncol, const int l, Real *v,
+                 const std::vector<Real> &coords_x,
                  std::vector<Real> &row_vec) {
   // Restrict data to coarser level
 
@@ -5096,7 +5099,7 @@ void pi_Ql_first(const int nc, const int ncol,
   pi_lminus1_first(row_vec, coords_x, nc, ncol);
 
   for (int jcol = 0; jcol < ncol; ++jcol) {
-      //            int jcol_r = mgard::get_lindex(nc, ncol, jcol);
+    //            int jcol_r = mgard::get_lindex(nc, ncol, jcol);
     v[jcol] = row_vec[jcol];
   }
 }
@@ -5195,9 +5198,8 @@ void pi_Ql_first(const int nr, const int nc, const int nrow, const int ncol,
 }
 
 template <typename Real>
-void pi_Ql(const int nc, const int ncol,
-           const int l, Real *v, const std::vector<Real> &coords_x,
-           std::vector<Real> &row_vec) {
+void pi_Ql(const int nc, const int ncol, const int l, Real *v,
+           const std::vector<Real> &coords_x, std::vector<Real> &row_vec) {
   // Restrict data to coarser level
 
   int stride = std::pow(2, l); // current stride
@@ -5424,19 +5426,18 @@ void project_first(const int nr, const int nc, const int nrow, const int ncol,
                    std::vector<Real> &row_vec, std::vector<Real> &col_vec) {}
 
 template <typename Real>
-void prep_1D(const int nc, const int ncol,
-             const int l_target, Real *v, std::vector<Real> &work,
-             std::vector<Real> &coords_x,
+void prep_1D(const int nc, const int ncol, const int l_target, Real *v,
+             std::vector<Real> &work, std::vector<Real> &coords_x,
              std::vector<Real> &row_vec) {
 
   int l = 0;
   //    int stride = 1;
-  pi_Ql_first(nc,  ncol, l, v, coords_x, row_vec); //(I-\Pi)u this is the initial move to 2^k+1 nodes
+  pi_Ql_first(nc, ncol, l, v, coords_x,
+              row_vec); //(I-\Pi)u this is the initial move to 2^k+1 nodes
 
   mgard_cannon::copy_level(1, ncol, 0, v, work);
 
-  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1,
-                     ncol);
+  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1, ncol);
 
   for (int jcol = 0; jcol < ncol; ++jcol) {
     row_vec[jcol] = work[jcol];
@@ -5609,9 +5610,8 @@ void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
 
 // Gary old branch.
 template <typename Real>
-void refactor_1D(const int nc, const int ncol,
-                 const int l_target, Real *v, std::vector<Real> &work,
-                 std::vector<Real> &coords_x,
+void refactor_1D(const int nc, const int ncol, const int l_target, Real *v,
+                 std::vector<Real> &work, std::vector<Real> &coords_x,
                  std::vector<Real> &row_vec) {
   for (int l = 0; l < l_target; ++l) {
     int stride = std::pow(2, l); // current stride
@@ -5619,7 +5619,8 @@ void refactor_1D(const int nc, const int ncol,
 
     // -> change funcs in pi_QL to use _l functions, otherwise distances are
     // wrong!!!
-    pi_Ql(nc, ncol, l, v, coords_x, row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
+    pi_Ql(nc, ncol, l, v, coords_x,
+          row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
 
     copy_level_l(l, v, work.data(), 1, nc, 1, ncol);
     assign_num_level_l(l + 1, work.data(), static_cast<Real>(0.0), 1, nc, 1,
@@ -5707,9 +5708,9 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
 }
 
 template <typename Real>
-void recompose_1D(const int nc, const int ncol,
-                  const int l_target, Real *v, std::vector<Real> &work,
-                  std::vector<Real> &coords_x, std::vector<Real> &row_vec) {
+void recompose_1D(const int nc, const int ncol, const int l_target, Real *v,
+                  std::vector<Real> &work, std::vector<Real> &coords_x,
+                  std::vector<Real> &row_vec) {
   for (int l = l_target; l > 0; --l) {
 
     int stride = std::pow(2, l); // current stride
@@ -5717,8 +5718,7 @@ void recompose_1D(const int nc, const int ncol,
 
     copy_level_l(l - 1, v, work.data(), 1, nc, 1, ncol);
 
-    assign_num_level_l(l, work.data(), static_cast<Real>(0.0), 1, nc, 1,
-                       ncol);
+    assign_num_level_l(l, work.data(), static_cast<Real>(0.0), 1, nc, 1, ncol);
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       row_vec[jcol] = work[jcol];
@@ -5882,13 +5882,12 @@ void prolongate_last(std::vector<Real> &v, std::vector<Real> &coords, int n,
 }
 
 template <typename Real>
-void postp_1D(const int nc, const int ncol,
-              const int l_target, Real *v, std::vector<Real> &work,
-              std::vector<Real> &coords_x, std::vector<Real> &row_vec) {
+void postp_1D(const int nc, const int ncol, const int l_target, Real *v,
+              std::vector<Real> &work, std::vector<Real> &coords_x,
+              std::vector<Real> &row_vec) {
   mgard_cannon::copy_level(1, ncol, 0, v, work);
 
-  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1,
-                     ncol);
+  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1, ncol);
 
   for (int jcol = 0; jcol < ncol; ++jcol) {
     row_vec[jcol] = work[jcol];

@@ -202,13 +202,6 @@ void dequantize_2D(const int nr, const int nc, const int nrow, const int ncol,
                    const std::vector<Real> &coords_y, Real s);
 
 template <typename Real>
-void dequant_3D(const int nr, const int nc, const int nf, const int nrow,
-                const int ncol, const int nfib, const int nlevel, const int l,
-                Real *v, Real *work, const std::vector<Real> &coords_x,
-                const std::vector<Real> &coords_y,
-                const std::vector<Real> &coords_z, Real s);
-
-template <typename Real>
 void copy_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
                   int ncol);
 
@@ -289,12 +282,6 @@ void sub_level_l(const int l, Real *v, Real *work, int nr, int nc, int nf,
                  int nrow, int ncol, int nfib);
 
 template <typename Real>
-void project_first(const int nr, const int nc, const int nrow, const int ncol,
-                   const int l_target, Real *v, std::vector<Real> &work,
-                   std::vector<Real> &coords_x, std::vector<Real> &coords_y,
-                   std::vector<Real> &row_vec, std::vector<Real> &col_vec);
-
-template <typename Real>
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              const int l_target, Real *v, std::vector<Real> &work,
              std::vector<Real> &coords_x, std::vector<Real> &coords_y,
@@ -319,22 +306,10 @@ void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
                   int n, int no);
 
 template <typename Real>
-void refactor_1D(const int l_target, std::vector<Real> &v,
-                 std::vector<Real> &work, std::vector<Real> &coords, int n,
-                 int no);
-
-template <typename Real>
 void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
                  const int l_target, Real *v, std::vector<Real> &work,
                  std::vector<Real> &coords_x, std::vector<Real> &coords_y,
                  std::vector<Real> &row_vec, std::vector<Real> &col_vec);
-
-template <typename Real>
-void refactor_2D_full(const int nr, const int nc, const int nrow,
-                      const int ncol, const int l_target, Real *v,
-                      std::vector<Real> &work, std::vector<Real> &coords_x,
-                      std::vector<Real> &coords_y, std::vector<Real> &row_vec,
-                      std::vector<Real> &col_vec);
 
 template <typename Real>
 void refactor_2D_first(const int nr, const int nc, const int nrow,
@@ -572,12 +547,6 @@ void solve_tridiag_M_l(const int l, std::vector<Real> &v,
 template <typename Real>
 void add_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
                  int ncol);
-
-template <typename Real>
-void project_first(const int nr, const int nc, const int nrow, const int ncol,
-                   const int l_target, Real *v, std::vector<Real> &work,
-                   std::vector<Real> &coords_x, std::vector<Real> &coords_y,
-                   std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
 template <typename Real>
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
