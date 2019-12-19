@@ -8,11 +8,15 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <dlfcn.h> // dlopen
+#include <sys/stat.h>
+
+#include <fstream>
+#include <iostream>
+#include <limits>
 #include <ostream>
 #include <sstream>
 #include <string>
-
-#include <dlfcn.h> // dlopen
 
 #include "mgard_api.h"
 #include "mgard_mesh.hpp"

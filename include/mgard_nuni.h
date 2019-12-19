@@ -628,6 +628,4 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
 
 } // namespace mgard_2d
 
-#include "mgard_nuni.tpp"
-
 #endif

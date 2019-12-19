@@ -203,6 +203,4 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
 
 } // namespace mgard
 
-#include "mgard.tpp"
-
 #endif

@@ -7,7 +7,6 @@
 // See LICENSE for details.
 #ifndef MGARD_NUNI_TPP
 #define MGARD_NUNI_TPP
-#define MGARD_NUNI_TPP
 
 #include "mgard_nuni.h"
 
@@ -15,9 +14,7 @@
 #include <cmath>
 #include <cstring>
 
-#include <sys/stat.h>
-
-#include "zlib.h"
+#include <zlib.h>
 
 #include <fstream>
 #include <iostream>
@@ -38,13 +35,13 @@ template <typename Real> Real max_norm(const std::vector<Real> &v) {
 }
 
 template <typename Real>
-inline Real interp_1d(Real x, Real x1, Real x2, Real q00, Real q01) {
+Real interp_1d(Real x, Real x1, Real x2, Real q00, Real q01) {
   return ((x2 - x) / (x2 - x1)) * q00 + ((x - x1) / (x2 - x1)) * q01;
 }
 
 template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-                      Real y1, Real y2, Real x, Real y) {
+Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+               Real y1, Real y2, Real x, Real y) {
   Real x2x1, y2y1, x2x, y2y, yy1, xx1;
   x2x1 = x2 - x1;
   y2y1 = y2 - y1;
@@ -58,10 +55,9 @@ inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
 }
 
 template <typename Real>
-inline Real interp_3d(Real q000, Real q100, Real q110, Real q010, Real q001,
-                      Real q101, Real q111, Real q011, Real x1, Real x2,
-                      Real y1, Real y2, Real z1, Real z2, Real x, Real y,
-                      Real z) {
+Real interp_3d(Real q000, Real q100, Real q110, Real q010, Real q001, Real q101,
+               Real q111, Real q011, Real x1, Real x2, Real y1, Real y2,
+               Real z1, Real z2, Real x, Real y, Real z) {
 
   Real x00 = interp_1d(x, x1, x2, q000, q100);
   Real x10 = interp_1d(x, x1, x2, q010, q110);
@@ -74,12 +70,12 @@ inline Real interp_3d(Real q000, Real q100, Real q110, Real q010, Real q001,
 }
 
 template <typename Real>
-inline Real get_h(const std::vector<Real> &coords, int i, int stride) {
+Real get_h(const std::vector<Real> &coords, int i, int stride) {
   return (coords[i + stride] - coords[i]);
 }
 
 template <typename Real>
-inline Real get_dist(const std::vector<Real> &coords, int i, int j) {
+Real get_dist(const std::vector<Real> &coords, int i, int j) {
   return (coords[j] - coords[i]);
 }
 
@@ -121,11 +117,11 @@ void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
   gzclose(in_file_z);
 }
 
-template <typename Real> inline short encode(Real x) {
+template <typename Real> short encode(Real x) {
   return static_cast<short>(x * 32768 + (x >= 0 ? 0.0 : -1.0));
 }
 
-template <typename Real> inline Real decode(short x) {
+template <typename Real> Real decode(short x) {
   return static_cast<Real>(2 * x + 1.0) / 65535.0;
 }
 
@@ -560,8 +556,8 @@ void copy_level3(const int nrow, const int ncol, const int nfib, const int l,
 
 namespace mgard_gen {
 template <typename Real>
-inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
-                     const int i) // return reference to logical element
+Real *get_ref(std::vector<Real> &v, const int n, const int no,
+              const int i) // return reference to logical element
 {
   // no: original number of points
   // n : number of points at next coarser level (L-1) with  2^k+1 nodes
@@ -578,8 +574,8 @@ inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
 }
 
 template <typename Real>
-inline Real get_h_l(const std::vector<Real> &coords, const int n, const int no,
-                    int i, int stride) {
+Real get_h_l(const std::vector<Real> &coords, const int n, const int no, int i,
+             int stride) {
 
   //    return (*get_ref(coords, n, no, i+stride) - *get_ref(coords, n, no, i));
   return (coords[mgard::get_lindex(n, no, i + stride)] -
@@ -4656,8 +4652,8 @@ template <typename Real> Real max_norm(const std::vector<Real> &v) {
 }
 
 template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-                      Real y1, Real y2, Real x, Real y) {
+Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+               Real y1, Real y2, Real x, Real y) {
   Real x2x1, y2y1, x2x, y2y, yy1, xx1;
   x2x1 = x2 - x1;
   y2y1 = y2 - y1;
@@ -4671,12 +4667,12 @@ inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
 }
 
 template <typename Real>
-inline Real get_h(const std::vector<Real> &coords, int i, int stride) {
+Real get_h(const std::vector<Real> &coords, int i, int stride) {
   return (i + stride - i);
 }
 
 template <typename Real>
-inline Real get_dist(const std::vector<Real> &coords, int i, int j) {
+Real get_dist(const std::vector<Real> &coords, int i, int j) {
   return (j - i);
 }
 
@@ -4962,8 +4958,8 @@ void copy_level(const int nrow, const int ncol, const int l, Real *v,
 namespace mgard_gen {
 
 template <typename Real>
-inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
-                     const int i) // return reference to logical element
+Real *get_ref(std::vector<Real> &v, const int n, const int no,
+              const int i) // return reference to logical element
 {
   // no: original number of points
   // n : number of points at next coarser level (L-1) with  2^k+1 nodes
@@ -4979,8 +4975,8 @@ inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
 }
 
 template <typename Real>
-inline Real get_h_l(const std::vector<Real> &coords, const int n, const int no,
-                    int i, int stride) {
+Real get_h_l(const std::vector<Real> &coords, const int n, const int no, int i,
+             int stride) {
 
   //    return (*get_ref(coords, n, no, i+stride) - *get_ref(coords, n, no, i));
   return (mgard::get_lindex(n, no, i + stride) - mgard::get_lindex(n, no, i));

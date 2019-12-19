@@ -10,8 +10,13 @@
 
 #include "mgard.h"
 
+#include <cmath>
 #include <cstddef>
+#include <cstring>
 
+#include <zlib.h>
+
+#include <fstream>
 #include <numeric>
 #include <stdexcept>
 
@@ -26,6 +31,40 @@ static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
   } else if (nrow > 1) {
     nlevel = mgard::Dimensions2kPlus1<2>({nrow, ncol}).nlevel;
   }
+}
+
+//Placeholder definitions to allow compilation.
+namespace mgard_2d {
+
+namespace mgard_gen {
+
+template <typename Real>
+void prep_1D(const int, const int, const int, Real *, std::vector<Real> &,
+             std::vector<Real> &, std::vector<Real> &) {
+    throw std::runtime_error("not implemented");
+}
+
+template <typename Real>
+void refactor_1D(const int, const int, Real *, std::vector<Real> &,
+                 std::vector<Real> &) {
+    throw std::runtime_error("not implemented");
+}
+
+template <typename Real>
+void recompose_1D(const int, const int, const int, Real *,
+                  std::vector<Real> &, std::vector<Real> &, std::vector<Real> &)
+{
+    throw std::runtime_error("not implemented");
+}
+
+template <typename Real>
+void postp_1D(const int, const int, const int, Real *, std::vector<Real> &,
+              std::vector<Real> &, std::vector<Real> &) {
+    throw std::runtime_error("not implemented");
+}
+
+}
+
 }
 
 namespace mgard {
@@ -1880,8 +1919,8 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
 }
 
 template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-                      Real y1, Real y2, Real x, Real y) {
+Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+               Real y1, Real y2, Real x, Real y) {
   Real x2x1, y2y1, x2x, y2y, yy1, xx1;
   x2x1 = x2 - x1;
   y2y1 = y2 - y1;
@@ -1895,8 +1934,8 @@ inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
 }
 
 template <typename Real>
-inline Real interp_0d(const Real x1, const Real x2, const Real y1,
-                      const Real y2, const Real x) {
+Real interp_0d(const Real x1, const Real x2, const Real y1, const Real y2,
+               const Real x) {
   // do a linear interpolation between (x1, y1) and (x2, y2)
   return (((x2 - x) * y1 + (x - x1) * y2) / (x2 - x1));
 }

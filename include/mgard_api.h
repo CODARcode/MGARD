@@ -126,6 +126,4 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
                        std::vector<Real> &coords_z,
                        Real s); // decompress s-norm
 
-#include "mgard_api.tpp"
-
 #endif
