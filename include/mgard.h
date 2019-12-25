@@ -120,7 +120,8 @@ template <typename Real>
 unsigned char *refactor_qz_1D(int n, const Real *v, int &outsize, Real tol);
 
 template <typename Real>
-unsigned char *refactor_qz_1D(int n, const Real *v, int &outsize, Real tol, Real s);
+unsigned char *refactor_qz_1D(int n, const Real *v, int &outsize, Real tol,
+                              Real s);
 
 template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *v, int &outsize,
