@@ -5777,6 +5777,57 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
 }
 
 template <typename Real>
+void recompose_1D(const int nc, const int ncol,
+                  const int l_target, Real *v, std::vector<Real> &work,
+                  std::vector<Real> &coords_x, std::vector<Real> &row_vec) {
+  for (int l = l_target; l > 0; --l) {
+
+    int stride = std::pow(2, l); // current stride
+    int Pstride = stride / 2;
+
+    copy_level_l(l - 1, v, work.data(), 1, nc, 1, ncol);
+
+    assign_num_level_l(l, work.data(), static_cast<Real>(0.0), 1, nc, 1,
+                       ncol);
+
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      row_vec[jcol] = work[jcol];
+    }
+
+    mgard_gen::mass_mult_l(l - 1, row_vec, coords_x, nc, ncol);
+
+    mgard_gen::restriction_l(l, row_vec, coords_x, nc, ncol);
+
+    mgard_gen::solve_tridiag_M_l(l, row_vec, coords_x, nc, ncol);
+
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      work[jcol] = row_vec[jcol];
+    }
+
+    subtract_level_l(l, work.data(), v, 1, nc, 1, ncol); // do -(Qu - zl)
+    //        //std::cout  << "recomposing-rowsweep2" << "\n";
+
+    //   //int Pstride = stride/2; //finer stride
+
+    //   // row-sweep
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      row_vec[jcol] = work[jcol];
+    }
+
+    mgard_gen::prolongate_l(l, row_vec, coords_x, nc, ncol);
+
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      work[jcol] = row_vec[jcol];
+    }
+
+    //   //std::cout  << "recomposing-colsweep2" << "\n";
+    assign_num_level_l(l, v, static_cast<Real>(0.0), 1, nc, 1, ncol);
+    subtract_level_l(l - 1, v, work.data(), 1, nc, 1, ncol);
+  }
+  //    //std::cout  << "last step" << "\n";
+}
+
+template <typename Real>
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
                   const int l_target, Real *v, std::vector<Real> &work,
                   std::vector<Real> &coords_x, std::vector<Real> &coords_y,
@@ -5898,6 +5949,45 @@ void prolongate_last(std::vector<Real> &v, std::vector<Real> &coords, int n,
       //             v[i_logic+1] = 2*(h1*v[i_logicP])/hsum;
     }
   }
+}
+
+template <typename Real>
+void postp_1D(const int nc, const int ncol,
+              const int l_target, Real *v, std::vector<Real> &work,
+              std::vector<Real> &coords_x, std::vector<Real> &row_vec) {
+  mgard_cannon::copy_level(1, ncol, 0, v, work);
+
+  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1,
+                     ncol);
+
+  for (int jcol = 0; jcol < ncol; ++jcol) {
+    row_vec[jcol] = work[jcol];
+  }
+
+  mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
+
+  restriction_first(row_vec, coords_x, nc, ncol);
+
+  mgard_gen::solve_tridiag_M_l(0, row_vec, coords_x, nc, ncol);
+
+  for (int jcol = 0; jcol < ncol; ++jcol) {
+    work[jcol] = row_vec[jcol];
+  }
+
+  subtract_level_l(0, work.data(), v, 1, nc, 1, ncol); // do -(Qu - zl)
+  //   //   // row-sweep
+  for (int jcol = 0; jcol < ncol; ++jcol) {
+    row_vec[jcol] = work[jcol];
+  }
+
+  mgard_gen::prolongate_last(row_vec, coords_x, nc, ncol);
+
+  for (int jcol = 0; jcol < ncol; ++jcol) {
+    work[jcol] = row_vec[jcol];
+  }
+
+  assign_num_level_l(0, v, static_cast<Real>(0.0), 1, nc, 1, ncol);
+  mgard_cannon::subtract_level(1, ncol, 0, v, work.data());
 }
 
 template <typename Real>

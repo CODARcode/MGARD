@@ -202,11 +202,11 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
     //          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol,
     //          data, data_len);
     return mgard_decompressed_ptr;
-  } else if (nrow > 1) {
-    assert(nrow > 3);
-    std::cerr << "MGARD: Not impemented!  Let us know if you need 1D "
-                 "compression...\n";
-    // mgard_decompressed_ptr = mgard::recompose_udq_1D(nrow,  data, data_len);
+  } else if (ncol > 1) {
+    assert(ncol > 3);
+
+    mgard_decompressed_ptr = mgard::recompose_udq_1D<Real>(ncol, data, data_len);
+    return mgard_decompressed_ptr;
   }
   return nullptr;
 }
