@@ -476,6 +476,80 @@ Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 }
 
 template <typename Real>
+unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize,
+                              Real tol) {
+
+  std::vector<Real> row_vec(ncol);
+  std::vector<Real> v(u, u + ncol), work(ncol);
+
+  Real norm = mgard_2d::mgard_common::max_norm(v);
+
+  if (is_2kplus1(ncol)) // input is (2^p + 1)
+  {
+// to be clean up. 
+#if 0
+    int nlevel;
+    set_number_of_levels(1, ncol, nlevel);
+    tol /= nlevel + 1;
+
+    const int l_target = nlevel - 1;
+    mgard::refactor(1, ncol, l_target, v.data(), work, row_vec, col_vec);
+    work.clear();
+    row_vec.clear();
+
+    int size_ratio = sizeof(Real) / sizeof(int);
+    std::vector<int> qv(ncol + size_ratio);
+
+    mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
+
+    std::vector<unsigned char> out_data;
+
+    mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
+    outsize = out_data.size();
+    unsigned char *buffer = (unsigned char *)malloc(outsize);
+    std::copy(out_data.begin(), out_data.end(), buffer);
+    return buffer;
+#endif
+  } else {
+
+    std::vector<Real> coords_x(ncol);
+
+    std::iota(std::begin(coords_x), std::end(coords_x), 0);
+
+    const Dimensions2kPlus1<1> dims({ncol});
+    tol /= dims.nlevel + 1;
+
+    const int l_target = dims.nlevel - 1;
+
+    mgard_2d::mgard_gen::prep_1D(dims.rnded[0], dims.input[0],
+                                 l_target, v.data(), work,
+                                 coords_x, row_vec);
+
+    mgard_2d::mgard_gen::refactor_1D(
+        dims.rnded[0], dims.input[0], l_target,
+        v.data(), work, coords_x, row_vec);
+
+    work.clear();
+    row_vec.clear();
+
+    int size_ratio = sizeof(Real) / sizeof(int);
+    std::vector<int> qv(ncol + size_ratio);
+
+    tol /= dims.nlevel + 1;
+    mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
+
+    std::vector<unsigned char> out_data;
+
+    mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
+
+    outsize = out_data.size();
+    unsigned char *buffer = (unsigned char *)malloc(outsize);
+    std::copy(out_data.begin(), out_data.end(), buffer);
+    return buffer;
+  }
+}
+
+template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
                               Real tol) {
 

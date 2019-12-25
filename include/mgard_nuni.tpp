@@ -5149,6 +5149,30 @@ void pi_lminus1_first(std::vector<Real> &v, const std::vector<Real> &coords,
 }
 
 template <typename Real>
+void pi_Ql_first(const int nc, const int ncol,
+                 const int l, Real *v, const std::vector<Real> &coords_x,
+                 std::vector<Real> &row_vec) {
+  // Restrict data to coarser level
+
+  int stride = 1; // current stride
+  //  int Pstride = stride/2; //finer stride
+  //    int Cstride = 2; // coarser stride
+
+  for (int jcol = 0; jcol < ncol; ++jcol) {
+    // int jcol_r = mgard::get_lindex(nc, ncol, jcol);
+    // std::cerr << irow_r << "\t"<< jcol_r << "\n";
+    row_vec[jcol] = v[jcol];
+  }
+
+  pi_lminus1_first(row_vec, coords_x, nc, ncol);
+
+  for (int jcol = 0; jcol < ncol; ++jcol) {
+      //            int jcol_r = mgard::get_lindex(nc, ncol, jcol);
+    v[jcol] = row_vec[jcol];
+  }
+}
+
+template <typename Real>
 void pi_Ql_first(const int nr, const int nc, const int nrow, const int ncol,
                  const int l, Real *v, const std::vector<Real> &coords_x,
                  const std::vector<Real> &coords_y, std::vector<Real> &row_vec,
@@ -5237,6 +5261,32 @@ void pi_Ql_first(const int nr, const int nc, const int nrow, const int ncol,
 
         v[mgard::get_index(ncol, ir + 1, jr + 1)] -= temp;
       }
+    }
+  }
+}
+
+template <typename Real>
+void pi_Ql(const int nc, const int ncol,
+           const int l, Real *v, const std::vector<Real> &coords_x,
+           std::vector<Real> &row_vec) {
+  // Restrict data to coarser level
+
+  int stride = std::pow(2, l); // current stride
+  //  int Pstride = stride/2; //finer stride
+  int Cstride = stride * 2; // coarser stride
+
+  //  std::vector<Real> row_vec(ncol), col_vec(nrow)   ;
+
+  {
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      //            int jcol_r = mgard::get_lindex(nc, ncol, jcol);
+      row_vec[jcol] = v[jcol];
+    }
+
+    //        mgard_cannon::pi_lminus1(l, row_vec, coords_x);
+    pi_lminus1_l(l, row_vec, coords_x, nc, ncol);
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      v[jcol] = row_vec[jcol];
     }
   }
 }
@@ -5445,6 +5495,34 @@ void project_first(const int nr, const int nc, const int nrow, const int ncol,
                    std::vector<Real> &row_vec, std::vector<Real> &col_vec) {}
 
 template <typename Real>
+void prep_1D(const int nc, const int ncol,
+             const int l_target, Real *v, std::vector<Real> &work,
+             std::vector<Real> &coords_x,
+             std::vector<Real> &row_vec) {
+
+  int l = 0;
+  //    int stride = 1;
+  pi_Ql_first(nc,  ncol, l, v, coords_x, row_vec); //(I-\Pi)u this is the initial move to 2^k+1 nodes
+
+  mgard_cannon::copy_level(1, ncol, 0, v, work);
+
+  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1,
+                     ncol);
+
+  for (int jcol = 0; jcol < ncol; ++jcol) {
+    row_vec[jcol] = work[jcol];
+  }
+
+  mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
+
+  restriction_first(row_vec, coords_x, nc, ncol);
+
+  mgard_gen::solve_tridiag_M_l(0, row_vec, coords_x, nc, ncol);
+
+  add_level_l(0, v, work.data(), 1, nc, 1, ncol);
+}
+
+template <typename Real>
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              const int l_target, Real *v, std::vector<Real> &work,
              std::vector<Real> &coords_x, std::vector<Real> &coords_y,
@@ -5598,6 +5676,42 @@ void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
 
   // *get_ref(v, n,  no,  n-1-Pstride) = ( h2*(*get_ref(v, n,  no,  n-1-stride))
   // + h1*(v.back()) )/hsum;
+}
+
+template <typename Real>
+void refactor_1D(const int nc, const int ncol,
+                 const int l_target, Real *v, std::vector<Real> &work,
+                 std::vector<Real> &coords_x,
+                 std::vector<Real> &row_vec) {
+  for (int l = 0; l < l_target; ++l) {
+    int stride = std::pow(2, l); // current stride
+    int Cstride = stride * 2;    // coarser stride
+
+    // -> change funcs in pi_QL to use _l functions, otherwise distances are
+    // wrong!!!
+    pi_Ql(nc, ncol, l, v, coords_x, row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
+
+    copy_level_l(l, v, work.data(), 1, nc, 1, ncol);
+    assign_num_level_l(l + 1, work.data(), static_cast<Real>(0.0), 1, nc, 1,
+                       ncol);
+
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      row_vec[jcol] = work[jcol];
+    }
+
+    mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol);
+
+    mgard_gen::restriction_l(l + 1, row_vec, coords_x, nc, ncol);
+
+    mgard_gen::solve_tridiag_M_l(l + 1, row_vec, coords_x, nc, ncol);
+
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      work[jcol] = row_vec[jcol];
+    }
+
+    // Solved for (z_l, phi_l) = (c_{l+1}, vl)
+    add_level_l(l + 1, v, work.data(), 1, nc, 1, ncol);
+  }
 }
 
 template <typename Real>

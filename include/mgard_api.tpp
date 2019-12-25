@@ -40,11 +40,12 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
     assert(ncol > 3);
     mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol);
     return mgard_compressed_ptr;
-  } else if (nrow > 1) {
-    assert(nrow > 3);
-    std::cerr << "MGARD: Not impemented!  Let us know if you need 1D "
-                 "compression...\n";
-    return nullptr;
+  } else if (ncol > 1) {
+    assert(ncol > 3);
+
+    mgard_compressed_ptr = mgard::refactor_qz_1D(ncol, v, out_size, tol);
+
+    return mgard_compressed_ptr;
   }
 
   return nullptr;
@@ -78,9 +79,11 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
     return mgard_compressed_ptr;
   } else if (nrow > 1) {
     assert(nrow > 3);
-    std::cerr << "MGARD: Not impemented!  Let us know if you need 1D "
-                 "compression...\n";
-    return nullptr;
+    // To be cleaned up.
+//    mgard_compressed_ptr =
+//        mgard::refactor_qz_1D(ncol, coords_x, coords_y, v, out_size, tol);
+
+    return mgard_compressed_ptr;
   }
   return nullptr;
 }

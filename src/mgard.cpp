@@ -342,11 +342,11 @@ double *recompose_udq_2D<double>(int nrow, int ncol,
                                  unsigned char *data, int data_len, double s);
 
 template <>
-unsigned char *refactor_qz_1D<float>(int nrow, const float *v, int &outsize,
+unsigned char *refactor_qz_1D<float>(int ncol, const float *v, int &outsize,
                                      float tol);
 
 template <>
-unsigned char *refactor_qz_1D<double>(int nrow, const double *v, int &outsize,
+unsigned char *refactor_qz_1D<double>(int ncol, const double *v, int &outsize,
                                       double tol);
 
 template <>
