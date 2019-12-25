@@ -117,6 +117,13 @@ refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
             const Real *v, int &outsize, Real tol, Real s);
 
 template <typename Real>
+unsigned char *refactor_qz_1D(int n, const Real *v, int &outsize, Real tol);
+
+template <typename Real>
+unsigned char *refactor_qz_1D(int n, const Real *v, int &outsize, Real tol,
+                              Real s);
+
+template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *v, int &outsize,
                               Real tol);
 
@@ -170,7 +177,7 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
                        int data_len, Real s);
 
 template <typename Real>
-unsigned char *refactor_qz_1D(int nrow, const Real *v, int &outsize, Real tol);
+unsigned char *refactor_qz_1D(int ncol, const Real *v, int &outsize, Real tol);
 
 template <typename Real>
 Real *recompose_udq_1D(int nrow, unsigned char *data, int data_len);
