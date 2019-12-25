@@ -180,7 +180,7 @@ template <typename Real>
 unsigned char *refactor_qz_1D(int ncol, const Real *v, int &outsize, Real tol);
 
 template <typename Real>
-Real *recompose_udq_1D(int nrow, unsigned char *data, int data_len);
+Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len);
 
 template <typename Real>
 int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,

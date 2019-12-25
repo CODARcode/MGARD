@@ -511,7 +511,6 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize,
     return buffer;
 #endif
   } else {
-
     std::vector<Real> coords_x(ncol);
 
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
@@ -797,6 +796,71 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
   unsigned char *buffer = (unsigned char *)malloc(outsize);
   std::copy(out_data.begin(), out_data.end(), buffer);
   return buffer;
+}
+
+template <typename Real>
+Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
+  int size_ratio = sizeof(Real) / sizeof(int);
+
+  if (is_2kplus1(ncol)) // input is (2^p + 1)
+  {
+//to be cleaned up.
+#if 0 
+    int ncol_new = ncol;
+    int nrow_new = nrow;
+
+    int nlevel_new;
+    set_number_of_levels(nrow_new, ncol_new, nlevel_new);
+    const int l_target = nlevel_new - 1;
+
+    std::vector<int> out_data(nrow_new * ncol_new + size_ratio);
+
+    mgard::decompress_memory_z(data, data_len, out_data.data(),
+                               out_data.size() *
+                                   sizeof(int)); // decompress input buffer
+
+    Real *v = (Real *)malloc(nrow_new * ncol_new * sizeof(Real));
+
+    mgard::dequantize_2D_interleave(nrow_new, ncol_new, v, out_data);
+    out_data.clear();
+
+    std::vector<Real> row_vec(ncol_new);
+    std::vector<Real> col_vec(nrow_new);
+    std::vector<Real> work(nrow_new * ncol_new);
+
+    mgard::recompose(nrow_new, ncol_new, l_target, v, work, row_vec, col_vec);
+
+    return v;
+#endif 
+  } else {
+    std::vector<Real> coords_x(ncol);
+
+    std::iota(std::begin(coords_x), std::end(coords_x), 0);
+
+    const Dimensions2kPlus1<1> dims({ncol});
+    const int l_target = dims.nlevel - 1;
+
+    std::vector<int> out_data(ncol + size_ratio);
+
+    mgard::decompress_memory_z(data, data_len, out_data.data(),
+                               out_data.size() * sizeof(int));
+
+    Real *v = (Real *)malloc(ncol * sizeof(Real));
+
+    mgard::dequantize_2D_interleave(1, ncol, v, out_data);
+
+    std::vector<Real> row_vec(ncol);
+    std::vector<Real> work(ncol);
+
+    mgard_2d::mgard_gen::recompose_1D(
+        dims.rnded[0], dims.input[0], l_target, v,
+        work, coords_x, row_vec);
+
+    mgard_2d::mgard_gen::postp_1D(dims.rnded[0], dims.input[0],
+                                  l_target, v, work, coords_x, row_vec);
+
+    return v;
+  }
 }
 
 template <typename Real>
