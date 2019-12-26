@@ -33,6 +33,17 @@ else
   exit 1
 fi
 
+./build/bin/simple1d
+
+if [ $? -eq 0 ]
+then
+  echo "Successfully compress/decompress simple1d"
+else
+  echo "Error in compressing/decompressing simple1d" >&2
+  exit 1
+fi
+
+
 cp tests/gray-scott/adios2.xml .
 mpirun -n 3 build/bin/gray-scott tests/gray-scott/simulation/settings-files.json
 
