@@ -6,7 +6,7 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
-project(constant1d C CXX)
+project(simple1d C CXX)
 
 option(USE_TIMERS "Use profiling timers")
 if(USE_TIMERS)
@@ -14,6 +14,6 @@ if(USE_TIMERS)
   add_definitions(-DENABLE_TIMERS)
 endif()
 
-add_executable(constant1d constant1d.cpp)
+add_executable(simple1d simple1d.cpp)
 
-target_link_libraries(constant1d mgard)
+target_link_libraries(simple1d mgard)
