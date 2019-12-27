@@ -185,11 +185,19 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len);
 template <typename Real>
 int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
                std::string &in_file);
+// Gary new
+template <typename Real>
+void refactor_1D(const int ncol, const int l_target, Real *v,
+                 std::vector<Real> &work, std::vector<Real> &row_vec);
 
 template <typename Real>
 void refactor(const int nrow, const int ncol, const int l_target, Real *v,
               std::vector<Real> &work, std::vector<Real> &row_vec,
               std::vector<Real> &col_vec);
+
+template <typename Real>
+void recompose_1D(const int ncol, const int l_target, Real *v,
+                  std::vector<Real> &work, std::vector<Real> &row_vec);
 
 template <typename Real>
 void recompose(const int nrow, const int ncol, const int l_target, Real *v,
