@@ -188,7 +188,7 @@ int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
 // Gary new
 template <typename Real>
 void refactor_1D(const int ncol, const int l_target, Real *v,
-              std::vector<Real> &work, std::vector<Real> &row_vec);
+                 std::vector<Real> &work, std::vector<Real> &row_vec);
 
 template <typename Real>
 void refactor(const int nrow, const int ncol, const int l_target, Real *v,
@@ -197,7 +197,7 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
 
 template <typename Real>
 void recompose_1D(const int ncol, const int l_target, Real *v,
-               std::vector<Real> &work, std::vector<Real> &row_vec);
+                  std::vector<Real> &work, std::vector<Real> &row_vec);
 
 template <typename Real>
 void recompose(const int nrow, const int ncol, const int l_target, Real *v,
