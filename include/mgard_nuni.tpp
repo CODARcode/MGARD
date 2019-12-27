@@ -5678,6 +5678,7 @@ void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
   // + h1*(v.back()) )/hsum;
 }
 
+// Gary old branch.
 template <typename Real>
 void refactor_1D(const int nc, const int ncol,
                  const int l_target, Real *v, std::vector<Real> &work,

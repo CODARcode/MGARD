@@ -487,20 +487,21 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize,
   if (is_2kplus1(ncol)) // input is (2^p + 1)
   {
 // to be clean up. 
-#if 0
+
     int nlevel;
     set_number_of_levels(1, ncol, nlevel);
     tol /= nlevel + 1;
 
     const int l_target = nlevel - 1;
-    mgard::refactor(1, ncol, l_target, v.data(), work, row_vec, col_vec);
+    mgard::refactor_1D(ncol, l_target, v.data(), work, row_vec);
+
     work.clear();
     row_vec.clear();
 
     int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(ncol + size_ratio);
 
-    mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
+    mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
 
@@ -509,7 +510,6 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize,
     unsigned char *buffer = (unsigned char *)malloc(outsize);
     std::copy(out_data.begin(), out_data.end(), buffer);
     return buffer;
-#endif
   } else {
     std::vector<Real> coords_x(ncol);
 
@@ -1334,6 +1334,28 @@ template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v0) {
     }
   }
 }
+// Gary New
+template <typename Real>
+void pi_Ql(const int ncol, const int l, Real *v, std::vector<Real> &row_vec) {
+  // Restrict data to coarser level
+
+  int stride = std::pow(2, l); // current stride
+  //  int Pstride = stride/2; //finer stride
+  int Cstride = stride * 2; // coarser stride
+
+  //  std::vector<Real> row_vec(ncol), col_vec(nrow)   ;
+
+  for (int jcol = 0; jcol < ncol; ++jcol) {
+    row_vec[jcol] = v[jcol];
+  }
+
+  pi_lminus1(l, row_vec);
+
+  for (int jcol = 0; jcol < ncol; ++jcol) {
+    v[jcol] = row_vec[jcol];
+  }
+
+}
 
 template <typename Real>
 void pi_Ql(const int nrow, const int ncol, const int l, Real *v,
@@ -1653,6 +1675,39 @@ void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
 
 //   gzclose(inFileZ);
 // }
+// Gary New
+template <typename Real>
+void refactor_1D(const int ncol, const int l_target, Real *v,
+              std::vector<Real> &work, std::vector<Real> &row_vec) {
+  for (int l = 0; l < l_target; ++l) {
+
+    int stride = std::pow(2, l); // current stride
+    int Cstride = stride * 2;    // coarser stride
+#if 1
+    pi_Ql(ncol, l, v, row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
+#endif
+    copy_level(1, ncol, l, v, work); // copy the nodal values of v on l  to matrix work
+
+    assign_num_level(1, ncol, l + 1, work.data(), static_cast<Real>(0.0));
+
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      row_vec[jcol] = work[jcol];
+    }
+
+    mass_matrix_multiply(l, row_vec);
+
+    restriction(l + 1, row_vec);
+
+    solve_tridiag_M(l + 1, row_vec);
+
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      work[jcol] = row_vec[jcol];
+    }
+
+    add_level(1, ncol, l + 1, v, work.data()); // Qu_l = \Pi_l Q_{l+1}u + z_l
+  }
+
+}
 
 template <typename Real>
 void refactor(const int nrow, const int ncol, const int l_target, Real *v,
