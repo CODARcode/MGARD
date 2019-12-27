@@ -196,6 +196,10 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
               std::vector<Real> &col_vec);
 
 template <typename Real>
+void recompose_1D(const int ncol, const int l_target, Real *v,
+               std::vector<Real> &work, std::vector<Real> &row_vec);
+
+template <typename Real>
 void recompose(const int nrow, const int ncol, const int l_target, Real *v,
                std::vector<Real> &work, std::vector<Real> &row_vec,
                std::vector<Real> &col_vec);
