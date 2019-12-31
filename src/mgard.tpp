@@ -18,7 +18,6 @@
 
 #include <fstream>
 #include <numeric>
-#include <stdexcept>
 
 #include "mgard_compress.hpp"
 #include "mgard_mesh.hpp"
@@ -32,39 +31,6 @@ static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
     nlevel = mgard::Dimensions2kPlus1<2>({nrow, ncol}).nlevel;
   }
 }
-
-// Placeholder definitions to allow compilation.
-namespace mgard_2d {
-
-namespace mgard_gen {
-
-template <typename Real>
-void prep_1D(const int, const int, const int, Real *, std::vector<Real> &,
-             std::vector<Real> &, std::vector<Real> &) {
-  throw std::runtime_error("not implemented");
-}
-
-template <typename Real>
-void refactor_1D(const int, const int, const int, Real *, std::vector<Real> &,
-                 std::vector<Real> &, std::vector<Real> &) {
-  throw std::runtime_error("not implemented");
-}
-
-template <typename Real>
-void recompose_1D(const int, const int, const int, Real *, std::vector<Real> &,
-                  std::vector<Real> &, std::vector<Real> &) {
-  throw std::runtime_error("not implemented");
-}
-
-template <typename Real>
-void postp_1D(const int, const int, const int, Real *, std::vector<Real> &,
-              std::vector<Real> &, std::vector<Real> &) {
-  throw std::runtime_error("not implemented");
-}
-
-} // namespace mgard_gen
-
-} // namespace mgard_2d
 
 namespace mgard {
 

@@ -549,6 +549,11 @@ void add_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
                  int ncol);
 
 template <typename Real>
+void prep_1D(const int nc, const int ncol, const int l_target, Real *v,
+             std::vector<Real> &work, std::vector<Real> &coords_x,
+             std::vector<Real> &row_vec);
+
+template <typename Real>
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              const int l_target, Real *v, std::vector<Real> &work,
              std::vector<Real> &coords_x, std::vector<Real> &coords_y,
@@ -567,10 +572,20 @@ void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
                   int n, int no);
 
 template <typename Real>
+void refactor_1D(const int nc, const int ncol, const int l_target, Real *v,
+                 std::vector<Real> &work, std::vector<Real> &coords_x,
+                 std::vector<Real> &row_vec);
+
+template <typename Real>
 void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
                  const int l_target, Real *v, std::vector<Real> &work,
                  std::vector<Real> &coords_x, std::vector<Real> &coords_y,
                  std::vector<Real> &row_vec, std::vector<Real> &col_vec);
+
+template <typename Real>
+void recompose_1D(const int nc, const int ncol, const int l_target, Real *v,
+                  std::vector<Real> &work, std::vector<Real> &coords_x,
+                  std::vector<Real> &row_vec);
 
 template <typename Real>
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
@@ -581,6 +596,11 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
 template <typename Real>
 void prolongate_last(std::vector<Real> &v, std::vector<Real> &coords, int n,
                      int no);
+
+template <typename Real>
+void postp_1D(const int nc, const int ncol, const int l_target, Real *v,
+              std::vector<Real> &work, std::vector<Real> &coords_x,
+              std::vector<Real> &row_vec);
 
 template <typename Real>
 void postp_2D(const int nr, const int nc, const int nrow, const int ncol,

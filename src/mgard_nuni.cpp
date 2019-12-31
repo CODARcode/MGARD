@@ -983,6 +983,16 @@ template void add_level_l<float>(const int l, float *v, float *work, int nr,
 template void add_level_l<double>(const int l, double *v, double *work, int nr,
                                   int nc, int nrow, int ncol);
 
+template void prep_1D<float>(const int nc, const int ncol, const int l_target,
+                             float *v, std::vector<float> &work,
+                             std::vector<float> &coords_x,
+                             std::vector<float> &row_vec);
+
+template void prep_1D<double>(const int nc, const int ncol, const int l_target,
+                              double *v, std::vector<double> &work,
+                              std::vector<double> &coords_x,
+                              std::vector<double> &row_vec);
+
 template void
 prep_2D<float>(const int nr, const int nc, const int nrow, const int ncol,
                const int l_target, float *v, std::vector<float> &work,
@@ -1015,6 +1025,18 @@ template void prolongate_l<float>(const int l, std::vector<float> &v,
 template void prolongate_l<double>(const int l, std::vector<double> &v,
                                    std::vector<double> &coords, int n, int no);
 
+template void refactor_1D<float>(const int nc, const int ncol,
+                                 const int l_target, float *v,
+                                 std::vector<float> &work,
+                                 std::vector<float> &coords_x,
+                                 std::vector<float> &row_vec);
+
+template void refactor_1D<double>(const int nc, const int ncol,
+                                  const int l_target, double *v,
+                                  std::vector<double> &work,
+                                  std::vector<double> &coords_x,
+                                  std::vector<double> &row_vec);
+
 template void
 refactor_2D<float>(const int nr, const int nc, const int nrow, const int ncol,
                    const int l_target, float *v, std::vector<float> &work,
@@ -1028,6 +1050,18 @@ template void refactor_2D<double>(const int nr, const int nc, const int nrow,
                                   std::vector<double> &coords_y,
                                   std::vector<double> &row_vec,
                                   std::vector<double> &col_vec);
+
+template void recompose_1D<float>(const int nc, const int ncol,
+                                  const int l_target, float *v,
+                                  std::vector<float> &work,
+                                  std::vector<float> &coords_x,
+                                  std::vector<float> &row_vec);
+
+template void recompose_1D<double>(const int nc, const int ncol,
+                                   const int l_target, double *v,
+                                   std::vector<double> &work,
+                                   std::vector<double> &coords_x,
+                                   std::vector<double> &row_vec);
 
 template void
 recompose_2D<float>(const int nr, const int nc, const int nrow, const int ncol,
@@ -1049,6 +1083,16 @@ template void prolongate_last<float>(std::vector<float> &v,
 template void prolongate_last<double>(std::vector<double> &v,
                                       std::vector<double> &coords, int n,
                                       int no);
+
+template void postp_1D<float>(const int nc, const int ncol, const int l_target,
+                              float *v, std::vector<float> &work,
+                              std::vector<float> &coords_x,
+                              std::vector<float> &row_vec);
+
+template void postp_1D<double>(const int nc, const int ncol, const int l_target,
+                               double *v, std::vector<double> &work,
+                               std::vector<double> &coords_x,
+                               std::vector<double> &row_vec);
 
 template void
 postp_2D<float>(const int nr, const int nc, const int nrow, const int ncol,

@@ -1,47 +1,6 @@
 #include "mgard.h"
 #include "mgard.tpp"
 
-// Placeholders. See `mgard.tpp`.
-namespace mgard_2d {
-
-namespace mgard_gen {
-
-template void prep_1D<float>(const int, const int, const int, float *,
-                             std::vector<float> &, std::vector<float> &,
-                             std::vector<float> &);
-
-template void prep_1D<double>(const int, const int, const int, double *,
-                              std::vector<double> &, std::vector<double> &,
-                              std::vector<double> &);
-
-template void refactor_1D<float>(const int, const int, const int, float *,
-                                 std::vector<float> &, std::vector<float> &,
-                                 std::vector<float> &);
-
-template void refactor_1D<double>(const int, const int, const int, double *,
-                                  std::vector<double> &, std::vector<double> &,
-                                  std::vector<double> &);
-
-template void recompose_1D<float>(const int, const int, const int, float *,
-                                  std::vector<float> &, std::vector<float> &,
-                                  std::vector<float> &);
-
-template void recompose_1D<double>(const int, const int, const int, double *,
-                                   std::vector<double> &, std::vector<double> &,
-                                   std::vector<double> &);
-
-template void postp_1D<float>(const int, const int, const int, float *,
-                              std::vector<float> &, std::vector<float> &,
-                              std::vector<float> &);
-
-template void postp_1D<double>(const int, const int, const int, double *,
-                               std::vector<double> &, std::vector<double> &,
-                               std::vector<double> &);
-
-} // namespace mgard_gen
-
-} // namespace mgard_2d
-
 namespace mgard {
 
 template float interp_2d<float>(float q11, float q12, float q21, float q22,
