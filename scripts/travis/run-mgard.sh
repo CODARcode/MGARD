@@ -43,6 +43,16 @@ else
   exit 1
 fi
 
+./build/bin/dim2kplus1
+
+if [ $? -eq 0 ]
+then
+  echo "Successfully compress/decompress dim2kplus1"
+else
+  echo "Error in compressing/decompressing dim2kplus1" >&2
+  exit 1
+fi
+
 
 cp tests/gray-scott/adios2.xml .
 mpirun -n 3 build/bin/gray-scott tests/gray-scott/simulation/settings-files.json
