@@ -1503,18 +1503,16 @@ void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
     for (int irow = 0; irow < nrow; irow += stride) {
       if (row_counter % 2 == 0 && l != nlevel) {
         for (int jcol = Cstride; jcol < ncol; jcol += Cstride) {
-          const int quantum = quantizer.quantize(
-              v[get_index(ncol, irow, jcol - stride)]
-          );
+          const int quantum =
+              quantizer.quantize(v[get_index(ncol, irow, jcol - stride)]);
           if (quantum == 0)
             ++prune_count;
           gzwrite(out_file, &quantum, sizeof(int));
         }
       } else {
         for (int jcol = 0; jcol < ncol; jcol += stride) {
-          const int quantum = quantizer.quantize(
-              v[get_index(ncol, irow, jcol)]
-          );
+          const int quantum =
+              quantizer.quantize(v[get_index(ncol, irow, jcol)]);
           if (quantum == 0)
             ++prune_count;
           gzwrite(out_file, &quantum, sizeof(int));
