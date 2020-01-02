@@ -41,7 +41,7 @@ benchmarks@LDLIBS := -lbenchmark -lbenchmark_main -pthread $(structured@LDLIBS) 
 dirty@FILES =
 dirty@DIRECTORIES =
 
-structured@MGARD_STEMS := mgard_api mgard mgard_nuni
+structured@MGARD_STEMS := mgard_api mgard mgard_nuni mgard_compress mgard_mesh
 structured@TEST_STEMS := mgard_test
 structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
 
@@ -133,7 +133,7 @@ check: $(tests@EXECUTABLE)
 
 $(tests@SCRIPT): LDFLAGS += $(structured@LDFLAGS)
 $(tests@SCRIPT): LDLIBS += $(structured@LDLIBS)
-$(eval $(call link-cpp,$(structured@LIB),$(tests@SCRIPT)))
+$(eval $(call link-cpp,$(foreach STEM,$(structured@TEST_STEMS),$(call stem-to-object,$(STEM))) $(structured@LIB),$(tests@SCRIPT)))
 
 $(tests@EXECUTABLE): LDFLAGS += $(unstructured@LDFLAGS)
 $(tests@EXECUTABLE): LDLIBS += $(unstructured@LDLIBS)
