@@ -117,14 +117,6 @@ void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
   gzclose(in_file_z);
 }
 
-template <typename Real> short encode(Real x) {
-  return static_cast<short>(x * 32768 + (x >= 0 ? 0.0 : -1.0));
-}
-
-template <typename Real> Real decode(short x) {
-  return static_cast<Real>(2 * x + 1.0) / 65535.0;
-}
-
 template <typename Real>
 int ma_quant(const int N, const Real eps, const Real u) {
   if (u < N * eps)
