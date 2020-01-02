@@ -51,24 +51,6 @@ template void qread_2D_interleave<double>(const int nrow, const int ncol,
                                           const int nlevel, double *v,
                                           std::string infile);
 
-template void qread_2D_bin<float>(const int nrow, const int ncol,
-                                  const int nlevel, float *v,
-                                  std::string infile);
-
-template void qread_2D_bin<double>(const int nrow, const int ncol,
-                                   const int nlevel, double *v,
-                                   std::string infile);
-
-template void qwrite_2D_bin<float>(const int nrow, const int ncol,
-                                   const int nlevel, const int l, float *v,
-                                   float tol, float norm,
-                                   const std::string outfile);
-
-template void qwrite_2D_bin<double>(const int nrow, const int ncol,
-                                    const int nlevel, const int l, double *v,
-                                    double tol, double norm,
-                                    const std::string outfile);
-
 template void qwrite_2D_interleave<float>(const int nrow, const int ncol,
                                           const int nlevel, const int l,
                                           float *v, float tol, float norm,
