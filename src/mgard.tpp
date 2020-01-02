@@ -23,6 +23,8 @@
 #include "mgard_mesh.hpp"
 #include "mgard_nuni.h"
 
+#include "Quantizer.hpp"
+
 static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
   // set the depth of levels in isotropic case
   if (nrow == 1) {
@@ -1485,7 +1487,8 @@ void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
   }
 
   tol /= nlevel + 1;
-  Real coeff = norm * tol;
+  const Real coeff = norm * tol;
+  const mgard::Quantizer<Real, int> quantizer(coeff);
 
   gzFile out_file = gzopen(outfile.c_str(), "w9b");
   gzwrite(out_file, &coeff, sizeof(Real));
@@ -1500,14 +1503,18 @@ void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
     for (int irow = 0; irow < nrow; irow += stride) {
       if (row_counter % 2 == 0 && l != nlevel) {
         for (int jcol = Cstride; jcol < ncol; jcol += Cstride) {
-          int quantum = (int)(v[get_index(ncol, irow, jcol - stride)] / coeff);
+          const int quantum = quantizer.quantize(
+              v[get_index(ncol, irow, jcol - stride)]
+          );
           if (quantum == 0)
             ++prune_count;
           gzwrite(out_file, &quantum, sizeof(int));
         }
       } else {
         for (int jcol = 0; jcol < ncol; jcol += stride) {
-          int quantum = (int)(v[get_index(ncol, irow, jcol)] / coeff);
+          const int quantum = quantizer.quantize(
+              v[get_index(ncol, irow, jcol)]
+          );
           if (quantum == 0)
             ++prune_count;
           gzwrite(out_file, &quantum, sizeof(int));
@@ -1531,14 +1538,15 @@ void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
   ////std::cout  << "Norm of sorts: " << norm << "\n";
 
   //    Real quantizer = 2.0*norm * tol;
-  Real quantizer = norm * tol;
+  const Real coeff = norm * tol;
+  const mgard::Quantizer<Real, int> quantizer(coeff);
   ////std::cout  << "Quantization factor: " << quantizer << "\n";
   std::memcpy(work.data(), &quantizer, sizeof(Real));
 
   int prune_count = 0;
 
   for (int index = 0; index < ncol * nrow; ++index) {
-    int quantum = (int)(v[index] / quantizer);
+    const int quantum = quantizer.quantize(v[index]);
     work[index + size_ratio] = quantum;
     if (quantum == 0)
       ++prune_count;
@@ -1552,12 +1560,13 @@ template <typename Real>
 void dequantize_2D_interleave(const int nrow, const int ncol, Real *v,
                               const std::vector<int> &work) {
   int size_ratio = sizeof(Real) / sizeof(int);
-  Real quantizer;
+  Real coeff;
 
-  std::memcpy(&quantizer, work.data(), sizeof(Real));
+  std::memcpy(&coeff, work.data(), sizeof(Real));
+  const mgard::Quantizer<Real, int> quantizer(coeff);
 
   for (int index = 0; index < nrow * ncol; ++index) {
-    v[index] = quantizer * Real(work[index + size_ratio]);
+    v[index] = quantizer.dequantize(work[index + size_ratio]);
   }
 }
 
@@ -1580,7 +1589,8 @@ void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
 
   tol /= nlevel + 1;
 
-  Real coeff = norm * tol;
+  const Real coeff = norm * tol;
+  const mgard::Quantizer<Real, int> quantizer(coeff);
   // std::cout  << "Quantization factor: " << coeff << "\n";
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
@@ -1588,7 +1598,7 @@ void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
   gzwrite(out_file, &coeff, sizeof(Real));
 
   for (auto index = 0; index < ncol * nrow; ++index) {
-    int quantum = (int)(v[index] / coeff);
+    const int quantum = quantizer.quantize(v[index]);
     if (quantum == 0)
       ++prune_count;
     gzwrite(out_file, &quantum, sizeof(int));
@@ -1614,6 +1624,7 @@ void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
   unzipped_bytes = gzread(in_file_z, unzip_buffer,
                           sizeof(Real)); // read the quantization constant
   std::memcpy(&coeff, &unzip_buffer, unzipped_bytes);
+  const mgard::Quantizer<Real, int> quantizer(coeff);
 
   int last = 0;
   while (true) {
@@ -1625,7 +1636,7 @@ void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
 
       std::memcpy(&int_buffer, &unzip_buffer, unzipped_bytes);
       for (int i = 0; i < num_int; ++i) {
-        v[last] = Real(int_buffer[i]) * coeff;
+        v[last] = quantizer.dequantize(int_buffer[i]);
         ++last;
       }
     } else {
