@@ -13,11 +13,6 @@
 
 namespace mgard_common {
 
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, int &nfib,
-               Real &tol, Real &s, std::string &in_file,
-               std::string &coord_file);
-
 template <typename Real> Real max_norm(const std::vector<Real> &v);
 
 template <typename Real>
@@ -207,13 +202,6 @@ void dequantize_2D(const int nr, const int nc, const int nrow, const int ncol,
                    const std::vector<Real> &coords_y, Real s);
 
 template <typename Real>
-void dequant_3D(const int nr, const int nc, const int nf, const int nrow,
-                const int ncol, const int nfib, const int nlevel, const int l,
-                Real *v, Real *work, const std::vector<Real> &coords_x,
-                const std::vector<Real> &coords_y,
-                const std::vector<Real> &coords_z, Real s);
-
-template <typename Real>
 void copy_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
                   int ncol);
 
@@ -294,12 +282,6 @@ void sub_level_l(const int l, Real *v, Real *work, int nr, int nc, int nf,
                  int nrow, int ncol, int nfib);
 
 template <typename Real>
-void project_first(const int nr, const int nc, const int nrow, const int ncol,
-                   const int l_target, Real *v, std::vector<Real> &work,
-                   std::vector<Real> &coords_x, std::vector<Real> &coords_y,
-                   std::vector<Real> &row_vec, std::vector<Real> &col_vec);
-
-template <typename Real>
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              const int l_target, Real *v, std::vector<Real> &work,
              std::vector<Real> &coords_x, std::vector<Real> &coords_y,
@@ -324,22 +306,10 @@ void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
                   int n, int no);
 
 template <typename Real>
-void refactor_1D(const int l_target, std::vector<Real> &v,
-                 std::vector<Real> &work, std::vector<Real> &coords, int n,
-                 int no);
-
-template <typename Real>
 void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
                  const int l_target, Real *v, std::vector<Real> &work,
                  std::vector<Real> &coords_x, std::vector<Real> &coords_y,
                  std::vector<Real> &row_vec, std::vector<Real> &col_vec);
-
-template <typename Real>
-void refactor_2D_full(const int nr, const int nc, const int nrow,
-                      const int ncol, const int l_target, Real *v,
-                      std::vector<Real> &work, std::vector<Real> &coords_x,
-                      std::vector<Real> &coords_y, std::vector<Real> &row_vec,
-                      std::vector<Real> &col_vec);
 
 template <typename Real>
 void refactor_2D_first(const int nr, const int nc, const int nrow,
@@ -456,10 +426,6 @@ Real qoi_norm(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 namespace mgard_2d {
 
 namespace mgard_common {
-
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
-               std::string &in_file, std::string &coord_file);
 
 template <typename Real> Real max_norm(const std::vector<Real> &v);
 
@@ -583,10 +549,9 @@ void add_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
                  int ncol);
 
 template <typename Real>
-void project_first(const int nr, const int nc, const int nrow, const int ncol,
-                   const int l_target, Real *v, std::vector<Real> &work,
-                   std::vector<Real> &coords_x, std::vector<Real> &coords_y,
-                   std::vector<Real> &row_vec, std::vector<Real> &col_vec);
+void prep_1D(const int nc, const int ncol, const int l_target, Real *v,
+             std::vector<Real> &work, std::vector<Real> &coords_x,
+             std::vector<Real> &row_vec);
 
 template <typename Real>
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
@@ -607,10 +572,20 @@ void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
                   int n, int no);
 
 template <typename Real>
+void refactor_1D(const int nc, const int ncol, const int l_target, Real *v,
+                 std::vector<Real> &work, std::vector<Real> &coords_x,
+                 std::vector<Real> &row_vec);
+
+template <typename Real>
 void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
                  const int l_target, Real *v, std::vector<Real> &work,
                  std::vector<Real> &coords_x, std::vector<Real> &coords_y,
                  std::vector<Real> &row_vec, std::vector<Real> &col_vec);
+
+template <typename Real>
+void recompose_1D(const int nc, const int ncol, const int l_target, Real *v,
+                  std::vector<Real> &work, std::vector<Real> &coords_x,
+                  std::vector<Real> &row_vec);
 
 template <typename Real>
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
@@ -621,6 +596,11 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
 template <typename Real>
 void prolongate_last(std::vector<Real> &v, std::vector<Real> &coords, int n,
                      int no);
+
+template <typename Real>
+void postp_1D(const int nc, const int ncol, const int l_target, Real *v,
+              std::vector<Real> &work, std::vector<Real> &coords_x,
+              std::vector<Real> &row_vec);
 
 template <typename Real>
 void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
@@ -636,7 +616,5 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
 } // namespace mgard_gen
 
 } // namespace mgard_2d
-
-#include "mgard_nuni.tpp"
 
 #endif

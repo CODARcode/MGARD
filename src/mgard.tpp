@@ -10,10 +10,14 @@
 
 #include "mgard.h"
 
+#include <cmath>
 #include <cstddef>
+#include <cstring>
 
+#include <zlib.h>
+
+#include <fstream>
 #include <numeric>
-#include <stdexcept>
 
 #include "mgard_compress.hpp"
 #include "mgard_mesh.hpp"
@@ -476,8 +480,7 @@ Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 }
 
 template <typename Real>
-unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize,
-                              Real tol) {
+unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 
   std::vector<Real> row_vec(ncol);
   std::vector<Real> v(u, u + ncol), work(ncol);
@@ -486,7 +489,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize,
 
   if (is_2kplus1(ncol)) // input is (2^p + 1)
   {
-// to be clean up. 
+    // to be clean up.
 
     int nlevel;
     set_number_of_levels(1, ncol, nlevel);
@@ -520,13 +523,11 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize,
 
     const int l_target = dims.nlevel - 1;
 
-    mgard_2d::mgard_gen::prep_1D(dims.rnded[0], dims.input[0],
-                                 l_target, v.data(), work,
-                                 coords_x, row_vec);
+    mgard_2d::mgard_gen::prep_1D(dims.rnded[0], dims.input[0], l_target,
+                                 v.data(), work, coords_x, row_vec);
 
-    mgard_2d::mgard_gen::refactor_1D(
-        dims.rnded[0], dims.input[0], l_target,
-        v.data(), work, coords_x, row_vec);
+    mgard_2d::mgard_gen::refactor_1D(dims.rnded[0], dims.input[0], l_target,
+                                     v.data(), work, coords_x, row_vec);
 
     work.clear();
     row_vec.clear();
@@ -804,7 +805,7 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
 
   if (is_2kplus1(ncol)) // input is (2^p + 1)
   {
-//to be cleaned up.
+    // to be cleaned up.
     const Dimensions2kPlus1<1> dims({ncol});
     const int l_target = dims.nlevel - 1;
 #if 0
@@ -831,7 +832,7 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
     mgard::recompose_1D(ncol, l_target, v, work, row_vec);
 
     return v;
-#endif 
+#endif
   } else {
     std::vector<Real> coords_x(ncol);
 
@@ -852,12 +853,11 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
     std::vector<Real> row_vec(ncol);
     std::vector<Real> work(ncol);
 
-    mgard_2d::mgard_gen::recompose_1D(
-        dims.rnded[0], dims.input[0], l_target, v,
-        work, coords_x, row_vec);
+    mgard_2d::mgard_gen::recompose_1D(dims.rnded[0], dims.input[0], l_target, v,
+                                      work, coords_x, row_vec);
 
-    mgard_2d::mgard_gen::postp_1D(dims.rnded[0], dims.input[0],
-                                  l_target, v, work, coords_x, row_vec);
+    mgard_2d::mgard_gen::postp_1D(dims.rnded[0], dims.input[0], l_target, v,
+                                  work, coords_x, row_vec);
 
     return v;
   }
@@ -1142,37 +1142,6 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 // }
 
 template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
-               std::string &in_file) {
-  if (argc >= 5) {
-    in_file = argv[1];
-    nrow = strtol((argv[2]), NULL, 0); // number of rows
-    ncol = strtol((argv[3]), NULL, 0); // number of columns
-    tol = strtod((argv[4]), 0);        // error tolerance
-
-    assert(in_file.size() != 0);
-    assert(ncol > 3);
-    assert(nrow >= 1);
-    assert(tol >= 1e-8);
-
-    struct stat file_stats;
-    int flag = stat(in_file.c_str(), &file_stats);
-
-    if (flag != 0) // can't stat file somehow
-    {
-      throw std::runtime_error(
-          "Cannot stat input file! Nothing to be done, exiting...");
-    }
-
-    return 1;
-  } else {
-    std::cerr << "Usage: " << argv[0] << " inputfile nrow ncol tol"
-              << "\n";
-    throw std::runtime_error("Too few arguments, exiting...");
-  }
-}
-
-template <typename Real>
 void mass_matrix_multiply(const int l, std::vector<Real> &v) {
 
   int stride = std::pow(2, l);
@@ -1354,7 +1323,6 @@ void pi_Ql(const int ncol, const int l, Real *v, std::vector<Real> &row_vec) {
   for (int jcol = 0; jcol < ncol; ++jcol) {
     v[jcol] = row_vec[jcol];
   }
-
 }
 
 template <typename Real>
@@ -1678,7 +1646,7 @@ void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
 // Gary New
 template <typename Real>
 void refactor_1D(const int ncol, const int l_target, Real *v,
-              std::vector<Real> &work, std::vector<Real> &row_vec) {
+                 std::vector<Real> &work, std::vector<Real> &row_vec) {
   for (int l = 0; l < l_target; ++l) {
 
     int stride = std::pow(2, l); // current stride
@@ -1686,7 +1654,8 @@ void refactor_1D(const int ncol, const int l_target, Real *v,
 #if 1
     pi_Ql(ncol, l, v, row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
 #endif
-    copy_level(1, ncol, l, v, work); // copy the nodal values of v on l  to matrix work
+    copy_level(1, ncol, l, v,
+               work); // copy the nodal values of v on l  to matrix work
 
     assign_num_level(1, ncol, l + 1, work.data(), static_cast<Real>(0.0));
 
@@ -1706,7 +1675,6 @@ void refactor_1D(const int ncol, const int l_target, Real *v,
 
     add_level(1, ncol, l + 1, v, work.data()); // Qu_l = \Pi_l Q_{l+1}u + z_l
   }
-
 }
 
 template <typename Real>
@@ -1784,8 +1752,8 @@ void recompose_1D(const int ncol, const int l_target, Real *v,
     int Pstride = stride / 2;
 
     copy_level(1, ncol, l - 1, v, work); // copy the nodal values of cl
-                                            // on l-1 (finer level)  to
-                                            // matrix work
+                                         // on l-1 (finer level)  to
+                                         // matrix work
     // zero out nodes of l on cl
     assign_num_level(1, ncol, l, work.data(), static_cast<Real>(0.0));
 
@@ -1911,8 +1879,8 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
 }
 
 template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-                      Real y1, Real y2, Real x, Real y) {
+Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+               Real y1, Real y2, Real x, Real y) {
   Real x2x1, y2y1, x2x, y2y, yy1, xx1;
   x2x1 = x2 - x1;
   y2y1 = y2 - y1;
@@ -1926,8 +1894,8 @@ inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
 }
 
 template <typename Real>
-inline Real interp_0d(const Real x1, const Real x2, const Real y1,
-                      const Real y2, const Real x) {
+Real interp_0d(const Real x1, const Real x2, const Real y1, const Real y2,
+               const Real x) {
   // do a linear interpolation between (x1, y1) and (x2, y2)
   return (((x2 - x) * y1 + (x - x1) * y2) / (x2 - x1));
 }

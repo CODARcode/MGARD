@@ -1,4 +1,5 @@
 #include "mgard_mesh.hpp"
+#include "mgard_mesh.tpp"
 
 #include <cmath>
 

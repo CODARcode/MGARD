@@ -80,8 +80,8 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
   } else if (nrow > 1) {
     assert(nrow > 3);
     // To be cleaned up.
-//    mgard_compressed_ptr =
-//        mgard::refactor_qz_1D(ncol, coords_x, coords_y, v, out_size, tol);
+    //    mgard_compressed_ptr =
+    //        mgard::refactor_qz_1D(ncol, coords_x, coords_y, v, out_size, tol);
 
     return mgard_compressed_ptr;
   }
@@ -205,7 +205,8 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
   } else if (ncol > 1) {
     assert(ncol > 3);
 
-    mgard_decompressed_ptr = mgard::recompose_udq_1D<Real>(ncol, data, data_len);
+    mgard_decompressed_ptr =
+        mgard::recompose_udq_1D<Real>(ncol, data, data_len);
     return mgard_decompressed_ptr;
   }
   return nullptr;

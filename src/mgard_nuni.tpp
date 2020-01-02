@@ -7,7 +7,6 @@
 // See LICENSE for details.
 #ifndef MGARD_NUNI_TPP
 #define MGARD_NUNI_TPP
-#define MGARD_NUNI_TPP
 
 #include "mgard_nuni.h"
 
@@ -15,9 +14,7 @@
 #include <cmath>
 #include <cstring>
 
-#include <sys/stat.h>
-
-#include "zlib.h"
+#include <zlib.h>
 
 #include <fstream>
 #include <iostream>
@@ -25,41 +22,6 @@
 #include "mgard_mesh.hpp"
 
 namespace mgard_common {
-
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, int &nfib,
-               Real &tol, Real &s, std::string &in_file,
-               std::string &coord_file) {
-  if (argc >= 7) {
-    in_file = argv[1];
-    coord_file = argv[2];
-    nrow = strtol((argv[3]), NULL, 0); // number of rows
-    ncol = strtol((argv[4]), NULL, 0); // number of columns
-    nfib = strtol((argv[5]), NULL, 0); // number of columns
-    tol = strtod((argv[6]), 0);        // error tolerance
-    s = strtod((argv[7]), 0);          // norm to compress in
-
-    assert(in_file.size() != 0);
-    assert(ncol > 3);
-    assert(nrow >= 1);
-    //        assert( tol  >= 1e-8);
-
-    struct stat file_stats;
-    int flag = stat(in_file.c_str(), &file_stats);
-
-    if (flag != 0) // can't stat file somehow
-    {
-      throw std::runtime_error(
-          "Cannot stat input file! Nothing to be done, exiting...");
-    }
-
-    return 1;
-  } else {
-    std::cerr << "Usage: " << argv[0] << " inputfile nrow ncol tol"
-              << "\n";
-    throw std::runtime_error("Too few arguments, exiting...");
-  }
-}
 
 template <typename Real> Real max_norm(const std::vector<Real> &v) {
   Real norm = 0;
@@ -73,13 +35,13 @@ template <typename Real> Real max_norm(const std::vector<Real> &v) {
 }
 
 template <typename Real>
-inline Real interp_1d(Real x, Real x1, Real x2, Real q00, Real q01) {
+Real interp_1d(Real x, Real x1, Real x2, Real q00, Real q01) {
   return ((x2 - x) / (x2 - x1)) * q00 + ((x - x1) / (x2 - x1)) * q01;
 }
 
 template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-                      Real y1, Real y2, Real x, Real y) {
+Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+               Real y1, Real y2, Real x, Real y) {
   Real x2x1, y2y1, x2x, y2y, yy1, xx1;
   x2x1 = x2 - x1;
   y2y1 = y2 - y1;
@@ -93,10 +55,9 @@ inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
 }
 
 template <typename Real>
-inline Real interp_3d(Real q000, Real q100, Real q110, Real q010, Real q001,
-                      Real q101, Real q111, Real q011, Real x1, Real x2,
-                      Real y1, Real y2, Real z1, Real z2, Real x, Real y,
-                      Real z) {
+Real interp_3d(Real q000, Real q100, Real q110, Real q010, Real q001, Real q101,
+               Real q111, Real q011, Real x1, Real x2, Real y1, Real y2,
+               Real z1, Real z2, Real x, Real y, Real z) {
 
   Real x00 = interp_1d(x, x1, x2, q000, q100);
   Real x10 = interp_1d(x, x1, x2, q010, q110);
@@ -109,12 +70,12 @@ inline Real interp_3d(Real q000, Real q100, Real q110, Real q010, Real q001,
 }
 
 template <typename Real>
-inline Real get_h(const std::vector<Real> &coords, int i, int stride) {
+Real get_h(const std::vector<Real> &coords, int i, int stride) {
   return (coords[i + stride] - coords[i]);
 }
 
 template <typename Real>
-inline Real get_dist(const std::vector<Real> &coords, int i, int j) {
+Real get_dist(const std::vector<Real> &coords, int i, int j) {
   return (coords[j] - coords[i]);
 }
 
@@ -156,11 +117,11 @@ void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
   gzclose(in_file_z);
 }
 
-template <typename Real> inline short encode(Real x) {
+template <typename Real> short encode(Real x) {
   return static_cast<short>(x * 32768 + (x >= 0 ? 0.0 : -1.0));
 }
 
-template <typename Real> inline Real decode(short x) {
+template <typename Real> Real decode(short x) {
   return static_cast<Real>(2 * x + 1.0) / 65535.0;
 }
 
@@ -595,8 +556,8 @@ void copy_level3(const int nrow, const int ncol, const int nfib, const int l,
 
 namespace mgard_gen {
 template <typename Real>
-inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
-                     const int i) // return reference to logical element
+Real *get_ref(std::vector<Real> &v, const int n, const int no,
+              const int i) // return reference to logical element
 {
   // no: original number of points
   // n : number of points at next coarser level (L-1) with  2^k+1 nodes
@@ -613,8 +574,8 @@ inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
 }
 
 template <typename Real>
-inline Real get_h_l(const std::vector<Real> &coords, const int n, const int no,
-                    int i, int stride) {
+Real get_h_l(const std::vector<Real> &coords, const int n, const int no, int i,
+             int stride) {
 
   //    return (*get_ref(coords, n, no, i+stride) - *get_ref(coords, n, no, i));
   return (coords[mgard::get_lindex(n, no, i + stride)] -
@@ -1846,7 +1807,8 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
               col_vec); //(I-\Pi u) this is the initial move to 2^k+1 nodes
 
   mgard_cannon::copy_level(nrow, ncol, l, v, work);
-  mgard_gen::assign_num_level_l(0, work.data(), 0.0, nr, nc, nrow, ncol);
+  mgard_gen::assign_num_level_l(0, work.data(), static_cast<Real>(0.0), nr, nc,
+                                nrow, ncol);
 
   // row-sweep
   for (int irow = 0; irow < nrow; ++irow) {
@@ -2963,7 +2925,8 @@ void recompose_2D_full(const int nr, const int nc, const int nrow,
     int Pstride = stride / 2;
 
     copy_level_l(l - 1, v, work.data(), nr, nc, nrow, ncol);
-    assign_num_level_l(l, work.data(), 0.0, nr, nc, nrow, ncol);
+    assign_num_level_l(l, work.data(), static_cast<Real>(0.0), nr, nc, nrow,
+                       ncol);
 
     for (int irow = 0; irow < nr; ++irow) {
       int ir = mgard::get_lindex(nr, nrow, irow);
@@ -3035,7 +2998,7 @@ void recompose_2D_full(const int nr, const int nc, const int nrow,
       }
     }
 
-    assign_num_level_l(l, v, 0.0, nr, nc, nrow, ncol);
+    assign_num_level_l(l, v, static_cast<Real>(0.0), nr, nc, nrow, ncol);
     subtract_level_l(l - 1, v, work.data(), nr, nc, nrow, ncol);
   }
 }
@@ -3047,7 +3010,8 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
               std::vector<Real> &row_vec, std::vector<Real> &col_vec) {
   mgard_cannon::copy_level(nrow, ncol, 0, v, work);
 
-  assign_num_level_l(0, work.data(), 0.0, nr, nc, nrow, ncol);
+  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), nr, nc, nrow,
+                     ncol);
 
   for (int irow = 0; irow < nrow; ++irow) {
     for (int jcol = 0; jcol < ncol; ++jcol) {
@@ -3146,7 +3110,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
 
   //     //std::cout  << "last step" << "\n";
 
-  assign_num_level_l(0, v, 0.0, nr, nc, nrow, ncol);
+  assign_num_level_l(0, v, static_cast<Real>(0.0), nr, nc, nrow, ncol);
   mgard_cannon::subtract_level(nrow, ncol, 0, v, work.data());
 }
 
@@ -4679,38 +4643,6 @@ namespace mgard_2d {
 
 namespace mgard_common {
 
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
-               std::string &in_file, std::string &coord_file) {
-  if (argc >= 5) {
-    in_file = argv[1];
-    coord_file = argv[2];
-    nrow = strtol((argv[3]), NULL, 0); // number of rows
-    ncol = strtol((argv[4]), NULL, 0); // number of columns
-    tol = strtod((argv[5]), 0);        // error tolerance
-
-    assert(in_file.size() != 0);
-    assert(ncol > 3);
-    assert(nrow >= 1);
-    assert(tol >= 1e-8);
-
-    struct stat file_stats;
-    int flag = stat(in_file.c_str(), &file_stats);
-
-    if (flag != 0) // can't stat file somehow
-    {
-      throw std::runtime_error(
-          "Cannot stat input file! Nothing to be done, exiting...");
-    }
-
-    return 1;
-  } else {
-    std::cerr << "Usage: " << argv[0] << " inputfile nrow ncol tol"
-              << "\n";
-    throw std::runtime_error("Too few arguments, exiting...");
-  }
-}
-
 template <typename Real> Real max_norm(const std::vector<Real> &v) {
   Real norm = 0;
 
@@ -4723,8 +4655,8 @@ template <typename Real> Real max_norm(const std::vector<Real> &v) {
 }
 
 template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-                      Real y1, Real y2, Real x, Real y) {
+Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+               Real y1, Real y2, Real x, Real y) {
   Real x2x1, y2y1, x2x, y2y, yy1, xx1;
   x2x1 = x2 - x1;
   y2y1 = y2 - y1;
@@ -4738,12 +4670,12 @@ inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
 }
 
 template <typename Real>
-inline Real get_h(const std::vector<Real> &coords, int i, int stride) {
+Real get_h(const std::vector<Real> &coords, int i, int stride) {
   return (i + stride - i);
 }
 
 template <typename Real>
-inline Real get_dist(const std::vector<Real> &coords, int i, int j) {
+Real get_dist(const std::vector<Real> &coords, int i, int j) {
   return (j - i);
 }
 
@@ -5029,8 +4961,8 @@ void copy_level(const int nrow, const int ncol, const int l, Real *v,
 namespace mgard_gen {
 
 template <typename Real>
-inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
-                     const int i) // return reference to logical element
+Real *get_ref(std::vector<Real> &v, const int n, const int no,
+              const int i) // return reference to logical element
 {
   // no: original number of points
   // n : number of points at next coarser level (L-1) with  2^k+1 nodes
@@ -5046,8 +4978,8 @@ inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
 }
 
 template <typename Real>
-inline Real get_h_l(const std::vector<Real> &coords, const int n, const int no,
-                    int i, int stride) {
+Real get_h_l(const std::vector<Real> &coords, const int n, const int no, int i,
+             int stride) {
 
   //    return (*get_ref(coords, n, no, i+stride) - *get_ref(coords, n, no, i));
   return (mgard::get_lindex(n, no, i + stride) - mgard::get_lindex(n, no, i));
@@ -5149,8 +5081,8 @@ void pi_lminus1_first(std::vector<Real> &v, const std::vector<Real> &coords,
 }
 
 template <typename Real>
-void pi_Ql_first(const int nc, const int ncol,
-                 const int l, Real *v, const std::vector<Real> &coords_x,
+void pi_Ql_first(const int nc, const int ncol, const int l, Real *v,
+                 const std::vector<Real> &coords_x,
                  std::vector<Real> &row_vec) {
   // Restrict data to coarser level
 
@@ -5167,7 +5099,7 @@ void pi_Ql_first(const int nc, const int ncol,
   pi_lminus1_first(row_vec, coords_x, nc, ncol);
 
   for (int jcol = 0; jcol < ncol; ++jcol) {
-      //            int jcol_r = mgard::get_lindex(nc, ncol, jcol);
+    //            int jcol_r = mgard::get_lindex(nc, ncol, jcol);
     v[jcol] = row_vec[jcol];
   }
 }
@@ -5266,9 +5198,8 @@ void pi_Ql_first(const int nr, const int nc, const int nrow, const int ncol,
 }
 
 template <typename Real>
-void pi_Ql(const int nc, const int ncol,
-           const int l, Real *v, const std::vector<Real> &coords_x,
-           std::vector<Real> &row_vec) {
+void pi_Ql(const int nc, const int ncol, const int l, Real *v,
+           const std::vector<Real> &coords_x, std::vector<Real> &row_vec) {
   // Restrict data to coarser level
 
   int stride = std::pow(2, l); // current stride
@@ -5495,19 +5426,18 @@ void project_first(const int nr, const int nc, const int nrow, const int ncol,
                    std::vector<Real> &row_vec, std::vector<Real> &col_vec) {}
 
 template <typename Real>
-void prep_1D(const int nc, const int ncol,
-             const int l_target, Real *v, std::vector<Real> &work,
-             std::vector<Real> &coords_x,
+void prep_1D(const int nc, const int ncol, const int l_target, Real *v,
+             std::vector<Real> &work, std::vector<Real> &coords_x,
              std::vector<Real> &row_vec) {
 
   int l = 0;
   //    int stride = 1;
-  pi_Ql_first(nc,  ncol, l, v, coords_x, row_vec); //(I-\Pi)u this is the initial move to 2^k+1 nodes
+  pi_Ql_first(nc, ncol, l, v, coords_x,
+              row_vec); //(I-\Pi)u this is the initial move to 2^k+1 nodes
 
   mgard_cannon::copy_level(1, ncol, 0, v, work);
 
-  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1,
-                     ncol);
+  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1, ncol);
 
   for (int jcol = 0; jcol < ncol; ++jcol) {
     row_vec[jcol] = work[jcol];
@@ -5680,9 +5610,8 @@ void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
 
 // Gary old branch.
 template <typename Real>
-void refactor_1D(const int nc, const int ncol,
-                 const int l_target, Real *v, std::vector<Real> &work,
-                 std::vector<Real> &coords_x,
+void refactor_1D(const int nc, const int ncol, const int l_target, Real *v,
+                 std::vector<Real> &work, std::vector<Real> &coords_x,
                  std::vector<Real> &row_vec) {
   for (int l = 0; l < l_target; ++l) {
     int stride = std::pow(2, l); // current stride
@@ -5690,7 +5619,8 @@ void refactor_1D(const int nc, const int ncol,
 
     // -> change funcs in pi_QL to use _l functions, otherwise distances are
     // wrong!!!
-    pi_Ql(nc, ncol, l, v, coords_x, row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
+    pi_Ql(nc, ncol, l, v, coords_x,
+          row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
 
     copy_level_l(l, v, work.data(), 1, nc, 1, ncol);
     assign_num_level_l(l + 1, work.data(), static_cast<Real>(0.0), 1, nc, 1,
@@ -5778,9 +5708,9 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
 }
 
 template <typename Real>
-void recompose_1D(const int nc, const int ncol,
-                  const int l_target, Real *v, std::vector<Real> &work,
-                  std::vector<Real> &coords_x, std::vector<Real> &row_vec) {
+void recompose_1D(const int nc, const int ncol, const int l_target, Real *v,
+                  std::vector<Real> &work, std::vector<Real> &coords_x,
+                  std::vector<Real> &row_vec) {
   for (int l = l_target; l > 0; --l) {
 
     int stride = std::pow(2, l); // current stride
@@ -5788,8 +5718,7 @@ void recompose_1D(const int nc, const int ncol,
 
     copy_level_l(l - 1, v, work.data(), 1, nc, 1, ncol);
 
-    assign_num_level_l(l, work.data(), static_cast<Real>(0.0), 1, nc, 1,
-                       ncol);
+    assign_num_level_l(l, work.data(), static_cast<Real>(0.0), 1, nc, 1, ncol);
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       row_vec[jcol] = work[jcol];
@@ -5953,13 +5882,12 @@ void prolongate_last(std::vector<Real> &v, std::vector<Real> &coords, int n,
 }
 
 template <typename Real>
-void postp_1D(const int nc, const int ncol,
-              const int l_target, Real *v, std::vector<Real> &work,
-              std::vector<Real> &coords_x, std::vector<Real> &row_vec) {
+void postp_1D(const int nc, const int ncol, const int l_target, Real *v,
+              std::vector<Real> &work, std::vector<Real> &coords_x,
+              std::vector<Real> &row_vec) {
   mgard_cannon::copy_level(1, ncol, 0, v, work);
 
-  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1,
-                     ncol);
+  assign_num_level_l(0, work.data(), static_cast<Real>(0.0), 1, nc, 1, ncol);
 
   for (int jcol = 0; jcol < ncol; ++jcol) {
     row_vec[jcol] = work[jcol];

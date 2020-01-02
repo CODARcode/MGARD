@@ -7,6 +7,7 @@
 // See LICENSE for details.
 
 #include "mgard_qoi.h"
+#include "mgard_qoi.tpp"
 
 namespace mgard_qoi {
 

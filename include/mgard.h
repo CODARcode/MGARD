@@ -14,12 +14,12 @@
 namespace mgard {
 
 template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-                      Real y1, Real y2, Real x, Real y);
+Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+               Real y1, Real y2, Real x, Real y);
 
 template <typename Real>
-inline Real interp_0d(const Real x1, const Real x2, const Real y1,
-                      const Real y2, const Real x);
+Real interp_0d(const Real x1, const Real x2, const Real y1, const Real y2,
+               const Real x);
 
 template <typename Real>
 void mass_matrix_multiply(const int l, std::vector<Real> &v);
@@ -182,9 +182,6 @@ unsigned char *refactor_qz_1D(int ncol, const Real *v, int &outsize, Real tol);
 template <typename Real>
 Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len);
 
-template <typename Real>
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, Real &tol,
-               std::string &in_file);
 // Gary new
 template <typename Real>
 void refactor_1D(const int ncol, const int l_target, Real *v,
@@ -205,7 +202,5 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
                std::vector<Real> &col_vec);
 
 } // namespace mgard
-
-#include "mgard.tpp"
 
 #endif

@@ -16,6 +16,12 @@ template <std::size_t N> struct Dimensions2kPlus1 {
   int nlevel;
 };
 
+template struct Dimensions2kPlus1<1>;
+
+template struct Dimensions2kPlus1<2>;
+
+template struct Dimensions2kPlus1<3>;
+
 // As of this writing, these are only needed in the implementations of the
 //`Dimensions2kPlus1` constructor and `is_2kplus1`.
 int nlevel_from_size(const int n);
@@ -34,5 +40,4 @@ int get_index3(const int ncol, const int nfib, const int i, const int j,
 
 } // namespace mgard
 
-#include "mgard_mesh.tpp"
 #endif
