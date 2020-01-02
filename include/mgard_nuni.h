@@ -38,10 +38,6 @@ template <typename Real>
 void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
                          Real *v, std::string infile);
 
-template <typename Real> inline short encode(Real x);
-
-template <typename Real> inline Real decode(short x);
-
 template <typename Real>
 void qread_2D_bin(const int nrow, const int ncol, const int nlevel, Real *v,
                   std::string infile);
