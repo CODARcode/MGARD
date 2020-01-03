@@ -2,4 +2,4 @@
 
 #include "MeshHierarchy.hpp"
 
-//Empty.
+// Empty.

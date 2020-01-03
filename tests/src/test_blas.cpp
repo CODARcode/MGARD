@@ -2,4 +2,4 @@
 
 #include "blas.hpp"
 
-//Empty.
+// Empty.

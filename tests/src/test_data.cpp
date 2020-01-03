@@ -2,4 +2,4 @@
 
 #include "data.hpp"
 
-//Empty.
+// Empty.
