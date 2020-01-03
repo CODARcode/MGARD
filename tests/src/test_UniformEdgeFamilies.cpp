@@ -2,4 +2,4 @@
 
 #include "UniformEdgeFamilies.hpp"
 
-//Empty.
+// Empty.
