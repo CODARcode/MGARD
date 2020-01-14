@@ -26,10 +26,24 @@ Int Quantizer<Real, Int>::quantize(const Real x) const {
 }
 
 template <typename Real, typename Int>
+template <typename It>
+QuantizedRange<Real, Int, It>
+Quantizer<Real, Int>::quantize(const It begin, const It end) const {
+  return QuantizedRange<Real, Int, It>(*this, begin, end);
+}
+
+template <typename Real, typename Int>
 Real Quantizer<Real, Int>::dequantize(const Int n) const {
   // We assume that all numbers of the form `quantum * n` are representable by
   //`Real`s.
   return quantum * n;
+}
+
+template <typename Real, typename Int>
+template <typename It>
+DequantizedRange<Real, Int, It>
+Quantizer<Real, Int>::dequantize(const It begin, const It end) const {
+  return DequantizedRange<Real, Int, It>(*this, begin, end);
 }
 
 template <typename Real, typename Int>
