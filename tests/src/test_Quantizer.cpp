@@ -3,8 +3,11 @@
 #include <cmath>
 #include <cstddef>
 
+#include <iterator>
 #include <limits>
 #include <random>
+#include <type_traits>
+#include <vector>
 
 #include "Quantizer.hpp"
 
@@ -42,6 +45,32 @@ static void test_quantization_domain(const Real quantum) {
   REQUIRE_THROWS(quantizer.quantize(smallest_output - 0.501 * quantum));
 }
 
+template <typename Real, typename Int>
+static void
+test_iteration_inversion(const mgard::Quantizer<Real, Int> &quantizer,
+                         const std::vector<Int> ns) {
+  using It = typename std::vector<Int>::const_iterator;
+  using A = typename std::iterator_traits<It>::value_type;
+  static_assert(std::is_same<A, Int>::value);
+
+  const mgard::DequantizedRange<Real, Int, It> dequantized =
+      quantizer.dequantize(ns.begin(), ns.end());
+
+  using Jt = typename mgard::DequantizedRange<Real, Int, It>::iterator;
+  using B = typename std::iterator_traits<Jt>::value_type;
+  static_assert(std::is_same<B, Real>::value);
+
+  const mgard::QuantizedRange<Real, Int, Jt> quantized =
+      quantizer.quantize(dequantized.begin(), dequantized.end());
+
+  typename std::vector<Int>::const_iterator p = ns.begin();
+  bool all_equal = true;
+  for (const Int n : quantized) {
+    all_equal = all_equal && n == *p++;
+  }
+  REQUIRE(all_equal);
+}
+
 TEST_CASE("quantization error", "[Quantizer]") {
   test_quantization_error<float, int>(0.01);
   test_quantization_error<float, long int>(2.4);
@@ -59,5 +88,40 @@ TEST_CASE("quantization exceptions", "[Quantizer]") {
     test_quantization_error<float, short int>(0.1);
     test_quantization_error<float, short int>(0.1);
     test_quantization_error<double, long int>(24.2189);
+  }
+}
+
+TEST_CASE("quantization iterator", "[Quantizer]") {
+  SECTION("basic quantization iteration") {
+    const mgard::Quantizer<double, int> quantizer(0.5);
+    const std::vector<double> xs = {0, 2.5, 2.49, 2.51, -10.5};
+    std::vector<int> ns;
+    for (const int n : quantizer.quantize(xs.begin(), xs.end())) {
+      ns.push_back(n);
+    }
+    REQUIRE(ns == std::vector<int>({0, 5, 5, 5, -21}));
+  }
+
+  SECTION("basic dequantization iteration") {
+    const mgard::Quantizer<float, short int> quantizer(1.25);
+    const std::vector<short int> ns = {-28, 0, -5, 2387};
+    std::vector<float> xs;
+    for (const float x : quantizer.dequantize(ns.begin(), ns.end())) {
+      xs.push_back(x);
+      }
+      REQUIRE(xs == std::vector<float>({-35, 0, -6.25, 2983.75}));
+    }
+
+  SECTION("iteration and quantization inverts dequantization") {
+    {
+      const mgard::Quantizer<float, int> quantizer(0.03);
+      test_iteration_inversion<float, int>(
+          quantizer, {2, 18, 2897, -3289, 21782, 0, -12, -1783});
+    }
+    {
+      const mgard::Quantizer<double, short> quantizer(8.238);
+      test_iteration_inversion<double, short>(
+          quantizer, {4, 66, 83, -51, -833, -328, 0, 0, -327});
+    }
   }
 }
