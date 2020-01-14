@@ -21,25 +21,25 @@ Int Quantizer<Real, Int>::quantize(const Real x) const {
   if (x <= minimum || x >= maximum) {
     throw std::domain_error("number too large to be quantized");
   }
-  return do_quantize(x);
+  // See <https://www.cs.cmu.edu/~rbd/papers/cmj-float-to-int.html>.
+  return std::copysign(0.5 + std::abs(x / quantum), x);
 }
 
 template <typename Real, typename Int>
 Real Quantizer<Real, Int>::dequantize(const Int n) const {
   // We assume that all numbers of the form `quantum * n` are representable by
   //`Real`s.
-  return do_dequantize(n);
-}
-
-template <typename Real, typename Int>
-Int Quantizer<Real, Int>::do_quantize(const Real x) const {
-  // See <https://www.cs.cmu.edu/~rbd/papers/cmj-float-to-int.html>.
-  return std::copysign(0.5 + std::abs(x / quantum), x);
-}
-
-template <typename Real, typename Int>
-Real Quantizer<Real, Int>::do_dequantize(const Int n) const {
   return quantum * n;
+}
+
+template <typename Real, typename Int>
+bool operator==(const Quantizer<Real, Int> &a, const Quantizer<Real, Int> &b) {
+  return a.quantum == b.quantum;
+}
+
+template <typename Real, typename Int>
+bool operator!=(const Quantizer<Real, Int> &a, const Quantizer<Real, Int> &b) {
+  return !operator==(a, b);
 }
 
 } // namespace mgard

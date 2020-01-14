@@ -10,7 +10,7 @@ endif
 
 ARFLAGS := -rcs
 
-MKDIR := mkdir
+MKDIR := mkdir --parents
 RMDIR := rmdir
 
 DIR_INC := include

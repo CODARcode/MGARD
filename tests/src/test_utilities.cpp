@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include <algorithm>
+#include <vector>
 
 #include "utilities.hpp"
 
