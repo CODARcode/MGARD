@@ -15,6 +15,7 @@ template <typename Real, typename Int, typename It> class DequantizedRange;
 
 template <typename Real, typename Int> class Quantizer;
 
+//!Equality comparison.
 template <typename Real, typename Int>
 bool operator==(const Quantizer<Real, Int> &a, const Quantizer<Real, Int> &b);
 
@@ -85,6 +86,7 @@ bool operator!=(const Quantizer<Real, Int> &a, const Quantizer<Real, Int> &b);
 // Forward declarations.
 template <typename Real, typename Int, typename It> class QuantizedRange;
 
+//!Equality comparison.
 template <typename Real, typename Int, typename It>
 bool operator==(const QuantizedRange<Real, Int, It> &a,
                 const QuantizedRange<Real, Int, It> &b);
@@ -134,6 +136,7 @@ private:
   const It end_;
 };
 
+//!Inequality comparison.
 template <typename Real, typename Int, typename It>
 bool operator!=(const QuantizedRange<Real, Int, It> &a,
                 const QuantizedRange<Real, Int, It> &b);
@@ -174,6 +177,7 @@ private:
 // Forward declarations.
 template <typename Real, typename Int, typename It> class DequantizedRange;
 
+//!Equality comparison.
 template <typename Real, typename Int, typename It>
 bool operator==(const DequantizedRange<Real, Int, It> &a,
                 const DequantizedRange<Real, Int, It> &b);
@@ -214,6 +218,7 @@ private:
   const It end_;
 };
 
+//!Inequality comparison.
 template <typename Real, typename Int, typename It>
 bool operator!=(const DequantizedRange<Real, Int, It> &a,
                 const DequantizedRange<Real, Int, It> &b);

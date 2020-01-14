@@ -60,12 +60,12 @@ public:
 
   //! Access the 'old' nodes of a level.
   //!
-  //!\param [in] Index of the MeshLevel.
+  //!\param [in] l Index of the MeshLevel.
   moab::Range old_nodes(const std::size_t l) const;
 
   //! Access the 'new' nodes of a level.
   //!
-  //!\param [in] Index of the MeshLevel.
+  //!\param [in] l Index of the MeshLevel.
   moab::Range new_nodes(const std::size_t l) const;
 
   //! Access the subset of a dataset associated to the 'old' nodes of a
