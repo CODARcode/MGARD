@@ -5,6 +5,16 @@ namespace mgard {
 template <typename T>
 HierarchyCoefficients<T>::HierarchyCoefficients(T *const data) : data(data) {}
 
+template <typename T>
+T *begin(const MeshHierarchy &hierarchy, const HierarchyCoefficients<T> u) {
+  return u.data;
+}
+
+template <typename T>
+T *end(const MeshHierarchy &hierarchy, const HierarchyCoefficients<T> u) {
+  return u.data + hierarchy.ndof();
+}
+
 #define DEFINE_HC_SUBCLASS_CONVERSION(name)                                    \
   template <typename T>                                                        \
   template <typename U>                                                        \
