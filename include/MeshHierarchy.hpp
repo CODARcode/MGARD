@@ -319,6 +319,12 @@ private:
       double *const b) const = 0;
 };
 
+//! Equality comparison.
+bool operator==(const MeshHierarchy &a, const MeshHierarchy &b);
+
+//! Inequality comparison.
+bool operator==(const MeshHierarchy &a, const MeshHierarchy &b);
+
 } // namespace mgard
 
 #endif
