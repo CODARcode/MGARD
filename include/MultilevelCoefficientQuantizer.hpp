@@ -11,19 +11,21 @@
 namespace mgard {
 
 // Forward declarations.
-template <typename Int> class MultilevelCoefficientQuantizer;
+template <typename Real, typename Int> class MultilevelCoefficientQuantizer;
 
-template <typename Int> class MultilevelCoefficientQuantizedRange;
+template <typename Real, typename Int>
+class MultilevelCoefficientQuantizedRange;
 
-template <typename Int> class MultilevelCoefficientDequantizedRange;
+template <typename Real, typename Int>
+class MultilevelCoefficientDequantizedRange;
 
-template <typename Int>
-bool operator==(const MultilevelCoefficientQuantizer<Int> &a,
-                const MultilevelCoefficientQuantizer<Int> &b);
+template <typename Real, typename Int>
+bool operator==(const MultilevelCoefficientQuantizer<Real, Int> &a,
+                const MultilevelCoefficientQuantizer<Real, Int> &b);
 
 //! Quantizer for multilevel coefficients. Each coefficient is quantized
 //! according to its contribution to the error indicator.
-template <typename Int> class MultilevelCoefficientQuantizer {
+template <typename Real, typename Int> class MultilevelCoefficientQuantizer {
 public:
   //! Constructor.
   //!
@@ -32,8 +34,8 @@ public:
   //!\param s Smoothness parameter. Determines the error norm in which
   //! quantization error is controlled.
   //!\param tolerance Quantization error tolerance.
-  MultilevelCoefficientQuantizer(const MeshHierarchy &hierarchy, const double s,
-                                 const double tolerance);
+  MultilevelCoefficientQuantizer(const MeshHierarchy &hierarchy, const float s,
+                                 const float tolerance);
 
   //! Equality comparison.
   friend bool operator==<>(const MultilevelCoefficientQuantizer &a,
@@ -43,37 +45,37 @@ public:
   //!
   //!\param begin Beginning of range to quantize.
   //!\param end End of range to quantize.
-  MultilevelCoefficientQuantizedRange<Int> quantize(const It begin,
-                                                    const It end) const;
+  MultilevelCoefficientQuantizedRange<Real, Int> quantize(const It begin,
+                                                          const It end) const;
 
   //!\overload
   //!
   //!\param u Multilevel coefficients to be quantized.
-  MultilevelCoefficientQuantizedRange<Int>
-  quantize(const MultilevelCoefficients<double> u) const;
+  MultilevelCoefficientQuantizedRange<Real, Int>
+  quantize(const MultilevelCoefficients<Real> u) const;
 
   //! Dequantize a set of quantized multilevel coefficients.
   //!
   //!\param It Beginning of quantized range.
   //!\param It End of quantized range.
   template <typename It>
-  MultilevelCoefficientDequantizedRange<Int> dequantize(const It begin,
-                                                        const It end) const;
+  MultilevelCoefficientDequantizedRange<Real, Int>
+  dequantize(const It begin, const It end) const;
 
 private:
   //! Associated mesh hierarchy.
   const MeshHierarchy &hierarchy;
 
   //! Smoothness parameter.
-  const double s;
+  const float s;
 
   //! Quantization error tolerance.
-  const double tolerance;
+  const float tolerance;
 };
 
-template <typename Int>
-bool operator!=(const MultilevelCoefficientQuantizedRange<Int> &a,
-                const MultilevelCoefficientQuantizedRange<Int> &b);
+template <typename Real, typename Int>
+bool operator!=(const MultilevelCoefficientQuantizedRange<Real, Int> &a,
+                const MultilevelCoefficientQuantizedRange<Real, Int> &b);
 
 } // namespace mgard
 
