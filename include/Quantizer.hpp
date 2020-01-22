@@ -15,7 +15,7 @@ template <typename Real, typename Int, typename It> class DequantizedRange;
 
 template <typename Real, typename Int> class Quantizer;
 
-//!Equality comparison.
+//! Equality comparison.
 template <typename Real, typename Int>
 bool operator==(const Quantizer<Real, Int> &a, const Quantizer<Real, Int> &b);
 
@@ -26,9 +26,10 @@ bool operator==(const Quantizer<Real, Int> &a, const Quantizer<Real, Int> &b);
 //! ease integration with existing code.
 template <typename Real, typename Int> class Quantizer {
 
-  static_assert(std::is_floating_point<Real>::value);
-  static_assert(std::is_integral<Int>::value);
-  static_assert(std::is_signed<Int>::value);
+  static_assert(std::is_floating_point<Real>::value,
+                "`Real` must be a floating point type");
+  static_assert(std::is_integral<Int>::value, "`Int` must be an integral type");
+  static_assert(std::is_signed<Int>::value, "`Int` must be a signed type");
 
 public:
   //! Constructor.
@@ -86,7 +87,7 @@ bool operator!=(const Quantizer<Real, Int> &a, const Quantizer<Real, Int> &b);
 // Forward declarations.
 template <typename Real, typename Int, typename It> class QuantizedRange;
 
-//!Equality comparison.
+//! Equality comparison.
 template <typename Real, typename Int, typename It>
 bool operator==(const QuantizedRange<Real, Int, It> &a,
                 const QuantizedRange<Real, Int, It> &b);
@@ -105,7 +106,8 @@ bool operator==(const QuantizedRange<Real, Int, It> &a,
 template <typename Real, typename Int, typename It> class QuantizedRange {
 
   using T = typename std::iterator_traits<It>::value_type;
-  static_assert(std::is_same<T, Real>::value);
+  static_assert(std::is_same<T, Real>::value,
+                "`It` must dereference to `Real`");
 
 public:
   //! Constructor.
@@ -136,7 +138,7 @@ private:
   const It end_;
 };
 
-//!Inequality comparison.
+//! Inequality comparison.
 template <typename Real, typename Int, typename It>
 bool operator!=(const QuantizedRange<Real, Int, It> &a,
                 const QuantizedRange<Real, Int, It> &b);
@@ -177,7 +179,7 @@ private:
 // Forward declarations.
 template <typename Real, typename Int, typename It> class DequantizedRange;
 
-//!Equality comparison.
+//! Equality comparison.
 template <typename Real, typename Int, typename It>
 bool operator==(const DequantizedRange<Real, Int, It> &a,
                 const DequantizedRange<Real, Int, It> &b);
@@ -186,7 +188,7 @@ bool operator==(const DequantizedRange<Real, Int, It> &a,
 template <typename Real, typename Int, typename It> class DequantizedRange {
 
   using T = typename std::iterator_traits<It>::value_type;
-  static_assert(std::is_same<T, Int>::value);
+  static_assert(std::is_same<T, Int>::value, "`It` must dereference to `Int`");
 
 public:
   //! Constructor.
@@ -218,7 +220,7 @@ private:
   const It end_;
 };
 
-//!Inequality comparison.
+//! Inequality comparison.
 template <typename Real, typename Int, typename It>
 bool operator!=(const DequantizedRange<Real, Int, It> &a,
                 const DequantizedRange<Real, Int, It> &b);

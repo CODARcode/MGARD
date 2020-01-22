@@ -50,16 +50,10 @@ static void
 test_iteration_inversion(const mgard::Quantizer<Real, Int> &quantizer,
                          const std::vector<Int> ns) {
   using It = typename std::vector<Int>::const_iterator;
-  using A = typename std::iterator_traits<It>::value_type;
-  static_assert(std::is_same<A, Int>::value);
-
   const mgard::DequantizedRange<Real, Int, It> dequantized =
       quantizer.dequantize(ns.begin(), ns.end());
 
   using Jt = typename mgard::DequantizedRange<Real, Int, It>::iterator;
-  using B = typename std::iterator_traits<Jt>::value_type;
-  static_assert(std::is_same<B, Real>::value);
-
   const mgard::QuantizedRange<Real, Int, Jt> quantized =
       quantizer.quantize(dequantized.begin(), dequantized.end());
 
@@ -108,9 +102,9 @@ TEST_CASE("quantization iterator", "[Quantizer]") {
     std::vector<float> xs;
     for (const float x : quantizer.dequantize(ns.begin(), ns.end())) {
       xs.push_back(x);
-      }
-      REQUIRE(xs == std::vector<float>({-35, 0, -6.25, 2983.75}));
     }
+    REQUIRE(xs == std::vector<float>({-35, 0, -6.25, 2983.75}));
+  }
 
   SECTION("iteration and quantization inverts dequantization") {
     {
