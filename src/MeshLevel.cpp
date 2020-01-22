@@ -155,6 +155,31 @@ void MeshLevel::check_system_size(const std::size_t N) const {
   }
 }
 
+// Hopefully just a placeholder. Strictly speaking, it's not enough to just
+// compare the `Range`s, since two `EntityHandle`s with the same numeric value
+// could point to different entities if the corresponding `Interface`s differ.
+// `operator==` isn't defined for `Interface`s, though. I'm happy to just check
+// that the interfaces are the same object, so I'll compare addresses.
+static bool operator==(const moab::Interface &a, const moab::Interface &b) {
+  return &a == &b;
+}
+
+// Assuming nothing funny happens with `element_type`, `topological_dimension`,
+// or `num_nodes_per_element` (data members calculated from `impl` and
+// `entities` but not `const`).
+bool operator==(const MeshLevel &a, const MeshLevel &b) {
+  for (moab::EntityType i = moab::MBVERTEX; i < moab::MBMAXTYPE; ++i) {
+    if (a.entities[i] != b.entities[i]) {
+      return false;
+    }
+  }
+  return a.impl == b.impl;
+}
+
+bool operator!=(const MeshLevel &a, const MeshLevel &b) {
+  return !operator==(a, b);
+}
+
 // Private member functions.
 
 void MeshLevel::populate_from_element_type() {

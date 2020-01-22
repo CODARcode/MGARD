@@ -121,6 +121,12 @@ private:
   moab::ErrorCode precompute_measures(const moab::EntityType type) const;
 };
 
+//! Equality comparison.
+bool operator==(const MeshLevel &a, const MeshLevel &b);
+
+//! Inequality comparison.
+bool operator!=(const MeshLevel &a, const MeshLevel &b);
+
 } // namespace mgard
 
 #endif

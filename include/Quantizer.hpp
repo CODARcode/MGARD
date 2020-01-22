@@ -4,6 +4,7 @@
 //!\brief Quantizers to round floating point numbers in preparation for lossless
 //! compression.
 
+#include <iterator>
 #include <type_traits>
 
 namespace mgard {
@@ -124,7 +125,7 @@ public:
   //! Associated quantizer.
   const Quantizer<Real, Int> &quantizer;
 
-  // Forward declaration;
+  // Forward declaration.
   class iterator;
 
   //! Return an iterator to the beginning of the quantized range.
@@ -168,7 +169,7 @@ public:
   //! Postincrement.
   iterator operator++(int);
 
-  //! Dereference;
+  //! Dereference.
   Int operator*() const;
 
 private:
@@ -249,7 +250,7 @@ public:
   //! Postincrement.
   iterator operator++(int);
 
-  //! Dereference;
+  //! Dereference.
   Real operator*() const;
 
 private:

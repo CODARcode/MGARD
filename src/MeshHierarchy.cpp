@@ -308,6 +308,14 @@ void MeshHierarchy::check_mesh_index_nonzero(const std::size_t l) const {
   }
 }
 
+bool operator==(const MeshHierarchy &a, const MeshHierarchy &b) {
+  return a.meshes == b.meshes;
+}
+
+bool operator!=(const MeshHierarchy &a, const MeshHierarchy &b) {
+  return !operator==(a, b);
+}
+
 // Private member functions.
 
 std::size_t MeshHierarchy::do_ndof(const std::size_t l) const {

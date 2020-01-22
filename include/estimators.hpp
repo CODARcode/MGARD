@@ -9,7 +9,7 @@
 namespace mgard {
 
 //! Bounds relating an estimator (or indicator norm) to the corresponding norm
-//!(or estimator). If `estimate` is the !estimate and `norm` the corresponding
+//!(or estimator). If `estimate` is the estimate and `norm` the corresponding
 //! norm, we will have
 //!    realism * estimate <= norm <= reliability * estimate
 //!
