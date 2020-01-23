@@ -8,6 +8,8 @@
 
 #include "mgard_nuni.h"
 #include "mgard.h"
+#include <chrono>
+#include <fstream>
 
 namespace mgard_common {
 
@@ -5260,23 +5262,28 @@ void pi_lminus1_l(const int l, std::vector<double> &v,
   int stride = std::pow(2, l); // current stride
   //  int Pstride = stride/2; //finer stride
   int Cstride = stride * 2; // coarser stride
-
+  // std::cout << "l = " << l << ", my_level = " << my_level << std::endl;
   if (my_level != 0) {
+    // std::cout << "v = ";
     for (int i = Cstride; i < n - 1; i += Cstride) {
       double h1 = get_h_l(coords, n, no, i - Cstride, stride);
       double h2 = get_h_l(coords, n, no, i - stride, stride);
       double hsum = h1 + h2;
+      // std::cout << *get_ref(v, n, no, i - stride) << "->";
       *get_ref(v, n, no, i - stride) -=
           (h1 * (*get_ref(v, n, no, i)) +
            h2 * (*get_ref(v, n, no, i - Cstride))) /
           hsum;
+      // std::cout << *get_ref(v, n, no, i - stride) << "   ";
     }
+    // std::cout <<  *get_ref(v, n, no, n - 1 - stride) << "->";
 
     double h1 = get_h_l(coords, n, no, n - 1 - Cstride, stride);
     double h2 = get_h_l(coords, n, no, n - 1 - stride, stride);
     double hsum = h1 + h2;
     *get_ref(v, n, no, n - 1 - stride) -=
         (h1 * (v.back()) + h2 * (*get_ref(v, n, no, n - 1 - Cstride))) / hsum;
+    // std::cout<< *get_ref(v, n, no, n - 1 - stride)<<std::endl;
   }
 }
 
@@ -5593,14 +5600,42 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              std::vector<double> &coords_x, std::vector<double> &coords_y,
              std::vector<double> &row_vec, std::vector<double> &col_vec) {
 
+  std::cout << "***prep_2D***" << std::endl;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  std::chrono::duration<double> elapsed;
+  double pi_Ql_first_time = 0.0;
+  double copy_level_time = 0.0;
+  double assign_num_level_l_time = 0.0;
+
+  double mass_matrix_multiply_row_time = 0.0;
+  double restriction_first_row_time = 0.0;
+  double solve_tridiag_M_l_row_time = 0.0;
+  
+  double mass_matrix_multiply_col_time = 0.0;
+  double restriction_first_col_time = 0.0;
+  double solve_tridiag_M_l_col_time = 0.0;
+  double add_level_l_time = 0.0;
+
   int l = 0;
   //    int stride = 1;
+  start = std::chrono::high_resolution_clock::now();
   pi_Ql_first(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec,
               col_vec); //(I-\Pi)u this is the initial move to 2^k+1 nodes
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  pi_Ql_first_time = elapsed.count();
 
+  start = std::chrono::high_resolution_clock::now();
   mgard_cannon::copy_level(nrow, ncol, 0, v, work);
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  copy_level_time = elapsed.count();
 
+  start = std::chrono::high_resolution_clock::now();
   assign_num_level_l(0, work.data(), 0.0, nr, nc, nrow, ncol);
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  assign_num_level_l_time = elapsed.count();
 
   for (int irow = 0; irow < nrow; ++irow) {
     //        int ir = get_lindex(nr, nrow, irow);
@@ -5608,9 +5643,17 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
       row_vec[jcol] = work[mgard_common::get_index(ncol, irow, jcol)];
     }
 
+    start = std::chrono::high_resolution_clock::now();
     mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    mass_matrix_multiply_row_time += elapsed.count();
 
+    start = std::chrono::high_resolution_clock::now();
     restriction_first(row_vec, coords_x, nc, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    restriction_first_row_time += elapsed.count();
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       work[mgard_common::get_index(ncol, irow, jcol)] = row_vec[jcol];
@@ -5622,8 +5665,11 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
     for (int jcol = 0; jcol < ncol; ++jcol) {
       row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
     }
-
+    start = std::chrono::high_resolution_clock::now();
     mgard_gen::solve_tridiag_M_l(0, row_vec, coords_x, nc, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    solve_tridiag_M_l_row_time += elapsed.count();
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol];
@@ -5640,10 +5686,17 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
       for (int irow = 0; irow < nrow; ++irow) {
         col_vec[irow] = work[mgard_common::get_index(ncol, irow, jcol)];
       }
-
+      start = std::chrono::high_resolution_clock::now();
       mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      mass_matrix_multiply_col_time += elapsed.count();
 
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::restriction_first(col_vec, coords_y, nr, nrow);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      restriction_first_col_time += elapsed.count();
 
       for (int irow = 0; irow < nrow; ++irow) {
         work[mgard_common::get_index(ncol, irow, jcol)] = col_vec[irow];
@@ -5655,14 +5708,37 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
       for (int irow = 0; irow < nrow; ++irow) {
         col_vec[irow] = work[mgard_common::get_index(ncol, irow, jr)];
       }
-
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::solve_tridiag_M_l(0, col_vec, coords_y, nr, nrow);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      solve_tridiag_M_l_col_time += elapsed.count();
       for (int irow = 0; irow < nrow; ++irow) {
         work[mgard_common::get_index(ncol, irow, jr)] = col_vec[irow];
       }
     }
   }
+  start = std::chrono::high_resolution_clock::now();
   add_level_l(0, v, work.data(), nr, nc, nrow, ncol);
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  add_level_l_time += elapsed.count();
+
+  std::ofstream timing_results;
+  timing_results.open ("prep_2D.csv");
+  timing_results << "pi_Ql_first_time," << pi_Ql_first_time << std::endl;
+  timing_results << "copy_level_time," << copy_level_time << std::endl;
+  timing_results << "assign_num_level_l_time," << assign_num_level_l_time << std::endl;
+
+  timing_results << "mass_matrix_multiply_row_time," << mass_matrix_multiply_row_time << std::endl;
+  timing_results << "restriction_first_row_time," << restriction_first_row_time << std::endl;
+  timing_results << "solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
+  
+  timing_results << "mass_matrix_multiply_col_time," << mass_matrix_multiply_col_time << std::endl;
+  timing_results << "restriction_first_col_time," << restriction_first_col_time << std::endl;
+  timing_results << "solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
+  timing_results << "add_level_l_time," << add_level_l_time << std::endl;
+  timing_results.close();
 }
 
 void mass_mult_l(const int l, std::vector<double> &v,
@@ -5674,11 +5750,11 @@ void mass_mult_l(const int l, std::vector<double> &v,
 
   // Mass matrix times nodal value-vec
   temp1 = v.front(); // save u(0) for later use
-
+  //printf("%f\n", temp1);
   h1 = get_h_l(coords, n, no, 0, stride);
 
   v.front() = 2.0 * h1 * temp1 + h1 * (*get_ref(v, n, no, stride));
-
+  // printf("%f\n", v.front());
   for (int i = stride; i <= n - 1 - stride; i += stride) {
     temp2 = *get_ref(v, n, no, i);
     h1 = get_h_l(coords, n, no, i - stride, stride);
@@ -5745,17 +5821,47 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
                  std::vector<double> &row_vec, std::vector<double> &col_vec) {
   // refactor
   //    //std::cout  << "I am the general refactorer!" <<"\n";
+  std::cout << "***refactor_2D***" << std::endl;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  std::chrono::duration<double> elapsed;
+  double pi_Ql_time = 0.0;
+  double copy_level_l_time = 0.0;
+  double assign_num_level_l_time = 0.0;
+
+  double mass_mult_l_row_time = 0.0;
+  double restriction_l_row_time = 0.0;
+  double solve_tridiag_M_l_row_time = 0.0;
+
+  double mass_mult_l_col_time = 0.0;
+  double restriction_l_col_time = 0.0;
+  double solve_tridiag_M_l_col_time = 0.0;
+  double add_level_time = 0.0;
+
+
   for (int l = 0; l < l_target; ++l) {
     int stride = std::pow(2, l); // current stride
     int Cstride = stride * 2;    // coarser stride
 
     // -> change funcs in pi_QL to use _l functions, otherwise distances are
     // wrong!!!
+    start = std::chrono::high_resolution_clock::now();
     pi_Ql(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec,
           col_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    pi_Ql_time += elapsed.count();
 
+    start = std::chrono::high_resolution_clock::now();
     copy_level_l(l, v, work.data(), nr, nc, nrow, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    copy_level_l_time += elapsed.count();
+
+    start = std::chrono::high_resolution_clock::now();
     assign_num_level_l(l + 1, work.data(), 0.0, nr, nc, nrow, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    assign_num_level_l_time += elapsed.count();
 
     // row-sweep
     for (int irow = 0; irow < nr; ++irow) {
@@ -5763,12 +5869,23 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
       for (int jcol = 0; jcol < ncol; ++jcol) {
         row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
       }
-
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::mass_mult_l(l, row_vec, coords_x, nc, ncol);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      mass_mult_l_row_time += elapsed.count();
 
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::restriction_l(l + 1, row_vec, coords_x, nc, ncol);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      restriction_l_row_time += elapsed.count();
 
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::solve_tridiag_M_l(l + 1, row_vec, coords_x, nc, ncol);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      solve_tridiag_M_l_row_time += elapsed.count();
 
       for (int jcol = 0; jcol < ncol; ++jcol) {
         work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol];
@@ -5783,10 +5900,23 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
         for (int irow = 0; irow < nrow; ++irow) {
           col_vec[irow] = work[mgard_common::get_index(ncol, irow, jr)];
         }
-
+        start = std::chrono::high_resolution_clock::now();
         mgard_gen::mass_mult_l(l, col_vec, coords_y, nr, nrow);
+        end = std::chrono::high_resolution_clock::now();
+        elapsed = end - start;
+        mass_mult_l_col_time += elapsed.count();
+
+        start = std::chrono::high_resolution_clock::now();
         mgard_gen::restriction_l(l + 1, col_vec, coords_y, nr, nrow);
+        end = std::chrono::high_resolution_clock::now();
+        elapsed = end - start;
+        restriction_l_col_time += elapsed.count();
+
+        start = std::chrono::high_resolution_clock::now();
         mgard_gen::solve_tridiag_M_l(l + 1, col_vec, coords_y, nr, nrow);
+        end = std::chrono::high_resolution_clock::now();
+        elapsed = end - start;
+        solve_tridiag_M_l_col_time += elapsed.count();
 
         for (int irow = 0; irow < nrow; ++irow) {
           work[mgard_common::get_index(ncol, irow, jr)] = col_vec[irow];
@@ -5795,8 +5925,28 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
     }
 
     // Solved for (z_l, phi_l) = (c_{l+1}, vl)
+    start = std::chrono::high_resolution_clock::now();
     add_level_l(l + 1, v, work.data(), nr, nc, nrow, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    add_level_time += elapsed.count();
   }
+
+  std::ofstream timing_results;
+  timing_results.open ("refactor_2D.csv");
+  timing_results << "pi_Ql_time," << pi_Ql_time << std::endl;
+  timing_results << "copy_level_l_time," << copy_level_l_time << std::endl;
+  timing_results << "assign_num_level_l_time," << assign_num_level_l_time << std::endl;
+
+  timing_results << "mass_mult_l_row_time," << mass_mult_l_row_time << std::endl;
+  timing_results << "restriction_l_row_time," << restriction_l_row_time << std::endl;
+  timing_results << "solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
+
+  timing_results << "mass_mult_l_col_time," << mass_mult_l_col_time << std::endl;
+  timing_results << "restriction_l_col_time," << restriction_l_col_time << std::endl;
+  timing_results << "solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
+  timing_results << "add_level_time," << add_level_time << std::endl;
+  timing_results.close();
 }
 
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
@@ -5805,14 +5955,40 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
                   std::vector<double> &row_vec, std::vector<double> &col_vec) {
   // recompose
   //    //std::cout  << "recomposing" << "\n";
+  std::cout << "***recompose_2D***" << std::endl;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  std::chrono::duration<double> elapsed;
+  double copy_level_l_time = 0.0;
+  double assign_num_level_l_time = 0.0;
+
+  double mass_mult_l_row_time = 0.0;
+  double restriction_l_row_time = 0.0;
+  double solve_tridiag_M_l_row_time = 0.0;
+
+  double mass_mult_l_col_time = 0.0;
+  double restriction_l_col_time = 0.0;
+  double solve_tridiag_M_l_col_time = 0.0;
+
+  double subtract_level_l_time = 0.0;
+  double prolongate_l_row_time = 0.0;
+  double prolongate_l_col_time = 0.0;
+
   for (int l = l_target; l > 0; --l) {
 
     int stride = std::pow(2, l); // current stride
     int Pstride = stride / 2;
 
+    start = std::chrono::high_resolution_clock::now();
     copy_level_l(l - 1, v, work.data(), nr, nc, nrow, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    copy_level_l_time += elapsed.count();
 
+    start = std::chrono::high_resolution_clock::now();
     assign_num_level_l(l, work.data(), 0.0, nr, nc, nrow, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    assign_num_level_l_time += elapsed.count();
 
     //        //std::cout  << "recomposing-rowsweep" << "\n";
     //  l = 0;
@@ -5823,11 +5999,23 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
         row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
       }
 
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::mass_mult_l(l - 1, row_vec, coords_x, nc, ncol);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      mass_mult_l_row_time += elapsed.count();
 
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::restriction_l(l, row_vec, coords_x, nc, ncol);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      restriction_l_row_time += elapsed.count();
 
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::solve_tridiag_M_l(l, row_vec, coords_x, nc, ncol);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      solve_tridiag_M_l_row_time += elapsed.count();
 
       for (int jcol = 0; jcol < ncol; ++jcol) {
         work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol];
@@ -5845,18 +6033,35 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
           col_vec[irow] = work[mgard_common::get_index(ncol, irow, jr)];
         }
 
+        start = std::chrono::high_resolution_clock::now();
         mgard_gen::mass_mult_l(l - 1, col_vec, coords_y, nr, nrow);
+        end = std::chrono::high_resolution_clock::now();
+        elapsed = end - start;
+        mass_mult_l_col_time += elapsed.count();
 
+        start = std::chrono::high_resolution_clock::now();
         mgard_gen::restriction_l(l, col_vec, coords_y, nr, nrow);
+        end = std::chrono::high_resolution_clock::now();
+        elapsed = end - start;
+        restriction_l_col_time += elapsed.count();
 
+        start = std::chrono::high_resolution_clock::now();
         mgard_gen::solve_tridiag_M_l(l, col_vec, coords_y, nr, nrow);
+        end = std::chrono::high_resolution_clock::now();
+        elapsed = end - start;
+        solve_tridiag_M_l_col_time += elapsed.count();
 
         for (int irow = 0; irow < nrow; ++irow) {
           work[mgard_common::get_index(ncol, irow, jr)] = col_vec[irow];
         }
       }
     }
+
+    start = std::chrono::high_resolution_clock::now();
     subtract_level_l(l, work.data(), v, nr, nc, nrow, ncol); // do -(Qu - zl)
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    subtract_level_l_time += elapsed.count();
     //        //std::cout  << "recomposing-rowsweep2" << "\n";
 
     //   //int Pstride = stride/2; //finer stride
@@ -5868,7 +6073,11 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
         row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
       }
 
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::prolongate_l(l, row_vec, coords_x, nc, ncol);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      prolongate_l_row_time += elapsed.count();
 
       for (int jcol = 0; jcol < ncol; ++jcol) {
         work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol];
@@ -5885,7 +6094,11 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
           col_vec[irow] = work[mgard_common::get_index(ncol, irow, jr)];
         }
 
+        start = std::chrono::high_resolution_clock::now();
         mgard_gen::prolongate_l(l, col_vec, coords_y, nr, nrow);
+        end = std::chrono::high_resolution_clock::now();
+        elapsed = end - start;
+        prolongate_l_col_time += elapsed.count();
 
         for (int irow = 0; irow < nrow; ++irow) {
           work[mgard_common::get_index(ncol, irow, jr)] = col_vec[irow];
@@ -5893,10 +6106,36 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
       }
     }
 
+    start = std::chrono::high_resolution_clock::now();
     assign_num_level_l(l, v, 0.0, nr, nc, nrow, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    assign_num_level_l_time += elapsed.count();
+
+    start = std::chrono::high_resolution_clock::now();
     subtract_level_l(l - 1, v, work.data(), nr, nc, nrow, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    subtract_level_l_time += elapsed.count();
   }
-  //    //std::cout  << "last step" << "\n";
+
+  std::ofstream timing_results;
+  timing_results.open ("recompose_2D.csv");
+  timing_results << "copy_level_l_time," << copy_level_l_time << std::endl;
+  timing_results << "assign_num_level_l_time," << assign_num_level_l_time << std::endl;
+
+  timing_results << "mass_mult_l_row_time," << mass_mult_l_row_time << std::endl;
+  timing_results << "restriction_l_row_time," << restriction_l_row_time << std::endl;
+  timing_results << "solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
+
+  timing_results << "mass_mult_l_col_time," << mass_mult_l_col_time << std::endl;
+  timing_results << "restriction_l_col_time," << restriction_l_col_time << std::endl;
+  timing_results << "solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
+
+  timing_results << "subtract_level_l_time," << subtract_level_l_time << std::endl;
+  timing_results << "prolongate_l_row_time," << prolongate_l_row_time << std::endl;
+  timing_results << "prolongate_l_col_time," << prolongate_l_col_time << std::endl;
+  timing_results.close();
 }
 
 void prolongate_last(std::vector<double> &v, std::vector<double> &coords, int n,
@@ -5913,8 +6152,11 @@ void prolongate_last(std::vector<double> &v, std::vector<double> &coords, int n,
     {
       double h1 = mgard_common::get_h(coords, i_logic, 1);
       double h2 = mgard_common::get_h(coords, i_logic + 1, 1);
+      // printf("%f %f %f\n", v[i_logic], v[i_logic + 1], v[i_logicP]);
+      //printf("h1=%f, h2=%f\n", h1, h2);
       double hsum = h1 + h2;
       v[i_logic + 1] = (h2 * v[i_logic] + h1 * v[i_logicP]) / hsum;
+      // printf("%f\n", v[i_logic + 1]);
       //             v[i_logic+1] = 2*(h1*v[i_logicP])/hsum;
     }
   }
@@ -5924,9 +6166,39 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
               const int l_target, double *v, std::vector<double> &work,
               std::vector<double> &coords_x, std::vector<double> &coords_y,
               std::vector<double> &row_vec, std::vector<double> &col_vec) {
-  mgard_cannon::copy_level(nrow, ncol, 0, v, work);
 
+  std::cout << "***postp_2D***" << std::endl;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  std::chrono::duration<double> elapsed;
+  double copy_level_time = 0.0;
+  double assign_num_level_l_time = 0.0;
+
+  double mass_matrix_multiply_row_time = 0.0;
+  double restriction_first_row_time = 0.0;
+  double solve_tridiag_M_l_row_time = 0.0;
+
+  double mass_matrix_multiply_col_time = 0.0;
+  double restriction_first_col_time = 0.0;
+  double solve_tridiag_M_l_col_time = 0.0;
+
+  double subtract_level_l_time = 0.0;
+  double prolongate_last_row_time = 0.0;
+  double prolongate_last_col_time = 0.0;
+
+  double subtract_level_time = 0.0;
+
+
+  start = std::chrono::high_resolution_clock::now();
+  mgard_cannon::copy_level(nrow, ncol, 0, v, work);
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  copy_level_time += elapsed.count();
+
+  start = std::chrono::high_resolution_clock::now();
   assign_num_level_l(0, work.data(), 0.0, nr, nc, nrow, ncol);
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  assign_num_level_l_time += elapsed.count();
 
   for (int irow = 0; irow < nrow; ++irow) {
     //        int ir = get_lindex(nr, nrow, irow);
@@ -5934,9 +6206,17 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
       row_vec[jcol] = work[mgard_common::get_index(ncol, irow, jcol)];
     }
 
+    start = std::chrono::high_resolution_clock::now();
     mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    mass_matrix_multiply_row_time += elapsed.count();
 
+    start = std::chrono::high_resolution_clock::now();
     restriction_first(row_vec, coords_x, nc, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    restriction_first_row_time += elapsed.count();
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       work[mgard_common::get_index(ncol, irow, jcol)] = row_vec[jcol];
@@ -5948,8 +6228,11 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
     for (int jcol = 0; jcol < ncol; ++jcol) {
       row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
     }
-
+    start = std::chrono::high_resolution_clock::now();
     mgard_gen::solve_tridiag_M_l(0, row_vec, coords_x, nc, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    solve_tridiag_M_l_row_time += elapsed.count();
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol];
@@ -5966,10 +6249,17 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
       for (int irow = 0; irow < nrow; ++irow) {
         col_vec[irow] = work[mgard_common::get_index(ncol, irow, jcol)];
       }
-
+      start = std::chrono::high_resolution_clock::now();
       mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      mass_matrix_multiply_col_time += elapsed.count();
 
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::restriction_first(col_vec, coords_y, nr, nrow);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      restriction_first_col_time += elapsed.count();
 
       for (int irow = 0; irow < nrow; ++irow) {
         work[mgard_common::get_index(ncol, irow, jcol)] = col_vec[irow];
@@ -5982,14 +6272,23 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
         col_vec[irow] = work[mgard_common::get_index(ncol, irow, jr)];
       }
 
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::solve_tridiag_M_l(0, col_vec, coords_y, nr, nrow);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      solve_tridiag_M_l_col_time += elapsed.count();
+
       for (int irow = 0; irow < nrow; ++irow) {
         work[mgard_common::get_index(ncol, irow, jr)] = col_vec[irow];
       }
     }
   }
 
+  start = std::chrono::high_resolution_clock::now();
   subtract_level_l(0, work.data(), v, nr, nc, nrow, ncol); // do -(Qu - zl)
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  subtract_level_l_time += elapsed.count();
   //        //std::cout  << "recomposing-rowsweep2" << "\n";
 
   //     //   //int Pstride = stride/2; //finer stride
@@ -6000,8 +6299,11 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
     for (int jcol = 0; jcol < ncol; ++jcol) {
       row_vec[jcol] = work[mgard_common::get_index(ncol, ir, jcol)];
     }
-
+    start = std::chrono::high_resolution_clock::now();
     mgard_gen::prolongate_last(row_vec, coords_x, nc, ncol);
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    prolongate_last_row_time += elapsed.count();
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol];
@@ -6016,17 +6318,48 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
       {
         col_vec[irow] = work[mgard_common::get_index(ncol, irow, jcol)];
       }
-
+      start = std::chrono::high_resolution_clock::now();
       mgard_gen::prolongate_last(col_vec, coords_y, nr, nrow);
+      end = std::chrono::high_resolution_clock::now();
+      elapsed = end - start;
+      prolongate_last_col_time += elapsed.count();
 
       for (int irow = 0; irow < nrow; ++irow) {
         work[mgard_common::get_index(ncol, irow, jcol)] = col_vec[irow];
       }
     }
   }
-
+  start = std::chrono::high_resolution_clock::now();
   assign_num_level_l(0, v, 0.0, nr, nc, nrow, ncol);
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  assign_num_level_l_time += elapsed.count();
+
+  start = std::chrono::high_resolution_clock::now();
   mgard_cannon::subtract_level(nrow, ncol, 0, v, work.data());
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  subtract_level_time += elapsed.count();
+
+  std::ofstream timing_results;
+  timing_results.open ("postp_2D.csv");
+  timing_results << "copy_level_time," << copy_level_time << std::endl;
+  timing_results << "assign_num_level_l_time," << assign_num_level_l_time << std::endl;
+
+  timing_results << "mass_matrix_multiply_row_time," << mass_matrix_multiply_row_time << std::endl;
+  timing_results << "restriction_first_row_time," << restriction_first_row_time << std::endl;
+  timing_results << "solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
+
+  timing_results << "mass_matrix_multiply_col_time," << mass_matrix_multiply_col_time << std::endl;
+  timing_results << "restriction_first_col_time," << restriction_first_col_time << std::endl;
+  timing_results << "solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
+
+  timing_results << "subtract_level_l_time," << subtract_level_l_time << std::endl;
+  timing_results << "prolongate_last_row_time," << prolongate_last_row_time << std::endl;
+  timing_results << "prolongate_last_col_time," << prolongate_last_col_time << std::endl;
+
+  timing_results << "subtract_level_time," << subtract_level_time << std::endl;
+  timing_results.close();
 }
 
 void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,

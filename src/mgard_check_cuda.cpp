@@ -38,6 +38,7 @@
 #include<string.h>
 
 #include "mgard_api_cuda.h" 
+#include "mgard_api.h" 
 
 #define ANSI_RED "\x1b[31m"
 #define ANSI_GREEN "\x1b[32m"
@@ -72,10 +73,10 @@ int main(int argc, char *argv[])
   }
 
   char *infile, *outfile;
-  int nrow, ncol, nfib;
+  int nrow, ncol, nfib, opt;
   double tol, s;
-  if (argc != 8) {
-    if (argc < 8) {
+  if (argc != 9) {
+    if (argc < 9) {
       fprintf (stderr, "%s: Not enough arguments! ", argv[0]);
     } else {
       fprintf (stderr, "%s: Too many arguments! ", argv[0]);
@@ -91,6 +92,7 @@ int main(int argc, char *argv[])
     nfib = atoi(argv[5]);
     tol  = atof(argv[6]);
     s    = atof(argv[7]);
+    opt  = atoi(argv[8]);
   }
 
 
@@ -166,14 +168,16 @@ int main(int argc, char *argv[])
 
   unsigned char *mgard_comp_buff;
   
-  mgard_comp_buff = mgard_compress_cuda(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
+  //mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
+  mgard_comp_buff = mgard_compress_cuda(iflag, in_buff, out_size, nrow, ncol, nfib, tol, opt);
   free(in_buff);
 
   printf ("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
 
   double* mgard_out_buff;
   double dummy = 0;
-  mgard_out_buff = mgard_decompress_cuda(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
+  //mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
+  mgard_out_buff = mgard_decompress_cuda(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, opt);
 
   //FILE *qfile;
   //qfile = fopen ( outfile , "wb" );

@@ -1,5 +1,7 @@
 #include "mgard_nuni.h"
 #include "mgard.h"
+#include "mgard_cuda_helper.h"
+//#include "mgard_cuda_helper_internal.h"
 
 namespace mgard_2d {
 namespace mgard_common {
@@ -16,33 +18,36 @@ get_h_cuda(const double * coords, int i, int stride);
 
 __host__ __device__ double 
 get_dist_cuda(const double * coords, int i, int j);
-
 }
 
 
 namespace mgard_cannon {
-void copy_level_cuda(int nrow,       int ncol, 
-                     int row_stride, int col_stride,
-                     double * v,     int ldv,
-                     double * work,  int ldwork);
+
+mgard_cuda_ret 
+copy_level_cuda(int nrow,       int ncol, 
+                int row_stride, int col_stride,
+                double * dv,    int lddv,
+                double * dwork, int lddwork);
 
 void mass_matrix_multiply_cuda(const int l, std::vector<double> &v,
                           const std::vector<double> &coords);
 
-void mass_matrix_multiply_row_cuda(int nrow,       int ncol, 
-							   	                 int row_stride, int col_stride,
-                                   double * v,    int ldv,
-                                   double * coords_x);
+mgard_cuda_ret 
+mass_matrix_multiply_row_cuda(int nrow,       int ncol, 
+                              int row_stride, int col_stride,
+                              double * dv,    int lddv,
+                              double * dcoords_x);
+mgard_cuda_ret 
+mass_matrix_multiply_col_cuda(int nrow,       int ncol, 
+                              int row_stride, int col_stride,
+                              double * dv,    int lddv,
+                              double * dcoords_y);
 
-void mass_matrix_multiply_col_cuda(int nrow,       int ncol, 
-			                             int row_stride, int col_stride,
-                                   double * v,    int ldv,
-                                   double * coords_y);
-
-void substract_level_cuda(int nrow,       int ncol, 
-                          int row_stride, int col_stride,
-                          double * v,    int ldv, 
-                          double * work, int ldwork);
+mgard_cuda_ret 
+subtract_level_cuda(int nrow,       int ncol, 
+                    int row_stride, int col_stride,
+                    double * dv,    int lddv, 
+                    double * dwork, int lddwork);
 
 }
 
@@ -63,163 +68,192 @@ get_ref_row_cuda(double * v, int ldv, const int n, const int no, const int i);
 __host__ __device__ double *
 get_ref_col_cuda(double * v, int ldv, const int n, const int no, const int i);
 
-void pi_lminus1_first_cuda(std::vector<double> &v, const std::vector<double> &coords,
-                      int n, int no);
 
-void pi_Ql_first_cuda(const int nr, const int nc, const int nrow, const int ncol,
-                 const int l, double *v, const std::vector<double> &coords_x,
-                 const std::vector<double> &coords_y,
-                 std::vector<double> &row_vec, std::vector<double> &col_vec);
-void 
+mgard_cuda_ret 
+pi_Ql_first_cuda(const int nrow,     const int ncol,
+                 const int nr,       const int nc,
+                 int * dirow,        int * dicol,
+                 int * dirowP,       int * dicolP,
+                 double * dcoords_x, double * dcoords_y,
+                 double * dv,        const int lddv);
+
+mgard_cuda_ret 
 pi_Ql_cuda(int nrow,           int ncol,
-           int nr,             int nr,
+           int nr,             int nc,
            int row_stride,     int col_stride,
-           int * irow,         int * icol,
-           double * v,        int ldv, 
-           double * coords_x, double * coords_y);
+           int * dirow,        int * dicol,
+           double * dv,        int lddv, 
+           double * dcoords_x, double * dcoords_y);
 
-void 
-copy_level_l_cuda(int nrow,           int ncol,
-                  int nr,             int nr,
-                  int row_stride,     int col_stride,
-                  int * irow,         int * icol,
-                  double * v,        int ldv,
-                  double * dwork,     int ldwork);
+mgard_cuda_ret 
+copy_level_l_cuda(int nrow,       int ncol,
+                  int nr,         int nc,
+                  int row_stride, int col_stride,
+                  int * dirow,    int * dicol,
+                  double * dv,    int lddv,
+                  double * dwork, int lddwork);
 
-void 
+mgard_cuda_ret 
 assign_num_level_l_cuda(int nrow,           int ncol,
-                        int nr,             int nr,
+                        int nr,             int nc,
                         int row_stride,     int col_stride,
-                        int * irow,         int * icol,
-                        double * v,        int ldv,
+                        int * dirow,        int * dicol,
+                        double * dv,        int lddv,
                         double num);
 
-void
+mgard_cuda_ret 
 mass_mult_l_row_cuda(int nrow,       int ncol,
                      int nr,         int nc,
                      int row_stride, int col_stride,
-                     int * irow,     int * icol,
-                     double * v,     int ldv,
-                     double * coords_x);
+                     int * dirow,    int * dicol,
+                     double * dv,    int lddv,
+                     double * dcoords_x);
 
-void 
+mgard_cuda_ret 
 mass_mult_l_col_cuda(int nrow,       int ncol,
                      int nr,         int nc,
                      int row_stride, int col_stride,
-                     int * irow,     int * icol,
-                     double * v,     int ldv,
-                     double * coords_y);
+                     int * dirow,    int * dicol,
+                     double * dv,    int lddv,
+                     double * dcoords_y);
 
-void 
+mgard_cuda_ret 
 restriction_l_row_cuda(int nrow,       int ncol,
                        int nr,         int nc,
                        int row_stride, int col_stride,
-                       int * irow,     int * icol,
-                       double * v,     int ldv,
-                       double * coords_x);
+                       int * dirow,     int * dicol,
+                       double * dv,     int lddv,
+                       double * dcoords_x);
 
-void 
+mgard_cuda_ret 
 restriction_l_col_cuda(int nrow,       int ncol,
                        int nr,         int nc,
                        int row_stride, int col_stride,
-                       int * irow,     int * icol,
-                       double * v,     int ldv,
-                       double * coords_y);
+                       int * dirow,    int * dicol,
+                       double * dv,    int lddv,
+                       double * dcoords_y);
 
 
 void restriction_first_cuda(std::vector<double> &v, std::vector<double> &coords,
                             int n, int no);
 
-void restriction_first_row_cuda(int nrow,       int ncol, 
-								                int row_stride, int * icolP, int nc,
-                                double * v,     int ldv,
-                                double * coords_x);
-
-void restriction_first_col_cuda(int nrow,       int ncol, 
-								                int * irowP, int nr, int col_stride,
-                                double * v,    int ldv,
-                                double * coords_y);
+mgard_cuda_ret 
+restriction_first_row_cuda(int nrow,       int ncol, 
+                           int row_stride, int * dicolP, int nc,
+                           double * dv,    int lddv,
+                           double * dcoords_x);
+mgard_cuda_ret 
+restriction_first_col_cuda(int nrow,       int ncol, 
+                           int * dirowP, int nr, int col_stride,
+                           double * dv,    int lddv,
+                           double * dcoords_y);
 
 void solve_tridiag_M_l_cuda(const int l, std::vector<double> &v,
                             std::vector<double> &coords, int n, int no);
 
-void
+mgard_cuda_ret
 solve_tridiag_M_l_row_cuda(int nrow,       int ncol,
                            int nr,         int nc,
                            int row_stride, int col_stride,
-                           int * irow,     int * icol,
-                           double * v,     int ldv, 
-                           double * coords_x);
+                           int * dirow,    int * dicol,
+                           double * dv,     int lddv, 
+                           double * dcoords_x);
 
-void
+mgard_cuda_ret
 solve_tridiag_M_l_col_cuda(int nrow,       int ncol,
                            int nr,         int nc,
                            int row_stride, int col_stride,
-                           int * irow,     int * icol,
-                           double * v,     int ldv, 
-                           double * coords_y);
+                           int * dirow,    int * dicol,
+                           double * dv,    int lddv, 
+                           double * dcoords_y);
 
-// void add_level_l_cuda(const int l, double *v, double *work, int nr, int nc, int nrow,
-//                  int ncol);
-void add_level_l_cuda(int nrow,       int ncol, 
-               int nr,          int nc,
-               int row_stride, int col_stride,
-               int * irow,     int * icol,
-               double * v,    int ldv, 
-               double * work, int ldwork);
+mgard_cuda_ret
+add_level_l_cuda(int nrow,       int ncol, 
+                 int nr,         int nc,
+                 int row_stride, int col_stride,
+                 int * dirow,    int * dicol,
+                 double * dv,    int lddv, 
+                 double * dwork, int lddwork);
 
-void subtract_level_l_cuda(int nrow,       int ncol, 
-               int nr,          int nc,
-               int row_stride, int col_stride,
-               int * irow,     int * icol,
-               double * v,    int ldv, 
-               double * work, int ldwork);
+mgard_cuda_ret 
+subtract_level_l_cuda(int nrow,       int ncol, 
+                      int nr,         int nc,
+                      int row_stride, int col_stride,
+                      int * dirow,    int * dicol,
+                      double * dv,    int lddv, 
+                      double * dwork, int lddwork);
 
-void 
+mgard_cuda_ret 
 prolongate_l_row_cuda(int nrow,       int ncol,
+                      int nr,         int nc,
+                      int row_stride, int col_stride,
+                      int * dirow,    int * dicol,
+                      double * dv,    int lddv,
+                      double * dcoords_x);
+
+mgard_cuda_ret 
+prolongate_l_col_cuda(int nrow,        int ncol,
                        int nr,         int nc,
                        int row_stride, int col_stride,
-                       int * irow,     int * icol,
-                       double * v,     int ldv,
-                       double * coords_x);
+                       int * dirow,    int * dicol,
+                       double * dv,    int lddv,
+                       double * dcoords_y);
+
+mgard_cuda_ret 
+prolongate_last_row_cuda(int nrow,       int ncol, 
+                         int nr,         int nc,
+                         int row_stride, int col_stride,
+                         int * dirow,    int * dicolP,
+                         double * dv,    int lddv,
+                         double * dcoords_x);
+
+mgard_cuda_ret 
+prolongate_last_col_cuda(int nrow,       int ncol,
+                         int nr,         int nc,
+                         int row_stride, int col_stride,
+                         int * dirowP,   int * dicol, 
+                         double * dv,    int lddv,
+                         double * dcoords_y);
+
 
 void 
-prolongate_l_col_cuda(int nrow,       int ncol,
-                       int nr,         int nc,
-                       int row_stride, int col_stride,
-                       int * irow,     int * icol,
-                       double * v,     int ldv,
-                       double * coords_y);
+prep_2D_cuda(const int nrow,     const int ncol,
+             const int nr,       const int nc, 
+             int * dirow,        int * dicol,
+             int * dirowP,       int * dicolP,
+             double * dv,        int lddv, 
+             double * dwork,     int lddwork,
+             double * dcoords_x, double * dcoords_y);
 
-void prolongate_last_row_cuda(int nrow,       int ncol, 
-                                int row_stride, int * icolP, int nc,
-                                double * v,    int ldv,
-                                double * coords_x);
+void 
+refactor_2D_cuda(const int l_target,
+                 const int nrow,     const int ncol,
+                 const int nr,       const int nc, 
+                 int * dirow,        int * dicol,
+                 int * dirowP,       int * dicolP,
+                 double * dv,        int lddv, 
+                 double * dwork,     int lddwork,
+                 double * dcoords_x, double * dcoords_y);
 
-void prolongate_last_col_cuda(int nrow,       int ncol, 
-                              int * irowP, int nr, int col_stride,
-                              double * v,    int ldv,
-                              double * coords_y);
+void 
+recompose_2D_cuda(const int l_target,
+                  const int nrow,     const int ncol,
+                  const int nr,       const int nc, 
+                  int * dirow,        int * dicol,
+                  int * dirowP,       int * dicolP,
+                  double * dv,        int lddv, 
+                  double * dwork,     int lddwork,
+                  double * dcoords_x, double * dcoords_y);
 
 
-void prep_2D_cuda (const int nr, const int nc, const int nrow, const int ncol,
-             const int l_target, double *v, std::vector<double> &work,
-             std::vector<double> &coords_x, std::vector<double> &coords_y,
-             std::vector<double> &row_vec, std::vector<double> &col_vec);
-
-void refactor_2D_cuda(const int nr, const int nc, const int nrow, const int ncol,
-                 const int l_target, double *v, std::vector<double> &work,
-                 std::vector<double> &coords_x, std::vector<double> &coords_y,
-                 std::vector<double> &row_vec, std::vector<double> &col_vec);
-
-void recompose_2D_cuda(const int nr, const int nc, const int nrow, const int ncol,
-                  const int l_target, double *v, std::vector<double> &work,
-                  std::vector<double> &coords_x, std::vector<double> &coords_y,
-                  std::vector<double> &row_vec, std::vector<double> &col_vec);
-void postp_2D_cuda(const int nr, const int nc, const int nrow, const int ncol,
-              const int l_target, double *v, std::vector<double> &work,
-              std::vector<double> &coords_x, std::vector<double> &coords_y,
-              std::vector<double> &row_vec, std::vector<double> &col_vec);
+void 
+postp_2D_cuda(const int nrow,     const int ncol,
+              const int nr,       const int nc, 
+              int * dirow,        int * dicol,
+              int * dirowP,       int * dicolP,
+              double * dv,        int lddv, 
+              double * dwork,     int lddwork,
+              double * dcoords_x, double * dcoords_y);
 }
 
 }

@@ -6,4 +6,7 @@
 unsigned char *mgard_compress_cuda(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in);
 double *mgard_decompress_cuda(int itype_flag,  double& quantizer, unsigned char *data, int data_len, int nrow, int ncol, int nfib);
 
+unsigned char *mgard_compress_cuda(int itype_flag,  double  *v, int &out_size, int nrow, int ncol, int nfib, double tol_in, int opt);
+double *mgard_decompress_cuda(int itype_flag,  double& quantizer, unsigned char *data, int data_len, int nrow, int ncol, int nfib, int opt);
+
 #endif

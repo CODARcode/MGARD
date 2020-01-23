@@ -1,24 +1,11 @@
-
-#ifndef MGRAD_RET
-#define MGRAD_RET
-struct mgard_ret {
-	int info;
-	double time;
-	mgard_ret (): info(0), time (0.0) {}
-	mgard_ret (int info, double time) {
-		this->info = info;
-		this->time = time;
-	}
-};
-#endif
-
+#include "mgard_cuda_helper.h"
 namespace mgard
 {
 
 unsigned char *
-refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double tol);
+refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double tol, int opt);
 double* 
-recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len);
+recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len, int opt);
 
 void
 refactor_cuda (const int nrow, const int ncol, 

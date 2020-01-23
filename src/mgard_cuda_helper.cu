@@ -9,25 +9,94 @@ void print_matrix(int nrow, int ncol, double * v, int ldv) {
     //std::cout << std::setprecision(2) << std::fixed;
     for (int i = 0; i < nrow; i++) {
         for (int j = 0; j < ncol; j++) {
-            std::cout <<std::setw(8) << std::setprecision(4) << std::fixed <<  v[ldv*i + j]<<", ";
+            std::cout <<std::setw(9) << std::setprecision(6) << std::fixed <<  v[ldv*i + j]<<", ";
         }
         std::cout << std::endl;
     }
     std::cout << std::endl;
 }
 
-void compare_matrix(int nrow, int ncol, 
-                    double * v1, int ldv1, 
-                    double * v2, int ldv2) {
+
+void print_matrix_cuda(int nrow, int ncol, double * dv, int lddv) {
+    //std::cout << std::setw(10);
+    //std::cout << std::setprecision(2) << std::fixed;
+    double * v = new double[nrow * ncol];
+    cudaMemcpy2DHelper(v, ncol  * sizeof(double), 
+                      dv, lddv * sizeof(double),  
+                      ncol * sizeof(double), nrow, 
+                      D2H);
+    print_matrix(nrow, ncol, v, ncol);
+    
+}
+
+
+void print_matrix(int nrow, int ncol, int * v, int ldv) {
     //std::cout << std::setw(10);
     //std::cout << std::setprecision(2) << std::fixed;
     for (int i = 0; i < nrow; i++) {
         for (int j = 0; j < ncol; j++) {
-            if (abs(v1[ldv1*i + j] - v2[ldv2*i + j]) > 0.001){
-                std::cout << "Diff at (" << i << ", " << j << ")" << std::endl; 
+            std::cout <<std::setw(8) << std::setprecision(0) << std::fixed <<  v[ldv*i + j]<<", ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}
+
+
+void print_matrix_cuda(int nrow, int ncol, int * dv, int lddv) {
+    //std::cout << std::setw(10);
+    //std::cout << std::setprecision(2) << std::fixed;
+    int * v = new int[nrow * ncol];
+    cudaMemcpy2DHelper(v, ncol  * sizeof(int), 
+                      dv, lddv * sizeof(int),  
+                      ncol * sizeof(int), nrow, 
+                      D2H);
+    print_matrix(nrow, ncol, v, ncol);
+    
+}
+
+
+
+
+bool compare_matrix(int nrow, int ncol, 
+                    double * v1, int ldv1, 
+                    double * v2, int ldv2) {
+    //std::cout << std::setw(10);
+    //std::cout << std::setprecision(2) << std::fixed;
+    bool correct = true;
+    double E = 1e-6;
+    for (int i = 0; i < nrow; i++) {
+        for (int j = 0; j < ncol; j++) {
+            if (abs(v1[ldv1*i + j] - v2[ldv2*i + j]) > E){
+                correct = false;
+                //std::cout << "Diff at (" << i << ", " << j << ") " << v1[ldv1*i + j] << " - " << v2[ldv2*i + j] << " = " << abs(v1[ldv1*i + j] - v2[ldv2*i + j]) << std::endl; 
             }
         }
-    }   
+    }
+    return correct;
+}
+
+bool compare_matrix_cuda(int nrow, int ncol, 
+                        double * dv1, int lddv1, 
+                        double * dv2, int lddv2) {
+    double * v1 = new double[nrow * ncol];
+    int ldv1 = ncol;
+    cudaMemcpy2DHelper(v1, ldv1  * sizeof(double), 
+                      dv1, lddv1 * sizeof(double),  
+                      ncol * sizeof(double), nrow, 
+                      D2H);
+    double * v2 = new double[nrow * ncol];
+    int ldv2 = ncol;
+    cudaMemcpy2DHelper(v2, ldv2  * sizeof(double), 
+                      dv2, lddv2 * sizeof(double),  
+                      ncol * sizeof(double), nrow, 
+                      D2H);
+    bool ret = compare_matrix(nrow, ncol, 
+                          v1,   ldv1, 
+                          v2,   ldv2);
+    delete v1;
+    delete v2;
+    return ret;
 }
 
 
@@ -62,6 +131,8 @@ void cudaMemcpy2DHelper(void * dst, size_t dpitch,
     {
         case H2D :  cuda_copy_type = cudaMemcpyHostToDevice; break;
         case D2H :  cuda_copy_type = cudaMemcpyDeviceToHost; break;
+        case D2D :  cuda_copy_type = cudaMemcpyDeviceToDevice; break;
+
     }
     gpuErrchk(cudaMemcpy2D(dst, dpitch, 
                  src, spitch,
