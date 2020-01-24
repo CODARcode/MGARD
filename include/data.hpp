@@ -5,8 +5,6 @@
 
 #include "moab/EntityHandle.hpp"
 
-#include "MeshHierarchy.hpp"
-
 namespace mgard {
 
 //! Base class for datasets associated to mesh hierarchies.
@@ -28,6 +26,12 @@ public:
   //! Dataset.
   T *const data;
 };
+
+//Forward declaration.
+class MeshHierarchy;
+
+//These are likely to be deleted, since I am planning to iterate over the
+//nodes/coefficients by level.
 
 //! Return a pointer to the beginning of a set of coefficients.
 //!
