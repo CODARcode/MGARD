@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include <algorithm>
+#include <array>
 #include <vector>
 
 #include "utilities.hpp"
@@ -76,4 +77,18 @@ TEST_CASE("Enumeration iteration", "[utilities]") {
     static_cast<void>(pair);
     REQUIRE(false);
   }
+}
+
+TEST_CASE("ZippedRange iterator", "[utilities]") {
+  using T = std::vector<float>;
+  using U = std::array<unsigned short int, 5>;
+  const T xs = {-3.28, 17.37, 0, 0.2388, -99.1};
+  const U ys = {12, 0, 0, 77, 3};
+  std::size_t i = 0;
+  bool all_equal = true;
+  for (auto pair : mgard::ZippedRange<T, U>(xs, ys)) {
+    all_equal = all_equal && pair.first == xs.at(i) && pair.second == ys.at(i);
+    ++i;
+  }
+  REQUIRE(all_equal);
 }
