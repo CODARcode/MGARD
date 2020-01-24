@@ -14,6 +14,7 @@
 
 #include "MeshLevel.hpp"
 #include "data.hpp"
+#include "utilities.hpp"
 
 namespace mgard {
 
@@ -73,16 +74,16 @@ public:
   //!
   //!\param [in] u Values associated to nodes.
   //!\param [in] l Index of the MeshLevel.
-  double *on_old_nodes(const HierarchyCoefficients<double> u,
-                       const std::size_t l) const;
+  PseudoArray<double> on_old_nodes(const HierarchyCoefficients<double> u,
+                                   const std::size_t l) const;
 
   //! Access the subset of a dataset associated to the 'new' nodes of a
   //! level.
   //!
   //!\param [in] u Values associated to nodes.
   //!\param [in] l Index of the MeshLevel.
-  double *on_new_nodes(const HierarchyCoefficients<double> u,
-                       const std::size_t l) const;
+  PseudoArray<double> on_new_nodes(const HierarchyCoefficients<double> u,
+                                   const std::size_t l) const;
 
   //! Transform from nodal coefficients to multilevel coefficients.
   //!
@@ -255,6 +256,12 @@ protected:
   //!\param l Mesh index.
   void check_mesh_index_nonzero(const std::size_t l) const;
 
+  //! Report the number of degrees of freedom that are 'old' from the
+  //! perspective of a particular level in the hierarchy.
+  //!
+  //!\param l Mesh index.
+  std::size_t ndof_old(const std::size_t l) const;
+
 private:
   virtual std::size_t do_ndof(const std::size_t l) const;
 
@@ -262,11 +269,13 @@ private:
 
   virtual moab::Range do_new_nodes(const std::size_t l) const;
 
-  virtual double *do_on_old_nodes(const HierarchyCoefficients<double> u,
-                                  const std::size_t) const;
+  virtual PseudoArray<double>
+  do_on_old_nodes(const HierarchyCoefficients<double> u,
+                  const std::size_t) const;
 
-  virtual double *do_on_new_nodes(const HierarchyCoefficients<double> u,
-                                  const std::size_t l) const;
+  virtual PseudoArray<double>
+  do_on_new_nodes(const HierarchyCoefficients<double> u,
+                  const std::size_t l) const;
 
   virtual std::size_t do_scratch_space_needed() const;
 

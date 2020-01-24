@@ -154,7 +154,7 @@ UniformMeshHierarchy::do_old_values_axpy(const HierarchyCoefficients<double> u,
                                          double const *const correction) const {
   //`l` is checked to be nonzero in the caller.
   const std::size_t n = ndof(l - 1);
-  double *p = on_old_nodes(u, l);
+  double *p = on_old_nodes(u, l).begin();
   double const *q = correction;
   for (std::size_t i = 0; i < n; ++i) {
     *p++ += alpha * *q++;

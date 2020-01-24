@@ -57,7 +57,7 @@ static SandwichBounds s_estimator(const MultilevelCoefficients<double> u,
     const std::size_t n = new_nodes.size();
     ContiguousSubsetMassMatrix M(mesh, new_nodes);
     // Nodal values of multilevel component on level `l`.
-    double const *const mc = hierarchy.on_new_nodes(u, l);
+    double const *const mc = hierarchy.on_new_nodes(u, l).begin();
     M(mc, rhs);
     squares_for_estimate.at(l) = blas::dotu(n, mc, rhs);
   }
