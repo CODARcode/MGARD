@@ -100,7 +100,8 @@ public:
   //Would like to return `value_type` from the dereference operator, but it
   //seems like inheriting from a class template prevents `value_type` from being
   //recognized as a type. See http://www.cs.technion.ac.il/users/yechiel/
-  //c++-faq/nondependent-name-lookup-members.html>.
+  //c++-faq/nondependent-name-lookup-members.html> and http://www.open-std.org/
+  //jtc1/sc22/wg21/docs/papers/2016/p0174r2.html#2.1>.
 
   //! Dereference.
   std::pair<typename T::size_type, typename T::value_type> operator*() const;
@@ -114,6 +115,83 @@ private:
 
   //! Position in the associated sequence.
   typename T::const_iterator inner;
+};
+
+//! Mimic Python's `zip` builtin. `T` and `U` are expected to be STL containers
+//! or something like it.
+template <typename T, typename U> struct ZippedRange {
+  //! Constructor.
+  //!
+  //!\param container_first First container to be iterated over.
+  //!\param container_second Second container to be iterated over.
+  ZippedRange(const T &container_first, const U &container_second);
+
+  // Forward declaration.
+  class iterator;
+
+  //! Return an iterator to the beginning of the zipped range.
+  iterator begin() const;
+
+  //! Return an iterator to the end of the zipped range.
+  iterator end() const;
+
+  //!First underlying container.
+  const T &container_first;
+
+  //!Second underlying container.
+  const U &container_second;
+};
+
+//! Equality comparison.
+template <typename T, typename U>
+bool operator==(const ZippedRange<T, U> &a, const ZippedRange<T, U> &b);
+
+//! Inequality comparison.
+template <typename T, typename U>
+bool operator!=(const ZippedRange<T, U> &a, const ZippedRange<T, U> &b);
+
+//! Iterator over a zipped range.
+template <typename T, typename U>
+class ZippedRange<T, U>::iterator
+    : public std::iterator<
+          std::input_iterator_tag,
+          std::pair<typename T::value_type, typename U::value_type>> {
+public:
+  //! Constructor.
+  //!
+  //!\param iterable Associated zipper range.
+  //!\param inner_first Position in the first associated sequence.
+  //!\param inner_second Position in the second associated sequence.
+  iterator(
+    const ZippedRange<T, U> &iterable,
+    const typename T::const_iterator inner_first,
+    const typename U::const_iterator inner_second
+  );
+
+  //! Equality comparison.
+  bool operator==(const iterator &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const iterator &other) const;
+
+  //! Preincrement.
+  iterator &operator++();
+
+  //! Postincrement.
+  iterator operator++(int);
+
+  //! Dereference.
+  std::pair<typename T::value_type, typename U::value_type> operator*() const;
+
+private:
+  //! Associated zipped range.
+  const ZippedRange<T, U> &iterable;
+
+  //! Position in the first associated sequence
+  typename T::const_iterator inner_first;
+
+  //! Position in the second associated sequence
+  typename U::const_iterator inner_second;
 };
 
 } // namespace mgard
