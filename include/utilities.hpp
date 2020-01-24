@@ -5,6 +5,9 @@
 
 #include <cstddef>
 
+#include <iterator>
+#include <utility>
+
 namespace mgard {
 
 //! Mimic an array for range-based for loops.
@@ -36,6 +39,81 @@ template <typename T> struct PseudoArray {
 
   //! Length of the array.
   const std::size_t size;
+};
+
+//! Mimic Python's `enumerate` builtin. `T` is expected to be an STL container
+//! or something like it.
+template <typename T> struct Enumeration {
+  //! Constructor.
+  //!
+  //!\param container Container to be iterated over.
+  Enumeration(const T &container);
+
+  // Forward declaration.
+  class iterator;
+
+  //! Return an iterator to the beginning of the enumeration.
+  iterator begin() const;
+
+  //! Return an iterator to the end of the enumeration.
+  iterator end() const;
+
+  //! Underlying container.
+  const T &container;
+};
+
+//! Equality comparison.
+template <typename T>
+bool operator==(const Enumeration<T> &a, const Enumeration<T> &b);
+
+//! Inequality comparison.
+template <typename T>
+bool operator!=(const Enumeration<T> &a, const Enumeration<T> &b);
+
+//! Iterator over an enumeration.
+template <typename T>
+class Enumeration<T>::iterator
+    : public std::iterator<
+          std::input_iterator_tag,
+          std::pair<typename T::size_type, typename T::value_type>> {
+public:
+  //! Constructor.
+  //!
+  //!\param iterable Associated enumeration.
+  //!\param index Index in the associated sequence.
+  //!\param inner Position in the associated sequence.
+  iterator(const Enumeration<T> &iterable, const typename T::size_type index,
+           const typename T::const_iterator inner);
+
+  //! Equality comparison.
+  bool operator==(const iterator &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const iterator &other) const;
+
+  //! Preincrement.
+  iterator &operator++();
+
+  //! Postincrement.
+  iterator operator++(int);
+
+  //Would like to return `value_type` from the dereference operator, but it
+  //seems like inheriting from a class template prevents `value_type` from being
+  //recognized as a type. See http://www.cs.technion.ac.il/users/yechiel/
+  //c++-faq/nondependent-name-lookup-members.html>.
+
+  //! Dereference.
+  std::pair<typename T::size_type, typename T::value_type> operator*() const;
+
+private:
+  //! Associated enumeration.
+  const Enumeration<T> &iterable;
+
+  //! Index in the associated sequence.
+  typename T::size_type index;
+
+  //! Position in the associated sequence.
+  typename T::const_iterator inner;
 };
 
 } // namespace mgard

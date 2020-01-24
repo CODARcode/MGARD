@@ -56,3 +56,24 @@ TEST_CASE("PseudoArray iteration", "[utilities]") {
     REQUIRE_THROWS(mgard::PseudoArray<double>(NULL, -1));
   }
 }
+
+TEST_CASE("Enumeration iteration", "[utilities]") {
+  const std::vector<float> xs = {-1.375, 0, 732.5, -0.875};
+  std::vector<std::size_t> indices;
+  std::vector<float> values;
+  for (auto pair : mgard::Enumeration<std::vector<float>>(xs)) {
+    indices.push_back(pair.first);
+    values.push_back(pair.second);
+  }
+  const std::vector<std::size_t> expected_indices = {0, 1, 2, 3};
+  REQUIRE(indices == expected_indices);
+  REQUIRE(values == xs);
+
+  // This compiles and we never execute the body of the loop.
+  const std::vector<int> ys;
+  for (auto pair : mgard::Enumeration<std::vector<int>>(ys)) {
+    // Using `pair` so the compiler doesn't complain.
+    static_cast<void>(pair);
+    REQUIRE(false);
+  }
+}
