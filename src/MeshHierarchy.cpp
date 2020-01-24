@@ -39,14 +39,16 @@ moab::Range MeshHierarchy::new_nodes(const std::size_t l) const {
   return do_new_nodes(l);
 }
 
-double *MeshHierarchy::on_old_nodes(const HierarchyCoefficients<double> u,
-                                    const std::size_t l) const {
+PseudoArray<double>
+MeshHierarchy::on_old_nodes(const HierarchyCoefficients<double> u,
+                            const std::size_t l) const {
   check_mesh_index_bounds(l);
   return do_on_old_nodes(u, l);
 }
 
-double *MeshHierarchy::on_new_nodes(const HierarchyCoefficients<double> u,
-                                    const std::size_t l) const {
+PseudoArray<double>
+MeshHierarchy::on_new_nodes(const HierarchyCoefficients<double> u,
+                            const std::size_t l) const {
   check_mesh_index_bounds(l);
   return do_on_new_nodes(u, l);
 }
@@ -91,6 +93,14 @@ MeshHierarchy::recompose(const MultilevelCoefficients<double> u, void *buffer) {
     }
   }
   return NodalCoefficients<double>(u.data);
+}
+
+bool operator==(const MeshHierarchy &a, const MeshHierarchy &b) {
+  return a.meshes == b.meshes;
+}
+
+bool operator!=(const MeshHierarchy &a, const MeshHierarchy &b) {
+  return !operator==(a, b);
 }
 
 // Protected member functions.
@@ -308,12 +318,10 @@ void MeshHierarchy::check_mesh_index_nonzero(const std::size_t l) const {
   }
 }
 
-bool operator==(const MeshHierarchy &a, const MeshHierarchy &b) {
-  return a.meshes == b.meshes;
-}
-
-bool operator!=(const MeshHierarchy &a, const MeshHierarchy &b) {
-  return !operator==(a, b);
+std::size_t MeshHierarchy::ndof_old(const std::size_t l) const {
+  // Not calling `check_mesh_index_bounds` here because it's a private member
+  // function and also `ndof` will, if called, call it.
+  return l ? ndof(l - 1) : 0;
 }
 
 // Private member functions.
@@ -336,17 +344,21 @@ moab::Range MeshHierarchy::do_old_nodes(const std::size_t l) const {
 
 moab::Range MeshHierarchy::do_new_nodes(const std::size_t l) const {
   const moab::Range &nodes = meshes.at(l).entities[moab::MBVERTEX];
-  return moab::Range(nodes.front() + (l ? ndof(l - 1) : 0), nodes.back());
+  return moab::Range(nodes.front() + ndof_old(l), nodes.back());
 }
 
-double *MeshHierarchy::do_on_old_nodes(const HierarchyCoefficients<double> u,
-                                       const std::size_t) const {
-  return u.data;
+PseudoArray<double>
+MeshHierarchy::do_on_old_nodes(const HierarchyCoefficients<double> u,
+                               const std::size_t l) const {
+  return PseudoArray<double>(u.data, ndof_old(l));
 }
 
-double *MeshHierarchy::do_on_new_nodes(const HierarchyCoefficients<double> u,
-                                       const std::size_t l) const {
-  return u.data + (l ? ndof(l - 1) : 0);
+PseudoArray<double>
+MeshHierarchy::do_on_new_nodes(const HierarchyCoefficients<double> u,
+                               const std::size_t l) const {
+  const std::size_t n = ndof_old(l);
+  const std::size_t N = ndof(l);
+  return PseudoArray<double>(u.data + n, N - n);
 }
 
 std::size_t MeshHierarchy::do_scratch_space_needed() const {
