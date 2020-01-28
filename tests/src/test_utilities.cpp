@@ -79,7 +79,7 @@ TEST_CASE("Enumeration iteration", "[utilities]") {
   }
 }
 
-TEST_CASE("ZippedRange iterator", "[utilities]") {
+TEST_CASE("ZippedRange iteration", "[utilities]") {
   using T = std::vector<float>;
   using U = std::array<unsigned short int, 5>;
   const T xs = {-3.28, 17.37, 0, 0.2388, -99.1};
