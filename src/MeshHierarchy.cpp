@@ -350,7 +350,8 @@ moab::Range MeshHierarchy::do_new_nodes(const std::size_t l) const {
 PseudoArray<double>
 MeshHierarchy::do_on_old_nodes(const HierarchyCoefficients<double> u,
                                const std::size_t l) const {
-  return PseudoArray<double>(u.data, ndof_old(l));
+  const std::size_t n = ndof_old(l);
+  return PseudoArray<double>(u.data, n);
 }
 
 PseudoArray<double>

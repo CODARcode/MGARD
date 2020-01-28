@@ -8,6 +8,7 @@
 #include <limits>
 #include <random>
 #include <set>
+#include <vector>
 
 #include "blas.hpp"
 
@@ -17,6 +18,7 @@
 
 #include "MeshLevel.hpp"
 #include "UniformMeshHierarchy.hpp"
+#include "data.hpp"
 
 // These tests call `decompose` and `recompose` in the old style and read the
 // transformed coefficients from the same identifier.
@@ -170,4 +172,65 @@ TEST_CASE("comparison with Python implementation: refinement and decomposition",
   // Expect some error.
   assert(max_rel_mc_err != 0);
   REQUIRE(max_rel_mc_err < 1e-6);
+}
+
+static double square(const double x) {
+  return x * x;
+}
+
+//Function defined on the mesh.
+static double f(const mgard::MeshLevel &mesh, const moab::EntityHandle node) {
+  double xyz[3];
+  const moab::ErrorCode ecode = mesh.impl.get_coords(&node, 1, xyz);
+  require_moab_success(ecode);
+  return  4.27 * square(xyz[0]) - 9.28 * square(xyz[1]) + 0.288 * square(xyz[2]);
+}
+
+TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
+  moab::ErrorCode ecode;
+  moab::Core mbcore;
+  ecode = mbcore.load_file(mesh_path("slope.msh").c_str());
+  require_moab_success(ecode);
+  mgard::MeshLevel mesh_(mbcore);
+  const std::size_t L = 2;
+  mgard::UniformMeshHierarchy hierarchy(mesh_, L);
+
+  std::vector<double> u_;
+  u_.reserve(hierarchy.ndof());
+  {
+    const mgard::MeshLevel &MESH = hierarchy.meshes.back();
+    const moab::Range &NODES = MESH.entities[moab::MBVERTEX];
+    for (const moab::EntityHandle node : NODES) {
+      u_.push_back(f(MESH, node));
+    }
+  }
+  const mgard::NodalCoefficients<double> u(u_.data());
+
+  for (std::size_t l = 0; l <= L; ++l) {
+    const mgard::MeshLevel &mesh = hierarchy.meshes.at(l);
+
+    std::size_t new_count = 0;
+    bool new_all_as_expected = true;
+    mgard::PseudoArray<double>::const_iterator q = (
+      hierarchy.on_new_nodes(u, l).begin()
+    );
+    for (const moab::EntityHandle node : hierarchy.new_nodes(l)) {
+      new_all_as_expected = new_all_as_expected && *q++ == f(mesh, node);
+      ++new_count;
+    }
+    REQUIRE(new_all_as_expected);
+    REQUIRE(new_count == hierarchy.ndof(l) - (l ? hierarchy.ndof(l - 1) : 0));
+
+    std::size_t old_count = 0;
+    bool old_all_as_expected = true;
+    mgard::PseudoArray<double>::const_iterator r = (
+      hierarchy.on_old_nodes(u, l).begin()
+    );
+    for (const moab::EntityHandle node : hierarchy.old_nodes(l)) {
+      old_all_as_expected = old_all_as_expected && *r++ == f(mesh, node);
+      ++old_count;
+    }
+    REQUIRE(old_all_as_expected);
+    REQUIRE(old_count == (l ? hierarchy.ndof(l - 1) : 0));
+  }
 }
