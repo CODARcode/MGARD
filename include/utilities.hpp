@@ -41,13 +41,18 @@ template <typename T> struct PseudoArray {
   const std::size_t size;
 };
 
-//! Mimic Python's `enumerate` builtin. `T` is expected to be an STL container
-//! or something like it.
-template <typename T> struct Enumeration {
+//! Mimic Python's `enumerate` builtin.
+template <typename It> struct Enumeration {
   //! Constructor.
   //!
+  //!\param begin Iterator to the beginning of the range to be iterated over.
+  //!\param end Iterator to the end of the range to be iterated over.
+  Enumeration(const It begin, const It end);
+
+  //!\override
+  //!
   //!\param container Container to be iterated over.
-  Enumeration(const T &container);
+  template <typename T> Enumeration(const T &container);
 
   // Forward declaration.
   class iterator;
@@ -58,32 +63,35 @@ template <typename T> struct Enumeration {
   //! Return an iterator to the end of the enumeration.
   iterator end() const;
 
-  //! Underlying container.
-  const T &container;
+  //! Iterator to the beginning of the range to be iterated over.
+  const It begin_;
+
+  //! Iterator to the end of the range to be iterated over.
+  const It end_;
 };
 
 //! Equality comparison.
-template <typename T>
-bool operator==(const Enumeration<T> &a, const Enumeration<T> &b);
+template <typename It>
+bool operator==(const Enumeration<It> &a, const Enumeration<It> &b);
 
 //! Inequality comparison.
-template <typename T>
-bool operator!=(const Enumeration<T> &a, const Enumeration<T> &b);
+template <typename It>
+bool operator!=(const Enumeration<It> &a, const Enumeration<It> &b);
 
 //! Iterator over an enumeration.
-template <typename T>
-class Enumeration<T>::iterator
-    : public std::iterator<
-          std::input_iterator_tag,
-          std::pair<typename T::size_type, typename T::value_type>> {
+template <typename It>
+class Enumeration<It>::iterator
+    : public std::iterator<std::input_iterator_tag,
+                           std::pair<std::size_t, typename std::iterator_traits<
+                                                      It>::value_type>> {
 public:
   //! Constructor.
   //!
   //!\param iterable Associated enumeration.
   //!\param index Index in the associated sequence.
   //!\param inner Position in the associated sequence.
-  iterator(const Enumeration<T> &iterable, const typename T::size_type index,
-           const typename T::const_iterator inner);
+  iterator(const Enumeration<It> &iterable, const std::size_t index,
+           const It inner);
 
   //! Equality comparison.
   bool operator==(const iterator &other) const;
@@ -104,17 +112,18 @@ public:
   //jtc1/sc22/wg21/docs/papers/2016/p0174r2.html#2.1>.
 
   //! Dereference.
-  std::pair<typename T::size_type, typename T::value_type> operator*() const;
+  std::pair<std::size_t, typename std::iterator_traits<It>::value_type>
+  operator*() const;
 
 private:
   //! Associated enumeration.
-  const Enumeration<T> &iterable;
+  const Enumeration<It> &iterable;
 
   //! Index in the associated sequence.
-  typename T::size_type index;
+  std::size_t index;
 
   //! Position in the associated sequence.
-  typename T::const_iterator inner;
+  It inner;
 };
 
 //! Mimic Python's `zip` builtin. `T` and `U` are expected to be STL containers

@@ -11,7 +11,8 @@
 
 namespace mgard {
 
-class EnumeratedMeshRange : public Enumeration<std::vector<MeshLevel>> {
+class EnumeratedMeshRange
+    : public Enumeration<std::vector<MeshLevel>::const_iterator> {
 public:
   //! Constructor.
   //!
