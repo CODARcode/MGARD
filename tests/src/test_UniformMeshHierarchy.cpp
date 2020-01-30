@@ -174,16 +174,14 @@ TEST_CASE("comparison with Python implementation: refinement and decomposition",
   REQUIRE(max_rel_mc_err < 1e-6);
 }
 
-static double square(const double x) {
-  return x * x;
-}
+static double square(const double x) { return x * x; }
 
-//Function defined on the mesh.
+// Function defined on the mesh.
 static double f(const mgard::MeshLevel &mesh, const moab::EntityHandle node) {
   double xyz[3];
   const moab::ErrorCode ecode = mesh.impl.get_coords(&node, 1, xyz);
   require_moab_success(ecode);
-  return  4.27 * square(xyz[0]) - 9.28 * square(xyz[1]) + 0.288 * square(xyz[2]);
+  return 4.27 * square(xyz[0]) - 9.28 * square(xyz[1]) + 0.288 * square(xyz[2]);
 }
 
 TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
@@ -211,9 +209,7 @@ TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
 
     std::size_t new_count = 0;
     bool new_all_as_expected = true;
-    mgard::PseudoArray<double>::const_iterator q = (
-      hierarchy.on_new_nodes(u, l).begin()
-    );
+    double const *q = hierarchy.on_new_nodes(u, l).begin();
     for (const moab::EntityHandle node : hierarchy.new_nodes(l)) {
       new_all_as_expected = new_all_as_expected && *q++ == f(mesh, node);
       ++new_count;
@@ -223,9 +219,7 @@ TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
 
     std::size_t old_count = 0;
     bool old_all_as_expected = true;
-    mgard::PseudoArray<double>::const_iterator r = (
-      hierarchy.on_old_nodes(u, l).begin()
-    );
+    double const *r = hierarchy.on_old_nodes(u, l).begin();
     for (const moab::EntityHandle node : hierarchy.old_nodes(l)) {
       old_all_as_expected = old_all_as_expected && *r++ == f(mesh, node);
       ++old_count;

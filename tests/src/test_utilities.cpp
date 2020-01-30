@@ -62,7 +62,7 @@ TEST_CASE("Enumeration iteration", "[utilities]") {
   const std::vector<float> xs = {-1.375, 0, 732.5, -0.875};
   std::vector<std::size_t> indices;
   std::vector<float> values;
-  for (auto pair : mgard::Enumeration<std::vector<float>>(xs)) {
+  for (auto pair : mgard::Enumeration<std::vector<float>::const_iterator>(xs)) {
     indices.push_back(pair.first);
     values.push_back(pair.second);
   }
@@ -72,7 +72,7 @@ TEST_CASE("Enumeration iteration", "[utilities]") {
 
   // This compiles and we never execute the body of the loop.
   const std::vector<int> ys;
-  for (auto pair : mgard::Enumeration<std::vector<int>>(ys)) {
+  for (auto pair : mgard::Enumeration<std::vector<int>::const_iterator>(ys)) {
     // Using `pair` so the compiler doesn't complain.
     static_cast<void>(pair);
     REQUIRE(false);

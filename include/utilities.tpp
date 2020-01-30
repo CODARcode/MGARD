@@ -25,65 +25,70 @@ template <typename T> T PseudoArray<T>::operator[](const std::size_t i) const {
   return data[i];
 }
 
-template <typename T>
-Enumeration<T>::Enumeration(const T &container) : container(container) {}
+template <typename It>
+Enumeration<It>::Enumeration(const It begin, const It end)
+    : begin_(begin), end_(end) {}
 
+template <typename It>
 template <typename T>
-typename Enumeration<T>::iterator Enumeration<T>::begin() const {
-  return iterator(*this, 0, container.begin());
+Enumeration<It>::Enumeration(const T &container)
+    : begin_(container.begin()), end_(container.end()) {}
+
+template <typename It>
+typename Enumeration<It>::iterator Enumeration<It>::begin() const {
+  return iterator(*this, 0, begin_);
 }
 
-template <typename T>
-typename Enumeration<T>::iterator Enumeration<T>::end() const {
-  return iterator(*this, container.size(), container.end());
+template <typename It>
+typename Enumeration<It>::iterator Enumeration<It>::end() const {
+  return iterator(*this, end_ - begin_, end_);
 }
 
-template <typename T>
-bool operator==(const Enumeration<T> &a, const Enumeration<T> &b) {
-  return a.container == b.container;
+template <typename It>
+bool operator==(const Enumeration<It> &a, const Enumeration<It> &b) {
+  return a.begin_ == b.begin_ && a.end_ == b.end_;
 }
 
-template <typename T>
-bool operator!=(const Enumeration<T> &a, const Enumeration<T> &b) {
+template <typename It>
+bool operator!=(const Enumeration<It> &a, const Enumeration<It> &b) {
   return !operator==(a, b);
 }
 
-template <typename T>
-Enumeration<T>::iterator::iterator(const Enumeration<T> &iterable,
-                                   const typename T::size_type index,
-                                   const typename T::const_iterator inner)
+template <typename It>
+Enumeration<It>::iterator::iterator(const Enumeration<It> &iterable,
+                                    const std::size_t index, const It inner)
     : iterable(iterable), index(index), inner(inner) {}
 
-template <typename T>
-bool Enumeration<T>::iterator::
-operator==(const Enumeration<T>::iterator &other) const {
+template <typename It>
+bool Enumeration<It>::iterator::
+operator==(const Enumeration<It>::iterator &other) const {
   return (iterable == other.iterable && index == other.index &&
           inner == other.inner);
 }
 
-template <typename T>
-bool Enumeration<T>::iterator::
-operator!=(const Enumeration<T>::iterator &other) const {
+template <typename It>
+bool Enumeration<It>::iterator::
+operator!=(const Enumeration<It>::iterator &other) const {
   return !operator==(other);
 }
 
-template <typename T>
-typename Enumeration<T>::iterator &Enumeration<T>::iterator::operator++() {
+template <typename It>
+typename Enumeration<It>::iterator &Enumeration<It>::iterator::operator++() {
   ++index;
   ++inner;
   return *this;
 }
 
-template <typename T>
-typename Enumeration<T>::iterator Enumeration<T>::iterator::operator++(int) {
+template <typename It>
+typename Enumeration<It>::iterator Enumeration<It>::iterator::operator++(int) {
   const iterator tmp = *this;
   operator++();
   return tmp;
 }
 
-template <typename T>
-std::pair<typename T::size_type, typename T::value_type>
-    Enumeration<T>::iterator::operator*() const {
+template <typename It>
+std::pair<std::size_t, typename std::iterator_traits<It>::value_type>
+    Enumeration<It>::iterator::operator*() const {
   return {index, *inner};
 }
 
