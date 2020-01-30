@@ -86,7 +86,9 @@ TEST_CASE("ZippedRange iteration", "[utilities]") {
   const U ys = {12, 0, 0, 77, 3};
   std::size_t i = 0;
   bool all_equal = true;
-  for (auto pair : mgard::ZippedRange<T, U>(xs, ys)) {
+  using It = T::const_iterator;
+  using Jt = U::const_iterator;
+  for (auto pair : mgard::ZippedRange<It, Jt>(xs, ys)) {
     all_equal = all_equal && pair.first == xs.at(i) && pair.second == ys.at(i);
     ++i;
   }
