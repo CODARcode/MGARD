@@ -92,87 +92,82 @@ std::pair<std::size_t, typename std::iterator_traits<It>::value_type>
   return {index, *inner};
 }
 
+template <typename It, typename Jt>
+ZippedRange<It, Jt>::ZippedRange(const It begin_first, const It end_first,
+                                 const Jt begin_second, const Jt end_second)
+    : begin_first(begin_first), end_first(end_first),
+      begin_second(begin_second), end_second(end_second) {}
+
+template <typename It, typename Jt>
 template <typename T, typename U>
-ZippedRange<T, U>::ZippedRange(
-  const T &container_first, const U &container_second
-):
-  container_first(container_first),
-  container_second(container_second)
-{
+ZippedRange<It, Jt>::ZippedRange(const T &container_first,
+                                 const U &container_second)
+    : begin_first(container_first.begin()), end_first(container_first.end()),
+      begin_second(container_second.begin()),
+      end_second(container_second.end()) {}
+
+template <typename It, typename Jt>
+typename ZippedRange<It, Jt>::iterator ZippedRange<It, Jt>::begin() const {
+  return iterator(*this, begin_first, begin_second);
 }
 
-template <typename T, typename U>
-typename ZippedRange<T, U>::iterator ZippedRange<T, U>::begin() const {
-  return iterator(*this, container_first.begin(), container_second.begin());
+template <typename It, typename Jt>
+typename ZippedRange<It, Jt>::iterator ZippedRange<It, Jt>::end() const {
+  return iterator(*this, end_first, end_second);
 }
 
-template <typename T, typename U>
-typename ZippedRange<T, U>::iterator ZippedRange<T, U>::end() const {
-  return iterator(*this, container_first.end(), container_second.end());
+template <typename It, typename Jt>
+bool operator==(const ZippedRange<It, Jt> &a, const ZippedRange<It, Jt> &b) {
+  return (a.begin_first == b.begin_first && a.end_first == b.end_first &&
+          a.begin_second == b.begin_second && a.end_second == b.end_second);
 }
 
-template <typename T, typename U>
-bool operator==(const ZippedRange<T, U> &a, const ZippedRange<T, U> &b) {
-  return (
-    a.container_first == b.container_first &&
-    a.container_second == b.container_second
-  );
-}
-
-template <typename T, typename U>
-bool operator!=(const ZippedRange<T, U> &a, const ZippedRange<T, U> &b) {
+template <typename It, typename Jt>
+bool operator!=(const ZippedRange<It, Jt> &a, const ZippedRange<It, Jt> &b) {
   return !operator==(a, b);
 }
 
-template <typename T, typename U>
-ZippedRange<T, U>::iterator::iterator(
-  const ZippedRange<T, U> &iterable,
-  const typename T::const_iterator inner_first,
-  const typename U::const_iterator inner_second
-):
-  iterable(iterable),
-  inner_first(inner_first),
-  inner_second(inner_second)
-{
+template <typename It, typename Jt>
+ZippedRange<It, Jt>::iterator::iterator(const ZippedRange<It, Jt> &iterable,
+                                        const It inner_first,
+                                        const Jt inner_second)
+    : iterable(iterable), inner_first(inner_first), inner_second(inner_second) {
 }
 
-//Iteration won't stop when only one of the iterators reaches its end.
-template <typename T, typename U>
-bool ZippedRange<T, U>::iterator::operator==(
-  const ZippedRange<T, U>::iterator &other
-) const {
-  return (
-    iterable == other.iterable && inner_first == other.inner_first &&
-    inner_second == other.inner_second
-  );
+// Iteration won't stop when only one of the iterators reaches its end.
+template <typename It, typename Jt>
+bool ZippedRange<It, Jt>::iterator::
+operator==(const ZippedRange<It, Jt>::iterator &other) const {
+  return (iterable == other.iterable && inner_first == other.inner_first &&
+          inner_second == other.inner_second);
 }
 
-template <typename T, typename U>
-bool ZippedRange<T, U>::iterator::operator!=(
-  const ZippedRange<T, U>::iterator &other
-) const {
+template <typename It, typename Jt>
+bool ZippedRange<It, Jt>::iterator::
+operator!=(const ZippedRange<It, Jt>::iterator &other) const {
   return !operator==(other);
 }
 
-template <typename T, typename U>
-typename ZippedRange<T, U>::iterator &
-ZippedRange<T, U>::iterator::operator++() {
+template <typename It, typename Jt>
+typename ZippedRange<It, Jt>::iterator &ZippedRange<It, Jt>::iterator::
+operator++() {
   ++inner_first;
   ++inner_second;
   return *this;
 }
 
-template <typename T, typename U>
-typename ZippedRange<T, U>::iterator
-ZippedRange<T, U>::iterator::operator++(int) {
-  const ZippedRange<T, U>::iterator tmp = *this;
+template <typename It, typename Jt>
+typename ZippedRange<It, Jt>::iterator ZippedRange<It, Jt>::iterator::
+operator++(int) {
+  const ZippedRange<It, Jt>::iterator tmp = *this;
   operator++();
   return tmp;
 }
 
-template <typename T, typename U>
-std::pair<typename T::value_type, typename U::value_type>
-ZippedRange<T, U>::iterator::operator*() const {
+template <typename It, typename Jt>
+std::pair<typename std::iterator_traits<It>::value_type,
+          typename std::iterator_traits<Jt>::value_type>
+    ZippedRange<It, Jt>::iterator::operator*() const {
   return {*inner_first, *inner_second};
 }
 

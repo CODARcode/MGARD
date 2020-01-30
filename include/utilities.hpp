@@ -105,11 +105,11 @@ public:
   //! Postincrement.
   iterator operator++(int);
 
-  //Would like to return `value_type` from the dereference operator, but it
-  //seems like inheriting from a class template prevents `value_type` from being
-  //recognized as a type. See http://www.cs.technion.ac.il/users/yechiel/
-  //c++-faq/nondependent-name-lookup-members.html> and http://www.open-std.org/
-  //jtc1/sc22/wg21/docs/papers/2016/p0174r2.html#2.1>.
+  // Would like to return `value_type` from the dereference operator, but it
+  // seems like inheriting from a class template prevents `value_type` from
+  // being recognized as a type. See http://www.cs.technion.ac.il/users/yechiel/
+  // c++-faq/nondependent-name-lookup-members.html> and http://www.open-std.org/
+  // jtc1/sc22/wg21/docs/papers/2016/p0174r2.html#2.1>.
 
   //! Dereference.
   std::pair<std::size_t, typename std::iterator_traits<It>::value_type>
@@ -126,10 +126,23 @@ private:
   It inner;
 };
 
-//! Mimic Python's `zip` builtin. `T` and `U` are expected to be STL containers
-//! or something like it.
-template <typename T, typename U> struct ZippedRange {
+//! Mimic Python's `zip` builtin.
+template <typename It, typename Jt> struct ZippedRange {
   //! Constructor.
+  //!
+  //!\param begin_first Iterator to the beginning of the first range to be
+  //! iterated over.
+  //!\param end_first Iterator to the end of the first range to be
+  //! iterated over.
+  //!\param begin_second Iterator to the beginning of the second range to be
+  //! iterated over.
+  //!\param end_second Iterator to the end of the second range to be
+  //! iterated over.
+  ZippedRange(const It begin_first, const It end_first, const Jt begin_second,
+              const Jt end_second);
+
+  template <typename T, typename U>
+  //!\override
   //!
   //!\param container_first First container to be iterated over.
   //!\param container_second Second container to be iterated over.
@@ -144,38 +157,42 @@ template <typename T, typename U> struct ZippedRange {
   //! Return an iterator to the end of the zipped range.
   iterator end() const;
 
-  //!First underlying container.
-  const T &container_first;
+  //! Iterator to the beginning of the first range to be iterated over.
+  const It begin_first;
 
-  //!Second underlying container.
-  const U &container_second;
+  //! Iterator to the end of the first range to be iterated over.
+  const It end_first;
+
+  //! Iterator to the beginning of the second range to be iterated over.
+  const Jt begin_second;
+
+  //! Iterator to the end of the second range to be iterated over.
+  const Jt end_second;
 };
 
 //! Equality comparison.
-template <typename T, typename U>
-bool operator==(const ZippedRange<T, U> &a, const ZippedRange<T, U> &b);
+template <typename It, typename Jt>
+bool operator==(const ZippedRange<It, Jt> &a, const ZippedRange<It, Jt> &b);
 
 //! Inequality comparison.
-template <typename T, typename U>
-bool operator!=(const ZippedRange<T, U> &a, const ZippedRange<T, U> &b);
+template <typename It, typename Jt>
+bool operator!=(const ZippedRange<It, Jt> &a, const ZippedRange<It, Jt> &b);
 
 //! Iterator over a zipped range.
-template <typename T, typename U>
-class ZippedRange<T, U>::iterator
+template <typename It, typename Jt>
+class ZippedRange<It, Jt>::iterator
     : public std::iterator<
           std::input_iterator_tag,
-          std::pair<typename T::value_type, typename U::value_type>> {
+          std::pair<typename std::iterator_traits<It>::value_type,
+                    typename std::iterator_traits<Jt>::value_type>> {
 public:
   //! Constructor.
   //!
-  //!\param iterable Associated zipper range.
+  //!\param iterable Associated zipped range.
   //!\param inner_first Position in the first associated sequence.
   //!\param inner_second Position in the second associated sequence.
-  iterator(
-    const ZippedRange<T, U> &iterable,
-    const typename T::const_iterator inner_first,
-    const typename U::const_iterator inner_second
-  );
+  iterator(const ZippedRange<It, Jt> &iterable, const It inner_first,
+           const Jt inner_second);
 
   //! Equality comparison.
   bool operator==(const iterator &other) const;
@@ -190,17 +207,19 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  std::pair<typename T::value_type, typename U::value_type> operator*() const;
+  std::pair<typename std::iterator_traits<It>::value_type,
+            typename std::iterator_traits<Jt>::value_type>
+  operator*() const;
 
 private:
   //! Associated zipped range.
-  const ZippedRange<T, U> &iterable;
+  const ZippedRange<It, Jt> &iterable;
 
   //! Position in the first associated sequence
-  typename T::const_iterator inner_first;
+  It inner_first;
 
   //! Position in the second associated sequence
-  typename U::const_iterator inner_second;
+  Jt inner_second;
 };
 
 } // namespace mgard
