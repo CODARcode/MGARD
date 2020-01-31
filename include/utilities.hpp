@@ -222,6 +222,28 @@ private:
   Jt inner_second;
 };
 
+//! Mimic a slice of a range for range-based for loops.
+template <typename It> struct RangeSlice {
+public:
+  //! Constructor.
+  //!
+  //!\param begin Beginning of the slice.
+  //!\param end End of the slice.
+  RangeSlice(const It begin, const It end);
+
+  //! Return an iterator to the beginning of the slice.
+  It begin() const;
+
+  //! Return an iterator to the end of the slice.
+  It end() const;
+
+  //! Beginning of the slice.
+  const It begin_;
+
+  //! End of the slice.
+  const It end_;
+};
+
 } // namespace mgard
 
 #include "utilities.tpp"
