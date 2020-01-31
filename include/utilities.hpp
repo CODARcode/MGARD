@@ -54,6 +54,13 @@ template <typename It> struct Enumeration {
   //!\param container Container to be iterated over.
   template <typename T> Enumeration(const T &container);
 
+  // Prevent temporaries. See <https://stackoverflow.com/questions/36868442/
+  // avoid-exponential-grow-of-const-references-and-rvalue-references-in-
+  // constructor> for some candidate approaches. Really, the issue is the
+  // invalidation of `container.{begin,end}()`. If those iterators remain valid,
+  // there is (as far as I know) nothing wrong with passing in a temporary.
+  template <typename T> Enumeration(const T &&container) = delete;
+
   // Forward declaration.
   class iterator;
 
@@ -146,6 +153,10 @@ template <typename It, typename Jt> struct ZippedRange {
   //!
   //!\param container_first First container to be iterated over.
   //!\param container_second Second container to be iterated over.
+  //!
+  //! See the note about temporaries in `Enumeration`. If a temporary is passed
+  //! in here, *it is the responsibility of the caller to ensure that the
+  //! corresponding iterators will remain valid!*
   ZippedRange(const T &container_first, const U &container_second);
 
   // Forward declaration.

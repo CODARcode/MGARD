@@ -27,26 +27,6 @@ public:
   T *const data;
 };
 
-//Forward declaration.
-class MeshHierarchy;
-
-//These are likely to be deleted, since I am planning to iterate over the
-//nodes/coefficients by level.
-
-//! Return a pointer to the beginning of a set of coefficients.
-//!
-//!\param hierarchy Hierarchy to which coefficients are associated.
-//!\param u Coefficients.
-template <typename T>
-T *begin(const MeshHierarchy &hierarchy, const HierarchyCoefficients<T> u);
-
-//! Return a pointer to the end of a set of coefficients.
-//!
-//!\param hierarchy Hierarchy to which coefficients are associated.
-//!\param u Coefficients.
-template <typename T>
-T *end(const MeshHierarchy &hierarchy, const HierarchyCoefficients<T> u);
-
 // Repeating the declarations rather than using a macro so that Doxygen can see
 // the documentation. Maybe there is some workaround.
 
