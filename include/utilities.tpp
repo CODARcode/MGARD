@@ -171,4 +171,12 @@ std::pair<typename std::iterator_traits<It>::value_type,
   return {*inner_first, *inner_second};
 }
 
+template <typename It>
+RangeSlice<It>::RangeSlice(const It begin, const It end)
+    : begin_(begin), end_(end) {}
+
+template <typename It> It RangeSlice<It>::begin() const { return begin_; }
+
+template <typename It> It RangeSlice<It>::end() const { return end_; }
+
 } // namespace mgard
