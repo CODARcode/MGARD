@@ -1,5 +1,7 @@
 #include "estimators.hpp"
 
+#include <cassert>
+
 #include <limits>
 #include <stdexcept>
 
@@ -48,13 +50,25 @@ static SandwichBounds s_estimator(const MultilevelCoefficients<double> u,
                                   const double s) {
   std::vector<double> squares_for_estimate(hierarchy.L + 1);
   // TODO: allow passing in of memory.
-  std::vector<double> scratch(hierarchy.new_nodes(hierarchy.L).size());
+  std::vector<double> scratch(hierarchy.ndof_new(hierarchy.L));
   double *const rhs = scratch.data();
   for (std::size_t i = 0; i <= hierarchy.L; ++i) {
     const std::size_t l = hierarchy.L - i;
     const MeshLevel &mesh = hierarchy.meshes.at(l);
-    const moab::Range new_nodes = hierarchy.new_nodes(l);
-    const std::size_t n = new_nodes.size();
+    const std::size_t n = hierarchy.ndof_new(l);
+    // Originally, `hierarchy.new_nodes` returned a `moab::Range`, which could
+    // be passed straight to the constructor below. In order to avoid problems
+    // with iterators pointing to temporaries that have gone out of scope,
+    // `hierarchy.new_nodes` now returns a pair of iterators to the appropriate
+    // `moab::Range` in `hierarchy`. Rather than rewriting `SubsetMassMatrix` to
+    // deal with iterators, we will just manually construct the `moab::Range`.
+    const RangeSlice<moab::Range::const_iterator> iterators =
+        hierarchy.new_nodes(l);
+    const moab::Range::const_iterator new_nodes_begin = iterators.begin();
+    moab::Range::const_iterator new_nodes_end = iterators.end();
+    // Check that it's safe to decrement `new_nodes_end`.
+    assert(new_nodes_begin != new_nodes_end);
+    const moab::Range new_nodes(*new_nodes_begin, *--new_nodes_end);
     ContiguousSubsetMassMatrix M(mesh, new_nodes);
     // Nodal values of multilevel component on level `l`.
     double const *const mc = hierarchy.on_new_nodes(u, l).begin();
