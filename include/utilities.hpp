@@ -222,15 +222,10 @@ private:
   Jt inner_second;
 };
 
-//! Mimic a slice of a range for range-based for loops.
+//! Mimic a slice of a range for range-based for loops. Use aggregate
+//! initialization to construct.
 template <typename It> struct RangeSlice {
 public:
-  //! Constructor.
-  //!
-  //!\param begin Beginning of the slice.
-  //!\param end End of the slice.
-  RangeSlice(const It begin, const It end);
-
   //! Return an iterator to the beginning of the slice.
   It begin() const;
 

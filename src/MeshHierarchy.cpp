@@ -29,24 +29,35 @@ std::size_t MeshHierarchy::ndof(const std::size_t l) const {
   return do_ndof(l);
 }
 
-moab::Range MeshHierarchy::old_nodes(const std::size_t l) const {
+std::size_t MeshHierarchy::ndof_old(const std::size_t l) const {
+  return l ? ndof(l - 1) : 0;
+}
+
+std::size_t MeshHierarchy::ndof_new(const std::size_t l) const {
+  // Not calling `check_mesh_index_bounds` here because `ndof` will call it.
+  return ndof(l) - ndof_old(l);
+}
+
+RangeSlice<moab::Range::const_iterator>
+MeshHierarchy::old_nodes(const std::size_t l) const {
   check_mesh_index_bounds(l);
   return do_old_nodes(l);
 }
 
-moab::Range MeshHierarchy::new_nodes(const std::size_t l) const {
+RangeSlice<moab::Range::const_iterator>
+MeshHierarchy::new_nodes(const std::size_t l) const {
   check_mesh_index_bounds(l);
   return do_new_nodes(l);
 }
 
-PseudoArray<double>
+RangeSlice<double *>
 MeshHierarchy::on_old_nodes(const HierarchyCoefficients<double> u,
                             const std::size_t l) const {
   check_mesh_index_bounds(l);
   return do_on_old_nodes(u, l);
 }
 
-PseudoArray<double>
+RangeSlice<double *>
 MeshHierarchy::on_new_nodes(const HierarchyCoefficients<double> u,
                             const std::size_t l) const {
   check_mesh_index_bounds(l);
@@ -318,48 +329,37 @@ void MeshHierarchy::check_mesh_index_nonzero(const std::size_t l) const {
   }
 }
 
-std::size_t MeshHierarchy::ndof_old(const std::size_t l) const {
-  // Not calling `check_mesh_index_bounds` here because it's a private member
-  // function and also `ndof` will, if called, call it.
-  return l ? ndof(l - 1) : 0;
-}
-
 // Private member functions.
 
 std::size_t MeshHierarchy::do_ndof(const std::size_t l) const {
   return meshes.at(l).ndof();
 }
 
-moab::Range MeshHierarchy::do_old_nodes(const std::size_t l) const {
-  if (!l) {
-    return moab::Range();
-  } else {
-    const moab::Range &nodes = meshes.at(l).entities[moab::MBVERTEX];
-    const moab::EntityHandle start = nodes.front();
-    const std::size_t n = ndof(l - 1);
-    assert(n);
-    return moab::Range(start, start + n - 1);
-  }
-}
-
-moab::Range MeshHierarchy::do_new_nodes(const std::size_t l) const {
+RangeSlice<moab::Range::const_iterator>
+MeshHierarchy::do_old_nodes(const std::size_t l) const {
   const moab::Range &nodes = meshes.at(l).entities[moab::MBVERTEX];
-  return moab::Range(nodes.front() + ndof_old(l), nodes.back());
+  const moab::Range::const_iterator start = nodes.begin();
+  return {start, start + ndof_old(l)};
 }
 
-PseudoArray<double>
+RangeSlice<moab::Range::const_iterator>
+MeshHierarchy::do_new_nodes(const std::size_t l) const {
+  const moab::Range &nodes = meshes.at(l).entities[moab::MBVERTEX];
+  return {nodes.begin() + ndof_old(l), nodes.end()};
+}
+
+RangeSlice<double *>
 MeshHierarchy::do_on_old_nodes(const HierarchyCoefficients<double> u,
                                const std::size_t l) const {
-  const std::size_t n = ndof_old(l);
-  return PseudoArray<double>(u.data, n);
+  double *const start = u.data;
+  return {start, start + ndof_old(l)};
 }
 
-PseudoArray<double>
+RangeSlice<double *>
 MeshHierarchy::do_on_new_nodes(const HierarchyCoefficients<double> u,
                                const std::size_t l) const {
-  const std::size_t n = ndof_old(l);
-  const std::size_t N = ndof(l);
-  return PseudoArray<double>(u.data + n, N - n);
+  double *const old_start = u.data;
+  return {old_start + ndof_old(l), old_start + ndof(l)};
 }
 
 std::size_t MeshHierarchy::do_scratch_space_needed() const {
