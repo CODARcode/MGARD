@@ -134,6 +134,18 @@ ZippedRange<It, Jt>::iterator::iterator(const ZippedRange<It, Jt> &iterable,
     : iterable(iterable), inner_first(inner_first), inner_second(inner_second) {
 }
 
+template <typename It, typename Jt>
+typename ZippedRange<It, Jt>::iterator &ZippedRange<It, Jt>::iterator::
+operator=(const ZippedRange<It, Jt>::iterator &other) {
+  if (iterable != other.iterable) {
+    throw std::domain_error(
+        "can only assign to iterators to the same iterable");
+  }
+  inner_first = other.inner_first;
+  inner_second = other.inner_second;
+  return *this;
+}
+
 // Iteration won't stop when only one of the iterators reaches its end.
 template <typename It, typename Jt>
 bool ZippedRange<It, Jt>::iterator::
