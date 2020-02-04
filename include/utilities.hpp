@@ -205,6 +205,9 @@ public:
   iterator(const ZippedRange<It, Jt> &iterable, const It inner_first,
            const Jt inner_second);
 
+  //! Copy assignment.
+  iterator &operator=(const iterator &other);
+
   //! Equality comparison.
   bool operator==(const iterator &other) const;
 
