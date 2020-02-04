@@ -28,7 +28,7 @@ unstructured@DIRECTORIES_INCLUDE := $(DIR_INC) $(HOME)/.local/include
 benchmarks@DIRECTORIES_INCLUDE := $(DIR_INC) $(HOME)/.local/include
 
 structured@CXXFLAGS := -std=c++11 -fPIC
-unstructured@CXXFLAGS := -std=c++17 -Wfatal-errors -Wall -Wextra
+unstructured@CXXFLAGS := -std=c++17 -Wfatal-errors -Wall -Wextra -fPIC
 
 structured@LDFLAGS :=
 unstructured@LDFLAGS := -L/usr/lib/x86_64-linux-gnu/hdf5/serial -L$(HOME)/.local/lib
@@ -46,7 +46,7 @@ structured@TEST_STEMS := mgard_test
 structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
 
 #Tested but not compiled. `$(STEM).hpp` exists, `$(STEM).tpp` might exist, and `$(STEM).cpp` does not exist.
-unstructured@HEADER_ONLY := blas utilities data UniformEdgeFamilies Quantizer SituatedCoefficientRange
+unstructured@HEADER_ONLY := blas utilities data UniformEdgeFamilies Quantizer SituatedCoefficientRange IndicatorInput
 unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy UniformRestriction norms estimators EnumeratedMeshRange
 unstructured@STEMS = $(unstructured@MGARD_STEMS)
 
