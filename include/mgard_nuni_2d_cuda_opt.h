@@ -35,7 +35,7 @@ compacted_to_original_cuda(int nrow, int ncol,
                            double * dv, int lddv);
 
 mgard_cuda_ret 
-mass_mult_l_row_cuda_o1_config(int nrow,       int ncol,
+mass_mult_l_row_cuda_sm(int nrow,       int ncol,
                      int nr,         int nc,
                      int row_stride, int col_stride,
                      int * dirow,    int * dicol,
@@ -44,7 +44,7 @@ mass_mult_l_row_cuda_o1_config(int nrow,       int ncol,
                      int B, int ghost_col);
 
 mgard_cuda_ret 
-mass_mult_l_row_cuda_o2_config(int nrow,       int ncol,
+mass_mult_l_row_cuda_sm_pf(int nrow,       int ncol,
                      int nr,         int nc,
                      int row_stride, int col_stride,
                      int * dirow,    int * dicol,
@@ -52,16 +52,8 @@ mass_mult_l_row_cuda_o2_config(int nrow,       int ncol,
                      double * dcoords_x,
                      int B, int ghost_col);
 
-mgard_cuda_ret 
-mass_mult_l_row_cuda_o1(int nrow,       int ncol,
-                     int nr,         int nc,
-                     int row_stride, int col_stride,
-                     int * dirow,    int * dicol,
-                     double * dv,    int lddv,
-                     double * dcoords_x);
-  
 void 
-refactor_2D_cuda_o1(const int l_target,
+refactor_2D_cuda_compact_l1(const int l_target,
                     const int nrow,     const int ncol,
                     const int nr,       const int nc, 
                     int * dirow,        int * dicol,
@@ -71,7 +63,7 @@ refactor_2D_cuda_o1(const int l_target,
                     double * dcoords_x, double * dcoords_y);
 
 void 
-refactor_2D_cuda_o2(const int l_target,
+refactor_2D_cuda_compact_l2(const int l_target,
                     const int nrow,     const int ncol,
                     const int nr,       const int nc, 
                     int * dirow,        int * dicol,
@@ -80,6 +72,25 @@ refactor_2D_cuda_o2(const int l_target,
                     double * dwork,     int lddwork,
                     double * dcoords_x, double * dcoords_y);
 
+void 
+refactor_2D_cuda_compact_l2_sm(const int l_target,
+                    const int nrow,     const int ncol,
+                    const int nr,       const int nc, 
+                    int * dirow,        int * dicol,
+                    int * dirowP,       int * dicolP,
+                    double * dv,        int lddv, 
+                    double * dwork,     int lddwork,
+                    double * dcoords_x, double * dcoords_y);
+
+void 
+refactor_2D_cuda_compact_l2_sm_pf(const int l_target,
+                    const int nrow,     const int ncol,
+                    const int nr,       const int nc, 
+                    int * dirow,        int * dicol,
+                    int * dirowP,       int * dicolP,
+                    double * dv,        int lddv, 
+                    double * dwork,     int lddwork,
+                    double * dcoords_x, double * dcoords_y);
 
 }
 }

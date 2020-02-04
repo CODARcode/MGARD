@@ -3,7 +3,7 @@
 #include "mgard_cuda_helper_internal.h"
 #include "mgard_cuda.h"
 #include "mgard_nuni_2d_cuda.h"
-#include "mgard_nuni_2d_cuda_o1.h"
+#include "mgard_nuni_2d_cuda_opt.h"
 #include "mgard_nuni.h"
 #include "mgard.h"
 #include <iomanip> 
@@ -218,8 +218,8 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
                                               dwork,     lddwork,
                                               dcoords_x, dcoords_y);
       } else if (opt == 1) {
-        std::cout << "***refactor_2D_cuda_o1***" << std::endl;
-        mgard_2d::mgard_gen::refactor_2D_cuda_o1(l_target,
+        std::cout << "***refactor_2D_cuda_compact_l1***" << std::endl;
+        mgard_2d::mgard_gen::refactor_2D_cuda_compact_l1(l_target,
                                                  nrow,      ncol,
                                                  nr,        nc, 
                                                  dirow,     dicol,
@@ -229,8 +229,8 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
                                                  dcoords_x, dcoords_y);
         
       } else if (opt == 2) {
-        std::cout << "***refactor_2D_cuda_o1***" << std::endl;
-        mgard_2d::mgard_gen::refactor_2D_cuda_o2(l_target,
+        std::cout << "***refactor_2D_cuda_compact_l2***" << std::endl;
+        mgard_2d::mgard_gen::refactor_2D_cuda_compact_l2_sm_pf(l_target,
                                                  nrow,      ncol,
                                                  nr,        nc, 
                                                  dirow,     dicol,

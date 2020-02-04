@@ -1,7 +1,7 @@
 #include "mgard_nuni.h"
 #include "mgard.h"
 #include "mgard_nuni_2d_cuda.h"
-#include "mgard_nuni_2d_cuda_o1.h"
+#include "mgard_nuni_2d_cuda_opt.h"
 #include "mgard_cuda_helper.h"
 #include "mgard_cuda_helper_internal.h"
 #include <fstream>
@@ -256,12 +256,12 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
                                                     dcv,      lddcv,
                                                     dcv2,     lddcv2);
 
-    ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_o1(nr_l[0],    nc_l[l],
+    ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l],
                                                     nr_l[0],    nc_l[l],
                                                      1, 1,
                                                      dcirow_l[0], dcicol_l[l],
                                                      dcv2,     lddcv2,
-                                                     dccoords_x_l[l]);
+                                                     dccoords_x_l[l], 4, 2);
     time += ret.time;
   }
 
@@ -283,7 +283,7 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
                                                         dcv,      lddcv,
                                                         dcv2,     lddcv2);
 
-        ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_o1_config(nr_l[0],    nc_l[l],
+        ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l],
                                                         nr_l[0],    nc_l[l],
                                                          1, 1,
                                                          dcirow_l[0], dcicol_l[l],
@@ -315,7 +315,7 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
                                                         dcv,      lddcv,
                                                         dcv2,     lddcv2);
 
-        ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_o2_config(nr_l[0],    nc_l[l],
+        ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm_pf(nr_l[0],    nc_l[l],
                                                         nr_l[0],    nc_l[l],
                                                          1, 1,
                                                          dcirow_l[0], dcicol_l[l],
@@ -454,7 +454,7 @@ void benchmark_mass_mult_l_row(int nr, int nc) {
   //                          v, ldv  * sizeof(double), 
   //                          nc * sizeof(double), nr, 
   //                          H2D);
-  //       ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_o1_config(nr,    nc,
+  //       ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr,    nc,
   //                                                                nr,    nc,
   //                                                                row_stride, col_stride,
   //                                                                dirow, dicol,
@@ -488,7 +488,7 @@ void benchmark_mass_mult_l_row(int nr, int nc) {
                            v, ldv  * sizeof(double), 
                            nc * sizeof(double), nr, 
                            H2D);
-        ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_o2_config(nr,    nc,
+        ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm_pf(nr,    nc,
                                                                  nr,    nc,
                                                                  row_stride, col_stride,
                                                                  dirow, dicol,

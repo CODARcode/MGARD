@@ -247,30 +247,30 @@ mass_matrix_multiply_col_cuda(int nrow,       int ncol,
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
 
-void mass_matrix_multiply_cuda(const int l, std::vector<double> &v,
-                          const std::vector<double> &coords) {
-  int stride = std::pow(2, l); // current stride
-  int n = v.size();
-  double temp1, temp2;
+// void mass_matrix_multiply_cuda(const int l, std::vector<double> &v,
+//                           const std::vector<double> &coords) {
+//   int stride = std::pow(2, l); // current stride
+//   int n = v.size();
+//   double temp1, temp2;
 
-  // Mass matrix times nodal value-vec
-  temp1 = v.front(); // save u(0) for later use
-  //printf("working on %f\n", temp1);
-  v.front() = 2.0 * mgard_common::get_h_cuda(coords.data(), 0, stride) * temp1 +
-              mgard_common::get_h_cuda(coords.data(), 0, stride) * v[stride];
-  for (int i = stride; i <= n - 1 - stride; i += stride) {
-    temp2 = v[i];
-    v[i] = mgard_common::get_h_cuda(coords.data(), i - stride, stride) * temp1 +
-           2 *
-               (mgard_common::get_h_cuda(coords.data(), i - stride, stride) +
-                mgard_common::get_h_cuda(coords.data(), i, stride)) *
-               temp2 +
-           mgard_common::get_h_cuda(coords.data(), i, stride) * v[i + stride];
-    temp1 = temp2; // save u(n) for later use
-  }
-  v[n - 1] = mgard_common::get_h_cuda(coords.data(), n - stride - 1, stride) * temp1 +
-             2 * mgard_common::get_h_cuda(coords.data(), n - stride - 1, stride) * v[n - 1];
-}
+//   // Mass matrix times nodal value-vec
+//   temp1 = v.front(); // save u(0) for later use
+//   //printf("working on %f\n", temp1);
+//   v.front() = 2.0 * mgard_common::get_h_cuda(coords.data(), 0, stride) * temp1 +
+//               mgard_common::get_h_cuda(coords.data(), 0, stride) * v[stride];
+//   for (int i = stride; i <= n - 1 - stride; i += stride) {
+//     temp2 = v[i];
+//     v[i] = mgard_common::get_h_cuda(coords.data(), i - stride, stride) * temp1 +
+//            2 *
+//                (mgard_common::get_h_cuda(coords.data(), i - stride, stride) +
+//                 mgard_common::get_h_cuda(coords.data(), i, stride)) *
+//                temp2 +
+//            mgard_common::get_h_cuda(coords.data(), i, stride) * v[i + stride];
+//     temp1 = temp2; // save u(n) for later use
+//   }
+//   v[n - 1] = mgard_common::get_h_cuda(coords.data(), n - stride - 1, stride) * temp1 +
+//              2 * mgard_common::get_h_cuda(coords.data(), n - stride - 1, stride) * v[n - 1];
+// }
 
 
 __global__ void 
@@ -965,64 +965,64 @@ solve_tridiag_M_l_col_cuda(int nrow,       int ncol,
 
 
 
-void solve_tridiag_M_l_cuda(const int l, std::vector<double> &v,
-                       std::vector<double> &coords, int n, int no) {
+// void solve_tridiag_M_l_cuda(const int l, std::vector<double> &v,
+//                        std::vector<double> &coords, int n, int no) {
 
-  //  int my_level = nlevel - l;
-  int stride = std::pow(2, l); // current stride
+//   //  int my_level = nlevel - l;
+//   int stride = std::pow(2, l); // current stride
 
-  double am, bm, h1, h2;
-  am = 2.0 *
-       get_h_l_cuda(coords.data(), n, no, 0, stride); // first element of upper diagonal U.
+//   double am, bm, h1, h2;
+//   am = 2.0 *
+//        get_h_l_cuda(coords.data(), n, no, 0, stride); // first element of upper diagonal U.
 
-  //    bm = get_h_cuda(coords, 0, stride) / am;
-  bm = get_h_l_cuda(coords.data(), n, no, 0, stride) / am;
-  int nlevel = static_cast<int>(std::log2(n - 1));
-  //    //std::cout  << nlevel;
-  int nc = std::pow(2, nlevel - l) + 1;
-  std::vector<double> coeff(v.size());
-  int counter = 1;
-  coeff.front() = am;
+//   //    bm = get_h_cuda(coords, 0, stride) / am;
+//   bm = get_h_l_cuda(coords.data(), n, no, 0, stride) / am;
+//   int nlevel = static_cast<int>(std::log2(n - 1));
+//   //    //std::cout  << nlevel;
+//   int nc = std::pow(2, nlevel - l) + 1;
+//   std::vector<double> coeff(v.size());
+//   int counter = 1;
+//   coeff.front() = am;
 
-  ////std::cout  <<  am<< "\t"<< bm<<"\n";
-  // forward sweep
-  for (int i = stride; i < n - 1; i += stride) {
-    h1 = get_h_l_cuda(coords.data(), n, no, i - stride, stride);
-    h2 = get_h_l_cuda(coords.data(), n, no, i, stride);
+//   ////std::cout  <<  am<< "\t"<< bm<<"\n";
+//   // forward sweep
+//   for (int i = stride; i < n - 1; i += stride) {
+//     h1 = get_h_l_cuda(coords.data(), n, no, i - stride, stride);
+//     h2 = get_h_l_cuda(coords.data(), n, no, i, stride);
 
-    *get_ref_cuda(v.data(), n, no, i) -= *get_ref_cuda(v.data(), n, no, i - stride) * bm;
+//     *get_ref_cuda(v.data(), n, no, i) -= *get_ref_cuda(v.data(), n, no, i - stride) * bm;
 
-    am = 2.0 * (h1 + h2) - bm * h1;
-    bm = h2 / am;
+//     am = 2.0 * (h1 + h2) - bm * h1;
+//     bm = h2 / am;
 
-    coeff.at(counter) = am;
-    ++counter;
-  }
+//     coeff.at(counter) = am;
+//     ++counter;
+//   }
 
-  h2 = get_h_l_cuda(coords.data(), n, no, n - 1 - stride, stride);
-  am = 2.0 * h2 - bm * h2;
+//   h2 = get_h_l_cuda(coords.data(), n, no, n - 1 - stride, stride);
+//   am = 2.0 * h2 - bm * h2;
 
-  //    *get_ref_cuda(v, n, no, n-1) -= *get_ref_cuda(v, n, no, n-1-stride)*bm;
-  v.back() -= *get_ref_cuda(v.data(), n, no, n - 1 - stride) * bm;
-  coeff.at(counter) = am;
+//   //    *get_ref_cuda(v, n, no, n-1) -= *get_ref_cuda(v, n, no, n-1-stride)*bm;
+//   v.back() -= *get_ref_cuda(v.data(), n, no, n - 1 - stride) * bm;
+//   coeff.at(counter) = am;
 
-  // backward sweep
+//   // backward sweep
 
-  //    *get_ref_cuda(v, n, no, n-1) /= am;
-  v.back() /= am;
-  --counter;
+//   //    *get_ref_cuda(v, n, no, n-1) /= am;
+//   v.back() /= am;
+//   --counter;
 
-  for (int i = n - 1 - stride; i >= 0; i -= stride) {
-    h2 = get_h_l_cuda(coords.data(), n, no, i, stride);
-    *get_ref_cuda(v.data(), n, no, i) =
-        (*get_ref_cuda(v.data(), n, no, i) - h2 * (*get_ref_cuda(v.data(), n, no, i + stride))) /
-        coeff.at(counter);
+//   for (int i = n - 1 - stride; i >= 0; i -= stride) {
+//     h2 = get_h_l_cuda(coords.data(), n, no, i, stride);
+//     *get_ref_cuda(v.data(), n, no, i) =
+//         (*get_ref_cuda(v.data(), n, no, i) - h2 * (*get_ref_cuda(v.data(), n, no, i + stride))) /
+//         coeff.at(counter);
 
-    //        *get_ref_cuda(v, n, no, i) = 3  ;
+//     //        *get_ref_cuda(v, n, no, i) = 3  ;
 
-    --counter;
-  }
-}
+//     --counter;
+//   }
+// }
 
 __global__ void 
 _add_level_l_cuda(int nrow,       int ncol, 

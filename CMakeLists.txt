@@ -79,7 +79,7 @@ add_library(mgard
   src/mgard_nuni_float.cpp  include/mgard_nuni_float.h
   src/mgard_cuda.cu       include/mgard_cuda.h
   src/mgard_nuni_2d_cuda.cu       include/mgard_nuni_2d_cuda.h
-  src/mgard_nuni_2d_cuda_o1.cu       include/mgard_nuni_2d_cuda_o1.h
+  src/mgard_nuni_2d_cuda_opt.cu       include/mgard_nuni_2d_cuda_opt.h
   src/mgard_api_cuda.cpp  include/mgard_api_cuda.h
   #src/mgard_cuda_compacted.cu       include/mgard_cuda_compacted.h
   src/mgard_cuda_helper.cu          include/mgard_cuda_helper.h
