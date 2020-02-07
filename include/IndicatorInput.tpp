@@ -78,7 +78,9 @@ IndicatorInputRange<Real>::iterator::operator++(int) {
 
 template <typename Real>
 IndicatorInput<Real> IndicatorInputRange<Real>::iterator::operator*() const {
-  const auto [l, mesh] = *inner_mesh;
+  // '&' to prevent a copy of the mesh being made. This is important, since the
+  // returned `IndicatorInput<Real>` will contain a reference to `mesh`.
+  const auto &[l, mesh] = *inner_mesh;
   const auto [node, coefficient] = *inner_node.value()[0];
   return {.l = l, .mesh = mesh, .node = node, .coefficient = coefficient};
 }

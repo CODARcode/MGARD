@@ -63,8 +63,8 @@ TEST_CASE("Enumeration iteration", "[utilities]") {
   std::vector<std::size_t> indices;
   std::vector<float> values;
   for (auto pair : mgard::Enumeration<std::vector<float>::const_iterator>(xs)) {
-    indices.push_back(pair.first);
-    values.push_back(pair.second);
+    indices.push_back(pair.index);
+    values.push_back(pair.value);
   }
   const std::vector<std::size_t> expected_indices = {0, 1, 2, 3};
   REQUIRE(indices == expected_indices);
@@ -99,7 +99,7 @@ TEST_CASE("RangeSlice iteration", "[utilities]") {
   const std::array<int, 8> xs = {2, 3, 5, 7, 11, 13, 17, 19};
   std::vector<int> middle;
   using It = std::array<int, 8>::const_iterator;
-  for (const int x : mgard::RangeSlice<It> {xs.begin() + 2, xs.end() - 2}) {
+  for (const int x : mgard::RangeSlice<It>{xs.begin() + 2, xs.end() - 2}) {
     middle.push_back(x);
   }
   const std::vector<int> expected_middle = {5, 7, 11, 13};
