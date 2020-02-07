@@ -21,17 +21,17 @@ TEST_CASE("EnumeratedMeshRange iteration", "[EnumeratedMeshRange]") {
   REQUIRE(p == emr.begin());
 
   {
-    auto [l, mesh] = *p;
+    const auto &[l, mesh] = *p;
     REQUIRE(l == 0);
     REQUIRE(mesh.ndof() == 5);
   }
   {
-    auto [l, mesh] = *++p;
+    const auto &[l, mesh] = *++p;
     REQUIRE(l == 1);
     REQUIRE(mesh.ndof() == 12);
   }
   {
-    auto [l, mesh] = *++p;
+    const auto &[l, mesh] = *++p;
     REQUIRE(l == 2);
     REQUIRE(mesh.ndof() == 35);
   }

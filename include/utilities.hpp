@@ -41,7 +41,19 @@ template <typename T> struct PseudoArray {
   const std::size_t size;
 };
 
-//! Mimic Python's `enumerate` builtin.
+//! Element of a range along with its index in that range. Replacement for
+//! `std::pair<std::size_t, const T &>` because I was having trouble
+//! constructing pairs (something having to do with the reference).
+template <typename T> struct IndexedElement {
+  //! Index of the element.
+  const std::size_t index;
+
+  //! Value of the element.
+  const T &value;
+};
+
+//! Mimic Python's `enumerate` builtin. Iterating over this object yields
+//! (objects containing) *references* to the original elements.
 template <typename It> struct Enumeration {
   //! Constructor.
   //!
@@ -88,9 +100,9 @@ bool operator!=(const Enumeration<It> &a, const Enumeration<It> &b);
 //! Iterator over an enumeration.
 template <typename It>
 class Enumeration<It>::iterator
-    : public std::iterator<std::input_iterator_tag,
-                           std::pair<std::size_t, typename std::iterator_traits<
-                                                      It>::value_type>> {
+    : public std::iterator<
+          std::input_iterator_tag,
+          IndexedElement<typename std::iterator_traits<It>::value_type>> {
 public:
   //! Constructor.
   //!
@@ -119,7 +131,7 @@ public:
   // jtc1/sc22/wg21/docs/papers/2016/p0174r2.html#2.1>.
 
   //! Dereference.
-  std::pair<std::size_t, typename std::iterator_traits<It>::value_type>
+  IndexedElement<typename std::iterator_traits<It>::value_type>
   operator*() const;
 
 private:
@@ -133,7 +145,8 @@ private:
   It inner;
 };
 
-//! Mimic Python's `zip` builtin.
+//! Mimic Python's `zip` builtin. Iterating over this object yields *copies* of
+//! the original elements.
 template <typename It, typename Jt> struct ZippedRange {
   //! Constructor.
   //!

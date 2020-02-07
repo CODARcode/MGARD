@@ -87,7 +87,7 @@ typename Enumeration<It>::iterator Enumeration<It>::iterator::operator++(int) {
 }
 
 template <typename It>
-std::pair<std::size_t, typename std::iterator_traits<It>::value_type>
+IndexedElement<typename std::iterator_traits<It>::value_type>
     Enumeration<It>::iterator::operator*() const {
   return {index, *inner};
 }
