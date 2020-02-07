@@ -30,17 +30,6 @@ RatioBounds s_estimator_bounds(const MeshHierarchy &hierarchy) {
   }
 }
 
-//! Compute the bounds relating the `s` indicators (the norms computed from
-//! them) to the `s` estimators on a given mesh hierarchy.
-//!
-//!\param [in] hierarchy Mesh hierarchy on which the estimators and norms are
-//! computed.
-RatioBounds s_indicator_bounds(const MeshHierarchy &hierarchy) {
-  const std::size_t d = hierarchy.meshes.back().topological_dimension;
-  return {.realism = 1 / std::sqrt((d + 1) * (d + 2)),
-          .reliability = 1 / std::sqrt(d + 1)};
-}
-
 SandwichBounds::SandwichBounds(const RatioBounds bounds, const double unscaled)
     : lower(bounds.realism * unscaled), unscaled(unscaled),
       upper(bounds.reliability * unscaled) {}
