@@ -22,12 +22,13 @@
 
 static double
 unscaled_indicator(const mgard::MultilevelCoefficients<double> u_mc,
-                   const mgard::MeshHierarchy &hierarchy, const double s) {
+                   const mgard::MeshHierarchy &hierarchy, const float s) {
   double unscaled_square_indicator = 0;
   for (const mgard::IndicatorInput input :
        mgard::IndicatorInputRange(hierarchy, u_mc)) {
     unscaled_square_indicator +=
-        mgard::square_indicator_coefficient<double>(input, s).unscaled;
+        input.coefficient * input.coefficient *
+        mgard::square_indicator_factor<double>(input, s);
   }
   return std::sqrt(unscaled_square_indicator);
 }
@@ -77,8 +78,8 @@ TEST_CASE("indicators should track estimators", "[indicators]") {
   mgard::MeshLevel mesh(mbcore);
   mgard::UniformMeshHierarchy hierarchy(mesh, 4);
   const std::size_t N = hierarchy.ndof();
-  std::vector<double> smoothness_parameters = {-1.25, -0.75, -0.25, 0.0,
-                                               0.25,  0.75,  1.25};
+  std::vector<float> smoothness_parameters = {-1.25, -0.75, -0.25, 0.0,
+                                              0.25,  0.75,  1.25};
 
   std::vector<double> u_(N);
   std::random_device device;
@@ -93,30 +94,24 @@ TEST_CASE("indicators should track estimators", "[indicators]") {
   const mgard::NodalCoefficients<double> u_nc(u_.data());
 
   const mgard::MultilevelCoefficients u_mc = hierarchy.decompose(u_nc);
-  std::vector<mgard::SandwichBounds> estimators;
-  for (const double s : smoothness_parameters) {
-    estimators.push_back(mgard::estimator(u_mc, hierarchy, s));
+  std::vector<double> square_estimators;
+  for (const float s : smoothness_parameters) {
+    const double estimate = mgard::estimator(u_mc, hierarchy, s);
+    square_estimators.push_back(estimate * estimate);
   }
 
-  std::vector<mgard::SandwichBounds> square_indicators;
-  for (const double s : smoothness_parameters) {
-    // Just initializing everything to zero.
-    mgard::SandwichBounds sum({.realism = 0, .reliability = 0}, 0);
-    for (const mgard::IndicatorInput input :
-         mgard::IndicatorInputRange(hierarchy, u_mc)) {
-      mgard::SandwichBounds summand =
-          mgard::square_indicator_coefficient<double>(input, s);
-      sum.unscaled += summand.unscaled;
-      sum.lower += summand.lower;
-      sum.upper += summand.upper;
-    }
-    square_indicators.push_back(sum);
+  std::vector<double> square_indicators;
+  for (const float s : smoothness_parameters) {
+    const double indicator = unscaled_indicator(u_mc, hierarchy, s);
+    square_indicators.push_back(indicator * indicator);
   }
 
+  const mgard::RatioBounds factors =
+      mgard::s_square_indicator_bounds(hierarchy);
   for (std::size_t i = 0; i < smoothness_parameters.size(); ++i) {
-    const mgard::SandwichBounds square_indicator = square_indicators.at(i);
-    const mgard::SandwichBounds estimator = estimators.at(i);
-    REQUIRE((std::sqrt(square_indicator.lower) <= estimator.unscaled &&
-             estimator.unscaled <= std::sqrt(square_indicator.upper)));
+    const double square_indicator = square_indicators.at(i);
+    const double square_estimator = square_estimators.at(i);
+    REQUIRE((factors.realism * square_indicator <= square_estimator &&
+             square_estimator <= factors.reliability * square_indicator));
   }
 }
