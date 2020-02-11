@@ -14,35 +14,24 @@ namespace mgard {
 // We might be able to obtain better bounds by using some information about
 // the hierarchy. If I recall correctly, our proofs depend on (at least) the
 // refinement strategy used. For now, we just check its dimension.
-
-//! Compute the bounds relating the `s` estimators to the `s` norms on a given
-//! mesh hierarchy.
-//!
-//!\param [in] hierarchy Mesh hierarchy on which the estimators and norms are
-//! computed.
-RatioBounds s_estimator_bounds(const MeshHierarchy &hierarchy) {
-  const std::size_t d = hierarchy.meshes.back().topological_dimension;
+RatioBounds s_square_estimator_bounds(const MeshHierarchy &hierarchy) {
+  const std::size_t d = hierarchy.meshes.front().topological_dimension;
   if (d == 2) {
-    return {.realism = 1 / std::sqrt(10), .reliability = 1};
+    return {.realism = 0.1, .reliability = 1};
   } else {
     throw std::domain_error(
         "estimator bounds currently only implemented in 2D");
   }
 }
 
-SandwichBounds::SandwichBounds(const RatioBounds bounds, const double unscaled)
-    : lower(bounds.realism * unscaled), unscaled(unscaled),
-      upper(bounds.reliability * unscaled) {}
-
-static SandwichBounds s_estimator(const MultilevelCoefficients<double> u,
-                                  const MeshHierarchy &hierarchy,
-                                  const double s) {
+static double s_square_estimator(const MultilevelCoefficients<double> u,
+                                 const MeshHierarchy &hierarchy,
+                                 const float s) {
   std::vector<double> squares_for_estimate(hierarchy.L + 1);
   // TODO: allow passing in of memory.
   std::vector<double> scratch(hierarchy.ndof_new(hierarchy.L));
   double *const rhs = scratch.data();
-  for (std::size_t i = 0; i <= hierarchy.L; ++i) {
-    const std::size_t l = hierarchy.L - i;
+  for (std::size_t l = 0; l <= hierarchy.L; ++l) {
     const MeshLevel &mesh = hierarchy.meshes.at(l);
     const std::size_t n = hierarchy.ndof_new(l);
     // Originally, `hierarchy.new_nodes` returned a `moab::Range`, which could
@@ -67,22 +56,20 @@ static SandwichBounds s_estimator(const MultilevelCoefficients<double> u,
 
   // Could have accumulated this as we went.
   double square_estimate = 0;
-  for (std::size_t i = 0; i <= hierarchy.L; ++i) {
-    const std::size_t l = hierarchy.L - i;
+  for (std::size_t l = 0; l <= hierarchy.L; ++l) {
     // Code repeated here from `norms.cpp`.
     square_estimate += std::pow(2, 2 * s * l) * squares_for_estimate.at(l);
   }
-  return SandwichBounds(s_estimator_bounds(hierarchy),
-                        std::sqrt(square_estimate));
+  return square_estimate;
 }
 
-SandwichBounds estimator(const MultilevelCoefficients<double> u,
-                         const MeshHierarchy &hierarchy, const double s) {
+double estimator(const MultilevelCoefficients<double> u,
+                 const MeshHierarchy &hierarchy, const float s) {
   if (s == std::numeric_limits<double>::infinity()) {
     throw std::domain_error(
         "pointwise estimator not implemented for unstructured grids");
   } else {
-    return s_estimator(u, hierarchy, s);
+    return std::sqrt(s_square_estimator(u, hierarchy, s));
   }
 }
 
