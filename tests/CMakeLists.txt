@@ -8,6 +8,7 @@ if(ADIOS2_FOUND)
 endif()
 
 add_subdirectory(cosine)
+add_subdirectory(cosine1d)
 add_subdirectory(simple1d)
 add_subdirectory(dim2kplus1)
 add_subdirectory(constant3d)
