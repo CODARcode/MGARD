@@ -22,8 +22,8 @@ int main(int argc, char **argv) {
        << " CR = " << npoints * 8.0 / out_size << endl;
 
   double quantizer;
-  double *decompressed_data = mgard_decompress(0, quantizer, compressed_data,
-                                               out_size, 1, npoints , 1);
+  double *decompressed_data =
+      mgard_decompress(0, quantizer, compressed_data, out_size, 1, npoints, 1);
 
   double abserr = 0.0;
   double max_abserr = 0.0;
