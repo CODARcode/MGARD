@@ -801,15 +801,14 @@ _solve_tridiag_M_l_row_cuda(int nrow,        int ncol,
     vec[dicol[nc - 1]] -= vec[dicol[nc - 1 - col_stride]] * bm;
     coeff[counter] = am;
 
+    /* Start of backward pass */
     vec[dicol[nc - 1]] /= am;
     --counter;
 
     for (int i = nc - 1 - col_stride; i >= 0; i -= col_stride) {
       h2 = mgard_common::_get_dist(dcoords_x, dicol[i], dicol[i + col_stride]);
       // h2 = dicol[i + col_stride] - dicol[i];
-      vec[dicol[i]] =
-        (vec[dicol[i]] - h2 * vec[dicol[i + col_stride]]) /
-        coeff[counter];
+      vec[dicol[i]] = (vec[dicol[i]] - h2 * vec[dicol[i + col_stride]]) / coeff[counter];
       --counter;
     }
   }

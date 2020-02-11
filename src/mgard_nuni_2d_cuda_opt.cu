@@ -792,11 +792,6 @@ mass_mult_l_row_cuda_sm(int nrow,       int ncol,
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
 
-
-
-
-// sm+data prefetch
-
 __global__ void
 _mass_mult_l_row_cuda_sm_pf(int nrow,       int ncol,
                          int nr,         int nc,
@@ -1052,8 +1047,11 @@ mass_mult_l_row_cuda_sm_pf(int nrow,       int ncol,
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
 
+// todo: to make a function maps icol/irow index either from memory or calculation
+// todo: double ghost col to avoid thread divergence
 
 
+// assume number of main col and ghost col are even numbers
 __global__ void
 _restriction_l_row_cuda_sm(int nrow,       int ncol,
                          int nr,         int nc,
@@ -1092,17 +1090,13 @@ _restriction_l_row_cuda_sm(int nrow,       int ncol,
   register int real_main_col;
 
   register double prev_vec_sm;
-  register double prev_dicol;
-  register double prev_dcoord_x;
+  register double prev_h1;
+  register double prev_h2;
   
   for (int r = r0; r < nr; r += gridDim.y * blockDim.y * row_stride) {
     
     double * vec = dv + dirow[r] * lddv;
 
-    prev_vec_sm = 0.0;
-    prev_dicol = dicol[c0];
-    prev_dcoord_x = dcoords_x[dicol[c0]];
-    
     rest_col = total_col;    
     real_ghost_col = min(ghost_col, rest_col);
 
@@ -1116,6 +1110,10 @@ _restriction_l_row_cuda_sm(int nrow,       int ncol,
     rest_col -= real_ghost_col;
     __syncthreads();
 
+    prev_vec_sm = 0.0;
+    prev_h1 = mgard_common::_get_dist_o1(dcoords_x_sm, 0, 1);
+    prev_h2 = mgard_common::_get_dist_o1(dcoords_x_sm, 1, 2);
+
     while (rest_col > blockDim.x - real_ghost_col) {
       //load main column
       real_main_col = min(blockDim.x, rest_col);
@@ -1127,43 +1125,34 @@ _restriction_l_row_cuda_sm(int nrow,       int ncol,
       }
       __syncthreads();
 
-      //computation
-      if (c0_sm == 0) {
-        //h1 = mgard_common::_get_dist_o1(dcoords_x,  prev_dicol, dicol[c0]);
-        h1 = dcoords_x_sm[c0_sm] - prev_dcoord_x;
-        //h2 = mgard_common::_get_dist_o1(dcoords_x,  dicol[c0], dicol[c0 + col_stride]);
-        h2 = mgard_common::_get_dist_o1(dcoords_x_sm,  c0_sm, c0_sm + 1);
-        // register double tmp1 = h1 * prev_vec_sm;
-        // register double tmp2 = 2 * (h1 + h2) * vec_sm[c0_sm];
-        // register double tmp3 = h2 * vec_sm[c0_sm + 1];
-        // tmp1 += tmp2;
-        // result += tmp3;
-        // result += tmp1;
-        //result = h1 + h2;
-        result = h1 * prev_vec_sm + 2 * (h1 + h2) * vec_sm[c0_sm] + h2 * vec_sm[c0_sm + 1];
-      } else {
-        //h1 = mgard_common::_get_dist_o1(dcoords_x, dicol[c0 - col_stride], dicol[c0]);
-        h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm - 1, c0_sm);
-        //h2 = mgard_common::_get_dist_o1(dcoords_x, dicol[c0], dicol[c0 + col_stride]);
-        h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm + 1);
-        // register double tmp1 = h1 * vec_sm[c0_sm - 1];
-        // register double tmp2 = 2 * (h1 + h2) * vec_sm[c0_sm];
-        // register double tmp3 = h2 * vec_sm[c0_sm + 1];
-        // tmp1 += tmp2;
-        // result += tmp3;
-        // result += tmp1;
-        //result = h1 + h2;
-        result = h1 * vec_sm[c0_sm - 1] + 2 * (h1 + h2) * vec_sm[c0_sm] + h2 * vec_sm[c0_sm + 1];
+      if (c0_sm % 2 == 0) {
+        //computation
+        if (c0_sm == 0) {
+          result = vec_sm[c0_sm];
+          h1 = prev_h1;
+          h2 = prev_h2;
+          result += h1 * prev_vec_sm / (h1+h2);
+          h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm+1);
+          h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm+1, c0_sm+2);
+          result += h2 * vec_sm[c0_sm+1] / (h1+h2);
+        } else {
+          result = vec_sm[c0_sm];
+          h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-2, c0_sm-1);
+          h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-1, c0_sm);
+          result += h1 * vec_sm[c0_sm-1] / (h1+h2);
+          h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm+1);
+          h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm+1, c0_sm+2);
+          result += h2 * vec_sm[c0_sm+1] / (h1+h2);
+        }
+        vec[dicol[c0]] = result;
       }
-      vec[dicol[c0]] = result;
-      __syncthreads();
-      
-
+       __syncthreads();
+    
       // store last column
       if (c0_sm == 0) {
         prev_vec_sm = vec_sm[blockDim.x - 1];
-        prev_dicol = dicol[c0 + (blockDim.x - 1) * col_stride];
-        prev_dcoord_x = dcoords_x[dicol[c0 + (blockDim.x - 1) * col_stride]];//dcoords_x_sm[blockDim.x - 1];
+        prev_h1 = mgard_common::_get_dist_o1(dcoords_x_sm, blockDim.x - 2, blockDim.x - 1);
+        prev_h2 = mgard_common::_get_dist_o1(dcoords_x_sm, blockDim.x - 1, blockDim.x);
       }
 
       // advance c0
@@ -1189,48 +1178,47 @@ _restriction_l_row_cuda_sm(int nrow,       int ncol,
 
     if (real_ghost_col + rest_col == 1) {
       if (c0_sm == 0) {
-        //h1 = mgard_common::_get_dist_o1(dcoords_x,  prev_dicol, dicol[c0]);
-        h1 = dcoords_x_sm[c0_sm] - prev_dcoord_x;
-        result = h1 * prev_vec_sm + 2 * h1 * vec_sm[c0_sm];
+        result = vec_sm[c0_sm];
+        h1 = prev_h1;
+        h2 = prev_h2;
+        result += h1 * prev_vec_sm / (h1+h2);
         vec[dicol[c0]] = result;
       }
-
     } else {
-
-    if (c0_sm < real_ghost_col + rest_col) {
-        
-      if (c0_sm == 0) {
-        //h1 = mgard_common::_get_dist_o1(dcoords_x,  prev_dicol, dicol[c0]);
-        //h2 = mgard_common::_get_dist_o1(dcoords_x,  dicol[c0], dicol[c0 + col_stride]);
-
-        h1 = dcoords_x_sm[c0_sm] - prev_dcoord_x;
-        h2 = mgard_common::_get_dist_o1(dcoords_x_sm,  c0_sm, c0_sm + 1);
-
-        result = h1 * prev_vec_sm + 2 * (h1 + h2) * vec_sm[c0_sm] + h2 * vec_sm[c0_sm + 1];
-      } else if (c0_sm == real_ghost_col + rest_col - 1) {
-        //h1 = mgard_common::_get_dist_o1(dcoords_x, dicol[c0 - col_stride], dicol[c0]);
-        h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm - 1, c0_sm);
-        result = h1 * vec_sm[c0_sm - 1] + 2 * h1 * vec_sm[c0_sm];
-      } else {
-        // h1 = mgard_common::_get_dist_o1(dcoords_x, dicol[c0 - col_stride], dicol[c0]);
-        // h2 = mgard_common::_get_dist_o1(dcoords_x, dicol[c0], dicol[c0 + col_stride]);
-
-        h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm - 1, c0_sm);
-        h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm + 1);
-        result = h1 * vec_sm[c0_sm - 1] + 2 * (h1 + h2) * vec_sm[c0_sm] + h2 * vec_sm[c0_sm + 1];
+      if (c0_sm < real_ghost_col + rest_col) {
+        if (c0_sm % 2 == 0) {
+          if (c0_sm == 0) {
+            result = vec_sm[c0_sm];
+            h1 = prev_h1;
+            h2 = prev_h2;
+            result += h1 * prev_vec_sm / (h1+h2);
+            h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm+1);
+            h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm+1, c0_sm+2);
+            result += h2 * vec_sm[c0_sm+1] / (h1+h2);
+          } else if (c0_sm == real_ghost_col + rest_col - 1) {
+            result = vec_sm[c0_sm];
+            h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-2, c0_sm-1);;
+            h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-1, c0_sm);;
+            result += h1 * vec_sm[c0_sm-1] / (h1+h2);
+          } else {
+            result = vec_sm[c0_sm];
+            h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-2, c0_sm-1);
+            h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-1, c0_sm);
+            result += h1 * vec_sm[c0_sm-1] / (h1+h2);
+            h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm+1);
+            h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm+1, c0_sm+2);
+            result += h2 * vec_sm[c0_sm+1] / (h1+h2);
+          }
+          vec[dicol[c0]] = result;
+        }
+        __syncthreads();
       }
-      __syncthreads();
-      vec[dicol[c0]] = result;
     }
-  }
-    
-
   }
 }
 
-
 mgard_cuda_ret 
-mass_mult_l_row_cuda_sm(int nrow,       int ncol,
+restriction_l_row_cuda_sm(int nrow,       int ncol,
                      int nr,         int nc,
                      int row_stride, int col_stride,
                      int * dirow,    int * dicol,
@@ -1270,13 +1258,554 @@ mass_mult_l_row_cuda_sm(int nrow,       int ncol,
   cudaEventCreate(&stop);
   cudaEventRecord(start);
 
-  _mass_mult_l_row_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nrow,       ncol,
+  _restriction_l_row_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nrow,       ncol,
                                                                        nr,         nc,
                                                                        row_stride, col_stride,
                                                                        dirow,      dicol,
                                                                        dv,         lddv,
                                                                        dcoords_x,
                                                                        ghost_col);
+  gpuErrchk(cudaGetLastError ());
+
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
+
+  return mgard_cuda_ret(0, milliseconds/1000.0);
+}
+
+
+__global__ void
+_restriction_l_row_cuda_sm_pf(int nrow,       int ncol,
+                         int nr,         int nc,
+                         int row_stride, int col_stride,
+                         int * __restrict__ dirow,    int * __restrict__ dicol,
+                         double * __restrict__ dv,    int lddv,
+                         double * __restrict__ dcoords_x,
+                         int ghost_col) {
+
+  //int ghost_col = 2;
+  register int total_row = ceil((double)nr/(row_stride));
+  register int total_col = ceil((double)nc/(col_stride));
+
+
+  // index on dirow and dicol
+  register int r0 = (blockIdx.y * blockDim.y + threadIdx.y) * row_stride;
+  register int c0 = threadIdx.x * col_stride;
+
+  // index on sm
+  register int r0_sm = threadIdx.y;
+  register int c0_sm = threadIdx.x;
+
+  extern __shared__ double sm[]; // row = blockDim.y; col = blockDim.x + ghost_col;
+  register int ldsm = blockDim.x + ghost_col;
+  // printf("ldsm = %d\n", ldsm);
+  
+  double * vec_sm = sm + r0_sm * ldsm;
+  double * dcoords_x_sm = sm + blockDim.y * ldsm;
+  
+  register double result = 1;
+  register double h1 = 1;
+  register double h2 = 1;
+  
+  register int main_col = blockDim.x;
+  register int rest_load_col;
+  register int rest_comp_col;
+  register int curr_ghost_col;
+  register int curr_main_col;
+  register int next_ghost_col;
+  register int next_main_col;
+
+  register double prev_vec_sm;
+  register double prev_h1;
+  register double prev_h2;
+
+  register double next_dv;
+  register double next_dcoords_x;
+  
+  for (int r = r0; r < nr; r += gridDim.y * blockDim.y * row_stride) {
+    
+    double * vec = dv + dirow[r] * lddv;
+    
+    rest_load_col = total_col;
+    rest_comp_col = total_col;
+    curr_ghost_col = min(ghost_col, rest_load_col);
+
+    // load first ghost
+    if (c0_sm < curr_ghost_col) {
+      vec_sm[c0_sm] = vec[dicol[c0]];
+      if (r0_sm == 0) {
+        dcoords_x_sm[c0_sm] = dcoords_x[dicol[c0]];
+      }
+    }
+    rest_load_col -= curr_ghost_col;
+    //load main column
+    curr_main_col = min(blockDim.x, rest_load_col);
+    if (c0_sm < curr_main_col) {
+      vec_sm[c0_sm + curr_ghost_col] = vec[dicol[c0 + curr_ghost_col * col_stride]];
+      if (r0_sm == 0) {
+        dcoords_x_sm[c0_sm + curr_ghost_col] = dcoords_x[dicol[c0 + curr_ghost_col * col_stride]];
+      }
+    }
+    rest_load_col -= curr_main_col;
+    __syncthreads();
+
+    prev_vec_sm = 0.0;
+    prev_h1 = mgard_common::_get_dist_o1(dcoords_x_sm, 0, 1);
+    prev_h2 = mgard_common::_get_dist_o1(dcoords_x_sm, 1, 2);
+
+    while (rest_comp_col > main_col) {
+      //load next main column
+      next_main_col = min(blockDim.x, rest_load_col);
+      int next_c0 = c0 + (curr_main_col + curr_ghost_col) * col_stride;
+      if (c0_sm < next_main_col) {
+        next_dv = vec[dicol[next_c0]];
+        if (r0_sm == 0) {
+          next_dcoords_x = dcoords_x[dicol[next_c0]];
+        }
+      }
+      __syncthreads();
+
+      if (c0_sm % 2 == 0) {
+        //computation
+        if (c0_sm == 0) {
+          result = vec_sm[c0_sm];
+          h1 = prev_h1;
+          h2 = prev_h2;
+          result += h1 * prev_vec_sm / (h1+h2);
+          h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm+1);
+          h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm+1, c0_sm+2);
+          result += h2 * vec_sm[c0_sm+1] / (h1+h2);
+        } else {
+          result = vec_sm[c0_sm];
+          h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-2, c0_sm-1);
+          h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-1, c0_sm);
+          result += h1 * vec_sm[c0_sm-1] / (h1+h2);
+          h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm+1);
+          h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm+1, c0_sm+2);
+          result += h2 * vec_sm[c0_sm+1] / (h1+h2);
+        }
+        vec[dicol[c0]] = result;
+      }
+      
+      rest_comp_col -= main_col;
+
+      // store last column
+      if (c0_sm == 0) {
+        prev_vec_sm = vec_sm[blockDim.x - 1];
+        prev_h1 = mgard_common::_get_dist_o1(dcoords_x_sm, blockDim.x - 2, blockDim.x - 1);
+        prev_h2 = mgard_common::_get_dist_o1(dcoords_x_sm, blockDim.x - 1, blockDim.x);
+      }
+
+      __syncthreads();
+      
+      // advance c0
+      c0 += blockDim.x * col_stride;
+
+      // copy ghost to main
+      next_ghost_col = curr_main_col + curr_ghost_col - main_col;
+      if (c0_sm < next_ghost_col) {
+        vec_sm[c0_sm] = vec_sm[c0_sm + main_col];
+        if (r0_sm == 0) {
+          dcoords_x_sm[c0_sm] = dcoords_x_sm[c0_sm + main_col];
+        }
+      }
+      __syncthreads();
+      // copy next main to main
+      if (c0_sm < next_main_col) {
+        vec_sm[c0_sm + next_ghost_col] = next_dv;
+        if (r0_sm == 0) {
+          dcoords_x_sm[c0_sm + next_ghost_col] = next_dcoords_x;
+        }
+      }
+      rest_load_col -= next_main_col;
+
+      curr_ghost_col = next_ghost_col;
+      curr_main_col = next_main_col;
+      //rest_col -= real_main_col;
+    } //end while
+
+    // if (c0_sm < col) {
+    //    vec_sm[c0_sm + real_ghost_col] = vec[dicol[c0 + real_ghost_col * col_stride]];
+    //    dcoords_x_sm[c0_sm + real_ghost_col] = dcoords_x[dicol[c0 + real_ghost_col * col_stride]];
+    // }
+    // __syncthreads();
+
+    if (rest_comp_col == 1) {
+      if (c0_sm == 0) {
+        result = vec_sm[c0_sm];
+        h1 = prev_h1;
+        h2 = prev_h2;
+        result += h1 * prev_vec_sm / (h1+h2);
+        vec[dicol[c0]] = result;
+      }
+    } else {
+      if (c0_sm < rest_comp_col) {
+        if (c0_sm % 2 == 0) {
+          if (c0_sm == 0) {
+            result = vec_sm[c0_sm];
+            h1 = prev_h1;
+            h2 = prev_h2;
+            result += h1 * prev_vec_sm / (h1+h2);
+            h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm+1);
+            h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm+1, c0_sm+2);
+            result += h2 * vec_sm[c0_sm+1] / (h1+h2);
+          } else if (c0_sm == rest_comp_col - 1) {
+            result = vec_sm[c0_sm];
+            h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-2, c0_sm-1);;
+            h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-1, c0_sm);;
+            result += h1 * vec_sm[c0_sm-1] / (h1+h2);
+          } else {
+            result = vec_sm[c0_sm];
+            h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-2, c0_sm-1);
+            h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm-1, c0_sm);
+            result += h1 * vec_sm[c0_sm-1] / (h1+h2);
+            h1 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm, c0_sm+1);
+            h2 = mgard_common::_get_dist_o1(dcoords_x_sm, c0_sm+1, c0_sm+2);
+            result += h2 * vec_sm[c0_sm+1] / (h1+h2);
+          }
+          vec[dicol[c0]] = result;
+        }
+        __syncthreads();      
+      }
+    }
+  }
+}
+
+
+mgard_cuda_ret 
+restriction_l_row_cuda_sm_pf(int nrow,       int ncol,
+                     int nr,         int nc,
+                     int row_stride, int col_stride,
+                     int * dirow,    int * dicol,
+                     double * dv,    int lddv,
+                     double * dcoords_x,
+                     int B, int ghost_col) {
+ 
+
+  //cudaMemcpyToSymbol (dcoords_x_const, dcoords_x, sizeof(double)*nc );
+
+  // int B = 4;
+  // int ghost_col = 2;
+  int total_row = ceil((double)nr/(row_stride));
+  int total_col = ceil((double)nc/(col_stride));
+  int total_thread_y = ceil((double)nr/(row_stride));
+  int total_thread_x = min(B, total_col);
+
+  int tby = min(B, total_thread_y);
+  int tbx = min(B, total_thread_x);
+
+
+  size_t sm_size = ((tbx + ghost_col) * (tby + 1)) * sizeof(double);
+
+  int gridy = ceil((float)total_thread_y/tby);
+  int gridx = 1; //ceil((float)total_thread_x/tbx);
+  dim3 threadsPerBlock(tbx, tby);
+  dim3 blockPerGrid(gridx, gridy);
+
+  // std::cout << "thread block: " << tby << ", " << tbx << std::endl;
+  // std::cout << "grid: " << gridy << ", " << gridx<< std::endl;
+
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start);
+
+  _restriction_l_row_cuda_sm_pf<<<blockPerGrid, threadsPerBlock, sm_size>>>(nrow,       ncol,
+                                                                       nr,         nc,
+                                                                       row_stride, col_stride,
+                                                                       dirow,      dicol,
+                                                                       dv,         lddv,
+                                                                       dcoords_x,
+                                                                       ghost_col);
+  gpuErrchk(cudaGetLastError ());
+
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
+
+  return mgard_cuda_ret(0, milliseconds/1000.0);
+}
+
+
+__global__ void
+solve_tridiag_M_l_row_forward_cuda_sm(int nrow,           int ncol,
+                                      int nr,             int nc,
+                                      int row_stride,     int col_stride,
+                                      int * dirow,        int * dicol, 
+                                      double * am,        double * bm, 
+                                      double * dv,        int lddv, 
+                                      double * dcoords_x, int ghost_col) {
+
+  /* Global col idx */
+  register int r = (blockIdx.y * blockDim.y + threadIdx.y) * row_stride;
+  register int c = threadIdx.x * col_stride;
+
+  /* Local col idx */
+  register int r_sm = threadIdx.y;
+  register int c_sm = threadIdx.x;
+
+  /* SM allocation */
+  extern __shared__ double sm[];
+  register int ldsm = blockDim.x + ghost_col;
+  double * vec_sm = sm + r_sm * ldsm;
+  double * am_sm = sm + blockDim.y * ldsm;
+  double * bm_sm = sm + (blockDim.y+1) * ldsm;
+  double * dcoords_x_sm = sm + (blockDim.y+2) * ldsm;
+
+  register double h1;
+  register double h2;
+  register double result;
+
+  register double prev_h1 = 0.0;
+  register double prev_bm = 0.0;
+  register double prev_vec_sm = 0.0;
+
+  register int rest_col;
+  register int real_ghost_col;
+  register int real_main_col;
+
+  for (int r = r0; r < nr; r += gridDim.y * blockDim.y * row_stride) {
+
+    /* the row working on */
+    double * vec = dv + dirow[r] * lddv;
+
+    /* Mark progress */
+    rest_col = total_col;    
+    real_ghost_col = min(ghost_col, rest_col);
+
+    /* Load first ghost */
+    if (c_sm < real_ghost_col) {
+      vec_sm[c_sm] = vec[dicol[c]];
+      if (r_sm == 0) {
+        dcoords_x_sm[c0_sm] = dcoords_x[dicol[c]];
+      }
+    }
+    rest_col -= real_ghost_col;
+    __syncthreads();
+
+    if (r_cm == 0 && c_sm == 0) {
+      prev_h1 = 0.0;
+      prev_bm = 0.0;
+    }
+
+    /* Can still fill main col */
+    while (rest_col > blockDim.x - real_ghost_col) {
+      /* Fill main col + next ghost col */
+      real_main_col = min(blockDim.x, rest_col);
+      if (c_sm < real_main_col) {
+        vec_sm[c_sm + real_ghost_col] = vec[dicol[c + real_ghost_col * col_stride]];
+        if (r_sm == 0) {
+          dcoords_x_sm[c_sm + real_ghost_col] = dcoords_x[dicol[c + real_ghost_col * col_stride]];
+        }
+      }
+      __syncthreads();
+
+      /* Update unloaded col */
+      rest_col -= real_main_col;
+
+      /* Computation of am and bm (1 thread/tb)*/
+      if (r_cm == 0 && c_sm == 0) {
+        h2 = mgard_common::_get_dist_o1(dcoords_x_sm, 0, 1);
+        am_sm[0] = 2.0 * (prev_h1 + h2) - prev_bm * prev_h1;
+        bm_sm[0] = h2 / am_sm[0];
+        for (int i = 1; i < blockDim.x; i++) {
+          h1 = mgard_common::_get_dist_o1(dcoords_x_sm, i-1, i);
+          h2 = mgard_common::_get_dist_o1(dcoords_x_sm, i, i+1);
+          am_sm[i] = 2.0 * (h1 + h2) - bm_sm[i-1] * h1;
+          bm_sm[i] = h2 / am_sm[i];
+        }
+      }
+      __syncthreads();
+
+      if (r_cm == 0) {
+        /* Flush to global memory in parallel*/
+        am[c] = am_sm[c_sm];
+        bm[c] = bm_sm[c_sm];
+        __syncthreads();
+      }
+
+      if (r_cm == 0 && c_sm == 0) {
+        /* Store last h2 as next h1 */
+        prev_h1 = h2;
+        /* Store last bm */
+        prev_bm = bm_sm[blockDim.x-1];
+      }
+
+      /* Computation of v in parallel*/
+      if (c_sm == 0) {
+        result = vec_sm[c_sm] - prev_vec_sm * prev_bm;
+      } else {
+        result = vec_sm[c_sm] - vec_sm[c_sm-1] * bm_sm[c_sm-1];
+      }
+
+      /* Store last v */
+      if (c_sm == 0) {
+        prev_vec_sm = vec_sm[blockDim.x - 1];
+      }
+
+      /* flush results to v */
+      vec[dicol[c]] = result;
+      __syncthreads();
+
+      /* Advance c */
+      c += blockDim.x * col_stride;
+
+      /* Copy next ghost to main */
+      real_ghost_col = min(ghost_col, real_main_col - (blockDim.x - ghost_col));
+      if (c_sm < real_ghost_col) {
+        vec_sm[c_sm] = vec_sm[c_sm + blockDim.x];
+        if (r_sm == 0) {
+          dcoords_x_sm[c_sm] = dcoords_x_sm[c_sm + blockDim.x];
+        }
+      }
+      __syncthreads();
+    } // end of while
+
+    /* Load all rest col */
+    if (c_sm < rest_col) {
+      if (r_sm == 0) {
+        dcoords_x_sm[c_sm + real_ghost_col] = dcoords_x[dicol[c + real_ghost_col * col_stride]];
+      }
+    }
+    __syncthreads();
+
+    /* Only 1 col remain */
+    if (real_ghost_col + rest_col == 1) {
+      if (r_cm == 0 && c_sm == 0) {
+        /* Compute am and bm */
+        am_sm[0] = 2.0 * h2 - prev_bm * h2;
+        bm_sm[0] = prev_bm;
+        am[c] = am_sm[c_sm];
+        bm[c] = bm_sm[c_sm];
+        /* Compute v */
+        result = vec_sm[c_sm] - prev_vec_sm * prev_bm;
+        /* flush results to v */
+        vec[dicol[c]] = result;
+      }
+    } else {
+      /* Compute am and bm */
+      if (r_cm == 0 && c_sm == 0) {
+        h2 = mgard_common::_get_dist_o1(dcoords_x_sm, 0, 1);
+        am_sm[0] = 2.0 * (prev_h1 + h2) - prev_bm * prev_h1;
+        bm_sm[0] = h2 / am_sm[0];
+        for (int i = 1; i < real_ghost_col + rest_col - 1; i++) {
+          h1 = mgard_common::_get_dist_o1(dcoords_x_sm, i-1, i);
+          h2 = mgard_common::_get_dist_o1(dcoords_x_sm, i, i+1);
+          am_sm[i] = 2.0 * (h1 + h2) - bm_sm[i-1] * h1;
+          bm_sm[i] = h2 / am_sm[i];
+        }
+        am_sm[real_ghost_col + rest_col - 1] = 2.0 * h2 - bm_sm[real_ghost_col + rest_col - 2] * h2;
+        bm_sm[real_ghost_col + rest_col - 1] =  bm_sm[real_ghost_col + rest_col - 2];
+      }
+      __syncthreads();
+      /* Flush to global memory */
+      if (r_cm == 0 && c_sm < real_ghost_col + rest_col) {
+        am[c] = am_sm[c_sm];
+        bm[c] = bm_sm[c_sm];
+      }
+      __syncthreads();
+      /* Compute v */
+      if (c_sm == 0) {
+        result = vec_sm[c_sm] - prev_vec_sm * prev_bm;
+      } else {
+        result = vec_sm[c_sm] - vec_sm[c_sm-1] * bm_sm[c_sm-1];
+      }
+      /* flush results to v */
+      vec[dicol[c]] = result;
+    }
+    __syncthreads();
+  }
+}
+
+
+__global__ void
+solve_tridiag_M_l_row_cuda_backward_sm(int nrow,       int ncol,
+                                      int nr,         int nc,
+                                      int row_stride, int col_stride,
+                                      int * dirow,    int * dicol, 
+                                      double * am,    double * bm, 
+                                      double * dcoords_x,
+                                      int ghost_col) {
+
+  /* Global idx */
+  register int r = (blockIdx.y * blockDim.y + threadIdx.y) * row_stride;
+  register int c = threadIdx.x * col_stride;
+
+  /* Local idx */
+  register int r_sm = threadIdx.y;
+  register int c_sm = threadIdx.x;
+
+  /* SM allocation*/
+  extern __shared__ double sm[];
+  register int ldsm = blockDim.x + ghost_col;
+  double * vec_sm = sm + r_sm * ldsm;
+
+
+
+
+
+
+
+
+}
+
+mgard_cuda_ret 
+solve_tridiag_M_l_row_cuda_sm(int nrow,       int ncol,
+                              int nr,         int nc,
+                              int row_stride, int col_stride,
+                              int * dirow,    int * dicol,
+                              double * dv,    int lddv,
+                              double * dcoords_x,
+                              int B, int ghost_col) {
+ 
+
+  //cudaMemcpyToSymbol (dcoords_x_const, dcoords_x, sizeof(double)*nc );
+
+  // int B = 4;
+  // int ghost_col = 2;
+  int total_row = 1;
+  int total_col = ceil((double)nc/(col_stride));
+  int total_thread_y = 1;
+  int total_thread_x = min(B, total_col);
+
+  int tby = min(1, total_thread_y);
+  int tbx = min(B, total_thread_x);
+
+
+  size_t sm_size = ((tbx + ghost_col) * 3) * sizeof(double);
+
+  int gridy = ceil((float)total_thread_y/tby);
+  int gridx = 1; //ceil((float)total_thread_x/tbx);
+  dim3 threadsPerBlock(tbx, tby);
+  dim3 blockPerGrid(gridx, gridy);
+
+  // std::cout << "thread block: " << tby << ", " << tbx << std::endl;
+  // std::cout << "grid: " << gridy << ", " << gridx<< std::endl;
+
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start);
+
+  double * am;
+  double * bm;
+  cudaMallocHelper((void**)&am, nc * sizeof(double));
+  cudaMallocHelper((void**)&bm, nc * sizeof(double));
+  _calc_coeff_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nrow,       ncol,
+                                                             nr,         nc,
+                                                             row_stride, col_stride,
+                                                             dirow,      dicol,
+                                                             am,         bm,
+                                                             dcoords_x,  ghost_col);
+  cudaFreeHelper(am);
+  cudaFreeHelper(bm);
   gpuErrchk(cudaGetLastError ());
 
   cudaEventRecord(stop);
