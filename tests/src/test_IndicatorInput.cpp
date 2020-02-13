@@ -42,11 +42,11 @@ TEST_CASE("IndicatorInput iteration", "[IndicatorInput]") {
   const mgard::MultilevelCoefficients<double> u(u_.data());
   std::vector<std::size_t> counts(L + 1);
   bool all_as_expected = true;
-  for (const mgard::IndicatorInput<double> input :
-       mgard::IndicatorInputRange(hierarchy, u)) {
+  double const *p = u.data;
+  for (const mgard::IndicatorInput input :
+       mgard::IndicatorInputRange(hierarchy)) {
     ++counts.at(input.l);
-    all_as_expected =
-        (all_as_expected && input.coefficient == f(input.mesh, input.node));
+    all_as_expected = (all_as_expected && *p++ == f(input.mesh, input.node));
   }
   REQUIRE(all_as_expected);
   for (std::size_t l = 0; l <= L; ++l) {
