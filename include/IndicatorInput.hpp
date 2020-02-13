@@ -9,19 +9,18 @@
 #include <vector>
 
 #include "moab/EntityHandle.hpp"
+#include "moab/Range.hpp"
 
 #include "MeshHierarchy.hpp"
 #include "MeshLevel.hpp"
-#include "SituatedCoefficientRange.hpp"
-#include "data.hpp"
 #include "utilities.hpp"
 
 namespace mgard {
 
-//! Element of a dataset and the location of its node in the hierarchy. As of
-//! this writing, the purpose of an `IndicatorInput` is to calculate an
-//! indicator coefficient to decide how to quantize a multilevel coefficient.
-template <typename Real> struct IndicatorInput {
+//! Auxiliary mesh data for an element of a dataset. As of this writing, the
+//! purpose of an `IndicatorInput` is to calculate an indicator coefficient
+//! factor to decide how to quantize a multilevel coefficient.
+struct IndicatorInput {
   //! Index of the mesh in the hierarchy.
   const std::size_t l;
 
@@ -30,20 +29,15 @@ template <typename Real> struct IndicatorInput {
 
   //! Node corresponding to the coefficient.
   const moab::EntityHandle node;
-
-  //! Coefficient at the node.
-  const Real coefficient;
 };
 
-//! Range of indexed coefficients to be iterated over.
-template <typename Real> class IndicatorInputRange {
+//! Range of auxiliary mesh data to be iterated over.
+class IndicatorInputRange {
 public:
   //! Constructor.
   //!
-  //!\param hierarchy Hierarchy on which the dataset is defined.
-  //!\param u Dataset to be iterated over.
-  IndicatorInputRange(const MeshHierarchy &hierarchy,
-                      const MultilevelCoefficients<Real> u);
+  //!\param hierarchy Mesh hierarchy.
+  IndicatorInputRange(const MeshHierarchy &hierarchy);
 
   //! Forward declaration.
   class iterator;
@@ -57,9 +51,6 @@ public:
   //! Mesh hierarchy.
   const MeshHierarchy &hierarchy;
 
-  //! Dataset defined on the mesh hierarchy.
-  const MultilevelCoefficients<Real> u;
-
   //! Meshes in the hierarchy, along with their indices.
   const Enumeration<std::vector<MeshLevel>::const_iterator> indexed_meshes;
 
@@ -69,27 +60,22 @@ public:
 };
 
 //! Equality comparison.
-template <typename Real>
-bool operator==(const IndicatorInputRange<Real> &a,
-                const IndicatorInputRange<Real> &b);
+bool operator==(const IndicatorInputRange &a, const IndicatorInputRange &b);
 
 //! Inequality comparison.
-template <typename Real>
-bool operator!=(const IndicatorInputRange<Real> &a,
-                const IndicatorInputRange<Real> &b);
+bool operator!=(const IndicatorInputRange &a, const IndicatorInputRange &b);
 
-template <typename Real>
-class IndicatorInputRange<Real>::iterator
-    : public std::iterator<std::input_iterator_tag, IndicatorInput<Real>> {
+class IndicatorInputRange::iterator
+    : public std::iterator<std::input_iterator_tag, IndicatorInput> {
 public:
   //! Constructor.
   //!
   //!\param iterable Associated indicator input range.
   //!\param inner_mesh Position in the indexed mesh range.
   //!
-  //! The node–coefficient iterator will be initialized to the beginning of the
-  //! range associated to the given mesh.
-  iterator(const IndicatorInputRange<Real> &iterable,
+  //! The node range iterator will be initialized to the beginning of the range
+  //! associated to the given mesh.
+  iterator(const IndicatorInputRange &iterable,
            const Enumeration<std::vector<MeshLevel>::const_iterator>::iterator
                inner_mesh);
 
@@ -106,29 +92,26 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  IndicatorInput<Real> operator*() const;
+  IndicatorInput operator*() const;
 
 private:
-  //! Associated coefficient range.
-  const IndicatorInputRange<Real> iterable;
+  //! Associated auxiliary mesh data range.
+  const IndicatorInputRange iterable;
 
   //! Current position in mesh hierarchy.
   Enumeration<std::vector<MeshLevel>::const_iterator>::iterator inner_mesh;
 
-  using NCIterator = typename SituatedCoefficientRange<Real>::iterator;
+  //! Current position in the node range and the end of that range.
+  std::optional<std::array<moab::Range::const_iterator, 2>> inner_node;
 
-  //! Current position in the node–coefficient range and the end of that range.
-  std::optional<std::array<NCIterator, 2>> inner_node;
-
-  //! Reset the node–coefficient iterator pair.
+  //! Reset the node iterator pair.
   //!
   //! If the end of the indexed mesh range has been reached, the value of the
   //! pair is destroyed. Otherwise, it's set to the beginning and end of the
-  //! latest node–coefficient range.
-  void reset_nc_iterator_pair();
+  //! latest node range.
+  void reset_node_iterator_pair();
 };
 
 } // namespace mgard
 
-#include "IndicatorInput.tpp"
 #endif
