@@ -14,12 +14,6 @@ template <typename Real, typename Int, typename It> class QuantizedRange;
 
 template <typename Real, typename Int, typename It> class DequantizedRange;
 
-template <typename Real, typename Int> class Quantizer;
-
-//! Equality comparison.
-template <typename Real, typename Int>
-bool operator==(const Quantizer<Real, Int> &a, const Quantizer<Real, Int> &b);
-
 //! Linear quantizer for multilevel coefficients.
 //!
 //! In principle, we probably want to quantize the coefficients all together (or
@@ -67,19 +61,20 @@ public:
   DequantizedRange<Real, Int, It> dequantize(const It begin,
                                              const It end) const;
 
-  //! Equality comparison.
-  friend bool operator==<>(const Quantizer &a, const Quantizer &b);
-
-private:
   //! Spacing between adjacent quantized numbers.
   const Real quantum;
 
+private:
   //! Greatest value which cannot be quantized using `quantum`.
   const Real minimum;
 
   //! Least value which cannot be quantized using `quantum`.
   const Real maximum;
 };
+
+//! Equality comparison.
+template <typename Real, typename Int>
+bool operator==(const Quantizer<Real, Int> &a, const Quantizer<Real, Int> &b);
 
 //! Inequality comparison.
 template <typename Real, typename Int>
