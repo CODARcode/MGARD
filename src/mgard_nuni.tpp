@@ -88,16 +88,15 @@ void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
   unsigned char unzip_buffer[buff_size];
   int int_buffer[buff_size / sizeof(int)];
   unsigned int unzipped_bytes, total_bytes = 0;
-  Real coeff;
 
+  Real quantum;
   gzFile in_file_z = gzopen(infile.c_str(), "r");
   // std::cout  << "File to oppen:" << in_file_z <<"\n";
 
   unzipped_bytes = gzread(in_file_z, unzip_buffer,
                           sizeof(Real)); // read the quantization constant
-  std::memcpy(&coeff, &unzip_buffer, unzipped_bytes);
-  const mgard::Quantizer<Real, int> quantizer(coeff);
-  // std::cout  << "Qunatar"<<coeff <<"\n";
+  std::memcpy(&quantum, &unzip_buffer, unzipped_bytes);
+  const mgard::Quantizer<Real, int> quantizer(quantum);
   int last = 0;
   while (true) {
     unzipped_bytes = gzread(in_file_z, unzip_buffer, buff_size);
@@ -122,26 +121,22 @@ void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
 
 template <typename Real>
 void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
-                          const int l, Real *v, Real tol, Real norm,
+                          const int l, Real *v, const Real tol, const Real norm,
                           const std::string outfile) {
 
   int stride = std::pow(2, l); // current stride
 
-  tol /= (Real)(nlevel + 1);
-
-  Real coeff = 2.0 * norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
-  // std::cout  << "Quantization factor: "<<coeff <<"\n";
+  const mgard::Quantizer<Real, int> quantizer(2 * norm * tol / (nlevel + 1));
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
   int prune_count = 0;
-  gzwrite(out_file, &coeff, sizeof(Real));
+  gzwrite(out_file, &quantizer.quantum, sizeof(Real));
 
   for (auto index = 0; index < ncol * nrow; ++index) {
-    const int quantum = quantizer.quantize(v[index]);
-    if (quantum == 0)
+    const int n = quantizer.quantize(v[index]);
+    if (n == 0)
       ++prune_count;
-    gzwrite(out_file, &quantum, sizeof(int));
+    gzwrite(out_file, &n, sizeof(int));
   }
 
   // std::cout  << "Pruned : "<< prune_count << " Reduction : " << (Real)
@@ -151,26 +146,23 @@ void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
 
 template <typename Real>
 void qwrite_3D_interleave(const int nrow, const int ncol, const int nfib,
-                          const int nlevel, const int l, Real *v, Real tol,
-                          Real norm, const std::string outfile) {
+                          const int nlevel, const int l, Real *v,
+                          const Real tol, const Real norm,
+                          const std::string outfile) {
 
   int stride = std::pow(2, l); // current stride
 
-  tol /= (Real)(nlevel + 1);
-
-  Real coeff = 2.0 * norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
-  // std::cout  << "Quantization factor: "<<coeff <<"\n";
+  const mgard::Quantizer<Real, int> quantizer(2 * norm * tol / (nlevel + 1));
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
   int prune_count = 0;
-  gzwrite(out_file, &coeff, sizeof(Real));
+  gzwrite(out_file, &quantizer.quantum, sizeof(Real));
 
   for (auto index = 0; index < ncol * nrow * nfib; ++index) {
-    const int quantum = quantizer.quantize(v[index]);
-    if (quantum == 0)
+    const int n = quantizer.quantize(v[index]);
+    if (n == 0)
       ++prune_count;
-    gzwrite(out_file, &quantum, sizeof(int));
+    gzwrite(out_file, &n, sizeof(int));
   }
 
   // std::cout  << "Pruned : "<< prune_count << " Reduction : " << (Real)
@@ -180,26 +172,24 @@ void qwrite_3D_interleave(const int nrow, const int ncol, const int nfib,
 
 template <typename Real>
 void qwrite_3D_interleave2(const int nrow, const int ncol, const int nfib,
-                           const int nlevel, const int l, Real *v, Real tol,
-                           Real norm, const std::string outfile) {
+                           const int nlevel, const int l, Real *v,
+                           const Real tol, const Real norm,
+                           const std::string outfile) {
 
   int stride = std::pow(2, l); // current stride
 
-  //    tol /=  (Real) (nlevel + 1);
-
-  Real coeff = 1.0 * norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
-  // std::cout  << "Quantization factor: "<<coeff <<"\n";
+  // There was a commented-out line here dividing the tolerance by `nlevel + 1`.
+  const mgard::Quantizer<Real, int> quantizer(norm * tol);
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
   int prune_count = 0;
-  gzwrite(out_file, &coeff, sizeof(Real));
+  gzwrite(out_file, &quantizer.quantum, sizeof(Real));
 
   for (auto index = 0; index < ncol * nrow * nfib; ++index) {
-    const int quantum = quantizer.quantize(v[index]);
-    if (quantum == 0)
+    const int n = quantizer.quantize(v[index]);
+    if (n == 0)
       ++prune_count;
-    gzwrite(out_file, &quantum, sizeof(int));
+    gzwrite(out_file, &n, sizeof(int));
   }
 
   // std::cout  << "Pruned : "<< prune_count << " Reduction : " << (Real)
@@ -571,13 +561,10 @@ void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
                const int ncol, const int nfib, const int nlevel, const int l,
                Real *v, const std::vector<Real> &coords_x,
                const std::vector<Real> &coords_y,
-               const std::vector<Real> &coords_z, Real tol, Real s, Real norm,
-               const std::string outfile) {
+               const std::vector<Real> &coords_z, const Real tol, const Real s,
+               const Real norm, const std::string outfile) {
 
-  //    Real coeff = 2.0*norm*tol;
-  //    Real coeff = norm*tol/216;
   const Real coeff = tol; /// 4.322;//
-  // std::cout  << "Quantization factor: "<<coeff <<"\n";
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
   int prune_count = 0;
@@ -606,8 +593,8 @@ void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
         for (int irow = 0; irow < nrow; ++irow) {
           for (int jcol = 0; jcol < ncol; ++jcol) {
             Real val = v[mgard::get_index3(ncol, nfib, irow, jcol, kf + 1)];
-            const int quantum = quantizer.quantize(val);
-            gzwrite(out_file, &quantum, sizeof(int));
+            const int n = quantizer.quantize(val);
+            gzwrite(out_file, &n, sizeof(int));
             ++count;
           }
         }
@@ -628,8 +615,8 @@ void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
           //  //std::cout  <<"Skipped row: "  << ir + 1 << "\n";
           for (int jcol = 0; jcol < ncol; ++jcol) {
             Real val = v[mgard::get_index3(ncol, nfib, ir + 1, jcol, kf)];
-            const int quantum = quantizer.quantize(val);
-            gzwrite(out_file, &quantum, sizeof(int));
+            const int n = quantizer.quantize(val);
+            gzwrite(out_file, &n, sizeof(int));
             ++count_row;
             ++count;
           }
@@ -646,8 +633,8 @@ void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
           if (jcP != jc + 1) // skipped a column
           {
             Real val = v[mgard::get_index3(ncol, nfib, ir, jc + 1, kf)];
-            const int quantum = quantizer.quantize(val);
-            gzwrite(out_file, &quantum, sizeof(int));
+            const int n = quantizer.quantize(val);
+            gzwrite(out_file, &n, sizeof(int));
             ++count_col;
             ++count;
             //                    //std::cout  <<"Skipped col: " << ir << "\t"
@@ -685,8 +672,8 @@ void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
             for (int jcol = Cstride; jcol < nc; jcol += Cstride) {
               int jc = mgard::get_lindex(nc, ncol, jcol);
               Real val = v[mgard::get_index3(ncol, nfib, ir, jc - stride, kf)];
-              const int quantum = quantizer.quantize(val);
-              gzwrite(out_file, &quantum, sizeof(int));
+              const int n = quantizer.quantize(val);
+              gzwrite(out_file, &n, sizeof(int));
               ++count;
               //                          outfile.write(reinterpret_cast<char*>(
               //                          &v[mgard::get_index3(ncol,
@@ -700,8 +687,8 @@ void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
             for (int jcol = 0; jcol < nc; jcol += stride) {
               int jc = mgard::get_lindex(nc, ncol, jcol);
               Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-              const int quantum = quantizer.quantize(val);
-              gzwrite(out_file, &quantum, sizeof(int));
+              const int n = quantizer.quantize(val);
+              gzwrite(out_file, &n, sizeof(int));
               ++count;
               //         outfile.write(reinterpret_cast<char*>(
               //         &v[mgard::get_index3(ncol, nfib, ir, jc, kf)] ),
@@ -717,8 +704,8 @@ void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
           for (int jcol = 0; jcol < nc; jcol += stride) {
             int jc = mgard::get_lindex(nc, ncol, jcol);
             Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-            const int quantum = quantizer.quantize(val);
-            gzwrite(out_file, &quantum, sizeof(int));
+            const int n = quantizer.quantize(val);
+            gzwrite(out_file, &n, sizeof(int));
             ++count;
             //                      outfile.write(reinterpret_cast<char*>(
             //                      &v[mgard::get_index3(ncol, nfib, ir,
@@ -751,8 +738,8 @@ void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
         for (int kfib = 0; kfib < nf; kfib += stride) {
           int kf = mgard::get_lindex(nf, nfib, kfib);
           Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-          const int quantum = quantizer.quantize(val);
-          gzwrite(out_file, &quantum, sizeof(int));
+          const int n = quantizer.quantize(val);
+          gzwrite(out_file, &n, sizeof(int));
           ++count;
         }
       }
@@ -3023,20 +3010,17 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
 
 template <typename Real>
 void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
-                 const int nlevel, const int l, Real *v, Real tol, Real norm,
-                 const std::string outfile) {
+                 const int nlevel, const int l, Real *v, const Real tol,
+                 const Real norm, const std::string outfile) {
 
   int stride = std::pow(2, l); // current stride
   int Cstride = 2 * stride;
-  tol /= (Real)(nlevel + 1);
 
-  const Real coeff = 2.0 * norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
-  // std::cout  << "Quantization factor: "<<coeff <<"\n";
+  const mgard::Quantizer<Real, int> quantizer(2 * norm * tol / (nlevel + 1));
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
   int prune_count = 0;
-  gzwrite(out_file, &coeff, sizeof(Real));
+  gzwrite(out_file, &quantizer.quantum, sizeof(Real));
 
   // level L+1, finest first level
   for (int irow = 0; irow < nr; ++irow) // loop over the logical array
@@ -3050,11 +3034,10 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
       if (jrP != jr + 1) // next real memory location was jumped over, so this
                          // is level L+1
       {
-        const int quantum =
-            quantizer.quantize(v[mgard::get_index(ncol, ir, jr + 1)]);
-        if (quantum == 0)
+        const int n = quantizer.quantize(v[mgard::get_index(ncol, ir, jr + 1)]);
+        if (n == 0)
           ++prune_count;
-        gzwrite(out_file, &quantum, sizeof(int));
+        gzwrite(out_file, &n, sizeof(int));
       }
     }
   }
@@ -3068,11 +3051,10 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
       if (irP != ir + 1) // next real memory location was jumped over, so this
                          // is level L+1
       {
-        const int quantum =
-            quantizer.quantize(v[mgard::get_index(ncol, ir + 1, jr)]);
-        if (quantum == 0)
+        const int n = quantizer.quantize(v[mgard::get_index(ncol, ir + 1, jr)]);
+        if (n == 0)
           ++prune_count;
-        gzwrite(out_file, &quantum, sizeof(int));
+        gzwrite(out_file, &n, sizeof(int));
       }
     }
   }
@@ -3087,11 +3069,11 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
       if ((irP != ir + 1) &&
           (jrP != jr + 1)) // we skipped both a row and a column
       {
-        const int quantum =
+        const int n =
             quantizer.quantize(v[mgard::get_index(ncol, ir + 1, jr + 1)]);
-        if (quantum == 0)
+        if (n == 0)
           ++prune_count;
-        gzwrite(out_file, &quantum, sizeof(int));
+        gzwrite(out_file, &n, sizeof(int));
       }
     }
   }
@@ -3107,21 +3089,20 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
       if (row_counter % 2 == 0 && l != nlevel) {
         for (int jcol = Cstride; jcol < nc; jcol += Cstride) {
           int jr = mgard::get_lindex(nc, ncol, jcol);
-          const int quantum =
+          const int n =
               quantizer.quantize(v[mgard::get_index(ncol, ir, jr - stride)]);
-          if (quantum == 0)
+          if (n == 0)
             ++prune_count;
-          gzwrite(out_file, &quantum, sizeof(int));
+          gzwrite(out_file, &n, sizeof(int));
         }
 
       } else {
         for (int jcol = 0; jcol < nc; jcol += stride) {
           int jr = mgard::get_lindex(nc, ncol, jcol);
-          const int quantum =
-              quantizer.quantize(v[mgard::get_index(ncol, ir, jr)]);
-          if (quantum == 0)
+          const int n = quantizer.quantize(v[mgard::get_index(ncol, ir, jr)]);
+          if (n == 0)
             ++prune_count;
-          gzwrite(out_file, &quantum, sizeof(int));
+          gzwrite(out_file, &n, sizeof(int));
         }
       }
       ++row_counter;
@@ -3143,7 +3124,7 @@ void quantize_2D(const int nr, const int nc, const int nrow, const int ncol,
   // s-norm version of per-level quantizer.
   const Real coeff = norm * tol;
   std::memcpy(work.data(), &coeff, sizeof(Real));
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   int prune_count = 0;
 
   //    Real s = 0.0;
@@ -3166,9 +3147,9 @@ void quantize_2D(const int nr, const int nc, const int nrow, const int ncol,
       {
         for (int jcol = 0; jcol < ncol; ++jcol) {
           Real val = v[mgard::get_index(ncol, ir + 1, jcol)];
-          const int quantum = quantizer.quantize(val);
+          const int n = quantizer.quantize(val);
           //	      //std::cout  << "writing  " << count << "\n";
-          work[count] = quantum;
+          work[count] = n;
           ++count;
         }
       }
@@ -3183,8 +3164,8 @@ void quantize_2D(const int nr, const int nc, const int nrow, const int ncol,
         if (jcP != jc + 1) // skipped a column
         {
           Real val = v[mgard::get_index(ncol, ir, jc + 1)];
-          const int quantum = quantizer.quantize(val);
-          work[count] = quantum;
+          const int n = quantizer.quantize(val);
+          work[count] = n;
           //	      //std::cout  << "writing  " << count << "\n";
           ++count;
         }
@@ -3213,8 +3194,8 @@ void quantize_2D(const int nr, const int nc, const int nrow, const int ncol,
         for (int jcol = Cstride; jcol < nc; jcol += Cstride) {
           int jc = mgard::get_lindex(nc, ncol, jcol - stride);
           Real val = v[mgard::get_index(ncol, ir, jc)];
-          const int quantum = quantizer.quantize(val);
-          work[count] = quantum;
+          const int n = quantizer.quantize(val);
+          work[count] = n;
           //		    //std::cout  << "writing  " << count << "\n";
           ++count;
         }
@@ -3223,8 +3204,8 @@ void quantize_2D(const int nr, const int nc, const int nrow, const int ncol,
         for (int jcol = 0; jcol < nc; jcol += stride) {
           int jc = mgard::get_lindex(nc, ncol, jcol);
           Real val = v[mgard::get_index(ncol, ir, jc)];
-          const int quantum = quantizer.quantize(val);
-          work[count] = quantum;
+          const int n = quantizer.quantize(val);
+          work[count] = n;
           //		    //std::cout  << "writing  " << count << "\n";
           ++count;
         }
@@ -3248,9 +3229,9 @@ void quantize_2D(const int nr, const int nc, const int nrow, const int ncol,
         int jc = mgard::get_lindex(nc, ncol, jcol);
 
         Real val = v[mgard::get_index(ncol, ir, jc)];
-        const int quantum = quantizer.quantize(val);
+        const int n = quantizer.quantize(val);
         //	    //std::cout  << "writing  " << count << "\n";
-        work[count] = quantum;
+        work[count] = n;
         ++count;
       }
     }
@@ -3264,16 +3245,15 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
                  const int ncol, const int nfib, const int nlevel, Real *v,
                  std::vector<int> &work, const std::vector<Real> &coords_x,
                  const std::vector<Real> &coords_y,
-                 const std::vector<Real> &coords_z, Real norm, Real tol) {
+                 const std::vector<Real> &coords_z, const Real norm,
+                 const Real tol) {
 
   // L-infty version of per level quantizer, reorders MGARDized coeffs. per
   // level
-  const Real coeff =
-      norm * tol /
-      (nlevel + 2); // account for the  possible projection to 2^k+1
-  const mgard::Quantizer<Real, int> quantizer(coeff);
-  std::memcpy(work.data(), &coeff, sizeof(Real));
-  int size_ratio = sizeof(Real) / sizeof(int);
+  // account for the  possible projection to 2^k+1
+  const mgard::Quantizer<Real, int> quantizer(norm * tol / (nlevel + 2));
+  std::memcpy(work.data(), &quantizer.quantum, sizeof(Real));
+  const int size_ratio = sizeof(Real) / sizeof(int);
   int prune_count = 0;
 
   int count = 0;
@@ -3290,8 +3270,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
       for (int irow = 0; irow < nrow; ++irow) {
         for (int jcol = 0; jcol < ncol; ++jcol) {
           Real val = v[mgard::get_index3(ncol, nfib, irow, jcol, kf + 1)];
-          const int quantum = quantizer.quantize(val);
-          work[count] = quantum;
+          const int n = quantizer.quantize(val);
+          work[count] = n;
           ++count;
         }
       }
@@ -3307,8 +3287,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
       {
         for (int jcol = 0; jcol < ncol; ++jcol) {
           Real val = v[mgard::get_index3(ncol, nfib, ir + 1, jcol, kf)];
-          const int quantum = quantizer.quantize(val);
-          work[count] = quantum;
+          const int n = quantizer.quantize(val);
+          work[count] = n;
           ++count;
         }
       }
@@ -3323,8 +3303,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
         if (jcP != jc + 1) // skipped a column
         {
           Real val = v[mgard::get_index3(ncol, nfib, ir, jc + 1, kf)];
-          const int quantum = quantizer.quantize(val);
-          work[count] = quantum;
+          const int n = quantizer.quantize(val);
+          work[count] = n;
           ++count;
         }
       }
@@ -3350,8 +3330,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
             for (int jcol = Cstride; jcol < nc; jcol += Cstride) {
               int jc = mgard::get_lindex(nc, ncol, jcol - stride);
               Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-              const int quantum = quantizer.quantize(val);
-              work[count] = quantum;
+              const int n = quantizer.quantize(val);
+              work[count] = n;
               ++count;
             }
 
@@ -3359,8 +3339,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
             for (int jcol = 0; jcol < nc; jcol += stride) {
               int jc = mgard::get_lindex(nc, ncol, jcol);
               Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-              const int quantum = quantizer.quantize(val);
-              work[count] = quantum;
+              const int n = quantizer.quantize(val);
+              work[count] = n;
               ++count;
               //         outfile.write(reinterpret_cast<char*>(
               //         &v[mgard::get_index3(ncol, nfib, ir, jc, kf)] ),
@@ -3376,8 +3356,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
           for (int jcol = 0; jcol < nc; jcol += stride) {
             int jc = mgard::get_lindex(nc, ncol, jcol);
             Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-            const int quantum = quantizer.quantize(val);
-            work[count] = quantum;
+            const int n = quantizer.quantize(val);
+            work[count] = n;
             ++count;
             //                      outfile.write(reinterpret_cast<char*>(
             //                      &v[mgard::get_index3(ncol, nfib, ir,
@@ -3399,8 +3379,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
       for (int kfib = 0; kfib < nf; kfib += stride) {
         int kf = mgard::get_lindex(nf, nfib, kfib);
         Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-        const int quantum = quantizer.quantize(val);
-        work[count] = quantum;
+        const int n = quantizer.quantize(val);
+        work[count] = n;
         ++count;
       }
     }
@@ -3414,14 +3394,13 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
                  const int ncol, const int nfib, const int nlevel, Real *v,
                  std::vector<int> &work, const std::vector<Real> &coords_x,
                  const std::vector<Real> &coords_y,
-                 const std::vector<Real> &coords_z, Real s, Real norm,
-                 Real tol) {
+                 const std::vector<Real> &coords_z, const Real s,
+                 const Real norm, const Real tol) {
 
   // s-norm version of per-level quantizer.
   const Real coeff = norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
   std::memcpy(work.data(), &coeff, sizeof(Real));
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   int prune_count = 0;
 
   //    Real s = 0.0;
@@ -3450,9 +3429,9 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
         for (int irow = 0; irow < nrow; ++irow) {
           for (int jcol = 0; jcol < ncol; ++jcol) {
             Real val = v[mgard::get_index3(ncol, nfib, irow, jcol, kf + 1)];
-            const int quantum = quantizer.quantize(val);
+            const int n = quantizer.quantize(val);
             ////std::cout  << "quantized "  << val << std::endl;
-            work[count] = quantum;
+            work[count] = n;
             ++count;
           }
         }
@@ -3473,10 +3452,10 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
           //  //std::cout  <<"Skipped row: "  << ir + 1 << "\n";
           for (int jcol = 0; jcol < ncol; ++jcol) {
             Real val = v[mgard::get_index3(ncol, nfib, ir + 1, jcol, kf)];
-            const int quantum = quantizer.quantize(val);
+            const int n = quantizer.quantize(val);
             //                    //std::cout  << "quantized "  << val <<
             //                    std::endl;
-            work[count] = quantum;
+            work[count] = n;
             ++count_row;
             ++count;
           }
@@ -3493,8 +3472,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
           if (jcP != jc + 1) // skipped a column
           {
             Real val = v[mgard::get_index3(ncol, nfib, ir, jc + 1, kf)];
-            const int quantum = quantizer.quantize(val);
-            work[count] = quantum;
+            const int n = quantizer.quantize(val);
+            work[count] = n;
             ++count_col;
             ++count;
             //                    //std::cout  <<"Skipped col: " << ir << "\t"
@@ -3533,8 +3512,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
             for (int jcol = Cstride; jcol < nc; jcol += Cstride) {
               int jc = mgard::get_lindex(nc, ncol, jcol - stride);
               Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-              const int quantum = quantizer.quantize(val);
-              work[count] = quantum;
+              const int n = quantizer.quantize(val);
+              work[count] = n;
               ++count;
               //                          outfile.write(reinterpret_cast<char*>(
               //                          &v[mgard::get_index3(ncol,
@@ -3548,8 +3527,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
             for (int jcol = 0; jcol < nc; jcol += stride) {
               int jc = mgard::get_lindex(nc, ncol, jcol);
               Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-              const int quantum = quantizer.quantize(val);
-              work[count] = quantum;
+              const int n = quantizer.quantize(val);
+              work[count] = n;
               ++count;
               //         outfile.write(reinterpret_cast<char*>(
               //         &v[mgard::get_index3(ncol, nfib, ir, jc, kf)] ),
@@ -3565,8 +3544,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
           for (int jcol = 0; jcol < nc; jcol += stride) {
             int jc = mgard::get_lindex(nc, ncol, jcol);
             Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-            const int quantum = quantizer.quantize(val);
-            work[count] = quantum;
+            const int n = quantizer.quantize(val);
+            work[count] = n;
             ++count;
             //                      outfile.write(reinterpret_cast<char*>(
             //                      &v[mgard::get_index3(ncol, nfib, ir,
@@ -3598,8 +3577,8 @@ void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
         for (int kfib = 0; kfib < nf; kfib += stride) {
           int kf = mgard::get_lindex(nf, nfib, kfib);
           Real val = v[mgard::get_index3(ncol, nfib, ir, jc, kf)];
-          const int quantum = quantizer.quantize(val);
-          work[count] = quantum;
+          const int n = quantizer.quantize(val);
+          work[count] = n;
           ++count;
         }
       }
@@ -3616,13 +3595,11 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow,
                    const std::vector<Real> &coords_y,
                    const std::vector<Real> &coords_z) {
 
-  int size_ratio = sizeof(Real) / sizeof(int);
-  Real q; // quantizing factor
+  const int size_ratio = sizeof(Real) / sizeof(int);
+  Real quantum; // quantizing factor
 
-  std::memcpy(&q, work.data(), sizeof(Real));
-  const mgard::Quantizer<Real, int> quantizer(q);
-
-  // std::cout  << "Read quantizeredert val" << q << "\n";
+  std::memcpy(&quantum, work.data(), sizeof(Real));
+  const mgard::Quantizer<Real, int> quantizer(quantum);
 
   int imeg = 0; // mega-counter
 
@@ -3753,7 +3730,7 @@ void dequantize_3D(const int nr, const int nc, const int nf, const int nrow,
                    const std::vector<Real> &coords_z, Real s) {
   int imeg = 0; // mega-counter
 
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   Real q; // quantizing factor
 
   std::memcpy(&q, work.data(), sizeof(Real));
@@ -3918,7 +3895,7 @@ void dequantize_2D(const int nr, const int nc, const int nrow, const int ncol,
                    const std::vector<Real> &coords_x,
                    const std::vector<Real> &coords_y, Real s) {
 
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   Real q; // quantizing factor
 
   std::memcpy(&q, work.data(), sizeof(Real));
@@ -4605,15 +4582,15 @@ void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
   unsigned char unzip_buffer[buff_size];
   int int_buffer[buff_size / sizeof(int)];
   unsigned int unzipped_bytes, total_bytes = 0;
-  Real coeff;
+  Real quantum;
 
   gzFile in_file_z = gzopen(infile.c_str(), "r");
   // std::cout  << in_file_z <<"\n";
 
   unzipped_bytes = gzread(in_file_z, unzip_buffer,
                           sizeof(Real)); // read the quantization constant
-  std::memcpy(&coeff, &unzip_buffer, unzipped_bytes);
-  const mgard::Quantizer<Real, int> quantizer(coeff);
+  std::memcpy(&quantum, &unzip_buffer, unzipped_bytes);
+  const mgard::Quantizer<Real, int> quantizer(quantum);
 
   int last = 0;
   while (true) {
@@ -4638,26 +4615,22 @@ void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
 
 template <typename Real>
 void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
-                          const int l, Real *v, Real tol, Real norm,
+                          const int l, Real *v, const Real tol, const Real norm,
                           const std::string outfile) {
 
   //    int stride = std::pow(2,l);//current stride
 
-  tol /= (Real)(nlevel + 1);
-
-  const Real coeff = 2.0 * norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
-  // std::cout  << "Quantization factor: "<<coeff <<"\n";
+  const mgard::Quantizer<Real, int> quantizer(2 * norm * tol / (nlevel + 1));
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
   int prune_count = 0;
-  gzwrite(out_file, &coeff, sizeof(Real));
+  gzwrite(out_file, &quantizer.quantum, sizeof(Real));
 
   for (auto index = 0; index < ncol * nrow; ++index) {
-    const int quantum = quantizer.quantize(v[index]);
-    if (quantum == 0)
+    const int n = quantizer.quantize(v[index]);
+    if (n == 0)
       ++prune_count;
-    gzwrite(out_file, &quantum, sizeof(int));
+    gzwrite(out_file, &n, sizeof(int));
   }
 
   // std::cout  << "Pruned : "<< prune_count << " Reduction : " << (Real)
@@ -5953,20 +5926,16 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
 
 template <typename Real>
 void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
-                 const int nlevel, const int l, Real *v, Real tol, Real norm,
-                 const std::string outfile) {
+                 const int nlevel, const int l, Real *v, const Real tol,
+                 const Real norm, const std::string outfile) {
 
   //    int stride = std::pow(2,l);//current stride
   //    int Cstride = 2*stride;
-  tol /= (Real)(nlevel + 1);
-
-  const Real coeff = 2.0 * norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
-  // std::cout  << "Quantization factor: "<<coeff <<"\n";
+  const mgard::Quantizer<Real, int> quantizer(2 * norm * tol / (nlevel + 1));
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
   int prune_count = 0;
-  gzwrite(out_file, &coeff, sizeof(Real));
+  gzwrite(out_file, &quantizer.quantum, sizeof(Real));
 
   // level L+1, finest first level
   for (int irow = 0; irow < nr; ++irow) // loop over the logical array
@@ -5980,11 +5949,10 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
       if (jrP != jr + 1) // next real memory location was jumped over, so this
                          // is level L+1
       {
-        const int quantum =
-            quantizer.quantize(v[mgard::get_index(ncol, ir, jr + 1)]);
-        if (quantum == 0)
+        const int n = quantizer.quantize(v[mgard::get_index(ncol, ir, jr + 1)]);
+        if (n == 0)
           ++prune_count;
-        gzwrite(out_file, &quantum, sizeof(int));
+        gzwrite(out_file, &n, sizeof(int));
       }
     }
   }
@@ -5998,11 +5966,10 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
       if (irP != ir + 1) // next real memory location was jumped over, so this
                          // is level L+1
       {
-        const int quantum =
-            quantizer.quantize(v[mgard::get_index(ncol, ir + 1, jr)]);
-        if (quantum == 0)
+        const int n = quantizer.quantize(v[mgard::get_index(ncol, ir + 1, jr)]);
+        if (n == 0)
           ++prune_count;
-        gzwrite(out_file, &quantum, sizeof(int));
+        gzwrite(out_file, &n, sizeof(int));
       }
     }
   }
@@ -6017,11 +5984,11 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
       if ((irP != ir + 1) &&
           (jrP != jr + 1)) // we skipped both a row and a column
       {
-        const int quantum =
+        const int n =
             quantizer.quantize(v[mgard::get_index(ncol, ir + 1, jr + 1)]);
-        if (quantum == 0)
+        if (n == 0)
           ++prune_count;
-        gzwrite(out_file, &quantum, sizeof(int));
+        gzwrite(out_file, &n, sizeof(int));
       }
     }
   }
@@ -6037,21 +6004,20 @@ void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
       if (row_counter % 2 == 0 && l != nlevel) {
         for (int jcol = Cstride; jcol < nc; jcol += Cstride) {
           int jr = mgard::get_lindex(nc, ncol, jcol);
-          const int quantum =
+          const int n =
               quantizer.quantize(v[mgard::get_index(ncol, ir, jr - stride)]);
-          if (quantum == 0)
+          if (n == 0)
             ++prune_count;
-          gzwrite(out_file, &quantum, sizeof(int));
+          gzwrite(out_file, &n, sizeof(int));
         }
 
       } else {
         for (int jcol = 0; jcol < nc; jcol += stride) {
           int jr = mgard::get_lindex(nc, ncol, jcol);
-          const int quantum =
-              quantizer.quantize(v[mgard::get_index(ncol, ir, jr)]);
-          if (quantum == 0)
+          const int n = quantizer.quantize(v[mgard::get_index(ncol, ir, jr)]);
+          if (n == 0)
             ++prune_count;
-          gzwrite(out_file, &quantum, sizeof(int));
+          gzwrite(out_file, &n, sizeof(int));
         }
       }
       ++row_counter;

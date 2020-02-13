@@ -67,7 +67,7 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
   work.clear();
   work2d.clear();
 
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
   mgard::quantize_2D_interleave(
@@ -111,7 +111,7 @@ refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
   work.clear();
   work2d.clear();
 
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
   mgard::quantize_2D_interleave(
@@ -165,7 +165,7 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
   work.clear();
   work2d.clear();
 
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
   mgard_gen::quantize_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
@@ -214,7 +214,7 @@ refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
   work.clear();
   work2d.clear();
 
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
   mgard_gen::quantize_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
@@ -277,7 +277,7 @@ refactor_qz(int nrow, int ncol, int nfib, const Real *u, int &outsize, Real tol,
   work.clear();
   work2d.clear();
 
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
   mgard_gen::quantize_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
@@ -298,7 +298,7 @@ refactor_qz(int nrow, int ncol, int nfib, const Real *u, int &outsize, Real tol,
 template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
                     int data_len) {
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<Real> coords_x(ncol), coords_y(nrow),
       coords_z(nfib); // coordinate arrays
   std::vector<int> out_data(nrow * ncol * nfib + size_ratio);
@@ -337,7 +337,7 @@ template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
                     std::vector<Real> &coords_y, std::vector<Real> &coords_z,
                     unsigned char *data, int data_len) {
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> out_data(nrow * ncol * nfib + size_ratio);
   std::vector<Real> work(nrow * ncol * nfib),
       work2d(nrow * ncol); // duplicate data and create work array
@@ -366,7 +366,7 @@ Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
                     int data_len, Real s) {
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<Real> coords_x(ncol), coords_y(nrow),
       coords_z(nfib); // coordinate arrays
   std::vector<int> out_data(nrow * ncol * nfib + size_ratio);
@@ -534,7 +534,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     work.clear();
     row_vec.clear();
 
-    int size_ratio = sizeof(Real) / sizeof(int);
+    const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(ncol + size_ratio);
 
     tol /= dims.nlevel + 1;
@@ -573,7 +573,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     row_vec.clear();
     col_vec.clear();
 
-    int size_ratio = sizeof(Real) / sizeof(int);
+    const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(nrow * ncol + size_ratio);
 
     mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
@@ -609,7 +609,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     col_vec.clear();
     row_vec.clear();
 
-    int size_ratio = sizeof(Real) / sizeof(int);
+    const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(nrow * ncol + size_ratio);
 
     tol /= dims.nlevel + 1;
@@ -656,7 +656,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
   col_vec.clear();
   row_vec.clear();
 
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol + size_ratio);
 
   tol /= dims.nlevel + 1;
@@ -699,7 +699,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
 
-    int size_ratio = sizeof(Real) / sizeof(int);
+    const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(nrow * ncol + size_ratio);
 
     // mgard::quantize_2D_interleave (nrow, ncol, v.data(), qv, norm, tol);
@@ -738,7 +738,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     col_vec.clear();
     row_vec.clear();
 
-    int size_ratio = sizeof(Real) / sizeof(int);
+    const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(nrow * ncol + size_ratio);
 
     mgard_gen::quantize_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
@@ -784,7 +784,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
   col_vec.clear();
   row_vec.clear();
 
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol + size_ratio);
 
   mgard_gen::quantize_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
@@ -803,7 +803,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 
 template <typename Real>
 Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
 
   if (is_2kplus1(ncol)) // input is (2^p + 1)
   {
@@ -867,7 +867,7 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
 
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len) {
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
 
   if (is_2kplus1(nrow) && is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
   {
@@ -936,7 +936,7 @@ template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
                        std::vector<Real> &coords_y, unsigned char *data,
                        int data_len) {
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
 
   const Dimensions2kPlus1<2> dims({nrow, ncol});
   const int l_target = dims.nlevel - 1;
@@ -969,7 +969,7 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
                        Real s) {
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
 
   if (is_2kplus1(nrow) && is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
   {
@@ -1046,7 +1046,7 @@ template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
                        std::vector<Real> &coords_y, unsigned char *data,
                        int data_len, Real s) {
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> out_data(nrow * ncol + size_ratio);
 
   const Dimensions2kPlus1<2> dims({nrow, ncol});
@@ -1471,7 +1471,7 @@ void compute_correction_loadv(const int l, std::vector<Real> &v) {
 
 template <typename Real>
 void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
-                     const int l, Real *v, Real tol,
+                     const int l, Real *v, const Real tol,
                      const std::string outfile) {
 
   int stride = std::pow(2, l);
@@ -1486,12 +1486,10 @@ void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
     }
   }
 
-  tol /= nlevel + 1;
-  const Real coeff = norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
+  const mgard::Quantizer<Real, int> quantizer(norm * tol / (nlevel + 1));
 
   gzFile out_file = gzopen(outfile.c_str(), "w9b");
-  gzwrite(out_file, &coeff, sizeof(Real));
+  gzwrite(out_file, &quantizer.quantum, sizeof(Real));
 
   int prune_count = 0;
 
@@ -1503,19 +1501,18 @@ void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
     for (int irow = 0; irow < nrow; irow += stride) {
       if (row_counter % 2 == 0 && l != nlevel) {
         for (int jcol = Cstride; jcol < ncol; jcol += Cstride) {
-          const int quantum =
+          const int n =
               quantizer.quantize(v[get_index(ncol, irow, jcol - stride)]);
-          if (quantum == 0)
+          if (n == 0)
             ++prune_count;
-          gzwrite(out_file, &quantum, sizeof(int));
+          gzwrite(out_file, &n, sizeof(int));
         }
       } else {
         for (int jcol = 0; jcol < ncol; jcol += stride) {
-          const int quantum =
-              quantizer.quantize(v[get_index(ncol, irow, jcol)]);
-          if (quantum == 0)
+          const int n = quantizer.quantize(v[get_index(ncol, irow, jcol)]);
+          if (n == 0)
             ++prune_count;
-          gzwrite(out_file, &quantum, sizeof(int));
+          gzwrite(out_file, &n, sizeof(int));
         }
       }
       ++row_counter;
@@ -1529,24 +1526,24 @@ void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
 
 template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
-                            std::vector<int> &work, Real norm, Real tol) {
+                            std::vector<int> &work, const Real norm,
+                            const Real tol) {
   //  //std::cout  << "Tolerance: " << tol << "\n";
-  int size_ratio = sizeof(Real) / sizeof(int);
+  const int size_ratio = sizeof(Real) / sizeof(int);
 
   ////std::cout  << "Norm of sorts: " << norm << "\n";
 
   //    Real quantizer = 2.0*norm * tol;
-  const Real coeff = norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
+  const mgard::Quantizer<Real, int> quantizer(norm * tol);
   ////std::cout  << "Quantization factor: " << quantizer << "\n";
-  std::memcpy(work.data(), &quantizer, sizeof(Real));
+  std::memcpy(work.data(), &quantizer.quantum, sizeof(Real));
 
   int prune_count = 0;
 
   for (int index = 0; index < ncol * nrow; ++index) {
-    const int quantum = quantizer.quantize(v[index]);
-    work[index + size_ratio] = quantum;
-    if (quantum == 0)
+    const int n = quantizer.quantize(v[index]);
+    work[index + size_ratio] = n;
+    if (n == 0)
       ++prune_count;
   }
 
@@ -1557,11 +1554,11 @@ void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
 template <typename Real>
 void dequantize_2D_interleave(const int nrow, const int ncol, Real *v,
                               const std::vector<int> &work) {
-  int size_ratio = sizeof(Real) / sizeof(int);
-  Real coeff;
+  const int size_ratio = sizeof(Real) / sizeof(int);
 
-  std::memcpy(&coeff, work.data(), sizeof(Real));
-  const mgard::Quantizer<Real, int> quantizer(coeff);
+  Real quantum;
+  std::memcpy(&quantum, work.data(), sizeof(Real));
+  const mgard::Quantizer<Real, int> quantizer(quantum);
 
   for (int index = 0; index < nrow * ncol; ++index) {
     v[index] = quantizer.dequantize(work[index + size_ratio]);
@@ -1570,7 +1567,7 @@ void dequantize_2D_interleave(const int nrow, const int ncol, Real *v,
 
 template <typename Real>
 void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
-                          const int l, Real *v, Real tol,
+                          const int l, Real *v, const Real tol,
                           const std::string outfile) {
 
   int stride = std::pow(2, l); // current stride
@@ -1585,21 +1582,17 @@ void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
     }
   }
 
-  tol /= nlevel + 1;
-
-  const Real coeff = norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(coeff);
-  // std::cout  << "Quantization factor: " << coeff << "\n";
+  const mgard::Quantizer<Real, int> quantizer(norm * tol / (nlevel + 1));
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
-  int prune_count = 0;
-  gzwrite(out_file, &coeff, sizeof(Real));
+  gzwrite(out_file, &quantizer.quantum, sizeof(Real));
 
+  int prune_count = 0;
   for (auto index = 0; index < ncol * nrow; ++index) {
-    const int quantum = quantizer.quantize(v[index]);
-    if (quantum == 0)
+    const int n = quantizer.quantize(v[index]);
+    if (n == 0)
       ++prune_count;
-    gzwrite(out_file, &quantum, sizeof(int));
+    gzwrite(out_file, &n, sizeof(int));
   }
 
   // std::cout  << "Pruned : " << prune_count << " Reduction : "
@@ -1614,15 +1607,15 @@ void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
   unsigned char unzip_buffer[buff_size];
   int int_buffer[buff_size / sizeof(int)];
   unsigned int unzipped_bytes, total_bytes = 0;
-  Real coeff;
 
+  Real quantum;
   gzFile in_file_z = gzopen(infile.c_str(), "r");
   // std::cout  << in_file_z << "\n";
 
   unzipped_bytes = gzread(in_file_z, unzip_buffer,
                           sizeof(Real)); // read the quantization constant
-  std::memcpy(&coeff, &unzip_buffer, unzipped_bytes);
-  const mgard::Quantizer<Real, int> quantizer(coeff);
+  std::memcpy(&quantum, &unzip_buffer, unzipped_bytes);
+  const mgard::Quantizer<Real, int> quantizer(quantum);
 
   int last = 0;
   while (true) {
