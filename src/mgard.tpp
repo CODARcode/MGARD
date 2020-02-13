@@ -23,7 +23,7 @@
 #include "mgard_mesh.hpp"
 #include "mgard_nuni.h"
 
-#include "Quantizer.hpp"
+#include "LinearQuantizer.hpp"
 
 static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
   // set the depth of levels in isotropic case
@@ -1486,7 +1486,7 @@ void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
     }
   }
 
-  const mgard::Quantizer<Real, int> quantizer(norm * tol / (nlevel + 1));
+  const mgard::LinearQuantizer<Real, int> quantizer(norm * tol / (nlevel + 1));
 
   gzFile out_file = gzopen(outfile.c_str(), "w9b");
   gzwrite(out_file, &quantizer.quantum, sizeof(Real));
@@ -1501,15 +1501,14 @@ void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
     for (int irow = 0; irow < nrow; irow += stride) {
       if (row_counter % 2 == 0 && l != nlevel) {
         for (int jcol = Cstride; jcol < ncol; jcol += Cstride) {
-          const int n =
-              quantizer.quantize(v[get_index(ncol, irow, jcol - stride)]);
+          const int n = quantizer(v[get_index(ncol, irow, jcol - stride)]);
           if (n == 0)
             ++prune_count;
           gzwrite(out_file, &n, sizeof(int));
         }
       } else {
         for (int jcol = 0; jcol < ncol; jcol += stride) {
-          const int n = quantizer.quantize(v[get_index(ncol, irow, jcol)]);
+          const int n = quantizer(v[get_index(ncol, irow, jcol)]);
           if (n == 0)
             ++prune_count;
           gzwrite(out_file, &n, sizeof(int));
@@ -1534,14 +1533,14 @@ void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
   ////std::cout  << "Norm of sorts: " << norm << "\n";
 
   //    Real quantizer = 2.0*norm * tol;
-  const mgard::Quantizer<Real, int> quantizer(norm * tol);
+  const mgard::LinearQuantizer<Real, int> quantizer(norm * tol);
   ////std::cout  << "Quantization factor: " << quantizer << "\n";
   std::memcpy(work.data(), &quantizer.quantum, sizeof(Real));
 
   int prune_count = 0;
 
   for (int index = 0; index < ncol * nrow; ++index) {
-    const int n = quantizer.quantize(v[index]);
+    const int n = quantizer(v[index]);
     work[index + size_ratio] = n;
     if (n == 0)
       ++prune_count;
@@ -1558,10 +1557,10 @@ void dequantize_2D_interleave(const int nrow, const int ncol, Real *v,
 
   Real quantum;
   std::memcpy(&quantum, work.data(), sizeof(Real));
-  const mgard::Quantizer<Real, int> quantizer(quantum);
+  const mgard::LinearDequantizer<int, Real> quantizer(quantum);
 
   for (int index = 0; index < nrow * ncol; ++index) {
-    v[index] = quantizer.dequantize(work[index + size_ratio]);
+    v[index] = quantizer(work[index + size_ratio]);
   }
 }
 
@@ -1582,14 +1581,14 @@ void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
     }
   }
 
-  const mgard::Quantizer<Real, int> quantizer(norm * tol / (nlevel + 1));
+  const mgard::LinearQuantizer<Real, int> quantizer(norm * tol / (nlevel + 1));
 
   gzFile out_file = gzopen(outfile.c_str(), "w6b");
   gzwrite(out_file, &quantizer.quantum, sizeof(Real));
 
   int prune_count = 0;
   for (auto index = 0; index < ncol * nrow; ++index) {
-    const int n = quantizer.quantize(v[index]);
+    const int n = quantizer(v[index]);
     if (n == 0)
       ++prune_count;
     gzwrite(out_file, &n, sizeof(int));
@@ -1615,7 +1614,7 @@ void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
   unzipped_bytes = gzread(in_file_z, unzip_buffer,
                           sizeof(Real)); // read the quantization constant
   std::memcpy(&quantum, &unzip_buffer, unzipped_bytes);
-  const mgard::Quantizer<Real, int> quantizer(quantum);
+  const mgard::LinearDequantizer<int, Real> dequantizer(quantum);
 
   int last = 0;
   while (true) {
@@ -1627,7 +1626,7 @@ void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
 
       std::memcpy(&int_buffer, &unzip_buffer, unzipped_bytes);
       for (int i = 0; i < num_int; ++i) {
-        v[last] = quantizer.dequantize(int_buffer[i]);
+        v[last] = dequantizer(int_buffer[i]);
         ++last;
       }
     } else {
