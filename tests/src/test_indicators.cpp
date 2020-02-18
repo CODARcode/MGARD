@@ -24,11 +24,12 @@ static double
 unscaled_indicator(const mgard::MultilevelCoefficients<double> u_mc,
                    const mgard::MeshHierarchy &hierarchy, const float s) {
   double unscaled_square_indicator = 0;
+  double const *p = u_mc.data;
   for (const mgard::IndicatorInput input :
-       mgard::IndicatorInputRange(hierarchy, u_mc)) {
+       mgard::IndicatorInputRange(hierarchy)) {
+    const double coefficient = *p++;
     unscaled_square_indicator +=
-        input.coefficient * input.coefficient *
-        mgard::square_indicator_factor<double>(input, s);
+        coefficient * coefficient * mgard::square_indicator_factor(input, s);
   }
   return std::sqrt(unscaled_square_indicator);
 }

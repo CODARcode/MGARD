@@ -25,10 +25,8 @@ RatioBounds s_square_indicator_bounds(const MeshHierarchy &hierarchy);
 //!\param input Mesh index, mesh, node, and multilevel coefficient needed to
 //! compute the square indicator coefficient.
 //\param s Smoothness parameter.
-template <typename Real>
-Real square_indicator_factor(const IndicatorInput<Real> input, const float s);
+float square_indicator_factor(const IndicatorInput input, const float s);
 
 } // namespace mgard
 
-#include "indicators.tpp"
 #endif
