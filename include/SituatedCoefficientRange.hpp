@@ -15,6 +15,8 @@
 
 namespace mgard {
 
+//! 'New' nodes at a level in a mesh hierarchy and the associated multilevel
+//! coefficients.
 template <typename Real>
 class SituatedCoefficientRange
     : public ZippedRange<moab::Range::const_iterator, Real const *> {

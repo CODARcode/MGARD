@@ -61,7 +61,7 @@ template <typename It> struct Enumeration {
   //!\param end Iterator to the end of the range to be iterated over.
   Enumeration(const It begin, const It end);
 
-  //!\override
+  //!\overload
   //!
   //!\param container Container to be iterated over.
   template <typename T> Enumeration(const T &container);
@@ -162,7 +162,7 @@ template <typename It, typename Jt> struct ZippedRange {
               const Jt end_second);
 
   template <typename T, typename U>
-  //!\override
+  //!\overload
   //!
   //!\param container_first First container to be iterated over.
   //!\param container_second Second container to be iterated over.

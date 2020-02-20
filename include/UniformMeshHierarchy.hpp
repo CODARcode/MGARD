@@ -103,7 +103,7 @@ private:
   EdgeFamilyIterable<moab::Range::iterator>
   edge_families(const std::size_t l) const;
 
-  //!\override
+  //!\overload
   //!
   //!\param l Index of the mesh begin refined. Must be less than `L`.
   //!\param begin Beginning of edge range.
