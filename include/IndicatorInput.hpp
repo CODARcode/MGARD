@@ -65,6 +65,7 @@ bool operator==(const IndicatorInputRange &a, const IndicatorInputRange &b);
 //! Inequality comparison.
 bool operator!=(const IndicatorInputRange &a, const IndicatorInputRange &b);
 
+//! Iterator over a range of auxiliary mesh data.
 class IndicatorInputRange::iterator
     : public std::iterator<std::input_iterator_tag, IndicatorInput> {
 public:
@@ -85,7 +86,7 @@ public:
   //! Inequality comparison.
   bool operator!=(const iterator &other) const;
 
-  // Preincrement.
+  //! Preincrement.
   iterator &operator++();
 
   //! Postincrement.

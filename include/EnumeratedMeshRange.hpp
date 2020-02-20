@@ -11,6 +11,7 @@
 
 namespace mgard {
 
+//! Indexed mesh levels from a mesh hierarchy.
 class EnumeratedMeshRange
     : public Enumeration<std::vector<MeshLevel>::const_iterator> {
 public:

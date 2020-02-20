@@ -67,6 +67,8 @@ template <typename Real, typename Int>
 bool operator==(const MultilevelCoefficientQuantizer<Real, Int> &a,
                 const MultilevelCoefficientQuantizer<Real, Int> &b);
 
+//! Iterator used to traverse a range of multilevel coefficients, quantizing as
+//! it is dereferenced.
 template <typename Real, typename Int>
 class MultilevelCoefficientQuantizer<Real, Int>::iterator
     : public std::iterator<std::input_iterator_tag, Int> {
@@ -124,7 +126,7 @@ public:
   //!
   //!\param input Auxiliary mesh data needed to compute the associated indicator
   //! coefficient factor.
-  //!\param coefficient Quantized multilevel coefficient to be dequantized.
+  //!\param n Quantized multilevel coefficient to be dequantized.
   Real operator()(const IndicatorInput input, const Int n) const;
 
   //! Iterator used to traverse a dequantized range. Note that the iterator is
@@ -133,8 +135,8 @@ public:
 
   //! Dequantize a set of quantized multilevel coefficients.
   //!
-  //!\param It begin Beginning of quantized range.
-  //!\param It end End of quantized range.
+  //!\param begin Beginning of quantized range.
+  //!\param end End of quantized range.
   //!
   //! `begin` must point to the first quantized multilevel coefficient, and
   //! `end` must point one beyond the last. In particular, this function cannot
@@ -168,6 +170,8 @@ template <typename Int, typename Real>
 bool operator==(const MultilevelCoefficientDequantizer<Int, Real> &a,
                 const MultilevelCoefficientDequantizer<Int, Real> &b);
 
+//! Iterator used to traverse a range of quantized multilevel coefficients,
+//! dequantizing as it is dereferenced.
 template <typename Int, typename Real>
 template <typename It>
 class MultilevelCoefficientDequantizer<Int, Real>::iterator
@@ -179,6 +183,7 @@ class MultilevelCoefficientDequantizer<Int, Real>::iterator
 public:
   //! Constructor.
   //!
+  //!\param dequantizer Associated multilevel coefficient dequantizer.
   //!\param inner_input Position in the auxiliary data range.
   //!\param inner_qc Position in the quantized multilevel coefficient range.
   iterator(const MultilevelCoefficientDequantizer &dequantizer,
