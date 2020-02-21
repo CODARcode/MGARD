@@ -6,9 +6,9 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-  double step, result, tol = 0.0000001;
+  double step, result, tol = 0.1;
   int out_size;
-  const int npoints = 8;
+  const int npoints = 64;
   double v[npoints];
   unsigned char *compressed_data = 0;
 
