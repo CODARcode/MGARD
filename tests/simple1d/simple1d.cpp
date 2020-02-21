@@ -6,9 +6,9 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-  double step, result, tol = 0.001;
+  double step, result, tol = 0.0000001;
   int out_size;
-  const int npoints = 64;
+  const int npoints = 8;
   double v[npoints];
   unsigned char *compressed_data = 0;
 
@@ -33,8 +33,8 @@ int main(int argc, char **argv) {
       max_abserr = abserr;
     }
 
-    if (max < v[i]) {
-      max = v[i];
+    if (max < abs(v[i])) {
+      max = abs(v[i]);
     }
   }
 
