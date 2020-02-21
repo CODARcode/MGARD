@@ -33,8 +33,8 @@ int main(int argc, char **argv) {
       max_abserr = abserr;
     }
 
-    if (max < v[i]) {
-      max = v[i];
+    if (max < abs(v[i])) {
+      max = abs(v[i]);
     }
   }
 
