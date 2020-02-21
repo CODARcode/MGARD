@@ -9,38 +9,25 @@
 namespace mgard {
 
 //! Bounds relating an estimator (or indicator norm) to the corresponding norm
-//!(or estimator). If `estimate` is the !estimate and `norm` the corresponding
+//!(or estimator). If `estimate` is the estimate and `norm` the corresponding
 //! norm, we will have
 //!    realism * estimate <= norm <= reliability * estimate
 //!
 //! Note: I don't expect the user to ever instantiate this.
 struct RatioBounds {
   //! Realism constant, controlling how much smaller the norm can be.
-  double realism;
+  float realism;
 
   //! Reliability constant, controlling how much larger the norm can be.
-  double reliability;
+  float reliability;
 };
 
-//! Upper and lower bounds on a norm.
+//! Compute the factors by which to scale the square `s` estimator to bound the
+//! square `s` norm below and above.
 //!
-//! Note: I don't expect the user to ever instantiate this.
-struct SandwichBounds {
-  //! Constructor.
-  //!
-  //!\param [in] bounds Bounds for the 'bread.'
-  //!\param [in] unscaled Estimate for the 'meat.'
-  SandwichBounds(const RatioBounds bounds, const double unscaled);
-
-  //! Lower bound for the norm.
-  double lower;
-
-  //! Unscaled estimate.
-  double unscaled;
-
-  //! Upper bound for the norm.
-  double upper;
-};
+//!\param hierarchy Mesh hierarchy on which the estimators and norms are
+//! computed.
+RatioBounds s_square_estimator_bounds(const MeshHierarchy &hierarchy);
 
 //! Compute the estimator of a norm of a function on a mesh hierarchy.
 //!
@@ -52,8 +39,8 @@ struct SandwichBounds {
 //!
 //! If `s` is `+inf`, the estimator for the `L^inf` norm (supremum norm) is
 //! calculated. Otherwise, the estimator for the '`s` norm' is calculated.
-SandwichBounds estimator(const MultilevelCoefficients<double> u,
-                         const MeshHierarchy &hierarchy, const double s);
+double estimator(const MultilevelCoefficients<double> u,
+                 const MeshHierarchy &hierarchy, const float s);
 
 } // namespace mgard
 

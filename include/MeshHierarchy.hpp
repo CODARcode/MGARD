@@ -14,6 +14,7 @@
 
 #include "MeshLevel.hpp"
 #include "data.hpp"
+#include "utilities.hpp"
 
 namespace mgard {
 
@@ -58,31 +59,43 @@ public:
   //!\param l Index of the MeshLevel.
   std::size_t ndof(const std::size_t l) const;
 
+  //! Report the number of degrees of freedom that are 'old' from the
+  //! perspective of a particular level in the hierarchy.
+  //!
+  //!\param l Mesh index.
+  std::size_t ndof_old(const std::size_t l) const;
+
+  //! Report the number of degrees of freedom that are 'new' from the
+  //! perspective of a particular level in the hierarchy.
+  //!
+  //!\param l Mesh index.
+  std::size_t ndof_new(const std::size_t l) const;
+
   //! Access the 'old' nodes of a level.
   //!
-  //!\param [in] Index of the MeshLevel.
-  moab::Range old_nodes(const std::size_t l) const;
+  //!\param [in] l Index of the MeshLevel.
+  RangeSlice<moab::Range::const_iterator> old_nodes(const std::size_t l) const;
 
   //! Access the 'new' nodes of a level.
   //!
-  //!\param [in] Index of the MeshLevel.
-  moab::Range new_nodes(const std::size_t l) const;
+  //!\param [in] l Index of the MeshLevel.
+  RangeSlice<moab::Range::const_iterator> new_nodes(const std::size_t l) const;
 
   //! Access the subset of a dataset associated to the 'old' nodes of a
   //! level.
   //!
   //!\param [in] u Values associated to nodes.
   //!\param [in] l Index of the MeshLevel.
-  double *on_old_nodes(const HierarchyCoefficients<double> u,
-                       const std::size_t l) const;
+  RangeSlice<double *> on_old_nodes(const HierarchyCoefficients<double> u,
+                                    const std::size_t l) const;
 
   //! Access the subset of a dataset associated to the 'new' nodes of a
   //! level.
   //!
   //!\param [in] u Values associated to nodes.
   //!\param [in] l Index of the MeshLevel.
-  double *on_new_nodes(const HierarchyCoefficients<double> u,
-                       const std::size_t l) const;
+  RangeSlice<double *> on_new_nodes(const HierarchyCoefficients<double> u,
+                                    const std::size_t l) const;
 
   //! Transform from nodal coefficients to multilevel coefficients.
   //!
@@ -258,15 +271,19 @@ protected:
 private:
   virtual std::size_t do_ndof(const std::size_t l) const;
 
-  virtual moab::Range do_old_nodes(const std::size_t l) const;
+  virtual RangeSlice<moab::Range::const_iterator>
+  do_old_nodes(const std::size_t l) const;
 
-  virtual moab::Range do_new_nodes(const std::size_t l) const;
+  virtual RangeSlice<moab::Range::const_iterator>
+  do_new_nodes(const std::size_t l) const;
 
-  virtual double *do_on_old_nodes(const HierarchyCoefficients<double> u,
-                                  const std::size_t) const;
+  virtual RangeSlice<double *>
+  do_on_old_nodes(const HierarchyCoefficients<double> u,
+                  const std::size_t) const;
 
-  virtual double *do_on_new_nodes(const HierarchyCoefficients<double> u,
-                                  const std::size_t l) const;
+  virtual RangeSlice<double *>
+  do_on_new_nodes(const HierarchyCoefficients<double> u,
+                  const std::size_t l) const;
 
   virtual std::size_t do_scratch_space_needed() const;
 
@@ -318,6 +335,12 @@ private:
       const HierarchyCoefficients<double> u, const std::size_t l,
       double *const b) const = 0;
 };
+
+//! Equality comparison.
+bool operator==(const MeshHierarchy &a, const MeshHierarchy &b);
+
+//! Inequality comparison.
+bool operator==(const MeshHierarchy &a, const MeshHierarchy &b);
 
 } // namespace mgard
 

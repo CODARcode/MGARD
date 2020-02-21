@@ -10,7 +10,7 @@ endif
 
 ARFLAGS := -rcs
 
-MKDIR := mkdir
+MKDIR := mkdir --parents
 RMDIR := rmdir
 
 DIR_INC := include
@@ -28,10 +28,10 @@ unstructured@DIRECTORIES_INCLUDE := $(DIR_INC) $(HOME)/.local/include
 benchmarks@DIRECTORIES_INCLUDE := $(DIR_INC) $(HOME)/.local/include
 
 structured@CXXFLAGS := -std=c++11 -fPIC
-unstructured@CXXFLAGS := -std=c++17 -Wfatal-errors -Wall -Wextra
+unstructured@CXXFLAGS := -std=c++17 -Wfatal-errors -Wall -Wextra -fPIC
 
 structured@LDFLAGS :=
-unstructured@LDFLAGS := -L$(HOME)/.local/lib -Wl,-rpath=$(HOME)/.local/lib
+unstructured@LDFLAGS := -L/usr/lib/x86_64-linux-gnu/hdf5/serial -L$(HOME)/.local/lib
 benchmarks@LDFLAGS := $(unstructured@LDFLAGS)
 
 structured@LDLIBS := -lz -ldl
@@ -41,13 +41,13 @@ benchmarks@LDLIBS := -lbenchmark -lbenchmark_main -pthread $(structured@LDLIBS) 
 dirty@FILES =
 dirty@DIRECTORIES =
 
-structured@MGARD_STEMS := mgard_api mgard mgard_nuni mgard_api_float mgard_float mgard_nuni_float
+structured@MGARD_STEMS := mgard_api mgard mgard_nuni mgard_compress mgard_mesh
 structured@TEST_STEMS := mgard_test
 structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
 
 #Tested but not compiled. `$(STEM).hpp` exists, `$(STEM).tpp` might exist, and `$(STEM).cpp` does not exist.
-unstructured@HEADER_ONLY := blas utilities data UniformEdgeFamilies
-unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy UniformRestriction norms estimators
+unstructured@HEADER_ONLY := blas utilities data UniformEdgeFamilies LinearQuantizer SituatedCoefficientRange IndicatorInput
+unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy UniformRestriction norms estimators EnumeratedMeshRange indicators
 unstructured@STEMS = $(unstructured@MGARD_STEMS)
 
 tests@DIR_ROOT := tests
@@ -133,7 +133,7 @@ check: $(tests@EXECUTABLE)
 
 $(tests@SCRIPT): LDFLAGS += $(structured@LDFLAGS)
 $(tests@SCRIPT): LDLIBS += $(structured@LDLIBS)
-$(eval $(call link-cpp,$(foreach STEM,$(structured@STEMS),$(call stem-to-object,$(STEM))),$(tests@SCRIPT)))
+$(eval $(call link-cpp,$(foreach STEM,$(structured@TEST_STEMS),$(call stem-to-object,$(STEM))) $(structured@LIB),$(tests@SCRIPT)))
 
 $(tests@EXECUTABLE): LDFLAGS += $(unstructured@LDFLAGS)
 $(tests@EXECUTABLE): LDLIBS += $(unstructured@LDLIBS)

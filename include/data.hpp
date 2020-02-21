@@ -27,6 +27,9 @@ public:
   T *const data;
 };
 
+// No equality comparisons here. Don't want to accidentally compare `{Nodal,
+// Multilevel}Coefficients}`.
+
 // Repeating the declarations rather than using a macro so that Doxygen can see
 // the documentation. Maybe there is some workaround.
 
@@ -43,6 +46,14 @@ public:
   template <typename U> operator NodalCoefficients<U>() const;
 };
 
+//! Equality comparison.
+template <typename T>
+bool operator==(const NodalCoefficients<T> &a, const NodalCoefficients<T> &b);
+
+//! Inequality comparison.
+template <typename T>
+bool operator!=(const NodalCoefficients<T> &a, const NodalCoefficients<T> &b);
+
 //! Multilevel coefficients for a function defined on a mesh hierarchy.
 template <typename T>
 class MultilevelCoefficients : public HierarchyCoefficients<T> {
@@ -56,18 +67,15 @@ public:
   template <typename U> operator MultilevelCoefficients<U>() const;
 };
 
-//! Indicator coefficients for a function defined on a mesh hierarchy.
+//! Equality comparison.
 template <typename T>
-class IndicatorCoefficients : public HierarchyCoefficients<T> {
-public:
-  //! Constructor.
-  //!
-  //!\param data Dataset.
-  IndicatorCoefficients(T *const data);
+bool operator==(const MultilevelCoefficients<T> &a,
+                const MultilevelCoefficients<T> &b);
 
-  //! Conversion.
-  template <typename U> operator IndicatorCoefficients<U>() const;
-};
+//! Inequality comparison.
+template <typename T>
+bool operator!=(const MultilevelCoefficients<T> &a,
+                const MultilevelCoefficients<T> &b);
 
 } // namespace mgard
 

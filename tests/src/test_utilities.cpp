@@ -3,6 +3,8 @@
 #include <cstddef>
 
 #include <algorithm>
+#include <array>
+#include <vector>
 
 #include "utilities.hpp"
 
@@ -54,4 +56,52 @@ TEST_CASE("PseudoArray iteration", "[utilities]") {
     // On the other hand, negative lengths are not allowed.
     REQUIRE_THROWS(mgard::PseudoArray<double>(NULL, -1));
   }
+}
+
+TEST_CASE("Enumeration iteration", "[utilities]") {
+  const std::vector<float> xs = {-1.375, 0, 732.5, -0.875};
+  std::vector<std::size_t> indices;
+  std::vector<float> values;
+  for (auto pair : mgard::Enumeration<std::vector<float>::const_iterator>(xs)) {
+    indices.push_back(pair.index);
+    values.push_back(pair.value);
+  }
+  const std::vector<std::size_t> expected_indices = {0, 1, 2, 3};
+  REQUIRE(indices == expected_indices);
+  REQUIRE(values == xs);
+
+  // This compiles and we never execute the body of the loop.
+  const std::vector<int> ys;
+  for (auto pair : mgard::Enumeration<std::vector<int>::const_iterator>(ys)) {
+    // Using `pair` so the compiler doesn't complain.
+    static_cast<void>(pair);
+    REQUIRE(false);
+  }
+}
+
+TEST_CASE("ZippedRange iteration", "[utilities]") {
+  using T = std::vector<float>;
+  using U = std::array<unsigned short int, 5>;
+  const T xs = {-3.28, 17.37, 0, 0.2388, -99.1};
+  const U ys = {12, 0, 0, 77, 3};
+  std::size_t i = 0;
+  bool all_equal = true;
+  using It = T::const_iterator;
+  using Jt = U::const_iterator;
+  for (auto pair : mgard::ZippedRange<It, Jt>(xs, ys)) {
+    all_equal = all_equal && pair.first == xs.at(i) && pair.second == ys.at(i);
+    ++i;
+  }
+  REQUIRE(all_equal);
+}
+
+TEST_CASE("RangeSlice iteration", "[utilities]") {
+  const std::array<int, 8> xs = {2, 3, 5, 7, 11, 13, 17, 19};
+  std::vector<int> middle;
+  using It = std::array<int, 8>::const_iterator;
+  for (const int x : mgard::RangeSlice<It>{xs.begin() + 2, xs.end() - 2}) {
+    middle.push_back(x);
+  }
+  const std::vector<int> expected_middle = {5, 7, 11, 13};
+  REQUIRE(middle == expected_middle);
 }
