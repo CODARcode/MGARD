@@ -5209,9 +5209,11 @@ void pi_Ql(const int nc, const int ncol, const int l, Real *v,
   //  std::vector<Real> row_vec(ncol), col_vec(nrow)   ;
 
   {
+    int ir =
+        mgard::get_lindex(1, 1, 0); // get the real location of logical index irow
     for (int jcol = 0; jcol < ncol; ++jcol) {
       //            int jcol_r = mgard::get_lindex(nc, ncol, jcol);
-      row_vec[jcol] = v[jcol];
+      row_vec[jcol] = v[mgard::get_index(ncol, ir, jcol)];
     }
 
     //        mgard_cannon::pi_lminus1(l, row_vec, coords_x);
@@ -5449,7 +5451,7 @@ void prep_1D(const int nc, const int ncol, const int l_target, Real *v,
 
   mgard_gen::solve_tridiag_M_l(0, row_vec, coords_x, nc, ncol);
 
-  add_level_l(0, v, work.data(), 1, nc, 1, ncol);
+  add_level_l(0, v, row_vec.data(), 1, nc, 1, ncol);
 }
 
 template <typename Real>
