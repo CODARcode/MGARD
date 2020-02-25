@@ -1,8 +1,9 @@
 #include "mgard_nuni.h"
 #include "mgard.h"
 #include "mgard_nuni_2d_cuda.h"
-#include "mgard_nuni_2d_cuda_opt.h"
+#include "mgard_nuni_2d_cuda_mass_mult_l.h"
 #include "mgard_cuda_helper.h"
+#include "mgard_cuda_compact_helper.h"
 #include "mgard_cuda_helper_internal.h"
 #include <fstream>
 #include <vector>
@@ -164,11 +165,11 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
 
   time = 0;
   for (int i = 0; i < repeat_test; i++) {
-    mgard_2d::mgard_gen::compact_to_2k_plus_1(nrow,  ncol,
-                           nr,    nc,
-                           dirow, dicol,
-                           dv,    lddv,
-                           dcv,   lddcv);
+    org_to_pow2p1(nrow,  ncol,
+                  nr,    nc,
+                  dirow, dicol,
+                  dv,    lddv,
+                  dcv,   lddcv);
     ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda(nrow,    ncol,
                                                      nr,    nc,
                                                      row_stride, col_stride,
@@ -231,10 +232,10 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
 
   time = 0;
   for (int i = 0; i < repeat_test; i++) {
-    mgard_2d::mgard_gen::original_to_compacted_cuda(nr,    nc,
-                                                    row_stride, col_stride,
-                                                    dcv,      lddcv,
-                                                    dcv2,     lddcv2);
+    pow2p1_to_cpt(nr,    nc,
+                  row_stride, col_stride,
+                  dcv,      lddcv,
+                  dcv2,     lddcv2);
 
     ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda(nr_l[0],    nc_l[l],
                                                     nr_l[0],    nc_l[l],
@@ -251,10 +252,10 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
 
   time = 0;
   for (int i = 0; i < repeat_test; i++) {
-    mgard_2d::mgard_gen::original_to_compacted_cuda(nr,    nc,
-                                                    row_stride, col_stride,
-                                                    dcv,      lddcv,
-                                                    dcv2,     lddcv2);
+    pow2p1_to_cpt(nr,    nc,
+                  row_stride, col_stride,
+                  dcv,      lddcv,
+                  dcv2,     lddcv2);
 
     ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l],
                                                     nr_l[0],    nc_l[l],
@@ -278,10 +279,10 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
 
       time = 0;
       for (int i = 0; i < repeat_test; i++) {
-        mgard_2d::mgard_gen::original_to_compacted_cuda(nr,    nc,
-                                                        row_stride, col_stride,
-                                                        dcv,      lddcv,
-                                                        dcv2,     lddcv2);
+        pow2p1_to_cpt(nr,    nc,
+                      row_stride, col_stride,
+                      dcv,      lddcv,
+                      dcv2,     lddcv2);
 
         ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l],
                                                         nr_l[0],    nc_l[l],
@@ -310,10 +311,10 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
 
       time = 0;
       for (int i = 0; i < repeat_test; i++) {
-        mgard_2d::mgard_gen::original_to_compacted_cuda(nr,    nc,
-                                                        row_stride, col_stride,
-                                                        dcv,      lddcv,
-                                                        dcv2,     lddcv2);
+        pow2p1_to_cpt(nr,    nc,
+                      row_stride, col_stride,
+                      dcv,      lddcv,
+                      dcv2,     lddcv2);
 
         ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm_pf(nr_l[0],    nc_l[l],
                                                         nr_l[0],    nc_l[l],

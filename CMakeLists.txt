@@ -71,19 +71,25 @@ find_package(ADIOS2)
 
 # Set library
 add_library(mgard
-  src/mgard.cpp       include/mgard.h
-  src/mgard_api.cpp  include/mgard_api.h
-  src/mgard_nuni.cpp  include/mgard_nuni.h
-  src/mgard_float.cpp       include/mgard_float.h
-  src/mgard_api_float.cpp  include/mgard_api_float.h
-  src/mgard_nuni_float.cpp  include/mgard_nuni_float.h
-  src/mgard_cuda.cu       include/mgard_cuda.h
-  src/mgard_nuni_2d_cuda.cu       include/mgard_nuni_2d_cuda.h
-  src/mgard_nuni_2d_cuda_opt.cu       include/mgard_nuni_2d_cuda_opt.h
-  src/mgard_api_cuda.cpp  include/mgard_api_cuda.h
-  #src/mgard_cuda_compacted.cu       include/mgard_cuda_compacted.h
+  src/mgard.cpp                     include/mgard.h
+  src/mgard_api.cpp                 include/mgard_api.h
+  src/mgard_nuni.cpp                include/mgard_nuni.h
+  src/mgard_float.cpp               include/mgard_float.h
+  src/mgard_api_float.cpp           include/mgard_api_float.h
+  src/mgard_nuni_float.cpp          include/mgard_nuni_float.h
+  src/mgard_cuda.cu                 include/mgard_cuda.h
+  src/mgard_nuni_2d_cuda.cu               include/mgard_nuni_2d_cuda.h
+  src/mgard_nuni_2d_cuda_cpt_l1.cu        include/mgard_nuni_2d_cuda_cpt_l1.h
+  src/mgard_nuni_2d_cuda_cpt_l2.cu        include/mgard_nuni_2d_cuda_cpt_l2.h
+  src/mgard_nuni_2d_cuda_cpt_l2_sm.cu     include/mgard_nuni_2d_cuda_cpt_l2_sm.h
+  src/mgard_nuni_2d_cuda_cpt_l2_sm_pf.cu  include/mgard_nuni_2d_cuda_cpt_l2_sm_pf.h
+  src/mgard_nuni_2d_cuda_mass_mult_l.cu   include/mgard_nuni_2d_cuda_mass_mult_l.h
+  src/mgard_nuni_2d_cuda_restriction_l.cu include/mgard_nuni_2d_cuda_restriction_l.h
+  src/mgard_nuni_2d_cuda_solve_tridiag_M_l.cu include/mgard_nuni_2d_cuda_solve_tridiag_M_l.h
+  src/mgard_api_cuda.cpp            include/mgard_api_cuda.h
   src/mgard_cuda_helper.cu          include/mgard_cuda_helper.h
   src/mgard_cuda_helper_internal.cu include/mgard_cuda_helper_internal.h
+  src/mgard_cuda_compact_helper.cu  include/mgard_cuda_compact_helper.h
 )
 target_include_directories(mgard
   PUBLIC
@@ -122,15 +128,14 @@ install(
   FILES include/mgard.h 
         include/mgard_api.h
         include/mgard_nuni.h
-	include/mgard_float.h 
+	      include/mgard_float.h 
         include/mgard_api_float.h
         include/mgard_nuni_float.h
-  	include/mgard_api_cuda.h
+  	    include/mgard_api_cuda.h
         include/mgard_cuda.h
-	#include/mgard_cuda_compacted.h
-	include/mgard_cuda_helper.h
-	include/mgard_cuda_helper_internal.h
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+	      include/mgard_cuda_helper.h
+	      include/mgard_cuda_helper_internal.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 # Add all targets to the build-tree export set

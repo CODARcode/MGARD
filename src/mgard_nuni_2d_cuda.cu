@@ -773,6 +773,11 @@ _solve_tridiag_M_l_row_cuda(int nrow,        int ncol,
     am = 2.0 * mgard_common::_get_dist(dcoords_x, dicol[0], dicol[col_stride]); //dicol[col_stride] - dicol[0]
     bm = mgard_common::_get_dist(dcoords_x, dicol[0], dicol[col_stride]) / am; //dicol[col_stride] - dicol[0]
 
+    // if (idx == 0) {
+    //   printf("true bm:\n");
+    //   printf("%f, ", bm);
+    // }
+
     int counter = 1;
     coeff[0] = am;
     for (int i = col_stride; i < nc - 1; i += col_stride) {
@@ -789,6 +794,10 @@ _solve_tridiag_M_l_row_cuda(int nrow,        int ncol,
       am = 2.0 * (h1 + h2) - bm * h1;
       bm = h2 / am;
 
+      // if (idx == 0) {
+      //   printf("%f, ", bm);
+      // }
+
       coeff[counter] = am;
       ++counter;
     }
@@ -800,6 +809,15 @@ _solve_tridiag_M_l_row_cuda(int nrow,        int ncol,
 
     vec[dicol[nc - 1]] -= vec[dicol[nc - 1 - col_stride]] * bm;
     coeff[counter] = am;
+
+    // if (idx == 0) {
+    //   // printf("h2 = %f\n", h2);
+    //   printf("\ntrue am:\n");
+    //   for (int i = 0; i < counter+1; i++) {
+    //     printf("%f, ", coeff[i] );
+    //   }
+    //   printf("\n");
+    // }
 
     /* Start of backward pass */
     vec[dicol[nc - 1]] /= am;

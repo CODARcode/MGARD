@@ -73,6 +73,8 @@ bool compare_matrix(int nrow, int ncol,
             }
         }
     }
+    if (correct) printf("Compare: correct.\n");
+    else printf("Compare: wrong.\n");
     return correct;
 }
 

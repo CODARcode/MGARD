@@ -1,3 +1,6 @@
+__device__ double
+_dist(double * dcoord, double x, double y);
+
 mgard_cuda_ret 
 org_to_pow2p1(int nrow,     int ncol,
               int nr,       int nc,
