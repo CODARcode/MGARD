@@ -36,7 +36,7 @@ int get_index3(const int ncol, const int nfib, const int i, const int j,
 int get_lindex(const int n, const int no, const int i) {
   // no: original number of points
   // n : number of points at next coarser level (L-1) with  2^k+1 nodes
-  return (i != n - 1 ? std::floor(i * static_cast<float>(no - 2) / (n - 2))
+  return (i != n - 1 ? std::floor(i * static_cast<double>(no - 2) / (n - 2))
                      : no - 1);
 }
 
