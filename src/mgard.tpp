@@ -612,7 +612,9 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(nrow * ncol + size_ratio);
 
-    tol /= dims.nlevel + 1;
+    // Uncomment the following. Otherwise the tolerence is divided twice.
+    // Q. Liu 3/2/2020.
+    //tol /= dims.nlevel + 1;
     mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
