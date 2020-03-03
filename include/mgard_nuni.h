@@ -242,12 +242,13 @@ void assign_num_level_l(const int l, Real *v, Real num, int nr, int nc,
                         const int nrow, const int ncol);
 
 template <typename Real>
-void restriction_first(std::vector<Real> &v, std::vector<Real> &coords, int n,
-                       int no);
+void restriction_first(std::vector<Real> &v, const std::vector<Real> &coords,
+                       const int n, const int no);
 
 template <typename Real>
 void solve_tridiag_M_l(const int l, std::vector<Real> &v,
-                       std::vector<Real> &coords, int n, int no);
+                       const std::vector<Real> &coords, const int n,
+                       const int no);
 
 template <typename Real>
 void add_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
@@ -275,18 +276,19 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
 template <typename Real>
-void mass_mult_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
-                 const int n, const int no);
+void mass_mult_l(const int l, std::vector<Real> &v,
+                 const std::vector<Real> &coords, const int n, const int no);
 
 template <typename Real>
-void restriction_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
-                   int n, int no);
+void restriction_l(const int l, std::vector<Real> &v,
+                   const std::vector<Real> &coords, const int n, const int no);
 
 template <typename Real>
-Real ml2_norm3(const int l, int nr, int nc, int nf, int nrow, int ncol,
-               int nfib, const std::vector<Real> &v,
-               std::vector<Real> &coords_x, std::vector<Real> &coords_y,
-               std::vector<Real> &coords_z);
+Real ml2_norm3(const int l, const int nr, const int nc, const int nf,
+               const int nrow, int ncol, const int nfib,
+               const std::vector<Real> &v, const std::vector<Real> &coords_x,
+               const std::vector<Real> &coords_y,
+               const std::vector<Real> &coords_z);
 
 template <typename Real>
 void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
@@ -306,12 +308,13 @@ void refactor_2D_first(const int nr, const int nc, const int nrow,
                        std::vector<Real> &col_vec);
 
 template <typename Real>
-void copy3_level_l(const int l, Real *v, Real *work, int nr, int nc, int nf,
-                   int nrow, int ncol, int nfib);
+void copy3_level_l(const int l, Real const *const v, Real *const work,
+                   const int nr, const int nc, const int nf, const int nrow,
+                   const int ncol, const int nfib);
 
 template <typename Real>
-void copy3_level(const int l, Real *v, Real *work, int nrow, int ncol,
-                 int nfib);
+void copy3_level(const int l, Real const *const v, Real *const work,
+                 const int nrow, const int ncol, const int nfib);
 
 template <typename Real>
 void assign3_level_l(const int l, Real *v, Real num, int nr, int nc, int nf,
@@ -397,16 +400,6 @@ template <typename Real>
 void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
                  const int nlevel, const int l, Real *v, Real tol, Real norm,
                  const std::string outfile);
-
-template <typename Real>
-Real qoi_norm(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
-              std::vector<Real> &coords_y, std::vector<Real> &coords_z,
-              Real (*qoi)(int, int, int, std::vector<Real>), Real s);
-
-template <typename Real>
-Real qoi_norm(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
-              std::vector<Real> &coords_y, std::vector<Real> &coords_z,
-              Real (*qoi)(int, int, int, Real *), Real s);
 
 } // namespace mgard_gen
 
@@ -524,12 +517,13 @@ void assign_num_level_l(const int l, Real *v, Real num, int nr, int nc,
                         const int nrow, const int ncol);
 
 template <typename Real>
-void restriction_first(std::vector<Real> &v, std::vector<Real> &coords, int n,
-                       int no);
+void restriction_first(std::vector<Real> &v, const std::vector<Real> &coords,
+                       const int n, const int no);
 
 template <typename Real>
 void solve_tridiag_M_l(const int l, std::vector<Real> &v,
-                       std::vector<Real> &coords, int n, int no);
+                       const std::vector<Real> &coords, const int n,
+                       const int no);
 
 template <typename Real>
 void add_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
@@ -547,12 +541,12 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
 template <typename Real>
-void mass_mult_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
-                 const int n, const int no);
+void mass_mult_l(const int l, std::vector<Real> &v,
+                 const std::vector<Real> &coords, const int n, const int no);
 
 template <typename Real>
-void restriction_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
-                   int n, int no);
+void restriction_l(const int l, std::vector<Real> &v,
+                   const std::vector<Real> &coords, const int n, const int no);
 
 template <typename Real>
 void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,

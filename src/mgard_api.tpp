@@ -14,6 +14,7 @@
 #include <numeric>
 
 #include "mgard.h"
+#include "mgard_norms.hpp"
 #include "mgard_nuni.h"
 
 template <typename Real>
@@ -147,8 +148,8 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
     std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-    Real xi_norm = mgard_gen::qoi_norm(nrow, ncol, nfib, coords_x, coords_y,
-                                       coords_z, qoi, s);
+    Real xi_norm =
+        mgard::qoi_norm(nrow, ncol, nfib, coords_x, coords_y, coords_z, qoi, s);
     tol *= xi_norm;
     mgard_compressed_ptr =
         mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, -s);
@@ -165,8 +166,8 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
     std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-    Real xi_norm = mgard_gen::qoi_norm(nrow, ncol, nfib, coords_x, coords_y,
-                                       coords_z, qoi, s);
+    Real xi_norm =
+        mgard::qoi_norm(nrow, ncol, nfib, coords_x, coords_y, coords_z, qoi, s);
     tol *= xi_norm;
 
     mgard_compressed_ptr =
@@ -251,8 +252,8 @@ Real mgard_compress(int nrow, int ncol, int nfib,
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-  Real xi_norm = mgard_gen::qoi_norm(nrow, ncol, nfib, coords_x, coords_y,
-                                     coords_z, qoi, s);
+  Real xi_norm =
+      mgard::qoi_norm(nrow, ncol, nfib, coords_x, coords_y, coords_z, qoi, s);
 
   return xi_norm;
 }
@@ -267,8 +268,8 @@ Real mgard_compress(int nrow, int ncol, int nfib,
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-  Real xi_norm = mgard_gen::qoi_norm(nrow, ncol, nfib, coords_x, coords_y,
-                                     coords_z, qoi, s);
+  Real xi_norm =
+      mgard::qoi_norm(nrow, ncol, nfib, coords_x, coords_y, coords_z, qoi, s);
 
   return xi_norm;
 }
