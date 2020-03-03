@@ -419,20 +419,20 @@ template void assign_num_level_l<double>(const int l, double *v, double num,
                                          const int ncol);
 
 template void restriction_first<float>(std::vector<float> &v,
-                                       std::vector<float> &coords, int n,
-                                       int no);
+                                       const std::vector<float> &coords,
+                                       const int n, const int no);
 
 template void restriction_first<double>(std::vector<double> &v,
-                                        std::vector<double> &coords, int n,
-                                        int no);
+                                        const std::vector<double> &coords,
+                                        const int n, const int no);
 
 template void solve_tridiag_M_l<float>(const int l, std::vector<float> &v,
-                                       std::vector<float> &coords, int n,
-                                       int no);
+                                       const std::vector<float> &coords,
+                                       const int n, const int no);
 
 template void solve_tridiag_M_l<double>(const int l, std::vector<double> &v,
-                                        std::vector<double> &coords, int n,
-                                        int no);
+                                        const std::vector<double> &coords,
+                                        const int n, const int no);
 
 template void add_level_l<float>(const int l, float *v, float *work, int nr,
                                  int nc, int nrow, int ncol);
@@ -479,31 +479,34 @@ prep_2D<double>(const int nr, const int nc, const int nrow, const int ncol,
                 std::vector<double> &row_vec, std::vector<double> &col_vec);
 
 template void mass_mult_l<float>(const int l, std::vector<float> &v,
-                                 std::vector<float> &coords, const int n,
+                                 const std::vector<float> &coords, const int n,
                                  const int no);
 
 template void mass_mult_l<double>(const int l, std::vector<double> &v,
-                                  std::vector<double> &coords, const int n,
-                                  const int no);
+                                  const std::vector<double> &coords,
+                                  const int n, const int no);
 
 template void restriction_l<float>(const int l, std::vector<float> &v,
-                                   std::vector<float> &coords, int n, int no);
+                                   const std::vector<float> &coords,
+                                   const int n, const int no);
 
 template void restriction_l<double>(const int l, std::vector<double> &v,
-                                    std::vector<double> &coords, int n, int no);
+                                    const std::vector<double> &coords,
+                                    const int n, const int no);
 
-template float ml2_norm3<float>(const int l, int nr, int nc, int nf, int nrow,
-                                int ncol, int nfib, const std::vector<float> &v,
-                                std::vector<float> &coords_x,
-                                std::vector<float> &coords_y,
-                                std::vector<float> &coords_z);
+template float ml2_norm3<float>(const int l, const int nr, const int nc,
+                                const int nf, const int nrow, const int ncol,
+                                const int nfib, const std::vector<float> &v,
+                                const std::vector<float> &coords_x,
+                                const std::vector<float> &coords_y,
+                                const std::vector<float> &coords_z);
 
-template double ml2_norm3<double>(const int l, int nr, int nc, int nf, int nrow,
-                                  int ncol, int nfib,
-                                  const std::vector<double> &v,
-                                  std::vector<double> &coords_x,
-                                  std::vector<double> &coords_y,
-                                  std::vector<double> &coords_z);
+template double ml2_norm3<double>(const int l, const int nr, const int nc,
+                                  const int nf, const int nrow, const int ncol,
+                                  const int nfib, const std::vector<double> &v,
+                                  const std::vector<double> &coords_x,
+                                  const std::vector<double> &coords_y,
+                                  const std::vector<double> &coords_z);
 
 template void prolongate_l<float>(const int l, std::vector<float> &v,
                                   std::vector<float> &coords, int n, int no);
@@ -537,19 +540,23 @@ template void refactor_2D_first<double>(
     std::vector<double> &coords_x, std::vector<double> &coords_y,
     std::vector<double> &row_vec, std::vector<double> &col_vec);
 
-template void copy3_level_l<float>(const int l, float *v, float *work, int nr,
-                                   int nc, int nf, int nrow, int ncol,
-                                   int nfib);
+template void copy3_level_l<float>(const int l, float const *const v,
+                                   float *const work, const int nr,
+                                   const int nc, const int nf, const int nrow,
+                                   const int ncol, const int nfib);
 
-template void copy3_level_l<double>(const int l, double *v, double *work,
-                                    int nr, int nc, int nf, int nrow, int ncol,
-                                    int nfib);
+template void copy3_level_l<double>(const int l, double const *const v,
+                                    double *const work, const int nr,
+                                    const int nc, const int nf, const int nrow,
+                                    const int ncol, const int nfib);
 
-template void copy3_level<float>(const int l, float *v, float *work, int nrow,
-                                 int ncol, int nfib);
+template void copy3_level<float>(const int l, const float *const v,
+                                 float *const work, const int nrow,
+                                 const int ncol, const int nfib);
 
-template void copy3_level<double>(const int l, double *v, double *work,
-                                  int nrow, int ncol, int nfib);
+template void copy3_level<double>(const int l, const double *const v,
+                                  double *const work, const int nrow,
+                                  const int ncol, const int nfib);
 
 template void assign3_level_l<float>(const int l, float *v, float num, int nr,
                                      int nc, int nf, int nrow, int ncol,
@@ -719,27 +726,6 @@ template void qwrite_2D_l<double>(const int nr, const int nc, const int nrow,
                                   const int ncol, const int nlevel, const int l,
                                   double *v, double tol, double norm,
                                   const std::string outfile);
-
-template float
-qoi_norm<float>(int nrow, int ncol, int nfib, std::vector<float> &coords_x,
-                std::vector<float> &coords_y, std::vector<float> &coords_z,
-                float (*qoi)(int, int, int, std::vector<float>), float s);
-
-template double
-qoi_norm<double>(int nrow, int ncol, int nfib, std::vector<double> &coords_x,
-                 std::vector<double> &coords_y, std::vector<double> &coords_z,
-                 double (*qoi)(int, int, int, std::vector<double>), double s);
-
-template float qoi_norm<float>(int nrow, int ncol, int nfib,
-                               std::vector<float> &coords_x,
-                               std::vector<float> &coords_y,
-                               std::vector<float> &coords_z,
-                               float (*qoi)(int, int, int, float *), float s);
-
-template double
-qoi_norm<double>(int nrow, int ncol, int nfib, std::vector<double> &coords_x,
-                 std::vector<double> &coords_y, std::vector<double> &coords_z,
-                 double (*qoi)(int, int, int, double *), double s);
 
 } // namespace mgard_gen
 
@@ -936,20 +922,20 @@ template void assign_num_level_l<double>(const int l, double *v, double num,
                                          const int ncol);
 
 template void restriction_first<float>(std::vector<float> &v,
-                                       std::vector<float> &coords, int n,
-                                       int no);
+                                       const std::vector<float> &coords,
+                                       const int n, const int no);
 
 template void restriction_first<double>(std::vector<double> &v,
-                                        std::vector<double> &coords, int n,
-                                        int no);
+                                        const std::vector<double> &coords,
+                                        const int n, const int no);
 
 template void solve_tridiag_M_l<float>(const int l, std::vector<float> &v,
-                                       std::vector<float> &coords, int n,
-                                       int no);
+                                       const std::vector<float> &coords,
+                                       const int n, const int no);
 
 template void solve_tridiag_M_l<double>(const int l, std::vector<double> &v,
-                                        std::vector<double> &coords, int n,
-                                        int no);
+                                        const std::vector<double> &coords,
+                                        const int n, const int no);
 
 template void add_level_l<float>(const int l, float *v, float *work, int nr,
                                  int nc, int nrow, int ncol);
@@ -980,18 +966,20 @@ prep_2D<double>(const int nr, const int nc, const int nrow, const int ncol,
                 std::vector<double> &row_vec, std::vector<double> &col_vec);
 
 template void mass_mult_l<float>(const int l, std::vector<float> &v,
-                                 std::vector<float> &coords, const int n,
+                                 const std::vector<float> &coords, const int n,
                                  const int no);
 
 template void mass_mult_l<double>(const int l, std::vector<double> &v,
-                                  std::vector<double> &coords, const int n,
-                                  const int no);
+                                  const std::vector<double> &coords,
+                                  const int n, const int no);
 
 template void restriction_l<float>(const int l, std::vector<float> &v,
-                                   std::vector<float> &coords, int n, int no);
+                                   const std::vector<float> &coords,
+                                   const int n, const int no);
 
 template void restriction_l<double>(const int l, std::vector<double> &v,
-                                    std::vector<double> &coords, int n, int no);
+                                    const std::vector<double> &coords,
+                                    const int n, const int no);
 
 template void prolongate_l<float>(const int l, std::vector<float> &v,
                                   std::vector<float> &coords, int n, int no);
