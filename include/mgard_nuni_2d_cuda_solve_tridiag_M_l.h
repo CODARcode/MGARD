@@ -7,20 +7,16 @@
 namespace mgard_2d {
 namespace mgard_gen {
 mgard_cuda_ret 
-solve_tridiag_M_l_row_cuda_sm(int nrow,       int ncol,
-                              int nr,         int nc,
+solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
-                              int * dirow,    int * dicol,
                               double * dv,    int lddv,
-                              double * dcoords_x,
+                              double * ddist_x,
                               int B, int ghost_col);
 mgard_cuda_ret 
-solve_tridiag_M_l_col_cuda_sm(int nrow,       int ncol,
-                              int nr,         int nc,
+solve_tridiag_M_l_col_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
-                              int * dirow,    int * dicol,
                               double * dv,    int lddv,
-                              double * dcoords_y,
+                              double * ddist_y,
                               int B, int ghost_row);
 }
 }

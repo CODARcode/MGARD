@@ -258,9 +258,7 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
                   dcv2,     lddcv2);
 
     ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l],
-                                                    nr_l[0],    nc_l[l],
                                                      1, 1,
-                                                     dcirow_l[0], dcicol_l[l],
                                                      dcv2,     lddcv2,
                                                      dccoords_x_l[l], 4, 2);
     time += ret.time;
@@ -285,9 +283,7 @@ void benchmark_mass_mult_l_row_org(int nrow, int ncol, int l, int l_target) {
                       dcv2,     lddcv2);
 
         ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l],
-                                                        nr_l[0],    nc_l[l],
                                                          1, 1,
-                                                         dcirow_l[0], dcicol_l[l],
                                                          dcv2,     lddcv2,
                                                          dccoords_x_l[l],
                                                          B, ghost_col);

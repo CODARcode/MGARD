@@ -536,22 +536,20 @@ solve_tridiag_M_l_row_backward_cuda_sm(int nr,         int nc,
 
 
 mgard_cuda_ret 
-solve_tridiag_M_l_row_cuda_sm(int nrow,       int ncol,
-                              int nr,         int nc,
+solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
-                              int * dirow,    int * dicol,
                               double * dv,    int lddv,
-                              double * dcoords_x,
+                              double * ddist_x,
                               int B, int ghost_col) {
-  double * ddist_x;
-  //int len_ddist_x = ceil((float)nc/col_stride)-1;
-  int len_ddist_x = ceil((float)nc/col_stride); // add one for better consistance for backward
-  cudaMallocHelper((void**)&ddist_x, len_ddist_x*sizeof(double));
-  calc_cpt_dist(nc, col_stride, dcoords_x, ddist_x);
-  // printf("dcoords_x %d:\n", nc);
-  // print_matrix_cuda(1, nc, dcoords_x, nc);
-  // printf("ddist_x:\n");
-  // print_matrix_cuda(1, len_ddist_x, ddist_x, len_ddist_x);
+  // double * ddist_x;
+  // //int len_ddist_x = ceil((float)nc/col_stride)-1;
+  // int len_ddist_x = ceil((float)nc/col_stride); // add one for better consistance for backward
+  // cudaMallocHelper((void**)&ddist_x, len_ddist_x*sizeof(double));
+  // calc_cpt_dist(nc, col_stride, dcoords_x, ddist_x);
+  // // printf("dcoords_x %d:\n", nc);
+  // // print_matrix_cuda(1, nc, dcoords_x, nc);
+  // // printf("ddist_x:\n");
+  // // print_matrix_cuda(1, len_ddist_x, ddist_x, len_ddist_x);
 
   mgard_cuda_ret tmp(0, 0.0);
   mgard_cuda_ret ret(0, 0.0);
@@ -559,13 +557,13 @@ solve_tridiag_M_l_row_cuda_sm(int nrow,       int ncol,
   double * bm;
   cudaMallocHelper((void**)&am, nc*sizeof(double));
   cudaMallocHelper((void**)&bm, nc*sizeof(double));
-  tmp = calc_am_bm(nc, am, bm, ddist_x, 16);
+  tmp = calc_am_bm(ceil((float)nc/col_stride), am, bm, ddist_x, 16);
   ret.time += tmp.time;
 
   // printf("am:\n");
-  // print_matrix_cuda(1, nc, am, nc);
+  // print_matrix_cuda(1, ceil((float)nc/col_stride), am, ceil((float)nc/col_stride));
   // printf("bm:\n");
-  // print_matrix_cuda(1, nc, bm, nc);
+  // print_matrix_cuda(1, ceil((float)nc/col_stride), bm, ceil((float)nc/col_stride));
 
 
   tmp = solve_tridiag_M_l_row_forward_cuda_sm(nr,         nc,
@@ -829,10 +827,10 @@ _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
   register int real_main_row;
   // register int rest_row;
 
-  for (int c = c0_stride; c < nc; c += gridDim.x * blockDim.x * row_stride) {
+  for (int c = c0_stride; c < nc; c += gridDim.x * blockDim.x * col_stride) {
     //rest_row = min(blockDim.x, (int)ceilf((nr - r)/row_stride));
 
-    vec = dv + c + threadIdx.x;
+    vec = dv + c + threadIdx.x * col_stride;
     // if (r_sm == 0) printf("vec[0] = %f\n", vec[0]);
 
     /* Mark progress */
@@ -840,27 +838,28 @@ _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
     real_ghost_row = min(ghost_row, rest_row);
 
     /* Load first ghost */
-    if (c + threadIdx.x < nc) {
+    if (c + threadIdx.x * col_stride < nc) {
       for (int i = 0; i < real_ghost_row; i++) {
-        vec_sm[i * ldsm] = vec[((nr - 1) - (i + r)) * row_stride * lddv];
+        vec_sm[i * ldsm] = vec[((nr - 1) - (i + r)* row_stride) * lddv];
+        // if (c_sm==0) printf("load %f from vec[%d]\n", vec_sm[i * ldsm]);
         // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n", r0_stride, i, vec_sm[i * ldsm + c_sm]);
       }
     }
     if (c_sm < real_ghost_row) {
       am_sm[c_sm] = am[(total_row - 1) - (r + c_sm)];
       dist_x_sm[c_sm] = ddist_x[(total_row - 1) - (r + c_sm)];
-      // if (c_sm == 0) printf("am_sm[%d] = %f\n",c_sm, am_sm[c_sm]);
+      // printf("load am_sm[%d] = %f\n",c_sm, am_sm[c_sm]);
+      // printf("load dist_x_sm[%d] = %f\n",c_sm, dist_x_sm[c_sm]);
       // if (c_sm == 0) printf("ddist_x[%d] = %f\n",(total_col-1) - c, ddist_x[(total_col-1) - c]);
     }
     rest_row -= real_ghost_row;
     __syncthreads();
-
     while (rest_row > blockDim.x - real_ghost_row) {
       /* Fill main col + next ghost col */
       real_main_row = min(blockDim.x, rest_row);
-      if (c + threadIdx.x < nc) {
+      if (c + threadIdx.x * col_stride < nc) {
         for (int i = 0; i < real_main_row; i++) {
-          vec_sm[(i + real_ghost_row) * ldsm] = vec[((nr - 1) - (i + r + real_ghost_row)) * row_stride * lddv];
+          vec_sm[(i + real_ghost_row) * ldsm] = vec[((nr - 1) - (i + r + real_ghost_row) * row_stride) * lddv];
           // printf("c_sm = %d, r0_stride = %d, vec_sm_gh[%d/%d](%d) = %f\n", c_sm, r0_stride, i,rest_row, i * row_stride * lddv + c_stride + real_ghost_col * col_stride, vec_sm[i * ldsm + c_sm + real_ghost_col]);
         }
       }
@@ -875,8 +874,10 @@ _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
       __syncthreads();
 
       /* Computation of v in parallel*/
-      if (c + threadIdx.x < nc) {
-        vec_sm[0 * ldsm] = (vec_sm[0] - dist_x_sm[0] * prev_vec_sm) / am_sm[0];
+      if (c + threadIdx.x * col_stride < nc) {
+        // printf("before vec: %f, am: %f\n", vec_sm[0 * ldsm], am_sm[0]);
+        vec_sm[0 * ldsm] = (vec_sm[0 * ldsm] - dist_x_sm[0] * prev_vec_sm) / am_sm[0];
+        // printf("after vec: %f, am: %f\n", vec_sm[0 * ldsm], am_sm[0]);
         for (int i = 1; i < blockDim.x; i++) {
           vec_sm[i * ldsm] = (vec_sm[i * ldsm] - dist_x_sm[i] * vec_sm[(i - 1) * ldsm]) / am_sm[i];
         }
@@ -885,7 +886,8 @@ _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
 
         /* flush results to v */
         for (int i = 0; i < blockDim.x; i++) {
-          vec[((nr - 1) - (i + r)) * row_stride * lddv] = vec_sm[i * ldsm];
+          vec[((nr - 1) - (i + r) * row_stride)  * lddv] = vec_sm[i * ldsm];
+          // printf("flush: %f  to: vec[%d]\n", vec_sm[i * ldsm], ((nr - 1) - (i + r)) * row_stride * lddv);
         }
       }
       __syncthreads();
@@ -898,7 +900,7 @@ _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
 
     //   /* Copy next ghost to main */
       real_ghost_row = min(ghost_row, real_main_row - (blockDim.x - ghost_row));
-      if (c + threadIdx.x < nc) {  
+      if (c + threadIdx.x * col_stride < nc) {  
         for (int i = 0; i < real_ghost_row; i++) {
           vec_sm[i * ldsm] = vec_sm[(i + blockDim.x) * ldsm];
         }
@@ -911,9 +913,9 @@ _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
     } // end of while
 
     /* Load all rest col */
-    if (c + threadIdx.x < nc) {
+    if (c + threadIdx.x * col_stride< nc) {
       for (int i = 0; i < rest_row; i++) {
-        vec_sm[(i + real_ghost_row) * ldsm] = vec[((nr - 1) - (i + r + real_ghost_row)) * row_stride * lddv];
+        vec_sm[(i + real_ghost_row) * ldsm] = vec[((nr - 1) - (i + r + real_ghost_row) * row_stride)  * lddv];
       }
     }
     if (c_sm < rest_row) {
@@ -925,20 +927,21 @@ _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
       // printf("dist_x_sm[%d] =\n", c_sm + real_ghost_col);
     }
     __syncthreads();
-    if (c + threadIdx.x < nc) {
+    if (c + threadIdx.x * col_stride < nc) {
       /* Only 1 col remain */
       if (real_ghost_row + total_row == 1) {
         vec_sm[0 * ldsm] = (vec_sm[0 * ldsm] - dist_x_sm[0] * prev_vec_sm) / am_sm[0];
-        // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
       } else {
+        // if (c_sm==0) printf("compute: vec_sm[0 * ldsm] (%f) / am_sm[0] (%f) = %f\n", vec_sm[0 * ldsm], am_sm[0], (vec_sm[0 * ldsm] - dist_x_sm[0] * prev_vec_sm) / am_sm[0]);
         vec_sm[0 * ldsm] = (vec_sm[0 * ldsm] - dist_x_sm[0] * prev_vec_sm) / am_sm[0];
+        // printf ("thread vec_sm[0 * ldsm]  = %f\n", vec_sm[0 * ldsm]  );
         for (int i = 1; i < real_ghost_row + rest_row; i++) {
           vec_sm[i * ldsm] = (vec_sm[i * ldsm] - dist_x_sm[i] * vec_sm[(i - 1) * ldsm]) / am_sm[i];
         }
       }
       /* flush results to v */
       for (int i = 0; i < real_ghost_row + rest_row; i++) {
-        vec[((nr - 1) - (i + r)) * row_stride * lddv] = vec_sm[i * ldsm];
+        vec[((nr - 1) - (i + r) * row_stride) * lddv] = vec_sm[i * ldsm];
         // printf("c_stride = %d, c_sm = %d, vec_sm = %f, vec[%d] = %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv + c_stride, vec[i * row_stride * lddv + c_stride]);
       }
     }
@@ -995,22 +998,20 @@ solve_tridiag_M_l_col_backward_cuda_sm(int nr,         int nc,
 }
 
 mgard_cuda_ret 
-solve_tridiag_M_l_col_cuda_sm(int nrow,       int ncol,
-                              int nr,         int nc,
+solve_tridiag_M_l_col_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
-                              int * dirow,    int * dicol,
                               double * dv,    int lddv,
-                              double * dcoords_y,
+                              double * ddist_y,
                               int B, int ghost_row) {
-  double * ddist_y;
-  //int len_ddist_x = ceil((float)nc/col_stride)-1;
-  int len_ddist_y = ceil((float)nr/row_stride); // add one for better consistance for backward
-  cudaMallocHelper((void**)&ddist_y, len_ddist_y*sizeof(double));
-  calc_cpt_dist(nr, row_stride, dcoords_y, ddist_y);
-  // printf("dcoords_y %d:\n", nc);
-  // print_matrix_cuda(1, nr, dcoords_y, nr);
-  // printf("ddist_y:\n");
-  // print_matrix_cuda(1, len_ddist_y, ddist_y, len_ddist_y);
+  // double * ddist_y;
+  // //int len_ddist_x = ceil((float)nc/col_stride)-1;
+  // int len_ddist_y = ceil((float)nr/row_stride); // add one for better consistance for backward
+  // cudaMallocHelper((void**)&ddist_y, len_ddist_y*sizeof(double));
+  // calc_cpt_dist(nr, row_stride, dcoords_y, ddist_y);
+  // // printf("dcoords_y %d:\n", nc);
+  // // print_matrix_cuda(1, nr, dcoords_y, nr);
+  // // printf("ddist_y:\n");
+  // // print_matrix_cuda(1, len_ddist_y, ddist_y, len_ddist_y);
 
   mgard_cuda_ret tmp(0, 0.0);
   mgard_cuda_ret ret(0, 0.0);
@@ -1018,13 +1019,13 @@ solve_tridiag_M_l_col_cuda_sm(int nrow,       int ncol,
   double * bm;
   cudaMallocHelper((void**)&am, nr*sizeof(double));
   cudaMallocHelper((void**)&bm, nr*sizeof(double));
-  tmp = calc_am_bm(nr, am, bm, ddist_y, 16);
+  tmp = calc_am_bm(ceil((float)nr/row_stride), am, bm, ddist_y, 16);
   ret.time += tmp.time;
 
   // printf("am:\n");
-  // print_matrix_cuda(1, nc, am, nc);
-  printf("bm:\n");
-  print_matrix_cuda(1, nr, bm, nr);
+  // print_matrix_cuda(1, ceil((float)nr/row_stride), am, ceil((float)nr/row_stride));
+  // printf("bm:\n");
+  // print_matrix_cuda(1, ceil((float)nr/row_stride), bm, ceil((float)nr/row_stride));
 
 
   tmp = solve_tridiag_M_l_col_forward_cuda_sm(nr,         nc,

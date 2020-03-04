@@ -15,11 +15,9 @@ _dist_mass_mult_l(double * dcoord, int x, int y) {
   return dcoord[y] - dcoord[x];
 }
 __global__ void
-_mass_mult_l_row_cuda_sm(int nrow,       int ncol,
-                         int nr,         int nc,
+_mass_mult_l_row_cuda_sm(int nr,         int nc,
                          int row_stride, int col_stride,
                          double * __restrict__ dv,    int lddv,
-                         // double * __restrict__ dcoords_x,
                          double * ddist_x,
                          int ghost_col) {
 
@@ -156,200 +154,26 @@ _mass_mult_l_row_cuda_sm(int nrow,       int ncol,
 }
 
 
-__global__ void
-_mass_mult_l_row_cuda_sm(int nrow,       int ncol,
-                         int nr,         int nc,
-                         int row_stride, int col_stride,
-                         int * __restrict__ dirow,    int * __restrict__ dicol,
-                         double * __restrict__ dv,    int lddv,
-                         double * __restrict__ dcoords_x,
-                         int ghost_col) {
 
-  //int ghost_col = 2;
-  register int total_row = ceil((double)nr/(row_stride));
-  register int total_col = ceil((double)nc/(col_stride));
-
-
-  // index on dirow and dicol
-  register int r0 = (blockIdx.y * blockDim.y + threadIdx.y) * row_stride;
-  register int c0 = threadIdx.x * col_stride;
-
-  // index on sm
-  register int r0_sm = threadIdx.y;
-  register int c0_sm = threadIdx.x;
-
-  extern __shared__ double sm[]; // row = blockDim.y; col = blockDim.x + ghost_col;
-  register int ldsm = blockDim.x + ghost_col;
-  // printf("ldsm = %d\n", ldsm);
-  
-  double * vec_sm = sm + r0_sm * ldsm;
-  double * dcoords_x_sm = sm + blockDim.y * ldsm;
-  
-  register double result = 1;
-  register double h1 = 1;
-  register double h2 = 1;
-  
-  register int rest_col;
-  register int real_ghost_col;
-  register int real_main_col;
-
-  register double prev_vec_sm;
-  register double prev_dicol;
-  register double prev_dcoord_x;
-  
-  for (int r = r0; r < nr; r += gridDim.y * blockDim.y * row_stride) {
-    
-    double * vec = dv + dirow[r] * lddv;
-
-    prev_vec_sm = 0.0;
-    prev_dicol = dicol[c0];
-    prev_dcoord_x = dcoords_x[dicol[c0]];
-    
-    rest_col = total_col;    
-    real_ghost_col = min(ghost_col, rest_col);
-
-    // load first ghost
-    if (c0_sm < real_ghost_col) {
-      vec_sm[c0_sm] = vec[dicol[c0]];
-      if (r0_sm == 0) {
-        dcoords_x_sm[c0_sm] = dcoords_x[dicol[c0]];
-      }
-    }
-    rest_col -= real_ghost_col;
-    __syncthreads();
-
-    while (rest_col > blockDim.x - real_ghost_col) {
-      //load main column
-      real_main_col = min(blockDim.x, rest_col);
-      if (c0_sm < real_main_col) {
-        vec_sm[c0_sm + real_ghost_col] = vec[dicol[c0 + real_ghost_col * col_stride]];
-        if (r0_sm == 0) {
-          dcoords_x_sm[c0_sm + real_ghost_col] = dcoords_x[dicol[c0 + real_ghost_col * col_stride]];
-        }
-      }
-      __syncthreads();
-
-      //computation
-      if (c0_sm == 0) {
-        //h1 = _dist_mass_mult_l(dcoords_x,  prev_dicol, dicol[c0]);
-        h1 = dcoords_x_sm[c0_sm] - prev_dcoord_x;
-        //h2 = _dist_mass_mult_l(dcoords_x,  dicol[c0], dicol[c0 + col_stride]);
-        h2 = _dist_mass_mult_l(dcoords_x_sm,  c0_sm, c0_sm + 1);
-        // register double tmp1 = h1 * prev_vec_sm;
-        // register double tmp2 = 2 * (h1 + h2) * vec_sm[c0_sm];
-        // register double tmp3 = h2 * vec_sm[c0_sm + 1];
-        // tmp1 += tmp2;
-        // result += tmp3;
-        // result += tmp1;
-        //result = h1 + h2;
-        result = h1 * prev_vec_sm + 2 * (h1 + h2) * vec_sm[c0_sm] + h2 * vec_sm[c0_sm + 1];
-      } else {
-        //h1 = _dist_mass_mult_l(dcoords_x, dicol[c0 - col_stride], dicol[c0]);
-        h1 = _dist_mass_mult_l(dcoords_x_sm, c0_sm - 1, c0_sm);
-        //h2 = _dist_mass_mult_l(dcoords_x, dicol[c0], dicol[c0 + col_stride]);
-        h2 = _dist_mass_mult_l(dcoords_x_sm, c0_sm, c0_sm + 1);
-        // register double tmp1 = h1 * vec_sm[c0_sm - 1];
-        // register double tmp2 = 2 * (h1 + h2) * vec_sm[c0_sm];
-        // register double tmp3 = h2 * vec_sm[c0_sm + 1];
-        // tmp1 += tmp2;
-        // result += tmp3;
-        // result += tmp1;
-        //result = h1 + h2;
-        result = h1 * vec_sm[c0_sm - 1] + 2 * (h1 + h2) * vec_sm[c0_sm] + h2 * vec_sm[c0_sm + 1];
-      }
-      vec[dicol[c0]] = result;
-      __syncthreads();
-      
-
-      // store last column
-      if (c0_sm == 0) {
-        prev_vec_sm = vec_sm[blockDim.x - 1];
-        prev_dicol = dicol[c0 + (blockDim.x - 1) * col_stride];
-        prev_dcoord_x = dcoords_x[dicol[c0 + (blockDim.x - 1) * col_stride]];//dcoords_x_sm[blockDim.x - 1];
-      }
-
-      // advance c0
-      c0 += blockDim.x * col_stride;
-
-      // copy ghost to main
-      real_ghost_col = min(ghost_col, real_main_col - (blockDim.x - ghost_col));
-      if (c0_sm < real_ghost_col) {
-        vec_sm[c0_sm] = vec_sm[c0_sm + blockDim.x];
-        if (r0_sm == 0) {
-          dcoords_x_sm[c0_sm] = dcoords_x_sm[c0_sm + blockDim.x];
-        }
-      }
-      __syncthreads();
-      rest_col -= real_main_col;
-    } //end while
-
-    if (c0_sm < rest_col) {
-       vec_sm[c0_sm + real_ghost_col] = vec[dicol[c0 + real_ghost_col * col_stride]];
-       dcoords_x_sm[c0_sm + real_ghost_col] = dcoords_x[dicol[c0 + real_ghost_col * col_stride]];
-    }
-    __syncthreads();
-
-    if (real_ghost_col + rest_col == 1) {
-      if (c0_sm == 0) {
-        //h1 = _dist_mass_mult_l(dcoords_x,  prev_dicol, dicol[c0]);
-        h1 = dcoords_x_sm[c0_sm] - prev_dcoord_x;
-        result = h1 * prev_vec_sm + 2 * h1 * vec_sm[c0_sm];
-        vec[dicol[c0]] = result;
-      }
-
-    } else {
-
-    if (c0_sm < real_ghost_col + rest_col) {
-        
-      if (c0_sm == 0) {
-        //h1 = _dist_mass_mult_l(dcoords_x,  prev_dicol, dicol[c0]);
-        //h2 = _dist_mass_mult_l(dcoords_x,  dicol[c0], dicol[c0 + col_stride]);
-
-        h1 = dcoords_x_sm[c0_sm] - prev_dcoord_x;
-        h2 = _dist_mass_mult_l(dcoords_x_sm,  c0_sm, c0_sm + 1);
-
-        result = h1 * prev_vec_sm + 2 * (h1 + h2) * vec_sm[c0_sm] + h2 * vec_sm[c0_sm + 1];
-      } else if (c0_sm == real_ghost_col + rest_col - 1) {
-        //h1 = _dist_mass_mult_l(dcoords_x, dicol[c0 - col_stride], dicol[c0]);
-        h1 = _dist_mass_mult_l(dcoords_x_sm, c0_sm - 1, c0_sm);
-        result = h1 * vec_sm[c0_sm - 1] + 2 * h1 * vec_sm[c0_sm];
-      } else {
-        // h1 = _dist_mass_mult_l(dcoords_x, dicol[c0 - col_stride], dicol[c0]);
-        // h2 = _dist_mass_mult_l(dcoords_x, dicol[c0], dicol[c0 + col_stride]);
-
-        h1 = _dist_mass_mult_l(dcoords_x_sm, c0_sm - 1, c0_sm);
-        h2 = _dist_mass_mult_l(dcoords_x_sm, c0_sm, c0_sm + 1);
-        result = h1 * vec_sm[c0_sm - 1] + 2 * (h1 + h2) * vec_sm[c0_sm] + h2 * vec_sm[c0_sm + 1];
-      }
-      __syncthreads();
-      vec[dicol[c0]] = result;
-    }
-  }
-    
-
-  }
-}
 
 mgard_cuda_ret 
-mass_mult_l_row_cuda_sm(int nrow,       int ncol,
-                     int nr,         int nc,
-                     int row_stride, int col_stride,
-                     int * dirow,    int * dicol,
-                     double * dv,    int lddv,
-                     double * dcoords_x,
-                     int B, int ghost_col) {
+mass_mult_l_row_cuda_sm(int nr,         int nc,
+                        int row_stride, int col_stride,
+                        double * dv,    int lddv,
+                        double * ddist_x,
+                        int B, int ghost_col) {
  
 
-  //cudaMemcpyToSymbol (dcoords_x_const, dcoords_x, sizeof(double)*nc );
-  double * ddist_x;
-  //int len_ddist_x = ceil((float)nc/col_stride)-1;
-  int len_ddist_x = ceil((float)nc/col_stride); // add one for better consistance for backward
-  cudaMallocHelper((void**)&ddist_x, len_ddist_x*sizeof(double));
-  calc_cpt_dist(nc, col_stride, dcoords_x, ddist_x);
-  // printf("dcoords_x %d:\n", nc);
-  // print_matrix_cuda(1, nc, dcoords_x, nc);
-  // printf("ddist_x:\n");
-  // print_matrix_cuda(1, len_ddist_x, ddist_x, len_ddist_x);
+  // //cudaMemcpyToSymbol (dcoords_x_const, dcoords_x, sizeof(double)*nc );
+  // double * ddist_x;
+  // //int len_ddist_x = ceil((float)nc/col_stride)-1;
+  // int len_ddist_x = ceil((float)nc/col_stride); // add one for better consistance for backward
+  // cudaMallocHelper((void**)&ddist_x, len_ddist_x*sizeof(double));
+  // calc_cpt_dist(nc, col_stride, dcoords_x, ddist_x);
+  // // printf("dcoords_x %d:\n", nc);
+  // // print_matrix_cuda(1, nc, dcoords_x, nc);
+  // // printf("ddist_x:\n");
+  // // print_matrix_cuda(1, len_ddist_x, ddist_x, len_ddist_x);
 
 
   // int B = 4;
@@ -380,11 +204,9 @@ mass_mult_l_row_cuda_sm(int nrow,       int ncol,
   cudaEventCreate(&stop);
   cudaEventRecord(start);
 
-  _mass_mult_l_row_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nrow,       ncol,
-                                                                       nr,         nc,
+  _mass_mult_l_row_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
                                                                        row_stride, col_stride,
                                                                        dv,         lddv,
-                                                                       // dcoords_x,
                                                                        ddist_x,
                                                                        ghost_col);
 
@@ -411,10 +233,129 @@ mass_mult_l_row_cuda_sm(int nrow,       int ncol,
 }
 
 
+__global__ void
+_mass_mult_l_row_cuda_sm_oop(int nr,         int nc,
+                             int row_stride, int col_stride,
+                             double * __restrict__ dv_in,    int lddv_in,
+                             double * __restrict__ dv_out,   int lddv_out,
+                             double * ddist_x) {
+  register int c0 = blockIdx.x * blockDim.x;
+  register int c0_stride = c0 * col_stride;
+  register int r0 = blockIdx.y * blockDim.y;
+  register int r0_stride = r0 * row_stride;
+
+  register int total_row = ceil((double)nr/(row_stride));
+  register int total_col = ceil((double)nc/(col_stride));
+
+  register int c_sm = threadIdx.x;
+  register int r_sm = threadIdx.y;
+
+  register double h1, h2, result;
+
+  extern __shared__ double sm[]; // size: (blockDim.x + 1) * (blockDim.y + 1)
+  int ldsm = blockDim.x + 2;
+  double * v_sm = sm; 
+  double * dist_x_sm = sm + blockDim.y * ldsm;
+
+  for (int r = r0; r < total_row; r += blockDim.y * gridDim.y) {
+    for (int c = c0; c < total_col; c += blockDim.x * gridDim.x) {
+      /* Load v */
+      if (c + c_sm < total_col && r + r_sm < total_row) {
+        v_sm[r_sm * ldsm + c_sm + 1] = dv_in[(r + r_sm) * row_stride * lddv_in + (c + c_sm) * col_stride];
+
+        if (c_sm == 0 && c + blockDim.x < total_col) {
+          v_sm[r_sm * ldsm + blockDim.x + 1] = dv_in[(r + r_sm) * row_stride * lddv_in + (c + blockDim.x) * col_stride];
+        } else {
+          v_sm[r_sm * ldsm + (total_col - c) + 1] = 0.0;
+        }
+        if (c_sm == 0 && c > 0) {
+          v_sm[r_sm * ldsm] = dv_in[(r + r_sm) * row_stride * lddv_in + (c - 1) * col_stride];
+        } else {
+          v_sm[r_sm * ldsm] = 0.0;
+        }
+      }
+
+      /* Load dist_x */
+      if (r_sm == 0) {
+        if (c + c_sm < total_col) {
+          dist_x_sm[c_sm + 1] = ddist_x[c + c_sm];
+        }
+        if (c_sm == 0) {
+          if (c > 0) {
+            dist_x_sm[0] = ddist_x[c - 1];
+          } else {
+            dist_x_sm[0] = 0.0;
+          }
+        }
+      }
+      __syncthreads();
+      /* Compute */
+      if (c + c_sm < total_col && r + r_sm < total_row) {
+        h1 = dist_x_sm[c_sm];
+        h2 = dist_x_sm[c_sm + 1];
+        result = h1 * v_sm[c_sm] + 2 * (h1 + h2) * v_sm[c_sm + 1] + h2 * v_sm[c_sm + 2];
+        dv_out[(r + r_sm) * row_stride * lddv_in + (c + c_sm) * col_stride] = result;
+      }
+    }
+  }
+}
+
+
+mgard_cuda_ret 
+mass_mult_l_row_cuda_sm_oop(int nr,         int nc,
+                            int row_stride, int col_stride,
+                            double * __restrict__ dv_in,    int lddv_in,
+                            double * __restrict__ dv_out,   int lddv_out,
+                            double * ddist_x, int B) {
+ 
+  int total_row = ceil((double)nr/(row_stride));
+  int total_col = ceil((double)nc/(col_stride));
+  int total_thread_y = total_row - 1;
+  int total_thread_x = total_col - 1;
+
+  int tby = min(B, total_thread_y);
+  int tbx = min(B, total_thread_x);
+
+
+  size_t sm_size = ((B+2) * (B+2)) * sizeof(double);
+
+  int gridy = ceil((float)total_thread_y/tby);
+  int gridx = ceil((float)total_thread_x/tbx);
+  dim3 threadsPerBlock(tbx, tby);
+  dim3 blockPerGrid(gridx, gridy);
+
+  // std::cout << "thread block: " << tby << ", " << tbx << std::endl;
+  // std::cout << "grid: " << gridy << ", " << gridx<< std::endl;
+
+
+
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start);
+
+  _mass_mult_l_row_cuda_sm_oop<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
+                                                                           row_stride, col_stride,
+                                                                           dv_in,      lddv_in,
+                                                                           dv_out,     lddv_out,
+                                                                           ddist_x);
+
+
+  gpuErrchk(cudaGetLastError ());
+
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
+
+  return mgard_cuda_ret(0, milliseconds/1000.0);
+}
+
 
 __global__ void
-_mass_mult_l_col_cuda_sm(int nrow,       int ncol,
-                         int nr,         int nc,
+_mass_mult_l_col_cuda_sm(int nr,         int nc,
                          int row_stride, int col_stride,
                          double * __restrict__ dv,    int lddv,
                          // double * __restrict__ dcoords_x,
@@ -603,21 +544,19 @@ _mass_mult_l_col_cuda_sm(int nrow,       int ncol,
 
 
 mgard_cuda_ret 
-mass_mult_l_col_cuda_sm(int nrow,       int ncol,
-                     int nr,         int nc,
-                     int row_stride, int col_stride,
-                     int * dirow,    int * dicol,
-                     double * dv,    int lddv,
-                     double * dcoords_y,
-                     int B, int ghost_row) {
+mass_mult_l_col_cuda_sm(int nr,         int nc,
+                        int row_stride, int col_stride,
+                        double * dv,    int lddv,
+                        double * ddist_y,
+                        int B, int ghost_row) {
  
 
   //cudaMemcpyToSymbol (dcoords_x_const, dcoords_x, sizeof(double)*nc );
-  double * ddist_y;
-  //int len_ddist_x = ceil((float)nc/col_stride)-1;
-  int len_ddist_y = ceil((float)nr/row_stride); // add one for better consistance for backward
-  cudaMallocHelper((void**)&ddist_y, len_ddist_y*sizeof(double));
-  calc_cpt_dist(nr, row_stride, dcoords_y, ddist_y);
+  // double * ddist_y;
+  // //int len_ddist_x = ceil((float)nc/col_stride)-1;
+  // int len_ddist_y = ceil((float)nr/row_stride); // add one for better consistance for backward
+  // cudaMallocHelper((void**)&ddist_y, len_ddist_y*sizeof(double));
+  // calc_cpt_dist(nr, row_stride, dcoords_y, ddist_y);
   // printf("dcoords_y %d:\n", nc);
   // print_matrix_cuda(1, nr, dcoords_y, nr);
   // printf("ddist_y:\n");
@@ -652,11 +591,9 @@ mass_mult_l_col_cuda_sm(int nrow,       int ncol,
   cudaEventCreate(&stop);
   cudaEventRecord(start);
 
-  _mass_mult_l_col_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nrow,       ncol,
-                                                                       nr,         nc,
+  _mass_mult_l_col_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
                                                                        row_stride, col_stride,
                                                                        dv,         lddv,
-                                                                       // dcoords_x,
                                                                        ddist_y,
                                                                        ghost_row);
 

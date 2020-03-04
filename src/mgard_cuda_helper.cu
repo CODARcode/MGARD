@@ -69,7 +69,7 @@ bool compare_matrix(int nrow, int ncol,
         for (int j = 0; j < ncol; j++) {
             if (abs(v1[ldv1*i + j] - v2[ldv2*i + j]) > E){
                 correct = false;
-                //std::cout << "Diff at (" << i << ", " << j << ") " << v1[ldv1*i + j] << " - " << v2[ldv2*i + j] << " = " << abs(v1[ldv1*i + j] - v2[ldv2*i + j]) << std::endl; 
+                std::cout << "Diff at (" << i << ", " << j << ") " << v1[ldv1*i + j] << " - " << v2[ldv2*i + j] << " = " << abs(v1[ldv1*i + j] - v2[ldv2*i + j]) << std::endl; 
             }
         }
     }

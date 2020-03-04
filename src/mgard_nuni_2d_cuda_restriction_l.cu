@@ -366,25 +366,23 @@ _restriction_l_row_cuda_sm(int nr,         int nc,
 // }
 
 mgard_cuda_ret 
-restriction_l_row_cuda_sm(int nrow,       int ncol,
-                     int nr,         int nc,
-                     int row_stride, int col_stride,
-                     int * dirow,    int * dicol,
-                     double * dv,    int lddv,
-                     double * dcoords_x,
-                     int B, int ghost_col) {
+restriction_l_row_cuda_sm(int nr,         int nc,
+                          int row_stride, int col_stride,
+                          double * dv,    int lddv,
+                          double * ddist_x,
+                          int B, int ghost_col) {
  
 
-  //cudaMemcpyToSymbol (dcoords_x_const, dcoords_x, sizeof(double)*nc );
-  double * ddist_x;
-  //int len_ddist_x = ceil((float)nc/col_stride)-1;
-  int len_ddist_x = ceil((float)nc/col_stride); // add one for better consistance for backward
-  cudaMallocHelper((void**)&ddist_x, len_ddist_x*sizeof(double));
-  calc_cpt_dist(nc, col_stride, dcoords_x, ddist_x);
-  // printf("dcoords_x %d:\n", nc);
-  // print_matrix_cuda(1, nc, dcoords_x, nc);
-  // printf("ddist_x:\n");
-  // print_matrix_cuda(1, len_ddist_x, ddist_x, len_ddist_x);
+  // //cudaMemcpyToSymbol (dcoords_x_const, dcoords_x, sizeof(double)*nc );
+  // double * ddist_x;
+  // //int len_ddist_x = ceil((float)nc/col_stride)-1;
+  // int len_ddist_x = ceil((float)nc/col_stride); // add one for better consistance for backward
+  // cudaMallocHelper((void**)&ddist_x, len_ddist_x*sizeof(double));
+  // calc_cpt_dist(nc, col_stride, dcoords_x, ddist_x);
+  // // printf("dcoords_x %d:\n", nc);
+  // // print_matrix_cuda(1, nc, dcoords_x, nc);
+  // // printf("ddist_x:\n");
+  // // print_matrix_cuda(1, len_ddist_x, ddist_x, len_ddist_x);
 
   // int B = 4;
   // int ghost_col = 2;
@@ -415,12 +413,10 @@ restriction_l_row_cuda_sm(int nrow,       int ncol,
   cudaEventRecord(start);
 
   _restriction_l_row_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
-                                                                       row_stride, col_stride,
-                                                                       //dirow,      dicol,
-                                                                       dv,         lddv,
-                                                                       //dcoords_x,
-                                                                       ddist_x,
-                                                                       ghost_col);
+                                                                         row_stride, col_stride,
+                                                                         dv,         lddv,
+                                                                         ddist_x,
+                                                                         ghost_col);
   gpuErrchk(cudaGetLastError ());
 
   cudaEventRecord(stop);
@@ -436,12 +432,10 @@ restriction_l_row_cuda_sm(int nrow,       int ncol,
 // assume number of main col and ghost col are even numbers
 __global__ void
 _restriction_l_col_cuda_sm(int nr,         int nc,
-                         int row_stride, int col_stride,
-                         //int * __restrict__ dirow,    int * __restrict__ dicol,
-                         double * __restrict__ dv,    int lddv,
-                         //double * __restrict__ dcoords_x,
-                         double * ddist_y,
-                         int ghost_row) {
+                           int row_stride, int col_stride,
+                           double * __restrict__ dv,    int lddv,
+                           double * ddist_y,
+                           int ghost_row) {
 
   //int ghost_col = 2;
   register int total_row = ceil((double)nr/(row_stride));
@@ -617,25 +611,23 @@ _restriction_l_col_cuda_sm(int nr,         int nc,
 
 
 mgard_cuda_ret 
-restriction_l_col_cuda_sm(int nrow,       int ncol,
-                     int nr,         int nc,
-                     int row_stride, int col_stride,
-                     int * dirow,    int * dicol,
-                     double * dv,    int lddv,
-                     double * dcoords_y,
-                     int B, int ghost_row) {
+restriction_l_col_cuda_sm(int nr,         int nc,
+                          int row_stride, int col_stride,
+                          double * dv,    int lddv,
+                          double * ddist_y,
+                          int B, int ghost_row) {
  
 
-  //cudaMemcpyToSymbol (dcoords_x_const, dcoords_x, sizeof(double)*nc );
-  double * ddist_y;
-  //int len_ddist_x = ceil((float)nc/col_stride)-1;
-  int len_ddist_y = ceil((float)nr/row_stride); // add one for better consistance for backward
-  cudaMallocHelper((void**)&ddist_y, len_ddist_y*sizeof(double));
-  calc_cpt_dist(nr, row_stride, dcoords_y, ddist_y);
-  // printf("dcoords_y %d:\n", nc);
-  // print_matrix_cuda(1, nr, dcoords_y, nr);
-  // printf("ddist_y:\n");
-  // print_matrix_cuda(1, len_ddist_y, ddist_y, len_ddist_y);
+  // //cudaMemcpyToSymbol (dcoords_x_const, dcoords_x, sizeof(double)*nc );
+  // double * ddist_y;
+  // //int len_ddist_x = ceil((float)nc/col_stride)-1;
+  // int len_ddist_y = ceil((float)nr/row_stride); // add one for better consistance for backward
+  // cudaMallocHelper((void**)&ddist_y, len_ddist_y*sizeof(double));
+  // calc_cpt_dist(nr, row_stride, dcoords_y, ddist_y);
+  // // printf("dcoords_y %d:\n", nc);
+  // // print_matrix_cuda(1, nr, dcoords_y, nr);
+  // // printf("ddist_y:\n");
+  // // print_matrix_cuda(1, len_ddist_y, ddist_y, len_ddist_y);
 
   // int B = 4;
   // int ghost_col = 2;
@@ -667,9 +659,7 @@ restriction_l_col_cuda_sm(int nrow,       int ncol,
 
   _restriction_l_col_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
                                                                        row_stride, col_stride,
-                                                                       //dirow,      dicol,
                                                                        dv,         lddv,
-                                                                       //dcoords_x,
                                                                        ddist_y,
                                                                        ghost_row);
   gpuErrchk(cudaGetLastError ());

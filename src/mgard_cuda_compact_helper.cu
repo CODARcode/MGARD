@@ -451,20 +451,22 @@ _dist(double * dcoord, int x, int y) {
 
 
 __global__ void
-_calc_cpt_dist(int nrow, int row_stride,
+_calc_cpt_dist(int n, int stride,
                double * dcoord, double * ddist) {
   extern __shared__ double sm[]; //size = blockDim.x + 1
 
-  int x0 = (blockIdx.x * blockDim.x + threadIdx.x) * row_stride;
+  int x0 = blockIdx.x * blockDim.x + threadIdx.x;
   int x0_sm = threadIdx.x;
   double dist;
-  for (int x = x0; x < nrow; x += blockDim.x * gridDim.x * row_stride) {
+  for (int x = x0; x * stride < n - 1; x += blockDim.x * gridDim.x) {
     // Load coordinates
-    sm[x0_sm] = dcoord[x];
+    sm[x0_sm] = dcoord[x * stride];
+    // printf("block %d thread %d load[%d] %f\n", blockIdx.x, threadIdx.x, x, dcoord[x * stride]);
     if (x0_sm == 0){
-      sm[blockDim.x] = dcoord[x+blockDim.x*row_stride];
+      sm[blockDim.x] = dcoord[(x + blockDim.x) * stride];
     }
     __syncthreads();
+
     // Compute distance
     dist = _dist(sm, x0_sm, x0_sm+1);
     __syncthreads();

@@ -7,7 +7,7 @@
 namespace mgard_2d {
 namespace mgard_gen {
 
-void 
+mgard_cuda_ret
 refactor_2D_cuda_compact_l2_sm(const int l_target,
                     const int nrow,     const int ncol,
                     const int nr,       const int nc, 
@@ -16,5 +16,33 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
                     double * dv,        int lddv, 
                     double * dwork,     int lddwork,
                     double * dcoords_x, double * dcoords_y);
+mgard_cuda_ret 
+prep_2D_cuda_l2_sm(const int nrow,     const int ncol,
+                   const int nr,       const int nc, 
+                   int * dirow,        int * dicol,
+                   int * dirowP,       int * dicolP,
+                   double * dv,        int lddv, 
+                   double * dwork,     int lddwork,
+                   double * dcoords_x, double * dcoords_y);
+
+void 
+recompose_2D_cuda_l2_sm(const int l_target,
+                  const int nrow,     const int ncol,
+                  const int nr,       const int nc, 
+                  int * dirow,        int * dicol,
+                  int * dirowP,       int * dicolP,
+                  double * dv,        int lddv, 
+                  double * dwork,     int lddwork,
+                  double * dcoords_x, double * dcoords_y);
+
+void 
+postp_2D_cuda_l2_sm(const int nrow,     const int ncol,
+                    const int nr,       const int nc, 
+                    int * dirow,        int * dicol,
+                    int * dirowP,       int * dicolP,
+                    double * dv,        int lddv, 
+                    double * dwork,     int lddwork,
+                    double * dcoords_x, double * dcoords_y);
+
 }
 }

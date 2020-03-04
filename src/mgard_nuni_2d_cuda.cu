@@ -895,6 +895,10 @@ _solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
     am = 2.0 * mgard_common::_get_dist(dcoords_y, dirow[0], dirow[row_stride]); //dirow[row_stride] - dirow[0]
     bm = mgard_common::_get_dist(dcoords_y, dirow[0], dirow[row_stride]) / am; //dirow[row_stride] - dirow[0]
 
+    // if (idx == 0) {
+    //   printf("true bm:\n");
+    //   printf("%f, ", bm);
+    // }
     
     int counter = 1;
     coeff[0] = am;
@@ -911,6 +915,10 @@ _solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
       am = 2.0 * (h1 + h2) - bm * h1;
       bm = h2 / am;
 
+      // if (idx == 0) {
+      //   printf("%f, ", bm);
+      // }
+
       coeff[counter] = am;
       ++counter;
 
@@ -922,6 +930,18 @@ _solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
     vec[dirow[nr - 1] * lddv] -= vec[dirow[nr - 1 - row_stride] * lddv] * bm;
     coeff[counter] = am;
 
+    if (idx == 0) {
+      // printf("h2 = %f\n", h2);
+      printf("\ntrue am:\n");
+      for (int i = 0; i < counter+1; i++) {
+        printf("%f, ", coeff[i] );
+      }
+      printf("\n");
+    }
+    // start of backward pass
+    // if(idx == 0) {
+    //   printf("vec: %f, am: %f\n", vec[dirow[nr - 1] * lddv], am);
+    // }
     vec[dirow[nr - 1] * lddv] /= am;
     --counter;
 
@@ -1251,7 +1271,7 @@ prep_2D_cuda(const int nrow,     const int ncol,
   int col_stride = 1;
   //int ldv = ncol;
   //int ldwork = ncol;
-
+  
   // pi_Ql_first(nr, nc, nrow, ncol, l, v, coords_x, coords_y, row_vec, col_vec);
   ret = pi_Ql_first_cuda(nrow,      ncol,
                    nr,        nc, 
@@ -1290,14 +1310,14 @@ prep_2D_cuda(const int nrow,     const int ncol,
                              dcoords_x);
   restriction_first_row_cuda_time = ret.time;
 
- //  col_stride = 1;
-  ret = solve_tridiag_M_l_row_cuda(nrow,       ncol,
-                             nr,         nc,
-                             row_stride, col_stride,
-                             dirow,      dicol, 
-                             dwork,      lddwork, 
-                             dcoords_x);
-  solve_tridiag_M_l_row_cuda_time = ret.time;
+ // //  col_stride = 1;
+ //  ret = solve_tridiag_M_l_row_cuda(nrow,       ncol,
+ //                             nr,         nc,
+ //                             row_stride, col_stride,
+ //                             dirow,      dicol, 
+ //                             dwork,      lddwork, 
+ //                             dcoords_x);
+ //  solve_tridiag_M_l_row_cuda_time = ret.time;
 
 
   // for (int i = 0; i < nrow; ++i) {
@@ -1349,13 +1369,13 @@ prep_2D_cuda(const int nrow,     const int ncol,
     restriction_first_col_cuda_time = ret.time;
 
     // print_matrix(nrow, ncol, work.data(), ldwork);
-    ret = solve_tridiag_M_l_col_cuda(nrow,       ncol,
-                               nr,         nc,
-                               row_stride, col_stride,
-                               dirow,      dicol,
-                               dwork,      lddwork, 
-                               dcoords_y);
-    solve_tridiag_M_l_col_cuda_time = ret.time;
+    // ret = solve_tridiag_M_l_col_cuda(nrow,       ncol,
+    //                            nr,         nc,
+    //                            row_stride, col_stride,
+    //                            dirow,      dicol,
+    //                            dwork,      lddwork, 
+    //                            dcoords_y);
+    // solve_tridiag_M_l_col_cuda_time = ret.time;
 
     // for (int j = 0; j < ncol; ++j) {
     //        int jr  = get_lindex_cuda(nc,  ncol,  j);
@@ -2645,21 +2665,21 @@ recompose_2D_cuda(const int l_target,
       row_stride = Pstride;
       col_stride = stride;
       ret = restriction_l_col_cuda(nrow,       ncol,
-                             nr,         nc,
-                             row_stride, col_stride,
-                             dirow,       dicol,
-                             dwork, lddwork,
-                             dcoords_y);
+                                   nr,         nc,
+                                   row_stride, col_stride,
+                                   dirow,       dicol,
+                                   dwork, lddwork,
+                                   dcoords_y);
       restriction_l_col_cuda_time += ret.time;
 
       row_stride = stride;
       col_stride = stride;
       ret = solve_tridiag_M_l_col_cuda(nrow,       ncol,
-                                 nr,         nc,
-                                 row_stride, col_stride,
-                                 dirow,      dicol,
-                                 dwork,      lddwork,
-                                 dcoords_y);
+                                       nr,         nc,
+                                       row_stride, col_stride,
+                                       dirow,      dicol,
+                                       dwork,      lddwork,
+                                       dcoords_y);
       solve_tridiag_M_l_col_cuda_time += ret.time;
 
       for (int j = 0; j < nc; j += stride) {
@@ -2684,11 +2704,11 @@ recompose_2D_cuda(const int l_target,
     row_stride = stride;
     col_stride = stride;
     ret = subtract_level_l_cuda(nrow,       ncol, 
-                          nr,         nc,
-                          row_stride, col_stride,
-                          dirow,      dicol,
-                          dwork,      lddwork,
-                          dv,         lddv);
+                                nr,         nc,
+                                row_stride, col_stride,
+                                dirow,      dicol,
+                                dwork,      lddwork,
+                                dv,         lddv);
     subtract_level_l_cuda_time += ret.time;
 
     //        //std::cout  << "recomposing-rowsweep2" << "\n";
@@ -2699,12 +2719,12 @@ recompose_2D_cuda(const int l_target,
 
     row_stride = stride;
     col_stride = stride;
-    ret = prolongate_l_row_cuda(nrow,        ncol, 
-                           nr,         nc,
-                           row_stride, col_stride,
-                           dirow,      dicol,
-                           dwork,      lddwork,
-                           dcoords_x);
+    ret = prolongate_l_row_cuda(nrow,       ncol, 
+                                nr,         nc,
+                                row_stride, col_stride,
+                                dirow,      dicol,
+                                dwork,      lddwork,
+                                dcoords_x);
     prolongate_l_row_cuda_time += ret.time;
 
 

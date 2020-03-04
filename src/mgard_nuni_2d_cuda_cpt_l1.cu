@@ -188,7 +188,7 @@ refactor_2D_cuda_compact_l1(const int l_target,
     assign_num_level_l_cuda_time += ret.time;
 
     
-    row_stride = 1;
+    row_stride = stride;//1;
     col_stride = stride;
     ret = mass_mult_l_row_cuda(nr,         nc,
                                nr,         nc,
@@ -198,7 +198,7 @@ refactor_2D_cuda_compact_l1(const int l_target,
                                dccoords_x);
     mass_mult_l_row_cuda_time += ret.time;
 
-    row_stride = 1;
+    row_stride = stride;//1;
     col_stride = stride;
     ret = restriction_l_row_cuda(nr,         nc,
                                  nr,         nc,
@@ -208,7 +208,7 @@ refactor_2D_cuda_compact_l1(const int l_target,
                                  dccoords_x);
     restriction_l_row_cuda_time += ret.time;
 
-    row_stride = 1;
+    row_stride = stride;//1;
     col_stride = Cstride;
     ret = solve_tridiag_M_l_row_cuda(nr,         nc,
                                      nr,         nc,
