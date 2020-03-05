@@ -118,21 +118,6 @@ inline Real get_h_l(const std::vector<Real> &coords, const int n, const int no,
                     int i, int stride);
 
 template <typename Real>
-Real l2_norm(const int l, const int n, const int no, std::vector<Real> &v,
-             const std::vector<Real> &x);
-
-template <typename Real>
-Real l2_norm2(const int l, int nr, int nc, int nrow, int ncol,
-              std::vector<Real> &v, const std::vector<Real> &coords_x,
-              const std::vector<Real> &coords_y);
-
-template <typename Real>
-Real l2_norm3(const int l, int nr, int nc, int nf, int nrow, int ncol, int nfib,
-              std::vector<Real> &v, const std::vector<Real> &coords_x,
-              const std::vector<Real> &coords_y,
-              const std::vector<Real> &coords_z);
-
-template <typename Real>
 void write_level_2D_l(const int l, Real *v, std::ofstream &outfile, int nr,
                       int nc, int nrow, int ncol);
 

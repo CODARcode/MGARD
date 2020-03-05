@@ -478,69 +478,6 @@ Real get_h_l(const std::vector<Real> &coords, const int n, const int no, int i,
 }
 
 template <typename Real>
-Real l2_norm(const int l, const int n, const int no, std::vector<Real> &v,
-             const std::vector<Real> &x) {
-  int stride = std::pow(2, l);
-
-  Real norm = 0;
-  for (int i = 0; i < n - stride; i += stride) {
-    int ir = mgard::get_lindex(n, no, i);
-    int irP = mgard::get_lindex(n, no, i + stride);
-    Real h = x[irP] - x[ir];
-    Real temp = 0.5 * (v[ir] + v[irP]);
-    norm += h * (v[ir] * v[ir] + v[irP] * v[irP] + 4.0 * temp * temp);
-  }
-
-  norm /= 6.0;
-  //    //std::cout  << norm << "\t";
-  return norm;
-}
-
-template <typename Real>
-Real l2_norm2(const int l, int nr, int nc, int nrow, int ncol,
-              std::vector<Real> &v, const std::vector<Real> &coords_x,
-              const std::vector<Real> &coords_y) {
-  std::vector<Real> row_vec(ncol), col_vec(nrow);
-  Real result;
-  int stride = std::pow(2, l);
-  for (int irow = 0; irow < nr; irow += stride) {
-    int ir = mgard::get_lindex(nr, nrow, irow);
-    for (int jcol = 0; jcol < ncol; ++jcol) {
-      row_vec[jcol] = v[mgard::get_index(ncol, ir, jcol)];
-    }
-
-    Real temp = l2_norm(l, nc, ncol, row_vec, coords_x);
-
-    col_vec[ir] = temp;
-  }
-
-  result = l2_norm(l, nr, nrow, col_vec, coords_y);
-
-  return result;
-}
-
-template <typename Real>
-Real l2_norm3(const int l, int nr, int nc, int nf, int nrow, int ncol, int nfib,
-              std::vector<Real> &v, const std::vector<Real> &coords_x,
-              const std::vector<Real> &coords_y,
-              const std::vector<Real> &coords_z) {
-  std::vector<Real> work2d(nrow * ncol), fib_vec(nfib);
-  Real result;
-  int stride = std::pow(2, l);
-  for (int kfib = 0; kfib < nf; kfib += stride) {
-    int kf = mgard::get_lindex(nf, nfib, kfib);
-    mgard_common::copy_slice(v.data(), work2d, nrow, ncol, nfib, kf);
-    Real temp = l2_norm2(l, nr, nc, nrow, ncol, work2d, coords_x, coords_y);
-    fib_vec[kf] = temp;
-  }
-
-  result = l2_norm(l, nf, nfib, fib_vec, coords_z);
-  // std::cout  << result << "\t";
-
-  return result;
-}
-
-template <typename Real>
 void write_level_2D_l(const int l, Real *v, std::ofstream &outfile, int nr,
                       int nc, int nrow, int ncol) {
   int stride = std::pow(2, l);
