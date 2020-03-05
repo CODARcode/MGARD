@@ -182,36 +182,6 @@ template float get_h_l<float>(const std::vector<float> &coords, const int n,
 template double get_h_l<double>(const std::vector<double> &coords, const int n,
                                 const int no, int i, int stride);
 
-template float l2_norm<float>(const int l, const int n, const int no,
-                              std::vector<float> &v,
-                              const std::vector<float> &x);
-
-template double l2_norm<double>(const int l, const int n, const int no,
-                                std::vector<double> &v,
-                                const std::vector<double> &x);
-
-template float l2_norm2<float>(const int l, int nr, int nc, int nrow, int ncol,
-                               std::vector<float> &v,
-                               const std::vector<float> &coords_x,
-                               const std::vector<float> &coords_y);
-
-template double l2_norm2<double>(const int l, int nr, int nc, int nrow,
-                                 int ncol, std::vector<double> &v,
-                                 const std::vector<double> &coords_x,
-                                 const std::vector<double> &coords_y);
-
-template float l2_norm3<float>(const int l, int nr, int nc, int nf, int nrow,
-                               int ncol, int nfib, std::vector<float> &v,
-                               const std::vector<float> &coords_x,
-                               const std::vector<float> &coords_y,
-                               const std::vector<float> &coords_z);
-
-template double l2_norm3<double>(const int l, int nr, int nc, int nf, int nrow,
-                                 int ncol, int nfib, std::vector<double> &v,
-                                 const std::vector<double> &coords_x,
-                                 const std::vector<double> &coords_y,
-                                 const std::vector<double> &coords_z);
-
 template void write_level_2D_l<float>(const int l, float *v,
                                       std::ofstream &outfile, int nr, int nc,
                                       int nrow, int ncol);
