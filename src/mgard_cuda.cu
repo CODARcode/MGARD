@@ -98,10 +98,17 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       size_t dv_pitch;
       cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
       int lddv = dv_pitch / sizeof(double);
+      auto t_start = std::chrono::high_resolution_clock::now();
       cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
                          v.data(), ncol  * sizeof(double), 
                          ncol * sizeof(double), nrow, 
                          H2D);
+      auto t_end = std::chrono::high_resolution_clock::now();
+      double data_size = nrow * ncol * sizeof(double);
+      double time = std::chrono::duration<double>(t_end-t_start).count();
+      double mem_throughput = (data_size/time)/1e9;
+      std::cout << time << ", H2D_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
+
 
       double * dwork;
       size_t dwork_pitch;
@@ -186,7 +193,7 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       //                                   dv,        lddv,
       //                                   dwork,     lddwork,
       //                                   dcoords_x, dcoords_y);
-
+      t_start = std::chrono::high_resolution_clock::now();
       mgard_cuda_ret ret = mgard_2d::mgard_gen::prep_2D_cuda_l2_sm(nrow,      ncol,
                                         nr,        nc, 
                                         dirow,     dicol,
@@ -194,9 +201,11 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
                                         dv,        lddv,
                                         dwork,     lddwork,
                                         dcoords_x, dcoords_y);
-      double data_size = nrow * ncol * sizeof(double);
-      double mem_throughput = (data_size/ret.time)/1e9;
-      std::cout << "prep_2D_cuda_l2_sm_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
+      t_end = std::chrono::high_resolution_clock::now();
+      time = std::chrono::duration<double>(t_end-t_start).count();
+      data_size = nrow * ncol * sizeof(double);
+      mem_throughput = (data_size/ret.time)/1e9;
+      std::cout << time << ", " << ret.time << ", prep_2D_cuda_l2_sm_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
 
      
 
@@ -238,6 +247,7 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       } else if (opt == 3) {
         mgard_cuda_ret ret;
         std::cout << "***refactor_2D_cuda_compact_l2_sm***" << std::endl;
+        auto t_start = std::chrono::high_resolution_clock::now();
         ret = mgard_2d::mgard_gen::refactor_2D_cuda_compact_l2_sm(l_target,
                                                                  nrow,      ncol,
                                                                  nr,        nc, 
@@ -246,9 +256,11 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
                                                                  dv,        lddv,
                                                                  dwork,     lddwork,
                                                                  dcoords_x, dcoords_y);
+        auto t_end = std::chrono::high_resolution_clock::now();
+        double time = std::chrono::duration<double>(t_end-t_start).count();
         double data_size = nrow * ncol * sizeof(double);
         double mem_throughput = (data_size/ret.time)/1e9;
-        std::cout << "refactor_2D_cuda_compact_l2_sm_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
+        std::cout << time << ", " << ret.time << ", refactor_2D_cuda_compact_l2_sm_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
         
       } else if (opt == 4) {
         std::cout << "***refactor_2D_cuda_compact_l2_sm_pf***" << std::endl;
@@ -287,22 +299,32 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       int lddqv = ncol;
       cudaMemsetHelper(dqv, 0, (nrow * ncol + size_ratio) * sizeof(int));
 
+      t_start = std::chrono::high_resolution_clock::now();
       mgard_ret ret2 = mgard::quantize_2D_iterleave_cuda (nrow, ncol, dv, lddv, dqv, lddqv, norm, tol);
+      t_end = std::chrono::high_resolution_clock::now();
       data_size = nrow * ncol * sizeof(double);
       mem_throughput = (data_size/ret2.time)/1e9;
-      std::cout << "quantize_2D_iterleave_cuda_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
+      std::cout << time << ", " << ret2.time << ", quantize_2D_iterleave_cuda_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
 
+      t_start = std::chrono::high_resolution_clock::now();
       cudaMemcpyHelper(qv.data(), dqv, (nrow * ncol + size_ratio) * sizeof(int), D2H);
-      cudaFreeHelper(dwork);
+      t_end = std::chrono::high_resolution_clock::now();
+      time = std::chrono::duration<double>(t_end-t_start).count();
+      data_size = nrow * ncol * sizeof(double);
+      mem_throughput = (data_size/ret2.time)/1e9;
+      std::cout << time << ", D2H_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
+
+
+      //cudaFreeHelper(dwork);
 
       std::vector<unsigned char> out_data;
 
-      auto t_start = std::chrono::high_resolution_clock::now();
+      t_start = std::chrono::high_resolution_clock::now();
       mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
-      auto t_end = std::chrono::high_resolution_clock::now();
-      double time = std::chrono::duration<double>(t_end-t_start).count();
+      t_end = std::chrono::high_resolution_clock::now();
+      time = std::chrono::duration<double>(t_end-t_start).count();
       mem_throughput = (data_size/time)/1e9;
-      std::cout << "compress_memory_z_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
+      std::cout << time <<", compress_memory_z_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
 
       outsize = out_data.size ();
       unsigned char *buffer = (unsigned char *)malloc (outsize);
@@ -318,6 +340,8 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       cudaFreeHelper(dicolP);
       cudaFreeHelper(dcoords_x);
       cudaFreeHelper(dcoords_y);
+      cudaFreeHelper(dv);
+      cudaFreeHelper(dwork);
       
       return buffer;
     }
