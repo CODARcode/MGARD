@@ -7,11 +7,11 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-  double step, result, tol = 0.1;
+  double tol, result;
   int out_size;
   unsigned char *compressed_data = 0;
 
-  if (argc != 2) {
+  if (argc != 3) {
     cerr << "Wrong arugments!\n";
     return 1;
   }
@@ -19,6 +19,8 @@ int main(int argc, char **argv) {
   ifstream datafile(argv[1], ios::in | ios::binary);
   if (!datafile)
     cerr << "Can't open input file!";
+
+  tol = stod(argv[2]);
 
   datafile.seekg(0, ios::end);
   size_t num_elements = datafile.tellg() / sizeof(double);
