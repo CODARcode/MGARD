@@ -157,11 +157,21 @@ benchmarks: $(benchmarks@EXECUTABLE)
 doc:
 	doxygen .doxygen
 
-.PHONY:
+.PHONY: doc-clean
 doc-clean:
 	$(RM) --recursive $(DIR_DOC)
 
+TAGSFILE := tags
+
+.PHONY: tags
+tags:
+	ctags --langmap=C++:+.tpp --recurse -f $(TAGSFILE) $(DIR_INC) $(DIR_SRC)
+
+.PHONY: tags-clean
+tags-clean:
+	$(RM) $(TAGSFILE)
+
 .PHONY: clean
-clean: doc-clean
+clean: doc-clean tags-clean
 	$(RM) $(dirty@FILES)
 	for dir in $(dirty@DIRECTORIES); do if [ -d "$$dir" ]; then $(RMDIR) "$$dir"; fi; done
