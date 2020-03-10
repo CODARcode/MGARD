@@ -51,3 +51,6 @@ CMakeSettings.json
 
 #Sublime
 ._*
+
+#'Tags' file.
+tags
