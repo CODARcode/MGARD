@@ -1,6 +1,8 @@
 #include "mgard_nuni.h"
 #include "mgard.h"
 #include "mgard_nuni_2d_cuda.h"
+#include "mgard_nuni_2d_cuda_common.h"
+#include "mgard_nuni_2d_cuda_gen.h"
 #include "mgard_cuda_helper.h"
 #include "mgard_cuda_compact_helper.h"
 #include "mgard_cuda_helper_internal.h"
@@ -16,19 +18,268 @@ _dist_tradiag_M_l(double * dcoord, int x, int y) {
   return dcoord[y] - dcoord[x];
 }
 
+template <typename T>
+__global__ void
+_solve_tridiag_M_l_row_cuda(int nrow,        int ncol,
+                             int nr,         int nc,
+                             int row_stride, int col_stride,
+                             int * dirow,    int * dicol, 
+                             T * dv,    int lddv, 
+                             T * dcoords_x) {
+  int idx0 = (threadIdx.x + blockIdx.x * blockDim.x) * row_stride;
+  //printf("thread %d, nr = %d\n", idx0, nr);
+  T am, bm, h1, h2;
+  T * coeff = new T[ncol];
+  for (int idx = idx0; idx < nr; idx += (blockDim.x * gridDim.x) * row_stride) {
+    //printf("thread %d, nr = %d, idx = %d\n", idx0, nr, idx);
+    int r = dirow[idx];
+    //printf("thread %d working on row %d \n", idx0, r);
+    T * vec = dv + r * lddv;
+    am = 2.0 * mgard_common::_get_dist(dcoords_x, dicol[0], dicol[col_stride]); //dicol[col_stride] - dicol[0]
+    bm = mgard_common::_get_dist(dcoords_x, dicol[0], dicol[col_stride]) / am; //dicol[col_stride] - dicol[0]
+
+    // if (idx == 0) {
+    //   printf("true bm:\n");
+    //   printf("%f, ", bm);
+    // }
+
+    int counter = 1;
+    coeff[0] = am;
+    for (int i = col_stride; i < nc - 1; i += col_stride) {
+
+      h1 = mgard_common::_get_dist(dcoords_x, dicol[i - col_stride], dicol[i]);
+      h2 = mgard_common::_get_dist(dcoords_x, dicol[i], dicol[i + col_stride]);
+
+
+      // h1 = dicol[i] - dicol[i - col_stride];
+      // h2 = dicol[i + col_stride] - dicol[i];
+
+      vec[dicol[i]] -= vec[dicol[i - col_stride]] * bm;
+
+      am = 2.0 * (h1 + h2) - bm * h1;
+      bm = h2 / am;
+
+      // if (idx == 0) {
+      //   printf("%f, ", bm);
+      // }
+
+      coeff[counter] = am;
+      ++counter;
+    }
+    h2 = mgard_common::_get_dist(dcoords_x, dicol[nc - 1 - col_stride], dicol[nc - 1]);
+    // h2 = dicol[nc - 1] - dicol[nc - 1 - col_stride];
+
+
+    am = 2.0 * h2 - bm * h2;
+
+    vec[dicol[nc - 1]] -= vec[dicol[nc - 1 - col_stride]] * bm;
+    coeff[counter] = am;
+
+    // if (idx == 0) {
+    //   // printf("h2 = %f\n", h2);
+    //   printf("\ntrue am:\n");
+    //   for (int i = 0; i < counter+1; i++) {
+    //     printf("%f, ", coeff[i] );
+    //   }
+    //   printf("\n");
+    // }
+
+    /* Start of backward pass */
+    vec[dicol[nc - 1]] /= am;
+    --counter;
+
+    for (int i = nc - 1 - col_stride; i >= 0; i -= col_stride) {
+      h2 = mgard_common::_get_dist(dcoords_x, dicol[i], dicol[i + col_stride]);
+      // h2 = dicol[i + col_stride] - dicol[i];
+      vec[dicol[i]] = (vec[dicol[i]] - h2 * vec[dicol[i + col_stride]]) / coeff[counter];
+      --counter;
+    }
+  }
+  delete[] coeff;
+}
+
+template <typename T>
+mgard_cuda_ret
+solve_tridiag_M_l_row_cuda(int nrow,       int ncol,
+                           int nr,         int nc,
+                           int row_stride, int col_stride,
+                           int * dirow,    int * dicol,
+                           T * dv,     int lddv, 
+                           T * dcoords_x) {
+  int B = 16;
+  int total_thread = ceil((float)nr / row_stride);
+  int tb = min(B, total_thread);
+  int grid = ceil((float)total_thread/tb);
+  dim3 threadsPerBlock(tb, 1);
+  dim3 blockPerGrid(grid, 1);
+
+  // std::cout << "_solve_tridiag_M_l_row_cuda" << std::endl;
+  // std::cout << "thread block: " << tb << std::endl;
+  // std::cout << "grid: " << grid << std::endl;
+
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start);
+
+  _solve_tridiag_M_l_row_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,   ncol,
+                                                                 nr,     nc,
+                                                                 row_stride, col_stride,
+                                                                 dirow,  dicol,
+                                                                 dv,     lddv, 
+                                                                 dcoords_x);
+  gpuErrchk(cudaGetLastError ()); 
+
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
+
+  return mgard_cuda_ret(0, milliseconds/1000.0);
+}
+
+template <typename T>
+__global__ void
+_solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
+                             int nr,         int nc,
+                             int row_stride, int col_stride,
+                             int * dirow,    int * dicol,
+                             T * dv,    int lddv, 
+                             T * dcoords_y) {
+  int idx0 = (threadIdx.x + blockIdx.x * blockDim.x) * col_stride;
+  //printf("thread %d, nr = %d\n", idx0, nr);
+  T am, bm, h1, h2;
+  T * coeff = new T[nrow];
+  for (int idx = idx0; idx < nc; idx += (blockDim.x * gridDim.x) * col_stride) {
+    // printf("thread %d, nc = %d, idx = %d\n", idx0, nc, idx);
+    int c = dicol[idx];
+    // printf("thread %d working on col %d \n", idx0, c);
+    T * vec = dv + c;
+    am = 2.0 * mgard_common::_get_dist(dcoords_y, dirow[0], dirow[row_stride]); //dirow[row_stride] - dirow[0]
+    bm = mgard_common::_get_dist(dcoords_y, dirow[0], dirow[row_stride]) / am; //dirow[row_stride] - dirow[0]
+
+    // if (idx == 0) {
+    //   printf("true bm:\n");
+    //   printf("%f, ", bm);
+    // }
+    
+    int counter = 1;
+    coeff[0] = am;
+    
+    for (int i = row_stride; i < nr - 1; i += row_stride) {
+      h1 = mgard_common::_get_dist(dcoords_y, dirow[i - row_stride], dirow[i]);
+      h2 = mgard_common::_get_dist(dcoords_y, dirow[i], dirow[i + row_stride]);
+
+      // h1 = dirow[i] - dirow[i - row_stride];
+      // h2 = dirow[i + row_stride] - dirow[i];
+      // printf("thread %d working on col %d, vec[%d] = %f \n", idx0, c, dirow[i],  vec[dirow[i] * lddv]);
+      vec[dirow[i] * lddv] -= vec[dirow[i - row_stride] * lddv] * bm;
+
+      am = 2.0 * (h1 + h2) - bm * h1;
+      bm = h2 / am;
+
+      // if (idx == 0) {
+      //   printf("%f, ", bm);
+      // }
+
+      coeff[counter] = am;
+      ++counter;
+
+    }
+    h2 = mgard_common::_get_dist(dcoords_y, dirow[nr - 1 - row_stride], dirow[nr - 1]);
+    // h2 = get_h_l_cuda(dcoords_y, nr, nrow, nr - 1 - row_stride, row_stride);
+    am = 2.0 * h2 - bm * h2;
+
+    vec[dirow[nr - 1] * lddv] -= vec[dirow[nr - 1 - row_stride] * lddv] * bm;
+    coeff[counter] = am;
+
+    if (idx == 0) {
+      // printf("h2 = %f\n", h2);
+      printf("\ntrue am:\n");
+      for (int i = 0; i < counter+1; i++) {
+        printf("%f, ", coeff[i] );
+      }
+      printf("\n");
+    }
+    // start of backward pass
+    // if(idx == 0) {
+    //   printf("vec: %f, am: %f\n", vec[dirow[nr - 1] * lddv], am);
+    // }
+    vec[dirow[nr - 1] * lddv] /= am;
+    --counter;
+
+    for (int i = nr - 1 - row_stride; i >= 0; i -= row_stride) {
+      h2 = mgard_common::_get_dist(dcoords_y, dirow[i], dirow[i + row_stride]);
+      // h2 = get_h_l_cuda(dcoords_y, nr, nrow, i, row_stride);
+      vec[dirow[i] * lddv] =
+        (vec[dirow[i] * lddv] - h2 * vec[dirow[i + row_stride] * lddv]) /
+        coeff[counter];
+      --counter;
+    }
+  }
+  delete[] coeff;
+
+
+}
+
+template <typename T>
+mgard_cuda_ret
+solve_tridiag_M_l_col_cuda(int nrow,       int ncol,
+                           int nr,         int nc,
+                           int row_stride, int col_stride,
+                           int * dirow,    int * dicol,
+                           T * dv,    int lddv, 
+                           T * dcoords_y) {
+  int B = 16;
+  int total_thread = ceil((float)nc / col_stride);
+  int tb = min(B, total_thread);
+  int grid = ceil((float)total_thread/tb);
+  dim3 threadsPerBlock(tb, 1);
+  dim3 blockPerGrid(grid, 1);
+
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start);
+
+  // std::cout << "thread block: " << tb << std::endl;
+  // std::cout << "grid: " << grid << std::endl;
+
+  _solve_tridiag_M_l_col_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol,
+                                                                 nr,         nc,
+                                                                 row_stride, col_stride,
+                                                                 dirow,      dicol,
+                                                                 dv,         lddv, 
+                                                                 dcoords_y);
+  gpuErrchk(cudaGetLastError ()); 
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
+
+  return mgard_cuda_ret(0, milliseconds/1000.0);
+}
+
+template <typename T>
 __global__ void
 _calc_am_bm(int n,        
-            double * am, double * bm,    
-            double * ddist) {
+            T * am, T * bm,    
+            T * ddist) {
   int c = threadIdx.x;
   int c_sm = threadIdx.x;
-  extern __shared__ double sm[];
-  double * ddist_sm = sm;
-  double * am_sm = sm + blockDim.x;
-  double * bm_sm = am_sm + blockDim.x;
+  extern __shared__ __align__(sizeof(T)) unsigned char smem[];
+  T * sm = reinterpret_cast<T *>(smem);
+  //extern __shared__ double sm[];
+  T * ddist_sm = sm;
+  T * am_sm = sm + blockDim.x;
+  T * bm_sm = am_sm + blockDim.x;
 
-  double prev_am = 1.0;
-  double prev_dist = 0.0;
+  T prev_am = 1.0;
+  T prev_dist = 0.0;
   int rest = n;
 
   while (rest > blockDim.x) {
@@ -91,10 +342,11 @@ _calc_am_bm(int n,
   }
 }
 
+template <typename T>
 mgard_cuda_ret
 calc_am_bm(int n,        
-           double * am, double * bm,    
-           double * ddist,
+           T * am, T * bm,    
+           T * ddist,
            int B) {
   int total_thread_y = 1;
   int total_thread_x = B;
@@ -103,13 +355,12 @@ calc_am_bm(int n,
   int tbx = min(B, total_thread_x);
 
 
-  size_t sm_size = B * 3 * sizeof(double);
+  size_t sm_size = B * 3 * sizeof(T);
 
   int gridy = 1;
   int gridx = 1;
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
-
 
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
@@ -132,12 +383,12 @@ calc_am_bm(int n,
 
 
 
-
+template <typename T>
 __global__ void
 _solve_tridiag_M_l_row_forward_cuda_sm(int nr,             int nc,
                                        int row_stride,     int col_stride,
-                                       double * bm, 
-                                       double * dv,        int lddv, 
+                                       T * bm, 
+                                       T * dv,        int lddv, 
                                        int ghost_col) {
 
   /* Global col idx */
@@ -150,17 +401,19 @@ _solve_tridiag_M_l_row_forward_cuda_sm(int nr,             int nc,
   register int r_sm = threadIdx.x; // for computation
   register int c_sm = threadIdx.x; // for load data
 
-  double * vec;
+  T * vec;
 
   /* SM allocation */
-  extern __shared__ double sm[];
+  extern __shared__ __align__(sizeof(T)) unsigned char smem[];
+  T * sm = reinterpret_cast<T *>(smem);
+  //extern __shared__ double sm[];
   register int ldsm = blockDim.x + ghost_col;
-  double * vec_sm = sm;
-  double * bm_sm = sm + (blockDim.x) * ldsm;
+  T * vec_sm = sm;
+  T * bm_sm = sm + (blockDim.x) * ldsm;
 
   // register double result;
 
-  register double prev_vec_sm = 0.0;
+  register T prev_vec_sm = 0.0;
 
   register int total_col = ceil((double)nc/(col_stride));
   register int rest_col;
@@ -283,12 +536,12 @@ _solve_tridiag_M_l_row_forward_cuda_sm(int nr,             int nc,
   }
 }
 
-
+template <typename T>
 mgard_cuda_ret 
 solve_tridiag_M_l_row_forward_cuda_sm(int nr,         int nc,
                                       int row_stride, int col_stride,
-                                      double * bm,
-                                      double * dv,    int lddv,
+                                      T * bm,
+                                      T * dv,    int lddv,
                                       int B, int ghost_col) {
  
 
@@ -299,15 +552,12 @@ solve_tridiag_M_l_row_forward_cuda_sm(int nr,         int nc,
 
   int tby = 1;
   int tbx = min(B, total_thread_x);
-
-
-  size_t sm_size = (B+1)*(B+ghost_col) * sizeof(double);
+  size_t sm_size = (B+1)*(B+ghost_col) * sizeof(T);
 
   int gridy = 1;
   int gridx = ceil((float)total_thread_x/tbx);
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
-
 
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
@@ -332,12 +582,12 @@ solve_tridiag_M_l_row_forward_cuda_sm(int nr,         int nc,
 }
 
 
-
+template <typename T>
 __global__ void
 _solve_tridiag_M_l_row_backward_cuda_sm(int nr,             int nc,
                                        int row_stride,     int col_stride,
-                                       double * am,        double * ddist_x,
-                                       double * dv,        int lddv, 
+                                       T * am,        T * ddist_x,
+                                       T * dv,        int lddv, 
                                        int ghost_col) {
   /* Global col idx */
   register int r0 = blockIdx.x * blockDim.x;
@@ -349,18 +599,20 @@ _solve_tridiag_M_l_row_backward_cuda_sm(int nr,             int nc,
   register int r_sm = threadIdx.x; // for computation
   register int c_sm = threadIdx.x; // for load data
 
-  double * vec;
+  T * vec;
 
   /* SM allocation */
-  extern __shared__ double sm[];
+  extern __shared__ __align__(sizeof(T)) unsigned char smem[];
+  T * sm = reinterpret_cast<T *>(smem);
+  //extern __shared__ double sm[];
   register int ldsm = blockDim.x + ghost_col;
-  double * vec_sm = sm;
-  double * am_sm = sm + (blockDim.x) * ldsm;
-  double * dist_x_sm = am_sm + ldsm;
+  T * vec_sm = sm;
+  T * am_sm = sm + (blockDim.x) * ldsm;
+  T * dist_x_sm = am_sm + ldsm;
 
 
 
-  register double prev_vec_sm = 0.0;
+  register T prev_vec_sm = 0.0;
 
   register int total_col = ceil((double)nc/(col_stride));
   register int rest_col;
@@ -485,12 +737,12 @@ _solve_tridiag_M_l_row_backward_cuda_sm(int nr,             int nc,
   }  
 }
 
-
+template <typename T>
 mgard_cuda_ret 
 solve_tridiag_M_l_row_backward_cuda_sm(int nr,         int nc,
                                       int row_stride, int col_stride,
-                                      double * am,    double * ddist_x,
-                                      double * dv,    int lddv,
+                                      T * am,    T * ddist_x,
+                                      T * dv,    int lddv,
                                       int B, int ghost_col) {
  
 
@@ -503,7 +755,7 @@ solve_tridiag_M_l_row_backward_cuda_sm(int nr,         int nc,
   int tbx = min(B, total_thread_x);
 
 
-  size_t sm_size = (B+2)*(B+ghost_col) * sizeof(double);
+  size_t sm_size = (B+2)*(B+ghost_col) * sizeof(T);
 
   int gridy = 1;
   int gridx = ceil((float)total_thread_x/tbx);
@@ -534,29 +786,19 @@ solve_tridiag_M_l_row_backward_cuda_sm(int nr,         int nc,
 }
 
 
-
+template <typename T>
 mgard_cuda_ret 
 solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
-                              double * dv,    int lddv,
-                              double * ddist_x,
+                              T * dv,    int lddv,
+                              T * ddist_x,
                               int B, int ghost_col) {
-  // double * ddist_x;
-  // //int len_ddist_x = ceil((float)nc/col_stride)-1;
-  // int len_ddist_x = ceil((float)nc/col_stride); // add one for better consistance for backward
-  // cudaMallocHelper((void**)&ddist_x, len_ddist_x*sizeof(double));
-  // calc_cpt_dist(nc, col_stride, dcoords_x, ddist_x);
-  // // printf("dcoords_x %d:\n", nc);
-  // // print_matrix_cuda(1, nc, dcoords_x, nc);
-  // // printf("ddist_x:\n");
-  // // print_matrix_cuda(1, len_ddist_x, ddist_x, len_ddist_x);
-
   mgard_cuda_ret tmp(0, 0.0);
   mgard_cuda_ret ret(0, 0.0);
-  double * am;
-  double * bm;
-  cudaMallocHelper((void**)&am, nc*sizeof(double));
-  cudaMallocHelper((void**)&bm, nc*sizeof(double));
+  T * am;
+  T * bm;
+  cudaMallocHelper((void**)&am, nc*sizeof(T));
+  cudaMallocHelper((void**)&bm, nc*sizeof(T));
   tmp = calc_am_bm(ceil((float)nc/col_stride), am, bm, ddist_x, 16);
   ret.time += tmp.time;
 
@@ -567,27 +809,29 @@ solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
 
 
   tmp = solve_tridiag_M_l_row_forward_cuda_sm(nr,         nc,
-                                        row_stride, col_stride,
-                                        bm,
-                                        dv,    lddv,
-                                        B,     ghost_col);
+                                              row_stride, col_stride,
+                                              bm,
+                                              dv,    lddv,
+                                              B,     ghost_col);
   ret.time += tmp.time;
   tmp = solve_tridiag_M_l_row_backward_cuda_sm(nr,         nc,
-                                        row_stride, col_stride,
-                                        am,     ddist_x,
-                                        dv,    lddv,
-                                        B,     ghost_col);
+                                               row_stride, col_stride,
+                                               am,     ddist_x,
+                                               dv,    lddv,
+                                               B,     ghost_col);
   ret.time += tmp.time;
+  cudaFreeHelper(am);
+  cudaFreeHelper(bm);
   return ret;
 }
 
 
-
+template <typename T>
 __global__ void
 _solve_tridiag_M_l_col_forward_cuda_sm(int nr,             int nc,
                                        int row_stride,     int col_stride,
-                                       double * bm, 
-                                       double * dv,        int lddv, 
+                                       T * bm, 
+                                       T * dv,        int lddv, 
                                        int ghost_row) {
 
   /* Global idx */
@@ -599,17 +843,19 @@ _solve_tridiag_M_l_col_forward_cuda_sm(int nr,             int nc,
   register int r_sm = threadIdx.x; // for computation
   register int c_sm = threadIdx.x; // for load data
 
-  double * vec;
+  T * vec;
 
   /* SM allocation */
-  extern __shared__ double sm[];
+  extern __shared__ __align__(sizeof(T)) unsigned char smem[];
+  T * sm = reinterpret_cast<T *>(smem);
+  //extern __shared__ double sm[];
   register int ldsm = blockDim.x;
-  double * vec_sm = sm + c_sm;
-  double * bm_sm = sm + (blockDim.x + ghost_row) * ldsm;
+  T * vec_sm = sm + c_sm;
+  T * bm_sm = sm + (blockDim.x + ghost_row) * ldsm;
 
   // register double result;
 
-  register double prev_vec_sm = 0.0;
+  register T prev_vec_sm = 0.0;
 
   register int total_row = ceil((double)nr/(row_stride));
   register int rest_row;
@@ -744,12 +990,12 @@ _solve_tridiag_M_l_col_forward_cuda_sm(int nr,             int nc,
   }
 }
 
-
+template <typename T>
 mgard_cuda_ret 
 solve_tridiag_M_l_col_forward_cuda_sm(int nr,         int nc,
                                       int row_stride, int col_stride,
-                                      double * bm,
-                                      double * dv,    int lddv,
+                                      T * bm,
+                                      T * dv,    int lddv,
                                       int B, int ghost_row) {
  
 
@@ -762,7 +1008,7 @@ solve_tridiag_M_l_col_forward_cuda_sm(int nr,         int nc,
   int tbx = min(B, total_thread_x);
   tbx = max(B, tbx);
 
-  size_t sm_size = (B+1)*(B+ghost_row) * sizeof(double);
+  size_t sm_size = (B+1)*(B+ghost_row) * sizeof(T);
 
   int gridy = 1;
   int gridx = ceil((float)total_thread_x/tbx);
@@ -792,12 +1038,12 @@ solve_tridiag_M_l_col_forward_cuda_sm(int nr,         int nc,
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
 
-
+template <typename T>
 __global__ void
 _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
                                        int row_stride,     int col_stride,
-                                       double * am,        double * ddist_x,
-                                       double * dv,        int lddv, 
+                                       T * am,        T * ddist_x,
+                                       T * dv,        int lddv, 
                                        int ghost_row) {
   /* Global idx */
   register int c0 = blockIdx.x * blockDim.x;
@@ -808,18 +1054,20 @@ _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
   register int r_sm = threadIdx.x; // for computation
   register int c_sm = threadIdx.x; // for load data
 
-  double * vec;
+  T * vec;
 
   /* SM allocation */
-  extern __shared__ double sm[];
+  extern __shared__ __align__(sizeof(T)) unsigned char smem[];
+  T * sm = reinterpret_cast<T *>(smem);
+  //extern __shared__ double sm[];
   register int ldsm = blockDim.x;
-  double * vec_sm = sm + c_sm;
-  double * am_sm = sm + (blockDim.x + ghost_row) * ldsm;
-  double * dist_x_sm = am_sm + blockDim.x + ghost_row;
+  T * vec_sm = sm + c_sm;
+  T * am_sm = sm + (blockDim.x + ghost_row) * ldsm;
+  T * dist_x_sm = am_sm + blockDim.x + ghost_row;
 
 
 
-  register double prev_vec_sm = 0.0;
+  register T prev_vec_sm = 0.0;
 
   register int total_row = ceil((double)nr/(row_stride));
   register int rest_row;
@@ -949,12 +1197,12 @@ _solve_tridiag_M_l_col_backward_cuda_sm(int nr,             int nc,
   }  
 }
 
-
+template <typename T>
 mgard_cuda_ret 
 solve_tridiag_M_l_col_backward_cuda_sm(int nr,         int nc,
                                       int row_stride, int col_stride,
-                                      double * am,    double * ddist_y,
-                                      double * dv,    int lddv,
+                                      T * am,    T * ddist_y,
+                                      T * dv,    int lddv,
                                       int B, int ghost_row) {
  
 
@@ -967,7 +1215,7 @@ solve_tridiag_M_l_col_backward_cuda_sm(int nr,         int nc,
   int tbx = min(B, total_thread_x);
   tbx = max(B, tbx);
 
-  size_t sm_size = (B+2)*(B+ghost_row) * sizeof(double);
+  size_t sm_size = (B+2)*(B+ghost_row) * sizeof(T);
 
   int gridy = 1;
   int gridx = ceil((float)total_thread_x/tbx);
@@ -997,28 +1245,19 @@ solve_tridiag_M_l_col_backward_cuda_sm(int nr,         int nc,
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
 
+template <typename T>
 mgard_cuda_ret 
 solve_tridiag_M_l_col_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
-                              double * dv,    int lddv,
-                              double * ddist_y,
+                              T * dv,    int lddv,
+                              T * ddist_y,
                               int B, int ghost_row) {
-  // double * ddist_y;
-  // //int len_ddist_x = ceil((float)nc/col_stride)-1;
-  // int len_ddist_y = ceil((float)nr/row_stride); // add one for better consistance for backward
-  // cudaMallocHelper((void**)&ddist_y, len_ddist_y*sizeof(double));
-  // calc_cpt_dist(nr, row_stride, dcoords_y, ddist_y);
-  // // printf("dcoords_y %d:\n", nc);
-  // // print_matrix_cuda(1, nr, dcoords_y, nr);
-  // // printf("ddist_y:\n");
-  // // print_matrix_cuda(1, len_ddist_y, ddist_y, len_ddist_y);
-
   mgard_cuda_ret tmp(0, 0.0);
   mgard_cuda_ret ret(0, 0.0);
-  double * am;
-  double * bm;
-  cudaMallocHelper((void**)&am, nr*sizeof(double));
-  cudaMallocHelper((void**)&bm, nr*sizeof(double));
+  T * am;
+  T * bm;
+  cudaMallocHelper((void**)&am, nr*sizeof(T));
+  cudaMallocHelper((void**)&bm, nr*sizeof(T));
   tmp = calc_am_bm(ceil((float)nr/row_stride), am, bm, ddist_y, 16);
   ret.time += tmp.time;
 
@@ -1040,8 +1279,127 @@ solve_tridiag_M_l_col_cuda_sm(int nr,         int nc,
                                                dv,         lddv,
                                                B,          ghost_row);
   ret.time += tmp.time;
+  cudaFreeHelper(am);
+  cudaFreeHelper(bm);
   return ret;
 }
+
+
+template mgard_cuda_ret
+solve_tridiag_M_l_row_cuda<double>(int nrow,       int ncol,
+                           int nr,         int nc,
+                           int row_stride, int col_stride,
+                           int * dirow,    int * dicol,
+                           double * dv,     int lddv, 
+                           double * dcoords_x);
+template mgard_cuda_ret
+solve_tridiag_M_l_row_cuda<float>(int nrow,       int ncol,
+                           int nr,         int nc,
+                           int row_stride, int col_stride,
+                           int * dirow,    int * dicol,
+                           float * dv,     int lddv, 
+                           float * dcoords_x);
+template mgard_cuda_ret
+solve_tridiag_M_l_col_cuda<double>(int nrow,       int ncol,
+                           int nr,         int nc,
+                           int row_stride, int col_stride,
+                           int * dirow,    int * dicol,
+                           double * dv,    int lddv, 
+                           double * dcoords_y);
+template mgard_cuda_ret
+solve_tridiag_M_l_col_cuda<float>(int nrow,       int ncol,
+                           int nr,         int nc,
+                           int row_stride, int col_stride,
+                           int * dirow,    int * dicol,
+                           float * dv,    int lddv, 
+                           float * dcoords_y);
+
+
+
+
+template mgard_cuda_ret
+calc_am_bm<double>(int n,  double * am, double * bm,  double * ddist, int B);
+template mgard_cuda_ret
+calc_am_bm<float>(int n,  float * am, float * bm,  float * ddist, int B);
+
+template mgard_cuda_ret 
+solve_tridiag_M_l_row_forward_cuda_sm<double>(int nr,         int nc,
+                                              int row_stride, int col_stride,
+                                              double * bm,
+                                              double * dv,    int lddv,
+                                              int B, int ghost_col);
+template mgard_cuda_ret 
+solve_tridiag_M_l_row_forward_cuda_sm<float>(int nr,         int nc,
+                                              int row_stride, int col_stride,
+                                              float * bm,
+                                              float * dv,    int lddv,
+                                              int B, int ghost_col);
+
+template mgard_cuda_ret 
+solve_tridiag_M_l_row_backward_cuda_sm<double>(int nr,         int nc,
+                                              int row_stride, int col_stride,
+                                              double * am,    double * ddist_x,
+                                              double * dv,    int lddv,
+                                              int B, int ghost_col);
+template mgard_cuda_ret 
+solve_tridiag_M_l_row_backward_cuda_sm<float>(int nr,         int nc,
+                                              int row_stride, int col_stride,
+                                              float * am,    float * ddist_x,
+                                              float * dv,    int lddv,
+                                              int B, int ghost_col);
+
+template mgard_cuda_ret 
+solve_tridiag_M_l_row_cuda_sm<double>(int nr,         int nc,
+                                      int row_stride, int col_stride,
+                                      double * dv,    int lddv,
+                                      double * ddist_x,
+                                      int B, int ghost_col);
+template mgard_cuda_ret 
+solve_tridiag_M_l_row_cuda_sm<float>(int nr,         int nc,
+                                      int row_stride, int col_stride,
+                                      float * dv,    int lddv,
+                                      float * ddist_x,
+                                      int B, int ghost_col);
+
+template mgard_cuda_ret 
+solve_tridiag_M_l_col_forward_cuda_sm<double>(int nr,         int nc,
+                                              int row_stride, int col_stride,
+                                              double * bm,
+                                              double * dv,    int lddv,
+                                              int B, int ghost_row);
+template mgard_cuda_ret 
+solve_tridiag_M_l_col_forward_cuda_sm<float>(int nr,         int nc,
+                                              int row_stride, int col_stride,
+                                              float * bm,
+                                              float * dv,    int lddv,
+                                              int B, int ghost_row);
+
+template mgard_cuda_ret 
+solve_tridiag_M_l_col_backward_cuda_sm<double>(int nr,         int nc,
+                                              int row_stride, int col_stride,
+                                              double * am,    double * ddist_y,
+                                              double * dv,    int lddv,
+                                              int B, int ghost_row);
+template mgard_cuda_ret 
+solve_tridiag_M_l_col_backward_cuda_sm<float>(int nr,         int nc,
+                                              int row_stride, int col_stride,
+                                              float * am,    float * ddist_y,
+                                              float * dv,    int lddv,
+                                              int B, int ghost_row);
+
+template mgard_cuda_ret 
+solve_tridiag_M_l_col_cuda_sm<double>(int nr,         int nc,
+                                      int row_stride, int col_stride,
+                                      double * dv,    int lddv,
+                                      double * ddist_y,
+                                      int B, int ghost_row);
+template mgard_cuda_ret 
+solve_tridiag_M_l_col_cuda_sm<float>(int nr,         int nc,
+                                      int row_stride, int col_stride,
+                                      float * dv,    int lddv,
+                                      float * ddist_y,
+                                      int B, int ghost_row);
+
 
 
 

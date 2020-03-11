@@ -13,3 +13,6 @@ gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 
 __device__ int 
 get_idx(const int ld, const int i, const int j);
+
+__device__ int 
+get_idx(const int ld1, const int ld2, const int i, const int j, const int k);

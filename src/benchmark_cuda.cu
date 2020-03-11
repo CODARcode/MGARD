@@ -1,5 +1,6 @@
 #include "mgard_nuni.h"
 #include "mgard.h"
+#include "mgard_nuni_2d_cuda_gen.h"
 #include "mgard_nuni_2d_cuda.h"
 #include "mgard_nuni_2d_cuda_mass_mult_l.h"
 #include "mgard_cuda_helper.h"

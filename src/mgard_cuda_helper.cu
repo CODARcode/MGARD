@@ -3,6 +3,43 @@
 #include "mgard_cuda_helper.h"
 #include "mgard_cuda_helper_internal.h"
 
+
+mgard_cuda_handle::mgard_cuda_handle (int num_of_queues){
+  this->num_of_queues = num_of_queues;
+  cudaStream_t * ptr = (cudaStream_t *)this->queues;
+  ptr = new cudaStream_t[num_of_queues];
+  for (int i = 0; i < this->num_of_queues; i++) {
+    gpuErrchk(cudaStreamCreate(&(ptr[i])));
+  }
+}
+
+void * mgard_cuda_handle::get(int i) {
+  cudaStream_t * ptr = (cudaStream_t *)this->queues;
+  return (void *)ptr[i];
+}
+
+void mgard_cuda_handle::sync(int i) {
+  cudaStream_t * ptr = (cudaStream_t *)this->queues;
+  gpuErrchk(cudaStreamSynchronize(ptr[i]));
+}
+
+void mgard_cuda_handle::sync_all() {
+  cudaStream_t * ptr = (cudaStream_t *)this->queues;
+  for (int i = 0; i < this->num_of_queues; i++) {
+    gpuErrchk(cudaStreamSynchronize(ptr[i]));
+  }
+}
+
+void mgard_cuda_handle::destory_all() {
+  cudaStream_t * ptr = (cudaStream_t *)this->queues;
+  for (int i = 0; i < this->num_of_queues; i++) {
+    gpuErrchk(cudaStreamDestroy(ptr[i]));
+  }
+}
+
+
+
+
 // print 2D CPU
 void print_matrix(int nrow, int ncol, double * v, int ldv) {
   //std::cout << std::setw(10);
@@ -29,27 +66,26 @@ void print_matrix_cuda(int nrow, int ncol, double * dv, int lddv) {
 }
 
 // print 3D GPU
-void print_matrix_cuda(int nfib, int nrow, int ncol, double * dv, int lddv1, int lddv2, int sizex) {
+void print_matrix_cuda(int nrow, int ncol, int nfib, double * dv, int lddv1, int lddv2, int sizex) {
   //std::cout << std::setw(10);
   //std::cout << std::setprecision(2) << std::fixed;
-  double * v = new double[nfib * nrow * ncol];
-  cudaMemcpy3DHelper(v, ncol  * sizeof(double), ncol * sizeof(double), nrow,
-                     dv, lddv1 * sizeof(double), sizex, lddv2,
-                     ncol * sizeof(double), nrow, nfib, 
+  double * v = new double[nrow * ncol * nfib];
+  cudaMemcpy3DHelper(v, nfib  * sizeof(double), nfib * sizeof(double), ncol,
+                     dv, lddv1 * sizeof(double), sizex * sizeof(double), lddv2,
+                     nfib * sizeof(double), ncol, nrow, 
                      D2H);
-  print_matrix(nrow, ncol, v, ncol); 
+  print_matrix(nrow, ncol, nfib, v, nfib, ncol); 
 }
 
 // print 3D CPU
-void print_matrix(int nfib, int nrow, int ncol, int * v, int ldv1, int ldv2) {
+void print_matrix(int nrow, int ncol, int nfib, double * v, int ldv1, int ldv2) {
   //std::cout << std::setw(10);
   //std::cout << std::setprecision(2) << std::fixed;
-  for (int i = 0; i < nfib; i++) {
-    std::cout << "[ fib = " << i << " ]\n";
-    print_matrix(nrow, ncol, v + i * ldv1 * ldv2, ldv1);
+  for (int i = 0; i < nrow; i++) {
+    std::cout << "[ nrow = " << i << " ]\n";
+    print_matrix(ncol, nfib, v + i * ldv1 * ldv2, ldv1);
     std::cout << std::endl;
   }
-  std::cout << std::endl;
 }
 
 
@@ -72,7 +108,7 @@ void print_matrix(int nrow, int ncol, int * v, int ldv) {
   //std::cout << std::setprecision(2) << std::fixed;
   for (int i = 0; i < nrow; i++) {
     for (int j = 0; j < ncol; j++) {
-        std::cout <<std::setw(8) << std::setprecision(0) << std::fixed <<  v[ldv*i + j]<<", ";
+        std::cout <<std::setw(5) << std::setprecision(0) << std::fixed <<  v[ldv*i + j]<<", ";
     }
     std::cout << std::endl;
   }
@@ -86,6 +122,7 @@ bool compare_matrix(int nrow, int ncol,
   //std::cout << std::setw(10);
   //std::cout << std::setprecision(2) << std::fixed;
   bool correct = true;
+  bool nan = false;
   double E = 1e-6;
   for (int i = 0; i < nrow; i++) {
       for (int j = 0; j < ncol; j++) {
@@ -93,13 +130,20 @@ bool compare_matrix(int nrow, int ncol,
           double b = v2[ldv2*i + j];
           if (abs(a - b) > E){
               correct = false;
-              std::cout << "Diff at (" << i << ", " << j << ") ";
-              std::cout << a << " - " << b << " = " << abs(a-b) << std::endl; 
+              // std::cout << "Diff at (" << i << ", " << j << ") ";
+              // std::cout << a << " - " << b << " = " << abs(a-b) << std::endl; 
+          }
+          if (isnan(a) || isnan(b)) {
+            correct = true;
+            // std::cout << "NAN at (" << i << ", " << j << ") ";
+            // std::cout << a << " - " << b << " = " << abs(a-b) << std::endl;
           }
       }
   }
   if (correct) printf("Compare: correct.\n");
   else printf("Compare: wrong.\n");
+  if (nan) printf("Nan: include.\n");
+  //else printf("Nan: not include.\n");
   return correct;
 }
 
@@ -129,49 +173,57 @@ bool compare_matrix_cuda(int nrow, int ncol,
 
 
 // compare 3D CPU
-bool compare_matrix(int nfib, int nrow, int ncol, 
+bool compare_matrix(int nrow, int ncol, int nfib, 
                     double * v1, int ldv11, int ldv12, 
                     double * v2, int ldv21, int ldv22) {
   //std::cout << std::setw(10);
   //std::cout << std::setprecision(2) << std::fixed;
   bool correct = true;
+  bool nan = false;
   double E = 1e-6;
-  for (int i = 0; i < nfib; i++) {
-    for (int j = 0; j < nrow; j++) {
-      for (int k = 0; k < ncol; k++) {
+  for (int i = 0; i < nrow; i++) {
+    for (int j = 0; j < ncol; j++) {
+      for (int k = 0; k < nfib; k++) {
         double a = v1[ldv11*ldv12*i + ldv11*j + k];
         double b = v2[ldv21*ldv22*i + ldv21*j + k];
         if (abs(a - b) > E){
           correct = false;
-          std::cout << "Diff at (" << i << ", " << j << ", " << k <<") ";
-          std::cout << a << " - " << b << " = " << abs(a-b) << std::endl; 
+          // std::cout << "Diff at (" << i << ", " << j << ", " << k <<") ";
+          // std::cout << a << " - " << b << " = " << abs(a-b) << std::endl; 
+        }
+        if (isnan(a) || isnan(b)) {
+          correct = true;
+          // std::cout << "NAN at (" << i << ", " << j << ") ";
+          // std::cout << a << " - " << b << " = " << abs(a-b) << std::endl;
         }
       }
     }
   }
   if (correct) printf("Compare: correct.\n");
   else printf("Compare: wrong.\n");
+  if (nan) printf("Nan: include.\n");
+  //else printf("Nan: not include.\n");
   return correct;
 }
 
 // compare 3D GPU
-bool compare_matrix_cuda(int nfib, int nrow, int ncol, 
+bool compare_matrix_cuda(int nrow, int ncol, int nfib, 
                       double * dv1, int lddv11, int lddv12, int sizex1,
                       double * dv2, int lddv21, int lddv22, int sizex2) {
   double * v1 = new double[nrow * ncol * nfib];
-  int ldv11 = ncol;
-  int ldv12 = nrow;
-  cudaMemcpy3DHelper(v1, ldv11  * sizeof(double), ncol * sizeof(double), ldv12, 
-                    dv1, lddv11 * sizeof(double), sizex1 * sizeof(double), lddv12 
-                    ncol * sizeof(double), nrow, nfib
+  int ldv11 = nfib;
+  int ldv12 = ncol;
+  cudaMemcpy3DHelper(v1, ldv11  * sizeof(double), nfib * sizeof(double), ldv12, 
+                    dv1, lddv11 * sizeof(double), sizex1 * sizeof(double), lddv12,
+                    nfib * sizeof(double), ncol, nrow,
                     D2H);
 
   double * v2 = new double[nrow * ncol * nfib];
-  int ldv21 = ncol;
-  int ldv22 = nrow;
-  cudaMemcpy3DHelper(v2, ldv21  * sizeof(double), ncol * sizeof(double), ldv22, 
-                    dv2, lddv21 * sizeof(double), sizex2 * sizeof(double), lddv22 
-                    ncol * sizeof(double), nrow, nfib
+  int ldv21 = nfib;
+  int ldv22 = ncol;
+  cudaMemcpy3DHelper(v2, ldv21  * sizeof(double), nfib * sizeof(double), ldv22, 
+                    dv2, lddv21 * sizeof(double), sizex2 * sizeof(double), lddv22, 
+                    nfib * sizeof(double), ncol, nrow,
                     D2H);
   bool ret = compare_matrix(nrow, ncol, nfib, 
                             v1,   ldv11, ldv12,
@@ -239,14 +291,16 @@ void cudaMemcpy3DHelper(void * dst, size_t dpitch, size_t dwidth, size_t dheight
                         enum copy_type kind) {
   cudaExtent extent = make_cudaExtent(width, height, depth);
   cudaMemcpy3DParms p = {0};
-  p.srcPtr = src;
+  p.dstPtr.ptr = dst;
+  p.dstPtr.pitch = dpitch;
+  p.dstPtr.xsize = dwidth;
+  p.dstPtr.ysize = dheight;
+
+  p.srcPtr.ptr = src;
   p.srcPtr.pitch = spitch;
   p.srcPtr.xsize = swidth;
   p.srcPtr.ysize = sheight;
-  p.dstPtr.ptr = dst;
-  p.dstPtr.pitch = dpitch;
-  p.srcPtr.xsize = dwidth;
-  p.srcPtr.ysize = dheight;
+  
   p.extent = extent;
   enum cudaMemcpyKind cuda_copy_type;
   switch (kind)

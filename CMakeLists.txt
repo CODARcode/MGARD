@@ -79,11 +79,19 @@ add_library(mgard
   src/mgard_nuni_float.cpp          include/mgard_nuni_float.h
 # CUDA part  
   src/mgard_cuda.cu                            include/mgard_cuda.h
+  src/mgard_nuni_2d_cuda_gen.cu                include/mgard_nuni_2d_cuda_gen.h
+  src/mgard_nuni_2d_cuda_common.cu             include/mgard_nuni_2d_cuda_common.h
   src/mgard_nuni_2d_cuda.cu                    include/mgard_nuni_2d_cuda.h
   src/mgard_nuni_2d_cuda_cpt_l1.cu             include/mgard_nuni_2d_cuda_cpt_l1.h
   src/mgard_nuni_2d_cuda_cpt_l2.cu             include/mgard_nuni_2d_cuda_cpt_l2.h
   src/mgard_nuni_2d_cuda_cpt_l2_sm.cu          include/mgard_nuni_2d_cuda_cpt_l2_sm.h
   src/mgard_nuni_2d_cuda_cpt_l2_sm_pf.cu       include/mgard_nuni_2d_cuda_cpt_l2_sm_pf.h
+  src/mgard_nuni_2d_cuda_copy_level.cu         include/mgard_nuni_2d_cuda_copy_level.h
+  src/mgard_nuni_2d_cuda_mass_matrix_multiply.cu        include/mgard_nuni_2d_cuda_mass_matrix_multiply.h
+  src/mgard_nuni_2d_cuda_pi_Ql_first.cu        include/mgard_nuni_2d_cuda_pi_Ql_first.h
+  src/mgard_nuni_2d_cuda_restriction_first.cu  include/mgard_nuni_2d_cuda_restriction_first.h
+  src/mgard_nuni_2d_cuda_prolongate_last.cu       include/mgard_nuni_2d_cuda_prolongate_last.h
+  src/mgard_nuni_2d_cuda_subtract_level.cu     include/mgard_nuni_2d_cuda_subtract_level.h
   src/mgard_nuni_2d_cuda_pi_Ql.cu              include/mgard_nuni_2d_cuda_pi_Ql.h
   src/mgard_nuni_2d_cuda_mass_mult_l.cu        include/mgard_nuni_2d_cuda_mass_mult_l.h
   src/mgard_nuni_2d_cuda_restriction_l.cu      include/mgard_nuni_2d_cuda_restriction_l.h
@@ -92,14 +100,17 @@ add_library(mgard
   src/mgard_nuni_2d_cuda_copy_level_l.cu       include/mgard_nuni_2d_cuda_copy_level_l.h
   src/mgard_nuni_2d_cuda_assign_num_level_l.cu include/mgard_nuni_2d_cuda_assign_num_level_l.h
   src/mgard_nuni_2d_cuda_add_level_l.cu        include/mgard_nuni_2d_cuda_add_level_l.h
+  src/mgard_nuni_2d_cuda_subtract_level_l.cu   include/mgard_nuni_2d_cuda_subtract_level_l.h
   src/mgard_nuni_3d_cuda_cpt_l2_sm.cu          include/mgard_nuni_3d_cuda_cpt_l2_sm.h
   src/mgard_nuni_3d_cuda_pi_Ql.cu              include/mgard_nuni_3d_cuda_pi_Ql.h
   src/mgard_nuni_3d_cuda_copy_level_l.cu       include/mgard_nuni_3d_cuda_copy_level_l.h
   src/mgard_nuni_3d_cuda_assign_num_level_l.cu include/mgard_nuni_3d_cuda_assign_num_level_l.h
+  src/mgard_nuni_3d_cuda_add_level_l.cu        include/mgard_nuni_3d_cuda_add_level_l.h
   src/mgard_api_cuda.cpp            include/mgard_api_cuda.h
   src/mgard_cuda_helper.cu          include/mgard_cuda_helper.h
   src/mgard_cuda_helper_internal.cu include/mgard_cuda_helper_internal.h
   src/mgard_cuda_compact_helper.cu  include/mgard_cuda_compact_helper.h
+  include/mgard_nuni_2d_cuda_kernels.h
 )
 target_include_directories(mgard
   PUBLIC

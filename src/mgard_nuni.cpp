@@ -7,6 +7,7 @@
 // See LICENSE for details.
 
 #include "mgard_nuni.h"
+#include "mgard_cuda_helper.h"
 #include "mgard.h"
 #include <chrono>
 #include <fstream>
@@ -1218,8 +1219,13 @@ void pi_Ql3D(const int nr, const int nc, const int nf, const int nrow,
       for (int jcol = 0; jcol < ncol; ++jcol) {
         row_vec[jcol] = v[mgard_common::get_index3(ncol, nfib, ir, jcol, kf)];
       }
+      // printf("before:");
+      // print_matrix(1, ncol, row_vec.data(), ncol);
 
       pi_lminus1_l(l, row_vec, coords_x, nc, ncol);
+
+      // printf("after:");
+      // print_matrix(1, ncol, row_vec.data(), ncol);
 
       for (int jcol = 0; jcol < ncol; ++jcol) {
         v[mgard_common::get_index3(ncol, nfib, ir, jcol, kf)] = row_vec[jcol];
@@ -2391,6 +2397,8 @@ void refactor_3D(const int nr, const int nc, const int nf, const int nrow,
 
     pi_Ql3D(nr, nc, nf, nrow, ncol, nfib, l, v, coords_x, coords_y, coords_z,
             row_vec, col_vec, fib_vec);
+    // printf("org:\n");
+    // print_matrix(nfib, nrow, ncol, v, ncol, nrow);
 
     mgard_gen::copy3_level_l(l, v, work.data(), nr, nc, nf, nrow, ncol, nfib);
     mgard_gen::assign3_level_l(l + 1, work.data(), 0.0, nr, nc, nf, nrow, ncol,
@@ -5600,7 +5608,7 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              std::vector<double> &coords_x, std::vector<double> &coords_y,
              std::vector<double> &row_vec, std::vector<double> &col_vec) {
 
-  std::cout << "***prep_2D***" << std::endl;
+ //std::cout << "***prep_2D***" << std::endl;
   std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
   std::chrono::duration<double> elapsed;
   double pi_Ql_first_time = 0.0;
@@ -5821,7 +5829,7 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
                  std::vector<double> &row_vec, std::vector<double> &col_vec) {
   // refactor
   //    //std::cout  << "I am the general refactorer!" <<"\n";
-  std::cout << "***refactor_2D***" << std::endl;
+  //std::cout << "***refactor_2D***" << std::endl;
   std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
   std::chrono::duration<double> elapsed;
   double pi_Ql_time = 0.0;

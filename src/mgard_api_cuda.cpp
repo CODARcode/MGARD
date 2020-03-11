@@ -18,7 +18,7 @@ unsigned char *mgard_compress_cuda(int itype_flag,  double  *v, int &out_size, i
       assert (ncol > 3);
       assert (nfib > 3);
       
-      mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol);
+      mgard_compressed_ptr = mgard::refactor_qz_cuda(nrow, ncol, nfib, v, out_size, tol);
       return mgard_compressed_ptr;
       
     } else if (nrow > 1 && ncol > 1) {
@@ -77,7 +77,7 @@ unsigned char *mgard_compress_cuda(int itype_flag,  double  *v, int &out_size, i
       assert (ncol > 3);
       assert (nfib > 3);
       
-      mgard_compressed_ptr = mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol);
+      mgard_compressed_ptr = mgard::refactor_qz_cuda(nrow, ncol, nfib, v, out_size, tol);
       return mgard_compressed_ptr;
       
     } else if (nrow > 1 && ncol > 1) {

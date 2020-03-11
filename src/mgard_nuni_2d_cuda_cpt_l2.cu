@@ -4,6 +4,7 @@
 #include "mgard_cuda_helper.h"
 #include "mgard_cuda_compact_helper.h"
 #include "mgard_cuda_helper_internal.h"
+#include "mgard_nuni_2d_cuda_kernels.h"
 #include <fstream>
 #include <cmath>
 

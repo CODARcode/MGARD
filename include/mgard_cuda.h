@@ -3,6 +3,10 @@ namespace mgard
 {
 
 unsigned char *
+refactor_qz_cuda(int nrow, int ncol, int nfib, const double *u,
+                           int &outsize, double tol);
+
+unsigned char *
 refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double tol, int opt);
 double* 
 recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len, int opt);

@@ -4,14 +4,7 @@
 #include "mgard_cuda_helper.h"
 #include "mgard_cuda_compact_helper.h"
 #include "mgard_cuda_helper_internal.h"
-#include "mgard_nuni_2d_cuda_pi_Ql.h"
-#include "mgard_nuni_2d_cuda_mass_mult_l.h"
-#include "mgard_nuni_2d_cuda_restriction_l.h"
-#include "mgard_nuni_2d_cuda_solve_tridiag_M_l.h"
-#include "mgard_nuni_2d_cuda_prolongate_l.h"
-#include "mgard_nuni_2d_cuda_copy_level_l.h"
-#include "mgard_nuni_2d_cuda_assign_num_level_l.h"
-#include "mgard_nuni_2d_cuda_add_level_l.h"
+#include "mgard_nuni_2d_cuda_kernels.h"
 
 #include <fstream>
 #include <cmath>
@@ -29,7 +22,7 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
                     double * dwork,     int lddwork,
                     double * dcoords_x, double * dcoords_y) {
 
-  bool verb = false;
+  bool verb = true;
   double * dcv;
   size_t dcv_pitch;
   cudaMallocPitchHelper((void**)&dcv, &dcv_pitch, nc * sizeof(double), nr);
@@ -45,46 +38,46 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
   cudaMallocPitchHelper((void**)&dcwork2, &dcwork_pitch2, nc * sizeof(double), nr);
   int lddcwork2 = dcwork_pitch2 / sizeof(double);
 
-  int * cirow = new int[nr];
-  int * cicol = new int[nc];
+  // int * cirow = new int[nr];
+  // int * cicol = new int[nc];
 
-  for (int i = 0; i < nr; i++) {
-    cirow[i] = i;
-  }
+  // for (int i = 0; i < nr; i++) {
+  //   cirow[i] = i;
+  // }
 
-  for (int i = 0; i < nc; i++) {
-    cicol[i] = i;
-  }
+  // for (int i = 0; i < nc; i++) {
+  //   cicol[i] = i;
+  // }
 
-  int * dcirow;
-  cudaMallocHelper((void**)&dcirow, nr * sizeof(int));
-  cudaMemcpyHelper(dcirow, cirow, nr * sizeof(int), H2D);
+  // int * dcirow;
+  // cudaMallocHelper((void**)&dcirow, nr * sizeof(int));
+  // cudaMemcpyHelper(dcirow, cirow, nr * sizeof(int), H2D);
 
-  int * dcicol;
-  cudaMallocHelper((void**)&dcicol, nc * sizeof(int));
-  cudaMemcpyHelper(dcicol, cicol, nc * sizeof(int), H2D);
+  // int * dcicol;
+  // cudaMallocHelper((void**)&dcicol, nc * sizeof(int));
+  // cudaMemcpyHelper(dcicol, cicol, nc * sizeof(int), H2D);
 
-  double * coords_x = new double[ncol];
-  double * coords_y = new double[nrow];
-  cudaMemcpyHelper(coords_x, dcoords_x, ncol * sizeof(double), D2H);
-  cudaMemcpyHelper(coords_y, dcoords_y, nrow * sizeof(double), D2H);
+  // double * coords_x = new double[ncol];
+  // double * coords_y = new double[nrow];
+  // cudaMemcpyHelper(coords_x, dcoords_x, ncol * sizeof(double), D2H);
+  // cudaMemcpyHelper(coords_y, dcoords_y, nrow * sizeof(double), D2H);
 
 
-  int * irow = new int[nr];
-  int * icol = new int[nc];
-  cudaMemcpyHelper(irow, dirow, nr * sizeof(int), D2H);
-  cudaMemcpyHelper(icol, dicol, nc * sizeof(int), D2H);
+  // int * irow = new int[nr];
+  // int * icol = new int[nc];
+  // cudaMemcpyHelper(irow, dirow, nr * sizeof(int), D2H);
+  // cudaMemcpyHelper(icol, dicol, nc * sizeof(int), D2H);
 
-  double * ccoords_x = new double[nc];
-  double * ccoords_y = new double[nr];
+  // double * ccoords_x = new double[nc];
+  // double * ccoords_y = new double[nr];
 
-  for (int i = 0; i < nc; i++) {
-    ccoords_x[i] = coords_x[icol[i]];
-  }
+  // for (int i = 0; i < nc; i++) {
+  //   ccoords_x[i] = coords_x[icol[i]];
+  // }
 
-  for (int i = 0; i < nr; i++) {
-    ccoords_y[i] = coords_y[irow[i]];
-  }
+  // for (int i = 0; i < nr; i++) {
+  //   ccoords_y[i] = coords_y[irow[i]];
+  // }
 
   double * dccoords_x;
   cudaMallocHelper((void**)&dccoords_x, nc * sizeof(double));
@@ -97,17 +90,17 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
   int * nr_l = new int[l_target+1];
   int * nc_l = new int[l_target+1];
 
-  int ** cirow_l = new int*[l_target+1];
-  int ** cicol_l = new int*[l_target+1];
+  // int ** cirow_l = new int*[l_target+1];
+  // int ** cicol_l = new int*[l_target+1];
 
-  double ** ccoords_y_l = new double*[l_target+1];
-  double ** ccoords_x_l = new double*[l_target+1];
+  // double ** ccoords_y_l = new double*[l_target+1];
+  // double ** ccoords_x_l = new double*[l_target+1];
 
-  int ** dcirow_l = new int*[l_target+1];
-  int ** dcicol_l = new int*[l_target+1];
+  // int ** dcirow_l = new int*[l_target+1];
+  // int ** dcicol_l = new int*[l_target+1];
 
-  double ** dccoords_y_l = new double*[l_target+1];
-  double ** dccoords_x_l = new double*[l_target+1];
+  // double ** dccoords_y_l = new double*[l_target+1];
+  // double ** dccoords_x_l = new double*[l_target+1];
 
   org_to_pow2p1(ncol, nc, dicol, 
                 dcoords_x, dccoords_x);
@@ -121,35 +114,35 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
     int stride = std::pow(2, l);
     nr_l[l] = ceil((float)nr/std::pow(2, l));
     nc_l[l] = ceil((float)nc/std::pow(2, l));
-    cirow_l[l] = new int[nr_l[l]];
-    cicol_l[l] = new int[nc_l[l]];
+    // cirow_l[l] = new int[nr_l[l]];
+    // cicol_l[l] = new int[nc_l[l]];
 
-    ccoords_y_l[l] = new double[nr_l[l]];
-    ccoords_x_l[l] = new double[nc_l[l]];
+    // ccoords_y_l[l] = new double[nr_l[l]];
+    // ccoords_x_l[l] = new double[nc_l[l]];
 
-    for (int i = 0; i < nr_l[l]; i++) {
-      cirow_l[l][i] = i;
-      ccoords_y_l[l][i] = ccoords_y[i * stride];
-    }
+    // for (int i = 0; i < nr_l[l]; i++) {
+    //   cirow_l[l][i] = i;
+    //   ccoords_y_l[l][i] = ccoords_y[i * stride];
+    // }
 
-    for (int i = 0; i < nc_l[l]; i++) {
-      cicol_l[l][i] = i;
-      ccoords_x_l[l][i] = ccoords_x[i * stride];
-    }
+    // for (int i = 0; i < nc_l[l]; i++) {
+    //   cicol_l[l][i] = i;
+    //   ccoords_x_l[l][i] = ccoords_x[i * stride];
+    // }
 
 
 
-    cudaMallocHelper((void**)&(dcirow_l[l]), nr_l[l] * sizeof(int));
-    cudaMemcpyHelper(dcirow_l[l], cirow_l[l], nr_l[l] * sizeof(int), H2D);
+    // cudaMallocHelper((void**)&(dcirow_l[l]), nr_l[l] * sizeof(int));
+    // cudaMemcpyHelper(dcirow_l[l], cirow_l[l], nr_l[l] * sizeof(int), H2D);
 
-    cudaMallocHelper((void**)&(dcicol_l[l]), nc_l[l] * sizeof(int));
-    cudaMemcpyHelper(dcicol_l[l], cicol_l[l], nc_l[l] * sizeof(int), H2D);
+    // cudaMallocHelper((void**)&(dcicol_l[l]), nc_l[l] * sizeof(int));
+    // cudaMemcpyHelper(dcicol_l[l], cicol_l[l], nc_l[l] * sizeof(int), H2D);
 
-    cudaMallocHelper((void**)&(dccoords_y_l[l]), nr_l[l] * sizeof(double));
-    cudaMemcpyHelper(dccoords_y_l[l], ccoords_y_l[l], nr_l[l] * sizeof(double), H2D);
+    // cudaMallocHelper((void**)&(dccoords_y_l[l]), nr_l[l] * sizeof(double));
+    // cudaMemcpyHelper(dccoords_y_l[l], ccoords_y_l[l], nr_l[l] * sizeof(double), H2D);
 
-    cudaMallocHelper((void**)&(dccoords_x_l[l]), nc_l[l] * sizeof(double));
-    cudaMemcpyHelper(dccoords_x_l[l], ccoords_x_l[l], nc_l[l] * sizeof(double), H2D);
+    // cudaMallocHelper((void**)&(dccoords_x_l[l]), nc_l[l] * sizeof(double));
+    // cudaMemcpyHelper(dccoords_x_l[l], ccoords_x_l[l], nc_l[l] * sizeof(double), H2D);
 
     cudaMallocHelper((void**)&ddist_x_l[l], nc_l[l] * sizeof(double));
     calc_cpt_dist(nc, stride, dccoords_x, ddist_x_l[l]);
@@ -420,7 +413,7 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
     row_stride = 1;
     col_stride = 1;
  
-    ret = mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l],
+    ret = mass_mult_l_row_cuda_sm(nr_l[l],    nc_l[l],
                                   row_stride, col_stride,
                                   dcwork,     lddcwork,
                                   ddist_x_l[l],
@@ -466,7 +459,7 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
 
     row_stride = 1;
     col_stride = 1;
-    ret = restriction_l_row_cuda_sm(nr_l[0],     nc_l[l],
+    ret = restriction_l_row_cuda_sm(nr_l[l],     nc_l[l],
                                     row_stride,  col_stride,
                                     dcwork,      lddcwork,
                                     ddist_x_l[l],
@@ -504,7 +497,7 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
     //                                  dcwork,     lddcwork,
     //                                  dccoords_x_l[l]);
     // print_matrix_cuda(nr_l[0],    nc_l[l+1], dcwork,     lddcwork);
-    ret = solve_tridiag_M_l_row_cuda_sm(nr_l[0],    nc_l[l],
+    ret = solve_tridiag_M_l_row_cuda_sm(nr_l[l],    nc_l[l],
                                         row_stride, col_stride,
                                         dcwork,     lddcwork,
                                         ddist_x_l[l+1],
@@ -581,21 +574,21 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
 
 
 
-      row_stride = stride;
-      col_stride = stride;//Cstride;
-      ret = cpt_to_pow2p1(nr,         nc, 
-                          row_stride, col_stride,
-                          dcwork,     lddcwork,
-                          dwork,      lddwork);
-      cpt_to_pow2p1_time += ret.time;
+      // row_stride = stride;
+      // col_stride = stride;//Cstride;
+      // ret = cpt_to_pow2p1(nr,         nc, 
+      //                     row_stride, col_stride,
+      //                     dcwork,     lddcwork,
+      //                     dwork,      lddwork);
+      // cpt_to_pow2p1_time += ret.time;
 
-      row_stride = stride;
-      col_stride = stride;//Cstride;
-      ret = pow2p1_to_cpt(nr,         nc,
-                          row_stride, col_stride,
-                          dwork,      lddwork,
-                          dcwork,     lddcwork);
-      pow2p1_to_cpt_time += ret.time;
+      // row_stride = stride;
+      // col_stride = stride;//Cstride;
+      // ret = pow2p1_to_cpt(nr,         nc,
+      //                     row_stride, col_stride,
+      //                     dwork,      lddwork,
+      //                     dcwork,     lddcwork);
+      // pow2p1_to_cpt_time += ret.time;
 
       // double * work = new double[nr_l[l] * nc_l[l+1]];
       // for (int i = 0; i < nr_l[l]; i++) {
@@ -751,12 +744,12 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
 
 
   for (int l = 0; l < l_target+1; l++) {
-    delete [] cirow_l[l];
-    delete [] cicol_l[l];
+    // delete [] cirow_l[l];
+    // delete [] cicol_l[l];
     // delete [] ccoords_y_l[l];
     // delete [] ccoords_x_l[l];
-    cudaFreeHelper(dcirow_l[l]);
-    cudaFreeHelper(dcicol_l[l]);
+    // cudaFreeHelper(dcirow_l[l]);
+    // cudaFreeHelper(dcicol_l[l]);
     // cudaFreeHelper(dccoords_y_l[l]);
     // cudaFreeHelper(dccoords_x_l[l]);
     cudaFreeHelper(ddist_x_l[l]);
@@ -765,17 +758,17 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
 
   cudaFreeHelper(dcv);
   cudaFreeHelper(dcwork);
-  cudaFreeHelper(dcirow);
-  cudaFreeHelper(dcicol);
+  // cudaFreeHelper(dcirow);
+  // cudaFreeHelper(dcicol);
 
-  delete [] irow;
-  delete [] icol;
-  delete [] cirow;
-  delete [] cicol;
+  // delete [] irow;
+  // delete [] icol;
+  // delete [] cirow;
+  // delete [] cicol;
   delete [] nr_l;
   delete [] nc_l;
-  delete [] cirow_l;
-  delete [] cicol_l;
+  // delete [] cirow_l;
+  // delete [] cicol_l;
   delete [] ddist_y_l;
   delete [] ddist_x_l;
 
@@ -1045,6 +1038,12 @@ prep_2D_cuda_l2_sm(const int nrow,     const int ncol,
   total_time += solve_tridiag_M_l_col_cuda_time;
 
   total_time += add_level_l_cuda_time;
+
+  cudaFreeHelper(dcwork);
+  cudaFreeHelper(dccoords_x);
+  cudaFreeHelper(dccoords_y);
+  cudaFreeHelper(ddist_x);
+  cudaFreeHelper(ddist_y);
 
   return mgard_cuda_ret(0, total_time);
 }

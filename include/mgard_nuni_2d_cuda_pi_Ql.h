@@ -7,11 +7,21 @@
 namespace mgard_2d {
 namespace mgard_gen {
 
+template <typename T>
+mgard_cuda_ret 
+pi_Ql_cuda(int nrow,           int ncol,
+           int nr,             int nc,
+           int row_stride,     int col_stride,
+           int * dirow,        int * dicol,
+           T * dv,        int lddv, 
+           T * dcoords_x, T * dcoords_y);
+
+template <typename T>
 mgard_cuda_ret 
 pi_Ql_cuda_sm(int nr,         int nc,
               int row_stride, int col_stride,
-              double * dv,    int lddv,
-              double * ddist_x, double * ddist_y,
+              T * dv,    int lddv,
+              T * ddist_x, T * ddist_y,
               int B);
 
 }

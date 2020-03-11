@@ -7,27 +7,38 @@
 namespace mgard_2d {
 namespace mgard_gen {
 
+template <typename T>
 mgard_cuda_ret 
-prolongate_l_cuda_sm(int nr,         int nc,
-                     int row_row_stride, int row_col_stride,
-                     int col_row_stride, int col_col_stride,
-                     double * dv,    int lddv,
-                     double * dcoords_x,
-                     double * dcoords_y,
-                     int B);
+prolongate_l_row_cuda(int nrow,       int ncol,
+                      int nr,         int nc,
+                      int row_stride, int col_stride,
+                      int * dirow,    int * dicol,
+                      T * dv,    int lddv,
+                      T * dcoords_x);
 
+template <typename T>
+mgard_cuda_ret 
+prolongate_l_col_cuda(int nrow,        int ncol,
+                       int nr,         int nc,
+                       int row_stride, int col_stride,
+                       int * dirow,    int * dicol,
+                       T * dv,    int lddv,
+                       T * dcoords_y);
+
+template <typename T>
 mgard_cuda_ret 
 prolongate_l_row_cuda_sm(int nr,         int nc,
                          int row_stride, int col_stride,
-                         double * dv,    int lddv,
-                         double * ddist_x,
+                         T * dv,    int lddv,
+                         T * ddist_x,
                          int B);
 
+template <typename T>
 mgard_cuda_ret 
 prolongate_l_col_cuda_sm(int nr,         int nc,
                          int row_stride, int col_stride,
-                         double * dv,    int lddv,
-                         double * ddist_y,
+                         T * dv,    int lddv,
+                         T * ddist_y,
                          int B);
 
 }

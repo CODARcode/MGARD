@@ -7,10 +7,20 @@
 namespace mgard_2d {
 namespace mgard_gen {
 
+template <typename T>
+mgard_cuda_ret 
+copy_level_l_cuda(int nrow,       int ncol,
+                  int nr,         int nc,
+                  int row_stride, int col_stride,
+                  int * dirow,    int * dicol,
+                  T * dv,    int lddv,
+                  T * dwork, int lddwork);
+
+template <typename T>
 mgard_cuda_ret 
 copy_level_l_cuda_l2_sm(int nr,         int nc,
-	                    int row_stride, int col_stride,
-	                    double * dv,    int lddv,
-	                    double * dwork, int lddwork);
+                        int row_stride, int col_stride,
+                        T * dv,    int lddv,
+                        T * dwork, int lddwork);
 }
 }
