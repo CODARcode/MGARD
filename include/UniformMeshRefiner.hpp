@@ -29,7 +29,7 @@ private:
 
   //! Quadrisect the triangles of the old mesh.
   //!
-  //\param [in] mesh Mesh being refined.
+  //!\param [in] mesh Mesh being refined.
   //!\param [in] NODES Nodes of new mesh.
   //!\param [in, out] EDGES Edges of new mesh.
   //!\param [out] ELEMENTS Elements of new mesh.
@@ -39,6 +39,24 @@ private:
                                        const moab::Range &NODES,
                                        moab::Range &EDGES,
                                        moab::Range &ELEMENTS);
+
+  //! Octasect the tetrahedra of the old mesh using the technique given in
+  //![Ong's 1994 paper][Ong3D].
+  //!
+  //![Ong3D]: https://doi.org/10.1137/0915070
+  //!
+  //!\param [in] mesh Mesh being refined.
+  //!\param [in] NODES Nodes of new mesh.
+  //!\param [in, out] EDGES Edges of new mesh.
+  //!\param [out] ELEMENTS Elements of new mesh.
+  //!
+  //! Thirteen edges will be added for each 'interior' octahedron.
+  moab::ErrorCode octasect_tetrahedra(const MeshLevel &mesh,
+                                      const moab::Range &NODES,
+                                      moab::Range &EDGES,
+                                      moab::Range &ELEMENTS);
+
+  // Could alternatively use `\cite` there.
 };
 
 } // namespace mgard
