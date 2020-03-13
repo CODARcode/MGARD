@@ -5624,6 +5624,9 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
   double solve_tridiag_M_l_col_time = 0.0;
   double add_level_l_time = 0.0;
 
+  std::ofstream timing_results;
+  timing_results.open ("prep_2D.csv");
+
   int l = 0;
   //    int stride = 1;
   start = std::chrono::high_resolution_clock::now();
@@ -5730,22 +5733,21 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
   add_level_l(0, v, work.data(), nr, nc, nrow, ncol);
   end = std::chrono::high_resolution_clock::now();
   elapsed = end - start;
-  add_level_l_time += elapsed.count();
+  add_level_l_time = elapsed.count();
 
-  std::ofstream timing_results;
-  timing_results.open ("prep_2D.csv");
-  timing_results << "pi_Ql_first_time," << pi_Ql_first_time << std::endl;
-  timing_results << "copy_level_time," << copy_level_time << std::endl;
-  timing_results << "assign_num_level_l_time," << assign_num_level_l_time << std::endl;
-
-  timing_results << "mass_matrix_multiply_row_time," << mass_matrix_multiply_row_time << std::endl;
-  timing_results << "restriction_first_row_time," << restriction_first_row_time << std::endl;
-  timing_results << "solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
   
-  timing_results << "mass_matrix_multiply_col_time," << mass_matrix_multiply_col_time << std::endl;
-  timing_results << "restriction_first_col_time," << restriction_first_col_time << std::endl;
-  timing_results << "solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
-  timing_results << "add_level_l_time," << add_level_l_time << std::endl;
+  timing_results << l << ",pi_Ql_first_time," << pi_Ql_first_time << std::endl;
+  timing_results << l << ",copy_level_time," << copy_level_time << std::endl;
+  timing_results << l << ",assign_num_level_l_time," << assign_num_level_l_time << std::endl;
+
+  timing_results << l << ",mass_matrix_multiply_row_time," << mass_matrix_multiply_row_time << std::endl;
+  timing_results << l << ",restriction_first_row_time," << restriction_first_row_time << std::endl;
+  timing_results << l << ",solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
+  
+  timing_results << l << ",mass_matrix_multiply_col_time," << mass_matrix_multiply_col_time << std::endl;
+  timing_results << l << ",restriction_first_col_time," << restriction_first_col_time << std::endl;
+  timing_results << l << ",solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
+  timing_results << l << ",add_level_l_time," << add_level_l_time << std::endl;
   timing_results.close();
 }
 
@@ -5845,10 +5847,20 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
   double solve_tridiag_M_l_col_time = 0.0;
   double add_level_time = 0.0;
 
+  std::ofstream timing_results;
+  timing_results.open ("refactor_2D.csv");
 
   for (int l = 0; l < l_target; ++l) {
     int stride = std::pow(2, l); // current stride
     int Cstride = stride * 2;    // coarser stride
+
+    mass_mult_l_row_time = 0.0;
+    restriction_l_row_time = 0.0;
+    solve_tridiag_M_l_row_time = 0.0;
+
+    mass_mult_l_col_time = 0.0;
+    restriction_l_col_time = 0.0;
+    solve_tridiag_M_l_col_time = 0.0;
 
     // -> change funcs in pi_QL to use _l functions, otherwise distances are
     // wrong!!!
@@ -5857,19 +5869,19 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
           col_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
-    pi_Ql_time += elapsed.count();
+    pi_Ql_time = elapsed.count();
 
     start = std::chrono::high_resolution_clock::now();
     copy_level_l(l, v, work.data(), nr, nc, nrow, ncol);
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
-    copy_level_l_time += elapsed.count();
+    copy_level_l_time = elapsed.count();
 
     start = std::chrono::high_resolution_clock::now();
     assign_num_level_l(l + 1, work.data(), 0.0, nr, nc, nrow, ncol);
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
-    assign_num_level_l_time += elapsed.count();
+    assign_num_level_l_time = elapsed.count();
 
     // row-sweep
     for (int irow = 0; irow < nr; ++irow) {
@@ -5937,23 +5949,25 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
     add_level_l(l + 1, v, work.data(), nr, nc, nrow, ncol);
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
-    add_level_time += elapsed.count();
+    add_level_time = elapsed.count();
+
+    timing_results << l << ",pi_Ql_time," << pi_Ql_time << std::endl;
+    timing_results << l << ",copy_level_l_time," << copy_level_l_time << std::endl;
+    timing_results << l << ",assign_num_level_l_time," << assign_num_level_l_time << std::endl;
+
+    timing_results << l << ",mass_mult_l_row_time," << mass_mult_l_row_time << std::endl;
+    timing_results << l << ",restriction_l_row_time," << restriction_l_row_time << std::endl;
+    timing_results << l << ",solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
+
+    timing_results << l << ",mass_mult_l_col_time," << mass_mult_l_col_time << std::endl;
+    timing_results << l << ",restriction_l_col_time," << restriction_l_col_time << std::endl;
+    timing_results << l << ",solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
+    timing_results << l << ",add_level_time," << add_level_time << std::endl;
+
   }
 
-  std::ofstream timing_results;
-  timing_results.open ("refactor_2D.csv");
-  timing_results << "pi_Ql_time," << pi_Ql_time << std::endl;
-  timing_results << "copy_level_l_time," << copy_level_l_time << std::endl;
-  timing_results << "assign_num_level_l_time," << assign_num_level_l_time << std::endl;
-
-  timing_results << "mass_mult_l_row_time," << mass_mult_l_row_time << std::endl;
-  timing_results << "restriction_l_row_time," << restriction_l_row_time << std::endl;
-  timing_results << "solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
-
-  timing_results << "mass_mult_l_col_time," << mass_mult_l_col_time << std::endl;
-  timing_results << "restriction_l_col_time," << restriction_l_col_time << std::endl;
-  timing_results << "solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
-  timing_results << "add_level_time," << add_level_time << std::endl;
+  
+  
   timing_results.close();
 }
 
@@ -5963,11 +5977,12 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
                   std::vector<double> &row_vec, std::vector<double> &col_vec) {
   // recompose
   //    //std::cout  << "recomposing" << "\n";
-  std::cout << "***recompose_2D***" << std::endl;
+  //std::cout << "***recompose_2D***" << std::endl;
   std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
   std::chrono::duration<double> elapsed;
   double copy_level_l_time = 0.0;
   double assign_num_level_l_time = 0.0;
+  double assign_num_level_l_time2 = 0.0;
 
   double mass_mult_l_row_time = 0.0;
   double restriction_l_row_time = 0.0;
@@ -5978,25 +5993,40 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
   double solve_tridiag_M_l_col_time = 0.0;
 
   double subtract_level_l_time = 0.0;
+  double subtract_level_l_time2 = 0.0;
   double prolongate_l_row_time = 0.0;
   double prolongate_l_col_time = 0.0;
+
+  std::ofstream timing_results;
+  timing_results.open ("recompose_2D.csv");
 
   for (int l = l_target; l > 0; --l) {
 
     int stride = std::pow(2, l); // current stride
     int Pstride = stride / 2;
 
+    mass_mult_l_row_time = 0.0;
+    restriction_l_row_time = 0.0;
+    solve_tridiag_M_l_row_time = 0.0;
+
+    mass_mult_l_col_time = 0.0;
+    restriction_l_col_time = 0.0;
+    solve_tridiag_M_l_col_time = 0.0;
+
+    prolongate_l_row_time = 0.0;
+    prolongate_l_col_time = 0.0;
+
     start = std::chrono::high_resolution_clock::now();
     copy_level_l(l - 1, v, work.data(), nr, nc, nrow, ncol);
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
-    copy_level_l_time += elapsed.count();
+    copy_level_l_time = elapsed.count();
 
     start = std::chrono::high_resolution_clock::now();
     assign_num_level_l(l, work.data(), 0.0, nr, nc, nrow, ncol);
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
-    assign_num_level_l_time += elapsed.count();
+    assign_num_level_l_time = elapsed.count();
 
     //        //std::cout  << "recomposing-rowsweep" << "\n";
     //  l = 0;
@@ -6069,7 +6099,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
     subtract_level_l(l, work.data(), v, nr, nc, nrow, ncol); // do -(Qu - zl)
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
-    subtract_level_l_time += elapsed.count();
+    subtract_level_l_time = elapsed.count();
     //        //std::cout  << "recomposing-rowsweep2" << "\n";
 
     //   //int Pstride = stride/2; //finer stride
@@ -6118,31 +6148,35 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
     assign_num_level_l(l, v, 0.0, nr, nc, nrow, ncol);
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
-    assign_num_level_l_time += elapsed.count();
+    assign_num_level_l_time2 = elapsed.count();
 
     start = std::chrono::high_resolution_clock::now();
     subtract_level_l(l - 1, v, work.data(), nr, nc, nrow, ncol);
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
-    subtract_level_l_time += elapsed.count();
+    subtract_level_l_time2 = elapsed.count();
+
+    timing_results << l << ",copy_level_l_time," << copy_level_l_time << std::endl;
+    timing_results << l << ",assign_num_level_l_time," << assign_num_level_l_time << std::endl;
+    timing_results << l << ",assign_num_level_l_time2," << assign_num_level_l_time << std::endl;
+
+    timing_results << l << ",mass_mult_l_row_time," << mass_mult_l_row_time << std::endl;
+    timing_results << l << ",restriction_l_row_time," << restriction_l_row_time << std::endl;
+    timing_results << l << ",solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
+
+    timing_results << l << ",mass_mult_l_col_time," << mass_mult_l_col_time << std::endl;
+    timing_results << l << ",restriction_l_col_time," << restriction_l_col_time << std::endl;
+    timing_results << l << ",solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
+
+    timing_results << l << ",subtract_level_l_time," << subtract_level_l_time << std::endl;
+    timing_results << l << ",subtract_level_l_time2," << subtract_level_l_time << std::endl;
+    timing_results << l << ",prolongate_l_row_time," << prolongate_l_row_time << std::endl;
+    timing_results << l << ",prolongate_l_col_time," << prolongate_l_col_time << std::endl;
+
   }
 
-  std::ofstream timing_results;
-  timing_results.open ("recompose_2D.csv");
-  timing_results << "copy_level_l_time," << copy_level_l_time << std::endl;
-  timing_results << "assign_num_level_l_time," << assign_num_level_l_time << std::endl;
-
-  timing_results << "mass_mult_l_row_time," << mass_mult_l_row_time << std::endl;
-  timing_results << "restriction_l_row_time," << restriction_l_row_time << std::endl;
-  timing_results << "solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
-
-  timing_results << "mass_mult_l_col_time," << mass_mult_l_col_time << std::endl;
-  timing_results << "restriction_l_col_time," << restriction_l_col_time << std::endl;
-  timing_results << "solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
-
-  timing_results << "subtract_level_l_time," << subtract_level_l_time << std::endl;
-  timing_results << "prolongate_l_row_time," << prolongate_l_row_time << std::endl;
-  timing_results << "prolongate_l_col_time," << prolongate_l_col_time << std::endl;
+  
+  
   timing_results.close();
 }
 
@@ -6175,11 +6209,12 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
               std::vector<double> &coords_x, std::vector<double> &coords_y,
               std::vector<double> &row_vec, std::vector<double> &col_vec) {
 
-  std::cout << "***postp_2D***" << std::endl;
+  //std::cout << "***postp_2D***" << std::endl;
   std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
   std::chrono::duration<double> elapsed;
   double copy_level_time = 0.0;
   double assign_num_level_l_time = 0.0;
+  double assign_num_level_l_time2 = 0.0;
 
   double mass_matrix_multiply_row_time = 0.0;
   double restriction_first_row_time = 0.0;
@@ -6195,18 +6230,22 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
 
   double subtract_level_time = 0.0;
 
+  std::ofstream timing_results;
+  timing_results.open ("postp_2D.csv");
+
+  int l = 0;
 
   start = std::chrono::high_resolution_clock::now();
   mgard_cannon::copy_level(nrow, ncol, 0, v, work);
   end = std::chrono::high_resolution_clock::now();
   elapsed = end - start;
-  copy_level_time += elapsed.count();
+  copy_level_time = elapsed.count();
 
   start = std::chrono::high_resolution_clock::now();
   assign_num_level_l(0, work.data(), 0.0, nr, nc, nrow, ncol);
   end = std::chrono::high_resolution_clock::now();
   elapsed = end - start;
-  assign_num_level_l_time += elapsed.count();
+  assign_num_level_l_time = elapsed.count();
 
   for (int irow = 0; irow < nrow; ++irow) {
     //        int ir = get_lindex(nr, nrow, irow);
@@ -6296,7 +6335,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
   subtract_level_l(0, work.data(), v, nr, nc, nrow, ncol); // do -(Qu - zl)
   end = std::chrono::high_resolution_clock::now();
   elapsed = end - start;
-  subtract_level_l_time += elapsed.count();
+  subtract_level_l_time = elapsed.count();
   //        //std::cout  << "recomposing-rowsweep2" << "\n";
 
   //     //   //int Pstride = stride/2; //finer stride
@@ -6341,32 +6380,32 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
   assign_num_level_l(0, v, 0.0, nr, nc, nrow, ncol);
   end = std::chrono::high_resolution_clock::now();
   elapsed = end - start;
-  assign_num_level_l_time += elapsed.count();
+  assign_num_level_l_time2 = elapsed.count();
 
   start = std::chrono::high_resolution_clock::now();
   mgard_cannon::subtract_level(nrow, ncol, 0, v, work.data());
   end = std::chrono::high_resolution_clock::now();
   elapsed = end - start;
-  subtract_level_time += elapsed.count();
+  subtract_level_time = elapsed.count();
 
-  std::ofstream timing_results;
-  timing_results.open ("postp_2D.csv");
-  timing_results << "copy_level_time," << copy_level_time << std::endl;
-  timing_results << "assign_num_level_l_time," << assign_num_level_l_time << std::endl;
+  
+  timing_results << l << ",copy_level_time," << copy_level_time << std::endl;
+  timing_results << l << ",assign_num_level_l_time," << assign_num_level_l_time << std::endl;
+  timing_results << l << ",assign_num_level_l_time2," << assign_num_level_l_time << std::endl;
 
-  timing_results << "mass_matrix_multiply_row_time," << mass_matrix_multiply_row_time << std::endl;
-  timing_results << "restriction_first_row_time," << restriction_first_row_time << std::endl;
-  timing_results << "solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
+  timing_results << l << ",mass_matrix_multiply_row_time," << mass_matrix_multiply_row_time << std::endl;
+  timing_results << l << ",restriction_first_row_time," << restriction_first_row_time << std::endl;
+  timing_results << l << ",solve_tridiag_M_l_row_time," << solve_tridiag_M_l_row_time << std::endl;
 
-  timing_results << "mass_matrix_multiply_col_time," << mass_matrix_multiply_col_time << std::endl;
-  timing_results << "restriction_first_col_time," << restriction_first_col_time << std::endl;
-  timing_results << "solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
+  timing_results << l << ",mass_matrix_multiply_col_time," << mass_matrix_multiply_col_time << std::endl;
+  timing_results << l << ",restriction_first_col_time," << restriction_first_col_time << std::endl;
+  timing_results << l << ",solve_tridiag_M_l_col_time," << solve_tridiag_M_l_col_time << std::endl;
 
-  timing_results << "subtract_level_l_time," << subtract_level_l_time << std::endl;
-  timing_results << "prolongate_last_row_time," << prolongate_last_row_time << std::endl;
-  timing_results << "prolongate_last_col_time," << prolongate_last_col_time << std::endl;
+  timing_results << l << ",subtract_level_l_time," << subtract_level_l_time << std::endl;
+  timing_results << l << ",prolongate_last_row_time," << prolongate_last_row_time << std::endl;
+  timing_results << l << ",prolongate_last_col_time," << prolongate_last_col_time << std::endl;
 
-  timing_results << "subtract_level_time," << subtract_level_time << std::endl;
+  timing_results << l << ",subtract_level_time," << subtract_level_time << std::endl;
   timing_results.close();
 }
 

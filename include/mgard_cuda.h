@@ -2,14 +2,20 @@
 namespace mgard
 {
 
+template <typename T>
 unsigned char *
-refactor_qz_cuda(int nrow, int ncol, int nfib, const double *u,
-                           int &outsize, double tol);
+refactor_qz_cuda(int nrow, int ncol, int nfib, const T *u,
+                           int &outsize, T tol,
+                           int B, mgard_cuda_handle & handle, bool profile);
+template <typename T>
+unsigned char *
+refactor_qz_2D_cuda (int nrow, int ncol, const T *u, int &outsize, T tol, int opt,
+					 int B, mgard_cuda_handle & handle, bool profile);
 
-unsigned char *
-refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double tol, int opt);
-double* 
-recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len, int opt);
+template <typename T>
+T* 
+recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len, int opt,
+					  int B, mgard_cuda_handle & handle, bool profile, T dummy);
 
 void
 refactor_cuda (const int nrow, const int ncol, 
@@ -67,16 +73,6 @@ add_level_cuda(int nrow, int ncol,
 			  int row_stride, int col_stride, 
 			  double * v, int ldv, 
 			  double * work, int ldwork);
-mgard_ret  
-quantize_2D_iterleave_cuda (int nrow, int ncol, 
-						   double * v, int lddv, 
-						   int * work, int ldwork, 
-						   double norm, double tol);
-
-mgard_ret  
-dequantize_2D_iterleave_cuda (int nrow, int ncol, 
-	                         double * v, int ldv, 
-	                         int * work, int ldwork);
 mgard_ret   
 subtract_level_cuda(int nrow, int ncol,
                    int row_stride, int col_stride, 

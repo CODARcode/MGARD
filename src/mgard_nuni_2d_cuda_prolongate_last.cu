@@ -42,37 +42,42 @@ prolongate_last_row_cuda(int nrow,       int ncol,
                          int row_stride, int col_stride,
                          int * dirow,    int * dicolP,
                          T * dv,    int lddv,
-                         T * dcoords_x) {
+                         T * dcoords_x,
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile) {
 
-  int B = 16;
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
   int total_thread_x = ceil((float)nr/row_stride);
   int tbx = min(B, total_thread_x);
   int gridx = ceil((float)total_thread_x/tbx);
   dim3 threadsPerBlock(tbx, 1);
   dim3 blockPerGrid(gridx, 1);
 
-  // std::cout << "thread block: " << tbx << std::endl;
-  // std::cout << "grid: " << gridx << std::endl;
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
-
-  _prolongate_last_row_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol,
-                                                               nr,         nc, 
-                                                               row_stride, col_stride,
-                                                               dirow,      dicolP,
-                                                               dv,         lddv,
-                                                               dcoords_x);
+  _prolongate_last_row_cuda<<<blockPerGrid, threadsPerBlock, 
+                              0, stream>>>(nrow,       ncol,
+                                           nr,         nc, 
+                                           row_stride, col_stride,
+                                           dirow,      dicolP,
+                                           dv,         lddv,
+                                           dcoords_x);
   gpuErrchk(cudaGetLastError ()); 
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -111,9 +116,14 @@ prolongate_last_col_cuda(int nrow,       int ncol,
                          int row_stride, int col_stride,
                          int * dirowP,   int * dicol, 
                          T * dv,    int lddv,
-                         T * dcoords_y) {
+                         T * dcoords_y,
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile) {
   
-  int B = 16;
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
   //int total_thread_x = ceil((float)nc/col_stride);
   int total_thread_x = ceil((float)ncol/col_stride);
   int tbx = min(B, total_thread_x);
@@ -121,28 +131,28 @@ prolongate_last_col_cuda(int nrow,       int ncol,
   dim3 threadsPerBlock(tbx, 1);
   dim3 blockPerGrid(gridx, 1);
 
-  // std::cout << "thread block: " << tbx << std::endl;
-  // std::cout << "grid: " << gridx << std::endl;
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
-
-  _prolongate_last_col_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol, 
-                                                               nr,         nc,
-                                                               row_stride, col_stride,
-                                                               dirowP,     dicol,
-                                                               dv,         lddv,
-                                                               dcoords_y);
+  _prolongate_last_col_cuda<<<blockPerGrid, threadsPerBlock,
+                              0, stream>>>(nrow,       ncol, 
+                                           nr,         nc,
+                                           row_stride, col_stride,
+                                           dirowP,     dicol,
+                                           dv,         lddv,
+                                           dcoords_y);
   gpuErrchk(cudaGetLastError ());  
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -153,14 +163,18 @@ prolongate_last_row_cuda<double>(int nrow,       int ncol,
                          int row_stride, int col_stride,
                          int * dirow,    int * dicolP,
                          double * dv,    int lddv,
-                         double * dcoords_x);
+                         double * dcoords_x,
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile);
 template mgard_cuda_ret 
 prolongate_last_row_cuda<float>(int nrow,       int ncol, 
                          int nr,         int nc,
                          int row_stride, int col_stride,
                          int * dirow,    int * dicolP,
                          float * dv,    int lddv,
-                         float * dcoords_x);
+                         float * dcoords_x, 
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile);
 
 template mgard_cuda_ret 
 prolongate_last_col_cuda<double>(int nrow,       int ncol,
@@ -168,14 +182,18 @@ prolongate_last_col_cuda<double>(int nrow,       int ncol,
                          int row_stride, int col_stride,
                          int * dirowP,   int * dicol, 
                          double * dv,    int lddv,
-                         double * dcoords_y);
+                         double * dcoords_y,
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile);
 template mgard_cuda_ret 
 prolongate_last_col_cuda<float>(int nrow,       int ncol,
                          int nr,         int nc,
                          int row_stride, int col_stride,
                          int * dirowP,   int * dicol, 
                          float * dv,    int lddv,
-                         float * dcoords_y);
+                         float * dcoords_y,
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile);
 
 }
 }

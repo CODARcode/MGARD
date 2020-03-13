@@ -5,13 +5,7 @@
 #include "mgard_cuda_helper.h"
 #include "mgard_cuda_compact_helper.h"
 #include "mgard_cuda_helper_internal.h"
-#include "mgard_nuni_3d_cuda_pi_Ql.h"
-#include "mgard_nuni_3d_cuda_copy_level_l.h"
-#include "mgard_nuni_3d_cuda_assign_num_level_l.h"
-#include "mgard_nuni_3d_cuda_add_level_l.h"
-#include "mgard_nuni_2d_cuda_mass_mult_l.h"
-#include "mgard_nuni_2d_cuda_restriction_l.h"
-#include "mgard_nuni_2d_cuda_solve_tridiag_M_l.h"
+#include "mgard_nuni_2d_cuda_kernels.h"
 
 
 
@@ -48,91 +42,95 @@ inline int get_lindex(const int n, const int no, const int i) {
 }
 
 
-
+template <typename T>
 mgard_cuda_ret 
 refactor_3D_cuda_cpt_l2_sm(int l_target,
                            int nrow,           int ncol,           int nfib,
                            int nr,             int nc,             int nf,             
                            int * dirow,        int * dicol,        int * difib,
-                           double * dv,        int lddv1,          int lddv2,
-                           double * dwork,     int lddwork1,       int lddwork2,
-                           double * dcoords_r, double * dcoords_c, double * dcoords_f) {
+                           T * dv,        int lddv1,          int lddv2,
+                           T * dwork,     int lddwork1,       int lddwork2,
+                           T * dcoords_r, T * dcoords_c, T * dcoords_f,
+                           int B, mgard_cuda_handle & handle, bool profile) {
 
   //for debug
     
-  double * v = new double[nrow*ncol*nfib];
-  std::vector<double> work(nrow * ncol * nfib),work2d(nrow * ncol * nfib);
-  std::vector<double> v2d(nrow * ncol), fib_vec(nfib);
-  std::vector<double> row_vec(ncol);
-  std::vector<double> col_vec(nrow);
-  cudaMemcpy3DHelper(v, nfib  * sizeof(double), nfib * sizeof(double), ncol,
-                     dv, lddv1 * sizeof(double), nfib * sizeof(double), ncol,
-                     nfib * sizeof(double), ncol, nrow,
-                     D2H);
-  std::vector<double> coords_r(nrow), coords_c(ncol), coords_f(nfib);
+  T * v = new T[nrow*ncol*nfib];
+  std::vector<T> work(nrow * ncol * nfib),work2d(nrow * ncol * nfib);
+  std::vector<T> v2d(nrow * ncol), fib_vec(nfib);
+  std::vector<T> row_vec(ncol);
+  std::vector<T> col_vec(nrow);
+  cudaMemcpy3DAsyncHelper(v, nfib  * sizeof(T), nfib * sizeof(T), ncol,
+                     dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                     nfib * sizeof(T), ncol, nrow,
+                     D2H, handle, 0, profile);
+  std::vector<T> coords_r(nrow), coords_c(ncol), coords_f(nfib);
 
-  cudaMemcpyHelper(coords_r.data(), dcoords_r, nrow * sizeof(double), D2H);
-  cudaMemcpyHelper(coords_c.data(), dcoords_c, ncol * sizeof(double), D2H);
-  cudaMemcpyHelper(coords_f.data(), dcoords_f, nfib * sizeof(double), D2H);
+  cudaMemcpyAsyncHelper(coords_r.data(), dcoords_r, nrow * sizeof(T), D2H, handle, 0, profile);
+  cudaMemcpyAsyncHelper(coords_c.data(), dcoords_c, ncol * sizeof(T), D2H, handle, 0, profile);
+  cudaMemcpyAsyncHelper(coords_f.data(), dcoords_f, nfib * sizeof(T), D2H, handle, 0, profile);
 
-  double * dv2;
+  T * dv2;
   size_t dv2_pitch;
-  cudaMalloc3DHelper((void**)&dv2, &dv2_pitch, nfib * sizeof(double), ncol, nrow);
-  int lddv21 = dv2_pitch / sizeof(double);
+  cudaMalloc3DHelper((void**)&dv2, &dv2_pitch, nfib * sizeof(T), ncol, nrow);
+  int lddv21 = dv2_pitch / sizeof(T);
   int lddv22 = ncol;
 
-  cudaMemcpy3DHelper(dv2, lddv21  * sizeof(double), nfib * sizeof(double), lddv22,
-                     dv, lddv1 * sizeof(double), nfib * sizeof(double), ncol,
-                     nfib * sizeof(double), ncol, nrow,
-                     D2D);
+  cudaMemcpy3DAsyncHelper(dv2, lddv21  * sizeof(T), nfib * sizeof(T), lddv22,
+                     dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                     nfib * sizeof(T), ncol, nrow,
+                     D2D, handle, 0, profile);
 
 
 
-  double * dwork2;
+  T * dwork2;
   size_t dwork2_pitch;
-  cudaMalloc3DHelper((void**)&dwork2, &dwork2_pitch, nfib * sizeof(double), ncol, nrow);
-  int lddwork21 = dwork2_pitch / sizeof(double);
+  cudaMalloc3DHelper((void**)&dwork2, &dwork2_pitch, nfib * sizeof(T), ncol, nrow);
+  int lddwork21 = dwork2_pitch / sizeof(T);
   int lddwork22 = ncol;
 
-  double * dcwork2;
+  T * dcwork2;
   size_t dcwork2_pitch;
-  cudaMalloc3DHelper((void**)&dcwork2, &dcwork2_pitch, nf * sizeof(double), nc, nr);
-  int lddcwork21 = dcwork2_pitch / sizeof(double);
+  cudaMalloc3DHelper((void**)&dcwork2, &dcwork2_pitch, nf * sizeof(T), nc, nr);
+  int lddcwork21 = dcwork2_pitch / sizeof(T);
   int lddcwork22 = nc;
   //end for debug
 
 
-  double * dcv;
+  T * dcv;
   size_t dcv_pitch;
-  cudaMalloc3DHelper((void**)&dcv, &dcv_pitch, nf * sizeof(double), nc, nr);
-  int lddcv1 = dcv_pitch / sizeof(double);
+  cudaMalloc3DHelper((void**)&dcv, &dcv_pitch, nf * sizeof(T), nc, nr);
+  int lddcv1 = dcv_pitch / sizeof(T);
   int lddcv2 = nc;
 
-  double * dcwork;
+  T * dcwork;
   size_t dcwork_pitch;
-  cudaMalloc3DHelper((void**)&dcwork, &dcwork_pitch, nf * sizeof(double), nc, nr);
-  int lddcwork1 = dcwork_pitch / sizeof(double);
+  cudaMalloc3DHelper((void**)&dcwork, &dcwork_pitch, nf * sizeof(T), nc, nr);
+  int lddcwork1 = dcwork_pitch / sizeof(T);
   int lddcwork2 = nc;
 
-  double * dccoords_r;
-  cudaMallocHelper((void**)&dccoords_r, nr * sizeof(double));
-  double * dccoords_c;
-  cudaMallocHelper((void**)&dccoords_c, nc * sizeof(double));
-  double * dccoords_f;
-  cudaMallocHelper((void**)&dccoords_f, nf * sizeof(double));
+  T * dccoords_r;
+  cudaMallocHelper((void**)&dccoords_r, nr * sizeof(T));
+  T * dccoords_c;
+  cudaMallocHelper((void**)&dccoords_c, nc * sizeof(T));
+  T * dccoords_f;
+  cudaMallocHelper((void**)&dccoords_f, nf * sizeof(T));
 
-  org_to_pow2p1(nrow, nr, dirow, dcoords_r, dccoords_r);
-  org_to_pow2p1(ncol, nc, dicol, dcoords_c, dccoords_c);
-  org_to_pow2p1(nfib, nf, difib, dcoords_f, dccoords_f);
+  org_to_pow2p1(nrow, nr, dirow, dcoords_r, dccoords_r,
+                B, handle, 0, profile);
+  org_to_pow2p1(ncol, nc, dicol, dcoords_c, dccoords_c,
+                B, handle, 0, profile);
+  org_to_pow2p1(nfib, nf, difib, dcoords_f, dccoords_f,
+                B, handle, 0, profile);
   
 
   int * nr_l = new int[l_target+1];
   int * nc_l = new int[l_target+1];
   int * nf_l = new int[l_target+1];
 
-  double ** ddist_r_l = new double*[l_target+1];
-  double ** ddist_c_l = new double*[l_target+1];
-  double ** ddist_f_l = new double*[l_target+1];
+  T ** ddist_r_l = new T*[l_target+1];
+  T ** ddist_c_l = new T*[l_target+1];
+  T ** ddist_f_l = new T*[l_target+1];
   
   for (int l = 0; l < l_target+1; l++) {
     int stride = std::pow(2, l);
@@ -141,14 +139,17 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     nc_l[l] = ceil((float)nc/std::pow(2, l));
     nf_l[l] = ceil((float)nf/std::pow(2, l));
 
-    cudaMallocHelper((void**)&ddist_r_l[l], nr_l[l] * sizeof(double));
-    calc_cpt_dist(nr, stride, dccoords_r, ddist_r_l[l]);
+    cudaMallocHelper((void**)&ddist_r_l[l], nr_l[l] * sizeof(T));
+    calc_cpt_dist(nr, stride, dccoords_r, ddist_r_l[l],
+                  B, handle, 0, profile);
 
-    cudaMallocHelper((void**)&ddist_c_l[l], nc_l[l] * sizeof(double));
-    calc_cpt_dist(nc, stride, dccoords_c, ddist_c_l[l]);
+    cudaMallocHelper((void**)&ddist_c_l[l], nc_l[l] * sizeof(T));
+    calc_cpt_dist(nc, stride, dccoords_c, ddist_c_l[l],
+                  B, handle, 0, profile);
 
-    cudaMallocHelper((void**)&ddist_f_l[l], nf_l[l] * sizeof(double));
-    calc_cpt_dist(nf, stride, dccoords_f, ddist_f_l[l]);
+    cudaMallocHelper((void**)&ddist_f_l[l], nf_l[l] * sizeof(T));
+    calc_cpt_dist(nf, stride, dccoords_f, ddist_f_l[l],
+                  B, handle, 0, profile);
   }
 
   int row_stride;
@@ -181,7 +182,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                       nr,     nc,    nf,
                       dirow,  dicol, difib,
                       dv,    lddv1,  lddv2,
-                      dcv,   lddcv1, lddcv2);
+                      dcv,   lddcv1, lddcv2,
+                      B, handle, 0, profile);
   org_to_pow2p1_time += ret.time;
 
   // printf("start v:\n");
@@ -192,9 +194,9 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
   // print_matrix_cuda(1,     1,    10,
   //                   dcv,   lddcv1, lddcv2, 
   //                   nf); 
-  std::cout << "l_target = " << l_target << std::endl;
+  //std::cout << "l_target = " << l_target << std::endl;
   for (int l = 0; l < l_target; ++l) {
-    std::cout << "l = " << l << std::endl;
+    //std::cout << "l = " << l << std::endl;
     int stride = std::pow(2, l);
     int Cstride = stride * 2;
 
@@ -202,42 +204,42 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     //              v,  ncol, nrow);
 
 
-    pi_Ql3D(nr, nc, nf, nrow,   ncol, nfib, l, v, coords_c, coords_r, coords_f,
-            row_vec, col_vec, fib_vec);
+    // pi_Ql3D(nr, nc, nf, nrow,   ncol, nfib, l, v, coords_c, coords_r, coords_f,
+    //         row_vec, col_vec, fib_vec);
 
-    mgard_gen::copy3_level_l(l, v, work.data(), nr, nc, nf, nrow, ncol, nfib);
-    mgard_gen::assign3_level_l(l + 1, work.data(), 0.0, nr, nc, nf, nrow, ncol,
-                               nfib);
+    // mgard_gen::copy3_level_l(l, v, work.data(), nr, nc, nf, nrow, ncol, nfib);
+    // mgard_gen::assign3_level_l(l + 1, work.data(), 0.0, nr, nc, nf, nrow, ncol,
+    //                            nfib);
 
-    for (int kfib = 0; kfib < nf; kfib += stride) {
-      //           int kf = kfib;
-      int kf = get_lindex(nf, nfib,
-                          kfib); // get the real location of logical index irow
-      mgard_common::copy_slice(work.data(), work2d, nrow, ncol, nfib, kf);
-      mgard_gen::refactor_2D(nr, nc, nrow, ncol, l, v2d.data(), work2d,
-                             coords_c, coords_r, row_vec, col_vec);
-      mgard_common::copy_from_slice(work.data(), work2d, nrow, ncol, nfib, kf);
-    }
+    // for (int kfib = 0; kfib < nf; kfib += stride) {
+    //   //           int kf = kfib;
+    //   int kf = get_lindex(nf, nfib,
+    //                       kfib); // get the real location of logical index irow
+    //   mgard_common::copy_slice(work.data(), work2d, nrow, ncol, nfib, kf);
+    //   mgard_gen::refactor_2D(nr, nc, nrow, ncol, l, v2d.data(), work2d,
+    //                          coords_c, coords_r, row_vec, col_vec);
+    //   mgard_common::copy_from_slice(work.data(), work2d, nrow, ncol, nfib, kf);
+    // }
 
-    for (int irow = 0; irow < nr; irow += Cstride) {
-      int ir = get_lindex(nr, nrow, irow);
-      for (int jcol = 0; jcol < nc; jcol += Cstride) {
-        int jc = get_lindex(nc, ncol, jcol);
-        for (int kfib = 0; kfib < nfib; ++kfib) {
-          fib_vec[kfib] =
-              work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)];
-        }
-        mgard_gen::mass_mult_l(l, fib_vec, coords_f, nf, nfib);
-        mgard_gen::restriction_l(l + 1, fib_vec, coords_f, nf, nfib);
-        mgard_gen::solve_tridiag_M_l(l + 1, fib_vec, coords_f, nf, nfib);
-        for (int kfib = 0; kfib < nfib; ++kfib) {
-          work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)] =
-              fib_vec[kfib];
-        }
-      }
-    }
+    // for (int irow = 0; irow < nr; irow += Cstride) {
+    //   int ir = get_lindex(nr, nrow, irow);
+    //   for (int jcol = 0; jcol < nc; jcol += Cstride) {
+    //     int jc = get_lindex(nc, ncol, jcol);
+    //     for (int kfib = 0; kfib < nfib; ++kfib) {
+    //       fib_vec[kfib] =
+    //           work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)];
+    //     }
+    //     mgard_gen::mass_mult_l(l, fib_vec, coords_f, nf, nfib);
+    //     mgard_gen::restriction_l(l + 1, fib_vec, coords_f, nf, nfib);
+    //     mgard_gen::solve_tridiag_M_l(l + 1, fib_vec, coords_f, nf, nfib);
+    //     for (int kfib = 0; kfib < nfib; ++kfib) {
+    //       work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)] =
+    //           fib_vec[kfib];
+    //     }
+    //   }
+    // }
 
-    add3_level_l(l + 1, v, work.data(), nr, nc, nf, nrow, ncol, nfib);
+    // add3_level_l(l + 1, v, work.data(), nr, nc, nf, nrow, ncol, nfib);
 
 
     // print_matrix(nfib,  nrow,   ncol,
@@ -247,21 +249,22 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
 
 
 
-    cudaMemcpy3DHelper(dwork2, lddwork21 * sizeof(double), nfib * sizeof(double), ncol,
-                       v, nfib  * sizeof(double), nfib * sizeof(double), ncol,
-                       nfib * sizeof(double), ncol, nrow,
-                       H2D);
+    // cudaMemcpy3DAsyncHelper(dwork2, lddwork21 * sizeof(double), nfib * sizeof(double), ncol,
+    //                    v, nfib  * sizeof(double), nfib * sizeof(double), ncol,
+    //                    nfib * sizeof(double), ncol, nrow,
+    //                    H2D, handle, 0, profile);
 
     // cudaMemcpy3DHelper(dwork2, lddwork21 * sizeof(double), nfib * sizeof(double), ncol,
     //                    work.data(), nfib  * sizeof(double), nfib * sizeof(double), ncol,
     //                    nfib * sizeof(double), ncol, nrow,
     //                    H2D);
 
-    org_to_pow2p1(nrow,   ncol,  nfib,  
-                  nr,     nc,    nf,    
-                  dirow,  dicol, difib, 
-                  dwork2, lddwork21,  lddwork22,
-                  dcwork2, lddcwork21,  lddcwork22);
+    // org_to_pow2p1(nrow,   ncol,  nfib,  
+    //               nr,     nc,    nf,    
+    //               dirow,  dicol, difib, 
+    //               dwork2, lddwork21,  lddwork22,
+    //               dcwork2, lddcwork21,  lddcwork22,
+    //               B, handle, 0, profile);
 
 
     
@@ -276,7 +279,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     ret = pow2p1_to_cpt(nr,         nc,         nf,
                         row_stride, col_stride, fib_stride,
                         dcv,        lddcv1,     lddcv2,
-                        dcwork,     lddcwork1,  lddcwork2);
+                        dcwork,     lddcwork1,  lddcwork2,
+                        B, handle, 0, profile);
     pow2p1_to_cpt_time += ret.time;
 
     fib_stride = 1;
@@ -285,7 +289,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     ret = pi_Ql_cuda_cpt_sm(nr_l[l],      nc_l[l],      nf_l[l],
                             row_stride,   col_stride,   fib_stride,
                             dcwork,       lddcwork1,    lddcwork2,
-                            ddist_r_l[l], ddist_c_l[l], ddist_f_l[l], 4);
+                            ddist_r_l[l], ddist_c_l[l], ddist_f_l[l],
+                            B, handle, 0, profile);
     pi_Ql_cuda_time += ret.time;
 
     fib_stride = stride;
@@ -294,7 +299,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     ret = cpt_to_pow2p1(nr,         nc,         nf,
                         row_stride, col_stride, fib_stride,
                         dcwork,     lddcwork1,  lddcwork2,
-                        dcv,        lddcv1,     lddcv2);
+                        dcv,        lddcv1,     lddcv2,
+                        B, handle, 0, profile);
     cpt_to_pow2p1_time += ret.time;    
 
 
@@ -309,7 +315,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     copy_level_l_cuda_cpt(nr,         nc,         nf,
                           row_stride, col_stride, fib_stride,
                           dcv,        lddcv1,     lddcv2,
-                          dwork,      lddwork1,   lddwork2);
+                          dwork,      lddwork1,   lddwork2,
+                          B, handle, 0, profile);
 
     fib_stride = Cstride;
     row_stride = Cstride;
@@ -317,7 +324,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     ret = pow2p1_to_cpt(nr,         nc,         nf,
                         row_stride, col_stride, fib_stride,
                         dwork,      lddwork1,   lddwork2,
-                        dcwork,     lddcwork1,  lddcwork2);
+                        dcwork,     lddcwork1,  lddcwork2,
+                        B, handle, 0, profile);
     pow2p1_to_cpt_time += ret.time;
 
     fib_stride = 1;
@@ -326,14 +334,15 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     assign_num_level_l_cuda_cpt(nr_l[l+1],  nc_l[l+1],  nf_l[l+1],
                                 row_stride, col_stride, fib_stride,
                                 dcwork,     lddcwork1,  lddcwork2,
-                                0.0);
+                                (T)0.0, B, handle, 0, profile);
     fib_stride = Cstride;
     row_stride = Cstride;
     col_stride = Cstride;
     ret = cpt_to_pow2p1(nr,         nc,         nf,
                         row_stride, col_stride, fib_stride,
                         dcwork,     lddcwork1,  lddcwork2,
-                        dwork,      lddwork1,   lddwork2);
+                        dwork,      lddwork1,   lddwork2,
+                        B, handle, 0, profile);
     cpt_to_pow2p1_time += ret.time;
 
     // std::cout << "gpu before:\n";
@@ -343,7 +352,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
 
     fib_stride = stride;
     for (int f = 0; f < nf; f += fib_stride) {
-      double * slice = dwork + f;
+      T * slice = dwork + f;
       int ldslice = lddwork2;
 
       row_stride = 1 * lddwork1;
@@ -351,7 +360,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
       ret = pow2p1_to_cpt(nr*lddwork1,    nc*lddwork1,
                           row_stride, col_stride,
                           slice,      ldslice,
-                          dcwork,     lddcwork1);
+                          dcwork,     lddcwork1,
+                          B, handle, 0, profile);
       pow2p1_to_cpt_time += ret.time;
 
       // std::cout << "f before = " << f << "\n";
@@ -364,7 +374,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                                         row_stride, col_stride,
                                                         dcwork,     lddcwork1,
                                                         ddist_c_l[l],
-                                                        16, 16);
+                                                        B, B, handle, 0, profile);
       mass_mult_l_row_cuda_time += ret.time;
 
       // // std::cout << "f after= " << f << "\n";
@@ -377,7 +387,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                       row_stride,  col_stride,
                                       dcwork,      lddcwork1,
                                       ddist_c_l[l],
-                                      16, 16);
+                                      B, B, handle, 0, profile);
       restriction_l_row_cuda_time += ret.time;
 
       row_stride = 1;
@@ -386,7 +396,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                           row_stride, col_stride,
                                           dcwork,     lddcwork1,
                                           ddist_c_l[l+1],
-                                          16, 16);
+                                          B, B, handle, 0, profile);
       solve_tridiag_M_l_row_cuda_time += ret.time;
 
 
@@ -401,7 +411,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                    row_stride,  col_stride,
                                    dcwork,     lddcwork1,
                                    ddist_r_l[l],
-                                   2, 2);
+                                   B, B, handle, 0, profile);
       mass_mult_l_col_cuda_time += ret.time;
 
       // std::cout << "f after= " << f << "\n";
@@ -414,7 +424,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                       row_stride, col_stride,
                                       dcwork, lddcwork1,
                                       ddist_r_l[l],
-                                      16, 16);
+                                      B, B, handle, 0, profile);
       restriction_l_col_cuda_time += ret.time;
 
       row_stride = Cstride;
@@ -423,7 +433,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                           row_stride,    col_stride,
                                           dcwork,        lddcwork1,
                                           ddist_r_l[l+1],
-                                          16, 16);
+                                          B, B, handle, 0, profile);
       solve_tridiag_M_l_col_cuda_time += ret.time;
 
       row_stride = 1 * lddwork1;
@@ -431,7 +441,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
       ret = cpt_to_pow2p1(nr*lddwork1,    nc*lddwork1,
                           row_stride, col_stride,
                           dcwork,     lddcwork1,
-                          slice,      ldslice);
+                          slice,      ldslice,
+                          B, handle, 0, profile);
       cpt_to_pow2p1_time += ret.time;
 
 
@@ -447,7 +458,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     row_stride = Cstride;
     for (int r = 0; r < nr; r += row_stride) {
     //for (int f = 0; f < 1; f += fib_stride) {
-      double * slice = dwork + r * lddwork1 * lddwork2;
+      T * slice = dwork + r * lddwork1 * lddwork2;
       int ldslice = lddwork1;
 
       col_stride = Cstride;
@@ -455,7 +466,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
       ret = pow2p1_to_cpt(nc,         nf,
                           col_stride, fib_stride,
                           slice,      ldslice,
-                          dcwork,     lddcwork1);
+                          dcwork,     lddcwork1,
+                          B, handle, 0, profile);
       pow2p1_to_cpt_time += ret.time;
 
       col_stride = 1;
@@ -464,7 +476,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                                         col_stride, fib_stride,
                                                         dcwork,     lddcwork1,
                                                         ddist_f_l[l],
-                                                        16, 16);
+                                                        B, B, handle, 0, profile);
       mass_mult_l_row_cuda_time += ret.time;
 
       col_stride = 1;
@@ -473,7 +485,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                                            col_stride, fib_stride,
                                                            dcwork,      lddcwork1,
                                                            ddist_f_l[l],
-                                                           16, 16);
+                                                           B, B, handle, 0, profile);
       restriction_l_row_cuda_time += ret.time;
 
       col_stride = 1;
@@ -482,7 +494,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                                                col_stride, fib_stride,
                                                                dcwork,     lddcwork1,
                                                                ddist_f_l[l+1],
-                                                               16, 16);
+                                                               B, B, handle, 0, profile);
       solve_tridiag_M_l_row_cuda_time += ret.time;
 
 
@@ -492,7 +504,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
       ret = cpt_to_pow2p1(nc,         nf,
                           col_stride, fib_stride,
                           dcwork,     lddcwork1,
-                          slice,      ldslice);
+                          slice,      ldslice,
+                          B, handle, 0, profile);
       cpt_to_pow2p1_time += ret.time;
 
 
@@ -510,7 +523,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     ret = add_level_l_cuda_cpt(nr,         nc,         nf,
                                row_stride, col_stride, fib_stride,
                                dcv,        lddcv1,     lddcv2,
-                               dwork,      lddwork1,   lddwork2);
+                               dwork,      lddwork1,   lddwork2,
+                               B, handle, 0, profile);
     add_level_cuda_time += ret.time;
 
     // std::cout << "cpu:\n";
@@ -540,30 +554,33 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
 
   }
 
-  compare_matrix_cuda(nr,         nc, nf,      
-                      dcv,        lddcv1,     lddcv2,  nf,
-                      dcwork2, lddcwork21,  lddcwork22,  nf);
+  // handle.sync_all();
+  // compare_matrix_cuda(nr,         nc, nf,      
+  //                     dcv,        lddcv1,     lddcv2,  nf,
+  //                     dcwork2, lddcwork21,  lddcwork22,  nf);
+  // handle.sync_all();
+  // compare_matrix_cuda(nrow,   ncol,   nfib,  
+  //                     dv,    lddv1, lddv2, nfib,
+  //                     dv2,    lddv21, lddv22, nfib);
 
-  compare_matrix_cuda(nrow,   ncol,   nfib,  
-                      dv,    lddv1, lddv2, nfib,
-                      dv2,    lddv21, lddv22, nfib);
 
-
-  ret = pow2p1_to_org(nrow,   ncol,   nfib,  
-                      nr,     nc,     nf,
-                      dirow,  dicol,  difib,
-                      dcwork2, lddcwork21,  lddcwork22,
-                      dv2,     lddv21,  lddv22);
+  // ret = pow2p1_to_org(nrow,   ncol,   nfib,  
+  //                     nr,     nc,     nf,
+  //                     dirow,  dicol,  difib,
+  //                     dcwork2, lddcwork21,  lddcwork22,
+  //                     dv2,     lddv21,  lddv22,
+  //                     B, handle, 0, profile);
 
   ret = pow2p1_to_org(nrow,   ncol,   nfib,  
                       nr,     nc,     nf,
                       dirow,  dicol,  difib,
                       dcv,    lddcv1, lddcv2,
-                      dv,     lddv1,  lddv2);
-
-  compare_matrix_cuda(nrow,   ncol,   nfib,  
-                      dv,    lddv1, lddv2, nfib,
-                      dv2,    lddv21, lddv22, nfib);
+                      dv,     lddv1,  lddv2,
+                      B, handle, 0, profile);
+  // handle.sync_all();
+  // compare_matrix_cuda(nrow,   ncol,   nfib,  
+  //                     dv,    lddv1, lddv2, nfib,
+  //                     dv2,    lddv21, lddv22, nfib);
 
 
 
@@ -571,6 +588,122 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
 
   return mgard_cuda_ret(0, 1.0);
 
+}
+
+template mgard_cuda_ret 
+refactor_3D_cuda_cpt_l2_sm<double>(int l_target,
+                           int nrow,           int ncol,           int nfib,
+                           int nr,             int nc,             int nf,             
+                           int * dirow,        int * dicol,        int * difib,
+                           double * dv,        int lddv1,          int lddv2,
+                           double * dwork,     int lddwork1,       int lddwork2,
+                           double * dcoords_r, double * dcoords_c, double * dcoords_f,
+                           int B, mgard_cuda_handle & handle, bool profile);
+template mgard_cuda_ret 
+refactor_3D_cuda_cpt_l2_sm<float>(int l_target,
+                           int nrow,           int ncol,           int nfib,
+                           int nr,             int nc,             int nf,             
+                           int * dirow,        int * dicol,        int * difib,
+                           float * dv,        int lddv1,          int lddv2,
+                           float * dwork,     int lddwork1,       int lddwork2,
+                           float * dcoords_r, float * dcoords_c, float * dcoords_f,
+                           int B, mgard_cuda_handle & handle, bool profile);
+
+
+void recompose_3D_cuda(const int nr, const int nc, const int nf, const int nrow,
+                  const int ncol, const int nfib, const int l_target, double *v,
+                  std::vector<double> &work, std::vector<double> &work2d,
+                  std::vector<double> &coords_x, std::vector<double> &coords_y,
+                  std::vector<double> &coords_z) {
+  // recompose
+
+  std::vector<double> v2d(nrow * ncol), fib_vec(nfib);
+  std::vector<double> row_vec(ncol);
+  std::vector<double> col_vec(nrow);
+
+  //    //std::cout  << "recomposing" << "\n";
+  for (int l = l_target; l > 0; --l) {
+
+    int stride = std::pow(2, l); // current stride
+    int Pstride = stride / 2;
+
+    mgard_gen::copy3_level_l(l - 1, v, work.data(), nr, nc, nf, nrow, ncol,
+                             nfib);
+
+    mgard_gen::assign3_level_l(l, work.data(), 0.0, nr, nc, nf, nrow, ncol,
+                               nfib);
+
+    //        for (int kfib = 0; kfib < nfib; ++kfib)
+    for (int kfib = 0; kfib < nf; kfib += Pstride) {
+      //    int kf =kfib;
+      int kf = get_lindex(nf, nfib, kfib);
+      mgard_common::copy_slice(work.data(), work2d, nrow, ncol, nfib, kf);
+      //            mgard_gen::compute_zl(nr, nc, nrow, ncol, l,  work2d,
+      //            coords_x, coords_y, row_vec, col_vec);
+      mgard_gen::refactor_2D(nr, nc, nrow, ncol, l - 1, v2d.data(), work2d,
+                             coords_x, coords_y, row_vec, col_vec);
+      mgard_common::copy_from_slice(work.data(), work2d, nrow, ncol, nfib, kf);
+    }
+
+    for (int irow = 0; irow < nr; irow += stride) {
+      int ir = get_lindex(nr, nrow, irow);
+      for (int jcol = 0; jcol < nc; jcol += stride) {
+        int jc = get_lindex(nc, ncol, jcol);
+        for (int kfib = 0; kfib < nfib; ++kfib) {
+          fib_vec[kfib] =
+              work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)];
+        }
+
+        mgard_gen::mass_mult_l(l - 1, fib_vec, coords_z, nf, nfib);
+
+        mgard_gen::restriction_l(l, fib_vec, coords_z, nf, nfib);
+
+        mgard_gen::solve_tridiag_M_l(l, fib_vec, coords_z, nf, nfib);
+
+        for (int kfib = 0; kfib < nfib; ++kfib) {
+          work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)] =
+              fib_vec[kfib];
+        }
+      }
+    }
+
+    //- computed zl -//
+
+    sub3_level_l(l, work.data(), v, nr, nc, nf, nrow, ncol,
+                 nfib); // do -(Qu - zl)
+
+    //        for (int is = 0; is < nfib; ++is)
+    for (int kfib = 0; kfib < nf; kfib += stride) {
+      int kf = get_lindex(nf, nfib, kfib);
+      //            int kf = kfib;
+      mgard_common::copy_slice(work.data(), work2d, nrow, ncol, nfib, kf);
+      mgard_gen::prolong_add_2D(nr, nc, nrow, ncol, l, work2d, coords_x,
+                                coords_y, row_vec, col_vec);
+      mgard_common::copy_from_slice(work.data(), work2d, nrow, ncol, nfib, kf);
+    }
+
+    for (int irow = 0; irow < nr; irow += Pstride) {
+      int ir = get_lindex(nr, nrow, irow);
+      for (int jcol = 0; jcol < nc; jcol += Pstride) {
+        int jc = get_lindex(nc, ncol, jcol);
+        for (int kfib = 0; kfib < nfib; ++kfib) {
+          fib_vec[kfib] =
+              work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)];
+        }
+
+        mgard_gen::prolongate_l(l, fib_vec, coords_z, nf, nfib);
+
+        for (int kfib = 0; kfib < nfib; ++kfib) {
+          work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)] =
+              fib_vec[kfib];
+        }
+      }
+    }
+
+    mgard_gen::assign3_level_l(l, v, 0.0, nr, nc, nf, nrow, ncol, nfib);
+    mgard_gen::sub3_level_l(l - 1, v, work.data(), nr, nc, nf, nrow, ncol,
+                            nfib);
+  }
 }
 
 

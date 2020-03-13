@@ -14,7 +14,9 @@ pi_Ql_cuda(int nrow,           int ncol,
            int row_stride,     int col_stride,
            int * dirow,        int * dicol,
            T * dv,        int lddv, 
-           T * dcoords_x, T * dcoords_y);
+           T * dcoords_x, T * dcoords_y,
+           int B, mgard_cuda_handle & handle, 
+           int queue_idx, bool profile);
 
 template <typename T>
 mgard_cuda_ret 
@@ -22,7 +24,8 @@ pi_Ql_cuda_sm(int nr,         int nc,
               int row_stride, int col_stride,
               T * dv,    int lddv,
               T * ddist_x, T * ddist_y,
-              int B);
+              int B, mgard_cuda_handle & handle, 
+              int queue_idx, bool profile);
 
 }
 }

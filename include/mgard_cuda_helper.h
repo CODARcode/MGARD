@@ -45,41 +45,47 @@ struct mgard_cuda_handle {
 #endif
 
 
+template <typename T>
+void print_matrix(int nrow, int ncol, T * v, int ldv);
+template <typename T>
+void print_matrix_cuda(int nrow, int ncol, T * dv, int lddv);
 
-void print_matrix(int nrow, int ncol, double * v, int ldv);
-void print_matrix_cuda(int nrow, int ncol, double * dv, int lddv);
+template <typename T>
+void print_matrix(int nrow, int ncol, int nfib, T * v, int ldv1, int ldv2);
+template <typename T>
+void print_matrix_cuda(int nrow, int ncol, int nfib, T * dv, int lddv1, int lddv2, int sizex);
 
-void print_matrix(int nrow, int ncol, int nfib, double * v, int ldv1, int ldv2);
-void print_matrix_cuda(int nrow, int ncol, int nfib, double * dv, int lddv1, int lddv2, int sizex);
-
-void print_matrix(int nrow, int ncol, int * v, int ldv);
-void print_matrix_cuda(int nrow, int ncol, int * dv, int lddv);
-
-bool compare_matrix(int nrow, int ncol, double * v1, int ldv1, double * v2, int ldv2);
+template <typename T>
+bool compare_matrix(int nrow, int ncol, T * v1, int ldv1, T * v2, int ldv2);
+template <typename T>
 bool compare_matrix_cuda(int nrow, int ncol, 
-                        double * dv1, int lddv1, 
-                        double * dv2, int lddv2);
-
+                        T * dv1, int lddv1, 
+                        T * dv2, int lddv2);
+template <typename T>
 bool compare_matrix(int nrow, int ncol, int nfib,  
-                    double * v1, int ldv11, int ldv12, 
-                    double * v2, int ldv21, int ldv22);
+                    T * v1, int ldv11, int ldv12, 
+                    T * v2, int ldv21, int ldv22);
+template <typename T>
 bool compare_matrix_cuda(int nrow, int ncol, int nfib, 
-                      double * dv1, int lddv11, int lddv12, int sizex1,
-                      double * dv2, int lddv21, int lddv22, int sizex2);
+                      T * dv1, int lddv11, int lddv12, int sizex1,
+                      T * dv2, int lddv21, int lddv22, int sizex2);
 
 void cudaMallocHelper(void **  devPtr, size_t  size);
 void cudaMallocPitchHelper(void ** devPtr, size_t * pitch, size_t width, size_t height);
 void cudaMalloc3DHelper(void ** devPtr, size_t * pitch, size_t width, size_t height, size_t depth);
 
-void cudaMemcpyHelper(void * dst, const void * src, size_t count, enum copy_type);
-void cudaMemcpy2DHelper(void * dst, size_t dpitch, 
+mgard_cuda_ret cudaMemcpyAsyncHelper(void * dst, const void * src, size_t count, enum copy_type,
+                          mgard_cuda_handle & handle, int queue_idx, bool profile);
+mgard_cuda_ret cudaMemcpy2DAsyncHelper(void * dst, size_t dpitch, 
                         const void * src, size_t spitch, 
                         size_t width, size_t height,
-                        enum copy_type kind);
-void cudaMemcpy3DHelper(void * dst, size_t dpitch, size_t dwidth, size_t dheight,
+                        enum copy_type kind,
+                        mgard_cuda_handle & handle, int queue_idx, bool profile);
+mgard_cuda_ret cudaMemcpy3DAsyncHelper(void * dst, size_t dpitch, size_t dwidth, size_t dheight,
                         void * src, size_t spitch, size_t swidth, size_t sheight,
                         size_t width, size_t height, size_t depth,
-                        enum copy_type kind);
+                        enum copy_type kind,
+                        mgard_cuda_handle & handle, int queue_idx, bool profile);
 
 void cudaFreeHelper(void * devPtr);
 void cudaMemsetHelper(void * devPtr, int value, size_t count);

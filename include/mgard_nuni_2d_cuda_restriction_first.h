@@ -12,14 +12,18 @@ mgard_cuda_ret
 restriction_first_row_cuda(int nrow,       int ncol, 
                            int row_stride, int * dicolP, int nc,
                            T * dv,    int lddv,
-                           T * dcoords_x);
+                           T * dcoords_x,
+                           int B, mgard_cuda_handle & handle, 
+                           int queue_idx, bool profile);
 
 template <typename T>
 mgard_cuda_ret 
 restriction_first_col_cuda(int nrow,       int ncol, 
                            int * dirowP, int nr, int col_stride,
                            T * dv,    int lddv,
-                           T * dcoords_y);
+                           T * dcoords_y,
+                           int B, mgard_cuda_handle & handle, 
+                           int queue_idx, bool profile);
 
 }
 }

@@ -73,10 +73,11 @@ int main(int argc, char *argv[])
   }
 
   char *infile, *outfile;
-  int nrow, ncol, nfib, opt;
+  int nrow, ncol, nfib, opt, B;
+  bool profile;
   double tol, s;
-  if (argc != 7) {
-    if (argc < 7) {
+  if (argc != 9) {
+    if (argc < 9) {
       fprintf (stderr, "%s: Not enough arguments! ", argv[0]);
     } else {
       fprintf (stderr, "%s: Too many arguments! ", argv[0]);
@@ -91,6 +92,9 @@ int main(int argc, char *argv[])
     tol  = atof(argv[4]);
     s    = atof(argv[5]);
     opt  = atoi(argv[6]);
+    B    = atoi(argv[7]);
+    profile = atoi(argv[8]);
+
   }
 
 
@@ -125,16 +129,22 @@ int main(int argc, char *argv[])
 
   unsigned char *mgard_comp_buff;
   
-  //mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
-  mgard_comp_buff = mgard_compress_cuda(iflag, in_buff, out_size, nrow, ncol, nfib, tol, opt);
+  if (opt == -1) {
+    mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
+  } else {
+    mgard_comp_buff = mgard_compress_cuda(iflag, in_buff, out_size, nrow, ncol, nfib, tol, opt, B, profile);
+  }
   free(in_buff);
 
   printf ("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
 
   double* mgard_out_buff;
   double dummy = 0;
-  //mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
-  mgard_out_buff = mgard_decompress_cuda(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, opt);
+  if (opt = -1) {
+    mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
+  } else {
+    mgard_out_buff = mgard_decompress_cuda(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, opt, B, profile);
+  }
 
   //FILE *qfile;
   //qfile = fopen ( outfile , "wb" );

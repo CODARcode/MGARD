@@ -8,6 +8,22 @@
 namespace mgard_2d {
 namespace mgard_common {
 
+template <typename T>
+T max_norm_cuda(const std::vector<T> &v) {
+  double norm = 0;
+
+  for (int i = 0; i < v.size(); ++i) {
+    T ntest = std::abs(v[i]);
+    if (ntest > norm)
+      norm = ntest;
+  }
+  return norm;
+}
+
+template double max_norm_cuda<double>(const std::vector<double> &v);
+template float max_norm_cuda<float>(const std::vector<float> &v);
+
+
 __host__ __device__
 int get_index_cuda(const int ncol, const int i, const int j) {
   return ncol * i + j;

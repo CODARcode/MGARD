@@ -25,16 +25,19 @@ _solve_tridiag_M_l_row_cuda(int nrow,        int ncol,
                              int row_stride, int col_stride,
                              int * dirow,    int * dicol, 
                              T * dv,    int lddv, 
-                             T * dcoords_x) {
+                             T * dcoords_x,
+                             T * dcoeff,    int lddcoeff) {
   int idx0 = (threadIdx.x + blockIdx.x * blockDim.x) * row_stride;
   //printf("thread %d, nr = %d\n", idx0, nr);
   T am, bm, h1, h2;
-  T * coeff = new T[ncol];
+  //T * coeff = new T[ncol];
   for (int idx = idx0; idx < nr; idx += (blockDim.x * gridDim.x) * row_stride) {
     //printf("thread %d, nr = %d, idx = %d\n", idx0, nr, idx);
     int r = dirow[idx];
     //printf("thread %d working on row %d \n", idx0, r);
     T * vec = dv + r * lddv;
+    T * coeff = dcoeff + r * lddcoeff;
+
     am = 2.0 * mgard_common::_get_dist(dcoords_x, dicol[0], dicol[col_stride]); //dicol[col_stride] - dicol[0]
     bm = mgard_common::_get_dist(dcoords_x, dicol[0], dicol[col_stride]) / am; //dicol[col_stride] - dicol[0]
 
@@ -95,7 +98,7 @@ _solve_tridiag_M_l_row_cuda(int nrow,        int ncol,
       --counter;
     }
   }
-  delete[] coeff;
+  //delete[] coeff;
 }
 
 template <typename T>
@@ -105,37 +108,52 @@ solve_tridiag_M_l_row_cuda(int nrow,       int ncol,
                            int row_stride, int col_stride,
                            int * dirow,    int * dicol,
                            T * dv,     int lddv, 
-                           T * dcoords_x) {
-  int B = 16;
+                           T * dcoords_x,
+                           int B, mgard_cuda_handle & handle, 
+                           int queue_idx, bool profile) {
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
+
+  T * dcoeff;
+  size_t dcoeff_pitch;
+  cudaMallocPitchHelper((void**)&dcoeff, &dcoeff_pitch, nc * sizeof(T), nr);
+  int lddcoeff = dcoeff_pitch / sizeof(T);
+  cudaMemset2DHelper(dcoeff, dcoeff_pitch, 0, nc * sizeof(T), nr);
+
+
   int total_thread = ceil((float)nr / row_stride);
   int tb = min(B, total_thread);
   int grid = ceil((float)total_thread/tb);
   dim3 threadsPerBlock(tb, 1);
   dim3 blockPerGrid(grid, 1);
 
-  // std::cout << "_solve_tridiag_M_l_row_cuda" << std::endl;
-  // std::cout << "thread block: " << tb << std::endl;
-  // std::cout << "grid: " << grid << std::endl;
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
-
-  _solve_tridiag_M_l_row_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,   ncol,
-                                                                 nr,     nc,
-                                                                 row_stride, col_stride,
-                                                                 dirow,  dicol,
-                                                                 dv,     lddv, 
-                                                                 dcoords_x);
+  _solve_tridiag_M_l_row_cuda<<<blockPerGrid, threadsPerBlock,
+                                0, stream>>>(nrow,   ncol,
+                                             nr,     nc,
+                                             row_stride, col_stride,
+                                             dirow,  dicol,
+                                             dv,     lddv, 
+                                             dcoords_x,
+                                             dcoeff, lddcoeff);
   gpuErrchk(cudaGetLastError ()); 
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
+
+  cudaFreeHelper(dcoeff);
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -147,16 +165,18 @@ _solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
                              int row_stride, int col_stride,
                              int * dirow,    int * dicol,
                              T * dv,    int lddv, 
-                             T * dcoords_y) {
+                             T * dcoords_y,
+                             T * dcoeff, int lddcoeff) {
   int idx0 = (threadIdx.x + blockIdx.x * blockDim.x) * col_stride;
   //printf("thread %d, nr = %d\n", idx0, nr);
   T am, bm, h1, h2;
-  T * coeff = new T[nrow];
+  //T * coeff = new T[nrow];
   for (int idx = idx0; idx < nc; idx += (blockDim.x * gridDim.x) * col_stride) {
     // printf("thread %d, nc = %d, idx = %d\n", idx0, nc, idx);
     int c = dicol[idx];
     // printf("thread %d working on col %d \n", idx0, c);
     T * vec = dv + c;
+    T * coeff = dcoeff + c;
     am = 2.0 * mgard_common::_get_dist(dcoords_y, dirow[0], dirow[row_stride]); //dirow[row_stride] - dirow[0]
     bm = mgard_common::_get_dist(dcoords_y, dirow[0], dirow[row_stride]) / am; //dirow[row_stride] - dirow[0]
 
@@ -166,7 +186,7 @@ _solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
     // }
     
     int counter = 1;
-    coeff[0] = am;
+    coeff[0 * lddcoeff] = am;
     
     for (int i = row_stride; i < nr - 1; i += row_stride) {
       h1 = mgard_common::_get_dist(dcoords_y, dirow[i - row_stride], dirow[i]);
@@ -184,7 +204,7 @@ _solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
       //   printf("%f, ", bm);
       // }
 
-      coeff[counter] = am;
+      coeff[counter * lddcoeff] = am;
       ++counter;
 
     }
@@ -193,16 +213,16 @@ _solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
     am = 2.0 * h2 - bm * h2;
 
     vec[dirow[nr - 1] * lddv] -= vec[dirow[nr - 1 - row_stride] * lddv] * bm;
-    coeff[counter] = am;
+    coeff[counter * lddcoeff] = am;
 
-    if (idx == 0) {
-      // printf("h2 = %f\n", h2);
-      printf("\ntrue am:\n");
-      for (int i = 0; i < counter+1; i++) {
-        printf("%f, ", coeff[i] );
-      }
-      printf("\n");
-    }
+    // if (idx == 0) {
+    //   // printf("h2 = %f\n", h2);
+    //   printf("\ntrue am:\n");
+    //   for (int i = 0; i < counter+1; i++) {
+    //     printf("%f, ", coeff[i] );
+    //   }
+    //   printf("\n");
+    // }
     // start of backward pass
     // if(idx == 0) {
     //   printf("vec: %f, am: %f\n", vec[dirow[nr - 1] * lddv], am);
@@ -215,11 +235,11 @@ _solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
       // h2 = get_h_l_cuda(dcoords_y, nr, nrow, i, row_stride);
       vec[dirow[i] * lddv] =
         (vec[dirow[i] * lddv] - h2 * vec[dirow[i + row_stride] * lddv]) /
-        coeff[counter];
+        coeff[counter * lddcoeff];
       --counter;
     }
   }
-  delete[] coeff;
+  //delete[] coeff;
 
 
 }
@@ -231,36 +251,51 @@ solve_tridiag_M_l_col_cuda(int nrow,       int ncol,
                            int row_stride, int col_stride,
                            int * dirow,    int * dicol,
                            T * dv,    int lddv, 
-                           T * dcoords_y) {
-  int B = 16;
+                           T * dcoords_y,
+                           int B, mgard_cuda_handle & handle, 
+                           int queue_idx, bool profile) {
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
+  T * dcoeff;
+  size_t dcoeff_pitch;
+  cudaMallocPitchHelper((void**)&dcoeff, &dcoeff_pitch, nc * sizeof(T), nr);
+  int lddcoeff = dcoeff_pitch / sizeof(T);
+  cudaMemset2DHelper(dcoeff, dcoeff_pitch, 0, nc * sizeof(T), nr);
+
+
   int total_thread = ceil((float)nc / col_stride);
   int tb = min(B, total_thread);
   int grid = ceil((float)total_thread/tb);
   dim3 threadsPerBlock(tb, 1);
   dim3 blockPerGrid(grid, 1);
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  // std::cout << "thread block: " << tb << std::endl;
-  // std::cout << "grid: " << grid << std::endl;
-
-  _solve_tridiag_M_l_col_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol,
-                                                                 nr,         nc,
-                                                                 row_stride, col_stride,
-                                                                 dirow,      dicol,
-                                                                 dv,         lddv, 
-                                                                 dcoords_y);
+  _solve_tridiag_M_l_col_cuda<<<blockPerGrid, threadsPerBlock,
+                                0, stream>>>(nrow,       ncol,
+                                             nr,         nc,
+                                             row_stride, col_stride,
+                                             dirow,      dicol,
+                                             dv,         lddv, 
+                                             dcoords_y,
+                                             dcoeff, lddcoeff);
   gpuErrchk(cudaGetLastError ()); 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
 
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
+
+  cudaFreeHelper(dcoeff);
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
 
@@ -344,10 +379,15 @@ _calc_am_bm(int n,
 
 template <typename T>
 mgard_cuda_ret
-calc_am_bm(int n,        
-           T * am, T * bm,    
-           T * ddist,
-           int B) {
+calc_am_bm(int n,  T * am, T * bm,    
+           T * ddist, int B,
+           mgard_cuda_handle & handle, 
+           int queue_idx, bool profile) {
+
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
   int total_thread_y = 1;
   int total_thread_x = B;
 
@@ -362,21 +402,24 @@ calc_am_bm(int n,
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  _calc_am_bm<<<blockPerGrid, threadsPerBlock, sm_size>>>(n, am, bm,
-                                                          ddist);
+  _calc_am_bm<<<blockPerGrid, threadsPerBlock, 
+                sm_size, stream>>>(n, am, bm,
+                                   ddist);
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -542,8 +585,12 @@ solve_tridiag_M_l_row_forward_cuda_sm(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       T * bm,
                                       T * dv,    int lddv,
-                                      int B, int ghost_col) {
- 
+                                      int B, int ghost_col,
+                                      mgard_cuda_handle & handle, 
+                                      int queue_idx, bool profile) {
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
 
   int total_row = ceil((double)nr/(row_stride));
   int total_col = 1;
@@ -559,24 +606,28 @@ solve_tridiag_M_l_row_forward_cuda_sm(int nr,         int nc,
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  _solve_tridiag_M_l_row_forward_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
-                                                                                     row_stride, col_stride,
-                                                                                     bm,
-                                                                                     dv,         lddv,
-                                                                                     ghost_col);
+  _solve_tridiag_M_l_row_forward_cuda_sm<<<blockPerGrid, threadsPerBlock, 
+                                           sm_size, stream>>>(nr,         nc,
+                                                              row_stride, col_stride,
+                                                              bm,
+                                                              dv,         lddv,
+                                                              ghost_col);
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
+
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -743,8 +794,13 @@ solve_tridiag_M_l_row_backward_cuda_sm(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       T * am,    T * ddist_x,
                                       T * dv,    int lddv,
-                                      int B, int ghost_col) {
+                                      int B, int ghost_col,
+                                      mgard_cuda_handle & handle, 
+                                      int queue_idx, bool profile) {
  
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
 
   int total_row = ceil((double)nr/(row_stride));
   int total_col = 1;
@@ -763,24 +819,27 @@ solve_tridiag_M_l_row_backward_cuda_sm(int nr,         int nc,
   dim3 blockPerGrid(gridx, gridy);
 
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  _solve_tridiag_M_l_row_backward_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
-                                                                                     row_stride, col_stride,
-                                                                                     am,         ddist_x,
-                                                                                     dv,         lddv,
-                                                                                     ghost_col);
+  _solve_tridiag_M_l_row_backward_cuda_sm<<<blockPerGrid, threadsPerBlock, 
+                                            sm_size, stream>>>(nr,         nc,
+                                                               row_stride, col_stride,
+                                                               am,         ddist_x,
+                                                               dv,         lddv,
+                                                               ghost_col);
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -792,14 +851,17 @@ solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
                               T * dv,    int lddv,
                               T * ddist_x,
-                              int B, int ghost_col) {
+                              int B, int ghost_col,
+                              mgard_cuda_handle & handle, 
+                              int queue_idx, bool profile) {
   mgard_cuda_ret tmp(0, 0.0);
   mgard_cuda_ret ret(0, 0.0);
   T * am;
   T * bm;
   cudaMallocHelper((void**)&am, nc*sizeof(T));
   cudaMallocHelper((void**)&bm, nc*sizeof(T));
-  tmp = calc_am_bm(ceil((float)nc/col_stride), am, bm, ddist_x, 16);
+  tmp = calc_am_bm(ceil((float)nc/col_stride), am, bm, ddist_x, B,
+                    handle, queue_idx, profile);
   ret.time += tmp.time;
 
   // printf("am:\n");
@@ -812,13 +874,15 @@ solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
                                               row_stride, col_stride,
                                               bm,
                                               dv,    lddv,
-                                              B,     ghost_col);
+                                              B,     ghost_col,
+                                              handle, queue_idx, profile);
   ret.time += tmp.time;
   tmp = solve_tridiag_M_l_row_backward_cuda_sm(nr,         nc,
                                                row_stride, col_stride,
                                                am,     ddist_x,
                                                dv,    lddv,
-                                               B,     ghost_col);
+                                               B,     ghost_col,
+                                               handle, queue_idx, profile);
   ret.time += tmp.time;
   cudaFreeHelper(am);
   cudaFreeHelper(bm);
@@ -996,8 +1060,13 @@ solve_tridiag_M_l_col_forward_cuda_sm(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       T * bm,
                                       T * dv,    int lddv,
-                                      int B, int ghost_row) {
+                                      int B, int ghost_row,
+                                      mgard_cuda_handle & handle, 
+                                      int queue_idx, bool profile) {
  
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
 
   int total_row = 1;
   int total_col = ceil((double)nc/(col_stride));
@@ -1016,25 +1085,27 @@ solve_tridiag_M_l_col_forward_cuda_sm(int nr,         int nc,
   dim3 blockPerGrid(gridx, gridy);
 
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  _solve_tridiag_M_l_col_forward_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
-                                                                                     row_stride, col_stride,
-                                                                                     bm,
-                                                                                     dv,         lddv,
-                                                                                     ghost_row);
+  _solve_tridiag_M_l_col_forward_cuda_sm<<<blockPerGrid, threadsPerBlock, 
+                                           sm_size, stream>>>(nr,         nc,
+                                                              row_stride, col_stride,
+                                                              bm,
+                                                              dv,         lddv,
+                                                              ghost_row);
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
-
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
 
@@ -1203,8 +1274,13 @@ solve_tridiag_M_l_col_backward_cuda_sm(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       T * am,    T * ddist_y,
                                       T * dv,    int lddv,
-                                      int B, int ghost_row) {
+                                      int B, int ghost_row,
+                                      mgard_cuda_handle & handle, 
+                                      int queue_idx, bool profile) {
  
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
 
   int total_row = 1;
   int total_col = ceil((double)nc/(col_stride));
@@ -1223,24 +1299,27 @@ solve_tridiag_M_l_col_backward_cuda_sm(int nr,         int nc,
   dim3 blockPerGrid(gridx, gridy);
 
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  _solve_tridiag_M_l_col_backward_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
-                                                                                     row_stride, col_stride,
-                                                                                     am,         ddist_y,
-                                                                                     dv,         lddv,
-                                                                                     ghost_row);
+  _solve_tridiag_M_l_col_backward_cuda_sm<<<blockPerGrid, threadsPerBlock, 
+                                            sm_size, stream>>>(nr,         nc,
+                                                               row_stride, col_stride,
+                                                               am,         ddist_y,
+                                                               dv,         lddv,
+                                                               ghost_row);
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -1251,14 +1330,17 @@ solve_tridiag_M_l_col_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
                               T * dv,    int lddv,
                               T * ddist_y,
-                              int B, int ghost_row) {
+                              int B, int ghost_row,
+                              mgard_cuda_handle & handle, 
+                              int queue_idx, bool profile) {
   mgard_cuda_ret tmp(0, 0.0);
   mgard_cuda_ret ret(0, 0.0);
   T * am;
   T * bm;
   cudaMallocHelper((void**)&am, nr*sizeof(T));
   cudaMallocHelper((void**)&bm, nr*sizeof(T));
-  tmp = calc_am_bm(ceil((float)nr/row_stride), am, bm, ddist_y, 16);
+  tmp = calc_am_bm(ceil((float)nr/row_stride), am, bm, ddist_y, B,
+                   handle, queue_idx, profile);
   ret.time += tmp.time;
 
   // printf("am:\n");
@@ -1271,13 +1353,15 @@ solve_tridiag_M_l_col_cuda_sm(int nr,         int nc,
                                               row_stride, col_stride,
                                               bm,
                                               dv,         lddv,
-                                              B,          ghost_row);
+                                              B,          ghost_row,
+                                              handle, queue_idx, profile);
   ret.time += tmp.time;
   tmp = solve_tridiag_M_l_col_backward_cuda_sm(nr,         nc,
                                                row_stride, col_stride,
                                                am,         ddist_y,
                                                dv,         lddv,
-                                               B,          ghost_row);
+                                               B,          ghost_row,
+                                               handle, queue_idx, profile);
   ret.time += tmp.time;
   cudaFreeHelper(am);
   cudaFreeHelper(bm);
@@ -1291,114 +1375,148 @@ solve_tridiag_M_l_row_cuda<double>(int nrow,       int ncol,
                            int row_stride, int col_stride,
                            int * dirow,    int * dicol,
                            double * dv,     int lddv, 
-                           double * dcoords_x);
+                           double * dcoords_x,
+                           int B, mgard_cuda_handle & handle, 
+                           int queue_idx, bool profile);
 template mgard_cuda_ret
 solve_tridiag_M_l_row_cuda<float>(int nrow,       int ncol,
                            int nr,         int nc,
                            int row_stride, int col_stride,
                            int * dirow,    int * dicol,
                            float * dv,     int lddv, 
-                           float * dcoords_x);
+                           float * dcoords_x,
+                           int B, mgard_cuda_handle & handle, 
+                           int queue_idx, bool profile);
 template mgard_cuda_ret
 solve_tridiag_M_l_col_cuda<double>(int nrow,       int ncol,
                            int nr,         int nc,
                            int row_stride, int col_stride,
                            int * dirow,    int * dicol,
                            double * dv,    int lddv, 
-                           double * dcoords_y);
+                           double * dcoords_y,
+                           int B, mgard_cuda_handle & handle, 
+                           int queue_idx, bool profile);
 template mgard_cuda_ret
 solve_tridiag_M_l_col_cuda<float>(int nrow,       int ncol,
                            int nr,         int nc,
                            int row_stride, int col_stride,
                            int * dirow,    int * dicol,
                            float * dv,    int lddv, 
-                           float * dcoords_y);
+                           float * dcoords_y,
+                           int B, mgard_cuda_handle & handle, 
+                           int queue_idx, bool profile);
 
 
 
 
 template mgard_cuda_ret
-calc_am_bm<double>(int n,  double * am, double * bm,  double * ddist, int B);
+calc_am_bm<double>(int n,  double * am, double * bm,  double * ddist, int B,
+                   mgard_cuda_handle & handle, int queue_idx, bool profile);
 template mgard_cuda_ret
-calc_am_bm<float>(int n,  float * am, float * bm,  float * ddist, int B);
+calc_am_bm<float>(int n,  float * am, float * bm,  float * ddist, int B,
+                  mgard_cuda_handle & handle, int queue_idx, bool profile);
 
 template mgard_cuda_ret 
 solve_tridiag_M_l_row_forward_cuda_sm<double>(int nr,         int nc,
                                               int row_stride, int col_stride,
                                               double * bm,
                                               double * dv,    int lddv,
-                                              int B, int ghost_col);
+                                              int B, int ghost_col,
+                                              mgard_cuda_handle & handle, 
+                                              int queue_idx, bool profile);
 template mgard_cuda_ret 
 solve_tridiag_M_l_row_forward_cuda_sm<float>(int nr,         int nc,
                                               int row_stride, int col_stride,
                                               float * bm,
                                               float * dv,    int lddv,
-                                              int B, int ghost_col);
+                                              int B, int ghost_col,
+                                              mgard_cuda_handle & handle, 
+                                              int queue_idx, bool profile);
 
 template mgard_cuda_ret 
 solve_tridiag_M_l_row_backward_cuda_sm<double>(int nr,         int nc,
                                               int row_stride, int col_stride,
                                               double * am,    double * ddist_x,
                                               double * dv,    int lddv,
-                                              int B, int ghost_col);
+                                              int B, int ghost_col,
+                                              mgard_cuda_handle & handle, 
+                                              int queue_idx, bool profile);
 template mgard_cuda_ret 
 solve_tridiag_M_l_row_backward_cuda_sm<float>(int nr,         int nc,
                                               int row_stride, int col_stride,
                                               float * am,    float * ddist_x,
                                               float * dv,    int lddv,
-                                              int B, int ghost_col);
+                                              int B, int ghost_col,
+                                              mgard_cuda_handle & handle, 
+                                              int queue_idx, bool profile);
 
 template mgard_cuda_ret 
 solve_tridiag_M_l_row_cuda_sm<double>(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       double * dv,    int lddv,
                                       double * ddist_x,
-                                      int B, int ghost_col);
+                                      int B, int ghost_col,
+                                      mgard_cuda_handle & handle, 
+                                      int queue_idx, bool profile);
 template mgard_cuda_ret 
 solve_tridiag_M_l_row_cuda_sm<float>(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       float * dv,    int lddv,
                                       float * ddist_x,
-                                      int B, int ghost_col);
+                                      int B, int ghost_col,
+                                      mgard_cuda_handle & handle, 
+                                      int queue_idx, bool profile);
 
 template mgard_cuda_ret 
 solve_tridiag_M_l_col_forward_cuda_sm<double>(int nr,         int nc,
                                               int row_stride, int col_stride,
                                               double * bm,
                                               double * dv,    int lddv,
-                                              int B, int ghost_row);
+                                              int B, int ghost_row,
+                                              mgard_cuda_handle & handle, 
+                                              int queue_idx, bool profile);
 template mgard_cuda_ret 
 solve_tridiag_M_l_col_forward_cuda_sm<float>(int nr,         int nc,
                                               int row_stride, int col_stride,
                                               float * bm,
                                               float * dv,    int lddv,
-                                              int B, int ghost_row);
+                                              int B, int ghost_row,
+                                              mgard_cuda_handle & handle, 
+                                              int queue_idx, bool profile);
 
 template mgard_cuda_ret 
 solve_tridiag_M_l_col_backward_cuda_sm<double>(int nr,         int nc,
                                               int row_stride, int col_stride,
                                               double * am,    double * ddist_y,
                                               double * dv,    int lddv,
-                                              int B, int ghost_row);
+                                              int B, int ghost_row,
+                                              mgard_cuda_handle & handle, 
+                                              int queue_idx, bool profile);
 template mgard_cuda_ret 
 solve_tridiag_M_l_col_backward_cuda_sm<float>(int nr,         int nc,
                                               int row_stride, int col_stride,
                                               float * am,    float * ddist_y,
                                               float * dv,    int lddv,
-                                              int B, int ghost_row);
+                                              int B, int ghost_row,
+                                              mgard_cuda_handle & handle, 
+                                              int queue_idx, bool profile);
 
 template mgard_cuda_ret 
 solve_tridiag_M_l_col_cuda_sm<double>(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       double * dv,    int lddv,
                                       double * ddist_y,
-                                      int B, int ghost_row);
+                                      int B, int ghost_row,
+                                      mgard_cuda_handle & handle, 
+                                      int queue_idx, bool profile);
 template mgard_cuda_ret 
 solve_tridiag_M_l_col_cuda_sm<float>(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       float * dv,    int lddv,
                                       float * ddist_y,
-                                      int B, int ghost_row);
+                                      int B, int ghost_row,
+                                      mgard_cuda_handle & handle, 
+                                      int queue_idx, bool profile);
 
 
 

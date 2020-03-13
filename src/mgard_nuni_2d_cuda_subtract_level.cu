@@ -34,8 +34,13 @@ mgard_cuda_ret
 subtract_level_cuda(int nrow,       int ncol, 
                     int row_stride, int col_stride,
                     T * dv,    int lddv, 
-                    T * dwork, int lddwork) {
-  int B = 16;
+                    T * dwork, int lddwork,
+                    int B, mgard_cuda_handle & handle, 
+                    int queue_idx, bool profile) {
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
   int total_thread_x = ncol/col_stride;
   int total_thread_y = nrow/row_stride;
   int tbx = min(B, total_thread_x);
@@ -45,28 +50,26 @@ subtract_level_cuda(int nrow,       int ncol,
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
-  //std::cout << "thread block: " << tbx << ", " << tby <<std::endl;
-  //std::cout << "grid: " << gridx << ", " << gridy <<std::endl;
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
-
-  _subtract_level_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol,
-                                                           row_stride, col_stride, 
-                                                           dv,         lddv,
-                                                           dwork,      lddwork);
-
-
+  _subtract_level_cuda<<<blockPerGrid, threadsPerBlock,
+                         0, stream>>>(nrow,       ncol,
+                                      row_stride, col_stride, 
+                                      dv,         lddv,
+                                      dwork,      lddwork);
   gpuErrchk(cudaGetLastError ()); 
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -75,12 +78,16 @@ template mgard_cuda_ret
 subtract_level_cuda<double>(int nrow,       int ncol, 
                             int row_stride, int col_stride,
                             double * dv,    int lddv, 
-                            double * dwork, int lddwork);
+                            double * dwork, int lddwork,
+                            int B, mgard_cuda_handle & handle, 
+                            int queue_idx, bool profile);
 template mgard_cuda_ret 
 subtract_level_cuda<float>(int nrow,       int ncol, 
                             int row_stride, int col_stride,
                             float * dv,    int lddv, 
-                            float * dwork, int lddwork);
+                            float * dwork, int lddwork,
+                            int B, mgard_cuda_handle & handle, 
+                            int queue_idx, bool profile);
 
 }
 }

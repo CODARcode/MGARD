@@ -36,9 +36,13 @@ mgard_cuda_ret
 copy_level_cuda(int nrow,       int ncol, 
                 int row_stride, int col_stride,
                 T * dv,    int lddv,
-                T * dwork, int lddwork) {
+                T * dwork, int lddwork,
+                int B, mgard_cuda_handle & handle, 
+                int queue_idx, bool profile) {
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
 
-  int B = 16;
   int total_thread_y = ceil((float)nrow/row_stride);
   int total_thread_x = ceil((float)ncol/col_stride);
   int tby = min(B, total_thread_y);
@@ -48,21 +52,24 @@ copy_level_cuda(int nrow,       int ncol,
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
-  _copy_level_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol, 
-                                                      row_stride, col_stride, 
-                                                      dv,         lddv, 
-                                                      dwork,      lddwork);
-  gpuErrchk(cudaGetLastError ());
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
+
+  _copy_level_cuda<<<blockPerGrid, threadsPerBlock,
+                     0, stream>>>(nrow,       ncol, 
+                                  row_stride, col_stride, 
+                                  dv,         lddv, 
+                                  dwork,      lddwork);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
    
@@ -72,12 +79,16 @@ template mgard_cuda_ret
 copy_level_cuda<double>(int nrow,       int ncol, 
                         int row_stride, int col_stride,
                         double * dv,    int lddv,
-                        double * dwork, int lddwork);
+                        double * dwork, int lddwork,
+                        int B, mgard_cuda_handle & handle, 
+                        int queue_idx, bool profile);
 template mgard_cuda_ret 
 copy_level_cuda<float>(int nrow,       int ncol, 
                         int row_stride, int col_stride,
                         float * dv,    int lddv,
-                        float * dwork, int lddwork);
+                        float * dwork, int lddwork, 
+                        int B, mgard_cuda_handle & handle, 
+                        int queue_idx, bool profile);
 
 
 

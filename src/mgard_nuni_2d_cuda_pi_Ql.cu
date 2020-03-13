@@ -84,9 +84,14 @@ pi_Ql_cuda(int nrow,           int ncol,
            int row_stride,     int col_stride,
            int * dirow,        int * dicol,
            T * dv,        int lddv, 
-           T * dcoords_x, T * dcoords_y) {
+           T * dcoords_x, T * dcoords_y,
+           int B, mgard_cuda_handle & handle, 
+           int queue_idx, bool profile) {
 
-  int B = 16;
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
   int total_thread_y = floor((double)nr/(row_stride * 2));
   int total_thread_x = floor((double)nc/(col_stride * 2));
   int tby = min(B, total_thread_y);
@@ -96,28 +101,28 @@ pi_Ql_cuda(int nrow,           int ncol,
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
-  // std::cout << "thread block: " << tby << ", " << tbx << std::endl;
-  // std::cout << "grid: " << gridy << ", " << gridx << std::endl;
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
-
-  _pi_Ql_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol,
-                                                 nr,         nc,
-                                                 row_stride, col_stride,
-                                                 dirow,      dicol,
-                                                 dv,         lddv,
-                                                 dcoords_x,  dcoords_y);
+  _pi_Ql_cuda<<<blockPerGrid, threadsPerBlock,
+                0, stream>>>(nrow,       ncol,
+                             nr,         nc,
+                             row_stride, col_stride,
+                             dirow,      dicol,
+                             dv,         lddv,
+                             dcoords_x,  dcoords_y);
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -248,8 +253,14 @@ pi_Ql_cuda_sm(int nr,         int nc,
               int row_stride, int col_stride,
               T * dv,    int lddv,
               T * ddist_x, T * ddist_y,
-              int B) {
+              int B,
+              mgard_cuda_handle & handle, 
+              int queue_idx, bool profile) {
  
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
   int total_row = ceil((double)nr/(row_stride));
   int total_col = ceil((double)nc/(col_stride));
   int total_thread_y = total_row - 1;
@@ -261,25 +272,27 @@ pi_Ql_cuda_sm(int nr,         int nc,
   int gridx = ceil((float)total_thread_x/tbx);
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
-  // std::cout << "thread block: " << tby << ", " << tbx << std::endl;
-  // std::cout << "grid: " << gridy << ", " << gridx<< std::endl;
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
 
-  _pi_Ql_cuda_sm<<<blockPerGrid, threadsPerBlock, sm_size>>>(nr,         nc,
-                                                             row_stride, col_stride,
-                                                             dv,         lddv,
-                                                             ddist_x,    ddist_y);
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
+
+  _pi_Ql_cuda_sm<<<blockPerGrid, threadsPerBlock, 
+                   sm_size, stream>>>(nr,         nc,
+                                      row_stride, col_stride,
+                                      dv,         lddv,
+                                      ddist_x,    ddist_y);
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -290,14 +303,18 @@ pi_Ql_cuda<double>(int nrow,           int ncol,
            int row_stride,     int col_stride,
            int * dirow,        int * dicol,
            double * dv,        int lddv, 
-           double * dcoords_x, double * dcoords_y);
+           double * dcoords_x, double * dcoords_y,
+           int B, mgard_cuda_handle & handle, 
+           int queue_idx, bool profile);
 template mgard_cuda_ret 
 pi_Ql_cuda<float>(int nrow,           int ncol,
            int nr,             int nc,
            int row_stride,     int col_stride,
            int * dirow,        int * dicol,
            float * dv,        int lddv, 
-           float * dcoords_x, float * dcoords_y);
+           float * dcoords_x, float * dcoords_y,
+           int B, mgard_cuda_handle & handle, 
+           int queue_idx, bool profile);
 
 
 
@@ -306,13 +323,17 @@ pi_Ql_cuda_sm<double>(int nr,         int nc,
                       int row_stride, int col_stride,
                       double * dv,    int lddv,
                       double * ddist_x, double * ddist_y,
-                      int B);
+                      int B,
+                      mgard_cuda_handle & handle, 
+                      int queue_idx, bool profile);
 template mgard_cuda_ret 
 pi_Ql_cuda_sm<float>(int nr,         int nc,
                       int row_stride, int col_stride,
                       float * dv,    int lddv,
                       float * ddist_x, float * ddist_y,
-                      int B);
+                      int B,
+                      mgard_cuda_handle & handle, 
+                      int queue_idx, bool profile);
 
 
 }

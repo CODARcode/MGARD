@@ -6,6 +6,9 @@
 namespace mgard_2d {
 namespace mgard_common {
 
+template <typename T>
+T max_norm_cuda(const std::vector<T> &v);
+
 __host__ __device__
 int get_index_cuda(const int ncol, const int i, const int j);
 

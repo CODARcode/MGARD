@@ -11,5 +11,6 @@ pi_Ql_cuda_cpt_sm(int nr,           int nc,           int nf,
                   int row_stride,   int col_stride,   int fib_stride, 
                   T * dv,      int lddv1,        int lddv2, 
                   T * ddist_r, T * ddist_c, T * ddist_f,
-                  int B);
+                  int B, mgard_cuda_handle & handle, 
+                  int queue_idx, bool profile);
 }

@@ -14,14 +14,18 @@ add_level_l_cuda(int nrow,       int ncol,
                  int row_stride, int col_stride,
                  int * dirow,    int * dicol,
                  T * dv,    int lddv, 
-                 T * dwork, int lddwork);
+                 T * dwork, int lddwork,
+                 int B, mgard_cuda_handle & handle, 
+                 int queue_idx, bool profile);
 
 template <typename T>
 mgard_cuda_ret
 add_level_l_cuda_l2_sm(int nr,         int nc,
                        int row_stride, int col_stride,
                        T * dv,    int lddv, 
-                       T * dwork, int lddwork);
+                       T * dwork, int lddwork,
+                       int B, mgard_cuda_handle & handle, 
+                       int queue_idx, bool profile);
 
 }
 }

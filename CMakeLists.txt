@@ -81,11 +81,7 @@ add_library(mgard
   src/mgard_cuda.cu                            include/mgard_cuda.h
   src/mgard_nuni_2d_cuda_gen.cu                include/mgard_nuni_2d_cuda_gen.h
   src/mgard_nuni_2d_cuda_common.cu             include/mgard_nuni_2d_cuda_common.h
-  src/mgard_nuni_2d_cuda.cu                    include/mgard_nuni_2d_cuda.h
-  src/mgard_nuni_2d_cuda_cpt_l1.cu             include/mgard_nuni_2d_cuda_cpt_l1.h
-  src/mgard_nuni_2d_cuda_cpt_l2.cu             include/mgard_nuni_2d_cuda_cpt_l2.h
-  src/mgard_nuni_2d_cuda_cpt_l2_sm.cu          include/mgard_nuni_2d_cuda_cpt_l2_sm.h
-  src/mgard_nuni_2d_cuda_cpt_l2_sm_pf.cu       include/mgard_nuni_2d_cuda_cpt_l2_sm_pf.h
+  src/mgard_nuni_3d_cuda_common.cu             include/mgard_nuni_3d_cuda_common.h
   src/mgard_nuni_2d_cuda_copy_level.cu         include/mgard_nuni_2d_cuda_copy_level.h
   src/mgard_nuni_2d_cuda_mass_matrix_multiply.cu        include/mgard_nuni_2d_cuda_mass_matrix_multiply.h
   src/mgard_nuni_2d_cuda_pi_Ql_first.cu        include/mgard_nuni_2d_cuda_pi_Ql_first.h
@@ -101,11 +97,18 @@ add_library(mgard
   src/mgard_nuni_2d_cuda_assign_num_level_l.cu include/mgard_nuni_2d_cuda_assign_num_level_l.h
   src/mgard_nuni_2d_cuda_add_level_l.cu        include/mgard_nuni_2d_cuda_add_level_l.h
   src/mgard_nuni_2d_cuda_subtract_level_l.cu   include/mgard_nuni_2d_cuda_subtract_level_l.h
-  src/mgard_nuni_3d_cuda_cpt_l2_sm.cu          include/mgard_nuni_3d_cuda_cpt_l2_sm.h
   src/mgard_nuni_3d_cuda_pi_Ql.cu              include/mgard_nuni_3d_cuda_pi_Ql.h
   src/mgard_nuni_3d_cuda_copy_level_l.cu       include/mgard_nuni_3d_cuda_copy_level_l.h
   src/mgard_nuni_3d_cuda_assign_num_level_l.cu include/mgard_nuni_3d_cuda_assign_num_level_l.h
   src/mgard_nuni_3d_cuda_add_level_l.cu        include/mgard_nuni_3d_cuda_add_level_l.h
+  src/quantize_2D_iterleave_cuda.cu            include/quantize_2D_iterleave_cuda.h
+  src/dequantize_2D_iterleave_cuda.cu          include/dequantize_2D_iterleave_cuda.h
+  src/mgard_nuni_2d_cuda.cu                    include/mgard_nuni_2d_cuda.h
+  src/mgard_nuni_2d_cuda_cpt_l1.cu             include/mgard_nuni_2d_cuda_cpt_l1.h
+  src/mgard_nuni_2d_cuda_cpt_l2.cu             include/mgard_nuni_2d_cuda_cpt_l2.h
+  src/mgard_nuni_2d_cuda_cpt_l2_sm.cu          include/mgard_nuni_2d_cuda_cpt_l2_sm.h
+  src/mgard_nuni_2d_cuda_cpt_l2_sm_pf.cu       include/mgard_nuni_2d_cuda_cpt_l2_sm_pf.h
+  src/mgard_nuni_3d_cuda_cpt_l2_sm.cu          include/mgard_nuni_3d_cuda_cpt_l2_sm.h
   src/mgard_api_cuda.cpp            include/mgard_api_cuda.h
   src/mgard_cuda_helper.cu          include/mgard_cuda_helper.h
   src/mgard_cuda_helper_internal.cu include/mgard_cuda_helper_internal.h
@@ -233,11 +236,11 @@ if(BUILD_TESTING)
   set_target_properties(mgard_check_cuda_fake_data PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 
-  add_executable(mgard_benchmark_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/benchmark_cuda.cu)
-  target_link_libraries(mgard_benchmark_cuda mgard  ${CMAKE_DL_LIBS})
-  set_target_properties(mgard_benchmark_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+  # add_executable(mgard_benchmark_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/benchmark_cuda.cu)
+  # target_link_libraries(mgard_benchmark_cuda mgard  ${CMAKE_DL_LIBS})
+  # set_target_properties(mgard_benchmark_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-  add_subdirectory(tests)
+  #add_subdirectory(tests)
 
   add_test(NAME mgard_test1
     COMMAND mgard_test 0

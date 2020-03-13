@@ -37,9 +37,14 @@ mgard_cuda_ret
 copy_level_l_cuda_cpt(int nr,         int nc,         int nf,
                       int row_stride, int col_stride, int fib_stride,
                       T * dv,    int lddv1,      int lddv2,
-                      T * dwork, int lddwork1,   int lddwork2) {
+                      T * dwork, int lddwork1,   int lddwork2,
+                      int B, mgard_cuda_handle & handle, 
+                      int queue_idx, bool profile) {
+  B = min(8, B);   
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
 
-  int B = 4;
   int total_thread_z = ceil((double)nr/(row_stride));
   int total_thread_y = ceil((double)nc/(col_stride));
   int total_thread_x = ceil((double)nf/(fib_stride));
@@ -52,28 +57,27 @@ copy_level_l_cuda_cpt(int nr,         int nc,         int nf,
   dim3 threadsPerBlock(tbx, tby, tbz);
   dim3 blockPerGrid(gridx, gridy, gridz);
 
-  // std::cout << "_copy_level_l_cuda" << std::endl;
-  // std::cout << "thread block: " << tby << ", " << tbx << std::endl;
-  // std::cout << "grid: " << gridy << ", " << gridx << std::endl;
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
-
-  _copy_level_l_cuda_cpt<<<blockPerGrid, threadsPerBlock>>>(nr,         nc,         nf,
-                                                            row_stride, col_stride, fib_stride,
-                                                            dv,         lddv1,      lddv2,
-                                                            dwork,      lddwork1,   lddwork2);
+  _copy_level_l_cuda_cpt<<<blockPerGrid, threadsPerBlock,
+                           0, stream>>>(nr,         nc,         nf,
+                                        row_stride, col_stride, fib_stride,
+                                        dv,         lddv1,      lddv2,
+                                        dwork,      lddwork1,   lddwork2);
 
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -82,13 +86,17 @@ template mgard_cuda_ret
 copy_level_l_cuda_cpt<double>(int nr,         int nc,         int nf,
                               int row_stride, int col_stride, int fib_stride,
                               double * dv,    int lddv1,      int lddv2,
-                              double * dwork, int lddwork1,   int lddwork2);
+                              double * dwork, int lddwork1,   int lddwork2,
+                              int B, mgard_cuda_handle & handle, 
+                              int queue_idx, bool profile);
 
 template mgard_cuda_ret 
 copy_level_l_cuda_cpt<float>(int nr,         int nc,         int nf,
                               int row_stride, int col_stride, int fib_stride,
                               float * dv,    int lddv1,      int lddv2,
-                              float * dwork, int lddwork1,   int lddwork2);
+                              float * dwork, int lddwork1,   int lddwork2,
+                              int B, mgard_cuda_handle & handle, 
+                              int queue_idx, bool profile);
 
 
 }

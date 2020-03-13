@@ -10,6 +10,8 @@ mgard_cuda_ret
 assign_num_level_l_cuda_cpt(int nr,         int nc,         int nf,
                             int row_stride, int col_stride, int fib_stride, 
                             T * dwork, int lddwork1,   int lddwork2,
-                            T num);
+                            T num, 
+                            int B, mgard_cuda_handle & handle, 
+                            int queue_idx, bool profile);
 
 }

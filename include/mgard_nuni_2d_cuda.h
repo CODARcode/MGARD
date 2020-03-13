@@ -6,44 +6,51 @@
 namespace mgard_2d {
 namespace mgard_gen {
 
-void 
+template <typename T> mgard_cuda_ret 
 prep_2D_cuda(const int nrow,     const int ncol,
              const int nr,       const int nc, 
              int * dirow,        int * dicol,
              int * dirowP,       int * dicolP,
-             double * dv,        int lddv, 
-             double * dwork,     int lddwork,
-             double * dcoords_x, double * dcoords_y);
+             T * dv,        int lddv, 
+             T * dwork,     int lddwork,
+             T * dcoords_x, T * dcoords_y,
+             int B,
+             mgard_cuda_handle & handle, bool profile);
 
-void 
+template <typename T> mgard_cuda_ret 
 refactor_2D_cuda(const int l_target,
                  const int nrow,     const int ncol,
                  const int nr,       const int nc, 
                  int * dirow,        int * dicol,
                  int * dirowP,       int * dicolP,
-                 double * dv,        int lddv, 
-                 double * dwork,     int lddwork,
-                 double * dcoords_x, double * dcoords_y);
+                 T * dv,        int lddv, 
+                 T * dwork,     int lddwork,
+                 T * dcoords_x, T * dcoords_y,
+                 int B,
+                 mgard_cuda_handle & handle, bool profile);
 
-void 
+template <typename T> mgard_cuda_ret 
 recompose_2D_cuda(const int l_target,
                   const int nrow,     const int ncol,
                   const int nr,       const int nc, 
                   int * dirow,        int * dicol,
                   int * dirowP,       int * dicolP,
-                  double * dv,        int lddv, 
-                  double * dwork,     int lddwork,
-                  double * dcoords_x, double * dcoords_y);
+                  T * dv,        int lddv, 
+                  T * dwork,     int lddwork,
+                  T * dcoords_x, T * dcoords_y,
+                  int B,
+                  mgard_cuda_handle & handle, bool profile);
 
-
-void 
+template <typename T> mgard_cuda_ret 
 postp_2D_cuda(const int nrow,     const int ncol,
               const int nr,       const int nc, 
               int * dirow,        int * dicol,
               int * dirowP,       int * dicolP,
-              double * dv,        int lddv, 
-              double * dwork,     int lddwork,
-              double * dcoords_x, double * dcoords_y);
+              T * dv,        int lddv, 
+              T * dwork,     int lddwork,
+              T * dcoords_x, T * dcoords_y,
+              int B,
+              mgard_cuda_handle & handle, bool profile);
 }
 
 }

@@ -36,8 +36,15 @@ assign_num_level_l_cuda(int nrow,           int ncol,
                         int row_stride,     int col_stride,
                         int * dirow,        int * dicol,
                         T * dv,        int lddv,
-                        T num) {
-  int B = 16;
+                        T num,
+                        int B, 
+                        mgard_cuda_handle & handle, 
+                        int queue_idx, bool profile) {
+
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
   int total_thread_y = ceil((float)nr/(row_stride));
   int total_thread_x = ceil((float)nc/(col_stride));
   int tby = min(B, total_thread_y);
@@ -47,29 +54,28 @@ assign_num_level_l_cuda(int nrow,           int ncol,
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  // std::cout << "thread block: " << tby << ", " << tby << std::endl;
-  // std::cout << "grid: " << gridy << ", " << gridx << std::endl;
-
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
-
-  _assign_num_level_l_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,       ncol,
-                                                              nr,         nc,
-                                                              row_stride, col_stride,
-                                                              dirow,      dicol,
-                                                              dv,         lddv,
-                                                              num);
+  _assign_num_level_l_cuda<<<blockPerGrid, threadsPerBlock,
+                             0, stream>>>(nrow,       ncol,
+                                          nr,         nc,
+                                          row_stride, col_stride,
+                                          dirow,      dicol,
+                                          dv,         lddv,
+                                          num);
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 
@@ -97,8 +103,13 @@ mgard_cuda_ret
 assign_num_level_l_cuda_l2_sm(int nr,             int nc,
                               int row_stride,     int col_stride,
                               T * dv,        int lddv,
-                              T num) {
-  int B = 16;
+                              T num,
+                              int B, mgard_cuda_handle & handle, 
+                              int queue_idx, bool profile) {
+  cudaEvent_t start, stop;
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
+
   int total_thread_y = ceil((float)nr/(row_stride));
   int total_thread_x = ceil((float)nc/(col_stride));
   int tby = min(B, total_thread_y);
@@ -108,27 +119,26 @@ assign_num_level_l_cuda_l2_sm(int nr,             int nc,
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  // std::cout << "thread block: " << tby << ", " << tby << std::endl;
-  // std::cout << "grid: " << gridy << ", " << gridx << std::endl;
-
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
-
-  _assign_num_level_l_cuda_l2_sm<<<blockPerGrid, threadsPerBlock>>>(nr,         nc,
-                                                                    row_stride, col_stride,
-                                                                    dv,         lddv,
-                                                                    num);
+  _assign_num_level_l_cuda_l2_sm<<<blockPerGrid, threadsPerBlock,
+                                   0, stream>>>(nr,         nc,
+                                                row_stride, col_stride,
+                                                dv,         lddv,
+                                                num);
   gpuErrchk(cudaGetLastError ());
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 
@@ -140,25 +150,34 @@ assign_num_level_l_cuda<double>(int nrow,           int ncol,
                         int row_stride,     int col_stride,
                         int * dirow,        int * dicol,
                         double * dv,        int lddv,
-                        double num);
+                        double num,
+                        int B, mgard_cuda_handle & handle, 
+                        int queue_idx, bool profile);
+
 template mgard_cuda_ret 
 assign_num_level_l_cuda<float>(int nrow,           int ncol,
                         int nr,             int nc,
                         int row_stride,     int col_stride,
                         int * dirow,        int * dicol,
                         float * dv,        int lddv,
-                        float num);
+                        float num,
+                        int B, mgard_cuda_handle & handle, 
+                        int queue_idx, bool profile);
 
 template mgard_cuda_ret 
 assign_num_level_l_cuda_l2_sm<double>(int nr,             int nc,
                                       int row_stride,     int col_stride,
                                       double * dv,        int lddv,
-                                      double num);
+                                      double num,
+                                      int B, mgard_cuda_handle & handle, 
+                                      int queue_idx, bool profile);
 template mgard_cuda_ret 
 assign_num_level_l_cuda_l2_sm<float>(int nr,             int nc,
                                      int row_stride,     int col_stride,
                                      float * dv,        int lddv,
-                                     float num);
+                                     float num,
+                                     int B, mgard_cuda_handle & handle, 
+                                     int queue_idx, bool profile);
 
 
 

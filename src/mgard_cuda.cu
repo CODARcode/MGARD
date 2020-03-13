@@ -9,6 +9,10 @@
 #include "mgard_nuni_2d_cuda_cpt_l2_sm.h"
 #include "mgard_nuni_2d_cuda_cpt_l2_sm_pf.h"
 #include "mgard_nuni_3d_cuda_cpt_l2_sm.h"
+
+#include "mgard_nuni_2d_cuda_common.h"
+#include "mgard_nuni_3d_cuda_common.h"
+#include "mgard_nuni_2d_cuda_kernels.h"
 #include "mgard_nuni.h"
 #include "mgard.h"
 #include <iomanip> 
@@ -20,13 +24,18 @@
 namespace mgard
 {
 
+template <typename T>
 unsigned char *
-refactor_qz_cuda(int nrow, int ncol, int nfib, const double *u,
-                           int &outsize, double tol) {
+refactor_qz_cuda(int nrow, int ncol, int nfib, const T *u,
+                           int &outsize, T tol,
+                           int B,
+                           mgard_cuda_handle & handle,
+                           bool profile) {
+ 
   int nlevel;
-  std::vector<double> v(u, u + nrow * ncol * nfib), work(nrow * ncol * nfib),
+  std::vector<T> v(u, u + nrow * ncol * nfib), work(nrow * ncol * nfib),
       work2d(nrow * ncol); // duplicate data and create work array
-  std::vector<double> coords_x(ncol), coords_y(nrow),
+  std::vector<T> coords_x(ncol), coords_y(nrow),
       coords_z(nfib); // coordinate arrays
 
   int nlevel_x = std::log2(ncol - 1);
@@ -50,34 +59,37 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const double *u,
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
 
-  double norm = mgard_common::max_norm(v);
+  T norm = mgard_common::max_norm_cuda(v);
 
   tol /= nlevel + 1;
 
   // Prepare for CUDA 
-  double * dv;
+  T * dv;
   size_t dv_pitch;
-  cudaMalloc3DHelper((void**)&dv, &dv_pitch, nfib * sizeof(double), ncol, nrow);
-  int lddv1 = dv_pitch / sizeof(double);
+  cudaMalloc3DHelper((void**)&dv, &dv_pitch, nfib * sizeof(T), ncol, nrow);
+  int lddv1 = dv_pitch / sizeof(T);
   int lddv2 = ncol;
 
-  double * dwork;
+  T * dwork;
   size_t dwork_pitch;
-  cudaMalloc3DHelper((void**)&dwork, &dwork_pitch, nfib * sizeof(double), ncol, nrow);
-  int lddwork1 = dwork_pitch / sizeof(double);
+  cudaMalloc3DHelper((void**)&dwork, &dwork_pitch, nfib * sizeof(T), ncol, nrow);
+  int lddwork1 = dwork_pitch / sizeof(T);
   int lddwork2 = ncol;
 
-  double * dcoords_y;
-  cudaMallocHelper((void**)&dcoords_y, nrow * sizeof(double));
-  cudaMemcpyHelper(dcoords_y, coords_y.data(), nrow * sizeof(double), H2D);
+  T * dcoords_y;
+  cudaMallocHelper((void**)&dcoords_y, nrow * sizeof(T));
+  cudaMemcpyAsyncHelper(dcoords_y, coords_y.data(), nrow * sizeof(T), H2D,
+                       handle, 0, profile);
 
-  double * dcoords_x;
-  cudaMallocHelper((void**)&dcoords_x, ncol * sizeof(double));
-  cudaMemcpyHelper(dcoords_x, coords_x.data(), ncol * sizeof(double), H2D);
+  T * dcoords_x;
+  cudaMallocHelper((void**)&dcoords_x, ncol * sizeof(T));
+  cudaMemcpyAsyncHelper(dcoords_x, coords_x.data(), ncol * sizeof(T), H2D,
+                       handle, 0, profile);
 
-  double * dcoords_z;
-  cudaMallocHelper((void**)&dcoords_z, nfib * sizeof(double));
-  cudaMemcpyHelper(dcoords_z, coords_z.data(), nfib * sizeof(double), H2D);
+  T * dcoords_z;
+  cudaMallocHelper((void**)&dcoords_z, nfib * sizeof(T));
+  cudaMemcpyAsyncHelper(dcoords_z, coords_z.data(), nfib * sizeof(T), H2D,
+                       handle, 0, profile);
 
 
 
@@ -136,36 +148,42 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const double *u,
 
   int * dirow;
   cudaMallocHelper((void**)&dirow, nr * sizeof(int));
-  cudaMemcpyHelper(dirow, irow, nr * sizeof(int), H2D);
+  cudaMemcpyAsyncHelper(dirow, irow, nr * sizeof(int), H2D,
+                        handle, 0, profile);
 
   int * dicol;
   cudaMallocHelper((void**)&dicol, nc * sizeof(int));
-  cudaMemcpyHelper(dicol, icol, nc * sizeof(int), H2D);
+  cudaMemcpyAsyncHelper(dicol, icol, nc * sizeof(int), H2D,
+                        handle, 0, profile);
 
   int * difib;
   cudaMallocHelper((void**)&difib, nf * sizeof(int));
-  cudaMemcpyHelper(difib, ifib, nf * sizeof(int), H2D);
+  cudaMemcpyAsyncHelper(difib, ifib, nf * sizeof(int), H2D,
+                        handle, 0, profile);
 
   int * dirowP;
   cudaMallocHelper((void**)&dirowP, (nrow-nr) * sizeof(int));
-  cudaMemcpyHelper(dirowP, irowP, (nrow-nr) * sizeof(int), H2D);
+  cudaMemcpyAsyncHelper(dirowP, irowP, (nrow-nr) * sizeof(int), H2D,
+                        handle, 0, profile);
 
   int * dicolP;
   cudaMallocHelper((void**)&dicolP, (ncol-nc) * sizeof(int));
-  cudaMemcpyHelper(dicolP, icolP, (ncol-nc) * sizeof(int), H2D);
+  cudaMemcpyAsyncHelper(dicolP, icolP, (ncol-nc) * sizeof(int), H2D,
+                        handle, 0, profile);
 
   int * difibP;
   cudaMallocHelper((void**)&difibP, (nfib-nf) * sizeof(int));
-  cudaMemcpyHelper(difibP, ifibP, (nfib-nf) * sizeof(int), H2D);
+  cudaMemcpyAsyncHelper(difibP, ifibP, (nfib-nf) * sizeof(int), H2D,
+                        handle, 0, profile);
 
 
 
 
 
-  mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
-                     work2d, coords_x, coords_y, coords_z);
+  // mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
+  //                    work2d, coords_x, coords_y, coords_z);
 
-  std::vector<double> v2(u, u + nrow * ncol * nfib);
+  std::vector<T> v2(u, u + nrow * ncol * nfib);
   for (int i = 0; i < nrow * ncol * nfib; i++) {
     
      // v[i] = ((double) rand() / (RAND_MAX));
@@ -177,10 +195,10 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const double *u,
   
   // print_matrix(nfib, nrow, ncol, v.data(), ncol, nrow);
 
-  cudaMemcpy3DHelper(dv, lddv1 * sizeof(double), nfib * sizeof(double), ncol,
-                     v.data(), nfib  * sizeof(double), nfib * sizeof(double), ncol,
-                     nfib * sizeof(double), ncol, nrow,
-                     H2D);
+  cudaMemcpy3DAsyncHelper(dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                     v.data(), nfib  * sizeof(T), nfib * sizeof(T), ncol,
+                     nfib * sizeof(T), ncol, nrow,
+                     H2D, handle, 0, profile);
   // print_matrix_cuda(nrow, ncol, nfib, dv, lddv1, ncol, nfib);
 
   mgard_gen::refactor_3D_cuda_cpt_l2_sm(l_target, 
@@ -189,12 +207,13 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const double *u,
                                         dirow,     dicol,     difib, 
                                         dv,        lddv1,     lddv2,
                                         dwork,     lddwork1,  lddwork2,
-                                        dcoords_y, dcoords_x, dcoords_z);
+                                        dcoords_y, dcoords_x, dcoords_z,
+                                        B, handle, profile);
 
-  cudaMemcpy3DHelper(v.data(), nfib  * sizeof(double), nfib * sizeof(double), ncol,
-                     dv, lddv1 * sizeof(double), nfib * sizeof(double), ncol,
-                     nfib * sizeof(double), ncol, nrow,
-                     D2H);
+  cudaMemcpy3DAsyncHelper(v.data(), nfib  * sizeof(T), nfib * sizeof(T), ncol,
+                     dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                     nfib * sizeof(T), ncol, nrow,
+                     D2H, handle, 0, profile);
 
 
   compare_matrix(nrow, ncol, nfib,
@@ -218,11 +237,12 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const double *u,
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
   std::vector<int> qv2(nrow * ncol * nfib + size_ratio);
 
+
   mgard::quantize_2D_interleave(
       nrow, ncol * nfib, v.data(), qv, norm,
       tol); // rename this to quantize Linfty or smthng!!!!
 
-mgard::quantize_2D_interleave(
+  mgard::quantize_2D_interleave(
       nrow, ncol * nfib, v2.data(), qv2, norm,
       tol); // rename this to quantize Linfty or smthng!!!!
 
@@ -242,114 +262,176 @@ for (int i = 0; i < 20; i++) {
   return buffer;
 }
 
+template unsigned char *
+refactor_qz_cuda<double>(int nrow, int ncol, int nfib, const double *u,
+                           int &outsize, double tol,
+                           int B,
+                           mgard_cuda_handle & handle,
+                           bool profile);
+
+
+double *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
+                      int data_len) {
+  int nlevel;
+  int size_ratio = sizeof(double) / sizeof(int);
+  std::vector<double> coords_x(ncol), coords_y(nrow),
+      coords_z(nfib); // coordinate arrays
+  std::vector<int> out_data(nrow * ncol * nfib + size_ratio);
+  std::vector<double> work(nrow * ncol * nfib),
+      work2d(nrow * ncol); // duplicate data and create work array
+
+  //      dummy equispaced coordinates
+  std::iota(std::begin(coords_x), std::end(coords_x), 0);
+  std::iota(std::begin(coords_y), std::end(coords_y), 0);
+  std::iota(std::begin(coords_z), std::end(coords_z), 0);
+
+  //    //std::cout  <<"**** coord check : "  << coords_x[4] << "\n";
+
+  int nlevel_x = std::log2(ncol - 1);
+  int nc = std::pow(2, nlevel_x) + 1; // ncol new
+
+  int nlevel_y = std::log2(nrow - 1);
+  int nr = std::pow(2, nlevel_y) + 1; // nrow new
+
+  int nlevel_z = std::log2(nfib - 1);
+  int nf = std::pow(2, nlevel_z) + 1; // nfib new
+
+  nlevel = std::min(nlevel_x, nlevel_y);
+  nlevel = std::min(nlevel, nlevel_z);
+
+  int l_target = nlevel - 1;
+
+  mgard::decompress_memory_z(data, data_len, out_data.data(),
+                             out_data.size() *
+                                 sizeof(int)); // decompress input buffer
+  double *v = (double *)malloc(nrow * ncol * nfib * sizeof(double));
+
+  mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
+
+  mgard_gen::recompose_3D_cpt_l2_sm(nr, nc, nf, nrow, ncol, nfib, l_target, v, work,
+                          work2d, coords_x, coords_y, coords_z);
+
+  mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v, work, coords_x,
+                      coords_y, coords_z);
+
+  return v;
+}
 
 
 
+
+template <typename T>
 unsigned char *
-refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double tol, int opt)
+refactor_qz_2D_cuda (int nrow, int ncol, const T *u, int &outsize, T tol, int opt, 
+                     int B, mgard_cuda_handle & handle, bool profile)
 {
 
-  std::vector<double> row_vec (ncol);
-  std::vector<double> col_vec (nrow);
-  std::vector<double> v(u, u+nrow*ncol), work(nrow * ncol);
 
-  double norm = mgard_2d::mgard_common::max_norm(v);
+  std::vector<T> row_vec (ncol);
+  std::vector<T> col_vec (nrow);
+  std::vector<T> v(u, u+nrow*ncol), work(nrow * ncol);
+
+  T norm = mgard_2d::mgard_common::max_norm_cuda(v);
 
   
-  if (mgard::is_2kplus1 (nrow)
-      && mgard::is_2kplus1 (ncol)) // input is (2^q + 1) x (2^p + 1)
-    {
-      int nlevel;
-      mgard::set_number_of_levels (nrow, ncol, nlevel);
-      tol /= float (nlevel + 1);      
+  // if (mgard::is_2kplus1 (nrow)
+  //     && mgard::is_2kplus1 (ncol)) // input is (2^q + 1) x (2^p + 1)
+  //   {
+  //     int nlevel;
+  //     mgard::set_number_of_levels (nrow, ncol, nlevel);
+  //     tol /= float (nlevel + 1);      
       
-      int l_target = nlevel - 1;
+  //     int l_target = nlevel - 1;
 
 
-      double * dv;
-      size_t dv_pitch;
-      cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
-      int lddv = dv_pitch / sizeof(double);
-      cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
-                         v.data(), ncol  * sizeof(double), 
-                         ncol * sizeof(double), nrow, 
-                         H2D);
+  //     double * dv;
+  //     size_t dv_pitch;
+  //     cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
+  //     int lddv = dv_pitch / sizeof(double);
+  //     cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
+  //                        v.data(), ncol  * sizeof(double), 
+  //                        ncol * sizeof(double), nrow, 
+  //                        H2D);
 
-      double * dv2;
-      size_t dv_pitch2;
-      cudaMallocPitchHelper((void**)&dv2, &dv_pitch2, ncol * sizeof(double), nrow);
-      int lddv2 = dv_pitch2 / sizeof(double);
-      cudaMemcpy2DHelper(dv2, lddv2 * sizeof(double), 
-                         v.data(), ncol  * sizeof(double), 
-                         ncol * sizeof(double), nrow, 
-                         H2D);
+  //     double * dv2;
+  //     size_t dv_pitch2;
+  //     cudaMallocPitchHelper((void**)&dv2, &dv_pitch2, ncol * sizeof(double), nrow);
+  //     int lddv2 = dv_pitch2 / sizeof(double);
+  //     cudaMemcpy2DHelper(dv2, lddv2 * sizeof(double), 
+  //                        v.data(), ncol  * sizeof(double), 
+  //                        ncol * sizeof(double), nrow, 
+  //                        H2D);
 
 
-      double * dwork;
-      size_t dwork_pitch;
-      cudaMallocPitchHelper((void**)&dwork, &dwork_pitch, nrow * sizeof(double), ncol);
-      int lddwork = dwork_pitch / sizeof(double);
-      cudaMemset2DHelper(dwork, dwork_pitch, 0, nrow * sizeof(double), ncol);
+  //     double * dwork;
+  //     size_t dwork_pitch;
+  //     cudaMallocPitchHelper((void**)&dwork, &dwork_pitch, nrow * sizeof(double), ncol);
+  //     int lddwork = dwork_pitch / sizeof(double);
+  //     cudaMemset2DHelper(dwork, dwork_pitch, 0, nrow * sizeof(double), ncol);
 
-      mgard::refactor_cuda (nrow, ncol, l_target, dv, lddv, dwork, lddwork);
+  //     mgard::refactor_cuda (nrow, ncol, l_target, dv, lddv, dwork, lddwork);
 
-      int size_ratio = sizeof (double) / sizeof (int);
-      std::vector<int> qv (nrow * ncol + size_ratio);
+  //     int size_ratio = sizeof (double) / sizeof (int);
+  //     std::vector<int> qv (nrow * ncol + size_ratio);
 
-      int * dqv;
-      cudaMallocHelper((void**)&dqv, (nrow * ncol + size_ratio) * sizeof(int));
-      int lddqv = ncol;
-      cudaMemsetHelper(dqv, 0, (nrow * ncol + size_ratio) * sizeof(int));
+  //     int * dqv;
+  //     cudaMallocHelper((void**)&dqv, (nrow * ncol + size_ratio) * sizeof(int));
+  //     int lddqv = ncol;
+  //     cudaMemsetHelper(dqv, 0, (nrow * ncol + size_ratio) * sizeof(int));
       
-      quantize_2D_iterleave_cuda (nrow, ncol, dv, lddv, dqv, lddqv, norm, tol);
-      cudaMemcpyHelper(qv.data(), dqv, (nrow * ncol + size_ratio) * sizeof(int), D2H);
-      cudaFreeHelper(dwork);
+  //     quantize_2D_iterleave_cuda (nrow, ncol, dv, lddv, dqv, lddqv, norm, tol);
+  //     cudaMemcpyHelper(qv.data(), dqv, (nrow * ncol + size_ratio) * sizeof(int), D2H);
+  //     cudaFreeHelper(dwork);
       
-      std::vector<unsigned char> out_data;
+  //     std::vector<unsigned char> out_data;
 
-      mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
-      outsize = out_data.size ();
-      unsigned char *buffer = (unsigned char *)malloc (outsize);
-      std::copy (out_data.begin (), out_data.end (), buffer);
-      return buffer;
-    }
-  else
-    {
+  //     mgard::compress_memory_z (qv.data (), sizeof (int) * qv.size (), out_data);
+  //     outsize = out_data.size ();
+  //     unsigned char *buffer = (unsigned char *)malloc (outsize);
+  //     std::copy (out_data.begin (), out_data.end (), buffer);
+  //     return buffer;
+  //   }
+  // else
+  //   {
 
-      std::vector<double> coords_x(ncol), coords_y(nrow);
+      std::vector<T> coords_x(ncol), coords_y(nrow);
       
       std::iota(std::begin(coords_x), std::end(coords_x), 0);
       std::iota(std::begin(coords_y), std::end(coords_y), 0);
 
-      double * dv;
+      mgard_cuda_ret ret;
+
+      T * dv;
       size_t dv_pitch;
-      cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
-      int lddv = dv_pitch / sizeof(double);
-      auto t_start = std::chrono::high_resolution_clock::now();
-      cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
-                         v.data(), ncol  * sizeof(double), 
-                         ncol * sizeof(double), nrow, 
-                         H2D);
-      auto t_end = std::chrono::high_resolution_clock::now();
-      double data_size = nrow * ncol * sizeof(double);
-      double time = std::chrono::duration<double>(t_end-t_start).count();
+      cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(T), nrow);
+      int lddv = dv_pitch / sizeof(T);
+      
+      ret = cudaMemcpy2DAsyncHelper(dv, lddv * sizeof(T), 
+                         v.data(), ncol  * sizeof(T), 
+                         ncol * sizeof(T), nrow, 
+                         H2D, handle, 0, profile);
+      
+      double data_size = nrow * ncol * sizeof(T);
+      double time = ret.time;
       double mem_throughput = (data_size/time)/1e9;
       std::cout << time << ", H2D_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
 
 
-      double * dwork;
+      T * dwork;
       size_t dwork_pitch;
-      cudaMallocPitchHelper((void**)&dwork, &dwork_pitch, ncol * sizeof(double), nrow);
-      int lddwork = dwork_pitch / sizeof(double);
-      cudaMemset2DHelper(dwork, dwork_pitch, 0, ncol * sizeof(double), nrow);
+      cudaMallocPitchHelper((void**)&dwork, &dwork_pitch, ncol * sizeof(T), nrow);
+      int lddwork = dwork_pitch / sizeof(T);
+      cudaMemset2DHelper(dwork, dwork_pitch, 0, ncol * sizeof(T), nrow);
 
-      double * dcoords_x;
-      cudaMallocHelper((void**)&dcoords_x, ncol * sizeof(double));
-      cudaMemcpyHelper(dcoords_x, coords_x.data(), ncol * sizeof(double), H2D);
+      T * dcoords_x;
+      cudaMallocHelper((void**)&dcoords_x, ncol * sizeof(T));
+      cudaMemcpyAsyncHelper(dcoords_x, coords_x.data(), ncol * sizeof(T), H2D,
+                            handle, 0, profile);
 
-      double * dcoords_y;
-      cudaMallocHelper((void**)&dcoords_y, nrow * sizeof(double));
-      cudaMemcpyHelper(dcoords_y, coords_y.data(), nrow * sizeof(double), H2D);
+      T * dcoords_y;
+      cudaMallocHelper((void**)&dcoords_y, nrow * sizeof(T));
+      cudaMemcpyAsyncHelper(dcoords_y, coords_y.data(), nrow * sizeof(T), H2D,
+                            handle, 0, profile);
 
       int nlevel_x = std::log2(ncol-1);
       int nc = std::pow(2, nlevel_x ) + 1; //ncol new
@@ -389,19 +471,23 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
 
       int * dirow;
       cudaMallocHelper((void**)&dirow, nr * sizeof(int));
-      cudaMemcpyHelper(dirow, irow, nr * sizeof(int), H2D);
+      cudaMemcpyAsyncHelper(dirow, irow, nr * sizeof(int), H2D,
+                            handle, 0, profile);
 
       int * dicol;
       cudaMallocHelper((void**)&dicol, nc * sizeof(int));
-      cudaMemcpyHelper(dicol, icol, nc * sizeof(int), H2D);
+      cudaMemcpyAsyncHelper(dicol, icol, nc * sizeof(int), H2D,
+                            handle, 0, profile);
 
       int * dirowP;
       cudaMallocHelper((void**)&dirowP, (nrow-nr) * sizeof(int));
-      cudaMemcpyHelper(dirowP, irowP, (nrow-nr) * sizeof(int), H2D);
+      cudaMemcpyAsyncHelper(dirowP, irowP, (nrow-nr) * sizeof(int), H2D,
+                            handle, 0, profile);
 
       int * dicolP;
       cudaMallocHelper((void**)&dicolP, (ncol-nc) * sizeof(int));
-      cudaMemcpyHelper(dicolP, icolP, (ncol-nc) * sizeof(int), H2D);
+      cudaMemcpyAsyncHelper(dicolP, icolP, (ncol-nc) * sizeof(int), H2D,
+                            handle, 0, profile);
 
 
 
@@ -420,17 +506,18 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       //                                   dv,        lddv,
       //                                   dwork,     lddwork,
       //                                   dcoords_x, dcoords_y);
-      t_start = std::chrono::high_resolution_clock::now();
-      mgard_cuda_ret ret = mgard_2d::mgard_gen::prep_2D_cuda_l2_sm(nrow,      ncol,
+      auto t_start = std::chrono::high_resolution_clock::now();
+      ret = mgard_2d::mgard_gen::prep_2D_cuda_l2_sm(nrow,      ncol,
                                         nr,        nc, 
                                         dirow,     dicol,
                                         dirowP,    dicolP,
                                         dv,        lddv,
                                         dwork,     lddwork,
-                                        dcoords_x, dcoords_y);
-      t_end = std::chrono::high_resolution_clock::now();
+                                        dcoords_x, dcoords_y,
+                                        B, handle, profile);
+      auto t_end = std::chrono::high_resolution_clock::now();
       time = std::chrono::duration<double>(t_end-t_start).count();
-      data_size = nrow * ncol * sizeof(double);
+      data_size = nrow * ncol * sizeof(T);
       mem_throughput = (data_size/ret.time)/1e9;
       std::cout << time << ", " << ret.time << ", prep_2D_cuda_l2_sm_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
 
@@ -448,7 +535,8 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
                                               dirowP,    dicolP,
                                               dv,        lddv,
                                               dwork,     lddwork,
-                                              dcoords_x, dcoords_y);
+                                              dcoords_x, dcoords_y,
+                                              B, handle, profile);
       } else if (opt == 1) {
         std::cout << "***refactor_2D_cuda_compact_l1***" << std::endl;
         mgard_2d::mgard_gen::refactor_2D_cuda_compact_l1(l_target,
@@ -458,7 +546,8 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
                                                  dirowP,    dicolP,
                                                  dv,        lddv,
                                                  dwork,     lddwork,
-                                                 dcoords_x, dcoords_y);
+                                                 dcoords_x, dcoords_y,
+                                                 B, handle, profile);
         
       } else if (opt == 2) {
         std::cout << "***refactor_2D_cuda_compact_l2***" << std::endl;
@@ -469,7 +558,8 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
                                                  dirowP,    dicolP,
                                                  dv,        lddv,
                                                  dwork,     lddwork,
-                                                 dcoords_x, dcoords_y);
+                                                 dcoords_x, dcoords_y,
+                                                 B, handle, profile);
         
       } else if (opt == 3) {
         mgard_cuda_ret ret;
@@ -482,10 +572,11 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
                                                                  dirowP,    dicolP,
                                                                  dv,        lddv,
                                                                  dwork,     lddwork,
-                                                                 dcoords_x, dcoords_y);
+                                                                 dcoords_x, dcoords_y,
+                                                                 B, handle, profile);
         auto t_end = std::chrono::high_resolution_clock::now();
         double time = std::chrono::duration<double>(t_end-t_start).count();
-        double data_size = nrow * ncol * sizeof(double);
+        double data_size = nrow * ncol * sizeof(T);
         double mem_throughput = (data_size/ret.time)/1e9;
         std::cout << time << ", " << ret.time << ", refactor_2D_cuda_compact_l2_sm_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
         
@@ -498,7 +589,8 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
                                                  dirowP,    dicolP,
                                                  dv,        lddv,
                                                  dwork,     lddwork,
-                                                 dcoords_x, dcoords_y);
+                                                 dcoords_x, dcoords_y,
+                                                 B, handle, profile);
         
       }
       //  cudaMemcpy2DHelper(v.data(), ncol  * sizeof(double), 
@@ -515,7 +607,7 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       // col_vec.clear ();
       // row_vec.clear ();
 
-      int size_ratio = sizeof (double) / sizeof (int);
+      int size_ratio = sizeof (T) / sizeof (int);
       std::vector<int> qv (nrow * ncol + size_ratio);
 
       tol /= nlevel + 1;
@@ -527,20 +619,19 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       cudaMemsetHelper(dqv, 0, (nrow * ncol + size_ratio) * sizeof(int));
 
       t_start = std::chrono::high_resolution_clock::now();
-      mgard_ret ret2 = mgard::quantize_2D_iterleave_cuda (nrow, ncol, dv, lddv, dqv, lddqv, norm, tol);
+      ret = mgard::quantize_2D_iterleave_cuda (nrow, ncol, dv, lddv, dqv, lddqv, norm, tol,
+                                                          B, handle, 0, profile);
       t_end = std::chrono::high_resolution_clock::now();
-      data_size = nrow * ncol * sizeof(double);
-      mem_throughput = (data_size/ret2.time)/1e9;
-      std::cout << time << ", " << ret2.time << ", quantize_2D_iterleave_cuda_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
+      data_size = nrow * ncol * sizeof(T);
+      mem_throughput = (data_size/ret.time)/1e9;
+      std::cout << time << ", " << ret.time << ", quantize_2D_iterleave_cuda_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
 
-      t_start = std::chrono::high_resolution_clock::now();
-      cudaMemcpyHelper(qv.data(), dqv, (nrow * ncol + size_ratio) * sizeof(int), D2H);
-      t_end = std::chrono::high_resolution_clock::now();
-      time = std::chrono::duration<double>(t_end-t_start).count();
-      data_size = nrow * ncol * sizeof(double);
-      mem_throughput = (data_size/ret2.time)/1e9;
+      ret = cudaMemcpyAsyncHelper(qv.data(), dqv, (nrow * ncol + size_ratio) * sizeof(int), D2H,
+                            handle, 0, profile);
+      time = ret.time;
+      data_size = nrow * ncol * sizeof(T);
+      mem_throughput = (data_size/ret.time)/1e9;
       std::cout << time << ", D2H_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
-
 
       //cudaFreeHelper(dwork);
 
@@ -571,60 +662,70 @@ refactor_qz_2D_cuda (int nrow, int ncol, const double *u, int &outsize, double t
       cudaFreeHelper(dwork);
       
       return buffer;
-    }
+    // }
 }
 
-double* recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len, int opt)
+
+template unsigned char *
+refactor_qz_2D_cuda<double>(int nrow, int ncol, const double *u, int &outsize, double tol, int opt, 
+                     int B, mgard_cuda_handle & handle, bool profile);
+template unsigned char *
+refactor_qz_2D_cuda<float>(int nrow, int ncol, const float *u, int &outsize, float tol, int opt, 
+                     int B, mgard_cuda_handle & handle, bool profile);
+
+template <typename T>
+T* recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len, int opt,
+                         int B, mgard_cuda_handle & handle, bool profile, T dummy)
 {
-  int size_ratio = sizeof(double)/sizeof(int);
+  int size_ratio = sizeof(T)/sizeof(int);
 
-  if (mgard::is_2kplus1 (nrow)
-    && mgard::is_2kplus1 (ncol)) // input is (2^q + 1) x (2^p + 1)
-  {
-    int ncol_new = ncol;
-    int nrow_new = nrow;
+  // if (mgard::is_2kplus1 (nrow)
+  //   && mgard::is_2kplus1 (ncol)) // input is (2^q + 1) x (2^p + 1)
+  // {
+  //   int ncol_new = ncol;
+  //   int nrow_new = nrow;
     
-    int nlevel_new;
-    mgard::set_number_of_levels (nrow_new, ncol_new, nlevel_new);
-    int l_target = nlevel_new-1;
+  //   int nlevel_new;
+  //   mgard::set_number_of_levels (nrow_new, ncol_new, nlevel_new);
+  //   int l_target = nlevel_new-1;
 
     
-    std::vector<int> out_data(nrow_new*ncol_new + size_ratio);
+  //   std::vector<int> out_data(nrow_new*ncol_new + size_ratio);
 
-    mgard::decompress_memory_z(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
+  //   mgard::decompress_memory_z(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
     
-    double *v = (double *)malloc (nrow_new*ncol_new*sizeof(double));
+  //   double *v = (double *)malloc (nrow_new*ncol_new*sizeof(double));
 
-    int ldv = ncol_new;
-    int * dout_data;
-    cudaMallocHelper((void**)&dout_data, (nrow_new*ncol_new + size_ratio) * sizeof(int));
-    int lddout_data = ncol;
-    cudaMemcpyHelper(dout_data, out_data.data(), (nrow_new*ncol_new + size_ratio) * sizeof(int), H2D);
+  //   int ldv = ncol_new;
+  //   int * dout_data;
+  //   cudaMallocHelper((void**)&dout_data, (nrow_new*ncol_new + size_ratio) * sizeof(int));
+  //   int lddout_data = ncol;
+  //   cudaMemcpyHelper(dout_data, out_data.data(), (nrow_new*ncol_new + size_ratio) * sizeof(int), H2D);
 
-    double * dv;
-    size_t dv_pitch;
-    cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol_new * sizeof(double), nrow_new);
-    int lddv = dv_pitch / sizeof(double);
+  //   double * dv;
+  //   size_t dv_pitch;
+  //   cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol_new * sizeof(double), nrow_new);
+  //   int lddv = dv_pitch / sizeof(double);
 
-    dequantize_2D_iterleave_cuda(nrow_new, ncol_new, dv, lddv, dout_data, lddout_data);
+  //   dequantize_2D_iterleave_cuda(nrow_new, ncol_new, dv, lddv, dout_data, lddout_data);
    
-    double * dwork;
-    size_t dwork_pitch;
-    cudaMallocPitchHelper((void**)&dwork, &dwork_pitch, nrow * sizeof(double), ncol);
-    int lddwork = dwork_pitch / sizeof(double);
-    cudaMemset2DHelper(dwork, dwork_pitch, 0, ncol * sizeof(double), nrow);
+  //   double * dwork;
+  //   size_t dwork_pitch;
+  //   cudaMallocPitchHelper((void**)&dwork, &dwork_pitch, nrow * sizeof(double), ncol);
+  //   int lddwork = dwork_pitch / sizeof(double);
+  //   cudaMemset2DHelper(dwork, dwork_pitch, 0, ncol * sizeof(double), nrow);
 
 
 
-    recompose_cuda (nrow, ncol, l_target, dv, lddv, dwork, lddwork);
-    cudaMemcpy2DHelper(v, ldv*sizeof(double), dv, lddv*sizeof(double), ncol * sizeof(double), nrow, D2H);
+  //   recompose_cuda (nrow, ncol, l_target, dv, lddv, dwork, lddwork);
+  //   cudaMemcpy2DHelper(v, ldv*sizeof(double), dv, lddv*sizeof(double), ncol * sizeof(double), nrow, D2H);
     
-    return v;
+  //   return v;
 
-  }
-  else
-  {
-    std::vector<double> coords_x(ncol), coords_y(nrow);
+  // }
+  // else
+  // {
+    std::vector<T> coords_x(ncol), coords_y(nrow);
 
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
@@ -645,30 +746,32 @@ double* recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_
 
     mgard::decompress_memory_z(data, data_len, out_data.data(), out_data.size()*sizeof(int)); // decompress input buffer
 
-    double *v = (double *)malloc (nrow*ncol*sizeof(double));
+    T *v = (T *)malloc (nrow*ncol*sizeof(T));
 
-    double * dv;
+    T * dv;
     size_t dv_pitch;
-    cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(double), nrow);
-    int lddv = dv_pitch / sizeof(double);
+    cudaMallocPitchHelper((void**)&dv, &dv_pitch, ncol * sizeof(T), nrow);
+    int lddv = dv_pitch / sizeof(T);
     // cudaMemcpy2DHelper(dv, lddv * sizeof(double), 
     //                    v.data(), ncol  * sizeof(double), 
     //                    ncol * sizeof(double), nrow, 
     //                    H2D);
 
-    double * dwork;
+    T * dwork;
     size_t dwork_pitch;
-    cudaMallocPitchHelper((void**)&dwork, &dwork_pitch, ncol * sizeof(double), nrow);
-    int lddwork = dwork_pitch / sizeof(double);
-    cudaMemset2DHelper(dwork, dwork_pitch, 0, ncol * sizeof(double), nrow);
+    cudaMallocPitchHelper((void**)&dwork, &dwork_pitch, ncol * sizeof(T), nrow);
+    int lddwork = dwork_pitch / sizeof(T);
+    cudaMemset2DHelper(dwork, dwork_pitch, 0, ncol * sizeof(T), nrow);
 
-    double * dcoords_x;
-    cudaMallocHelper((void**)&dcoords_x, ncol * sizeof(double));
-    cudaMemcpyHelper(dcoords_x, coords_x.data(), ncol * sizeof(double), H2D);
+    T * dcoords_x;
+    cudaMallocHelper((void**)&dcoords_x, ncol * sizeof(T));
+    cudaMemcpyAsyncHelper(dcoords_x, coords_x.data(), ncol * sizeof(T), H2D,
+                          handle, 0, profile);
 
-    double * dcoords_y;
-    cudaMallocHelper((void**)&dcoords_y, nrow * sizeof(double));
-    cudaMemcpyHelper(dcoords_y, coords_y.data(), nrow * sizeof(double), H2D);
+    T * dcoords_y;
+    cudaMallocHelper((void**)&dcoords_y, nrow * sizeof(T));
+    cudaMemcpyAsyncHelper(dcoords_y, coords_y.data(), nrow * sizeof(T), H2D,
+                          handle, 0, profile);
 
     int * irow  = new int[nr];
     int * irowP = new int[nrow-nr];
@@ -719,33 +822,39 @@ double* recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_
 
     int * dirow;
     cudaMallocHelper((void**)&dirow, nr * sizeof(int));
-    cudaMemcpyHelper(dirow, irow, nr * sizeof(int), H2D);
+    cudaMemcpyAsyncHelper(dirow, irow, nr * sizeof(int), H2D,
+                          handle, 0, profile);
 
     int * dicol;
     cudaMallocHelper((void**)&dicol, nc * sizeof(int));
-    cudaMemcpyHelper(dicol, icol, nc * sizeof(int), H2D);
+    cudaMemcpyAsyncHelper(dicol, icol, nc * sizeof(int), H2D,
+                          handle, 0, profile);
 
     int * dirowP;
     cudaMallocHelper((void**)&dirowP, (nrow-nr) * sizeof(int));
-    cudaMemcpyHelper(dirowP, irowP, (nrow-nr) * sizeof(int), H2D);
+    cudaMemcpyAsyncHelper(dirowP, irowP, (nrow-nr) * sizeof(int), H2D,
+                          handle, 0, profile);
 
     int * dicolP;
     cudaMallocHelper((void**)&dicolP, (ncol-nc) * sizeof(int));
-    cudaMemcpyHelper(dicolP, icolP, (ncol-nc) * sizeof(int), H2D);
+    cudaMemcpyAsyncHelper(dicolP, icolP, (ncol-nc) * sizeof(int), H2D,
+                          handle, 0, profile);
 
     int ldv = ncol;
     int * dout_data;
     cudaMallocHelper((void**)&dout_data, (nrow*ncol + size_ratio) * sizeof(int));
     int lddout_data = ncol;
-    cudaMemcpyHelper(dout_data, out_data.data(), (nrow*ncol + size_ratio) * sizeof(int), H2D);
+    cudaMemcpyAsyncHelper(dout_data, out_data.data(), (nrow*ncol + size_ratio) * sizeof(int), H2D,
+                          handle, 0, profile);
 
     // mgard::dequantize_2D_interleave(nrow, ncol, v, out_data) ;
-    dequantize_2D_iterleave_cuda(nrow, ncol, dv, lddv, dout_data, lddout_data);
+    dequantize_2D_iterleave_cuda(nrow, ncol, dv, lddv, dout_data, lddout_data,
+                                 B, handle, 0, profile);
 
     
-    std::vector<double> row_vec(ncol);
-    std::vector<double> col_vec(nrow);
-    std::vector<double> work(nrow*ncol);
+    std::vector<T> row_vec(ncol);
+    std::vector<T> col_vec(nrow);
+    std::vector<T> work(nrow*ncol);
 
 
 
@@ -767,7 +876,8 @@ double* recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_
                                            dirowP,   dicolP,
                                            dv,       lddv,
                                            dwork,    lddwork,
-                                           dcoords_x, dcoords_y);
+                                           dcoords_x, dcoords_y,
+                                           B, handle, profile);
 
 
     // cudaMemcpy2DHelper(v, ncol  * sizeof(double), 
@@ -797,17 +907,23 @@ double* recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_
                                              dirowP,   dicolP,
                                              dv,       lddv,
                                              dwork,    lddwork,
-                                             dcoords_x, dcoords_y);
+                                             dcoords_x, dcoords_y,
+                                             B, handle, profile);
 
-    cudaMemcpy2DHelper(v, ldv  * sizeof(double), 
-                       dv, lddv * sizeof(double), 
-                       ncol * sizeof(double), nrow, 
-                       D2H);
+    cudaMemcpy2DAsyncHelper(v, ldv  * sizeof(T), 
+                       dv, lddv * sizeof(T), 
+                       ncol * sizeof(T), nrow, 
+                       D2H, handle, 0, profile);
 
     return v;
-  }
+  // }
 }
 
+
+template double * recompose_udq_2D_cuda<double>(int nrow, int ncol, unsigned char *data, int data_len, int opt,
+                         int B, mgard_cuda_handle & handle, bool profile, double dummy);
+template float * recompose_udq_2D_cuda<float>(int nrow, int ncol, unsigned char *data, int data_len, int opt,
+                         int B, mgard_cuda_handle & handle, bool profile, float dummy);
 
 void
 refactor_cuda (const int nrow, const int ncol, 
@@ -1950,208 +2066,10 @@ add_level_cuda(int nrow,       int ncol,
 //     }
 // }
 
-__global__ void 
-_quantize_2D_iterleave_cuda(int nrow,    int ncol, 
-                            double * dv, int lddv, 
-                            int * dwork, int lddwork,
-                            //double * dwork, int lddwork,
-                            double quantizer) {
-    int x0 = blockIdx.x * blockDim.x + threadIdx.x;
-    int y0 = blockIdx.y * blockDim.y + threadIdx.y;
-
-    int size_ratio = sizeof(double) / sizeof(int);
-
-    for (int y = y0; y < nrow; y += blockDim.y * gridDim.y) {
-       for (int x = x0; x < ncol; x += blockDim.x * gridDim.x) {
-            register double v = dv[get_idx(lddv, y, x)];
-            register double v2 = v/quantizer;
-            int quantum = (int)(v2);
-            //quantum /= quantizer;
-            dwork[get_idx(lddwork, y, x) + size_ratio] = quantum;
-            //dwork[get_idx(lddwork, y, x)] = quantum;
-        }
-    }
-}
 
 
-mgard_ret 
-quantize_2D_iterleave_cuda (int nrow,    int ncol, 
-                           double * v,  int ldv, 
-                           int * work,  int ldwork, 
-                           double norm, double tol) {
-
-    int size_ratio = sizeof(double) / sizeof(int);
-    double quantizer = norm * tol;
-
-    double * dv;
-    int lddv;
-    int * dwork;
-    int lddwork;
 
 
-#if CPU == 1
-    // cudaMalloc(&dwork, (nrow * ncol + size_ratio) * sizeof(int));
-    // //cudaMemcpy(dwork, &quantizer, sizeof(double), cudaMemcpyHostToDevice);
-    // lddwork = ncol;
-
-    // size_t dv_pitch;
-    // cudaMallocPitch(&dv, &dv_pitch, nrow * sizeof(double), ncol);
-    // lddv = dv_pitch / sizeof(double);
-    // cudaMemcpy2D(dv, lddv * sizeof(double), 
-    //              v,   ldv  * sizeof(double), 
-    //              ncol * sizeof(double), nrow, 
-    //              cudaMemcpyHostToDevice);
-#endif
-
-#if GPU == 1
-     dv = v;
-     lddv = ldv;
-     dwork = work;
-     lddwork = ldwork;
-#endif
-
-    int B = 16;
-    // int total_thread_x = nrow;
-    // int total_thread_y = ncol;
-    int total_thread_x = ncol;
-    int total_thread_y = nrow;
-    int tbx = min(B, total_thread_x);
-    int tby = min(B, total_thread_y);
-    int gridx = ceil((float)total_thread_x/tbx);
-    int gridy = ceil((float)total_thread_y/tby);
-    dim3 threadsPerBlock(tbx, tby);
-    dim3 blockPerGrid(gridx, gridy);
-
-    double * work2;
-    //cudaMallocHelper((void**)&work2, ncol*nrow*sizeof(double));
-
-    cudaMemcpyHelper(dwork, &quantizer, sizeof(double), H2D);
-    //auto start = std::chrono::high_resolution_clock::now();
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start);
-
-    _quantize_2D_iterleave_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow, ncol, 
-                                                                   dv, lddv, 
-                                                                   dwork, lddwork, 
-                                                                   //work2, ncol, 
-                                                                   quantizer);
-    gpuErrchk(cudaGetLastError ());
-
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
-
-  return mgard_ret(0, milliseconds/1000.0);
-    // auto end = std::chrono::high_resolution_clock::now();
-    // std::chrono::duration<double> elapsed = end - start;
-    // double time = elapsed.count();
-    // gpuErrchk(cudaGetLastError ()); 
-
-    //int * work2 = new int[nrow*ncol + size_ratio];
-#if CPU == 1
-    // cudaMemcpy(work, dwork, (nrow * ncol + size_ratio) * sizeof(int), cudaMemcpyDeviceToHost);
-
-    // cudaMemcpy2D(v,  ldv * sizeof(double), 
-    //              dv, lddv * sizeof(double),
-    //              ncol * sizeof(double), nrow, 
-    //              cudaMemcpyDeviceToHost);
-    // cudaFree(dv);
-    // cudaFree(dwork);
-#endif
-    //return mgard_ret(0, time);
-}
-
-
-__global__ void 
-_dequantize_2D_iterleave_cuda(int nrow,    int ncol, 
-                             double * dv, int lddv, 
-                             int * dwork, int lddwork,
-                             double quantizer) {
-    int x0 = blockIdx.x * blockDim.x + threadIdx.x;
-    int y0 = blockIdx.y * blockDim.y + threadIdx.y;
-
-    int size_ratio = sizeof(double) / sizeof(int);
-
-    for (int x = x0; x < nrow; x += blockDim.x * gridDim.x) {
-        for (int y = y0; y < ncol; y += blockDim.y * gridDim.y) {
-            dv[get_idx(lddv, x, y)] = quantizer * double(dwork[get_idx(lddwork, x, y) + size_ratio]);
-        }
-    }
-}
-
-mgard_ret  
-dequantize_2D_iterleave_cuda (int nrow,   int ncol, 
-                             double * v, int ldv, 
-                             int * work, int ldwork) {
-    int size_ratio = sizeof(double) / sizeof(int);
-    double quantizer;
-
-    double * dv;
-    int lddv;
-    int * dwork;
-    int lddwork;
-
-
-#if CPU == 1
-    cudaMalloc(&dwork, (nrow * ncol + size_ratio) * sizeof(int));
-    cudaMemcpy(dwork, work, (nrow * ncol + size_ratio) * sizeof(int), cudaMemcpyHostToDevice);
-    lddwork = ncol;
-
-    size_t dv_pitch;
-    cudaMallocPitch(&dv, &dv_pitch, nrow * sizeof(double), ncol);
-    lddv = dv_pitch / sizeof(double);
-    cudaMemcpy2D(dv, lddv * sizeof(double), 
-                 v,   ldv  * sizeof(double), 
-                 ncol * sizeof(double), nrow, 
-                 cudaMemcpyHostToDevice);
-#endif
-
-#if GPU == 1
-     dv = v;
-     lddv = ldv;
-     dwork = work;
-     lddwork = ldwork;
-#endif
-
-    int B = 16;
-    int total_thread_x = nrow;
-    int total_thread_y = ncol;
-    int tbx = min(B, total_thread_x);
-    int tby = min(B, total_thread_y);
-    int gridx = ceil(total_thread_x/tbx);
-    int gridy = ceil(total_thread_y/tby);
-    dim3 threadsPerBlock(tbx, tby);
-    dim3 blockPerGrid(gridx, gridy);
-
-    cudaMemcpy(&quantizer, dwork, sizeof(double), cudaMemcpyDeviceToHost);
-    auto start = std::chrono::high_resolution_clock::now();
-    _dequantize_2D_iterleave_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,  ncol, 
-                                                                    dv,    lddv, 
-                                                                    dwork, lddwork, 
-                                                                    quantizer);
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    double time = elapsed.count();
-    gpuErrchk(cudaGetLastError ()); 
-
-    //int * work2 = new int[nrow*ncol + size_ratio];
-#if CPU == 1
-    cudaMemcpy(work, dwork, (nrow * ncol + size_ratio) * sizeof(int), cudaMemcpyDeviceToHost);
-
-    cudaMemcpy2D(v,  ldv * sizeof(double), 
-                 dv, lddv * sizeof(double),
-                 ncol * sizeof(double), nrow, 
-                 cudaMemcpyDeviceToHost);
-    cudaFree(dv);
-    cudaFree(dwork);
-#endif
-    return mgard_ret(0, time);
-}
 
 
 __global__ void 

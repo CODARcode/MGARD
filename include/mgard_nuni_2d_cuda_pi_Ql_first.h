@@ -14,7 +14,9 @@ pi_Ql_first_cuda(const int nrow,     const int ncol,
                  int * dirow,        int * dicol,
                  int * dirowP,       int * dicolP,
                  T * dcoords_x,     T * dcoords_y,
-                 T * dv,           const int lddv);
+                 T * dv,           const int lddv,
+                 int B, mgard_cuda_handle & handle, 
+                 int queue_idx, bool profile);
 
 }
 }

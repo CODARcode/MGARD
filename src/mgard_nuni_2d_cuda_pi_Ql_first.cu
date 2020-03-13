@@ -130,15 +130,20 @@ pi_Ql_first_cuda(const int nrow,     const int ncol,
                  int * dirow,        int * dicol,
                  int * dirowP,       int * dicolP,
                  T * dcoords_x, T * dcoords_y,
-                 T * dv,        const int lddv) {  
+                 T * dv,        const int lddv,
+                 int B, mgard_cuda_handle & handle, 
+                 int queue_idx, bool profile) {  
 
   cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
+  float milliseconds = 0;
+  cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
 
+  if (profile) {
+    gpuErrchk(cudaEventCreate(&start));
+    gpuErrchk(cudaEventCreate(&stop));
+    gpuErrchk(cudaEventRecord(start, stream));
+  }
 
-  int B = 16;
   int total_thread_x = ncol-nc;
   int total_thread_y = nr;
   int tbx = min(B, total_thread_x);
@@ -148,14 +153,12 @@ pi_Ql_first_cuda(const int nrow,     const int ncol,
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
-  // std::cout << "_pi_Ql_first_row_cuda " << std::endl;
-  // std::cout << "thread block: " << tbx << ", " << tby <<std::endl;
-  // std::cout << "grid: " << gridx << ", " << gridy <<std::endl;
-  _pi_Ql_first_row_cuda<<<blockPerGrid, threadsPerBlock>>>(nrow,      ncol,
-                                                           nr,        nc,
-                                                           dirow,     dicolP,
-                                                           dv,        lddv,
-                                                           dcoords_x, dcoords_y);
+  _pi_Ql_first_row_cuda<<<blockPerGrid, threadsPerBlock,
+                          0, stream>>>(nrow,      ncol,
+                                       nr,        nc,
+                                       dirow,     dicolP,
+                                       dv,        lddv,
+                                       dcoords_x, dcoords_y);
   gpuErrchk(cudaGetLastError ()); 
   total_thread_x = nc;
   total_thread_y = nrow-nr;
@@ -165,13 +168,13 @@ pi_Ql_first_cuda(const int nrow,     const int ncol,
   gridy = ceil((float)total_thread_y/tby);
   dim3 threadsPerBlock2(tbx, tby);
   dim3 blockPerGrid2(gridx, gridy);
-  //   std::cout << "thread block: " << tbx << ", " << tby <<std::endl;
-  // std::cout << "grid: " << gridx << ", " << gridy <<std::endl;
-  _pi_Ql_first_col_cuda<<<blockPerGrid2, threadsPerBlock2>>>(nrow,      ncol,
-                                                             nr,        nc,
-                                                             dirowP,    dicol,
-                                                             dv,        lddv,
-                                                             dcoords_x, dcoords_y);
+ 
+  _pi_Ql_first_col_cuda<<<blockPerGrid2, threadsPerBlock2,
+                          0, stream>>>(nrow,      ncol,
+                                       nr,        nc,
+                                       dirowP,    dicol,
+                                       dv,        lddv,
+                                       dcoords_x, dcoords_y);
   gpuErrchk(cudaGetLastError ()); 
   total_thread_x = ncol-nc;
   total_thread_y = nrow-nr;
@@ -181,19 +184,21 @@ pi_Ql_first_cuda(const int nrow,     const int ncol,
   gridy = ceil((float)total_thread_y/tby);
   dim3 threadsPerBlock3(tbx, tby);
   dim3 blockPerGrid3(gridx, gridy);
-  _pi_Ql_first_center_cuda<<<blockPerGrid3, threadsPerBlock3>>>(nrow,      ncol,
-                                                                nr,        nc,
-                                                                dirowP,    dicolP,
-                                                                dv,        lddv,
-                                                                dcoords_x, dcoords_y);
+  _pi_Ql_first_center_cuda<<<blockPerGrid3, threadsPerBlock3,
+                             0, stream>>>(nrow,      ncol,
+                                          nr,        nc,
+                                          dirowP,    dicolP,
+                                          dv,        lddv,
+                                          dcoords_x, dcoords_y);
   gpuErrchk(cudaGetLastError ()); 
 
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  if (profile) {
+    gpuErrchk(cudaEventRecord(stop, stream));
+    gpuErrchk(cudaEventSynchronize(stop));
+    gpuErrchk(cudaEventElapsedTime(&milliseconds, start, stop));
+    gpuErrchk(cudaEventDestroy(start));
+    gpuErrchk(cudaEventDestroy(stop));
+  }
 
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
@@ -204,14 +209,18 @@ pi_Ql_first_cuda<double>(const int nrow,     const int ncol,
                          int * dirow,        int * dicol,
                          int * dirowP,       int * dicolP,
                          double * dcoords_x, double * dcoords_y,
-                         double * dv,        const int lddv);
+                         double * dv,        const int lddv,
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile);
 template mgard_cuda_ret 
 pi_Ql_first_cuda<float>(const int nrow,     const int ncol,
                          const int nr,       const int nc,
                          int * dirow,        int * dicol,
                          int * dirowP,       int * dicolP,
                          float * dcoords_x, float * dcoords_y,
-                         float * dv,        const int lddv);
+                         float * dv,        const int lddv,
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile);
 
 
 }

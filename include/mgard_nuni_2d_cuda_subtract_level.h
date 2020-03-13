@@ -11,7 +11,9 @@ mgard_cuda_ret
 subtract_level_cuda(int nrow,       int ncol, 
                     int row_stride, int col_stride,
                     T * dv,    int lddv, 
-                    T * dwork, int lddwork);
+                    T * dwork, int lddwork,
+                    int B, mgard_cuda_handle & handle, 
+                    int queue_idx, bool profile);
 
 }
 }

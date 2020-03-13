@@ -15,7 +15,9 @@ prolongate_last_row_cuda(int nrow,       int ncol,
                          int row_stride, int col_stride,
                          int * dirow,    int * dicolP,
                          T * dv,    int lddv,
-                         T * dcoords_x);
+                         T * dcoords_x,
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile);
 
 template <typename T>
 mgard_cuda_ret 
@@ -24,7 +26,9 @@ prolongate_last_col_cuda(int nrow,       int ncol,
                          int row_stride, int col_stride,
                          int * dirowP,   int * dicol, 
                          T * dv,    int lddv,
-                         T * dcoords_y);
+                         T * dcoords_y,
+                         int B, mgard_cuda_handle & handle, 
+                         int queue_idx, bool profile);
 
 }
 }
