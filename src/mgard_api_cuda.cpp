@@ -57,8 +57,11 @@ T *mgard_decompress_cuda(int itype_flag,  T& quantizer, unsigned char *data, int
       assert (nrow > 3);
       assert (ncol > 3);
       assert (nfib > 3);
-      
-      mgard_decompressed_ptr = mgard::recompose_udq(nrow, ncol, nfib, data, data_len);
+      mgard_cuda_handle * handle = new mgard_cuda_handle(1);
+      int B = 16;
+      bool profile = false;
+      T dummy = 0;
+      mgard_decompressed_ptr = mgard::recompose_udq_cuda(nrow, ncol, nfib, data, data_len, B, *handle, profile, dummy);
       return mgard_decompressed_ptr;      
   } else if (nrow > 1 && ncol > 1) {
       assert (nrow > 3);
@@ -133,8 +136,9 @@ T *mgard_decompress_cuda(int itype_flag,  T& quantizer, unsigned char *data, int
       assert (nrow > 3);
       assert (ncol > 3);
       assert (nfib > 3);
-      
-      mgard_decompressed_ptr = mgard::recompose_udq(nrow, ncol, nfib, data, data_len);
+      mgard_cuda_handle * handle = new mgard_cuda_handle(1);
+      T dummy;
+      mgard_decompressed_ptr = mgard::recompose_udq_cuda(nrow, ncol, nfib, data, data_len, B, *handle, profile, dummy);
       return mgard_decompressed_ptr;      
   } else if (nrow > 1 && ncol > 1) {
       assert (nrow > 3);

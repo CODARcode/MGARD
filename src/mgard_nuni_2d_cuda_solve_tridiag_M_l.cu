@@ -465,7 +465,7 @@ _solve_tridiag_M_l_row_forward_cuda_sm(int nr,             int nc,
   register int rest_row;
 
   for (int r = r0_stride; r < nr; r += gridDim.x * blockDim.x * row_stride) {
-    rest_row = min(blockDim.x, (int)ceilf((nr - r)/row_stride));
+    rest_row = min(blockDim.x, (int)ceilf((double)(nr - r)/row_stride));
 
     vec = dv + r * lddv;
     // if (r_sm == 0) printf("vec[0] = %f\n", vec[0]);
@@ -588,6 +588,7 @@ solve_tridiag_M_l_row_forward_cuda_sm(int nr,         int nc,
                                       int B, int ghost_col,
                                       mgard_cuda_handle & handle, 
                                       int queue_idx, bool profile) {
+  
   cudaEvent_t start, stop;
   float milliseconds = 0;
   cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
@@ -598,7 +599,7 @@ solve_tridiag_M_l_row_forward_cuda_sm(int nr,         int nc,
   int total_thread_x = total_row;
 
   int tby = 1;
-  int tbx = min(B, total_thread_x);
+  int tbx = max(B, min(B, total_thread_x));
   size_t sm_size = (B+1)*(B+ghost_col) * sizeof(T);
 
   int gridy = 1;
@@ -606,12 +607,14 @@ solve_tridiag_M_l_row_forward_cuda_sm(int nr,         int nc,
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
 
+  //printf("nr (%d), row_stride(%d), gridx(%d), gridy(%d), tbx(%d), tby(%d)\n", nr, row_stride, gridx, gridy, tbx, tby);
+  
   if (profile) {
     gpuErrchk(cudaEventCreate(&start));
     gpuErrchk(cudaEventCreate(&stop));
     gpuErrchk(cudaEventRecord(start, stream));
   }
-
+  
   _solve_tridiag_M_l_row_forward_cuda_sm<<<blockPerGrid, threadsPerBlock, 
                                            sm_size, stream>>>(nr,         nc,
                                                               row_stride, col_stride,
@@ -670,9 +673,9 @@ _solve_tridiag_M_l_row_backward_cuda_sm(int nr,             int nc,
   register int real_ghost_col;
   register int real_main_col;
   register int rest_row;
-
+  
   for (int r = r0_stride; r < nr; r += gridDim.x * blockDim.x * row_stride) {
-    rest_row = min(blockDim.x, (int)ceilf((nr - r)/row_stride));
+    rest_row = min(blockDim.x, (int)ceilf((double)(nr - r)/row_stride));
 
     vec = dv + r * lddv;
     // if (r_sm == 0) printf("vec[0] = %f\n", vec[0]);
@@ -797,7 +800,6 @@ solve_tridiag_M_l_row_backward_cuda_sm(int nr,         int nc,
                                       int B, int ghost_col,
                                       mgard_cuda_handle & handle, 
                                       int queue_idx, bool profile) {
- 
   cudaEvent_t start, stop;
   float milliseconds = 0;
   cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
@@ -808,7 +810,7 @@ solve_tridiag_M_l_row_backward_cuda_sm(int nr,         int nc,
   int total_thread_x = total_row;
 
   int tby = 1;
-  int tbx = min(B, total_thread_x);
+  int tbx = max(B, min(B, total_thread_x));
 
 
   size_t sm_size = (B+2)*(B+ghost_col) * sizeof(T);
@@ -854,6 +856,7 @@ solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
                               int B, int ghost_col,
                               mgard_cuda_handle & handle, 
                               int queue_idx, bool profile) {
+
   mgard_cuda_ret tmp(0, 0.0);
   mgard_cuda_ret ret(0, 0.0);
   T * am;
@@ -868,7 +871,6 @@ solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
   // print_matrix_cuda(1, ceil((float)nc/col_stride), am, ceil((float)nc/col_stride));
   // printf("bm:\n");
   // print_matrix_cuda(1, ceil((float)nc/col_stride), bm, ceil((float)nc/col_stride));
-
 
   tmp = solve_tridiag_M_l_row_forward_cuda_sm(nr,         nc,
                                               row_stride, col_stride,

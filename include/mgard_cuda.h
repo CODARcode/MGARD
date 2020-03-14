@@ -7,6 +7,13 @@ unsigned char *
 refactor_qz_cuda(int nrow, int ncol, int nfib, const T *u,
                            int &outsize, T tol,
                            int B, mgard_cuda_handle & handle, bool profile);
+
+template <typename T>
+T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
+                           int data_len, int B,
+                           mgard_cuda_handle & handle,
+                           bool profile, T dummy);
+
 template <typename T>
 unsigned char *
 refactor_qz_2D_cuda (int nrow, int ncol, const T *u, int &outsize, T tol, int opt,
