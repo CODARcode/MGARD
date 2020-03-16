@@ -438,7 +438,18 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
                                  sizeof(int)); // decompress input buffer
   T *v = (T *)malloc(nrow * ncol * nfib * sizeof(T));
 
-  mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
+
+  int * dout_data;
+  cudaMallocHelper((void**)&dout_data, (nrow * ncol * nfib + size_ratio) * sizeof(int));
+  int lddout_data = nfib;
+
+  cudaMemcpyAsyncHelper(dout_data, out_data.data(), (nrow * ncol * nfib + size_ratio) * sizeof(int), H2D,
+                            handle, 0, profile);
+
+  mgard::dequantize_2D_iterleave_cuda (nrow * ncol, nfib, dv, lddv1, dout_data, lddout_data,
+                                                          B, handle, 0, profile);
+
+  //mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
 
 
   // for (int i = 0; i < nrow * ncol * nfib; i++) {
@@ -447,6 +458,12 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
      
   // }
 
+  // cudaMemcpy3DAsyncHelper(dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+  //                        v, nfib  * sizeof(T), nfib * sizeof(T), ncol,
+  //                        nfib * sizeof(T), ncol, nrow,
+  //                        H2D, handle, 0, profile);
+
+
   mgard_gen::recompose_3D_cuda_cpt_l2_sm(l_target, 
                                          nrow,     ncol, nfib, 
                                          nr, nc, nf, 
@@ -454,12 +471,18 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
                                          dv,        lddv1,     lddv2,
                                          dwork,     lddwork1,  lddwork2,
                                          dcoords_r, dcoords_c, dcoords_f,
-                                         B, handle, profile,
-                                         v, work,
-                                         work2d, coords_x, coords_y, coords_z);
+                                         B, handle, profile);
+                                         // v, work,
+                                         // work2d, coords_x, coords_y, coords_z);
 
-  mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v, work, coords_x,
-                      coords_y, coords_z);
+  cudaMemcpy3DAsyncHelper(v, nfib  * sizeof(T), nfib * sizeof(T), ncol,
+                     dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                     nfib * sizeof(T), ncol, nrow,
+                     D2H, handle, 0, profile);
+
+
+  // mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v, work, coords_x,
+  //                     coords_y, coords_z);
 
   return v;
 }
@@ -658,14 +681,14 @@ refactor_qz_2D_cuda (int nrow, int ncol, const T *u, int &outsize, T tol, int op
       //                                   dwork,     lddwork,
       //                                   dcoords_x, dcoords_y);
       auto t_start = std::chrono::high_resolution_clock::now();
-      ret = mgard_2d::mgard_gen::prep_2D_cuda_l2_sm(nrow,      ncol,
-                                        nr,        nc, 
-                                        dirow,     dicol,
-                                        dirowP,    dicolP,
-                                        dv,        lddv,
-                                        dwork,     lddwork,
-                                        dcoords_x, dcoords_y,
-                                        B, handle, profile);
+      // ret = mgard_2d::mgard_gen::prep_2D_cuda_l2_sm(nrow,      ncol,
+      //                                   nr,        nc, 
+      //                                   dirow,     dicol,
+      //                                   dirowP,    dicolP,
+      //                                   dv,        lddv,
+      //                                   dwork,     lddwork,
+      //                                   dcoords_x, dcoords_y,
+      //                                   B, handle, profile);
       auto t_end = std::chrono::high_resolution_clock::now();
       time = std::chrono::duration<double>(t_end-t_start).count();
       data_size = nrow * ncol * sizeof(T);
@@ -1011,24 +1034,27 @@ T* recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len, 
 
     // mgard_2d::mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v,  work, coords_x, coords_y, row_vec, col_vec);
     std::cout << "***recompose_2D_cuda***" << std::endl;
-    // mgard_2d::mgard_gen::recompose_2D_cuda(l_target,
-    //                                        nrow,     ncol,
-    //                                        nr,       nc, 
-    //                                        dirow,    dicol,
-    //                                        dirowP,   dicolP,
-    //                                        dv,       lddv,
-    //                                        dwork,    lddwork,
-    //                                        dcoords_x, dcoords_y);
-
-    mgard_2d::mgard_gen::recompose_2D_cuda_l2_sm(l_target,
-                                           nrow,     ncol,
-                                           nr,       nc, 
-                                           dirow,    dicol,
-                                           dirowP,   dicolP,
-                                           dv,       lddv,
-                                           dwork,    lddwork,
-                                           dcoords_x, dcoords_y,
-                                           B, handle, profile);
+    if (opt == 0 || opt == 1 || opt == 2) {
+      mgard_2d::mgard_gen::recompose_2D_cuda(l_target,
+                                             nrow,     ncol,
+                                             nr,       nc, 
+                                             dirow,    dicol,
+                                             dirowP,   dicolP,
+                                             dv,       lddv,
+                                             dwork,    lddwork,
+                                             dcoords_x, dcoords_y,
+                                             B, handle, profile);
+    } else if (opt == 3) {
+      mgard_2d::mgard_gen::recompose_2D_cuda_l2_sm(l_target,
+                                             nrow,     ncol,
+                                             nr,       nc, 
+                                             dirow,    dicol,
+                                             dirowP,   dicolP,
+                                             dv,       lddv,
+                                             dwork,    lddwork,
+                                             dcoords_x, dcoords_y,
+                                             B, handle, profile);
+    }
 
 
     // cudaMemcpy2DHelper(v, ncol  * sizeof(double), 
@@ -1052,14 +1078,14 @@ T* recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len, 
     //                                    dwork,    lddwork,
     //                                    dcoords_x, dcoords_y);
 
-    mgard_2d::mgard_gen::postp_2D_cuda_l2_sm(nrow,     ncol,
-                                             nr,       nc, 
-                                             dirow,    dicol,
-                                             dirowP,   dicolP,
-                                             dv,       lddv,
-                                             dwork,    lddwork,
-                                             dcoords_x, dcoords_y,
-                                             B, handle, profile);
+    // mgard_2d::mgard_gen::postp_2D_cuda_l2_sm(nrow,     ncol,
+    //                                          nr,       nc, 
+    //                                          dirow,    dicol,
+    //                                          dirowP,   dicolP,
+    //                                          dv,       lddv,
+    //                                          dwork,    lddwork,
+    //                                          dcoords_x, dcoords_y,
+    //                                          B, handle, profile);
 
     cudaMemcpy2DAsyncHelper(v, ldv  * sizeof(T), 
                        dv, lddv * sizeof(T), 

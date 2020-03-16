@@ -567,32 +567,32 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const double *u, int &outsize,
 
   double norm = mgard_2d::mgard_common::max_norm(v);
 
-  if (mgard::is_2kplus1(nrow) &&
-      mgard::is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
-  {
-    int nlevel;
-    mgard::set_number_of_levels(nrow, ncol, nlevel);
-    tol /= float(nlevel + 1);
+  // if (mgard::is_2kplus1(nrow) &&
+  //     mgard::is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
+  // {
+  //   int nlevel;
+  //   mgard::set_number_of_levels(nrow, ncol, nlevel);
+  //   tol /= float(nlevel + 1);
 
-    int l_target = nlevel - 1;
-    mgard::refactor(nrow, ncol, l_target, v.data(), work, row_vec, col_vec);
-    work.clear();
-    row_vec.clear();
-    col_vec.clear();
+  //   int l_target = nlevel - 1;
+  //   mgard::refactor(nrow, ncol, l_target, v.data(), work, row_vec, col_vec);
+  //   work.clear();
+  //   row_vec.clear();
+  //   col_vec.clear();
 
-    int size_ratio = sizeof(double) / sizeof(int);
-    std::vector<int> qv(nrow * ncol + size_ratio);
+  //   int size_ratio = sizeof(double) / sizeof(int);
+  //   std::vector<int> qv(nrow * ncol + size_ratio);
 
-    mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
+  //   mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
 
-    std::vector<unsigned char> out_data;
+  //   std::vector<unsigned char> out_data;
 
-    mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-    outsize = out_data.size();
-    unsigned char *buffer = (unsigned char *)malloc(outsize);
-    std::copy(out_data.begin(), out_data.end(), buffer);
-    return buffer;
-  } else {
+  //   mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
+  //   outsize = out_data.size();
+  //   unsigned char *buffer = (unsigned char *)malloc(outsize);
+  //   std::copy(out_data.begin(), out_data.end(), buffer);
+  //   return buffer;
+  // } else {
 
     std::vector<double> coords_x(ncol), coords_y(nrow);
 
@@ -658,7 +658,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const double *u, int &outsize,
     unsigned char *buffer = (unsigned char *)malloc(outsize);
     std::copy(out_data.begin(), out_data.end(), buffer);
     return buffer;
-  }
+  // }
 }
 
 unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<double> &coords_x,
@@ -847,36 +847,36 @@ double *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
                          int data_len) {
   int size_ratio = sizeof(double) / sizeof(int);
 
-  if (mgard::is_2kplus1(nrow) &&
-      mgard::is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
-  {
-    int ncol_new = ncol;
-    int nrow_new = nrow;
+  // if (mgard::is_2kplus1(nrow) &&
+  //     mgard::is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
+  // {
+  //   int ncol_new = ncol;
+  //   int nrow_new = nrow;
 
-    int nlevel_new;
-    mgard::set_number_of_levels(nrow_new, ncol_new, nlevel_new);
-    int l_target = nlevel_new - 1;
+  //   int nlevel_new;
+  //   mgard::set_number_of_levels(nrow_new, ncol_new, nlevel_new);
+  //   int l_target = nlevel_new - 1;
 
-    std::vector<int> out_data(nrow_new * ncol_new + size_ratio);
+  //   std::vector<int> out_data(nrow_new * ncol_new + size_ratio);
 
-    mgard::decompress_memory_z(data, data_len, out_data.data(),
-                               out_data.size() *
-                                   sizeof(int)); // decompress input buffer
+  //   mgard::decompress_memory_z(data, data_len, out_data.data(),
+  //                              out_data.size() *
+  //                                  sizeof(int)); // decompress input buffer
 
-    double *v = (double *)malloc(nrow_new * ncol_new * sizeof(double));
+  //   double *v = (double *)malloc(nrow_new * ncol_new * sizeof(double));
 
-    mgard::dequantize_2D_interleave(nrow_new, ncol_new, v, out_data);
-    out_data.clear();
+  //   mgard::dequantize_2D_interleave(nrow_new, ncol_new, v, out_data);
+  //   out_data.clear();
 
-    std::vector<double> row_vec(ncol_new);
-    std::vector<double> col_vec(nrow_new);
-    std::vector<double> work(nrow_new * ncol_new);
+  //   std::vector<double> row_vec(ncol_new);
+  //   std::vector<double> col_vec(nrow_new);
+  //   std::vector<double> work(nrow_new * ncol_new);
 
-    mgard::recompose(nrow_new, ncol_new, l_target, v, work, row_vec, col_vec);
+  //   mgard::recompose(nrow_new, ncol_new, l_target, v, work, row_vec, col_vec);
 
-    return v;
+  //   return v;
 
-  } else {
+  // } else {
     std::vector<double> coords_x(ncol), coords_y(nrow);
 
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
@@ -913,7 +913,7 @@ double *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
                                   coords_x, coords_y, row_vec, col_vec);
 
     return v;
-  }
+  // }
 }
 
 double *recompose_udq_2D(int nrow, int ncol, std::vector<double> &coords_x,

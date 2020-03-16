@@ -33,6 +33,7 @@
 
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 -1 16 1
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 0 16 1
+./build/bin/mgard_check_cuda_fake_data 257 257 1 0.001 0 3 16 1
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 1 16 1
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 2 16 1
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 3 16 1
@@ -40,13 +41,21 @@
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 -1 16 1
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 0 16 1
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 1 16 1
-# ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 2 16 1
+#./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 2 16 1
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 3 16 1
+
+# ./build/bin/mgard_check_cuda_fake_data 65 65 65 0.001 0 -1 16 1
+# ./build/bin/mgard_check_cuda_fake_data 65 65 65 0.001 0 3 16 1
 
 # ./build/bin/mgard_check ./data/data_600x400_orig ./data/data_600x400_orig.mgard 60 40 100 0.001 0
 
 # ./build/bin/mgard_check_cuda ./data/data_600x400_orig ./data/data_600x400_orig.mgard 60 40 100 0.001 0 3 16 1
-./build/bin/mgard_check_cuda ./data/data_600x400_orig ./data/data_600x400_orig.mgard 33 33 65 0.001 0 3 16 1
+# ./build/bin/mgard_check_cuda ./data/data_600x400_orig ./data/data_600x400_orig.mgard 33 33 65 0.001 0 3 16 1
+# ./build/bin/mgard_check_cuda ./data/data_600x400_orig ./data/data_600x400_orig.mgard 33 33 65 0.001 0 -1 16 1
+
+
+# ./build/bin/mgard_check_cuda ./data/data_600x400_orig ./data/data_600x400_orig.mgard 9 9 9 0.001 0 3 16 1
+# ./build/bin/mgard_check_cuda ./data/data_600x400_orig ./data/data_600x400_orig.mgard 5 5 5 0.001 0 3 16 1
 
 
 # ./build/bin/mgard_check_cuda ./data/data_600x400_orig ./data/data_600x400_orig.mgard 16 16 100 0.001 0 3

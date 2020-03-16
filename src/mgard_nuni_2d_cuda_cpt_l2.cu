@@ -218,7 +218,7 @@ refactor_2D_cuda_compact_l2(const int l_target,
 
 
   for (int l = 0; l < l_target; ++l) {
-    std::cout << "l = " << l << std::endl;
+    // std::cout << "l = " << l << std::endl;
     int stride = std::pow(2, l); // current stride
     int Cstride = stride * 2;    // coarser stride
 

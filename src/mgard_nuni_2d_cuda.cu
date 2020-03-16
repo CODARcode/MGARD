@@ -348,8 +348,7 @@ refactor_2D_cuda(const int l_target,
     add_level_cuda_time = ret.time;
 
     if (profile) {
-      timing_results << l << ",org_to_pow2p1_time," << org_to_pow2p1_time << std::endl;
-      timing_results << l << ",pow2p1_to_org_time," << pow2p1_to_org_time << std::endl;
+      
 
       timing_results << l << ",pow2p1_to_cpt_time," << pow2p1_to_cpt_time << std::endl;
       timing_results << l << ",cpt_to_pow2p1_time," << cpt_to_pow2p1_time << std::endl;
@@ -367,8 +366,7 @@ refactor_2D_cuda(const int l_target,
       timing_results << l << ",solve_tridiag_M_l_col_cuda_time," << solve_tridiag_M_l_col_cuda_time << std::endl;
       timing_results << l << ",add_level_cuda_time," << add_level_cuda_time << std::endl;
     
-      total_time += org_to_pow2p1_time;
-      total_time += pow2p1_to_org_time;
+      
       total_time += pow2p1_to_cpt_time;
       total_time += cpt_to_pow2p1_time;
 
@@ -385,11 +383,16 @@ refactor_2D_cuda(const int l_target,
       total_time += solve_tridiag_M_l_col_cuda_time;
 
       total_time += add_level_cuda_time;
-    }
-    if (profile) {
-      timing_results.close();
-    }
+    } 
+  }// end of loop
+  if (profile) {
+    timing_results << 0 << ",org_to_pow2p1_time," << org_to_pow2p1_time << std::endl;
+    timing_results << 0 << ",pow2p1_to_org_time," << pow2p1_to_org_time << std::endl;
+    total_time += org_to_pow2p1_time;
+    total_time += pow2p1_to_org_time;
+    timing_results.close();
   }
+
   return mgard_cuda_ret(0, total_time);
 }
 
@@ -613,8 +616,7 @@ recompose_2D_cuda(const int l_target,
     subtract_level_l_cuda_time2 = ret.time;
 
     if (profile) {
-      timing_results << l << ",org_to_pow2p1_time," << org_to_pow2p1_time << std::endl;
-      timing_results << "pow2p1_to_org_time," << pow2p1_to_org_time << std::endl;
+      
 
       timing_results << l << ",pow2p1_to_cpt_time," << pow2p1_to_cpt_time << std::endl;
       timing_results << l << ",cpt_to_pow2p1_time," << cpt_to_pow2p1_time << std::endl;
@@ -636,8 +638,7 @@ recompose_2D_cuda(const int l_target,
       timing_results << l << ",prolongate_l_row_cuda_time," << prolongate_l_row_cuda_time << std::endl;
       timing_results << l << ",prolongate_l_col_cuda_time," << prolongate_l_col_cuda_time << std::endl;
       
-      total_time += org_to_pow2p1_time;
-      total_time += pow2p1_to_org_time;
+      
 
       total_time += pow2p1_to_cpt_time;
       total_time += cpt_to_pow2p1_time;
@@ -661,6 +662,10 @@ recompose_2D_cuda(const int l_target,
     }
   }
   if (profile) {
+    timing_results << 0 << ",org_to_pow2p1_time," << org_to_pow2p1_time << std::endl;
+    timing_results << 0 << ",pow2p1_to_org_time," << pow2p1_to_org_time << std::endl;
+    total_time += org_to_pow2p1_time;
+    total_time += pow2p1_to_org_time;
     timing_results.close();
   }
   return mgard_cuda_ret(0, total_time);

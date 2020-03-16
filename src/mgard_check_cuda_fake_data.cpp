@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 
   double* mgard_out_buff;
   double dummy = 0;
-  if (opt = -1) {
+  if (opt == -1) {
     mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
   } else {
     mgard_out_buff = mgard_decompress_cuda(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, opt, B, profile);

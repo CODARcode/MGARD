@@ -36,7 +36,7 @@ _solve_tridiag_M_l_row_cuda(int nrow,        int ncol,
     int r = dirow[idx];
     //printf("thread %d working on row %d \n", idx0, r);
     T * vec = dv + r * lddv;
-    T * coeff = dcoeff + r * lddcoeff;
+    T * coeff = dcoeff + idx * lddcoeff;
 
     am = 2.0 * mgard_common::_get_dist(dcoords_x, dicol[0], dicol[col_stride]); //dicol[col_stride] - dicol[0]
     bm = mgard_common::_get_dist(dcoords_x, dicol[0], dicol[col_stride]) / am; //dicol[col_stride] - dicol[0]
@@ -52,10 +52,6 @@ _solve_tridiag_M_l_row_cuda(int nrow,        int ncol,
 
       h1 = mgard_common::_get_dist(dcoords_x, dicol[i - col_stride], dicol[i]);
       h2 = mgard_common::_get_dist(dcoords_x, dicol[i], dicol[i + col_stride]);
-
-
-      // h1 = dicol[i] - dicol[i - col_stride];
-      // h2 = dicol[i + col_stride] - dicol[i];
 
       vec[dicol[i]] -= vec[dicol[i - col_stride]] * bm;
 
@@ -176,7 +172,7 @@ _solve_tridiag_M_l_col_cuda(int nrow,        int ncol,
     int c = dicol[idx];
     // printf("thread %d working on col %d \n", idx0, c);
     T * vec = dv + c;
-    T * coeff = dcoeff + c;
+    T * coeff = dcoeff + idx;
     am = 2.0 * mgard_common::_get_dist(dcoords_y, dirow[0], dirow[row_stride]); //dirow[row_stride] - dirow[0]
     bm = mgard_common::_get_dist(dcoords_y, dirow[0], dirow[row_stride]) / am; //dirow[row_stride] - dirow[0]
 
