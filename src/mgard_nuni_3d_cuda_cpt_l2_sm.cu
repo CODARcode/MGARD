@@ -202,7 +202,7 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
   double total_time = 0.0;
   std::ofstream timing_results;
   if (profile) {
-    timing_results.open ("refactor_3D_cuda_cpt_l2_sm.csv");
+    timing_results.open (handle.csv_prefix + "refactor_3D_cuda_cpt_l2_sm.csv");
   }
 
   double org_to_pow2p1_time = 0.0;
@@ -890,7 +890,7 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
   double total_time = 0.0;
   std::ofstream timing_results;
   if (profile) {
-    timing_results.open ("recompose_3D_cuda_cpt_l2_sm.csv");
+    timing_results.open (handle.csv_prefix + "recompose_3D_cuda_cpt_l2_sm.csv");
   }
 
   double org_to_pow2p1_time = 0.0;

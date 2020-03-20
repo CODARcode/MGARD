@@ -10,7 +10,7 @@
 #include "mgard.h"
 
 unsigned char *mgard_compress(int itype_flag, double *v, int &out_size,
-                              int nrow, int ncol, int nfib, double tol_in)
+                              int nrow, int ncol, int nfib, double tol_in, std::string csv_prefix)
 
 // Perform compression preserving the tolerance in the L-infty norm
 {
@@ -24,13 +24,13 @@ unsigned char *mgard_compress(int itype_flag, double *v, int &out_size,
     assert(nfib > 3);
 
     mgard_compressed_ptr =
-        mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol);
+        mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, csv_prefix);
     return mgard_compressed_ptr;
 
   } else if (nrow > 1 && ncol > 1) {
     assert(nrow > 3);
     assert(ncol > 3);
-    mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol);
+    mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol, csv_prefix);
     return mgard_compressed_ptr;
   } else if (nrow > 1) {
     assert(nrow > 3);
@@ -171,7 +171,7 @@ unsigned char *mgard_compress(int itype_flag, double *v, int &out_size,
 }
 
 double *mgard_decompress(int itype_flag, double &quantizer, unsigned char *data,
-                         int data_len, int nrow, int ncol, int nfib) {
+                         int data_len, int nrow, int ncol, int nfib, std::string csv_prefix) {
   double *mgard_decompressed_ptr = nullptr;
 
   if (nrow > 1 && ncol > 1 && nfib > 1) {
@@ -180,13 +180,13 @@ double *mgard_decompress(int itype_flag, double &quantizer, unsigned char *data,
     assert(nfib > 3);
 
     mgard_decompressed_ptr =
-        mgard::recompose_udq(nrow, ncol, nfib, data, data_len);
+        mgard::recompose_udq(nrow, ncol, nfib, data, data_len, csv_prefix);
     return mgard_decompressed_ptr;
   } else if (nrow > 1 && ncol > 1) {
     assert(nrow > 3);
     assert(ncol > 3);
     mgard_decompressed_ptr =
-        mgard::recompose_udq_2D(nrow, ncol, data, data_len);
+        mgard::recompose_udq_2D(nrow, ncol, data, data_len, csv_prefix);
     //          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol,
     //          data, data_len);
     return mgard_decompressed_ptr;

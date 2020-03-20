@@ -18,7 +18,7 @@
 /// tensor product grids with arbitrary spacing
 
 unsigned char *mgard_compress(int itype_flag, double *data, int &out_size,
-                              int n1, int n2, int n3, double tol); // ...  1
+                              int n1, int n2, int n3, double tol, std::string csv_prefix = "./"); // ...  1
 unsigned char *mgard_compress(int itype_flag, double *data, int &out_size,
                               int n1, int n2, int n3,
                               std::vector<double> &coords_x,
@@ -97,7 +97,7 @@ unsigned char *mgard_compress(int itype_flag, double *data, int &out_size,
 
 double *mgard_decompress(int itype_flag, double &quantizer, unsigned char *data,
                          int data_len, int n1, int n2,
-                         int n3); // decompress L-infty compressed data
+                         int n3, std::string csv_prefix = "./"); // decompress L-infty compressed data
 double *mgard_decompress(
     int itype_flag, double &quantizer, unsigned char *data, int data_len,
     int n1, int n2, int n3, std::vector<double> &coords_x,

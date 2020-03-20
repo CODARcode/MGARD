@@ -105,7 +105,7 @@ void resample_2d_inv2(const double *inbuf, double *outbuf, const int nrow,
                       const int ncol, const int nrow_new, const int ncol_new);
 
 unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *v,
-                           int &outsize, double tol);
+                           int &outsize, double tol, std::string csv_prefix = "./");
 
 unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *v,
                            int &outsize, double tol, double s);
@@ -123,7 +123,7 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib,
                            int &outsize, double tol, double s);
 
 unsigned char *refactor_qz_2D(int nrow, int ncol, const double *v, int &outsize,
-                              double tol);
+                              double tol, std::string csv_prefix = "./");
 
 unsigned char *refactor_qz_2D(int nrow, int ncol, const double *v, int &outsize,
                               double tol, double s);
@@ -137,7 +137,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<double> &coords_x,
                               int &outsize, double tol, double s);
 
 double *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
-                      int data_len);
+                      int data_len, std::string csv_prefix = "./");
 
 double *recompose_udq(int nrow, int ncol, int nfib,
                       std::vector<double> &coords_x,
@@ -154,7 +154,7 @@ double *recompose_udq(int nrow, int ncol, int nfib,
                       std::vector<double> &coords_z, unsigned char *data,
                       int data_len, double s);
 
-double *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len);
+double *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len, std::string csv_prefix = "./");
 
 double *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
                          double s);

@@ -168,7 +168,7 @@ refactor_2D_cuda_compact_l2(const int l_target,
   double total_time = 0.0;
   std::ofstream timing_results;
   if (profile) {
-    timing_results.open ("refactor_2D_cuda_cpt_l2.csv");
+    timing_results.open (handle.csv_prefix + "refactor_2D_cuda_cpt_l2.csv");
   }
 
 

@@ -654,7 +654,7 @@ refactor_2D_cuda_compact_l2_sm_pf(const int l_target,
 
   if (profile) {
     std::ofstream timing_results;
-    timing_results.open ("refactor_2D_cuda_cpt_l2_sm_pf_" + std::to_string(B) +".csv");
+    timing_results.open (handle.csv_prefix + "refactor_2D_cuda_cpt_l2_sm_pf_" + std::to_string(B) +".csv");
     timing_results << "org_to_pow2p1_time," << org_to_pow2p1_time << std::endl;
     timing_results << "pow2p1_to_org_time," << pow2p1_to_org_time << std::endl;
 

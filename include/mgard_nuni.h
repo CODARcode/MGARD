@@ -309,7 +309,7 @@ void refactor_3D(const int nr, const int nc, const int nf, const int nrow,
                  const int ncol, const int nfib, const int l_target, double *v,
                  std::vector<double> &work, std::vector<double> &work2d,
                  std::vector<double> &coords_x, std::vector<double> &coords_y,
-                 std::vector<double> &coords_z);
+                 std::vector<double> &coords_z, std::string csv_prefix = "./");
 
 void compute_zl(const int nr, const int nc, const int nrow, const int ncol,
                 const int l_target, std::vector<double> &work,
@@ -350,7 +350,7 @@ void recompose_3D(const int nr, const int nc, const int nf, const int nrow,
                   const int ncol, const int nfib, const int l_target, double *v,
                   std::vector<double> &work, std::vector<double> &work2d,
                   std::vector<double> &coords_x, std::vector<double> &coords_y,
-                  std::vector<double> &coords_z);
+                  std::vector<double> &coords_z, std::string csv_prefix = "./");
 
 void postp_3D(const int nr, const int nc, const int nf, const int nrow,
               const int ncol, const int nfib, const int l_target, double *v,
@@ -501,7 +501,8 @@ void project_first(const int nr, const int nc, const int nrow, const int ncol,
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              const int l_target, double *v, std::vector<double> &work,
              std::vector<double> &coords_x, std::vector<double> &coords_y,
-             std::vector<double> &row_vec, std::vector<double> &col_vec);
+             std::vector<double> &row_vec, std::vector<double> &col_vec,
+             std::string csv_prefix = "./");
 
 void mass_mult_l(const int l, std::vector<double> &v,
                  std::vector<double> &coords, const int n, const int no);
@@ -515,12 +516,14 @@ void prolongate_l(const int l, std::vector<double> &v,
 void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
                  const int l_target, double *v, std::vector<double> &work,
                  std::vector<double> &coords_x, std::vector<double> &coords_y,
-                 std::vector<double> &row_vec, std::vector<double> &col_vec);
+                 std::vector<double> &row_vec, std::vector<double> &col_vec,
+                 std::string csv_prefix = "./");
 
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
                   const int l_target, double *v, std::vector<double> &work,
                   std::vector<double> &coords_x, std::vector<double> &coords_y,
-                  std::vector<double> &row_vec, std::vector<double> &col_vec);
+                  std::vector<double> &row_vec, std::vector<double> &col_vec,
+                  std::string csv_prefix = "./");
 
 void prolongate_last(std::vector<double> &v, std::vector<double> &coords, int n,
                      int no);
@@ -528,7 +531,8 @@ void prolongate_last(std::vector<double> &v, std::vector<double> &coords, int n,
 void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
               const int l_target, double *v, std::vector<double> &work,
               std::vector<double> &coords_x, std::vector<double> &coords_y,
-              std::vector<double> &row_vec, std::vector<double> &col_vec);
+              std::vector<double> &row_vec, std::vector<double> &col_vec,
+              std::string csv_prefix = "./");
 
 void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
                  const int nlevel, const int l, double *v, double tol,

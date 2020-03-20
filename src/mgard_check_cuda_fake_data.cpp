@@ -77,12 +77,9 @@ int main(int argc, char *argv[])
   int nrow, ncol, nfib, opt, B, num_of_queues;
   bool profile;
   double tol, s;
-  if (argc != 10) {
-    if (argc < 10) {
-      fprintf (stderr, "%s: Not enough arguments! ", argv[0]);
-    } else {
-      fprintf (stderr, "%s: Too many arguments! ", argv[0]);
-    }
+  std::string csv_prefix = "./";
+  if (argc < 10) {
+    fprintf (stderr, "%s: Not enough arguments! ", argv[0]);
     print_usage_message(argv, stderr);
     print_for_more_details_message(argv, stderr);
     return 1;
@@ -96,7 +93,7 @@ int main(int argc, char *argv[])
     B    = atoi(argv[7]);
     profile = atoi(argv[8]);
     num_of_queues = atoi(argv[9]);
-
+    if (argc == 11) csv_prefix = argv[10];
   }
 
 
@@ -133,9 +130,9 @@ int main(int argc, char *argv[])
   
   if (opt == -1) {
 
-    mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
+    mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol, csv_prefix);
   } else {
-    mgard_cuda_handle * handle = new mgard_cuda_handle(num_of_queues);
+    mgard_cuda_handle * handle = new mgard_cuda_handle(num_of_queues, csv_prefix);
     mgard_comp_buff = mgard_compress_cuda(iflag, in_buff, out_size, nrow, ncol, nfib, tol, opt, B, profile, *handle);
     //mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
   }
@@ -146,9 +143,9 @@ int main(int argc, char *argv[])
   double* mgard_out_buff;
   double dummy = 0;
   if (opt == -1) {
-    mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
+    mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, csv_prefix);
   } else {
-    mgard_cuda_handle * handle = new mgard_cuda_handle(num_of_queues);
+    mgard_cuda_handle * handle = new mgard_cuda_handle(num_of_queues, csv_prefix);
     mgard_out_buff = mgard_decompress_cuda(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, opt, B, profile, *handle);
     //mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
   }

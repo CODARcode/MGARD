@@ -9,11 +9,12 @@
 #include "mgard.h"
 #include "mgard_nuni.h"
 #include <chrono>
+#include "string"
 
 namespace mgard {
 
 unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
-                           int &outsize, double tol) {
+                           int &outsize, double tol, std::string csv_prefix) {
   int nlevel;
   std::vector<double> v(u, u + nrow * ncol * nfib), work(nrow * ncol * nfib),
       work2d(nrow * ncol); // duplicate data and create work array
@@ -58,7 +59,7 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
   std::cout << "***refactor_2D***" << std::endl;
   t_start = std::chrono::high_resolution_clock::now();
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
-                         work2d, coords_x, coords_y, coords_z);
+                         work2d, coords_x, coords_y, coords_z, csv_prefix);
   t_end = std::chrono::high_resolution_clock::now();
   time = std::chrono::duration<double>(t_end-t_start).count();
   mem_throughput = (data_size/time)/1e9;
@@ -344,7 +345,7 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
 }
 
 double *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
-                      int data_len) {
+                      int data_len, std::string csv_prefix) {
   int nlevel;
   int size_ratio = sizeof(double) / sizeof(int);
   std::vector<double> coords_x(ncol), coords_y(nrow),
@@ -382,7 +383,7 @@ double *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
   mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
 
   mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v, work,
-                          work2d, coords_x, coords_y, coords_z);
+                          work2d, coords_x, coords_y, coords_z, csv_prefix);
 
   mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v, work, coords_x,
                       coords_y, coords_z);
@@ -560,7 +561,7 @@ double *recompose_udq(int nrow, int ncol, int nfib,
 }
 
 unsigned char *refactor_qz_2D(int nrow, int ncol, const double *u, int &outsize,
-                              double tol) {
+                              double tol, std::string csv_prefix) {
   std::vector<double> row_vec(ncol);
   std::vector<double> col_vec(nrow);
   std::vector<double> v(u, u + nrow * ncol), work(nrow * ncol);
@@ -613,7 +614,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const double *u, int &outsize,
     std::cout << "***prep_2D***" << std::endl;
     auto t_start = std::chrono::high_resolution_clock::now();
     // mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(), work,
-    //                              coords_x, coords_y, row_vec, col_vec);
+    //                              coords_x, coords_y, row_vec, col_vec, csv_prefix);
     auto t_end = std::chrono::high_resolution_clock::now();
     double data_size = nrow * ncol * sizeof(double);
     double time = std::chrono::duration<double>(t_end-t_start).count();
@@ -624,7 +625,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const double *u, int &outsize,
     t_start = std::chrono::high_resolution_clock::now();
     mgard_2d::mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v.data(),
                                      work, coords_x, coords_y, row_vec,
-                                     col_vec);
+                                     col_vec, csv_prefix);
     t_end = std::chrono::high_resolution_clock::now();
     time = std::chrono::duration<double>(t_end-t_start).count();
     mem_throughput = (data_size/time)/1e9;
@@ -844,7 +845,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<double> &coords_x,
 }
 
 double *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
-                         int data_len) {
+                         int data_len, std::string csv_prefix) {
   int size_ratio = sizeof(double) / sizeof(int);
 
   // if (mgard::is_2kplus1(nrow) &&
@@ -907,10 +908,10 @@ double *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
     std::vector<double> work(nrow * ncol);
 
     mgard_2d::mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v, work,
-                                      coords_x, coords_y, row_vec, col_vec);
+                                      coords_x, coords_y, row_vec, col_vec, csv_prefix);
 
     // mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v, work,
-    //                               coords_x, coords_y, row_vec, col_vec);
+    //                               coords_x, coords_y, row_vec, col_vec, csv_prefix);
 
     return v;
   // }

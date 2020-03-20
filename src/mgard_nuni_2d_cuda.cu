@@ -27,7 +27,7 @@ prep_2D_cuda(const int nrow,     const int ncol,
   std::ofstream timing_results;
 
   if (profile) {
-    timing_results.open ("prep_2D_cuda.csv");
+    timing_results.open (handle.csv_prefix + "prep_2D_cuda.csv");
   }
 
   double org_to_pow2p1_time = 0.0;
@@ -198,7 +198,7 @@ refactor_2D_cuda(const int l_target,
   std::ofstream timing_results;
 
   if (profile) {
-    timing_results.open ("refactor_2D_cuda.csv");
+    timing_results.open (handle.csv_prefix + "refactor_2D_cuda.csv");
   }
 
   double org_to_pow2p1_time = 0.0;
@@ -413,7 +413,7 @@ recompose_2D_cuda(const int l_target,
   double total_time = 0.0;
   std::ofstream timing_results;
   if (profile) {
-    timing_results.open ("recompose_2D_cuda.csv");
+    timing_results.open (handle.csv_prefix + "recompose_2D_cuda.csv");
   }
 
   double org_to_pow2p1_time = 0.0;
@@ -689,7 +689,7 @@ postp_2D_cuda(const int nrow,     const int ncol,
   double total_time;
   std::ofstream timing_results;
   if (profile) {
-    timing_results.open ("postp_2D_cuda.csv");
+    timing_results.open (handle.csv_prefix + "postp_2D_cuda.csv");
   }
 
   double org_to_pow2p1_time = 0.0;

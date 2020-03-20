@@ -1,3 +1,4 @@
+#include <string>
 
 #ifndef COPY_TYPE
 #define COPY_TYPE
@@ -35,8 +36,10 @@ struct mgard_ret {
 struct mgard_cuda_handle {
   void * queues;
   int num_of_queues;
+  std::string csv_prefix;
   mgard_cuda_handle (): queues(NULL), num_of_queues(0) {}
   mgard_cuda_handle (int num_of_queues);
+  mgard_cuda_handle (int num_of_queues, std::string csv_prefix);
   void * get(int i);
   void sync(int i);
   void sync_all();

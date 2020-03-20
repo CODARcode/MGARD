@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+CSV_PREFIX="/home/4yc/test/"
+
 SMALL_SIZE = 14
 MEDIUM_SIZE = 16
 BIGGER_SIZE = 14
@@ -155,40 +157,40 @@ def sum_time_by_kernel(result, kernel):
 def get_refactor_csv_name(nrow, ncol, nfib, opt, B, num_of_queues):
   if (nfib == 1): # 2D
     if (opt == -1):
-      return 'refactor_2D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'refactor_2D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 0):
-      return 'refactor_2D_cuda_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'refactor_2D_cuda_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 1):
-      return 'refactor_2D_cuda_cpt_l1_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'refactor_2D_cuda_cpt_l1_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 2):
-      return 'refactor_2D_cuda_cpt_l2_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'refactor_2D_cuda_cpt_l2_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 3):
-      return 'refactor_2D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'refactor_2D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
 
   else: # 3D
     if (opt == -1):
-      return 'refactor_3D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'refactor_3D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 3):
-      return 'refactor_3D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'refactor_3D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
 
 def get_recompose_csv_name(nrow, ncol, nfib, opt, B, num_of_queues):
   if (nfib == 1): # 2D
     if (opt == -1):
-      return 'recompose_2D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'recompose_2D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 0):
-      return 'recompose_2D_cuda_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'recompose_2D_cuda_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 1):
-      return 'recompose_2D_cuda_cpt_l1_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'recompose_2D_cuda_cpt_l1_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 2):
-      return 'recompose_2D_cuda_cpt_l2_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'recompose_2D_cuda_cpt_l2_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 3):
-      return 'recompose_2D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'recompose_2D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
 
   else: # 3D
     if (opt == -1):
-      return 'recompose_3D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'recompose_3D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
     if (opt == 3):
-      return 'recompose_3D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+      return CSV_PREFIX + 'recompose_3D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
 
 
 def run_fake_data(nrow, ncol, nfib, opt, B, num_of_queues):
@@ -198,32 +200,32 @@ def run_fake_data(nrow, ncol, nfib, opt, B, num_of_queues):
   cmd = ['../build/bin/mgard_check_cuda_fake_data', 
           str(nrow), str(ncol), str(nfib), 
           str(tol), str(s), str(opt), str(B), str(profile),
-          str(num_of_queues)]
+          str(num_of_queues), str(CSV_PREFIX)]
   print(' '.join(cmd))
   subprocess.call(' '.join(cmd), shell = True)
   if (nfib == 1): # 2D
     if (opt == -1):
-      refactor_result_before = 'refactor_2D.csv'
-      recompose_result_before = 'recompose_2D.csv'
+      refactor_result_before = CSV_PREFIX + 'refactor_2D.csv'
+      recompose_result_before = CSV_PREFIX + 'recompose_2D.csv'
     if (opt == 0):
-      refactor_result_before = 'refactor_2D_cuda.csv'
-      recompose_result_before = 'recompose_2D_cuda.csv'
+      refactor_result_before = CSV_PREFIX + 'refactor_2D_cuda.csv'
+      recompose_result_before = CSV_PREFIX + 'recompose_2D_cuda.csv'
     if (opt == 1):
-      refactor_result_before = 'refactor_2D_cuda_cpt_l1.csv'
-      recompose_result_before = 'recompose_2D_cuda.csv'
+      refactor_result_before = CSV_PREFIX + 'refactor_2D_cuda_cpt_l1.csv'
+      recompose_result_before = CSV_PREFIX + 'recompose_2D_cuda.csv'
     if (opt == 2):
-      refactor_result_before = 'refactor_2D_cuda_cpt_l2.csv'
-      recompose_result_before = 'recompose_2D_cuda.csv'
+      refactor_result_before = CSV_PREFIX + 'refactor_2D_cuda_cpt_l2.csv'
+      recompose_result_before = CSV_PREFIX + 'recompose_2D_cuda.csv'
     if (opt == 3):
-      refactor_result_before = 'refactor_2D_cuda_cpt_l2_sm.csv'
-      recompose_result_before = 'recompose_2D_cuda_cpt_l2_sm.csv'
+      refactor_result_before = CSV_PREFIX + 'refactor_2D_cuda_cpt_l2_sm.csv'
+      recompose_result_before = CSV_PREFIX + 'recompose_2D_cuda_cpt_l2_sm.csv'
   else: # 3D
     if (opt == -1):
-      refactor_result_before = 'refactor_3D.csv'
-      recompose_result_before = 'recompose_3D.csv'
+      refactor_result_before = CSV_PREFIX + 'refactor_3D.csv'
+      recompose_result_before = CSV_PREFIX + 'recompose_3D.csv'
     if (opt == 3):
-      refactor_result_before = 'refactor_3D_cuda_cpt_l2_sm.csv'
-      recompose_result_before = 'recompose_3D_cuda_cpt_l2_sm.csv'
+      refactor_result_before = CSV_PREFIX + 'refactor_3D_cuda_cpt_l2_sm.csv'
+      recompose_result_before = CSV_PREFIX + 'recompose_3D_cuda_cpt_l2_sm.csv'
 
   refactor_result_after = get_refactor_csv_name(nrow, ncol, nfib, opt, B, num_of_queues)
   recompose_result_after = get_recompose_csv_name(nrow, ncol, nfib, opt, B, num_of_queues)
@@ -320,7 +322,7 @@ def plot_speedup_kernel(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   ax1.set_ylabel("Speedup")
   ax1.grid(which='major', axis='y')
   plt.tight_layout()
-  plt.savefig('speedup_refactor_kernel_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+  plt.savefig(CSV_PREFIX + 'speedup_refactor_kernel_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(6,6))
   width = 0.25
@@ -335,7 +337,7 @@ def plot_speedup_kernel(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   ax1.set_ylabel("Speedup")
   ax1.grid(which='major', axis='y')
   plt.tight_layout()
-  plt.savefig('speedup_recompose_kernel_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+  plt.savefig(CSV_PREFIX + 'speedup_recompose_kernel_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
   
 
@@ -383,7 +385,7 @@ def plot_speedup_all(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, max_level):
   ax1.set_ylabel("Speedup")
   ax1.grid(which='major', axis='y')
   plt.tight_layout()
-  plt.savefig('speedup_refactor_all_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+  plt.savefig(CSV_PREFIX + 'speedup_refactor_all_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
@@ -399,7 +401,7 @@ def plot_speedup_all(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, max_level):
   ax1.set_ylabel("Speedup")
   ax1.grid(which='major', axis='y')
   plt.tight_layout()
-  plt.savefig('speedup_recompose_all_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+  plt.savefig(CSV_PREFIX + 'speedup_recompose_all_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
 
 def plot_time_breakdown(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
@@ -477,7 +479,7 @@ def plot_time_breakdown(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   ax1.grid(which='major', axis='x')
   ax1.legend(tuple(bars), cpu_kernels_list, loc='upper left', bbox_to_anchor=(0,-0.10), ncol=5)
   plt.tight_layout()
-  plt.savefig('cpu_time_breakdown_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+  plt.savefig(CSV_PREFIX + 'cpu_time_breakdown_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
 
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,3.3))
@@ -501,7 +503,7 @@ def plot_time_breakdown(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   ax1.grid(which='major', axis='x')
   ax1.legend(tuple(bars), gpu_kernels_list, loc='upper left', bbox_to_anchor=(0,-0.10), ncol=5)
   plt.tight_layout()
-  plt.savefig('gpu_time_breakdown_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+  plt.savefig(CSV_PREFIX + 'gpu_time_breakdown_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
 
 def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
@@ -538,7 +540,7 @@ def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
   ax1.set_ylabel("Speedup")
   ax1.grid(which='major', axis='y')
   plt.tight_layout()
-  plt.savefig('speedup_refactor_all_queue_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+  plt.savefig(CSV_PREFIX + 'speedup_refactor_all_queue_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
@@ -554,7 +556,7 @@ def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
   ax1.set_ylabel("Speedup")
   ax1.grid(which='major', axis='y')
   plt.tight_layout()
-  plt.savefig('speedup_recompose_all_queue_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+  plt.savefig(CSV_PREFIX + 'speedup_recompose_all_queue_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
 
 B = 16
@@ -564,9 +566,9 @@ num_runs = 1
 max_level = 14 #8193^2
 for i in range(max_level):
   n = pow(2, i) + 1
-  # if (n > 3):
-  #   avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
-  #   avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
+  if (n > 3):
+    avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
+    avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
 plot_speedup_all(n, n, 1, -1, 3, B, num_of_queues, max_level)
 
 num_of_queues=32

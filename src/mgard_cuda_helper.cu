@@ -1,5 +1,6 @@
 #include <iomanip> 
 #include <iostream>
+#include <string>
 #include "mgard_cuda_helper.h"
 #include "mgard_cuda_helper_internal.h"
 
@@ -15,7 +16,25 @@ mgard_cuda_handle::mgard_cuda_handle (int num_of_queues){
 
   this->queues = (void *)ptr;
 
+  this->csv_prefix = "./";
 }
+
+
+mgard_cuda_handle::mgard_cuda_handle (int num_of_queues, std::string csv_prefix){
+  this->num_of_queues = num_of_queues;
+  cudaStream_t * ptr = new cudaStream_t[num_of_queues];
+
+  for (int i = 0; i < this->num_of_queues; i++) {
+    gpuErrchk(cudaStreamCreate(ptr+i));
+    // std::cout << "created a stream\n";
+  }
+
+  this->queues = (void *)ptr;
+
+  this->csv_prefix = csv_prefix;
+}
+
+
 
 void * mgard_cuda_handle::get(int i) {
   cudaStream_t * ptr = (cudaStream_t *)(this->queues);

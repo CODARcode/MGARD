@@ -11,6 +11,7 @@
 #include "mgard.h"
 #include <chrono>
 #include <fstream>
+#include <string>
 
 namespace mgard_common {
 
@@ -2385,7 +2386,7 @@ void refactor_3D(const int nr, const int nc, const int nf, const int nrow,
                  const int ncol, const int nfib, const int l_target, double *v,
                  std::vector<double> &work, std::vector<double> &work2d,
                  std::vector<double> &coords_x, std::vector<double> &coords_y,
-                 std::vector<double> &coords_z) {
+                 std::vector<double> &coords_z, std::string csv_prefix) {
 
   std::vector<double> v2d(nrow * ncol), fib_vec(nfib);
   std::vector<double> row_vec(ncol);
@@ -2418,7 +2419,7 @@ void refactor_3D(const int nr, const int nc, const int nf, const int nrow,
   double add_level_l_time = 0.0;
 
   std::ofstream timing_results;
-  timing_results.open ("refactor_3D.csv");
+  timing_results.open (csv_prefix + "refactor_3D.csv");
 
   for (int l = 0; l < l_target; ++l) {
     int stride = std::pow(2, l);
@@ -2945,7 +2946,7 @@ void recompose_3D(const int nr, const int nc, const int nf, const int nrow,
                   const int ncol, const int nfib, const int l_target, double *v,
                   std::vector<double> &work, std::vector<double> &work2d,
                   std::vector<double> &coords_x, std::vector<double> &coords_y,
-                  std::vector<double> &coords_z) {
+                  std::vector<double> &coords_z, std::string csv_prefix) {
   // recompose
 
   std::vector<double> v2d(nrow * ncol), fib_vec(nfib);
@@ -2986,7 +2987,7 @@ void recompose_3D(const int nr, const int nc, const int nf, const int nrow,
   double subtract_level_l_time2 = 0.0;
 
   std::ofstream timing_results;
-  timing_results.open ("recompose_3D.csv");
+  timing_results.open (csv_prefix + "recompose_3D.csv");
 
   //    //std::cout  << "recomposing" << "\n";
   for (int l = l_target; l > 0; --l) {
@@ -6147,7 +6148,8 @@ void project_first(const int nr, const int nc, const int nrow, const int ncol,
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
              const int l_target, double *v, std::vector<double> &work,
              std::vector<double> &coords_x, std::vector<double> &coords_y,
-             std::vector<double> &row_vec, std::vector<double> &col_vec) {
+             std::vector<double> &row_vec, std::vector<double> &col_vec,
+             std::string csv_prefix) {
 
  //std::cout << "***prep_2D***" << std::endl;
   std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
@@ -6166,7 +6168,7 @@ void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
   double add_level_l_time = 0.0;
 
   std::ofstream timing_results;
-  timing_results.open ("prep_2D.csv");
+  timing_results.open (csv_prefix + "prep_2D.csv");
 
   int l = 0;
   //    int stride = 1;
@@ -6369,7 +6371,8 @@ void prolongate_l(const int l, std::vector<double> &v,
 void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
                  const int l_target, double *v, std::vector<double> &work,
                  std::vector<double> &coords_x, std::vector<double> &coords_y,
-                 std::vector<double> &row_vec, std::vector<double> &col_vec) {
+                 std::vector<double> &row_vec, std::vector<double> &col_vec,
+                 std::string csv_prefix) {
   // refactor
   //    //std::cout  << "I am the general refactorer!" <<"\n";
   std::cout << "refactor_2D" << std::endl;
@@ -6393,7 +6396,7 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
   double add_level_l_time = 0.0;
 
   std::ofstream timing_results;
-  timing_results.open ("refactor_2D.csv");
+  timing_results.open (csv_prefix + "refactor_2D.csv");
 
   for (int l = 0; l < l_target; ++l) {
     int stride = std::pow(2, l); // current stride
@@ -6546,7 +6549,8 @@ void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
                   const int l_target, double *v, std::vector<double> &work,
                   std::vector<double> &coords_x, std::vector<double> &coords_y,
-                  std::vector<double> &row_vec, std::vector<double> &col_vec) {
+                  std::vector<double> &row_vec, std::vector<double> &col_vec,
+                  std::string csv_prefix) {
   // recompose
   //    //std::cout  << "recomposing" << "\n";
   //std::cout << "***recompose_2D***" << std::endl;
@@ -6574,7 +6578,7 @@ void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
   double prolongate_l_col_time = 0.0;
 
   std::ofstream timing_results;
-  timing_results.open ("recompose_2D.csv");
+  timing_results.open (csv_prefix + "recompose_2D.csv");
 
   for (int l = l_target; l > 0; --l) {
 
@@ -6826,7 +6830,8 @@ void prolongate_last(std::vector<double> &v, std::vector<double> &coords, int n,
 void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
               const int l_target, double *v, std::vector<double> &work,
               std::vector<double> &coords_x, std::vector<double> &coords_y,
-              std::vector<double> &row_vec, std::vector<double> &col_vec) {
+              std::vector<double> &row_vec, std::vector<double> &col_vec,
+              std::string csv_prefix) {
 
   //std::cout << "***postp_2D***" << std::endl;
   std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
@@ -6850,7 +6855,7 @@ void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
   double subtract_level_time = 0.0;
 
   std::ofstream timing_results;
-  timing_results.open ("postp_2D.csv");
+  timing_results.open (csv_prefix + "postp_2D.csv");
 
   int l = 0;
 
