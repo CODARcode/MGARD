@@ -6,7 +6,7 @@
 #include "mgard_cuda_compact_helper.h"
 #include "mgard_cuda_helper_internal.h"
 #include "mgard_nuni_2d_cuda_kernels.h"
-
+#include <chrono>
 
 
 #include <fstream>
@@ -113,6 +113,25 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
   int lddcwork1 = dcwork_pitch / sizeof(T);
   int lddcwork2 = nc;
 
+  T ** dcwork_2d_rc = new T*[handle.num_of_queues];
+  int * lddcwork_2d_rc = new int[handle.num_of_queues];
+  for (int i = 0; i < handle.num_of_queues; i++) {
+    size_t dcwork_2d_rc_pitch;
+    cudaMallocPitchHelper((void**)&dcwork_2d_rc[i], &dcwork_2d_rc_pitch, nc * sizeof(T), nr);
+    lddcwork_2d_rc[i] = dcwork_2d_rc_pitch / sizeof(T);
+  }
+
+  T ** dcwork_2d_cf = new T*[handle.num_of_queues];
+  int * lddcwork_2d_cf = new int[handle.num_of_queues];
+  for (int i = 0; i < handle.num_of_queues; i++) {
+    size_t dcwork_2d_cf_pitch;
+    cudaMallocPitchHelper((void**)&dcwork_2d_cf[i], &dcwork_2d_cf_pitch, nf * sizeof(T), nc);
+    lddcwork_2d_cf[i] = dcwork_2d_cf_pitch / sizeof(T);
+  }
+
+
+
+
   T * dccoords_r;
   cudaMallocHelper((void**)&dccoords_r, nr * sizeof(T));
   T * dccoords_c;
@@ -156,6 +175,25 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                   B, handle, 0, profile);
   }
 
+  T ** am_row = new T*[handle.num_of_queues];
+  T ** bm_row = new T*[handle.num_of_queues];
+  T ** am_col = new T*[handle.num_of_queues];
+  T ** bm_col = new T*[handle.num_of_queues];
+  T ** am_fib = new T*[handle.num_of_queues];
+  T ** bm_fib = new T*[handle.num_of_queues];
+  for (int i = 0; i < handle.num_of_queues; i++) {
+    cudaMallocHelper((void**)&am_row[i], nr*sizeof(T));
+    cudaMallocHelper((void**)&bm_row[i], nr*sizeof(T));
+    cudaMallocHelper((void**)&am_col[i], nc*sizeof(T));
+    cudaMallocHelper((void**)&bm_col[i], nc*sizeof(T));
+    cudaMallocHelper((void**)&am_fib[i], nf*sizeof(T));
+    cudaMallocHelper((void**)&bm_fib[i], nf*sizeof(T));
+  }
+
+
+  std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  std::chrono::duration<double> elapsed;
+
   int row_stride;
   int col_stride;
   int fib_stride;
@@ -189,6 +227,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
   double restriction_l_fib_cuda_sm_time = 0.0;
   double solve_tridiag_M_l_fib_cuda_sm_time = 0.0;
 
+  double correction_calculation_fused_time = 0.0;
+
   double add_level_l_cuda_cpt_time = 0.0;
 
   ret = org_to_pow2p1(nrow,   ncol,  nfib,  
@@ -213,6 +253,20 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     int stride = std::pow(2, l);
     int Cstride = stride * 2;
 
+    pow2p1_to_cpt_time = 0.0;
+    cpt_to_pow2p1_time = 0.0;
+
+    mass_mult_l_row_cuda_sm_time = 0.0;
+    restriction_l_row_cuda_sm_time = 0.0;
+    solve_tridiag_M_l_row_cuda_sm_time = 0.0;
+
+    mass_mult_l_col_cuda_sm_time = 0.0;
+    restriction_l_col_cuda_sm_time = 0.0;
+    solve_tridiag_M_l_col_cuda_sm_time = 0.0;
+
+    mass_mult_l_fib_cuda_sm_time = 0.0;
+    restriction_l_fib_cuda_sm_time = 0.0;
+    solve_tridiag_M_l_fib_cuda_sm_time = 0.0;
     // print_matrix(nfib,  nrow,   ncol,
     //              v,  ncol, nrow);
 
@@ -332,52 +386,60 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
                                 B, handle, 0, profile);
     copy_level_l_cuda_cpt_time = ret.time;
 
+    // fib_stride = Cstride;
+    // row_stride = Cstride;
+    // col_stride = Cstride;
+    // ret = pow2p1_to_cpt(nr,         nc,         nf,
+    //                     row_stride, col_stride, fib_stride,
+    //                     dwork,      lddwork1,   lddwork2,
+    //                     dcwork,     lddcwork1,  lddcwork2,
+    //                     B, handle, 0, profile);
+    // pow2p1_to_cpt_time += ret.time;
+
     fib_stride = Cstride;
     row_stride = Cstride;
     col_stride = Cstride;
-    ret = pow2p1_to_cpt(nr,         nc,         nf,
-                        row_stride, col_stride, fib_stride,
-                        dwork,      lddwork1,   lddwork2,
-                        dcwork,     lddcwork1,  lddcwork2,
-                        B, handle, 0, profile);
-    pow2p1_to_cpt_time += ret.time;
-
-    fib_stride = 1;
-    row_stride = 1;
-    col_stride = 1;
-    ret = assign_num_level_l_cuda_cpt(nr_l[l+1],  nc_l[l+1],  nf_l[l+1],
+    ret = assign_num_level_l_cuda_cpt(nr_l[0],  nc_l[0],  nf_l[0],
                                       row_stride, col_stride, fib_stride,
-                                      dcwork,     lddcwork1,  lddcwork2,
+                                      dwork,     lddwork1,  lddwork2,
                                       (T)0.0, B, handle, 0, profile);
     assign_num_level_l_cuda_cpt_time = ret.time;
 
-    fib_stride = Cstride;
-    row_stride = Cstride;
-    col_stride = Cstride;
-    ret = cpt_to_pow2p1(nr,         nc,         nf,
-                        row_stride, col_stride, fib_stride,
-                        dcwork,     lddcwork1,  lddcwork2,
-                        dwork,      lddwork1,   lddwork2,
-                        B, handle, 0, profile);
-    cpt_to_pow2p1_time += ret.time;
+    // fib_stride = Cstride;
+    // row_stride = Cstride;
+    // col_stride = Cstride;
+    // ret = cpt_to_pow2p1(nr,         nc,         nf,
+    //                     row_stride, col_stride, fib_stride,
+    //                     dcwork,     lddcwork1,  lddcwork2,
+    //                     dwork,      lddwork1,   lddwork2,
+    //                     B, handle, 0, profile);
+    // cpt_to_pow2p1_time += ret.time;
 
     // std::cout << "gpu before:\n";
     // print_matrix_cuda(nr,           nc,    nf,      
     //                   dwork,        lddwork1,     lddwork2,  
     //                   nf); 
-
+    bool local_profiling;
+    if (handle.num_of_queues > 1) {
+      local_profiling = false;
+    } else {
+      local_profiling = true;
+    }
+    start = std::chrono::high_resolution_clock::now();
     fib_stride = stride;
     for (int f = 0; f < nf; f += fib_stride) {
+      int queue_idx = (f / fib_stride) % handle.num_of_queues;
+      
       T * slice = dwork + f;
       int ldslice = lddwork2;
 
-      row_stride = 1 * lddwork1;
+      row_stride = stride * lddwork1;
       col_stride = stride * lddwork1;
       ret = pow2p1_to_cpt(nr*lddwork1,    nc*lddwork1,
                           row_stride, col_stride,
                           slice,      ldslice,
-                          dcwork,     lddcwork1,
-                          B, handle, 0, profile);
+                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
+                          B, handle, queue_idx, local_profiling);
       pow2p1_to_cpt_time += ret.time;
 
       // std::cout << "f before = " << f << "\n";
@@ -386,12 +448,12 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
 
       row_stride = 1;
       col_stride = 1;
-      ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l],
+      ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[l],    nc_l[l],
                                                         row_stride, col_stride,
-                                                        dcwork,     lddcwork1,
+                                                        dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                                         ddist_c_l[l],
-                                                        B, B, handle, 0, profile);
-      mass_mult_l_row_cuda_sm_time = ret.time;
+                                                        B, B, handle, queue_idx, local_profiling);
+      mass_mult_l_row_cuda_sm_time += ret.time;
 
       // // std::cout << "f after= " << f << "\n";
       // // print_matrix_cuda(nr_l[l],    nc_l[l],
@@ -399,21 +461,22 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
 
       row_stride = 1;
       col_stride = 1;
-      ret = mgard_2d::mgard_gen::restriction_l_row_cuda_sm(nr_l[0],     nc_l[l],
+      ret = mgard_2d::mgard_gen::restriction_l_row_cuda_sm(nr_l[l],     nc_l[l],
                                       row_stride,  col_stride,
-                                      dcwork,      lddcwork1,
+                                      dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                       ddist_c_l[l],
-                                      B, B, handle, 0, profile);
-      restriction_l_row_cuda_sm_time = ret.time;
+                                      B, B, handle, queue_idx, local_profiling);
+      restriction_l_row_cuda_sm_time += ret.time;
 
       row_stride = 1;
       col_stride = 2;//1;
-      ret = mgard_2d::mgard_gen::solve_tridiag_M_l_row_cuda_sm(nr_l[0],    nc_l[l],
+      ret = mgard_2d::mgard_gen::solve_tridiag_M_l_row_cuda_sm(nr_l[l],    nc_l[l],
                                           row_stride, col_stride,
-                                          dcwork,     lddcwork1,
+                                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                           ddist_c_l[l+1],
-                                          B, B, handle, 0, profile);
-      solve_tridiag_M_l_row_cuda_sm_time = ret.time;
+                                          am_row[queue_idx], bm_row[queue_idx],
+                                          B, B, handle, queue_idx, local_profiling);
+      solve_tridiag_M_l_row_cuda_sm_time += ret.time;
 
 
       // std::cout << "f before = " << f << "\n";
@@ -421,59 +484,60 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
       //                   dcwork,     lddcwork1); 
 
 
-      row_stride = stride;
+      row_stride = 1;
       col_stride = 2;
-      ret = mgard_2d::mgard_gen::mass_mult_l_col_cuda_sm(nr_l[0],     nc_l[l],
+      ret = mgard_2d::mgard_gen::mass_mult_l_col_cuda_sm(nr_l[l],     nc_l[l],
                                    row_stride,  col_stride,
-                                   dcwork,     lddcwork1,
+                                   dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                    ddist_r_l[l],
-                                   B, B, handle, 0, profile);
-      mass_mult_l_col_cuda_sm_time = ret.time;
+                                   B, B, handle, queue_idx, local_profiling);
+      mass_mult_l_col_cuda_sm_time += ret.time;
 
       // std::cout << "f after= " << f << "\n";
       // print_matrix_cuda(nr_l[0],     nc_l[l],
       //                   dcwork,     lddcwork1); 
 
-      row_stride = stride;
+      row_stride = 1;
       col_stride = 2;
-      ret = mgard_2d::mgard_gen::restriction_l_col_cuda_sm(nr_l[0],         nc_l[l],
+      ret = mgard_2d::mgard_gen::restriction_l_col_cuda_sm(nr_l[l],         nc_l[l],
                                       row_stride, col_stride,
-                                      dcwork, lddcwork1,
+                                      dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                       ddist_r_l[l],
-                                      B, B, handle, 0, profile);
-      restriction_l_col_cuda_sm_time = ret.time;
+                                      B, B, handle, queue_idx, local_profiling);
+      restriction_l_col_cuda_sm_time += ret.time;
 
-      row_stride = Cstride;
+      row_stride = 2;
       col_stride = 2;
-      ret = mgard_2d::mgard_gen::solve_tridiag_M_l_col_cuda_sm(nr_l[0],     nc_l[l],
+      ret = mgard_2d::mgard_gen::solve_tridiag_M_l_col_cuda_sm(nr_l[l],     nc_l[l],
                                           row_stride,    col_stride,
-                                          dcwork,        lddcwork1,
+                                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                           ddist_r_l[l+1],
-                                          B, B, handle, 0, profile);
-      solve_tridiag_M_l_col_cuda_sm_time = ret.time;
+                                          am_col[queue_idx], bm_col[queue_idx],
+                                          B, B, handle, queue_idx, local_profiling);
+      solve_tridiag_M_l_col_cuda_sm_time += ret.time;
 
-      row_stride = 1 * lddwork1;
+      row_stride = stride * lddwork1;
       col_stride = stride * lddwork1;
       ret = cpt_to_pow2p1(nr*lddwork1,    nc*lddwork1,
                           row_stride, col_stride,
-                          dcwork,     lddcwork1,
+                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                           slice,      ldslice,
-                          B, handle, 0, profile);
+                          B, handle, queue_idx, local_profiling);
       cpt_to_pow2p1_time += ret.time;
-
-
+      //handle.sync_all();
     }
 
+    handle.sync_all();
     // // // std::cout << "gpu after:\n";
     // // // print_matrix_cuda(nr,           nc,    nf,      
     // // //                   dwork,        lddwork1,     lddwork2,  
     // // //                   nf); 
 
-
+    //local_profiling = true;
 
     row_stride = Cstride;
     for (int r = 0; r < nr; r += row_stride) {
-    //for (int f = 0; f < 1; f += fib_stride) {
+      int queue_idx = (r / row_stride) % handle.num_of_queues;
       T * slice = dwork + r * lddwork1 * lddwork2;
       int ldslice = lddwork1;
 
@@ -482,36 +546,37 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
       ret = pow2p1_to_cpt(nc,         nf,
                           col_stride, fib_stride,
                           slice,      ldslice,
-                          dcwork,     lddcwork1,
-                          B, handle, 0, profile);
+                          dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
+                          B, handle, queue_idx, local_profiling);
       pow2p1_to_cpt_time += ret.time;
 
       col_stride = 1;
       fib_stride = 1;
       ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nc_l[l+1],    nf_l[l],
                                                         col_stride, fib_stride,
-                                                        dcwork,     lddcwork1,
+                                                        dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                                                         ddist_f_l[l],
-                                                        B, B, handle, 0, profile);
-      mass_mult_l_fib_cuda_sm_time = ret.time;
+                                                        B, B, handle, queue_idx, local_profiling);
+      mass_mult_l_fib_cuda_sm_time += ret.time;
 
       col_stride = 1;
       fib_stride = 1;
       ret = mgard_2d::mgard_gen::restriction_l_row_cuda_sm(nc_l[l+1],    nf_l[l],
                                                            col_stride, fib_stride,
-                                                           dcwork,      lddcwork1,
+                                                           dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                                                            ddist_f_l[l],
-                                                           B, B, handle, 0, profile);
-      restriction_l_fib_cuda_sm_time = ret.time;
+                                                           B, B, handle, queue_idx, local_profiling);
+      restriction_l_fib_cuda_sm_time += ret.time;
 
       col_stride = 1;
       fib_stride = 2;
       ret = mgard_2d::mgard_gen::solve_tridiag_M_l_row_cuda_sm(nc_l[l+1],    nf_l[l],
                                                                col_stride, fib_stride,
-                                                               dcwork,     lddcwork1,
+                                                               dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                                                                ddist_f_l[l+1],
-                                                               B, B, handle, 0, profile);
-      solve_tridiag_M_l_fib_cuda_sm_time = ret.time;
+                                                               am_fib[queue_idx], bm_fib[queue_idx],
+                                                               B, B, handle, queue_idx, local_profiling);
+      solve_tridiag_M_l_fib_cuda_sm_time += ret.time;
 
 
 
@@ -519,14 +584,19 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
       fib_stride = stride;
       ret = cpt_to_pow2p1(nc,         nf,
                           col_stride, fib_stride,
-                          dcwork,     lddcwork1,
+                          dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                           slice,      ldslice,
-                          B, handle, 0, profile);
+                          B, handle, queue_idx, local_profiling);
       cpt_to_pow2p1_time += ret.time;
 
 
     }
 
+    handle.sync_all();
+
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    correction_calculation_fused_time = elapsed.count();
 
     // // std::cout << "gpu dcv-before:\n";
     // // print_matrix_cuda(nr,           nc,    nf,      
@@ -569,26 +639,28 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
     //                     dcwork2, lddcwork21,  lddcwork22,  nf);
 
     if (profile) {
-      timing_results << l << ",pow2p1_to_cpt_time," << pow2p1_to_cpt_time << std::endl;
-      timing_results << l << ",cpt_to_pow2p1_time," << cpt_to_pow2p1_time << std::endl;
+      timing_results << l << ",pow2p1_to_cpt," << pow2p1_to_cpt_time << std::endl;
+      timing_results << l << ",cpt_to_pow2p1," << cpt_to_pow2p1_time << std::endl;
 
-      timing_results << l << ",pi_Ql_cuda_cpt_sm_time," << pi_Ql_cuda_cpt_sm_time << std::endl;
-      timing_results << l << ",copy_level_l_cuda_cpt_time," << copy_level_l_cuda_cpt_time << std::endl;
-      timing_results << l << ",assign_num_level_l_cuda_cpt_time," << assign_num_level_l_cuda_cpt_time << std::endl;
+      timing_results << l << ",pi_Ql," << pi_Ql_cuda_cpt_sm_time << std::endl;
+      timing_results << l << ",copy_level_l," << copy_level_l_cuda_cpt_time << std::endl;
+      timing_results << l << ",assign_num_level_l," << assign_num_level_l_cuda_cpt_time << std::endl;
 
-      timing_results << l << ",mass_mult_l_row_cuda_sm_time," << mass_mult_l_row_cuda_sm_time << std::endl;
-      timing_results << l << ",restriction_l_row_cuda_sm_time," << restriction_l_row_cuda_sm_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_row_cuda_sm_time," << solve_tridiag_M_l_row_cuda_sm_time << std::endl;
+      timing_results << l << ",mass_mult_l_row," << mass_mult_l_row_cuda_sm_time << std::endl;
+      timing_results << l << ",restriction_l_row," << restriction_l_row_cuda_sm_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_row," << solve_tridiag_M_l_row_cuda_sm_time << std::endl;
 
-      timing_results << l << ",mass_mult_l_col_cuda_sm_time," << mass_mult_l_col_cuda_sm_time << std::endl;
-      timing_results << l << ",restriction_l_col_cuda_sm_time," << restriction_l_col_cuda_sm_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_col_cuda_sm_time," << solve_tridiag_M_l_col_cuda_sm_time << std::endl;
+      timing_results << l << ",mass_mult_l_col," << mass_mult_l_col_cuda_sm_time << std::endl;
+      timing_results << l << ",restriction_l_col," << restriction_l_col_cuda_sm_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_col," << solve_tridiag_M_l_col_cuda_sm_time << std::endl;
 
-      timing_results << l << ",mass_mult_l_fib_cuda_sm_time," << mass_mult_l_fib_cuda_sm_time << std::endl;
-      timing_results << l << ",restriction_l_fib_cuda_sm_time," << restriction_l_fib_cuda_sm_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_fib_cuda_sm_time," << solve_tridiag_M_l_fib_cuda_sm_time << std::endl;
+      timing_results << l << ",mass_mult_l_fib," << mass_mult_l_fib_cuda_sm_time << std::endl;
+      timing_results << l << ",restriction_l_fib," << restriction_l_fib_cuda_sm_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_fib," << solve_tridiag_M_l_fib_cuda_sm_time << std::endl;
 
-      timing_results << l << ",add_level_l_cuda_cpt_time," << add_level_l_cuda_cpt_time << std::endl;
+      timing_results << l << ",correction_calculation_fused," << correction_calculation_fused_time << std::endl;
+
+      timing_results << l << ",add_level_l," << add_level_l_cuda_cpt_time << std::endl;
 
       total_time += pow2p1_to_cpt_time;
       total_time += cpt_to_pow2p1_time;
@@ -608,6 +680,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
       total_time += mass_mult_l_fib_cuda_sm_time;
       total_time += restriction_l_fib_cuda_sm_time;
       total_time += solve_tridiag_M_l_fib_cuda_sm_time;
+
+      total_time += correction_calculation_fused_time;
 
       total_time += add_level_l_cuda_cpt_time;
 
@@ -645,8 +719,8 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
   //                     dv2,    lddv21, lddv22, nfib);
 
   if (profile) {
-    timing_results << 0 << ",org_to_pow2p1_time," << org_to_pow2p1_time << std::endl;
-    timing_results << 0 << ",pow2p1_to_org_time," << pow2p1_to_org_time << std::endl;
+    timing_results << 0 << ",org_to_pow2p1," << org_to_pow2p1_time << std::endl;
+    timing_results << 0 << ",pow2p1_to_org," << pow2p1_to_org_time << std::endl;
     timing_results.close();
 
     total_time += org_to_pow2p1_time;
@@ -664,6 +738,17 @@ refactor_3D_cuda_cpt_l2_sm(int l_target,
   cudaFreeHelper(dccoords_r);
   cudaFreeHelper(dccoords_c);
   cudaFreeHelper(dccoords_f);
+
+  for (int i = 0; i < handle.num_of_queues; i++) {
+    cudaFreeHelper(am_row[i]);
+    cudaFreeHelper(bm_row[i]);
+    cudaFreeHelper(am_col[i]);
+    cudaFreeHelper(bm_col[i]);
+    cudaFreeHelper(am_fib[i]);
+    cudaFreeHelper(bm_fib[i]);
+    cudaFreeHelper(dcwork_2d_rc[i]);
+    cudaFreeHelper(dcwork_2d_cf[i]);
+  }
 
   return mgard_cuda_ret(0, total_time);
 
@@ -714,6 +799,22 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
   int lddcwork1 = dcwork_pitch / sizeof(T);
   int lddcwork2 = nc;
 
+  T ** dcwork_2d_rc = new T*[handle.num_of_queues];
+  int * lddcwork_2d_rc = new int[handle.num_of_queues];
+  for (int i = 0; i < handle.num_of_queues; i++) {
+    size_t dcwork_2d_rc_pitch;
+    cudaMallocPitchHelper((void**)&dcwork_2d_rc[i], &dcwork_2d_rc_pitch, nc * sizeof(T), nr);
+    lddcwork_2d_rc[i] = dcwork_2d_rc_pitch / sizeof(T);
+  }
+
+  T ** dcwork_2d_cf = new T*[handle.num_of_queues];
+  int * lddcwork_2d_cf = new int[handle.num_of_queues];
+  for (int i = 0; i < handle.num_of_queues; i++) {
+    size_t dcwork_2d_cf_pitch;
+    cudaMallocPitchHelper((void**)&dcwork_2d_cf[i], &dcwork_2d_cf_pitch, nf * sizeof(T), nc);
+    lddcwork_2d_cf[i] = dcwork_2d_cf_pitch / sizeof(T);
+  }
+
   // T * dwork2;
   // size_t dwork2_pitch;
   // cudaMalloc3DHelper((void**)&dwork2, &dwork2_pitch, nfib * sizeof(T), ncol, nrow);
@@ -763,6 +864,24 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
                   B, handle, 0, profile);
   }
 
+  T ** am_row = new T*[handle.num_of_queues];
+  T ** bm_row = new T*[handle.num_of_queues];
+  T ** am_col = new T*[handle.num_of_queues];
+  T ** bm_col = new T*[handle.num_of_queues];
+  T ** am_fib = new T*[handle.num_of_queues];
+  T ** bm_fib = new T*[handle.num_of_queues];
+  for (int i = 0; i < handle.num_of_queues; i++) {
+    cudaMallocHelper((void**)&am_row[i], nr*sizeof(T));
+    cudaMallocHelper((void**)&bm_row[i], nr*sizeof(T));
+    cudaMallocHelper((void**)&am_col[i], nc*sizeof(T));
+    cudaMallocHelper((void**)&bm_col[i], nc*sizeof(T));
+    cudaMallocHelper((void**)&am_fib[i], nf*sizeof(T));
+    cudaMallocHelper((void**)&bm_fib[i], nf*sizeof(T));
+  }
+
+  std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  std::chrono::duration<double> elapsed;
+
   int row_stride;
   int col_stride;
   int fib_stride;
@@ -795,14 +914,18 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
   double restriction_l_fib_cuda_sm_time = 0.0;
   double solve_tridiag_M_l_fib_cuda_sm_time = 0.0;
 
-  double subtract_level_cuda_cpt_time = 0.0;
+  double correction_calculation_fused_time = 0.0;
+
+  double subtract_level_l_cuda_cpt_time = 0.0;
 
   double prolongate_l_row_cuda_sm_time = 0.0;
   double prolongate_l_col_cuda_sm_time = 0.0;
   double prolongate_l_fib_cuda_sm_time = 0.0;
 
+  double prolongate_caculation_fused_time = 0.0;
+
   double assign_num_level_l_cuda_cpt_time2 = 0.0;
-  double subtract_level_cuda_cpt_time2 = 0.0;
+  double subtract_level_l_cuda_cpt_time2 = 0.0;
   
 
   // recompose
@@ -825,6 +948,27 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
 
     int stride = std::pow(2, l); // current stride
     int Pstride = stride / 2;
+
+    pow2p1_to_cpt_time = 0.0;
+    cpt_to_pow2p1_time = 0.0;
+
+
+    mass_mult_l_row_cuda_sm_time = 0.0;
+    restriction_l_row_cuda_sm_time = 0.0;
+    solve_tridiag_M_l_row_cuda_sm_time = 0.0;
+
+    mass_mult_l_col_cuda_sm_time = 0.0;
+    restriction_l_col_cuda_sm_time = 0.0;
+    solve_tridiag_M_l_col_cuda_sm_time = 0.0;
+
+    mass_mult_l_fib_cuda_sm_time = 0.0;
+    restriction_l_fib_cuda_sm_time = 0.0;
+    solve_tridiag_M_l_fib_cuda_sm_time = 0.0;
+
+    prolongate_l_row_cuda_sm_time = 0.0;
+    prolongate_l_col_cuda_sm_time = 0.0;
+    prolongate_l_fib_cuda_sm_time = 0.0;
+
     //printf("l = %d, stride = %d, Pstride = %d\n", l, stride, Pstride);
 
 
@@ -853,34 +997,34 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
                           B, handle, 0, profile);
     copy_level_l_cuda_cpt_time = ret.time;
 
+    // fib_stride = stride;
+    // row_stride = stride;
+    // col_stride = stride;
+    // ret = pow2p1_to_cpt(nr,         nc,         nf,
+    //                     row_stride, col_stride, fib_stride,
+    //                     dwork,      lddwork1,   lddwork2,
+    //                     dcwork,     lddcwork1,  lddcwork2,
+    //                     B, handle, 0, profile);
+    // pow2p1_to_cpt_time += ret.time;
+
     fib_stride = stride;
     row_stride = stride;
     col_stride = stride;
-    ret = pow2p1_to_cpt(nr,         nc,         nf,
-                        row_stride, col_stride, fib_stride,
-                        dwork,      lddwork1,   lddwork2,
-                        dcwork,     lddcwork1,  lddcwork2,
-                        B, handle, 0, profile);
-    pow2p1_to_cpt_time += ret.time;
-
-    fib_stride = 1;
-    row_stride = 1;
-    col_stride = 1;
-    ret = assign_num_level_l_cuda_cpt(nr_l[l],  nc_l[l],  nf_l[l],
+    ret = assign_num_level_l_cuda_cpt(nr_l[0],  nc_l[0],  nf_l[0],
                                       row_stride, col_stride, fib_stride,
-                                      dcwork,     lddcwork1,  lddcwork2,
+                                      dwork,     lddwork1,  lddwork2,
                                       (T)0.0, B, handle, 0, profile);
     assign_num_level_l_cuda_cpt_time = ret.time;
 
-    fib_stride = stride;
-    row_stride = stride;
-    col_stride = stride;
-    ret = cpt_to_pow2p1(nr,         nc,         nf,
-                        row_stride, col_stride, fib_stride,
-                        dcwork,     lddcwork1,  lddcwork2,
-                        dwork,      lddwork1,   lddwork2,
-                        B, handle, 0, profile);
-    cpt_to_pow2p1_time += ret.time;
+    // fib_stride = stride;
+    // row_stride = stride;
+    // col_stride = stride;
+    // ret = cpt_to_pow2p1(nr,         nc,         nf,
+    //                     row_stride, col_stride, fib_stride,
+    //                     dcwork,     lddcwork1,  lddcwork2,
+    //                     dwork,      lddwork1,   lddwork2,
+    //                     B, handle, 0, profile);
+    // cpt_to_pow2p1_time += ret.time;
 
 
 
@@ -918,19 +1062,27 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
     // print_matrix_cuda(nr,           nc,    nf,      
     //                   dwork,        lddwork1,     lddwork2,  
     //                   nf); 
+    bool local_profiling;
+    if (handle.num_of_queues > 1) {
+      local_profiling = false;
+    } else {
+      local_profiling = true;
+    }
+    start = std::chrono::high_resolution_clock::now();
 
     fib_stride = Pstride;
     for (int f = 0; f < nf; f += fib_stride) {
+      int queue_idx = (f / fib_stride) % handle.num_of_queues;
       T * slice = dwork + f;
       int ldslice = lddwork2;
 
-      row_stride = 1 * lddwork1;
+      row_stride = Pstride * lddwork1;
       col_stride = Pstride * lddwork1;
       ret = pow2p1_to_cpt(nr*lddwork1,    nc*lddwork1,
                           row_stride, col_stride,
                           slice,      ldslice,
-                          dcwork,     lddcwork1,
-                          B, handle, 0, profile);
+                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
+                          B, handle, queue_idx, local_profiling);
       pow2p1_to_cpt_time += ret.time;
 
       // std::cout << "f  = " << f << "\n";
@@ -944,12 +1096,12 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
 
       row_stride = 1;
       col_stride = 1;
-      ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l-1],
+      ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nr_l[l-1],    nc_l[l-1],
                                                         row_stride, col_stride,
-                                                        dcwork,     lddcwork1,
+                                                        dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                                         ddist_c_l[l-1],
-                                                        B, B, handle, 0, profile);
-      mass_mult_l_row_cuda_sm_time = ret.time;
+                                                        B, B, handle, queue_idx, local_profiling);
+      mass_mult_l_row_cuda_sm_time += ret.time;
 
       // // std::cout << "f after= " << f << "\n";
       // // print_matrix_cuda(nr_l[l],    nc_l[l],
@@ -959,19 +1111,20 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
       col_stride = 1;
       ret = mgard_2d::mgard_gen::restriction_l_row_cuda_sm(nr_l[0],     nc_l[l-1],
                                       row_stride,  col_stride,
-                                      dcwork,      lddcwork1,
+                                      dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                       ddist_c_l[l-1],
-                                      B, B, handle, 0, profile);
-      restriction_l_row_cuda_sm_time = ret.time;
+                                      B, B, handle, queue_idx, local_profiling);
+      restriction_l_row_cuda_sm_time += ret.time;
 
       row_stride = 1;
       col_stride = 2;//1;
       ret = mgard_2d::mgard_gen::solve_tridiag_M_l_row_cuda_sm(nr_l[0],    nc_l[l-1],
                                           row_stride, col_stride,
-                                          dcwork,     lddcwork1,
+                                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                           ddist_c_l[l],
-                                          B, B, handle, 0, profile);
-      solve_tridiag_M_l_row_cuda_sm_time = ret.time;
+                                          am_row[queue_idx], bm_row[queue_idx],
+                                          B, B, handle, queue_idx, local_profiling);
+      solve_tridiag_M_l_row_cuda_sm_time += ret.time;
 
 
       // std::cout << "f before = " << f << "\n";
@@ -979,36 +1132,37 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
       //                   dcwork,     lddcwork1); 
 
 
-      row_stride = Pstride;
+      row_stride = 1;
       col_stride = 2;
-      ret = mgard_2d::mgard_gen::mass_mult_l_col_cuda_sm(nr_l[0],     nc_l[l-1],
+      ret = mgard_2d::mgard_gen::mass_mult_l_col_cuda_sm(nr_l[l-1],     nc_l[l-1],
                                    row_stride,  col_stride,
-                                   dcwork,     lddcwork1,
+                                   dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                    ddist_r_l[l-1],
-                                   B, B, handle, 0, profile);
-      mass_mult_l_col_cuda_sm_time = ret.time;
+                                   B, B, handle, queue_idx, local_profiling);
+      mass_mult_l_col_cuda_sm_time += ret.time;
 
       // std::cout << "f after= " << f << "\n";
       // print_matrix_cuda(nr_l[0],     nc_l[l],
       //                   dcwork,     lddcwork1); 
 
-      row_stride = Pstride;
+      row_stride = 1;
       col_stride = 2;
-      ret = mgard_2d::mgard_gen::restriction_l_col_cuda_sm(nr_l[0],         nc_l[l-1],
+      ret = mgard_2d::mgard_gen::restriction_l_col_cuda_sm(nr_l[l-1],         nc_l[l-1],
                                       row_stride, col_stride,
-                                      dcwork, lddcwork1,
+                                      dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                       ddist_r_l[l-1],
-                                      B, B, handle, 0, profile);
-      restriction_l_col_cuda_sm_time = ret.time;
+                                      B, B, handle, queue_idx, local_profiling);
+      restriction_l_col_cuda_sm_time += ret.time;
 
-      row_stride = stride;
+      row_stride = 2;
       col_stride = 2;
-      ret = mgard_2d::mgard_gen::solve_tridiag_M_l_col_cuda_sm(nr_l[0],     nc_l[l-1],
+      ret = mgard_2d::mgard_gen::solve_tridiag_M_l_col_cuda_sm(nr_l[l-1],     nc_l[l-1],
                                           row_stride,    col_stride,
-                                          dcwork,        lddcwork1,
+                                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                           ddist_r_l[l],
-                                          B, B, handle, 0, profile);
-      solve_tridiag_M_l_col_cuda_sm_time = ret.time;
+                                          am_col[queue_idx], bm_col[queue_idx],
+                                          B, B, handle, queue_idx, local_profiling);
+      solve_tridiag_M_l_col_cuda_sm_time += ret.time;
 
       // row_stride = 1 * lddwork1;
       // col_stride = Pstride * lddwork1;
@@ -1019,23 +1173,23 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
       //                     B, handle, 0, profile);
       // cpt_to_pow2p1_time += ret.time;
 
-      row_stride = 1 * lddwork1;
+      row_stride = Pstride * lddwork1;
       col_stride = Pstride * lddwork1;
       ret = cpt_to_pow2p1(nr*lddwork1,    nc*lddwork1,
                           row_stride, col_stride,
-                          dcwork,     lddcwork1,
+                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                           slice,      ldslice,
-                          B, handle, 0, profile);
+                          B, handle, queue_idx, local_profiling);
       cpt_to_pow2p1_time += ret.time;
 
 
     }
 
-
+    handle.sync_all();
 
     row_stride = stride;
     for (int r = 0; r < nr; r += row_stride) {
-    //for (int f = 0; f < 1; f += fib_stride) {
+      int queue_idx = (r / row_stride) % handle.num_of_queues;
       T * slice = dwork + r * lddwork1 * lddwork2;
       int ldslice = lddwork1;
 
@@ -1044,36 +1198,37 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
       ret = pow2p1_to_cpt(nc,         nf,
                           col_stride, fib_stride,
                           slice,      ldslice,
-                          dcwork,     lddcwork1,
-                          B, handle, 0, profile);
+                          dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
+                          B, handle, queue_idx, local_profiling);
       pow2p1_to_cpt_time += ret.time;
 
       col_stride = 1;
       fib_stride = 1;
       ret = mgard_2d::mgard_gen::mass_mult_l_row_cuda_sm(nc_l[l],    nf_l[l-1],
                                                         col_stride, fib_stride,
-                                                        dcwork,     lddcwork1,
+                                                        dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                                                         ddist_f_l[l-1],
-                                                        B, B, handle, 0, profile);
-      mass_mult_l_fib_cuda_sm_time = ret.time;
+                                                        B, B, handle, queue_idx, local_profiling);
+      mass_mult_l_fib_cuda_sm_time += ret.time;
 
       col_stride = 1;
       fib_stride = 1;
       ret = mgard_2d::mgard_gen::restriction_l_row_cuda_sm(nc_l[l],    nf_l[l-1],
                                                            col_stride, fib_stride,
-                                                           dcwork,      lddcwork1,
+                                                           dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                                                            ddist_f_l[l-1],
-                                                           B, B, handle, 0, profile);
-      restriction_l_fib_cuda_sm_time = ret.time;
+                                                           B, B, handle, queue_idx, local_profiling);
+      restriction_l_fib_cuda_sm_time += ret.time;
 
       col_stride = 1;
       fib_stride = 2;
       ret = mgard_2d::mgard_gen::solve_tridiag_M_l_row_cuda_sm(nc_l[l],    nf_l[l-1],
                                                                col_stride, fib_stride,
-                                                               dcwork,     lddcwork1,
+                                                               dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                                                                ddist_f_l[l],
-                                                               B, B, handle, 0, profile);
-      solve_tridiag_M_l_fib_cuda_sm_time = ret.time;
+                                                               am_fib[queue_idx], bm_fib[queue_idx],
+                                                               B, B, handle, queue_idx, local_profiling);
+      solve_tridiag_M_l_fib_cuda_sm_time += ret.time;
 
 
 
@@ -1081,16 +1236,20 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
       fib_stride = Pstride;
       ret = cpt_to_pow2p1(nc,         nf,
                           col_stride, fib_stride,
-                          dcwork,     lddcwork1,
+                          dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                           slice,      ldslice,
-                          B, handle, 0, profile);
+                          B, handle, queue_idx, local_profiling);
       cpt_to_pow2p1_time += ret.time;
 
 
     }
 
 
+    handle.sync_all();
 
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    correction_calculation_fused_time = elapsed.count();
 
     // print_matrix_cuda(nr,           nc,    nf,      
     //                   dwork,        lddwork1,     lddwork2,  
@@ -1157,7 +1316,7 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
                                    dwork,      lddwork1,   lddwork2,
                                    dcv,        lddcv1,     lddcv2,
                                    B, handle, 0, profile);
-    subtract_level_cuda_cpt_time = ret.time;
+    subtract_level_l_cuda_cpt_time = ret.time;
 
 
     // cudaMemcpy3DAsyncHelper(dwork2, lddwork21 * sizeof(double), nfib * sizeof(double), ncol,
@@ -1172,9 +1331,11 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
     //               dwork2, lddwork21,  lddwork22,
     //               dwork, lddwork1,  lddwork2,
     //               B, handle, 0, profile);
-
+    handle.sync_all();
+    start = std::chrono::high_resolution_clock::now();
     fib_stride = stride;
     for (int f = 0; f < nf; f += fib_stride) {
+      int queue_idx = (f / fib_stride) % handle.num_of_queues;
       T * slice = dwork + f;
       int ldslice = lddwork2;
 
@@ -1183,46 +1344,48 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
       ret = pow2p1_to_cpt(nr*lddwork1,    nc*lddwork1,
                           row_stride, col_stride,
                           slice,      ldslice,
-                          dcwork,     lddcwork1,
-                          B, handle, 0, profile);
+                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
+                          B, handle, queue_idx, local_profiling);
       pow2p1_to_cpt_time += ret.time;
 
       row_stride = 2;
       col_stride = 1;
       ret = mgard_2d::mgard_gen::prolongate_l_row_cuda_sm(nr_l[l-1],    nc_l[l-1],
                                      row_stride, col_stride,
-                                     dcwork,     lddcwork1,
+                                     dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                      ddist_c_l[l-1],
                                      B,
-                                     handle, 0, profile);
-      prolongate_l_row_cuda_sm_time = ret.time;
+                                     handle, queue_idx, local_profiling);
+      prolongate_l_row_cuda_sm_time += ret.time;
 
       row_stride = 1;
       col_stride = 1;
       ret = mgard_2d::mgard_gen::prolongate_l_col_cuda_sm(nr_l[l-1],  nc_l[l-1],
                                      row_stride, col_stride,
-                                     dcwork,     lddcwork1,
+                                     dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                                      ddist_r_l[l-1],
                                      B,
-                                     handle, 0, profile);
-      prolongate_l_col_cuda_sm_time = ret.time;
+                                     handle, queue_idx, local_profiling);
+      prolongate_l_col_cuda_sm_time += ret.time;
 
 
       row_stride = Pstride * lddwork1;
       col_stride = Pstride * lddwork1;
       ret = cpt_to_pow2p1(nr*lddwork1,    nc*lddwork1,
                           row_stride, col_stride,
-                          dcwork,     lddcwork1,
+                          dcwork_2d_rc[queue_idx], lddcwork_2d_rc[queue_idx],
                           slice,      ldslice,
-                          B, handle, 0, profile);
+                          B, handle, queue_idx, local_profiling);
       cpt_to_pow2p1_time += ret.time;
 
 
     }
 
+    handle.sync_all();
 
     row_stride = Pstride;
     for (int r = 0; r < nr; r += row_stride) {
+      int queue_idx = (r / row_stride) % handle.num_of_queues;
       T * slice = dwork + r * lddwork1 * lddwork2;
       int ldslice = lddwork1;
 
@@ -1231,8 +1394,8 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
       ret = pow2p1_to_cpt(nc,         nf,
                           col_stride, fib_stride,
                           slice,      ldslice,
-                          dcwork,     lddcwork1,
-                          B, handle, 0, profile);
+                          dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
+                          B, handle, queue_idx, local_profiling);
       pow2p1_to_cpt_time += ret.time;
 
 
@@ -1240,25 +1403,28 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
       fib_stride = 1;
       ret = mgard_2d::mgard_gen::prolongate_l_row_cuda_sm(nc_l[l-1],    nf_l[l-1],
                                                            col_stride, fib_stride,
-                                                           dcwork,     lddcwork1,
+                                                           dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                                                            ddist_f_l[l-1],
                                                            B,
-                                                           handle, 0, profile);
-      prolongate_l_fib_cuda_sm_time = ret.time;
+                                                           handle, queue_idx, local_profiling);
+      prolongate_l_fib_cuda_sm_time += ret.time;
 
       col_stride = Pstride;
       fib_stride = Pstride;
       ret = cpt_to_pow2p1(nc,         nf,
                           col_stride, fib_stride,
-                          dcwork,     lddcwork1,
+                          dcwork_2d_cf[queue_idx], lddcwork_2d_cf[queue_idx],
                           slice,      ldslice,
-                          B, handle, 0, profile);
+                          B, handle, queue_idx, local_profiling);
       cpt_to_pow2p1_time += ret.time;
 
 
     }
 
-
+    handle.sync_all();
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    prolongate_caculation_fused_time = elapsed.count();
 
     // pow2p1_to_org(nrow,   ncol,   nfib,  
     //               nr,     nc,     nf,
@@ -1373,7 +1539,7 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
                                    dcv,        lddcv1,     lddcv2,
                                    dwork,      lddwork1,   lddwork2,
                                    B, handle, 0, profile);
-    subtract_level_cuda_cpt_time2 = ret.time;
+    subtract_level_l_cuda_cpt_time2 = ret.time;
 
     // pow2p1_to_org(nrow,  ncol,   nfib,  
     //             nr,    nc,     nf,    
@@ -1389,32 +1555,37 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
     //                      D2H, handle, 0, profile);
 
     if (profile) {
-      timing_results << l << ",pow2p1_to_cpt_time," << pow2p1_to_cpt_time << std::endl;
-      timing_results << l << ",cpt_to_pow2p1_time," << cpt_to_pow2p1_time << std::endl;
+      timing_results << l << ",pow2p1_to_cpt," << pow2p1_to_cpt_time << std::endl;
+      timing_results << l << ",cpt_to_pow2p1," << cpt_to_pow2p1_time << std::endl;
 
-      timing_results << l << ",copy_level_l_cuda_cpt_time," << copy_level_l_cuda_cpt_time << std::endl;
-      timing_results << l << ",assign_num_level_l_cuda_cpt_time," << assign_num_level_l_cuda_cpt_time << std::endl;
+      timing_results << l << ",copy_level_l," << copy_level_l_cuda_cpt_time << std::endl;
+      timing_results << l << ",assign_num_level_l," << assign_num_level_l_cuda_cpt_time << std::endl;
 
-      timing_results << l << ",mass_mult_l_row_cuda_sm_time," << mass_mult_l_row_cuda_sm_time << std::endl;
-      timing_results << l << ",restriction_l_row_cuda_sm_time," << restriction_l_row_cuda_sm_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_row_cuda_sm_time," << solve_tridiag_M_l_row_cuda_sm_time << std::endl;
+      timing_results << l << ",mass_mult_l_row," << mass_mult_l_row_cuda_sm_time << std::endl;
+      timing_results << l << ",restriction_l_row," << restriction_l_row_cuda_sm_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_row," << solve_tridiag_M_l_row_cuda_sm_time << std::endl;
 
-      timing_results << l << ",mass_mult_l_col_cuda_sm_time," << mass_mult_l_col_cuda_sm_time << std::endl;
-      timing_results << l << ",restriction_l_col_cuda_sm_time," << restriction_l_col_cuda_sm_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_col_cuda_sm_time," << solve_tridiag_M_l_col_cuda_sm_time << std::endl;
+      timing_results << l << ",mass_mult_l_col," << mass_mult_l_col_cuda_sm_time << std::endl;
+      timing_results << l << ",restriction_l_col," << restriction_l_col_cuda_sm_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_col," << solve_tridiag_M_l_col_cuda_sm_time << std::endl;
 
-      timing_results << l << ",mass_mult_l_fib_cuda_sm_time," << mass_mult_l_fib_cuda_sm_time << std::endl;
-      timing_results << l << ",restriction_l_fib_cuda_sm_time," << restriction_l_fib_cuda_sm_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_fib_cuda_sm_time," << solve_tridiag_M_l_fib_cuda_sm_time << std::endl;
+      timing_results << l << ",mass_mult_l_fib," << mass_mult_l_fib_cuda_sm_time << std::endl;
+      timing_results << l << ",restriction_l_fib," << restriction_l_fib_cuda_sm_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_fib," << solve_tridiag_M_l_fib_cuda_sm_time << std::endl;
 
-      timing_results << l << ",subtract_level_cuda_cpt_time," << subtract_level_cuda_cpt_time << std::endl;
+      timing_results << l << ",correction_calculation_fused," << correction_calculation_fused_time << std::endl;
 
-      timing_results << l << ",prolongate_l_row_cuda_sm_time," << subtract_level_cuda_cpt_time << std::endl;
-      timing_results << l << ",prolongate_l_col_cuda_sm_time," << subtract_level_cuda_cpt_time << std::endl;
-      timing_results << l << ",prolongate_l_fib_cuda_sm_time," << subtract_level_cuda_cpt_time << std::endl;
+      timing_results << l << ",subtract_level_l," << subtract_level_l_cuda_cpt_time << std::endl;
 
-      timing_results << l << ",assign_num_level_l_cuda_cpt_time2," << subtract_level_cuda_cpt_time << std::endl;
-      timing_results << l << ",subtract_level_cuda_cpt_time2," << subtract_level_cuda_cpt_time << std::endl;
+      timing_results << l << ",prolongate_l_row," << prolongate_l_row_cuda_sm_time << std::endl;
+      timing_results << l << ",prolongate_l_col," << prolongate_l_col_cuda_sm_time << std::endl;
+      timing_results << l << ",prolongate_l_fib," << prolongate_l_fib_cuda_sm_time << std::endl;
+
+      timing_results << l << ",prolongate_caculation_fused," << prolongate_caculation_fused_time << std::endl;
+
+
+      timing_results << l << ",assign_num_level_l," << assign_num_level_l_cuda_cpt_time2 << std::endl;
+      timing_results << l << ",subtract_level_l," << subtract_level_l_cuda_cpt_time2 << std::endl;
 
       total_time += pow2p1_to_cpt_time;
       total_time += cpt_to_pow2p1_time;
@@ -1434,14 +1605,18 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
       total_time += restriction_l_fib_cuda_sm_time;
       total_time += solve_tridiag_M_l_fib_cuda_sm_time;
 
-      total_time += subtract_level_cuda_cpt_time;
+      total_time += correction_calculation_fused_time;
+
+      total_time += subtract_level_l_cuda_cpt_time;
 
       total_time += prolongate_l_row_cuda_sm_time;
       total_time += prolongate_l_col_cuda_sm_time;
       total_time += prolongate_l_fib_cuda_sm_time;
 
+      total_time += prolongate_caculation_fused_time;
+
       total_time += assign_num_level_l_cuda_cpt_time2;
-      total_time += subtract_level_cuda_cpt_time2;
+      total_time += subtract_level_l_cuda_cpt_time2;
 
     }
 
@@ -1456,8 +1631,8 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
   pow2p1_to_org_time = ret.time;
 
   if (profile) {
-    timing_results << 0 << ",org_to_pow2p1_time," << org_to_pow2p1_time << std::endl;
-    timing_results << 0 << ",pow2p1_to_org_time," << pow2p1_to_org_time << std::endl;
+    timing_results << 0 << ",org_to_pow2p1," << org_to_pow2p1_time << std::endl;
+    timing_results << 0 << ",pow2p1_to_org," << pow2p1_to_org_time << std::endl;
     timing_results.close();
 
     total_time += org_to_pow2p1_time;
@@ -1475,6 +1650,15 @@ recompose_3D_cuda_cpt_l2_sm(const int l_target,
   cudaFreeHelper(dccoords_r);
   cudaFreeHelper(dccoords_c);
   cudaFreeHelper(dccoords_f);
+
+  for (int i = 0; i < handle.num_of_queues; i++) {
+    cudaFreeHelper(am_row[i]);
+    cudaFreeHelper(bm_row[i]);
+    cudaFreeHelper(am_col[i]);
+    cudaFreeHelper(bm_col[i]);
+    cudaFreeHelper(am_fib[i]);
+    cudaFreeHelper(bm_fib[i]);
+  }
 
   return mgard_cuda_ret(0, total_time);
 

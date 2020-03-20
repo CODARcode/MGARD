@@ -538,7 +538,7 @@ _restriction_l_col_cuda_sm(int nr,         int nc,
         prev_h1 = dist_y_sm[blockDim.y - 2]; //_dist_restriction_l(dcoords_x_sm, blockDim.x - 2, blockDim.x - 1);
         prev_h2 = dist_y_sm[blockDim.y - 1]; //_dist_restriction_l(dcoords_x_sm, blockDim.x - 1, blockDim.x);
       }
-
+      __syncthreads();
       // advance c0
       r0 += blockDim.y;
       r0_stride += blockDim.y * row_stride;

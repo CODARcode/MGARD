@@ -577,9 +577,9 @@ _mass_mult_l_col_cuda_sm(int nr,         int nc,
     if (c0_sm == 0 && r0_sm < real_ghost_row) {
         dist_y_sm[r0_sm] = ddist_y[r0];
     }
+    __syncthreads();
 
     rest_row -= real_ghost_row;
-    __syncthreads();
 
     while (rest_row > blockDim.y - real_ghost_row) {
       //load main column
@@ -605,17 +605,16 @@ _mass_mult_l_col_cuda_sm(int nr,         int nc,
       vec[r0_stride * lddv] = result;
       __syncthreads();
       
-      // store last column
+      // store last row
       if (r0_sm == 0) {
         prev_vec_sm = vec_sm[(blockDim.y - 1) * ldsm];
         prev_dist_y = dist_y_sm[blockDim.y - 1];
       }
-
       // advance c0
       r0_stride += blockDim.y * row_stride;
       r0 += blockDim.y;
       c_dist += blockDim.y;
-
+      __syncthreads();
       // copy ghost to main
       real_ghost_row = min(ghost_row, real_main_row - (blockDim.y - ghost_row));
       if (r0_sm < real_ghost_row) {
@@ -624,24 +623,28 @@ _mass_mult_l_col_cuda_sm(int nr,         int nc,
       if (c0_sm == 0 && r0_sm < real_ghost_row) {
         dist_y_sm[r0_sm] = dist_y_sm[r0_sm + blockDim.y];
       }
-      __syncthreads();
+      
       rest_row -= real_main_row;
+      __syncthreads();
     } //end while
 
     if (r0_sm < rest_row) {
       vec_sm[(r0_sm + real_ghost_row) * ldsm] = vec[(r0_stride + real_ghost_row * row_stride) * lddv]; 
     }
+    //__syncthreads();
     if (c0_sm == 0 && r0_sm < rest_row) {
       dist_y_sm[r0_sm + real_ghost_row] = ddist_y[r0 + real_ghost_row];
     }
-    __syncthreads();
+    
 
     if (real_ghost_row + rest_row == 1) {
+
       if (r0_sm == 0) {
         h1 = prev_dist_y;
         result = h1 * prev_vec_sm + 2 * h1 * vec_sm[r0_sm * ldsm];
         vec[r0_stride * lddv] = result;
       }
+      //__syncthreads();
     } else {
       if (r0_sm < real_ghost_row + rest_row) {     
         if (r0_sm == 0) {
@@ -656,10 +659,11 @@ _mass_mult_l_col_cuda_sm(int nr,         int nc,
           h2 = dist_y_sm[r0_sm];
           result = h1 * vec_sm[(r0_sm - 1) * ldsm] + 2 * (h1 + h2) * vec_sm[r0_sm * ldsm] + h2 * vec_sm[(r0_sm + 1) * ldsm];
         }
-        __syncthreads();
         vec[r0_stride * lddv] = result;
       }
     }
+    __syncthreads();    
+
   }
 }
 

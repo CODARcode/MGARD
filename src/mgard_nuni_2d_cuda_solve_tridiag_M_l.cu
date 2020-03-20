@@ -849,16 +849,17 @@ solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
                               T * dv,    int lddv,
                               T * ddist_x,
+                              T * am, T * bm, 
                               int B, int ghost_col,
                               mgard_cuda_handle & handle, 
                               int queue_idx, bool profile) {
 
   mgard_cuda_ret tmp(0, 0.0);
   mgard_cuda_ret ret(0, 0.0);
-  T * am;
-  T * bm;
-  cudaMallocHelper((void**)&am, nc*sizeof(T));
-  cudaMallocHelper((void**)&bm, nc*sizeof(T));
+  // T * am;
+  // T * bm;
+  // cudaMallocHelper((void**)&am, nc*sizeof(T));
+  // cudaMallocHelper((void**)&bm, nc*sizeof(T));
   tmp = calc_am_bm(ceil((float)nc/col_stride), am, bm, ddist_x, B,
                     handle, queue_idx, profile);
   ret.time += tmp.time;
@@ -882,8 +883,8 @@ solve_tridiag_M_l_row_cuda_sm(int nr,         int nc,
                                                B,     ghost_col,
                                                handle, queue_idx, profile);
   ret.time += tmp.time;
-  cudaFreeHelper(am);
-  cudaFreeHelper(bm);
+  // cudaFreeHelper(am);
+  // cudaFreeHelper(bm);
   return ret;
 }
 
@@ -1328,15 +1329,16 @@ solve_tridiag_M_l_col_cuda_sm(int nr,         int nc,
                               int row_stride, int col_stride,
                               T * dv,    int lddv,
                               T * ddist_y,
+                              T * am, T * bm, 
                               int B, int ghost_row,
                               mgard_cuda_handle & handle, 
                               int queue_idx, bool profile) {
   mgard_cuda_ret tmp(0, 0.0);
   mgard_cuda_ret ret(0, 0.0);
-  T * am;
-  T * bm;
-  cudaMallocHelper((void**)&am, nr*sizeof(T));
-  cudaMallocHelper((void**)&bm, nr*sizeof(T));
+  // T * am;
+  // T * bm;
+  // cudaMallocHelper((void**)&am, nr*sizeof(T));
+  // cudaMallocHelper((void**)&bm, nr*sizeof(T));
   tmp = calc_am_bm(ceil((float)nr/row_stride), am, bm, ddist_y, B,
                    handle, queue_idx, profile);
   ret.time += tmp.time;
@@ -1361,8 +1363,8 @@ solve_tridiag_M_l_col_cuda_sm(int nr,         int nc,
                                                B,          ghost_row,
                                                handle, queue_idx, profile);
   ret.time += tmp.time;
-  cudaFreeHelper(am);
-  cudaFreeHelper(bm);
+  // cudaFreeHelper(am);
+  // cudaFreeHelper(bm);
   return ret;
 }
 
@@ -1453,6 +1455,7 @@ solve_tridiag_M_l_row_cuda_sm<double>(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       double * dv,    int lddv,
                                       double * ddist_x,
+                                      double * am, double * bm,
                                       int B, int ghost_col,
                                       mgard_cuda_handle & handle, 
                                       int queue_idx, bool profile);
@@ -1461,6 +1464,7 @@ solve_tridiag_M_l_row_cuda_sm<float>(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       float * dv,    int lddv,
                                       float * ddist_x,
+                                      float * am, float * bm,
                                       int B, int ghost_col,
                                       mgard_cuda_handle & handle, 
                                       int queue_idx, bool profile);
@@ -1504,6 +1508,7 @@ solve_tridiag_M_l_col_cuda_sm<double>(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       double * dv,    int lddv,
                                       double * ddist_y,
+                                      double * am, double * bm,
                                       int B, int ghost_row,
                                       mgard_cuda_handle & handle, 
                                       int queue_idx, bool profile);
@@ -1512,6 +1517,7 @@ solve_tridiag_M_l_col_cuda_sm<float>(int nr,         int nc,
                                       int row_stride, int col_stride,
                                       float * dv,    int lddv,
                                       float * ddist_y,
+                                      float * am, float * bm,
                                       int B, int ghost_row,
                                       mgard_cuda_handle & handle, 
                                       int queue_idx, bool profile);

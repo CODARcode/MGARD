@@ -157,7 +157,15 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
                   B, handle, 0, profile);
   }
 
+  T * am_row;
+  T * bm_row;
+  cudaMallocHelper((void**)&am_row, nr*sizeof(T));
+  cudaMallocHelper((void**)&bm_row, nr*sizeof(T));
 
+  T * am_col;
+  T * bm_col;
+  cudaMallocHelper((void**)&am_col, nc*sizeof(T));
+  cudaMallocHelper((void**)&bm_col, nc*sizeof(T));
 
 
 
@@ -185,7 +193,7 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
   double mass_mult_l_col_cuda_time = 0.0;
   double restriction_l_col_cuda_time = 0.0;
   double solve_tridiag_M_l_col_cuda_time = 0.0;
-  double add_level_cuda_time = 0.0;
+  double add_level_l_cuda_time = 0.0;
 
   // ret = org_to_pow2p1(nrow,  ncol,
   //                      nr,    nc,
@@ -525,6 +533,7 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
                                         row_stride, col_stride,
                                         dcwork,     lddcwork,
                                         ddist_x_l[l+1],
+                                        am_row, bm_row,
                                         B, B,
                                         handle, 0, profile);
     // print_matrix_cuda(nr_l[0],    nc_l[l+1], dcwork2,     lddcwork2);
@@ -704,6 +713,7 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
                                           row_stride,    col_stride,
                                           dcwork,        lddcwork,
                                           ddist_y_l[l+1],
+                                          am_col, bm_col,
                                           B, B,
                                           handle, 0, profile);
       // print_matrix_cuda(nr_l[l],    nc_l[l], dcwork2,     lddcwork2);
@@ -755,7 +765,7 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
                                  dwork,      lddwork,  B,
                                  handle, 0, profile);
 
-    add_level_cuda_time = ret.time;
+    add_level_l_cuda_time = ret.time;
 
     // data_size = nr_l[l+1] * nc_l[l+1] * sizeof(double);
     // mem_throughput = (data_size/ret.time)/1e9;
@@ -763,21 +773,21 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
     // << nr_l[l+1] << ", " << nc_l[l+1] << "): " << mem_throughput << "GB/s. \n";
 
     if (profile) {
-      timing_results << l << ",pow2p1_to_cpt_time," << pow2p1_to_cpt_time << std::endl;
-      timing_results << l << ",cpt_to_pow2p1_time," << cpt_to_pow2p1_time << std::endl;
+      timing_results << l << ",pow2p1_to_cpt," << pow2p1_to_cpt_time << std::endl;
+      timing_results << l << ",cpt_to_pow2p1," << cpt_to_pow2p1_time << std::endl;
 
-      timing_results << l << ",pi_Ql_cuda_time," << pi_Ql_cuda_time << std::endl;
-      timing_results << l << ",copy_level_l_cuda_time," << copy_level_l_cuda_time << std::endl;
-      timing_results << l << ",assign_num_level_l_cuda_time," << assign_num_level_l_cuda_time << std::endl;
+      timing_results << l << ",pi_Ql," << pi_Ql_cuda_time << std::endl;
+      timing_results << l << ",copy_level_l," << copy_level_l_cuda_time << std::endl;
+      timing_results << l << ",assign_num_level_l," << assign_num_level_l_cuda_time << std::endl;
 
-      timing_results << l << ",mass_mult_l_row_cuda_time," << mass_mult_l_row_cuda_time << std::endl;
-      timing_results << l << ",restriction_l_row_cuda_time," << restriction_l_row_cuda_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_row_cuda_time," << solve_tridiag_M_l_row_cuda_time << std::endl;
+      timing_results << l << ",mass_mult_l_row," << mass_mult_l_row_cuda_time << std::endl;
+      timing_results << l << ",restriction_l_row," << restriction_l_row_cuda_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_row," << solve_tridiag_M_l_row_cuda_time << std::endl;
 
-      timing_results << l << ",mass_mult_l_col_cuda_time," << mass_mult_l_col_cuda_time << std::endl;
-      timing_results << l << ",restriction_l_col_cuda_time," << restriction_l_col_cuda_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_col_cuda_time," << solve_tridiag_M_l_col_cuda_time << std::endl;
-      timing_results << l << ",add_level_cuda_time," << add_level_cuda_time << std::endl;
+      timing_results << l << ",mass_mult_l_col," << mass_mult_l_col_cuda_time << std::endl;
+      timing_results << l << ",restriction_l_col," << restriction_l_col_cuda_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_col," << solve_tridiag_M_l_col_cuda_time << std::endl;
+      timing_results << l << ",add_level_l," << add_level_l_cuda_time << std::endl;
 
       total_time += pow2p1_to_cpt_time;
       total_time += cpt_to_pow2p1_time;
@@ -794,7 +804,7 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
       total_time += solve_tridiag_M_l_col_cuda_time;
       total_time += solve_tridiag_M_l_col_cuda_time;
 
-      total_time += add_level_cuda_time;
+      total_time += add_level_l_cuda_time;
     }
 
   } // end of loop
@@ -810,8 +820,8 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
 
 
   if (profile) {
-    timing_results << 0 << ",org_to_pow2p1_time," << org_to_pow2p1_time << std::endl;
-    timing_results << 0 << ",pow2p1_to_org_time," << pow2p1_to_org_time << std::endl;
+    timing_results << 0 << ",org_to_pow2p1," << org_to_pow2p1_time << std::endl;
+    timing_results << 0 << ",pow2p1_to_org," << pow2p1_to_org_time << std::endl;
     timing_results.close();
 
     total_time += org_to_pow2p1_time;
@@ -833,6 +843,10 @@ refactor_2D_cuda_compact_l2_sm(const int l_target,
 
   cudaFreeHelper(dcv);
   cudaFreeHelper(dcwork);
+  cudaFreeHelper(am_row);
+  cudaFreeHelper(bm_row);
+  cudaFreeHelper(am_col);
+  cudaFreeHelper(bm_col);
   // cudaFreeHelper(dcirow);
   // cudaFreeHelper(dcicol);
 
@@ -889,6 +903,15 @@ prep_2D_cuda_l2_sm(const int nrow,     const int ncol,
   calc_cpt_dist(nr, 1, dccoords_y, ddist_y,
                 B, handle, 0, profile);
 
+  T * am_row;
+  T * bm_row;
+  cudaMallocHelper((void**)&am_row, nrow*sizeof(T));
+  cudaMallocHelper((void**)&bm_row, nrow*sizeof(T));
+
+  T * am_col;
+  T * bm_col;
+  cudaMallocHelper((void**)&am_col, ncol*sizeof(T));
+  cudaMallocHelper((void**)&bm_col, ncol*sizeof(T));
 
   mgard_cuda_ret ret;
   double total_time = 0.0;
@@ -974,6 +997,7 @@ prep_2D_cuda_l2_sm(const int nrow,     const int ncol,
                                       row_stride, col_stride,
                                       dcwork,     lddcwork,
                                       ddist_x,
+                                      am_row, bm_row,
                                       B, B,
                                       handle, 0, profile);
   solve_tridiag_M_l_row_cuda_time = ret.time;
@@ -1026,6 +1050,7 @@ prep_2D_cuda_l2_sm(const int nrow,     const int ncol,
                                       row_stride, col_stride,
                                       dcwork,     lddcwork,
                                       ddist_y,
+                                      am_col, bm_col,
                                       B, B,
                                       handle, 0, profile);
     solve_tridiag_M_l_col_cuda_time = ret.time;
@@ -1111,6 +1136,11 @@ prep_2D_cuda_l2_sm(const int nrow,     const int ncol,
   cudaFreeHelper(dccoords_y);
   cudaFreeHelper(ddist_x);
   cudaFreeHelper(ddist_y);
+
+  cudaFreeHelper(am_row);
+  cudaFreeHelper(bm_row);
+  cudaFreeHelper(am_col);
+  cudaFreeHelper(bm_col);
 
   return mgard_cuda_ret(0, total_time);
 }
@@ -1288,6 +1318,16 @@ recompose_2D_cuda_l2_sm(const int l_target,
     // print_matrix_cuda(1, nr_l[l], ddist_y_l[l], nr_l[l]);
   }
 
+  T * am_row;
+  T * bm_row;
+  cudaMallocHelper((void**)&am_row, nr*sizeof(T));
+  cudaMallocHelper((void**)&bm_row, nr*sizeof(T));
+
+  T * am_col;
+  T * bm_col;
+  cudaMallocHelper((void**)&am_col, nc*sizeof(T));
+  cudaMallocHelper((void**)&bm_col, nc*sizeof(T));
+
   mgard_cuda_ret ret;
   double total_time = 0.0;
   std::ofstream timing_results;
@@ -1329,7 +1369,7 @@ recompose_2D_cuda_l2_sm(const int l_target,
   org_to_pow2p1_time += ret.time;
 
   for (int l = l_target; l > 0; --l) {
-    //std::cout << "l = " << l << std::endl;
+    // std::cout << "l = " << l << std::endl;
     int stride = std::pow(2, l); // current stride
     int Pstride = stride / 2;
     int Cstride = stride * 2;
@@ -1399,7 +1439,10 @@ recompose_2D_cuda_l2_sm(const int l_target,
     //                               0.0);
     // assign_num_level_l_cuda_time += ret.time;
 
-    row_stride = 1;
+    // print_matrix_cuda(nr,         nc, 
+    //                   dwork,      lddwork);
+
+    row_stride = Pstride;//1;
     col_stride = Pstride;
     ret = pow2p1_to_cpt(nr,    nc,
                         row_stride, col_stride,
@@ -1410,7 +1453,7 @@ recompose_2D_cuda_l2_sm(const int l_target,
 
     row_stride = 1;
     col_stride = 1;
-    ret = mass_mult_l_row_cuda_sm(nr_l[0],    nc_l[l-1],
+    ret = mass_mult_l_row_cuda_sm(nr_l[l-1],    nc_l[l-1],
                                   row_stride, col_stride,
                                   dcwork,     lddcwork,
                                   ddist_x_l[l-1],
@@ -1418,53 +1461,181 @@ recompose_2D_cuda_l2_sm(const int l_target,
                                   handle, 0, profile);
     mass_mult_l_row_cuda_time = ret.time;
 
-    // data_size = nr_l[0] * nc_l[l-1] * sizeof(double);
-    // mem_throughput = (data_size/ret.time)/1e9;
-    // std::cout << "mass_mult_l_row_cuda_mem_throughput (" << nr_l[0] << ", " << nc_l[l-1] << "): " << mem_throughput << "GB/s. \n";
+    // row_stride = Pstride;//1;
+    // col_stride = Pstride;
+    // ret = cpt_to_pow2p1(nr,         nc, 
+    //                     row_stride, col_stride,
+    //                     dcwork,     lddcwork,
+    //                     dwork,      lddwork, B,
+    //                     handle, 0, profile);
+    // cpt_to_pow2p1_time += ret.time;
 
-    row_stride = 1;
-    col_stride = Pstride;
-    ret = cpt_to_pow2p1(nr,         nc, 
-                        row_stride, col_stride,
-                        dcwork,     lddcwork,
-                        dwork,      lddwork, B,
-                        handle, 0, profile);
-    cpt_to_pow2p1_time += ret.time;
+    // print_matrix_cuda(nr,         nc, 
+    //                   dwork,      lddwork);
 
-    // ret = mass_mult_l_row_cuda(nrow,       ncol,
-    //                            nr,         nc,
-    //                            row_stride, col_stride,
-    //                            //dirow,      dicol,
-    //                            dcirow,      dcicol,
-    //                            dwork,      lddwork,
-    //                            //dcoords_x);
-    //                            dccoords_x);
-    // mass_mult_l_row_cuda_time += ret.time;
-
-
-    row_stride = 1;
-    col_stride = Pstride;
-    ret = cpt_to_pow2p1(nr,         nc, 
-                        row_stride, col_stride,
-                        dcwork,     lddcwork,
-                        dwork,      lddwork, B,
-                        handle, 0, profile);
-    cpt_to_pow2p1_time += ret.time;
+    // row_stride = Pstride;//1;
+    // col_stride = Pstride;
+    // ret = pow2p1_to_cpt(nr,         nc, 
+    //                     row_stride, col_stride,
+    //                     dwork,     lddwork,
+    //                     dcwork,      lddcwork, B,
+    //                     handle, 0, profile);
+    // cpt_to_pow2p1_time += ret.time;
 
     row_stride = 1;
     col_stride = 1;
-    ret = restriction_l_row_cuda_sm(nr_l[0],     nc_l[l-1],
+    ret = restriction_l_row_cuda_sm(nr_l[l-1],     nc_l[l-1],
                                     row_stride,  col_stride,
                                     dcwork,      lddcwork,
                                     ddist_x_l[l-1],
                                     B, B,
                                     handle, 0, profile);
     restriction_l_row_cuda_time = ret.time;
-    // data_size = nr_l[0] * nc_l[l-1] * sizeof(double);
-    // mem_throughput = (data_size/ret.time)/1e9;
-    // std::cout << "restriction_l_row_cuda_mem_throughput (" << nr_l[0] << ", " << nc_l[l-1] << "): " << mem_throughput << "GB/s. \n";
+   
+    // row_stride = Pstride;//1;
+    // col_stride = Pstride;
+    // ret = cpt_to_pow2p1(nr,         nc, 
+    //                     row_stride, col_stride,
+    //                     dcwork,     lddcwork,
+    //                     dwork,      lddwork, B,
+    //                     handle, 0, profile);
+    // cpt_to_pow2p1_time += ret.time;
+
+    // print_matrix_cuda(nr,         nc, 
+    //                   dwork,      lddwork);
+
+
+    // row_stride = Pstride;//1;
+    // col_stride = stride;
+
+    // ret = pow2p1_to_cpt(nr,    nc,
+    //                     row_stride, col_stride,
+    //                     dwork,      lddwork,
+    //                     dcwork,     lddcwork, B,
+    //                     handle, 0, profile);
+    // pow2p1_to_cpt_time += ret.time;
 
     row_stride = 1;
+    col_stride = 2;
+    ret = solve_tridiag_M_l_row_cuda_sm(nr_l[l-1],    nc_l[l-1],
+                                        row_stride, col_stride,
+                                        dcwork,     lddcwork,
+                                        ddist_x_l[l],
+                                        am_row, bm_row,
+                                         B, B,
+                                        handle, 0, profile);
+    solve_tridiag_M_l_row_cuda_time = ret.time;
+
+    // row_stride = Pstride;//1;
+    // col_stride = stride;
+    // ret = cpt_to_pow2p1(nr,         nc, 
+    //                     row_stride, col_stride,
+    //                     dcwork,     lddcwork,
+    //                     dwork,      lddwork, B,
+    //                     handle, 0, profile);
+    // cpt_to_pow2p1_time += ret.time;
+
+    // print_matrix_cuda(nr,         nc, 
+    //                   dwork,      lddwork);
+
+    if (nrow > 1) // check if we have 1-D array..
+    {
+      // row_stride = Pstride;
+      // col_stride = stride;
+      // ret = pow2p1_to_cpt(nr,         nc,
+      //                     row_stride, col_stride,
+      //                     dwork,      lddwork,
+      //                     dcwork,     lddcwork, B,
+      //                     handle, 0, profile);
+      // pow2p1_to_cpt_time += ret.time;
+
+      row_stride = 1;
+      col_stride = 2;
+      ret = mass_mult_l_col_cuda_sm(nr_l[l-1],     nc_l[l-1],
+                                    row_stride,  col_stride,
+                                    dcwork,     lddcwork,
+                                    ddist_y_l[l-1],
+                                     B, B,
+                                    handle, 0, profile);
+      mass_mult_l_col_cuda_time = ret.time;
+
+      // row_stride = Pstride;
+      // col_stride = stride;
+      // ret = cpt_to_pow2p1(nr,         nc, 
+      //                     row_stride, col_stride,
+      //                     dcwork,     lddcwork,
+      //                     dwork,      lddwork, B,
+      //                     handle, 0, profile);
+      // cpt_to_pow2p1_time += ret.time;
+
+      // print_matrix_cuda(nr,         nc, 
+      //                 dwork,      lddwork);
+
+
+      // row_stride = Pstride;
+      // col_stride = stride;
+      // ret = pow2p1_to_cpt(nr,         nc,
+      //                     row_stride, col_stride,
+      //                     dwork,      lddwork,
+      //                     dcwork,     lddcwork, B,
+      //                     handle, 0, profile);
+      // pow2p1_to_cpt_time += ret.time;
+
+      row_stride = 1;
+      col_stride = 2;
+      ret = restriction_l_col_cuda_sm(nr_l[l-1],  nc_l[l-1],
+                                      row_stride, col_stride,
+                                      dcwork, lddcwork,
+                                      ddist_y_l[l-1],
+                                       B, B,
+                                      handle, 0, profile);
+      restriction_l_col_cuda_time = ret.time;
+     
+      // row_stride = Pstride;
+      // col_stride = stride;
+      // ret = cpt_to_pow2p1(nr,         nc, 
+      //                     row_stride, col_stride,
+      //                     dcwork,     lddcwork,
+      //                     dwork,      lddwork, B,
+      //                     handle, 0, profile);
+      // cpt_to_pow2p1_time += ret.time;
+
+      // print_matrix_cuda(nr,         nc, 
+      //                 dwork,      lddwork);
+
+      // row_stride = stride;
+      // col_stride = stride;
+
+      // ret = pow2p1_to_cpt(nr,    nc,
+      //                     row_stride, col_stride,
+      //                     dwork,      lddwork,
+      //                     dcwork,     lddcwork, B,
+      //                     handle, 0, profile);
+      // pow2p1_to_cpt_time += ret.time;
+
+      row_stride = 2;
+      col_stride = 2;
+      ret = solve_tridiag_M_l_col_cuda_sm(nr_l[l-1],     nc_l[l-1],
+                                          row_stride,    col_stride,
+                                          dcwork,        lddcwork,
+                                          ddist_y_l[l],
+                                          am_col, bm_col,
+                                           B, B,
+                                          handle, 0, profile);
+      solve_tridiag_M_l_col_cuda_time = ret.time;
+
+      // row_stride = stride;
+      // col_stride = stride;
+      // ret = cpt_to_pow2p1(nr,         nc, 
+      //                     row_stride, col_stride,
+      //                     dcwork,     lddcwork,
+      //                     dwork,      lddwork, B,
+      //                     handle, 0, profile);
+      // cpt_to_pow2p1_time += ret.time;
+
+    }
+
+    row_stride = Pstride;//1;
     col_stride = Pstride;
     ret = cpt_to_pow2p1(nr,         nc, 
                         row_stride, col_stride,
@@ -1473,183 +1644,8 @@ recompose_2D_cuda_l2_sm(const int l_target,
                         handle, 0, profile);
     cpt_to_pow2p1_time += ret.time;
 
-    // ret = restriction_l_row_cuda(nrow,       ncol,
-    //                              nr,         nc,
-    //                              row_stride, col_stride,
-    //                              //dirow,      dicol,
-    //                              dcirow,      dcicol,
-    //                              dwork,      lddwork,
-    //                              //dcoords_x);
-    //                              dccoords_x);
-    // restriction_l_row_cuda_time += ret.time;
-
-
-    row_stride = 1;
-    col_stride = stride;
-
-    ret = pow2p1_to_cpt(nr,    nc,
-                        row_stride, col_stride,
-                        dwork,      lddwork,
-                        dcwork,     lddcwork, B,
-                        handle, 0, profile);
-    pow2p1_to_cpt_time += ret.time;
-
-    row_stride = 1;
-    col_stride = 1;
-    ret = solve_tridiag_M_l_row_cuda_sm(nr_l[0],    nc_l[l],
-                                        row_stride, col_stride,
-                                        dcwork,     lddcwork,
-                                        ddist_x_l[l],
-                                         B, B,
-                                        handle, 0, profile);
-
-    // ret = solve_tridiag_M_l_row_cuda(nrow,       ncol,
-    //                                  nr,         nc,
-    //                                  row_stride, col_stride,
-    //                                  //dirow,      dicol,
-    //                                  dcirow,      dcicol,
-    //                                  dwork,      lddwork,
-    //                                  //dcoords_x);
-    //                                  dccoords_x);
-    solve_tridiag_M_l_row_cuda_time = ret.time;
-
-    row_stride = 1;
-    col_stride = stride;
-    ret = cpt_to_pow2p1(nr,         nc, 
-                        row_stride, col_stride,
-                        dcwork,     lddcwork,
-                        dwork,      lddwork, B,
-                        handle, 0, profile);
-    cpt_to_pow2p1_time += ret.time;
-
-
-
-    if (nrow > 1) // check if we have 1-D array..
-    {
-      row_stride = Pstride;
-      col_stride = stride;
-      ret = pow2p1_to_cpt(nr,         nc,
-                          row_stride, col_stride,
-                          dwork,      lddwork,
-                          dcwork,     lddcwork, B,
-                          handle, 0, profile);
-      pow2p1_to_cpt_time += ret.time;
-
-      row_stride = 1;
-      col_stride = 1;
-      ret = mass_mult_l_col_cuda_sm(nr_l[l-1],     nc_l[l],
-                                    row_stride,  col_stride,
-                                    dcwork,     lddcwork,
-                                    ddist_y_l[l-1],
-                                     B, B,
-                                    handle, 0, profile);
-      mass_mult_l_col_cuda_time = ret.time;
-      // data_size = nr_l[l-1] * nc_l[l] * sizeof(double);
-      // mem_throughput = (data_size/ret.time)/1e9;
-      // std::cout << "mass_mult_l_col_cuda_mem_throughput (" 
-      // << nr_l[l-1] << ", " << nc_l[l] << "): " << mem_throughput << "GB/s. \n";
-
-      row_stride = Pstride;
-      col_stride = stride;
-      ret = cpt_to_pow2p1(nr,         nc, 
-                          row_stride, col_stride,
-                          dcwork,     lddcwork,
-                          dwork,      lddwork, B,
-                          handle, 0, profile);
-      cpt_to_pow2p1_time += ret.time;
-
-
-      // ret = mass_mult_l_col_cuda(nrow,       ncol,
-      //                            nr,         nc,
-      //                            row_stride, col_stride,
-      //                            //dirow,      dicol,
-      //                            dcirow,      dcicol,
-      //                            dwork,      lddwork,
-      //                            //dcoords_y);
-      //                            dccoords_y);
-      // mass_mult_l_col_cuda_time += ret.time;
-
-
-      row_stride = Pstride;
-      col_stride = stride;
-      ret = pow2p1_to_cpt(nr,         nc,
-                          row_stride, col_stride,
-                          dwork,      lddwork,
-                          dcwork,     lddcwork, B,
-                          handle, 0, profile);
-      pow2p1_to_cpt_time += ret.time;
-
-      row_stride = 1;
-      col_stride = 1;
-      ret = restriction_l_col_cuda_sm(nr_l[l-1],         nc_l[l],
-                                      row_stride, col_stride,
-                                      dcwork, lddcwork,
-                                      ddist_y_l[l-1],
-                                       B, B,
-                                      handle, 0, profile);
-      restriction_l_col_cuda_time = ret.time;
-      // data_size = nr_l[l-1] * nc_l[l] * sizeof(double);
-      // mem_throughput = (data_size/ret.time)/1e9;
-      // std::cout << "restriction_l_col_cuda_mem_throughput (" 
-      // << nr_l[l-1] << ", " << nc_l[l] << "): " << mem_throughput << "GB/s. \n";
-
-      row_stride = Pstride;
-      col_stride = stride;
-      ret = cpt_to_pow2p1(nr,         nc, 
-                          row_stride, col_stride,
-                          dcwork,     lddcwork,
-                          dwork,      lddwork, B,
-                          handle, 0, profile);
-      cpt_to_pow2p1_time += ret.time;
-
-      // ret = restriction_l_col_cuda(nrow,       ncol,
-      //                              nr,         nc,
-      //                              row_stride, col_stride,
-      //                              //dirow,       dicol,
-      //                              dcirow,      dcicol,
-      //                              dwork, lddwork,
-      //                              //dcoords_y);
-      //                              dccoords_y);
-      // restriction_l_col_cuda_time += ret.time;
-
-      row_stride = stride;
-      col_stride = stride;
-
-      ret = pow2p1_to_cpt(nr,    nc,
-                          row_stride, col_stride,
-                          dwork,      lddwork,
-                          dcwork,     lddcwork, B,
-                          handle, 0, profile);
-      pow2p1_to_cpt_time += ret.time;
-
-      row_stride = 1;
-      col_stride = 1;
-      ret = solve_tridiag_M_l_col_cuda_sm(nr_l[l],     nc_l[l],
-                                          row_stride,    col_stride,
-                                          dcwork,        lddcwork,
-                                          ddist_y_l[l],
-                                           B, B,
-                                          handle, 0, profile);
-      // ret = solve_tridiag_M_l_col_cuda(nrow,       ncol,
-      //                                  nr,         nc,
-      //                                  row_stride, col_stride,
-      //                                  //dirow,      dicol,
-      //                                  dcirow,      dcicol,
-      //                                  dwork,      lddwork,
-      //                                  //dcoords_y);
-      //                                  dccoords_y);
-      solve_tridiag_M_l_col_cuda_time = ret.time;
-
-      row_stride = stride;
-      col_stride = stride;
-      ret = cpt_to_pow2p1(nr,         nc, 
-                          row_stride, col_stride,
-                          dcwork,     lddcwork,
-                          dwork,      lddwork, B,
-                          handle, 0, profile);
-      cpt_to_pow2p1_time += ret.time;
-
-    }
+    // print_matrix_cuda(nr,         nc, 
+    //                   dwork,      lddwork);
 
     row_stride = stride;
     col_stride = stride;
@@ -1665,82 +1661,7 @@ recompose_2D_cuda_l2_sm(const int l_target,
     subtract_level_l_cuda_time = ret.time;
 
 
-    // double * dcwork2;
-    // size_t dcwork_pitch2;
-    // cudaMallocPitchHelper((void**)&dcwork2, &dcwork_pitch2, nc * sizeof(double), nr);
-    // int lddcwork2 = dcwork_pitch2 / sizeof(double);
-
-    // double * work = new double[nr * nc];
-    // for (int i = 0; i < nr; i++) {
-    //   for (int j = 0; j < nc; j++) {
-    //     work[i * nc + j] = (i*i+2)*(j*j+2);
-    //   }
-    // }
-
-    // cudaMemcpy2DHelper(dcwork, lddcwork * sizeof(double),
-    //                    work,  nc * sizeof(double),
-    //                    nc * sizeof(double), nr, H2D);
-
-    // // print_matrix_cuda(nr,    nc, dcwork,     lddcwork);
-    // cudaMemcpy2DHelper(dcwork2, lddcwork2 * sizeof(double),
-    //                    dcwork,  lddcwork * sizeof(double),
-    //                    nc * sizeof(double), nr, D2D);
-
-
-
-
-    // row_stride = stride;
-    // col_stride = stride;
-    // printf("row_stride = %d\n", row_stride);
-    // printf("col_stride = %d\n", col_stride);
-    // ret = prolongate_l_row_cuda(nrow,        ncol, 
-    //                        nr,         nc,
-    //                        row_stride, col_stride,
-    //                        //dirow,      dicol,
-    //                        dcirow,      dcicol,
-    //                        //dwork,      lddwork,
-    //                        dcwork,      lddcwork,
-    //                        //dcoords_x);
-    //                        dccoords_x);
-    // prolongate_l_row_cuda_time += ret.time;
-    // print_matrix_cuda(nr, nc, dcwork,      lddcwork);
-
-    // if (nrow > 1) {
-    //   row_stride = stride;
-    //   col_stride = Pstride;
-    //   printf("row_stride = %d\n", row_stride);
-    //   printf("col_stride = %d\n", col_stride);
-    //   ret = prolongate_l_col_cuda(nrow,        ncol, 
-    //                               nr,         nc,
-    //                               row_stride, col_stride,
-    //                               //dirow,      dicol,
-    //                               dcirow,      dcicol,
-    //                               //dwork,      lddwork,
-    //                               dcwork,      lddcwork,                                  
-    //                               //dcoords_y);
-    //                               dccoords_y);
-    //   prolongate_l_col_cuda_time += ret.time;
-    //   // print_matrix_cuda(nr, nc, dcwork,      lddcwork);
-    // }
-
-
-    // row_stride = stride;
-    // col_stride = Pstride;
-    // ret = prolongate_l_row_cuda_sm(nr,    nc,
-    //                                row_stride, col_stride,
-    //                                dwork,     lddwork,
-    //                                ddist_x_l[l-1],
-    //                                2);
-
-    // row_stride = Pstride;
-    // col_stride = Pstride;
-    // ret = prolongate_l_col_cuda_sm(nr,  nc,
-    //                                row_stride, col_stride,
-    //                                dwork,     lddwork,
-    //                                dccoords_y,
-    //                                2);
-
-    row_stride = stride;
+    row_stride = Pstride;//stride;
     col_stride = Pstride;
     ret = pow2p1_to_cpt(nr,         nc,
                         row_stride, col_stride,
@@ -1749,38 +1670,35 @@ recompose_2D_cuda_l2_sm(const int l_target,
                         handle, 0, profile);
     pow2p1_to_cpt_time += ret.time;
 
-    row_stride = 1;
+    row_stride = 2;
     col_stride = 1;
-    ret = prolongate_l_row_cuda_sm(nr_l[l],    nc_l[l-1],
+    ret = prolongate_l_row_cuda_sm(nr_l[l-1],    nc_l[l-1],
                                    row_stride, col_stride,
                                    dcwork,     lddcwork,
                                    ddist_x_l[l-1],
                                     B,
                                    handle, 0, profile);
     prolongate_l_row_cuda_time = ret.time;
-    // data_size = nr_l[l] * nc_l[l-1] * sizeof(double);
-    // mem_throughput = (data_size/ret.time)/1e9;
-    // std::cout << "prolongate_l_row_cuda_throughput (" 
-    // << nr_l[l] << ", " << nc_l[l-1] << "): " << mem_throughput << "GB/s. \n";
-
-    row_stride = stride;
-    col_stride = Pstride;
-    ret = cpt_to_pow2p1(nr,         nc, 
-                        row_stride, col_stride,
-                        dcwork,     lddcwork,
-                        dwork,      lddwork, B,
-                        handle, 0, profile);
-    cpt_to_pow2p1_time += ret.time;
 
 
-    row_stride = Pstride;
-    col_stride = Pstride;
-    ret = pow2p1_to_cpt(nr,         nc,
-                        row_stride, col_stride,
-                        dwork,      lddwork,
-                        dcwork,     lddcwork, B,
-                        handle, 0, profile);
-    pow2p1_to_cpt_time += ret.time;
+    // row_stride = stride;
+    // col_stride = Pstride;
+    // ret = cpt_to_pow2p1(nr,         nc, 
+    //                     row_stride, col_stride,
+    //                     dcwork,     lddcwork,
+    //                     dwork,      lddwork, B,
+    //                     handle, 0, profile);
+    // cpt_to_pow2p1_time += ret.time;
+
+
+    // row_stride = Pstride;
+    // col_stride = Pstride;
+    // ret = pow2p1_to_cpt(nr,         nc,
+    //                     row_stride, col_stride,
+    //                     dwork,      lddwork,
+    //                     dcwork,     lddcwork, B,
+    //                     handle, 0, profile);
+    // pow2p1_to_cpt_time += ret.time;
 
     row_stride = 1;
     col_stride = 1;
@@ -1849,25 +1767,25 @@ recompose_2D_cuda_l2_sm(const int l_target,
     // << nr_l[l-1] << ", " << nc_l[l-1] << "): " << mem_throughput << "GB/s. \n";
 
     if (profile) {
-      timing_results << l << ",pow2p1_to_cpt_time," << pow2p1_to_cpt_time << std::endl;
-      timing_results << l << ",cpt_to_pow2p1_time," << cpt_to_pow2p1_time << std::endl;
+      timing_results << l << ",pow2p1_to_cpt," << pow2p1_to_cpt_time << std::endl;
+      timing_results << l << ",cpt_to_pow2p1," << cpt_to_pow2p1_time << std::endl;
 
-      timing_results << l << ",copy_level_l_cuda_time," << copy_level_l_cuda_time << std::endl;
-      timing_results << l << ",assign_num_level_l_cuda_time," << assign_num_level_l_cuda_time << std::endl;
-      timing_results << l << ",assign_num_level_l_cuda_time2," << assign_num_level_l_cuda_time2 << std::endl;
+      timing_results << l << ",copy_level_l," << copy_level_l_cuda_time << std::endl;
+      timing_results << l << ",assign_num_level_l," << assign_num_level_l_cuda_time << std::endl;
+      timing_results << l << ",assign_num_level_l," << assign_num_level_l_cuda_time2 << std::endl;
 
-      timing_results << l << ",mass_mult_l_row_cuda_time," << mass_mult_l_row_cuda_time << std::endl;
-      timing_results << l << ",restriction_l_row_cuda_time," << restriction_l_row_cuda_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_row_cuda_time," << solve_tridiag_M_l_row_cuda_time << std::endl;
+      timing_results << l << ",mass_mult_l_row," << mass_mult_l_row_cuda_time << std::endl;
+      timing_results << l << ",restriction_l_row," << restriction_l_row_cuda_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_row," << solve_tridiag_M_l_row_cuda_time << std::endl;
 
-      timing_results << l << ",mass_mult_l_col_cuda_time," << mass_mult_l_col_cuda_time << std::endl;
-      timing_results << l << ",restriction_l_col_cuda_time," << restriction_l_col_cuda_time << std::endl;
-      timing_results << l << ",solve_tridiag_M_l_col_cuda_time," << solve_tridiag_M_l_col_cuda_time << std::endl;
+      timing_results << l << ",mass_mult_l_col," << mass_mult_l_col_cuda_time << std::endl;
+      timing_results << l << ",restriction_l_col," << restriction_l_col_cuda_time << std::endl;
+      timing_results << l << ",solve_tridiag_M_l_col," << solve_tridiag_M_l_col_cuda_time << std::endl;
 
-      timing_results << l << ",subtract_level_l_cuda_time," << subtract_level_l_cuda_time << std::endl;
-      timing_results << l << ",subtract_level_l_cuda_time2," << subtract_level_l_cuda_time2 << std::endl;
-      timing_results << l << ",prolongate_l_row_cuda_time," << prolongate_l_row_cuda_time << std::endl;
-      timing_results << l << ",prolongate_l_col_cuda_time," << prolongate_l_col_cuda_time << std::endl;
+      timing_results << l << ",subtract_level_l," << subtract_level_l_cuda_time << std::endl;
+      timing_results << l << ",subtract_level_l," << subtract_level_l_cuda_time2 << std::endl;
+      timing_results << l << ",prolongate_l_row," << prolongate_l_row_cuda_time << std::endl;
+      timing_results << l << ",prolongate_l_col," << prolongate_l_col_cuda_time << std::endl;
 
       total_time += pow2p1_to_cpt_time;
       total_time += cpt_to_pow2p1_time;
@@ -1900,8 +1818,8 @@ recompose_2D_cuda_l2_sm(const int l_target,
   pow2p1_to_org_time += ret.time;
 
   if (profile) {
-    timing_results << 0 << ",org_to_pow2p1_time," << org_to_pow2p1_time << std::endl;
-    timing_results << 0 << ",pow2p1_to_org_time," << pow2p1_to_org_time << std::endl;
+    timing_results << 0 << ",org_to_pow2p1," << org_to_pow2p1_time << std::endl;
+    timing_results << 0 << ",pow2p1_to_org," << pow2p1_to_org_time << std::endl;
     timing_results.close();
 
     total_time += org_to_pow2p1_time;
@@ -1924,6 +1842,10 @@ recompose_2D_cuda_l2_sm(const int l_target,
     cudaFreeHelper(ddist_y_l[l]);
   }
 
+  cudaFreeHelper(am_row);
+  cudaFreeHelper(bm_row);
+  cudaFreeHelper(am_col);
+  cudaFreeHelper(bm_col);
 
   return mgard_cuda_ret(0, total_time);
 
@@ -1970,7 +1892,15 @@ postp_2D_cuda_l2_sm(const int nrow,     const int ncol,
   calc_cpt_dist(nr, 1, dccoords_y, ddist_y,
                 B, handle, 0, profile);
 
+  T * am_row;
+  T * bm_row;
+  cudaMallocHelper((void**)&am_row, nrow*sizeof(T));
+  cudaMallocHelper((void**)&bm_row, nrow*sizeof(T));
 
+  T * am_col;
+  T * bm_col;
+  cudaMallocHelper((void**)&am_col, ncol*sizeof(T));
+  cudaMallocHelper((void**)&bm_col, ncol*sizeof(T));
 
   mgard_cuda_ret ret;
   double total_time;
@@ -2058,6 +1988,7 @@ postp_2D_cuda_l2_sm(const int nrow,     const int ncol,
                                       row_stride, col_stride,
                                       dcwork,     lddcwork,
                                       ddist_x,
+                                      am_row, bm_row,
                                        B, B,
                                       handle, 0, profile);
   solve_tridiag_M_l_row_cuda_time = ret.time;
@@ -2114,6 +2045,7 @@ postp_2D_cuda_l2_sm(const int nrow,     const int ncol,
                                       row_stride, col_stride,
                                       dcwork,     lddcwork,
                                       ddist_y,
+                                      am_col, bm_col,
                                        B, B,
                                       handle, 0, profile);
     solve_tridiag_M_l_col_cuda_time = ret.time;
@@ -2255,6 +2187,10 @@ postp_2D_cuda_l2_sm(const int nrow,     const int ncol,
   cudaFreeHelper(dccoords_y);
   cudaFreeHelper(ddist_x);
   cudaFreeHelper(ddist_y);
+  cudaFreeHelper(am_row);
+  cudaFreeHelper(bm_row);
+  cudaFreeHelper(am_col);
+  cudaFreeHelper(bm_col);
 
   return mgard_cuda_ret(0, total_time);
 

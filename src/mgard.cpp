@@ -612,8 +612,8 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const double *u, int &outsize,
 
     std::cout << "***prep_2D***" << std::endl;
     auto t_start = std::chrono::high_resolution_clock::now();
-    mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(), work,
-                                 coords_x, coords_y, row_vec, col_vec);
+    // mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(), work,
+    //                              coords_x, coords_y, row_vec, col_vec);
     auto t_end = std::chrono::high_resolution_clock::now();
     double data_size = nrow * ncol * sizeof(double);
     double time = std::chrono::duration<double>(t_end-t_start).count();
@@ -909,8 +909,8 @@ double *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
     mgard_2d::mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v, work,
                                       coords_x, coords_y, row_vec, col_vec);
 
-    mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v, work,
-                                  coords_x, coords_y, row_vec, col_vec);
+    // mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v, work,
+    //                               coords_x, coords_y, row_vec, col_vec);
 
     return v;
   // }

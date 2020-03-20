@@ -767,10 +767,23 @@ refactor_qz_2D_cuda (int nrow, int ncol, const T *u, int &outsize, T tol, int op
                                                  B, handle, profile);
         
       }
-      //  cudaMemcpy2DHelper(v.data(), ncol  * sizeof(double), 
-      //                    dv, lddv * sizeof(double), 
-      //                    ncol * sizeof(double), nrow, 
-      //                    D2H);
+
+      //debug
+
+      // std::vector<T> v2(v);
+      // mgard_2d::mgard_gen::refactor_2D(nr, nc, nrow, ncol, l_target, v2.data(),
+      //                                  work, coords_x, coords_y, row_vec,
+      //                                  col_vec);
+
+
+
+      //  cudaMemcpy2DAsyncHelper(v.data(), ncol  * sizeof(T), 
+      //                    dv, lddv * sizeof(T), 
+      //                    ncol * sizeof(T), nrow, 
+      //                    D2H, handle, 0, profile);
+      //  compare_matrix(nrow, ncol,
+      //                 v2.data(), ncol,
+      //                 v.data(), ncol);
 
       // cudaMemcpy2DHelper(work.data(), ncol  * sizeof(double), 
       //                    dwork, lddwork * sizeof(double), 
@@ -843,9 +856,9 @@ refactor_qz_2D_cuda (int nrow, int ncol, const T *u, int &outsize, T tol, int op
 template unsigned char *
 refactor_qz_2D_cuda<double>(int nrow, int ncol, const double *u, int &outsize, double tol, int opt, 
                      int B, mgard_cuda_handle & handle, bool profile);
-template unsigned char *
-refactor_qz_2D_cuda<float>(int nrow, int ncol, const float *u, int &outsize, float tol, int opt, 
-                     int B, mgard_cuda_handle & handle, bool profile);
+// template unsigned char *
+// refactor_qz_2D_cuda<float>(int nrow, int ncol, const float *u, int &outsize, float tol, int opt, 
+//                      int B, mgard_cuda_handle & handle, bool profile);
 
 template <typename T>
 T* recompose_udq_2D_cuda(int nrow, int ncol, unsigned char *data, int data_len, int opt,

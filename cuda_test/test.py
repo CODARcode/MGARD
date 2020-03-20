@@ -3,6 +3,98 @@ import subprocess
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
+import math
+
+SMALL_SIZE = 14
+MEDIUM_SIZE = 16
+BIGGER_SIZE = 14
+
+plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
+
+refactor_2D_kernels_list = ['pi_Ql',
+                            'copy_level_l',
+                            'assign_num_level_l',
+                            'mass_mult_l_row',
+                            'restriction_l_row',
+                            'solve_tridiag_M_l_row',
+                            'mass_mult_l_col',
+                            'restriction_l_col',
+                            'solve_tridiag_M_l_col',
+                            'add_level_l']
+recompose_2D_kernels_list = ['copy_level_l',
+                            'assign_num_level_l',
+                            'mass_mult_l_row',
+                            'restriction_l_row',
+                            'solve_tridiag_M_l_row',
+                            'mass_mult_l_col',
+                            'restriction_l_col',
+                            'solve_tridiag_M_l_col',
+                            'subtract_level_l',
+                            'prolongate_l_row',
+                            'prolongate_l_col']
+
+refactor_3D_kernels_list = ['pi_Ql',
+                            'copy_level_l',
+                            'assign_num_level_l',
+                            'mass_mult_l_row',
+                            'restriction_l_row',
+                            'solve_tridiag_M_l_row',
+                            'mass_mult_l_col',
+                            'restriction_l_col',
+                            'solve_tridiag_M_l_col',
+                            'mass_mult_l_fib',
+                            'restriction_l_fib',
+                            'solve_tridiag_M_l_fib',
+                            'add_level_l']
+recompose_3D_kernels_list = ['copy_level_l',
+                            'assign_num_level_l',
+                            'mass_mult_l_row',
+                            'restriction_l_row',
+                            'solve_tridiag_M_l_row',
+                            'mass_mult_l_col',
+                            'restriction_l_col',
+                            'solve_tridiag_M_l_col',
+                            'mass_mult_l_fib',
+                            'restriction_l_fib',
+                            'solve_tridiag_M_l_fib',
+                            'subtract_level_l',
+                            'prolongate_l_row',
+                            'prolongate_l_col',
+                            'prolongate_l_fib']
+
+
+refactor_3D_kernels_fused_list = ['pi_Ql',
+                                  'copy_level_l',
+                                  'assign_num_level_l',
+                                  'correction_caclculation_fused'
+                                  'add_level_l']
+recompose_3D_kernels_fused_list = ['copy_level_l',
+                                  'assign_num_level_l',
+                                  'correction_caclculation_fused',
+                                  'subtract_level_l',
+                                  'prolongate_calculation_fused']
+
+kernels_list_gpu_ex = ['pow2p1_to_cpt',
+                   'cpt_to_pow2p1'
+                   #'org_to_pow2p1',
+                   #'pow2p1_to_org'
+                   ]
+
+kernel_list_cpu_ex = ['copy_slice',
+                      'copy_from_slice']
+
+
+def Union(lst1, lst2): 
+    final_list = list(set(lst1) | set(lst2)) 
+    return final_list 
+
 
 def read_levels(filename):
   file = open(filename)
@@ -28,11 +120,29 @@ def read_timing(filename):
     results.append(float(row[2]))
   return results
 
+def write_csv(filename, data):
+  file = open(filename, 'w')
+  csv_writer = csv.writer(file)
+  for i in range(len(data[0])):
+    csv_writer.writerow([data[0][i], data[1][i], data[2][i]])
+
+def read_csv(filename):
+  levels = read_levels(filename)
+  kernels = read_kernel_names(filename)
+  timing = read_timing(filename)
+  return [levels, kernels, timing]
+
 def rename_file(name_before, name_after):
   cmd = ['mv', 
           str(name_before),
           str(name_after)]
   subprocess.call(' '.join(cmd), shell = True)
+
+def sum_time_all(result):
+  sum = 0.0;
+  for i in range(len(result[0])):
+    sum += result[2][i]
+  return sum
 
 def sum_time_by_kernel(result, kernel):
   sum = 0.0;
@@ -42,73 +152,97 @@ def sum_time_by_kernel(result, kernel):
   return sum
 
 
-def run_fake_data(nrow, ncol, nfib, opt, B):
+def get_refactor_csv_name(nrow, ncol, nfib, opt, B, num_of_queues):
+  if (nfib == 1): # 2D
+    if (opt == -1):
+      return 'refactor_2D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 0):
+      return 'refactor_2D_cuda_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 1):
+      return 'refactor_2D_cuda_cpt_l1_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 2):
+      return 'refactor_2D_cuda_cpt_l2_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 3):
+      return 'refactor_2D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+
+  else: # 3D
+    if (opt == -1):
+      return 'refactor_3D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 3):
+      return 'refactor_3D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+
+def get_recompose_csv_name(nrow, ncol, nfib, opt, B, num_of_queues):
+  if (nfib == 1): # 2D
+    if (opt == -1):
+      return 'recompose_2D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 0):
+      return 'recompose_2D_cuda_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 1):
+      return 'recompose_2D_cuda_cpt_l1_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 2):
+      return 'recompose_2D_cuda_cpt_l2_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 3):
+      return 'recompose_2D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+
+  else: # 3D
+    if (opt == -1):
+      return 'recompose_3D_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+    if (opt == 3):
+      return 'recompose_3D_cuda_cpt_l2_sm_{}_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B, num_of_queues)
+
+
+def run_fake_data(nrow, ncol, nfib, opt, B, num_of_queues):
   tol = 0.001
   s = 0
   profile = 1
   cmd = ['../build/bin/mgard_check_cuda_fake_data', 
           str(nrow), str(ncol), str(nfib), 
-          str(tol), str(s), str(opt), str(B), str(profile)]
+          str(tol), str(s), str(opt), str(B), str(profile),
+          str(num_of_queues)]
+  print(' '.join(cmd))
   subprocess.call(' '.join(cmd), shell = True)
   if (nfib == 1): # 2D
     if (opt == -1):
       refactor_result_before = 'refactor_2D.csv'
-      refactor_result_after = 'refactor_2D_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
       recompose_result_before = 'recompose_2D.csv'
-      recompose_result_after = 'recompose_2D_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
     if (opt == 0):
       refactor_result_before = 'refactor_2D_cuda.csv'
-      refactor_result_after = 'refactor_2D_cuda_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
       recompose_result_before = 'recompose_2D_cuda.csv'
-      recompose_result_after = 'recompose_2D_cuda_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
     if (opt == 1):
       refactor_result_before = 'refactor_2D_cuda_cpt_l1.csv'
-      refactor_result_after = 'refactor_2D_cuda_cpt_l1_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
       recompose_result_before = 'recompose_2D_cuda.csv'
-      recompose_result_after = 'recompose_2D_cuda_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
     if (opt == 2):
       refactor_result_before = 'refactor_2D_cuda_cpt_l2.csv'
-      refactor_result_after = 'refactor_2D_cuda_cpt_l2_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
       recompose_result_before = 'recompose_2D_cuda.csv'
-      recompose_result_after = 'recompose_2D_cuda_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
     if (opt == 3):
       refactor_result_before = 'refactor_2D_cuda_cpt_l2_sm.csv'
-      refactor_result_after = 'refactor_2D_cuda_cpt_l2_sm_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
       recompose_result_before = 'recompose_2D_cuda_cpt_l2_sm.csv'
-      recompose_result_after = 'recompose_2D_cuda_cpt_l2_sm_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
-
   else: # 3D
     if (opt == -1):
       refactor_result_before = 'refactor_3D.csv'
-      refactor_result_after = 'refactor_3D_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
       recompose_result_before = 'recompose_3D.csv'
-      recompose_result_after = 'recompose_3D_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
     if (opt == 3):
       refactor_result_before = 'refactor_3D_cuda_cpt_l2_sm.csv'
-      refactor_result_after = 'refactor_3D_cuda_cpt_l2_sm_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
       recompose_result_before = 'recompose_3D_cuda_cpt_l2_sm.csv'
-      recompose_result_after = 'recompose_3D_cuda_cpt_l2_sm_{}_{}_{}_{}.csv'.format(nrow, ncol, nfib, B)
 
+  refactor_result_after = get_refactor_csv_name(nrow, ncol, nfib, opt, B, num_of_queues)
+  recompose_result_after = get_recompose_csv_name(nrow, ncol, nfib, opt, B, num_of_queues)
 
   rename_file(refactor_result_before, refactor_result_after)
   rename_file(recompose_result_before, recompose_result_after)
   return [refactor_result_after, recompose_result_after]
 
 
-def avg_fake_run(nrow, ncol, nfib, opt, B, num_runs):
-
-  results = run_fake_data(nrow, ncol, nfib, opt, B)
-
-  refactor_levels = read_levels(results[0]) # refactor
-  recompose_levels = read_levels(results[1]) # recompose
-
-  refactor_kernel_names = read_kernel_names(results[0]) # refactor
-  recompose_kernel_names = read_kernel_names(results[1]) # recompose
-
+def avg_fake_run(nrow, ncol, nfib, opt, B, num_of_queues, num_runs):
   refactor_timing_results_all = []
   recompose_timing_results_all = []
   for i in range(num_runs):
-    results = run_fake_data(nrow, ncol, nfib, opt, B)
+    results = run_fake_data(nrow, ncol, nfib, opt, B, num_of_queues)
+    refactor_levels = read_levels(results[0]) # refactor
+    recompose_levels = read_levels(results[1]) # recompose
+
+    refactor_kernel_names = read_kernel_names(results[0]) # refactor
+    recompose_kernel_names = read_kernel_names(results[1]) # recompose
     refactor_timing_results = read_timing(results[0]) # refactor
     recompose_timing_results = read_timing(results[1]) # recompose
     refactor_timing_results_all.append(refactor_timing_results)
@@ -119,101 +253,352 @@ def avg_fake_run(nrow, ncol, nfib, opt, B, num_runs):
 
   ret1 = [refactor_levels, refactor_kernel_names, refactor_timing_results_avg.tolist()]
   ret2 = [recompose_levels, recompose_kernel_names, recompose_timing_results_avg.tolist()]
-  return [ret1, ret2]
+  write_csv(results[0], ret1)
+  write_csv(results[1], ret2)
+  return [results[0], results[1]]
 
-ret = avg_fake_run(65, 65, 1,  0, 16, 3)
-print sum_time_by_kernel(ret[0], 'pi_Ql_cuda_time')
 
-def plot_cuda_speedup(kernel_names, cpu_speedup, cuda_speedup, cuda_o1_speedup, cuda_o2_speedup):
-  n_groups = cpu_speedup.shape[0];
-  print(n_groups)
-  fig, ax = plt.subplots()
-  index = np.arange(n_groups)
-  bar_width = 0.2
-  opacity = 0.8
+def plot_speedup_kernel(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
 
-  rects1 = plt.bar(index, cpu_speedup, bar_width,
-  alpha=opacity,
-  color='b',
-  label='CPU')
+  result_refactor_cpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_refactor_gpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+  result_recompose_cpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_recompose_gpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
 
-  rects1 = plt.bar(index + bar_width, cuda_speedup, bar_width,
-  alpha=opacity,
-  color='g',
-  label='CUDA')
+  refactor_cpu_kernel = []
+  refactor_gpu_kernel = []
 
-  rects1 = plt.bar(index + bar_width + bar_width, cuda_o1_speedup, bar_width,
-  alpha=opacity,
-  color='r',
-  label='CUDA-O1')
+  recompose_cpu_kernel = []
+  recompose_gpu_kernel = []
 
-  rects1 = plt.bar(index + bar_width + bar_width + bar_width, cuda_o2_speedup, bar_width,
-  alpha=opacity,
-  color='m',
-  label='CUDA-O2')
+  if (nfib == 1):
+    refactor_kernels_list = refactor_2D_kernels_list
+    recompose_kernels_list = recompose_2D_kernels_list
+  else:
+    refactor_kernels_list = refactor_3D_kernels_list
+    recompose_kernels_list = recompose_3D_kernels_list
 
-  plt.xlabel('Kernels')
-  plt.ylabel('Speed up')
-  plt.title('MGARD CPU vs. MGARD CUDA')
-  plt.xticks(index + bar_width, kernel_names, rotation='vertical')
-  plt.legend()
+  for kernel in refactor_kernels_list:
+    t = sum_time_by_kernel(result_refactor_cpu, kernel)
+    refactor_cpu_kernel.append(t)
+  
 
+  for kernel in refactor_kernels_list:
+    t = sum_time_by_kernel(result_refactor_gpu, kernel)
+    refactor_gpu_kernel.append(t)
+  
+
+  for kernel in recompose_kernels_list:
+    t = sum_time_by_kernel(result_recompose_cpu, kernel)
+    recompose_cpu_kernel.append(t)
+    
+
+  for kernel in recompose_kernels_list:
+    t = sum_time_by_kernel(result_recompose_gpu, kernel)
+    recompose_gpu_kernel.append(t)
+    
+  refactor_speedup_kernel = np.array(refactor_cpu_kernel)/np.array(refactor_gpu_kernel)
+  recompose_speedup_kernel = np.array(recompose_cpu_kernel)/np.array(recompose_gpu_kernel)
+
+  print(refactor_cpu_kernel)
+  print(refactor_gpu_kernel)
+  print(recompose_cpu_kernel)
+  print(recompose_gpu_kernel)
+  print(refactor_speedup_kernel)
+  print(recompose_speedup_kernel)
+
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(6,6))
+  width = 0.25
+  x_idx = np.array(range(len(refactor_kernels_list)))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(refactor_speedup_kernel))), 4))
+  p1 = ax1.bar(x_idx, refactor_speedup_kernel, width)
+  ax1.set_xticks(x_idx)
+  ax1.set_xticklabels(refactor_kernels_list)
+  ax1.set_xlabel("Kernels")
+  ax1.tick_params(axis='x', rotation=90)
+  ax1.set_yticks(y_idx)
+  ax1.set_ylabel("Speedup")
+  ax1.grid(which='major', axis='y')
   plt.tight_layout()
-  plt.show()
+  plt.savefig('speedup_refactor_kernel_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
 
-# run_fake_data(65, 65, 1, -1, 16)
-# avg_fake_run(65, 65, 1,  0, 16, 3)
-# run_fake_data(65, 65, 1,  1, 16)
-# run_fake_data(65, 65, 1,  2, 16)
-# run_fake_data(65, 65, 1,  3, 16)
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(6,6))
+  width = 0.25
+  x_idx = np.array(range(len(recompose_kernels_list)))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(recompose_speedup_kernel))), 4))
+  p1 = ax1.bar(x_idx, recompose_speedup_kernel, width)
+  ax1.set_xticks(x_idx)
+  ax1.set_xticklabels(recompose_kernels_list)
+  ax1.set_xlabel("Kernels")
+  ax1.tick_params(axis='x', rotation=90)
+  ax1.set_yticks(y_idx)
+  ax1.set_ylabel("Speedup")
+  ax1.grid(which='major', axis='y')
+  plt.tight_layout()
+  plt.savefig('speedup_recompose_kernel_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
 
-# run_fake_data(65, 65, 65,  -1, 16)
-# run_fake_data(65, 65, 65,  3, 16)
+  
 
-# warming_up_gpu=3
-# for i in range(warming_up_gpu):
-#   ret = run_cuda_version(600, 400, 1, 0.01, 0, 0)
+def plot_speedup_all(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, max_level):
+  refactor_speedup_all = []
+  recompose_speedup_all = []
+  size_all = []
+  for i in range(max_level):
+    n = pow(2, i) + 1
+    if (n >= 33):
+      r = n
+      c = n
+      if (nfib == 1):
+        f = 1
+      else:
+        f = n
+      result_refactor_cpu = read_csv(get_refactor_csv_name(r, c, f, opt1, B, num_of_queues))
+      result_refactor_gpu = read_csv(get_refactor_csv_name(r, c, f, opt2, B, num_of_queues))
+      result_recompose_cpu = read_csv(get_recompose_csv_name(r, c, f, opt1, B, num_of_queues))
+      result_recompose_gpu = read_csv(get_recompose_csv_name(r, c, f, opt2, B, num_of_queues))
+      refractor_cpu_all = sum_time_all(result_refactor_cpu)
+      refractor_gpu_all = sum_time_all(result_refactor_gpu)
+      recompose_cpu_all = sum_time_all(result_recompose_cpu)
+      recompose_gpu_all = sum_time_all(result_recompose_gpu)
+      refactor_speedup_all.append(refractor_cpu_all / refractor_gpu_all)
+      recompose_speedup_all.append(recompose_cpu_all / recompose_gpu_all)
+      if (nfib == 1):
+        size_all.append('${}^2$'.format(n))
+      else:
+        size_all.append('${}^3$'.format(n))
 
-# kernel_names = get_kernel_names(600, 400, 1, 0.01, 0)
+  print(refactor_speedup_all)
+  print(recompose_speedup_all)
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+  bar_width = 0.25
+  x_idx = np.array(range(len(size_all)))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(refactor_speedup_all))), 10))
+  p1 = ax1.bar(x_idx, refactor_speedup_all, align='center', width=bar_width)
+  ax1.set_xticks(x_idx)
+  ax1.set_xticklabels(size_all)
+  ax1.set_xlabel("Input Size")
+  ax1.tick_params(axis='x', rotation=0)
+  ax1.set_yticks(y_idx)
+  ax1.set_yticklabels(y_idx)
+  ax1.set_ylabel("Speedup")
+  ax1.grid(which='major', axis='y')
+  plt.tight_layout()
+  plt.savefig('speedup_refactor_all_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+  bar_width = 0.25
+  x_idx = np.array(range(len(size_all)))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(recompose_speedup_all))), 10))
+  p1 = ax1.bar(x_idx, recompose_speedup_all, align='center', width=bar_width)
+  ax1.set_xticks(x_idx)
+  ax1.set_xticklabels(size_all)
+  ax1.set_xlabel("Input Size")
+  ax1.tick_params(axis='x', rotation=0)
+  ax1.set_yticks(y_idx)
+  ax1.set_yticklabels(y_idx)
+  ax1.set_ylabel("Speedup")
+  ax1.grid(which='major', axis='y')
+  plt.tight_layout()
+  plt.savefig('speedup_recompose_all_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
 
 
-# num_runs = 10
-# cpu_results = []
-# cuda_results = []
-# cuda_o1_results = []
-# cuda_o2_results = []
-# for i in range(num_runs):
-#   ret = run_cpu_version(600, 400, 1, 0.01, 0)
-#   cpu_results.append(ret)
+def plot_time_breakdown(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
+  result_refactor_cpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_refactor_gpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+  result_recompose_cpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_recompose_gpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
 
-#   ret = run_cuda_version(600, 400, 1, 0.01, 0, 0)
-#   cuda_results.append(ret)
+  cpu_kernel_all = []
+  gpu_kernel_all = []
 
-#   ret = run_cuda_version(600, 400, 1, 0.01, 0, 1)
-#   cuda_o1_results.append(ret)
+  if (nfib == 1):
+    refactor_cpu_kernels_list = refactor_2D_kernels_list + kernel_list_cpu_ex
+    recompose_cpu_kernels_list = recompose_2D_kernels_list + kernel_list_cpu_ex
+    refactor_gpu_kernels_list = refactor_2D_kernels_list + kernels_list_gpu_ex
+    recompose_gpu_kernels_list = recompose_2D_kernels_list + kernels_list_gpu_ex
+  else:
 
-#   ret = run_cuda_version(600, 400, 1, 0.01, 0, 2)
-#   cuda_o2_results.append(ret)
+    refactor_cpu_kernels_list = refactor_3D_kernels_list + kernel_list_cpu_ex
+    recompose_cpu_kernels_list = recompose_3D_kernels_list + kernel_list_cpu_ex
+    if (num_of_queues == 1):
+      refactor_gpu_kernels_list = refactor_3D_kernels_list + kernels_list_gpu_ex
+      recompose_gpu_kernels_list = recompose_3D_kernels_list + kernels_list_gpu_ex
+    else:
+      refactor_gpu_kernels_list = refactor_3D_kernels_fused_list + kernels_list_gpu_ex
+      recompose_gpu_kernels_list = recompose_3D_kernels_fused_list + kernels_list_gpu_ex
 
-# cpu_avg = np.average(np.array(cpu_results), axis=0)
-# print(cpu_avg)
+  cpu_kernels_list = Union(refactor_cpu_kernels_list, recompose_cpu_kernels_list)
+  gpu_kernels_list = Union(refactor_gpu_kernels_list, recompose_gpu_kernels_list)
 
-# cuda_avg = np.average(np.array(cuda_results), axis=0)
-# print(cuda_avg)
+  for kernel in cpu_kernels_list:
+    t1 = sum_time_by_kernel(result_refactor_cpu, kernel)
+    t2 = sum_time_by_kernel(result_recompose_cpu, kernel)
+    # t1 *= 100000;
+    # t2 *= 100000;
+    # if (t1 > 0):
+    #   t1 = math.log(t1, 10)
+    # if (t2 > 0):
+    #   t2 = math.log(t2, 10)
+    cpu_kernel_all.append([t1, t2])
+    
+  for kernel in gpu_kernels_list:
+    t1 = sum_time_by_kernel(result_refactor_gpu, kernel)
+    t2 = sum_time_by_kernel(result_recompose_gpu, kernel)
+    # t1 *= 100000;
+    # t2 *= 100000;
+    # if (t1 > 0):
+    #   t1 = math.log(t1, 10)
+    # if (t2 > 0):
+    #   t2 = math.log(t2, 10)
+    gpu_kernel_all.append([t1, t2])
 
-# cuda_o1_avg = np.average(np.array(cuda_o1_results), axis=0)
-# print(cuda_o1_avg)
-
-# cuda_o2_avg = np.average(np.array(cuda_o2_results), axis=0)
-# print(cuda_o2_avg)
-
-# cpu_speedup = np.full(cpu_avg.shape, 1)
-# cuda_speedup = cpu_avg/cuda_avg
-# cuda_o1_speedup = cpu_avg/cuda_o1_avg
-# cuda_o2_speedup = cpu_avg/cuda_o2_avg
-# print(cpu_speedup)
-# print(cuda_speedup)
-
-# plot_cuda_speedup(kernel_names, cpu_speedup, cuda_speedup, cuda_o1_speedup, cuda_o2_speedup)
+  # print(cpu_kernel_all)
+  # print(gpu_kernel_all)
 
 
+
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,3))
+  bar_width = 0.25
+  y_idx = np.array([1, 0]) # reverse the order of refactor and recompose
+  #y_idx = np.array(range(0, int(np.ceil(np.amax(refactor_speedup_all))), 1))
+  last_bar=[0,0]
+  bars = []
+  for i in range(len(cpu_kernels_list)):
+    print("CPU: ", cpu_kernels_list[i], ": ", cpu_kernel_all[i])
+    bar = ax1.barh(y_idx, cpu_kernel_all[i], align='center', left=last_bar, height=bar_width)
+    last_bar = [last_bar[0] + cpu_kernel_all[i][0], last_bar[1] + cpu_kernel_all[i][1]]
+    bars.append(bar)
+
+  ax1.set_yticks(y_idx)
+  ax1.set_yticklabels(['refactor', 'recompose'])
+  ax1.tick_params(axis='y', rotation=0)
+  #ax1.set_yticks(y_idx)
+  #ax1.set_yticklabels(y_idx)
+  ax1.grid(which='major', axis='x')
+  ax1.legend(tuple(bars), cpu_kernels_list, loc='upper left', bbox_to_anchor=(0,-0.10), ncol=5)
+  plt.tight_layout()
+  plt.savefig('cpu_time_breakdown_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+
+
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,3.3))
+  bar_width = 0.25
+  y_idx = np.array([1, 0]) # reverse the order of refactor and recompose
+  #y_idx = np.array(range(4))
+  last_bar=[0, 0]
+  bars = []
+  #for i in range(len(Union(refactor_cpu_kernels_list, recompose_cpu_kernels_list))):
+  for i in range(len(gpu_kernels_list)):
+    print("GPU", gpu_kernels_list[i], ": ", gpu_kernel_all[i])
+    b = ax1.barh(y_idx, gpu_kernel_all[i], align='center', left=last_bar, height=bar_width)
+    last_bar = [last_bar[0] + gpu_kernel_all[i][0], last_bar[1] + gpu_kernel_all[i][1]]
+    bars.append(b)
+
+  ax1.set_yticks(y_idx)
+  ax1.set_yticklabels(['refactor', 'recompose'])
+  ax1.tick_params(axis='y', rotation=0)
+  #ax1.set_yticks(y_idx)
+  #ax1.set_yticklabels(y_idx)
+  ax1.grid(which='major', axis='x')
+  ax1.legend(tuple(bars), gpu_kernels_list, loc='upper left', bbox_to_anchor=(0,-0.10), ncol=5)
+  plt.tight_layout()
+  plt.savefig('gpu_time_breakdown_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+
+
+def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
+  refactor_speedup_all = []
+  recompose_speedup_all = []
+  queues_all = []
+  for i in range(max_level):
+    num_of_queues = pow(2, i)
+    result_refactor_cpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+    result_refactor_gpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+    result_recompose_cpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+    result_recompose_gpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+    refractor_cpu_all = sum_time_all(result_refactor_cpu)
+    refractor_gpu_all = sum_time_all(result_refactor_gpu)
+    recompose_cpu_all = sum_time_all(result_recompose_cpu)
+    recompose_gpu_all = sum_time_all(result_recompose_gpu)
+    refactor_speedup_all.append(refractor_cpu_all / refractor_gpu_all)
+    recompose_speedup_all.append(recompose_cpu_all / recompose_gpu_all)
+    queues_all.append('{}'.format(num_of_queues))
+
+  print(refactor_speedup_all)
+  print(recompose_speedup_all)
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+  bar_width = 0.25
+  x_idx = np.array(range(len(queues_all)))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(refactor_speedup_all))), 1))
+  p1 = ax1.bar(x_idx, refactor_speedup_all, align='center', width=bar_width)
+  ax1.set_xticks(x_idx)
+  ax1.set_xticklabels(queues_all)
+  ax1.set_xlabel("Number of CUDA Streams")
+  ax1.tick_params(axis='x', rotation=0)
+  ax1.set_yticks(y_idx)
+  ax1.set_yticklabels(y_idx)
+  ax1.set_ylabel("Speedup")
+  ax1.grid(which='major', axis='y')
+  plt.tight_layout()
+  plt.savefig('speedup_refactor_all_queue_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+  bar_width = 0.25
+  x_idx = np.array(range(len(queues_all)))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(recompose_speedup_all))), 1))
+  p1 = ax1.bar(x_idx, recompose_speedup_all, align='center', width=bar_width)
+  ax1.set_xticks(x_idx)
+  ax1.set_xticklabels(queues_all)
+  ax1.set_xlabel("Number of CUDA Streams")
+  ax1.tick_params(axis='x', rotation=0)
+  ax1.set_yticks(y_idx)
+  ax1.set_yticklabels(y_idx)
+  ax1.set_ylabel("Speedup")
+  ax1.grid(which='major', axis='y')
+  plt.tight_layout()
+  plt.savefig('speedup_recompose_all_queue_{}_{}_{}_{}_{}'.format(nrow, ncol, nfib, B, num_of_queues))
+
+
+B = 16
+num_of_queues=1
+num_runs = 1
+
+max_level = 14 #8193^2
+for i in range(max_level):
+  n = pow(2, i) + 1
+  # if (n > 3):
+  #   avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
+  #   avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
+plot_speedup_all(n, n, 1, -1, 3, B, num_of_queues, max_level)
+
+num_of_queues=32
+max_level = 10 #513^3
+for i in range(max_level):
+  n = pow(2, i) + 1
+  # if (n > 3):
+    # avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
+    # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
+plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
+
+n = 513
+max_queues = 7 #128 queues
+for i in range(max_queues):
+  num_of_queues = pow(2, i)
+  # avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
+  # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
+plot_num_of_queues(n, n, n, -1, 3, B, max_queues)
+
+
+n = 8193
+num_of_queues=1
+# avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
+# avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
+# plot_speedup_kernel(n, n, 1, -1, 3, B, num_of_queues)
+# plot_time_breakdown(n, n, 1, -1, 3, B, num_of_queues)
+
+n = 513
+
+# avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
+# avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
+num_of_queues=1
+# plot_speedup_kernel(n, n, n, -1, 3, B, num_of_queues)
+num_of_queues=32
+# plot_time_breakdown(n, n, n, -1, 3, B, num_of_queues)

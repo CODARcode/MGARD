@@ -39,6 +39,7 @@
 
 #include "mgard_api_cuda.h" 
 #include "mgard_api.h" 
+#include "mgard_cuda_helper.h"
 
 #define ANSI_RED "\x1b[31m"
 #define ANSI_GREEN "\x1b[32m"
@@ -73,11 +74,11 @@ int main(int argc, char *argv[])
   }
 
   char *infile, *outfile;
-  int nrow, ncol, nfib, opt, B;
+  int nrow, ncol, nfib, opt, B, num_of_queues;
   bool profile;
   double tol, s;
-  if (argc != 9) {
-    if (argc < 9) {
+  if (argc != 10) {
+    if (argc < 10) {
       fprintf (stderr, "%s: Not enough arguments! ", argv[0]);
     } else {
       fprintf (stderr, "%s: Too many arguments! ", argv[0]);
@@ -94,6 +95,7 @@ int main(int argc, char *argv[])
     opt  = atoi(argv[6]);
     B    = atoi(argv[7]);
     profile = atoi(argv[8]);
+    num_of_queues = atoi(argv[9]);
 
   }
 
@@ -130,9 +132,12 @@ int main(int argc, char *argv[])
   unsigned char *mgard_comp_buff;
   
   if (opt == -1) {
+
     mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
   } else {
-    mgard_comp_buff = mgard_compress_cuda(iflag, in_buff, out_size, nrow, ncol, nfib, tol, opt, B, profile);
+    mgard_cuda_handle * handle = new mgard_cuda_handle(num_of_queues);
+    mgard_comp_buff = mgard_compress_cuda(iflag, in_buff, out_size, nrow, ncol, nfib, tol, opt, B, profile, *handle);
+    //mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
   }
   free(in_buff);
 
@@ -143,7 +148,9 @@ int main(int argc, char *argv[])
   if (opt == -1) {
     mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
   } else {
-    mgard_out_buff = mgard_decompress_cuda(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, opt, B, profile);
+    mgard_cuda_handle * handle = new mgard_cuda_handle(num_of_queues);
+    mgard_out_buff = mgard_decompress_cuda(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, opt, B, profile, *handle);
+    //mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
   }
 
   //FILE *qfile;
