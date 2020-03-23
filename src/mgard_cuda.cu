@@ -215,62 +215,42 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const T *u,
   //                    nfib * sizeof(T), ncol, nrow,
   //                    D2H, handle, 0, profile);
 
+  // work.clear();
+  // work2d.clear();
 
-  // compare_matrix(nrow, ncol, nfib,
-  //                v.data(), nfib, ncol,
-  //                v2.data(), nfib, ncol);
+  // int size_ratio = sizeof(T) / sizeof(int);
+  // std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
-  // for (int i = 0; i < 20; i++) {
-  //   if (abs(v2[i] - v[i]) > 0.000001) {
-  //     std::cout << "WRONG\n";
-  //   }
-  //   std::cout << "v: << " << v2[i] << " - " << v[i] << "\n";
+  // int * dqv;
+  // cudaMallocHelper((void**)&dqv, (nrow * ncol * nfib + size_ratio) * sizeof(int));
+  // int lddqv = nfib;
 
-  // }
+  // mgard::quantize_2D_iterleave_cuda (nrow * ncol, nfib, dv, lddv1, dqv, lddqv, norm, tol,
+  //                                                         B, handle, 0, profile);
 
-  // std::cout << "norm: " << norm << "\n";
+  // cudaMemcpyAsyncHelper(qv.data(), dqv, (nrow * ncol * nfib + size_ratio) * sizeof(int), D2H,
+  //                           handle, 0, profile);
 
-  work.clear();
-  work2d.clear();
+  // std::vector<unsigned char> out_data;
 
-  int size_ratio = sizeof(T) / sizeof(int);
-  std::vector<int> qv(nrow * ncol * nfib + size_ratio);
-  // std::vector<int> qv2(nrow * ncol * nfib + size_ratio);
+  // mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
 
-  int * dqv;
-  cudaMallocHelper((void**)&dqv, (nrow * ncol * nfib + size_ratio) * sizeof(int));
-  int lddqv = nfib;
+  // outsize = out_data.size();
+  // unsigned char *buffer = (unsigned char *)malloc(outsize);
+  // std::copy(out_data.begin(), out_data.end(), buffer);
 
-  mgard::quantize_2D_iterleave_cuda (nrow * ncol, nfib, dv, lddv1, dqv, lddqv, norm, tol,
-                                                          B, handle, 0, profile);
+  outsize = nrow * ncol * nfib * sizeof(T);
+  // unsigned char *buffer1 = (unsigned char *)malloc(outsize);
+  // std::copy(v.begin(), v.end(), buffer1);
 
-  cudaMemcpyAsyncHelper(qv.data(), dqv, (nrow * ncol * nfib + size_ratio) * sizeof(int), D2H,
-                            handle, 0, profile);
+  double *buffer2 = new double[nrow * ncol * nfib];
+  cudaMemcpy3DAsyncHelper(buffer2, nfib  * sizeof(T), nfib * sizeof(T), ncol,
+                     dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                     nfib * sizeof(T), ncol, nrow,
+                     D2H, handle, 0, profile);
+  handle.sync_all();
 
-  // mgard::quantize_2D_interleave(
-  //     nrow, ncol * nfib, v.data(), qv, norm,
-  //     tol); // rename this to quantize Linfty or smthng!!!!
-
-
-
-  // mgard::quantize_2D_interleave(
-  //     nrow, ncol * nfib, v2.data(), qv2, norm,
-  //     tol); // rename this to quantize Linfty or smthng!!!!
-
-// for (int i = 0; i < 20; i++) {
-//   if (abs(qv2[i] - qv[i]) > 0.000001) {
-//     std::cout << "error: << " << qv2[i] << " - " << qv[i] << "\n";
-//   }
-// }
-
-  std::vector<unsigned char> out_data;
-
-  mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-
-  outsize = out_data.size();
-  unsigned char *buffer = (unsigned char *)malloc(outsize);
-  std::copy(out_data.begin(), out_data.end(), buffer);
-  return buffer;
+  return (unsigned char *)buffer2;
 }
 
 template unsigned char *
@@ -433,35 +413,29 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
   cudaMemcpyAsyncHelper(difibP, ifibP, (nfib-nf) * sizeof(int), H2D,
                         handle, 0, profile);
 
-  mgard::decompress_memory_z(data, data_len, out_data.data(),
-                             out_data.size() *
-                                 sizeof(int)); // decompress input buffer
-  T *v = (T *)malloc(nrow * ncol * nfib * sizeof(T));
 
 
-  int * dout_data;
-  cudaMallocHelper((void**)&dout_data, (nrow * ncol * nfib + size_ratio) * sizeof(int));
-  int lddout_data = nfib;
-
-  cudaMemcpyAsyncHelper(dout_data, out_data.data(), (nrow * ncol * nfib + size_ratio) * sizeof(int), H2D,
-                            handle, 0, profile);
-
-  mgard::dequantize_2D_iterleave_cuda (nrow * ncol, nfib, dv, lddv1, dout_data, lddout_data,
-                                                          B, handle, 0, profile);
-
-  //mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
+  // mgard::decompress_memory_z(data, data_len, out_data.data(),
+  //                            out_data.size() *
+  //                                sizeof(int)); // decompress input buffer
+  T * v = (T *)malloc(nrow * ncol * nfib * sizeof(T));
 
 
-  // for (int i = 0; i < nrow * ncol * nfib; i++) {
-    
-  //    v[i] = i+1;//((double) rand() / (RAND_MAX));
-     
-  // }
+  // int * dout_data;
+  // cudaMallocHelper((void**)&dout_data, (nrow * ncol * nfib + size_ratio) * sizeof(int));
+  // int lddout_data = nfib;
 
-  // cudaMemcpy3DAsyncHelper(dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
-  //                        v, nfib  * sizeof(T), nfib * sizeof(T), ncol,
-  //                        nfib * sizeof(T), ncol, nrow,
-  //                        H2D, handle, 0, profile);
+  // cudaMemcpyAsyncHelper(dout_data, out_data.data(), (nrow * ncol * nfib + size_ratio) * sizeof(int), H2D,
+  //                           handle, 0, profile);
+
+  // mgard::dequantize_2D_iterleave_cuda (nrow * ncol, nfib, dv, lddv1, dout_data, lddout_data,
+  //                                                         B, handle, 0, profile);
+
+
+  cudaMemcpy3DAsyncHelper(dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                         data, nfib  * sizeof(T), nfib * sizeof(T), ncol,
+                         nfib * sizeof(T), ncol, nrow,
+                         H2D, handle, 0, profile);
 
 
   mgard_gen::recompose_3D_cuda_cpt_l2_sm(l_target, 

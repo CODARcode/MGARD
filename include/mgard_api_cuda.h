@@ -1,4 +1,5 @@
 #include "mgard_cuda.h"
+#include "mgard_cuda_helper.h"
 
 #ifndef MGARD_API_CUDA_H
 #define MGARD_API_CUDA_H

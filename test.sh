@@ -34,6 +34,7 @@
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 -1 16 1
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 0 16 1
 #./build/bin/mgard_check_cuda_fake_data 9 9 1 0.001 0 3 16 1 1
+./build/bin/mgard_check_cuda_fake_data 65 65 65 0.001 0 -1 16 1 4
 ./build/bin/mgard_check_cuda_fake_data 65 65 65 0.001 0 3 16 1 4
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 1 16 1
 # ./build/bin/mgard_check_cuda_fake_data 4000 4000 1 0.001 0 2 16 1
