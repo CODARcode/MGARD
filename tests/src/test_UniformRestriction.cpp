@@ -32,4 +32,21 @@ TEST_CASE("uniform functional restriction", "[UniformRestriction]") {
       require_vector_equality(f, expected);
     }
   }
+  SECTION("tetrahedra") {
+    moab::Core mbcore;
+    moab::ErrorCode ecode;
+    ecode = mbcore.load_file(mesh_path("tetrahedron.msh").c_str());
+    require_moab_success(ecode);
+    mgard::MeshLevel mesh(mbcore);
+    mgard::UniformMeshHierarchy hierarchy(mesh, 1);
+    const mgard::MeshLevel &MESH = hierarchy.meshes.back();
+    mgard::UniformRestriction R(MESH, mesh);
+    std::vector<double> f(hierarchy.meshes.front().ndof());
+    {
+      std::vector<double> F = {2, 4, 0, -2, 1, -1, 1, -1, 3, -3};
+      std::vector<double> expected = {2.5, 5.5, -2.5, -1.5};
+      R(F.data(), f.data());
+      require_vector_equality(f, expected);
+    }
+  }
 }

@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <random>
+#include <string>
 
 #include "moab/Core.hpp"
 #include "moab/EntityHandle.hpp"
@@ -17,9 +18,9 @@
 
 TEST_CASE("multilevel coefficient (de)quantization iteration",
           "[MultilevelCoefficientQuantizer]") {
+  const std::string filename = GENERATE("triangle.msh", "tetrahedron.msh");
   moab::Core mbcore;
-  const moab::ErrorCode ecode =
-      mbcore.load_file(mesh_path("triangle.msh").c_str());
+  const moab::ErrorCode ecode = mbcore.load_file(mesh_path(filename).c_str());
   require_moab_success(ecode);
   const mgard::MeshLevel _mesh(mbcore);
   const std::size_t L = 4;
@@ -57,12 +58,12 @@ TEST_CASE("multilevel coefficient (de)quantization iteration",
 
 TEST_CASE("quantization respects error bound",
           "[MultilevelCoefficientQuantizer]") {
+  const std::string filename = GENERATE("lopsided.msh", "hexahedron.msh");
   moab::Core mbcore;
-  const moab::ErrorCode ecode =
-      mbcore.load_file(mesh_path("lopsided.msh").c_str());
+  const moab::ErrorCode ecode = mbcore.load_file(mesh_path(filename).c_str());
   require_moab_success(ecode);
   const mgard::MeshLevel _mesh(mbcore);
-  const std::size_t L = 4;
+  const std::size_t L = 3;
   mgard::UniformMeshHierarchy hierarchy(_mesh, L);
   const std::size_t N = hierarchy.ndof();
 
@@ -106,9 +107,9 @@ TEST_CASE("quantization respects error bound",
 
 TEST_CASE("multilevel coefficient (de)quantization inversion",
           "[MultilevelCoefficientQuantizer]") {
+  const std::string filename = GENERATE("triangle.msh", "tetrahedron.msh");
   moab::Core mbcore;
-  const moab::ErrorCode ecode =
-      mbcore.load_file(mesh_path("triangle.msh").c_str());
+  const moab::ErrorCode ecode = mbcore.load_file(mesh_path(filename).c_str());
   require_moab_success(ecode);
   const mgard::MeshLevel _mesh(mbcore);
   const std::size_t L = 3;

@@ -154,9 +154,15 @@ TEST_CASE("mass matrix and mass matrix preconditioner", "[MassMatrix]") {
   }
 }
 
-static void test_ContiguousSubsetMassMatrix(const std::string &filename,
-                                            const std::size_t i,
-                                            const std::size_t n) {
+TEST_CASE("contiguous subset mass matrix", "[MassMatrix]") {
+  const auto [filename, i, n] =
+      GENERATE(table<std::string, std::size_t, std::size_t>(
+          {{"circle.msh", 10, 30},
+           {"circle.msh", 50, 5},
+           // Would be good to test a bigger example, but at present I only have
+           // small tetrahedral meshes. Could refine.
+           {"hexahedron.msh", 0, 1},
+           {"hexahedron.msh", 3, 2}}));
   moab::Core mbcore;
   moab::ErrorCode ecode;
   ecode = mbcore.load_file(mesh_path(filename).c_str());
@@ -198,16 +204,4 @@ static void test_ContiguousSubsetMassMatrix(const std::string &filename,
   REQUIRE(U_sq_norm >= 0);
   REQUIRE(u_sq_norm >= 0);
   REQUIRE(u_sq_norm == Approx(U_sq_norm));
-}
-
-TEST_CASE("contiguous subset mass matrix", "[MassMatrix]") {
-  SECTION("triangles") {
-    test_ContiguousSubsetMassMatrix("circle.msh", 10, 30);
-    test_ContiguousSubsetMassMatrix("circle.msh", 50, 5);
-  }
-  SECTION("tetrahedra") {
-    // Would be good to test a bigger example.
-    test_ContiguousSubsetMassMatrix("hexahedron.msh", 0, 1);
-    test_ContiguousSubsetMassMatrix("hexahedron.msh", 3, 2);
-  }
 }

@@ -5,6 +5,7 @@
 #include <cstddef>
 
 #include <random>
+#include <string>
 #include <vector>
 
 #include "moab/Core.hpp"
@@ -72,9 +73,10 @@ TEST_CASE("comparison with Python implementation: indicators", "[indicators]") {
 }
 
 TEST_CASE("indicators should track estimators", "[indicators]") {
+  const std::string filename = GENERATE("lopsided.msh", "hexahedron.msh");
   moab::ErrorCode ecode;
   moab::Core mbcore;
-  ecode = mbcore.load_file(mesh_path("lopsided.msh").c_str());
+  ecode = mbcore.load_file(mesh_path(filename).c_str());
   require_moab_success(ecode);
   mgard::MeshLevel mesh(mbcore);
   mgard::UniformMeshHierarchy hierarchy(mesh, 4);

@@ -11,6 +11,8 @@
 
 #include "LinearQuantizer.hpp"
 
+// Not immediately seeing a way to handle these templates using Catch2 macros.
+
 template <typename Real, typename Int>
 static void test_quantization_error(const Real quantum) {
   std::random_device device;
@@ -81,7 +83,7 @@ TEST_CASE("quantization exceptions", "[LinearQuantizer]") {
 
   SECTION("quantization domain") {
     test_quantization_error<float, short int>(0.1);
-    test_quantization_error<float, short int>(0.1);
+    test_quantization_error<float, int>(0.0006);
     test_quantization_error<double, long int>(24.2189);
   }
 }

@@ -28,8 +28,13 @@ EdgeFamilyIterable<T>::EdgeFamilyIterable(const MeshLevel &mesh,
   const moab::Range &EDGES = MESH.entities[moab::MBEDGE];
   const moab::Range &ELEMENTS = MESH.entities[MESH.element_type];
   assert(MESH.ndof() == mesh.ndof() + edges.size());
-  assert(EDGES.size() == 2 * edges.size() + 3 * elements.size());
   assert(mesh.element_type == MESH.element_type);
+  // When tetrahedra are refined using the Ong pattern, neighboring tetrahedra
+  // can generate identical 'new' edges, and so I don't have an expression for
+  // the expected size of `EDGES` in that case.
+  if (mesh.element_type == moab::MBTRI) {
+    assert(EDGES.size() == 2 * edges.size() + 3 * elements.size());
+  }
   assert(ELEMENTS.size() ==
          elements.size() * (1 << mesh.topological_dimension));
 }
