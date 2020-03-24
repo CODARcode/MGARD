@@ -250,6 +250,19 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const T *u,
                      D2H, handle, 0, profile);
   handle.sync_all();
 
+  cudaFreeHelper(dv);
+  cudaFreeHelper(dwork);
+  cudaFreeHelper(dcoords_y);
+  cudaFreeHelper(dcoords_x);
+  cudaFreeHelper(dcoords_z);
+  cudaFreeHelper(dirow);
+  cudaFreeHelper(dicol);
+  cudaFreeHelper(difib);
+  cudaFreeHelper(dirowP);
+  cudaFreeHelper(dicolP);
+  cudaFreeHelper(difibP);
+
+
   return (unsigned char *)buffer2;
 }
 
@@ -457,6 +470,19 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
 
   // mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v, work, coords_x,
   //                     coords_y, coords_z);
+
+  cudaFreeHelper(dv);
+  cudaFreeHelper(dwork);
+  cudaFreeHelper(dcoords_r);
+  cudaFreeHelper(dcoords_c);
+  cudaFreeHelper(dcoords_f);
+  cudaFreeHelper(dirow);
+  cudaFreeHelper(dicol);
+  cudaFreeHelper(difib);
+  cudaFreeHelper(dirowP);
+  cudaFreeHelper(dicolP);
+  cudaFreeHelper(difibP);
+
 
   return v;
 }
