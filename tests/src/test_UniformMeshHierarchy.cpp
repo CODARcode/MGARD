@@ -184,13 +184,13 @@ static double f(const mgard::MeshLevel &mesh, const moab::EntityHandle node) {
   return 4.27 * square(xyz[0]) - 9.28 * square(xyz[1]) + 0.288 * square(xyz[2]);
 }
 
-TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
+static void iteration_over_nodes_and_values(const std::string &filename) {
   moab::ErrorCode ecode;
   moab::Core mbcore;
-  ecode = mbcore.load_file(mesh_path("slope.msh").c_str());
+  ecode = mbcore.load_file(mesh_path(filename).c_str());
   require_moab_success(ecode);
   mgard::MeshLevel mesh_(mbcore);
-  const std::size_t L = 2;
+  const std::size_t L = 3;
   mgard::UniformMeshHierarchy hierarchy(mesh_, L);
 
   std::vector<double> u_;
@@ -227,4 +227,9 @@ TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
     REQUIRE(old_all_as_expected);
     REQUIRE(old_count == (l ? hierarchy.ndof(l - 1) : 0));
   }
+}
+
+TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
+  iteration_over_nodes_and_values("slope.msh");
+  iteration_over_nodes_and_values("hexahedron.msh");
 }
