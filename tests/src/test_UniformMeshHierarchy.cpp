@@ -8,6 +8,7 @@
 #include <limits>
 #include <random>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "blas.hpp"
@@ -24,9 +25,10 @@
 // transformed coefficients from the same identifier.
 
 TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
+  const std::string filename = GENERATE("pyramid.msh", "hexahedron.msh");
   moab::ErrorCode ecode;
   moab::Core mbcore;
-  ecode = mbcore.load_file(mesh_path("pyramid.msh").c_str());
+  ecode = mbcore.load_file(mesh_path(filename).c_str());
   require_moab_success(ecode);
   const mgard::MeshLevel mesh(mbcore);
   mgard::UniformMeshHierarchy hierarchy(mesh, 2);
@@ -184,7 +186,8 @@ static double f(const mgard::MeshLevel &mesh, const moab::EntityHandle node) {
   return 4.27 * square(xyz[0]) - 9.28 * square(xyz[1]) + 0.288 * square(xyz[2]);
 }
 
-static void iteration_over_nodes_and_values(const std::string &filename) {
+TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
+  const std::string filename = GENERATE("slope.msh", "hexahedron.msh");
   moab::ErrorCode ecode;
   moab::Core mbcore;
   ecode = mbcore.load_file(mesh_path(filename).c_str());
@@ -227,9 +230,4 @@ static void iteration_over_nodes_and_values(const std::string &filename) {
     REQUIRE(old_all_as_expected);
     REQUIRE(old_count == (l ? hierarchy.ndof(l - 1) : 0));
   }
-}
-
-TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
-  iteration_over_nodes_and_values("slope.msh");
-  iteration_over_nodes_and_values("hexahedron.msh");
 }

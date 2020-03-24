@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <random>
+#include <string>
 #include <vector>
 
 #include "moab/Core.hpp"
@@ -20,12 +21,11 @@
 
 static const double inf = std::numeric_limits<double>::infinity();
 
-// We could test the `L^inf` and `L^2` norms on a tetrahedral mesh, but I'll
-// wait until we have 3D refinement done and can test the `s` norms as well.
 TEST_CASE("basic norm properties", "[norms]") {
+  const std::string filename = GENERATE("pyramid.msh", "tetrahedron.msh");
   moab::ErrorCode ecode;
   moab::Core mbcore;
-  ecode = mbcore.load_file(mesh_path("pyramid.msh").c_str());
+  ecode = mbcore.load_file(mesh_path(filename).c_str());
   require_moab_success(ecode);
   mgard::MeshLevel mesh(mbcore);
   mgard::UniformMeshHierarchy hierarchy(mesh, 4);

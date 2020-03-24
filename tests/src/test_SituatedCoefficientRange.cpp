@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include <string>
+
 #include "moab/Core.hpp"
 #include "moab/EntityHandle.hpp"
 #include "moab/EntityType.hpp"
@@ -23,9 +25,10 @@ static double f(const mgard::MeshLevel &mesh, const moab::EntityHandle node) {
 }
 
 TEST_CASE("SituatedCoefficientRange iteration", "[SituatedCoefficientRange]") {
+  const std::string filename = GENERATE("pyramid.msh", "hexahedron.msh");
   moab::ErrorCode ecode;
   moab::Core mbcore;
-  ecode = mbcore.load_file(mesh_path("pyramid.msh").c_str());
+  ecode = mbcore.load_file(mesh_path(filename).c_str());
   require_moab_success(ecode);
   const mgard::MeshLevel _mesh(mbcore);
   const std::size_t L = 2;

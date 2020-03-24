@@ -18,9 +18,10 @@ RatioBounds s_square_estimator_bounds(const MeshHierarchy &hierarchy) {
   const std::size_t d = hierarchy.meshes.front().topological_dimension;
   if (d == 2) {
     return {.realism = 0.1, .reliability = 1};
+  } else if (d == 3) {
+    return {.realism = 1.f / 24, .reliability = 1};
   } else {
-    throw std::domain_error(
-        "estimator bounds currently only implemented in 2D");
+    throw std::domain_error("unsupported topological dimension");
   }
 }
 
