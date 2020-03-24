@@ -23,7 +23,7 @@ check_elements(mgard::MeshLevel &MESH,
     int num_nodes;
     ecode = MESH.impl.get_connectivity(t, connectivity, num_nodes);
     MB_CHK_ERR(ecode);
-    assert(num_nodes == 3);
+    assert(num_nodes == 3 || num_nodes == 4);
     Element element;
     for (const moab::EntityHandle x :
          mgard::PseudoArray(connectivity, num_nodes)) {
@@ -54,20 +54,61 @@ TEST_CASE("refining multiple triangles", "[UniformMeshRefiner]") {
   REQUIRE(MESH.entities[moab::MBEDGE].size() == 23);
   REQUIRE(MESH.entities[moab::MBTRI].size() == 12);
 
-  ecode = check_elements(MESH,
-                         {// Element given by the coordinates of their vertices.
-                          {{0, 0, 0}, {4, 0, 0}, {0, 3, 0}},
-                          {{4, 0, 0}, {4, 3, 0}, {0, 3, 0}},
-                          {{4, 0, 0}, {8, 0, 0}, {4, 3, 0}},
-                          {{0, 3, 0}, {4, 3, 0}, {0, 6, 0}},
-                          {{0, 0, 0}, {4, 0, 0}, {2, -2, 0}},
-                          {{4, 0, 0}, {8, 0, 0}, {6, -2, 0}},
-                          {{2, -2, 0}, {4, 0, 0}, {6, -2, 0}},
-                          {{2, -2, 0}, {4, -4, 0}, {6, -2, 0}},
-                          {{4, -4, 0}, {6, -4, 0}, {6, -2, 0}},
-                          {{6, -4, 0}, {6, -2, 0}, {8, -2, 0}},
-                          {{6, -4, 0}, {8, -4, 0}, {8, -2, 0}},
-                          {{6, -2, 0}, {8, -2, 0}, {8, 0, 0}}});
+  ecode =
+      check_elements(MESH,
+                     {// Elements given by the coordinates of their vertices.
+                      {{0, 0, 0}, {4, 0, 0}, {0, 3, 0}},
+                      {{4, 0, 0}, {4, 3, 0}, {0, 3, 0}},
+                      {{4, 0, 0}, {8, 0, 0}, {4, 3, 0}},
+                      {{0, 3, 0}, {4, 3, 0}, {0, 6, 0}},
+                      {{0, 0, 0}, {4, 0, 0}, {2, -2, 0}},
+                      {{4, 0, 0}, {8, 0, 0}, {6, -2, 0}},
+                      {{2, -2, 0}, {4, 0, 0}, {6, -2, 0}},
+                      {{2, -2, 0}, {4, -4, 0}, {6, -2, 0}},
+                      {{4, -4, 0}, {6, -4, 0}, {6, -2, 0}},
+                      {{6, -4, 0}, {6, -2, 0}, {8, -2, 0}},
+                      {{6, -4, 0}, {8, -4, 0}, {8, -2, 0}},
+                      {{6, -2, 0}, {8, -2, 0}, {8, 0, 0}}});
+  require_moab_success(ecode);
+}
+
+TEST_CASE("refining multiple tetrahedra", "[UniformMeshRefiner]") {
+  moab::ErrorCode ecode;
+  moab::Core mbcore;
+  ecode = mbcore.load_file(mesh_path("hexahedron.msh").c_str());
+  require_moab_success(ecode);
+  mgard::MeshLevel mesh(mbcore);
+
+  mgard::UniformMeshRefiner refiner;
+  mgard::MeshLevel MESH = refiner(mesh);
+
+  REQUIRE(MESH.topological_dimension == 3);
+  REQUIRE(MESH.ndof() == 14);
+  // 44 accounts for repeats on the edges shared by the original tetrahedra, but
+  // not for repeats on the (interior of the) face they share. Apparently there
+  // are three there.
+  REQUIRE(MESH.entities[moab::MBEDGE].size() <= 44);
+  REQUIRE(MESH.entities[moab::MBTET].size() == 16);
+
+  ecode = check_elements(
+      MESH,
+      {// Elements given by the coordinates of their vertices.
+       {{0, 0, 0}, {2.5, 0.5, 0.0}, {-0.5, 1.5, 0.0}, {0.0, 0.0, 2.0}},
+       {{5, 1, 0}, {2.5, 0.5, 0.0}, {2.0, 2.0, 0.0}, {2.5, 0.5, 2.0}},
+       {{-1, 3, 0}, {-0.5, 1.5, 0.0}, {2.0, 2.0, 0.0}, {-0.5, 1.5, 2.0}},
+       {{0, 0, 4}, {0.0, 0.0, 2.0}, {2.5, 0.5, 2.0}, {-0.5, 1.5, 2.0}},
+       {{-0.5, 1.5, 0.0}, {0.0, 0.0, 2.0}, {-0.5, 1.5, 2.0}, {2.0, 2.0, 0.0}},
+       {{0.0, 0.0, 2.0}, {-0.5, 1.5, 2.0}, {2.5, 0.5, 2.0}, {2.0, 2.0, 0.0}},
+       {{-0.5, 1.5, 0.0}, {2.5, 0.5, 0.0}, {0.0, 0.0, 2.0}, {2.0, 2.0, 0.0}},
+       {{2.5, 0.5, 0.0}, {0.0, 0.0, 2.0}, {2.0, 2.0, 0.0}, {2.5, 0.5, 2.0}},
+       {{-1, 3, 0}, {2.0, 2.0, 0.0}, {-0.5, 1.5, 2.0}, {1.0, 2.5, 1.5}},
+       {{5, 1, 0}, {2.0, 2.0, 0.0}, {2.5, 0.5, 2.0}, {4.0, 1.5, 1.5}},
+       {{0, 0, 4}, {-0.5, 1.5, 2.0}, {2.5, 0.5, 2.0}, {1.5, 1.0, 3.5}},
+       {{3, 2, 3}, {1.0, 2.5, 1.5}, {4.0, 1.5, 1.5}, {1.5, 1.0, 3.5}},
+       {{-0.5, 1.5, 2.0}, {1.0, 2.5, 1.5}, {1.5, 1.0, 3.5}, {2.5, 0.5, 2.0}},
+       {{1.0, 2.5, 1.5}, {1.5, 1.0, 3.5}, {4.0, 1.5, 1.5}, {2.5, 0.5, 2.0}},
+       {{-0.5, 1.5, 2.0}, {2.0, 2.0, 0.0}, {1.0, 2.5, 1.5}, {2.5, 0.5, 2.0}},
+       {{2.0, 2.0, 0.0}, {1.0, 2.5, 1.5}, {2.5, 0.5, 2.0}, {4.0, 1.5, 1.5}}});
   require_moab_success(ecode);
 }
 
@@ -114,4 +155,17 @@ TEST_CASE("refining triangle multiply", "[UniformMeshRefiner]") {
                                    {{7.5, 4.5, z}, {10, 4.5, z}, {10, 6, z}},
                                });
   require_moab_success(ecode);
+}
+
+TEST_CASE("refining tetrahedron multiply", "[UniformMeshRefiner]") {
+  moab::ErrorCode ecode;
+  moab::Core mbcore;
+  ecode = mbcore.load_file(mesh_path("tetrahedron.msh").c_str());
+  require_moab_success(ecode);
+  mgard::MeshLevel mesh(mbcore);
+
+  mgard::UniformMeshRefiner refiner;
+  // Mostly just checking that we don't hit any errors here.
+  mgard::MeshLevel MESH = refiner(refiner(refiner(mesh)));
+  REQUIRE(MESH.entities[moab::MBTET].size() == 512);
 }
