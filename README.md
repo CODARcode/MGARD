@@ -1,57 +1,22 @@
-## MGARD
+# MGARD [![Build Status][travis status]][travis]
 
 MGARD (MultiGrid Adaptive Reduction of Data) is a technique for multilevel lossy compression of scientific data based on the theory of multigrid methods.
-This is an experimental C++ API for integration with existing software, use at your own risk!
+This is an experimental C++ implementation for integration with existing software; use at your own risk!
+We encourage you to [make a GitHub issue][issue form] if you run into any problems using the software, have any questions or suggestions, etc.
 
-The double precision API consists of a header file: `mgard_api.h`, for single precision the header file is `mgard_api_float.h`.
+The API consists of a header file `include/mgard_api.h` providing prototypes for overloaded functions `mgard_compress` and `mgard_decompress`.
+See [the header][api] for documentation of these functions.
 
-Users need only include this header file, and link against the static
-library `libmgard.a`.
+To use MGARD,
 
-This header file provides prototypes for the following overloaded functions:
+1. Run `make lib/libmgard.a` to generate a static library.
+2. Include `mgard_api.h` in any source files making use of the API.
+3. Link against `libmgard.a` when creating your executable.
 
-```
-unsigned char *mgard_compress(int itype_flag, double/float *data, int& out_size,
-                              int n1, int n2, int n3, double/float tol, [qoi, s = infinity])
-```
-
-It returns a pointer to an `unsigned char` array of compressed data.
-The arguments are:
-
-     itype_flag: Data type, 0 for float, 1 for double
-     data : Pointer to the input buffer (interpreted as 2D matrix) to compress with MGARD,
-            this buffer will be destroyed!
-     out_size: size of input data, returns compressed size on exit
-     n1: Size of first dimension
-     n2: Size of second dimension
-     n3: Size of third dimension
-     tol: Upper bound for desired tolerance. Note that this tolerance is relative not absolute: ||u - C[u]||_s \le tol*||u||_s
-     qoi: Function pointer to the quantity of interest
-     s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
-
-# These APIs are outdated and will be updated. 
-The next overload is
-
-```
-void *mgard_decompress(int itype_flag, unsigned char *data,
-int data_len, int n1, int n2, int n3,[s = infinity])
-```
-
-This returns a void pointer to an array of decompressed data, which must be cast to `float` or `double`.
-The arguments are:
-
-     itype_flag: Data type, 0 for float, 1 for double
-     data : Pointer to the input buffer (interpreted as 2D matrix) to decompress with MGARD,
-            this buffer will be destroyed!
-     data_len: size of input data in bytes
-     n1: Size of first dimension
-     n2: Size of second dimension
-     n3: Size of third dimension
-     s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
-
-The `qoi` function pointer must compute the quantity of interest, *Q(v)*.
-Its only use is to estimate the Besov *s*-norm of the operator *Q*; if this can be derived independently, then there is no need to provide it.
-
+[travis]: https://travis-ci.org/CODARcode/MGARD
+[travis status]: https://travis-ci.org/CODARcode/MGARD.svg?branch=master
+[issue form]: https://github.com/CODARcode/MGARD/issues/new/choose
+[api]: include/mgard_api.h
 
 ## References
 
@@ -72,7 +37,5 @@ Reference [2] covers the simplest case and is a natural starting point.
 ## Caveats
 
 If you use a certain value of `s` to compress your data, *you must use the same value of `s` to decompress it*.
-You cannot agnostically decompress the compressed representation, and the value of `s` is not stored in the compressed stream.
+You cannot agnostically decompress the compressed representation, and the value of `s` is not currently stored in the compressed stream, so if you forget the value of `s` that you used when compressing your data, your data is gone.
 In addition, there is currently no way to detect if an inconsistent value of `s` has been passed, so the code returns corrupted data silently.
-
-If you forget the value of `s` that you used to compress your data, then your data is gone.
