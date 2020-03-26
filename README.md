@@ -52,8 +52,22 @@ The arguments are:
 The `qoi` function pointer must compute the quantity of interest, *Q(v)*.
 Its only use is to estimate the Besov *s*-norm of the operator *Q*; if this can be derived independently, then there is no need to provide it.
 
-Paper [1] should be the first reference to glimpse into the theory behind MGARD.
-For more information consult [2] and [3]:
+
+## References
+
+The theory behind MGARD is developed in the following papers, which also address implementation issues and present numerical examples.
+Reference [2] covers the simplest case and is a natural starting point.
+
+1. Ben Whitney. [Multilevel Techniques for Compression and Reduction of Scientific Data.][thesis] PhD thesis, Brown University, 2018.
+2. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. [Multilevel Techniques for Compression and Reduction of Scientific Data—The Univariate Case.][univariate] *Computing and Visualization in Science* 19, 65–76, 2018.
+3. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. [Multilevel Techniques for Compression and Reduction of Scientific Data—The Multivariate Case.][multivariate] *SIAM Journal on Scientific Computing* 41 (2), A1278–A1303, 2019.
+4. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. [Multilevel Techniques for Compression and Reduction of Scientific Data—Quantitative Control of Accuracy in Derived Quantities.][quantities] *SIAM Journal on Scientific Computing* 41 (4), A2146–A2171, 2019.
+5. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. Multilevel Techniques for Compression and Reduction of Scientific Data—The Unstructured Case. *SIAM Journal on Scientific Computing*, to appear.
+
+[thesis]: https://doi.org/10.26300/ya1v-hn97
+[univariate]: https://doi.org/10.1007/s00791-018-00303-9
+[multivariate]: https://doi.org/10.1137/18M1166651
+[quantities]: https://doi.org/10.1137/18M1208885
 
 ## Caveats
 
@@ -62,11 +76,3 @@ You cannot agnostically decompress the compressed representation, and the value 
 In addition, there is currently no way to detect if an inconsistent value of `s` has been passed, so the code returns corrupted data silently.
 
 If you forget the value of `s` that you used to compress your data, then your data is gone.
-
-1) Multilevel Techniques for Compression and Reduction of Scientific Data—The Univariate case
-M Ainsworth, O Tugluk, B Whitney, K Scott. Computing and Visualization in Science, 8, 2018
-
-2) Multilevel Techniques for Compression and Reduction of Scientific Data---The Multivariate Case
-M Ainsworth, O Tugluk, B Whitney, S Klasky. SIAM Journal on Scientific Computing 41 (2), A1278-A1303, 2019
-
-3) Multilevel Techniques for Compression and Reduction of Scientific Data-Quantitative Control of Accuracy in Derived Quantities. M Ainsworth, O Tugluk, B Whitney, S Klasky. SIAM Journal on Scientific Computing 41 (4), A2146-A2171, 2019
