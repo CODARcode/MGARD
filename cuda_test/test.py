@@ -2,12 +2,14 @@
 import subprocess
 import csv
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import math
 
-CSV_PREFIX="/home/4yc/test/"
+CSV_PREFIX="./"
 
-SMALL_SIZE = 14
+SMALL_SIZE = 12
 MEDIUM_SIZE = 16
 BIGGER_SIZE = 14
 
@@ -312,7 +314,7 @@ def plot_speedup_kernel(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(6,6))
   width = 0.25
   x_idx = np.array(range(len(refactor_kernels_list)))
-  y_idx = np.array(range(0, int(np.ceil(np.amax(refactor_speedup_kernel))), 4))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(refactor_speedup_kernel))), 100))
   p1 = ax1.bar(x_idx, refactor_speedup_kernel, width)
   ax1.set_xticks(x_idx)
   ax1.set_xticklabels(refactor_kernels_list)
@@ -327,7 +329,7 @@ def plot_speedup_kernel(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(6,6))
   width = 0.25
   x_idx = np.array(range(len(recompose_kernels_list)))
-  y_idx = np.array(range(0, int(np.ceil(np.amax(recompose_speedup_kernel))), 4))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(recompose_speedup_kernel))), 100))
   p1 = ax1.bar(x_idx, recompose_speedup_kernel, width)
   ax1.set_xticks(x_idx)
   ax1.set_xticklabels(recompose_kernels_list)
@@ -435,31 +437,14 @@ def plot_time_breakdown(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   for kernel in cpu_kernels_list:
     t1 = sum_time_by_kernel(result_refactor_cpu, kernel)
     t2 = sum_time_by_kernel(result_recompose_cpu, kernel)
-    # t1 *= 100000;
-    # t2 *= 100000;
-    # if (t1 > 0):
-    #   t1 = math.log(t1, 10)
-    # if (t2 > 0):
-    #   t2 = math.log(t2, 10)
     cpu_kernel_all.append([t1, t2])
     
   for kernel in gpu_kernels_list:
     t1 = sum_time_by_kernel(result_refactor_gpu, kernel)
     t2 = sum_time_by_kernel(result_recompose_gpu, kernel)
-    # t1 *= 100000;
-    # t2 *= 100000;
-    # if (t1 > 0):
-    #   t1 = math.log(t1, 10)
-    # if (t2 > 0):
-    #   t2 = math.log(t2, 10)
     gpu_kernel_all.append([t1, t2])
 
-  # print(cpu_kernel_all)
-  # print(gpu_kernel_all)
-
-
-
-  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,3))
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,5))
   bar_width = 0.25
   y_idx = np.array([1, 0]) # reverse the order of refactor and recompose
   #y_idx = np.array(range(0, int(np.ceil(np.amax(refactor_speedup_all))), 1))
@@ -477,12 +462,13 @@ def plot_time_breakdown(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   #ax1.set_yticks(y_idx)
   #ax1.set_yticklabels(y_idx)
   ax1.grid(which='major', axis='x')
-  ax1.legend(tuple(bars), cpu_kernels_list, loc='upper left', bbox_to_anchor=(0,-0.10), ncol=5)
+  ax1.set_xlabel("Time (sec)")
+  ax1.legend(tuple(bars), cpu_kernels_list, loc='upper left', bbox_to_anchor=(0,-0.2), ncol=3)
   plt.tight_layout()
   plt.savefig(CSV_PREFIX + 'cpu_time_breakdown_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
 
-  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,3.3))
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,5))
   bar_width = 0.25
   y_idx = np.array([1, 0]) # reverse the order of refactor and recompose
   #y_idx = np.array(range(4))
@@ -501,7 +487,8 @@ def plot_time_breakdown(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   #ax1.set_yticks(y_idx)
   #ax1.set_yticklabels(y_idx)
   ax1.grid(which='major', axis='x')
-  ax1.legend(tuple(bars), gpu_kernels_list, loc='upper left', bbox_to_anchor=(0,-0.10), ncol=5)
+  ax1.set_xlabel("Time (sec)")
+  ax1.legend(tuple(bars), gpu_kernels_list, loc='upper left', bbox_to_anchor=(0,-0.2), ncol=3)
   plt.tight_layout()
   plt.savefig(CSV_PREFIX + 'gpu_time_breakdown_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
@@ -529,7 +516,7 @@ def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
   x_idx = np.array(range(len(queues_all)))
-  y_idx = np.array(range(0, int(np.ceil(np.amax(refactor_speedup_all))), 1))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(refactor_speedup_all))), 10))
   p1 = ax1.bar(x_idx, refactor_speedup_all, align='center', width=bar_width)
   ax1.set_xticks(x_idx)
   ax1.set_xticklabels(queues_all)
@@ -545,7 +532,7 @@ def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
   x_idx = np.array(range(len(queues_all)))
-  y_idx = np.array(range(0, int(np.ceil(np.amax(recompose_speedup_all))), 1))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(recompose_speedup_all))), 10))
   p1 = ax1.bar(x_idx, recompose_speedup_all, align='center', width=bar_width)
   ax1.set_xticks(x_idx)
   ax1.set_xticklabels(queues_all)
@@ -559,6 +546,13 @@ def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
   plt.savefig(CSV_PREFIX + 'speedup_recompose_all_queue_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
 
+# def bw_at_scale():
+#   bw = []
+  
+
+
+
+
 B = 16
 num_of_queues=1
 num_runs = 1
@@ -566,10 +560,10 @@ num_runs = 1
 max_level = 14 #8193^2
 for i in range(max_level):
   n = pow(2, i) + 1
-  if (n > 3):
-    avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
-    avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
-plot_speedup_all(n, n, 1, -1, 3, B, num_of_queues, max_level)
+  # if (n > 3):
+  #   avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
+  #   avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
+# plot_speedup_all(n, n, 1, -1, 3, B, num_of_queues, max_level)
 
 num_of_queues=32
 max_level = 10 #513^3
@@ -578,14 +572,14 @@ for i in range(max_level):
   # if (n > 3):
     # avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
     # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
-plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
+# plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
 
 n = 513
 max_queues = 7 #128 queues
 for i in range(max_queues):
   num_of_queues = pow(2, i)
-  # avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
-  # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
+  avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
+  avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
 plot_num_of_queues(n, n, n, -1, 3, B, max_queues)
 
 
@@ -600,7 +594,7 @@ n = 513
 
 # avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
 # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
-num_of_queues=1
+# num_of_queues=1
 # plot_speedup_kernel(n, n, n, -1, 3, B, num_of_queues)
-num_of_queues=32
+# num_of_queues=32
 # plot_time_breakdown(n, n, n, -1, 3, B, num_of_queues)
