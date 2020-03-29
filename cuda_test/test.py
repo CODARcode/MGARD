@@ -7,8 +7,11 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import math
 
-PLATFORM = "gtx2080ti"
-CSV_PREFIX="./" + PLATFORM + "/"
+#PLATFORM = "gtx2080ti"
+#CSV_PREFIX="./" + PLATFORM + "/"
+PLATFORM = "v100"
+CSV_PREFIX="/gpfs/alpine/scratch/jieyang/csc143/" + PLATFORM + "/"
+
 
 SMALL_SIZE = 12
 MEDIUM_SIZE = 16
