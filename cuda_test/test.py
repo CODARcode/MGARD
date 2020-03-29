@@ -7,11 +7,17 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import math
 
+#######Running & Ploting on Workstation#######
 #PLATFORM = "gtx2080ti"
 #CSV_PREFIX="./" + PLATFORM + "/"
-PLATFORM = "v100"
-CSV_PREFIX="/gpfs/alpine/scratch/jieyang/csc143/" + PLATFORM + "/"
 
+#######Running on Summit#######
+#PLATFORM = "v100"
+#CSV_PREFIX="/gpfs/alpine/scratch/jieyang/csc143/" + PLATFORM + "/"
+
+#######Plotting Summit's Result on Workstation#######
+PLATFORM = "v100"
+CSV_PREFIX="./" + PLATFORM + "/"
 
 SMALL_SIZE = 12
 MEDIUM_SIZE = 16
@@ -647,12 +653,12 @@ num_of_queues=1
 max_level = 14 #8193^2
 for i in range(max_level):
   n = pow(2, i) + 1
-  if (n > 3):
-    avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
-    avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
+  # if (n > 3):
+  #   avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
+  #   avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
 
 ########Plot 2D All Size########
-# plot_speedup_all(n, n, 1, -1, 3, B, num_of_queues, max_level)
+plot_speedup_all(n, n, 1, -1, 3, B, num_of_queues, max_level)
 
 
 ########Run 3D All Size########
@@ -660,12 +666,12 @@ num_of_queues=32
 max_level = 10 #513^3
 for i in range(max_level):
   n = pow(2, i) + 1
-  if (n > 3):
-    avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
-    avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
+  # if (n > 3):
+  #   avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
+  #   avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
 
 ########Plot 3D All Size########
-# plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
+plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
 
 
 ########Run 3D All Queues########
@@ -673,11 +679,11 @@ n = 513
 max_queues = 7 #128 queues
 for i in range(max_queues):
   num_of_queues = pow(2, i)
-  avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
-  avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
+  # avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
+  # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
 
 ########Plot 3D All Queues########
-# plot_num_of_queues(n, n, n, -1, 3, B, max_queues)
+plot_num_of_queues(n, n, n, -1, 3, B, max_queues)
 
 
 ########Run 2D One Size########
@@ -687,9 +693,9 @@ num_of_queues=1
 # avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
 
 ########Plot 2D One Size Kernel Speedup########
-# plot_speedup_kernel(n, n, 1, -1, 3, B, num_of_queues)
+plot_speedup_kernel(n, n, 1, -1, 3, B, num_of_queues)
 ########Plot 2D One Size Time Breakdown########
-# plot_time_breakdown(n, n, 1, -1, 3, B, num_of_queues)
+plot_time_breakdown(n, n, 1, -1, 3, B, num_of_queues)
 
 ########Run 3D One Size########
 n = 513
@@ -698,9 +704,9 @@ num_of_queues=1
 # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
 
 ########Plot 3D One Size Kernel Speedup########
-# plot_speedup_kernel(n, n, n, -1, 3, B, num_of_queues)
+plot_speedup_kernel(n, n, n, -1, 3, B, num_of_queues)
 ########Plot 3D One Size Time Breakdown########
-# plot_time_breakdown(n, n, n, -1, 3, B, num_of_queues)
+plot_time_breakdown(n, n, n, -1, 3, B, num_of_queues)
 
 n = 513
 num_of_queues=32

@@ -38,7 +38,7 @@ void gen_data(double * data, int size) {
 void refactorize(double * data, int nrow, int ncol, int nfib, 
                  double * refactorized_data, std::string csv_prefix,
                  int device) {
-  mgard_cuda_handle * handle = new mgard_cuda_handle(32, csv_prefix);
+  mgard_cuda_handle * handle = new mgard_cuda_handle(8, csv_prefix);
   int out_size;
   double * mgard_refac_buff;
   if (device == 0) { // CPU
@@ -75,7 +75,7 @@ void sortArr(double * refactorized_data, int data_size, int * index) {
 void reconstruct(double * data, int nrow, int ncol, int nfib, 
                  double * recomposed_data, std::string csv_prefix,
                  int device) {
-  mgard_cuda_handle * handle = new mgard_cuda_handle(32, csv_prefix);
+  mgard_cuda_handle * handle = new mgard_cuda_handle(8, csv_prefix);
   double dummy = 0;
   int out_size = nrow * ncol * nfib * sizeof(double);
   double * tmp_data;
