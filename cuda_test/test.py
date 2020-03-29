@@ -7,7 +7,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import math
 
-CSV_PREFIX="./"
+PLATFORM = "gtx2080ti"
+CSV_PREFIX="./" + PLATFORM + "/"
 
 SMALL_SIZE = 12
 MEDIUM_SIZE = 16
@@ -373,6 +374,7 @@ def plot_speedup_all(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, max_level):
 
   print(refactor_speedup_all)
   print(recompose_speedup_all)
+
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
   x_idx = np.array(range(len(size_all)))
@@ -546,55 +548,162 @@ def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
   plt.savefig(CSV_PREFIX + 'speedup_recompose_all_queue_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
 
-# def bw_at_scale():
-#   bw = []
-  
+def get_bw(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, nproc, rank):
+
+  sizeof_double = 8
+  result_refactor_cpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_refactor_gpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+  result_recompose_cpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_recompose_gpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+  refractor_cpu_all = sum_time_all(result_refactor_cpu)
+  refractor_gpu_all = sum_time_all(result_refactor_gpu)
+  recompose_cpu_all = sum_time_all(result_recompose_cpu)
+  recompose_gpu_all = sum_time_all(result_recompose_gpu)
+
+  refractor_cpu_all_bw = (nrow * ncol * nfib * sizeof_double) / refractor_cpu_all /1e9
+  refractor_gpu_all_bw = (nrow * ncol * nfib * sizeof_double) / refractor_gpu_all /1e9
+
+  recompose_cpu_all_bw = (nrow * ncol * nfib * sizeof_double) / recompose_cpu_all /1e9
+  recompose_gpu_all_bw = (nrow * ncol * nfib * sizeof_double) / recompose_gpu_all /1e9
+
+  return np.array([refractor_cpu_all_bw, refractor_gpu_all_bw, recompose_cpu_all_bw, recompose_gpu_all_bw])
 
 
 
+def bw_at_scale(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
+  refractor_cpu_all_bw = np.array([])
+  refractor_gpu_all_bw = np.array([])
+  recompose_cpu_all_bw = np.array([])
+  recompose_gpu_all_bw = np.array([])
 
+
+  for nproc in [1, 8, 64, 512, 4096]:
+    bw_sum = np.array([0.0, 0.0, 0.0, 0.0])
+    for rank in range(nproc):
+      bw = get_bw(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, nproc, rank)
+      bw_sum = bw + bw_sum
+
+    refractor_cpu_all_bw = np.append(refractor_cpu_all_bw, bw_sum[0])
+    refractor_gpu_all_bw = np.append(refractor_gpu_all_bw, bw_sum[1])
+    recompose_cpu_all_bw = np.append(recompose_cpu_all_bw, bw_sum[2])
+    recompose_gpu_all_bw = np.append(recompose_gpu_all_bw, bw_sum[3])
+
+  print(refractor_cpu_all_bw)
+  print(refractor_gpu_all_bw)
+  print(recompose_cpu_all_bw)
+  print(recompose_gpu_all_bw)
+
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+  bar_width = 0.25
+  x_idx = np.array(range(len(refractor_cpu_all_bw)))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(refractor_gpu_all_bw))), 1000))
+  nproc_list = ['1', '8', '64', '512', '4096']
+  p1, = ax1.plot(x_idx, refractor_cpu_all_bw, 'b-s')
+  p2, = ax1.plot(x_idx, refractor_gpu_all_bw, 'g-o')
+  ax1.set_xticks(x_idx)
+  ax1.set_xticklabels(nproc_list)
+  ax1.set_xlabel("Number of GPUs")
+  ax1.tick_params(axis='x', rotation=0)
+  ax1.set_yticks(y_idx)
+  ax1.set_yticklabels(y_idx)
+  ax1.set_yscale("log")
+  ax1.set_ylabel("Throughput (GB/s)")
+  ax1.grid(which='major', axis='y')
+  ax1.legend(tuple([p1, p2]), ['CPU', 'GPU'])
+  plt.tight_layout()
+  plt.savefig(CSV_PREFIX + 'bw_refactor_all_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
+
+
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+  bar_width = 0.25
+  x_idx = np.array(range(len(recompose_cpu_all_bw)))
+  y_idx = np.array(range(0, int(np.ceil(np.amax(recompose_gpu_all_bw))), 1000))
+  nproc_list = ['1', '8', '64', '512', '4096']
+  p1, = ax1.plot(x_idx, recompose_cpu_all_bw, 'b-s')
+  p2, = ax1.plot(x_idx, recompose_gpu_all_bw, 'g-o')
+  ax1.set_xticks(x_idx)
+  ax1.set_xticklabels(nproc_list)
+  ax1.set_xlabel("Number of GPUs")
+  ax1.tick_params(axis='x', rotation=0)
+  ax1.set_yticks(y_idx)
+  ax1.set_yticklabels(y_idx)
+  ax1.set_yscale("log")
+  ax1.set_ylabel("Throughput (GB/s)")
+  ax1.grid(which='major', axis='y')
+  ax1.legend(tuple([p1, p2]), ['CPU', 'GPU'])
+  plt.tight_layout()
+  plt.savefig(CSV_PREFIX + 'bw_rcompose_all_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
+
+
+########Global Configuration########
 B = 16
-num_of_queues=1
-num_runs = 1
+num_runs = 3
 
+########Run 2D All Size########
+num_of_queues=1
 max_level = 14 #8193^2
 for i in range(max_level):
   n = pow(2, i) + 1
-  # if (n > 3):
-  #   avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
-  #   avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
+  if (n > 3):
+    avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
+    avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
+
+########Plot 2D All Size########
 # plot_speedup_all(n, n, 1, -1, 3, B, num_of_queues, max_level)
 
+
+########Run 3D All Size########
 num_of_queues=32
 max_level = 10 #513^3
 for i in range(max_level):
   n = pow(2, i) + 1
-  # if (n > 3):
-    # avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
-    # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
+  if (n > 3):
+    avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
+    avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
+
+########Plot 3D All Size########
 # plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
 
+
+########Run 3D All Queues########
 n = 513
 max_queues = 7 #128 queues
 for i in range(max_queues):
   num_of_queues = pow(2, i)
   avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
   avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
-plot_num_of_queues(n, n, n, -1, 3, B, max_queues)
+
+########Plot 3D All Queues########
+# plot_num_of_queues(n, n, n, -1, 3, B, max_queues)
 
 
+########Run 2D One Size########
 n = 8193
 num_of_queues=1
 # avg_fake_run(n, n, 1, -1, B, num_of_queues, num_runs)
 # avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
+
+########Plot 2D One Size Kernel Speedup########
 # plot_speedup_kernel(n, n, 1, -1, 3, B, num_of_queues)
+########Plot 2D One Size Time Breakdown########
 # plot_time_breakdown(n, n, 1, -1, 3, B, num_of_queues)
 
+########Run 3D One Size########
 n = 513
-
+num_of_queues=1
 # avg_fake_run(n, n, n, -1, B, num_of_queues, num_runs)
 # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
-# num_of_queues=1
+
+########Plot 3D One Size Kernel Speedup########
 # plot_speedup_kernel(n, n, n, -1, 3, B, num_of_queues)
-# num_of_queues=32
+########Plot 3D One Size Time Breakdown########
 # plot_time_breakdown(n, n, n, -1, 3, B, num_of_queues)
+
+n = 513
+num_of_queues=32
+#bw_at_scale(n, n, n, -1, 3, B, num_of_queues)
+
+
+n = 8193
+num_of_queues=1
+#bw_at_scale(n, n, 1, -1, 3, B, num_of_queues)

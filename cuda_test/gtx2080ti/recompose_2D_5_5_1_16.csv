@@ -1,0 +1,13 @@
+1,copy_level_l,1.87e-07
+1,assign_num_level_l,1.28e-07
+1,assign_num_level_l,1.28e-07
+1,mass_mult_l_row,5.94e-07
+1,restriction_l_row,4.17e-07
+1,solve_tridiag_M_l_row,6.41e-07
+1,mass_mult_l_col,3.13e-07
+1,restriction_l_col,2.31e-07
+1,solve_tridiag_M_l_col,3.01e-07
+1,subtract_level_l,3.85e-07
+1,subtract_level_l,3.85e-07
+1,prolongate_l_row,7.83e-07
+1,prolongate_l_col,3.67e-07

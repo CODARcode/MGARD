@@ -1,0 +1,17 @@
+1,pow2p1_to_cpt,9.28e-06
+1,cpt_to_pow2p1,9.28e-06
+1,copy_level_l,2.752e-06
+1,assign_num_level_l,3.584e-06
+1,assign_num_level_l,3.424e-06
+1,mass_mult_l_row,3.872e-06
+1,restriction_l_row,5.984e-06
+1,solve_tridiag_M_l_row,1.5168e-05
+1,mass_mult_l_col,4.096e-06
+1,restriction_l_col,4.672e-06
+1,solve_tridiag_M_l_col,1.4176e-05
+1,subtract_level_l,4.544e-06
+1,subtract_level_l,3.456e-06
+1,prolongate_l_row,4.896e-06
+1,prolongate_l_col,4.096e-06
+0,org_to_pow2p1,4.256e-06
+0,pow2p1_to_org,2.8736e-05

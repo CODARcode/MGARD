@@ -1,0 +1,13 @@
+0,copy_level_time,0.000243412
+0,assign_num_level_l_time,0.00101826
+0,assign_num_level_l_time2,0.00101826
+0,mass_matrix_multiply_row_time,0.000199918
+0,restriction_first_row_time,0.00148964
+0,solve_tridiag_M_l_row_time,0.00640018
+0,mass_matrix_multiply_col_time,0.000200785
+0,restriction_first_col_time,0.00148803
+0,solve_tridiag_M_l_col_time,0.00632527
+0,subtract_level_l_time,0.00112158
+0,prolongate_last_row_time,0.00149009
+0,prolongate_last_col_time,0.00149548
+0,subtract_level_time,0.000143665
