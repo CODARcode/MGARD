@@ -13,7 +13,7 @@
 #include "UniformMeshHierarchy.hpp"
 #include "data.hpp"
 
-static void BM_MGARDLinear(benchmark::State &state) {
+static void BM_structured_linear(benchmark::State &state) {
 
   std::vector<double> v(state.range(0));
   for (size_t i = 0; i < v.size(); ++i) {
@@ -33,12 +33,12 @@ static void BM_MGARDLinear(benchmark::State &state) {
                           int64_t(sizeof(double)));
 }
 
-BENCHMARK(BM_MGARDLinear)
+BENCHMARK(BM_structured_linear)
     ->RangeMultiplier(2)
     ->Range(1 << 4, 1 << 22)
     ->Complexity();
 
-static void BM_MGARD(benchmark::State &state) {
+static void BM_structured_random(benchmark::State &state) {
   std::mt19937_64 gen(124124);
   std::normal_distribution<double> dis{0, 1};
 
@@ -59,7 +59,10 @@ static void BM_MGARD(benchmark::State &state) {
                           int64_t(state.iterations()) *
                           int64_t(sizeof(double)));
 }
-BENCHMARK(BM_MGARD)->RangeMultiplier(2)->Range(1 << 4, 1 << 22)->Complexity();
+BENCHMARK(BM_structured_random)
+    ->RangeMultiplier(2)
+    ->Range(1 << 4, 1 << 22)
+    ->Complexity();
 
 static mgard::UniformMeshHierarchy
 read_mesh_and_refine(moab::Core &mbcore, const std::string &filename,
