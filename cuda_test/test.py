@@ -8,16 +8,18 @@ import matplotlib.pyplot as plt
 import math
 
 #######Running & Ploting on Workstation#######
-#PLATFORM = "gtx2080ti"
-#CSV_PREFIX="./" + PLATFORM + "/"
+PLATFORM = "rtx2080ti"
+CSV_PREFIX="./" + PLATFORM + "/"
 
 #######Running on Summit#######
 #PLATFORM = "v100"
 #CSV_PREFIX="/gpfs/alpine/scratch/jieyang/csc143/" + PLATFORM + "/"
 
 #######Plotting Summit's Result on Workstation#######
-PLATFORM = "v100"
-CSV_PREFIX="./" + PLATFORM + "/"
+#PLATFORM = "v100"
+#CSV_PREFIX="./" + PLATFORM + "/"
+#CSV_PREFIX_PARA="./v100-para/"
+CSV_PREFIX_PARA="./mgard-para-test/"
 
 SMALL_SIZE = 12
 MEDIUM_SIZE = 16
@@ -87,11 +89,11 @@ recompose_3D_kernels_list = ['copy_level_l',
 refactor_3D_kernels_fused_list = ['pi_Ql',
                                   'copy_level_l',
                                   'assign_num_level_l',
-                                  'correction_caclculation_fused'
+                                  'correction_calculation_fused',
                                   'add_level_l']
 recompose_3D_kernels_fused_list = ['copy_level_l',
                                   'assign_num_level_l',
-                                  'correction_caclculation_fused',
+                                  'correction_calculation_fused',
                                   'subtract_level_l',
                                   'prolongate_calculation_fused']
 
@@ -152,18 +154,63 @@ def rename_file(name_before, name_after):
           str(name_after)]
   subprocess.call(' '.join(cmd), shell = True)
 
-def sum_time_all(result):
-  sum = 0.0;
-  for i in range(len(result[0])):
-    sum += result[2][i]
-  return sum
-
 def sum_time_by_kernel(result, kernel):
   sum = 0.0;
   for i in range(len(result[0])):
     if (result[1][i] == kernel):
       sum += result[2][i]
   return sum
+
+def sum_time_all_refactor(result, nrow, ncol, nfib, opt, num_of_queues):
+  # print('sum_time_all_refactor', nrow, ncol, nfib, opt, num_of_queues)
+  sum = 0.0;
+  #for i in range(len(result[0])):
+  #  sum += result[2][i]
+  kernel_list = []
+  if (nfib == 1):
+    if (opt == -1):
+      kernel_list = refactor_2D_kernels_list + kernel_list_cpu_ex
+    else:
+      kernel_list = refactor_2D_kernels_list + kernels_list_gpu_ex
+  else:
+    if (opt == -1):
+      kernel_list = refactor_3D_kernels_list + kernel_list_cpu_ex
+    else:
+      if (num_of_queues == 1):
+        kernel_list = refactor_3D_kernels_list + kernels_list_gpu_ex
+      else:
+        kernel_list = refactor_3D_kernels_fused_list #+ kernels_list_gpu_ex
+  for kernel in kernel_list:
+    sum += sum_time_by_kernel(result, kernel)
+    # print(kernel, sum_time_by_kernel(result, kernel))
+  return sum
+
+
+def sum_time_all_recompose(result, nrow, ncol, nfib, opt, num_of_queues):
+  # print('sum_time_all_recompose', nrow, ncol, nfib, opt, num_of_queues)
+
+  sum = 0.0;
+  #for i in range(len(result[0])):
+  #  sum += result[2][i]
+  kernel_list = []
+  if (nfib == 1):
+    if (opt == -1):
+      kernel_list = recompose_2D_kernels_list + kernel_list_cpu_ex
+    else:
+      kernel_list = recompose_2D_kernels_list + kernels_list_gpu_ex
+  else:
+    if (opt == -1):
+      kernel_list = recompose_3D_kernels_list + kernel_list_cpu_ex
+    else:
+      if (num_of_queues == 1):
+        kernel_list = recompose_3D_kernels_list + kernels_list_gpu_ex
+      else:
+        kernel_list = recompose_3D_kernels_fused_list #+ kernels_list_gpu_ex
+  for kernel in kernel_list:
+    sum += sum_time_by_kernel(result, kernel)
+    # print(kernel, sum_time_by_kernel(result, kernel))
+  return sum
+
 
 
 def get_refactor_csv_name(nrow, ncol, nfib, opt, B, num_of_queues):
@@ -314,12 +361,12 @@ def plot_speedup_kernel(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   refactor_speedup_kernel = np.array(refactor_cpu_kernel)/np.array(refactor_gpu_kernel)
   recompose_speedup_kernel = np.array(recompose_cpu_kernel)/np.array(recompose_gpu_kernel)
 
-  print(refactor_cpu_kernel)
-  print(refactor_gpu_kernel)
-  print(recompose_cpu_kernel)
-  print(recompose_gpu_kernel)
-  print(refactor_speedup_kernel)
-  print(recompose_speedup_kernel)
+  # print(refactor_cpu_kernel)
+  # print(refactor_gpu_kernel)
+  # print(recompose_cpu_kernel)
+  # print(recompose_gpu_kernel)
+  # print(refactor_speedup_kernel)
+  # print(recompose_speedup_kernel)
 
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(6,6))
   width = 0.25
@@ -370,10 +417,10 @@ def plot_speedup_all(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, max_level):
       result_refactor_gpu = read_csv(get_refactor_csv_name(r, c, f, opt2, B, num_of_queues))
       result_recompose_cpu = read_csv(get_recompose_csv_name(r, c, f, opt1, B, num_of_queues))
       result_recompose_gpu = read_csv(get_recompose_csv_name(r, c, f, opt2, B, num_of_queues))
-      refractor_cpu_all = sum_time_all(result_refactor_cpu)
-      refractor_gpu_all = sum_time_all(result_refactor_gpu)
-      recompose_cpu_all = sum_time_all(result_recompose_cpu)
-      recompose_gpu_all = sum_time_all(result_recompose_gpu)
+      refractor_cpu_all = sum_time_all_refactor(result_refactor_cpu, r, c, f, opt1, num_of_queues)
+      refractor_gpu_all = sum_time_all_refactor(result_refactor_gpu, r, c, f, opt2, num_of_queues)
+      recompose_cpu_all = sum_time_all_recompose(result_recompose_cpu, r, c, f, opt1, num_of_queues)
+      recompose_gpu_all = sum_time_all_recompose(result_recompose_gpu, r, c, f, opt2, num_of_queues)
       refactor_speedup_all.append(refractor_cpu_all / refractor_gpu_all)
       recompose_speedup_all.append(recompose_cpu_all / recompose_gpu_all)
       if (nfib == 1):
@@ -514,10 +561,10 @@ def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
     result_refactor_gpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
     result_recompose_cpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
     result_recompose_gpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
-    refractor_cpu_all = sum_time_all(result_refactor_cpu)
-    refractor_gpu_all = sum_time_all(result_refactor_gpu)
-    recompose_cpu_all = sum_time_all(result_recompose_cpu)
-    recompose_gpu_all = sum_time_all(result_recompose_gpu)
+    refractor_cpu_all = sum_time_all_refactor(result_refactor_cpu, nrow, ncol, nfib, opt1, num_of_queues)
+    refractor_gpu_all = sum_time_all_refactor(result_refactor_gpu, nrow, ncol, nfib, opt2, num_of_queues)
+    recompose_cpu_all = sum_time_all_recompose(result_recompose_cpu, nrow, ncol, nfib, opt1, num_of_queues)
+    recompose_gpu_all = sum_time_all_recompose(result_recompose_gpu, nrow, ncol, nfib, opt2, num_of_queues)
     refactor_speedup_all.append(refractor_cpu_all / refractor_gpu_all)
     recompose_speedup_all.append(recompose_cpu_all / recompose_gpu_all)
     queues_all.append('{}'.format(num_of_queues))
@@ -564,10 +611,10 @@ def get_bw(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, nproc, rank):
   result_refactor_gpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
   result_recompose_cpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
   result_recompose_gpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
-  refractor_cpu_all = sum_time_all(result_refactor_cpu)
-  refractor_gpu_all = sum_time_all(result_refactor_gpu)
-  recompose_cpu_all = sum_time_all(result_recompose_cpu)
-  recompose_gpu_all = sum_time_all(result_recompose_gpu)
+  refractor_cpu_all = sum_time_all_refactor(result_refactor_cpu, nrow, ncol, nfib, opt1, num_of_queues)
+  refractor_gpu_all = sum_time_all_refactor(result_refactor_gpu, nrow, ncol, nfib, opt2, num_of_queues)
+  recompose_cpu_all = sum_time_all_recompose(result_recompose_cpu, nrow, ncol, nfib, opt1, num_of_queues)
+  recompose_gpu_all = sum_time_all_recompose(result_recompose_gpu, nrow, ncol, nfib, opt2, num_of_queues)
 
   refractor_cpu_all_bw = (nrow * ncol * nfib * sizeof_double) / refractor_cpu_all /1e9
   refractor_gpu_all_bw = (nrow * ncol * nfib * sizeof_double) / refractor_gpu_all /1e9
@@ -597,10 +644,10 @@ def bw_at_scale(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
     recompose_cpu_all_bw = np.append(recompose_cpu_all_bw, bw_sum[2])
     recompose_gpu_all_bw = np.append(recompose_gpu_all_bw, bw_sum[3])
 
-  print(refractor_cpu_all_bw)
-  print(refractor_gpu_all_bw)
-  print(recompose_cpu_all_bw)
-  print(recompose_gpu_all_bw)
+  # print(refractor_cpu_all_bw)
+  # print(refractor_gpu_all_bw)
+  # print(recompose_cpu_all_bw)
+  # print(recompose_gpu_all_bw)
 
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
@@ -643,6 +690,149 @@ def bw_at_scale(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   plt.tight_layout()
   plt.savefig(CSV_PREFIX + 'bw_rcompose_all_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
 
+
+def get_io_time(nproc, num_of_classes):
+  write_max = np.zeros(num_of_classes)
+  read_max = np.zeros(num_of_classes)
+  # for rank in range(nproc):
+  #   filename = CSV_PREFIX_PARA + "{}/{}/{}/workflow.csv".format(nproc, 'cuda', rank)
+  #   file = open(filename)
+  #   csv_reader = csv.reader(file)
+  #   data = []
+  #   for row in csv_reader:
+  #     data.append(float(row[0]))
+  #   write_rank = []
+  #   read_rank = []
+  #   for i in range(1, num_of_classes+1):
+  #     write_sum = 0.0
+  #     read_sum = 0.0
+  #     for j in range(i):
+  #       write_sum += data[j]
+  #       read_sum += data[j + num_of_classes]
+  #     write_rank.append(write_sum)
+  #     read_rank.append(read_sum)
+  #   write_max = np.maximum(write_max, write_rank)
+  #   read_max = np.maximum(read_max, read_rank)
+
+  bw = 250.0 / 1024
+
+  for i in range(num_of_classes):
+    write_max[i] = ((i+1) * 0.15) / bw
+    read_max[i] = ((i+1) * 0.15) / bw
+
+  data_size = []
+  for i in range(1, num_of_classes+1):
+    size = i * 0.15
+    data_size.append(size)
+  # print data_size
+  return [write_max, read_max, np.array(data_size)*nproc/write_max, np.array(data_size)*nproc/read_max]
+
+def get_accuracy(num_of_classes):
+  filename = CSV_PREFIX_PARA + "/accuracy.csv"
+  file = open(filename)
+  csv_reader = csv.reader(file)
+  data = []
+  for row in csv_reader:
+    data.append(float(row[0]))
+  accuracy = []
+  for i in range(num_of_classes):
+    accuracy.append(float(data[i])/float(data[num_of_classes-1]))
+  return np.array(accuracy)
+
+def plot_workflow(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, num_of_classes):
+  result_refactor_cpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_refactor_gpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+  result_recompose_cpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_recompose_gpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+  refractor_cpu_all = sum_time_all_refactor(result_refactor_cpu, nrow, ncol, nfib, opt1, num_of_queues)
+  refractor_gpu_all = sum_time_all_refactor(result_refactor_gpu, nrow, ncol, nfib, opt2, num_of_queues)
+  recompose_cpu_all = sum_time_all_recompose(result_recompose_cpu, nrow, ncol, nfib, opt1, num_of_queues)
+  recompose_gpu_all = sum_time_all_recompose(result_recompose_gpu, nrow, ncol, nfib, opt2, num_of_queues)
+
+  accuracy = get_accuracy(num_of_classes)
+  print (accuracy)
+
+  x_idx = np.array(range(num_of_classes))
+  xtick = np.array(range(1, num_of_classes+1))
+
+  for nproc in [1, 8, 64, 512, 4096]:
+    ret = get_io_time(nproc, num_of_classes)
+    write_time = ret[0]
+    read_time = ret[1]
+
+    org_write_time = np.empty([num_of_classes])
+    org_write_time.fill(write_time[num_of_classes-1])
+    org_read_time = np.empty([num_of_classes])
+    org_read_time.fill(read_time[num_of_classes-1])
+
+    refactor_cpu = np.empty([num_of_classes])
+    refactor_cpu.fill(refractor_cpu_all)
+    refactor_gpu = np.empty([num_of_classes])
+    refactor_gpu.fill(refractor_gpu_all)
+    recompose_cpu = np.empty([num_of_classes])
+    recompose_cpu.fill(recompose_cpu_all)
+    recompose_gpu = np.empty([num_of_classes])
+    recompose_gpu.fill(recompose_gpu_all)
+
+    #######Refactor+Write#######
+    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+    bar_width = 0.25
+
+    bar1 = ax1.bar(x_idx, write_time, align='center', width=bar_width)
+    bar2 = ax1.bar(x_idx, refactor_gpu, align='center', bottom=write_time, width=bar_width)
+    l1 = ax1.axhline(y=write_time[num_of_classes-1], color='r', linestyle='--')
+    a1 = ax1.annotate('Original Write Time', xy=(0.07, 0.9), xycoords='figure fraction', color='red')
+    ax1.set_xticks(x_idx)
+    ax1.set_xticklabels(xtick)
+    ax1.set_xlabel("Number of Coefficient Classes")
+    ax1.set_ylabel("Time (s)")
+    ax1.grid(which='major', axis='y')
+    ax1.legend(tuple([bar1, bar2]), ['File Write Time', 'Data Refactorization Time'], loc='upper left', bbox_to_anchor=(0,-0.05), ncol=1)
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel('Accuracy', color = 'blue')
+    p1, = ax2.plot(x_idx, accuracy, 'b-s')
+    y_idx = np.arange(0, 1.1, 0.1)
+    ax2.set_yticks(y_idx)
+    ytick_label = []
+    for i in range(len(accuracy)+1):
+      ytick_label.append("{}%".format(i*10))
+
+    ax2.set_yticklabels(ytick_label, color = 'blue')
+
+    plt.tight_layout()
+    plt.savefig(CSV_PREFIX + 'workflow_refractor_write_{}.png'.format(nproc))
+
+    #######Recompose+Read#######
+    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+    bar_width = 0.25
+    
+    bar1 = ax1.bar(x_idx, read_time, align='center', width=bar_width)
+    bar2 = ax1.bar(x_idx, recompose_gpu, align='center', bottom=read_time, width=bar_width)
+    l1 = ax1.axhline(y=read_time[num_of_classes-1], color='r', linestyle='--')
+    a1 = ax1.annotate('Original Read Time', xy=(0.07, 0.9), xycoords='figure fraction', color='red')
+    ax1.set_xticks(x_idx)
+    ax1.set_xticklabels(xtick)
+    ax1.set_xlabel("Number of Coefficient Classes")
+    ax1.set_ylabel("Time (s)")
+    ax1.grid(which='major', axis='y')
+    ax1.legend(tuple([bar1, bar2]), ['File Read Time', 'Data Recomposition Time'], loc='upper left', bbox_to_anchor=(0,-0.05), ncol=1)
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel('Accuracy', color = 'blue')
+    p1, = ax2.plot(x_idx, accuracy, 'b-s')
+
+    y_idx = np.arange(0, 1.1, 0.1)
+    ax2.set_yticks(y_idx)
+    ytick_label = []
+    for i in range(len(accuracy)+1):
+      ytick_label.append("{}%".format(i*10))
+
+    print(ytick_label)
+    ax2.set_yticklabels(ytick_label, color = 'blue')
+
+    plt.tight_layout()
+    plt.savefig(CSV_PREFIX + 'workflow_recompose_write_{}.png'.format(nproc))
 
 ########Global Configuration########
 B = 16
@@ -710,9 +900,15 @@ plot_time_breakdown(n, n, n, -1, 3, B, num_of_queues)
 
 n = 513
 num_of_queues=32
-#bw_at_scale(n, n, n, -1, 3, B, num_of_queues)
+bw_at_scale(n, n, n, -1, 3, B, num_of_queues)
 
 
 n = 8193
 num_of_queues=1
-#bw_at_scale(n, n, 1, -1, 3, B, num_of_queues)
+bw_at_scale(n, n, 1, -1, 3, B, num_of_queues)
+
+
+n = 513
+num_of_queues=32
+num_of_classes = 10
+plot_workflow(n, n, n, -1, 3, B, num_of_queues, num_of_classes)

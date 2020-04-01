@@ -1,0 +1,15 @@
+0,copy_slice,2.01e-07
+0,copy_from_slice,1.62e-07
+0,pi_Ql,4.525e-06
+0,copy_level_l,8.19e-07
+0,assign_num_level_l,2.37e-07
+0,mass_mult_l_row,2.925e-06
+0,restriction_l_row,2.162e-06
+0,solve_tridiag_M_l_row,2.809e-06
+0,mass_mult_l_col,1.514e-06
+0,restriction_l_col,1.144e-06
+0,solve_tridiag_M_l_col,1.546e-06
+0,mass_mult_l_fib,9.14e-07
+0,restriction_l_fib,6.84e-07
+0,solve_tridiag_M_l_fib,9.26e-07
+0,add_level_l,2.41e-07
