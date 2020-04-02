@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 cd ${HOME}
-wget https://github.com/danmar/cppcheck/archive/1.87.tar.gz
 mkdir -p /opt/cppcheck/build /opt/cppcheck/install
 cd /opt/cppcheck
 tar -xzf ${HOME}/1.87.tar.gz
