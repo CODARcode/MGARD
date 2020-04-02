@@ -12,6 +12,7 @@ before_install:
   - wget https://github.com/Kitware/CMake/releases/download/v3.15.5/cmake-3.15.5-Linux-x86_64.tar.gz
   - wget https://github.com/ornladios/ADIOS2/archive/v2.5.0.tar.gz
   - wget https://github.com/danmar/cppcheck/archive/1.87.tar.gz
+  - wget https://github.com/catchorg/Catch2/releases/download/v2.11.3/catch.hpp
   - popd
 install:
   - pushd ${HOME}
@@ -26,6 +27,7 @@ install:
   - git config --global clangformat.binary ${HOME}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin/clang-format
   - mkdir build && pushd build && cmake .. && make && popd
   - ./scripts/travis/build-cppcheck.sh
+  - pushd "${HOME}" && mkdir --parents .local/include/catch2 && mv catch.hpp .local/include/catch2 && popd
 env:
   matrix:
     - BUILD_MATRIX_ENTRY=format
