@@ -31,11 +31,11 @@ structured@CXXFLAGS := -std=c++11 -fPIC
 unstructured@CXXFLAGS := -std=c++17 -Wfatal-errors -Wall -Wextra -fPIC
 
 structured@LDFLAGS :=
-unstructured@LDFLAGS := -L/usr/lib/x86_64-linux-gnu/hdf5/serial -L$(HOME)/.local/lib
+unstructured@LDFLAGS := -L$(HOME)/.local/lib
 benchmarks@LDFLAGS := $(unstructured@LDFLAGS)
 
 structured@LDLIBS := -lz -ldl
-unstructured@LDLIBS := -lMOAB -lhdf5_hl -lhdf5 -llapack -lz -lstdc++fs -lm
+unstructured@LDLIBS := -lMOAB -llapack -lz -lstdc++fs -lm
 benchmarks@LDLIBS := -lbenchmark -lbenchmark_main -pthread $(structured@LDLIBS) $(unstructured@LDLIBS)
 
 dirty@FILES =
