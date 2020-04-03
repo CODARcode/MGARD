@@ -17,9 +17,9 @@ cd ${SOURCE_DIR}
 
 if [ $? -eq 0 ]
 then
-  echo "Successfully compress/decompress consine"
+  echo "Successfully compressed/decompressed cosine"
 else
-  echo "Error in compressing/decompressing consine" >&2
+  echo "Error in compressing/decompressing cosine" >&2
   exit 1
 fi
 
@@ -27,7 +27,7 @@ fi
 
 if [ $? -eq 0 ]
 then
-  echo "Successfully compress/decompress constant3d"
+  echo "Successfully compressed/decompressed constant3d"
 else
   echo "Error in compressing/decompressing constant3d" >&2
   exit 1
@@ -37,7 +37,7 @@ fi
 
 if [ $? -eq 0 ]
 then
-  echo "Successfully compress/decompress simple1d"
+  echo "Successfully compressed/decompressed simple1d"
 else
   echo "Error in compressing/decompressing simple1d" >&2
   exit 1
@@ -47,7 +47,7 @@ fi
 
 if [ $? -eq 0 ]
 then
-  echo "Successfully compress/decompress dim2kplus1"
+  echo "Successfully compressed/decompressed dim2kplus1"
 else
   echo "Error in compressing/decompressing dim2kplus1" >&2
   exit 1
@@ -56,5 +56,23 @@ fi
 
 cp tests/gray-scott/adios2.xml .
 mpirun -n 3 build/bin/gray-scott tests/gray-scott/simulation/settings-files.json
+
+if [ $? -eq 0 ]
+then
+  echo "Successfully ran Gray–Scott test"
+else
+  echo "Error in Gray–Scott test" >&2
+  exit 1
+fi
+
+make check
+
+if [ $? -eq 0 ]
+then
+  echo "Successfully built and ran unstructured tests"
+else
+  echo "Error in building or running unstructured tests" >&2
+  exit 1
+fi
 
 exit 0
