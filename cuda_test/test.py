@@ -8,17 +8,17 @@ import matplotlib.pyplot as plt
 import math
 
 #######Running & Ploting on Workstation#######
-PLATFORM = "rtx2080ti"
-CSV_PREFIX="./" + PLATFORM + "/"
+# PLATFORM = "rtx2080ti"
+# CSV_PREFIX="./" + PLATFORM + "/"
 
 #######Running on Summit#######
 #PLATFORM = "v100"
 #CSV_PREFIX="/gpfs/alpine/scratch/jieyang/csc143/" + PLATFORM + "/"
 
 #######Plotting Summit's Result on Workstation#######
-#PLATFORM = "v100"
-#CSV_PREFIX="./" + PLATFORM + "/"
-#CSV_PREFIX_PARA="./v100-para/"
+PLATFORM = "v100"
+CSV_PREFIX="./" + PLATFORM + "/"
+# CSV_PREFIX_PARA="./v100-para/"
 CSV_PREFIX_PARA="./mgard-para-test/"
 
 SMALL_SIZE = 12
@@ -421,6 +421,7 @@ def plot_speedup_all(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, max_level):
       refractor_gpu_all = sum_time_all_refactor(result_refactor_gpu, r, c, f, opt2, num_of_queues)
       recompose_cpu_all = sum_time_all_recompose(result_recompose_cpu, r, c, f, opt1, num_of_queues)
       recompose_gpu_all = sum_time_all_recompose(result_recompose_gpu, r, c, f, opt2, num_of_queues)
+
       refactor_speedup_all.append(refractor_cpu_all / refractor_gpu_all)
       recompose_speedup_all.append(recompose_cpu_all / recompose_gpu_all)
       if (nfib == 1):
@@ -428,8 +429,16 @@ def plot_speedup_all(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, max_level):
       else:
         size_all.append('${}^3$'.format(n))
 
-  print(refactor_speedup_all)
-  print(recompose_speedup_all)
+      # print(r,c,f)
+      # print(refractor_cpu_all)
+      # print(refractor_gpu_all)
+
+      # print(recompose_cpu_all)
+      # print(recompose_gpu_all)
+
+  # print(refactor_speedup_all)
+  # print(recompose_speedup_all)
+  
 
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
@@ -509,7 +518,7 @@ def plot_time_breakdown(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   last_bar=[0,0]
   bars = []
   for i in range(len(cpu_kernels_list)):
-    print("CPU: ", cpu_kernels_list[i], ": ", cpu_kernel_all[i])
+    # print("CPU: ", cpu_kernels_list[i], ": ", cpu_kernel_all[i])
     bar = ax1.barh(y_idx, cpu_kernel_all[i], align='center', left=last_bar, height=bar_width)
     last_bar = [last_bar[0] + cpu_kernel_all[i][0], last_bar[1] + cpu_kernel_all[i][1]]
     bars.append(bar)
@@ -534,7 +543,7 @@ def plot_time_breakdown(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   bars = []
   #for i in range(len(Union(refactor_cpu_kernels_list, recompose_cpu_kernels_list))):
   for i in range(len(gpu_kernels_list)):
-    print("GPU", gpu_kernels_list[i], ": ", gpu_kernel_all[i])
+    # print("GPU", gpu_kernels_list[i], ": ", gpu_kernel_all[i])
     b = ax1.barh(y_idx, gpu_kernel_all[i], align='center', left=last_bar, height=bar_width)
     last_bar = [last_bar[0] + gpu_kernel_all[i][0], last_bar[1] + gpu_kernel_all[i][1]]
     bars.append(b)
@@ -569,8 +578,8 @@ def plot_num_of_queues(nrow, ncol, nfib, opt1, opt2, B, max_level):
     recompose_speedup_all.append(recompose_cpu_all / recompose_gpu_all)
     queues_all.append('{}'.format(num_of_queues))
 
-  print(refactor_speedup_all)
-  print(recompose_speedup_all)
+  # print(refactor_speedup_all)
+  # print(recompose_speedup_all)
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
   x_idx = np.array(range(len(queues_all)))
@@ -644,10 +653,11 @@ def bw_at_scale(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
     recompose_cpu_all_bw = np.append(recompose_cpu_all_bw, bw_sum[2])
     recompose_gpu_all_bw = np.append(recompose_gpu_all_bw, bw_sum[3])
 
-  # print(refractor_cpu_all_bw)
-  # print(refractor_gpu_all_bw)
-  # print(recompose_cpu_all_bw)
-  # print(recompose_gpu_all_bw)
+  print(refractor_cpu_all_bw)
+  print(refractor_gpu_all_bw)
+  print(recompose_cpu_all_bw)
+  print(recompose_gpu_all_bw)
+
 
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
@@ -750,7 +760,7 @@ def plot_workflow(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, num_of_classes
   recompose_gpu_all = sum_time_all_recompose(result_recompose_gpu, nrow, ncol, nfib, opt2, num_of_queues)
 
   accuracy = get_accuracy(num_of_classes)
-  print (accuracy)
+  # print (accuracy)
 
   x_idx = np.array(range(num_of_classes))
   xtick = np.array(range(1, num_of_classes+1))
@@ -828,11 +838,162 @@ def plot_workflow(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, num_of_classes
     for i in range(len(accuracy)+1):
       ytick_label.append("{}%".format(i*10))
 
-    print(ytick_label)
+    # print(ytick_label)
     ax2.set_yticklabels(ytick_label, color = 'blue')
 
     plt.tight_layout()
     plt.savefig(CSV_PREFIX + 'workflow_recompose_write_{}.png'.format(nproc))
+
+
+
+def read_zlib_compress():
+  file = open(CSV_PREFIX + "zlib_compress.csv")
+  csv_reader = csv.reader(file)
+  results = []
+  for row in csv_reader:
+    results.append(float(row[0]))
+  return results
+
+def read_zlib_decompress():
+  file = open(CSV_PREFIX + "zlib_decompress.csv")
+  csv_reader = csv.reader(file)
+  results = []
+  for row in csv_reader:
+    results.append(float(row[0]))
+  return results
+
+def read_d2h():
+  file = open(CSV_PREFIX + "d2h.csv")
+  csv_reader = csv.reader(file)
+  results = []
+  for row in csv_reader:
+    results.append(float(row[0]))
+  return results
+
+def read_h2d():
+  file = open(CSV_PREFIX + "h2d.csv")
+  csv_reader = csv.reader(file)
+  results = []
+  for row in csv_reader:
+    results.append(float(row[0]))
+  return results
+
+def read_quantize_gpu():
+  file = open(CSV_PREFIX + "quantize-gpu.csv")
+  csv_reader = csv.reader(file)
+  results = []
+  for row in csv_reader:
+    results.append(float(row[0]))
+  return results
+
+def read_dequantize_gpu():
+  file = open(CSV_PREFIX + "dequantize-gpu.csv")
+  csv_reader = csv.reader(file)
+  results = []
+  for row in csv_reader:
+    results.append(float(row[0]))
+  return results
+
+
+def read_quantize_cpu():
+  file = open(CSV_PREFIX + "quantize-cpu.csv")
+  csv_reader = csv.reader(file)
+  results = []
+  for row in csv_reader:
+    results.append(float(row[0]))
+  return results
+
+def read_dequantize_cpu():
+  file = open(CSV_PREFIX + "dequantize-cpu.csv")
+  csv_reader = csv.reader(file)
+  results = []
+  for row in csv_reader:
+    results.append(float(row[0]))
+  return results
+
+
+def plot_mgard(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
+  result_refactor_cpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_refactor_gpu = read_csv(get_refactor_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+  result_recompose_cpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt1, B, num_of_queues))
+  result_recompose_gpu = read_csv(get_recompose_csv_name(nrow, ncol, nfib, opt2, B, num_of_queues))
+  refractor_cpu_all = sum_time_all_refactor(result_refactor_cpu, nrow, ncol, nfib, opt1, num_of_queues)
+  refractor_gpu_all = sum_time_all_refactor(result_refactor_gpu, nrow, ncol, nfib, opt2, num_of_queues)
+  recompose_cpu_all = sum_time_all_recompose(result_recompose_cpu, nrow, ncol, nfib, opt1, num_of_queues)
+  recompose_gpu_all = sum_time_all_recompose(result_recompose_gpu, nrow, ncol, nfib, opt2, num_of_queues)
+
+
+  num_of_eb = 7
+
+  refactor_cpu = np.empty([num_of_eb])
+  refactor_cpu.fill(refractor_cpu_all)
+  refactor_gpu = np.empty([num_of_eb])
+  refactor_gpu.fill(refractor_gpu_all)
+  recompose_cpu = np.empty([num_of_eb])
+  recompose_cpu.fill(recompose_cpu_all)
+  recompose_gpu = np.empty([num_of_eb])
+  recompose_gpu.fill(recompose_gpu_all)
+
+  zlib_compress = np.array(read_zlib_compress())
+  zlib_decompress = np.array(read_zlib_decompress())
+  h2d = np.array(read_h2d())
+  d2h = np.array(read_d2h())
+  quantize_gpu = np.array(read_quantize_gpu())
+  dequantize_gpu = np.array(read_dequantize_gpu())
+  quantize_cpu = np.array(read_quantize_cpu())
+  dequantize_cpu = np.array(read_dequantize_cpu())
+
+  x_idx = np.array(range(num_of_eb))
+  xtick = np.array(['$1e^{-6}$', '$1e^{-5}$', '$1e^{-4}$', '$1e^{-3}$', '$1e^{-2}$', '$1e^{-1}$', '$1e^{0}$'])
+
+  #######Compress#######
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+  bar_width = 0.25
+
+  bar1 = ax1.bar(x_idx+bar_width*1.05, zlib_compress, align='center', width=bar_width, color = 'blue')
+  bar2 = ax1.bar(x_idx+bar_width*1.05, d2h, align='center', bottom=zlib_compress, width=bar_width, color = 'red')
+  bar3 = ax1.bar(x_idx+bar_width*1.05, quantize_gpu, align='center', bottom=zlib_compress+d2h, width=bar_width, color = 'orange')
+  bar4 = ax1.bar(x_idx+bar_width*1.05, refactor_gpu, align='center', bottom=zlib_compress+d2h+quantize_gpu, width=bar_width, color = 'green')
+
+  bar1 = ax1.bar(x_idx, zlib_compress, align='center', width=bar_width, color = 'blue')
+  bar3 = ax1.bar(x_idx, quantize_cpu, align='center', bottom=zlib_compress, width=bar_width, color = 'orange')
+  bar4 = ax1.bar(x_idx, refactor_cpu, align='center', bottom=zlib_compress+quantize_cpu, width=bar_width, color = 'green')
+
+  ax1.set_xticks(x_idx+bar_width/2)
+  ax1.set_xticklabels(xtick)
+  ax1.set_xlabel("Error Bound")
+  ax1.set_ylabel("Time (s)")
+  ax1.grid(which='major', axis='y')
+  ax1.legend(tuple([bar1, bar2, bar3, bar4]), ['ZLib Compression', 'D2H', 'Quantization', 'Refactoring'], loc='upper left', bbox_to_anchor=(0,-0.05), ncol=2)
+
+  plt.tight_layout()
+  plt.savefig(CSV_PREFIX + 'mgard_compression.png')
+
+
+  #######Decompress#######
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+  bar_width = 0.25
+
+  bar1 = ax1.bar(x_idx+bar_width*1.05, zlib_decompress, align='center', width=bar_width, color = 'blue')
+  bar2 = ax1.bar(x_idx+bar_width*1.05, h2d, align='center', bottom=zlib_decompress, width=bar_width, color = 'red')
+  bar3 = ax1.bar(x_idx+bar_width*1.05, dequantize_gpu, align='center', bottom=zlib_decompress+h2d, width=bar_width, color = 'orange')
+  bar4 = ax1.bar(x_idx+bar_width*1.05, recompose_gpu, align='center', bottom=zlib_decompress+h2d+dequantize_gpu, width=bar_width, color = 'green')
+
+  bar1 = ax1.bar(x_idx, zlib_decompress, align='center', width=bar_width, color = 'blue')
+  bar3 = ax1.bar(x_idx, dequantize_cpu, align='center', bottom=zlib_decompress, width=bar_width, color = 'orange')
+  bar4 = ax1.bar(x_idx, recompose_cpu, align='center', bottom=zlib_decompress+dequantize_cpu, width=bar_width, color = 'green')
+
+  ax1.set_xticks(x_idx+bar_width/2)
+  ax1.set_xticklabels(xtick)
+  ax1.set_xlabel("Error Bound")
+  ax1.set_ylabel("Time (s)")
+  ax1.grid(which='major', axis='y')
+  ax1.legend(tuple([bar1, bar2, bar3, bar4]), ['ZLib Decompression', 'H2D', 'De-quantization', 'Recomposing'], loc='upper left', bbox_to_anchor=(0,-0.05), ncol=2)
+
+  plt.tight_layout()
+  plt.savefig(CSV_PREFIX + 'mgard_decompression.png')
+
+
 
 ########Global Configuration########
 B = 16
@@ -848,7 +1009,7 @@ for i in range(max_level):
   #   avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
 
 ########Plot 2D All Size########
-plot_speedup_all(n, n, 1, -1, 3, B, num_of_queues, max_level)
+# plot_speedup_all(n, n, 1, -1, 3, B, num_of_queues, max_level)
 
 
 ########Run 3D All Size########
@@ -861,7 +1022,7 @@ for i in range(max_level):
   #   avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
 
 ########Plot 3D All Size########
-plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
+# plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
 
 
 ########Run 3D All Queues########
@@ -873,7 +1034,7 @@ for i in range(max_queues):
   # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
 
 ########Plot 3D All Queues########
-plot_num_of_queues(n, n, n, -1, 3, B, max_queues)
+# plot_num_of_queues(n, n, n, -1, 3, B, max_queues)
 
 
 ########Run 2D One Size########
@@ -883,9 +1044,9 @@ num_of_queues=1
 # avg_fake_run(n, n, 1, 3, B, num_of_queues, num_runs)
 
 ########Plot 2D One Size Kernel Speedup########
-plot_speedup_kernel(n, n, 1, -1, 3, B, num_of_queues)
+# plot_speedup_kernel(n, n, 1, -1, 3, B, num_of_queues)
 ########Plot 2D One Size Time Breakdown########
-plot_time_breakdown(n, n, 1, -1, 3, B, num_of_queues)
+# plot_time_breakdown(n, n, 1, -1, 3, B, num_of_queues)
 
 ########Run 3D One Size########
 n = 513
@@ -894,9 +1055,9 @@ num_of_queues=1
 # avg_fake_run(n, n, n, 3, B, num_of_queues, num_runs)
 
 ########Plot 3D One Size Kernel Speedup########
-plot_speedup_kernel(n, n, n, -1, 3, B, num_of_queues)
+# plot_speedup_kernel(n, n, n, -1, 3, B, num_of_queues)
 ########Plot 3D One Size Time Breakdown########
-plot_time_breakdown(n, n, n, -1, 3, B, num_of_queues)
+# plot_time_breakdown(n, n, n, -1, 3, B, num_of_queues)
 
 n = 513
 num_of_queues=32
@@ -911,4 +1072,8 @@ bw_at_scale(n, n, 1, -1, 3, B, num_of_queues)
 n = 513
 num_of_queues=32
 num_of_classes = 10
-plot_workflow(n, n, n, -1, 3, B, num_of_queues, num_of_classes)
+# plot_workflow(n, n, n, -1, 3, B, num_of_queues, num_of_classes)
+
+n = 257
+num_of_classes=32
+# plot_mgard(n, n, n, -1, 3, B, num_of_queues)

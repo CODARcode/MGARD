@@ -123,10 +123,11 @@ void recompose(double * recomposed_data,
   }
 }
 
-void adios_write(int num_of_class, double ** decomposed_data, 
-                 int ** index, size_t * counters, 
-                 std::string * var_names, std::string * idx_names,
+void adios_write(int class_idx, double * decomposed_data, 
+                 int * index, size_t counter, 
+                 std::string var_name, std::string idx_name,
                  std::string filename, std::ofstream &timing_results) {
+
   MPI_Comm comm = MPI_COMM_WORLD;
   int rank, nproc;
   MPI_Comm_rank(comm, &rank);
@@ -136,29 +137,24 @@ void adios_write(int num_of_class, double ** decomposed_data,
   adios2::IO outIO = adios.DeclareIO("SimulationOutput");
   outIO.SetEngine("BP4");
   adios2::Engine writer = outIO.Open(filename, adios2::Mode::Write);
-  adios2::Variable<double> * outVarV = new adios2::Variable<double>[num_of_class];
-  adios2::Variable<int> * outIdx = new adios2::Variable<int>[num_of_class];
   std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
   std::chrono::duration<double> elapsed;
 
-  for (int i = 0; i < num_of_class; i++) {
-    outVarV[i] = outIO.DefineVariable<double>(var_names[i], {1, 1, counters[i] * nproc},
-                                                            {0, 0, counters[i] * rank},
-                                                            {1, 1, counters[i]});
-    outIdx[i] = outIO.DefineVariable<int>(idx_names[i], {1, 1, counters[i] * nproc},
-                                                        {0, 0, counters[i] * rank},
-                                                        {1, 1, counters[i]});
-  }
+
+  adios2::Variable<double> outVarV = outIO.DefineVariable<double>(var_name, {1, 1, counter * nproc},
+                                                          {0, 0, counter * rank},
+                                                          {1, 1, counter});
+  adios2::Variable<int> outIdx = outIO.DefineVariable<int>(idx_name, {1, 1, counter * nproc},
+                                                      {0, 0, counter * rank},
+                                                      {1, 1, counter});
+  start = std::chrono::high_resolution_clock::now();
   writer.BeginStep();
-  for (int i = 0; i < num_of_class; i++) {
-    start = std::chrono::high_resolution_clock::now();
-    writer.Put<double>(outVarV[i], decomposed_data[i], adios2::Mode::Sync);
-    writer.Put<int>(outIdx[i], index[i], adios2::Mode::Sync);
-    end = std::chrono::high_resolution_clock::now();
-    elapsed = end - start;
-    timing_results << std::to_string(elapsed.count()) << std::endl;
-  }
+  writer.Put<double>(outVarV, decomposed_data);
+  writer.Put<int>(outIdx, index);
   writer.EndStep();
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  timing_results << std::to_string(elapsed.count()) << std::endl;
 }
 
 
@@ -184,23 +180,24 @@ void adios_read(int class_idx, double * decomposed_data,
   inVarV.SetSelection(sel);
   inIdx.SetSelection(sel);
 
-  reader.BeginStep();
+  std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  std::chrono::duration<double> elapsed;
+
   std::vector<double> tmp_decomposed_data;
   std::vector<int> tmp_index;
 
-  std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
-  std::chrono::duration<double> elapsed;
   start = std::chrono::high_resolution_clock::now();
-  reader.Get(inVarV, tmp_decomposed_data, adios2::Mode::Sync);
-  reader.Get(inIdx, tmp_index, adios2::Mode::Sync);
+  reader.BeginStep();
+  reader.Get(inVarV, tmp_decomposed_data);
+  reader.Get(inIdx, tmp_index);
+  reader.EndStep();
+
   end = std::chrono::high_resolution_clock::now();
   elapsed = end - start;
   timing_results << std::to_string(elapsed.count()) << std::endl;
 
-
   std::copy(tmp_decomposed_data.begin(), tmp_decomposed_data.end(), decomposed_data);
   std::copy(tmp_index.begin(), tmp_index.end(), index);
-  reader.EndStep();
 }
 
 
@@ -308,16 +305,16 @@ int main(int argc, char *argv[]) {
 
   int n = atoi(argv[1]);
   int num_of_class = atoi(argv[2]);
-  std::string csv_prefix = argv[3];
+  std::string root_csv_prefix = argv[3];
   int device = atoi(argv[4]);
-  std::string filename = csv_prefix + "/data";
+  
 
-  std::string cmd_rmdir = "rm -rf " + csv_prefix + std::to_string(rank);
-  std::string cmd_mkdir = "mkdir -p " + csv_prefix + std::to_string(rank);
+  std::string cmd_rmdir = "rm -rf " + root_csv_prefix + std::to_string(rank);
+  std::string cmd_mkdir = "mkdir -p " + root_csv_prefix + std::to_string(rank);
   std::system(cmd_rmdir.c_str());
   std::system(cmd_mkdir.c_str());
 
-  csv_prefix = csv_prefix + std::to_string(rank) + "/";
+  std::string csv_prefix = root_csv_prefix + std::to_string(rank) + "/";
 
   
   int data_size = n*n*n;
@@ -330,6 +327,8 @@ int main(int argc, char *argv[]) {
   double ** decomposed_data2 = new double *[num_of_class];
   int ** index2 = new int *[num_of_class];
   size_t * counters = new size_t[num_of_class];
+
+  std::string * filenames = new std::string[num_of_class];
   std::string * var_names = new std::string[num_of_class];
   std::string * idx_names = new std::string[num_of_class];
   for (int i = 0; i < num_of_class; i++) {
@@ -337,8 +336,9 @@ int main(int argc, char *argv[]) {
     index[i] = new int[data_size];
     decomposed_data2[i] = new double[data_size];
     index2[i] = new int[data_size];
-    var_names[i] = "V" + std::to_string(i);
-    idx_names[i] = "IDX" + std::to_string(i);
+    var_names[i] = "V";// + std::to_string(i);
+    idx_names[i] = "IDX";// + std::to_string(i);
+    filenames[i] = root_csv_prefix + "/coeff_" + std::to_string(i);
   }
 
   std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
@@ -364,15 +364,16 @@ int main(int argc, char *argv[]) {
   //   print(index[i], counters[i]);
   // }
 
-  if (rank == 0) std::cout << "ADIOS write\n";
-  adios_write(num_of_class, decomposed_data, index, counters, 
-              var_names, idx_names, filename, timing_results);
+  for (int i = 0; i < num_of_class; i++) {
+    if (rank == 0) std::cout << "ADIOS write\n";
+    adios_write(i, decomposed_data[i], index[i], counters[i], 
+              var_names[i], idx_names[i], filenames[i], timing_results);
+  }
 
   for (int i = 0; i < num_of_class; i++) {
-
     if (rank == 0) std::cout << "ADIOS read\n";
     adios_read(i, decomposed_data2[i], index2[i], counters[i], 
-                var_names[i], idx_names[i], filename, timing_results);
+                var_names[i], idx_names[i], filenames[i], timing_results);
 
     if (rank == 0) std::cout << "Recompose\n";
     recompose(recomposed_data, data_size, i, decomposed_data2[i],
@@ -392,23 +393,23 @@ int main(int argc, char *argv[]) {
       std::string cmd_mv = "mv " + old_file + " " + new_file;
       std::system(cmd_mv.c_str());
     }
-/*
-    if (rank == 0) std::cout << "Vis\n";
-    start = std::chrono::high_resolution_clock::now();
-    double surface_result = 0.0;
-    vis(rank,
-        pz * n, py * n, px * n,
-        n, n, n,
-        n * npz, n * npy, n * npx,
-        data2, "field_v",
-        5, &surface_result);
-    end = std::chrono::high_resolution_clock::now();
-    elapsed = end - start;
-    timing_results << std::to_string(elapsed.count()) << std::endl;
-    timing_results << std::to_string(surface_result) << std::endl;
+
+    // if (rank == 0) std::cout << "Vis\n";
+    // start = std::chrono::high_resolution_clock::now();
+    // double surface_result = 0.0;
+    // vis(rank,
+    //     pz * n, py * n, px * n,
+    //     n, n, n,
+    //     n * npz, n * npy, n * npx,
+    //     data2, "field_v",
+    //     5, &surface_result);
+    // end = std::chrono::high_resolution_clock::now();
+    // elapsed = end - start;
+    // timing_results << std::to_string(elapsed.count()) << std::endl;
+    // timing_results << std::to_string(surface_result) << std::endl;
 
   }
-*/
+
   timing_results.close();
 
   MPI_Finalize();

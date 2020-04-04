@@ -46,58 +46,54 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
 
   tol /= nlevel + 1;
 
-  std::cout << "***prep_3D***" << std::endl;
-  auto t_start = std::chrono::high_resolution_clock::now();
+  
   // mgard_gen::prep_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
   //                    work2d, coords_x, coords_y, coords_z);
-  auto t_end = std::chrono::high_resolution_clock::now();
-  double data_size = nrow * ncol * sizeof(double);
-  double time = std::chrono::duration<double>(t_end-t_start).count();
-  float mem_throughput = (data_size/time)/1e9;
-  std::cout << time << ", prep_3D_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
-
-  std::cout << "***refactor_2D***" << std::endl;
-  t_start = std::chrono::high_resolution_clock::now();
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
                          work2d, coords_x, coords_y, coords_z, csv_prefix);
-  t_end = std::chrono::high_resolution_clock::now();
-  time = std::chrono::duration<double>(t_end-t_start).count();
-  mem_throughput = (data_size/time)/1e9;
-  std::cout << time << ", refactor_3D_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
-
 
   work.clear();
   work2d.clear();
 
-  int size_ratio = sizeof(double) / sizeof(int);
-  std::vector<int> qv(nrow * ncol * nfib + size_ratio);
+  /***********Compress**********/
+  // std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  // std::chrono::duration<double> elapsed;
 
-  t_start = std::chrono::high_resolution_clock::now();
+  // int size_ratio = sizeof(double) / sizeof(int);
+  // std::vector<int> qv(nrow * ncol * nfib + size_ratio);
+
+  // start = std::chrono::high_resolution_clock::now();
   // mgard::quantize_2D_interleave(
   //     nrow, ncol * nfib, v.data(), qv, norm,
   //     tol); // rename this to quantize Linfty or smthng!!!!
-  t_end = std::chrono::high_resolution_clock::now();
-  time = std::chrono::duration<double>(t_end-t_start).count();
-  mem_throughput = (data_size/time)/1e9;
-  std::cout << time << ", quantize_2D_iterleave_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
+  // end = std::chrono::high_resolution_clock::now();
+  // elapsed = end - start;
+  // printf("Quantize: %f\n", elapsed.count());
 
-  std::vector<unsigned char> out_data;
+  // std::vector<unsigned char> out_data;
 
-  t_start = std::chrono::high_resolution_clock::now();
+  // start = std::chrono::high_resolution_clock::now();
   // mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-  t_end = std::chrono::high_resolution_clock::now();
-  time = std::chrono::duration<double>(t_end-t_start).count();
-  mem_throughput = (data_size/time)/1e9;
-  std::cout << time << ", compress_memory_z_mem_throughput (" << nrow << ", " << ncol << "): " << mem_throughput << "GB/s. \n";
+  // end = std::chrono::high_resolution_clock::now();
+  // elapsed = end - start;
+  // printf("Lossless: %f\n", elapsed.count());
 
   // outsize = out_data.size();
   // unsigned char *buffer = (unsigned char *)malloc(outsize);
   // std::copy(out_data.begin(), out_data.end(), buffer);
+
+  /***********Compress**********/  
+
+
+
+  /***********Refactor**********/
   outsize = nrow * ncol * nfib * sizeof(double);
   double * buffer = new double[nrow * ncol * nfib];
   for (int i = 0; i < nrow * ncol * nfib; i++) {
     buffer[i] = v[i];
   }
+  /***********Refactor**********/
+
   return (unsigned char *)buffer;
 }
 
@@ -380,16 +376,33 @@ double *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
 
   int l_target = nlevel - 1;
 
+  double *v = (double *)malloc(nrow * ncol * nfib * sizeof(double));
+
+
+  /**********Decompress**********/
+  // std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  // std::chrono::duration<double> elapsed;
+
+  // start = std::chrono::high_resolution_clock::now();
   // mgard::decompress_memory_z(data, data_len, out_data.data(),
   //                            out_data.size() *
   //                                sizeof(int)); // decompress input buffer
-  double *v = (double *)malloc(nrow * ncol * nfib * sizeof(double));
+  // end = std::chrono::high_resolution_clock::now();
+  // elapsed = end - start;
+  // printf("Lossless: %f\n", elapsed.count());
 
+  // start = std::chrono::high_resolution_clock::now();
   // mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
+  // end = std::chrono::high_resolution_clock::now();
+  // elapsed = end - start;
+  // printf("dequantize: %f\n", elapsed.count());
+  /**********Decompress**********/
 
+  /**********Recompose**********/
   for (int i = 0; i < nrow * ncol * nfib; i++) {
     v[i] = ((double *)data)[i];
   }
+  /**********Recompose**********/
 
   mgard_gen::recompose_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v, work,
                           work2d, coords_x, coords_y, coords_z, csv_prefix);
