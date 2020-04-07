@@ -39,13 +39,13 @@ int main(int argc, char **argv) {
   */
   s = 0.0;
 
-  compressed_data = mgard_compress(0, data.data(), out_size, 16,
-                                   num_elements / 16, 1, tol, s);
+  compressed_data =
+      mgard_compress(data.data(), out_size, 16, num_elements / 16, 1, tol, s);
   cout << "Original size = " << num_elements * 8 << " out_size = " << out_size
        << " S = " << s << " CR = " << num_elements * 8.0 / out_size << endl;
 
-  double *decompressed_data = mgard_decompress(
-      0, compressed_data, out_size, 16, num_elements / 16, 1, s);
+  double *decompressed_data =
+      mgard_decompress(compressed_data, out_size, 16, num_elements / 16, 1, s);
 
   double l2norm_error = 0.0;
   double l2norm = 0.0;
