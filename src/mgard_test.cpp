@@ -252,15 +252,8 @@ Parameters<Real> parse_cmdl(const int argc, char const *const *const argv) {
   return parameters;
 }
 
-template <typename Real> int get_itype();
-
-template <> int get_itype<float>() { return 0; }
-
-template <> int get_itype<double>() { return 1; }
-
 template <typename Real> int run(const int argc, char const *const *argv) {
   const Parameters<Real> parameters = parse_cmdl<Real>(argc, argv);
-  const int itype = get_itype<Real>();
 
   if (parameters.infilename.size() == 0) {
     error("`infile` must have nonempty name");
@@ -311,7 +304,7 @@ template <typename Real> int run(const int argc, char const *const *argv) {
   int out_size;
   if (parameters.inf_flag) {
     compressed_data =
-        mgard_compress(itype, v, out_size, parameters.nrow, parameters.ncol,
+        mgard_compress(v, out_size, parameters.nrow, parameters.ncol,
                        parameters.nfib, parameters.tol);
   } else if (parameters.qoi_flag) {
     void *handle = dlopen(parameters.shared_obj.c_str(), RTLD_LAZY);
@@ -341,11 +334,11 @@ template <typename Real> int run(const int argc, char const *const *argv) {
       return 1;
     }
     compressed_data =
-        mgard_compress(itype, v, out_size, parameters.nrow, parameters.ncol,
+        mgard_compress(v, out_size, parameters.nrow, parameters.ncol,
                        parameters.nfib, parameters.tol, qoi, parameters.s);
   } else {
     compressed_data =
-        mgard_compress(itype, v, out_size, parameters.nrow, parameters.ncol,
+        mgard_compress(v, out_size, parameters.nrow, parameters.ncol,
                        parameters.nfib, parameters.tol, parameters.s);
   }
 
@@ -360,13 +353,12 @@ template <typename Real> int run(const int argc, char const *const *argv) {
   Real *dtest;
 
   if (parameters.inf_flag) {
-    dtest = mgard_decompress<Real>(itype, compressed_data, out_size,
-                                   parameters.nrow, parameters.ncol,
-                                   parameters.nfib);
+    dtest = mgard_decompress<Real>(compressed_data, out_size, parameters.nrow,
+                                   parameters.ncol, parameters.nfib);
   } else {
-    dtest = mgard_decompress<Real>(itype, compressed_data, out_size,
-                                   parameters.nrow, parameters.ncol,
-                                   parameters.nfib, parameters.s);
+    dtest =
+        mgard_decompress<Real>(compressed_data, out_size, parameters.nrow,
+                               parameters.ncol, parameters.nfib, parameters.s);
   }
 
   {

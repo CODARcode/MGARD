@@ -23,8 +23,8 @@ static void BM_structured_linear(benchmark::State &state) {
   int out_size;
   double tol = 1e-3;
   for (auto _ : state) {
-    benchmark::DoNotOptimize(mgard_compress(/* double = 0 */ 0, v.data(),
-                                            out_size, 4, v.size() / 4, 1, tol));
+    benchmark::DoNotOptimize(
+        mgard_compress(v.data(), out_size, 4, v.size() / 4, 1, tol));
   }
 
   state.SetComplexityN(state.range(0));
@@ -50,8 +50,8 @@ static void BM_structured_random(benchmark::State &state) {
   int out_size;
   double tol = 1e-3;
   for (auto _ : state) {
-    benchmark::DoNotOptimize(mgard_compress(/* double = 0 */ 0, v.data(),
-                                            out_size, 4, v.size() / 4, 1, tol));
+    benchmark::DoNotOptimize(
+        mgard_compress(v.data(), out_size, 4, v.size() / 4, 1, tol));
   }
 
   state.SetComplexityN(state.range(0));

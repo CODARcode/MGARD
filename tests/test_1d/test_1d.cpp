@@ -31,12 +31,12 @@ int main(int argc, char **argv) {
                 num_elements * sizeof(double));
 
   compressed_data =
-      mgard_compress(0, data.data(), out_size, 1, num_elements, 1, tol);
+      mgard_compress(data.data(), out_size, 1, num_elements, 1, tol);
   cout << "Original size = " << num_elements * 8 << " out_size = " << out_size
        << " CR = " << num_elements * 8.0 / out_size << endl;
 
-  double *decompressed_data = mgard_decompress<double>(
-      0, compressed_data, out_size, 1, num_elements, 1);
+  double *decompressed_data =
+      mgard_decompress<double>(compressed_data, out_size, 1, num_elements, 1);
 
   double abserr = 0.0;
   double max_abserr = 0.0;

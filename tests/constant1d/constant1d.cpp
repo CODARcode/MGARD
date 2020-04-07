@@ -16,12 +16,12 @@ int main(int argc, char **argv) {
     v[i] = i * i;
   }
 
-  compressed_data = mgard_compress(0, v, out_size, 1, npoints, 1, tol);
+  compressed_data = mgard_compress(v, out_size, 1, npoints, 1, tol);
   cout << "Original size = " << npoints * 8 << " out_size = " << out_size
        << " CR = " << npoints * 8.0 / out_size << endl;
 
   double *decompressed_data =
-      mgard_decompress<double>(0, compressed_data, out_size, 1, npoints, 1);
+      mgard_decompress<double>(compressed_data, out_size, 1, npoints, 1);
 
   double abserr = 0.0;
   double max_abserr = 0.0;
