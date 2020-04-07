@@ -183,8 +183,8 @@ unsigned char *mgard_compress(int itype_flag, Real *v, int &out_size, int nrow,
 }
 
 template <typename Real>
-Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
-                       int data_len, int nrow, int ncol, int nfib) {
+Real *mgard_decompress(int itype_flag, unsigned char *data, int data_len,
+                       int nrow, int ncol, int nfib) {
   Real *mgard_decompressed_ptr = nullptr;
 
   if (nrow > 1 && ncol > 1 && nfib > 1) {
@@ -214,8 +214,8 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
 }
 
 template <typename Real>
-Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
-                       int data_len, int nrow, int ncol, int nfib, Real s) {
+Real *mgard_decompress(int itype_flag, unsigned char *data, int data_len,
+                       int nrow, int ncol, int nfib, Real s) {
 
   Real *mgard_decompressed_ptr = nullptr;
 

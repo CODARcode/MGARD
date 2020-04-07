@@ -156,7 +156,6 @@ unsigned char *mgard_compress(int itype_flag, Real *data, int &out_size, int n1,
 //! norm.
 //!
 //!\param[in] itype_flag Flag to specify the datatype. Unused.
-//!\param[in, out] quantizer Unused.
 //!\param[in] data Compressed dataset.
 //!\param[in] data_len Size in bytes of the compressed dataset.
 //!\param[in] n1 Size of the dataset in the first dimension.
@@ -165,14 +164,13 @@ unsigned char *mgard_compress(int itype_flag, Real *data, int &out_size, int n1,
 //!
 //!\return Decompressed dataset.
 template <typename Real>
-Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
-                       int data_len, int n1, int n2, int n3);
+Real *mgard_decompress(int itype_flag, unsigned char *data, int data_len,
+                       int n1, int n2, int n3);
 
 //! Decompress a function on an equispaced 3D tensor product grid which was
 //! compressed while controlling the error as measured in the `s` norm.
 //!
 //!\param[in] itype_flag Flag to specify the datatype. Unused.
-//!\param[in, out] quantizer Unused.
 //!\param[in] data Compressed dataset.
 //!\param[in] data_len Size in bytes of the compressed dataset.
 //!\param[in] n1 Size of the dataset in the first dimension.
@@ -182,7 +180,7 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
 //!
 //!\return Decompressed dataset.
 template <typename Real>
-Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
-                       int data_len, int n1, int n2, int n3, Real s);
+Real *mgard_decompress(int itype_flag, unsigned char *data, int data_len,
+                       int n1, int n2, int n3, Real s);
 
 #endif

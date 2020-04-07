@@ -80,21 +80,19 @@ template unsigned char *mgard_compress<double>(int itype_flag, double *data,
                                                double s); // ... 6
 
 template float *
-mgard_decompress<float>(int itype_flag, float &quantizer, unsigned char *data,
-                        int data_len, int n1, int n2,
+mgard_decompress<float>(int itype_flag, unsigned char *data, int data_len,
+                        int n1, int n2,
                         int n3); // decompress L-infty compressed data
 
 template double *
-mgard_decompress<double>(int itype_flag, double &quantizer, unsigned char *data,
-                         int data_len, int n1, int n2,
+mgard_decompress<double>(int itype_flag, unsigned char *data, int data_len,
+                         int n1, int n2,
                          int n3); // decompress L-infty compressed data
 
-template float *mgard_decompress<float>(int itype_flag, float &quantizer,
-                                        unsigned char *data, int data_len,
-                                        int n1, int n2, int n3,
+template float *mgard_decompress<float>(int itype_flag, unsigned char *data,
+                                        int data_len, int n1, int n2, int n3,
                                         float s); // decompress s-norm
 
-template double *mgard_decompress<double>(int itype_flag, double &quantizer,
-                                          unsigned char *data, int data_len,
-                                          int n1, int n2, int n3,
+template double *mgard_decompress<double>(int itype_flag, unsigned char *data,
+                                          int data_len, int n1, int n2, int n3,
                                           double s); // decompress s-norm

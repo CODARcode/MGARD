@@ -115,10 +115,8 @@ void Writer::write(int step, const GrayScott &sim)
 
         compressed_data = mgard_compress(0, u.data(), outsize, sim.size_x,
                                          sim.size_y, sim.size_z, tol);
-        double quantizer;
-        double *decompressed_data =
-            mgard_decompress(0, quantizer, compressed_data, outsize, sim.size_x,
-                             sim.size_y, sim.size_z);
+        double *decompressed_data = mgard_decompress<double>(
+            0, compressed_data, outsize, sim.size_x, sim.size_y, sim.size_z);
         std::cout << "Variable u is decompressed. " << std::endl;
         writer.BeginStep();
         writer.Put<int>(var_step, &step);
