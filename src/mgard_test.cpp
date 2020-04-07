@@ -358,15 +358,13 @@ template <typename Real> int run(const int argc, char const *const *argv) {
   }
 
   Real *dtest;
-  // Dummy quantizer.
-  Real dummy;
 
   if (parameters.inf_flag) {
-    dtest = mgard_decompress<Real>(itype, dummy, compressed_data, out_size,
+    dtest = mgard_decompress<Real>(itype, compressed_data, out_size,
                                    parameters.nrow, parameters.ncol,
                                    parameters.nfib);
   } else {
-    dtest = mgard_decompress<Real>(itype, dummy, compressed_data, out_size,
+    dtest = mgard_decompress<Real>(itype, compressed_data, out_size,
                                    parameters.nrow, parameters.ncol,
                                    parameters.nfib, parameters.s);
   }
