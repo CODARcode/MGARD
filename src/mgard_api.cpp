@@ -40,23 +40,6 @@ mgard_compress<double>(double *data, int &out_size, int n1, int n2, int n3,
                        double tol, double (*qoi)(int, int, int, double *),
                        double s);
 
-template float
-mgard_compress<float>(int n1, int n2, int n3,
-                      float (*qoi)(int, int, int, std::vector<float>), float s);
-
-template double mgard_compress<double>(int n1, int n2, int n3,
-                                       double (*qoi)(int, int, int,
-                                                     std::vector<double>),
-                                       double s);
-
-template float mgard_compress<float>(int n1, int n2, int n3,
-                                     float (*qoi)(int, int, int, float *),
-                                     float s);
-
-template double mgard_compress<double>(int n1, int n2, int n3,
-                                       double (*qoi)(int, int, int, double *),
-                                       double s);
-
 template unsigned char *mgard_compress<float>(float *data, int &out_size,
                                               int n1, int n2, int n3, float tol,
                                               float norm_of_qoi, float s);
