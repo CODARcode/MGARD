@@ -99,33 +99,6 @@ unsigned char *mgard_compress(Real *data, int &out_size, int n1, int n2, int n3,
                               Real tol, Real (*qoi)(int, int, int, Real *),
                               Real s);
 
-//! Compute the operator norm of a linear functional.
-//!
-//!\param n1 Size of the domain grid in the first dimension.
-//!\param n2 Size of the domain grid in the second dimension.
-//!\param n3 Size of the domain grid in the third dimension.
-//!\param qoi Quantity of interest whose norm is to be computed.
-//!\param s Smoothness parameter. The norm of the Riesz representative of the
-//! functional will be computed using the `s` norm.
-template <typename Real>
-Real mgard_compress(int n1, int n2, int n3,
-                    Real (*qoi)(int, int, int, std::vector<Real>), Real s);
-
-//! Compute the operator norm of a linear functional.
-//!
-//!\note This is a C-compatible overload of the above function, differing only
-//! in the type of `qoi`.
-//!
-//!\param n1 Size of the domain grid in the first dimension.
-//!\param n2 Size of the domain grid in the second dimension.
-//!\param n3 Size of the domain grid in the third dimension.
-//!\param qoi Quantity of interest whose norm is to be computed.
-//!\param s Smoothness parameter. The norm of the Riesz representative of the
-//! functional will be computed using the `s` norm.
-template <typename Real>
-Real mgard_compress(int n1, int n2, int n3, Real (*qoi)(int, int, int, Real *),
-                    Real s);
-
 //! Compress a function on an equispaced 3D tensor product grid while
 //! controlling the error in a quantity of interest.
 //!
