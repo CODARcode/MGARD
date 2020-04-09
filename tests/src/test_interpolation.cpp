@@ -1,0 +1,143 @@
+#include "catch2/catch.hpp"
+
+#include <cstddef>
+
+#include <random>
+
+#include "interpolation.hpp"
+
+// Wrapping for convenience.
+
+template <typename Real>
+Real interpolate(const std::array<Real, 2> &qs, const std::array<Real, 2> &xs,
+                 const std::array<Real, 1> &x) {
+  return mgard::interpolate<Real>(qs.at(0), qs.at(1), xs.at(0), xs.at(1),
+                                  x.at(0));
+}
+
+template <typename Real>
+Real interpolate(const std::array<Real, 4> &qs, const std::array<Real, 2> &xs,
+                 const std::array<Real, 2> &ys, const std::array<Real, 2> &xy) {
+  return mgard::interpolate<Real>(qs.at(0), qs.at(1), qs.at(2), qs.at(3),
+                                  xs.at(0), xs.at(1), ys.at(0), ys.at(1),
+                                  xy.at(0), xy.at(1));
+}
+
+template <typename Real>
+Real interpolate(const std::array<Real, 8> &qs, const std::array<Real, 2> &xs,
+                 const std::array<Real, 2> &ys, const std::array<Real, 2> &zs,
+                 const std::array<Real, 3> &xyz) {
+  return mgard::interpolate<Real>(
+      qs.at(0), qs.at(1), qs.at(2), qs.at(3), qs.at(4), qs.at(5), qs.at(6),
+      qs.at(7), xs.at(0), xs.at(1), ys.at(0), ys.at(1), zs.at(0), zs.at(1),
+      xyz.at(0), xyz.at(1), xyz.at(2));
+}
+
+template <typename Real, std::size_t N> class MultilinearPolynomial {
+public:
+  MultilinearPolynomial(std::default_random_engine &generator,
+                        std::uniform_real_distribution<Real> &distribution) {
+    for (std::size_t i = 0; i < 1 << N; ++i) {
+      coefficients.at(i) = distribution(generator);
+    }
+  }
+
+  Real operator()(const std::array<Real, N> &coordinates) const {
+    Real value = 0;
+    std::size_t exponents = 0;
+    for (const Real coefficient : coefficients) {
+      Real term = coefficient;
+      // Could check that `std::size_t` is sufficiently wide.
+      for (std::size_t i = 0; i < N; ++i) {
+        if (exponents & (1 << i)) {
+          term *= coordinates.at(i);
+        }
+        value += term;
+      }
+      ++exponents;
+    }
+    return value;
+  }
+
+private:
+  std::array<Real, 1 << N> coefficients;
+};
+
+TEMPLATE_TEST_CASE("multilinear interpolation", "[interpolation]", float,
+                   double) {
+  // Mismatches of small magnitude do occasionally occur here, especially in 3D.
+  // To see some, set `N` and `M` to 100.
+  const std::size_t N = 10;
+  const std::size_t M = 10;
+
+  std::default_random_engine generator(902107);
+  std::uniform_real_distribution<TestType> distribution(2, 3);
+
+  SECTION("1D") {
+    bool all_match = true;
+    for (std::size_t i = 0; i < N; ++i) {
+      MultilinearPolynomial<TestType, 1> p(generator, distribution);
+      const std::array<TestType, 2> xs = {distribution(generator),
+                                          distribution(generator)};
+      const std::array<TestType, 1 << 1> qs = {p({xs.at(0)}), p({xs.at(1)})};
+      for (std::size_t j = 0; j < M; ++j) {
+        const std::array<TestType, 1> x = {distribution(generator)};
+        all_match =
+            all_match &&
+            p(x) == Approx(interpolate<TestType>(qs, xs, x)).epsilon(0.001);
+      }
+    }
+    REQUIRE(all_match);
+  }
+
+  SECTION("2D") {
+    bool all_match = true;
+    for (std::size_t i = 0; i < N; ++i) {
+      MultilinearPolynomial<TestType, 2> p(generator, distribution);
+      const std::array<TestType, 2> xs = {distribution(generator),
+                                          distribution(generator)};
+      const std::array<TestType, 2> ys = {distribution(generator),
+                                          distribution(generator)};
+      const std::array<TestType, 1 << 2> qs = {
+          p({xs.at(0), ys.at(0)}), p({xs.at(0), ys.at(1)}),
+          p({xs.at(1), ys.at(0)}), p({xs.at(1), ys.at(1)})};
+      for (std::size_t j = 0; j < M; ++j) {
+        const std::array<TestType, 2> xy = {distribution(generator),
+                                            distribution(generator)};
+        all_match =
+            all_match &&
+            p(xy) ==
+                Approx(interpolate<TestType>(qs, xs, ys, xy)).epsilon(0.001);
+      }
+    }
+    REQUIRE(all_match);
+  }
+
+  SECTION("3D") {
+    bool all_match = true;
+    for (std::size_t i = 0; i < N; ++i) {
+      MultilinearPolynomial<TestType, 3> p(generator, distribution);
+      const std::array<TestType, 2> xs = {distribution(generator),
+                                          distribution(generator)};
+      const std::array<TestType, 2> ys = {distribution(generator),
+                                          distribution(generator)};
+      const std::array<TestType, 2> zs = {distribution(generator),
+                                          distribution(generator)};
+      const std::array<TestType, 1 << 3> qs = {
+          p({xs.at(0), ys.at(0), zs.at(0)}), p({xs.at(0), ys.at(0), zs.at(1)}),
+          p({xs.at(0), ys.at(1), zs.at(0)}), p({xs.at(0), ys.at(1), zs.at(1)}),
+          p({xs.at(1), ys.at(0), zs.at(0)}), p({xs.at(1), ys.at(0), zs.at(1)}),
+          p({xs.at(1), ys.at(1), zs.at(0)}), p({xs.at(1), ys.at(1), zs.at(1)}),
+      };
+      for (std::size_t j = 0; j < M; ++j) {
+        const std::array<TestType, 3> xyz = {distribution(generator),
+                                             distribution(generator),
+                                             distribution(generator)};
+        all_match = all_match &&
+                    p(xyz) == Approx(interpolate<TestType>(qs, xs, ys, zs, xyz))
+                                  .epsilon(0.001);
+      }
+    }
+    REQUIRE(all_match);
+  }
+}
