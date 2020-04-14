@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "testing_utilities.hpp"
+
 #include "LinearQuantizer.hpp"
 
 // Not immediately seeing a way to handle these templates using Catch2 macros.
@@ -21,15 +23,15 @@ static void test_quantization_error(const Real quantum) {
   std::uniform_int_distribution<Int> exponent_distribution(-2, 2);
   const mgard::LinearQuantizer<Real, Int> quantizer(quantum);
   const mgard::LinearDequantizer<Int, Real> dequantizer(quantum);
-  bool all_successful = true;
+  TrialTracker tracker;
   for (std::size_t i = 0; i < 100; ++i) {
     const Real x = mantissa_distribution(generator) *
                    std::pow(10, exponent_distribution(generator));
     const Int n = quantizer(x);
     const Real y = dequantizer(n);
-    all_successful = all_successful && std::abs(x - y) < quantum;
+    tracker += std::abs(x - y) < quantum;
   }
-  REQUIRE(all_successful);
+  REQUIRE(tracker);
 }
 
 template <typename Real, typename Int>
@@ -59,11 +61,11 @@ static void test_dequantization_inversion(const Real quantum,
 
   const mgard::LinearQuantizer<Real, Int> quantizer(quantum);
   typename std::vector<Int>::const_iterator p = ns.begin();
-  bool all_equal = true;
+  TrialTracker tracker;
   for (const Real x : xs) {
-    all_equal = all_equal && quantizer(x) == *p++;
+    tracker += quantizer(x) == *p++;
   }
-  REQUIRE(all_equal);
+  REQUIRE(tracker);
 }
 
 TEST_CASE("quantization error", "[LinearQuantizer]") {

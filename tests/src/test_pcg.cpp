@@ -133,11 +133,11 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
         const mgard::pcg::Diagnostics diagnostics =
             mgard::pcg::pcg(A, b, P, x, buffer);
         REQUIRE(diagnostics.residual_norm == 0);
-        bool all_zero = true;
+        TrialTracker tracker;
         for (double *p = x; p != x + N; ++p) {
-          all_zero = all_zero && *p == 0;
+          tracker += *p == 0;
         }
-        REQUIRE(all_zero);
+        REQUIRE(tracker);
       }
 
       free(buffer);

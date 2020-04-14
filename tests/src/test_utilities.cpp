@@ -6,6 +6,8 @@
 #include <array>
 #include <vector>
 
+#include "testing_utilities.hpp"
+
 #include "utilities.hpp"
 
 TEST_CASE("PseudoArray iteration", "[utilities]") {
@@ -85,14 +87,14 @@ TEST_CASE("ZippedRange iteration", "[utilities]") {
   const T xs = {-3.28, 17.37, 0, 0.2388, -99.1};
   const U ys = {12, 0, 0, 77, 3};
   std::size_t i = 0;
-  bool all_equal = true;
+  TrialTracker tracker;
   using It = T::const_iterator;
   using Jt = U::const_iterator;
   for (auto pair : mgard::ZippedRange<It, Jt>(xs, ys)) {
-    all_equal = all_equal && pair.first == xs.at(i) && pair.second == ys.at(i);
+    tracker += pair.first == xs.at(i) && pair.second == ys.at(i);
     ++i;
   }
-  REQUIRE(all_equal);
+  REQUIRE(tracker);
 }
 
 TEST_CASE("RangeSlice iteration", "[utilities]") {

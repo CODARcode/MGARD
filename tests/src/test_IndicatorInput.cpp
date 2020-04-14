@@ -44,14 +44,14 @@ TEST_CASE("IndicatorInput iteration", "[IndicatorInput]") {
   }
   const mgard::MultilevelCoefficients<double> u(u_.data());
   std::vector<std::size_t> counts(L + 1);
-  bool all_as_expected = true;
+  TrialTracker tracker;
   double const *p = u.data;
   for (const mgard::IndicatorInput input :
        mgard::IndicatorInputRange(hierarchy)) {
     ++counts.at(input.l);
-    all_as_expected = (all_as_expected && *p++ == f(input.mesh, input.node));
+    tracker += *p++ == f(input.mesh, input.node);
   }
-  REQUIRE(all_as_expected);
+  REQUIRE(tracker);
   for (std::size_t l = 0; l <= L; ++l) {
     REQUIRE(counts.at(l) == hierarchy.ndof_new(l));
   }

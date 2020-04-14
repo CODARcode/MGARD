@@ -26,5 +26,26 @@ template <typename T, typename U>
 void require_vector_equality(const T &t, const U &u,
                              const double margin = APPROX_MARGIN_DEFAULT);
 
+//! Results of a series of trials.
+struct TrialTracker {
+  //! Constructor.
+  TrialTracker();
+
+  //! Record the result of a trial.
+  TrialTracker &operator+=(const bool result);
+
+  //! Check whether any trials so far have failed.
+  explicit operator bool() const;
+
+  //! Number of successful trials so far.
+  std::size_t nsuccesses;
+
+  //! Number of unsuccessful trials so far.
+  std::size_t nfailures;
+
+  //! Number of trials (successful and unsuccessful) so far.
+  std::size_t ntrials;
+};
+
 #include "testing_utilities.tpp"
 #endif

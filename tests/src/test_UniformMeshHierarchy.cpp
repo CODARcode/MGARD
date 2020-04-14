@@ -49,12 +49,12 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
       *p++ = 5 * *x - 3 * *y + 2 * *z;
     }
     hierarchy.decompose(u.data());
-    bool all_near_zero = true;
+    TrialTracker tracker;
     for (std::vector<double>::iterator p = u.begin() + hierarchy.ndof(0);
          p != u.end(); ++p) {
-      all_near_zero = all_near_zero && std::abs(*p) < 1e-6;
+      tracker += std::abs(*p) < 1e-6;
     }
-    REQUIRE(all_near_zero);
+    REQUIRE(tracker);
   }
 
   std::random_device device;
@@ -210,24 +210,20 @@ TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
   for (std::size_t l = 0; l <= L; ++l) {
     const mgard::MeshLevel &mesh = hierarchy.meshes.at(l);
 
-    std::size_t new_count = 0;
-    bool new_all_as_expected = true;
+    TrialTracker new_tracker;
     double const *q = hierarchy.on_new_nodes(u, l).begin();
     for (const moab::EntityHandle node : hierarchy.new_nodes(l)) {
-      new_all_as_expected = new_all_as_expected && *q++ == f(mesh, node);
-      ++new_count;
+      new_tracker += *q++ == f(mesh, node);
     }
-    REQUIRE(new_all_as_expected);
-    REQUIRE(new_count == hierarchy.ndof(l) - (l ? hierarchy.ndof(l - 1) : 0));
+    REQUIRE(new_tracker);
+    REQUIRE(new_tracker.ntrials == hierarchy.ndof_new(l));
 
-    std::size_t old_count = 0;
-    bool old_all_as_expected = true;
+    TrialTracker old_tracker;
     double const *r = hierarchy.on_old_nodes(u, l).begin();
     for (const moab::EntityHandle node : hierarchy.old_nodes(l)) {
-      old_all_as_expected = old_all_as_expected && *r++ == f(mesh, node);
-      ++old_count;
+      old_tracker += *r++ == f(mesh, node);
     }
-    REQUIRE(old_all_as_expected);
-    REQUIRE(old_count == (l ? hierarchy.ndof(l - 1) : 0));
+    REQUIRE(old_tracker);
+    REQUIRE(old_tracker.ntrials == hierarchy.ndof_old(l));
   }
 }
