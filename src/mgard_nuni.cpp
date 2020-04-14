@@ -7,31 +7,6 @@ template float max_norm<float>(const std::vector<float> &v);
 
 template double max_norm<double>(const std::vector<double> &v);
 
-template float interp_1d<float>(float x, float x1, float x2, float q00,
-                                float q01);
-
-template double interp_1d<double>(double x, double x1, double x2, double q00,
-                                  double q01);
-
-template float interp_2d<float>(float q11, float q12, float q21, float q22,
-                                float x1, float x2, float y1, float y2, float x,
-                                float y);
-
-template double interp_2d<double>(double q11, double q12, double q21,
-                                  double q22, double x1, double x2, double y1,
-                                  double y2, double x, double y);
-
-template float interp_3d<float>(float q000, float q100, float q110, float q010,
-                                float q001, float q101, float q111, float q011,
-                                float x1, float x2, float y1, float y2,
-                                float z1, float z2, float x, float y, float z);
-
-template double interp_3d<double>(double q000, double q100, double q110,
-                                  double q010, double q001, double q101,
-                                  double q111, double q011, double x1,
-                                  double x2, double y1, double y2, double z1,
-                                  double z2, double x, double y, double z);
-
 template float get_h<float>(const std::vector<float> &coords, int i,
                             int stride);
 
@@ -706,14 +681,6 @@ namespace mgard_common {
 template float max_norm<float>(const std::vector<float> &v);
 
 template double max_norm<double>(const std::vector<double> &v);
-
-template float interp_2d<float>(float q11, float q12, float q21, float q22,
-                                float x1, float x2, float y1, float y2, float x,
-                                float y);
-
-template double interp_2d<double>(double q11, double q12, double q21,
-                                  double q22, double x1, double x2, double y1,
-                                  double y2, double x, double y);
 
 template float get_h<float>(const std::vector<float> &coords, int i,
                             int stride);

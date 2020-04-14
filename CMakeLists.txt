@@ -152,6 +152,7 @@ find_package(ZSTD)
 # Set library
 add_library(mgard
   src/mgard.cpp       include/mgard.h
+  src/interpolation.cpp  include/interpolation.hpp
   src/mgard_mesh.cpp  include/mgard_mesh.hpp
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/mgard_api.cpp  include/mgard_api.h
@@ -193,6 +194,7 @@ install(
 
 install(
   FILES include/mgard.h 
+        include/interpolation.hpp
         include/mgard_mesh.hpp
         include/mgard_compress.hpp
         include/mgard_api.h

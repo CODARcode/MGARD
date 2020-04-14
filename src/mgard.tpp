@@ -21,6 +21,7 @@
 #include <fstream>
 #include <numeric>
 
+#include "interpolation.hpp"
 #include "mgard_compress.hpp"
 #include "mgard_mesh.hpp"
 #include "mgard_nuni.h"
@@ -1932,28 +1933,6 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
 }
 
 template <typename Real>
-Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-               Real y1, Real y2, Real x, Real y) {
-  Real x2x1, y2y1, x2x, y2y, yy1, xx1;
-  x2x1 = x2 - x1;
-  y2y1 = y2 - y1;
-  x2x = x2 - x;
-  y2y = y2 - y;
-  yy1 = y - y1;
-  xx1 = x - x1;
-  return 1.0 / (x2x1 * y2y1) *
-         (q11 * x2x * y2y + q21 * xx1 * y2y + q12 * x2x * yy1 +
-          q22 * xx1 * yy1);
-}
-
-template <typename Real>
-Real interp_0d(const Real x1, const Real x2, const Real y1, const Real y2,
-               const Real x) {
-  // do a linear interpolation between (x1, y1) and (x2, y2)
-  return (((x2 - x) * y1 + (x - x1) * y2) / (x2 - x1));
-}
-
-template <typename Real>
 void resample_1d(const Real *inbuf, Real *outbuf, const int ncol,
                  const int ncol_new) {
   Real hx_o = 1.0 / Real(ncol - 1);
@@ -1973,8 +1952,7 @@ void resample_1d(const Real *inbuf, Real *outbuf, const int ncol,
     //      //std::cout  <<  x1 << "\t" << x2 << "\t" << x << "\t"<< "\n";
     // //std::cout  <<  y1 << "\t" << y2 << "\t" << "\n";
 
-    outbuf[icol] = interp_0d(x1, x2, y1, y2, x);
-    //      std:: cout << mgard_interp_0d( x1,  x2,  y1,  y2,  x) << "\n";
+    outbuf[icol] = interpolate(y1, y2, x1, x2, x);
   }
 
   outbuf[ncol_new - 1] = inbuf[ncol - 1];
@@ -2047,14 +2025,14 @@ void resample_2d(const Real *inbuf, Real *outbuf, const int nrow,
       Real q22 = inbuf[get_index(ncol, i_top, j_right)];
 
       outbuf[get_index(ncol_new, irow, jcol)] =
-          interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+          interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
     }
 
     // last column
     Real q1 = inbuf[get_index(ncol, i_bot, ncol - 1)];
     Real q2 = inbuf[get_index(ncol, i_top, ncol - 1)];
     outbuf[get_index(ncol_new, irow, ncol_new - 1)] =
-        interp_0d(y1, y2, q1, q2, y);
+        interpolate(q1, q2, y1, y2, y);
   }
 
   // last-row
