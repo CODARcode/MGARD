@@ -14,14 +14,6 @@
 namespace mgard {
 
 template <typename Real>
-Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-               Real y1, Real y2, Real x, Real y);
-
-template <typename Real>
-Real interp_0d(const Real x1, const Real x2, const Real y1, const Real y2,
-               const Real x);
-
-template <typename Real>
 void mass_matrix_multiply(const int l, std::vector<Real> &v);
 
 template <typename Real>

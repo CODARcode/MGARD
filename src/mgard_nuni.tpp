@@ -19,6 +19,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "interpolation.hpp"
 #include "mgard_mesh.hpp"
 
 #include "LinearQuantizer.hpp"
@@ -34,41 +35,6 @@ template <typename Real> Real max_norm(const std::vector<Real> &v) {
       norm = ntest;
   }
   return norm;
-}
-
-template <typename Real>
-Real interp_1d(Real x, Real x1, Real x2, Real q00, Real q01) {
-  return ((x2 - x) / (x2 - x1)) * q00 + ((x - x1) / (x2 - x1)) * q01;
-}
-
-template <typename Real>
-Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-               Real y1, Real y2, Real x, Real y) {
-  Real x2x1, y2y1, x2x, y2y, yy1, xx1;
-  x2x1 = x2 - x1;
-  y2y1 = y2 - y1;
-  x2x = x2 - x;
-  y2y = y2 - y;
-  yy1 = y - y1;
-  xx1 = x - x1;
-  return 1.0 / (x2x1 * y2y1) *
-         (q11 * x2x * y2y + q21 * xx1 * y2y + q12 * x2x * yy1 +
-          q22 * xx1 * yy1);
-}
-
-template <typename Real>
-Real interp_3d(Real q000, Real q100, Real q110, Real q010, Real q001, Real q101,
-               Real q111, Real q011, Real x1, Real x2, Real y1, Real y2,
-               Real z1, Real z2, Real x, Real y, Real z) {
-
-  Real x00 = interp_1d(x, x1, x2, q000, q100);
-  Real x10 = interp_1d(x, x1, x2, q010, q110);
-  Real x01 = interp_1d(x, x1, x2, q001, q101);
-  Real x11 = interp_1d(x, x1, x2, q011, q111);
-  Real r0 = interp_1d(y, y1, y2, x00, x01);
-  Real r1 = interp_1d(y, y1, y2, x10, x11);
-
-  return interp_1d(z, z1, z2, r0, r1);
 }
 
 template <typename Real>
@@ -862,7 +828,7 @@ void pi_Ql_first(const int nr, const int nc, const int nrow, const int ncol,
         Real y = mgard_common::get_dist(coords_y, ir, ir + 1);
 
         Real temp =
-            mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+            mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
 
         v[mgard::get_index(ncol, ir + 1, jr + 1)] -= temp;
       }
@@ -944,7 +910,7 @@ void pi_Ql(const int nr, const int nc, const int nrow, const int ncol,
         Real x = mgard_common::get_dist(coords_x, jr1, jr);
         Real y = mgard_common::get_dist(coords_y, ir1, ir);
         Real temp =
-            mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+            mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
         //              //std::cout  << temp <<"\n";
         v[mgard::get_index(ncol, ir, jr)] -= temp;
       }
@@ -1055,7 +1021,7 @@ void pi_Ql3D(const int nr, const int nc, const int nf, const int nrow,
         Real x = mgard_common::get_dist(coords_x, jr1, jr);
         Real y = mgard_common::get_dist(coords_y, ir1, ir);
         Real temp =
-            mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+            mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
         //              //std::cout  << temp <<"\n";
         v[mgard::get_index3(ncol, nfib, ir, jr, kf)] -= temp;
       }
@@ -1089,7 +1055,7 @@ void pi_Ql3D(const int nr, const int nc, const int nf, const int nrow,
         Real x = mgard_common::get_dist(coords_z, jr1, jr);
         Real y = mgard_common::get_dist(coords_x, ir1, ir);
         Real temp =
-            mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+            mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
         //              //std::cout  << temp <<"\n";
         v[mgard::get_index3(ncol, nfib, irr, ir, jr)] -= temp;
       }
@@ -1123,7 +1089,7 @@ void pi_Ql3D(const int nr, const int nc, const int nf, const int nrow,
         Real x = mgard_common::get_dist(coords_z, jr1, jr);
         Real y = mgard_common::get_dist(coords_y, ir1, ir);
         Real temp =
-            mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+            mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
         //              //std::cout  << temp <<"\n";
         v[mgard::get_index3(ncol, nfib, ir, jrr, jr)] -= temp;
       }
@@ -1133,50 +1099,46 @@ void pi_Ql3D(const int nr, const int nc, const int nf, const int nrow,
   // ///    new-new-new stuff
 
   for (int irow = stride; irow < nr; irow += Cstride) {
-    int ir1 = mgard::get_lindex(nr, nrow, irow - stride);
-    int ir = mgard::get_lindex(nr, nrow, irow);
-    int ir2 = mgard::get_lindex(nr, nrow, irow + stride);
+    const int ir1 = mgard::get_lindex(nr, nrow, irow - stride);
+    const int ir = mgard::get_lindex(nr, nrow, irow);
+    const int ir2 = mgard::get_lindex(nr, nrow, irow + stride);
 
     for (int jcol = stride; jcol < nc; jcol += Cstride) {
-      int jr1 = mgard::get_lindex(nc, ncol, jcol - stride);
-      int jr = mgard::get_lindex(nc, ncol, jcol);
-      int jr2 = mgard::get_lindex(nc, ncol, jcol + stride);
+      const int jr1 = mgard::get_lindex(nc, ncol, jcol - stride);
+      const int jr = mgard::get_lindex(nc, ncol, jcol);
+      const int jr2 = mgard::get_lindex(nc, ncol, jcol + stride);
 
       for (int kfib = stride; kfib < nf; kfib += Cstride) {
 
-        int kr1 = mgard::get_lindex(nf, nfib, kfib - stride);
-        int kr = mgard::get_lindex(nf, nfib, kfib);
-        int kr2 = mgard::get_lindex(nf, nfib, kfib + stride);
+        const int kr1 = mgard::get_lindex(nf, nfib, kfib - stride);
+        const int kr = mgard::get_lindex(nf, nfib, kfib);
+        const int kr2 = mgard::get_lindex(nf, nfib, kfib + stride);
 
-        Real x1 = 0.0;
-        Real y1 = 0.0;
-        Real z1 = 0.0;
+        const Real x1 = 0.0;
+        const Real y1 = 0.0;
+        const Real z1 = 0.0;
 
-        Real x2 = mgard_common::get_dist(coords_x, jr1, jr2);
-        Real y2 = mgard_common::get_dist(coords_y, ir1, ir2);
-        Real z2 = mgard_common::get_dist(coords_z, kr1, kr2);
+        const Real x2 = mgard_common::get_dist(coords_x, jr1, jr2);
+        const Real y2 = mgard_common::get_dist(coords_y, ir1, ir2);
+        const Real z2 = mgard_common::get_dist(coords_z, kr1, kr2);
 
-        Real x = mgard_common::get_dist(coords_x, jr1, jr);
-        Real y = mgard_common::get_dist(coords_y, ir1, ir);
-        Real z = mgard_common::get_dist(coords_z, kr1, kr);
+        const Real x = mgard_common::get_dist(coords_x, jr1, jr);
+        const Real y = mgard_common::get_dist(coords_y, ir1, ir);
+        const Real z = mgard_common::get_dist(coords_z, kr1, kr);
 
-        Real q000 = v[mgard::get_index3(ncol, nfib, ir1, jr1, kr1)];
-        Real q100 = v[mgard::get_index3(ncol, nfib, ir1, jr2, kr1)];
-        Real q110 = v[mgard::get_index3(ncol, nfib, ir1, jr2, kr2)];
+        // The `q` indices are ordered '`x`, `y`, `z`.'
+        const Real q000 = v[mgard::get_index3(ncol, nfib, ir1, jr1, kr1)];
+        const Real q001 = v[mgard::get_index3(ncol, nfib, ir1, jr1, kr2)];
+        const Real q010 = v[mgard::get_index3(ncol, nfib, ir2, jr1, kr1)];
+        const Real q011 = v[mgard::get_index3(ncol, nfib, ir2, jr1, kr2)];
+        const Real q100 = v[mgard::get_index3(ncol, nfib, ir1, jr2, kr1)];
+        const Real q101 = v[mgard::get_index3(ncol, nfib, ir1, jr2, kr2)];
+        const Real q110 = v[mgard::get_index3(ncol, nfib, ir2, jr2, kr1)];
+        const Real q111 = v[mgard::get_index3(ncol, nfib, ir2, jr2, kr2)];
 
-        Real q010 = v[mgard::get_index3(ncol, nfib, ir1, jr1, kr2)];
-
-        Real q001 = v[mgard::get_index3(ncol, nfib, ir2, jr1, kr1)];
-        Real q101 = v[mgard::get_index3(ncol, nfib, ir2, jr2, kr1)];
-        Real q111 = v[mgard::get_index3(ncol, nfib, ir2, jr2, kr2)];
-
-        Real q011 = v[mgard::get_index3(ncol, nfib, ir2, jr1, kr2)];
-
-        Real temp =
-            mgard_common::interp_3d(q000, q100, q110, q010, q001, q101, q111,
-                                    q011, x1, x2, y1, y2, z1, z2, x, y, z);
-
-        v[mgard::get_index3(ncol, nfib, ir, jr, kr)] -= temp;
+        v[mgard::get_index3(ncol, nfib, ir, jr, kr)] -=
+            mgard::interpolate(q000, q001, q010, q011, q100, q101, q110, q111,
+                               x1, x2, y1, y2, z1, z2, x, y, z);
       }
     }
   }
@@ -1287,7 +1249,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
           Real x = mgard_common::get_dist(coords_x, jr, jr + 1);
           Real y = mgard_common::get_dist(coords_y, ir, ir + 1);
           Real temp =
-              mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+              mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
           //              //std::cout  << temp <<"\n";
           v[mgard::get_index3(ncol, nfib, ir + 1, jr + 1, kf)] -= temp;
         }
@@ -1325,7 +1287,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
           Real x = mgard_common::get_dist(coords_z, jr, jr + 1);
           Real y = mgard_common::get_dist(coords_x, ir, ir + 1);
           Real temp =
-              mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+              mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
           //              //std::cout  << temp <<"\n";
           v[mgard::get_index3(ncol, nfib, irr, ir + 1, jr + 1)] -= temp;
         }
@@ -1360,7 +1322,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
           Real x = mgard_common::get_dist(coords_z, jr, jr + 1);
           Real y = mgard_common::get_dist(coords_y, ir, ir + 1);
           Real temp =
-              mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+              mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
           //              //std::cout  << temp <<"\n";
           v[mgard::get_index3(ncol, nfib, ir + 1, jrr, jr + 1)] -= temp;
         }
@@ -1371,49 +1333,45 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
   ///    new-new-new stuff
 
   for (int irow = 0; irow < nr - 1; irow += stride) {
-    int ir = mgard::get_lindex(nr, nrow, irow);
-    int irP = mgard::get_lindex(nr, nrow, irow + stride);
+    const int ir = mgard::get_lindex(nr, nrow, irow);
+    const int irP = mgard::get_lindex(nr, nrow, irow + stride);
 
     for (int jcol = 0; jcol < nc - 1; jcol += stride) {
-      int jr = mgard::get_lindex(nc, ncol, jcol);
-      int jrP = mgard::get_lindex(nc, ncol, jcol + stride);
+      const int jr = mgard::get_lindex(nc, ncol, jcol);
+      const int jrP = mgard::get_lindex(nc, ncol, jcol + stride);
 
       for (int kfib = 0; kfib < nf - 1; kfib += stride) {
-        int kr = mgard::get_lindex(nf, nfib, kfib);
-        int krP = mgard::get_lindex(nf, nfib, kfib + stride);
+        const int kr = mgard::get_lindex(nf, nfib, kfib);
+        const int krP = mgard::get_lindex(nf, nfib, kfib + stride);
 
         if ((irP != ir + 1) && (jrP != jr + 1) &&
             (krP != kr + 1)) // we skipped both a row and a column
         {
-          Real x1 = 0.0;
-          Real y1 = 0.0;
-          Real z1 = 0.0;
+          const Real x1 = 0.0;
+          const Real y1 = 0.0;
+          const Real z1 = 0.0;
 
-          Real x2 = mgard_common::get_dist(coords_x, jr, jrP);
-          Real y2 = mgard_common::get_dist(coords_y, ir, irP);
-          Real z2 = mgard_common::get_dist(coords_z, kr, krP);
+          const Real x2 = mgard_common::get_dist(coords_x, jr, jrP);
+          const Real y2 = mgard_common::get_dist(coords_y, ir, irP);
+          const Real z2 = mgard_common::get_dist(coords_z, kr, krP);
 
-          Real x = mgard_common::get_dist(coords_x, jr, jr + 1);
-          Real y = mgard_common::get_dist(coords_y, ir, ir + 1);
-          Real z = mgard_common::get_dist(coords_z, kr, kr + 1);
+          const Real x = mgard_common::get_dist(coords_x, jr, jr + 1);
+          const Real y = mgard_common::get_dist(coords_y, ir, ir + 1);
+          const Real z = mgard_common::get_dist(coords_z, kr, kr + 1);
 
-          Real q000 = v[mgard::get_index3(ncol, nfib, ir, jr, kr)];
-          Real q100 = v[mgard::get_index3(ncol, nfib, ir, jrP, kr)];
-          Real q110 = v[mgard::get_index3(ncol, nfib, ir, jrP, krP)];
+          // The `q` indices are ordered '`x`, `y`, `z`.'
+          const Real q000 = v[mgard::get_index3(ncol, nfib, ir, jr, kr)];
+          const Real q001 = v[mgard::get_index3(ncol, nfib, ir, jr, krP)];
+          const Real q010 = v[mgard::get_index3(ncol, nfib, irP, jr, kr)];
+          const Real q011 = v[mgard::get_index3(ncol, nfib, irP, jr, krP)];
+          const Real q100 = v[mgard::get_index3(ncol, nfib, ir, jrP, kr)];
+          const Real q101 = v[mgard::get_index3(ncol, nfib, ir, jrP, krP)];
+          const Real q110 = v[mgard::get_index3(ncol, nfib, irP, jrP, kr)];
+          const Real q111 = v[mgard::get_index3(ncol, nfib, irP, jrP, krP)];
 
-          Real q010 = v[mgard::get_index3(ncol, nfib, ir, jr, krP)];
-
-          Real q001 = v[mgard::get_index3(ncol, nfib, irP, jr, kr)];
-          Real q101 = v[mgard::get_index3(ncol, nfib, irP, jrP, kr)];
-          Real q111 = v[mgard::get_index3(ncol, nfib, irP, jrP, krP)];
-
-          Real q011 = v[mgard::get_index3(ncol, nfib, irP, jr, krP)];
-
-          Real temp =
-              mgard_common::interp_3d(q000, q100, q110, q010, q001, q101, q111,
-                                      q011, x1, x2, y1, y2, z1, z2, x, y, z);
-
-          v[mgard::get_index3(ncol, nfib, ir + 1, jr + 1, kr + 1)] -= temp;
+          v[mgard::get_index3(ncol, nfib, ir + 1, jr + 1, kr + 1)] -=
+              mgard::interpolate(q000, q001, q010, q011, q100, q101, q110, q111,
+                                 x1, x2, y1, y2, z1, z2, x, y, z);
         }
       }
     }
@@ -3960,21 +3918,6 @@ template <typename Real> Real max_norm(const std::vector<Real> &v) {
 }
 
 template <typename Real>
-Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-               Real y1, Real y2, Real x, Real y) {
-  Real x2x1, y2y1, x2x, y2y, yy1, xx1;
-  x2x1 = x2 - x1;
-  y2y1 = y2 - y1;
-  x2x = x2 - x;
-  y2y = y2 - y;
-  yy1 = y - y1;
-  xx1 = x - x1;
-  return 1.0 / (x2x1 * y2y1) *
-         (q11 * x2x * y2y + q21 * xx1 * y2y + q12 * x2x * yy1 +
-          q22 * xx1 * yy1);
-}
-
-template <typename Real>
 Real get_h(const std::vector<Real> &coords, int i, int stride) {
   return (i + stride - i);
 }
@@ -4493,7 +4436,7 @@ void pi_Ql_first(const int nr, const int nc, const int nrow, const int ncol,
         Real y = mgard_common::get_dist(coords_y, ir, ir + 1);
 
         Real temp =
-            mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+            mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
 
         v[mgard::get_index(ncol, ir + 1, jr + 1)] -= temp;
       }
@@ -4602,7 +4545,7 @@ void pi_Ql(const int nr, const int nc, const int nrow, const int ncol,
         Real x = mgard_common::get_dist(coords_x, jr1, jr);
         Real y = mgard_common::get_dist(coords_y, ir1, ir);
         Real temp =
-            mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
+            mgard::interpolate(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
         //              //std::cout  << temp <<"\n";
         v[mgard::get_index(ncol, ir, jr)] -= temp;
       }

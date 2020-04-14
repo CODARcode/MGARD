@@ -3,21 +3,6 @@
 
 namespace mgard {
 
-template float interp_2d<float>(float q11, float q12, float q21, float q22,
-                                float x1, float x2, float y1, float y2, float x,
-                                float y);
-
-template double interp_2d<double>(double q11, double q12, double q21,
-                                  double q22, double x1, double x2, double y1,
-                                  double y2, double x, double y);
-
-template float interp_0d<float>(const float x1, const float x2, const float y1,
-                                const float y2, const float x);
-
-template double interp_0d<double>(const double x1, const double x2,
-                                  const double y1, const double y2,
-                                  const double x);
-
 template void mass_matrix_multiply<float>(const int l, std::vector<float> &v);
 
 template void mass_matrix_multiply<double>(const int l, std::vector<double> &v);

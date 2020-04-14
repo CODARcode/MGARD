@@ -16,19 +16,6 @@ namespace mgard_common {
 template <typename Real> Real max_norm(const std::vector<Real> &v);
 
 template <typename Real>
-inline Real interp_1d(Real x, Real x1, Real x2, Real q00, Real q01);
-
-template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-                      Real y1, Real y2, Real x, Real y);
-
-template <typename Real>
-inline Real interp_3d(Real q000, Real q100, Real q110, Real q010, Real q001,
-                      Real q101, Real q111, Real q011, Real x1, Real x2,
-                      Real y1, Real y2, Real z1, Real z2, Real x, Real y,
-                      Real z);
-
-template <typename Real>
 inline Real get_h(const std::vector<Real> &coords, int i, int stride);
 
 template <typename Real>
@@ -393,10 +380,6 @@ namespace mgard_2d {
 namespace mgard_common {
 
 template <typename Real> Real max_norm(const std::vector<Real> &v);
-
-template <typename Real>
-inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
-                      Real y1, Real y2, Real x, Real y);
 
 template <typename Real>
 inline Real get_h(const std::vector<Real> &coords, int i, int stride);
