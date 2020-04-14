@@ -145,11 +145,11 @@ TEST_CASE("multilevel coefficient (de)quantization inversion",
       for (const short int n : quantizer(u)) {
         requantized.push_back(n);
       }
-      bool all_equal = true;
+      TrialTracker tracker;
       for (std::size_t i = 0; i < N; ++i) {
-        all_equal = all_equal && prequantized.at(i) == requantized.at(i);
+        tracker += prequantized.at(i) == requantized.at(i);
       }
-      REQUIRE(all_equal);
+      REQUIRE(tracker);
     }
   }
 }

@@ -17,3 +17,19 @@ void require_moab_success(const moab::ErrorCode ecode) {
     throw std::runtime_error("MOAB error encountered");
   }
 }
+
+TrialTracker::TrialTracker() : nsuccesses(0), nfailures(0), ntrials(0) {}
+
+TrialTracker &TrialTracker::operator+=(const bool result) {
+  if (result) {
+    ++nsuccesses;
+  } else {
+    ++nfailures;
+  }
+  ++ntrials;
+  return *this;
+}
+
+TrialTracker::operator bool() const {
+  return nsuccesses == ntrials && !nfailures;
+}

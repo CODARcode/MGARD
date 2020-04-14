@@ -4,6 +4,8 @@
 
 #include <random>
 
+#include "testing_utilities.hpp"
+
 #include "interpolation.hpp"
 
 // Wrapping for convenience.
@@ -74,7 +76,7 @@ TEMPLATE_TEST_CASE("multilinear interpolation", "[interpolation]", float,
   std::uniform_real_distribution<TestType> distribution(2, 3);
 
   SECTION("1D") {
-    bool all_match = true;
+    TrialTracker tracker;
     for (std::size_t i = 0; i < N; ++i) {
       MultilinearPolynomial<TestType, 1> p(generator, distribution);
       const std::array<TestType, 2> xs = {distribution(generator),
@@ -82,16 +84,15 @@ TEMPLATE_TEST_CASE("multilinear interpolation", "[interpolation]", float,
       const std::array<TestType, 1 << 1> qs = {p({xs.at(0)}), p({xs.at(1)})};
       for (std::size_t j = 0; j < M; ++j) {
         const std::array<TestType, 1> x = {distribution(generator)};
-        all_match =
-            all_match &&
+        tracker +=
             p(x) == Approx(interpolate<TestType>(qs, xs, x)).epsilon(0.001);
       }
     }
-    REQUIRE(all_match);
+    REQUIRE(tracker);
   }
 
   SECTION("2D") {
-    bool all_match = true;
+    TrialTracker tracker;
     for (std::size_t i = 0; i < N; ++i) {
       MultilinearPolynomial<TestType, 2> p(generator, distribution);
       const std::array<TestType, 2> xs = {distribution(generator),
@@ -104,17 +105,15 @@ TEMPLATE_TEST_CASE("multilinear interpolation", "[interpolation]", float,
       for (std::size_t j = 0; j < M; ++j) {
         const std::array<TestType, 2> xy = {distribution(generator),
                                             distribution(generator)};
-        all_match =
-            all_match &&
-            p(xy) ==
-                Approx(interpolate<TestType>(qs, xs, ys, xy)).epsilon(0.001);
+        tracker += p(xy) ==
+                   Approx(interpolate<TestType>(qs, xs, ys, xy)).epsilon(0.001);
       }
     }
-    REQUIRE(all_match);
+    REQUIRE(tracker);
   }
 
   SECTION("3D") {
-    bool all_match = true;
+    TrialTracker tracker;
     for (std::size_t i = 0; i < N; ++i) {
       MultilinearPolynomial<TestType, 3> p(generator, distribution);
       const std::array<TestType, 2> xs = {distribution(generator),
@@ -133,11 +132,11 @@ TEMPLATE_TEST_CASE("multilinear interpolation", "[interpolation]", float,
         const std::array<TestType, 3> xyz = {distribution(generator),
                                              distribution(generator),
                                              distribution(generator)};
-        all_match = all_match &&
-                    p(xyz) == Approx(interpolate<TestType>(qs, xs, ys, zs, xyz))
-                                  .epsilon(0.001);
+        tracker +=
+            p(xyz) ==
+            Approx(interpolate<TestType>(qs, xs, ys, zs, xyz)).epsilon(0.001);
       }
     }
-    REQUIRE(all_match);
+    REQUIRE(tracker);
   }
 }

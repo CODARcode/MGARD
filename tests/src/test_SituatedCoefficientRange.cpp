@@ -45,15 +45,13 @@ TEST_CASE("SituatedCoefficientRange iteration", "[SituatedCoefficientRange]") {
   }
   const mgard::MultilevelCoefficients<double> u(u_.data());
   for (std::size_t l = 0; l <= L; ++l) {
-    std::size_t count = 0;
     const mgard::MeshLevel &mesh = hierarchy.meshes.at(l);
     const mgard::SituatedCoefficientRange scr(hierarchy, u, l);
-    bool all_as_expected = true;
+    TrialTracker tracker;
     for (auto [node, coefficient] : scr) {
-      all_as_expected = all_as_expected && coefficient == f(mesh, node);
-      ++count;
+      tracker += coefficient == f(mesh, node);
     }
-    REQUIRE(all_as_expected);
-    REQUIRE(count == hierarchy.ndof_new(l));
+    REQUIRE(tracker);
+    REQUIRE(tracker.ntrials == hierarchy.ndof_new(l));
   }
 }
