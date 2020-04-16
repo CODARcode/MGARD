@@ -13,12 +13,38 @@
 
 namespace mgard {
 
+//! Multiply a nodal value vector by the piecewise linear mass matrix.
+//!
+//! The mesh is assumed to be uniform, with cells of width `3`. The input vector
+//! is overwritten with the product.
+//!
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of this mesh level. That is, `0` corresponds to the finest level, `1`
+//! to the second finest, and so on.
+//!\param[in, out] Nodal value vector.
 template <typename Real>
 void mass_matrix_multiply(const int l, std::vector<Real> &v);
 
+//! Apply the inverse the piecewise mass linear mass matrix.
+//!
+//! The mesh is assumed to be uniform, with cells of width `6`. The input vector
+//! is overwritten with the product.
+//!
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[in, out] Mass matrix–nodal value vector product.
 template <typename Real>
 void solve_tridiag_M(const int l, std::vector<Real> &v);
 
+//! Restrict a mass matrix–nodal value vector product from a fine mesh to the
+//! immediately coarser mesh.
+//!
+//! The mesh is assumed to be uniform. The input entries corresponding to nodes
+//! on the immediately coarser level will be overwritten.
+//!
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of the coarse mesh level, as in `mass_matrix_multiply`.
+//!\param[in, out] Mass matrix–nodal value vector product on the fine mesh.
 template <typename Real> void restriction(const int l, std::vector<Real> &v);
 
 template <typename Real>
