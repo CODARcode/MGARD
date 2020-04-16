@@ -1257,7 +1257,7 @@ void solve_tridiag_M(const int l, std::vector<Real> &v) {
   v.back() /= am;
   --counter;
 
-  for (auto it = v.rbegin() + stride; it <= v.rend(); it += stride) {
+  for (auto it = v.rbegin() + stride; it < v.rend(); it += stride) {
 
     *(it) = (*(it) - *(it - stride)) / coeff.at(counter);
     --counter;
