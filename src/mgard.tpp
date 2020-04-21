@@ -1485,21 +1485,6 @@ void subtract_level(const int nrow, const int ncol, const int l, Real *v,
 }
 
 template <typename Real>
-void compute_correction_loadv(const int l, std::vector<Real> &v) {
-  int stride = std::pow(2, l); // current stride
-  int Pstride = stride / 2;    // finer stride
-
-  auto it = v.begin() + Pstride;
-  v.front() += 0.25 * (*it); // first element
-  for (auto it = std::begin(v) + stride; it <= std::end(v) - stride;
-       it += stride) {
-    *(it) += 0.25 * (*(it - Pstride) + *(it + Pstride));
-  }
-  it = v.end() - Pstride - 1;
-  v.back() += 0.25 * (*it); // last element
-}
-
-template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
                             std::vector<int> &work, const Real norm,
                             const Real tol) {

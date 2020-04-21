@@ -73,9 +73,6 @@ void subtract_level(const int nrow, const int ncol, const int l, Real *v,
                     Real *work);
 
 template <typename Real>
-void compute_correction_loadv(const int l, std::vector<Real> &v);
-
-template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
                             std::vector<int> &work, Real norm, Real tol);
 
