@@ -79,28 +79,6 @@ template void dequantize_2D_interleave<double>(const int nrow, const int ncol,
                                                double *v,
                                                const std::vector<int> &work);
 
-template void resample_1d<float>(const float *inbuf, float *outbuf,
-                                 const int ncol, const int ncol_new);
-
-template void resample_1d<double>(const double *inbuf, double *outbuf,
-                                  const int ncol, const int ncol_new);
-
-template void resample_2d<float>(const float *inbuf, float *outbuf,
-                                 const int nrow, const int ncol,
-                                 const int nrow_new, const int ncol_new);
-
-template void resample_2d<double>(const double *inbuf, double *outbuf,
-                                  const int nrow, const int ncol,
-                                  const int nrow_new, const int ncol_new);
-
-template void resample_2d_inv2<float>(const float *inbuf, float *outbuf,
-                                      const int nrow, const int ncol,
-                                      const int nrow_new, const int ncol_new);
-
-template void resample_2d_inv2<double>(const double *inbuf, double *outbuf,
-                                       const int nrow, const int ncol,
-                                       const int nrow_new, const int ncol_new);
-
 template unsigned char *refactor_qz<float>(int nrow, int ncol, int nfib,
                                            const float *v, int &outsize,
                                            float tol);

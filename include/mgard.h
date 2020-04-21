@@ -84,18 +84,6 @@ void dequantize_2D_interleave(const int nrow, const int ncol, Real *v,
                               const std::vector<int> &work);
 
 template <typename Real>
-void resample_1d(const Real *inbuf, Real *outbuf, const int ncol,
-                 const int ncol_new);
-
-template <typename Real>
-void resample_2d(const Real *inbuf, Real *outbuf, const int nrow,
-                 const int ncol, const int nrow_new, const int ncol_new);
-
-template <typename Real>
-void resample_2d_inv2(const Real *inbuf, Real *outbuf, const int nrow,
-                      const int ncol, const int nrow_new, const int ncol_new);
-
-template <typename Real>
 unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *v,
                            int &outsize, Real tol);
 
