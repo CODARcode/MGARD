@@ -127,16 +127,39 @@ TEMPLATE_TEST_CASE("uniform mass matrix restriction", "[mgard]", float,
 }
 
 TEMPLATE_TEST_CASE("uniform interpolation", "[mgard]", float, double) {
-    std::vector<TestType> v = {8, -2, 27, 33, -22};
-    {
-      mgard::interpolate_from_level_nMl(1, v);
-      const std::vector<TestType> expected = {8, 17.5, 27, 2.5, -22};
-      REQUIRE(v == expected);
-    }
-    {
-      mgard::interpolate_from_level_nMl(2, v);
-      const std::vector<TestType> expected = {8, 17.5, -7, 2.5, -22};
-      REQUIRE(v == expected);
-    }
-    REQUIRE_THROWS(mgard::interpolate_from_level_nMl(0, v));
+  std::vector<TestType> v = {8, -2, 27, 33, -22};
+  {
+    mgard::interpolate_from_level_nMl(1, v);
+    const std::vector<TestType> expected = {8, 17.5, 27, 2.5, -22};
+    REQUIRE(v == expected);
+  }
+  {
+    mgard::interpolate_from_level_nMl(2, v);
+    const std::vector<TestType> expected = {8, 17.5, -7, 2.5, -22};
+    REQUIRE(v == expected);
+  }
+  REQUIRE_THROWS(mgard::interpolate_from_level_nMl(0, v));
+}
+
+TEMPLATE_TEST_CASE("uniform interpolation subtraction", "[mgard]", float,
+                   double) {
+  std::vector<TestType> v = {-5, -2, 3, 13, 23, 13, 10, 14, 24};
+  {
+    mgard::pi_lminus1(0, v);
+    const std::vector<TestType> expected = {-5, -1, 3, 0, 23, -3.5, 10, -3, 24};
+    REQUIRE(v == expected);
+  }
+  {
+    mgard::pi_lminus1(1, v);
+    const std::vector<TestType> expected = {-5,   -1,    -6, 0, 23,
+                                            -3.5, -13.5, -3, 24};
+    REQUIRE(v == expected);
+  }
+  {
+    mgard::pi_lminus1(2, v);
+    const std::vector<TestType> expected = {-5,   -1,    -6, 0, 13.5,
+                                            -3.5, -13.5, -3, 24};
+    REQUIRE(v == expected);
+  }
+  REQUIRE_THROWS(mgard::pi_lminus1(3, v));
 }

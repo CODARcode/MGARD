@@ -1336,19 +1336,25 @@ void interpolate_from_level_nMl(const int l, std::vector<Real> &v) {
   }
 }
 
-template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v0) {
-  int nlevel = nlevel_from_size(v0.size());
-  int my_level = nlevel - l;
-  int stride = std::pow(2, l); // current stride
-  //  int Pstride = stride/2; //finer stride
-  int Cstride = stride * 2; // coarser stride
+template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v) {
+  // Explicit cast to silence a warning. Eventually the constructor should workx
+  // on `std::size_t`s.
+  const Dimensions2kPlus1<1> dims({static_cast<int>(v.size())});
+  if (dims.nlevel == l) {
+    throw std::domain_error("cannot interpolate from the coarsest level");
+  }
+  const std::size_t stride = stride_from_index_difference(l);
+  const std::size_t Cstride = stride_from_index_difference(l + 1);
 
-  if (my_level != 0) {
-    for (auto it0 = v0.begin() + Cstride; it0 < v0.end(); it0 += Cstride) {
-      *(it0 - stride) -= 0.5 * (*it0 + *(it0 - Cstride));
-    }
+  Real left = v.front();
+  for (auto p = v.begin() + stride, q = v.begin() + Cstride; q < v.end();
+       p += Cstride, q += Cstride) {
+    const Real right = *q;
+    *p -= 0.5 * (left + right);
+    left = right;
   }
 }
+
 // Gary New
 template <typename Real>
 void pi_Ql(const int ncol, const int l, Real *v, std::vector<Real> &row_vec) {
