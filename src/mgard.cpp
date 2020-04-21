@@ -57,12 +57,6 @@ template void subtract_level<float>(const int nrow, const int ncol, const int l,
 template void subtract_level<double>(const int nrow, const int ncol,
                                      const int l, double *v, double *work);
 
-template void compute_correction_loadv<float>(const int l,
-                                              std::vector<float> &v);
-
-template void compute_correction_loadv<double>(const int l,
-                                               std::vector<double> &v);
-
 template void quantize_2D_interleave<float>(const int nrow, const int ncol,
                                             float *v, std::vector<int> &work,
                                             float norm, float tol);
