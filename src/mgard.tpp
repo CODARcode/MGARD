@@ -20,6 +20,7 @@
 #include <bitset>
 #include <fstream>
 #include <numeric>
+#include <stdexcept>
 
 #include "interpolation.hpp"
 #include "mgard_compress.hpp"
@@ -1201,84 +1202,114 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 
 template <typename Real>
 void mass_matrix_multiply(const int l, std::vector<Real> &v) {
-
-  int stride = std::pow(2, l);
-  Real temp1, temp2;
-  Real fac = 0.5;
-  // Mass matrix times nodal value-vec
-  temp1 = v.front(); // save u(0) for later use
-  v.front() = fac * (2.0 * temp1 + v.at(stride));
+  const std::size_t stride = 1 << l;
+  // The entries of the mass matrix are scaled by `h / 6`. We assume that the
+  // cells of the finest level have width `6`, so that the cells on this level
+  // have width `6 * stride`. `factor` is then `h / 6`.
+  const Real factor = stride;
+  Real left, middle, right;
+  middle = v.front();
+  right = v.at(stride);
+  v.front() = factor * (2 * middle + right);
   for (auto it = v.begin() + stride; it < v.end() - stride; it += stride) {
-    temp2 = *it;
-    *it = fac * (temp1 + 4 * temp2 + *(it + stride));
-    temp1 = temp2; // save u(n) for later use
+    left = middle;
+    middle = right;
+    right = *(it + stride);
+    *it = factor * (left + 4 * middle + right);
   }
-  v.back() = fac * (2 * v.back() + temp1);
+  left = middle;
+  middle = right;
+  v.back() = factor * (left + 2 * middle);
 }
 
 template <typename Real>
 void solve_tridiag_M(const int l, std::vector<Real> &v) {
+  // The system is solved using the Thomas algorithm. See <https://
+  // en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm>. In case the article
+  // changes, the algorithm is copied here.
+  //    // [b_1, …, b_n] is the diagonal of the matrix. `[a_2, …, a_n]` is the
+  //    // subdiagonal, and `[c_1, …, c_{n - 1}]` is the superdiagonal.
+  //    // `[d_1, …, d_n]` is the righthand side, and `[x_1, …, x_n]` is the
+  //    // solution.
+  //    for i = 2, …, n do
+  //      w_i = a_i / b_{i - 1}
+  //      b_i := b_i - w_i * c_{i - 1}
+  //      d_i := d_i - w_i * d_{i - 1}
+  //    end
+  //    x_n = d_n / b_n
+  //    for i = n - 1, …, 1 do
+  //      x_i = (d_i - c_i * x_{i + 1}) / b_i
+  //    end
+  // The mass matrix  entries are scaled by `h / 6`. We postpone accounting for
+  // the scaling to the backward sweep.
+  const std::size_t stride = 1 << l;
+  // See the note in `mass_matrix_multiply`.
+  const Real factor = stride;
 
-  //  int my_level = nlevel - l;
-  int stride = std::pow(2, l); // current stride
-
-  Real am, bm;
-
-  am = 2.0; // first element of upper diagonal U.
-
-  bm = 1.0 / am;
-
-  int nlevel = nlevel_from_size(v.size());
-  int n = std::pow(2, nlevel - l) + 1;
-  std::vector<Real> coeff(n);
-  int counter = 1;
-  coeff.front() = am;
-
-  // forward sweep
+  // The system size is `(v.size() - 1) / stride + 1`, but we don't need to
+  // store the final divisor. In the notation above, this vector will be
+  // `[b_1, …, b_{n - 1}]` (after the modification in the forward sweep).
+  std::vector<Real> divisors((v.size() - 1) / stride);
+  typename std::vector<Real>::iterator p = divisors.begin();
+  // This is `b_{i - 1}`.
+  Real previous_divisor = *p = 2;
+  // This is `d_{i - 1}`.
+  Real previous_entry = v.front();
+  // Forward sweep (except for last entry).
   for (auto it = std::begin(v) + stride; it < std::end(v) - stride;
        it += stride) {
-    *(it) -= *(it - stride) / am;
-
-    am = 4.0 - bm;
-    bm = 1.0 / am;
-
-    coeff.at(counter) = am;
-    ++counter;
+    // The numerator is really `a`.
+    const Real w = 1 / previous_divisor;
+    // The last term is really `w * c`.
+    previous_divisor = *++p = 4 - w;
+    previous_entry = *it -= w * previous_entry;
   }
-  am = 2.0 - bm; // a_n = 2 - b_(n-1)
 
-  auto it = v.end() - stride - 1;
-  v.back() -= (*it) * bm; // last element
+  // Forward sweep (last entry) and start of backward sweep (first entry).
+  {
+    // The numerator is really `a`.
+    const Real w = 1 / previous_divisor;
+    // Don't need to update `previous_divisor` and `previous_entry` as we won't
+    // be using them.
+    Real &entry = v.back();
+    entry -= w * previous_entry;
+    // Don't need need to write to `*d` or increment `d` as we're using the
+    // divisor immediately.
+    // The last term is really `w * c`.
+    previous_entry = entry /= 2 - w;
+  }
 
-  coeff.at(counter) = am;
-
-  // backward sweep
-
-  v.back() /= am;
-  --counter;
-
+  // Backward sweep (remaining entries).
+  typename std::vector<Real>::reverse_iterator q = v.rbegin();
   for (auto it = v.rbegin() + stride; it < v.rend(); it += stride) {
-
-    *(it) = (*(it) - *(it - stride)) / coeff.at(counter);
-    --counter;
-    bm = 4.0 - am; // maybe assign 1/am -> bm?
-    am = 1.0 / bm;
+    Real &entry = *it;
+    // The subtrahend is really `c * previous_entry`.
+    entry -= previous_entry;
+    previous_entry = entry /= *p--;
+    *q /= factor;
+    q += stride;
   }
+  *q /= factor;
 }
 
 template <typename Real> void restriction(const int l, std::vector<Real> &v) {
-  int stride = std::pow(2, l);
-  int Pstride = stride / 2;
+  if (!l) {
+    throw std::domain_error("cannot restrict from the finest level");
+  }
+  const std::size_t stride = 1 << l;
+  const std::size_t Pstride = stride >> 1;
 
-  // calculate the result of restrictionion
-  auto it = v.begin() + Pstride;
-  v.front() += 0.5 * (*it); // first element
+  Real left, right;
+  right = *(std::begin(v) + Pstride);
+  v.front() += 0.5 * right; // first element
   for (auto it = std::begin(v) + stride; it <= std::end(v) - stride;
        it += stride) {
-    *(it) += 0.5 * (*(it - Pstride) + *(it + Pstride));
+    left = right;
+    right = *(it + Pstride);
+    *it += 0.5 * (left + right);
   }
-  it = v.end() - Pstride - 1;
-  v.back() += 0.5 * (*it); // last element
+  left = right;
+  v.back() += 0.5 * left; // last element
 }
 
 template <typename Real>

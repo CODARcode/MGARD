@@ -41,8 +41,8 @@ benchmarks@LDLIBS := -lbenchmark -lbenchmark_main -pthread $(structured@LDLIBS) 
 dirty@FILES =
 dirty@DIRECTORIES =
 
-structured@MGARD_STEMS_TESTED := interpolation
-structured@MGARD_STEMS_UNTESTED := mgard_api mgard mgard_nuni mgard_compress mgard_mesh
+structured@MGARD_STEMS_TESTED := interpolation mgard
+structured@MGARD_STEMS_UNTESTED := mgard_api mgard_nuni mgard_compress mgard_mesh
 structured@MGARD_STEMS = $(structured@MGARD_STEMS_TESTED) $(structured@MGARD_STEMS_UNTESTED)
 structured@TEST_STEMS := mgard_test
 structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
@@ -139,7 +139,8 @@ $(eval $(call link-cpp,$(foreach STEM,$(structured@TEST_STEMS),$(call stem-to-ob
 
 $(tests@EXECUTABLE): LDFLAGS += $(unstructured@LDFLAGS)
 $(tests@EXECUTABLE): LDLIBS += $(unstructured@LDLIBS)
-$(eval $(call link-cpp,$(foreach STEM,$(structured@MGARD_STEMS_TESTED) $(unstructured@STEMS) $(tests@STEMS),$(call stem-to-object,$(STEM))),$(tests@EXECUTABLE)))
+#The object files obtained from `$(structured@MGARD_STEMS_TESTED)` are already included in `$(structured@LIB)`.
+$(eval $(call link-cpp,$(foreach STEM,$(unstructured@STEMS) $(tests@STEMS),$(call stem-to-object,$(STEM))) $(structured@LIB),$(tests@EXECUTABLE)))
 
 benchmarks@SOURCE := $(call benchmarks@stem-to-source,$(benchmarks@STEM))
 benchmarks@OBJECT := $(call stem-to-object,$(benchmarks@STEM))

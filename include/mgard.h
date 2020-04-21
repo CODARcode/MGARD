@@ -15,8 +15,8 @@ namespace mgard {
 
 //! Multiply a nodal value vector by the piecewise linear mass matrix.
 //!
-//! The mesh is assumed to be uniform, with cells of width `3`. The input vector
-//! is overwritten with the product.
+//! The mesh is assumed to be uniform, with the *finest* level having cells of
+//! width `6`. The input vector is overwritten with the product.
 //!
 //!\param[in] l Difference between the index of the finest mesh level and the
 //! index of this mesh level. That is, `0` corresponds to the finest level, `1`
@@ -27,8 +27,8 @@ void mass_matrix_multiply(const int l, std::vector<Real> &v);
 
 //! Apply the inverse the piecewise mass linear mass matrix.
 //!
-//! The mesh is assumed to be uniform, with cells of width `6`. The input vector
-//! is overwritten with the product.
+//! The mesh is assumed to be uniform, with the *finest* level having cells of
+//! width `6`. The input vector is overwritten with the product.
 //!
 //!\param[in] l Difference between the index of the finest mesh level and the
 //! index of this mesh level, as in `mass_matrix_multiply`.
