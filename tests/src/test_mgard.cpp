@@ -125,3 +125,18 @@ TEMPLATE_TEST_CASE("uniform mass matrix restriction", "[mgard]", float,
     REQUIRE(tracker);
   }
 }
+
+TEMPLATE_TEST_CASE("uniform interpolation", "[mgard]", float, double) {
+    std::vector<TestType> v = {8, -2, 27, 33, -22};
+    {
+      mgard::interpolate_from_level_nMl(1, v);
+      const std::vector<TestType> expected = {8, 17.5, 27, 2.5, -22};
+      REQUIRE(v == expected);
+    }
+    {
+      mgard::interpolate_from_level_nMl(2, v);
+      const std::vector<TestType> expected = {8, 17.5, -7, 2.5, -22};
+      REQUIRE(v == expected);
+    }
+    REQUIRE_THROWS(mgard::interpolate_from_level_nMl(0, v));
+}

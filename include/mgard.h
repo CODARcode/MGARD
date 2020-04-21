@@ -47,6 +47,14 @@ void solve_tridiag_M(const int l, std::vector<Real> &v);
 //!\param[in, out] Mass matrix–nodal value vector product on the fine mesh.
 template <typename Real> void restriction(const int l, std::vector<Real> &v);
 
+//! Interpolate a function from one level to the level immediately finer.
+//!
+//! The mesh is assumed to be uniform. The input entries corresponding to nodes
+//! on the immediately finer level will be overwritten.
+//!
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of the coarser mesh level, as in `mass_matrix_multiply`.
+//!\param[in, out] v Nodal values to be interpolated.
 template <typename Real>
 void interpolate_from_level_nMl(const int l, std::vector<Real> &v);
 
