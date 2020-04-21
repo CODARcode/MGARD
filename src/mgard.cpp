@@ -21,27 +21,6 @@ template void interpolate_from_level_nMl<float>(const int l,
 template void interpolate_from_level_nMl<double>(const int l,
                                                  std::vector<double> &v);
 
-template void print_level_2D<float>(const int nrow, const int ncol, const int l,
-                                    float *v);
-
-template void print_level_2D<double>(const int nrow, const int ncol,
-                                     const int l, double *v);
-
-template void write_level_2D<float>(const int nrow, const int ncol, const int l,
-                                    float *v, std::ofstream &outfile);
-
-template void write_level_2D<double>(const int nrow, const int ncol,
-                                     const int l, double *v,
-                                     std::ofstream &outfile);
-
-template void write_level_2D_exc<float>(const int nrow, const int ncol,
-                                        const int l, float *v,
-                                        std::ofstream &outfile);
-
-template void write_level_2D_exc<double>(const int nrow, const int ncol,
-                                         const int l, double *v,
-                                         std::ofstream &outfile);
-
 template void pi_lminus1<float>(const int l, std::vector<float> &v0);
 
 template void pi_lminus1<double>(const int l, std::vector<double> &v0);
@@ -84,14 +63,6 @@ template void compute_correction_loadv<float>(const int l,
 template void compute_correction_loadv<double>(const int l,
                                                std::vector<double> &v);
 
-template void qwrite_level_2D<float>(const int nrow, const int ncol,
-                                     const int nlevel, const int l, float *v,
-                                     float tol, const std::string outfile);
-
-template void qwrite_level_2D<double>(const int nrow, const int ncol,
-                                      const int nlevel, const int l, double *v,
-                                      double tol, const std::string outfile);
-
 template void quantize_2D_interleave<float>(const int nrow, const int ncol,
                                             float *v, std::vector<int> &work,
                                             float norm, float tol);
@@ -107,14 +78,6 @@ template void dequantize_2D_interleave<float>(const int nrow, const int ncol,
 template void dequantize_2D_interleave<double>(const int nrow, const int ncol,
                                                double *v,
                                                const std::vector<int> &work);
-
-template void qread_level_2D<float>(const int nrow, const int ncol,
-                                    const int nlevel, float *v,
-                                    std::string infile);
-
-template void qread_level_2D<double>(const int nrow, const int ncol,
-                                     const int nlevel, double *v,
-                                     std::string infile);
 
 template void resample_1d<float>(const float *inbuf, float *outbuf,
                                  const int ncol, const int ncol_new);

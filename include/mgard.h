@@ -50,17 +50,6 @@ template <typename Real> void restriction(const int l, std::vector<Real> &v);
 template <typename Real>
 void interpolate_from_level_nMl(const int l, std::vector<Real> &v);
 
-template <typename Real>
-void print_level_2D(const int nrow, const int ncol, const int l, Real *v);
-
-template <typename Real>
-void write_level_2D(const int nrow, const int ncol, const int l, Real *v,
-                    std::ofstream &outfile);
-
-template <typename Real>
-void write_level_2D_exc(const int nrow, const int ncol, const int l, Real *v,
-                        std::ofstream &outfile);
-
 template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v0);
 
 template <typename Real>
@@ -87,20 +76,12 @@ template <typename Real>
 void compute_correction_loadv(const int l, std::vector<Real> &v);
 
 template <typename Real>
-void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
-                     const int l, Real *v, Real tol, const std::string outfile);
-
-template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
                             std::vector<int> &work, Real norm, Real tol);
 
 template <typename Real>
 void dequantize_2D_interleave(const int nrow, const int ncol, Real *v,
                               const std::vector<int> &work);
-
-template <typename Real>
-void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
-                    std::string infile);
 
 template <typename Real>
 void resample_1d(const Real *inbuf, Real *outbuf, const int ncol,

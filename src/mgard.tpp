@@ -13,7 +13,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstring>
-#include <iostream>
 
 #include <zlib.h>
 
@@ -1323,62 +1322,6 @@ void interpolate_from_level_nMl(const int l, std::vector<Real> &v) {
   }
 }
 
-template <typename Real>
-void print_level_2D(const int nrow, const int ncol, const int l, Real *v) {
-
-  int stride = std::pow(2, l);
-
-  for (int irow = 0; irow < nrow; irow += stride) {
-    // std::cout  << "\n";
-    for (int jcol = 0; jcol < ncol; jcol += stride) {
-      // std::cout  << v[get_index (ncol, irow, jcol)] << "\t";
-    }
-    // std::cout  << "\n";
-  }
-}
-
-template <typename Real>
-void write_level_2D(const int nrow, const int ncol, const int l, Real *v,
-                    std::ofstream &outfile) {
-  int stride = std::pow(2, l);
-  //  int nrow = std::pow(2, nlevel_row) + 1;
-  // int ncol = std::pow(2, nlevel_col) + 1;
-
-  for (int irow = 0; irow < nrow; irow += stride) {
-    for (int jcol = 0; jcol < ncol; jcol += stride) {
-      outfile.write(reinterpret_cast<char *>(&v[get_index(ncol, irow, jcol)]),
-                    sizeof(Real));
-    }
-  }
-}
-
-template <typename Real>
-void write_level_2D_exc(const int nrow, const int ncol, const int l, Real *v,
-                        std::ofstream &outfile) {
-  // Write P_l\P_{l-1}
-
-  int stride = std::pow(2, l);
-  int Cstride = stride * 2;
-
-  int row_counter = 0;
-
-  for (int irow = 0; irow < nrow; irow += stride) {
-    if (row_counter % 2 == 0) {
-      for (int jcol = Cstride; jcol < ncol; jcol += Cstride) {
-        outfile.write(
-            reinterpret_cast<char *>(&v[get_index(ncol, irow, jcol - stride)]),
-            sizeof(Real));
-      }
-    } else {
-      for (int jcol = 0; jcol < ncol; jcol += stride) {
-        outfile.write(reinterpret_cast<char *>(&v[get_index(ncol, irow, jcol)]),
-                      sizeof(Real));
-      }
-    }
-    ++row_counter;
-  }
-}
-
 template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v0) {
   int nlevel = nlevel_from_size(v0.size());
   int my_level = nlevel - l;
@@ -1557,60 +1500,6 @@ void compute_correction_loadv(const int l, std::vector<Real> &v) {
 }
 
 template <typename Real>
-void qwrite_level_2D(const int nrow, const int ncol, const int nlevel,
-                     const int l, Real *v, const Real tol,
-                     const std::string outfile) {
-
-  int stride = std::pow(2, l);
-
-  Real norm = 0;
-
-  for (int irow = 0; irow < nrow; irow += stride) {
-    for (int jcol = 0; jcol < ncol; jcol += stride) {
-      Real ntest = std::abs(v[get_index(ncol, irow, jcol)]);
-      if (ntest > norm)
-        norm = ntest;
-    }
-  }
-
-  const mgard::LinearQuantizer<Real, int> quantizer(norm * tol / (nlevel + 1));
-
-  gzFile out_file = gzopen(outfile.c_str(), "w9b");
-  gzwrite(out_file, &quantizer.quantum, sizeof(Real));
-
-  int prune_count = 0;
-
-  for (int l = 0; l <= nlevel; l++) {
-    int stride = std::pow(2, l);
-    int Cstride = stride * 2;
-    int row_counter = 0;
-
-    for (int irow = 0; irow < nrow; irow += stride) {
-      if (row_counter % 2 == 0 && l != nlevel) {
-        for (int jcol = Cstride; jcol < ncol; jcol += Cstride) {
-          const int n = quantizer(v[get_index(ncol, irow, jcol - stride)]);
-          if (n == 0)
-            ++prune_count;
-          gzwrite(out_file, &n, sizeof(int));
-        }
-      } else {
-        for (int jcol = 0; jcol < ncol; jcol += stride) {
-          const int n = quantizer(v[get_index(ncol, irow, jcol)]);
-          if (n == 0)
-            ++prune_count;
-          gzwrite(out_file, &n, sizeof(int));
-        }
-      }
-      ++row_counter;
-    }
-  }
-
-  // std::cout  << "Pruned : " << prune_count << " Reduction : "
-  //            << (Real)nrow * ncol / (nrow * ncol - prune_count) << "\n";
-  gzclose(out_file);
-}
-
-template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
                             std::vector<int> &work, const Real norm,
                             const Real tol) {
@@ -1683,51 +1572,6 @@ void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
   gzclose(out_file);
 }
 
-template <typename Real>
-void qread_level_2D(const int nrow, const int ncol, const int nlevel, Real *v,
-                    std::string infile) {
-  int buff_size = 128 * 1024;
-  unsigned char unzip_buffer[buff_size];
-  int int_buffer[buff_size / sizeof(int)];
-  unsigned int unzipped_bytes, total_bytes = 0;
-
-  Real quantum;
-  gzFile in_file_z = gzopen(infile.c_str(), "r");
-  // std::cout  << in_file_z << "\n";
-
-  unzipped_bytes = gzread(in_file_z, unzip_buffer,
-                          sizeof(Real)); // read the quantization constant
-  std::memcpy(&quantum, &unzip_buffer, unzipped_bytes);
-  const mgard::LinearDequantizer<int, Real> dequantizer(quantum);
-
-  int last = 0;
-  while (true) {
-    unzipped_bytes = gzread(in_file_z, unzip_buffer, buff_size);
-    // std::cout  << unzipped_bytes << "\n";
-    if (unzipped_bytes > 0) {
-      total_bytes += unzipped_bytes;
-      int num_int = unzipped_bytes / sizeof(int);
-
-      std::memcpy(&int_buffer, &unzip_buffer, unzipped_bytes);
-      for (int i = 0; i < num_int; ++i) {
-        v[last] = dequantizer(int_buffer[i]);
-        ++last;
-      }
-    } else {
-      break;
-    }
-  }
-
-  gzclose(in_file_z);
-}
-
-//       unzippedBytes = gzread(inFileZ, unzipBuffer, buff_size);
-//       //std::cout  << "Read: "<< unzippedBytes <<"\n";
-//       std::memcpy(&v[irow][0], &unzipBuffer, unzippedBytes);
-//     }
-
-//   gzclose(inFileZ);
-// }
 // Gary New
 template <typename Real>
 void refactor_1D(const int ncol, const int l_target, Real *v,
