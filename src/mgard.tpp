@@ -37,6 +37,14 @@ static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
   }
 }
 
+//! Compute the stride for a mesh level.
+//!
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of this mesh level.
+static std::size_t stride_from_index_difference(const std::size_t l) {
+  return 1 << l;
+}
+
 namespace mgard {
 
 template <typename Real>
@@ -1201,7 +1209,7 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 
 template <typename Real>
 void mass_matrix_multiply(const int l, std::vector<Real> &v) {
-  const std::size_t stride = 1 << l;
+  const std::size_t stride = stride_from_index_difference(l);
   // The entries of the mass matrix are scaled by `h / 6`. We assume that the
   // cells of the finest level have width `6`, so that the cells on this level
   // have width `6 * stride`. `factor` is then `h / 6`.
@@ -1241,7 +1249,7 @@ void solve_tridiag_M(const int l, std::vector<Real> &v) {
   //    end
   // The mass matrix  entries are scaled by `h / 6`. We postpone accounting for
   // the scaling to the backward sweep.
-  const std::size_t stride = 1 << l;
+  const std::size_t stride = stride_from_index_difference(l);
   // See the note in `mass_matrix_multiply`.
   const Real factor = stride;
 
@@ -1295,8 +1303,8 @@ template <typename Real> void restriction(const int l, std::vector<Real> &v) {
   if (!l) {
     throw std::domain_error("cannot restrict from the finest level");
   }
-  const std::size_t stride = 1 << l;
-  const std::size_t Pstride = stride >> 1;
+  const std::size_t stride = stride_from_index_difference(l);
+  const std::size_t Pstride = stride_from_index_difference(l - 1);
 
   Real left, right;
   right = *(std::begin(v) + Pstride);
@@ -1313,12 +1321,18 @@ template <typename Real> void restriction(const int l, std::vector<Real> &v) {
 
 template <typename Real>
 void interpolate_from_level_nMl(const int l, std::vector<Real> &v) {
+  if (!l) {
+    throw std::domain_error("cannot interpolate from the finest level");
+  }
+  const std::size_t stride = stride_from_index_difference(l);
+  const std::size_t Pstride = stride_from_index_difference(l - 1);
 
-  int stride = std::pow(2, l);
-  int Pstride = stride / 2;
-
-  for (auto it = std::begin(v) + stride; it < std::end(v); it += stride) {
-    *(it - Pstride) = 0.5 * (*(it - stride) + *it);
+  Real left = v.front();
+  for (auto p = std::begin(v) + Pstride, q = std::begin(v) + stride;
+       q < std::end(v); p += stride, q += stride) {
+    const Real right = *q;
+    *p = 0.5 * (left + right);
+    left = right;
   }
 }
 
