@@ -75,10 +75,8 @@ template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v);
 //! The mesh is assumed to be uniform. The input entries corresponding to nodes
 //! on the finer level will be overwritten.
 //!
-//!\param[in] nrow Number of rows in the dataset (size of the dataset in the
-//! second dimension).
-//!\param[in] ncol Number of columns in the dataset (size of the dataset in the
-//! first dimension).
+//!\param[in] nrow Number of rows in the dataset.
+//!\param[in] ncol Number of columns in the dataset.
 //!\param[in] l Difference between the index of the finest mesh level and the
 //! index of the finer mesh level, as in `mass_matrix_multiply`.
 //!\param[in, out] v Nodal values to be interpolated.
@@ -88,21 +86,61 @@ template <typename Real>
 void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
            std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
+//! Set the entries corresponding to nodes on some level to some number.
+//!
+//! The entries corresponding to nodes on the given level will be overwritten.
+//!
+//!\param[in] nrow Number of rows in the dataset.
+//!\param[in] ncol Number of columns in the dataset.
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[out] v Nodal values (a subset of which) to be overwritten.
+//!\param[in] num Value to write.
 template <typename Real>
-void assign_num_level(const int nrow, const int ncol, const int l, Real *v,
-                      Real num);
+void assign_num_level(const int nrow, const int ncol, const int l,
+                      Real *const v, const Real num);
 
+//! Copy the entries corresponding to nodes on some level.
+//!
+//! The entries corresponding to nodes on the given level will be overwritten.
+//!
+//!\param[in] nrow Number of rows in the dataset.
+//!\param[in] ncol Number of columns in the dataset.
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[in] v Nodal values (a subset of which) to copy from.
+//!\param[out] work Nodal values (a subset of which) to copy to.
 template <typename Real>
-void copy_level(const int nrow, const int ncol, const int l, Real *v,
-                std::vector<Real> &work);
+void copy_level(const int nrow, const int ncol, const int l,
+                Real const *const v, std::vector<Real> &work);
 
+//! Add one function to another one on the nodes of a mesh.
+//!
+//! The entries corresponding to nodes on the given level will be overwritten.
+//!
+//!\param[in] nrow Number of rows in the dataset.
+//!\param[in] ncol Number of columns in the dataset.
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[in, out] v Nodal values (a subset of which) to add to.
+//!\param[out] work Nodal values (a subset of which) to add.
 template <typename Real>
-void add_level(const int nrow, const int ncol, const int l, Real *v,
-               Real *work);
+void add_level(const int nrow, const int ncol, const int l, Real *const v,
+               Real const *const work);
 
+//! Subtract one function from another one on the nodes of a mesh.
+//!
+//! The entries corresponding to nodes on the given level will be overwritten.
+//!
+//!\param[in] nrow Number of rows in the dataset.
+//!\param[in] ncol Number of columns in the dataset.
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[in, out] v Nodal values (a subset of which) to subtract from.
+//!\param[out] work Nodal values (a subset of which) to subtract.
 template <typename Real>
-void subtract_level(const int nrow, const int ncol, const int l, Real *v,
-                    Real *work);
+void subtract_level(const int nrow, const int ncol, const int l, Real *const v,
+                    Real const *const work);
 
 template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,

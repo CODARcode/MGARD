@@ -1428,12 +1428,9 @@ void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
 }
 
 template <typename Real>
-void assign_num_level(const int nrow, const int ncol, const int l, Real *v,
-                      Real num) {
-  // set the value of nodal values at level l to number num
-
-  int stride = std::pow(2, l); // current stride
-
+void assign_num_level(const int nrow, const int ncol, const int l,
+                      Real *const v, const Real num) {
+  const std::size_t stride = stride_from_index_difference(l);
   for (int irow = 0; irow < nrow; irow += stride) {
     for (int jcol = 0; jcol < ncol; jcol += stride) {
       v[get_index(ncol, irow, jcol)] = num;
@@ -1442,41 +1439,37 @@ void assign_num_level(const int nrow, const int ncol, const int l, Real *v,
 }
 
 template <typename Real>
-void copy_level(const int nrow, const int ncol, const int l, Real *v,
-                std::vector<Real> &work) {
-
-  int stride = std::pow(2, l); // current stride
-
+void copy_level(const int nrow, const int ncol, const int l,
+                Real const *const v, std::vector<Real> &work) {
+  const std::size_t stride = stride_from_index_difference(l);
   for (int irow = 0; irow < nrow; irow += stride) {
     for (int jcol = 0; jcol < ncol; jcol += stride) {
-      work[get_index(ncol, irow, jcol)] = v[get_index(ncol, irow, jcol)];
+      const int index = get_index(ncol, irow, jcol);
+      work[index] = v[index];
     }
   }
 }
 
 template <typename Real>
-void add_level(const int nrow, const int ncol, const int l, Real *v,
-               Real *work) {
-  // v += work at level l
-
-  int stride = std::pow(2, l); // current stride
-
+void add_level(const int nrow, const int ncol, const int l, Real *const v,
+               Real const *const work) {
+  const std::size_t stride = stride_from_index_difference(l);
   for (int irow = 0; irow < nrow; irow += stride) {
     for (int jcol = 0; jcol < ncol; jcol += stride) {
-      v[get_index(ncol, irow, jcol)] += work[get_index(ncol, irow, jcol)];
+      const int index = get_index(ncol, irow, jcol);
+      v[index] += work[index];
     }
   }
 }
 
 template <typename Real>
-void subtract_level(const int nrow, const int ncol, const int l, Real *v,
-                    Real *work) {
-  // v += work at level l
-  int stride = std::pow(2, l); // current stride
-
+void subtract_level(const int nrow, const int ncol, const int l, Real *const v,
+                    Real const *const work) {
+  const std::size_t stride = stride_from_index_difference(l);
   for (int irow = 0; irow < nrow; irow += stride) {
     for (int jcol = 0; jcol < ncol; jcol += stride) {
-      v[get_index(ncol, irow, jcol)] -= work[get_index(ncol, irow, jcol)];
+      const int index = get_index(ncol, irow, jcol);
+      v[index] -= work[index];
     }
   }
 }
