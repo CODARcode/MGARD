@@ -34,28 +34,32 @@ template void pi_Ql<double>(const int nrow, const int ncol, const int l,
                             std::vector<double> &col_vec);
 
 template void assign_num_level<float>(const int nrow, const int ncol,
-                                      const int l, float *v, float num);
+                                      const int l, float *const v,
+                                      const float num);
 
 template void assign_num_level<double>(const int nrow, const int ncol,
-                                       const int l, double *v, double num);
+                                       const int l, double *const v,
+                                       const double num);
 
 template void copy_level<float>(const int nrow, const int ncol, const int l,
-                                float *v, std::vector<float> &work);
+                                float const *const v, std::vector<float> &work);
 
 template void copy_level<double>(const int nrow, const int ncol, const int l,
-                                 double *v, std::vector<double> &work);
+                                 double const *const v,
+                                 std::vector<double> &work);
 
 template void add_level<float>(const int nrow, const int ncol, const int l,
-                               float *v, float *work);
+                               float *const v, float const *const work);
 
 template void add_level<double>(const int nrow, const int ncol, const int l,
-                                double *v, double *work);
+                                double *const v, double const *const work);
 
 template void subtract_level<float>(const int nrow, const int ncol, const int l,
-                                    float *v, float *work);
+                                    float *const v, float const *const work);
 
 template void subtract_level<double>(const int nrow, const int ncol,
-                                     const int l, double *v, double *work);
+                                     const int l, double *const v,
+                                     double const *const work);
 
 template void quantize_2D_interleave<float>(const int nrow, const int ncol,
                                             float *v, std::vector<int> &work,

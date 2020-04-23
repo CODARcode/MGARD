@@ -2,6 +2,7 @@
 
 #include <cstddef>
 
+#include <numeric>
 #include <random>
 #include <vector>
 
@@ -194,6 +195,100 @@ TEMPLATE_TEST_CASE("uniform interpolation", "[mgard]", float, double) {
         REQUIRE(v == expected);
       }
       REQUIRE_THROWS(mgard::pi_Ql(nrow, ncol, 1, v.data(), row_vec, col_vec));
+    }
+  }
+}
+
+// Ideally these functions would test that `l` is within bounds.
+TEMPLATE_TEST_CASE("BLAS-like level operations", "[mgard]", float, double) {
+  SECTION("assignment") {
+    const std::size_t nrow = 3;
+    const std::size_t ncol = 5;
+    std::vector<TestType> v(nrow * ncol);
+    std::iota(v.begin(), v.end(), 1);
+    {
+      std::vector<TestType> copy = v;
+      mgard::assign_num_level(nrow, ncol, 0, copy.data(),
+                              static_cast<TestType>(-3));
+      TrialTracker tracker;
+      for (const TestType value : copy) {
+        tracker += value == -3;
+      }
+      REQUIRE(tracker);
+    }
+    {
+      std::vector<TestType> copy = v;
+      mgard::assign_num_level(nrow, ncol, 1, copy.data(),
+                              static_cast<TestType>(-1));
+      const std::vector<TestType> expected = {-1, 2,  -1, 4,  -1, 6,  7, 8,
+                                              9,  10, -1, 12, -1, 14, -1};
+      REQUIRE(copy == expected);
+    }
+  }
+
+  SECTION("copying") {
+    {
+      const std::size_t nrow = 3;
+      const std::size_t ncol = 3;
+      std::vector<TestType> v(nrow * ncol);
+      std::iota(v.begin(), v.end(), 1);
+      {
+        std::vector<TestType> destination = v;
+        const std::vector<TestType> source = {-2, 0, -3, 0, 0, 0, -5, 0, -7};
+        mgard::copy_level(nrow, ncol, 1, source.data(), destination);
+        const std::vector<TestType> expected = {-2, 2, -3, 4, 5, 6, -5, 8, -7};
+        REQUIRE(destination == expected);
+      }
+      {
+        std::vector<TestType> destination = v;
+        const std::vector<TestType> source(nrow * ncol, -1);
+        mgard::copy_level(nrow, ncol, 0, source.data(), destination);
+        TrialTracker tracker;
+        for (const TestType value : destination) {
+          tracker += value == -1;
+        }
+        REQUIRE(tracker);
+      }
+    }
+  }
+
+  SECTION("addition and subtraction") {
+    const std::size_t nrow = 5;
+    const std::size_t ncol = 5;
+    std::vector<TestType> v(nrow * ncol);
+    std::iota(v.begin(), v.end(), 1);
+    {
+      std::vector<TestType> addend(nrow * ncol);
+      std::iota(addend.rbegin(), addend.rend(), 2);
+      std::vector copy = v;
+      mgard::add_level(nrow, ncol, 0, copy.data(), addend.data());
+      TrialTracker tracker;
+      for (const TestType value : copy) {
+        tracker += value == 27;
+      }
+      REQUIRE(tracker);
+    }
+    {
+      std::vector<TestType> expected = v;
+      std::vector<TestType> subtrahend(nrow * ncol, 0);
+      for (const std::size_t i : {0, 4, 10, 14, 20, 24}) {
+        subtrahend.at(i) = v.at(i);
+        expected.at(i) = 0;
+      }
+      std::vector copy = v;
+      mgard::subtract_level(nrow, ncol, 1, copy.data(), subtrahend.data());
+      REQUIRE(copy == expected);
+    }
+    {
+      std::vector<TestType> addend(nrow * ncol, 0);
+      std::vector<TestType> expected = v;
+      for (const std::size_t index : {0, 4, 20, 24}) {
+        addend.at(index) = 100;
+        expected.at(index) = 100 + index + 1;
+      }
+      std::vector<TestType> copy = v;
+      mgard::add_level(nrow, ncol, 2, copy.data(), addend.data());
+      REQUIRE(copy == expected);
     }
   }
 }
