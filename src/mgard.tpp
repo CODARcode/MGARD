@@ -1337,7 +1337,7 @@ void interpolate_from_level_nMl(const int l, std::vector<Real> &v) {
 }
 
 template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v) {
-  // Explicit cast to silence a warning. Eventually the constructor should workx
+  // Explicit cast to silence a warning. Eventually the constructor should work
   // on `std::size_t`s.
   const Dimensions2kPlus1<1> dims({static_cast<int>(v.size())});
   if (dims.nlevel == l) {
@@ -1378,19 +1378,17 @@ void pi_Ql(const int ncol, const int l, Real *v, std::vector<Real> &row_vec) {
 }
 
 template <typename Real>
-void pi_Ql(const int nrow, const int ncol, const int l, Real *v,
+void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
            std::vector<Real> &row_vec, std::vector<Real> &col_vec) {
-  // Restrict data to coarser level
+  const Dimensions2kPlus1<2> dims({nrow, ncol});
+  if (dims.nlevel == l) {
+    throw std::domain_error("cannot interpolate from the coarsest level");
+  }
+  const std::size_t stride = stride_from_index_difference(l);
+  const std::size_t Cstride = stride_from_index_difference(l + 1);
 
-  int stride = std::pow(2, l); // current stride
-  //  int Pstride = stride/2; //finer stride
-  int Cstride = stride * 2; // coarser stride
-
-  //  std::vector<Real> row_vec(ncol), col_vec(nrow)   ;
-
-  for (int irow = 0; irow < nrow;
-       irow += Cstride) // Do the rows existing  in the coarser level
-  {
+  // Do the rows existing in the coarser level.
+  for (int irow = 0; irow < nrow; irow += Cstride) {
     for (int jcol = 0; jcol < ncol; ++jcol) {
       row_vec[jcol] = v[get_index(ncol, irow, jcol)];
     }
@@ -1403,9 +1401,8 @@ void pi_Ql(const int nrow, const int ncol, const int l, Real *v,
   }
 
   if (nrow > 1) {
-    for (int jcol = 0; jcol < ncol;
-         jcol += Cstride) // Do the columns existing  in the coarser level
-    {
+    // Do the columns existing in the coarser level.
+    for (int jcol = 0; jcol < ncol; jcol += Cstride) {
       for (int irow = 0; irow < nrow; ++irow) {
         col_vec[irow] = v[get_index(ncol, irow, jcol)];
       }
@@ -1418,33 +1415,13 @@ void pi_Ql(const int nrow, const int ncol, const int l, Real *v,
     }
 
     // Now the new-new stuff
-
-    for (int irow = Cstride; irow <= nrow - 1 - Cstride; irow += 2 * Cstride) {
-      for (int jcol = Cstride; jcol <= ncol - 1 - Cstride;
-           jcol += 2 * Cstride) {
-        v[get_index(ncol, irow - stride, jcol - stride)] -=
-            0.25 * (v[get_index(ncol, irow - Cstride, jcol - Cstride)] +
-                    v[get_index(ncol, irow - Cstride, jcol)] +
-                    v[get_index(ncol, irow, jcol)] +
-                    v[get_index(ncol, irow, jcol - Cstride)]);
-
-        v[get_index(ncol, irow - stride, jcol + stride)] -=
-            0.25 * (v[get_index(ncol, irow - Cstride, jcol)] +
-                    v[get_index(ncol, irow - Cstride, jcol + Cstride)] +
-                    v[get_index(ncol, irow, jcol + Cstride)] +
-                    v[get_index(ncol, irow, jcol)]);
-
-        v[get_index(ncol, irow + stride, jcol + stride)] -=
-            0.25 * (v[get_index(ncol, irow, jcol)] +
-                    v[get_index(ncol, irow, jcol + Cstride)] +
-                    v[get_index(ncol, irow + Cstride, jcol + Cstride)] +
-                    v[get_index(ncol, irow + Cstride, jcol)]);
-
-        v[get_index(ncol, irow + stride, jcol - stride)] -=
-            0.25 * (v[get_index(ncol, irow, jcol - Cstride)] +
-                    v[get_index(ncol, irow, jcol)] +
-                    v[get_index(ncol, irow + Cstride, jcol)] +
-                    v[get_index(ncol, irow + Cstride, jcol - Cstride)]);
+    for (int irow = stride; irow + stride < nrow; irow += Cstride) {
+      for (int jcol = stride; jcol + stride < ncol; jcol += Cstride) {
+        v[get_index(ncol, irow, jcol)] -=
+            0.25 * (v[get_index(ncol, irow - stride, jcol - stride)] +
+                    v[get_index(ncol, irow - stride, jcol + stride)] +
+                    v[get_index(ncol, irow + stride, jcol - stride)] +
+                    v[get_index(ncol, irow + stride, jcol + stride)]);
       }
     }
   }

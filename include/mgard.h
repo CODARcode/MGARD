@@ -69,8 +69,23 @@ void interpolate_from_level_nMl(const int l, std::vector<Real> &v);
 //!\param[in, out] v Nodal values to be interpolated.
 template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v);
 
+//! Interpolate a function defined on 'old' nodes and subtract from values on
+//! 'new' nodes.
+//!
+//! The mesh is assumed to be uniform. The input entries corresponding to nodes
+//! on the finer level will be overwritten.
+//!
+//!\param[in] nrow Number of rows in the dataset (size of the dataset in the
+//! second dimension).
+//!\param[in] ncol Number of columns in the dataset (size of the dataset in the
+//! first dimension).
+//!\param[in] l Difference between the index of the finest mesh level and the
+//! index of the finer mesh level, as in `mass_matrix_multiply`.
+//!\param[in, out] v Nodal values to be interpolated.
+//!\param[in] row_vec Work buffer of size `ncol`.
+//!\param[in] col_vec Work buffer of size `nrow`.
 template <typename Real>
-void pi_Ql(const int nrow, const int ncol, const int l, Real *v,
+void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
            std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
 template <typename Real>
