@@ -112,6 +112,7 @@ install(
         include/mgard_compress.hpp
         include/mgard_api.h
         include/mgard_nuni.h
+	"${PROJECT_BINARY_DIR}/include/MGARDConfig.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
@@ -156,6 +157,16 @@ write_basic_package_version_file(
 )
 configure_file(mgard-config.cmake.in
   "${PROJECT_BINARY_DIR}/mgard-config.cmake" @ONLY
+)
+
+configure_file(
+  include/MGARDConfig.h.in
+  ${PROJECT_BINARY_DIR}/include/MGARDConfig.h.in
+)
+
+configure_file(
+  ${PROJECT_BINARY_DIR}/include/MGARDConfig.h.in
+  ${PROJECT_BINARY_DIR}/include/MGARDConfig.h
 )
 
 # Install the mgard-config.cmake and mgard-config-version.cmake
