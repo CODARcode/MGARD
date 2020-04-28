@@ -20,11 +20,6 @@ int nlevel_from_size(const int n) { return log2(n - 1); }
 
 int size_from_nlevel(const int n) { return (1 << n) + 1; }
 
-// TODO: wait for response to GitHub issue to see what this is supposed to be.
-bool is_2kplus1(const int n) {
-  return n == 1 || n == size_from_nlevel(nlevel_from_size(n));
-}
-
 int get_index(const int ncol, const int i, const int j) { return ncol * i + j; }
 
 int get_index3(const int ncol, const int nfib, const int i, const int j,

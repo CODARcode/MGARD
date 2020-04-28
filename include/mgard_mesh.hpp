@@ -36,6 +36,10 @@ template <std::size_t N> struct Dimensions2kPlus1 {
   //! than the number of levels.
   int nlevel;
 
+  //! Determine whether all dimensions are either equal to `1` or of the form
+  //! `2^k + 1`.
+  bool is_2kplus1() const;
+
   //! Access the subset of a dataset associated to the nodes of a level.
   //!
   //!\param coefficients Values associated to nodes.
@@ -54,13 +58,11 @@ bool operator==(const Dimensions2kPlus1<N> &a, const Dimensions2kPlus1<N> &b);
 template <std::size_t N>
 bool operator!=(const Dimensions2kPlus1<N> &a, const Dimensions2kPlus1<N> &b);
 
-// As of this writing, these are only needed in the implementations of the
-// `Dimensions2kPlus1` constructor and `is_2kplus1`.
+// As of this writing, these are only needed in the implementation of the
+// `Dimensions2kPlus1` constructor.
 int nlevel_from_size(const int n);
 
 int size_from_nlevel(const int n);
-
-bool is_2kplus1(const int n);
 
 // These were originally `inline`.
 int get_index(const int ncol, const int i, const int j);
