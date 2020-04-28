@@ -112,7 +112,7 @@ void assign_num_level(const int nrow, const int ncol, const int l,
 //!\param[out] work Nodal values (a subset of which) to copy to.
 template <typename Real>
 void copy_level(const int nrow, const int ncol, const int l,
-                Real const *const v, std::vector<Real> &work);
+                Real const *const v, Real * const work);
 
 //! Add one function to another one on the nodes of a mesh.
 //!

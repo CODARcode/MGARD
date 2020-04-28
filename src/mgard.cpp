@@ -42,11 +42,10 @@ template void assign_num_level<double>(const int nrow, const int ncol,
                                        const double num);
 
 template void copy_level<float>(const int nrow, const int ncol, const int l,
-                                float const *const v, std::vector<float> &work);
+                                float const *const v, float * const work);
 
 template void copy_level<double>(const int nrow, const int ncol, const int l,
-                                 double const *const v,
-                                 std::vector<double> &work);
+                                 double const *const v, double * const work);
 
 template void add_level<float>(const int nrow, const int ncol, const int l,
                                float *const v, float const *const work);
