@@ -37,14 +37,6 @@ static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
   }
 }
 
-//! Compute the stride for a mesh level.
-//!
-//!\param[in] l Difference between the index of the finest mesh level and the
-//! index of this mesh level.
-static std::size_t stride_from_index_difference(const std::size_t l) {
-  return 1 << l;
-}
-
 namespace mgard {
 
 template <typename Real>
@@ -1430,47 +1422,62 @@ void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
 template <typename Real>
 void assign_num_level(const int nrow, const int ncol, const int l,
                       Real *const v, const Real num) {
-  const std::size_t stride = stride_from_index_difference(l);
-  for (int irow = 0; irow < nrow; irow += stride) {
-    for (int jcol = 0; jcol < ncol; jcol += stride) {
-      v[get_index(ncol, irow, jcol)] = num;
-    }
+  const Dimensions2kPlus1<2> dims({nrow, ncol});
+  using It = LevelValuesIterator<2, Real>;
+  const RangeSlice<It> values = dims.on_nodes(v, l);
+  It p = values.begin();
+  const It values_end = values.end();
+  while (p != values_end) {
+    *p++ = num;
   }
 }
 
+// TODO: Switch the type of `work` to a pointer.
 template <typename Real>
 void copy_level(const int nrow, const int ncol, const int l,
                 Real const *const v, std::vector<Real> &work) {
-  const std::size_t stride = stride_from_index_difference(l);
-  for (int irow = 0; irow < nrow; irow += stride) {
-    for (int jcol = 0; jcol < ncol; jcol += stride) {
-      const int index = get_index(ncol, irow, jcol);
-      work[index] = v[index];
-    }
+  const Dimensions2kPlus1<2> dims({nrow, ncol});
+  using It = LevelValuesIterator<2, const Real>;
+  using Jt = LevelValuesIterator<2, Real>;
+  const RangeSlice<It> source = dims.on_nodes(v, l);
+  const RangeSlice<Jt> destination = dims.on_nodes(work.data(), l);
+  It p = source.begin();
+  Jt q = destination.begin();
+  const It source_end = source.end();
+  while (p != source.end()) {
+    *q++ = *p++;
   }
 }
 
 template <typename Real>
 void add_level(const int nrow, const int ncol, const int l, Real *const v,
                Real const *const work) {
-  const std::size_t stride = stride_from_index_difference(l);
-  for (int irow = 0; irow < nrow; irow += stride) {
-    for (int jcol = 0; jcol < ncol; jcol += stride) {
-      const int index = get_index(ncol, irow, jcol);
-      v[index] += work[index];
-    }
+  const Dimensions2kPlus1<2> dims({nrow, ncol});
+  using It = LevelValuesIterator<2, Real>;
+  using Jt = LevelValuesIterator<2, const Real>;
+  const RangeSlice<It> target = dims.on_nodes(v, l);
+  const RangeSlice<Jt> increment = dims.on_nodes(work, l);
+  It p = target.begin();
+  Jt q = increment.begin();
+  const It target_end = target.end();
+  while (p != target_end) {
+    *p++ += *q++;
   }
 }
 
 template <typename Real>
 void subtract_level(const int nrow, const int ncol, const int l, Real *const v,
                     Real const *const work) {
-  const std::size_t stride = stride_from_index_difference(l);
-  for (int irow = 0; irow < nrow; irow += stride) {
-    for (int jcol = 0; jcol < ncol; jcol += stride) {
-      const int index = get_index(ncol, irow, jcol);
-      v[index] -= work[index];
-    }
+  const Dimensions2kPlus1<2> dims({nrow, ncol});
+  using It = LevelValuesIterator<2, Real>;
+  using Jt = LevelValuesIterator<2, const Real>;
+  const RangeSlice<It> target = dims.on_nodes(v, l);
+  const RangeSlice<Jt> decrement = dims.on_nodes(work, l);
+  It p = target.begin();
+  Jt q = decrement.begin();
+  const It target_end = target.end();
+  while (p != target_end) {
+    *p++ -= *q++;
   }
 }
 
