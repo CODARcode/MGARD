@@ -1430,15 +1430,14 @@ void assign_num_level(const int nrow, const int ncol, const int l,
   }
 }
 
-// TODO: Switch the type of `work` to a pointer.
 template <typename Real>
 void copy_level(const int nrow, const int ncol, const int l,
-                Real const *const v, std::vector<Real> &work) {
+                Real const *const v, Real * const work) {
   const Dimensions2kPlus1<2> dims({nrow, ncol});
   using It = LevelValuesIterator<2, const Real>;
   using Jt = LevelValuesIterator<2, Real>;
   const RangeSlice<It> source = dims.on_nodes(v, l);
-  const RangeSlice<Jt> destination = dims.on_nodes(work.data(), l);
+  const RangeSlice<Jt> destination = dims.on_nodes(work, l);
   It p = source.begin();
   Jt q = destination.begin();
   const It source_end = source.end();
@@ -1563,8 +1562,8 @@ void refactor_1D(const int ncol, const int l_target, Real *v,
 #if 1
     pi_Ql(ncol, l, v, row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
 #endif
-    copy_level(1, ncol, l, v,
-               work); // copy the nodal values of v on l  to matrix work
+    // copy the nodal values of v on l  to matrix work
+    copy_level(1, ncol, l, v, work.data());
 
     assign_num_level(1, ncol, l + 1, work.data(), static_cast<Real>(0.0));
 
@@ -1600,8 +1599,8 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
 
     pi_Ql(nrow, ncol, l, v, row_vec,
           col_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
-    copy_level(nrow, ncol, l, v,
-               work); // copy the nodal values of v on l  to matrix work
+    // copy the nodal values of v on l  to matrix work
+    copy_level(nrow, ncol, l, v, work.data());
 
     assign_num_level(nrow, ncol, l + 1, work.data(), static_cast<Real>(0.0));
 
@@ -1660,9 +1659,8 @@ void recompose_1D(const int ncol, const int l_target, Real *v,
     int stride = std::pow(2, l); // current stride
     int Pstride = stride / 2;
 
-    copy_level(1, ncol, l - 1, v, work); // copy the nodal values of cl
-                                         // on l-1 (finer level)  to
-                                         // matrix work
+    // copy the nodal values of cl on l-1 (finer level) to matrix work
+    copy_level(1, ncol, l - 1, v, work.data());
     // zero out nodes of l on cl
     assign_num_level(1, ncol, l, work.data(), static_cast<Real>(0.0));
 
@@ -1711,9 +1709,8 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
     int stride = std::pow(2, l); // current stride
     int Pstride = stride / 2;
 
-    copy_level(nrow, ncol, l - 1, v, work); // copy the nodal values of cl
-                                            // on l-1 (finer level)  to
-                                            // matrix work
+    // copy the nodal values of cl on l-1 (finer level) to matrix work
+    copy_level(nrow, ncol, l - 1, v, work.data());
     // zero out nodes of l on cl
     assign_num_level(nrow, ncol, l, work.data(), static_cast<Real>(0.0));
 
