@@ -27,13 +27,8 @@ template <std::size_t N> struct Dimensions2kPlus1 {
   //! two plus one.
   std::array<int, N> rnded;
 
-  //! Hypothetical largest index in the mesh hierarchies (considering each
-  //! dimension separately). The largest index is one less than the number of
-  //! levels.
-  std::array<int, N> nlevels;
-
   //! Overall largest index in the mesh hierarchy. The largest index is one less
-  //! than the number of levels.
+  //! than the number of levels. Any dimension of size `1` is ignored.
   int nlevel;
 
   //! Determine whether all dimensions are either equal to `1` or of the form

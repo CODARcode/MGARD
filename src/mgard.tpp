@@ -28,15 +28,6 @@
 
 #include "LinearQuantizer.hpp"
 
-static void set_number_of_levels(const int nrow, const int ncol, int &nlevel) {
-  // set the depth of levels in isotropic case
-  if (nrow == 1) {
-    nlevel = mgard::Dimensions2kPlus1<1>({ncol}).nlevel;
-  } else if (nrow > 1) {
-    nlevel = mgard::Dimensions2kPlus1<2>({nrow, ncol}).nlevel;
-  }
-}
-
 namespace mgard {
 
 template <typename Real>
@@ -496,11 +487,9 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
   if (dims.is_2kplus1()) {
     // to be clean up.
 
-    int nlevel;
-    set_number_of_levels(1, ncol, nlevel);
-    tol /= nlevel + 1;
+    tol /= dims.nlevel + 1;
 
-    const int l_target = nlevel - 1;
+    const int l_target = dims.nlevel - 1;
     mgard::refactor_1D(ncol, l_target, v.data(), work, row_vec);
 
     work.clear();
@@ -519,7 +508,6 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
 
-    const Dimensions2kPlus1<1> dims({ncol});
     tol /= dims.nlevel + 1;
 
     const int l_target = dims.nlevel - 1;
@@ -556,11 +544,9 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
   Real norm = mgard_2d::mgard_common::max_norm(v);
 
   if (dims.is_2kplus1()) {
-    int nlevel;
-    set_number_of_levels(nrow, ncol, nlevel);
-    tol /= nlevel + 1;
+    tol /= dims.nlevel + 1;
 
-    const int l_target = nlevel - 1;
+    const int l_target = dims.nlevel - 1;
     mgard::refactor(nrow, ncol, l_target, v.data(), work, row_vec, col_vec);
     work.clear();
     row_vec.clear();
@@ -585,7 +571,6 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
 
-    const Dimensions2kPlus1<2> dims({nrow, ncol});
     tol /= dims.nlevel + 1;
 
     const int l_target = dims.nlevel - 1;
@@ -679,11 +664,9 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
   Real norm = mgard_2d::mgard_common::max_norm(v);
 
   if (dims.is_2kplus1()) {
-    int nlevel;
-    set_number_of_levels(nrow, ncol, nlevel);
-    tol /= nlevel + 1;
+    tol /= dims.nlevel + 1;
 
-    const int l_target = nlevel - 1;
+    const int l_target = dims.nlevel - 1;
     mgard::refactor(nrow, ncol, l_target, v.data(), work, row_vec, col_vec);
     work.clear();
     row_vec.clear();
@@ -699,7 +682,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
 
     // mgard::quantize_2D_interleave (nrow, ncol, v.data(), qv, norm, tol);
 
-    mgard_gen::quantize_2D(nrow, ncol, nrow, ncol, nlevel, v.data(), qv,
+    mgard_gen::quantize_2D(nrow, ncol, nrow, ncol, dims.nlevel, v.data(), qv,
                            coords_x, coords_y, s, norm, tol);
 
     std::vector<unsigned char> out_data;
@@ -716,7 +699,6 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
 
-    const Dimensions2kPlus1<2> dims({nrow, ncol});
     tol /= dims.nlevel + 1;
 
     const int l_target = dims.nlevel - 1;
@@ -925,29 +907,24 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len) {
   const int size_ratio = sizeof(Real) / sizeof(int);
 
   if (dims.is_2kplus1()) {
-    int ncol_new = ncol;
-    int nrow_new = nrow;
+    const int l_target = dims.nlevel - 1;
 
-    int nlevel_new;
-    set_number_of_levels(nrow_new, ncol_new, nlevel_new);
-    const int l_target = nlevel_new - 1;
-
-    std::vector<int> out_data(nrow_new * ncol_new + size_ratio);
+    std::vector<int> out_data(nrow * ncol + size_ratio);
 
     mgard::decompress_memory_z(data, data_len, out_data.data(),
                                out_data.size() *
                                    sizeof(int)); // decompress input buffer
 
-    Real *v = (Real *)malloc(nrow_new * ncol_new * sizeof(Real));
+    Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
 
-    mgard::dequantize_2D_interleave(nrow_new, ncol_new, v, out_data);
+    mgard::dequantize_2D_interleave(nrow, ncol, v, out_data);
     out_data.clear();
 
-    std::vector<Real> row_vec(ncol_new);
-    std::vector<Real> col_vec(nrow_new);
-    std::vector<Real> work(nrow_new * ncol_new);
+    std::vector<Real> row_vec(ncol);
+    std::vector<Real> col_vec(nrow);
+    std::vector<Real> work(nrow * ncol);
 
-    mgard::recompose(nrow_new, ncol_new, l_target, v, work, row_vec, col_vec);
+    mgard::recompose(nrow, ncol, l_target, v, work, row_vec, col_vec);
 
     return v;
 
@@ -1027,36 +1004,31 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
   const int size_ratio = sizeof(Real) / sizeof(int);
 
   if (dims.is_2kplus1()) {
-    int ncol_new = ncol;
-    int nrow_new = nrow;
-
-    int nlevel_new;
-    set_number_of_levels(nrow_new, ncol_new, nlevel_new);
-    const int l_target = nlevel_new - 1;
+    const int l_target = dims.nlevel - 1;
 
     std::vector<Real> coords_x(ncol), coords_y(nrow);
 
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
 
-    std::vector<int> out_data(nrow_new * ncol_new + size_ratio);
+    std::vector<int> out_data(nrow * ncol + size_ratio);
 
     mgard::decompress_memory_z(data, data_len, out_data.data(),
                                out_data.size() *
                                    sizeof(int)); // decompress input buffer
 
-    Real *v = (Real *)malloc(nrow_new * ncol_new * sizeof(Real));
+    Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
 
-    //      mgard::dequantize_2D_interleave(nrow_new, ncol_new, v, out_data) ;
-    mgard_gen::dequantize_2D(nrow, ncol, nrow, ncol, nlevel_new, v, out_data,
+    //      mgard::dequantize_2D_interleave(nrow, ncol, v, out_data) ;
+    mgard_gen::dequantize_2D(nrow, ncol, nrow, ncol, dims.nlevel, v, out_data,
                              coords_x, coords_y, s);
     out_data.clear();
 
-    std::vector<Real> row_vec(ncol_new);
-    std::vector<Real> col_vec(nrow_new);
-    std::vector<Real> work(nrow_new * ncol_new);
+    std::vector<Real> row_vec(ncol);
+    std::vector<Real> col_vec(nrow);
+    std::vector<Real> work(nrow * ncol);
 
-    mgard::recompose(nrow_new, ncol_new, l_target, v, work, row_vec, col_vec);
+    mgard::recompose(nrow, ncol, l_target, v, work, row_vec, col_vec);
 
     return v;
 

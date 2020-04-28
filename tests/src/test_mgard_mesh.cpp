@@ -72,14 +72,14 @@ TEST_CASE("`Dimensions2kPlus1`", "[mgard_mesh]") {
     }
   }
   {
-    const mgard::Dimensions2kPlus1<3> dims({257, 129, 129});
+    const mgard::Dimensions2kPlus1<5> dims({1, 257, 129, 129, 1});
     REQUIRE(dims.is_2kplus1());
     REQUIRE(dims.nlevel == 7);
     REQUIRE(dims.rnded == dims.input);
   }
 
-  // We probably don't want this behavior.
-  REQUIRE_THROWS(mgard::Dimensions2kPlus1<1>({1}));
+  REQUIRE_THROWS(mgard::Dimensions2kPlus1<3>({1, 1, 1}));
+  REQUIRE_THROWS(mgard::Dimensions2kPlus1<2>({17, 0}));
 }
 
 TEST_CASE("level values iteration", "[mgard_mesh]") {

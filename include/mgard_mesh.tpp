@@ -1,17 +1,32 @@
 #include <algorithm>
 #include <limits>
+#include <stdexcept>
 
 namespace mgard {
 
 template <std::size_t N>
 Dimensions2kPlus1<N>::Dimensions2kPlus1(const std::array<int, N> input_) {
   nlevel = std::numeric_limits<int>::max();
+  bool nlevel_never_set = true;
   for (std::size_t i = 0; i < N; ++i) {
-    // TODO: This will throw an exception if any of the values are `0` or `1`.
-    // This prevents us (of course) from subsequently calling `is_2kplus1`.
-    const int exp = nlevel_from_size(input.at(i) = input_.at(i));
-    rnded.at(i) = size_from_nlevel(exp);
-    nlevel = std::min(nlevel, (nlevels.at(i) = exp));
+    const int size = input.at(i) = input_.at(i);
+    if (size <= 0) {
+      throw std::domain_error(
+        "dataset must have size larger than 0 in every dimension"
+      );
+    } else if (size > 1) {
+      const int exp = nlevel_from_size(size);
+      rnded.at(i) = size_from_nlevel(exp);
+      nlevel = std::min(nlevel, exp);
+      nlevel_never_set = false;
+    } else {
+      rnded.at(i) = size;
+    }
+  }
+  if (nlevel_never_set) {
+    throw std::domain_error(
+      "dataset must have size larger than 1 in some dimension"
+    );
   }
 }
 
