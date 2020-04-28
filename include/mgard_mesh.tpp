@@ -7,6 +7,8 @@ template <std::size_t N>
 Dimensions2kPlus1<N>::Dimensions2kPlus1(const std::array<int, N> input_) {
   nlevel = std::numeric_limits<int>::max();
   for (std::size_t i = 0; i < N; ++i) {
+    // TODO: This will throw an exception if any of the values are `0` or `1`.
+    // This prevents us (of course) from subsequently calling `is_2kplus1`.
     const int exp = nlevel_from_size(input.at(i) = input_.at(i));
     rnded.at(i) = size_from_nlevel(exp);
     nlevel = std::min(nlevel, (nlevels.at(i) = exp));
@@ -75,7 +77,7 @@ LevelValuesIterator<N, Real> &LevelValuesIterator<N, Real>::operator++() {
     const std::size_t j = i - 1;
     std::size_t &index = indices.at(j);
     index += stride;
-    if (index < dimensions.input.at(j)) {
+    if (index < static_cast<std::size_t>(dimensions.input.at(j))) {
       break;
     } else {
       index = 0;
@@ -104,9 +106,6 @@ Real &LevelValuesIterator<N, Real>::operator*() const {
     index *= dimensions.input.at(i);
     index += indices.at(i);
   }
-#if 0
-  return coefficients.data[index];
-#endif
   return coefficients[index];
 }
 

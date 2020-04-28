@@ -41,8 +41,8 @@ benchmarks@LDLIBS := -lbenchmark -lbenchmark_main -pthread $(structured@LDLIBS) 
 dirty@FILES =
 dirty@DIRECTORIES =
 
-structured@MGARD_STEMS_TESTED := interpolation mgard
-structured@MGARD_STEMS_UNTESTED := mgard_api mgard_nuni mgard_compress mgard_mesh
+structured@MGARD_STEMS_TESTED := interpolation mgard mgard_mesh
+structured@MGARD_STEMS_UNTESTED := mgard_api mgard_nuni mgard_compress
 structured@MGARD_STEMS = $(structured@MGARD_STEMS_TESTED) $(structured@MGARD_STEMS_UNTESTED)
 structured@TEST_STEMS := mgard_test
 structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
