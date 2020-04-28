@@ -486,14 +486,14 @@ Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 
 template <typename Real>
 unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
+  const Dimensions2kPlus1<1> dims({ncol});
 
   std::vector<Real> row_vec(ncol);
   std::vector<Real> v(u, u + ncol), work(ncol);
 
   Real norm = mgard_2d::mgard_common::max_norm(v);
 
-  if (is_2kplus1(ncol)) // input is (2^p + 1)
-  {
+  if (dims.is_2kplus1()) {
     // to be clean up.
 
     int nlevel;
@@ -547,6 +547,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
                               Real tol) {
+  const Dimensions2kPlus1<2> dims({nrow, ncol});
 
   std::vector<Real> row_vec(ncol);
   std::vector<Real> col_vec(nrow);
@@ -554,8 +555,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
 
   Real norm = mgard_2d::mgard_common::max_norm(v);
 
-  if (is_2kplus1(nrow) && is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
-  {
+  if (dims.is_2kplus1()) {
     int nlevel;
     set_number_of_levels(nrow, ncol, nlevel);
     tol /= nlevel + 1;
@@ -670,6 +670,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
                               Real tol, Real s) {
+  const Dimensions2kPlus1<2> dims({nrow, ncol});
 
   std::vector<Real> row_vec(ncol);
   std::vector<Real> col_vec(nrow);
@@ -677,8 +678,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
 
   Real norm = mgard_2d::mgard_common::max_norm(v);
 
-  if (is_2kplus1(nrow) && is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
-  {
+  if (dims.is_2kplus1()) {
     int nlevel;
     set_number_of_levels(nrow, ncol, nlevel);
     tol /= nlevel + 1;
@@ -798,12 +798,12 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 
 template <typename Real>
 Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
+  const Dimensions2kPlus1<1> dims({ncol});
   const int size_ratio = sizeof(Real) / sizeof(int);
 
-  if (is_2kplus1(ncol)) // input is (2^p + 1)
+  if (dims.is_2kplus1()) // input is (2^p + 1)
   {
     // to be cleaned up.
-    const Dimensions2kPlus1<1> dims({ncol});
     const int l_target = dims.nlevel - 1;
 #if 0
     int ncol_new = ncol;
@@ -834,7 +834,6 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
 
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
 
-    const Dimensions2kPlus1<1> dims({ncol});
     const int l_target = dims.nlevel - 1;
 
     std::vector<int> out_data(ncol + size_ratio);
@@ -860,12 +859,11 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
 
 template <typename Real>
 Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
+  const Dimensions2kPlus1<1> dims({ncol});
   const int size_ratio = sizeof(Real) / sizeof(int);
 
-  if (is_2kplus1(ncol)) // input is (2^p + 1)
-  {
+  if (dims.is_2kplus1()) {
     // to be cleaned up.
-    const Dimensions2kPlus1<1> dims({ncol});
     const int l_target = dims.nlevel - 1;
 #if 0
     int ncol_new = ncol;
@@ -923,10 +921,10 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
 
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len) {
+  const Dimensions2kPlus1<2> dims({nrow, ncol});
   const int size_ratio = sizeof(Real) / sizeof(int);
 
-  if (is_2kplus1(nrow) && is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
-  {
+  if (dims.is_2kplus1()) {
     int ncol_new = ncol;
     int nrow_new = nrow;
 
@@ -1025,10 +1023,10 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
                        Real s) {
+  const Dimensions2kPlus1<2> dims({nrow, ncol});
   const int size_ratio = sizeof(Real) / sizeof(int);
 
-  if (is_2kplus1(nrow) && is_2kplus1(ncol)) // input is (2^q + 1) x (2^p + 1)
-  {
+  if (dims.is_2kplus1()) {
     int ncol_new = ncol;
     int nrow_new = nrow;
 

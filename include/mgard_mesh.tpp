@@ -13,6 +13,15 @@ Dimensions2kPlus1<N>::Dimensions2kPlus1(const std::array<int, N> input_) {
   }
 }
 
+template <std::size_t N> bool Dimensions2kPlus1<N>::is_2kplus1() const {
+  for (const int n : input) {
+    if (!(n == 1 || n == size_from_nlevel(nlevel_from_size(n)))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 template <std::size_t N>
 template <typename Real>
 RangeSlice<LevelValuesIterator<N, Real>>
