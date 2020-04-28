@@ -18,6 +18,7 @@ string(REGEX MATCH "[0-9]+(\.[0-9])+" MGARD_VERSION "${MGARD_VERSION}")
 project(MGARD VERSION ${MGARD_VERSION})
 
 # Some boilerplate to setup nice output directories
+include(GNUInstallDirs)
 set(CMAKE_INSTALL_BINDIR bin CACHE STRING "Installation runtime subdirectory")
 set(CMAKE_INSTALL_LIBDIR lib CACHE STRING "Installation library subdirectory")
 set(CMAKE_INSTALL_INCLUDEDIR include
@@ -55,9 +56,9 @@ cmake_dependent_option(BUILD_SHARED_LIBS
 mark_as_advanced(BUILD_SHARED_LIBS)
 
 # Always build with PIC support if available
-if(SHARED_LIBS_SUPPORTED)
-  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-endif()
+#if(SHARED_LIBS_SUPPORTED)
+#  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+#endif()
 
 # Default to a release build if not specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -119,7 +120,7 @@ install(
 # Create executables under build/bin
 include(CTest)
 if(BUILD_TESTING)
-  enable_testing()
+#  enable_testing()
   add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
   target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
 
