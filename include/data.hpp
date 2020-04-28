@@ -3,8 +3,6 @@
 //!\file
 //!\brief Classes for datasets associated to mesh hierarchies.
 
-#include "moab/EntityHandle.hpp"
-
 namespace mgard {
 
 //! Base class for datasets associated to mesh hierarchies.
@@ -28,7 +26,7 @@ public:
 };
 
 // No equality comparisons here. Don't want to accidentally compare `{Nodal,
-// Multilevel}Coefficients}`.
+// Multilevel}Coefficients`.
 
 // Repeating the declarations rather than using a macro so that Doxygen can see
 // the documentation. Maybe there is some workaround.
