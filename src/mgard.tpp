@@ -1404,7 +1404,7 @@ void assign_num_level(const int nrow, const int ncol, const int l,
 
 template <typename Real>
 void copy_level(const int nrow, const int ncol, const int l,
-                Real const *const v, Real * const work) {
+                Real const *const v, Real *const work) {
   const Dimensions2kPlus1<2> dims({nrow, ncol});
   using It = LevelValuesIterator<2, const Real>;
   using Jt = LevelValuesIterator<2, Real>;
@@ -1451,40 +1451,32 @@ void subtract_level(const int nrow, const int ncol, const int l, Real *const v,
 }
 
 template <typename Real>
-void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
+void quantize_2D_interleave(const int nrow, const int ncol, Real const *const v,
                             std::vector<int> &work, const Real norm,
                             const Real tol) {
-  const int size_ratio = sizeof(Real) / sizeof(int);
-
-  //    Real quantizer = 2.0*norm * tol;
+  static_assert(sizeof(Real) % sizeof(int) == 0,
+                "`int` size does not divide `Real` size");
+  const std::size_t size_ratio = sizeof(Real) / sizeof(int);
   const mgard::LinearQuantizer<Real, int> quantizer(norm * tol);
-  ////std::cout  << "Quantization factor: " << quantizer << "\n";
   std::memcpy(work.data(), &quantizer.quantum, sizeof(Real));
-
-  int prune_count = 0;
-
-  for (int index = 0; index < ncol * nrow; ++index) {
-    const int n = quantizer(v[index]);
-    work[index + size_ratio] = n;
-    if (n == 0)
-      ++prune_count;
+  for (std::size_t index = 0; index < ncol * nrow; ++index) {
+    work[size_ratio + index] = quantizer(v[index]);
   }
-
-  ////std::cout  << "Pruned : " << prune_count << " Reduction : "
-  //          << (Real)2 * nrow * ncol / (nrow * ncol - prune_count) << "\n";
 }
 
 template <typename Real>
-void dequantize_2D_interleave(const int nrow, const int ncol, Real *v,
+void dequantize_2D_interleave(const int nrow, const int ncol, Real *const v,
                               const std::vector<int> &work) {
-  const int size_ratio = sizeof(Real) / sizeof(int);
+  static_assert(sizeof(Real) % sizeof(int) == 0,
+                "`int` size does not divide `Real` size");
+  const std::size_t size_ratio = sizeof(Real) / sizeof(int);
 
   Real quantum;
   std::memcpy(&quantum, work.data(), sizeof(Real));
   const mgard::LinearDequantizer<int, Real> quantizer(quantum);
 
-  for (int index = 0; index < nrow * ncol; ++index) {
-    v[index] = quantizer(work[index + size_ratio]);
+  for (std::size_t index = 0; index < nrow * ncol; ++index) {
+    v[index] = quantizer(work[size_ratio + index]);
   }
 }
 
