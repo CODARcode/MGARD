@@ -292,3 +292,77 @@ TEMPLATE_TEST_CASE("BLAS-like level operations", "[mgard]", float, double) {
     }
   }
 }
+
+TEST_CASE("2D (de)quantization", "[mgard]") {
+  std::default_random_engine generator(312769);
+
+  SECTION("quantization followed by dequantization") {
+    std::uniform_real_distribution<float> distribution(-30, -10);
+    const int nrow = 23;
+    const int ncol = 11;
+    const std::size_t N = nrow * ncol;
+    // The quantum will be `norm * tol`.
+    const float norm = 1;
+    const float tol = 0.01;
+
+    std::vector<float> v(N);
+    std::vector<int> quantized(sizeof(float) / sizeof(int) + N);
+    std::vector<float> dequantized(N);
+
+    for (float &value : v) {
+      value = distribution(generator);
+    }
+
+    mgard::quantize_2D_interleave(nrow, ncol, v.data(), quantized, norm, tol);
+    mgard::dequantize_2D_interleave(nrow, ncol, dequantized.data(), quantized);
+
+    TrialTracker tracker;
+    for (std::size_t i = 0; i < N; ++i) {
+      tracker += std::abs(v.at(i) - dequantized.at(i)) <= norm * tol / 2;
+    }
+    REQUIRE(tracker);
+  }
+
+  SECTION("dequantization followed by quantization") {
+    std::uniform_int_distribution<int> distribution(-50, 150);
+    const int nrow = 5;
+    const int ncol = 178;
+    const std::size_t N = nrow * ncol;
+    const double norm = 5;
+    const double tol = 0.01;
+    const double quantum = norm * tol;
+    std::vector<int> v(sizeof(double) / sizeof(int) + N);
+    {
+      double *const p = reinterpret_cast<double *>(v.data());
+      *p = quantum;
+    }
+    {
+      int *q = v.data() + sizeof(double) / sizeof(int);
+      for (std::size_t i = 0; i < N; ++i) {
+        *q++ = distribution(generator);
+      }
+    }
+    std::vector<double> dequantized(N);
+    std::vector<int> requantized(sizeof(double) / sizeof(int) + N);
+
+    mgard::dequantize_2D_interleave(nrow, ncol, dequantized.data(), v);
+    mgard::quantize_2D_interleave(nrow, ncol, dequantized.data(), requantized,
+                                  norm, tol);
+
+    TrialTracker tracker;
+    {
+      double const *const p = reinterpret_cast<double const *>(v.data());
+      double const *const q =
+          reinterpret_cast<double const *>(requantized.data());
+      tracker += *p == *q;
+    }
+    {
+      int const *p = v.data() + sizeof(double) / sizeof(int);
+      int const *q = requantized.data() + sizeof(double) / sizeof(int);
+      for (std::size_t i = 0; i < N; ++i) {
+        tracker += *p++ == *q++;
+      }
+    }
+    REQUIRE(tracker);
+  }
+}

@@ -42,10 +42,10 @@ template void assign_num_level<double>(const int nrow, const int ncol,
                                        const double num);
 
 template void copy_level<float>(const int nrow, const int ncol, const int l,
-                                float const *const v, float * const work);
+                                float const *const v, float *const work);
 
 template void copy_level<double>(const int nrow, const int ncol, const int l,
-                                 double const *const v, double * const work);
+                                 double const *const v, double *const work);
 
 template void add_level<float>(const int nrow, const int ncol, const int l,
                                float *const v, float const *const work);
@@ -61,19 +61,22 @@ template void subtract_level<double>(const int nrow, const int ncol,
                                      double const *const work);
 
 template void quantize_2D_interleave<float>(const int nrow, const int ncol,
-                                            float *v, std::vector<int> &work,
-                                            float norm, float tol);
+                                            float const *const v,
+                                            std::vector<int> &work,
+                                            const float norm, const float tol);
 
 template void quantize_2D_interleave<double>(const int nrow, const int ncol,
-                                             double *v, std::vector<int> &work,
-                                             double norm, double tol);
+                                             double const *const v,
+                                             std::vector<int> &work,
+                                             const double norm,
+                                             const double tol);
 
 template void dequantize_2D_interleave<float>(const int nrow, const int ncol,
-                                              float *v,
+                                              float *const v,
                                               const std::vector<int> &work);
 
 template void dequantize_2D_interleave<double>(const int nrow, const int ncol,
-                                               double *v,
+                                               double *const v,
                                                const std::vector<int> &work);
 
 template unsigned char *refactor_qz<float>(int nrow, int ncol, int nfib,
