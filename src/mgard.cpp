@@ -1,4 +1,4 @@
-#include "mgard.h"
+#include "mgard.hpp"
 #include "mgard.tpp"
 
 namespace mgard {

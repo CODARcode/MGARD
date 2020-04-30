@@ -13,7 +13,7 @@
 #include <iostream>
 #include <numeric>
 
-#include "mgard.h"
+#include "mgard.hpp"
 #include "mgard_norms.hpp"
 #include "mgard_nuni.h"
 

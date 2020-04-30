@@ -8,7 +8,7 @@
 #ifndef MGARD_TPP
 #define MGARD_TPP
 
-#include "mgard.h"
+#include "mgard.hpp"
 
 #include <cmath>
 #include <cstddef>
