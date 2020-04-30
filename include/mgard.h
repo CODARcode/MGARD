@@ -8,7 +8,6 @@
 #ifndef MGARD_H
 #define MGARD_H
 
-#include <string>
 #include <vector>
 
 namespace mgard {
@@ -196,10 +195,6 @@ template <typename Real>
 unsigned char *refactor_qz_1D(int n, const Real *v, int &outsize, Real tol);
 
 template <typename Real>
-unsigned char *refactor_qz_1D(int n, const Real *v, int &outsize, Real tol,
-                              Real s);
-
-template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *v, int &outsize,
                               Real tol);
 
@@ -251,9 +246,6 @@ template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
                        std::vector<Real> &coords_y, unsigned char *data,
                        int data_len, Real s);
-
-template <typename Real>
-unsigned char *refactor_qz_1D(int ncol, const Real *v, int &outsize, Real tol);
 
 template <typename Real>
 Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len);

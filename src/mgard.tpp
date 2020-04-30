@@ -21,7 +21,6 @@
 #include <numeric>
 #include <stdexcept>
 
-#include "interpolation.hpp"
 #include "mgard_compress.hpp"
 #include "mgard_mesh.hpp"
 #include "mgard_nuni.h"
@@ -33,49 +32,15 @@ namespace mgard {
 template <typename Real>
 unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
                            int &outsize, Real tol) {
-  std::vector<Real> v(u, u + nrow * ncol * nfib), work(nrow * ncol * nfib),
-      work2d(nrow * ncol); // duplicate data and create work array
-  std::vector<Real> coords_x(ncol), coords_y(nrow),
-      coords_z(nfib); // coordinate arrays
-  // dummy equispaced coordinates
+  // Dummy equispaced coordinates.
+  std::vector<Real> coords_x(ncol);
+  std::vector<Real> coords_y(nrow);
+  std::vector<Real> coords_z(nfib);
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
-
-  const Dimensions2kPlus1<3> dims({nrow, ncol, nfib});
-  const int l_target = dims.nlevel - 1;
-
-  Real norm = mgard_common::max_norm(v);
-
-  // TODO: in the `float` implementation, we divide by `nlevel + 2`.
-  tol /= dims.nlevel + 1;
-
-  mgard_gen::prep_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0],
-                     dims.input[1], dims.input[2], l_target, v.data(), work,
-                     work2d, coords_x, coords_y, coords_z);
-
-  mgard_gen::refactor_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
-                         dims.input[0], dims.input[1], dims.input[2], l_target,
-                         v.data(), work, work2d, coords_x, coords_y, coords_z);
-
-  work.clear();
-  work2d.clear();
-
-  const int size_ratio = sizeof(Real) / sizeof(int);
-  std::vector<int> qv(nrow * ncol * nfib + size_ratio);
-
-  mgard::quantize_2D_interleave(
-      nrow, ncol * nfib, v.data(), qv, norm,
-      tol); // rename this to quantize Linfty or smthng!!!!
-
-  std::vector<unsigned char> out_data;
-
-  mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-
-  outsize = out_data.size();
-  unsigned char *buffer = (unsigned char *)malloc(outsize);
-  std::copy(out_data.begin(), out_data.end(), buffer);
-  return buffer;
+  return refactor_qz(nrow, ncol, nfib, coords_x, coords_y, coords_z, u, outsize,
+                     tol);
 }
 
 template <typename Real>
@@ -125,56 +90,15 @@ refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 template <typename Real>
 unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *u,
                            int &outsize, Real tol, Real s) {
-  std::vector<Real> v(u, u + nrow * ncol * nfib), work(nrow * ncol * nfib),
-      work2d(nrow * ncol); // duplicate data and create work array
-  std::vector<Real> coords_x(ncol), coords_y(nrow),
-      coords_z(nfib); // coordinate arrays
-
-  const Dimensions2kPlus1<3> dims({nrow, ncol, nfib});
-  const int l_target = dims.nlevel - 1;
-
-  // dummy equispaced coordinates
+  // Dummy equispaced coordinates.
+  std::vector<Real> coords_x(ncol);
+  std::vector<Real> coords_y(nrow);
+  std::vector<Real> coords_z(nfib);
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
-
-  Real norm = 1.0;
-
-  if (std::abs(s) < 1e-10) {
-    norm = mgard_gen::ml2_norm3(0, nrow, ncol, nfib, nrow, ncol, nfib, v,
-                                coords_x, coords_y, coords_z);
-
-    norm = std::sqrt(norm /
-                     (nrow * nfib * ncol)); //<- quant scaling goes here for s
-  }
-
-  mgard_gen::prep_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0],
-                     dims.input[1], dims.input[2], l_target, v.data(), work,
-                     work2d, coords_x, coords_y, coords_z);
-
-  mgard_gen::refactor_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
-                         dims.input[0], dims.input[1], dims.input[2], l_target,
-                         v.data(), work, work2d, coords_x, coords_y, coords_z);
-
-  work.clear();
-  work2d.clear();
-
-  const int size_ratio = sizeof(Real) / sizeof(int);
-  std::vector<int> qv(nrow * ncol * nfib + size_ratio);
-
-  mgard_gen::quantize_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
-                         dims.input[0], dims.input[1], dims.input[2],
-                         dims.nlevel, v.data(), qv, coords_x, coords_y,
-                         coords_z, s, norm, tol);
-
-  std::vector<unsigned char> out_data;
-
-  mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-
-  outsize = out_data.size();
-  unsigned char *buffer = (unsigned char *)malloc(outsize);
-  std::copy(out_data.begin(), out_data.end(), buffer);
-  return buffer;
+  return refactor_qz(nrow, ncol, nfib, coords_x, coords_y, coords_z, u, outsize,
+                     tol, s);
 }
 
 template <typename Real>
@@ -292,39 +216,15 @@ refactor_qz(int nrow, int ncol, int nfib, const Real *u, int &outsize, Real tol,
 template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
                     int data_len) {
-  const int size_ratio = sizeof(Real) / sizeof(int);
-  std::vector<Real> coords_x(ncol), coords_y(nrow),
-      coords_z(nfib); // coordinate arrays
-  std::vector<int> out_data(nrow * ncol * nfib + size_ratio);
-  std::vector<Real> work(nrow * ncol * nfib),
-      work2d(nrow * ncol); // duplicate data and create work array
-
-  //      dummy equispaced coordinates
+  // Dummy equispaced coordinates.
+  std::vector<Real> coords_x(ncol);
+  std::vector<Real> coords_y(nrow);
+  std::vector<Real> coords_z(nfib);
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
-
-  //    //std::cout  <<"**** coord check : "  << coords_x[4] << "\n";
-
-  const Dimensions2kPlus1<3> dims({nrow, ncol, nfib});
-  const int l_target = dims.nlevel - 1;
-
-  mgard::decompress_memory_z(data, data_len, out_data.data(),
-                             out_data.size() *
-                                 sizeof(int)); // decompress input buffer
-  Real *v = (Real *)malloc(nrow * ncol * nfib * sizeof(Real));
-
-  mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
-
-  mgard_gen::recompose_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
-                          dims.input[0], dims.input[1], dims.input[2], l_target,
-                          v, work, work2d, coords_x, coords_y, coords_z);
-
-  mgard_gen::postp_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
-                      dims.input[0], dims.input[1], dims.input[2], l_target, v,
-                      work, coords_x, coords_y, coords_z);
-
-  return v;
+  return recompose_udq(nrow, ncol, nfib, coords_x, coords_y, coords_z, data,
+                       data_len);
 }
 
 template <typename Real>
@@ -360,65 +260,16 @@ Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, unsigned char *data,
                     int data_len, Real s) {
-  const int size_ratio = sizeof(Real) / sizeof(int);
-  std::vector<Real> coords_x(ncol), coords_y(nrow),
-      coords_z(nfib); // coordinate arrays
-  std::vector<int> out_data(nrow * ncol * nfib + size_ratio);
-  std::vector<Real> work(nrow * ncol * nfib),
-      work2d(nrow * ncol); // duplicate data and create work array
-
-  //    Real s = 0; // Defaulting to L2 compression for a start.
-  Real norm = 1; // defaulting to absolute s, may switch to relative
-
-  //      dummy equispaced coordinates
+  // Dummy equispaced coordinates.
+  std::vector<Real> coords_x(ncol);
+  std::vector<Real> coords_y(nrow);
+  std::vector<Real> coords_z(nfib);
   std::iota(std::begin(coords_x), std::end(coords_x), 0);
   std::iota(std::begin(coords_y), std::end(coords_y), 0);
   std::iota(std::begin(coords_z), std::end(coords_z), 0);
-
-  //    //std::cout  <<"**** coord check : "  << coords_x[4] << "\n";
-
-  const Dimensions2kPlus1<3> dims({nrow, ncol, nfib});
-  const int l_target = dims.nlevel - 1;
-
-  mgard::decompress_memory_z(data, data_len, out_data.data(),
-                             out_data.size() *
-                                 sizeof(int)); // decompress input buffer
-  Real *v = (Real *)malloc(nrow * ncol * nfib * sizeof(Real));
-
-  //    outfile.write( reinterpret_cast<char*>( out_data.data() ),
-  //    (nrow*ncol*nfib + size_ratio)*sizeof(int) );
-
-  mgard_gen::dequantize_3D(
-      dims.rnded[0], dims.rnded[1], dims.rnded[2], dims.input[0], dims.input[1],
-      dims.input[2], dims.nlevel, v, out_data, coords_x, coords_y, coords_z, s);
-  //    mgard::dequantize_2D_interleave(nrow, ncol*nfib, v, out_data) ;
-
-  //    mgard_common::qread_2D_interleave(nrow,  ncol, nlevel, work.data(),
-  //    out_file);
-
-  // mgard_gen::dequant_3D(
-  //     dims.rnded[0], dims.rnded[1], dims.rnded[2],
-  //     dims.input[0], dims.input[1], dims.input[2],
-  //     dims.nlevel, dims.nlevel,
-  //     v, work.data(), coords_x, coords_y,  coords_z, s
-  // );
-
-  // std::ofstream outfile(out_file, std::ios::out | std::ios::binary);
-
-  //    w
-  mgard_gen::recompose_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
-                          dims.input[0], dims.input[1], dims.input[2], l_target,
-                          v, work, work2d, coords_x, coords_y, coords_z);
-
-  mgard_gen::postp_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
-                      dims.input[0], dims.input[1], dims.input[2], l_target, v,
-                      work, coords_x, coords_y, coords_z);
-
-  //    outfile.write( reinterpret_cast<char*>( v ),
-  //    nrow*ncol*nfib*sizeof(Real) ;)
-  return v;
+  return recompose_udq(nrow, ncol, nfib, coords_x, coords_y, coords_z, data,
+                       data_len, s);
 }
-//}
 
 template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
@@ -536,14 +387,16 @@ template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
                               Real tol) {
   const Dimensions2kPlus1<2> dims({nrow, ncol});
-
-  std::vector<Real> row_vec(ncol);
-  std::vector<Real> col_vec(nrow);
-  std::vector<Real> v(u, u + nrow * ncol), work(nrow * ncol);
-
-  Real norm = mgard_2d::mgard_common::max_norm(v);
-
   if (dims.is_2kplus1()) {
+    std::vector<Real> row_vec(ncol);
+    std::vector<Real> col_vec(nrow);
+    std::vector<Real> v(u, u + nrow * ncol), work(nrow * ncol);
+
+    Real norm = mgard_2d::mgard_common::max_norm(v);
+
+    // TODO: Elsewhere we have divided by `nlevel + 2`. I believe it has to do
+    // with the extra level (not present here) with dimensions not of the form
+    // `2^k + 1`.
     tol /= dims.nlevel + 1;
 
     const int l_target = dims.nlevel - 1;
@@ -565,44 +418,12 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     std::copy(out_data.begin(), out_data.end(), buffer);
     return buffer;
   } else {
-
-    std::vector<Real> coords_x(ncol), coords_y(nrow);
-
+    // Dummy equispaced coordinates.
+    std::vector<Real> coords_x(ncol);
+    std::vector<Real> coords_y(nrow);
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
-
-    tol /= dims.nlevel + 1;
-
-    const int l_target = dims.nlevel - 1;
-
-    mgard_2d::mgard_gen::prep_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
-                                 dims.input[1], l_target, v.data(), work,
-                                 coords_x, coords_y, row_vec, col_vec);
-
-    mgard_2d::mgard_gen::refactor_2D(
-        dims.rnded[0], dims.rnded[1], dims.input[0], dims.input[1], l_target,
-        v.data(), work, coords_x, coords_y, row_vec, col_vec);
-
-    work.clear();
-    col_vec.clear();
-    row_vec.clear();
-
-    const int size_ratio = sizeof(Real) / sizeof(int);
-    std::vector<int> qv(nrow * ncol + size_ratio);
-
-    // Uncomment the following. Otherwise the tolerence is divided twice.
-    // Q. Liu 3/2/2020.
-    // tol /= dims.nlevel + 1;
-    mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
-
-    std::vector<unsigned char> out_data;
-
-    mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-
-    outsize = out_data.size();
-    unsigned char *buffer = (unsigned char *)malloc(outsize);
-    std::copy(out_data.begin(), out_data.end(), buffer);
-    return buffer;
+    return refactor_qz_2D(nrow, ncol, coords_x, coords_y, u, outsize, tol);
   }
 }
 
@@ -656,14 +477,13 @@ template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
                               Real tol, Real s) {
   const Dimensions2kPlus1<2> dims({nrow, ncol});
-
-  std::vector<Real> row_vec(ncol);
-  std::vector<Real> col_vec(nrow);
-  std::vector<Real> v(u, u + nrow * ncol), work(nrow * ncol);
-
-  Real norm = mgard_2d::mgard_common::max_norm(v);
-
   if (dims.is_2kplus1()) {
+    std::vector<Real> row_vec(ncol);
+    std::vector<Real> col_vec(nrow);
+    std::vector<Real> v(u, u + nrow * ncol), work(nrow * ncol);
+
+    Real norm = mgard_2d::mgard_common::max_norm(v);
+
     tol /= dims.nlevel + 1;
 
     const int l_target = dims.nlevel - 1;
@@ -693,43 +513,12 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     std::copy(out_data.begin(), out_data.end(), buffer);
     return buffer;
   } else {
-
-    std::vector<Real> coords_x(ncol), coords_y(nrow);
-
+    // Dummy equispaced coordinates.
+    std::vector<Real> coords_x(ncol);
+    std::vector<Real> coords_y(nrow);
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
-
-    tol /= dims.nlevel + 1;
-
-    const int l_target = dims.nlevel - 1;
-
-    mgard_2d::mgard_gen::prep_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
-                                 dims.input[1], l_target, v.data(), work,
-                                 coords_x, coords_y, row_vec, col_vec);
-
-    mgard_2d::mgard_gen::refactor_2D(
-        dims.rnded[0], dims.rnded[1], dims.input[0], dims.input[1], l_target,
-        v.data(), work, coords_x, coords_y, row_vec, col_vec);
-
-    work.clear();
-    col_vec.clear();
-    row_vec.clear();
-
-    const int size_ratio = sizeof(Real) / sizeof(int);
-    std::vector<int> qv(nrow * ncol + size_ratio);
-
-    mgard_gen::quantize_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
-                           dims.input[1], dims.nlevel, v.data(), qv, coords_x,
-                           coords_y, s, norm, tol);
-
-    std::vector<unsigned char> out_data;
-
-    mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-
-    outsize = out_data.size();
-    unsigned char *buffer = (unsigned char *)malloc(outsize);
-    std::copy(out_data.begin(), out_data.end(), buffer);
-    return buffer;
+    return refactor_qz_2D(nrow, ncol, coords_x, coords_y, u, outsize, tol, s);
   }
 }
 
@@ -904,9 +693,8 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len) {
   const Dimensions2kPlus1<2> dims({nrow, ncol});
-  const int size_ratio = sizeof(Real) / sizeof(int);
-
   if (dims.is_2kplus1()) {
+    const int size_ratio = sizeof(Real) / sizeof(int);
     const int l_target = dims.nlevel - 1;
 
     std::vector<int> out_data(nrow * ncol + size_ratio);
@@ -929,37 +717,12 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len) {
     return v;
 
   } else {
-    std::vector<Real> coords_x(ncol), coords_y(nrow);
-
+    // Dummy equispaced coordinates.
+    std::vector<Real> coords_x(ncol);
+    std::vector<Real> coords_y(nrow);
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
-
-    const Dimensions2kPlus1<2> dims({nrow, ncol});
-    const int l_target = dims.nlevel - 1;
-
-    std::vector<int> out_data(nrow * ncol + size_ratio);
-
-    mgard::decompress_memory_z(data, data_len, out_data.data(),
-                               out_data.size() *
-                                   sizeof(int)); // decompress input buffer
-
-    Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
-
-    mgard::dequantize_2D_interleave(nrow, ncol, v, out_data);
-
-    std::vector<Real> row_vec(ncol);
-    std::vector<Real> col_vec(nrow);
-    std::vector<Real> work(nrow * ncol);
-
-    mgard_2d::mgard_gen::recompose_2D(
-        dims.rnded[0], dims.rnded[1], dims.input[0], dims.input[1], l_target, v,
-        work, coords_x, coords_y, row_vec, col_vec);
-
-    mgard_2d::mgard_gen::postp_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
-                                  dims.input[1], l_target, v, work, coords_x,
-                                  coords_y, row_vec, col_vec);
-
-    return v;
+    return recompose_udq_2D(nrow, ncol, coords_x, coords_y, data, data_len);
   }
 }
 
@@ -1001,9 +764,8 @@ template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
                        Real s) {
   const Dimensions2kPlus1<2> dims({nrow, ncol});
-  const int size_ratio = sizeof(Real) / sizeof(int);
-
   if (dims.is_2kplus1()) {
+    const int size_ratio = sizeof(Real) / sizeof(int);
     const int l_target = dims.nlevel - 1;
 
     std::vector<Real> coords_x(ncol), coords_y(nrow);
@@ -1033,38 +795,12 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len,
     return v;
 
   } else {
-    std::vector<Real> coords_x(ncol), coords_y(nrow);
-
+    // Dummy equispaced coordinates.
+    std::vector<Real> coords_x(ncol);
+    std::vector<Real> coords_y(nrow);
     std::iota(std::begin(coords_x), std::end(coords_x), 0);
     std::iota(std::begin(coords_y), std::end(coords_y), 0);
-
-    const Dimensions2kPlus1<2> dims({nrow, ncol});
-    const int l_target = dims.nlevel - 1;
-
-    std::vector<int> out_data(nrow * ncol + size_ratio);
-
-    mgard::decompress_memory_z(data, data_len, out_data.data(),
-                               out_data.size() * sizeof(int));
-
-    Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
-
-    mgard_gen::dequantize_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
-                             dims.input[1], dims.nlevel, v, out_data, coords_x,
-                             coords_y, s);
-
-    std::vector<Real> row_vec(ncol);
-    std::vector<Real> col_vec(nrow);
-    std::vector<Real> work(nrow * ncol);
-
-    mgard_2d::mgard_gen::recompose_2D(
-        dims.rnded[0], dims.rnded[1], dims.input[0], dims.input[1], l_target, v,
-        work, coords_x, coords_y, row_vec, col_vec);
-
-    mgard_2d::mgard_gen::postp_2D(dims.rnded[0], dims.rnded[1], dims.input[0],
-                                  dims.input[1], l_target, v, work, coords_x,
-                                  coords_y, row_vec, col_vec);
-
-    return v;
+    return recompose_udq_2D(nrow, ncol, coords_x, coords_y, data, data_len, s);
   }
 }
 
