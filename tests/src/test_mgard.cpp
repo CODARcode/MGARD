@@ -8,7 +8,7 @@
 
 #include "testing_utilities.hpp"
 
-#include "mgard.h"
+#include "mgard.hpp"
 #include "mgard_mesh.hpp"
 
 TEMPLATE_TEST_CASE("uniform mass matrix", "[mgard]", float, double) {

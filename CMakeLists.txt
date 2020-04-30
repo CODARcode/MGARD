@@ -11,7 +11,7 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 # Extract the version string from the header file and setup the project version
 # accordingly
-file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/include/mgard.h MGARD_VERSION
+file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/include/mgard.hpp MGARD_VERSION
   REGEX "// version: "
   LIMIT_COUNT 1)
 string(REGEX MATCH "[0-9]+(\.[0-9])+" MGARD_VERSION "${MGARD_VERSION}")
@@ -151,7 +151,7 @@ find_package(ZSTD)
 
 # Set library
 add_library(mgard
-  src/mgard.cpp       include/mgard.h
+  src/mgard.cpp       include/mgard.hpp
   src/interpolation.cpp  include/interpolation.hpp
   src/mgard_mesh.cpp  include/mgard_mesh.hpp
   src/mgard_compress.cpp  include/mgard_compress.hpp
@@ -193,7 +193,7 @@ install(
 )
 
 install(
-  FILES include/mgard.h 
+  FILES include/mgard.hpp
         include/interpolation.hpp
         include/mgard_mesh.hpp
         include/mgard_compress.hpp
