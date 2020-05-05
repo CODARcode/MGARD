@@ -8,7 +8,11 @@
 #ifndef MGARD_H
 #define MGARD_H
 
+#include <cstddef>
+
 #include <vector>
+
+#include "TensorMeshHierarchy.hpp"
 
 namespace mgard {
 
@@ -148,28 +152,26 @@ void subtract_level(const int nrow, const int ncol, const int l, Real *const v,
 //! tolerance, so that `tol * norm` is the correct quantum. This will likely be
 //! changed in the future.
 //!
-//!\param[in] nrow Number of rows in the dataset.
-//!\param[in] ncol Number of columns in the dataset.
+//!\param[in] hierarchy Mesh hierarchy on which the function is defined.
 //!\param[in] v Array of multilevel coefficients to be quantized.
 //!\param[out] work Array in which to store quantized coefficients.
 //!\param[in] norm Norm of the input function.
 //!\param[in] tol Error tolerance, appropriately scaled.
-template <typename Real>
-void quantize_2D_interleave(const int nrow, const int ncol, Real const *const v,
-                            std::vector<int> &work, const Real norm,
-                            const Real tol);
+template <std::size_t N, typename Real>
+void quantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
+                         Real const *const v, std::vector<int> &work,
+                         const Real norm, const Real tol);
 
 //! Dequantize an array of quantized multilevel coefficients.
 //!
 //! The quantization quantum is read from the beginning of the input array.
 //!
-//!\param[in] nrow Number of rows in the dataset.
-//!\param[in] ncol Number of columns in the dataset.
+//!\param[in] hierarchy Mesh hierarchy on which the function is defined.
 //!\param[out] v Array in which to store dequantized coefficients.
 //!\param[in] work Array of quantized multilevel coefficients to be dequantized.
-template <typename Real>
-void dequantize_2D_interleave(const int nrow, const int ncol, Real *const v,
-                              const std::vector<int> &work);
+template <std::size_t N, typename Real>
+void dequantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
+                           Real *const v, const std::vector<int> &work);
 
 template <typename Real>
 unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *v,
