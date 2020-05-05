@@ -8,6 +8,7 @@
 
 #include "testing_utilities.hpp"
 
+#include "TensorMeshHierarchy.hpp"
 #include "mgard.hpp"
 #include "mgard_mesh.hpp"
 
@@ -298,9 +299,8 @@ TEST_CASE("2D (de)quantization", "[mgard]") {
 
   SECTION("quantization followed by dequantization") {
     std::uniform_real_distribution<float> distribution(-30, -10);
-    const int nrow = 23;
-    const int ncol = 11;
-    const std::size_t N = nrow * ncol;
+    const mgard::TensorMeshHierarchy<2, float> hierarchy({23, 11});
+    const std::size_t N = hierarchy.ndof();
     // The quantum will be `norm * tol`.
     const float norm = 1;
     const float tol = 0.01;
@@ -313,8 +313,8 @@ TEST_CASE("2D (de)quantization", "[mgard]") {
       value = distribution(generator);
     }
 
-    mgard::quantize_2D_interleave(nrow, ncol, v.data(), quantized, norm, tol);
-    mgard::dequantize_2D_interleave(nrow, ncol, dequantized.data(), quantized);
+    mgard::quantize_interleave(hierarchy, v.data(), quantized, norm, tol);
+    mgard::dequantize_interleave(hierarchy, dequantized.data(), quantized);
 
     TrialTracker tracker;
     for (std::size_t i = 0; i < N; ++i) {
@@ -325,9 +325,8 @@ TEST_CASE("2D (de)quantization", "[mgard]") {
 
   SECTION("dequantization followed by quantization") {
     std::uniform_int_distribution<int> distribution(-50, 150);
-    const int nrow = 5;
-    const int ncol = 178;
-    const std::size_t N = nrow * ncol;
+    const mgard::TensorMeshHierarchy<3, double> hierarchy({5, 89, 2});
+    const std::size_t N = hierarchy.ndof();
     const double norm = 5;
     const double tol = 0.01;
     const double quantum = norm * tol;
@@ -345,9 +344,9 @@ TEST_CASE("2D (de)quantization", "[mgard]") {
     std::vector<double> dequantized(N);
     std::vector<int> requantized(sizeof(double) / sizeof(int) + N);
 
-    mgard::dequantize_2D_interleave(nrow, ncol, dequantized.data(), v);
-    mgard::quantize_2D_interleave(nrow, ncol, dequantized.data(), requantized,
-                                  norm, tol);
+    mgard::dequantize_interleave(hierarchy, dequantized.data(), v);
+    mgard::quantize_interleave(hierarchy, dequantized.data(), requantized, norm,
+                               tol);
 
     TrialTracker tracker;
     {

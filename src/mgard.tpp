@@ -48,6 +48,7 @@ unsigned char *
 refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
             std::vector<Real> &coords_y, std::vector<Real> &coords_z,
             const Real *u, int &outsize, Real tol) {
+  const TensorMeshHierarchy<3, Real> hierarchy({nrow, ncol, nfib});
   std::vector<Real> v(u, u + nrow * ncol * nfib), work(nrow * ncol * nfib),
       work2d(nrow * ncol); // duplicate data and create work array
 
@@ -73,9 +74,8 @@ refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
   const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
-  mgard::quantize_2D_interleave(
-      nrow, ncol * nfib, v.data(), qv, norm,
-      tol); // rename this to quantize Linfty or smthng!!!!
+  // rename this to quantize Linfty or smthng!!!!
+  mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
 
   std::vector<unsigned char> out_data;
 
@@ -231,6 +231,7 @@ template <typename Real>
 Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
                     std::vector<Real> &coords_y, std::vector<Real> &coords_z,
                     unsigned char *data, int data_len) {
+  const TensorMeshHierarchy<3, Real> hierarchy({nrow, ncol, nfib});
   const int size_ratio = sizeof(Real) / sizeof(int);
   std::vector<int> out_data(nrow * ncol * nfib + size_ratio);
   std::vector<Real> work(nrow * ncol * nfib),
@@ -244,7 +245,7 @@ Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
                                  sizeof(int)); // decompress input buffer
   Real *v = (Real *)malloc(nrow * ncol * nfib * sizeof(Real));
 
-  mgard::dequantize_2D_interleave(nrow, ncol * nfib, v, out_data);
+  mgard::dequantize_interleave(hierarchy, v, out_data);
 
   mgard_gen::recompose_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
                           dims.input[0], dims.input[1], dims.input[2], l_target,
@@ -329,6 +330,7 @@ Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
 template <typename Real>
 unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
   const Dimensions2kPlus1<1> dims({ncol});
+  const TensorMeshHierarchy<1, Real> hierarchy({ncol});
 
   std::vector<Real> row_vec(ncol);
   std::vector<Real> v(u, u + ncol), work(ncol);
@@ -349,7 +351,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(ncol + size_ratio);
 
-    mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
+    mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
 
@@ -375,7 +377,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(ncol + size_ratio);
 
-    mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
+    mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
 
@@ -387,6 +389,7 @@ template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
                               Real tol) {
   const Dimensions2kPlus1<2> dims({nrow, ncol});
+  const TensorMeshHierarchy<2, Real> hierarchy({nrow, ncol});
   if (dims.is_2kplus1()) {
     std::vector<Real> row_vec(ncol);
     std::vector<Real> col_vec(nrow);
@@ -408,7 +411,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(nrow * ncol + size_ratio);
 
-    mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
+    mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
 
@@ -431,6 +434,7 @@ template <typename Real>
 unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
                               std::vector<Real> &coords_y, const Real *u,
                               int &outsize, Real tol) {
+  const TensorMeshHierarchy<2, Real> hierarchy({nrow, ncol});
 
   std::vector<Real> row_vec(ncol);
   std::vector<Real> col_vec(nrow);
@@ -461,7 +465,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
   std::vector<int> qv(nrow * ncol + size_ratio);
 
   tol /= dims.nlevel + 1;
-  mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
+  mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
 
   std::vector<unsigned char> out_data;
 
@@ -570,6 +574,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 template <typename Real>
 Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
   const Dimensions2kPlus1<1> dims({ncol});
+  const TensorMeshHierarchy<1, Real> hierarchy({ncol});
   const int size_ratio = sizeof(Real) / sizeof(int);
 
   if (dims.is_2kplus1()) // input is (2^p + 1)
@@ -590,7 +595,7 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
-    mgard::dequantize_2D_interleave(1, ncol, v, out_data);
+    mgard::dequantize_interleave(hierarchy, v, out_data);
     out_data.clear();
 
     std::vector<Real> row_vec(ncol);
@@ -613,7 +618,7 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
-    mgard::dequantize_2D_interleave(1, ncol, v, out_data);
+    mgard::dequantize_interleave(hierarchy, v, out_data);
 
     std::vector<Real> row_vec(ncol);
     std::vector<Real> work(ncol);
@@ -631,6 +636,7 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
 template <typename Real>
 Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
   const Dimensions2kPlus1<1> dims({ncol});
+  const TensorMeshHierarchy<1, Real> hierarchy({ncol});
   const int size_ratio = sizeof(Real) / sizeof(int);
 
   if (dims.is_2kplus1()) {
@@ -651,7 +657,7 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
-    mgard::dequantize_2D_interleave(1, ncol, v, out_data);
+    mgard::dequantize_interleave(hierarchy, v, out_data);
     out_data.clear();
 
     std::vector<Real> row_vec(ncol);
@@ -675,7 +681,7 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
-    mgard::dequantize_2D_interleave(1, ncol, v, out_data);
+    mgard::dequantize_interleave(hierarchy, v, out_data);
 
     std::vector<Real> row_vec(ncol);
     std::vector<Real> work(ncol);
@@ -693,6 +699,7 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
 template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len) {
   const Dimensions2kPlus1<2> dims({nrow, ncol});
+  const TensorMeshHierarchy<2, Real> hierarchy({nrow, ncol});
   if (dims.is_2kplus1()) {
     const int size_ratio = sizeof(Real) / sizeof(int);
     const int l_target = dims.nlevel - 1;
@@ -705,7 +712,7 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
 
-    mgard::dequantize_2D_interleave(nrow, ncol, v, out_data);
+    mgard::dequantize_interleave(hierarchy, v, out_data);
     out_data.clear();
 
     std::vector<Real> row_vec(ncol);
@@ -730,6 +737,7 @@ template <typename Real>
 Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
                        std::vector<Real> &coords_y, unsigned char *data,
                        int data_len) {
+  const TensorMeshHierarchy<2, Real> hierarchy({nrow, ncol});
   const int size_ratio = sizeof(Real) / sizeof(int);
 
   const Dimensions2kPlus1<2> dims({nrow, ncol});
@@ -743,7 +751,7 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 
   Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
 
-  mgard::dequantize_2D_interleave(nrow, ncol, v, out_data);
+  mgard::dequantize_interleave(hierarchy, v, out_data);
 
   std::vector<Real> row_vec(ncol);
   std::vector<Real> col_vec(nrow);
@@ -1082,8 +1090,9 @@ void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
   if (dims.nlevel == l) {
     throw std::domain_error("cannot interpolate from the coarsest level");
   }
-  const std::size_t stride = stride_from_index_difference(l);
-  const std::size_t Cstride = stride_from_index_difference(l + 1);
+  // TODO: Remove these casts once everything has been moved to `std::size_t`.
+  const int stride = static_cast<int>(stride_from_index_difference(l));
+  const int Cstride = static_cast<int>(stride_from_index_difference(l + 1));
 
   // Do the rows existing in the coarser level.
   for (int irow = 0; irow < nrow; irow += Cstride) {
@@ -1186,23 +1195,23 @@ void subtract_level(const int nrow, const int ncol, const int l, Real *const v,
   }
 }
 
-template <typename Real>
-void quantize_2D_interleave(const int nrow, const int ncol, Real const *const v,
-                            std::vector<int> &work, const Real norm,
-                            const Real tol) {
+template <std::size_t N, typename Real>
+void quantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
+                         Real const *const v, std::vector<int> &work,
+                         const Real norm, const Real tol) {
   static_assert(sizeof(Real) % sizeof(int) == 0,
                 "`int` size does not divide `Real` size");
   const std::size_t size_ratio = sizeof(Real) / sizeof(int);
   const mgard::LinearQuantizer<Real, int> quantizer(norm * tol);
   std::memcpy(work.data(), &quantizer.quantum, sizeof(Real));
-  for (std::size_t index = 0; index < ncol * nrow; ++index) {
+  for (std::size_t index = 0; index < hierarchy.ndof(); ++index) {
     work[size_ratio + index] = quantizer(v[index]);
   }
 }
 
-template <typename Real>
-void dequantize_2D_interleave(const int nrow, const int ncol, Real *const v,
-                              const std::vector<int> &work) {
+template <std::size_t N, typename Real>
+void dequantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
+                           Real *const v, const std::vector<int> &work) {
   static_assert(sizeof(Real) % sizeof(int) == 0,
                 "`int` size does not divide `Real` size");
   const std::size_t size_ratio = sizeof(Real) / sizeof(int);
@@ -1211,7 +1220,7 @@ void dequantize_2D_interleave(const int nrow, const int ncol, Real *const v,
   std::memcpy(&quantum, work.data(), sizeof(Real));
   const mgard::LinearDequantizer<int, Real> quantizer(quantum);
 
-  for (std::size_t index = 0; index < nrow * ncol; ++index) {
+  for (std::size_t index = 0; index < hierarchy.ndof(); ++index) {
     v[index] = quantizer(work[size_ratio + index]);
   }
 }
