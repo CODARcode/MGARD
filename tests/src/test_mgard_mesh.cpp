@@ -58,7 +58,7 @@ TEST_CASE("`Dimensions2kPlus1`", "[mgard_mesh]") {
     REQUIRE(dims.is_2kplus1());
     REQUIRE(dims.nlevel == 2);
     {
-      const std::array<int, 1> expected = {5};
+      const std::array<std::size_t, 1> expected = {5};
       REQUIRE(dims.rnded == expected);
     }
   }
@@ -67,7 +67,7 @@ TEST_CASE("`Dimensions2kPlus1`", "[mgard_mesh]") {
     REQUIRE(!dims.is_2kplus1());
     REQUIRE(dims.nlevel == 3);
     {
-      const std::array<int, 2> expected = {9, 17};
+      const std::array<std::size_t, 2> expected = {9, 17};
       REQUIRE(dims.rnded == expected);
     }
   }

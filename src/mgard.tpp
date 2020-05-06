@@ -1043,9 +1043,7 @@ void interpolate_from_level_nMl(const int l, std::vector<Real> &v) {
 }
 
 template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v) {
-  // Explicit cast to silence a warning. Eventually the constructor should work
-  // on `std::size_t`s.
-  const Dimensions2kPlus1<1> dims({static_cast<int>(v.size())});
+  const Dimensions2kPlus1<1> dims({v.size()});
   if (dims.nlevel == l) {
     throw std::domain_error("cannot interpolate from the coarsest level");
   }
