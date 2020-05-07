@@ -33,9 +33,35 @@ mass_matrix_multiply<3, double>(const TensorMeshHierarchy<3, double> &hierarchy,
                                 const int l, const std::size_t dimension,
                                 double *const v);
 
-template void solve_tridiag_M<float>(const int l, std::vector<float> &v);
+template void
+solve_tridiag_M<1, float>(const TensorMeshHierarchy<1, float> &hierarchy,
+                          const int l, const std::size_t dimension,
+                          float *const v);
 
-template void solve_tridiag_M<double>(const int l, std::vector<double> &v);
+template void
+solve_tridiag_M<2, float>(const TensorMeshHierarchy<2, float> &hierarchy,
+                          const int l, const std::size_t dimension,
+                          float *const v);
+
+template void
+solve_tridiag_M<3, float>(const TensorMeshHierarchy<3, float> &hierarchy,
+                          const int l, const std::size_t dimension,
+                          float *const v);
+
+template void
+solve_tridiag_M<1, double>(const TensorMeshHierarchy<1, double> &hierarchy,
+                           const int l, const std::size_t dimension,
+                           double *const v);
+
+template void
+solve_tridiag_M<2, double>(const TensorMeshHierarchy<2, double> &hierarchy,
+                           const int l, const std::size_t dimension,
+                           double *const v);
+
+template void
+solve_tridiag_M<3, double>(const TensorMeshHierarchy<3, double> &hierarchy,
+                           const int l, const std::size_t dimension,
+                           double *const v);
 
 template void restriction<float>(const int l, std::vector<float> &v);
 

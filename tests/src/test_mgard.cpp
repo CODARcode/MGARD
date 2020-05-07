@@ -68,6 +68,7 @@ TEMPLATE_TEST_CASE("inversion of uniform mass matrix", "[mgard]", float,
   for (const std::size_t L : Ls) {
     // Would be good to use a function for these sizes once that's been set up.
     const std::size_t N = (1 << L) + 1;
+    const mgard::TensorMeshHierarchy<1, TestType> hierarchy({N});
     std::vector<TestType> v(N);
     for (TestType &value : v) {
       value = distribution(generator);
@@ -75,8 +76,8 @@ TEMPLATE_TEST_CASE("inversion of uniform mass matrix", "[mgard]", float,
 
     for (std::size_t l = 0; l <= L; l += 1) {
       std::vector<TestType> copy = v;
-      mgard::mass_matrix_multiply(l, copy);
-      mgard::solve_tridiag_M(l, copy);
+      mgard::mass_matrix_multiply(hierarchy, l, 0, copy.data());
+      mgard::solve_tridiag_M(hierarchy, l, 0, copy.data());
       TrialTracker tracker;
       for (std::size_t i = 0; i < N; ++i) {
         tracker += v.at(i) == Approx(copy.at(i));

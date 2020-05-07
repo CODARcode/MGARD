@@ -944,8 +944,10 @@ void mass_matrix_multiply(const TensorMeshHierarchy<N, Real> &hierarchy,
   *p = factor * (left + 2 * middle);
 }
 
-template <typename Real>
-void solve_tridiag_M(const int l, std::vector<Real> &v) {
+template <std::size_t N, typename Real>
+void solve_tridiag_M(const TensorMeshHierarchy<N, Real> &hierarchy,
+                     const int index_difference, const std::size_t dimension,
+                     Real *const v) {
   // The system is solved using the Thomas algorithm. See <https://
   // en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm>. In case the article
   // changes, the algorithm is copied here.
@@ -964,27 +966,31 @@ void solve_tridiag_M(const int l, std::vector<Real> &v) {
   //    end
   // The mass matrix  entries are scaled by `h / 6`. We postpone accounting for
   // the scaling to the backward sweep.
-  const std::size_t stride = stride_from_index_difference(l);
+  const std::size_t l = hierarchy.l(index_difference);
+  const std::size_t stride = hierarchy.stride(l, dimension);
+  const std::size_t n = hierarchy.meshes.at(l).shape.at(dimension);
   // See the note in `mass_matrix_multiply`.
   const Real factor = stride;
 
-  // The system size is `(v.size() - 1) / stride + 1`, but we don't need to
-  // store the final divisor. In the notation above, this vector will be
-  // `[b_1, …, b_{n - 1}]` (after the modification in the forward sweep).
-  std::vector<Real> divisors((v.size() - 1) / stride);
-  typename std::vector<Real>::iterator p = divisors.begin();
+  // The system size is `n`, but we don't need to store the final divisor. In
+  // the notation above, this vector will be [b_1, …, b_{n - 1}]` (after the
+  // modification in the forward sweep).
+  Real *p = v;
+  std::vector<Real> divisors(n - 1);
+  typename std::vector<Real>::iterator d = divisors.begin();
   // This is `b_{i - 1}`.
-  Real previous_divisor = *p = 2;
+  Real previous_divisor = *d = 2;
   // This is `d_{i - 1}`.
-  Real previous_entry = v.front();
+  Real previous_entry = *p;
+  p += stride;
   // Forward sweep (except for last entry).
-  for (auto it = std::begin(v) + stride; it < std::end(v) - stride;
-       it += stride) {
+  for (std::size_t i = 1; i + 1 < n; ++i) {
     // The numerator is really `a`.
     const Real w = 1 / previous_divisor;
     // The last term is really `w * c`.
-    previous_divisor = *++p = 4 - w;
-    previous_entry = *it -= w * previous_entry;
+    previous_divisor = *++d = 4 - w;
+    previous_entry = *p -= w * previous_entry;
+    p += stride;
   }
 
   // Forward sweep (last entry) and start of backward sweep (first entry).
@@ -993,25 +999,25 @@ void solve_tridiag_M(const int l, std::vector<Real> &v) {
     const Real w = 1 / previous_divisor;
     // Don't need to update `previous_divisor` and `previous_entry` as we won't
     // be using them.
-    Real &entry = v.back();
+    Real &entry = *p;
     entry -= w * previous_entry;
     // Don't need need to write to `*d` or increment `d` as we're using the
     // divisor immediately.
     // The last term is really `w * c`.
     previous_entry = entry /= 2 - w;
+    p -= stride;
   }
 
   // Backward sweep (remaining entries).
-  typename std::vector<Real>::reverse_iterator q = v.rbegin();
-  for (auto it = v.rbegin() + stride; it < v.rend(); it += stride) {
-    Real &entry = *it;
+  for (std::size_t i = 1; i < n; ++i) {
+    Real &entry = *p;
     // The subtrahend is really `c * previous_entry`.
     entry -= previous_entry;
-    previous_entry = entry /= *p--;
-    *q /= factor;
-    q += stride;
+    previous_entry = entry /= *d--;
+    *(p + stride) /= factor;
+    p -= stride;
   }
-  *q /= factor;
+  *(p + stride) /= factor;
 }
 
 template <typename Real> void restriction(const int l, std::vector<Real> &v) {
