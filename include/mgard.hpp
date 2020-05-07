@@ -68,11 +68,15 @@ void restriction(const TensorMeshHierarchy<N, Real> &hierarchy,
 //! The mesh is assumed to be uniform. The input entries corresponding to nodes
 //! on the immediately finer level will be overwritten.
 //!
-//!\param[in] l Difference between the index of the finest mesh level and the
-//! index of the coarser mesh level, as in `mass_matrix_multiply`.
+//!\param[in] hierarchy Mesh hierarchy on which the function is defined.
+//!\param[in] index_difference Difference between the index of the finest mesh
+//! level and the index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[in] dimension Dimension in which the operator is to act.
 //!\param[in, out] v Nodal values to be interpolated.
-template <typename Real>
-void interpolate_from_level_nMl(const int l, std::vector<Real> &v);
+template <std::size_t N, typename Real>
+void interpolate_old_to_new_and_overwrite(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const int index_difference,
+    const std::size_t dimension, Real *const v);
 
 //! Interpolate a function defined on 'old' nodes and subtract from values on
 //! 'new' nodes.
@@ -80,11 +84,15 @@ void interpolate_from_level_nMl(const int l, std::vector<Real> &v);
 //! The mesh is assumed to be uniform. The input entries corresponding to nodes
 //! on the finer level will be overwritten.
 //!
-//!\param[in] l Difference between the index of the finest mesh level and the
-//! index of the finer mesh level, as in `mass_matrix_multiply`.
+//!\param[in] hierarchy Mesh hierarchy on which the function is defined.
+//!\param[in] index_difference Difference between the index of the finest mesh
+//! level and the index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[in] dimension Dimension in which the operator is to act.
 //!\param[in, out] v Nodal values to be interpolated.
-template <typename Real>
-void interpolate_old_to_new_and_subtract(const int l, std::vector<Real> &v);
+template <std::size_t N, typename Real>
+void interpolate_old_to_new_and_subtract(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const int index_difference,
+    const std::size_t dimension, Real *const v);
 
 //! Interpolate a function defined on 'old' nodes and subtract from values on
 //! 'new' nodes.

@@ -90,18 +90,53 @@ restriction<3, double>(const TensorMeshHierarchy<3, double> &hierarchy,
                        const int l, const std::size_t dimension,
                        double *const v);
 
-template void interpolate_from_level_nMl<float>(const int l,
-                                                std::vector<float> &v);
+template void interpolate_old_to_new_and_overwrite<1, float>(
+    const TensorMeshHierarchy<1, float> &hierarchy, const int l,
+    const std::size_t dimension, float *const v);
 
-template void interpolate_from_level_nMl<double>(const int l,
-                                                 std::vector<double> &v);
+template void interpolate_old_to_new_and_overwrite<2, float>(
+    const TensorMeshHierarchy<2, float> &hierarchy, const int l,
+    const std::size_t dimension, float *const v);
 
-template void
-interpolate_old_to_new_and_subtract<float>(const int l, std::vector<float> &v0);
+template void interpolate_old_to_new_and_overwrite<3, float>(
+    const TensorMeshHierarchy<3, float> &hierarchy, const int l,
+    const std::size_t dimension, float *const v);
 
-template void
-interpolate_old_to_new_and_subtract<double>(const int l,
-                                            std::vector<double> &v0);
+template void interpolate_old_to_new_and_overwrite<1, double>(
+    const TensorMeshHierarchy<1, double> &hierarchy, const int l,
+    const std::size_t dimension, double *const v);
+
+template void interpolate_old_to_new_and_overwrite<2, double>(
+    const TensorMeshHierarchy<2, double> &hierarchy, const int l,
+    const std::size_t dimension, double *const v);
+
+template void interpolate_old_to_new_and_overwrite<3, double>(
+    const TensorMeshHierarchy<3, double> &hierarchy, const int l,
+    const std::size_t dimension, double *const v);
+
+template void interpolate_old_to_new_and_subtract<1, float>(
+    const TensorMeshHierarchy<1, float> &hierarchy, const int l,
+    const std::size_t dimension, float *const v);
+
+template void interpolate_old_to_new_and_subtract<2, float>(
+    const TensorMeshHierarchy<2, float> &hierarchy, const int l,
+    const std::size_t dimension, float *const v);
+
+template void interpolate_old_to_new_and_subtract<3, float>(
+    const TensorMeshHierarchy<3, float> &hierarchy, const int l,
+    const std::size_t dimension, float *const v);
+
+template void interpolate_old_to_new_and_subtract<1, double>(
+    const TensorMeshHierarchy<1, double> &hierarchy, const int l,
+    const std::size_t dimension, double *const v);
+
+template void interpolate_old_to_new_and_subtract<2, double>(
+    const TensorMeshHierarchy<2, double> &hierarchy, const int l,
+    const std::size_t dimension, double *const v);
+
+template void interpolate_old_to_new_and_subtract<3, double>(
+    const TensorMeshHierarchy<3, double> &hierarchy, const int l,
+    const std::size_t dimension, double *const v);
 
 template void interpolate_old_to_new_and_subtract<float>(
     const TensorMeshHierarchy<2, float> &hierarchy, const int l, float *v,
