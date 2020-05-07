@@ -53,10 +53,15 @@ void solve_tridiag_M(const TensorMeshHierarchy<N, Real> &hierarchy,
 //! The mesh is assumed to be uniform. The input entries corresponding to nodes
 //! on the immediately coarser level will be overwritten.
 //!
-//!\param[in] l Difference between the index of the finest mesh level and the
-//! index of the coarse mesh level, as in `mass_matrix_multiply`.
+//!\param[in] hierarchy Mesh hierarchy on which the function is defined.
+//!\param[in] index_difference Difference between the index of the finest mesh
+//! level and the index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[in] dimension Dimension in which the operator is to act.
 //!\param[in, out] Mass matrix–nodal value vector product on the fine mesh.
-template <typename Real> void restriction(const int l, std::vector<Real> &v);
+template <std::size_t N, typename Real>
+void restriction(const TensorMeshHierarchy<N, Real> &hierarchy,
+                 const int index_difference, const std::size_t dimension,
+                 Real *const v);
 
 //! Interpolate a function from one level to the level immediately finer.
 //!

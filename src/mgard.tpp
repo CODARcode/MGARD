@@ -1020,24 +1020,34 @@ void solve_tridiag_M(const TensorMeshHierarchy<N, Real> &hierarchy,
   *(p + stride) /= factor;
 }
 
-template <typename Real> void restriction(const int l, std::vector<Real> &v) {
-  if (!l) {
+template <std::size_t N, typename Real>
+void restriction(const TensorMeshHierarchy<N, Real> &hierarchy,
+                 const int index_difference, const std::size_t dimension,
+                 Real *const v) {
+  if (!index_difference) {
     throw std::domain_error("cannot restrict from the finest level");
   }
-  const std::size_t stride = stride_from_index_difference(l);
-  const std::size_t Pstride = stride_from_index_difference(l - 1);
+  const std::size_t l = hierarchy.l(index_difference);
+  // The capitalization here comes from the convention that lowercase names
+  // correspond to coarser meshes and uppercase names correspond to finer
+  // meshes. Confusingly, `STRIDE` is actually smaller than `stride`.
+  const std::size_t stride = hierarchy.stride(l, dimension);
+  const std::size_t STRIDE = hierarchy.stride(l + 1, dimension);
+  const std::size_t n = hierarchy.meshes.at(l).shape.at(dimension);
 
   Real left, right;
-  right = *(std::begin(v) + Pstride);
-  v.front() += 0.5 * right; // first element
-  for (auto it = std::begin(v) + stride; it <= std::end(v) - stride;
-       it += stride) {
+  Real *p = v;
+  right = *(p + STRIDE);
+  *p += 0.5 * right;
+  p += stride;
+  for (std::size_t i = 1; i + 1 < n; ++i) {
     left = right;
-    right = *(it + Pstride);
-    *it += 0.5 * (left + right);
+    right = *(p + STRIDE);
+    *p += 0.5 * (left + right);
+    p += stride;
   }
   left = right;
-  v.back() += 0.5 * left; // last element
+  *p += 0.5 * left;
 }
 
 template <typename Real>
@@ -1340,11 +1350,11 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
         row_vec[jcol] = work[get_index(ncol, irow, jcol)];
       }
 
-      mass_matrix_multiply(l, row_vec);
+      mass_matrix_multiply(hierarchy, l, 1, row_vec.data());
 
-      restriction(l + 1, row_vec);
+      restriction(hierarchy, l + 1, 1, row_vec.data());
 
-      solve_tridiag_M(l + 1, row_vec);
+      solve_tridiag_M(hierarchy, l + 1, 1, row_vec.data());
 
       for (int jcol = 0; jcol < ncol; ++jcol) {
         work[get_index(ncol, irow, jcol)] = row_vec[jcol];
@@ -1359,10 +1369,10 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
           col_vec[irow] = work[get_index(ncol, irow, jcol)];
         }
 
-        mass_matrix_multiply(l, col_vec);
+        mass_matrix_multiply(hierarchy, l, 0, col_vec.data());
 
-        restriction(l + 1, col_vec);
-        solve_tridiag_M(l + 1, col_vec);
+        restriction(hierarchy, l + 1, 0, col_vec.data());
+        solve_tridiag_M(hierarchy, l + 1, 0, col_vec.data());
 
         for (int irow = 0; irow < nrow; ++irow) {
           work[get_index(ncol, irow, jcol)] = col_vec[irow];
@@ -1400,10 +1410,10 @@ void recompose_1D(const int ncol, const int l_target, Real *v,
       row_vec[jcol] = work[jcol];
     }
 
-    mass_matrix_multiply(l - 1, row_vec);
+    mass_matrix_multiply(hierarchy, l - 1, 0, row_vec.data());
 
-    restriction(l, row_vec);
-    solve_tridiag_M(l, row_vec);
+    restriction(hierarchy, l, 0, row_vec.data());
+    solve_tridiag_M(hierarchy, l, 0, row_vec.data());
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       work[jcol] = row_vec[jcol];
@@ -1452,10 +1462,10 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
         row_vec[jcol] = work[get_index(ncol, irow, jcol)];
       }
 
-      mass_matrix_multiply(l - 1, row_vec);
+      mass_matrix_multiply(hierarchy, l - 1, 1, row_vec.data());
 
-      restriction(l, row_vec);
-      solve_tridiag_M(l, row_vec);
+      restriction(hierarchy, l, 1, row_vec.data());
+      solve_tridiag_M(hierarchy, l, 1, row_vec.data());
 
       for (int jcol = 0; jcol < ncol; ++jcol) {
         work[get_index(ncol, irow, jcol)] = row_vec[jcol];
@@ -1470,10 +1480,10 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
           col_vec[irow] = work[get_index(ncol, irow, jcol)];
         }
 
-        mass_matrix_multiply(l - 1, col_vec);
+        mass_matrix_multiply(hierarchy, l - 1, 0, col_vec.data());
 
-        restriction(l, col_vec);
-        solve_tridiag_M(l, col_vec);
+        restriction(hierarchy, l, 0, col_vec.data());
+        solve_tridiag_M(hierarchy, l, 0, col_vec.data());
 
         for (int irow = 0; irow < nrow; ++irow) {
           work[get_index(ncol, irow, jcol)] = col_vec[irow];
