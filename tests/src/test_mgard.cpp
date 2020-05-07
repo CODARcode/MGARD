@@ -13,12 +13,13 @@
 #include "mgard_mesh.hpp"
 
 TEMPLATE_TEST_CASE("uniform mass matrix", "[mgard]", float, double) {
+  const mgard::TensorMeshHierarchy<1, TestType> hierarchy({17});
   const std::vector<TestType> v = {3, -5, -2, -5, -4, 0, -4, -2, 1,
                                    2, -5, 3,  -3, 4,  1, -2, -5};
 
   {
     std::vector<TestType> copy = v;
-    mgard::mass_matrix_multiply(0, copy);
+    mgard::mass_matrix_multiply(hierarchy, 0, 0, copy.data());
     const std::vector<TestType> expected = {
         1, -19, -18, -26, -21, -8, -18, -11, 4, 4, -15, 4, -5, 14, 6, -12, -12};
     REQUIRE(copy == expected);
@@ -26,7 +27,7 @@ TEMPLATE_TEST_CASE("uniform mass matrix", "[mgard]", float, double) {
 
   {
     std::vector<TestType> copy = v;
-    mgard::mass_matrix_multiply(1, copy);
+    mgard::mass_matrix_multiply(hierarchy, 1, 0, copy.data());
     const std::vector<TestType> expected = {
         8, -5, -18, -5, -44, 0, -38, -2, -10, 2, -44, 3, -32, 4, -8, -2, -18};
     REQUIRE(copy == expected);
@@ -34,7 +35,7 @@ TEMPLATE_TEST_CASE("uniform mass matrix", "[mgard]", float, double) {
 
   {
     std::vector<TestType> copy = v;
-    mgard::mass_matrix_multiply(2, copy);
+    mgard::mass_matrix_multiply(hierarchy, 2, 0, copy.data());
     const std::vector<TestType> expected = {8, -5, -2, -5,  -48, 0, -4, -2, -12,
                                             2, -5, 3,  -64, 4,   1, -2, -52};
     REQUIRE(copy == expected);
@@ -42,7 +43,7 @@ TEMPLATE_TEST_CASE("uniform mass matrix", "[mgard]", float, double) {
 
   {
     std::vector<TestType> copy = v;
-    mgard::mass_matrix_multiply(3, copy);
+    mgard::mass_matrix_multiply(hierarchy, 3, 0, copy.data());
     const std::vector<TestType> expected = {56, -5, -2, -5, -4, 0, -4, -2, 16,
                                             2,  -5, 3,  -3, 4,  1, -2, -72};
     REQUIRE(copy == expected);
@@ -50,7 +51,7 @@ TEMPLATE_TEST_CASE("uniform mass matrix", "[mgard]", float, double) {
 
   {
     std::vector<TestType> copy = v;
-    mgard::mass_matrix_multiply(4, copy);
+    mgard::mass_matrix_multiply(hierarchy, 4, 0, copy.data());
     const std::vector<TestType> expected = {16, -5, -2, -5, -4, 0, -4, -2,  1,
                                             2,  -5, 3,  -3, 4,  1, -2, -112};
     REQUIRE(copy == expected);

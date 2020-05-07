@@ -913,26 +913,35 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 //     }
 // }
 
-template <typename Real>
-void mass_matrix_multiply(const int l, std::vector<Real> &v) {
-  const std::size_t stride = stride_from_index_difference(l);
+template <std::size_t N, typename Real>
+void mass_matrix_multiply(const TensorMeshHierarchy<N, Real> &hierarchy,
+                          const int index_difference,
+                          const std::size_t dimension, Real *const v) {
+  // TODO: This will be unnecessary once we change `index_difference`/`l` to be
+  // an index instead of a difference of indices.
+  const std::size_t l = hierarchy.l(index_difference);
+  const std::size_t stride = hierarchy.stride(l, dimension);
+  const std::size_t n = hierarchy.meshes.at(l).shape.at(dimension);
   // The entries of the mass matrix are scaled by `h / 6`. We assume that the
   // cells of the finest level have width `6`, so that the cells on this level
   // have width `6 * stride`. `factor` is then `h / 6`.
   const Real factor = stride;
   Real left, middle, right;
-  middle = v.front();
-  right = v.at(stride);
-  v.front() = factor * (2 * middle + right);
-  for (auto it = v.begin() + stride; it < v.end() - stride; it += stride) {
+  Real *p = v;
+  middle = *p;
+  right = *(p + stride);
+  *p = factor * (2 * middle + right);
+  p += stride;
+  for (std::size_t i = 1; i + 1 < n; ++i) {
     left = middle;
     middle = right;
-    right = *(it + stride);
-    *it = factor * (left + 4 * middle + right);
+    right = *(p + stride);
+    *p = factor * (left + 4 * middle + right);
+    p += stride;
   }
   left = middle;
   middle = right;
-  v.back() = factor * (left + 2 * middle);
+  *p = factor * (left + 2 * middle);
 }
 
 template <typename Real>

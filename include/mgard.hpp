@@ -21,12 +21,16 @@ namespace mgard {
 //! The mesh is assumed to be uniform, with the *finest* level having cells of
 //! width `6`. The input vector is overwritten with the product.
 //!
-//!\param[in] l Difference between the index of the finest mesh level and the
-//! index of this mesh level. That is, `0` corresponds to the finest level, `1`
-//! to the second finest, and so on.
+//!\param[in] hierarchy Mesh hierarchy on which the function is defined.
+//!\param[in] index_difference Difference between the index of the finest mesh
+//! level and the index of this mesh level. That is, `0` corresponds to the
+//! finest level, `1` to the second finest, and so on.
+//!\param[in] dimension Dimension in which the operator is to act.
 //!\param[in, out] Nodal value vector.
-template <typename Real>
-void mass_matrix_multiply(const int l, std::vector<Real> &v);
+template <std::size_t N, typename Real>
+void mass_matrix_multiply(const TensorMeshHierarchy<N, Real> &hierarchy,
+                          const int index_difference,
+                          const std::size_t dimension, Real *const v);
 
 //! Apply the inverse the piecewise mass linear mass matrix.
 //!
