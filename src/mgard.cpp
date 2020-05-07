@@ -33,32 +33,104 @@ template void pi_Ql<double>(const int nrow, const int ncol, const int l,
                             double *v, std::vector<double> &row_vec,
                             std::vector<double> &col_vec);
 
-template void assign_num_level<float>(const int nrow, const int ncol,
-                                      const int l, float *const v,
-                                      const float num);
+template void
+assign_num_level<1, float>(const TensorMeshHierarchy<1, float> &hierarchy,
+                           const int l, float *const v, const float num);
 
-template void assign_num_level<double>(const int nrow, const int ncol,
-                                       const int l, double *const v,
-                                       const double num);
+template void
+assign_num_level<2, float>(const TensorMeshHierarchy<2, float> &hierarchy,
+                           const int l, float *const v, const float num);
 
-template void copy_level<float>(const int nrow, const int ncol, const int l,
-                                float const *const v, float *const work);
+template void
+assign_num_level<3, float>(const TensorMeshHierarchy<3, float> &hierarchy,
+                           const int l, float *const v, const float num);
 
-template void copy_level<double>(const int nrow, const int ncol, const int l,
-                                 double const *const v, double *const work);
+template void
+assign_num_level<1, double>(const TensorMeshHierarchy<1, double> &hierarchy,
+                            const int l, double *const v, const double num);
 
-template void add_level<float>(const int nrow, const int ncol, const int l,
-                               float *const v, float const *const work);
+template void
+assign_num_level<2, double>(const TensorMeshHierarchy<2, double> &hierarchy,
+                            const int l, double *const v, const double num);
 
-template void add_level<double>(const int nrow, const int ncol, const int l,
-                                double *const v, double const *const work);
+template void
+assign_num_level<3, double>(const TensorMeshHierarchy<3, double> &hierarchy,
+                            const int l, double *const v, const double num);
 
-template void subtract_level<float>(const int nrow, const int ncol, const int l,
-                                    float *const v, float const *const work);
+template void
+copy_level<1, float>(const TensorMeshHierarchy<1, float> &hierarchy,
+                     const int l, float const *const v, float *const work);
 
-template void subtract_level<double>(const int nrow, const int ncol,
-                                     const int l, double *const v,
-                                     double const *const work);
+template void
+copy_level<2, float>(const TensorMeshHierarchy<2, float> &hierarchy,
+                     const int l, float const *const v, float *const work);
+
+template void
+copy_level<3, float>(const TensorMeshHierarchy<3, float> &hierarchy,
+                     const int l, float const *const v, float *const work);
+
+template void
+copy_level<1, double>(const TensorMeshHierarchy<1, double> &hierarchy,
+                      const int l, double const *const v, double *const work);
+
+template void
+copy_level<2, double>(const TensorMeshHierarchy<2, double> &hierarchy,
+                      const int l, double const *const v, double *const work);
+
+template void
+copy_level<3, double>(const TensorMeshHierarchy<3, double> &hierarchy,
+                      const int l, double const *const v, double *const work);
+
+template void
+add_level<1, float>(const TensorMeshHierarchy<1, float> &hierarchy, const int l,
+                    float *const v, float const *const work);
+
+template void
+add_level<2, float>(const TensorMeshHierarchy<2, float> &hierarchy, const int l,
+                    float *const v, float const *const work);
+
+template void
+add_level<3, float>(const TensorMeshHierarchy<3, float> &hierarchy, const int l,
+                    float *const v, float const *const work);
+
+template void
+add_level<1, double>(const TensorMeshHierarchy<1, double> &hierarchy,
+                     const int l, double *const v, double const *const work);
+
+template void
+add_level<2, double>(const TensorMeshHierarchy<2, double> &hierarchy,
+                     const int l, double *const v, double const *const work);
+
+template void
+add_level<3, double>(const TensorMeshHierarchy<3, double> &hierarchy,
+                     const int l, double *const v, double const *const work);
+
+template void
+subtract_level<1, float>(const TensorMeshHierarchy<1, float> &hierarchy,
+                         const int l, float *const v, float const *const work);
+
+template void
+subtract_level<2, float>(const TensorMeshHierarchy<2, float> &hierarchy,
+                         const int l, float *const v, float const *const work);
+
+template void
+subtract_level<3, float>(const TensorMeshHierarchy<3, float> &hierarchy,
+                         const int l, float *const v, float const *const work);
+
+template void
+subtract_level<1, double>(const TensorMeshHierarchy<1, double> &hierarchy,
+                          const int l, double *const v,
+                          double const *const work);
+
+template void
+subtract_level<2, double>(const TensorMeshHierarchy<2, double> &hierarchy,
+                          const int l, double *const v,
+                          double const *const work);
+
+template void
+subtract_level<3, double>(const TensorMeshHierarchy<3, double> &hierarchy,
+                          const int l, double *const v,
+                          double const *const work);
 
 // We will probably be removing these instantiations soon.
 
