@@ -1132,11 +1132,11 @@ void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
   }
 }
 
-template <typename Real>
-void assign_num_level(const int nrow, const int ncol, const int l,
-                      Real *const v, const Real num) {
-  const Dimensions2kPlus1<2> dims({nrow, ncol});
-  using It = LevelValuesIterator<2, Real>;
+template <std::size_t N, typename Real>
+void assign_num_level(const TensorMeshHierarchy<N, Real> &hierarchy,
+                      const int l, Real *const v, const Real num) {
+  const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
+  using It = LevelValuesIterator<N, Real>;
   const RangeSlice<It> values = dims.on_nodes(v, l);
   It p = values.begin();
   const It values_end = values.end();
@@ -1145,12 +1145,12 @@ void assign_num_level(const int nrow, const int ncol, const int l,
   }
 }
 
-template <typename Real>
-void copy_level(const int nrow, const int ncol, const int l,
+template <std::size_t N, typename Real>
+void copy_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                 Real const *const v, Real *const work) {
-  const Dimensions2kPlus1<2> dims({nrow, ncol});
-  using It = LevelValuesIterator<2, const Real>;
-  using Jt = LevelValuesIterator<2, Real>;
+  const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
+  using It = LevelValuesIterator<N, const Real>;
+  using Jt = LevelValuesIterator<N, Real>;
   const RangeSlice<It> source = dims.on_nodes(v, l);
   const RangeSlice<Jt> destination = dims.on_nodes(work, l);
   It p = source.begin();
@@ -1161,12 +1161,12 @@ void copy_level(const int nrow, const int ncol, const int l,
   }
 }
 
-template <typename Real>
-void add_level(const int nrow, const int ncol, const int l, Real *const v,
-               Real const *const work) {
-  const Dimensions2kPlus1<2> dims({nrow, ncol});
-  using It = LevelValuesIterator<2, Real>;
-  using Jt = LevelValuesIterator<2, const Real>;
+template <std::size_t N, typename Real>
+void add_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
+               Real *const v, Real const *const work) {
+  const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
+  using It = LevelValuesIterator<N, Real>;
+  using Jt = LevelValuesIterator<N, const Real>;
   const RangeSlice<It> target = dims.on_nodes(v, l);
   const RangeSlice<Jt> increment = dims.on_nodes(work, l);
   It p = target.begin();
@@ -1177,12 +1177,12 @@ void add_level(const int nrow, const int ncol, const int l, Real *const v,
   }
 }
 
-template <typename Real>
-void subtract_level(const int nrow, const int ncol, const int l, Real *const v,
-                    Real const *const work) {
-  const Dimensions2kPlus1<2> dims({nrow, ncol});
-  using It = LevelValuesIterator<2, Real>;
-  using Jt = LevelValuesIterator<2, const Real>;
+template <std::size_t N, typename Real>
+void subtract_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
+                    Real *const v, Real const *const work) {
+  const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
+  using It = LevelValuesIterator<N, Real>;
+  using Jt = LevelValuesIterator<N, const Real>;
   const RangeSlice<It> target = dims.on_nodes(v, l);
   const RangeSlice<Jt> decrement = dims.on_nodes(work, l);
   It p = target.begin();
@@ -1262,6 +1262,7 @@ void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
 template <typename Real>
 void refactor_1D(const int ncol, const int l_target, Real *v,
                  std::vector<Real> &work, std::vector<Real> &row_vec) {
+  const TensorMeshHierarchy<1, Real> hierarchy({ncol});
   for (int l = 0; l < l_target; ++l) {
 
     int stride = std::pow(2, l); // current stride
@@ -1270,9 +1271,9 @@ void refactor_1D(const int ncol, const int l_target, Real *v,
     pi_Ql(ncol, l, v, row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
 #endif
     // copy the nodal values of v on l  to matrix work
-    copy_level(1, ncol, l, v, work.data());
+    copy_level(hierarchy, l, v, work.data());
 
-    assign_num_level(1, ncol, l + 1, work.data(), static_cast<Real>(0.0));
+    assign_num_level(hierarchy, l + 1, work.data(), static_cast<Real>(0.0));
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       row_vec[jcol] = work[jcol];
@@ -1288,7 +1289,7 @@ void refactor_1D(const int ncol, const int l_target, Real *v,
       work[jcol] = row_vec[jcol];
     }
 
-    add_level(1, ncol, l + 1, v, work.data()); // Qu_l = \Pi_l Q_{l+1}u + z_l
+    add_level(hierarchy, l + 1, v, work.data()); // Qu_l = \Pi_l Q_{l+1}u + z_l
   }
 }
 
@@ -1296,6 +1297,7 @@ template <typename Real>
 void refactor(const int nrow, const int ncol, const int l_target, Real *v,
               std::vector<Real> &work, std::vector<Real> &row_vec,
               std::vector<Real> &col_vec) {
+  const TensorMeshHierarchy<2, Real> hierarchy({nrow, ncol});
   // refactor
   //  //std::cout  << "refactoring" << "\n";
 
@@ -1307,9 +1309,9 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
     pi_Ql(nrow, ncol, l, v, row_vec,
           col_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
     // copy the nodal values of v on l  to matrix work
-    copy_level(nrow, ncol, l, v, work.data());
+    copy_level(hierarchy, l, v, work.data());
 
-    assign_num_level(nrow, ncol, l + 1, work.data(), static_cast<Real>(0.0));
+    assign_num_level(hierarchy, l + 1, work.data(), static_cast<Real>(0.0));
 
     // row-sweep
     for (int irow = 0; irow < nrow; ++irow) {
@@ -1349,8 +1351,8 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
 
     // Solved for (z_l, phi_l) = (c_{l+1}, vl)
 
-    add_level(nrow, ncol, l + 1, v,
-              work.data()); // Qu_l = \Pi_l Q_{l+1}u + z_l
+    // Qu_l = \Pi_l Q_{l+1}u + z_l
+    add_level(hierarchy, l + 1, v, work.data());
   }
 }
 
@@ -1358,6 +1360,7 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
 template <typename Real>
 void recompose_1D(const int ncol, const int l_target, Real *v,
                   std::vector<Real> &work, std::vector<Real> &row_vec) {
+  const TensorMeshHierarchy<1, Real> hierarchy({ncol});
 
   // recompose
 
@@ -1367,9 +1370,9 @@ void recompose_1D(const int ncol, const int l_target, Real *v,
     int Pstride = stride / 2;
 
     // copy the nodal values of cl on l-1 (finer level) to matrix work
-    copy_level(1, ncol, l - 1, v, work.data());
+    copy_level(hierarchy, l - 1, v, work.data());
     // zero out nodes of l on cl
-    assign_num_level(1, ncol, l, work.data(), static_cast<Real>(0.0));
+    assign_num_level(hierarchy, l, work.data(), static_cast<Real>(0.0));
 
     // row-sweep
     for (int jcol = 0; jcol < ncol; ++jcol) {
@@ -1385,7 +1388,7 @@ void recompose_1D(const int ncol, const int l_target, Real *v,
       work[jcol] = row_vec[jcol];
     }
 
-    subtract_level(1, ncol, l, work.data(), v); // do -(Qu - zl)
+    subtract_level(hierarchy, l, work.data(), v); // do -(Qu - zl)
 
     // row-sweep
     for (int jcol = 0; jcol < ncol; ++jcol) {
@@ -1399,8 +1402,8 @@ void recompose_1D(const int ncol, const int l_target, Real *v,
     }
 
     // zero out nodes of l on cl
-    assign_num_level(1, ncol, l, v, static_cast<Real>(0.0));
-    subtract_level(1, ncol, l - 1, v, work.data());
+    assign_num_level(hierarchy, l, v, static_cast<Real>(0.0));
+    subtract_level(hierarchy, l - 1, v, work.data());
   }
 }
 
@@ -1408,6 +1411,7 @@ template <typename Real>
 void recompose(const int nrow, const int ncol, const int l_target, Real *v,
                std::vector<Real> &work, std::vector<Real> &row_vec,
                std::vector<Real> &col_vec) {
+  const TensorMeshHierarchy<2, Real> hierarchy({nrow, ncol});
 
   // recompose
 
@@ -1417,9 +1421,9 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
     int Pstride = stride / 2;
 
     // copy the nodal values of cl on l-1 (finer level) to matrix work
-    copy_level(nrow, ncol, l - 1, v, work.data());
+    copy_level(hierarchy, l - 1, v, work.data());
     // zero out nodes of l on cl
-    assign_num_level(nrow, ncol, l, work.data(), static_cast<Real>(0.0));
+    assign_num_level(hierarchy, l, work.data(), static_cast<Real>(0.0));
 
     // row-sweep
     for (int irow = 0; irow < nrow; ++irow) {
@@ -1455,7 +1459,7 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
         }
       }
     }
-    subtract_level(nrow, ncol, l, work.data(), v); // do -(Qu - zl)
+    subtract_level(hierarchy, l, work.data(), v); // do -(Qu - zl)
 
     // row-sweep
     for (int irow = 0; irow < nrow; irow += stride) {
@@ -1486,8 +1490,8 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
       }
     }
     // zero out nodes of l on cl
-    assign_num_level(nrow, ncol, l, v, static_cast<Real>(0.0));
-    subtract_level(nrow, ncol, l - 1, v, work.data());
+    assign_num_level(hierarchy, l, v, static_cast<Real>(0.0));
+    subtract_level(hierarchy, l - 1, v, work.data());
   }
 }
 
