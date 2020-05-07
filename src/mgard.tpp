@@ -1042,7 +1042,8 @@ void interpolate_from_level_nMl(const int l, std::vector<Real> &v) {
   }
 }
 
-template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v) {
+template <typename Real>
+void interpolate_old_to_new_and_subtract(const int l, std::vector<Real> &v) {
   const Dimensions2kPlus1<1> dims({v.size()});
   if (dims.nlevel == l) {
     throw std::domain_error("cannot interpolate from the coarsest level");
@@ -1061,7 +1062,8 @@ template <typename Real> void pi_lminus1(const int l, std::vector<Real> &v) {
 
 // Gary New
 template <typename Real>
-void pi_Ql(const int ncol, const int l, Real *v, std::vector<Real> &row_vec) {
+void interpolate_old_to_new_and_subtract(const int ncol, const int l, Real *v,
+                                         std::vector<Real> &row_vec) {
   // Restrict data to coarser level
 
   int stride = std::pow(2, l); // current stride
@@ -1074,7 +1076,7 @@ void pi_Ql(const int ncol, const int l, Real *v, std::vector<Real> &row_vec) {
     row_vec[jcol] = v[jcol];
   }
 
-  pi_lminus1(l, row_vec);
+  interpolate_old_to_new_and_subtract(l, row_vec);
 
   for (int jcol = 0; jcol < ncol; ++jcol) {
     v[jcol] = row_vec[jcol];
@@ -1082,9 +1084,11 @@ void pi_Ql(const int ncol, const int l, Real *v, std::vector<Real> &row_vec) {
 }
 
 template <typename Real>
-void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
-           std::vector<Real> &row_vec, std::vector<Real> &col_vec) {
-  const Dimensions2kPlus1<2> dims({nrow, ncol});
+void interpolate_old_to_new_and_subtract(
+    const TensorMeshHierarchy<2, Real> &hierarchy, const int l, Real *const v,
+    std::vector<Real> &row_vec, std::vector<Real> &col_vec) {
+  const std::array<std::size_t, 2> &shape = hierarchy.meshes.back().shape;
+  const Dimensions2kPlus1<2> dims(hierarchy.meshes.back().shape);
   if (dims.nlevel == l) {
     throw std::domain_error("cannot interpolate from the coarsest level");
   }
@@ -1093,12 +1097,15 @@ void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
   const int Cstride = static_cast<int>(stride_from_index_difference(l + 1));
 
   // Do the rows existing in the coarser level.
+  // TODO: Remove once everything is `std::size_t`s.
+  const int nrow = static_cast<int>(shape.at(0));
+  const int ncol = static_cast<int>(shape.at(1));
   for (int irow = 0; irow < nrow; irow += Cstride) {
     for (int jcol = 0; jcol < ncol; ++jcol) {
       row_vec[jcol] = v[get_index(ncol, irow, jcol)];
     }
 
-    pi_lminus1(l, row_vec);
+    interpolate_old_to_new_and_subtract(l, row_vec);
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       v[get_index(ncol, irow, jcol)] = row_vec[jcol];
@@ -1112,7 +1119,7 @@ void pi_Ql(const int nrow, const int ncol, const int l, Real *const v,
         col_vec[irow] = v[get_index(ncol, irow, jcol)];
       }
 
-      pi_lminus1(l, col_vec);
+      interpolate_old_to_new_and_subtract(l, col_vec);
 
       for (int irow = 0; irow < nrow; ++irow) {
         v[get_index(ncol, irow, jcol)] = col_vec[irow];
@@ -1268,7 +1275,7 @@ void refactor_1D(const int ncol, const int l_target, Real *v,
     int stride = std::pow(2, l); // current stride
     int Cstride = stride * 2;    // coarser stride
 #if 1
-    pi_Ql(ncol, l, v, row_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
+    interpolate_old_to_new_and_subtract(ncol, l, v, row_vec);
 #endif
     // copy the nodal values of v on l  to matrix work
     copy_level(hierarchy, l, v, work.data());
@@ -1306,8 +1313,7 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
     int stride = std::pow(2, l); // current stride
     int Cstride = stride * 2;    // coarser stride
 
-    pi_Ql(nrow, ncol, l, v, row_vec,
-          col_vec); // rename!. v@l has I-\Pi_l Q_l+1 u
+    interpolate_old_to_new_and_subtract(hierarchy, l, v, row_vec, col_vec);
     // copy the nodal values of v on l  to matrix work
     copy_level(hierarchy, l, v, work.data());
 
