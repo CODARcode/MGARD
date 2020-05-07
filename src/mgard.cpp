@@ -21,17 +21,20 @@ template void interpolate_from_level_nMl<float>(const int l,
 template void interpolate_from_level_nMl<double>(const int l,
                                                  std::vector<double> &v);
 
-template void pi_lminus1<float>(const int l, std::vector<float> &v0);
+template void
+interpolate_old_to_new_and_subtract<float>(const int l, std::vector<float> &v0);
 
-template void pi_lminus1<double>(const int l, std::vector<double> &v0);
+template void
+interpolate_old_to_new_and_subtract<double>(const int l,
+                                            std::vector<double> &v0);
 
-template void pi_Ql<float>(const int nrow, const int ncol, const int l,
-                           float *v, std::vector<float> &row_vec,
-                           std::vector<float> &col_vec);
+template void interpolate_old_to_new_and_subtract<float>(
+    const TensorMeshHierarchy<2, float> &hierarchy, const int l, float *v,
+    std::vector<float> &row_vec, std::vector<float> &col_vec);
 
-template void pi_Ql<double>(const int nrow, const int ncol, const int l,
-                            double *v, std::vector<double> &row_vec,
-                            std::vector<double> &col_vec);
+template void interpolate_old_to_new_and_subtract<double>(
+    const TensorMeshHierarchy<2, double> &hierarchy, const int l, double *v,
+    std::vector<double> &row_vec, std::vector<double> &col_vec);
 
 template void
 assign_num_level<1, float>(const TensorMeshHierarchy<1, float> &hierarchy,
