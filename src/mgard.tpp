@@ -1050,61 +1050,55 @@ void restriction(const TensorMeshHierarchy<N, Real> &hierarchy,
   *p += 0.5 * left;
 }
 
-template <typename Real>
-void interpolate_from_level_nMl(const int l, std::vector<Real> &v) {
-  if (!l) {
+template <std::size_t N, typename Real>
+void interpolate_old_to_new_and_overwrite(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const int index_difference,
+    const std::size_t dimension, Real *const v) {
+  if (!index_difference) {
     throw std::domain_error("cannot interpolate from the finest level");
   }
-  const std::size_t stride = stride_from_index_difference(l);
-  const std::size_t Pstride = stride_from_index_difference(l - 1);
+  const std::size_t l = hierarchy.l(index_difference);
+  // See note on capitalization in `restriction`.
+  const std::size_t stride = hierarchy.stride(l, dimension);
+  const std::size_t STRIDE = hierarchy.stride(l + 1, dimension);
+  const std::size_t n = hierarchy.meshes.at(l).shape.at(dimension);
 
-  Real left = v.front();
-  for (auto p = std::begin(v) + Pstride, q = std::begin(v) + stride;
-       q < std::end(v); p += stride, q += stride) {
+  Real *q = v;
+  Real left = *q;
+  q += stride;
+  Real *p = v + STRIDE;
+  for (std::size_t i = 1; i < n; ++i) {
     const Real right = *q;
     *p = 0.5 * (left + right);
     left = right;
+    q += stride;
+    // Might be better to think of this as advancing by `STRIDE` twice.
+    p += stride;
   }
 }
 
-template <typename Real>
-void interpolate_old_to_new_and_subtract(const int l, std::vector<Real> &v) {
-  const Dimensions2kPlus1<1> dims({v.size()});
-  if (dims.nlevel == l) {
+template <std::size_t N, typename Real>
+void interpolate_old_to_new_and_subtract(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const int index_difference,
+    const std::size_t dimension, Real *const v) {
+  const std::size_t l = hierarchy.l(index_difference);
+  if (!l) {
     throw std::domain_error("cannot interpolate from the coarsest level");
   }
-  const std::size_t stride = stride_from_index_difference(l);
-  const std::size_t Cstride = stride_from_index_difference(l + 1);
+  const std::size_t STRIDE = hierarchy.stride(l, dimension);
+  const std::size_t stride = hierarchy.stride(l - 1, dimension);
+  const std::size_t n = hierarchy.meshes.at(l - 1).shape.at(dimension);
 
-  Real left = v.front();
-  for (auto p = v.begin() + stride, q = v.begin() + Cstride; q < v.end();
-       p += Cstride, q += Cstride) {
+  Real *q = v;
+  Real left = *q;
+  q += stride;
+  Real *p = v + STRIDE;
+  for (std::size_t i = 1; i < n; ++i) {
     const Real right = *q;
     *p -= 0.5 * (left + right);
     left = right;
-  }
-}
-
-// Gary New
-template <typename Real>
-void interpolate_old_to_new_and_subtract(const int ncol, const int l, Real *v,
-                                         std::vector<Real> &row_vec) {
-  // Restrict data to coarser level
-
-  int stride = std::pow(2, l); // current stride
-  //  int Pstride = stride/2; //finer stride
-  int Cstride = stride * 2; // coarser stride
-
-  //  std::vector<Real> row_vec(ncol), col_vec(nrow)   ;
-
-  for (int jcol = 0; jcol < ncol; ++jcol) {
-    row_vec[jcol] = v[jcol];
-  }
-
-  interpolate_old_to_new_and_subtract(l, row_vec);
-
-  for (int jcol = 0; jcol < ncol; ++jcol) {
-    v[jcol] = row_vec[jcol];
+    q += stride;
+    p += stride;
   }
 }
 
@@ -1125,12 +1119,17 @@ void interpolate_old_to_new_and_subtract(
   // TODO: Remove once everything is `std::size_t`s.
   const int nrow = static_cast<int>(shape.at(0));
   const int ncol = static_cast<int>(shape.at(1));
+
+  // TODO: This should also be replaced.
+  const TensorMeshHierarchy<1, Real> row_hierarchy({ncol});
+  const TensorMeshHierarchy<1, Real> col_hierarchy({nrow});
+
   for (int irow = 0; irow < nrow; irow += Cstride) {
     for (int jcol = 0; jcol < ncol; ++jcol) {
       row_vec[jcol] = v[get_index(ncol, irow, jcol)];
     }
 
-    interpolate_old_to_new_and_subtract(l, row_vec);
+    interpolate_old_to_new_and_subtract(row_hierarchy, l, 0, row_vec.data());
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       v[get_index(ncol, irow, jcol)] = row_vec[jcol];
@@ -1144,7 +1143,7 @@ void interpolate_old_to_new_and_subtract(
         col_vec[irow] = v[get_index(ncol, irow, jcol)];
       }
 
-      interpolate_old_to_new_and_subtract(l, col_vec);
+      interpolate_old_to_new_and_subtract(col_hierarchy, l, 0, col_vec.data());
 
       for (int irow = 0; irow < nrow; ++irow) {
         v[get_index(ncol, irow, jcol)] = col_vec[irow];
@@ -1426,7 +1425,7 @@ void recompose_1D(const int ncol, const int l_target, Real *v,
       row_vec[jcol] = work[jcol];
     }
 
-    interpolate_from_level_nMl(l, row_vec);
+    interpolate_old_to_new_and_overwrite(hierarchy, l, 0, row_vec.data());
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       work[jcol] = row_vec[jcol];
@@ -1498,7 +1497,7 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
         row_vec[jcol] = work[get_index(ncol, irow, jcol)];
       }
 
-      interpolate_from_level_nMl(l, row_vec);
+      interpolate_old_to_new_and_overwrite(hierarchy, l, 0, row_vec.data());
 
       for (int jcol = 0; jcol < ncol; ++jcol) {
         work[get_index(ncol, irow, jcol)] = row_vec[jcol];
@@ -1513,7 +1512,7 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
           col_vec[irow] = work[get_index(ncol, irow, jcol)];
         }
 
-        interpolate_from_level_nMl(l, col_vec);
+        interpolate_old_to_new_and_overwrite(hierarchy, l, 0, col_vec.data());
 
         for (int irow = 0; irow < nrow; ++irow) {
           work[get_index(ncol, irow, jcol)] = col_vec[irow];
