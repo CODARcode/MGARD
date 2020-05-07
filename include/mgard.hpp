@@ -37,11 +37,15 @@ void mass_matrix_multiply(const TensorMeshHierarchy<N, Real> &hierarchy,
 //! The mesh is assumed to be uniform, with the *finest* level having cells of
 //! width `6`. The input vector is overwritten with the product.
 //!
-//!\param[in] l Difference between the index of the finest mesh level and the
-//! index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[in] hierarchy Mesh hierarchy on which the function is defined.
+//!\param[in] index_difference Difference between the index of the finest mesh
+//! level and the index of this mesh level, as in `mass_matrix_multiply`.
+//!\param[in] dimension Dimension in which the operator is to act.
 //!\param[in, out] Mass matrix–nodal value vector product.
-template <typename Real>
-void solve_tridiag_M(const int l, std::vector<Real> &v);
+template <std::size_t N, typename Real>
+void solve_tridiag_M(const TensorMeshHierarchy<N, Real> &hierarchy,
+                     const int index_difference, const std::size_t dimension,
+                     Real *const v);
 
 //! Restrict a mass matrix–nodal value vector product from a fine mesh to the
 //! immediately coarser mesh.
