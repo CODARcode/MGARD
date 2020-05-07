@@ -90,18 +90,19 @@ TEMPLATE_TEST_CASE("inversion of uniform mass matrix", "[mgard]", float,
 TEMPLATE_TEST_CASE("uniform mass matrix restriction", "[mgard]", float,
                    double) {
   {
+    const mgard::TensorMeshHierarchy<1, TestType> hierarchy({5});
     const std::vector<TestType> v = {159, 181, 144, 113, 164};
 
     {
       std::vector<TestType> copy = v;
-      mgard::restriction(1, copy);
+      mgard::restriction(hierarchy, 1, 0, copy.data());
       const std::vector<TestType> expected = {249.5, 181, 291, 113, 220.5};
       REQUIRE(copy == expected);
     }
 
     {
       std::vector<TestType> copy = v;
-      mgard::restriction(2, copy);
+      mgard::restriction(hierarchy, 2, 0, copy.data());
       const std::vector<TestType> expected = {231, 181, 144, 113, 236};
       REQUIRE(copy == expected);
     }
@@ -114,14 +115,15 @@ TEMPLATE_TEST_CASE("uniform mass matrix restriction", "[mgard]", float,
   for (const std::size_t L : Ls) {
     const std::size_t N = (1 << L) + 1;
     std::vector<TestType> v(N);
+    const mgard::TensorMeshHierarchy<1, TestType> hierarchy({N});
     v.at(0) = distribution(generator);
     for (std::size_t i = 1; i < N; i += 2) {
       v.at(i) = 0.5 * (v.at(i - 1) + (v.at(i + 1) = distribution(generator)));
     }
     std::vector<TestType> copy = v;
-    mgard::mass_matrix_multiply(0, copy);
-    mgard::restriction(1, copy);
-    mgard::solve_tridiag_M(1, copy);
+    mgard::mass_matrix_multiply(hierarchy, 0, 0, copy.data());
+    mgard::restriction(hierarchy, 1, 0, copy.data());
+    mgard::solve_tridiag_M(hierarchy, 1, 0, copy.data());
     TrialTracker tracker;
     for (std::size_t i = 0; i < N; i += 2) {
       tracker += v.at(i) == Approx(copy.at(i));
