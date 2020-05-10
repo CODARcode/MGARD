@@ -33,21 +33,20 @@ int main(int argc, char **argv) {
 
   /*
   Parameter s specifies the H^s (Sobolev) norm with which we measure the error.
-  s=0 is L^2 norm (can be thought as psnr).  
-  s=1 means the first derivatives of the function are also preserved to the specified tolerance etc.
+  s=0 is L^2 norm (can be thought as psnr).
+  s=1 means the first derivatives of the function are also preserved to the
+  specified tolerance etc.
   */
   s = 0.0;
 
-  compressed_data =
-      mgard_compress(0, data.data(), out_size, 16, num_elements / 16, 1, tol, s);
+  compressed_data = mgard_compress(0, data.data(), out_size, 16,
+                                   num_elements / 16, 1, tol, s);
   cout << "Original size = " << num_elements * 8 << " out_size = " << out_size
-       << " S = " << s
-       << " CR = " << num_elements * 8.0 / out_size << endl;
+       << " S = " << s << " CR = " << num_elements * 8.0 / out_size << endl;
 
   double quantizer;
-  double *decompressed_data = mgard_decompress(0, quantizer, compressed_data,
-                                               out_size, 16, num_elements/16,
-					       1, s);
+  double *decompressed_data = mgard_decompress(
+      0, quantizer, compressed_data, out_size, 16, num_elements/16, 1, s);
 
   double l2norm_error = 0.0;
   double l2norm = 0.0;
@@ -60,7 +59,8 @@ int main(int argc, char **argv) {
     l2norm_error += pow(decompressed_data[i] - data[i], 2.0);
     l2norm += pow(data[i], 2.0);
 
-    // Also let us check the error of the primary quantity, i.e., L-infinity norm 
+    // Also let us check the error of the primary quantity, i.e., L-infinity
+    // norm 
     abserr = abs(decompressed_data[i] - data[i]);
     if (max_abserr < abserr) {
       max_abserr = abserr;
@@ -71,12 +71,12 @@ int main(int argc, char **argv) {
     }
   }
 
-  l2norm_error = sqrt (l2norm_error);
-  l2norm = sqrt (l2norm);
+  l2norm_error = sqrt(l2norm_error);
+  l2norm = sqrt(l2norm);
 
   cout << "The prescribed L^2 norm = " << tol << endl
        << "The achieved L^2 norm error = " << l2norm_error / l2norm << endl
-       << "The acheived L-infinity error = " <<  max_abserr / max << endl;
+       << "The acheived L-infinity error = " << max_abserr / max << endl;
 
 
   if (tol >= l2norm_error / l2norm) {
