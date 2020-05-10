@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 
   double quantizer;
   double *decompressed_data = mgard_decompress(
-      0, quantizer, compressed_data, out_size, 16, num_elements/16, 1, s);
+      0, quantizer, compressed_data, out_size, 16, num_elements / 16, 1, s);
 
   double l2norm_error = 0.0;
   double l2norm = 0.0;
@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     l2norm += pow(data[i], 2.0);
 
     // Also let us check the error of the primary quantity, i.e., L-infinity
-    // norm 
+    // norm
     abserr = abs(decompressed_data[i] - data[i]);
     if (max_abserr < abserr) {
       max_abserr = abserr;
@@ -77,7 +77,6 @@ int main(int argc, char **argv) {
   cout << "The prescribed L^2 norm = " << tol << endl
        << "The achieved L^2 norm error = " << l2norm_error / l2norm << endl
        << "The acheived L-infinity error = " << max_abserr / max << endl;
-
 
   if (tol >= l2norm_error / l2norm) {
     return 0;
