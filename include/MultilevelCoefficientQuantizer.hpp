@@ -3,6 +3,8 @@
 //!\file
 //!\brief Quantizer for multilevel coefficients.
 
+#include <cstddef>
+
 #include <iterator>
 
 #include "IndicatorInput.hpp"
@@ -70,9 +72,14 @@ bool operator==(const MultilevelCoefficientQuantizer<Real, Int> &a,
 //! Iterator used to traverse a range of multilevel coefficients, quantizing as
 //! it is dereferenced.
 template <typename Real, typename Int>
-class MultilevelCoefficientQuantizer<Real, Int>::iterator
-    : public std::iterator<std::input_iterator_tag, Int> {
+class MultilevelCoefficientQuantizer<Real, Int>::iterator {
 public:
+  using iterator_category = std::input_iterator_tag;
+  using value_type = Int;
+  using difference_type = std::ptrdiff_t;
+  using pointer = value_type *;
+  using reference = value_type &;
+
   //! Constructor.
   //!
   //!\param quantizer Associated multilevel coefficient quantizer.
@@ -95,7 +102,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  Int operator*() const;
+  value_type operator*() const;
 
 private:
   //! Associated multilevel coefficient quantizer;
@@ -174,13 +181,18 @@ bool operator==(const MultilevelCoefficientDequantizer<Int, Real> &a,
 //! dequantizing as it is dereferenced.
 template <typename Int, typename Real>
 template <typename It>
-class MultilevelCoefficientDequantizer<Int, Real>::iterator
-    : public std::iterator<std::input_iterator_tag, Real> {
+class MultilevelCoefficientDequantizer<Int, Real>::iterator {
 
   using T = typename std::iterator_traits<It>::value_type;
   static_assert(std::is_same<T, Int>::value, "`It` must dereference to `Int`");
 
 public:
+  using iterator_category = std::input_iterator_tag;
+  using value_type = Real;
+  using difference_type = std::ptrdiff_t;
+  using pointer = value_type *;
+  using reference = value_type &;
+
   //! Constructor.
   //!
   //!\param dequantizer Associated multilevel coefficient dequantizer.
@@ -202,7 +214,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  Real operator*() const;
+  value_type operator*() const;
 
 private:
   //! Associated multilevel coefficient dequantizer.

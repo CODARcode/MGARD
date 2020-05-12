@@ -98,12 +98,15 @@ template <typename It>
 bool operator!=(const Enumeration<It> &a, const Enumeration<It> &b);
 
 //! Iterator over an enumeration.
-template <typename It>
-class Enumeration<It>::iterator
-    : public std::iterator<
-          std::input_iterator_tag,
-          IndexedElement<typename std::iterator_traits<It>::value_type>> {
+template <typename It> class Enumeration<It>::iterator {
 public:
+  using T = typename std::iterator_traits<It>::value_type;
+  using iterator_category = std::input_iterator_tag;
+  using value_type = IndexedElement<T>;
+  using difference_type = std::ptrdiff_t;
+  using pointer = value_type *;
+  using reference = value_type &;
+
   //! Constructor.
   //!
   //!\param iterable Associated enumeration.
@@ -124,15 +127,8 @@ public:
   //! Postincrement.
   iterator operator++(int);
 
-  // Would like to return `value_type` from the dereference operator, but it
-  // seems like inheriting from a class template prevents `value_type` from
-  // being recognized as a type. See http://www.cs.technion.ac.il/users/yechiel/
-  // c++-faq/nondependent-name-lookup-members.html> and http://www.open-std.org/
-  // jtc1/sc22/wg21/docs/papers/2016/p0174r2.html#2.1>.
-
   //! Dereference.
-  IndexedElement<typename std::iterator_traits<It>::value_type>
-  operator*() const;
+  value_type operator*() const;
 
 private:
   //! Associated enumeration.
@@ -203,13 +199,16 @@ template <typename It, typename Jt>
 bool operator!=(const ZippedRange<It, Jt> &a, const ZippedRange<It, Jt> &b);
 
 //! Iterator over a zipped range.
-template <typename It, typename Jt>
-class ZippedRange<It, Jt>::iterator
-    : public std::iterator<
-          std::input_iterator_tag,
-          std::pair<typename std::iterator_traits<It>::value_type,
-                    typename std::iterator_traits<Jt>::value_type>> {
+template <typename It, typename Jt> class ZippedRange<It, Jt>::iterator {
 public:
+  using T = typename std::iterator_traits<It>::value_type;
+  using U = typename std::iterator_traits<Jt>::value_type;
+  using iterator_category = std::input_iterator_tag;
+  using value_type = std::pair<T, U>;
+  using difference_type = std::ptrdiff_t;
+  using pointer = value_type *;
+  using reference = value_type &;
+
   //! Constructor.
   //!
   //!\param iterable Associated zipped range.
@@ -234,9 +233,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  std::pair<typename std::iterator_traits<It>::value_type,
-            typename std::iterator_traits<Jt>::value_type>
-  operator*() const;
+  value_type operator*() const;
 
 private:
   //! Associated zipped range.

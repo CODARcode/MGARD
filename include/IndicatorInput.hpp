@@ -3,6 +3,8 @@
 //!\file
 //!\brief Classes to support iteration over a dataset and the associated nodes.
 
+#include <cstddef>
+
 #include <array>
 #include <iterator>
 #include <optional>
@@ -66,9 +68,14 @@ bool operator==(const IndicatorInputRange &a, const IndicatorInputRange &b);
 bool operator!=(const IndicatorInputRange &a, const IndicatorInputRange &b);
 
 //! Iterator over a range of auxiliary mesh data.
-class IndicatorInputRange::iterator
-    : public std::iterator<std::input_iterator_tag, IndicatorInput> {
+class IndicatorInputRange::iterator {
 public:
+  using iterator_category = std::input_iterator_tag;
+  using value_type = IndicatorInput;
+  using difference_type = std::ptrdiff_t;
+  using pointer = value_type *;
+  using reference = value_type &;
+
   //! Constructor.
   //!
   //!\param iterable Associated indicator input range.
@@ -93,7 +100,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  IndicatorInput operator*() const;
+  value_type operator*() const;
 
 private:
   //! Associated auxiliary mesh data range.
