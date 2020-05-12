@@ -4,6 +4,8 @@
 //!\brief Edges, their endpoints, and their midpoints associated with uniform
 //! mesh hierarchies.
 
+#include <cstddef>
+
 #include <array>
 #include <iterator>
 
@@ -51,8 +53,14 @@ public:
                      const T begin, const T end);
 
   //! Iterator over a group of edges.
-  class iterator : std::iterator<std::input_iterator_tag, EdgeFamily> {
+  class iterator {
   public:
+    using iterator_category = std::input_iterator_tag;
+    using value_type = EdgeFamily;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type *;
+    using reference = value_type &;
+
     //! Constructor.
     //!
     //!\param iterable Group of edges to which this iterator is
@@ -77,7 +85,7 @@ public:
     iterator operator++(int);
 
     //! Dereference.
-    EdgeFamily operator*() const;
+    value_type operator*() const;
 
   private:
     const EdgeFamilyIterable &iterable;

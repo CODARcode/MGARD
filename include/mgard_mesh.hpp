@@ -75,13 +75,15 @@ std::size_t stride_from_index_difference(const std::size_t index_difference);
 
 //! Iterator over the values associated to a mesh level in a structured mesh
 //! hierarchy.
-template <std::size_t N, typename Real>
-// The return type is given as `Real` rather than `Real &` because
-// `std::iterator` forms a reference to the type given. Note that `Real &` is
-// returned from the dereference operator.
-class LevelValuesIterator
-    : public std::iterator<std::input_iterator_tag, Real> {
+template <std::size_t N, typename Real> class LevelValuesIterator {
 public:
+  using iterator_category = std::input_iterator_tag;
+  using value_type = Real &;
+  using difference_type = std::ptrdiff_t;
+  // I'm not sure that these are right, since `value_type` isn't `Real`.
+  using pointer = Real *;
+  using reference = Real &;
+
   //! Constructor.
   //!
   //!\param dimensions Dimensions of the finest mesh level.
@@ -107,7 +109,7 @@ public:
   LevelValuesIterator operator++(int);
 
   //! Dereference.
-  Real &operator*() const;
+  value_type operator*() const;
 
 private:
   //! Dimensions of the finest mesh level.
