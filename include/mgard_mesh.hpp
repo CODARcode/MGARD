@@ -11,7 +11,7 @@
 namespace mgard {
 
 //! Forward declaration.
-template <std::size_t N, typename Real> class LevelValuesIterator;
+template <std::size_t N, typename Real> class LevelValues;
 
 //! Dimensions for a tensor product mesh on a Cartesian product of intervals.
 template <std::size_t N> struct Dimensions2kPlus1 {
@@ -37,12 +37,13 @@ template <std::size_t N> struct Dimensions2kPlus1 {
 
   //! Access the subset of a dataset associated to the nodes of a level.
   //!
-  //!\param coefficients Values associated to nodes.
+  //!\param coefficients Values associated to the nodes of the finest mesh
+  //! level.
   //!\param index_difference Difference between the index of the finest mesh
   //! level and the index of the mesh level to be iterated over.
   template <typename Real>
-  RangeSlice<LevelValuesIterator<N, Real>>
-  on_nodes(Real *const coefficients, const std::size_t index_difference) const;
+  LevelValues<N, Real> on_nodes(Real *const coefficients,
+                                const std::size_t index_difference) const;
 };
 
 //! Equality comparison.
@@ -73,9 +74,50 @@ int get_index3(const int ncol, const int nfib, const int i, const int j,
 //! and the index of the mesh level in question.
 std::size_t stride_from_index_difference(const std::size_t index_difference);
 
+template <std::size_t N, typename Real> struct LevelValues {
+  //! Constructor.
+  //!
+  //!\param dimensions Dimensions of the finest mesh level.
+  //!\param coefficients Values associated to the nodes of the finest mesh
+  //! level.
+  //!\param index_difference Difference between the index of the finest mesh
+  //! level and the index of the mesh level to be iterated over.
+  LevelValues(const Dimensions2kPlus1<N> &dimensions, Real *const coefficients,
+              const std::size_t index_difference);
+
+  //! Forward declaration.
+  class iterator;
+
+  //! Return an interator to the beginning of the values.
+  iterator begin() const;
+
+  //! Return an interator to the end of the values.
+  iterator end() const;
+
+  //! Dimensions of the finest mesh level.
+  const Dimensions2kPlus1<N> &dimensions;
+
+  //! Values associated to the nodes of the finest mesh level.
+  Real *const coefficients;
+
+  //! Stride between the nodes in the mesh level to be iterated over.
+  const std::size_t stride;
+
+  //! Multiindices to be iterated over.
+  const MultiindexRectangle<N> rectangle;
+};
+
+template <std::size_t N, typename Real>
+//! Equality comparison.
+bool operator==(const LevelValues<N, Real> &a, const LevelValues<N, Real> &b);
+
+template <std::size_t N, typename Real>
+//! Inequality comparison.
+bool operator!=(const LevelValues<N, Real> &a, const LevelValues<N, Real> &b);
+
 //! Iterator over the values associated to a mesh level in a structured mesh
 //! hierarchy.
-template <std::size_t N, typename Real> class LevelValuesIterator {
+template <std::size_t N, typename Real> class LevelValues<N, Real>::iterator {
 public:
   using iterator_category = std::input_iterator_tag;
   using value_type = Real &;
@@ -86,43 +128,32 @@ public:
 
   //! Constructor.
   //!
-  //!\param dimensions Dimensions of the finest mesh level.
-  //!\param coefficients Dataset being iterated over.
-  //!\param index_difference Difference between the index of the finest mesh
-  //! and the index of the mesh level to be iterated over.
-  //!\param indices Indices of the current node in the finest mesh level.
-  LevelValuesIterator(const Dimensions2kPlus1<N> &dimensions,
-                      Real *const coefficients,
-                      const std::size_t index_difference,
-                      const std::array<std::size_t, N> &indices);
+  //!\param iterable View of nodal values to be iterated over.
+  //!\param inner Underlying multiindex iterator.
+  iterator(const LevelValues &iterable,
+           const typename MultiindexRectangle<N>::iterator &inner);
 
   //! Equality comparison.
-  bool operator==(const LevelValuesIterator &other) const;
+  bool operator==(const iterator &other) const;
 
   //! Inequality comparison.
-  bool operator!=(const LevelValuesIterator &other) const;
+  bool operator!=(const iterator &other) const;
 
   //! Preincrement.
-  LevelValuesIterator &operator++();
+  iterator &operator++();
 
   //! Postincrement.
-  LevelValuesIterator operator++(int);
+  iterator operator++(int);
 
   //! Dereference.
   value_type operator*() const;
 
+  //! View of nodal values being iterated over
+  const LevelValues &iterable;
+
 private:
-  //! Dimensions of the finest mesh level.
-  const Dimensions2kPlus1<N> &dimensions;
-
-  //! Dataset being iterated over.
-  Real *const coefficients;
-
-  //! Stride for the mesh level being iterated over.
-  const std::size_t stride;
-
-  //! Indices of the current node in the finest mesh level.
-  std::array<std::size_t, N> indices;
+  //! Underlying multiindex iterator.
+  typename MultiindexRectangle<N>::iterator inner;
 };
 
 } // namespace mgard

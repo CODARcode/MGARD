@@ -284,6 +284,12 @@ template <std::size_t N> struct MultiindexRectangle {
   //! Forward declaration.
   class iterator;
 
+  //! Return an iterator to the beginning of the indices with the given stride.
+  iterator begin(const std::size_t stride) const;
+
+  //! Return an iterator to the end of the indices with the given stride.
+  iterator end(const std::size_t stride) const;
+
   //! Access the multiindices contained in the rectangle.
   RangeSlice<iterator> indices(const std::size_t stride) const;
 
@@ -336,13 +342,13 @@ public:
   //! Dereference;
   value_type operator*() const;
 
-private:
   //! Bounding rectangle.
   const MultiindexRectangle &rectangle;
 
   //! Stride with which to traverse the rectangle.
   const std::size_t stride;
 
+private:
   //! Current multiindex.
   std::array<std::size_t, N> indices;
 };
