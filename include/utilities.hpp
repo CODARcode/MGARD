@@ -263,6 +263,90 @@ public:
   const It end_;
 };
 
+//! Collection of multiindices \f$\vec{\alpha}\f$ satisfying a bound of the form
+//! \f$\vec{\beta} \leq \vec{\alpha} < \vec{\gamma}\f$ (elementwise).
+template <std::size_t N> struct MultiindexRectangle {
+  //! Constructor.
+  //!
+  //!\param corner Lower bound (elementwise) for the multiindex set, the
+  //! 'lower left' vertex of the rectangle.
+  //!\param shape Dimensions of the multiindex set.
+  MultiindexRectangle(const std::array<std::size_t, N> &corner,
+                      const std::array<std::size_t, N> &shape);
+
+  //! Constructor
+  //!
+  //!\overload
+  //!
+  //! `corner` defaults to the zero multiindex.
+  MultiindexRectangle(const std::array<std::size_t, N> &shape);
+
+  //! Forward declaration.
+  class iterator;
+
+  //! Access the multiindices contained in the rectangle.
+  RangeSlice<iterator> indices(const std::size_t stride) const;
+
+  //! 'Lower left' vertex of the rectangle.
+  const std::array<std::size_t, N> corner;
+
+  //! Dimensions of the rectangle.
+  const std::array<std::size_t, N> shape;
+};
+
+//! Equality comparison.
+template <std::size_t N>
+bool operator==(const MultiindexRectangle<N> &a,
+                const MultiindexRectangle<N> &b);
+
+//! Inequality comparison.
+template <std::size_t N>
+bool operator!=(const MultiindexRectangle<N> &a,
+                const MultiindexRectangle<N> &b);
+
+//! Iterator over a rectangle of multiindices.
+template <std::size_t N> class MultiindexRectangle<N>::iterator {
+public:
+  using iterator_category = std::input_iterator_tag;
+  using value_type = std::array<std::size_t, N>;
+  using difference_type = std::ptrdiff_t;
+  using pointer = value_type *;
+  using reference = value_type &;
+
+  //! Constructor.
+  //!
+  //!\param rectangle Associated multiindex set.
+  //!\param stride Stride to use in iterating over the multiindex set.
+  //!\param indices Starting position in the multiindex set.
+  iterator(const MultiindexRectangle &rectangle, const std::size_t stride,
+           const std::array<std::size_t, N> &indices);
+
+  //! Equality comparison.
+  bool operator==(const iterator &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const iterator &other) const;
+
+  //! Preincrement.
+  iterator &operator++();
+
+  //! Postincrement.
+  iterator operator++(int);
+
+  //! Dereference;
+  value_type operator*() const;
+
+private:
+  //! Bounding rectangle.
+  const MultiindexRectangle &rectangle;
+
+  //! Stride with which to traverse the rectangle.
+  const std::size_t stride;
+
+  //! Current multiindex.
+  std::array<std::size_t, N> indices;
+};
+
 } // namespace mgard
 
 #include "utilities.tpp"
