@@ -1167,8 +1167,8 @@ template <std::size_t N, typename Real>
 void assign_num_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                       const int l, Real *const v, const Real num) {
   const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
-  using It = LevelValuesIterator<N, Real>;
-  const RangeSlice<It> values = dims.on_nodes(v, l);
+  using It = typename LevelValues<N, Real>::iterator;
+  const LevelValues<N, Real> values = dims.on_nodes(v, l);
   It p = values.begin();
   const It values_end = values.end();
   while (p != values_end) {
@@ -1180,10 +1180,10 @@ template <std::size_t N, typename Real>
 void copy_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                 Real const *const v, Real *const work) {
   const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
-  using It = LevelValuesIterator<N, const Real>;
-  using Jt = LevelValuesIterator<N, Real>;
-  const RangeSlice<It> source = dims.on_nodes(v, l);
-  const RangeSlice<Jt> destination = dims.on_nodes(work, l);
+  using It = typename LevelValues<N, const Real>::iterator;
+  using Jt = typename LevelValues<N, Real>::iterator;
+  const LevelValues<N, const Real> source = dims.on_nodes(v, l);
+  const LevelValues<N, Real> destination = dims.on_nodes(work, l);
   It p = source.begin();
   Jt q = destination.begin();
   const It source_end = source.end();
@@ -1196,10 +1196,10 @@ template <std::size_t N, typename Real>
 void add_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                Real *const v, Real const *const work) {
   const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
-  using It = LevelValuesIterator<N, Real>;
-  using Jt = LevelValuesIterator<N, const Real>;
-  const RangeSlice<It> target = dims.on_nodes(v, l);
-  const RangeSlice<Jt> increment = dims.on_nodes(work, l);
+  using It = typename LevelValues<N, Real>::iterator;
+  using Jt = typename LevelValues<N, const Real>::iterator;
+  const LevelValues<N, Real> target = dims.on_nodes(v, l);
+  const LevelValues<N, const Real> increment = dims.on_nodes(work, l);
   It p = target.begin();
   Jt q = increment.begin();
   const It target_end = target.end();
@@ -1212,10 +1212,10 @@ template <std::size_t N, typename Real>
 void subtract_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                     Real *const v, Real const *const work) {
   const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
-  using It = LevelValuesIterator<N, Real>;
-  using Jt = LevelValuesIterator<N, const Real>;
-  const RangeSlice<It> target = dims.on_nodes(v, l);
-  const RangeSlice<Jt> decrement = dims.on_nodes(work, l);
+  using It = typename LevelValues<N, Real>::iterator;
+  using Jt = typename LevelValues<N, const Real>::iterator;
+  const LevelValues<N, Real> target = dims.on_nodes(v, l);
+  const LevelValues<N, const Real> decrement = dims.on_nodes(work, l);
   It p = target.begin();
   Jt q = decrement.begin();
   const It target_end = target.end();

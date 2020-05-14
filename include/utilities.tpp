@@ -199,14 +199,25 @@ MultiindexRectangle<N>::MultiindexRectangle(
     : MultiindexRectangle({}, shape) {}
 
 template <std::size_t N>
+typename MultiindexRectangle<N>::iterator
+MultiindexRectangle<N>::begin(const std::size_t stride) const {
+  return iterator(*this, stride, corner);
+}
+
+template <std::size_t N>
+typename MultiindexRectangle<N>::iterator
+MultiindexRectangle<N>::end(const std::size_t stride) const {
+  std::array<std::size_t, N> indices = corner;
+  if (N) {
+    indices.at(0) += shape.at(0);
+  }
+  return iterator(*this, stride, indices);
+}
+
+template <std::size_t N>
 RangeSlice<typename MultiindexRectangle<N>::iterator>
 MultiindexRectangle<N>::indices(const std::size_t stride) const {
-  std::array<std::size_t, N> end_indices = corner;
-  if (N) {
-    end_indices.at(0) += shape.at(0);
-  }
-  return {.begin_ = iterator(*this, stride, corner),
-          .end_ = iterator(*this, stride, end_indices)};
+  return {.begin_ = begin(stride), .end_ = end(stride)};
 }
 
 template <std::size_t N>
