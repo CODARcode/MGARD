@@ -101,15 +101,13 @@ void interpolate_old_to_new_and_subtract(
 //! on the finer level will be overwritten.
 //!
 //!\param[in] hierarchy Mesh hierarchy on which the function is defined.
-//!\param[in] l Difference between the index of the finest mesh level and the
-//! index of the finer mesh level, as in `mass_matrix_multiply`.
+//!\param[in] index_difference Difference between the index of the finest mesh
+//! level and the index of the finer mesh level, as in `mass_matrix_multiply`.
 //!\param[in, out] v Nodal values to be interpolated.
-//!\param[in] row_vec Work buffer of size `ncol`.
-//!\param[in] col_vec Work buffer of size `nrow`.
-template <typename Real>
+template <std::size_t N, typename Real>
 void interpolate_old_to_new_and_subtract(
-    const TensorMeshHierarchy<2, Real> &hierarchy, const int l, Real *const v,
-    std::vector<Real> &row_vec, std::vector<Real> &col_vec);
+    const TensorMeshHierarchy<N, Real> &hierarchy, const int index_difference,
+    Real *const v);
 
 //! Set the entries corresponding to nodes on some level to some number.
 //!

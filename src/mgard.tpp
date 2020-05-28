@@ -1102,63 +1102,96 @@ void interpolate_old_to_new_and_subtract(
   }
 }
 
-template <typename Real>
+template <std::size_t N, typename Real>
 void interpolate_old_to_new_and_subtract(
-    const TensorMeshHierarchy<2, Real> &hierarchy, const int l, Real *const v,
-    std::vector<Real> &row_vec, std::vector<Real> &col_vec) {
-  const std::array<std::size_t, 2> &shape = hierarchy.meshes.back().shape;
-  const Dimensions2kPlus1<2> dims(hierarchy.meshes.back().shape);
-  if (dims.nlevel == l) {
+    const TensorMeshHierarchy<N, Real> &hierarchy, const int index_difference,
+    Real *const v) {
+  const std::size_t l = hierarchy.l(index_difference);
+  if (!l) {
     throw std::domain_error("cannot interpolate from the coarsest level");
   }
-  // TODO: Remove these casts once everything has been moved to `std::size_t`.
-  const int stride = static_cast<int>(stride_from_index_difference(l));
-  const int Cstride = static_cast<int>(stride_from_index_difference(l + 1));
+  const std::size_t STRIDE = stride_from_index_difference(index_difference);
+  const std::size_t stride = stride_from_index_difference(index_difference + 1);
 
-  // Do the rows existing in the coarser level.
-  // TODO: Remove once everything is `std::size_t`s.
-  const int nrow = static_cast<int>(shape.at(0));
-  const int ncol = static_cast<int>(shape.at(1));
-
-  // TODO: This should also be replaced.
-  const TensorMeshHierarchy<1, Real> row_hierarchy({ncol});
-  const TensorMeshHierarchy<1, Real> col_hierarchy({nrow});
-
-  for (int irow = 0; irow < nrow; irow += Cstride) {
-    for (int jcol = 0; jcol < ncol; ++jcol) {
-      row_vec[jcol] = v[get_index(ncol, irow, jcol)];
-    }
-
-    interpolate_old_to_new_and_subtract(row_hierarchy, l, 0, row_vec.data());
-
-    for (int jcol = 0; jcol < ncol; ++jcol) {
-      v[get_index(ncol, irow, jcol)] = row_vec[jcol];
-    }
+  const std::array<std::size_t, N> &shape = hierarchy.meshes.back().shape;
+  const Dimensions2kPlus1<N> dims(shape);
+  if (!dims.is_2kplus1()) {
+    throw std::domain_error("dimensions must all be of the form `2^k + 1`");
   }
+  // It'd be nice to somehow use `LevelValues` here. We might like to write
+  // something like `SituatedCoefficientRange` so we get the multiindices along
+  // with the values. For now we'll iterate over the multiindices and fetch the
+  // values ourselves.
+  const MultiindexRectangle<N> rectangle(shape);
 
-  if (nrow > 1) {
-    // Do the columns existing in the coarser level.
-    for (int jcol = 0; jcol < ncol; jcol += Cstride) {
-      for (int irow = 0; irow < nrow; ++irow) {
-        col_vec[irow] = v[get_index(ncol, irow, jcol)];
-      }
-
-      interpolate_old_to_new_and_subtract(col_hierarchy, l, 0, col_vec.data());
-
-      for (int irow = 0; irow < nrow; ++irow) {
-        v[get_index(ncol, irow, jcol)] = col_vec[irow];
+  // We're splitting the grid into 'boxes' with 'lower left' corner `alpha` and
+  // side length `stride` (so containing (in each dimension) `stride + 1` points
+  // – the second parameter to the `MultiindexRectangle` constructor is an array
+  // of sizes (rather than 'lengths'), so `stride + 1` is what we use) (except
+  // for the boxes at the far boundaries, which will be smaller). We iterate
+  // over the corners of each box (`beta`) to calculate the interpolant at the
+  // interior points (`BETA`). We only want to adjust the values on the 'new'
+  // nodes, so we need to skip any `BETA` that is also a `beta`. Additionally,
+  // some `BETA`s straddle multiple boxes, and we must take care to adjust the
+  // values at those multiindices only once. We do this dealing with `BETA` at
+  // the 'minimum' (elementwise – think 'lower left') `alpha`.
+  for (const std::array<std::size_t, N> alpha : rectangle.indices(stride)) {
+    // Shape to use in iterating over `beta`s. In particular, we need to include
+    // the 'far' corners (in 2D, the 'upper right' corner).
+    std::array<std::size_t, N> minishape;
+    // Shape to use in iterating over `BETA`s. We only include the 'far' corners
+    // if we've reached the 'far' edge of `rectangle`.
+    std::array<std::size_t, N> MINISHAPE;
+    for (std::size_t i = 0; i < N; ++i) {
+      std::size_t &m = minishape.at(i);
+      std::size_t &M = MINISHAPE.at(i);
+      if (alpha.at(i) + stride <= shape.at(i)) {
+        // Do include the 'far' 'old' nodes.
+        m = stride + 1;
+        // Do not include the 'far' 'new' nodes.
+        M = stride;
+      } else {
+        // This relies on there never being more than `1` but fewer than `stride
+        // + 1` nodes, which is a result of the dimensions being of the form
+        // `2^k + 1`.
+        m = 1;
+        M = 1;
       }
     }
-
-    // Now the new-new stuff
-    for (int irow = stride; irow + stride < nrow; irow += Cstride) {
-      for (int jcol = stride; jcol + stride < ncol; jcol += Cstride) {
-        v[get_index(ncol, irow, jcol)] -=
-            0.25 * (v[get_index(ncol, irow - stride, jcol - stride)] +
-                    v[get_index(ncol, irow - stride, jcol + stride)] +
-                    v[get_index(ncol, irow + stride, jcol - stride)] +
-                    v[get_index(ncol, irow + stride, jcol + stride)]);
+    const MultiindexRectangle<N> minirectangle(alpha, minishape);
+    const MultiindexRectangle<N> MINIRECTANGLE(alpha, MINISHAPE);
+    for (const std::array<std::size_t, N> BETA :
+         MINIRECTANGLE.indices(STRIDE)) {
+      // Check that `BETA` is the multiindex of a 'new' node.
+      bool BETA_is_new = false;
+      for (std::size_t i = 0; i < N; ++i) {
+        if (BETA.at(i) == alpha.at(i) + STRIDE) {
+          BETA_is_new = true;
+          break;
+        }
       }
+      if (!BETA_is_new) {
+        continue;
+      }
+      Real interpolant = 0;
+      for (const std::array<std::size_t, N> beta :
+           minirectangle.indices(stride)) {
+        Real weight = 1;
+        for (std::size_t i = 0; i < N; ++i) {
+          Real factor;
+          const std::size_t B = BETA.at(i);
+          if (B == alpha.at(i) + STRIDE) {
+            factor = 0.5;
+          } else if (B == beta.at(i)) {
+            factor = 1;
+          } else {
+            factor = 0;
+          }
+          weight *= factor;
+        }
+        interpolant += weight * hierarchy.at(v, beta);
+      }
+      hierarchy.at(v, BETA) -= interpolant;
     }
   }
 }
