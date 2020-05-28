@@ -175,41 +175,113 @@ TEMPLATE_TEST_CASE("uniform interpolation", "[mgard]", float, double) {
         mgard::interpolate_old_to_new_and_subtract(hierarchy, 3, 0, v.data()));
   }
 
-  SECTION("2D interpolation and subtraction") {
+  SECTION("multidimensional interpolation and subtraction") {
     {
-      const std::size_t nrow = 3;
-      const std::size_t ncol = 3;
-      const mgard::TensorMeshHierarchy<2, TestType> hierarchy({nrow, ncol});
-      std::vector<TestType> v = {11, 13, 15, 12, 9, 20, 16, 14, 23};
-      std::vector<TestType> row_vec(ncol);
-      std::vector<TestType> col_vec(nrow);
+      const std::vector<TestType> u = {11, 13, 15, 12, 9, 20, 16, 14, 23};
       {
-        mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data(),
-                                                   row_vec, col_vec);
-        const std::vector<TestType> expected = {11, 0,  15,   -1.5, -7.25,
-                                                1,  16, -5.5, 23};
-        REQUIRE(v == expected);
+        const mgard::TensorMeshHierarchy<2, TestType> hierarchy({3, 3});
+        {
+          std::vector<TestType> v = u;
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
+          const std::vector<TestType> expected = {11, 0,  15,   -1.5, -7.25,
+                                                  1,  16, -5.5, 23};
+          REQUIRE(v == expected);
+        }
+        {
+          std::vector<TestType> v = u;
+          REQUIRE_THROWS(mgard::interpolate_old_to_new_and_subtract(
+              hierarchy, 1, v.data()));
+        }
       }
-      REQUIRE_THROWS(mgard::interpolate_old_to_new_and_subtract(
-          hierarchy, 1, v.data(), row_vec, col_vec));
+      {
+        const mgard::TensorMeshHierarchy<1, TestType> hierarchy({9});
+        {
+          std::vector<TestType> v = u;
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
+          const std::vector<TestType> expected = {11,  0,  15,   0, 9,
+                                                  7.5, 16, -5.5, 23};
+          REQUIRE(v == expected);
+        }
+        {
+          std::vector<TestType> v = u;
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v.data());
+          const std::vector<TestType> expected = {11, 13, 5,  12, 9,
+                                                  20, 0,  14, 23};
+          REQUIRE(v == expected);
+        }
+        {
+          std::vector<TestType> v = u;
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 2, v.data());
+          const std::vector<TestType> expected = {11, 13, 15, 12, -8,
+                                                  20, 16, 14, 23};
+          REQUIRE(v == expected);
+        }
+        {
+          std::vector<TestType> v = u;
+          REQUIRE_THROWS(mgard::interpolate_old_to_new_and_subtract(
+              hierarchy, 3, v.data()));
+        }
+      }
     }
     {
-      const std::size_t nrow = 5;
-      const std::size_t ncol = 3;
-      const mgard::TensorMeshHierarchy<2, TestType> hierarchy({nrow, ncol});
+      const mgard::TensorMeshHierarchy<2, TestType> hierarchy({5, 3});
       std::vector<TestType> v = {-4, -4, -2, -4, -1, 2, -4, 1,
                                  5,  0,  3,  8,  2,  8, 9};
-      std::vector<TestType> row_vec(ncol);
-      std::vector<TestType> col_vec(nrow);
       {
-        mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data(),
-                                                   row_vec, col_vec);
+        mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
         const std::vector<TestType> expected = {
             -4, -1, -2, 0, 0.25, 0.5, -4, 0.5, 5, 1, 0, 1, 2, 2.5, 9};
         REQUIRE(v == expected);
       }
-      REQUIRE_THROWS(mgard::interpolate_old_to_new_and_subtract(
-          hierarchy, 1, v.data(), row_vec, col_vec));
+      REQUIRE_THROWS(
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v.data()));
+    }
+    {
+      const mgard::TensorMeshHierarchy<2, TestType> hierarchy({5, 9});
+      const std::vector<TestType> u = {
+          4.0,  4.0,  -20.0, -4.0,  12.0,  8.0,   4.0,   -4.0,  8.0,
+          0.0,  16.0, -8.0,  12.0,  -12.0, -4.0,  -12.0, -16.0, 16.0,
+          -4.0, 12.0, 16.0,  -12.0, -4.0,  -16.0, -16.0, 20.0,  0.0,
+          8.0,  12.0, -16.0, 0.0,   4.0,   0.0,   16.0,  20.0,  -8.0,
+          12.0, 8.0,  8.0,   12.0,  -4.0,  -20.0, 12.0,  -20.0, -16.0};
+      {
+        std::vector<TestType> v = u;
+        mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
+        const std::vector<TestType> expected = {
+            4.0,  12.0, -20.0, 0.0,   12.0,  0.0,   4.0,   -10.0, 8.0,
+            0.0,  17.0, -6.0,  11.0,  -16.0, -3.0,  -6.0,  -15.0, 12.0,
+            -4.0, 6.0,  16.0,  -18.0, -4.0,  -6.0,  -16.0, 28.0,  0.0,
+            4.0,  4.0,  -28.0, -4.0,  8.0,   3.0,   18.0,  25.0,  0.0,
+            12.0, -2.0, 8.0,   10.0,  -4.0,  -24.0, 12.0,  -18.0, -16.0};
+        REQUIRE(v == expected);
+      }
+      {
+        std::vector<TestType> v = u;
+        mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v.data());
+        const std::vector<TestType> expected = {
+            4.0,   4.0,  -28.0, -4.0,  12.0,  8.0,   -6.0,  -4.0,  8.0,
+            0.0,   16.0, -8.0,  12.0,  -12.0, -4.0,  -12.0, -16.0, 16.0,
+            -12.0, 12.0, 10.0,  -12.0, -8.0,  -16.0, -16.0, 20.0,  4.0,
+            8.0,   12.0, -16.0, 0.0,   4.0,   0.0,   16.0,  20.0,  -8.0,
+            12.0,  8.0,  4.0,   12.0,  -4.0,  -20.0, 22.0,  -20.0, -16.0};
+        REQUIRE(v == expected);
+      }
+    }
+    {
+      const mgard::TensorMeshHierarchy<3, TestType> hierarchy({5, 3, 3});
+      std::vector<TestType> v = {
+          1.0,  0.0, 3.0,  0.0, 0.0, 0.0, 7.0,  0.0, 9.0,  0.0, 0.0, 0.0,
+          0.0,  0.0, 0.0,  0.0, 0.0, 0.0, 19.0, 0.0, 21.0, 0.0, 0.0, 0.0,
+          25.0, 0.0, 27.0, 0.0, 0.0, 0.0, 0.0,  0.0, 0.0,  0.0, 0.0, 0.0,
+          37.0, 0.0, 39.0, 0.0, 0.0, 0.0, 43.0, 0.0, 45.0};
+      mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
+      const std::vector<TestType> expected = {
+          1.0,   -2.0,  3.0,   -4.0,  -5.0,  -6.0,  7.0,   -8.0,  9.0,
+          -10.0, -11.0, -12.0, -13.0, -14.0, -15.0, -16.0, -17.0, -18.0,
+          19.0,  -20.0, 21.0,  -22.0, -23.0, -24.0, 25.0,  -26.0, 27.0,
+          -28.0, -29.0, -30.0, -31.0, -32.0, -33.0, -34.0, -35.0, -36.0,
+          37.0,  -38.0, 39.0,  -40.0, -41.0, -42.0, 43.0,  -44.0, 45.0};
+      REQUIRE(v == expected);
     }
   }
 }
