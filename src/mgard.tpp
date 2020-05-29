@@ -1332,7 +1332,7 @@ void refactor_1D(const int ncol, const int l_target, Real *v,
     int stride = std::pow(2, l); // current stride
     int Cstride = stride * 2;    // coarser stride
 #if 1
-    interpolate_old_to_new_and_subtract(ncol, l, v, row_vec);
+    interpolate_old_to_new_and_subtract(hierarchy, l, 0, v);
 #endif
     // copy the nodal values of v on l  to matrix work
     copy_level(hierarchy, l, v, work.data());
@@ -1343,11 +1343,11 @@ void refactor_1D(const int ncol, const int l_target, Real *v,
       row_vec[jcol] = work[jcol];
     }
 
-    mass_matrix_multiply(l, row_vec);
+    mass_matrix_multiply(hierarchy, l, 0, row_vec.data());
 
-    restriction(l + 1, row_vec);
+    restriction(hierarchy, l + 1, 0, row_vec.data());
 
-    solve_tridiag_M(l + 1, row_vec);
+    solve_tridiag_M(hierarchy, l + 1, 0, row_vec.data());
 
     for (int jcol = 0; jcol < ncol; ++jcol) {
       work[jcol] = row_vec[jcol];
@@ -1370,7 +1370,7 @@ void refactor(const int nrow, const int ncol, const int l_target, Real *v,
     int stride = std::pow(2, l); // current stride
     int Cstride = stride * 2;    // coarser stride
 
-    interpolate_old_to_new_and_subtract(hierarchy, l, v, row_vec, col_vec);
+    interpolate_old_to_new_and_subtract(hierarchy, l, v);
     // copy the nodal values of v on l  to matrix work
     copy_level(hierarchy, l, v, work.data());
 
