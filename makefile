@@ -41,13 +41,14 @@ benchmarks@LDLIBS := -lbenchmark -lbenchmark_main -pthread $(structured@LDLIBS) 
 dirty@FILES =
 dirty@DIRECTORIES =
 
+#Tested but not compiled. `$(STEM).hpp` exists, `$(STEM).tpp` might exist, and `$(STEM).cpp` does not exist. These must have associated tests.
+structured@HEADER_ONLY := TensorMeshLevel
 structured@MGARD_STEMS_TESTED := interpolation mgard mgard_mesh
 structured@MGARD_STEMS_UNTESTED := mgard_api mgard_nuni mgard_compress
 structured@MGARD_STEMS = $(structured@MGARD_STEMS_TESTED) $(structured@MGARD_STEMS_UNTESTED)
 structured@TEST_STEMS := mgard_test
 structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
 
-#Tested but not compiled. `$(STEM).hpp` exists, `$(STEM).tpp` might exist, and `$(STEM).cpp` does not exist.
 unstructured@HEADER_ONLY := blas utilities data UniformEdgeFamilies LinearQuantizer SituatedCoefficientRange MultilevelCoefficientQuantizer
 unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy UniformRestriction norms estimators EnumeratedMeshRange indicators IndicatorInput
 unstructured@STEMS = $(unstructured@MGARD_STEMS)
@@ -55,7 +56,7 @@ unstructured@STEMS = $(unstructured@MGARD_STEMS)
 tests@DIR_ROOT := tests
 tests@DIR_INC := $(tests@DIR_ROOT)/$(DIR_INC)
 tests@DIR_SRC := $(tests@DIR_ROOT)/$(DIR_SRC)
-tests@STEMS := $(foreach STEM,$(structured@MGARD_STEMS_TESTED) $(unstructured@STEMS) $(unstructured@HEADER_ONLY),test_$(STEM)) testing_utilities main
+tests@STEMS := $(foreach STEM,$(structured@MGARD_STEMS_TESTED) $(structured@HEADER_ONLY) $(unstructured@STEMS) $(unstructured@HEADER_ONLY),test_$(STEM)) testing_utilities main
 tests@EXECUTABLE := $(DIR_BIN)/tests
 
 tests@SCRIPT := $(DIR_BIN)/mgard_test
