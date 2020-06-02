@@ -265,55 +265,55 @@ subtract_level<3, double>(const TensorMeshHierarchy<3, double> &hierarchy,
 
 template void
 quantize_interleave<1, float>(const TensorMeshHierarchy<1, float> &hierarchy,
-                              float const *const v, std::vector<int> &work,
+                              float const *const v, int *const work,
                               const float norm, const float tol);
 
 template void
 quantize_interleave<2, float>(const TensorMeshHierarchy<2, float> &hierarchy,
-                              float const *const v, std::vector<int> &work,
+                              float const *const v, int *const work,
                               const float norm, const float tol);
 template void
 quantize_interleave<3, float>(const TensorMeshHierarchy<3, float> &hierarchy,
-                              float const *const v, std::vector<int> &work,
+                              float const *const v, int *const work,
                               const float norm, const float tol);
 
 template void
 quantize_interleave<1, double>(const TensorMeshHierarchy<1, double> &hierarchy,
-                               double const *const v, std::vector<int> &work,
+                               double const *const v, int *const work,
                                const double norm, const double tol);
 
 template void
 quantize_interleave<2, double>(const TensorMeshHierarchy<2, double> &hierarchy,
-                               double const *const v, std::vector<int> &work,
+                               double const *const v, int *const work,
                                const double norm, const double tol);
 template void
 quantize_interleave<3, double>(const TensorMeshHierarchy<3, double> &hierarchy,
-                               double const *const v, std::vector<int> &work,
+                               double const *const v, int *const work,
                                const double norm, const double tol);
 
 template void
 dequantize_interleave(const TensorMeshHierarchy<1, float> &hierarchy,
-                      float *const v, const std::vector<int> &work);
+                      float *const v, int const *const work);
 
 template void
 dequantize_interleave(const TensorMeshHierarchy<2, float> &hierarchy,
-                      float *const v, const std::vector<int> &work);
+                      float *const v, int const *const work);
 
 template void
 dequantize_interleave(const TensorMeshHierarchy<3, float> &hierarchy,
-                      float *const v, const std::vector<int> &work);
+                      float *const v, int const *const work);
 
 template void
 dequantize_interleave(const TensorMeshHierarchy<1, double> &hierarchy,
-                      double *const v, const std::vector<int> &work);
+                      double *const v, int const *const work);
 
 template void
 dequantize_interleave(const TensorMeshHierarchy<2, double> &hierarchy,
-                      double *const v, const std::vector<int> &work);
+                      double *const v, int const *const work);
 
 template void
 dequantize_interleave(const TensorMeshHierarchy<3, double> &hierarchy,
-                      double *const v, const std::vector<int> &work);
+                      double *const v, int const *const work);
 
 template unsigned char *refactor_qz<float>(int nrow, int ncol, int nfib,
                                            const float *v, int &outsize,

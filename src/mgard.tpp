@@ -75,7 +75,7 @@ refactor_qz(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
   std::vector<int> qv(nrow * ncol * nfib + size_ratio);
 
   // rename this to quantize Linfty or smthng!!!!
-  mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
+  quantize_interleave(hierarchy, v.data(), qv.data(), norm, tol);
 
   std::vector<unsigned char> out_data;
 
@@ -245,7 +245,7 @@ Real *recompose_udq(int nrow, int ncol, int nfib, std::vector<Real> &coords_x,
                                  sizeof(int)); // decompress input buffer
   Real *v = (Real *)malloc(nrow * ncol * nfib * sizeof(Real));
 
-  mgard::dequantize_interleave(hierarchy, v, out_data);
+  dequantize_interleave(hierarchy, v, out_data.data());
 
   mgard_gen::recompose_3D(dims.rnded[0], dims.rnded[1], dims.rnded[2],
                           dims.input[0], dims.input[1], dims.input[2], l_target,
@@ -351,7 +351,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(ncol + size_ratio);
 
-    mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
+    quantize_interleave(hierarchy, v.data(), qv.data(), norm, tol);
 
     std::vector<unsigned char> out_data;
 
@@ -377,7 +377,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(ncol + size_ratio);
 
-    mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
+    quantize_interleave(hierarchy, v.data(), qv.data(), norm, tol);
 
     std::vector<unsigned char> out_data;
 
@@ -411,7 +411,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
     const int size_ratio = sizeof(Real) / sizeof(int);
     std::vector<int> qv(nrow * ncol + size_ratio);
 
-    mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
+    quantize_interleave(hierarchy, v.data(), qv.data(), norm, tol);
 
     std::vector<unsigned char> out_data;
 
@@ -465,7 +465,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
   std::vector<int> qv(nrow * ncol + size_ratio);
 
   tol /= dims.nlevel + 1;
-  mgard::quantize_interleave(hierarchy, v.data(), qv, norm, tol);
+  quantize_interleave(hierarchy, v.data(), qv.data(), norm, tol);
 
   std::vector<unsigned char> out_data;
 
@@ -595,7 +595,7 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
-    mgard::dequantize_interleave(hierarchy, v, out_data);
+    dequantize_interleave(hierarchy, v, out_data.data());
     out_data.clear();
 
     std::vector<Real> row_vec(ncol);
@@ -618,7 +618,7 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
-    mgard::dequantize_interleave(hierarchy, v, out_data);
+    dequantize_interleave(hierarchy, v, out_data.data());
 
     std::vector<Real> row_vec(ncol);
     std::vector<Real> work(ncol);
@@ -657,7 +657,7 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
-    mgard::dequantize_interleave(hierarchy, v, out_data);
+    mgard::dequantize_interleave(hierarchy, v, out_data.data());
     out_data.clear();
 
     std::vector<Real> row_vec(ncol);
@@ -681,7 +681,7 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
-    mgard::dequantize_interleave(hierarchy, v, out_data);
+    mgard::dequantize_interleave(hierarchy, v, out_data.data());
 
     std::vector<Real> row_vec(ncol);
     std::vector<Real> work(ncol);
@@ -712,7 +712,7 @@ Real *recompose_udq_2D(int nrow, int ncol, unsigned char *data, int data_len) {
 
     Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
 
-    mgard::dequantize_interleave(hierarchy, v, out_data);
+    dequantize_interleave(hierarchy, v, out_data.data());
     out_data.clear();
 
     std::vector<Real> row_vec(ncol);
@@ -751,7 +751,7 @@ Real *recompose_udq_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 
   Real *v = (Real *)malloc(nrow * ncol * sizeof(Real));
 
-  mgard::dequantize_interleave(hierarchy, v, out_data);
+  dequantize_interleave(hierarchy, v, out_data.data());
 
   std::vector<Real> row_vec(ncol);
   std::vector<Real> col_vec(nrow);
@@ -1259,13 +1259,13 @@ void subtract_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
 
 template <std::size_t N, typename Real>
 void quantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
-                         Real const *const v, std::vector<int> &work,
-                         const Real norm, const Real tol) {
+                         Real const *const v, int *const work, const Real norm,
+                         const Real tol) {
   static_assert(sizeof(Real) % sizeof(int) == 0,
                 "`int` size does not divide `Real` size");
   const std::size_t size_ratio = sizeof(Real) / sizeof(int);
   const mgard::LinearQuantizer<Real, int> quantizer(norm * tol);
-  std::memcpy(work.data(), &quantizer.quantum, sizeof(Real));
+  std::memcpy(work, &quantizer.quantum, sizeof(Real));
   for (std::size_t index = 0; index < hierarchy.ndof(); ++index) {
     work[size_ratio + index] = quantizer(v[index]);
   }
@@ -1273,13 +1273,13 @@ void quantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
 
 template <std::size_t N, typename Real>
 void dequantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
-                           Real *const v, const std::vector<int> &work) {
+                           Real *const v, int const *const work) {
   static_assert(sizeof(Real) % sizeof(int) == 0,
                 "`int` size does not divide `Real` size");
   const std::size_t size_ratio = sizeof(Real) / sizeof(int);
 
   Real quantum;
-  std::memcpy(&quantum, work.data(), sizeof(Real));
+  std::memcpy(&quantum, work, sizeof(Real));
   const mgard::LinearDequantizer<int, Real> quantizer(quantum);
 
   for (std::size_t index = 0; index < hierarchy.ndof(); ++index) {
