@@ -77,6 +77,11 @@ TEST_CASE("`Dimensions2kPlus1`", "[mgard_mesh]") {
     REQUIRE(dims.nlevel == 7);
     REQUIRE(dims.rnded == dims.input);
   }
+  {
+    const mgard::Dimensions2kPlus1<2> dims({6, 5});
+    const std::array<std::size_t, 2> expected = {5, 5};
+    REQUIRE(dims.rnded == expected);
+  }
 
   REQUIRE_THROWS(mgard::Dimensions2kPlus1<3>({1, 1, 1}));
   REQUIRE_THROWS(mgard::Dimensions2kPlus1<2>({17, 0}));
