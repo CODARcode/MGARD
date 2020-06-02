@@ -396,8 +396,10 @@ TEST_CASE("2D (de)quantization", "[mgard]") {
       value = distribution(generator);
     }
 
-    mgard::quantize_interleave(hierarchy, v.data(), quantized, norm, tol);
-    mgard::dequantize_interleave(hierarchy, dequantized.data(), quantized);
+    mgard::quantize_interleave(hierarchy, v.data(), quantized.data(), norm,
+                               tol);
+    mgard::dequantize_interleave(hierarchy, dequantized.data(),
+                                 quantized.data());
 
     TrialTracker tracker;
     for (std::size_t i = 0; i < N; ++i) {
@@ -427,9 +429,9 @@ TEST_CASE("2D (de)quantization", "[mgard]") {
     std::vector<double> dequantized(N);
     std::vector<int> requantized(sizeof(double) / sizeof(int) + N);
 
-    mgard::dequantize_interleave(hierarchy, dequantized.data(), v);
-    mgard::quantize_interleave(hierarchy, dequantized.data(), requantized, norm,
-                               tol);
+    mgard::dequantize_interleave(hierarchy, dequantized.data(), v.data());
+    mgard::quantize_interleave(hierarchy, dequantized.data(),
+                               requantized.data(), norm, tol);
 
     TrialTracker tracker;
     {

@@ -175,8 +175,8 @@ void subtract_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
 //!\param[in] tol Error tolerance, appropriately scaled.
 template <std::size_t N, typename Real>
 void quantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
-                         Real const *const v, std::vector<int> &work,
-                         const Real norm, const Real tol);
+                         Real const *const v, int *const work, const Real norm,
+                         const Real tol);
 
 //! Dequantize an array of quantized multilevel coefficients.
 //!
@@ -187,7 +187,7 @@ void quantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
 //!\param[in] work Array of quantized multilevel coefficients to be dequantized.
 template <std::size_t N, typename Real>
 void dequantize_interleave(const TensorMeshHierarchy<N, Real> &hierarchy,
-                           Real *const v, const std::vector<int> &work);
+                           Real *const v, int const *const work);
 
 template <typename Real>
 unsigned char *refactor_qz(int nrow, int ncol, int nfib, const Real *v,
