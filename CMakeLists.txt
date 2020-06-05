@@ -68,7 +68,6 @@ endif()
 find_package(ZLIB REQUIRED)
 find_package(ADIOS2)
 
-
 # Set library
 add_library(mgard
   src/mgard.cpp                     include/mgard.h
@@ -232,9 +231,12 @@ if(BUILD_TESTING)
   target_link_libraries(mgard_check_cuda mgard  ${CMAKE_DL_LIBS})
   set_target_properties(mgard_check_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-  add_executable(mgard_check_cuda_fake_data ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_check_cuda_fake_data.cpp)
-  target_link_libraries(mgard_check_cuda_fake_data mgard  ${CMAKE_DL_LIBS})
-  set_target_properties(mgard_check_cuda_fake_data PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+  add_executable(mgard_check_cuda_and_cpu ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_check_cuda_and_cpu.cpp)
+  target_link_libraries(mgard_check_cuda_and_cpu mgard  ${CMAKE_DL_LIBS})
+  set_target_properties(mgard_check_cuda_and_cpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+  
+
 
 
   # add_executable(mgard_benchmark_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/benchmark_cuda.cu)

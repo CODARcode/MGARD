@@ -2,9 +2,10 @@
 #### a. ADIOS2: https://github.com/ornladios/ADIOS2
 #### b. Zlib: https://zlib.net/
 ### 2. Compile and install MAGRD
-#### a. ```cd``` into the root of this repository.
-#### b. Create a ```build``` directory and ```cd``` into that directory
-#### c. Use ```CMake``` to build the MGARD and install it
+#### a. Checkout ```mgard-cuda``` branch
+#### b. ```cd``` into the root of this repository.
+#### c. Create a ```build``` directory and ```cd``` into that directory
+#### d. Use ```CMake``` to build the MGARD and install it
 ### 3. Testing 
 #### a. ```cd``` into the ```cuda_test```  directory.
 #### b. Generate Gray-Scott simulation data
