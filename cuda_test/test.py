@@ -17,7 +17,7 @@ CSV_PREFIX_PARA="./para-run/" + PLATFORM + "/"
 
 
 SMALL_SIZE = 12
-MEDIUM_SIZE = 20
+MEDIUM_SIZE = 18
 BIGGER_SIZE = 14
 
 plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
@@ -531,6 +531,7 @@ def plot_speedup_all(nrow, ncol, nfib, opt1, opt2, B, num_of_queues, max_level):
       recompose_cpu_all = sum_time_all_recompose(result_recompose_cpu, r, c, f, opt1, num_of_queues)
       recompose_gpu_all = sum_time_all_recompose(result_recompose_gpu, r, c, f, opt2, num_of_queues)
 
+
       refactor_speedup_all.append(refractor_cpu_all / refractor_gpu_all)
       recompose_speedup_all.append(recompose_cpu_all / recompose_gpu_all)
       if (nfib == 1):
@@ -901,7 +902,6 @@ def single_node_speedup(nrow, ncol, nfib, opt1, opt2, B, num_of_queues):
   print("refactor speedup: " + str(refactor_cpu_all/refactor_gpu_all))
   print("recompose speedup: " + str(recompose_cpu_all/recompose_gpu_all))
 
-
 def bw_at_scale(nrow2, ncol2, nfib2, nrow3, ncol3, nfib3, opt1, opt2, B, num_of_queues):
   refractor_cpu_all_bw2 = np.array([])
   refractor_gpu_all_bw2 = np.array([])
@@ -940,6 +940,10 @@ def bw_at_scale(nrow2, ncol2, nfib2, nrow3, ncol3, nfib3, opt1, opt2, B, num_of_
   # print(recompose_cpu_all_bw)
   print(recompose_gpu_all_bw2)
 
+  print(refractor_gpu_all_bw3)
+
+  print(recompose_gpu_all_bw3)
+
 
   fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
   bar_width = 0.25
@@ -965,6 +969,114 @@ def bw_at_scale(nrow2, ncol2, nfib2, nrow3, ncol3, nfib3, opt1, opt2, B, num_of_
   ax1.legend(tuple([p1, p2, p3, p4]), ['Decompose-3D', 'Recompose-3D','Decompose-2D', 'Recompose-2D'])
   plt.tight_layout()
   plt.savefig(CSV_PREFIX + 'bw_all_{}_{}.png'.format(B, num_of_queues))
+
+
+  # fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
+  # bar_width = 0.25
+  # x_idx = np.array(range(len(recompose_cpu_all_bw)))
+  # y_idx = np.array(range(0, int(np.ceil(np.amax(recompose_gpu_all_bw))), 1000))
+  # nproc_list = ['1', '8', '64', '512', '4096']
+  # p1, = ax1.plot(x_idx, recompose_cpu_all_bw, 'b-s')
+  # p2, = ax1.plot(x_idx, recompose_gpu_all_bw, 'g-o')
+  # ax1.set_xticks(x_idx)
+  # ax1.set_xticklabels(nproc_list)
+  # ax1.set_xlabel("Number of GPUs")
+  # ax1.tick_params(axis='x', rotation=0)
+  # ax1.set_yticks(y_idx)
+  # ax1.set_yticklabels(y_idx)
+  # ax1.set_yscale("log")
+  # ax1.set_ylabel("Throughput (GB/s)")
+  # ax1.grid(which='major', axis='y')
+  # ax1.legend(tuple([p1, p2]), ['CPU', 'GPU'])
+  # plt.tight_layout()
+  # plt.savefig(CSV_PREFIX + 'bw_rcompose_all_{}_{}_{}_{}_{}.png'.format(nrow, ncol, nfib, B, num_of_queues))
+
+def autolabel(ax, rects, labels):
+    """Attach a text label above each bar in *rects*, displaying its height."""
+    i = 0
+    for rect in rects:
+        height = rect.get_height()
+        ax.annotate("{:.2f} TB/s".format(labels[i]),
+                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xytext=(0, 3),  # 3 points vertical offset
+                    textcoords="offset points",
+                    ha='center', va='bottom')
+        i += 1
+
+def bw_at_scale2(nrow2, ncol2, nfib2, nrow3, ncol3, nfib3, opt1, opt2, B, num_of_queues2, num_of_queue3):
+  refactor_cpu_all_bw2 = np.array([])
+  refactor_gpu_all_bw2 = np.array([])
+  recompose_cpu_all_bw2 = np.array([])
+  recompose_gpu_all_bw2 = np.array([])
+
+  refactor_cpu_all_bw3 = np.array([])
+  refactor_gpu_all_bw3 = np.array([])
+  recompose_cpu_all_bw3 = np.array([])
+  recompose_gpu_all_bw3 = np.array([])
+
+
+  for nproc in [1, 8, 64, 512, 4096]:
+    # bw_sum2 = np.array([0.0, 0.0, 0.0, 0.0])
+    #bw2 = get_bw(nrow2, ncol2, nfib2, opt1, opt2, B, num_of_queues, nproc, 0)
+    # bw_sum2 = bw2 * nproc
+    bw_sum3 = np.array([0.0, 0.0, 0.0, 0.0])
+    bw3 = get_bw(nrow3, ncol3, nfib3, opt1, opt2, B, num_of_queues3, nproc, 0)
+    print(bw3)
+    bw_sum3 = bw3 * nproc
+
+
+    # refactor_cpu_all_bw2 = np.append(refactor_cpu_all_bw2, bw_sum2[0]/1024)
+    # refactor_gpu_all_bw2 = np.append(refactor_gpu_all_bw2, bw_sum2[1]/1024)
+    # recompose_cpu_all_bw2 = np.append(recompose_cpu_all_bw2, bw_sum2[2]/1024)
+    # recompose_gpu_all_bw2 = np.append(recompose_gpu_all_bw2, bw_sum2[3]/1024)
+
+    refactor_cpu_all_bw3 = np.append(refactor_cpu_all_bw3, bw_sum3[0]/1024)
+    refactor_gpu_all_bw3 = np.append(refactor_gpu_all_bw3, bw_sum3[1]/1024)
+    recompose_cpu_all_bw3 = np.append(recompose_cpu_all_bw3, bw_sum3[2]/1024)
+    recompose_gpu_all_bw3 = np.append(recompose_gpu_all_bw3, bw_sum3[3]/1024)
+
+  # print(refractor_cpu_all_bw)
+  # print(refactor_gpu_all_bw2)
+  # print(recompose_cpu_all_bw)
+  # print(recompose_gpu_all_bw2)
+
+  print(refactor_cpu_all_bw3)
+  print(refactor_gpu_all_bw3)
+  print(recompose_cpu_all_bw3)
+  print(recompose_gpu_all_bw3)
+
+
+  fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(8,6))
+  bar_width = 0.25
+  #x_idx = np.array(range(len(refractor_cpu_all_bw)))
+  x_idx = np.array([0, 1])
+  y_idx = np.array(range(0, 24, 2))
+  #nproc_list = ['$2^0$', '$2^3$', '$2^6$', '$2^9$', '$2^{12}$']
+  #nproc_list = [1, 8, 64,512, 4096]
+  bar1 = ax1.bar(x_idx, [refactor_cpu_all_bw3[4],recompose_cpu_all_bw3[4]] , align='center', width=bar_width, color = 'blue')
+  bar2 = ax1.bar(x_idx+bar_width, [refactor_gpu_all_bw3[4],recompose_gpu_all_bw3[4]] , align='center', width=bar_width, color = 'yellowgreen')
+  l1 = ax1.axhline(y=2.5, color='k', linestyle='--')
+  a1 = ax1.annotate('Peak GPFS Read/Write on Summit: 2.50TB/s', xy=(0.15, 2.5/20+0.08), xycoords='figure fraction', color='black')
+
+
+  ax1.set_xticks(x_idx+bar_width/2)
+  #ax1.set_xscale('log', basex=2)
+  ax1.set_xticklabels(['Refactoring', 'Recompose'])
+  #ax1.set_xlabel("Number of GPUs")
+  ax1.tick_params(axis='x', rotation=0)
+  ax1.set_yticks(y_idx)
+  ax1.set_yticklabels(y_idx)
+  #ax1.set_yscale('log', basey=10)
+  ax1.set_ylabel("Aggregated Throughput (TB/s)")
+  #ax1.grid(which='major', axis='y')
+  ax1.legend(tuple([bar1, bar2]), ['CPU', 'GPU'], loc='upper left', ncol = 2)
+
+  autolabel(ax1, bar1, [refactor_cpu_all_bw3[4],recompose_cpu_all_bw3[4]])
+  autolabel(ax1, bar2, [refactor_gpu_all_bw3[4],recompose_gpu_all_bw3[4]])
+
+
+  plt.tight_layout()
+  plt.savefig(CSV_PREFIX + 'mgard-cpu-gpu.png'.format(B, num_of_queues))
 
 
   # fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(12,6))
@@ -1319,8 +1431,13 @@ for i in range(max_level):
   #   avg_run(n, n, n, -1, B, num_of_queues, num_runs)
   #   avg_run(n, n, n, 3, B, num_of_queues, num_runs)
 
+<<<<<<< HEAD
 #######Plot 3D All Size########
 # plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
+=======
+########Plot 3D All Size########
+plot_speedup_all(n, n, n, -1, 3, B, num_of_queues, max_level)
+>>>>>>> afd57838d520e4eebe652fa0057e5c5ea0d06192
 
 
 ########Run 3D All Queues########
@@ -1358,11 +1475,14 @@ num_of_queues=1
 ########Plot 3D One Size Time Breakdown########
 # plot_time_breakdown(n, n, n, -1, 3, B, num_of_queues)
 # plot_time_breakdown2(n, n, n, -1, 3, B, num_of_queues)
+<<<<<<< HEAD
 
 
 ##########Single node speedup###########
 single_node_speedup(66, 66, 66, -1, 3, 16, 32)
 
+=======
+>>>>>>> afd57838d520e4eebe652fa0057e5c5ea0d06192
 
 n3 = 513
 num_of_queues=32
@@ -1370,10 +1490,12 @@ num_of_queues=32
 
 
 n2 = 8193
-num_of_queues=1
+num_of_queues2=1
 # bw_at_scale(n, n, 1, -1, 3, B, num_of_queues)
 
 # bw_at_scale(n2, n2, 1, n3, n3, n3, -1, 3, B, num_of_queues)
+num_of_queues3=32
+bw_at_scale2(n2, n2, 1, n3, n3, n3, -1, 3, B, num_of_queues2, num_of_queues3)
 
 
 n = 513
