@@ -4,6 +4,8 @@
 #include <vector>
 
 namespace mgard {
+void huffman_encoding(int *const in_data, const std::size_t in_data_size,
+                      char *out_data);
 
 //! Compress an array of data using `zlib`.
 //!

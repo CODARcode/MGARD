@@ -510,7 +510,9 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
+    char * huffman_encoded_p = 0;
 
+    mgard::huffman_encoding(qv.data(), qv.size(), huffman_encoded_p);
     mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
     outsize = out_data.size();
     unsigned char *buffer = (unsigned char *)malloc(outsize);
@@ -541,7 +543,8 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
-
+    char * huffman_encoded_p = 0;
+    mgard::huffman_encoding(qv.data(), qv.size(), huffman_encoded_p);
     mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
 
     outsize = out_data.size();
@@ -1529,10 +1532,10 @@ template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
                             std::vector<int> &work, const Real norm,
                             const Real tol) {
-  //  //std::cout  << "Tolerance: " << tol << "\n";
+  std::cout  << "Tolerance: " << tol << "\n";
   const int size_ratio = sizeof(Real) / sizeof(int);
 
-  ////std::cout  << "Norm of sorts: " << norm << "\n";
+  std::cout  << "Norm of sorts: " << norm << "\n";
 
   //    Real quantizer = 2.0*norm * tol;
   const mgard::LinearQuantizer<Real, int> quantizer(norm * tol);
