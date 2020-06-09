@@ -145,22 +145,22 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
   char * p_hit = (char *)malloc ((n - num_miss) * sizeof(int));
   memset (p_hit, 0, (n - num_miss) * sizeof (int));
  
-  char * p_miss = 0;
+  int * p_miss = 0;
   if (num_miss > 0) {
-    p_miss = (char *)malloc (num_miss * sizeof(int));
+    p_miss = (int *)malloc (num_miss * sizeof(int));
     memset (p_miss, 0,  num_miss * sizeof (int));
   }
 
   * out_data_hit = p_hit;
-  * out_data_miss = p_miss;
+  * out_data_miss = (char *)p_miss;
   * out_data_hit_size = 0;
   * out_data_miss_size = 0;
 
   size_t start_bit = 0;
   unsigned int * cur = (unsigned int *) p_hit;
 
-//  for (int i = 0; i < n; i++) {
-  for (int i = 0; i < 128; i++) {
+  for (int i = 0; i < n; i++) {
+//  for (int i = 0; i < 128; i++) {
     int q = quantized_data[i];
     if (q > 0 && q < nql) {
       // for those that are within the range
@@ -202,11 +202,12 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
     }
   }
 
+  // Note: hit size is in bits, while miss size is in bytes.
   * out_data_hit_size = start_bit;
   * out_data_miss_size = num_miss * sizeof(int);
 
   std::cout << "huffman_encoding over (out_data_hit_size = " << * out_data_hit_size
-            << " out_data_miss_size = " << * out_data_miss_size << "\n" ;
+            << " out_data_miss_size = " << * out_data_miss_size << ")\n" ;
 }
 
 void compress_memory_z(void *const in_data, const std::size_t in_data_size,
