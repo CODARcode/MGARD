@@ -78,17 +78,24 @@ void build_codec(htree_node * root, unsigned int code, size_t len, huffman_codec
   }
 }
 
-huffman_codec * build_huffman_tree(int * quantized_data, const std::size_t n) {
+huffman_codec * build_huffman_tree(int * quantized_data, const std::size_t n, size_t & num_outliers) {
   htree_node * root = 0;
   size_t * cnt = (size_t *) malloc (nql * sizeof (size_t));
   memset (cnt, 0, nql * sizeof (size_t));
 
   for (int i = 0; i < n; i++) {
+    // Convert quantization level to positive so that counting freq can be 
+    // easily done. Level 0 is reserved a out-of-range flag.
     quantized_data[i] = quantized_data[i] + nql;
-    if (quantized_data[i] >= 0 && quantized_data[i] < nql) {
+    if (quantized_data[i] > 0 && quantized_data[i] < nql) {
       cnt[quantized_data[i]]++;
+    } else {
+      cnt[0]++;
     }
+
   }
+
+  num_outliers = cnt[0];
 
   std::priority_queue<htree_node *, std::vector<htree_node *>, LessThanByCnt> htree;
   for (int i = 0; i < nql; i++) {
@@ -126,29 +133,46 @@ huffman_codec * build_huffman_tree(int * quantized_data, const std::size_t n) {
 }
 
 void huffman_encoding(int *const quantized_data, const std::size_t n,
-                      char * out_data) {
+                      char ** out_data_hit, size_t * out_data_hit_size,
+		      char ** out_data_miss, size_t * out_data_miss_size) {
   std::cout << "huffman_encoding\n";
+  size_t num_miss = 0;
 
-  huffman_codec * codec = build_huffman_tree(quantized_data, n);
+  huffman_codec * codec = build_huffman_tree(quantized_data, n, num_miss);
 
-  char * p = (char *)malloc (n * sizeof(int));
-  memset (p, 0, n * sizeof (int));
+  assert (n > num_miss);
 
-  int start_bit = 0;
-  unsigned int * cur = (unsigned int *) p;
+  char * p_hit = (char *)malloc ((n - num_miss) * sizeof(int));
+  memset (p_hit, 0, (n - num_miss) * sizeof (int));
+ 
+  char * p_miss = 0;
+  if (num_miss > 0) {
+    p_miss = (char *)malloc (num_miss * sizeof(int));
+    memset (p_miss, 0,  num_miss * sizeof (int));
+  }
 
-  for (int i = 0; i < n; i++) {
+  * out_data_hit = p_hit;
+  * out_data_miss = p_miss;
+  * out_data_hit_size = 0;
+  * out_data_miss_size = 0;
+
+  size_t start_bit = 0;
+  unsigned int * cur = (unsigned int *) p_hit;
+
+//  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < 128; i++) {
     int q = quantized_data[i];
-
-    if (q >= 0 && q < nql) {
+    if (q > 0 && q < nql) {
       // for those that are within the range
       unsigned int code = codec[q].code;
       size_t len = codec[q].len;
 
       assert (len > 0);
 
+      std::cout << "[hit]: the " << i << "-th symbol: " << q << "\n";
+
       if (32 - start_bit % 32 >= len) {
-        code = code << (32 - start_bit % 32);
+        code = code << (32 - start_bit % 32 - len);
 	*(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
 	start_bit += len;
       } else {
@@ -161,32 +185,28 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
 	*(cur + start_bit / 32 + 1) = (*(cur + start_bit / 32 + 1)) | (code << lshift);
 	start_bit += len;
       }
+
+      std::cout << "buffer 1st word" << std::bitset<32>(*cur) << "\n";
+      std::cout << "buffer 2nd word" << std::bitset<32>(*(cur+1)) << "\n";
+
       
     } else {
       // for those that are out of the range
-      unsigned int code = (unsigned int) q;
-      size_t len = 32;
+      unsigned int code = codec[0].code;
+      size_t len = codec[0].len;
 
-      assert (len > 0);
+//      std::cout << "[miss]: the " << i << "-th symbol: " << q << "\n";
 
-      if (32 - start_bit % 32 >= len) {
-        code = code << (32 - start_bit % 32);
-        *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
-        start_bit += len;
-      } else {
-        // current unsigned int cannot hold the code
-        // copy 32 - start_bit % 32 bits to the current int
-        // and copy  the rest len - (32 - start_bit % 32) to the next int
-        size_t rshift = len - (32 - start_bit % 32);
-        size_t lshift = 32 - rshift;
-        *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | (code >> rshift);
-        *(cur + start_bit / 32 + 1) = (*(cur + start_bit / 32 + 1)) | (code << lshift);
-        start_bit += len;
-      }
+      * p_miss = q;
+      p_miss++;
     }
   }
 
-  std::cout << "huffman_encoding over\n";
+  * out_data_hit_size = start_bit;
+  * out_data_miss_size = num_miss * sizeof(int);
+
+  std::cout << "huffman_encoding over (out_data_hit_size = " << * out_data_hit_size
+            << " out_data_miss_size = " << * out_data_miss_size << "\n" ;
 }
 
 void compress_memory_z(void *const in_data, const std::size_t in_data_size,

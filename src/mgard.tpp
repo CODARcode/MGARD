@@ -510,9 +510,14 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
-    char * huffman_encoded_p = 0;
+    char * out_data_hit = 0;
+    size_t out_data_hit_size;
+    char * out_data_miss = 0;
+    size_t out_data_miss_size;
 
-    mgard::huffman_encoding(qv.data(), qv.size(), huffman_encoded_p);
+    mgard::huffman_encoding(qv.data(), qv.size(), 
+                            &out_data_hit, &out_data_hit_size,
+			    &out_data_miss, &out_data_miss_size);
     mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
     outsize = out_data.size();
     unsigned char *buffer = (unsigned char *)malloc(outsize);
@@ -543,8 +548,13 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
-    char * huffman_encoded_p = 0;
-    mgard::huffman_encoding(qv.data(), qv.size(), huffman_encoded_p);
+    char * out_data_hit = 0;
+    size_t out_data_hit_size;
+    char * out_data_miss = 0;
+    size_t out_data_miss_size;
+    mgard::huffman_encoding(qv.data(), qv.size(), 
+		    &out_data_hit, &out_data_hit_size,
+		    &out_data_miss, &out_data_miss_size);
     mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
 
     outsize = out_data.size();
