@@ -514,10 +514,13 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     size_t out_data_hit_size;
     char * out_data_miss = 0;
     size_t out_data_miss_size;
+    char * out_tree = 0;
+    size_t out_tree_size;
 
     mgard::huffman_encoding(qv.data(), qv.size(), 
                             &out_data_hit, &out_data_hit_size,
-			    &out_data_miss, &out_data_miss_size);
+			    &out_data_miss, &out_data_miss_size,
+			    &out_tree, &out_tree_size);
     mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
     outsize = out_data.size();
     unsigned char *buffer = (unsigned char *)malloc(outsize);
@@ -552,9 +555,37 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     size_t out_data_hit_size;
     char * out_data_miss = 0;
     size_t out_data_miss_size;
+    char * out_tree = 0;
+    size_t out_tree_size;
     mgard::huffman_encoding(qv.data(), qv.size(), 
 		    &out_data_hit, &out_data_hit_size,
-		    &out_data_miss, &out_data_miss_size);
+		    &out_data_miss, &out_data_miss_size,
+		    &out_tree, &out_tree_size);
+
+    char * buf = (char * ) malloc (3 * sizeof (size_t) + out_data_hit_size / 8 + 1 + out_data_miss_size + out_tree_size);
+
+    * (size_t *) buf = out_tree_size;
+    buf += sizeof(size_t);
+
+    * (size_t *) buf = out_data_hit_size / 8 + 1;
+    buf += sizeof(size_t);
+
+    * (size_t *) buf = out_data_miss_size;
+    buf += sizeof(size_t);
+
+    memcpy (buf, out_tree, out_tree_size);
+    buf += out_tree_size;
+
+    memcpy (buf, out_data_hit, out_data_hit_size / 8 + 1);
+    buf += out_data_hit_size / 8 + 1;
+
+    memcpy (buf, out_data_miss, out_data_miss_size);
+    buf += out_data_miss_size;
+
+    free (out_tree);
+    free (out_data_hit);
+    free (out_data_miss);
+
     mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
 
     outsize = out_data.size();

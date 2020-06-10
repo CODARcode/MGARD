@@ -6,7 +6,8 @@
 namespace mgard {
 void huffman_encoding(int *const in_data, const std::size_t in_data_size,
                       char **out_data_hit, size_t * out_data_hit_size,
-		      char **out_data_miss, size_t * out_data_miss_size);
+		      char **out_data_miss, size_t * out_data_miss_size,
+		      char ** out_tree, size_t * out_tree_size);
 
 //! Compress an array of data using `zlib`.
 //!

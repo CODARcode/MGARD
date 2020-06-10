@@ -12,8 +12,8 @@
 #include <zlib.h>
 
 namespace mgard {
-//  int nql = 32768;
-  int nql = 8;
+  int nql = 32768;
+//  int nql = 8;
 struct htree_node {
   int q;
   size_t cnt;
@@ -134,7 +134,8 @@ huffman_codec * build_huffman_tree(int * quantized_data, const std::size_t n, si
 
 void huffman_encoding(int *const quantized_data, const std::size_t n,
                       char ** out_data_hit, size_t * out_data_hit_size,
-		      char ** out_data_miss, size_t * out_data_miss_size) {
+		      char ** out_data_miss, size_t * out_data_miss_size,
+		      char ** out_tree, size_t * out_tree_size) {
   std::cout << "huffman_encoding\n";
   size_t num_miss = 0;
 
@@ -205,6 +206,16 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
   // Note: hit size is in bits, while miss size is in bytes.
   * out_data_hit_size = start_bit;
   * out_data_miss_size = num_miss * sizeof(int);
+
+  // write codec to buffer
+  unsigned int * p_codec = (unsigned int *) malloc (2 * sizeof(unsigned int) * nql);
+  for (int i = 0; i < nql; i++) {
+    p_codec[2 * i] = codec[i].code;
+    p_codec[2 * i + 1] = codec[i].len;
+  }
+
+  * out_tree = (char * ) p_codec;
+  * out_tree_size = 2 * sizeof(unsigned int) * nql;
 
   std::cout << "huffman_encoding over (out_data_hit_size = " << * out_data_hit_size
             << " out_data_miss_size = " << * out_data_miss_size << ")\n" ;
