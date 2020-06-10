@@ -551,6 +551,8 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
+
+
     char * out_data_hit = 0;
     size_t out_data_hit_size;
     char * out_data_miss = 0;
@@ -562,7 +564,9 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 		    &out_data_miss, &out_data_miss_size,
 		    &out_tree, &out_tree_size);
 
-    char * buf = (char * ) malloc (3 * sizeof (size_t) + out_data_hit_size / 8 + 1 + out_data_miss_size + out_tree_size);
+    size_t total_size = 3 * sizeof (size_t) + out_data_hit_size / 8 + 1 + out_data_miss_size + out_tree_size;
+    char * out_buff = (char * ) malloc (total_size);
+    char * buf = out_buff;
 
     * (size_t *) buf = out_tree_size;
     buf += sizeof(size_t);
@@ -586,11 +590,15 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     free (out_data_hit);
     free (out_data_miss);
 
-    mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-
+    if (0) {
+      mgard::compress_memory_z(out_buff, total_size, out_data);
+    } else {
+      mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
+    }
     outsize = out_data.size();
     unsigned char *buffer = (unsigned char *)malloc(outsize);
     std::copy(out_data.begin(), out_data.end(), buffer);
+
     return buffer;
   }
 }
