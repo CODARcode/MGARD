@@ -9,13 +9,37 @@
 #define MGARD_API_TPP
 
 #include <cassert>
+#include <cstddef>
 
+#include <array>
 #include <iostream>
 #include <numeric>
+#include <vector>
 
 #include "mgard.hpp"
 #include "mgard_norms.hpp"
 #include "mgard_nuni.h"
+
+// This should eventually be folded into `TensorMeshHierarchy`.
+static std::vector<int> dataset_dimensions(const std::array<int, 3> input) {
+  std::vector<int> trimmed;
+  for (const int d : input) {
+    if (d <= 0) {
+      throw std::invalid_argument("all dimensions must be positive");
+    } else if (d == 1) {
+      // Skip.
+    } else if (d < 3) {
+      throw std::invalid_argument("no dimension can be 2 or 3");
+    } else {
+      trimmed.push_back(d);
+    }
+  }
+  if (trimmed.empty()) {
+    throw std::invalid_argument(
+        "at least one dimension must be greater than 1");
+  }
+  return trimmed;
+}
 
 template <typename Real>
 unsigned char *mgard_compress(Real *v, int &out_size, int nrow, int ncol,
@@ -26,30 +50,23 @@ unsigned char *mgard_compress(Real *v, int &out_size, int nrow, int ncol,
 
   Real tol = tol_in;
   assert(tol >= 1e-7);
-  unsigned char *mgard_compressed_ptr = nullptr;
-  if (nrow > 1 && ncol > 1 && nfib > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    assert(nfib > 3);
-
-    mgard_compressed_ptr =
-        mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol);
-    return mgard_compressed_ptr;
-
-  } else if (nrow > 1 && ncol > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    mgard_compressed_ptr = mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol);
-    return mgard_compressed_ptr;
-  } else if (ncol > 1) {
-    assert(ncol > 3);
-
-    mgard_compressed_ptr = mgard::refactor_qz_1D(ncol, v, out_size, tol);
-
-    return mgard_compressed_ptr;
+  unsigned char *p = nullptr;
+  const std::vector<int> dims = dataset_dimensions({nrow, ncol, nfib});
+  switch (dims.size()) {
+  case 3:
+    p = mgard::refactor_qz(dims.at(0), dims.at(1), dims.at(2), v, out_size,
+                           tol);
+    break;
+  case 2:
+    p = mgard::refactor_qz_2D(dims.at(0), dims.at(1), v, out_size, tol);
+    break;
+  case 1:
+    p = mgard::refactor_qz_1D(dims.at(0), v, out_size, tol);
+    break;
+  default:
+    throw std::logic_error("dataset dimension must be 1, 2, or 3");
   }
-
-  return nullptr;
+  return p;
 }
 
 template <typename Real>
@@ -60,33 +77,28 @@ unsigned char *mgard_compress(Real *v, int &out_size, int nrow, int ncol,
 // Perform compression preserving the tolerance in the L-infty norm, arbitrary
 // tensor grids
 {
-
   assert(tol >= 1e-7);
-  unsigned char *mgard_compressed_ptr = nullptr;
-  if (nrow > 1 && ncol > 1 && nfib > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    assert(nfib > 3);
-
-    mgard_compressed_ptr = mgard::refactor_qz(
-        nrow, ncol, nfib, coords_x, coords_y, coords_z, v, out_size, tol);
-    return mgard_compressed_ptr;
-
-  } else if (nrow > 1 && ncol > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    mgard_compressed_ptr =
-        mgard::refactor_qz_2D(nrow, ncol, coords_x, coords_y, v, out_size, tol);
-    return mgard_compressed_ptr;
-  } else if (nrow > 1) {
-    assert(nrow > 3);
-    // To be cleaned up.
-    //    mgard_compressed_ptr =
-    //        mgard::refactor_qz_1D(ncol, coords_x, coords_y, v, out_size, tol);
-
-    return mgard_compressed_ptr;
+  unsigned char *p = nullptr;
+  const std::vector<int> dims = dataset_dimensions({nrow, ncol, nfib});
+  switch (dims.size()) {
+  case 3:
+    p = mgard::refactor_qz(dims.at(0), dims.at(1), dims.at(2), coords_x,
+                           coords_y, coords_z, v, out_size, tol);
+    break;
+  case 2:
+    // This is to spare us the trouble of somehow incorporating the coordinate
+    // vectors into `dims` (note that the `refactor_qz_2D` arguments are
+    // hardcoded to `coords_x` and `coords_y`). Meant to be a stopgap measure
+    // before `TensorMeshHierarchy` is adopted here.
+    assert(nfib == 1);
+    p = mgard::refactor_qz_2D(dims.at(0), dims.at(1), coords_x, coords_y, v,
+                              out_size, tol);
+    break;
+  default:
+    // Waiting on the code being templated by dimension.
+    throw std::logic_error("dataset dimension must be 2 or 3");
   }
-  return nullptr;
+  return p;
 }
 
 template <typename Real>
@@ -97,30 +109,21 @@ unsigned char *mgard_compress(Real *v, int &out_size, int nrow, int ncol,
   Real tol = tol_in;
   assert(tol >= 1e-7);
 
-  unsigned char *mgard_compressed_ptr = nullptr;
-  if (nrow > 1 && ncol > 1 && nfib > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    assert(nfib > 3);
-
-    mgard_compressed_ptr =
-        mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, s);
-    return mgard_compressed_ptr;
-
-  } else if (nrow > 1 && ncol > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    mgard_compressed_ptr =
-        mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol, s);
-
-    return mgard_compressed_ptr;
-  } else if (nrow > 1) {
-    assert(nrow > 3);
-    std::cerr << "MGARD: Not impemented!  Let us know if you need 1D "
-                 "compression...\n";
-    return nullptr;
+  unsigned char *p = nullptr;
+  const std::vector<int> dims = dataset_dimensions({nrow, ncol, nfib});
+  switch (dims.size()) {
+  case 3:
+    p = mgard::refactor_qz(dims.at(0), dims.at(1), dims.at(2), v, out_size, tol,
+                           s);
+    break;
+  case 2:
+    p = mgard::refactor_qz_2D(dims.at(0), dims.at(1), v, out_size, tol, s);
+    break;
+  default:
+    // Waiting on the code being templated by dimension.
+    throw std::logic_error("dataset dimension must be 2 or 3");
   }
-  return nullptr;
+  return p;
 }
 
 template <typename Real>
@@ -131,118 +134,83 @@ unsigned char *mgard_compress(Real *v, int &out_size, int nrow, int ncol,
   // L-2 norm
   Real tol = tol_in;
   assert(tol >= 1e-7);
-  unsigned char *mgard_compressed_ptr = nullptr;
-  if (nrow > 1 && ncol > 1 && nfib > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    assert(nfib > 3);
 
-    std::vector<Real> coords_x(ncol), coords_y(nrow),
-        coords_z(nfib); // coordinate arrays
-    // dummy equispaced coordinates
-    std::iota(std::begin(coords_x), std::end(coords_x), 0);
-    std::iota(std::begin(coords_y), std::end(coords_y), 0);
-    std::iota(std::begin(coords_z), std::end(coords_z), 0);
+  // coordinate arrays
+  std::vector<Real> coords_x(ncol);
+  std::vector<Real> coords_y(nrow);
+  std::vector<Real> coords_z(nfib);
+  // dummy equispaced coordinates
+  std::iota(std::begin(coords_x), std::end(coords_x), 0);
+  std::iota(std::begin(coords_y), std::end(coords_y), 0);
+  std::iota(std::begin(coords_z), std::end(coords_z), 0);
 
-    Real xi_norm =
-        mgard::qoi_norm(nrow, ncol, nfib, coords_x, coords_y, coords_z, qoi, s);
-    tol *= xi_norm;
-    mgard_compressed_ptr =
-        mgard::refactor_qz(nrow, ncol, nfib, v, out_size, tol, -s);
-    return mgard_compressed_ptr;
+  const Real xi_norm =
+      mgard::qoi_norm(nrow, ncol, nfib, coords_x, coords_y, coords_z, qoi, s);
 
-  } else if (nrow > 1 && ncol > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-
-    std::vector<Real> coords_x(ncol), coords_y(nrow),
-        coords_z(nfib); // coordinate arrays
-    // dummy equispaced coordinates
-    std::iota(std::begin(coords_x), std::end(coords_x), 0);
-    std::iota(std::begin(coords_y), std::end(coords_y), 0);
-    std::iota(std::begin(coords_z), std::end(coords_z), 0);
-
-    Real xi_norm =
-        mgard::qoi_norm(nrow, ncol, nfib, coords_x, coords_y, coords_z, qoi, s);
-    tol *= xi_norm;
-
-    mgard_compressed_ptr =
-        mgard::refactor_qz_2D(nrow, ncol, v, out_size, tol, -s);
-    return mgard_compressed_ptr;
-  } else if (nrow > 1) {
-    assert(nrow > 3);
-    std::cerr << "MGARD: Not impemented!  Let us know if you need 1D "
-                 "compression...\n";
-    // mgard_compressed_ptr = mgard::refactor_qz_1D(nrow, v, out_size, *tol);
+  unsigned char *p = nullptr;
+  const std::vector<int> dims = dataset_dimensions({nrow, ncol, nfib});
+  switch (dims.size()) {
+  case 3:
+    p = mgard::refactor_qz(dims.at(0), dims.at(1), dims.at(2), v, out_size,
+                           xi_norm * tol, -s);
+    break;
+  case 2:
+    p = mgard::refactor_qz_2D(dims.at(0), dims.at(1), v, out_size,
+                              xi_norm * tol, -s);
+    break;
+  default:
+    // Waiting on the code being templated by dimension.
+    throw std::logic_error("dataset dimension must be 2 or 3");
   }
-  return nullptr;
+  return p;
 }
 
 template <typename Real>
 Real *mgard_decompress(unsigned char *data, int data_len, int nrow, int ncol,
                        int nfib) {
-  Real *mgard_decompressed_ptr = nullptr;
-
-  if (nrow > 1 && ncol > 1 && nfib > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    assert(nfib > 3);
-
-    mgard_decompressed_ptr =
-        mgard::recompose_udq<Real>(nrow, ncol, nfib, data, data_len);
-    return mgard_decompressed_ptr;
-  } else if (nrow > 1 && ncol > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    mgard_decompressed_ptr =
-        mgard::recompose_udq_2D<Real>(nrow, ncol, data, data_len);
-    //          mgard_decompressed_ptr = mgard::recompose_udq_2D(nrow, ncol,
-    //          data, data_len);
-    return mgard_decompressed_ptr;
-  } else if (ncol > 1) {
-    assert(ncol > 3);
-
-    mgard_decompressed_ptr =
-        mgard::recompose_udq_1D_huffman<Real>(ncol, data, data_len);
-    return mgard_decompressed_ptr;
+  Real *p = nullptr;
+  const std::vector<int> dims = dataset_dimensions({nrow, ncol, nfib});
+  switch (dims.size()) {
+  case 3:
+    p = mgard::recompose_udq<Real>(dims.at(0), dims.at(1), dims.at(2), data,
+                                   data_len);
+    break;
+  case 2:
+    p = mgard::recompose_udq_2D<Real>(dims.at(0), dims.at(1), data, data_len);
+    break;
+  case 1:
+    p = mgard::recompose_udq_1D_huffman<Real>(dims.at(0), data, data_len);
+    break;
+  default:
+    throw std::logic_error("dataset dimension must be 1, 2, or 3");
   }
-  return nullptr;
+  return p;
 }
 
 template <typename Real>
 Real *mgard_decompress(unsigned char *data, int data_len, int nrow, int ncol,
                        int nfib, Real s) {
-
-  Real *mgard_decompressed_ptr = nullptr;
-
-  if (nrow > 1 && ncol > 1 && nfib > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    assert(nfib > 3);
-
-    mgard_decompressed_ptr =
-        mgard::recompose_udq(nrow, ncol, nfib, data, data_len, s);
-    return mgard_decompressed_ptr;
-  } else if (nrow > 1 && ncol > 1) {
-    assert(nrow > 3);
-    assert(ncol > 3);
-    mgard_decompressed_ptr =
-        mgard::recompose_udq_2D(nrow, ncol, data, data_len, s);
-    return mgard_decompressed_ptr;
-  } else if (nrow > 1) {
-    assert(nrow > 3);
-    std::cerr << "MGARD: Not impemented!  Let us know if you need 1D "
-                 "compression...\n";
-    // mgard_decompressed_ptr = mgard::recompose_udq_1D(nrow,  data, data_len);
+  Real *p = nullptr;
+  const std::vector<int> dims = dataset_dimensions({nrow, ncol, nfib});
+  switch (dims.size()) {
+  case 3:
+    p = mgard::recompose_udq(dims.at(0), dims.at(1), dims.at(2), data, data_len,
+                             s);
+    break;
+  case 2:
+    p = mgard::recompose_udq_2D(dims.at(0), dims.at(1), data, data_len, s);
+    break;
+  default:
+    // Waiting on the code being templated by dimension.
+    throw std::logic_error("dataset dimension must be 2 or 3");
   }
-  return nullptr;
+  return p;
 }
 
 template <typename Real>
 unsigned char *mgard_compress(Real *v, int &out_size, int nrow, int ncol,
                               int nfib, Real tol_in, Real norm_of_qoi, Real s) {
-  tol_in *= norm_of_qoi;
-  return mgard_compress(v, out_size, nrow, ncol, nfib, tol_in, s);
+  return mgard_compress(v, out_size, nrow, ncol, nfib, norm_of_qoi * tol_in, s);
 }
 
 #endif
