@@ -29,9 +29,14 @@ public:
   //! Access an element of the array by multiindex.
   //!
   //!\param multiindex Multiindex of the element
-  //!
-  //!\return Element at the multiindex.
   T &at(const std::array<std::size_t, N> multiindex) const;
+
+  //! Isolate a 'spear' of the dataset.
+  //!
+  //!\param multiindex Starting point of the 'spear.'
+  //!\param dimension Dimension in which to extend the 'spear.'
+  MultidimensionalArray<T, 1> slice(const std::array<std::size_t, N> multiindex,
+                                    const std::size_t dimension) const;
 
   //! Underlying memory buffer.
   T *const data;
@@ -46,6 +51,9 @@ protected:
   //! Check that a multiindex is within bounds.
   void
   check_multiindex_bounds(const std::array<std::size_t, N> multiindex) const;
+
+  //! Check that a dimension index is within bounds.
+  void check_dimension_index_bounds(const std::size_t dimension) const;
 };
 
 } // namespace mgard
