@@ -34,6 +34,32 @@ T &MultidimensionalArray<T, N>::at(
 }
 
 template <typename T, std::size_t N>
+MultidimensionalArray<T, 1>
+MultidimensionalArray<T, N>::slice(const std::array<std::size_t, N> multiindex,
+                                   const std::size_t dimension) const {
+  check_multiindex_bounds(multiindex);
+  check_dimension_index_bounds(dimension);
+  if (multiindex.at(dimension)) {
+    throw std::invalid_argument(
+        "slice must start at a lower boundary of the domain");
+  }
+  std::size_t slice_stride = stride;
+  for (std::size_t i = dimension + 1; i < N; ++i) {
+    slice_stride *= dimensions.at(i);
+  }
+  return MultidimensionalArray<T, 1>(&at(multiindex),
+                                     {dimensions.at(dimension)}, slice_stride);
+}
+
+template <typename T, std::size_t N>
+void MultidimensionalArray<T, N>::check_dimension_index_bounds(
+    const std::size_t dimension) const {
+  if (dimension >= N) {
+    throw std::out_of_range("dimension index out of range encountered");
+  }
+}
+
+template <typename T, std::size_t N>
 void MultidimensionalArray<T, N>::check_multiindex_bounds(
     const std::array<std::size_t, N> multiindex) const {
   for (std::size_t i = 0; i < N; ++i) {

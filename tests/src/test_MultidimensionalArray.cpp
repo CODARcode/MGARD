@@ -2,10 +2,24 @@
 
 #include <array>
 #include <numeric>
+#include <vector>
 
 #include "testing_utilities.hpp"
 
 #include "MultidimensionalArray.hpp"
+
+static bool operator==(const mgard::MultidimensionalArray<int, 1> u,
+                       const std::vector<int> expected) {
+  const std::size_t N = u.size();
+  if (N != expected.size()) {
+    return false;
+  }
+  TrialTracker tracker;
+  for (std::size_t i = 0; i < N; ++i) {
+    tracker += u.at({i}) == expected.at(i);
+  }
+  return static_cast<bool>(tracker);
+}
 
 TEST_CASE("ndarray construction and size calculation",
           "[MultidimensionalArray]") {
@@ -61,5 +75,67 @@ TEST_CASE("ndarray indexing", "[MultidimensionalArray]") {
     const std::array<int, 16> expected = {5,  8,  11, 14, 17, 20, 23, 26,
                                           29, 32, 35, 38, 41, 44, 47, 50};
     REQUIRE(obtained == expected);
+  }
+}
+
+TEST_CASE("ndarray slicing", "[MultidimensionalArray]") {
+  std::array<int, 18> values = {7, 0, 5, 4, 8, 6, 2, 6, 8,
+                                4, 2, 4, 1, 6, 1, 1, 0, 6};
+
+  {
+    const mgard::MultidimensionalArray<int, 3> u(values.data(), {3, 2, 3});
+
+    {
+      const std::vector<int> expected = {4, 4, 1};
+      REQUIRE(u.slice({0, 1, 0}, 0) == expected);
+    }
+    {
+      const std::vector<int> expected = {5, 8, 1};
+      REQUIRE(u.slice({0, 0, 2}, 0) == expected);
+    }
+
+    {
+      const std::vector<int> expected = {5, 6};
+      REQUIRE(u.slice({0, 0, 2}, 1) == expected);
+    }
+    {
+      const std::vector<int> expected = {6, 0};
+      REQUIRE(u.slice({2, 0, 1}, 1) == expected);
+    }
+
+    {
+      const std::vector<int> expected = {1, 0, 6};
+      REQUIRE(u.slice({2, 1, 0}, 2) == expected);
+    }
+    {
+      const std::vector<int> expected = {7, 0, 5};
+      REQUIRE(u.slice({0, 0, 0}, 2) == expected);
+    }
+
+    REQUIRE_THROWS(u.slice({1, 1, 1}, 0));
+  }
+
+  {
+    const mgard::MultidimensionalArray<int, 2> u(values.data(), {2, 2}, 2);
+
+    {
+      const std::vector<int> expected = {7, 5};
+      REQUIRE(u.slice({0, 0}, 1) == expected);
+    }
+    {
+      const std::vector<int> expected = {8, 2};
+      REQUIRE(u.slice({1, 0}, 1) == expected);
+    }
+
+    {
+      const std::vector<int> expected = {7, 8};
+      REQUIRE(u.slice({0, 0}, 0) == expected);
+    }
+    {
+      const std::vector<int> expected = {5, 2};
+      REQUIRE(u.slice({0, 1}, 0) == expected);
+    }
+
+    REQUIRE_THROWS(u.slice({2, 2}, 0));
   }
 }
