@@ -15,12 +15,9 @@ _quantize_2D_iterleave_cuda(int nrow,    int ncol,
   int size_ratio = sizeof(T) / sizeof(int);
   for (int y = y0; y < nrow; y += blockDim.y * gridDim.y) {
     for (int x = x0; x < ncol; x += blockDim.x * gridDim.x) {
-      register T v = dv[get_idx(lddv, y, x)];
-      register T v2 = v/quantizer;
-      int quantum = (int)(v2);
-      //quantum /= quantizer;
-      dwork[get_idx(lddwork, y, x) + size_ratio] = quantum;
-      //dwork[get_idx(lddwork, y, x)] = quantum;
+
+      //dwork[get_idx(lddwork, y, x) + size_ratio] = (int)(dv[get_idx(lddv, y, x)]/quantizer);
+      dwork[get_idx(lddwork, y, x) + size_ratio] = copysign(0.5 + fabs(dv[get_idx(lddv, y, x)] / quantizer), dv[get_idx(lddv, y, x)]);
     }
   }
 }

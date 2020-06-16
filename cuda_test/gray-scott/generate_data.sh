@@ -13,13 +13,17 @@ launch_simulation() {
 
 
 # data for single GPU or single CPU runs
-launch_simulation 33 33 33
-launch_simulation 65 65 65
-launch_simulation 129 129 129
-launch_simulation 257 257 257
+# launch_simulation 33 33 33
+# launch_simulation 65 65 65
+# launch_simulation 129 129 129
+# launch_simulation 257 257 257
+
+# launch_simulation 128 128 128
+#launch_simulation 129 129 129
+launch_simulation 17 17 17
 
 #########Large runs############
-#launch_simulation 513 513 513
+# launch_simulation 513 513 513
 #launch_simulation 1025 1025 17
 #launch_simulation 2049 2049 17
 #launch_simulation 4097 4097 17

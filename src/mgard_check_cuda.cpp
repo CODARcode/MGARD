@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
   //mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
   mgard_cuda_handle * handle = new mgard_cuda_handle(num_of_queues);
   mgard_comp_buff = mgard_compress_cuda(iflag, in_buff, out_size, nrow, ncol, nfib, tol, opt, B, profile, *handle);
-  free(in_buff);
+  //free(in_buff);
 
   printf ("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
 
@@ -185,6 +185,13 @@ int main(int argc, char *argv[])
   //mgard_cuda_handle * handle = new mgard_cuda_handle(num_of_queues);
   mgard_out_buff = mgard_decompress_cuda(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, opt, B, profile, *handle);
 
+  double sum = 0.0;
+  
+  for (int i = 0; i < nrow * ncol * nfib; i++) {
+    sum += std::pow(in_buff[i] - mgard_out_buff[i], 2);
+  }
+  sum /= nrow * ncol * nfib;
+  std::cout << "MSE: " << sum << std::endl;
   //FILE *qfile;
   //qfile = fopen ( outfile , "wb" );
   //result = fwrite (mgard_out_buff, 1, lSize, qfile);

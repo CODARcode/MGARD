@@ -1453,7 +1453,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
         row_vec[jcol] = v[mgard_common::get_index3(ncol, nfib, ir, jcol, kf)];
       }
 
-      pi_lminus1_first(row_vec, coords_x, nc, ncol);
+      //pi_lminus1_first(row_vec, coords_x, nc, ncol);
 
       for (int jcol = 0; jcol < ncol; ++jcol) {
         v[mgard_common::get_index3(ncol, nfib, ir, jcol, kf)] = row_vec[jcol];
@@ -1472,7 +1472,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
           //                int irow_r = get_lindex(nr, nrow, irow);
           col_vec[irow] = v[mgard_common::get_index3(ncol, nfib, irow, jr, kf)];
         }
-        pi_lminus1_first(col_vec, coords_y, nr, nrow);
+        //pi_lminus1_first(col_vec, coords_y, nr, nrow);
         for (int irow = 0; irow < nrow; ++irow) {
           v[mgard_common::get_index3(ncol, nfib, irow, jr, kf)] = col_vec[irow];
         }
@@ -1491,7 +1491,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
         for (int kfib = 0; kfib < nfib; ++kfib) {
           fib_vec[kfib] = v[mgard_common::get_index3(ncol, nfib, ir, jr, kfib)];
         }
-        pi_lminus1_first(fib_vec, coords_z, nf, nfib);
+        //pi_lminus1_first(fib_vec, coords_z, nf, nfib);
         for (int kfib = 0; kfib < nfib; ++kfib) {
           v[mgard_common::get_index3(ncol, nfib, ir, jr, kfib)] = fib_vec[kfib];
         }
@@ -1530,7 +1530,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
           double temp =
               mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
           //              //std::cout  << temp <<"\n";
-          v[mgard_common::get_index3(ncol, nfib, ir + 1, jr + 1, kf)] -= temp;
+          //v[mgard_common::get_index3(ncol, nfib, ir + 1, jr + 1, kf)] -= temp;
         }
       }
     }
@@ -1568,7 +1568,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
           double temp =
               mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
           //              //std::cout  << temp <<"\n";
-          v[mgard_common::get_index3(ncol, nfib, irr, ir + 1, jr + 1)] -= temp;
+          //v[mgard_common::get_index3(ncol, nfib, irr, ir + 1, jr + 1)] -= temp;
         }
       }
     }
@@ -1603,7 +1603,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
           double temp =
               mgard_common::interp_2d(q11, q12, q21, q22, x1, x2, y1, y2, x, y);
           //              //std::cout  << temp <<"\n";
-          v[mgard_common::get_index3(ncol, nfib, ir + 1, jrr, jr + 1)] -= temp;
+          //v[mgard_common::get_index3(ncol, nfib, ir + 1, jrr, jr + 1)] -= temp;
         }
       }
     }
@@ -1654,8 +1654,7 @@ void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
               mgard_common::interp_3d(q000, q100, q110, q010, q001, q101, q111,
                                       q011, x1, x2, y1, y2, z1, z2, x, y, z);
 
-          v[mgard_common::get_index3(ncol, nfib, ir + 1, jr + 1, kr + 1)] -=
-              temp;
+          //v[mgard_common::get_index3(ncol, nfib, ir + 1, jr + 1, kr + 1)] -= temp;
         }
       }
     }
@@ -2298,6 +2297,7 @@ void refactor_2D_first(const int nr, const int nc, const int nrow,
       work[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol];
     }
   }
+  
 
   //   //   //std::cout  << "recomposing-colsweep" << "\n";
 

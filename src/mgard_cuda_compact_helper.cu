@@ -822,9 +822,12 @@ _calc_cpt_dist(int n, int stride,
   for (int x = x0; x * stride < n - 1; x += blockDim.x * gridDim.x) {
     // Load coordinates
     sm[x0_sm] = dcoord[x * stride];
-    // printf("block %d thread %d load[%d] %f\n", blockIdx.x, threadIdx.x, x, dcoord[x * stride]);
+    // printf("sm[%d] block %d thread %d load[%d] %f\n", x0_sm, blockIdx.x, threadIdx.x, x, dcoord[x * stride]);
     if (x0_sm == 0){
-      sm[blockDim.x] = dcoord[(x + blockDim.x) * stride];
+      // sm[blockDim.x] = dcoord[(x + blockDim.x) * stride];
+      int left = (n-1)/stride+1 - blockIdx.x * blockDim.x;
+      sm[min(blockDim.x, left-1)] = dcoord[min((x + blockDim.x) * stride, n-1)];
+      // printf("sm[%d] extra block %d thread %d load[%d] %f\n", min(blockDim.x, left-1), blockIdx.x, threadIdx.x, min((x + blockDim.x) * stride, n-1), dcoord[min((x + blockDim.x) * stride, n-1)]);
     }
     __syncthreads();
 
@@ -856,6 +859,9 @@ calc_cpt_dist(int nrow, int row_stride,
   dim3 blockPerGrid(gridx, gridy);
   size_t sm_size = (tbx + 1) * sizeof(T);
 
+  // std::cout << "threadsPerBlock: " << tbx << ", " << tby << "\n";
+  // std::cout << "blockPerGrid: " << gridx << ", " << gridy << "\n";
+
   if (profile) {
     gpuErrchk(cudaEventCreate(&start));
     gpuErrchk(cudaEventCreate(&stop));
@@ -874,6 +880,12 @@ calc_cpt_dist(int nrow, int row_stride,
     gpuErrchk(cudaEventDestroy(start));
     gpuErrchk(cudaEventDestroy(stop));
   }
+  // std::cout << "coord: ";
+  // print_matrix_cuda(1,nrow, dcoord, nrow);
+  // std::cout << "dist: ";
+  // print_matrix_cuda(1,total_thread_x, ddist, total_thread_x);
+  
+
   return mgard_cuda_ret(0, milliseconds/1000.0);
 }
 

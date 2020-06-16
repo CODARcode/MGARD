@@ -8,7 +8,7 @@
     "k": 0.05,
     "dt": 2.0,
     "plotgap": 10,
-    "steps": 30,
+    "steps": 3000,
     "noise": 0.0000001,
     "output": "gs_data/gs-LLL-MMM-KKK.bp",
     "checkpoint": false,

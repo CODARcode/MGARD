@@ -45,6 +45,372 @@ inline int get_lindex(const int n, const int no, const int i) {
   return lindex;
 }
 
+template <typename T>
+void prep_3D_cuda(const int nr, const int nc, const int nf, const int nrow,
+             const int ncol, const int nfib, const int l_target, double *v,
+             std::vector<double> &work, std::vector<double> &work2d,
+             std::vector<double> &coords_x, std::vector<double> &coords_y,
+             std::vector<double> &coords_z, 
+             int * dirow, int * dicol, int * difib,
+             int * dirowP, int * dicolP, int * difibP,
+             int * dirowA, int * dicolA, int * difibA,
+             T * ddist_r, T * ddist_c, T * ddist_f,
+             T * dcoords_r, T * dcoords_c, T * dcoords_f, 
+             int B, mgard_cuda_handle & handle, bool profile ) {
+  int l = 0;
+  int stride = 1;
+
+  std::vector<double> v2d(nrow * ncol), fib_vec(nfib);
+  std::vector<double> row_vec(ncol);
+  std::vector<double> col_vec(nrow);
+
+  mgard_cuda_ret ret;
+  T * dv;
+  size_t dv_pitch;
+  cudaMalloc3DHelper((void**)&dv, &dv_pitch, nfib * sizeof(T), ncol, nrow);
+  int lddv1 = dv_pitch / sizeof(T);
+  int lddv2 = ncol;
+
+  T * dwork;
+  size_t dwork_pitch;
+  cudaMalloc3DHelper((void**)&dwork, &dwork_pitch, nfib * sizeof(T), ncol, nrow);
+  int lddwork1 = dwork_pitch / sizeof(T);
+  int lddwork2 = ncol;
+
+  T * work2 = new T[nrow*ncol*nfib];
+
+
+  cudaMemcpy3DAsyncHelper(dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                          v,  nfib  * sizeof(T), nfib * sizeof(T), ncol,
+                          nfib * sizeof(T), ncol, nrow,
+                          H2D, handle, 0, profile);
+
+  // print_matrix_cuda(1, ncol-nc, dicolP, ncol-nc);
+  // print_matrix_cuda(3, 10, 10, dv, lddv1, lddv2, nfib);
+
+  ret = pi_Ql3D_first_fib(nrow,        ncol,         nfib,
+                          nr,          nc,           nf, 
+                          dirow,       dicol,        difibP,
+                          dv,          lddv1,        lddv2, 
+                          ddist_r,     ddist_c,      ddist_f,
+                          B, handle, 
+                          0, profile);
+  std::cout << "pi_Ql3D_first_fib: " << nrow*ncol*nfib*sizeof(double)/ret.time/1e9 << "GB/s\n";
+  // print_matrix_cuda(1, 10, 10, dv, lddv1, lddv2, nfib);
+
+  ret = pi_Ql3D_first_col(nrow,        ncol,         nfib,
+                          nr,          nc,           nf, 
+                          dirow,       dicolP,        difib,
+                          dv,          lddv1,        lddv2, 
+                          ddist_r,     ddist_c,      ddist_f,
+                          B, handle, 
+                          0, profile);
+  std::cout << "pi_Ql3D_first_col: " << nrow*ncol*nfib*sizeof(double)/ret.time/1e9 << "GB/s\n";
+  // print_matrix_cuda(3, 10, 10, dv, lddv1, lddv2, nfib);
+
+  ret = pi_Ql3D_first_row(nrow,        ncol,         nfib,
+                          nr,          nc,           nf, 
+                          dirowP,      dicol,        difib,
+                          dv,          lddv1,        lddv2, 
+                          ddist_r,     ddist_c,      ddist_f,
+                          B, handle, 
+                          0, profile);
+  std::cout << "pi_Ql3D_first_row: " << nrow*ncol*nfib*sizeof(double)/ret.time/1e9 << "GB/s\n";
+  // print_matrix_cuda(3, 10, 10, dv, lddv1, lddv2, nfib);
+
+  ret = pi_Ql3D_first_fib_col(nrow,        ncol,         nfib,
+                              nr,          nc,           nf, 
+                              dirow,       dicolP,        difibP,
+                              dv,          lddv1,        lddv2, 
+                              ddist_r,     ddist_c,      ddist_f,
+                              B, handle, 
+                              0, profile);
+  std::cout << "pi_Ql3D_first_fib_col: " << nrow*ncol*nfib*sizeof(double)/ret.time/1e9 << "GB/s\n";
+
+  ret = pi_Ql3D_first_fib_row(nrow,        ncol,         nfib,
+                              nr,          nc,           nf, 
+                              dirowP,      dicol,        difibP,
+                              dv,          lddv1,        lddv2, 
+                              ddist_r,     ddist_c,      ddist_f,
+                              B, handle, 
+                              0, profile);
+  std::cout << "pi_Ql3D_first_fib_row: " << nrow*ncol*nfib*sizeof(double)/ret.time/1e9 << "GB/s\n";
+
+  ret = pi_Ql3D_first_col_row(nrow,        ncol,         nfib,
+                              nr,          nc,           nf, 
+                              dirowP,      dicolP,       difib,
+                              dv,          lddv1,        lddv2, 
+                              ddist_r,     ddist_c,      ddist_f,
+                              B, handle, 
+                              0, profile);
+  std::cout << "pi_Ql3D_first_col_row: " << nrow*ncol*nfib*sizeof(double)/ret.time/1e9 << "GB/s\n";
+
+  ret = pi_Ql3D_first_fib_col_row(nrow,        ncol,         nfib,
+                              nr,          nc,           nf, 
+                              dirowP,      dicolP,       difibP,
+                              dv,          lddv1,        lddv2, 
+                              ddist_r,     ddist_c,      ddist_f,
+                              B, handle, 
+                              0, profile);
+  std::cout << "pi_Ql3D_first_fib_col_row: " << nrow*ncol*nfib*sizeof(double)/ret.time/1e9 << "GB/s\n";
+
+  cudaMemcpy3DAsyncHelper(v,  nfib  * sizeof(T), nfib * sizeof(T), ncol,
+                          dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                          nfib * sizeof(T), ncol, nrow,
+                          D2H, handle, 0, profile);
+
+  cudaMemcpy3DAsyncHelper(dwork, lddwork1 * sizeof(T), nfib * sizeof(T), ncol,
+                          dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                          nfib * sizeof(T), ncol, nrow,
+                          D2D, handle, 0, profile);
+
+  assign_num_level_l_cuda(nrow,        ncol,         nfib,
+                          nr,          nc,           nf, 
+                          1, 1, 1,
+                          dirow,       dicol,        difib,
+                          dwork, lddwork1, lddwork2,
+                          0.0,
+                          B, handle, 0, profile);
+
+  // print_matrix_cuda(6, 6, 6, dwork, lddwork1, lddwork2, nfib);
+
+  // cudaMemcpy3DAsyncHelper(work.data(), nfib * sizeof(T), nfib * sizeof(T), ncol,
+  //                         dwork, lddwork1 * sizeof(T), nfib * sizeof(T), ncol,
+  //                         nfib * sizeof(T), ncol, nrow,
+  //                         D2H, handle, 0, profile);
+
+  
+  for (int r = 0; r < nrow; r += 1) {
+    T * dwork_local = dwork + r * lddwork1*lddwork2;
+    mgard_2d::mgard_cannon::mass_matrix_multiply_col_cuda(ncol,  nfib, 
+                                                          1, 1,
+                                                          dwork_local,   lddwork1,
+                                                          dcoords_c,
+                                                          B, handle, 0, profile);
+    mgard_2d::mgard_gen::restriction_first_col_cuda(ncol,  nfib,
+                                                    nc,  nfib, 
+                                                    1, 1, 
+                                                    dicolP, difibA,
+                                                    dwork_local,   lddwork1,
+                                                    dcoords_c,
+                                                    B, handle, 0, profile);
+  }
+  // print_matrix_cuda(6, 6, 6, dwork, lddwork1, lddwork2, nfib);
+
+  for (int r = 0; r < nr; r += 1) {
+    int ir = get_lindex(nr, nrow, r);
+    T * dwork_local = dwork + ir * lddwork1*lddwork2;
+    mgard_2d::mgard_gen::solve_tridiag_M_l_col_cuda(ncol,  nfib,
+                                                    nc,    nfib, //nf,
+                                                    1, 1,
+                                                    dicol,      difibA,
+                                                    dwork_local,   lddwork1,
+                                                    dcoords_c,
+                                                    B, handle, 0, profile);
+  }
+  // print_matrix_cuda(6, 6, 6, dwork, lddwork1, lddwork2, nfib);
+
+  for (int c = 0; c < ncol; c += 1) {
+    T * dwork_local = dwork + c * lddwork1;
+    mgard_2d::mgard_cannon::mass_matrix_multiply_col_cuda(nrow,  nfib, 
+                                                          1, 1,
+                                                          dwork_local,   lddwork1*lddwork2,
+                                                          dcoords_r,
+                                                          B, handle, 0, profile);
+    mgard_2d::mgard_gen::restriction_first_col_cuda(nrow,  nfib, 
+                                                    nr,    nfib,
+                                                    1, 1,
+                                                    dirowP, dicolA,
+                                                    dwork_local,   lddwork1*lddwork2,
+                                                    dcoords_r,
+                                                    B, handle, 0, profile);
+  }
+
+  for (int c = 0; c < nc; c += 1) {
+    int ic = get_lindex(nc, ncol, c);
+    T * dwork_local = dwork + ic * lddwork1;
+    mgard_2d::mgard_gen::solve_tridiag_M_l_col_cuda(nrow,  nfib,
+                                                    nr,    nfib, //nf,
+                                                    1, 1,
+                                                    dirow,      difibA,
+                                                    dwork_local,   lddwork1*lddwork2,
+                                                    dcoords_r,
+                                                    B, handle, 0, profile);
+  }
+
+
+
+  for (int r = 0; r < nr; r += 1) {
+    int ir = get_lindex(nr, nrow, r);
+    T * dwork_local = dwork + ir * lddwork1*lddwork2;
+    mgard_2d::mgard_gen::mass_mult_l_row_cuda(ncol,       nfib,
+                                             nc,         nfib,
+                                             1, 1,
+                                             dicol,    difibA,
+                                             dwork_local,   lddwork1,
+                                             dcoords_f,
+                                             B, handle, 0, profile);
+  }
+
+  // std::cout << "after cuda mass matrix:\n";
+  // print_matrix_cuda(6, 6, 6, dwork, lddwork1, lddwork2, nfib);
+
+  // cudaMemcpy3DAsyncHelper(work.data(), nfib * sizeof(T), nfib * sizeof(T), ncol,
+  //                         dwork, lddwork1 * sizeof(T), nfib * sizeof(T), ncol,
+  //                         nfib * sizeof(T), ncol, nrow,
+  //                         D2H, handle, 0, profile);
+
+
+   for (int r = 0; r < nr; r += 1) {
+    int ir = get_lindex(nr, nrow, r);
+    T * dwork_local = dwork + ir * lddwork1*lddwork2;
+    mgard_2d::mgard_gen::restriction_first_row_cuda(ncol,  nfib, 
+                                                    nc,    nf,
+                                                    1, 1,
+                                                    dicol, difibP,
+                                                    dwork_local,   lddwork1,
+                                                    dcoords_f,
+                                                    B, handle, 0, profile);
+    mgard_2d::mgard_gen::solve_tridiag_M_l_row_cuda(ncol,  nfib, 
+                                                    nc,    nf,
+                                                    1, 1,
+                                                    dicol,      difib,
+                                                    dwork_local,   lddwork1,
+                                                    dcoords_f,
+                                                    B, handle, 0, profile);
+  }
+
+  // std::cout << "after cuda restriction_l:\n";
+  // print_matrix_cuda(6, 6, 6, dwork, lddwork1, lddwork2, nfib);
+  
+  // cudaMemcpy3DAsyncHelper(work2, nfib * sizeof(T), nfib * sizeof(T), ncol,
+  //                         dwork, lddwork1 * sizeof(T), nfib * sizeof(T), ncol,
+  //                         nfib * sizeof(T), ncol, nrow,
+  //                         D2H, handle, 0, profile);
+  cudaMemcpy3DAsyncHelper(work.data(), nfib * sizeof(T), nfib * sizeof(T), ncol,
+                          dwork, lddwork1 * sizeof(T), nfib * sizeof(T), ncol,
+                          nfib * sizeof(T), ncol, nrow,
+                          D2H, handle, 0, profile);
+
+  // pi_Ql3D_first(nr, nc, nf, nrow, ncol, nfib, l, v, coords_x, coords_y,
+  //               coords_z, row_vec, col_vec, fib_vec);
+
+  //mgard_gen::copy3_level(0, v, work.data(), nrow, ncol, nfib);
+  // mgard_gen::assign3_level_l(0, work.data(), 0.0, nr, nc, nf, nrow, ncol, nfib);
+
+  for (int kfib = 0; kfib < nfib; kfib += stride) {
+    mgard_common::copy_slice(work.data(), work2d, nrow, ncol, nfib, kfib);
+    // mgard_gen::refactor_2D_first(nr, nc, nrow, ncol, l, v2d.data(), work2d,
+    //                              coords_x, coords_y, row_vec, col_vec);
+    for (int irow = 0; irow < nrow; ++irow) {
+    //        int ir = get_lindex(nr, nrow, irow);
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      row_vec[jcol] = work2d[mgard_common::get_index(ncol, irow, jcol)];
+    }
+
+    // mgard_cannon::mass_matrix_multiply(0, row_vec, coords_x);
+
+    // restriction_first(row_vec, coords_x, nc, ncol);
+
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      work2d[mgard_common::get_index(ncol, irow, jcol)] = row_vec[jcol];
+    }
+  }
+
+  for (int irow = 0; irow < nr; ++irow) {
+    int ir = get_lindex(nr, nrow, irow);
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      row_vec[jcol] = work2d[mgard_common::get_index(ncol, ir, jcol)];
+    }
+
+    // mgard_gen::solve_tridiag_M_l(0, row_vec, coords_x, nc, ncol);
+
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      work2d[mgard_common::get_index(ncol, ir, jcol)] = row_vec[jcol];
+    }
+  }
+  
+
+
+  //   //   //std::cout  << "recomposing-colsweep" << "\n";
+
+  //     // column-sweep, this is the slow one! Need something like column_copy
+  if (nrow > 1) // check if we have 1-D array..
+  {
+    for (int jcol = 0; jcol < ncol; ++jcol) {
+      //      int jr  = get_lindex(nc,  ncol,  jcol);
+      for (int irow = 0; irow < nrow; ++irow) {
+        col_vec[irow] = work2d[mgard_common::get_index(ncol, irow, jcol)];
+      }
+
+      // mgard_cannon::mass_matrix_multiply(0, col_vec, coords_y);
+
+      // mgard_gen::restriction_first(col_vec, coords_y, nr, nrow);
+
+      for (int irow = 0; irow < nrow; ++irow) {
+        work2d[mgard_common::get_index(ncol, irow, jcol)] = col_vec[irow];
+      }
+    }
+
+    for (int jcol = 0; jcol < nc; ++jcol) {
+      int jr = get_lindex(nc, ncol, jcol);
+      for (int irow = 0; irow < nrow; ++irow) {
+        col_vec[irow] = work2d[mgard_common::get_index(ncol, irow, jr)];
+      }
+
+      // mgard_gen::solve_tridiag_M_l(0, col_vec, coords_y, nr, nrow);
+      for (int irow = 0; irow < nrow; ++irow) {
+        work2d[mgard_common::get_index(ncol, irow, jr)] = col_vec[irow];
+      }
+    }
+  }
+    mgard_common::copy_from_slice(work.data(), work2d, nrow, ncol, nfib, kfib);
+  }
+
+  // print_matrix(6, 6, 6, work.data(), nfib, ncol);
+  // bool r = compare_matrix(nrow, ncol, nfib,  
+  //                work.data(), nfib, ncol, 
+  //                work2, nfib, ncol );
+  // std::cout <<"pass:"<< r << "\n";
+
+  for (int irow = 0; irow < nr; irow += stride) {
+    int ir = get_lindex(nr, nrow, irow);
+    for (int jcol = 0; jcol < nc; jcol += stride) {
+      int jc = get_lindex(nc, ncol, jcol);
+      for (int kfib = 0; kfib < nfib; ++kfib) {
+        fib_vec[kfib] =
+            work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)];
+      }
+      // mgard_cannon::mass_matrix_multiply(l, fib_vec, coords_z);
+      // mgard_gen::restriction_first(fib_vec, coords_z, nf, nfib);
+      // mgard_gen::solve_tridiag_M_l(l, fib_vec, coords_z, nf, nfib);
+      for (int kfib = 0; kfib < nfib; ++kfib) {
+        work[mgard_common::get_index3(ncol, nfib, ir, jc, kfib)] =
+            fib_vec[kfib];
+      }
+    }
+  }
+
+  // std::cout << "after cpu restriction_first:\n";
+  // print_matrix(6, 6, 6, work.data(), nfib, ncol);
+
+  add3_level_l(0, v, work.data(), nr, nc, nf, nrow, ncol, nfib);
+}
+
+template void prep_3D_cuda<double>(const int nr, const int nc, const int nf, const int nrow,
+             const int ncol, const int nfib, const int l_target, double *v,
+             std::vector<double> &work, std::vector<double> &work2d,
+             std::vector<double> &coords_x, std::vector<double> &coords_y,
+             std::vector<double> &coords_z, 
+             int * dirow, int * dicol, int * difib,
+             int * dirowP, int * dicolP, int * difibP,
+             int * dirowA, int * dicolA, int * difibA,
+             double * ddist_r, double * ddist_c, double * ddist_f,
+             double * dcoords_r, double * dcoords_c, double * dcoords_f, 
+             int B, mgard_cuda_handle & handle, bool profile );
+
+
+
 
 template <typename T>
 mgard_cuda_ret 

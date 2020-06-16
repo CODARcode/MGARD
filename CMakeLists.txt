@@ -96,6 +96,7 @@ add_library(mgard
   src/mgard_nuni_2d_cuda_assign_num_level_l.cu include/mgard_nuni_2d_cuda_assign_num_level_l.h
   src/mgard_nuni_2d_cuda_add_level_l.cu        include/mgard_nuni_2d_cuda_add_level_l.h
   src/mgard_nuni_2d_cuda_subtract_level_l.cu   include/mgard_nuni_2d_cuda_subtract_level_l.h
+  src/mgard_nuni_3d_cuda_pi_Ql_first.cu        include/mgard_nuni_3d_cuda_pi_Ql_first.h
   src/mgard_nuni_3d_cuda_pi_Ql.cu              include/mgard_nuni_3d_cuda_pi_Ql.h
   src/mgard_nuni_3d_cuda_copy_level_l.cu       include/mgard_nuni_3d_cuda_copy_level_l.h
   src/mgard_nuni_3d_cuda_assign_num_level_l.cu include/mgard_nuni_3d_cuda_assign_num_level_l.h

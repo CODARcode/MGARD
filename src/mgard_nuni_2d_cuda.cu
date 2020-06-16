@@ -16,6 +16,7 @@ prep_2D_cuda(const int nrow,     const int ncol,
              const int nr,       const int nc, 
              int * dirow,        int * dicol,
              int * dirowP,       int * dicolP,
+             int * dirowA,        int * dicolA,
              T * dv,        int lddv, 
              T * dwork,     int lddwork,
              T * dcoords_x, T * dcoords_y,
@@ -25,6 +26,7 @@ prep_2D_cuda(const int nrow,     const int ncol,
   mgard_cuda_ret ret;
   double total_time = 0.0;
   std::ofstream timing_results;
+
 
   if (profile) {
     timing_results.open (handle.csv_prefix + "prep_2D_cuda.csv");
@@ -90,10 +92,12 @@ prep_2D_cuda(const int nrow,     const int ncol,
   mass_matrix_multiply_row_cuda_time = ret.time;
 
   ret = restriction_first_row_cuda(nrow,       ncol,
-                             row_stride, dicolP, nc,
-                             dwork,      lddwork,
-                             dcoords_x, B,
-                             handle, 0, profile);
+                                   nrow,       nc,
+                                   row_stride, col_stride,
+                                   dirowA,     dicolP,
+                                   dwork,      lddwork,
+                                   dcoords_x, B,
+                                   handle, 0, profile);
   restriction_first_row_cuda_time = ret.time;
 
  
@@ -114,10 +118,12 @@ prep_2D_cuda(const int nrow,     const int ncol,
 
 
     ret = restriction_first_col_cuda(nrow,   ncol,
-                               dirowP, nr, col_stride,
-                               dwork,  lddwork,
-                               dcoords_y, B,
-                               handle, 0, profile);
+                                     nr,     ncol,
+                                     row_stride, col_stride,
+                                     dirowP, dicolA,
+                                     dwork,  lddwork,
+                                     dcoords_y, B,
+                                     handle, 0, profile);
     restriction_first_col_cuda_time = ret.time;
 
     
@@ -275,12 +281,12 @@ refactor_2D_cuda(const int l_target,
     row_stride = 1;
     col_stride = stride;
     ret = restriction_l_row_cuda(nrow,       ncol,
-                           nr,         nc,
-                           row_stride, col_stride,
-                           dirow,      dicol,
-                           dwork,      lddwork,
-                           dcoords_x, B, 
-                           handle, 0, profile);
+                                 nr,         nc,
+                                 row_stride, col_stride,
+                                 dirow,      dicol,
+                                 dwork,      lddwork,
+                                 dcoords_x, B, 
+                                 handle, 0, profile);
     restriction_l_row_cuda_time = ret.time;
 
     row_stride = 1;
@@ -678,6 +684,7 @@ postp_2D_cuda(const int nrow,     const int ncol,
               const int nr,       const int nc, 
               int * dirow,        int * dicol,
               int * dirowP,       int * dicolP,
+              int * dirowA,       int * dicolA,
               T * dv,        int lddv, 
               T * dwork,     int lddwork,
               T * dcoords_x, T * dcoords_y,
@@ -751,10 +758,12 @@ postp_2D_cuda(const int nrow,     const int ncol,
   row_stride = 1;
   col_stride = 1;
   ret = restriction_first_row_cuda(nrow,       ncol, 
-                             row_stride, dicolP, nc,
-                             dwork,      lddwork,
-                             dcoords_x, B,
-                             handle, 0, profile);
+                                   nrow,       nc,
+                                   row_stride, col_stride,
+                                   dirowA,     dicolP,
+                                   dwork,      lddwork,
+                                   dcoords_x, B,
+                                   handle, 0, profile);
   restriction_first_row_cuda_time = ret.time;
 
   row_stride = 1;
@@ -787,10 +796,12 @@ postp_2D_cuda(const int nrow,     const int ncol,
     row_stride = 1;
     col_stride = 1;
     ret = restriction_first_col_cuda(nrow,   ncol, 
-                               dirowP, nr,   col_stride,
-                               dwork,  lddwork,
-                               dcoords_y, B,
-                               handle, 0, profile);
+                                     nr,     ncol,
+                                     row_stride, col_stride,
+                                     dirowP, dicolA,
+                                     dwork,  lddwork,
+                                     dcoords_y, B,
+                                     handle, 0, profile);
     restriction_first_col_cuda_time = ret.time;
 
     row_stride = 1;
@@ -926,6 +937,7 @@ prep_2D_cuda<double>(const int nrow,     const int ncol,
              const int nr,       const int nc, 
              int * dirow,        int * dicol,
              int * dirowP,       int * dicolP,
+             int * dirowA,       int * dicolA,
              double * dv,        int lddv, 
              double * dwork,     int lddwork,
              double * dcoords_x, double * dcoords_y,
@@ -936,6 +948,7 @@ prep_2D_cuda<float>(const int nrow,     const int ncol,
              const int nr,       const int nc, 
              int * dirow,        int * dicol,
              int * dirowP,       int * dicolP,
+             int * dirowA,       int * dicolA,
              float * dv,        int lddv, 
              float * dwork,     int lddwork,
              float * dcoords_x, float * dcoords_y,
@@ -993,6 +1006,7 @@ postp_2D_cuda<double>(const int nrow,     const int ncol,
               const int nr,       const int nc, 
               int * dirow,        int * dicol,
               int * dirowP,       int * dicolP,
+              int * dirowA,       int * dicolA,
               double * dv,        int lddv, 
               double * dwork,     int lddwork,
               double * dcoords_x, double * dcoords_y,
@@ -1003,6 +1017,7 @@ postp_2D_cuda<float>(const int nrow,     const int ncol,
               const int nr,       const int nc, 
               int * dirow,        int * dicol,
               int * dirowP,       int * dicolP,
+              int * dirowA,       int * dicolA,
               float * dv,        int lddv, 
               float * dwork,     int lddwork,
               float * dcoords_x, float * dcoords_y,

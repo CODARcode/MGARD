@@ -77,18 +77,28 @@ int main(int argc, char *argv[]) {
 
   inVarU.SetSelection(sel);
 
+  adios2::Variable<int> inStep = inIO.InquireVariable<int>("step");
+  std::vector<int> step_data;
 
   std::vector<double> gs_data;
 
-  for (int i = 0; i < step; i++) {
-    reader.BeginStep();
-    // reader.Get(inVarU, tmp_decomposed_data);
+  for (int i = 0; i < step-1; i++) {
+    adios2::StepStatus status = reader.BeginStep();
+    if (status != adios2::StepStatus::OK) {
+        std::cout << "Step error\n";
+        break;
+    }
+    reader.Get(inVarU, gs_data);
+    reader.Get(inStep, step_data);
     reader.EndStep();
+    std::cout << "Skipping step: " << step_data[0] <<"/" << step << " data: " << gs_data.size() << std::endl; 
   }
 
   reader.BeginStep();
   reader.Get(inVarU, gs_data);
+  reader.Get(inStep, step_data);
   reader.EndStep();
+  std::cout << "Dumping step: " << step_data[0] <<"/" << step << " data: " << gs_data.size() << std::endl; 
 
   if (d == 3) {
     std::string bin_file3 = "gs_"+std::to_string(L) + "_" + std::to_string(L2) + "_" + std::to_string(L3) +"_3D_"+ std::to_string(rank) + ".dat";

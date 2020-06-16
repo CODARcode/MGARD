@@ -100,7 +100,9 @@ _mass_matrix_multiply_col_cuda(int nrow,       int ncol,
     T * vec = dv + x;
     register T temp1, temp2;
     temp1 = vec[0];
-    //printf("thread %d working on %f\n", idx, temp1);
+    // printf("%d\n", threadIdx.x + blockIdx.x * blockDim.x);
+    // if (threadIdx.x + blockIdx.x * blockDim.x == 1)
+    //   printf("thread %d x %d working on %f %f %f\n", idx, x, vec[0 * lddv], vec[1 * lddv], vec[2 * lddv]);
     vec[0] = 2.0 * mgard_common::get_h_cuda(dcoords_y, 0, row_stride) * temp1 + 
                    mgard_common::get_h_cuda(dcoords_y, 0, row_stride) * vec[row_stride * lddv];
     for (int i = row_stride; i < nrow - row_stride; i += row_stride) {
@@ -136,6 +138,9 @@ mass_matrix_multiply_col_cuda(int nrow,       int ncol,
   dim3 threadsPerBlock(tb, 1);
   dim3 blockPerGrid(grid, 1);
 
+  // std::cout << "threadsPerBlock: " << tb << "\n"; 
+  // std::cout << "blockPerGrid: " << grid << "\n"; 
+  
   if (profile) {
     gpuErrchk(cudaEventCreate(&start));
     gpuErrchk(cudaEventCreate(&stop));

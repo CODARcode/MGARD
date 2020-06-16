@@ -8,22 +8,25 @@ convert_data_2d(){
 }
 
 convert_data_3d(){
-	mpirun -np $4 ./build/bp2bin $1 $2 $3 ../gray-scott/gs_data/gs-$1-$2-$3.bp 1 3
+	mpirun -np $4 ./build/bp2bin $1 $2 $3 ../gray-scott/gs_data/gs-$1-$2-$3.bp 300 3
 	mv *.dat ./gs_bin_data/
 }
 
 
 # convert for single GPU or single CPU runs
-convert_data_2d 33 33 33 1
-convert_data_2d 65 65 65 1
-convert_data_2d 129 129 129 1
-convert_data_2d 257 257 257 1
+# convert_data_2d 33 33 33 1
+# convert_data_2d 65 65 65 1
+# convert_data_2d 129 129 129 1
+# convert_data_2d 257 257 257 1
 
-convert_data_3d 33 33 33 1
-convert_data_3d 65 65 65 1
-convert_data_3d 129 129 129 1
-convert_data_3d 257 257 257 1
+# convert_data_3d 33 33 33 1
+# convert_data_3d 65 65 65 1
+# convert_data_3d 129 129 129 1
+# convert_data_3d 257 257 257 1
 
+# convert_data_3d 128 128 128 1
+# convert_data_3d 129 129 129 1
+convert_data_3d 17 17 17 1
 
 ######for large data######
 # convert_data_3d 513 513 513 1
