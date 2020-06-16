@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <iterator>
 #include <vector>
 
 #include "testing_utilities.hpp"
@@ -160,5 +161,29 @@ TEST_CASE("MultiindexRectangle iteration", "[utilities]") {
   {
     const mgard::MultiindexRectangle<2> rectangle({10, 10}, {15, 15});
     REQUIRE_THROWS(rectangle.indices(0));
+  }
+}
+
+TEST_CASE("CartesianProduct iterator", "[utilities]") {
+  {
+    const std::vector<int> a = {1, 3, 5};
+    const std::vector<int> b = {2, 4, 6};
+    const std::vector<int> c = {0, 0};
+    const std::array<std::vector<int>, 3> factors = {a, b, c};
+    const mgard::CartesianProduct<int, 3> product(factors);
+    REQUIRE(std::distance(product.begin(), product.end()) == 18);
+  }
+
+  {
+    const std::vector<char> a = {'a', 'b', 'c', 'd'};
+    const std::vector<char> b = {'y', 'z'};
+    const std::array<std::vector<char>, 2> factors = {a, b};
+    const mgard::CartesianProduct<char, 2> product(factors);
+    const std::vector<std::array<char, 2>> obtained(product.begin(),
+                                                    product.end());
+    const std::vector<std::array<char, 2>> expected = {
+        {'a', 'y'}, {'a', 'z'}, {'b', 'y'}, {'b', 'z'},
+        {'c', 'y'}, {'c', 'z'}, {'d', 'y'}, {'d', 'z'}};
+    REQUIRE(obtained == expected);
   }
 }

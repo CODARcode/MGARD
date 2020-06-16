@@ -298,4 +298,89 @@ std::array<std::size_t, N> MultiindexRectangle<N>::iterator::operator*() const {
   return indices;
 }
 
+namespace {
+
+template <typename T, std::size_t N>
+std::array<std::size_t, N>
+factor_sizes(const std::array<std::vector<T>, N> &factors) {
+  std::array<std::size_t, N> sizes;
+  for (std::size_t i = 0; i < N; ++i) {
+    sizes.at(i) = factors.at(i).size();
+  }
+  return sizes;
+}
+
+} // namespace
+
+template <typename T, std::size_t N>
+CartesianProduct<T, N>::CartesianProduct(
+    const std::array<std::vector<T>, N> &factors)
+    : factors(factors), multiindices(factor_sizes(factors)) {}
+
+template <typename T, std::size_t N>
+bool operator==(const CartesianProduct<T, N> &a,
+                const CartesianProduct<T, N> &b) {
+  return a.factors == b.factors;
+}
+
+template <typename T, std::size_t N>
+bool operator!=(const CartesianProduct<T, N> &a,
+                const CartesianProduct<T, N> &b) {
+  return !operator==(a, b);
+}
+
+template <typename T, std::size_t N>
+typename CartesianProduct<T, N>::iterator
+CartesianProduct<T, N>::begin() const {
+  return iterator(*this, multiindices.begin(1));
+}
+
+template <typename T, std::size_t N>
+typename CartesianProduct<T, N>::iterator CartesianProduct<T, N>::end() const {
+  return iterator(*this, multiindices.end(1));
+}
+
+template <typename T, std::size_t N>
+CartesianProduct<T, N>::iterator::iterator(
+    const CartesianProduct<T, N> &iterable,
+    const typename MultiindexRectangle<N>::iterator inner)
+    : iterable(iterable), inner(inner) {}
+
+template <typename T, std::size_t N>
+bool CartesianProduct<T, N>::iterator::
+operator==(const CartesianProduct<T, N>::iterator &other) const {
+  return iterable == other.iterable && inner == other.inner;
+}
+
+template <typename T, std::size_t N>
+bool CartesianProduct<T, N>::iterator::
+operator!=(const CartesianProduct<T, N>::iterator &other) const {
+  return !operator==(other);
+}
+
+template <typename T, std::size_t N>
+typename CartesianProduct<T, N>::iterator &CartesianProduct<T, N>::iterator::
+operator++() {
+  ++inner;
+  return *this;
+}
+
+template <typename T, std::size_t N>
+typename CartesianProduct<T, N>::iterator CartesianProduct<T, N>::iterator::
+operator++(int) {
+  const iterator tmp = *this;
+  operator++();
+  return tmp;
+}
+
+template <typename T, std::size_t N>
+std::array<T, N> CartesianProduct<T, N>::iterator::operator*() const {
+  const std::array<std::size_t, N> multiindex = *inner;
+  std::array<T, N> value;
+  for (std::size_t i = 0; i < N; ++i) {
+    value.at(i) = iterable.factors.at(i).at(multiindex.at(i));
+  }
+  return value;
+}
+
 } // namespace mgard
