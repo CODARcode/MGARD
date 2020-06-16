@@ -1,6 +1,14 @@
-### 1. Install dependecies
-#### a. ADIOS2: https://github.com/ornladios/ADIOS2
-#### b. Zlib: https://zlib.net/
+### 0. Hardware requirement
+#### a. Systems equipped with NVIDIA GPU(s) (Kepler or newer) with CUDA support
+### 1. Software dependecies
+#### a. Linux platforms (with recent knerels)
+#### b. GCC 7.4.0+
+#### c. OpenMPI 2.1.1+
+#### d. CMake 3.14+
+#### e. ADIOS2 2.4.0+: https://github.com/ornladios/ADIOS2
+#### f. Zlib 1.2+: https://zlib.net/
+#### g. CUDA 10.0+: https://developer.nvidia.com/cuda-downloads
+
 ### 2. Compile and install MAGRD
 #### a. Checkout ```mgard-cuda``` branch
 #### b. ```cd``` into the root of this repository.
@@ -22,6 +30,10 @@
 ##### c.5 Run ```convert_data.sh``` bash script to run convert data format. Converted binary data will be in ```gs_bin_data``` directory.
 #### d. Run tests
 ##### d1. Run 'test_mgard.py' Python script to automically run our GPU-accelerated multlgrid-based data refactoring and the original CPU version (baseline). Multiple input sizes will be test. For each size, the test will be done multiple time and the average time takes for each kernel inside data refactoring routines (decomposition and recomposition) will be save in CSV files under ```<PLATFORM>``` directory. ```<PLATFORM>``` is configured near the top of the Python run script. The test will also have output in the terminal including the profiling information when our data refactoring routines is used in lossy compressors (e.g., compression ratio, GPU-CPU memory copy time, entropy encoding time, quantization, whether or not the error tolerance is met). 
+
+#### * Core algorithms in multigrid-based data refactoring
+##### Decomposition/Recomposition reoutines on CPU: ```../src/mgard.cpp```
+##### Decomposition/Recomposition reoutines on GPU: ```../src/mgard_cuda.cpp```
 
 
 
