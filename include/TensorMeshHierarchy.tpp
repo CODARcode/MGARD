@@ -80,6 +80,23 @@ TensorMeshHierarchy<N, Real>::l(const std::size_t index_difference) const {
   return L - index_difference;
 }
 
+template <std::size_t N, typename Real>
+std::vector<std::size_t>
+TensorMeshHierarchy<N, Real>::indices(const std::size_t l,
+                                      const std::size_t dimension) const {
+  check_mesh_index_bounds(l);
+  check_dimension_index_bounds(dimension);
+  std::vector<std::size_t> indices(meshes.at(l).shape.at(dimension));
+  if (!Dimensions2kPlus1<N>(meshes.at(L).shape).is_2kplus1()) {
+    throw std::invalid_argument("currently only dyadic grids are supported");
+  }
+  const std::size_t stride_ = stride_from_index_difference(L - l);
+  for (std::size_t i = 0; i < indices.size(); ++i) {
+    indices.at(i) = stride_ * i;
+  }
+  return indices;
+}
+
 // TODO: The body of this function is copied from
 // `LevelValues<N, Real>::iterator::operator*`. That function can call this one
 // once `Dimensions2kPlus1<N>` and `TensorMeshHierarchy<N, Real>` are combined.

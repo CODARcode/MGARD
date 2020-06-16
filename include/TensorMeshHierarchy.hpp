@@ -45,7 +45,18 @@ public:
   // index differences are used everywhere.
   std::size_t l(const std::size_t index_difference) const;
 
-  Real &at(Real *const v, std::array<std::size_t, N> multiindex) const;
+  //! Generate the indices (in a particular dimension) of a mesh level.
+  //!
+  //!\param l Mesh index.
+  //!\param dimension Dimension index.
+  std::vector<std::size_t> indices(const std::size_t l,
+                                   const std::size_t dimension) const;
+
+  //! Access the value associated to a particular node.
+  //!
+  //!\param v Dataset defined on the hierarchy.
+  //!\param multiindex Multiindex of the node.
+  Real &at(Real *const v, const std::array<std::size_t, N> multiindex) const;
 
   std::vector<TensorMeshLevel<N, Real>> meshes;
 
