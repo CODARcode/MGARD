@@ -7,6 +7,7 @@
 
 #include <iterator>
 #include <utility>
+#include <vector>
 
 namespace mgard {
 
@@ -351,6 +352,83 @@ public:
 private:
   //! Current multiindex.
   std::array<std::size_t, N> indices;
+};
+
+//! Mimic Python's `itertools.product`. Allow iteration over the Cartesian
+//! product of a collection of vectors.
+template <typename T, std::size_t N> struct CartesianProduct {
+public:
+  //! Constructor.
+  //!
+  //!\param factors Factors of the Cartesian product.
+  CartesianProduct(const std::array<std::vector<T>, N> &factors);
+
+  //! Prevent temporaries.
+  CartesianProduct(const std::array<std::vector<T>, N> &&factors) = delete;
+
+  //! Forward reference.
+  class iterator;
+
+  //! Return an iterator to the beginning of the product range.
+  iterator begin() const;
+
+  //! Return an iterator to the beginning of the product range.
+  iterator end() const;
+
+  //! Factors of the Cartesian product.
+  const std::array<std::vector<T>, N> &factors;
+
+  //! Multiindices of the product elements.
+  const MultiindexRectangle<N> multiindices;
+};
+
+//! Equality comparison.
+template <typename T, std::size_t N>
+bool operator==(const CartesianProduct<T, N> &a,
+                const CartesianProduct<T, N> &b);
+
+//! Inequality comparison.
+template <typename T, std::size_t N>
+bool operator!=(const CartesianProduct<T, N> &a,
+                const CartesianProduct<T, N> &b);
+
+//! Iterator over a Cartesian product.
+template <typename T, std::size_t N> class CartesianProduct<T, N>::iterator {
+public:
+  using iterator_category = std::input_iterator_tag;
+  using value_type = std::array<T, N>;
+  using difference_type = std::ptrdiff_t;
+  using pointer = value_type *;
+  using reference = value_type &;
+
+  //! Constructor.
+  //!
+  //!\param iterable Associated Cartesian product.
+  //!\param multiindex Multiindex of current element in product.
+  iterator(const CartesianProduct &iterable,
+           const typename MultiindexRectangle<N>::iterator inner);
+
+  //! Equality comparison.
+  bool operator==(const iterator &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const iterator &other) const;
+
+  //! Preincrement.
+  iterator &operator++();
+
+  //! Postincrement.
+  iterator operator++(int);
+
+  //! Dereference.
+  value_type operator*() const;
+
+  //! Associated Cartesian product.
+  const CartesianProduct &iterable;
+
+private:
+  //! Position in the multiindex range.
+  typename MultiindexRectangle<N>::iterator inner;
 };
 
 } // namespace mgard
