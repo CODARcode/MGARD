@@ -8,6 +8,8 @@
 #include <cmath>
 
 namespace mgard_gen {  
+
+
 template <typename T>
 __global__ void 
 _add_level_l_cuda(int nrow,       int ncol, int nfib,
@@ -16,15 +18,15 @@ _add_level_l_cuda(int nrow,       int ncol, int nfib,
                int * irow,     int * icol, int * ifib,
                T * dv,    int lddv1, int lddv2,
                T * dwork, int lddwork1, int lddwork2) {
-  int z0 = blockIdx.z * blockDim.z + threadIdx.z;
-  int y0 = blockIdx.y * blockDim.y + threadIdx.y;
-  int x0 = blockIdx.x * blockDim.x + threadIdx.x;
-  for (int z = z0; z * row_stride < nr; z += blockDim.z * gridDim.z) {
-    for (int y = y0; y * col_stride < nc; y += blockDim.y * gridDim.y) {
-      for (int x = x0; x * fib_stride < nf; x += blockDim.x * gridDim.x) {
-        int z_strided = irow[z * row_stride];
-        int y_strided = icol[y * col_stride];
-        int x_strided = ifib[x * fib_stride];
+  int z0 = blockIdx.z * blockDim.z + threadIdx.z * row_stride;
+  int y0 = blockIdx.y * blockDim.y + threadIdx.y * col_stride;
+  int x0 = blockIdx.x * blockDim.x + threadIdx.x * fib_stride;
+  for (int z = z0; z * row_stride < nr; z += blockDim.z * gridDim.z * row_stride) {
+    for (int y = y0; y * col_stride < nc; y += blockDim.y * gridDim.y * col_stride) {
+      for (int x = x0; x * fib_stride < nf; x += blockDim.x * gridDim.x * fib_stride) {
+        int z_strided = irow[z];
+        int y_strided = icol[y];
+        int x_strided = ifib[x];
         dv[get_idx(lddv1, lddv2, z_strided, y_strided, x_strided)] += dwork[get_idx(lddwork1, lddwork2, z_strided, y_strided, x_strided)];
 
       }
@@ -45,6 +47,7 @@ add_level_l_cuda(int nrow,       int ncol, int nfib,
                  int queue_idx,
                  bool profile) {
 
+  B = min(8, B);  
   cudaEvent_t start, stop;
   float milliseconds = 0;
 
@@ -61,6 +64,9 @@ add_level_l_cuda(int nrow,       int ncol, int nfib,
   int gridx = ceil((float)total_thread_x/tbx);
   dim3 threadsPerBlock(tbx, tby, tbz);
   dim3 blockPerGrid(gridx, gridy, gridz);
+
+  // std::cout << "threadsPerBlock: " << tbx << ", "<< tby << ", " << tbz << "\n"; 
+  // std::cout << "blockPerGrid: " << gridx << ", " << gridy << ", " << gridz << "\n"; 
 
   if (profile) {
     gpuErrchk(cudaEventCreate(&start));

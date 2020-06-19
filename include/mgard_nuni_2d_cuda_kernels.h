@@ -25,6 +25,7 @@
 #include "mgard_nuni_3d_cuda_assign_num_level_l.h"
 #include "mgard_nuni_3d_cuda_subtract_level_l.h"
 #include "mgard_nuni_3d_cuda_add_level_l.h"
+#include "mgard_nuni_3d_cuda_prolongate_last.h"
 
 #include "quantize_2D_iterleave_cuda.h"
 #include "dequantize_2D_iterleave_cuda.h"

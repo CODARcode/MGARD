@@ -4,6 +4,16 @@
 #include "mgard_cuda_helper.h"
 
 namespace mgard_gen {
+template <typename T>
+mgard_cuda_ret 
+subtract_level_l_cuda(int nrow,       int ncol, int nfib,
+                      int nr,         int nc,         int nf,
+                      int row_stride, int col_stride, int fib_stride,
+                      int * dirow,    int * dicol, int * difib,
+                      T * dv,    int lddv1,      int lddv2,
+                      T * dwork, int lddwork1,   int lddwork2,
+                      int B, mgard_cuda_handle & handle, 
+                      int queue_idx, bool profile);
 
 template <typename T>
 mgard_cuda_ret 

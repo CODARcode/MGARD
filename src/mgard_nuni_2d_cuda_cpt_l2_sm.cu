@@ -2089,38 +2089,49 @@ postp_2D_cuda_l2_sm(const int nrow,     const int ncol,
                         dv,         lddv, B,
                         handle, 0, profile);
   subtract_level_l_cuda_time = ret.time;
-
-
-  //        //std::cout  << "recomposing-rowsweep2" << "\n";
-
-  //     //   //int Pstride = stride/2; //finer stride
   
-  row_stride = 1;
-  col_stride = 1;
-  ret = prolongate_last_row_cuda(nrow,       ncol, 
-                           nr,         nc,
-                           row_stride, col_stride,
-                           dirow,      dicolP,
-                           dwork,      lddwork,
-                           dcoords_x, B,
-                           handle, 0, profile);
-  prolongate_last_row_cuda_time = ret.time;
+  // row_stride = 1;
+  // col_stride = 1;
+  // ret = prolongate_last_row_cuda(nrow,       ncol, 
+  //                          nr,         nc,
+  //                          row_stride, col_stride,
+  //                          dirow,      dicolP,
+  //                          dwork,      lddwork,
+  //                          dcoords_x, B,
+  //                          handle, 0, profile);
+  // prolongate_last_row_cuda_time = ret.time;
 
-  //     // column-sweep, this is the slow one! Need something like column_copy
-  if (nrow > 1) {
-    // print_matrix(nrow, ncol, work.data(), ldwork);
-    row_stride = 1;
-    col_stride = 1;
-    ret = prolongate_last_col_cuda(nrow,       ncol, 
-                             nr,         nc,
-                             row_stride, col_stride,
-                             dirowP,     dicol,
-                             dwork,      lddwork,
-                             dcoords_y, B,
-                             handle, 0, profile);
-    prolongate_last_col_cuda_time = ret.time;
-  }
-  // print_matrix(nrow, ncol, work.data(), ldwork);
+  // row_stride = 1;
+  // col_stride = 1;
+  // ret = prolongate_last_col_cuda(nrow,       ncol, 
+  //                          nr,         nc,
+  //                          row_stride, col_stride,
+  //                          dirowP,     dicol,
+  //                          dwork,      lddwork,
+  //                          dcoords_y, B,
+  //                          handle, 0, profile);
+  // prolongate_last_col_cuda_time = ret.time;
+
+  prolongate_last_row_cuda(nrow,       ncol, 
+                           nr,         nc,
+                           dirow,      dicolP,
+                           dcoords_x,  dcoords_y,
+                           dwork,      lddwork,
+                           B, handle, 0, profile);
+  prolongate_last_col_cuda(nrow,       ncol, 
+                           nr,         nc,
+                           dirowP,      dicol,
+                           dcoords_x,  dcoords_y,
+                           dwork,      lddwork,
+                           B, handle, 0, profile);
+  
+  prolongate_last_row_col_cuda(nrow,       ncol, 
+                               nr,         nc,
+                               dirowP,      dicolP,
+                               dcoords_x,  dcoords_y,
+                               dwork,      lddwork,
+                               B, handle, 0, profile);
+
   
   ret = assign_num_level_l_cuda(nrow,       ncol,
                           nr,         nc,

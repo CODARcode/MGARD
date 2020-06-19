@@ -53,12 +53,13 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
   mgard_gen::refactor_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
                          work2d, coords_x, coords_y, coords_z, csv_prefix);
 
-  for (int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      std::cout << v[i * ncol + j] << ", ";
-    }
-    std::cout << "\n";
-  }
+  // for (int i = 0; i < 10; i++) {
+  //   for(int j = 0; j < 10; j++) {
+  //     std::cout << v[i * ncol + j] << ", ";
+  //   }
+  //   std::cout << "\n";
+  // }
+
 
 
   work.clear();
@@ -79,12 +80,12 @@ unsigned char *refactor_qz(int nrow, int ncol, int nfib, const double *u,
   elapsed = end - start;
   printf("Quantize: %f\n", elapsed.count());
 
-  for (int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      std::cout << qv[i * ncol + j] << ", ";
-    }
-    std::cout << "\n";
-  }
+  // for (int i = 0; i < 10; i++) {
+  //   for(int j = 0; j < 10; j++) {
+  //     std::cout << qv[i * ncol + j] << ", ";
+  //   }
+  //   std::cout << "\n";
+  // }
 
   std::vector<unsigned char> out_data;
 
@@ -651,8 +652,8 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const double *u, int &outsize,
 
     std::cout << "***prep_2D***" << std::endl;
     auto t_start = std::chrono::high_resolution_clock::now();
-    // mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(), work,
-    //                              coords_x, coords_y, row_vec, col_vec, csv_prefix);
+    mgard_2d::mgard_gen::prep_2D(nr, nc, nrow, ncol, l_target, v.data(), work,
+                                 coords_x, coords_y, row_vec, col_vec, csv_prefix);
     auto t_end = std::chrono::high_resolution_clock::now();
     double data_size = nrow * ncol * sizeof(double);
     double time = std::chrono::duration<double>(t_end-t_start).count();
@@ -949,8 +950,8 @@ double *recompose_udq_2D(int nrow, int ncol, unsigned char *data,
     mgard_2d::mgard_gen::recompose_2D(nr, nc, nrow, ncol, l_target, v, work,
                                       coords_x, coords_y, row_vec, col_vec, csv_prefix);
 
-    // mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v, work,
-    //                               coords_x, coords_y, row_vec, col_vec, csv_prefix);
+    mgard_2d::mgard_gen::postp_2D(nr, nc, nrow, ncol, l_target, v, work,
+                                  coords_x, coords_y, row_vec, col_vec, csv_prefix);
 
     return v;
   // }
@@ -1581,7 +1582,7 @@ void quantize_2D_interleave(const int nrow, const int ncol, double *v,
 
   //    double quantizer = 2.0*norm * tol;
   double quantizer = norm * tol;
-  std::cout << "quantizer: " << quantizer << " norm: " << norm << " tol: " << tol << "\n";
+  // std::cout << "quantizer: " << quantizer << " norm: " << norm << " tol: " << tol << "\n";
   ////std::cout  << "Quantization factor: " << quantizer << "\n";
   std::memcpy(work.data(), &quantizer, sizeof(double));
 

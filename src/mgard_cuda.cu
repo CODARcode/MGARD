@@ -215,14 +215,37 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const T *u,
 
 
 
-  mgard_gen::prep_3D_cuda(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
-                          work2d, coords_x, coords_y, coords_z, 
+  // mgard_gen::prep_3D_cuda(nr, nc, nf, nrow, ncol, nfib, l_target, v.data(), work,
+  //                         work2d, coords_x, coords_y, coords_z, 
+  //                         dirow, dicol, difib,
+  //                         dirowP, dicolP, difibP,
+  //                         dirowA, dicolA, difibA,
+  //                         ddist_r,  ddist_c, ddist_f,
+  //                         dcoords_y, dcoords_x, dcoords_z,
+  //                         B, handle, profile );
+
+ cudaMemcpy3DAsyncHelper(dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
+                   v.data(), nfib  * sizeof(T), nfib * sizeof(T), ncol,
+                   nfib * sizeof(T), ncol, nrow,
+                   H2D, handle, 0, profile);
+
+  mgard_gen::prep_3D_cuda(nrow, ncol, nfib, nr, nc, nf,
                           dirow, dicol, difib,
                           dirowP, dicolP, difibP,
                           dirowA, dicolA, difibA,
                           ddist_r,  ddist_c, ddist_f,
                           dcoords_y, dcoords_x, dcoords_z,
+                          dv, lddv1, lddv2,
+                          dwork, lddwork1, lddwork2,
                           B, handle, profile );
+
+  // for (int i = 0; i < 10; i++) {
+  //   for(int j = 0; j < 10; j++) {
+  //     std::cout << v[i * ncol + j] << ", ";
+  //   }
+  //   std::cout << "\n";
+  // }
+  
 
   // std::vector<T> v2(u, u + nrow * ncol * nfib);
   // for (int i = 0; i < nrow * ncol * nfib; i++) {
@@ -236,19 +259,16 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const T *u,
   
   // print_matrix(nfib, nrow, ncol, v.data(), ncol, nrow);
 
-  cudaMemcpy3DAsyncHelper(dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
-                     v.data(), nfib  * sizeof(T), nfib * sizeof(T), ncol,
-                     nfib * sizeof(T), ncol, nrow,
-                     H2D, handle, 0, profile);
+ 
   // print_matrix_cuda(nrow, ncol, nfib, dv, lddv1, ncol, nfib);
 
   mgard_gen::refactor_3D_cuda_cpt_l2_sm(l_target, 
                                         nrow,      ncol,      nfib, 
                                         nr,        nc,        nf, 
                                         dirow,     dicol,     difib, 
+                                        dcoords_y, dcoords_x, dcoords_z,
                                         dv,        lddv1,     lddv2,
                                         dwork,     lddwork1,  lddwork2,
-                                        dcoords_y, dcoords_x, dcoords_z,
                                         B, handle, profile);
 
 
@@ -265,12 +285,7 @@ refactor_qz_cuda(int nrow, int ncol, int nfib, const T *u,
                      nfib * sizeof(T), ncol, nrow,
                      D2H, handle, 0, profile);
 
-  // for (int i = 0; i < 10; i++) {
-  //   for(int j = 0; j < 10; j++) {
-  //     std::cout << v[i * ncol + j] << ", ";
-  //   }
-  //   std::cout << "\n";
-  // }
+  
   
 
   int size_ratio = sizeof(T) / sizeof(int);
@@ -413,10 +428,26 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
   cudaMemcpyAsyncHelper(dcoords_f, coords_z.data(), nfib * sizeof(T), H2D,
                        handle, 0, profile);
 
+  T * ddist_r;
+  cudaMallocHelper((void**)&ddist_r, nrow * sizeof(T));
+  calc_cpt_dist(nrow, 1, dcoords_r, ddist_r,
+                B, handle, 0, profile);
+
+  T * ddist_c;
+  cudaMallocHelper((void**)&ddist_c, ncol * sizeof(T));
+  calc_cpt_dist(ncol, 1, dcoords_c, ddist_c,
+                B, handle, 0, profile);
+
+  T * ddist_f;
+  cudaMallocHelper((void**)&ddist_f, nfib * sizeof(T));
+  calc_cpt_dist(nfib, 1, dcoords_f, ddist_f,
+                B, handle, 0, profile);
+
 
 
   int * irow  = new int[nr];
   int * irowP = new int[nrow-nr];
+  int * irowA = new int[nrow];
   int irow_ptr  = 0;
   int irowP_ptr = 0;
 
@@ -429,9 +460,11 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
     } 
     irow_ptr++;
   }
+  for(int i = 0; i < nrow; i++) irowA[i] = i;
 
   int * icol  = new int[nc];
   int * icolP = new int[ncol-nc];
+  int * icolA = new int[ncol];
   int icol_ptr  = 0;
   int icolP_ptr = 0;
 
@@ -444,9 +477,11 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
     } 
     icol_ptr++;
   }
+  for (int i = 0; i < ncol; i++) icolA[i] = i;
 
   int * ifib  = new int[nf];
   int * ifibP = new int[nfib-nf];
+  int * ifibA = new int[nfib];
   int ifib_ptr  = 0;
   int ifibP_ptr = 0;
 
@@ -459,6 +494,7 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
     } 
     ifib_ptr++;
   }
+  for (int i = 0; i < nfib; i++) ifibA[i] = i;
 
   // printf("ifib:");
   // print_matrix(1, nf, ifib, nf);
@@ -496,6 +532,21 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
   int * difibP;
   cudaMallocHelper((void**)&difibP, (nfib-nf) * sizeof(int));
   cudaMemcpyAsyncHelper(difibP, ifibP, (nfib-nf) * sizeof(int), H2D,
+                        handle, 0, profile);
+
+  int * dirowA;
+  cudaMallocHelper((void**)&dirowA, nrow * sizeof(int));
+  cudaMemcpyAsyncHelper(dirowA, irowA, nrow * sizeof(int), H2D,
+                        handle, 0, profile);
+
+  int * dicolA;
+  cudaMallocHelper((void**)&dicolA, ncol * sizeof(int));
+  cudaMemcpyAsyncHelper(dicolA, icolA, ncol * sizeof(int), H2D,
+                        handle, 0, profile);
+
+  int * difibA;
+  cudaMallocHelper((void**)&difibA, nfib * sizeof(int));
+  cudaMemcpyAsyncHelper(difibA, ifibA, nfib * sizeof(int), H2D,
                         handle, 0, profile);
 
   T * v = (T *)malloc(nrow * ncol * nfib * sizeof(T));
@@ -539,21 +590,35 @@ T *recompose_udq_cuda(int nrow, int ncol, int nfib, unsigned char *data,
                                          nrow,     ncol, nfib, 
                                          nr, nc, nf, 
                                          dirow,     dicol,     difib, 
+                                         dcoords_r, dcoords_c, dcoords_f,
                                          dv,        lddv1,     lddv2,
                                          dwork,     lddwork1,  lddwork2,
-                                         dcoords_r, dcoords_c, dcoords_f,
                                          B, handle, profile);
                                          // v, work,
                                          // work2d, coords_x, coords_y, coords_z);
+
+  
+
+
+  // mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v, work, coords_x,
+  //                     coords_y, coords_z);
+
+
+  mgard_gen::postp_3D_cuda(nrow, ncol, nfib, 
+                           nr, nc, nf,
+                           dirow, dicol, difib,
+                           dirowP, dicolP, difibP,
+                           dirowA, dicolA, difibA,
+                           ddist_r,  ddist_c, ddist_f,
+                           dcoords_r, dcoords_c, dcoords_f,
+                           dv, lddv1, lddv2,
+                           dwork, lddwork1, lddwork2,
+                           B, handle, profile);
 
   cudaMemcpy3DAsyncHelper(v, nfib  * sizeof(T), nfib * sizeof(T), ncol,
                      dv, lddv1 * sizeof(T), nfib * sizeof(T), ncol,
                      nfib * sizeof(T), ncol, nrow,
                      D2H, handle, 0, profile);
-
-
-  mgard_gen::postp_3D(nr, nc, nf, nrow, ncol, nfib, l_target, v, work, coords_x,
-                      coords_y, coords_z);
 
   cudaFreeHelper(dv);
   cudaFreeHelper(dwork);

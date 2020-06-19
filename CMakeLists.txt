@@ -102,6 +102,7 @@ add_library(mgard
   src/mgard_nuni_3d_cuda_assign_num_level_l.cu include/mgard_nuni_3d_cuda_assign_num_level_l.h
   src/mgard_nuni_3d_cuda_add_level_l.cu        include/mgard_nuni_3d_cuda_add_level_l.h
   src/mgard_nuni_3d_cuda_subtract_level_l.cu   include/mgard_nuni_3d_cuda_subtract_level_l.h
+  src/mgard_nuni_3d_cuda_prolongate_last.cu       include/mgard_nuni_3d_cuda_prolongate_last.h
   src/quantize_2D_iterleave_cuda.cu            include/quantize_2D_iterleave_cuda.h
   src/dequantize_2D_iterleave_cuda.cu          include/dequantize_2D_iterleave_cuda.h
   src/mgard_nuni_2d_cuda.cu                    include/mgard_nuni_2d_cuda.h

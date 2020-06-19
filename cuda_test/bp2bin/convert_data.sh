@@ -24,9 +24,9 @@ convert_data_3d(){
 # convert_data_3d 129 129 129 1
 # convert_data_3d 257 257 257 1
 
-# convert_data_3d 128 128 128 1
+convert_data_3d 128 128 128 1
 # convert_data_3d 129 129 129 1
-convert_data_3d 17 17 17 1
+#convert_data_3d 17 17 17 1
 
 ######for large data######
 # convert_data_3d 513 513 513 1

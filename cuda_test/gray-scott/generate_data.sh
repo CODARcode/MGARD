@@ -18,9 +18,9 @@ launch_simulation() {
 # launch_simulation 129 129 129
 # launch_simulation 257 257 257
 
-# launch_simulation 128 128 128
+launch_simulation 128 128 128
 #launch_simulation 129 129 129
-launch_simulation 17 17 17
+#launch_simulation 17 17 17
 
 #########Large runs############
 # launch_simulation 513 513 513
