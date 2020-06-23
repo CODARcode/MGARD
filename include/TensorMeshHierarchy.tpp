@@ -7,7 +7,15 @@ namespace mgard {
 
 template <std::size_t N, typename Real>
 TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
-    const TensorMeshLevel<N, Real> &mesh) {
+    const TensorMeshLevel<N, Real> &mesh,
+    const std::array<std::vector<Real>, N> &coordinates)
+    : coordinates(coordinates) {
+  for (std::size_t i = 0; i < N; ++i) {
+    if (coordinates.at(i).size() != mesh.shape.at(i)) {
+      throw std::invalid_argument("incorrect number of node coordinates given");
+    }
+  }
+
   const Dimensions2kPlus1<N> dims(mesh.shape);
   L = dims.nlevel;
   if (!dims.is_2kplus1()) {
@@ -35,6 +43,39 @@ TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
     meshes.push_back(mesh);
   }
 }
+
+namespace {
+
+// TODO: This changes the previous default behavior, where the node spacing was
+// set to `1` in every dimension with `std::iota`. Document somewhere.
+template <std::size_t N, typename Real>
+std::array<std::vector<Real>, N>
+default_node_coordinates(const TensorMeshLevel<N, Real> &mesh) {
+  std::array<std::vector<Real>, N> coordinates;
+  for (std::size_t i = 0; i < N; ++i) {
+    const std::size_t n = mesh.shape.at(i);
+    std::vector<Real> &xs = coordinates.at(i);
+    xs.resize(n);
+    const Real h = n > 1 ? static_cast<Real>(1) / (n - 1) : 0;
+    for (std::size_t j = 0; j < n; ++j) {
+      xs.at(j) = j * h;
+    }
+  }
+  return coordinates;
+}
+
+} // namespace
+
+template <std::size_t N, typename Real>
+TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
+    const TensorMeshLevel<N, Real> &mesh)
+    : TensorMeshHierarchy(mesh, default_node_coordinates(mesh)) {}
+
+template <std::size_t N, typename Real>
+TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
+    const std::array<std::size_t, N> &shape,
+    const std::array<std::vector<Real>, N> &coordinates)
+    : TensorMeshHierarchy(TensorMeshLevel<N, Real>(shape), coordinates) {}
 
 template <std::size_t N, typename Real>
 TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(

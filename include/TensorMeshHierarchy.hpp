@@ -20,12 +20,28 @@ public:
   //!\param mesh Initial, finest mesh to sit atop the hierarchy.
   TensorMeshHierarchy(const TensorMeshLevel<N, Real> &mesh);
 
-  // TODO: We may want to remove this. Using it refactoring.
+  //! Constructor.
+  //!
+  //!\param mesh Initial, finest mesh to sit atop the hierarchy.
+  //!\param coordinates Coordinates of the nodes in the finest mesh.
+  TensorMeshHierarchy(const TensorMeshLevel<N, Real> &mesh,
+                      const std::array<std::vector<Real>, N> &coordinates);
+
+  // TODO: We may want to remove these. Using it refactoring.
+  // TODO: Instead, we may want to remove the previous constructors. Check
+  // whether `TensorMeshLevel` is needed anywhere.
 
   //! Constructor.
   //!
   //!\param shape Shape of the initial, finest mesh to sit atop the hiearachy.
   TensorMeshHierarchy(const std::array<std::size_t, N> &shape);
+
+  //! Constructor.
+  //!
+  //!\param shape Shape of the initial, finest mesh to sit atop the hiearachy.
+  //!\param coordinates Coordinates of the nodes in the finest mesh.
+  TensorMeshHierarchy(const std::array<std::size_t, N> &shape,
+                      const std::array<std::vector<Real>, N> &coordinates);
 
   //! Report the number of degrees of freedom in the finest TensorMeshLevel.
   std::size_t ndof() const;
@@ -58,7 +74,11 @@ public:
   //!\param multiindex Multiindex of the node.
   Real &at(Real *const v, const std::array<std::size_t, N> multiindex) const;
 
+  //! Meshes composing the hierarchy, in 'increasing' order.
   std::vector<TensorMeshLevel<N, Real>> meshes;
+
+  //! Coordinates of the nodes in the finest mesh.
+  std::array<std::vector<Real>, N> coordinates;
 
   //! Index of finest TensorMeshLevel.
   std::size_t L;
