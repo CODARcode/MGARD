@@ -49,7 +49,7 @@ structured@MGARD_STEMS = $(structured@MGARD_STEMS_TESTED) $(structured@MGARD_STE
 structured@TEST_STEMS := mgard_test
 structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
 
-unstructured@HEADER_ONLY := blas utilities data UniformEdgeFamilies LinearQuantizer SituatedCoefficientRange MultilevelCoefficientQuantizer TensorLinearOperator
+unstructured@HEADER_ONLY := blas utilities data UniformEdgeFamilies LinearQuantizer SituatedCoefficientRange MultilevelCoefficientQuantizer TensorLinearOperator TensorMassMatrix
 unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy UniformRestriction norms estimators EnumeratedMeshRange indicators IndicatorInput
 unstructured@STEMS = $(unstructured@MGARD_STEMS)
 
