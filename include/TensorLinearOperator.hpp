@@ -2,8 +2,7 @@
 #define TENSORLINEAROPERATOR_HPP
 //!\file
 //!\brief Base class for representing linear operators \f$R^{N_{1}} \otimes
-//!\cdots
-//! \otimes R^{N_{d}} \to R^{N_{1}} \otimes \cdots \otimes R^{N_{d}}\f$.
+//! \cdots \otimes R^{N_{d}} \to R^{N_{1}} \otimes \cdots \otimes R^{N_{d}}\f$.
 
 #include <cstddef>
 
@@ -58,6 +57,34 @@ private:
   virtual void
   do_operator_parentheses(const std::array<std::size_t, N> multiindex,
                           Real *const v) const = 0;
+};
+
+//! Linear operator with respect to some fixed bases formed by tensoring
+//! operators on each factor of the tensor product vector space.
+template <std::size_t N, typename Real> class TensorLinearOperator {
+public:
+  //! Constructor.
+  TensorLinearOperator(
+      const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
+      const std::array<ConstituentLinearOperator<N, Real> const *, N>
+          operators);
+
+  //! Apply the operator to an element in place.
+  //!
+  //!\param [in, out] v Element in the domain, to be transformed into an element
+  //! in the range.
+  void operator()(Real *const v) const;
+
+protected:
+  //! Mesh hierarchy on which the operator is to be applied.
+  const TensorMeshHierarchy<N, Real> &hierarchy;
+
+  //! Constituent linear operators.
+  const std::array<ConstituentLinearOperator<N, Real> const *, N> operators;
+
+  //! Indices of the nodes of the mesh on which the operator is to be applied,
+  //! grouped by dimension.
+  const std::array<std::vector<std::size_t>, N> multiindex_components;
 };
 
 } // namespace mgard
