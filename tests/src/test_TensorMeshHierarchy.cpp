@@ -29,6 +29,17 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
     const std::vector<std::array<std::size_t, 2>> expected = {
         {2, 5}, {3, 9}, {5, 17}, {9, 33}, {12, 39}};
     REQUIRE(shapes == expected);
+
+    const mgard::TensorMeshLevel<2, double> &MESH = hierarchy.meshes.back();
+    TrialTracker tracker;
+    for (std::size_t i = 0; i < 2; ++i) {
+      const std::vector<double> &xs = hierarchy.coordinates.at(i);
+      const std::size_t n = MESH.shape.at(i);
+      for (std::size_t j = 0; j < n; ++j) {
+        tracker += xs.at(j) == Approx(static_cast<double>(j) / (n - 1));
+      }
+    }
+    REQUIRE(tracker);
   }
   {
     const mgard::TensorMeshHierarchy<3, double> hierarchy({15, 6, 129});
@@ -42,6 +53,21 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
     const std::vector<std::array<std::size_t, 3>> expected = {
         {3, 2, 33}, {5, 3, 65}, {9, 5, 129}, {15, 6, 129}};
     REQUIRE(shapes == expected);
+  }
+  {
+    const mgard::TensorMeshHierarchy<3, float> hierarchy(
+        {5, 3, 2}, {{{0.0, 0.5, 0.75, 1.0, 1.25}, {-3, -2, -1}, {10.5, 9.5}}});
+    REQUIRE_NOTHROW(hierarchy);
+  }
+  {
+    bool thrown = false;
+    try {
+      const mgard::TensorMeshHierarchy<2, double> hierarchy(
+          {10, 5}, {{{1, 2, 3}, {1, 2, 3, 4, 5}}});
+    } catch (const std::invalid_argument &exception) {
+      thrown = true;
+    }
+    REQUIRE(thrown);
   }
 }
 
