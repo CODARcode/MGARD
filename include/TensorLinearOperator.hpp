@@ -21,6 +21,13 @@ template <std::size_t N, typename Real> class ConstituentLinearOperator {
 public:
   //! Constructor.
   //!
+  //! This constructor is provided so that arrays of derived classes may be
+  //! formed. A default-constructed operator must be assigned to before being
+  //! used.
+  ConstituentLinearOperator() = default;
+
+  //! Constructor.
+  //!
   //!\param hierarchy Mesh hierarchy on which the element is defined.
   //!\param l Index of the mesh on which the operator is to be applied.
   //!\param dimension Index of the dimension in which the operator is to
@@ -45,13 +52,13 @@ public:
 
 protected:
   //! Mesh hierarchy on which the element is defined.
-  const TensorMeshHierarchy<N, Real> &hierarchy;
+  TensorMeshHierarchy<N, Real> const *hierarchy;
 
   //! Index of the dimension in which the operator is to be applied;
-  const std::size_t dimension_;
+  std::size_t dimension_;
 
   //! Indices of the 'spear' in the chosen dimension.
-  const std::vector<std::size_t> indices;
+  std::vector<std::size_t> indices;
 
 private:
   virtual void
