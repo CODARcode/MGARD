@@ -152,3 +152,45 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
     }
   }
 }
+
+TEST_CASE("tensor product mass matrices", "[TensorMassMatrix]") {
+  const mgard::TensorMeshHierarchy<2, double> hierarchy(
+      {3, 3}, {{{0, 0.5, 1}, {1, 1.25, 2}}});
+  const std::array<double, 9> u_ = {2, 3, -9, -2, 6, 5, 2, -1, 5};
+  {
+    const std::size_t l = 1;
+    const mgard::TensorMassMatrix<2, double> M(hierarchy, l);
+    std::array<double, 9> v_ = u_;
+    double *const v = v_.data();
+    M(v);
+    const std::array<double, 9> expected = {0.05555555555555556,
+                                            0.20486111111111108,
+                                            -0.14583333333333334,
+                                            0.0625,
+                                            0.875,
+                                            0.6041666666666666,
+                                            0.027777777777777776,
+                                            0.2743055555555555,
+                                            0.3541666666666667};
+    TrialTracker tracker;
+    for (std::size_t i = 0; i < 9; ++i) {
+      tracker += v_.at(i) == Approx(expected.at(i));
+    }
+    REQUIRE(tracker);
+  }
+  {
+    const std::size_t l = 0;
+    const mgard::TensorMassMatrix<2, double> M(hierarchy, l);
+    std::array<double, 9> v_ = u_;
+    double *const v = v_.data();
+    M(v);
+    const std::array<double, 9> expected = {
+        -0.02777777777777779, 3.0,  -0.5555555555555555, -2.0, 6.0, 5.0,
+        0.3611111111111111,   -1.0, 0.22222222222222224};
+    TrialTracker tracker;
+    for (std::size_t i = 0; i < 9; ++i) {
+      tracker += v_.at(i) == Approx(expected.at(i));
+    }
+    REQUIRE(tracker);
+  }
+}

@@ -16,7 +16,7 @@ void ConstituentMassMatrix<N, Real>::do_operator_parentheses(
     const std::array<std::size_t, N> multiindex, Real *const v) const {
   std::array<std::size_t, N> alpha = multiindex;
   std::size_t &variable_index = alpha.at(CLO::dimension_);
-  const std::vector<Real> &xs = CLO::hierarchy.coordinates.at(CLO::dimension_);
+  const std::vector<Real> &xs = CLO::hierarchy->coordinates.at(CLO::dimension_);
   const std::size_t n = CLO::dimension();
 
   // Node coordinates.
@@ -45,13 +45,13 @@ void ConstituentMassMatrix<N, Real>::do_operator_parentheses(
 
   variable_index = i = *p++;
   x_middle = xs.at(i);
-  out_middle = &CLO::hierarchy.at(v, alpha);
+  out_middle = &CLO::hierarchy->at(v, alpha);
   v_middle = *out_middle;
 
   variable_index = i = *p++;
   x_right = xs.at(i);
   h_right = x_right - x_middle;
-  out_right = &CLO::hierarchy.at(v, alpha);
+  out_right = &CLO::hierarchy->at(v, alpha);
   v_right = *out_right;
 
   // TODO: Figure out changing.
@@ -69,7 +69,7 @@ void ConstituentMassMatrix<N, Real>::do_operator_parentheses(
 
     x_right = xs.at(i);
     h_right = x_right - x_middle;
-    out_right = &CLO::hierarchy.at(v, alpha);
+    out_right = &CLO::hierarchy->at(v, alpha);
     v_right = *out_right;
 
     // TODO: Figure out changing.
@@ -85,6 +85,31 @@ void ConstituentMassMatrix<N, Real>::do_operator_parentheses(
 
   // TODO: Figure out changing.
   *out_middle = h_left / 6 * v_left + h_left / 3 * v_middle;
+}
+
+namespace {
+
+template <std::size_t N, typename Real>
+std::array<ConstituentMassMatrix<N, Real>, N>
+generate_mass_matrices(const TensorMeshHierarchy<N, Real> &hierarchy,
+                       const std::size_t l) {
+  std::array<ConstituentMassMatrix<N, Real>, N> mass_matrices;
+  for (std::size_t i = 0; i < N; ++i) {
+    mass_matrices.at(i) = ConstituentMassMatrix<N, Real>(hierarchy, l, i);
+  }
+  return mass_matrices;
+}
+
+} // namespace
+
+template <std::size_t N, typename Real>
+TensorMassMatrix<N, Real>::TensorMassMatrix(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
+    : TensorLinearOperator<N, Real>(hierarchy, l),
+      mass_matrices(generate_mass_matrices(hierarchy, l)) {
+  for (std::size_t i = 0; i < N; ++i) {
+    TLO::operators.at(i) = &mass_matrices.at(i);
+  }
 }
 
 } // namespace mgard
