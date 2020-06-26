@@ -48,17 +48,13 @@ TensorLinearOperator<N, Real>::TensorLinearOperator(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
     const std::array<ConstituentLinearOperator<N, Real> const *, N> operators)
     : hierarchy(hierarchy), operators(operators),
-      multiindex_components(level_multiindex_components(hierarchy, l)) {
-  for (std::size_t i = 0; i < N; ++i) {
-    // TODO: This will cause a problem when `operators.at(i)` is allowed to be
-    // `nullptr` (assuming we go that route).
-    // TODO: Maybe call something like `initialize_operators` and then have this
-    // check (but this will get called before subclass constructors).
-    if (multiindex_components.at(i).size() != operators.at(i)->dimension()) {
-      throw std::invalid_argument(
-          "mesh dimension does not match operator dimension");
-    }
-  }
+      multiindex_components(level_multiindex_components(hierarchy, l)) {}
+
+template <std::size_t N, typename Real>
+TensorLinearOperator<N, Real>::TensorLinearOperator(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
+    : TensorLinearOperator(hierarchy, l, {}) {
+  operators.fill(nullptr);
 }
 
 template <std::size_t N, typename Real>
@@ -67,6 +63,18 @@ void TensorLinearOperator<N, Real>::operator()(Real *const v) const {
       multiindex_components;
   for (std::size_t i = 0; i < N; ++i) {
     ConstituentLinearOperator<N, Real> const *const A = operators.at(i);
+    // We can't check these preconditions in the constructor because the
+    // operators won't be valid at that point in derived class constructors. It
+    // shouldn't be very expensive to run the tests each time this operator is
+    // called. Possibly we could put them in some sort of setter method for
+    // `operators`.
+    if (A == nullptr) {
+      throw std::logic_error("operator has not been initialized");
+    }
+    if (A->dimension() != multiindex_components.at(i).size()) {
+      throw std::invalid_argument(
+          "operator dimension does not match mesh dimension");
+    }
     multiindex_components_.at(i) = {0};
     for (const std::array<std::size_t, N> multiindex :
          CartesianProduct<std::size_t, N>(multiindex_components_)) {

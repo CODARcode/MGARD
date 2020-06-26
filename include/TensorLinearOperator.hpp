@@ -28,7 +28,7 @@ public:
 
   //! Constructor.
   //!
-  //!\param hierarchy Mesh hierarchy on which the element is defined.
+  //!\param hierarchy Mesh hierarchy on which the domain and range are defined.
   //!\param l Index of the mesh on which the operator is to be applied.
   //!\param dimension Index of the dimension in which the operator is to
   //! be applied.
@@ -51,10 +51,10 @@ public:
                   Real *const v) const;
 
 protected:
-  //! Mesh hierarchy on which the element is defined.
+  //! Mesh hierarchy on which the domain and range are defined.
   TensorMeshHierarchy<N, Real> const *hierarchy;
 
-  //! Index of the dimension in which the operator is to be applied;
+  //! Index of the dimension in which the operator is to be applied.
   std::size_t dimension_;
 
   //! Indices of the 'spear' in the chosen dimension.
@@ -71,6 +71,10 @@ private:
 template <std::size_t N, typename Real> class TensorLinearOperator {
 public:
   //! Constructor.
+  //!
+  //!\param hierarchy Mesh hierarchy on which the domain and range are defined.
+  //!\param l Index of the mesh on which the operator is to be applied.
+  //!\param operators Constituent linear operators for each dimension.
   TensorLinearOperator(
       const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
       const std::array<ConstituentLinearOperator<N, Real> const *, N>
@@ -83,11 +87,27 @@ public:
   void operator()(Real *const v) const;
 
 protected:
-  //! Mesh hierarchy on which the operator is to be applied.
+  //! Constructor.
+  //!
+  //! This constructor is provided for derived classes to call when the entries
+  //! of `operators` will point to members of the derived class (so to
+  //! `ConstituentLinearOperator`s which do not exist at the time that this
+  //! constructor is called). Since `operators` is not provided, this
+  //! constructor does not check that the operators have the right sizes.
+  //!
+  //!\param hierarchy Mesh hierarchy on which the domain and range are defined.
+  //!\param l Index of the mesh on which the operator is to be applied.
+  TensorLinearOperator(const TensorMeshHierarchy<N, Real> &hierarchy,
+                       const std::size_t l);
+
+  //! Mesh hierarchy on which the domain and range are defined.
   const TensorMeshHierarchy<N, Real> &hierarchy;
 
   //! Constituent linear operators.
-  const std::array<ConstituentLinearOperator<N, Real> const *, N> operators;
+  //!
+  //! This member can't be `const` because derived class constructors will write
+  //! to it after the base class constructor has returned.
+  std::array<ConstituentLinearOperator<N, Real> const *, N> operators;
 
   //! Indices of the nodes of the mesh on which the operator is to be applied,
   //! grouped by dimension.
