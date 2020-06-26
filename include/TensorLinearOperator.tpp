@@ -8,7 +8,7 @@ template <std::size_t N, typename Real>
 ConstituentLinearOperator<N, Real>::ConstituentLinearOperator(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
     const std::size_t dimension)
-    : hierarchy(hierarchy), dimension_(dimension),
+    : hierarchy(&hierarchy), dimension_(dimension),
       indices(hierarchy.indices(l, dimension)) {}
 
 template <std::size_t N, typename Real>

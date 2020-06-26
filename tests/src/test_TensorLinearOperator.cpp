@@ -45,7 +45,7 @@ private:
     const std::size_t M = CLO::dimension();
     for (std::size_t i = 0; i < M; ++i) {
       variable_index = CLO::indices.at(i);
-      CLO::hierarchy.at(v, alpha) *= diagonal.at(i);
+      CLO::hierarchy->at(v, alpha) *= diagonal.at(i);
     }
   }
 };
@@ -85,13 +85,13 @@ private:
       value = 0;
       for (std::size_t j = 0; j < 3; ++j) {
         variable_index = indices.at(j);
-        value += row.at(j) * hierarchy.at(v, alpha);
+        value += row.at(j) * hierarchy->at(v, alpha);
       }
     }
 
     for (std::size_t i = 0; i < 3; ++i) {
       variable_index = indices.at(i);
-      hierarchy.at(v, alpha) = out.at(i);
+      hierarchy->at(v, alpha) = out.at(i);
     }
   }
 };
