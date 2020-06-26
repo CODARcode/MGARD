@@ -1,6 +1,9 @@
 #include "catch2/catch.hpp"
 
 #include <array>
+#include <memory>
+#include <random>
+#include <stdexcept>
 #include <vector>
 
 #include "testing_utilities.hpp"
@@ -290,4 +293,81 @@ TEST_CASE("constituent mass matrice inverses", "[TensorMassMatrix]") {
     }
     REQUIRE(tracker);
   }
+}
+
+namespace {
+
+std::vector<float>
+node_positions(std::default_random_engine &generator,
+               std::uniform_real_distribution<float> &distribution,
+               const std::size_t N) {
+  std::vector<float> positions(N);
+  float previous;
+  previous = positions.at(0) = 0;
+  for (std::size_t i = 1; i < N; ++i) {
+    previous = positions.at(i) = previous + distribution(generator);
+  }
+  return positions;
+}
+
+template <std::size_t N>
+void test_mass_matrix_inversion(
+    std::default_random_engine &generator,
+    std::uniform_real_distribution<float> &distribution,
+    const std::array<float, 1089> &u_, std::array<std::size_t, N> shape) {
+  std::array<std::vector<float>, N> coordinates;
+  for (std::size_t i = 0; i < N; ++i) {
+    coordinates.at(i) = node_positions(generator, distribution, shape.at(i));
+  }
+
+  std::size_t ndof = 1;
+  for (const std::size_t n : shape) {
+    ndof *= n;
+  }
+  if (ndof > 1089) {
+    throw std::invalid_argument("mesh too large");
+  }
+  std::vector<float> v_(ndof);
+  float *const v = v_.data();
+
+  const mgard::TensorMeshHierarchy<N, float> hierarchy(shape, coordinates);
+  TrialTracker tracker;
+  for (std::size_t l = 0; l <= hierarchy.L; ++l) {
+    std::uninitialized_copy_n(u_.begin(), ndof, v_.begin());
+    const mgard::TensorMassMatrix<N, float> M(hierarchy, l);
+    const mgard::TensorMassMatrixInverse<N, float> A(hierarchy, l);
+    M(v);
+    A(v);
+    float u_square_norm = 0;
+    float error_square_norm = 0;
+    for (std::size_t i = 0; i < ndof; ++i) {
+      const float expected = u_.at(i);
+      const float obtained = v_.at(i);
+      const float error = expected - obtained;
+      u_square_norm += expected * expected;
+      error_square_norm += error * error;
+    }
+    tracker += error_square_norm <= 0.00000001 * u_square_norm;
+  }
+  REQUIRE(tracker);
+}
+
+} // namespace
+
+TEST_CASE("tensor product mass matrix inverses", "[TensorMassMatrix]") {
+  std::default_random_engine generator(741495);
+  std::array<float, 1089> u_;
+  {
+    std::uniform_real_distribution<float> distribution(-10, 10);
+
+    for (float &value : u_) {
+      value = distribution(generator);
+    }
+  }
+
+  std::uniform_real_distribution<float> distribution(0.1, 0.3);
+  test_mass_matrix_inversion<1>(generator, distribution, u_, {1025});
+  test_mass_matrix_inversion<2>(generator, distribution, u_, {33, 33});
+  test_mass_matrix_inversion<3>(generator, distribution, u_, {17, 5, 9});
+  test_mass_matrix_inversion<4>(generator, distribution, u_, {5, 5, 3, 9});
 }

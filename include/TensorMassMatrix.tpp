@@ -1,3 +1,5 @@
+#include <algorithm>
+
 namespace mgard {
 
 template <std::size_t N, typename Real>
@@ -247,6 +249,41 @@ void ConstituentMassMatrixInverse<N, Real>::do_operator_parentheses(
     const Real c_j = h_right / 6;
     *out_middle -= c_j * x_next;
     x_next = *out_middle /= divisors[j];
+  }
+}
+
+namespace {
+
+template <std::size_t N, typename Real>
+std::size_t buffer_size(const TensorMeshHierarchy<N, Real> &hierarchy,
+                        const std::size_t l) {
+  const std::array<std::size_t, N> shape = hierarchy.meshes.at(l).shape;
+  return *std::max_element(shape.begin(), shape.end());
+}
+
+template <std::size_t N, typename Real>
+std::array<ConstituentMassMatrixInverse<N, Real>, N>
+generate_mass_matrix_inverses(const TensorMeshHierarchy<N, Real> &hierarchy,
+                              const std::size_t l, Real *const buffer) {
+  std::array<ConstituentMassMatrixInverse<N, Real>, N> operators;
+  for (std::size_t i = 0; i < N; ++i) {
+    operators.at(i) =
+        ConstituentMassMatrixInverse<N, Real>(hierarchy, l, i, buffer);
+  }
+  return operators;
+}
+
+} // namespace
+
+template <std::size_t N, typename Real>
+TensorMassMatrixInverse<N, Real>::TensorMassMatrixInverse(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
+    : TensorLinearOperator<N, Real>(hierarchy, l),
+      buffer(buffer_size(hierarchy, l)),
+      mass_matrix_inverses(
+          generate_mass_matrix_inverses(hierarchy, l, buffer.data())) {
+  for (std::size_t i = 0; i < N; ++i) {
+    TLO::operators.at(i) = &mass_matrix_inverses.at(i);
   }
 }
 
