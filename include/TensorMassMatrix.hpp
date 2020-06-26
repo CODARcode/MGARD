@@ -3,6 +3,8 @@
 //!\file
 //!\brief Mass matrix for tensor product grids.
 
+#include <vector>
+
 #include "TensorLinearOperator.hpp"
 
 namespace mgard {
@@ -85,6 +87,29 @@ private:
   virtual void
   do_operator_parentheses(const std::array<std::size_t, N> multiindex,
                           Real *const v) const override;
+};
+
+//! Inverse of mass matrix for tensor products of continuous piecewise linear
+//! functions defined on a Cartesian product mesh hierarchy.
+template <std::size_t N, typename Real>
+class TensorMassMatrixInverse : public TensorLinearOperator<N, Real> {
+public:
+  //! Constructor.
+  //!
+  //!\param hierarchy Mesh hierarchy on which the functions are defined.
+  //!\param l Index of the mesh on which the mass matrix is to be applied.
+  TensorMassMatrixInverse(const TensorMeshHierarchy<N, Real> &hierarchy,
+                          const std::size_t l);
+
+private:
+  using TLO = TensorLinearOperator<N, Real>;
+
+  //! Buffer to store divisors for the Thomas algorithm.
+  std::vector<Real> buffer;
+
+  //! Constituent mass matrices for each dimension.
+  const std::array<ConstituentMassMatrixInverse<N, Real>, N>
+      mass_matrix_inverses;
 };
 
 } // namespace mgard
