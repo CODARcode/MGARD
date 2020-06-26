@@ -7,6 +7,7 @@
 
 #include "TensorMassMatrix.hpp"
 #include "TensorMeshHierarchy.hpp"
+#include "utilities.hpp"
 
 TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
   SECTION("1D and default spacing") {
@@ -190,6 +191,102 @@ TEST_CASE("tensor product mass matrices", "[TensorMassMatrix]") {
     TrialTracker tracker;
     for (std::size_t i = 0; i < 9; ++i) {
       tracker += v_.at(i) == Approx(expected.at(i));
+    }
+    REQUIRE(tracker);
+  }
+}
+
+TEST_CASE("constituent mass matrice inverses", "[TensorMassMatrix]") {
+  SECTION("1D and default spacing") {
+    const mgard::TensorMeshHierarchy<1, float> hierarchy({9});
+    const std::array<float, 9> u_ = {-1, -1, 8, 2, 4, 3, -1, -4, 3};
+    {
+      const std::size_t l = 3;
+      const std::size_t dimension = 0;
+      const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
+      std::vector<float> buffer(M.dimension());
+      const mgard::ConstituentMassMatrixInverse<1, float> A(
+          hierarchy, l, dimension, buffer.data());
+      std::array<float, 9> v_ = u_;
+      float *const v = v_.data();
+      M({0}, v);
+      A({0}, v);
+      TrialTracker tracker;
+      for (std::size_t i = 0; i < 9; ++i) {
+        tracker += v_.at(i) == Approx(u_.at(i));
+      }
+      REQUIRE(tracker);
+    }
+    {
+      const std::size_t l = 1;
+      const std::size_t dimension = 0;
+      const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
+      std::vector<float> buffer(M.dimension());
+      const mgard::ConstituentMassMatrixInverse<1, float> A(
+          hierarchy, l, dimension, buffer.data());
+      std::array<float, 9> v_ = u_;
+      float *const v = v_.data();
+      // Opposite order.
+      A({0}, v);
+      M({0}, v);
+      TrialTracker tracker;
+      for (std::size_t i = 0; i < 9; ++i) {
+        tracker += v_.at(i) == Approx(u_.at(i));
+      }
+      REQUIRE(tracker);
+    }
+  }
+
+  SECTION("2D and custom spacing") {
+    const std::vector<double> xs = {0.469, 1.207, 1.918, 2.265, 2.499,
+                                    2.525, 2.879, 3.109, 3.713};
+    const std::vector<double> ys = {0.137, 0.907, 1.363, 1.856, 2.188, 3.008,
+                                    3.643, 4.580, 5.320, 5.464, 6.223, 6.856,
+                                    7.083, 7.459, 7.748, 8.641, 8.740};
+    const mgard::TensorMeshHierarchy<2, double> hierarchy({9, 17}, {{xs, ys}});
+    const std::array<double, 153> u_ = {
+        3,   -5,  -3, 3,  2,   -4, -7, -3, -8, -4,  1,  2,  5,   5,   4,  5,
+        3,   1,   -7, -9, -10, 1,  -4, 8,  3,  -10, -4, -2, 1,   -9,  -4, 7,
+        -9,  5,   -1, -5, -10, 7,  1,  7,  -5, 3,   2,  -3, -5,  -1,  -5, -9,
+        2,   9,   6,  -9, 1,   4,  -3, -9, 8,  -6,  -7, 1,  -1,  -8,  9,  -6,
+        -2,  5,   -5, 10, -2,  -5, -9, -2, -1, 6,   3,  2,  -5,  -4,  -8, -6,
+        1,   6,   10, 1,  8,   -1, -6, 4,  5,  9,   10, 9,  -10, -8,  8,  4,
+        -6,  -10, 6,  -8, -5,  5,  8,  -9, 2,  -1,  -9, -2, 1,   3,   -7, -8,
+        -10, -5,  -2, 2,  -8,  1,  2,  1,  9,  1,   6,  10, -7,  -9,  -8, -6,
+        8,   6,   10, 9,  1,   -6, -8, 5,  10, 6,   -9, -8, -7,  -10, 4,  -3,
+        -3,  4,   -8, -4, 3,   -1, 4,  -4, -2};
+    // Maximum of the sizes.
+    std::vector<double> buffer_(17);
+    double *const buffer = buffer_.data();
+    TrialTracker tracker;
+    for (std::size_t l = 0; l <= hierarchy.L; ++l) {
+      std::array<std::vector<std::size_t>, 2> multiindex_components;
+      for (std::size_t dimension = 0; dimension < 2; ++dimension) {
+        multiindex_components.at(dimension) = hierarchy.indices(l, dimension);
+      }
+      for (std::size_t dimension = 0; dimension < 2; ++dimension) {
+        const mgard::ConstituentMassMatrix<2, double> M(hierarchy, l,
+                                                        dimension);
+        const mgard::ConstituentMassMatrixInverse<2, double> A(
+            hierarchy, l, dimension, buffer);
+
+        std::array<std::vector<std::size_t>, 2> multiindex_components_ =
+            multiindex_components;
+        multiindex_components_.at(dimension) = {0};
+
+        for (const std::array<std::size_t, 2> multiindex :
+             mgard::CartesianProduct<std::size_t, 2>(multiindex_components_)) {
+          std::array<double, 153> v_ = u_;
+          double *const v = v_.data();
+          M(multiindex, v);
+          A(multiindex, v);
+          for (std::size_t i = 0; i < 153; ++i) {
+            tracker += v_.at(i) == Approx(u_.at(i));
+          }
+          multiindex_components_.at(dimension) =
+              multiindex_components.at(dimension);
+        }
+      }
     }
     REQUIRE(tracker);
   }
