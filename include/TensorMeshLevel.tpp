@@ -1,3 +1,6 @@
+#include <functional>
+#include <numeric>
+
 namespace mgard {
 
 template <std::size_t N, typename Real>
@@ -7,11 +10,8 @@ TensorMeshLevel<N, Real>::TensorMeshLevel(
 
 template <std::size_t N, typename Real>
 std::size_t TensorMeshLevel<N, Real>::ndof() const {
-  std::size_t M = 1;
-  for (const std::size_t m : shape) {
-    M *= m;
-  }
-  return M;
+  return std::accumulate(shape.begin(), shape.end(), 1,
+                         std::multiplies<Real>());
 }
 
 template <std::size_t N, typename Real>

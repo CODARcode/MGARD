@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "testing_random.hpp"
 #include "testing_utilities.hpp"
 
 #include "TensorMassMatrix.hpp"
@@ -132,7 +133,9 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
                                                10};
       TrialTracker tracker;
       for (std::size_t i = 0; i < 25; ++i) {
-        tracker += v_.at(i) == Approx(expected.at(i));
+        // Changed the margin because we were getting a tiny error at index 10
+        // (where the exact value is zero).
+        tracker += v_.at(i) == Approx(expected.at(i)).margin(1e-15);
       }
       REQUIRE(tracker);
     }
@@ -297,40 +300,20 @@ TEST_CASE("constituent mass matrice inverses", "[TensorMassMatrix]") {
 
 namespace {
 
-std::vector<float>
-node_positions(std::default_random_engine &generator,
-               std::uniform_real_distribution<float> &distribution,
-               const std::size_t N) {
-  std::vector<float> positions(N);
-  float previous;
-  previous = positions.at(0) = 0;
-  for (std::size_t i = 1; i < N; ++i) {
-    previous = positions.at(i) = previous + distribution(generator);
-  }
-  return positions;
-}
-
 template <std::size_t N>
 void test_mass_matrix_inversion(
     std::default_random_engine &generator,
     std::uniform_real_distribution<float> &distribution,
     const std::array<float, 1089> &u_, std::array<std::size_t, N> shape) {
-  std::array<std::vector<float>, N> coordinates;
-  for (std::size_t i = 0; i < N; ++i) {
-    coordinates.at(i) = node_positions(generator, distribution, shape.at(i));
-  }
-
-  std::size_t ndof = 1;
-  for (const std::size_t n : shape) {
-    ndof *= n;
-  }
+  const mgard::TensorMeshHierarchy<N, float> hierarchy =
+      hierarchy_with_random_spacing(generator, distribution, shape);
+  const std::size_t ndof = hierarchy.ndof();
   if (ndof > 1089) {
     throw std::invalid_argument("mesh too large");
   }
   std::vector<float> v_(ndof);
   float *const v = v_.data();
 
-  const mgard::TensorMeshHierarchy<N, float> hierarchy(shape, coordinates);
   TrialTracker tracker;
   for (std::size_t l = 0; l <= hierarchy.L; ++l) {
     std::uninitialized_copy_n(u_.begin(), ndof, v_.begin());

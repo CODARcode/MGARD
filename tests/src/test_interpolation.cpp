@@ -4,6 +4,7 @@
 
 #include <random>
 
+#include "testing_random.hpp"
 #include "testing_utilities.hpp"
 
 #include "interpolation.hpp"

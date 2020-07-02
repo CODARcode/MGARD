@@ -53,25 +53,5 @@ struct TrialTracker {
 
 std::ostream &operator<<(std::ostream &os, const TrialTracker &tracker);
 
-//! Random polynomial with the exponent of each variable in each term being
-//! either zero or one.
-template <typename Real, std::size_t N> class MultilinearPolynomial {
-public:
-  //! Constructor.
-  //!
-  //!\param generator Generator to use in generating the coefficients.
-  //!\param distribution Distribution to use in generating the coefficients.
-  MultilinearPolynomial(std::default_random_engine &generator,
-                        std::uniform_real_distribution<Real> &distribution);
-
-  //! Evaluate the polynomial at a point.
-  Real operator()(const std::array<Real, N> &coordinates) const;
-
-private:
-  //! Coefficients of the constituent monomials. See `operator()` for the
-  //! ordering.
-  std::array<Real, 1 << N> coefficients;
-};
-
 #include "testing_utilities.tpp"
 #endif
