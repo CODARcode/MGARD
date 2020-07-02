@@ -33,3 +33,8 @@ TrialTracker &TrialTracker::operator+=(const bool result) {
 TrialTracker::operator bool() const {
   return nsuccesses == ntrials && !nfailures;
 }
+
+std::ostream &operator<<(std::ostream &os, const TrialTracker &tracker) {
+  return os << tracker.nsuccesses << " successes and " << tracker.nfailures
+            << " failures out of " << tracker.ntrials << " trials";
+}
