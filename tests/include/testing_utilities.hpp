@@ -3,12 +3,13 @@
 
 #include <cstddef>
 
+#include <array>
 #include <experimental/filesystem>
 #include <ostream>
+#include <random>
 #include <string>
 
 #include "moab/Interface.hpp"
-
 static const double APPROX_MARGIN_DEFAULT = 0;
 
 std::experimental::filesystem::path mesh_path(const std::string &filename);
@@ -16,6 +17,8 @@ std::experimental::filesystem::path mesh_path(const std::string &filename);
 std::experimental::filesystem::path output_path(const std::string &filename);
 
 void require_moab_success(const moab::ErrorCode ecode);
+
+// TODO: Change these? See <https://github.com/catchorg/Catch2/pull/1499>.
 
 //`T` and `U` should be iterators dereferencing to `double` or similar.
 template <typename T, typename U, typename SizeType>
@@ -49,6 +52,26 @@ struct TrialTracker {
 };
 
 std::ostream &operator<<(std::ostream &os, const TrialTracker &tracker);
+
+//! Random polynomial with the exponent of each variable in each term being
+//! either zero or one.
+template <typename Real, std::size_t N> class MultilinearPolynomial {
+public:
+  //! Constructor.
+  //!
+  //!\param generator Generator to use in generating the coefficients.
+  //!\param distribution Distribution to use in generating the coefficients.
+  MultilinearPolynomial(std::default_random_engine &generator,
+                        std::uniform_real_distribution<Real> &distribution);
+
+  //! Evaluate the polynomial at a point.
+  Real operator()(const std::array<Real, N> &coordinates) const;
+
+private:
+  //! Coefficients of the constituent monomials. See `operator()` for the
+  //! ordering.
+  std::array<Real, 1 << N> coefficients;
+};
 
 #include "testing_utilities.tpp"
 #endif

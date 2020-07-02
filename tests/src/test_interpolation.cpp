@@ -35,36 +35,6 @@ Real interpolate(const std::array<Real, 8> &qs, const std::array<Real, 2> &xs,
       xyz.at(0), xyz.at(1), xyz.at(2));
 }
 
-template <typename Real, std::size_t N> class MultilinearPolynomial {
-public:
-  MultilinearPolynomial(std::default_random_engine &generator,
-                        std::uniform_real_distribution<Real> &distribution) {
-    for (std::size_t i = 0; i < 1 << N; ++i) {
-      coefficients.at(i) = distribution(generator);
-    }
-  }
-
-  Real operator()(const std::array<Real, N> &coordinates) const {
-    Real value = 0;
-    std::size_t exponents = 0;
-    for (const Real coefficient : coefficients) {
-      Real term = coefficient;
-      // Could check that `std::size_t` is sufficiently wide.
-      for (std::size_t i = 0; i < N; ++i) {
-        if (exponents & (1 << i)) {
-          term *= coordinates.at(i);
-        }
-        value += term;
-      }
-      ++exponents;
-    }
-    return value;
-  }
-
-private:
-  std::array<Real, 1 << N> coefficients;
-};
-
 TEMPLATE_TEST_CASE("multilinear interpolation", "[interpolation]", float,
                    double) {
   // Mismatches of small magnitude do occasionally occur here, especially in 3D.
