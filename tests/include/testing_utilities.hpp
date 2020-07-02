@@ -4,6 +4,7 @@
 #include <cstddef>
 
 #include <experimental/filesystem>
+#include <ostream>
 #include <string>
 
 #include "moab/Interface.hpp"
@@ -46,6 +47,8 @@ struct TrialTracker {
   //! Number of trials (successful and unsuccessful) so far.
   std::size_t ntrials;
 };
+
+std::ostream &operator<<(std::ostream &os, const TrialTracker &tracker);
 
 #include "testing_utilities.tpp"
 #endif

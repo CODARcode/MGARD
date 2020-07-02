@@ -40,6 +40,7 @@ void ConstituentMassMatrix<N, Real>::do_operator_parentheses(
   Real *out_right;
 
   std::vector<std::size_t>::const_iterator p = CLO::indices.begin();
+  // TODO: Could combine `i` and `variable_index`.
   std::size_t i;
 
   // TODO: Maybe a combined sort of iterator here. Increment `p` index and
