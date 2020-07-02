@@ -69,4 +69,31 @@ void ConstituentProlongationAddition<N, Real>::do_operator_parentheses(
   }
 }
 
+namespace {
+
+template <std::size_t N, typename Real>
+std::array<ConstituentProlongationAddition<N, Real>, N>
+generate_prolongation_additions(const TensorMeshHierarchy<N, Real> &hierarchy,
+                                const std::size_t l) {
+  std::array<ConstituentProlongationAddition<N, Real>, N>
+      prolongation_additions;
+  for (std::size_t i = 0; i < N; ++i) {
+    prolongation_additions.at(i) =
+        ConstituentProlongationAddition<N, Real>(hierarchy, l, i);
+  }
+  return prolongation_additions;
+}
+
+} // namespace
+
+template <std::size_t N, typename Real>
+TensorProlongationAddition<N, Real>::TensorProlongationAddition(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
+    : TensorLinearOperator<N, Real>(hierarchy, l),
+      prolongation_additions(generate_prolongation_additions(hierarchy, l)) {
+  for (std::size_t i = 0; i < N; ++i) {
+    TLO::operators.at(i) = &prolongation_additions.at(i);
+  }
+}
+
 } // namespace mgard
