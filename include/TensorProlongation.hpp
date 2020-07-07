@@ -26,7 +26,7 @@ public:
   //!
   //!\param hierarchy Mesh hierarchy on which the functions are defined.
   //!\param l Index of the mesh on which the prolongation–addition is to be
-  //! applied.
+  //! applied. This is the index of the fine mesh (corresponding to the range).
   //!\param dimension Index of the dimension in which the prolongation–addition
   //! is to be applied.
   ConstituentProlongationAddition(const TensorMeshHierarchy<N, Real> &hierarchy,
@@ -56,7 +56,7 @@ public:
   //!
   //!\param hierarchy Mesh hierarchy on which the functions are defined.
   //!\param l Index of the mesh on which the prolongation–addition is to be
-  //! applied.
+  //! applied. This is the index of the fine mesh (corresponding to the range).
   TensorProlongationAddition(const TensorMeshHierarchy<N, Real> &hierarchy,
                              const std::size_t l);
 
