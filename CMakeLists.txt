@@ -28,7 +28,7 @@ macro (mgard_option variable)
 endmacro ()
 
 #Configurable Options
-mgard_option(MGARD_ENABLE_CUDA "Enable Cuda support" ON)
+mgard_option(MGARD_ENABLE_CUDA "Enable Cuda support" OFF)
 mgard_option(MGARD_ENABLE_CUDA_DEBUG "Enable Cuda support with debug" OFF)
 
 # Some boilerplate to setup nice output directories
