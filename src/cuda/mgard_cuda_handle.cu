@@ -71,7 +71,7 @@ mgard_cuda_handle<T>::init (int nrow, int ncol, int nfib, T * coords_r, T * coor
 
   for (int i = 0; i < nr; i++) {
     int irow_r = mgard_cuda::get_lindex_cuda(nr, nrow, i);
-    irow[irow_ptr] = irow_r;
+    irow[irow_ptr] = irow_r; 
     if (irow_ptr > 0 && irow[irow_ptr - 1] != irow[irow_ptr] - 1) {
       irowP[irowP_ptr] = irow[irow_ptr] - 1;
       irowP_ptr ++;
@@ -87,8 +87,8 @@ mgard_cuda_handle<T>::init (int nrow, int ncol, int nfib, T * coords_r, T * coor
   int icolP_ptr = 0;
 
   for (int i = 0; i < nc; i++) {
-    int icol_r = mgard_cuda::get_lindex_cuda(nc, ncol, i);
-    icol[icol_ptr] = icol_r;
+    int icol_c = mgard_cuda::get_lindex_cuda(nc, ncol, i);
+    icol[icol_ptr] = icol_c;
     if (icol_ptr > 0 && icol[icol_ptr - 1] != icol[icol_ptr] - 1) {
       icolP[icolP_ptr] = icol[icol_ptr] - 1;
       icolP_ptr ++;
@@ -104,8 +104,8 @@ mgard_cuda_handle<T>::init (int nrow, int ncol, int nfib, T * coords_r, T * coor
   int ifibP_ptr = 0;
   if (nfib > 1) {
     for (int i = 0; i < nf; i++) {
-      int ifib_r = mgard_cuda::get_lindex_cuda(nf, nfib, i);
-      ifib[ifib_ptr] = ifib_r;
+      int ifib_f = mgard_cuda::get_lindex_cuda(nf, nfib, i);
+      ifib[ifib_ptr] = ifib_f;
       if (ifib_ptr > 0 && ifib[ifib_ptr - 1] != ifib[ifib_ptr] - 1) {
         ifibP[ifibP_ptr] = ifib[ifib_ptr] - 1;
         ifibP_ptr ++;
@@ -270,8 +270,8 @@ mgard_cuda_handle<T>::init (int nrow, int ncol, int nfib, T * coords_r, T * coor
 
 template <typename T>
 mgard_cuda_handle<T>::mgard_cuda_handle (){
-  std::vector<T> coords_r(nrow), coords_c(ncol), coords_f(nfib);
-  init(3,3,3, coords_r.data(), coords_c.data(), coords_f.data(), 16, 1, 1);
+  std::vector<T> coords_r(5), coords_c(5), coords_f(5);
+  init(5,5,5, coords_r.data(), coords_c.data(), coords_f.data(), 16, 1, 1);
 }
 
 template <typename T>

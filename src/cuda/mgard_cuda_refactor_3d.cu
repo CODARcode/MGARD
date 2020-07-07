@@ -2,7 +2,7 @@
 #include "cuda/mgard_cuda_common_internal.h"
 #include "cuda/mgard_cuda_kernels.h"
 
-#include <fstream>
+#include <iostream>
 
 #include <chrono>
 namespace mgard_cuda {
@@ -66,6 +66,10 @@ refactor_3D_cuda_cpt(mgard_cuda_handle<T> & handle, T * dv, int lddv1, int lddv2
                          0);
 
     handle.sync_all();
+
+    
+
+
     for (int f = 0; f < handle.nf; f += stride) {
       int queue_idx = (f / stride) % handle.num_of_queues;
       
@@ -133,6 +137,8 @@ refactor_3D_cuda_cpt(mgard_cuda_handle<T> & handle, T * dv, int lddv1, int lddv2
 
     handle.sync_all();
 
+
+
     for (int r = 0; r < handle.nr; r += Cstride) {
       int queue_idx = (r / Cstride) % handle.num_of_queues;
       T * slice = handle.dwork + r * handle.lddwork1 * handle.lddwork2;
@@ -153,7 +159,7 @@ refactor_3D_cuda_cpt(mgard_cuda_handle<T> & handle, T * dv, int lddv1, int lddv2
                           queue_idx);
 
       restriction_1_cpt(handle,
-                        handle.nr_l[l+1], handle.nf_l[l],
+                        handle.nc_l[l+1], handle.nf_l[l],
                         1, 1,
                         handle.ddist_f_l[l],
                         handle.dcwork_2d_cf[queue_idx], handle.lddcwork_2d_cf[queue_idx],
@@ -177,12 +183,14 @@ refactor_3D_cuda_cpt(mgard_cuda_handle<T> & handle, T * dv, int lddv1, int lddv2
 
     handle.sync_all();
 
+    
     add_level_cpt(handle,
                   handle.nr, handle.nc, handle.nf,
                   Cstride, Cstride, Cstride,
                   dcv, lddcv1, lddcv2,
                   handle.dwork, handle.lddwork1, handle.lddwork2,
                   0);
+
   } //end of loop
 
   pow2p1_to_org(handle,
@@ -192,7 +200,7 @@ refactor_3D_cuda_cpt(mgard_cuda_handle<T> & handle, T * dv, int lddv1, int lddv2
                 dcv, lddcv1, lddcv2,
                 dv, lddv1, lddv2,
                 0);
-
+  
   cudaFreeHelper(dcv);
 
 }

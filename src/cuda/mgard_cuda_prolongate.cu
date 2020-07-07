@@ -308,6 +308,7 @@ prolongate_last_1(mgard_cuda_handle<T> & handle,
 
   int total_thread_x = ncol - nc;
   int total_thread_y = nr;
+  if (total_thread_y == 0 || total_thread_x == 0) return; 
   int tbx = min(handle.B, total_thread_x);
   int tby = min(handle.B, total_thread_y);
   int gridx = ceil((float)total_thread_x/tbx);
@@ -383,6 +384,7 @@ prolongate_last_2(mgard_cuda_handle<T> & handle,
 
   int total_thread_x = nc;
   int total_thread_y = nrow - nr;
+  if (total_thread_y == 0 || total_thread_x == 0) return; 
   int tbx = min(handle.B, total_thread_x);
   int tby = min(handle.B, total_thread_y);
   int gridx = ceil((float)total_thread_x/tbx);
@@ -463,6 +465,7 @@ prolongate_last_12(mgard_cuda_handle<T> & handle,
 
   int total_thread_x = ncol - nc;
   int total_thread_y = nrow - nr;
+  if (total_thread_y == 0 || total_thread_x == 0) return; 
   int tbx = min(handle.B, total_thread_x);
   int tby = min(handle.B, total_thread_y);
   int gridx = ceil((float)total_thread_x/tbx);
@@ -900,6 +903,7 @@ prolongate_last_1(mgard_cuda_handle<T> & handle,
   int total_thread_z = nr;
   int total_thread_y = nc;
   int total_thread_x = nfib - nf;
+  if (total_thread_z == 0 || total_thread_y == 0 || total_thread_x == 0) return; 
   int tbz = min(B_adjusted, total_thread_z);
   int tby = min(B_adjusted, total_thread_y);
   int tbx = min(B_adjusted, total_thread_x);
@@ -982,6 +986,7 @@ prolongate_last_2(mgard_cuda_handle<T> & handle,
   int total_thread_z = nr;
   int total_thread_y = ncol-nc;
   int total_thread_x = nf;
+  if (total_thread_z == 0 || total_thread_y == 0 || total_thread_x == 0) return; 
   int tbz = min(B_adjusted, total_thread_z);
   int tby = min(B_adjusted, total_thread_y);
   int tbx = min(B_adjusted, total_thread_x);
@@ -1062,6 +1067,7 @@ prolongate_last_3(mgard_cuda_handle<T> & handle,
   int total_thread_z = nrow-nr;
   int total_thread_y = nc;
   int total_thread_x = nf;
+  if (total_thread_z == 0 || total_thread_y == 0 || total_thread_x == 0) return; 
   int tbz = min(B_adjusted, total_thread_z);
   int tby = min(B_adjusted, total_thread_y);
   int tbx = min(B_adjusted, total_thread_x);
@@ -1152,6 +1158,7 @@ prolongate_last_12(mgard_cuda_handle<T> & handle,
   int total_thread_z = nr;
   int total_thread_y = ncol - nc;
   int total_thread_x = nfib - nf;
+  if (total_thread_z == 0 || total_thread_y == 0 || total_thread_x == 0) return; 
   int tbz = min(B_adjusted, total_thread_z);
   int tby = min(B_adjusted, total_thread_y);
   int tbx = min(B_adjusted, total_thread_x);
@@ -1244,6 +1251,7 @@ prolongate_last_13(mgard_cuda_handle<T> & handle,
   int total_thread_z = nrow - nr;
   int total_thread_y = nc;
   int total_thread_x = nfib - nf;
+  if (total_thread_z == 0 || total_thread_y == 0 || total_thread_x == 0) return; 
   int tbz = min(B_adjusted, total_thread_z);
   int tby = min(B_adjusted, total_thread_y);
   int tbx = min(B_adjusted, total_thread_x);
@@ -1334,6 +1342,7 @@ prolongate_last_23(mgard_cuda_handle<T> & handle,
   int total_thread_z = nrow - nr;
   int total_thread_y = ncol - nc;
   int total_thread_x = nf;
+  if (total_thread_z == 0 || total_thread_y == 0 || total_thread_x == 0) return; 
   int tbz = min(B_adjusted, total_thread_z);
   int tby = min(B_adjusted, total_thread_y);
   int tbx = min(B_adjusted, total_thread_x);
@@ -1432,6 +1441,7 @@ prolongate_last_123(mgard_cuda_handle<T> & handle,
   int total_thread_z = nrow - nr;
   int total_thread_y = ncol - nc;
   int total_thread_x = nfib - nf;
+  if (total_thread_z == 0 || total_thread_y == 0 || total_thread_x == 0) return; 
   int tbz = min(B_adjusted, total_thread_z);
   int tby = min(B_adjusted, total_thread_y);
   int tbx = min(B_adjusted, total_thread_x);

@@ -46,7 +46,7 @@
 #define ANSI_RESET "\x1b[0m"
 
 void print_usage_message(char *argv[], FILE *fp) {
-  fprintf(fp, "Usage: %s infile nrow ncol nfib tolerance s\n", argv[0]);
+  fprintf(fp, "Usage: %s infile nrow ncol nfib tolerance opt (-1: CPU; 0: CUDA, 1: CUDA-optimized)\n", argv[0]);
 }
 
 void print_for_more_details_message(char *argv[], FILE *fp) {
@@ -76,39 +76,28 @@ int main(int argc, char *argv[])
   char *infile, *outfile;
   int nrow, ncol, nfib, opt, B = 16, num_of_queues = 32;
   double tol, s = 0;
-  std::string csv_prefix = "./";
-  if (argc < 2) {
-    fprintf (stderr, "%s: Not enough arguments! ", argv[0]);
+  if (argc == 6) {
+    data_srouce = 0;
+    nrow = atoi(argv[1]);
+    ncol = atoi(argv[2]);
+    nfib = atoi(argv[3]);
+    tol  = atof(argv[4]);
+    opt  = atoi(argv[5]);
+  } else if (argc == 7){
+    data_srouce = 1;
+    infile = argv[1];
+    nrow = atoi(argv[2]);
+    ncol = atoi(argv[3]);
+    nfib = atoi(argv[4]);
+    tol  = atof(argv[5]);
+    opt  = atoi(argv[6]);
+  } else {
+    fprintf (stderr, "%s: Wrong arguments! ", argv[0]);
     print_usage_message(argv, stderr);
     print_for_more_details_message(argv, stderr);
     return 1;
-  } else {
-    data_srouce = atoi(argv[1]);
-    if (data_srouce == 0) { 
-      if (argc < 7) {
-        print_usage_message(argv, stderr);
-        print_for_more_details_message(argv, stderr);
-        return 1;
-      }
-      nrow = atoi(argv[2]);
-      ncol = atoi(argv[3]);
-      nfib = atoi(argv[4]);
-      tol  = atof(argv[5]);
-      opt  = atoi(argv[6]);
-    } else {
-      if (argc < 8) {
-        print_usage_message(argv, stderr);
-        print_for_more_details_message(argv, stderr);
-        return 1;
-      }
-      infile = argv[2];
-      nrow = atoi(argv[3]);
-      ncol = atoi(argv[4]);
-      nfib = atoi(argv[5]);
-      tol  = atof(argv[6]);
-      opt  = atoi(argv[7]);
-    }
   }
+
 
 
   long lSize;
@@ -124,10 +113,12 @@ int main(int argc, char *argv[])
   if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
 
   if (data_srouce == 0) {
+    fprintf(stdout, "No input file provided. Generating random data for testing\n");
     for (int i = 0; i < num_doubles; i++) {
       buffer[i] = rand() % 10 + 1;
     }
   } else {
+    fprintf(stdout, "Loading file: %s\n", infile);
     FILE *pFile;
     pFile = fopen ( infile , "rb" );
     if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
@@ -162,7 +153,6 @@ int main(int argc, char *argv[])
     if(temp > data_L_inf_norm) data_L_inf_norm = temp;
   }
 
-  //double *in_buff = (double *) malloc(sizeof(double) * num_doubles);
   double * in_buff;
   mgard_cuda::cudaMallocHostHelper((void **)&in_buff, sizeof(double) * num_doubles);
   memcpy(in_buff, buffer, sizeof(double) * num_doubles);
@@ -173,22 +163,25 @@ int main(int argc, char *argv[])
   unsigned char *mgard_comp_buff;
   
   if (opt == -1) {
-
+    fprintf(stdout, "[INFO] Compressing using CPU only\n");
     mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
   } else {
+    fprintf(stdout, "[INFO] Compressing with GPU acceleration\n");
     mgard_cuda_handle<double> handle(nrow, ncol, nfib, B,  num_of_queues, opt);
     mgard_comp_buff = mgard_compress_cuda(handle, in_buff, out_size, tol);
   }
   //free(in_buff);
   mgard_cuda::cudaFreeHostHelper(in_buff);
 
-  printf ("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
+  printf ("[INFO] In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
 
   double* mgard_out_buff;
   double dummy = 0;
   if (opt == -1) {
+    fprintf(stdout, "[INFO] Decompressing using CPU only\n");
     mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
   } else {
+    fprintf(stdout, "[INFO] Decompressing with GPU acceleration\n");
     mgard_cuda_handle<double>handle(nrow, ncol, nfib, B, num_of_queues, opt);
     mgard_out_buff = mgard_decompress_cuda(handle, mgard_comp_buff, out_size);
     //mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
@@ -223,16 +216,16 @@ int main(int argc, char *argv[])
     norm_name[0] = '?';
     norm_name[1] = 0;
   }
-  printf ("Rel. %s error tolerance: %10.5E \n", norm_name, tol);
-  printf ("Rel. L^infty error: %10.5E \n", relative_L_inf_error);
+  printf ("[INFO] Rel. %s error tolerance: %10.5E \n", norm_name, tol);
+  printf ("[INFO] Rel. L^infty error: %10.5E \n", relative_L_inf_error);
 
   if( relative_L_inf_error < tol)
     {
-      printf(ANSI_GREEN "SUCCESS: Error tolerance met!" ANSI_RESET "\n");
+      printf(ANSI_GREEN "[INFO] SUCCESS: Error tolerance met!" ANSI_RESET "\n");
       return 0;
     }
   else{
-    printf(ANSI_RED "FAILURE: Error tolerance NOT met!" ANSI_RESET "\n");
+    printf(ANSI_RED "[INFO] FAILURE: Error tolerance NOT met!" ANSI_RESET "\n");
     return 1;
   }
 }

@@ -51,11 +51,18 @@ refactor_qz_cuda(mgard_cuda_handle<T> & handle, T *u, int &outsize, T tol) {
     prep_3D_cuda_cpt(handle, dv, lddv1, lddv2);
   }
 
+    // print_matrix_cuda(handle.nrow, handle.ncol, handle.nfib, dv, lddv1, lddv2, handle.nfib);
+
   refactor_3D_cuda_cpt(handle, dv, lddv1, lddv2);
+
+  // print_matrix_cuda(handle.nrow, handle.ncol, handle.nfib, dv, lddv1, lddv2, handle.nfib);
 
   T norm = max_norm_cuda(u, handle.nrow * handle.ncol * handle.nfib);
   
   linear_quantize(handle, handle.nrow, handle.ncol, handle.nfib, norm, tol, dv, lddv1, lddv2, dqv, handle.nfib, handle.ncol, 0);
+
+  // print_matrix_cuda(handle.nrow, handle.ncol, handle.nfib, dqv, handle.nfib, handle.ncol, handle.nfib);
+
   cudaMemcpyAsyncHelper(handle, qv.data(), dqv, (handle.nrow * handle.ncol * handle.nfib + size_ratio) * sizeof(int), D2H,
                         0);
   handle.sync_all();
