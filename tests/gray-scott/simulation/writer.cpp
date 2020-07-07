@@ -1,6 +1,8 @@
 #include "writer.h"
 #include "mgard_api.h"
 
+#include <iostream>
+
 void define_bpvtk_attribute(const Settings &s, adios2::IO &io)
 {
     auto lf_VTKImage = [](const Settings &s, adios2::IO &io) {

@@ -1,11 +1,11 @@
-#Archives.
-*.a
-
 #Object files.
-*.o
+obj/
 
-#Executable.
-cmgard
+#Archives.
+lib/
+
+#Executables.
+bin/
 
 #MGARD compressed output
 *.mgard
@@ -14,18 +14,14 @@ cmgard
 .cproject
 .project
 .language.settings.xml
+.settings/
+.pydevproject
 
 # Vi(m) temporary buffer files
 *.sw?
 
 # Emacs temporary files
 *~
-
-#Eclipse
-.cproject
-.project
-.settings/
-.pydevproject
 
 #binary, library, or temporary build files
 *.o

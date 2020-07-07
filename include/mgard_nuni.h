@@ -5,538 +5,579 @@
 //
 // version: 0.0.0.2
 // See LICENSE for details.
-
 #ifndef MGARD_NUNI_H
 #define MGARD_NUNI_H
 
-#include "mgard.h"
+#include <string>
+#include <vector>
 
 namespace mgard_common {
 
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, int &nfib,
-               double &tol, double &s, std::string &in_file,
-               std::string &coord_file);
+template <typename Real> Real max_norm(const std::vector<Real> &v);
 
-bool is_2kplus1(double num);
+template <typename Real>
+inline Real interp_1d(Real x, Real x1, Real x2, Real q00, Real q01);
 
-inline int get_index(const int ncol, const int i, const int j);
+template <typename Real>
+inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+                      Real y1, Real y2, Real x, Real y);
 
-inline int get_index3(const int ncol, const int nfib, const int i, const int j,
-                      const int k);
+template <typename Real>
+inline Real interp_3d(Real q000, Real q100, Real q110, Real q010, Real q001,
+                      Real q101, Real q111, Real q011, Real x1, Real x2,
+                      Real y1, Real y2, Real z1, Real z2, Real x, Real y,
+                      Real z);
 
-double max_norm(const std::vector<double> &v);
+template <typename Real>
+inline Real get_h(const std::vector<Real> &coords, int i, int stride);
 
-inline double interp_1d(double x, double x1, double x2, double q00, double q01);
+template <typename Real>
+inline Real get_dist(const std::vector<Real> &coords, int i, int j);
 
-inline double interp_2d(double q11, double q12, double q21, double q22,
-                        double x1, double x2, double y1, double y2, double x,
-                        double y);
-
-inline double interp_3d(double q000, double q100, double q110, double q010,
-                        double q001, double q101, double q111, double q011,
-                        double x1, double x2, double y1, double y2, double z1,
-                        double z2, double x, double y, double z);
-
-inline double get_h(const std::vector<double> &coords, int i, int stride);
-
-inline double get_dist(const std::vector<double> &coords, int i, int j);
-
+template <typename Real>
 void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
-                         double *v, std::string infile);
+                         Real *v, std::string infile);
 
-inline short encode(double x);
-
-inline double decode(short x);
-
-void qread_2D_bin(const int nrow, const int ncol, const int nlevel, double *v,
-                  std::string infile);
-
-void qwrite_2D_bin(const int nrow, const int ncol, const int nlevel,
-                   const int l, double *v, double tol, double norm,
-                   const std::string outfile);
-
+template <typename Real>
 void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
-                          const int l, double *v, double tol, double norm,
+                          const int l, Real *v, Real tol, Real norm,
                           const std::string outfile);
 
+template <typename Real>
 void qwrite_3D_interleave(const int nrow, const int ncol, const int nfib,
-                          const int nlevel, const int l, double *v, double tol,
-                          double norm, const std::string outfile);
+                          const int nlevel, const int l, Real *v, Real tol,
+                          Real norm, const std::string outfile);
 
+template <typename Real>
 void qwrite_3D_interleave2(const int nrow, const int ncol, const int nfib,
-                           const int nlevel, const int l, double *v, double tol,
-                           double norm, const std::string outfile);
+                           const int nlevel, const int l, Real *v, Real tol,
+                           Real norm, const std::string outfile);
 
-void copy_slice(double *work, std::vector<double> &work2d, int nrow, int ncol,
+template <typename Real>
+void copy_slice(Real *work, std::vector<Real> &work2d, int nrow, int ncol,
                 int nfib, int is);
 
-void copy_from_slice(double *work, std::vector<double> &work2d, int nrow,
-                     int ncol, int nfib, int is);
+template <typename Real>
+void copy_from_slice(Real *work, std::vector<Real> &work2d, int nrow, int ncol,
+                     int nfib, int is);
 
 } // namespace mgard_common
 
 namespace mgard_cannon {
 
-void assign_num_level(const int nrow, const int ncol, const int l, double *v,
-                      double num);
+template <typename Real>
+void assign_num_level(const int nrow, const int ncol, const int l, Real *v,
+                      Real num);
 
-void subtract_level(const int nrow, const int ncol, const int l, double *v,
-                    double *work);
+template <typename Real>
+void subtract_level(const int nrow, const int ncol, const int l, Real *v,
+                    Real *work);
 
-void pi_lminus1(const int l, std::vector<double> &v,
-                const std::vector<double> &coords);
+template <typename Real>
+void pi_lminus1(const int l, std::vector<Real> &v,
+                const std::vector<Real> &coords);
 
-void restriction(const int l, std::vector<double> &v,
-                 const std::vector<double> &coords);
+template <typename Real>
+void restriction(const int l, std::vector<Real> &v,
+                 const std::vector<Real> &coords);
 
-void prolongate(const int l, std::vector<double> &v,
-                const std::vector<double> &coords);
+template <typename Real>
+void prolongate(const int l, std::vector<Real> &v,
+                const std::vector<Real> &coords);
 
-void solve_tridiag_M(const int l, std::vector<double> &v,
-                     const std::vector<double> &coords);
+template <typename Real>
+void solve_tridiag_M(const int l, std::vector<Real> &v,
+                     const std::vector<Real> &coords);
 
-void mass_matrix_multiply(const int l, std::vector<double> &v,
-                          const std::vector<double> &coords);
+template <typename Real>
+void mass_matrix_multiply(const int l, std::vector<Real> &v,
+                          const std::vector<Real> &coords);
 
-void write_level_2D(const int nrow, const int ncol, const int l, double *v,
+template <typename Real>
+void write_level_2D(const int nrow, const int ncol, const int l, Real *v,
                     std::ofstream &outfile);
 
-void copy_level(const int nrow, const int ncol, const int l, double *v,
-                std::vector<double> &work);
+template <typename Real>
+void copy_level(const int nrow, const int ncol, const int l, Real *v,
+                std::vector<Real> &work);
 
+template <typename Real>
 void copy_level3(const int nrow, const int ncol, const int nfib, const int l,
-                 double *v, std::vector<double> &work);
+                 Real *v, std::vector<Real> &work);
 
 } // namespace mgard_cannon
 
 namespace mgard_gen {
-inline double *get_ref(std::vector<double> &v, const int n, const int no,
-                       const int i); // return reference to logical element
 
-inline int get_lindex(const int n, const int no, const int i);
+template <typename Real>
+inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
+                     const int i); // return reference to logical element
 
-inline double get_h_l(const std::vector<double> &coords, const int n,
-                      const int no, int i, int stride);
+template <typename Real>
+inline Real get_h_l(const std::vector<Real> &coords, const int n, const int no,
+                    int i, int stride);
 
-double l2_norm(const int l, const int n, const int no, std::vector<double> &v,
-               const std::vector<double> &x);
-
-double l2_norm2(const int l, int nr, int nc, int nrow, int ncol,
-                std::vector<double> &v, const std::vector<double> &coords_x,
-                const std::vector<double> &coords_y);
-
-double l2_norm3(const int l, int nr, int nc, int nf, int nrow, int ncol,
-                int nfib, std::vector<double> &v,
-                const std::vector<double> &coords_x,
-                const std::vector<double> &coords_y,
-                const std::vector<double> &coords_z);
-
-void write_level_2D_l(const int l, double *v, std::ofstream &outfile, int nr,
+template <typename Real>
+void write_level_2D_l(const int l, Real *v, std::ofstream &outfile, int nr,
                       int nc, int nrow, int ncol);
 
+template <typename Real>
 void qwrite_3D(const int nr, const int nc, const int nf, const int nrow,
                const int ncol, const int nfib, const int nlevel, const int l,
-               double *v, const std::vector<double> &coords_x,
-               const std::vector<double> &coords_y,
-               const std::vector<double> &coords_z, double tol, double s,
-               double norm, const std::string outfile);
+               Real *v, const std::vector<Real> &coords_x,
+               const std::vector<Real> &coords_y,
+               const std::vector<Real> &coords_z, Real tol, Real s, Real norm,
+               const std::string outfile);
 
+template <typename Real>
 void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
-                 const int ncol, const int nfib, const int nlevel, double *v,
-                 std::vector<int> &work, const std::vector<double> &coords_x,
-                 const std::vector<double> &coords_y,
-                 const std::vector<double> &coords_z, double norm, double tol);
+                 const int ncol, const int nfib, const int nlevel, Real *v,
+                 std::vector<int> &work, const std::vector<Real> &coords_x,
+                 const std::vector<Real> &coords_y,
+                 const std::vector<Real> &coords_z, Real norm, Real tol);
 
+template <typename Real>
 void quantize_3D(const int nr, const int nc, const int nf, const int nrow,
-                 const int ncol, const int nfib, const int nlevel, double *v,
-                 std::vector<int> &work, const std::vector<double> &coords_x,
-                 const std::vector<double> &coords_y,
-                 const std::vector<double> &coords_z, double s, double norm,
-                 double tol);
+                 const int ncol, const int nfib, const int nlevel, Real *v,
+                 std::vector<int> &work, const std::vector<Real> &coords_x,
+                 const std::vector<Real> &coords_y,
+                 const std::vector<Real> &coords_z, Real s, Real norm,
+                 Real tol);
 
+template <typename Real>
 void quantize_2D(const int nr, const int nc, const int nrow, const int ncol,
-                 const int nlevel, double *v, std::vector<int> &work,
-                 const std::vector<double> &coords_x,
-                 const std::vector<double> &coords_y, double s, double norm,
-                 double tol);
+                 const int nlevel, Real *v, std::vector<int> &work,
+                 const std::vector<Real> &coords_x,
+                 const std::vector<Real> &coords_y, Real s, Real norm,
+                 Real tol);
 
+template <typename Real>
 void dequantize_3D(const int nr, const int nc, const int nf, const int nrow,
-                   const int ncol, const int nfib, const int nlevel, double *v,
+                   const int ncol, const int nfib, const int nlevel, Real *v,
                    std::vector<int> &out_data,
-                   const std::vector<double> &coords_x,
-                   const std::vector<double> &coords_y,
-                   const std::vector<double> &coords_z);
+                   const std::vector<Real> &coords_x,
+                   const std::vector<Real> &coords_y,
+                   const std::vector<Real> &coords_z);
 
+template <typename Real>
 void dequantize_3D(const int nr, const int nc, const int nf, const int nrow,
-                   const int ncol, const int nfib, const int nlevel, double *v,
+                   const int ncol, const int nfib, const int nlevel, Real *v,
                    std::vector<int> &out_data,
-                   const std::vector<double> &coords_x,
-                   const std::vector<double> &coords_y,
-                   const std::vector<double> &coords_z, double s);
+                   const std::vector<Real> &coords_x,
+                   const std::vector<Real> &coords_y,
+                   const std::vector<Real> &coords_z, Real s);
 
+template <typename Real>
 void dequantize_2D(const int nr, const int nc, const int nrow, const int ncol,
-                   const int nlevel, double *v, std::vector<int> &work,
-                   const std::vector<double> &coords_x,
-                   const std::vector<double> &coords_y, double s);
+                   const int nlevel, Real *v, std::vector<int> &work,
+                   const std::vector<Real> &coords_x,
+                   const std::vector<Real> &coords_y, Real s);
 
-void dequant_3D(const int nr, const int nc, const int nf, const int nrow,
-                const int ncol, const int nfib, const int nlevel, const int l,
-                double *v, double *work, const std::vector<double> &coords_x,
-                const std::vector<double> &coords_y,
-                const std::vector<double> &coords_z, double s);
+template <typename Real>
+void copy_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
+                  int ncol);
 
-void copy_level_l(const int l, double *v, double *work, int nr, int nc,
-                  int nrow, int ncol);
-
-void subtract_level_l(const int l, double *v, double *work, int nr, int nc,
+template <typename Real>
+void subtract_level_l(const int l, Real *v, Real *work, int nr, int nc,
                       int nrow, int ncol);
 
-void pi_lminus1_l(const int l, std::vector<double> &v,
-                  const std::vector<double> &coords, int n, int no);
+template <typename Real>
+void pi_lminus1_l(const int l, std::vector<Real> &v,
+                  const std::vector<Real> &coords, int n, int no);
 
-void pi_lminus1_first(std::vector<double> &v, const std::vector<double> &coords,
+template <typename Real>
+void pi_lminus1_first(std::vector<Real> &v, const std::vector<Real> &coords,
                       int n, int no);
 
+template <typename Real>
 void pi_Ql_first(const int nr, const int nc, const int nrow, const int ncol,
-                 const int l, double *v, const std::vector<double> &coords_x,
-                 const std::vector<double> &coords_y,
-                 std::vector<double> &row_vec, std::vector<double> &col_vec);
+                 const int l, Real *v, const std::vector<Real> &coords_x,
+                 const std::vector<Real> &coords_y, std::vector<Real> &row_vec,
+                 std::vector<Real> &col_vec);
 
+template <typename Real>
 void pi_Ql(const int nr, const int nc, const int nrow, const int ncol,
-           const int l, double *v, const std::vector<double> &coords_x,
-           const std::vector<double> &coords_y, std::vector<double> &row_vec,
-           std::vector<double> &col_vec);
+           const int l, Real *v, const std::vector<Real> &coords_x,
+           const std::vector<Real> &coords_y, std::vector<Real> &row_vec,
+           std::vector<Real> &col_vec);
 
+template <typename Real>
 void pi_Ql3D(const int nr, const int nc, const int nf, const int nrow,
-             const int ncol, const int nfib, const int l, double *v,
-             const std::vector<double> &coords_x,
-             const std::vector<double> &coords_y,
-             const std::vector<double> &coords_z, std::vector<double> &row_vec,
-             std::vector<double> &col_vec, std::vector<double> &fib_vec);
+             const int ncol, const int nfib, const int l, Real *v,
+             const std::vector<Real> &coords_x,
+             const std::vector<Real> &coords_y,
+             const std::vector<Real> &coords_z, std::vector<Real> &row_vec,
+             std::vector<Real> &col_vec, std::vector<Real> &fib_vec);
 
+template <typename Real>
 void pi_Ql3D_first(const int nr, const int nc, const int nf, const int nrow,
-                   const int ncol, const int nfib, const int l, double *v,
-                   const std::vector<double> &coords_x,
-                   const std::vector<double> &coords_y,
-                   const std::vector<double> &coords_z,
-                   std::vector<double> &row_vec, std::vector<double> &col_vec,
-                   std::vector<double> &fib_vec);
+                   const int ncol, const int nfib, const int l, Real *v,
+                   const std::vector<Real> &coords_x,
+                   const std::vector<Real> &coords_y,
+                   const std::vector<Real> &coords_z,
+                   std::vector<Real> &row_vec, std::vector<Real> &col_vec,
+                   std::vector<Real> &fib_vec);
 
-void assign_num_level(const int l, std::vector<double> &v, double num, int n,
+template <typename Real>
+void assign_num_level(const int l, std::vector<Real> &v, Real num, int n,
                       int no);
 
-void assign_num_level_l(const int l, double *v, double num, int nr, int nc,
+template <typename Real>
+void assign_num_level_l(const int l, Real *v, Real num, int nr, int nc,
                         const int nrow, const int ncol);
 
-void restriction_first(std::vector<double> &v, std::vector<double> &coords,
-                       int n, int no);
+template <typename Real>
+void restriction_first(std::vector<Real> &v, const std::vector<Real> &coords,
+                       const int n, const int no);
 
-void solve_tridiag_M_l(const int l, std::vector<double> &v,
-                       std::vector<double> &coords, int n, int no);
+template <typename Real>
+void solve_tridiag_M_l(const int l, std::vector<Real> &v,
+                       const std::vector<Real> &coords, const int n,
+                       const int no);
 
-void add_level_l(const int l, double *v, double *work, int nr, int nc, int nrow,
+template <typename Real>
+void add_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
                  int ncol);
 
-void add3_level_l(const int l, double *v, double *work, int nr, int nc, int nf,
+template <typename Real>
+void add3_level_l(const int l, Real *v, Real *work, int nr, int nc, int nf,
                   int nrow, int ncol, int nfib);
 
-void sub3_level_l(const int l, double *v, double *work, int nr, int nc, int nf,
+template <typename Real>
+void sub3_level_l(const int l, Real *v, Real *work, int nr, int nc, int nf,
                   int nrow, int ncol, int nfib);
 
-void sub3_level(const int l, double *v, double *work, int nrow, int ncol,
-                int nfib);
+template <typename Real>
+void sub3_level(const int l, Real *v, Real *work, int nrow, int ncol, int nfib);
 
-void sub_level_l(const int l, double *v, double *work, int nr, int nc, int nf,
+template <typename Real>
+void sub_level_l(const int l, Real *v, Real *work, int nr, int nc, int nf,
                  int nrow, int ncol, int nfib);
 
-void project_first(const int nr, const int nc, const int nrow, const int ncol,
-                   const int l_target, double *v, std::vector<double> &work,
-                   std::vector<double> &coords_x, std::vector<double> &coords_y,
-                   std::vector<double> &row_vec, std::vector<double> &col_vec);
-
+template <typename Real>
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
-             const int l_target, double *v, std::vector<double> &work,
-             std::vector<double> &coords_x, std::vector<double> &coords_y,
-             std::vector<double> &row_vec, std::vector<double> &col_vec);
+             const int l_target, Real *v, std::vector<Real> &work,
+             std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+             std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
-void mass_mult_l(const int l, std::vector<double> &v,
-                 std::vector<double> &coords, const int n, const int no);
+template <typename Real>
+void mass_mult_l(const int l, std::vector<Real> &v,
+                 const std::vector<Real> &coords, const int n, const int no);
 
-void restriction_l(const int l, std::vector<double> &v,
-                   std::vector<double> &coords, int n, int no);
+template <typename Real>
+void restriction_l(const int l, std::vector<Real> &v,
+                   const std::vector<Real> &coords, const int n, const int no);
 
-double ml2_norm3(const int l, int nr, int nc, int nf, int nrow, int ncol,
-                 int nfib, const std::vector<double> &v,
-                 std::vector<double> &coords_x, std::vector<double> &coords_y,
-                 std::vector<double> &coords_z);
+template <typename Real>
+Real ml2_norm3(const int l, const int nr, const int nc, const int nf,
+               const int nrow, int ncol, const int nfib,
+               const std::vector<Real> &v, const std::vector<Real> &coords_x,
+               const std::vector<Real> &coords_y,
+               const std::vector<Real> &coords_z);
 
-void prolongate_l(const int l, std::vector<double> &v,
-                  std::vector<double> &coords, int n, int no);
+template <typename Real>
+void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
+                  int n, int no);
 
-void refactor_1D(const int l_target, std::vector<double> &v,
-                 std::vector<double> &work, std::vector<double> &coords, int n,
-                 int no);
-
+template <typename Real>
 void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
-                 const int l_target, double *v, std::vector<double> &work,
-                 std::vector<double> &coords_x, std::vector<double> &coords_y,
-                 std::vector<double> &row_vec, std::vector<double> &col_vec);
+                 const int l_target, Real *v, std::vector<Real> &work,
+                 std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+                 std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
-void refactor_2D_full(const int nr, const int nc, const int nrow,
-                      const int ncol, const int l_target, double *v,
-                      std::vector<double> &work, std::vector<double> &coords_x,
-                      std::vector<double> &coords_y,
-                      std::vector<double> &row_vec,
-                      std::vector<double> &col_vec);
-
+template <typename Real>
 void refactor_2D_first(const int nr, const int nc, const int nrow,
-                       const int ncol, const int l_target, double *v,
-                       std::vector<double> &work, std::vector<double> &coords_x,
-                       std::vector<double> &coords_y,
-                       std::vector<double> &row_vec,
-                       std::vector<double> &col_vec);
+                       const int ncol, const int l_target, Real *v,
+                       std::vector<Real> &work, std::vector<Real> &coords_x,
+                       std::vector<Real> &coords_y, std::vector<Real> &row_vec,
+                       std::vector<Real> &col_vec);
 
-void copy3_level_l(const int l, double *v, double *work, int nr, int nc, int nf,
-                   int nrow, int ncol, int nfib);
+template <typename Real>
+void copy3_level_l(const int l, Real const *const v, Real *const work,
+                   const int nr, const int nc, const int nf, const int nrow,
+                   const int ncol, const int nfib);
 
-void copy3_level(const int l, double *v, double *work, int nrow, int ncol,
-                 int nfib);
+template <typename Real>
+void copy3_level(const int l, Real const *const v, Real *const work,
+                 const int nrow, const int ncol, const int nfib);
 
-void assign3_level_l(const int l, double *v, double num, int nr, int nc, int nf,
+template <typename Real>
+void assign3_level_l(const int l, Real *v, Real num, int nr, int nc, int nf,
                      int nrow, int ncol, int nfib);
 
+template <typename Real>
 void refactor_3D(const int nr, const int nc, const int nf, const int nrow,
-                 const int ncol, const int nfib, const int l_target, double *v,
-                 std::vector<double> &work, std::vector<double> &work2d,
-                 std::vector<double> &coords_x, std::vector<double> &coords_y,
-                 std::vector<double> &coords_z, std::string csv_prefix = "./");
+                 const int ncol, const int nfib, const int l_target, Real *v,
+                 std::vector<Real> &work, std::vector<Real> &work2d,
+                 std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+                 std::vector<Real> &coords_z);
 
+template <typename Real>
 void compute_zl(const int nr, const int nc, const int nrow, const int ncol,
-                const int l_target, std::vector<double> &work,
-                std::vector<double> &coords_x, std::vector<double> &coords_y,
-                std::vector<double> &row_vec, std::vector<double> &col_vec);
+                const int l_target, std::vector<Real> &work,
+                std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+                std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
+template <typename Real>
 void compute_zl_last(const int nr, const int nc, const int nrow, const int ncol,
-                     const int l_target, std::vector<double> &work,
-                     std::vector<double> &coords_x,
-                     std::vector<double> &coords_y,
-                     std::vector<double> &row_vec,
-                     std::vector<double> &col_vec);
+                     const int l_target, std::vector<Real> &work,
+                     std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+                     std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
-void prolongate_last(std::vector<double> &v, std::vector<double> &coords, int n,
+template <typename Real>
+void prolongate_last(std::vector<Real> &v, std::vector<Real> &coords, int n,
                      int no);
 
+template <typename Real>
 void prolong_add_2D(const int nr, const int nc, const int nrow, const int ncol,
-                    const int l_target, std::vector<double> &work,
-                    std::vector<double> &coords_x,
-                    std::vector<double> &coords_y, std::vector<double> &row_vec,
-                    std::vector<double> &col_vec);
+                    const int l_target, std::vector<Real> &work,
+                    std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+                    std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
+template <typename Real>
 void prolong_add_2D_last(const int nr, const int nc, const int nrow,
                          const int ncol, const int l_target,
-                         std::vector<double> &work,
-                         std::vector<double> &coords_x,
-                         std::vector<double> &coords_y,
-                         std::vector<double> &row_vec,
-                         std::vector<double> &col_vec);
+                         std::vector<Real> &work, std::vector<Real> &coords_x,
+                         std::vector<Real> &coords_y,
+                         std::vector<Real> &row_vec,
+                         std::vector<Real> &col_vec);
 
+template <typename Real>
 void prep_3D(const int nr, const int nc, const int nf, const int nrow,
-             const int ncol, const int nfib, const int l_target, double *v,
-             std::vector<double> &work, std::vector<double> &work2d,
-             std::vector<double> &coords_x, std::vector<double> &coords_y,
-             std::vector<double> &coords_z);
+             const int ncol, const int nfib, const int l_target, Real *v,
+             std::vector<Real> &work, std::vector<Real> &work2d,
+             std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+             std::vector<Real> &coords_z);
 
+template <typename Real>
 void recompose_3D(const int nr, const int nc, const int nf, const int nrow,
-                  const int ncol, const int nfib, const int l_target, double *v,
-                  std::vector<double> &work, std::vector<double> &work2d,
-                  std::vector<double> &coords_x, std::vector<double> &coords_y,
-                  std::vector<double> &coords_z, std::string csv_prefix = "./");
+                  const int ncol, const int nfib, const int l_target, Real *v,
+                  std::vector<Real> &work, std::vector<Real> &work2d,
+                  std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+                  std::vector<Real> &coords_z);
 
+template <typename Real>
 void postp_3D(const int nr, const int nc, const int nf, const int nrow,
-              const int ncol, const int nfib, const int l_target, double *v,
-              std::vector<double> &work, std::vector<double> &coords_x,
-              std::vector<double> &coords_y, std::vector<double> &coords_z);
+              const int ncol, const int nfib, const int l_target, Real *v,
+              std::vector<Real> &work, std::vector<Real> &coords_x,
+              std::vector<Real> &coords_y, std::vector<Real> &coords_z);
 
+template <typename Real>
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
-                  const int l_target, double *v, std::vector<double> &work,
-                  std::vector<double> &coords_x, std::vector<double> &coords_y,
-                  std::vector<double> &row_vec, std::vector<double> &col_vec);
+                  const int l_target, Real *v, std::vector<Real> &work,
+                  std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+                  std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
+template <typename Real>
 void recompose_2D_full(const int nr, const int nc, const int nrow,
-                       const int ncol, const int l_target, double *v,
-                       std::vector<double> &work, std::vector<double> &coords_x,
-                       std::vector<double> &coords_y,
-                       std::vector<double> &row_vec,
-                       std::vector<double> &col_vec);
+                       const int ncol, const int l_target, Real *v,
+                       std::vector<Real> &work, std::vector<Real> &coords_x,
+                       std::vector<Real> &coords_y, std::vector<Real> &row_vec,
+                       std::vector<Real> &col_vec);
 
+template <typename Real>
 void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
-              const int l_target, double *v, std::vector<double> &work,
-              std::vector<double> &coords_x, std::vector<double> &coords_y,
-              std::vector<double> &row_vec, std::vector<double> &col_vec);
+              const int l_target, Real *v, std::vector<Real> &work,
+              std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+              std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
+template <typename Real>
 void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
-                 const int nlevel, const int l, double *v, double tol,
-                 double norm, const std::string outfile);
+                 const int nlevel, const int l, Real *v, Real tol, Real norm,
+                 const std::string outfile);
 
-double qoi_norm(int nrow, int ncol, int nfib, std::vector<double> &coords_x,
-                std::vector<double> &coords_y, std::vector<double> &coords_z,
-                double (*qoi)(int, int, int, std::vector<double>), double s);
-
-double qoi_norm(int nrow, int ncol, int nfib, std::vector<double> &coords_x,
-                std::vector<double> &coords_y, std::vector<double> &coords_z,
-                double (*qoi)(int, int, int, double *), double s);
 } // namespace mgard_gen
 
 namespace mgard_2d {
+
 namespace mgard_common {
 
-int parse_cmdl(int argc, char **argv, int &nrow, int &ncol, double &tol,
-               std::string &in_file, std::string &coord_file);
+template <typename Real> Real max_norm(const std::vector<Real> &v);
 
-bool is_2kplus1(double num);
+template <typename Real>
+inline Real interp_2d(Real q11, Real q12, Real q21, Real q22, Real x1, Real x2,
+                      Real y1, Real y2, Real x, Real y);
 
-inline int get_index(const int ncol, const int i, const int j);
+template <typename Real>
+inline Real get_h(const std::vector<Real> &coords, int i, int stride);
 
-double max_norm(const std::vector<double> &v);
+template <typename Real>
+inline Real get_dist(const std::vector<Real> &coords, int i, int j);
 
-inline double interp_2d(double q11, double q12, double q21, double q22,
-                        double x1, double x2, double y1, double y2, double x,
-                        double y);
-
-inline double get_h(const std::vector<double> &coords, int i, int stride);
-
-inline double get_dist(const std::vector<double> &coords, int i, int j);
-
+template <typename Real>
 void qread_2D_interleave(const int nrow, const int ncol, const int nlevel,
-                         double *v, std::string infile);
+                         Real *v, std::string infile);
 
+template <typename Real>
 void qwrite_2D_interleave(const int nrow, const int ncol, const int nlevel,
-                          const int l, double *v, double tol, double norm,
+                          const int l, Real *v, Real tol, Real norm,
                           const std::string outfile);
 
 } // namespace mgard_common
 
 namespace mgard_cannon {
 
-void assign_num_level(const int nrow, const int ncol, const int l, double *v,
-                      double num);
+template <typename Real>
+void assign_num_level(const int nrow, const int ncol, const int l, Real *v,
+                      Real num);
 
-void subtract_level(const int nrow, const int ncol, const int l, double *v,
-                    double *work);
+template <typename Real>
+void subtract_level(const int nrow, const int ncol, const int l, Real *v,
+                    Real *work);
 
-void pi_lminus1(const int l, std::vector<double> &v,
-                const std::vector<double> &coords);
+template <typename Real>
+void pi_lminus1(const int l, std::vector<Real> &v,
+                const std::vector<Real> &coords);
 
-void restriction(const int l, std::vector<double> &v,
-                 const std::vector<double> &coords);
+template <typename Real>
+void restriction(const int l, std::vector<Real> &v,
+                 const std::vector<Real> &coords);
 
-void prolongate(const int l, std::vector<double> &v,
-                const std::vector<double> &coords);
+template <typename Real>
+void prolongate(const int l, std::vector<Real> &v,
+                const std::vector<Real> &coords);
 
-void solve_tridiag_M(const int l, std::vector<double> &v,
-                     const std::vector<double> &coords);
+template <typename Real>
+void solve_tridiag_M(const int l, std::vector<Real> &v,
+                     const std::vector<Real> &coords);
 
-void mass_matrix_multiply(const int l, std::vector<double> &v,
-                          const std::vector<double> &coords);
+template <typename Real>
+void mass_matrix_multiply(const int l, std::vector<Real> &v,
+                          const std::vector<Real> &coords);
 
-void write_level_2D(const int nrow, const int ncol, const int l, double *v,
+template <typename Real>
+void write_level_2D(const int nrow, const int ncol, const int l, Real *v,
                     std::ofstream &outfile);
 
-void copy_level(const int nrow, const int ncol, const int l, double *v,
-                std::vector<double> &work);
+template <typename Real>
+void copy_level(const int nrow, const int ncol, const int l, Real *v,
+                std::vector<Real> &work);
 
 } // namespace mgard_cannon
 
 namespace mgard_gen {
-inline double *get_ref(std::vector<double> &v, const int n, const int no,
-                       const int i);
 
-inline int get_lindex(const int n, const int no, const int i);
+template <typename Real>
+inline Real *get_ref(std::vector<Real> &v, const int n, const int no,
+                     const int i);
 
-inline double get_h_l(const std::vector<double> &coords, const int n,
-                      const int no, int i, int stride);
+template <typename Real>
+inline Real get_h_l(const std::vector<Real> &coords, const int n, const int no,
+                    int i, int stride);
 
-void write_level_2D_l(const int l, double *v, std::ofstream &outfile, int nr,
+template <typename Real>
+void write_level_2D_l(const int l, Real *v, std::ofstream &outfile, int nr,
                       int nc, int nrow, int ncol);
 
-void copy_level_l(const int l, double *v, double *work, int nr, int nc,
-                  int nrow, int ncol);
+template <typename Real>
+void copy_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
+                  int ncol);
 
-void subtract_level_l(const int l, double *v, double *work, int nr, int nc,
+template <typename Real>
+void subtract_level_l(const int l, Real *v, Real *work, int nr, int nc,
                       int nrow, int ncol);
 
-void pi_lminus1_l(const int l, std::vector<double> &v,
-                  const std::vector<double> &coords, int n, int no);
+template <typename Real>
+void pi_lminus1_l(const int l, std::vector<Real> &v,
+                  const std::vector<Real> &coords, int n, int no);
 
-void pi_lminus1_first(std::vector<double> &v, const std::vector<double> &coords,
+template <typename Real>
+void pi_lminus1_first(std::vector<Real> &v, const std::vector<Real> &coords,
                       int n, int no);
 
+template <typename Real>
 void pi_Ql_first(const int nr, const int nc, const int nrow, const int ncol,
-                 const int l, double *v, const std::vector<double> &coords_x,
-                 const std::vector<double> &coords_y,
-                 std::vector<double> &row_vec, std::vector<double> &col_vec);
+                 const int l, Real *v, const std::vector<Real> &coords_x,
+                 const std::vector<Real> &coords_y, std::vector<Real> &row_vec,
+                 std::vector<Real> &col_vec);
 
+template <typename Real>
 void pi_Ql(const int nr, const int nc, const int nrow, const int ncol,
-           const int l, double *v, const std::vector<double> &coords_x,
-           const std::vector<double> &coords_y, std::vector<double> &row_vec,
-           std::vector<double> &col_vec);
+           const int l, Real *v, const std::vector<Real> &coords_x,
+           const std::vector<Real> &coords_y, std::vector<Real> &row_vec,
+           std::vector<Real> &col_vec);
 
-void assign_num_level_l(const int l, double *v, double num, int nr, int nc,
+template <typename Real>
+void assign_num_level_l(const int l, Real *v, Real num, int nr, int nc,
                         const int nrow, const int ncol);
 
-void restriction_first(std::vector<double> &v, std::vector<double> &coords,
-                       int n, int no);
+template <typename Real>
+void restriction_first(std::vector<Real> &v, const std::vector<Real> &coords,
+                       const int n, const int no);
 
-void solve_tridiag_M_l(const int l, std::vector<double> &v,
-                       std::vector<double> &coords, int n, int no);
+template <typename Real>
+void solve_tridiag_M_l(const int l, std::vector<Real> &v,
+                       const std::vector<Real> &coords, const int n,
+                       const int no);
 
-void add_level_l(const int l, double *v, double *work, int nr, int nc, int nrow,
+template <typename Real>
+void add_level_l(const int l, Real *v, Real *work, int nr, int nc, int nrow,
                  int ncol);
 
-void project_first(const int nr, const int nc, const int nrow, const int ncol,
-                   const int l_target, double *v, std::vector<double> &work,
-                   std::vector<double> &coords_x, std::vector<double> &coords_y,
-                   std::vector<double> &row_vec, std::vector<double> &col_vec);
+template <typename Real>
+void prep_1D(const int nc, const int ncol, const int l_target, Real *v,
+             std::vector<Real> &work, std::vector<Real> &coords_x,
+             std::vector<Real> &row_vec);
 
+template <typename Real>
 void prep_2D(const int nr, const int nc, const int nrow, const int ncol,
-             const int l_target, double *v, std::vector<double> &work,
-             std::vector<double> &coords_x, std::vector<double> &coords_y,
-             std::vector<double> &row_vec, std::vector<double> &col_vec,
-             std::string csv_prefix = "./");
+             const int l_target, Real *v, std::vector<Real> &work,
+             std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+             std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
-void mass_mult_l(const int l, std::vector<double> &v,
-                 std::vector<double> &coords, const int n, const int no);
+template <typename Real>
+void mass_mult_l(const int l, std::vector<Real> &v,
+                 const std::vector<Real> &coords, const int n, const int no);
 
-void restriction_l(const int l, std::vector<double> &v,
-                   std::vector<double> &coords, int n, int no);
+template <typename Real>
+void restriction_l(const int l, std::vector<Real> &v,
+                   const std::vector<Real> &coords, const int n, const int no);
 
-void prolongate_l(const int l, std::vector<double> &v,
-                  std::vector<double> &coords, int n, int no);
+template <typename Real>
+void prolongate_l(const int l, std::vector<Real> &v, std::vector<Real> &coords,
+                  int n, int no);
 
+template <typename Real>
+void refactor_1D(const int nc, const int ncol, const int l_target, Real *v,
+                 std::vector<Real> &work, std::vector<Real> &coords_x,
+                 std::vector<Real> &row_vec);
+
+template <typename Real>
 void refactor_2D(const int nr, const int nc, const int nrow, const int ncol,
-                 const int l_target, double *v, std::vector<double> &work,
-                 std::vector<double> &coords_x, std::vector<double> &coords_y,
-                 std::vector<double> &row_vec, std::vector<double> &col_vec,
-                 std::string csv_prefix = "./");
+                 const int l_target, Real *v, std::vector<Real> &work,
+                 std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+                 std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
+template <typename Real>
+void recompose_1D(const int nc, const int ncol, const int l_target, Real *v,
+                  std::vector<Real> &work, std::vector<Real> &coords_x,
+                  std::vector<Real> &row_vec);
+
+template <typename Real>
 void recompose_2D(const int nr, const int nc, const int nrow, const int ncol,
-                  const int l_target, double *v, std::vector<double> &work,
-                  std::vector<double> &coords_x, std::vector<double> &coords_y,
-                  std::vector<double> &row_vec, std::vector<double> &col_vec,
-                  std::string csv_prefix = "./");
+                  const int l_target, Real *v, std::vector<Real> &work,
+                  std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+                  std::vector<Real> &row_vec, std::vector<Real> &col_vec);
 
-void prolongate_last(std::vector<double> &v, std::vector<double> &coords, int n,
+template <typename Real>
+void prolongate_last(std::vector<Real> &v, std::vector<Real> &coords, int n,
                      int no);
 
-void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
-              const int l_target, double *v, std::vector<double> &work,
-              std::vector<double> &coords_x, std::vector<double> &coords_y,
-              std::vector<double> &row_vec, std::vector<double> &col_vec,
-              std::string csv_prefix = "./");
+template <typename Real>
+void postp_1D(const int nc, const int ncol, const int l_target, Real *v,
+              std::vector<Real> &work, std::vector<Real> &coords_x,
+              std::vector<Real> &row_vec);
 
+template <typename Real>
+void postp_2D(const int nr, const int nc, const int nrow, const int ncol,
+              const int l_target, Real *v, std::vector<Real> &work,
+              std::vector<Real> &coords_x, std::vector<Real> &coords_y,
+              std::vector<Real> &row_vec, std::vector<Real> &col_vec);
+
+template <typename Real>
 void qwrite_2D_l(const int nr, const int nc, const int nrow, const int ncol,
-                 const int nlevel, const int l, double *v, double tol,
-                 double norm, const std::string outfile);
+                 const int nlevel, const int l, Real *v, Real tol, Real norm,
+                 const std::string outfile);
 
 } // namespace mgard_gen
 

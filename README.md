@@ -1,72 +1,41 @@
-## MGARD
+# MGARD [![Build Status][travis status]][travis]
 
 MGARD (MultiGrid Adaptive Reduction of Data) is a technique for multilevel lossy compression of scientific data based on the theory of multigrid methods.
-This is an experimental C++ API for integration with existing software, use at your own risk!
+This is an experimental C++ implementation for integration with existing software; use at your own risk!
+We encourage you to [make a GitHub issue][issue form] if you run into any problems using the software, have any questions or suggestions, etc.
 
-The double precision API consists of a header file: `mgard_api.h`, for single precision the header file is `mgard_api_float.h`.
+The API consists of a header file `include/mgard_api.h` providing prototypes for overloaded functions `mgard_compress` and `mgard_decompress`.
+See [the header][api] for documentation of these functions.
 
-Users need only include this header file, and link against the static
-library `libmgard.a`.
+To use MGARD,
 
-This header file provides prototypes for the following overloaded functions:
+1. Run `make lib/libmgard.a` to generate a static library.
+2. Include `mgard_api.h` in any source files making use of the API.
+3. Link against `libmgard.a` when creating your executable.
 
-```
-unsigned char *mgard_compress(int itype_flag, double/float *data, int& out_size,
-                              int n1, int n2, int n3, double/float tol, [qoi, s = infinity])
-```
+[travis]: https://travis-ci.org/CODARcode/MGARD
+[travis status]: https://travis-ci.org/CODARcode/MGARD.svg?branch=master
+[issue form]: https://github.com/CODARcode/MGARD/issues/new/choose
+[api]: include/mgard_api.h
 
-It returns a pointer to an `unsigned char` array of compressed data.
-The arguments are:
+## References
 
-     itype_flag: Data type, 0 for float, 1 for double
-     data : Pointer to the input buffer (interpreted as 2D matrix) to compress with MGARD,
-            this buffer will be destroyed!
-     out_size: size of input data, returns compressed size on exit
-     n1: Size of first dimension
-     n2: Size of second dimension
-     n3: Size of third dimension
-     tol: Upper bound for desired tolerance. Note that this tolerance is relative not absolute: ||u - C[u]||_s \le tol*||u||_s
-     qoi: Function pointer to the quantity of interest
-     s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
+The theory behind MGARD is developed in the following papers, which also address implementation issues and present numerical examples.
+Reference [2] covers the simplest case and is a natural starting point.
 
-# These APIs are outdated and will be updated. 
-The next overload is
+1. Ben Whitney. [Multilevel Techniques for Compression and Reduction of Scientific Data.][thesis] PhD thesis, Brown University, 2018.
+2. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. [Multilevel Techniques for Compression and Reduction of Scientific Data—The Univariate Case.][univariate] *Computing and Visualization in Science* 19, 65–76, 2018.
+3. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. [Multilevel Techniques for Compression and Reduction of Scientific Data—The Multivariate Case.][multivariate] *SIAM Journal on Scientific Computing* 41 (2), A1278–A1303, 2019.
+4. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. [Multilevel Techniques for Compression and Reduction of Scientific Data—Quantitative Control of Accuracy in Derived Quantities.][quantities] *SIAM Journal on Scientific Computing* 41 (4), A2146–A2171, 2019.
+5. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. Multilevel Techniques for Compression and Reduction of Scientific Data—The Unstructured Case. *SIAM Journal on Scientific Computing*, to appear.
 
-```
-void *mgard_decompress(int itype_flag, unsigned char *data,
-int data_len, int n1, int n2, int n3,[s = infinity])
-```
-
-This returns a void pointer to an array of decompressed data, which must be cast to `float` or `double`.
-The arguments are:
-
-     itype_flag: Data type, 0 for float, 1 for double
-     data : Pointer to the input buffer (interpreted as 2D matrix) to decompress with MGARD,
-            this buffer will be destroyed!
-     data_len: size of input data in bytes
-     n1: Size of first dimension
-     n2: Size of second dimension
-     n3: Size of third dimension
-     s: The norm in which the error will be preserved, L-\infty assumed if not present in the function call.
-
-The `qoi` function pointer must compute the quantity of interest, *Q(v)*.
-Its only use is to estimate the Besov *s*-norm of the operator *Q*; if this can be derived independently, then there is no need to provide it.
-
-Paper [1] should be the first reference to glimpse into the theory behind MGARD.
-For more information consult [2] and [3]:
+[thesis]: https://doi.org/10.26300/ya1v-hn97
+[univariate]: https://doi.org/10.1007/s00791-018-00303-9
+[multivariate]: https://doi.org/10.1137/18M1166651
+[quantities]: https://doi.org/10.1137/18M1208885
 
 ## Caveats
 
 If you use a certain value of `s` to compress your data, *you must use the same value of `s` to decompress it*.
-You cannot agnostically decompress the compressed representation, and the value of `s` is not stored in the compressed stream.
+You cannot agnostically decompress the compressed representation, and the value of `s` is not currently stored in the compressed stream, so if you forget the value of `s` that you used when compressing your data, your data is gone.
 In addition, there is currently no way to detect if an inconsistent value of `s` has been passed, so the code returns corrupted data silently.
-
-If you forget the value of `s` that you used to compress your data, then your data is gone.
-
-1) Multilevel Techniques for Compression and Reduction of Scientific Data—The Univariate case
-M Ainsworth, O Tugluk, B Whitney, K Scott. Computing and Visualization in Science, 8, 2018
-
-2) Multilevel Techniques for Compression and Reduction of Scientific Data---The Multivariate Case
-M Ainsworth, O Tugluk, B Whitney, S Klasky. SIAM Journal on Scientific Computing 41 (2), A1278-A1303, 2019
-
-3) Multilevel Techniques for Compression and Reduction of Scientific Data-Quantitative Control of Accuracy in Derived Quantities. M Ainsworth, O Tugluk, B Whitney, S Klasky. SIAM Journal on Scientific Computing 41 (4), A2146-A2171, 2019
