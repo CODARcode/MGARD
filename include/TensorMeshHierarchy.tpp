@@ -138,9 +138,6 @@ TensorMeshHierarchy<N, Real>::indices(const std::size_t l,
   return indices;
 }
 
-// TODO: The body of this function is (partly) copied from
-// `LevelValues<N, Real>::iterator::operator*`. That function can call this one
-// once `Dimensions2kPlus1<N>` and `TensorMeshHierarchy<N, Real>` are combined.
 template <std::size_t N, typename Real>
 std::size_t TensorMeshHierarchy<N, Real>::offset(
     const std::array<std::size_t, N> multiindex) const {
@@ -161,6 +158,14 @@ template <std::size_t N, typename Real>
 Real &TensorMeshHierarchy<N, Real>::at(
     Real *const v, const std::array<std::size_t, N> multiindex) const {
   return v[offset(multiindex)];
+}
+
+template <std::size_t N, typename Real>
+template <typename T>
+TensorLevelValues<N, T>
+TensorMeshHierarchy<N, Real>::on_nodes(T *const coefficients,
+                                       const std::size_t l) const {
+  return TensorLevelValues<N, T>(*this, coefficients, l);
 }
 
 template <std::size_t N, typename Real>
@@ -200,6 +205,111 @@ void TensorMeshHierarchy<N, Real>::check_dimension_index_bounds(
   if (dimension >= N) {
     throw std::out_of_range("dimension index out of range encountered");
   }
+}
+
+namespace {
+
+template <std::size_t N, typename Real>
+std::array<std::vector<std::size_t>, N>
+make_factors(const TensorMeshHierarchy<N, Real> &hierarchy,
+             const std::size_t l) {
+  std::array<std::vector<std::size_t>, N> factors;
+  for (std::size_t i = 0; i < N; ++i) {
+    factors.at(i) = hierarchy.indices(l, i);
+  }
+  return factors;
+}
+
+} // namespace
+
+template <std::size_t N, typename T>
+TensorLevelValues<N, T>::TensorLevelValues(
+    const TensorMeshHierarchy<N, typename TensorLevelValues<N, T>::Real>
+        &hierarchy,
+    T *const coefficients, const std::size_t l)
+    : hierarchy(hierarchy), coefficients(coefficients), l(l),
+      factors(make_factors(hierarchy, l)), multiindices(factors) {}
+
+template <std::size_t N, typename T>
+bool TensorLevelValues<N, T>::
+operator==(const TensorLevelValues<N, T> &other) const {
+  return hierarchy == other.hierarchy && coefficients == other.coefficients &&
+         l == other.l;
+}
+
+template <std::size_t N, typename T>
+bool TensorLevelValues<N, T>::
+operator!=(const TensorLevelValues<N, T> &other) const {
+  return !operator==(other);
+}
+
+template <std::size_t N, typename T>
+typename TensorLevelValues<N, T>::iterator
+TensorLevelValues<N, T>::begin() const {
+  return iterator(*this, multiindices.begin());
+}
+
+template <std::size_t N, typename T>
+typename TensorLevelValues<N, T>::iterator
+TensorLevelValues<N, T>::end() const {
+  return iterator(*this, multiindices.end());
+}
+
+template <std::size_t N, typename T>
+TensorLevelValues<N, T>::iterator::iterator(
+    const TensorLevelValues<N, T> &iterable,
+    const typename CartesianProduct<std::size_t, N>::iterator &inner)
+    : iterable(iterable), inner(inner) {}
+
+template <std::size_t N, typename T>
+bool TensorLevelValues<N, T>::iterator::
+operator==(const TensorLevelValues<N, T>::iterator &other) const {
+  return iterable == other.iterable && inner == other.inner;
+}
+
+template <std::size_t N, typename T>
+bool TensorLevelValues<N, T>::iterator::
+operator!=(const TensorLevelValues<N, T>::iterator &other) const {
+  return !operator==(other);
+}
+
+template <std::size_t N, typename T>
+typename TensorLevelValues<N, T>::iterator &TensorLevelValues<N, T>::iterator::
+operator++() {
+  ++inner;
+  return *this;
+}
+
+template <std::size_t N, typename T>
+typename TensorLevelValues<N, T>::iterator TensorLevelValues<N, T>::iterator::
+operator++(int) {
+  const iterator tmp = *this;
+  operator++();
+  return tmp;
+}
+
+namespace {
+
+template <std::size_t N, typename Real>
+std::array<Real, N>
+multiindex_coordinates(const TensorMeshHierarchy<N, Real> &hierarchy,
+                       const std::array<std::size_t, N> multiindex) {
+  std::array<Real, N> coordinates;
+  for (std::size_t i = 0; i < N; ++i) {
+    coordinates.at(i) = hierarchy.coordinates.at(i).at(multiindex.at(i));
+  }
+  return coordinates;
+}
+
+} // namespace
+
+template <std::size_t N, typename T>
+SituatedCoefficient<N, T> TensorLevelValues<N, T>::iterator::operator*() const {
+  const std::array<std::size_t, N> multiindex = *inner;
+  return {.multiindex = multiindex,
+          .coordinates = multiindex_coordinates(iterable.hierarchy, multiindex),
+          .value =
+              iterable.coefficients + iterable.hierarchy.offset(multiindex)};
 }
 
 } // namespace mgard

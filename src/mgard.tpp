@@ -1122,6 +1122,8 @@ void interpolate_old_to_new_and_subtract(
   // something like `SituatedCoefficientRange` so we get the multiindices along
   // with the values. For now we'll iterate over the multiindices and fetch the
   // values ourselves.
+  // Now that `LevelValues` has been replaced by `TensorLevelValues`, it is now
+  // possible to do the above. Holding off as I expect to delete this function.
   const MultiindexRectangle<N> rectangle(shape);
 
   // We're splitting the grid into 'boxes' with 'lower left' corner `alpha` and
@@ -1199,61 +1201,64 @@ void interpolate_old_to_new_and_subtract(
 template <std::size_t N, typename Real>
 void assign_num_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                       const int l, Real *const v, const Real num) {
-  const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
-  using It = typename LevelValues<N, Real>::iterator;
-  const LevelValues<N, Real> values = dims.on_nodes(v, l);
+  using It = typename TensorLevelValues<N, Real>::iterator;
+  const TensorLevelValues<N, Real> values =
+      hierarchy.on_nodes(v, hierarchy.L - l);
   It p = values.begin();
   const It values_end = values.end();
   while (p != values_end) {
-    *p++ = num;
+    *(*p++).value = num;
   }
 }
 
 template <std::size_t N, typename Real>
 void copy_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                 Real const *const v, Real *const work) {
-  const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
-  using It = typename LevelValues<N, const Real>::iterator;
-  using Jt = typename LevelValues<N, Real>::iterator;
-  const LevelValues<N, const Real> source = dims.on_nodes(v, l);
-  const LevelValues<N, Real> destination = dims.on_nodes(work, l);
+  using It = typename TensorLevelValues<N, const Real>::iterator;
+  using Jt = typename TensorLevelValues<N, Real>::iterator;
+  const TensorLevelValues<N, const Real> source =
+      hierarchy.on_nodes(v, hierarchy.L - l);
+  const TensorLevelValues<N, Real> destination =
+      hierarchy.on_nodes(work, hierarchy.L - l);
   It p = source.begin();
   Jt q = destination.begin();
   const It source_end = source.end();
   while (p != source.end()) {
-    *q++ = *p++;
+    *(*q++).value = *(*p++).value;
   }
 }
 
 template <std::size_t N, typename Real>
 void add_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                Real *const v, Real const *const work) {
-  const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
-  using It = typename LevelValues<N, Real>::iterator;
-  using Jt = typename LevelValues<N, const Real>::iterator;
-  const LevelValues<N, Real> target = dims.on_nodes(v, l);
-  const LevelValues<N, const Real> increment = dims.on_nodes(work, l);
+  using It = typename TensorLevelValues<N, Real>::iterator;
+  using Jt = typename TensorLevelValues<N, const Real>::iterator;
+  const TensorLevelValues<N, Real> target =
+      hierarchy.on_nodes(v, hierarchy.L - l);
+  const TensorLevelValues<N, const Real> increment =
+      hierarchy.on_nodes(work, hierarchy.L - l);
   It p = target.begin();
   Jt q = increment.begin();
   const It target_end = target.end();
   while (p != target_end) {
-    *p++ += *q++;
+    *(*p++).value += *(*q++).value;
   }
 }
 
 template <std::size_t N, typename Real>
 void subtract_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                     Real *const v, Real const *const work) {
-  const Dimensions2kPlus1<N> dims(hierarchy.meshes.back().shape);
-  using It = typename LevelValues<N, Real>::iterator;
-  using Jt = typename LevelValues<N, const Real>::iterator;
-  const LevelValues<N, Real> target = dims.on_nodes(v, l);
-  const LevelValues<N, const Real> decrement = dims.on_nodes(work, l);
+  using It = typename TensorLevelValues<N, Real>::iterator;
+  using Jt = typename TensorLevelValues<N, const Real>::iterator;
+  const TensorLevelValues<N, Real> target =
+      hierarchy.on_nodes(v, hierarchy.L - l);
+  const TensorLevelValues<N, const Real> decrement =
+      hierarchy.on_nodes(work, hierarchy.L - l);
   It p = target.begin();
   Jt q = decrement.begin();
   const It target_end = target.end();
   while (p != target_end) {
-    *p++ -= *q++;
+    *(*p++).value -= *(*q++).value;
   }
 }
 

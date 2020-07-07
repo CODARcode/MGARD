@@ -103,17 +103,6 @@ TEST_CASE("constituent prolongations", "[TensorProlongation]") {
 namespace {
 
 template <std::size_t N, typename Real>
-std::array<Real, N>
-multiindex_coordinates(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
-                       const std::array<std::size_t, N> multiindex) {
-  std::array<Real, N> coordinates;
-  for (std::size_t i = 0; i < N; ++i) {
-    coordinates.at(i) = hierarchy.coordinates.at(i).at(multiindex.at(i));
-  }
-  return coordinates;
-}
-
-template <std::size_t N, typename Real>
 void test_tensor_product_prolongations(std::default_random_engine &generator,
                                        const std::array<std::size_t, N> shape) {
   std::uniform_real_distribution<Real> node_spacing_distribution(0.1, 1);
@@ -124,36 +113,23 @@ void test_tensor_product_prolongations(std::default_random_engine &generator,
                                     shape);
   std::vector<Real> u_(hierarchy.ndof());
   Real *const u = u_.data();
-  // For each level, the indices (separated by dimension) whose Cartesian
-  // product will give the multiindices of the nodes on that level.
-  std::vector<std::array<std::vector<std::size_t>, N>> multiindex_factors(
-      hierarchy.L + 1);
-  for (std::size_t l = 0; l <= hierarchy.L; ++l) {
-    std::array<std::vector<std::size_t>, N> &factors = multiindex_factors.at(l);
-    for (std::size_t i = 0; i < N; ++i) {
-      factors.at(i) = hierarchy.indices(l, i);
-    }
-  }
   for (std::size_t l = hierarchy.L; l > 0; --l) {
     const MultilinearPolynomial<Real, N> p(generator,
                                            polynomial_coefficient_distribution);
-    for (const std::array<std::size_t, N> multiindex :
-         mgard::CartesianProduct(multiindex_factors.at(l))) {
-      hierarchy.at(u, multiindex) = 0;
+    for (const mgard::SituatedCoefficient<N, Real> coeff :
+         hierarchy.on_nodes(u, l)) {
+      *coeff.value = 0;
     }
-    for (const std::array<std::size_t, N> multiindex :
-         mgard::CartesianProduct(multiindex_factors.at(l - 1))) {
-      hierarchy.at(u, multiindex) =
-          p(multiindex_coordinates(hierarchy, multiindex));
+    for (const mgard::SituatedCoefficient<N, Real> coeff :
+         hierarchy.on_nodes(u, l - 1)) {
+      *coeff.value = p(coeff.coordinates);
     }
     const mgard::TensorProlongationAddition<N, Real> PA(hierarchy, l);
     PA(u);
     TrialTracker tracker;
-    for (const std::array<std::size_t, N> multiindex :
-         mgard::CartesianProduct(multiindex_factors.at(l))) {
-      tracker += hierarchy.at(u, multiindex) ==
-                 Approx(p(multiindex_coordinates(hierarchy, multiindex)))
-                     .epsilon(0.001);
+    for (const mgard::SituatedCoefficient<N, Real> coeff :
+         hierarchy.on_nodes(u, l)) {
+      tracker += *coeff.value == Approx(p(coeff.coordinates)).epsilon(0.001);
     }
     REQUIRE(tracker);
   }
