@@ -7,7 +7,7 @@
 // See LICENSE for details.
 
 #include "mgard_nuni.h"
-#include "mgard_cuda_helper.h"
+//#include "mgard_cuda_helper.h"
 #include "mgard.h"
 #include <chrono>
 #include <fstream>

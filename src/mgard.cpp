@@ -10,7 +10,7 @@
 #include "mgard_nuni.h"
 #include <chrono>
 #include "string"
-#include "mgard_cuda_helper.h"
+//#include "mgard_cuda_helper.h"
 
 namespace mgard {
 

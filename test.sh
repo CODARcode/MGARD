@@ -104,8 +104,16 @@
 
 # ./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 8 8 8 0.01 0 -1 16 1 32 ./
 # ./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 8 8 8 0.01 0 3 16 1 32 ./
+# ./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 128 128 1 0.01 0 -1 16 1 32 ./
 
-./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 128 128 1 0.01 0 -1 16 1 32 ./
+./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 128 64 1 0.01 0 0 16 1 32 ./
+./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 128 64 1 0.01 0 1 16 1 32 ./
+
+./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 128 64 32 0.01 0 1 16 1 32 ./
+# ./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 65 65 65 0.01 0 1 16 1 32 ./
+
+
+# ./build/bin/mgard_check_cuda_and_cpu 0 8193 8193 1 0.01 0 3 16 1 32 ./
 
 # ./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 128 128 64 0.01 0 3 16 1 32 ./
 # ./build/bin/mgard_check_cuda_and_cpu 1 ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat ./cuda_test/bp2bin/gs_bin_data/gs_128_128_128_3D_0.dat.out 128 64 128 0.01 0 3 16 1 32 ./

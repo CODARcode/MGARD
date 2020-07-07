@@ -77,45 +77,33 @@ add_library(mgard
   src/mgard_api_float.cpp           include/mgard_api_float.h
   src/mgard_nuni_float.cpp          include/mgard_nuni_float.h
 # CUDA part  
-  src/mgard_cuda.cu                            include/mgard_cuda.h
-  src/mgard_nuni_2d_cuda_gen.cu                include/mgard_nuni_2d_cuda_gen.h
-  src/mgard_nuni_2d_cuda_common.cu             include/mgard_nuni_2d_cuda_common.h
-  src/mgard_nuni_3d_cuda_common.cu             include/mgard_nuni_3d_cuda_common.h
-  src/mgard_nuni_2d_cuda_copy_level.cu         include/mgard_nuni_2d_cuda_copy_level.h
-  src/mgard_nuni_2d_cuda_mass_matrix_multiply.cu        include/mgard_nuni_2d_cuda_mass_matrix_multiply.h
-  src/mgard_nuni_2d_cuda_pi_Ql_first.cu        include/mgard_nuni_2d_cuda_pi_Ql_first.h
-  src/mgard_nuni_2d_cuda_restriction_first.cu  include/mgard_nuni_2d_cuda_restriction_first.h
-  src/mgard_nuni_2d_cuda_prolongate_last.cu       include/mgard_nuni_2d_cuda_prolongate_last.h
-  src/mgard_nuni_2d_cuda_subtract_level.cu     include/mgard_nuni_2d_cuda_subtract_level.h
-  src/mgard_nuni_2d_cuda_pi_Ql.cu              include/mgard_nuni_2d_cuda_pi_Ql.h
-  src/mgard_nuni_2d_cuda_mass_mult_l.cu        include/mgard_nuni_2d_cuda_mass_mult_l.h
-  src/mgard_nuni_2d_cuda_restriction_l.cu      include/mgard_nuni_2d_cuda_restriction_l.h
-  src/mgard_nuni_2d_cuda_solve_tridiag_M_l.cu  include/mgard_nuni_2d_cuda_solve_tridiag_M_l.h
-  src/mgard_nuni_2d_cuda_prolongate_l.cu       include/mgard_nuni_2d_cuda_prolongate_l.h
-  src/mgard_nuni_2d_cuda_copy_level_l.cu       include/mgard_nuni_2d_cuda_copy_level_l.h
-  src/mgard_nuni_2d_cuda_assign_num_level_l.cu include/mgard_nuni_2d_cuda_assign_num_level_l.h
-  src/mgard_nuni_2d_cuda_add_level_l.cu        include/mgard_nuni_2d_cuda_add_level_l.h
-  src/mgard_nuni_2d_cuda_subtract_level_l.cu   include/mgard_nuni_2d_cuda_subtract_level_l.h
-  src/mgard_nuni_3d_cuda_pi_Ql_first.cu        include/mgard_nuni_3d_cuda_pi_Ql_first.h
-  src/mgard_nuni_3d_cuda_pi_Ql.cu              include/mgard_nuni_3d_cuda_pi_Ql.h
-  src/mgard_nuni_3d_cuda_copy_level_l.cu       include/mgard_nuni_3d_cuda_copy_level_l.h
-  src/mgard_nuni_3d_cuda_assign_num_level_l.cu include/mgard_nuni_3d_cuda_assign_num_level_l.h
-  src/mgard_nuni_3d_cuda_add_level_l.cu        include/mgard_nuni_3d_cuda_add_level_l.h
-  src/mgard_nuni_3d_cuda_subtract_level_l.cu   include/mgard_nuni_3d_cuda_subtract_level_l.h
-  src/mgard_nuni_3d_cuda_prolongate_last.cu       include/mgard_nuni_3d_cuda_prolongate_last.h
-  src/quantize_2D_iterleave_cuda.cu            include/quantize_2D_iterleave_cuda.h
-  src/dequantize_2D_iterleave_cuda.cu          include/dequantize_2D_iterleave_cuda.h
-  src/mgard_nuni_2d_cuda.cu                    include/mgard_nuni_2d_cuda.h
-  src/mgard_nuni_2d_cuda_cpt_l1.cu             include/mgard_nuni_2d_cuda_cpt_l1.h
-  src/mgard_nuni_2d_cuda_cpt_l2.cu             include/mgard_nuni_2d_cuda_cpt_l2.h
-  src/mgard_nuni_2d_cuda_cpt_l2_sm.cu          include/mgard_nuni_2d_cuda_cpt_l2_sm.h
-  src/mgard_nuni_2d_cuda_cpt_l2_sm_pf.cu       include/mgard_nuni_2d_cuda_cpt_l2_sm_pf.h
-  src/mgard_nuni_3d_cuda_cpt_l2_sm.cu          include/mgard_nuni_3d_cuda_cpt_l2_sm.h
-  src/mgard_api_cuda.cpp            include/mgard_api_cuda.h
-  src/mgard_cuda_helper.cu          include/mgard_cuda_helper.h
-  src/mgard_cuda_helper_internal.cu include/mgard_cuda_helper_internal.h
-  src/mgard_cuda_compact_helper.cu  include/mgard_cuda_compact_helper.h
-  include/mgard_nuni_2d_cuda_kernels.h
+  src/cuda/mgard_cuda.cu                  include/cuda/mgard_cuda.h
+  src/cuda/mgard_cuda_add_level.cu        include/cuda/mgard_cuda_add_level.h
+  src/cuda/mgard_cuda_assign_num_level.cu include/cuda/mgard_cuda_assign_num_level.h
+  src/cuda/mgard_cuda_copy_level.cu       include/cuda/mgard_cuda_copy_level.h
+  src/cuda/mgard_cuda_mass_multiply.cu    include/cuda/mgard_cuda_mass_multiply.h
+  src/cuda/mgard_cuda_pi_Ql.cu            include/cuda/mgard_cuda_pi_Ql.h
+  src/cuda/mgard_cuda_prolongate.cu       include/cuda/mgard_cuda_prolongate.h
+  src/cuda/mgard_cuda_subtract_level.cu   include/cuda/mgard_cuda_subtract_level.h
+  src/cuda/mgard_cuda_restriction.cu      include/cuda/mgard_cuda_restriction.h
+  src/cuda/mgard_cuda_solve_tridiag.cu    include/cuda/mgard_cuda_solve_tridiag.h
+  src/cuda/mgard_cuda_linear_quantize.cu  include/cuda/mgard_cuda_linear_quantize.h
+
+  src/cuda/mgard_cuda_handle.cu          include/cuda/mgard_cuda_handle.h
+  src/cuda/mgard_api_cuda.cu             include/mgard_api_cuda.h
+  src/cuda/mgard_cuda_helper.cu          include/cuda/mgard_cuda_helper.h
+  src/cuda/mgard_cuda_common_internal.cu include/cuda/mgard_cuda_common_internal.h
+  src/cuda/mgard_cuda_compact_helper.cu  include/cuda/mgard_cuda_compact_helper.h
+
+  src/cuda/mgard_cuda_prep_2d.cu          include/cuda/mgard_cuda_prep_2d.h
+  src/cuda/mgard_cuda_refactor_2d.cu      include/cuda/mgard_cuda_refactor_2d.h
+  src/cuda/mgard_cuda_recompose_2d.cu     include/cuda/mgard_cuda_recompose_2d.h
+  src/cuda/mgard_cuda_postp_2d.cu         include/cuda/mgard_cuda_postp_2d.h
+  src/cuda/mgard_cuda_prep_3d.cu          include/cuda/mgard_cuda_prep_3d.h
+  src/cuda/mgard_cuda_refactor_3d.cu      include/cuda/mgard_cuda_refactor_3d.h
+  src/cuda/mgard_cuda_recompose_3d.cu     include/cuda/mgard_cuda_recompose_3d.h
+  src/cuda/mgard_cuda_postp_3d.cu         include/cuda/mgard_cuda_postp_3d.h
+  include/cuda/mgard_cuda_kernels.h
 )
 target_include_directories(mgard
   PUBLIC
@@ -140,8 +128,8 @@ set_target_properties(mgard PROPERTIES
   CUDA_SEPARABLE_COMPILATION ON
 )
 
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DCPU=0 -DGPU=1")
-SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DCPU=0 -DGPU=1")
+# SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_DEBUG")
+# SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_DEBUG")
 
 install(
   TARGETS mgard EXPORT mgard-targets
@@ -217,7 +205,7 @@ install(
 include(CTest)
 if(BUILD_TESTING)
   enable_testing()
-  add_executable(mgard_test_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test_cuda.cpp)
+  add_executable(mgard_test_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_test_cuda.cpp)
   target_link_libraries(mgard_test_cuda mgard  ${CMAKE_DL_LIBS})
   set_target_properties(mgard_test_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
   
@@ -229,11 +217,11 @@ if(BUILD_TESTING)
   target_link_libraries(mgard_check mgard  ${CMAKE_DL_LIBS})
   set_target_properties(mgard_check PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-  add_executable(mgard_check_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_check_cuda.cpp)
+  add_executable(mgard_check_cuda ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_check_cuda.cpp)
   target_link_libraries(mgard_check_cuda mgard  ${CMAKE_DL_LIBS})
   set_target_properties(mgard_check_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-  add_executable(mgard_check_cuda_and_cpu ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_check_cuda_and_cpu.cpp)
+  add_executable(mgard_check_cuda_and_cpu ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_check_cuda_and_cpu.cpp)
   target_link_libraries(mgard_check_cuda_and_cpu mgard  ${CMAKE_DL_LIBS})
   set_target_properties(mgard_check_cuda_and_cpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
