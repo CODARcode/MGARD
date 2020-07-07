@@ -11,6 +11,7 @@
 #include "cuda/mgard_cuda_recompose_3d.h"
 #include "cuda/mgard_cuda_postp_3d.h"
 
+#include "mgard_compress.hpp"
 #include "mgard_nuni.h"
 #include "mgard.h"
 #include <iomanip> 

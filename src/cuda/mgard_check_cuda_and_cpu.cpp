@@ -46,7 +46,7 @@
 #define ANSI_RESET "\x1b[0m"
 
 void print_usage_message(char *argv[], FILE *fp) {
-  fprintf(fp, "Usage: %s infile outfile nrow ncol nfib tolerance s\n", argv[0]);
+  fprintf(fp, "Usage: %s infile nrow ncol nfib tolerance s\n", argv[0]);
 }
 
 void print_for_more_details_message(char *argv[], FILE *fp) {
@@ -58,8 +58,7 @@ void print_help_message(char *argv[], FILE *fp) {
     fp,
     "\nThe input file `infile` should contain a double[`nrow`][`ncol`][`nfib`] array.\n"
     "The array will be compressed so that the error as measured in the H^`s` norm is\n"
-    "no more than `tolerance`. (Use `s` = inf for the L^infty norm and `s` = 0 for the\n"
-    "L^2 norm.) The compressed array will be written to the output file `outfile`.\n"
+    "no more than `tolerance`. \n"
   );
 }
 
@@ -75,9 +74,8 @@ int main(int argc, char *argv[])
 
   int data_srouce; // 0: generate random data; 1: input file
   char *infile, *outfile;
-  int nrow, ncol, nfib, opt, B, num_of_queues;
-  bool profile;
-  double tol, s;
+  int nrow, ncol, nfib, opt, B = 16, num_of_queues = 32;
+  double tol, s = 0;
   std::string csv_prefix = "./";
   if (argc < 2) {
     fprintf (stderr, "%s: Not enough arguments! ", argv[0]);
@@ -87,7 +85,7 @@ int main(int argc, char *argv[])
   } else {
     data_srouce = atoi(argv[1]);
     if (data_srouce == 0) { 
-      if (argc < 12) {
+      if (argc < 7) {
         print_usage_message(argv, stderr);
         print_for_more_details_message(argv, stderr);
         return 1;
@@ -96,30 +94,19 @@ int main(int argc, char *argv[])
       ncol = atoi(argv[3]);
       nfib = atoi(argv[4]);
       tol  = atof(argv[5]);
-      s    = atof(argv[6]);
-      opt  = atoi(argv[7]);
-      B    = atoi(argv[8]);
-      profile = atoi(argv[9]);
-      num_of_queues = atoi(argv[10]);
-      csv_prefix = argv[11];
+      opt  = atoi(argv[6]);
     } else {
-      if (argc < 14) {
+      if (argc < 8) {
         print_usage_message(argv, stderr);
         print_for_more_details_message(argv, stderr);
         return 1;
       }
       infile = argv[2];
-      outfile = argv[3];
-      nrow = atoi(argv[4]);
-      ncol = atoi(argv[5]);
-      nfib = atoi(argv[6]);
-      tol  = atof(argv[7]);
-      s    = atof(argv[8]);
-      opt  = atoi(argv[9]);
-      B    = atoi(argv[10]);
-      profile = atoi(argv[11]);
-      num_of_queues = atoi(argv[12]);
-      csv_prefix = argv[13];
+      nrow = atoi(argv[3]);
+      ncol = atoi(argv[4]);
+      nfib = atoi(argv[5]);
+      tol  = atof(argv[6]);
+      opt  = atoi(argv[7]);
     }
   }
 
@@ -187,7 +174,7 @@ int main(int argc, char *argv[])
   
   if (opt == -1) {
 
-    mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol, csv_prefix);
+    mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
   } else {
     mgard_cuda_handle<double> handle(nrow, ncol, nfib, B,  num_of_queues, opt);
     mgard_comp_buff = mgard_compress_cuda(handle, in_buff, out_size, tol);
@@ -200,7 +187,7 @@ int main(int argc, char *argv[])
   double* mgard_out_buff;
   double dummy = 0;
   if (opt == -1) {
-    mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, csv_prefix);
+    mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
   } else {
     mgard_cuda_handle<double>handle(nrow, ncol, nfib, B, num_of_queues, opt);
     mgard_out_buff = mgard_decompress_cuda(handle, mgard_comp_buff, out_size);

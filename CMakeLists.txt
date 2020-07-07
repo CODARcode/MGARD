@@ -17,6 +17,19 @@ file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/include/mgard.h MGARD_VERSION
 string(REGEX MATCH "[0-9]+(\.[0-9])+" MGARD_VERSION "${MGARD_VERSION}")
 project(MGARD VERSION ${MGARD_VERSION})
 
+#-----------------------------------------------------------------------------
+# mgard_option(variable doc [initial])
+#   Provides an option if it is not already defined.
+# This can be replaced when CMake 3.13 is our cmake_minimum_required
+macro (mgard_option variable)
+  if (NOT DEFINED "${variable}")
+    option("${variable}" ${ARGN})
+  endif ()
+endmacro ()
+
+#Configurable Options
+mgard_option(MGARD_ENABLE_CUDA "Enable Cuda support" ON)
+
 # Some boilerplate to setup nice output directories
 include(GNUInstallDirs)
 set(CMAKE_INSTALL_BINDIR bin CACHE STRING "Installation runtime subdirectory")
@@ -65,19 +78,60 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+
 # Dependencies
 find_package(ZLIB REQUIRED)
 find_package(ADIOS2)
 
+if(NOT MGARD_ENABLE_CUDA)
 
-# Set library
-add_library(mgard
-  src/mgard.cpp       include/mgard.h
-  src/mgard_mesh.cpp  include/mgard_mesh.hpp
-  src/mgard_compress.cpp  include/mgard_compress.hpp
-  src/mgard_api.cpp  include/mgard_api.h
-  src/mgard_nuni.cpp  include/mgard_nuni.h
+  # Set library
+  add_library(mgard
+    src/mgard.cpp       include/mgard.h
+    src/mgard_mesh.cpp  include/mgard_mesh.hpp
+    src/mgard_compress.cpp  include/mgard_compress.hpp
+    src/mgard_api.cpp  include/mgard_api.h
+    src/mgard_nuni.cpp  include/mgard_nuni.h
+  )
+else()
+  enable_language(CUDA)
+  add_library(mgard
+    src/mgard.cpp       include/mgard.h
+    src/mgard_mesh.cpp  include/mgard_mesh.hpp
+    src/mgard_compress.cpp  include/mgard_compress.hpp
+    src/mgard_api.cpp  include/mgard_api.h
+    src/mgard_nuni.cpp  include/mgard_nuni.h
+  # CUDA part  
+    src/cuda/mgard_cuda.cu                  include/cuda/mgard_cuda.h
+    src/cuda/mgard_cuda_add_level.cu        include/cuda/mgard_cuda_add_level.h
+    src/cuda/mgard_cuda_assign_num_level.cu include/cuda/mgard_cuda_assign_num_level.h
+    src/cuda/mgard_cuda_copy_level.cu       include/cuda/mgard_cuda_copy_level.h
+    src/cuda/mgard_cuda_mass_multiply.cu    include/cuda/mgard_cuda_mass_multiply.h
+    src/cuda/mgard_cuda_pi_Ql.cu            include/cuda/mgard_cuda_pi_Ql.h
+    src/cuda/mgard_cuda_prolongate.cu       include/cuda/mgard_cuda_prolongate.h
+    src/cuda/mgard_cuda_subtract_level.cu   include/cuda/mgard_cuda_subtract_level.h
+    src/cuda/mgard_cuda_restriction.cu      include/cuda/mgard_cuda_restriction.h
+    src/cuda/mgard_cuda_solve_tridiag.cu    include/cuda/mgard_cuda_solve_tridiag.h
+    src/cuda/mgard_cuda_linear_quantize.cu  include/cuda/mgard_cuda_linear_quantize.h
+
+    src/cuda/mgard_cuda_handle.cu          include/cuda/mgard_cuda_handle.h
+    src/cuda/mgard_api_cuda.cu             include/mgard_api_cuda.h
+    src/cuda/mgard_cuda_helper.cu          include/cuda/mgard_cuda_helper.h
+    src/cuda/mgard_cuda_common_internal.cu include/cuda/mgard_cuda_common_internal.h
+    src/cuda/mgard_cuda_compact_helper.cu  include/cuda/mgard_cuda_compact_helper.h
+
+    src/cuda/mgard_cuda_prep_2d.cu          include/cuda/mgard_cuda_prep_2d.h
+    src/cuda/mgard_cuda_refactor_2d.cu      include/cuda/mgard_cuda_refactor_2d.h
+    src/cuda/mgard_cuda_recompose_2d.cu     include/cuda/mgard_cuda_recompose_2d.h
+    src/cuda/mgard_cuda_postp_2d.cu         include/cuda/mgard_cuda_postp_2d.h
+    src/cuda/mgard_cuda_prep_3d.cu          include/cuda/mgard_cuda_prep_3d.h
+    src/cuda/mgard_cuda_refactor_3d.cu      include/cuda/mgard_cuda_refactor_3d.h
+    src/cuda/mgard_cuda_recompose_3d.cu     include/cuda/mgard_cuda_recompose_3d.h
+    src/cuda/mgard_cuda_postp_3d.cu         include/cuda/mgard_cuda_postp_3d.h
+    include/cuda/mgard_cuda_kernels.h
 )
+endif()
+
 target_include_directories(mgard
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -95,10 +149,18 @@ else()
 endif()
 
 # Set library version information
-set_target_properties(mgard PROPERTIES
-  VERSION ${MGARD_VERSION}
-  SOVERSION ${MGARD_VERSION_MAJOR}
-)
+if(NOT MGARD_ENABLE_CUDA)
+  set_target_properties(mgard PROPERTIES
+    VERSION ${MGARD_VERSION}
+    SOVERSION ${MGARD_VERSION_MAJOR}
+  )
+else()
+  set_target_properties(mgard PROPERTIES
+    VERSION ${MGARD_VERSION}
+    SOVERSION ${MGARD_VERSION_MAJOR}
+    CUDA_SEPARABLE_COMPILATION ON
+  )
+endif()
 
 install(
   TARGETS mgard EXPORT mgard-targets
@@ -124,6 +186,10 @@ if(BUILD_TESTING)
   add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
   target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
 
+  add_executable(mgard_check_cuda_and_cpu ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_check_cuda_and_cpu.cpp)
+  target_link_libraries(mgard_check_cuda_and_cpu mgard  ${CMAKE_DL_LIBS})
+  set_target_properties(mgard_check_cuda_and_cpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+  
   add_subdirectory(tests)
 
   add_test(NAME mgard_test1
@@ -201,4 +267,5 @@ message("")
 message("  Build Type: ${CMAKE_BUILD_TYPE}")
 message("  Shared Lib: ${BUILD_SHARED_LIBS}")
 message("     Testing: ${BUILD_TESTING}")
+message("        CUDA: ${MGARD_ENABLE_CUDA}")
 
