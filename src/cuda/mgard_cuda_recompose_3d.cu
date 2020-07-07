@@ -130,7 +130,7 @@ recompose_3D_cuda_cpt(mgard_cuda_handle<T> & handle, T * dv, int lddv1, int lddv
                           queue_idx);
 
       restriction_1_cpt(handle,
-                        handle.nr_l[l], handle.nf_l[l-1],
+                        handle.nc_l[l], handle.nf_l[l-1],
                         1, 1,
                         handle.ddist_f_l[l-1],
                         handle.dcwork_2d_cf[queue_idx], handle.lddcwork_2d_cf[queue_idx],

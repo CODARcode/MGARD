@@ -37,17 +37,17 @@ template <typename T>
 void print_matrix_cuda(int nrow, int ncol, T * dv, int lddv) {
   //std::cout << std::setw(10);
   //std::cout << std::setprecision(2) << std::fixed;
-  mgard_cuda_handle<float> tmp_handle;
+  mgard_cuda_handle<float> * tmp_handle = new mgard_cuda_handle<float>();
   int queue_idx = 0;
   T * v = new T[nrow * ncol];
-  cudaMemcpy2DAsyncHelper(tmp_handle, v, ncol  * sizeof(T), 
+  cudaMemcpy2DAsyncHelper(*tmp_handle, v, ncol  * sizeof(T), 
                     dv, lddv * sizeof(T),  
                     ncol * sizeof(T), nrow, 
                     D2H, queue_idx);
-  tmp_handle.sync(queue_idx);
+  tmp_handle->sync(queue_idx);
   print_matrix(nrow, ncol, v, ncol); 
   delete [] v;
-  tmp_handle.destory();
+  delete tmp_handle;
 }
 template void print_matrix_cuda<double>(int nrow, int ncol, double * dv, int lddv);
 template void print_matrix_cuda<float>(int nrow, int ncol, float * dv, int lddv);
@@ -58,22 +58,24 @@ template <typename T>
 void print_matrix_cuda(int nrow, int ncol, int nfib, T * dv, int lddv1, int lddv2, int sizex) {
   //std::cout << std::setw(10);
   //std::cout << std::setprecision(2) << std::fixed;
-  mgard_cuda_handle<float> tmp_handle;
+  mgard_cuda_handle<float> * tmp_handle = new mgard_cuda_handle<float>();
   int queue_idx = 0;
 
   T * v = new T[nrow * ncol * nfib];
-  cudaMemcpy3DAsyncHelper(tmp_handle, v, nfib  * sizeof(T), nfib * sizeof(T), ncol,
+  cudaMemcpy3DAsyncHelper(*tmp_handle, v, nfib  * sizeof(T), nfib * sizeof(T), ncol,
                      dv, lddv1 * sizeof(T), sizex * sizeof(T), lddv2,
                      nfib * sizeof(T), ncol, nrow, 
                      D2H, queue_idx);
-  tmp_handle.sync(queue_idx);
+  tmp_handle->sync(queue_idx);
   print_matrix(nrow, ncol, nfib, v, nfib, ncol); 
   delete [] v;
-  tmp_handle.destory();
+  delete tmp_handle;
 }
 
 template void print_matrix_cuda<double>(int nrow, int ncol, int nfib, double * dv, int lddv1, int lddv2, int sizex);
 template void print_matrix_cuda<float>(int nrow, int ncol, int nfib, float * dv, int lddv1, int lddv2, int sizex);
+template void print_matrix_cuda<int>(int nrow, int ncol, int nfib, int * dv, int lddv1, int lddv2, int sizex);
+
 
 // print 3D CPU
 template <typename T>
@@ -89,6 +91,7 @@ void print_matrix(int nrow, int ncol, int nfib, T * v, int ldv1, int ldv2) {
 
 template void print_matrix<double>(int nrow, int ncol, int nfib, double * v, int ldv1, int ldv2);
 template void print_matrix<float>(int nrow, int ncol, int nfib, float * v, int ldv1, int ldv2);
+template void print_matrix<int>(int nrow, int ncol, int nfib, int * v, int ldv1, int ldv2);
 
 
 // compare 2D CPU
@@ -136,28 +139,28 @@ template <typename T>
 bool compare_matrix_cuda(int nrow, int ncol, 
                       T * dv1, int lddv1, 
                       T * dv2, int lddv2) {
-  mgard_cuda_handle<float> tmp_handle;
+  mgard_cuda_handle<float> * tmp_handle = new mgard_cuda_handle<float>();
   int queue_idx = 0;
 
   T * v1 = new T[nrow * ncol];
   int ldv1 = ncol;
-  cudaMemcpy2DAsyncHelper(tmp_handle, v1, ldv1  * sizeof(T), 
+  cudaMemcpy2DAsyncHelper(*tmp_handle, v1, ldv1  * sizeof(T), 
                     dv1, lddv1 * sizeof(T),  
                     ncol * sizeof(T), nrow, 
                     D2H, queue_idx);
   T * v2 = new T[nrow * ncol];
   int ldv2 = ncol;
-  cudaMemcpy2DAsyncHelper(tmp_handle, v2, ldv2  * sizeof(T), 
+  cudaMemcpy2DAsyncHelper(*tmp_handle, v2, ldv2  * sizeof(T), 
                     dv2, lddv2 * sizeof(T),  
                     ncol * sizeof(T), nrow, 
                     D2H, queue_idx);
-  tmp_handle.sync(queue_idx);
+  tmp_handle->sync(queue_idx);
   bool ret = compare_matrix(nrow, ncol, 
                         v1,   ldv1, 
                         v2,   ldv2);
   delete [] v1;
   delete [] v2;
-  tmp_handle.destory();
+  delete tmp_handle;
   return ret;
 }
 
@@ -216,13 +219,13 @@ template <typename T>
 bool compare_matrix_cuda(int nrow, int ncol, int nfib, 
                       T * dv1, int lddv11, int lddv12, int sizex1,
                       T * dv2, int lddv21, int lddv22, int sizex2) {
-  mgard_cuda_handle<float> tmp_handle;
+  mgard_cuda_handle<float> * tmp_handle = new mgard_cuda_handle<float>();
   int queue_idx = 0;
 
   T * v1 = new T[nrow * ncol * nfib];
   int ldv11 = nfib;
   int ldv12 = ncol;
-  cudaMemcpy3DAsyncHelper(tmp_handle, v1, ldv11  * sizeof(T), nfib * sizeof(T), ldv12, 
+  cudaMemcpy3DAsyncHelper(*tmp_handle, v1, ldv11  * sizeof(T), nfib * sizeof(T), ldv12, 
                     dv1, lddv11 * sizeof(T), sizex1 * sizeof(T), lddv12,
                     nfib * sizeof(T), ncol, nrow,
                     D2H, queue_idx);
@@ -230,17 +233,17 @@ bool compare_matrix_cuda(int nrow, int ncol, int nfib,
   T * v2 = new T[nrow * ncol * nfib];
   int ldv21 = nfib;
   int ldv22 = ncol;
-  cudaMemcpy3DAsyncHelper(tmp_handle, v2, ldv21  * sizeof(T), nfib * sizeof(T), ldv22, 
+  cudaMemcpy3DAsyncHelper(*tmp_handle, v2, ldv21  * sizeof(T), nfib * sizeof(T), ldv22, 
                     dv2, lddv21 * sizeof(T), sizex2 * sizeof(T), lddv22, 
                     nfib * sizeof(T), ncol, nrow,
                     D2H, queue_idx);
-  tmp_handle.sync(queue_idx);
+  tmp_handle->sync(queue_idx);
   bool ret = compare_matrix(nrow, ncol, nfib, 
                             v1,   ldv11, ldv12,
                             v2,   ldv21, ldv22);
   delete [] v1;
   delete [] v2;
-  tmp_handle.destory();
+  delete tmp_handle;
   return ret;
 }
 
