@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
     mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol, csv_prefix);
   } else {
     mgard_cuda_handle<double> handle(nrow, ncol, nfib, B,  num_of_queues, opt);
-    mgard_comp_buff = mgard_compress_cuda(handle, iflag, in_buff, out_size, tol);
+    mgard_comp_buff = mgard_compress_cuda(handle, in_buff, out_size, tol);
   }
   //free(in_buff);
   mgard_cuda::cudaFreeHostHelper(in_buff);
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
     mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib, csv_prefix);
   } else {
     mgard_cuda_handle<double>handle(nrow, ncol, nfib, B, num_of_queues, opt);
-    mgard_out_buff = mgard_decompress_cuda(handle, iflag, dummy, mgard_comp_buff, out_size);
+    mgard_out_buff = mgard_decompress_cuda(handle, mgard_comp_buff, out_size);
     //mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
   }
 
