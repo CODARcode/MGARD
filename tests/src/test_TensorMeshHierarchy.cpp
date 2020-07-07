@@ -72,34 +72,57 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
 }
 
 TEST_CASE("TensorMeshHierarchy dimension indexing", "[TensorMeshHierarchy]") {
-  {
-    const mgard::TensorMeshHierarchy<3, float> hierarchy({5, 3, 17});
-    REQUIRE(hierarchy.L == 1);
-    // Every index is included in the finest level.
-    for (std::size_t i = 0; i < 3; ++i) {
-      const std::vector<std::size_t> indices = hierarchy.indices(1, i);
-      TrialTracker tracker;
-      std::size_t expected = 0;
-      for (const std::size_t index : indices) {
-        tracker += index == expected++;
-      }
-      REQUIRE(tracker);
-    }
-    // On the coarse level, we get every other index.
+  // Currently we don't test `TensorMeshHierarchy::at`.
+  SECTION("offset helper member") {
     {
-      // Had a problem with brace initialization when this was an `array`.
-      const std::array<std::vector<std::size_t>, 3> expected = {
-          {{0, 2, 4}, {0, 2}, {0, 2, 4, 6, 8, 10, 12, 14, 16}}};
-      std::array<std::vector<std::size_t>, 3> obtained;
-      for (std::size_t i = 0; i < 3; ++i) {
-        obtained.at(i) = hierarchy.indices(0, i);
-      }
-      REQUIRE(obtained == expected);
+      const mgard::TensorMeshHierarchy<1, float> hierarchy({6});
+      REQUIRE(hierarchy.offset({0}) == 0);
+      REQUIRE(hierarchy.offset({2}) == 2);
+      REQUIRE(hierarchy.offset({5}) == 5);
+    }
+    {
+      const mgard::TensorMeshHierarchy<2, double> hierarchy({13, 4});
+      REQUIRE(hierarchy.offset({0, 3}) == 3);
+      REQUIRE(hierarchy.offset({10, 1}) == 41);
+      REQUIRE(hierarchy.offset({12, 3}) == 51);
+    }
+    {
+      const mgard::TensorMeshHierarchy<4, float> hierarchy({3, 3, 2, 100});
+      REQUIRE(hierarchy.offset({1, 2, 1, 90}) == 1190);
+      REQUIRE(hierarchy.offset({2, 0, 1, 15}) == 1315);
+      REQUIRE(hierarchy.offset({2, 2, 1, 27}) == 1727);
     }
   }
 
-  {
-    const mgard::TensorMeshHierarchy<2, double> hierarchy({5, 6});
-    REQUIRE_THROWS(hierarchy.indices(0, 0));
+  SECTION("indices helper member") {
+    {
+      const mgard::TensorMeshHierarchy<3, float> hierarchy({5, 3, 17});
+      REQUIRE(hierarchy.L == 1);
+      // Every index is included in the finest level.
+      for (std::size_t i = 0; i < 3; ++i) {
+        const std::vector<std::size_t> indices = hierarchy.indices(1, i);
+        TrialTracker tracker;
+        std::size_t expected = 0;
+        for (const std::size_t index : indices) {
+          tracker += index == expected++;
+        }
+        REQUIRE(tracker);
+      }
+      // On the coarse level, we get every other index.
+      {
+        const std::array<std::vector<std::size_t>, 3> expected = {
+            {{0, 2, 4}, {0, 2}, {0, 2, 4, 6, 8, 10, 12, 14, 16}}};
+        std::array<std::vector<std::size_t>, 3> obtained;
+        for (std::size_t i = 0; i < 3; ++i) {
+          obtained.at(i) = hierarchy.indices(0, i);
+        }
+        REQUIRE(obtained == expected);
+      }
+    }
+
+    {
+      const mgard::TensorMeshHierarchy<2, double> hierarchy({5, 6});
+      REQUIRE_THROWS(hierarchy.indices(0, 0));
+    }
   }
 }

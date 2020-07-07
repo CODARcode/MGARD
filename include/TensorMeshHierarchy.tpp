@@ -138,12 +138,12 @@ TensorMeshHierarchy<N, Real>::indices(const std::size_t l,
   return indices;
 }
 
-// TODO: The body of this function is copied from
+// TODO: The body of this function is (partly) copied from
 // `LevelValues<N, Real>::iterator::operator*`. That function can call this one
 // once `Dimensions2kPlus1<N>` and `TensorMeshHierarchy<N, Real>` are combined.
 template <std::size_t N, typename Real>
-Real &TensorMeshHierarchy<N, Real>::at(
-    Real *const v, const std::array<std::size_t, N> multiindex) const {
+std::size_t TensorMeshHierarchy<N, Real>::offset(
+    const std::array<std::size_t, N> multiindex) const {
   static_assert(N, "`N` must be nonzero to access entries");
   // TODO: Should also check that `meshes` is nonempty. Maybe do this in the
   // constructor. Could possibly have a member
@@ -154,7 +154,13 @@ Real &TensorMeshHierarchy<N, Real>::at(
     index *= shape.at(i);
     index += multiindex.at(i);
   }
-  return v[index];
+  return index;
+}
+
+template <std::size_t N, typename Real>
+Real &TensorMeshHierarchy<N, Real>::at(
+    Real *const v, const std::array<std::size_t, N> multiindex) const {
+  return v[offset(multiindex)];
 }
 
 template <std::size_t N, typename Real>
