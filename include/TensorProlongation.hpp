@@ -44,7 +44,7 @@ private:
 };
 
 //! Prolongation–addition (interpolate the values on the 'old' nodes to the
-//! 'new' nodes and add (not overwrite) for tensor products of continuous
+//! 'new' nodes and add (not overwrite)) for tensor products of continuous
 //! piecewise linear functions defined on a Cartesian product mesh hierarchy.
 //!
 //! *Important:* This operator only works as expected when the values on the

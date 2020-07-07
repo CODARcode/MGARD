@@ -69,4 +69,29 @@ void ConstituentRestriction<N, Real>::do_operator_parentheses(
   }
 }
 
+namespace {
+
+template <std::size_t N, typename Real>
+std::array<ConstituentRestriction<N, Real>, N>
+generate_restrictions(const TensorMeshHierarchy<N, Real> &hierarchy,
+                      const std::size_t l) {
+  std::array<ConstituentRestriction<N, Real>, N> restrictions;
+  for (std::size_t i = 0; i < N; ++i) {
+    restrictions.at(i) = ConstituentRestriction<N, Real>(hierarchy, l, i);
+  }
+  return restrictions;
+}
+
+} // namespace
+
+template <std::size_t N, typename Real>
+TensorRestriction<N, Real>::TensorRestriction(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
+    : TensorLinearOperator<N, Real>(hierarchy, l),
+      restrictions(generate_restrictions(hierarchy, l)) {
+  for (std::size_t i = 0; i < N; ++i) {
+    TLO::operators.at(i) = &restrictions.at(i);
+  }
+}
+
 } // namespace mgard

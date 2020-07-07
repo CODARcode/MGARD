@@ -38,6 +38,26 @@ private:
                           Real *const v) const override;
 };
 
+//! Restriction for tensor products of continuous piecewise linear functions
+//! defined on a Cartesian product mesh hierarchy.
+template <std::size_t N, typename Real>
+class TensorRestriction : public TensorLinearOperator<N, Real> {
+public:
+  //! Constructor.
+  //!
+  //!\param hierarchy Mesh hierarchy on which the functions are defined.
+  //!\param l Index of the mesh on which the restriction is to be applied. This
+  //! is the index of the fine mesh (corresponding to the domain).
+  TensorRestriction(const TensorMeshHierarchy<N, Real> &hierarchy,
+                    const std::size_t l);
+
+private:
+  using TLO = TensorLinearOperator<N, Real>;
+
+  //! Constituent restrictions for each dimension.
+  const std::array<ConstituentRestriction<N, Real>, N> restrictions;
+};
+
 } // namespace mgard
 
 #include "TensorRestriction.tpp"
