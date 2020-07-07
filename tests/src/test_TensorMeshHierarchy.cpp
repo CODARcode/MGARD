@@ -126,3 +126,55 @@ TEST_CASE("TensorMeshHierarchy dimension indexing", "[TensorMeshHierarchy]") {
     }
   }
 }
+
+TEST_CASE("level values iteration", "[TensorMeshHierarchy]") {
+  const std::size_t N = 27;
+  std::vector<float> v_(N);
+  std::iota(v_.begin(), v_.end(), 1);
+  float *const v = v_.data();
+
+  {
+    const mgard::TensorMeshHierarchy<1, float> hierarchy({17});
+    std::vector<float> encountered;
+    for (const mgard::SituatedCoefficient<1, float> coeff :
+         hierarchy.on_nodes(v, 2)) {
+      encountered.push_back(*coeff.value);
+    }
+    const std::vector<float> expected = {1, 5, 9, 13, 17};
+    REQUIRE(encountered == expected);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<2, float> hierarchy({3, 5});
+    std::vector<float> encountered;
+    for (const mgard::SituatedCoefficient<2, float> coeff :
+         hierarchy.on_nodes(v, 0)) {
+      encountered.push_back(*coeff.value);
+    }
+    const std::vector<float> expected = {1, 3, 5, 11, 13, 15};
+    REQUIRE(encountered == expected);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<2, float> hierarchy({9, 3});
+    std::vector<float> encountered;
+    for (const mgard::SituatedCoefficient<2, float> coeff :
+         hierarchy.on_nodes(v, 0)) {
+      encountered.push_back(*coeff.value);
+    }
+    const std::vector<float> expected = {1, 3, 7, 9, 13, 15, 19, 21, 25, 27};
+    REQUIRE(encountered == expected);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<3, float> hierarchy({3, 3, 3});
+    float expected = 1;
+    TrialTracker tracker;
+    for (const mgard::SituatedCoefficient<3, float> coeff :
+         hierarchy.on_nodes(v, hierarchy.L)) {
+      tracker += *coeff.value == expected;
+      expected += 1;
+    }
+    REQUIRE(tracker);
+  }
+}
