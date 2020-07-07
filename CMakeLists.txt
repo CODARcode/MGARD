@@ -29,6 +29,7 @@ endmacro ()
 
 #Configurable Options
 mgard_option(MGARD_ENABLE_CUDA "Enable Cuda support" ON)
+mgard_option(MGARD_ENABLE_CUDA_DEBUG "Enable Cuda support with debug" OFF)
 
 # Some boilerplate to setup nice output directories
 include(GNUInstallDirs)
@@ -78,8 +79,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
 
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_DEBUG")
-SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_DEBUG")
+if(MGARD_ENABLE_CUDA_DEBUG)
+  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_DEBUG")
+  SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_DEBUG")
+endif()
 
 # Dependencies
 find_package(ZLIB REQUIRED)
@@ -270,4 +273,5 @@ message("  Build Type: ${CMAKE_BUILD_TYPE}")
 message("  Shared Lib: ${BUILD_SHARED_LIBS}")
 message("     Testing: ${BUILD_TESTING}")
 message("        CUDA: ${MGARD_ENABLE_CUDA}")
+message("  CUDA-Debug: ${MGARD_ENABLE_CUDA_DEBUG}")
 
