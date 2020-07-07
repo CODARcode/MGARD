@@ -68,6 +68,15 @@ public:
   std::vector<std::size_t> indices(const std::size_t l,
                                    const std::size_t dimension) const;
 
+  //! Compute the offset of the value associated to a node.
+  //!
+  //! The offset is the distance in a contiguous dataset defined on the finest
+  //! mesh in the hierarchy from the value associated to the zeroth node to
+  //! the value associated to the given node.
+  //!
+  //!\param multiindex Multiindex of the node.
+  std::size_t offset(const std::array<std::size_t, N> multiindex) const;
+
   //! Access the value associated to a particular node.
   //!
   //!\param v Dataset defined on the hierarchy.
