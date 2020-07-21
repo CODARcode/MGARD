@@ -298,6 +298,14 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
 template <std::size_t N, typename Real>
 void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v);
 
+//! Transform multilevel coefficients into nodal coefficients.
+//!
+//!\param[in] hierarchy Mesh hierarchy on which the output function is defined.
+//!\param[in, out] Multilevel coefficients of the output function on the finest
+//! mesh in the hierarchy.
+template <std::size_t N, typename Real>
+void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v);
+
 } // namespace mgard
 
 #endif

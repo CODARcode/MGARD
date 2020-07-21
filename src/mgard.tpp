@@ -1632,7 +1632,7 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
   std::vector<Real> buffer_(hierarchy.ndof());
   Real *const buffer = buffer_.data();
   for (std::size_t l = hierarchy.L; l > 0; --l) {
-    // We start with `Q_{l}` on `nodes(l)` of `v`. First we write zeros to
+    // We start with `Q_{l}u` on `nodes(l)` of `v`. First we write zeros to
     // `nodes(l)` of `buffer` because the values on `new_nodes(l)` must be zero
     // before we can use the interpolation routine. (Ideally we'd only overwrite
     // those values.)
@@ -1678,6 +1678,54 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
     axpy_on_level(hierarchy, static_cast<Real>(1), buffer, v, l - 1);
     // Now we have `(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)` of `v` and
     // `Q_{l - 1}u` on `old_nodes(l)` of `v`.
+  }
+}
+
+template <std::size_t N, typename Real>
+void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
+  std::vector<Real> buffer_(hierarchy.ndof());
+  Real *const buffer = buffer_.data();
+  for (std::size_t l = 1; l <= hierarchy.L; ++l) {
+    // We start with `Q_{l - 1}u` on `old_nodes(l)` of `v` and
+    // `(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)` of `v`. We begin by copying
+    // `(I - Π_{l - 1})Q_{l}u` to `buffer`.
+    // We could probably avoid this initial copy by copying all of `v` (on
+    // `nodes(L)`) to `buffer` at the start.
+    copy_on_level(hierarchy, v, buffer, l);
+    set_to_zero_on_level(hierarchy, buffer, l - 1);
+    // Now we have `(I - Π_{l - 1})Q_{l}u` on `nodes(l)` of `buffer`. Time to
+    // project.
+    {
+      const TensorMassMatrix<N, Real> M(hierarchy, l);
+      const TensorRestriction<N, Real> R(hierarchy, l);
+      const TensorMassMatrixInverse<N, Real> m_inv(hierarchy, l - 1);
+      M(buffer);
+      R(buffer);
+      m_inv(buffer);
+    }
+    // Now we have `Q_{l - 1}u - Π_{l - 1}Q_{l}u` on `old_nodes(l)` of `buffer`.
+    // Time to correct `Q_{l - 1}u` on `old_nodes(l)` of `v`.
+    axpy_on_level(hierarchy, static_cast<Real>(-1), buffer, v, l - 1);
+    // Now we have `Π_{l - 1}Q_{l}u` on `old_nodes(l)` of `v`. Since
+    // `(I - Π_{l - 1})Q_{l}u if on `new_nodes(l)` of `v`, it would be nice to
+    // interpolate and modify the values on `new_nodes(l)` of `v` in place.
+    // Unfortunately, `TensorProlongationAddition` requires the values on
+    // `new_nodes(l)` to be zero at the start. So, we use `buffer` again.
+    set_to_zero_on_level(hierarchy, buffer, l);
+    copy_on_level(hierarchy, v, buffer, l - 1);
+    {
+      const TensorProlongationAddition<N, Real> PA(hierarchy, l);
+      PA(buffer);
+    }
+    // Now we have `Π_{l - 1}Q_{l}u` on `nodes(l)` of `buffer`. We're almost
+    // ready to add to `(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)` of `v`, but
+    // remember that `old_nodes(l)` of `v` still has `Π_{l - 1}Q_{l}u`. We zero
+    // those values in preparation.
+    set_to_zero_on_level(hierarchy, v, l - 1);
+    // Now we have `(I - Π_{l - 1})Q_{l}u` on `nodes(l)` of `v` and we're ready
+    // to add.
+    axpy_on_level(hierarchy, static_cast<Real>(1), buffer, v, l);
+    // Now we have `Q_{l}u` on `nodes(l)` of `v`.
   }
 }
 
