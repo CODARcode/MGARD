@@ -97,7 +97,7 @@ public:
   //! Constructor.
   //!
   //!\param hierarchy Mesh hierarchy on which the functions are defined.
-  //!\param l Index of the mesh on which the mass matrix is to be applied.
+  //!\param l Index of the mesh on which the mass matrix is to be inverted.
   TensorMassMatrixInverse(const TensorMeshHierarchy<N, Real> &hierarchy,
                           const std::size_t l);
 

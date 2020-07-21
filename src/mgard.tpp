@@ -26,6 +26,9 @@
 #include "mgard_nuni.h"
 
 #include "LinearQuantizer.hpp"
+#include "TensorMassMatrix.hpp"
+#include "TensorProlongation.hpp"
+#include "TensorRestriction.hpp"
 
 namespace mgard {
 
@@ -1560,6 +1563,121 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
     // zero out nodes of l on cl
     assign_num_level(hierarchy, l, v, static_cast<Real>(0.0));
     subtract_level(hierarchy, l - 1, v, work.data());
+  }
+}
+
+namespace {
+
+//! Set the entries corresponding to nodes on some level to zero.
+//!
+//!\param[in] hierarchy Mesh hierarchy on which the function is defined.
+//!\param[out] v Nodal values of the function.
+//!\param[in] l Index of the mesh whose nodes will have their associated entries
+//! set to zero.
+template <std::size_t N, typename Real>
+void set_to_zero_on_level(const TensorMeshHierarchy<N, Real> &hierarchy,
+                          Real *const v, const std::size_t l) {
+  const TensorLevelValues<N, Real> dst = hierarchy.on_nodes(v, l);
+  for (const SituatedCoefficient<N, Real> coeff : dst) {
+    *coeff.value = 0;
+  }
+}
+
+//! Copy the entries corresponding to nodes on some level.
+//!
+//!\param[in] hierarchy Mesh hierarchy on which the functions are defined.
+//!\param[in] src Source dataset.
+//!\param[out] dst Destination dataset.
+//!\param[in] l Index of the mesh whose nodes will have their associated entries
+//! copied.
+template <std::size_t N, typename Real>
+void copy_on_level(const TensorMeshHierarchy<N, Real> &hierarchy,
+                   Real const *const src, Real *const dst,
+                   const std::size_t l) {
+  const TensorLevelValues<N, const Real> values_src =
+      hierarchy.on_nodes(src, l);
+  const TensorLevelValues<N, Real> values_dst = hierarchy.on_nodes(dst, l);
+  typename TensorLevelValues<N, Real>::iterator p = values_dst.begin();
+  for (const SituatedCoefficient<N, const Real> coeff_src : values_src) {
+    const SituatedCoefficient<N, Real> coeff_dst = *p++;
+    *coeff_dst.value = *coeff_src.value;
+  }
+}
+
+//! Add a multiple of one set of values to another on some level.
+//!
+//!\param[in] hierarchy Mesh hierarchy on which the functions are defined.
+//!\param[in] alpha Factor by which to scale the first set of values.
+//!\param[in] x Dataset containing the first set of values
+//!\param[in, out] y Dataset containing the second set of values.
+//!\param[in] l Index of the mesh whose nodes will have their associated entries
+//! (in the second dataset) changed.
+template <std::size_t N, typename Real>
+void axpy_on_level(const TensorMeshHierarchy<N, Real> &hierarchy,
+                   const Real alpha, Real const *const x, Real *const y,
+                   const std::size_t l) {
+  const TensorLevelValues<N, const Real> values_x = hierarchy.on_nodes(x, l);
+  const TensorLevelValues<N, Real> values_y = hierarchy.on_nodes(y, l);
+  typename TensorLevelValues<N, Real>::iterator p = values_y.begin();
+  for (const SituatedCoefficient<N, const Real> coeff_x : values_x) {
+    const SituatedCoefficient<N, Real> coeff_y = *p++;
+    *coeff_y.value += alpha * *coeff_x.value;
+  }
+}
+
+} // namespace
+
+template <std::size_t N, typename Real>
+void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
+  std::vector<Real> buffer_(hierarchy.ndof());
+  Real *const buffer = buffer_.data();
+  for (std::size_t l = hierarchy.L; l > 0; --l) {
+    // We start with `Q_{l}` on `nodes(l)` of `v`. First we write zeros to
+    // `nodes(l)` of `buffer` because the values on `new_nodes(l)` must be zero
+    // before we can use the interpolation routine. (Ideally we'd only overwrite
+    // those values.)
+    set_to_zero_on_level(hierarchy, buffer, l);
+    // Then we copy over only the values on `old_nodes(l)`.
+    copy_on_level(hierarchy, v, buffer, l - 1);
+    // Now we have `Π_{l - 1}Q_{l}u` on `old_nodes(l)` of `buffer` and zeros on
+    // `new_nodes(l)` of `buffer`. Time to interpolate.
+    {
+      const TensorProlongationAddition<N, Real> PA(hierarchy, l);
+      PA(buffer);
+    }
+    // Now we have `Π_{l - 1}Q_{l}u` on `nodes(l)` (that is, on both
+    // `old_nodes(l)` and `new_nodes(l)`) of `buffer`). Time to subtract the
+    // interpolant (on `buffer`) from the projection (on `v`).
+    axpy_on_level(hierarchy, static_cast<Real>(-1), buffer, v, l);
+    // Now we have `(I - Π_{l - 1})Q_{l}u` on `nodes(l)` of `v`. Ideally we
+    // wouldn't have subtracted on `old_nodes(l)` – let's fix that now.
+    copy_on_level(hierarchy, buffer, v, l - 1);
+    // Now we have `Π_{l - 1}Q_{l}u` on `old_nodes(l)` of `v` and
+    // `(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)` of `v`. Time to project
+    // `(I - Π_{l - 1})Q_{l}u` to the coarse mesh. We begin by copying
+    // `(I - Π_{l - 1})Q_{l}u` to `buffer`. We'll also copy `Π_{l - 1}Q_{l}u`
+    // (on `old_nodes(l)`) (what we just copied from `buffer` to `v`), but we'll
+    // fix that afterwards.
+    copy_on_level(hierarchy, v, buffer, l);
+    // Now we have `Π_{l - 1}Q_{l}u` on `old_nodes(l)` of `buffer` and
+    // `(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)` of `buffer`. Time to zero out
+    // the values on `old_nodes(l)`.
+    set_to_zero_on_level(hierarchy, buffer, l - 1);
+    // Now we have `(I - Π_{l - 1})Q_{l}u` on `nodes(l)` of `buffer`. Time to
+    // project.
+    {
+      const TensorMassMatrix<N, Real> M(hierarchy, l);
+      const TensorRestriction<N, Real> R(hierarchy, l);
+      const TensorMassMatrixInverse<N, Real> m_inv(hierarchy, l - 1);
+      M(buffer);
+      R(buffer);
+      m_inv(buffer);
+    }
+    // Now we have `Q_{l - 1}u - Π_{l - 1}Q_{l}u` on `old_nodes(l)` of `buffer`.
+    // Time to correct `Π_{l - 1}Q_{l}u` on `old_nodes(l)` of `v`.
+    axpy_on_level(hierarchy, static_cast<Real>(1), buffer, v, l - 1);
+    // Now we have `(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)` of `v` and
+    // `Q_{l - 1}u` on `old_nodes(l)` of `v`.
   }
 }
 
