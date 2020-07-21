@@ -2,6 +2,6 @@
 namespace mgard_cuda {
 
 template <typename T>
-void postp_3D_cuda_cpt(mgard_cuda_handle<T> & handle, T * dv, int lddv1, int lddv2);
-
+void postp_3D_cuda_cpt(mgard_cuda_handle<T> &handle, T *dv, int lddv1,
+                       int lddv2);
 }

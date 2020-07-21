@@ -1,6 +1,6 @@
-#include <iomanip> 
-#include <iostream>
 #include "cuda/mgard_cuda_common_internal.h"
+#include <iomanip>
+#include <iostream>
 
 namespace mgard_cuda {
 bool is_2kplus1_cuda(double num) {
@@ -16,21 +16,18 @@ bool is_2kplus1_cuda(double num) {
   }
 }
 
-
-__device__ int 
-get_idx(const int ld, const int i, const int j) {
-    return ld * i + j;
+__device__ int get_idx(const int ld, const int i, const int j) {
+  return ld * i + j;
 }
 
-//ld2 = nrow
-//ld1 = pitch
-__device__ int 
-get_idx(const int ld1, const int ld2, const int z, const int y, const int x) {
-    return ld2 * ld1 * z + ld1 * y + x;
+// ld2 = nrow
+// ld1 = pitch
+__device__ int get_idx(const int ld1, const int ld2, const int z, const int y,
+                       const int x) {
+  return ld2 * ld1 * z + ld1 * y + x;
 }
 
-template <typename T>
-T max_norm_cuda(const T * v, size_t size) {
+template <typename T> T max_norm_cuda(const T *v, size_t size) {
   double norm = 0;
 
   for (int i = 0; i < size; ++i) {
@@ -41,23 +38,18 @@ T max_norm_cuda(const T * v, size_t size) {
   return norm;
 }
 
-template double max_norm_cuda<double>(const double * v, size_t size);
-template float max_norm_cuda<float>(const float * v, size_t size);
+template double max_norm_cuda<double>(const double *v, size_t size);
+template float max_norm_cuda<float>(const float *v, size_t size);
 
-
-template <typename T>
-__device__ T 
-_get_dist(T * coords, int i, int j) {
+template <typename T> __device__ T _get_dist(T *coords, int i, int j) {
   return coords[j] - coords[i];
 }
 
-template __device__ double 
-_get_dist<double>(double * coords, int i, int j);
-template __device__ float 
-_get_dist<float>(float * coords, int i, int j);
+template __device__ double _get_dist<double>(double *coords, int i, int j);
+template __device__ float _get_dist<float>(float *coords, int i, int j);
 
-__host__ __device__ int
-get_lindex_cuda(const int n, const int no, const int i) {
+__host__ __device__ int get_lindex_cuda(const int n, const int no,
+                                        const int i) {
   // no: original number of points
   // n : number of points at next coarser level (L-1) with  2^k+1 nodes
   int lindex;
@@ -71,7 +63,4 @@ get_lindex_cuda(const int n, const int no, const int i) {
   return lindex;
 }
 
-
-
-
-}
+} // namespace mgard_cuda
