@@ -510,4 +510,28 @@ template void recompose<double>(const int nrow, const int ncol,
                                 std::vector<double> &row_vec,
                                 std::vector<double> &col_vec);
 
+template void decompose(const TensorMeshHierarchy<1, float> &hierarchy,
+                        float *const v);
+
+template void decompose(const TensorMeshHierarchy<2, float> &hierarchy,
+                        float *const v);
+
+template void decompose(const TensorMeshHierarchy<3, float> &hierarchy,
+                        float *const v);
+
+template void decompose(const TensorMeshHierarchy<4, float> &hierarchy,
+                        float *const v);
+
+template void decompose(const TensorMeshHierarchy<1, double> &hierarchy,
+                        double *const v);
+
+template void decompose(const TensorMeshHierarchy<2, double> &hierarchy,
+                        double *const v);
+
+template void decompose(const TensorMeshHierarchy<3, double> &hierarchy,
+                        double *const v);
+
+template void decompose(const TensorMeshHierarchy<4, double> &hierarchy,
+                        double *const v);
+
 } // namespace mgard
