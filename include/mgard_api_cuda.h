@@ -91,7 +91,7 @@ T *mgard_decompress_cuda(unsigned char *data, int data_len, int n1, int n2,
 //! controlling the error as measured in the \f$ L^{\infty} \f$ norm.
 //!
 //!\param[in] handle mgard_cuda_handle type for storing precomputed variable to
-//!help speedup compression. \param[in] data Dataset to be compressed.
+//! help speedup compression. \param[in] data Dataset to be compressed.
 //!\param[out] out_size Size in bytes of the compressed dataset.
 //!\param[in] tol Relative error tolerance.
 //!
@@ -105,8 +105,8 @@ unsigned char *mgard_compress_cuda(mgard_cuda_handle<T> &handle, T *v,
 //! norm.
 //!
 //!\param[in] handle mgard_cuda_handle type for storing precomputed variable to
-//!help speedup decompression. \param[in] data Compressed dataset. \param[in]
-//!data_len Size in bytes of the compressed dataset.
+//! help speedup decompression. \param[in] data Compressed dataset. \param[in]
+//! data_len Size in bytes of the compressed dataset.
 //!
 //!\return Decompressed dataset.
 template <typename T>
