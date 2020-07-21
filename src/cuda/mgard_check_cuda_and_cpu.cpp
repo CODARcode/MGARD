@@ -32,21 +32,23 @@
 // See accompanying file Copyright.txt for details.
 //
 
-#include<stdio.h> 
-#include<stdlib.h>
-#include<math.h>
-#include<string.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "mgard_api_cuda.h" 
-#include "mgard_api.h" 
-
+#include "mgard_api.h"
+#include "mgard_api_cuda.h"
 
 #define ANSI_RED "\x1b[31m"
 #define ANSI_GREEN "\x1b[32m"
 #define ANSI_RESET "\x1b[0m"
 
 void print_usage_message(char *argv[], FILE *fp) {
-  fprintf(fp, "Usage: %s infile nrow ncol nfib tolerance opt (-1: CPU; 0: CUDA, 1: CUDA-optimized)\n", argv[0]);
+  fprintf(fp,
+          "Usage: %s infile nrow ncol nfib tolerance opt (-1: CPU; 0: CUDA, 1: "
+          "CUDA-optimized)\n",
+          argv[0]);
 }
 
 void print_for_more_details_message(char *argv[], FILE *fp) {
@@ -54,16 +56,14 @@ void print_for_more_details_message(char *argv[], FILE *fp) {
 }
 
 void print_help_message(char *argv[], FILE *fp) {
-  fprintf(
-    fp,
-    "\nThe input file `infile` should contain a double[`nrow`][`ncol`][`nfib`] array.\n"
-    "The array will be compressed so that the error as measured in the H^`s` norm is\n"
-    "no more than `tolerance`. \n"
-  );
+  fprintf(fp, "\nThe input file `infile` should contain a "
+              "double[`nrow`][`ncol`][`nfib`] array.\n"
+              "The array will be compressed so that the error as measured in "
+              "the H^`s` norm is\n"
+              "no more than `tolerance`. \n");
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   size_t result;
 
   if (argc == 2 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h"))) {
@@ -81,127 +81,134 @@ int main(int argc, char *argv[])
     nrow = atoi(argv[1]);
     ncol = atoi(argv[2]);
     nfib = atoi(argv[3]);
-    tol  = atof(argv[4]);
-    opt  = atoi(argv[5]);
-  } else if (argc == 7){
+    tol = atof(argv[4]);
+    opt = atoi(argv[5]);
+  } else if (argc == 7) {
     data_srouce = 1;
     infile = argv[1];
     nrow = atoi(argv[2]);
     ncol = atoi(argv[3]);
     nfib = atoi(argv[4]);
-    tol  = atof(argv[5]);
-    opt  = atoi(argv[6]);
+    tol = atof(argv[5]);
+    opt = atoi(argv[6]);
   } else {
-    fprintf (stderr, "%s: Wrong arguments! ", argv[0]);
+    fprintf(stderr, "%s: Wrong arguments! ", argv[0]);
     print_usage_message(argv, stderr);
     print_for_more_details_message(argv, stderr);
     return 1;
   }
 
-
-
   long lSize;
   double *buffer;
   long num_doubles;
- 
 
   num_doubles = nrow * ncol * nfib;
   long num_bytes = sizeof(double) * num_doubles;
   lSize = num_bytes;
 
-  buffer = (double *) malloc (sizeof(char)*lSize);
-  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
+  buffer = (double *)malloc(sizeof(char) * lSize);
+  if (buffer == NULL) {
+    fputs("Memory error", stderr);
+    exit(2);
+  }
 
   if (data_srouce == 0) {
-    fprintf(stdout, "No input file provided. Generating random data for testing\n");
+    fprintf(stdout,
+            "No input file provided. Generating random data for testing\n");
     for (int i = 0; i < num_doubles; i++) {
       buffer[i] = rand() % 10 + 1;
     }
   } else {
     fprintf(stdout, "Loading file: %s\n", infile);
     FILE *pFile;
-    pFile = fopen ( infile , "rb" );
-    if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
-    fseek (pFile , 0 , SEEK_END);
-    long lSize = ftell (pFile);
-    
-    rewind (pFile);
+    pFile = fopen(infile, "rb");
+    if (pFile == NULL) {
+      fputs("File error", stderr);
+      exit(1);
+    }
+    fseek(pFile, 0, SEEK_END);
+    long lSize = ftell(pFile);
+
+    rewind(pFile);
 
     lSize = num_bytes;
 
     if (lSize != num_bytes) {
-      fprintf(
-        stderr,
-        "%s contains %lu bytes when %lu were expected. Exiting.\n",
-        infile,
-        lSize,
-        num_bytes
-      );
+      fprintf(stderr,
+              "%s contains %lu bytes when %lu were expected. Exiting.\n",
+              infile, lSize, num_bytes);
       return 1;
     }
 
-    result = fread (buffer,1,lSize,pFile);
-    if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
-    fclose (pFile);
+    result = fread(buffer, 1, lSize, pFile);
+    if (result != lSize) {
+      fputs("Reading error", stderr);
+      exit(3);
+    }
+    fclose(pFile);
   }
-
 
   double data_L_inf_norm = 0;
-  for(int i = 0; i < num_doubles; ++i)
-  {
+  for (int i = 0; i < num_doubles; ++i) {
     double temp = fabs(buffer[i]);
-    if(temp > data_L_inf_norm) data_L_inf_norm = temp;
+    if (temp > data_L_inf_norm)
+      data_L_inf_norm = temp;
   }
 
-  double * in_buff;
-  mgard_cuda::cudaMallocHostHelper((void **)&in_buff, sizeof(double) * num_doubles);
+  double *in_buff;
+  mgard_cuda::cudaMallocHostHelper((void **)&in_buff,
+                                   sizeof(double) * num_doubles);
   memcpy(in_buff, buffer, sizeof(double) * num_doubles);
 
-  int iflag = 1; //0 -> float, 1 -> double
+  int iflag = 1; // 0 -> float, 1 -> double
   int out_size;
 
   unsigned char *mgard_comp_buff;
-  
+
   if (opt == -1) {
     fprintf(stdout, "[INFO] Compressing using CPU only\n");
-    mgard_comp_buff = mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
+    mgard_comp_buff =
+        mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
   } else {
     fprintf(stdout, "[INFO] Compressing with GPU acceleration\n");
-    mgard_cuda_handle<double> handle(nrow, ncol, nfib, B,  num_of_queues, opt);
+    mgard_cuda_handle<double> handle(nrow, ncol, nfib, B, num_of_queues, opt);
     mgard_comp_buff = mgard_compress_cuda(handle, in_buff, out_size, tol);
   }
-  //free(in_buff);
+  // free(in_buff);
   mgard_cuda::cudaFreeHostHelper(in_buff);
 
-  printf ("[INFO] In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize, out_size, lSize/out_size);
+  printf("[INFO] In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n",
+         lSize, out_size, lSize / out_size);
 
-  double* mgard_out_buff;
+  double *mgard_out_buff;
   double dummy = 0;
   if (opt == -1) {
     fprintf(stdout, "[INFO] Decompressing using CPU only\n");
-    mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
+    mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,
+                                      nrow, ncol, nfib);
   } else {
     fprintf(stdout, "[INFO] Decompressing with GPU acceleration\n");
-    mgard_cuda_handle<double>handle(nrow, ncol, nfib, B, num_of_queues, opt);
+    mgard_cuda_handle<double> handle(nrow, ncol, nfib, B, num_of_queues, opt);
     mgard_out_buff = mgard_decompress_cuda(handle, mgard_comp_buff, out_size);
-    //mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,  nrow,  ncol, nfib);
+    // mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff,
+    // out_size,  nrow,  ncol, nfib);
   }
 
-  //FILE *qfile;
-  //qfile = fopen ( outfile , "wb" );
-  //result = fwrite (mgard_out_buff, 1, lSize, qfile);
-  //fclose(qfile);
-  //if (result != lSize) {fputs ("Writing error",stderr); exit (4);}
+  // FILE *qfile;
+  // qfile = fopen ( outfile , "wb" );
+  // result = fwrite (mgard_out_buff, 1, lSize, qfile);
+  // fclose(qfile);
+  // if (result != lSize) {fputs ("Writing error",stderr); exit (4);}
 
   double error_L_inf_norm = 0;
-  for(int i = 0; i < num_doubles; ++i)
-  {
-      double temp = fabs( buffer[i] - mgard_out_buff[i] );
-      if(temp > error_L_inf_norm) error_L_inf_norm = temp;
+  for (int i = 0; i < num_doubles; ++i) {
+    double temp = fabs(buffer[i] - mgard_out_buff[i]);
+    if (temp > error_L_inf_norm)
+      error_L_inf_norm = temp;
   }
   double relative_L_inf_error = error_L_inf_norm / data_L_inf_norm;
 
-  //Maximum length (plus one for terminating byte) of norm name.
+  // Maximum length (plus one for terminating byte) of norm name.
   size_t N = 10;
   char norm_name[N];
   int num_chars_written;
@@ -216,15 +223,13 @@ int main(int argc, char *argv[])
     norm_name[0] = '?';
     norm_name[1] = 0;
   }
-  printf ("[INFO] Rel. %s error tolerance: %10.5E \n", norm_name, tol);
-  printf ("[INFO] Rel. L^infty error: %10.5E \n", relative_L_inf_error);
+  printf("[INFO] Rel. %s error tolerance: %10.5E \n", norm_name, tol);
+  printf("[INFO] Rel. L^infty error: %10.5E \n", relative_L_inf_error);
 
-  if( relative_L_inf_error < tol)
-    {
-      printf(ANSI_GREEN "[INFO] SUCCESS: Error tolerance met!" ANSI_RESET "\n");
-      return 0;
-    }
-  else{
+  if (relative_L_inf_error < tol) {
+    printf(ANSI_GREEN "[INFO] SUCCESS: Error tolerance met!" ANSI_RESET "\n");
+    return 0;
+  } else {
     printf(ANSI_RED "[INFO] FAILURE: Error tolerance NOT met!" ANSI_RESET "\n");
     return 1;
   }
