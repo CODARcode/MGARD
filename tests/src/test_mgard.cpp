@@ -12,6 +12,15 @@
 #include "mgard.hpp"
 #include "mgard_mesh.hpp"
 
+namespace {
+
+template <std::size_t N>
+std::array<std::size_t, N> get_dyadic_shape(const std::size_t L) {
+  std::array<std::size_t, N> shape;
+  shape.fill((1 << L) + 1);
+  return shape;
+}
+
 TEMPLATE_TEST_CASE("uniform mass matrix", "[mgard]", float, double) {
   const mgard::TensorMeshHierarchy<1, TestType> hierarchy({17});
   const std::vector<TestType> v = {3, -5, -2, -5, -4, 0, -4, -2, 1,
@@ -66,9 +75,9 @@ TEMPLATE_TEST_CASE("inversion of uniform mass matrix", "[mgard]", float,
   std::uniform_real_distribution<TestType> distribution(-10, 10);
 
   for (const std::size_t L : Ls) {
-    // Would be good to use a function for these sizes once that's been set up.
-    const std::size_t N = (1 << L) + 1;
-    const mgard::TensorMeshHierarchy<1, TestType> hierarchy({N});
+    const mgard::TensorMeshHierarchy<1, TestType> hierarchy(
+        get_dyadic_shape<1>(L));
+    const std::size_t N = hierarchy.ndof();
     std::vector<TestType> v(N);
     for (TestType &value : v) {
       value = distribution(generator);
@@ -113,9 +122,10 @@ TEMPLATE_TEST_CASE("uniform mass matrix restriction", "[mgard]", float,
 
   const std::vector<std::size_t> Ls = {3, 4, 5};
   for (const std::size_t L : Ls) {
-    const std::size_t N = (1 << L) + 1;
+    const mgard::TensorMeshHierarchy<1, TestType> hierarchy(
+        get_dyadic_shape<1>(L));
+    const std::size_t N = hierarchy.ndof();
     std::vector<TestType> v(N);
-    const mgard::TensorMeshHierarchy<1, TestType> hierarchy({N});
     v.at(0) = distribution(generator);
     for (std::size_t i = 1; i < N; i += 2) {
       v.at(i) = 0.5 * (v.at(i - 1) + (v.at(i + 1) = distribution(generator)));
@@ -446,6 +456,204 @@ TEST_CASE("2D (de)quantization", "[mgard]") {
       for (std::size_t i = 0; i < N; ++i) {
         tracker += *p++ == *q++;
       }
+    }
+    REQUIRE(tracker);
+  }
+}
+
+template <std::size_t N, typename Real>
+void test_dyadic_uniform_decomposition(
+    const std::vector<Real> &u_,
+    const std::vector<std::vector<Real>> &expecteds) {
+  for (std::size_t L = 0; L < expecteds.size(); ++L) {
+    const mgard::TensorMeshHierarchy<N, Real> hierarchy(get_dyadic_shape<N>(L));
+    const std::size_t n = hierarchy.ndof();
+    std::vector<Real> v_(u_.begin(), u_.begin() + n);
+    Real *const v = v_.data();
+    mgard::decompose(hierarchy, v);
+
+    const std::vector<Real> &expected = expecteds.at(L);
+    TrialTracker tracker;
+    tracker += expected.size() == n;
+    for (std::size_t i = 0; i < n; ++i) {
+      tracker += v_.at(i) == Approx(expected.at(i));
+    }
+    REQUIRE(tracker);
+  }
+}
+
+} // namespace
+
+TEST_CASE("decomposition", "[mgard]") {
+  SECTION("1D, dyadic, uniform") {
+    const std::vector<float> u_ = {10, 3,   -8,  -6, 3,  0, -5, 0, 0,  -2, -8,
+                                   -5, -10, -7,  8,  -2, 3, -1, 0, 9,  -4, -6,
+                                   -8, -5,  -10, 1,  3,  7, -8, 1, 10, -2, 8};
+    const std::vector<std::vector<float>> expecteds = {
+        {10.0, 3.0},
+        {11.0, 2.0, -7.0},
+        {4.4375, 2.0, -14.5, -3.5, -6.687500000000001},
+        {0.4374999999999991, 2.0, -15.678571428571429, -3.5, -4.625000000000002,
+         1.0, -5.321428571428571, 2.5, -2.4375000000000004},
+        {-0.95703125, 2.0, -15.652199926362297, -3.5, -4.122767857142856, 1.0,
+         -4.978599042709867, 2.5, -4.765625000000001, 2.0, -1.173186671575852,
+         4.0, -10.689732142857139, -6.0, 9.303985640648008, -7.5,
+         -3.1054687499999987},
+        {-2.640624999999999,  2.0,  -15.652212055333662, -3.5,
+         -4.04917617820324,   1.0,  -4.978756719337627,  2.5,
+         -6.024553571428571,  2.0,  -1.1753820153931231, 4.0,
+         -9.73304031664212,   -6.0, 9.273408503833881,   -7.5,
+         -3.0234374999999996, -2.5, 3.878101069067445,   11.0,
+         -1.7446382547864507, 0.0,  -3.6049935368896406, 4.0,
+         -8.00669642857143,   4.5,  13.02698941447754,   9.5,
+         2.7768547496318097,  0.0,  8.232845339575196,   -11.0,
+         0.14062500000000222}};
+    test_dyadic_uniform_decomposition<1, float>(u_, expecteds);
+  }
+
+  SECTION("2D, dyadic, uniform") {
+    const std::vector<double> u_ = {7,  4, 5,  -10, -6, 6,   -8, -5, 6,
+                                    -2, 2, -2, 9,   2,  -10, 3,  8,  -8,
+                                    -3, 7, -8, -9,  -6, -1,  -4};
+    const std::vector<std::vector<double>> expecteds = {
+        {7.0, 4.0, 5.0, -10.0},
+        {0.9999999999999973, -2.0, 3.9999999999999982, -9.5, -8.5, 0.5,
+         -15.000000000000004, -4.0, 3.9999999999999973},
+        {3.8007812499999973,
+         -2.0,
+         -2.9062499999998854,
+         -9.5,
+         -2.910156250000001,
+         1.5,
+         -13.75,
+         -12.0,
+         6.5,
+         6.0,
+         -1.593749999999881,
+         -7.5,
+         2.8750000000004396,
+         2.5,
+         -1.0312499999998854,
+         6.0,
+         8.75,
+         -9.5,
+         -0.25,
+         14.0,
+         -2.5039062500000013,
+         -2.0,
+         -10.218749999999885,
+         4.0,
+         -0.6992187500000024}};
+    test_dyadic_uniform_decomposition<2, double>(u_, expecteds);
+  }
+
+  SECTION("4D, dyadic, uniform") {
+    const std::vector<float> u_ = {
+        -5, -3, -3, -2, 3,  -9, -2,  1,  1,  2,   4,  5,  -7, -7, 2,  2,  -3,
+        -8, -3, -1, -9, -1, -1, 4,   7,  4,  -4,  -8, 1,  7,  -6, -6, 10, 0,
+        2,  10, -1, -4, 1,  -4, 5,   3,  2,  1,   3,  -5, 4,  9,  -8, -8, -1,
+        -1, 2,  -6, -7, -8, 8,  -10, -4, 5,  -4,  -1, 7,  3,  -4, -5, -3, -2,
+        -6, 6,  3,  -9, -9, 10, 2,   2,  -2, -10, -2, -3, -1};
+    const std::vector<std::vector<float>> expecteds = {
+        {-5.0, -3.0, -3.0, -2.0, 3.0, -9.0, -2.0, 1.0, 1.0, 2.0, 4.0, 5.0, -7.0,
+         -7.0, 2.0, 2.0},
+        {-2.6406250000000058,
+         1.0,
+         2.2968749999999902,
+         1.5,
+         5.25,
+         -8.0,
+         -2.046875,
+         1.5,
+         0.7656249999999982,
+         6.0,
+         9.0,
+         11.0,
+         -6.25,
+         -4.75,
+         5.75,
+         -0.5,
+         -3.5,
+         -6.5,
+         -6.234375000000018,
+         5.0,
+         4.078124999999988,
+         -3.0,
+         1.25,
+         10.5,
+         0.10937499999999013,
+         2.5,
+         -1.7031250000000093,
+         -2.0,
+         2.75,
+         4.5,
+         -1.5,
+         -5.375,
+         6.75,
+         3.0,
+         1.5,
+         6.0,
+         5.0,
+         -0.75,
+         1.5,
+         -0.875,
+         6.5,
+         2.875,
+         2.25,
+         0.75,
+         2.25,
+         1.0,
+         8.75,
+         12.5,
+         -6.25,
+         -5.625,
+         2.0,
+         -3.5,
+         2.0,
+         -3.5,
+         -10.765625000000007,
+         -8.5,
+         1.4218749999999971,
+         -4.5,
+         -5.0,
+         -2.5,
+         -2.2968750000000018,
+         -2.5,
+         8.265625,
+         11.0,
+         -2.5,
+         -10.0,
+         2.5,
+         -1.25,
+         -10.0,
+         9.0,
+         3.0,
+         -12.0,
+         0.2656249999999858,
+         13.5,
+         0.3281249999999911,
+         7.5,
+         0.5,
+         -10.5,
+         2.4843749999999933,
+         -1.5,
+         -9.078125000000007}};
+    test_dyadic_uniform_decomposition<4, float>(u_, expecteds);
+  }
+
+  SECTION("1D, dyadic, nonuniform") {
+    const std::array<float, 3> u_ = {{7, 2, 5}};
+    const std::array<std::vector<float>, 1> coordinates = {{{10, 28, 34}}};
+    const mgard::TensorMeshHierarchy<1, float> hierarchy({3}, coordinates);
+    const std::array<float, 3> expected = {{6.125, -3.5, 2.375}};
+
+    std::array<float, 3> v_ = u_;
+    float *const v = v_.data();
+    mgard::decompose(hierarchy, v);
+
+    TrialTracker tracker;
+    for (std::size_t i = 0; i < 3; ++i) {
+      tracker += v_.at(i) == Approx(expected.at(i));
     }
     REQUIRE(tracker);
   }
