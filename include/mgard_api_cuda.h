@@ -27,8 +27,8 @@
 //!
 //!\return Compressed dataset.
 template <typename T>
-unsigned char *mgard_compress_cuda(T * data, int &out_size, int n1, int n2, int n3, T tol);
-
+unsigned char *mgard_compress_cuda(T *data, int &out_size, int n1, int n2,
+                                   int n3, T tol);
 
 //! Decompress a function on an equispaced 3D tensor product grid which was
 //! compressed while controlling the error as measured in the \f$ L^{\infty} \f$
@@ -42,8 +42,8 @@ unsigned char *mgard_compress_cuda(T * data, int &out_size, int n1, int n2, int 
 //!
 //!\return Decompressed dataset.
 template <typename T>
-T *mgard_decompress_cuda(unsigned char * data, int data_len, int n1, int n2, int n3);
-
+T *mgard_decompress_cuda(unsigned char *data, int data_len, int n1, int n2,
+                         int n3);
 
 //! Compress a function on an equispaced 3D tensor product grid while
 //! controlling the error as measured in the \f$ L^{\infty} \f$ norm.
@@ -60,11 +60,10 @@ T *mgard_decompress_cuda(unsigned char * data, int data_len, int n1, int n2, int
 //!
 //!\return Compressed dataset.
 template <typename T>
-unsigned char *mgard_compress_cuda(T * data, int &out_size, int n1, int n2, int n3, 
-                                   std::vector<T> &coords_x,
+unsigned char *mgard_compress_cuda(T *data, int &out_size, int n1, int n2,
+                                   int n3, std::vector<T> &coords_x,
                                    std::vector<T> &coords_y,
-                                   std::vector<T> &coords_z,
-                                   T tol);
+                                   std::vector<T> &coords_z, T tol);
 
 //! Decompress a function on an equispaced 3D tensor product grid which was
 //! compressed while controlling the error as measured in the \f$ L^{\infty} \f$
@@ -81,10 +80,9 @@ unsigned char *mgard_compress_cuda(T * data, int &out_size, int n1, int n2, int 
 //!
 //!\return Decompressed dataset.
 template <typename T>
-T *mgard_decompress_cuda(unsigned char * data, int data_len, int n1, int n2, int n3,
-                         std::vector<T> &coords_x,
-                         std::vector<T> &coords_y,
-                         std::vector<T> &coords_z);
+T *mgard_decompress_cuda(unsigned char *data, int data_len, int n1, int n2,
+                         int n3, std::vector<T> &coords_x,
+                         std::vector<T> &coords_y, std::vector<T> &coords_z);
 
 //!\file
 //!\brief Compression and decompression API.
@@ -92,25 +90,27 @@ T *mgard_decompress_cuda(unsigned char * data, int data_len, int n1, int n2, int
 //! Compress a function on an equispaced 3D tensor product grid while
 //! controlling the error as measured in the \f$ L^{\infty} \f$ norm.
 //!
-//!\param[in] handle mgard_cuda_handle type for storing precomputed variable to help speedup compression.
-//!\param[in] data Dataset to be compressed.
+//!\param[in] handle mgard_cuda_handle type for storing precomputed variable to
+//!help speedup compression. \param[in] data Dataset to be compressed.
 //!\param[out] out_size Size in bytes of the compressed dataset.
 //!\param[in] tol Relative error tolerance.
 //!
 //!\return Compressed dataset.
 template <typename T>
-unsigned char *mgard_compress_cuda(mgard_cuda_handle<T> & handle, T * v, int &out_size, T tol);
+unsigned char *mgard_compress_cuda(mgard_cuda_handle<T> &handle, T *v,
+                                   int &out_size, T tol);
 
 //! Decompress a function on an equispaced 3D tensor product grid which was
 //! compressed while controlling the error as measured in the \f$ L^{\infty} \f$
 //! norm.
 //!
-//!\param[in] handle mgard_cuda_handle type for storing precomputed variable to help speedup decompression.
-//!\param[in] data Compressed dataset.
-//!\param[in] data_len Size in bytes of the compressed dataset.
+//!\param[in] handle mgard_cuda_handle type for storing precomputed variable to
+//!help speedup decompression. \param[in] data Compressed dataset. \param[in]
+//!data_len Size in bytes of the compressed dataset.
 //!
 //!\return Decompressed dataset.
 template <typename T>
-T *mgard_decompress_cuda(mgard_cuda_handle<T> & handle, unsigned char *data, int data_len);
+T *mgard_decompress_cuda(mgard_cuda_handle<T> &handle, unsigned char *data,
+                         int data_len);
 
 #endif
