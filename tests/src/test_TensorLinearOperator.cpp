@@ -171,16 +171,6 @@ TEST_CASE("tensor products of simple constituent operators",
     const mgard::TensorLinearOperator<3, float> M(hierarchy, l, {&A, &B, &C});
 
     const std::array<float, 9> u_ = {0, 1, 9, 7, 3, 0, 1, 10};
-#if 0
-    (0, 0, 0): 0
-    (0, 0, 1): 1
-    (0, 1, 0): 9
-    (0, 1, 1): 7
-    (1, 0, 0): 3
-    (1, 0, 1): 0
-    (1, 1, 0): 1
-    (1, 1, 1): 10
-#endif
     {
       std::array<float, 9> v_ = u_;
       float *const v = v_.data();

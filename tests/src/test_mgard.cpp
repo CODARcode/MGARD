@@ -23,6 +23,8 @@ std::array<std::size_t, N> get_dyadic_shape(const std::size_t L) {
   return shape;
 }
 
+} // namespace
+
 TEMPLATE_TEST_CASE("uniform mass matrix", "[mgard]", float, double) {
   const mgard::TensorMeshHierarchy<1, TestType> hierarchy({17});
   const std::vector<TestType> v = {3, -5, -2, -5, -4, 0, -4, -2, 1,
@@ -463,6 +465,8 @@ TEST_CASE("2D (de)quantization", "[mgard]") {
   }
 }
 
+namespace {
+
 template <std::size_t N, typename Real>
 void test_dyadic_uniform_decomposition(
     const std::vector<Real> &u_,
@@ -504,6 +508,184 @@ void test_dyadic_uniform_recomposition(
     }
     REQUIRE(tracker);
   }
+}
+
+template <std::size_t N, typename Real>
+void generate_reasonable_function(
+    const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
+    std::default_random_engine &generator,
+    std::uniform_real_distribution<Real> &distribution, Real *const u) {
+  // We assume that the entries of `u` have been initialized to zero.
+  for (const mgard::SituatedCoefficient<N, Real> coeff :
+       hierarchy.on_nodes(u, 0)) {
+    *coeff.value = distribution(generator);
+  }
+  Real weight = 0.5;
+  for (std::size_t l = 1; l <= hierarchy.L; ++l) {
+    const mgard::TensorProlongationAddition<N, Real> PA(hierarchy, l);
+    PA(u);
+    for (const mgard::SituatedCoefficient<N, Real> coeff :
+         hierarchy.on_nodes(u, l)) {
+      if (coeff.l == l) {
+        *coeff.value += weight * distribution(generator);
+      }
+    }
+    weight /= 2;
+  }
+}
+
+template <std::size_t N, typename Real>
+void test_decomposition_linearity(
+    std::default_random_engine &generator,
+    std::uniform_real_distribution<Real> &node_spacing_distribution,
+    std::uniform_real_distribution<Real> &nodal_coefficient_distribution,
+    const std::array<std::size_t, N> shape) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy =
+      hierarchy_with_random_spacing<N, Real>(generator,
+                                             node_spacing_distribution, shape);
+  const std::size_t M = hierarchy.ndof();
+  std::vector<Real> u_(M, 0);
+  std::vector<Real> v_(M, 0);
+  std::vector<Real> w_(M);
+  Real *const u = u_.data();
+  Real *const v = v_.data();
+  Real *const w = w_.data();
+
+  // Completely random nodal coefficients was causing some issues with
+  // cancellation errors. Generating a slightly nicer function here.
+  generate_reasonable_function(hierarchy, generator,
+                               nodal_coefficient_distribution, u);
+  generate_reasonable_function(hierarchy, generator,
+                               nodal_coefficient_distribution, v);
+  const Real alpha = nodal_coefficient_distribution(generator);
+  for (std::size_t i = 0; i < M; ++i) {
+    w_.at(i) = alpha * u_.at(i) + v_.at(i);
+  }
+
+  mgard::decompose(hierarchy, u);
+  mgard::decompose(hierarchy, v);
+  mgard::decompose(hierarchy, w);
+
+  TrialTracker tracker;
+  for (std::size_t i = 0; i < M; ++i) {
+    // Encountering a few small errors.
+    tracker += w_.at(i) == Approx(alpha * u_.at(i) + v_.at(i)).epsilon(0.001);
+  }
+  REQUIRE(tracker);
+}
+
+template <std::size_t N, typename Real>
+void test_recomposition_linearity(
+    std::default_random_engine &generator,
+    std::uniform_real_distribution<Real> &node_spacing_distribution,
+    std::uniform_real_distribution<Real> &multilevel_coefficient_distribution,
+    const std::array<std::size_t, N> shape) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy =
+      hierarchy_with_random_spacing<N, Real>(generator,
+                                             node_spacing_distribution, shape);
+  const std::size_t M = hierarchy.ndof();
+  std::vector<Real> u_(M);
+  std::vector<Real> v_(M);
+  std::vector<Real> w_(M);
+  Real *const u = u_.data();
+  Real *const v = v_.data();
+  Real *const w = w_.data();
+
+  const Real alpha = multilevel_coefficient_distribution(generator);
+  for (std::size_t i = 0; i < M; ++i) {
+    u_.at(i) = multilevel_coefficient_distribution(generator);
+    v_.at(i) = multilevel_coefficient_distribution(generator);
+    w_.at(i) = alpha * u_.at(i) + v_.at(i);
+  }
+
+  mgard::recompose(hierarchy, u);
+  mgard::recompose(hierarchy, v);
+  mgard::recompose(hierarchy, w);
+
+  TrialTracker tracker;
+  for (std::size_t i = 0; i < M; ++i) {
+    // Encountering a few small errors.
+    tracker += w_.at(i) == Approx(alpha * u_.at(i) + v_.at(i)).epsilon(0.001);
+  }
+  REQUIRE(tracker);
+}
+
+template <std::size_t N, typename Real>
+void test_decomposition_of_linear_functions(
+    std::default_random_engine &generator,
+    std::uniform_real_distribution<Real> &node_spacing_distribution,
+    std::uniform_real_distribution<Real> &nodal_coefficient_distribution,
+    const std::array<std::size_t, N> shape) {
+  // If a function is piecewise linear on level `l - 1`, its multilevel
+  // coefficients on level `l` should be zero.
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy =
+      hierarchy_with_random_spacing(generator, node_spacing_distribution,
+                                    shape);
+  const std::size_t M = hierarchy.ndof();
+  std::vector<Real> u_(M);
+  double *const u = u_.data();
+  for (const mgard::SituatedCoefficient<N, Real> coeff :
+       hierarchy.on_nodes(u, hierarchy.L)) {
+    *coeff.value =
+        coeff.l == hierarchy.L ? 0 : nodal_coefficient_distribution(generator);
+  }
+  {
+    const mgard::TensorProlongationAddition PA(hierarchy, hierarchy.L);
+    PA(u);
+  }
+  mgard::decompose(hierarchy, u);
+
+  TrialTracker tracker;
+  for (const mgard::SituatedCoefficient<N, Real> coeff :
+       hierarchy.on_nodes(u, hierarchy.L)) {
+    if (coeff.l == hierarchy.L) {
+      tracker += std::abs(*coeff.value) < 1e-6;
+    }
+  }
+  REQUIRE(tracker);
+}
+
+template <std::size_t N, typename Real>
+void test_recomposition_with_zero_coefficients(
+    std::default_random_engine &generator,
+    std::uniform_real_distribution<Real> &node_spacing_distribution,
+    std::uniform_real_distribution<Real> &multilevel_coefficient_distribution,
+    const std::array<std::size_t, N> shape) {
+  // If the multilevel coefficients on level `l` are zero, the function
+  // should be piecewise linear on level `l - 1`.
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy =
+      hierarchy_with_random_spacing<N, Real>(generator,
+                                             node_spacing_distribution, shape);
+  const std::size_t M = hierarchy.ndof();
+  std::vector<Real> u_(M, 0);
+  Real *const u = u_.data();
+  const mgard::TensorLevelValues<N, Real> coarse_values_u =
+      hierarchy.on_nodes(u, hierarchy.L - 1);
+  for (const mgard::SituatedCoefficient<N, Real> coeff : coarse_values_u) {
+    *coeff.value = multilevel_coefficient_distribution(generator);
+  }
+  mgard::recompose(hierarchy, u);
+
+  std::vector<Real> v_(M, 0);
+  Real *const v = v_.data();
+  const mgard::TensorLevelValues<N, Real> coarse_values_v =
+      hierarchy.on_nodes(v, hierarchy.L - 1);
+  typename mgard::TensorLevelValues<N, Real>::iterator p =
+      coarse_values_v.begin();
+  for (const mgard::SituatedCoefficient<N, Real> coeff_u : coarse_values_u) {
+    const mgard::SituatedCoefficient<N, Real> coeff_v = *p++;
+    *coeff_v.value = *coeff_u.value;
+  }
+  {
+    const mgard::TensorProlongationAddition PA(hierarchy, hierarchy.L);
+    PA(v);
+  }
+
+  TrialTracker tracker;
+  for (std::size_t i = 0; i < M; ++i) {
+    tracker += u_.at(i) == Approx(v_.at(i));
+  }
+  REQUIRE(tracker);
 }
 
 } // namespace
@@ -685,62 +867,36 @@ TEST_CASE("decomposition", "[mgard]") {
   SECTION("linear dependence on input", "[mgard]") {
     std::default_random_engine generator(469957);
     std::uniform_real_distribution<float> node_spacing_distribution(0.2, 1.1);
-    std::uniform_real_distribution<float> nc_distribution(0, 2);
-    const mgard::TensorMeshHierarchy<3, float> hierarchy =
-        hierarchy_with_random_spacing<3, float>(
-            generator, node_spacing_distribution, {17, 17, 33});
-    const std::size_t N = 17 * 17 * 33;
-    std::array<float, N> u;
-    std::array<float, N> v;
-    std::array<float, N> w;
-    const float alpha = nc_distribution(generator);
-    for (std::size_t i = 0; i < N; ++i) {
-      u.at(i) = nc_distribution(generator);
-      v.at(i) = nc_distribution(generator);
-      w.at(i) = alpha * u.at(i) + v.at(i);
-    }
+    std::uniform_real_distribution<float> nodal_coefficient_distribution(0.5,
+                                                                         2);
 
-    decompose(hierarchy, u.data());
-    decompose(hierarchy, v.data());
-    decompose(hierarchy, w.data());
-
-    TrialTracker tracker;
-    for (std::size_t i = 0; i < N; ++i) {
-      // Encountering a few small errors.
-      tracker += w.at(i) == Approx(alpha * u.at(i) + v.at(i)).epsilon(0.001);
-    }
-    REQUIRE(tracker);
+    test_decomposition_linearity<2, float>(generator, node_spacing_distribution,
+                                           nodal_coefficient_distribution,
+                                           {41, 22});
+    test_decomposition_linearity<3, float>(generator, node_spacing_distribution,
+                                           nodal_coefficient_distribution,
+                                           {17, 17, 33});
+    test_decomposition_linearity<4, float>(generator, node_spacing_distribution,
+                                           nodal_coefficient_distribution,
+                                           {11, 4, 4, 5});
   }
 
   // Piecewise linear on a coarser grid.
   SECTION("coefficients of linear functions", "[mgard]") {
-    // If a function is piecewise linear on level `l - 1`, its multilevel
-    // coefficients on level `l` should be zero.
     std::default_random_engine generator(841397);
     std::uniform_real_distribution<double> node_spacing_distribution(0.1, 0.3);
-    std::uniform_real_distribution<double> nc_distribution(-2, 2);
-    const std::size_t N = 129;
-    const mgard::TensorMeshHierarchy<1, double> hierarchy =
-        hierarchy_with_random_spacing<1, double>(
-            generator, node_spacing_distribution, {N});
-    std::array<double, N> u_;
-    u_.at(0) = nc_distribution(generator);
-    for (std::size_t i = 1; i < N; i += 2) {
-      u_.at(i) = 0;
-      u_.at(i + 1) = nc_distribution(generator);
-    }
-    double *const u = u_.data();
-    {
-      const mgard::TensorProlongationAddition PA(hierarchy, 7);
-      PA(u);
-    }
-    decompose(hierarchy, u);
+    std::uniform_real_distribution<double> nodal_coefficient_distribution(-2,
+                                                                          2);
 
-    TrialTracker tracker;
-    for (std::size_t i = 1; i < N; i += 2) {
-      tracker += std::abs(u_.at(i)) < 1e-6;
-    }
-    REQUIRE(tracker);
+    test_decomposition_of_linear_functions<1, double>(
+        generator, node_spacing_distribution, nodal_coefficient_distribution,
+        {129});
+    test_decomposition_of_linear_functions<2, double>(
+        generator, node_spacing_distribution, nodal_coefficient_distribution,
+        {21, 20});
+    test_decomposition_of_linear_functions<3, double>(
+        generator, node_spacing_distribution, nodal_coefficient_distribution,
+        {14, 10, 17});
   }
 }
 
@@ -945,73 +1101,34 @@ TEST_CASE("recomposition", "[mgard]") {
   SECTION("linear dependence on input", "[mgard]") {
     std::default_random_engine generator(860343);
     std::uniform_real_distribution<float> node_spacing_distribution(0.1, 0.3);
-    std::uniform_real_distribution<float> mc_distribution(-1, 1);
-    const mgard::TensorMeshHierarchy<2, float> hierarchy =
-        hierarchy_with_random_spacing<2, float>(
-            generator, node_spacing_distribution, {33, 65});
-    const std::size_t N = 33 * 65;
-    std::array<float, N> u;
-    std::array<float, N> v;
-    std::array<float, N> w;
-    const float alpha = mc_distribution(generator);
-    for (std::size_t i = 0; i < N; ++i) {
-      u.at(i) = mc_distribution(generator);
-      v.at(i) = mc_distribution(generator);
-      w.at(i) = alpha * u.at(i) + v.at(i);
-    }
+    std::uniform_real_distribution<float> multilevel_coefficient_distribution(
+        -1, 1);
 
-    recompose(hierarchy, u.data());
-    recompose(hierarchy, v.data());
-    recompose(hierarchy, w.data());
-
-    TrialTracker tracker;
-    for (std::size_t i = 0; i < N; ++i) {
-      // Encountering a few small errors.
-      tracker += w.at(i) == Approx(alpha * u.at(i) + v.at(i)).epsilon(0.001);
-    }
-    REQUIRE(tracker);
+    test_recomposition_linearity<1, float>(generator, node_spacing_distribution,
+                                           multilevel_coefficient_distribution,
+                                           {201});
+    test_recomposition_linearity<2, float>(generator, node_spacing_distribution,
+                                           multilevel_coefficient_distribution,
+                                           {33, 65});
+    test_recomposition_linearity<3, float>(generator, node_spacing_distribution,
+                                           multilevel_coefficient_distribution,
+                                           {10, 15, 10});
   }
 
   SECTION("zero coefficients", "[mgard]") {
-    // If the multilevel coefficients on level `l` are zero, the function
-    // should be piecewise linear on level `l - 1`.
     std::default_random_engine generator(848733);
-    std::uniform_real_distribution<float> node_spacing_distribution(1, 1.1);
-    std::uniform_real_distribution<float> mc_distribution(-0.1, 0.1);
-    const mgard::TensorMeshHierarchy<2, float> hierarchy =
-        hierarchy_with_random_spacing<2, float>(
-            generator, node_spacing_distribution, {65, 65});
-    const std::size_t N = 65 * 65;
-    std::array<float, N> u_;
-    u_.fill(0);
-    float *const u = u_.data();
-    const mgard::TensorLevelValues<2, float> coarse_values_u =
-        hierarchy.on_nodes(u, 5);
-    for (const mgard::SituatedCoefficient<2, float> coeff : coarse_values_u) {
-      *coeff.value = mc_distribution(generator);
-    }
-    recompose(hierarchy, u);
+    std::uniform_real_distribution<double> node_spacing_distribution(1, 1.1);
+    std::uniform_real_distribution<double> multilevel_coefficient_distribution(
+        -0.1, 0.1);
 
-    std::array<float, N> v_;
-    v_.fill(0);
-    float *const v = v_.data();
-    const mgard::TensorLevelValues<2, float> coarse_values_v =
-        hierarchy.on_nodes(v, 5);
-    typename mgard::TensorLevelValues<2, float>::iterator p =
-        coarse_values_v.begin();
-    for (const mgard::SituatedCoefficient<2, float> coeff_u : coarse_values_u) {
-      const mgard::SituatedCoefficient<2, float> coeff_v = *p++;
-      *coeff_v.value = *coeff_u.value;
-    }
-    {
-      const mgard::TensorProlongationAddition PA(hierarchy, 6);
-      PA(v);
-    }
-
-    TrialTracker tracker;
-    for (std::size_t i = 0; i < N; ++i) {
-      tracker += u_.at(i) == Approx(v_.at(i));
-    }
-    REQUIRE(tracker);
+    test_recomposition_with_zero_coefficients<1, double>(
+        generator, node_spacing_distribution,
+        multilevel_coefficient_distribution, {257});
+    test_recomposition_with_zero_coefficients<2, double>(
+        generator, node_spacing_distribution,
+        multilevel_coefficient_distribution, {72, 39});
+    test_recomposition_with_zero_coefficients<3, double>(
+        generator, node_spacing_distribution,
+        multilevel_coefficient_distribution, {17, 15, 9});
   }
 }
