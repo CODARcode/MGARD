@@ -35,6 +35,27 @@ TEST_CASE("constituent restrictions", "[TensorRestriction]") {
     }
   }
 
+  SECTION("1D and custom spacing and nondyadic") {
+    const std::vector<double> xs = {0.0, 0.1, 0.9, 1.0};
+    const mgard::TensorMeshHierarchy<1, double> hierarchy({4}, {xs});
+    const std::array<double, 4> u_ = {5, 2, 2, 4};
+    const std::size_t dimension = 0;
+    const std::array<std::array<double, 4>, 2> expecteds = {
+        {{5, 20. / 9, 2, 52. / 9}, {6.8, 2, 2, 4.2}}};
+    for (std::size_t l = 2; l > 0; --l) {
+      const mgard::ConstituentRestriction<1, double> R(hierarchy, l, dimension);
+      std::array<double, 4> v_ = u_;
+      double *const v = v_.data();
+      R({0}, v);
+      TrialTracker tracker;
+      const std::array<double, 4> &expected = expecteds.at(2 - l);
+      for (std::size_t i = 0; i < 4; ++i) {
+        tracker += v_.at(i) == Approx(expected.at(i));
+      }
+      REQUIRE(tracker);
+    }
+  }
+
   SECTION("2D and custom spacing") {
     const mgard::TensorMeshHierarchy<2, double> hierarchy(
         {3, 3}, {{{0, 0.75, 1}, {0, 0.25, 1}}});
@@ -165,11 +186,19 @@ TEST_CASE("tensor product restrictions", "[TensorRestriction]") {
     REQUIRE(v_ == expected);
   }
 
-  {
-    std::default_random_engine generator(445624);
+  std::default_random_engine generator(445624);
+
+  SECTION("dyadic") {
     test_tensor_projection_identity<1, float>(generator, {129});
     test_tensor_projection_identity<2, double>(generator, {65, 65});
     test_tensor_projection_identity<3, float>(generator, {33, 9, 33});
     test_tensor_projection_identity<4, double>(generator, {9, 9, 17, 17});
+  }
+
+  SECTION("nondyadic") {
+    test_tensor_projection_identity<1, float>(generator, {105});
+    test_tensor_projection_identity<2, double>(generator, {45, 65});
+    test_tensor_projection_identity<3, float>(generator, {36, 10, 27});
+    test_tensor_projection_identity<4, double>(generator, {9, 19, 6, 8});
   }
 }

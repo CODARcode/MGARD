@@ -55,8 +55,8 @@ TEST_CASE("constituent prolongations", "[TensorProlongation]") {
         double *const v = v_.data();
         PA(multiindex, v);
         TrialTracker tracker;
-        for (std::size_t i = 0; i < 9; ++i) {
-          tracker += v_.at(i) == Approx(expected.at(i));
+        for (std::size_t j = 0; j < 9; ++j) {
+          tracker += v_.at(j) == Approx(expected.at(j));
         }
         REQUIRE(tracker);
       }
@@ -78,8 +78,8 @@ TEST_CASE("constituent prolongations", "[TensorProlongation]") {
         double *const v = v_.data();
         PA(multiindex, v);
         TrialTracker tracker;
-        for (std::size_t i = 0; i < 9; ++i) {
-          tracker += v_.at(i) == Approx(expected.at(i));
+        for (std::size_t j = 0; j < 9; ++j) {
+          tracker += v_.at(j) == Approx(expected.at(j));
         }
         REQUIRE(tracker);
       }
@@ -96,6 +96,42 @@ TEST_CASE("constituent prolongations", "[TensorProlongation]") {
         thrown = true;
       }
       REQUIRE(thrown);
+    }
+  }
+
+  SECTION("2D and nondyadic") {
+    const mgard::TensorMeshHierarchy<2, float> hierarchy({4, 4});
+    const std::array<float, 16> u_ = {-2, -4, -9, -4, -5,  8,  4, -9,
+                                      -4, 2,  -5, 0,  -10, -5, 9, -1};
+    {
+      const std::array<std::size_t, 2> ls = {2, 1};
+      const std::array<std::size_t, 2> dimensions = {0, 1};
+
+      const std::array<std::array<std::size_t, 2>, 4> multiindices = {
+          {{0, 0}, {0, 1}, {2, 0}, {3, 0}}};
+      const std::array<std::array<float, 16>, 4> expecteds = {
+          {{-2, -4, -9, -4, -5, 8, 4, -9, -11.5, 2, -5, 0, -10, -5, 9, -1},
+           {-2, -4, -9, -4, -5, 8, 4, -9, -4, 3.5, -5, 0, -10, -5, 9, -1},
+           {-2, -4, -9, -4, -5, 8, 4, -9, -4, -2. / 3, -5, 0, -10, -5, 9, -1},
+           {-2, -4, -9, -4, -5, 8, 4, -9, -4, 2, -5, 0, -10, -12, 9, -1}}};
+      for (std::size_t i = 0; i < 2; ++i) {
+        const std::size_t l = ls.at(i);
+        const std::size_t dimension = dimensions.at(i);
+        const mgard::ConstituentProlongationAddition<2, float> PA(hierarchy, l,
+                                                                  dimension);
+        for (std::size_t j = 2 * i; j < 2 * (i + 1); ++j) {
+          const std::array<std::size_t, 2> &multiindex = multiindices.at(j);
+          const std::array<float, 16> &expected = expecteds.at(j);
+          std::array<float, 16> v_ = u_;
+          float *const v = v_.data();
+          PA(multiindex, v);
+          TrialTracker tracker;
+          for (std::size_t k = 0; k < 16; ++k) {
+            tracker += v_.at(k) == Approx(expected.at(k));
+          }
+          REQUIRE(tracker);
+        }
+      }
     }
   }
 }
@@ -139,10 +175,20 @@ void test_tensor_product_prolongations(std::default_random_engine &generator,
 
 TEST_CASE("tensor product prolongations", "[TensorProlongation]") {
   std::default_random_engine generator(176067);
-  test_tensor_product_prolongations<1, float>(generator, {129});
-  test_tensor_product_prolongations<2, double>(generator, {17, 17});
-  // Before increasing the `Approx` tolerance we got a handful of errors (all
-  // quite small) with this one.
-  test_tensor_product_prolongations<3, float>(generator, {9, 9, 17});
-  test_tensor_product_prolongations<4, double>(generator, {33, 17, 33, 17});
+
+  SECTION("dyadic") {
+    test_tensor_product_prolongations<1, float>(generator, {129});
+    test_tensor_product_prolongations<2, double>(generator, {17, 17});
+    // Before increasing the `Approx` tolerance we got a handful of errors (all
+    // quite small) with this one.
+    test_tensor_product_prolongations<3, float>(generator, {9, 9, 17});
+    test_tensor_product_prolongations<4, double>(generator, {33, 17, 33, 17});
+  }
+
+  SECTION("nondyadic") {
+    test_tensor_product_prolongations<1, double>(generator, {82});
+    test_tensor_product_prolongations<2, float>(generator, {15, 17});
+    test_tensor_product_prolongations<3, double>(generator, {6, 10, 8});
+    test_tensor_product_prolongations<4, float>(generator, {5, 12, 8, 9});
+  }
 }

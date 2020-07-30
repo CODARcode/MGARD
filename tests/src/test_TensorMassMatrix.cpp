@@ -53,6 +53,30 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
     }
   }
 
+  SECTION("1D and nondyadic") {
+    const mgard::TensorMeshHierarchy<1, float> hierarchy({7});
+    const std::array<float, 9> u_ = {-1, 8, -9, -9, -1, -10, 6};
+    const std::size_t dimension = 0;
+    const std::array<std::array<float, 9>, 4> expecteds = {
+        {{{2. / 3, 8, -9, -9, -1, -10, 11. / 6}},
+         {{-11. / 12, 8, -9, -31. / 12, -1, -10, 0.25}},
+         {{1. / 6, 29. / 36, -9, -39. / 36, -1. / 12, -10, 11. / 18}},
+         {{1. / 6, 11. / 18, -37. / 36, -23. / 18, -23. / 36, -35. / 36,
+           1. / 18}}}};
+    for (std::size_t l = 0; l < 4; ++l) {
+      const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
+      std::array<float, 9> v_ = u_;
+      float *const v = v_.data();
+      M({0}, v);
+      TrialTracker tracker;
+      const std::array<float, 9> &expected = expecteds.at(l);
+      for (std::size_t i = 0; i < 9; ++i) {
+        tracker += v_.at(i) == Approx(expected.at(i));
+      }
+      REQUIRE(tracker);
+    }
+  }
+
   SECTION("2D and custom spacing") {
     const mgard::TensorMeshHierarchy<2, double> hierarchy(
         {5, 5}, {{{0, 0.1, 0.5, 0.75, 1}, {0, 0.65, 0.70, 0.75, 1}}});
@@ -202,6 +226,53 @@ TEST_CASE("tensor product mass matrices", "[TensorMassMatrix]") {
   }
 }
 
+namespace {
+
+template <std::size_t N, typename Real>
+void exhaustive_constituent_inverse_test(
+    const mgard::TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u) {
+  const std::size_t ndof = hierarchy.ndof();
+  std::vector<Real> v_(ndof);
+  Real *const v = v_.data();
+  const std::array<std::size_t, N> &SHAPE =
+      hierarchy.meshes.at(hierarchy.L).shape;
+  std::vector<Real> buffer_(
+      // Maximum of the sizes.
+      *std::max_element(SHAPE.begin(), SHAPE.end()));
+  Real *const buffer = buffer_.data();
+  TrialTracker tracker;
+  for (std::size_t l = 0; l <= hierarchy.L; ++l) {
+    std::array<std::vector<std::size_t>, N> multiindex_components;
+    for (std::size_t dimension = 0; dimension < N; ++dimension) {
+      multiindex_components.at(dimension) = hierarchy.indices(l, dimension);
+    }
+    for (std::size_t dimension = 0; dimension < N; ++dimension) {
+      const mgard::ConstituentMassMatrix<N, Real> M(hierarchy, l, dimension);
+      const mgard::ConstituentMassMatrixInverse<N, Real> A(hierarchy, l,
+                                                           dimension, buffer);
+
+      std::array<std::vector<std::size_t>, N> multiindex_components_ =
+          multiindex_components;
+      multiindex_components_.at(dimension) = {0};
+
+      for (const std::array<std::size_t, N> multiindex :
+           mgard::CartesianProduct<std::size_t, N>(multiindex_components_)) {
+        std::copy(u, u + ndof, v);
+        M(multiindex, v);
+        A(multiindex, v);
+        for (std::size_t i = 0; i < ndof; ++i) {
+          tracker += v[i] == Approx(u[i]);
+        }
+        multiindex_components_.at(dimension) =
+            multiindex_components.at(dimension);
+      }
+    }
+  }
+  REQUIRE(tracker);
+}
+
+} // namespace
+
 TEST_CASE("constituent mass matrice inverses", "[TensorMassMatrix]") {
   SECTION("1D and default spacing") {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({9});
@@ -261,40 +332,21 @@ TEST_CASE("constituent mass matrice inverses", "[TensorMassMatrix]") {
         -10, -5,  -2, 2,  -8,  1,  2,  1,  9,  1,   6,  10, -7,  -9,  -8, -6,
         8,   6,   10, 9,  1,   -6, -8, 5,  10, 6,   -9, -8, -7,  -10, 4,  -3,
         -3,  4,   -8, -4, 3,   -1, 4,  -4, -2};
-    // Maximum of the sizes.
-    std::vector<double> buffer_(17);
-    double *const buffer = buffer_.data();
-    TrialTracker tracker;
-    for (std::size_t l = 0; l <= hierarchy.L; ++l) {
-      std::array<std::vector<std::size_t>, 2> multiindex_components;
-      for (std::size_t dimension = 0; dimension < 2; ++dimension) {
-        multiindex_components.at(dimension) = hierarchy.indices(l, dimension);
-      }
-      for (std::size_t dimension = 0; dimension < 2; ++dimension) {
-        const mgard::ConstituentMassMatrix<2, double> M(hierarchy, l,
-                                                        dimension);
-        const mgard::ConstituentMassMatrixInverse<2, double> A(
-            hierarchy, l, dimension, buffer);
+    double const *const u = u_.data();
+    exhaustive_constituent_inverse_test<2, double>(hierarchy, u);
+  }
 
-        std::array<std::vector<std::size_t>, 2> multiindex_components_ =
-            multiindex_components;
-        multiindex_components_.at(dimension) = {0};
-
-        for (const std::array<std::size_t, 2> multiindex :
-             mgard::CartesianProduct<std::size_t, 2>(multiindex_components_)) {
-          std::array<double, 153> v_ = u_;
-          double *const v = v_.data();
-          M(multiindex, v);
-          A(multiindex, v);
-          for (std::size_t i = 0; i < 153; ++i) {
-            tracker += v_.at(i) == Approx(u_.at(i));
-          }
-          multiindex_components_.at(dimension) =
-              multiindex_components.at(dimension);
-        }
-      }
+  SECTION("3D and nondyadic") {
+    const mgard::TensorMeshHierarchy<3, float> hierarchy({9, 8, 7});
+    std::default_random_engine generator(731617);
+    std::uniform_real_distribution<float> distribution(-5, -3);
+    const std::size_t N = 9 * 8 * 7;
+    std::array<float, N> u_;
+    for (float &value : u_) {
+      value = distribution(generator);
     }
-    REQUIRE(tracker);
+    float *const u = u_.data();
+    exhaustive_constituent_inverse_test<3, float>(hierarchy, u);
   }
 }
 
@@ -349,8 +401,18 @@ TEST_CASE("tensor product mass matrix inverses", "[TensorMassMatrix]") {
   }
 
   std::uniform_real_distribution<float> distribution(0.1, 0.3);
-  test_mass_matrix_inversion<1>(generator, distribution, u_, {1025});
-  test_mass_matrix_inversion<2>(generator, distribution, u_, {33, 33});
-  test_mass_matrix_inversion<3>(generator, distribution, u_, {17, 5, 9});
-  test_mass_matrix_inversion<4>(generator, distribution, u_, {5, 5, 3, 9});
+
+  SECTION("dyadic") {
+    test_mass_matrix_inversion<1>(generator, distribution, u_, {1025});
+    test_mass_matrix_inversion<2>(generator, distribution, u_, {33, 33});
+    test_mass_matrix_inversion<3>(generator, distribution, u_, {17, 5, 9});
+    test_mass_matrix_inversion<4>(generator, distribution, u_, {5, 5, 3, 9});
+  }
+
+  SECTION("nondyadic") {
+    test_mass_matrix_inversion<1>(generator, distribution, u_, {999});
+    test_mass_matrix_inversion<2>(generator, distribution, u_, {30, 29});
+    test_mass_matrix_inversion<3>(generator, distribution, u_, {9, 6, 11});
+    test_mass_matrix_inversion<4>(generator, distribution, u_, {5, 5, 4, 4});
+  }
 }
