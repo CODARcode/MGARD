@@ -82,6 +82,11 @@ public:
   //!\param multiindex Multiindex of the node.
   std::size_t offset(const std::array<std::size_t, N> multiindex) const;
 
+  //! Find the index of the level which introduced a node.
+  //!
+  //!\param multiindex Multiindex of the node.
+  std::size_t date_of_birth(const std::array<std::size_t, N> multiindex) const;
+
   //! Access the value associated to a particular node.
   //!
   //!\param v Dataset defined on the hierarchy.
@@ -105,6 +110,10 @@ public:
 
   //! Index of finest TensorMeshLevel.
   std::size_t L;
+
+  //! For each dimension, for each node in the finest level, the index of the
+  //! level which introduced that node (its 'date of birth').
+  std::array<std::vector<std::size_t>, N> dates_of_birth;
 
 protected:
   //! Check that a mesh index is in bounds.
@@ -184,8 +193,8 @@ public:
 private:
   //! Index of the level being iterated over.
   //!
-  //! This is only stored so we can avoid comparing `factors` and `product` in
-  //! the (in)equality comparison operators.
+  //! This is only stored so we can avoid comparing `factors` and `multiindices`
+  //! in the (in)equality comparison operators.
   const std::size_t l;
 
   // The indices whose Cartesian product will give the multiindices of the nodes
@@ -200,6 +209,9 @@ private:
 template <std::size_t N, typename T> struct SituatedCoefficient {
   //! Type of the node coordinates.
   using Real = typename std::remove_const<T>::type;
+
+  //! Index of the mesh level which introduced the node.
+  std::size_t l;
 
   //! Multiindex of the node.
   std::array<std::size_t, N> multiindex;

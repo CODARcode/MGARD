@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 
@@ -41,6 +43,19 @@ TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
   }
   if (!dims.is_2kplus1()) {
     meshes.push_back(mesh);
+  }
+
+  for (std::size_t i = 0; i < N; ++i) {
+    std::vector<std::size_t> &dobs = dates_of_birth.at(i);
+    dobs.resize(mesh.shape.at(i));
+    // Could be better to get all the levels' indices and iterate over
+    // `dobs` once. More complicated and not necessary for now.
+    for (std::size_t j = 0; j <= L; ++j) {
+      const std::size_t l = L - j;
+      for (const std::size_t index : indices(l, i)) {
+        dobs.at(index) = l;
+      }
+    }
   }
 }
 
@@ -127,13 +142,11 @@ TensorMeshHierarchy<N, Real>::indices(const std::size_t l,
                                       const std::size_t dimension) const {
   check_mesh_index_bounds(l);
   check_dimension_index_bounds(dimension);
-  std::vector<std::size_t> indices(meshes.at(l).shape.at(dimension));
-  if (!Dimensions2kPlus1<N>(meshes.at(L).shape).is_2kplus1()) {
-    throw std::invalid_argument("currently only dyadic grids are supported");
-  }
-  const std::size_t stride_ = stride_from_index_difference(L - l);
-  for (std::size_t i = 0; i < indices.size(); ++i) {
-    indices.at(i) = stride_ * i;
+  const std::size_t M = meshes.at(L).shape.at(dimension);
+  const std::size_t m = meshes.at(l).shape.at(dimension);
+  std::vector<std::size_t> indices(m);
+  for (std::size_t i = 0; i < m; ++i) {
+    indices.at(i) = (i * (M - 1)) / (m - 1);
   }
   return indices;
 }
@@ -152,6 +165,17 @@ std::size_t TensorMeshHierarchy<N, Real>::offset(
     index += multiindex.at(i);
   }
   return index;
+}
+
+template <std::size_t N, typename Real>
+std::size_t TensorMeshHierarchy<N, Real>::date_of_birth(
+    const std::array<std::size_t, N> multiindex) const {
+  // Initialized to zero, of course.
+  std::size_t dob = std::numeric_limits<std::size_t>::min();
+  for (std::size_t i = 0; i < N; ++i) {
+    dob = std::max(dob, dates_of_birth.at(i).at(multiindex.at(i)));
+  }
+  return dob;
 }
 
 template <std::size_t N, typename Real>
@@ -306,7 +330,8 @@ multiindex_coordinates(const TensorMeshHierarchy<N, Real> &hierarchy,
 template <std::size_t N, typename T>
 SituatedCoefficient<N, T> TensorLevelValues<N, T>::iterator::operator*() const {
   const std::array<std::size_t, N> multiindex = *inner;
-  return {.multiindex = multiindex,
+  return {.l = iterable.hierarchy.date_of_birth(multiindex),
+          .multiindex = multiindex,
           .coordinates = multiindex_coordinates(iterable.hierarchy, multiindex),
           .value =
               iterable.coefficients + iterable.hierarchy.offset(multiindex)};
