@@ -1127,6 +1127,7 @@ void interpolate_old_to_new_and_subtract(
   // values ourselves.
   // Now that `LevelValues` has been replaced by `TensorLevelValues`, it is now
   // possible to do the above. Holding off as I expect to delete this function.
+  // Still holding off now as `TensorLevelValues` itself is being replaced.
   const MultiindexRectangle<N> rectangle(shape);
 
   // We're splitting the grid into 'boxes' with 'lower left' corner `alpha` and
@@ -1204,64 +1205,36 @@ void interpolate_old_to_new_and_subtract(
 template <std::size_t N, typename Real>
 void assign_num_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                       const int l, Real *const v, const Real num) {
-  using It = typename TensorLevelValues<N, Real>::iterator;
-  const TensorLevelValues<N, Real> values =
-      hierarchy.on_nodes(v, hierarchy.L - l);
-  It p = values.begin();
-  const It values_end = values.end();
-  while (p != values_end) {
-    *(*p++).value = num;
+  for (const mgard::TensorNode<N, Real> node :
+       hierarchy.nodes(hierarchy.L - l)) {
+    hierarchy.at(v, node.multiindex) = num;
   }
 }
 
 template <std::size_t N, typename Real>
 void copy_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                 Real const *const v, Real *const work) {
-  using It = typename TensorLevelValues<N, const Real>::iterator;
-  using Jt = typename TensorLevelValues<N, Real>::iterator;
-  const TensorLevelValues<N, const Real> source =
-      hierarchy.on_nodes(v, hierarchy.L - l);
-  const TensorLevelValues<N, Real> destination =
-      hierarchy.on_nodes(work, hierarchy.L - l);
-  It p = source.begin();
-  Jt q = destination.begin();
-  const It source_end = source.end();
-  while (p != source.end()) {
-    *(*q++).value = *(*p++).value;
+  for (const mgard::TensorNode<N, Real> node :
+       hierarchy.nodes(hierarchy.L - l)) {
+    hierarchy.at(work, node.multiindex) = hierarchy.at(v, node.multiindex);
   }
 }
 
 template <std::size_t N, typename Real>
 void add_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                Real *const v, Real const *const work) {
-  using It = typename TensorLevelValues<N, Real>::iterator;
-  using Jt = typename TensorLevelValues<N, const Real>::iterator;
-  const TensorLevelValues<N, Real> target =
-      hierarchy.on_nodes(v, hierarchy.L - l);
-  const TensorLevelValues<N, const Real> increment =
-      hierarchy.on_nodes(work, hierarchy.L - l);
-  It p = target.begin();
-  Jt q = increment.begin();
-  const It target_end = target.end();
-  while (p != target_end) {
-    *(*p++).value += *(*q++).value;
+  for (const mgard::TensorNode<N, Real> node :
+       hierarchy.nodes(hierarchy.L - l)) {
+    hierarchy.at(v, node.multiindex) += hierarchy.at(work, node.multiindex);
   }
 }
 
 template <std::size_t N, typename Real>
 void subtract_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                     Real *const v, Real const *const work) {
-  using It = typename TensorLevelValues<N, Real>::iterator;
-  using Jt = typename TensorLevelValues<N, const Real>::iterator;
-  const TensorLevelValues<N, Real> target =
-      hierarchy.on_nodes(v, hierarchy.L - l);
-  const TensorLevelValues<N, const Real> decrement =
-      hierarchy.on_nodes(work, hierarchy.L - l);
-  It p = target.begin();
-  Jt q = decrement.begin();
-  const It target_end = target.end();
-  while (p != target_end) {
-    *(*p++).value -= *(*q++).value;
+  for (const mgard::TensorNode<N, Real> node :
+       hierarchy.nodes(hierarchy.L - l)) {
+    hierarchy.at(v, node.multiindex) -= hierarchy.at(work, node.multiindex);
   }
 }
 
@@ -1577,9 +1550,8 @@ namespace {
 template <std::size_t N, typename Real>
 void set_to_zero_on_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                           Real *const v, const std::size_t l) {
-  const TensorLevelValues<N, Real> dst = hierarchy.on_nodes(v, l);
-  for (const SituatedCoefficient<N, Real> coeff : dst) {
-    *coeff.value = 0;
+  for (const TensorNode<N, Real> node : hierarchy.nodes(l)) {
+    hierarchy.at(v, node.multiindex) = 0;
   }
 }
 
@@ -1594,13 +1566,8 @@ template <std::size_t N, typename Real>
 void copy_on_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                    Real const *const src, Real *const dst,
                    const std::size_t l) {
-  const TensorLevelValues<N, const Real> values_src =
-      hierarchy.on_nodes(src, l);
-  const TensorLevelValues<N, Real> values_dst = hierarchy.on_nodes(dst, l);
-  typename TensorLevelValues<N, Real>::iterator p = values_dst.begin();
-  for (const SituatedCoefficient<N, const Real> coeff_src : values_src) {
-    const SituatedCoefficient<N, Real> coeff_dst = *p++;
-    *coeff_dst.value = *coeff_src.value;
+  for (const TensorNode<N, Real> node : hierarchy.nodes(l)) {
+    hierarchy.at(dst, node.multiindex) = hierarchy.at(src, node.multiindex);
   }
 }
 
@@ -1616,12 +1583,9 @@ template <std::size_t N, typename Real>
 void axpy_on_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                    const Real alpha, Real const *const x, Real *const y,
                    const std::size_t l) {
-  const TensorLevelValues<N, const Real> values_x = hierarchy.on_nodes(x, l);
-  const TensorLevelValues<N, Real> values_y = hierarchy.on_nodes(y, l);
-  typename TensorLevelValues<N, Real>::iterator p = values_y.begin();
-  for (const SituatedCoefficient<N, const Real> coeff_x : values_x) {
-    const SituatedCoefficient<N, Real> coeff_y = *p++;
-    *coeff_y.value += alpha * *coeff_x.value;
+  for (const TensorNode<N, Real> node : hierarchy.nodes(l)) {
+    hierarchy.at(y, node.multiindex) +=
+        alpha * hierarchy.at(x, node.multiindex);
   }
 }
 
