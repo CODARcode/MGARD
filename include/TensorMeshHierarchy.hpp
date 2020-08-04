@@ -205,7 +205,8 @@ private:
   const CartesianProduct<std::size_t, N> multiindices;
 };
 
-//! A value associated to a node, along with its multiindex and coordinates.
+//! A value associated to a node, along with its multiindex and coordinates and
+//! the index of the introducing mesh.
 template <std::size_t N, typename T> struct SituatedCoefficient {
   //! Type of the node coordinates.
   using Real = typename std::remove_const<T>::type;
