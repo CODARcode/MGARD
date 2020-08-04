@@ -152,20 +152,15 @@ void test_tensor_product_prolongations(std::default_random_engine &generator,
   for (std::size_t l = hierarchy.L; l > 0; --l) {
     const MultilinearPolynomial<Real, N> p(generator,
                                            polynomial_coefficient_distribution);
-    for (const mgard::SituatedCoefficient<N, Real> coeff :
-         hierarchy.on_nodes(u, l)) {
-      *coeff.value = 0;
-    }
-    for (const mgard::SituatedCoefficient<N, Real> coeff :
-         hierarchy.on_nodes(u, l - 1)) {
-      *coeff.value = p(coeff.coordinates);
+    for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(l)) {
+      hierarchy.at(u, node.multiindex) = node.l == l ? 0 : p(node.coordinates);
     }
     const mgard::TensorProlongationAddition<N, Real> PA(hierarchy, l);
     PA(u);
     TrialTracker tracker;
-    for (const mgard::SituatedCoefficient<N, Real> coeff :
-         hierarchy.on_nodes(u, l)) {
-      tracker += *coeff.value == Approx(p(coeff.coordinates)).epsilon(0.001);
+    for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(l)) {
+      tracker += hierarchy.at(u, node.multiindex) ==
+                 Approx(p(node.coordinates)).epsilon(0.001);
     }
     REQUIRE(tracker);
   }

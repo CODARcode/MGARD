@@ -516,18 +516,16 @@ void generate_reasonable_function(
     std::default_random_engine &generator,
     std::uniform_real_distribution<Real> &distribution, Real *const u) {
   // We assume that the entries of `u` have been initialized to zero.
-  for (const mgard::SituatedCoefficient<N, Real> coeff :
-       hierarchy.on_nodes(u, 0)) {
-    *coeff.value = distribution(generator);
+  for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(0)) {
+    hierarchy.at(u, node.multiindex) = distribution(generator);
   }
   Real weight = 0.5;
   for (std::size_t l = 1; l <= hierarchy.L; ++l) {
     const mgard::TensorProlongationAddition<N, Real> PA(hierarchy, l);
     PA(u);
-    for (const mgard::SituatedCoefficient<N, Real> coeff :
-         hierarchy.on_nodes(u, l)) {
-      if (coeff.l == l) {
-        *coeff.value += weight * distribution(generator);
+    for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(l)) {
+      if (node.l == l) {
+        hierarchy.at(u, node.multiindex) += weight * distribution(generator);
       }
     }
     weight /= 2;
@@ -624,10 +622,9 @@ void test_decomposition_of_linear_functions(
   const std::size_t M = hierarchy.ndof();
   std::vector<Real> u_(M);
   double *const u = u_.data();
-  for (const mgard::SituatedCoefficient<N, Real> coeff :
-       hierarchy.on_nodes(u, hierarchy.L)) {
-    *coeff.value =
-        coeff.l == hierarchy.L ? 0 : nodal_coefficient_distribution(generator);
+  for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(hierarchy.L)) {
+    hierarchy.at(u, node.multiindex) =
+        node.l == hierarchy.L ? 0 : nodal_coefficient_distribution(generator);
   }
   {
     const mgard::TensorProlongationAddition PA(hierarchy, hierarchy.L);
@@ -636,10 +633,9 @@ void test_decomposition_of_linear_functions(
   mgard::decompose(hierarchy, u);
 
   TrialTracker tracker;
-  for (const mgard::SituatedCoefficient<N, Real> coeff :
-       hierarchy.on_nodes(u, hierarchy.L)) {
-    if (coeff.l == hierarchy.L) {
-      tracker += std::abs(*coeff.value) < 1e-6;
+  for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(hierarchy.L)) {
+    if (node.l == hierarchy.L) {
+      tracker += std::abs(hierarchy.at(u, node.multiindex)) < 1e-6;
     }
   }
   REQUIRE(tracker);
@@ -659,22 +655,17 @@ void test_recomposition_with_zero_coefficients(
   const std::size_t M = hierarchy.ndof();
   std::vector<Real> u_(M, 0);
   Real *const u = u_.data();
-  const mgard::TensorLevelValues<N, Real> coarse_values_u =
-      hierarchy.on_nodes(u, hierarchy.L - 1);
-  for (const mgard::SituatedCoefficient<N, Real> coeff : coarse_values_u) {
-    *coeff.value = multilevel_coefficient_distribution(generator);
+  const mgard::TensorNodeRange nodes = hierarchy.nodes(hierarchy.L - 1);
+  for (const mgard::TensorNode node : nodes) {
+    hierarchy.at(u, node.multiindex) =
+        multilevel_coefficient_distribution(generator);
   }
   mgard::recompose(hierarchy, u);
 
   std::vector<Real> v_(M, 0);
   Real *const v = v_.data();
-  const mgard::TensorLevelValues<N, Real> coarse_values_v =
-      hierarchy.on_nodes(v, hierarchy.L - 1);
-  typename mgard::TensorLevelValues<N, Real>::iterator p =
-      coarse_values_v.begin();
-  for (const mgard::SituatedCoefficient<N, Real> coeff_u : coarse_values_u) {
-    const mgard::SituatedCoefficient<N, Real> coeff_v = *p++;
-    *coeff_v.value = *coeff_u.value;
+  for (const mgard::TensorNode node : nodes) {
+    hierarchy.at(v, node.multiindex) = hierarchy.at(u, node.multiindex);
   }
   {
     const mgard::TensorProlongationAddition PA(hierarchy, hierarchy.L);

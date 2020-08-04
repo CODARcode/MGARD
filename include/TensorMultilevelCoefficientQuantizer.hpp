@@ -8,10 +8,6 @@
 
 namespace mgard {
 
-//! Forward declaration.
-template <std::size_t N, typename Real, typename Int>
-struct TensorQuantizedRange;
-
 //! Quantizer for multilevel coefficients on tensor product grids. Each
 //! coefficient is quantized according to its contribution to the error
 //! indicator.
@@ -32,9 +28,9 @@ public:
 
   //! Quantize a multilevel coefficient.
   //!
-  //!\param coefficient Multilevel coefficient to be quantized, along with its
-  //! auxiliary mesh data.
-  Int operator()(const SituatedCoefficient<N, Real> coefficient) const;
+  //!\param node Auxiliary node data corresponding to the coefficient.
+  //!\param coefficient Multilevel coefficient to be quantized.
+  Int operator()(const TensorNode<N, Real> node, const Real coefficient) const;
 
   //! Iterator used to traverse a quantized range. Note that the iterator is not
   //! used to iterate over the `TensorMultilevelCoefficientQuantizer` itself.
@@ -43,7 +39,7 @@ public:
   //! Quantize a set of multilevel coefficients.
   //!
   //!\param u Multilevel coefficients to be quantized.
-  TensorQuantizedRange<N, Real, Int> operator()(Real *const u) const;
+  RangeSlice<iterator> operator()(Real *const u) const;
 
   //! Associated mesh hierarchy.
   const TensorMeshHierarchy<N, Real> &hierarchy;
@@ -55,6 +51,9 @@ public:
   const Real tolerance;
 
 private:
+  //! Nodes of the finest mesh in the hierarchy.
+  const TensorNodeRange<N, Real> nodes;
+
   //! Quantizer to use when controlling error in the supremum norm.
   const LinearQuantizer<Real, Int> supremum_quantizer;
 };
@@ -66,49 +65,8 @@ bool operator==(const TensorMultilevelCoefficientQuantizer<N, Real, Int> &a,
 
 //! Inequality comparison.
 template <std::size_t N, typename Real, typename Int>
-bool operator==(const TensorMultilevelCoefficientQuantizer<N, Real, Int> &a,
+bool operator!=(const TensorMultilevelCoefficientQuantizer<N, Real, Int> &a,
                 const TensorMultilevelCoefficientQuantizer<N, Real, Int> &b);
-
-//! Iterable of quantized (as the object is iterated over) multilevel
-//! coefficients.
-//
-// I am introducing this object to avoid a dangling reference, and hope to
-// reimplement by splitting `SituatedCoefficient` later. It should probably
-// inherit from `RangeSlice`, but that would require (it seems) a user-defined
-// constructor for `RangeSlice`.
-template <std::size_t N, typename Real, typename Int>
-class TensorQuantizedRange {
-public:
-  using It =
-      typename TensorMultilevelCoefficientQuantizer<N, Real, Int>::iterator;
-
-  //! Constructor.
-  //!
-  //!\param quantizer Associated multilevel coefficient quantizer.
-  //!\param u Multilevel coefficients to be quantized.
-  TensorQuantizedRange(
-      const TensorMultilevelCoefficientQuantizer<N, Real, Int> &quantizer,
-      Real *const u);
-
-  //! Return an iterator to the beginning of the quantized range.
-  It begin() const;
-
-  //! Return an iterator to the end of the quantized range.
-  It end() const;
-
-private:
-  //! Multilevel coefficients to be quantized.
-  //
-  // This is stored so that the values don't go out of scope before iterators to
-  // them (`begin_` and `end_`) do.
-  const TensorLevelValues<N, Real> values;
-
-  //! Iterator to the beginning of the quantized range.
-  const It begin_;
-
-  //! Iterator to the end of the quantized range.
-  const It end_;
-};
 
 //! Iterator used to traverse a range of multilevel coefficients, quantizing as
 //! it is dereferenced.
@@ -124,10 +82,11 @@ public:
   //! Constructor.
   //!
   //!\param quantizer Associated multilevel coefficient quantizer.
-  //!\param inner_input Position in the auxiliary data range.
+  //!\param inner_node Position in the node range.
   //!\param inner_mc Position in the multilevel coefficient range.
   iterator(const TensorMultilevelCoefficientQuantizer &quantizer,
-           const typename TensorLevelValues<N, Real>::iterator inner);
+           const typename TensorNodeRange<N, Real>::iterator inner_node,
+           Real const *const inner_coeff);
 
   //! Equality comparison.
   bool operator==(const iterator &other) const;
@@ -148,8 +107,11 @@ private:
   //! Associated multilevel coefficient quantizer;
   const TensorMultilevelCoefficientQuantizer &quantizer;
 
+  //! Iterator to current node.
+  typename TensorNodeRange<N, Real>::iterator inner_node;
+
   //! Iterator to current coefficient.
-  typename TensorLevelValues<N, Real>::iterator inner;
+  Real const *inner_coeff;
 };
 
 } // namespace mgard

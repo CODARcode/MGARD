@@ -14,8 +14,8 @@
 
 namespace mgard {
 
-//! Forward declaration.
-template <std::size_t N, typename T> class TensorLevelValues;
+// Forward declaration.
+template <std::size_t N, typename Real> class TensorNodeRange;
 
 //! Hierarchy of meshes produced by subsampling an initial mesh.
 template <std::size_t N, typename Real> class TensorMeshHierarchy {
@@ -93,14 +93,14 @@ public:
   //!\param multiindex Multiindex of the node.
   Real &at(Real *const v, const std::array<std::size_t, N> multiindex) const;
 
-  //! Access the subset of a dataset associated to the nodes of a level.
+  //!\overload
+  const Real &at(Real const *const u,
+                 const std::array<std::size_t, N> multiindex) const;
+
+  //! Access the nodes of a level in the hierarchy.
   //!
-  //!\param coefficients Values associated to the nodes of the finest mesh
-  //! level.
   //!\param l Index of the mesh level to be iterated over.
-  template <typename T>
-  TensorLevelValues<N, T> on_nodes(T *const coefficients,
-                                   const std::size_t l) const;
+  TensorNodeRange<N, Real> nodes(const std::size_t l) const;
 
   //! Meshes composing the hierarchy, in 'increasing' order.
   std::vector<TensorMeshLevel<N, Real>> meshes;
@@ -149,46 +149,33 @@ template <std::size_t N, typename Real>
 bool operator==(const TensorMeshHierarchy<N, Real> &a,
                 const TensorMeshHierarchy<N, Real> &b);
 
-//! View of values (with multiindices and coordinates) associated to the nodes
-//! of a particular level in a mesh hierarchy.
-//!
-//! We template on `T` to allow `coefficients` to be a pointer to either `Real`
-//! or `const Real`.
-template <std::size_t N, typename T> class TensorLevelValues {
-
-  //! Type of the node coordinates.
-  using Real = typename std::remove_const<T>::type;
-
+//! Nodes of a particular level in a mesh hierarchy.
+template <std::size_t N, typename Real> class TensorNodeRange {
 public:
   //! Constructor.
   //!
   //!\param hierarchy Associated mesh hierarchy.
-  //!\param coefficients Values associated to the nodes of the finest mesh
-  //! level.
   //!\param l Index of the mesh level to be iterated over.
-  TensorLevelValues(const TensorMeshHierarchy<N, Real> &hierarchy,
-                    T *const coefficients, const std::size_t l);
+  TensorNodeRange(const TensorMeshHierarchy<N, Real> &hierarchy,
+                  const std::size_t l);
 
-  //! Forward declaration.
+  // Forward declaration.
   class iterator;
 
-  //! Return an interator to the beginning of the values.
+  //! Return an iterator to the beginning of the nodes.
   iterator begin() const;
 
-  //! Return an interator to the end of the values.
+  //! Return an iterator to the end of the nodes.
   iterator end() const;
 
   //! Equality comparison.
-  bool operator==(const TensorLevelValues &other) const;
+  bool operator==(const TensorNodeRange &other) const;
 
   //! Inequality comparison.
-  bool operator!=(const TensorLevelValues &other) const;
+  bool operator!=(const TensorNodeRange &other) const;
 
   //! Associated mesh hierarchy.
   const TensorMeshHierarchy<N, Real> &hierarchy;
-
-  //! Values associated to the nodes of the finest mesh level.
-  T *const coefficients;
 
 private:
   //! Index of the level being iterated over.
@@ -205,12 +192,8 @@ private:
   const CartesianProduct<std::size_t, N> multiindices;
 };
 
-//! A value associated to a node, along with its multiindex and coordinates and
-//! the index of the introducing mesh.
-template <std::size_t N, typename T> struct SituatedCoefficient {
-  //! Type of the node coordinates.
-  using Real = typename std::remove_const<T>::type;
-
+//! A node (and auxiliary data) in a mesh in a mesh hierarchy.
+template <std::size_t N, typename Real> struct TensorNode {
   //! Index of the mesh level which introduced the node.
   std::size_t l;
 
@@ -219,26 +202,23 @@ template <std::size_t N, typename T> struct SituatedCoefficient {
 
   //! Coordinates of the node.
   std::array<Real, N> coordinates;
-
-  //! Pointer to the value at the node.
-  T *value;
 };
 
-//! Iterator over the values associated to a mesh level in a structured mesh
-//! hierarchy.
-template <std::size_t N, typename T> class TensorLevelValues<N, T>::iterator {
+//! Iterator over the nodes of a mesh in a mesh hierarchy.
+template <std::size_t N, typename Real>
+class TensorNodeRange<N, Real>::iterator {
 public:
   using iterator_category = std::input_iterator_tag;
-  using value_type = SituatedCoefficient<N, T>;
+  using value_type = TensorNode<N, Real>;
   using difference_type = std::ptrdiff_t;
   using pointer = value_type *;
   using reference = value_type &;
 
   //! Constructor.
   //!
-  //!\param iterable View of nodal values to be iterated over.
+  //!\param iterable View of nodes to be iterated over.
   //!\param inner Underlying multiindex iterator.
-  iterator(const TensorLevelValues &iterable,
+  iterator(const TensorNodeRange &iterable,
            const typename CartesianProduct<std::size_t, N>::iterator &inner);
 
   //! Equality comparison.
@@ -256,8 +236,8 @@ public:
   //! Dereference.
   value_type operator*() const;
 
-  //! View of nodal values being iterated over
-  const TensorLevelValues &iterable;
+  //! View of nodes being iterated over.
+  const TensorNodeRange &iterable;
 
 private:
   //! Underlying multiindex iterator.

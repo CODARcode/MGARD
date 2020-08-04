@@ -41,7 +41,7 @@ public:
   //!\param hierarchy Mesh hierarchy.
   IndicatorInputRange(const MeshHierarchy &hierarchy);
 
-  //! Forward declaration.
+  // Forward declaration.
   class iterator;
 
   //! Return an interator to the beginning of the range.

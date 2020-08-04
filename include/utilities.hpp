@@ -282,7 +282,7 @@ template <std::size_t N> struct MultiindexRectangle {
   //! `corner` defaults to the zero multiindex.
   MultiindexRectangle(const std::array<std::size_t, N> &shape);
 
-  //! Forward declaration.
+  // Forward declaration.
   class iterator;
 
   //! Return an iterator to the beginning of the indices with the given stride.
@@ -366,7 +366,7 @@ public:
   //! Prevent temporaries.
   CartesianProduct(const std::array<std::vector<T>, N> &&factors) = delete;
 
-  //! Forward reference.
+  // Forward declaration.
   class iterator;
 
   //! Return an iterator to the beginning of the product range.

@@ -21,7 +21,6 @@ void test_mc_quantization_iteration(const std::array<std::size_t, N> shape,
 
     const mgard::TensorMultilevelCoefficientQuantizer<N, Real, Int> quantizer(
         hierarchy, s, tolerance);
-    TrialTracker tracker;
     std::size_t count = 0;
     for (const Int n : quantizer(u)) {
       static_cast<void>(n);
