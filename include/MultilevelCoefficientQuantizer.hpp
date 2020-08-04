@@ -21,7 +21,7 @@ public:
   //! Constructor.
   //!
   //!\param hierarchy Mesh hierarchy on which the coefficients to be quantized
-  //! will be defined.
+  //! are defined.
   //!\param s Smoothness parameter. Determines the error norm in which
   //! quantization error is controlled.
   //!\param tolerance Quantization error tolerance for the entire set of
@@ -121,10 +121,10 @@ template <typename Int, typename Real> class MultilevelCoefficientDequantizer {
 public:
   //! Constructor.
   //!
-  //!\param hierarchy Mesh hierarchy on which the coefficients to be quantized
+  //!\param hierarchy Mesh hierarchy on which the dequantized coefficients
   //! will be defined.
   //!\param s Smoothness parameter. Determines the error norm in which
-  //! quantization error is controlled.
+  //! quantization error was controlled.
   //!\param tolerance Quantization error tolerance.
   MultilevelCoefficientDequantizer(const MeshHierarchy &hierarchy,
                                    const float s, const float tolerance);
