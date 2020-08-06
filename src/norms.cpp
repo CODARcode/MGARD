@@ -43,7 +43,7 @@ static double L_2_norm(const NodalCoefficients<double> u,
 static double s_norm(const NodalCoefficients<double> u,
                      const MeshHierarchy &hierarchy, const double s) {
   // Square `L^2` norms of the `L^2` projections of `u` onto the levels in the
-  // hierarchy, ordered from finest to coarsest.
+  // hierarchy, ordered from coarsest to finest.
   std::vector<double> squares_for_norm(hierarchy.L + 1);
   // TODO: allow memory buffer to be passed in.
   std::size_t scratch_sizes[2];
