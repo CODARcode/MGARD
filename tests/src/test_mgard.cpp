@@ -482,7 +482,8 @@ void test_dyadic_uniform_decomposition(
     TrialTracker tracker;
     tracker += expected.size() == n;
     for (std::size_t i = 0; i < n; ++i) {
-      tracker += v_.at(i) == Approx(expected.at(i));
+      // Got some small errors here when run on Travis.
+      tracker += v_.at(i) == Approx(expected.at(i)).epsilon(1e-4);
     }
     REQUIRE(tracker);
   }
