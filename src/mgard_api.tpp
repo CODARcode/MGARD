@@ -207,7 +207,7 @@ Real *mgard_decompress(int itype_flag, Real &quantizer, unsigned char *data,
     assert(ncol > 3);
 
     mgard_decompressed_ptr =
-        mgard::recompose_udq_1D<Real>(ncol, data, data_len);
+        mgard::recompose_udq_1D_huffman<Real>(ncol, data, data_len);
     return mgard_decompressed_ptr;
   }
   return nullptr;

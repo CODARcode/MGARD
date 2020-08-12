@@ -283,6 +283,12 @@ template float *recompose_udq_1D<float>(int ncol, unsigned char *data,
 template double *recompose_udq_1D<double>(int ncol, unsigned char *data,
                                           int data_len);
 
+template float *recompose_udq_1D_huffman<float>(int ncol, unsigned char *data,
+                                                int data_len);
+
+template double *recompose_udq_1D_huffman<double>(int ncol, unsigned char *data,
+                                                  int data_len);
+
 template float *recompose_udq_2D<float>(int nrow, int ncol, unsigned char *data,
                                         int data_len);
 

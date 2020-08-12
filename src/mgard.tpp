@@ -564,40 +564,42 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 		    &out_data_miss, &out_data_miss_size,
 		    &out_tree, &out_tree_size);
 
-    size_t total_size = 3 * sizeof (size_t) + out_data_hit_size / 8 + 1 + out_data_miss_size + out_tree_size;
-    char * out_buff = (char * ) malloc (total_size);
-    char * buf = out_buff;
+    size_t total_size = out_data_hit_size / 8 + 1 + out_data_miss_size + out_tree_size;
+    unsigned char * payload = (unsigned char * ) malloc (total_size);
+    unsigned char * bufp = payload;
 
-    * (size_t *) buf = out_tree_size;
-    buf += sizeof(size_t);
+    memcpy (bufp, out_tree, out_tree_size);
+    bufp += out_tree_size;
 
-    * (size_t *) buf = out_data_hit_size / 8 + 1;
-    buf += sizeof(size_t);
+    memcpy (bufp, out_data_hit, out_data_hit_size / 8 + 1);
+    bufp += out_data_hit_size / 8 + 1;
 
-    * (size_t *) buf = out_data_miss_size;
-    buf += sizeof(size_t);
-
-    memcpy (buf, out_tree, out_tree_size);
-    buf += out_tree_size;
-
-    memcpy (buf, out_data_hit, out_data_hit_size / 8 + 1);
-    buf += out_data_hit_size / 8 + 1;
-
-    memcpy (buf, out_data_miss, out_data_miss_size);
-    buf += out_data_miss_size;
+    memcpy (bufp, out_data_miss, out_data_miss_size);
+    bufp += out_data_miss_size;
 
     free (out_tree);
     free (out_data_hit);
     free (out_data_miss);
 
-    if (0) {
-      mgard::compress_memory_z(out_buff, total_size, out_data);
+    if (1) {
+      mgard::compress_memory_z(payload, total_size, out_data);
     } else {
       mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
     }
-    outsize = out_data.size();
+
+    outsize = out_data.size() + 3 * sizeof(size_t);
     unsigned char *buffer = (unsigned char *)malloc(outsize);
-    std::copy(out_data.begin(), out_data.end(), buffer);
+    bufp = buffer;
+    * (size_t *) bufp = out_tree_size;
+    bufp += sizeof(size_t);
+
+    * (size_t *) bufp = out_data_hit_size;
+    bufp += sizeof(size_t);
+
+    * (size_t *) bufp = out_data_miss_size;
+    bufp += sizeof(size_t);
+
+    std::copy(out_data.begin(), out_data.end(), bufp);
 
     return buffer;
   }
@@ -856,6 +858,108 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 }
 
 template <typename Real>
+Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
+  const int size_ratio = sizeof(Real) / sizeof(int);
+
+  if (is_2kplus1(ncol)) // input is (2^p + 1)
+  {
+    // to be cleaned up.
+    const Dimensions2kPlus1<1> dims({ncol});
+    const int l_target = dims.nlevel - 1;
+#if 0
+    int ncol_new = ncol;
+
+    int nlevel_new;
+    set_number_of_levels(nrow_new, ncol_new, nlevel_new);
+
+    const int l_target = nlevel_new - 1;
+#endif
+    std::vector<int> out_data(ncol + size_ratio);
+
+    mgard::decompress_memory_z(data, data_len, out_data.data(),
+                               out_data.size() * sizeof(int));
+
+    Real *v = (Real *)malloc(ncol * sizeof(Real));
+
+    mgard::dequantize_2D_interleave(1, ncol, v, out_data);
+    out_data.clear();
+
+    std::vector<Real> row_vec(ncol);
+    std::vector<Real> work(ncol);
+#if 1
+    mgard::recompose_1D(ncol, l_target, v, work, row_vec);
+
+    return v;
+#endif
+  } else {
+    std::vector<Real> coords_x(ncol);
+
+    std::iota(std::begin(coords_x), std::end(coords_x), 0);
+
+    const Dimensions2kPlus1<1> dims({ncol});
+    const int l_target = dims.nlevel - 1;
+#if 1
+    unsigned char * out_data_hit = 0;
+    size_t out_data_hit_size;
+    unsigned char * out_data_miss = 0;
+    size_t out_data_miss_size;
+    unsigned char * out_tree = 0;
+    size_t out_tree_size;
+
+    unsigned char * buf = data;
+
+    out_tree_size = * (size_t *) buf;
+    buf += sizeof(size_t);
+
+    out_data_hit_size = * (size_t *) buf;
+    buf += sizeof(size_t);
+
+    out_data_miss_size = * (size_t *) buf;
+    buf += sizeof(size_t);
+
+    std::cout << " out_tree_size = " << out_tree_size
+	      << " out_data_hit_size = " << out_data_hit_size
+	      << " out_data_miss_size = " << out_data_miss_size << "\n"
+	      << " data_len = " << data_len << "\n";
+#endif
+
+    std::vector<int> out_data(ncol + size_ratio);
+    size_t total_huffman_size = out_tree_size + out_data_hit_size / 8 + 1 + out_data_miss_size;
+    unsigned char * huffman_encoding_p = (unsigned char *)malloc(total_huffman_size);
+    std::cout << "Gary 2\n";
+
+    mgard::decompress_memory_z_huffman(buf, data_len - 3 * sizeof(size_t),
+		                       huffman_encoding_p, total_huffman_size);
+
+    out_tree = huffman_encoding_p;
+    out_data_hit = huffman_encoding_p + out_tree_size;
+    out_data_miss = huffman_encoding_p + out_tree_size + out_data_hit_size;
+
+    mgard::huffman_decoding(out_data.data(), out_data.size(),
+                            out_data_hit, out_data_hit_size,
+                            out_data_miss, out_data_miss_size,
+                            out_tree, out_tree_size);
+
+    std::cout << "here\n";
+    while (1);
+    Real *v = (Real *)malloc(ncol * sizeof(Real));
+
+    mgard::dequantize_2D_interleave(1, ncol, v, out_data);
+
+    std::vector<Real> row_vec(ncol);
+    std::vector<Real> work(ncol);
+
+    mgard_2d::mgard_gen::recompose_1D(dims.rnded[0], dims.input[0], l_target, v,
+                                      work, coords_x, row_vec);
+
+    mgard_2d::mgard_gen::postp_1D(dims.rnded[0], dims.input[0], l_target, v,
+                                  work, coords_x, row_vec);
+
+    return v;
+  }
+}
+
+template <typename Real>
 Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
   const int size_ratio = sizeof(Real) / sizeof(int);
 
@@ -898,7 +1002,6 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
     const int l_target = dims.nlevel - 1;
 
     std::vector<int> out_data(ncol + size_ratio);
-
     mgard::decompress_memory_z(data, data_len, out_data.data(),
                                out_data.size() * sizeof(int));
 
