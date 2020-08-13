@@ -48,3 +48,6 @@ docs/api_doxygen/C/xml/
 # Visual Studio
 .vs/
 CMakeSettings.json
+
+#Sublime
+._*
