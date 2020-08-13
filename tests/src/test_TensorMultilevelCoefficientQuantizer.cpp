@@ -5,7 +5,7 @@
 
 #include "TensorMeshHierarchy.hpp"
 #include "TensorMultilevelCoefficientQuantizer.hpp"
-#include "norms.hpp"
+#include "TensorNorms.hpp"
 
 #include "testing_random.hpp"
 #include "testing_utilities.hpp"
