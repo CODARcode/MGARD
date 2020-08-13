@@ -131,3 +131,69 @@ TEST_CASE("comparison with Python implementation: tensor norms", "[norms]") {
   REQUIRE(mgard::norm(hierarchy, u, 1.5f) ==
           Approx(1.5198059864642621).epsilon(0.001));
 }
+
+namespace {
+
+static const float alpha = -1.7855108138339222;
+
+float f(int n1, int n2, int n3, float *v) {
+  const std::size_t i = n1 * n2 * n3 / 4;
+  return v[i - 1] - 4 * v[i] + v[i + 1];
+}
+
+float scaled_f(int n1, int n2, int n3, float *v) {
+  return alpha * f(n1, n2, n3, v);
+}
+
+float g(int n1, int n2, int n3, float *v) {
+  return v[n1] - v[n1 * n2] + v[n1 * n2 * (n3 / 2)];
+}
+
+float f_plus_g(int n1, int n2, int n3, float *v) {
+  return f(n1, n2, n3, v) + g(n1, n2, n3, v);
+}
+
+void test_qoi_basic_norm_properties(
+    const mgard::TensorMeshHierarchy<3, float> &hierarchy) {
+  const std::array<size_t, 3> shape = hierarchy.meshes.at(hierarchy.L).shape;
+  const int n1 = shape.at(0);
+  const int n2 = shape.at(1);
+  const int n3 = shape.at(2);
+  const std::vector<float> smoothness_parameters = {
+      -1.5, -1.0, -0.5,
+      0,    1e-9, 0.5,
+      1.0,  1.5,  std::numeric_limits<float>::infinity()};
+
+  SECTION("absolute homogeneity") {
+    TrialTracker tracker;
+    for (const float s : smoothness_parameters) {
+      tracker += mgard::norm(n1, n2, n3, scaled_f, s) ==
+                 Approx(std::abs(alpha) * mgard::norm(n1, n2, n3, f, s));
+    }
+    REQUIRE(tracker);
+  }
+
+  SECTION("triangle inequality") {
+    TrialTracker tracker;
+    for (const float s : smoothness_parameters) {
+      tracker +=
+          mgard::norm(n1, n2, n3, f, s) + mgard::norm(n1, n2, n3, g, s) >=
+          mgard::norm(n1, n2, n3, f_plus_g, s);
+    }
+    REQUIRE(tracker);
+  }
+}
+
+} // namespace
+
+TEST_CASE("QoI basic norm properties", "[norms]") {
+  {
+    const mgard::TensorMeshHierarchy<3, float> hierarchy({9, 5, 9});
+    test_qoi_basic_norm_properties(hierarchy);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<3, float> hierarchy({6, 7, 8});
+    test_qoi_basic_norm_properties(hierarchy);
+  }
+}

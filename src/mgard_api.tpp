@@ -16,8 +16,8 @@
 #include <numeric>
 #include <vector>
 
+#include "TensorNorms.hpp"
 #include "mgard.hpp"
-#include "mgard_norms.hpp"
 #include "mgard_nuni.h"
 
 // This should eventually be folded into `TensorMeshHierarchy`.
@@ -135,17 +135,7 @@ unsigned char *mgard_compress(Real *v, int &out_size, int nrow, int ncol,
   Real tol = tol_in;
   assert(tol >= 1e-7);
 
-  // coordinate arrays
-  std::vector<Real> coords_x(ncol);
-  std::vector<Real> coords_y(nrow);
-  std::vector<Real> coords_z(nfib);
-  // dummy equispaced coordinates
-  std::iota(std::begin(coords_x), std::end(coords_x), 0);
-  std::iota(std::begin(coords_y), std::end(coords_y), 0);
-  std::iota(std::begin(coords_z), std::end(coords_z), 0);
-
-  const Real xi_norm =
-      mgard::qoi_norm(nrow, ncol, nfib, coords_x, coords_y, coords_z, qoi, s);
+  const Real xi_norm = mgard::norm(nrow, ncol, nfib, qoi, s);
 
   unsigned char *p = nullptr;
   const std::vector<int> dims = dataset_dimensions({nrow, ncol, nfib});
