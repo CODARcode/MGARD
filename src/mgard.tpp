@@ -19,6 +19,7 @@
 
 #include <fstream>
 #include <numeric>
+#include <bitset>
 
 #include "mgard_compress.hpp"
 #include "mgard_mesh.hpp"
@@ -521,6 +522,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
                             &out_data_hit, &out_data_hit_size,
 			    &out_data_miss, &out_data_miss_size,
 			    &out_tree, &out_tree_size);
+
     mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
     outsize = out_data.size();
     unsigned char *buffer = (unsigned char *)malloc(outsize);
@@ -564,15 +566,15 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 		    &out_data_miss, &out_data_miss_size,
 		    &out_tree, &out_tree_size);
 
-    size_t total_size = out_data_hit_size / 8 + 1 + out_data_miss_size + out_tree_size;
+    size_t total_size = out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
     unsigned char * payload = (unsigned char * ) malloc (total_size);
     unsigned char * bufp = payload;
 
     memcpy (bufp, out_tree, out_tree_size);
     bufp += out_tree_size;
 
-    memcpy (bufp, out_data_hit, out_data_hit_size / 8 + 1);
-    bufp += out_data_hit_size / 8 + 1;
+    memcpy (bufp, out_data_hit, out_data_hit_size / 8 + 4);
+    bufp += out_data_hit_size / 8 + 4;
 
     memcpy (bufp, out_data_miss, out_data_miss_size);
     bufp += out_data_miss_size;
@@ -898,7 +900,7 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
 
     const Dimensions2kPlus1<1> dims({ncol});
     const int l_target = dims.nlevel - 1;
-#if 1
+
     unsigned char * out_data_hit = 0;
     size_t out_data_hit_size;
     unsigned char * out_data_miss = 0;
@@ -917,31 +919,22 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
     out_data_miss_size = * (size_t *) buf;
     buf += sizeof(size_t);
 
-    std::cout << " out_tree_size = " << out_tree_size
-	      << " out_data_hit_size = " << out_data_hit_size
-	      << " out_data_miss_size = " << out_data_miss_size << "\n"
-	      << " data_len = " << data_len << "\n";
-#endif
-
     std::vector<int> out_data(ncol + size_ratio);
-    size_t total_huffman_size = out_tree_size + out_data_hit_size / 8 + 1 + out_data_miss_size;
+    size_t total_huffman_size = out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
     unsigned char * huffman_encoding_p = (unsigned char *)malloc(total_huffman_size);
-    std::cout << "Gary 2\n";
 
     mgard::decompress_memory_z_huffman(buf, data_len - 3 * sizeof(size_t),
 		                       huffman_encoding_p, total_huffman_size);
 
     out_tree = huffman_encoding_p;
     out_data_hit = huffman_encoding_p + out_tree_size;
-    out_data_miss = huffman_encoding_p + out_tree_size + out_data_hit_size;
+    out_data_miss = huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
 
     mgard::huffman_decoding(out_data.data(), out_data.size(),
                             out_data_hit, out_data_hit_size,
                             out_data_miss, out_data_miss_size,
                             out_tree, out_tree_size);
 
-    std::cout << "here\n";
-    while (1);
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
     mgard::dequantize_2D_interleave(1, ncol, v, out_data);
@@ -1684,10 +1677,7 @@ template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
                             std::vector<int> &work, const Real norm,
                             const Real tol) {
-  std::cout  << "Tolerance: " << tol << "\n";
   const int size_ratio = sizeof(Real) / sizeof(int);
-
-  std::cout  << "Norm of sorts: " << norm << "\n";
 
   //    Real quantizer = 2.0*norm * tol;
   const mgard::LinearQuantizer<Real, int> quantizer(norm * tol);
