@@ -511,12 +511,8 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
-    char * out_data_hit = 0;
-    size_t out_data_hit_size;
-    char * out_data_miss = 0;
-    size_t out_data_miss_size;
-    char * out_tree = 0;
-    size_t out_tree_size;
+    unsigned char * out_data_hit = 0, * out_data_miss = 0, * out_tree = 0;
+    size_t out_data_hit_size, out_data_miss_size, out_tree_size;
 
     mgard::huffman_encoding(qv.data(), qv.size(), 
                             &out_data_hit, &out_data_hit_size,
@@ -554,12 +550,11 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 
     std::vector<unsigned char> out_data;
 
-
-    char * out_data_hit = 0;
+    unsigned char * out_data_hit = 0;
     size_t out_data_hit_size;
-    char * out_data_miss = 0;
+    unsigned char * out_data_miss = 0;
     size_t out_data_miss_size;
-    char * out_tree = 0;
+    unsigned char * out_tree = 0;
     size_t out_tree_size;
     mgard::huffman_encoding(qv.data(), qv.size(), 
 		    &out_data_hit, &out_data_hit_size,
@@ -590,7 +585,8 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     }
 
     outsize = out_data.size() + 3 * sizeof(size_t);
-    unsigned char *buffer = (unsigned char *)malloc(outsize);
+    unsigned char * buffer = (unsigned char *)malloc(outsize);
+
     bufp = buffer;
     * (size_t *) bufp = out_tree_size;
     bufp += sizeof(size_t);

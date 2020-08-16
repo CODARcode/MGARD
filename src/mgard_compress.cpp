@@ -12,8 +12,8 @@
 #include <zlib.h>
 
 namespace mgard {
-  int nql = 32768;
-//  int nql = 8;
+  const int nql = 32768;
+
 struct htree_node {
   int q;
   size_t cnt;
@@ -183,7 +183,7 @@ void huffman_decoding(int * quantized_data, const std::size_t n,
 
       len++;
 
-      mask = mask >> 1;
+      mask >>= 1;
       if (!mask) {
         mask = 0x80000000;
 	offset = 1;
@@ -213,9 +213,9 @@ void huffman_decoding(int * quantized_data, const std::size_t n,
 }
 
 void huffman_encoding(int * const quantized_data, const std::size_t n,
-                      char ** out_data_hit, size_t * out_data_hit_size,
-		      char ** out_data_miss, size_t * out_data_miss_size,
-		      char ** out_tree, size_t * out_tree_size) {
+                      unsigned char ** out_data_hit, size_t * out_data_hit_size,
+		      unsigned char ** out_data_miss, size_t * out_data_miss_size,
+		      unsigned char ** out_tree, size_t * out_tree_size) {
   size_t num_miss = 0;
   size_t * ft = 0;;
 
@@ -223,10 +223,10 @@ void huffman_encoding(int * const quantized_data, const std::size_t n,
 
   assert (n >= num_miss);
 
-  /* For those miss points, we still need to maintain a flag, 
-   * and therefore we need to allocate space for n numbers
+  /* For those miss points, we still need to maintain a flag (q = 0), 
+   * and therefore we need to allocate space for n numbers.
    */
-  char * p_hit = (char *)malloc (n * sizeof(int));
+  unsigned char * p_hit = (unsigned char *)malloc (n * sizeof(int));
   memset (p_hit, 0, n * sizeof (int));
  
   int * p_miss = 0;
@@ -236,7 +236,7 @@ void huffman_encoding(int * const quantized_data, const std::size_t n,
   }
 
   * out_data_hit = p_hit;
-  * out_data_miss = (char *)p_miss;
+  * out_data_miss = (unsigned char *)p_miss;
   * out_data_hit_size = 0;
   * out_data_miss_size = 0;
 
@@ -253,7 +253,7 @@ void huffman_encoding(int * const quantized_data, const std::size_t n,
       code = codec[q].code;
       len = codec[q].len;
     } else {
-      // for those that are out of the range
+      // for those that are out of the range, q is set to 0
       code = codec[0].code;
       len = codec[0].len;
 
@@ -266,11 +266,11 @@ void huffman_encoding(int * const quantized_data, const std::size_t n,
 
 //      std::cout << "[hit]: the " << i << "-th symbol: " << q << "\n";
 
-      if (32 - start_bit % 32 >= len) {
+    if (32 - start_bit % 32 >= len) {
         code = code << (32 - start_bit % 32 - len);
 	*(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
 	start_bit += len;
-      } else {
+    } else {
         // current unsigned int cannot hold the code
 	// copy 32 - start_bit % 32 bits to the current int
 	// and copy  the rest len - (32 - start_bit % 32) to the next int
@@ -279,16 +279,15 @@ void huffman_encoding(int * const quantized_data, const std::size_t n,
 	*(cur + start_bit / 32) = (*(cur + start_bit / 32)) | (code >> rshift); 
 	*(cur + start_bit / 32 + 1) = (*(cur + start_bit / 32 + 1)) | (code << lshift);
 	start_bit += len;
-      }
+    }
   }
 
   // Note: hit size is in bits, while miss size is in bytes.
   * out_data_hit_size = start_bit;
   * out_data_miss_size = num_miss * sizeof(int);
 
-  cur = (unsigned int *) p_hit;
   // write frequency table to buffer
-  * out_tree = (char *) ft;
+  * out_tree = (unsigned char *) ft;
   * out_tree_size = sizeof(size_t) * nql;
 }
 
