@@ -12,7 +12,7 @@
 #include <zlib.h>
 
 namespace mgard {
-  const int nql = 32768;
+const int nql = 32768;
 
 struct htree_node {
   int q;
@@ -51,6 +51,9 @@ struct LessThanByCnt
   }
 };
 
+template<class T>
+using my_priority_queue = std::priority_queue<T *, std::vector<T *>, LessThanByCnt>;
+
 void print_huffman_tree(htree_node * r) {
 
 }
@@ -80,9 +83,9 @@ void build_codec(htree_node * root, unsigned int code, size_t len, huffman_codec
   }
 }
 
-std::priority_queue<htree_node *, std::vector<htree_node *>, LessThanByCnt> * build_tree(size_t * cnt) {
-  std::priority_queue<htree_node *, std::vector<htree_node *>, LessThanByCnt> * phtree;
-  phtree = new std::priority_queue<htree_node *, std::vector<htree_node *>, LessThanByCnt>;
+my_priority_queue<htree_node> * build_tree(size_t * cnt) {
+  my_priority_queue<htree_node> * phtree;
+  phtree = new my_priority_queue<htree_node>;
 #if 1
   for (int i = 0; i < nql; i++) {
     if (cnt[i] != 0) {
@@ -135,7 +138,7 @@ huffman_codec * build_huffman_codec(int * quantized_data, size_t ** ft, const st
   cnt = build_ft (quantized_data, n, num_outliers);
   * ft = cnt;
 
-  std::priority_queue<htree_node *, std::vector<htree_node *>, LessThanByCnt> * phtree = build_tree (cnt);
+  my_priority_queue<htree_node> * phtree = build_tree (cnt);
 
   huffman_codec * codec = (huffman_codec *) malloc(sizeof (huffman_codec) * nql);
   memset (codec, 0, sizeof (huffman_codec) * nql);
@@ -157,7 +160,7 @@ void huffman_decoding(int * quantized_data, const std::size_t n,
                       unsigned char * out_data_miss, size_t out_data_miss_size,
                       unsigned char * out_tree, size_t out_tree_size) {
   size_t * ft = (size_t *) out_tree;
-  std::priority_queue<htree_node *, std::vector<htree_node *>, LessThanByCnt> * phtree =  build_tree (ft);
+  my_priority_queue<htree_node> * phtree =  build_tree (ft);
 
   unsigned int * buf = (unsigned int *) out_data_hit;
   int * miss_buf =  (int *) out_data_miss;
