@@ -12,7 +12,7 @@
 #include <zlib.h>
 
 namespace mgard {
-const int nql = 32768;
+const int nql = 32768 * 4;
 
 struct htree_node {
   int q;
@@ -117,7 +117,7 @@ size_t * build_ft(int * quantized_data, const std::size_t n, size_t & num_outlie
   for (int i = 0; i < n; i++) {
     // Convert quantization level to positive so that counting freq can be 
     // easily done. Level 0 is reserved a out-of-range flag.
-    quantized_data[i] = quantized_data[i] + nql;
+    quantized_data[i] = quantized_data[i] + nql / 2;
     if (quantized_data[i] > 0 && quantized_data[i] < nql) {
       cnt[quantized_data[i]]++;
     } else {
@@ -159,7 +159,17 @@ void huffman_decoding(int * quantized_data, const std::size_t n,
                       unsigned char * out_data_hit, size_t out_data_hit_size,
                       unsigned char * out_data_miss, size_t out_data_miss_size,
                       unsigned char * out_tree, size_t out_tree_size) {
-  size_t * ft = (size_t *) out_tree;
+  size_t * cft = (size_t *) out_tree;
+  int nonZeros = out_tree_size / (2 * sizeof(size_t));
+  size_t * ft = (size_t *) malloc(nql * sizeof(size_t));
+  ft = (size_t *) malloc(nql * sizeof(size_t));
+
+  memset(ft, 0, nql * sizeof(size_t));
+
+  for (int j = 0; j < nonZeros; j++) {
+    ft[cft[2 * j]] = cft[2 * j + 1];
+  }
+  
   my_priority_queue<htree_node> * phtree =  build_tree (ft);
 
   unsigned int * buf = (unsigned int *) out_data_hit;
@@ -197,10 +207,10 @@ void huffman_decoding(int * quantized_data, const std::size_t n,
     }
 
     if (root->q != 0) {
-      * q = root->q - nql;
+      * q = root->q - nql / 2;
 
     } else {
-      * q = * miss_buf - nql;
+      * q = * miss_buf - nql / 2;
 
       miss_buf++;
       num_missed++;
@@ -213,6 +223,58 @@ void huffman_decoding(int * quantized_data, const std::size_t n,
   }
 
   assert (sizeof(int) * num_missed == out_data_miss_size);
+}
+
+unsigned char * compress_memory_huffman(std::vector<int> &qv,
+	                	        std::vector<unsigned char> &out_data,
+                                        int &outsize) {
+    unsigned char * out_data_hit = 0;
+    size_t out_data_hit_size;
+    unsigned char * out_data_miss = 0;
+    size_t out_data_miss_size;
+    unsigned char * out_tree = 0;
+    size_t out_tree_size;
+    mgard::huffman_encoding(qv.data(), qv.size(),
+                    &out_data_hit, &out_data_hit_size,
+                    &out_data_miss, &out_data_miss_size,
+                    &out_tree, &out_tree_size);
+
+    size_t total_size = out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
+    unsigned char * payload = (unsigned char * ) malloc (total_size);
+    unsigned char * bufp = payload;
+
+    memcpy (bufp, out_tree, out_tree_size);
+    bufp += out_tree_size;
+
+    memcpy (bufp, out_data_hit, out_data_hit_size / 8 + 4);
+    bufp += out_data_hit_size / 8 + 4;
+
+    memcpy (bufp, out_data_miss, out_data_miss_size);
+    bufp += out_data_miss_size;
+
+    free (out_tree);
+    free (out_data_hit);
+    free (out_data_miss);
+
+    mgard::compress_memory_z(payload, total_size, out_data);
+
+    outsize = out_data.size() + 3 * sizeof(size_t);
+    unsigned char * buffer = (unsigned char *)malloc(outsize);
+
+    bufp = buffer;
+    * (size_t *) bufp = out_tree_size;
+    bufp += sizeof(size_t);
+
+    * (size_t *) bufp = out_data_hit_size;
+    bufp += sizeof(size_t);
+
+    * (size_t *) bufp = out_data_miss_size;
+    bufp += sizeof(size_t);
+
+    std::copy(out_data.begin(), out_data.end(), bufp);
+
+    return buffer;
+ 
 }
 
 void huffman_encoding(int * const quantized_data, const std::size_t n,
@@ -285,13 +347,33 @@ void huffman_encoding(int * const quantized_data, const std::size_t n,
     }
   }
 
+  std::cout << "num hit: " << n - num_miss << " num_miss: " << num_miss << "\n";
   // Note: hit size is in bits, while miss size is in bytes.
   * out_data_hit_size = start_bit;
   * out_data_miss_size = num_miss * sizeof(int);
 
   // write frequency table to buffer
-  * out_tree = (unsigned char *) ft;
-  * out_tree_size = sizeof(size_t) * nql;
+  int nonZeros = 0;
+  for (int i = 0; i < nql; i++) {
+    if (ft[i] > 0) {
+      nonZeros++;
+    }
+  }
+
+  size_t * cft = (size_t *)malloc(2 * nonZeros * sizeof(size_t));
+  int off = 0;
+  for (int i = 0; i < nql; i++) {
+    if (ft[i] > 0) {
+      cft[2 * off] = i;
+      cft[2 * off + 1] = ft[i];
+      off++;
+    }       
+  }
+
+  * out_tree = (unsigned char *) cft;
+  * out_tree_size = 2 * nonZeros * sizeof(size_t);
+  free(ft);
+  ft = 0;
 }
 
 void compress_memory_z(void *const in_data, const std::size_t in_data_size,

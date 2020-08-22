@@ -4,6 +4,10 @@
 #include <vector>
 
 namespace mgard {
+unsigned char * compress_memory_huffman(std::vector<int> &qv,
+                                        std::vector<unsigned char> &out_data,
+                                        int &outsize);
+
 void huffman_encoding(int *const in_data, const std::size_t in_data_size,
                       unsigned char **out_data_hit, size_t * out_data_hit_size,
 		      unsigned char **out_data_miss, size_t * out_data_miss_size,

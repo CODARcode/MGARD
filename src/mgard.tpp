@@ -550,56 +550,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 
     std::vector<unsigned char> out_data;
 
-    unsigned char * out_data_hit = 0;
-    size_t out_data_hit_size;
-    unsigned char * out_data_miss = 0;
-    size_t out_data_miss_size;
-    unsigned char * out_tree = 0;
-    size_t out_tree_size;
-    mgard::huffman_encoding(qv.data(), qv.size(), 
-		    &out_data_hit, &out_data_hit_size,
-		    &out_data_miss, &out_data_miss_size,
-		    &out_tree, &out_tree_size);
-
-    size_t total_size = out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
-    unsigned char * payload = (unsigned char * ) malloc (total_size);
-    unsigned char * bufp = payload;
-
-    memcpy (bufp, out_tree, out_tree_size);
-    bufp += out_tree_size;
-
-    memcpy (bufp, out_data_hit, out_data_hit_size / 8 + 4);
-    bufp += out_data_hit_size / 8 + 4;
-
-    memcpy (bufp, out_data_miss, out_data_miss_size);
-    bufp += out_data_miss_size;
-
-    free (out_tree);
-    free (out_data_hit);
-    free (out_data_miss);
-
-    if (1) {
-      mgard::compress_memory_z(payload, total_size, out_data);
-    } else {
-      mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-    }
-
-    outsize = out_data.size() + 3 * sizeof(size_t);
-    unsigned char * buffer = (unsigned char *)malloc(outsize);
-
-    bufp = buffer;
-    * (size_t *) bufp = out_tree_size;
-    bufp += sizeof(size_t);
-
-    * (size_t *) bufp = out_data_hit_size;
-    bufp += sizeof(size_t);
-
-    * (size_t *) bufp = out_data_miss_size;
-    bufp += sizeof(size_t);
-
-    std::copy(out_data.begin(), out_data.end(), bufp);
-
-    return buffer;
+    return mgard::compress_memory_huffman(qv, out_data, outsize);
   }
 }
 
@@ -930,6 +881,8 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
                             out_data_hit, out_data_hit_size,
                             out_data_miss, out_data_miss_size,
                             out_tree, out_tree_size);
+
+    free(huffman_encoding_p);
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
