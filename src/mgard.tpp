@@ -511,19 +511,8 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
-    unsigned char * out_data_hit = 0, * out_data_miss = 0, * out_tree = 0;
-    size_t out_data_hit_size, out_data_miss_size, out_tree_size;
 
-    mgard::huffman_encoding(qv.data(), qv.size(), 
-                            &out_data_hit, &out_data_hit_size,
-			    &out_data_miss, &out_data_miss_size,
-			    &out_tree, &out_tree_size);
-
-    mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-    outsize = out_data.size();
-    unsigned char *buffer = (unsigned char *)malloc(outsize);
-    std::copy(out_data.begin(), out_data.end(), buffer);
-    return buffer;
+    return mgard::compress_memory_huffman(qv, out_data, outsize);
   } else {
     std::vector<Real> coords_x(ncol);
 
@@ -825,8 +814,7 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
 #endif
     std::vector<int> out_data(ncol + size_ratio);
 
-    mgard::decompress_memory_z(data, data_len, out_data.data(),
-                               out_data.size() * sizeof(int));
+    mgard::decompress_memory_huffman(data, data_len, out_data);
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
@@ -848,41 +836,9 @@ Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
     const Dimensions2kPlus1<1> dims({ncol});
     const int l_target = dims.nlevel - 1;
 
-    unsigned char * out_data_hit = 0;
-    size_t out_data_hit_size;
-    unsigned char * out_data_miss = 0;
-    size_t out_data_miss_size;
-    unsigned char * out_tree = 0;
-    size_t out_tree_size;
-
-    unsigned char * buf = data;
-
-    out_tree_size = * (size_t *) buf;
-    buf += sizeof(size_t);
-
-    out_data_hit_size = * (size_t *) buf;
-    buf += sizeof(size_t);
-
-    out_data_miss_size = * (size_t *) buf;
-    buf += sizeof(size_t);
-
     std::vector<int> out_data(ncol + size_ratio);
-    size_t total_huffman_size = out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
-    unsigned char * huffman_encoding_p = (unsigned char *)malloc(total_huffman_size);
 
-    mgard::decompress_memory_z_huffman(buf, data_len - 3 * sizeof(size_t),
-		                       huffman_encoding_p, total_huffman_size);
-
-    out_tree = huffman_encoding_p;
-    out_data_hit = huffman_encoding_p + out_tree_size;
-    out_data_miss = huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
-
-    mgard::huffman_decoding(out_data.data(), out_data.size(),
-                            out_data_hit, out_data_hit_size,
-                            out_data_miss, out_data_miss_size,
-                            out_tree, out_tree_size);
-
-    free(huffman_encoding_p);
+    mgard::decompress_memory_huffman(data, data_len, out_data);
 
     Real *v = (Real *)malloc(ncol * sizeof(Real));
 
