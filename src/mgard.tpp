@@ -17,6 +17,7 @@
 
 #include <zlib.h>
 
+#include <bitset>
 #include <fstream>
 #include <numeric>
 
@@ -511,11 +512,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 
     std::vector<unsigned char> out_data;
 
-    mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-    outsize = out_data.size();
-    unsigned char *buffer = (unsigned char *)malloc(outsize);
-    std::copy(out_data.begin(), out_data.end(), buffer);
-    return buffer;
+    return mgard::compress_memory_huffman(qv, out_data, outsize);
   } else {
     std::vector<Real> coords_x(ncol);
 
@@ -542,12 +539,7 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 
     std::vector<unsigned char> out_data;
 
-    mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
-
-    outsize = out_data.size();
-    unsigned char *buffer = (unsigned char *)malloc(outsize);
-    std::copy(out_data.begin(), out_data.end(), buffer);
-    return buffer;
+    return mgard::compress_memory_huffman(qv, out_data, outsize);
   }
 }
 
@@ -614,7 +606,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
 
     // Uncomment the following. Otherwise the tolerence is divided twice.
     // Q. Liu 3/2/2020.
-    //tol /= dims.nlevel + 1;
+    // tol /= dims.nlevel + 1;
     mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
@@ -804,6 +796,68 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, std::vector<Real> &coords_x,
 }
 
 template <typename Real>
+Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len) {
+  const int size_ratio = sizeof(Real) / sizeof(int);
+
+  if (is_2kplus1(ncol)) // input is (2^p + 1)
+  {
+    // to be cleaned up.
+    const Dimensions2kPlus1<1> dims({ncol});
+    const int l_target = dims.nlevel - 1;
+#if 0
+    int ncol_new = ncol;
+
+    int nlevel_new;
+    set_number_of_levels(nrow_new, ncol_new, nlevel_new);
+
+    const int l_target = nlevel_new - 1;
+#endif
+    std::vector<int> out_data(ncol + size_ratio);
+
+    mgard::decompress_memory_huffman(data, data_len, out_data);
+
+    Real *v = (Real *)malloc(ncol * sizeof(Real));
+
+    mgard::dequantize_2D_interleave(1, ncol, v, out_data);
+    out_data.clear();
+
+    std::vector<Real> row_vec(ncol);
+    std::vector<Real> work(ncol);
+#if 1
+    mgard::recompose_1D(ncol, l_target, v, work, row_vec);
+
+    return v;
+#endif
+  } else {
+    std::vector<Real> coords_x(ncol);
+
+    std::iota(std::begin(coords_x), std::end(coords_x), 0);
+
+    const Dimensions2kPlus1<1> dims({ncol});
+    const int l_target = dims.nlevel - 1;
+
+    std::vector<int> out_data(ncol + size_ratio);
+
+    mgard::decompress_memory_huffman(data, data_len, out_data);
+
+    Real *v = (Real *)malloc(ncol * sizeof(Real));
+
+    mgard::dequantize_2D_interleave(1, ncol, v, out_data);
+
+    std::vector<Real> row_vec(ncol);
+    std::vector<Real> work(ncol);
+
+    mgard_2d::mgard_gen::recompose_1D(dims.rnded[0], dims.input[0], l_target, v,
+                                      work, coords_x, row_vec);
+
+    mgard_2d::mgard_gen::postp_1D(dims.rnded[0], dims.input[0], l_target, v,
+                                  work, coords_x, row_vec);
+
+    return v;
+  }
+}
+
+template <typename Real>
 Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
   const int size_ratio = sizeof(Real) / sizeof(int);
 
@@ -846,7 +900,6 @@ Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len) {
     const int l_target = dims.nlevel - 1;
 
     std::vector<int> out_data(ncol + size_ratio);
-
     mgard::decompress_memory_z(data, data_len, out_data.data(),
                                out_data.size() * sizeof(int));
 
@@ -1529,10 +1582,7 @@ template <typename Real>
 void quantize_2D_interleave(const int nrow, const int ncol, Real *v,
                             std::vector<int> &work, const Real norm,
                             const Real tol) {
-  //  //std::cout  << "Tolerance: " << tol << "\n";
   const int size_ratio = sizeof(Real) / sizeof(int);
-
-  ////std::cout  << "Norm of sorts: " << norm << "\n";
 
   //    Real quantizer = 2.0*norm * tol;
   const mgard::LinearQuantizer<Real, int> quantizer(norm * tol);

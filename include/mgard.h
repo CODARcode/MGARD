@@ -182,6 +182,9 @@ unsigned char *refactor_qz_1D(int ncol, const Real *v, int &outsize, Real tol);
 template <typename Real>
 Real *recompose_udq_1D(int ncol, unsigned char *data, int data_len);
 
+template <typename Real>
+Real *recompose_udq_1D_huffman(int ncol, unsigned char *data, int data_len);
+
 // Gary new
 template <typename Real>
 void refactor_1D(const int ncol, const int l_target, Real *v,
