@@ -9,6 +9,8 @@
 
 #include <random>
 
+#include "blas.hpp"
+
 #include "TensorMeshHierarchy.hpp"
 #include "TensorNorms.hpp"
 
@@ -195,5 +197,47 @@ TEST_CASE("QoI basic norm properties", "[norms]") {
   {
     const mgard::TensorMeshHierarchy<3, float> hierarchy({6, 7, 8});
     test_qoi_basic_norm_properties(hierarchy);
+  }
+}
+
+namespace {
+
+void populate_f_nodal_values(
+    const mgard::TensorMeshHierarchy<3, float> &hierarchy, float *const w) {
+  for (const mgard::TensorNode<3, float> node : hierarchy.nodes(hierarchy.L)) {
+    hierarchy.at(w, node.multiindex) =
+        std::exp(-std::pow(node.coordinates.at(0) - 0.1, 2) / 0.2 -
+                 std::pow(node.coordinates.at(1) + 0.2, 2) / 0.5 -
+                 std::pow(node.coordinates.at(2) - 0.7, 2) / 0.1);
+  }
+}
+
+float dot_with_f(const int n1, const int n2, const int n3, float *v) {
+  const mgard::TensorMeshHierarchy<3, float> hierarchy(
+      {static_cast<std::size_t>(n1), static_cast<std::size_t>(n2),
+       static_cast<std::size_t>(n3)});
+  std::vector<float> w_(hierarchy.ndof());
+  float *const w = w_.data();
+  populate_f_nodal_values(hierarchy, w);
+  const mgard::TensorMassMatrix<3, float> M(hierarchy, hierarchy.L);
+  M(w);
+  return blas::dotu(hierarchy.ndof(), w, v);
+}
+
+} // namespace
+
+TEST_CASE("Riesz representative norm", "[norms]") {
+  const mgard::TensorMeshHierarchy<3, float> hierarchy({15, 12, 13});
+  const std::array<std::size_t, 3> &SHAPE = hierarchy.meshes.back().shape;
+  std::vector<float> w_(hierarchy.ndof());
+  float *const w = w_.data();
+  populate_f_nodal_values(hierarchy, w);
+  const std::vector<float> smoothness_parameters = {-1.5, -1, -0.5, 0,
+                                                    0.5,  1,  1.5};
+  for (const float s : smoothness_parameters) {
+    REQUIRE(mgard::norm(hierarchy, w, s) ==
+            Approx(mgard::norm(SHAPE.at(0), SHAPE.at(1), SHAPE.at(2),
+                               dot_with_f, s))
+                .epsilon(1e-4));
   }
 }
