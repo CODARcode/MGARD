@@ -157,27 +157,27 @@ huffman_codec * build_huffman_codec(int * quantized_data, size_t ** ft, const st
 
 void decompress_memory_huffman(unsigned char *data, int data_len,
                                std::vector<int> &out_data) {
-  unsigned char * out_data_hit = 0;
+  unsigned char *out_data_hit = 0;
   size_t out_data_hit_size;
-  unsigned char * out_data_miss = 0;
+  unsigned char *out_data_miss = 0;
   size_t out_data_miss_size;
-  unsigned char * out_tree = 0;
+  unsigned char *out_tree = 0;
   size_t out_tree_size;
 
-  unsigned char * buf = data;
+  unsigned char *buf = data;
 
-  out_tree_size = * (size_t *) buf;
+  out_tree_size = *(size_t *)buf;
   buf += sizeof(size_t);
 
-  out_data_hit_size = * (size_t *) buf;
+  out_data_hit_size = *(size_t *)buf;
   buf += sizeof(size_t);
 
-  out_data_miss_size = * (size_t *) buf;
+  out_data_miss_size = *(size_t *)buf;
   buf += sizeof(size_t);
 
   size_t total_huffman_size =
       out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
-  unsigned char * huffman_encoding_p =
+  unsigned char *huffman_encoding_p =
       (unsigned char *)malloc(total_huffman_size);
 
   mgard::decompress_memory_z_huffman(buf, data_len - 3 * sizeof(size_t),
@@ -188,9 +188,8 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
   out_data_miss =
       huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
 
-  mgard::huffman_decoding(out_data.data(), out_data.size(),
-                          out_data_hit, out_data_hit_size,
-                          out_data_miss, out_data_miss_size,
+  mgard::huffman_decoding(out_data.data(), out_data.size(), out_data_hit,
+                          out_data_hit_size, out_data_miss, out_data_miss_size,
                           out_tree, out_tree_size);
 
   free(huffman_encoding_p);
