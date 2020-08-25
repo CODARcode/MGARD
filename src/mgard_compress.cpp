@@ -317,36 +317,36 @@ unsigned char * compress_memory_huffman(std::vector<int> &qv,
  
 }
 
-void huffman_encoding(int * const quantized_data, const std::size_t n,
-                      unsigned char ** out_data_hit, size_t * out_data_hit_size,
-		      unsigned char ** out_data_miss, size_t * out_data_miss_size,
-		      unsigned char ** out_tree, size_t * out_tree_size) {
+void huffman_encoding(int *const quantized_data, const std::size_t n,
+                      unsigned char **out_data_hit, size_t *out_data_hit_size,
+		      unsigned char **out_data_miss, size_t *out_data_miss_size,
+		      unsigned char **out_tree, size_t *out_tree_size) {
   size_t num_miss = 0;
   size_t * ft = 0;;
 
-  huffman_codec * codec = build_huffman_codec(quantized_data, &ft, n, num_miss);
+  huffman_codec *codec = build_huffman_codec(quantized_data, &ft, n, num_miss);
 
   assert (n >= num_miss);
 
   /* For those miss points, we still need to maintain a flag (q = 0), 
    * and therefore we need to allocate space for n numbers.
    */
-  unsigned char * p_hit = (unsigned char *)malloc (n * sizeof(int));
+  unsigned char *p_hit = (unsigned char *)malloc (n * sizeof(int));
   memset (p_hit, 0, n * sizeof (int));
  
   int * p_miss = 0;
   if (num_miss > 0) {
-    p_miss = (int *)malloc (num_miss * sizeof(int));
+    p_miss = (int *)malloc(num_miss * sizeof(int));
     memset (p_miss, 0,  num_miss * sizeof (int));
   }
 
-  * out_data_hit = p_hit;
-  * out_data_miss = (unsigned char *)p_miss;
-  * out_data_hit_size = 0;
-  * out_data_miss_size = 0;
+  *out_data_hit = p_hit;
+  *out_data_miss = (unsigned char *)p_miss;
+  *out_data_hit_size = 0;
+  *out_data_miss_size = 0;
 
   size_t start_bit = 0;
-  unsigned int * cur = (unsigned int *) p_hit;
+  unsigned int * cur = (unsigned int *)p_hit;
   size_t cnt_missed = 0;
   for (int i = 0; i < n; i++) {
     int q = quantized_data[i];
@@ -372,25 +372,26 @@ void huffman_encoding(int * const quantized_data, const std::size_t n,
 //      std::cout << "[hit]: the " << i << "-th symbol: " << q << "\n";
 
     if (32 - start_bit % 32 >= len) {
-        code = code << (32 - start_bit % 32 - len);
-	*(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
-	start_bit += len;
+      code = code << (32 - start_bit % 32 - len);
+      *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
+      start_bit += len;
     } else {
-        // current unsigned int cannot hold the code
-	// copy 32 - start_bit % 32 bits to the current int
-	// and copy  the rest len - (32 - start_bit % 32) to the next int
-	size_t rshift = len - (32 - start_bit % 32);
-	size_t lshift = 32 - rshift;
-	*(cur + start_bit / 32) = (*(cur + start_bit / 32)) | (code >> rshift); 
-	*(cur + start_bit / 32 + 1) = (*(cur + start_bit / 32 + 1)) | (code << lshift);
-	start_bit += len;
+      // current unsigned int cannot hold the code
+      // copy 32 - start_bit % 32 bits to the current int
+      // and copy  the rest len - (32 - start_bit % 32) to the next int
+      size_t rshift = len - (32 - start_bit % 32);
+      size_t lshift = 32 - rshift;
+      *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | (code >> rshift); 
+      *(cur + start_bit / 32 + 1) =
+          (*(cur + start_bit / 32 + 1)) | (code << lshift);
+      start_bit += len;
     }
   }
 
   std::cout << "num hit: " << n - num_miss << " num_miss: " << num_miss << "\n";
   // Note: hit size is in bits, while miss size is in bytes.
-  * out_data_hit_size = start_bit;
-  * out_data_miss_size = num_miss * sizeof(int);
+  *out_data_hit_size = start_bit;
+  *out_data_miss_size = num_miss * sizeof(int);
 
   // write frequency table to buffer
   int nonZeros = 0;
@@ -400,7 +401,7 @@ void huffman_encoding(int * const quantized_data, const std::size_t n,
     }
   }
 
-  size_t * cft = (size_t *)malloc(2 * nonZeros * sizeof(size_t));
+  size_t *cft = (size_t *)malloc(2 * nonZeros * sizeof(size_t));
   int off = 0;
   for (int i = 0; i < nql; i++) {
     if (ft[i] > 0) {
@@ -410,8 +411,8 @@ void huffman_encoding(int * const quantized_data, const std::size_t n,
     }       
   }
 
-  * out_tree = (unsigned char *) cft;
-  * out_tree_size = 2 * nonZeros * sizeof(size_t);
+  *out_tree = (unsigned char *)cft;
+  *out_tree_size = 2 * nonZeros * sizeof(size_t);
   free(ft);
   ft = 0;
 }
