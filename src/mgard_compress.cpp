@@ -1,13 +1,13 @@
 #include "mgard_compress.hpp"
 
+#include <algorithm>
+#include <bitset>
 #include <cassert>
 #include <cmath>
-#include <iostream>
-#include <vector>
 #include <cstring>
-#include <algorithm>
+#include <iostream>
 #include <queue>
-#include <bitset>
+#include <vector>
 
 #include <zlib.h>
 
@@ -19,8 +19,8 @@ struct htree_node {
   size_t cnt;
   unsigned int code;
   size_t len;
-  htree_node * left;
-  htree_node * right;
+  htree_node *left;
+  htree_node *right;
 };
 
 struct huffman_codec {
@@ -29,10 +29,10 @@ struct huffman_codec {
   size_t len;
 };
 
-bool myfunction (htree_node i, htree_node j) { return (i.cnt < j.cnt); }
+bool myfunction(htree_node i, htree_node j) { return (i.cnt < j.cnt); }
 
-htree_node * new_htree_node(int q, size_t cnt) {
-  htree_node * new_node = new htree_node;
+htree_node *new_htree_node(int q, size_t cnt) {
+  htree_node *new_node = new htree_node;
   new_node->q = q;
   new_node->cnt = cnt;
   new_node->code = 0;
@@ -43,35 +43,33 @@ htree_node * new_htree_node(int q, size_t cnt) {
   return new_node;
 }
 
-struct LessThanByCnt
-{
-  bool operator()(const htree_node * lhs, const htree_node * rhs) const
-  {
+struct LessThanByCnt {
+  bool operator()(const htree_node *lhs, const htree_node *rhs) const {
     return lhs->cnt > rhs->cnt;
   }
 };
 
-template<class T>
-using my_priority_queue = std::priority_queue<T *, std::vector<T *>, LessThanByCnt>;
+template <class T>
+using my_priority_queue =
+    std::priority_queue<T *, std::vector<T *>, LessThanByCnt>;
 
-void print_huffman_tree(htree_node * r) {
+void print_huffman_tree(htree_node *r) {}
 
-}
-
-void build_codec(htree_node * root, unsigned int code, size_t len, huffman_codec * codec) {
+void build_codec(htree_node *root, unsigned int code, size_t len,
+                 huffman_codec *codec) {
 
   root->len = len;
   root->code = code;
 
   if (!root->left && !root->right) {
-    codec[root->q].q = root->q; 
-    codec[root->q].code = code; 
+    codec[root->q].q = root->q;
+    codec[root->q].code = code;
     codec[root->q].len = len;
     /*
     std::cout << "code = " << std::bitset<32>(code)
-    	      << " len = " << len 
-	      << " count = " << root->cnt << "\n";
-	      */
+              << " len = " << len
+              << " count = " << root->cnt << "\n";
+              */
   }
 
   if (root->left) {
@@ -83,24 +81,24 @@ void build_codec(htree_node * root, unsigned int code, size_t len, huffman_codec
   }
 }
 
-my_priority_queue<htree_node> * build_tree(size_t * cnt) {
-  my_priority_queue<htree_node> * phtree;
+my_priority_queue<htree_node> *build_tree(size_t *cnt) {
+  my_priority_queue<htree_node> *phtree;
   phtree = new my_priority_queue<htree_node>;
 #if 1
   for (int i = 0; i < nql; i++) {
     if (cnt[i] != 0) {
-      htree_node * new_node = new_htree_node(i, cnt[i]);
+      htree_node *new_node = new_htree_node(i, cnt[i]);
       phtree->push(new_node);
     }
   }
 
   while (phtree->size() > 1) {
-    htree_node * top_node1 = phtree->top();
+    htree_node *top_node1 = phtree->top();
     phtree->pop();
-    htree_node * top_node2 = phtree->top();
+    htree_node *top_node2 = phtree->top();
     phtree->pop();
 
-    htree_node * new_node = new_htree_node(-1, top_node1->cnt + top_node2->cnt);
+    htree_node *new_node = new_htree_node(-1, top_node1->cnt + top_node2->cnt);
     new_node->left = top_node1;
     new_node->right = top_node2;
     phtree->push(new_node);
@@ -110,12 +108,13 @@ my_priority_queue<htree_node> * build_tree(size_t * cnt) {
 }
 
 // Note this function will change the quantized data.
-size_t * build_ft(int * quantized_data, const std::size_t n, size_t & num_outliers) {
-  size_t * cnt = (size_t *) malloc (nql * sizeof (size_t));
-  memset (cnt, 0, nql * sizeof (size_t));
+size_t *build_ft(int *quantized_data, const std::size_t n,
+                 size_t &num_outliers) {
+  size_t *cnt = (size_t *)malloc(nql * sizeof(size_t));
+  memset(cnt, 0, nql * sizeof(size_t));
 
   for (int i = 0; i < n; i++) {
-    // Convert quantization level to positive so that counting freq can be 
+    // Convert quantization level to positive so that counting freq can be
     // easily done. Level 0 is reserved a out-of-range flag.
     quantized_data[i] = quantized_data[i] + nql / 2;
     if (quantized_data[i] > 0 && quantized_data[i] < nql) {
@@ -123,7 +122,6 @@ size_t * build_ft(int * quantized_data, const std::size_t n, size_t & num_outlie
     } else {
       cnt[0]++;
     }
-
   }
 
   num_outliers = cnt[0];
@@ -131,26 +129,28 @@ size_t * build_ft(int * quantized_data, const std::size_t n, size_t & num_outlie
   return cnt;
 }
 
-huffman_codec * build_huffman_codec(int * quantized_data, size_t ** ft, const std::size_t n, size_t & num_outliers) {
-  htree_node * root = 0;
-  size_t * cnt;
+huffman_codec *build_huffman_codec(int *quantized_data, size_t **ft,
+                                   const std::size_t n, size_t &num_outliers) {
+  htree_node *root = 0;
+  size_t *cnt;
 
-  cnt = build_ft (quantized_data, n, num_outliers);
-  * ft = cnt;
+  cnt = build_ft(quantized_data, n, num_outliers);
+  *ft = cnt;
 
-  my_priority_queue<htree_node> * phtree = build_tree (cnt);
+  my_priority_queue<htree_node> *phtree = build_tree(cnt);
 
-  huffman_codec * codec = (huffman_codec *) malloc(sizeof (huffman_codec) * nql);
-  memset (codec, 0, sizeof (huffman_codec) * nql);
+  huffman_codec *codec = (huffman_codec *)malloc(sizeof(huffman_codec) * nql);
+  memset(codec, 0, sizeof(huffman_codec) * nql);
 
-  build_codec(phtree->top(), 0 , 0, codec);
-/*
-  for (int i = 0; i < nql; i++) {
-    if (codec[i].len != 0) {
-      std::cout << "codec: i = " << i << " len = " << codec[i].len << " code = " << std::bitset<32>(codec[i].code) << "\n";
+  build_codec(phtree->top(), 0, 0, codec);
+  /*
+    for (int i = 0; i < nql; i++) {
+      if (codec[i].len != 0) {
+        std::cout << "codec: i = " << i << " len = " << codec[i].len << " code =
+    " << std::bitset<32>(codec[i].code) << "\n";
+      }
     }
-  }
-*/
+  */
 
   return codec;
 }
@@ -195,39 +195,39 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
   free(huffman_encoding_p);
 }
 
-void huffman_decoding(int * quantized_data, const std::size_t n,
-                      unsigned char * out_data_hit, size_t out_data_hit_size,
-                      unsigned char * out_data_miss, size_t out_data_miss_size,
-                      unsigned char * out_tree, size_t out_tree_size) {
-  size_t * cft = (size_t *) out_tree;
+void huffman_decoding(int *quantized_data, const std::size_t n,
+                      unsigned char *out_data_hit, size_t out_data_hit_size,
+                      unsigned char *out_data_miss, size_t out_data_miss_size,
+                      unsigned char *out_tree, size_t out_tree_size) {
+  size_t *cft = (size_t *)out_tree;
   int nonZeros = out_tree_size / (2 * sizeof(size_t));
-  size_t * ft = (size_t *) malloc(nql * sizeof(size_t));
-  ft = (size_t *) malloc(nql * sizeof(size_t));
+  size_t *ft = (size_t *)malloc(nql * sizeof(size_t));
+  ft = (size_t *)malloc(nql * sizeof(size_t));
 
   memset(ft, 0, nql * sizeof(size_t));
 
   for (int j = 0; j < nonZeros; j++) {
     ft[cft[2 * j]] = cft[2 * j + 1];
   }
-  
-  my_priority_queue<htree_node> * phtree =  build_tree (ft);
 
-  unsigned int * buf = (unsigned int *) out_data_hit;
-  int * miss_buf =  (int *) out_data_miss;
+  my_priority_queue<htree_node> *phtree = build_tree(ft);
+
+  unsigned int *buf = (unsigned int *)out_data_hit;
+  int *miss_buf = (int *)out_data_miss;
   size_t start_bit = 0;
   unsigned int mask = 0x80000000;
 
-  int * q = quantized_data;
+  int *q = quantized_data;
   size_t i = 0;
   size_t num_missed = 0;
   while (start_bit < out_data_hit_size) {
-    htree_node * root = phtree->top();
-    assert (root);
+    htree_node *root = phtree->top();
+    assert(root);
 
     size_t len = 0;
     int offset = 0;
     while (root->left) {
-      int flag = * (buf + start_bit / 32 + offset) & mask;
+      int flag = *(buf + start_bit / 32 + offset) & mask;
       if (!flag) {
         root = root->left;
       } else {
@@ -239,18 +239,17 @@ void huffman_decoding(int * quantized_data, const std::size_t n,
       mask >>= 1;
       if (!mask) {
         mask = 0x80000000;
-	offset = 1;
+        offset = 1;
       } else {
-//        offset = 0;
+        //        offset = 0;
       }
-
     }
 
     if (root->q != 0) {
-      * q = root->q - nql / 2;
+      *q = root->q - nql / 2;
 
     } else {
-      * q = * miss_buf - nql / 2;
+      *q = *miss_buf - nql / 2;
 
       miss_buf++;
       num_missed++;
@@ -258,86 +257,86 @@ void huffman_decoding(int * quantized_data, const std::size_t n,
 
     q++;
     i++;
-    
+
     start_bit += len;
   }
 
-  assert (sizeof(int) * num_missed == out_data_miss_size);
+  assert(sizeof(int) * num_missed == out_data_miss_size);
 }
 
-unsigned char * compress_memory_huffman(std::vector<int> &qv,
-	                	        std::vector<unsigned char> &out_data,
-                                        int &outsize) {
-    unsigned char * out_data_hit = 0;
-    size_t out_data_hit_size;
-    unsigned char * out_data_miss = 0;
-    size_t out_data_miss_size;
-    unsigned char * out_tree = 0;
-    size_t out_tree_size;
-    mgard::huffman_encoding(qv.data(), qv.size(),
-                    &out_data_hit, &out_data_hit_size,
-                    &out_data_miss, &out_data_miss_size,
-                    &out_tree, &out_tree_size);
+unsigned char *compress_memory_huffman(std::vector<int> &qv,
+                                       std::vector<unsigned char> &out_data,
+                                       int &outsize) {
+  unsigned char *out_data_hit = 0;
+  size_t out_data_hit_size;
+  unsigned char *out_data_miss = 0;
+  size_t out_data_miss_size;
+  unsigned char *out_tree = 0;
+  size_t out_tree_size;
+  mgard::huffman_encoding(qv.data(), qv.size(), &out_data_hit,
+                          &out_data_hit_size, &out_data_miss,
+                          &out_data_miss_size, &out_tree, &out_tree_size);
 
-    size_t total_size = out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
-    unsigned char * payload = (unsigned char * ) malloc (total_size);
-    unsigned char * bufp = payload;
+  size_t total_size =
+      out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
+  unsigned char *payload = (unsigned char *)malloc(total_size);
+  unsigned char *bufp = payload;
 
-    memcpy (bufp, out_tree, out_tree_size);
-    bufp += out_tree_size;
+  memcpy(bufp, out_tree, out_tree_size);
+  bufp += out_tree_size;
 
-    memcpy (bufp, out_data_hit, out_data_hit_size / 8 + 4);
-    bufp += out_data_hit_size / 8 + 4;
+  memcpy(bufp, out_data_hit, out_data_hit_size / 8 + 4);
+  bufp += out_data_hit_size / 8 + 4;
 
-    memcpy (bufp, out_data_miss, out_data_miss_size);
-    bufp += out_data_miss_size;
+  memcpy(bufp, out_data_miss, out_data_miss_size);
+  bufp += out_data_miss_size;
 
-    free (out_tree);
-    free (out_data_hit);
-    free (out_data_miss);
+  free(out_tree);
+  free(out_data_hit);
+  free(out_data_miss);
 
-    mgard::compress_memory_z(payload, total_size, out_data);
+  mgard::compress_memory_z(payload, total_size, out_data);
 
-    outsize = out_data.size() + 3 * sizeof(size_t);
-    unsigned char * buffer = (unsigned char *)malloc(outsize);
+  outsize = out_data.size() + 3 * sizeof(size_t);
+  unsigned char *buffer = (unsigned char *)malloc(outsize);
 
-    bufp = buffer;
-    * (size_t *) bufp = out_tree_size;
-    bufp += sizeof(size_t);
+  bufp = buffer;
+  *(size_t *)bufp = out_tree_size;
+  bufp += sizeof(size_t);
 
-    * (size_t *) bufp = out_data_hit_size;
-    bufp += sizeof(size_t);
+  *(size_t *)bufp = out_data_hit_size;
+  bufp += sizeof(size_t);
 
-    * (size_t *) bufp = out_data_miss_size;
-    bufp += sizeof(size_t);
+  *(size_t *)bufp = out_data_miss_size;
+  bufp += sizeof(size_t);
 
-    std::copy(out_data.begin(), out_data.end(), bufp);
+  std::copy(out_data.begin(), out_data.end(), bufp);
 
-    return buffer;
- 
+  return buffer;
 }
 
 void huffman_encoding(int *const quantized_data, const std::size_t n,
                       unsigned char **out_data_hit, size_t *out_data_hit_size,
-		      unsigned char **out_data_miss, size_t *out_data_miss_size,
-		      unsigned char **out_tree, size_t *out_tree_size) {
+                      unsigned char **out_data_miss, size_t *out_data_miss_size,
+                      unsigned char **out_tree, size_t *out_tree_size) {
   size_t num_miss = 0;
-  size_t * ft = 0;;
+  size_t *ft = 0;
+  ;
 
   huffman_codec *codec = build_huffman_codec(quantized_data, &ft, n, num_miss);
 
-  assert (n >= num_miss);
+  assert(n >= num_miss);
 
-  /* For those miss points, we still need to maintain a flag (q = 0), 
+  /* For those miss points, we still need to maintain a flag (q = 0),
    * and therefore we need to allocate space for n numbers.
    */
-  unsigned char *p_hit = (unsigned char *)malloc (n * sizeof(int));
-  memset (p_hit, 0, n * sizeof (int));
- 
-  int * p_miss = 0;
+  unsigned char *p_hit = (unsigned char *)malloc(n * sizeof(int));
+  memset(p_hit, 0, n * sizeof(int));
+
+  int *p_miss = 0;
   if (num_miss > 0) {
     p_miss = (int *)malloc(num_miss * sizeof(int));
-    memset (p_miss, 0,  num_miss * sizeof (int));
+    memset(p_miss, 0, num_miss * sizeof(int));
   }
 
   *out_data_hit = p_hit;
@@ -346,7 +345,7 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
   *out_data_miss_size = 0;
 
   size_t start_bit = 0;
-  unsigned int * cur = (unsigned int *)p_hit;
+  unsigned int *cur = (unsigned int *)p_hit;
   size_t cnt_missed = 0;
   for (int i = 0; i < n; i++) {
     int q = quantized_data[i];
@@ -362,14 +361,14 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
       code = codec[0].code;
       len = codec[0].len;
 
-      * p_miss = q;
+      *p_miss = q;
       p_miss++;
       cnt_missed++;
     }
 
-    assert (len > 0);
+    assert(len > 0);
 
-//      std::cout << "[hit]: the " << i << "-th symbol: " << q << "\n";
+    //      std::cout << "[hit]: the " << i << "-th symbol: " << q << "\n";
 
     if (32 - start_bit % 32 >= len) {
       code = code << (32 - start_bit % 32 - len);
@@ -381,7 +380,7 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
       // and copy  the rest len - (32 - start_bit % 32) to the next int
       size_t rshift = len - (32 - start_bit % 32);
       size_t lshift = 32 - rshift;
-      *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | (code >> rshift); 
+      *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | (code >> rshift);
       *(cur + start_bit / 32 + 1) =
           (*(cur + start_bit / 32 + 1)) | (code << lshift);
       start_bit += len;
@@ -408,7 +407,7 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
       cft[2 * off] = i;
       cft[2 * off + 1] = ft[i];
       off++;
-    }       
+    }
   }
 
   *out_tree = (unsigned char *)cft;
@@ -485,8 +484,8 @@ void decompress_memory_z(void *const src, const int srcLen, int *const dst,
   assert(res == Z_OK);
 }
 
-void decompress_memory_z_huffman(void *const src, const int srcLen, 
-		                 unsigned char *const dst, const int dstLen) {
+void decompress_memory_z_huffman(void *const src, const int srcLen,
+                                 unsigned char *const dst, const int dstLen) {
   z_stream strm = {0};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;

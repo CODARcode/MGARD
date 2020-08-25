@@ -4,20 +4,20 @@
 #include <vector>
 
 namespace mgard {
-unsigned char * compress_memory_huffman(std::vector<int> &qv,
-                                        std::vector<unsigned char> &out_data,
-                                        int &outsize);
+unsigned char *compress_memory_huffman(std::vector<int> &qv,
+                                       std::vector<unsigned char> &out_data,
+                                       int &outsize);
 void decompress_memory_huffman(unsigned char *data, int data_len,
                                std::vector<int> &out_data);
 void huffman_encoding(int *const in_data, const std::size_t in_data_size,
                       unsigned char **out_data_hit, size_t *out_data_hit_size,
                       unsigned char **out_data_miss, size_t *out_data_miss_size,
-                      unsigned char ** out_tree, size_t *out_tree_size);
+                      unsigned char **out_tree, size_t *out_tree_size);
 
 void huffman_decoding(int *const in_data, const std::size_t in_data_size,
                       unsigned char *out_data_hit, size_t out_data_hit_size,
                       unsigned char *out_data_miss, size_t out_data_miss_size,
-                      unsigned char * out_tree, size_t out_tree_size);
+                      unsigned char *out_tree, size_t out_tree_size);
 
 //! Compress an array of data using `zlib`.
 //!
@@ -36,7 +36,7 @@ void compress_memory_z(void *const in_data, const std::size_t in_data_size,
 void decompress_memory_z(void *const src, const int srcLen, int *const dst,
                          const int dstLen);
 
-void decompress_memory_z_huffman(void *const src, const int srcLen, 
-		                 unsigned char *const dst, const int dstLen);
+void decompress_memory_z_huffman(void *const src, const int srcLen,
+                                 unsigned char *const dst, const int dstLen);
 
 } // namespace mgard

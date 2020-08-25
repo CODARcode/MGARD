@@ -17,9 +17,9 @@
 
 #include <zlib.h>
 
+#include <bitset>
 #include <fstream>
 #include <numeric>
-#include <bitset>
 
 #include "mgard_compress.hpp"
 #include "mgard_mesh.hpp"
@@ -606,7 +606,7 @@ unsigned char *refactor_qz_2D(int nrow, int ncol, const Real *u, int &outsize,
 
     // Uncomment the following. Otherwise the tolerence is divided twice.
     // Q. Liu 3/2/2020.
-    //tol /= dims.nlevel + 1;
+    // tol /= dims.nlevel + 1;
     mgard::quantize_2D_interleave(nrow, ncol, v.data(), qv, norm, tol);
 
     std::vector<unsigned char> out_data;
