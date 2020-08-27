@@ -18,7 +18,11 @@ void huffman_decoding(int *const in_data, const std::size_t in_data_size,
                       unsigned char *out_data_hit, size_t out_data_hit_size,
                       unsigned char *out_data_miss, size_t out_data_miss_size,
                       unsigned char *out_tree, size_t out_tree_size);
-
+#ifdef MGARD_ZSTD
+//! Compress an array of data using `zstd`.
+void compress_memory_zstd(void *const in_data, const std::size_t in_data_size,
+                          std::vector<std::uint8_t> &out_data);
+#endif
 //! Compress an array of data using `zlib`.
 //!
 //!\param in_data Pointer to data to be compressed.
@@ -39,4 +43,8 @@ void decompress_memory_z(void *const src, const int srcLen, int *const dst,
 void decompress_memory_z_huffman(void *const src, const int srcLen,
                                  unsigned char *const dst, const int dstLen);
 
+#ifdef MGARD_ZSTD
+void decompress_memory_zstd_huffman(void *const src, const int srcLen,
+                                    unsigned char *const dst, const int dstLen);
+#endif
 } // namespace mgard

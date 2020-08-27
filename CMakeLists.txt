@@ -147,6 +147,7 @@ endif()
 # Dependencies
 find_package(ZLIB REQUIRED)
 find_package(ADIOS2)
+find_package(ZSTD)
 
 # Set library
 add_library(mgard
@@ -164,6 +165,9 @@ target_include_directories(mgard
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(mgard PRIVATE ZLIB::ZLIB  ${CMAKE_DL_LIBS})
+if(ZSTD_FOUND)
+  target_link_libraries(mgard PRIVATE ZSTD::ZSTD  ${CMAKE_DL_LIBS})
+endif()
 
 
 # Make sure we require C++11.  Use meta-compile features if available,
