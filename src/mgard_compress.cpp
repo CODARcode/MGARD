@@ -11,6 +11,10 @@
 
 #include <zlib.h>
 
+#ifdef MGARD_ZSTD
+#include <zstd.h>
+#endif
+
 namespace mgard {
 const int nql = 32768 * 4;
 
@@ -179,10 +183,13 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
       out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
   unsigned char *huffman_encoding_p =
       (unsigned char *)malloc(total_huffman_size);
-
+#ifndef MGARD_ZSTD
   mgard::decompress_memory_z_huffman(buf, data_len - 3 * sizeof(size_t),
                                      huffman_encoding_p, total_huffman_size);
-
+#else
+  mgard::decompress_memory_zstd_huffman(buf, data_len - 3 * sizeof(size_t),
+                                        huffman_encoding_p, total_huffman_size);
+#endif
   out_tree = huffman_encoding_p;
   out_data_hit = huffman_encoding_p + out_tree_size;
   out_data_miss =
@@ -294,9 +301,11 @@ unsigned char *compress_memory_huffman(std::vector<int> &qv,
   free(out_tree);
   free(out_data_hit);
   free(out_data_miss);
-
+#ifndef MGARD_ZSTD
   mgard::compress_memory_z(payload, total_size, out_data);
-
+#else
+  mgard::compress_memory_zstd(payload, total_size, out_data);
+#endif
   outsize = out_data.size() + 3 * sizeof(size_t);
   unsigned char *buffer = (unsigned char *)malloc(outsize);
 
@@ -387,7 +396,8 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
     }
   }
 
-  std::cout << "num hit: " << n - num_miss << " num_miss: " << num_miss << "\n";
+  //  std::cout << "num hit: " << n - num_miss << " num_miss: " << num_miss <<
+  //  "\n";
   // Note: hit size is in bits, while miss size is in bytes.
   *out_data_hit_size = start_bit;
   *out_data_miss_size = num_miss * sizeof(int);
@@ -415,6 +425,51 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
   free(ft);
   ft = 0;
 }
+
+#ifdef MGARD_ZSTD
+/*! CHECK
+ * Check that the condition holds. If it doesn't print a message and die.
+ */
+#define CHECK(cond, ...)                                                       \
+  do {                                                                         \
+    if (!(cond)) {                                                             \
+      fprintf(stderr, "%s:%d CHECK(%s) failed: ", __FILE__, __LINE__, #cond);  \
+      fprintf(stderr, "" __VA_ARGS__);                                         \
+      fprintf(stderr, "\n");                                                   \
+      exit(1);                                                                 \
+    }                                                                          \
+  } while (0)
+
+/*! CHECK_ZSTD
+ * Check the zstd error code and die if an error occurred after printing a
+ * message.
+ */
+/*! CHECK_ZSTD
+ * Check the zstd error code and die if an error occurred after printing a
+ * message.
+ */
+#define CHECK_ZSTD(fn, ...)                                                    \
+  do {                                                                         \
+    size_t const err = (fn);                                                   \
+    CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err));                   \
+  } while (0)
+
+void compress_memory_zstd(void *const in_data, const std::size_t in_data_size,
+                          std::vector<std::uint8_t> &out_data) {
+  size_t const cBuffSize = ZSTD_compressBound(in_data_size);
+  uint8_t *cBuff = (uint8_t *)malloc(cBuffSize);
+
+  assert(cBuff);
+
+  size_t const cSize =
+      ZSTD_compress(cBuff, cBuffSize, in_data, in_data_size, 1);
+  CHECK_ZSTD(cSize);
+
+  std::copy(cBuff, cBuff + cSize, back_inserter(out_data));
+
+  free(cBuff);
+}
+#endif
 
 void compress_memory_z(void *const in_data, const std::size_t in_data_size,
                        std::vector<std::uint8_t> &out_data) {
@@ -483,6 +538,18 @@ void decompress_memory_z(void *const src, const int srcLen, int *const dst,
   res = inflateEnd(&strm);
   assert(res == Z_OK);
 }
+
+#ifdef MGARD_ZSTD
+void decompress_memory_zstd_huffman(void *const src, const int srcLen,
+                                    unsigned char *const dst,
+                                    const int dstLen) {
+  size_t const dSize = ZSTD_decompress(dst, dstLen, src, srcLen);
+  CHECK_ZSTD(dSize);
+
+  /* When zstd knows the content size, it will error if it doesn't match. */
+  CHECK(dSize == dstLen, "Impossible because zstd will check this condition!");
+}
+#endif
 
 void decompress_memory_z_huffman(void *const src, const int srcLen,
                                  unsigned char *const dst, const int dstLen) {
