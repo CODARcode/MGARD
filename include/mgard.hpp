@@ -3,7 +3,7 @@
 // Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
 // Corresponding Author: Ozan Tugluk
 //
-// version: 0.0.0.2
+// version: 0.0.0.3
 // See LICENSE for details.
 #ifndef MGARD_H
 #define MGARD_H
