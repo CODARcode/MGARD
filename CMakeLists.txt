@@ -164,6 +164,7 @@ target_include_directories(mgard
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mgard>
 )
 target_link_libraries(mgard PRIVATE ZLIB::ZLIB  ${CMAKE_DL_LIBS})
 if(ZSTD_FOUND)
@@ -202,6 +203,11 @@ install(
         ${MGARD_CUDA_HEADER}
 	"${PROJECT_BINARY_DIR}/include/MGARDConfig.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(
+  DIRECTORY
+    include/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mgard
 )
 
 # Create executables under build/bin
