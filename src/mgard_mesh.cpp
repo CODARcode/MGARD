@@ -40,4 +40,10 @@ int get_lindex(const int n, const int no, const int i) {
                      : no - 1);
 }
 
+template struct Dimensions2kPlus1<1>;
+
+template struct Dimensions2kPlus1<2>;
+
+template struct Dimensions2kPlus1<3>;
+
 } // namespace mgard
