@@ -169,6 +169,10 @@ if(ZSTD_FOUND)
   target_link_libraries(mgard PRIVATE ZSTD::ZSTD  ${CMAKE_DL_LIBS})
 endif()
 
+option(DEFINE_MGARD_TIMING "Enable/disable MGARD timing" OFF)
+if(DEFINE_MGARD_TIMING)
+  add_definitions(-DMGARD_TIMING)
+endif()
 
 # Make sure we require C++11.  Use meta-compile features if available,
 # otherwise use specific language features

@@ -21,6 +21,10 @@
 #include <fstream>
 #include <numeric>
 
+#ifdef MGARD_TIMING
+#include <chrono>
+#endif
+
 #include "mgard_compress.hpp"
 #include "mgard_mesh.hpp"
 #include "mgard_nuni.h"
@@ -498,7 +502,9 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     int nlevel;
     set_number_of_levels(1, ncol, nlevel);
     tol /= nlevel + 1;
-
+#ifdef MGARD_TIMING
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
     const int l_target = nlevel - 1;
     mgard::refactor_1D(ncol, l_target, v.data(), work, row_vec);
 
@@ -509,7 +515,11 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     std::vector<int> qv(ncol + size_ratio);
 
     mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
-
+#ifdef MGARD_TIMING
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Refactor Time = " << (double)duration.count()/1000000 << "\n";
+#endif
     std::vector<unsigned char> out_data;
 
     return mgard::compress_memory_huffman(qv, out_data, outsize);
@@ -522,7 +532,9 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     tol /= dims.nlevel + 1;
 
     const int l_target = dims.nlevel - 1;
-
+#ifdef MGARD_TIMING
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
     mgard_2d::mgard_gen::prep_1D(dims.rnded[0], dims.input[0], l_target,
                                  v.data(), work, coords_x, row_vec);
 
@@ -536,7 +548,11 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     std::vector<int> qv(ncol + size_ratio);
 
     mgard::quantize_2D_interleave(1, ncol, v.data(), qv, norm, tol);
-
+#ifdef MGARD_TIMING
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+    std::cout << "Refactor Time = " << duration.count() << "\n";
+#endif
     std::vector<unsigned char> out_data;
 
     return mgard::compress_memory_huffman(qv, out_data, outsize);
