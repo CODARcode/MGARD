@@ -4,6 +4,7 @@
 //!\brief Quantizer for multilevel coefficients on tensor product grids.
 
 #include "LinearQuantizer.hpp"
+#include "TensorMeshHierarchy.hpp"
 #include "utilities.hpp"
 
 namespace mgard {
