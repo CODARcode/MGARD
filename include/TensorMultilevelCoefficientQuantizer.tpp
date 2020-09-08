@@ -34,8 +34,8 @@ Real s_quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
     volume_factor *= (h_left + h_right) / 2;
   }
   // The maximum error is half the quantizer.
-  return (2 * tolerance) / (std::pow(2, s * node.l) *
-                            std::sqrt(hierarchy.ndof() * volume_factor));
+  return (2 * tolerance) /
+         (std::exp2(s * node.l) * std::sqrt(hierarchy.ndof() * volume_factor));
 }
 
 } // namespace
