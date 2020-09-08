@@ -128,7 +128,7 @@ static double s_norm(const NodalCoefficients<double> u,
     // when an orthogonal component was almost zero.
     const double difference_of_squares = std::max(
         0.0, squares_for_norm.at(l) - (l ? squares_for_norm.at(l - 1) : 0));
-    square_norm += std::pow(2, 2 * s * l) * difference_of_squares;
+    square_norm += std::exp2(2 * s * l) * difference_of_squares;
   }
   return std::sqrt(square_norm);
 }
