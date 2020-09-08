@@ -1,6 +1,7 @@
 #include <cmath>
+
+#include <algorithm>
 #include <limits>
-#include <stdexcept>
 
 namespace mgard {
 
@@ -9,14 +10,32 @@ namespace mgard {
 namespace {
 
 template <std::size_t N, typename Real>
-Real quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
-             const Real tolerance) {
-  if (s == std::numeric_limits<Real>::infinity()) {
-    // The maximum error is half the quantizer.
-    return (2 * tolerance) / ((hierarchy.L + 1) * (1 + std::pow(3, N)));
-  } else {
-    throw std::invalid_argument("only supremum norm quantizing implemented");
+Real supremum_quantum(const TensorMeshHierarchy<N, Real> &hierarchy,
+                      const Real tolerance) {
+  // The maximum error is half the quantizer.
+  return (2 * tolerance) / ((hierarchy.L + 1) * (1 + std::pow(3, N)));
+}
+
+template <std::size_t N, typename Real>
+Real s_quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
+               const Real tolerance, const TensorNode<N, Real> node) {
+  Real volume_factor = 1;
+  for (std::size_t i = 0; i < N; ++i) {
+    const std::vector<std::size_t> indices = hierarchy.indices(node.l, i);
+    // `TensorNode` doesn't immediately give us a way of accessing the
+    // neighboring nodes in the level, so we have to search.
+    const std::vector<std::size_t>::const_iterator p =
+        std::find(indices.begin(), indices.end(), node.multiindex.at(i));
+    const std::vector<Real> &coordinates = hierarchy.coordinates.at(i);
+    const Real x = node.coordinates.at(i);
+    const Real h_left = p == indices.begin() ? 0 : x - coordinates.at(*(p - 1));
+    const Real h_right =
+        p + 1 == indices.end() ? 0 : coordinates.at(*(p + 1)) - x;
+    volume_factor *= (h_left + h_right) / 2;
   }
+  // The maximum error is half the quantizer.
+  return (2 * tolerance) / (std::pow(2, s * node.l) *
+                            std::sqrt(hierarchy.ndof() * volume_factor));
 }
 
 } // namespace
@@ -26,16 +45,18 @@ Qntzr<N, Real, Int>::Qntzr(const TensorMeshHierarchy<N, Real> &hierarchy,
                            const Real s, const Real tolerance)
     : hierarchy(hierarchy), s(s), tolerance(tolerance),
       nodes(hierarchy.nodes(hierarchy.L)),
-      supremum_quantizer(quantum(hierarchy, s, tolerance)) {}
+      supremum_quantizer(supremum_quantum(hierarchy, tolerance)) {}
 
 template <std::size_t N, typename Real, typename Int>
-Int Qntzr<N, Real, Int>::operator()(const TensorNode<N, Real>,
+Int Qntzr<N, Real, Int>::operator()(const TensorNode<N, Real> node,
                                     const Real coefficient) const {
   // TODO: Look into moving this test outside of the operator.
   if (s == std::numeric_limits<Real>::infinity()) {
     return supremum_quantizer(coefficient);
   } else {
-    throw std::invalid_argument("only supremum norm quantizing implemented");
+    const LinearQuantizer<Real, Int> quantizer(
+        s_quantum(hierarchy, s, tolerance, node));
+    return quantizer(coefficient);
   }
 }
 
@@ -106,16 +127,18 @@ Dqntzr<N, Int, Real>::Dqntzr(const TensorMeshHierarchy<N, Real> &hierarchy,
                              const Real s, const Real tolerance)
     : hierarchy(hierarchy), s(s), tolerance(tolerance),
       nodes(hierarchy.nodes(hierarchy.L)),
-      supremum_dequantizer(quantum(hierarchy, s, tolerance)) {}
+      supremum_dequantizer(supremum_quantum(hierarchy, tolerance)) {}
 
 template <std::size_t N, typename Int, typename Real>
-Real Dqntzr<N, Int, Real>::operator()(const TensorNode<N, Real>,
+Real Dqntzr<N, Int, Real>::operator()(const TensorNode<N, Real> node,
                                       const Int n) const {
   // TODO: Look into moving this test outside of the operator.
   if (s == std::numeric_limits<Real>::infinity()) {
     return supremum_dequantizer(n);
   } else {
-    throw std::invalid_argument("only supremum norm quantizing implemented");
+    const LinearDequantizer<Int, Real> dequantizer(
+        s_quantum(hierarchy, s, tolerance, node));
+    return dequantizer(n);
   }
 }
 
