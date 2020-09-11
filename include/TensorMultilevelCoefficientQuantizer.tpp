@@ -114,8 +114,7 @@ operator++(int) {
 }
 
 template <std::size_t N, typename Real, typename Int>
-typename Qntzr<N, Real, Int>::iterator::value_type
-    Qntzr<N, Real, Int>::iterator::operator*() const {
+Int Qntzr<N, Real, Int>::iterator::operator*() const {
   return quantizer(*inner_node, *inner_coeff);
 }
 

@@ -212,7 +212,7 @@ public:
   using value_type = TensorNode<N, Real>;
   using difference_type = std::ptrdiff_t;
   using pointer = value_type *;
-  using reference = value_type &;
+  using reference = value_type;
 
   //! Constructor.
   //!
@@ -234,7 +234,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  value_type operator*() const;
+  reference operator*() const;
 
   //! View of nodes being iterated over.
   const TensorNodeRange &iterable;

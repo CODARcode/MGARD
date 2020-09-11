@@ -87,8 +87,8 @@ typename Enumeration<It>::iterator Enumeration<It>::iterator::operator++(int) {
 }
 
 template <typename It>
-IndexedElement<typename std::iterator_traits<It>::value_type>
-    Enumeration<It>::iterator::operator*() const {
+typename Enumeration<It>::iterator::reference Enumeration<It>::iterator::
+operator*() const {
   return {index, *inner};
 }
 
@@ -177,8 +177,7 @@ operator++(int) {
 }
 
 template <typename It, typename Jt>
-std::pair<typename std::iterator_traits<It>::value_type,
-          typename std::iterator_traits<Jt>::value_type>
+typename ZippedRange<It, Jt>::iterator::reference
     ZippedRange<It, Jt>::iterator::operator*() const {
   return {*inner_first, *inner_second};
 }
