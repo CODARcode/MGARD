@@ -31,7 +31,7 @@ public:
 private:
   using CLO = ConstituentLinearOperator<N, Real>;
 
-  std::vector<std::size_t> coarse_indices;
+  TensorIndexRange coarse_indices;
 
   virtual void
   do_operator_parentheses(const std::array<std::size_t, N> multiindex,
