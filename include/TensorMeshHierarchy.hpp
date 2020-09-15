@@ -149,7 +149,7 @@ bool operator==(const TensorMeshHierarchy<N, Real> &a,
 
 //! Inequality comparison.
 template <std::size_t N, typename Real>
-bool operator==(const TensorMeshHierarchy<N, Real> &a,
+bool operator!=(const TensorMeshHierarchy<N, Real> &a,
                 const TensorMeshHierarchy<N, Real> &b);
 
 //! Indices in a particular dimension of nodes of a particular level in a mesh

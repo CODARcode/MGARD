@@ -39,11 +39,8 @@ TensorIndexRange::iterator::iterator(const TensorIndexRange &iterable,
 
 bool TensorIndexRange::iterator::
 operator==(const TensorIndexRange::iterator &other) const {
-  // Originally `iterable` was a reference, so the first comparison here was a
-  // test of object equality. Now that `iterable` is a pointer, it's a test of
-  // object identity. That's probably fine, since we only ever want to compare
-  // iterators to the same range.
-  return iterable == other.iterable && inner == other.inner;
+  return (iterable == other.iterable || *iterable == *other.iterable) &&
+         inner == other.inner;
 }
 
 bool TensorIndexRange::iterator::

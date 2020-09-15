@@ -94,8 +94,8 @@ Qntzr<N, Real, Int>::iterator::iterator(
 template <std::size_t N, typename Real, typename Int>
 bool Qntzr<N, Real, Int>::iterator::
 operator==(const typename Qntzr<N, Real, Int>::iterator &other) const {
-  return quantizer == other.quantizer && inner_node == other.inner_node &&
-         inner_coeff == other.inner_coeff;
+  return (&quantizer == &other.quantizer || quantizer == other.quantizer) &&
+         inner_node == other.inner_node && inner_coeff == other.inner_coeff;
 }
 
 template <std::size_t N, typename Real, typename Int>
@@ -180,8 +180,9 @@ template <typename It>
 bool Dqntzr<N, Int, Real>::iterator<It>::iterator::operator==(
     const typename Dqntzr<N, Int, Real>::template iterator<It>::iterator &other)
     const {
-  return dequantizer == other.dequantizer && inner_node == other.inner_node &&
-         inner_coeff == other.inner_coeff;
+  return (&dequantizer == &other.dequantizer ||
+          dequantizer == other.dequantizer) &&
+         inner_node == other.inner_node && inner_coeff == other.inner_coeff;
 }
 
 template <std::size_t N, typename Int, typename Real>
