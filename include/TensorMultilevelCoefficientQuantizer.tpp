@@ -21,16 +21,23 @@ Real s_quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
                const Real tolerance, const TensorNode<N, Real> node) {
   Real volume_factor = 1;
   for (std::size_t i = 0; i < N; ++i) {
-    const std::vector<std::size_t> indices = hierarchy.indices(node.l, i);
+    const TensorIndexRange indices = hierarchy.indices(node.l, i);
     // `TensorNode` doesn't immediately give us a way of accessing the
     // neighboring nodes in the level, so we have to search.
-    const std::vector<std::size_t>::const_iterator p =
+    const TensorIndexRange::iterator p =
         std::find(indices.begin(), indices.end(), node.multiindex.at(i));
     const std::vector<Real> &coordinates = hierarchy.coordinates.at(i);
     const Real x = node.coordinates.at(i);
-    const Real h_left = p == indices.begin() ? 0 : x - coordinates.at(*(p - 1));
-    const Real h_right =
-        p + 1 == indices.end() ? 0 : coordinates.at(*(p + 1)) - x;
+
+    // Temporary copy of `p` that can be incremented and decremented.
+    TensorIndexRange::iterator q;
+
+    q = p;
+    const Real h_left = q == indices.begin() ? 0 : x - coordinates.at(*--q);
+
+    q = p;
+    const Real h_right = ++q == indices.end() ? 0 : coordinates.at(*q) - x;
+
     volume_factor *= (h_left + h_right) / 2;
   }
   // The maximum error is half the quantizer.

@@ -31,10 +31,10 @@ operator()(const std::array<std::size_t, N> multiindex, Real *const v) const {
 namespace {
 
 template <std::size_t N, typename Real>
-std::array<std::vector<std::size_t>, N>
+std::array<TensorIndexRange, N>
 level_multiindex_components(const TensorMeshHierarchy<N, Real> &hierarchy,
                             const std::size_t l) {
-  std::array<std::vector<std::size_t>, N> multiindex_components;
+  std::array<TensorIndexRange, N> multiindex_components;
   for (std::size_t i = 0; i < N; ++i) {
     multiindex_components.at(i) = hierarchy.indices(l, i);
   }
@@ -59,7 +59,7 @@ TensorLinearOperator<N, Real>::TensorLinearOperator(
 
 template <std::size_t N, typename Real>
 void TensorLinearOperator<N, Real>::operator()(Real *const v) const {
-  std::array<std::vector<std::size_t>, N> multiindex_components_ =
+  std::array<TensorIndexRange, N> multiindex_components_ =
       multiindex_components;
   for (std::size_t i = 0; i < N; ++i) {
     ConstituentLinearOperator<N, Real> const *const A = operators.at(i);
@@ -75,9 +75,10 @@ void TensorLinearOperator<N, Real>::operator()(Real *const v) const {
       throw std::invalid_argument(
           "operator dimension does not match mesh dimension");
     }
-    multiindex_components_.at(i) = {0};
+    // Range which will yield `0` once.
+    multiindex_components_.at(i) = TensorIndexRange::singleton();
     for (const std::array<std::size_t, N> multiindex :
-         CartesianProduct<std::size_t, N>(multiindex_components_)) {
+         CartesianProduct<TensorIndexRange, N>(multiindex_components_)) {
       A->operator()(multiindex, v);
     }
     // Reinstate this dimension's indices for the next iteration.

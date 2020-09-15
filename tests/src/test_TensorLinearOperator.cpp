@@ -42,10 +42,10 @@ private:
                                Real *const v) const override {
     std::array<std::size_t, N> alpha = multiindex;
     std::size_t &variable_index = alpha.at(CLO::dimension_);
-    const std::size_t M = CLO::dimension();
-    for (std::size_t i = 0; i < M; ++i) {
-      variable_index = CLO::indices.at(i);
-      CLO::hierarchy->at(v, alpha) *= diagonal.at(i);
+    std::vector<Real>::const_iterator p = diagonal.begin();
+    for (const std::size_t index : CLO::indices) {
+      variable_index = index;
+      CLO::hierarchy->at(v, alpha) *= *p++;
     }
   }
 };
@@ -83,15 +83,17 @@ private:
       float &value = out.at(i);
       const std::array<float, 3> &row = coefficients.at(i);
       value = 0;
-      for (std::size_t j = 0; j < 3; ++j) {
-        variable_index = indices.at(j);
-        value += row.at(j) * hierarchy->at(v, alpha);
+      std::array<float, 3>::const_iterator p = row.begin();
+      for (const std::size_t index : indices) {
+        variable_index = index;
+        value += *p++ * hierarchy->at(v, alpha);
       }
     }
 
-    for (std::size_t i = 0; i < 3; ++i) {
-      variable_index = indices.at(i);
-      hierarchy->at(v, alpha) = out.at(i);
+    std::array<float, 3>::const_iterator q = out.begin();
+    for (const std::size_t index : indices) {
+      variable_index = index;
+      hierarchy->at(v, alpha) = *q++;
     }
   }
 };
