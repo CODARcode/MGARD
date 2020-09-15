@@ -7,7 +7,6 @@
 
 #include <iterator>
 #include <utility>
-#include <vector>
 
 namespace mgard {
 
@@ -264,6 +263,7 @@ public:
   const It end_;
 };
 
+//!\deprecated
 //! Collection of multiindices \f$\vec{\alpha}\f$ satisfying a bound of the form
 //! \f$\vec{\beta} \leq \vec{\alpha} < \vec{\gamma}\f$ (elementwise).
 template <std::size_t N> struct MultiindexRectangle {
@@ -355,16 +355,24 @@ private:
 };
 
 //! Mimic Python's `itertools.product`. Allow iteration over the Cartesian
-//! product of a collection of vectors.
+//! product of a collection of ranges.
+//!
+//! `typename T::iterator` (roughly – see `T_iterator` in `iterator`) must allow
+//! multiple passes over the associated `T` object. It is too much, though, to
+//! require it to be a forward iterator.
+//!
+// We could template on the iterator rather than the container. `factors` could
+// then be something like an array of iterator pairs (one iterator to the
+// beginning and one to the end of each factor). Then, though, you need to make
+// sure that those iterators remain valid. Maybe we could store thex
+// `TensorIndexRange`s in the mesh hierarchy or something.
 template <typename T, std::size_t N> struct CartesianProduct {
 public:
   //! Constructor.
   //!
-  //!\param factors Factors of the Cartesian product.
-  CartesianProduct(const std::array<std::vector<T>, N> &factors);
-
-  //! Prevent temporaries.
-  CartesianProduct(const std::array<std::vector<T>, N> &&factors) = delete;
+  //!\param factors Factors of the Cartesian product. None of the factors may be
+  //! empty.
+  CartesianProduct(const std::array<T, N> factors);
 
   // Forward declaration.
   class iterator;
@@ -376,10 +384,7 @@ public:
   iterator end() const;
 
   //! Factors of the Cartesian product.
-  const std::array<std::vector<T>, N> &factors;
-
-  //! Multiindices of the product elements.
-  const MultiindexRectangle<N> multiindices;
+  const std::array<T, N> factors;
 };
 
 //! Equality comparison.
@@ -395,8 +400,15 @@ bool operator!=(const CartesianProduct<T, N> &a,
 //! Iterator over a Cartesian product.
 template <typename T, std::size_t N> class CartesianProduct<T, N>::iterator {
 public:
+  // When `T` is `TensorIndexRange`, we just want `TensorIndexRange::iterator`.
+  // But when `T` is `std::vector<int>` (as of this writing, only in testing),
+  // we need `std::vector<int>::const_iterator`.
+  using T_iterator = decltype(
+      std::declval<typename std::array<T, N>::const_reference>().begin());
+
   using iterator_category = std::input_iterator_tag;
-  using value_type = std::array<T, N>;
+  using value_type =
+      std::array<typename std::iterator_traits<T_iterator>::value_type, N>;
   using difference_type = std::ptrdiff_t;
   using pointer = value_type *;
   using reference = value_type;
@@ -404,9 +416,9 @@ public:
   //! Constructor.
   //!
   //!\param iterable Associated Cartesian product.
-  //!\param multiindex Multiindex of current element in product.
+  //!\param inner Position in the Cartesian product.
   iterator(const CartesianProduct &iterable,
-           const typename MultiindexRectangle<N>::iterator inner);
+           const std::array<T_iterator, N> inner);
 
   //! Equality comparison.
   bool operator==(const iterator &other) const;
@@ -427,8 +439,8 @@ public:
   const CartesianProduct &iterable;
 
 private:
-  //! Position in the multiindex range.
-  typename MultiindexRectangle<N>::iterator inner;
+  //! Position in the Cartesian product.
+  std::array<T_iterator, N> inner;
 };
 
 } // namespace mgard
