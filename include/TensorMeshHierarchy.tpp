@@ -298,7 +298,8 @@ TensorNodeRange<N, Real>::iterator::iterator(
 template <std::size_t N, typename Real>
 bool TensorNodeRange<N, Real>::iterator::
 operator==(const TensorNodeRange<N, Real>::iterator &other) const {
-  return iterable == other.iterable && inner == other.inner;
+  return (&iterable == &other.iterable || iterable == other.iterable) &&
+         inner == other.inner;
 }
 
 template <std::size_t N, typename Real>

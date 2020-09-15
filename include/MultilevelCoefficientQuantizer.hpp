@@ -66,7 +66,7 @@ bool operator==(const MultilevelCoefficientQuantizer<Real, Int> &a,
 
 //! Inequality comparison.
 template <typename Real, typename Int>
-bool operator==(const MultilevelCoefficientQuantizer<Real, Int> &a,
+bool operator!=(const MultilevelCoefficientQuantizer<Real, Int> &a,
                 const MultilevelCoefficientQuantizer<Real, Int> &b);
 
 //! Iterator used to traverse a range of multilevel coefficients, quantizing as
@@ -174,7 +174,7 @@ bool operator==(const MultilevelCoefficientDequantizer<Int, Real> &a,
 
 //! Inequality comparison.
 template <typename Int, typename Real>
-bool operator==(const MultilevelCoefficientDequantizer<Int, Real> &a,
+bool operator!=(const MultilevelCoefficientDequantizer<Int, Real> &a,
                 const MultilevelCoefficientDequantizer<Int, Real> &b);
 
 //! Iterator used to traverse a range of quantized multilevel coefficients,

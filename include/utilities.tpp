@@ -62,8 +62,8 @@ Enumeration<It>::iterator::iterator(const Enumeration<It> &iterable,
 template <typename It>
 bool Enumeration<It>::iterator::
 operator==(const Enumeration<It>::iterator &other) const {
-  return (iterable == other.iterable && index == other.index &&
-          inner == other.inner);
+  return (&iterable == &other.iterable || iterable == other.iterable) &&
+         index == other.index && inner == other.inner;
 }
 
 template <typename It>
@@ -150,8 +150,8 @@ operator=(const ZippedRange<It, Jt>::iterator &other) {
 template <typename It, typename Jt>
 bool ZippedRange<It, Jt>::iterator::
 operator==(const ZippedRange<It, Jt>::iterator &other) const {
-  return (iterable == other.iterable && inner_first == other.inner_first &&
-          inner_second == other.inner_second);
+  return (&iterable == &other.iterable || iterable == other.iterable) &&
+         inner_first == other.inner_first && inner_second == other.inner_second;
 }
 
 template <typename It, typename Jt>
@@ -251,8 +251,8 @@ MultiindexRectangle<N>::iterator::iterator(
 template <std::size_t N>
 bool MultiindexRectangle<N>::iterator::
 operator==(const MultiindexRectangle<N>::iterator &other) const {
-  return rectangle == other.rectangle && stride == other.stride &&
-         indices == other.indices;
+  return (&rectangle == &other.rectangle || rectangle == other.rectangle) &&
+         stride == other.stride && indices == other.indices;
 }
 
 template <std::size_t N>
@@ -349,7 +349,8 @@ CartesianProduct<T, N>::iterator::iterator(
 template <typename T, std::size_t N>
 bool CartesianProduct<T, N>::iterator::
 operator==(const CartesianProduct<T, N>::iterator &other) const {
-  return iterable == other.iterable && inner == other.inner;
+  return (&iterable == &other.iterable || iterable == other.iterable) &&
+         inner == other.inner;
 }
 
 template <typename T, std::size_t N>
