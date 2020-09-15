@@ -297,24 +297,15 @@ std::array<std::size_t, N> MultiindexRectangle<N>::iterator::operator*() const {
   return indices;
 }
 
-namespace {
-
 template <typename T, std::size_t N>
-std::array<std::size_t, N>
-factor_sizes(const std::array<std::vector<T>, N> &factors) {
-  std::array<std::size_t, N> sizes;
-  for (std::size_t i = 0; i < N; ++i) {
-    sizes.at(i) = factors.at(i).size();
+CartesianProduct<T, N>::CartesianProduct(const std::array<T, N> factors)
+    : factors(factors) {
+  for (const T &factor : factors) {
+    if (factor.begin() == factor.end()) {
+      throw std::invalid_argument("none of the factors may be empty");
+    }
   }
-  return sizes;
 }
-
-} // namespace
-
-template <typename T, std::size_t N>
-CartesianProduct<T, N>::CartesianProduct(
-    const std::array<std::vector<T>, N> &factors)
-    : factors(factors), multiindices(factor_sizes(factors)) {}
 
 template <typename T, std::size_t N>
 bool operator==(const CartesianProduct<T, N> &a,
@@ -331,18 +322,28 @@ bool operator!=(const CartesianProduct<T, N> &a,
 template <typename T, std::size_t N>
 typename CartesianProduct<T, N>::iterator
 CartesianProduct<T, N>::begin() const {
-  return iterator(*this, multiindices.begin(1));
+  std::array<typename iterator::T_iterator, N> inner;
+  for (std::size_t i = 0; i < N; ++i) {
+    inner.at(i) = factors.at(i).begin();
+  }
+  return iterator(*this, inner);
 }
 
 template <typename T, std::size_t N>
 typename CartesianProduct<T, N>::iterator CartesianProduct<T, N>::end() const {
-  return iterator(*this, multiindices.end(1));
+  std::array<typename iterator::T_iterator, N> inner;
+  inner.at(0) = factors.at(0).end();
+  for (std::size_t i = 1; i < N; ++i) {
+    inner.at(i) = factors.at(i).begin();
+  }
+  return iterator(*this, inner);
 }
 
 template <typename T, std::size_t N>
 CartesianProduct<T, N>::iterator::iterator(
     const CartesianProduct<T, N> &iterable,
-    const typename MultiindexRectangle<N>::iterator inner)
+    const std::array<typename CartesianProduct<T, N>::iterator::T_iterator, N>
+        inner)
     : iterable(iterable), inner(inner) {}
 
 template <typename T, std::size_t N>
@@ -360,7 +361,20 @@ operator!=(const CartesianProduct<T, N>::iterator &other) const {
 template <typename T, std::size_t N>
 typename CartesianProduct<T, N>::iterator &CartesianProduct<T, N>::iterator::
 operator++() {
-  ++inner;
+  for (std::size_t i = N; i != 0; --i) {
+    const std::size_t j = i - 1;
+    const T &factor = iterable.factors.at(j);
+    T_iterator &it = inner.at(j);
+    if (++it != factor.end()) {
+      break;
+    } else if (j) {
+      // Unless we've hit the end of the product, reset this dimension's
+      // iterator and repeat the loop with the 'next' dimension.
+      it = factor.begin();
+      // Otherwise, we leave this dimension's iterator at the end so we can
+      // distinguish the end of the product from the beginning of the product.
+    }
+  }
   return *this;
 }
 
@@ -373,11 +387,11 @@ operator++(int) {
 }
 
 template <typename T, std::size_t N>
-std::array<T, N> CartesianProduct<T, N>::iterator::operator*() const {
-  const std::array<std::size_t, N> multiindex = *inner;
-  std::array<T, N> value;
+typename CartesianProduct<T, N>::iterator::reference
+    CartesianProduct<T, N>::iterator::operator*() const {
+  reference value;
   for (std::size_t i = 0; i < N; ++i) {
-    value.at(i) = iterable.factors.at(i).at(multiindex.at(i));
+    value.at(i) = *inner.at(i);
   }
   return value;
 }
