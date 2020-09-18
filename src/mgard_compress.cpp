@@ -127,8 +127,6 @@ void free_htree_node(htree_node *node) {
 
 void free_tree(my_priority_queue<htree_node> *phtree) {
   if (phtree) {
-    std::cout << "to free htree: " << phtree->size();
-
     free_htree_node(phtree->top());
 
     phtree->pop();
@@ -248,7 +246,14 @@ void huffman_decoding(int *quantized_data, const std::size_t n,
   my_priority_queue<htree_node> *phtree = build_tree(ft);
 
   unsigned int *buf = (unsigned int *)out_data_hit;
-  int *miss_buf = (int *)out_data_miss;
+
+  // The out_data_miss may not be aligned. Therefore, the code
+  // here makes a new buffer.
+  int *miss_buf = (int *)malloc(out_data_miss_size);
+  memcpy(miss_buf, out_data_miss, out_data_miss_size);
+
+  int *miss_bufp = miss_buf;
+
   size_t start_bit = 0;
   unsigned int mask = 0x80000000;
 
@@ -298,6 +303,8 @@ void huffman_decoding(int *quantized_data, const std::size_t n,
 
   assert(sizeof(int) * num_missed == out_data_miss_size);
 
+  free(miss_bufp);
+  miss_bufp = 0;
   free_tree(phtree);
   phtree = 0;
   free(ft);
