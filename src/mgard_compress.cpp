@@ -111,6 +111,32 @@ my_priority_queue<htree_node> *build_tree(size_t *cnt) {
   return phtree;
 }
 
+void free_htree_node(htree_node *node) {
+  if (node->left) {
+    free_htree_node(node->left);
+    node->left = 0;
+  }
+
+  if (node->right) {
+    free_htree_node(node->right);
+    node->right = 0;
+  }
+
+  delete node;
+}
+
+void free_tree(my_priority_queue<htree_node> *phtree) {
+  if (phtree) {
+    std::cout << "to free htree: " << phtree->size();
+
+    free_htree_node(phtree->top());
+
+    phtree->pop();
+
+    delete phtree;
+  }
+}
+
 // Note this function will change the quantized data.
 size_t *build_ft(int *quantized_data, const std::size_t n,
                  size_t &num_outliers) {
@@ -155,6 +181,9 @@ huffman_codec *build_huffman_codec(int *quantized_data, size_t **ft,
       }
     }
   */
+
+  free_tree(phtree);
+  phtree = 0;
 
   return codec;
 }
@@ -209,7 +238,6 @@ void huffman_decoding(int *quantized_data, const std::size_t n,
   size_t *cft = (size_t *)out_tree;
   int nonZeros = out_tree_size / (2 * sizeof(size_t));
   size_t *ft = (size_t *)malloc(nql * sizeof(size_t));
-  ft = (size_t *)malloc(nql * sizeof(size_t));
 
   memset(ft, 0, nql * sizeof(size_t));
 
@@ -269,6 +297,11 @@ void huffman_decoding(int *quantized_data, const std::size_t n,
   }
 
   assert(sizeof(int) * num_missed == out_data_miss_size);
+
+  free_tree(phtree);
+  phtree = 0;
+  free(ft);
+  ft = 0;
 }
 
 unsigned char *compress_memory_huffman(std::vector<int> &qv,
@@ -306,6 +339,9 @@ unsigned char *compress_memory_huffman(std::vector<int> &qv,
 #else
   mgard::compress_memory_zstd(payload, total_size, out_data);
 #endif
+  free(payload);
+  payload = 0;
+
   outsize = out_data.size() + 3 * sizeof(size_t);
   unsigned char *buffer = (unsigned char *)malloc(outsize);
 
@@ -424,6 +460,9 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
   *out_tree_size = 2 * nonZeros * sizeof(size_t);
   free(ft);
   ft = 0;
+
+  free(codec);
+  codec = 0;
 }
 
 #ifdef MGARD_ZSTD
