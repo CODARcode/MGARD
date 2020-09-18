@@ -55,6 +55,12 @@ int main(int argc, char **argv) {
   cout << "The prescribed error = " << tol
        << " The achieved error = " << max_abserr / max << endl;
 
+  free(compressed_data);
+  compressed_data = 0;
+
+  free(decompressed_data);
+  decompressed_data = 0;
+
   if (tol >= max_abserr / max) {
     return 0;
   } else {
