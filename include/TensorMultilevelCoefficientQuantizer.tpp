@@ -152,8 +152,8 @@ template <std::size_t N, typename Int, typename Real>
 template <typename It>
 RangeSlice<typename Dqntzr<N, Int, Real>::template iterator<It>>
 Dqntzr<N, Int, Real>::operator()(const It begin, const It end) const {
-  return {.begin_ = iterator(*this, nodes.begin(), begin),
-          .end_ = iterator(*this, nodes.end(), end)};
+  return {.begin_ = iterator<It>(*this, nodes.begin(), begin),
+          .end_ = iterator<It>(*this, nodes.end(), end)};
 }
 
 template <std::size_t N, typename Int, typename Real>
@@ -178,8 +178,7 @@ Dqntzr<N, Int, Real>::iterator<It>::iterator(
 template <std::size_t N, typename Int, typename Real>
 template <typename It>
 bool Dqntzr<N, Int, Real>::iterator<It>::iterator::operator==(
-    const typename Dqntzr<N, Int, Real>::template iterator<It>::iterator &other)
-    const {
+    const typename Dqntzr<N, Int, Real>::template iterator<It> &other) const {
   return (&dequantizer == &other.dequantizer ||
           dequantizer == other.dequantizer) &&
          inner_node == other.inner_node && inner_coeff == other.inner_coeff;
@@ -188,8 +187,7 @@ bool Dqntzr<N, Int, Real>::iterator<It>::iterator::operator==(
 template <std::size_t N, typename Int, typename Real>
 template <typename It>
 bool Dqntzr<N, Int, Real>::iterator<It>::iterator::operator!=(
-    const typename Dqntzr<N, Int, Real>::template iterator<It>::iterator &other)
-    const {
+    const typename Dqntzr<N, Int, Real>::template iterator<It> &other) const {
   return !operator==(other);
 }
 
