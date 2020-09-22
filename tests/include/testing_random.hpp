@@ -37,5 +37,18 @@ mgard::TensorMeshHierarchy<N, Real> hierarchy_with_random_spacing(
     std::uniform_real_distribution<Real> &distribution,
     const std::array<std::size_t, N> shape);
 
+//! Generate a function in a Sobolev space.
+//!
+//! See note in implementation file. Not to be used in important tasks.
+//!
+//!\param[in] hierarchy Mesh hierarchy on which the function will be defined.
+//!\param[in] s Smoothness parameter to use in generating the function.
+//!\param[in] generator Generator to use in generating the function.
+//!\param[out] Buffer in which to store nodal values of generated function.
+template <std::size_t N, typename Real>
+void generate_reasonable_function(
+    const mgard::TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
+    std::default_random_engine &generator, Real *const u);
+
 #include "testing_random.tpp"
 #endif
