@@ -512,28 +512,6 @@ void test_dyadic_uniform_recomposition(
 }
 
 template <std::size_t N, typename Real>
-void generate_reasonable_function(
-    const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
-    std::default_random_engine &generator,
-    std::uniform_real_distribution<Real> &distribution, Real *const u) {
-  // We assume that the entries of `u` have been initialized to zero.
-  for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(0)) {
-    hierarchy.at(u, node.multiindex) = distribution(generator);
-  }
-  Real weight = 0.5;
-  for (std::size_t l = 1; l <= hierarchy.L; ++l) {
-    const mgard::TensorProlongationAddition<N, Real> PA(hierarchy, l);
-    PA(u);
-    for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(l)) {
-      if (node.l == l) {
-        hierarchy.at(u, node.multiindex) += weight * distribution(generator);
-      }
-    }
-    weight /= 2;
-  }
-}
-
-template <std::size_t N, typename Real>
 void test_decomposition_linearity(
     std::default_random_engine &generator,
     std::uniform_real_distribution<Real> &node_spacing_distribution,
@@ -543,8 +521,8 @@ void test_decomposition_linearity(
       hierarchy_with_random_spacing<N, Real>(generator,
                                              node_spacing_distribution, shape);
   const std::size_t M = hierarchy.ndof();
-  std::vector<Real> u_(M, 0);
-  std::vector<Real> v_(M, 0);
+  std::vector<Real> u_(M);
+  std::vector<Real> v_(M);
   std::vector<Real> w_(M);
   Real *const u = u_.data();
   Real *const v = v_.data();
@@ -552,10 +530,11 @@ void test_decomposition_linearity(
 
   // Completely random nodal coefficients was causing some issues with
   // cancellation errors. Generating a slightly nicer function here.
-  generate_reasonable_function(hierarchy, generator,
-                               nodal_coefficient_distribution, u);
-  generate_reasonable_function(hierarchy, generator,
-                               nodal_coefficient_distribution, v);
+  {
+    const Real s = 0.5;
+    generate_reasonable_function(hierarchy, s, generator, u);
+    generate_reasonable_function(hierarchy, s, generator, v);
+  }
   const Real alpha = nodal_coefficient_distribution(generator);
   for (std::size_t i = 0; i < M; ++i) {
     w_.at(i) = alpha * u_.at(i) + v_.at(i);
@@ -567,8 +546,10 @@ void test_decomposition_linearity(
 
   TrialTracker tracker;
   for (std::size_t i = 0; i < M; ++i) {
-    // Encountering a few small errors.
-    tracker += w_.at(i) == Approx(alpha * u_.at(i) + v_.at(i)).epsilon(0.001);
+    // Encountering a few small errors (and more with optimizations turned on).
+    tracker +=
+        w_.at(i) ==
+        Approx(alpha * u_.at(i) + v_.at(i)).epsilon(0.001).margin(0.000001);
   }
   REQUIRE(tracker);
 }
@@ -603,8 +584,10 @@ void test_recomposition_linearity(
 
   TrialTracker tracker;
   for (std::size_t i = 0; i < M; ++i) {
-    // Encountering a few small errors.
-    tracker += w_.at(i) == Approx(alpha * u_.at(i) + v_.at(i)).epsilon(0.001);
+    // Encountering a few small errors (and more with optimizations turned on).
+    tracker +=
+        w_.at(i) ==
+        Approx(alpha * u_.at(i) + v_.at(i)).epsilon(0.001).margin(0.000001);
   }
   REQUIRE(tracker);
 }
