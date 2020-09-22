@@ -157,6 +157,7 @@ add_library(mgard
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/mgard_api.cpp  include/mgard_api.h
   src/mgard_nuni.cpp  include/mgard_nuni.h
+  src/TensorMeshHierarchy.cpp  include/TensorMeshHierarchy.hpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
 )
 
@@ -200,6 +201,7 @@ install(
         include/mgard_compress.hpp
         include/mgard_api.h
         include/mgard_nuni.h
+	include/TensorMeshHierarchy.hpp
         ${MGARD_CUDA_HEADER}
 	"${PROJECT_BINARY_DIR}/include/MGARDConfig.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
