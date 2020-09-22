@@ -11,13 +11,16 @@
 #include <cassert>
 #include <cstddef>
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <numeric>
 #include <vector>
 
+#include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorNorms.hpp"
 #include "mgard.hpp"
+#include "mgard_compress.hpp"
 #include "mgard_nuni.h"
 
 // This should eventually be folded into `TensorMeshHierarchy`.
@@ -202,5 +205,92 @@ unsigned char *mgard_compress(Real *v, int &out_size, int nrow, int ncol,
                               int nfib, Real tol_in, Real norm_of_qoi, Real s) {
   return mgard_compress(v, out_size, nrow, ncol, nfib, norm_of_qoi * tol_in, s);
 }
+
+namespace mgard {
+
+template <std::size_t N, typename Real>
+CompressedDataset<N, Real>::CompressedDataset(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
+    const Real tolerance, void const *const data, const std::size_t size)
+    : hierarchy(hierarchy), s(s), tolerance(tolerance),
+      data_(static_cast<unsigned char const *>(data)), size_(size) {}
+
+template <std::size_t N, typename Real>
+void const *CompressedDataset<N, Real>::data() const {
+  return data_.get();
+}
+
+template <std::size_t N, typename Real>
+std::size_t CompressedDataset<N, Real>::size() const {
+  return size_;
+}
+
+template <std::size_t N, typename Real>
+DecompressedDataset<N, Real>::DecompressedDataset(
+    const CompressedDataset<N, Real> &compressed, Real const *const data)
+    : hierarchy(compressed.hierarchy), s(compressed.s),
+      tolerance(compressed.tolerance), data_(data) {}
+
+template <std::size_t N, typename Real>
+Real const *DecompressedDataset<N, Real>::data() const {
+  return data_.get();
+}
+
+using DEFAULT_INT_T = long int;
+
+template <std::size_t N, typename Real>
+CompressedDataset<N, Real>
+compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
+         const Real s, const Real tolerance) {
+  decompose(hierarchy, v);
+
+  using Qntzr = TensorMultilevelCoefficientQuantizer<N, Real, DEFAULT_INT_T>;
+  const Qntzr quantizer(hierarchy, s, tolerance);
+  using It = typename Qntzr::iterator;
+  const RangeSlice<It> quantized_range = quantizer(v);
+  const std::vector<DEFAULT_INT_T> quantized(quantized_range.begin(),
+                                             quantized_range.end());
+
+  std::vector<std::uint8_t> z_output;
+  // TODO: Check whether `compress_memory_z` changes its input.
+  compress_memory_z(
+      const_cast<void *>(static_cast<void const *>(quantized.data())),
+      sizeof(DEFAULT_INT_T) * hierarchy.ndof(), z_output);
+  // Possibly we should check that `sizeof(std::uint8_t)` is `1`.
+  const std::size_t size = z_output.size();
+
+  void *const buffer = new unsigned char[size];
+  std::copy(z_output.begin(), z_output.end(),
+            static_cast<unsigned char *>(buffer));
+  return CompressedDataset<N, Real>(hierarchy, s, tolerance, buffer, size);
+}
+
+template <std::size_t N, typename Real>
+DecompressedDataset<N, Real>
+decompress(const CompressedDataset<N, Real> &compressed) {
+  const std::size_t ndof = compressed.hierarchy.ndof();
+  DEFAULT_INT_T *const quantized =
+      static_cast<DEFAULT_INT_T *>(std::malloc(ndof * sizeof(*quantized)));
+  // TODO: Figure out all these casts here and above.
+  decompress_memory_z(const_cast<void *>(compressed.data()), compressed.size(),
+                      reinterpret_cast<int *>(quantized),
+                      ndof * sizeof(*quantized));
+
+  using Dqntzr = TensorMultilevelCoefficientDequantizer<N, DEFAULT_INT_T, Real>;
+  const Dqntzr dequantizer(compressed.hierarchy, compressed.s,
+                           compressed.tolerance);
+  using It = typename Dqntzr::template iterator<DEFAULT_INT_T *>;
+  const RangeSlice<It> dequantized_range =
+      dequantizer(quantized, quantized + ndof);
+
+  Real *const v = new Real[ndof];
+  std::copy(dequantized_range.begin(), dequantized_range.end(), v);
+  std::free(quantized);
+
+  recompose(compressed.hierarchy, v);
+  return DecompressedDataset<N, Real>(compressed, v);
+}
+
+} // namespace mgard
 
 #endif

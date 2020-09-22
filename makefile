@@ -43,8 +43,8 @@ dirty@DIRECTORIES =
 
 #Tested but not compiled. `$(STEM).hpp` exists, `$(STEM).tpp` might exist, and `$(STEM).cpp` does not exist. These must have associated tests.
 structured@HEADER_ONLY := TensorMeshLevel MultidimensionalArray TensorLinearOperator TensorMassMatrix TensorProlongation TensorRestriction TensorMultilevelCoefficientQuantizer TensorNorms
-structured@MGARD_STEMS_TESTED := interpolation mgard mgard_mesh TensorMeshHierarchy
-structured@MGARD_STEMS_UNTESTED := mgard_api mgard_nuni mgard_compress
+structured@MGARD_STEMS_TESTED := interpolation mgard mgard_mesh TensorMeshHierarchy mgard_api
+structured@MGARD_STEMS_UNTESTED := mgard_nuni mgard_compress
 structured@MGARD_STEMS = $(structured@MGARD_STEMS_TESTED) $(structured@MGARD_STEMS_UNTESTED)
 structured@TEST_STEMS := mgard_test
 structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
