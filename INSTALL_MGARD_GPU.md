@@ -55,4 +55,4 @@ unsigned char *mgard_compress_cuda(mgard_cuda_handle<T> &handle, T *v,
                          std::vector<T> &coords_y, std::vector<T> &coords_z)```                                                   
 
 #### Example
-A conperhensive example of using MGARD with GPU acceleration is located in ```test/gpu-cuda```.
+A comprehensive example of using MGARD with GPU acceleration is located in ```test/gpu-cuda```.
