@@ -41,15 +41,18 @@ unsigned char *mgard_compress_cuda(mgard_cuda_handle<T> &handle, T *v,
           * For decompression: ```T *mgard_decompress_cuda(mgard_cuda_handle<T> &handle, unsigned char *data,
                          int data_len)```
  * **Implicit Initialization**
- 	* For compatibility with the original CPU design, we still provide API functions that do self-initialization so that users do not need to explicitly do initialization.
-		* For compression (uniform): ```unsigned char *mgard_compress_cuda(T *data, int &out_size, int n1, int n2,
+ 		* For compatibility with the original CPU design, we still provide API functions that do self-initialization so that users do not need to explicitly do initialization.
+			* For compression (uniform): ```unsigned char *mgard_compress_cuda(T *data, int &out_size, int n1, int n2,
                                    int n3, T tol)```
-       * For decompression (uniform): ```T *mgard_decompress_cuda(unsigned char *data, int data_len, int n1, int n2,
+       	* For decompression (uniform): ```T *mgard_decompress_cuda(unsigned char *data, int data_len, int n1, int n2,
                          int n3)```  
-       * For compression (non-uniform): ```unsigned char *mgard_compress_cuda(T *data, int &out_size, int n1, int n2,
+       	* For compression (non-uniform): ```unsigned char *mgard_compress_cuda(T *data, int &out_size, int n1, int n2,
                                    int n3, std::vector<T> &coords_x,
                                    std::vector<T> &coords_y,
                                    std::vector<T> &coords_z, T tol)``` 
-       * For decompression (non-uniform): ```T *mgard_decompress_cuda(unsigned char *data, int data_len, int n1, int n2,
+       	* For decompression (non-uniform): ```T *mgard_decompress_cuda(unsigned char *data, int data_len, int n1, int n2,
                          int n3, std::vector<T> &coords_x,
                          std::vector<T> &coords_y, std::vector<T> &coords_z)```                                                   
+
+#### Example
+A conperhensive example of using MGARD with GPU acceleration is located in ```test/gpu-cuda```.
