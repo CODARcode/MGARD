@@ -11,7 +11,6 @@
 #include "cuda/mgard_cuda_refactor_2d.h"
 #include "cuda/mgard_cuda_refactor_3d.h"
 
-#include "mgard.h"
 #include "mgard_compress.hpp"
 #include "mgard_nuni.h"
 #include <chrono>

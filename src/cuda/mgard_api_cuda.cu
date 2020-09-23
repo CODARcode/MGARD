@@ -1,6 +1,5 @@
 #include "cuda/mgard_cuda.h"
 #include "cuda/mgard_cuda_common.h"
-#include "mgard.h"
 #include "mgard_api.h"
 #include <assert.h>
 #include <iostream>
