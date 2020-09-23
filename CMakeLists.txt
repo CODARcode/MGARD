@@ -216,12 +216,6 @@ if(BUILD_TESTING)
 #  enable_testing()
   add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
   target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
-
-  if(MGARD_ENABLE_CUDA)
-    add_executable(mgard_check_cuda_and_cpu ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_check_cuda_and_cpu.cpp)
-    target_link_libraries(mgard_check_cuda_and_cpu mgard  ${CMAKE_DL_LIBS})
-    set_target_properties(mgard_check_cuda_and_cpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-  endif()
   
   add_subdirectory(tests)
 

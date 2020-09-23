@@ -167,8 +167,7 @@ int main(int argc, char *argv[]) {
 
   if (opt == -1) {
     fprintf(stdout, "[INFO] Compressing using CPU only\n");
-    mgard_comp_buff =
-        mgard_compress(iflag, in_buff, out_size, nrow, ncol, nfib, tol);
+    mgard_comp_buff = mgard_compress(in_buff, out_size, nrow, ncol, nfib, tol);
   } else {
     fprintf(stdout, "[INFO] Compressing with GPU acceleration\n");
     mgard_cuda_handle<double> handle(nrow, ncol, nfib, B, num_of_queues, opt);
@@ -184,8 +183,8 @@ int main(int argc, char *argv[]) {
   double dummy = 0;
   if (opt == -1) {
     fprintf(stdout, "[INFO] Decompressing using CPU only\n");
-    mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff, out_size,
-                                      nrow, ncol, nfib);
+    mgard_out_buff =
+        mgard_decompress<double>(mgard_comp_buff, out_size, nrow, ncol, nfib);
   } else {
     fprintf(stdout, "[INFO] Decompressing with GPU acceleration\n");
     mgard_cuda_handle<double> handle(nrow, ncol, nfib, B, num_of_queues, opt);
