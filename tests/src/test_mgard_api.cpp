@@ -76,3 +76,31 @@ TEMPLATE_TEST_CASE("compression followed by decompression", "[mgard_api]",
   test_compression_decompression<3, TestType>(
       {9, 9, 6}, 1.5, generator, smoothness_parameters, tolerances);
 }
+
+TEST_CASE("1D quadratic data", "[mgard_api]") {
+  const mgard::TensorMeshHierarchy<1, double> hierarchy({64});
+  const std::size_t ndof = hierarchy.ndof();
+  double *const v = static_cast<double *>(std::malloc(ndof * sizeof(*v)));
+
+  for (std::size_t i = 0; i < ndof; ++i) {
+    v[i] = static_cast<double>(i * i) / ndof;
+  }
+
+  double *const error =
+      static_cast<double *>(std::malloc(ndof * sizeof(*error)));
+  blas::copy(ndof, v, error);
+
+  const double s = std::numeric_limits<double>::infinity();
+  const double tolerance = 0.001;
+  const mgard::CompressedDataset<1, double> compressed =
+      mgard::compress(hierarchy, v, s, tolerance);
+  std::free(v);
+  const mgard::DecompressedDataset<1, double> decompressed =
+      mgard::decompress(compressed);
+
+  blas::axpy(ndof, static_cast<double>(-1), decompressed.data(), error);
+  const double achieved = mgard::norm(hierarchy, error, s);
+  std::free(error);
+
+  REQUIRE(achieved <= tolerance);
+}
