@@ -33,16 +33,6 @@ else
   exit 1
 fi
 
-./build/bin/simple1d
-
-if [ $? -eq 0 ]
-then
-  echo "Successfully compressed/decompressed simple1d"
-else
-  echo "Error in compressing/decompressing simple1d" >&2
-  exit 1
-fi
-
 ./build/bin/dim2kplus1
 
 if [ $? -eq 0 ]
