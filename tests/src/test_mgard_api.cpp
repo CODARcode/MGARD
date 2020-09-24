@@ -2,6 +2,8 @@
 
 #include <cmath>
 #include <cstdlib>
+
+#include <algorithm>
 #include <numeric>
 #include <vector>
 
@@ -100,6 +102,31 @@ TEST_CASE("1D quadratic data", "[mgard_api]") {
 
   blas::axpy(ndof, static_cast<double>(-1), decompressed.data(), error);
   const double achieved = mgard::norm(hierarchy, error, s);
+  std::free(error);
+
+  REQUIRE(achieved <= tolerance);
+}
+
+TEST_CASE("3D constant data", "[mgard_api]") {
+  const mgard::TensorMeshHierarchy<3, float> hierarchy({16, 16, 16});
+  const std::size_t ndof = hierarchy.ndof();
+  float *const v = static_cast<float *>(std::malloc(ndof * sizeof(*v)));
+
+  std::fill(v, v + ndof, 10);
+
+  float *const error = static_cast<float *>(std::malloc(ndof * sizeof(*error)));
+  blas::copy(ndof, v, error);
+
+  const float s = std::numeric_limits<float>::infinity();
+  const float tolerance = 0.01;
+  const mgard::CompressedDataset<3, float> compressed =
+      mgard::compress(hierarchy, v, s, tolerance);
+  std::free(v);
+  const mgard::DecompressedDataset<3, float> decompressed =
+      mgard::decompress(compressed);
+
+  blas::axpy(ndof, static_cast<float>(-1), decompressed.data(), error);
+  const float achieved = mgard::norm(hierarchy, error, s);
   std::free(error);
 
   REQUIRE(achieved <= tolerance);

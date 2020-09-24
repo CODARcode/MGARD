@@ -13,16 +13,6 @@ fi
 
 cd ${SOURCE_DIR}
 
-./build/bin/constant3d
-
-if [ $? -eq 0 ]
-then
-  echo "Successfully compressed/decompressed constant3d"
-else
-  echo "Error in compressing/decompressing constant3d" >&2
-  exit 1
-fi
-
 ./build/bin/dim2kplus1
 
 if [ $? -eq 0 ]
