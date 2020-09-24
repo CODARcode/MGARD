@@ -81,24 +81,17 @@ TEMPLATE_TEST_CASE("compression followed by decompression", "[mgard_api]",
 
 namespace {
 
-template <typename Real> void test_1D_quadratic_data(const std::size_t N) {
-  const mgard::TensorMeshHierarchy<1, Real> hierarchy({N});
+template <std::size_t N, typename Real>
+void test_compression_error_bound(
+    const mgard::TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
+    const Real s, const Real tolerance) {
   const std::size_t ndof = hierarchy.ndof();
-  Real *const v = static_cast<Real *>(std::malloc(ndof * sizeof(*v)));
-
-  for (std::size_t i = 0; i < ndof; ++i) {
-    v[i] = static_cast<Real>(i * i) / ndof;
-  }
-
   Real *const error = static_cast<Real *>(std::malloc(ndof * sizeof(*error)));
   blas::copy(ndof, v, error);
 
-  const Real s = std::numeric_limits<Real>::infinity();
-  const Real tolerance = 0.001;
-  const mgard::CompressedDataset<1, Real> compressed =
+  const mgard::CompressedDataset<N, Real> compressed =
       mgard::compress(hierarchy, v, s, tolerance);
-  std::free(v);
-  const mgard::DecompressedDataset<1, Real> decompressed =
+  const mgard::DecompressedDataset<N, Real> decompressed =
       mgard::decompress(compressed);
 
   blas::axpy(ndof, static_cast<Real>(-1), decompressed.data(), error);
@@ -111,88 +104,77 @@ template <typename Real> void test_1D_quadratic_data(const std::size_t N) {
 } // namespace
 
 TEST_CASE("1D quadratic data", "[mgard_api]") {
-  test_1D_quadratic_data<float>(64);
-  test_1D_quadratic_data<double>(65);
+  {
+    const mgard::TensorMeshHierarchy<1, float> hierarchy({64});
+    const std::size_t ndof = hierarchy.ndof();
+    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(*v)));
+    for (std::size_t i = 0; i < ndof; ++i) {
+      v[i] = static_cast<float>(i * i) / ndof;
+    }
+
+    const float s = std::numeric_limits<float>::infinity();
+    const float tolerance = 0.001;
+    test_compression_error_bound<1, float>(hierarchy, v, s, tolerance);
+
+    std::free(v);
+  }
+  {
+    const mgard::TensorMeshHierarchy<1, double> hierarchy({65});
+    const std::size_t ndof = hierarchy.ndof();
+    double *const v = static_cast<double *>(std::malloc(ndof * sizeof(*v)));
+    for (std::size_t i = 0; i < ndof; ++i) {
+      v[i] = static_cast<double>(i * i) / ndof;
+    }
+
+    const double s = std::numeric_limits<double>::infinity();
+    const double tolerance = 0.01;
+    test_compression_error_bound<1, double>(hierarchy, v, s, tolerance);
+
+    std::free(v);
+  }
 }
 
 TEST_CASE("3D constant data", "[mgard_api]") {
   const mgard::TensorMeshHierarchy<3, float> hierarchy({16, 16, 16});
   const std::size_t ndof = hierarchy.ndof();
   float *const v = static_cast<float *>(std::malloc(ndof * sizeof(*v)));
-
   std::fill(v, v + ndof, 10);
-
-  float *const error = static_cast<float *>(std::malloc(ndof * sizeof(*error)));
-  blas::copy(ndof, v, error);
 
   const float s = std::numeric_limits<float>::infinity();
   const float tolerance = 0.01;
-  const mgard::CompressedDataset<3, float> compressed =
-      mgard::compress(hierarchy, v, s, tolerance);
+  test_compression_error_bound<3, float>(hierarchy, v, s, tolerance);
+
   std::free(v);
-  const mgard::DecompressedDataset<3, float> decompressed =
-      mgard::decompress(compressed);
-
-  blas::axpy(ndof, static_cast<float>(-1), decompressed.data(), error);
-  const float achieved = mgard::norm(hierarchy, error, s);
-  std::free(error);
-
-  REQUIRE(achieved <= tolerance);
 }
 
 TEST_CASE("1D cosine data", "[mgard_api]") {
   const mgard::TensorMeshHierarchy<1, double> hierarchy({4096});
   const std::size_t ndof = hierarchy.ndof();
   double *const v = static_cast<double *>(std::malloc(ndof * sizeof(*v)));
-
   const double pi = 3.141592653589793;
   for (std::size_t i = 0; i < ndof; ++i) {
     v[i] = std::cos(2 * pi * i / ndof);
   }
 
-  double *const error =
-      static_cast<double *>(std::malloc(ndof * sizeof(*error)));
-  blas::copy(ndof, v, error);
-
   const double s = std::numeric_limits<double>::infinity();
   const double tolerance = 0.000001;
-  const mgard::CompressedDataset<1, double> compressed =
-      mgard::compress(hierarchy, v, s, tolerance);
+  test_compression_error_bound<1, double>(hierarchy, v, s, tolerance);
+
   std::free(v);
-  const mgard::DecompressedDataset<1, double> decompressed =
-      mgard::decompress(compressed);
-
-  blas::axpy(ndof, static_cast<double>(-1), decompressed.data(), error);
-  const double achieved = mgard::norm(hierarchy, error, s);
-  std::free(error);
-
-  REQUIRE(achieved <= tolerance);
 }
 
 TEST_CASE("2D cosine data", "[mgard_api]") {
   const mgard::TensorMeshHierarchy<2, float> hierarchy({256, 16});
   const std::size_t ndof = hierarchy.ndof();
   float *const v = static_cast<float *>(std::malloc(ndof * sizeof(*v)));
-
   for (const mgard::TensorNode<2, float> node : hierarchy.nodes(hierarchy.L)) {
     hierarchy.at(v, node.multiindex) =
         std::cos(12 * node.coordinates.at(0) - 5 * node.coordinates.at(1));
   }
 
-  float *const error = static_cast<float *>(std::malloc(ndof * sizeof(*error)));
-  blas::copy(ndof, v, error);
-
   const float s = std::numeric_limits<float>::infinity();
   const float tolerance = 0.001;
-  const mgard::CompressedDataset<2, float> compressed =
-      mgard::compress(hierarchy, v, s, tolerance);
+  test_compression_error_bound<2, float>(hierarchy, v, s, tolerance);
+
   std::free(v);
-  const mgard::DecompressedDataset<2, float> decompressed =
-      mgard::decompress(compressed);
-
-  blas::axpy(ndof, static_cast<float>(-1), decompressed.data(), error);
-  const float achieved = mgard::norm(hierarchy, error, s);
-  std::free(error);
-
-  REQUIRE(achieved <= tolerance);
 }
