@@ -13,16 +13,6 @@ fi
 
 cd ${SOURCE_DIR}
 
-./build/bin/cosine
-
-if [ $? -eq 0 ]
-then
-  echo "Successfully compressed/decompressed cosine"
-else
-  echo "Error in compressing/decompressing cosine" >&2
-  exit 1
-fi
-
 ./build/bin/constant3d
 
 if [ $? -eq 0 ]
