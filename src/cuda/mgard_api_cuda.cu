@@ -185,7 +185,7 @@ unsigned char *mgard_compress_cuda(mgard_cuda_handle<T> &handle, T *v,
   if (handle.nrow > 1 && handle.ncol > 1 && handle.nfib > 1) {
     assert(handle.nrow > 3);
     assert(handle.ncol > 3);
-    assert(handle.n3 > 3);
+    assert(handle.nfib > 3);
     mgard_compressed_ptr =
         mgard_cuda::refactor_qz_cuda(handle, v, out_size, tol);
     return mgard_compressed_ptr;
