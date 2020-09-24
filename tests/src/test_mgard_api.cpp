@@ -79,32 +79,40 @@ TEMPLATE_TEST_CASE("compression followed by decompression", "[mgard_api]",
       {9, 9, 6}, 1.5, generator, smoothness_parameters, tolerances);
 }
 
-TEST_CASE("1D quadratic data", "[mgard_api]") {
-  const mgard::TensorMeshHierarchy<1, double> hierarchy({64});
+namespace {
+
+template <typename Real> void test_1D_quadratic_data(const std::size_t N) {
+  const mgard::TensorMeshHierarchy<1, Real> hierarchy({N});
   const std::size_t ndof = hierarchy.ndof();
-  double *const v = static_cast<double *>(std::malloc(ndof * sizeof(*v)));
+  Real *const v = static_cast<Real *>(std::malloc(ndof * sizeof(*v)));
 
   for (std::size_t i = 0; i < ndof; ++i) {
-    v[i] = static_cast<double>(i * i) / ndof;
+    v[i] = static_cast<Real>(i * i) / ndof;
   }
 
-  double *const error =
-      static_cast<double *>(std::malloc(ndof * sizeof(*error)));
+  Real *const error = static_cast<Real *>(std::malloc(ndof * sizeof(*error)));
   blas::copy(ndof, v, error);
 
-  const double s = std::numeric_limits<double>::infinity();
-  const double tolerance = 0.001;
-  const mgard::CompressedDataset<1, double> compressed =
+  const Real s = std::numeric_limits<Real>::infinity();
+  const Real tolerance = 0.001;
+  const mgard::CompressedDataset<1, Real> compressed =
       mgard::compress(hierarchy, v, s, tolerance);
   std::free(v);
-  const mgard::DecompressedDataset<1, double> decompressed =
+  const mgard::DecompressedDataset<1, Real> decompressed =
       mgard::decompress(compressed);
 
-  blas::axpy(ndof, static_cast<double>(-1), decompressed.data(), error);
-  const double achieved = mgard::norm(hierarchy, error, s);
+  blas::axpy(ndof, static_cast<Real>(-1), decompressed.data(), error);
+  const Real achieved = mgard::norm(hierarchy, error, s);
   std::free(error);
 
   REQUIRE(achieved <= tolerance);
+}
+
+} // namespace
+
+TEST_CASE("1D quadratic data", "[mgard_api]") {
+  test_1D_quadratic_data<float>(64);
+  test_1D_quadratic_data<double>(65);
 }
 
 TEST_CASE("3D constant data", "[mgard_api]") {
