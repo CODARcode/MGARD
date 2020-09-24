@@ -104,3 +104,32 @@ TEST_CASE("1D quadratic data", "[mgard_api]") {
 
   REQUIRE(achieved <= tolerance);
 }
+
+TEST_CASE("1D cosine data", "[mgard_api]") {
+  const mgard::TensorMeshHierarchy<1, double> hierarchy({4096});
+  const std::size_t ndof = hierarchy.ndof();
+  double *const v = static_cast<double *>(std::malloc(ndof * sizeof(*v)));
+
+  const double pi = 3.141592653589793;
+  for (std::size_t i = 0; i < ndof; ++i) {
+    v[i] = std::cos(2 * pi * i / ndof);
+  }
+
+  double *const error =
+      static_cast<double *>(std::malloc(ndof * sizeof(*error)));
+  blas::copy(ndof, v, error);
+
+  const double s = std::numeric_limits<double>::infinity();
+  const double tolerance = 0.000001;
+  const mgard::CompressedDataset<1, double> compressed =
+      mgard::compress(hierarchy, v, s, tolerance);
+  std::free(v);
+  const mgard::DecompressedDataset<1, double> decompressed =
+      mgard::decompress(compressed);
+
+  blas::axpy(ndof, static_cast<double>(-1), decompressed.data(), error);
+  const double achieved = mgard::norm(hierarchy, error, s);
+  std::free(error);
+
+  REQUIRE(achieved <= tolerance);
+}
