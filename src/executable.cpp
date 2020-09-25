@@ -1,10 +1,15 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
+#include <archive.h>
+#include <archive_entry.h>
+
 #include <tclap/CmdLine.h>
+#include <yaml-cpp/yaml.h>
 
 #include "mgard_api.h"
 
@@ -38,24 +43,97 @@ struct CompressionArguments {
                        TCLAP::ValueArg<double> &tolerance,
                        TCLAP::ValueArg<std::string> &output)
       : datatype(datatype.getValue()), shape(shape.getValue().shape),
-        dimension(this->shape.size()), input(input.getValue()),
-        s(smoothness.getValue()), tolerance(tolerance.getValue()),
-        output(output.getValue()) {}
+        dimension(this->shape.size()), coordinate_filenames(dimension),
+        input(input.getValue()), s(smoothness.getValue()),
+        tolerance(tolerance.getValue()), output(output.getValue()) {
+    for (std::size_t i = 0; i < dimension; ++i) {
+      std::stringstream filename;
+      filename << "coordinates_" << i << ".dat";
+      coordinate_filenames.at(i) = filename.str();
+    }
+  }
 
-  const std::string datatype;
+  std::string datatype;
 
-  const std::vector<std::size_t> shape;
+  std::vector<std::size_t> shape;
 
-  const std::size_t dimension;
+  std::size_t dimension;
 
-  const std::string input;
+  std::vector<std::string> coordinate_filenames;
 
-  const double s;
+  std::string input;
 
-  const double tolerance;
+  double s;
 
-  const std::string output;
+  double tolerance;
+
+  std::string output;
 };
+
+YAML::Emitter &operator<<(YAML::Emitter &emitter,
+                          const CompressionArguments &arguments) {
+  emitter << YAML::BeginMap;
+  emitter << YAML::Key << "datatype" << YAML::Value << arguments.datatype;
+  emitter << YAML::Key << "shape" << YAML::Value << arguments.shape;
+  emitter << YAML::Key << "node coordinate files" << YAML::Value
+          << arguments.coordinate_filenames;
+  emitter << YAML::Key << "s" << YAML::Value << arguments.s;
+  emitter << YAML::Key << "tolerance" << YAML::Value << arguments.tolerance;
+  emitter << YAML::EndMap;
+  return emitter;
+}
+
+void write_archive_entry(archive *const a, const std::string entryname,
+                         void const *const data, const std::size_t size) {
+  archive_entry *const entry = archive_entry_new();
+  archive_entry_copy_pathname(entry, entryname.c_str());
+  archive_entry_set_filetype(entry, AE_IFREG);
+  archive_entry_set_perm(entry, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  archive_entry_set_size(entry, size);
+
+  if (archive_write_header(a, entry) != ARCHIVE_OK) {
+    throw std::runtime_error("error writing archive entry header");
+  }
+
+  if (archive_write_data(a, data, size) < 0) {
+    throw std::runtime_error("error writing archive entry data");
+  }
+
+  archive_entry_free(entry);
+}
+
+template <std::size_t N, typename Real>
+void write_archive(const CompressionArguments &arguments,
+                   const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
+                   const mgard::CompressedDataset<N, Real> &compressed) {
+  archive *const a = archive_write_new();
+  if (a == nullptr) {
+    throw std::runtime_error("error creating new archive");
+  }
+  if (archive_write_set_format_gnutar(a) != ARCHIVE_OK) {
+    throw std::runtime_error("error setting archive format to GNU tar");
+  }
+  if (archive_write_open_filename(a, arguments.output.c_str()) != ARCHIVE_OK) {
+    throw std::runtime_error("error opening the archive file");
+  }
+
+  YAML::Emitter emitter;
+  emitter << arguments;
+  write_archive_entry(a, "metadata.yaml", emitter.c_str(), emitter.size());
+
+  write_archive_entry(a, "coefficients.dat", compressed.data(),
+                      compressed.size());
+
+  for (std::size_t i = 0; i < N; ++i) {
+    write_archive_entry(a, arguments.coordinate_filenames.at(i),
+                        hierarchy.coordinates.at(i).data(),
+                        arguments.shape.at(i) * sizeof(Real));
+  }
+
+  if (archive_write_free(a) != ARCHIVE_OK) {
+    throw std::runtime_error("error freeing archive");
+  }
+}
 
 template <std::size_t N, typename Real>
 int read_compress_write(const CompressionArguments &arguments) {
@@ -99,11 +177,12 @@ int read_compress_write(const CompressionArguments &arguments) {
             << static_cast<Real>(ndof * sizeof(Real)) / compressed.size()
             << std::endl;
 
-  std::fstream outputfile(arguments.output,
-                          std::ios_base::binary | std::ios_base::out);
-  outputfile.write(static_cast<char *>(const_cast<void *>(compressed.data())),
-                   compressed.size());
-  outputfile.close();
+  try {
+    write_archive(arguments, hierarchy, compressed);
+  } catch (const std::runtime_error &e) {
+    std::cerr << "error in writing archive: " << e.what() << std::endl;
+    return 1;
+  }
 
   return 0;
 }
