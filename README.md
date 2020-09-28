@@ -9,7 +9,7 @@ See [the header][api] for documentation of these templates.
 
 To use MGARD,
 
-1. Run `make lib/libmgard.a` to generate a static library.
+1. Build MGARD by either running `make lib/libmgard.a` to generate a static library, or 'cmake -DCMAKE_INSTALL_PREFIX=<location to install MGARD> -DCMAKE_BUILD_TYPE=RELEASE  -DZSTD_ROOT=<optional, location to ZSTD installation> ..'.
 2. Include `mgard_api.h` in any source files making use of the API.
 3. Link against `libmgard.a` when creating your executable.
 
