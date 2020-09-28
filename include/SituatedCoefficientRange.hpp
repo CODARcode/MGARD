@@ -3,7 +3,7 @@
 //!\file
 //!\brief Situated (that is, accompanied by the corresponding nodes)
 //! multilevel coefficients corresponding to the 'new' nodes of a level in a
-//!`MeshHierarchy`.
+//! `mgard::MeshHierarchy`.
 
 #include <utility>
 

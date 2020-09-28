@@ -3,7 +3,7 @@
 // Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
 // Corresponding Author: Ozan Tugluk
 //
-// version: 0.0.2
+// version: 0.1.0
 // See LICENSE for details.
 #ifndef MGARD_API_H
 #define MGARD_API_H
@@ -17,6 +17,8 @@
 
 //! Compress a function on an equispaced 3D tensor product grid while
 //! controlling the error as measured in the \f$ L^{\infty} \f$ norm.
+//!
+//!\deprecated Use `mgard::compress()` instead.
 //!
 //!\param[in] data Dataset to be compressed.
 //!\param[out] out_size Size in bytes of the compressed dataset.
@@ -33,6 +35,8 @@ unsigned char *mgard_compress(Real *data, int &out_size, int n1, int n2, int n3,
 //! Compress a function on a 3D tensor product grid (with arbitrary node
 //! spacing) while controlling the error as measured in the \f$ L^{\infty} \f$
 //! norm.
+//!
+//!\deprecated Use `mgard::compress()` instead.
 //!
 //!\param[in] data Dataset to be compressed.
 //!\param[out] out_size Size in bytes of the compressed dataset.
@@ -56,6 +60,8 @@ unsigned char *mgard_compress(Real *data, int &out_size, int n1, int n2, int n3,
 //!
 //!\note Set `s` to zero to control the error as measured in the \f$ L^{2} \f$
 //! norm.
+//!
+//!\deprecated Use `mgard::compress()` instead.
 //!
 //!\param[in] data Dataset to be compressed.
 //!\param[out] out_size Size in bytes of the compressed dataset.
@@ -86,6 +92,8 @@ unsigned char *mgard_compress(Real *data, int &out_size, int n1, int n2, int n3,
 //! norm of the functional and to then compress using the overload that takes
 // the functional norm as a parameter.
 //!
+//!\deprecated Use `mgard::compress()` instead.
+//!
 //!\param[in] data Dataset to be compressed.
 //!\param[out] out_size Size in bytes of the compressed dataset.
 //!\param[in] n1 Size of the dataset in the first dimension.
@@ -104,6 +112,8 @@ unsigned char *mgard_compress(Real *data, int &out_size, int n1, int n2, int n3,
 
 //! Compress a function on an equispaced 3D tensor product grid while
 //! controlling the error in a quantity of interest.
+//!
+//!\deprecated Use `mgard::compress()` instead.
 //!
 //!\param[in] data Dataset to be compressed.
 //!\param[out] out_size Size in bytes of the compressed dataset.
@@ -125,6 +135,8 @@ unsigned char *mgard_compress(Real *data, int &out_size, int n1, int n2, int n3,
 //! compressed while controlling the error as measured in the \f$ L^{\infty} \f$
 //! norm.
 //!
+//!\deprecated Use `mgard::decompress()` instead.
+//!
 //!\param[in] data Compressed dataset.
 //!\param[in] data_len Size in bytes of the compressed dataset.
 //!\param[in] n1 Size of the dataset in the first dimension.
@@ -139,6 +151,8 @@ Real *mgard_decompress(unsigned char *data, int data_len, int n1, int n2,
 //! Decompress a function on an equispaced 3D tensor product grid which was
 //! compressed while controlling the error as measured in the `s` norm.
 //!
+//!\deprecated Use `mgard::decompress()` instead.
+//!
 //!\param[in] data Compressed dataset.
 //!\param[in] data_len Size in bytes of the compressed dataset.
 //!\param[in] n1 Size of the dataset in the first dimension.
@@ -151,6 +165,7 @@ template <typename Real>
 Real *mgard_decompress(unsigned char *data, int data_len, int n1, int n2,
                        int n3, Real s);
 
+//! Implementation of the MGARD compression and decompression algorithms.
 namespace mgard {
 
 //! Compressed dataset and associated compression parameters.
@@ -164,7 +179,7 @@ public:
   //!\param s Smoothness parameter.
   //!\param tolerance Error tolerance.
   //!\param data Compressed dataset.
-  //!\param Size of the compressed dataset in bytes.
+  //!\param size Size of the compressed dataset in bytes.
   CompressedDataset(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
                     const Real tolerance, void const *const data,
                     const std::size_t size);

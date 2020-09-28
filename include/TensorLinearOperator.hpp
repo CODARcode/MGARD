@@ -45,7 +45,7 @@ public:
   //!
   //!\param [in] multiindex Starting multiindex of the one-dimensional 'spear'
   //! along which the operator is to be applied.
-  //!\param [in, out] Element in the domain, to be transformed into an element
+  //!\param [in, out] v Element in the domain, to be transformed into an element
   //! in the range.
   void operator()(const std::array<std::size_t, N> multiindex,
                   Real *const v) const;

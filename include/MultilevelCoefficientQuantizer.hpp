@@ -74,10 +74,15 @@ bool operator!=(const MultilevelCoefficientQuantizer<Real, Int> &a,
 template <typename Real, typename Int>
 class MultilevelCoefficientQuantizer<Real, Int>::iterator {
 public:
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = Int;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
+  //! Type returned by the dereference operator.
   using reference = value_type;
 
   //! Constructor.
@@ -187,10 +192,15 @@ class MultilevelCoefficientDequantizer<Int, Real>::iterator {
   static_assert(std::is_same<T, Int>::value, "`It` must dereference to `Int`");
 
 public:
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = Real;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
+  //! Type returned by the dereference operator.
   using reference = value_type;
 
   //! Constructor.
