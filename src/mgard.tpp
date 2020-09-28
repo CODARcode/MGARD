@@ -1,9 +1,9 @@
 // Copyright 2017, Brown University, Providence, RI.
 // MGARD: MultiGrid Adaptive Reduction of Data
-// Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
-// Corresponding Author: Ozan Tugluk
+// Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney, Qing Liu
+// Corresponding Author: Ben Whitney, Qing Liu
 //
-// version: 0.0.0.2
+// version: 0.1.0
 // See LICENSE for details.
 #ifndef MGARD_TPP
 #define MGARD_TPP
