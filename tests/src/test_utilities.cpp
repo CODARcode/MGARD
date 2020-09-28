@@ -169,16 +169,14 @@ TEST_CASE("CartesianProduct iterator", "[utilities]") {
     const std::vector<int> a = {1, 3, 5};
     const std::vector<int> b = {2, 4, 6};
     const std::vector<int> c = {0, 0};
-    const std::array<std::vector<int>, 3> factors = {a, b, c};
-    const mgard::CartesianProduct<int, 3> product(factors);
+    const mgard::CartesianProduct<std::vector<int>, 3> product({a, b, c});
     REQUIRE(std::distance(product.begin(), product.end()) == 18);
   }
 
   {
     const std::vector<char> a = {'a', 'b', 'c', 'd'};
     const std::vector<char> b = {'y', 'z'};
-    const std::array<std::vector<char>, 2> factors = {a, b};
-    const mgard::CartesianProduct<char, 2> product(factors);
+    mgard::CartesianProduct<std::vector<char>, 2> product({a, b});
     const std::vector<std::array<char, 2>> obtained(product.begin(),
                                                     product.end());
     const std::vector<std::array<char, 2>> expected = {

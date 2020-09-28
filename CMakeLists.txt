@@ -157,6 +157,7 @@ add_library(mgard
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/mgard_api.cpp  include/mgard_api.h
   src/mgard_nuni.cpp  include/mgard_nuni.h
+  src/TensorMeshHierarchy.cpp  include/TensorMeshHierarchy.hpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
 )
 
@@ -200,6 +201,7 @@ install(
         include/mgard_compress.hpp
         include/mgard_api.h
         include/mgard_nuni.h
+	include/TensorMeshHierarchy.hpp
         ${MGARD_CUDA_HEADER}
 	"${PROJECT_BINARY_DIR}/include/MGARDConfig.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
@@ -216,12 +218,6 @@ if(BUILD_TESTING)
 #  enable_testing()
   add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
   target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
-
-  if(MGARD_ENABLE_CUDA)
-    add_executable(mgard_check_cuda_and_cpu ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_check_cuda_and_cpu.cpp)
-    target_link_libraries(mgard_check_cuda_and_cpu mgard  ${CMAKE_DL_LIBS})
-    set_target_properties(mgard_check_cuda_and_cpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-  endif()
   
   add_subdirectory(tests)
 

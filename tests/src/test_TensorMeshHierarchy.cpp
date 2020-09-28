@@ -101,7 +101,7 @@ TEST_CASE("TensorMeshHierarchy dimension indexing", "[TensorMeshHierarchy]") {
       REQUIRE(hierarchy.L == 1);
       // Every index is included in the finest level.
       for (std::size_t i = 0; i < 3; ++i) {
-        const std::vector<std::size_t> indices = hierarchy.indices(1, i);
+        const mgard::TensorIndexRange indices = hierarchy.indices(1, i);
         TrialTracker tracker;
         std::size_t expected = 0;
         for (const std::size_t index : indices) {
@@ -115,7 +115,8 @@ TEST_CASE("TensorMeshHierarchy dimension indexing", "[TensorMeshHierarchy]") {
             {{0, 2, 4}, {0, 2}, {0, 2, 4, 6, 8, 10, 12, 14, 16}}};
         std::array<std::vector<std::size_t>, 3> obtained;
         for (std::size_t i = 0; i < 3; ++i) {
-          obtained.at(i) = hierarchy.indices(0, i);
+          const mgard::TensorIndexRange indices = hierarchy.indices(0, i);
+          obtained.at(i).assign(indices.begin(), indices.end());
         }
         REQUIRE(obtained == expected);
       }
@@ -127,7 +128,8 @@ TEST_CASE("TensorMeshHierarchy dimension indexing", "[TensorMeshHierarchy]") {
           {{0, 5}, {0, 2, 5}, {0, 1, 2, 3, 5}, {0, 1, 2, 3, 4, 5}}};
       std::array<std::vector<std::size_t>, 4> obtained;
       for (std::size_t l = 0; l < 4; ++l) {
-        obtained.at(l) = hierarchy.indices(l, 1);
+        const mgard::TensorIndexRange indices = hierarchy.indices(l, 1);
+        obtained.at(l).assign(indices.begin(), indices.end());
       }
       REQUIRE(obtained == expected);
     }
@@ -141,10 +143,59 @@ TEST_CASE("TensorMeshHierarchy dimension indexing", "[TensorMeshHierarchy]") {
            {0, 7, 14, 22, 29, 36, 44, 51, 59}}};
       std::array<std::vector<std::size_t>, 4> obtained;
       for (std::size_t l = 0; l < 4; ++l) {
-        obtained.at(l) = hierarchy.indices(l, 0);
+        const mgard::TensorIndexRange indices = hierarchy.indices(l, 0);
+        obtained.at(l).assign(indices.begin(), indices.end());
       }
       REQUIRE(obtained == expected);
     }
+  }
+}
+
+namespace {
+
+template <std::size_t N>
+void test_index_iteration(
+    const std::array<std::size_t, N> shape,
+    const std::vector<std::array<std::vector<std::size_t>, N>> &expected) {
+  const mgard::TensorMeshHierarchy<N, float> hierarchy(shape);
+  std::vector<std::array<std::vector<std::size_t>, N>> encountered(hierarchy.L +
+                                                                   1);
+  for (std::size_t l = 0; l <= hierarchy.L; ++l) {
+    std::array<std::vector<std::size_t>, N> &enc = encountered.at(l);
+    for (std::size_t i = 0; i < N; ++i) {
+      const mgard::TensorIndexRange indices = hierarchy.indices(l, i);
+      enc.at(i).assign(indices.begin(), indices.end());
+    }
+  }
+  REQUIRE(encountered == expected);
+}
+
+} // namespace
+
+TEST_CASE("index iteration", "[TensorMeshHierarchy]") {
+  {
+    const std::array<std::size_t, 2> shape = {9, 5};
+    const std::vector<std::array<std::vector<std::size_t>, 2>> expected = {
+        {{{{0, 4, 8}, {0, 4}}},
+         {{{0, 2, 4, 6, 8}, {0, 2, 4}}},
+         {{{0, 1, 2, 3, 4, 5, 6, 7, 8}, {0, 1, 2, 3, 4}}}}};
+    test_index_iteration(shape, expected);
+  }
+  {
+    const std::array<std::size_t, 1> shape = {8};
+    const std::vector<std::array<std::vector<std::size_t>, 1>> expected = {
+        {{{{0, 7}}},
+         {{{0, 3, 7}}},
+         {{{0, 1, 3, 5, 7}}},
+         {{{0, 1, 2, 3, 4, 5, 6, 7}}}}};
+    test_index_iteration(shape, expected);
+  }
+  {
+    const mgard::TensorIndexRange indices =
+        mgard::TensorIndexRange::singleton();
+    const std::vector<std::size_t> obtained(indices.begin(), indices.end());
+    const std::vector<std::size_t> expected = {0};
+    REQUIRE(obtained == expected);
   }
 }
 

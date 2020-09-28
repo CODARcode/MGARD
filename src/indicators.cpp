@@ -10,7 +10,7 @@ RatioBounds s_square_indicator_bounds(const MeshHierarchy &hierarchy) {
 }
 
 float square_indicator_factor(const IndicatorInput input, const float s) {
-  return std::pow(2, 2 * s * input.l) *
+  return std::exp2(2 * s * input.l) *
          input.mesh.containing_elements_measure(input.node);
 }
 

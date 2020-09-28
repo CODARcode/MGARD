@@ -3,9 +3,12 @@
 #include <array>
 #include <numeric>
 
+#include "blas.hpp"
+
 #include "TensorMeshHierarchy.hpp"
 #include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorNorms.hpp"
+#include "mgard.hpp"
 
 #include "testing_random.hpp"
 #include "testing_utilities.hpp"
@@ -58,6 +61,10 @@ TEST_CASE("tensor multilevel coefficient (de)quantization iteration",
       {22, 19}, std::numeric_limits<double>::infinity(), 0.01);
   test_mc_quantization_iteration<3, float, long int>(
       {10, 9, 9}, std::numeric_limits<float>::infinity(), 0.25);
+
+  test_mc_quantization_iteration<1, float, long int>({41}, -1.25, 0.15);
+  test_mc_quantization_iteration<2, double, int>({17, 9}, 0, 0.05);
+  test_mc_quantization_iteration<3, float, long int>({8, 5, 10}, 0.3, 0.001);
 }
 
 namespace {
@@ -109,6 +116,7 @@ template <std::size_t N, typename Real, typename Int>
 void test_mc_quantization_error(const std::array<std::size_t, N> shape,
                                 const Real s, const Real tolerance,
                                 std::default_random_engine &generator) {
+
   std::uniform_real_distribution<Real> nodal_spacing_distribution(1, 1.1);
   const mgard::TensorMeshHierarchy<N, Real> hierarchy =
       hierarchy_with_random_spacing(generator, nodal_spacing_distribution,
@@ -120,32 +128,38 @@ void test_mc_quantization_error(const std::array<std::size_t, N> shape,
   const mgard::TensorMultilevelCoefficientDequantizer<N, Int, Real> dequantizer(
       hierarchy, s, tolerance);
 
-  std::vector<Real> u_(ndof);
-  Real *const u = u_.data();
+  std::vector<Real> u_nc(ndof);
 
   std::uniform_real_distribution<Real> nodal_coefficient_distribution(-100,
                                                                       100);
-  for (Real &x : u_) {
+  for (Real &x : u_nc) {
     x = nodal_coefficient_distribution(generator);
   }
 
-  {
-    using QntzrIt =
-        typename mgard::TensorMultilevelCoefficientQuantizer<N, Real,
-                                                             Int>::iterator;
-    const mgard::RangeSlice<QntzrIt> quantized_u = quantizer(u);
-    const std::vector<Int> quantized(quantized_u.begin(), quantized_u.end());
+  std::vector<Real> u_mc(u_nc);
+  mgard::decompose(hierarchy, u_mc.data());
 
-    std::vector<Real> error_(ndof);
-    Real *const error = error_.data();
+  using Qntzr = mgard::TensorMultilevelCoefficientQuantizer<N, Real, Int>;
+  using Dqntzr = mgard::TensorMultilevelCoefficientDequantizer<N, Int, Real>;
 
-    typename std::vector<Real>::const_iterator p = u_.begin();
-    typename std::vector<Real>::iterator q = error_.begin();
-    for (const Real x : dequantizer(quantized.begin(), quantized.end())) {
-      *q++ = *p++ - x;
-    }
-    REQUIRE(mgard::norm(hierarchy, error, s) <= tolerance);
-  }
+  const mgard::RangeSlice<typename Qntzr::iterator> quantized_u_mc_range =
+      quantizer(u_mc.data());
+
+  using It = typename Dqntzr::template iterator<typename Qntzr::iterator>;
+
+  const mgard::RangeSlice<It> dequantized_u_mc_range =
+      dequantizer(quantized_u_mc_range.begin(), quantized_u_mc_range.end());
+  const std::vector<Real> dequantized_u_mc(dequantized_u_mc_range.begin(),
+                                           dequantized_u_mc_range.end());
+
+  std::vector<Real> dequantized_u_nc(dequantized_u_mc);
+  mgard::recompose(hierarchy, dequantized_u_nc.data());
+
+  std::vector<Real> error_nc(u_nc);
+  blas::axpy(ndof, static_cast<Real>(-1), dequantized_u_nc.data(),
+             error_nc.data());
+
+  REQUIRE(mgard::norm(hierarchy, error_nc.data(), s) <= tolerance);
 }
 
 } // namespace
@@ -153,17 +167,15 @@ void test_mc_quantization_error(const std::array<std::size_t, N> shape,
 TEST_CASE("tensor multilevel coefficient (de)quantization inversion",
           "[TensorMultilevelCoefficientQuantizer]") {
   std::default_random_engine generator;
-  // TODO: Test other smoothness parameters once (de)quantization support is
-  // extended.
   const std::vector<float> smoothness_parameters = {
-      std::numeric_limits<float>::infinity()};
-  const std::vector<float> tolerances = {0.001, 0.01, 0.1, 1};
+      std::numeric_limits<float>::infinity(), -0.75, 0, 1.5};
+  const std::vector<float> tolerances = {0.001, 0.1, 1};
 
   for (const float s : smoothness_parameters) {
     for (const float tolerance : tolerances) {
-      test_mc_dequantization_inversion<1, float, int>({65}, s, tolerance,
+      test_mc_dequantization_inversion<1, float, int>({129}, s, tolerance,
                                                       generator);
-      test_mc_dequantization_inversion<2, float, int>({22, 17}, s, tolerance,
+      test_mc_dequantization_inversion<2, float, int>({23, 17}, s, tolerance,
                                                       generator);
       test_mc_dequantization_inversion<3, float, int>({8, 8, 9}, s, tolerance,
                                                       generator);
@@ -174,10 +186,8 @@ TEST_CASE("tensor multilevel coefficient (de)quantization inversion",
 TEST_CASE("tensor multilevel coefficient (de)quantization error",
           "[TensorMultilevelCoefficientQuantizer]") {
   std::default_random_engine generator;
-  // TODO: Test other smoothness parameters once (de)quantization support is
-  // extended.
   const std::vector<double> smoothness_parameters = {
-      std::numeric_limits<double>::infinity()};
+      std::numeric_limits<double>::infinity(), -3, 0, 0.75};
   const std::vector<double> tolerances = {0.5, 0.25, 0.015625};
   for (const double s : smoothness_parameters) {
     for (const double tolerance : tolerances) {

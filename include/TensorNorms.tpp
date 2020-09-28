@@ -99,7 +99,7 @@ Real s_norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
     const Real difference_of_squares =
         std::max(static_cast<Real>(0),
                  squares_for_norm.at(l) - (l ? squares_for_norm.at(l - 1) : 0));
-    square_norm += std::pow(2, 2 * s * l) * difference_of_squares;
+    square_norm += std::exp2(2 * s * l) * difference_of_squares;
   }
   return std::sqrt(square_norm);
 }

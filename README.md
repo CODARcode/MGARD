@@ -2,10 +2,10 @@
 
 MGARD (MultiGrid Adaptive Reduction of Data) is a technique for multilevel lossy compression of scientific data based on the theory of multigrid methods.
 This is an experimental C++ implementation for integration with existing software; use at your own risk!
-We encourage you to [make a GitHub issue][issue form] if you run into any problems using the software, have any questions or suggestions, etc.
+We encourage you to [make a GitHub issue][issue form] if you run into any problems using MGARD, have any questions or suggestions, etc.
 
-The API consists of a header file `include/mgard_api.h` providing prototypes for overloaded functions `mgard_compress` and `mgard_decompress`.
-See [the header][api] for documentation of these functions.
+The API consists of a header file `include/mgard_api.h` providing declarations for function templates `mgard::compress` and `mgard::decompress`.
+See [the header][api] for documentation of these templates.
 
 To use MGARD,
 
@@ -37,6 +37,9 @@ Reference [2] covers the simplest case and is a natural starting point.
 
 ## Caveats
 
-If you use a certain value of `s` to compress your data, *you must use the same value of `s` to decompress it*.
-You cannot agnostically decompress the compressed representation, and the value of `s` is not currently stored in the compressed stream, so if you forget the value of `s` that you used when compressing your data, your data is gone.
-In addition, there is currently no way to detect if an inconsistent value of `s` has been passed, so the code returns corrupted data silently.
+In addition to `mgard::compress` and `mgard::decompress`, the API also provides declarations for deprecated functions `mgard_compress` and `mgard_decompress`.
+When decompressing with `mgard_decompress`, a smoothness parameter `s` must be specified.
+*The `s` value you use to decompress must be the same as the `s` value you used to compress.*
+You cannot agnostically decompress the compressed representation, and the value of `s` is not stored in the compressed stream, so if you forget the value of `s` you used when compressing your data, your data is gone.
+In addition, there is no way to detect if an inconsistent value of `s` has been passed, so the code returns corrupted data silently.
+You can avoid this problem by using `mgard::compress` and `mgard::decompress` instead.

@@ -4,6 +4,7 @@
 //!\brief Quantizer for multilevel coefficients on tensor product grids.
 
 #include "LinearQuantizer.hpp"
+#include "TensorMeshHierarchy.hpp"
 #include "utilities.hpp"
 
 namespace mgard {
@@ -73,17 +74,22 @@ bool operator!=(const TensorMultilevelCoefficientQuantizer<N, Real, Int> &a,
 template <std::size_t N, typename Real, typename Int>
 class TensorMultilevelCoefficientQuantizer<N, Real, Int>::iterator {
 public:
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = Int;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
-  using reference = value_type &;
+  //! Type returned by the dereference operator.
+  using reference = value_type;
 
   //! Constructor.
   //!
   //!\param quantizer Associated multilevel coefficient quantizer.
   //!\param inner_node Position in the node range.
-  //!\param inner_mc Position in the multilevel coefficient range.
+  //!\param inner_coeff Position in the multilevel coefficient range.
   iterator(const TensorMultilevelCoefficientQuantizer &quantizer,
            const typename TensorNodeRange<N, Real>::iterator inner_node,
            Real const *const inner_coeff);
@@ -101,7 +107,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  value_type operator*() const;
+  reference operator*() const;
 
 private:
   //! Associated multilevel coefficient quantizer;
@@ -133,7 +139,7 @@ public:
   //! Dequantize a multilevel coefficient.
   //!
   //!\param node Auxiliary node data corresponding to the coefficient.
-  //!\param coefficient Multilevel coefficient to be dequantized.
+  //!\param n Multilevel coefficient to be dequantized.
   Real operator()(const TensorNode<N, Real> node, const Int n) const;
 
   //! Iterator used to traverse a quantized range. Note that the iterator is not
@@ -180,11 +186,16 @@ template <std::size_t N, typename Int, typename Real>
 template <typename It>
 class TensorMultilevelCoefficientDequantizer<N, Int, Real>::iterator {
 public:
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = Real;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
-  using reference = value_type &;
+  //! Type returned by the dereference operator.
+  using reference = value_type;
 
   //! Constructor.
   //!
@@ -208,7 +219,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  value_type operator*() const;
+  reference operator*() const;
 
 private:
   //! Associated multilevel coefficient dequantizer;

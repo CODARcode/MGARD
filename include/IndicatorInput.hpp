@@ -70,11 +70,16 @@ bool operator!=(const IndicatorInputRange &a, const IndicatorInputRange &b);
 //! Iterator over a range of auxiliary mesh data.
 class IndicatorInputRange::iterator {
 public:
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = IndicatorInput;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
-  using reference = value_type &;
+  //! Type returned by the dereference operator.
+  using reference = value_type;
 
   //! Constructor.
   //!
@@ -100,7 +105,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  value_type operator*() const;
+  reference operator*() const;
 
 private:
   //! Associated auxiliary mesh data range.
