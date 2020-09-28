@@ -26,7 +26,7 @@ namespace mgard {
 //! level and the index of this mesh level. That is, `0` corresponds to the
 //! finest level, `1` to the second finest, and so on.
 //!\param[in] dimension Dimension in which the operator is to act.
-//!\param[in, out] Nodal value vector.
+//!\param[in, out] v Nodal value vector.
 template <std::size_t N, typename Real>
 void mass_matrix_multiply(const TensorMeshHierarchy<N, Real> &hierarchy,
                           const int index_difference,
@@ -41,7 +41,7 @@ void mass_matrix_multiply(const TensorMeshHierarchy<N, Real> &hierarchy,
 //!\param[in] index_difference Difference between the index of the finest mesh
 //! level and the index of this mesh level, as in `mass_matrix_multiply`.
 //!\param[in] dimension Dimension in which the operator is to act.
-//!\param[in, out] Mass matrix–nodal value vector product.
+//!\param[in, out] v Mass matrix–nodal value vector product.
 template <std::size_t N, typename Real>
 void solve_tridiag_M(const TensorMeshHierarchy<N, Real> &hierarchy,
                      const int index_difference, const std::size_t dimension,
@@ -57,7 +57,7 @@ void solve_tridiag_M(const TensorMeshHierarchy<N, Real> &hierarchy,
 //!\param[in] index_difference Difference between the index of the finest mesh
 //! level and the index of this mesh level, as in `mass_matrix_multiply`.
 //!\param[in] dimension Dimension in which the operator is to act.
-//!\param[in, out] Mass matrix–nodal value vector product on the fine mesh.
+//!\param[in, out] v Mass matrix–nodal value vector product on the fine mesh.
 template <std::size_t N, typename Real>
 void restriction(const TensorMeshHierarchy<N, Real> &hierarchy,
                  const int index_difference, const std::size_t dimension,
@@ -293,7 +293,7 @@ void recompose(const int nrow, const int ncol, const int l_target, Real *v,
 //! Transform nodal coefficients into multilevel coefficients.
 //!
 //!\param[in] hierarchy Mesh hierarchy on which the input function is defined.
-//!\param[in, out] Nodal coefficients of the input function on the finest mesh
+//!\param[in, out] v Nodal coefficients of the input function on the finest mesh
 //! in the hierarchy.
 template <std::size_t N, typename Real>
 void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v);
@@ -301,8 +301,8 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v);
 //! Transform multilevel coefficients into nodal coefficients.
 //!
 //!\param[in] hierarchy Mesh hierarchy on which the output function is defined.
-//!\param[in, out] Multilevel coefficients of the output function on the finest
-//! mesh in the hierarchy.
+//!\param[in, out] v Multilevel coefficients of the output function on the
+//! finest mesh in the hierarchy.
 template <std::size_t N, typename Real>
 void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v);
 

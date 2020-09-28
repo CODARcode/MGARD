@@ -100,11 +100,17 @@ bool operator!=(const Enumeration<It> &a, const Enumeration<It> &b);
 //! Iterator over an enumeration.
 template <typename It> class Enumeration<It>::iterator {
 public:
+  //! Type iterated over by inner iterator.
   using T = typename std::iterator_traits<It>::value_type;
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = IndexedElement<T>;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
+  //! Type returned by the dereference operator.
   using reference = value_type;
 
   //! Constructor.
@@ -201,12 +207,19 @@ bool operator!=(const ZippedRange<It, Jt> &a, const ZippedRange<It, Jt> &b);
 //! Iterator over a zipped range.
 template <typename It, typename Jt> class ZippedRange<It, Jt>::iterator {
 public:
+  //! Type iterated over by first inner iterator.
   using T = typename std::iterator_traits<It>::value_type;
+  //! Type iterated over by second inner iterator.
   using U = typename std::iterator_traits<Jt>::value_type;
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = std::pair<T, U>;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
+  //! Type returned by the dereference operator.
   using reference = value_type;
 
   //! Constructor.
@@ -263,7 +276,7 @@ public:
   const It end_;
 };
 
-//!\deprecated
+//!\deprecated Use `CartesianProduct` instead.
 //! Collection of multiindices \f$\vec{\alpha}\f$ satisfying a bound of the form
 //! \f$\vec{\beta} \leq \vec{\alpha} < \vec{\gamma}\f$ (elementwise).
 template <std::size_t N> struct MultiindexRectangle {
@@ -314,10 +327,15 @@ bool operator!=(const MultiindexRectangle<N> &a,
 //! Iterator over a rectangle of multiindices.
 template <std::size_t N> class MultiindexRectangle<N>::iterator {
 public:
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = std::array<std::size_t, N>;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
+  //! Type returned by the dereference operator.
   using reference = value_type;
 
   //! Constructor.
@@ -400,17 +418,23 @@ bool operator!=(const CartesianProduct<T, N> &a,
 //! Iterator over a Cartesian product.
 template <typename T, std::size_t N> class CartesianProduct<T, N>::iterator {
 public:
+  //! Iterator over `T`.
   // When `T` is `TensorIndexRange`, we just want `TensorIndexRange::iterator`.
   // But when `T` is `std::vector<int>` (as of this writing, only in testing),
   // we need `std::vector<int>::const_iterator`.
   using T_iterator = decltype(
       std::declval<typename std::array<T, N>::const_reference>().begin());
 
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type =
       std::array<typename std::iterator_traits<T_iterator>::value_type, N>;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
+  //! Type returned by the dereference operator.
   using reference = value_type;
 
   //! Constructor.

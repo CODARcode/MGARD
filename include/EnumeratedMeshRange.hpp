@@ -1,7 +1,7 @@
 #ifndef ENUMERATEDMESHRANGE_HPP
 #define ENUMERATEDMESHRANGE_HPP
 //!\file
-//!\brief Indexed meshes from a `MeshHierarchy`.
+//!\brief Indexed meshes from a `mgard::MeshHierarchy`.
 
 #include <vector>
 

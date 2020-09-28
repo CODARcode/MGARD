@@ -65,8 +65,13 @@ public:
   //!\param dimension Index of the dimension.
   std::size_t stride(const std::size_t l, const std::size_t dimension) const;
 
-  // TODO: Temporary member function to be removed once indices rather than
-  // index differences are used everywhere.
+  //! Calculate a mesh index from an index difference.
+  //!
+  //!\deprecated Temporary member function to be removed once indices rather
+  //! than index differences are used everywhere.
+  //!
+  //!\param index_difference Difference between the index of the finest mesh and
+  //! the index of the mesh in question.
   std::size_t l(const std::size_t index_difference) const;
 
   //! Generate the indices (in a particular dimension) of a mesh level.
@@ -217,11 +222,16 @@ bool operator!=(const TensorIndexRange &a, const TensorIndexRange &b);
 //! each time.
 class TensorIndexRange::iterator {
 public:
-  //! See note above.
+  // See note above.
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = std::size_t;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
+  //! Type returned by the dereference operator.
   using reference = value_type;
 
   //! Constructor.
@@ -320,10 +330,15 @@ template <std::size_t N, typename Real> struct TensorNode {
 template <std::size_t N, typename Real>
 class TensorNodeRange<N, Real>::iterator {
 public:
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = TensorNode<N, Real>;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
+  //! Type returned by the dereference operator.
   using reference = value_type;
 
   //! Constructor.

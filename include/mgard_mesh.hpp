@@ -41,19 +41,48 @@ bool operator==(const Dimensions2kPlus1<N> &a, const Dimensions2kPlus1<N> &b);
 template <std::size_t N>
 bool operator!=(const Dimensions2kPlus1<N> &a, const Dimensions2kPlus1<N> &b);
 
-// As of this writing, these are only needed in the implementation of the
-// `Dimensions2kPlus1` constructor.
+// As of this writing, `nlevel_from_size` and `size_from_nlevel`are only needed
+// in the implementation of the `Dimensions2kPlus1` constructor.
+
+//! Compute `log2(n - 1)`.
+//!
+//!\param n Size of the mesh in a particular dimension.
 std::size_t nlevel_from_size(const std::size_t n);
 
+//! Compute `2^n + 1`.
+//!
+//!\param n Level index in a particular dimension (assuming a dyadic grid).
 std::size_t size_from_nlevel(const std::size_t n);
 
-// These were originally `inline`.
+//! Translate a 2D to a 1D index.
+//!
+//!\deprecated Use `TensorMeshHierarchy::at` instead.
+//!
+//!\param ncol Number of columns in the 2D dataset.
+//!\param i Row index in the 2D dataset.
+//!\param j Column index in the 2D dataset.
 int get_index(const int ncol, const int i, const int j);
 
-int get_lindex(const int n, const int no, const int i);
-
+//! Translate a 3D to a 1D index.
+//!
+//!\deprecated Use `TensorMeshHierarchy::at` instead.
+//!
+//!\param ncol Number of columns in the 3D dataset.
+//!\param nfib Number of fibers in the 3D dataset.
+//!\param i Row index in the 3D dataset.
+//!\param j Column index in the 3D dataset.
+//!\param k Fiber index in the 3D dataset.
 int get_index3(const int ncol, const int nfib, const int i, const int j,
                const int k);
+
+//! Translate a 1D index to an index in the largest contained dyadic grid.
+//!
+//!\deprecated Use `TensorMeshHierarchy::indices` instead.
+//!
+//!\param n Size of the largest contained dyadic grid.
+//!\param no Size of the 1D grid (greater than or equal to `n`).
+//!\param i Row index in the 1D dataset.
+int get_lindex(const int n, const int no, const int i);
 
 //! Compute the stride for a mesh level.
 //!
