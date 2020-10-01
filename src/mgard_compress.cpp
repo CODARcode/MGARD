@@ -332,8 +332,10 @@ unsigned char *compress_memory_huffman(std::vector<int> &qv,
                           &out_data_miss_size, &out_tree, &out_tree_size);
 #ifdef MGARD_TIMING
   auto huff_time2 = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(huff_time2 - huff_time1);
-  std::cout << "Huffman tree time = " << (double)duration.count()/1000000 << "\n";
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+      huff_time2 - huff_time1);
+  std::cout << "Huffman tree time = " << (double)duration.count() / 1000000
+            << "\n";
 #endif
   size_t total_size =
       out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
@@ -359,8 +361,10 @@ unsigned char *compress_memory_huffman(std::vector<int> &qv,
   mgard::compress_memory_z(payload, total_size, out_data);
 #ifdef MGARD_TIMING
   auto z_time2 = std::chrono::high_resolution_clock::now();
-  auto z_duration = std::chrono::duration_cast<std::chrono::microseconds>(z_time2 - z_time1);
-  std::cout << "ZLIB compression time = " << (double)z_duration.count()/1000000 << "\n";
+  auto z_duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(z_time2 - z_time1);
+  std::cout << "ZLIB compression time = "
+            << (double)z_duration.count() / 1000000 << "\n";
 #endif
 #else
 #ifdef MGARD_TIMING
@@ -369,8 +373,10 @@ unsigned char *compress_memory_huffman(std::vector<int> &qv,
   mgard::compress_memory_zstd(payload, total_size, out_data);
 #ifdef MGARD_TIMING
   auto zstd_time2 = std::chrono::high_resolution_clock::now();
-  auto zstd_duration = std::chrono::duration_cast<std::chrono::microseconds>(zstd_time2 - zstd_time1);
-  std::cout << "ZSTD compression time = " << (double)zstd_duration.count()/1000000 << "\n";
+  auto zstd_duration = std::chrono::duration_cast<std::chrono::microseconds>(
+      zstd_time2 - zstd_time1);
+  std::cout << "ZSTD compression time = "
+            << (double)zstd_duration.count() / 1000000 << "\n";
 #endif
 #endif
   free(payload);
