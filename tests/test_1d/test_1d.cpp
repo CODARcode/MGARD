@@ -3,6 +3,9 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#ifdef MGARD_TIMING
+#include <chrono>
+#endif
 
 using namespace std;
 
@@ -29,11 +32,18 @@ int main(int argc, char **argv) {
   std::vector<double> data(num_elements);
   datafile.read(reinterpret_cast<char *>(&data[0]),
                 num_elements * sizeof(double));
-
+#ifdef MGARD_TIMING
+  auto start = chrono::high_resolution_clock::now();
+#endif
   compressed_data =
       mgard_compress(data.data(), out_size, 1, num_elements, 1, tol);
+#ifdef MGARD_TIMING
+  auto stop = chrono::high_resolution_clock::now();
+  auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
   cout << "Original size = " << num_elements * 8 << " out_size = " << out_size
-       << " CR = " << num_elements * 8.0 / out_size << endl;
+       << " CR = " << num_elements * 8.0 / out_size
+       << " Time = " << (double) duration.count() / 1000000<< endl;
+#endif 
 
   double *decompressed_data =
       mgard_decompress<double>(compressed_data, out_size, 1, num_elements, 1);
