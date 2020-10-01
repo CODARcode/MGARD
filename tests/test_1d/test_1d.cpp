@@ -42,8 +42,8 @@ int main(int argc, char **argv) {
   auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
   cout << "Original size = " << num_elements * 8 << " out_size = " << out_size
        << " CR = " << num_elements * 8.0 / out_size
-       << " Time = " << (double) duration.count() / 1000000<< endl;
-#endif 
+       << " Time = " << (double)duration.count() / 1000000 << endl;
+#endif
 
   double *decompressed_data =
       mgard_decompress<double>(compressed_data, out_size, 1, num_elements, 1);
