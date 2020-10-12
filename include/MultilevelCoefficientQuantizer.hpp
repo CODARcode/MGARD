@@ -66,7 +66,7 @@ bool operator==(const MultilevelCoefficientQuantizer<Real, Int> &a,
 
 //! Inequality comparison.
 template <typename Real, typename Int>
-bool operator==(const MultilevelCoefficientQuantizer<Real, Int> &a,
+bool operator!=(const MultilevelCoefficientQuantizer<Real, Int> &a,
                 const MultilevelCoefficientQuantizer<Real, Int> &b);
 
 //! Iterator used to traverse a range of multilevel coefficients, quantizing as
@@ -74,11 +74,16 @@ bool operator==(const MultilevelCoefficientQuantizer<Real, Int> &a,
 template <typename Real, typename Int>
 class MultilevelCoefficientQuantizer<Real, Int>::iterator {
 public:
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = Int;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
-  using reference = value_type &;
+  //! Type returned by the dereference operator.
+  using reference = value_type;
 
   //! Constructor.
   //!
@@ -102,7 +107,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  value_type operator*() const;
+  reference operator*() const;
 
 private:
   //! Associated multilevel coefficient quantizer;
@@ -174,7 +179,7 @@ bool operator==(const MultilevelCoefficientDequantizer<Int, Real> &a,
 
 //! Inequality comparison.
 template <typename Int, typename Real>
-bool operator==(const MultilevelCoefficientDequantizer<Int, Real> &a,
+bool operator!=(const MultilevelCoefficientDequantizer<Int, Real> &a,
                 const MultilevelCoefficientDequantizer<Int, Real> &b);
 
 //! Iterator used to traverse a range of quantized multilevel coefficients,
@@ -187,11 +192,16 @@ class MultilevelCoefficientDequantizer<Int, Real>::iterator {
   static_assert(std::is_same<T, Int>::value, "`It` must dereference to `Int`");
 
 public:
+  //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
   using value_type = Real;
+  //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
   using pointer = value_type *;
-  using reference = value_type &;
+  //! Type returned by the dereference operator.
+  using reference = value_type;
 
   //! Constructor.
   //!
@@ -214,7 +224,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  value_type operator*() const;
+  reference operator*() const;
 
 private:
   //! Associated multilevel coefficient dequantizer.

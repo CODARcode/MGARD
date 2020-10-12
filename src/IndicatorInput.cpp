@@ -32,8 +32,8 @@ IndicatorInputRange::iterator::iterator(
 
 bool IndicatorInputRange::iterator::
 operator==(const IndicatorInputRange::iterator &other) const {
-  return (iterable == other.iterable && inner_mesh == other.inner_mesh &&
-          inner_node == other.inner_node);
+  return (&iterable == &other.iterable || iterable == other.iterable) &&
+         inner_mesh == other.inner_mesh && inner_node == other.inner_node;
 }
 
 bool IndicatorInputRange::iterator::

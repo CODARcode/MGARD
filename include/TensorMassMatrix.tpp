@@ -39,7 +39,7 @@ void ConstituentMassMatrix<N, Real>::do_operator_parentheses(
   Real *out_middle;
   Real *out_right;
 
-  std::vector<std::size_t>::const_iterator p = CLO::indices.begin();
+  TensorIndexRange::iterator p = CLO::indices.begin();
   // TODO: Could combine `i` and `variable_index`.
   std::size_t i;
 
@@ -172,7 +172,7 @@ void ConstituentMassMatrixInverse<N, Real>::do_operator_parentheses(
   // `x_{i + 1}` when we're updating `x_i`.)
   Real x_next;
 
-  std::vector<std::size_t>::const_iterator p = CLO::indices.begin();
+  TensorIndexRange::iterator p = CLO::indices.begin();
   std::size_t i;
 
   variable_index = i = *p;
@@ -218,20 +218,12 @@ void ConstituentMassMatrixInverse<N, Real>::do_operator_parentheses(
     const Real a_j = h_left / 6;
     const Real w = a_j / divisors[n - 2];
     divisors[n - 1] = 2 * h_left / 6 - w * a_j;
-    // TODO: We are done with `rhs_previous`, so we don't update it.
+    // We are done with `rhs_previous`, so we don't update it.
     *out_middle -= w * rhs_previous;
   }
 
   // Start of backward sweep (first entry).
   { x_next = *out_middle /= divisors[n - 1]; }
-
-  // TODO: Remove.
-  {
-    std::vector<std::size_t>::const_iterator q = p;
-    if (++q != CLO::indices.end()) {
-      throw std::logic_error("you miscounted indices");
-    }
-  }
 
   // Up to now (apart from its very first usage), `p` has pointed to the 'right'
   // index. From now on it will point to the 'middle' index.

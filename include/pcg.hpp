@@ -45,7 +45,7 @@ struct StoppingCriteria {
   double tolerance(const double rhs_norm) const;
 };
 
-//! Diagnostics for PCG run.
+//! %Diagnostics for PCG run.
 struct Diagnostics {
   //! Whether the iteration converged or was halted for some other reason.
   bool converged;

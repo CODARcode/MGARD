@@ -59,7 +59,7 @@ static double s_square_estimator(const MultilevelCoefficients<double> u,
   double square_estimate = 0;
   for (std::size_t l = 0; l <= hierarchy.L; ++l) {
     // Code repeated here from `norms.cpp`.
-    square_estimate += std::pow(2, 2 * s * l) * squares_for_estimate.at(l);
+    square_estimate += std::exp2(2 * s * l) * squares_for_estimate.at(l);
   }
   return square_estimate;
 }

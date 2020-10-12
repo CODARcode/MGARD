@@ -13,10 +13,11 @@ ConstituentProlongationAddition<N, Real>::ConstituentProlongationAddition(
   if (!l) {
     throw std::invalid_argument("cannot interpolate from the coarsest level");
   }
-  // We'll dereference `coarse_indices.begin()` and `indices.begin()`.
-  if (coarse_indices.empty() || CLO::indices.empty()) {
-    throw std::invalid_argument("dimension must be nonzero");
-  }
+  // Possibly we should check that neither `coarse_indices` not `indices` is
+  // empty, since we will dereference `coarse_indices.begin()` and
+  // `indices.begin()`. Assuming I haven't made a mistake, though, this is
+  // enforced by the constructor of `TensorIndexRange` called by
+  // `TensorMeshHierarchy::indices`. Possibly fragile.
 }
 
 template <std::size_t N, typename Real>
@@ -31,7 +32,7 @@ void ConstituentProlongationAddition<N, Real>::do_operator_parentheses(
   std::array<std::size_t, N> alpha = multiindex;
   std::size_t &variable_index = alpha.at(CLO::dimension_);
 
-  std::vector<std::size_t>::const_iterator p = coarse_indices.begin();
+  TensorIndexRange::iterator p = coarse_indices.begin();
   std::size_t i;
 
   variable_index = i = *p++;
@@ -41,12 +42,12 @@ void ConstituentProlongationAddition<N, Real>::do_operator_parentheses(
   std::array<std::size_t, N> ALPHA = multiindex;
   std::size_t &VARIABLE_INDEX = ALPHA.at(CLO::dimension_);
 
-  std::vector<std::size_t>::const_iterator P = CLO::indices.begin();
+  TensorIndexRange::iterator P = CLO::indices.begin();
   std::size_t I;
 
   VARIABLE_INDEX = I = *P++;
 
-  const std::vector<std::size_t>::const_iterator p_end = coarse_indices.end();
+  const TensorIndexRange::iterator p_end = coarse_indices.end();
   while (p != p_end) {
     assert(I == i);
 

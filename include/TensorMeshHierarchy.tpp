@@ -137,18 +137,12 @@ TensorMeshHierarchy<N, Real>::l(const std::size_t index_difference) const {
 }
 
 template <std::size_t N, typename Real>
-std::vector<std::size_t>
+TensorIndexRange
 TensorMeshHierarchy<N, Real>::indices(const std::size_t l,
                                       const std::size_t dimension) const {
   check_mesh_index_bounds(l);
   check_dimension_index_bounds(dimension);
-  const std::size_t M = meshes.at(L).shape.at(dimension);
-  const std::size_t m = meshes.at(l).shape.at(dimension);
-  std::vector<std::size_t> indices(m);
-  for (std::size_t i = 0; i < m; ++i) {
-    indices.at(i) = (i * (M - 1)) / (m - 1);
-  }
-  return indices;
+  return TensorIndexRange(*this, l, dimension);
 }
 
 template <std::size_t N, typename Real>
@@ -236,13 +230,28 @@ void TensorMeshHierarchy<N, Real>::check_dimension_index_bounds(
   }
 }
 
+template <std::size_t N, typename Real>
+TensorIndexRange::TensorIndexRange(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
+    const std::size_t dimension)
+    : size_finest(hierarchy.meshes.at(hierarchy.L).shape.at(dimension)),
+      size_coarse(hierarchy.meshes.at(l).shape.at(dimension)) {
+  if (size_coarse > size_finest) {
+    throw std::invalid_argument(
+        "coarse size cannot be larger than finest size");
+  }
+  if (!(size_finest && size_coarse)) {
+    throw std::invalid_argument("sizes must be nonzero");
+  }
+}
+
 namespace {
 
 template <std::size_t N, typename Real>
-std::array<std::vector<std::size_t>, N>
+std::array<TensorIndexRange, N>
 make_factors(const TensorMeshHierarchy<N, Real> &hierarchy,
              const std::size_t l) {
-  std::array<std::vector<std::size_t>, N> factors;
+  std::array<TensorIndexRange, N> factors;
   for (std::size_t i = 0; i < N; ++i) {
     factors.at(i) = hierarchy.indices(l, i);
   }
@@ -254,8 +263,7 @@ make_factors(const TensorMeshHierarchy<N, Real> &hierarchy,
 template <std::size_t N, typename Real>
 TensorNodeRange<N, Real>::TensorNodeRange(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
-    : hierarchy(hierarchy), l(l), factors(make_factors(hierarchy, l)),
-      multiindices(factors) {}
+    : hierarchy(hierarchy), l(l), multiindices(make_factors(hierarchy, l)) {}
 
 template <std::size_t N, typename Real>
 bool TensorNodeRange<N, Real>::
@@ -284,13 +292,14 @@ TensorNodeRange<N, Real>::end() const {
 template <std::size_t N, typename Real>
 TensorNodeRange<N, Real>::iterator::iterator(
     const TensorNodeRange<N, Real> &iterable,
-    const typename CartesianProduct<std::size_t, N>::iterator &inner)
+    const typename CartesianProduct<TensorIndexRange, N>::iterator &inner)
     : iterable(iterable), inner(inner) {}
 
 template <std::size_t N, typename Real>
 bool TensorNodeRange<N, Real>::iterator::
 operator==(const TensorNodeRange<N, Real>::iterator &other) const {
-  return iterable == other.iterable && inner == other.inner;
+  return (&iterable == &other.iterable || iterable == other.iterable) &&
+         inner == other.inner;
 }
 
 template <std::size_t N, typename Real>

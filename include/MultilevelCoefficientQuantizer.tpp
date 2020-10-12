@@ -61,8 +61,8 @@ Qntzr<Real, Int>::iterator::iterator(
 template <typename Real, typename Int>
 bool Qntzr<Real, Int>::iterator::
 operator==(const Qntzr<Real, Int>::iterator &other) const {
-  return quantizer == other.quantizer && inner_input == other.inner_input &&
-         inner_mc == other.inner_mc;
+  return (&quantizer == &other.quantizer || quantizer == other.quantizer) &&
+         inner_input == other.inner_input && inner_mc == other.inner_mc;
 }
 
 template <typename Real, typename Int>
@@ -133,8 +133,9 @@ template <typename Int, typename Real>
 template <typename It>
 bool Dqntzr<Int, Real>::iterator<It>::
 operator==(const Dqntzr<Int, Real>::iterator<It> &other) const {
-  return dequantizer == other.dequantizer && inner_input == other.inner_input &&
-         inner_qc == other.inner_qc;
+  return (&dequantizer == &other.dequantizer ||
+          dequantizer == other.dequantizer) &&
+         inner_input == other.inner_input && inner_qc == other.inner_qc;
 }
 
 template <typename Int, typename Real>

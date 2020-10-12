@@ -55,11 +55,16 @@ public:
   //! Iterator over a group of edges.
   class iterator {
   public:
+    //! Category of the iterator.
     using iterator_category = std::input_iterator_tag;
+    //! Type iterated over.
     using value_type = EdgeFamily;
+    //! Type for distance between iterators.
     using difference_type = std::ptrdiff_t;
+    //! Pointer to `value_type`.
     using pointer = value_type *;
-    using reference = value_type &;
+    //! Type returned by the dereference operator.
+    using reference = value_type;
 
     //! Constructor.
     //!
@@ -85,7 +90,7 @@ public:
     iterator operator++(int);
 
     //! Dereference.
-    value_type operator*() const;
+    reference operator*() const;
 
   private:
     const EdgeFamilyIterable &iterable;

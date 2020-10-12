@@ -157,6 +157,7 @@ add_library(mgard
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/mgard_api.cpp  include/mgard_api.h
   src/mgard_nuni.cpp  include/mgard_nuni.h
+  src/TensorMeshHierarchy.cpp  include/TensorMeshHierarchy.hpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
 )
 
@@ -171,6 +172,10 @@ if(ZSTD_FOUND)
   target_link_libraries(mgard PRIVATE ZSTD::ZSTD  ${CMAKE_DL_LIBS})
 endif()
 
+option(DEFINE_MGARD_TIMING "Enable/disable MGARD timing" OFF)
+if(DEFINE_MGARD_TIMING)
+  add_definitions(-DMGARD_TIMING)
+endif()
 
 # Make sure we require C++11.  Use meta-compile features if available,
 # otherwise use specific language features
@@ -200,6 +205,7 @@ install(
         include/mgard_compress.hpp
         include/mgard_api.h
         include/mgard_nuni.h
+	include/TensorMeshHierarchy.hpp
         ${MGARD_CUDA_HEADER}
 	"${PROJECT_BINARY_DIR}/include/MGARDConfig.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

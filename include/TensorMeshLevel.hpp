@@ -14,15 +14,18 @@ namespace mgard {
 // TODO: Add members relating to cell spacing and create class hierarchy,
 // presumably, with equispaced and nonequispaced children.
 
-template <std::size_t N, typename Real>
 //! Tensor mesh (either freestanding or part of a hierarchy).
-class TensorMeshLevel {
+template <std::size_t N, typename Real> class TensorMeshLevel {
 public:
+  //! Constructor.
+  //!
+  //!\param shape Size of the mesh in each dimension.
   TensorMeshLevel(const std::array<std::size_t, N> shape);
 
   //! Report the number of degrees of freedom of the mesh.
   std::size_t ndof() const;
 
+  //! Size of the mesh in each dimension.
   const std::array<std::size_t, N> shape;
 };
 

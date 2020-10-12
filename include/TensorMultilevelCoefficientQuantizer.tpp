@@ -1,6 +1,7 @@
 #include <cmath>
+
+#include <algorithm>
 #include <limits>
-#include <stdexcept>
 
 namespace mgard {
 
@@ -9,14 +10,39 @@ namespace mgard {
 namespace {
 
 template <std::size_t N, typename Real>
-Real quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
-             const Real tolerance) {
-  if (s == std::numeric_limits<Real>::infinity()) {
-    // The maximum error is half the quantizer.
-    return (2 * tolerance) / ((hierarchy.L + 1) * (1 + std::pow(3, N)));
-  } else {
-    throw std::invalid_argument("only supremum norm quantizing implemented");
+Real supremum_quantum(const TensorMeshHierarchy<N, Real> &hierarchy,
+                      const Real tolerance) {
+  // The maximum error is half the quantizer.
+  return (2 * tolerance) / ((hierarchy.L + 1) * (1 + std::pow(3, N)));
+}
+
+template <std::size_t N, typename Real>
+Real s_quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
+               const Real tolerance, const TensorNode<N, Real> node) {
+  Real volume_factor = 1;
+  for (std::size_t i = 0; i < N; ++i) {
+    const TensorIndexRange indices = hierarchy.indices(node.l, i);
+    // `TensorNode` doesn't immediately give us a way of accessing the
+    // neighboring nodes in the level, so we have to search.
+    const TensorIndexRange::iterator p =
+        std::find(indices.begin(), indices.end(), node.multiindex.at(i));
+    const std::vector<Real> &coordinates = hierarchy.coordinates.at(i);
+    const Real x = node.coordinates.at(i);
+
+    // Temporary copy of `p` that can be incremented and decremented.
+    TensorIndexRange::iterator q;
+
+    q = p;
+    const Real h_left = q == indices.begin() ? 0 : x - coordinates.at(*--q);
+
+    q = p;
+    const Real h_right = ++q == indices.end() ? 0 : coordinates.at(*q) - x;
+
+    volume_factor *= (h_left + h_right) / 2;
   }
+  // The maximum error is half the quantizer.
+  return (2 * tolerance) /
+         (std::exp2(s * node.l) * std::sqrt(hierarchy.ndof() * volume_factor));
 }
 
 } // namespace
@@ -26,16 +52,18 @@ Qntzr<N, Real, Int>::Qntzr(const TensorMeshHierarchy<N, Real> &hierarchy,
                            const Real s, const Real tolerance)
     : hierarchy(hierarchy), s(s), tolerance(tolerance),
       nodes(hierarchy.nodes(hierarchy.L)),
-      supremum_quantizer(quantum(hierarchy, s, tolerance)) {}
+      supremum_quantizer(supremum_quantum(hierarchy, tolerance)) {}
 
 template <std::size_t N, typename Real, typename Int>
-Int Qntzr<N, Real, Int>::operator()(const TensorNode<N, Real>,
+Int Qntzr<N, Real, Int>::operator()(const TensorNode<N, Real> node,
                                     const Real coefficient) const {
   // TODO: Look into moving this test outside of the operator.
   if (s == std::numeric_limits<Real>::infinity()) {
     return supremum_quantizer(coefficient);
   } else {
-    throw std::invalid_argument("only supremum norm quantizing implemented");
+    const LinearQuantizer<Real, Int> quantizer(
+        s_quantum(hierarchy, s, tolerance, node));
+    return quantizer(coefficient);
   }
 }
 
@@ -66,8 +94,8 @@ Qntzr<N, Real, Int>::iterator::iterator(
 template <std::size_t N, typename Real, typename Int>
 bool Qntzr<N, Real, Int>::iterator::
 operator==(const typename Qntzr<N, Real, Int>::iterator &other) const {
-  return quantizer == other.quantizer && inner_node == other.inner_node &&
-         inner_coeff == other.inner_coeff;
+  return (&quantizer == &other.quantizer || quantizer == other.quantizer) &&
+         inner_node == other.inner_node && inner_coeff == other.inner_coeff;
 }
 
 template <std::size_t N, typename Real, typename Int>
@@ -93,8 +121,7 @@ operator++(int) {
 }
 
 template <std::size_t N, typename Real, typename Int>
-typename Qntzr<N, Real, Int>::iterator::value_type
-    Qntzr<N, Real, Int>::iterator::operator*() const {
+Int Qntzr<N, Real, Int>::iterator::operator*() const {
   return quantizer(*inner_node, *inner_coeff);
 }
 
@@ -106,16 +133,18 @@ Dqntzr<N, Int, Real>::Dqntzr(const TensorMeshHierarchy<N, Real> &hierarchy,
                              const Real s, const Real tolerance)
     : hierarchy(hierarchy), s(s), tolerance(tolerance),
       nodes(hierarchy.nodes(hierarchy.L)),
-      supremum_dequantizer(quantum(hierarchy, s, tolerance)) {}
+      supremum_dequantizer(supremum_quantum(hierarchy, tolerance)) {}
 
 template <std::size_t N, typename Int, typename Real>
-Real Dqntzr<N, Int, Real>::operator()(const TensorNode<N, Real>,
+Real Dqntzr<N, Int, Real>::operator()(const TensorNode<N, Real> node,
                                       const Int n) const {
   // TODO: Look into moving this test outside of the operator.
   if (s == std::numeric_limits<Real>::infinity()) {
     return supremum_dequantizer(n);
   } else {
-    throw std::invalid_argument("only supremum norm quantizing implemented");
+    const LinearDequantizer<Int, Real> dequantizer(
+        s_quantum(hierarchy, s, tolerance, node));
+    return dequantizer(n);
   }
 }
 
@@ -123,8 +152,8 @@ template <std::size_t N, typename Int, typename Real>
 template <typename It>
 RangeSlice<typename Dqntzr<N, Int, Real>::template iterator<It>>
 Dqntzr<N, Int, Real>::operator()(const It begin, const It end) const {
-  return {.begin_ = iterator(*this, nodes.begin(), begin),
-          .end_ = iterator(*this, nodes.end(), end)};
+  return {.begin_ = iterator<It>(*this, nodes.begin(), begin),
+          .end_ = iterator<It>(*this, nodes.end(), end)};
 }
 
 template <std::size_t N, typename Int, typename Real>
@@ -149,17 +178,16 @@ Dqntzr<N, Int, Real>::iterator<It>::iterator(
 template <std::size_t N, typename Int, typename Real>
 template <typename It>
 bool Dqntzr<N, Int, Real>::iterator<It>::iterator::operator==(
-    const typename Dqntzr<N, Int, Real>::template iterator<It>::iterator &other)
-    const {
-  return dequantizer == other.dequantizer && inner_node == other.inner_node &&
-         inner_coeff == other.inner_coeff;
+    const typename Dqntzr<N, Int, Real>::template iterator<It> &other) const {
+  return (&dequantizer == &other.dequantizer ||
+          dequantizer == other.dequantizer) &&
+         inner_node == other.inner_node && inner_coeff == other.inner_coeff;
 }
 
 template <std::size_t N, typename Int, typename Real>
 template <typename It>
 bool Dqntzr<N, Int, Real>::iterator<It>::iterator::operator!=(
-    const typename Dqntzr<N, Int, Real>::template iterator<It>::iterator &other)
-    const {
+    const typename Dqntzr<N, Int, Real>::template iterator<It> &other) const {
   return !operator==(other);
 }
 
