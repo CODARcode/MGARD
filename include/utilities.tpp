@@ -388,6 +388,28 @@ operator++(int) {
 }
 
 template <typename T, std::size_t N>
+typename CartesianProduct<T, N>::iterator
+CartesianProduct<T, N>::iterator::predecessor(const std::size_t i) const {
+  std::array<T_iterator, N> inner_predecessor = inner;
+  T_iterator &p = inner_predecessor.at(i);
+  if (p != iterable.factors.at(i).begin()) {
+    --p;
+  }
+  return iterator(iterable, inner_predecessor);
+}
+
+template <typename T, std::size_t N>
+typename CartesianProduct<T, N>::iterator
+CartesianProduct<T, N>::iterator::successor(const std::size_t i) const {
+  std::array<T_iterator, N> inner_successor = inner;
+  T_iterator &p = inner_successor.at(i);
+  if (++p == iterable.factors.at(i).end()) {
+    --p;
+  }
+  return iterator(iterable, inner_successor);
+}
+
+template <typename T, std::size_t N>
 typename CartesianProduct<T, N>::iterator::reference
     CartesianProduct<T, N>::iterator::operator*() const {
   reference value;

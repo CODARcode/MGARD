@@ -462,6 +462,27 @@ public:
   //! Associated Cartesian product.
   const CartesianProduct &iterable;
 
+  //! Return the iterator to the left in a given dimension.
+  //!
+  //! If this iterator is at the beginning in that dimension, this iterator will
+  //! be returned.
+  //!
+  //! This member calls `T_iterator::operator--`.
+  //!
+  //!\param i Index of the dimension.
+  iterator predecessor(const std::size_t i) const;
+
+  //! Return the node to the right in a given dimension.
+  //!
+  //! If this iterator is immediately before the end in that dimension, this
+  //! iterator will be returned. Do not call this member if this iterator is at
+  //! the end of `iterable`.
+  //!
+  //! This member calls `T_iterator::operator--`.
+  //!
+  //!\param i Index of the dimension.
+  iterator successor(const std::size_t i) const;
+
 private:
   //! Position in the Cartesian product.
   std::array<T_iterator, N> inner;
