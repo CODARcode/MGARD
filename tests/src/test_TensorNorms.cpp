@@ -117,7 +117,7 @@ TEST_CASE("comparison with Python implementation: tensor norms", "[norms]") {
   std::vector<float> u_(ndof);
   float *const u = u_.data();
   for (mgard::TensorNode<3, float> node : hierarchy.nodes(hierarchy.L)) {
-    hierarchy.at(u, node.multiindex) = f(node.coordinates);
+    hierarchy.at(u, node.multiindex) = f(coordinates(hierarchy, node));
   }
 
   const float inf_ = std::numeric_limits<float>::infinity();
@@ -205,10 +205,11 @@ namespace {
 void populate_f_nodal_values(
     const mgard::TensorMeshHierarchy<3, float> &hierarchy, float *const w) {
   for (const mgard::TensorNode<3, float> node : hierarchy.nodes(hierarchy.L)) {
+    const std::array<float, 3> xyz = coordinates(hierarchy, node);
     hierarchy.at(w, node.multiindex) =
-        std::exp(-std::pow(node.coordinates.at(0) - 0.1, 2) / 0.2 -
-                 std::pow(node.coordinates.at(1) + 0.2, 2) / 0.5 -
-                 std::pow(node.coordinates.at(2) - 0.7, 2) / 0.1);
+        std::exp(-std::pow(xyz.at(0) - 0.1, 2) / 0.2 -
+                 std::pow(xyz.at(1) + 0.2, 2) / 0.5 -
+                 std::pow(xyz.at(2) - 0.7, 2) / 0.1);
   }
 }
 

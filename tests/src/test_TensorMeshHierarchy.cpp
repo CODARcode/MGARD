@@ -211,7 +211,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     std::vector<std::size_t> encountered_ls;
     for (const mgard::TensorNode<1, float> node : hierarchy.nodes(2)) {
       encountered_values.push_back(hierarchy.at(v, node.multiindex));
-      encountered_ls.push_back(node.l);
+      encountered_ls.push_back(hierarchy.date_of_birth(node.multiindex));
     }
     const std::vector<float> expected_values = {1, 5, 9, 13, 17};
     const std::vector<std::size_t> expected_ls = {0, 2, 1, 2, 0};
@@ -226,7 +226,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     TrialTracker tracker;
     for (const mgard::TensorNode<2, float> node : hierarchy.nodes(0)) {
       encountered.push_back(hierarchy.at(v, node.multiindex));
-      tracker += node.l == 0;
+      tracker += hierarchy.date_of_birth(node.multiindex) == 0;
     }
     const std::vector<float> expected = {1, 3, 5, 11, 13, 15};
     REQUIRE(encountered == expected);
@@ -240,7 +240,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     TrialTracker tracker;
     for (const mgard::TensorNode<2, float> node : hierarchy.nodes(0)) {
       encountered.push_back(hierarchy.at(v, node.multiindex));
-      tracker += node.l == 0;
+      tracker += hierarchy.date_of_birth(node.multiindex) == 0;
     }
     const std::vector<float> expected = {1, 3, 7, 9, 13, 15, 19, 21, 25, 27};
     REQUIRE(encountered == expected);
@@ -257,7 +257,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
          hierarchy.nodes(hierarchy.L)) {
       tracker += hierarchy.at(v, node.multiindex) == expected_value;
       expected_value += 1;
-      encountered_ls.push_back(node.l);
+      encountered_ls.push_back(hierarchy.date_of_birth(node.multiindex));
     }
     std::vector<std::size_t> expected_ls(27, 1);
     for (const std::size_t index : {0, 2, 6, 8, 18, 20, 24, 26}) {
@@ -273,7 +273,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     std::vector<std::size_t> encountered_ls;
     for (const mgard::TensorNode<2, double> node : hierarchy.nodes(2)) {
       encountered_multiindices.push_back(node.multiindex);
-      encountered_ls.push_back(node.l);
+      encountered_ls.push_back(hierarchy.date_of_birth(node.multiindex));
     }
     const std::vector<std::array<std::size_t, 2>> expected_multiindices = {
         {{0, 0}},  {{0, 3}},  {{0, 6}},  {{0, 9}},  {{0, 13}},

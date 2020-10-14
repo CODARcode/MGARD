@@ -12,6 +12,8 @@
 #include "moab/Interface.hpp"
 static const double APPROX_MARGIN_DEFAULT = 0;
 
+#include "TensorMeshHierarchy.hpp"
+
 std::experimental::filesystem::path mesh_path(const std::string &filename);
 
 std::experimental::filesystem::path output_path(const std::string &filename);
@@ -52,6 +54,11 @@ struct TrialTracker {
 };
 
 std::ostream &operator<<(std::ostream &os, const TrialTracker &tracker);
+
+template <std::size_t N, typename Real>
+std::array<Real, N>
+coordinates(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
+            const mgard::TensorNode<N, Real> &node);
 
 #include "testing_utilities.tpp"
 #endif

@@ -608,7 +608,9 @@ void test_decomposition_of_linear_functions(
   double *const u = u_.data();
   for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(hierarchy.L)) {
     hierarchy.at(u, node.multiindex) =
-        node.l == hierarchy.L ? 0 : nodal_coefficient_distribution(generator);
+        hierarchy.date_of_birth(node.multiindex) == hierarchy.L
+            ? 0
+            : nodal_coefficient_distribution(generator);
   }
   {
     const mgard::TensorProlongationAddition PA(hierarchy, hierarchy.L);
@@ -618,7 +620,7 @@ void test_decomposition_of_linear_functions(
 
   TrialTracker tracker;
   for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(hierarchy.L)) {
-    if (node.l == hierarchy.L) {
+    if (hierarchy.date_of_birth(node.multiindex) == hierarchy.L) {
       tracker += std::abs(hierarchy.at(u, node.multiindex)) < 1e-6;
     }
   }
