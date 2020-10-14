@@ -323,29 +323,9 @@ operator++(int) {
   return tmp;
 }
 
-namespace {
-
-template <std::size_t N, typename Real>
-std::array<Real, N>
-multiindex_coordinates(const TensorMeshHierarchy<N, Real> &hierarchy,
-                       const std::array<std::size_t, N> multiindex) {
-  std::array<Real, N> coordinates;
-  for (std::size_t i = 0; i < N; ++i) {
-    coordinates.at(i) = hierarchy.coordinates.at(i).at(multiindex.at(i));
-  }
-  return coordinates;
-}
-
-} // namespace
-
 template <std::size_t N, typename Real>
 TensorNode<N, Real> TensorNodeRange<N, Real>::iterator::operator*() const {
-  const std::array<std::size_t, N> multiindex = *inner;
-  return {
-      .l = iterable.hierarchy.date_of_birth(multiindex),
-      .multiindex = multiindex,
-      .coordinates = multiindex_coordinates(iterable.hierarchy, multiindex),
-  };
+  return {.multiindex = *inner};
 }
 
 } // namespace mgard

@@ -153,14 +153,17 @@ void test_tensor_product_prolongations(std::default_random_engine &generator,
     const MultilinearPolynomial<Real, N> p(generator,
                                            polynomial_coefficient_distribution);
     for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(l)) {
-      hierarchy.at(u, node.multiindex) = node.l == l ? 0 : p(node.coordinates);
+      hierarchy.at(u, node.multiindex) =
+          hierarchy.date_of_birth(node.multiindex) == l
+              ? 0
+              : p(coordinates(hierarchy, node));
     }
     const mgard::TensorProlongationAddition<N, Real> PA(hierarchy, l);
     PA(u);
     TrialTracker tracker;
     for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(l)) {
       tracker += hierarchy.at(u, node.multiindex) ==
-                 Approx(p(node.coordinates)).epsilon(0.001);
+                 Approx(p(coordinates(hierarchy, node))).epsilon(0.001);
     }
     REQUIRE(tracker);
   }

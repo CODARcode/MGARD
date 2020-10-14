@@ -19,15 +19,16 @@ Real supremum_quantum(const TensorMeshHierarchy<N, Real> &hierarchy,
 template <std::size_t N, typename Real>
 Real s_quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
                const Real tolerance, const TensorNode<N, Real> node) {
+  const std::size_t l = hierarchy.date_of_birth(node.multiindex);
   Real volume_factor = 1;
   for (std::size_t i = 0; i < N; ++i) {
-    const TensorIndexRange indices = hierarchy.indices(node.l, i);
+    const TensorIndexRange indices = hierarchy.indices(l, i);
     // `TensorNode` doesn't immediately give us a way of accessing the
     // neighboring nodes in the level, so we have to search.
     const TensorIndexRange::iterator p =
         std::find(indices.begin(), indices.end(), node.multiindex.at(i));
     const std::vector<Real> &coordinates = hierarchy.coordinates.at(i);
-    const Real x = node.coordinates.at(i);
+    const Real x = hierarchy.coordinates.at(i).at(node.multiindex.at(i));
 
     // Temporary copy of `p` that can be incremented and decremented.
     TensorIndexRange::iterator q;
@@ -42,7 +43,7 @@ Real s_quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
   }
   // The maximum error is half the quantizer.
   return (2 * tolerance) /
-         (std::exp2(s * node.l) * std::sqrt(hierarchy.ndof() * volume_factor));
+         (std::exp2(s * l) * std::sqrt(hierarchy.ndof() * volume_factor));
 }
 
 } // namespace

@@ -316,14 +316,8 @@ private:
 
 //! A node (and auxiliary data) in a mesh in a mesh hierarchy.
 template <std::size_t N, typename Real> struct TensorNode {
-  //! Index of the mesh level which introduced the node.
-  std::size_t l;
-
   //! Multiindex of the node.
   std::array<std::size_t, N> multiindex;
-
-  //! Coordinates of the node.
-  std::array<Real, N> coordinates;
 };
 
 //! Iterator over the nodes of a mesh in a mesh hierarchy.

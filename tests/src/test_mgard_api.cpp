@@ -168,8 +168,8 @@ TEST_CASE("2D cosine data", "[mgard_api]") {
   const std::size_t ndof = hierarchy.ndof();
   float *const v = static_cast<float *>(std::malloc(ndof * sizeof(*v)));
   for (const mgard::TensorNode<2, float> node : hierarchy.nodes(hierarchy.L)) {
-    hierarchy.at(v, node.multiindex) =
-        std::cos(12 * node.coordinates.at(0) - 5 * node.coordinates.at(1));
+    const std::array<float, 2> xy = coordinates(hierarchy, node);
+    hierarchy.at(v, node.multiindex) = std::cos(12 * xy.at(0) - 5 * xy.at(1));
   }
 
   const float s = std::numeric_limits<float>::infinity();
