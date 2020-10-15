@@ -270,9 +270,7 @@ private:
   std::size_t inner;
 };
 
-// TODO: If this doesn't depend on `Real`, remove the template parameter.
-//! A node in a mesh in a mesh hierarchy.
-template <std::size_t N, typename Real> class TensorNode {
+template <std::size_t N> class TensorNode {
 public:
   //! Constructor.
   //!
@@ -352,7 +350,7 @@ public:
   //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
   //! Type iterated over.
-  using value_type = TensorNode<N, Real>;
+  using value_type = TensorNode<N>;
   //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
   //! Pointer to `value_type`.
@@ -446,7 +444,7 @@ public:
   //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
   //! Type iterated over.
-  using value_type = TensorNode<N, Real>;
+  using value_type = TensorNode<N>;
   //! Type for distance between iterators.
   using difference_type = std::ptrdiff_t;
   //! Pointer to `value_type`.

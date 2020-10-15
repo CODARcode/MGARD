@@ -22,7 +22,7 @@ void require_vector_equality(const T &t, const U &u, const double margin) {
 template <std::size_t N, typename Real>
 std::array<Real, N>
 coordinates(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
-            const mgard::TensorNode<N, Real> &node) {
+            const mgard::TensorNode<N> &node) {
   std::array<Real, N> coordinates;
   for (std::size_t i = 0; i < N; ++i) {
     coordinates.at(i) = hierarchy.coordinates.at(i).at(node.multiindex.at(i));

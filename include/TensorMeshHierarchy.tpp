@@ -237,20 +237,19 @@ TensorIndexRange::TensorIndexRange(
   }
 }
 
-template <std::size_t N, typename Real>
-TensorNode<N, Real>::TensorNode(
+template <std::size_t N>
+TensorNode<N>::TensorNode(
     const typename CartesianProduct<TensorIndexRange, N>::iterator inner)
     : multiindex(*inner), inner(inner) {}
 
-template <std::size_t N, typename Real>
-TensorNode<N, Real>
-TensorNode<N, Real>::predecessor(const std::size_t i) const {
+template <std::size_t N>
+TensorNode<N> TensorNode<N>::predecessor(const std::size_t i) const {
   check_dimension_index_bounds<N>(i);
   return TensorNode(inner.predecessor(i));
 }
 
-template <std::size_t N, typename Real>
-TensorNode<N, Real> TensorNode<N, Real>::successor(const std::size_t i) const {
+template <std::size_t N>
+TensorNode<N> TensorNode<N>::successor(const std::size_t i) const {
   check_dimension_index_bounds<N>(i);
   return TensorNode(inner.successor(i));
 }
@@ -334,8 +333,8 @@ operator++(int) {
 }
 
 template <std::size_t N, typename Real>
-TensorNode<N, Real> TensorNodeRange<N, Real>::iterator::operator*() const {
-  return TensorNode<N, Real>(inner);
+TensorNode<N> TensorNodeRange<N, Real>::iterator::operator*() const {
+  return TensorNode<N>(inner);
 }
 
 namespace {
@@ -428,7 +427,7 @@ TensorReservedNodeRange<N, Real>::iterator::operator++(int) {
 }
 
 template <std::size_t N, typename Real>
-TensorNode<N, Real> TensorReservedNodeRange<N, Real>::iterator::operator*() {
+TensorNode<N> TensorReservedNodeRange<N, Real>::iterator::operator*() {
   const std::array<std::size_t, N> multiindex = (*inner_finest).multiindex;
   // Find the iterator on the coarsest mesh containing this node (the mesh which
   // introduced this node).
@@ -436,7 +435,7 @@ TensorNode<N, Real> TensorReservedNodeRange<N, Real>::iterator::operator*() {
       iterable.ranges.back().hierarchy.date_of_birth(multiindex);
   typename TensorNodeRange<N, Real>::iterator &inner_coarsest = inners.at(ell);
   while (true) {
-    const TensorNode<N, Real> node = *inner_coarsest;
+    const TensorNode<N> node = *inner_coarsest;
     if (node.multiindex == multiindex) {
       return node;
     } else {

@@ -150,7 +150,7 @@ void generate_reasonable_function(
     const mgard::TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
     std::default_random_engine &generator, Real *const u) {
   const SobolevFunction<Real, N> f(s, generator);
-  for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(hierarchy.L)) {
+  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
     hierarchy.at(u, node.multiindex) = f(coordinates(hierarchy, node));
   }
 }

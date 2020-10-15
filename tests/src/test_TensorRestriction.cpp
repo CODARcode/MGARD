@@ -141,7 +141,7 @@ void test_tensor_projection_identity(std::default_random_engine &generator,
   for (std::size_t l = hierarchy.L; l > 0; --l) {
     const MultilinearPolynomial<Real, N> p(generator,
                                            polynomial_coefficient_distribution);
-    for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(l)) {
+    for (const mgard::TensorNode<N> node : hierarchy.nodes(l)) {
       hierarchy.at(u, node.multiindex) =
           hierarchy.date_of_birth(node.multiindex) == l
               ? 0
@@ -159,7 +159,7 @@ void test_tensor_projection_identity(std::default_random_engine &generator,
     m_inv(u);
 
     TrialTracker tracker;
-    for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(l - 1)) {
+    for (const mgard::TensorNode<N> node : hierarchy.nodes(l - 1)) {
       // Encountered a handful of small errors.
       tracker += hierarchy.at(u, node.multiindex) ==
                  Approx(p(coordinates(hierarchy, node))).epsilon(0.001);
