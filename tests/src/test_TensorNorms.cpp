@@ -116,7 +116,7 @@ TEST_CASE("comparison with Python implementation: tensor norms", "[norms]") {
   const std::size_t ndof = hierarchy.ndof();
   std::vector<float> u_(ndof);
   float *const u = u_.data();
-  for (mgard::TensorNode<3, float> node : hierarchy.nodes(hierarchy.L)) {
+  for (mgard::TensorNode<3> node : hierarchy.nodes(hierarchy.L)) {
     hierarchy.at(u, node.multiindex) = f(coordinates(hierarchy, node));
   }
 
@@ -204,7 +204,7 @@ namespace {
 
 void populate_f_nodal_values(
     const mgard::TensorMeshHierarchy<3, float> &hierarchy, float *const w) {
-  for (const mgard::TensorNode<3, float> node : hierarchy.nodes(hierarchy.L)) {
+  for (const mgard::TensorNode<3> node : hierarchy.nodes(hierarchy.L)) {
     const std::array<float, 3> xyz = coordinates(hierarchy, node);
     hierarchy.at(w, node.multiindex) =
         std::exp(-std::pow(xyz.at(0) - 0.1, 2) / 0.2 -

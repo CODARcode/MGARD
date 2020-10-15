@@ -26,7 +26,7 @@ Real supremum_quantum(const TensorMeshHierarchy<N, Real> &hierarchy,
 // was iterating over the finest mesh, of course).
 template <std::size_t N, typename Real>
 Real s_quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
-               const Real tolerance, const TensorNode<N, Real> node) {
+               const Real tolerance, const TensorNode<N> node) {
   Real volume_factor = 1;
   for (std::size_t i = 0; i < N; ++i) {
     const std::vector<Real> &coordinates = hierarchy.coordinates.at(i);
@@ -50,7 +50,7 @@ Qntzr<N, Real, Int>::Qntzr(const TensorMeshHierarchy<N, Real> &hierarchy,
       supremum_quantizer(supremum_quantum(hierarchy, tolerance)) {}
 
 template <std::size_t N, typename Real, typename Int>
-Int Qntzr<N, Real, Int>::operator()(const TensorNode<N, Real> node,
+Int Qntzr<N, Real, Int>::operator()(const TensorNode<N> node,
                                     const Real coefficient) const {
   // TODO: Look into moving this test outside of the operator.
   if (s == std::numeric_limits<Real>::infinity()) {
@@ -131,7 +131,7 @@ Dqntzr<N, Int, Real>::Dqntzr(const TensorMeshHierarchy<N, Real> &hierarchy,
       supremum_dequantizer(supremum_quantum(hierarchy, tolerance)) {}
 
 template <std::size_t N, typename Int, typename Real>
-Real Dqntzr<N, Int, Real>::operator()(const TensorNode<N, Real> node,
+Real Dqntzr<N, Int, Real>::operator()(const TensorNode<N> node,
                                       const Int n) const {
   // TODO: Look into moving this test outside of the operator.
   if (s == std::numeric_limits<Real>::infinity()) {

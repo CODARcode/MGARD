@@ -366,8 +366,10 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
 
 #ifdef MGARD_TIMING
     auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << "Refactor Time = " << (double)duration.count()/1000000 << "\n";
+    auto duration =
+        std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Refactor Time = " << (double)duration.count() / 1000000
+              << "\n";
 #endif
     std::vector<unsigned char> out_data;
 
@@ -398,7 +400,8 @@ unsigned char *refactor_qz_1D(int ncol, const Real *u, int &outsize, Real tol) {
     quantize_interleave(hierarchy, v.data(), qv.data(), norm, tol);
 #ifdef MGARD_TIMING
     auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+    auto duration =
+        std::chrono::duration_cast<std::chrono::seconds>(stop - start);
     std::cout << "Refactor Time = " << duration.count() << "\n";
 #endif
     std::vector<unsigned char> out_data;
@@ -1224,8 +1227,7 @@ void interpolate_old_to_new_and_subtract(
 template <std::size_t N, typename Real>
 void assign_num_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                       const int l, Real *const v, const Real num) {
-  for (const mgard::TensorNode<N, Real> node :
-       hierarchy.nodes(hierarchy.L - l)) {
+  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L - l)) {
     hierarchy.at(v, node.multiindex) = num;
   }
 }
@@ -1233,8 +1235,7 @@ void assign_num_level(const TensorMeshHierarchy<N, Real> &hierarchy,
 template <std::size_t N, typename Real>
 void copy_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                 Real const *const v, Real *const work) {
-  for (const mgard::TensorNode<N, Real> node :
-       hierarchy.nodes(hierarchy.L - l)) {
+  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L - l)) {
     hierarchy.at(work, node.multiindex) = hierarchy.at(v, node.multiindex);
   }
 }
@@ -1242,8 +1243,7 @@ void copy_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
 template <std::size_t N, typename Real>
 void add_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                Real *const v, Real const *const work) {
-  for (const mgard::TensorNode<N, Real> node :
-       hierarchy.nodes(hierarchy.L - l)) {
+  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L - l)) {
     hierarchy.at(v, node.multiindex) += hierarchy.at(work, node.multiindex);
   }
 }
@@ -1251,8 +1251,7 @@ void add_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
 template <std::size_t N, typename Real>
 void subtract_level(const TensorMeshHierarchy<N, Real> &hierarchy, const int l,
                     Real *const v, Real const *const work) {
-  for (const mgard::TensorNode<N, Real> node :
-       hierarchy.nodes(hierarchy.L - l)) {
+  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L - l)) {
     hierarchy.at(v, node.multiindex) -= hierarchy.at(work, node.multiindex);
   }
 }
@@ -1569,7 +1568,7 @@ namespace {
 template <std::size_t N, typename Real>
 void set_to_zero_on_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                           Real *const v, const std::size_t l) {
-  for (const TensorNode<N, Real> node : hierarchy.nodes(l)) {
+  for (const TensorNode<N> node : hierarchy.nodes(l)) {
     hierarchy.at(v, node.multiindex) = 0;
   }
 }
@@ -1585,7 +1584,7 @@ template <std::size_t N, typename Real>
 void copy_on_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                    Real const *const src, Real *const dst,
                    const std::size_t l) {
-  for (const TensorNode<N, Real> node : hierarchy.nodes(l)) {
+  for (const TensorNode<N> node : hierarchy.nodes(l)) {
     hierarchy.at(dst, node.multiindex) = hierarchy.at(src, node.multiindex);
   }
 }
@@ -1602,7 +1601,7 @@ template <std::size_t N, typename Real>
 void axpy_on_level(const TensorMeshHierarchy<N, Real> &hierarchy,
                    const Real alpha, Real const *const x, Real *const y,
                    const std::size_t l) {
-  for (const TensorNode<N, Real> node : hierarchy.nodes(l)) {
+  for (const TensorNode<N> node : hierarchy.nodes(l)) {
     hierarchy.at(y, node.multiindex) +=
         alpha * hierarchy.at(x, node.multiindex);
   }

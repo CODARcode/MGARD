@@ -74,7 +74,7 @@ Real s_norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
     const TensorRestriction<N, Real> R(hierarchy, l + 1);
     R(product);
 
-    for (const TensorNode<N, Real> node : nodes) {
+    for (const TensorNode<N> node : nodes) {
       const std::array<std::size_t, N> &multiindex = node.multiindex;
       hierarchy.at(projection, multiindex) = hierarchy.at(product, multiindex);
     }
@@ -82,7 +82,7 @@ Real s_norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
     m_inv(projection);
 
     Real projection_square_norm = 0;
-    for (const TensorNode<N, Real> node : nodes) {
+    for (const TensorNode<N> node : nodes) {
       const std::array<std::size_t, N> &multiindex = node.multiindex;
       projection_square_norm += hierarchy.at(projection, multiindex) *
                                 hierarchy.at(product, multiindex);
@@ -152,7 +152,7 @@ Real norm(const int n1, const int n2, const int n3, const Q qoi, const Real s,
   std::vector<Real> rhs_(ndof);
   Real *const v = v_.data();
   Real *const rhs = rhs_.data();
-  for (const TensorNode<3, Real> node : hierarchy.nodes(hierarchy.L)) {
+  for (const TensorNode<3> node : hierarchy.nodes(hierarchy.L)) {
     const std::array<std::size_t, 3> &multiindex = node.multiindex;
     hierarchy.at(v, multiindex) = 1;
     hierarchy.at(rhs, multiindex) = qoi(n1, n2, n3, v, data);

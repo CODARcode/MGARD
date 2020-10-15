@@ -35,7 +35,7 @@ public:
   //!
   //!\param node Auxiliary node data corresponding to the coefficient.
   //!\param coefficient Multilevel coefficient to be quantized.
-  Int operator()(const TensorNode<N, Real> node, const Real coefficient) const;
+  Int operator()(const TensorNode<N> node, const Real coefficient) const;
 
   //! Iterator used to traverse a quantized range. Note that the iterator is not
   //! used to iterate over the `TensorMultilevelCoefficientQuantizer` itself.
@@ -151,7 +151,7 @@ public:
   //!
   //!\param node Auxiliary node data corresponding to the coefficient.
   //!\param n Multilevel coefficient to be dequantized.
-  Real operator()(const TensorNode<N, Real> node, const Int n) const;
+  Real operator()(const TensorNode<N> node, const Int n) const;
 
   //! Iterator used to traverse a quantized range. Note that the iterator is not
   //! used to iterate over the `TensorMultilevelCoefficientDequantizer` itself.

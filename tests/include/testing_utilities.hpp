@@ -58,7 +58,7 @@ std::ostream &operator<<(std::ostream &os, const TrialTracker &tracker);
 template <std::size_t N, typename Real>
 std::array<Real, N>
 coordinates(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
-            const mgard::TensorNode<N, Real> &node);
+            const mgard::TensorNode<N> &node);
 
 #include "testing_utilities.tpp"
 #endif

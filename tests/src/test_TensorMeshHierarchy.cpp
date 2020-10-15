@@ -209,7 +209,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({17});
     std::vector<float> encountered_values;
     std::vector<std::size_t> encountered_ls;
-    for (const mgard::TensorNode<1, float> node : hierarchy.nodes(2)) {
+    for (const mgard::TensorNode<1> node : hierarchy.nodes(2)) {
       encountered_values.push_back(hierarchy.at(v, node.multiindex));
       encountered_ls.push_back(hierarchy.date_of_birth(node.multiindex));
     }
@@ -224,7 +224,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     std::vector<float> encountered;
     // For the indices.
     TrialTracker tracker;
-    for (const mgard::TensorNode<2, float> node : hierarchy.nodes(0)) {
+    for (const mgard::TensorNode<2> node : hierarchy.nodes(0)) {
       encountered.push_back(hierarchy.at(v, node.multiindex));
       tracker += hierarchy.date_of_birth(node.multiindex) == 0;
     }
@@ -238,7 +238,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     std::vector<float> encountered;
     // For the indices.
     TrialTracker tracker;
-    for (const mgard::TensorNode<2, float> node : hierarchy.nodes(0)) {
+    for (const mgard::TensorNode<2> node : hierarchy.nodes(0)) {
       encountered.push_back(hierarchy.at(v, node.multiindex));
       tracker += hierarchy.date_of_birth(node.multiindex) == 0;
     }
@@ -253,8 +253,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     TrialTracker tracker;
     // For the indices.
     std::vector<std::size_t> encountered_ls;
-    for (const mgard::TensorNode<3, float> node :
-         hierarchy.nodes(hierarchy.L)) {
+    for (const mgard::TensorNode<3> node : hierarchy.nodes(hierarchy.L)) {
       tracker += hierarchy.at(v, node.multiindex) == expected_value;
       expected_value += 1;
       encountered_ls.push_back(hierarchy.date_of_birth(node.multiindex));
@@ -271,7 +270,7 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     const mgard::TensorMeshHierarchy<2, double> hierarchy({11, 14});
     std::vector<std::array<std::size_t, 2>> encountered_multiindices;
     std::vector<std::size_t> encountered_ls;
-    for (const mgard::TensorNode<2, double> node : hierarchy.nodes(2)) {
+    for (const mgard::TensorNode<2> node : hierarchy.nodes(2)) {
       encountered_multiindices.push_back(node.multiindex);
       encountered_ls.push_back(hierarchy.date_of_birth(node.multiindex));
     }
@@ -336,8 +335,8 @@ TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {
 
 namespace {
 
-// We expect `It` to be `mgard::TensorNodeRange<2, float>::iterator` or
-// `mgard::TensorReservedNodeRange<2, float>::iterator`. Quick efforts to
+// We expect `It` to be `mgard::TensorNodeRange<2>::iterator` or
+// `mgard::TensorReservedNodeRange<2>::iterator`. Quick efforts to
 // generalize this more (parametrizing on `N` and so on) have led to problems
 // getting the compiler to find this when looking for matching functions.
 template <typename It>
@@ -348,7 +347,7 @@ void increment_and_test_neighbors(
     const std::array<std::size_t, 2> exp_pred_1_multiindex,
     const std::array<std::size_t, 2> exp_succ_0_multiindex,
     const std::array<std::size_t, 2> exp_succ_1_multiindex) {
-  const mgard::TensorNode<2, float> node = *p++;
+  const mgard::TensorNode<2> node = *p++;
   tracker += node.multiindex == exp_multiindex;
   tracker += node.predecessor(0).multiindex == exp_pred_0_multiindex;
   tracker += node.predecessor(1).multiindex == exp_pred_1_multiindex;
