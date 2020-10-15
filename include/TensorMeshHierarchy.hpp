@@ -140,11 +140,6 @@ protected:
   //!
   //!\param l Mesh index.
   void check_mesh_index_nonzero(const std::size_t l) const;
-
-  //! Check that a dimension index is in bounds.
-  //!
-  //!\param dimension Dimension index.
-  void check_dimension_index_bounds(const std::size_t dimension) const;
 };
 
 //! Equality comparison.
@@ -275,6 +270,42 @@ private:
   std::size_t inner;
 };
 
+// TODO: If this doesn't depend on `Real`, remove the template parameter.
+//! A node in a mesh in a mesh hierarchy.
+template <std::size_t N, typename Real> class TensorNode {
+public:
+  //! Constructor.
+  //!
+  //!\param inner Underlying multiindex iterator.
+  TensorNode(
+      const typename CartesianProduct<TensorIndexRange, N>::iterator inner);
+
+  //! Multiindex of the node.
+  std::array<std::size_t, N> multiindex;
+
+  //! Return the node to the left in a given dimension *in the mesh currently
+  //! being iterated over* (determined by `inner`).
+  //!
+  //! If this node is at the lefthand boundary of the domain, this node will
+  //! be returned.
+  //!
+  //!\param i Index of the dimension.
+  TensorNode predecessor(const std::size_t i) const;
+
+  //! Return the node to the right in a given dimension *in the mesh currently
+  //! being iterated over* (determined by `inner`).
+  //!
+  //! If this node is at the righthand boundary of the domain, this node will
+  //! be returned.
+  //!
+  //!\param i Index of the dimension.
+  TensorNode successor(const std::size_t i) const;
+
+private:
+  //! Underlying multiindex iterator.
+  const typename CartesianProduct<TensorIndexRange, N>::iterator inner;
+};
+
 //! Nodes of a particular level in a mesh hierarchy.
 template <std::size_t N, typename Real> class TensorNodeRange {
 public:
@@ -312,12 +343,6 @@ private:
 
   //! Multiindices of the nodes on the level being iterated over.
   const CartesianProduct<TensorIndexRange, N> multiindices;
-};
-
-//! A node (and auxiliary data) in a mesh in a mesh hierarchy.
-template <std::size_t N, typename Real> struct TensorNode {
-  //! Multiindex of the node.
-  std::array<std::size_t, N> multiindex;
 };
 
 //! Iterator over the nodes of a mesh in a mesh hierarchy.
@@ -364,6 +389,108 @@ public:
 private:
   //! Underlying multiindex iterator.
   typename CartesianProduct<TensorIndexRange, N>::iterator inner;
+};
+
+//! 'Reserved' nodes of a particular level in a mesh hierarchy.
+//!
+//! The difference between `TensorNodeRange` and `TensorReservedNodeRange` is
+//! that the nodes of the latter only think of nodes present at their
+//! introduction when asked for their 'neighbors' (predecessors and successors).
+//! They haven't made any new friends (are 'reserved'), so to speak. For
+//! example, if we're iterating over the finest level but `node` was present in
+//! the coarsest level, `node.predecessor(i)` and `node.successor(i)` will be
+//! other nodes in the coarse level, even if there are closer neighbors found in
+//! later levels.
+template <std::size_t N, typename Real> class TensorReservedNodeRange {
+public:
+  //! Constructor.
+  //!
+  //!\param hierarchy Associated mesh hierarchy.
+  //!\param l Index of the mesh level to be iterated over.
+  TensorReservedNodeRange(const TensorMeshHierarchy<N, Real> &hierarchy,
+                          const std::size_t l);
+
+  // Forward declaration.
+  class iterator;
+
+  //! Return an iterator to the beginning of the nodes.
+  iterator begin() const;
+
+  //! Return an iterator to the end of the nodes.
+  iterator end() const;
+
+  //! Equality comparison.
+  bool operator==(const TensorReservedNodeRange &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const TensorReservedNodeRange &other) const;
+
+  //! Associated mesh hierarchy.
+  const TensorMeshHierarchy<N, Real> &hierarchy;
+
+private:
+  //! Index of the level being iterated over.
+  //!
+  //! This is only stored so we can avoid comparing `ranges` in the (in)equality
+  //! comparison operators.
+  const std::size_t l;
+
+  //! Node ranges from the coarsest level up to the level being iterated over.
+  const std::vector<TensorNodeRange<N, Real>> ranges;
+};
+
+//! Iterator over the 'reserved' nodes of a mesh in a mesh hierarchy.
+template <std::size_t N, typename Real>
+class TensorReservedNodeRange<N, Real>::iterator {
+public:
+  //! Category of the iterator.
+  using iterator_category = std::input_iterator_tag;
+  //! Type iterated over.
+  using value_type = TensorNode<N, Real>;
+  //! Type for distance between iterators.
+  using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
+  using pointer = value_type *;
+  //! Type returned by the dereference operator.
+  using reference = value_type;
+
+  //! Constructor.
+  //!
+  //!\param iterable View of nodes to be iterated over.
+  //!\param inners Underlying range iterators.
+  iterator(
+      const TensorReservedNodeRange &iterable,
+      const std::vector<typename TensorNodeRange<N, Real>::iterator> inners);
+
+  //! Equality comparison.
+  bool operator==(const iterator &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const iterator &other) const;
+
+  //! Preincrement.
+  iterator &operator++();
+
+  //! Postincrement.
+  iterator operator++(int);
+
+  //! Dereference.
+  //!
+  //! This method isn't const because we only 'catch up' the iterators on the
+  //! coarser meshes when dereferencing.
+  reference operator*();
+
+  //! View of nodes being iterated over.
+  const TensorReservedNodeRange &iterable;
+
+private:
+  //! Underlying range iterators on the coarsest level up to the level being
+  //! iterated over.
+  std::vector<typename TensorNodeRange<N, Real>::iterator> inners;
+
+  //! Underlying range iterator on the level being iterated over. This is just
+  //! the last entry of `inners`.
+  typename TensorNodeRange<N, Real>::iterator inner_finest;
 };
 
 } // namespace mgard

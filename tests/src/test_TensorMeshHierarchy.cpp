@@ -333,3 +333,120 @@ TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {
     REQUIRE(tracker);
   }
 }
+
+namespace {
+
+// We expect `It` to be `mgard::TensorNodeRange<2, float>::iterator` or
+// `mgard::TensorReservedNodeRange<2, float>::iterator`. Quick efforts to
+// generalize this more (parametrizing on `N` and so on) have led to problems
+// getting the compiler to find this when looking for matching functions.
+template <typename It>
+void increment_and_test_neighbors(
+    TrialTracker &tracker, It &p,
+    const std::array<std::size_t, 2> exp_multiindex,
+    const std::array<std::size_t, 2> exp_pred_0_multiindex,
+    const std::array<std::size_t, 2> exp_pred_1_multiindex,
+    const std::array<std::size_t, 2> exp_succ_0_multiindex,
+    const std::array<std::size_t, 2> exp_succ_1_multiindex) {
+  const mgard::TensorNode<2, float> node = *p++;
+  tracker += node.multiindex == exp_multiindex;
+  tracker += node.predecessor(0).multiindex == exp_pred_0_multiindex;
+  tracker += node.predecessor(1).multiindex == exp_pred_1_multiindex;
+  tracker += node.successor(0).multiindex == exp_succ_0_multiindex;
+  tracker += node.successor(1).multiindex == exp_succ_1_multiindex;
+}
+
+} // namespace
+
+TEST_CASE("TensorNode predecessors and successors", "[TensorMeshHierarchy]") {
+  const mgard::TensorMeshHierarchy<2, float> hierarchy({3, 3});
+  SECTION("'normal' nodes") {
+    // Finest level.
+    {
+      const mgard::TensorNodeRange<2, float> nodes = hierarchy.nodes(1);
+      mgard::TensorNodeRange<2, float>::iterator p = nodes.begin();
+
+      TrialTracker tracker;
+      increment_and_test_neighbors(tracker, p, {0, 0}, {0, 0}, {0, 0}, {1, 0},
+                                   {0, 1});
+      increment_and_test_neighbors(tracker, p, {0, 1}, {0, 1}, {0, 0}, {1, 1},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {0, 2}, {0, 2}, {0, 1}, {1, 2},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {1, 0}, {0, 0}, {1, 0}, {2, 0},
+                                   {1, 1});
+      increment_and_test_neighbors(tracker, p, {1, 1}, {0, 1}, {1, 0}, {2, 1},
+                                   {1, 2});
+      increment_and_test_neighbors(tracker, p, {1, 2}, {0, 2}, {1, 1}, {2, 2},
+                                   {1, 2});
+      increment_and_test_neighbors(tracker, p, {2, 0}, {1, 0}, {2, 0}, {2, 0},
+                                   {2, 1});
+      increment_and_test_neighbors(tracker, p, {2, 1}, {1, 1}, {2, 0}, {2, 1},
+                                   {2, 2});
+      increment_and_test_neighbors(tracker, p, {2, 2}, {1, 2}, {2, 1}, {2, 2},
+                                   {2, 2});
+      REQUIRE(tracker);
+    }
+
+    // Coarse level.
+    {
+      const mgard::TensorNodeRange<2, float> nodes = hierarchy.nodes(0);
+      mgard::TensorNodeRange<2, float>::iterator p = nodes.begin();
+      TrialTracker tracker;
+      increment_and_test_neighbors(tracker, p, {0, 0}, {0, 0}, {0, 0}, {2, 0},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {0, 2}, {0, 2}, {0, 0}, {2, 2},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {2, 0}, {0, 0}, {2, 0}, {2, 0},
+                                   {2, 2});
+      increment_and_test_neighbors(tracker, p, {2, 2}, {0, 2}, {2, 0}, {2, 2},
+                                   {2, 2});
+      REQUIRE(tracker);
+    }
+  }
+
+  SECTION("'reserved' nodes") {
+    // Finest level.
+    {
+      const mgard::TensorReservedNodeRange<2, float> nodes(hierarchy, 1);
+      mgard::TensorReservedNodeRange<2, float>::iterator p = nodes.begin();
+
+      TrialTracker tracker;
+      increment_and_test_neighbors(tracker, p, {0, 0}, {0, 0}, {0, 0}, {2, 0},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {0, 1}, {0, 1}, {0, 0}, {1, 1},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {0, 2}, {0, 2}, {0, 0}, {2, 2},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {1, 0}, {0, 0}, {1, 0}, {2, 0},
+                                   {1, 1});
+      increment_and_test_neighbors(tracker, p, {1, 1}, {0, 1}, {1, 0}, {2, 1},
+                                   {1, 2});
+      increment_and_test_neighbors(tracker, p, {1, 2}, {0, 2}, {1, 1}, {2, 2},
+                                   {1, 2});
+      increment_and_test_neighbors(tracker, p, {2, 0}, {0, 0}, {2, 0}, {2, 0},
+                                   {2, 2});
+      increment_and_test_neighbors(tracker, p, {2, 1}, {1, 1}, {2, 0}, {2, 1},
+                                   {2, 2});
+      increment_and_test_neighbors(tracker, p, {2, 2}, {0, 2}, {2, 0}, {2, 2},
+                                   {2, 2});
+      REQUIRE(tracker);
+    }
+
+    // Coarse level.
+    {
+      const mgard::TensorReservedNodeRange<2, float> nodes(hierarchy, 0);
+      mgard::TensorReservedNodeRange<2, float>::iterator p = nodes.begin();
+      TrialTracker tracker;
+      increment_and_test_neighbors(tracker, p, {0, 0}, {0, 0}, {0, 0}, {2, 0},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {0, 2}, {0, 2}, {0, 0}, {2, 2},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {2, 0}, {0, 0}, {2, 0}, {2, 0},
+                                   {2, 2});
+      increment_and_test_neighbors(tracker, p, {2, 2}, {0, 2}, {2, 0}, {2, 2},
+                                   {2, 2});
+      REQUIRE(tracker);
+    }
+  }
+}

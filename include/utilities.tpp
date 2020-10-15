@@ -390,6 +390,7 @@ operator++(int) {
 template <typename T, std::size_t N>
 typename CartesianProduct<T, N>::iterator
 CartesianProduct<T, N>::iterator::predecessor(const std::size_t i) const {
+  check_dimension_index_bounds<N>(i);
   std::array<T_iterator, N> inner_predecessor = inner;
   T_iterator &p = inner_predecessor.at(i);
   if (p != iterable.factors.at(i).begin()) {
@@ -401,6 +402,7 @@ CartesianProduct<T, N>::iterator::predecessor(const std::size_t i) const {
 template <typename T, std::size_t N>
 typename CartesianProduct<T, N>::iterator
 CartesianProduct<T, N>::iterator::successor(const std::size_t i) const {
+  check_dimension_index_bounds<N>(i);
   std::array<T_iterator, N> inner_successor = inner;
   T_iterator &p = inner_successor.at(i);
   if (++p == iterable.factors.at(i).end()) {
@@ -417,6 +419,13 @@ typename CartesianProduct<T, N>::iterator::reference
     value.at(i) = *inner.at(i);
   }
   return value;
+}
+
+template <std::size_t N>
+void check_dimension_index_bounds(const std::size_t dimension) {
+  if (dimension >= N) {
+    throw std::out_of_range("dimension index out of range encountered");
+  }
 }
 
 } // namespace mgard
