@@ -29,6 +29,10 @@ public:
 
   //! Quantize a multilevel coefficient.
   //!
+  //! IMPORTANT: `node` must be produced by iterating over the mesh which first
+  //! introduced the node! Use `TensorReservedNodeRange`. This is needed so that
+  //! the quantum is calculated correctly.
+  //!
   //!\param node Auxiliary node data corresponding to the coefficient.
   //!\param coefficient Multilevel coefficient to be quantized.
   Int operator()(const TensorNode<N, Real> node, const Real coefficient) const;
@@ -53,7 +57,7 @@ public:
 
 private:
   //! Nodes of the finest mesh in the hierarchy.
-  const TensorNodeRange<N, Real> nodes;
+  const TensorReservedNodeRange<N, Real> nodes;
 
   //! Quantizer to use when controlling error in the supremum norm.
   const LinearQuantizer<Real, Int> supremum_quantizer;
@@ -91,7 +95,7 @@ public:
   //!\param inner_node Position in the node range.
   //!\param inner_coeff Position in the multilevel coefficient range.
   iterator(const TensorMultilevelCoefficientQuantizer &quantizer,
-           const typename TensorNodeRange<N, Real>::iterator inner_node,
+           const typename TensorReservedNodeRange<N, Real>::iterator inner_node,
            Real const *const inner_coeff);
 
   //! Equality comparison.
@@ -107,14 +111,17 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  reference operator*() const;
+  //!
+  //! This operator isn't const because `TensorReservedNodeRange<N,
+  //! Real>::iterator::operator*` isn't const.
+  reference operator*();
 
 private:
   //! Associated multilevel coefficient quantizer;
   const TensorMultilevelCoefficientQuantizer &quantizer;
 
   //! Iterator to current node.
-  typename TensorNodeRange<N, Real>::iterator inner_node;
+  typename TensorReservedNodeRange<N, Real>::iterator inner_node;
 
   //! Iterator to current coefficient.
   Real const *inner_coeff;
@@ -137,6 +144,10 @@ public:
       const Real tolerance);
 
   //! Dequantize a multilevel coefficient.
+  //!
+  //! IMPORTANT: `node` must be produced by iterating over the mesh which first
+  //! introduced the node! Use `TensorReservedNodeRange`. This is needed so that
+  //! the quantum is calculated correctly.
   //!
   //!\param node Auxiliary node data corresponding to the coefficient.
   //!\param n Multilevel coefficient to be dequantized.
@@ -164,7 +175,7 @@ public:
 
 private:
   //! Nodes of the finest mesh in the hierarchy.
-  const TensorNodeRange<N, Real> nodes;
+  const TensorReservedNodeRange<N, Real> nodes;
 
   //! Dequantizer to use when controlling error in the supremum norm.
   const LinearDequantizer<Int, Real> supremum_dequantizer;
@@ -203,7 +214,7 @@ public:
   //!\param inner_node Position in the node range.
   //!\param inner_coeff Position in the quantized multilevel coefficient range.
   iterator(const TensorMultilevelCoefficientDequantizer &dequantizer,
-           const typename TensorNodeRange<N, Real>::iterator inner_node,
+           const typename TensorReservedNodeRange<N, Real>::iterator inner_node,
            const It inner_coeff);
 
   //! Equality comparison.
@@ -219,14 +230,17 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  reference operator*() const;
+  //!
+  //! This operator isn't const because `TensorReservedNodeRange<N,
+  //! Real>::iterator::operator*` isn't const.
+  reference operator*();
 
 private:
   //! Associated multilevel coefficient dequantizer;
   const TensorMultilevelCoefficientDequantizer &dequantizer;
 
   //! Iterator to current node.
-  typename TensorNodeRange<N, Real>::iterator inner_node;
+  typename TensorReservedNodeRange<N, Real>::iterator inner_node;
 
   //! Iterator to current quantized coefficient.
   It inner_coeff;
