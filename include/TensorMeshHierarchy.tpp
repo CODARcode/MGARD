@@ -119,7 +119,7 @@ std::size_t
 TensorMeshHierarchy<N, Real>::stride(const std::size_t l,
                                      const std::size_t dimension) const {
   check_mesh_index_bounds(l);
-  check_dimension_index_bounds(dimension);
+  check_dimension_index_bounds<N>(dimension);
   const std::array<std::size_t, N> &shape = meshes.back().shape;
   std::size_t n = 1;
   for (std::size_t i = dimension + 1; i < N; ++i) {
@@ -141,7 +141,7 @@ TensorIndexRange
 TensorMeshHierarchy<N, Real>::indices(const std::size_t l,
                                       const std::size_t dimension) const {
   check_mesh_index_bounds(l);
-  check_dimension_index_bounds(dimension);
+  check_dimension_index_bounds<N>(dimension);
   return TensorIndexRange(*this, l, dimension);
 }
 
@@ -223,14 +223,6 @@ void TensorMeshHierarchy<N, Real>::check_mesh_index_nonzero(
 }
 
 template <std::size_t N, typename Real>
-void TensorMeshHierarchy<N, Real>::check_dimension_index_bounds(
-    const std::size_t dimension) const {
-  if (dimension >= N) {
-    throw std::out_of_range("dimension index out of range encountered");
-  }
-}
-
-template <std::size_t N, typename Real>
 TensorIndexRange::TensorIndexRange(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
     const std::size_t dimension)
@@ -243,6 +235,24 @@ TensorIndexRange::TensorIndexRange(
   if (!(size_finest && size_coarse)) {
     throw std::invalid_argument("sizes must be nonzero");
   }
+}
+
+template <std::size_t N, typename Real>
+TensorNode<N, Real>::TensorNode(
+    const typename CartesianProduct<TensorIndexRange, N>::iterator inner)
+    : multiindex(*inner), inner(inner) {}
+
+template <std::size_t N, typename Real>
+TensorNode<N, Real>
+TensorNode<N, Real>::predecessor(const std::size_t i) const {
+  check_dimension_index_bounds<N>(i);
+  return TensorNode(inner.predecessor(i));
+}
+
+template <std::size_t N, typename Real>
+TensorNode<N, Real> TensorNode<N, Real>::successor(const std::size_t i) const {
+  check_dimension_index_bounds<N>(i);
+  return TensorNode(inner.successor(i));
 }
 
 namespace {
@@ -325,7 +335,114 @@ operator++(int) {
 
 template <std::size_t N, typename Real>
 TensorNode<N, Real> TensorNodeRange<N, Real>::iterator::operator*() const {
-  return {.multiindex = *inner};
+  return TensorNode<N, Real>(inner);
+}
+
+namespace {
+
+template <std::size_t N, typename Real>
+std::vector<TensorNodeRange<N, Real>>
+make_ranges(const TensorMeshHierarchy<N, Real> &hierarchy,
+            const std::size_t l) {
+  std::vector<TensorNodeRange<N, Real>> ranges;
+  ranges.reserve(l + 1);
+  for (std::size_t ell = 0; ell <= l; ++ell) {
+    ranges.push_back(TensorNodeRange<N, Real>(hierarchy, ell));
+  }
+  return ranges;
+}
+
+} // namespace
+
+template <std::size_t N, typename Real>
+TensorReservedNodeRange<N, Real>::TensorReservedNodeRange(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
+    : hierarchy(hierarchy), l(l), ranges(make_ranges(hierarchy, l)) {}
+
+template <std::size_t N, typename Real>
+bool TensorReservedNodeRange<N, Real>::
+operator==(const TensorReservedNodeRange<N, Real> &other) const {
+  return hierarchy == other.hierarchy && l == other.l;
+}
+
+template <std::size_t N, typename Real>
+bool TensorReservedNodeRange<N, Real>::
+operator!=(const TensorReservedNodeRange<N, Real> &other) const {
+  return !operator==(other);
+}
+
+template <std::size_t N, typename Real>
+typename TensorReservedNodeRange<N, Real>::iterator
+TensorReservedNodeRange<N, Real>::begin() const {
+  std::vector<typename TensorNodeRange<N, Real>::iterator> inners;
+  inners.reserve(l + 1);
+  for (const TensorNodeRange<N, Real> &range : ranges) {
+    inners.push_back(range.begin());
+  }
+  return iterator(*this, inners);
+}
+
+template <std::size_t N, typename Real>
+typename TensorReservedNodeRange<N, Real>::iterator
+TensorReservedNodeRange<N, Real>::end() const {
+  std::vector<typename TensorNodeRange<N, Real>::iterator> inners;
+  inners.reserve(l + 1);
+  for (const TensorNodeRange<N, Real> &range : ranges) {
+    inners.push_back(range.end());
+  }
+  return iterator(*this, inners);
+}
+
+template <std::size_t N, typename Real>
+TensorReservedNodeRange<N, Real>::iterator::iterator(
+    const TensorReservedNodeRange<N, Real> &iterable,
+    const std::vector<typename TensorNodeRange<N, Real>::iterator> inners)
+    : iterable(iterable), inners(inners), inner_finest(inners.back()) {}
+
+template <std::size_t N, typename Real>
+bool TensorReservedNodeRange<N, Real>::iterator::
+operator==(const TensorReservedNodeRange<N, Real>::iterator &other) const {
+  return (&iterable == &other.iterable || iterable == other.iterable) &&
+         inner_finest == other.inner_finest;
+}
+
+template <std::size_t N, typename Real>
+bool TensorReservedNodeRange<N, Real>::iterator::
+operator!=(const TensorReservedNodeRange<N, Real>::iterator &other) const {
+  return !operator==(other);
+}
+
+template <std::size_t N, typename Real>
+typename TensorReservedNodeRange<N, Real>::iterator &
+TensorReservedNodeRange<N, Real>::iterator::operator++() {
+  ++inner_finest;
+  return *this;
+}
+
+template <std::size_t N, typename Real>
+typename TensorReservedNodeRange<N, Real>::iterator
+TensorReservedNodeRange<N, Real>::iterator::operator++(int) {
+  const iterator tmp = *this;
+  operator++();
+  return tmp;
+}
+
+template <std::size_t N, typename Real>
+TensorNode<N, Real> TensorReservedNodeRange<N, Real>::iterator::operator*() {
+  const std::array<std::size_t, N> multiindex = (*inner_finest).multiindex;
+  // Find the iterator on the coarsest mesh containing this node (the mesh which
+  // introduced this node).
+  const std::size_t ell =
+      iterable.ranges.back().hierarchy.date_of_birth(multiindex);
+  typename TensorNodeRange<N, Real>::iterator &inner_coarsest = inners.at(ell);
+  while (true) {
+    const TensorNode<N, Real> node = *inner_coarsest;
+    if (node.multiindex == multiindex) {
+      return node;
+    } else {
+      ++inner_coarsest;
+    }
+  }
 }
 
 } // namespace mgard

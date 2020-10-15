@@ -488,6 +488,12 @@ private:
   std::array<T_iterator, N> inner;
 };
 
+//! Check that a dimension index is in bounds.
+//!
+//!\param dimension Dimension index.
+template <std::size_t N>
+void check_dimension_index_bounds(const std::size_t dimension);
+
 } // namespace mgard
 
 #include "utilities.tpp"
