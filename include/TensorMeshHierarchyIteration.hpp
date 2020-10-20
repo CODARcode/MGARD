@@ -336,10 +336,7 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  //!
-  //! This method isn't const because we only 'catch up' the iterators on the
-  //! coarser meshes when dereferencing.
-  reference operator*();
+  reference operator*() const;
 
   //! View of nodes being iterated over.
   const TensorReservedNodeRange &iterable;
@@ -347,7 +344,9 @@ public:
 private:
   //! Underlying range iterators on the coarsest level up to the level being
   //! iterated over.
-  std::vector<typename TensorNodeRange<N, Real>::iterator> inners;
+  //!
+  //! The last entry, `inner_finest`, doesn't need to be mutable.
+  mutable std::vector<typename TensorNodeRange<N, Real>::iterator> inners;
 
   //! Underlying range iterator on the level being iterated over. This is just
   //! the last entry of `inners`.

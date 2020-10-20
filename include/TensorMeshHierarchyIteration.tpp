@@ -207,7 +207,7 @@ TensorReservedNodeRange<N, Real>::iterator::operator++(int) {
 }
 
 template <std::size_t N, typename Real>
-TensorNode<N> TensorReservedNodeRange<N, Real>::iterator::operator*() {
+TensorNode<N> TensorReservedNodeRange<N, Real>::iterator::operator*() const {
   const std::array<std::size_t, N> multiindex = (*inner_finest).multiindex;
   // Find the iterator on the coarsest mesh containing this node (the mesh which
   // introduced this node).
