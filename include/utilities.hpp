@@ -460,7 +460,9 @@ public:
   reference operator*() const;
 
   //! Associated Cartesian product.
-  const CartesianProduct &iterable;
+  //!
+  //! A pointer rather than a reference so we can assign.
+  CartesianProduct const *iterable;
 
   //! Return the iterator to the left in a given dimension.
   //!

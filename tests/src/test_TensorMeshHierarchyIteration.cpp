@@ -186,3 +186,48 @@ TEST_CASE("TensorNode predecessors and successors",
 }
 
 // See `test_TensorMeshHierarchy.cpp` for more `TensorNode` iteration tests.
+
+namespace {
+
+template <std::size_t N>
+void test_shuffled_dereferencing(
+    const std::array<std::size_t, N> shape,
+    const std::vector<std::array<std::size_t, N>> &expected) {
+  const mgard::TensorMeshHierarchy<N, float> hierarchy(shape);
+  std::vector<std::array<std::size_t, N>> obtained;
+  obtained.reserve(hierarchy.ndof());
+  for (const mgard::TensorNode<N> node :
+       mgard::ShuffledTensorNodeRange(hierarchy, hierarchy.L)) {
+    obtained.push_back(node.multiindex);
+  }
+  REQUIRE(obtained == expected);
+}
+
+} // namespace
+
+TEST_CASE("ShuffledTensorNodeRange dereferencing",
+          "[TensorMeshHierarchyIteration]") {
+  SECTION("1D") {
+    const std::vector<std::array<std::size_t, 1>> expected = {{0}, {5}, {2},
+                                                              {1}, {3}, {4}};
+    test_shuffled_dereferencing<1>({6}, expected);
+  }
+
+  SECTION("2D") {
+    const std::vector<std::array<std::size_t, 2>> expected = {
+        {0, 0}, {0, 2}, {0, 4}, {3, 0}, {3, 2}, {3, 4}, {0, 1},
+        {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4}, {3, 1},
+        {3, 3}, {2, 0}, {2, 1}, {2, 2}, {2, 3}, {2, 4}};
+    test_shuffled_dereferencing<2>({4, 5}, expected);
+  }
+
+  SECTION("3D") {
+    const std::vector<std::array<std::size_t, 3>> expected = {
+        {0, 0, 0}, {0, 0, 2}, {0, 2, 0}, {0, 2, 2}, {2, 0, 0}, {2, 0, 2},
+        {2, 2, 0}, {2, 2, 2}, {0, 0, 1}, {0, 1, 0}, {0, 1, 1}, {0, 1, 2},
+        {0, 2, 1}, {1, 0, 0}, {1, 0, 1}, {1, 0, 2}, {1, 1, 0}, {1, 1, 1},
+        {1, 1, 2}, {1, 2, 0}, {1, 2, 1}, {1, 2, 2}, {2, 0, 1}, {2, 1, 0},
+        {2, 1, 1}, {2, 1, 2}, {2, 2, 1}};
+    test_shuffled_dereferencing<3>({3, 3, 3}, expected);
+  }
+}

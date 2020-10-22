@@ -82,12 +82,12 @@ template <std::size_t N, typename Real>
 TensorNodeRange<N, Real>::iterator::iterator(
     const TensorNodeRange<N, Real> &iterable,
     const typename CartesianProduct<TensorIndexRange, N>::iterator &inner)
-    : iterable(iterable), inner(inner) {}
+    : iterable(&iterable), inner(inner) {}
 
 template <std::size_t N, typename Real>
 bool TensorNodeRange<N, Real>::iterator::
 operator==(const TensorNodeRange<N, Real>::iterator &other) const {
-  return (&iterable == &other.iterable || iterable == other.iterable) &&
+  return (iterable == other.iterable || *iterable == *(other.iterable)) &&
          inner == other.inner;
 }
 
@@ -222,6 +222,89 @@ TensorNode<N> TensorReservedNodeRange<N, Real>::iterator::operator*() const {
       ++inner_coarsest;
     }
   }
+}
+
+template <std::size_t N, typename Real>
+ShuffledTensorNodeRange<N, Real>::ShuffledTensorNodeRange(
+    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
+    : hierarchy(hierarchy), ranges(make_ranges(hierarchy, l)), l(l) {}
+
+template <std::size_t N, typename Real>
+bool ShuffledTensorNodeRange<N, Real>::
+operator==(const ShuffledTensorNodeRange<N, Real> &other) const {
+  return hierarchy == other.hierarchy && l == other.l;
+}
+
+template <std::size_t N, typename Real>
+bool ShuffledTensorNodeRange<N, Real>::
+operator!=(const ShuffledTensorNodeRange<N, Real> &other) const {
+  return !operator==(other);
+}
+
+template <std::size_t N, typename Real>
+typename ShuffledTensorNodeRange<N, Real>::iterator
+ShuffledTensorNodeRange<N, Real>::begin() const {
+  return iterator(*this, 0, ranges.front().begin());
+}
+
+template <std::size_t N, typename Real>
+typename ShuffledTensorNodeRange<N, Real>::iterator
+ShuffledTensorNodeRange<N, Real>::end() const {
+  return iterator(*this, hierarchy.L, ranges.back().end());
+}
+
+template <std::size_t N, typename Real>
+ShuffledTensorNodeRange<N, Real>::iterator::iterator(
+    const ShuffledTensorNodeRange<N, Real> &iterable, const std::size_t ell,
+    const typename TensorNodeRange<N, Real>::iterator inner)
+    : iterable(iterable), ell(ell), inner(inner) {}
+
+template <std::size_t N, typename Real>
+bool ShuffledTensorNodeRange<N, Real>::iterator::
+operator==(const ShuffledTensorNodeRange<N, Real>::iterator &other) const {
+  return (&iterable == &other.iterable || iterable == other.iterable) &&
+         inner == other.inner;
+}
+
+template <std::size_t N, typename Real>
+bool ShuffledTensorNodeRange<N, Real>::iterator::
+operator!=(const ShuffledTensorNodeRange<N, Real>::iterator &other) const {
+  return !operator==(other);
+}
+
+template <std::size_t N, typename Real>
+typename ShuffledTensorNodeRange<N, Real>::iterator &
+ShuffledTensorNodeRange<N, Real>::iterator::operator++() {
+  while (true) {
+    // Will likely want to save the end iterator and to make `iterable.l`
+    // public. Keeping it simple for now.
+    if (++inner == iterable.ranges.at(ell).end()) {
+      if (ell + 1 == iterable.ranges.size()) {
+        break;
+      }
+      ++ell;
+      inner = iterable.ranges.at(ell).begin();
+      // `inner` now dereferences to a node in the coarsest mesh, but it feels
+      // like skipping the next check would be asking for trouble.
+    }
+    if (iterable.hierarchy.date_of_birth((*inner).multiindex) == ell) {
+      break;
+    }
+  }
+  return *this;
+}
+
+template <std::size_t N, typename Real>
+typename ShuffledTensorNodeRange<N, Real>::iterator
+ShuffledTensorNodeRange<N, Real>::iterator::operator++(int) {
+  const ShuffledTensorNodeRange<N, Real>::iterator tmp = *this;
+  operator++();
+  return tmp;
+}
+
+template <std::size_t N, typename Real>
+TensorNode<N> ShuffledTensorNodeRange<N, Real>::iterator::operator*() const {
+  return *inner;
 }
 
 } // namespace mgard

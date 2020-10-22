@@ -344,12 +344,12 @@ CartesianProduct<T, N>::iterator::iterator(
     const CartesianProduct<T, N> &iterable,
     const std::array<typename CartesianProduct<T, N>::iterator::T_iterator, N>
         inner)
-    : iterable(iterable), inner(inner) {}
+    : iterable(&iterable), inner(inner) {}
 
 template <typename T, std::size_t N>
 bool CartesianProduct<T, N>::iterator::
 operator==(const CartesianProduct<T, N>::iterator &other) const {
-  return (&iterable == &other.iterable || iterable == other.iterable) &&
+  return (iterable == other.iterable || *iterable == *(other.iterable)) &&
          inner == other.inner;
 }
 
@@ -364,7 +364,7 @@ typename CartesianProduct<T, N>::iterator &CartesianProduct<T, N>::iterator::
 operator++() {
   for (std::size_t i = N; i != 0; --i) {
     const std::size_t j = i - 1;
-    const T &factor = iterable.factors.at(j);
+    const T &factor = iterable->factors.at(j);
     T_iterator &it = inner.at(j);
     if (++it != factor.end()) {
       break;
@@ -393,10 +393,10 @@ CartesianProduct<T, N>::iterator::predecessor(const std::size_t i) const {
   check_dimension_index_bounds<N>(i);
   std::array<T_iterator, N> inner_predecessor = inner;
   T_iterator &p = inner_predecessor.at(i);
-  if (p != iterable.factors.at(i).begin()) {
+  if (p != iterable->factors.at(i).begin()) {
     --p;
   }
-  return iterator(iterable, inner_predecessor);
+  return iterator(*iterable, inner_predecessor);
 }
 
 template <typename T, std::size_t N>
@@ -405,10 +405,10 @@ CartesianProduct<T, N>::iterator::successor(const std::size_t i) const {
   check_dimension_index_bounds<N>(i);
   std::array<T_iterator, N> inner_successor = inner;
   T_iterator &p = inner_successor.at(i);
-  if (++p == iterable.factors.at(i).end()) {
+  if (++p == iterable->factors.at(i).end()) {
     --p;
   }
-  return iterator(iterable, inner_successor);
+  return iterator(*iterable, inner_successor);
 }
 
 template <typename T, std::size_t N>
