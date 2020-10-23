@@ -142,7 +142,7 @@ if(MGARD_ENABLE_CUDA)
   endif()
 endif()
 
-
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-narrowing")
 
 # Dependencies
 find_package(ZLIB REQUIRED)
