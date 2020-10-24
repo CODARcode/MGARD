@@ -213,7 +213,7 @@ install(
 install(
   DIRECTORY
     include/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mgard
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 # Create executables under build/bin
