@@ -142,8 +142,6 @@ if(MGARD_ENABLE_CUDA)
   endif()
 endif()
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-narrowing")
-
 # Dependencies
 find_package(ZLIB REQUIRED)
 find_package(ADIOS2)
@@ -151,12 +149,8 @@ find_package(ZSTD)
 
 # Set library
 add_library(mgard
-  src/mgard.cpp       include/mgard.hpp
-  src/interpolation.cpp  include/interpolation.hpp
   src/mgard_mesh.cpp  include/mgard_mesh.hpp
   src/mgard_compress.cpp  include/mgard_compress.hpp
-  src/mgard_api.cpp  include/mgard_api.h
-  src/mgard_nuni.cpp  include/mgard_nuni.h
   src/TensorMeshHierarchyIteration.cpp  include/TensorMeshHierarchyIteration.hpp include/TensorMeshHierarchyIteration.tpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
 )
@@ -220,28 +214,7 @@ install(
 include(CTest)
 if(BUILD_TESTING)
 #  enable_testing()
-  add_executable(mgard_test ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard_test.cpp)
-  target_link_libraries(mgard_test mgard  ${CMAKE_DL_LIBS})
-  
   add_subdirectory(tests)
-
-  add_test(NAME mgard_test1
-    COMMAND mgard_test double
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/u3_513x513_orig
-      513 513 1 1e-2 0 
-  )
-  
-  add_test(NAME mgard_test2
-    COMMAND mgard_test double
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/data_600x400_orig
-      600 400 1 1e-2 1 
-  )
-
-  add_test(NAME mgard_test3
-    COMMAND mgard_test double
-      ${CMAKE_CURRENT_SOURCE_DIR}/data/zort_111_160_15.dat
-      11 160 15 1e-3 2 
-  )
 endif()
 
 # Add all targets to the build-tree export set
@@ -302,4 +275,3 @@ message("  Shared Lib: ${BUILD_SHARED_LIBS}")
 message("     Testing: ${BUILD_TESTING}")
 message("        CUDA: ${MGARD_ENABLE_CUDA}")
 message("  CUDA-Debug: ${MGARD_ENABLE_CUDA_DEBUG}")
-
