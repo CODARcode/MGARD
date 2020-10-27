@@ -13,6 +13,7 @@
 #include "TensorNorms.hpp"
 #include "blas.hpp"
 #include "mgard_api.h"
+#include "shuffle.hpp"
 
 namespace {
 
@@ -29,8 +30,15 @@ void test_compression_decompression(
                                     shape);
   const std::size_t ndof = hierarchy.ndof();
 
+  Real *const buffer = static_cast<Real *>(std::malloc(ndof * sizeof(*buffer)));
+  generate_reasonable_function(hierarchy, s, generator, buffer);
+
   Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(*u)));
-  generate_reasonable_function(hierarchy, s, generator, u);
+  // `generate_reasonable_function` uses `TensorMeshHierarchy::at`, so the
+  // function will come out shuffled. `mgard::compress` shuffles its input,
+  // though, so we need to unshuffle beforehand.
+  mgard::unshuffle(hierarchy, buffer, u);
+
   Real *const v = static_cast<Real *>(std::malloc(ndof * sizeof(*v)));
   Real *const error = static_cast<Real *>(std::malloc(ndof * sizeof(*error)));
 
@@ -39,14 +47,19 @@ void test_compression_decompression(
     for (const Real tolerance : tolerances) {
       blas::copy(ndof, u, v);
       blas::copy(ndof, u, error);
+      // `v` and `error` are now unshuffled.
 
       const mgard::CompressedDataset<N, Real> compressed =
           mgard::compress(hierarchy, v, s, tolerance);
       const mgard::DecompressedDataset<N, Real> decompressed =
           mgard::decompress(compressed);
+      // `decompressed.data` is unshuffled.
 
       blas::axpy(ndof, static_cast<Real>(-1), decompressed.data(), error);
-      tracker += mgard::norm(hierarchy, error, s) <= tolerance;
+      // `error` is calculated, but it's unshuffled. `mgard::norm` expects its
+      // input to be shuffled, so we shuffle into `buffer`.
+      mgard::shuffle(hierarchy, error, buffer);
+      tracker += mgard::norm(hierarchy, buffer, s) <= tolerance;
     }
   }
   REQUIRE(tracker);
@@ -54,6 +67,7 @@ void test_compression_decompression(
   std::free(error);
   std::free(v);
   std::free(u);
+  std::free(buffer);
 }
 
 } // namespace

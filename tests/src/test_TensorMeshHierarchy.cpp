@@ -1,11 +1,14 @@
 #include "catch2/catch.hpp"
 
 #include <array>
+#include <numeric>
+#include <stdexcept>
 #include <vector>
 
 #include "testing_utilities.hpp"
 
 #include "TensorMeshHierarchy.hpp"
+#include "shuffle.hpp"
 #include "utilities.hpp"
 
 TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
@@ -72,30 +75,81 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
   }
 }
 
-TEST_CASE("TensorMeshHierarchy dimension indexing", "[TensorMeshHierarchy]") {
-  // Currently we don't test `TensorMeshHierarchy::at`.
-  SECTION("offset helper member") {
+namespace {
+
+template <std::size_t N, typename Real>
+void test_entry_indexing_manual(
+    const std::array<std::size_t, N> shape,
+    const std::vector<std::array<std::size_t, N>> &multiindices,
+    const std::vector<Real> &expected) {
+  const std::size_t ntrials = multiindices.size();
+  if (expected.size() != ntrials) {
+    throw std::invalid_argument("number of trials inconsistently specified");
+  }
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(shape);
+  const std::size_t ndof = hierarchy.ndof();
+  std::vector<Real> v_unshuffled_(ndof);
+  std::vector<Real> v_shuffled_(ndof);
+  std::iota(v_unshuffled_.begin(), v_unshuffled_.end(), 0);
+  Real *const v = v_shuffled_.data();
+  mgard::shuffle(hierarchy, v_unshuffled_.data(), v);
+  TrialTracker tracker;
+  for (std::size_t i = 0; i < ntrials; ++i) {
+    tracker += hierarchy.at(v, multiindices.at(i)) == expected.at(i);
+  }
+  REQUIRE(tracker);
+}
+
+template <std::size_t N>
+void test_entry_indexing_exhaustive(const std::array<std::size_t, N> shape) {
+  const mgard::TensorMeshHierarchy<N, float> hierarchy(shape);
+  const std::size_t ndof = hierarchy.ndof();
+  float *const buffer = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+  std::iota(buffer, buffer + ndof, 0);
+  float *const u = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+  mgard::shuffle(hierarchy, buffer, u);
+  std::free(buffer);
+  int expected = 0;
+  TrialTracker tracker;
+  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
+    tracker += hierarchy.at(u, node.multiindex) == static_cast<float>(expected);
+    ++expected;
+  }
+  REQUIRE(tracker);
+  std::free(u);
+}
+
+} // namespace
+
+TEST_CASE("TensorMeshHierarchy indexing", "[TensorMeshHierarchy]") {
+  SECTION("accessing elements") {
     {
-      const mgard::TensorMeshHierarchy<1, float> hierarchy({6});
-      REQUIRE(hierarchy.offset({0}) == 0);
-      REQUIRE(hierarchy.offset({2}) == 2);
-      REQUIRE(hierarchy.offset({5}) == 5);
+      const std::vector<std::array<std::size_t, 1>> multiindices = {
+          {0}, {2}, {5}};
+      const std::vector<float> expected = {0, 2, 5};
+      test_entry_indexing_manual({6}, multiindices, expected);
     }
     {
-      const mgard::TensorMeshHierarchy<2, double> hierarchy({13, 4});
-      REQUIRE(hierarchy.offset({0, 3}) == 3);
-      REQUIRE(hierarchy.offset({10, 1}) == 41);
-      REQUIRE(hierarchy.offset({12, 3}) == 51);
+      const std::vector<std::array<std::size_t, 2>> multiindices = {
+          {0, 3}, {10, 1}, {12, 3}};
+      const std::vector<double> expected = {3, 41, 51};
+      test_entry_indexing_manual({13, 4}, multiindices, expected);
     }
     {
-      const mgard::TensorMeshHierarchy<4, float> hierarchy({3, 3, 2, 100});
-      REQUIRE(hierarchy.offset({1, 2, 1, 90}) == 1190);
-      REQUIRE(hierarchy.offset({2, 0, 1, 15}) == 1315);
-      REQUIRE(hierarchy.offset({2, 2, 1, 27}) == 1727);
+      const std::vector<std::array<std::size_t, 4>> multiindices = {
+          {1, 2, 1, 90}, {2, 0, 1, 15}, {2, 2, 1, 27}};
+      const std::vector<float> expected = {1190, 1315, 1727};
+      test_entry_indexing_manual({3, 3, 2, 100}, multiindices, expected);
+    }
+
+    {
+      test_entry_indexing_exhaustive<1>({95});
+      test_entry_indexing_exhaustive<2>({20, 6});
+      test_entry_indexing_exhaustive<3>({7, 11, 12});
     }
   }
 
-  SECTION("indices helper member") {
+  SECTION("accessing indices directly") {
     {
       const mgard::TensorMeshHierarchy<3, float> hierarchy({5, 3, 17});
       REQUIRE(hierarchy.L == 1);
@@ -201,12 +255,14 @@ TEST_CASE("index iteration", "[TensorMeshHierarchy]") {
 
 TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
   const std::size_t N = 27;
-  std::vector<float> v_(N);
-  std::iota(v_.begin(), v_.end(), 1);
-  float *const v = v_.data();
+  float *const buffer = static_cast<float *>(std::malloc(N * sizeof(float)));
+  std::iota(buffer, buffer + N, 1);
 
   {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({17});
+    const std::size_t ndof = hierarchy.ndof();
+    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    mgard::shuffle(hierarchy, buffer, v);
     std::vector<float> encountered_values;
     std::vector<std::size_t> encountered_ls;
     for (const mgard::TensorNode<1> node : hierarchy.nodes(2)) {
@@ -217,10 +273,14 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     const std::vector<std::size_t> expected_ls = {0, 2, 1, 2, 0};
     REQUIRE(encountered_values == expected_values);
     REQUIRE(encountered_ls == expected_ls);
+    std::free(v);
   }
 
   {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({3, 5});
+    const std::size_t ndof = hierarchy.ndof();
+    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    mgard::shuffle(hierarchy, buffer, v);
     std::vector<float> encountered;
     // For the indices.
     TrialTracker tracker;
@@ -231,10 +291,14 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     const std::vector<float> expected = {1, 3, 5, 11, 13, 15};
     REQUIRE(encountered == expected);
     REQUIRE(tracker);
+    std::free(v);
   }
 
   {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({9, 3});
+    const std::size_t ndof = hierarchy.ndof();
+    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    mgard::shuffle(hierarchy, buffer, v);
     std::vector<float> encountered;
     // For the indices.
     TrialTracker tracker;
@@ -245,10 +309,14 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     const std::vector<float> expected = {1, 3, 7, 9, 13, 15, 19, 21, 25, 27};
     REQUIRE(encountered == expected);
     REQUIRE(tracker);
+    std::free(v);
   }
 
   {
     const mgard::TensorMeshHierarchy<3, float> hierarchy({3, 3, 3});
+    const std::size_t ndof = hierarchy.ndof();
+    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    mgard::shuffle(hierarchy, buffer, v);
     float expected_value = 1;
     TrialTracker tracker;
     // For the indices.
@@ -264,10 +332,14 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     }
     REQUIRE(tracker);
     REQUIRE(encountered_ls == expected_ls);
+    std::free(v);
   }
 
   {
-    const mgard::TensorMeshHierarchy<2, double> hierarchy({11, 14});
+    const mgard::TensorMeshHierarchy<2, float> hierarchy({11, 14});
+    const std::size_t ndof = hierarchy.ndof();
+    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    mgard::shuffle(hierarchy, buffer, v);
     std::vector<std::array<std::size_t, 2>> encountered_multiindices;
     std::vector<std::size_t> encountered_ls;
     for (const mgard::TensorNode<2> node : hierarchy.nodes(2)) {
@@ -285,7 +357,10 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
                                                   2, 2, 0, 2, 1, 2, 0};
     REQUIRE(encountered_multiindices == expected_multiindices);
     REQUIRE(encountered_ls == expected_ls);
+    std::free(v);
   }
+
+  std::free(buffer);
 }
 
 TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {
