@@ -9,27 +9,35 @@
 #include "TensorMeshHierarchy.hpp"
 #include "TensorProlongation.hpp"
 #include "TensorRestriction.hpp"
+#include "shuffle.hpp"
 #include "utilities.hpp"
 
 TEST_CASE("constituent restrictions", "[TensorRestriction]") {
   SECTION("1D and default spacing") {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({9});
-    const std::array<float, 9> u_ = {9, 2, 4, -4, 7, 5, -2, 5, 6};
+    const std::size_t ndof = 9;
+    const std::array<float, ndof> u_ = {9, 2, 4, -4, 7, 5, -2, 5, 6};
+    std::array<float, ndof> v_;
+    std::array<float, ndof> buffer_;
+    float const *const u = u_.data();
+    float *const v = v_.data();
+    float *const buffer = buffer_.data();
+
     const std::size_t dimension = 0;
-    const std::array<std::array<float, 9>, 3> expecteds = {
+    const std::array<std::array<float, ndof>, 3> expecteds = {
         {{10, 2, 3, -4, 7.5, 5, 3, 5, 8.5},
          {11, 2, 4, -4, 8, 5, -2, 5, 5},
          {12.5, 2, 4, -4, 7, 5, -2, 5, 9.5}}};
     for (std::size_t l = 3; l > 0; --l) {
       const std::size_t i = 3 - l;
-      const std::array<float, 9> &expected = expecteds.at(i);
+      const std::array<float, ndof> &expected = expecteds.at(i);
       const mgard::ConstituentRestriction<1, float> R(hierarchy, l, dimension);
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       R({0}, v);
+      mgard::unshuffle(hierarchy, v, buffer);
       TrialTracker tracker;
-      for (std::size_t i = 0; i < 9; ++i) {
-        tracker += v_.at(i) == expected.at(i);
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += buffer_.at(i) == expected.at(i);
       }
       REQUIRE(tracker);
     }
@@ -38,19 +46,26 @@ TEST_CASE("constituent restrictions", "[TensorRestriction]") {
   SECTION("1D and custom spacing and nondyadic") {
     const std::vector<double> xs = {0.0, 0.1, 0.9, 1.0};
     const mgard::TensorMeshHierarchy<1, double> hierarchy({4}, {xs});
-    const std::array<double, 4> u_ = {5, 2, 2, 4};
+    const std::size_t ndof = 4;
+    const std::array<double, ndof> u_ = {5, 2, 2, 4};
+    std::array<double, ndof> v_;
+    std::array<double, ndof> buffer_;
+    double const *const u = u_.data();
+    double *const v = v_.data();
+    double *const buffer = buffer_.data();
+
     const std::size_t dimension = 0;
-    const std::array<std::array<double, 4>, 2> expecteds = {
+    const std::array<std::array<double, ndof>, 2> expecteds = {
         {{5, 20. / 9, 2, 52. / 9}, {6.8, 2, 2, 4.2}}};
     for (std::size_t l = 2; l > 0; --l) {
       const mgard::ConstituentRestriction<1, double> R(hierarchy, l, dimension);
-      std::array<double, 4> v_ = u_;
-      double *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       R({0}, v);
+      mgard::unshuffle(hierarchy, v, buffer);
       TrialTracker tracker;
-      const std::array<double, 4> &expected = expecteds.at(2 - l);
-      for (std::size_t i = 0; i < 4; ++i) {
-        tracker += v_.at(i) == Approx(expected.at(i));
+      const std::array<double, ndof> &expected = expecteds.at(2 - l);
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += buffer_.at(i) == Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -59,26 +74,32 @@ TEST_CASE("constituent restrictions", "[TensorRestriction]") {
   SECTION("2D and custom spacing") {
     const mgard::TensorMeshHierarchy<2, double> hierarchy(
         {3, 3}, {{{0, 0.75, 1}, {0, 0.25, 1}}});
-    const std::array<double, 9> u_ = {-9, -5, 1, 9, 3, 2, 9, 5, 6};
+    const std::size_t ndof = 3 * 3;
+    const std::array<double, ndof> u_ = {-9, -5, 1, 9, 3, 2, 9, 5, 6};
+    std::array<double, ndof> v_;
+    std::array<double, ndof> buffer_;
+    double const *const u = u_.data();
+    double *const v = v_.data();
+    double *const buffer = buffer_.data();
     {
       const std::size_t l = 1;
       const std::size_t dimension = 0;
       const mgard::ConstituentRestriction<2, double> R(hierarchy, l, dimension);
       const std::array<std::array<std::size_t, 2>, 3> multiindices = {
           {{0, 0}, {0, 1}}};
-      const std::array<std::array<double, 9>, 2> expecteds = {{
+      const std::array<std::array<double, ndof>, 2> expecteds = {{
           {-6.75, -5, 1, 9, 3, 2, 15.75, 5, 6},
           {-9, -4.25, 1, 9, 3, 2, 9, 7.25, 6},
       }};
       for (std::size_t i = 0; i < 2; ++i) {
         const std::array<std::size_t, 2> &multiindex = multiindices.at(i);
-        const std::array<double, 9> &expected = expecteds.at(i);
-        std::array<double, 9> v_ = u_;
-        double *const v = v_.data();
+        const std::array<double, ndof> &expected = expecteds.at(i);
+        mgard::shuffle(hierarchy, u, v);
         R(multiindex, v);
+        mgard::unshuffle(hierarchy, v, buffer);
         TrialTracker tracker;
-        for (std::size_t j = 0; j < 9; ++j) {
-          tracker += v_.at(j) == Approx(expected.at(j));
+        for (std::size_t j = 0; j < ndof; ++j) {
+          tracker += buffer_.at(j) == Approx(expected.at(j));
         }
         REQUIRE(tracker);
       }
@@ -89,19 +110,19 @@ TEST_CASE("constituent restrictions", "[TensorRestriction]") {
       const mgard::ConstituentRestriction<2, double> R(hierarchy, l, dimension);
       const std::array<std::array<std::size_t, 2>, 3> multiindices = {
           {{1, 0}, {2, 0}}};
-      const std::array<std::array<double, 9>, 2> expecteds = {{
+      const std::array<std::array<double, ndof>, 2> expecteds = {{
           {-9, -5, 1, 11.25, 3, 2.75, 9, 5, 6},
           {-9, -5, 1, 9, 3, 2, 12.75, 5, 7.25},
       }};
       for (std::size_t i = 0; i < 2; ++i) {
         const std::array<std::size_t, 2> &multiindex = multiindices.at(i);
-        const std::array<double, 9> &expected = expecteds.at(i);
-        std::array<double, 9> v_ = u_;
-        double *const v = v_.data();
+        const std::array<double, ndof> &expected = expecteds.at(i);
+        mgard::shuffle(hierarchy, u, v);
         R(multiindex, v);
+        mgard::unshuffle(hierarchy, v, buffer);
         TrialTracker tracker;
-        for (std::size_t j = 0; j < 9; ++j) {
-          tracker += v_.at(j) == Approx(expected.at(j));
+        for (std::size_t j = 0; j < ndof; ++j) {
+          tracker += buffer_.at(j) == Approx(expected.at(j));
         }
         REQUIRE(tracker);
       }
@@ -134,8 +155,9 @@ void test_tensor_projection_identity(std::default_random_engine &generator,
   const mgard::TensorMeshHierarchy<N, Real> hierarchy =
       hierarchy_with_random_spacing(generator, node_spacing_distribution,
                                     shape);
+  const std::size_t ndof = hierarchy.ndof();
 
-  std::vector<Real> u_(hierarchy.ndof());
+  std::vector<Real> u_(ndof);
   Real *const u = u_.data();
 
   for (std::size_t l = hierarchy.L; l > 0; --l) {
@@ -174,15 +196,22 @@ TEST_CASE("tensor product restrictions", "[TensorRestriction]") {
   {
     const mgard::TensorMeshHierarchy<2, double> hierarchy(
         {3, 3}, {{{0, 0.5, 1}, {-1, -0.5, 1}}});
-    const std::array<double, 9> u_ = {6, 0, 7, -6, -10, 8, -6, 3, 9};
+    const std::size_t ndof = 3 * 3;
+    const std::array<double, ndof> u_ = {6, 0, 7, -6, -10, 8, -6, 3, 9};
+    std::array<double, ndof> v_;
+    std::array<double, ndof> buffer_;
+    double const *const u = u_.data();
+    double *const v = v_.data();
+    double *const buffer = buffer_.data();
+
     const std::size_t l = 1;
     const mgard::TensorRestriction<2, double> R(hierarchy, l);
-    const std::array<double, 9> expected = {-0.75, -5,    9.75, -13.5, -10,
-                                            5.5,   -10.5, -2,   12.5};
-    std::array<double, 9> v_ = u_;
-    double *const v = v_.data();
+    const std::array<double, ndof> expected = {-0.75, -5,    9.75, -13.5, -10,
+                                               5.5,   -10.5, -2,   12.5};
+    mgard::shuffle(hierarchy, u, v);
     R(v);
-    REQUIRE(v_ == expected);
+    mgard::unshuffle(hierarchy, v, buffer);
+    REQUIRE(buffer_ == expected);
   }
 
   std::default_random_engine generator(445624);
