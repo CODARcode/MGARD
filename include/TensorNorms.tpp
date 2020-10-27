@@ -69,7 +69,7 @@ Real s_norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
 
   for (std::size_t i = 1; i <= hierarchy.L; ++i) {
     const std::size_t l = hierarchy.L - i;
-    const TensorNodeRange<N, Real> nodes = hierarchy.nodes(l);
+    const UnshuffledTensorNodeRange<N, Real> nodes = hierarchy.nodes(l);
 
     const TensorRestriction<N, Real> R(hierarchy, l + 1);
     R(product);

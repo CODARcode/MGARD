@@ -69,8 +69,8 @@ TEST_CASE("TensorIndexRange size and iteration",
 
 namespace {
 
-// We expect `It` to be `mgard::TensorNodeRange<2>::iterator` or
-// `mgard::TensorReservedNodeRange<2>::iterator`. Quick efforts to
+// We expect `It` to be `mgard::UnshuffledTensorNodeRange<2>::iterator` or
+// `mgard::ShuffledTensorNodeRange<2>::iterator`. Quick efforts to
 // generalize this more (parametrizing on `N` and so on) have led to problems
 // getting the compiler to find this when looking for matching functions.
 template <typename It>
@@ -97,8 +97,9 @@ TEST_CASE("TensorNode predecessors and successors",
   SECTION("'normal' nodes") {
     // Finest level.
     {
-      const mgard::TensorNodeRange<2, float> nodes = hierarchy.nodes(1);
-      mgard::TensorNodeRange<2, float>::iterator p = nodes.begin();
+      const mgard::UnshuffledTensorNodeRange<2, float> nodes =
+          hierarchy.nodes(1);
+      mgard::UnshuffledTensorNodeRange<2, float>::iterator p = nodes.begin();
 
       TrialTracker tracker;
       increment_and_test_neighbors(tracker, p, {0, 0}, {0, 0}, {0, 0}, {1, 0},
@@ -124,8 +125,9 @@ TEST_CASE("TensorNode predecessors and successors",
 
     // Coarse level.
     {
-      const mgard::TensorNodeRange<2, float> nodes = hierarchy.nodes(0);
-      mgard::TensorNodeRange<2, float>::iterator p = nodes.begin();
+      const mgard::UnshuffledTensorNodeRange<2, float> nodes =
+          hierarchy.nodes(0);
+      mgard::UnshuffledTensorNodeRange<2, float>::iterator p = nodes.begin();
       TrialTracker tracker;
       increment_and_test_neighbors(tracker, p, {0, 0}, {0, 0}, {0, 0}, {2, 0},
                                    {0, 2});
@@ -142,15 +144,19 @@ TEST_CASE("TensorNode predecessors and successors",
   SECTION("'reserved' nodes") {
     // Finest level.
     {
-      const mgard::TensorReservedNodeRange<2, float> nodes(hierarchy, 1);
-      mgard::TensorReservedNodeRange<2, float>::iterator p = nodes.begin();
+      const mgard::ShuffledTensorNodeRange<2, float> nodes(hierarchy, 1);
+      mgard::ShuffledTensorNodeRange<2, float>::iterator p = nodes.begin();
 
       TrialTracker tracker;
       increment_and_test_neighbors(tracker, p, {0, 0}, {0, 0}, {0, 0}, {2, 0},
                                    {0, 2});
-      increment_and_test_neighbors(tracker, p, {0, 1}, {0, 1}, {0, 0}, {1, 1},
-                                   {0, 2});
       increment_and_test_neighbors(tracker, p, {0, 2}, {0, 2}, {0, 0}, {2, 2},
+                                   {0, 2});
+      increment_and_test_neighbors(tracker, p, {2, 0}, {0, 0}, {2, 0}, {2, 0},
+                                   {2, 2});
+      increment_and_test_neighbors(tracker, p, {2, 2}, {0, 2}, {2, 0}, {2, 2},
+                                   {2, 2});
+      increment_and_test_neighbors(tracker, p, {0, 1}, {0, 1}, {0, 0}, {1, 1},
                                    {0, 2});
       increment_and_test_neighbors(tracker, p, {1, 0}, {0, 0}, {1, 0}, {2, 0},
                                    {1, 1});
@@ -158,19 +164,15 @@ TEST_CASE("TensorNode predecessors and successors",
                                    {1, 2});
       increment_and_test_neighbors(tracker, p, {1, 2}, {0, 2}, {1, 1}, {2, 2},
                                    {1, 2});
-      increment_and_test_neighbors(tracker, p, {2, 0}, {0, 0}, {2, 0}, {2, 0},
-                                   {2, 2});
       increment_and_test_neighbors(tracker, p, {2, 1}, {1, 1}, {2, 0}, {2, 1},
-                                   {2, 2});
-      increment_and_test_neighbors(tracker, p, {2, 2}, {0, 2}, {2, 0}, {2, 2},
                                    {2, 2});
       REQUIRE(tracker);
     }
 
     // Coarse level.
     {
-      const mgard::TensorReservedNodeRange<2, float> nodes(hierarchy, 0);
-      mgard::TensorReservedNodeRange<2, float>::iterator p = nodes.begin();
+      const mgard::ShuffledTensorNodeRange<2, float> nodes(hierarchy, 0);
+      mgard::ShuffledTensorNodeRange<2, float>::iterator p = nodes.begin();
       TrialTracker tracker;
       increment_and_test_neighbors(tracker, p, {0, 0}, {0, 0}, {0, 0}, {2, 0},
                                    {0, 2});

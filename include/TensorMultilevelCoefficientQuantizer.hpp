@@ -30,7 +30,7 @@ public:
   //! Quantize a multilevel coefficient.
   //!
   //! IMPORTANT: `node` must be produced by iterating over the mesh which first
-  //! introduced the node! Use `TensorReservedNodeRange`. This is needed so that
+  //! introduced the node! Use `ShuffledTensorNodeRange`. This is needed so that
   //! the quantum is calculated correctly.
   //!
   //!\param node Auxiliary node data corresponding to the coefficient.
@@ -57,7 +57,7 @@ public:
 
 private:
   //! Nodes of the finest mesh in the hierarchy.
-  const TensorReservedNodeRange<N, Real> nodes;
+  const ShuffledTensorNodeRange<N, Real> nodes;
 
   //! Quantizer to use when controlling error in the supremum norm.
   const LinearQuantizer<Real, Int> supremum_quantizer;
@@ -91,11 +91,14 @@ public:
 
   //! Constructor.
   //!
+  //! `inner_node` and `inner_coeff` must iterate over the nodes and
+  //! coefficients, respectively, in the same order.
+  //!
   //!\param quantizer Associated multilevel coefficient quantizer.
   //!\param inner_node Position in the node range.
   //!\param inner_coeff Position in the multilevel coefficient range.
   iterator(const TensorMultilevelCoefficientQuantizer &quantizer,
-           const typename TensorReservedNodeRange<N, Real>::iterator inner_node,
+           const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
            Real const *const inner_coeff);
 
   //! Equality comparison.
@@ -111,17 +114,14 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  //!
-  //! This operator isn't const because `TensorReservedNodeRange<N,
-  //! Real>::iterator::operator*` isn't const.
-  reference operator*();
+  reference operator*() const;
 
 private:
   //! Associated multilevel coefficient quantizer;
   const TensorMultilevelCoefficientQuantizer &quantizer;
 
   //! Iterator to current node.
-  typename TensorReservedNodeRange<N, Real>::iterator inner_node;
+  typename ShuffledTensorNodeRange<N, Real>::iterator inner_node;
 
   //! Iterator to current coefficient.
   Real const *inner_coeff;
@@ -146,7 +146,7 @@ public:
   //! Dequantize a multilevel coefficient.
   //!
   //! IMPORTANT: `node` must be produced by iterating over the mesh which first
-  //! introduced the node! Use `TensorReservedNodeRange`. This is needed so that
+  //! introduced the node! Use `ShuffledTensorNodeRange`. This is needed so that
   //! the quantum is calculated correctly.
   //!
   //!\param node Auxiliary node data corresponding to the coefficient.
@@ -175,7 +175,7 @@ public:
 
 private:
   //! Nodes of the finest mesh in the hierarchy.
-  const TensorReservedNodeRange<N, Real> nodes;
+  const ShuffledTensorNodeRange<N, Real> nodes;
 
   //! Dequantizer to use when controlling error in the supremum norm.
   const LinearDequantizer<Int, Real> supremum_dequantizer;
@@ -210,11 +210,14 @@ public:
 
   //! Constructor.
   //!
+  //! `inner_node` and `inner_coeff` must iterate over the nodes and
+  //! coefficients, respectively, in the same order.
+  //!
   //!\param dequantizer Associated multilevel coefficient dequantizer.
   //!\param inner_node Position in the node range.
   //!\param inner_coeff Position in the quantized multilevel coefficient range.
   iterator(const TensorMultilevelCoefficientDequantizer &dequantizer,
-           const typename TensorReservedNodeRange<N, Real>::iterator inner_node,
+           const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
            const It inner_coeff);
 
   //! Equality comparison.
@@ -230,17 +233,14 @@ public:
   iterator operator++(int);
 
   //! Dereference.
-  //!
-  //! This operator isn't const because `TensorReservedNodeRange<N,
-  //! Real>::iterator::operator*` isn't const.
-  reference operator*();
+  reference operator*() const;
 
 private:
   //! Associated multilevel coefficient dequantizer;
   const TensorMultilevelCoefficientDequantizer &dequantizer;
 
   //! Iterator to current node.
-  typename TensorReservedNodeRange<N, Real>::iterator inner_node;
+  typename ShuffledTensorNodeRange<N, Real>::iterator inner_node;
 
   //! Iterator to current quantized coefficient.
   It inner_coeff;

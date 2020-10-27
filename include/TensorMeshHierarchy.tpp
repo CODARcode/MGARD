@@ -185,10 +185,10 @@ const Real &TensorMeshHierarchy<N, Real>::at(
 }
 
 template <std::size_t N, typename Real>
-TensorNodeRange<N, Real>
+UnshuffledTensorNodeRange<N, Real>
 TensorMeshHierarchy<N, Real>::nodes(const std::size_t l) const {
   check_mesh_index_bounds(l);
-  return TensorNodeRange<N, Real>(*this, l);
+  return UnshuffledTensorNodeRange<N, Real>(*this, l);
 }
 
 template <std::size_t N, typename Real>
