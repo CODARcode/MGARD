@@ -77,15 +77,6 @@ public:
   TensorIndexRange indices(const std::size_t l,
                            const std::size_t dimension) const;
 
-  //! Compute the offset of the value associated to a node.
-  //!
-  //! The offset is the distance in a contiguous dataset defined on the finest
-  //! mesh in the hierarchy from the value associated to the zeroth node to
-  //! the value associated to the given node.
-  //!
-  //!\param multiindex Multiindex of the node.
-  std::size_t offset(const std::array<std::size_t, N> multiindex) const;
-
   //! Find the index of the level which introduced a node.
   //!
   //!\param multiindex Multiindex of the node.
@@ -139,6 +130,24 @@ protected:
   //!
   //!\param l Mesh index.
   void check_mesh_index_nonzero(const std::size_t l) const;
+
+private:
+  //! Compute the index of a node in the 'shuffled' ordering.
+  //!
+  //!\param multiindex Multiindex of the node.
+  std::size_t index(const std::array<std::size_t, N> multiindex) const;
+
+  //! Count the nodes in a given mesh level preceding a given node.
+  //!
+  //! If the node is contained in the mesh level, the count is equal to the
+  //! position of the node in the 'physical' ordering of the nodes (`{0, 0, 0}`,
+  //! `{0, 0, 1}`, and so on).
+  //!
+  //!\param l Index of the mesh level whose nodes are to be counted.
+  //!\param multiindex Multiindex of the node.
+  std::size_t
+  number_nodes_before(const std::size_t l,
+                      const std::array<std::size_t, N> multiindex) const;
 };
 
 //! Equality comparison.
