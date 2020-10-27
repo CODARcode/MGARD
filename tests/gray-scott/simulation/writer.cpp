@@ -2,6 +2,7 @@
 #include "mgard_api.h"
 
 #include <iostream>
+#include <limits>
 
 void define_bpvtk_attribute(const Settings &s, adios2::IO &io)
 {
@@ -109,14 +110,16 @@ void Writer::write(int step, const GrayScott &sim)
         std::vector<double> u = sim.u_noghost();
         std::vector<double> v = sim.v_noghost();
 
-        double tol = 0.001;
-        int outsize;
-        unsigned char *compressed_data = 0;
+        const double s = std::numeric_limits<double>::infinity();
+        const double tolerance = 0.001;
+        const mgard::TensorMeshHierarchy<3, double> hierarchy(
+          {sim.size_x, sim.size_y, sim.size_z}
+        );
+        const mgard::CompressedDataset<3, double> compressed =
+          mgard::compress(hierarchy, u.data(), s, tolerance);
+        const mgard::DecompressedDataset<3, double> decompressed =
+          mgard::decompress(compressed);
 
-        compressed_data = mgard_compress(u.data(), outsize, sim.size_x,
-                                         sim.size_y, sim.size_z, tol);
-        double *decompressed_data = mgard_decompress<double>(
-            compressed_data, outsize, sim.size_x, sim.size_y, sim.size_z);
         std::cout << "Variable u is decompressed. " << std::endl;
         writer.BeginStep();
         writer.Put<int>(var_step, &step);

@@ -115,28 +115,6 @@ std::size_t TensorMeshHierarchy<N, Real>::ndof() const {
 }
 
 template <std::size_t N, typename Real>
-std::size_t
-TensorMeshHierarchy<N, Real>::stride(const std::size_t l,
-                                     const std::size_t dimension) const {
-  check_mesh_index_bounds(l);
-  check_dimension_index_bounds<N>(dimension);
-  const std::array<std::size_t, N> &shape = meshes.back().shape;
-  std::size_t n = 1;
-  for (std::size_t i = dimension + 1; i < N; ++i) {
-    n *= shape.at(i);
-  }
-  return n * stride_from_index_difference(L - l);
-}
-
-template <std::size_t N, typename Real>
-std::size_t
-TensorMeshHierarchy<N, Real>::l(const std::size_t index_difference) const {
-  //! It's not a mesh index, but it'll satisfy the same bounds.
-  check_mesh_index_bounds(index_difference);
-  return L - index_difference;
-}
-
-template <std::size_t N, typename Real>
 TensorIndexRange
 TensorMeshHierarchy<N, Real>::indices(const std::size_t l,
                                       const std::size_t dimension) const {

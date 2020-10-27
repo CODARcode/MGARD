@@ -55,21 +55,6 @@ public:
   //!\param l Index of the TensorMeshLevel.
   std::size_t ndof(const std::size_t l) const;
 
-  //! Calculate the stride between entries in a 1D slice on some level.
-  //!
-  //!\param l Index of the TensorMeshLevel.
-  //!\param dimension Index of the dimension.
-  std::size_t stride(const std::size_t l, const std::size_t dimension) const;
-
-  //! Calculate a mesh index from an index difference.
-  //!
-  //!\deprecated Temporary member function to be removed once indices rather
-  //! than index differences are used everywhere.
-  //!
-  //!\param index_difference Difference between the index of the finest mesh and
-  //! the index of the mesh in question.
-  std::size_t l(const std::size_t index_difference) const;
-
   //! Generate the indices (in a particular dimension) of a mesh level.
   //!
   //!\param l Mesh index.

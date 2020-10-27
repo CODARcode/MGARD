@@ -9,37 +9,7 @@
 #include "mgard_mesh.hpp"
 
 TEST_CASE("helper functions", "[mgard_mesh]") {
-  SECTION("indexing functions") {
-    REQUIRE(mgard::get_index(12, 0, 0) == 0);
-    REQUIRE(mgard::get_index(61, 0, 2) == 2);
-    REQUIRE(mgard::get_index(5, 1, 1) == 6);
-
-    REQUIRE(mgard::get_index3(4, 17, 3, 2, 10) == 248);
-    TrialTracker tracker;
-    {
-      const int nrow = 6;
-      const int ncol = 2;
-      const int nfib = 3;
-      int index = 0;
-      for (int i = 0; i < nrow; ++i) {
-        for (int j = 0; j < ncol; ++j) {
-          for (int k = 0; k < nfib; ++k) {
-            tracker += mgard::get_index3(ncol, nfib, i, j, k) == index++;
-          }
-        }
-      }
-    }
-    REQUIRE(tracker);
-    REQUIRE(tracker.ntrials == 36);
-
-    // TODO: Add tests for `get_lindex` once its purpose is better understood.
-  }
-
-  SECTION("stride and mesh size functions") {
-    REQUIRE(mgard::stride_from_index_difference(0) == 1);
-    REQUIRE(mgard::stride_from_index_difference(1) == 2);
-    REQUIRE(mgard::stride_from_index_difference(3) == 8);
-
+  SECTION("mesh size functions") {
     REQUIRE(mgard::nlevel_from_size(2) == 0);
     REQUIRE(mgard::nlevel_from_size(3) == 1);
     REQUIRE(mgard::nlevel_from_size(32) == 4);

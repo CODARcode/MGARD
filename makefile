@@ -42,12 +42,11 @@ dirty@FILES =
 dirty@DIRECTORIES =
 
 #Tested but not compiled. `$(STEM).hpp` exists, `$(STEM).tpp` might exist, and `$(STEM).cpp` does not exist. These must have associated tests.
-structured@HEADER_ONLY := TensorMeshLevel TensorMeshHierarchy MultidimensionalArray TensorLinearOperator TensorMassMatrix TensorProlongation TensorRestriction TensorMultilevelCoefficientQuantizer TensorNorms shuffle
-structured@MGARD_STEMS_TESTED := interpolation mgard mgard_mesh TensorMeshHierarchyIteration mgard_api
-structured@MGARD_STEMS_UNTESTED := mgard_nuni mgard_compress
+structured@HEADER_ONLY := TensorMeshLevel TensorMeshHierarchy MultidimensionalArray TensorLinearOperator TensorMassMatrix TensorProlongation TensorRestriction TensorMultilevelCoefficientQuantizer TensorNorms shuffle mgard mgard_api
+structured@MGARD_STEMS_TESTED := mgard_mesh TensorMeshHierarchyIteration
+structured@MGARD_STEMS_UNTESTED := mgard_compress
 structured@MGARD_STEMS = $(structured@MGARD_STEMS_TESTED) $(structured@MGARD_STEMS_UNTESTED)
-structured@TEST_STEMS := mgard_test
-structured@STEMS = $(structured@MGARD_STEMS) $(structured@TEST_STEMS)
+structured@STEMS = $(structured@MGARD_STEMS)
 
 unstructured@HEADER_ONLY := blas utilities data UniformEdgeFamilies LinearQuantizer SituatedCoefficientRange MultilevelCoefficientQuantizer
 unstructured@MGARD_STEMS := measure LinearOperator pcg MassMatrix MeshLevel MeshHierarchy MeshRefiner UniformMeshRefiner UniformMeshHierarchy UniformRestriction norms estimators EnumeratedMeshRange indicators IndicatorInput
@@ -59,7 +58,6 @@ tests@DIR_SRC := $(tests@DIR_ROOT)/$(DIR_SRC)
 tests@STEMS := $(foreach STEM,$(structured@MGARD_STEMS_TESTED) $(structured@HEADER_ONLY) $(unstructured@STEMS) $(unstructured@HEADER_ONLY),test_$(STEM)) testing_utilities main
 tests@EXECUTABLE := $(DIR_BIN)/tests
 
-tests@SCRIPT := $(DIR_BIN)/mgard_test
 structured@LIB := $(DIR_LIB)/libmgard.a
 
 benchmarks@DIR_SRC := benchmark
@@ -67,7 +65,7 @@ benchmarks@STEM := bench
 benchmarks@EXECUTABLE := $(DIR_BIN)/speed
 
 .PHONY: all
-all: $(structured@LIB) $(tests@SCRIPT)
+all: $(structured@LIB)
 
 define create-directory
 $1:
@@ -133,10 +131,6 @@ $(eval $(call archive-cpp,$(foreach STEM,$(structured@MGARD_STEMS),$(call stem-t
 .PHONY: check
 check: $(tests@EXECUTABLE)
 	./$<
-
-$(tests@SCRIPT): LDFLAGS += $(structured@LDFLAGS)
-$(tests@SCRIPT): LDLIBS += $(structured@LDLIBS)
-$(eval $(call link-cpp,$(foreach STEM,$(structured@TEST_STEMS),$(call stem-to-object,$(STEM))) $(structured@LIB),$(tests@SCRIPT)))
 
 $(tests@EXECUTABLE): LDFLAGS += $(unstructured@LDFLAGS)
 $(tests@EXECUTABLE): LDLIBS += $(unstructured@LDLIBS)

@@ -54,42 +54,6 @@ std::size_t nlevel_from_size(const std::size_t n);
 //!\param n Level index in a particular dimension (assuming a dyadic grid).
 std::size_t size_from_nlevel(const std::size_t n);
 
-//! Translate a 2D to a 1D index.
-//!
-//!\deprecated Use `TensorMeshHierarchy::at` instead.
-//!
-//!\param ncol Number of columns in the 2D dataset.
-//!\param i Row index in the 2D dataset.
-//!\param j Column index in the 2D dataset.
-int get_index(const int ncol, const int i, const int j);
-
-//! Translate a 3D to a 1D index.
-//!
-//!\deprecated Use `TensorMeshHierarchy::at` instead.
-//!
-//!\param ncol Number of columns in the 3D dataset.
-//!\param nfib Number of fibers in the 3D dataset.
-//!\param i Row index in the 3D dataset.
-//!\param j Column index in the 3D dataset.
-//!\param k Fiber index in the 3D dataset.
-int get_index3(const int ncol, const int nfib, const int i, const int j,
-               const int k);
-
-//! Translate a 1D index to an index in the largest contained dyadic grid.
-//!
-//!\deprecated Use `TensorMeshHierarchy::indices` instead.
-//!
-//!\param n Size of the largest contained dyadic grid.
-//!\param no Size of the 1D grid (greater than or equal to `n`).
-//!\param i Row index in the 1D dataset.
-int get_lindex(const int n, const int no, const int i);
-
-//! Compute the stride for a mesh level.
-//!
-//!\param index_difference Difference between the index of the finest mesh level
-//! and the index of the mesh level in question.
-std::size_t stride_from_index_difference(const std::size_t index_difference);
-
 } // namespace mgard
 
 #include "mgard_mesh.tpp"
