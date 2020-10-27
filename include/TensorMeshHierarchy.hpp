@@ -103,8 +103,11 @@ public:
 
   //! Access the nodes of a level in the hierarchy.
   //!
+  //!\deprecated Construct using `UnshuffledTensorNodeRange` or
+  //! `ShuffledTensorNodeRange` instead.
+  //!
   //!\param l Index of the mesh level to be iterated over.
-  TensorNodeRange<N, Real> nodes(const std::size_t l) const;
+  UnshuffledTensorNodeRange<N, Real> nodes(const std::size_t l) const;
 
   //! Meshes composing the hierarchy, in 'increasing' order.
   std::vector<TensorMeshLevel<N, Real>> meshes;

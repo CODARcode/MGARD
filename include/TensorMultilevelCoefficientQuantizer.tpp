@@ -82,7 +82,7 @@ bool operator!=(const Qntzr<N, Real, Int> &a, const Qntzr<N, Real, Int> &b) {
 template <std::size_t N, typename Real, typename Int>
 Qntzr<N, Real, Int>::iterator::iterator(
     const Qntzr &quantizer,
-    const typename TensorReservedNodeRange<N, Real>::iterator inner_node,
+    const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
     Real const *const inner_coeff)
     : quantizer(quantizer), inner_node(inner_node), inner_coeff(inner_coeff) {}
 
@@ -116,7 +116,7 @@ operator++(int) {
 }
 
 template <std::size_t N, typename Real, typename Int>
-Int Qntzr<N, Real, Int>::iterator::operator*() {
+Int Qntzr<N, Real, Int>::iterator::operator*() const {
   return quantizer(*inner_node, *inner_coeff);
 }
 
@@ -165,7 +165,7 @@ template <std::size_t N, typename Int, typename Real>
 template <typename It>
 Dqntzr<N, Int, Real>::iterator<It>::iterator(
     const Dqntzr<N, Int, Real> &dequantizer,
-    const typename TensorReservedNodeRange<N, Real>::iterator inner_node,
+    const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
     const It inner_coeff)
     : dequantizer(dequantizer), inner_node(inner_node),
       inner_coeff(inner_coeff) {}
@@ -206,7 +206,7 @@ Dqntzr<N, Int, Real>::iterator<It>::iterator::operator++(int) {
 
 template <std::size_t N, typename Int, typename Real>
 template <typename It>
-Real Dqntzr<N, Int, Real>::iterator<It>::iterator::operator*() {
+Real Dqntzr<N, Int, Real>::iterator<It>::iterator::operator*() const {
   return dequantizer(*inner_node, *inner_coeff);
 }
 
