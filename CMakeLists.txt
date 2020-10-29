@@ -157,7 +157,7 @@ add_library(mgard
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/mgard_api.cpp  include/mgard_api.h
   src/mgard_nuni.cpp  include/mgard_nuni.h
-  src/TensorMeshHierarchy.cpp  include/TensorMeshHierarchy.hpp
+  src/TensorMeshHierarchyIteration.cpp  include/TensorMeshHierarchyIteration.hpp include/TensorMeshHierarchyIteration.tpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
 )
 

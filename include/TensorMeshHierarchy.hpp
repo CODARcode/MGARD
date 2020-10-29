@@ -10,15 +10,11 @@
 #include <type_traits>
 #include <vector>
 
+#include "TensorMeshHierarchyIteration.hpp"
 #include "TensorMeshLevel.hpp"
 #include "utilities.hpp"
 
 namespace mgard {
-
-// Forward declarations.
-template <std::size_t N, typename Real> class TensorNodeRange;
-
-class TensorIndexRange;
 
 //! Hierarchy of meshes produced by subsampling an initial mesh.
 template <std::size_t N, typename Real> class TensorMeshHierarchy {
@@ -81,15 +77,6 @@ public:
   TensorIndexRange indices(const std::size_t l,
                            const std::size_t dimension) const;
 
-  //! Compute the offset of the value associated to a node.
-  //!
-  //! The offset is the distance in a contiguous dataset defined on the finest
-  //! mesh in the hierarchy from the value associated to the zeroth node to
-  //! the value associated to the given node.
-  //!
-  //!\param multiindex Multiindex of the node.
-  std::size_t offset(const std::array<std::size_t, N> multiindex) const;
-
   //! Find the index of the level which introduced a node.
   //!
   //!\param multiindex Multiindex of the node.
@@ -107,8 +94,11 @@ public:
 
   //! Access the nodes of a level in the hierarchy.
   //!
+  //!\deprecated Construct using `UnshuffledTensorNodeRange` or
+  //! `ShuffledTensorNodeRange` instead.
+  //!
   //!\param l Index of the mesh level to be iterated over.
-  TensorNodeRange<N, Real> nodes(const std::size_t l) const;
+  UnshuffledTensorNodeRange<N, Real> nodes(const std::size_t l) const;
 
   //! Meshes composing the hierarchy, in 'increasing' order.
   std::vector<TensorMeshLevel<N, Real>> meshes;
@@ -141,10 +131,23 @@ protected:
   //!\param l Mesh index.
   void check_mesh_index_nonzero(const std::size_t l) const;
 
-  //! Check that a dimension index is in bounds.
+private:
+  //! Compute the index of a node in the 'shuffled' ordering.
   //!
-  //!\param dimension Dimension index.
-  void check_dimension_index_bounds(const std::size_t dimension) const;
+  //!\param multiindex Multiindex of the node.
+  std::size_t index(const std::array<std::size_t, N> multiindex) const;
+
+  //! Count the nodes in a given mesh level preceding a given node.
+  //!
+  //! If the node is contained in the mesh level, the count is equal to the
+  //! position of the node in the 'physical' ordering of the nodes (`{0, 0, 0}`,
+  //! `{0, 0, 1}`, and so on).
+  //!
+  //!\param l Index of the mesh level whose nodes are to be counted.
+  //!\param multiindex Multiindex of the node.
+  std::size_t
+  number_nodes_before(const std::size_t l,
+                      const std::array<std::size_t, N> multiindex) const;
 };
 
 //! Equality comparison.
@@ -156,221 +159,6 @@ bool operator==(const TensorMeshHierarchy<N, Real> &a,
 template <std::size_t N, typename Real>
 bool operator!=(const TensorMeshHierarchy<N, Real> &a,
                 const TensorMeshHierarchy<N, Real> &b);
-
-//! Indices in a particular dimension of nodes of a particular level in a mesh
-//! hierarchy.
-class TensorIndexRange {
-public:
-  //! Constructor.
-  //!
-  //! We define this constructor for use in `singleton` and so that objects with
-  //! data members of type `TensorIndexRange` (for example,
-  //! `ConstituentRestriction`) may be default constructed.
-  TensorIndexRange() = default;
-
-  //! Constructor.
-  //
-  //!\param hierarchy Associated mesh hierarchy.
-  //!\param l Mesh index.
-  //!\param dimension Dimension index.
-  template <std::size_t N, typename Real>
-  TensorIndexRange(const TensorMeshHierarchy<N, Real> &hierarchy,
-                   const std::size_t l, const std::size_t dimension);
-
-  //! Factory member function.
-  //!
-  //! We define this function so that we can create ranges which yield the
-  //! single value `0` when iterated over. This is convenient for
-  //! `TensorLinearOperator`.
-  static TensorIndexRange singleton();
-
-  //! Return the size of the range.
-  std::size_t size() const;
-
-  // Forward declaration.
-  class iterator;
-
-  //! Return an iterator to the beginning of the indices.
-  iterator begin() const;
-
-  //! Return an iterator to the end of the indices.
-  iterator end() const;
-
-  // `size_finest` and `size_coarse` aren't `const` so that the defaulted copy
-  // assignment operator won't be deleted.
-
-  //! Size in the particular dimension of the finest mesh in the hierarchy.
-  std::size_t size_finest;
-
-  //! Size in the particular dimension of the mesh in question.
-  std::size_t size_coarse;
-};
-
-//! Equality comparison.
-bool operator==(const TensorIndexRange &a, const TensorIndexRange &b);
-
-//! Inequality comparison.
-bool operator!=(const TensorIndexRange &a, const TensorIndexRange &b);
-
-//! Iterator over the indices in a particular dimension of nodes of a particular
-//! level in a mesh hierarchy.
-//!
-//! This iterator does *not* satisfy all the requirements of a forward iterator.
-//! See <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>. Like a
-//! forward iterator, though, a `TensorIndexRange::iterator` can be used to
-//! iterate over a `TensorIndexRange` repeatedly, with the same values obtained
-//! each time.
-class TensorIndexRange::iterator {
-public:
-  // See note above.
-  //! Category of the iterator.
-  using iterator_category = std::input_iterator_tag;
-  //! Type iterated over.
-  using value_type = std::size_t;
-  //! Type for distance between iterators.
-  using difference_type = std::ptrdiff_t;
-  //! Pointer to `value_type`.
-  using pointer = value_type *;
-  //! Type returned by the dereference operator.
-  using reference = value_type;
-
-  //! Constructor.
-  //!
-  //! This constructor is provided so that arrays of iterators may be formed.
-  //! A default-constructed iterator must be assigned to before being used.
-  iterator() = default;
-
-  //! Constructor.
-  //!
-  //!\param iterable View of indices to be iterated over.
-  //!\param inner Position in the index range.
-  iterator(const TensorIndexRange &iterable, const std::size_t inner);
-
-  //! Equality comparison.
-  bool operator==(const iterator &other) const;
-
-  //! Inequality comparison.
-  bool operator!=(const iterator &other) const;
-
-  //! Preincrement.
-  iterator &operator++();
-
-  //! Postincrement.
-  iterator operator++(int);
-
-  //! Predecrement.
-  iterator &operator--();
-
-  //! Postdecrement.
-  iterator operator--(int);
-
-  //! Dereference.
-  reference operator*() const;
-
-  //! View of indices being iterated over.
-  TensorIndexRange const *iterable;
-
-private:
-  //! Position in the index range.
-  std::size_t inner;
-};
-
-//! Nodes of a particular level in a mesh hierarchy.
-template <std::size_t N, typename Real> class TensorNodeRange {
-public:
-  //! Constructor.
-  //!
-  //!\param hierarchy Associated mesh hierarchy.
-  //!\param l Index of the mesh level to be iterated over.
-  TensorNodeRange(const TensorMeshHierarchy<N, Real> &hierarchy,
-                  const std::size_t l);
-
-  // Forward declaration.
-  class iterator;
-
-  //! Return an iterator to the beginning of the nodes.
-  iterator begin() const;
-
-  //! Return an iterator to the end of the nodes.
-  iterator end() const;
-
-  //! Equality comparison.
-  bool operator==(const TensorNodeRange &other) const;
-
-  //! Inequality comparison.
-  bool operator!=(const TensorNodeRange &other) const;
-
-  //! Associated mesh hierarchy.
-  const TensorMeshHierarchy<N, Real> &hierarchy;
-
-private:
-  //! Index of the level being iterated over.
-  //!
-  //! This is only stored so we can avoid comparing `multiindices` in the
-  //! (in)equality comparison operators.
-  const std::size_t l;
-
-  //! Multiindices of the nodes on the level being iterated over.
-  const CartesianProduct<TensorIndexRange, N> multiindices;
-};
-
-//! A node (and auxiliary data) in a mesh in a mesh hierarchy.
-template <std::size_t N, typename Real> struct TensorNode {
-  //! Index of the mesh level which introduced the node.
-  std::size_t l;
-
-  //! Multiindex of the node.
-  std::array<std::size_t, N> multiindex;
-
-  //! Coordinates of the node.
-  std::array<Real, N> coordinates;
-};
-
-//! Iterator over the nodes of a mesh in a mesh hierarchy.
-template <std::size_t N, typename Real>
-class TensorNodeRange<N, Real>::iterator {
-public:
-  //! Category of the iterator.
-  using iterator_category = std::input_iterator_tag;
-  //! Type iterated over.
-  using value_type = TensorNode<N, Real>;
-  //! Type for distance between iterators.
-  using difference_type = std::ptrdiff_t;
-  //! Pointer to `value_type`.
-  using pointer = value_type *;
-  //! Type returned by the dereference operator.
-  using reference = value_type;
-
-  //! Constructor.
-  //!
-  //!\param iterable View of nodes to be iterated over.
-  //!\param inner Underlying multiindex iterator.
-  iterator(
-      const TensorNodeRange &iterable,
-      const typename CartesianProduct<TensorIndexRange, N>::iterator &inner);
-
-  //! Equality comparison.
-  bool operator==(const iterator &other) const;
-
-  //! Inequality comparison.
-  bool operator!=(const iterator &other) const;
-
-  //! Preincrement.
-  iterator &operator++();
-
-  //! Postincrement.
-  iterator operator++(int);
-
-  //! Dereference.
-  reference operator*() const;
-
-  //! View of nodes being iterated over.
-  const TensorNodeRange &iterable;
-
-private:
-  //! Underlying multiindex iterator.
-  typename CartesianProduct<TensorIndexRange, N>::iterator inner;
-};
 
 } // namespace mgard
 

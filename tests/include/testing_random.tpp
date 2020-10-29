@@ -6,6 +6,8 @@
 
 #include "blas.hpp"
 
+#include "testing_utilities.hpp"
+
 template <typename Real, std::size_t N>
 MultilinearPolynomial<Real, N>::MultilinearPolynomial(
     std::default_random_engine &generator,
@@ -148,7 +150,7 @@ void generate_reasonable_function(
     const mgard::TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
     std::default_random_engine &generator, Real *const u) {
   const SobolevFunction<Real, N> f(s, generator);
-  for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(hierarchy.L)) {
-    hierarchy.at(u, node.multiindex) = f(node.coordinates);
+  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
+    hierarchy.at(u, node.multiindex) = f(coordinates(hierarchy, node));
   }
 }

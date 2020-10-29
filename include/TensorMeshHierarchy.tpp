@@ -119,7 +119,7 @@ std::size_t
 TensorMeshHierarchy<N, Real>::stride(const std::size_t l,
                                      const std::size_t dimension) const {
   check_mesh_index_bounds(l);
-  check_dimension_index_bounds(dimension);
+  check_dimension_index_bounds<N>(dimension);
   const std::array<std::size_t, N> &shape = meshes.back().shape;
   std::size_t n = 1;
   for (std::size_t i = dimension + 1; i < N; ++i) {
@@ -141,24 +141,78 @@ TensorIndexRange
 TensorMeshHierarchy<N, Real>::indices(const std::size_t l,
                                       const std::size_t dimension) const {
   check_mesh_index_bounds(l);
-  check_dimension_index_bounds(dimension);
+  check_dimension_index_bounds<N>(dimension);
   return TensorIndexRange(*this, l, dimension);
 }
 
 template <std::size_t N, typename Real>
-std::size_t TensorMeshHierarchy<N, Real>::offset(
+std::size_t TensorMeshHierarchy<N, Real>::index(
     const std::array<std::size_t, N> multiindex) const {
-  static_assert(N, "`N` must be nonzero to access entries");
-  // TODO: Should also check that `meshes` is nonempty. Maybe do this in the
-  // constructor. Could possibly have a member
-  // `const TensorMeshLevel<N> &finest`.
-  const std::array<std::size_t, N> &shape = meshes.back().shape;
-  std::size_t index = multiindex.at(0);
-  for (std::size_t i = 1; i < N; ++i) {
-    index *= shape.at(i);
-    index += multiindex.at(i);
+  const std::size_t l = date_of_birth(multiindex);
+  if (!l) {
+    return number_nodes_before(l, multiindex);
   }
-  return index;
+  return ndof(l - 1) + number_nodes_before(l, multiindex) -
+         number_nodes_before(l - 1, multiindex);
+}
+
+template <std::size_t N, typename Real>
+std::size_t TensorMeshHierarchy<N, Real>::number_nodes_before(
+    const std::size_t l, const std::array<std::size_t, N> multiindex) const {
+  check_mesh_index_bounds(l);
+  const std::array<std::size_t, N> &SHAPE = meshes.back().shape;
+  const std::array<std::size_t, N> &shape = meshes.at(l).shape;
+  // Let `α` be the given node (its multiindex). A node (multiindex) `β` comes
+  // before `α` if
+  //     * `β_{1} < α_{1}` xor
+  //     * `β_{1} = α_{1}` and `β_{2} < α_{2}` xor
+  //     * …
+  //     * `β_{1} = α_{1}`, …, `β_{N - 1} = α_{N - 1}` and `β_{N} < α_{N}`.
+  // Consider one of these options: `β_{1} = α_{1}`, …, `β_{i - 1} = α_{i - 1}`
+  // and `β_{i} < α_{i}`. Let `M_{k}` and `m_{k}` be the sizes of the finest and
+  // `l`th meshes, respectively, in dimension `k`. `β` is unconstrained in
+  // dimensions `i + 1` through `N`, so we start with a factor of `m_{i + 1} × ⋯
+  // × m_{N}`. The values of `β_{1}`, …, `β_{i - 1}` are prescribed. `β_{i}` is
+  // of the form `floor((j * (M_{i} - 1)) / (m_{i} - 1))`. We want `β_{i} <
+  // α_{i}`, so `j` will go from zero up to some maximal value, after which
+  // `β_{i} ≥ α_{i}`. The count of possible `j` values is the least `j` such
+  // that `β_{i} ≥ α_{i}`. A bit of algebra shows that this is
+  // `ceil((α_{i} * (m_{i} - 1)) / (M_{i} - 1))`. So, the count of possible
+  // `β`s for this option is (assuming the constraints on `β_{1}`, …,
+  // `β_{i - 1}` can be met – see below)
+  // ```
+  //   m_{i + 1} × ⋯ × m_{N} × ceil((α_{i} * (m_{i} - 1)) / (M_{i} - 1)).
+  // ```
+  // We compute the sum of these counts in the loop below, rearranging so that
+  // we only have to multiply by each `m_{k}` once.
+  //
+  // One detail I missed: if `α` was introduced *after* the `l`th mesh, then it
+  // may not be possible for `β_{k}` to equal `α_{k}`, since `β` must be present
+  // in the `l`th mesh. Any option involving one of these 'impossible
+  // constraints' will be knocked out and contribute nothing to the sum.
+  std::size_t count = 0;
+  bool impossible_constraint_encountered = false;
+  for (std::size_t i = 0; i < N; ++i) {
+    const std::size_t m = shape.at(i);
+    const std::size_t M = SHAPE.at(i);
+    // Notice that this has no effect in the first iteration.
+    count *= m;
+    if (impossible_constraint_encountered) {
+      continue;
+    }
+    const std::size_t index = multiindex.at(i);
+    const std::size_t numerator = index * (m - 1);
+    const std::size_t denominator = M - 1;
+    // We want to add `ceil(numerator / denominator)`. We can compute this term
+    // using only integer divisions by adding one less than the denominator to
+    // the numerator.
+    count += (numerator + (denominator - 1)) / denominator;
+    // The 'impossible constraint' will be encountered in the next iteration,
+    // when we stipulate that `β_{i} = α_{i}` (current value of `i`).
+    impossible_constraint_encountered =
+        impossible_constraint_encountered || dates_of_birth.at(i).at(index) > l;
+  }
+  return count;
 }
 
 template <std::size_t N, typename Real>
@@ -175,20 +229,20 @@ std::size_t TensorMeshHierarchy<N, Real>::date_of_birth(
 template <std::size_t N, typename Real>
 Real &TensorMeshHierarchy<N, Real>::at(
     Real *const v, const std::array<std::size_t, N> multiindex) const {
-  return v[offset(multiindex)];
+  return v[index(multiindex)];
 }
 
 template <std::size_t N, typename Real>
 const Real &TensorMeshHierarchy<N, Real>::at(
     Real const *const v, const std::array<std::size_t, N> multiindex) const {
-  return v[offset(multiindex)];
+  return v[index(multiindex)];
 }
 
 template <std::size_t N, typename Real>
-TensorNodeRange<N, Real>
+UnshuffledTensorNodeRange<N, Real>
 TensorMeshHierarchy<N, Real>::nodes(const std::size_t l) const {
   check_mesh_index_bounds(l);
-  return TensorNodeRange<N, Real>(*this, l);
+  return UnshuffledTensorNodeRange<N, Real>(*this, l);
 }
 
 template <std::size_t N, typename Real>
@@ -220,132 +274,6 @@ void TensorMeshHierarchy<N, Real>::check_mesh_index_nonzero(
   if (!l) {
     throw std::out_of_range("mesh index should be nonzero");
   }
-}
-
-template <std::size_t N, typename Real>
-void TensorMeshHierarchy<N, Real>::check_dimension_index_bounds(
-    const std::size_t dimension) const {
-  if (dimension >= N) {
-    throw std::out_of_range("dimension index out of range encountered");
-  }
-}
-
-template <std::size_t N, typename Real>
-TensorIndexRange::TensorIndexRange(
-    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
-    const std::size_t dimension)
-    : size_finest(hierarchy.meshes.at(hierarchy.L).shape.at(dimension)),
-      size_coarse(hierarchy.meshes.at(l).shape.at(dimension)) {
-  if (size_coarse > size_finest) {
-    throw std::invalid_argument(
-        "coarse size cannot be larger than finest size");
-  }
-  if (!(size_finest && size_coarse)) {
-    throw std::invalid_argument("sizes must be nonzero");
-  }
-}
-
-namespace {
-
-template <std::size_t N, typename Real>
-std::array<TensorIndexRange, N>
-make_factors(const TensorMeshHierarchy<N, Real> &hierarchy,
-             const std::size_t l) {
-  std::array<TensorIndexRange, N> factors;
-  for (std::size_t i = 0; i < N; ++i) {
-    factors.at(i) = hierarchy.indices(l, i);
-  }
-  return factors;
-}
-
-} // namespace
-
-template <std::size_t N, typename Real>
-TensorNodeRange<N, Real>::TensorNodeRange(
-    const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
-    : hierarchy(hierarchy), l(l), multiindices(make_factors(hierarchy, l)) {}
-
-template <std::size_t N, typename Real>
-bool TensorNodeRange<N, Real>::
-operator==(const TensorNodeRange<N, Real> &other) const {
-  return hierarchy == other.hierarchy && l == other.l;
-}
-
-template <std::size_t N, typename Real>
-bool TensorNodeRange<N, Real>::
-operator!=(const TensorNodeRange<N, Real> &other) const {
-  return !operator==(other);
-}
-
-template <std::size_t N, typename Real>
-typename TensorNodeRange<N, Real>::iterator
-TensorNodeRange<N, Real>::begin() const {
-  return iterator(*this, multiindices.begin());
-}
-
-template <std::size_t N, typename Real>
-typename TensorNodeRange<N, Real>::iterator
-TensorNodeRange<N, Real>::end() const {
-  return iterator(*this, multiindices.end());
-}
-
-template <std::size_t N, typename Real>
-TensorNodeRange<N, Real>::iterator::iterator(
-    const TensorNodeRange<N, Real> &iterable,
-    const typename CartesianProduct<TensorIndexRange, N>::iterator &inner)
-    : iterable(iterable), inner(inner) {}
-
-template <std::size_t N, typename Real>
-bool TensorNodeRange<N, Real>::iterator::
-operator==(const TensorNodeRange<N, Real>::iterator &other) const {
-  return (&iterable == &other.iterable || iterable == other.iterable) &&
-         inner == other.inner;
-}
-
-template <std::size_t N, typename Real>
-bool TensorNodeRange<N, Real>::iterator::
-operator!=(const TensorNodeRange<N, Real>::iterator &other) const {
-  return !operator==(other);
-}
-
-template <std::size_t N, typename Real>
-typename TensorNodeRange<N, Real>::iterator &
-TensorNodeRange<N, Real>::iterator::operator++() {
-  ++inner;
-  return *this;
-}
-
-template <std::size_t N, typename Real>
-typename TensorNodeRange<N, Real>::iterator TensorNodeRange<N, Real>::iterator::
-operator++(int) {
-  const iterator tmp = *this;
-  operator++();
-  return tmp;
-}
-
-namespace {
-
-template <std::size_t N, typename Real>
-std::array<Real, N>
-multiindex_coordinates(const TensorMeshHierarchy<N, Real> &hierarchy,
-                       const std::array<std::size_t, N> multiindex) {
-  std::array<Real, N> coordinates;
-  for (std::size_t i = 0; i < N; ++i) {
-    coordinates.at(i) = hierarchy.coordinates.at(i).at(multiindex.at(i));
-  }
-  return coordinates;
-}
-
-} // namespace
-
-template <std::size_t N, typename Real>
-TensorNode<N, Real> TensorNodeRange<N, Real>::iterator::operator*() const {
-  const std::array<std::size_t, N> multiindex = *inner;
-  return {
-      .l = iterable.hierarchy.date_of_birth(multiindex),
-      .multiindex = multiindex,
-      .coordinates = multiindex_coordinates(iterable.hierarchy, multiindex),
-  };
 }
 
 } // namespace mgard

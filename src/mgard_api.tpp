@@ -22,6 +22,7 @@
 #include "mgard.hpp"
 #include "mgard_compress.hpp"
 #include "mgard_nuni.h"
+#include "shuffle.hpp"
 
 // This should eventually be folded into `TensorMeshHierarchy`.
 static std::vector<int> dataset_dimensions(const std::array<int, 3> input) {
@@ -242,14 +243,19 @@ template <std::size_t N, typename Real>
 CompressedDataset<N, Real>
 compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
          const Real s, const Real tolerance) {
-  decompose(hierarchy, v);
+  const std::size_t ndof = hierarchy.ndof();
+  // TODO: Can be smarter about copies later.
+  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  shuffle(hierarchy, v, u);
+  decompose(hierarchy, u);
 
   using Qntzr = TensorMultilevelCoefficientQuantizer<N, Real, DEFAULT_INT_T>;
   const Qntzr quantizer(hierarchy, s, tolerance);
   using It = typename Qntzr::iterator;
-  const RangeSlice<It> quantized_range = quantizer(v);
+  const RangeSlice<It> quantized_range = quantizer(u);
   const std::vector<DEFAULT_INT_T> quantized(quantized_range.begin(),
                                              quantized_range.end());
+  std::free(u);
 
   std::vector<std::uint8_t> z_output;
   // TODO: Check whether `compress_memory_z` changes its input.
@@ -283,11 +289,15 @@ decompress(const CompressedDataset<N, Real> &compressed) {
   const RangeSlice<It> dequantized_range =
       dequantizer(quantized, quantized + ndof);
 
-  Real *const v = new Real[ndof];
-  std::copy(dequantized_range.begin(), dequantized_range.end(), v);
+  // TODO: Can be smarter about copies later.
+  Real *const buffer = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  std::copy(dequantized_range.begin(), dequantized_range.end(), buffer);
   std::free(quantized);
 
-  recompose(compressed.hierarchy, v);
+  recompose(compressed.hierarchy, buffer);
+  Real *const v = new Real[ndof];
+  unshuffle(compressed.hierarchy, buffer, v);
+  std::free(buffer);
   return DecompressedDataset<N, Real>(compressed, v);
 }
 

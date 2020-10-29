@@ -8,4 +8,5 @@ if(ADIOS2_FOUND)
 endif()
 
 add_subdirectory(test_1d)
+add_subdirectory(test_2d)
 add_subdirectory(test_s)

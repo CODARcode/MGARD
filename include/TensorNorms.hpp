@@ -9,6 +9,8 @@ namespace mgard {
 
 //! Compute the norm of a function on a mesh hierarchy.
 //!
+//! IMPORTANT: The input must be shuffled.
+//!
 //!\param [in] hierarchy Mesh hierarchy on which the function is defined.
 //!\param [in] u Nodal values of the function.
 //!\param [in] s Smoothness parameter for the norm.

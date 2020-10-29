@@ -29,9 +29,13 @@ public:
 
   //! Quantize a multilevel coefficient.
   //!
+  //! IMPORTANT: `node` must be produced by iterating over the mesh which first
+  //! introduced the node! Use `ShuffledTensorNodeRange`. This is needed so that
+  //! the quantum is calculated correctly.
+  //!
   //!\param node Auxiliary node data corresponding to the coefficient.
   //!\param coefficient Multilevel coefficient to be quantized.
-  Int operator()(const TensorNode<N, Real> node, const Real coefficient) const;
+  Int operator()(const TensorNode<N> node, const Real coefficient) const;
 
   //! Iterator used to traverse a quantized range. Note that the iterator is not
   //! used to iterate over the `TensorMultilevelCoefficientQuantizer` itself.
@@ -53,7 +57,7 @@ public:
 
 private:
   //! Nodes of the finest mesh in the hierarchy.
-  const TensorNodeRange<N, Real> nodes;
+  const ShuffledTensorNodeRange<N, Real> nodes;
 
   //! Quantizer to use when controlling error in the supremum norm.
   const LinearQuantizer<Real, Int> supremum_quantizer;
@@ -87,11 +91,14 @@ public:
 
   //! Constructor.
   //!
+  //! `inner_node` and `inner_coeff` must iterate over the nodes and
+  //! coefficients, respectively, in the same order.
+  //!
   //!\param quantizer Associated multilevel coefficient quantizer.
   //!\param inner_node Position in the node range.
   //!\param inner_coeff Position in the multilevel coefficient range.
   iterator(const TensorMultilevelCoefficientQuantizer &quantizer,
-           const typename TensorNodeRange<N, Real>::iterator inner_node,
+           const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
            Real const *const inner_coeff);
 
   //! Equality comparison.
@@ -114,7 +121,7 @@ private:
   const TensorMultilevelCoefficientQuantizer &quantizer;
 
   //! Iterator to current node.
-  typename TensorNodeRange<N, Real>::iterator inner_node;
+  typename ShuffledTensorNodeRange<N, Real>::iterator inner_node;
 
   //! Iterator to current coefficient.
   Real const *inner_coeff;
@@ -138,9 +145,13 @@ public:
 
   //! Dequantize a multilevel coefficient.
   //!
+  //! IMPORTANT: `node` must be produced by iterating over the mesh which first
+  //! introduced the node! Use `ShuffledTensorNodeRange`. This is needed so that
+  //! the quantum is calculated correctly.
+  //!
   //!\param node Auxiliary node data corresponding to the coefficient.
   //!\param n Multilevel coefficient to be dequantized.
-  Real operator()(const TensorNode<N, Real> node, const Int n) const;
+  Real operator()(const TensorNode<N> node, const Int n) const;
 
   //! Iterator used to traverse a quantized range. Note that the iterator is not
   //! used to iterate over the `TensorMultilevelCoefficientDequantizer` itself.
@@ -164,7 +175,7 @@ public:
 
 private:
   //! Nodes of the finest mesh in the hierarchy.
-  const TensorNodeRange<N, Real> nodes;
+  const ShuffledTensorNodeRange<N, Real> nodes;
 
   //! Dequantizer to use when controlling error in the supremum norm.
   const LinearDequantizer<Int, Real> supremum_dequantizer;
@@ -199,11 +210,14 @@ public:
 
   //! Constructor.
   //!
+  //! `inner_node` and `inner_coeff` must iterate over the nodes and
+  //! coefficients, respectively, in the same order.
+  //!
   //!\param dequantizer Associated multilevel coefficient dequantizer.
   //!\param inner_node Position in the node range.
   //!\param inner_coeff Position in the quantized multilevel coefficient range.
   iterator(const TensorMultilevelCoefficientDequantizer &dequantizer,
-           const typename TensorNodeRange<N, Real>::iterator inner_node,
+           const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
            const It inner_coeff);
 
   //! Equality comparison.
@@ -226,7 +240,7 @@ private:
   const TensorMultilevelCoefficientDequantizer &dequantizer;
 
   //! Iterator to current node.
-  typename TensorNodeRange<N, Real>::iterator inner_node;
+  typename ShuffledTensorNodeRange<N, Real>::iterator inner_node;
 
   //! Iterator to current quantized coefficient.
   It inner_coeff;

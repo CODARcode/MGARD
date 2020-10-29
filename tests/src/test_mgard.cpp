@@ -2,6 +2,7 @@
 
 #include <cstddef>
 
+#include <array>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -13,6 +14,7 @@
 #include "TensorProlongation.hpp"
 #include "mgard.hpp"
 #include "mgard_mesh.hpp"
+#include "shuffle.hpp"
 
 namespace {
 
@@ -191,111 +193,145 @@ TEMPLATE_TEST_CASE("uniform interpolation", "[mgard]", float, double) {
 
   SECTION("multidimensional interpolation and subtraction") {
     {
-      const std::vector<TestType> u = {11, 13, 15, 12, 9, 20, 16, 14, 23};
+      const std::size_t ndof = 9;
+      const std::array<TestType, ndof> u_ = {11, 13, 15, 12, 9, 20, 16, 14, 23};
+      std::array<TestType, ndof> v_;
+      std::array<TestType, ndof> buffer_;
+      TestType const *const u = u_.data();
+      TestType *const v = v_.data();
+      TestType *const buffer = buffer_.data();
       {
         const mgard::TensorMeshHierarchy<2, TestType> hierarchy({3, 3});
         {
-          std::vector<TestType> v = u;
-          mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
-          const std::vector<TestType> expected = {11, 0,  15,   -1.5, -7.25,
-                                                  1,  16, -5.5, 23};
-          REQUIRE(v == expected);
+          mgard::shuffle(hierarchy, u, v);
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v);
+          mgard::unshuffle(hierarchy, v, buffer);
+          const std::array<TestType, ndof> expected = {
+              11, 0, 15, -1.5, -7.25, 1, 16, -5.5, 23};
+          REQUIRE(buffer_ == expected);
         }
         {
-          std::vector<TestType> v = u;
-          REQUIRE_THROWS(mgard::interpolate_old_to_new_and_subtract(
-              hierarchy, 1, v.data()));
+          REQUIRE_THROWS(
+              mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v));
         }
       }
       {
         const mgard::TensorMeshHierarchy<1, TestType> hierarchy({9});
         {
-          std::vector<TestType> v = u;
-          mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
-          const std::vector<TestType> expected = {11,  0,  15,   0, 9,
-                                                  7.5, 16, -5.5, 23};
-          REQUIRE(v == expected);
+          mgard::shuffle(hierarchy, u, v);
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v);
+          mgard::unshuffle(hierarchy, v, buffer);
+          const std::array<TestType, ndof> expected = {11,  0,  15,   0, 9,
+                                                       7.5, 16, -5.5, 23};
+          REQUIRE(buffer_ == expected);
         }
         {
-          std::vector<TestType> v = u;
-          mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v.data());
-          const std::vector<TestType> expected = {11, 13, 5,  12, 9,
-                                                  20, 0,  14, 23};
-          REQUIRE(v == expected);
+          mgard::shuffle(hierarchy, u, v);
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v);
+          mgard::unshuffle(hierarchy, v, buffer);
+          const std::array<TestType, ndof> expected = {11, 13, 5,  12, 9,
+                                                       20, 0,  14, 23};
+          REQUIRE(buffer_ == expected);
         }
         {
-          std::vector<TestType> v = u;
-          mgard::interpolate_old_to_new_and_subtract(hierarchy, 2, v.data());
-          const std::vector<TestType> expected = {11, 13, 15, 12, -8,
-                                                  20, 16, 14, 23};
-          REQUIRE(v == expected);
+          mgard::shuffle(hierarchy, u, v);
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 2, v);
+          mgard::unshuffle(hierarchy, v, buffer);
+          const std::array<TestType, ndof> expected = {11, 13, 15, 12, -8,
+                                                       20, 16, 14, 23};
+          REQUIRE(buffer_ == expected);
         }
         {
-          std::vector<TestType> v = u;
-          REQUIRE_THROWS(mgard::interpolate_old_to_new_and_subtract(
-              hierarchy, 3, v.data()));
+          REQUIRE_THROWS(
+              mgard::interpolate_old_to_new_and_subtract(hierarchy, 3, v));
         }
       }
     }
     {
       const mgard::TensorMeshHierarchy<2, TestType> hierarchy({5, 3});
-      std::vector<TestType> v = {-4, -4, -2, -4, -1, 2, -4, 1,
-                                 5,  0,  3,  8,  2,  8, 9};
+      const std::size_t ndof = 5 * 3;
+      const std::array<TestType, ndof> u_ = {-4, -4, -2, -4, -1, 2, -4, 1,
+                                             5,  0,  3,  8,  2,  8, 9};
+      std::array<TestType, ndof> v_;
+      std::array<TestType, ndof> buffer_;
+      TestType const *const u = u_.data();
+      TestType *const v = v_.data();
+      TestType *const buffer = buffer_.data();
+
       {
-        mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
-        const std::vector<TestType> expected = {
+        mgard::shuffle(hierarchy, u, v);
+        mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v);
+        mgard::unshuffle(hierarchy, v, buffer);
+        const std::array<TestType, ndof> expected = {
             -4, -1, -2, 0, 0.25, 0.5, -4, 0.5, 5, 1, 0, 1, 2, 2.5, 9};
-        REQUIRE(v == expected);
+        REQUIRE(buffer_ == expected);
       }
       REQUIRE_THROWS(
-          mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v.data()));
+          mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v));
     }
     {
       const mgard::TensorMeshHierarchy<2, TestType> hierarchy({5, 9});
-      const std::vector<TestType> u = {
+      const std::size_t ndof = 5 * 9;
+      const std::array<TestType, ndof> u_ = {
           4.0,  4.0,  -20.0, -4.0,  12.0,  8.0,   4.0,   -4.0,  8.0,
           0.0,  16.0, -8.0,  12.0,  -12.0, -4.0,  -12.0, -16.0, 16.0,
           -4.0, 12.0, 16.0,  -12.0, -4.0,  -16.0, -16.0, 20.0,  0.0,
           8.0,  12.0, -16.0, 0.0,   4.0,   0.0,   16.0,  20.0,  -8.0,
           12.0, 8.0,  8.0,   12.0,  -4.0,  -20.0, 12.0,  -20.0, -16.0};
+      std::array<TestType, ndof> v_;
+      std::array<TestType, ndof> buffer_;
+      TestType const *const u = u_.data();
+      TestType *const v = v_.data();
+      TestType *const buffer = buffer_.data();
       {
-        std::vector<TestType> v = u;
-        mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
-        const std::vector<TestType> expected = {
+        mgard::shuffle(hierarchy, u, v);
+        mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v);
+        mgard::unshuffle(hierarchy, v, buffer);
+        const std::array<TestType, ndof> expected = {
             4.0,  12.0, -20.0, 0.0,   12.0,  0.0,   4.0,   -10.0, 8.0,
             0.0,  17.0, -6.0,  11.0,  -16.0, -3.0,  -6.0,  -15.0, 12.0,
             -4.0, 6.0,  16.0,  -18.0, -4.0,  -6.0,  -16.0, 28.0,  0.0,
             4.0,  4.0,  -28.0, -4.0,  8.0,   3.0,   18.0,  25.0,  0.0,
             12.0, -2.0, 8.0,   10.0,  -4.0,  -24.0, 12.0,  -18.0, -16.0};
-        REQUIRE(v == expected);
+        REQUIRE(buffer_ == expected);
       }
       {
-        std::vector<TestType> v = u;
-        mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v.data());
-        const std::vector<TestType> expected = {
+        mgard::shuffle(hierarchy, u, v);
+        mgard::interpolate_old_to_new_and_subtract(hierarchy, 1, v);
+        mgard::unshuffle(hierarchy, v, buffer);
+        const std::array<TestType, ndof> expected = {
             4.0,   4.0,  -28.0, -4.0,  12.0,  8.0,   -6.0,  -4.0,  8.0,
             0.0,   16.0, -8.0,  12.0,  -12.0, -4.0,  -12.0, -16.0, 16.0,
             -12.0, 12.0, 10.0,  -12.0, -8.0,  -16.0, -16.0, 20.0,  4.0,
             8.0,   12.0, -16.0, 0.0,   4.0,   0.0,   16.0,  20.0,  -8.0,
             12.0,  8.0,  4.0,   12.0,  -4.0,  -20.0, 22.0,  -20.0, -16.0};
-        REQUIRE(v == expected);
+        REQUIRE(buffer_ == expected);
       }
     }
     {
       const mgard::TensorMeshHierarchy<3, TestType> hierarchy({5, 3, 3});
-      std::vector<TestType> v = {
+      const std::size_t ndof = 5 * 3 * 3;
+      const std::array<TestType, ndof> u_ = {
           1.0,  0.0, 3.0,  0.0, 0.0, 0.0, 7.0,  0.0, 9.0,  0.0, 0.0, 0.0,
           0.0,  0.0, 0.0,  0.0, 0.0, 0.0, 19.0, 0.0, 21.0, 0.0, 0.0, 0.0,
           25.0, 0.0, 27.0, 0.0, 0.0, 0.0, 0.0,  0.0, 0.0,  0.0, 0.0, 0.0,
           37.0, 0.0, 39.0, 0.0, 0.0, 0.0, 43.0, 0.0, 45.0};
-      mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v.data());
-      const std::vector<TestType> expected = {
+      std::array<TestType, ndof> v_;
+      std::array<TestType, ndof> buffer_;
+      TestType const *const u = u_.data();
+      TestType *const v = v_.data();
+      TestType *const buffer = buffer_.data();
+
+      mgard::shuffle(hierarchy, u, v);
+      mgard::interpolate_old_to_new_and_subtract(hierarchy, 0, v);
+      mgard::unshuffle(hierarchy, v, buffer);
+      const std::array<TestType, ndof> expected = {
           1.0,   -2.0,  3.0,   -4.0,  -5.0,  -6.0,  7.0,   -8.0,  9.0,
           -10.0, -11.0, -12.0, -13.0, -14.0, -15.0, -16.0, -17.0, -18.0,
           19.0,  -20.0, 21.0,  -22.0, -23.0, -24.0, 25.0,  -26.0, 27.0,
           -28.0, -29.0, -30.0, -31.0, -32.0, -33.0, -34.0, -35.0, -36.0,
           37.0,  -38.0, 39.0,  -40.0, -41.0, -42.0, 43.0,  -44.0, 45.0};
-      REQUIRE(v == expected);
+      REQUIRE(buffer_ == expected);
     }
   }
 }
@@ -304,46 +340,67 @@ TEMPLATE_TEST_CASE("uniform interpolation", "[mgard]", float, double) {
 TEMPLATE_TEST_CASE("BLAS-like level operations", "[mgard]", float, double) {
   SECTION("assignment") {
     const mgard::TensorMeshHierarchy<2, TestType> hierarchy({3, 5});
-    std::vector<TestType> v(hierarchy.ndof());
-    std::iota(v.begin(), v.end(), 1);
+    const std::size_t ndof = hierarchy.ndof();
+    std::vector<TestType> u_(ndof);
+    std::vector<TestType> v_(ndof);
+    std::vector<TestType> buffer_(ndof);
+    TestType *const u = u_.data();
+    TestType *const v = v_.data();
+    TestType *const buffer = buffer_.data();
+    std::iota(u, u + ndof, 1);
     {
-      std::vector<TestType> copy = v;
-      mgard::assign_num_level(hierarchy, 0, copy.data(),
-                              static_cast<TestType>(-3));
+      mgard::shuffle(hierarchy, u, v);
+      mgard::assign_num_level(hierarchy, 0, v, static_cast<TestType>(-3));
+      mgard::unshuffle(hierarchy, v, buffer);
       TrialTracker tracker;
-      for (const TestType value : copy) {
+      for (const TestType value : buffer_) {
         tracker += value == -3;
       }
       REQUIRE(tracker);
     }
     {
-      std::vector<TestType> copy = v;
-      mgard::assign_num_level(hierarchy, 1, copy.data(),
-                              static_cast<TestType>(-1));
+      mgard::shuffle(hierarchy, u, v);
+      mgard::assign_num_level(hierarchy, 1, v, static_cast<TestType>(-1));
+      mgard::unshuffle(hierarchy, v, buffer);
       const std::vector<TestType> expected = {-1, 2,  -1, 4,  -1, 6,  7, 8,
                                               9,  10, -1, 12, -1, 14, -1};
-      REQUIRE(copy == expected);
+      REQUIRE(buffer_ == expected);
     }
   }
 
   SECTION("copying") {
     {
       const mgard::TensorMeshHierarchy<2, TestType> hierarchy({3, 3});
-      std::vector<TestType> v(hierarchy.ndof());
-      std::iota(v.begin(), v.end(), 1);
+      const std::size_t ndof = hierarchy.ndof();
+      std::vector<TestType> u_(ndof);
+      std::vector<TestType> destination_(ndof);
+      std::vector<TestType> buffer_(ndof);
+      TestType *const u = u_.data();
+      TestType *const destination = destination_.data();
+      TestType *const buffer = buffer_.data();
+      std::iota(u, u + ndof, 1);
       {
-        std::vector<TestType> destination = v;
-        const std::vector<TestType> source = {-2, 0, -3, 0, 0, 0, -5, 0, -7};
-        mgard::copy_level(hierarchy, 1, source.data(), destination.data());
+        buffer_ = {-2, 0, -3, 0, 0, 0, -5, 0, -7};
+        std::vector<TestType> source_(ndof);
+        TestType *const source = source_.data();
+        mgard::shuffle(hierarchy, buffer, source);
+
+        mgard::shuffle(hierarchy, u, destination);
+        mgard::copy_level(hierarchy, 1, source, destination);
+        mgard::unshuffle(hierarchy, destination, buffer);
         const std::vector<TestType> expected = {-2, 2, -3, 4, 5, 6, -5, 8, -7};
-        REQUIRE(destination == expected);
+        REQUIRE(buffer_ == expected);
       }
       {
-        std::vector<TestType> destination = v;
-        const std::vector<TestType> source(hierarchy.ndof(), -1);
-        mgard::copy_level(hierarchy, 0, source.data(), destination.data());
+        // Don't need to shuffle here because every value is the same.
+        const std::vector<TestType> source_(ndof, -1);
+        TestType const *const source = source_.data();
+
+        mgard::shuffle(hierarchy, u, destination);
+        mgard::copy_level(hierarchy, 0, source, destination);
+        mgard::unshuffle(hierarchy, destination, buffer);
         TrialTracker tracker;
-        for (const TestType value : destination) {
+        for (const TestType value : buffer_) {
           tracker += value == -1;
         }
         REQUIRE(tracker);
@@ -353,40 +410,63 @@ TEMPLATE_TEST_CASE("BLAS-like level operations", "[mgard]", float, double) {
 
   SECTION("addition and subtraction") {
     const mgard::TensorMeshHierarchy<2, TestType> hierarchy({5, 5});
-    std::vector<TestType> v(hierarchy.ndof());
-    std::iota(v.begin(), v.end(), 1);
+    const std::size_t ndof = hierarchy.ndof();
+    std::vector<TestType> u_(ndof);
+    std::vector<TestType> v_(ndof);
+    std::vector<TestType> buffer_(ndof);
+    TestType *const u = u_.data();
+    TestType *const v = v_.data();
+    TestType *const buffer = buffer_.data();
+    std::iota(u, u + ndof, 1);
     {
-      std::vector<TestType> addend(hierarchy.ndof());
-      std::iota(addend.rbegin(), addend.rend(), 2);
-      std::vector copy = v;
-      mgard::add_level(hierarchy, 0, copy.data(), addend.data());
+      std::iota(buffer_.rbegin(), buffer_.rend(), 2);
+      std::vector<TestType> addend_(ndof);
+      TestType *const addend = addend_.data();
+      mgard::shuffle(hierarchy, buffer, addend);
+
+      mgard::shuffle(hierarchy, u, v);
+      mgard::add_level(hierarchy, 0, v, addend);
+      mgard::unshuffle(hierarchy, v, buffer);
       TrialTracker tracker;
-      for (const TestType value : copy) {
+      for (const TestType value : buffer_) {
         tracker += value == 27;
       }
       REQUIRE(tracker);
     }
     {
-      std::vector<TestType> expected = v;
-      std::vector<TestType> subtrahend(hierarchy.ndof(), 0);
+      std::vector<TestType> expected = u_;
+      buffer_.assign(ndof, 0);
       for (const std::size_t i : {0, 4, 10, 14, 20, 24}) {
-        subtrahend.at(i) = v.at(i);
+        buffer_.at(i) = u_.at(i);
         expected.at(i) = 0;
       }
-      std::vector copy = v;
-      mgard::subtract_level(hierarchy, 1, copy.data(), subtrahend.data());
-      REQUIRE(copy == expected);
+
+      std::vector<TestType> subtrahend_(ndof);
+      TestType *const subtrahend = subtrahend_.data();
+      mgard::shuffle(hierarchy, buffer, subtrahend);
+
+      mgard::shuffle(hierarchy, u, v);
+      mgard::subtract_level(hierarchy, 1, v, subtrahend);
+      mgard::unshuffle(hierarchy, v, buffer);
+      REQUIRE(buffer_ == expected);
     }
     {
-      std::vector<TestType> addend(hierarchy.ndof(), 0);
-      std::vector<TestType> expected = v;
+      buffer_.assign(ndof, 0);
+      std::vector<TestType> expected = u_;
       for (const std::size_t index : {0, 4, 20, 24}) {
-        addend.at(index) = 100;
+        buffer_.at(index) = 100;
         expected.at(index) = 100 + index + 1;
       }
-      std::vector<TestType> copy = v;
-      mgard::add_level(hierarchy, 2, copy.data(), addend.data());
-      REQUIRE(copy == expected);
+
+      std::vector<TestType> addend_(ndof);
+      TestType *const addend = addend_.data();
+      mgard::shuffle(hierarchy, buffer, addend);
+
+      mgard::shuffle(hierarchy, u, v);
+      std::vector<TestType> copy = u_;
+      mgard::add_level(hierarchy, 2, v, addend);
+      mgard::unshuffle(hierarchy, v, buffer);
+      REQUIRE(buffer_ == expected);
     }
   }
 }
@@ -471,19 +551,25 @@ template <std::size_t N, typename Real>
 void test_dyadic_uniform_decomposition(
     const std::vector<Real> &u_,
     const std::vector<std::vector<Real>> &expecteds) {
+  Real const *const u = u_.data();
   for (std::size_t L = 0; L < expecteds.size(); ++L) {
     const mgard::TensorMeshHierarchy<N, Real> hierarchy(get_dyadic_shape<N>(L));
-    const std::size_t n = hierarchy.ndof();
-    std::vector<Real> v_(u_.begin(), u_.begin() + n);
+    const std::size_t ndof = hierarchy.ndof();
+    std::vector<Real> v_(ndof);
+    std::vector<Real> buffer_(ndof);
     Real *const v = v_.data();
+    Real *const buffer = buffer_.data();
+
+    mgard::shuffle(hierarchy, u, v);
     mgard::decompose(hierarchy, v);
+    mgard::unshuffle(hierarchy, v, buffer);
 
     const std::vector<Real> &expected = expecteds.at(L);
     TrialTracker tracker;
-    tracker += expected.size() == n;
-    for (std::size_t i = 0; i < n; ++i) {
+    tracker += expected.size() == ndof;
+    for (std::size_t i = 0; i < ndof; ++i) {
       // Got some small errors here when run on Travis.
-      tracker += v_.at(i) == Approx(expected.at(i)).epsilon(1e-4);
+      tracker += buffer_.at(i) == Approx(expected.at(i)).epsilon(1e-4);
     }
     REQUIRE(tracker);
   }
@@ -493,19 +579,25 @@ template <std::size_t N, typename Real>
 void test_dyadic_uniform_recomposition(
     const std::vector<Real> &u_,
     const std::vector<std::vector<Real>> &expecteds) {
+  Real const *const u = u_.data();
   for (std::size_t L = 0; L < expecteds.size(); ++L) {
     const mgard::TensorMeshHierarchy<N, Real> hierarchy(get_dyadic_shape<N>(L));
-    const std::size_t n = hierarchy.ndof();
-    std::vector<Real> v_(u_.begin(), u_.begin() + n);
+    const std::size_t ndof = hierarchy.ndof();
+    std::vector<Real> v_(ndof);
+    std::vector<Real> buffer_(ndof);
     Real *const v = v_.data();
+    Real *const buffer = buffer_.data();
+
+    mgard::shuffle(hierarchy, u, v);
     mgard::recompose(hierarchy, v);
+    mgard::unshuffle(hierarchy, v, buffer);
 
     const std::vector<Real> &expected = expecteds.at(L);
     TrialTracker tracker;
-    tracker += expected.size() == n;
-    for (std::size_t i = 0; i < n; ++i) {
+    tracker += expected.size() == ndof;
+    for (std::size_t i = 0; i < ndof; ++i) {
       // Got a single very small error in the 3D example.
-      tracker += v_.at(i) == Approx(expected.at(i)).epsilon(0.0001);
+      tracker += buffer_.at(i) == Approx(expected.at(i)).epsilon(0.0001);
     }
     REQUIRE(tracker);
   }
@@ -520,10 +612,10 @@ void test_decomposition_linearity(
   const mgard::TensorMeshHierarchy<N, Real> hierarchy =
       hierarchy_with_random_spacing<N, Real>(generator,
                                              node_spacing_distribution, shape);
-  const std::size_t M = hierarchy.ndof();
-  std::vector<Real> u_(M);
-  std::vector<Real> v_(M);
-  std::vector<Real> w_(M);
+  const std::size_t ndof = hierarchy.ndof();
+  std::vector<Real> u_(ndof);
+  std::vector<Real> v_(ndof);
+  std::vector<Real> w_(ndof);
   Real *const u = u_.data();
   Real *const v = v_.data();
   Real *const w = w_.data();
@@ -536,7 +628,7 @@ void test_decomposition_linearity(
     generate_reasonable_function(hierarchy, s, generator, v);
   }
   const Real alpha = nodal_coefficient_distribution(generator);
-  for (std::size_t i = 0; i < M; ++i) {
+  for (std::size_t i = 0; i < ndof; ++i) {
     w_.at(i) = alpha * u_.at(i) + v_.at(i);
   }
 
@@ -545,7 +637,7 @@ void test_decomposition_linearity(
   mgard::decompose(hierarchy, w);
 
   TrialTracker tracker;
-  for (std::size_t i = 0; i < M; ++i) {
+  for (std::size_t i = 0; i < ndof; ++i) {
     // Encountering a few small errors (and more with optimizations turned on).
     tracker +=
         w_.at(i) ==
@@ -563,16 +655,16 @@ void test_recomposition_linearity(
   const mgard::TensorMeshHierarchy<N, Real> hierarchy =
       hierarchy_with_random_spacing<N, Real>(generator,
                                              node_spacing_distribution, shape);
-  const std::size_t M = hierarchy.ndof();
-  std::vector<Real> u_(M);
-  std::vector<Real> v_(M);
-  std::vector<Real> w_(M);
+  const std::size_t ndof = hierarchy.ndof();
+  std::vector<Real> u_(ndof);
+  std::vector<Real> v_(ndof);
+  std::vector<Real> w_(ndof);
   Real *const u = u_.data();
   Real *const v = v_.data();
   Real *const w = w_.data();
 
   const Real alpha = multilevel_coefficient_distribution(generator);
-  for (std::size_t i = 0; i < M; ++i) {
+  for (std::size_t i = 0; i < ndof; ++i) {
     u_.at(i) = multilevel_coefficient_distribution(generator);
     v_.at(i) = multilevel_coefficient_distribution(generator);
     w_.at(i) = alpha * u_.at(i) + v_.at(i);
@@ -583,7 +675,7 @@ void test_recomposition_linearity(
   mgard::recompose(hierarchy, w);
 
   TrialTracker tracker;
-  for (std::size_t i = 0; i < M; ++i) {
+  for (std::size_t i = 0; i < ndof; ++i) {
     // Encountering a few small errors (and more with optimizations turned on).
     tracker +=
         w_.at(i) ==
@@ -603,12 +695,14 @@ void test_decomposition_of_linear_functions(
   const mgard::TensorMeshHierarchy<N, Real> hierarchy =
       hierarchy_with_random_spacing(generator, node_spacing_distribution,
                                     shape);
-  const std::size_t M = hierarchy.ndof();
-  std::vector<Real> u_(M);
+  const std::size_t ndof = hierarchy.ndof();
+  std::vector<Real> u_(ndof);
   double *const u = u_.data();
-  for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(hierarchy.L)) {
+  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
     hierarchy.at(u, node.multiindex) =
-        node.l == hierarchy.L ? 0 : nodal_coefficient_distribution(generator);
+        hierarchy.date_of_birth(node.multiindex) == hierarchy.L
+            ? 0
+            : nodal_coefficient_distribution(generator);
   }
   {
     const mgard::TensorProlongationAddition PA(hierarchy, hierarchy.L);
@@ -617,8 +711,8 @@ void test_decomposition_of_linear_functions(
   mgard::decompose(hierarchy, u);
 
   TrialTracker tracker;
-  for (const mgard::TensorNode<N, Real> node : hierarchy.nodes(hierarchy.L)) {
-    if (node.l == hierarchy.L) {
+  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
+    if (hierarchy.date_of_birth(node.multiindex) == hierarchy.L) {
       tracker += std::abs(hierarchy.at(u, node.multiindex)) < 1e-6;
     }
   }
@@ -636,17 +730,18 @@ void test_recomposition_with_zero_coefficients(
   const mgard::TensorMeshHierarchy<N, Real> hierarchy =
       hierarchy_with_random_spacing<N, Real>(generator,
                                              node_spacing_distribution, shape);
-  const std::size_t M = hierarchy.ndof();
-  std::vector<Real> u_(M, 0);
+  const std::size_t ndof = hierarchy.ndof();
+  std::vector<Real> u_(ndof, 0);
   Real *const u = u_.data();
-  const mgard::TensorNodeRange nodes = hierarchy.nodes(hierarchy.L - 1);
+  const mgard::UnshuffledTensorNodeRange nodes =
+      hierarchy.nodes(hierarchy.L - 1);
   for (const mgard::TensorNode node : nodes) {
     hierarchy.at(u, node.multiindex) =
         multilevel_coefficient_distribution(generator);
   }
   mgard::recompose(hierarchy, u);
 
-  std::vector<Real> v_(M, 0);
+  std::vector<Real> v_(ndof, 0);
   Real *const v = v_.data();
   for (const mgard::TensorNode node : nodes) {
     hierarchy.at(v, node.multiindex) = hierarchy.at(u, node.multiindex);
@@ -657,7 +752,7 @@ void test_recomposition_with_zero_coefficients(
   }
 
   TrialTracker tracker;
-  for (std::size_t i = 0; i < M; ++i) {
+  for (std::size_t i = 0; i < ndof; ++i) {
     tracker += u_.at(i) == Approx(v_.at(i));
   }
   REQUIRE(tracker);
@@ -823,18 +918,24 @@ TEST_CASE("decomposition", "[mgard]") {
   }
 
   SECTION("1D, dyadic, nonuniform") {
-    const std::array<float, 3> u_ = {{7, 2, 5}};
     const std::array<std::vector<float>, 1> coordinates = {{{10, 28, 34}}};
     const mgard::TensorMeshHierarchy<1, float> hierarchy({3}, coordinates);
-    const std::array<float, 3> expected = {{6.125, -3.5, 2.375}};
-
-    std::array<float, 3> v_ = u_;
+    const std::size_t ndof = 3;
+    const std::array<float, ndof> u_ = {{7, 2, 5}};
+    std::array<float, ndof> v_;
+    std::array<float, ndof> buffer_;
+    float const *const u = u_.data();
     float *const v = v_.data();
-    mgard::decompose(hierarchy, v);
+    float *const buffer = buffer_.data();
 
+    mgard::shuffle(hierarchy, u, v);
+    mgard::decompose(hierarchy, v);
+    mgard::unshuffle(hierarchy, v, buffer);
+
+    const std::array<float, ndof> expected = {{6.125, -3.5, 2.375}};
     TrialTracker tracker;
-    for (std::size_t i = 0; i < 3; ++i) {
-      tracker += v_.at(i) == Approx(expected.at(i));
+    for (std::size_t i = 0; i < ndof; ++i) {
+      tracker += buffer_.at(i) == Approx(expected.at(i));
     }
     REQUIRE(tracker);
   }

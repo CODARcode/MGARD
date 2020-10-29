@@ -11,26 +11,33 @@
 
 #include "TensorMassMatrix.hpp"
 #include "TensorMeshHierarchy.hpp"
+#include "shuffle.hpp"
 #include "utilities.hpp"
 
 TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
   SECTION("1D and default spacing") {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({9});
-    const std::array<float, 9> u_ = {-2, 1, 1, 8, 3, -2, -7, -4, 0};
+    const std::size_t ndof = 9;
+    const std::array<float, ndof> u_ = {-2, 1, 1, 8, 3, -2, -7, -4, 0};
+    std::array<float, ndof> v_;
+    std::array<float, ndof> buffer_;
+    float const *const u = u_.data();
+    float *const v = v_.data();
+    float *const buffer = buffer_.data();
     {
       const std::size_t l = 3;
       const std::size_t dimension = 0;
       const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       M({0}, v);
-      std::array<float, 9> expected = {-3, 3, 13, 36, 18, -12, -34, -23, -4};
+      mgard::unshuffle(hierarchy, v, buffer);
+      std::array<float, ndof> expected = {-3, 3, 13, 36, 18, -12, -34, -23, -4};
       for (float &value : expected) {
         value /= 48;
       }
       TrialTracker tracker;
-      for (std::size_t i = 0; i < 9; ++i) {
-        tracker += v_.at(i) == Approx(expected.at(i));
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += buffer_.at(i) == Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -38,16 +45,16 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
       const std::size_t l = 1;
       const std::size_t dimension = 0;
       const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       M({0}, v);
-      std::array<float, 9> expected = {-1, 1, 1, 8, 10, -2, -7, -4, 3};
+      mgard::unshuffle(hierarchy, v, buffer);
+      std::array<float, ndof> expected = {-1, 1, 1, 8, 10, -2, -7, -4, 3};
       for (std::size_t i = 0; i < 3; ++i) {
         expected.at(4 * i) /= 12;
       }
       TrialTracker tracker;
-      for (std::size_t i = 0; i < 9; ++i) {
-        tracker += v_.at(i) == Approx(expected.at(i));
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += buffer_.at(i) == Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -55,9 +62,16 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
 
   SECTION("1D and nondyadic") {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({7});
-    const std::array<float, 9> u_ = {-1, 8, -9, -9, -1, -10, 6};
+    const std::size_t ndof = 7;
+    const std::array<float, ndof> u_ = {-1, 8, -9, -9, -1, -10, 6};
+    std::array<float, ndof> v_;
+    std::array<float, ndof> buffer_;
+    float const *const u = u_.data();
+    float *const v = v_.data();
+    float *const buffer = buffer_.data();
+
     const std::size_t dimension = 0;
-    const std::array<std::array<float, 9>, 4> expecteds = {
+    const std::array<std::array<float, ndof>, 4> expecteds = {
         {{{2. / 3, 8, -9, -9, -1, -10, 11. / 6}},
          {{-11. / 12, 8, -9, -31. / 12, -1, -10, 0.25}},
          {{1. / 6, 29. / 36, -9, -39. / 36, -1. / 12, -10, 11. / 18}},
@@ -65,13 +79,13 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
            1. / 18}}}};
     for (std::size_t l = 0; l < 4; ++l) {
       const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       M({0}, v);
+      mgard::unshuffle(hierarchy, v, buffer);
       TrialTracker tracker;
-      const std::array<float, 9> &expected = expecteds.at(l);
-      for (std::size_t i = 0; i < 9; ++i) {
-        tracker += v_.at(i) == Approx(expected.at(i));
+      const std::array<float, ndof> &expected = expecteds.at(l);
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += buffer_.at(i) == Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -80,45 +94,51 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
   SECTION("2D and custom spacing") {
     const mgard::TensorMeshHierarchy<2, double> hierarchy(
         {5, 5}, {{{0, 0.1, 0.5, 0.75, 1}, {0, 0.65, 0.70, 0.75, 1}}});
-    const std::array<double, 25> u_ = {8,  -3, 1,  5,  10, 9,  -10, -3, 8,
-                                       10, -3, 6,  -7, -3, 3,  3,   -9, 0,
-                                       -1, 8,  -6, 7,  1,  -2, 10};
+    const std::size_t ndof = 5 * 5;
+    const std::array<double, ndof> u_ = {8,  -3, 1,  5,  10, 9,  -10, -3, 8,
+                                         10, -3, 6,  -7, -3, 3,  3,   -9, 0,
+                                         -1, 8,  -6, 7,  1,  -2, 10};
+    std::array<double, ndof> v_;
+    std::array<double, ndof> buffer_;
+    double const *const u = u_.data();
+    double *const v = v_.data();
+    double *const buffer = buffer_.data();
     {
       const std::size_t l = 2;
       const std::size_t dimension = 0;
       const mgard::ConstituentMassMatrix<2, double> M(hierarchy, l, dimension);
-      std::array<double, 25> v_ = u_;
-      double *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       M({0, 0}, v);
       M({0, 3}, v);
-      const std::array<double, 25> expected = {2.5 / 6,
-                                               -3,
-                                               1,
-                                               1.8 / 6,
-                                               10,
-                                               2.6 / 6 + 6.0 / 6,
-                                               -10,
-                                               -3,
-                                               2.1 / 6 + 5.2 / 6,
-                                               10,
-                                               1.2 / 6 + -0.75 / 6,
-                                               6,
-                                               -7,
-                                               0.8 / 6 + -1.75 / 6,
-                                               3,
-                                               0.75 / 6 + 0.0 / 6,
-                                               -9,
-                                               0,
-                                               -1.25 / 6 + -1.0 / 6,
-                                               8,
-                                               -2.25 / 6,
-                                               7,
-                                               1,
-                                               -1.25 / 6,
-                                               10};
+      mgard::unshuffle(hierarchy, v, buffer);
+      const std::array<double, ndof> expected = {2.5 / 6,
+                                                 -3,
+                                                 1,
+                                                 1.8 / 6,
+                                                 10,
+                                                 2.6 / 6 + 6.0 / 6,
+                                                 -10,
+                                                 -3,
+                                                 2.1 / 6 + 5.2 / 6,
+                                                 10,
+                                                 1.2 / 6 + -0.75 / 6,
+                                                 6,
+                                                 -7,
+                                                 0.8 / 6 + -1.75 / 6,
+                                                 3,
+                                                 0.75 / 6 + 0.0 / 6,
+                                                 -9,
+                                                 0,
+                                                 -1.25 / 6 + -1.0 / 6,
+                                                 8,
+                                                 -2.25 / 6,
+                                                 7,
+                                                 1,
+                                                 -1.25 / 6,
+                                                 10};
       TrialTracker tracker;
-      for (std::size_t i = 0; i < 25; ++i) {
-        tracker += v_.at(i) == Approx(expected.at(i));
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += buffer_.at(i) == Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -126,40 +146,40 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
       const std::size_t l = 2;
       const std::size_t dimension = 1;
       const mgard::ConstituentMassMatrix<2, double> M(hierarchy, l, dimension);
-      std::array<double, 25> v_ = u_;
-      double *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       M({1, 0}, v);
       M({2, 0}, v);
-      const std::array<double, 25> expected = {8,
-                                               -3,
-                                               1,
-                                               5,
-                                               10,
-                                               5.2 / 6,
-                                               -7.15 / 6 + -1.15 / 6,
-                                               -0.8 / 6 + 0.1 / 6,
-                                               0.65 / 6 + 6.5 / 6,
-                                               7.0 / 6,
-                                               0.0 / 6,
-                                               5.85 / 6 + 0.25 / 6,
-                                               -0.4 / 6 + -0.85 / 6,
-                                               -0.65 / 6 + -0.75 / 6,
-                                               0.75 / 6,
-                                               3,
-                                               -9,
-                                               0,
-                                               -1,
-                                               8,
-                                               -6,
-                                               7,
-                                               1,
-                                               -2,
-                                               10};
+      mgard::unshuffle(hierarchy, v, buffer);
+      const std::array<double, ndof> expected = {8,
+                                                 -3,
+                                                 1,
+                                                 5,
+                                                 10,
+                                                 5.2 / 6,
+                                                 -7.15 / 6 + -1.15 / 6,
+                                                 -0.8 / 6 + 0.1 / 6,
+                                                 0.65 / 6 + 6.5 / 6,
+                                                 7.0 / 6,
+                                                 0.0 / 6,
+                                                 5.85 / 6 + 0.25 / 6,
+                                                 -0.4 / 6 + -0.85 / 6,
+                                                 -0.65 / 6 + -0.75 / 6,
+                                                 0.75 / 6,
+                                                 3,
+                                                 -9,
+                                                 0,
+                                                 -1,
+                                                 8,
+                                                 -6,
+                                                 7,
+                                                 1,
+                                                 -2,
+                                                 10};
       TrialTracker tracker;
-      for (std::size_t i = 0; i < 25; ++i) {
+      for (std::size_t i = 0; i < ndof; ++i) {
         // Changed the margin because we were getting a tiny error at index 10
         // (where the exact value is zero).
-        tracker += v_.at(i) == Approx(expected.at(i)).margin(1e-15);
+        tracker += buffer_.at(i) == Approx(expected.at(i)).margin(1e-15);
       }
       REQUIRE(tracker);
     }
@@ -167,17 +187,17 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
       const std::size_t l = 1;
       const std::size_t dimension = 1;
       const mgard::ConstituentMassMatrix<2, double> M(hierarchy, l, dimension);
-      std::array<double, 25> v_ = u_;
-      double *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       M({4, 0}, v);
+      mgard::unshuffle(hierarchy, v, buffer);
       const std::array<double, 5> expected = {-7.7 / 6, 7, -2.8 / 6 + 3.6 / 6,
                                               -2, 6.3 / 6};
       TrialTracker tracker;
-      for (std::size_t i = 0; i < 20; ++i) {
-        tracker += v_.at(i) == u_.at(i);
+      for (std::size_t i = 0; i < ndof - 5; ++i) {
+        tracker += buffer_.at(i) == u_.at(i);
       }
-      for (std::size_t i = 20; i < 25; ++i) {
-        tracker += v_.at(i) == Approx(expected.at(i - 20));
+      for (std::size_t i = ndof - 5; i < ndof; ++i) {
+        tracker += buffer_.at(i) == Approx(expected.at(i - 20));
       }
       REQUIRE(tracker);
     }
@@ -187,40 +207,46 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
 TEST_CASE("tensor product mass matrices", "[TensorMassMatrix]") {
   const mgard::TensorMeshHierarchy<2, double> hierarchy(
       {3, 3}, {{{0, 0.5, 1}, {1, 1.25, 2}}});
-  const std::array<double, 9> u_ = {2, 3, -9, -2, 6, 5, 2, -1, 5};
+  const std::size_t ndof = 3 * 3;
+  const std::array<double, ndof> u_ = {2, 3, -9, -2, 6, 5, 2, -1, 5};
+  std::array<double, ndof> v_;
+  std::array<double, ndof> buffer_;
+  double const *const u = u_.data();
+  double *const v = v_.data();
+  double *const buffer = buffer_.data();
   {
     const std::size_t l = 1;
     const mgard::TensorMassMatrix<2, double> M(hierarchy, l);
-    std::array<double, 9> v_ = u_;
-    double *const v = v_.data();
+    mgard::shuffle(hierarchy, u, v);
     M(v);
-    const std::array<double, 9> expected = {0.05555555555555556,
-                                            0.20486111111111108,
-                                            -0.14583333333333334,
-                                            0.0625,
-                                            0.875,
-                                            0.6041666666666666,
-                                            0.027777777777777776,
-                                            0.2743055555555555,
-                                            0.3541666666666667};
+    mgard::unshuffle(hierarchy, v, buffer);
+    const std::array<double, ndof> expected = {0.05555555555555556,
+                                               0.20486111111111108,
+                                               -0.14583333333333334,
+                                               0.0625,
+                                               0.875,
+                                               0.6041666666666666,
+                                               0.027777777777777776,
+                                               0.2743055555555555,
+                                               0.3541666666666667};
     TrialTracker tracker;
-    for (std::size_t i = 0; i < 9; ++i) {
-      tracker += v_.at(i) == Approx(expected.at(i));
+    for (std::size_t i = 0; i < ndof; ++i) {
+      tracker += buffer_.at(i) == Approx(expected.at(i));
     }
     REQUIRE(tracker);
   }
   {
     const std::size_t l = 0;
     const mgard::TensorMassMatrix<2, double> M(hierarchy, l);
-    std::array<double, 9> v_ = u_;
-    double *const v = v_.data();
+    mgard::shuffle(hierarchy, u, v);
     M(v);
-    const std::array<double, 9> expected = {
+    mgard::unshuffle(hierarchy, v, buffer);
+    const std::array<double, ndof> expected = {
         -0.02777777777777779, 3.0,  -0.5555555555555555, -2.0, 6.0, 5.0,
         0.3611111111111111,   -1.0, 0.22222222222222224};
     TrialTracker tracker;
-    for (std::size_t i = 0; i < 9; ++i) {
-      tracker += v_.at(i) == Approx(expected.at(i));
+    for (std::size_t i = 0; i < ndof; ++i) {
+      tracker += buffer_.at(i) == Approx(expected.at(i));
     }
     REQUIRE(tracker);
   }
@@ -233,13 +259,15 @@ void exhaustive_constituent_inverse_test(
     const mgard::TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u) {
   const std::size_t ndof = hierarchy.ndof();
   std::vector<Real> v_(ndof);
+  std::vector<Real> buffer_(ndof);
   Real *const v = v_.data();
+  Real *const buffer = buffer_.data();
   const std::array<std::size_t, N> &SHAPE =
       hierarchy.meshes.at(hierarchy.L).shape;
-  std::vector<Real> buffer_(
+  std::vector<Real> inverse_buffer_(
       // Maximum of the sizes.
       *std::max_element(SHAPE.begin(), SHAPE.end()));
-  Real *const buffer = buffer_.data();
+  Real *const inverse_buffer = buffer_.data();
   TrialTracker tracker;
   for (std::size_t l = 0; l <= hierarchy.L; ++l) {
     std::array<mgard::TensorIndexRange, N> multiindex_components;
@@ -248,8 +276,8 @@ void exhaustive_constituent_inverse_test(
     }
     for (std::size_t dimension = 0; dimension < N; ++dimension) {
       const mgard::ConstituentMassMatrix<N, Real> M(hierarchy, l, dimension);
-      const mgard::ConstituentMassMatrixInverse<N, Real> A(hierarchy, l,
-                                                           dimension, buffer);
+      const mgard::ConstituentMassMatrixInverse<N, Real> A(
+          hierarchy, l, dimension, inverse_buffer);
 
       std::array<mgard::TensorIndexRange, N> multiindex_components_ =
           multiindex_components;
@@ -259,11 +287,12 @@ void exhaustive_constituent_inverse_test(
       for (const std::array<std::size_t, N> multiindex :
            mgard::CartesianProduct<mgard::TensorIndexRange, N>(
                multiindex_components_)) {
-        std::copy(u, u + ndof, v);
+        mgard::shuffle(hierarchy, u, v);
         M(multiindex, v);
         A(multiindex, v);
+        mgard::unshuffle(hierarchy, v, buffer);
         for (std::size_t i = 0; i < ndof; ++i) {
-          tracker += v[i] == Approx(u[i]);
+          tracker += buffer[i] == Approx(u[i]);
         }
         multiindex_components_.at(dimension) =
             multiindex_components.at(dimension);
@@ -275,24 +304,30 @@ void exhaustive_constituent_inverse_test(
 
 } // namespace
 
-TEST_CASE("constituent mass matrice inverses", "[TensorMassMatrix]") {
+TEST_CASE("constituent mass matrix inverses", "[TensorMassMatrix]") {
   SECTION("1D and default spacing") {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({9});
-    const std::array<float, 9> u_ = {-1, -1, 8, 2, 4, 3, -1, -4, 3};
+    const std::size_t ndof = 9;
+    const std::array<float, ndof> u_ = {-1, -1, 8, 2, 4, 3, -1, -4, 3};
+    std::array<float, ndof> v_;
+    std::array<float, ndof> buffer_;
+    float const *const u = u_.data();
+    float *const v = v_.data();
+    float *const buffer = buffer_.data();
     {
       const std::size_t l = 3;
       const std::size_t dimension = 0;
       const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
-      std::vector<float> buffer(M.dimension());
+      std::vector<float> inverse_buffer(M.dimension());
       const mgard::ConstituentMassMatrixInverse<1, float> A(
-          hierarchy, l, dimension, buffer.data());
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+          hierarchy, l, dimension, inverse_buffer.data());
+      mgard::shuffle(hierarchy, u, v);
       M({0}, v);
       A({0}, v);
+      mgard::unshuffle(hierarchy, v, buffer);
       TrialTracker tracker;
-      for (std::size_t i = 0; i < 9; ++i) {
-        tracker += v_.at(i) == Approx(u_.at(i));
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += buffer_.at(i) == Approx(u_.at(i));
       }
       REQUIRE(tracker);
     }
@@ -300,17 +335,17 @@ TEST_CASE("constituent mass matrice inverses", "[TensorMassMatrix]") {
       const std::size_t l = 1;
       const std::size_t dimension = 0;
       const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
-      std::vector<float> buffer(M.dimension());
+      std::vector<float> inverse_buffer(M.dimension());
       const mgard::ConstituentMassMatrixInverse<1, float> A(
-          hierarchy, l, dimension, buffer.data());
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+          hierarchy, l, dimension, inverse_buffer.data());
+      mgard::shuffle(hierarchy, u, v);
       // Opposite order.
       A({0}, v);
       M({0}, v);
+      mgard::unshuffle(hierarchy, v, buffer);
       TrialTracker tracker;
-      for (std::size_t i = 0; i < 9; ++i) {
-        tracker += v_.at(i) == Approx(u_.at(i));
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += buffer_.at(i) == Approx(u_.at(i));
       }
       REQUIRE(tracker);
     }
@@ -323,7 +358,8 @@ TEST_CASE("constituent mass matrice inverses", "[TensorMassMatrix]") {
                                     3.643, 4.580, 5.320, 5.464, 6.223, 6.856,
                                     7.083, 7.459, 7.748, 8.641, 8.740};
     const mgard::TensorMeshHierarchy<2, double> hierarchy({9, 17}, {{xs, ys}});
-    const std::array<double, 153> u_ = {
+    const std::size_t ndof = 9 * 17;
+    const std::array<double, ndof> u_ = {
         3,   -5,  -3, 3,  2,   -4, -7, -3, -8, -4,  1,  2,  5,   5,   4,  5,
         3,   1,   -7, -9, -10, 1,  -4, 8,  3,  -10, -4, -2, 1,   -9,  -4, 7,
         -9,  5,   -1, -5, -10, 7,  1,  7,  -5, 3,   2,  -3, -5,  -1,  -5, -9,
@@ -340,10 +376,10 @@ TEST_CASE("constituent mass matrice inverses", "[TensorMassMatrix]") {
 
   SECTION("3D and nondyadic") {
     const mgard::TensorMeshHierarchy<3, float> hierarchy({9, 8, 7});
+    const std::size_t ndof = 9 * 8 * 7;
     std::default_random_engine generator(731617);
     std::uniform_real_distribution<float> distribution(-5, -3);
-    const std::size_t N = 9 * 8 * 7;
-    std::array<float, N> u_;
+    std::array<float, ndof> u_;
     for (float &value : u_) {
       value = distribution(generator);
     }
@@ -366,20 +402,24 @@ void test_mass_matrix_inversion(
     throw std::invalid_argument("mesh too large");
   }
   std::vector<float> v_(ndof);
+  std::vector<float> buffer_(ndof);
+  float const *const u = u_.data();
   float *const v = v_.data();
+  float *const buffer = buffer_.data();
 
   TrialTracker tracker;
   for (std::size_t l = 0; l <= hierarchy.L; ++l) {
-    std::uninitialized_copy_n(u_.begin(), ndof, v_.begin());
     const mgard::TensorMassMatrix<N, float> M(hierarchy, l);
     const mgard::TensorMassMatrixInverse<N, float> A(hierarchy, l);
+    mgard::shuffle(hierarchy, u, v);
     M(v);
     A(v);
+    mgard::unshuffle(hierarchy, v, buffer);
     float u_square_norm = 0;
     float error_square_norm = 0;
     for (std::size_t i = 0; i < ndof; ++i) {
       const float expected = u_.at(i);
-      const float obtained = v_.at(i);
+      const float obtained = buffer_.at(i);
       const float error = expected - obtained;
       u_square_norm += expected * expected;
       error_square_norm += error * error;
