@@ -15,7 +15,7 @@ void shuffle(const TensorMeshHierarchy<N, Real> &hierarchy,
 
   Real const *p = src;
   for (const TensorNode<N> node :
-       UnshuffledTensorNodeRange(hierarchy, hierarchy.L)) {
+       UnshuffledTensorNodeRange<N, Real>(hierarchy, hierarchy.L)) {
     *writers.at(hierarchy.date_of_birth(node.multiindex))++ = *p++;
   }
 }
@@ -31,7 +31,7 @@ void unshuffle(const TensorMeshHierarchy<N, Real> &hierarchy,
 
   Real *q = dst;
   for (const TensorNode<N> node :
-       UnshuffledTensorNodeRange(hierarchy, hierarchy.L)) {
+       UnshuffledTensorNodeRange<N, Real>(hierarchy, hierarchy.L)) {
     *q++ = *readers.at(hierarchy.date_of_birth(node.multiindex))++;
   }
 }
