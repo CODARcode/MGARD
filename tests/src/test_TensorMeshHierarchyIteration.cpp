@@ -97,8 +97,7 @@ TEST_CASE("TensorNode predecessors and successors",
   SECTION("'normal' nodes") {
     // Finest level.
     {
-      const mgard::UnshuffledTensorNodeRange<2, float> nodes =
-          hierarchy.nodes(1);
+      const mgard::UnshuffledTensorNodeRange<2, float> nodes(hierarchy, 1);
       mgard::UnshuffledTensorNodeRange<2, float>::iterator p = nodes.begin();
 
       TrialTracker tracker;
@@ -125,8 +124,7 @@ TEST_CASE("TensorNode predecessors and successors",
 
     // Coarse level.
     {
-      const mgard::UnshuffledTensorNodeRange<2, float> nodes =
-          hierarchy.nodes(0);
+      const mgard::UnshuffledTensorNodeRange<2, float> nodes(hierarchy, 0);
       mgard::UnshuffledTensorNodeRange<2, float>::iterator p = nodes.begin();
       TrialTracker tracker;
       increment_and_test_neighbors(tracker, p, {0, 0}, {0, 0}, {0, 0}, {2, 0},

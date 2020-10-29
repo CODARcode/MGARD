@@ -8,6 +8,7 @@
 #include "testing_utilities.hpp"
 
 #include "TensorMeshHierarchy.hpp"
+#include "TensorMeshHierarchyIteration.hpp"
 #include "shuffle.hpp"
 #include "utilities.hpp"
 
@@ -111,7 +112,8 @@ void test_entry_indexing_exhaustive(const std::array<std::size_t, N> shape) {
   std::free(buffer);
   int expected = 0;
   TrialTracker tracker;
-  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
+  for (const mgard::TensorNode<N> node :
+       mgard::UnshuffledTensorNodeRange(hierarchy, hierarchy.L)) {
     tracker += hierarchy.at(u, node.multiindex) == static_cast<float>(expected);
     ++expected;
   }
@@ -265,7 +267,8 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     mgard::shuffle(hierarchy, buffer, v);
     std::vector<float> encountered_values;
     std::vector<std::size_t> encountered_ls;
-    for (const mgard::TensorNode<1> node : hierarchy.nodes(2)) {
+    for (const mgard::TensorNode<1> node :
+         mgard::UnshuffledTensorNodeRange(hierarchy, 2)) {
       encountered_values.push_back(hierarchy.at(v, node.multiindex));
       encountered_ls.push_back(hierarchy.date_of_birth(node.multiindex));
     }
@@ -284,7 +287,8 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     std::vector<float> encountered;
     // For the indices.
     TrialTracker tracker;
-    for (const mgard::TensorNode<2> node : hierarchy.nodes(0)) {
+    for (const mgard::TensorNode<2> node :
+         mgard::UnshuffledTensorNodeRange(hierarchy, 0)) {
       encountered.push_back(hierarchy.at(v, node.multiindex));
       tracker += hierarchy.date_of_birth(node.multiindex) == 0;
     }
@@ -302,7 +306,8 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     std::vector<float> encountered;
     // For the indices.
     TrialTracker tracker;
-    for (const mgard::TensorNode<2> node : hierarchy.nodes(0)) {
+    for (const mgard::TensorNode<2> node :
+         mgard::UnshuffledTensorNodeRange(hierarchy, 0)) {
       encountered.push_back(hierarchy.at(v, node.multiindex));
       tracker += hierarchy.date_of_birth(node.multiindex) == 0;
     }
@@ -321,7 +326,8 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     TrialTracker tracker;
     // For the indices.
     std::vector<std::size_t> encountered_ls;
-    for (const mgard::TensorNode<3> node : hierarchy.nodes(hierarchy.L)) {
+    for (const mgard::TensorNode<3> node :
+         mgard::UnshuffledTensorNodeRange(hierarchy, hierarchy.L)) {
       tracker += hierarchy.at(v, node.multiindex) == expected_value;
       expected_value += 1;
       encountered_ls.push_back(hierarchy.date_of_birth(node.multiindex));
@@ -342,7 +348,8 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     mgard::shuffle(hierarchy, buffer, v);
     std::vector<std::array<std::size_t, 2>> encountered_multiindices;
     std::vector<std::size_t> encountered_ls;
-    for (const mgard::TensorNode<2> node : hierarchy.nodes(2)) {
+    for (const mgard::TensorNode<2> node :
+         mgard::UnshuffledTensorNodeRange(hierarchy, 2)) {
       encountered_multiindices.push_back(node.multiindex);
       encountered_ls.push_back(hierarchy.date_of_birth(node.multiindex));
     }

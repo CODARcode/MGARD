@@ -10,6 +10,8 @@
 #include "testing_random.hpp"
 #include "testing_utilities.hpp"
 
+#include "TensorMeshHierarchy.hpp"
+#include "TensorMeshHierarchyIteration.hpp"
 #include "TensorNorms.hpp"
 #include "blas.hpp"
 #include "mgard_api.h"
@@ -181,7 +183,8 @@ TEST_CASE("2D cosine data", "[mgard_api]") {
   const mgard::TensorMeshHierarchy<2, float> hierarchy({256, 16});
   const std::size_t ndof = hierarchy.ndof();
   float *const v = static_cast<float *>(std::malloc(ndof * sizeof(*v)));
-  for (const mgard::TensorNode<2> node : hierarchy.nodes(hierarchy.L)) {
+  for (const mgard::TensorNode<2> node :
+       mgard::ShuffledTensorNodeRange(hierarchy, hierarchy.L)) {
     const std::array<float, 2> xy = coordinates(hierarchy, node);
     hierarchy.at(v, node.multiindex) = std::cos(12 * xy.at(0) - 5 * xy.at(1));
   }

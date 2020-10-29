@@ -6,6 +6,7 @@
 #include "testing_utilities.hpp"
 
 #include "TensorMeshHierarchy.hpp"
+#include "TensorMeshHierarchyIteration.hpp"
 #include "TensorProlongation.hpp"
 #include "shuffle.hpp"
 #include "utilities.hpp"
@@ -173,7 +174,8 @@ void test_tensor_product_prolongations(std::default_random_engine &generator,
   for (std::size_t l = hierarchy.L; l > 0; --l) {
     const MultilinearPolynomial<Real, N> p(generator,
                                            polynomial_coefficient_distribution);
-    for (const mgard::TensorNode<N> node : hierarchy.nodes(l)) {
+    const mgard::ShuffledTensorNodeRange<N, Real> nodes(hierarchy, l);
+    for (const mgard::TensorNode<N> node : nodes) {
       hierarchy.at(u, node.multiindex) =
           hierarchy.date_of_birth(node.multiindex) == l
               ? 0
@@ -182,7 +184,7 @@ void test_tensor_product_prolongations(std::default_random_engine &generator,
     const mgard::TensorProlongationAddition<N, Real> PA(hierarchy, l);
     PA(u);
     TrialTracker tracker;
-    for (const mgard::TensorNode<N> node : hierarchy.nodes(l)) {
+    for (const mgard::TensorNode<N> node : nodes) {
       tracker += hierarchy.at(u, node.multiindex) ==
                  Approx(p(coordinates(hierarchy, node))).epsilon(0.001);
     }

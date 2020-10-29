@@ -1,5 +1,7 @@
 #include <vector>
 
+#include "TensorMeshHierarchyIteration.hpp"
+
 namespace mgard {
 
 template <std::size_t N, typename Real>
@@ -12,7 +14,8 @@ void shuffle(const TensorMeshHierarchy<N, Real> &hierarchy,
   }
 
   Real const *p = src;
-  for (const TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
+  for (const TensorNode<N> node :
+       UnshuffledTensorNodeRange(hierarchy, hierarchy.L)) {
     *writers.at(hierarchy.date_of_birth(node.multiindex))++ = *p++;
   }
 }
@@ -27,7 +30,8 @@ void unshuffle(const TensorMeshHierarchy<N, Real> &hierarchy,
   }
 
   Real *q = dst;
-  for (const TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
+  for (const TensorNode<N> node :
+       UnshuffledTensorNodeRange(hierarchy, hierarchy.L)) {
     *q++ = *readers.at(hierarchy.date_of_birth(node.multiindex))++;
   }
 }

@@ -11,6 +11,7 @@
 #include "testing_utilities.hpp"
 
 #include "TensorMeshHierarchy.hpp"
+#include "TensorMeshHierarchyIteration.hpp"
 #include "TensorProlongation.hpp"
 #include "mgard.hpp"
 #include "shuffle.hpp"
@@ -179,7 +180,8 @@ void test_decomposition_of_linear_functions(
   const std::size_t ndof = hierarchy.ndof();
   std::vector<Real> u_(ndof);
   double *const u = u_.data();
-  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
+  for (const mgard::TensorNode<N> node :
+       mgard::ShuffledTensorNodeRange(hierarchy, hierarchy.L)) {
     hierarchy.at(u, node.multiindex) =
         hierarchy.date_of_birth(node.multiindex) == hierarchy.L
             ? 0
@@ -192,7 +194,8 @@ void test_decomposition_of_linear_functions(
   mgard::decompose(hierarchy, u);
 
   TrialTracker tracker;
-  for (const mgard::TensorNode<N> node : hierarchy.nodes(hierarchy.L)) {
+  for (const mgard::TensorNode<N> node :
+       mgard::ShuffledTensorNodeRange(hierarchy, hierarchy.L)) {
     if (hierarchy.date_of_birth(node.multiindex) == hierarchy.L) {
       tracker += std::abs(hierarchy.at(u, node.multiindex)) < 1e-6;
     }
@@ -214,8 +217,7 @@ void test_recomposition_with_zero_coefficients(
   const std::size_t ndof = hierarchy.ndof();
   std::vector<Real> u_(ndof, 0);
   Real *const u = u_.data();
-  const mgard::UnshuffledTensorNodeRange nodes =
-      hierarchy.nodes(hierarchy.L - 1);
+  const mgard::ShuffledTensorNodeRange nodes(hierarchy, hierarchy.L - 1);
   for (const mgard::TensorNode node : nodes) {
     hierarchy.at(u, node.multiindex) =
         multilevel_coefficient_distribution(generator);
