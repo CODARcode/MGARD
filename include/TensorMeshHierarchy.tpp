@@ -205,15 +205,69 @@ std::size_t TensorMeshHierarchy<N, Real>::date_of_birth(
 }
 
 template <std::size_t N, typename Real>
+template <typename T>
+PseudoArray<T>
+TensorMeshHierarchy<N, Real>::on_nodes(T *const v, const std::size_t l) const {
+  check_mesh_index_bounds(l);
+  return PseudoArray<T>(v, ndof(l));
+}
+
+template <std::size_t N, typename Real>
+PseudoArray<Real>
+TensorMeshHierarchy<N, Real>::on_nodes(Real *const v,
+                                       const std::size_t l) const {
+  return on_nodes<Real>(v, l);
+}
+
+template <std::size_t N, typename Real>
+PseudoArray<const Real>
+TensorMeshHierarchy<N, Real>::on_nodes(Real const *const v,
+                                       const std::size_t l) const {
+  return on_nodes<const Real>(v, l);
+}
+
+template <std::size_t N, typename Real>
+template <typename T>
+PseudoArray<T>
+TensorMeshHierarchy<N, Real>::on_new_nodes(T *const v,
+                                           const std::size_t l) const {
+  check_mesh_index_bounds(l);
+  const std::size_t ndof_old = l ? ndof(l - 1) : 0;
+  const std::size_t ndof_new = ndof(l) - ndof_old;
+  return PseudoArray<T>(v + ndof_old, ndof_new);
+}
+
+template <std::size_t N, typename Real>
+PseudoArray<Real>
+TensorMeshHierarchy<N, Real>::on_new_nodes(Real *const v,
+                                           const std::size_t l) const {
+  return on_new_nodes<Real>(v, l);
+}
+
+template <std::size_t N, typename Real>
+PseudoArray<const Real>
+TensorMeshHierarchy<N, Real>::on_new_nodes(Real const *const v,
+                                           const std::size_t l) const {
+  return on_new_nodes<const Real>(v, l);
+}
+
+template <std::size_t N, typename Real>
+template <typename T>
+T &TensorMeshHierarchy<N, Real>::at(
+    T *const v, const std::array<std::size_t, N> multiindex) const {
+  return v[index(multiindex)];
+}
+
+template <std::size_t N, typename Real>
 Real &TensorMeshHierarchy<N, Real>::at(
     Real *const v, const std::array<std::size_t, N> multiindex) const {
-  return v[index(multiindex)];
+  return at<Real>(v, multiindex);
 }
 
 template <std::size_t N, typename Real>
 const Real &TensorMeshHierarchy<N, Real>::at(
     Real const *const v, const std::array<std::size_t, N> multiindex) const {
-  return v[index(multiindex)];
+  return at<const Real>(v, multiindex);
 }
 
 template <std::size_t N, typename Real>

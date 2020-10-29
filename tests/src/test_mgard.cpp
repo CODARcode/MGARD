@@ -11,8 +11,8 @@
 #include "testing_utilities.hpp"
 
 #include "TensorMeshHierarchy.hpp"
-#include "TensorMeshHierarchyIteration.hpp"
 #include "TensorProlongation.hpp"
+#include "blas.hpp"
 #include "mgard.hpp"
 #include "shuffle.hpp"
 
@@ -180,13 +180,16 @@ void test_decomposition_of_linear_functions(
   const std::size_t ndof = hierarchy.ndof();
   std::vector<Real> u_(ndof);
   double *const u = u_.data();
-  for (const mgard::TensorNode<N> node :
-       mgard::ShuffledTensorNodeRange(hierarchy, hierarchy.L)) {
-    hierarchy.at(u, node.multiindex) =
-        hierarchy.date_of_birth(node.multiindex) == hierarchy.L
-            ? 0
-            : nodal_coefficient_distribution(generator);
+
+  // Not going to bother checking that `hierarchy.L` is nonzero.
+  for (Real &value : hierarchy.on_nodes(u, hierarchy.L - 1)) {
+    value = nodal_coefficient_distribution(generator);
   }
+
+  const mgard::PseudoArray<Real> u_on_newest =
+      hierarchy.on_new_nodes(u, hierarchy.L);
+  std::fill(u_on_newest.begin(), u_on_newest.end(), 0);
+
   {
     const mgard::TensorProlongationAddition PA(hierarchy, hierarchy.L);
     PA(u);
@@ -194,11 +197,8 @@ void test_decomposition_of_linear_functions(
   mgard::decompose(hierarchy, u);
 
   TrialTracker tracker;
-  for (const mgard::TensorNode<N> node :
-       mgard::ShuffledTensorNodeRange(hierarchy, hierarchy.L)) {
-    if (hierarchy.date_of_birth(node.multiindex) == hierarchy.L) {
-      tracker += std::abs(hierarchy.at(u, node.multiindex)) < 1e-6;
-    }
+  for (const Real &value : u_on_newest) {
+    tracker += std::abs(value) < 1e-6;
   }
   REQUIRE(tracker);
 }
@@ -217,18 +217,22 @@ void test_recomposition_with_zero_coefficients(
   const std::size_t ndof = hierarchy.ndof();
   std::vector<Real> u_(ndof, 0);
   Real *const u = u_.data();
-  const mgard::ShuffledTensorNodeRange nodes(hierarchy, hierarchy.L - 1);
-  for (const mgard::TensorNode node : nodes) {
-    hierarchy.at(u, node.multiindex) =
-        multilevel_coefficient_distribution(generator);
+
+  // Not going to bother checking that `hierarchy.L` is nonzero.
+  const mgard::PseudoArray<Real> u_on_old =
+      hierarchy.on_nodes(u, hierarchy.L - 1);
+  for (Real &value : u_on_old) {
+    value = multilevel_coefficient_distribution(generator);
   }
+
   mgard::recompose(hierarchy, u);
 
   std::vector<Real> v_(ndof, 0);
   Real *const v = v_.data();
-  for (const mgard::TensorNode node : nodes) {
-    hierarchy.at(v, node.multiindex) = hierarchy.at(u, node.multiindex);
-  }
+  // We could just use `v` here.
+  const mgard::PseudoArray<Real> v_on_old =
+      hierarchy.on_nodes(v, hierarchy.L - 1);
+  blas::copy(u_on_old.size, u_on_old.data, v_on_old.data);
   {
     const mgard::TensorProlongationAddition PA(hierarchy, hierarchy.L);
     PA(v);

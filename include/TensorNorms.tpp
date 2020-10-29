@@ -69,25 +69,22 @@ Real s_norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
 
   for (std::size_t i = 1; i <= hierarchy.L; ++i) {
     const std::size_t l = hierarchy.L - i;
-    const ShuffledTensorNodeRange<N, Real> nodes(hierarchy, l);
 
     const TensorRestriction<N, Real> R(hierarchy, l + 1);
     R(product);
 
-    for (const TensorNode<N> node : nodes) {
-      const std::array<std::size_t, N> &multiindex = node.multiindex;
-      hierarchy.at(projection, multiindex) = hierarchy.at(product, multiindex);
-    }
+    const PseudoArray<const Real> product_on_l =
+        hierarchy.on_nodes(static_cast<Real const *>(product), l);
+    const PseudoArray<Real> projection_on_l = hierarchy.on_nodes(projection, l);
+
+    std::copy(product_on_l.begin(), product_on_l.end(),
+              projection_on_l.begin());
+
     const TensorMassMatrixInverse<N, Real> m_inv(hierarchy, l);
     m_inv(projection);
 
-    Real projection_square_norm = 0;
-    for (const TensorNode<N> node : nodes) {
-      const std::array<std::size_t, N> &multiindex = node.multiindex;
-      projection_square_norm += hierarchy.at(projection, multiindex) *
-                                hierarchy.at(product, multiindex);
-    }
-    squares_for_norm.at(l) = projection_square_norm;
+    squares_for_norm.at(l) = blas::dotu(
+        projection_on_l.size, projection_on_l.data, product_on_l.data);
   }
 
   // Could have accumulated this as we went.

@@ -67,6 +67,26 @@ public:
   //!\param multiindex Multiindex of the node.
   std::size_t date_of_birth(const std::array<std::size_t, N> multiindex) const;
 
+  //! Access the values at a level's nodes.
+  //!
+  //!\param v Dataset defined on the hierarchy.
+  //!\param l Index of the level.
+  PseudoArray<Real> on_nodes(Real *const v, const std::size_t l) const;
+
+  //!\overload
+  PseudoArray<const Real> on_nodes(Real const *const v,
+                                   const std::size_t l) const;
+
+  //! Access the values at a level's 'new' nodes.
+  //!
+  //!\param v Dataset defined on the hierarchy.
+  //!\param l Index of the level.
+  PseudoArray<Real> on_new_nodes(Real *const v, const std::size_t l) const;
+
+  //!\overload
+  PseudoArray<const Real> on_new_nodes(Real const *const v,
+                                       const std::size_t l) const;
+
   //! Access the value associated to a particular node.
   //!
   //!\param v Dataset defined on the hierarchy.
@@ -125,6 +145,18 @@ private:
   std::size_t
   number_nodes_before(const std::size_t l,
                       const std::array<std::size_t, N> multiindex) const;
+
+  //! Implement `on_nodes`.
+  template <typename T>
+  PseudoArray<T> on_nodes(T *const v, const std::size_t l) const;
+
+  //! Implement `on_new_nodes`.
+  template <typename T>
+  PseudoArray<T> on_new_nodes(T *const v, const std::size_t l) const;
+
+  //! Implement `at`.
+  template <typename T>
+  T &at(T *const v, const std::array<std::size_t, N> multiindex) const;
 };
 
 //! Equality comparison.
