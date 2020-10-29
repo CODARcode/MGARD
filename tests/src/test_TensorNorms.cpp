@@ -12,6 +12,7 @@
 #include "blas.hpp"
 
 #include "TensorMeshHierarchy.hpp"
+#include "TensorMeshHierarchyIteration.hpp"
 #include "TensorNorms.hpp"
 
 #include "testing_random.hpp"
@@ -116,7 +117,8 @@ TEST_CASE("comparison with Python implementation: tensor norms", "[norms]") {
   const std::size_t ndof = hierarchy.ndof();
   std::vector<float> u_(ndof);
   float *const u = u_.data();
-  for (mgard::TensorNode<3> node : hierarchy.nodes(hierarchy.L)) {
+  for (mgard::TensorNode<3> node :
+       mgard::ShuffledTensorNodeRange(hierarchy, hierarchy.L)) {
     hierarchy.at(u, node.multiindex) = f(coordinates(hierarchy, node));
   }
 

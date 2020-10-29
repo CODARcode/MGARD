@@ -23,6 +23,7 @@
 #include "mgard_compress.hpp"
 
 #include "TensorMassMatrix.hpp"
+#include "TensorMeshHierarchyIteration.hpp"
 #include "TensorProlongation.hpp"
 #include "TensorRestriction.hpp"
 #include "shuffle.hpp"
@@ -38,7 +39,7 @@ template <std::size_t N, typename Real>
 void add_on_old_add_on_new(const TensorMeshHierarchy<N, Real> &hierarchy,
                            Real const *const src, Real *const dst,
                            const std::size_t l) {
-  for (const TensorNode<N> node : hierarchy.nodes(l)) {
+  for (const TensorNode<N> node : ShuffledTensorNodeRange(hierarchy, l)) {
     hierarchy.at(dst, node.multiindex) += hierarchy.at(src, node.multiindex);
   }
 }
@@ -47,7 +48,7 @@ template <std::size_t N, typename Real>
 void subtract_on_old_zero_on_new(const TensorMeshHierarchy<N, Real> &hierarchy,
                                  Real const *const src, Real *const dst,
                                  const std::size_t l) {
-  for (const TensorNode<N> node : hierarchy.nodes(l)) {
+  for (const TensorNode<N> node : ShuffledTensorNodeRange(hierarchy, l)) {
     Real &out = hierarchy.at(dst, node.multiindex);
     out = hierarchy.date_of_birth(node.multiindex) == l
               ? 0
@@ -59,7 +60,7 @@ template <std::size_t N, typename Real>
 void copy_negation_on_old_subtract_on_new(
     const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const src,
     Real *const dst, const std::size_t l) {
-  for (const TensorNode<N> node : hierarchy.nodes(l)) {
+  for (const TensorNode<N> node : ShuffledTensorNodeRange(hierarchy, l)) {
     const Real in = hierarchy.at(src, node.multiindex);
     Real &out = hierarchy.at(dst, node.multiindex);
     out = hierarchy.date_of_birth(node.multiindex) == l ? out - in : -in;
@@ -72,7 +73,7 @@ void copy_on_old_zero_on_new(const TensorMeshHierarchy<N, Real> &hierarchy,
                              const std::size_t l) {
   // `l` shouldn't be zero, but in that case we'll do the expected thing: zero
   // every value.
-  for (const TensorNode<N> node : hierarchy.nodes(l)) {
+  for (const TensorNode<N> node : ShuffledTensorNodeRange(hierarchy, l)) {
     hierarchy.at(dst, node.multiindex) =
         hierarchy.date_of_birth(node.multiindex) == l
             ? 0
@@ -84,7 +85,7 @@ template <std::size_t N, typename Real>
 void zero_on_old_copy_on_new(const TensorMeshHierarchy<N, Real> &hierarchy,
                              Real const *const src, Real *const dst,
                              const std::size_t l) {
-  for (const TensorNode<N> node : hierarchy.nodes(l)) {
+  for (const TensorNode<N> node : ShuffledTensorNodeRange(hierarchy, l)) {
     hierarchy.at(dst, node.multiindex) =
         hierarchy.date_of_birth(node.multiindex) == l
             ? hierarchy.at(src, node.multiindex)
@@ -96,7 +97,7 @@ template <std::size_t N, typename Real>
 void zero_on_old_subtract_and_copy_back_on_new(
     const TensorMeshHierarchy<N, Real> &hierarchy, Real *const subtrahend,
     Real *const minuend, const std::size_t l) {
-  for (const TensorNode<N> node : hierarchy.nodes(l)) {
+  for (const TensorNode<N> node : ShuffledTensorNodeRange(hierarchy, l)) {
     // Note that we may also write to a value of `subtrahend`.
     Real &out = hierarchy.at(minuend, node.multiindex);
     out = hierarchy.date_of_birth(node.multiindex) == l

@@ -217,13 +217,6 @@ const Real &TensorMeshHierarchy<N, Real>::at(
 }
 
 template <std::size_t N, typename Real>
-UnshuffledTensorNodeRange<N, Real>
-TensorMeshHierarchy<N, Real>::nodes(const std::size_t l) const {
-  check_mesh_index_bounds(l);
-  return UnshuffledTensorNodeRange<N, Real>(*this, l);
-}
-
-template <std::size_t N, typename Real>
 std::size_t TensorMeshHierarchy<N, Real>::ndof(const std::size_t l) const {
   check_mesh_index_bounds(l);
   return meshes.at(l).ndof();

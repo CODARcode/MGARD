@@ -77,14 +77,6 @@ public:
   const Real &at(Real const *const u,
                  const std::array<std::size_t, N> multiindex) const;
 
-  //! Access the nodes of a level in the hierarchy.
-  //!
-  //!\deprecated Construct using `UnshuffledTensorNodeRange` or
-  //! `ShuffledTensorNodeRange` instead.
-  //!
-  //!\param l Index of the mesh level to be iterated over.
-  UnshuffledTensorNodeRange<N, Real> nodes(const std::size_t l) const;
-
   //! Meshes composing the hierarchy, in 'increasing' order.
   std::vector<TensorMeshLevel<N, Real>> meshes;
 
