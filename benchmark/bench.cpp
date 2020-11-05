@@ -13,56 +13,161 @@
 #include "UniformMeshHierarchy.hpp"
 #include "data.hpp"
 
-static void BM_structured_linear(benchmark::State &state) {
+#include "TensorMassMatrix.hpp"
+#include "TensorProlongation.hpp"
+#include "TensorRestriction.hpp"
+#include "mgard.hpp"
+#include "shuffle.hpp"
 
-  std::vector<double> v(state.range(0));
-  for (size_t i = 0; i < v.size(); ++i) {
-    v[i] = 3.0 * i;
+template <std::size_t N>
+static std::array<std::size_t, N> mesh_shape(const std::size_t M) {
+  std::array<std::size_t, N> shape;
+  std::size_t product = 1;
+  for (std::size_t i = 0; i < N; ++i) {
+    product *= shape.at(i) =
+        std::pow(M / product, static_cast<float>(1) / (N - i));
   }
-
-  int out_size;
-  double tol = 1e-3;
-  for (auto _ : state) {
-    benchmark::DoNotOptimize(
-        mgard_compress(v.data(), out_size, 4, v.size() / 4, 1, tol));
-  }
-
-  state.SetComplexityN(state.range(0));
-  state.SetBytesProcessed(int64_t(state.range(0)) *
-                          int64_t(state.iterations()) *
-                          int64_t(sizeof(double)));
+  return shape;
 }
 
-BENCHMARK(BM_structured_linear)
-    ->RangeMultiplier(2)
-    ->Range(1 << 4, 1 << 22)
-    ->Complexity();
+template <std::size_t N, typename Real,
+          template <std::size_t, typename> typename TLO>
+static void BM_TensorLinearOperator(benchmark::State &state) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(
+      mesh_shape<N>(state.range(0)));
+  TLO<N, Real> A(hierarchy, hierarchy.L);
 
-static void BM_structured_random(benchmark::State &state) {
-  std::mt19937_64 gen(124124);
-  std::normal_distribution<double> dis{0, 1};
-
-  std::vector<double> v(state.range(0));
-  for (auto &x : v) {
-    x = dis(gen);
-  }
-
-  int out_size;
-  double tol = 1e-3;
+  const std::size_t ndof = hierarchy.ndof();
+  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
   for (auto _ : state) {
-    benchmark::DoNotOptimize(
-        mgard_compress(v.data(), out_size, 4, v.size() / 4, 1, tol));
+    A(u);
   }
+  std::free(u);
 
-  state.SetComplexityN(state.range(0));
-  state.SetBytesProcessed(int64_t(state.range(0)) *
-                          int64_t(state.iterations()) *
-                          int64_t(sizeof(double)));
+  state.SetComplexityN(ndof);
 }
-BENCHMARK(BM_structured_random)
-    ->RangeMultiplier(2)
-    ->Range(1 << 4, 1 << 22)
-    ->Complexity();
+
+#define TLO_BENCHMARK_OPTIONS                                                  \
+  ->RangeMultiplier(2)                                                         \
+      ->Range(1 << 10, 1 << 25)                                                \
+      ->Unit(benchmark::kMillisecond)                                          \
+      ->Complexity()
+
+#define TLO_BENCHMARK(N, Real, TLO)                                            \
+  BENCHMARK_TEMPLATE(BM_TensorLinearOperator, N, Real, TLO)                    \
+  TLO_BENCHMARK_OPTIONS
+
+TLO_BENCHMARK(1, double, mgard::TensorMassMatrix);
+TLO_BENCHMARK(2, double, mgard::TensorMassMatrix);
+TLO_BENCHMARK(3, double, mgard::TensorMassMatrix);
+
+TLO_BENCHMARK(1, double, mgard::TensorMassMatrixInverse);
+TLO_BENCHMARK(2, double, mgard::TensorMassMatrixInverse);
+TLO_BENCHMARK(3, double, mgard::TensorMassMatrixInverse);
+
+TLO_BENCHMARK(1, double, mgard::TensorRestriction);
+TLO_BENCHMARK(2, double, mgard::TensorRestriction);
+TLO_BENCHMARK(3, double, mgard::TensorRestriction);
+
+TLO_BENCHMARK(1, double, mgard::TensorProlongationAddition);
+TLO_BENCHMARK(2, double, mgard::TensorProlongationAddition);
+TLO_BENCHMARK(3, double, mgard::TensorProlongationAddition);
+
+template <std::size_t N, typename Real>
+static void BM_structured_shuffle(benchmark::State &state) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(
+      mesh_shape<N>(state.range(0)));
+
+  const std::size_t ndof = hierarchy.ndof();
+  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const v = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  for (auto _ : state) {
+    mgard::shuffle(hierarchy, u, v);
+  }
+  std::free(v);
+  std::free(u);
+
+  state.SetComplexityN(ndof);
+}
+
+template <std::size_t N, typename Real>
+static void BM_structured_unshuffle(benchmark::State &state) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(
+      mesh_shape<N>(state.range(0)));
+
+  const std::size_t ndof = hierarchy.ndof();
+  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const v = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  for (auto _ : state) {
+    mgard::unshuffle(hierarchy, u, v);
+  }
+  std::free(v);
+  std::free(u);
+
+  state.SetComplexityN(ndof);
+}
+
+#define SHUFFLE_UNSHUFFLE_BENCHMARK_OPTIONS                                    \
+  ->RangeMultiplier(2)                                                         \
+      ->Range(1 << 10, 1 << 25)                                                \
+      ->Unit(benchmark::kMillisecond)                                          \
+      ->Complexity()
+
+#define SHUFFLE_UNSHUFFLE_BENCHMARK(N, Real)                                   \
+  BENCHMARK_TEMPLATE(BM_structured_shuffle, N, Real)                           \
+  SHUFFLE_UNSHUFFLE_BENCHMARK_OPTIONS;                                         \
+  BENCHMARK_TEMPLATE(BM_structured_unshuffle, N, Real)                         \
+  SHUFFLE_UNSHUFFLE_BENCHMARK_OPTIONS
+
+SHUFFLE_UNSHUFFLE_BENCHMARK(1, double);
+SHUFFLE_UNSHUFFLE_BENCHMARK(2, double);
+SHUFFLE_UNSHUFFLE_BENCHMARK(3, double);
+
+template <std::size_t N, typename Real>
+static void BM_structured_decompose(benchmark::State &state) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(
+      mesh_shape<N>(state.range(0)));
+
+  const std::size_t ndof = hierarchy.ndof();
+  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  for (auto _ : state) {
+    mgard::decompose(hierarchy, u);
+  }
+  std::free(u);
+
+  state.SetComplexityN(ndof);
+}
+
+template <std::size_t N, typename Real>
+static void BM_structured_recompose(benchmark::State &state) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(
+      mesh_shape<N>(state.range(0)));
+
+  const std::size_t ndof = hierarchy.ndof();
+  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  for (auto _ : state) {
+    mgard::recompose(hierarchy, u);
+  }
+  std::free(u);
+
+  state.SetComplexityN(ndof);
+}
+
+#define DECOMPOSE_RECOMPOSE_BENCHMARK_OPTIONS                                  \
+  ->RangeMultiplier(2)                                                         \
+      ->Range(1 << 10, 1 << 25)                                                \
+      ->Unit(benchmark::kMillisecond)                                          \
+      ->Complexity()
+
+#define DECOMPOSE_RECOMPOSE_BENCHMARK(N, Real)                                 \
+  BENCHMARK_TEMPLATE(BM_structured_decompose, N, Real)                         \
+  DECOMPOSE_RECOMPOSE_BENCHMARK_OPTIONS;                                       \
+  BENCHMARK_TEMPLATE(BM_structured_recompose, N, Real)                         \
+  DECOMPOSE_RECOMPOSE_BENCHMARK_OPTIONS
+
+DECOMPOSE_RECOMPOSE_BENCHMARK(1, double);
+DECOMPOSE_RECOMPOSE_BENCHMARK(2, double);
+DECOMPOSE_RECOMPOSE_BENCHMARK(3, double);
 
 static mgard::UniformMeshHierarchy
 read_mesh_and_refine(moab::Core &mbcore, const std::string &filename,
