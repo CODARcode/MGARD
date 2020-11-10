@@ -250,7 +250,7 @@ namespace {
 template <std::size_t N, typename Real>
 std::size_t buffer_size(const TensorMeshHierarchy<N, Real> &hierarchy,
                         const std::size_t l) {
-  const std::array<std::size_t, N> shape = hierarchy.meshes.at(l).shape;
+  const std::array<std::size_t, N> shape = hierarchy.shapes.at(l);
   return *std::max_element(shape.begin(), shape.end());
 }
 

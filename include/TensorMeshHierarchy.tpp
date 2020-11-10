@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <functional>
 #include <limits>
+#include <numeric>
 #include <stdexcept>
 #include <type_traits>
 
@@ -34,12 +36,11 @@ static std::size_t size_from_nlevel(const std::size_t n) {
 
 template <std::size_t N, typename Real>
 TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
-    const TensorMeshLevel<N, Real> &mesh,
+    const std::array<std::size_t, N> &shape,
     const std::array<std::vector<Real>, N> &coordinates)
     : coordinates(coordinates) {
-  const std::array<std::size_t, N> &SHAPE = mesh.shape;
   for (std::size_t i = 0; i < N; ++i) {
-    if (coordinates.at(i).size() != SHAPE.at(i)) {
+    if (coordinates.at(i).size() != shape.at(i)) {
       throw std::invalid_argument("incorrect number of node coordinates given");
     }
   }
@@ -47,25 +48,25 @@ TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
   bool any_nonflat = false;
   bool any_nondyadic = false;
   // Sizes rounded down to the nearest dyadic (`2^k + 1`) number. For this
-  // purpose, one is a dyadic number. Later we will use `shape` for the shape of
-  // the mesh currently being added to the hierarchy.
-  std::array<std::size_t, N> shape;
+  // purpose, one is a dyadic number. Later we will use `shape_` for the shape
+  // of the mesh currently being added to the hierarchy.
+  std::array<std::size_t, N> shape_;
   std::size_t L_dyadic = std::numeric_limits<std::size_t>::max();
   for (std::size_t i = 0; i < N; ++i) {
-    const std::size_t size = SHAPE.at(i);
+    const std::size_t size = shape.at(i);
     if (size == 0) {
       throw std::domain_error(
           "dataset must have size larger than 0 in every dimension");
     } else if (size == 1) {
-      shape.at(i) = size;
+      shape_.at(i) = size;
       continue;
     } else {
       any_nonflat = true;
       const std::size_t l = nlevel_from_size(size);
       L_dyadic = std::min(L_dyadic, l);
-      // Note the assignment to `shape.at(i)` always happens.
+      // Note the assignment to `shape_.at(i)` always happens.
       any_nondyadic =
-          (shape.at(i) = size_from_nlevel(l)) != size || any_nondyadic;
+          (shape_.at(i) = size_from_nlevel(l)) != size || any_nondyadic;
     }
   }
   if (!any_nonflat) {
@@ -73,35 +74,29 @@ TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
         "dataset must have size larger than 1 in some dimension");
   };
   L = any_nondyadic ? L_dyadic + 1 : L_dyadic;
-  // TODO: Once `TensorMeshLevel` is removed, use `at` instead of `push_back`.
-  // Then we can start by setting the last element and then the last loop can
-  // just go from the start to one before the last.
-  meshes.reserve(L + 1);
+  shapes.resize(L + 1);
+  shapes.at(L) = shape;
 
-  for (std::size_t &n : shape) {
+  for (std::size_t &n : shape_) {
     --n;
     n >>= L_dyadic;
     ++n;
   }
-  // From now on `shape` will be the shape of the mesh currently being added to
+  // From now on `shape_` will be the shape of the mesh currently being added to
   // the hierarchy.
 
-  for (std::size_t i = 0; i <= L_dyadic; ++i) {
-    meshes.push_back(TensorMeshLevel<N, Real>(shape));
-    for (std::size_t &n : shape) {
+  for (std::size_t i = 0; i + 1 <= L; ++i) {
+    shapes.at(i) = shape_;
+    for (std::size_t &n : shape_) {
       --n;
       n <<= 1;
       ++n;
     }
   }
 
-  if (any_nondyadic) {
-    meshes.push_back(SHAPE);
-  }
-
   for (std::size_t i = 0; i < N; ++i) {
     std::vector<std::size_t> &dobs = dates_of_birth.at(i);
-    dobs.resize(mesh.shape.at(i));
+    dobs.resize(shape.at(i));
     // Could be better to get all the levels' indices and iterate over
     // `dobs` once. More complicated and not necessary for now.
     for (std::size_t j = 0; j <= L; ++j) {
@@ -115,14 +110,12 @@ TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
 
 namespace {
 
-// TODO: This changes the previous default behavior, where the node spacing was
-// set to `1` in every dimension with `std::iota`. Document somewhere.
 template <std::size_t N, typename Real>
 std::array<std::vector<Real>, N>
-default_node_coordinates(const TensorMeshLevel<N, Real> &mesh) {
+default_node_coordinates(const std::array<std::size_t, N> &shape) {
   std::array<std::vector<Real>, N> coordinates;
   for (std::size_t i = 0; i < N; ++i) {
-    const std::size_t n = mesh.shape.at(i);
+    const std::size_t n = shape.at(i);
     std::vector<Real> &xs = coordinates.at(i);
     xs.resize(n);
     const Real h = n > 1 ? static_cast<Real>(1) / (n - 1) : 0;
@@ -137,24 +130,13 @@ default_node_coordinates(const TensorMeshLevel<N, Real> &mesh) {
 
 template <std::size_t N, typename Real>
 TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
-    const TensorMeshLevel<N, Real> &mesh)
-    : TensorMeshHierarchy(mesh, default_node_coordinates(mesh)) {}
-
-template <std::size_t N, typename Real>
-TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
-    const std::array<std::size_t, N> &shape,
-    const std::array<std::vector<Real>, N> &coordinates)
-    : TensorMeshHierarchy(TensorMeshLevel<N, Real>(shape), coordinates) {}
-
-template <std::size_t N, typename Real>
-TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
     const std::array<std::size_t, N> &shape)
-    : TensorMeshHierarchy(TensorMeshLevel<N, Real>(shape)) {}
+    : TensorMeshHierarchy(shape, default_node_coordinates<N, Real>(shape)) {}
 
 template <std::size_t N, typename Real>
 bool operator==(const TensorMeshHierarchy<N, Real> &a,
                 const TensorMeshHierarchy<N, Real> &b) {
-  return a.meshes == b.meshes;
+  return a.shapes == b.shapes;
 }
 
 template <std::size_t N, typename Real>
@@ -192,8 +174,8 @@ template <std::size_t N, typename Real>
 std::size_t TensorMeshHierarchy<N, Real>::number_nodes_before(
     const std::size_t l, const std::array<std::size_t, N> multiindex) const {
   check_mesh_index_bounds(l);
-  const std::array<std::size_t, N> &SHAPE = meshes.back().shape;
-  const std::array<std::size_t, N> &shape = meshes.at(l).shape;
+  const std::array<std::size_t, N> &SHAPE = shapes.back();
+  const std::array<std::size_t, N> &shape = shapes.at(l);
   // Let `α` be the given node (its multiindex). A node (multiindex) `β` comes
   // before `α` if
   //     * `β_{1} < α_{1}` xor
@@ -327,7 +309,9 @@ const Real &TensorMeshHierarchy<N, Real>::at(
 template <std::size_t N, typename Real>
 std::size_t TensorMeshHierarchy<N, Real>::ndof(const std::size_t l) const {
   check_mesh_index_bounds(l);
-  return meshes.at(l).ndof();
+  const std::array<std::size_t, N> &shape = shapes.at(l);
+  return std::accumulate(shape.begin(), shape.end(), 1,
+                         std::multiplies<Real>());
 }
 
 template <std::size_t N, typename Real>

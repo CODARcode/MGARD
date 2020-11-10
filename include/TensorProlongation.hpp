@@ -9,7 +9,7 @@ namespace mgard {
 
 //! Prolongation–addition (interpolate the values on the 'old' nodes to the
 //! 'new' nodes and add (not overwrite)) for continuous piecewise linear
-//! functions defined on a `TensorMeshLevel` 'spear.'
+//! functions defined on a mesh 'spear.'
 template <std::size_t N, typename Real>
 class ConstituentProlongationAddition
     : public ConstituentLinearOperator<N, Real> {

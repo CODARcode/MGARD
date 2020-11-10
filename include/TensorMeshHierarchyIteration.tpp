@@ -6,8 +6,8 @@ template <std::size_t N, typename Real>
 TensorIndexRange::TensorIndexRange(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
     const std::size_t dimension)
-    : size_finest(hierarchy.meshes.at(hierarchy.L).shape.at(dimension)),
-      size_coarse(hierarchy.meshes.at(l).shape.at(dimension)) {
+    : size_finest(hierarchy.shapes.at(hierarchy.L).at(dimension)),
+      size_coarse(hierarchy.shapes.at(l).at(dimension)) {
   if (size_coarse > size_finest) {
     throw std::invalid_argument(
         "coarse size cannot be larger than finest size");

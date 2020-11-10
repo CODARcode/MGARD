@@ -10,7 +10,7 @@
 namespace mgard {
 
 //! Mass matrix for continuous piecewise linear functions defined on a
-//! `TensorMeshLevel` 'spear.'
+//! mesh 'spear.'
 template <std::size_t N, typename Real>
 class ConstituentMassMatrix : public ConstituentLinearOperator<N, Real> {
 public:
@@ -57,7 +57,7 @@ private:
 };
 
 //! Inverse of mass matrix for continuous piecewise linear functions defined on
-//! a `TensorMeshLevel` 'spear.'
+//! a mesh 'spear.'
 template <std::size_t N, typename Real>
 class ConstituentMassMatrixInverse : public ConstituentLinearOperator<N, Real> {
 public:

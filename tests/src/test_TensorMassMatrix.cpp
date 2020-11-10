@@ -262,8 +262,7 @@ void exhaustive_constituent_inverse_test(
   std::vector<Real> buffer_(ndof);
   Real *const v = v_.data();
   Real *const buffer = buffer_.data();
-  const std::array<std::size_t, N> &SHAPE =
-      hierarchy.meshes.at(hierarchy.L).shape;
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.at(hierarchy.L);
   std::vector<Real> inverse_buffer_(
       // Maximum of the sizes.
       *std::max_element(SHAPE.begin(), SHAPE.end()));
