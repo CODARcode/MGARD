@@ -131,6 +131,15 @@ public:
 private:
   //! Position in the index range.
   std::size_t inner;
+
+  // Perhaps these should be members of `TensorIndexRange` instead. I'm trying
+  // to make `operator*` as fast as possible since it's called so often.
+
+  //! Numerator of the index calculation.
+  std::size_t numerator;
+
+  //! Denominator of the index calculation.
+  std::size_t denominator;
 };
 
 template <std::size_t N> class TensorNode {

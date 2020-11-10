@@ -30,7 +30,12 @@ TensorIndexRange::iterator TensorIndexRange::end() const {
 
 TensorIndexRange::iterator::iterator(const TensorIndexRange &iterable,
                                      const std::size_t inner)
-    : iterable(&iterable), inner(inner) {
+    : iterable(&iterable), inner(inner), numerator(iterable.size_finest - 1),
+      denominator(iterable.size_coarse - 1) {
+  if (iterable.size_coarse <= 1) {
+    numerator = 0;
+    denominator = 1;
+  }
   // `inner == iterable.size_coarse` is allowed for the iterator to the end.
   if (inner > iterable.size_coarse) {
     throw std::invalid_argument("index position is too large");
@@ -73,11 +78,8 @@ TensorIndexRange::iterator TensorIndexRange::iterator::operator--(int) {
   return tmp;
 }
 
-// TODO: Look into making this test at construction.
 std::size_t TensorIndexRange::iterator::operator*() const {
-  return iterable->size_coarse > 1 ? (inner * (iterable->size_finest - 1)) /
-                                         (iterable->size_coarse - 1)
-                                   : 0;
+  return (inner * numerator) / denominator;
 }
 
 } // namespace mgard
