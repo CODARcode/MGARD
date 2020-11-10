@@ -3,46 +3,100 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "mgard_mesh.hpp"
-
 namespace mgard {
+
+static std::size_t log2(std::size_t n) {
+  if (!n) {
+    throw std::domain_error("can only take logarithm of positive numbers");
+  }
+  int exp;
+  for (exp = -1; n; ++exp, n >>= 1)
+    ;
+  return static_cast<std::size_t>(exp);
+}
+
+//! Compute `log2(n - 1)`.
+//!
+//!\param n Size of the mesh in a particular dimension.
+static std::size_t nlevel_from_size(const std::size_t n) {
+  if (n == 0) {
+    throw std::domain_error("size must be nonzero");
+  }
+  return log2(n - 1);
+}
+
+//! Compute `2^n + 1`.
+//!
+//!\param n Level index in a particular dimension (assuming a dyadic grid).
+static std::size_t size_from_nlevel(const std::size_t n) {
+  return (1 << n) + 1;
+}
 
 template <std::size_t N, typename Real>
 TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
     const TensorMeshLevel<N, Real> &mesh,
     const std::array<std::vector<Real>, N> &coordinates)
     : coordinates(coordinates) {
+  const std::array<std::size_t, N> &SHAPE = mesh.shape;
   for (std::size_t i = 0; i < N; ++i) {
-    if (coordinates.at(i).size() != mesh.shape.at(i)) {
+    if (coordinates.at(i).size() != SHAPE.at(i)) {
       throw std::invalid_argument("incorrect number of node coordinates given");
     }
   }
 
-  const Dimensions2kPlus1<N> dims(mesh.shape);
-  L = dims.nlevel;
-  if (!dims.is_2kplus1()) {
-    ++L;
-  }
-  meshes.reserve(L + 1);
-  // TODO: This will likely have to be revisited in the case that one of the
-  // dimensions is `1`.
-  // Find the dimensions of the coarsest mesh.
-  std::array<std::size_t, N> shape = dims.rnded;
-  for (std::size_t &n : shape) {
-    n -= 1;
-    n >>= dims.nlevel;
-    n += 1;
-  }
-  for (std::size_t i = 0; i <= static_cast<std::size_t>(dims.nlevel); ++i) {
-    meshes.push_back(TensorMeshLevel<N, Real>(shape));
-    for (std::size_t &n : shape) {
-      n -= 1;
-      n <<= 1;
-      n += 1;
+  bool any_nonflat = false;
+  bool any_nondyadic = false;
+  // Sizes rounded down to the nearest dyadic (`2^k + 1`) number. For this
+  // purpose, one is a dyadic number. Later we will use `shape` for the shape of
+  // the mesh currently being added to the hierarchy.
+  std::array<std::size_t, N> shape;
+  std::size_t L_dyadic = std::numeric_limits<std::size_t>::max();
+  for (std::size_t i = 0; i < N; ++i) {
+    const std::size_t size = SHAPE.at(i);
+    if (size == 0) {
+      throw std::domain_error(
+          "dataset must have size larger than 0 in every dimension");
+    } else if (size == 1) {
+      shape.at(i) = size;
+      continue;
+    } else {
+      any_nonflat = true;
+      const std::size_t l = nlevel_from_size(size);
+      L_dyadic = std::min(L_dyadic, l);
+      // Note the assignment to `shape.at(i)` always happens.
+      any_nondyadic =
+          (shape.at(i) = size_from_nlevel(l)) != size || any_nondyadic;
     }
   }
-  if (!dims.is_2kplus1()) {
-    meshes.push_back(mesh);
+  if (!any_nonflat) {
+    throw std::domain_error(
+        "dataset must have size larger than 1 in some dimension");
+  };
+  L = any_nondyadic ? L_dyadic + 1 : L_dyadic;
+  // TODO: Once `TensorMeshLevel` is removed, use `at` instead of `push_back`.
+  // Then we can start by setting the last element and then the last loop can
+  // just go from the start to one before the last.
+  meshes.reserve(L + 1);
+
+  for (std::size_t &n : shape) {
+    --n;
+    n >>= L_dyadic;
+    ++n;
+  }
+  // From now on `shape` will be the shape of the mesh currently being added to
+  // the hierarchy.
+
+  for (std::size_t i = 0; i <= L_dyadic; ++i) {
+    meshes.push_back(TensorMeshLevel<N, Real>(shape));
+    for (std::size_t &n : shape) {
+      --n;
+      n <<= 1;
+      ++n;
+    }
+  }
+
+  if (any_nondyadic) {
+    meshes.push_back(SHAPE);
   }
 
   for (std::size_t i = 0; i < N; ++i) {
