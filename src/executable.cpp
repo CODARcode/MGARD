@@ -13,79 +13,12 @@
 
 #include "mgard_api.h"
 
-struct DataShape {
-  std::vector<std::size_t> shape;
-
-  DataShape &operator=(const std::string &value) {
-    std::istringstream stream(value);
-    shape.clear();
-    std::string token;
-    while (std::getline(stream, token, 'x')) {
-      std::size_t dimension;
-      std::istringstream(token) >> dimension;
-      shape.push_back(dimension);
-    }
-    return *this;
-  }
-};
-
-namespace TCLAP {
-
-template <> struct ArgTraits<DataShape> { typedef StringLike ValueCategory; };
-
-} // namespace TCLAP
-
-struct CompressionArguments {
-  CompressionArguments(TCLAP::ValueArg<std::string> &datatype,
-                       TCLAP::ValueArg<DataShape> &shape,
-                       TCLAP::ValueArg<std::string> &input,
-                       TCLAP::ValueArg<double> &smoothness,
-                       TCLAP::ValueArg<double> &tolerance,
-                       TCLAP::ValueArg<std::string> &output)
-      : datatype(datatype.getValue()), shape(shape.getValue().shape),
-        dimension(this->shape.size()), coordinate_filenames(dimension),
-        input(input.getValue()), s(smoothness.getValue()),
-        tolerance(tolerance.getValue()), output(output.getValue()) {
-    for (std::size_t i = 0; i < dimension; ++i) {
-      std::stringstream filename;
-      filename << "coordinates_" << i << ".dat";
-      coordinate_filenames.at(i) = filename.str();
-    }
-  }
-
-  std::string datatype;
-
-  std::vector<std::size_t> shape;
-
-  std::size_t dimension;
-
-  std::vector<std::string> coordinate_filenames;
-
-  std::string input;
-
-  double s;
-
-  double tolerance;
-
-  std::string output;
-};
-
-YAML::Emitter &operator<<(YAML::Emitter &emitter,
-                          const CompressionArguments &arguments) {
-  emitter << YAML::BeginMap;
-  emitter << YAML::Key << "datatype" << YAML::Value << arguments.datatype;
-  emitter << YAML::Key << "shape" << YAML::Value << arguments.shape;
-  emitter << YAML::Key << "node coordinate files" << YAML::Value
-          << arguments.coordinate_filenames;
-  emitter << YAML::Key << "s" << YAML::Value << arguments.s;
-  emitter << YAML::Key << "tolerance" << YAML::Value << arguments.tolerance;
-  emitter << YAML::EndMap;
-  return emitter;
-}
+#include "metadata.hpp"
+#include "subcommand_arguments.hpp"
 
 void write_archive_entry(archive *const a, const std::string entryname,
                          void const *const data, const std::size_t size) {
-  archive_entry *const entry = archive_entry_new();
+  struct archive_entry *const entry = archive_entry_new();
   archive_entry_copy_pathname(entry, entryname.c_str());
   archive_entry_set_filetype(entry, AE_IFREG);
   archive_entry_set_perm(entry, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -103,10 +36,10 @@ void write_archive_entry(archive *const a, const std::string entryname,
 }
 
 template <std::size_t N, typename Real>
-void write_archive(const CompressionArguments &arguments,
+void write_archive(const cli::CompressionArguments &arguments,
                    const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
                    const mgard::CompressedDataset<N, Real> &compressed) {
-  archive *const a = archive_write_new();
+  struct archive *const a = archive_write_new();
   if (a == nullptr) {
     throw std::runtime_error("error creating new archive");
   }
@@ -117,8 +50,10 @@ void write_archive(const CompressionArguments &arguments,
     throw std::runtime_error("error opening the archive file");
   }
 
+  const cli::Metadata metadata(arguments);
+
   YAML::Emitter emitter;
-  emitter << arguments;
+  emitter << metadata;
   write_archive_entry(a, "metadata.yaml", emitter.c_str(), emitter.size());
 
   write_archive_entry(a, "coefficients.dat", compressed.data(),
@@ -135,8 +70,22 @@ void write_archive(const CompressionArguments &arguments,
   }
 }
 
+template <typename T>
+std::ostream &operator<<(std::ostream &stream, const std::vector<T> &values) {
+  const std::size_t N = values.size();
+  stream << "{";
+  for (std::size_t i = 0; i + 1 < N; ++i) {
+    stream << values.at(i) << ", ";
+  }
+  if (N) {
+    stream << values.at(N - 1);
+  }
+  stream << "}";
+  return stream;
+}
+
 template <std::size_t N, typename Real>
-int read_compress_write(const CompressionArguments &arguments) {
+int read_compress_write(const cli::CompressionArguments &arguments) {
   std::array<std::size_t, N> shape;
   std::copy(arguments.shape.begin(), arguments.shape.end(), shape.begin());
   const mgard::TensorMeshHierarchy<N, Real> hierarchy(shape);
@@ -198,7 +147,7 @@ int compress(const int argc, char const *const *const argv) {
         &datatype_constraint);
     cmd.add(datatype);
 
-    TCLAP::ValueArg<DataShape> shape(
+    TCLAP::ValueArg<cli::DataShape> shape(
         "", "shape", "shape of the data", true, {},
         "the shape of the data, given as an 'x'-delimited list of the "
         "dimensions of the array");
@@ -227,8 +176,8 @@ int compress(const int argc, char const *const *const argv) {
 
     cmd.parse(argc, argv);
 
-    const CompressionArguments arguments(datatype, shape, input, smoothness,
-                                         tolerance, output);
+    const cli::CompressionArguments arguments(datatype, shape, input,
+                                              smoothness, tolerance, output);
 
     std::cout << "summary of arguments passed:" << std::endl;
     std::cout << "  datatype: " << arguments.datatype << std::endl;
