@@ -12,6 +12,40 @@
 #include "shuffle.hpp"
 #include "utilities.hpp"
 
+TEST_CASE("hierarchy mesh shapes", "[TensorMeshHierarchy]") {
+  {
+    const std::array<std::size_t, 1> shape = {5};
+    const mgard::TensorMeshHierarchy<1, float> hierarchy(shape);
+    REQUIRE(hierarchy.L == 2);
+
+    REQUIRE(hierarchy.meshes.back().shape == shape);
+  }
+  {
+    const mgard::TensorMeshHierarchy<2, float> hierarchy({11, 32});
+    REQUIRE(hierarchy.L == 4);
+
+    const std::array<std::size_t, 2> expected = {9, 17};
+    REQUIRE(hierarchy.meshes.at(3).shape == expected);
+  }
+  {
+    const std::array<std::size_t, 5> shape = {1, 257, 129, 129, 1};
+    const mgard::TensorMeshHierarchy<5, float> hierarchy(shape);
+    REQUIRE(hierarchy.L == 7);
+
+    REQUIRE(hierarchy.meshes.back().shape == shape);
+  }
+  {
+    const mgard::TensorMeshHierarchy<2, float> hierarchy({6, 5});
+    REQUIRE(hierarchy.L == 3);
+
+    const std::array<std::size_t, 2> expected = {5, 5};
+    REQUIRE(hierarchy.meshes.at(2).shape == expected);
+  }
+
+  REQUIRE_THROWS(mgard::TensorMeshHierarchy<3, float>({1, 1, 1}));
+  REQUIRE_THROWS(mgard::TensorMeshHierarchy<2, float>({17, 0}));
+}
+
 TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
   {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({17});

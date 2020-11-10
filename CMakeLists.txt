@@ -149,7 +149,6 @@ find_package(ZSTD)
 
 # Set library
 add_library(mgard
-  src/mgard_mesh.cpp  include/mgard_mesh.hpp
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/TensorMeshHierarchyIteration.cpp  include/TensorMeshHierarchyIteration.hpp include/TensorMeshHierarchyIteration.tpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
