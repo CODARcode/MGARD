@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "TensorMeshHierarchyIteration.hpp"
-#include "TensorMeshLevel.hpp"
 #include "utilities.hpp"
 
 namespace mgard {
@@ -19,22 +18,6 @@ namespace mgard {
 //! Hierarchy of meshes produced by subsampling an initial mesh.
 template <std::size_t N, typename Real> class TensorMeshHierarchy {
 public:
-  //! Constructor.
-  //!
-  //!\param mesh Initial, finest mesh to sit atop the hierarchy.
-  TensorMeshHierarchy(const TensorMeshLevel<N, Real> &mesh);
-
-  //! Constructor.
-  //!
-  //!\param mesh Initial, finest mesh to sit atop the hierarchy.
-  //!\param coordinates Coordinates of the nodes in the finest mesh.
-  TensorMeshHierarchy(const TensorMeshLevel<N, Real> &mesh,
-                      const std::array<std::vector<Real>, N> &coordinates);
-
-  // TODO: We may want to remove these. Using it refactoring.
-  // TODO: Instead, we may want to remove the previous constructors. Check
-  // whether `TensorMeshLevel` is needed anywhere.
-
   //! Constructor.
   //!
   //!\param shape Shape of the initial, finest mesh to sit atop the hiearachy.
@@ -47,12 +30,12 @@ public:
   TensorMeshHierarchy(const std::array<std::size_t, N> &shape,
                       const std::array<std::vector<Real>, N> &coordinates);
 
-  //! Report the number of degrees of freedom in the finest TensorMeshLevel.
+  //! Report the number of degrees of freedom in the finest mesh.
   std::size_t ndof() const;
 
-  //! Report the number of degrees of freedom in a TensorMeshLevel.
+  //! Report the number of degrees of freedom in a mesh.
   //!
-  //!\param l Index of the TensorMeshLevel.
+  //!\param l Index of the mesh.
   std::size_t ndof(const std::size_t l) const;
 
   //! Generate the indices (in a particular dimension) of a mesh level.
@@ -97,13 +80,13 @@ public:
   const Real &at(Real const *const u,
                  const std::array<std::size_t, N> multiindex) const;
 
-  //! Meshes composing the hierarchy, in 'increasing' order.
-  std::vector<TensorMeshLevel<N, Real>> meshes;
+  //! Shapes of the meshes composing the hierarchy, in 'increasing' order.
+  std::vector<std::array<std::size_t, N>> shapes;
 
   //! Coordinates of the nodes in the finest mesh.
   std::array<std::vector<Real>, N> coordinates;
 
-  //! Index of finest TensorMeshLevel.
+  //! Index of finest mesh.
   std::size_t L;
 
   //! For each dimension, for each node in the finest level, the index of the

@@ -18,28 +18,28 @@ TEST_CASE("hierarchy mesh shapes", "[TensorMeshHierarchy]") {
     const mgard::TensorMeshHierarchy<1, float> hierarchy(shape);
     REQUIRE(hierarchy.L == 2);
 
-    REQUIRE(hierarchy.meshes.back().shape == shape);
+    REQUIRE(hierarchy.shapes.back() == shape);
   }
   {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({11, 32});
     REQUIRE(hierarchy.L == 4);
 
     const std::array<std::size_t, 2> expected = {9, 17};
-    REQUIRE(hierarchy.meshes.at(3).shape == expected);
+    REQUIRE(hierarchy.shapes.at(3) == expected);
   }
   {
     const std::array<std::size_t, 5> shape = {1, 257, 129, 129, 1};
     const mgard::TensorMeshHierarchy<5, float> hierarchy(shape);
     REQUIRE(hierarchy.L == 7);
 
-    REQUIRE(hierarchy.meshes.back().shape == shape);
+    REQUIRE(hierarchy.shapes.back() == shape);
   }
   {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({6, 5});
     REQUIRE(hierarchy.L == 3);
 
     const std::array<std::size_t, 2> expected = {5, 5};
-    REQUIRE(hierarchy.meshes.at(2).shape == expected);
+    REQUIRE(hierarchy.shapes.at(2) == expected);
   }
 
   REQUIRE_THROWS(mgard::TensorMeshHierarchy<3, float>({1, 1, 1}));
@@ -61,19 +61,25 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
   {
     const mgard::TensorMeshHierarchy<2, double> hierarchy({12, 39});
     REQUIRE(hierarchy.L == 4);
-    std::vector<std::array<std::size_t, 2>> shapes(hierarchy.L + 1);
+    std::vector<std::size_t> ndofs(hierarchy.L + 1);
     for (std::size_t l = 0; l <= hierarchy.L; ++l) {
-      shapes.at(l) = hierarchy.meshes.at(l).shape;
+      ndofs.at(l) = hierarchy.ndof(l);
     }
-    const std::vector<std::array<std::size_t, 2>> expected = {
-        {2, 5}, {3, 9}, {5, 17}, {9, 33}, {12, 39}};
-    REQUIRE(shapes == expected);
+    {
+      const std::vector<std::array<std::size_t, 2>> expected = {
+          {2, 5}, {3, 9}, {5, 17}, {9, 33}, {12, 39}};
+      REQUIRE(hierarchy.shapes == expected);
+    }
+    {
+      const std::vector<std::size_t> expected = {10, 27, 85, 297, 468};
+      REQUIRE(ndofs == expected);
+    }
 
-    const mgard::TensorMeshLevel<2, double> &MESH = hierarchy.meshes.back();
+    const std::array<std::size_t, 2> &SHAPE = hierarchy.shapes.back();
     TrialTracker tracker;
     for (std::size_t i = 0; i < 2; ++i) {
       const std::vector<double> &xs = hierarchy.coordinates.at(i);
-      const std::size_t n = MESH.shape.at(i);
+      const std::size_t n = SHAPE.at(i);
       for (std::size_t j = 0; j < n; ++j) {
         tracker += xs.at(j) == Approx(static_cast<double>(j) / (n - 1));
       }
@@ -83,15 +89,11 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
   {
     const mgard::TensorMeshHierarchy<3, double> hierarchy({15, 6, 129});
     REQUIRE(hierarchy.L == 3);
-    std::vector<std::array<std::size_t, 3>> shapes(hierarchy.L + 1);
-    for (std::size_t l = 0; l <= hierarchy.L; ++l) {
-      shapes.at(l) = hierarchy.meshes.at(l).shape;
-    }
     // Note that the final dimension doesn't begin decreasing until every index
     // is of the form `2^k + 1`.
     const std::vector<std::array<std::size_t, 3>> expected = {
         {3, 2, 33}, {5, 3, 65}, {9, 5, 129}, {15, 6, 129}};
-    REQUIRE(shapes == expected);
+    REQUIRE(hierarchy.shapes == expected);
   }
   {
     const mgard::TensorMeshHierarchy<3, float> hierarchy(
@@ -419,7 +421,7 @@ TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {
     const mgard::TensorMeshHierarchy<2, double> hierarchy({6, 3});
     std::vector<std::size_t> encountered;
     const mgard::MultiindexRectangle<2> multiindices(
-        hierarchy.meshes.at(hierarchy.L).shape);
+        hierarchy.shapes.at(hierarchy.L));
     for (const std::array<std::size_t, 2> multiindex :
          multiindices.indices(1)) {
       encountered.push_back(hierarchy.date_of_birth(multiindex));
