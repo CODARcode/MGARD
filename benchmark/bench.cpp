@@ -14,10 +14,15 @@
 #include "data.hpp"
 
 #include "TensorMassMatrix.hpp"
+#include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorProlongation.hpp"
 #include "TensorRestriction.hpp"
 #include "mgard.hpp"
 #include "shuffle.hpp"
+
+#define LOG_RANGE_LO 10
+#define LOG_RANGE_MD 20
+#define LOG_RANGE_HI 25
 
 template <std::size_t N>
 static std::array<std::size_t, N> mesh_shape(const std::size_t M) {
@@ -49,7 +54,7 @@ static void BM_TensorLinearOperator(benchmark::State &state) {
 
 #define TLO_BENCHMARK_OPTIONS                                                  \
   ->RangeMultiplier(2)                                                         \
-      ->Range(1 << 10, 1 << 25)                                                \
+      ->Range(1 << LOG_RANGE_LO, 1 << LOG_RANGE_HI)                            \
       ->Unit(benchmark::kMillisecond)                                          \
       ->Complexity()
 
@@ -109,7 +114,7 @@ static void BM_structured_unshuffle(benchmark::State &state) {
 
 #define SHUFFLE_UNSHUFFLE_BENCHMARK_OPTIONS                                    \
   ->RangeMultiplier(2)                                                         \
-      ->Range(1 << 10, 1 << 25)                                                \
+      ->Range(1 << LOG_RANGE_LO, 1 << LOG_RANGE_HI)                            \
       ->Unit(benchmark::kMillisecond)                                          \
       ->Complexity()
 
@@ -155,7 +160,7 @@ static void BM_structured_recompose(benchmark::State &state) {
 
 #define DECOMPOSE_RECOMPOSE_BENCHMARK_OPTIONS                                  \
   ->RangeMultiplier(2)                                                         \
-      ->Range(1 << 10, 1 << 25)                                                \
+      ->Range(1 << LOG_RANGE_LO, 1 << LOG_RANGE_HI)                            \
       ->Unit(benchmark::kMillisecond)                                          \
       ->Complexity()
 
@@ -168,6 +173,127 @@ static void BM_structured_recompose(benchmark::State &state) {
 DECOMPOSE_RECOMPOSE_BENCHMARK(1, double);
 DECOMPOSE_RECOMPOSE_BENCHMARK(2, double);
 DECOMPOSE_RECOMPOSE_BENCHMARK(3, double);
+
+template <std::size_t N, typename Real, typename Int>
+static void BM_structured_quantize(benchmark::State &state) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(
+      mesh_shape<N>(state.range(0)));
+
+  const std::size_t ndof = hierarchy.ndof();
+  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  std::fill(u, u + ndof, 3);
+  const Real s = 1;
+  const Real tolerance = 0.75;
+  const mgard::TensorMultilevelCoefficientQuantizer<N, Real, Int> quantizer(
+      hierarchy, s, tolerance);
+
+  Int total = 0;
+  for (auto _ : state) {
+    for (const Int n : quantizer(u)) {
+      total += n;
+    }
+  }
+  std::free(u);
+
+  state.SetComplexityN(ndof);
+}
+
+template <std::size_t N, typename Int, typename Real>
+static void BM_structured_dequantize(benchmark::State &state) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(
+      mesh_shape<N>(state.range(0)));
+
+  const std::size_t ndof = hierarchy.ndof();
+  Int *const n = static_cast<Int *>(std::malloc(ndof * sizeof(int)));
+  std::fill(n, n + ndof, -2);
+  const Real s = -1;
+  const Real tolerance = 0.25;
+  const mgard::TensorMultilevelCoefficientDequantizer<N, Int, Real> dequantizer(
+      hierarchy, s, tolerance);
+
+  Real total = 0;
+  for (auto _ : state) {
+    for (const Real x : dequantizer(n, n + ndof)) {
+      total += x;
+    }
+  }
+  std::free(n);
+
+  state.SetComplexityN(ndof);
+}
+
+#define QUANTIZE_DEQUANTIZE_BENCHMARK_OPTIONS                                  \
+  ->RangeMultiplier(2)                                                         \
+      ->Range(1 << LOG_RANGE_LO, 1 << LOG_RANGE_HI)                            \
+      ->Unit(benchmark::kMillisecond)                                          \
+      ->Complexity()
+
+#define QUANTIZE_DEQUANTIZE_BENCHMARK(N, Real, Int)                            \
+  BENCHMARK_TEMPLATE(BM_structured_quantize, N, Real, Int)                     \
+  QUANTIZE_DEQUANTIZE_BENCHMARK_OPTIONS;                                       \
+  BENCHMARK_TEMPLATE(BM_structured_dequantize, N, Int, Real)                   \
+  QUANTIZE_DEQUANTIZE_BENCHMARK_OPTIONS
+
+QUANTIZE_DEQUANTIZE_BENCHMARK(1, double, int);
+QUANTIZE_DEQUANTIZE_BENCHMARK(2, double, int);
+QUANTIZE_DEQUANTIZE_BENCHMARK(3, double, int);
+
+template <std::size_t N, typename Real>
+static void BM_structured_compress(benchmark::State &state) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(
+      mesh_shape<N>(state.range(0)));
+
+  const std::size_t ndof = hierarchy.ndof();
+  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  const Real s = 0;
+  const Real tolerance = 0.5;
+  for (auto _ : state) {
+    // TODO: Think of a better way to do this.
+    std::fill(u, u + ndof, 0);
+    mgard::compress(hierarchy, u, s, tolerance);
+  }
+  std::free(u);
+
+  state.SetComplexityN(ndof);
+}
+
+template <std::size_t N, typename Real>
+static void BM_structured_decompress(benchmark::State &state) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy(
+      mesh_shape<N>(state.range(0)));
+
+  const std::size_t ndof = hierarchy.ndof();
+  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  // TODO: Think of a better way to do this.
+  std::fill(u, u + ndof, 0);
+  const Real s = 0;
+  const Real tolerance = 0.5;
+  const mgard::CompressedDataset<N, Real> compressed =
+      mgard::compress(hierarchy, u, s, tolerance);
+
+  for (auto _ : state) {
+    mgard::decompress(compressed);
+  }
+  std::free(u);
+
+  state.SetComplexityN(ndof);
+}
+
+#define COMPRESS_DECOMPRESS_BENCHMARK_OPTIONS                                  \
+  ->RangeMultiplier(2)                                                         \
+      ->Range(1 << LOG_RANGE_LO, 1 << LOG_RANGE_MD)                            \
+      ->Unit(benchmark::kMillisecond)                                          \
+      ->Complexity()
+
+#define COMPRESS_DECOMPRESS_BENCHMARK(N, Real)                                 \
+  BENCHMARK_TEMPLATE(BM_structured_compress, N, Real)                          \
+  COMPRESS_DECOMPRESS_BENCHMARK_OPTIONS;                                       \
+  BENCHMARK_TEMPLATE(BM_structured_decompress, N, Real)                        \
+  COMPRESS_DECOMPRESS_BENCHMARK_OPTIONS
+
+COMPRESS_DECOMPRESS_BENCHMARK(1, double);
+COMPRESS_DECOMPRESS_BENCHMARK(2, double);
+COMPRESS_DECOMPRESS_BENCHMARK(3, double);
 
 static mgard::UniformMeshHierarchy
 read_mesh_and_refine(moab::Core &mbcore, const std::string &filename,
