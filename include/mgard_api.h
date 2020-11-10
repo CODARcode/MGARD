@@ -23,6 +23,7 @@ public:
   //! Constructor.
   //!
   //! The buffer pointed to by `data` is freed when this object is destructed.
+  //! It should be allocated with `new unsigned char[size]`.
   //!
   //!\param hierarchy Associated mesh hierarchy.
   //!\param s Smoothness parameter.
@@ -62,6 +63,7 @@ public:
   //! Constructor.
   //!
   //! The buffer pointed to by `data` is freed when this object is destructed.
+  //! It should be allocated with `new unsigned char[size]`.
   //!
   //!\param compressed Compressed dataset which was decompressed.
   //!\param data Nodal values of the decompressed function.
