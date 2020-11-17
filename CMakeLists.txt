@@ -144,7 +144,6 @@ endif()
 
 # Dependencies
 find_package(ZLIB REQUIRED)
-find_package(ADIOS2)
 find_package(ZSTD)
 find_package(MOAB)
 
