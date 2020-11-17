@@ -13,17 +13,6 @@ fi
 
 cd ${SOURCE_DIR}
 
-cp tests/gray-scott/adios2.xml .
-mpirun -n 3 build/bin/gray-scott tests/gray-scott/simulation/settings-files.json
-
-if [ $? -eq 0 ]
-then
-  echo "Successfully ran Gray–Scott test"
-else
-  echo "Error in Gray–Scott test" >&2
-  exit 1
-fi
-
 make check
 
 if [ $? -eq 0 ]
