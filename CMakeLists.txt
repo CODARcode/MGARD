@@ -147,11 +147,69 @@ find_package(ZLIB REQUIRED)
 find_package(ADIOS2)
 find_package(ZSTD)
 
+#MOAB for unstructured meshes.
+find_package(MOAB)
+
+if(MOAB_FOUND)
+	set(MGARD_MOAB_HEADER
+include/blas.hpp
+include/utilities.hpp
+include/data.hpp
+include/UniformEdgeFamilies.hpp
+include/LinearQuantizer.hpp
+include/SituatedCoefficientRange.hpp
+include/MultilevelCoefficientQuantizer.hpp
+
+include/measure.hpp
+include/LinearOperator.hpp
+include/pcg.hpp
+include/MassMatrix.hpp
+include/MeshLevel.hpp
+include/MeshHierarchy.hpp
+include/MeshRefiner.hpp
+include/UniformMeshRefiner.hpp
+include/UniformMeshHierarchy.hpp
+include/UniformRestriction.hpp
+include/norms.hpp
+include/estimators.hpp
+include/EnumeratedMeshRange.hpp
+include/indicators.hpp
+include/IndicatorInput.hpp
+	)
+	set(MGARD_MOAB_TEMPLATE_DEFINITIONS
+include/blas.tpp
+include/utilities.tpp
+include/data.tpp
+include/UniformEdgeFamilies.tpp
+include/LinearQuantizer.tpp
+include/SituatedCoefficientRange.tpp
+include/MultilevelCoefficientQuantizer.tpp
+	)
+	set(MGARD_MOAB_SOURCE
+src/measure.cpp
+src/LinearOperator.cpp
+src/pcg.cpp
+src/MassMatrix.cpp
+src/MeshLevel.cpp
+src/MeshHierarchy.cpp
+src/MeshRefiner.cpp
+src/UniformMeshRefiner.cpp
+src/UniformMeshHierarchy.cpp
+src/UniformRestriction.cpp
+src/norms.cpp
+src/estimators.cpp
+src/EnumeratedMeshRange.cpp
+src/indicators.cpp
+src/IndicatorInput.cpp
+	)
+endif()
+
 # Set library
 add_library(mgard
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/TensorMeshHierarchyIteration.cpp  include/TensorMeshHierarchyIteration.hpp include/TensorMeshHierarchyIteration.tpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
+  ${MGARD_MOAB_HEADER} ${MGARD_MOAB_TEMPLATE_DEFINITIONS} ${MGARD_MOAB_SOURCE}
 )
 
 target_include_directories(mgard
@@ -159,6 +217,7 @@ target_include_directories(mgard
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mgard>
+  ${MOAB_INCLUDE_DIRS}
 )
 target_link_libraries(mgard PRIVATE ZLIB::ZLIB  ${CMAKE_DL_LIBS})
 if(ZSTD_FOUND)
@@ -274,3 +333,4 @@ message("  Shared Lib: ${BUILD_SHARED_LIBS}")
 message("     Testing: ${BUILD_TESTING}")
 message("        CUDA: ${MGARD_ENABLE_CUDA}")
 message("  CUDA-Debug: ${MGARD_ENABLE_CUDA_DEBUG}")
+message("        MOAB: ${MOAB_FOUND}")

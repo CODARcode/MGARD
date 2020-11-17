@@ -28,10 +28,10 @@ install:
   - popd
   - pip install --user flake8
   - git config --global clangformat.binary ${HOME}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin/clang-format
-  - mkdir build && pushd build && cmake .. && make && popd
   - ./scripts/travis/build-cppcheck.sh
   - ./scripts/travis/build-moab.sh
   - pushd "${HOME}" && mkdir --parents .local/include/catch2 && mv catch.hpp .local/include/catch2 && popd
+  - mkdir build && pushd build && cmake .. && make && popd
 env:
   matrix:
     - BUILD_MATRIX_ENTRY=format
