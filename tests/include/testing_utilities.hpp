@@ -4,7 +4,6 @@
 #include <cstddef>
 
 #include <array>
-#include <experimental/filesystem>
 #include <ostream>
 #include <random>
 #include <string>
@@ -14,9 +13,9 @@ static const double APPROX_MARGIN_DEFAULT = 0;
 
 #include "TensorMeshHierarchy.hpp"
 
-std::experimental::filesystem::path mesh_path(const std::string &filename);
+std::string mesh_path(const std::string &filename);
 
-std::experimental::filesystem::path output_path(const std::string &filename);
+std::string output_path(const std::string &filename);
 
 void require_moab_success(const moab::ErrorCode ecode);
 

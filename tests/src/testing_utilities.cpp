@@ -4,12 +4,24 @@
 
 #include "moab/EntityType.hpp"
 
-std::experimental::filesystem::path mesh_path(const std::string &filename) {
-  return std::experimental::filesystem::path("tests") / "meshes" / filename;
+std::string mesh_path(const std::string &filename) {
+  std::string path;
+  path += "tests";
+  path += "/";
+  path += "meshes";
+  path += "/";
+  path += filename;
+  return path;
 }
 
-std::experimental::filesystem::path output_path(const std::string &filename) {
-  return std::experimental::filesystem::path("tests") / "outputs" / filename;
+std::string output_path(const std::string &filename) {
+  std::string path;
+  path += "tests";
+  path += "/";
+  path += "outputs";
+  path += "/";
+  path += filename;
+  return path;
 }
 
 void require_moab_success(const moab::ErrorCode ecode) {

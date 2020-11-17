@@ -1,4 +1,5 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_approx.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 #include <cstddef>
 
@@ -33,7 +34,7 @@ TEST_CASE("edge measure", "[measure]") {
   const std::size_t N = 6;
   const double a[N] = {0, 0, 0, 1, -2, 3};
   const double base_length = mgard::edge_measure(a);
-  REQUIRE(base_length == Approx(std::sqrt(14)));
+  REQUIRE(base_length == Catch::Approx(std::sqrt(14)));
 
   SECTION("edge measure respects translation invariance") {
     double b[N];
@@ -42,7 +43,7 @@ TEST_CASE("edge measure", "[measure]") {
     for (std::size_t i = 0; i < N; i += 3) {
       blas::axpy(3, 1.0, shift, b + i);
     }
-    REQUIRE(mgard::edge_measure(b) == Approx(base_length));
+    REQUIRE(mgard::edge_measure(b) == Catch::Approx(base_length));
   }
 
   SECTION("edge measure behaves properly under dilation") {
@@ -54,7 +55,7 @@ TEST_CASE("edge measure", "[measure]") {
       blas::scal(N, factor, b);
       // Relying on `factor` being nonnegative here.
       const double expected = factor * base_length;
-      REQUIRE(mgard::edge_measure(b) == Approx(expected));
+      REQUIRE(mgard::edge_measure(b) == Catch::Approx(expected));
     }
   }
 
@@ -62,7 +63,7 @@ TEST_CASE("edge measure", "[measure]") {
     double b[N];
     blas::copy(3, a + 0, b + 3);
     blas::copy(3, a + 3, b + 0);
-    REQUIRE(mgard::edge_measure(b) == Approx(base_length));
+    REQUIRE(mgard::edge_measure(b) == Catch::Approx(base_length));
   }
 }
 
@@ -72,7 +73,7 @@ TEST_CASE("triangle measure", "[measure]") {
   const double base_area = mgard::tri_measure(a);
   {
     const double expected = 4.242640687119284;
-    REQUIRE(base_area == Approx(expected));
+    REQUIRE(base_area == Catch::Approx(expected));
   }
 
   SECTION("triangle measure respects translation invariance") {
@@ -82,7 +83,7 @@ TEST_CASE("triangle measure", "[measure]") {
     for (std::size_t i = 0; i < N; i += 3) {
       blas::axpy(3, 1.0, shift, b + i);
     }
-    REQUIRE(mgard::tri_measure(b) == Approx(base_area));
+    REQUIRE(mgard::tri_measure(b) == Catch::Approx(base_area));
   }
 
   SECTION("triangle measure behaves properly under dilation") {
@@ -93,7 +94,7 @@ TEST_CASE("triangle measure", "[measure]") {
       // Scale all vertices at once.
       blas::scal(N, factor, b);
       const double expected = factor * factor * base_area;
-      REQUIRE(mgard::tri_measure(b) == Approx(expected));
+      REQUIRE(mgard::tri_measure(b) == Catch::Approx(expected));
     }
   }
 
@@ -102,7 +103,7 @@ TEST_CASE("triangle measure", "[measure]") {
     blas::copy(3, a + 0, b + 3);
     blas::copy(3, a + 3, b + 6);
     blas::copy(3, a + 6, b + 0);
-    REQUIRE(mgard::tri_measure(b) == Approx(base_area));
+    REQUIRE(mgard::tri_measure(b) == Catch::Approx(base_area));
   }
 }
 
@@ -112,7 +113,7 @@ TEST_CASE("tetrahedron measure", "[measure]") {
   const double base_volume = mgard::tet_measure(a);
   {
     const double expected = 8. / 6.;
-    REQUIRE(base_volume == Approx(expected));
+    REQUIRE(base_volume == Catch::Approx(expected));
   }
 
   SECTION("tetrahedron measure respects translation invariance") {
@@ -122,7 +123,7 @@ TEST_CASE("tetrahedron measure", "[measure]") {
     for (std::size_t i = 0; i < N; i += 3) {
       blas::axpy(3, 1.0, shift, b + i);
     }
-    REQUIRE(mgard::tet_measure(b) == Approx(base_volume));
+    REQUIRE(mgard::tet_measure(b) == Catch::Approx(base_volume));
   }
 
   SECTION("tetrahedron measure behaves properly under dilation") {
@@ -134,7 +135,7 @@ TEST_CASE("tetrahedron measure", "[measure]") {
       blas::scal(N, factor, b);
       // Relying on `factor` being nonnegative here.
       const double expected = factor * factor * factor * base_volume;
-      REQUIRE(mgard::tet_measure(b) == Approx(expected));
+      REQUIRE(mgard::tet_measure(b) == Catch::Approx(expected));
     }
   }
 
@@ -144,6 +145,6 @@ TEST_CASE("tetrahedron measure", "[measure]") {
     blas::copy(3, a + 3, b + 0);
     blas::copy(3, a + 6, b + 9);
     blas::copy(3, a + 9, b + 3);
-    REQUIRE(mgard::tet_measure(b) == Approx(base_volume));
+    REQUIRE(mgard::tet_measure(b) == Catch::Approx(base_volume));
   }
 }

@@ -11,13 +11,17 @@ addons:
       - autogen
       - libtool
       - liblapack-dev
+#Packages needed for the executable.
+      - libarchive-dev
+      - libyaml-cpp-dev
+      - libtclap-dev
 before_install:
   - pushd ${HOME}
   - wget http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
   - wget https://github.com/Kitware/CMake/releases/download/v3.15.5/cmake-3.15.5-Linux-x86_64.tar.gz
   - wget https://github.com/danmar/cppcheck/archive/1.87.tar.gz
   - git clone https://bitbucket.org/fathomteam/moab.git
-  - wget https://github.com/catchorg/Catch2/releases/download/v2.11.3/catch.hpp
+  - git clone https://github.com/catchorg/Catch2.git
   - popd
 install:
   - pushd ${HOME}
@@ -30,7 +34,7 @@ install:
   - git config --global clangformat.binary ${HOME}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin/clang-format
   - ./scripts/travis/build-cppcheck.sh
   - ./scripts/travis/build-moab.sh
-  - pushd "${HOME}" && mkdir --parents .local/include/catch2 && mv catch.hpp .local/include/catch2 && popd
+  - ./scripts/travis/build-catch2.sh
   - mkdir build && pushd build && cmake .. && make && popd
 env:
   matrix:

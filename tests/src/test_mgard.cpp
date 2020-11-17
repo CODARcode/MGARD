@@ -1,4 +1,5 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_approx.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 #include <cstddef>
 
@@ -51,7 +52,7 @@ void test_dyadic_uniform_decomposition(
     tracker += expected.size() == ndof;
     for (std::size_t i = 0; i < ndof; ++i) {
       // Got some small errors here when run on Travis.
-      tracker += buffer_.at(i) == Approx(expected.at(i)).epsilon(1e-4);
+      tracker += buffer_.at(i) == Catch::Approx(expected.at(i)).epsilon(1e-4);
     }
     REQUIRE(tracker);
   }
@@ -79,7 +80,7 @@ void test_dyadic_uniform_recomposition(
     tracker += expected.size() == ndof;
     for (std::size_t i = 0; i < ndof; ++i) {
       // Got a single very small error in the 3D example.
-      tracker += buffer_.at(i) == Approx(expected.at(i)).epsilon(0.0001);
+      tracker += buffer_.at(i) == Catch::Approx(expected.at(i)).epsilon(0.0001);
     }
     REQUIRE(tracker);
   }
@@ -121,9 +122,9 @@ void test_decomposition_linearity(
   TrialTracker tracker;
   for (std::size_t i = 0; i < ndof; ++i) {
     // Encountering a few small errors (and more with optimizations turned on).
-    tracker +=
-        w_.at(i) ==
-        Approx(alpha * u_.at(i) + v_.at(i)).epsilon(0.001).margin(0.000001);
+    tracker += w_.at(i) == Catch::Approx(alpha * u_.at(i) + v_.at(i))
+                               .epsilon(0.001)
+                               .margin(0.000001);
   }
   REQUIRE(tracker);
 }
@@ -159,9 +160,9 @@ void test_recomposition_linearity(
   TrialTracker tracker;
   for (std::size_t i = 0; i < ndof; ++i) {
     // Encountering a few small errors (and more with optimizations turned on).
-    tracker +=
-        w_.at(i) ==
-        Approx(alpha * u_.at(i) + v_.at(i)).epsilon(0.001).margin(0.000001);
+    tracker += w_.at(i) == Catch::Approx(alpha * u_.at(i) + v_.at(i))
+                               .epsilon(0.001)
+                               .margin(0.000001);
   }
   REQUIRE(tracker);
 }
@@ -240,7 +241,7 @@ void test_recomposition_with_zero_coefficients(
 
   TrialTracker tracker;
   for (std::size_t i = 0; i < ndof; ++i) {
-    tracker += u_.at(i) == Approx(v_.at(i));
+    tracker += u_.at(i) == Catch::Approx(v_.at(i));
   }
   REQUIRE(tracker);
 }
@@ -422,7 +423,7 @@ TEST_CASE("decomposition", "[mgard]") {
     const std::array<float, ndof> expected = {{6.125, -3.5, 2.375}};
     TrialTracker tracker;
     for (std::size_t i = 0; i < ndof; ++i) {
-      tracker += buffer_.at(i) == Approx(expected.at(i));
+      tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
     }
     REQUIRE(tracker);
   }
