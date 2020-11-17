@@ -316,6 +316,13 @@ install(
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT dev
 )
 
+#Google Benchmark for benchmarks. See <https://github.com/google/benchmark>.
+find_package(benchmark)
+
+add_executable(mgard-benchmarks src/benchmarks.cpp)
+target_link_libraries(mgard-benchmarks benchmark::benchmark benchmark::benchmark_main mgard-library)
+set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
+
 message("-- Configuration summary:")
 message("")
 message("  Installation prefix: ${CMAKE_INSTALL_PREFIX}")
