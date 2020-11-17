@@ -210,6 +210,14 @@ add_library(mgard-library STATIC
 )
 set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
+target_compile_options(mgard-library PUBLIC -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	target_compile_options(mgard-library PUBLIC -fsanitize=address -fsanitize=undefined)
+	target_link_libraries(mgard-library PUBLIC -fsanitize=address -fsanitize=undefined)
+else()
+	target_compile_options(mgard-library PUBLIC -march=native -ffast-math -fno-finite-math-only)
+endif()
+
 target_include_directories(mgard-library
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -217,9 +225,9 @@ target_include_directories(mgard-library
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mgard>
   ${MOAB_INCLUDE_DIRS}
 )
-target_link_libraries(mgard-library PRIVATE ZLIB::ZLIB ${CMAKE_DL_LIBS} PUBLIC ${MOAB_LIBRARIES})
+target_link_libraries(mgard-library PRIVATE ZLIB::ZLIB PUBLIC ${MOAB_LIBRARIES})
 if(ZSTD_FOUND)
-  target_link_libraries(mgard-library PRIVATE ZSTD::ZSTD ${CMAKE_DL_LIBS})
+  target_link_libraries(mgard-library PRIVATE ZSTD::ZSTD)
 endif()
 
 option(DEFINE_MGARD_TIMING "Enable/disable MGARD timing" OFF)
@@ -269,6 +277,51 @@ if(BUILD_TESTING)
 #  enable_testing()
   add_subdirectory(tests)
 endif()
+
+add_executable(
+mgard-tests
+tests/include/testing_random.hpp tests/include/testing_random.tpp
+tests/include/testing_utilities.hpp tests/include/testing_utilities.tpp tests/src/testing_utilities.cpp
+tests/src/test_blas.cpp
+tests/src/test_estimators.cpp
+tests/src/test_indicators.cpp
+tests/src/test_norms.cpp
+tests/src/test_data.cpp
+tests/src/test_pcg.cpp
+tests/src/test_measure.cpp
+tests/src/test_utilities.cpp
+tests/src/test_MeshLevel.cpp
+tests/src/test_MeshHierarchy.cpp
+tests/src/test_MeshRefiner.cpp
+tests/src/test_LinearOperator.cpp
+tests/src/test_MassMatrix.cpp
+tests/src/test_LinearQuantizer.cpp
+tests/src/test_UniformMeshHierarchy.cpp
+tests/src/test_UniformMeshRefiner.cpp
+tests/src/test_UniformEdgeFamilies.cpp
+tests/src/test_UniformRestriction.cpp
+tests/src/test_EnumeratedMeshRange.cpp
+tests/src/test_SituatedCoefficientRange.cpp
+tests/src/test_IndicatorInput.cpp
+tests/src/test_MultilevelCoefficientQuantizer.cpp
+tests/src/test_shuffle.cpp
+tests/src/test_TensorMeshHierarchy.cpp
+tests/src/test_TensorMeshHierarchyIteration.cpp
+tests/src/test_TensorLinearOperator.cpp
+tests/src/test_TensorMassMatrix.cpp
+tests/src/test_TensorProlongation.cpp
+tests/src/test_TensorRestriction.cpp
+tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
+tests/src/test_TensorNorms.cpp
+tests/src/test_MultidimensionalArray.cpp
+tests/src/test_mgard_api.cpp
+tests/src/test_mgard.cpp
+	)
+
+target_include_directories(mgard-tests PRIVATE tests/include)
+find_package(Catch2)
+target_link_libraries(mgard-tests mgard-library Catch2::Catch2WithMain)
+set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
 
 # Add all targets to the build-tree export set
 export(TARGETS mgard-library NAMESPACE mgard::
@@ -352,6 +405,7 @@ message("     Testing: ${BUILD_TESTING}")
 message("        CUDA: ${MGARD_ENABLE_CUDA}")
 message("  CUDA-Debug: ${MGARD_ENABLE_CUDA_DEBUG}")
 message("        MOAB: ${MOAB_FOUND}")
+message("      Catch2: ${Catch2_FOUND}")
 message("    yaml-cpp: ${YAML-CPP_FOUND}")
 message("     archive: ${ARCHIVE_FOUND}")
 message("       TCLAP: ${TCLAP_FOUND}")

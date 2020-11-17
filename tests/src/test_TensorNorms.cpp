@@ -1,4 +1,5 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_approx.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -53,7 +54,7 @@ void test_tensor_basic_norm_properties(
     TrialTracker tracker;
     for (const Real s : smoothness_parameters) {
       tracker += mgard::norm(hierarchy, v, s) ==
-                 Approx(std::abs(alpha) * mgard::norm(hierarchy, u, s));
+                 Catch::Approx(std::abs(alpha) * mgard::norm(hierarchy, u, s));
     }
     REQUIRE(tracker);
   }
@@ -123,15 +124,17 @@ TEST_CASE("comparison with Python implementation: tensor norms", "[norms]") {
   }
 
   const float inf_ = std::numeric_limits<float>::infinity();
-  REQUIRE(mgard::norm(hierarchy, u, inf_) == Approx(2.9147100421936996));
-  REQUIRE(mgard::norm(hierarchy, u, -1.5f) == Approx(1.0933978732810643));
-  REQUIRE(mgard::norm(hierarchy, u, -1.0f) == Approx(1.0975934890537276));
-  REQUIRE(mgard::norm(hierarchy, u, -0.5f) == Approx(1.106198751014936));
-  REQUIRE(mgard::norm(hierarchy, u, 0.0f) == Approx(1.1242926017063057));
-  REQUIRE(mgard::norm(hierarchy, u, 1e-9f) == Approx(1.124292601758146));
-  REQUIRE(mgard::norm(hierarchy, u, 0.5f) == Approx(1.164206301367337));
-  REQUIRE(mgard::norm(hierarchy, u, 1.0f) == Approx(1.2600881685595349));
+  REQUIRE(mgard::norm(hierarchy, u, inf_) == Catch::Approx(2.9147100421936996));
+  REQUIRE(mgard::norm(hierarchy, u, -1.5f) ==
+          Catch::Approx(1.0933978732810643));
+  REQUIRE(mgard::norm(hierarchy, u, -1.0f) ==
+          Catch::Approx(1.0975934890537276));
+  REQUIRE(mgard::norm(hierarchy, u, -0.5f) == Catch::Approx(1.106198751014936));
+  REQUIRE(mgard::norm(hierarchy, u, 0.0f) == Catch::Approx(1.1242926017063057));
+  REQUIRE(mgard::norm(hierarchy, u, 1e-9f) == Catch::Approx(1.124292601758146));
+  REQUIRE(mgard::norm(hierarchy, u, 0.5f) == Catch::Approx(1.164206301367337));
+  REQUIRE(mgard::norm(hierarchy, u, 1.0f) == Catch::Approx(1.2600881685595349));
   // Small error encountered here.
   REQUIRE(mgard::norm(hierarchy, u, 1.5f) ==
-          Approx(1.5198059864642621).epsilon(0.001));
+          Catch::Approx(1.5198059864642621).epsilon(0.001));
 }

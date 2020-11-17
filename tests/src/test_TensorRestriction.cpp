@@ -1,4 +1,5 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_approx.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 #include <array>
 
@@ -66,7 +67,7 @@ TEST_CASE("constituent restrictions", "[TensorRestriction]") {
       TrialTracker tracker;
       const std::array<double, ndof> &expected = expecteds.at(2 - l);
       for (std::size_t i = 0; i < ndof; ++i) {
-        tracker += buffer_.at(i) == Approx(expected.at(i));
+        tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -100,7 +101,7 @@ TEST_CASE("constituent restrictions", "[TensorRestriction]") {
         mgard::unshuffle(hierarchy, v, buffer);
         TrialTracker tracker;
         for (std::size_t j = 0; j < ndof; ++j) {
-          tracker += buffer_.at(j) == Approx(expected.at(j));
+          tracker += buffer_.at(j) == Catch::Approx(expected.at(j));
         }
         REQUIRE(tracker);
       }
@@ -123,7 +124,7 @@ TEST_CASE("constituent restrictions", "[TensorRestriction]") {
         mgard::unshuffle(hierarchy, v, buffer);
         TrialTracker tracker;
         for (std::size_t j = 0; j < ndof; ++j) {
-          tracker += buffer_.at(j) == Approx(expected.at(j));
+          tracker += buffer_.at(j) == Catch::Approx(expected.at(j));
         }
         REQUIRE(tracker);
       }
@@ -187,7 +188,7 @@ void test_tensor_projection_identity(std::default_random_engine &generator,
          mgard::ShuffledTensorNodeRange(hierarchy, l - 1)) {
       // Encountered a handful of small errors.
       tracker += hierarchy.at(u, node.multiindex) ==
-                 Approx(p(coordinates(hierarchy, node))).epsilon(0.001);
+                 Catch::Approx(p(coordinates(hierarchy, node))).epsilon(0.001);
     }
     REQUIRE(tracker);
   }

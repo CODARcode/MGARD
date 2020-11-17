@@ -1,4 +1,5 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_approx.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 #include <array>
 
@@ -71,7 +72,7 @@ TEST_CASE("constituent prolongations", "[TensorProlongation]") {
         mgard::unshuffle(hierarchy, v, buffer);
         TrialTracker tracker;
         for (std::size_t j = 0; j < ndof; ++j) {
-          tracker += buffer_.at(j) == Approx(expected.at(j));
+          tracker += buffer_.at(j) == Catch::Approx(expected.at(j));
         }
         REQUIRE(tracker);
       }
@@ -94,7 +95,7 @@ TEST_CASE("constituent prolongations", "[TensorProlongation]") {
         mgard::unshuffle(hierarchy, v, buffer);
         TrialTracker tracker;
         for (std::size_t j = 0; j < 9; ++j) {
-          tracker += buffer_.at(j) == Approx(expected.at(j));
+          tracker += buffer_.at(j) == Catch::Approx(expected.at(j));
         }
         REQUIRE(tracker);
       }
@@ -148,7 +149,7 @@ TEST_CASE("constituent prolongations", "[TensorProlongation]") {
           mgard::unshuffle(hierarchy, v, buffer);
           TrialTracker tracker;
           for (std::size_t k = 0; k < ndof; ++k) {
-            tracker += buffer_.at(k) == Approx(expected.at(k));
+            tracker += buffer_.at(k) == Catch::Approx(expected.at(k));
           }
           REQUIRE(tracker);
         }
@@ -186,7 +187,7 @@ void test_tensor_product_prolongations(std::default_random_engine &generator,
     TrialTracker tracker;
     for (const mgard::TensorNode<N> node : nodes) {
       tracker += hierarchy.at(u, node.multiindex) ==
-                 Approx(p(coordinates(hierarchy, node))).epsilon(0.001);
+                 Catch::Approx(p(coordinates(hierarchy, node))).epsilon(0.001);
     }
     REQUIRE(tracker);
   }
@@ -200,8 +201,8 @@ TEST_CASE("tensor product prolongations", "[TensorProlongation]") {
   SECTION("dyadic") {
     test_tensor_product_prolongations<1, float>(generator, {129});
     test_tensor_product_prolongations<2, double>(generator, {17, 17});
-    // Before increasing the `Approx` tolerance we got a handful of errors (all
-    // quite small) with this one.
+    // Before increasing the `Catch::Approx` tolerance we got a handful of
+    // errors (all quite small) with this one.
     test_tensor_product_prolongations<3, float>(generator, {9, 9, 17});
     test_tensor_product_prolongations<4, double>(generator, {33, 17, 33, 17});
   }

@@ -13,13 +13,13 @@ fi
 
 cd ${SOURCE_DIR}
 
-make check
+build/bin/tests
 
 if [ $? -eq 0 ]
 then
-  echo "Successfully built and ran unstructured tests"
+  echo "Successfully ran Catch2 tests"
 else
-  echo "Error in building or running unstructured tests" >&2
+  echo "Error in running Catch2 tests" >&2
   exit 1
 fi
 

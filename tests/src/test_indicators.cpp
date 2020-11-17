@@ -1,4 +1,6 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_approx.hpp"
+#include "catch2/catch_test_macros.hpp"
+#include "catch2/generators/catch_generators.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -62,14 +64,15 @@ TEST_CASE("comparison with Python implementation: indicators", "[indicators]") {
   mgard::MultilevelCoefficients u_mc = hierarchy.decompose(u_nc);
 
   REQUIRE(unscaled_indicator(u_mc, hierarchy, -1.6) ==
-          Approx(3.6534422088028458));
+          Catch::Approx(3.6534422088028458));
   REQUIRE(unscaled_indicator(u_mc, hierarchy, -0.8) ==
-          Approx(4.7577598954771325));
-  REQUIRE(unscaled_indicator(u_mc, hierarchy, 0.0) == Approx(8.80618193171665));
+          Catch::Approx(4.7577598954771325));
+  REQUIRE(unscaled_indicator(u_mc, hierarchy, 0.0) ==
+          Catch::Approx(8.80618193171665));
   REQUIRE(unscaled_indicator(u_mc, hierarchy, 0.8) ==
-          Approx(26.420258062021407));
+          Catch::Approx(26.420258062021407));
   REQUIRE(unscaled_indicator(u_mc, hierarchy, 1.6) ==
-          Approx(112.02614999556158));
+          Catch::Approx(112.02614999556158));
 }
 
 TEST_CASE("indicators should track estimators", "[indicators]") {
