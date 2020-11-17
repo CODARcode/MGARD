@@ -60,9 +60,9 @@ tests@EXECUTABLE := $(DIR_BIN)/tests
 
 structured@LIB := $(DIR_LIB)/libmgard.a
 
-benchmarks@DIR_SRC := benchmark
-benchmarks@STEM := bench
-benchmarks@EXECUTABLE := $(DIR_BIN)/speed
+benchmarks@DIR_SRC := $(DIR_SRC)
+benchmarks@STEM := benchmarks
+benchmarks@EXECUTABLE := $(DIR_BIN)/benchmarks
 
 .PHONY: all
 all: $(structured@LIB)
