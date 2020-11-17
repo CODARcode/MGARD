@@ -146,8 +146,6 @@ endif()
 find_package(ZLIB REQUIRED)
 find_package(ADIOS2)
 find_package(ZSTD)
-
-#MOAB for unstructured meshes.
 find_package(MOAB)
 
 if(MOAB_FOUND)
@@ -205,23 +203,24 @@ src/IndicatorInput.cpp
 endif()
 
 # Set library
-add_library(mgard
+add_library(mgard-library STATIC
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/TensorMeshHierarchyIteration.cpp  include/TensorMeshHierarchyIteration.hpp include/TensorMeshHierarchyIteration.tpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
   ${MGARD_MOAB_HEADER} ${MGARD_MOAB_TEMPLATE_DEFINITIONS} ${MGARD_MOAB_SOURCE}
 )
+set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
-target_include_directories(mgard
+target_include_directories(mgard-library
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mgard>
   ${MOAB_INCLUDE_DIRS}
 )
-target_link_libraries(mgard PRIVATE ZLIB::ZLIB  ${CMAKE_DL_LIBS})
+target_link_libraries(mgard-library PRIVATE ZLIB::ZLIB ${CMAKE_DL_LIBS} PUBLIC ${MOAB_LIBRARIES})
 if(ZSTD_FOUND)
-  target_link_libraries(mgard PRIVATE ZSTD::ZSTD  ${CMAKE_DL_LIBS})
+  target_link_libraries(mgard-library PRIVATE ZSTD::ZSTD ${CMAKE_DL_LIBS})
 endif()
 
 option(DEFINE_MGARD_TIMING "Enable/disable MGARD timing" OFF)
@@ -232,19 +231,19 @@ endif()
 # Make sure we require C++11.  Use meta-compile features if available,
 # otherwise use specific language features
 if(NOT (CMAKE_VERSION VERSION_LESS 3.9))
-  target_compile_features(mgard PUBLIC cxx_std_11)
+  target_compile_features(mgard-library PUBLIC cxx_std_17)
 else()
-  target_compile_features(mgard PUBLIC cxx_auto_type cxx_nullptr)
+  target_compile_features(mgard-library PUBLIC cxx_auto_type cxx_nullptr)
 endif()
 
-set_target_properties(mgard PROPERTIES
+set_target_properties(mgard-library PROPERTIES
   VERSION ${MGARD_VERSION}
   SOVERSION ${MGARD_VERSION_MAJOR}
   ${MGARD_CUDA_SEPARATE_COMPILE_COMPILATION_OPTION}
 )
 
 install(
-  TARGETS mgard EXPORT mgard-targets
+  TARGETS mgard-library EXPORT mgard-targets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -252,11 +251,8 @@ install(
 
 install(
   FILES include/mgard.hpp
-        include/interpolation.hpp
-        include/mgard_mesh.hpp
         include/mgard_compress.hpp
         include/mgard_api.h
-        include/mgard_nuni.h
 	include/TensorMeshHierarchy.hpp
         ${MGARD_CUDA_HEADER}
 	"${PROJECT_BINARY_DIR}/include/MGARDConfig.h"
@@ -276,7 +272,7 @@ if(BUILD_TESTING)
 endif()
 
 # Add all targets to the build-tree export set
-export(TARGETS mgard NAMESPACE mgard::
+export(TARGETS mgard-library NAMESPACE mgard::
   FILE "${PROJECT_BINARY_DIR}/mgard-targets.cmake"
 )
 
