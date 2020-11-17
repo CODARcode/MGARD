@@ -323,6 +323,22 @@ add_executable(mgard-benchmarks src/benchmarks.cpp)
 target_link_libraries(mgard-benchmarks benchmark::benchmark benchmark::benchmark_main mgard-library)
 set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
 
+add_library(
+	mgard-cli STATIC
+	src/subcommand_arguments.cpp include/subcommand_arguments.hpp
+	src/metadata.cpp include/metadata.hpp
+)
+target_include_directories(mgard-cli PUBLIC include/)
+
+find_package(yaml-cpp)
+find_package(archive)
+find_package(TCLAP)
+
+add_executable(mgard-executable src/executable.cpp)
+target_include_directories(mgard-executable PRIVATE ${YAML-CPP_INCLUDE_DIRS} ${ARCHIVE_INCLUDE_DIRS} ${TCLAP_INCLUDE_DIRS})
+target_link_libraries(mgard-executable PRIVATE mgard-library mgard-cli ${YAML-CPP_LIBRARIES} ${ARCHIVE_LIBRARIES})
+set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
+
 message("-- Configuration summary:")
 message("")
 message("  Installation prefix: ${CMAKE_INSTALL_PREFIX}")
@@ -337,3 +353,6 @@ message("     Testing: ${BUILD_TESTING}")
 message("        CUDA: ${MGARD_ENABLE_CUDA}")
 message("  CUDA-Debug: ${MGARD_ENABLE_CUDA_DEBUG}")
 message("        MOAB: ${MOAB_FOUND}")
+message("    yaml-cpp: ${YAML-CPP_FOUND}")
+message("     archive: ${ARCHIVE_FOUND}")
+message("       TCLAP: ${TCLAP_FOUND}")
