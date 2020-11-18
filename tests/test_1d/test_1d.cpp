@@ -35,8 +35,17 @@ int main(int argc, char **argv) {
 #ifdef MGARD_TIMING
   auto start = chrono::high_resolution_clock::now();
 #endif
+  const std::array<std::size_t, 1> shape = {num_elements};
+
+  const mgard::TensorMeshHierarchy<1, double> hierarchy(shape);
+  const size_t ndof = hierarchy.ndof();
+  cout << "ndof = " << ndof << "\n";
+  const mgard::CompressedDataset<1, double> compressed =
+      mgard::compress(hierarchy, data.data(), 0.0, tol);
+#if 0
   compressed_data =
       mgard_compress(data.data(), out_size, 1, num_elements, 1, tol);
+#endif
 #ifdef MGARD_TIMING
   auto stop = chrono::high_resolution_clock::now();
   auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
