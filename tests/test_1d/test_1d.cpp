@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   const size_t ndof = hierarchy.ndof();
   cout << "ndof = " << ndof << "\n";
   const mgard::CompressedDataset<1, double> compressed =
-          mgard::compress(hierarchy, data.data(), 0.0, tol);
+      mgard::compress(hierarchy, data.data(), 0.0, tol);
 #if 0
   compressed_data =
       mgard_compress(data.data(), out_size, 1, num_elements, 1, tol);
