@@ -173,7 +173,7 @@ include/EnumeratedMeshRange.hpp
 include/indicators.hpp
 include/IndicatorInput.hpp
 	)
-	set(MGARD_MOAB_TEMPLATE_DEFINITIONS
+	set(MGARD_MOAB_TEMPLATE_DEFINITION
 include/blas.tpp
 include/utilities.tpp
 include/data.tpp
@@ -206,7 +206,7 @@ add_library(mgard-library STATIC
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/TensorMeshHierarchyIteration.cpp  include/TensorMeshHierarchyIteration.hpp include/TensorMeshHierarchyIteration.tpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
-  ${MGARD_MOAB_HEADER} ${MGARD_MOAB_TEMPLATE_DEFINITIONS} ${MGARD_MOAB_SOURCE}
+  ${MGARD_MOAB_HEADER} ${MGARD_MOAB_TEMPLATE_DEFINITION} ${MGARD_MOAB_SOURCE}
 )
 set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
@@ -278,10 +278,17 @@ if(BUILD_TESTING)
   add_subdirectory(tests)
 endif()
 
-add_executable(
-mgard-tests
-tests/include/testing_random.hpp tests/include/testing_random.tpp
-tests/include/testing_utilities.hpp tests/include/testing_utilities.tpp tests/src/testing_utilities.cpp
+#It would be better if these took `MOAB_FOUND` into account.
+set(MGARD_TESTS_HEADER
+tests/include/testing_random.hpp
+tests/include/testing_utilities.hpp
+)
+set(MGARD_TESTS_TEMPLATE_DEFINITION
+tests/include/testing_random.tpp
+tests/include/testing_utilities.tpp
+)
+set(MGARD_TESTS_SOURCE
+tests/src/testing_utilities.cpp
 tests/src/test_blas.cpp
 tests/src/test_estimators.cpp
 tests/src/test_indicators.cpp
@@ -316,12 +323,20 @@ tests/src/test_TensorNorms.cpp
 tests/src/test_MultidimensionalArray.cpp
 tests/src/test_mgard_api.cpp
 tests/src/test_mgard.cpp
-	)
+)
 
-target_include_directories(mgard-tests PRIVATE tests/include)
 find_package(Catch2)
-target_link_libraries(mgard-tests mgard-library Catch2::Catch2WithMain)
-set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
+
+if(Catch2_FOUND)
+	add_executable(mgard-tests
+${MGARD_TESTS_HEADER}
+${MGARD_TESTS_TEMPLATE_DEFINITION}
+${MGARD_TESTS_SOURCE}
+	)
+	target_include_directories(mgard-tests PRIVATE tests/include)
+	target_link_libraries(mgard-tests PRIVATE mgard-library Catch2::Catch2WithMain)
+	set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
+endif()
 
 # Add all targets to the build-tree export set
 export(TARGETS mgard-library NAMESPACE mgard::
@@ -371,25 +386,29 @@ install(
 #Google Benchmark for benchmarks. See <https://github.com/google/benchmark>.
 find_package(benchmark)
 
-add_executable(mgard-benchmarks src/benchmarks.cpp)
-target_link_libraries(mgard-benchmarks benchmark::benchmark benchmark::benchmark_main mgard-library)
-set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
-
-add_library(
-	mgard-cli STATIC
-	src/subcommand_arguments.cpp include/subcommand_arguments.hpp
-	src/metadata.cpp include/metadata.hpp
-)
-target_include_directories(mgard-cli PUBLIC include/)
+if(benchmark_FOUND)
+	add_executable(mgard-benchmarks src/benchmarks.cpp)
+	target_link_libraries(mgard-benchmarks PRIVATE benchmark::benchmark benchmark::benchmark_main mgard-library)
+	set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
+endif()
 
 find_package(yaml-cpp)
 find_package(archive)
 find_package(TCLAP)
 
-add_executable(mgard-executable src/executable.cpp)
-target_include_directories(mgard-executable PRIVATE ${YAML-CPP_INCLUDE_DIRS} ${ARCHIVE_INCLUDE_DIRS} ${TCLAP_INCLUDE_DIRS})
-target_link_libraries(mgard-executable PRIVATE mgard-library mgard-cli ${YAML-CPP_LIBRARIES} ${ARCHIVE_LIBRARIES})
-set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
+if (yaml-cpp_FOUND AND archive_FOUND AND TCLAP_FOUND)
+	add_library(
+		mgard-cli STATIC
+		src/subcommand_arguments.cpp include/subcommand_arguments.hpp
+		src/metadata.cpp include/metadata.hpp
+	)
+	target_include_directories(mgard-cli PUBLIC include/)
+
+	add_executable(mgard-executable src/executable.cpp)
+	target_include_directories(mgard-executable PRIVATE ${YAML-CPP_INCLUDE_DIRS} ${ARCHIVE_INCLUDE_DIRS} ${TCLAP_INCLUDE_DIRS})
+	target_link_libraries(mgard-executable PRIVATE mgard-library mgard-cli ${YAML-CPP_LIBRARIES} ${ARCHIVE_LIBRARIES})
+	set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
+endif()
 
 message("-- Configuration summary:")
 message("")
@@ -409,3 +428,4 @@ message("      Catch2: ${Catch2_FOUND}")
 message("    yaml-cpp: ${YAML-CPP_FOUND}")
 message("     archive: ${ARCHIVE_FOUND}")
 message("       TCLAP: ${TCLAP_FOUND}")
+message("   benchmark: ${benchmark_FOUND}")
