@@ -126,7 +126,8 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(const MeshLevel &mesh,
       moab::EntityHandle EDGE;
       ecode =
           mesh.impl.create_element(moab::MBEDGE, EDGE_CONNECTIVITY, 2, EDGE);
-      assert(EDGE == ++most_recent_edge);
+      ++most_recent_edge;
+      assert(EDGE == most_recent_edge);
       blas::axpy(3, 1.0, q + 3 * mesh.index(endpoint), p);
     }
     blas::scal(3, 0.5, p);
@@ -199,7 +200,8 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
       ecode = mesh.impl.create_element(moab::MBTRI, ELEMENT_CONNECTIVITY, 3,
                                        ELEMENT);
       MB_CHK_ERR(ecode);
-      assert(ELEMENT == ++most_recent_element);
+      ++most_recent_element;
+      assert(ELEMENT == most_recent_element);
     }
 
     // Add the element containing only new nodes.
@@ -211,7 +213,8 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
       ecode = mesh.impl.create_element(moab::MBTRI, ELEMENT_CONNECTIVITY, 3,
                                        ELEMENT);
       MB_CHK_ERR(ecode);
-      assert(ELEMENT == ++most_recent_element);
+      ++most_recent_element;
+      assert(ELEMENT == most_recent_element);
     }
     // Add the corresponding edges.
     moab::EntityHandle EDGE_CONNECTIVITY[2];
@@ -222,7 +225,8 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
       ecode =
           mesh.impl.create_element(moab::MBEDGE, EDGE_CONNECTIVITY, 2, EDGE);
       MB_CHK_ERR(ecode);
-      assert(EDGE == ++most_recent_edge);
+      ++most_recent_edge;
+      assert(EDGE == most_recent_edge);
     }
   }
   ELEMENTS.insert(elements.back() + 1, most_recent_element);
@@ -314,7 +318,8 @@ moab::ErrorCode UniformMeshRefiner::octasect_tetrahedra(
   ecode =                                                                      \
       mesh.impl.create_element(moab::MBTET, ELEMENT_CONNECTIVITY, 4, ELEMENT); \
   MB_CHK_ERR(ecode);                                                           \
-  assert(ELEMENT == ++most_recent_element);
+  ++most_recent_element;                                                       \
+  assert(ELEMENT == most_recent_element);
 
 #define CREATE_EDGE(a, b)                                                      \
   EDGE_CONNECTIVITY[0] = a;                                                    \
@@ -325,7 +330,8 @@ moab::ErrorCode UniformMeshRefiner::octasect_tetrahedra(
       ecode =                                                                  \
           mesh.impl.create_element(moab::MBEDGE, EDGE_CONNECTIVITY, 2, EDGE);  \
       MB_CHK_ERR(ecode);                                                       \
-      assert(EDGE == ++most_recent_edge);                                      \
+      ++most_recent_edge;                                                      \
+      assert(EDGE == most_recent_edge);                                        \
       inner_edges.insert(edge);                                                \
     }                                                                          \
   }
