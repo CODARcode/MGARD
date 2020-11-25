@@ -6,8 +6,10 @@
 # This module defines the following variables:
 #
 #     MOAB_FOUND        - Whether MOAB was found.
-#     MOAB_INCLUDE_DIRS - Location of MOAB headers.
-#     MOAB_LIBRARIES    - MOAB library and other required libraries.
+#
+# and the following imported targets:
+#
+#     MOAB::MOAB        - MOAB library.
 
 set(MOAB_LIBRARIES_PATHS ~/.local/lib /usr/local/lib /usr/lib)
 set(MOAB_INCLUDE_DIRS_PATHS ~/.local/include /usr/local/include /usr/include)
@@ -54,9 +56,10 @@ if(NOT LAPACK_FOUND)
 	set(MOAB_FOUND FALSE)
 endif()
 
-set(MOAB_LIBRARIES ${MOAB_LIBRARIES} ${LAPACK_LIBRARIES})
-
-if (NOT MOAB_FOUND)
+if (MOAB_FOUND)
+	add_library(MOAB::MOAB STATIC IMPORTED)
+	set_target_properties(MOAB::MOAB PROPERTIES IMPORTED_LOCATION ${MOAB_LIBRARIES} INTERFACE_INCLUDE_DIRECTORIES ${MOAB_INCLUDE_DIRS} INTERFACE_LINK_LIBRARIES LAPACK::LAPACK)
+else()
 	if(MOAB_FIND_REQUIRED)
 		message(FATAL_ERROR ${MOAB_FOUND_ERROR_MESSAGE})
 	else()

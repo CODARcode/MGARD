@@ -1,5 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
-
+cmake_minimum_required(VERSION 3.19)
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
   message(FATAL_ERROR
@@ -147,8 +146,7 @@ find_package(ZLIB REQUIRED)
 find_package(ZSTD)
 find_package(MOAB)
 
-if(MOAB_FOUND)
-	set(MGARD_MOAB_HEADER
+set(MGARD_MOAB_HEADER
 include/blas.hpp
 include/utilities.hpp
 include/data.hpp
@@ -172,8 +170,8 @@ include/estimators.hpp
 include/EnumeratedMeshRange.hpp
 include/indicators.hpp
 include/IndicatorInput.hpp
-	)
-	set(MGARD_MOAB_TEMPLATE_DEFINITION
+)
+set(MGARD_MOAB_TEMPLATE_DEFINITION
 include/blas.tpp
 include/utilities.tpp
 include/data.tpp
@@ -181,8 +179,8 @@ include/UniformEdgeFamilies.tpp
 include/LinearQuantizer.tpp
 include/SituatedCoefficientRange.tpp
 include/MultilevelCoefficientQuantizer.tpp
-	)
-	set(MGARD_MOAB_SOURCE
+)
+set(MGARD_MOAB_SOURCE
 src/measure.cpp
 src/LinearOperator.cpp
 src/pcg.cpp
@@ -198,15 +196,13 @@ src/estimators.cpp
 src/EnumeratedMeshRange.cpp
 src/indicators.cpp
 src/IndicatorInput.cpp
-	)
-endif()
+)
 
 # Set library
 add_library(mgard-library STATIC
   src/mgard_compress.cpp  include/mgard_compress.hpp
   src/TensorMeshHierarchyIteration.cpp  include/TensorMeshHierarchyIteration.hpp include/TensorMeshHierarchyIteration.tpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
-  ${MGARD_MOAB_HEADER} ${MGARD_MOAB_TEMPLATE_DEFINITION} ${MGARD_MOAB_SOURCE}
 )
 set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
@@ -223,9 +219,12 @@ target_include_directories(mgard-library
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mgard>
-  ${MOAB_INCLUDE_DIRS}
 )
-target_link_libraries(mgard-library PRIVATE ZLIB::ZLIB PUBLIC ${MOAB_LIBRARIES})
+target_link_libraries(mgard-library PRIVATE ZLIB::ZLIB)
+if (MOAB_FOUND)
+	target_sources(mgard-library PRIVATE ${MGARD_MOAB_HEADER} ${MGARD_MOAB_TEMPLATE_DEFINITION} ${MGARD_MOAB_SOURCE})
+	target_link_libraries(mgard-library PUBLIC MOAB::MOAB)
+endif()
 if(ZSTD_FOUND)
   target_link_libraries(mgard-library PRIVATE ZSTD::ZSTD)
 endif()
@@ -407,10 +406,10 @@ if (yaml-cpp_FOUND AND archive_FOUND AND TCLAP_FOUND)
 		src/metadata.cpp include/metadata.hpp
 	)
 	target_include_directories(mgard-cli PUBLIC include/)
+	target_link_libraries(mgard-cli PUBLIC TCLAP::TCLAP)
 
 	add_executable(mgard-executable src/executable.cpp)
-	target_include_directories(mgard-executable PRIVATE ${yaml-cpp_INCLUDE_DIRS} ${archive_INCLUDE_DIRS} ${TCLAP_INCLUDE_DIRS})
-	target_link_libraries(mgard-executable PRIVATE mgard-library mgard-cli ${yaml-cpp_LIBRARIES} ${archive_LIBRARIES})
+	target_link_libraries(mgard-executable PRIVATE mgard-library mgard-cli yaml-cpp::yaml-cpp archive::archive TCLAP::TCLAP)
 	set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
 else()
 	message("-- Will not build executable (dependencies not met).")
