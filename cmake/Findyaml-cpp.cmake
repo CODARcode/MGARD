@@ -6,15 +6,17 @@
 # This module defines the following variables:
 #
 #     yaml-cpp_FOUND        - Whether yaml-cpp was found.
-#     yaml-cpp_INCLUDE_DIRS - Location of yaml-cpp headers.
-#     yaml-cpp_LIBRARIES    - yaml-cpp library and other required libraries.
+#
+# and the following imported targets:
+#
+#     yaml-cpp:yaml-cpp     - yaml-cpp library.
 
 set(yaml-cpp_LIBRARIES_PATHS ~/.local/lib /usr/local/lib /usr/lib)
 set(yaml-cpp_INCLUDE_DIRS_PATHS ~/.local/include /usr/local/include /usr/include)
 
 set(yaml-cpp_LIBRARIES_ERROR_MESSAGE "Could not find yaml-cpp library.")
 set(yaml-cpp_INCLUDE_DIRS_ERROR_MESSAGE "yaml-cpp headers not found.")
-set(yaml-cpp_FOUND_ERROR_MESSAGE "yaml-cpp not found.")
+set(yaml-cpp_NOT_FOUND_MESSAGE "yaml-cpp not found.")
 
 set(yaml-cpp_FOUND TRUE)
 
@@ -44,10 +46,13 @@ if(yaml-cpp_LIBRARIES STREQUAL "yaml-cpp_LIBRARIES-NOTFOUND")
 	endif()
 endif()
 
-if (NOT yaml-cpp_FOUND)
+if (yaml-cpp_FOUND)
+	add_library(yaml-cpp::yaml-cpp STATIC IMPORTED)
+	set_target_properties(yaml-cpp::yaml-cpp PROPERTIES IMPORTED_LOCATION ${yaml-cpp_LIBRARIES} INTERFACE_INCLUDE_DIRECTORIES ${yaml-cpp_INCLUDE_DIRS})
+else()
 	if(yaml-cpp_FIND_REQUIRED)
-		message(FATAL_ERROR ${yaml-cpp_FOUND_ERROR_MESSAGE})
+		message(FATAL_ERROR ${yaml-cpp_NOT_FOUND_MESSAGE})
 	else()
-		message(STATUS ${yaml-cpp_FOUND_ERROR_MESSAGE})
+		message(STATUS ${yaml-cpp_NOT_FOUND_MESSAGE})
 	endif()
 endif()

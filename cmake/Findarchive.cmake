@@ -6,15 +6,17 @@
 # This module defines the following variables:
 #
 #     archive_FOUND        - Whether archive was found.
-#     archive_INCLUDE_DIRS - Location of archive headers.
-#     archive_LIBRARIES    - archive library and other required libraries.
+#
+# and the following imported targets:
+#
+#     archive::archive     - archive library.
 
 set(archive_LIBRARIES_PATHS ~/.local/lib /usr/local/lib /usr/lib)
 set(archive_INCLUDE_DIRS_PATHS ~/.local/include /usr/local/include /usr/include)
 
 set(archive_LIBRARIES_ERROR_MESSAGE "Could not find archive library.")
 set(archive_INCLUDE_DIRS_ERROR_MESSAGE "archive headers not found.")
-set(archive_FOUND_ERROR_MESSAGE "archive not found.")
+set(archive_NOT_FOUND_MESSAGE "archive not found.")
 
 set(archive_FOUND TRUE)
 
@@ -44,10 +46,13 @@ if(archive_LIBRARIES STREQUAL "archive_LIBRARIES-NOTFOUND")
 	endif()
 endif()
 
-if (NOT archive_FOUND)
+if (archive_FOUND)
+	add_library(archive::archive STATIC IMPORTED)
+	set_target_properties(archive::archive PROPERTIES IMPORTED_LOCATION ${archive_LIBRARIES} INTERFACE_INCLUDE_DIRECTORIES ${archive_INCLUDE_DIRS})
+else()
 	if(archive_FIND_REQUIRED)
-		message(FATAL_ERROR ${archive_FOUND_ERROR_MESSAGE})
+		message(FATAL_ERROR ${archive_NOT_FOUND_MESSAGE})
 	else()
-		message(STATUS ${archive_FOUND_ERROR_MESSAGE})
+		message(STATUS ${archive_NOT_FOUND_MESSAGE})
 	endif()
 endif()
