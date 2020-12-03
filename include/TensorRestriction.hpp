@@ -8,7 +8,7 @@
 namespace mgard {
 
 //! Restriction for continuous piecewise linear functions defined on a
-//! `TensorMeshLevel` 'spear.'
+//! mesh 'spear.'
 template <std::size_t N, typename Real>
 class ConstituentRestriction : public ConstituentLinearOperator<N, Real> {
 public:

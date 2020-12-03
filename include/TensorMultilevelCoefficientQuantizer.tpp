@@ -1,6 +1,5 @@
 #include <cmath>
 
-#include <algorithm>
 #include <limits>
 
 namespace mgard {
@@ -16,33 +15,29 @@ Real supremum_quantum(const TensorMeshHierarchy<N, Real> &hierarchy,
   return (2 * tolerance) / ((hierarchy.L + 1) * (1 + std::pow(3, N)));
 }
 
+// IMPORTANT: `node` must be produced by iterating over the mesh which first
+// introduced the node! It should be produced by dereferencing a
+// `TensorReservedNodeRange<N, Real>::iterator`. This is needed so that
+// `volume_factor` is calculated correctly. It must be determined by the
+// distances to the neighboring nodes in the *introducing* mesh, not the finest
+// mesh (which is what is directly being iterated over in the quantization and
+// dequantization operations). You'd get the neighboring nodes in the finest
+// mesh if you dereferenced a `TensorNodeRange<N, Real>::iterator` (assuming it
+// was iterating over the finest mesh, of course).
 template <std::size_t N, typename Real>
 Real s_quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
-               const Real tolerance, const TensorNode<N, Real> node) {
+               const Real tolerance, const TensorNode<N> node) {
   Real volume_factor = 1;
   for (std::size_t i = 0; i < N; ++i) {
-    const TensorIndexRange indices = hierarchy.indices(node.l, i);
-    // `TensorNode` doesn't immediately give us a way of accessing the
-    // neighboring nodes in the level, so we have to search.
-    const TensorIndexRange::iterator p =
-        std::find(indices.begin(), indices.end(), node.multiindex.at(i));
     const std::vector<Real> &coordinates = hierarchy.coordinates.at(i);
-    const Real x = node.coordinates.at(i);
-
-    // Temporary copy of `p` that can be incremented and decremented.
-    TensorIndexRange::iterator q;
-
-    q = p;
-    const Real h_left = q == indices.begin() ? 0 : x - coordinates.at(*--q);
-
-    q = p;
-    const Real h_right = ++q == indices.end() ? 0 : coordinates.at(*q) - x;
-
-    volume_factor *= (h_left + h_right) / 2;
+    volume_factor *= (coordinates.at(node.successor(i).multiindex.at(i)) -
+                      coordinates.at(node.predecessor(i).multiindex.at(i))) /
+                     2;
   }
+  const std::size_t l = hierarchy.date_of_birth(node.multiindex);
   // The maximum error is half the quantizer.
   return (2 * tolerance) /
-         (std::exp2(s * node.l) * std::sqrt(hierarchy.ndof() * volume_factor));
+         (std::exp2(s * l) * std::sqrt(hierarchy.ndof() * volume_factor));
 }
 
 } // namespace
@@ -51,11 +46,11 @@ template <std::size_t N, typename Real, typename Int>
 Qntzr<N, Real, Int>::Qntzr(const TensorMeshHierarchy<N, Real> &hierarchy,
                            const Real s, const Real tolerance)
     : hierarchy(hierarchy), s(s), tolerance(tolerance),
-      nodes(hierarchy.nodes(hierarchy.L)),
+      nodes(hierarchy, hierarchy.L),
       supremum_quantizer(supremum_quantum(hierarchy, tolerance)) {}
 
 template <std::size_t N, typename Real, typename Int>
-Int Qntzr<N, Real, Int>::operator()(const TensorNode<N, Real> node,
+Int Qntzr<N, Real, Int>::operator()(const TensorNode<N> node,
                                     const Real coefficient) const {
   // TODO: Look into moving this test outside of the operator.
   if (s == std::numeric_limits<Real>::infinity()) {
@@ -87,7 +82,7 @@ bool operator!=(const Qntzr<N, Real, Int> &a, const Qntzr<N, Real, Int> &b) {
 template <std::size_t N, typename Real, typename Int>
 Qntzr<N, Real, Int>::iterator::iterator(
     const Qntzr &quantizer,
-    const typename TensorNodeRange<N, Real>::iterator inner_node,
+    const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
     Real const *const inner_coeff)
     : quantizer(quantizer), inner_node(inner_node), inner_coeff(inner_coeff) {}
 
@@ -132,11 +127,11 @@ template <std::size_t N, typename Int, typename Real>
 Dqntzr<N, Int, Real>::Dqntzr(const TensorMeshHierarchy<N, Real> &hierarchy,
                              const Real s, const Real tolerance)
     : hierarchy(hierarchy), s(s), tolerance(tolerance),
-      nodes(hierarchy.nodes(hierarchy.L)),
+      nodes(hierarchy, hierarchy.L),
       supremum_dequantizer(supremum_quantum(hierarchy, tolerance)) {}
 
 template <std::size_t N, typename Int, typename Real>
-Real Dqntzr<N, Int, Real>::operator()(const TensorNode<N, Real> node,
+Real Dqntzr<N, Int, Real>::operator()(const TensorNode<N> node,
                                       const Int n) const {
   // TODO: Look into moving this test outside of the operator.
   if (s == std::numeric_limits<Real>::infinity()) {
@@ -170,7 +165,7 @@ template <std::size_t N, typename Int, typename Real>
 template <typename It>
 Dqntzr<N, Int, Real>::iterator<It>::iterator(
     const Dqntzr<N, Int, Real> &dequantizer,
-    const typename TensorNodeRange<N, Real>::iterator inner_node,
+    const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
     const It inner_coeff)
     : dequantizer(dequantizer), inner_node(inner_node),
       inner_coeff(inner_coeff) {}

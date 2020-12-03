@@ -460,12 +460,41 @@ public:
   reference operator*() const;
 
   //! Associated Cartesian product.
-  const CartesianProduct &iterable;
+  //!
+  //! A pointer rather than a reference so we can assign.
+  CartesianProduct const *iterable;
+
+  //! Return the iterator to the left in a given dimension.
+  //!
+  //! If this iterator is at the beginning in that dimension, this iterator will
+  //! be returned.
+  //!
+  //! This member calls `T_iterator::operator--`.
+  //!
+  //!\param i Index of the dimension.
+  iterator predecessor(const std::size_t i) const;
+
+  //! Return the node to the right in a given dimension.
+  //!
+  //! If this iterator is immediately before the end in that dimension, this
+  //! iterator will be returned. Do not call this member if this iterator is at
+  //! the end of `iterable`.
+  //!
+  //! This member calls `T_iterator::operator--`.
+  //!
+  //!\param i Index of the dimension.
+  iterator successor(const std::size_t i) const;
 
 private:
   //! Position in the Cartesian product.
   std::array<T_iterator, N> inner;
 };
+
+//! Check that a dimension index is in bounds.
+//!
+//!\param dimension Dimension index.
+template <std::size_t N>
+void check_dimension_index_bounds(const std::size_t dimension);
 
 } // namespace mgard
 

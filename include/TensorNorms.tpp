@@ -69,25 +69,22 @@ Real s_norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
 
   for (std::size_t i = 1; i <= hierarchy.L; ++i) {
     const std::size_t l = hierarchy.L - i;
-    const TensorNodeRange<N, Real> nodes = hierarchy.nodes(l);
 
     const TensorRestriction<N, Real> R(hierarchy, l + 1);
     R(product);
 
-    for (const TensorNode<N, Real> node : nodes) {
-      const std::array<std::size_t, N> &multiindex = node.multiindex;
-      hierarchy.at(projection, multiindex) = hierarchy.at(product, multiindex);
-    }
+    const PseudoArray<const Real> product_on_l =
+        hierarchy.on_nodes(static_cast<Real const *>(product), l);
+    const PseudoArray<Real> projection_on_l = hierarchy.on_nodes(projection, l);
+
+    std::copy(product_on_l.begin(), product_on_l.end(),
+              projection_on_l.begin());
+
     const TensorMassMatrixInverse<N, Real> m_inv(hierarchy, l);
     m_inv(projection);
 
-    Real projection_square_norm = 0;
-    for (const TensorNode<N, Real> node : nodes) {
-      const std::array<std::size_t, N> &multiindex = node.multiindex;
-      projection_square_norm += hierarchy.at(projection, multiindex) *
-                                hierarchy.at(product, multiindex);
-    }
-    squares_for_norm.at(l) = projection_square_norm;
+    squares_for_norm.at(l) = blas::dotu(
+        projection_on_l.size, projection_on_l.data, product_on_l.data);
   }
 
   // Could have accumulated this as we went.
@@ -116,59 +113,6 @@ Real norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
   } else {
     return s_norm(hierarchy, u, s);
   }
-}
-
-namespace {
-
-// Allow a function with arguments `(int, int, int, Real *)` to be called as
-// though it had arguments `(int, int, int, Real *, void *)` (with the last
-// argument ignored).
-template <typename Real> struct QuantityWithoutData {
-  //! Constructor.
-  //!
-  //!\param f Underlying function.
-  QuantityWithoutData(Real (*const f)(int, int, int, Real *)) : f(f) {}
-
-  //! Call the underlying function with an ignored `void *` argument.
-  Real operator()(int n1, int n2, int n3, Real *v, void *) const {
-    return f(n1, n2, n3, v);
-  }
-
-  //! Underlying function.
-  Real (*const f)(int, int, int, Real *);
-};
-
-} // namespace
-
-template <typename Real, typename Q>
-Real norm(const int n1, const int n2, const int n3, const Q qoi, const Real s,
-          void *const data) {
-  const std::array<std::size_t, 3> shape = {{static_cast<std::size_t>(n1),
-                                             static_cast<std::size_t>(n2),
-                                             static_cast<std::size_t>(n3)}};
-  const TensorMeshHierarchy<3, Real> hierarchy(shape);
-  const std::size_t ndof = hierarchy.ndof();
-  std::vector<Real> v_(ndof, 0);
-  std::vector<Real> rhs_(ndof);
-  Real *const v = v_.data();
-  Real *const rhs = rhs_.data();
-  for (const TensorNode<3, Real> node : hierarchy.nodes(hierarchy.L)) {
-    const std::array<std::size_t, 3> &multiindex = node.multiindex;
-    hierarchy.at(v, multiindex) = 1;
-    hierarchy.at(rhs, multiindex) = qoi(n1, n2, n3, v, data);
-    hierarchy.at(v, multiindex) = 0;
-  }
-  // This is wasteful, since `norm` will immediately apply the mass matrix,
-  // undoing the application of `M_inv`.
-  const TensorMassMatrixInverse<3, Real> M_inv(hierarchy, hierarchy.L);
-  M_inv(rhs);
-  return norm(hierarchy, rhs, s);
-}
-
-template <typename Real>
-Real norm(const int n1, const int n2, const int n3,
-          Real (*const qoi)(int, int, int, Real *), const Real s) {
-  return norm<Real>(n1, n2, n3, QuantityWithoutData<Real>(qoi), s, nullptr);
 }
 
 } // namespace mgard

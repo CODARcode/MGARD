@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -8,6 +8,7 @@
 
 #include "TensorLinearOperator.hpp"
 #include "TensorMeshHierarchy.hpp"
+#include "shuffle.hpp"
 
 namespace {
 
@@ -103,61 +104,73 @@ private:
 TEST_CASE("simple constituent operators", "[TensorLinearOperator]") {
   SECTION("diagonal constituent operators") {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({3, 3});
-    const std::array<float, 9> u_ = {-1, 5, -3, 0, 1, 4, 2, 3, -2};
+    const std::size_t ndof = 3 * 3;
+    const std::array<float, ndof> u_ = {-1, 5, -3, 0, 1, 4, 2, 3, -2};
+    std::array<float, ndof> v_;
+    std::array<float, ndof> buffer_;
+    float const *const u = u_.data();
+    float *const v = v_.data();
+    float *const buffer = buffer_.data();
     {
       const std::size_t l = 1;
       const std::size_t dimension = 1;
       const DiagonalOperator A(hierarchy, l, dimension, {1.5, 0.5, 2.5});
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       A({0, 0}, v);
       A({2, 0}, v);
-      const std::array<float, 9> expected = {-1.5, 2.5, -7.5, 0,   1,
-                                             4,    3.0, 1.5,  -5.0};
-      REQUIRE(v_ == expected);
+      mgard::unshuffle(hierarchy, v, buffer);
+      const std::array<float, ndof> expected = {-1.5, 2.5, -7.5, 0,   1,
+                                                4,    3.0, 1.5,  -5.0};
+      REQUIRE(buffer_ == expected);
     }
     {
       const std::size_t l = 0;
       const std::size_t dimension = 0;
       const DiagonalOperator A(hierarchy, l, dimension, {-2, -1});
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       A({0, 0}, v);
       A({0, 2}, v);
-      const std::array<float, 9> expected = {2, 5, 6, 0, 1, 4, -2, 3, 2};
-      REQUIRE(v_ == expected);
+      mgard::unshuffle(hierarchy, v, buffer);
+      const std::array<float, ndof> expected = {2, 5, 6, 0, 1, 4, -2, 3, 2};
+      REQUIRE(buffer_ == expected);
     }
   }
 
   SECTION("matrix constituent operators") {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({5, 5});
+    const std::size_t ndof = 5 * 5;
     const std::size_t l = 1;
-    std::array<float, 25> u_ = {4, 0, -4, -5, -7, 3, 9, 3,  -3, 0, -10, 2, -5,
-                                5, 0, 4,  5,  -6, 4, 5, -9, -1, 0, 9,   -6};
     const std::array<std::array<float, 3>, 3> coefficients = {
         {{4, -8, 0}, {7, -6, 3}, {-2, -10, -10}}};
+    std::array<float, ndof> u_ = {4, 0, -4, -5, -7, 3, 9, 3,  -3, 0, -10, 2, -5,
+                                  5, 0, 4,  5,  -6, 4, 5, -9, -1, 0, 9,   -6};
+    std::array<float, ndof> v_;
+    std::array<float, ndof> buffer_;
+    float const *const u = u_.data();
+    float *const v = v_.data();
+    float *const buffer = buffer_.data();
     {
       const std::size_t dimension = 0;
       const ThreeByThreeMatrix A(hierarchy, l, dimension, coefficients);
-      std::array<float, 25> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       A({0, 2}, v);
       A({0, 4}, v);
-      const std::array<float, 25> expected = {
+      mgard::unshuffle(hierarchy, v, buffer);
+      const std::array<float, ndof> expected = {
           4, 0,   24, -5, -28, 3, 9, 3,  -3, 0,  -10, 2, 2,
           5, -67, 4,  5,  -6,  4, 5, -9, -1, 58, 9,   74};
-      REQUIRE(v_ == expected);
+      REQUIRE(buffer_ == expected);
     }
     {
       const std::size_t dimension = 1;
       const ThreeByThreeMatrix A(hierarchy, l, dimension, coefficients);
-      std::array<float, 25> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       A({0, 0}, v);
-      const std::array<float, 25> expected = {48, 0,   31, -5, 102, 3, 9, 3, -3,
-                                              0,  -10, 2,  -5, 5,   0, 4, 5, -6,
-                                              4,  5,   -9, -1, 0,   9, -6};
-      REQUIRE(v_ == expected);
+      mgard::unshuffle(hierarchy, v, buffer);
+      const std::array<float, ndof> expected = {
+          48, 0, 31, -5, 102, 3, 9, 3,  -3, 0, -10, 2, -5,
+          5,  0, 4,  5,  -6,  4, 5, -9, -1, 0, 9,   -6};
+      REQUIRE(buffer_ == expected);
     }
   }
 }
@@ -166,24 +179,31 @@ TEST_CASE("tensor products of simple constituent operators",
           "[TensorLinearOperator]") {
   {
     const mgard::TensorMeshHierarchy<3, float> hierarchy({2, 2, 2});
+    const std::size_t ndof = 2 * 2 * 2;
     const std::size_t l = 0;
     const DiagonalOperator A(hierarchy, l, 0, {2, 1});
     const DiagonalOperator B(hierarchy, l, 1, {1, 3});
     const DiagonalOperator C(hierarchy, l, 2, {1, 5});
     const mgard::TensorLinearOperator<3, float> M(hierarchy, l, {&A, &B, &C});
 
-    const std::array<float, 9> u_ = {0, 1, 9, 7, 3, 0, 1, 10};
+    const std::array<float, ndof> u_ = {0, 1, 9, 7, 3, 0, 1, 10};
+    std::array<float, ndof> v_;
+    std::array<float, ndof> buffer_;
+    float const *const u = u_.data();
+    float *const v = v_.data();
+    float *const buffer = buffer_.data();
     {
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       M(v);
-      const std::array<float, 9> expected = {0, 10, 54, 210, 3, 0, 3, 150};
-      REQUIRE(v_ == expected);
+      mgard::unshuffle(hierarchy, v, buffer);
+      const std::array<float, ndof> expected = {0, 10, 54, 210, 3, 0, 3, 150};
+      REQUIRE(buffer_ == expected);
     }
   }
 
   {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({3, 3});
+    const std::size_t ndof = 3 * 3;
     const std::size_t l = 1;
 
     const std::array<std::array<float, 3>, 3> A_ = {
@@ -196,13 +216,18 @@ TEST_CASE("tensor products of simple constituent operators",
 
     const mgard::TensorLinearOperator<2, float> M(hierarchy, l, {&A, &B});
 
-    const std::array<float, 9> u_ = {1, 0, 2, 0, 0, 0, 4, 0, 1};
+    const std::array<float, ndof> u_ = {1, 0, 2, 0, 0, 0, 4, 0, 1};
+    std::array<float, ndof> v_;
+    std::array<float, ndof> buffer_;
+    float const *const u = u_.data();
+    float *const v = v_.data();
+    float *const buffer = buffer_.data();
     {
-      std::array<float, 9> v_ = u_;
-      float *const v = v_.data();
+      mgard::shuffle(hierarchy, u, v);
       M(v);
-      const std::array<float, 9> expected = {17, 4, 4, 18, 3, 3, 6, 1, 1};
-      REQUIRE(v_ == expected);
+      mgard::unshuffle(hierarchy, v, buffer);
+      const std::array<float, ndof> expected = {17, 4, 4, 18, 3, 3, 6, 1, 1};
+      REQUIRE(buffer_ == expected);
     }
   }
 }

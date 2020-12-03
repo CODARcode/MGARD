@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 #include <cstddef>
 
@@ -184,4 +184,65 @@ TEST_CASE("CartesianProduct iterator", "[utilities]") {
         {'c', 'y'}, {'c', 'z'}, {'d', 'y'}, {'d', 'z'}};
     REQUIRE(obtained == expected);
   }
+}
+
+TEST_CASE("CartesianProduct predecessors and successors", "[utilities]") {
+  const std::vector<char> a = {'a', 'b', 'c'};
+  const std::vector<char> b = {'d', 'e'};
+  const mgard::CartesianProduct<std::vector<char>, 2> product({a, b});
+
+  TrialTracker tracker;
+
+  using It = mgard::CartesianProduct<std::vector<char>, 2>::iterator;
+  std::vector<It> iterators;
+  for (It it = product.begin(); it != product.end(); ++it) {
+    iterators.push_back(it);
+  }
+
+  It p = product.begin();
+  tracker += p == iterators.at(0);
+  tracker += p.predecessor(0) == iterators.at(0);
+  tracker += p.predecessor(1) == iterators.at(0);
+  tracker += p.successor(0) == iterators.at(2);
+  tracker += p.successor(1) == iterators.at(1);
+
+  ++p;
+  tracker += p == iterators.at(1);
+  tracker += p.predecessor(0) == iterators.at(1);
+  tracker += p.predecessor(1) == iterators.at(0);
+  tracker += p.successor(0) == iterators.at(3);
+  tracker += p.successor(1) == iterators.at(1);
+
+  ++p;
+  tracker += p == iterators.at(2);
+  tracker += p.predecessor(0) == iterators.at(0);
+  tracker += p.predecessor(1) == iterators.at(2);
+  tracker += p.successor(0) == iterators.at(4);
+  tracker += p.successor(1) == iterators.at(3);
+
+  ++p;
+  tracker += p == iterators.at(3);
+  tracker += p.predecessor(0) == iterators.at(1);
+  tracker += p.predecessor(1) == iterators.at(2);
+  tracker += p.successor(0) == iterators.at(5);
+  tracker += p.successor(1) == iterators.at(3);
+
+  ++p;
+  tracker += p == iterators.at(4);
+  tracker += p.predecessor(0) == iterators.at(2);
+  tracker += p.predecessor(1) == iterators.at(4);
+  tracker += p.successor(0) == iterators.at(4);
+  tracker += p.successor(1) == iterators.at(5);
+
+  ++p;
+  tracker += p == iterators.at(5);
+  tracker += p.predecessor(0) == iterators.at(3);
+  tracker += p.predecessor(1) == iterators.at(4);
+  tracker += p.successor(0) == iterators.at(5);
+  tracker += p.successor(1) == iterators.at(5);
+
+  ++p;
+  tracker += p == product.end();
+
+  REQUIRE(tracker);
 }

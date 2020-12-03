@@ -31,9 +31,9 @@ case ${BUILD_MATRIX_ENTRY} in
       exit 1;
     fi
     ;;
-  test-gs)
+  tests)
     echo "Running tests"
-    if ! ${SOURCE_DIR}/scripts/travis/run-mgard.sh; then
+    if ! ${SOURCE_DIR}/scripts/travis/run-tests.sh; then
       exit 1;
     fi
     ;;

@@ -11,36 +11,37 @@ addons:
       - autogen
       - libtool
       - liblapack-dev
+#Packages needed for the executable.
+      - libarchive-dev
+      - libyaml-cpp-dev
+      - libtclap-dev
 before_install:
   - pushd ${HOME}
   - wget http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-  - wget https://github.com/Kitware/CMake/releases/download/v3.15.5/cmake-3.15.5-Linux-x86_64.tar.gz
-  - wget https://github.com/ornladios/ADIOS2/archive/v2.5.0.tar.gz
+  - wget https://github.com/Kitware/CMake/releases/download/v3.19.1/cmake-3.19.1-Linux-x86_64.tar.gz
   - wget https://github.com/danmar/cppcheck/archive/1.87.tar.gz
   - git clone https://bitbucket.org/fathomteam/moab.git
-  - wget https://github.com/catchorg/Catch2/releases/download/v2.11.3/catch.hpp
+  - git clone https://github.com/catchorg/Catch2.git
   - popd
 install:
   - pushd ${HOME}
   - tar -xf clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
   - export PATH="${PWD}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin:${PATH}"
-  - tar -xf cmake-3.15.5-Linux-x86_64.tar.gz
-  - export PATH="${PWD}/cmake-3.15.5-Linux-x86_64/bin:${PATH}"
-  - tar -xf v2.5.0.tar.gz
-  - pushd ADIOS2-2.5.0 && mkdir build && pushd build && cmake -DADIOS2_USE_MPI=ON ..  && make && sudo make install && popd && popd
+  - tar -xf cmake-3.19.1-Linux-x86_64.tar.gz
+  - export PATH="${PWD}/cmake-3.19.1-Linux-x86_64/bin:${PATH}"
   - popd
   - pip install --user flake8
   - git config --global clangformat.binary ${HOME}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin/clang-format
-  - mkdir build && pushd build && cmake .. && make && popd
   - ./scripts/travis/build-cppcheck.sh
   - ./scripts/travis/build-moab.sh
-  - pushd "${HOME}" && mkdir --parents .local/include/catch2 && mv catch.hpp .local/include/catch2 && popd
+  - ./scripts/travis/build-catch2.sh
+  - mkdir build && pushd build && cmake .. && make && popd
 env:
   matrix:
     - BUILD_MATRIX_ENTRY=format
     - BUILD_MATRIX_ENTRY=analyze
     - BUILD_MATRIX_ENTRY=check
-    - BUILD_MATRIX_ENTRY=test-gs  
+    - BUILD_MATRIX_ENTRY=tests
 script:
   - git reset --hard ${TRAVIS_PULL_REQUEST_SHA}
   - ${TRAVIS_BUILD_DIR}/scripts/travis/run.sh
