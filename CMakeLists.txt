@@ -204,21 +204,25 @@ add_library(mgard-library STATIC
   src/TensorMeshHierarchyIteration.cpp  include/TensorMeshHierarchyIteration.hpp include/TensorMeshHierarchyIteration.tpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
 )
+set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+
 set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
-target_compile_options(mgard-library PUBLIC -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra)
+#target_compile_options(mgard-library PUBLIC -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra)
+SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	target_compile_options(mgard-library PUBLIC -fsanitize=address -fsanitize=undefined)
-	target_link_libraries(mgard-library PUBLIC -fsanitize=address -fsanitize=undefined)
+	#target_compile_options(mgard-library PUBLIC -fsanitize=address -fsanitize=undefined)
+  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+	# target_link_libraries(mgard-library PUBLIC -fsanitize=address -fsanitize=undefined)
 else()
-	target_compile_options(mgard-library PUBLIC -march=native -ffast-math -fno-finite-math-only)
+	#target_compile_options(mgard-library PUBLIC -march=native -ffast-math -fno-finite-math-only)
+  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -march=native -ffast-math -fno-finite-math-only")
 endif()
 
 target_include_directories(mgard-library
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/mgard>
 )
 target_link_libraries(mgard-library PRIVATE ZLIB::ZLIB)
 if (MOAB_FOUND)
