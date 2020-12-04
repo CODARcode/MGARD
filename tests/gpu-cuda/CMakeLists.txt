@@ -8,7 +8,8 @@ endif()
 
 project(mgard_cuda C CXX)
 find_package(mgard)
+find_package(CUDA)
 
 add_executable(mgard_check_cuda_and_cpu mgard_check_cuda_and_cpu.cpp)
 
-target_link_libraries(mgard_check_cuda_and_cpu mgard::mgard)
+target_link_libraries(mgard_check_cuda_and_cpu mgard::mgard-library ${CUDA_CUDART_LIBRARY} ${CUDA_cudadevrt_LIBRARY})
