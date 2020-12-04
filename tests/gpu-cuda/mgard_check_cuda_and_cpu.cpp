@@ -172,22 +172,27 @@ int main(int argc, char *argv[]) {
       const std::array<std::size_t, 2> shape = {nrow, ncol};
       const mgard::TensorMeshHierarchy<2, double> hierarchy(shape);
       const size_t ndof = hierarchy.ndof();
-      const mgard::CompressedDataset<2, double> compressed = mgard::compress(hierarchy, in_buff, 0.0, tol);
+      const mgard::CompressedDataset<2, double> compressed =
+          mgard::compress(hierarchy, in_buff, 0.0, tol);
       out_size = compressed.size();
       mgard_comp_buff = (unsigned char *)compressed.data();
-      mgard::DecompressedDataset<2, double> decompressed = mgard::decompress(compressed);
+      mgard::DecompressedDataset<2, double> decompressed =
+          mgard::decompress(compressed);
       mgard_out_buff = decompressed.data();
     } else {
       const std::array<std::size_t, 3> shape = {nrow, ncol, nfib};
       const mgard::TensorMeshHierarchy<3, double> hierarchy(shape);
       const size_t ndof = hierarchy.ndof();
-      const mgard::CompressedDataset<3, double> compressed = mgard::compress(hierarchy, in_buff, 0.0, tol);
+      const mgard::CompressedDataset<3, double> compressed =
+          mgard::compress(hierarchy, in_buff, 0.0, tol);
       out_size = compressed.size();
       mgard_comp_buff = (unsigned char *)compressed.data();
-      mgard::DecompressedDataset<3, double> decompressed = mgard::decompress(compressed);
+      mgard::DecompressedDataset<3, double> decompressed =
+          mgard::decompress(compressed);
       mgard_out_buff = decompressed.data();
     }
-    // mgard_comp_buff = mgard_compress(in_buff, out_size, nrow, ncol, nfib, tol);
+    // mgard_comp_buff = mgard_compress(in_buff, out_size, nrow, ncol, nfib,
+    // tol);
   } else {
     fprintf(stdout, "[INFO] Compressing with GPU acceleration\n");
     mgard_cuda_handle<double> handle(nrow, ncol, nfib, B, num_of_queues, opt);
@@ -204,11 +209,13 @@ int main(int argc, char *argv[]) {
   if (opt == -1) {
     // fprintf(stdout, "[INFO] Decompressing using CPU only\n");
     // mgard_out_buff =
-    //     mgard_decompress<double>(mgard_comp_buff, out_size, nrow, ncol, nfib);
+    //     mgard_decompress<double>(mgard_comp_buff, out_size, nrow, ncol,
+    //     nfib);
   } else {
     // fprintf(stdout, "[INFO] Decompressing with GPU acceleration\n");
-    // mgard_cuda_handle<double> handle(nrow, ncol, nfib, B, num_of_queues, opt);
-    
+    // mgard_cuda_handle<double> handle(nrow, ncol, nfib, B, num_of_queues,
+    // opt);
+
     // mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff,
     // out_size,  nrow,  ncol, nfib);
   }
