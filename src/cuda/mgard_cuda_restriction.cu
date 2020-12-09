@@ -239,7 +239,8 @@ __global__ void _restriction_1_cpt(int nr, int nc, int row_stride,
       // advance c0
       c0 += blockDim.x;
       c0_stride += blockDim.x * col_stride;
-
+      __syncthreads();
+      
       // copy ghost to main
       real_ghost_col = min(ghost_col, real_main_col - (blockDim.x - ghost_col));
       if (c0_sm < real_ghost_col) {

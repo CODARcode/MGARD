@@ -204,27 +204,6 @@ int main(int argc, char *argv[]) {
   printf("[INFO] In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n",
          lSize, out_size, lSize / out_size);
 
-  // double *mgard_out_buff;
-  double dummy = 0;
-  if (opt == -1) {
-    // fprintf(stdout, "[INFO] Decompressing using CPU only\n");
-    // mgard_out_buff =
-    //     mgard_decompress<double>(mgard_comp_buff, out_size, nrow, ncol,
-    //     nfib);
-  } else {
-    // fprintf(stdout, "[INFO] Decompressing with GPU acceleration\n");
-    // mgard_cuda_handle<double> handle(nrow, ncol, nfib, B, num_of_queues,
-    // opt);
-
-    // mgard_out_buff = mgard_decompress(iflag, dummy, mgard_comp_buff,
-    // out_size,  nrow,  ncol, nfib);
-  }
-
-  // FILE *qfile;
-  // qfile = fopen ( outfile , "wb" );
-  // result = fwrite (mgard_out_buff, 1, lSize, qfile);
-  // fclose(qfile);
-  // if (result != lSize) {fputs ("Writing error",stderr); exit (4);}
 
   double error_L_inf_norm = 0;
   for (int i = 0; i < num_doubles; ++i) {
