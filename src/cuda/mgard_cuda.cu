@@ -71,7 +71,6 @@ unsigned char *refactor_qz_cuda(mgard_cuda_handle<T> &handle, T *u,
                             sizeof(int),
                         D2H, 0);
   handle.sync_all();
-
   mgard::compress_memory_z(qv.data(), sizeof(int) * qv.size(), out_data);
 
   outsize = out_data.size();
@@ -79,6 +78,7 @@ unsigned char *refactor_qz_cuda(mgard_cuda_handle<T> &handle, T *u,
   std::copy(out_data.begin(), out_data.end(), buffer);
 
   cudaFreeHelper(dv);
+  cudaFreeHelper(dqv);
 
   return (unsigned char *)buffer;
 }
@@ -135,6 +135,7 @@ T *recompose_udq_cuda(mgard_cuda_handle<T> &handle, unsigned char *data,
       handle.nfib * sizeof(T), handle.ncol, handle.nrow, D2H, 0);
   handle.sync_all();
   cudaFreeHelper(dv);
+  cudaFreeHelper(dqv);
   return v;
 }
 

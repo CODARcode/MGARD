@@ -68,6 +68,7 @@ void solve_tridiag_1(mgard_cuda_handle<T> &handle, int nrow, int ncol, int nr,
 #ifdef MGARD_CUDA_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
+  cudaFreeHelper(dcoeff);
 }
 
 template void solve_tridiag_1<double>(mgard_cuda_handle<double> &handle,
@@ -146,6 +147,7 @@ void solve_tridiag_2(mgard_cuda_handle<T> &handle, int nrow, int ncol, int nr,
 #ifdef MGARD_CUDA_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
+  cudaFreeHelper(dcoeff);
 }
 
 template void solve_tridiag_2<double>(mgard_cuda_handle<double> &handle,
