@@ -204,7 +204,6 @@ int main(int argc, char *argv[]) {
   printf("[INFO] In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n",
          lSize, out_size, lSize / out_size);
 
-
   double error_L_inf_norm = 0;
   for (int i = 0; i < num_doubles; ++i) {
     double temp = fabs(buffer[i] - mgard_out_buff[i]);

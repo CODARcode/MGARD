@@ -230,7 +230,7 @@ __global__ void _restriction_1_cpt(int nr, int nc, int row_stride,
       if (c0_sm == 0) {
         prev_vec_sm = vec_sm[blockDim.x - 1];
         prev_h1 = dist_x_sm[blockDim.x - 2]; //_get_dist(dcoords_x_sm,
-                                             //blockDim.x - 2, blockDim.x - 1);
+                                             // blockDim.x - 2, blockDim.x - 1);
         prev_h2 =
             dist_x_sm[blockDim.x -
                       1]; //_get_dist(dcoords_x_sm, blockDim.x - 1, blockDim.x);
@@ -240,7 +240,7 @@ __global__ void _restriction_1_cpt(int nr, int nc, int row_stride,
       c0 += blockDim.x;
       c0_stride += blockDim.x * col_stride;
       __syncthreads();
-      
+
       // copy ghost to main
       real_ghost_col = min(ghost_col, real_main_col - (blockDim.x - ghost_col));
       if (c0_sm < real_ghost_col) {
@@ -458,7 +458,7 @@ __global__ void _restriction_2_cpt(int nr, int nc, int row_stride,
       if (r0_sm == 0) {
         prev_vec_sm = vec_sm[(blockDim.y - 1) * ldsm];
         prev_h1 = dist_y_sm[blockDim.y - 2]; //_get_dist(dcoords_x_sm,
-                                             //blockDim.x - 2, blockDim.x - 1);
+                                             // blockDim.x - 2, blockDim.x - 1);
         prev_h2 =
             dist_y_sm[blockDim.y -
                       1]; //_get_dist(dcoords_x_sm, blockDim.x - 1, blockDim.x);
