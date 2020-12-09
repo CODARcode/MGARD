@@ -57,8 +57,8 @@ void recompose_3D_cuda_cpt(mgard_cuda_handle<T> &handle, T *dv, int lddv1,
                         handle.lddcwork_2d_rc[queue_idx], queue_idx);
 
       solve_tridiag_1_cpt(handle, handle.nr_l[l - 1], handle.nc_l[l - 1], 1, 2,
-                          handle.ddist_c_l[l], handle.am_row[queue_idx],
-                          handle.bm_row[queue_idx],
+                          handle.ddist_c_l[l], handle.am_col[queue_idx],
+                          handle.bm_col[queue_idx],
                           handle.dcwork_2d_rc[queue_idx],
                           handle.lddcwork_2d_rc[queue_idx], queue_idx);
 
@@ -72,8 +72,8 @@ void recompose_3D_cuda_cpt(mgard_cuda_handle<T> &handle, T *dv, int lddv1,
                         handle.lddcwork_2d_rc[queue_idx], queue_idx);
 
       solve_tridiag_2_cpt(handle, handle.nr_l[l - 1], handle.nc_l[l - 1], 2, 2,
-                          handle.ddist_r_l[l], handle.am_col[queue_idx],
-                          handle.bm_col[queue_idx],
+                          handle.ddist_r_l[l], handle.am_row[queue_idx],
+                          handle.bm_row[queue_idx],
                           handle.dcwork_2d_rc[queue_idx],
                           handle.lddcwork_2d_rc[queue_idx], queue_idx);
 

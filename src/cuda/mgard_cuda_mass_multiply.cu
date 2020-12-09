@@ -221,6 +221,7 @@ __global__ void _mass_multiply_1_cpt(int nr, int nc, int row_stride,
       // advance c0
       c0_stride += blockDim.x * col_stride;
       c0 += blockDim.x;
+      __syncthreads();
 
       // copy ghost to main
       real_ghost_col = min(ghost_col, real_main_col - (blockDim.x - ghost_col));
