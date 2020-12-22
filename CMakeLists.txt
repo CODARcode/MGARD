@@ -16,26 +16,12 @@ file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/include/mgard.hpp MGARD_VERSION
 string(REGEX MATCH "[0-9]+(\.[0-9])+" MGARD_VERSION "${MGARD_VERSION}")
 project(MGARD VERSION ${MGARD_VERSION})
 
-#-----------------------------------------------------------------------------
-# mgard_option(variable doc [initial])
-#   Provides an option if it is not already defined.
-# This can be replaced when CMake 3.13 is our cmake_minimum_required
-macro (mgard_option variable)
-  if (NOT DEFINED "${variable}")
-    option("${variable}" ${ARGN})
-  endif ()
-endmacro ()
-
 #Configurable Options
-mgard_option(MGARD_ENABLE_CUDA "Enable Cuda support" OFF)
-mgard_option(MGARD_ENABLE_CUDA_DEBUG "Enable Cuda support with debug" OFF)
+option(MGARD_ENABLE_CUDA "Enable Cuda support" OFF)
+option(MGARD_ENABLE_CUDA_DEBUG "Enable Cuda support with debug" OFF)
 
 # Some boilerplate to setup nice output directories
 include(GNUInstallDirs)
-set(CMAKE_INSTALL_BINDIR bin CACHE STRING "Installation runtime subdirectory")
-set(CMAKE_INSTALL_LIBDIR lib CACHE STRING "Installation library subdirectory")
-set(CMAKE_INSTALL_INCLUDEDIR include
-  CACHE STRING "Installation include subdirectory")
 if(WIN32 AND NOT CYGWIN)
   set(CMAKE_INSTALL_CMAKEDIR CMake
     CACHE STRING "Installation CMake subdirectory")
@@ -230,13 +216,13 @@ target_include_directories(mgard-library
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(mgard-library PRIVATE ZLIB::ZLIB)
+target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
 if (MOAB_FOUND)
 	target_sources(mgard-library PRIVATE ${MGARD_MOAB_HEADER} ${MGARD_MOAB_TEMPLATE_DEFINITION} ${MGARD_MOAB_SOURCE})
 	target_link_libraries(mgard-library PUBLIC MOAB::MOAB)
 endif()
 if(ZSTD_FOUND)
-  target_link_libraries(mgard-library PRIVATE ZSTD::ZSTD)
+	target_link_libraries(mgard-library PUBLIC ZSTD::ZSTD)
 endif()
 
 option(DEFINE_MGARD_TIMING "Enable/disable MGARD timing" OFF)
@@ -244,41 +230,20 @@ if(DEFINE_MGARD_TIMING)
   add_definitions(-DMGARD_TIMING)
 endif()
 
-# Make sure we require C++11.  Use meta-compile features if available,
-# otherwise use specific language features
-if(NOT (CMAKE_VERSION VERSION_LESS 3.9))
-  target_compile_features(mgard-library PUBLIC cxx_std_17)
-else()
-  target_compile_features(mgard-library PUBLIC cxx_auto_type cxx_nullptr)
-endif()
+target_compile_features(mgard-library PUBLIC cxx_std_17)
 
 set_target_properties(mgard-library PROPERTIES
+  EXPORT_NAME mgard
   VERSION ${MGARD_VERSION}
   SOVERSION ${MGARD_VERSION_MAJOR}
   ${MGARD_CUDA_SEPARATE_COMPILE_COMPILATION_OPTION}
 )
 
-install(
-  TARGETS mgard-library EXPORT mgard-targets
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
+install(TARGETS mgard-library EXPORT mgard-targets)
 
-install(
-  FILES include/mgard.hpp
-        include/mgard_compress.hpp
-        include/mgard_api.h
-	include/TensorMeshHierarchy.hpp
-        ${MGARD_CUDA_HEADER}
-	"${PROJECT_BINARY_DIR}/include/MGARDConfig.h"
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-install(
-  DIRECTORY
-    include/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
+
+install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 
 # Create executables under build/bin
 include(CTest)
@@ -350,8 +315,10 @@ else()
 endif()
 
 # Add all targets to the build-tree export set
-export(TARGETS mgard-library NAMESPACE mgard::
-  FILE "${PROJECT_BINARY_DIR}/mgard-targets.cmake"
+export(
+	TARGETS mgard-library
+	NAMESPACE mgard::
+	FILE "${PROJECT_BINARY_DIR}/mgard-targets.cmake"
 )
 
 # Create the mgard-config.cmake and mgard-config-version files
@@ -360,18 +327,15 @@ write_basic_package_version_file(
   "${PROJECT_BINARY_DIR}/mgard-config-version.cmake"
   COMPATIBILITY SameMajorVersion
 )
-configure_file(mgard-config.cmake.in
-  "${PROJECT_BINARY_DIR}/mgard-config.cmake" @ONLY
+configure_file(
+	"${PROJECT_SOURCE_DIR}/cmake/mgard-config.cmake.in"
+	"${PROJECT_BINARY_DIR}/mgard-config.cmake"
+	@ONLY
 )
 
 configure_file(
-  include/MGARDConfig.h.in
-  ${PROJECT_BINARY_DIR}/include/MGARDConfig.h.in
-)
-
-configure_file(
-  ${PROJECT_BINARY_DIR}/include/MGARDConfig.h.in
-  ${PROJECT_BINARY_DIR}/include/MGARDConfig.h
+	"${PROJECT_SOURCE_DIR}/include/MGARDConfig.h.in"
+	"${PROJECT_BINARY_DIR}/include/MGARDConfig.h"
 )
 
 # Install the mgard-config.cmake and mgard-config-version.cmake
@@ -388,7 +352,11 @@ install(EXPORT mgard-targets NAMESPACE mgard::
 )
 
 # Install pkg-config files for non-cmake projects
-configure_file(mgard.pc.in "${PROJECT_BINARY_DIR}/mgard.pc" @ONLY)
+configure_file(
+	"${PROJECT_SOURCE_DIR}/cmake/mgard.pc.in"
+	"${PROJECT_BINARY_DIR}/mgard.pc"
+	@ONLY
+)
 install(
   FILES "${PROJECT_BINARY_DIR}/mgard.pc"
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT dev
