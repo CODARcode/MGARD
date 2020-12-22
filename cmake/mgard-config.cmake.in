@@ -1,19 +1,29 @@
 include(CMakeFindDependencyMacro)
 
-set(_mgard_required_vars)
-if(@BUILD_SHARED_LIBS@)
-  find_dependency(ZLIB)
-  list(APPEND _mgard_required_vars ZLIB_FOUND)
+set(REQUIRED_VARS)
+
+if(@ZLIB_FOUND@)
+	find_dependency(ZLIB)
+	list(APPEND REQUIRED_VARS ZLIB_FOUND)
 endif()
 
-if(_mgard_required_vars)
-  list(INSERT _mgard_required_vars 0 REQUIRED_VARS)
+if(@ZSTD_FOUND@)
+	find_dependency(ZSTD)
+	list(APPEND REQUIRED_VARS ZSTD_FOUND)
+endif()
+
+if(@MOAB_FOUND@)
+	find_dependency(MOAB)
+	list(APPEND REQUIRED_VARS MOAB_FOUND)
 endif()
 
 include(FindPackageHandleStandardArgs)
 set(${CMAKE_FIND_PACKAGE_NAME}_CONFIG ${CMAKE_CURRENT_LIST_FILE})
-find_package_handle_standard_args(${CMAKE_FIND_PACKAGE_NAME} CONFIG_MODE
-  ${_mgard_required_vars})
+find_package_handle_standard_args(
+	${CMAKE_FIND_PACKAGE_NAME}
+	REQUIRED_VARS ${REQUIRED_VARS}
+	CONFIG_MODE
+)
 
 if(NOT TARGET mgard::mgard)
   include("${CMAKE_CURRENT_LIST_DIR}/mgard-targets.cmake")
