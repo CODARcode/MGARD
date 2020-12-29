@@ -1,4 +1,7 @@
 #include <stdexcept>
+#include <vector>
+
+#include <omp.h>
 
 #include "utilities.hpp"
 
@@ -77,10 +80,17 @@ void TensorLinearOperator<N, Real>::operator()(Real *const v) const {
     }
     // Range which will yield `0` once.
     multiindex_components_.at(i) = TensorIndexRange::singleton();
-    for (const std::array<std::size_t, N> multiindex :
-         CartesianProduct<TensorIndexRange, N>(multiindex_components_)) {
-      A->operator()(multiindex, v);
+
+    const CartesianProduct<TensorIndexRange, N> product(multiindex_components_);
+    const std::vector<std::array<std::size_t, N>> multiindices(product.begin(),
+                                                               product.end());
+    const std::size_t M = multiindices.size();
+
+#pragma omp parallel for
+    for (std::size_t j = 0; j < M; ++j) {
+      A->operator()(multiindices.at(j), v);
     }
+
     // Reinstate this dimension's indices for the next iteration.
     multiindex_components_.at(i) = multiindex_components.at(i);
   }
