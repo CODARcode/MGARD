@@ -7,7 +7,6 @@
 #include <cstddef>
 
 #include <array>
-#include <vector>
 
 #include "TensorMeshHierarchy.hpp"
 
