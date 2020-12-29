@@ -263,11 +263,6 @@ void exhaustive_constituent_inverse_test(
   std::vector<Real> buffer_(ndof);
   Real *const v = v_.data();
   Real *const buffer = buffer_.data();
-  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.at(hierarchy.L);
-  std::vector<Real> inverse_buffer_(
-      // Maximum of the sizes.
-      *std::max_element(SHAPE.begin(), SHAPE.end()));
-  Real *const inverse_buffer = buffer_.data();
   TrialTracker tracker;
   for (std::size_t l = 0; l <= hierarchy.L; ++l) {
     std::array<mgard::TensorIndexRange, N> multiindex_components;
@@ -276,8 +271,8 @@ void exhaustive_constituent_inverse_test(
     }
     for (std::size_t dimension = 0; dimension < N; ++dimension) {
       const mgard::ConstituentMassMatrix<N, Real> M(hierarchy, l, dimension);
-      const mgard::ConstituentMassMatrixInverse<N, Real> A(
-          hierarchy, l, dimension, inverse_buffer);
+      const mgard::ConstituentMassMatrixInverse<N, Real> A(hierarchy, l,
+                                                           dimension);
 
       std::array<mgard::TensorIndexRange, N> multiindex_components_ =
           multiindex_components;
@@ -318,9 +313,8 @@ TEST_CASE("constituent mass matrix inverses", "[TensorMassMatrix]") {
       const std::size_t l = 3;
       const std::size_t dimension = 0;
       const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
-      std::vector<float> inverse_buffer(M.dimension());
-      const mgard::ConstituentMassMatrixInverse<1, float> A(
-          hierarchy, l, dimension, inverse_buffer.data());
+      const mgard::ConstituentMassMatrixInverse<1, float> A(hierarchy, l,
+                                                            dimension);
       mgard::shuffle(hierarchy, u, v);
       M({0}, v);
       A({0}, v);
@@ -335,9 +329,8 @@ TEST_CASE("constituent mass matrix inverses", "[TensorMassMatrix]") {
       const std::size_t l = 1;
       const std::size_t dimension = 0;
       const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
-      std::vector<float> inverse_buffer(M.dimension());
-      const mgard::ConstituentMassMatrixInverse<1, float> A(
-          hierarchy, l, dimension, inverse_buffer.data());
+      const mgard::ConstituentMassMatrixInverse<1, float> A(hierarchy, l,
+                                                            dimension);
       mgard::shuffle(hierarchy, u, v);
       // Opposite order.
       A({0}, v);
