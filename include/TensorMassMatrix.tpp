@@ -1,5 +1,3 @@
-#include <algorithm>
-
 namespace mgard {
 
 template <std::size_t N, typename Real>
@@ -119,12 +117,57 @@ TensorMassMatrix<N, Real>::TensorMassMatrix(
 template <std::size_t N, typename Real>
 ConstituentMassMatrixInverse<N, Real>::ConstituentMassMatrixInverse(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
-    const std::size_t dimension, Real *const buffer)
-    : ConstituentLinearOperator<N, Real>(hierarchy, l, dimension),
-      divisors(buffer) {
-  if (this->dimension() < 2) {
+    const std::size_t dimension)
+    : ConstituentLinearOperator<N, Real>(hierarchy, l, dimension) {
+  const std::size_t n = CLO::dimension();
+  if (n < 2) {
     throw std::invalid_argument("mass matrix inverse implementation assumes "
                                 "that 'spear' has at least two nodes");
+  }
+
+  // Populate `divisors`.
+  divisors.resize(n);
+
+  const std::vector<Real> &xs = CLO::hierarchy->coordinates.at(CLO::dimension_);
+  // Node coordinates.
+  Real x_middle;
+  Real x_right;
+
+  // Node spacings.
+  Real h_left;
+  Real h_right;
+
+  TensorIndexRange::iterator p = CLO::indices.begin();
+  x_middle = xs.at(*p);
+
+  x_right = xs.at(*++p);
+  h_right = x_right - x_middle;
+
+  divisors[0] = 2 * h_right / 6;
+
+  for (std::size_t j = 1; j + 1 < n; ++j) {
+    // `j` is the index of the current ('middle') row.
+    x_middle = x_right;
+    h_left = h_right;
+
+    x_right = xs.at(*++p);
+    h_right = x_right - x_middle;
+
+    // Subdiagonal element `a_i` in the current row, equal to the superdiagonal
+    // element `c_{i - 1}` in the previous row.
+    const Real a_j = h_left / 6;
+    const Real w = a_j / divisors[j - 1];
+    // In general (for example, if the matrix weren't symmetric), `a_i` here is
+    // `c_{i - 1}`.
+    divisors[j] = 2 * (h_left + h_right) / 6 - w * a_j;
+  }
+
+  {
+    x_middle = x_right;
+    h_left = h_right;
+    const Real a_j = h_left / 6;
+    const Real w = a_j / divisors[n - 2];
+    divisors[n - 1] = 2 * h_left / 6 - w * a_j;
   }
 }
 
@@ -147,7 +190,8 @@ void ConstituentMassMatrixInverse<N, Real>::do_operator_parentheses(
   //    for i = n - 1, …, 1 do
   //      x_i = (d_i - c_i * x_{i + 1}) / b_i
   //    end
-  // Because the mass matrix is symmetric, `a_i` is equal to `c_{i - 1}`.
+  // Because the mass matrix is symmetric, `a_i` is equal to `c_{i - 1}`. We
+  // precompute the divisors (the modified `[b_1, …, b_n]`) in the constructor.
   std::array<std::size_t, N> alpha = multiindex;
   std::size_t &variable_index = alpha.at(CLO::dimension_);
   const std::vector<Real> &xs = CLO::hierarchy->coordinates.at(CLO::dimension_);
@@ -184,7 +228,6 @@ void ConstituentMassMatrixInverse<N, Real>::do_operator_parentheses(
   out_right = &CLO::hierarchy->at(v, alpha);
   h_right = x_right - x_middle;
 
-  divisors[0] = 2 * h_right / 6;
   rhs_previous = *out_middle;
 
   // Forward sweep (except for last entry).
@@ -204,9 +247,6 @@ void ConstituentMassMatrixInverse<N, Real>::do_operator_parentheses(
     // element `c_{i - 1}` in the previous row.
     const Real a_j = h_left / 6;
     const Real w = a_j / divisors[j - 1];
-    // In general (for example, if the matrix weren't symmetric), `a_i` here is
-    // `c_{i - 1}`.
-    divisors[j] = 2 * (h_left + h_right) / 6 - w * a_j;
     rhs_previous = *out_middle -= w * rhs_previous;
   }
 
@@ -217,7 +257,6 @@ void ConstituentMassMatrixInverse<N, Real>::do_operator_parentheses(
     h_left = h_right;
     const Real a_j = h_left / 6;
     const Real w = a_j / divisors[n - 2];
-    divisors[n - 1] = 2 * h_left / 6 - w * a_j;
     // We are done with `rhs_previous`, so we don't update it.
     *out_middle -= w * rhs_previous;
   }
@@ -248,20 +287,12 @@ void ConstituentMassMatrixInverse<N, Real>::do_operator_parentheses(
 namespace {
 
 template <std::size_t N, typename Real>
-std::size_t buffer_size(const TensorMeshHierarchy<N, Real> &hierarchy,
-                        const std::size_t l) {
-  const std::array<std::size_t, N> shape = hierarchy.shapes.at(l);
-  return *std::max_element(shape.begin(), shape.end());
-}
-
-template <std::size_t N, typename Real>
 std::array<ConstituentMassMatrixInverse<N, Real>, N>
 generate_mass_matrix_inverses(const TensorMeshHierarchy<N, Real> &hierarchy,
-                              const std::size_t l, Real *const buffer) {
+                              const std::size_t l) {
   std::array<ConstituentMassMatrixInverse<N, Real>, N> operators;
   for (std::size_t i = 0; i < N; ++i) {
-    operators.at(i) =
-        ConstituentMassMatrixInverse<N, Real>(hierarchy, l, i, buffer);
+    operators.at(i) = ConstituentMassMatrixInverse<N, Real>(hierarchy, l, i);
   }
   return operators;
 }
@@ -272,9 +303,7 @@ template <std::size_t N, typename Real>
 TensorMassMatrixInverse<N, Real>::TensorMassMatrixInverse(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
     : TensorLinearOperator<N, Real>(hierarchy, l),
-      buffer(buffer_size(hierarchy, l)),
-      mass_matrix_inverses(
-          generate_mass_matrix_inverses(hierarchy, l, buffer.data())) {
+      mass_matrix_inverses(generate_mass_matrix_inverses(hierarchy, l)) {
   for (std::size_t i = 0; i < N; ++i) {
     TLO::operators.at(i) = &mass_matrix_inverses.at(i);
   }
