@@ -98,6 +98,7 @@ YAML::Emitter &operator<<(YAML::Emitter &emitter,
   emitter << YAML::Key << "node coordinate files" << YAML::Value
           << metadata.node_coordinate_files;
   emitter << YAML::EndMap;
+  return emitter;
 }
 
 const std::string CompressionMetadata::YAML_name = "compression";

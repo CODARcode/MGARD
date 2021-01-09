@@ -23,10 +23,12 @@ EdgeFamilyIterable<T>::EdgeFamilyIterable(const MeshLevel &mesh,
                                           const T end)
     : mesh(mesh), MESH(MESH), begin_(begin), end_(end) {
   //`MESH` should be produced by refining `mesh`. Sanity checks here.
-  const moab::Range &edges = mesh.entities[moab::MBEDGE];
-  const moab::Range &elements = mesh.entities[mesh.element_type];
-  const moab::Range &EDGES = MESH.entities[moab::MBEDGE];
-  const moab::Range &ELEMENTS = MESH.entities[MESH.element_type];
+  [[maybe_unused]] const moab::Range &edges = mesh.entities[moab::MBEDGE];
+  [[maybe_unused]] const moab::Range &elements =
+      mesh.entities[mesh.element_type];
+  [[maybe_unused]] const moab::Range &EDGES = MESH.entities[moab::MBEDGE];
+  [[maybe_unused]] const moab::Range &ELEMENTS =
+      MESH.entities[MESH.element_type];
   assert(MESH.ndof() == mesh.ndof() + edges.size());
   assert(mesh.element_type == MESH.element_type);
   // When tetrahedra are refined using the Ong pattern, neighboring tetrahedra

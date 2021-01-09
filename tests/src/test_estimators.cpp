@@ -41,7 +41,7 @@ TEST_CASE("comparison with Python implementation: estimators", "[estimators]") {
     mbcore.get_coords(&node, 1, xyz);
     const double x = xyz[0];
     const double y = xyz[1];
-    const double z = xyz[2];
+    [[maybe_unused]] const double z = xyz[2];
     assert(z == 0);
     u_.at(i) =
         std::sin(10 * x - 15 * y) + 2 * std::exp(-1 / (1 + x * x + y * y));

@@ -54,7 +54,7 @@ TEST_CASE("comparison with Python implementation: indicators", "[indicators]") {
     mbcore.get_coords(&node, 1, xyz);
     const double x = xyz[0];
     const double y = xyz[1];
-    const double z = xyz[2];
+    [[maybe_unused]] const double z = xyz[2];
     assert(z == 0);
     u_.at(i) = (34 * std::sin(1 * x + 1 * y) + 21 * std::sin(2 * x + 3 * y) +
                 13 * std::sin(5 * x + 8 * y)) /
