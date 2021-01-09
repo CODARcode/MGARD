@@ -15,7 +15,7 @@ void require_vector_equality(T p, U q, const SizeType N, const double margin) {
 template <typename T, typename U>
 void require_vector_equality(const T &t, const U &u, const double margin) {
   const typename T::size_type N = t.size();
-  const typename U::size_type M = u.size();
+  [[maybe_unused]] const typename U::size_type M = u.size();
   assert(N == M);
   require_vector_equality(t.begin(), u.begin(), N, margin);
 }

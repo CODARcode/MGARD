@@ -152,7 +152,7 @@ int read_compress_write(const cli::CompressionArguments &arguments) {
     inputfile.seekg(0, std::ios_base::end);
     const std::fstream::pos_type read = inputfile.tellg();
     const std::size_t expected = ndof * sizeof(Real);
-    if (read != expected) {
+    if (read < 0 || static_cast<std::size_t>(read) != expected) {
       std::cerr << "expected " << expected << " bytes (";
       if (N > 1) {
         for (std::size_t i = 0; i + 1 < N; ++i) {

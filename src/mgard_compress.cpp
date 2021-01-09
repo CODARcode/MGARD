@@ -61,8 +61,6 @@ template <class T>
 using my_priority_queue =
     std::priority_queue<T *, std::vector<T *>, LessThanByCnt>;
 
-void print_huffman_tree(htree_node *r) {}
-
 void build_codec(htree_node *root, unsigned int code, size_t len,
                  huffman_codec *codec) {
 
@@ -145,7 +143,7 @@ size_t *build_ft(int *quantized_data, const std::size_t n,
   size_t *cnt = (size_t *)malloc(nql * sizeof(size_t));
   memset(cnt, 0, nql * sizeof(size_t));
 
-  for (int i = 0; i < n; i++) {
+  for (std::size_t i = 0; i < n; i++) {
     // Convert quantization level to positive so that counting freq can be
     // easily done. Level 0 is reserved a out-of-range flag.
     quantized_data[i] = quantized_data[i] + nql / 2;
@@ -163,7 +161,6 @@ size_t *build_ft(int *quantized_data, const std::size_t n,
 
 huffman_codec *build_huffman_codec(int *quantized_data, size_t **ft,
                                    const std::size_t n, size_t &num_outliers) {
-  htree_node *root = 0;
   size_t *cnt;
 
   cnt = build_ft(quantized_data, n, num_outliers);
@@ -233,7 +230,7 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
   free(huffman_encoding_p);
 }
 
-void huffman_decoding(int *quantized_data, const std::size_t n,
+void huffman_decoding(int *quantized_data, const std::size_t,
                       unsigned char *out_data_hit, size_t out_data_hit_size,
                       unsigned char *out_data_miss, size_t out_data_miss_size,
                       unsigned char *out_tree, size_t out_tree_size) {
@@ -432,7 +429,7 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
   size_t start_bit = 0;
   unsigned int *cur = (unsigned int *)p_hit;
   size_t cnt_missed = 0;
-  for (int i = 0; i < n; i++) {
+  for (std::size_t i = 0; i < n; i++) {
     int q = quantized_data[i];
     unsigned int code;
     size_t len;
@@ -568,7 +565,7 @@ void compress_memory_z(void *const in_data, const std::size_t in_data_size,
   deflateInit(&strm, Z_BEST_COMPRESSION);
 
   while (strm.avail_in != 0) {
-    const int res = deflate(&strm, Z_NO_FLUSH);
+    [[maybe_unused]] const int res = deflate(&strm, Z_NO_FLUSH);
     assert(res == Z_OK);
     if (strm.avail_out == 0) {
       buffer.insert(buffer.end(), temp_buffer, temp_buffer + BUFSIZE);
@@ -597,7 +594,7 @@ void compress_memory_z(void *const in_data, const std::size_t in_data_size,
 
 void decompress_memory_z(void *const src, const int srcLen, int *const dst,
                          const int dstLen) {
-  z_stream strm = {0};
+  z_stream strm = {};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;
   strm.next_in = static_cast<Bytef *>(src);
@@ -607,7 +604,7 @@ void decompress_memory_z(void *const src, const int srcLen, int *const dst,
   strm.zfree = Z_NULL;
   strm.opaque = Z_NULL;
 
-  int res;
+  [[maybe_unused]] int res;
   res = inflateInit2(&strm, (15 + 32)); // 15 window bits, and the +32 tells
                                         // zlib to to detect if using gzip or
                                         // zlib
@@ -626,13 +623,14 @@ void decompress_memory_zstd_huffman(void *const src, const int srcLen,
   CHECK_ZSTD(dSize);
 
   /* When zstd knows the content size, it will error if it doesn't match. */
-  CHECK(dSize == dstLen, "Impossible because zstd will check this condition!");
+  CHECK(dstLen >= 0 && static_cast<std::size_t>(dstLen) == dSize,
+        "Impossible because zstd will check this condition!");
 }
 #endif
 
 void decompress_memory_z_huffman(void *const src, const int srcLen,
                                  unsigned char *const dst, const int dstLen) {
-  z_stream strm = {0};
+  z_stream strm = {};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;
   strm.next_in = static_cast<Bytef *>(src);
@@ -642,7 +640,7 @@ void decompress_memory_z_huffman(void *const src, const int srcLen,
   strm.zfree = Z_NULL;
   strm.opaque = Z_NULL;
 
-  int res;
+  [[maybe_unused]] int res;
   res = inflateInit2(&strm, (15 + 32)); // 15 window bits, and the +32 tells
                                         // zlib to to detect if using gzip or
                                         // zlib

@@ -299,7 +299,8 @@ static mgard::UniformMeshHierarchy
 read_mesh_and_refine(moab::Core &mbcore, const std::string &filename,
                      const std::size_t L) {
   const std::string filepath = "tests/meshes/" + filename;
-  moab::ErrorCode ecode = mbcore.load_file(filepath.c_str());
+  [[maybe_unused]] const moab::ErrorCode ecode =
+      mbcore.load_file(filepath.c_str());
   assert(ecode == moab::MB_SUCCESS);
   return mgard::UniformMeshHierarchy(mgard::MeshLevel(mbcore), L);
 }
@@ -332,9 +333,7 @@ static void BM_unstructured_decompose(benchmark::State &state,
 
   // Could preallocate buffer needed for decomposition.
   for (auto _ : state) {
-    moab::ErrorCode ecode;
     benchmark::DoNotOptimize(hierarchy.decompose(u));
-    assert(ecode == moab::MB_SUCCESS);
 
     // Normalize `u` to prevent blowup. We could turn off the timing for
     // this, but it's `O(N)` so it shouldn't affect the complexity.
@@ -374,9 +373,7 @@ static void BM_unstructured_recompose(benchmark::State &state,
 
   // Could preallocate buffer needed for recomposition.
   for (auto _ : state) {
-    moab::ErrorCode ecode;
     benchmark::DoNotOptimize(hierarchy.recompose(u));
-    assert(ecode == moab::MB_SUCCESS);
 
     // Normalize `u` to prevent blowup. We could turn off the timing for
     // this, but it's `O(N)` so it shouldn't affect the complexity.

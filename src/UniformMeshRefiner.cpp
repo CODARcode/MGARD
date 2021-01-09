@@ -153,7 +153,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
   assert(mesh.element_type == moab::MBTRI);
   const moab::Range &elements = mesh.entities[mesh.element_type];
   const std::size_t nnodes = mesh.ndof();
-  const std::size_t nelements = elements.size();
+  [[maybe_unused]] const std::size_t nelements = elements.size();
 
   // We'll use this to check that elements are contiguous. (We don't need
   //`ELEMENTS.front()` to follow `elements.back()`, but it should and anyway
@@ -296,7 +296,7 @@ moab::ErrorCode UniformMeshRefiner::octasect_tetrahedra(
   assert(mesh.element_type == moab::MBTET);
   const moab::Range &elements = mesh.entities[mesh.element_type];
   const std::size_t nnodes = mesh.ndof();
-  const std::size_t nelements = elements.size();
+  [[maybe_unused]] const std::size_t nelements = elements.size();
 
   // We'll use this to check that elements are contiguous. (We don't need
   //`ELEMENTS.front()` to follow `elements.back()`, but it should and anyway
