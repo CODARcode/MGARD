@@ -3,7 +3,9 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 
+#include <algorithm>
 #include <array>
 #include <limits>
 #include <vector>
@@ -137,4 +139,58 @@ TEST_CASE("comparison with Python implementation: tensor norms", "[norms]") {
   // Small error encountered here.
   REQUIRE(mgard::norm(hierarchy, u, 1.5f) ==
           Catch::Approx(1.5198059864642621).epsilon(0.001));
+}
+
+namespace {
+
+template <std::size_t N, typename Real>
+void test_component_norms_sum(
+    std::default_random_engine &generator,
+    std::uniform_real_distribution<float> &distribution,
+    const std::array<std::size_t, N> shape, const Real s) {
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy =
+      hierarchy_with_random_spacing(generator, distribution, shape);
+  const std::size_t ndof = hierarchy.ndof();
+
+  Real *const u = static_cast<Real *>(std::malloc(sizeof(Real) * ndof));
+  generate_reasonable_function(hierarchy, s, generator, u);
+
+  Real *const f = static_cast<Real *>(std::malloc(sizeof(Real) * ndof));
+  {
+    std::copy(u, u + ndof, f);
+    const mgard::TensorMassMatrix<N, Real> M(hierarchy, hierarchy.L);
+    M(f);
+  }
+  const std::vector<Real> square_norms =
+      mgard::orthogonal_component_square_norms(hierarchy, u, f);
+  std::free(f);
+
+  REQUIRE(std::sqrt(std::accumulate(square_norms.begin(), square_norms.end(),
+                                    static_cast<Real>(0))) ==
+          Catch::Approx(mgard::norm<N, Real>(hierarchy, u, 0)));
+
+  std::free(u);
+
+  {
+    TrialTracker tracker;
+    for (const Real square_norm : square_norms) {
+      tracker += square_norm >= 0;
+    }
+    REQUIRE(tracker);
+  }
+}
+
+} // namespace
+
+TEST_CASE("orthogonal component norms", "[norms]") {
+  std::default_random_engine gen;
+  // Node spacing distribution.
+  std::uniform_real_distribution<float> dis(0.01, 0.02);
+
+  test_component_norms_sum<1, float>(gen, dis, {33}, 0);
+  test_component_norms_sum<1, float>(gen, dis, {160}, 0.25);
+  test_component_norms_sum<2, float>(gen, dis, {9, 11}, 0.5);
+  test_component_norms_sum<2, float>(gen, dis, {30, 29}, 0.75);
+  test_component_norms_sum<3, float>(gen, dis, {5, 6, 21}, 1.0);
+  test_component_norms_sum<3, float>(gen, dis, {10, 10, 10}, 1.25);
 }
