@@ -1,9 +1,9 @@
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 
 #include <algorithm>
 #include <array>
-#include <vector>
 
 #include "TensorMassMatrix.hpp"
 #include "TensorRestriction.hpp"
@@ -27,76 +27,96 @@ Real L_infinity_norm(const TensorMeshHierarchy<N, Real> &hierarchy,
 template <std::size_t N, typename Real>
 Real L_2_norm(const TensorMeshHierarchy<N, Real> &hierarchy,
               Real const *const u) {
-  // TODO: Allow memory buffer to be passed in.
   const std::size_t ndof = hierarchy.ndof();
-  std::vector<Real> product_(ndof);
-  Real *const product = product_.data();
-  std::copy(u, u + ndof, product);
-  const TensorMassMatrix<N, Real> M(hierarchy, hierarchy.L);
-  M(product);
-  return std::sqrt(blas::dotu(ndof, u, product));
+  // TODO: Allow memory buffer to be passed in.
+  Real *const product = static_cast<Real *>(std::malloc(sizeof(Real) * ndof));
+  {
+    std::copy(u, u + ndof, product);
+    const TensorMassMatrix<N, Real> M(hierarchy, hierarchy.L);
+    M(product);
+  }
+  const Real norm = std::sqrt(blas::dotu(ndof, u, product));
+  std::free(product);
+  return norm;
 }
+
+} // namespace
+
+template <std::size_t N, typename Real>
+std::vector<Real>
+orthogonal_component_square_norms(const TensorMeshHierarchy<N, Real> &hierarchy,
+                                  Real const *const u, Real *const f) {
+  // Square `L^2` norms of the `L^2` projections of `u` onto the levels in the
+  // hierarchy, ordered from coarsest to finest.
+  std::vector<Real> square_norms(hierarchy.L + 1);
+
+  // For the finest level, we don't need to compute the projection.
+  square_norms.at(hierarchy.L) = blas::dotu(hierarchy.ndof(), u, f);
+
+  // Getting away with allocating `hierarchy.ndof(hierarchy.L - 1)` instead of
+  // `hierarchy.ndof(L)` `Real`s because the coefficients corresponding to the
+  // `hierarchy.L - 1`th level are located at the front of a shuffled array.
+  Real *const projection =
+      hierarchy.L ? static_cast<Real *>(std::malloc(
+                        hierarchy.ndof(hierarchy.L - 1) * sizeof(double)))
+                  : nullptr;
+  // Shuffled arrays hold the coefficients associated to any of the levels in
+  // the hierarchy in a contiguous block at the front. This function relies on
+  // this property, although the calls to `hierarchy.on_nodes` might give the
+  // impression that it's agnostic to it. The functions at the top of
+  // `mgard.tpp` more nicely mix statements that might work for arrays shuffled
+  // differently and statements that rely on the current shuffling algorithm.
+  for (std::size_t i = 1; i <= hierarchy.L; ++i) {
+    const std::size_t l = hierarchy.L - i;
+
+    const PseudoArray<Real> f_on_finer = hierarchy.on_nodes(f, l + 1);
+    const TensorRestriction<N, Real> R(hierarchy, l + 1);
+    R(f_on_finer.data);
+    const PseudoArray<const Real> f_on_l =
+        hierarchy.on_nodes(static_cast<Real const *>(f), l);
+
+    const PseudoArray<Real> projection_on_l = hierarchy.on_nodes(projection, l);
+    std::copy(f_on_l.begin(), f_on_l.end(), projection_on_l.begin());
+
+    const TensorMassMatrixInverse<N, Real> m_inv(hierarchy, l);
+    m_inv(projection_on_l.data);
+
+    square_norms.at(l) =
+        blas::dotu(projection_on_l.size, projection_on_l.data, f_on_l.data);
+  }
+  std::free(projection);
+
+  for (std::size_t i = 1; i <= hierarchy.L; ++i) {
+    const std::size_t l = hierarchy.L - i;
+
+    // In the Python implementation, I found I could get negative differences
+    // when an orthogonal component was almost zero.
+    square_norms.at(l + 1) = std::max(
+        static_cast<Real>(0), square_norms.at(l + 1) - square_norms.at(l));
+  }
+  return square_norms;
+}
+
+namespace {
 
 template <std::size_t N, typename Real>
 Real s_norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
             const Real s) {
   const std::size_t ndof = hierarchy.ndof();
 
-  // TODO: Allow memory buffers to be passed in
-  std::vector<Real> product_(ndof);
-  Real *const product = product_.data();
-
-  // In theory this only needs to be as big as the second-finest mesh. But then
-  // the indices would all change, so we'd have to form another
-  // `TensorMeshHierarchy`.
-  std::vector<Real> projection_(ndof);
-  Real *const projection = projection_.data();
-
-  // Square `L^2` norms of the `L^2` projections of `u` onto the levels in the
-  // hierarchy, ordered from coarsest to finest.
-  std::vector<Real> squares_for_norm(hierarchy.L + 1);
-
-  // This is the only time `product` will contain something other than the
-  // product of a mass matrix and a projection of `u`.
-  std::copy(u, u + ndof, product);
-
-  // For the finest level, we don't need to compute the projection.
+  Real *const f = static_cast<Real *>(std::malloc(sizeof(Real) * ndof));
   {
+    std::copy(u, u + ndof, f);
     const TensorMassMatrix<N, Real> M(hierarchy, hierarchy.L);
-    M(product);
-    squares_for_norm.at(hierarchy.L) = blas::dotu(ndof, u, product);
+    M(f);
   }
+  const std::vector<Real> squares_for_norm =
+      orthogonal_component_square_norms<N, Real>(hierarchy, u, f);
+  std::free(f);
 
-  for (std::size_t i = 1; i <= hierarchy.L; ++i) {
-    const std::size_t l = hierarchy.L - i;
-
-    const TensorRestriction<N, Real> R(hierarchy, l + 1);
-    R(product);
-
-    const PseudoArray<const Real> product_on_l =
-        hierarchy.on_nodes(static_cast<Real const *>(product), l);
-    const PseudoArray<Real> projection_on_l = hierarchy.on_nodes(projection, l);
-
-    std::copy(product_on_l.begin(), product_on_l.end(),
-              projection_on_l.begin());
-
-    const TensorMassMatrixInverse<N, Real> m_inv(hierarchy, l);
-    m_inv(projection);
-
-    squares_for_norm.at(l) = blas::dotu(
-        projection_on_l.size, projection_on_l.data, product_on_l.data);
-  }
-
-  // Could have accumulated this as we went.
   Real square_norm = 0;
-  for (std::size_t i = 0; i <= hierarchy.L; ++i) {
-    const std::size_t l = hierarchy.L - i;
-    // In the Python implementation, I found I could get negative differences
-    // when an orthogonal component was almost zero.
-    const Real difference_of_squares =
-        std::max(static_cast<Real>(0),
-                 squares_for_norm.at(l) - (l ? squares_for_norm.at(l - 1) : 0));
-    square_norm += std::exp2(2 * s * l) * difference_of_squares;
+  for (std::size_t l = 0; l <= hierarchy.L; ++l) {
+    square_norm += std::exp2(2 * s * l) * squares_for_norm.at(l);
   }
   return std::sqrt(square_norm);
 }
