@@ -299,6 +299,7 @@ tests/src/test_TensorProlongation.cpp
 tests/src/test_TensorRestriction.cpp
 tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
 tests/src/test_TensorNorms.cpp
+tests/src/test_TensorQuantityOfInterest.cpp
 tests/src/test_MultidimensionalArray.cpp
 tests/src/test_mgard_api.cpp
 tests/src/test_mgard.cpp
