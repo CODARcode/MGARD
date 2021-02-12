@@ -76,9 +76,13 @@ template <std::size_t N, typename Real>
 std::array<ConstituentProlongationAddition<N, Real>, N>
 generate_prolongation_additions(const TensorMeshHierarchy<N, Real> &hierarchy,
                                 const std::size_t l) {
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   std::array<ConstituentProlongationAddition<N, Real>, N>
       prolongation_additions;
   for (std::size_t i = 0; i < N; ++i) {
+    if (SHAPE.at(i) == 1) {
+      continue;
+    }
     prolongation_additions.at(i) =
         ConstituentProlongationAddition<N, Real>(hierarchy, l, i);
   }
@@ -92,8 +96,10 @@ TensorProlongationAddition<N, Real>::TensorProlongationAddition(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
     : TensorLinearOperator<N, Real>(hierarchy, l),
       prolongation_additions(generate_prolongation_additions(hierarchy, l)) {
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   for (std::size_t i = 0; i < N; ++i) {
-    TLO::operators.at(i) = &prolongation_additions.at(i);
+    TLO::operators.at(i) =
+        SHAPE.at(i) == 1 ? nullptr : &prolongation_additions.at(i);
   }
 }
 

@@ -2,6 +2,7 @@
 #include "catch2/catch_test_macros.hpp"
 
 #include <array>
+#include <numeric>
 
 #include "testing_random.hpp"
 #include "testing_utilities.hpp"
@@ -212,5 +213,45 @@ TEST_CASE("tensor product prolongations", "[TensorProlongation]") {
     test_tensor_product_prolongations<2, float>(generator, {15, 17});
     test_tensor_product_prolongations<3, double>(generator, {6, 10, 8});
     test_tensor_product_prolongations<4, float>(generator, {5, 12, 8, 9});
+  }
+}
+
+TEST_CASE("prolongations on 'flat' meshes", "[TensorProlongation]") {
+  const std::size_t ndof = 12;
+  const std::size_t l = 3;
+  std::vector<float> u_(ndof);
+  std::vector<float> expected_(ndof);
+  std::vector<float> obtained_(ndof);
+  float *const u = u_.data();
+  float *const expected = expected_.data();
+  float *const obtained = obtained_.data();
+  std::iota(u, u + ndof, 0);
+  // We'll finish initializing `u` in the next block.
+  {
+    const mgard::TensorMeshHierarchy<1, float> hierarchy({12});
+    for (float &value : hierarchy.on_new_nodes(u, l)) {
+      value = 0;
+    }
+    const mgard::TensorProlongationAddition<1, float> PA(hierarchy, l);
+    std::copy(u, u + ndof, expected);
+    PA(expected);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<3, float> hierarchy({1, 12, 1});
+    const mgard::TensorProlongationAddition<3, float> PA(hierarchy, l);
+    std::copy(u, u + ndof, obtained);
+    PA(obtained);
+
+    REQUIRE(obtained_ == expected_);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<4, float> hierarchy({12, 1, 1, 1});
+    const mgard::TensorProlongationAddition<4, float> PA(hierarchy, l);
+    std::copy(u, u + ndof, obtained);
+    PA(obtained);
+
+    REQUIRE(obtained_ == expected_);
   }
 }

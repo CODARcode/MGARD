@@ -95,8 +95,12 @@ template <std::size_t N, typename Real>
 std::array<ConstituentMassMatrix<N, Real>, N>
 generate_mass_matrices(const TensorMeshHierarchy<N, Real> &hierarchy,
                        const std::size_t l) {
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   std::array<ConstituentMassMatrix<N, Real>, N> mass_matrices;
   for (std::size_t i = 0; i < N; ++i) {
+    if (SHAPE.at(i) == 1) {
+      continue;
+    }
     mass_matrices.at(i) = ConstituentMassMatrix<N, Real>(hierarchy, l, i);
   }
   return mass_matrices;
@@ -109,8 +113,9 @@ TensorMassMatrix<N, Real>::TensorMassMatrix(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
     : TensorLinearOperator<N, Real>(hierarchy, l),
       mass_matrices(generate_mass_matrices(hierarchy, l)) {
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   for (std::size_t i = 0; i < N; ++i) {
-    TLO::operators.at(i) = &mass_matrices.at(i);
+    TLO::operators.at(i) = SHAPE.at(i) == 1 ? nullptr : &mass_matrices.at(i);
   }
 }
 
@@ -290,8 +295,12 @@ template <std::size_t N, typename Real>
 std::array<ConstituentMassMatrixInverse<N, Real>, N>
 generate_mass_matrix_inverses(const TensorMeshHierarchy<N, Real> &hierarchy,
                               const std::size_t l) {
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   std::array<ConstituentMassMatrixInverse<N, Real>, N> operators;
   for (std::size_t i = 0; i < N; ++i) {
+    if (SHAPE.at(i) == 1) {
+      continue;
+    }
     operators.at(i) = ConstituentMassMatrixInverse<N, Real>(hierarchy, l, i);
   }
   return operators;
@@ -304,8 +313,10 @@ TensorMassMatrixInverse<N, Real>::TensorMassMatrixInverse(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
     : TensorLinearOperator<N, Real>(hierarchy, l),
       mass_matrix_inverses(generate_mass_matrix_inverses(hierarchy, l)) {
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   for (std::size_t i = 0; i < N; ++i) {
-    TLO::operators.at(i) = &mass_matrix_inverses.at(i);
+    TLO::operators.at(i) =
+        SHAPE.at(i) == 1 ? nullptr : &mass_matrix_inverses.at(i);
   }
 }
 

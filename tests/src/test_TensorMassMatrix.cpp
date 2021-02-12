@@ -3,6 +3,7 @@
 
 #include <array>
 #include <memory>
+#include <numeric>
 #include <random>
 #include <stdexcept>
 #include <vector>
@@ -449,5 +450,41 @@ TEST_CASE("tensor product mass matrix inverses", "[TensorMassMatrix]") {
     test_mass_matrix_inversion<2>(generator, distribution, u_, {30, 29});
     test_mass_matrix_inversion<3>(generator, distribution, u_, {9, 6, 11});
     test_mass_matrix_inversion<4>(generator, distribution, u_, {5, 5, 4, 4});
+  }
+}
+
+TEST_CASE("mass matrices and inverses on 'flat' meshes", "[TensorMassMatrix]") {
+  const std::size_t ndof = 36;
+  const std::size_t l = 2;
+  std::vector<float> u_(ndof);
+  std::vector<float> expected_(ndof);
+  std::vector<float> obtained_(ndof);
+  float *const u = u_.data();
+  float *const expected = expected_.data();
+  float *const obtained = obtained_.data();
+  std::iota(u, u + ndof, 0);
+  {
+    const mgard::TensorMeshHierarchy<3, float> hierarchy({3, 3, 4});
+    const mgard::TensorMassMatrix<3, float> M(hierarchy, l);
+    std::copy(u, u + ndof, expected);
+    M(expected);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<4, float> hierarchy({3, 3, 1, 4});
+    const mgard::TensorMassMatrix<4, float> M(hierarchy, l);
+    std::copy(u, u + ndof, obtained);
+    M(obtained);
+
+    REQUIRE(obtained_ == expected_);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<7, float> hierarchy({1, 1, 3, 1, 3, 4, 1});
+    const mgard::TensorMassMatrix<7, float> M(hierarchy, l);
+    std::copy(u, u + ndof, obtained);
+    M(obtained);
+
+    REQUIRE(obtained_ == expected_);
   }
 }

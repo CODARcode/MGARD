@@ -67,9 +67,16 @@ private:
 
 //! Linear operator with respect to some fixed bases formed by tensoring
 //! operators on each factor of the tensor product vector space.
+//!
+//! IMPORTANT: Only tensor product operators with the constituent operator
+//! corresponding to any dimension of size 1 the identity can be represented.
+//! When applying the operator, any dimension of size 1 is skipped.
 template <std::size_t N, typename Real> class TensorLinearOperator {
 public:
   //! Constructor.
+  //!
+  //! The pointer to component operator corresponding to any dimension of size 1
+  //! should be null.
   //!
   //!\param hierarchy Mesh hierarchy on which the domain and range are defined.
   //!\param l Index of the mesh on which the operator is to be applied.
@@ -80,6 +87,9 @@ public:
           operators);
 
   //! Apply the operator to an element in place.
+  //!
+  //! IMPORTANT: Component operators on dimensions of size 1 will not be
+  //! applied.
   //!
   //!\param [in, out] v Element in the domain, to be transformed into an element
   //! in the range.
