@@ -204,6 +204,10 @@ std::size_t TensorMeshHierarchy<N, Real>::number_nodes_before(
   // may not be possible for `β_{k}` to equal `α_{k}`, since `β` must be present
   // in the `l`th mesh. Any option involving one of these 'impossible
   // constraints' will be knocked out and contribute nothing to the sum.
+  //
+  // That above assumes that `M_{i} ≠ 1`. In that case, it is impossible for
+  // `β_{i}` to be less than `α_{i}` (both must be zero), so instead of
+  // `ceil((α_{i} * (m_{i} - 1)) / (M_{i} - 1))` we get a factor of zero.
   std::size_t count = 0;
   bool impossible_constraint_encountered = false;
   for (std::size_t i = 0; i < N; ++i) {
@@ -220,7 +224,9 @@ std::size_t TensorMeshHierarchy<N, Real>::number_nodes_before(
     // We want to add `ceil(numerator / denominator)`. We can compute this term
     // using only integer divisions by adding one less than the denominator to
     // the numerator.
-    count += (numerator + (denominator - 1)) / denominator;
+    // If the mesh is flat in this dimension (if `M == 1`), then `β_{i}` cannot
+    // be less than `α_{i}` and so this case contributes nothing to the count.
+    count += denominator ? (numerator + (denominator - 1)) / denominator : 0;
     // The 'impossible constraint' will be encountered in the next iteration,
     // when we stipulate that `β_{i} = α_{i}` (current value of `i`).
     impossible_constraint_encountered =
