@@ -242,6 +242,14 @@ TEST_CASE("TensorMeshHierarchy indexing", "[TensorMeshHierarchy]") {
       REQUIRE(obtained == expected);
     }
   }
+
+  SECTION("'flat' meshes") {
+    test_entry_indexing_exhaustive<2>({1, 35});
+    test_entry_indexing_exhaustive<2>({7, 1});
+    test_entry_indexing_exhaustive<3>({12, 1, 13});
+    test_entry_indexing_exhaustive<3>({9, 1, 1});
+    test_entry_indexing_exhaustive<4>({1, 8, 22, 1});
+  }
 }
 
 namespace {

@@ -142,7 +142,7 @@ void test_average_norms(const std::array<std::size_t, N> shape) {
     minimum_norm = std::min(minimum_norm, norm);
     maximum_norm = std::max(maximum_norm, norm);
   }
-  REQUIRE(minimum_norm == Catch::Approx(maximum_norm));
+  REQUIRE(minimum_norm == Catch::Approx(maximum_norm).epsilon(1e-3));
 }
 
 } // namespace
