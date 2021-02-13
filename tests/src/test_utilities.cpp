@@ -109,61 +109,6 @@ TEST_CASE("RangeSlice iteration", "[utilities]") {
   REQUIRE(middle == expected_middle);
 }
 
-TEST_CASE("MultiindexRectangle iteration", "[utilities]") {
-  {
-    const mgard::MultiindexRectangle<2> rectangle({1, 1}, {2, 3});
-    mgard::RangeSlice<mgard::MultiindexRectangle<2>::iterator> iterable =
-        rectangle.indices(1);
-    const std::vector<std::array<std::size_t, 2>> visited(iterable.begin(),
-                                                          iterable.end());
-    const std::vector<std::array<std::size_t, 2>> expected = {
-        {1, 1}, {1, 2}, {1, 3}, {2, 1}, {2, 2}, {2, 3}};
-    REQUIRE(visited == expected);
-  }
-
-  {
-    const mgard::MultiindexRectangle<1> rectangle({5});
-    const mgard::RangeSlice<mgard::MultiindexRectangle<1>::iterator> iterable =
-        rectangle.indices(3);
-    const std::vector<std::array<std::size_t, 1>> visited(iterable.begin(),
-                                                          iterable.end());
-    const std::vector<std::array<std::size_t, 1>> expected = {{0}, {3}};
-    REQUIRE(visited == expected);
-  }
-
-  {
-    const mgard::MultiindexRectangle<3> rectangle({3, 3, 3});
-    const mgard::RangeSlice<mgard::MultiindexRectangle<3>::iterator> iterable =
-        rectangle.indices(2);
-    const std::vector<std::array<std::size_t, 3>> visited(iterable.begin(),
-                                                          iterable.end());
-    const std::vector<std::array<std::size_t, 3>> expected = {
-        {0, 0, 0}, {0, 0, 2}, {0, 2, 0}, {0, 2, 2},
-        {2, 0, 0}, {2, 0, 2}, {2, 2, 0}, {2, 2, 2}};
-    REQUIRE(visited == expected);
-  }
-
-  {
-    const mgard::MultiindexRectangle<5> rectangle({60, 88, 60, 53, 26});
-    const mgard::RangeSlice<mgard::MultiindexRectangle<5>::iterator> iterable =
-        rectangle.indices(100);
-    REQUIRE(++iterable.begin() == iterable.end());
-  }
-
-  {
-    // Checking the edge case.
-    const mgard::MultiindexRectangle<0> rectangle({});
-    const mgard::RangeSlice<mgard::MultiindexRectangle<0>::iterator> iterable =
-        rectangle.indices(1);
-    REQUIRE(iterable.begin() == iterable.end());
-  }
-
-  {
-    const mgard::MultiindexRectangle<2> rectangle({10, 10}, {15, 15});
-    REQUIRE_THROWS(rectangle.indices(0));
-  }
-}
-
 TEST_CASE("CartesianProduct iterator", "[utilities]") {
   {
     const std::vector<int> a = {1, 3, 5};

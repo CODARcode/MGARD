@@ -430,11 +430,9 @@ TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {
   {
     const mgard::TensorMeshHierarchy<2, double> hierarchy({6, 3});
     std::vector<std::size_t> encountered;
-    const mgard::MultiindexRectangle<2> multiindices(
-        hierarchy.shapes.at(hierarchy.L));
-    for (const std::array<std::size_t, 2> multiindex :
-         multiindices.indices(1)) {
-      encountered.push_back(hierarchy.date_of_birth(multiindex));
+    for (const mgard::TensorNode<2> node :
+         mgard::UnshuffledTensorNodeRange(hierarchy, hierarchy.L)) {
+      encountered.push_back(hierarchy.date_of_birth(node.multiindex));
     }
     const std::vector<std::size_t> expected = {0, 1, 0, 1, 1, 1, 0, 1, 0,
                                                1, 1, 1, 2, 2, 2, 0, 1, 0};
