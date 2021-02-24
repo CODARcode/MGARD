@@ -462,6 +462,51 @@ TEST_CASE("decomposition", "[mgard]") {
         generator, node_spacing_distribution, nodal_coefficient_distribution,
         {14, 10, 17});
   }
+
+  SECTION("on 'flat' meshes", "[mgard]") {
+    std::default_random_engine gen(731641);
+    // Node spacing distribution.
+    std::uniform_real_distribution<double> dis(1, 1.1);
+    const mgard::TensorMeshHierarchy<2, double> hierarchy =
+        hierarchy_with_random_spacing<2, double>(gen, dis, {17, 21});
+    const std::size_t ndof = hierarchy.ndof();
+
+    std::vector<double> u_(ndof);
+    std::vector<double> expected_(ndof);
+    std::vector<double> obtained_(ndof);
+    double *const u = u_.data();
+    double *const expected = expected_.data();
+    double *const obtained = obtained_.data();
+
+    const double s = 1;
+    generate_reasonable_function(hierarchy, s, gen, u);
+    std::copy(u, u + ndof, expected);
+    mgard::decompose(hierarchy, expected);
+
+    {
+      const mgard::TensorMeshHierarchy<3, double> flat_hierarchy =
+          make_flat_hierarchy<2, 3, double>(hierarchy, {17, 1, 21});
+      std::copy(u, u + ndof, obtained);
+      mgard::decompose(flat_hierarchy, obtained);
+      TrialTracker tracker;
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += obtained[i] == Catch::Approx(expected[i]);
+      }
+      REQUIRE(tracker);
+    }
+
+    {
+      const mgard::TensorMeshHierarchy<5, double> flat_hierarchy =
+          make_flat_hierarchy<2, 5, double>(hierarchy, {1, 1, 17, 21, 1});
+      std::copy(u, u + ndof, obtained);
+      mgard::decompose(flat_hierarchy, obtained);
+      TrialTracker tracker;
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += obtained[i] == Catch::Approx(expected[i]);
+      }
+      REQUIRE(tracker);
+    }
+  }
 }
 
 TEST_CASE("recomposition", "[mgard]") {
@@ -694,5 +739,50 @@ TEST_CASE("recomposition", "[mgard]") {
     test_recomposition_with_zero_coefficients<3, double>(
         generator, node_spacing_distribution,
         multilevel_coefficient_distribution, {17, 15, 9});
+  }
+
+  SECTION("on 'flat' meshes", "[mgard]") {
+    std::default_random_engine gen(679382);
+    // Node spacing distribution.
+    std::uniform_real_distribution<float> dis(0.25, 0.35);
+    const mgard::TensorMeshHierarchy<3, float> hierarchy =
+        hierarchy_with_random_spacing<3, float>(gen, dis, {5, 5, 12});
+    const std::size_t ndof = hierarchy.ndof();
+
+    std::vector<float> u_(ndof);
+    std::vector<float> expected_(ndof);
+    std::vector<float> obtained_(ndof);
+    float *const u = u_.data();
+    float *const expected = expected_.data();
+    float *const obtained = obtained_.data();
+
+    const float s = 0.75;
+    generate_reasonable_function(hierarchy, s, gen, expected);
+    std::copy(expected, expected + ndof, u);
+    mgard::decompose(hierarchy, u);
+
+    {
+      const mgard::TensorMeshHierarchy<4, float> flat_hierarchy =
+          make_flat_hierarchy<3, 4, float>(hierarchy, {1, 5, 5, 12});
+      std::copy(u, u + ndof, obtained);
+      mgard::recompose(flat_hierarchy, obtained);
+      TrialTracker tracker;
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += obtained[i] == Catch::Approx(expected[i]).margin(1e-8);
+      }
+      REQUIRE(tracker);
+    }
+
+    {
+      const mgard::TensorMeshHierarchy<7, float> flat_hierarchy =
+          make_flat_hierarchy<3, 7, float>(hierarchy, {1, 5, 1, 5, 1, 12, 1});
+      std::copy(u, u + ndof, obtained);
+      mgard::recompose(flat_hierarchy, obtained);
+      TrialTracker tracker;
+      for (std::size_t i = 0; i < ndof; ++i) {
+        tracker += obtained[i] == Catch::Approx(expected[i]).margin(1e-8);
+      }
+      REQUIRE(tracker);
+    }
   }
 }
