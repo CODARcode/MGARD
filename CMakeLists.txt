@@ -307,12 +307,14 @@ tests/src/test_mgard.cpp
 find_package(Catch2)
 
 if(Catch2_FOUND)
+	configure_file("tests/include/testing_paths.hpp.in" "include/testing_paths.hpp")
+
 	add_executable(mgard-tests
 ${MGARD_TESTS_HEADER}
 ${MGARD_TESTS_TEMPLATE_DEFINITION}
 ${MGARD_TESTS_SOURCE}
 	)
-	target_include_directories(mgard-tests PRIVATE tests/include)
+	target_include_directories(mgard-tests PRIVATE tests/include "${CMAKE_CURRENT_BINARY_DIR}/include")
 	target_link_libraries(mgard-tests PRIVATE mgard-library Catch2::Catch2WithMain)
 	set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
 else()
