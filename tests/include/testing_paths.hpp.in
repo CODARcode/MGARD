@@ -1,0 +1,10 @@
+#ifndef TESTING_PATHS_HPP
+#define TESTING_PATHS_HPP
+//!\file  Filesystem paths used by the tests.
+
+#include <string>
+
+//! Root directory of the project.
+inline const std::string ROOT = "${CMAKE_SOURCE_DIR}";
+
+#endif
