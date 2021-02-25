@@ -3,9 +3,11 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 
 #include <algorithm>
 #include <numeric>
+#include <random>
 #include <vector>
 
 #include "testing_random.hpp"
@@ -195,4 +197,132 @@ TEST_CASE("2D cosine data", "[mgard_api]") {
   test_compression_error_bound<2, float>(hierarchy, v, s, tolerance);
 
   std::free(v);
+}
+
+namespace {
+
+template <std::size_t N, std::size_t M, typename Real>
+void test_compression_on_flat_mesh(
+    const mgard::TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
+    const mgard::CompressedDataset<N, Real> &expected,
+    const std::array<std::size_t, M> shape, Real *v, TrialTracker &tracker) {
+  const std::size_t ndof = hierarchy.ndof();
+  const mgard::TensorMeshHierarchy<M, Real> flat_hierarchy =
+      make_flat_hierarchy<N, M, Real>(hierarchy, shape);
+  std::copy(u, u + ndof, v);
+  const mgard::CompressedDataset<M, Real> obtained =
+      mgard::compress(flat_hierarchy, v, expected.s, expected.tolerance);
+  tracker += expected.size() == obtained.size();
+  tracker +=
+      std::memcmp(expected.data(), obtained.data(), expected.size()) == 0;
+}
+
+} // namespace
+
+TEST_CASE("compressing on 'flat' meshes", "[mgard_api]") {
+  std::default_random_engine gen(799875);
+  std::uniform_real_distribution<float> dis(0.01, 0.011);
+  const mgard::TensorMeshHierarchy<2, float> hierarchy =
+      hierarchy_with_random_spacing<2, float>(gen, dis, {31, 8});
+  const std::size_t ndof = hierarchy.ndof();
+  float *const u = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+  float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+  {
+    const float generation_s = 1.25;
+    float *const buffer =
+        static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    generate_reasonable_function(hierarchy, generation_s, gen, buffer);
+    mgard::unshuffle(hierarchy, buffer, u);
+    std::free(buffer);
+  }
+
+  const std::vector<float> smoothness_parameters = {
+      -1, 0, 1, std::numeric_limits<float>::infinity()};
+  const std::vector<float> tolerances = {0.1, 0.01, 0.001};
+
+  TrialTracker tracker;
+  for (const float s : smoothness_parameters) {
+    for (const float tolerance : tolerances) {
+      const mgard::CompressedDataset<2, float> expected =
+          mgard::compress(hierarchy, u, s, tolerance);
+
+      test_compression_on_flat_mesh<2, 3, float>(hierarchy, u, expected,
+                                                 {31, 8, 1}, v, tracker);
+      test_compression_on_flat_mesh<2, 3, float>(hierarchy, u, expected,
+                                                 {31, 1, 8}, v, tracker);
+      test_compression_on_flat_mesh<2, 5, float>(hierarchy, u, expected,
+                                                 {1, 31, 1, 1, 8}, v, tracker);
+    }
+  }
+  REQUIRE(tracker);
+
+  std::free(v);
+  std::free(u);
+}
+
+namespace {
+
+template <std::size_t N, std::size_t M, typename Real>
+void test_decompression_on_flat_mesh(
+    const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
+    const mgard::CompressedDataset<N, Real> &compressed,
+    const mgard::DecompressedDataset<N, Real> &expected,
+    const std::array<std::size_t, M> shape, TrialTracker &tracker) {
+  const std::size_t ndof = hierarchy.ndof();
+  const mgard::TensorMeshHierarchy<M, Real> flat_hierarchy =
+      make_flat_hierarchy<N, M, Real>(hierarchy, shape);
+  void *const data = new unsigned char[compressed.size()];
+  std::memcpy(data, compressed.data(), compressed.size());
+  const mgard::CompressedDataset<M, Real> flat_compressed(
+      flat_hierarchy, compressed.s, compressed.tolerance, data,
+      compressed.size());
+  const mgard::DecompressedDataset<M, Real> obtained =
+      mgard::decompress(flat_compressed);
+  tracker +=
+      std::memcmp(expected.data(), obtained.data(), ndof * sizeof(Real)) == 0;
+}
+
+} // namespace
+
+TEST_CASE("decompressing on 'flat' meshes", "[mgard_api]") {
+  std::default_random_engine gen(780037);
+  std::uniform_real_distribution<double> dis(2, 3);
+  const mgard::TensorMeshHierarchy<3, double> hierarchy =
+      hierarchy_with_random_spacing<3, double>(gen, dis, {6, 5, 7});
+  const std::size_t ndof = hierarchy.ndof();
+  double *const u = static_cast<double *>(std::malloc(ndof * sizeof(double)));
+  double *const v = static_cast<double *>(std::malloc(ndof * sizeof(double)));
+  {
+    const double generation_s = 0.25;
+    double *const buffer =
+        static_cast<double *>(std::malloc(ndof * sizeof(double)));
+    generate_reasonable_function(hierarchy, generation_s, gen, buffer);
+    mgard::unshuffle(hierarchy, buffer, u);
+    std::free(buffer);
+  }
+
+  const std::vector<double> smoothness_parameters = {
+      -1.25, 0, 0.5, std::numeric_limits<double>::infinity()};
+  const std::vector<double> tolerances = {0.1, 0.01, 0.001};
+
+  TrialTracker tracker;
+  for (const double s : smoothness_parameters) {
+    for (const double tolerance : tolerances) {
+      const mgard::CompressedDataset<3, double> compressed =
+          mgard::compress(hierarchy, u, s, tolerance);
+      const mgard::DecompressedDataset<3, double> expected =
+          mgard::decompress(compressed);
+
+      test_decompression_on_flat_mesh<3, 4, double>(
+          hierarchy, compressed, expected, {6, 5, 1, 7}, tracker);
+      test_decompression_on_flat_mesh<3, 4, double>(
+          hierarchy, compressed, expected, {1, 6, 5, 7}, tracker);
+      test_decompression_on_flat_mesh<3, 5, double>(
+          hierarchy, compressed, expected, {6, 1, 5, 7, 1}, tracker);
+    }
+  }
+  REQUIRE(tracker);
+
+  std::free(v);
+  std::free(u);
 }
