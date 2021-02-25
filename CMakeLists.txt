@@ -385,16 +385,16 @@ find_package(archive)
 find_package(TCLAP)
 
 if (yaml-cpp_FOUND AND archive_FOUND AND TCLAP_FOUND)
-	add_library(
-		mgard-cli STATIC
-		src/subcommand_arguments.cpp include/subcommand_arguments.hpp
-		src/metadata.cpp include/metadata.hpp
+	add_executable(
+		mgard-executable
+		src/executable.cpp
+		src/subcommand_arguments.cpp
+		include/subcommand_arguments.hpp
+		src/metadata.cpp
+		include/metadata.hpp
 	)
-	target_include_directories(mgard-cli PUBLIC include/)
-	target_link_libraries(mgard-cli PUBLIC TCLAP::TCLAP)
-
-	add_executable(mgard-executable src/executable.cpp)
-	target_link_libraries(mgard-executable PRIVATE mgard-library mgard-cli yaml-cpp::yaml-cpp archive::archive TCLAP::TCLAP)
+	target_include_directories(mgard-executable PRIVATE include/)
+	target_link_libraries(mgard-executable PRIVATE mgard-library yaml-cpp::yaml-cpp archive::archive TCLAP::TCLAP)
 	set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
 else()
 	message("-- Will not build executable (dependencies not met).")
