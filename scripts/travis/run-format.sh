@@ -27,10 +27,4 @@ then
   exit 1
 fi
 
-# Check python code with flake8
-if ! ~/.local/bin/flake8 --config=flake8.cfg .
-then
-  exit 3
-fi
-
 exit 0
