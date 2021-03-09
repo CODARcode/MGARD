@@ -6,7 +6,7 @@ then
   exit 1
 fi
 
-CPPCHECK_EXE=/opt/cppcheck/install/bin/cppcheck
+CPPCHECK_EXE="${HOME}/.local/bin/cppcheck"
 
 export WRAPPED_CC="${SOURCE_DIR}/scripts/travis/cppcheck_wrap_gcc.sh"
 export WRAPPED_CXX="${SOURCE_DIR}/scripts/travis/cppcheck_wrap_gplusplus.sh"
