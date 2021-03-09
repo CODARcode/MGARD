@@ -19,9 +19,9 @@ before_install:
   - pushd ${HOME}
   - wget http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
   - wget https://github.com/Kitware/CMake/releases/download/v3.19.1/cmake-3.19.1-Linux-x86_64.tar.gz
-  - wget https://github.com/danmar/cppcheck/archive/1.87.tar.gz
-  - git clone https://bitbucket.org/fathomteam/moab.git
-  - git clone https://github.com/catchorg/Catch2.git
+  - wget https://github.com/danmar/cppcheck/archive/2.3.tar.gz
+  - wget https://ftp.mcs.anl.gov/pub/fathom/moab-5.2.1.tar.gz
+  - wget https://github.com/catchorg/Catch2/archive/v3.0.0-preview3.tar.gz
   - popd
 install:
   - pushd ${HOME}
