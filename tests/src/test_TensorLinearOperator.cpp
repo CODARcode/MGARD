@@ -30,7 +30,7 @@ public:
   //!\param scalar Diagonal of the matrix.
   DiagonalOperator(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
                    const std::size_t l, const std::size_t dimension,
-                   const std::vector<Real> diagonal)
+                   const std::vector<Real> &diagonal)
       : CLO(hierarchy, l, dimension), diagonal(diagonal) {
     if (diagonal.size() != this->dimension()) {
       throw std::invalid_argument("operator and mesh sizes don't match");

@@ -70,7 +70,7 @@ struct Diagnostics {
 //!\return Diagnostics of the PCG run.
 Diagnostics pcg(const LinearOperator &A, double const *const b,
                 const LinearOperator &P, double *const x, double *const buffer,
-                const StoppingCriteria criteria = StoppingCriteria());
+                const StoppingCriteria &criteria = StoppingCriteria());
 
 } // namespace pcg
 

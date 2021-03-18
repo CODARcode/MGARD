@@ -16,7 +16,7 @@ typedef std::set<moab::EntityHandle> Edge;
 
 static std::set<Edge> make_edges_from_offsets(
     const moab::Range &nodes,
-    const std::set<std::set<std::size_t>> edges_by_offsets) {
+    const std::set<std::set<std::size_t>> &edges_by_offsets) {
   std::set<Edge> edges;
   for (std::set<std::size_t> edge_by_offsets : edges_by_offsets) {
     Edge edge;

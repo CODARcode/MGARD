@@ -52,7 +52,7 @@ static void test_quantization_domain(const Real quantum) {
 
 template <typename Real, typename Int>
 static void test_dequantization_inversion(const Real quantum,
-                                          const std::vector<Int> ns) {
+                                          const std::vector<Int> &ns) {
   std::vector<Real> xs;
   const mgard::LinearDequantizer<Int, Real> dequantizer(quantum);
   for (const Int n : ns) {
