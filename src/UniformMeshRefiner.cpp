@@ -244,7 +244,7 @@ public:
   //! Constructor.
   //!
   //!\param nodes 'Old' nodes of the 'old' tetrahedron.
-  TetrahedralEdgeMidpointIndex(moab::EntityHandle const *const nodes)
+  explicit TetrahedralEdgeMidpointIndex(moab::EntityHandle const *const nodes)
       : begin(nodes), end(nodes + 4) {}
 
   //! Find the index of a midpoint of an edge.

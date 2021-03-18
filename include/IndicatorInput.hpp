@@ -39,7 +39,7 @@ public:
   //! Constructor.
   //!
   //!\param hierarchy Mesh hierarchy.
-  IndicatorInputRange(const MeshHierarchy &hierarchy);
+  explicit IndicatorInputRange(const MeshHierarchy &hierarchy);
 
   // Forward declaration.
   class iterator;

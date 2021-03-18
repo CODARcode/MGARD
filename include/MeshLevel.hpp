@@ -34,7 +34,8 @@ public:
   //!
   //! The edges will be created if they are missing. If elements are
   //! provided, the edges will be recalculated from them.
-  MeshLevel(moab::Interface &impl, const moab::EntityHandle mesh_set = 0);
+  explicit MeshLevel(moab::Interface &impl,
+                     const moab::EntityHandle mesh_set = 0);
 
   //! Report the number of degrees of freedom of the mesh.
   std::size_t ndof() const;

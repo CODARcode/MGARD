@@ -147,7 +147,7 @@ public:
   //! Constructor.
   //!
   //!\param inner Underlying multiindex iterator.
-  TensorNode(
+  explicit TensorNode(
       const typename CartesianProduct<TensorIndexRange, N>::iterator inner);
 
   //! Multiindex of the node.
