@@ -20,7 +20,7 @@
 const std::string METADATA_ENTRYNAME = "metadata.yaml";
 const std::string QUANTIZED_COEFFICIENTS_ENTRYNAME = "coefficients.dat";
 
-void write_archive_entry(archive *const a, const std::string entryname,
+void write_archive_entry(archive *const a, const std::string &entryname,
                          void const *const data, const std::size_t size) {
   struct archive_entry *const entry = archive_entry_new();
   archive_entry_copy_pathname(entry, entryname.c_str());

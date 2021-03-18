@@ -97,9 +97,10 @@ public:
   //!\param quantizer Associated multilevel coefficient quantizer.
   //!\param inner_node Position in the node range.
   //!\param inner_coeff Position in the multilevel coefficient range.
-  iterator(const TensorMultilevelCoefficientQuantizer &quantizer,
-           const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
-           Real const *const inner_coeff);
+  iterator(
+      const TensorMultilevelCoefficientQuantizer &quantizer,
+      const typename ShuffledTensorNodeRange<N, Real>::iterator &inner_node,
+      Real const *const inner_coeff);
 
   //! Equality comparison.
   bool operator==(const iterator &other) const;
@@ -216,9 +217,10 @@ public:
   //!\param dequantizer Associated multilevel coefficient dequantizer.
   //!\param inner_node Position in the node range.
   //!\param inner_coeff Position in the quantized multilevel coefficient range.
-  iterator(const TensorMultilevelCoefficientDequantizer &dequantizer,
-           const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
-           const It inner_coeff);
+  iterator(
+      const TensorMultilevelCoefficientDequantizer &dequantizer,
+      const typename ShuffledTensorNodeRange<N, Real>::iterator &inner_node,
+      const It inner_coeff);
 
   //! Equality comparison.
   bool operator==(const iterator &other) const;

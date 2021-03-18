@@ -329,7 +329,7 @@ public:
   //!\param ell Index of mesh currently being iterated over.
   //!\param inner Underlying range iterator.
   iterator(const ShuffledTensorNodeRange &iterable, const std::size_t ell,
-           const typename UnshuffledTensorNodeRange<N, Real>::iterator inner);
+           const typename UnshuffledTensorNodeRange<N, Real>::iterator &inner);
 
   //! Equality comparison.
   bool operator==(const iterator &other) const;

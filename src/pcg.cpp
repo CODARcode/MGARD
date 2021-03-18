@@ -48,7 +48,7 @@ double StoppingCriteria::tolerance(const double rhs_norm) const {
 
 Diagnostics pcg(const LinearOperator &A, double const *const b,
                 const LinearOperator &P, double *const x, double *const buffer,
-                const StoppingCriteria criteria) {
+                const StoppingCriteria &criteria) {
   if (!(A.is_square() and P.is_square())) {
     throw std::invalid_argument(
         "system matrix and preconditioner must both be square");
