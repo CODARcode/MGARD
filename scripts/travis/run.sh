@@ -10,8 +10,6 @@ else
   export BUILD_LABEL="${TRAVIS_BRANCH}_${TRAVIS_BUILD_NUMBER}"
 fi
 
-
-
 case ${BUILD_MATRIX_ENTRY} in
   format)
     echo "Running formatting tests"
@@ -25,7 +23,7 @@ case ${BUILD_MATRIX_ENTRY} in
       exit 1;
     fi
     ;;
-  check)
+  cppcheck)
     echo "Running static analysis (cppcheck)"
     if ! ${SOURCE_DIR}/scripts/travis/run-cppcheck.sh; then
       exit 1;

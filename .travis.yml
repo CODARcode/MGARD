@@ -34,12 +34,12 @@ install:
   - ./scripts/travis/build-cppcheck.sh
   - ./scripts/travis/build-moab.sh
   - ./scripts/travis/build-catch2.sh
-  - mkdir build && pushd build && cmake .. && make && popd
+  - mkdir build && pushd build && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. && make && popd
 env:
   matrix:
     - BUILD_MATRIX_ENTRY=format
     - BUILD_MATRIX_ENTRY=analyze
-    - BUILD_MATRIX_ENTRY=check
+    - BUILD_MATRIX_ENTRY=cppcheck
     - BUILD_MATRIX_ENTRY=tests
 script:
   - git reset --hard ${TRAVIS_PULL_REQUEST_SHA}
