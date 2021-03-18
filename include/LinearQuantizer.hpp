@@ -20,7 +20,7 @@ public:
   //! Constructor.
   //!
   //!\param quantum Spacing between adjacent quantized numbers.
-  LinearQuantizer(const Real quantum);
+  explicit LinearQuantizer(const Real quantum);
 
   //! Quantize a floating point number to an integer.
   //!
@@ -60,7 +60,7 @@ public:
   //! Constructor.
   //!
   //!\param quantum Spacing between adjacent quantized numbers.
-  LinearDequantizer(const Real quantum);
+  explicit LinearDequantizer(const Real quantum);
 
   //! Dequantize an integer to a floating point number.
   //!

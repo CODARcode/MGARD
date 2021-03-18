@@ -18,7 +18,7 @@ public:
   //! Constructor.
   //!
   //!\param hierarchy Mesh hierarchy whose levels are to be iterated over.
-  EnumeratedMeshRange(const MeshHierarchy &hierarchy);
+  explicit EnumeratedMeshRange(const MeshHierarchy &hierarchy);
 };
 
 } // namespace mgard

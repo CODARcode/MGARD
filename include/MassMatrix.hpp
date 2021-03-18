@@ -60,7 +60,7 @@ public:
   //! Constructor.
   //!
   //!\param mesh Underlying mesh.
-  MassMatrix(const MeshLevel &mesh);
+  explicit MassMatrix(const MeshLevel &mesh);
 
 private:
   virtual std::size_t do_index(const moab::EntityHandle node) const override;
@@ -104,7 +104,7 @@ public:
   //! Constructor.
   //!
   //!\param mesh Underlying mesh.
-  MassMatrixPreconditioner(const MeshLevel &mesh);
+  explicit MassMatrixPreconditioner(const MeshLevel &mesh);
 
 private:
   //! Underlying mesh.

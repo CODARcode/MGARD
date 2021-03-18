@@ -64,7 +64,7 @@ template <typename It> struct Enumeration {
   //!\overload
   //!
   //!\param container Container to be iterated over.
-  template <typename T> Enumeration(const T &container);
+  template <typename T> explicit Enumeration(const T &container);
 
   // Prevent temporaries. See <https://stackoverflow.com/questions/36868442/
   // avoid-exponential-grow-of-const-references-and-rvalue-references-in-
@@ -294,7 +294,7 @@ public:
   //!
   //!\param factors Factors of the Cartesian product. None of the factors may be
   //! empty.
-  CartesianProduct(const std::array<T, N> factors);
+  explicit CartesianProduct(const std::array<T, N> factors);
 
   // Forward declaration.
   class iterator;
