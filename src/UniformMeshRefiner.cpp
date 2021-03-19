@@ -95,6 +95,7 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(const MeshLevel &mesh,
   // Similarly.
   std::vector<double> endpoint_coordinates(3 * nnodes);
   ecode = mesh.impl.get_coords(nodes, endpoint_coordinates.data());
+  MB_CHK_ERR(ecode);
 
   moab::Range NEW_NODES;
   // We'll reset the coordinates below. Creating the nodes now lets us iterate
@@ -102,6 +103,7 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(const MeshLevel &mesh,
   // creating the new edges in the same loop.
   ecode =
       mesh.impl.create_vertices(midpoint_coordinates.data(), nedges, NEW_NODES);
+  MB_CHK_ERR(ecode);
   // From the MOAB documentation:
   //> Entities allocated in sequence will typically have contiguous handles
   // Checking that.
@@ -126,6 +128,7 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(const MeshLevel &mesh,
       moab::EntityHandle EDGE;
       ecode =
           mesh.impl.create_element(moab::MBEDGE, EDGE_CONNECTIVITY, 2, EDGE);
+      MB_CHK_ERR(ecode);
       ++most_recent_edge;
       assert(EDGE == most_recent_edge);
       blas::axpy(3, 1.0, q + 3 * mesh.index(endpoint), p);

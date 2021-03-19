@@ -187,7 +187,7 @@ static void BM_structured_quantize(benchmark::State &state) {
   const mgard::TensorMultilevelCoefficientQuantizer<N, Real, Int> quantizer(
       hierarchy, s, tolerance);
 
-  Int total = 0;
+  [[maybe_unused]] Int total = 0;
   for (auto _ : state) {
     for (const Int n : quantizer(u)) {
       total += n;
@@ -211,7 +211,7 @@ static void BM_structured_dequantize(benchmark::State &state) {
   const mgard::TensorMultilevelCoefficientDequantizer<N, Int, Real> dequantizer(
       hierarchy, s, tolerance);
 
-  Real total = 0;
+  [[maybe_unused]] Real total = 0;
   for (auto _ : state) {
     for (const Real x : dequantizer(n, n + ndof)) {
       total += x;
