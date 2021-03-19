@@ -134,6 +134,7 @@ TEST_CASE("refining triangle multiply", "[UniformMeshRefiner]") {
     double const *_z;
     const moab::EntityHandle node = mesh.entities[moab::MBVERTEX].front();
     ecode = mbcore.get_coords(node, _x, _y, _z);
+    require_moab_success(ecode);
     z = *_z;
   }
   ecode = check_elements(MESH, {
