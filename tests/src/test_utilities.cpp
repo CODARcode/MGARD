@@ -16,39 +16,19 @@ TEST_CASE("PseudoArray iteration", "[utilities]") {
 
   SECTION("comparison with manual iteration") {
     const std::size_t ns[5] = {0, 1, 5, 9, 10};
-    for (std::size_t n : ns) {
-      std::vector<int> manual;
-      manual.reserve(n);
-      for (std::size_t i = 0; i < n; ++i) {
-        manual.push_back(values[i]);
-      }
-
-      std::vector<int> pseudo;
-      pseudo.reserve(n);
-      for (int value : mgard::PseudoArray(values, n)) {
-        pseudo.push_back(value);
-      }
-
-      REQUIRE(std::equal(manual.begin(), manual.end(), pseudo.begin()));
+    for (const std::size_t n : ns) {
+      // Originally we used manual loops here. Now it's almost tautological.
+      const mgard::PseudoArray v(values, n);
+      REQUIRE(std::equal(values, values + n, v.begin()));
     }
   }
 
   SECTION("signed lengths") {
     const std::size_t ns[2] = {0, 8};
-    for (std::size_t n : ns) {
-      std::vector<int> normal;
-      normal.reserve(n);
-      for (int value : mgard::PseudoArray(values, n)) {
-        normal.push_back(value);
-      }
-
-      std::vector<int> integral;
-      integral.reserve(n);
-      for (int value : mgard::PseudoArray(values, static_cast<int>(n))) {
-        integral.push_back(value);
-      };
-
-      REQUIRE(std::equal(normal.begin(), normal.end(), integral.begin()));
+    for (const std::size_t n : ns) {
+      const mgard::PseudoArray u(values, n);
+      const mgard::PseudoArray v(values, static_cast<int>(n));
+      REQUIRE(std::equal(u.begin(), u.end(), v.begin()));
     }
   }
 
@@ -65,7 +45,8 @@ TEST_CASE("Enumeration iteration", "[utilities]") {
   const std::vector<float> xs = {-1.375, 0, 732.5, -0.875};
   std::vector<std::size_t> indices;
   std::vector<float> values;
-  for (auto pair : mgard::Enumeration<std::vector<float>::const_iterator>(xs)) {
+  for (const auto pair :
+       mgard::Enumeration<std::vector<float>::const_iterator>(xs)) {
     indices.push_back(pair.index);
     values.push_back(pair.value);
   }
@@ -75,7 +56,8 @@ TEST_CASE("Enumeration iteration", "[utilities]") {
 
   // This compiles and we never execute the body of the loop.
   const std::vector<int> ys;
-  for (auto pair : mgard::Enumeration<std::vector<int>::const_iterator>(ys)) {
+  for (const auto pair :
+       mgard::Enumeration<std::vector<int>::const_iterator>(ys)) {
     // Using `pair` so the compiler doesn't complain.
     static_cast<void>(pair);
     REQUIRE(false);
@@ -91,7 +73,7 @@ TEST_CASE("ZippedRange iteration", "[utilities]") {
   TrialTracker tracker;
   using It = T::const_iterator;
   using Jt = U::const_iterator;
-  for (auto pair : mgard::ZippedRange<It, Jt>(xs, ys)) {
+  for (const auto pair : mgard::ZippedRange<It, Jt>(xs, ys)) {
     tracker += pair.first == xs.at(i) && pair.second == ys.at(i);
     ++i;
   }
@@ -100,11 +82,9 @@ TEST_CASE("ZippedRange iteration", "[utilities]") {
 
 TEST_CASE("RangeSlice iteration", "[utilities]") {
   const std::array<int, 8> xs = {2, 3, 5, 7, 11, 13, 17, 19};
-  std::vector<int> middle;
   using It = std::array<int, 8>::const_iterator;
-  for (const int x : mgard::RangeSlice<It>{xs.begin() + 2, xs.end() - 2}) {
-    middle.push_back(x);
-  }
+  const mgard::RangeSlice<It> slice{xs.begin() + 2, xs.end() - 2};
+  const std::vector<int> middle(slice.begin(), slice.end());
   const std::vector<int> expected_middle = {5, 7, 11, 13};
   REQUIRE(middle == expected_middle);
 }

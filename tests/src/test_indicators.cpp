@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 
+#include <algorithm>
 #include <random>
 #include <string>
 #include <vector>
@@ -91,9 +92,8 @@ TEST_CASE("indicators should track estimators", "[indicators]") {
   std::random_device device;
   std::default_random_engine generator(device());
   std::uniform_real_distribution<double> distribution(-3, 0);
-  for (double &value : u_) {
-    value = distribution(generator);
-  }
+  std::generate(u_.begin(), u_.end(),
+                [&]() -> double { return distribution(generator); });
   // Could skip the decomposition and generate the multilevel coefficients
   // directly. Doing it this way in case I want to compute the norms or whatever
   // else later.

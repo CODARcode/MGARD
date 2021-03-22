@@ -1,5 +1,6 @@
 #include <cmath>
 
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -13,9 +14,8 @@ template <typename Real, std::size_t N>
 MultilinearPolynomial<Real, N>::MultilinearPolynomial(
     std::default_random_engine &generator,
     std::uniform_real_distribution<Real> &distribution) {
-  for (Real &coefficient : coefficients) {
-    coefficient = distribution(generator);
-  }
+  std::generate(coefficients.begin(), coefficients.end(),
+                [&]() -> Real { return distribution(generator); });
 }
 
 template <typename Real, std::size_t N>

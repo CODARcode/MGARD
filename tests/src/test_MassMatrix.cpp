@@ -7,10 +7,11 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
-#include <utility>
 
+#include <algorithm>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "blas.hpp"
@@ -183,9 +184,8 @@ TEST_CASE("contiguous subset mass matrix", "[MassMatrix]") {
   std::vector<double> u_(n);
   std::vector<double> U_(N, 0);
   std::vector<double> RHS_(N);
-  for (double &value : u_) {
-    value = distribution(generator);
-  }
+  std::generate(u_.begin(), u_.end(),
+                [&]() -> double { return distribution(generator); });
   blas::copy(n, u_.data(), U_.data() + i);
   double *const u = u_.data();
   double *const U = U_.data();

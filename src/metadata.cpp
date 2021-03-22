@@ -1,7 +1,10 @@
 #include "metadata.hpp"
 
+#include <algorithm>
+#include <functional>
 #include <stdexcept>
 #include <unordered_map>
+#include <utility>
 
 namespace cli {
 
@@ -9,10 +12,12 @@ namespace {
 
 void check_all_specified(
     const std::unordered_map<std::string, bool> &specified) {
-  for (const std::pair<std::string, bool> pair : specified) {
-    if (!pair.second) {
-      throw std::invalid_argument(pair.first + " not specified");
-    }
+  using It = std::unordered_map<std::string, bool>::const_iterator;
+  using P = const bool &(*)(const std::pair<std::string, bool> &);
+  const It it = std::find_if_not<It, P>(specified.begin(), specified.end(),
+                                        std::get<1, std::string, bool>);
+  if (it != specified.end()) {
+    throw std::invalid_argument(it->first + " not specified");
   }
 }
 

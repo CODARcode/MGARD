@@ -61,11 +61,10 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
   std::random_device device;
   std::default_random_engine generator(device());
   std::uniform_real_distribution<double> distribution(-1, 1);
+  const auto f = [&]() -> double { return distribution(generator); };
 
   SECTION("recompose inverts decompose") {
-    for (double &value : u) {
-      value = distribution(generator);
-    }
+    std::generate(u.begin(), u.end(), f);
     std::vector<double> copy = u;
     hierarchy.decompose(mgard::NodalCoefficients<double>(u.data()));
     hierarchy.recompose(mgard::MultilevelCoefficients<double>(u.data()));
@@ -73,9 +72,7 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
   }
 
   SECTION("recompose inverts decompose") {
-    for (double &value : u) {
-      value = distribution(generator);
-    }
+    std::generate(u.begin(), u.end(), f);
     std::vector<double> copy = u;
     hierarchy.recompose(mgard::MultilevelCoefficients<double>(u.data()));
     hierarchy.decompose(mgard::NodalCoefficients<double>(u.data()));
@@ -197,14 +194,13 @@ TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
   const std::size_t L = 3;
   mgard::UniformMeshHierarchy hierarchy(mesh_, L);
 
-  std::vector<double> u_;
-  u_.reserve(hierarchy.ndof());
+  std::vector<double> u_(hierarchy.ndof());
   {
     const mgard::MeshLevel &MESH = hierarchy.meshes.back();
     const moab::Range &NODES = MESH.entities[moab::MBVERTEX];
-    for (const moab::EntityHandle node : NODES) {
-      u_.push_back(f(MESH, node));
-    }
+    std::transform(
+        NODES.begin(), NODES.end(), u_.begin(),
+        [&](const moab::EntityHandle node) -> double { return f(MESH, node); });
   }
   const mgard::NodalCoefficients<double> u(u_.data());
 
