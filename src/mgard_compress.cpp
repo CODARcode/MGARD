@@ -138,7 +138,7 @@ void free_tree(my_priority_queue<htree_node> *phtree) {
 }
 
 // Note this function will change the quantized data.
-size_t *build_ft(int *quantized_data, const std::size_t n,
+size_t *build_ft(long int *quantized_data, const std::size_t n,
                  size_t &num_outliers) {
   size_t *cnt = (size_t *)malloc(nql * sizeof(size_t));
   memset(cnt, 0, nql * sizeof(size_t));
@@ -159,7 +159,7 @@ size_t *build_ft(int *quantized_data, const std::size_t n,
   return cnt;
 }
 
-huffman_codec *build_huffman_codec(int *quantized_data, size_t **ft,
+huffman_codec *build_huffman_codec(long int *quantized_data, size_t **ft,
                                    const std::size_t n, size_t &num_outliers) {
   size_t *cnt;
 
@@ -188,7 +188,7 @@ huffman_codec *build_huffman_codec(int *quantized_data, size_t **ft,
 }
 
 void decompress_memory_huffman(unsigned char *data, int data_len,
-                               std::vector<int> &out_data) {
+                               long int *out_data, int out_size) {
   unsigned char *out_data_hit = 0;
   size_t out_data_hit_size;
   unsigned char *out_data_miss = 0;
@@ -207,6 +207,7 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
   out_data_miss_size = *(size_t *)buf;
   buf += sizeof(size_t);
 
+std::cout << "out_tree_size = " << out_tree_size << " out_data_hit_size = " << out_data_hit_size << " out_data_miss_size = " << out_data_miss_size << "\n";
   size_t total_huffman_size =
       out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
   unsigned char *huffman_encoding_p =
@@ -223,14 +224,14 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
   out_data_miss =
       huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
 
-  mgard::huffman_decoding(out_data.data(), out_data.size(), out_data_hit,
+  mgard::huffman_decoding(out_data, out_size, out_data_hit,
                           out_data_hit_size, out_data_miss, out_data_miss_size,
                           out_tree, out_tree_size);
 
   free(huffman_encoding_p);
 }
 
-void huffman_decoding(int *quantized_data, const std::size_t,
+void huffman_decoding(long int *quantized_data, const std::size_t n,
                       unsigned char *out_data_hit, size_t out_data_hit_size,
                       unsigned char *out_data_miss, size_t out_data_miss_size,
                       unsigned char *out_tree, size_t out_tree_size) {
@@ -258,7 +259,7 @@ void huffman_decoding(int *quantized_data, const std::size_t,
   size_t start_bit = 0;
   unsigned int mask = 0x80000000;
 
-  int *q = quantized_data;
+  long int *q = quantized_data;
   size_t i = 0;
   size_t num_missed = 0;
   while (start_bit < out_data_hit_size) {
@@ -312,7 +313,7 @@ void huffman_decoding(int *quantized_data, const std::size_t,
   ft = 0;
 }
 
-unsigned char *compress_memory_huffman(std::vector<int> &qv,
+unsigned char *compress_memory_huffman(const std::vector<long int> &qv,
                                        std::vector<unsigned char> &out_data,
                                        int &outsize) {
   unsigned char *out_data_hit = 0;
@@ -324,7 +325,7 @@ unsigned char *compress_memory_huffman(std::vector<int> &qv,
 #ifdef MGARD_TIMING
   auto huff_time1 = std::chrono::high_resolution_clock::now();
 #endif
-  mgard::huffman_encoding(qv.data(), qv.size(), &out_data_hit,
+  mgard::huffman_encoding(const_cast<long int *>(qv.data()), qv.size(), &out_data_hit,
                           &out_data_hit_size, &out_data_miss,
                           &out_data_miss_size, &out_tree, &out_tree_size);
 #ifdef MGARD_TIMING
@@ -393,11 +394,11 @@ unsigned char *compress_memory_huffman(std::vector<int> &qv,
   bufp += sizeof(size_t);
 
   std::copy(out_data.begin(), out_data.end(), bufp);
-
+std::cout << "out_tree_size = " << out_tree_size << " out_data_hit_size = " << out_data_hit_size << " out_data_miss_size = " << out_data_miss_size << "\n";
   return buffer;
 }
 
-void huffman_encoding(int *const quantized_data, const std::size_t n,
+void huffman_encoding(long int * quantized_data, const std::size_t n,
                       unsigned char **out_data_hit, size_t *out_data_hit_size,
                       unsigned char **out_data_miss, size_t *out_data_miss_size,
                       unsigned char **out_tree, size_t *out_tree_size) {
