@@ -1,6 +1,7 @@
 #include "catch2/catch_approx.hpp"
 #include "catch2/catch_test_macros.hpp"
 
+#include <algorithm>
 #include <array>
 #include <numeric>
 #include <stdexcept>
@@ -429,11 +430,14 @@ TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {
 
   {
     const mgard::TensorMeshHierarchy<2, double> hierarchy({6, 3});
-    std::vector<std::size_t> encountered;
-    for (const mgard::TensorNode<2> node :
-         mgard::UnshuffledTensorNodeRange(hierarchy, hierarchy.L)) {
-      encountered.push_back(hierarchy.date_of_birth(node.multiindex));
-    }
+    const mgard::UnshuffledTensorNodeRange<2, double> nodes(hierarchy,
+                                                            hierarchy.L);
+    // Cheating a little here in predetermining the size.
+    std::vector<std::size_t> encountered(hierarchy.ndof());
+    std::transform(nodes.begin(), nodes.end(), encountered.begin(),
+                   [&](const mgard::TensorNode<2> &node) -> std::size_t {
+                     return hierarchy.date_of_birth(node.multiindex);
+                   });
     const std::vector<std::size_t> expected = {0, 1, 0, 1, 1, 1, 0, 1, 0,
                                                1, 1, 1, 2, 2, 2, 0, 1, 0};
     REQUIRE(encountered == expected);

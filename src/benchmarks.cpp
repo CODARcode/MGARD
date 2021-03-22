@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 
+#include <numeric>
 #include <random>
 #include <string>
 
@@ -184,15 +185,12 @@ static void BM_structured_quantize(benchmark::State &state) {
   std::fill(u, u + ndof, 3);
   const Real s = 1;
   const Real tolerance = 0.75;
-  const mgard::TensorMultilevelCoefficientQuantizer<N, Real, Int> quantizer(
-      hierarchy, s, tolerance);
-
-  [[maybe_unused]] Int total = 0;
-  for (auto _ : state) {
-    for (const Int n : quantizer(u)) {
-      total += n;
-    }
-  }
+  using Quantizer = mgard::TensorMultilevelCoefficientQuantizer<N, Real, Int>;
+  using It = typename Quantizer::iterator;
+  const Quantizer quantizer(hierarchy, s, tolerance);
+  const mgard::RangeSlice<It> quantized = quantizer(u);
+  benchmark::DoNotOptimize(
+      std::accumulate(quantized.begin(), quantized.end(), static_cast<Int>(0)));
   std::free(u);
 
   state.SetComplexityN(ndof);
@@ -204,19 +202,17 @@ static void BM_structured_dequantize(benchmark::State &state) {
       mesh_shape<N>(state.range(0)));
 
   const std::size_t ndof = hierarchy.ndof();
-  Int *const n = static_cast<Int *>(std::malloc(ndof * sizeof(int)));
+  Int *const n = static_cast<Int *>(std::malloc(ndof * sizeof(Int)));
   std::fill(n, n + ndof, -2);
   const Real s = -1;
   const Real tolerance = 0.25;
-  const mgard::TensorMultilevelCoefficientDequantizer<N, Int, Real> dequantizer(
-      hierarchy, s, tolerance);
-
-  [[maybe_unused]] Real total = 0;
-  for (auto _ : state) {
-    for (const Real x : dequantizer(n, n + ndof)) {
-      total += x;
-    }
-  }
+  using Dequantizer =
+      mgard::TensorMultilevelCoefficientDequantizer<N, Int, Real>;
+  using It = typename Dequantizer::template iterator<Int *>;
+  const Dequantizer dequantizer(hierarchy, s, tolerance);
+  const mgard::RangeSlice<It> dequantized = dequantizer(n, n + ndof);
+  benchmark::DoNotOptimize(std::accumulate(
+      dequantized.begin(), dequantized.end(), static_cast<Real>(0)));
   std::free(n);
 
   state.SetComplexityN(ndof);
@@ -326,9 +322,7 @@ static void BM_unstructured_decompose(benchmark::State &state,
 
   const std::size_t N = hierarchy.ndof();
   std::vector<double> u_(N);
-  for (double &x : u_) {
-    x = dis(gen);
-  }
+  std::generate(u_.begin(), u_.end(), [&]() -> double { return dis(gen); });
   mgard::NodalCoefficients<double> u(u_.data());
 
   // Could preallocate buffer needed for decomposition.
@@ -366,9 +360,7 @@ static void BM_unstructured_recompose(benchmark::State &state,
 
   const std::size_t N = hierarchy.ndof();
   std::vector<double> u_(N);
-  for (double &x : u_) {
-    x = dis(gen);
-  }
+  std::generate(u_.begin(), u_.end(), [&]() -> double { return dis(gen); });
   mgard::MultilevelCoefficients<double> u(u_.data());
 
   // Could preallocate buffer needed for recomposition.
@@ -407,9 +399,7 @@ static void BM_unstructured_mass_matrix(benchmark::State &state,
   const std::size_t N = hierarchy.ndof();
   std::vector<double> u_(N);
   std::vector<double> rhs_(N);
-  for (double &x : u_) {
-    x = dis(gen);
-  }
+  std::generate(u_.begin(), u_.end(), [&]() -> double { return dis(gen); });
   double *const u = u_.data();
   double *const rhs = rhs_.data();
   const mgard::MeshLevel &MESH = hierarchy.meshes.back();

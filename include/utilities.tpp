@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <stdexcept>
 
 namespace mgard {
@@ -189,10 +190,10 @@ template <typename It> It RangeSlice<It>::end() const { return end_; }
 template <typename T, std::size_t N>
 CartesianProduct<T, N>::CartesianProduct(const std::array<T, N> factors)
     : factors(factors) {
-  for (const T &factor : factors) {
-    if (factor.begin() == factor.end()) {
-      throw std::invalid_argument("none of the factors may be empty");
-    }
+  if (std::any_of(factors.begin(), factors.end(), [](const T &factor) -> bool {
+        return factor.begin() == factor.end();
+      })) {
+    throw std::invalid_argument("none of the factors may be empty");
   }
 }
 

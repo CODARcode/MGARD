@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 
+#include <algorithm>
 #include <random>
 #include <string>
 #include <vector>
@@ -87,15 +88,15 @@ TEST_CASE("estimators should track norms", "[estimators]") {
   std::random_device device;
   std::default_random_engine generator(device());
   std::uniform_real_distribution<double> distribution(-1, 1);
-  for (double &value : u_) {
-    value = distribution(generator);
-  }
+
+  std::generate(u_.begin(), u_.end(),
+                [&]() -> double { return distribution(generator); });
   const mgard::NodalCoefficients<double> u_nc(u_.data());
 
-  std::vector<double> norms;
-  for (const float s : smoothness_parameters) {
-    norms.push_back(mgard::norm(u_nc, hierarchy, s));
-  }
+  std::vector<double> norms(smoothness_parameters.size());
+  std::transform(
+      smoothness_parameters.begin(), smoothness_parameters.end(), norms.begin(),
+      [&](const float s) -> float { return mgard::norm(u_nc, hierarchy, s); });
 
   const mgard::MultilevelCoefficients u_mc = hierarchy.decompose(u_nc);
   const mgard::RatioBounds factors =

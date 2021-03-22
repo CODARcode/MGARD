@@ -1,5 +1,6 @@
 #include "catch2/catch_test_macros.hpp"
 
+#include <algorithm>
 #include <array>
 #include <numeric>
 
@@ -91,9 +92,8 @@ void test_mc_dequantization_inversion(const std::array<std::size_t, N> shape,
   //   const int requantized = dequantized / quantum;
   //   // `requantized` is 80000000 (not equal to `n`).
   std::uniform_int_distribution<Int> n_distribution(-1000, 1000);
-  for (Int &n : v_) {
-    n = n_distribution(generator);
-  }
+  std::generate(v_.begin(), v_.end(),
+                [&]() -> Int { return n_distribution(generator); });
 
   using QntzdIt = typename std::vector<Int>::iterator;
   using DqntzrIt = typename mgard::TensorMultilevelCoefficientDequantizer<
@@ -132,9 +132,9 @@ void test_mc_quantization_error(const std::array<std::size_t, N> shape,
 
   std::uniform_real_distribution<Real> nodal_coefficient_distribution(-100,
                                                                       100);
-  for (Real &x : u_nc) {
-    x = nodal_coefficient_distribution(generator);
-  }
+  std::generate(u_nc.begin(), u_nc.end(), [&]() -> Real {
+    return nodal_coefficient_distribution(generator);
+  });
 
   std::vector<Real> u_mc(u_nc);
   mgard::decompose(hierarchy, u_mc.data());

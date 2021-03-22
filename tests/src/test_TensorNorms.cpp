@@ -8,9 +8,8 @@
 #include <algorithm>
 #include <array>
 #include <limits>
-#include <vector>
-
 #include <random>
+#include <vector>
 
 #include "blas.hpp"
 
@@ -34,9 +33,9 @@ void test_tensor_basic_norm_properties(
                                     shape);
   const std::size_t ndof = hierarchy.ndof();
   std::vector<Real> u_(ndof);
-  for (Real &x : u_) {
-    x = nodal_coefficient_distribution(generator);
-  }
+  std::generate(u_.begin(), u_.end(), [&]() -> Real {
+    return nodal_coefficient_distribution(generator);
+  });
   Real *const u = u_.data();
   std::vector<Real> v_(ndof);
   Real *const v = v_.data();

@@ -1,6 +1,7 @@
 #include "catch2/catch_approx.hpp"
 #include "catch2/catch_test_macros.hpp"
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <numeric>
@@ -13,6 +14,7 @@
 
 #include "TensorMassMatrix.hpp"
 #include "TensorMeshHierarchy.hpp"
+#include "blas.hpp"
 #include "shuffle.hpp"
 #include "utilities.hpp"
 
@@ -34,9 +36,7 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
       M({0}, v);
       mgard::unshuffle(hierarchy, v, buffer);
       std::array<float, ndof> expected = {-3, 3, 13, 36, 18, -12, -34, -23, -4};
-      for (float &value : expected) {
-        value /= 48;
-      }
+      blas::scal(ndof, static_cast<float>(1) / 48, expected.data());
       TrialTracker tracker;
       for (std::size_t i = 0; i < ndof; ++i) {
         tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
@@ -374,9 +374,8 @@ TEST_CASE("constituent mass matrix inverses", "[TensorMassMatrix]") {
     std::default_random_engine generator(731617);
     std::uniform_real_distribution<float> distribution(-5, -3);
     std::array<float, ndof> u_;
-    for (float &value : u_) {
-      value = distribution(generator);
-    }
+    std::generate(u_.begin(), u_.end(),
+                  [&]() -> float { return distribution(generator); });
     float *const u = u_.data();
     exhaustive_constituent_inverse_test<3, float>(hierarchy, u);
   }
@@ -430,10 +429,8 @@ TEST_CASE("tensor product mass matrix inverses", "[TensorMassMatrix]") {
   std::array<float, 1089> u_;
   {
     std::uniform_real_distribution<float> distribution(-10, 10);
-
-    for (float &value : u_) {
-      value = distribution(generator);
-    }
+    std::generate(u_.begin(), u_.end(),
+                  [&]() -> float { return distribution(generator); });
   }
 
   std::uniform_real_distribution<float> distribution(0.1, 0.3);

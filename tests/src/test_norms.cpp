@@ -53,9 +53,8 @@ TEST_CASE("unstructured basic norm properties", "[norms]") {
       REQUIRE(tracker);
     }
 
-    for (double &value : u_) {
-      value = distribution(generator);
-    }
+    std::generate(u_.begin(), u_.end(),
+                  [&]() -> double { return distribution(generator); });
 
     std::vector<double> copy_(N);
     mgard::NodalCoefficients copy(copy_.data());
@@ -77,11 +76,10 @@ TEST_CASE("unstructured basic norm properties", "[norms]") {
     std::vector<double> u_(N);
     std::vector<double> v_(N);
     std::vector<double> w_ = u_;
-    for (double &value : u_) {
-      value = distribution(generator);
-    }
-    for (double &value : v_) {
-      value = distribution(generator);
+    {
+      const auto f = [&]() -> double { return distribution(generator); };
+      std::generate(u_.begin(), u_.end(), f);
+      std::generate(v_.begin(), v_.end(), f);
     }
     mgard::NodalCoefficients u(u_.data());
     mgard::NodalCoefficients v(v_.data());

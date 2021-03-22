@@ -15,6 +15,7 @@
 #include <cstring>
 
 #include <algorithm>
+#include <functional>
 #include <numeric>
 
 #ifdef MGARD_TIMING
@@ -68,10 +69,8 @@ void copy_negation_on_old_subtract_on_new(
   {
     const PseudoArray<const Real> src_on_old = hierarchy.on_nodes(src, l - 1);
     const PseudoArray<Real> dst_on_old = hierarchy.on_nodes(dst, l - 1);
-    Real const *p = src_on_old.begin();
-    for (Real &value : dst_on_old) {
-      value = -*p++;
-    }
+    std::transform(src_on_old.begin(), src_on_old.end(), dst_on_old.begin(),
+                   std::negate<Real>());
   }
   {
     const PseudoArray<const Real> src_on_new = hierarchy.on_new_nodes(src, l);

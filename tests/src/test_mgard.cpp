@@ -183,8 +183,12 @@ void test_decomposition_of_linear_functions(
   double *const u = u_.data();
 
   // Not going to bother checking that `hierarchy.L` is nonzero.
-  for (Real &value : hierarchy.on_nodes(u, hierarchy.L - 1)) {
-    value = nodal_coefficient_distribution(generator);
+  {
+    const mgard::PseudoArray<Real> u_on_old =
+        hierarchy.on_nodes(u, hierarchy.L - 1);
+    std::generate(u_on_old.begin(), u_on_old.end(), [&]() -> Real {
+      return nodal_coefficient_distribution(generator);
+    });
   }
 
   const mgard::PseudoArray<Real> u_on_newest =
@@ -222,9 +226,9 @@ void test_recomposition_with_zero_coefficients(
   // Not going to bother checking that `hierarchy.L` is nonzero.
   const mgard::PseudoArray<Real> u_on_old =
       hierarchy.on_nodes(u, hierarchy.L - 1);
-  for (Real &value : u_on_old) {
-    value = multilevel_coefficient_distribution(generator);
-  }
+  std::generate(u_on_old.begin(), u_on_old.end(), [&]() -> Real {
+    return multilevel_coefficient_distribution(generator);
+  });
 
   mgard::recompose(hierarchy, u);
 
