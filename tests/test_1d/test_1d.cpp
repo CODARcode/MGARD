@@ -12,6 +12,7 @@ using namespace std;
 int main(int argc, char **argv) {
   double tol, result;
   int out_size;
+  int out_size1;
   unsigned char *compressed_data = 0;
 
   if (argc != 3) {
