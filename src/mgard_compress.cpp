@@ -5,12 +5,12 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
-#include <iostream>
 #include <queue>
 #include <vector>
 
 #ifdef MGARD_TIMING
 #include <chrono>
+#include <iostream>
 #endif
 
 #include <zlib.h>
@@ -71,11 +71,6 @@ void build_codec(htree_node *root, unsigned int code, size_t len,
     codec[root->q].q = root->q;
     codec[root->q].code = code;
     codec[root->q].len = len;
-    /*
-    std::cout << "code = " << std::bitset<32>(code)
-              << " len = " << len
-              << " count = " << root->cnt << "\n";
-              */
   }
 
   if (root->left) {
@@ -172,14 +167,6 @@ huffman_codec *build_huffman_codec(long int *quantized_data, size_t **ft,
   memset(codec, 0, sizeof(huffman_codec) * nql);
 
   build_codec(phtree->top(), 0, 0, codec);
-  /*
-    for (int i = 0; i < nql; i++) {
-      if (codec[i].len != 0) {
-        std::cout << "codec: i = " << i << " len = " << codec[i].len << " code =
-    " << std::bitset<32>(codec[i].code) << "\n";
-      }
-    }
-  */
 
   free_tree(phtree);
   phtree = 0;
@@ -207,9 +194,6 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
   out_data_miss_size = *(size_t *)buf;
   buf += sizeof(size_t);
 
-  std::cout << "out_tree_size = " << out_tree_size
-            << " out_data_hit_size = " << out_data_hit_size
-            << " out_data_miss_size = " << out_data_miss_size << "\n";
   size_t total_huffman_size =
       out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
   unsigned char *huffman_encoding_p =
@@ -396,9 +380,6 @@ unsigned char *compress_memory_huffman(const std::vector<long int> &qv,
   bufp += sizeof(size_t);
 
   std::copy(out_data.begin(), out_data.end(), bufp);
-  std::cout << "out_tree_size = " << out_tree_size
-            << " out_data_hit_size = " << out_data_hit_size
-            << " out_data_miss_size = " << out_data_miss_size << "\n";
   return buffer;
 }
 
@@ -455,8 +436,6 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
 
     assert(len > 0);
 
-    //      std::cout << "[hit]: the " << i << "-th symbol: " << q << "\n";
-
     if (32 - start_bit % 32 >= len) {
       code = code << (32 - start_bit % 32 - len);
       *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
@@ -474,8 +453,6 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
     }
   }
 
-  //  std::cout << "num hit: " << n - num_miss << " num_miss: " << num_miss <<
-  //  "\n";
   // Note: hit size is in bits, while miss size is in bytes.
   *out_data_hit_size = start_bit;
   *out_data_miss_size = num_miss * sizeof(int);

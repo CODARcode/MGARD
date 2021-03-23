@@ -82,20 +82,14 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   std::copy(z_output.begin(), z_output.end(),
             static_cast<unsigned char *>(buffer));
 #else
-//! Compress an array of data using `zstd`.
+  // Compress an array of data using `zstd`.
   std::vector<unsigned char> zstd_output;
   int zstd_outsize;
 
-  void *const buffer = compress_memory_huffman(quantized, zstd_output, zstd_outsize);
+  void *const buffer =
+      compress_memory_huffman(quantized, zstd_output, zstd_outsize);
 
   const std::size_t size = zstd_outsize;
-/*
-  void *const buffer = new unsigned char[size];
-
-  std::copy(zstd_output.begin(), zstd_output.end(),
-            static_cast<unsigned char *>(buffer));
-std::cout << "second value = " << * ((std::size_t *) buffer) << "\n";
-*/
 #endif
   return CompressedDataset<N, Real>(hierarchy, s, tolerance, buffer, size);
 }
@@ -112,10 +106,9 @@ decompress(const CompressedDataset<N, Real> &compressed) {
                       reinterpret_cast<int *>(quantized),
                       ndof * sizeof(*quantized));
 #else
-  std::cout << "compressed.size() = " << compressed.size() << "\n";
-  decompress_memory_huffman(reinterpret_cast<unsigned char *>(const_cast<void *>(compressed.data())),
-                            compressed.size(), quantized,
-                            ndof * sizeof(*quantized));
+  decompress_memory_huffman(
+      reinterpret_cast<unsigned char *>(const_cast<void *>(compressed.data())),
+      compressed.size(), quantized, ndof * sizeof(*quantized));
 #endif
   using Dqntzr = TensorMultilevelCoefficientDequantizer<N, DEFAULT_INT_T, Real>;
   const Dqntzr dequantizer(compressed.hierarchy, compressed.s,
