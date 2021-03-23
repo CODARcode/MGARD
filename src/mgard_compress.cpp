@@ -207,7 +207,9 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
   out_data_miss_size = *(size_t *)buf;
   buf += sizeof(size_t);
 
-std::cout << "out_tree_size = " << out_tree_size << " out_data_hit_size = " << out_data_hit_size << " out_data_miss_size = " << out_data_miss_size << "\n";
+  std::cout << "out_tree_size = " << out_tree_size
+            << " out_data_hit_size = " << out_data_hit_size
+            << " out_data_miss_size = " << out_data_miss_size << "\n";
   size_t total_huffman_size =
       out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
   unsigned char *huffman_encoding_p =
@@ -224,9 +226,9 @@ std::cout << "out_tree_size = " << out_tree_size << " out_data_hit_size = " << o
   out_data_miss =
       huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
 
-  mgard::huffman_decoding(out_data, out_size, out_data_hit,
-                          out_data_hit_size, out_data_miss, out_data_miss_size,
-                          out_tree, out_tree_size);
+  mgard::huffman_decoding(out_data, out_size, out_data_hit, out_data_hit_size,
+                          out_data_miss, out_data_miss_size, out_tree,
+                          out_tree_size);
 
   free(huffman_encoding_p);
 }
@@ -325,8 +327,8 @@ unsigned char *compress_memory_huffman(const std::vector<long int> &qv,
 #ifdef MGARD_TIMING
   auto huff_time1 = std::chrono::high_resolution_clock::now();
 #endif
-  mgard::huffman_encoding(const_cast<long int *>(qv.data()), qv.size(), &out_data_hit,
-                          &out_data_hit_size, &out_data_miss,
+  mgard::huffman_encoding(const_cast<long int *>(qv.data()), qv.size(),
+                          &out_data_hit, &out_data_hit_size, &out_data_miss,
                           &out_data_miss_size, &out_tree, &out_tree_size);
 #ifdef MGARD_TIMING
   auto huff_time2 = std::chrono::high_resolution_clock::now();
@@ -394,11 +396,13 @@ unsigned char *compress_memory_huffman(const std::vector<long int> &qv,
   bufp += sizeof(size_t);
 
   std::copy(out_data.begin(), out_data.end(), bufp);
-std::cout << "out_tree_size = " << out_tree_size << " out_data_hit_size = " << out_data_hit_size << " out_data_miss_size = " << out_data_miss_size << "\n";
+  std::cout << "out_tree_size = " << out_tree_size
+            << " out_data_hit_size = " << out_data_hit_size
+            << " out_data_miss_size = " << out_data_miss_size << "\n";
   return buffer;
 }
 
-void huffman_encoding(long int * quantized_data, const std::size_t n,
+void huffman_encoding(long int *quantized_data, const std::size_t n,
                       unsigned char **out_data_hit, size_t *out_data_hit_size,
                       unsigned char **out_data_miss, size_t *out_data_miss_size,
                       unsigned char **out_tree, size_t *out_tree_size) {
