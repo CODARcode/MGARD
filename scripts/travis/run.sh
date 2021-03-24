@@ -1,37 +1,27 @@
 #!/usr/bin/env bash
 
-export SOURCE_DIR=${TRAVIS_BUILD_DIR}
-export BUILD_DIR=$(readlink -f ${SOURCE_DIR}/..)
-export COMMIT_RANGE="${TRAVIS_COMMIT_RANGE/.../ }"
-if [ -n "${TRAVIS_PULL_REQUEST_BRANCH}" ]
-then
-  export BUILD_LABEL="pr${TRAVIS_PULL_REQUEST}_${TRAVIS_PULL_REQUEST_BRANCH}_${TRAVIS_BUILD_NUMBER}"
-else
-  export BUILD_LABEL="${TRAVIS_BRANCH}_${TRAVIS_BUILD_NUMBER}"
-fi
-
 case ${BUILD_MATRIX_ENTRY} in
-  format)
+  clang-format)
     echo "Running formatting tests"
-    if ! ${SOURCE_DIR}/scripts/travis/run-format.sh; then
+    if ! "${TRAVIS_BUILD_DIR}/scripts/travis/run-clang-format.sh"; then
       exit 1;
     fi
     ;;
-  analyze)
+  clang-static-analyzer)
     echo "Running static analysis (clang-analyzer)"
-    if ! ${SOURCE_DIR}/scripts/travis/run-sa.sh; then
+    if ! "${TRAVIS_BUILD_DIR}/scripts/travis/run-clang-static-analyzer.sh"; then
       exit 1;
     fi
     ;;
   cppcheck)
     echo "Running static analysis (cppcheck)"
-    if ! ${SOURCE_DIR}/scripts/travis/run-cppcheck.sh; then
+    if ! "${TRAVIS_BUILD_DIR}/scripts/travis/run-cppcheck.sh"; then
       exit 1;
     fi
     ;;
   tests)
     echo "Running tests"
-    if ! ${SOURCE_DIR}/scripts/travis/run-tests.sh; then
+    if ! "${TRAVIS_BUILD_DIR}/scripts/travis/run-tests.sh"; then
       exit 1;
     fi
     ;;
