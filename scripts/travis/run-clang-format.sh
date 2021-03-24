@@ -6,6 +6,11 @@ then
 	echo "Checking formatting for commit range: ${COMMIT_RANGE}"
 	cd "${TRAVIS_BUILD_DIR}"
 	DIFF="$(./scripts/developer/git/git-clang-format --diff ${COMMIT_RANGE})"
+	GCA_EXIT_CODE=$?
+	if [ ${GCA_EXIT_CODE} -ne 0 ]
+	then
+		exit ${GCA_EXIT_CODE}
+	fi
 	if [ "${DIFF}" ] && [ "${DIFF}" != "no modified files to format" ]
 	then
 		echo "clang-format:"
