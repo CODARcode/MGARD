@@ -1,7 +1,12 @@
 #include "cuda/mgard_cuda_common_internal.h"
-#include "cuda/mgard_cuda_compact_helper.h"
+#include "cuda/mgard_cuda_precompute_kernels.h"
 #include "cuda/mgard_cuda_handle.h"
 #include "cuda/mgard_cuda_helper.h"
+#include "cascaded.hpp"
+#include "nvcomp.hpp"
+#include <limits>
+#include <cmath>
+#include <vector>
 
 // template <typename T> int
 // mgard_cuda_handle<T>::get_lindex(const int n, const int no, const int i) {
@@ -18,455 +23,706 @@
 //   return lindex;
 // }
 
-template <typename T>
-void mgard_cuda_handle<T>::init(int nrow, int ncol, int nfib, T *coords_r,
-                                T *coords_c, T *coords_f, int B,
-                                int num_of_queues, int opt) {
+template <typename T, int D>
+void mgard_cuda_handle<T, D>::init(std::vector<size_t> shape, std::vector<T*> coords, mgard_cuda_config config) {
 
-  this->B = B;
-  this->num_of_queues = num_of_queues;
-  cudaStream_t *ptr = new cudaStream_t[num_of_queues];
-  for (int i = 0; i < this->num_of_queues; i++) {
-    gpuErrchk(cudaStreamCreate(ptr + i));
-    // std::cout << "created a stream: " << *(ptr+i) <<"\n";
+// printf("Initializing handler\n");
+// for (int i = 0; i < shape[0]; i++)
+//   printf("%f ", coords[0][i]);
+// printf("\n");
+  arch = 0; //default 
+#ifdef MGARD_CUDA_OPTIMIZE_VOLTA
+  arch = 1;
+  // printf("Optimized: Volta\n");
+#endif
+#ifdef MGARD_CUDA_OPTIMIZE_TURING
+  arch = 2;
+  // printf("Optimized: Turing\n");
+#endif
+
+  cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
+  cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
+  
+  if (sizeof(T) == sizeof(float)) {
+    precision = 0;
+  } else if (sizeof(T) == sizeof(double)) {
+    precision = 1;
   }
 
+  init_auto_tuning_table();
+
+  // this->B = B;
+  this->num_of_queues = 16;
+
+  this->num_gpus = 1;
+  this->dev_ids = new int[this->num_gpus];
+  for (int i = 0; i < this->num_gpus; i++) this->dev_ids[i] = 0;
+
+  // for (int i = 0; i < this->num_gpus; i++) {
+  //  for (int j = 0; j < this->num_gpus; j++) {
+  //    int r;
+  //    cudaDeviceCanAccessPeer(&r, dev_ids[i], dev_ids[j]);
+  //    if (r == 1)
+  //      printf("%d - %d: Y\n", i, j); 
+  //    else
+  //      printf("%d - %d: N\n", i, j);     
+  //  }
+  // }
+
+  // cudaStream_t *ptr = new cudaStream_t[this->num_of_queues];
+  // for (int d = 0; d < this->num_gpus; d++) {
+  //   // for (int i = 0; i < this->num_gpus*this->num_gpus; i++) {
+  //     gpuErrchk(cudaStreamCreate(ptr + d));
+  //   // }
+  // }
+  
+  // for (int i = 0; i < this->num_of_queues; i++) {
+  //   gpuErrchk(cudaStreamCreate(ptr + i));
+  //   // std::cout << "created a stream: " << *(ptr+i) <<"\n";
+  // }
+
+  dev_assign = new int**[num_gpus];
+
+
+  for (int dr = 0; dr < num_gpus; dr++) {
+    dev_assign[dr] = new int*[num_gpus];
+    for (int dc = 0; dc < num_gpus; dc++) {
+      dev_assign[dr][dc] = new int[num_gpus];
+      for (int df = 0; df < num_gpus; df++) {
+        // round robin shift index 
+        int d = (df + dc + dr) % num_gpus;
+        dev_assign[dr][dc][df] = dev_ids[d];
+      }
+    }
+  }
+
+  this->queue_per_block = num_of_queues;
+  cudaStream_t *ptr = new cudaStream_t[num_gpus*num_gpus*num_gpus*queue_per_block];
+  for (int dr = 0; dr < num_gpus; dr++) {
+    for (int dc = 0; dc < num_gpus; dc++) {
+      for (int df = 0; df < num_gpus; df++) {
+        int d = dev_assign[dr][dc][df];
+        mgard_cuda::cudaSetDeviceHelper(dev_ids[d]);
+        for (int i = 0; i < queue_per_block; i++) {
+          gpuErrchk(cudaStreamCreate(ptr + (dr*num_gpus*num_gpus+dc*num_gpus+df)*queue_per_block+i));
+          // printf("create:%d\n", (dr*num_gpus*num_gpus+dc*num_gpus+df)*queue_per_block+i);
+        }
+      }
+    }
+  }
+  
+  mgard_cuda::cudaSetDeviceHelper(dev_ids[0]);
   this->queues = (void *)ptr;
   this->opt = opt;
 
-  this->nrow = nrow;
-  this->ncol = ncol;
-  this->nfib = nfib;
 
-  int nlevel_r = std::log2(nrow - 1);
-  this->nr = std::pow(2, nlevel_r) + 1;
-  int nlevel_c = std::log2(ncol - 1);
-  this->nc = std::pow(2, nlevel_c) + 1;
-  int nlevel_f = std::log2(nfib - 1);
-  this->nf = std::pow(2, nlevel_f) + 1;
-
-  int nlevel = std::min(nlevel_r, nlevel_c);
-
-  if (nfib > 1)
-    nlevel = std::min(nlevel, nlevel_f);
-
-  this->l_target = nlevel - 1;
-
-  this->nr_l = new int[l_target + 1];
-  this->nc_l = new int[l_target + 1];
-  if (nfib > 1)
-    this->nf_l = new int[l_target + 1];
-
-  for (int l = 0; l < l_target + 1; l++) {
-    nr_l[l] = ceil((float)nr / std::pow(2, l));
-    nc_l[l] = ceil((float)nc / std::pow(2, l));
-    if (nfib > 1)
-      nf_l[l] = ceil((float)nf / std::pow(2, l));
-  }
-
-  int *irow = new int[nr];
-  int *irowP = new int[nrow - nr];
-  int *irowA = new int[nrow];
-  int irow_ptr = 0;
-  int irowP_ptr = 0;
-
-  for (int i = 0; i < nr; i++) {
-    int irow_r = mgard_cuda::get_lindex_cuda(nr, nrow, i);
-    irow[irow_ptr] = irow_r;
-    if (irow_ptr > 0 && irow[irow_ptr - 1] != irow[irow_ptr] - 1) {
-      irowP[irowP_ptr] = irow[irow_ptr] - 1;
-      irowP_ptr++;
+  // determine dof
+  for (int i = 0; i < shape.size(); i++) {
+    std::vector<int> curr_dofs;
+    int n = shape[i];
+    // printf("shape[%d] = %d\n", i, shape[i]);
+    while (n > 2) {
+      curr_dofs.push_back(n);
+      n = n / 2 + 1;
     }
-    irow_ptr++;
+    dofs.push_back(curr_dofs);
+    // printf("dofs[%d].size() = %d\n", i, dofs[i].size());
   }
-  for (int i = 0; i < nrow; i++)
-    irowA[i] = i;
 
-  int *icol = new int[nc];
-  int *icolP = new int[ncol - nc];
-  int *icolA = new int[ncol];
-  int icol_ptr = 0;
-  int icolP_ptr = 0;
-
-  for (int i = 0; i < nc; i++) {
-    int icol_c = mgard_cuda::get_lindex_cuda(nc, ncol, i);
-    icol[icol_ptr] = icol_c;
-    if (icol_ptr > 0 && icol[icol_ptr - 1] != icol[icol_ptr] - 1) {
-      icolP[icolP_ptr] = icol[icol_ptr] - 1;
-      icolP_ptr++;
-    }
-    icol_ptr++;
+  linearized_depth = 1;
+  for (int i = 2; i < shape.size(); i++) {
+    linearized_depth *= shape[i];
   }
-  for (int i = 0; i < ncol; i++)
-    icolA[i] = i;
 
-  int *ifib = new int[nf];
-  int *ifibP = new int[nfib - nf];
-  int *ifibA = new int[nfib];
-  int ifib_ptr = 0;
-  int ifibP_ptr = 0;
-  if (nfib > 1) {
-    for (int i = 0; i < nf; i++) {
-      int ifib_f = mgard_cuda::get_lindex_cuda(nf, nfib, i);
-      ifib[ifib_ptr] = ifib_f;
-      if (ifib_ptr > 0 && ifib[ifib_ptr - 1] != ifib[ifib_ptr] - 1) {
-        ifibP[ifibP_ptr] = ifib[ifib_ptr] - 1;
-        ifibP_ptr++;
+  //workspace (assume 3d and above)
+  padded_linearized_depth = shape[2] + 2;
+  for (int i = 3; i < shape.size(); i++) {
+    padded_linearized_depth *= (shape[i] + 2);
+  }
+
+  for (int i = 1; i < shape.size(); i++) {
+    if (shape[i] == 1) {
+      for (int l = 0; l < dofs[0].size(); l++) {
+        dofs[i].push_back(1);
       }
-      ifib_ptr++;
-    }
-    for (int i = 0; i < nfib; i++)
-      ifibA[i] = i;
-  }
-
-  mgard_cuda::cudaMallocHelper((void **)&(this->dirow), nr * sizeof(int));
-  mgard_cuda::cudaMemcpyAsyncHelper(*this, this->dirow, irow, nr * sizeof(int),
-                                    mgard_cuda::H2D, 0);
-
-  mgard_cuda::cudaMallocHelper((void **)&(this->dicol), nc * sizeof(int));
-  mgard_cuda::cudaMemcpyAsyncHelper(*this, this->dicol, icol, nc * sizeof(int),
-                                    mgard_cuda::H2D, 0);
-
-  if (nfib > 1) {
-    mgard_cuda::cudaMallocHelper((void **)&(this->difib), nf * sizeof(int));
-    mgard_cuda::cudaMemcpyAsyncHelper(*this, this->difib, ifib,
-                                      nf * sizeof(int), mgard_cuda::H2D, 0);
-  }
-
-  mgard_cuda::cudaMallocHelper((void **)&(this->dirow_p),
-                               (nrow - nr) * sizeof(int));
-  mgard_cuda::cudaMemcpyAsyncHelper(*this, this->dirow_p, irowP,
-                                    (nrow - nr) * sizeof(int), mgard_cuda::H2D,
-                                    0);
-
-  mgard_cuda::cudaMallocHelper((void **)&(this->dicol_p),
-                               (ncol - nc) * sizeof(int));
-  mgard_cuda::cudaMemcpyAsyncHelper(*this, this->dicol_p, icolP,
-                                    (ncol - nc) * sizeof(int), mgard_cuda::H2D,
-                                    0);
-
-  if (nfib > 1) {
-    mgard_cuda::cudaMallocHelper((void **)&(this->difib_p),
-                                 (nfib - nf) * sizeof(int));
-    mgard_cuda::cudaMemcpyAsyncHelper(*this, this->difib_p, ifibP,
-                                      (nfib - nf) * sizeof(int),
-                                      mgard_cuda::H2D, 0);
-  }
-
-  mgard_cuda::cudaMallocHelper((void **)&(this->dirow_a), nrow * sizeof(int));
-  mgard_cuda::cudaMemcpyAsyncHelper(*this, this->dirow_a, irowA,
-                                    nrow * sizeof(int), mgard_cuda::H2D, 0);
-
-  mgard_cuda::cudaMallocHelper((void **)&(this->dicol_a), ncol * sizeof(int));
-  mgard_cuda::cudaMemcpyAsyncHelper(*this, this->dicol_a, icolA,
-                                    ncol * sizeof(int), mgard_cuda::H2D, 0);
-
-  if (nfib > 1) {
-    mgard_cuda::cudaMallocHelper((void **)&(this->difib_a), nfib * sizeof(int));
-    mgard_cuda::cudaMemcpyAsyncHelper(*this, this->difib_a, ifibA,
-                                      nfib * sizeof(int), mgard_cuda::H2D, 0);
-  }
-
-  mgard_cuda::cudaMallocHelper((void **)&(this->dcoords_r), nrow * sizeof(T));
-  mgard_cuda::cudaMemcpyAsyncHelper(*this, this->dcoords_r, coords_r,
-                                    nrow * sizeof(T), mgard_cuda::H2D, 0);
-
-  mgard_cuda::cudaMallocHelper((void **)&(this->dcoords_c), ncol * sizeof(T));
-  mgard_cuda::cudaMemcpyAsyncHelper(*this, this->dcoords_c, coords_c,
-                                    ncol * sizeof(T), mgard_cuda::H2D, 0);
-
-  if (nfib > 1) {
-    mgard_cuda::cudaMallocHelper((void **)&(this->dcoords_f), nfib * sizeof(T));
-    mgard_cuda::cudaMemcpyAsyncHelper(*this, this->dcoords_f, coords_f,
-                                      nfib * sizeof(T), mgard_cuda::H2D, 0);
-  }
-  mgard_cuda::cudaMallocHelper((void **)&(this->ddist_r), nrow * sizeof(T));
-  mgard_cuda::calc_cpt_dist(*this, nrow, 1, this->dcoords_r, this->ddist_r, 0);
-
-  mgard_cuda::cudaMallocHelper((void **)&(this->ddist_c), ncol * sizeof(T));
-  mgard_cuda::calc_cpt_dist(*this, ncol, 1, this->dcoords_c, this->ddist_c, 0);
-
-  if (nfib > 1) {
-    mgard_cuda::cudaMallocHelper((void **)&(this->ddist_f), nfib * sizeof(T));
-    mgard_cuda::calc_cpt_dist(*this, nfib, 1, this->dcoords_f, this->ddist_f,
-                              0);
-  }
-
-  T *dccoords_r, *dccoords_c, *dccoords_f;
-  mgard_cuda::cudaMallocHelper((void **)&dccoords_r, nr * sizeof(T));
-  mgard_cuda::cudaMallocHelper((void **)&dccoords_c, nc * sizeof(T));
-  if (nfib > 1)
-    mgard_cuda::cudaMallocHelper((void **)&dccoords_f, nf * sizeof(T));
-
-  mgard_cuda::org_to_pow2p1(*this, nrow, nr, dirow, this->dcoords_r, dccoords_r,
-                            0);
-  mgard_cuda::org_to_pow2p1(*this, ncol, nc, dicol, this->dcoords_c, dccoords_c,
-                            0);
-  if (nfib > 1)
-    mgard_cuda::org_to_pow2p1(*this, nfib, nf, difib, this->dcoords_f,
-                              dccoords_f, 0);
-
-  this->ddist_r_l = new T *[l_target + 1];
-  this->ddist_c_l = new T *[l_target + 1];
-  if (nfib > 1)
-    this->ddist_f_l = new T *[l_target + 1];
-
-  for (int l = 0; l < l_target + 1; l++) {
-    int stride = std::pow(2, l);
-    mgard_cuda::cudaMallocHelper((void **)&(this->ddist_r_l[l]),
-                                 this->nr_l[l] * sizeof(T));
-    mgard_cuda::calc_cpt_dist(*this, this->nr, stride, dccoords_r,
-                              this->ddist_r_l[l], 0);
-
-    mgard_cuda::cudaMallocHelper((void **)&(this->ddist_c_l[l]),
-                                 this->nc_l[l] * sizeof(T));
-    mgard_cuda::calc_cpt_dist(*this, this->nc, stride, dccoords_c,
-                              this->ddist_c_l[l], 0);
-    if (nfib > 1) {
-      mgard_cuda::cudaMallocHelper((void **)&(this->ddist_f_l[l]),
-                                   this->nf_l[l] * sizeof(T));
-      mgard_cuda::calc_cpt_dist(*this, this->nf, stride, dccoords_f,
-                                this->ddist_f_l[l], 0);
     }
   }
 
-  if (nfib > 1) {
-    size_t dwork_pitch;
-    mgard_cuda::cudaMalloc3DHelper((void **)&(this->dwork), &dwork_pitch,
-                                   nfib * sizeof(T), ncol, nrow);
-    this->lddwork1 = dwork_pitch / sizeof(T);
-    this->lddwork2 = ncol;
 
-    this->dcwork_2d_rc = new T *[num_of_queues];
-    this->lddcwork_2d_rc = new int[num_of_queues];
-    for (int i = 0; i < num_of_queues; i++) {
-      size_t dcwork_2d_rc_pitch;
-      mgard_cuda::cudaMallocPitchHelper(
-          (void **)&dcwork_2d_rc[i], &dcwork_2d_rc_pitch, nc * sizeof(T), nr);
-      lddcwork_2d_rc[i] = dcwork_2d_rc_pitch / sizeof(T);
+  // for (int d = 0; d < std::max(3, (int)shape.size()); d++ ) {
+  //   printf("shape[%d]: %d dofs[%d]: ", d, shape[d], d);
+  //   for (int l = 0 ; l < dofs[d].size(); l++) {
+  //     printf("%d ", dofs[d][l]);
+  //   }
+  //   printf("\n");
+  // }
+  
+
+  // determine l target
+  int nlevel = dofs[0].size();
+  for (int i = 1; i < shape.size(); i++) {nlevel = std::min(nlevel, (int)dofs[i].size());}
+  l_target = nlevel - 1;
+  if (config.l_target != -1) {
+    l_target = std::min(nlevel - 1, config.l_target);
+  }
+    // l_target = nlevel;
+  // printf("nlevel - 1 %d, l_target: %d\n", nlevel - 1, config.l_target);
+
+  for (int l = 0; l < l_target+1; l++) {
+    int * curr_shape_h = new int[D_padded];
+    for (int d = 0; d < D_padded; d++) {
+      curr_shape_h[d] = dofs[d][l];
     }
-
-    this->dcwork_2d_cf = new T *[num_of_queues];
-    this->lddcwork_2d_cf = new int[num_of_queues];
-    for (int i = 0; i < num_of_queues; i++) {
-      size_t dcwork_2d_cf_pitch;
-      mgard_cuda::cudaMallocPitchHelper(
-          (void **)&dcwork_2d_cf[i], &dcwork_2d_cf_pitch, nf * sizeof(T), nc);
-      lddcwork_2d_cf[i] = dcwork_2d_cf_pitch / sizeof(T);
-    }
-
-    this->am_row = new T *[num_of_queues];
-    this->bm_row = new T *[num_of_queues];
-    this->am_col = new T *[num_of_queues];
-    this->bm_col = new T *[num_of_queues];
-    this->am_fib = new T *[num_of_queues];
-    this->bm_fib = new T *[num_of_queues];
-    for (int i = 0; i < num_of_queues; i++) {
-      mgard_cuda::cudaMallocHelper((void **)&am_row[i], nr * sizeof(T));
-      mgard_cuda::cudaMallocHelper((void **)&bm_row[i], nr * sizeof(T));
-      mgard_cuda::cudaMallocHelper((void **)&am_col[i], nc * sizeof(T));
-      mgard_cuda::cudaMallocHelper((void **)&bm_col[i], nc * sizeof(T));
-      mgard_cuda::cudaMallocHelper((void **)&am_fib[i], nf * sizeof(T));
-      mgard_cuda::cudaMallocHelper((void **)&bm_fib[i], nf * sizeof(T));
-    }
-  } else {
-    size_t dwork_pitch;
-    mgard_cuda::cudaMallocPitchHelper((void **)&(this->dwork), &dwork_pitch,
-                                      ncol * sizeof(T), nrow);
-    this->lddwork = dwork_pitch / sizeof(T);
-
-    this->am_row = new T *[1];
-    this->bm_row = new T *[1];
-    this->am_col = new T *[1];
-    this->bm_col = new T *[1];
-    this->am_fib = new T *[1];
-    this->bm_fib = new T *[1];
-    mgard_cuda::cudaMallocHelper((void **)&(this->am_row[0]), nrow * sizeof(T));
-    mgard_cuda::cudaMallocHelper((void **)&(this->bm_row[0]), nrow * sizeof(T));
-    mgard_cuda::cudaMallocHelper((void **)&(this->am_col[0]), ncol * sizeof(T));
-    mgard_cuda::cudaMallocHelper((void **)&(this->bm_col[0]), ncol * sizeof(T));
+    shapes_h.push_back(curr_shape_h);
+    int * curr_shape_d;
+    mgard_cuda::cudaMallocHelper((void **)&(curr_shape_d), D_padded * sizeof(int));
+    mgard_cuda::cudaMemcpyAsyncHelper(*this, curr_shape_d, curr_shape_h, D_padded * sizeof(int),
+                  mgard_cuda::H2D, 0);
+    shapes_d.push_back(curr_shape_d);
   }
 
-  delete[] irow;
-  delete[] irowP;
-  delete[] irowA;
+  processed_n = new int[D];
+  processed_dims_h = new int*[D];
+  processed_dims_d = new int*[D];
 
-  delete[] icol;
-  delete[] icolP;
-  delete[] icolA;
+  thrust::device_vector<int> tmp(0);
+  for (int d = 0; d < D; d++) {
+    processed_n[d] = tmp.size();
+    processed_dims_h[d] = new int[processed_n[d]];
+    mgard_cuda::cudaMemcpyAsyncHelper(*this, processed_dims_h[d], thrust::raw_pointer_cast(tmp.data()),
+                processed_n[d] * sizeof(int), mgard_cuda::D2H, 0);
+    mgard_cuda::cudaMallocHelper((void **)&processed_dims_d[d], processed_n[d] * sizeof(int));
+    mgard_cuda::cudaMemcpyAsyncHelper(*this, processed_dims_d[d], thrust::raw_pointer_cast(tmp.data()),
+                processed_n[d] * sizeof(int), mgard_cuda::D2D, 0);
+    tmp.push_back(d);
+  }
 
-  delete[] ifib;
-  delete[] ifibP;
-  delete[] ifibA;
 
-  mgard_cuda::cudaFreeHelper(dccoords_r);
-  mgard_cuda::cudaFreeHelper(dccoords_c);
-  if (nfib > 1)
-    mgard_cuda::cudaFreeHelper(dccoords_f);
+
+  mgard_cuda::cudaMallocHelper((void **)&(quantizers), (l_target+1) * sizeof(T));
+
+  // // handle coords
+  for (int i = 0; i < shape.size(); i++) {  
+    if (!mgard_cuda::isGPUPointer(coords[i])) {
+      T * curr_dcoords;
+      mgard_cuda::cudaMallocHelper((void **)&(curr_dcoords), shape[i] * sizeof(T));
+      mgard_cuda::cudaMemcpyAsyncHelper(*this, curr_dcoords, coords[i],
+                                    shape[i] * sizeof(T), mgard_cuda::H2D, 0);
+      coords[i] = curr_dcoords; // coords will always point to GPU coords in the end
+    }
+  }
+
+  // // calculate dist and ratio
+  for (int i = 0; i < shape.size(); i++) {  
+    std::vector<T*> curr_ddist_l, curr_dratio_l;
+    // for level 0
+    int last_dist = dofs[i][0] - 1;
+    T * curr_ddist0, * curr_dratio0;
+    mgard_cuda::cudaMallocHelper((void **)&curr_ddist0, dofs[i][0] * sizeof(T));
+    mgard_cuda::cudaMallocHelper((void **)&curr_dratio0, dofs[i][0] * sizeof(T));
+    mgard_cuda::cudaMemsetHelper((void **)&curr_ddist0, dofs[i][0] * sizeof(T), 0);
+    mgard_cuda::cudaMemsetHelper((void **)&curr_dratio0, dofs[i][0] * sizeof(T), 0);
+    curr_ddist_l.push_back(curr_ddist0);
+    curr_dratio_l.push_back(curr_dratio0);
+
+    mgard_cuda::calc_cpt_dist(*this, dofs[i][0], coords[i], curr_ddist_l[0], 0);
+    // mgard_cuda::calc_cpt_dist_ratio(*this, dofs[i][0], coords[i], curr_dratio_l[0], 0);
+    mgard_cuda::dist_to_ratio(*this, last_dist, curr_ddist_l[0], curr_dratio_l[0], 0);
+    if (dofs[i][0] % 2 == 0) {
+      //padding
+      mgard_cuda::cudaMemcpyAsyncHelper(*this, curr_ddist_l[0]+dofs[i][0]-1,
+                           curr_ddist_l[0]+dofs[i][0]-2, sizeof(T), mgard_cuda::D2D, 0);
+      last_dist += 1;
+
+      T extra_ratio = 0.5;
+      mgard_cuda::cudaMemcpyAsyncHelper(*this, curr_dratio_l[0]+dofs[i][0]-2,
+                           &extra_ratio, sizeof(T), mgard_cuda::H2D, 0);
+
+    }
+    
+    // for l = 1 ... l_target
+    for (int l = 1; l < l_target + 1; l++) {
+      T * curr_ddist, * curr_dratio;
+      mgard_cuda::cudaMallocHelper((void **)&curr_ddist, dofs[i][l] * sizeof(T));
+      mgard_cuda::cudaMallocHelper((void **)&curr_dratio, dofs[i][l] * sizeof(T));
+      mgard_cuda::cudaMemsetHelper((void **)&curr_ddist, dofs[i][0] * sizeof(T), 0);
+      mgard_cuda::cudaMemsetHelper((void **)&curr_dratio, dofs[i][0] * sizeof(T), 0);
+      curr_ddist_l.push_back(curr_ddist);
+      curr_dratio_l.push_back(curr_dratio);
+      mgard_cuda::reduce_two_dist(*this, last_dist, curr_ddist_l[l-1], curr_ddist_l[l], 0);
+      last_dist /= 2;
+      mgard_cuda::dist_to_ratio(*this, last_dist, curr_ddist_l[l], curr_dratio_l[l], 0);
+      
+      if (last_dist % 2 != 0) {
+        mgard_cuda::cudaMemcpyAsyncHelper(*this, curr_ddist_l[l] + last_dist,
+                           curr_ddist_l[l] + last_dist - 1, sizeof(T), mgard_cuda::D2D, 0);
+        last_dist += 1;
+
+        T extra_ratio = 0.5;
+        mgard_cuda::cudaMemcpyAsyncHelper(*this, curr_dratio_l[l] + last_dist - 2,
+                           &extra_ratio, sizeof(T), mgard_cuda::H2D, 0);
+      }
+    }
+    dist.push_back(curr_ddist_l);
+    ratio.push_back(curr_dratio_l);
+  }
+
+
+  for (int i = 0; i < shape.size(); i++) {
+    std::vector<T*> curr_am_l, curr_bm_l;
+    for (int l = 0; l < l_target + 1; l++) {
+      T * curr_am, * curr_bm;
+      mgard_cuda::cudaMallocHelper((void **)&curr_am, dofs[i][l] * sizeof(T));
+      mgard_cuda::cudaMallocHelper((void **)&curr_bm, dofs[i][l] * sizeof(T));
+      curr_am_l.push_back(curr_am);
+      curr_bm_l.push_back(curr_bm);
+      mgard_cuda::calc_am_bm(*this, dofs[i][l], dist[i][l], curr_am_l[l], curr_bm_l[l], 0);
+    }
+    am.push_back(curr_am_l);
+    bm.push_back(curr_bm_l);
+  }
+
+
+  huff_dict_size = config.huff_dict_size;
+  huff_block_size = config.huff_block_size;
+  enable_lz4 = config.enable_lz4;
+  lz4_block_size = config.lz4_block_size;
+
+
+  // printf("Done pre-compute am and bm 2\n");
+
+  // printf("sizeof huffman_flags: %d*%d*%d+%d\n", shape[0],shape[1],linearized_depth,sizeof(mgard_cuda::quant_meta<T>)/sizeof(int));
+  // mgard_cuda::cudaMallocHelper((void **)&(huffman_flags), (shape[0]*shape[1]*linearized_depth+sizeof(mgard_cuda::quant_meta<T>)/sizeof(int)) * sizeof(bool));
+  // for (int i = 0; i < D_padded; i++) {
+  //   ldhuffman_flags.push_back(shape[i]);
+  // }  
+
+
+
+  // size_t dw_pitch;
+  // mgard_cuda::cudaMalloc3DHelper((void **)&(dw), &dw_pitch,
+  //                                (shapes_h[0][0]+2) * sizeof(T), shapes_h[0][1]+2, padded_linearized_depth);
+
+  // ldws.push_back(dw_pitch / sizeof(T));
+  // for (int i = 1; i < D_padded; i++) {
+  //   ldws.push_back(shapes_h[0][i] + 2);
+  // }
+  // lddw1 = dw_pitch / sizeof(T);
+  // lddw2 = shapes_h[0][1] +2;
+
+  // ldws_h = new int[D_padded];
+  // ldws_h[0] = dw_pitch / sizeof(T);
+  // for (int i = 1; i < D_padded; i++) {
+  //   ldws_h[i] = shapes_h[0][i] + 2;
+  // }
+  // mgard_cuda::cudaMallocHelper((void **)&ldws_d, D_padded * sizeof(int));
+  // mgard_cuda::cudaMemcpyAsyncHelper(*this, ldws_d, ldws_h, 
+  //   D_padded * sizeof(int), mgard_cuda::H2D, 0);
+
+  // if (D > 3) {
+  //   size_t db_pitch;
+  //   mgard_cuda::cudaMalloc3DHelper((void **)&(db), &db_pitch,
+  //                                  (shapes_h[0][0]+2) * sizeof(T), shapes_h[0][1]+2, padded_linearized_depth);
+
+  //   ldbs.push_back(db_pitch / sizeof(T));
+  //   for (int i = 1; i < D_padded; i++) {
+  //     ldbs.push_back(shapes_h[0][i] + 2);
+  //   }
+  //   lddb1 = db_pitch / sizeof(T);
+  //   lddb2 = shapes_h[0][1] +2;
+
+  //   ldbs_h = new int[D_padded];
+  //   ldbs_h[0] = db_pitch / sizeof(T);
+  //   for (int i = 1; i < D_padded; i++) {
+  //     ldbs_h[i] = shapes_h[0][i] + 2;
+  //   }
+  //   mgard_cuda::cudaMallocHelper((void **)&ldbs_d, D_padded * sizeof(int));
+  //   mgard_cuda::cudaMemcpyAsyncHelper(*this, ldbs_d, ldbs_h, 
+  //     D_padded * sizeof(int), mgard_cuda::H2D, 0);
+  // }
+
+  
 }
 
-template <typename T> mgard_cuda_handle<T>::mgard_cuda_handle() {
+
+
+
+template <typename T, int D>
+void mgard_cuda_handle<T, D>::padding_dimensions(std::vector<size_t> &shape, std::vector<T*> &coords) {
+  D_padded = D;
+  if (D < 3) { D_padded = 3; }
+  if (D % 2 == 0) { D_padded = D + 1; }
+  //padding dimensions
+  for (int d = shape.size(); d < D_padded; d ++) {
+    shape.push_back(1);
+    T * curr_coords = new T[shape[d]];
+    for (int i = 0; i < shape[d]; i++) {
+      curr_coords[i] = (T)i;
+    }
+    coords.push_back(curr_coords);
+
+  }
+  // printf("D: %d, D_padded: %d\n", D, D_padded);
+}
+
+template <typename T, int D>
+void mgard_cuda_handle<T, D>::init_auto_tuning_table() {
+  int num_arch = 3;
+  int num_precision = 2;
+  int num_range = 9;
+  this->auto_tuning_cc = new int**[num_arch];
+  this->auto_tuning_mr1 = new int**[num_arch];
+  this->auto_tuning_mr2 = new int**[num_arch];
+  this->auto_tuning_mr3 = new int**[num_arch];
+  this->auto_tuning_ts1 = new int**[num_arch];
+  this->auto_tuning_ts2 = new int**[num_arch];
+  this->auto_tuning_ts3 = new int**[num_arch];
+  for (int i = 0; i < num_arch; i++) {
+    this->auto_tuning_cc[i] = new int*[num_precision];
+    this->auto_tuning_mr1[i] = new int*[num_precision];
+    this->auto_tuning_mr2[i] = new int*[num_precision];
+    this->auto_tuning_mr3[i] = new int*[num_precision];
+    this->auto_tuning_ts1[i] = new int*[num_precision];
+    this->auto_tuning_ts2[i] = new int*[num_precision];
+    this->auto_tuning_ts3[i] = new int*[num_precision];
+    for (int j = 0; j < num_precision; j++) {
+      this->auto_tuning_cc[i][j] = new int[num_range];
+      this->auto_tuning_mr1[i][j] = new int[num_range];
+      this->auto_tuning_mr2[i][j] = new int[num_range];
+      this->auto_tuning_mr3[i][j] = new int[num_range];
+      this->auto_tuning_ts1[i][j] = new int[num_range];
+      this->auto_tuning_ts2[i][j] = new int[num_range];
+      this->auto_tuning_ts3[i][j] = new int[num_range];
+    }
+  }
+
+  //Default
+  for (int i = 0; i < num_arch; i++) {
+    for (int j = 0; j < num_precision; j++) {
+      for (int k = 0; k < num_range; k++) {
+        this->auto_tuning_cc[i][j][k] = 0;
+        this->auto_tuning_mr1[i][j][k] = 0;
+        this->auto_tuning_mr2[i][j][k] = 0;
+        this->auto_tuning_mr3[i][j][k] = 0;
+        this->auto_tuning_ts1[i][j][k] = 0;
+        this->auto_tuning_ts2[i][j][k] = 0;
+        this->auto_tuning_ts3[i][j][k] = 0;
+      }
+    }
+  }
+
+  //Volta-Single
+  this->auto_tuning_cc[1][0][0] = 0; 
+  this->auto_tuning_cc[1][0][1] = 0;
+  this->auto_tuning_cc[1][0][2] = 0;
+  this->auto_tuning_cc[1][0][3] = 1;
+  this->auto_tuning_cc[1][0][4] = 1;
+  this->auto_tuning_cc[1][0][5] = 5;
+  this->auto_tuning_cc[1][0][6] = 5;
+  this->auto_tuning_cc[1][0][7] = 5;
+  this->auto_tuning_cc[1][0][8] = 5;
+
+  this->auto_tuning_mr1[1][0][0] = 0; this->auto_tuning_mr2[1][0][0] = 0; this->auto_tuning_mr3[1][0][0] = 0;
+  this->auto_tuning_mr1[1][0][1] = 0; this->auto_tuning_mr2[1][0][1] = 1; this->auto_tuning_mr3[1][0][1] = 1;
+  this->auto_tuning_mr1[1][0][2] = 1; this->auto_tuning_mr2[1][0][2] = 0; this->auto_tuning_mr3[1][0][2] = 0;
+  this->auto_tuning_mr1[1][0][3] = 3; this->auto_tuning_mr2[1][0][3] = 3; this->auto_tuning_mr3[1][0][3] = 3;
+  this->auto_tuning_mr1[1][0][4] = 4; this->auto_tuning_mr2[1][0][4] = 1; this->auto_tuning_mr3[1][0][4] = 3;
+  this->auto_tuning_mr1[1][0][5] = 5; this->auto_tuning_mr2[1][0][5] = 3; this->auto_tuning_mr3[1][0][5] = 3;
+  this->auto_tuning_mr1[1][0][6] = 5; this->auto_tuning_mr2[1][0][6] = 4; this->auto_tuning_mr3[1][0][6] = 4;
+  this->auto_tuning_mr1[1][0][7] = 3; this->auto_tuning_mr2[1][0][7] = 4; this->auto_tuning_mr3[1][0][7] = 4;
+  this->auto_tuning_mr1[1][0][8] = 3; this->auto_tuning_mr2[1][0][8] = 4; this->auto_tuning_mr3[1][0][8] = 4;
+
+  this->auto_tuning_ts1[1][0][0] = 0; this->auto_tuning_ts2[1][0][0] = 0; this->auto_tuning_ts3[1][0][0] = 0;
+  this->auto_tuning_ts1[1][0][1] = 0; this->auto_tuning_ts2[1][0][1] = 1; this->auto_tuning_ts3[1][0][1] = 1;
+  this->auto_tuning_ts1[1][0][2] = 2; this->auto_tuning_ts2[1][0][2] = 2; this->auto_tuning_ts3[1][0][2] = 2;
+  this->auto_tuning_ts1[1][0][3] = 3; this->auto_tuning_ts2[1][0][3] = 2; this->auto_tuning_ts3[1][0][3] = 2;
+  this->auto_tuning_ts1[1][0][4] = 3; this->auto_tuning_ts2[1][0][4] = 2; this->auto_tuning_ts3[1][0][4] = 2;
+  this->auto_tuning_ts1[1][0][5] = 3; this->auto_tuning_ts2[1][0][5] = 2; this->auto_tuning_ts3[1][0][5] = 2;
+  this->auto_tuning_ts1[1][0][6] = 5; this->auto_tuning_ts2[1][0][6] = 3; this->auto_tuning_ts3[1][0][6] = 2;
+  this->auto_tuning_ts1[1][0][7] = 5; this->auto_tuning_ts2[1][0][7] = 6; this->auto_tuning_ts3[1][0][7] = 5;
+  this->auto_tuning_ts1[1][0][8] = 5; this->auto_tuning_ts2[1][0][8] = 6; this->auto_tuning_ts3[1][0][8] = 5;
+  //Volta-Double
+
+  this->auto_tuning_cc[1][1][0] = 0; 
+  this->auto_tuning_cc[1][1][1] = 0;
+  this->auto_tuning_cc[1][1][2] = 0;
+  this->auto_tuning_cc[1][1][3] = 0;
+  this->auto_tuning_cc[1][1][4] = 4;
+  this->auto_tuning_cc[1][1][5] = 5;
+  this->auto_tuning_cc[1][1][6] = 6;
+  this->auto_tuning_cc[1][1][7] = 6;
+  this->auto_tuning_cc[1][1][8] = 5;
+
+  this->auto_tuning_mr1[1][1][0] = 0; this->auto_tuning_mr2[1][1][0] = 0; this->auto_tuning_mr3[1][1][0] = 0;
+  this->auto_tuning_mr1[1][1][1] = 0; this->auto_tuning_mr2[1][1][1] = 1; this->auto_tuning_mr3[1][1][1] = 1;
+  this->auto_tuning_mr1[1][1][2] = 1; this->auto_tuning_mr2[1][1][2] = 1; this->auto_tuning_mr3[1][1][2] = 1;
+  this->auto_tuning_mr1[1][1][3] = 1; this->auto_tuning_mr2[1][1][3] = 3; this->auto_tuning_mr3[1][1][3] = 1;
+  this->auto_tuning_mr1[1][1][4] = 4; this->auto_tuning_mr2[1][1][4] = 3; this->auto_tuning_mr3[1][1][4] = 3;
+  this->auto_tuning_mr1[1][1][5] = 5; this->auto_tuning_mr2[1][1][5] = 5; this->auto_tuning_mr3[1][1][5] = 5;
+  this->auto_tuning_mr1[1][1][6] = 4; this->auto_tuning_mr2[1][1][6] = 6; this->auto_tuning_mr3[1][1][6] = 6;
+  this->auto_tuning_mr1[1][1][7] = 6; this->auto_tuning_mr2[1][1][7] = 6; this->auto_tuning_mr3[1][1][7] = 5;
+  this->auto_tuning_mr1[1][1][8] = 6; this->auto_tuning_mr2[1][1][8] = 6; this->auto_tuning_mr3[1][1][8] = 5;
+
+  this->auto_tuning_ts1[1][1][0] = 0; this->auto_tuning_ts2[1][1][0] = 0; this->auto_tuning_ts3[1][1][0] = 0;
+  this->auto_tuning_ts1[1][1][1] = 0; this->auto_tuning_ts2[1][1][1] = 1; this->auto_tuning_ts3[1][1][1] = 1;
+  this->auto_tuning_ts1[1][1][2] = 2; this->auto_tuning_ts2[1][1][2] = 2; this->auto_tuning_ts3[1][1][2] = 2;
+  this->auto_tuning_ts1[1][1][3] = 3; this->auto_tuning_ts2[1][1][3] = 2; this->auto_tuning_ts3[1][1][3] = 2;
+  this->auto_tuning_ts1[1][1][4] = 3; this->auto_tuning_ts2[1][1][4] = 2; this->auto_tuning_ts3[1][1][4] = 2;
+  this->auto_tuning_ts1[1][1][5] = 4; this->auto_tuning_ts2[1][1][5] = 2; this->auto_tuning_ts3[1][1][5] = 2;
+  this->auto_tuning_ts1[1][1][6] = 5; this->auto_tuning_ts2[1][1][6] = 5; this->auto_tuning_ts3[1][1][6] = 2;
+  this->auto_tuning_ts1[1][1][7] = 5; this->auto_tuning_ts2[1][1][7] = 6; this->auto_tuning_ts3[1][1][7] = 6;
+  this->auto_tuning_ts1[1][1][8] = 5; this->auto_tuning_ts2[1][1][8] = 6; this->auto_tuning_ts3[1][1][8] = 6;
+
+
+  //Turing-Single
+  this->auto_tuning_cc[2][0][0] = 0; 
+  this->auto_tuning_cc[2][0][1] = 0;
+  this->auto_tuning_cc[2][0][2] = 0;
+  this->auto_tuning_cc[2][0][3] = 0;
+  this->auto_tuning_cc[2][0][4] = 3;
+  this->auto_tuning_cc[2][0][5] = 5;
+  this->auto_tuning_cc[2][0][6] = 5;
+  this->auto_tuning_cc[2][0][7] = 5;
+  this->auto_tuning_cc[2][0][8] = 4;
+
+  this->auto_tuning_mr1[2][0][0] = 0; this->auto_tuning_mr2[2][0][0] = 0; this->auto_tuning_mr3[2][0][0] = 0;
+  this->auto_tuning_mr1[2][0][1] = 0; this->auto_tuning_mr2[2][0][1] = 1; this->auto_tuning_mr3[2][0][1] = 1;
+  this->auto_tuning_mr1[2][0][2] = 1; this->auto_tuning_mr2[2][0][2] = 0; this->auto_tuning_mr3[2][0][2] = 1;
+  this->auto_tuning_mr1[2][0][3] = 1; this->auto_tuning_mr2[2][0][3] = 1; this->auto_tuning_mr3[2][0][3] = 3;
+  this->auto_tuning_mr1[2][0][4] = 4; this->auto_tuning_mr2[2][0][4] = 3; this->auto_tuning_mr3[2][0][4] = 4;
+  this->auto_tuning_mr1[2][0][5] = 4; this->auto_tuning_mr2[2][0][5] = 3; this->auto_tuning_mr3[2][0][5] = 3;
+  this->auto_tuning_mr1[2][0][6] = 6; this->auto_tuning_mr2[2][0][6] = 3; this->auto_tuning_mr3[2][0][6] = 3;
+  this->auto_tuning_mr1[2][0][7] = 5; this->auto_tuning_mr2[2][0][7] = 4; this->auto_tuning_mr3[2][0][7] = 4;
+  this->auto_tuning_mr1[2][0][8] = 5; this->auto_tuning_mr2[2][0][8] = 4; this->auto_tuning_mr3[2][0][8] = 4;
+
+  this->auto_tuning_ts1[2][0][0] = 0; this->auto_tuning_ts2[2][0][0] = 0; this->auto_tuning_ts3[2][0][0] = 0;
+  this->auto_tuning_ts1[2][0][1] = 0; this->auto_tuning_ts2[2][0][1] = 1; this->auto_tuning_ts3[2][0][1] = 1;
+  this->auto_tuning_ts1[2][0][2] = 2; this->auto_tuning_ts2[2][0][2] = 2; this->auto_tuning_ts3[2][0][2] = 2;
+  this->auto_tuning_ts1[2][0][3] = 3; this->auto_tuning_ts2[2][0][3] = 2; this->auto_tuning_ts3[2][0][3] = 2;
+  this->auto_tuning_ts1[2][0][4] = 3; this->auto_tuning_ts2[2][0][4] = 2; this->auto_tuning_ts3[2][0][4] = 2;
+  this->auto_tuning_ts1[2][0][5] = 3; this->auto_tuning_ts2[2][0][5] = 2; this->auto_tuning_ts3[2][0][5] = 2;
+  this->auto_tuning_ts1[2][0][6] = 5; this->auto_tuning_ts2[2][0][6] = 5; this->auto_tuning_ts3[2][0][6] = 2;
+  this->auto_tuning_ts1[2][0][7] = 5; this->auto_tuning_ts2[2][0][7] = 6; this->auto_tuning_ts3[2][0][7] = 6;
+  this->auto_tuning_ts1[2][0][8] = 5; this->auto_tuning_ts2[2][0][8] = 6; this->auto_tuning_ts3[2][0][8] = 6;
+  //Turing-Double
+
+  this->auto_tuning_cc[2][1][0] = 0; 
+  this->auto_tuning_cc[2][1][1] = 0;
+  this->auto_tuning_cc[2][1][2] = 2;
+  this->auto_tuning_cc[2][1][3] = 2;
+  this->auto_tuning_cc[2][1][4] = 3;
+  this->auto_tuning_cc[2][1][5] = 4;
+  this->auto_tuning_cc[2][1][6] = 4;
+  this->auto_tuning_cc[2][1][7] = 6;
+  this->auto_tuning_cc[2][1][8] = 3;
+
+  this->auto_tuning_mr1[2][1][0] = 0; this->auto_tuning_mr2[2][1][0] = 0; this->auto_tuning_mr3[2][1][0] = 0;
+  this->auto_tuning_mr1[2][1][1] = 0; this->auto_tuning_mr2[2][1][1] = 0; this->auto_tuning_mr3[2][1][1] = 1;
+  this->auto_tuning_mr1[2][1][2] = 0; this->auto_tuning_mr2[2][1][2] = 0; this->auto_tuning_mr3[2][1][2] = 0;
+  this->auto_tuning_mr1[2][1][3] = 1; this->auto_tuning_mr2[2][1][3] = 1; this->auto_tuning_mr3[2][1][3] = 1;
+  this->auto_tuning_mr1[2][1][4] = 4; this->auto_tuning_mr2[2][1][4] = 4; this->auto_tuning_mr3[2][1][4] = 1;
+  this->auto_tuning_mr1[2][1][5] = 1; this->auto_tuning_mr2[2][1][5] = 1; this->auto_tuning_mr3[2][1][5] = 1;
+  this->auto_tuning_mr1[2][1][6] = 1; this->auto_tuning_mr2[2][1][6] = 1; this->auto_tuning_mr3[2][1][6] = 1;
+  this->auto_tuning_mr1[2][1][7] = 1; this->auto_tuning_mr2[2][1][7] = 1; this->auto_tuning_mr3[2][1][7] = 1;
+  this->auto_tuning_mr1[2][1][8] = 1; this->auto_tuning_mr2[2][1][8] = 1; this->auto_tuning_mr3[2][1][8] = 1;
+
+  this->auto_tuning_ts1[2][1][0] = 0; this->auto_tuning_ts2[2][1][0] = 0; this->auto_tuning_ts3[2][1][0] = 0;
+  this->auto_tuning_ts1[2][1][1] = 0; this->auto_tuning_ts2[2][1][1] = 1; this->auto_tuning_ts3[2][1][1] = 1;
+  this->auto_tuning_ts1[2][1][2] = 2; this->auto_tuning_ts2[2][1][2] = 2; this->auto_tuning_ts3[2][1][2] = 2;
+  this->auto_tuning_ts1[2][1][3] = 3; this->auto_tuning_ts2[2][1][3] = 2; this->auto_tuning_ts3[2][1][3] = 2;
+  this->auto_tuning_ts1[2][1][4] = 2; this->auto_tuning_ts2[2][1][4] = 2; this->auto_tuning_ts3[2][1][4] = 2;
+  this->auto_tuning_ts1[2][1][5] = 2; this->auto_tuning_ts2[2][1][5] = 2; this->auto_tuning_ts3[2][1][5] = 2;
+  this->auto_tuning_ts1[2][1][6] = 3; this->auto_tuning_ts2[2][1][6] = 5; this->auto_tuning_ts3[2][1][6] = 3;
+  this->auto_tuning_ts1[2][1][7] = 3; this->auto_tuning_ts2[2][1][7] = 6; this->auto_tuning_ts3[2][1][7] = 6;
+  this->auto_tuning_ts1[2][1][8] = 3; this->auto_tuning_ts2[2][1][8] = 6; this->auto_tuning_ts3[2][1][8] = 6;
+
+}
+
+template <typename T, int D>
+void mgard_cuda_handle<T, D>::allocate_workspace() {
+  size_t dw_pitch;
+  mgard_cuda::cudaMalloc3DHelper((void **)&(dw), &dw_pitch,
+                                 (shapes_h[0][0]+2) * sizeof(T), shapes_h[0][1]+2, padded_linearized_depth);
+
+  ldws.push_back(dw_pitch / sizeof(T));
+  for (int i = 1; i < D_padded; i++) {
+    ldws.push_back(shapes_h[0][i] + 2);
+  }
+  lddw1 = dw_pitch / sizeof(T);
+  lddw2 = shapes_h[0][1] +2;
+
+  ldws_h = new int[D_padded];
+  ldws_h[0] = dw_pitch / sizeof(T);
+  for (int i = 1; i < D_padded; i++) {
+    ldws_h[i] = shapes_h[0][i] + 2;
+  }
+  mgard_cuda::cudaMallocHelper((void **)&ldws_d, D_padded * sizeof(int));
+  mgard_cuda::cudaMemcpyAsyncHelper(*this, ldws_d, ldws_h, 
+    D_padded * sizeof(int), mgard_cuda::H2D, 0);
+
+  if (D > 3) {
+    size_t db_pitch;
+    mgard_cuda::cudaMalloc3DHelper((void **)&(db), &db_pitch,
+                                   (shapes_h[0][0]+2) * sizeof(T), shapes_h[0][1]+2, padded_linearized_depth);
+
+    ldbs.push_back(db_pitch / sizeof(T));
+    for (int i = 1; i < D_padded; i++) {
+      ldbs.push_back(shapes_h[0][i] + 2);
+    }
+    lddb1 = db_pitch / sizeof(T);
+    lddb2 = shapes_h[0][1] +2;
+
+    ldbs_h = new int[D_padded];
+    ldbs_h[0] = db_pitch / sizeof(T);
+    for (int i = 1; i < D_padded; i++) {
+      ldbs_h[i] = shapes_h[0][i] + 2;
+    }
+    mgard_cuda::cudaMallocHelper((void **)&ldbs_d, D_padded * sizeof(int));
+    mgard_cuda::cudaMemcpyAsyncHelper(*this, ldbs_d, ldbs_h, 
+      D_padded * sizeof(int), mgard_cuda::H2D, 0);
+  }
+}
+
+
+template <typename T, int D>
+void mgard_cuda_handle<T, D>::free_workspace() {
+  mgard_cuda::cudaFreeHelper(dw);
+  delete [] ldws_h;
+  mgard_cuda::cudaFreeHelper(ldws_d);
+  if (D > 3) {
+    mgard_cuda::cudaFreeHelper(db);
+    delete [] ldbs_h;
+    mgard_cuda::cudaFreeHelper(ldbs_d);
+  }
+}
+
+
+template <typename T, int D>
+mgard_cuda_config mgard_cuda_handle<T, D>::default_config() {
+  mgard_cuda_config config;
+  config.l_target = -1; //no limit
+  config.huff_dict_size = 8192;
+  config.huff_block_size = 1024*30;
+  config.enable_lz4 = true;
+  config.lz4_block_size = 1 << 15;
+  return config;
+}
+
+template <typename T, int D>
+mgard_cuda_handle<T, D>::mgard_cuda_handle() {
   std::vector<T> coords_r(5), coords_c(5), coords_f(5);
-  init(5, 5, 5, coords_r.data(), coords_c.data(), coords_f.data(), 16, 1, 1);
+  std::vector<size_t> shape(3);
+  shape[2] = 5;
+  shape[1] = 5;
+  shape[0] = 5;
+  std::vector<T*> coords(3);
+  coords[2] = coords_r.data();
+  coords[1] = coords_c.data();
+  coords[0] = coords_f.data();
+  for (int d = 0; d < 3; d++) {
+    T * curr_coords = new T[shape[d]];
+    for (int i = 0; i < shape[d]; i++) {
+      curr_coords[i] = (T)i;
+    }
+    coords[d] = curr_coords;
+  }
+  padding_dimensions(shape, coords);
+  init(shape, coords, default_config());
 }
 
-template <typename T>
-mgard_cuda_handle<T>::mgard_cuda_handle(int nrow, int ncol, int nfib) {
-  std::vector<T> coords_r(nrow), coords_c(ncol), coords_f(nfib);
-  std::iota(std::begin(coords_r), std::end(coords_r), 0);
-  std::iota(std::begin(coords_c), std::end(coords_c), 0);
-  std::iota(std::begin(coords_f), std::end(coords_f), 0);
-  int B = 16;
-  int num_of_queues = 8;
-  int opt = 1;
-  init(nrow, ncol, nfib, coords_r.data(), coords_c.data(), coords_f.data(), B,
-       num_of_queues, opt);
+
+
+
+template <typename T, int D>
+mgard_cuda_handle<T, D>::mgard_cuda_handle(std::vector<size_t> shape) {
+  std::vector<T*> coords(D);
+  for (int d = 0; d < D; d++) {
+    T * curr_coords = new T[shape[d]];
+    for (int i = 0; i < shape[d]; i++) {
+      curr_coords[i] = (T)i;
+    }
+    coords[d] = curr_coords;
+  }
+
+  padding_dimensions(shape, coords);
+
+  
+  init(shape, coords, default_config());
 }
 
-template <typename T>
-mgard_cuda_handle<T>::mgard_cuda_handle(int nrow, int ncol, int nfib,
-                                        T *coords_r, T *coords_c, T *coords_f) {
-  int B = 16;
-  int num_of_queues = 8;
-  int opt = 1;
-  init(nrow, ncol, nfib, coords_r, coords_c, coords_f, B, num_of_queues, opt);
+template <typename T, int D>
+mgard_cuda_handle<T, D>::mgard_cuda_handle(std::vector<size_t> shape, std::vector<T*> coords) {
+  padding_dimensions(shape, coords);
+  init(shape, coords, default_config());
 }
 
-template <typename T>
-mgard_cuda_handle<T>::mgard_cuda_handle(int nrow, int ncol, int nfib, int B,
-                                        int num_of_queues, int opt) {
-  std::vector<T> coords_r(nrow), coords_c(ncol), coords_f(nfib);
-  std::iota(std::begin(coords_r), std::end(coords_r), 0);
-  std::iota(std::begin(coords_c), std::end(coords_c), 0);
-  std::iota(std::begin(coords_f), std::end(coords_f), 0);
-  init(nrow, ncol, nfib, coords_r.data(), coords_c.data(), coords_f.data(), B,
-       num_of_queues, opt);
+
+template <typename T, int D>
+mgard_cuda_handle<T, D>::mgard_cuda_handle(std::vector<size_t> shape, mgard_cuda_config config) {
+  std::vector<T*> coords(D);
+  for (int d = 0; d < D; d++) {
+    T * curr_coords = new T[shape[d]];
+    for (int i = 0; i < shape[d]; i++) {
+      curr_coords[i] = (T)i;
+    }
+    coords[d] = curr_coords;
+  }
+
+  padding_dimensions(shape, coords);
+
+  
+  init(shape, coords, config);
 }
 
-template <typename T>
-mgard_cuda_handle<T>::mgard_cuda_handle(int nrow, int ncol, int nfib,
-                                        T *coords_r, T *coords_c, T *coords_f,
-                                        int B, int num_of_queues, int opt) {
-  init(nrow, ncol, nfib, coords_r, coords_c, coords_f, B, num_of_queues, opt);
+template <typename T, int D>
+mgard_cuda_handle<T, D>::mgard_cuda_handle(std::vector<size_t> shape, std::vector<T*> coords, mgard_cuda_config config) {
+  padding_dimensions(shape, coords);
+  init(shape, coords, config);
 }
 
-template <typename T> void *mgard_cuda_handle<T>::get(int i) {
+
+
+template <typename T, int D> void *mgard_cuda_handle<T, D>::get(int i) {
   cudaStream_t *ptr = (cudaStream_t *)(this->queues);
-  // std::cout << "get: " << *(ptr+i) << "\n";
   return (void *)(ptr + i);
 }
 
-// template void * mgard_cuda_handle<double>::get(int i);
-// template void * mgard_cuda_handle<float>::get(int i);
+template <typename T, int D> int mgard_cuda_handle<T, D>::get_queues(int dr, int dc, int df) {
+  return (dr*num_gpus*num_gpus+dc*num_gpus+df)*queue_per_block;
+}
 
-template <typename T> void mgard_cuda_handle<T>::sync(int i) {
+
+template <typename T, int D> void mgard_cuda_handle<T, D>::sync(int i) {
   cudaStream_t *ptr = (cudaStream_t *)(this->queues);
   gpuErrchk(cudaStreamSynchronize(ptr[i]));
 }
 
-// template void mgard_cuda_handle<double>::sync(int i);
-// template void mgard_cuda_handle<float>::sync(int i);
 
-template <typename T> void mgard_cuda_handle<T>::sync_all() {
+template <typename T, int D> void mgard_cuda_handle<T, D>::sync_all() {
   cudaStream_t *ptr = (cudaStream_t *)(this->queues);
-  for (int i = 0; i < this->num_of_queues; i++) {
+  for (int i = 0; i < this->num_gpus*this->num_gpus*this->num_gpus*this->queue_per_block; i++) {
     gpuErrchk(cudaStreamSynchronize(ptr[i]));
   }
 }
 
-// template void mgard_cuda_handle<double>::sync_all();
-// template void mgard_cuda_handle<float>::sync_all();
 
-template <typename T> mgard_cuda_handle<T>::~mgard_cuda_handle() { destory(); }
+template <typename T, int D> mgard_cuda_handle<T, D>::~mgard_cuda_handle() { destory(); }
 
-template <typename T> void mgard_cuda_handle<T>::destory() {
+template <typename T, int D> void mgard_cuda_handle<T, D>::destory() {
   cudaStream_t *ptr = (cudaStream_t *)(this->queues);
-  for (int i = 0; i < this->num_of_queues; i++) {
+  for (int i = 0; i < this->num_gpus*this->num_gpus*this->num_gpus*this->queue_per_block; i++) {
     gpuErrchk(cudaStreamDestroy(ptr[i]));
-  }
-  delete[] this->nr_l;
-  delete[] this->nc_l;
-  if (this->nfib > 1)
-    delete[] this->nf_l;
-
-  mgard_cuda::cudaFreeHelper(this->dirow);
-  mgard_cuda::cudaFreeHelper(this->dicol);
-  if (this->nfib > 1)
-    mgard_cuda::cudaFreeHelper(this->difib);
-
-  mgard_cuda::cudaFreeHelper(this->dirow_p);
-  mgard_cuda::cudaFreeHelper(this->dicol_p);
-  if (this->nfib > 1)
-    mgard_cuda::cudaFreeHelper(this->difib_p);
-
-  mgard_cuda::cudaFreeHelper(this->dirow_a);
-  mgard_cuda::cudaFreeHelper(this->dicol_a);
-  if (this->nfib > 1)
-    mgard_cuda::cudaFreeHelper(this->difib_a);
-
-  mgard_cuda::cudaFreeHelper(this->dcoords_r);
-  mgard_cuda::cudaFreeHelper(this->dcoords_c);
-  if (this->nfib > 1)
-    mgard_cuda::cudaFreeHelper(this->dcoords_f);
-
-  mgard_cuda::cudaFreeHelper(this->ddist_r);
-  mgard_cuda::cudaFreeHelper(this->ddist_c);
-  if (this->nfib > 1)
-    mgard_cuda::cudaFreeHelper(this->ddist_f);
-
-  for (int l = 0; l < this->l_target + 1; l++) {
-    mgard_cuda::cudaFreeHelper(this->ddist_r_l[l]);
-    mgard_cuda::cudaFreeHelper(this->ddist_c_l[l]);
-    if (this->nfib > 1)
-      mgard_cuda::cudaFreeHelper(this->ddist_f_l[l]);
-  }
-
-  delete[] this->ddist_r_l;
-  delete[] this->ddist_c_l;
-  if (this->nfib > 1)
-    delete[] this->ddist_f_l;
-
-  mgard_cuda::cudaFreeHelper(this->dwork);
-
-  if (this->nfib > 1) {
-    for (int i = 0; i < num_of_queues; i++) {
-      mgard_cuda::cudaFreeHelper(this->dcwork_2d_rc[i]);
-      mgard_cuda::cudaFreeHelper(this->dcwork_2d_cf[i]);
-      mgard_cuda::cudaFreeHelper(this->am_row[i]);
-      mgard_cuda::cudaFreeHelper(this->bm_row[i]);
-      mgard_cuda::cudaFreeHelper(this->am_col[i]);
-      mgard_cuda::cudaFreeHelper(this->bm_col[i]);
-      mgard_cuda::cudaFreeHelper(this->am_fib[i]);
-      mgard_cuda::cudaFreeHelper(this->bm_fib[i]);
-    }
-    delete[] this->dcwork_2d_rc;
-    delete[] this->lddcwork_2d_rc;
-    delete[] this->dcwork_2d_cf;
-    delete[] this->lddcwork_2d_cf;
-
-    delete[] this->am_row;
-    delete[] this->bm_row;
-    delete[] this->am_col;
-    delete[] this->bm_col;
-    delete[] this->am_fib;
-    delete[] this->bm_fib;
-
-  } else {
-    for (int i = 0; i < 1; i++) {
-      mgard_cuda::cudaFreeHelper(this->am_row[i]);
-      mgard_cuda::cudaFreeHelper(this->bm_row[i]);
-      mgard_cuda::cudaFreeHelper(this->am_col[i]);
-      mgard_cuda::cudaFreeHelper(this->bm_col[i]);
-    }
-
-    delete[] this->am_row;
-    delete[] this->bm_row;
-    delete[] this->am_col;
-    delete[] this->bm_col;
-    delete[] this->am_fib;
-    delete[] this->bm_fib;
   }
 }
 
-// template void mgard_cuda_handle<double>::destory_all();
-// template void mgard_cuda_handle<float>::destory_all();
+
+template class mgard_cuda_handle<double, 1>;
+template class mgard_cuda_handle<float, 1>;
+template class mgard_cuda_handle<double, 2>;
+template class mgard_cuda_handle<float, 2>;
+template class mgard_cuda_handle<double, 3>;
+template class mgard_cuda_handle<float, 3>;
+template class mgard_cuda_handle<double, 4>;
+template class mgard_cuda_handle<float, 4>;
+template class mgard_cuda_handle<double, 5>;
+template class mgard_cuda_handle<float, 5>;

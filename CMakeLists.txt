@@ -16,9 +16,23 @@ file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/include/mgard.hpp MGARD_VERSION
 string(REGEX MATCH "[0-9]+(\.[0-9])+" MGARD_VERSION "${MGARD_VERSION}")
 project(MGARD VERSION ${MGARD_VERSION})
 
+macro (mgard_option variable)
+  if (NOT DEFINED "${variable}")
+    option("${variable}" ${ARGN})
+  endif ()
+endmacro ()
+
 #Configurable Options
-option(MGARD_ENABLE_CUDA "Enable Cuda support" OFF)
-option(MGARD_ENABLE_CUDA_DEBUG "Enable Cuda support with debug" OFF)
+mgard_option(MGARD_ENABLE_CUDA "Enable Cuda support" OFF)
+
+#For performance optimization
+mgard_option(MGARD_ENABLE_CUDA_FMA "Enable Cuda support with fused multpily-add instruction" ON)
+mgard_option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" ON)
+mgard_option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimized for Turing GPUs" OFF)
+
+#For debug only
+mgard_option(MGARD_ENABLE_CUDA_DEBUG "Enable Cuda support with debug" OFF )
+mgard_option(MGARD_ENABLE_CUDA_KERNEL_PROFILE "Profile kernel configuration" OFF)
 
 # Some boilerplate to setup nice output directories
 include(GNUInstallDirs)
@@ -66,65 +80,141 @@ endif()
 
 if(MGARD_ENABLE_CUDA)
   enable_language(CUDA)
+  set (CMAKE_CXX_STANDARD 14)
   set(MGARD_CUDA_SRC
-      src/cuda/mgard_cuda.cu                 
-      src/cuda/mgard_cuda_add_level.cu       
-      src/cuda/mgard_cuda_assign_num_level.cu
-      src/cuda/mgard_cuda_copy_level.cu      
-      src/cuda/mgard_cuda_mass_multiply.cu   
-      src/cuda/mgard_cuda_pi_Ql.cu           
-      src/cuda/mgard_cuda_prolongate.cu      
-      src/cuda/mgard_cuda_subtract_level.cu  
-      src/cuda/mgard_cuda_restriction.cu     
-      src/cuda/mgard_cuda_solve_tridiag.cu   
-      src/cuda/mgard_cuda_linear_quantize.cu 
-      src/cuda/mgard_cuda_handle.cu          
-      src/cuda/mgard_api_cuda.cu             
-      src/cuda/mgard_cuda_helper.cu          
-      src/cuda/mgard_cuda_common_internal.cu 
-      src/cuda/mgard_cuda_compact_helper.cu  
-      src/cuda/mgard_cuda_prep_2d.cu         
-      src/cuda/mgard_cuda_refactor_2d.cu     
-      src/cuda/mgard_cuda_recompose_2d.cu    
-      src/cuda/mgard_cuda_postp_2d.cu        
-      src/cuda/mgard_cuda_prep_3d.cu         
-      src/cuda/mgard_cuda_refactor_3d.cu     
-      src/cuda/mgard_cuda_recompose_3d.cu    
-      src/cuda/mgard_cuda_postp_3d.cu)
+      src/cuda/mgard_api_cuda.cu
+      src/cuda/mgard_cuda_compression_workflow.cu
+      src/cuda/mgard_cuda_handle.cu
+      src/cuda/mgard_cuda_helper.cu                 
+      src/cuda/mgard_cuda_common_internal.cu    
+      src/cuda/mgard_cuda_precompute_kernels.cu  
+      src/cuda/mgard_cuda_data_refactoring.cu   
+      # src/cuda/mgard_cuda_grid_processing_kernels.cu           
+      # src/cuda/mgard_cuda_linear_processing_kernels.cu
+      src/cuda/grid_processing_kernels/interp_calc_coeff.cu
+      src/cuda/grid_processing_kernels/interp_calc_coeff_3d.cu
+      src/cuda/grid_processing_kernels/interpolation.cu
+      src/cuda/grid_processing_kernels/calc_coefficients.cu
+      src/cuda/grid_processing_kernels/reorder.cu
+      src/cuda/grid_processing_kernels/interp_coeff_restore.cu
+      src/cuda/grid_processing_kernels/interp_coeff_restore_3d.cu
+      src/cuda/grid_processing_kernels/interpolation_rev.cu
+      src/cuda/grid_processing_kernels/coefficient_restore.cu
+      src/cuda/grid_processing_kernels/reorder_restore.cu
+      src/cuda/linear_processing_kernels/mass_trans_1.cu
+      src/cuda/linear_processing_kernels/mass_trans_2.cu
+      src/cuda/linear_processing_kernels/mass_trans_3.cu
+      src/cuda/linear_processing_kernels/mass_trans_1_3d.cu
+      src/cuda/linear_processing_kernels/mass_trans_2_3d.cu
+      src/cuda/linear_processing_kernels/mass_trans_3_3d.cu
+      src/cuda/iterative_processing_kernels/solve_tridiag_1.cu
+      src/cuda/iterative_processing_kernels/solve_tridiag_2.cu
+      src/cuda/iterative_processing_kernels/solve_tridiag_3.cu
+      src/cuda/iterative_processing_kernels/solve_tridiag_1_3d.cu
+      src/cuda/iterative_processing_kernels/solve_tridiag_2_3d.cu
+      src/cuda/iterative_processing_kernels/solve_tridiag_3_3d.cu
+      src/cuda/levelwise_processing_kernels/copylevel.cu
+      src/cuda/levelwise_processing_kernels/addlevel.cu
+      src/cuda/levelwise_processing_kernels/subtractlevel.cu
+      src/cuda/linear_quantization/levelwise_linear_quantize.cu
+      src/cuda/linear_quantization/levelwise_linear_dequantize.cu
+      # src/cuda/mgard_cuda_iterative_processing_kernels.cu
+      # src/cuda/mgard_cuda_levelwise_operators.cu   
+      # src/cuda/mgard_cuda_linear_quantize.cu 
+      src/cuda/mgard_cuda_lossless.cu
+      src/cuda/parallel_huffman/canonical.cu
+      src/cuda/parallel_huffman/constants.cc
+      src/cuda/parallel_huffman/cuda_mem.cu
+      src/cuda/parallel_huffman/format.cc
+      src/cuda/parallel_huffman/histogram.cu
+      src/cuda/parallel_huffman/huffman_codec.cu
+      src/cuda/parallel_huffman/huffman_workflow.cu
+      src/cuda/parallel_huffman/huffman.cu
+      src/cuda/parallel_huffman/par_huffman.cu
+      src/cuda/parallel_huffman/par_huffman_sortbyfreq.cu
+      src/cuda/parallel_huffman/par_merge.cu
+      src/cuda/parallel_huffman/types.cc)
 
   set(MGARD_CUDA_HEADER
-      include/cuda/mgard_cuda.h
-      include/cuda/mgard_cuda_add_level.h
-      include/cuda/mgard_cuda_assign_num_level.h
-      include/cuda/mgard_cuda_copy_level.h
-      include/cuda/mgard_cuda_mass_multiply.h
-      include/cuda/mgard_cuda_pi_Ql.h
-      include/cuda/mgard_cuda_prolongate.h
-      include/cuda/mgard_cuda_subtract_level.h
-      include/cuda/mgard_cuda_restriction.h
-      include/cuda/mgard_cuda_solve_tridiag.h
-      include/cuda/mgard_cuda_linear_quantize.h
-      include/cuda/mgard_cuda_handle.h
       include/mgard_api_cuda.h
-      include/cuda/mgard_cuda_helper.h
-      include/cuda/mgard_cuda_common_internal.h
-      include/cuda/mgard_cuda_compact_helper.h
-      include/cuda/mgard_cuda_prep_2d.h
-      include/cuda/mgard_cuda_refactor_2d.h
-      include/cuda/mgard_cuda_recompose_2d.h
-      include/cuda/mgard_cuda_postp_2d.h
-      include/cuda/mgard_cuda_prep_3d.h
-      include/cuda/mgard_cuda_refactor_3d.h
-      include/cuda/mgard_cuda_recompose_3d.h
-      include/cuda/mgard_cuda_postp_3d.h
-      include/cuda/mgard_cuda_kernels.h)
+      include/cuda/mgard_cuda_compression_workflow.h
+      include/cuda/mgard_cuda_handle.h
+      include/cuda/mgard_cuda_helper.h                 
+      include/cuda/mgard_cuda_common.h
+      include/cuda/mgard_cuda_common_internal.h   
+      include/cuda/mgard_cuda_precompute_kernels.h   
+      include/cuda/mgard_cuda_data_refactoring.h   
+      # include/cuda/mgard_cuda_grid_processing_kernels.h        
+      include/cuda/grid_processing_kernel.hpp   
+      include/cuda/grid_processing_kernel.h
+      include/cuda/grid_processing_kernel_3d.hpp   
+      include/cuda/grid_processing_kernel_3d.h
+      include/cuda/linear_processing_kernel.hpp   
+      include/cuda/linear_processing_kernel.h
+      include/cuda/linear_processing_kernel_3d.hpp   
+      include/cuda/linear_processing_kernel_3d.h
+      include/cuda/iterative_processing_kernel.hpp   
+      include/cuda/iterative_processing_kernel.h
+      include/cuda/iterative_processing_kernel_3d.hpp   
+      include/cuda/iterative_processing_kernel_3d.h
+      include/cuda/levelwise_processing_kernel.hpp   
+      include/cuda/levelwise_processing_kernel.h
+      include/cuda/linear_quantization.hpp
+      include/cuda/linear_quantization.h
+      # include/cuda/mgard_cuda_linear_processing_kernels.h
+      # include/cuda/mgard_cuda_iterative_processing_kernels.h
+      # include/cuda/mgard_cuda_levelwise_operators.h   
+      # include/cuda/mgard_cuda_linear_quantize.h 
+      include/cuda/mgard_cuda_lossless.h
+      include/cuda/parallel_huffman/canonical.cuh
+      include/cuda/parallel_huffman/constants.hh
+      include/cuda/parallel_huffman/cuda_error_handling.cuh
+      include/cuda/parallel_huffman/cuda_mem.cuh
+      include/cuda/parallel_huffman/dbg_gpu_printing.cuh
+      include/cuda/parallel_huffman/format.hh
+      include/cuda/parallel_huffman/histogram.cuh
+      include/cuda/parallel_huffman/huffman_codec.cuh
+      include/cuda/parallel_huffman/huffman_workflow.cuh
+      include/cuda/parallel_huffman/io.hh
+      include/cuda/parallel_huffman/par_huffman.cuh
+      include/cuda/parallel_huffman/par_merge.cuh
+      include/cuda/parallel_huffman/timer.hh
+      include/cuda/parallel_huffman/types.hh)
 
   set (MGARD_CUDA_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)
+
+  SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
+
   if(MGARD_ENABLE_CUDA_DEBUG)
     SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_DEBUG")
     SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_DEBUG")
   endif()
+  if(MGARD_ENABLE_CUDA_FMA)
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_FMA")
+    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_FMA")
+  endif()
+  if(MGARD_ENABLE_CUDA_KERNEL_PROFILE)
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_KERNEL_PROFILE")
+    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_KERNEL_PROFILE")
+  endif()
+  if(MGARD_ENABLE_CUDA_OPTIMIZE_TURING)
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_OPTIMIZE_TURING")
+    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_OPTIMIZE_TURING")
+    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_75,code=sm_75")
+    set(CUDA_ARCH_STRING "75")
+  endif()
+  if(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA)
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_OPTIMIZE_VOLTA")
+    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_OPTIMIZE_VOLTA")
+    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_70,code=sm_70")
+    set(CUDA_ARCH_STRING "70")
+  endif()
+
+  message("-- NVCOMP: " ${NVCOMP_DIR}/lib/libnvcomp.so)
+  add_library( nvcomp SHARED IMPORTED GLOBAL)
+  set_target_properties( nvcomp PROPERTIES IMPORTED_LOCATION ${NVCOMP_DIR}/lib/libnvcomp.so )
+
 endif()
 
 # Dependencies
@@ -214,6 +304,7 @@ endif()
 target_include_directories(mgard-library
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${NVCOMP_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
@@ -223,6 +314,10 @@ if (MOAB_FOUND)
 endif()
 if(ZSTD_FOUND)
 	target_link_libraries(mgard-library PUBLIC ZSTD::ZSTD)
+endif()
+
+if(MGARD_ENABLE_CUDA)
+  target_link_libraries(mgard-library PUBLIC nvcomp)
 endif()
 
 find_package(OpenMP)
@@ -321,6 +416,25 @@ else()
 	message("-- Will not build tests (dependencies not met).")
 endif()
 
+if(MGARD_ENABLE_CUDA)
+    add_executable(mgard_cuda_double_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_cuda_double_test.cu)
+    target_link_libraries(mgard_cuda_double_test mgard-library  ${CMAKE_DL_LIBS})
+    set_target_properties(mgard_cuda_double_test PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    target_include_directories(mgard_cuda_double_test PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+    add_executable(mgard_cuda_float_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_cuda_float_test.cu)
+    target_link_libraries(mgard_cuda_float_test mgard-library  ${CMAKE_DL_LIBS})
+    set_target_properties(mgard_cuda_float_test PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    target_include_directories(mgard_cuda_float_test PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+endif()
+
+if(MGARD_ENABLE_CUDA)
+  cmake_policy(SET CMP0104 NEW)
+  cmake_policy(SET CMP0105 NEW)
+  set_property(TARGET mgard-library PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
+  set_property(TARGET mgard_cuda_double_test PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
+  set_property(TARGET mgard_cuda_float_test PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
+endif()
+
 # Add all targets to the build-tree export set
 export(
 	TARGETS mgard-library
@@ -414,6 +528,10 @@ message("     Testing: ${BUILD_TESTING}")
 message("      OpenMP: ${OpenMP_FOUND}")
 message("        CUDA: ${MGARD_ENABLE_CUDA}")
 message("  CUDA-Debug: ${MGARD_ENABLE_CUDA_DEBUG}")
+message("    CUDA-FMA: ${MGARD_ENABLE_CUDA_FMA}")
+message("   CUDA-PROF: ${MGARD_ENABLE_CUDA_KERNEL_PROFILE}")
+message("  CUDA-VOLTA: ${MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA}")
+message(" CUDA-TURING: ${MGARD_ENABLE_CUDA_OPTIMIZE_TURING}")
 message("        MOAB: ${MOAB_FOUND}")
 message("      Catch2: ${Catch2_FOUND}")
 message("    yaml-cpp: ${yaml-cpp_FOUND}")

@@ -16,16 +16,16 @@ bool is_2kplus1_cuda(double num) {
   }
 }
 
-__device__ int get_idx(const int ld, const int i, const int j) {
-  return ld * i + j;
-}
+// __device__ int get_idx(const int ld, const int i, const int j) {
+//   return ld * i + j;
+// }
 
-// ld2 = nrow
-// ld1 = pitch
-__device__ int get_idx(const int ld1, const int ld2, const int z, const int y,
-                       const int x) {
-  return ld2 * ld1 * z + ld1 * y + x;
-}
+// // ld2 = nrow
+// // ld1 = pitch
+// __device__ int get_idx(const int ld1, const int ld2, const int z, const int y,
+//                        const int x) {
+//   return ld2 * ld1 * z + ld1 * y + x;
+// }
 
 template <typename T> T max_norm_cuda(const T *v, size_t size) {
   double norm = 0;
