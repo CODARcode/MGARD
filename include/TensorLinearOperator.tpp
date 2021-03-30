@@ -1,4 +1,7 @@
 #include <stdexcept>
+#include <vector>
+
+#include <omp.h>
 
 #include "utilities.hpp"
 
@@ -48,20 +51,30 @@ TensorLinearOperator<N, Real>::TensorLinearOperator(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
     const std::array<ConstituentLinearOperator<N, Real> const *, N> operators)
     : hierarchy(hierarchy), operators(operators),
-      multiindex_components(level_multiindex_components(hierarchy, l)) {}
+      multiindex_components(level_multiindex_components(hierarchy, l)) {
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
+  for (std::size_t i = 0; i < N; ++i) {
+    if (SHAPE.at(i) == 1 && operators.at(i) != nullptr) {
+      throw std::invalid_argument("the component operator corresponding to any "
+                                  "dimension of size 1 must be the identity");
+    }
+  }
+}
 
 template <std::size_t N, typename Real>
 TensorLinearOperator<N, Real>::TensorLinearOperator(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
-    : TensorLinearOperator(hierarchy, l, {}) {
-  operators.fill(nullptr);
-}
+    : TensorLinearOperator(hierarchy, l, {}) {}
 
 template <std::size_t N, typename Real>
 void TensorLinearOperator<N, Real>::operator()(Real *const v) const {
   std::array<TensorIndexRange, N> multiindex_components_ =
       multiindex_components;
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   for (std::size_t i = 0; i < N; ++i) {
+    if (SHAPE.at(i) == 1) {
+      continue;
+    }
     ConstituentLinearOperator<N, Real> const *const A = operators.at(i);
     // We can't check these preconditions in the constructor because the
     // operators won't be valid at that point in derived class constructors. It
@@ -77,10 +90,17 @@ void TensorLinearOperator<N, Real>::operator()(Real *const v) const {
     }
     // Range which will yield `0` once.
     multiindex_components_.at(i) = TensorIndexRange::singleton();
-    for (const std::array<std::size_t, N> multiindex :
-         CartesianProduct<TensorIndexRange, N>(multiindex_components_)) {
-      A->operator()(multiindex, v);
+
+    const CartesianProduct<TensorIndexRange, N> product(multiindex_components_);
+    const std::vector<std::array<std::size_t, N>> multiindices(product.begin(),
+                                                               product.end());
+    const std::size_t M = multiindices.size();
+
+#pragma omp parallel for
+    for (std::size_t j = 0; j < M; ++j) {
+      A->operator()(multiindices.at(j), v);
     }
+
     // Reinstate this dimension's indices for the next iteration.
     multiindex_components_.at(i) = multiindex_components.at(i);
   }

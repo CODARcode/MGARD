@@ -20,7 +20,7 @@
 const std::string METADATA_ENTRYNAME = "metadata.yaml";
 const std::string QUANTIZED_COEFFICIENTS_ENTRYNAME = "coefficients.dat";
 
-void write_archive_entry(archive *const a, const std::string entryname,
+void write_archive_entry(archive *const a, const std::string &entryname,
                          void const *const data, const std::size_t size) {
   struct archive_entry *const entry = archive_entry_new();
   archive_entry_copy_pathname(entry, entryname.c_str());
@@ -152,7 +152,7 @@ int read_compress_write(const cli::CompressionArguments &arguments) {
     inputfile.seekg(0, std::ios_base::end);
     const std::fstream::pos_type read = inputfile.tellg();
     const std::size_t expected = ndof * sizeof(Real);
-    if (read != expected) {
+    if (read < 0 || static_cast<std::size_t>(read) != expected) {
       std::cerr << "expected " << expected << " bytes (";
       if (N > 1) {
         for (std::size_t i = 0; i + 1 < N; ++i) {

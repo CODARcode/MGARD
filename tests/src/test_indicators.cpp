@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 
+#include <algorithm>
 #include <random>
 #include <string>
 #include <vector>
@@ -54,7 +55,7 @@ TEST_CASE("comparison with Python implementation: indicators", "[indicators]") {
     mbcore.get_coords(&node, 1, xyz);
     const double x = xyz[0];
     const double y = xyz[1];
-    const double z = xyz[2];
+    [[maybe_unused]] const double z = xyz[2];
     assert(z == 0);
     u_.at(i) = (34 * std::sin(1 * x + 1 * y) + 21 * std::sin(2 * x + 3 * y) +
                 13 * std::sin(5 * x + 8 * y)) /
@@ -91,9 +92,8 @@ TEST_CASE("indicators should track estimators", "[indicators]") {
   std::random_device device;
   std::default_random_engine generator(device());
   std::uniform_real_distribution<double> distribution(-3, 0);
-  for (double &value : u_) {
-    value = distribution(generator);
-  }
+  std::generate(u_.begin(), u_.end(),
+                [&]() -> double { return distribution(generator); });
   // Could skip the decomposition and generate the multilevel coefficients
   // directly. Doing it this way in case I want to compute the norms or whatever
   // else later.

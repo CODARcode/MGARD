@@ -11,8 +11,17 @@ namespace {
 template <std::size_t N, typename Real>
 Real supremum_quantum(const TensorMeshHierarchy<N, Real> &hierarchy,
                       const Real tolerance) {
+  // Effective dimension.
+  std::size_t d = 0;
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
+  // Treat 'flat' meshes as having lower dimension.
+  for (std::size_t i = 0; i < N; ++i) {
+    if (SHAPE.at(i) > 1) {
+      ++d;
+    }
+  }
   // The maximum error is half the quantizer.
-  return (2 * tolerance) / ((hierarchy.L + 1) * (1 + std::pow(3, N)));
+  return (2 * tolerance) / ((hierarchy.L + 1) * (1 + std::pow(3, d)));
 }
 
 // IMPORTANT: `node` must be produced by iterating over the mesh which first
@@ -28,11 +37,15 @@ template <std::size_t N, typename Real>
 Real s_quantum(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
                const Real tolerance, const TensorNode<N> node) {
   Real volume_factor = 1;
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   for (std::size_t i = 0; i < N; ++i) {
-    const std::vector<Real> &coordinates = hierarchy.coordinates.at(i);
-    volume_factor *= (coordinates.at(node.successor(i).multiindex.at(i)) -
-                      coordinates.at(node.predecessor(i).multiindex.at(i))) /
-                     2;
+    // Treat 'flat' meshes as having lower dimension.
+    if (SHAPE.at(i) > 1) {
+      const std::vector<Real> &coordinates = hierarchy.coordinates.at(i);
+      volume_factor *= (coordinates.at(node.successor(i).multiindex.at(i)) -
+                        coordinates.at(node.predecessor(i).multiindex.at(i))) /
+                       2;
+    }
   }
   const std::size_t l = hierarchy.date_of_birth(node.multiindex);
   // The maximum error is half the quantizer.
@@ -82,7 +95,7 @@ bool operator!=(const Qntzr<N, Real, Int> &a, const Qntzr<N, Real, Int> &b) {
 template <std::size_t N, typename Real, typename Int>
 Qntzr<N, Real, Int>::iterator::iterator(
     const Qntzr &quantizer,
-    const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
+    const typename ShuffledTensorNodeRange<N, Real>::iterator &inner_node,
     Real const *const inner_coeff)
     : quantizer(quantizer), inner_node(inner_node), inner_coeff(inner_coeff) {}
 
@@ -165,7 +178,7 @@ template <std::size_t N, typename Int, typename Real>
 template <typename It>
 Dqntzr<N, Int, Real>::iterator<It>::iterator(
     const Dqntzr<N, Int, Real> &dequantizer,
-    const typename ShuffledTensorNodeRange<N, Real>::iterator inner_node,
+    const typename ShuffledTensorNodeRange<N, Real>::iterator &inner_node,
     const It inner_coeff)
     : dequantizer(dequantizer), inner_node(inner_node),
       inner_coeff(inner_coeff) {}

@@ -13,7 +13,7 @@ ConstituentRestriction<N, Real>::ConstituentRestriction(
   if (!l) {
     throw std::invalid_argument("cannot restrict from the coarsest level");
   }
-  // Possibly we should check that neither `coarse_indices` not `indices` is
+  // Possibly we should check that neither `coarse_indices` nor `indices` is
   // empty, since we will dereference `coarse_indices.begin()` and
   // `indices.begin()`. Assuming I haven't made a mistake, though, this is
   // enforced by the constructor of `TensorIndexRange` called by
@@ -25,7 +25,7 @@ void ConstituentRestriction<N, Real>::do_operator_parentheses(
     const std::array<std::size_t, N> multiindex, Real *const v) const {
   const std::vector<Real> &xs = CLO::hierarchy->coordinates.at(CLO::dimension_);
 
-  // `x_left` and `out_left` is declared and defined inside the loop.
+  // `x_left` and `out_left` are declared and defined inside the loop.
   Real x_right;
   Real *out_right;
 
@@ -76,8 +76,12 @@ template <std::size_t N, typename Real>
 std::array<ConstituentRestriction<N, Real>, N>
 generate_restrictions(const TensorMeshHierarchy<N, Real> &hierarchy,
                       const std::size_t l) {
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   std::array<ConstituentRestriction<N, Real>, N> restrictions;
   for (std::size_t i = 0; i < N; ++i) {
+    if (SHAPE.at(i) == 1) {
+      continue;
+    }
     restrictions.at(i) = ConstituentRestriction<N, Real>(hierarchy, l, i);
   }
   return restrictions;
@@ -90,8 +94,9 @@ TensorRestriction<N, Real>::TensorRestriction(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
     : TensorLinearOperator<N, Real>(hierarchy, l),
       restrictions(generate_restrictions(hierarchy, l)) {
+  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.back();
   for (std::size_t i = 0; i < N; ++i) {
-    TLO::operators.at(i) = &restrictions.at(i);
+    TLO::operators.at(i) = SHAPE.at(i) == 1 ? nullptr : &restrictions.at(i);
   }
 }
 

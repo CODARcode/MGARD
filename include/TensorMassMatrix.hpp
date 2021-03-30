@@ -73,16 +73,15 @@ public:
   //!\param l Index of the mesh on which the mass matrix is to be inverted.
   //!\param dimension Index of the dimension in which the mass matrix is to
   //! be inverted.
-  //!\param buffer Buffer of size the dimension of the function space.
   ConstituentMassMatrixInverse(const TensorMeshHierarchy<N, Real> &hierarchy,
-                               const std::size_t l, const std::size_t dimension,
-                               Real *const buffer);
+                               const std::size_t l,
+                               const std::size_t dimension);
 
 private:
   using CLO = ConstituentLinearOperator<N, Real>;
 
   //! Buffer to store divisors for the Thomas algorithm.
-  Real *divisors;
+  std::vector<Real> divisors;
 
   virtual void
   do_operator_parentheses(const std::array<std::size_t, N> multiindex,
@@ -103,9 +102,6 @@ public:
 
 private:
   using TLO = TensorLinearOperator<N, Real>;
-
-  //! Buffer to store divisors for the Thomas algorithm.
-  std::vector<Real> buffer;
 
   //! Constituent mass matrices for each dimension.
   const std::array<ConstituentMassMatrixInverse<N, Real>, N>

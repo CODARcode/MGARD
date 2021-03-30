@@ -49,7 +49,7 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
       require_moab_success(ecode);
       *p++ = 5 * *x - 3 * *y + 2 * *z;
     }
-    hierarchy.decompose(u.data());
+    hierarchy.decompose(mgard::NodalCoefficients<double>(u.data()));
     TrialTracker tracker;
     for (std::vector<double>::iterator p = u.begin() + hierarchy.ndof(0);
          p != u.end(); ++p) {
@@ -61,24 +61,21 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
   std::random_device device;
   std::default_random_engine generator(device());
   std::uniform_real_distribution<double> distribution(-1, 1);
+  const auto f = [&]() -> double { return distribution(generator); };
 
   SECTION("recompose inverts decompose") {
-    for (double &value : u) {
-      value = distribution(generator);
-    }
+    std::generate(u.begin(), u.end(), f);
     std::vector<double> copy = u;
-    hierarchy.decompose(u.data());
-    hierarchy.recompose(u.data());
+    hierarchy.decompose(mgard::NodalCoefficients<double>(u.data()));
+    hierarchy.recompose(mgard::MultilevelCoefficients<double>(u.data()));
     require_vector_equality(u, copy);
   }
 
   SECTION("recompose inverts decompose") {
-    for (double &value : u) {
-      value = distribution(generator);
-    }
+    std::generate(u.begin(), u.end(), f);
     std::vector<double> copy = u;
-    hierarchy.recompose(u.data());
-    hierarchy.decompose(u.data());
+    hierarchy.recompose(mgard::MultilevelCoefficients<double>(u.data()));
+    hierarchy.decompose(mgard::NodalCoefficients<double>(u.data()));
     require_vector_equality(u, copy);
   }
 
@@ -94,9 +91,9 @@ TEST_CASE("basic properties", "[UniformMeshHierarchy]") {
     //`w = u + alpha * v`.
     blas::copy(N, u.data(), w.data());
     blas::axpy(N, alpha, v.data(), w.data());
-    hierarchy.decompose(u.data());
-    hierarchy.decompose(v.data());
-    hierarchy.decompose(w.data());
+    hierarchy.decompose(mgard::NodalCoefficients<double>(u.data()));
+    hierarchy.decompose(mgard::NodalCoefficients<double>(v.data()));
+    hierarchy.decompose(mgard::NodalCoefficients<double>(w.data()));
     // Copy just overwrite `u` instead.
     std::vector<double> expected(N);
     blas::copy(N, u.data(), expected.data());
@@ -164,7 +161,7 @@ TEST_CASE("comparison with Python implementation: refinement and decomposition",
   REQUIRE(max_rel_xyz_err < 1e-6);
 
   std::vector<double> u_mc = u_nc;
-  hierarchy.decompose(u_mc.data());
+  hierarchy.decompose(mgard::NodalCoefficients<double>(u_mc.data()));
 
   double max_rel_mc_err = 0;
   for (std::size_t j = 0; j < N; ++j) {
@@ -197,14 +194,13 @@ TEST_CASE("iteration over nodes and values", "[UniformMeshHierarchy]") {
   const std::size_t L = 3;
   mgard::UniformMeshHierarchy hierarchy(mesh_, L);
 
-  std::vector<double> u_;
-  u_.reserve(hierarchy.ndof());
+  std::vector<double> u_(hierarchy.ndof());
   {
     const mgard::MeshLevel &MESH = hierarchy.meshes.back();
     const moab::Range &NODES = MESH.entities[moab::MBVERTEX];
-    for (const moab::EntityHandle node : NODES) {
-      u_.push_back(f(MESH, node));
-    }
+    std::transform(
+        NODES.begin(), NODES.end(), u_.begin(),
+        [&](const moab::EntityHandle node) -> double { return f(MESH, node); });
   }
   const mgard::NodalCoefficients<double> u(u_.data());
 

@@ -5,12 +5,12 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
-#include <iostream>
 #include <queue>
 #include <vector>
 
 #ifdef MGARD_TIMING
 #include <chrono>
+#include <iostream>
 #endif
 
 #include <zlib.h>
@@ -61,8 +61,6 @@ template <class T>
 using my_priority_queue =
     std::priority_queue<T *, std::vector<T *>, LessThanByCnt>;
 
-void print_huffman_tree(htree_node *r) {}
-
 void build_codec(htree_node *root, unsigned int code, size_t len,
                  huffman_codec *codec) {
 
@@ -73,11 +71,6 @@ void build_codec(htree_node *root, unsigned int code, size_t len,
     codec[root->q].q = root->q;
     codec[root->q].code = code;
     codec[root->q].len = len;
-    /*
-    std::cout << "code = " << std::bitset<32>(code)
-              << " len = " << len
-              << " count = " << root->cnt << "\n";
-              */
   }
 
   if (root->left) {
@@ -140,12 +133,12 @@ void free_tree(my_priority_queue<htree_node> *phtree) {
 }
 
 // Note this function will change the quantized data.
-size_t *build_ft(int *quantized_data, const std::size_t n,
+size_t *build_ft(long int *quantized_data, const std::size_t n,
                  size_t &num_outliers) {
   size_t *cnt = (size_t *)malloc(nql * sizeof(size_t));
   memset(cnt, 0, nql * sizeof(size_t));
 
-  for (int i = 0; i < n; i++) {
+  for (std::size_t i = 0; i < n; i++) {
     // Convert quantization level to positive so that counting freq can be
     // easily done. Level 0 is reserved a out-of-range flag.
     quantized_data[i] = quantized_data[i] + nql / 2;
@@ -161,9 +154,8 @@ size_t *build_ft(int *quantized_data, const std::size_t n,
   return cnt;
 }
 
-huffman_codec *build_huffman_codec(int *quantized_data, size_t **ft,
+huffman_codec *build_huffman_codec(long int *quantized_data, size_t **ft,
                                    const std::size_t n, size_t &num_outliers) {
-  htree_node *root = 0;
   size_t *cnt;
 
   cnt = build_ft(quantized_data, n, num_outliers);
@@ -175,14 +167,6 @@ huffman_codec *build_huffman_codec(int *quantized_data, size_t **ft,
   memset(codec, 0, sizeof(huffman_codec) * nql);
 
   build_codec(phtree->top(), 0, 0, codec);
-  /*
-    for (int i = 0; i < nql; i++) {
-      if (codec[i].len != 0) {
-        std::cout << "codec: i = " << i << " len = " << codec[i].len << " code =
-    " << std::bitset<32>(codec[i].code) << "\n";
-      }
-    }
-  */
 
   free_tree(phtree);
   phtree = 0;
@@ -191,7 +175,7 @@ huffman_codec *build_huffman_codec(int *quantized_data, size_t **ft,
 }
 
 void decompress_memory_huffman(unsigned char *data, int data_len,
-                               std::vector<int> &out_data) {
+                               long int *out_data, int out_size) {
   unsigned char *out_data_hit = 0;
   size_t out_data_hit_size;
   unsigned char *out_data_miss = 0;
@@ -226,14 +210,14 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
   out_data_miss =
       huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
 
-  mgard::huffman_decoding(out_data.data(), out_data.size(), out_data_hit,
-                          out_data_hit_size, out_data_miss, out_data_miss_size,
-                          out_tree, out_tree_size);
+  mgard::huffman_decoding(out_data, out_size, out_data_hit, out_data_hit_size,
+                          out_data_miss, out_data_miss_size, out_tree,
+                          out_tree_size);
 
   free(huffman_encoding_p);
 }
 
-void huffman_decoding(int *quantized_data, const std::size_t n,
+void huffman_decoding(long int *quantized_data, const std::size_t n,
                       unsigned char *out_data_hit, size_t out_data_hit_size,
                       unsigned char *out_data_miss, size_t out_data_miss_size,
                       unsigned char *out_tree, size_t out_tree_size) {
@@ -261,7 +245,7 @@ void huffman_decoding(int *quantized_data, const std::size_t n,
   size_t start_bit = 0;
   unsigned int mask = 0x80000000;
 
-  int *q = quantized_data;
+  long int *q = quantized_data;
   size_t i = 0;
   size_t num_missed = 0;
   while (start_bit < out_data_hit_size) {
@@ -315,7 +299,7 @@ void huffman_decoding(int *quantized_data, const std::size_t n,
   ft = 0;
 }
 
-unsigned char *compress_memory_huffman(std::vector<int> &qv,
+unsigned char *compress_memory_huffman(const std::vector<long int> &qv,
                                        std::vector<unsigned char> &out_data,
                                        int &outsize) {
   unsigned char *out_data_hit = 0;
@@ -327,8 +311,8 @@ unsigned char *compress_memory_huffman(std::vector<int> &qv,
 #ifdef MGARD_TIMING
   auto huff_time1 = std::chrono::high_resolution_clock::now();
 #endif
-  mgard::huffman_encoding(qv.data(), qv.size(), &out_data_hit,
-                          &out_data_hit_size, &out_data_miss,
+  mgard::huffman_encoding(const_cast<long int *>(qv.data()), qv.size(),
+                          &out_data_hit, &out_data_hit_size, &out_data_miss,
                           &out_data_miss_size, &out_tree, &out_tree_size);
 #ifdef MGARD_TIMING
   auto huff_time2 = std::chrono::high_resolution_clock::now();
@@ -396,11 +380,10 @@ unsigned char *compress_memory_huffman(std::vector<int> &qv,
   bufp += sizeof(size_t);
 
   std::copy(out_data.begin(), out_data.end(), bufp);
-
   return buffer;
 }
 
-void huffman_encoding(int *const quantized_data, const std::size_t n,
+void huffman_encoding(long int *quantized_data, const std::size_t n,
                       unsigned char **out_data_hit, size_t *out_data_hit_size,
                       unsigned char **out_data_miss, size_t *out_data_miss_size,
                       unsigned char **out_tree, size_t *out_tree_size) {
@@ -432,7 +415,7 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
   size_t start_bit = 0;
   unsigned int *cur = (unsigned int *)p_hit;
   size_t cnt_missed = 0;
-  for (int i = 0; i < n; i++) {
+  for (std::size_t i = 0; i < n; i++) {
     int q = quantized_data[i];
     unsigned int code;
     size_t len;
@@ -453,8 +436,6 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
 
     assert(len > 0);
 
-    //      std::cout << "[hit]: the " << i << "-th symbol: " << q << "\n";
-
     if (32 - start_bit % 32 >= len) {
       code = code << (32 - start_bit % 32 - len);
       *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
@@ -472,8 +453,6 @@ void huffman_encoding(int *const quantized_data, const std::size_t n,
     }
   }
 
-  //  std::cout << "num hit: " << n - num_miss << " num_miss: " << num_miss <<
-  //  "\n";
   // Note: hit size is in bits, while miss size is in bytes.
   *out_data_hit_size = start_bit;
   *out_data_miss_size = num_miss * sizeof(int);
@@ -568,7 +547,7 @@ void compress_memory_z(void *const in_data, const std::size_t in_data_size,
   deflateInit(&strm, Z_BEST_COMPRESSION);
 
   while (strm.avail_in != 0) {
-    const int res = deflate(&strm, Z_NO_FLUSH);
+    [[maybe_unused]] const int res = deflate(&strm, Z_NO_FLUSH);
     assert(res == Z_OK);
     if (strm.avail_out == 0) {
       buffer.insert(buffer.end(), temp_buffer, temp_buffer + BUFSIZE);
@@ -597,7 +576,7 @@ void compress_memory_z(void *const in_data, const std::size_t in_data_size,
 
 void decompress_memory_z(void *const src, const int srcLen, int *const dst,
                          const int dstLen) {
-  z_stream strm = {0};
+  z_stream strm = {};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;
   strm.next_in = static_cast<Bytef *>(src);
@@ -607,7 +586,7 @@ void decompress_memory_z(void *const src, const int srcLen, int *const dst,
   strm.zfree = Z_NULL;
   strm.opaque = Z_NULL;
 
-  int res;
+  [[maybe_unused]] int res;
   res = inflateInit2(&strm, (15 + 32)); // 15 window bits, and the +32 tells
                                         // zlib to to detect if using gzip or
                                         // zlib
@@ -626,13 +605,14 @@ void decompress_memory_zstd_huffman(void *const src, const int srcLen,
   CHECK_ZSTD(dSize);
 
   /* When zstd knows the content size, it will error if it doesn't match. */
-  CHECK(dSize == dstLen, "Impossible because zstd will check this condition!");
+  CHECK(dstLen >= 0 && static_cast<std::size_t>(dstLen) == dSize,
+        "Impossible because zstd will check this condition!");
 }
 #endif
 
 void decompress_memory_z_huffman(void *const src, const int srcLen,
                                  unsigned char *const dst, const int dstLen) {
-  z_stream strm = {0};
+  z_stream strm = {};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;
   strm.next_in = static_cast<Bytef *>(src);
@@ -642,7 +622,7 @@ void decompress_memory_z_huffman(void *const src, const int srcLen,
   strm.zfree = Z_NULL;
   strm.opaque = Z_NULL;
 
-  int res;
+  [[maybe_unused]] int res;
   res = inflateInit2(&strm, (15 + 32)); // 15 window bits, and the +32 tells
                                         // zlib to to detect if using gzip or
                                         // zlib

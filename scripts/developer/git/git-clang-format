@@ -136,7 +136,8 @@ def main():
   changed_lines = compute_diff_and_extract_lines(commits, files)
   if opts.verbose >= 1:
     ignored_files = set(changed_lines)
-  filter_by_exclude(changed_lines, opts.exclude)
+  if opts.exclude is not None:
+    filter_by_exclude(changed_lines, opts.exclude)
   filter_by_extension(changed_lines, opts.extensions.lower().split(','))
   if opts.verbose >= 1:
     ignored_files.difference_update(changed_lines)

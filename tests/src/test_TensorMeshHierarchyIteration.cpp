@@ -194,12 +194,13 @@ void test_shuffled_dereferencing(
     const std::array<std::size_t, N> shape,
     const std::vector<std::array<std::size_t, N>> &expected) {
   const mgard::TensorMeshHierarchy<N, float> hierarchy(shape);
-  std::vector<std::array<std::size_t, N>> obtained;
-  obtained.reserve(hierarchy.ndof());
-  for (const mgard::TensorNode<N> node :
-       mgard::ShuffledTensorNodeRange(hierarchy, hierarchy.L)) {
-    obtained.push_back(node.multiindex);
-  }
+  std::vector<std::array<std::size_t, N>> obtained(hierarchy.ndof());
+  const mgard::ShuffledTensorNodeRange nodes(hierarchy, hierarchy.L);
+  std::transform(
+      nodes.begin(), nodes.end(), obtained.begin(),
+      [](const mgard::TensorNode<N> &node) -> std::array<std::size_t, N> {
+        return node.multiindex;
+      });
   REQUIRE(obtained == expected);
 }
 

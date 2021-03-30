@@ -31,6 +31,7 @@ public:
 private:
   using CLO = ConstituentLinearOperator<N, Real>;
 
+  //! Indices of the coarse 'spear' in the chosen dimension.
   TensorIndexRange coarse_indices;
 
   virtual void

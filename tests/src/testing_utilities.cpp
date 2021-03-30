@@ -4,8 +4,12 @@
 
 #include "moab/EntityType.hpp"
 
+#include "testing_paths.hpp"
+
 std::string mesh_path(const std::string &filename) {
   std::string path;
+  path += ROOT;
+  path += "/";
   path += "tests";
   path += "/";
   path += "meshes";
@@ -16,6 +20,8 @@ std::string mesh_path(const std::string &filename) {
 
 std::string output_path(const std::string &filename) {
   std::string path;
+  path += ROOT;
+  path += "/";
   path += "tests";
   path += "/";
   path += "outputs";

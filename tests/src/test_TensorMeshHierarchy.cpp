@@ -1,6 +1,7 @@
 #include "catch2/catch_approx.hpp"
 #include "catch2/catch_test_macros.hpp"
 
+#include <algorithm>
 #include <array>
 #include <numeric>
 #include <stdexcept>
@@ -242,6 +243,14 @@ TEST_CASE("TensorMeshHierarchy indexing", "[TensorMeshHierarchy]") {
       REQUIRE(obtained == expected);
     }
   }
+
+  SECTION("'flat' meshes") {
+    test_entry_indexing_exhaustive<2>({1, 35});
+    test_entry_indexing_exhaustive<2>({7, 1});
+    test_entry_indexing_exhaustive<3>({12, 1, 13});
+    test_entry_indexing_exhaustive<3>({9, 1, 1});
+    test_entry_indexing_exhaustive<4>({1, 8, 22, 1});
+  }
 }
 
 namespace {
@@ -421,13 +430,14 @@ TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {
 
   {
     const mgard::TensorMeshHierarchy<2, double> hierarchy({6, 3});
-    std::vector<std::size_t> encountered;
-    const mgard::MultiindexRectangle<2> multiindices(
-        hierarchy.shapes.at(hierarchy.L));
-    for (const std::array<std::size_t, 2> multiindex :
-         multiindices.indices(1)) {
-      encountered.push_back(hierarchy.date_of_birth(multiindex));
-    }
+    const mgard::UnshuffledTensorNodeRange<2, double> nodes(hierarchy,
+                                                            hierarchy.L);
+    // Cheating a little here in predetermining the size.
+    std::vector<std::size_t> encountered(hierarchy.ndof());
+    std::transform(nodes.begin(), nodes.end(), encountered.begin(),
+                   [&](const mgard::TensorNode<2> &node) -> std::size_t {
+                     return hierarchy.date_of_birth(node.multiindex);
+                   });
     const std::vector<std::size_t> expected = {0, 1, 0, 1, 1, 1, 0, 1, 0,
                                                1, 1, 1, 2, 2, 2, 0, 1, 0};
     REQUIRE(encountered == expected);

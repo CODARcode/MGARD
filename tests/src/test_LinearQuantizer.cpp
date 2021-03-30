@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstddef>
 
+#include <algorithm>
 #include <iterator>
 #include <limits>
 #include <random>
@@ -52,12 +53,10 @@ static void test_quantization_domain(const Real quantum) {
 
 template <typename Real, typename Int>
 static void test_dequantization_inversion(const Real quantum,
-                                          const std::vector<Int> ns) {
-  std::vector<Real> xs;
+                                          const std::vector<Int> &ns) {
+  std::vector<Real> xs(ns.size());
   const mgard::LinearDequantizer<Int, Real> dequantizer(quantum);
-  for (const Int n : ns) {
-    xs.push_back(dequantizer(n));
-  }
+  std::transform(ns.begin(), ns.end(), xs.begin(), dequantizer);
 
   const mgard::LinearQuantizer<Real, Int> quantizer(quantum);
   typename std::vector<Int>::const_iterator p = ns.begin();
@@ -96,20 +95,16 @@ TEST_CASE("quantization of a range", "[LinearQuantizer]") {
   SECTION("basic quantization iteration") {
     const mgard::LinearQuantizer<double, int> quantizer(0.5);
     const std::vector<double> xs = {0, 2.5, 2.49, 2.51, -10.5};
-    std::vector<int> ns;
-    for (const double x : xs) {
-      ns.push_back(quantizer(x));
-    }
+    std::vector<int> ns(xs.size());
+    std::transform(xs.begin(), xs.end(), ns.begin(), quantizer);
     REQUIRE(ns == std::vector<int>({0, 5, 5, 5, -21}));
   }
 
   SECTION("basic dequantization iteration") {
     const mgard::LinearDequantizer<short int, float> dequantizer(1.25);
     const std::vector<short int> ns = {-28, 0, -5, 2387};
-    std::vector<float> xs;
-    for (const short int n : ns) {
-      xs.push_back(dequantizer(n));
-    }
+    std::vector<float> xs(ns.size());
+    std::transform(ns.begin(), ns.end(), xs.begin(), dequantizer);
     REQUIRE(xs == std::vector<float>({-35, 0, -6.25, 2983.75}));
   }
 

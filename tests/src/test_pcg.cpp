@@ -13,7 +13,8 @@
 
 class SimpleDiagonalMatvec : public mgard::LinearOperator {
 public:
-  SimpleDiagonalMatvec(const std::size_t N) : mgard::LinearOperator(N) {}
+  explicit SimpleDiagonalMatvec(const std::size_t N)
+      : mgard::LinearOperator(N) {}
 
 private:
   virtual void do_operator_parentheses(double const *const x,
@@ -27,7 +28,7 @@ private:
 
 class Identity : public mgard::LinearOperator {
 public:
-  Identity(const std::size_t N) : mgard::LinearOperator(N) {}
+  explicit Identity(const std::size_t N) : mgard::LinearOperator(N) {}
 
 private:
   virtual void do_operator_parentheses(double const *const x,

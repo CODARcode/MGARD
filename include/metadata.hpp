@@ -19,7 +19,7 @@ struct DatasetMetadata {
   //! Constructor.
   //!
   //!\param arguments Arguments passed to the compression subcommand.
-  DatasetMetadata(const CompressionArguments &arguments);
+  explicit DatasetMetadata(const CompressionArguments &arguments);
 
   //! Constructor.
   DatasetMetadata() = default;
@@ -27,7 +27,7 @@ struct DatasetMetadata {
   //! Constructor.
   //!
   //!\param node YAML mapping containing the metadata.
-  DatasetMetadata(const YAML::Node &node);
+  explicit DatasetMetadata(const YAML::Node &node);
 
   //! Name to use when writing to a YAML stream.
   const static std::string YAML_name;
@@ -43,7 +43,7 @@ YAML::Emitter &operator<<(YAML::Emitter &emitter,
 //! Metadata about the mesh.
 struct MeshMetadata {
   //! Constructor.
-  MeshMetadata(const CompressionArguments &arguments);
+  explicit MeshMetadata(const CompressionArguments &arguments);
 
   //! Constructor.
   MeshMetadata() = default;
@@ -51,7 +51,7 @@ struct MeshMetadata {
   //! Constructor.
   //!
   //!\param node YAML mapping containing the metadata.
-  MeshMetadata(const YAML::Node &node);
+  explicit MeshMetadata(const YAML::Node &node);
 
   //! Name to use when writing to a YAML stream.
   const static std::string YAML_name;
@@ -75,7 +75,7 @@ YAML::Emitter &operator<<(YAML::Emitter &emitter, const MeshMetadata &metadata);
 //! Metadata about the compression.
 struct CompressionMetadata {
   //! Constructor.
-  CompressionMetadata(const CompressionArguments &arguments);
+  explicit CompressionMetadata(const CompressionArguments &arguments);
 
   //! Constructor.
   CompressionMetadata() = default;
@@ -83,7 +83,7 @@ struct CompressionMetadata {
   //! Constructor.
   //!
   //!\param node YAML mapping containing the metadata.
-  CompressionMetadata(const YAML::Node &node);
+  explicit CompressionMetadata(const YAML::Node &node);
 
   //! Name to use when writing to a YAML stream.
   const static std::string YAML_name;
@@ -103,12 +103,12 @@ struct Metadata {
   //! Constructor.
   //!
   //!\param arguments Arguments passed to the compression subcommand.
-  Metadata(const CompressionArguments &arguments);
+  explicit Metadata(const CompressionArguments &arguments);
 
   //! Constructor.
   //!
   //!\param node YAML mapping containing the metadata.
-  Metadata(const YAML::Node &node);
+  explicit Metadata(const YAML::Node &node);
 
   //! MGARD version used to compress the data.
   // TODO: Set this.

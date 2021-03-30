@@ -6,6 +6,8 @@ addons:
     packages:
       - mpich
       - libmpich-dev
+      - clang-format
+      - clang-tools
 #Packages needed to build MOAB. (MPI is also needed.)
       - autoconf
       - autogen
@@ -17,30 +19,25 @@ addons:
       - libtclap-dev
 before_install:
   - pushd ${HOME}
-  - wget http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
   - wget https://github.com/Kitware/CMake/releases/download/v3.19.1/cmake-3.19.1-Linux-x86_64.tar.gz
-  - wget https://github.com/danmar/cppcheck/archive/1.87.tar.gz
-  - git clone https://bitbucket.org/fathomteam/moab.git
-  - git clone https://github.com/catchorg/Catch2.git
+  - wget https://github.com/danmar/cppcheck/archive/2.3.tar.gz
+  - wget https://ftp.mcs.anl.gov/pub/fathom/moab-5.2.1.tar.gz
+  - wget https://github.com/catchorg/Catch2/archive/v3.0.0-preview3.tar.gz
   - popd
 install:
   - pushd ${HOME}
-  - tar -xf clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-  - export PATH="${PWD}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin:${PATH}"
   - tar -xf cmake-3.19.1-Linux-x86_64.tar.gz
   - export PATH="${PWD}/cmake-3.19.1-Linux-x86_64/bin:${PATH}"
   - popd
-  - pip install --user flake8
-  - git config --global clangformat.binary ${HOME}/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04/bin/clang-format
   - ./scripts/travis/build-cppcheck.sh
   - ./scripts/travis/build-moab.sh
   - ./scripts/travis/build-catch2.sh
-  - mkdir build && pushd build && cmake .. && make && popd
+  - mkdir build && pushd build && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. && make && popd
 env:
   matrix:
-    - BUILD_MATRIX_ENTRY=format
-    - BUILD_MATRIX_ENTRY=analyze
-    - BUILD_MATRIX_ENTRY=check
+    - BUILD_MATRIX_ENTRY=clang-format
+    - BUILD_MATRIX_ENTRY=clang-static-analyzer
+    - BUILD_MATRIX_ENTRY=cppcheck
     - BUILD_MATRIX_ENTRY=tests
 script:
   - git reset --hard ${TRAVIS_PULL_REQUEST_SHA}

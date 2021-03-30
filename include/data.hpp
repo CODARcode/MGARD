@@ -16,7 +16,7 @@ public:
   //! example, a mesh hierarchy calls `hierarchy.decompose(double * u)`.
   //! In that case, the multilevel coefficients can then be read from the
   //! returned `MultilevelCoefficients` or from `u`.
-  HierarchyCoefficients(T *const data);
+  explicit HierarchyCoefficients(T *const data);
 
   //! Conversion.
   template <typename U> operator HierarchyCoefficients<U>() const;
@@ -38,7 +38,7 @@ public:
   //! Constructor.
   //!
   //!\param data Dataset.
-  NodalCoefficients(T *const data);
+  explicit NodalCoefficients(T *const data);
 
   //! Conversion.
   template <typename U> operator NodalCoefficients<U>() const;
@@ -59,7 +59,7 @@ public:
   //! Constructor.
   //!
   //!\param data Dataset.
-  MultilevelCoefficients(T *const data);
+  explicit MultilevelCoefficients(T *const data);
 
   //! Conversion.
   template <typename U> operator MultilevelCoefficients<U>() const;

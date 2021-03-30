@@ -165,7 +165,7 @@ ShuffledTensorNodeRange<N, Real>::end() const {
 template <std::size_t N, typename Real>
 ShuffledTensorNodeRange<N, Real>::iterator::iterator(
     const ShuffledTensorNodeRange<N, Real> &iterable, const std::size_t ell,
-    const typename UnshuffledTensorNodeRange<N, Real>::iterator inner)
+    const typename UnshuffledTensorNodeRange<N, Real>::iterator &inner)
     : iterable(iterable), ell(ell), inner(inner) {}
 
 template <std::size_t N, typename Real>

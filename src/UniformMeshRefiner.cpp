@@ -95,6 +95,7 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(const MeshLevel &mesh,
   // Similarly.
   std::vector<double> endpoint_coordinates(3 * nnodes);
   ecode = mesh.impl.get_coords(nodes, endpoint_coordinates.data());
+  MB_CHK_ERR(ecode);
 
   moab::Range NEW_NODES;
   // We'll reset the coordinates below. Creating the nodes now lets us iterate
@@ -102,6 +103,7 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(const MeshLevel &mesh,
   // creating the new edges in the same loop.
   ecode =
       mesh.impl.create_vertices(midpoint_coordinates.data(), nedges, NEW_NODES);
+  MB_CHK_ERR(ecode);
   // From the MOAB documentation:
   //> Entities allocated in sequence will typically have contiguous handles
   // Checking that.
@@ -126,6 +128,7 @@ moab::ErrorCode UniformMeshRefiner::bisect_edges(const MeshLevel &mesh,
       moab::EntityHandle EDGE;
       ecode =
           mesh.impl.create_element(moab::MBEDGE, EDGE_CONNECTIVITY, 2, EDGE);
+      MB_CHK_ERR(ecode);
       ++most_recent_edge;
       assert(EDGE == most_recent_edge);
       blas::axpy(3, 1.0, q + 3 * mesh.index(endpoint), p);
@@ -153,7 +156,7 @@ moab::ErrorCode UniformMeshRefiner::quadrisect_triangles(
   assert(mesh.element_type == moab::MBTRI);
   const moab::Range &elements = mesh.entities[mesh.element_type];
   const std::size_t nnodes = mesh.ndof();
-  const std::size_t nelements = elements.size();
+  [[maybe_unused]] const std::size_t nelements = elements.size();
 
   // We'll use this to check that elements are contiguous. (We don't need
   //`ELEMENTS.front()` to follow `elements.back()`, but it should and anyway
@@ -244,7 +247,7 @@ public:
   //! Constructor.
   //!
   //!\param nodes 'Old' nodes of the 'old' tetrahedron.
-  TetrahedralEdgeMidpointIndex(moab::EntityHandle const *const nodes)
+  explicit TetrahedralEdgeMidpointIndex(moab::EntityHandle const *const nodes)
       : begin(nodes), end(nodes + 4) {}
 
   //! Find the index of a midpoint of an edge.
@@ -296,7 +299,7 @@ moab::ErrorCode UniformMeshRefiner::octasect_tetrahedra(
   assert(mesh.element_type == moab::MBTET);
   const moab::Range &elements = mesh.entities[mesh.element_type];
   const std::size_t nnodes = mesh.ndof();
-  const std::size_t nelements = elements.size();
+  [[maybe_unused]] const std::size_t nelements = elements.size();
 
   // We'll use this to check that elements are contiguous. (We don't need
   //`ELEMENTS.front()` to follow `elements.back()`, but it should and anyway

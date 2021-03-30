@@ -59,5 +59,14 @@ std::array<Real, N>
 coordinates(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
             const mgard::TensorNode<N> &node);
 
+//! Make a copy of a mesh hierarchy with extra 'flat' dimensions.
+//!
+//!\param hierarchy Input hierarchy to be copied.
+//!\param shape Shape of the returned hierarchy.
+template <std::size_t N, std::size_t M, typename Real>
+mgard::TensorMeshHierarchy<M, Real>
+make_flat_hierarchy(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
+                    const std::array<std::size_t, M> shape);
+
 #include "testing_utilities.tpp"
 #endif

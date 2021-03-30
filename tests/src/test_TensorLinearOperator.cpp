@@ -1,6 +1,8 @@
 #include "catch2/catch_test_macros.hpp"
 
+#include <algorithm>
 #include <array>
+#include <numeric>
 #include <stdexcept>
 #include <vector>
 
@@ -28,7 +30,7 @@ public:
   //!\param scalar Diagonal of the matrix.
   DiagonalOperator(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
                    const std::size_t l, const std::size_t dimension,
-                   const std::vector<Real> diagonal)
+                   const std::vector<Real> &diagonal)
       : CLO(hierarchy, l, dimension), diagonal(diagonal) {
     if (diagonal.size() != this->dimension()) {
       throw std::invalid_argument("operator and mesh sizes don't match");
@@ -229,5 +231,52 @@ TEST_CASE("tensor products of simple constituent operators",
       const std::array<float, ndof> expected = {17, 4, 4, 18, 3, 3, 6, 1, 1};
       REQUIRE(buffer_ == expected);
     }
+  }
+}
+
+TEST_CASE("tensor product linear operators on 'flat' meshes",
+          "[TensorLinearOperator]") {
+  const std::vector<float> A_diagonal = {2, 2, 3, 5};
+  const std::vector<float> B_diagonal = {-2, -1, 0, 1, 2};
+  const std::size_t L = 2;
+  const std::size_t ndof = 20;
+  std::vector<float> u_(ndof);
+  std::vector<float> expected_(ndof);
+  std::vector<float> obtained_(ndof);
+  float *const u = u_.data();
+  float *const expected = expected_.data();
+  float *const obtained = obtained_.data();
+  std::iota(u, u + ndof, 0);
+  {
+    const mgard::TensorMeshHierarchy<2, float> hierarchy({4, 5});
+    const DiagonalOperator<2> A(hierarchy, L, 0, A_diagonal);
+    const DiagonalOperator<2> B(hierarchy, L, 1, B_diagonal);
+    const mgard::TensorLinearOperator T(hierarchy, L, {&A, &B});
+    std::copy(u, u + ndof, expected);
+    T(expected);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<3, float> hierarchy({4, 5, 1});
+    const DiagonalOperator<3> A(hierarchy, L, 0, A_diagonal);
+    const DiagonalOperator<3> B(hierarchy, L, 1, B_diagonal);
+    const mgard::TensorLinearOperator<3, float> T(hierarchy, L,
+                                                  {&A, &B, nullptr});
+    std::copy(u, u + ndof, obtained);
+    T(obtained);
+
+    REQUIRE(obtained_ == expected_);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<4, float> hierarchy({1, 4, 1, 5});
+    const DiagonalOperator<4> A(hierarchy, L, 1, A_diagonal);
+    const DiagonalOperator<4> B(hierarchy, L, 3, B_diagonal);
+    const mgard::TensorLinearOperator<4, float> T(hierarchy, L,
+                                                  {nullptr, &A, nullptr, &B});
+    std::copy(u, u + ndof, obtained);
+    T(obtained);
+
+    REQUIRE(obtained_ == expected_);
   }
 }

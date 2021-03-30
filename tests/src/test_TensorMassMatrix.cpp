@@ -1,8 +1,10 @@
 #include "catch2/catch_approx.hpp"
 #include "catch2/catch_test_macros.hpp"
 
+#include <algorithm>
 #include <array>
 #include <memory>
+#include <numeric>
 #include <random>
 #include <stdexcept>
 #include <vector>
@@ -12,6 +14,7 @@
 
 #include "TensorMassMatrix.hpp"
 #include "TensorMeshHierarchy.hpp"
+#include "blas.hpp"
 #include "shuffle.hpp"
 #include "utilities.hpp"
 
@@ -33,9 +36,7 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
       M({0}, v);
       mgard::unshuffle(hierarchy, v, buffer);
       std::array<float, ndof> expected = {-3, 3, 13, 36, 18, -12, -34, -23, -4};
-      for (float &value : expected) {
-        value /= 48;
-      }
+      blas::scal(ndof, static_cast<float>(1) / 48, expected.data());
       TrialTracker tracker;
       for (std::size_t i = 0; i < ndof; ++i) {
         tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
@@ -263,11 +264,6 @@ void exhaustive_constituent_inverse_test(
   std::vector<Real> buffer_(ndof);
   Real *const v = v_.data();
   Real *const buffer = buffer_.data();
-  const std::array<std::size_t, N> &SHAPE = hierarchy.shapes.at(hierarchy.L);
-  std::vector<Real> inverse_buffer_(
-      // Maximum of the sizes.
-      *std::max_element(SHAPE.begin(), SHAPE.end()));
-  Real *const inverse_buffer = buffer_.data();
   TrialTracker tracker;
   for (std::size_t l = 0; l <= hierarchy.L; ++l) {
     std::array<mgard::TensorIndexRange, N> multiindex_components;
@@ -276,8 +272,8 @@ void exhaustive_constituent_inverse_test(
     }
     for (std::size_t dimension = 0; dimension < N; ++dimension) {
       const mgard::ConstituentMassMatrix<N, Real> M(hierarchy, l, dimension);
-      const mgard::ConstituentMassMatrixInverse<N, Real> A(
-          hierarchy, l, dimension, inverse_buffer);
+      const mgard::ConstituentMassMatrixInverse<N, Real> A(hierarchy, l,
+                                                           dimension);
 
       std::array<mgard::TensorIndexRange, N> multiindex_components_ =
           multiindex_components;
@@ -318,9 +314,8 @@ TEST_CASE("constituent mass matrix inverses", "[TensorMassMatrix]") {
       const std::size_t l = 3;
       const std::size_t dimension = 0;
       const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
-      std::vector<float> inverse_buffer(M.dimension());
-      const mgard::ConstituentMassMatrixInverse<1, float> A(
-          hierarchy, l, dimension, inverse_buffer.data());
+      const mgard::ConstituentMassMatrixInverse<1, float> A(hierarchy, l,
+                                                            dimension);
       mgard::shuffle(hierarchy, u, v);
       M({0}, v);
       A({0}, v);
@@ -335,9 +330,8 @@ TEST_CASE("constituent mass matrix inverses", "[TensorMassMatrix]") {
       const std::size_t l = 1;
       const std::size_t dimension = 0;
       const mgard::ConstituentMassMatrix<1, float> M(hierarchy, l, dimension);
-      std::vector<float> inverse_buffer(M.dimension());
-      const mgard::ConstituentMassMatrixInverse<1, float> A(
-          hierarchy, l, dimension, inverse_buffer.data());
+      const mgard::ConstituentMassMatrixInverse<1, float> A(hierarchy, l,
+                                                            dimension);
       mgard::shuffle(hierarchy, u, v);
       // Opposite order.
       A({0}, v);
@@ -380,9 +374,8 @@ TEST_CASE("constituent mass matrix inverses", "[TensorMassMatrix]") {
     std::default_random_engine generator(731617);
     std::uniform_real_distribution<float> distribution(-5, -3);
     std::array<float, ndof> u_;
-    for (float &value : u_) {
-      value = distribution(generator);
-    }
+    std::generate(u_.begin(), u_.end(),
+                  [&]() -> float { return distribution(generator); });
     float *const u = u_.data();
     exhaustive_constituent_inverse_test<3, float>(hierarchy, u);
   }
@@ -436,10 +429,8 @@ TEST_CASE("tensor product mass matrix inverses", "[TensorMassMatrix]") {
   std::array<float, 1089> u_;
   {
     std::uniform_real_distribution<float> distribution(-10, 10);
-
-    for (float &value : u_) {
-      value = distribution(generator);
-    }
+    std::generate(u_.begin(), u_.end(),
+                  [&]() -> float { return distribution(generator); });
   }
 
   std::uniform_real_distribution<float> distribution(0.1, 0.3);
@@ -456,5 +447,41 @@ TEST_CASE("tensor product mass matrix inverses", "[TensorMassMatrix]") {
     test_mass_matrix_inversion<2>(generator, distribution, u_, {30, 29});
     test_mass_matrix_inversion<3>(generator, distribution, u_, {9, 6, 11});
     test_mass_matrix_inversion<4>(generator, distribution, u_, {5, 5, 4, 4});
+  }
+}
+
+TEST_CASE("mass matrices and inverses on 'flat' meshes", "[TensorMassMatrix]") {
+  const std::size_t ndof = 36;
+  const std::size_t l = 2;
+  std::vector<float> u_(ndof);
+  std::vector<float> expected_(ndof);
+  std::vector<float> obtained_(ndof);
+  float *const u = u_.data();
+  float *const expected = expected_.data();
+  float *const obtained = obtained_.data();
+  std::iota(u, u + ndof, 0);
+  {
+    const mgard::TensorMeshHierarchy<3, float> hierarchy({3, 3, 4});
+    const mgard::TensorMassMatrix<3, float> M(hierarchy, l);
+    std::copy(u, u + ndof, expected);
+    M(expected);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<4, float> hierarchy({3, 3, 1, 4});
+    const mgard::TensorMassMatrix<4, float> M(hierarchy, l);
+    std::copy(u, u + ndof, obtained);
+    M(obtained);
+
+    REQUIRE(obtained_ == expected_);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<7, float> hierarchy({1, 1, 3, 1, 3, 4, 1});
+    const mgard::TensorMassMatrix<7, float> M(hierarchy, l);
+    std::copy(u, u + ndof, obtained);
+    M(obtained);
+
+    REQUIRE(obtained_ == expected_);
   }
 }

@@ -2,6 +2,7 @@
 #include "catch2/catch_test_macros.hpp"
 
 #include <array>
+#include <numeric>
 
 #include "testing_random.hpp"
 #include "testing_utilities.hpp"
@@ -232,5 +233,41 @@ TEST_CASE("tensor product restrictions", "[TensorRestriction]") {
     test_tensor_projection_identity<2, double>(generator, {45, 65});
     test_tensor_projection_identity<3, float>(generator, {36, 10, 27});
     test_tensor_projection_identity<4, double>(generator, {9, 19, 6, 8});
+  }
+}
+
+TEST_CASE("restrictions on 'flat' meshes", "[TensorRestriction]") {
+  const std::size_t ndof = 90;
+  const std::size_t l = 2;
+  std::vector<float> u_(ndof);
+  std::vector<float> expected_(ndof);
+  std::vector<float> obtained_(ndof);
+  float *const u = u_.data();
+  float *const expected = expected_.data();
+  float *const obtained = obtained_.data();
+  std::iota(u, u + ndof, 0);
+  {
+    const mgard::TensorMeshHierarchy<2, float> hierarchy({10, 9});
+    const mgard::TensorRestriction<2, float> R(hierarchy, l);
+    std::copy(u, u + ndof, expected);
+    R(expected);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<4, float> hierarchy({10, 1, 1, 9});
+    const mgard::TensorRestriction<4, float> R(hierarchy, l);
+    std::copy(u, u + ndof, obtained);
+    R(obtained);
+
+    REQUIRE(obtained_ == expected_);
+  }
+
+  {
+    const mgard::TensorMeshHierarchy<5, float> hierarchy({1, 1, 1, 10, 9});
+    const mgard::TensorRestriction<5, float> R(hierarchy, l);
+    std::copy(u, u + ndof, obtained);
+    R(obtained);
+
+    REQUIRE(obtained_ == expected_);
   }
 }

@@ -18,7 +18,7 @@ public:
   //! Constructor.
   //!
   //!\param meshes Meshes of the hierarchy, from coarsest to finest.
-  UniformMeshHierarchy(const std::vector<MeshLevel> &meshes);
+  explicit UniformMeshHierarchy(const std::vector<MeshLevel> &meshes);
 
   //! Constructor.
   //!

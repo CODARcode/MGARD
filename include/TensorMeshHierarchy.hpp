@@ -21,7 +21,7 @@ public:
   //! Constructor.
   //!
   //!\param shape Shape of the initial, finest mesh to sit atop the hiearachy.
-  TensorMeshHierarchy(const std::array<std::size_t, N> &shape);
+  explicit TensorMeshHierarchy(const std::array<std::size_t, N> &shape);
 
   //! Constructor.
   //!

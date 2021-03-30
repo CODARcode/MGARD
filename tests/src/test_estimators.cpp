@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 
+#include <algorithm>
 #include <random>
 #include <string>
 #include <vector>
@@ -41,7 +42,7 @@ TEST_CASE("comparison with Python implementation: estimators", "[estimators]") {
     mbcore.get_coords(&node, 1, xyz);
     const double x = xyz[0];
     const double y = xyz[1];
-    const double z = xyz[2];
+    [[maybe_unused]] const double z = xyz[2];
     assert(z == 0);
     u_.at(i) =
         std::sin(10 * x - 15 * y) + 2 * std::exp(-1 / (1 + x * x + y * y));
@@ -87,15 +88,15 @@ TEST_CASE("estimators should track norms", "[estimators]") {
   std::random_device device;
   std::default_random_engine generator(device());
   std::uniform_real_distribution<double> distribution(-1, 1);
-  for (double &value : u_) {
-    value = distribution(generator);
-  }
+
+  std::generate(u_.begin(), u_.end(),
+                [&]() -> double { return distribution(generator); });
   const mgard::NodalCoefficients<double> u_nc(u_.data());
 
-  std::vector<double> norms;
-  for (const float s : smoothness_parameters) {
-    norms.push_back(mgard::norm(u_nc, hierarchy, s));
-  }
+  std::vector<double> norms(smoothness_parameters.size());
+  std::transform(
+      smoothness_parameters.begin(), smoothness_parameters.end(), norms.begin(),
+      [&](const float s) -> float { return mgard::norm(u_nc, hierarchy, s); });
 
   const mgard::MultilevelCoefficients u_mc = hierarchy.decompose(u_nc);
   const mgard::RatioBounds factors =
