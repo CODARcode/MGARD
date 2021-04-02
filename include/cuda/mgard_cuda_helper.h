@@ -1,12 +1,20 @@
-#include "mgard_cuda_common.h"
+/*
+ * Copyright 2021, Oak Ridge National Laboratory.
+ * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * Author: Jieyang Chen (chenj3@ornl.gov)
+ * Date: April 2, 2021
+ */
+
+#ifndef MGARD_CUDA_HELPER
+#define MGARD_CUDA_HELPER
+
+#include "cuda/mgard_cuda_common_internal.h"
+
 #include <string>
 
 namespace mgard_cuda {
 
-#ifndef COPY_TYPE
-#define COPY_TYPE
 enum copy_type { H2D, D2H, D2D };
-#endif
 
 template <typename T> void print_matrix(int nrow, int ncol, T *v, int ldv);
 template <typename T>
@@ -32,11 +40,12 @@ bool compare_matrix_cuda(int nrow, int ncol, int nfib, T *dv1, int lddv11,
                          int sizex2, bool print_matrix);
 
 template <typename T>
-void verify_matrix(int nrow, int ncol, int nfib, T *v, int ldv1, int ldv2, std::string file_prefix, bool store, bool verify);
+void verify_matrix(int nrow, int ncol, int nfib, T *v, int ldv1, int ldv2,
+                   std::string file_prefix, bool store, bool verify);
 template <typename T>
 void verify_matrix_cuda(int nrow, int ncol, int nfib, T *dv, int lddv1,
-                       int lddv2, int sizex, std::string file_prefix,
-                       bool store, bool verify);
+                        int lddv2, int sizex, std::string file_prefix,
+                        bool store, bool verify);
 
 void cudaMallocHelper(void **devPtr, size_t size);
 void cudaMallocPitchHelper(void **devPtr, size_t *pitch, size_t width,
@@ -74,15 +83,18 @@ void cudaMemset3DHelper(void *devPtr, size_t pitch, size_t dwidth,
 void cudaSetDeviceHelper(int dev_id);
 
 template <typename T, int D>
-void cudaMemcpyPeerAsyncHelper(mgard_cuda_handle<T, D> &handle, void *dst, int dst_dev,
-                           const void *src, int src_dev, size_t count,
-                           int queue_idx);
+void cudaMemcpyPeerAsyncHelper(mgard_cuda_handle<T, D> &handle, void *dst,
+                               int dst_dev, const void *src, int src_dev,
+                               size_t count, int queue_idx);
 
 template <typename T, int D>
-void cudaMemcpy3DPeerAsyncHelper(mgard_cuda_handle<T, D> &handle, void *dst, int dst_dev,
-                             size_t dpitch, size_t dwidth, size_t dheight,
-                             void *src, int src_dev, size_t spitch, size_t swidth,
-                             size_t sheight, size_t width, size_t height,
-                             size_t depth, int queue_idx);
-bool isGPUPointer(void * ptr);
+void cudaMemcpy3DPeerAsyncHelper(mgard_cuda_handle<T, D> &handle, void *dst,
+                                 int dst_dev, size_t dpitch, size_t dwidth,
+                                 size_t dheight, void *src, int src_dev,
+                                 size_t spitch, size_t swidth, size_t sheight,
+                                 size_t width, size_t height, size_t depth,
+                                 int queue_idx);
+bool isGPUPointer(void *ptr);
 } // namespace mgard_cuda
+
+#endif

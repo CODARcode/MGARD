@@ -89,8 +89,6 @@ if(MGARD_ENABLE_CUDA)
       src/cuda/mgard_cuda_common_internal.cu    
       src/cuda/mgard_cuda_precompute_kernels.cu  
       src/cuda/mgard_cuda_data_refactoring.cu   
-      # src/cuda/mgard_cuda_grid_processing_kernels.cu           
-      # src/cuda/mgard_cuda_linear_processing_kernels.cu
       src/cuda/grid_processing_kernels/interp_calc_coeff.cu
       src/cuda/grid_processing_kernels/interp_calc_coeff_3d.cu
       src/cuda/grid_processing_kernels/interpolation.cu
@@ -118,9 +116,6 @@ if(MGARD_ENABLE_CUDA)
       src/cuda/levelwise_processing_kernels/subtractlevel.cu
       src/cuda/linear_quantization/levelwise_linear_quantize.cu
       src/cuda/linear_quantization/levelwise_linear_dequantize.cu
-      # src/cuda/mgard_cuda_iterative_processing_kernels.cu
-      # src/cuda/mgard_cuda_levelwise_operators.cu   
-      # src/cuda/mgard_cuda_linear_quantize.cu 
       src/cuda/mgard_cuda_lossless.cu
       src/cuda/parallel_huffman/canonical.cu
       src/cuda/parallel_huffman/constants.cc
@@ -144,7 +139,6 @@ if(MGARD_ENABLE_CUDA)
       include/cuda/mgard_cuda_common_internal.h   
       include/cuda/mgard_cuda_precompute_kernels.h   
       include/cuda/mgard_cuda_data_refactoring.h   
-      # include/cuda/mgard_cuda_grid_processing_kernels.h        
       include/cuda/grid_processing_kernel.hpp   
       include/cuda/grid_processing_kernel.h
       include/cuda/grid_processing_kernel_3d.hpp   
@@ -161,10 +155,6 @@ if(MGARD_ENABLE_CUDA)
       include/cuda/levelwise_processing_kernel.h
       include/cuda/linear_quantization.hpp
       include/cuda/linear_quantization.h
-      # include/cuda/mgard_cuda_linear_processing_kernels.h
-      # include/cuda/mgard_cuda_iterative_processing_kernels.h
-      # include/cuda/mgard_cuda_levelwise_operators.h   
-      # include/cuda/mgard_cuda_linear_quantize.h 
       include/cuda/mgard_cuda_lossless.h
       include/cuda/parallel_huffman/canonical.cuh
       include/cuda/parallel_huffman/constants.hh
@@ -180,6 +170,9 @@ if(MGARD_ENABLE_CUDA)
       include/cuda/parallel_huffman/par_merge.cuh
       include/cuda/parallel_huffman/timer.hh
       include/cuda/parallel_huffman/types.hh)
+
+  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA")
+  SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA")
 
   set (MGARD_CUDA_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)

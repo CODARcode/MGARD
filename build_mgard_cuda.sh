@@ -17,6 +17,6 @@ cd ../../../
 rm -rf build
 mkdir build
 cd build
-cmake .. -DNVCOMP_DIR=$ROOT/external/nvcomp/build
+cmake .. -DNVCOMP_DIR=$ROOT/external/nvcomp/build -DMGARD_ENABLE_CUDA=ON
 make -j8
 

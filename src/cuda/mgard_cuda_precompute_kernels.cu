@@ -1,3 +1,10 @@
+/*
+ * Copyright 2021, Oak Ridge National Laboratory.
+ * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * Author: Jieyang Chen (chenj3@ornl.gov)
+ * Date: April 2, 2021
+ */
+
 #include "cuda/mgard_cuda_common.h"
 #include "cuda/mgard_cuda_common_internal.h"
 #include "cuda/mgard_cuda_precompute_kernels.h"
@@ -26,7 +33,7 @@ __global__ void _calc_cpt_dist(int n, T *dcoord, T *ddist) {
       // sm[blockDim.x] = dcoord[(x + blockDim.x) * stride];
       int left = n - blockIdx.x * blockDim.x;
       if (left >= blockDim.x + 1) {
-        sm[blockDim.x] = dcoord[blockDim.x+x];
+        sm[blockDim.x] = dcoord[blockDim.x + x];
       }
       // sm[min(blockDim.x, left - 1)] =
       //     dcoord[min((x + blockDim.x) * stride, n - 1)];
@@ -48,8 +55,8 @@ __global__ void _calc_cpt_dist(int n, T *dcoord, T *ddist) {
 }
 
 template <typename T, int D>
-void calc_cpt_dist(mgard_cuda_handle<T, D> &handle, int n,
-                   T *dcoord, T *ddist, int queue_idx) {
+void calc_cpt_dist(mgard_cuda_handle<T, D> &handle, int n, T *dcoord, T *ddist,
+                   int queue_idx) {
 
   int total_thread_x = std::max(n, 1);
   int total_thread_y = 1;
@@ -61,19 +68,17 @@ void calc_cpt_dist(mgard_cuda_handle<T, D> &handle, int n,
   dim3 blockPerGrid(gridx, gridy);
   size_t sm_size = (tbx + 1) * sizeof(T);
 
-  //printf("sm %d (%d %d) (%d %d)\n", sm_size, tbx, tby, gridx, gridy);
+  // printf("sm %d (%d %d) (%d %d)\n", sm_size, tbx, tby, gridx, gridy);
   _calc_cpt_dist<<<blockPerGrid, threadsPerBlock, sm_size,
-                   *(cudaStream_t *)handle.get(queue_idx)>>>(n,
-                                                             dcoord, ddist);
+                   *(cudaStream_t *)handle.get(queue_idx)>>>(n, dcoord, ddist);
   gpuErrchk(cudaGetLastError());
 #ifdef MGARD_CUDA_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
 
-
 template <typename T>
-__global__ void _reduce_two_dist(int n, T *ddist, T *ddist_reduced){
+__global__ void _reduce_two_dist(int n, T *ddist, T *ddist_reduced) {
   int x_gl = blockIdx.x * blockDim.x + threadIdx.x;
   int x_sm = threadIdx.x;
   T *sm = SharedMemory<T>();
@@ -83,18 +88,20 @@ __global__ void _reduce_two_dist(int n, T *ddist, T *ddist_reduced){
     __syncthreads();
     if (x_gl % 2 == 0) {
       ddist_reduced[x_gl / 2] = sm[x_sm] + sm[x_sm + 1];
-      // printf("thread %d compute %f + %f -> [%d]%f\n", x_gl, sm[x_sm], sm[x_sm+1], x_gl / 2, ddist_reduced[x_gl / 2]);
+      // printf("thread %d compute %f + %f -> [%d]%f\n", x_gl, sm[x_sm],
+      // sm[x_sm+1], x_gl / 2, ddist_reduced[x_gl / 2]);
     }
     // __syncthreads();
     // if (x_gl % 2 == 0) {
-    //   dratio[x_gl / 2] = ddist_reduced[x_gl / 2] / (ddist_reduced[x_gl / 2] + ddist_reduced[x_gl / 2 + 1]);
+    //   dratio[x_gl / 2] = ddist_reduced[x_gl / 2] / (ddist_reduced[x_gl / 2] +
+    //   ddist_reduced[x_gl / 2 + 1]);
     // }
   }
 }
 
-
 template <typename T, int D>
-void reduce_two_dist(mgard_cuda_handle<T, D> &handle, int n, T *ddist, T *ddist_reduced, int queue_idx) {
+void reduce_two_dist(mgard_cuda_handle<T, D> &handle, int n, T *ddist,
+                     T *ddist_reduced, int queue_idx) {
 
   int total_thread_x = std::max(n, 1);
   int total_thread_y = 1;
@@ -108,17 +115,16 @@ void reduce_two_dist(mgard_cuda_handle<T, D> &handle, int n, T *ddist, T *ddist_
   // printf("reduce_two_dist: n: %d\n", n);
   // printf("sm %d (%d %d) (%d %d)\n", sm_size, tbx, tby, gridx, gridy);
   _reduce_two_dist<<<blockPerGrid, threadsPerBlock, sm_size,
-                   *(cudaStream_t *)handle.get(queue_idx)>>>(n, ddist, ddist_reduced);
+                     *(cudaStream_t *)handle.get(queue_idx)>>>(n, ddist,
+                                                               ddist_reduced);
   gpuErrchk(cudaGetLastError());
 #ifdef MGARD_CUDA_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
 
-
-
 template <typename T>
-__global__ void _dist_to_ratio(int n, T *ddist, T *dratio){
+__global__ void _dist_to_ratio(int n, T *ddist, T *dratio) {
 
   T *sm = SharedMemory<T>();
 
@@ -130,7 +136,7 @@ __global__ void _dist_to_ratio(int n, T *ddist, T *dratio){
     if (x_sm == 0) {
       int left = n - blockIdx.x * blockDim.x;
       if (left >= blockDim.x + 1) {
-        sm[blockDim.x] = ddist[blockDim.x+x];
+        sm[blockDim.x] = ddist[blockDim.x + x];
       }
       // if (blockIdx.x == 1) {
       //   for (int i = 0; i < blockDim.x + 1; i++) {
@@ -143,15 +149,15 @@ __global__ void _dist_to_ratio(int n, T *ddist, T *dratio){
   __syncthreads();
   // Compute distance
   if (x < n - 1) {
-    dratio[x] = sm[x_sm] / (sm[x_sm] + sm[x_sm+1]);
+    dratio[x] = sm[x_sm] / (sm[x_sm] + sm[x_sm + 1]);
     // if (blockIdx.x == 1) {
     // printf("x(%d) %f %f %f\n", x, dratio[x], sm[x_sm],sm[x_sm+1]);}
   }
 }
 
-
 template <typename T, int D>
-void dist_to_ratio(mgard_cuda_handle<T, D> &handle, int n, T *ddist, T *dratio, int queue_idx) {
+void dist_to_ratio(mgard_cuda_handle<T, D> &handle, int n, T *ddist, T *dratio,
+                   int queue_idx) {
 
   int total_thread_x = std::max(n, 1);
   int total_thread_y = 1;
@@ -161,7 +167,7 @@ void dist_to_ratio(mgard_cuda_handle<T, D> &handle, int n, T *ddist, T *dratio, 
   int gridy = ceil((float)total_thread_y / tby);
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
-  size_t sm_size = (tbx+1) * sizeof(T);
+  size_t sm_size = (tbx + 1) * sizeof(T);
   // printf("reduce_two_dist: n: %d\n", n);
   // printf("sm %d (%d %d) (%d %d)\n", sm_size, tbx, tby, gridx, gridy);
   _dist_to_ratio<<<blockPerGrid, threadsPerBlock, sm_size,
@@ -171,7 +177,6 @@ void dist_to_ratio(mgard_cuda_handle<T, D> &handle, int n, T *ddist, T *dratio, 
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
-
 
 template <typename T>
 __global__ void _calc_cpt_dist_ratio(int n, T *dcoord, T *dratio) {
@@ -195,8 +200,8 @@ __global__ void _calc_cpt_dist_ratio(int n, T *dcoord, T *dratio) {
       int left = n - blockIdx.x * blockDim.x;
       if (left >= blockDim.x + 2) {
         sm[blockDim.x] = dcoord[x + blockDim.x];
-        sm[blockDim.x+1] = dcoord[x + blockDim.x+1];
-      } 
+        sm[blockDim.x + 1] = dcoord[x + blockDim.x + 1];
+      }
       // else {
       // sm[min(blockDim.x, left)] =
       //     dcoord[min((x + blockDim.x) * stride, n - 1)];
@@ -215,11 +220,12 @@ __global__ void _calc_cpt_dist_ratio(int n, T *dcoord, T *dratio) {
 
     // Compute distance
     if (x < n - 2) {
-      dist1 = _get_dist(sm, x0_sm,     x0_sm + 1);
+      dist1 = _get_dist(sm, x0_sm, x0_sm + 1);
       dist2 = _get_dist(sm, x0_sm + 1, x0_sm + 2);
-      dratio[x] = dist1 / (dist1 + dist2); 
+      dratio[x] = dist1 / (dist1 + dist2);
       if (blockIdx.x == 0) {
-      // printf("ratio(%d) %f = %f / (%f+%f)\n", x, dratio[x], dist1, dist1, dist2);
+        // printf("ratio(%d) %f = %f / (%f+%f)\n", x, dratio[x], dist1, dist1,
+        // dist2);
       }
     }
     __syncthreads();
@@ -227,8 +233,8 @@ __global__ void _calc_cpt_dist_ratio(int n, T *dcoord, T *dratio) {
 }
 
 template <typename T, int D>
-void calc_cpt_dist_ratio(mgard_cuda_handle<T, D> &handle, int n,
-                   T *dcoord, T *dratio, int queue_idx) {
+void calc_cpt_dist_ratio(mgard_cuda_handle<T, D> &handle, int n, T *dcoord,
+                         T *dratio, int queue_idx) {
 
   int total_thread_x = std::max(n, 1);
   int total_thread_y = 1;
@@ -242,17 +248,13 @@ void calc_cpt_dist_ratio(mgard_cuda_handle<T, D> &handle, int n,
   // printf("tbx: %d gridx: %d\n", tbx, gridx);
   size_t sm_size = (tbx + 2) * sizeof(T);
   _calc_cpt_dist_ratio<<<blockPerGrid, threadsPerBlock, sm_size,
-                   *(cudaStream_t *)handle.get(queue_idx)>>>(n,
-                                                             dcoord, dratio);
+                         *(cudaStream_t *)handle.get(queue_idx)>>>(n, dcoord,
+                                                                   dratio);
   gpuErrchk(cudaGetLastError());
 #ifdef MGARD_CUDA_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
-
-  
 }
-
-
 
 template <typename T>
 __global__ void _calc_am_bm(int n, T *ddist, T *am, T *bm) {
@@ -333,8 +335,6 @@ __global__ void _calc_am_bm(int n, T *ddist, T *am, T *bm) {
     am[c] = am_sm[c_sm];
     bm[c] = bm_sm[c_sm];
 #endif
-    
-
   }
 }
 
@@ -359,33 +359,30 @@ void calc_am_bm(mgard_cuda_handle<T, D> &handle, int n, T *ddist, T *am, T *bm,
 #endif
 }
 
+#define KERNELS(T, D)                                                          \
+  template void calc_cpt_dist(mgard_cuda_handle<T, D> &handle, int n,          \
+                              T *dcoord, T *ddist, int queue_idx);             \
+  template void reduce_two_dist<T, D>(mgard_cuda_handle<T, D> & handle, int n, \
+                                      T *ddist, T *ddist_reduced,              \
+                                      int queue_idx);                          \
+  template void calc_cpt_dist_ratio<T, D>(mgard_cuda_handle<T, D> & handle,    \
+                                          int nrow, T *dcoord, T *dratio,      \
+                                          int queue_idx);                      \
+  template void dist_to_ratio<T, D>(mgard_cuda_handle<T, D> & handle, int n,   \
+                                    T *ddist, T *dratio, int queue_idx);       \
+  template void calc_am_bm<T, D>(mgard_cuda_handle<T, D> & handle, int n,      \
+                                 T *ddist, T *am, T *bm, int queue_idx);
 
-#define KERNELS(T, D) \
-                template void calc_cpt_dist(\
-                mgard_cuda_handle<T, D> &handle,\
-                int n, T *dcoord, T *ddist, int queue_idx);\
-                template void reduce_two_dist<T, D>(\
-                mgard_cuda_handle<T, D> &handle,\
-                int n, T *ddist, T *ddist_reduced, int queue_idx);\
-                template void calc_cpt_dist_ratio<T, D>(\
-                mgard_cuda_handle<T, D> &handle,\
-                int nrow, T *dcoord, T *dratio, int queue_idx);\
-                template void dist_to_ratio<T, D>(mgard_cuda_handle<T, D> &handle,\
-                int n, T *ddist, T *dratio, int queue_idx);\
-                template void calc_am_bm<T, D>(\
-                mgard_cuda_handle<T, D> &handle, int n,\
-                T *ddist, T *am, T *bm, int queue_idx);
-      
 KERNELS(double, 1)
-KERNELS(float,  1)
+KERNELS(float, 1)
 KERNELS(double, 2)
-KERNELS(float,  2)
+KERNELS(float, 2)
 KERNELS(double, 3)
-KERNELS(float,  3)
+KERNELS(float, 3)
 KERNELS(double, 4)
-KERNELS(float,  4)
+KERNELS(float, 4)
 KERNELS(double, 5)
-KERNELS(float,  5)
+KERNELS(float, 5)
 #undef KERNELS
 
-}//end namespace
+} // namespace mgard_cuda
