@@ -1,43 +1,16 @@
-// Copyright 2017, Brown University, Providence, RI.
-//
-//                         All Rights Reserved
-//
-// Permission to use, copy, modify, and distribute this software and
-// its documentation for any purpose other than its incorporation into a
-// commercial product or service is hereby granted without fee, provided
-// that the above copyright notice appear in all copies and that both
-// that copyright notice and this permission notice appear in supporting
-// documentation, and that the name of Brown University not be used in
-// advertising or publicity pertaining to distribution of the software
-// without specific, written prior permission.
-//
-// BROWN UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
-// INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY
-// PARTICULAR PURPOSE.  IN NO EVENT SHALL BROWN UNIVERSITY BE LIABLE FOR
-// ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-// WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-// ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-// OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-//
-//
-// MGARD: MultiGrid Adaptive Reduction of Data
-// Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney
-// Corresponding Author: Ozan Tugluk
-//
-// version: 0.0.0.1
-//
-// This file is part of MGARD.
-//
-// MGARD is distributed under the OSI-approved Apache License, Version 2.0.
-// See accompanying file Copyright.txt for details.
-//
+/*
+ * Copyright 2021, Oak Ridge National Laboratory.
+ * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * Author: Jieyang Chen (chenj3@ornl.gov)
+ * Date: April 2, 2021
+ */
 
+#include <chrono>
+#include <fstream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fstream>
-#include <chrono>
 
 #include "mgard_api_cuda.h"
 
@@ -92,8 +65,8 @@ int main(int argc, char *argv[]) {
   int D = atoi(argv[i++]);
   printf(" shape: %d ( ", D);
   for (int d = 0; d < D; d++) {
-    shape.push_back( atoi(argv[i++]));
-    printf("%d ", shape[shape.size()-1]);
+    shape.push_back(atoi(argv[i++]));
+    printf("%d ", shape[shape.size() - 1]);
   }
   printf(")\n");
   tol = atof(argv[i++]);
@@ -103,12 +76,13 @@ int main(int argc, char *argv[]) {
   opt = atoi(argv[i++]);
   printf("Optimization: %d\n", opt);
 
-
   long lSize;
   long num_floats;
 
   num_floats = 1;
-  for (int d = 0; d < shape.size(); d++) { num_floats *= shape[d]; }
+  for (int d = 0; d < shape.size(); d++) {
+    num_floats *= shape[d];
+  }
   long num_bytes = sizeof(float) * num_floats;
   lSize = num_bytes;
 
@@ -127,9 +101,8 @@ int main(int argc, char *argv[]) {
       in_buff[i] = rand() % 10 + 1;
     }
     // printf("num_floats %d\n", num_floats);
-    
-    fprintf(stdout,
-            "Done Generating data.\n");
+
+    fprintf(stdout, "Done Generating data.\n");
   } else {
     fprintf(stdout, "Loading file: %s\n", infile);
     FILE *pFile;
@@ -173,26 +146,25 @@ int main(int argc, char *argv[]) {
 
   printf("Start compressing and decompressing with GPU\n");
   if (D == 1) {
-    mgard_cuda_handle<float, 1> handle(shape);
-    mgard_comp_buff = mgard_compress_cuda(handle, in_buff, out_size, tol, s);
-    mgard_out_buff = mgard_decompress_cuda(handle, mgard_comp_buff, out_size);
+    mgard::mgard_cuda_handle<float, 1> handle(shape);
+    mgard_comp_buff = mgard::compress_cuda(handle, in_buff, out_size, tol, s);
+    mgard_out_buff = mgard::decompress_cuda(handle, mgard_comp_buff, out_size);
   } else if (D == 2) {
     mgard_cuda_handle<float, 2> handle(shape);
-    mgard_comp_buff = mgard_compress_cuda(handle, in_buff, out_size, tol, s);
-    mgard_out_buff = mgard_decompress_cuda(handle, mgard_comp_buff, out_size);
+    mgard_comp_buff = mgard::compress_cuda(handle, in_buff, out_size, tol, s);
+    mgard_out_buff = mgard::decompress_cuda(handle, mgard_comp_buff, out_size);
   } else if (D == 3) {
     mgard_cuda_handle<float, 3> handle(shape);
-    mgard_comp_buff = mgard_compress_cuda(handle, in_buff, out_size, tol, s);
-    mgard_out_buff = mgard_decompress_cuda(handle, mgard_comp_buff, out_size);
+    mgard_comp_buff = mgard::compress_cuda(handle, in_buff, out_size, tol, s);
+    mgard_out_buff = mgard::decompress_cuda(handle, mgard_comp_buff, out_size);
   } else if (D == 4) {
-   mgard_cuda_handle<float, 4> handle(shape);
-    mgard_comp_buff = mgard_compress_cuda(handle, in_buff, out_size, tol, s);
-    mgard_out_buff = mgard_decompress_cuda(handle, mgard_comp_buff, out_size);
+    mgard_cuda_handle<float, 4> handle(shape);
+    mgard_comp_buff = mgard::compress_cuda(handle, in_buff, out_size, tol, s);
+    mgard_out_buff = mgard::decompress_cuda(handle, mgard_comp_buff, out_size);
   }
 
-
-  printf("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n",
-           lSize, out_size, lSize / out_size);
+  printf("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize,
+         out_size, lSize / out_size);
 
   // FILE *qfile;
   // qfile = fopen ( outfile , "wb" );
@@ -207,10 +179,11 @@ int main(int argc, char *argv[]) {
     if (temp > error_L_inf_norm)
       error_L_inf_norm = temp;
     if (temp / data_L_inf_norm >= tol && error_count) {
-      printf("not bounded: buffer[%d]: %f vs. mgard_out_buff[%d]: %f \n", i, in_buff[i], i, mgard_out_buff[i]);
-      error_count --;
+      printf("not bounded: buffer[%d]: %f vs. mgard_out_buff[%d]: %f \n", i,
+             in_buff[i], i, mgard_out_buff[i]);
+      error_count--;
     }
-    sum += temp* temp;
+    sum += temp * temp;
   }
 
   mgard_cuda::cudaFreeHostHelper(in_buff);
@@ -232,7 +205,4 @@ int main(int argc, char *argv[]) {
     printf(ANSI_RED "FAILURE: Error tolerance NOT met!" ANSI_RESET "\n");
     return -1;
   }
-
-
-
 }

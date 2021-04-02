@@ -12,33 +12,33 @@
 
 #ifndef MGARD_API_CUDA_H
 #define MGARD_API_CUDA_H
-//!\file
-//!\brief Compression and decompression API.
 
-//! Compress a function on an equispaced 3D tensor product grid while
+namespace mgard {
+//! Compression with GPU
 //! controlling the error as measured in the \f$ L^{\infty} \f$ norm.
-//!
 //!\param[in] handle mgard_cuda_handle type for storing precomputed variable to
-//! help speedup compression. \param[in] data Dataset to be compressed.
+//! help speeding up compression. 
+//!\param[in] data Dataset to be compressed.
 //!\param[out] out_size Size in bytes of the compressed dataset.
 //!\param[in] tol Relative error tolerance.
+//!\param[in] s Smoothness parameter to use in compressing the function.
 //!
 //!\return Compressed dataset.
-template <typename T, int D>
-unsigned char *mgard_compress_cuda(mgard_cuda_handle<T, D> &handle, T *v,
-                                   size_t &out_size, T tol, T s);
+template <typename Real, int N>
+unsigned char * compress_cuda(mgard_cuda_handle<Real, N> &handle, Real *v,
+                                   size_t &out_size, Real tol, Real s);
 
-//! Decompress a function on an equispaced 3D tensor product grid which was
-//! compressed while controlling the error as measured in the \f$ L^{\infty} \f$
-//! norm.
-//!
+//! Decompression with GPU
 //!\param[in] handle mgard_cuda_handle type for storing precomputed variable to
-//! help speedup decompression. \param[in] data Compressed dataset. \param[in]
+//! help speeding up decompression. 
+//!\param[in] data Compressed dataset. 
+//!\param[in]
 //! data_len Size in bytes of the compressed dataset.
 //!
 //!\return Decompressed dataset.
-template <typename T, int D>
-T *mgard_decompress_cuda(mgard_cuda_handle<T, D> &handle, unsigned char *data,
+template <typename Real, int N>
+Real * decompress_cuda(mgard_cuda_handle<Real, N> &handle, unsigned char *data,
                          size_t data_len);
 
+}
 #endif

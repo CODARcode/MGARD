@@ -1,19 +1,6 @@
 #ifndef INTERNAL_CONST_HH
 #define INTERNAL_CONST_HH
 
-/**
- * @file constants.hh
- * @author Jiannan Tian
- * @brief Internal constants (header).
- * @version 0.1
- * @date 2020-09-20
- * Created on: 2019-06-08
- *
- * @copyright (C) 2020 by Washington State University, The University of Alabama, Argonne National Laboratory
- * See LICENSE in top-level directory
- *
- */
-
 #include <cstddef>
 
 // dims_L16
