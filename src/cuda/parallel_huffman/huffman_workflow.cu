@@ -286,8 +286,8 @@ void HuffmanEncode(mgard_cuda_handle<T, D> &handle, S *dqv, size_t n,
   // printf("huffman encode time: %.6f s\n", time_span.count());
 
   // out_meta: |outlier count|outlier idx|outlier data|primary count|dict
-  // size|chunk size|huffmeta size|huffmeta|decodebook size|decodebook| out_data:
-  // |huffman data|
+  // size|chunk size|huffmeta size|huffmeta|decodebook size|decodebook|
+  // out_data: |huffman data|
 
   t1 = high_resolution_clock::now();
   dmeta_size = // sizeof(size_t) + outlier_count * sizeof(size_t) +
