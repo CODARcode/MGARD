@@ -528,7 +528,8 @@ T *recompose_udq_cuda(mgard_cuda_handle<T, D> &handle, unsigned char *data,
   // handle.sync_all();
   // end = high_resolution_clock::now();
   // time_span = duration_cast<duration<double>>(end - start);
-  // printf("Overall decompression time: %.6f s (%.6f GB/s)\n", time_span.count(),
+  // printf("Overall decompression time: %.6f s (%.6f GB/s)\n",
+  // time_span.count(),
   //        (double)(handle.dofs[0][0] * handle.dofs[1][0] *
   //                 handle.linearized_depth * sizeof(T)) /
   //            time_span.count() / 1e9);
