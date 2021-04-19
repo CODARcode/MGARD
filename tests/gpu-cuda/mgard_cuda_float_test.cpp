@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mgard_api_cuda.h"
+#include "mgard/mgard_api.h"
 
 #define ANSI_RED "\x1b[31m"
 #define ANSI_GREEN "\x1b[32m"
@@ -22,37 +22,23 @@ using namespace std::chrono;
 
 void print_usage_message(char *argv[], FILE *fp) {
   fprintf(fp,
-          "Usage: %s infile nrow ncol nfib tolerance opt (-1: CPU; 0: CUDA, 1: "
-          "CUDA-optimized)\n",
+          "Usage: %s [input file] [num. of dimensions] [1st dim.] [2nd dim.] [3rd. dim] ... [tolerance] [s]\n",
           argv[0]);
 }
 
-void print_for_more_details_message(char *argv[], FILE *fp) {
-  fprintf(fp, "\nFor more details, run: %s --help\n", argv[0]);
-}
-
-void print_help_message(char *argv[], FILE *fp) {
-  fprintf(fp, "\nThe input file `infile` should contain a "
-              "float[`nrow`][`ncol`][`nfib`] array.\n"
-              "The array will be compressed so that the error as measured in "
-              "the H^`s` norm is\n"
-              "no more than `tolerance`. \n");
-}
 
 int main(int argc, char *argv[]) {
   size_t result;
 
   if (argc == 2 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h"))) {
     print_usage_message(argv, stdout);
-    print_help_message(argv, stdout);
     return 0;
   }
 
   int data_srouce; // 0: generate random data; 1: input file
-  char *infile, *outfile;
-  int nrow, ncol, nfib, opt, B = 16, num_of_queues = 32;
+  char *infile;//, *outfile;
   std::vector<size_t> shape;
-  float tol, s = 0;
+  double tol, s = 0;
 
   int i = 1;
   data_srouce = atoi(argv[i++]);
@@ -66,29 +52,26 @@ int main(int argc, char *argv[]) {
   printf(" shape: %d ( ", D);
   for (int d = 0; d < D; d++) {
     shape.push_back(atoi(argv[i++]));
-    printf("%d ", shape[shape.size() - 1]);
+    printf("%lu ", shape[shape.size() - 1]);
   }
   printf(")\n");
   tol = atof(argv[i++]);
   printf("Rel. error bound: %.2e ", tol);
   s = atof(argv[i++]);
   printf("S: %.2f\n", s);
-  opt = atoi(argv[i++]);
-  printf("Optimization: %d\n", opt);
-
-  long lSize;
+  size_t lSize;
   long num_floats;
 
   num_floats = 1;
-  for (int d = 0; d < shape.size(); d++) {
+  for (size_t d = 0; d < shape.size(); d++) {
     num_floats *= shape[d];
   }
-  long num_bytes = sizeof(float) * num_floats;
+  size_t num_bytes = sizeof(double) * num_floats;
   lSize = num_bytes;
 
-  float *in_buff;
+  double *in_buff;
   mgard_cuda::cudaMallocHostHelper((void **)&in_buff,
-                                   sizeof(float) * num_floats);
+                                   sizeof(double) * num_floats);
   if (in_buff == NULL) {
     fputs("Memory error", stderr);
     exit(2);
@@ -112,7 +95,7 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
     fseek(pFile, 0, SEEK_END);
-    long lSize = ftell(pFile);
+    size_t lSize = ftell(pFile);
 
     rewind(pFile);
 
@@ -133,37 +116,37 @@ int main(int argc, char *argv[]) {
     fclose(pFile);
   }
 
-  float data_L_inf_norm = 0;
+  double data_L_inf_norm = 0;
   for (int i = 0; i < num_floats; ++i) {
-    float temp = fabs(in_buff[i]);
+    double temp = fabs(in_buff[i]);
     if (temp > data_L_inf_norm)
       data_L_inf_norm = temp;
   }
 
   size_t out_size;
   unsigned char *mgard_comp_buff;
-  float *mgard_out_buff;
+  double *mgard_out_buff = NULL;
 
   printf("Start compressing and decompressing with GPU\n");
   if (D == 1) {
-    mgard::mgard_cuda_handle<float, 1> handle(shape);
-    mgard_comp_buff = mgard::compress_cuda(handle, in_buff, out_size, tol, s);
-    mgard_out_buff = mgard::decompress_cuda(handle, mgard_comp_buff, out_size);
+    mgard_cuda::mgard_cuda_handle<double, 1> handle(shape);
+    mgard_comp_buff = mgard_cuda::compress(handle, in_buff, out_size, tol, s);
+    mgard_out_buff = mgard_cuda::decompress(handle, mgard_comp_buff, out_size);
   } else if (D == 2) {
-    mgard_cuda_handle<float, 2> handle(shape);
-    mgard_comp_buff = mgard::compress_cuda(handle, in_buff, out_size, tol, s);
-    mgard_out_buff = mgard::decompress_cuda(handle, mgard_comp_buff, out_size);
+    mgard_cuda::mgard_cuda_handle<double, 2> handle(shape);
+    mgard_comp_buff = mgard_cuda::compress(handle, in_buff, out_size, tol, s);
+    mgard_out_buff = mgard_cuda::decompress(handle, mgard_comp_buff, out_size);
   } else if (D == 3) {
-    mgard_cuda_handle<float, 3> handle(shape);
-    mgard_comp_buff = mgard::compress_cuda(handle, in_buff, out_size, tol, s);
-    mgard_out_buff = mgard::decompress_cuda(handle, mgard_comp_buff, out_size);
+    mgard_cuda::mgard_cuda_handle<double, 3> handle(shape);
+    mgard_comp_buff = mgard_cuda::compress(handle, in_buff, out_size, tol, s);
+    mgard_out_buff = mgard_cuda::decompress(handle, mgard_comp_buff, out_size);
   } else if (D == 4) {
-    mgard_cuda_handle<float, 4> handle(shape);
-    mgard_comp_buff = mgard::compress_cuda(handle, in_buff, out_size, tol, s);
-    mgard_out_buff = mgard::decompress_cuda(handle, mgard_comp_buff, out_size);
+    mgard_cuda::mgard_cuda_handle<double, 4> handle(shape);
+    mgard_comp_buff = mgard_cuda::compress(handle, in_buff, out_size, tol, s);
+    mgard_out_buff = mgard_cuda::decompress(handle, mgard_comp_buff, out_size);
   }
 
-  printf("In size:  %10ld  Out size: %10d  Compression ratio: %10ld \n", lSize,
+  printf("In size:  %10ld  Out size: %10ld  Compression ratio: %10ld \n", lSize,
          out_size, lSize / out_size);
 
   // FILE *qfile;
@@ -172,10 +155,10 @@ int main(int argc, char *argv[]) {
   // fclose(qfile);
   // if (result != lSize) {fputs ("Writing error",stderr); exit (4);}
   int error_count = 100;
-  float error_L_inf_norm = 0;
-  float sum = 0;
+  double error_L_inf_norm = 0;
+  double sum = 0;
   for (int i = 0; i < num_floats; ++i) {
-    float temp = fabs(in_buff[i] - mgard_out_buff[i]);
+    double temp = fabs(in_buff[i] - mgard_out_buff[i]);
     if (temp > error_L_inf_norm)
       error_L_inf_norm = temp;
     if (temp / data_L_inf_norm >= tol && error_count) {
@@ -189,7 +172,7 @@ int main(int argc, char *argv[]) {
   mgard_cuda::cudaFreeHostHelper(in_buff);
 
   // printf("sum: %e\n", sum/num_floats);
-  float relative_L_inf_error = error_L_inf_norm / data_L_inf_norm;
+  double relative_L_inf_error = error_L_inf_norm / data_L_inf_norm;
 
   // std::ofstream fout("mgard_out.dat", std::ios::binary);
   // fout.write(reinterpret_cast<const char *>(mgard_comp_buff), out_size);

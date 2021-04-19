@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
@@ -7,6 +7,7 @@
 
 #ifndef MGRAD_CUDA_RET
 #define MGRAD_CUDA_RET
+
 struct mgard_cuda_ret {
   int info;
   double time;
@@ -16,4 +17,5 @@ struct mgard_cuda_ret {
     this->time = time;
   }
 };
+
 #endif

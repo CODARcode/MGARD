@@ -1,7 +1,7 @@
 // Copyright 2017, Brown University, Providence, RI.
 // MGARD: MultiGrid Adaptive Reduction of Data
-// Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney, Qing Liu
-// Corresponding Author: Ben Whitney, Qing Liu
+// Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney, Qing Liu, Jieyang Chen
+// Corresponding Author: Ben Whitney, Qing Liu, Jieyang Chen
 //
 // version: 0.1.0
 // See LICENSE for details.
@@ -13,6 +13,10 @@
 #include "TensorMeshHierarchy.hpp"
 
 #include <memory>
+
+#include "cuda/mgard_cuda_compression_workflow.h"
+#include "cuda/mgard_cuda_common.h"
+#include "cuda/mgard_cuda_memory_management.h"
 
 //! Implementation of the MGARD compression and decompression algorithms.
 namespace mgard {
@@ -106,6 +110,41 @@ DecompressedDataset<N, Real>
 decompress(const CompressedDataset<N, Real> &compressed);
 
 } // namespace mgard
+
+
+namespace mgard_cuda {
+
+//!\file
+//!\brief Compression and decompression API.
+
+//! Compress a function on an equispaced N-D tensor product grid while
+//! controlling the error as measured in the \f$ L^{\infty} \f$ norm.
+//!
+//!\param[in] handle mgard_cuda_handle type for storing precomputed variable to
+//! help speedup compression. \param[in] data Dataset to be compressed.
+//!\param[out] out_size Size in bytes of the compressed dataset.
+//!\param[in] tol Relative error tolerance.
+//!\param[in] s S-norm.
+//!
+//!\return Compressed dataset.
+template <typename T, int D>
+unsigned char * compress(mgard_cuda_handle<T, D> &handle, T *v,
+                                   size_t &out_size, T tol, T s);
+
+//! Decompress a function on an equispaced N-D tensor product grid which was
+//! compressed while controlling the error as measured in the \f$ L^{\infty} \f$
+//! norm.
+//!
+//!\param[in] handle mgard_cuda_handle type for storing precomputed variable to
+//! help speedup decompression. \param[in] data Compressed dataset. \param[in]
+//! data_len Size in bytes of the compressed dataset.
+//!
+//!\return Decompressed dataset.
+template <typename T, int D>
+T * decompress(mgard_cuda_handle<T, D> &handle, unsigned char *data,
+                         size_t data_len);
+
+}
 
 #include "mgard_api.tpp"
 #endif

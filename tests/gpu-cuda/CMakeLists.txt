@@ -1,15 +1,10 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.19)
 
-set(CMAKE_CXX_STANDARD 11)
-# ENABLE ADIOS2_ROOT
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 NEW)
-endif()
-
-project(mgard_cuda C CXX)
+project(mgard_cuda_example CXX)
 find_package(mgard)
-find_package(CUDA)
 
-add_executable(mgard_check_cuda_and_cpu mgard_check_cuda_and_cpu.cpp)
+add_executable(mgard_cuda_double_test mgard_cuda_double_test.cpp)
+add_executable(mgard_cuda_float_test mgard_cuda_float_test.cpp)
 
-target_link_libraries(mgard_check_cuda_and_cpu mgard::mgard-library ${CUDA_CUDART_LIBRARY} ${CUDA_cudadevrt_LIBRARY})
+target_link_libraries(mgard_cuda_double_test mgard::mgard)
+target_link_libraries(mgard_cuda_float_test mgard::mgard)

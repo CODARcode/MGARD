@@ -1,58 +1,94 @@
-##How to enable GPU acceleration in MGARD
+##Readme for MGARD-GPU
+### Supporting features
+* Double and single precision data types
+* High dimensional data (upto 4D)
+* Compression with S-norm
+* Uniform and non-uniform data
+* End-to-end high performance compression on GPUs
+* Performance pretuned for Volta and Turing GPUs 
 
 ### Hardware and software requirements
-* Supports NVIDIA GPUs: Kepler, Maxwell, Pascal, Volta, Turing, and Ampere
-* CUDA 10.0+
+* NVIDIA GPUs ( tested on Volta, Turing)
+* CUDA 11.0+
+* GCC 7.4.0+
+* CMake 3.19+
 
-### Configuration
-* Use CMake to configure:
-	* For normal use: configure with command  ```cmake <src_dir> -DMGARD_ENABLE_CUDA=ON``` to enable building the GPU acceleration part.
-	* For debugging: configure with command ```cmake <src_dir> -DMGARD_ENABLE_CUDA=ON -DMGARD_ENABLE_CUDA_DEBUG=ON``` to enable building the GPU acceleration part with code that facilitates debugging. However, it will also impact performance.
-* The CMake configuration summary will show whether or not the GPU acceleration is configured to be built.
-* Finally, build MGARD as usual with ```make```.
+### Software dependencies 
+* NVCOMP: https://github.com/NVIDIA/nvcomp.git
 
-### Running MGARD with GPU acceleration
+### Configure and build
+* **Option 1:** one-step configure and build MGARD with NVCOMP: ```build_mgard_cuda.sh```.
+* **Option 2:** manual configre and build
+	+ **Step 1:** configure and build NVCOMP.
+	+ **Step 2:** configure MGARD as follows:
 
-Note that all APIs are templated with support of both double and single precision.
+			
+			cmake -S <MGARD_SRC_DIR> -B <MGARD_BUILD_DIR>
+				  -DMGARD_ENABLE_CUDA=ON
+				  -DNVCOMP_ROOT=<NVCOMP_INSTALL_DIR> 
+			
+	+ **Step 3:** build MGARD: ```cmake --build <MGARD_BUILD_DIR> -j8```
 
-#### Header files
-* Add ```mgard_api_cuda.h``` will include all necessary APIs
+### Using MGARD-GPU APIs
 
-####Compression/Decompression routines
-* To enable decomposition/recomposition on the GPU, certain initialization steps (e.g., preprocessing and memory pre-allocation) need to be done first. However, if the input size is unchanged, those only need to be done once. So, we design GPU-based MGARD to allow separating initialization and compression/decompression. At the same time, for compatibility with the original CPU design we still provide API functions that do self-initialization so that users do not need to explicitly do initialization. Note that using these functions may lead to lower performance. We explain these two ways of using MGARD separately as follows:
 
-	* **Explicit Initialization**
-		* First, the object ```mgard_cuda_handle``` needs to be created and initialized. This initializes the necessary environment for efficient decomposition/recomposition on the GPU (e.g., preprocessing, pre-allocation, etc.). It only needs to be created once for fixed input sizes. For example, compressing on the same variable on different timesteps only needs the ```mgard_cuda_handle``` to be created once. It supports both uniform and non-uniform 2D/3D grids. 
-			* For uniform grids: ```mgard_cuda_handle(int nrow, int ncol, int nfib)```
-			* For non-uniform grids: ```mgard_cuda_handle(int nrow, int ncol, int nfib, T *coords_r, T *coords_c, T *coords_f)```
+* **Step 1**: MGARD-GPU APIs are included in both ```mgard_api.h``` and ```mgard_cuda_api.h```
 
-		* ```mgard_cuda_handle``` also exposes several performance tuning parameters, which is only optional. Even if you don't set them, it will use 'good enough' configurations (althought not guarantee the best). If you prefer to explicitly set those parameters, pass them to the ```mgard_cuda_handle``` at initialization.
-			* For uniform grids: ```mgard_cuda_handle(int nrow, int ncol, int nfib, int B, int num_of_queues,
-	                    int opt)```
-			* For non-uniform grids: ```mgard_cuda_handle(int nrow, int ncol, int nfib, T *coords_r, T *coords_c,
-	                    T *coords_f, int B, int num_of_queues, int opt)``` 
-				* ```B```: the block size used for turning each internal device kernel (range: 4 - 32)
-				* ```num_of_queues```: the concurrency in between internal device kernels (range: 1 - 32)
-				* ```opt```: 0 for unoptimized design and 1 for optimized design
-		* After a ```mgard_cuda_handle``` object is created, we can call compression/decompression routines as follows:
-			* For compression: ```
-unsigned char *mgard_compress_cuda(mgard_cuda_handle<T> &handle, T *v,
-                                   int &out_size, T tol)``` 
-          * For decompression: ```T *mgard_decompress_cuda(mgard_cuda_handle<T> &handle, unsigned char *data,
-                         int data_len)```
- * **Implicit Initialization**
- 		* For compatibility with the original CPU design, we still provide API functions that do self-initialization so that users do not need to explicitly do initialization.
-			* For compression (uniform): ```unsigned char *mgard_compress_cuda(T *data, int &out_size, int n1, int n2,
-                                   int n3, T tol)```
-       	* For decompression (uniform): ```T *mgard_decompress_cuda(unsigned char *data, int data_len, int n1, int n2,
-                         int n3)```  
-       	* For compression (non-uniform): ```unsigned char *mgard_compress_cuda(T *data, int &out_size, int n1, int n2,
-                                   int n3, std::vector<T> &coords_x,
-                                   std::vector<T> &coords_y,
-                                   std::vector<T> &coords_z, T tol)``` 
-       	* For decompression (non-uniform): ```T *mgard_decompress_cuda(unsigned char *data, int data_len, int n1, int n2,
-                         int n3, std::vector<T> &coords_x,
-                         std::vector<T> &coords_y, std::vector<T> &coords_z)```                                                   
+	+ Use ```mgard_api.h``` if the user programs are to be compiled with ***C/C++*** compilers.
+	+ Use ```mgard_cuda_api.h``` if the user programs are to be compiled with ***CUDA*** compilers.
 
-#### Example
-A comprehensive example of using MGARD with GPU acceleration is located in ```test/gpu-cuda```.
+* **Step 2**: an object ```mgard_cuda::mgard_cuda_handle``` needs to be created and initialized. This initializes the necessary environment for efficient decomposition/recomposition on the GPU. It only needs to be created once if the input shape is not changed. For example, compressing on the same variable on different timesteps only needs the handle to be created once. Also, the same handle can be shared in between compression and decompression APIs.
+
+ * For ***uniform grids***: ```mgard_cuda::mgard_cuda_handle<D_type, N_dims>(std::vector<size_t> shape)```.
+  - ```[In] D_type```: intput data type (float or double).
+  - ```[In] N_dims```: total number of dimensions (<=4)
+  - ```[In] shape```: stores the size in each dimension with the first being the leading dimension (fastest).
+ * For ***non-uniform grids***: ```mgard_cuda::mgard_cuda_handle<D_type, N_dims>(std::vector<size_t> shape, std::vector<T*> coords)```. 
+  - ```[In] coords```: the cooordinates in each dimension with the first being the leading dimension (fastest).
+* **Step 3**: calling compression/decompression routines as follows:
+  	+ For ***compression***: ```
+			unsigned char *mgard_cuda::compress(mgard_cuda_handle<D_type, N_dims> &handle, D_type *v, size_t &out_size, D_type tol, D_type s)```
+     	- ```[In] D_type *v```: input data stored in CPU memory.
+	  	- ```[Out] size_t &out_size```: compressed size in number of bytes.
+	  	- ```[In] D_type tol```: relative L_inf error bound.
+	  	- ```[In] D_type s```: S-norm.
+	  	- ```[Return]```: compressed data in CPU memory.
+  	+ For ***decompression***: ```T *mgard_cuda::decompress(mgard_cuda_handle<D_type, N_dims> &handle, unsigned char *data, size_t data_len)```    
+  		- ```[In] unsigned char *data```: compressed data stored in CPU memory.
+   		- ```[In] size_t data_len```: size of compressed data in number of bytes.
+  		- ```[Return]```: decompressed data in CPU memory.
+
+### Performance optimization
+
+* **Optimize for specific GPU architectures:** MGARD-GPU is pretuned for Volta and Turing GPUs. To enable this optimization, the follow CMake options need to be enable when during configuration:
+	+ ***For Volta GPUs:*** ```-DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=ON```
+	+ ***For Turing GPUs:*** ```-DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=ON```
+* **Optimize for fast CPU-GPU data transfer speed:** It is recommanded to use pinned memory on CPU for holding the input data such that it can enable fast CPU-GPU data transfer. To allocate pinned memory on CPU, the following API can be used:
+
+		mgard_cuda::cudaMallocHostHelper(void ** data_prt, size_t size)
+	                                      
+
+### Simple example
+The following code shows how to compress/decompress a 3D dataset. 
+
+		#include <vector>
+		#include "mgard_api.h"
+		int main() 
+		{
+			double *in_buff;
+			size_t n1 = 10;
+			size_t n2 = 20;
+			size_t n3 = 30;
+			mgard_cuda::cudaMallocHostHelper((void **)&in_buff, sizeof(double)*n1*n2*n3);
+			//... load data to in_buff
+			std::vector<size_t> shape{ n1, n2, n3 };
+			mgard_cuda::mgard_cuda_handle<double, 3> handle(shape);
+			size_t out_size;
+			double tol = 0.01, s = 0;
+		   unsigned char * mgard_comp_buff = mgard_cuda::compress(handle, in_buff, out_size, tol, s);
+		   double * mgard_out_buff = mgard_cuda::decompress(handle, mgard_comp_buff, out_size);
+		   mgard_cuda::cudaFreeHostHelper(in_buff);
+		}
+
+### Comprehensive example
+* A comprehensive example of using MGARD-GPU is located in ```test/gpu-cuda```.

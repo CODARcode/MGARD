@@ -13,14 +13,13 @@ using namespace cooperative_groups;
 
 // Helper kernels
 template <typename T>
-__global__ void GPU_FillArraySequence(T *array, unsigned int size);
+__global__ void GPU_FillArraySequence(T* array, unsigned int size);
 template <typename T>
-__global__ void GPU_GetFirstNonzeroIndex(T *array, unsigned int size,
-                                         unsigned int *result);
+__global__ void GPU_GetFirstNonzeroIndex(T* array, unsigned int size, unsigned int* result);
 template <typename T, typename Q>
-__global__ void GPU_ReorderByIndex(T *array, Q *index, unsigned int size);
+__global__ void GPU_ReorderByIndex(T* array, Q* index, unsigned int size);
 template <typename T>
-__global__ void GPU_ReverseArray(T *array, unsigned int size);
+__global__ void GPU_ReverseArray(T* array, unsigned int size);
 
 // Parallel huffman global memory and kernels
 namespace parHuff {
@@ -65,14 +64,14 @@ __global__ void GPU_GenerateCL(
 
 // Forward Codebook
 template <typename F, typename H>
-__global__ void GPU_GenerateCW(F *CL, H *CW, H *first, H *entry, int size);
-} // namespace parHuff
+__global__ void GPU_GenerateCW(F* CL, H* CW, H* first, H* entry, int size);
+}  // namespace parHuff
 
 // Thrust sort functionality implemented in separate file
-template <typename K, typename V> void SortByFreq(K *freq, V *qcode, int size);
+template <typename K, typename V>
+void SortByFreq(K* freq, V* qcode, int size);
 
 template <typename Q, typename H>
-void ParGetCodebook(int stateNum, unsigned int *freq, H *codebook,
-                    uint8_t *meta);
+void ParGetCodebook(int stateNum, unsigned int* freq, H* codebook, uint8_t* meta);
 
 #endif

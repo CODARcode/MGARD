@@ -1,12 +1,14 @@
-/*
+/* 
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
  * Date: April 2, 2021
  */
 
-#include "cuda/mgard_cuda_common_internal.h"
-#include "cuda/mgard_cuda_helper.h"
+#ifndef MGRAD_CUDA_COMPRESSION_WORKFLOW
+#define MGRAD_CUDA_COMPRESSION_WORKFLOW
+
+#include "mgard_cuda_common.h"
 
 namespace mgard_cuda {
 
@@ -19,3 +21,5 @@ T *recompose_udq_cuda(mgard_cuda_handle<T, D> &handle, unsigned char *data,
                       size_t data_len);
 
 } // namespace mgard_cuda
+
+#endif

@@ -2,7 +2,7 @@
 #include <sstream>
 #include <string>
 
-#include "cuda/parallel_huffman/format.hh"
+#include "cuda/Message.h"
 
 using std::string;
 
@@ -14,22 +14,22 @@ const string log_warn = "\e[31m[WARN]\e[0m ";
 
 // https://stackoverflow.com/a/26080768/8740097
 template <typename T>
-void huffman_gpu::log::build(std::ostream& o, T t)
+void mgard_cuda::log::build(std::ostream& o, T t)
 {
     o << t << std::endl;
 }
 
 template <typename T, typename... Args>
-void huffman_gpu::log::build(std::ostream& o, T t, Args... args)  // recursive variadic function
+void mgard_cuda::log::build(std::ostream& o, T t, Args... args)  // recursive variadic function
 {
-    huffman_gpu::log::build(o, t);
-    huffman_gpu::log::build(o, args...);
+    mgard_cuda::log::build(o, t);
+    mgard_cuda::log::build(o, args...);
 }
 
 template <typename... Args>
-void huffman_gpu::log::print(string log_head, Args... args)
+void mgard_cuda::log::print(string log_head, Args... args)
 {
     std::ostringstream oss;
-    huffman_gpu::log::build(oss, args...);
+    mgard_cuda::log::build(oss, args...);
     std::cout << log_head << oss.str();
 }

@@ -12,6 +12,16 @@ if(@ZSTD_FOUND@)
 	list(APPEND REQUIRED_VARS ZSTD_FOUND)
 endif()
 
+if(@NVCOMP_FOUND@)
+	find_dependency(NVCOMP)
+	list(APPEND REQUIRED_VARS NVCOMP_FOUND)
+endif()
+
+if(@CUDAToolkit_FOUND@)
+	find_dependency(CUDAToolkit)
+	list(APPEND REQUIRED_VARS CUDAToolkit_FOUND)
+endif()
+
 if(@MOAB_FOUND@)
 	find_dependency(MOAB)
 	list(APPEND REQUIRED_VARS MOAB_FOUND)

@@ -80,12 +80,16 @@ endif()
 
 if(MGARD_ENABLE_CUDA)
   enable_language(CUDA)
+  find_package(NVCOMP)
+  find_package(CUDAToolkit)
   set (CMAKE_CXX_STANDARD 14)
   set(MGARD_CUDA_SRC
-      src/cuda/mgard_api_cuda.cu
+      src/cuda/mgard_cuda_api.cu
+      src/cuda/Array.cu
+      src/cuda/Message.cpp
       src/cuda/mgard_cuda_compression_workflow.cu
       src/cuda/mgard_cuda_handle.cu
-      src/cuda/mgard_cuda_helper.cu                 
+      src/cuda/mgard_cuda_memory_management.cu                 
       src/cuda/mgard_cuda_common_internal.cu    
       src/cuda/mgard_cuda_precompute_kernels.cu  
       src/cuda/mgard_cuda_data_refactoring.cu   
@@ -131,10 +135,12 @@ if(MGARD_ENABLE_CUDA)
       src/cuda/parallel_huffman/types.cc)
 
   set(MGARD_CUDA_HEADER
-      include/mgard_api_cuda.h
+      include/mgard_cuda_api.h
+      include/cuda/Array.h
+      include/cuda/Message.h
       include/cuda/mgard_cuda_compression_workflow.h
       include/cuda/mgard_cuda_handle.h
-      include/cuda/mgard_cuda_helper.h                 
+      include/cuda/mgard_cuda_memory_management.h                 
       include/cuda/mgard_cuda_common.h
       include/cuda/mgard_cuda_common_internal.h   
       include/cuda/mgard_cuda_precompute_kernels.h   
@@ -204,9 +210,9 @@ if(MGARD_ENABLE_CUDA)
     set(CUDA_ARCH_STRING "70")
   endif()
 
-  message("-- NVCOMP: " ${NVCOMP_DIR}/lib/libnvcomp.so)
-  add_library( nvcomp SHARED IMPORTED GLOBAL)
-  set_target_properties( nvcomp PROPERTIES IMPORTED_LOCATION ${NVCOMP_DIR}/lib/libnvcomp.so )
+  # message("-- NVCOMP: " ${NVCOMP_DIR}/lib/libnvcomp.so)
+  # add_library( nvcomp SHARED IMPORTED GLOBAL)
+  # set_target_properties( nvcomp PROPERTIES IMPORTED_LOCATION ${NVCOMP_DIR}/lib/libnvcomp.so )
 
 endif()
 
@@ -297,7 +303,7 @@ endif()
 target_include_directories(mgard-library
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${NVCOMP_DIR}/include>
+  # $<BUILD_INTERFACE:${NVCOMP_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
@@ -310,7 +316,7 @@ if(ZSTD_FOUND)
 endif()
 
 if(MGARD_ENABLE_CUDA)
-  target_link_libraries(mgard-library PUBLIC nvcomp)
+  target_link_libraries(mgard-library PUBLIC NVCOMP::NVCOMP CUDA::cudart ${CUDAToolkit_LIBRARY_DIR}/libcudadevrt.a)
 endif()
 
 find_package(OpenMP)
@@ -410,13 +416,13 @@ else()
 endif()
 
 if(MGARD_ENABLE_CUDA)
-    add_executable(mgard_cuda_double_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_cuda_double_test.cu)
+    add_executable(mgard_cuda_double_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_cuda_double_test.cpp)
     target_link_libraries(mgard_cuda_double_test mgard-library  ${CMAKE_DL_LIBS})
-    set_target_properties(mgard_cuda_double_test PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    #set_target_properties(mgard_cuda_double_test PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     target_include_directories(mgard_cuda_double_test PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-    add_executable(mgard_cuda_float_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_cuda_float_test.cu)
+    add_executable(mgard_cuda_float_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_cuda_float_test.cpp)
     target_link_libraries(mgard_cuda_float_test mgard-library  ${CMAKE_DL_LIBS})
-    set_target_properties(mgard_cuda_float_test PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    #set_target_properties(mgard_cuda_float_test PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     target_include_directories(mgard_cuda_float_test PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 endif()
 
@@ -424,8 +430,8 @@ if(MGARD_ENABLE_CUDA)
   cmake_policy(SET CMP0104 NEW)
   cmake_policy(SET CMP0105 NEW)
   set_property(TARGET mgard-library PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
-  set_property(TARGET mgard_cuda_double_test PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
-  set_property(TARGET mgard_cuda_float_test PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
+  # set_property(TARGET mgard_cuda_double_test PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
+  # set_property(TARGET mgard_cuda_float_test PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
 endif()
 
 # Add all targets to the build-tree export set

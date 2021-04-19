@@ -1,5 +1,5 @@
-#ifndef FORMAT_HH
-#define FORMAT_HH
+#ifndef MESSGAE_HH
+#define MESSGAE_HH
 
 #include <iostream>
 #include <sstream>
@@ -13,7 +13,7 @@ extern const string log_dbg;
 extern const string log_info;
 extern const string log_warn;
 
-namespace huffman_gpu {
+namespace mgard_cuda {
 namespace log {
 
 // https://stackoverflow.com/a/26080768/8740097
