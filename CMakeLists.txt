@@ -209,11 +209,6 @@ if(MGARD_ENABLE_CUDA)
     SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_70,code=sm_70")
     set(CUDA_ARCH_STRING "70")
   endif()
-
-  # message("-- NVCOMP: " ${NVCOMP_DIR}/lib/libnvcomp.so)
-  # add_library( nvcomp SHARED IMPORTED GLOBAL)
-  # set_target_properties( nvcomp PROPERTIES IMPORTED_LOCATION ${NVCOMP_DIR}/lib/libnvcomp.so )
-
 endif()
 
 # Dependencies
@@ -303,7 +298,6 @@ endif()
 target_include_directories(mgard-library
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  # $<BUILD_INTERFACE:${NVCOMP_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
@@ -430,8 +424,6 @@ if(MGARD_ENABLE_CUDA)
   cmake_policy(SET CMP0104 NEW)
   cmake_policy(SET CMP0105 NEW)
   set_property(TARGET mgard-library PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
-  # set_property(TARGET mgard_cuda_double_test PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
-  # set_property(TARGET mgard_cuda_float_test PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
 endif()
 
 # Add all targets to the build-tree export set
