@@ -10,5 +10,6 @@ rm -rf build
 mkdir build 
 cmake -S .  -B ./build \
 	  -DCMAKE_MODULE_PATH=${mgard_src_dir}/cmake\
+	  -Dmgard_ROOT=${mgard_src_dir}/install\
 	  -DNVCOMP_ROOT=${nvcomp_build_dir}
 cmake --build ./build

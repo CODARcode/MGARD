@@ -13,11 +13,13 @@ To use MGARD,
 2. Include `mgard_api.h` in any source files making use of the API.
 3. Link against `libmgard.a` when creating your executable.
 
+MGARD also has a GPU accelerated version. See [here][gpu] for detailed instructions of MGARD-GPU.
+
 [travis]: https://travis-ci.org/CODARcode/MGARD
 [travis status]: https://travis-ci.org/CODARcode/MGARD.svg?branch=master
 [issue form]: https://github.com/CODARcode/MGARD/issues/new/choose
 [api]: include/mgard_api.h
-
+[gpu]: README_MGARD_GPU.md
 ## References
 
 The theory behind MGARD is developed in the following papers, which also address implementation issues and present numerical examples.

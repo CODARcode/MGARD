@@ -84,98 +84,98 @@ if(MGARD_ENABLE_CUDA)
   find_package(CUDAToolkit)
   set (CMAKE_CXX_STANDARD 14)
   set(MGARD_CUDA_SRC
-      src/cuda/mgard_cuda_api.cu
+      src/cuda/API.cu
       src/cuda/Array.cu
       src/cuda/Message.cpp
-      src/cuda/mgard_cuda_compression_workflow.cu
-      src/cuda/mgard_cuda_handle.cu
-      src/cuda/mgard_cuda_memory_management.cu                 
-      src/cuda/mgard_cuda_common_internal.cu    
-      src/cuda/mgard_cuda_precompute_kernels.cu  
-      src/cuda/mgard_cuda_data_refactoring.cu   
-      src/cuda/grid_processing_kernels/interp_calc_coeff.cu
-      src/cuda/grid_processing_kernels/interp_calc_coeff_3d.cu
-      src/cuda/grid_processing_kernels/interpolation.cu
-      src/cuda/grid_processing_kernels/calc_coefficients.cu
-      src/cuda/grid_processing_kernels/reorder.cu
-      src/cuda/grid_processing_kernels/interp_coeff_restore.cu
-      src/cuda/grid_processing_kernels/interp_coeff_restore_3d.cu
-      src/cuda/grid_processing_kernels/interpolation_rev.cu
-      src/cuda/grid_processing_kernels/coefficient_restore.cu
-      src/cuda/grid_processing_kernels/reorder_restore.cu
-      src/cuda/linear_processing_kernels/mass_trans_1.cu
-      src/cuda/linear_processing_kernels/mass_trans_2.cu
-      src/cuda/linear_processing_kernels/mass_trans_3.cu
-      src/cuda/linear_processing_kernels/mass_trans_1_3d.cu
-      src/cuda/linear_processing_kernels/mass_trans_2_3d.cu
-      src/cuda/linear_processing_kernels/mass_trans_3_3d.cu
-      src/cuda/iterative_processing_kernels/solve_tridiag_1.cu
-      src/cuda/iterative_processing_kernels/solve_tridiag_2.cu
-      src/cuda/iterative_processing_kernels/solve_tridiag_3.cu
-      src/cuda/iterative_processing_kernels/solve_tridiag_1_3d.cu
-      src/cuda/iterative_processing_kernels/solve_tridiag_2_3d.cu
-      src/cuda/iterative_processing_kernels/solve_tridiag_3_3d.cu
-      src/cuda/levelwise_processing_kernels/copylevel.cu
-      src/cuda/levelwise_processing_kernels/addlevel.cu
-      src/cuda/levelwise_processing_kernels/subtractlevel.cu
-      src/cuda/linear_quantization/levelwise_linear_quantize.cu
-      src/cuda/linear_quantization/levelwise_linear_dequantize.cu
-      src/cuda/mgard_cuda_lossless.cu
-      src/cuda/parallel_huffman/canonical.cu
-      src/cuda/parallel_huffman/constants.cc
-      src/cuda/parallel_huffman/cuda_mem.cu
-      src/cuda/parallel_huffman/format.cc
-      src/cuda/parallel_huffman/histogram.cu
-      src/cuda/parallel_huffman/huffman_codec.cu
-      src/cuda/parallel_huffman/huffman_workflow.cu
-      src/cuda/parallel_huffman/huffman.cu
-      src/cuda/parallel_huffman/par_huffman.cu
-      src/cuda/parallel_huffman/par_huffman_sortbyfreq.cu
-      src/cuda/parallel_huffman/par_merge.cu
-      src/cuda/parallel_huffman/types.cc)
+      src/cuda/CompressionWorkflow.cu
+      src/cuda/Handle.cu
+      src/cuda/MemoryManagement.cu                 
+      src/cuda/CommonInternal.cu    
+      src/cuda/PrecomputeKernels.cu  
+      src/cuda/DataRefactoring.cu   
+      src/cuda/GridProcessingKernels/InterpCalcCoeff.cu
+      src/cuda/GridProcessingKernels/InterpCalcCoeff_3D.cu
+      src/cuda/GridProcessingKernels/Interpolation.cu
+      src/cuda/GridProcessingKernels/CalcCoefficients.cu
+      src/cuda/GridProcessingKernels/Reorder.cu
+      src/cuda/GridProcessingKernels/InterpCoeffRestore.cu
+      src/cuda/GridProcessingKernels/InterpCoeffRestore_3D.cu
+      src/cuda/GridProcessingKernels/InterpolationRev.cu
+      src/cuda/GridProcessingKernels/CoefficientRestore.cu
+      src/cuda/GridProcessingKernels/ReorderRestore.cu
+      src/cuda/LinearProcessingKernels/MassTrans1.cu
+      src/cuda/LinearProcessingKernels/MassTrans2.cu
+      src/cuda/LinearProcessingKernels/MassTrans3.cu
+      src/cuda/LinearProcessingKernels/MassTrans1_3D.cu
+      src/cuda/LinearProcessingKernels/MassTrans2_3D.cu
+      src/cuda/LinearProcessingKernels/MassTrans3_3D.cu
+      src/cuda/IterativeProcessingKernels/SolveTridiag1.cu
+      src/cuda/IterativeProcessingKernels/SolveTridiag2.cu
+      src/cuda/IterativeProcessingKernels/SolveTridiag3.cu
+      src/cuda/IterativeProcessingKernels/SolveTridiag1_3D.cu
+      src/cuda/IterativeProcessingKernels/SolveTridiag2_3D.cu
+      src/cuda/IterativeProcessingKernels/SolveTridiag3_3D.cu
+      src/cuda/LevelwiseProcessingKernels/CopyLevel.cu
+      src/cuda/LevelwiseProcessingKernels/AddLevel.cu
+      src/cuda/LevelwiseProcessingKernels/SubtractLevel.cu
+      src/cuda/LinearQuantization/LevelwiseLinearQuantization.cu
+      src/cuda/LinearQuantization/LevelwiseLinearDequantization.cu
+      src/cuda/LosslessCompression.cu
+      src/cuda/ParallelHuffman/canonical.cu
+      src/cuda/ParallelHuffman/constants.cc
+      src/cuda/ParallelHuffman/cuda_mem.cu
+      src/cuda/ParallelHuffman/format.cc
+      src/cuda/ParallelHuffman/histogram.cu
+      src/cuda/ParallelHuffman/huffman_codec.cu
+      src/cuda/ParallelHuffman/huffman_workflow.cu
+      src/cuda/ParallelHuffman/huffman.cu
+      src/cuda/ParallelHuffman/par_huffman.cu
+      src/cuda/ParallelHuffman/par_huffman_sortbyfreq.cu
+      src/cuda/ParallelHuffman/par_merge.cu
+      src/cuda/ParallelHuffman/types.cc)
 
   set(MGARD_CUDA_HEADER
       include/mgard_cuda_api.h
       include/cuda/Array.h
       include/cuda/Message.h
-      include/cuda/mgard_cuda_compression_workflow.h
-      include/cuda/mgard_cuda_handle.h
-      include/cuda/mgard_cuda_memory_management.h                 
-      include/cuda/mgard_cuda_common.h
-      include/cuda/mgard_cuda_common_internal.h   
-      include/cuda/mgard_cuda_precompute_kernels.h   
-      include/cuda/mgard_cuda_data_refactoring.h   
-      include/cuda/grid_processing_kernel.hpp   
-      include/cuda/grid_processing_kernel.h
-      include/cuda/grid_processing_kernel_3d.hpp   
-      include/cuda/grid_processing_kernel_3d.h
-      include/cuda/linear_processing_kernel.hpp   
-      include/cuda/linear_processing_kernel.h
-      include/cuda/linear_processing_kernel_3d.hpp   
-      include/cuda/linear_processing_kernel_3d.h
-      include/cuda/iterative_processing_kernel.hpp   
-      include/cuda/iterative_processing_kernel.h
-      include/cuda/iterative_processing_kernel_3d.hpp   
-      include/cuda/iterative_processing_kernel_3d.h
-      include/cuda/levelwise_processing_kernel.hpp   
-      include/cuda/levelwise_processing_kernel.h
-      include/cuda/linear_quantization.hpp
-      include/cuda/linear_quantization.h
-      include/cuda/mgard_cuda_lossless.h
-      include/cuda/parallel_huffman/canonical.cuh
-      include/cuda/parallel_huffman/constants.hh
-      include/cuda/parallel_huffman/cuda_error_handling.cuh
-      include/cuda/parallel_huffman/cuda_mem.cuh
-      include/cuda/parallel_huffman/dbg_gpu_printing.cuh
-      include/cuda/parallel_huffman/format.hh
-      include/cuda/parallel_huffman/histogram.cuh
-      include/cuda/parallel_huffman/huffman_codec.cuh
-      include/cuda/parallel_huffman/huffman_workflow.cuh
-      include/cuda/parallel_huffman/io.hh
-      include/cuda/parallel_huffman/par_huffman.cuh
-      include/cuda/parallel_huffman/par_merge.cuh
-      include/cuda/parallel_huffman/timer.hh
-      include/cuda/parallel_huffman/types.hh)
+      include/cuda/CompressionWorkflow.h
+      include/cuda/Handle.h
+      include/cuda/MemoryManagement.h                 
+      include/cuda/Common.h
+      include/cuda/CommonInternal.h   
+      include/cuda/PrecomputeKernels.h   
+      include/cuda/DataRefactoring.h   
+      include/cuda/GridProcessingKernel.hpp   
+      include/cuda/GridProcessingKernel.h
+      include/cuda/GridProcessingKernel3D.hpp   
+      include/cuda/GridProcessingKernel3D.h
+      include/cuda/LinearProcessingKernel.hpp   
+      include/cuda/LinearProcessingKernel.h
+      include/cuda/LinearProcessingKernel3D.hpp   
+      include/cuda/LinearProcessingKernel3D.h
+      include/cuda/IterativeProcessingKernel.hpp   
+      include/cuda/IterativeProcessingKernel.h
+      include/cuda/IterativeProcessingKernel3D.hpp   
+      include/cuda/IterativeProcessingKernel3D.h
+      include/cuda/LevelwiseProcessingKernel.hpp   
+      include/cuda/LevelwiseProcessingKernel.h
+      include/cuda/LinearQuantization.hpp
+      include/cuda/LinearQuantization.h
+      include/cuda/LosslessCompression.h
+      include/cuda/ParallelHuffman/canonical.cuh
+      include/cuda/ParallelHuffman/constants.hh
+      include/cuda/ParallelHuffman/cuda_error_handling.cuh
+      include/cuda/ParallelHuffman/cuda_mem.cuh
+      include/cuda/ParallelHuffman/dbg_gpu_printing.cuh
+      include/cuda/ParallelHuffman/format.hh
+      include/cuda/ParallelHuffman/histogram.cuh
+      include/cuda/ParallelHuffman/huffman_codec.cuh
+      include/cuda/ParallelHuffman/huffman_workflow.cuh
+      include/cuda/ParallelHuffman/io.hh
+      include/cuda/ParallelHuffman/par_huffman.cuh
+      include/cuda/ParallelHuffman/par_merge.cuh
+      include/cuda/ParallelHuffman/timer.hh
+      include/cuda/ParallelHuffman/types.hh)
 
   SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA")
   SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA")
@@ -416,11 +416,11 @@ else()
 endif()
 
 if(MGARD_ENABLE_CUDA)
-    add_executable(mgard_cuda_double_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_cuda_double_test.cpp)
+    add_executable(mgard_cuda_double_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/TestDouble.cpp)
     target_link_libraries(mgard_cuda_double_test mgard-library  ${CMAKE_DL_LIBS})
     #set_target_properties(mgard_cuda_double_test PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     target_include_directories(mgard_cuda_double_test PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-    add_executable(mgard_cuda_float_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/mgard_cuda_float_test.cpp)
+    add_executable(mgard_cuda_float_test ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/TestFloat.cpp)
     target_link_libraries(mgard_cuda_float_test mgard-library  ${CMAKE_DL_LIBS})
     #set_target_properties(mgard_cuda_float_test PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     target_include_directories(mgard_cuda_float_test PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
