@@ -27,7 +27,7 @@ mgard_option(MGARD_ENABLE_CUDA "Enable Cuda support" OFF)
 
 #For performance optimization
 mgard_option(MGARD_ENABLE_CUDA_FMA "Enable Cuda support with fused multpily-add instruction" ON)
-mgard_option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" ON)
+mgard_option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" OFF)
 mgard_option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimized for Turing GPUs" OFF)
 
 #For debug only
