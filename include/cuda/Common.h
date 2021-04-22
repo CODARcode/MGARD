@@ -13,9 +13,9 @@
 #include <string>
 #include <vector>
 
+#include "Array.h"
 #include "Handle.h"
 #include "MemoryManagement.h"
 #include "Message.h"
-#include "Array.h"
 
 #endif

@@ -5,7 +5,6 @@
  * Date: April 2, 2021
  */
 
-
 #include "cuda/CommonInternal.h"
 #include <iomanip>
 #include <iostream>
