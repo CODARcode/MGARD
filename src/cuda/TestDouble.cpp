@@ -22,10 +22,10 @@ using namespace std::chrono;
 
 void print_usage_message(char *argv[], FILE *fp) {
   fprintf(fp,
-          "Usage: %s [input file] [num. of dimensions] [1st dim.] [2nd dim.] [3rd. dim] ... [tolerance] [s]\n",
+          "Usage: %s [input file] [num. of dimensions] [1st dim.] [2nd dim.] "
+          "[3rd. dim] ... [tolerance] [s]\n",
           argv[0]);
 }
-
 
 int main(int argc, char *argv[]) {
   size_t result;
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   }
 
   int data_srouce; // 0: generate random data; 1: input file
-  char *infile;//, *outfile;
+  char *infile;    //, *outfile;
   std::vector<size_t> shape;
   double tol, s = 0;
 
@@ -126,46 +126,56 @@ int main(int argc, char *argv[]) {
   size_t out_size;
   double *mgard_out_buff = NULL;
 
-  
-
   printf("Start compressing and decompressing with GPU\n");
   if (D == 1) {
     mgard_cuda::Array<double, 1> in_array(shape);
     in_array.loadData(in_buff);
     mgard_cuda::Array<double, 1> test = in_array;
     mgard_cuda::Handle<double, 1> handle(shape);
-    mgard_cuda::Array<unsigned char, 1> compressed_array = mgard_cuda::compress(handle, in_array, tol, s);
+    mgard_cuda::Array<unsigned char, 1> compressed_array =
+        mgard_cuda::compress(handle, in_array, tol, s);
     out_size = compressed_array.getShape()[0];
-    mgard_cuda::Array<double, 1> out_array = mgard_cuda::decompress(handle, compressed_array);
+    mgard_cuda::Array<double, 1> out_array =
+        mgard_cuda::decompress(handle, compressed_array);
     mgard_out_buff = new double[num_double];
-    memcpy(mgard_out_buff, out_array.getDataHost(), num_double * sizeof(double));
+    memcpy(mgard_out_buff, out_array.getDataHost(),
+           num_double * sizeof(double));
   } else if (D == 2) {
     mgard_cuda::Array<double, 2> in_array(shape);
     in_array.loadData(in_buff);
     mgard_cuda::Handle<double, 2> handle(shape);
-    mgard_cuda::Array<unsigned char, 1> compressed_array = mgard_cuda::compress(handle, in_array, tol, s);
+    mgard_cuda::Array<unsigned char, 1> compressed_array =
+        mgard_cuda::compress(handle, in_array, tol, s);
     out_size = compressed_array.getShape()[0];
-    mgard_cuda::Array<double, 2> out_array = mgard_cuda::decompress(handle, compressed_array);
+    mgard_cuda::Array<double, 2> out_array =
+        mgard_cuda::decompress(handle, compressed_array);
     mgard_out_buff = new double[num_double];
-    memcpy(mgard_out_buff, out_array.getDataHost(), num_double * sizeof(double));
+    memcpy(mgard_out_buff, out_array.getDataHost(),
+           num_double * sizeof(double));
   } else if (D == 3) {
     mgard_cuda::Array<double, 3> in_array(shape);
     in_array.loadData(in_buff);
     mgard_cuda::Handle<double, 3> handle(shape);
-    mgard_cuda::Array<unsigned char, 1> compressed_array = mgard_cuda::compress(handle, in_array, tol, s);
+    mgard_cuda::Array<unsigned char, 1> compressed_array =
+        mgard_cuda::compress(handle, in_array, tol, s);
     out_size = compressed_array.getShape()[0];
-    mgard_cuda::Array<double, 3> out_array = mgard_cuda::decompress(handle, compressed_array);
+    mgard_cuda::Array<double, 3> out_array =
+        mgard_cuda::decompress(handle, compressed_array);
     mgard_out_buff = new double[num_double];
-    memcpy(mgard_out_buff, out_array.getDataHost(), num_double * sizeof(double));
+    memcpy(mgard_out_buff, out_array.getDataHost(),
+           num_double * sizeof(double));
   } else if (D == 4) {
     mgard_cuda::Array<double, 4> in_array(shape);
     in_array.loadData(in_buff);
     mgard_cuda::Handle<double, 4> handle(shape);
-    mgard_cuda::Array<unsigned char, 1> compressed_array = mgard_cuda::compress(handle, in_array, tol, s);
+    mgard_cuda::Array<unsigned char, 1> compressed_array =
+        mgard_cuda::compress(handle, in_array, tol, s);
     out_size = compressed_array.getShape()[0];
-    mgard_cuda::Array<double, 4> out_array = mgard_cuda::decompress(handle, compressed_array);
+    mgard_cuda::Array<double, 4> out_array =
+        mgard_cuda::decompress(handle, compressed_array);
     mgard_out_buff = new double[num_double];
-    memcpy(mgard_out_buff, out_array.getDataHost(), num_double * sizeof(double));
+    memcpy(mgard_out_buff, out_array.getDataHost(),
+           num_double * sizeof(double));
   }
 
   printf("In size:  %10ld  Out size: %10ld  Compression ratio: %10ld \n", lSize,

@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
  * Date: April 2, 2021
  */
 
-#include "cuda/CompressionWorkflow.h"
 #include "cuda/Common.h"
+#include "cuda/CompressionWorkflow.h"
 #include "cuda/MemoryManagement.h"
 
 #ifndef MGARD_API_CUDA_H
@@ -41,8 +41,9 @@ Array<unsigned char, 1> compress(Handle<T, D> &handle, Array<T, D> &in_array,
 //!
 //!\return Decompressed dataset.
 template <typename T, int D>
-Array<T, D> decompress(Handle<T, D> &handle, Array<unsigned char, 1> &compressed_array);
+Array<T, D> decompress(Handle<T, D> &handle,
+                       Array<unsigned char, 1> &compressed_array);
 
-}
+} // namespace mgard_cuda
 
 #endif

@@ -14,8 +14,8 @@
 
 #include <memory>
 
-#include "cuda/CompressionWorkflow.h"
 #include "cuda/Common.h"
+#include "cuda/CompressionWorkflow.h"
 #include "cuda/MemoryManagement.h"
 
 //! Implementation of the MGARD compression and decompression algorithms.
@@ -111,7 +111,6 @@ decompress(const CompressedDataset<N, Real> &compressed);
 
 } // namespace mgard
 
-
 namespace mgard_cuda {
 
 //!\file
@@ -141,9 +140,10 @@ Array<unsigned char, 1> compress(Handle<T, D> &handle, Array<T, D> &in_array,
 //!
 //!\return Decompressed dataset.
 template <typename T, int D>
-Array<T, D> decompress(Handle<T, D> &handle, Array<unsigned char, 1> &compressed_array);
+Array<T, D> decompress(Handle<T, D> &handle,
+                       Array<unsigned char, 1> &compressed_array);
 
-}
+} // namespace mgard_cuda
 
 #include "mgard_api.tpp"
 #endif
