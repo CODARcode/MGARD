@@ -31,7 +31,7 @@ Reference [6] covers its design and implementation on GPU heterogeneous systems.
 3. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. [Multilevel Techniques for Compression and Reduction of Scientific Data—The Multivariate Case.][multivariate] *SIAM Journal on Scientific Computing* 41 (2), A1278–A1303, 2019.
 4. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. [Multilevel Techniques for Compression and Reduction of Scientific Data—Quantitative Control of Accuracy in Derived Quantities.][quantities] *SIAM Journal on Scientific Computing* 41 (4), A2146–A2171, 2019.
 5. Mark Ainsworth, Ozan Tugluk, Ben Whitney, and Scott Klasky. [Multilevel Techniques for Compression and Reduction of Scientific Data—The Unstructured Case.][unstructured] *SIAM Journal on Scientific Computing*, 42 (2), A1402–A1427, 2020.
-6. Jieyang Chen, Et al. [Accelerating Multigrid-based Hierarchical Scientific Data Refactoring on GPUs][gpu] *35th IEEE International Parallel & 
+6. Jieyang Chen, Et al. [Accelerating Multigrid-based Hierarchical Scientific Data Refactoring on GPUs.][gpu] *35th IEEE International Parallel & 
 Distributed Processing Symposium*, May 17-21, 2021
 
 [thesis]: https://doi.org/10.26300/ya1v-hn97
