@@ -121,15 +121,3 @@ The following code shows how to compress/decompress a 3D dataset.
 * A comprehensive example about how to use MGARD-GPU is located in [here][example].
 
 [example]:tests/gpu-cuda
-
-## Citing MGARD-GPU
-***Kindly note:*** If you mention MGARD-GPU in your paper, please cite using:
-
-```
-@article{mgard-gpu,
-   title = {Accelerating Multigrid-based Hierarchical Scientific Data Refactoring on GPUs},
-  author = {Chen, Jieyang and Wan, Lipeng and Liang, Xin and Whitney, Ben and Liu, Qing and Pugmire, Dave and Thompson, Nicholas and Wolf, Matthew and Munson, Todd and Foster, Ian and others},
- journal = {arXiv preprint arXiv:2007.04457},
-    year = {2020}
-}
-```
