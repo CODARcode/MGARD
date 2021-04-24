@@ -42,11 +42,11 @@ MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which signific
 * **Step 2: Initialize mgard_cuda::Handle.**
 An object ```mgard_cuda::Handle``` needs to be created and initialized. This initializes the necessary environment for efficient compression on the GPU. It only needs to be created once if the input shape is not changed. For example, compressing the same variable on different timesteps only needs the handle to be created once. Also, the same handle can be shared in between compression and decompression APIs.
      + For ***uniform grids***: ```mgard_cuda::Handle<D_type, N_dims>(std::vector<size_t> shape)```.
-        + ```[In] D_type```: intput data type (float or double).
-        + ```[In] N_dims```: total number of dimensions (<=4)
-        + ```[In] shape```: stores the size in each dimension with the first being the leading dimension (fastest).
+        + ```[In] D_type```: Input data type (float or double).
+        + ```[In] N_dims```: Total number of dimensions (<=4)
+        + ```[In] shape```: Stores the size in each dimension with the first being the leading dimension (fastest).
      + For ***non-uniform grids***: ```mgard_cuda::Handle<D_type, N_dims>(std::vector<size_t> shape, std::vector<T*> coords)```. 
-        + ```[In] coords```: the coordinates in each dimension with the first being the leading dimension (fastest).
+        + ```[In] coords```: The coordinates in each dimension with the first being the leading dimension (fastest).
  
 * **Step 3: Use mgard_cuda::Array.** ```mgard_cuda::Array``` is used for holding a managed array on GPU.
      +  For ***creating*** an array. ```mgard_cuda::Array::Array<D_type, N_dims>(std::vector<size_t> shape)``` creates an manged array on GPU with ```shape```.
@@ -59,14 +59,15 @@ An object ```mgard_cuda::Handle``` needs to be created and initialized. This ini
 
 * **Step 4: Call compression/decompression API.**:
   	+ For ***compression***: ```
-			mgard_cuda::Array<unsigned char, 1> mgard_cuda::compress(mgard_cuda::Handle<D_type, N_dims> &handle, mgard_cuda::Array<D_type, N_dims> in_array, D_type tol, D_type s)```
-     	- ```[In] in_array ```: input data to be compressed (its value will be altered during compression).
-	  	- ```[In] tol```: relative L_inf error bound.
-	  	- ```[In] s```: S-norm.
-	  	- ```[Return]```: compressed data.
+			mgard_cuda::Array<unsigned char, 1> mgard_cuda::compress(mgard_cuda::Handle<D_type, N_dims> &handle, mgard_cuda::Array<D_type, N_dims> in_array, mgard_cuda::error_bound_type type, D_type tol, D_type s)```
+     	- ```[In] in_array ```: Input data to be compressed (its value will be altered during compression).
+     	- ```[In] type ```: Error bound type. ```mgard_cuda::REL``` for relative error bound or ```mgard_cuda::ABS``` for absolute error bound. 
+	  	- ```[In] tol```: Error bound.
+	  	- ```[In] s```: Smoothness parameter.
+	  	- ```[Return]```: Compressed data.
   	+ For ***decompression***: ```mgard_cuda::Array<D_type, N_dims> mgard_cuda::decompress(mgard_cuda::Handle<D_type, N_dims> &handle, mgard_cuda::Array<unsigned char, 1> compressed_data)```    
-  		- ```[In] compressed_data ```: compressed data.
-  		- ```[Return]```: decompressed data.
+  		- ```[In] compressed_data ```: Compressed data.
+  		- ```[Return]```: Decompressed data.
 
 ## Performance optimization
 
@@ -103,7 +104,7 @@ The following code shows how to compress/decompress a 3D dataset.
 		
 		  std::cout << "Compressing with MGARD-GPU...";
 		  double tol = 0.01, s = 0;
-		  mgard_cuda::Array<unsigned char, 1> compressed_array = mgard_cuda::compress(handle, in_array, tol, s);
+		  mgard_cuda::Array<unsigned char, 1> compressed_array = mgard_cuda::compress(handle, in_array, mgard_cuda::REL, tol, s);
 		  size_t compressed_size = compressed_array.getShape()[0]; //compressed size in number of bytes.          
 		  unsigned char * compressed_array_cpu = compressed_array.getDataHost();
 		  std::cout << "Done\n";

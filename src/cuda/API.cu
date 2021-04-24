@@ -15,11 +15,11 @@ namespace mgard_cuda {
 
 template <typename T, int D>
 Array<unsigned char, 1> compress(Handle<T, D> &handle, Array<T, D> &in_array,
-                                 T tol, T s)
+                                 enum error_bound_type type, T tol, T s)
 // Perform compression preserving the tolerance in the L-infty norm
 {
   assert(tol >= 1e-7);
-  return mgard_cuda::refactor_qz_cuda<T, D>(handle, in_array, tol, s);
+  return mgard_cuda::refactor_qz_cuda<T, D>(handle, in_array, type, tol, s);
 }
 
 template <typename T, int D>
@@ -30,7 +30,8 @@ Array<T, D> decompress(Handle<T, D> &handle,
 
 #define API(T, D)                                                              \
   template Array<unsigned char, 1> compress<T, D>(                             \
-      Handle<T, D> & handle, Array<T, D> & in_array, T tol, T s);              \
+      Handle<T, D> & handle, Array<T, D> & in_array,                           \
+      enum error_bound_type type, T tol, T s);                                 \
   template Array<T, D> decompress<T, D>(                                       \
       Handle<T, D> & handle, Array<unsigned char, 1> & compressed_array);
 

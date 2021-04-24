@@ -13,8 +13,9 @@
 namespace mgard_cuda {
 
 template <typename T, int D>
-Array<unsigned char, 1> refactor_qz_cuda(Handle<T, D> &handle,
-                                         Array<T, D> &in_array, T tol, T s);
+Array<unsigned char, 1>
+refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
+                 enum error_bound_type type, T tol, T s);
 
 template <typename T, int D>
 Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,

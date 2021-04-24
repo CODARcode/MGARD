@@ -132,7 +132,7 @@ int main(int argc, char *argv[]) {
     in_array.loadData(in_buff);
     mgard_cuda::Handle<float, 1> handle(shape);
     mgard_cuda::Array<unsigned char, 1> compressed_array =
-        mgard_cuda::compress(handle, in_array, tol, s);
+        mgard_cuda::compress(handle, in_array, mgard_cuda::REL, tol, s);
     out_size = compressed_array.getShape()[0];
     mgard_cuda::Array<float, 1> out_array =
         mgard_cuda::decompress(handle, compressed_array);
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
     in_array.loadData(in_buff);
     mgard_cuda::Handle<float, 2> handle(shape);
     mgard_cuda::Array<unsigned char, 1> compressed_array =
-        mgard_cuda::compress(handle, in_array, tol, s);
+        mgard_cuda::compress(handle, in_array, mgard_cuda::REL, tol, s);
     out_size = compressed_array.getShape()[0];
     mgard_cuda::Array<float, 2> out_array =
         mgard_cuda::decompress(handle, compressed_array);
@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
     in_array.loadData(in_buff);
     mgard_cuda::Handle<float, 3> handle(shape);
     mgard_cuda::Array<unsigned char, 1> compressed_array =
-        mgard_cuda::compress(handle, in_array, tol, s);
+        mgard_cuda::compress(handle, in_array, mgard_cuda::REL, tol, s);
     out_size = compressed_array.getShape()[0];
     mgard_cuda::Array<float, 3> out_array =
         mgard_cuda::decompress(handle, compressed_array);
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
     in_array.loadData(in_buff);
     mgard_cuda::Handle<float, 4> handle(shape);
     mgard_cuda::Array<unsigned char, 1> compressed_array =
-        mgard_cuda::compress(handle, in_array, tol, s);
+        mgard_cuda::compress(handle, in_array, mgard_cuda::REL, tol, s);
     out_size = compressed_array.getShape()[0];
     mgard_cuda::Array<float, 4> out_array =
         mgard_cuda::decompress(handle, compressed_array);

@@ -116,28 +116,25 @@ namespace mgard_cuda {
 //!\file
 //!\brief Compression and decompression API.
 
-//! Compress a function on an equispaced N-D tensor product grid while
-//! controlling the error as measured in the \f$ L^{\infty} \f$ norm.
+//! Compress a function on an N-D tensor product grid
 //!
 //!\param[in] handle Handle type for storing precomputed variable to
-//! help speedup compression. \param[in] data Dataset to be compressed.
-//!\param[out] out_size Size in bytes of the compressed dataset.
+//! help speed up compression.
+//!\param[in] in_array Dataset to be compressed.
+//!\param[in] type Error bound type: REL or ABS.
 //!\param[in] tol Relative error tolerance.
-//!\param[in] s S-norm.
+//!\param[in] s Smoothness parameter to use in compressing the function.
 //!
 //!\return Compressed dataset.
 template <typename T, int D>
 Array<unsigned char, 1> compress(Handle<T, D> &handle, Array<T, D> &in_array,
-                                 T tol, T s);
+                                 enum error_bound_type type, T tol, T s);
 
-//! Decompress a function on an equispaced N-D tensor product grid which was
-//! compressed while controlling the error as measured in the \f$ L^{\infty} \f$
-//! norm.
+//! Decompress a function on an N-D tensor product grid
 //!
 //!\param[in] handle Handle type for storing precomputed variable to
-//! help speedup decompression. \param[in] data Compressed dataset. \param[in]
-//! data_len Size in bytes of the compressed dataset.
-//!
+//! help speed up decompression.
+//!\param[in] compressed_array Compressed dataset.
 //!\return Decompressed dataset.
 template <typename T, int D>
 Array<T, D> decompress(Handle<T, D> &handle,

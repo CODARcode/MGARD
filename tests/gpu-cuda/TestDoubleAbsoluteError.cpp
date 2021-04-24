@@ -116,13 +116,6 @@ int main(int argc, char *argv[]) {
     fclose(pFile);
   }
 
-  double data_L_inf_norm = 0;
-  for (int i = 0; i < num_double; ++i) {
-    double temp = fabs(in_buff[i]);
-    if (temp > data_L_inf_norm)
-      data_L_inf_norm = temp;
-  }
-
   size_t out_size;
   double *mgard_out_buff = NULL;
 
@@ -133,7 +126,7 @@ int main(int argc, char *argv[]) {
     mgard_cuda::Array<double, 1> test = in_array;
     mgard_cuda::Handle<double, 1> handle(shape);
     mgard_cuda::Array<unsigned char, 1> compressed_array =
-        mgard_cuda::compress(handle, in_array, tol, s);
+        mgard_cuda::compress(handle, in_array, mgard_cuda::ABS, tol, s);
     out_size = compressed_array.getShape()[0];
     mgard_cuda::Array<double, 1> out_array =
         mgard_cuda::decompress(handle, compressed_array);
@@ -145,7 +138,7 @@ int main(int argc, char *argv[]) {
     in_array.loadData(in_buff);
     mgard_cuda::Handle<double, 2> handle(shape);
     mgard_cuda::Array<unsigned char, 1> compressed_array =
-        mgard_cuda::compress(handle, in_array, tol, s);
+        mgard_cuda::compress(handle, in_array, mgard_cuda::ABS, tol, s);
     out_size = compressed_array.getShape()[0];
     mgard_cuda::Array<double, 2> out_array =
         mgard_cuda::decompress(handle, compressed_array);
@@ -157,7 +150,7 @@ int main(int argc, char *argv[]) {
     in_array.loadData(in_buff);
     mgard_cuda::Handle<double, 3> handle(shape);
     mgard_cuda::Array<unsigned char, 1> compressed_array =
-        mgard_cuda::compress(handle, in_array, tol, s);
+        mgard_cuda::compress(handle, in_array, mgard_cuda::ABS, tol, s);
     out_size = compressed_array.getShape()[0];
     mgard_cuda::Array<double, 3> out_array =
         mgard_cuda::decompress(handle, compressed_array);
@@ -169,7 +162,7 @@ int main(int argc, char *argv[]) {
     in_array.loadData(in_buff);
     mgard_cuda::Handle<double, 4> handle(shape);
     mgard_cuda::Array<unsigned char, 1> compressed_array =
-        mgard_cuda::compress(handle, in_array, tol, s);
+        mgard_cuda::compress(handle, in_array, mgard_cuda::ABS, tol, s);
     out_size = compressed_array.getShape()[0];
     mgard_cuda::Array<double, 4> out_array =
         mgard_cuda::decompress(handle, compressed_array);
@@ -193,7 +186,7 @@ int main(int argc, char *argv[]) {
     double temp = fabs(in_buff[i] - mgard_out_buff[i]);
     if (temp > error_L_inf_norm)
       error_L_inf_norm = temp;
-    if (temp / data_L_inf_norm >= tol && error_count) {
+    if (temp >= tol && error_count) {
       printf("not bounded: buffer[%d]: %f vs. mgard_out_buff[%d]: %f \n", i,
              in_buff[i], i, mgard_out_buff[i]);
       error_count--;
@@ -204,16 +197,16 @@ int main(int argc, char *argv[]) {
   mgard_cuda::cudaFreeHostHelper(in_buff);
 
   // printf("sum: %e\n", sum/num_double);
-  double relative_L_inf_error = error_L_inf_norm / data_L_inf_norm;
+  double absolute_L_inf_error = error_L_inf_norm;
 
   // std::ofstream fout("mgard_out.dat", std::ios::binary);
   // fout.write(reinterpret_cast<const char *>(mgard_comp_buff), out_size);
   // fout.close();
 
-  printf("Rel. L^infty error bound: %10.5E \n", tol);
-  printf("Rel. L^infty error: %10.5E \n", relative_L_inf_error);
+  printf("Abs. L^infty error bound: %10.5E \n", tol);
+  printf("Abs. L^infty error: %10.5E \n", absolute_L_inf_error);
 
-  if (relative_L_inf_error < tol) {
+  if (absolute_L_inf_error < tol) {
     printf(ANSI_GREEN "SUCCESS: Error tolerance met!" ANSI_RESET "\n");
     return 0;
   } else {

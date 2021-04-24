@@ -8,6 +8,10 @@
 #ifndef MGRAD_CUDA_COMMON
 #define MGRAD_CUDA_COMMON
 
+namespace mgard_cuda {
+enum error_bound_type { REL, ABS };
+}
+
 #include <iostream>
 #include <numeric>
 #include <string>

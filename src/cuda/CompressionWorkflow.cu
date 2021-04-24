@@ -34,8 +34,9 @@ struct linf_norm : public thrust::binary_function<T, T, T> {
 };
 
 template <typename T, int D>
-Array<unsigned char, 1> refactor_qz_cuda(Handle<T, D> &handle,
-                                         Array<T, D> &in_array, T tol, T s) {
+Array<unsigned char, 1>
+refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
+                 enum error_bound_type type, T tol, T s) {
 
   for (int i = 0; i < D; i++) {
     if (handle.shapes_h[0][i] != in_array.getShape()[i]) {
@@ -58,8 +59,9 @@ Array<unsigned char, 1> refactor_qz_cuda(Handle<T, D> &handle,
   // &total); printf("Mem: %f/%f\n", (double)(total-free)/1e9,
   // (double)total/1e9);
 
-  T norm;
-  {
+  T norm = (T)1.0;
+
+  if (type == REL) {
     t1 = high_resolution_clock::now();
     thrust::device_vector<T> v_vec(handle.dofs[0][0] * handle.dofs[1][0] *
                                    handle.linearized_depth);
@@ -562,7 +564,8 @@ Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
 
 #define KERNELS(T, D)                                                          \
   template Array<unsigned char, 1> refactor_qz_cuda<T, D>(                     \
-      Handle<T, D> & handle, Array<T, D> & in_array, T tol, T s);              \
+      Handle<T, D> & handle, Array<T, D> & in_array,                           \
+      enum error_bound_type type, T tol, T s);                                 \
   template Array<T, D> recompose_udq_cuda<T, D>(                               \
       Handle<T, D> & handle, Array<unsigned char, 1> & compressed_array);
 

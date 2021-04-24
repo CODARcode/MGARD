@@ -21,7 +21,7 @@ int main() {
   std::cout << "Compressing with MGARD-GPU...";
   double tol = 0.01, s = 0;
   mgard_cuda::Array<unsigned char, 1> compressed_array =
-      mgard_cuda::compress(handle, in_array, tol, s);
+      mgard_cuda::compress(handle, in_array, mgard_cuda::REL, tol, s);
   size_t compressed_size =
       compressed_array.getShape()[0]; // compressed size in number of bytes.
   unsigned char *compressed_array_cpu = compressed_array.getDataHost();
