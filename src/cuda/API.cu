@@ -13,7 +13,7 @@
 
 namespace mgard_cuda {
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 Array<unsigned char, 1> compress(Handle<T, D> &handle, Array<T, D> &in_array,
                                  enum error_bound_type type, T tol, T s)
 // Perform compression preserving the tolerance in the L-infty norm
@@ -22,7 +22,7 @@ Array<unsigned char, 1> compress(Handle<T, D> &handle, Array<T, D> &in_array,
   return mgard_cuda::refactor_qz_cuda<T, D>(handle, in_array, type, tol, s);
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 Array<T, D> decompress(Handle<T, D> &handle,
                        Array<unsigned char, 1> &compressed_array) {
   return mgard_cuda::recompose_udq_cuda<T, D>(handle, compressed_array);

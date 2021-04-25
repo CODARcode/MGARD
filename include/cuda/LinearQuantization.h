@@ -13,14 +13,14 @@
 
 namespace mgard_cuda {
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void levelwise_linear_quantize(Handle<T, D> &handle, int *shapes, int l_target,
                                quant_meta<T> m, T *dv, int *ldvs, int *dwork,
                                int *ldws, bool prep_huffmam, int *shape,
                                size_t *outlier_count, unsigned int *outlier_idx,
                                int *outliers, int queue_idx);
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void levelwise_linear_dequantize(Handle<T, D> &handle, int *shapes,
                                  int l_target, quant_meta<T> m, int *dv,
                                  int *ldvs, T *dwork, int *ldws,

@@ -54,7 +54,7 @@ __global__ void _calc_cpt_dist(int n, T *dcoord, T *ddist) {
   }
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void calc_cpt_dist(Handle<T, D> &handle, int n, T *dcoord, T *ddist,
                    int queue_idx) {
 
@@ -99,7 +99,7 @@ __global__ void _reduce_two_dist(int n, T *ddist, T *ddist_reduced) {
   }
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void reduce_two_dist(Handle<T, D> &handle, int n, T *ddist, T *ddist_reduced,
                      int queue_idx) {
 
@@ -155,7 +155,7 @@ __global__ void _dist_to_ratio(int n, T *ddist, T *dratio) {
   }
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void dist_to_ratio(Handle<T, D> &handle, int n, T *ddist, T *dratio,
                    int queue_idx) {
 
@@ -232,7 +232,7 @@ __global__ void _calc_cpt_dist_ratio(int n, T *dcoord, T *dratio) {
   }
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void calc_cpt_dist_ratio(Handle<T, D> &handle, int n, T *dcoord, T *dratio,
                          int queue_idx) {
 
@@ -338,7 +338,7 @@ __global__ void _calc_am_bm(int n, T *ddist, T *am, T *bm) {
   }
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void calc_am_bm(Handle<T, D> &handle, int n, T *ddist, T *am, T *bm,
                 int queue_idx) {
 

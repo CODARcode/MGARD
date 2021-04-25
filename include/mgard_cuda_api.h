@@ -27,7 +27,7 @@ namespace mgard_cuda {
 //!\param[in] s Smoothness parameter to use in compressing the function.
 //!
 //!\return Compressed dataset.
-template <typename T, int D>
+template <typename T, uint32_t D>
 Array<unsigned char, 1> compress(Handle<T, D> &handle, Array<T, D> &in_array,
                                  enum error_bound_type type, T tol, T s);
 
@@ -37,7 +37,7 @@ Array<unsigned char, 1> compress(Handle<T, D> &handle, Array<T, D> &in_array,
 //! help speed up decompression.
 //!\param[in] compressed_array Compressed dataset.
 //!\return Decompressed dataset.
-template <typename T, int D>
+template <typename T, uint32_t D>
 Array<T, D> decompress(Handle<T, D> &handle,
                        Array<unsigned char, 1> &compressed_array);
 

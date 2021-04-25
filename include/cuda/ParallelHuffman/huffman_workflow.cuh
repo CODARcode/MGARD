@@ -51,13 +51,13 @@ void PrintChunkHuffmanCoding(size_t *dH_bit_meta, size_t *dH_uInt_meta,
 
 typedef std::tuple<size_t, size_t, size_t> tuple3ul;
 
-template <typename T, int D, typename S, typename Q, typename H>
+template <typename T, uint32_t D, typename S, typename Q, typename H>
 void HuffmanEncode(mgard_cuda::Handle<T, D> &handle, S *dqv, size_t n,
                    std::vector<size_t> &outlier_idx, H *&dmeta,
                    size_t &dmeta_size, H *&ddata, size_t &ddata_size,
                    int chunk_size, int dict_size);
 
-template <typename T, int D, typename S, typename Q, typename H>
+template <typename T, uint32_t D, typename S, typename Q, typename H>
 void HuffmanDecode(mgard_cuda::Handle<T, D> &handle, S *&dqv, size_t &n,
                    H *dmeta, size_t dmeta_size, H *ddata, size_t ddata_size);
 

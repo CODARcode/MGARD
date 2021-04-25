@@ -442,7 +442,7 @@ __global__ void _ipk_1_3d(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
   __syncthreads();
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 void ipk_1_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc, int nf_c,
                                 T *am, T *bm, T *ddist_f, T *dv, int lddv1,
                                 int lddv2, int queue_idx) {
@@ -475,7 +475,7 @@ void ipk_1_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc, int nf_c,
   // std::cout << "test\n";
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void ipk_1_3d(Handle<T, D> &handle, int nr, int nc, int nf_c, T *am, T *bm,
               T *ddist_f, T *dv, int lddv1, int lddv2, int queue_idx,
               int config) {
@@ -1011,7 +1011,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
   __syncthreads();
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 void ipk_2_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc_c,
                                 int nf_c, T *am, T *bm, T *ddist_c, T *dv,
                                 int lddv1, int lddv2, int queue_idx) {
@@ -1040,7 +1040,7 @@ void ipk_2_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc_c,
 #endif
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void ipk_2_3d(Handle<T, D> &handle, int nr, int nc_c, int nf_c, T *am, T *bm,
               T *ddist_c, T *dv, int lddv1, int lddv2, int queue_idx,
               int config) {
@@ -1520,7 +1520,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
   __syncthreads();
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 void ipk_3_3d_adaptive_launcher(Handle<T, D> &handle, int nr_c, int nc_c,
                                 int nf_c, T *am, T *bm, T *ddist_r, T *dv,
                                 int lddv1, int lddv2, int queue_idx) {
@@ -1555,7 +1555,7 @@ void ipk_3_3d_adaptive_launcher(Handle<T, D> &handle, int nr_c, int nc_c,
 #endif
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void ipk_3_3d(Handle<T, D> &handle, int nr_c, int nc_c, int nf_c, T *am, T *bm,
               T *ddist_r, T *dv, int lddv1, int lddv2, int queue_idx,
               int config) {

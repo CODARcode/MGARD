@@ -28,7 +28,7 @@ namespace mgard_cuda {
 bool store = false;
 bool verify = false;
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
                   int l_target) {
 
@@ -1354,7 +1354,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
   }
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
                    int l_target) {
 

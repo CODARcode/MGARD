@@ -378,7 +378,7 @@ enum cudaMemcpyKind inferTransferType(enum copy_type kind) {
 }
 
 // Copy 1D
-template <typename T, int D>
+template <typename T, uint32_t D>
 void cudaMemcpyAsyncHelper(Handle<T, D> &handle, void *dst, const void *src,
                            size_t count, enum copy_type kind, int queue_idx) {
 
@@ -403,7 +403,7 @@ void cudaMemcpyAsyncHelper(Handle<T, D> &handle, void *dst, const void *src,
 }
 
 // Copy 2D
-template <typename T, int D>
+template <typename T, uint32_t D>
 void cudaMemcpy2DAsyncHelper(Handle<T, D> &handle, void *dst, size_t dpitch,
                              void *src, size_t spitch, size_t width,
                              size_t height, enum copy_type kind,
@@ -430,7 +430,7 @@ void cudaMemcpy2DAsyncHelper(Handle<T, D> &handle, void *dst, size_t dpitch,
 }
 
 // Copy 3D
-template <typename T, int D>
+template <typename T, uint32_t D>
 void cudaMemcpy3DAsyncHelper(Handle<T, D> &handle, void *dst, size_t dpitch,
                              size_t dwidth, size_t dheight, void *src,
                              size_t spitch, size_t swidth, size_t sheight,
@@ -500,7 +500,7 @@ void cudaMemset3DHelper(void *devPtr, size_t pitch, size_t dwidth,
 void cudaSetDeviceHelper(int dev_id) { gpuErrchk(cudaSetDevice(dev_id)); }
 
 // Copy 1D Peer
-template <typename T, int D>
+template <typename T, uint32_t D>
 void cudaMemcpyPeerAsyncHelper(Handle<T, D> &handle, void *dst, int dst_dev,
                                const void *src, int src_dev, size_t count,
                                int queue_idx) {
@@ -513,7 +513,7 @@ void cudaMemcpyPeerAsyncHelper(Handle<T, D> &handle, void *dst, int dst_dev,
 }
 
 // Copy 3D peer
-template <typename T, int D>
+template <typename T, uint32_t D>
 void cudaMemcpy3DPeerAsyncHelper(Handle<T, D> &handle, void *dst, int dst_dev,
                                  size_t dpitch, size_t dwidth, size_t dheight,
                                  void *src, int src_dev, size_t spitch,

@@ -13,7 +13,7 @@
 
 namespace mgard_cuda {
 
-template <typename T, int D_GLOBAL, int D_LOCAL, bool INTERPOLATION,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE>
 void gpk_reo(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
              thrust::device_vector<int> shape_c,
@@ -27,7 +27,7 @@ void gpk_reo(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
              int lddwrc1, int lddwrc2, T *dwrcf, int lddwrcf1, int lddwrcf2,
              int queue_idx, int config);
 
-template <typename T, int D_GLOBAL, int D_LOCAL, bool INTERPOLATION,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE>
 void gpk_rev(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
              thrust::device_vector<int> shape_c,
@@ -42,7 +42,7 @@ void gpk_rev(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
              int svr, int svc, int svf, int nvr, int nvc, int nvf,
              int queue_idx, int config);
 
-template <typename T, int D_GLOBAL, int D_LOCAL, bool INTERPOLATION,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE>
 void gpk_reo(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
              int *shape_c_d, int *ldvs, int *ldws, int unprocessed_n,
@@ -54,7 +54,7 @@ void gpk_reo(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
              int lddwrf1, int lddwrf2, T *dwrc, int lddwrc1, int lddwrc2,
              T *dwrcf, int lddwrcf1, int lddwrcf2, int queue_idx, int config);
 
-template <typename T, int D_GLOBAL, int D_LOCAL, bool INTERPOLATION,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
           bool COEFF_RESTORE, int TYPE>
 void gpk_rev(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
              int *shape_c_d, int *ldvs, int *ldws, int unprocessed_n,

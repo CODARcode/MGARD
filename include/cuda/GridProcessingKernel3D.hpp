@@ -12,7 +12,7 @@
 
 namespace mgard_cuda {
 
-template <typename T, int D, int R, int C, int F>
+template <typename T, uint32_t D, int R, int C, int F>
 __global__ void
 _gpk_reo_3d(int nr, int nc, int nf, int nr_c, int nc_c, int nf_c, T *dratio_r,
             T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2, T *dw,
@@ -1785,7 +1785,7 @@ _gpk_reo_3d(int nr, int nc, int nf, int nr_c, int nc_c, int nf_c, T *dratio_r,
   // }
 }
 
-template <typename T, int D, int R, int C, int F>
+template <typename T, uint32_t D, int R, int C, int F>
 void gpk_reo_3d_adaptive_launcher(
     Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r, T *dratio_c,
     T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1, int lddw2,
@@ -1835,7 +1835,7 @@ void gpk_reo_3d_adaptive_launcher(
 #endif
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void gpk_reo_3d(Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r,
                 T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2, T *dw,
                 int lddw1, int lddw2, T *dwf, int lddwf1, int lddwf2, T *dwc,
@@ -1928,7 +1928,7 @@ void gpk_reo_3d(Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r,
 #undef GPK
 }
 
-template <typename T, int D, int R, int C, int F>
+template <typename T, uint32_t D, int R, int C, int F>
 __global__ void
 _gpk_rev_3d(int nr, int nc, int nf, int nr_c, int nc_c, int nf_c, T *dratio_r,
             T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2, T *dw,
@@ -4003,7 +4003,7 @@ _gpk_rev_3d(int nr, int nc, int nf, int nr_c, int nc_c, int nf_c, T *dratio_r,
   }
 }
 
-template <typename T, int D, int R, int C, int F>
+template <typename T, uint32_t D, int R, int C, int F>
 void gpk_rev_3d_adaptive_launcher(
     Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r, T *dratio_c,
     T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1, int lddw2,
@@ -4053,7 +4053,7 @@ void gpk_rev_3d_adaptive_launcher(
 #endif
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void gpk_rev_3d(Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r,
                 T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2, T *dw,
                 int lddw1, int lddw2, T *dwf, int lddwf1, int lddwf2, T *dwc,

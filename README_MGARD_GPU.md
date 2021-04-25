@@ -44,9 +44,9 @@ An object ```mgard_cuda::Handle``` needs to be created and initialized. This ini
      + For ***uniform grids***: ```mgard_cuda::Handle<D_type, N_dims>(std::vector<size_t> shape)```.
         + ```[In] D_type```: Input data type (float or double).
         + ```[In] N_dims```: Total number of dimensions (<=4)
-        + ```[In] shape```: Stores the size in each dimension with the first being the leading dimension (fastest).
+        + ```[In] shape```: Stores the size in each dimension (from slowest to fastest).
      + For ***non-uniform grids***: ```mgard_cuda::Handle<D_type, N_dims>(std::vector<size_t> shape, std::vector<T*> coords)```. 
-        + ```[In] coords```: The coordinates in each dimension with the first being the leading dimension (fastest).
+        + ```[In] coords```: The coordinates in each dimension (from slowest to fastest).
  
 * **Step 3: Use mgard_cuda::Array.** ```mgard_cuda::Array``` is used for holding a managed array on GPU.
      +  For ***creating*** an array. ```mgard_cuda::Array::Array<D_type, N_dims>(std::vector<size_t> shape)``` creates an manged array on GPU with ```shape```.

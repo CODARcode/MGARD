@@ -11,7 +11,7 @@
 #include "IterativeProcessingKernel.h"
 namespace mgard_cuda {
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 __global__ void _ipk_1(int *shape, int *shape_c, int *ldvs, int *ldws,
                        int processed_n, int *processed_dims, int curr_dim_r,
                        int curr_dim_c, int curr_dim_f, T *am, T *bm, T *dist_f,
@@ -513,7 +513,7 @@ __global__ void _ipk_1(int *shape, int *shape_c, int *ldvs, int *ldws,
   __syncthreads();
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 void ipk_1_adaptive_launcher(
     Handle<T, D> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
@@ -575,7 +575,7 @@ void ipk_1_adaptive_launcher(
   // std::cout << "test\n";
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void ipk_1(Handle<T, D> &handle, thrust::device_vector<int> shape,
            thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
            thrust::device_vector<int> ldws,
@@ -663,7 +663,7 @@ void ipk_1(Handle<T, D> &handle, thrust::device_vector<int> shape,
 #undef IPK
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 void ipk_1_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
                              int *shape_d, int *shape_c_d, int *ldvs, int *ldws,
                              int processed_n, int *processed_dims_h,
@@ -722,7 +722,7 @@ void ipk_1_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
   // std::cout << "test\n";
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void ipk_1(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
            int *shape_c_d, int *ldvs, int *ldws, int processed_n,
            int *processed_dims_h, int *processed_dims_d, int curr_dim_r,
@@ -811,7 +811,7 @@ void ipk_1(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 #undef IPK
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 __global__ void _ipk_2(int *shape, int *shape_c, int *ldvs, int *ldws,
                        int processed_n, int *processed_dims, int curr_dim_r,
                        int curr_dim_c, int curr_dim_f, T *am, T *bm, T *dist_c,
@@ -1335,7 +1335,7 @@ __global__ void _ipk_2(int *shape, int *shape_c, int *ldvs, int *ldws,
   __syncthreads();
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 void ipk_2_adaptive_launcher(
     Handle<T, D> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
@@ -1389,7 +1389,7 @@ void ipk_2_adaptive_launcher(
 #endif
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void ipk_2(Handle<T, D> &handle, thrust::device_vector<int> shape,
            thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
            thrust::device_vector<int> ldws,
@@ -1457,7 +1457,7 @@ void ipk_2(Handle<T, D> &handle, thrust::device_vector<int> shape,
 #undef IPK
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 void ipk_2_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
                              int *shape_d, int *shape_c_d, int *ldvs, int *ldws,
                              int processed_n, int *processed_dims_h,
@@ -1508,7 +1508,7 @@ void ipk_2_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
 #endif
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void ipk_2(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
            int *shape_c_d, int *ldvs, int *ldws, int processed_n,
            int *processed_dims_h, int *processed_dims_d, int curr_dim_r,
@@ -1577,7 +1577,7 @@ void ipk_2(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 #undef IPK
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 __global__ void _ipk_3(int *shape, int *shape_c, int *ldvs, int *ldws,
                        int processed_n, int *processed_dims, int curr_dim_r,
                        int curr_dim_c, int curr_dim_f, T *am, T *bm, T *dist_r,
@@ -2159,7 +2159,7 @@ __global__ void _ipk_3(int *shape, int *shape_c, int *ldvs, int *ldws,
   __syncthreads();
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 void ipk_3_adaptive_launcher(
     Handle<T, D> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
@@ -2218,7 +2218,7 @@ void ipk_3_adaptive_launcher(
 #endif
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void ipk_3(Handle<T, D> &handle, thrust::device_vector<int> shape,
            thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
            thrust::device_vector<int> ldws,
@@ -2267,7 +2267,7 @@ void ipk_3(Handle<T, D> &handle, thrust::device_vector<int> shape,
 #undef IPK
 }
 
-template <typename T, int D, int R, int C, int F, int G>
+template <typename T, uint32_t D, int R, int C, int F, int G>
 void ipk_3_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
                              int *shape_d, int *shape_c_d, int *ldvs, int *ldws,
                              int processed_n, int *processed_dims_h,
@@ -2325,7 +2325,7 @@ void ipk_3_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
 #endif
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 void ipk_3(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
            int *shape_c_d, int *ldvs, int *ldws, int processed_n,
            int *processed_dims_h, int *processed_dims_d, int curr_dim_r,

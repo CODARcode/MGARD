@@ -12,7 +12,7 @@
 
 namespace mgard_cuda {
 
-template <typename T, int D_GLOBAL, int D_LOCAL, int R, int C, int F,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE>
 __global__ void
 _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
@@ -1895,7 +1895,7 @@ _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   // }
 }
 
-template <typename T, int D_GLOBAL, int D_LOCAL, int R, int C, int F,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE>
 void gpk_reo_adaptive_launcher(
     Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
@@ -1968,7 +1968,7 @@ void gpk_reo_adaptive_launcher(
 #endif
 }
 
-template <typename T, int D_GLOBAL, int D_LOCAL, bool INTERPOLATION,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE>
 void gpk_reo(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
              thrust::device_vector<int> shape_c,
@@ -2068,7 +2068,7 @@ void gpk_reo(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
 #undef GPK
 }
 
-template <typename T, int D_GLOBAL, int D_LOCAL, int R, int C, int F,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE>
 void gpk_reo_adaptive_launcher(
     Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d, int *shape_c_d,
@@ -2141,7 +2141,7 @@ void gpk_reo_adaptive_launcher(
   // printf("gpk_reo_kernel time: %.6f s\n", time_span.count());
 }
 
-template <typename T, int D_GLOBAL, int D_LOCAL, bool INTERPOLATION,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE>
 void gpk_reo(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
              int *shape_c_d, int *ldvs, int *ldws, int unprocessed_n,
@@ -2240,7 +2240,7 @@ void gpk_reo(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
 #undef GPK
 }
 
-template <typename T, int D_GLOBAL, int D_LOCAL, int R, int C, int F,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
           bool INTERPOLATION, bool COEFF_RESTORE, int TYPE>
 __global__ void
 _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
@@ -4273,7 +4273,7 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   }
 }
 
-template <typename T, int D_GLOBAL, int D_LOCAL, int R, int C, int F,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
           bool INTERPOLATION, bool COEFF_RESTORE, int TYPE>
 void gpk_rev_adaptive_launcher(
     Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
@@ -4345,7 +4345,7 @@ void gpk_rev_adaptive_launcher(
 #endif
 }
 
-template <typename T, int D_GLOBAL, int D_LOCAL, bool INTERPOLATION,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
           bool COEFF_RESTORE, int TYPE>
 void gpk_rev(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
              thrust::device_vector<int> shape_c,
@@ -4445,7 +4445,7 @@ void gpk_rev(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
 #undef GPK
 }
 
-template <typename T, int D_GLOBAL, int D_LOCAL, int R, int C, int F,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
           bool INTERPOLATION, bool COEFF_RESTORE, int TYPE>
 void gpk_rev_adaptive_launcher(
     Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d, int *shape_c_d,
@@ -4513,7 +4513,7 @@ void gpk_rev_adaptive_launcher(
 #endif
 }
 
-template <typename T, int D_GLOBAL, int D_LOCAL, bool INTERPOLATION,
+template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
           bool COEFF_RESTORE, int TYPE>
 void gpk_rev(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
              int *shape_c_d, int *ldvs, int *ldws, int unprocessed_n,

@@ -33,7 +33,7 @@ struct linf_norm : public thrust::binary_function<T, T, T> {
   __host__ __device__ T operator()(T x, T y) { return max(abs(x), abs(y)); }
 };
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 Array<unsigned char, 1>
 refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
                  enum error_bound_type type, T tol, T s) {
@@ -330,7 +330,7 @@ refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
   return compressed_array;
 }
 
-template <typename T, int D>
+template <typename T, uint32_t D>
 Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
                                Array<unsigned char, 1> &compressed_array) {
 
@@ -466,6 +466,7 @@ Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
   std::vector<size_t> decompressed_shape(D);
   for (int i = 0; i < D; i++)
     decompressed_shape[i] = handle.shapes_h[0][i];
+  std::reverse(decompressed_shape.begin(), decompressed_shape.end());
   Array<T, D> decompressed_data(decompressed_shape);
 
   int *hshapes = new int[D * (handle.l_target + 2)];

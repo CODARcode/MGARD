@@ -5,14 +5,19 @@
  * Date: April 2, 2021
  */
 
+#include <algorithm>
+
 #include "cuda/Array.h"
 #include "cuda/Common.h"
+#include "cuda/CommonInternal.h"
 
 namespace mgard_cuda {
 
-template <typename T, int D> Array<T, D>::Array(std::vector<size_t> shape) {
+template <typename T, uint32_t D>
+Array<T, D>::Array(std::vector<size_t> shape) {
   this->host_allocated = false;
   this->device_allocated = false;
+  std::reverse(shape.begin(), shape.end());
   this->shape = shape;
   if (shape.size() != D) {
     std::cerr << log_err
@@ -51,7 +56,7 @@ template <typename T, int D> Array<T, D>::Array(std::vector<size_t> shape) {
   this->device_allocated = true;
 }
 
-template <typename T, int D> Array<T, D>::Array(Array<T, D> &array) {
+template <typename T, uint32_t D> Array<T, D>::Array(Array<T, D> &array) {
   this->host_allocated = false;
   this->device_allocated = false;
   this->shape = array.shape;
@@ -93,7 +98,7 @@ template <typename T, int D> Array<T, D>::Array(Array<T, D> &array) {
   this->device_allocated = true;
 }
 
-template <typename T, int D> Array<T, D>::~Array() {
+template <typename T, uint32_t D> Array<T, D>::~Array() {
   if (device_allocated) {
     cudaFreeHelper(ldvs_d);
     cudaFreeHelper(dv);
@@ -103,7 +108,8 @@ template <typename T, int D> Array<T, D>::~Array() {
   }
 }
 
-template <typename T, int D> void Array<T, D>::loadData(T *data, size_t ld) {
+template <typename T, uint32_t D>
+void Array<T, D>::loadData(T *data, size_t ld) {
   if (ld == 0) {
     ld = shape[0];
   }
@@ -115,7 +121,7 @@ template <typename T, int D> void Array<T, D>::loadData(T *data, size_t ld) {
   handle.sync(0);
 }
 
-template <typename T, int D> T *Array<T, D>::getDataHost() {
+template <typename T, uint32_t D> T *Array<T, D>::getDataHost() {
   Handle<float, 1> handle;
   if (!host_allocated) {
     cudaMallocHostHelper((void **)&hv,
@@ -129,22 +135,24 @@ template <typename T, int D> T *Array<T, D>::getDataHost() {
   return hv;
 }
 
-template <typename T, int D> T *Array<T, D>::getDataDevice(size_t &ld) {
+template <typename T, uint32_t D> T *Array<T, D>::getDataDevice(size_t &ld) {
   ld = ldvs_h[0];
   return dv;
 }
 
-template <typename T, int D> std::vector<size_t> Array<T, D>::getShape() {
+template <typename T, uint32_t D> std::vector<size_t> Array<T, D>::getShape() {
   return shape;
 }
 
-template <typename T, int D> T *Array<T, D>::get_dv() { return dv; }
+template <typename T, uint32_t D> T *Array<T, D>::get_dv() { return dv; }
 
-template <typename T, int D> std::vector<int> Array<T, D>::get_ldvs_h() {
+template <typename T, uint32_t D> std::vector<int> Array<T, D>::get_ldvs_h() {
   return ldvs_h;
 }
 
-template <typename T, int D> int *Array<T, D>::get_ldvs_d() { return ldvs_d; }
+template <typename T, uint32_t D> int *Array<T, D>::get_ldvs_d() {
+  return ldvs_d;
+}
 
 template class Array<double, 1>;
 template class Array<float, 1>;

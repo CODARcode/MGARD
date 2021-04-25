@@ -7,11 +7,12 @@
 
 #ifndef MGARD_CUDA_ARRAY
 #define MGARD_CUDA_ARRAY
+#include <stdint.h>
 #include <vector>
 
 namespace mgard_cuda {
 
-template <typename T, int D> class Array {
+template <typename T, uint32_t D> class Array {
 public:
   Array(std::vector<size_t> shape);
   Array(Array &array);

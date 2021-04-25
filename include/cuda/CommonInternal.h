@@ -10,6 +10,8 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <stdint.h>
+
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 

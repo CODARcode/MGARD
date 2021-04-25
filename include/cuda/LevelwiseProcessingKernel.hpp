@@ -11,7 +11,7 @@
 #include "LevelwiseProcessingKernel.h"
 namespace mgard_cuda {
 
-template <typename T, int D, int R, int C, int F, int OP>
+template <typename T, uint32_t D, int R, int C, int F, int OP>
 __global__ void _lwpk(int *shape, T *dv, int *ldvs, T *dwork, int *ldws) {
 
   size_t threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
@@ -65,7 +65,7 @@ __global__ void _lwpk(int *shape, T *dv, int *ldvs, T *dwork, int *ldws) {
   }
 }
 
-template <typename T, int D, int R, int C, int F, int OP>
+template <typename T, uint32_t D, int R, int C, int F, int OP>
 void lwpk_adaptive_launcher(Handle<T, D> &handle,
                             thrust::device_vector<int> shape, T *dv,
                             thrust::device_vector<int> ldvs, T *dwork,
@@ -101,7 +101,7 @@ void lwpk_adaptive_launcher(Handle<T, D> &handle,
 #endif
 }
 
-template <typename T, int D, int OP>
+template <typename T, uint32_t D, int OP>
 void lwpk(Handle<T, D> &handle, thrust::device_vector<int> shape, T *dv,
           thrust::device_vector<int> ldvs, T *dwork,
           thrust::device_vector<int> ldws, int queue_idx) {
@@ -123,7 +123,7 @@ void lwpk(Handle<T, D> &handle, thrust::device_vector<int> shape, T *dv,
 #undef COPYLEVEL
 }
 
-template <typename T, int D, int R, int C, int F, int OP>
+template <typename T, uint32_t D, int R, int C, int F, int OP>
 void lwpk_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_d,
                             T *dv, int *ldvs, T *dwork, int *ldws,
                             int queue_idx) {
@@ -156,7 +156,7 @@ void lwpk_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_d,
 #endif
 }
 
-template <typename T, int D, int OP>
+template <typename T, uint32_t D, int OP>
 void lwpk(Handle<T, D> &handle, int *shape_h, int *shape_d, T *dv, int *ldvs,
           T *dwork, int *ldws, int queue_idx) {
 #define COPYLEVEL(R, C, F)                                                     \
