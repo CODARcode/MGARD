@@ -16,13 +16,13 @@
 
 namespace mgard_cuda {
 
-template <typename T, uint32_t D>
-void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
-                  int l_target);
+template <uint32_t D, typename T>
+void decompose(Handle<D, T> &handle, T *dv, std::vector<int> ldvs,
+               int l_target);
 
-template <typename T, uint32_t D>
-void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
-                   int l_target);
+template <uint32_t D, typename T>
+void recompose(Handle<D, T> &handle, T *dv, std::vector<int> ldvs,
+               int l_target);
 
 } // namespace mgard_cuda
 

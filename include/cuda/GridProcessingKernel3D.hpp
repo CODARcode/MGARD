@@ -12,7 +12,7 @@
 
 namespace mgard_cuda {
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 __global__ void
 _gpk_reo_3d(int nr, int nc, int nf, int nr_c, int nc_c, int nf_c, T *dratio_r,
             T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2, T *dw,
@@ -1785,9 +1785,9 @@ _gpk_reo_3d(int nr, int nc, int nf, int nr_c, int nc_c, int nf_c, T *dratio_r,
   // }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 void gpk_reo_3d_adaptive_launcher(
-    Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r, T *dratio_c,
+    Handle<D, T> &handle, int nr, int nc, int nf, T *dratio_r, T *dratio_c,
     T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1, int lddw2,
     T *dwf, int lddwf1, int lddwf2, T *dwc, int lddwc1, int lddwc2, T *dwr,
     int lddwr1, int lddwr2, T *dwcf, int lddwcf1, int lddwcf2, T *dwrf,
@@ -1822,7 +1822,7 @@ void gpk_reo_3d_adaptive_launcher(
   blockPerGrid = dim3(gridx, gridy, gridz);
   // printf("exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz, gridx, gridy,
   // gridz);
-  _gpk_reo_3d<T, D, R / 2, C / 2, F / 2>
+  _gpk_reo_3d<D, T, R / 2, C / 2, F / 2>
       <<<blockPerGrid, threadsPerBlock, sm_size,
          *(cudaStream_t *)handle.get(queue_idx)>>>(
           nr, nc, nf, nr_c, nc_c, nf_c, dratio_r, dratio_c, dratio_f, dv, lddv1,
@@ -1835,8 +1835,8 @@ void gpk_reo_3d_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D>
-void gpk_reo_3d(Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r,
+template <uint32_t D, typename T>
+void gpk_reo_3d(Handle<D, T> &handle, int nr, int nc, int nf, T *dratio_r,
                 T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2, T *dw,
                 int lddw1, int lddw2, T *dwf, int lddwf1, int lddwf2, T *dwc,
                 int lddwc1, int lddwc2, T *dwr, int lddwr1, int lddwr2, T *dwcf,
@@ -1846,7 +1846,7 @@ void gpk_reo_3d(Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r,
 
 #define GPK(R, C, F)                                                           \
   {                                                                            \
-    gpk_reo_3d_adaptive_launcher<T, D, R, C, F>(                               \
+    gpk_reo_3d_adaptive_launcher<D, T, R, C, F>(                               \
         handle, nr, nc, nf, dratio_r, dratio_c, dratio_f, dv, lddv1, lddv2,    \
         dw, lddw1, lddw2, dwf, lddwf1, lddwf2, dwc, lddwc1, lddwc2, dwr,       \
         lddwr1, lddwr2, dwcf, lddwcf1, lddwcf2, dwrf, lddwrf1, lddwrf2, dwrc,  \
@@ -1928,7 +1928,7 @@ void gpk_reo_3d(Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r,
 #undef GPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 __global__ void
 _gpk_rev_3d(int nr, int nc, int nf, int nr_c, int nc_c, int nf_c, T *dratio_r,
             T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2, T *dw,
@@ -4003,9 +4003,9 @@ _gpk_rev_3d(int nr, int nc, int nf, int nr_c, int nc_c, int nf_c, T *dratio_r,
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 void gpk_rev_3d_adaptive_launcher(
-    Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r, T *dratio_c,
+    Handle<D, T> &handle, int nr, int nc, int nf, T *dratio_r, T *dratio_c,
     T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1, int lddw2,
     T *dwf, int lddwf1, int lddwf2, T *dwc, int lddwc1, int lddwc2, T *dwr,
     int lddwr1, int lddwr2, T *dwcf, int lddwcf1, int lddwcf2, T *dwrf,
@@ -4039,7 +4039,7 @@ void gpk_rev_3d_adaptive_launcher(
   blockPerGrid = dim3(gridx, gridy, gridz);
   // printf("prolongate exec: %d %d %d %d %d %d\n", tbx, tby, tbz, gridx, gridy,
   // gridz);
-  _gpk_rev_3d<T, D, R / 2, C / 2, F / 2>
+  _gpk_rev_3d<D, T, R / 2, C / 2, F / 2>
       <<<blockPerGrid, threadsPerBlock, sm_size,
          *(cudaStream_t *)handle.get(queue_idx)>>>(
           nr, nc, nf, nr_c, nc_c, nf_c, dratio_r, dratio_c, dratio_f, dv, lddv1,
@@ -4053,8 +4053,8 @@ void gpk_rev_3d_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D>
-void gpk_rev_3d(Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r,
+template <uint32_t D, typename T>
+void gpk_rev_3d(Handle<D, T> &handle, int nr, int nc, int nf, T *dratio_r,
                 T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2, T *dw,
                 int lddw1, int lddw2, T *dwf, int lddwf1, int lddwf2, T *dwc,
                 int lddwc1, int lddwc2, T *dwr, int lddwr1, int lddwr2, T *dwcf,
@@ -4065,7 +4065,7 @@ void gpk_rev_3d(Handle<T, D> &handle, int nr, int nc, int nf, T *dratio_r,
 
 #define GPK(R, C, F)                                                           \
   {                                                                            \
-    gpk_rev_3d_adaptive_launcher<T, D, R, C, F>(                               \
+    gpk_rev_3d_adaptive_launcher<D, T, R, C, F>(                               \
         handle, nr, nc, nf, dratio_r, dratio_c, dratio_f, dv, lddv1, lddv2,    \
         dw, lddw1, lddw2, dwf, lddwf1, lddwf2,\ 
                             dwc,                                               \

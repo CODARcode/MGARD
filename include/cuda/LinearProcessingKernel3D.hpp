@@ -309,8 +309,8 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
-void lpk_reo_1_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc,
+template <uint32_t D, typename T, int R, int C, int F>
+void lpk_reo_1_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc,
                                     int nf, int nf_c, int zero_r, int zero_c,
                                     int zero_f, T *ddist_f, T *dratio_f, T *dv1,
                                     int lddv11, int lddv12, T *dv2, int lddv21,
@@ -351,8 +351,8 @@ void lpk_reo_1_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc,
 #endif
 }
 
-template <typename T, uint32_t D>
-void lpk_reo_1_3d(Handle<T, D> &handle, int nr, int nc, int nf, int nf_c,
+template <uint32_t D, typename T>
+void lpk_reo_1_3d(Handle<D, T> &handle, int nr, int nc, int nf, int nf_c,
                   int zero_r, int zero_c, int zero_f, T *ddist_f, T *dratio_f,
                   T *dv1, int lddv11, int lddv12, T *dv2, int lddv21,
                   int lddv22, T *dw, int lddw1, int lddw2, int queue_idx,
@@ -360,7 +360,7 @@ void lpk_reo_1_3d(Handle<T, D> &handle, int nr, int nc, int nf, int nf_c,
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
-    lpk_reo_1_3d_adaptive_launcher<T, D, R, C, F>(                             \
+    lpk_reo_1_3d_adaptive_launcher<D, T, R, C, F>(                             \
         handle, nr, nc, nf, nf_c, zero_r, zero_c, zero_f, ddist_f, dratio_f,   \
         dv1, lddv11, lddv12, dv2, lddv21, lddv22, dw, lddw1, lddw2,            \
         queue_idx);                                                            \
@@ -658,8 +658,8 @@ __global__ void _lpk_reo_2_3d(int nr, int nc, int nf_c, int nc_c, T *ddist_c,
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
-void lpk_reo_2_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc,
+template <uint32_t D, typename T, int R, int C, int F>
+void lpk_reo_2_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc,
                                     int nf_c, int nc_c, T *ddist_c, T *dratio_c,
                                     T *dv1, int lddv11, int lddv12, T *dv2,
                                     int lddv21, int lddv22, T *dw, int lddw1,
@@ -699,15 +699,15 @@ void lpk_reo_2_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc,
 #endif
 }
 
-template <typename T, uint32_t D>
-void lpk_reo_2_3d(Handle<T, D> &handle, int nr, int nc, int nf_c, int nc_c,
+template <uint32_t D, typename T>
+void lpk_reo_2_3d(Handle<D, T> &handle, int nr, int nc, int nf_c, int nc_c,
                   T *ddist_c, T *dratio_c, T *dv1, int lddv11, int lddv12,
                   T *dv2, int lddv21, int lddv22, T *dw, int lddw1, int lddw2,
                   int queue_idx, int config) {
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
-    lpk_reo_2_3d_adaptive_launcher<T, D, R, C, F>(                             \
+    lpk_reo_2_3d_adaptive_launcher<D, T, R, C, F>(                             \
         handle, nr, nc, nf_c, nc_c, ddist_c, dratio_c, dv1, lddv11, lddv12,    \
         dv2, lddv21, lddv22, dw, lddw1, lddw2, queue_idx);                     \
   }
@@ -993,8 +993,8 @@ __global__ void _lpk_reo_3_3d(int nr, int nc_c, int nf_c, int nr_c, T *ddist_r,
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
-void lpk_reo_3_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc_c,
+template <uint32_t D, typename T, int R, int C, int F>
+void lpk_reo_3_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc_c,
                                     int nf_c, int nr_c, T *ddist_r, T *dratio_r,
                                     T *dv1, int lddv11, int lddv12, T *dv2,
                                     int lddv21, int lddv22, T *dw, int lddw1,
@@ -1033,15 +1033,15 @@ void lpk_reo_3_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc_c,
 #endif
 }
 
-template <typename T, uint32_t D>
-void lpk_reo_3_3d(Handle<T, D> &handle, int nr, int nc_c, int nf_c, int nr_c,
+template <uint32_t D, typename T>
+void lpk_reo_3_3d(Handle<D, T> &handle, int nr, int nc_c, int nf_c, int nr_c,
                   T *ddist_r, T *dratio_r, T *dv1, int lddv11, int lddv12,
                   T *dv2, int lddv21, int lddv22, T *dw, int lddw1, int lddw2,
                   int queue_idx, int config) {
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
-    lpk_reo_3_3d_adaptive_launcher<T, D, R, C, F>(                             \
+    lpk_reo_3_3d_adaptive_launcher<D, T, R, C, F>(                             \
         handle, nr, nc_c, nf_c, nr_c, ddist_r, dratio_r, dv1, lddv11, lddv12,  \
         dv2, lddv21, lddv22, dw, lddw1, lddw2, queue_idx);                     \
   }

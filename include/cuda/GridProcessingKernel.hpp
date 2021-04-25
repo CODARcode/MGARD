@@ -12,7 +12,7 @@
 
 namespace mgard_cuda {
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE>
 __global__ void
 _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
@@ -1895,10 +1895,10 @@ _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   // }
 }
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE>
 void gpk_reo_adaptive_launcher(
-    Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
+    Handle<D_GLOBAL, T> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
     thrust::device_vector<int> ldws,
     thrust::device_vector<int> unprocessed_dims, int curr_dim_r, int curr_dim_c,
@@ -1950,7 +1950,7 @@ void gpk_reo_adaptive_launcher(
 
   // printf("_gpk_reo exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz,
   // gridx, gridy, gridz);
-  _gpk_reo<T, D_GLOBAL, D_LOCAL, R / 2, C / 2, F / 2, INTERPOLATION, CALC_COEFF,
+  _gpk_reo<D_GLOBAL, D_LOCAL, T, R / 2, C / 2, F / 2, INTERPOLATION, CALC_COEFF,
            TYPE><<<blockPerGrid, threadsPerBlock, sm_size,
                    *(cudaStream_t *)handle.get(queue_idx)>>>(
       thrust::raw_pointer_cast(shape.data()),
@@ -1968,9 +1968,9 @@ void gpk_reo_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE>
-void gpk_reo(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
+void gpk_reo(Handle<D_GLOBAL, T> &handle, thrust::device_vector<int> shape,
              thrust::device_vector<int> shape_c,
              thrust::device_vector<int> ldvs, thrust::device_vector<int> ldws,
              thrust::device_vector<int> unprocessed_dims, int curr_dim_r,
@@ -1984,7 +1984,7 @@ void gpk_reo(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
 
 #define GPK(R, C, F)                                                           \
   {                                                                            \
-    gpk_reo_adaptive_launcher<T, D_GLOBAL, D_LOCAL, R, C, F, INTERPOLATION,    \
+    gpk_reo_adaptive_launcher<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,    \
                               CALC_COEFF, TYPE>(                               \
         handle, shape, shape_c, ldvs, ldws, unprocessed_dims, curr_dim_r,      \
         curr_dim_c, curr_dim_f, dratio_r, dratio_c, dratio_f, dv, lddv1,       \
@@ -2068,10 +2068,10 @@ void gpk_reo(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
 #undef GPK
 }
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE>
 void gpk_reo_adaptive_launcher(
-    Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d, int *shape_c_d,
+    Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d, int *shape_c_d,
     int *ldvs, int *ldws, int unprocessed_n, int *unprocessed_dims,
     int curr_dim_r, int curr_dim_c, int curr_dim_f, T *dratio_r, T *dratio_c,
     T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1, int lddw2,
@@ -2123,7 +2123,7 @@ void gpk_reo_adaptive_launcher(
   // gridx, gridy, gridz);
 
   // high_resolution_clock::time_point t1 = high_resolution_clock::now();
-  _gpk_reo<T, D_GLOBAL, D_LOCAL, R / 2, C / 2, F / 2, INTERPOLATION, CALC_COEFF,
+  _gpk_reo<D_GLOBAL, D_LOCAL, T, R / 2, C / 2, F / 2, INTERPOLATION, CALC_COEFF,
            TYPE><<<blockPerGrid, threadsPerBlock, sm_size,
                    *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, shape_c_d, ldvs, ldws, unprocessed_n, unprocessed_dims,
@@ -2141,9 +2141,9 @@ void gpk_reo_adaptive_launcher(
   // printf("gpk_reo_kernel time: %.6f s\n", time_span.count());
 }
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE>
-void gpk_reo(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
+void gpk_reo(Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d,
              int *shape_c_d, int *ldvs, int *ldws, int unprocessed_n,
              int *unprocessed_dims, int curr_dim_r, int curr_dim_c,
              int curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv,
@@ -2155,7 +2155,7 @@ void gpk_reo(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
 
 #define GPK(R, C, F)                                                           \
   {                                                                            \
-    gpk_reo_adaptive_launcher<T, D_GLOBAL, D_LOCAL, R, C, F, INTERPOLATION,    \
+    gpk_reo_adaptive_launcher<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,    \
                               CALC_COEFF, TYPE>(                               \
         handle, shape_h, shape_d, shape_c_d, ldvs, ldws, unprocessed_n,        \
         unprocessed_dims, curr_dim_r, curr_dim_c, curr_dim_f, dratio_r,        \
@@ -2240,7 +2240,7 @@ void gpk_reo(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
 #undef GPK
 }
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
           bool INTERPOLATION, bool COEFF_RESTORE, int TYPE>
 __global__ void
 _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
@@ -4273,10 +4273,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   }
 }
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
           bool INTERPOLATION, bool COEFF_RESTORE, int TYPE>
 void gpk_rev_adaptive_launcher(
-    Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
+    Handle<D_GLOBAL, T> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
     thrust::device_vector<int> ldws,
     thrust::device_vector<int> unprocessed_dims, int curr_dim_r, int curr_dim_c,
@@ -4327,7 +4327,7 @@ void gpk_rev_adaptive_launcher(
 
   // printf("gpk_rev exec: %d %d %d %d %d %d\n", tbx, tby, tbz, gridx, gridy,
   // gridz);
-  _gpk_rev<T, D_GLOBAL, D_LOCAL, R / 2, C / 2, F / 2, INTERPOLATION,
+  _gpk_rev<D_GLOBAL, D_LOCAL, T, R / 2, C / 2, F / 2, INTERPOLATION,
            COEFF_RESTORE, TYPE><<<blockPerGrid, threadsPerBlock, sm_size,
                                   *(cudaStream_t *)handle.get(queue_idx)>>>(
       thrust::raw_pointer_cast(shape.data()),
@@ -4345,9 +4345,9 @@ void gpk_rev_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, bool INTERPOLATION,
           bool COEFF_RESTORE, int TYPE>
-void gpk_rev(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
+void gpk_rev(Handle<D_GLOBAL, T> &handle, thrust::device_vector<int> shape,
              thrust::device_vector<int> shape_c,
              thrust::device_vector<int> ldvs, thrust::device_vector<int> ldws,
              thrust::device_vector<int> unprocessed_dims, int curr_dim_r,
@@ -4362,7 +4362,7 @@ void gpk_rev(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
 
 #define GPK(R, C, F)                                                           \
   {                                                                            \
-    gpk_rev_adaptive_launcher<T, D_GLOBAL, D_LOCAL, R, C, F, INTERPOLATION,    \
+    gpk_rev_adaptive_launcher<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,    \
                               COEFF_RESTORE, TYPE>(                            \
         handle, shape, shape_c, ldvs, ldws, unprocessed_dims, curr_dim_r,      \
         curr_dim_c, curr_dim_f, dratio_r, dratio_c, dratio_f, dv, lddv1,       \
@@ -4445,10 +4445,10 @@ void gpk_rev(Handle<T, D_GLOBAL> &handle, thrust::device_vector<int> shape,
 #undef GPK
 }
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, int R, int C, int F,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
           bool INTERPOLATION, bool COEFF_RESTORE, int TYPE>
 void gpk_rev_adaptive_launcher(
-    Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d, int *shape_c_d,
+    Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d, int *shape_c_d,
     int *ldvs, int *ldws, int unprocessed_n, int *unprocessed_dims,
     int curr_dim_r, int curr_dim_c, int curr_dim_f, T *dratio_r, T *dratio_c,
     T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1, int lddw2,
@@ -4498,7 +4498,7 @@ void gpk_rev_adaptive_launcher(
 
   // printf("gpk_rev exec: %d %d %d %d %d %d\n", tbx, tby, tbz, gridx, gridy,
   // gridz);
-  _gpk_rev<T, D_GLOBAL, D_LOCAL, R / 2, C / 2, F / 2, INTERPOLATION,
+  _gpk_rev<D_GLOBAL, D_LOCAL, T, R / 2, C / 2, F / 2, INTERPOLATION,
            COEFF_RESTORE, TYPE><<<blockPerGrid, threadsPerBlock, sm_size,
                                   *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, shape_c_d, ldvs, ldws, unprocessed_n, unprocessed_dims,
@@ -4513,9 +4513,9 @@ void gpk_rev_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D_GLOBAL, uint32_t D_LOCAL, bool INTERPOLATION,
+template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, bool INTERPOLATION,
           bool COEFF_RESTORE, int TYPE>
-void gpk_rev(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
+void gpk_rev(Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d,
              int *shape_c_d, int *ldvs, int *ldws, int unprocessed_n,
              int *unprocessed_dims, int curr_dim_r, int curr_dim_c,
              int curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv,
@@ -4528,7 +4528,7 @@ void gpk_rev(Handle<T, D_GLOBAL> &handle, int *shape_h, int *shape_d,
 
 #define GPK(R, C, F)                                                           \
   {                                                                            \
-    gpk_rev_adaptive_launcher<T, D_GLOBAL, D_LOCAL, R, C, F, INTERPOLATION,    \
+    gpk_rev_adaptive_launcher<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,    \
                               COEFF_RESTORE, TYPE>(                            \
         handle, shape_h, shape_d, shape_c_d, ldvs, ldws, unprocessed_n,        \
         unprocessed_dims, curr_dim_r, curr_dim_c, curr_dim_f, dratio_r,        \

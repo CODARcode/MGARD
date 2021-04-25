@@ -66,7 +66,7 @@ template <typename T>
 void print_matrix_cuda(int nrow, int ncol, T *dv, int lddv) {
   // std::cout << std::setw(10);
   // std::cout << std::setprecision(2) << std::fixed;
-  Handle<float, 2> *tmp_handle = new Handle<float, 2>();
+  Handle<2, float> *tmp_handle = new Handle<2, float>();
   int queue_idx = 0;
   T *v = new T[nrow * ncol];
   cudaMemcpy2DAsyncHelper(*tmp_handle, v, ncol * sizeof(T), dv,
@@ -84,7 +84,7 @@ void print_matrix_cuda(int nrow, int ncol, int nfib, T *dv, int lddv1,
                        int lddv2, int sizex) {
   std::cout << std::setw(10);
   std::cout << std::setprecision(2) << std::fixed;
-  Handle<float, 3> *tmp_handle = new Handle<float, 3>();
+  Handle<3, float> *tmp_handle = new Handle<3, float>();
   int queue_idx = 0;
 
   T *v = new T[nrow * ncol * nfib];
@@ -149,7 +149,7 @@ bool compare_matrix(int nrow, int ncol, T *v1, int ldv1, T *v2, int ldv2) {
 template <typename T>
 bool compare_matrix_cuda(int nrow, int ncol, T *dv1, int lddv1, T *dv2,
                          int lddv2) {
-  Handle<float, 2> *tmp_handle = new Handle<float, 2>();
+  Handle<2, float> *tmp_handle = new Handle<2, float>();
   int queue_idx = 0;
 
   T *v1 = new T[nrow * ncol];
@@ -233,7 +233,7 @@ template <typename T>
 bool compare_matrix_cuda(int nrow, int ncol, int nfib, T *dv1, int lddv11,
                          int lddv12, int sizex1, T *dv2, int lddv21, int lddv22,
                          int sizex2, bool print_matrix) {
-  Handle<float, 3> *tmp_handle = new Handle<float, 3>();
+  Handle<3, float> *tmp_handle = new Handle<3, float>();
   int queue_idx = 0;
 
   T *v1 = new T[nrow * ncol * nfib];
@@ -322,7 +322,7 @@ void verify_matrix_cuda(int nrow, int ncol, int nfib, T *dv, int lddv1,
   // std::cout << std::setw(10);
   // std::cout << std::setprecision(2) << std::fixed;
   if (store || verify) {
-    Handle<float, 3> *tmp_handle = new Handle<float, 3>();
+    Handle<3, float> *tmp_handle = new Handle<3, float>();
     int queue_idx = 0;
 
     T *v = new T[nrow * ncol * nfib];
@@ -378,8 +378,8 @@ enum cudaMemcpyKind inferTransferType(enum copy_type kind) {
 }
 
 // Copy 1D
-template <typename T, uint32_t D>
-void cudaMemcpyAsyncHelper(Handle<T, D> &handle, void *dst, const void *src,
+template <uint32_t D, typename T>
+void cudaMemcpyAsyncHelper(Handle<D, T> &handle, void *dst, const void *src,
                            size_t count, enum copy_type kind, int queue_idx) {
 
   // printf("copu: %llu\n", count);
@@ -403,8 +403,8 @@ void cudaMemcpyAsyncHelper(Handle<T, D> &handle, void *dst, const void *src,
 }
 
 // Copy 2D
-template <typename T, uint32_t D>
-void cudaMemcpy2DAsyncHelper(Handle<T, D> &handle, void *dst, size_t dpitch,
+template <uint32_t D, typename T>
+void cudaMemcpy2DAsyncHelper(Handle<D, T> &handle, void *dst, size_t dpitch,
                              void *src, size_t spitch, size_t width,
                              size_t height, enum copy_type kind,
                              int queue_idx) {
@@ -430,8 +430,8 @@ void cudaMemcpy2DAsyncHelper(Handle<T, D> &handle, void *dst, size_t dpitch,
 }
 
 // Copy 3D
-template <typename T, uint32_t D>
-void cudaMemcpy3DAsyncHelper(Handle<T, D> &handle, void *dst, size_t dpitch,
+template <uint32_t D, typename T>
+void cudaMemcpy3DAsyncHelper(Handle<D, T> &handle, void *dst, size_t dpitch,
                              size_t dwidth, size_t dheight, void *src,
                              size_t spitch, size_t swidth, size_t sheight,
                              size_t width, size_t height, size_t depth,
@@ -500,8 +500,8 @@ void cudaMemset3DHelper(void *devPtr, size_t pitch, size_t dwidth,
 void cudaSetDeviceHelper(int dev_id) { gpuErrchk(cudaSetDevice(dev_id)); }
 
 // Copy 1D Peer
-template <typename T, uint32_t D>
-void cudaMemcpyPeerAsyncHelper(Handle<T, D> &handle, void *dst, int dst_dev,
+template <uint32_t D, typename T>
+void cudaMemcpyPeerAsyncHelper(Handle<D, T> &handle, void *dst, int dst_dev,
                                const void *src, int src_dev, size_t count,
                                int queue_idx) {
 
@@ -513,8 +513,8 @@ void cudaMemcpyPeerAsyncHelper(Handle<T, D> &handle, void *dst, int dst_dev,
 }
 
 // Copy 3D peer
-template <typename T, uint32_t D>
-void cudaMemcpy3DPeerAsyncHelper(Handle<T, D> &handle, void *dst, int dst_dev,
+template <uint32_t D, typename T>
+void cudaMemcpy3DPeerAsyncHelper(Handle<D, T> &handle, void *dst, int dst_dev,
                                  size_t dpitch, size_t dwidth, size_t dheight,
                                  void *src, int src_dev, size_t spitch,
                                  size_t swidth, size_t sheight, size_t width,
@@ -595,37 +595,37 @@ KERNELS(unsigned int)
 KERNELS(unsigned long)
 #undef KERNELS
 
-#define KERNELS(T, D)                                                          \
-  template void cudaMemcpyAsyncHelper<T, D>(                                   \
-      Handle<T, D> & handle, void *dst, const void *src, size_t count,         \
+#define KERNELS(D, T)                                                          \
+  template void cudaMemcpyAsyncHelper<D, T>(                                   \
+      Handle<D, T> & handle, void *dst, const void *src, size_t count,         \
       enum copy_type kind, int queue_idx);                                     \
-  template void cudaMemcpy2DAsyncHelper<T, D>(                                 \
-      Handle<T, D> & handle, void *dst, size_t dpitch, void *src,              \
+  template void cudaMemcpy2DAsyncHelper<D, T>(                                 \
+      Handle<D, T> & handle, void *dst, size_t dpitch, void *src,              \
       size_t spitch, size_t width, size_t height, enum copy_type kind,         \
       int queue_idx);                                                          \
-  template void cudaMemcpy3DAsyncHelper<T, D>(                                 \
-      Handle<T, D> & handle, void *dst, size_t dpitch, size_t dwidth,          \
+  template void cudaMemcpy3DAsyncHelper<D, T>(                                 \
+      Handle<D, T> & handle, void *dst, size_t dpitch, size_t dwidth,          \
       size_t dheight, void *src, size_t spitch, size_t swidth, size_t sheight, \
       size_t width, size_t height, size_t depth, enum copy_type kind,          \
       int queue_idx);                                                          \
-  template void cudaMemcpyPeerAsyncHelper<T, D>(                               \
-      Handle<T, D> & handle, void *dst, int dst_dev, const void *src,          \
+  template void cudaMemcpyPeerAsyncHelper<D, T>(                               \
+      Handle<D, T> & handle, void *dst, int dst_dev, const void *src,          \
       int src_dev, size_t count, int queue_idx);                               \
-  template void cudaMemcpy3DPeerAsyncHelper<T, D>(                             \
-      Handle<T, D> & handle, void *dst, int dst_dev, size_t dpitch,            \
+  template void cudaMemcpy3DPeerAsyncHelper<D, T>(                             \
+      Handle<D, T> & handle, void *dst, int dst_dev, size_t dpitch,            \
       size_t dwidth, size_t dheight, void *src, int src_dev, size_t spitch,    \
       size_t swidth, size_t sheight, size_t width, size_t height,              \
       size_t depth, int queue_idx);
 
-KERNELS(double, 1)
-KERNELS(float, 1)
-KERNELS(double, 2)
-KERNELS(float, 2)
-KERNELS(double, 3)
-KERNELS(float, 3)
-KERNELS(double, 4)
-KERNELS(float, 4)
-KERNELS(double, 5)
-KERNELS(float, 5)
+KERNELS(1, double)
+KERNELS(1, float)
+KERNELS(2, double)
+KERNELS(2, float)
+KERNELS(3, double)
+KERNELS(3, float)
+KERNELS(4, double)
+KERNELS(4, float)
+KERNELS(5, double)
+KERNELS(5, float)
 #undef KERNELS
 } // namespace mgard_cuda

@@ -134,8 +134,8 @@ void PrintChunkHuffmanCoding(size_t *dH_bit_meta, //
   cout << endl;
 }
 
-template <typename T, uint32_t D, typename S, typename Q, typename H>
-void HuffmanEncode(mgard_cuda::Handle<T, D> &handle, S *dqv, size_t n,
+template <uint32_t D, typename T, typename S, typename Q, typename H>
+void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
                    std::vector<size_t> &outlier_idx, H *&dmeta,
                    size_t &dmeta_size, H *&ddata, size_t &ddata_size,
                    int chunk_size, int dict_size) {
@@ -377,8 +377,8 @@ void HuffmanEncode(mgard_cuda::Handle<T, D> &handle, S *dqv, size_t n,
   delete[] h_meta;
 }
 
-template <typename T, uint32_t D, typename S, typename Q, typename H>
-void HuffmanDecode(mgard_cuda::Handle<T, D> &handle, S *&dqv, size_t &n,
+template <uint32_t D, typename T, typename S, typename Q, typename H>
+void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
                    H *dmeta, size_t dmeta_size, H *ddata, size_t ddata_size) {
 
   Q *dprimary;
@@ -397,7 +397,7 @@ void HuffmanDecode(mgard_cuda::Handle<T, D> &handle, S *&dqv, size_t &n,
   void *dmeta_p = (void *)dmeta;
 
   // outlier
-  // mgard_cuda::cudaMemcpyAsyncHelper(handle, &outlier_count, dmeta_p,
+  // mgard_cuda::cudaMemcpyAsyncHelper(handle, &outlier_counD, Tmeta_p,
   // sizeof(size_t), mgard_cuda::D2H, 0); dmeta_p = dmeta_p + sizeof(size_t);
   // // printf("decompress outlier_count: %llu\n", outlier_count);
   // mgard_cuda::cudaMallocHelper((void**)&doutlier, outlier_count*sizeof(S));
@@ -552,34 +552,34 @@ template void PrintChunkHuffmanCoding<uint64_t>(size_t *, size_t *, size_t, int,
 //                           int* &dqv, size_t &n, uint32_t * dmeta, size_t
 //                           dmeta_size, uint32_t * ddata, size_t ddata_size);
 
-#define KERNELS(T, D, S, Q, H)                                                 \
-  template void HuffmanEncode<T, D, S, Q, H>(                                  \
-      mgard_cuda::Handle<T, D> & handle, S * dqv, size_t n,                    \
+#define KERNELS(D, T, S, Q, H)                                                 \
+  template void HuffmanEncode<D, T, S, Q, H>(                                  \
+      mgard_cuda::Handle<D, T> & handle, S * dqv, size_t n,                    \
       std::vector<size_t> & outlier_idx, H * &dmeta, size_t & dmeta_size,      \
       H * &ddata, size_t & ddata_size, int chunk_size, int dict_size);         \
-  template void HuffmanDecode<T, D, S, Q, H>(                                  \
-      mgard_cuda::Handle<T, D> & handle, S * &dqv, size_t & n, H * dmeta,      \
+  template void HuffmanDecode<D, T, S, Q, H>(                                  \
+      mgard_cuda::Handle<D, T> & handle, S * &dqv, size_t & n, H * dmeta,      \
       size_t dmeta_size, H * ddata, size_t ddata_size);
 
-KERNELS(double, 1, int, uint32_t, uint32_t)
-KERNELS(float, 1, int, uint32_t, uint32_t)
-KERNELS(double, 2, int, uint32_t, uint32_t)
-KERNELS(float, 2, int, uint32_t, uint32_t)
-KERNELS(double, 3, int, uint32_t, uint32_t)
-KERNELS(float, 3, int, uint32_t, uint32_t)
-KERNELS(double, 4, int, uint32_t, uint32_t)
-KERNELS(float, 4, int, uint32_t, uint32_t)
-KERNELS(double, 5, int, uint32_t, uint32_t)
-KERNELS(float, 5, int, uint32_t, uint32_t)
-KERNELS(double, 1, int, uint32_t, uint64_t)
-KERNELS(float, 1, int, uint32_t, uint64_t)
-KERNELS(double, 2, int, uint32_t, uint64_t)
-KERNELS(float, 2, int, uint32_t, uint64_t)
-KERNELS(double, 3, int, uint32_t, uint64_t)
-KERNELS(float, 3, int, uint32_t, uint64_t)
-KERNELS(double, 4, int, uint32_t, uint64_t)
-KERNELS(float, 4, int, uint32_t, uint64_t)
-KERNELS(double, 5, int, uint32_t, uint64_t)
-KERNELS(float, 5, int, uint32_t, uint64_t)
+KERNELS(1, double, int, uint32_t, uint32_t)
+KERNELS(1, float, int, uint32_t, uint32_t)
+KERNELS(2, double, int, uint32_t, uint32_t)
+KERNELS(2, float, int, uint32_t, uint32_t)
+KERNELS(3, double, int, uint32_t, uint32_t)
+KERNELS(3, float, int, uint32_t, uint32_t)
+KERNELS(4, double, int, uint32_t, uint32_t)
+KERNELS(4, float, int, uint32_t, uint32_t)
+KERNELS(5, double, int, uint32_t, uint32_t)
+KERNELS(5, float, int, uint32_t, uint32_t)
+KERNELS(1, double, int, uint32_t, uint64_t)
+KERNELS(1, float, int, uint32_t, uint64_t)
+KERNELS(2, double, int, uint32_t, uint64_t)
+KERNELS(2, float, int, uint32_t, uint64_t)
+KERNELS(3, double, int, uint32_t, uint64_t)
+KERNELS(3, float, int, uint32_t, uint64_t)
+KERNELS(4, double, int, uint32_t, uint64_t)
+KERNELS(4, float, int, uint32_t, uint64_t)
+KERNELS(5, double, int, uint32_t, uint64_t)
+KERNELS(5, float, int, uint32_t, uint64_t)
 
 // clang-format off

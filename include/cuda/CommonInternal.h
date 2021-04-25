@@ -53,6 +53,8 @@ template <typename T> struct quant_meta {
   T s;
 };
 
+template <uint32_t D> int check_shape(std::vector<size_t> shape);
+
 bool is_2kplus1_cuda(double num);
 
 // __device__ int get_idx(const int ld, const int i, const int j);

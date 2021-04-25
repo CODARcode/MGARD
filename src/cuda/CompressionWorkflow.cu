@@ -33,10 +33,9 @@ struct linf_norm : public thrust::binary_function<T, T, T> {
   __host__ __device__ T operator()(T x, T y) { return max(abs(x), abs(y)); }
 };
 
-template <typename T, uint32_t D>
-Array<unsigned char, 1>
-refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
-                 enum error_bound_type type, T tol, T s) {
+template <uint32_t D, typename T>
+Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
+                                 enum error_bound_type type, T tol, T s) {
 
   for (int i = 0; i < D; i++) {
     if (handle.shapes_h[0][i] != in_array.getShape()[i]) {
@@ -45,7 +44,7 @@ refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
                    "initilized in handle!\n";
       std::vector<size_t> empty_shape;
       empty_shape.push_back(1);
-      Array<unsigned char, 1> empty(empty_shape);
+      Array<1, unsigned char> empty(empty_shape);
       return empty;
     }
   }
@@ -92,8 +91,8 @@ refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
   start = high_resolution_clock::now();
   // Decomposition
   t1 = high_resolution_clock::now();
-  refactor_reo<T, D>(handle, in_array.get_dv(), in_array.get_ldvs_h(),
-                     handle.l_target);
+  decompose<D, T>(handle, in_array.get_dv(), in_array.get_ldvs_h(),
+                  handle.l_target);
   // printf("sync_all 1\n");
   handle.sync_all();
   t2 = high_resolution_clock::now();
@@ -180,7 +179,7 @@ refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
   // (double)(total-free)/1e9, (double)total/1e9);
 
-  levelwise_linear_quantize<T, D>(
+  levelwise_linear_quantize<D, T>(
       handle, dshapes, handle.l_target, m, in_array.get_dv(),
       in_array.get_ldvs_d(), dqv, thrust::raw_pointer_cast(ldqvs.data()),
       huffman, handle.shapes_d[0], outlier_count_d, outlier_idx_d, outliers, 0);
@@ -191,7 +190,7 @@ refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
   // printf("outlier_count: %llu\n", outlier_count);
 
   // printf("dqv\n");
-  // print_matrix_cuda(1, quantized_count, dqv, quantized_count);
+  // print_matrix_cuda(1, quantized_counD, Tqv, quantized_count);
 
   // printf("outlier_idx_d\n");
   // print_matrix_cuda(1, outlier_count, outlier_idx_d, quantized_count);
@@ -216,7 +215,7 @@ refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
   uint64_t *hufdata;
   size_t hufmeta_size;
   size_t hufdata_size;
-  huffman_compress<T, D, int, uint32_t, uint64_t>(
+  huffman_compress<D, T, int, uint32_t, uint64_t>(
       handle, dqv, quantized_count, outlier_idx, hufmeta, hufmeta_size, hufdata,
       hufdata_size, block_size, dict_size, 0);
   // printf("sync_all 3\n");
@@ -271,7 +270,7 @@ refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
 
   std::vector<size_t> out_shape(1);
   out_shape[0] = outsize;
-  Array<unsigned char, 1> compressed_array(out_shape);
+  Array<1, unsigned char> compressed_array(out_shape);
 
   unsigned char *buffer = compressed_array.get_dv();
   // cudaMallocHostHelper((void**)&buffer, outsize);
@@ -330,9 +329,9 @@ refactor_qz_cuda(Handle<T, D> &handle, Array<T, D> &in_array,
   return compressed_array;
 }
 
-template <typename T, uint32_t D>
-Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
-                               Array<unsigned char, 1> &compressed_array) {
+template <uint32_t D, typename T>
+Array<D, T> decompress(Handle<D, T> &handle,
+                       Array<1, unsigned char> &compressed_array) {
 
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
@@ -420,7 +419,7 @@ Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
   int *dqv;
 
   t1 = high_resolution_clock::now();
-  huffman_decompress<T, D, int, uint32_t, uint64_t>(
+  huffman_decompress<D, T, int, uint32_t, uint64_t>(
       handle, (uint64_t *)hufmeta, hufmeta_size, hufdata, hufdata_size, dqv,
       outsize, 0);
   // printf("sync_all 7\n");
@@ -467,7 +466,7 @@ Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
   for (int i = 0; i < D; i++)
     decompressed_shape[i] = handle.shapes_h[0][i];
   std::reverse(decompressed_shape.begin(), decompressed_shape.end());
-  Array<T, D> decompressed_data(decompressed_shape);
+  Array<D, T> decompressed_data(decompressed_shape);
 
   int *hshapes = new int[D * (handle.l_target + 2)];
   for (int d = 0; d < D; d++) {
@@ -489,7 +488,7 @@ Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
   handle.sync_all();
 
   t1 = high_resolution_clock::now();
-  levelwise_linear_dequantize<T, D>(handle, dshapes, handle.l_target, m, dqv,
+  levelwise_linear_dequantize<D, T>(handle, dshapes, handle.l_target, m, dqv,
                                     thrust::raw_pointer_cast(ldqvs.data()),
                                     decompressed_data.get_dv(),
                                     decompressed_data.get_ldvs_d(),
@@ -507,7 +506,7 @@ Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
   // printf("Mem: %f/%f\n", (double)(total-free)/1e9, (double)total/1e9);
 
   // printf("dv:\n");
-  // print_matrix_cuda(1, quantized_count, dv, quantized_count);
+  // print_matrix_cuda(1, quantized_counD, Tv, quantized_count);
 
   /**** refactoring ****/
 
@@ -523,8 +522,8 @@ Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
   // (double)(total-free)/1e9, (double)total/1e9);
 
   t1 = high_resolution_clock::now();
-  recompose_reo<T, D>(handle, decompressed_data.get_dv(),
-                      decompressed_data.get_ldvs_h(), m.l_target);
+  recompose<D, T>(handle, decompressed_data.get_dv(),
+                  decompressed_data.get_ldvs_h(), m.l_target);
   // printf("sync_all 9\n");
   handle.sync_all();
   t2 = high_resolution_clock::now();
@@ -563,23 +562,23 @@ Array<T, D> recompose_udq_cuda(Handle<T, D> &handle,
   return decompressed_data;
 }
 
-#define KERNELS(T, D)                                                          \
-  template Array<unsigned char, 1> refactor_qz_cuda<T, D>(                     \
-      Handle<T, D> & handle, Array<T, D> & in_array,                           \
+#define KERNELS(D, T)                                                          \
+  template Array<1, unsigned char> compress<D, T>(                             \
+      Handle<D, T> & handle, Array<D, T> & in_array,                           \
       enum error_bound_type type, T tol, T s);                                 \
-  template Array<T, D> recompose_udq_cuda<T, D>(                               \
-      Handle<T, D> & handle, Array<unsigned char, 1> & compressed_array);
+  template Array<D, T> decompress<D, T>(                                       \
+      Handle<D, T> & handle, Array<1, unsigned char> & compressed_array);
 
-KERNELS(double, 1)
-KERNELS(float, 1)
-KERNELS(double, 2)
-KERNELS(float, 2)
-KERNELS(double, 3)
-KERNELS(float, 3)
-KERNELS(double, 4)
-KERNELS(float, 4)
-KERNELS(double, 5)
-KERNELS(float, 5)
+KERNELS(1, double)
+KERNELS(1, float)
+KERNELS(2, double)
+KERNELS(2, float)
+KERNELS(3, double)
+KERNELS(3, float)
+KERNELS(4, double)
+KERNELS(4, float)
+KERNELS(5, double)
+KERNELS(5, float)
 #undef KERNELS
 
 } // namespace mgard_cuda

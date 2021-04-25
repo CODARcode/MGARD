@@ -84,7 +84,6 @@ if(MGARD_ENABLE_CUDA)
   find_package(CUDAToolkit)
   set (CMAKE_CXX_STANDARD 14)
   set(MGARD_CUDA_SRC
-      src/cuda/API.cu
       src/cuda/Array.cu
       src/cuda/Message.cpp
       src/cuda/CompressionWorkflow.cu
@@ -138,7 +137,6 @@ if(MGARD_ENABLE_CUDA)
       include/mgard_cuda_api.h
       include/cuda/Array.h
       include/cuda/Message.h
-      include/cuda/CompressionWorkflow.h
       include/cuda/Handle.h
       include/cuda/MemoryManagement.h                 
       include/cuda/Common.h

@@ -59,7 +59,7 @@ void calc_quantizers(T *quantizers, int D, T norm, T tol, T s, int l_target,
   // printf("\n");
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 __global__ void
 _levelwise_linear_quantize(int *shapes, int l_target, T *quantizers, T *dv,
                            int *ldvs, int *dwork, int *ldws, bool prep_huffmam,
@@ -164,9 +164,9 @@ _levelwise_linear_quantize(int *shapes, int l_target, T *quantizers, T *dv,
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 void levelwise_linear_quantize_adaptive_launcher(
-    Handle<T, D> &handle, int *shapes, int l_target, quant_meta<T> m, T *dv,
+    Handle<D, T> &handle, int *shapes, int l_target, quant_meta<T> m, T *dv,
     int *ldvs, int *dwork, int *ldws, bool prep_huffmam, int *shape,
     size_t *outlier_count, unsigned int *outlier_idx, int *outliers,
     int queue_idx) {
@@ -198,7 +198,7 @@ void levelwise_linear_quantize_adaptive_launcher(
   sm_size += (l_target + 1) * sizeof(T);
   sm_size += (l_target + 2) * D * sizeof(int);
 
-  _levelwise_linear_quantize<T, D, R, C, F>
+  _levelwise_linear_quantize<D, T, R, C, F>
       <<<blockPerGrid, threadsPerBlock, sm_size,
          *(cudaStream_t *)handle.get(queue_idx)>>>(
           shapes, l_target, handle.quantizers, dv, ldvs, dwork, ldws,
@@ -212,15 +212,15 @@ void levelwise_linear_quantize_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D>
-void levelwise_linear_quantize(Handle<T, D> &handle, int *shapes, int l_target,
+template <uint32_t D, typename T>
+void levelwise_linear_quantize(Handle<D, T> &handle, int *shapes, int l_target,
                                quant_meta<T> m, T *dv, int *ldvs, int *dwork,
                                int *ldws, bool prep_huffmam, int *shape,
                                size_t *outlier_count, unsigned int *outlier_idx,
                                int *outliers, int queue_idx) {
 #define QUANTIZE(R, C, F)                                                      \
   {                                                                            \
-    levelwise_linear_quantize_adaptive_launcher<T, D, R, C, F>(                \
+    levelwise_linear_quantize_adaptive_launcher<D, T, R, C, F>(                \
         handle, shapes, l_target, m, dv, ldvs, dwork, ldws, prep_huffmam,      \
         shape, outlier_count, outlier_idx, outliers, queue_idx);               \
   }
@@ -238,7 +238,7 @@ void levelwise_linear_quantize(Handle<T, D> &handle, int *shapes, int l_target,
 #undef QUANTIZE
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 __global__ void
 _levelwise_linear_dequantize(int *shapes, int l_target, T *quantizers, int *dv,
                              int *ldvs, T *dwork, int *ldws, int dict_size,
@@ -372,7 +372,7 @@ _levelwise_linear_dequantize(int *shapes, int l_target, T *quantizers, int *dv,
   // }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 __global__ void _levelwise_linear_dequantize_outliers(
     int *shapes, int l_target, T *quantizers, int *dv, int *ldvs, T *dwork,
     int *ldws, int dict_size, size_t outlier_count, unsigned int *outlier_idx,
@@ -436,9 +436,9 @@ __global__ void _levelwise_linear_dequantize_outliers(
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 void levelwise_linear_dequantize_adaptive_launcher(
-    Handle<T, D> &handle, int *shapes, int l_target, quant_meta<T> m, int *dv,
+    Handle<D, T> &handle, int *shapes, int l_target, quant_meta<T> m, int *dv,
     int *ldvs, T *dwork, int *ldws, size_t outlier_count,
     unsigned int *outlier_idx, int *outliers, int queue_idx) {
 
@@ -471,12 +471,12 @@ void levelwise_linear_dequantize_adaptive_launcher(
   sm_size += (l_target + 1) * sizeof(T);
   sm_size += (l_target + 2) * D * sizeof(int);
 
-  _levelwise_linear_dequantize<T, D, R, C, F>
+  _levelwise_linear_dequantize<D, T, R, C, F>
       <<<blockPerGrid, threadsPerBlock, sm_size,
          *(cudaStream_t *)handle.get(queue_idx)>>>(
           shapes, l_target, handle.quantizers, dv, ldvs, dwork, ldws,
           m.dict_size, outlier_count, outlier_idx, outliers);
-  _levelwise_linear_dequantize_outliers<T, D, R, C, F>
+  _levelwise_linear_dequantize_outliers<D, T, R, C, F>
       <<<blockPerGrid, threadsPerBlock, sm_size,
          *(cudaStream_t *)handle.get(queue_idx)>>>(
           shapes, l_target, handle.quantizers, dv, ldvs, dwork, ldws,
@@ -488,8 +488,8 @@ void levelwise_linear_dequantize_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D>
-void levelwise_linear_dequantize(Handle<T, D> &handle, int *shapes,
+template <uint32_t D, typename T>
+void levelwise_linear_dequantize(Handle<D, T> &handle, int *shapes,
                                  int l_target, quant_meta<T> m, int *dv,
                                  int *ldvs, T *dwork, int *ldws,
                                  size_t outlier_count,
@@ -497,7 +497,7 @@ void levelwise_linear_dequantize(Handle<T, D> &handle, int *shapes,
                                  int queue_idx) {
 #define DEQUANTIZE(R, C, F)                                                    \
   {                                                                            \
-    levelwise_linear_dequantize_adaptive_launcher<T, D, R, C, F>(              \
+    levelwise_linear_dequantize_adaptive_launcher<D, T, R, C, F>(              \
         handle, shapes, l_target, m, dv, ldvs, dwork, ldws, outlier_count,     \
         outlier_idx, outliers, queue_idx);                                     \
   }

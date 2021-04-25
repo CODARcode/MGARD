@@ -10,7 +10,7 @@
 
 #include "LinearProcessingKernel.h"
 namespace mgard_cuda {
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 __global__ void
 _lpk_reo_1(int *shape, int *shape_c, int *ldvs, int *ldws, int processed_n,
            int *processed_dims, int curr_dim_r, int curr_dim_c, int curr_dim_f,
@@ -380,9 +380,9 @@ _lpk_reo_1(int *shape, int *shape_c, int *ldvs, int *ldws, int processed_n,
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 void lpk_reo_1_adaptive_launcher(
-    Handle<T, D> &handle, thrust::device_vector<int> shape,
+    Handle<D, T> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
     thrust::device_vector<int> ldws, thrust::device_vector<int> processed_dims,
     int curr_dim_r, int curr_dim_c, int curr_dim_f, T *ddist_f, T *dratio_f,
@@ -425,7 +425,7 @@ void lpk_reo_1_adaptive_launcher(
   blockPerGrid = dim3(gridx, gridy, gridz);
   // printf("lpk_reo_1 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz,
   // gridx, gridy, gridz);
-  _lpk_reo_1<T, D, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
+  _lpk_reo_1<D, T, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
                               *(cudaStream_t *)handle.get(queue_idx)>>>(
       thrust::raw_pointer_cast(shape.data()),
       thrust::raw_pointer_cast(shape_c.data()),
@@ -440,8 +440,8 @@ void lpk_reo_1_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D>
-void lpk_reo_1(Handle<T, D> &handle, thrust::device_vector<int> shape,
+template <uint32_t D, typename T>
+void lpk_reo_1(Handle<D, T> &handle, thrust::device_vector<int> shape,
                thrust::device_vector<int> shape_c,
                thrust::device_vector<int> ldvs, thrust::device_vector<int> ldws,
                thrust::device_vector<int> processed_dims, int curr_dim_r,
@@ -451,7 +451,7 @@ void lpk_reo_1(Handle<T, D> &handle, thrust::device_vector<int> shape,
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
-    lpk_reo_1_adaptive_launcher<T, D, R, C, F>(                                \
+    lpk_reo_1_adaptive_launcher<D, T, R, C, F>(                                \
         handle, shape, shape_c, ldvs, ldws, processed_dims, curr_dim_r,        \
         curr_dim_c, curr_dim_f, ddist_f, dratio_f, dv1, lddv11, lddv12, dv2,   \
         lddv21, lddv22, dw, lddw1, lddw2, queue_idx);                          \
@@ -532,8 +532,8 @@ void lpk_reo_1(Handle<T, D> &handle, thrust::device_vector<int> shape,
 #undef LPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
-void lpk_reo_1_adaptive_launcher(Handle<T, D> &handle, int *shape_h,
+template <uint32_t D, typename T, int R, int C, int F>
+void lpk_reo_1_adaptive_launcher(Handle<D, T> &handle, int *shape_h,
                                  int *shape_c_h, int *shape_d, int *shape_c_d,
                                  int *ldvs, int *ldws, int processed_n,
                                  int *processed_dims_h, int *processed_dims_d,
@@ -579,7 +579,7 @@ void lpk_reo_1_adaptive_launcher(Handle<T, D> &handle, int *shape_h,
 
   // printf("lpk_reo_1 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz,
   // gridx, gridy, gridz);
-  _lpk_reo_1<T, D, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
+  _lpk_reo_1<D, T, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
                               *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d, curr_dim_r,
       curr_dim_c, curr_dim_f, ddist_f, dratio_f, dv1, lddv11, lddv12, dv2,
@@ -590,8 +590,8 @@ void lpk_reo_1_adaptive_launcher(Handle<T, D> &handle, int *shape_h,
 #endif
 }
 
-template <typename T, uint32_t D>
-void lpk_reo_1(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
+template <uint32_t D, typename T>
+void lpk_reo_1(Handle<D, T> &handle, int *shape_h, int *shape_c_h, int *shape_d,
                int *shape_c_d, int *ldvs, int *ldws, int processed_n,
                int *processed_dims_h, int *processed_dims_d, int curr_dim_r,
                int curr_dim_c, int curr_dim_f, T *ddist_f, T *dratio_f, T *dv1,
@@ -600,7 +600,7 @@ void lpk_reo_1(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
-    lpk_reo_1_adaptive_launcher<T, D, R, C, F>(                                \
+    lpk_reo_1_adaptive_launcher<D, T, R, C, F>(                                \
         handle, shape_h, shape_c_h, shape_d, shape_c_d, ldvs, ldws,            \
         processed_n, processed_dims_h, processed_dims_d, curr_dim_r,           \
         curr_dim_c, curr_dim_f, ddist_f, dratio_f, dv1, lddv11, lddv12, dv2,   \
@@ -682,7 +682,7 @@ void lpk_reo_1(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 #undef LPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 __global__ void
 _lpk_reo_2(int *shape, int *shape_c, int *ldvs, int *ldws, int processed_n,
            int *processed_dims, int curr_dim_r, int curr_dim_c, int curr_dim_f,
@@ -957,9 +957,9 @@ _lpk_reo_2(int *shape, int *shape_c, int *ldvs, int *ldws, int processed_n,
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 void lpk_reo_2_adaptive_launcher(
-    Handle<T, D> &handle, thrust::device_vector<int> shape,
+    Handle<D, T> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
     thrust::device_vector<int> ldws, thrust::device_vector<int> processed_dims,
     int curr_dim_r, int curr_dim_c, int curr_dim_f, T *ddist_c, T *dratio_c,
@@ -1002,7 +1002,7 @@ void lpk_reo_2_adaptive_launcher(
   }
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
-  _lpk_reo_2<T, D, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
+  _lpk_reo_2<D, T, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
                               *(cudaStream_t *)handle.get(queue_idx)>>>(
       thrust::raw_pointer_cast(shape.data()),
       thrust::raw_pointer_cast(shape_c.data()),
@@ -1017,8 +1017,8 @@ void lpk_reo_2_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D>
-void lpk_reo_2(Handle<T, D> &handle, thrust::device_vector<int> shape,
+template <uint32_t D, typename T>
+void lpk_reo_2(Handle<D, T> &handle, thrust::device_vector<int> shape,
                thrust::device_vector<int> shape_c,
                thrust::device_vector<int> ldvs, thrust::device_vector<int> ldws,
                thrust::device_vector<int> processed_dims, int curr_dim_r,
@@ -1028,7 +1028,7 @@ void lpk_reo_2(Handle<T, D> &handle, thrust::device_vector<int> shape,
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
-    lpk_reo_2_adaptive_launcher<T, D, R, C, F>(                                \
+    lpk_reo_2_adaptive_launcher<D, T, R, C, F>(                                \
         handle, shape, shape_c, ldvs, ldws, processed_dims, curr_dim_r,        \
         curr_dim_c, curr_dim_f, ddist_c, dratio_c, dv1, lddv11, lddv12, dv2,   \
         lddv21, lddv22, dw, lddw1, lddw2, queue_idx);                          \
@@ -1088,8 +1088,8 @@ void lpk_reo_2(Handle<T, D> &handle, thrust::device_vector<int> shape,
 #undef LPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
-void lpk_reo_2_adaptive_launcher(Handle<T, D> &handle, int *shape_h,
+template <uint32_t D, typename T, int R, int C, int F>
+void lpk_reo_2_adaptive_launcher(Handle<D, T> &handle, int *shape_h,
                                  int *shape_c_h, int *shape_d, int *shape_c_d,
                                  int *ldvs, int *ldws, int processed_n,
                                  int *processed_dims_h, int *processed_dims_d,
@@ -1137,7 +1137,7 @@ void lpk_reo_2_adaptive_launcher(Handle<T, D> &handle, int *shape_h,
   // printf("lpk_reo_2 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz,
   // gridx, gridy, gridz);
 
-  _lpk_reo_2<T, D, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
+  _lpk_reo_2<D, T, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
                               *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d, curr_dim_r,
       curr_dim_c, curr_dim_f, ddist_c, dratio_c, dv1, lddv11, lddv12, dv2,
@@ -1148,8 +1148,8 @@ void lpk_reo_2_adaptive_launcher(Handle<T, D> &handle, int *shape_h,
 #endif
 }
 
-template <typename T, uint32_t D>
-void lpk_reo_2(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
+template <uint32_t D, typename T>
+void lpk_reo_2(Handle<D, T> &handle, int *shape_h, int *shape_c_h, int *shape_d,
                int *shape_c_d, int *ldvs, int *ldws, int processed_n,
                int *processed_dims_h, int *processed_dims_d, int curr_dim_r,
                int curr_dim_c, int curr_dim_f, T *ddist_c, T *dratio_c, T *dv1,
@@ -1158,7 +1158,7 @@ void lpk_reo_2(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
-    lpk_reo_2_adaptive_launcher<T, D, R, C, F>(                                \
+    lpk_reo_2_adaptive_launcher<D, T, R, C, F>(                                \
         handle, shape_h, shape_c_h, shape_d, shape_c_d, ldvs, ldws,            \
         processed_n, processed_dims_h, processed_dims_d,\ 
                                curr_dim_r,                                     \
@@ -1220,7 +1220,7 @@ void lpk_reo_2(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 #undef LPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 __global__ void
 _lpk_reo_3(int *shape, int *shape_c, int *ldvs, int *ldws, int processed_n,
            int *processed_dims, int curr_dim_r, int curr_dim_c, int curr_dim_f,
@@ -1504,9 +1504,9 @@ _lpk_reo_3(int *shape, int *shape_c, int *ldvs, int *ldws, int processed_n,
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
+template <uint32_t D, typename T, int R, int C, int F>
 void lpk_reo_3_adaptive_launcher(
-    Handle<T, D> &handle, thrust::device_vector<int> shape,
+    Handle<D, T> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
     thrust::device_vector<int> ldws, thrust::device_vector<int> processed_dims,
     int curr_dim_r, int curr_dim_c, int curr_dim_f, T *ddist_r, T *dratio_r,
@@ -1552,7 +1552,7 @@ void lpk_reo_3_adaptive_launcher(
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
 
-  _lpk_reo_3<T, D, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
+  _lpk_reo_3<D, T, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
                               *(cudaStream_t *)handle.get(queue_idx)>>>(
       thrust::raw_pointer_cast(shape.data()),
       thrust::raw_pointer_cast(shape_c.data()),
@@ -1567,8 +1567,8 @@ void lpk_reo_3_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D>
-void lpk_reo_3(Handle<T, D> &handle, thrust::device_vector<int> shape,
+template <uint32_t D, typename T>
+void lpk_reo_3(Handle<D, T> &handle, thrust::device_vector<int> shape,
                thrust::device_vector<int> shape_c,
                thrust::device_vector<int> ldvs, thrust::device_vector<int> ldws,
                thrust::device_vector<int> processed_dims, int curr_dim_r,
@@ -1578,7 +1578,7 @@ void lpk_reo_3(Handle<T, D> &handle, thrust::device_vector<int> shape,
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
-    lpk_reo_3_adaptive_launcher<T, D, R, C, F>(                                \
+    lpk_reo_3_adaptive_launcher<D, T, R, C, F>(                                \
         handle, shape, shape_c, ldvs, ldws, processed_dims, curr_dim_r,        \
         curr_dim_c, curr_dim_f, ddist_r, dratio_r, dv1, lddv11, lddv12, dv2,   \
         lddv21, lddv22, dw, lddw1, lddw2, queue_idx);                          \
@@ -1616,8 +1616,8 @@ void lpk_reo_3(Handle<T, D> &handle, thrust::device_vector<int> shape,
 #undef LPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F>
-void lpk_reo_3_adaptive_launcher(Handle<T, D> &handle, int *shape_h,
+template <uint32_t D, typename T, int R, int C, int F>
+void lpk_reo_3_adaptive_launcher(Handle<D, T> &handle, int *shape_h,
                                  int *shape_c_h, int *shape_d, int *shape_c_d,
                                  int *ldvs, int *ldws, int processed_n,
                                  int *processed_dims_h, int *processed_dims_d,
@@ -1667,7 +1667,7 @@ void lpk_reo_3_adaptive_launcher(Handle<T, D> &handle, int *shape_h,
   // printf("lpk_reo_3 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz,
   // gridx, gridy, gridz);
 
-  _lpk_reo_3<T, D, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
+  _lpk_reo_3<D, T, R, C, F><<<blockPerGrid, threadsPerBlock, sm_size,
                               *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d, curr_dim_r,
       curr_dim_c, curr_dim_f, ddist_r, dratio_r, dv1, lddv11, lddv12, dv2,
@@ -1678,8 +1678,8 @@ void lpk_reo_3_adaptive_launcher(Handle<T, D> &handle, int *shape_h,
 #endif
 }
 
-template <typename T, uint32_t D>
-void lpk_reo_3(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
+template <uint32_t D, typename T>
+void lpk_reo_3(Handle<D, T> &handle, int *shape_h, int *shape_c_h, int *shape_d,
                int *shape_c_d, int *ldvs, int *ldws, int processed_n,
                int *processed_dims_h, int *processed_dims_d, int curr_dim_r,
                int curr_dim_c, int curr_dim_f, T *ddist_r, T *dratio_r, T *dv1,
@@ -1688,7 +1688,7 @@ void lpk_reo_3(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
-    lpk_reo_3_adaptive_launcher<T, D, R, C, F>(                                \
+    lpk_reo_3_adaptive_launcher<D, T, R, C, F>(                                \
         handle, shape_h, shape_c_h, shape_d, shape_c_d, ldvs, ldws,            \
         processed_n, processed_dims_h, processed_dims_d,\ 
                                curr_dim_r,                                     \

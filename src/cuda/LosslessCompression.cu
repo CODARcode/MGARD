@@ -13,8 +13,8 @@
 
 namespace mgard_cuda {
 
-template <typename T, uint32_t D, typename C>
-void cascaded_compress(Handle<T, D> &handle, C *input_data, size_t intput_count,
+template <uint32_t D, typename T, typename C>
+void cascaded_compress(Handle<D, T> &handle, C *input_data, size_t intput_count,
                        void *&output_data, size_t &output_size, int n_rle,
                        int n_de, bool bitpack, int queue_idx) {
   nvcomp::CascadedCompressor<C> compressor(input_data, intput_count, n_rle,
@@ -49,8 +49,8 @@ void cascaded_compress(Handle<T, D> &handle, C *input_data, size_t intput_count,
 //              size_t intput_count, void * &output_data, size_t &output_size,
 //              int n_rle, int n_de, bool bitpack, int queue_idx);
 
-template <typename T, uint32_t D, typename C>
-void cascaded_decompress(Handle<T, D> &handle, void *input_data,
+template <uint32_t D, typename T, typename C>
+void cascaded_decompress(Handle<D, T> &handle, void *input_data,
                          size_t input_size, C *&output_data, int queue_idx) {
   nvcomp::Decompressor<C> decompressor(input_data, input_size,
                                        *(cudaStream_t *)handle.get(queue_idx));
@@ -80,8 +80,8 @@ void cascaded_decompress(Handle<T, D> &handle, void *input_data,
 // void * input_data,
 //              size_t input_size, uint32_t * &output_data, int queue_idx);
 
-template <typename T, uint32_t D, typename C>
-void lz4_compress(Handle<T, D> &handle, C *input_data, size_t input_count,
+template <uint32_t D, typename T, typename C>
+void lz4_compress(Handle<D, T> &handle, C *input_data, size_t input_count,
                   void *&output_data, size_t &output_size, size_t chunk_size,
                   int queue_idx) {
 
@@ -101,8 +101,8 @@ void lz4_compress(Handle<T, D> &handle, C *input_data, size_t input_count,
   cudaFreeHelper(temp_space);
 }
 
-template <typename T, uint32_t D, typename C>
-void lz4_decompress(Handle<T, D> &handle, void *input_data, size_t input_size,
+template <uint32_t D, typename T, typename C>
+void lz4_decompress(Handle<D, T> &handle, void *input_data, size_t input_size,
                     C *&output_data, size_t &output_size, int queue_idx) {
 
   nvcomp::Decompressor<C> decompressor(input_data, input_size,
@@ -138,56 +138,56 @@ void lz4_decompress(Handle<T, D> &handle, void *input_data, size_t input_size,
 //              size_t intput_count, void * &output_data, size_t &output_size,
 //              size_t chunk_size, int queue_idx);
 
-#define KERNELS(T, D, C)                                                       \
-  template void cascaded_compress<T, D, C>(                                    \
-      Handle<T, D> & handle, C * input_data, size_t intput_count,              \
+#define KERNELS(D, T, C)                                                       \
+  template void cascaded_compress<D, T, C>(                                    \
+      Handle<D, T> & handle, C * input_data, size_t intput_count,              \
       void *&output_data, size_t &output_size, int n_rle, int n_de,            \
       bool bitpack, int queue_idx);                                            \
-  template void cascaded_decompress<T, D, C>(                                  \
-      Handle<T, D> & handle, void *input_data, size_t input_size,              \
+  template void cascaded_decompress<D, T, C>(                                  \
+      Handle<D, T> & handle, void *input_data, size_t input_size,              \
       C *&output_data, int queue_idx);                                         \
-  template void lz4_compress<T, D, C>(Handle<T, D> & handle, C * input_data,   \
+  template void lz4_compress<D, T, C>(Handle<D, T> & handle, C * input_data,   \
                                       size_t input_count, void *&output_data,  \
                                       size_t &output_size, size_t chunk_size,  \
                                       int queue_idx);                          \
-  template void lz4_decompress<T, D, C>(                                       \
-      Handle<T, D> & handle, void *input_data, size_t input_size,              \
+  template void lz4_decompress<D, T, C>(                                       \
+      Handle<D, T> & handle, void *input_data, size_t input_size,              \
       C *&output_data, size_t &output_count, int queue_idx);
 
-KERNELS(double, 1, uint8_t)
-KERNELS(float, 1, uint8_t)
-KERNELS(double, 2, uint8_t)
-KERNELS(float, 2, uint8_t)
-KERNELS(double, 3, uint8_t)
-KERNELS(float, 3, uint8_t)
-KERNELS(double, 4, uint8_t)
-KERNELS(float, 4, uint8_t)
-KERNELS(double, 5, uint8_t)
-KERNELS(float, 5, uint8_t)
-KERNELS(double, 1, uint32_t)
-KERNELS(float, 1, uint32_t)
-KERNELS(double, 2, uint32_t)
-KERNELS(float, 2, uint32_t)
-KERNELS(double, 3, uint32_t)
-KERNELS(float, 3, uint32_t)
-KERNELS(double, 4, uint32_t)
-KERNELS(float, 4, uint32_t)
-KERNELS(double, 5, uint32_t)
-KERNELS(float, 5, uint32_t)
-KERNELS(double, 1, uint64_t)
-KERNELS(float, 1, uint64_t)
-KERNELS(double, 2, uint64_t)
-KERNELS(float, 2, uint64_t)
-KERNELS(double, 3, uint64_t)
-KERNELS(float, 3, uint64_t)
-KERNELS(double, 4, uint64_t)
-KERNELS(float, 4, uint64_t)
-KERNELS(double, 5, uint64_t)
-KERNELS(float, 5, uint64_t)
+KERNELS(1, double, uint8_t)
+KERNELS(1, float, uint8_t)
+KERNELS(2, double, uint8_t)
+KERNELS(2, float, uint8_t)
+KERNELS(3, double, uint8_t)
+KERNELS(3, float, uint8_t)
+KERNELS(4, double, uint8_t)
+KERNELS(4, float, uint8_t)
+KERNELS(5, double, uint8_t)
+KERNELS(5, float, uint8_t)
+KERNELS(1, double, uint32_t)
+KERNELS(1, float, uint32_t)
+KERNELS(2, double, uint32_t)
+KERNELS(2, float, uint32_t)
+KERNELS(3, double, uint32_t)
+KERNELS(3, float, uint32_t)
+KERNELS(4, double, uint32_t)
+KERNELS(4, float, uint32_t)
+KERNELS(5, double, uint32_t)
+KERNELS(5, float, uint32_t)
+KERNELS(1, double, uint64_t)
+KERNELS(1, float, uint64_t)
+KERNELS(2, double, uint64_t)
+KERNELS(2, float, uint64_t)
+KERNELS(3, double, uint64_t)
+KERNELS(3, float, uint64_t)
+KERNELS(4, double, uint64_t)
+KERNELS(4, float, uint64_t)
+KERNELS(5, double, uint64_t)
+KERNELS(5, float, uint64_t)
 #undef KERNELS
 
-template <typename T, uint32_t D, typename S, typename Q>
-void SeparateOutlierAndPrimary(Handle<T, D> &handle, S *dqv, size_t n,
+template <uint32_t D, typename T, typename S, typename Q>
+void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
                                size_t *outlier_idx, size_t outlier_count,
                                size_t primary_count, S *doutlier, Q *dprimary,
                                int queue_idx) {
@@ -255,8 +255,8 @@ void SeparateOutlierAndPrimary(Handle<T, D> &handle, S *dqv, size_t n,
   printf("done separating primary and outlier\n");
 }
 
-template <typename T, uint32_t D, typename S, typename Q>
-void CombineOutlierAndPrimary(Handle<T, D> &handle, S *dqv, size_t n,
+template <uint32_t D, typename T, typename S, typename Q>
+void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
                               size_t *outlier_idx, size_t outlier_count,
                               size_t primary_count, S *doutlier, Q *dprimary,
                               int queue_idx) {
@@ -312,82 +312,82 @@ void CombineOutlierAndPrimary(Handle<T, D> &handle, S *dqv, size_t n,
   p += size;
 }
 
-#define KERNELS(T, D, S, Q)                                                    \
-  template void SeparateOutlierAndPrimary<T, D, S, Q>(                         \
-      Handle<T, D> & handle, S * dqv, size_t n, size_t * outlier_idx,\ 
+#define KERNELS(D, T, S, Q)                                                    \
+  template void SeparateOutlierAndPrimary<D, T, S, Q>(                         \
+      Handle<D, T> & handle, S * dqv, size_t n, size_t * outlier_idx,\ 
           size_t outlier_count,                                                \
       size_t primary_count,\ 
           S * doutlier,                                                        \
       Q * dprimary, int queue_idx);                                            \
-  template void CombineOutlierAndPrimary<T, D, S, Q>(                          \
-      Handle<T, D> & handle, S * dqv, size_t n, size_t * outlier_idx,\ 
+  template void CombineOutlierAndPrimary<D, T, S, Q>(                          \
+      Handle<D, T> & handle, S * dqv, size_t n, size_t * outlier_idx,\ 
           size_t outlier_count,                                                \
       size_t primary_count,\ 
           S * doutlier,                                                        \
       Q * dprimary, int queue_idx);
 
-KERNELS(double, 1, int, uint32_t)
-KERNELS(float, 1, int, uint32_t)
-KERNELS(double, 2, int, uint32_t)
-KERNELS(float, 2, int, uint32_t)
-KERNELS(double, 3, int, uint32_t)
-KERNELS(float, 3, int, uint32_t)
-KERNELS(double, 4, int, uint32_t)
-KERNELS(float, 4, int, uint32_t)
-KERNELS(double, 5, int, uint32_t)
-KERNELS(float, 5, int, uint32_t)
+KERNELS(1, double, int, uint32_t)
+KERNELS(1, float, int, uint32_t)
+KERNELS(2, double, int, uint32_t)
+KERNELS(2, float, int, uint32_t)
+KERNELS(3, double, int, uint32_t)
+KERNELS(3, float, int, uint32_t)
+KERNELS(4, double, int, uint32_t)
+KERNELS(4, float, int, uint32_t)
+KERNELS(5, double, int, uint32_t)
+KERNELS(5, float, int, uint32_t)
 #undef KERNELS
 
-template <typename T, uint32_t D, typename S, typename Q, typename H>
-void huffman_compress(Handle<T, D> &handle, S *input_data, size_t input_count,
+template <uint32_t D, typename T, typename S, typename Q, typename H>
+void huffman_compress(Handle<D, T> &handle, S *input_data, size_t input_count,
                       std::vector<size_t> &outlier_idx, H *&out_meta,
                       size_t &out_meta_size, H *&out_data,
                       size_t &out_data_size, int chunk_size, int dict_size,
                       int queue_idx) {
 
-  HuffmanEncode<T, D, S, Q, H>(handle, input_data, input_count, outlier_idx,
+  HuffmanEncode<D, T, S, Q, H>(handle, input_data, input_count, outlier_idx,
                                out_meta, out_meta_size, out_data, out_data_size,
                                chunk_size, dict_size);
 }
 
-template <typename T, uint32_t D, typename S, typename Q, typename H>
-void huffman_decompress(Handle<T, D> &handle, H *in_meta, size_t in_meta_size,
+template <uint32_t D, typename T, typename S, typename Q, typename H>
+void huffman_decompress(Handle<D, T> &handle, H *in_meta, size_t in_meta_size,
                         H *in_data, size_t in_data_size, S *&output_data,
                         size_t &output_count, int queue_idx) {
-  HuffmanDecode<T, D, S, Q, H>(handle, output_data, output_count, in_meta,
+  HuffmanDecode<D, T, S, Q, H>(handle, output_data, output_count, in_meta,
                                in_meta_size, in_data, in_data_size);
 }
 
-#define KERNELS(T, D, S, Q, H)                                                 \
-  template void huffman_compress<T, D, S, Q, H>(                               \
-      Handle<T, D> & handle, S * input_data, size_t input_count,               \
+#define KERNELS(D, T, S, Q, H)                                                 \
+  template void huffman_compress<D, T, S, Q, H>(                               \
+      Handle<D, T> & handle, S * input_data, size_t input_count,               \
       std::vector<size_t> & outlier_idx, H * &out_meta,                        \
       size_t & out_meta_size, H * &out_data, size_t & out_data_size,           \
       int chunk_size, int dict_size, int queue_idx);                           \
-  template void huffman_decompress<T, D, S, Q, H>(                             \
-      Handle<T, D> & handle, H * in_meta, size_t in_meta_size, H * in_data,    \
+  template void huffman_decompress<D, T, S, Q, H>(                             \
+      Handle<D, T> & handle, H * in_meta, size_t in_meta_size, H * in_data,    \
       size_t in_data_size, S * &output_data, size_t & output_count,            \
       int queue_idx);
 
-KERNELS(double, 1, int, uint32_t, uint32_t)
-KERNELS(float, 1, int, uint32_t, uint32_t)
-KERNELS(double, 2, int, uint32_t, uint32_t)
-KERNELS(float, 2, int, uint32_t, uint32_t)
-KERNELS(double, 3, int, uint32_t, uint32_t)
-KERNELS(float, 3, int, uint32_t, uint32_t)
-KERNELS(double, 4, int, uint32_t, uint32_t)
-KERNELS(float, 4, int, uint32_t, uint32_t)
-KERNELS(double, 5, int, uint32_t, uint32_t)
-KERNELS(float, 5, int, uint32_t, uint32_t)
-KERNELS(double, 1, int, uint32_t, uint64_t)
-KERNELS(float, 1, int, uint32_t, uint64_t)
-KERNELS(double, 2, int, uint32_t, uint64_t)
-KERNELS(float, 2, int, uint32_t, uint64_t)
-KERNELS(double, 3, int, uint32_t, uint64_t)
-KERNELS(float, 3, int, uint32_t, uint64_t)
-KERNELS(double, 4, int, uint32_t, uint64_t)
-KERNELS(float, 4, int, uint32_t, uint64_t)
-KERNELS(double, 5, int, uint32_t, uint64_t)
-KERNELS(float, 5, int, uint32_t, uint64_t)
+KERNELS(1, double, int, uint32_t, uint32_t)
+KERNELS(1, float, int, uint32_t, uint32_t)
+KERNELS(2, double, int, uint32_t, uint32_t)
+KERNELS(2, float, int, uint32_t, uint32_t)
+KERNELS(3, double, int, uint32_t, uint32_t)
+KERNELS(3, float, int, uint32_t, uint32_t)
+KERNELS(4, double, int, uint32_t, uint32_t)
+KERNELS(4, float, int, uint32_t, uint32_t)
+KERNELS(5, double, int, uint32_t, uint32_t)
+KERNELS(5, float, int, uint32_t, uint32_t)
+KERNELS(1, double, int, uint32_t, uint64_t)
+KERNELS(1, float, int, uint32_t, uint64_t)
+KERNELS(2, double, int, uint32_t, uint64_t)
+KERNELS(2, float, int, uint32_t, uint64_t)
+KERNELS(3, double, int, uint32_t, uint64_t)
+KERNELS(3, float, int, uint32_t, uint64_t)
+KERNELS(4, double, int, uint32_t, uint64_t)
+KERNELS(4, float, int, uint32_t, uint64_t)
+KERNELS(5, double, int, uint32_t, uint64_t)
+KERNELS(5, float, int, uint32_t, uint64_t)
 
 } // namespace mgard_cuda

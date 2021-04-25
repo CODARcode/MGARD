@@ -12,7 +12,7 @@
 
 namespace mgard_cuda {
 
-template <typename T, uint32_t D> class Array {
+template <uint32_t D, typename T> class Array {
 public:
   Array(std::vector<size_t> shape);
   Array(Array &array);

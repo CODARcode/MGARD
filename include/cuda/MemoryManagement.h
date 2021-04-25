@@ -54,17 +54,17 @@ void cudaMalloc3DHelper(void **devPtr, size_t *pitch, size_t width,
                         size_t height, size_t depth);
 void cudaMallocHostHelper(void **ptr, size_t size);
 
-template <typename T, uint32_t D>
-void cudaMemcpyAsyncHelper(Handle<T, D> &handle, void *dst, const void *src,
+template <uint32_t D, typename T>
+void cudaMemcpyAsyncHelper(Handle<D, T> &handle, void *dst, const void *src,
                            size_t count, enum copy_type kind, int queue_idx);
 
-template <typename T, uint32_t D>
-void cudaMemcpy2DAsyncHelper(Handle<T, D> &handle, void *dst, size_t dpitch,
+template <uint32_t D, typename T>
+void cudaMemcpy2DAsyncHelper(Handle<D, T> &handle, void *dst, size_t dpitch,
                              void *src, size_t spitch, size_t width,
                              size_t height, enum copy_type kind, int queue_idx);
 
-template <typename T, uint32_t D>
-void cudaMemcpy3DAsyncHelper(Handle<T, D> &handle, void *dst, size_t dpitch,
+template <uint32_t D, typename T>
+void cudaMemcpy3DAsyncHelper(Handle<D, T> &handle, void *dst, size_t dpitch,
                              size_t dwidth, size_t dheight, void *src,
                              size_t spitch, size_t swidth, size_t sheight,
                              size_t width, size_t height, size_t depth,
@@ -80,13 +80,13 @@ void cudaMemset3DHelper(void *devPtr, size_t pitch, size_t dwidth,
                         size_t depth);
 void cudaSetDeviceHelper(int dev_id);
 
-template <typename T, uint32_t D>
-void cudaMemcpyPeerAsyncHelper(Handle<T, D> &handle, void *dst, int dst_dev,
+template <uint32_t D, typename T>
+void cudaMemcpyPeerAsyncHelper(Handle<D, T> &handle, void *dst, int dst_dev,
                                const void *src, int src_dev, size_t count,
                                int queue_idx);
 
-template <typename T, uint32_t D>
-void cudaMemcpy3DPeerAsyncHelper(Handle<T, D> &handle, void *dst, int dst_dev,
+template <uint32_t D, typename T>
+void cudaMemcpy3DPeerAsyncHelper(Handle<D, T> &handle, void *dst, int dst_dev,
                                  size_t dpitch, size_t dwidth, size_t dheight,
                                  void *src, int src_dev, size_t spitch,
                                  size_t swidth, size_t sheight, size_t width,

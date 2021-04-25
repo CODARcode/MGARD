@@ -442,8 +442,8 @@ __global__ void _ipk_1_3d(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
   __syncthreads();
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
-void ipk_1_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc, int nf_c,
+template <uint32_t D, typename T, int R, int C, int F, int G>
+void ipk_1_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc, int nf_c,
                                 T *am, T *bm, T *ddist_f, T *dv, int lddv1,
                                 int lddv2, int queue_idx) {
   // std::cout << "test\n";
@@ -475,14 +475,14 @@ void ipk_1_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc, int nf_c,
   // std::cout << "test\n";
 }
 
-template <typename T, uint32_t D>
-void ipk_1_3d(Handle<T, D> &handle, int nr, int nc, int nf_c, T *am, T *bm,
+template <uint32_t D, typename T>
+void ipk_1_3d(Handle<D, T> &handle, int nr, int nc, int nf_c, T *am, T *bm,
               T *ddist_f, T *dv, int lddv1, int lddv2, int queue_idx,
               int config) {
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_1_3d_adaptive_launcher<T, D, R, C, F, G>(                              \
+    ipk_1_3d_adaptive_launcher<D, T, R, C, F, G>(                              \
         handle, nr, nc, nf_c, am, bm, ddist_f, dv, lddv1, lddv2, queue_idx);   \
   }
   bool profile = false;
@@ -1011,8 +1011,8 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
   __syncthreads();
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
-void ipk_2_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc_c,
+template <uint32_t D, typename T, int R, int C, int F, int G>
+void ipk_2_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc_c,
                                 int nf_c, T *am, T *bm, T *ddist_c, T *dv,
                                 int lddv1, int lddv2, int queue_idx) {
   int total_thread_x = nf_c;
@@ -1040,14 +1040,14 @@ void ipk_2_3d_adaptive_launcher(Handle<T, D> &handle, int nr, int nc_c,
 #endif
 }
 
-template <typename T, uint32_t D>
-void ipk_2_3d(Handle<T, D> &handle, int nr, int nc_c, int nf_c, T *am, T *bm,
+template <uint32_t D, typename T>
+void ipk_2_3d(Handle<D, T> &handle, int nr, int nc_c, int nf_c, T *am, T *bm,
               T *ddist_c, T *dv, int lddv1, int lddv2, int queue_idx,
               int config) {
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_2_3d_adaptive_launcher<T, D, R, C, F, G>(                              \
+    ipk_2_3d_adaptive_launcher<D, T, R, C, F, G>(                              \
         handle, nr, nc_c, nf_c, am, bm, ddist_c, dv, lddv1, lddv2, queue_idx); \
   }
   bool profile = false;
@@ -1520,8 +1520,8 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
   __syncthreads();
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
-void ipk_3_3d_adaptive_launcher(Handle<T, D> &handle, int nr_c, int nc_c,
+template <uint32_t D, typename T, int R, int C, int F, int G>
+void ipk_3_3d_adaptive_launcher(Handle<D, T> &handle, int nr_c, int nc_c,
                                 int nf_c, T *am, T *bm, T *ddist_r, T *dv,
                                 int lddv1, int lddv2, int queue_idx) {
 
@@ -1555,14 +1555,14 @@ void ipk_3_3d_adaptive_launcher(Handle<T, D> &handle, int nr_c, int nc_c,
 #endif
 }
 
-template <typename T, uint32_t D>
-void ipk_3_3d(Handle<T, D> &handle, int nr_c, int nc_c, int nf_c, T *am, T *bm,
+template <uint32_t D, typename T>
+void ipk_3_3d(Handle<D, T> &handle, int nr_c, int nc_c, int nf_c, T *am, T *bm,
               T *ddist_r, T *dv, int lddv1, int lddv2, int queue_idx,
               int config) {
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_3_3d_adaptive_launcher<T, D, R, C, F, G>(handle, nr_c, nc_c, nf_c, am, \
+    ipk_3_3d_adaptive_launcher<D, T, R, C, F, G>(handle, nr_c, nc_c, nf_c, am, \
                                                  bm, ddist_r, dv, lddv1,       \
                                                  lddv2, queue_idx);            \
   }

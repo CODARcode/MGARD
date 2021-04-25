@@ -12,24 +12,24 @@
 #include "CommonInternal.h"
 
 namespace mgard_cuda {
-template <typename T, uint32_t D>
-void calc_cpt_dist(Handle<T, D> &handle, int n, T *dcoord, T *ddist,
+template <uint32_t D, typename T>
+void calc_cpt_dist(Handle<D, T> &handle, int n, T *dcoord, T *ddist,
                    int queue_idx);
 
-template <typename T, uint32_t D>
-void reduce_two_dist(Handle<T, D> &handle, int n, T *ddist, T *ddist_reduced,
+template <uint32_t D, typename T>
+void reduce_two_dist(Handle<D, T> &handle, int n, T *ddist, T *ddist_reduced,
                      int queue_idx);
 
-template <typename T, uint32_t D>
-void calc_cpt_dist_ratio(Handle<T, D> &handle, int n, T *dcoord, T *dratio,
+template <uint32_t D, typename T>
+void calc_cpt_dist_ratio(Handle<D, T> &handle, int n, T *dcoord, T *dratio,
                          int queue_idx);
 
-template <typename T, uint32_t D>
-void dist_to_ratio(Handle<T, D> &handle, int n, T *ddist, T *dratio,
+template <uint32_t D, typename T>
+void dist_to_ratio(Handle<D, T> &handle, int n, T *ddist, T *dratio,
                    int queue_idx);
 
-template <typename T, uint32_t D>
-void calc_am_bm(Handle<T, D> &handle, int n, T *ddist, T *am, T *bm,
+template <uint32_t D, typename T>
+void calc_am_bm(Handle<D, T> &handle, int n, T *ddist, T *am, T *bm,
                 int queue_idx);
 } // namespace mgard_cuda
 

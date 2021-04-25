@@ -10,40 +10,40 @@
 
 namespace mgard_cuda {
 
-#define KERNELS(T, D)                                                          \
-  template void lwpk<T, D, COPY>(                                              \
-      Handle<T, D> & handle, thrust::device_vector<int> shape, T * dv,         \
+#define KERNELS(D, T)                                                          \
+  template void lwpk<D, T, COPY>(                                              \
+      Handle<D, T> & handle, thrust::device_vector<int> shape, T * dv,         \
       thrust::device_vector<int> ldvs, T * dwork,                              \
       thrust::device_vector<int> ldws, int queue_idx);
 
-KERNELS(double, 1)
-KERNELS(float, 1)
-KERNELS(double, 2)
-KERNELS(float, 2)
-KERNELS(double, 3)
-KERNELS(float, 3)
-KERNELS(double, 4)
-KERNELS(float, 4)
-KERNELS(double, 5)
-KERNELS(float, 5)
+KERNELS(1, double)
+KERNELS(1, float)
+KERNELS(2, double)
+KERNELS(2, float)
+KERNELS(3, double)
+KERNELS(3, float)
+KERNELS(4, double)
+KERNELS(4, float)
+KERNELS(5, double)
+KERNELS(5, float)
 
 #undef KERNELS
 
-#define KERNELS(T, D)                                                          \
-  template void lwpk<T, D, COPY>(Handle<T, D> & handle, int *shape_h,          \
+#define KERNELS(D, T)                                                          \
+  template void lwpk<D, T, COPY>(Handle<D, T> & handle, int *shape_h,          \
                                  int *shape_d, T *dv, int *ldvs, T *dwork,     \
                                  int *ldws, int queue_idx);
 
-KERNELS(double, 1)
-KERNELS(float, 1)
-KERNELS(double, 2)
-KERNELS(float, 2)
-KERNELS(double, 3)
-KERNELS(float, 3)
-KERNELS(double, 4)
-KERNELS(float, 4)
-KERNELS(double, 5)
-KERNELS(float, 5)
+KERNELS(1, double)
+KERNELS(1, float)
+KERNELS(2, double)
+KERNELS(2, float)
+KERNELS(3, double)
+KERNELS(3, float)
+KERNELS(4, double)
+KERNELS(4, float)
+KERNELS(5, double)
+KERNELS(5, float)
 
 #undef KERNELS
 } // namespace mgard_cuda

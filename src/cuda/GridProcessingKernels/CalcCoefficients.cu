@@ -10,10 +10,10 @@
 
 namespace mgard_cuda {
 
-#define KERNELS(T, D_GLOBAL, D_LOCAL, INTERPOLATION, CALC_COEFF, TYPE)         \
+#define KERNELS(D_GLOBAL, D_LOCAL, T, INTERPOLATION, CALC_COEFF, TYPE)         \
   template void                                                                \
-  gpk_reo<T, D_GLOBAL, D_LOCAL, INTERPOLATION, CALC_COEFF, TYPE>(              \
-      Handle<T, D_GLOBAL> & handle, thrust::device_vector<int> shape,          \
+  gpk_reo<D_GLOBAL, D_LOCAL, T, INTERPOLATION, CALC_COEFF, TYPE>(              \
+      Handle<D_GLOBAL, T> & handle, thrust::device_vector<int> shape,          \
       thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,     \
       thrust::device_vector<int> ldws,                                         \
       thrust::device_vector<int> unprocessed_dims, int curr_dim_r,             \
@@ -24,28 +24,28 @@ namespace mgard_cuda {
       int lddwrf1, int lddwrf2, T *dwrc, int lddwrc1, int lddwrc2, T *dwrcf,   \
       int lddwrcf1, int lddwrcf2, int queue_idx, int config);
 
-KERNELS(double, 1, 1, false, true, 1)
-KERNELS(float, 1, 1, false, true, 1)
-KERNELS(double, 2, 2, false, true, 1)
-KERNELS(float, 2, 2, false, true, 1)
-KERNELS(double, 3, 3, false, true, 1)
-KERNELS(float, 3, 3, false, true, 1)
+KERNELS(1, 1, double, false, true, 1)
+KERNELS(1, 1, float, false, true, 1)
+KERNELS(2, 2, double, false, true, 1)
+KERNELS(2, 2, float, false, true, 1)
+KERNELS(3, 3, double, false, true, 1)
+KERNELS(3, 3, float, false, true, 1)
 
-KERNELS(double, 4, 2, false, true, 2)
-KERNELS(float, 4, 2, false, true, 2)
-KERNELS(double, 5, 2, false, true, 2)
-KERNELS(float, 5, 2, false, true, 2)
+KERNELS(4, 2, double, false, true, 2)
+KERNELS(4, 2, float, false, true, 2)
+KERNELS(5, 2, double, false, true, 2)
+KERNELS(5, 2, float, false, true, 2)
 
-KERNELS(double, 4, 3, false, true, 2)
-KERNELS(float, 4, 3, false, true, 2)
-KERNELS(double, 5, 3, false, true, 2)
-KERNELS(float, 5, 3, false, true, 2)
+KERNELS(4, 3, double, false, true, 2)
+KERNELS(4, 3, float, false, true, 2)
+KERNELS(5, 3, double, false, true, 2)
+KERNELS(5, 3, float, false, true, 2)
 #undef KERNELS
 
-#define KERNELS(T, D_GLOBAL, D_LOCAL, INTERPOLATION, CALC_COEFF, TYPE)         \
+#define KERNELS(D_GLOBAL, D_LOCAL, T, INTERPOLATION, CALC_COEFF, TYPE)         \
   template void                                                                \
-  gpk_reo<T, D_GLOBAL, D_LOCAL, INTERPOLATION, CALC_COEFF, TYPE>(              \
-      Handle<T, D_GLOBAL> & handle, int *shape_h, int *shape_d,                \
+  gpk_reo<D_GLOBAL, D_LOCAL, T, INTERPOLATION, CALC_COEFF, TYPE>(              \
+      Handle<D_GLOBAL, T> & handle, int *shape_h, int *shape_d,                \
       int *shape_c_d, int *ldvs, int *ldws, int unprocessed_n,                 \
       int *unprocessed_dims, int curr_dim_r, int curr_dim_c, int curr_dim_f,   \
       T *dratio_r, T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2,      \
@@ -55,22 +55,22 @@ KERNELS(float, 5, 3, false, true, 2)
       int lddwrc1, int lddwrc2, T *dwrcf, int lddwrcf1, int lddwrcf2,          \
       int queue_idx, int config);
 
-KERNELS(double, 1, 1, false, true, 1)
-KERNELS(float, 1, 1, false, true, 1)
-KERNELS(double, 2, 2, false, true, 1)
-KERNELS(float, 2, 2, false, true, 1)
-KERNELS(double, 3, 3, false, true, 1)
-KERNELS(float, 3, 3, false, true, 1)
+KERNELS(1, 1, double, false, true, 1)
+KERNELS(1, 1, float, false, true, 1)
+KERNELS(2, 2, double, false, true, 1)
+KERNELS(2, 2, float, false, true, 1)
+KERNELS(3, 3, double, false, true, 1)
+KERNELS(3, 3, float, false, true, 1)
 
-KERNELS(double, 4, 2, false, true, 2)
-KERNELS(float, 4, 2, false, true, 2)
-KERNELS(double, 5, 2, false, true, 2)
-KERNELS(float, 5, 2, false, true, 2)
+KERNELS(4, 2, double, false, true, 2)
+KERNELS(4, 2, float, false, true, 2)
+KERNELS(5, 2, double, false, true, 2)
+KERNELS(5, 2, float, false, true, 2)
 
-KERNELS(double, 4, 3, false, true, 2)
-KERNELS(float, 4, 3, false, true, 2)
-KERNELS(double, 5, 3, false, true, 2)
-KERNELS(float, 5, 3, false, true, 2)
+KERNELS(4, 3, double, false, true, 2)
+KERNELS(4, 3, float, false, true, 2)
+KERNELS(5, 3, double, false, true, 2)
+KERNELS(5, 3, float, false, true, 2)
 #undef KERNELS
 
 } // namespace mgard_cuda

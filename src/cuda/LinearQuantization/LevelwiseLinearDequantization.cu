@@ -10,22 +10,22 @@
 
 namespace mgard_cuda {
 
-#define KERNELS(T, D)                                                          \
-  template void levelwise_linear_dequantize<T, D>(                             \
-      Handle<T, D> & handle, int *shapes, int l_target, quant_meta<T> m,       \
+#define KERNELS(D, T)                                                          \
+  template void levelwise_linear_dequantize<D, T>(                             \
+      Handle<D, T> & handle, int *shapes, int l_target, quant_meta<T> m,       \
       int *dv, int *ldvs, T *dwork, int *ldws, size_t outlier_count,           \
       unsigned int *outlier_idx, int *outliers, int queue_idx);
 
-KERNELS(double, 1)
-KERNELS(float, 1)
-KERNELS(double, 2)
-KERNELS(float, 2)
-KERNELS(double, 3)
-KERNELS(float, 3)
-KERNELS(double, 4)
-KERNELS(float, 4)
-KERNELS(double, 5)
-KERNELS(float, 5)
+KERNELS(1, double)
+KERNELS(1, float)
+KERNELS(2, double)
+KERNELS(2, float)
+KERNELS(3, double)
+KERNELS(3, float)
+KERNELS(4, double)
+KERNELS(4, float)
+KERNELS(5, double)
+KERNELS(5, float)
 
 #undef KERNELS
 

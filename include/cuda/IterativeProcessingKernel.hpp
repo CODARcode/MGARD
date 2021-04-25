@@ -11,7 +11,7 @@
 #include "IterativeProcessingKernel.h"
 namespace mgard_cuda {
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
+template <uint32_t D, typename T, int R, int C, int F, int G>
 __global__ void _ipk_1(int *shape, int *shape_c, int *ldvs, int *ldws,
                        int processed_n, int *processed_dims, int curr_dim_r,
                        int curr_dim_c, int curr_dim_f, T *am, T *bm, T *dist_f,
@@ -513,9 +513,9 @@ __global__ void _ipk_1(int *shape, int *shape_c, int *ldvs, int *ldws,
   __syncthreads();
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
+template <uint32_t D, typename T, int R, int C, int F, int G>
 void ipk_1_adaptive_launcher(
-    Handle<T, D> &handle, thrust::device_vector<int> shape,
+    Handle<D, T> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
     thrust::device_vector<int> ldws, thrust::device_vector<int> processed_dims,
     int curr_dim_r, int curr_dim_c, int curr_dim_f, T *am, T *bm, T *ddist_f,
@@ -560,7 +560,7 @@ void ipk_1_adaptive_launcher(
 
   // printf("ipk_1 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz, gridx,
   // gridy, gridz);
-  _ipk_1<T, D, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
+  _ipk_1<D, T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
                              *(cudaStream_t *)handle.get(queue_idx)>>>(
       thrust::raw_pointer_cast(shape.data()),
       thrust::raw_pointer_cast(shape_c.data()),
@@ -575,8 +575,8 @@ void ipk_1_adaptive_launcher(
   // std::cout << "test\n";
 }
 
-template <typename T, uint32_t D>
-void ipk_1(Handle<T, D> &handle, thrust::device_vector<int> shape,
+template <uint32_t D, typename T>
+void ipk_1(Handle<D, T> &handle, thrust::device_vector<int> shape,
            thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
            thrust::device_vector<int> ldws,
            thrust::device_vector<int> processed_dims, int curr_dim_r,
@@ -585,7 +585,7 @@ void ipk_1(Handle<T, D> &handle, thrust::device_vector<int> shape,
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_1_adaptive_launcher<T, D, R, C, F, G>(                                 \
+    ipk_1_adaptive_launcher<D, T, R, C, F, G>(                                 \
         handle, shape, shape_c, ldvs, ldws, processed_dims, curr_dim_r,        \
         curr_dim_c, curr_dim_f, am, bm, ddist_f, dv, lddv1, lddv2, queue_idx); \
   }
@@ -663,8 +663,8 @@ void ipk_1(Handle<T, D> &handle, thrust::device_vector<int> shape,
 #undef IPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
-void ipk_1_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
+template <uint32_t D, typename T, int R, int C, int F, int G>
+void ipk_1_adaptive_launcher(Handle<D, T> &handle, int *shape_h, int *shape_c_h,
                              int *shape_d, int *shape_c_d, int *ldvs, int *ldws,
                              int processed_n, int *processed_dims_h,
                              int *processed_dims_d, int curr_dim_r,
@@ -711,7 +711,7 @@ void ipk_1_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
 
   // printf("ipk_1 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz, gridx,
   // gridy, gridz);
-  _ipk_1<T, D, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
+  _ipk_1<D, T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
                              *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d, curr_dim_r,
       curr_dim_c, curr_dim_f, am, bm, ddist_f, dv, lddv1, lddv2);
@@ -722,8 +722,8 @@ void ipk_1_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
   // std::cout << "test\n";
 }
 
-template <typename T, uint32_t D>
-void ipk_1(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
+template <uint32_t D, typename T>
+void ipk_1(Handle<D, T> &handle, int *shape_h, int *shape_c_h, int *shape_d,
            int *shape_c_d, int *ldvs, int *ldws, int processed_n,
            int *processed_dims_h, int *processed_dims_d, int curr_dim_r,
            int curr_dim_c, int curr_dim_f, T *am, T *bm, T *ddist_f, T *dv,
@@ -731,7 +731,7 @@ void ipk_1(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_1_adaptive_launcher<T, D, R, C, F, G>(                                 \
+    ipk_1_adaptive_launcher<D, T, R, C, F, G>(                                 \
         handle, shape_h, shape_c_h, shape_d, shape_c_d, ldvs, ldws,            \
         processed_n, processed_dims_h, processed_dims_d,\ 
                                   curr_dim_r,                                  \
@@ -811,7 +811,7 @@ void ipk_1(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 #undef IPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
+template <uint32_t D, typename T, int R, int C, int F, int G>
 __global__ void _ipk_2(int *shape, int *shape_c, int *ldvs, int *ldws,
                        int processed_n, int *processed_dims, int curr_dim_r,
                        int curr_dim_c, int curr_dim_f, T *am, T *bm, T *dist_c,
@@ -1335,9 +1335,9 @@ __global__ void _ipk_2(int *shape, int *shape_c, int *ldvs, int *ldws,
   __syncthreads();
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
+template <uint32_t D, typename T, int R, int C, int F, int G>
 void ipk_2_adaptive_launcher(
-    Handle<T, D> &handle, thrust::device_vector<int> shape,
+    Handle<D, T> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
     thrust::device_vector<int> ldws, thrust::device_vector<int> processed_dims,
     int curr_dim_r, int curr_dim_c, int curr_dim_f, T *am, T *bm, T *ddist_c,
@@ -1375,7 +1375,7 @@ void ipk_2_adaptive_launcher(
 
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
-  _ipk_2<T, D, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
+  _ipk_2<D, T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
                              *(cudaStream_t *)handle.get(queue_idx)>>>(
       thrust::raw_pointer_cast(shape.data()),
       thrust::raw_pointer_cast(shape_c.data()),
@@ -1389,8 +1389,8 @@ void ipk_2_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D>
-void ipk_2(Handle<T, D> &handle, thrust::device_vector<int> shape,
+template <uint32_t D, typename T>
+void ipk_2(Handle<D, T> &handle, thrust::device_vector<int> shape,
            thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
            thrust::device_vector<int> ldws,
            thrust::device_vector<int> processed_dims, int curr_dim_r,
@@ -1399,7 +1399,7 @@ void ipk_2(Handle<T, D> &handle, thrust::device_vector<int> shape,
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_2_adaptive_launcher<T, D, R, C, F, G>(                                 \
+    ipk_2_adaptive_launcher<D, T, R, C, F, G>(                                 \
         handle, shape, shape_c, ldvs, ldws, processed_dims, curr_dim_r,        \
         curr_dim_c, curr_dim_f, am, bm, ddist_c, dv, lddv1, lddv2, queue_idx); \
   }
@@ -1457,8 +1457,8 @@ void ipk_2(Handle<T, D> &handle, thrust::device_vector<int> shape,
 #undef IPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
-void ipk_2_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
+template <uint32_t D, typename T, int R, int C, int F, int G>
+void ipk_2_adaptive_launcher(Handle<D, T> &handle, int *shape_h, int *shape_c_h,
                              int *shape_d, int *shape_c_d, int *ldvs, int *ldws,
                              int processed_n, int *processed_dims_h,
                              int *processed_dims_d, int curr_dim_r,
@@ -1498,7 +1498,7 @@ void ipk_2_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
 
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
-  _ipk_2<T, D, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
+  _ipk_2<D, T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
                              *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d, curr_dim_r,
       curr_dim_c, curr_dim_f, am, bm, ddist_c, dv, lddv1, lddv2);
@@ -1508,8 +1508,8 @@ void ipk_2_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
 #endif
 }
 
-template <typename T, uint32_t D>
-void ipk_2(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
+template <uint32_t D, typename T>
+void ipk_2(Handle<D, T> &handle, int *shape_h, int *shape_c_h, int *shape_d,
            int *shape_c_d, int *ldvs, int *ldws, int processed_n,
            int *processed_dims_h, int *processed_dims_d, int curr_dim_r,
            int curr_dim_c, int curr_dim_f, T *am, T *bm, T *ddist_c, T *dv,
@@ -1517,7 +1517,7 @@ void ipk_2(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_2_adaptive_launcher<T, D, R, C, F, G>(                                 \
+    ipk_2_adaptive_launcher<D, T, R, C, F, G>(                                 \
         handle, shape_h, shape_c_h, shape_d, shape_c_d, ldvs, ldws,            \
         processed_n, processed_dims_h, processed_dims_d,\ 
                                 curr_dim_r,                                    \
@@ -1577,7 +1577,7 @@ void ipk_2(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 #undef IPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
+template <uint32_t D, typename T, int R, int C, int F, int G>
 __global__ void _ipk_3(int *shape, int *shape_c, int *ldvs, int *ldws,
                        int processed_n, int *processed_dims, int curr_dim_r,
                        int curr_dim_c, int curr_dim_f, T *am, T *bm, T *dist_r,
@@ -2159,9 +2159,9 @@ __global__ void _ipk_3(int *shape, int *shape_c, int *ldvs, int *ldws,
   __syncthreads();
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
+template <uint32_t D, typename T, int R, int C, int F, int G>
 void ipk_3_adaptive_launcher(
-    Handle<T, D> &handle, thrust::device_vector<int> shape,
+    Handle<D, T> &handle, thrust::device_vector<int> shape,
     thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
     thrust::device_vector<int> ldws, thrust::device_vector<int> processed_dims,
     int curr_dim_r, int curr_dim_c, int curr_dim_f, T *am, T *bm, T *ddist_r,
@@ -2204,7 +2204,7 @@ void ipk_3_adaptive_launcher(
   }
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
-  _ipk_3<T, D, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
+  _ipk_3<D, T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
                              *(cudaStream_t *)handle.get(queue_idx)>>>(
       thrust::raw_pointer_cast(shape.data()),
       thrust::raw_pointer_cast(shape_c.data()),
@@ -2218,8 +2218,8 @@ void ipk_3_adaptive_launcher(
 #endif
 }
 
-template <typename T, uint32_t D>
-void ipk_3(Handle<T, D> &handle, thrust::device_vector<int> shape,
+template <uint32_t D, typename T>
+void ipk_3(Handle<D, T> &handle, thrust::device_vector<int> shape,
            thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
            thrust::device_vector<int> ldws,
            thrust::device_vector<int> processed_dims, int curr_dim_r,
@@ -2228,7 +2228,7 @@ void ipk_3(Handle<T, D> &handle, thrust::device_vector<int> shape,
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_3_adaptive_launcher<T, D, R, C, F, G>(                                 \
+    ipk_3_adaptive_launcher<D, T, R, C, F, G>(                                 \
         handle, shape, shape_c, ldvs, ldws, processed_dims, curr_dim_r,        \
         curr_dim_c, curr_dim_f, am, bm, ddist_r, dv, lddv1, lddv2, queue_idx); \
   }
@@ -2267,8 +2267,8 @@ void ipk_3(Handle<T, D> &handle, thrust::device_vector<int> shape,
 #undef IPK
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int G>
-void ipk_3_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
+template <uint32_t D, typename T, int R, int C, int F, int G>
+void ipk_3_adaptive_launcher(Handle<D, T> &handle, int *shape_h, int *shape_c_h,
                              int *shape_d, int *shape_c_d, int *ldvs, int *ldws,
                              int processed_n, int *processed_dims_h,
                              int *processed_dims_d, int curr_dim_r,
@@ -2315,7 +2315,7 @@ void ipk_3_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
   blockPerGrid = dim3(gridx, gridy, gridz);
   // printf("ipk_1 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz, gridx,
   // gridy, gridz);
-  _ipk_3<T, D, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
+  _ipk_3<D, T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
                              *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d, curr_dim_r,
       curr_dim_c, curr_dim_f, am, bm, ddist_r, dv, lddv1, lddv2);
@@ -2325,8 +2325,8 @@ void ipk_3_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_c_h,
 #endif
 }
 
-template <typename T, uint32_t D>
-void ipk_3(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
+template <uint32_t D, typename T>
+void ipk_3(Handle<D, T> &handle, int *shape_h, int *shape_c_h, int *shape_d,
            int *shape_c_d, int *ldvs, int *ldws, int processed_n,
            int *processed_dims_h, int *processed_dims_d, int curr_dim_r,
            int curr_dim_c, int curr_dim_f, T *am, T *bm, T *ddist_r, T *dv,
@@ -2334,7 +2334,7 @@ void ipk_3(Handle<T, D> &handle, int *shape_h, int *shape_c_h, int *shape_d,
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_3_adaptive_launcher<T, D, R, C, F, G>(                                 \
+    ipk_3_adaptive_launcher<D, T, R, C, F, G>(                                 \
         handle, shape_h, shape_c_h, shape_d, shape_c_d, ldvs, ldws,            \
         processed_n, processed_dims_h, processed_dims_d,\ 
                                 curr_dim_r,                                    \

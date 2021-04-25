@@ -54,8 +54,8 @@ __global__ void _calc_cpt_dist(int n, T *dcoord, T *ddist) {
   }
 }
 
-template <typename T, uint32_t D>
-void calc_cpt_dist(Handle<T, D> &handle, int n, T *dcoord, T *ddist,
+template <uint32_t D, typename T>
+void calc_cpt_dist(Handle<D, T> &handle, int n, T *dcoord, T *ddist,
                    int queue_idx) {
 
   int total_thread_x = std::max(n, 1);
@@ -99,8 +99,8 @@ __global__ void _reduce_two_dist(int n, T *ddist, T *ddist_reduced) {
   }
 }
 
-template <typename T, uint32_t D>
-void reduce_two_dist(Handle<T, D> &handle, int n, T *ddist, T *ddist_reduced,
+template <uint32_t D, typename T>
+void reduce_two_dist(Handle<D, T> &handle, int n, T *ddist, T *ddist_reduced,
                      int queue_idx) {
 
   int total_thread_x = std::max(n, 1);
@@ -155,8 +155,8 @@ __global__ void _dist_to_ratio(int n, T *ddist, T *dratio) {
   }
 }
 
-template <typename T, uint32_t D>
-void dist_to_ratio(Handle<T, D> &handle, int n, T *ddist, T *dratio,
+template <uint32_t D, typename T>
+void dist_to_ratio(Handle<D, T> &handle, int n, T *ddist, T *dratio,
                    int queue_idx) {
 
   int total_thread_x = std::max(n, 1);
@@ -232,8 +232,8 @@ __global__ void _calc_cpt_dist_ratio(int n, T *dcoord, T *dratio) {
   }
 }
 
-template <typename T, uint32_t D>
-void calc_cpt_dist_ratio(Handle<T, D> &handle, int n, T *dcoord, T *dratio,
+template <uint32_t D, typename T>
+void calc_cpt_dist_ratio(Handle<D, T> &handle, int n, T *dcoord, T *dratio,
                          int queue_idx) {
 
   int total_thread_x = std::max(n, 1);
@@ -338,8 +338,8 @@ __global__ void _calc_am_bm(int n, T *ddist, T *am, T *bm) {
   }
 }
 
-template <typename T, uint32_t D>
-void calc_am_bm(Handle<T, D> &handle, int n, T *ddist, T *am, T *bm,
+template <uint32_t D, typename T>
+void calc_am_bm(Handle<D, T> &handle, int n, T *ddist, T *am, T *bm,
                 int queue_idx) {
 
   // int total_thread_y = 1;
@@ -359,28 +359,28 @@ void calc_am_bm(Handle<T, D> &handle, int n, T *ddist, T *am, T *bm,
 #endif
 }
 
-#define KERNELS(T, D)                                                          \
-  template void calc_cpt_dist(Handle<T, D> &handle, int n, T *dcoord,          \
+#define KERNELS(D, T)                                                          \
+  template void calc_cpt_dist(Handle<D, T> &handle, int n, T *dcoord,          \
                               T *ddist, int queue_idx);                        \
-  template void reduce_two_dist<T, D>(Handle<T, D> & handle, int n, T *ddist,  \
+  template void reduce_two_dist<D, T>(Handle<D, T> & handle, int n, T *ddist,  \
                                       T *ddist_reduced, int queue_idx);        \
-  template void calc_cpt_dist_ratio<T, D>(                                     \
-      Handle<T, D> & handle, int nrow, T *dcoord, T *dratio, int queue_idx);   \
-  template void dist_to_ratio<T, D>(Handle<T, D> & handle, int n, T *ddist,    \
+  template void calc_cpt_dist_ratio<D, T>(                                     \
+      Handle<D, T> & handle, int nrow, T *dcoord, T *dratio, int queue_idx);   \
+  template void dist_to_ratio<D, T>(Handle<D, T> & handle, int n, T *ddist,    \
                                     T *dratio, int queue_idx);                 \
-  template void calc_am_bm<T, D>(Handle<T, D> & handle, int n, T *ddist,       \
+  template void calc_am_bm<D, T>(Handle<D, T> & handle, int n, T *ddist,       \
                                  T *am, T *bm, int queue_idx);
 
-KERNELS(double, 1)
-KERNELS(float, 1)
-KERNELS(double, 2)
-KERNELS(float, 2)
-KERNELS(double, 3)
-KERNELS(float, 3)
-KERNELS(double, 4)
-KERNELS(float, 4)
-KERNELS(double, 5)
-KERNELS(float, 5)
+KERNELS(1, double)
+KERNELS(1, float)
+KERNELS(2, double)
+KERNELS(2, float)
+KERNELS(3, double)
+KERNELS(3, float)
+KERNELS(4, double)
+KERNELS(4, float)
+KERNELS(5, double)
+KERNELS(5, float)
 #undef KERNELS
 
 } // namespace mgard_cuda

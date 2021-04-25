@@ -11,7 +11,7 @@
 #include "LevelwiseProcessingKernel.h"
 namespace mgard_cuda {
 
-template <typename T, uint32_t D, int R, int C, int F, int OP>
+template <uint32_t D, typename T, int R, int C, int F, int OP>
 __global__ void _lwpk(int *shape, T *dv, int *ldvs, T *dwork, int *ldws) {
 
   size_t threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
@@ -65,8 +65,8 @@ __global__ void _lwpk(int *shape, T *dv, int *ldvs, T *dwork, int *ldws) {
   }
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int OP>
-void lwpk_adaptive_launcher(Handle<T, D> &handle,
+template <uint32_t D, typename T, int R, int C, int F, int OP>
+void lwpk_adaptive_launcher(Handle<D, T> &handle,
                             thrust::device_vector<int> shape, T *dv,
                             thrust::device_vector<int> ldvs, T *dwork,
                             thrust::device_vector<int> ldws, int queue_idx) {
@@ -89,7 +89,7 @@ void lwpk_adaptive_launcher(Handle<T, D> &handle,
   dim3 threadsPerBlock(tbx, tby, tbz);
   dim3 blockPerGrid(gridx, gridy, gridz);
   size_t sm_size = (D * 3) * sizeof(int);
-  _lwpk<T, D, R, C, F, OP><<<blockPerGrid, threadsPerBlock, sm_size,
+  _lwpk<D, T, R, C, F, OP><<<blockPerGrid, threadsPerBlock, sm_size,
                              *(cudaStream_t *)handle.get(queue_idx)>>>(
       thrust::raw_pointer_cast(shape.data()), dv,
       thrust::raw_pointer_cast(ldvs.data()), dwork,
@@ -101,13 +101,13 @@ void lwpk_adaptive_launcher(Handle<T, D> &handle,
 #endif
 }
 
-template <typename T, uint32_t D, int OP>
-void lwpk(Handle<T, D> &handle, thrust::device_vector<int> shape, T *dv,
+template <uint32_t D, typename T, int OP>
+void lwpk(Handle<D, T> &handle, thrust::device_vector<int> shape, T *dv,
           thrust::device_vector<int> ldvs, T *dwork,
           thrust::device_vector<int> ldws, int queue_idx) {
 #define COPYLEVEL(R, C, F)                                                     \
   {                                                                            \
-    lwpk_adaptive_launcher<T, D, R, C, F, OP>(handle, shape, dv, ldvs, dwork,  \
+    lwpk_adaptive_launcher<D, T, R, C, F, OP>(handle, shape, dv, ldvs, dwork,  \
                                               ldws, queue_idx);                \
   }
   if (D >= 3) {
@@ -123,8 +123,8 @@ void lwpk(Handle<T, D> &handle, thrust::device_vector<int> shape, T *dv,
 #undef COPYLEVEL
 }
 
-template <typename T, uint32_t D, int R, int C, int F, int OP>
-void lwpk_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_d,
+template <uint32_t D, typename T, int R, int C, int F, int OP>
+void lwpk_adaptive_launcher(Handle<D, T> &handle, int *shape_h, int *shape_d,
                             T *dv, int *ldvs, T *dwork, int *ldws,
                             int queue_idx) {
 
@@ -146,7 +146,7 @@ void lwpk_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_d,
   dim3 threadsPerBlock(tbx, tby, tbz);
   dim3 blockPerGrid(gridx, gridy, gridz);
   size_t sm_size = (D * 3) * sizeof(int);
-  _lwpk<T, D, R, C, F, OP><<<blockPerGrid, threadsPerBlock, sm_size,
+  _lwpk<D, T, R, C, F, OP><<<blockPerGrid, threadsPerBlock, sm_size,
                              *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, dv, ldvs, dwork, ldws);
 
@@ -156,12 +156,12 @@ void lwpk_adaptive_launcher(Handle<T, D> &handle, int *shape_h, int *shape_d,
 #endif
 }
 
-template <typename T, uint32_t D, int OP>
-void lwpk(Handle<T, D> &handle, int *shape_h, int *shape_d, T *dv, int *ldvs,
+template <uint32_t D, typename T, int OP>
+void lwpk(Handle<D, T> &handle, int *shape_h, int *shape_d, T *dv, int *ldvs,
           T *dwork, int *ldws, int queue_idx) {
 #define COPYLEVEL(R, C, F)                                                     \
   {                                                                            \
-    lwpk_adaptive_launcher<T, D, R, C, F, OP>(handle, shape_h, shape_d, dv,    \
+    lwpk_adaptive_launcher<D, T, R, C, F, OP>(handle, shape_h, shape_d, dv,    \
                                               ldvs, dwork, ldws, queue_idx);   \
   }
   if (D >= 3) {

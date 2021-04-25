@@ -13,13 +13,14 @@
 
 namespace mgard_cuda {
 
-template <typename T, uint32_t D>
-Array<T, D>::Array(std::vector<size_t> shape) {
+template <uint32_t D, typename T>
+Array<D, T>::Array(std::vector<size_t> shape) {
   this->host_allocated = false;
   this->device_allocated = false;
   std::reverse(shape.begin(), shape.end());
   this->shape = shape;
-  if (shape.size() != D) {
+  int ret = check_shape<D>(shape);
+  if (ret == -1) {
     std::cerr << log_err
               << "Number of dimensions mismatch. mgard_cuda::Array not "
                  "initialized!\n";
@@ -48,7 +49,7 @@ Array<T, D>::Array(std::vector<size_t> shape) {
   for (int i = 1; i < D_padded; i++) {
     this->ldvs_h.push_back(this->shape[i]);
   }
-  Handle<float, 1> handle;
+  Handle<1, float> handle;
   cudaMallocHelper((void **)&(this->ldvs_d), this->ldvs_h.size() * sizeof(int));
   cudaMemcpyAsyncHelper(handle, this->ldvs_d, this->ldvs_h.data(),
                         this->ldvs_h.size() * sizeof(int), AUTO, 0);
@@ -56,7 +57,7 @@ Array<T, D>::Array(std::vector<size_t> shape) {
   this->device_allocated = true;
 }
 
-template <typename T, uint32_t D> Array<T, D>::Array(Array<T, D> &array) {
+template <uint32_t D, typename T> Array<D, T>::Array(Array<D, T> &array) {
   this->host_allocated = false;
   this->device_allocated = false;
   this->shape = array.shape;
@@ -83,7 +84,7 @@ template <typename T, uint32_t D> Array<T, D>::Array(Array<T, D> &array) {
   for (int i = 1; i < this->D_padded; i++) {
     this->ldvs_h.push_back(this->shape[i]);
   }
-  Handle<float, 1> handle;
+  Handle<1, float> handle;
 
   cudaMallocHelper((void **)&(this->ldvs_d), this->ldvs_h.size() * sizeof(int));
   cudaMemcpyAsyncHelper(handle, this->ldvs_d, this->ldvs_h.data(),
@@ -98,7 +99,7 @@ template <typename T, uint32_t D> Array<T, D>::Array(Array<T, D> &array) {
   this->device_allocated = true;
 }
 
-template <typename T, uint32_t D> Array<T, D>::~Array() {
+template <uint32_t D, typename T> Array<D, T>::~Array() {
   if (device_allocated) {
     cudaFreeHelper(ldvs_d);
     cudaFreeHelper(dv);
@@ -108,12 +109,12 @@ template <typename T, uint32_t D> Array<T, D>::~Array() {
   }
 }
 
-template <typename T, uint32_t D>
-void Array<T, D>::loadData(T *data, size_t ld) {
+template <uint32_t D, typename T>
+void Array<D, T>::loadData(T *data, size_t ld) {
   if (ld == 0) {
     ld = shape[0];
   }
-  Handle<float, 1> handle;
+  Handle<1, float> handle;
   cudaMemcpy3DAsyncHelper(handle, dv, ldvs_h[0] * sizeof(T),
                           shape[0] * sizeof(T), shape[1], data, ld * sizeof(T),
                           shape[0] * sizeof(T), shape[1], shape[0] * sizeof(T),
@@ -121,8 +122,8 @@ void Array<T, D>::loadData(T *data, size_t ld) {
   handle.sync(0);
 }
 
-template <typename T, uint32_t D> T *Array<T, D>::getDataHost() {
-  Handle<float, 1> handle;
+template <uint32_t D, typename T> T *Array<D, T>::getDataHost() {
+  Handle<1, float> handle;
   if (!host_allocated) {
     cudaMallocHostHelper((void **)&hv,
                          sizeof(T) * shape[0] * shape[1] * linearized_depth);
@@ -135,36 +136,36 @@ template <typename T, uint32_t D> T *Array<T, D>::getDataHost() {
   return hv;
 }
 
-template <typename T, uint32_t D> T *Array<T, D>::getDataDevice(size_t &ld) {
+template <uint32_t D, typename T> T *Array<D, T>::getDataDevice(size_t &ld) {
   ld = ldvs_h[0];
   return dv;
 }
 
-template <typename T, uint32_t D> std::vector<size_t> Array<T, D>::getShape() {
+template <uint32_t D, typename T> std::vector<size_t> Array<D, T>::getShape() {
   return shape;
 }
 
-template <typename T, uint32_t D> T *Array<T, D>::get_dv() { return dv; }
+template <uint32_t D, typename T> T *Array<D, T>::get_dv() { return dv; }
 
-template <typename T, uint32_t D> std::vector<int> Array<T, D>::get_ldvs_h() {
+template <uint32_t D, typename T> std::vector<int> Array<D, T>::get_ldvs_h() {
   return ldvs_h;
 }
 
-template <typename T, uint32_t D> int *Array<T, D>::get_ldvs_d() {
+template <uint32_t D, typename T> int *Array<D, T>::get_ldvs_d() {
   return ldvs_d;
 }
 
-template class Array<double, 1>;
-template class Array<float, 1>;
-template class Array<double, 2>;
-template class Array<float, 2>;
-template class Array<double, 3>;
-template class Array<float, 3>;
-template class Array<double, 4>;
-template class Array<float, 4>;
-template class Array<double, 5>;
-template class Array<float, 5>;
+template class Array<1, double>;
+template class Array<1, float>;
+template class Array<2, double>;
+template class Array<2, float>;
+template class Array<3, double>;
+template class Array<3, float>;
+template class Array<4, double>;
+template class Array<4, float>;
+template class Array<5, double>;
+template class Array<5, float>;
 
-template class Array<unsigned char, 1>;
+template class Array<1, unsigned char>;
 
 } // namespace mgard_cuda

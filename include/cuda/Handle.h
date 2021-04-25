@@ -18,7 +18,7 @@ struct mgard_cuda_config {
   int lz4_block_size;
 };
 
-template <typename T, uint32_t D> struct Handle {
+template <uint32_t D, typename T> struct Handle {
 
   /* for Internal use only */
   Handle();

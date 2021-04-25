@@ -10,23 +10,23 @@
 
 namespace mgard_cuda {
 
-#define KERNELS(T, D)                                                          \
-  template void lpk_reo_1_3d<T, D>(                                            \
-      Handle<T, D> & handle, int nr, int nc, int nf, int nf_c, int zero_r,     \
+#define KERNELS(D, T)                                                          \
+  template void lpk_reo_1_3d<D, T>(                                            \
+      Handle<D, T> & handle, int nr, int nc, int nf, int nf_c, int zero_r,     \
       int zero_c, int zero_f, T *ddist_f, T *dratio_f, T *dv1, int lddv11,     \
       int lddv12, T *dv2, int lddv21, int lddv22, T *dw, int lddw1, int lddw2, \
       int queue_idx, int config);
 
-KERNELS(double, 1)
-KERNELS(float, 1)
-KERNELS(double, 2)
-KERNELS(float, 2)
-KERNELS(double, 3)
-KERNELS(float, 3)
-KERNELS(double, 4)
-KERNELS(float, 4)
-KERNELS(double, 5)
-KERNELS(float, 5)
+KERNELS(1, double)
+KERNELS(1, float)
+KERNELS(2, double)
+KERNELS(2, float)
+KERNELS(3, double)
+KERNELS(3, float)
+KERNELS(4, double)
+KERNELS(4, float)
+KERNELS(5, double)
+KERNELS(5, float)
 
 #undef KERNELS
 

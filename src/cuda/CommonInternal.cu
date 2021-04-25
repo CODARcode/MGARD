@@ -35,6 +35,23 @@ bool is_2kplus1_cuda(double num) {
 //   return ld2 * ld1 * z + ld1 * y + x;
 // }
 
+template <uint32_t D> int check_shape(std::vector<size_t> shape) {
+  if (D != shape.size()) {
+    return -1;
+  }
+  for (int i = 0; i < shape.size(); i++) {
+    if (shape[i] < 3)
+      return -2;
+  }
+  return 0;
+}
+
+template int check_shape<1>(std::vector<size_t> shape);
+template int check_shape<2>(std::vector<size_t> shape);
+template int check_shape<3>(std::vector<size_t> shape);
+template int check_shape<4>(std::vector<size_t> shape);
+template int check_shape<5>(std::vector<size_t> shape);
+
 template <typename T> T max_norm_cuda(const T *v, size_t size) {
   double norm = 0;
 

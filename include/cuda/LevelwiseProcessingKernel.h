@@ -13,13 +13,13 @@
 
 namespace mgard_cuda {
 
-template <typename T, uint32_t D, int OP>
-void lwpk(Handle<T, D> &handle, thrust::device_vector<int> shape, T *dv,
+template <uint32_t D, typename T, int OP>
+void lwpk(Handle<D, T> &handle, thrust::device_vector<int> shape, T *dv,
           thrust::device_vector<int> ldvs, T *dwork,
           thrust::device_vector<int> ldws, int queue_idx);
 
-template <typename T, uint32_t D, int OP>
-void lwpk(Handle<T, D> &handle, int *shape_h, int *shape_d, T *dv, int *ldvs,
+template <uint32_t D, typename T, int OP>
+void lwpk(Handle<D, T> &handle, int *shape_h, int *shape_d, T *dv, int *ldvs,
           T *dwork, int *ldws, int queue_idx);
 
 } // namespace mgard_cuda

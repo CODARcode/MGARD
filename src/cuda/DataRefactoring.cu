@@ -28,9 +28,9 @@ namespace mgard_cuda {
 bool store = false;
 bool verify = false;
 
-template <typename T, uint32_t D>
-void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
-                  int l_target) {
+template <uint32_t D, typename T>
+void decompose(Handle<D, T> &handle, T *dv, std::vector<int> ldvs,
+               int l_target) {
 
   int *ldvs_h = new int[handle.D_padded];
   for (int d = 0; d < handle.D_padded; d++) {
@@ -75,7 +75,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       // handle.dofs[0][l],
       //                     dv, ldvs[0], ldvs[1], ldvs[0]);
 
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
                        ldvs_d, handle.dw, handle.ldws_d, 0);
 
       // printf("before pi_Ql_reo\n");
@@ -106,7 +106,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
 
       T *null = NULL;
       // printf("gpk_reo\n");
-      // gpk_reo<T, D, D, true, true, 1>(handle,
+      // gpk_reo<D, T, D, true, true, 1>(handle,
       //           handle.shapes_h[l], handle.shapes_d[l], handle.shapes_d[l+1],
       //           handle.ldws_d, ldvs_d, unprocessed_n, unprocessed_dims, 2, 1,
       //           0, handle.ratio[2][l], handle.ratio[1][l],
@@ -180,7 +180,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       // handle.dofs[0][l],
       //                     dv, ldvs[0], ldvs[1], ldvs[0]);
 
-      // gpk_reo<T, D, D, true, false, 1>(handle,
+      // gpk_reo<D, T, D, true, false, 1>(handle,
       //           shape, shape_c, handle.ldws_h, ldvs, unprocessed_dims,
       //           2, 1, 0,
       //           handle.ratio[2][l], handle.ratio[1][l], handle.ratio[0][l],
@@ -216,7 +216,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       // handle.dofs[0][l],
       //                     dv, ldvs[0], ldvs[1], ldvs[0]);
 
-      // gpk_reo<T, D, D, false, true, 1>(handle,
+      // gpk_reo<D, T, D, false, true, 1>(handle,
       //           shape, shape_c, handle.ldws_h, ldvs, unprocessed_dims,
       //           2, 1, 0,
       //           handle.ratio[2][l], handle.ratio[1][l], handle.ratio[0][l],
@@ -255,7 +255,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       thrust::device_vector<int> processed_dims(0);
 
       if (D >= 1) {
-        // lpk_reo_1<T, D>(handle,
+        // lpk_reo_1<D, T>(handle,
         //                 handle.shapes_h[l], handle.shapes_h[l+1],
         //                 handle.shapes_d[l], handle.shapes_d[l+1],
         //                 ldvs_d, handle.ldws_d,
@@ -294,7 +294,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                 handle.dw, handle.ldws_h[0], handle.ldws_h[1]
         //                 ,handle.ldws_h[0]);
 
-        // ipk_1<T, D>(handle,
+        // ipk_1<D, T>(handle,
         //             handle.shapes_h[l], handle.shapes_h[l+1],
         //             handle.shapes_d[l], handle.shapes_d[l+1],
         //             handle.ldws_d, handle.ldws_d,
@@ -323,7 +323,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                 ,handle.ldws_h[0]);
 
         if (D == 1) {
-          lwpk<T, D, ADD>(handle, handle.shapes_h[l + 1],
+          lwpk<D, T, ADD>(handle, handle.shapes_h[l + 1],
                           handle.shapes_d[l + 1], handle.dw, handle.ldws_d, dv,
                           ldvs_d, 0);
           // printf("after add\n");
@@ -334,7 +334,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       }
 
       if (D >= 2) {
-        // lpk_reo_2<T, D>(handle,
+        // lpk_reo_2<D, T>(handle,
         //                 handle.shapes_h[l], handle.shapes_h[l+1],
         //                 handle.shapes_d[l], handle.shapes_d[l+1],
         //                 handle.ldws_d, handle.ldws_d,
@@ -379,7 +379,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                 0, 0, handle.dofs[0][l+1]), handle.ldws_h[0],
         //                 handle.ldws_h[1] ,handle.ldws_h[0]);
 
-        // ipk_2<T, D>(handle,
+        // ipk_2<D, T>(handle,
         //             handle.shapes_h[l], handle.shapes_h[l+1],
         //             handle.shapes_d[l], handle.shapes_d[l+1],
         //             handle.ldws_d, handle.ldws_d,
@@ -421,7 +421,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                   dv, ldvs[0], ldvs[1], ldvs[0]);
 
         if (D == 2) {
-          lwpk<T, D, ADD>(
+          lwpk<D, T, ADD>(
               handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
               handle.dw + get_idx(handle.ldws_h[0], handle.ldws_h[1], 0, 0,
                                   handle.dofs[0][l + 1]),
@@ -435,7 +435,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
 
       if (D == 3) {
         processed_dims.push_back(1);
-        lpk_reo_3<T, D>(
+        lpk_reo_3<D, T>(
             handle, handle.shapes_h[l], handle.shapes_h[l + 1],
             handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
             handle.ldws_d, handle.processed_n[2], handle.processed_dims_h[2],
@@ -485,7 +485,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                 handle.ldws_h[0], handle.ldws_h[1]
         //                 ,handle.ldws_h[0]);
 
-        // ipk_3<T, D>(handle,
+        // ipk_3<D, T>(handle,
         //             handle.shapes_h[l], handle.shapes_h[l+1],
         //             handle.shapes_d[l], handle.shapes_d[l+1],
         //             handle.ldws_d, handle.ldws_d,
@@ -523,7 +523,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                 ,handle.ldws_h[0]);
 
         if (D == 3) {
-          lwpk<T, D, ADD>(
+          lwpk<D, T, ADD>(
               handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
               handle.dw + get_idx(handle.ldws_h[0], handle.ldws_h[1], 0,
                                   handle.dofs[1][l + 1], handle.dofs[0][l + 1]),
@@ -582,9 +582,9 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     ldvs[0]);
       // }
 
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
                        ldvs_d, handle.dw, handle.ldws_d, 0);
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
                        ldvs_d, handle.db, handle.ldbs_d, 0);
 
       // for (int i = 0; i < handle.dofs[3][l]; i++) {
@@ -632,7 +632,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       for (int s = curr_dim_c; s < curr_dim_r; s++) {
         lddw2 *= handle.ldws_h[s];
       }
-      gpk_reo<T, D, 3, true, false, 1>(
+      gpk_reo<D, 3, T, true, false, 1>(
           handle, handle.shapes_h[l], handle.shapes_d[l],
           handle.shapes_d[l + 1], handle.ldws_d, ldvs_d,
           unprocessed_dims.size(),
@@ -688,7 +688,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     ldvs[0]);
       // }
 
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
                        ldvs_d, handle.dw, handle.ldws_d, 0);
 
       // for (int i = 0; i < handle.dofs[3][l]; i++) {
@@ -719,7 +719,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       // lddw1, lddw2);
       if (D % 2 == 0) {
         unprocessed_dims.pop_back();
-        gpk_reo<T, D, 2, true, false, 2>(
+        gpk_reo<D, 2, T, true, false, 2>(
             handle, handle.shapes_h[l], handle.shapes_d[l],
             handle.shapes_d[l + 1], handle.ldws_d, ldvs_d,
             unprocessed_dims.size(),
@@ -772,7 +772,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       } else {
         unprocessed_dims.pop_back();
         unprocessed_dims.pop_back();
-        gpk_reo<T, D, 3, true, false, 2>(
+        gpk_reo<D, 3, T, true, false, 2>(
             handle, handle.shapes_h[l], handle.shapes_d[l],
             handle.shapes_d[l + 1], handle.ldws_d, ldvs_d,
             unprocessed_dims.size(),
@@ -851,7 +851,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       for (int i = 3; i < D; i++)
         unprocessed_dims.push_back(i);
 
-      gpk_reo<T, D, 3, false, false, 1>(
+      gpk_reo<D, 3, T, false, false, 1>(
           handle, handle.shapes_h[l], handle.shapes_d[l],
           handle.shapes_d[l + 1], handle.ldbs_d, handle.ldws_d,
           unprocessed_dims.size(),
@@ -918,7 +918,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     ldvs[0]);
       // }
 
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
                        handle.dw, handle.ldws_d, handle.db, handle.ldbs_d, 0);
 
       // printf("db before calc\n");
@@ -948,7 +948,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       }
       if (D % 2 == 0) {
         unprocessed_dims.pop_back();
-        gpk_reo<T, D, 2, false, true, 2>(
+        gpk_reo<D, 2, T, false, true, 2>(
             handle, handle.shapes_h[l], handle.shapes_d[l],
             handle.shapes_d[l + 1], handle.ldbs_d, ldvs_d,
             unprocessed_dims.size(),
@@ -1002,7 +1002,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       } else {
         unprocessed_dims.pop_back();
         unprocessed_dims.pop_back();
-        gpk_reo<T, D, 3, false, true, 2>(
+        gpk_reo<D, 3, T, false, true, 2>(
             handle, handle.shapes_h[l], handle.shapes_d[l],
             handle.shapes_d[l + 1], handle.ldbs_d, ldvs_d,
             unprocessed_dims.size(),
@@ -1090,7 +1090,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         lddw2 *= handle.ldws_h[s];
       }
       thrust::device_vector<int> processed_dims;
-      lpk_reo_1<T, D>(
+      lpk_reo_1<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], ldvs_d, handle.ldws_d,
           handle.processed_n[0], handle.processed_dims_h[0],
@@ -1113,12 +1113,12 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       // }
 
       // printf("solve tridiag 1D\n");
-      // ipk_1<T, D>(handle, shape, shape_c, handle.ldws_h, handle.ldws_h,
+      // ipk_1<D, T>(handle, shape, shape_c, handle.ldws_h, handle.ldws_h,
       // processed_dims, curr_dim_r, curr_dim_c, curr_dim_f,
       // handle.am[curr_dim_f][l+1], handle.bm[curr_dim_f][l+1],
       // handle.dist[curr_dim_f][l+1], dw_out, lddw1, lddw2, 0,
       // handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
-      ipk_1<T, D>(
+      ipk_1<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
           handle.ldws_d, handle.processed_n[0], handle.processed_dims_h[0],
@@ -1157,7 +1157,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         lddw2 *= handle.ldws_h[s];
       }
       // printf("mass trans 2D\n");
-      lpk_reo_2<T, D>(
+      lpk_reo_2<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
           handle.ldws_d, handle.processed_n[1], handle.processed_dims_h[1],
@@ -1184,7 +1184,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     handle.ldws_h[0]);
       // }
       // printf("solve tridiag 2D\n");
-      ipk_2<T, D>(
+      ipk_2<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
           handle.ldws_d, handle.processed_n[1], handle.processed_dims_h[1],
@@ -1224,7 +1224,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         lddw2 *= handle.ldws_h[s];
       }
       // printf("mass trans 3D\n");
-      lpk_reo_3<T, D>(
+      lpk_reo_3<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
           handle.ldws_d, handle.processed_n[2], handle.processed_dims_h[2],
@@ -1251,7 +1251,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     handle.ldws_h[0]);
       // }
       // printf("solve tridiag 3D\n");
-      ipk_3<T, D>(
+      ipk_3<D, T>(
           handle, shape, shape_c, handle.ldws_h, handle.ldws_h, processed_dims,
           curr_dim_r, curr_dim_c, curr_dim_f, handle.am[curr_dim_r][l + 1],
           handle.bm[curr_dim_r][l + 1], handle.dist[curr_dim_r][l + 1], dw_out,
@@ -1293,7 +1293,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
           lddw2 *= handle.ldws_h[s];
         }
         // printf("mass trans %dD\n", i+1);
-        lpk_reo_3<T, D>(
+        lpk_reo_3<D, T>(
             handle, handle.shapes_h[l], handle.shapes_h[l + 1],
             handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
             handle.ldws_d, handle.processed_n[i], handle.processed_dims_h[i],
@@ -1318,7 +1318,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                     handle.ldws_h[0]);
         // }
         // printf("solve tridiag %dD\n", i+1);
-        ipk_3<T, D>(
+        ipk_3<D, T>(
             handle, handle.shapes_h[l], handle.shapes_h[l + 1],
             handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
             handle.ldws_d, handle.processed_n[i], handle.processed_dims_h[i],
@@ -1340,7 +1340,7 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       // }
 
       // apply correction
-      lwpk<T, D, ADD>(handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
+      lwpk<D, T, ADD>(handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
                       dw_out, handle.ldws_d, dv, ldvs_d, 0);
 
       // for (int i = 0; i < handle.dofs[3][l]; i++) {
@@ -1354,9 +1354,9 @@ void refactor_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
   }
 }
 
-template <typename T, uint32_t D>
-void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
-                   int l_target) {
+template <uint32_t D, typename T>
+void recompose(Handle<D, T> &handle, T *dv, std::vector<int> ldvs,
+               int l_target) {
 
   // l_end=handle.l_target-4;
 
@@ -1417,7 +1417,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
 
       thrust::device_vector<int> processed_dims(0);
       if (D >= 1) {
-        // lpk_reo_1<T, D>(handle,
+        // lpk_reo_1<D, T>(handle,
         //                 handle.shapes_h[l], handle.shapes_h[l+1],
         //                 handle.shapes_d[l], handle.shapes_d[l+1],
         //                 ldvs_d, handle.ldws_d,
@@ -1455,7 +1455,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                 handle.dw, handle.ldws_h[0], handle.ldws_h[1]
         //                 ,handle.ldws_h[0]);
 
-        // ipk_1<T, D>(handle,
+        // ipk_1<D, T>(handle,
         //             handle.shapes_h[l], handle.shapes_h[l+1],
         //             handle.shapes_d[l], handle.shapes_d[l+1],
         //             handle.ldws_d, handle.ldws_d,
@@ -1482,14 +1482,14 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                 handle.dw, handle.ldws_h[0], handle.ldws_h[1]
         //                 ,handle.ldws_h[0]);
         if (D == 1) {
-          lwpk<T, D, SUBTRACT>(handle, handle.shapes_h[l + 1],
+          lwpk<D, T, SUBTRACT>(handle, handle.shapes_h[l + 1],
                                handle.shapes_d[l + 1], handle.dw, handle.ldws_d,
                                dv, ldvs_d, 0);
         }
       }
 
       if (D >= 2) {
-        // lpk_reo_2<T, D>(handle,
+        // lpk_reo_2<D, T>(handle,
         //                 handle.shapes_h[l], handle.shapes_h[l+1],
         //                 handle.shapes_d[l], handle.shapes_d[l+1],
         //                 handle.ldws_d, handle.ldws_d,
@@ -1533,7 +1533,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                 0, 0, handle.dofs[0][l+1]), handle.ldws_h[0],
         //                 handle.ldws_h[1] ,handle.ldws_h[0]);
 
-        // ipk_2<T, D>(handle,
+        // ipk_2<D, T>(handle,
         //             handle.shapes_h[l], handle.shapes_h[l+1],
         //             handle.shapes_d[l], handle.shapes_d[l+1],
         //             handle.ldws_d, handle.ldws_d,
@@ -1574,7 +1574,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                   dv, ldvs[0], ldvs[1], ldvs[0]);
 
         if (D == 2) {
-          lwpk<T, D, SUBTRACT>(
+          lwpk<D, T, SUBTRACT>(
               handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
               handle.dw + get_idx(handle.ldws_h[0], handle.ldws_h[1], 0, 0,
                                   handle.dofs[0][l + 1]),
@@ -1589,7 +1589,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
 
       if (D == 3) {
         processed_dims.push_back(1);
-        // lpk_reo_3<T, D>(handle,
+        // lpk_reo_3<D, T>(handle,
         //                 handle.shapes_h[l], handle.shapes_h[l+1],
         //                 handle.shapes_d[l], handle.shapes_d[l+1],
         //                 handle.ldws_d, handle.ldws_d,
@@ -1638,7 +1638,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                 0, handle.dofs[1][l+1], handle.dofs[0][l+1]),
         //                 handle.ldws_h[0], handle.ldws_h[1],handle.ldws_h[0]);
 
-        // ipk_3<T, D>(handle,
+        // ipk_3<D, T>(handle,
         //             handle.shapes_h[l], handle.shapes_h[l+1],
         //             handle.shapes_d[l], handle.shapes_d[l+1],
         //             handle.ldws_d, handle.ldws_d,
@@ -1675,7 +1675,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                   handle.ldws_h[1],handle.ldws_h[0]);
 
         if (D == 3) {
-          lwpk<T, D, SUBTRACT>(
+          lwpk<D, T, SUBTRACT>(
               handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
               handle.dw + get_idx(handle.ldws_h[0], handle.ldws_h[1], 0,
                                   handle.dofs[1][l + 1], handle.dofs[0][l + 1]),
@@ -1695,7 +1695,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     dv, ldvs[0], ldvs[1], ldvs[0]);
       T *null = NULL;
 
-      // gpk_rev<T, D, D, true, true, 1>(handle,
+      // gpk_rev<D, T, D, true, true, 1>(handle,
       //             handle.shapes_h[l], handle.shapes_d[l],
       //             handle.shapes_d[l+1], handle.ldws_d, ldvs_d,
       //             unprocessed_dims.size(),
@@ -1767,7 +1767,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
           handle.ldws_h[0], handle.ldws_h[1], handle.ldws_h[0],
           prefix + "gpk_rev_3d" + "_level_" + std::to_string(l), store, verify);
 
-      // gpk_rev<T, D, D, true, false, 1>(handle,
+      // gpk_rev<D, T, D, true, false, 1>(handle,
       //             shape, shape_c, handle.ldws_h, ldvs, unprocessed_dims,
       //             2, 1, 0,
       //             handle.ratio[2][l], handle.ratio[1][l], handle.ratio[0][l],
@@ -1804,7 +1804,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     handle.dw, handle.ldws_h[0], handle.ldws_h[1],
       //                     handle.ldws_h[0]);
 
-      // gpk_rev<T, D, D, false, true, 1>(handle,
+      // gpk_rev<D, T, D, false, true, 1>(handle,
       //             shape, shape_c, handle.ldws_h, ldvs, unprocessed_dims,
       //             2, 1, 0,
       //             handle.ratio[2][l], handle.ratio[1][l], handle.ratio[0][l],
@@ -1842,7 +1842,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     handle.dw, handle.ldws_h[0], handle.ldws_h[1],
       //                     handle.ldws_h[0]);
 
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
                        handle.dw, handle.ldws_d, dv, ldvs_d, 0);
 
       // printf("output\n");
@@ -1912,7 +1912,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       }
       thrust::device_vector<int> processed_dims;
       // printf("mass trans 1D\n");
-      lpk_reo_1<T, D>(
+      lpk_reo_1<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], ldvs_d, handle.ldws_d,
           handle.processed_n[0], handle.processed_dims_h[0],
@@ -1934,7 +1934,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     handle.ldws_h[0]);
       // }
       // printf("solve tridiag 1D\n");
-      ipk_1<T, D>(
+      ipk_1<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
           handle.ldws_d, handle.processed_n[0], handle.processed_dims_h[0],
@@ -1974,7 +1974,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         lddw2 *= handle.ldws_h[s];
       }
       // printf("mass trans 2D\n");
-      lpk_reo_2<T, D>(
+      lpk_reo_2<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
           handle.ldws_d, handle.processed_n[1], handle.processed_dims_h[1],
@@ -2001,7 +2001,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     handle.ldws_h[0]);
       // }
       // printf("solve tridiag 2D\n");
-      ipk_2<T, D>(
+      ipk_2<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
           handle.ldws_d, handle.processed_n[1], handle.processed_dims_h[1],
@@ -2041,7 +2041,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         lddw2 *= handle.ldws_h[s];
       }
       // printf("mass trans 3D\n");
-      lpk_reo_3<T, D>(
+      lpk_reo_3<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
           handle.ldws_d, handle.processed_n[2], handle.processed_dims_h[2],
@@ -2068,7 +2068,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     handle.ldws_h[0]);
       // }
       // printf("solve tridiag 3D\n");
-      ipk_3<T, D>(
+      ipk_3<D, T>(
           handle, handle.shapes_h[l], handle.shapes_h[l + 1],
           handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
           handle.ldws_d, handle.processed_n[2], handle.processed_dims_h[2],
@@ -2111,7 +2111,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
           lddw2 *= handle.ldws_h[s];
         }
         // printf("mass trans %dD\n", i+1);
-        lpk_reo_3<T, D>(
+        lpk_reo_3<D, T>(
             handle, handle.shapes_h[l], handle.shapes_h[l + 1],
             handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
             handle.ldws_d, handle.processed_n[i], handle.processed_dims_h[i],
@@ -2136,7 +2136,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
         //                     handle.ldws_h[0]);
         // }
         // printf("solve tridiag %dD\n", i+1);
-        ipk_3<T, D>(
+        ipk_3<D, T>(
             handle, handle.shapes_h[l], handle.shapes_h[l + 1],
             handle.shapes_d[l], handle.shapes_d[l + 1], handle.ldws_d,
             handle.ldws_d, handle.processed_n[i], handle.processed_dims_h[i],
@@ -2158,7 +2158,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       // }
 
       // un-apply correction
-      lwpk<T, D, SUBTRACT>(handle, handle.shapes_h[l + 1],
+      lwpk<D, T, SUBTRACT>(handle, handle.shapes_h[l + 1],
                            handle.shapes_d[l + 1], dw_out, handle.ldws_d, dv,
                            ldvs_d, 0);
 
@@ -2170,7 +2170,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       //                     ldvs[0]);
       // }
 
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
                        ldvs_d, handle.db, handle.ldbs_d, 0);
 
       // printf("interpolate 1-3D rev\n");
@@ -2191,7 +2191,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       for (int s = curr_dim_c; s < curr_dim_r; s++) {
         lddw2 *= handle.ldws_h[s];
       }
-      gpk_rev<T, D, 3, true, false, 1>(
+      gpk_rev<D, 3, T, true, false, 1>(
           handle, handle.shapes_h[l], handle.shapes_d[l],
           handle.shapes_d[l + 1], handle.ldws_d, ldvs_d,
           unprocessed_dims.size(),
@@ -2236,7 +2236,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
           handle.dofs[curr_dim_f][l], 0,
           handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
 
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
                        handle.dw, handle.ldws_d, dv, ldvs_d, 0);
 
       // for (int i = 0; i < handle.dofs[3][l]; i++) {
@@ -2265,7 +2265,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       }
       if (D % 2 == 0) {
         unprocessed_dims.pop_back();
-        gpk_rev<T, D, 2, true, false, 2>(
+        gpk_rev<D, 2, T, true, false, 2>(
             handle, handle.shapes_h[l], handle.shapes_d[l],
             handle.shapes_d[l + 1], handle.ldws_d, ldvs_d,
             unprocessed_dims.size(),
@@ -2320,7 +2320,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       } else {
         unprocessed_dims.pop_back();
         unprocessed_dims.pop_back();
-        gpk_rev<T, D, 3, true, false, 2>(
+        gpk_rev<D, 3, T, true, false, 2>(
             handle, handle.shapes_h[l], handle.shapes_d[l],
             handle.shapes_d[l + 1], handle.ldws_d, ldvs_d,
             unprocessed_dims.size(),
@@ -2374,9 +2374,9 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
             handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
       }
 
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
                        handle.dw, handle.ldws_d, dv, ldvs_d, 0);
-      lwpk<T, D, COPY>(handle, shape, handle.dw, handle.ldws_h, dv, ldvs, 0);
+      lwpk<D, T, COPY>(handle, shape, handle.dw, handle.ldws_h, dv, ldvs, 0);
 
       // printf("after interpolate 4D rev\n");
       // for (int i = 0; i < handle.dofs[3][l]; i++) {
@@ -2405,7 +2405,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       for (int i = 3; i < D; i++)
         unprocessed_dims.push_back(i);
 
-      gpk_rev<T, D, 3, false, false, 1>(
+      gpk_rev<D, 3, T, false, false, 1>(
           handle, handle.shapes_h[l], handle.shapes_d[l],
           handle.shapes_d[l + 1], handle.ldws_d, handle.ldbs_d,
           unprocessed_dims.size(),
@@ -2457,7 +2457,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
           handle.dofs[curr_dim_f][l], 0,
           handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
 
-      lwpk<T, D, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
+      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
                        handle.dw, handle.ldws_d, handle.db, handle.ldbs_d, 0);
 
       // printf("reorder 1-3D rev\n");
@@ -2488,7 +2488,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
       }
       if (D % 2 == 0) {
         unprocessed_dims.pop_back();
-        gpk_rev<T, D, 2, false, true, 2>(
+        gpk_rev<D, 2, T, false, true, 2>(
             handle, handle.shapes_h[l], handle.shapes_d[l],
             handle.shapes_d[l + 1], ldvs_d, handle.ldbs_d,
             unprocessed_dims.size(),
@@ -2548,7 +2548,7 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
             handle.dofs[curr_dim_f][l], 0,
             handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
       } else {
-        gpk_rev<T, D, 3, false, true, 2>(
+        gpk_rev<D, 3, T, false, true, 2>(
             handle, handle.shapes_h[l], handle.shapes_d[l],
             handle.shapes_d[l + 1], ldvs_d, handle.ldbs_d,
             unprocessed_dims.size(),
@@ -2621,22 +2621,22 @@ void recompose_reo(Handle<T, D> &handle, T *dv, std::vector<int> ldvs,
   }
 }
 
-#define KERNELS(T, D)                                                          \
-  template void refactor_reo<T, D>(Handle<T, D> & handle, T * dv,              \
-                                   std::vector<int> ldvs, int l_target);       \
-  template void recompose_reo<T, D>(Handle<T, D> & handle, T * dv,             \
-                                    std::vector<int> ldvs, int l_target);
+#define KERNELS(D, T)                                                          \
+  template void decompose<D, T>(Handle<D, T> & handle, T * dv,                 \
+                                std::vector<int> ldvs, int l_target);          \
+  template void recompose<D, T>(Handle<D, T> & handle, T * dv,                 \
+                                std::vector<int> ldvs, int l_target);
 
-KERNELS(double, 1)
-KERNELS(float, 1)
-KERNELS(double, 2)
-KERNELS(float, 2)
-KERNELS(double, 3)
-KERNELS(float, 3)
-KERNELS(double, 4)
-KERNELS(float, 4)
-KERNELS(double, 5)
-KERNELS(float, 5)
+KERNELS(1, double)
+KERNELS(1, float)
+KERNELS(2, double)
+KERNELS(2, float)
+KERNELS(3, double)
+KERNELS(3, float)
+KERNELS(4, double)
+KERNELS(4, float)
+KERNELS(5, double)
+KERNELS(5, float)
 #undef KERNELS
 
 } // namespace mgard_cuda
