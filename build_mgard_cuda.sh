@@ -13,10 +13,13 @@ home_dir=$(pwd)
 #build NVCOMP
 nvcomp_src_dir=${home_dir}/external/nvcomp/src
 nvcomp_build_dir=${home_dir}/external/nvcomp/build
-rm -rf external && mkdir external 
-git clone https://github.com/NVIDIA/nvcomp.git ${nvcomp_src_dir}
-cmake -S ${nvcomp_src_dir} -B ${nvcomp_build_dir}
-cmake --build ${nvcomp_build_dir} -j8
+nvcomp_library=${home_dir}/external/nvcomp/build/lib/libnvcomp.so
+if [ ! -f "$nvcomp_library" ]; then
+	rm -rf external && mkdir external 
+	git clone https://github.com/NVIDIA/nvcomp.git ${nvcomp_src_dir}
+	cmake -S ${nvcomp_src_dir} -B ${nvcomp_build_dir}
+	cmake --build ${nvcomp_build_dir} -j8
+fi
 
 #build MGARD-CUDA
 mgard_cuda_src_dir=${home_dir}
