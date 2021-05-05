@@ -37,6 +37,8 @@ template <uint32_t D, typename T>
 Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
                                  enum error_bound_type type, T tol, T s) {
 
+  cudaSetDeviceHelper(handle.dev_id);
+
   for (int i = 0; i < D; i++) {
     if (handle.shapes_h[0][i] != in_array.getShape()[i]) {
       std::cout << log_err
@@ -333,6 +335,7 @@ template <uint32_t D, typename T>
 Array<D, T> decompress(Handle<D, T> &handle,
                        Array<1, unsigned char> &compressed_array) {
 
+  cudaSetDeviceHelper(handle.dev_id);
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
 

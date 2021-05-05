@@ -71,13 +71,19 @@ An object ```mgard_cuda::Handle``` needs to be created and initialized. This ini
 
 ## Performance optimization
 
-* **Optimize for specific GPU architectures:** MGARD-GPU is pre-tuned for Volta and Turing GPUs. To enable this optimization, one of the following additional CMake options needs to be enabled when configuring MGARD-GPU. ***Please note***: only one option can be turned on.
+* **Optimize for specific GPU architectures:** MGARD-GPU is pre-tuned for Volta and Turing GPUs. To enable this optimization, the following additional CMake options need to be enabled when configuring MGARD-GPU.
 	+ For ***Volta*** GPUs: ```-DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=ON```
 	+ For ***Turing*** GPUs: ```-DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=ON```
+* **Optimize for GPUs on edge systems:** MGARD-GPU capable of using FMA instructions that can help improve the compression/decompression performance on consumer-class GPUs (GeForce GPUs on edge systems), where they have relative low throughput on some arithmetic operations. To enable this optimization, enable the following option when configuring MGARD-GPU. 
+	+ ```-MGARD_ENABLE_CUDA_FMA=ON```
 * **Optimize for fast CPU-GPU data transfer:** It is recommanded to use pinned memory on CPU for loading data into ```mgard_cuda::Array``` such that it can enable fast CPU-GPU data transfer. 
 	+ To allocate pinned memory on CPU: ```mgard_cuda::cudaMallocHostHelper(void ** data_ptr, size_t size)```.
 	+ To free pinned memory on CPU: ```mgard_cuda::cudaFreeHostHelper(void * data_ptr)```
-	                                      
+* **Selecting the target GPU:** By default MGARD-GPU uses the first GPU (i.e., DEVICE_ID=0) in a multi-GPU system as the target GPU for compression/decompression. To configure MGARD-GPU to use a differet GPU. ```mgard_cuda::Config``` can be used to set the target GPU and pass its instance to ```mgard_cuda::Handle```. Then, all compression/decompression routines will use the target GPU that corresponds to the one set in ```mgard_cuda::Handle```.
+		
+		mgard_cuda::Config config;
+		config.dev_id = <GPU ID>;
+		mgard_cuda::Handle<3, double>(shape, config); 
 
 ## A simple example
 The following code shows how to compress/decompress a 3D dataset. 

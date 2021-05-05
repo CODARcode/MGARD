@@ -29,7 +29,9 @@ rm -rf ${mgard_cuda_build_dir} && mkdir -p ${mgard_cuda_build_dir}
 cmake -S ${mgard_cuda_src_dir} -B ${mgard_cuda_build_dir} \
 	  -DNVCOMP_ROOT=${nvcomp_build_dir}\
 	  -DMGARD_ENABLE_CUDA=ON\
+	  -DMGARD_ENABLE_CUDA_FMA=ON\
 	  -DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=ON\
+	  -DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=ON\
 	  -DCMAKE_INSTALL_PREFIX=${mgard_cuda_install_dir}
 cmake --build ${mgard_cuda_build_dir} -j8
 cmake --install ${mgard_cuda_build_dir}

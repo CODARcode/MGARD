@@ -10,12 +10,22 @@
 
 namespace mgard_cuda {
 
-struct mgard_cuda_config {
+struct Config {
+  int dev_id;
   int l_target;
   int huff_dict_size;
   int huff_block_size;
   bool enable_lz4;
   int lz4_block_size;
+
+  Config() {
+    dev_id = 0;
+    l_target = -1; // no limit
+    huff_dict_size = 8192;
+    huff_block_size = 1024 * 30;
+    enable_lz4 = true;
+    lz4_block_size = 1 << 15;
+  }
 };
 
 template <uint32_t D, typename T> struct Handle {
@@ -26,9 +36,8 @@ template <uint32_t D, typename T> struct Handle {
   /* for general users */
   Handle(std::vector<size_t> shape);
   Handle(std::vector<size_t> shape, std::vector<T *> coords);
-  Handle(std::vector<size_t> shape, mgard_cuda_config config);
-  Handle(std::vector<size_t> shape, std::vector<T *> coords,
-         mgard_cuda_config config);
+  Handle(std::vector<size_t> shape, Config config);
+  Handle(std::vector<size_t> shape, std::vector<T *> coords, Config config);
 
   ~Handle();
 
@@ -41,6 +50,7 @@ template <uint32_t D, typename T> struct Handle {
   /* CUDA env */
   void *queues;
   int num_of_queues;
+  int dev_id = 0;
 
   /* Refactoring env */
   int l_target;
@@ -98,12 +108,9 @@ private:
   void destroy_auto_tuning_table();
   bool auto_tuning_table_created = false;
 
-  void init(std::vector<size_t> shape, std::vector<T *> coords,
-            mgard_cuda_config config);
+  void init(std::vector<size_t> shape, std::vector<T *> coords, Config config);
   void destroy();
   bool initialized = false;
-
-  mgard_cuda_config default_config();
 };
 
 } // namespace mgard_cuda
