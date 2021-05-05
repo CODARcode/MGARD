@@ -9,9 +9,9 @@
 #define MGARD_CUDA_LOSSLESS
 
 #include "Common.h"
-#include "cascaded.hpp"
-#include "lz4.hpp"
 #include "nvcomp.hpp"
+#include "nvcomp/cascaded.hpp"
+#include "nvcomp/lz4.hpp"
 
 namespace mgard_cuda {
 
