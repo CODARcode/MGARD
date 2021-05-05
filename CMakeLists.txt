@@ -26,7 +26,7 @@ endmacro ()
 mgard_option(MGARD_ENABLE_CUDA "Enable Cuda support" OFF)
 
 #For performance optimization
-mgard_option(MGARD_ENABLE_CUDA_FMA "Enable Cuda support with fused multpily-add instruction" ON)
+mgard_option(MGARD_ENABLE_CUDA_FMA "Enable Cuda support with fused multpily-add instruction" OFF)
 mgard_option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" OFF)
 mgard_option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimized for Turing GPUs" OFF)
 
@@ -177,7 +177,6 @@ if(MGARD_ENABLE_CUDA)
 
   SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA")
   SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA")
-
   set (MGARD_CUDA_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)
 
@@ -198,14 +197,12 @@ if(MGARD_ENABLE_CUDA)
   if(MGARD_ENABLE_CUDA_OPTIMIZE_TURING)
     SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_OPTIMIZE_TURING")
     SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_OPTIMIZE_TURING")
-    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_75,code=sm_75")
-    set(CUDA_ARCH_STRING "75")
+    set(CUDA_ARCH_STRING "${CUDA_ARCH_STRING};70;72;75")
   endif()
   if(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA)
     SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_OPTIMIZE_VOLTA")
     SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_OPTIMIZE_VOLTA")
-    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_70,code=sm_70")
-    set(CUDA_ARCH_STRING "70")
+    set(CUDA_ARCH_STRING "${CUDA_ARCH_STRING};60;61;62")
   endif()
 endif()
 

@@ -18,7 +18,7 @@ namespace mgard_cuda {
 
 template <uint32_t D, typename T>
 void Handle<D, T>::init(std::vector<size_t> shape, std::vector<T *> coords,
-                        mgard_cuda_config config) {
+                        Config config) {
 
   // determine dof
   for (int i = 0; i < shape.size(); i++) {
@@ -285,15 +285,20 @@ Handle<D, T>::create_uniform_coords(std::vector<size_t> shape) {
 
 template <uint32_t D, typename T> void Handle<D, T>::init_auto_tuning_table() {
 
-  arch = 0; // default
-#ifdef MGARD_CUDA_OPTIMIZE_VOLTA
-  arch = 1;
-  // printf("Optimized: Volta\n");
-#endif
-#ifdef MGARD_CUDA_OPTIMIZE_TURING
-  arch = 2;
-  // printf("Optimized: Turing\n");
-#endif
+  cudaDeviceProp prop;
+  cudaGetDeviceProperties(&prop, dev_id);
+
+  arch = 1; // default optimized for Volta
+
+  if (prop.major == 6) {
+    arch = 1;
+    // printf("Optimized: Volta\n");
+  }
+
+  if (prop.major == 7) {
+    arch = 2;
+    // printf("Optimized: Turing\n");
+  }
   cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
   cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
 
@@ -713,21 +718,16 @@ template <uint32_t D, typename T> void Handle<D, T>::free_workspace() {
   }
 }
 
-template <uint32_t D, typename T>
-mgard_cuda_config Handle<D, T>::default_config() {
-  mgard_cuda_config config;
-  config.l_target = -1; // no limit
-  config.huff_dict_size = 8192;
-  config.huff_block_size = 1024 * 30;
-  config.enable_lz4 = true;
-  config.lz4_block_size = 1 << 15;
-  return config;
+template <uint32_t D, typename T> Handle<D, T>::Handle() {
+  cudaSetDeviceHelper(dev_id);
+  create_queues();
 }
-
-template <uint32_t D, typename T> Handle<D, T>::Handle() { create_queues(); }
 
 template <uint32_t D, typename T>
 Handle<D, T>::Handle(std::vector<size_t> shape) {
+  Config config;
+  dev_id = config.dev_id;
+  cudaSetDeviceHelper(dev_id);
   std::reverse(shape.begin(), shape.end());
   int ret = check_shape<D>(shape);
   if (ret == -1) {
@@ -746,11 +746,14 @@ Handle<D, T>::Handle(std::vector<size_t> shape) {
   padding_dimensions(shape, coords);
   create_queues();
   init_auto_tuning_table();
-  init(shape, coords, default_config());
+  init(shape, coords, config);
 }
 
 template <uint32_t D, typename T>
 Handle<D, T>::Handle(std::vector<size_t> shape, std::vector<T *> coords) {
+  Config config;
+  dev_id = config.dev_id;
+  cudaSetDeviceHelper(dev_id);
   std::reverse(shape.begin(), shape.end());
   std::reverse(coords.begin(), coords.end());
   int ret = check_shape<D>(shape);
@@ -769,11 +772,13 @@ Handle<D, T>::Handle(std::vector<size_t> shape, std::vector<T *> coords) {
   padding_dimensions(shape, coords);
   create_queues();
   init_auto_tuning_table();
-  init(shape, coords, default_config());
+  init(shape, coords, config);
 }
 
 template <uint32_t D, typename T>
-Handle<D, T>::Handle(std::vector<size_t> shape, mgard_cuda_config config) {
+Handle<D, T>::Handle(std::vector<size_t> shape, Config config) {
+  dev_id = config.dev_id;
+  cudaSetDeviceHelper(dev_id);
   std::reverse(shape.begin(), shape.end());
   std::vector<T *> coords = create_uniform_coords(shape);
   int ret = check_shape<D>(shape);
@@ -797,7 +802,9 @@ Handle<D, T>::Handle(std::vector<size_t> shape, mgard_cuda_config config) {
 
 template <uint32_t D, typename T>
 Handle<D, T>::Handle(std::vector<size_t> shape, std::vector<T *> coords,
-                     mgard_cuda_config config) {
+                     Config config) {
+  dev_id = config.dev_id;
+  cudaSetDeviceHelper(dev_id);
   std::reverse(shape.begin(), shape.end());
   std::reverse(coords.begin(), coords.end());
   int ret = check_shape<D>(shape);
@@ -820,16 +827,19 @@ Handle<D, T>::Handle(std::vector<size_t> shape, std::vector<T *> coords,
 }
 
 template <uint32_t D, typename T> void *Handle<D, T>::get(int i) {
+  cudaSetDeviceHelper(dev_id);
   cudaStream_t *ptr = (cudaStream_t *)(this->queues);
   return (void *)(ptr + i);
 }
 
 template <uint32_t D, typename T> void Handle<D, T>::sync(int i) {
+  cudaSetDeviceHelper(dev_id);
   cudaStream_t *ptr = (cudaStream_t *)(this->queues);
   gpuErrchk(cudaStreamSynchronize(ptr[i]));
 }
 
 template <uint32_t D, typename T> void Handle<D, T>::sync_all() {
+  cudaSetDeviceHelper(dev_id);
   cudaStream_t *ptr = (cudaStream_t *)(this->queues);
   for (int i = 0; i < this->num_of_queues; i++) {
     gpuErrchk(cudaStreamSynchronize(ptr[i]));
@@ -837,6 +847,7 @@ template <uint32_t D, typename T> void Handle<D, T>::sync_all() {
 }
 
 template <uint32_t D, typename T> Handle<D, T>::~Handle() {
+  cudaSetDeviceHelper(dev_id);
   destroy_queues();
   if (initialized)
     destroy();
