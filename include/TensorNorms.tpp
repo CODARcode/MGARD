@@ -58,7 +58,7 @@ orthogonal_component_square_norms(const TensorMeshHierarchy<N, Real> &hierarchy,
   // `hierarchy.L - 1`th level are located at the front of a shuffled array.
   Real *const projection =
       hierarchy.L ? static_cast<Real *>(std::malloc(
-                        hierarchy.ndof(hierarchy.L - 1) * sizeof(double)))
+                        hierarchy.ndof(hierarchy.L - 1) * sizeof(Real)))
                   : nullptr;
   // Shuffled arrays hold the coefficients associated to any of the levels in
   // the hierarchy in a contiguous block at the front. This function relies on
