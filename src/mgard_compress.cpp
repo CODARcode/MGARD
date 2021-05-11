@@ -217,7 +217,7 @@ void decompress_memory_huffman(unsigned char *data, int data_len,
   free(huffman_encoding_p);
 }
 
-void huffman_decoding(long int *quantized_data, const std::size_t n,
+void huffman_decoding(long int *quantized_data, const std::size_t,
                       unsigned char *out_data_hit, size_t out_data_hit_size,
                       unsigned char *out_data_miss, size_t out_data_miss_size,
                       unsigned char *out_tree, size_t out_tree_size) {

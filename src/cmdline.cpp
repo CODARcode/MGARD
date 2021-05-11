@@ -24,11 +24,11 @@ void BaseCmdLine::add(TCLAP::Arg &a) { return add(&a); }
 
 void BaseCmdLine::add(TCLAP::Arg *a) { a->addToList(_argList); }
 
-void BaseCmdLine::xorAdd(TCLAP::Arg &a, TCLAP::Arg &b) {
+void BaseCmdLine::xorAdd(TCLAP::Arg &, TCLAP::Arg &) {
   throw std::runtime_error("not implemented");
 }
 
-void BaseCmdLine::xorAdd(std::vector<TCLAP::Arg *> &xors) {
+void BaseCmdLine::xorAdd(std::vector<TCLAP::Arg *> &) {
   throw std::runtime_error("not implemented");
 }
 
@@ -114,8 +114,8 @@ std::vector<std::string>
 subcommandNames(const std::map<std::string, SubCmdLine *> &subcommands) {
   std::vector<std::string> names;
   names.reserve(subcommands.size());
-  for (const auto &[key, _] : subcommands) {
-    names.push_back(key);
+  for (const std::pair<const std::string, SubCmdLine *> pair : subcommands) {
+    names.push_back(pair.first);
   }
   return names;
 }
