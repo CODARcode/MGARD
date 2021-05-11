@@ -10,7 +10,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "subcommand_arguments.hpp"
+#include "arguments.hpp"
 
 namespace cli {
 

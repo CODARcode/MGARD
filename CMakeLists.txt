@@ -492,12 +492,16 @@ if (yaml-cpp_FOUND AND archive_FOUND AND TCLAP_FOUND)
 	add_executable(
 		mgard-executable
 		src/executable.cpp
-		src/subcommand_arguments.cpp
-		include/subcommand_arguments.hpp
+		src/arguments.cpp
+		include/arguments.hpp
 		src/metadata.cpp
 		include/metadata.hpp
+		src/cmdline.cpp
+		include/cmdline.hpp
+		src/output.cpp
+		include/output.hpp
 	)
-	target_include_directories(mgard-executable PRIVATE include/)
+	target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
 	target_link_libraries(mgard-executable PRIVATE mgard-library yaml-cpp::yaml-cpp archive::archive TCLAP::TCLAP)
 	set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
 else()
