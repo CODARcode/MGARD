@@ -60,9 +60,8 @@ void BaseOutput::failure(TCLAP::CmdLineInterface &c, TCLAP::ArgException &e) {
 
   std::stringstream stream;
   stream << "parse error: ";
-  const int secondLineOffset = stream.tellp();
-  // Could use `e.ArgId()` too.
-  stream << e.error();
+  secondLineOffset = stream.tellp();
+  stream << e.what();
   spacePrint(std::cerr, stream.str(), indentLevel, secondLineOffset);
 
   std::cerr << std::endl;

@@ -54,8 +54,6 @@ void BaseCmdLine::reset() { throw std::runtime_error("not implemented"); }
 
 SubCmdLine::SubCmdLine(const std::string &version, const std::string &message)
     : BaseCmdLine(version, message, new SubOutput()) {
-  add(_helpArg);
-
   setOutput(_output);
 }
 
@@ -73,10 +71,6 @@ void SubCmdLine::parse(std::vector<std::string> &args) {
     }
     _programName = args.front();
 
-    if (args.size() < 2) {
-      throw TCLAP::ExitException(0);
-    }
-
     int N = args.size();
     for (int i = 1; i < N; ++i) {
       bool matched = false;
@@ -88,7 +82,6 @@ void SubCmdLine::parse(std::vector<std::string> &args) {
         }
       }
       if (not matched) {
-        std::cerr << "Couldn't find match for argument" << std::endl;
         throw TCLAP::CmdLineParseException("Couldn't find match for argument",
                                            args[i]);
       }
@@ -97,7 +90,7 @@ void SubCmdLine::parse(std::vector<std::string> &args) {
       TCLAP::Arg &arg = *p;
       if (arg.isRequired() and not arg.isSet()) {
         throw TCLAP::CmdLineParseException("Required argument not provided",
-                                           arg.toString());
+                                           arg.getName());
       }
     }
   } catch (TCLAP::ArgException &e) {
@@ -112,6 +105,8 @@ void SubCmdLine::parse(std::vector<std::string> &args) {
 }
 
 bool SubCmdLine::hasHelpAndVersion() { return false; }
+
+void SubCmdLine::addHelpArgument() { add(_helpArg); }
 
 namespace {
 
@@ -195,3 +190,7 @@ void SuperCmdLine::parse(std::vector<std::string> &args) {
 }
 
 bool SuperCmdLine::hasHelpAndVersion() { return true; }
+
+SubCmdLine *SuperCmdLine::getSubcommand() {
+  return _subcommands[_subcommandArg.getValue()];
+}

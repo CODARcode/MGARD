@@ -38,6 +38,15 @@ public:
                        TCLAP::ArgException &e) override;
 
 protected:
+  //! Maximum width of wrapped output.
+  int maxWidth{75};
+
+  //! Number of spaces per indent level.
+  int indentSpaces{2};
+
+  //! Maximum additional indentation of output lines after the first.
+  int maxSecondLineOffset{24};
+
   //! Output a wrapped string to a stream.
   //!
   //!\param os Stream to which to output the wrapped string.
@@ -60,15 +69,6 @@ protected:
 private:
   //! Printing function object.
   SpacePrinter spacePrinter;
-
-  //! Maximum width of wrapped output.
-  int maxWidth{75};
-
-  //! Number of spaces per indent level.
-  int indentSpaces{2};
-
-  //! Maximum additional indentation of output lines after the first.
-  int maxSecondLineOffset{24};
 };
 
 //! Output class for subcommands.

@@ -96,6 +96,12 @@ public:
   void parse(std::vector<std::string> &args);
 
   virtual bool hasHelpAndVersion() override;
+
+  //! Add the help argument to the argument list.
+  //!
+  //! This member function allows us to put the help argument at the front of
+  //! the argument list.
+  void addHelpArgument();
 };
 
 //! Supercommand parser.
@@ -120,6 +126,11 @@ public:
   void parse(std::vector<std::string> &args);
 
   virtual bool hasHelpAndVersion() override;
+
+  //! Report the subcommand specified by the arguments.
+  //!
+  //! This should only be called after `parse`.
+  SubCmdLine *getSubcommand();
 
 private:
   //! Visitor for the '--version' switch.

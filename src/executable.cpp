@@ -9,13 +9,18 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#include <tclap/CmdLine.h>
 #include <yaml-cpp/yaml.h>
 
+#include <tclap/ValueArg.h>
+#include <tclap/ValuesConstraint.h>
+
+#include "MGARDConfig.h"
 #include "mgard_api.h"
 
+#include "arguments.hpp"
+#include "cmdline.hpp"
 #include "metadata.hpp"
-#include "subcommand_arguments.hpp"
+#include "output.hpp"
 
 const std::string METADATA_ENTRYNAME = "metadata.yaml";
 const std::string QUANTIZED_COEFFICIENTS_ENTRYNAME = "coefficients.dat";
@@ -192,87 +197,46 @@ int read_compress_write(const cli::CompressionArguments &arguments) {
   return 0;
 }
 
-int compress(const int argc, char const *const *const argv) {
-  try {
-    TCLAP::CmdLine cmd("The compressor subcommand of MGARD.");
-
-    std::vector<std::string> datatype_allowed = {"float", "double"};
-    TCLAP::ValuesConstraint<std::string> datatype_constraint(datatype_allowed);
-    TCLAP::ValueArg<std::string> datatype(
-        "", "datatype", "floating precision format of the data", true, "",
-        &datatype_constraint);
-    cmd.add(datatype);
-
-    TCLAP::ValueArg<cli::DataShape> shape(
-        "", "shape", "shape of the data", true, {},
-        "the shape of the data, given as an 'x'-delimited list of the "
-        "dimensions of the array");
-    cmd.add(shape);
-
-    // Reading these in as `double`s for now.
-    TCLAP::ValueArg<double> smoothness(
-        "", "smoothness", "smoothness parameter", true, 0,
-        "determines norm in which compression error is measured");
-    cmd.add(smoothness);
-
-    TCLAP::ValueArg<double> tolerance("", "tolerance",
-                                      "absolute error tolerance", true, 0,
-                                      "absolute error tolerance");
-    cmd.add(tolerance);
-
-    TCLAP::ValueArg<std::string> input(
-        "", "input", "input file", true, "",
-        "file containing the dataset to be compressed");
-    cmd.add(input);
-
-    TCLAP::ValueArg<std::string> output(
-        "", "output", "output file", true, "",
-        "file in which to store the compressed dataset");
-    cmd.add(output);
-
-    cmd.parse(argc, argv);
-
-    const cli::CompressionArguments arguments(datatype, shape, input,
-                                              smoothness, tolerance, output);
-    if (arguments.datatype == "float") {
-      switch (arguments.dimension) {
-      case 1:
-        return read_compress_write<1, float>(arguments);
-        break;
-      case 2:
-        return read_compress_write<2, float>(arguments);
-        break;
-      case 3:
-        return read_compress_write<3, float>(arguments);
-        break;
-      default:
-        std::cerr << "unsupported dimension " << arguments.dimension
-                  << std::endl;
-        return 1;
-      }
-    } else if (arguments.datatype == "double") {
-      switch (arguments.dimension) {
-      case 1:
-        return read_compress_write<1, double>(arguments);
-        break;
-      case 2:
-        return read_compress_write<2, double>(arguments);
-        break;
-      case 3:
-        return read_compress_write<3, double>(arguments);
-        break;
-      default:
-        std::cerr << "unsupported dimension " << arguments.dimension
-                  << std::endl;
-        return 1;
-      }
-    } else {
-      std::cerr << "unsupported datatype " << arguments.datatype << std::endl;
+int compress(TCLAP::ValueArg<std::string> &datatype,
+             TCLAP::ValueArg<cli::DataShape> &shape,
+             TCLAP::ValueArg<double> &smoothness,
+             TCLAP::ValueArg<double> &tolerance,
+             TCLAP::ValueArg<std::string> &input,
+             TCLAP::ValueArg<std::string> &output) {
+  const cli::CompressionArguments arguments(datatype, shape, input, smoothness,
+                                            tolerance, output);
+  if (arguments.datatype == "float") {
+    switch (arguments.dimension) {
+    case 1:
+      return read_compress_write<1, float>(arguments);
+      break;
+    case 2:
+      return read_compress_write<2, float>(arguments);
+      break;
+    case 3:
+      return read_compress_write<3, float>(arguments);
+      break;
+    default:
+      std::cerr << "unsupported dimension " << arguments.dimension << std::endl;
       return 1;
     }
-  } catch (TCLAP::ArgException &e) {
-    std::cerr << "error for argument " << e.argId() << ": " << e.error()
-              << std::endl;
+  } else if (arguments.datatype == "double") {
+    switch (arguments.dimension) {
+    case 1:
+      return read_compress_write<1, double>(arguments);
+      break;
+    case 2:
+      return read_compress_write<2, double>(arguments);
+      break;
+    case 3:
+      return read_compress_write<3, double>(arguments);
+      break;
+    default:
+      std::cerr << "unsupported dimension " << arguments.dimension << std::endl;
+      return 1;
+    }
+  } else {
+    std::cerr << "unsupported datatype " << arguments.datatype << std::endl;
     return 1;
   }
   return 0;
@@ -380,103 +344,120 @@ int decompress_write(
   return 0;
 }
 
-int decompress(const int argc, char const *const *const argv) {
-  try {
-    TCLAP::CmdLine cmd("The decompressor subcommand of MGARD.");
+int decompress(TCLAP::ValueArg<std::string> &input,
+               TCLAP::ValueArg<std::string> &output) {
+  const cli::DecompressionArguments arguments(input, output);
 
-    TCLAP::ValueArg<std::string> input(
-        "", "input", "input file", true, "",
-        "file containing the compressed dataset");
-    cmd.add(input);
+  std::unordered_map<std::string, std::vector<unsigned char>> entries =
+      read_archive(arguments);
 
-    TCLAP::ValueArg<std::string> output(
-        "", "output", "output file", true, "",
-        "file in which to store the decompressed dataset");
-    cmd.add(output);
+  const cli::Metadata metadata = read_metadata_from_entry(entries);
+  const std::string datatype = metadata.dataset_metadata.datatype;
+  const std::size_t dimension = metadata.mesh_metadata.shape.size();
 
-    cmd.parse(argc, argv);
-
-    const cli::DecompressionArguments arguments(input, output);
-
-    std::unordered_map<std::string, std::vector<unsigned char>> entries =
-        read_archive(arguments);
-
-    const cli::Metadata metadata = read_metadata_from_entry(entries);
-    const std::string datatype = metadata.dataset_metadata.datatype;
-    const std::size_t dimension = metadata.mesh_metadata.shape.size();
-
-    if (datatype == "float") {
-      switch (dimension) {
-      case 1:
-        return decompress_write<1, float>(arguments, metadata, entries);
-        break;
-      case 2:
-        return decompress_write<2, float>(arguments, metadata, entries);
-        break;
-      case 3:
-        return decompress_write<3, float>(arguments, metadata, entries);
-        break;
-      default:
-        std::cerr << "unsupported dimension " << dimension << std::endl;
-        return 1;
-      }
-    } else if (datatype == "double") {
-      switch (dimension) {
-      case 1:
-        return decompress_write<1, double>(arguments, metadata, entries);
-        break;
-      case 2:
-        return decompress_write<2, double>(arguments, metadata, entries);
-        break;
-      case 3:
-        return decompress_write<3, double>(arguments, metadata, entries);
-        break;
-      default:
-        std::cerr << "unsupported dimension " << dimension << std::endl;
-        return 1;
-      }
-    } else {
-      std::cerr << "unsupported datatype " << datatype << std::endl;
+  if (datatype == "float") {
+    switch (dimension) {
+    case 1:
+      return decompress_write<1, float>(arguments, metadata, entries);
+      break;
+    case 2:
+      return decompress_write<2, float>(arguments, metadata, entries);
+      break;
+    case 3:
+      return decompress_write<3, float>(arguments, metadata, entries);
+      break;
+    default:
+      std::cerr << "unsupported dimension " << dimension << std::endl;
       return 1;
     }
-  } catch (TCLAP::ArgException &e) {
-    std::cerr << "error for argument " << e.argId() << ": " << e.error()
-              << std::endl;
+  } else if (datatype == "double") {
+    switch (dimension) {
+    case 1:
+      return decompress_write<1, double>(arguments, metadata, entries);
+      break;
+    case 2:
+      return decompress_write<2, double>(arguments, metadata, entries);
+      break;
+    case 3:
+      return decompress_write<3, double>(arguments, metadata, entries);
+      break;
+    default:
+      std::cerr << "unsupported dimension " << dimension << std::endl;
+      return 1;
+    }
+  } else {
+    std::cerr << "unsupported datatype " << datatype << std::endl;
     return 1;
   }
   return 0;
 }
 
 int main(const int argc, char const *const *const argv) {
-  try {
-    TCLAP::CmdLine cmd("MGARD is a compressor for scientific data.");
+  SubCmdLine subcompress(MGARD_VERSION_STR, "Compress a dataset using MGARD.");
 
-    std::vector<std::string> subcommand_allowed = {"compress", "decompress"};
-    TCLAP::ValuesConstraint<std::string> subcommand_constraint(
-        subcommand_allowed);
-    TCLAP::UnlabeledValueArg<std::string> subcommand(
-        "subcommand", "whether to compress or decompress the input", true, "",
-        &subcommand_constraint);
-    cmd.add(subcommand);
+  TCLAP::ValueArg<std::string> subcompress_output(
+      "", "output", "file in which to store the compressed dataset", true, "",
+      "filename");
+  subcompress.add(subcompress_output);
 
-    TCLAP::UnlabeledMultiArg<std::string> subarguments(
-        "subarguments", "All remaining arguments are passed to the subcommand.",
-        false, "subcommand arguments");
-    cmd.add(subarguments);
+  TCLAP::ValueArg<std::string> subcompress_input(
+      "", "input", "file containing the dataset to be compressed", true, "",
+      "filename");
+  subcompress.add(subcompress_input);
 
-    cmd.parse(argc, argv);
+  TCLAP::ValueArg<double> tolerance("", "tolerance", "absolute error tolerance",
+                                    true, 0, "τ");
+  subcompress.add(tolerance);
 
-    const std::string parsed_subcommand = subcommand.getValue();
-    if (parsed_subcommand == "compress") {
-      return compress(argc - 1, argv + 1);
-    } else if (parsed_subcommand == "decompress") {
-      return decompress(argc - 1, argv + 1);
-    } else {
-      return 1;
-    }
-  } catch (TCLAP::ArgException &e) {
-    std::cerr << "error for argument " << e.argId() << ": " << e.error()
-              << std::endl;
+  // Reading these in as `double`s for now.
+  TCLAP::ValueArg<double> smoothness(
+      "", "smoothness",
+      "determines norm in which compression error is measured", true, 0, "s");
+  subcompress.add(smoothness);
+
+  TCLAP::ValueArg<cli::DataShape> shape(
+      "", "shape",
+      "the shape of the data, given as an 'x'-delimited list of dimensions",
+      true, {}, "list");
+  subcompress.add(shape);
+
+  std::vector<std::string> datatype_allowed = {"float", "double"};
+  TCLAP::ValuesConstraint<std::string> datatype_constraint(datatype_allowed);
+  TCLAP::ValueArg<std::string> datatype(
+      "", "datatype", "floating precision format of the data", true,
+      "floating point type", &datatype_constraint);
+  subcompress.add(datatype);
+
+  subcompress.addHelpArgument();
+
+  SubCmdLine subdecompress(MGARD_VERSION_STR,
+                           "Decompress a dataset compressed using MGARD.");
+
+  TCLAP::ValueArg<std::string> subdecompress_output(
+      "", "output", "file in which to store the decompressed dataset", true, "",
+      "filename");
+  subdecompress.add(subdecompress_output);
+
+  TCLAP::ValueArg<std::string> subdecompress_input(
+      "", "input", "file containing the compressed dataset", true, "",
+      "filename");
+  subdecompress.add(subdecompress_input);
+
+  subdecompress.addHelpArgument();
+
+  std::map<std::string, SubCmdLine *> subcommands = {
+      {"compress", &subcompress}, {"decompress", &subdecompress}};
+  SuperCmdLine cmd(MGARD_VERSION_STR,
+                   "MGARD is a compressor for scientific data.", subcommands);
+
+  cmd.parse(argc, argv);
+  SubCmdLine *const p = cmd.getSubcommand();
+  if (p == &subcompress) {
+    return compress(datatype, shape, smoothness, tolerance, subcompress_input,
+                    subcompress_output);
+  } else if (p == &subdecompress) {
+    return decompress(subdecompress_input, subdecompress_output);
+  } else {
     return 1;
   }
 
