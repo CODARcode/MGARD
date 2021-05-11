@@ -76,7 +76,7 @@ void BaseOutput::failure(TCLAP::CmdLineInterface &c, TCLAP::ArgException &e) {
 }
 
 // `git commit --version` doesn't work.
-void SubOutput::version(TCLAP::CmdLineInterface &c) {
+void SubOutput::version(TCLAP::CmdLineInterface &) {
   throw std::runtime_error("not implemented");
 }
 
