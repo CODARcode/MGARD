@@ -1,0 +1,63 @@
+.TH MGARD 1
+.SH NAME
+mgard \- MultiGrid Adaptive Reduction of Data
+.SH SYNOPSIS
+.nf
+\fBmgard compress \fB\-\-datatype\~\fIfloat\fR|\fIdouble \fB\-\-shape\~\fIlist \fB\-\-smoothness\~\fIs \fB\-\-tolerance\~\fIτ \fB\-\-input\~\fIfilename \fB\-\-output\~\fIfilename
+.br
+\fBmgard decompress \fB\-\-input\~\fIfilename \fB\-\-output\~\fIfilename
+.fi
+.SH DESCRIPTION
+\fBmgard\fR is an error-bounded lossy compressor for scientific data.
+It supports multidimensional arrays of floating-point numbers.
+The user indirectly controls the compression level by setting an absolute error tolerance.
+.SH OPTIONS
+.TP
+\fB\-\-datatype\~\fIfloat\fR|\fIdouble
+Type of the data to be compressed.
+Use \fIfloat\fR for single precision (C++ type \fBfloat\fR) and \fIdouble\fR for double precision (C++ type \fBdouble\fR).
+.TP
+\fB\-\-shape\~\fIlist
+Dimensions of the array, given as an 'x'-delimited list.
+.TP
+\fB\-\-smoothness\~\fIs
+Index of the norm in which to control the compression error.
+When \fIs\fR = \fB'inf'\fR, the supremum norm is used.
+When \fIs\fR = \fB0\fR, the L² norm is used.
+Increasing \fIs\fR from \fB0\fR places an increasing emphasis on the high-frequency components of the data.
+Conversely, decreasing \fIs\fR from \fB0\fR places an increasing emphasis on the low-frequency components of the data.
+.TP
+\fB\-\-tolerance\~\fIτ
+Absolute error tolerance in the norm specified by the \fB--smoothness\fR argument.
+.TP
+\fB\-\-input\~\fIfilename
+File from which to read the input data.
+The \fBcompress\fR command will read a floating-point array (the original data) from \fIfilename\fR.
+The \fBdecompress\fR command will read a compressed blob (the output of an earlier \fBmgard compress\fR call) from \fIfilename\fR.
+.TP
+\fB\-\-output\~\fIfilename
+File to which to write the output data.
+The \fBcompress\fR command will write a compressed blob to \fIfilename\fR.
+The \fBdecompress\fR command will write a floating-point array (the decompressed data) to \fIfilename\fR.
+.SH EXAMPLE
+This example assumes that the size of a \fBfloat\fR is 4 bytes.
+.PP
+.RS
+.nf
+\fR$ \fBdd bs=4 count=20000 if=/dev/zero of=data.dat
+\fR$ \fBmgard compress --datatype float --shape 100x200 --smoothness 0 --tolerance 0.1 --input data.dat --output data.mgard\fR
+\fR$ \fBmgard decompress --input data.mgard --output decompressed.dat
+\fR$ \fBdu --bytes data.dat data.mgard decompressed.dat
+\fR80000   data.dat
+5632    data.mgard
+80000   decompressed.dat
+.fi
+.RE
+
+.SH SEE ALSO
+More information can be found at \fBmgard\fR's website:
+.RS
+.nf
+https://github.com/CODARcode/MGARD
+.fi
+.RE

@@ -411,20 +411,20 @@ int main(const int argc, char const *const *const argv) {
 
   // Reading these in as `double`s for now.
   TCLAP::ValueArg<double> smoothness(
-      "", "smoothness",
-      "determines norm in which compression error is measured", true, 0, "s");
+      "", "smoothness", "index of norm in which compression error is measured",
+      true, 0, "s");
   subcompress.add(smoothness);
 
   TCLAP::ValueArg<cli::DataShape> shape(
       "", "shape",
-      "the shape of the data, given as an 'x'-delimited list of dimensions",
-      true, {}, "list");
+      "shape of the data, given as an 'x'-delimited list of dimensions", true,
+      {}, "list");
   subcompress.add(shape);
 
   std::vector<std::string> datatype_allowed = {"float", "double"};
   TCLAP::ValuesConstraint<std::string> datatype_constraint(datatype_allowed);
   TCLAP::ValueArg<std::string> datatype(
-      "", "datatype", "floating precision format of the data", true,
+      "", "datatype", "floating-point format of the data", true,
       "floating point type", &datatype_constraint);
   subcompress.add(datatype);
 
