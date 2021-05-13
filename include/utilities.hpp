@@ -5,6 +5,7 @@
 
 #include <cstddef>
 
+#include <array>
 #include <iterator>
 #include <utility>
 

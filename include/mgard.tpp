@@ -28,7 +28,6 @@
 #include "TensorProlongation.hpp"
 #include "TensorRestriction.hpp"
 #include "blas.hpp"
-#include "shuffle.hpp"
 
 namespace mgard {
 
