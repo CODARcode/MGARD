@@ -123,7 +123,9 @@ CompressionMetadata::CompressionMetadata(const YAML::Node &node) {
       throw std::invalid_argument(key + " multiply specified");
     }
     if (key == "s") {
-      s = value.second.as<double>();
+      s = value.second.as<std::string>() == "inf"
+              ? std::numeric_limits<double>::infinity()
+              : value.second.as<double>();
     } else if (key == "tolerance") {
       tolerance = value.second.as<double>();
     } else {

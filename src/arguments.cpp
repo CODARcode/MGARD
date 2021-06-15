@@ -18,7 +18,8 @@ DataShape &DataShape::operator=(const std::string &value) {
 
 CompressionArguments::CompressionArguments(
     TCLAP::ValueArg<std::string> &datatype, TCLAP::ValueArg<DataShape> &shape,
-    TCLAP::ValueArg<std::string> &input, TCLAP::ValueArg<double> &smoothness,
+    TCLAP::ValueArg<std::string> &input,
+    TCLAP::ValueArg<cli::SmoothnessParameter<double>> &smoothness,
     TCLAP::ValueArg<double> &tolerance, TCLAP::ValueArg<std::string> &output)
     : datatype(datatype.getValue()), shape(shape.getValue().shape),
       dimension(this->shape.size()), coordinate_filenames(dimension),
