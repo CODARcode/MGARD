@@ -199,7 +199,7 @@ int read_compress_write(const cli::CompressionArguments &arguments) {
 
 int compress(TCLAP::ValueArg<std::string> &datatype,
              TCLAP::ValueArg<cli::DataShape> &shape,
-             TCLAP::ValueArg<double> &smoothness,
+             TCLAP::ValueArg<cli::SmoothnessParameter<double>> &smoothness,
              TCLAP::ValueArg<double> &tolerance,
              TCLAP::ValueArg<std::string> &input,
              TCLAP::ValueArg<std::string> &output) {
@@ -410,7 +410,7 @@ int main(const int argc, char const *const *const argv) {
   subcompress.add(tolerance);
 
   // Reading these in as `double`s for now.
-  TCLAP::ValueArg<double> smoothness(
+  TCLAP::ValueArg<cli::SmoothnessParameter<double>> smoothness(
       "", "smoothness", "index of norm in which compression error is measured",
       true, 0, "s");
   subcompress.add(smoothness);

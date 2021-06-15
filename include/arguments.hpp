@@ -21,12 +21,46 @@ struct DataShape {
   std::vector<std::size_t> shape;
 };
 
+template <typename Real> class SmoothnessParameter {
+public:
+  //! Constructor.
+  //!
+  //!\param s Smoothness parameter.
+  SmoothnessParameter(const Real s);
+
+  //! Conversion operator.
+  operator Real() const;
+
+public:
+  //! Value.
+  Real s;
+};
+
+template <typename Real>
+std::istringstream &operator>>(std::istringstream &stream,
+                               SmoothnessParameter<Real> &s) {
+  if (stream.str() == "inf") {
+    s = std::numeric_limits<Real>::infinity();
+    std::string tmp;
+    stream >> tmp;
+  } else {
+    Real tmp;
+    stream >> tmp;
+    s = tmp;
+  }
+  return stream;
+}
+
 } // namespace cli
 
 namespace TCLAP {
 
 template <> struct ArgTraits<cli::DataShape> {
   typedef StringLike ValueCategory;
+};
+
+template <> struct ArgTraits<cli::SmoothnessParameter<double>> {
+  typedef ValueLike ValueCategory;
 };
 
 } // namespace TCLAP
@@ -44,12 +78,11 @@ struct CompressionArguments {
   //!\param smoothness Smoothness parameter to use in compression.
   //!\param tolerance Error tolerance to use in compression.
   //!\param output Filename of the output archive.
-  CompressionArguments(TCLAP::ValueArg<std::string> &datatype,
-                       TCLAP::ValueArg<DataShape> &shape,
-                       TCLAP::ValueArg<std::string> &input,
-                       TCLAP::ValueArg<double> &smoothness,
-                       TCLAP::ValueArg<double> &tolerance,
-                       TCLAP::ValueArg<std::string> &output);
+  CompressionArguments(
+      TCLAP::ValueArg<std::string> &datatype, TCLAP::ValueArg<DataShape> &shape,
+      TCLAP::ValueArg<std::string> &input,
+      TCLAP::ValueArg<cli::SmoothnessParameter<double>> &smoothness,
+      TCLAP::ValueArg<double> &tolerance, TCLAP::ValueArg<std::string> &output);
 
   //! Type of the dataset.
   std::string datatype;
@@ -94,4 +127,5 @@ struct DecompressionArguments {
 
 } // namespace cli
 
+#include "arguments.tpp"
 #endif
