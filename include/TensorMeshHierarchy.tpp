@@ -316,8 +316,9 @@ template <std::size_t N, typename Real>
 std::size_t TensorMeshHierarchy<N, Real>::ndof(const std::size_t l) const {
   check_mesh_index_bounds(l);
   const std::array<std::size_t, N> &shape = shapes.at(l);
-  return std::accumulate(shape.begin(), shape.end(), 1,
-                         std::multiplies<Real>());
+  return std::accumulate(shape.begin(), shape.end(),
+                         static_cast<std::size_t>(1),
+                         std::multiplies<std::size_t>());
 }
 
 template <std::size_t N, typename Real>
