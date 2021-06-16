@@ -112,22 +112,19 @@ protected:
   void check_mesh_index_nonzero(const std::size_t l) const;
 
 private:
+  //! Compute the index of a node in the 'unshuffled' ordering.
+  //!
+  //!\param multiindex Multiindex of the node.
+  std::size_t
+  unshuffled_index(const std::array<std::size_t, N> multiindex) const;
+
   //! Compute the index of a node in the 'shuffled' ordering.
   //!
   //!\param multiindex Multiindex of the node.
   std::size_t index(const std::array<std::size_t, N> multiindex) const;
 
-  //! Count the nodes in a given mesh level preceding a given node.
-  //!
-  //! If the node is contained in the mesh level, the count is equal to the
-  //! position of the node in the 'physical' ordering of the nodes (`{0, 0, 0}`,
-  //! `{0, 0, 1}`, and so on).
-  //!
-  //!\param l Index of the mesh level whose nodes are to be counted.
-  //!\param multiindex Multiindex of the node.
-  std::size_t
-  number_nodes_before(const std::size_t l,
-                      const std::array<std::size_t, N> multiindex) const;
+  //! Indices of the nodes in the 'shuffled' ordering.
+  std::vector<std::size_t> _shuffled_indices;
 
   //! Implement `on_nodes`.
   template <typename T>
