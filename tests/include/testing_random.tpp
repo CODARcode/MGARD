@@ -115,8 +115,10 @@ Real SobolevFunction<Real, N>::
 operator()(const std::array<Real, N> &coordinates) const {
   Real value = 0;
   for (const auto [frequency, coefficient] : modes) {
-    value += coefficient *
-             std::sin(blas::dotu(N, frequency.data(), coordinates.data()));
+    value +=
+        coefficient *
+        // Using cosine instead of sine so that the DC component isn't lost.
+        std::cos(blas::dotu(N, frequency.data(), coordinates.data()));
   }
   return value;
 }

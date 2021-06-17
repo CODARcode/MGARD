@@ -278,8 +278,16 @@ void test_decompression_on_flat_mesh(
       compressed.size());
   const mgard::DecompressedDataset<M, Real> obtained =
       mgard::decompress(flat_compressed);
-  tracker +=
-      std::memcmp(expected.data(), obtained.data(), ndof * sizeof(Real)) == 0;
+  // Originally we compared `expected.data()` and `obtained.data()` bitwise.
+  // When using `-ffast-math` after precomputing the shuffled indices, though,
+  // we were getting some small discrepancies.
+  Real const *const p = expected.data();
+  Real const *const q = obtained.data();
+  for (std::size_t i = 0; i < ndof; ++i) {
+    const Real expected_ = p[i];
+    const Real obtained_ = q[i];
+    tracker += std::abs((expected_ - obtained_) / expected_) < 1e-6;
+  }
 }
 
 } // namespace
