@@ -770,9 +770,11 @@ TEST_CASE("recomposition", "[mgard]") {
           make_flat_hierarchy<3, 4, float>(hierarchy, {1, 5, 5, 12});
       std::copy(u, u + ndof, obtained);
       mgard::recompose(flat_hierarchy, obtained);
+      // Getting slightly higher errors here when precomputing shuffled indices
+      // and compiling with `-ffast-math`.
       TrialTracker tracker;
       for (std::size_t i = 0; i < ndof; ++i) {
-        tracker += obtained[i] == Catch::Approx(expected[i]).margin(1e-8);
+        tracker += obtained[i] == Catch::Approx(expected[i]).margin(1e-7);
       }
       REQUIRE(tracker);
     }
@@ -782,9 +784,11 @@ TEST_CASE("recomposition", "[mgard]") {
           make_flat_hierarchy<3, 7, float>(hierarchy, {1, 5, 1, 5, 1, 12, 1});
       std::copy(u, u + ndof, obtained);
       mgard::recompose(flat_hierarchy, obtained);
+      // Getting slightly higher errors here when precomputing shuffled indices
+      // and compiling with `-ffast-math`.
       TrialTracker tracker;
       for (std::size_t i = 0; i < ndof; ++i) {
-        tracker += obtained[i] == Catch::Approx(expected[i]).margin(1e-8);
+        tracker += obtained[i] == Catch::Approx(expected[i]).margin(1e-7);
       }
       REQUIRE(tracker);
     }

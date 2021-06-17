@@ -476,12 +476,17 @@ TEST_CASE("mass matrices and inverses on 'flat' meshes", "[TensorMassMatrix]") {
     REQUIRE(obtained_ == expected_);
   }
 
+  // Getting some small discrepancies here when using `-ffast-math`.
   {
     const mgard::TensorMeshHierarchy<7, float> hierarchy({1, 1, 3, 1, 3, 4, 1});
     const mgard::TensorMassMatrix<7, float> M(hierarchy, l);
     std::copy(u, u + ndof, obtained);
     M(obtained);
 
-    REQUIRE(obtained_ == expected_);
+    TrialTracker tracker;
+    for (std::size_t i = 0; i < ndof; ++i) {
+      tracker += std::abs((obtained[i] - expected[i]) / expected[i]) < 1e-6;
+    }
+    REQUIRE(tracker);
   }
 }
