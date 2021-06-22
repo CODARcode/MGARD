@@ -51,6 +51,7 @@ static void BM_TensorLinearOperator(benchmark::State &state) {
   std::free(u);
 
   state.SetComplexityN(ndof);
+  state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
 }
 
 #define TLO_BENCHMARK_OPTIONS                                                  \
@@ -94,6 +95,7 @@ static void BM_structured_shuffle(benchmark::State &state) {
   std::free(u);
 
   state.SetComplexityN(ndof);
+  state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
 }
 
 template <std::size_t N, typename Real>
@@ -111,6 +113,7 @@ static void BM_structured_unshuffle(benchmark::State &state) {
   std::free(u);
 
   state.SetComplexityN(ndof);
+  state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
 }
 
 #define SHUFFLE_UNSHUFFLE_BENCHMARK_OPTIONS                                    \
@@ -142,6 +145,7 @@ static void BM_structured_decompose(benchmark::State &state) {
   std::free(u);
 
   state.SetComplexityN(ndof);
+  state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
 }
 
 template <std::size_t N, typename Real>
@@ -157,6 +161,7 @@ static void BM_structured_recompose(benchmark::State &state) {
   std::free(u);
 
   state.SetComplexityN(ndof);
+  state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
 }
 
 #define DECOMPOSE_RECOMPOSE_BENCHMARK_OPTIONS                                  \
@@ -189,11 +194,14 @@ static void BM_structured_quantize(benchmark::State &state) {
   using It = typename Quantizer::iterator;
   const Quantizer quantizer(hierarchy, s, tolerance);
   const mgard::RangeSlice<It> quantized = quantizer(u);
-  benchmark::DoNotOptimize(
-      std::accumulate(quantized.begin(), quantized.end(), static_cast<Int>(0)));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(std::accumulate(quantized.begin(), quantized.end(),
+                                             static_cast<Int>(0)));
+  }
   std::free(u);
 
   state.SetComplexityN(ndof);
+  state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
 }
 
 template <std::size_t N, typename Int, typename Real>
@@ -211,11 +219,14 @@ static void BM_structured_dequantize(benchmark::State &state) {
   using It = typename Dequantizer::template iterator<Int *>;
   const Dequantizer dequantizer(hierarchy, s, tolerance);
   const mgard::RangeSlice<It> dequantized = dequantizer(n, n + ndof);
-  benchmark::DoNotOptimize(std::accumulate(
-      dequantized.begin(), dequantized.end(), static_cast<Real>(0)));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(std::accumulate(
+        dequantized.begin(), dequantized.end(), static_cast<Real>(0)));
+  }
   std::free(n);
 
   state.SetComplexityN(ndof);
+  state.SetBytesProcessed(state.iterations() * ndof * sizeof(Int));
 }
 
 #define QUANTIZE_DEQUANTIZE_BENCHMARK_OPTIONS                                  \
@@ -251,6 +262,7 @@ static void BM_structured_compress(benchmark::State &state) {
   std::free(u);
 
   state.SetComplexityN(ndof);
+  state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
 }
 
 template <std::size_t N, typename Real>
@@ -273,6 +285,7 @@ static void BM_structured_decompress(benchmark::State &state) {
   std::free(u);
 
   state.SetComplexityN(ndof);
+  state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
 }
 
 #define COMPRESS_DECOMPRESS_BENCHMARK_OPTIONS                                  \
