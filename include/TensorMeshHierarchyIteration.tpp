@@ -131,12 +131,29 @@ make_ranges(const TensorMeshHierarchy<N, Real> &hierarchy,
   return ranges;
 }
 
+template <std::size_t N, typename Real>
+std::vector<
+    std::array<typename UnshuffledTensorNodeRange<N, Real>::iterator, 2>>
+make_range_endpoints(
+    const std::vector<UnshuffledTensorNodeRange<N, Real>> &ranges,
+    const std::size_t l) {
+  std::vector<
+      std::array<typename UnshuffledTensorNodeRange<N, Real>::iterator, 2>>
+      range_endpoints;
+  range_endpoints.reserve(l + 1);
+  for (const UnshuffledTensorNodeRange<N, Real> &range : ranges) {
+    range_endpoints.push_back({range.begin(), range.end()});
+  }
+  return range_endpoints;
+}
+
 } // namespace
 
 template <std::size_t N, typename Real>
 ShuffledTensorNodeRange<N, Real>::ShuffledTensorNodeRange(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l)
-    : hierarchy(hierarchy), ranges(make_ranges(hierarchy, l)), l(l) {}
+    : hierarchy(hierarchy), ranges(make_ranges(hierarchy, l)), l(l),
+      range_endpoints(make_range_endpoints(ranges, l)) {}
 
 template <std::size_t N, typename Real>
 bool ShuffledTensorNodeRange<N, Real>::
@@ -153,13 +170,13 @@ operator!=(const ShuffledTensorNodeRange<N, Real> &other) const {
 template <std::size_t N, typename Real>
 typename ShuffledTensorNodeRange<N, Real>::iterator
 ShuffledTensorNodeRange<N, Real>::begin() const {
-  return iterator(*this, 0, ranges.front().begin());
+  return iterator(*this, 0, range_endpoints.front().front(), 0);
 }
 
 template <std::size_t N, typename Real>
 typename ShuffledTensorNodeRange<N, Real>::iterator
 ShuffledTensorNodeRange<N, Real>::end() const {
-  return iterator(*this, hierarchy.L, ranges.back().end());
+  return iterator(*this, l, range_endpoints.back().back(), hierarchy.ndof(l));
 }
 
 template <std::size_t N, typename Real>
@@ -185,14 +202,14 @@ template <std::size_t N, typename Real>
 typename ShuffledTensorNodeRange<N, Real>::iterator &
 ShuffledTensorNodeRange<N, Real>::iterator::operator++() {
   while (true) {
-    // Will likely want to save the end iterator and to make `iterable.l`
-    // public. Keeping it simple for now.
-    if (++inner == iterable.ranges.at(ell).end()) {
+    if (++inner == iterable.range_endpoints.at(ell).back()) {
+      // Will likely want to make `iterable.l` public. Keeping it simple for
+      // now.
       if (ell + 1 == iterable.ranges.size()) {
         break;
       }
       ++ell;
-      inner = iterable.ranges.at(ell).begin();
+      inner = iterable.range_endpoints.at(ell).front();
       // `inner` now dereferences to a node in the coarsest mesh, but it feels
       // like skipping the next check would be asking for trouble.
     }
