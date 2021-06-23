@@ -198,25 +198,26 @@ public:
   //! Return an iterator to the end of the nodes.
   iterator end() const;
 
-  //! Equality comparison.
-  bool operator==(const UnshuffledTensorNodeRange &other) const;
-
-  //! Inequality comparison.
-  bool operator!=(const UnshuffledTensorNodeRange &other) const;
-
   //! Associated mesh hierarchy.
   const TensorMeshHierarchy<N, Real> &hierarchy;
 
-private:
   //! Index of the level being iterated over.
-  //!
-  //! This is only stored so we can avoid comparing `multiindices` in the
-  //! (in)equality comparison operators.
   const std::size_t l;
 
+private:
   //! Multiindices of the nodes on the level being iterated over.
   const CartesianProduct<TensorIndexRange, N> multiindices;
 };
+
+//! Equality comparison.
+template <std::size_t N, typename Real>
+bool operator==(const UnshuffledTensorNodeRange<N, Real> &a,
+                UnshuffledTensorNodeRange<N, Real> &b);
+
+//! Inequality comparison.
+template <std::size_t N, typename Real>
+bool operator!=(const UnshuffledTensorNodeRange<N, Real> &a,
+                UnshuffledTensorNodeRange<N, Real> &b);
 
 //! Iterator over the nodes of a mesh in a mesh hierarchy.
 template <std::size_t N, typename Real>
@@ -288,27 +289,31 @@ public:
   //! Return an iterator to the end of the nodes.
   iterator end() const;
 
-  //! Equality comparison.
-  bool operator==(const ShuffledTensorNodeRange &other) const;
-
-  //! Inequality comparison.
-  bool operator!=(const ShuffledTensorNodeRange &other) const;
-
   //! Associated mesh hierarchy.
   const TensorMeshHierarchy<N, Real> &hierarchy;
 
   //! Node ranges from the coarsest level up to the level being iterated over.
   const std::vector<UnshuffledTensorNodeRange<N, Real>> ranges;
 
-private:
   //! Index of the level being iterated over.
   const std::size_t l;
 
+private:
   //! Endpoints of the node ranges.
   const std::vector<
       std::array<typename UnshuffledTensorNodeRange<N, Real>::iterator, 2>>
       range_endpoints;
 };
+
+//! Equality comparison.
+template <std::size_t N, typename Real>
+bool operator==(const ShuffledTensorNodeRange<N, Real> &a,
+                ShuffledTensorNodeRange<N, Real> &b);
+
+//! Inequality comparison.
+template <std::size_t N, typename Real>
+bool operator!=(const ShuffledTensorNodeRange<N, Real> &a,
+                ShuffledTensorNodeRange<N, Real> &b);
 
 //! Iterator over the nodes of a mesh in a mesh hierarchy.
 template <std::size_t N, typename Real>
