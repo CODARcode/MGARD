@@ -302,10 +302,12 @@ public:
 
 private:
   //! Index of the level being iterated over.
-  //!
-  //! This is only stored so we can avoid comparing `ranges` in the
-  //! (in)equality comparison operators.
   const std::size_t l;
+
+  //! Endpoints of the node ranges.
+  const std::vector<
+      std::array<typename UnshuffledTensorNodeRange<N, Real>::iterator, 2>>
+      range_endpoints;
 };
 
 //! Iterator over the nodes of a mesh in a mesh hierarchy.
