@@ -238,9 +238,11 @@ public:
   //!
   //!\param iterable View of nodes to be iterated over.
   //!\param inner Underlying multiindex iterator.
+  //!\param index Position in the unshuffled range.
   iterator(
       const UnshuffledTensorNodeRange &iterable,
-      const typename CartesianProduct<TensorIndexRange, N>::iterator &inner);
+      const typename CartesianProduct<TensorIndexRange, N>::iterator &inner,
+      const std::size_t index);
 
   //! Equality comparison.
   bool operator==(const iterator &other) const;
@@ -265,6 +267,12 @@ public:
 private:
   //! Underlying multiindex iterator.
   typename CartesianProduct<TensorIndexRange, N>::iterator inner;
+
+  //! Position in the `UnshuffledTensorNodeRange`.
+  //!
+  //! This is only stored so we can avoid comparing `inner` in the
+  //! (in)equality comparison operators.
+  std::size_t index;
 };
 
 //! Nodes of a particular level in a mesh hierarchy.
@@ -335,8 +343,10 @@ public:
   //!\param iterable View of nodes to be iterated over.
   //!\param ell Index of mesh currently being iterated over.
   //!\param inner Underlying range iterator.
+  //!\param index Position in the shuffled range.
   iterator(const ShuffledTensorNodeRange &iterable, const std::size_t ell,
-           const typename UnshuffledTensorNodeRange<N, Real>::iterator &inner);
+           const typename UnshuffledTensorNodeRange<N, Real>::iterator &inner,
+           const std::size_t index);
 
   //! Equality comparison.
   bool operator==(const iterator &other) const;
@@ -362,6 +372,12 @@ private:
 
   //! Underlying range iterator.
   typename UnshuffledTensorNodeRange<N, Real>::iterator inner;
+
+  //! Position in the `ShuffledTensorNodeRange`.
+  //!
+  //! This is only stored so we can avoid comparing `inner` in the
+  //! (in)equality comparison operators.
+  std::size_t index;
 };
 
 } // namespace mgard
