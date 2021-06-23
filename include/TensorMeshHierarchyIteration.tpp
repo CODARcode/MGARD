@@ -55,15 +55,15 @@ UnshuffledTensorNodeRange<N, Real>::UnshuffledTensorNodeRange(
     : hierarchy(hierarchy), l(l), multiindices(make_factors(hierarchy, l)) {}
 
 template <std::size_t N, typename Real>
-bool UnshuffledTensorNodeRange<N, Real>::
-operator==(const UnshuffledTensorNodeRange<N, Real> &other) const {
-  return hierarchy == other.hierarchy && l == other.l;
+bool operator==(const UnshuffledTensorNodeRange<N, Real> &a,
+                const UnshuffledTensorNodeRange<N, Real> &b) {
+  return a.l == b.l && a.hierarchy == b.hierarchy;
 }
 
 template <std::size_t N, typename Real>
-bool UnshuffledTensorNodeRange<N, Real>::
-operator!=(const UnshuffledTensorNodeRange<N, Real> &other) const {
-  return !operator==(other);
+bool operator!=(const UnshuffledTensorNodeRange<N, Real> &a,
+                const UnshuffledTensorNodeRange<N, Real> &b) {
+  return !operator==(a, b);
 }
 
 template <std::size_t N, typename Real>
@@ -156,15 +156,15 @@ ShuffledTensorNodeRange<N, Real>::ShuffledTensorNodeRange(
       range_endpoints(make_range_endpoints(ranges, l)) {}
 
 template <std::size_t N, typename Real>
-bool ShuffledTensorNodeRange<N, Real>::
-operator==(const ShuffledTensorNodeRange<N, Real> &other) const {
-  return hierarchy == other.hierarchy && l == other.l;
+bool operator==(const ShuffledTensorNodeRange<N, Real> &a,
+                const ShuffledTensorNodeRange<N, Real> &b) {
+  return a.l == b.l && a.hierarchy == b.hierarchy;
 }
 
 template <std::size_t N, typename Real>
-bool ShuffledTensorNodeRange<N, Real>::
-operator!=(const ShuffledTensorNodeRange<N, Real> &other) const {
-  return !operator==(other);
+bool operator!=(const ShuffledTensorNodeRange<N, Real> &a,
+                const ShuffledTensorNodeRange<N, Real> &b) {
+  return !operator==(a, b);
 }
 
 template <std::size_t N, typename Real>
