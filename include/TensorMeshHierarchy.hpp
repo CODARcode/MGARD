@@ -126,6 +126,9 @@ private:
   //! Indices of the nodes in the 'shuffled' ordering.
   std::vector<std::size_t> _shuffled_indices;
 
+  //! Indices (in each dimension) of the nodes in each mesh level.
+  std::array<std::vector<std::vector<std::size_t>>, N> _indices;
+
   //! Implement `on_nodes`.
   template <typename T>
   PseudoArray<T> on_nodes(T *const v, const std::size_t l) const;

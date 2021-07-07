@@ -270,12 +270,26 @@ public:
   //! Return an iterator to the end of the slice.
   It end() const;
 
+  //! Compute the size of the range.
+  std::size_t size() const;
+
   //! Beginning of the slice.
-  const It begin_;
+  It begin_;
 
   //! End of the slice.
-  const It end_;
+  It end_;
+
+  //! Iterator over the range.
+  using iterator = It;
 };
+
+//! Equality comparison.
+template <typename It>
+bool operator==(const RangeSlice<It> &a, const RangeSlice<It> &b);
+
+//! Inequality comparison.
+template <typename It>
+bool operator!=(const RangeSlice<It> &a, const RangeSlice<It> &b);
 
 //! Mimic Python's `itertools.product`. Allow iteration over the Cartesian
 //! product of a collection of ranges.
@@ -287,7 +301,7 @@ public:
 // We could template on the iterator rather than the container. `factors` could
 // then be something like an array of iterator pairs (one iterator to the
 // beginning and one to the end of each factor). Then, though, you need to make
-// sure that those iterators remain valid. Maybe we could store thex
+// sure that those iterators remain valid. Maybe we could store the
 // `TensorIndexRange`s in the mesh hierarchy or something.
 template <typename T, std::size_t N> struct CartesianProduct {
 public:

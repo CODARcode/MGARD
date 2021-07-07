@@ -392,8 +392,9 @@ TEST_CASE("index iteration", "[TensorMeshHierarchy]") {
     test_index_iteration(shape, expected);
   }
   {
-    const mgard::TensorIndexRange indices =
-        mgard::TensorIndexRange::singleton();
+    const std::size_t singleton = 0;
+    const mgard::TensorIndexRange indices = {.begin_ = &singleton,
+                                             .end_ = &singleton + 1};
     const std::vector<std::size_t> obtained(indices.begin(), indices.end());
     const std::vector<std::size_t> expected = {0};
     REQUIRE(obtained == expected);

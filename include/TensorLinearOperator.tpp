@@ -47,6 +47,9 @@ level_multiindex_components(const TensorMeshHierarchy<N, Real> &hierarchy,
 } // namespace
 
 template <std::size_t N, typename Real>
+const std::size_t TensorLinearOperator<N, Real>::singleton = 0;
+
+template <std::size_t N, typename Real>
 TensorLinearOperator<N, Real>::TensorLinearOperator(
     const TensorMeshHierarchy<N, Real> &hierarchy, const std::size_t l,
     const std::array<ConstituentLinearOperator<N, Real> const *, N> operators)
@@ -89,7 +92,8 @@ void TensorLinearOperator<N, Real>::operator()(Real *const v) const {
           "operator dimension does not match mesh dimension");
     }
     // Range which will yield `0` once.
-    multiindex_components_.at(i) = TensorIndexRange::singleton();
+    multiindex_components_.at(i) = {.begin_ = &singleton,
+                                    .end_ = &singleton + 1};
 
     const CartesianProduct<TensorIndexRange, N> product(multiindex_components_);
     const std::vector<std::array<std::size_t, N>> multiindices(product.begin(),

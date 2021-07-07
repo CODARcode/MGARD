@@ -15,9 +15,7 @@ ConstituentProlongationAddition<N, Real>::ConstituentProlongationAddition(
   }
   // Possibly we should check that neither `coarse_indices` not `indices` is
   // empty, since we will dereference `coarse_indices.begin()` and
-  // `indices.begin()`. Assuming I haven't made a mistake, though, this is
-  // enforced by the constructor of `TensorIndexRange` called by
-  // `TensorMeshHierarchy::indices`. Possibly fragile.
+  // `indices.begin()`.
 }
 
 template <std::size_t N, typename Real>
