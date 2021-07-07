@@ -187,6 +187,20 @@ template <typename It> It RangeSlice<It>::begin() const { return begin_; }
 
 template <typename It> It RangeSlice<It>::end() const { return end_; }
 
+template <typename It> std::size_t RangeSlice<It>::size() const {
+  return end_ - begin_;
+}
+
+template <typename It>
+bool operator==(const RangeSlice<It> &a, const RangeSlice<It> &b) {
+  return a.begin_ == b.begin_ && a.end_ == b.end_;
+}
+
+template <typename It>
+bool operator!=(const RangeSlice<It> &a, const RangeSlice<It> &b) {
+  return !operator==(a, b);
+}
+
 template <typename T, std::size_t N>
 CartesianProduct<T, N>::CartesianProduct(const std::array<T, N> factors)
     : factors(factors) {

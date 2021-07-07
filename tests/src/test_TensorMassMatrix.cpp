@@ -265,6 +265,7 @@ void exhaustive_constituent_inverse_test(
   Real *const v = v_.data();
   Real *const buffer = buffer_.data();
   TrialTracker tracker;
+  const std::size_t singleton = 0;
   for (std::size_t l = 0; l <= hierarchy.L; ++l) {
     std::array<mgard::TensorIndexRange, N> multiindex_components;
     for (std::size_t dimension = 0; dimension < N; ++dimension) {
@@ -277,8 +278,8 @@ void exhaustive_constituent_inverse_test(
 
       std::array<mgard::TensorIndexRange, N> multiindex_components_ =
           multiindex_components;
-      multiindex_components_.at(dimension) =
-          mgard::TensorIndexRange::singleton();
+      multiindex_components_.at(dimension) = {.begin_ = &singleton,
+                                              .end_ = &singleton + 1};
 
       for (const std::array<std::size_t, N> multiindex :
            mgard::CartesianProduct<mgard::TensorIndexRange, N>(

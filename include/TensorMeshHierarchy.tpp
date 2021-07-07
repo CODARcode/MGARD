@@ -94,6 +94,28 @@ TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
     }
   }
 
+  const std::array<std::size_t, N> &SHAPE = shapes.back();
+  for (std::size_t i = 0; i < N; ++i) {
+    std::vector<std::vector<std::size_t>> &_indices_i = _indices.at(i);
+    _indices_i.resize(L + 1);
+    const std::size_t numerator = SHAPE.at(i) - 1;
+    if (numerator) {
+      for (std::size_t l = 0; l <= L; ++l) {
+        std::vector<std::size_t> &_indices_i_l = _indices_i.at(l);
+        const std::size_t n = shapes.at(l).at(i);
+        _indices_i_l.resize(n);
+        const std::size_t denominator = n - 1;
+        for (std::size_t j = 0; j < n; ++j) {
+          _indices_i_l.at(j) = (j * numerator) / denominator;
+        }
+      }
+    } else {
+      for (std::vector<std::size_t> &_indices_i_l : _indices_i) {
+        _indices_i_l = {0};
+      }
+    }
+  }
+
   for (std::size_t i = 0; i < N; ++i) {
     std::vector<std::size_t> &dobs = dates_of_birth.at(i);
     dobs.resize(shape.at(i));
@@ -162,7 +184,11 @@ TensorMeshHierarchy<N, Real>::indices(const std::size_t l,
                                       const std::size_t dimension) const {
   check_mesh_index_bounds(l);
   check_dimension_index_bounds<N>(dimension);
-  return TensorIndexRange(*this, l, dimension);
+  const std::vector<std::size_t> &_indices_dimension_l =
+      _indices.at(dimension).at(l);
+  std::size_t const *const data = _indices_dimension_l.data();
+  const std::size_t n = _indices_dimension_l.size();
+  return {.begin_ = data, .end_ = data + n};
 }
 
 template <std::size_t N, typename Real>

@@ -17,7 +17,7 @@ TEST_CASE("TensorIndexRange size and iteration",
     const mgard::TensorMeshHierarchy<1, float> hierarchy({17});
 
     {
-      const mgard::TensorIndexRange range(hierarchy, 4, 0);
+      const mgard::TensorIndexRange range = hierarchy.indices(4, 0);
       REQUIRE(range.size() == 17);
       TrialTracker tracker;
       std::size_t expected = 0;
@@ -29,7 +29,7 @@ TEST_CASE("TensorIndexRange size and iteration",
     }
 
     {
-      const mgard::TensorIndexRange range(hierarchy, 2, 0);
+      const mgard::TensorIndexRange range = hierarchy.indices(2, 0);
       REQUIRE(range.size() == 5);
       TrialTracker tracker;
       std::size_t expected = 0;
@@ -46,7 +46,7 @@ TEST_CASE("TensorIndexRange size and iteration",
     const mgard::TensorMeshHierarchy<1, float> hierarchy({10});
 
     {
-      const mgard::TensorIndexRange range(hierarchy, 4, 0);
+      const mgard::TensorIndexRange range = hierarchy.indices(4, 0);
       REQUIRE(range.size() == 10);
       TrialTracker tracker;
       std::size_t expected = 0;
@@ -58,7 +58,7 @@ TEST_CASE("TensorIndexRange size and iteration",
     }
 
     {
-      const mgard::TensorIndexRange range(hierarchy, 2, 0);
+      const mgard::TensorIndexRange range = hierarchy.indices(2, 0);
       REQUIRE(range.size() == 5);
       TrialTracker tracker;
       const std::vector<std::size_t> expected = {0, 2, 4, 6, 9};

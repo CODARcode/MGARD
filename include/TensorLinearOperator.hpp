@@ -121,6 +121,9 @@ protected:
   //! Indices of the nodes of the mesh on which the operator is to be applied,
   //! grouped by dimension.
   const std::array<TensorIndexRange, N> multiindex_components;
+
+  //! Singleton index for use in applying the operator.
+  static const std::size_t singleton;
 };
 
 } // namespace mgard

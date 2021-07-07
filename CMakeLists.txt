@@ -266,7 +266,6 @@ src/IndicatorInput.cpp
 # Set library
 add_library(mgard-library STATIC
   src/mgard_compress.cpp  include/mgard_compress.hpp
-  src/TensorMeshHierarchyIteration.cpp  include/TensorMeshHierarchyIteration.hpp include/TensorMeshHierarchyIteration.tpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
 )
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
