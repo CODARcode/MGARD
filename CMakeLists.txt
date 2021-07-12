@@ -263,7 +263,7 @@ src/IndicatorInput.cpp
 
 # Set library
 add_library(mgard-library STATIC
-  src/mgard_compress.cpp  include/mgard_compress.hpp
+  src/compressors.cpp  include/compressors.hpp
   ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
 )
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)

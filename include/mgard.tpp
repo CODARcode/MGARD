@@ -21,7 +21,7 @@
 #include <chrono>
 #endif
 
-#include "mgard_compress.hpp"
+#include "compressors.hpp"
 
 #include "TensorMassMatrix.hpp"
 #include "TensorProlongation.hpp"

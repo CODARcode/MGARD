@@ -1,4 +1,4 @@
-#include "mgard_compress.hpp"
+#include "compressors.hpp"
 
 #include <algorithm>
 #include <bitset>
