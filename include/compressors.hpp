@@ -1,3 +1,6 @@
+#ifndef COMPRESSORS_HPP
+#define COMPRESSORS_HPP
+
 #include <cstddef>
 #include <cstdint>
 
@@ -48,3 +51,5 @@ void decompress_memory_zstd_huffman(void *const src, const int srcLen,
                                     unsigned char *const dst, const int dstLen);
 #endif
 } // namespace mgard
+
+#endif
