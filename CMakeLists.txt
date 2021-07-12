@@ -328,7 +328,7 @@ set_target_properties(mgard-library PROPERTIES
 
 install(TARGETS mgard-library EXPORT mgard-targets)
 
-install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
+install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 
 install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 
@@ -444,8 +444,8 @@ configure_file(
 )
 
 configure_file(
-	"${PROJECT_SOURCE_DIR}/include/MGARDConfig.h.in"
-	"${PROJECT_BINARY_DIR}/include/MGARDConfig.h"
+	"${PROJECT_SOURCE_DIR}/include/MGARDConfig.hpp.in"
+	"${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp"
 )
 
 # Install the mgard-config.cmake and mgard-config-version.cmake
