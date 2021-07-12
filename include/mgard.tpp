@@ -3,7 +3,6 @@
 // Authors: Mark Ainsworth, Ozan Tugluk, Ben Whitney, Qing Liu
 // Corresponding Author: Ben Whitney, Qing Liu
 //
-// version: 0.1.0
 // See LICENSE for details.
 #ifndef MGARD_TPP
 #define MGARD_TPP
