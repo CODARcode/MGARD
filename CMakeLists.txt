@@ -12,25 +12,25 @@ set(MGARD_VERSION_MAJOR "0")
 set(MGARD_VERSION_MINOR "1")
 set(MGARD_VERSION_PATCH "0")
 
-project(MGARD VERSION "${MGARD_VERSION_MAJOR}.${MGARD_VERSION_MINOR}.${MGARD_VERSION_PATCH}")
-
-macro (mgard_option variable)
-  if (NOT DEFINED "${variable}")
-    option("${variable}" ${ARGN})
-  endif ()
-endmacro ()
+project(
+	MGARD
+	HOMEPAGE_URL "https://github.com/CODARcode/MGARD"
+	VERSION "${MGARD_VERSION_MAJOR}.${MGARD_VERSION_MINOR}.${MGARD_VERSION_PATCH}"
+	#CUDA will be enabled below if `MGARD_ENABLE_CUDA` is `ON`.
+	LANGUAGES CXX
+)
 
 #Configurable Options
-mgard_option(MGARD_ENABLE_CUDA "Enable Cuda support" OFF)
+option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 
 #For performance optimization
-mgard_option(MGARD_ENABLE_CUDA_FMA "Enable Cuda support with fused multpily-add instruction" OFF)
-mgard_option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" OFF)
-mgard_option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimized for Turing GPUs" OFF)
+option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction" OFF)
+option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" OFF)
+option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimized for Turing GPUs" OFF)
 
 #For debug only
-mgard_option(MGARD_ENABLE_CUDA_DEBUG "Enable Cuda support with debug" OFF )
-mgard_option(MGARD_ENABLE_CUDA_KERNEL_PROFILE "Profile kernel configuration" OFF)
+option(MGARD_ENABLE_CUDA_DEBUG "Enable CUDA support with debug" OFF)
+option(MGARD_ENABLE_CUDA_KERNEL_PROFILE "Profile kernel configuration" OFF)
 
 # Some boilerplate to setup nice output directories
 include(GNUInstallDirs)
