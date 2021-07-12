@@ -1,5 +1,5 @@
-#ifndef MGARDCONFIG_H_
-#define MGARDCONFIG_H_
+#ifndef MGARDCONFIG_HPP
+#define MGARDCONFIG_HPP
 
 /* MGARD Version Information */
 #define MGARD_VERSION_STR   "@MGARD_VERSION@"
@@ -8,4 +8,4 @@
 #define MGARD_VERSION_PATCH @MGARD_VERSION_PATCH@
 #cmakedefine MGARD_VERSION_TWEAK @MGARD_VERSION_TWEAK@
 
-#endif /* MGARDCONFIG_H_ */
+#endif /* MGARDCONFIG_HPP */
