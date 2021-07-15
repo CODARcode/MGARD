@@ -82,13 +82,8 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
             static_cast<unsigned char *>(buffer));
 #else
   // Compress an array of data using `zstd`.
-  std::vector<unsigned char> zstd_output;
-  int zstd_outsize;
-
-  void *const buffer =
-      compress_memory_huffman(quantized, zstd_output, zstd_outsize);
-
-  const std::size_t size = zstd_outsize;
+  std::size_t size;
+  void *const buffer = compress_memory_huffman(quantized, size);
 #endif
   return CompressedDataset<N, Real>(hierarchy, s, tolerance, buffer, size);
 }
