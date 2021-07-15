@@ -381,7 +381,7 @@ tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
 tests/src/test_TensorNorms.cpp
 tests/src/test_TensorQuantityOfInterest.cpp
 tests/src/test_mgard_api.cpp
-tests/src/test_mgard.cpp
+tests/src/test_decompose.cpp
 )
 
 find_package(Catch2)

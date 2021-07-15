@@ -18,7 +18,7 @@
 #include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorProlongation.hpp"
 #include "TensorRestriction.hpp"
-#include "mgard.hpp"
+#include "decompose.hpp"
 #include "shuffle.hpp"
 
 #define LOG_RANGE_LO 10
