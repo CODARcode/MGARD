@@ -136,7 +136,7 @@ void free_tree(my_priority_queue<htree_node> *phtree) {
 size_t *build_ft(long int *quantized_data, const std::size_t n,
                  size_t &num_outliers) {
   size_t *cnt = (size_t *)malloc(nql * sizeof(size_t));
-  memset(cnt, 0, nql * sizeof(size_t));
+  std::memset(cnt, 0, nql * sizeof(size_t));
 
   for (std::size_t i = 0; i < n; i++) {
     // Convert quantization level to positive so that counting freq can be
@@ -164,7 +164,7 @@ huffman_codec *build_huffman_codec(long int *quantized_data, size_t **ft,
   my_priority_queue<htree_node> *phtree = build_tree(cnt);
 
   huffman_codec *codec = (huffman_codec *)malloc(sizeof(huffman_codec) * nql);
-  memset(codec, 0, sizeof(huffman_codec) * nql);
+  std::memset(codec, 0, sizeof(huffman_codec) * nql);
 
   build_codec(phtree->top(), 0, 0, codec);
 
@@ -184,7 +184,7 @@ void huffman_decoding(long int *quantized_data, const std::size_t,
   int nonZeros = out_tree_size / (2 * sizeof(size_t));
   size_t *ft = (size_t *)malloc(nql * sizeof(size_t));
 
-  memset(ft, 0, nql * sizeof(size_t));
+  std::memset(ft, 0, nql * sizeof(size_t));
 
   for (int j = 0; j < nonZeros; j++) {
     ft[cft[2 * j]] = cft[2 * j + 1];
@@ -197,7 +197,9 @@ void huffman_decoding(long int *quantized_data, const std::size_t,
   // The out_data_miss may not be aligned. Therefore, the code
   // here makes a new buffer.
   int *miss_buf = (int *)malloc(out_data_miss_size);
-  memcpy(miss_buf, out_data_miss, out_data_miss_size);
+  if (out_data_miss_size) {
+    std::memcpy(miss_buf, out_data_miss, out_data_miss_size);
+  }
 
   int *miss_bufp = miss_buf;
 
@@ -319,12 +321,12 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
    * and therefore we need to allocate space for n numbers.
    */
   unsigned char *p_hit = (unsigned char *)malloc(n * sizeof(int));
-  memset(p_hit, 0, n * sizeof(int));
+  std::memset(p_hit, 0, n * sizeof(int));
 
   int *p_miss = 0;
   if (num_miss > 0) {
     p_miss = (int *)malloc(num_miss * sizeof(int));
-    memset(p_miss, 0, num_miss * sizeof(int));
+    std::memset(p_miss, 0, num_miss * sizeof(int));
   }
 
   *out_data_hit = p_hit;
@@ -432,14 +434,18 @@ unsigned char *compress_memory_huffman(const std::vector<long int> &qv,
   unsigned char *payload = (unsigned char *)malloc(total_size);
   unsigned char *bufp = payload;
 
-  memcpy(bufp, out_tree, out_tree_size);
-  bufp += out_tree_size;
+  if (out_tree_size) {
+    std::memcpy(bufp, out_tree, out_tree_size);
+    bufp += out_tree_size;
+  }
 
-  memcpy(bufp, out_data_hit, out_data_hit_size / 8 + 4);
+  std::memcpy(bufp, out_data_hit, out_data_hit_size / 8 + 4);
   bufp += out_data_hit_size / 8 + 4;
 
-  memcpy(bufp, out_data_miss, out_data_miss_size);
-  bufp += out_data_miss_size;
+  if (out_data_miss_size) {
+    std::memcpy(bufp, out_data_miss, out_data_miss_size);
+    bufp += out_data_miss_size;
+  }
 
   free(out_tree);
   free(out_data_hit);
