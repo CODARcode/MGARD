@@ -4,8 +4,8 @@
 // Corresponding Author: Ben Whitney, Qing Liu
 //
 // See LICENSE for details.
-#ifndef MGARD_H
-#define MGARD_H
+#ifndef DECOMPOSE_HPP
+#define DECOMPOSE_HPP
 //!\file
 //!\brief Decomposition and recomposition to and from multilevel coefficients.
 
@@ -33,5 +33,5 @@ void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v);
 
 } // namespace mgard
 
-#include "mgard.tpp"
+#include "decompose.tpp"
 #endif

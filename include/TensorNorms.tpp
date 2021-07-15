@@ -64,8 +64,9 @@ orthogonal_component_square_norms(const TensorMeshHierarchy<N, Real> &hierarchy,
   // the hierarchy in a contiguous block at the front. This function relies on
   // this property, although the calls to `hierarchy.on_nodes` might give the
   // impression that it's agnostic to it. The functions at the top of
-  // `mgard.tpp` more nicely mix statements that might work for arrays shuffled
-  // differently and statements that rely on the current shuffling algorithm.
+  // `decompose.tpp` more nicely mix statements that might work for arrays
+  // shuffled differently and statements that rely on the current shuffling
+  // algorithm.
   for (std::size_t i = 1; i <= hierarchy.L; ++i) {
     const std::size_t l = hierarchy.L - i;
 

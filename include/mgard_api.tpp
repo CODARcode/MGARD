@@ -16,7 +16,7 @@
 
 #include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorNorms.hpp"
-#include "mgard.hpp"
+#include "decompose.hpp"
 #include "shuffle.hpp"
 
 namespace mgard {

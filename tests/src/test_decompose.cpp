@@ -14,7 +14,7 @@
 #include "TensorMeshHierarchy.hpp"
 #include "TensorProlongation.hpp"
 #include "blas.hpp"
-#include "mgard.hpp"
+#include "decompose.hpp"
 #include "shuffle.hpp"
 
 namespace {

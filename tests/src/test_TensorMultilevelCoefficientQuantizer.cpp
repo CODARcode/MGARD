@@ -9,7 +9,7 @@
 #include "TensorMeshHierarchy.hpp"
 #include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorNorms.hpp"
-#include "mgard.hpp"
+#include "decompose.hpp"
 
 #include "testing_random.hpp"
 #include "testing_utilities.hpp"

@@ -4,10 +4,10 @@
 // Corresponding Author: Ben Whitney, Qing Liu
 //
 // See LICENSE for details.
-#ifndef MGARD_TPP
-#define MGARD_TPP
+#ifndef DECOMPOSE_TPP
+#define DECOMPOSE_TPP
 
-#include "mgard.hpp"
+#include "decompose.hpp"
 
 #include <cstddef>
 #include <cstdlib>
