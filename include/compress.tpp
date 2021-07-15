@@ -4,8 +4,8 @@
 // Corresponding Author: Ben Whitney, Qing Liu
 //
 // See LICENSE for details.
-#ifndef MGARD_API_TPP
-#define MGARD_API_TPP
+#ifndef COMPRESS_TPP
+#define COMPRESS_TPP
 
 #include <cstddef>
 

@@ -29,14 +29,14 @@ Detailed instructions for using MGARD with GPU acceleration can be found [here][
 
 ## Including and Linking
 
-The API consists of a header file `mgard_api.h` providing declarations for function templates `mgard::compress` and `mgard::decompress`.
+The API consists of a header file `compress.hpp` providing declarations for function templates `mgard::compress` and `mgard::decompress`.
 See [the header][api] for documentation of these templates.
 
 To use MGARD in your project, you will need to tell your compiler where to find the MGARD headers (by default, `${CMAKE_INSTALL_PREFIX}/include/mgard/`) and library (by default, `${CMAKE_INSTALL_PREFIX}/lib/`).
 If you're using CMake, you can call `find_package(mgard)` and add a dependency to the `mgard::mgard` imported target.
 See [the examples directory][examples] for a basic example.
 
-[api]: include/mgard_api.h
+[api]: include/compress.hpp
 [examples]: examples/
 
 ## Command Line Interface

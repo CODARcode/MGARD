@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "mgard/mgard_api.h"
+#include "mgard/compress.hpp"
 
 const std::size_t N = 1000;
 

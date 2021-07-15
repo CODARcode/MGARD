@@ -4,8 +4,8 @@
 // Corresponding Author: Ben Whitney, Qing Liu, Jieyang Chen
 //
 // See LICENSE for details.
-#ifndef MGARD_API_H
-#define MGARD_API_H
+#ifndef COMPRESS_HPP
+#define COMPRESS_HPP
 //!\file
 //!\brief Compression and decompression API.
 
@@ -141,5 +141,5 @@ Array<D, T> decompress(Handle<D, T> &handle,
 
 } // namespace mgard_cuda
 
-#include "mgard_api.tpp"
+#include "compress.tpp"
 #endif

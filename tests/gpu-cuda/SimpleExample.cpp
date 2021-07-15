@@ -1,4 +1,4 @@
-#include "mgard/mgard_api.h"
+#include "mgard/compress.hpp"
 #include <iostream>
 #include <vector>
 int main() {
