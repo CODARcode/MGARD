@@ -99,6 +99,7 @@ struct CompressionMetadata {
 YAML::Emitter &operator<<(YAML::Emitter &emitter,
                           const CompressionMetadata &metadata);
 
+//! Metadata about the input dataset, mesh, and compression.
 struct Metadata {
   //! Constructor.
   //!

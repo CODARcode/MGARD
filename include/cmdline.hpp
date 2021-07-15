@@ -16,7 +16,7 @@
 #include <tclap/ValuesConstraint.h>
 #include <tclap/VersionVisitor.h>
 
-// Base class for sub- and supercommand parsers.
+//! Base class for sub- and supercommand parsers.
 class BaseCmdLine : public TCLAP::CmdLineInterface {
 public:
   //! Constructor.
@@ -27,30 +27,43 @@ public:
   BaseCmdLine(const std::string &version, const std::string &message,
               TCLAP::CmdLineOutput *const output);
 
+  //! Add an argument to the interface.
   virtual void add(TCLAP::Arg &a) override;
 
+  //!\copydoc BaseCmdLine::add(TCLAP::Arg &)
   virtual void add(TCLAP::Arg *a) override;
 
+  //! Add a mutually exclusive pair of arguments.
   virtual void xorAdd(TCLAP::Arg &a, TCLAP::Arg &b) override;
 
+  //! Add a mutually exclusive list of arguments.
   virtual void xorAdd(std::vector<TCLAP::Arg *> &xors) override;
 
+  //! Return associated output object.
   virtual TCLAP::CmdLineOutput *getOutput() override;
 
+  //! Set associated output object.
   virtual void setOutput(TCLAP::CmdLineOutput *co) override;
 
+  //! Return version string.
   virtual std::string &getVersion() override;
 
+  //! Return program name.
   virtual std::string &getProgramName() override;
 
+  //! Return list of arguments.
   virtual std::list<TCLAP::Arg *> &getArgList() override;
 
+  //! Return handler for mutually exclusive arguments.
   virtual TCLAP::XorHandler &getXorHandler() override;
 
+  //! Return the character used to separate argument names from values.
   virtual char getDelimiter() override;
 
+  //! Return message describing program.
   virtual std::string &getMessage() override;
 
+  //! Reset the `BaseCmdLine`.
   virtual void reset() override;
 
 protected:
@@ -88,13 +101,13 @@ public:
   //! Destructor.
   ~SubCmdLine();
 
+  //! Parse the command arguments.
   virtual void parse(int argc, const char *const *const argv) override;
 
-  //! Parse the subcommand arguments.
-  //!
-  //!\param arg Subcommand arguments.
+  //!\copydoc SubCmdLine::parse(int,const char * const * const)
   void parse(std::vector<std::string> &args);
 
+  //! Return whether the parser has automatic help and version switches.
   virtual bool hasHelpAndVersion() override;
 
   //! Add the help argument to the argument list.
@@ -118,13 +131,13 @@ public:
   //! Destructor.
   ~SuperCmdLine();
 
+  //!\copydoc SubCmdLine::parse(int,const char * const * const)
   virtual void parse(int argc, const char *const *const argv) override;
 
-  //! Parse the supercommand arguments.
-  //!
-  //!\param arg Supercommand arguments.
+  //!\copydoc SuperCmdLine::parse(int,const char * const * const)
   void parse(std::vector<std::string> &args);
 
+  //!\copydoc SubCmdLine::hasHelpAndVersion()
   virtual bool hasHelpAndVersion() override;
 
   //! Report the subcommand specified by the arguments.

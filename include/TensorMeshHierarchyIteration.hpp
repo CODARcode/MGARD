@@ -19,6 +19,7 @@ template <std::size_t N, typename Real> class TensorMeshHierarchy;
 //! hierarchy.
 using TensorIndexRange = RangeSlice<std::size_t const *>;
 
+//! Node in a tensor product mesh.
 template <std::size_t N> class TensorNode {
 public:
   //! Constructor.

@@ -6,6 +6,8 @@
 // See LICENSE for details.
 #ifndef MGARD_H
 #define MGARD_H
+//!\file
+//!\brief Decomposition and recomposition to and from multilevel coefficients.
 
 #include <cstddef>
 
