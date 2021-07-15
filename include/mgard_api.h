@@ -66,7 +66,7 @@ public:
   //! Constructor.
   //!
   //! The buffer pointed to by `data` is freed when this object is destructed.
-  //! It should be allocated with `new unsigned char[size]`.
+  //! It should be allocated with `new Real[size]`.
   //!
   //!\param compressed Compressed dataset which was decompressed.
   //!\param data Nodal values of the decompressed function.

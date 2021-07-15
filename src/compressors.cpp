@@ -174,48 +174,7 @@ huffman_codec *build_huffman_codec(long int *quantized_data, size_t **ft,
   return codec;
 }
 
-void decompress_memory_huffman(unsigned char *data, int data_len,
-                               long int *out_data, int out_size) {
-  unsigned char *out_data_hit = 0;
-  size_t out_data_hit_size;
-  unsigned char *out_data_miss = 0;
-  size_t out_data_miss_size;
-  unsigned char *out_tree = 0;
-  size_t out_tree_size;
-
-  unsigned char *buf = data;
-
-  out_tree_size = *(size_t *)buf;
-  buf += sizeof(size_t);
-
-  out_data_hit_size = *(size_t *)buf;
-  buf += sizeof(size_t);
-
-  out_data_miss_size = *(size_t *)buf;
-  buf += sizeof(size_t);
-
-  size_t total_huffman_size =
-      out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
-  unsigned char *huffman_encoding_p =
-      (unsigned char *)malloc(total_huffman_size);
-#ifndef MGARD_ZSTD
-  mgard::decompress_memory_z_huffman(buf, data_len - 3 * sizeof(size_t),
-                                     huffman_encoding_p, total_huffman_size);
-#else
-  mgard::decompress_memory_zstd_huffman(buf, data_len - 3 * sizeof(size_t),
-                                        huffman_encoding_p, total_huffman_size);
-#endif
-  out_tree = huffman_encoding_p;
-  out_data_hit = huffman_encoding_p + out_tree_size;
-  out_data_miss =
-      huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
-
-  mgard::huffman_decoding(out_data, out_size, out_data_hit, out_data_hit_size,
-                          out_data_miss, out_data_miss_size, out_tree,
-                          out_tree_size);
-
-  free(huffman_encoding_p);
-}
+namespace {
 
 void huffman_decoding(long int *quantized_data, const std::size_t,
                       unsigned char *out_data_hit, size_t out_data_hit_size,
@@ -299,89 +258,51 @@ void huffman_decoding(long int *quantized_data, const std::size_t,
   ft = 0;
 }
 
-unsigned char *compress_memory_huffman(const std::vector<long int> &qv,
-                                       std::vector<unsigned char> &out_data,
-                                       int &outsize) {
+} // namespace
+
+void decompress_memory_huffman(unsigned char *data, const std::size_t data_len,
+                               long int *out_data, const std::size_t out_size) {
   unsigned char *out_data_hit = 0;
   size_t out_data_hit_size;
   unsigned char *out_data_miss = 0;
   size_t out_data_miss_size;
   unsigned char *out_tree = 0;
   size_t out_tree_size;
-#ifdef MGARD_TIMING
-  auto huff_time1 = std::chrono::high_resolution_clock::now();
-#endif
-  mgard::huffman_encoding(const_cast<long int *>(qv.data()), qv.size(),
-                          &out_data_hit, &out_data_hit_size, &out_data_miss,
-                          &out_data_miss_size, &out_tree, &out_tree_size);
-#ifdef MGARD_TIMING
-  auto huff_time2 = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      huff_time2 - huff_time1);
-  std::cout << "Huffman tree time = " << (double)duration.count() / 1000000
-            << "\n";
-#endif
-  size_t total_size =
-      out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
-  unsigned char *payload = (unsigned char *)malloc(total_size);
-  unsigned char *bufp = payload;
 
-  memcpy(bufp, out_tree, out_tree_size);
-  bufp += out_tree_size;
+  unsigned char *buf = data;
 
-  memcpy(bufp, out_data_hit, out_data_hit_size / 8 + 4);
-  bufp += out_data_hit_size / 8 + 4;
+  out_tree_size = *(size_t *)buf;
+  buf += sizeof(size_t);
 
-  memcpy(bufp, out_data_miss, out_data_miss_size);
-  bufp += out_data_miss_size;
+  out_data_hit_size = *(size_t *)buf;
+  buf += sizeof(size_t);
 
-  free(out_tree);
-  free(out_data_hit);
-  free(out_data_miss);
+  out_data_miss_size = *(size_t *)buf;
+  buf += sizeof(size_t);
+
+  size_t total_huffman_size =
+      out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
+  unsigned char *huffman_encoding_p =
+      (unsigned char *)malloc(total_huffman_size);
 #ifndef MGARD_ZSTD
-#ifdef MGARD_TIMING
-  auto z_time1 = std::chrono::high_resolution_clock::now();
-#endif
-  mgard::compress_memory_z(payload, total_size, out_data);
-#ifdef MGARD_TIMING
-  auto z_time2 = std::chrono::high_resolution_clock::now();
-  auto z_duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(z_time2 - z_time1);
-  std::cout << "ZLIB compression time = "
-            << (double)z_duration.count() / 1000000 << "\n";
-#endif
+  decompress_memory_z(buf, data_len - 3 * sizeof(size_t), huffman_encoding_p,
+                      total_huffman_size);
 #else
-#ifdef MGARD_TIMING
-  auto zstd_time1 = std::chrono::high_resolution_clock::now();
+  decompress_memory_zstd(buf, data_len - 3 * sizeof(size_t), huffman_encoding_p,
+                         total_huffman_size);
 #endif
-  mgard::compress_memory_zstd(payload, total_size, out_data);
-#ifdef MGARD_TIMING
-  auto zstd_time2 = std::chrono::high_resolution_clock::now();
-  auto zstd_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      zstd_time2 - zstd_time1);
-  std::cout << "ZSTD compression time = "
-            << (double)zstd_duration.count() / 1000000 << "\n";
-#endif
-#endif
-  free(payload);
-  payload = 0;
+  out_tree = huffman_encoding_p;
+  out_data_hit = huffman_encoding_p + out_tree_size;
+  out_data_miss =
+      huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
 
-  outsize = out_data.size() + 3 * sizeof(size_t);
-  unsigned char *buffer = (unsigned char *)malloc(outsize);
+  huffman_decoding(out_data, out_size, out_data_hit, out_data_hit_size,
+                   out_data_miss, out_data_miss_size, out_tree, out_tree_size);
 
-  bufp = buffer;
-  *(size_t *)bufp = out_tree_size;
-  bufp += sizeof(size_t);
-
-  *(size_t *)bufp = out_data_hit_size;
-  bufp += sizeof(size_t);
-
-  *(size_t *)bufp = out_data_miss_size;
-  bufp += sizeof(size_t);
-
-  std::copy(out_data.begin(), out_data.end(), bufp);
-  return buffer;
+  free(huffman_encoding_p);
 }
+
+namespace {
 
 void huffman_encoding(long int *quantized_data, const std::size_t n,
                       unsigned char **out_data_hit, size_t *out_data_hit_size,
@@ -389,7 +310,6 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
                       unsigned char **out_tree, size_t *out_tree_size) {
   size_t num_miss = 0;
   size_t *ft = 0;
-  ;
 
   huffman_codec *codec = build_huffman_codec(quantized_data, &ft, n, num_miss);
 
@@ -484,6 +404,93 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
   codec = 0;
 }
 
+} // namespace
+
+unsigned char *compress_memory_huffman(const std::vector<long int> &qv,
+                                       std::size_t &outsize) {
+  unsigned char *out_data_hit = 0;
+  size_t out_data_hit_size;
+  unsigned char *out_data_miss = 0;
+  size_t out_data_miss_size;
+  unsigned char *out_tree = 0;
+  size_t out_tree_size;
+#ifdef MGARD_TIMING
+  auto huff_time1 = std::chrono::high_resolution_clock::now();
+#endif
+  huffman_encoding(const_cast<long int *>(qv.data()), qv.size(), &out_data_hit,
+                   &out_data_hit_size, &out_data_miss, &out_data_miss_size,
+                   &out_tree, &out_tree_size);
+#ifdef MGARD_TIMING
+  auto huff_time2 = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+      huff_time2 - huff_time1);
+  std::cout << "Huffman tree time = " << (double)duration.count() / 1000000
+            << "\n";
+#endif
+  const size_t total_size =
+      out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
+  unsigned char *payload = (unsigned char *)malloc(total_size);
+  unsigned char *bufp = payload;
+
+  memcpy(bufp, out_tree, out_tree_size);
+  bufp += out_tree_size;
+
+  memcpy(bufp, out_data_hit, out_data_hit_size / 8 + 4);
+  bufp += out_data_hit_size / 8 + 4;
+
+  memcpy(bufp, out_data_miss, out_data_miss_size);
+  bufp += out_data_miss_size;
+
+  free(out_tree);
+  free(out_data_hit);
+  free(out_data_miss);
+
+  std::vector<unsigned char> out_data;
+#ifndef MGARD_ZSTD
+#ifdef MGARD_TIMING
+  auto z_time1 = std::chrono::high_resolution_clock::now();
+#endif
+  compress_memory_z(payload, total_size, out_data);
+#ifdef MGARD_TIMING
+  auto z_time2 = std::chrono::high_resolution_clock::now();
+  auto z_duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(z_time2 - z_time1);
+  std::cout << "ZLIB compression time = "
+            << (double)z_duration.count() / 1000000 << "\n";
+#endif
+#else
+#ifdef MGARD_TIMING
+  auto zstd_time1 = std::chrono::high_resolution_clock::now();
+#endif
+  compress_memory_zstd(payload, total_size, out_data);
+#ifdef MGARD_TIMING
+  auto zstd_time2 = std::chrono::high_resolution_clock::now();
+  auto zstd_duration = std::chrono::duration_cast<std::chrono::microseconds>(
+      zstd_time2 - zstd_time1);
+  std::cout << "ZSTD compression time = "
+            << (double)zstd_duration.count() / 1000000 << "\n";
+#endif
+#endif
+  free(payload);
+  payload = 0;
+
+  outsize = out_data.size() + 3 * sizeof(size_t);
+  unsigned char *const buffer = new unsigned char[outsize];
+
+  bufp = buffer;
+  *(size_t *)bufp = out_tree_size;
+  bufp += sizeof(size_t);
+
+  *(size_t *)bufp = out_data_hit_size;
+  bufp += sizeof(size_t);
+
+  *(size_t *)bufp = out_data_miss_size;
+  bufp += sizeof(size_t);
+
+  std::copy(out_data.begin(), out_data.end(), bufp);
+  return buffer;
+}
+
 #ifdef MGARD_ZSTD
 /*! CHECK
  * Check that the condition holds. If it doesn't print a message and die.
@@ -574,8 +581,8 @@ void compress_memory_z(void *const in_data, const std::size_t in_data_size,
   out_data.swap(buffer);
 }
 
-void decompress_memory_z(void *const src, const int srcLen, int *const dst,
-                         const int dstLen) {
+void decompress_memory_z(void *const src, const std::size_t srcLen,
+                         int *const dst, const std::size_t dstLen) {
   z_stream strm = {};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;
@@ -598,39 +605,15 @@ void decompress_memory_z(void *const src, const int srcLen, int *const dst,
 }
 
 #ifdef MGARD_ZSTD
-void decompress_memory_zstd_huffman(void *const src, const int srcLen,
-                                    unsigned char *const dst,
-                                    const int dstLen) {
+void decompress_memory_zstd(void *const src, const std::size_t srcLen,
+                            unsigned char *const dst,
+                            const std::size_t dstLen) {
   size_t const dSize = ZSTD_decompress(dst, dstLen, src, srcLen);
   CHECK_ZSTD(dSize);
 
   /* When zstd knows the content size, it will error if it doesn't match. */
-  CHECK(dstLen >= 0 && static_cast<std::size_t>(dstLen) == dSize,
-        "Impossible because zstd will check this condition!");
+  CHECK(dstLen == dSize, "Impossible because zstd will check this condition!");
 }
 #endif
-
-void decompress_memory_z_huffman(void *const src, const int srcLen,
-                                 unsigned char *const dst, const int dstLen) {
-  z_stream strm = {};
-  strm.total_in = strm.avail_in = srcLen;
-  strm.total_out = strm.avail_out = dstLen;
-  strm.next_in = static_cast<Bytef *>(src);
-  strm.next_out = reinterpret_cast<Bytef *>(dst);
-
-  strm.zalloc = Z_NULL;
-  strm.zfree = Z_NULL;
-  strm.opaque = Z_NULL;
-
-  [[maybe_unused]] int res;
-  res = inflateInit2(&strm, (15 + 32)); // 15 window bits, and the +32 tells
-                                        // zlib to to detect if using gzip or
-                                        // zlib
-  assert(res == Z_OK);
-  res = inflate(&strm, Z_FINISH);
-  assert(res == Z_STREAM_END);
-  res = inflateEnd(&strm);
-  assert(res == Z_OK);
-}
 
 } // namespace mgard
