@@ -32,8 +32,10 @@ public:
 //! Base class for sub- and supercommand outputs.
 class BaseOutput : public TCLAP::CmdLineOutput {
 public:
+  //! Generate the usage message.
   virtual void usage(TCLAP::CmdLineInterface &c) override;
 
+  //! Generate the failure message.
   virtual void failure(TCLAP::CmdLineInterface &c,
                        TCLAP::ArgException &e) override;
 
@@ -74,12 +76,14 @@ private:
 //! Output class for subcommands.
 class SubOutput : public BaseOutput {
 public:
+  //! Generate the version message.
   virtual void version(TCLAP::CmdLineInterface &c) override;
 };
 
 //! Output class for supercommands.
 class SuperOutput : public BaseOutput {
 public:
+  //!\copydoc SubOutput::version(TCLAP::CmdLineInterface &)
   virtual void version(TCLAP::CmdLineInterface &c) override;
 
   virtual void usage(TCLAP::CmdLineInterface &c) override;

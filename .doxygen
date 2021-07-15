@@ -36,7 +36,7 @@ WARN_AS_ERROR          = NO
 INPUT                  = include README.md
 RECURSIVE              = YES
 FILE_PATTERNS          = *.h *.hpp
-EXCLUDE                = include/cuda
+EXCLUDE                = include/cuda include/arguments.hpp include/cmdline.hpp include/metadata.hpp include/output.hpp
 USE_MDFILE_AS_MAINPAGE = README.md
 
 #---------------------------------------------------------------------------

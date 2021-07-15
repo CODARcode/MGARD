@@ -30,7 +30,7 @@ public:
   //!\param functional Functional defined on the function space.
   template <typename Functional>
   TensorQuantityOfInterest(const TensorMeshHierarchy<N, Real> &hierarchy,
-                           const Functional &function);
+                           const Functional &functional);
 
   //! Compute the operator norm of the functional.
   //!

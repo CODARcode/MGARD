@@ -21,6 +21,7 @@ struct DataShape {
   std::vector<std::size_t> shape;
 };
 
+//! Smoothness parameter (`s`) used in compressing the dataset.
 template <typename Real> class SmoothnessParameter {
 public:
   //! Constructor.
@@ -36,6 +37,7 @@ public:
   Real s;
 };
 
+//! Parse a command line argument as a `SmoothnessParameter`.
 template <typename Real>
 std::istringstream &operator>>(std::istringstream &stream,
                                SmoothnessParameter<Real> &s) {
@@ -55,11 +57,15 @@ std::istringstream &operator>>(std::istringstream &stream,
 
 namespace TCLAP {
 
+//! Traits for `cli::DataShape`.
 template <> struct ArgTraits<cli::DataShape> {
+  //! Value category for `cli::DataShape`.
   typedef StringLike ValueCategory;
 };
 
+//! Traits for `cli::SmoothnessParameter<double>`.
 template <> struct ArgTraits<cli::SmoothnessParameter<double>> {
+  //! Value category for `cli::SmoothnessParameter<double>`.
   typedef ValueLike ValueCategory;
 };
 
@@ -114,7 +120,7 @@ struct DecompressionArguments {
   //! Constructor.
   //!
   //!\param input Filename of the input archive.
-  //!\param input Filename of the output dataset.
+  //!\param output Filename of the output dataset.
   DecompressionArguments(TCLAP::ValueArg<std::string> &input,
                          TCLAP::ValueArg<std::string> &output);
 
