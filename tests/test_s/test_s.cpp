@@ -1,4 +1,4 @@
-#include "mgard_api.h"
+#include "compress.hpp"
 #include <cmath>
 #include <fstream>
 #include <iostream>

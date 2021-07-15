@@ -15,7 +15,7 @@
 #include <tclap/ValuesConstraint.h>
 
 #include "MGARDConfig.hpp"
-#include "mgard_api.h"
+#include "compress.hpp"
 
 #include "arguments.hpp"
 #include "cmdline.hpp"

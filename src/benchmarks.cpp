@@ -7,7 +7,7 @@
 #include "blas.hpp"
 #include "moab/Core.hpp"
 
-#include "mgard_api.h"
+#include "compress.hpp"
 
 #include "MassMatrix.hpp"
 #include "MeshLevel.hpp"
