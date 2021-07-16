@@ -330,13 +330,6 @@ install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp" DESTINATION "${CMA
 
 install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 
-# Create executables under build/bin
-include(CTest)
-if(BUILD_TESTING)
-#  enable_testing()
-  add_subdirectory(tests)
-endif()
-
 #It would be better if these took `MOAB_FOUND` into account.
 set(MGARD_TESTS_HEADER
 tests/include/testing_random.hpp
