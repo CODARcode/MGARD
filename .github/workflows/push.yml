@@ -2,11 +2,11 @@ name: build-and-test
 on: [push]
 env:
         MOAB_CACHE_KEY: "MOAB-5.2.1"
-        MOAB_INSTALL_PREFIX: "${HOME}/moab"
+        MOAB_INSTALL_PREFIX: "${{ github.workspace }}/moab"
         CATCH2_CACHE_KEY: "Catch2-3.0.0"
-        CATCH2_INSTALL_PREFIX: "${HOME}/catch2"
-        MGARD_CACHE_KEY: "MGARD-${{ github.ref }}"
-        MGARD_INSTALL_PREFIX: "${HOME}/mgard"
+        CATCH2_INSTALL_PREFIX: "${{ github.workspace }}/catch2"
+        MGARD_CACHE_KEY: "MGARD-${{ github.sha }}"
+        MGARD_INSTALL_PREFIX: "${{ github.workspace }}/mgard"
         MGARD_BUILD_TYPE: "Release"
         MGARD_BUILD_DIR: "${{ github.workspace }}/build"
 jobs:
@@ -28,9 +28,12 @@ jobs:
                         - run: gunzip "moab-5.2.1.tar.gz"
                         - run: tar --file "moab-5.2.1.tar" --extract
                         - run: autoreconf --force --install "moab-5.2.1"
-                        - run: cd "moab-5.2.1" && ./configure --prefix="${{ env.MOAB_INSTALL_PREFIX }}"
-                        - run: make --directory "moab-5.2.1" --jobs
-                        - run: make --directory "moab-5.2.1" install
+                        - name: configure
+                          run: cd "moab-5.2.1" && ./configure --prefix="${{ env.MOAB_INSTALL_PREFIX }}"
+                        - name: build
+                          run: make --directory "moab-5.2.1" --jobs
+                        - name: install
+                          run: make --directory "moab-5.2.1" install
 
         build-Catch2:
                 needs: [APT]
@@ -44,9 +47,12 @@ jobs:
                         - run: wget https://github.com/catchorg/Catch2/archive/v3.0.0-preview3.tar.gz
                         - run: gunzip "v3.0.0-preview3.tar.gz"
                         - run: tar --file "v3.0.0-preview3.tar" --extract
-                        - run: cmake -S "Catch2-3.0.0-preview3" -B "build" -DCMAKE_INSTALL_PREFIX="${{ env.CATCH2_INSTALL_PREFIX }}"
-                        - run: cmake --build "build" --parallel
-                        - run: cmake --install "build"
+                        - name: configure
+                          run: cmake -S "Catch2-3.0.0-preview3" -B "build" -DCMAKE_INSTALL_PREFIX="${{ env.CATCH2_INSTALL_PREFIX }}"
+                        - name: build
+                          run: cmake --build "build" --parallel
+                        - name: install
+                          run: cmake --install "build"
 
         build-MGARD:
                 needs: [build-MOAB, build-Catch2]
@@ -73,6 +79,8 @@ jobs:
                           run: cmake -S . -B "${{ env.MGARD_BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.MOAB_INSTALL_PREFIX }};${{ env.CATCH2_INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.MGARD_BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.MGARD_INSTALL_PREFIX }}"
                         - name: build
                           run: cmake --build "${{ env.MGARD_BUILD_DIR }}" --parallel
+                        - name: install
+                          run: cmake --build "${{ env.MGARD_BUILD_DIR }}" install
         test:
                 needs: [build-MGARD]
                 runs-on: ubuntu-latest
