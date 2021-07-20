@@ -39,6 +39,8 @@ jobs:
                 steps:
                         - name: checkout
                           uses: actions/checkout@v2.3.4
+                        - name: search for dependencies
+                          run: find "${{ env.INSTALL_PREFIX }}" -iname '*.cmake'
                         - name: configure
                           run: cmake -S . -B "${{ env.BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_PREFIX }}"
                         - name: build
