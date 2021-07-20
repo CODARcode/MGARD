@@ -63,11 +63,15 @@ jobs:
                           with:
                                   key: "${{ env.MOAB_CACHE_KEY }}"
                                   path: "${{ env.MOAB_INSTALL_PREFIX }}"
+                        - name: debug-MOAB
+                          run: find "${{ env.MOAB_INSTALL_PREFIX }}" -type f
                         - name: fetch-Catch2
                           uses: actions/cache@v2.1.6
                           with:
                                   key: "${{ env.CATCH2_CACHE_KEY }}"
                                   path: "${{ env.CATCH2_INSTALL_PREFIX }}"
+                        - name: debug-Catch2
+                          run: find "${{ env.CATCH2_INSTALL_PREFIX }}" -type f
                         - name: cache-MGARD
                           uses: actions/cache@v2.1.6
                           with:
