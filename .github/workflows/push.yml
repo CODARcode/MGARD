@@ -20,71 +20,75 @@ jobs:
                 runs-on: ubuntu-latest
                 steps:
                         - name: cache-MOAB
+                          id: cache-MOAB
                           uses: actions/cache@v2.1.6
                           with:
                                   key: "${{ env.MOAB_CACHE_KEY }}"
                                   path: "${{ env.MOAB_INSTALL_PREFIX }}"
-                        - run: wget https://ftp.mcs.anl.gov/pub/fathom/moab-5.2.1.tar.gz
-                        - run: gunzip "moab-5.2.1.tar.gz"
-                        - run: tar --file "moab-5.2.1.tar" --extract
-                        - run: autoreconf --force --install "moab-5.2.1"
-                        - name: configure
-                          run: cd "moab-5.2.1" && ./configure --prefix="${{ env.MOAB_INSTALL_PREFIX }}"
-                        - name: build
-                          run: make --directory "moab-5.2.1" --jobs
-                        - name: install
-                          run: make --directory "moab-5.2.1" install
+                        - name: build-MOAB
+                          if: ${{ steps.cache-MOAB.outputs.cache-hit }} != "true"
+                          run: |
+                                  wget https://ftp.mcs.anl.gov/pub/fathom/moab-5.2.1.tar.gz
+                                  gunzip "moab-5.2.1.tar.gz"
+                                  tar --file "moab-5.2.1.tar" --extract
+                                  cd "moab-5.2.1"
+                                  autoreconf --force --install
+                                  ./configure --prefix="${{ env.MOAB_INSTALL_PREFIX }}"
+                                  make --jobs
+                                  make install
 
         build-Catch2:
                 needs: [APT]
                 runs-on: ubuntu-latest
                 steps:
                         - name: cache-Catch2
+                          id: cache-Catch2
                           uses: actions/cache@v2.1.6
                           with:
                                   key: "${{ env.CATCH2_CACHE_KEY }}"
                                   path: "${{ env.CATCH2_INSTALL_PREFIX }}"
-                        - run: wget https://github.com/catchorg/Catch2/archive/v3.0.0-preview3.tar.gz
-                        - run: gunzip "v3.0.0-preview3.tar.gz"
-                        - run: tar --file "v3.0.0-preview3.tar" --extract
-                        - name: configure
-                          run: cmake -S "Catch2-3.0.0-preview3" -B "build" -DCMAKE_INSTALL_PREFIX="${{ env.CATCH2_INSTALL_PREFIX }}"
-                        - name: build
-                          run: cmake --build "build" --parallel
-                        - name: install
-                          run: cmake --install "build"
+                        - name: build-Catch2
+                          if: ${{ steps.cache-Catch2.outputs.cache-hit }} != "true"
+                          run: |
+                                  wget https://github.com/catchorg/Catch2/archive/v3.0.0-preview3.tar.gz
+                                  gunzip "v3.0.0-preview3.tar.gz"
+                                  tar --file "v3.0.0-preview3.tar" --extract
+                                  cmake -S "Catch2-3.0.0-preview3" -B "build" -DCMAKE_INSTALL_PREFIX="${{ env.CATCH2_INSTALL_PREFIX }}"
+                                  cmake --build "build" --parallel
+                                  cmake --install "build"
 
         build-MGARD:
                 needs: [build-MOAB, build-Catch2]
                 runs-on: ubuntu-latest
                 steps:
+                        - name: checkout
+                          uses: actions/checkout@v2.3.4
                         - name: fetch-MOAB
                           uses: actions/cache@v2.1.6
                           with:
                                   key: "${{ env.MOAB_CACHE_KEY }}"
                                   path: "${{ env.MOAB_INSTALL_PREFIX }}"
-                        - name: debug-MOAB
-                          run: find "${{ env.MOAB_INSTALL_PREFIX }}" -type f
                         - name: fetch-Catch2
                           uses: actions/cache@v2.1.6
                           with:
                                   key: "${{ env.CATCH2_CACHE_KEY }}"
                                   path: "${{ env.CATCH2_INSTALL_PREFIX }}"
-                        - name: debug-Catch2
-                          run: find "${{ env.CATCH2_INSTALL_PREFIX }}" -type f
-                        - name: cache-MGARD
-                          uses: actions/cache@v2.1.6
-                          with:
-                                  key: "${{ env.MGARD_CACHE_KEY }}"
-                                  path: "${{ env.MGARD_INSTALL_PREFIX }}"
-                        - name: checkout
-                          uses: actions/checkout@v2.3.4
+                        - name: debug-dependencies
+                          run: |
+                                  find "${{ env.MOAB_INSTALL_PREFIX }}" -type f
+                                  find "${{ env.CATCH2_INSTALL_PREFIX }}" -type f
                         - name: configure
                           run: cmake -S . -B "${{ env.MGARD_BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.MOAB_INSTALL_PREFIX }};${{ env.CATCH2_INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.MGARD_BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.MGARD_INSTALL_PREFIX }}"
                         - name: build
                           run: cmake --build "${{ env.MGARD_BUILD_DIR }}" --parallel
                         - name: install
                           run: cmake --install "${{ env.MGARD_BUILD_DIR }}"
+                        - name: cache-MGARD
+                          uses: actions/cache@v2.1.6
+                          with:
+                                  key: "${{ env.MGARD_CACHE_KEY }}"
+                                  path: "${{ env.MGARD_INSTALL_PREFIX }}"
+
         test:
                 needs: [build-MGARD]
                 runs-on: ubuntu-latest
