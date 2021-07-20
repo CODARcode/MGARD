@@ -80,7 +80,7 @@ jobs:
                         - name: build
                           run: cmake --build "${{ env.MGARD_BUILD_DIR }}" --parallel
                         - name: install
-                          run: cmake --build "${{ env.MGARD_BUILD_DIR }}" install
+                          run: cmake --install "${{ env.MGARD_BUILD_DIR }}"
         test:
                 needs: [build-MGARD]
                 runs-on: ubuntu-latest
