@@ -16,11 +16,10 @@ jobs:
                         - run: wget https://ftp.mcs.anl.gov/pub/fathom/moab-5.2.1.tar.gz
                         - run: gunzip "moab-5.2.1.tar.gz"
                         - run: tar --file "moab-5.2.1.tar" --extract
-                        - run: cd "moab-5.2.1"
-                        - run: autoreconf --force --install
-                        - run: ./configure --prefix="${HOME}/.local"
-                        - run: make --jobs 8
-                        - run: make install
+                        - run: autoreconf --force --install "moab-5.2.1"
+                        - run: cd "moab-5.2.1" && ./configure --prefix="${HOME}/.local"
+                        - run: make --directory "moab-5.2.1" --jobs
+                        - run: make --directory "moab-5.2.1" install
 
         build-cppcheck:
                 needs: [APT]
@@ -29,8 +28,7 @@ jobs:
                         - run: wget https://github.com/danmar/cppcheck/archive/2.3.tar.gz
                         - run: gunzip "2.3.tar.gz"
                         - run: tar --file "2.3.tar" --extract
-                        - run: cd "cppcheck-2.3"
-                        - run: cmake -S . -B "build" -DCMAKE_INSTALL_PREFIX="${HOME}/.local"
+                        - run: cmake -S "cppcheck-2.3" -B "build" -DCMAKE_INSTALL_PREFIX="${HOME}/.local"
                         - run: cmake --build "build" --parallel
                         - run: cmake --install "build"
 
@@ -41,8 +39,7 @@ jobs:
                         - run: wget https://github.com/catchorg/Catch2/archive/v3.0.0-preview3.tar.gz
                         - run: gunzip "v3.0.0-preview3.tar.gz"
                         - run: tar --file "v3.0.0-preview3.tar" --extract
-                        - run: cd "Catch2-3.0.0-preview3"
-                        - run: cmake -S . -B "build" -DCMAKE_INSTALL_PREFIX="${HOME}/.local"
+                        - run: cmake -S "Catch2-3.0.0-preview3" -B "build" -DCMAKE_INSTALL_PREFIX="${HOME}/.local"
                         - run: cmake --build "build" --parallel
                         - run: cmake --install "build"
 
