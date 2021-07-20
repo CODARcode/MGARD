@@ -22,17 +22,6 @@ jobs:
                         - run: make --directory "moab-5.2.1" --jobs
                         - run: make --directory "moab-5.2.1" install
 
-        build-cppcheck:
-                needs: [APT]
-                runs-on: ubuntu-latest
-                steps: 
-                        - run: wget https://github.com/danmar/cppcheck/archive/2.3.tar.gz
-                        - run: gunzip "2.3.tar.gz"
-                        - run: tar --file "2.3.tar" --extract
-                        - run: cmake -S "cppcheck-2.3" -B "build" -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_PREFIX }}"
-                        - run: cmake --build "build" --parallel
-                        - run: cmake --install "build"
-
         build-Catch2:
                 needs: [APT]
                 runs-on: ubuntu-latest
