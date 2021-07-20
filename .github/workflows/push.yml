@@ -1,0 +1,52 @@
+name: build-and-test
+on: [push]
+env:
+        INSTALL_PREFIX: "${HOME}/.local"
+        BUILD_TYPE: "Release"
+        BUILD_DIR: "${{ github.workspace }}/build"
+jobs:
+        APT:
+                runs-on: ubuntu-latest
+                steps:
+                        - run: sudo apt-get install mpich libmpich-dev autoconf autogen libtool liblapack-dev libzstd1 libzstd-dev libarchive-dev libyaml-cpp-dev libtclap-dev
+
+        build-MOAB:
+                needs: [APT]
+                runs-on: ubuntu-latest
+                steps:
+                        - run: wget https://ftp.mcs.anl.gov/pub/fathom/moab-5.2.1.tar.gz
+                        - run: gunzip "moab-5.2.1.tar.gz"
+                        - run: tar --file "moab-5.2.1.tar" --extract
+                        - run: autoreconf --force --install "moab-5.2.1"
+                        - run: cd "moab-5.2.1" && ./configure --prefix="${{ env.INSTALL_PREFIX }}"
+                        - run: make --directory "moab-5.2.1" --jobs
+                        - run: make --directory "moab-5.2.1" install
+
+        build-Catch2:
+                needs: [APT]
+                runs-on: ubuntu-latest
+                steps:
+                        - run: wget https://github.com/catchorg/Catch2/archive/v3.0.0-preview3.tar.gz
+                        - run: gunzip "v3.0.0-preview3.tar.gz"
+                        - run: tar --file "v3.0.0-preview3.tar" --extract
+                        - run: cmake -S "Catch2-3.0.0-preview3" -B "build" -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_PREFIX }}"
+                        - run: cmake --build "build" --parallel
+                        - run: cmake --install "build"
+
+        build-MGARD:
+                needs: [build-MOAB, build-Catch2]
+                runs-on: ubuntu-latest
+                steps:
+                        - name: checkout
+                          uses: actions/checkout@v2.3.4
+                        - name: search for dependencies
+                          run: find "${{ env.INSTALL_PREFIX }}" -iname '*.cmake'
+                        - name: configure
+                          run: cmake -S . -B "${{ env.BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_PREFIX }}"
+                        - name: build
+                          run: cmake --build "${{ env.BUILD_DIR }}" --parallel
+        test:
+                needs: [build-MGARD]
+                runs-on: ubuntu-latest
+                steps:
+                        - run: "${{ env.BUILD_DIR }}/bin/tests"
