@@ -22,7 +22,7 @@ jobs:
                                   path: "${{ env.MOAB_INSTALL_PREFIX }}"
                         - run: echo ${{ steps.cache-MOAB.outputs.cache-hit }}
                         - name: build-MOAB
-                          if: ${{ steps.cache-MOAB.outputs.cache-hit }} != "true"
+                          if: steps.cache-MOAB.outputs.cache-hit != 'true'
                           run: |
                                   wget https://ftp.mcs.anl.gov/pub/fathom/moab-5.2.1.tar.gz
                                   gunzip "moab-5.2.1.tar.gz"
@@ -44,7 +44,7 @@ jobs:
                                   path: "${{ env.CATCH2_INSTALL_PREFIX }}"
                         - run: echo ${{ steps.cache-Catch2.outputs.cache-hit }}
                         - name: build-Catch2
-                          if: ${{ steps.cache-Catch2.outputs.cache-hit }} != "true"
+                          if: steps.cache-Catch2.outputs.cache-hit != 'true'
                           run: |
                                   wget https://github.com/catchorg/Catch2/archive/v3.0.0-preview3.tar.gz
                                   gunzip "v3.0.0-preview3.tar.gz"
@@ -70,10 +70,6 @@ jobs:
                           with:
                                   key: "${{ env.CATCH2_CACHE_KEY }}"
                                   path: "${{ env.CATCH2_INSTALL_PREFIX }}"
-                        - name: debug-dependencies
-                          run: |
-                                  find "${{ env.MOAB_INSTALL_PREFIX }}" -type f
-                                  find "${{ env.CATCH2_INSTALL_PREFIX }}" -type f
                         - name: configure
                           run: cmake -S . -B "${{ env.MGARD_BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.MOAB_INSTALL_PREFIX }};${{ env.CATCH2_INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.MGARD_BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.MGARD_INSTALL_PREFIX }}"
                         - name: build
