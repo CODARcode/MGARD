@@ -7,7 +7,7 @@ jobs:
         APT:
                 runs-on: ubuntu-latest
                 steps:
-                        - run: sudo apt-get install mpich lipmpich-dev autoconf autogen libtool liblapack-dev libarchive-dev libyaml-cpp-dev libtclap-dev
+                        - run: sudo apt-get install mpich libmpich-dev autoconf autogen libtool liblapack-dev libarchive-dev libyaml-cpp-dev libtclap-dev
 
         build-MOAB:
                 needs: [APT]
