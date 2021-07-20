@@ -1,0 +1,10 @@
+add_executable (test_refactor test_refactor.cpp)
+target_include_directories(test_refactor PRIVATE "../include/progressive")
+message("../include")
+target_include_directories(test_refactor PRIVATE "../include")
+target_link_libraries(test_refactor PRIVATE mgard-library)
+
+add_executable (test_reconstructor test_reconstructor.cpp)
+target_include_directories(test_reconstructor PRIVATE "../include/progressive")
+target_include_directories(test_reconstructor PRIVATE "../include")
+target_link_libraries(test_reconstructor PRIVATE mgard-library)

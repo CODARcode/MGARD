@@ -510,6 +510,9 @@ else()
 	message("-- Will not build executable (dependencies not met).")
 endif()
 
+# Build tests for progressive MGARD
+add_subdirectory(progressive_tests)
+
 message("-- Configuration summary:")
 message("")
 message("  Installation prefix: ${CMAKE_INSTALL_PREFIX}")
