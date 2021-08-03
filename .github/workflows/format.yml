@@ -1,0 +1,18 @@
+name: format
+on: [push]
+env:
+        RCF_REPO_DIR: "run-clang-format"
+        MGARD_REPO_DIR: "MGARD"
+jobs:
+        clang-format:
+                runs-on: ubuntu-latest
+                steps:
+                        - run: sudo apt-get install clang-format-6.0
+                        - uses: actions/checkout@v2.3.4
+                          with:
+                                  repository: Sarcasm/run-clang-format
+                                  path: "${{ env.RCF_REPO_DIR }}"
+                        - uses: actions/checkout@v2.3.4
+                          with:
+                                  path: "${{ env.MGARD_REPO_DIR }}"
+                        - run: "\"${{ env.RCF_REPO_DIR }}/run-clang-format.py\" --clang-format-executable \"$(which clang-format-6.0)\" --extensions c,h,cpp,hpp,tpp --recursive \"${{ env.MGARD_REPO_DIR }}\""
