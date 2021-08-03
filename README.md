@@ -1,11 +1,13 @@
-# MGARD [![Build Status][travis status]][travis]
+# MGARD [![build status][push workflow badge]][push workflow] [![format status][format workflow badge]][format workflow]
 
 MGARD (MultiGrid Adaptive Reduction of Data) is a technique for multilevel lossy compression of scientific data based on the theory of multigrid methods.
 This is an experimental C++ implementation for integration with existing software; use at your own risk!
 We encourage you to [make a GitHub issue][issue form] if you run into any problems using MGARD, have any questions or suggestions, etc.
 
-[travis]: https://travis-ci.org/CODARcode/MGARD
-[travis status]: https://travis-ci.org/CODARcode/MGARD.svg?branch=master
+[push workflow]: https://github.com/CODARcode/MGARD/actions/workflows/build.yml
+[push workflow badge]: https://github.com/CODARcode/MGARD/actions/workflows/build.yml/badge.svg
+[format workflow]: https://github.com/CODARcode/MGARD/actions/workflows/format.yml
+[format workflow badge]: https://github.com/CODARcode/MGARD/actions/workflows/format.yml/badge.svg
 [issue form]: https://github.com/CODARcode/MGARD/issues/new/choose
 
 ## Building and Installing
