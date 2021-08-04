@@ -209,62 +209,70 @@ find_package(ZLIB REQUIRED)
 find_package(ZSTD)
 find_package(MOAB)
 
-set(MGARD_MOAB_HEADER
-include/blas.hpp
-include/utilities.hpp
-include/data.hpp
-include/UniformEdgeFamilies.hpp
-include/LinearQuantizer.hpp
-include/SituatedCoefficientRange.hpp
-include/MultilevelCoefficientQuantizer.hpp
+set(
+	MGARD_MOAB_HPP
+	include/blas.hpp
+	include/utilities.hpp
+	include/data.hpp
+	include/UniformEdgeFamilies.hpp
+	include/LinearQuantizer.hpp
+	include/SituatedCoefficientRange.hpp
+	include/MultilevelCoefficientQuantizer.hpp
 
-include/measure.hpp
-include/LinearOperator.hpp
-include/pcg.hpp
-include/MassMatrix.hpp
-include/MeshLevel.hpp
-include/MeshHierarchy.hpp
-include/MeshRefiner.hpp
-include/UniformMeshRefiner.hpp
-include/UniformMeshHierarchy.hpp
-include/UniformRestriction.hpp
-include/norms.hpp
-include/estimators.hpp
-include/EnumeratedMeshRange.hpp
-include/indicators.hpp
-include/IndicatorInput.hpp
+	include/measure.hpp
+	include/LinearOperator.hpp
+	include/pcg.hpp
+	include/MassMatrix.hpp
+	include/MeshLevel.hpp
+	include/MeshHierarchy.hpp
+	include/MeshRefiner.hpp
+	include/UniformMeshRefiner.hpp
+	include/UniformMeshHierarchy.hpp
+	include/UniformRestriction.hpp
+	include/norms.hpp
+	include/estimators.hpp
+	include/EnumeratedMeshRange.hpp
+	include/indicators.hpp
+	include/IndicatorInput.hpp
 )
-set(MGARD_MOAB_TEMPLATE_DEFINITION
-include/blas.tpp
-include/utilities.tpp
-include/data.tpp
-include/UniformEdgeFamilies.tpp
-include/LinearQuantizer.tpp
-include/SituatedCoefficientRange.tpp
-include/MultilevelCoefficientQuantizer.tpp
+set(
+	MGARD_MOAB_TPP
+	include/blas.tpp
+	include/utilities.tpp
+	include/data.tpp
+	include/UniformEdgeFamilies.tpp
+	include/LinearQuantizer.tpp
+	include/SituatedCoefficientRange.tpp
+	include/MultilevelCoefficientQuantizer.tpp
 )
-set(MGARD_MOAB_SOURCE
-src/measure.cpp
-src/LinearOperator.cpp
-src/pcg.cpp
-src/MassMatrix.cpp
-src/MeshLevel.cpp
-src/MeshHierarchy.cpp
-src/MeshRefiner.cpp
-src/UniformMeshRefiner.cpp
-src/UniformMeshHierarchy.cpp
-src/UniformRestriction.cpp
-src/norms.cpp
-src/estimators.cpp
-src/EnumeratedMeshRange.cpp
-src/indicators.cpp
-src/IndicatorInput.cpp
+set(
+	MGARD_MOAB_CPP
+	src/measure.cpp
+	src/LinearOperator.cpp
+	src/pcg.cpp
+	src/MassMatrix.cpp
+	src/MeshLevel.cpp
+	src/MeshHierarchy.cpp
+	src/MeshRefiner.cpp
+	src/UniformMeshRefiner.cpp
+	src/UniformMeshHierarchy.cpp
+	src/UniformRestriction.cpp
+	src/norms.cpp
+	src/estimators.cpp
+	src/EnumeratedMeshRange.cpp
+	src/indicators.cpp
+	src/IndicatorInput.cpp
+)
+set(
+	MGARD_LIBRARY_CPP
+	src/compressors.cpp
 )
 
-# Set library
-add_library(mgard-library STATIC
-  src/compressors.cpp  include/compressors.hpp
-  ${MGARD_CUDA_SRC}   ${MGARD_CUDA_HEADER}
+add_library(
+	mgard-library
+	STATIC
+	${MGARD_LIBRARY_CPP}
+	${MGARD_CUDA_SRC}
 )
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
@@ -294,7 +302,7 @@ target_include_directories(mgard-library
 )
 target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
 if (MOAB_FOUND)
-	target_sources(mgard-library PRIVATE ${MGARD_MOAB_HEADER} ${MGARD_MOAB_TEMPLATE_DEFINITION} ${MGARD_MOAB_SOURCE})
+	target_sources(mgard-library PRIVATE ${MGARD_MOAB_CPP})
 	target_link_libraries(mgard-library PUBLIC MOAB::MOAB)
 endif()
 if(ZSTD_FOUND)
@@ -331,62 +339,85 @@ install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp" DESTINATION "${CMA
 install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 
 #It would be better if these took `MOAB_FOUND` into account.
-set(MGARD_TESTS_HEADER
-tests/include/testing_random.hpp
-tests/include/testing_utilities.hpp
+set(
+	MGARD_TESTS_HPP
+	tests/include/testing_random.hpp
+	tests/include/testing_utilities.hpp
 )
-set(MGARD_TESTS_TEMPLATE_DEFINITION
-tests/include/testing_random.tpp
-tests/include/testing_utilities.tpp
+set(
+	MGARD_TESTS_TPP
+	tests/include/testing_random.tpp
+	tests/include/testing_utilities.tpp
 )
-set(MGARD_TESTS_SOURCE
-tests/src/testing_utilities.cpp
-tests/src/test_blas.cpp
-tests/src/test_estimators.cpp
-tests/src/test_indicators.cpp
-tests/src/test_norms.cpp
-tests/src/test_data.cpp
-tests/src/test_pcg.cpp
-tests/src/test_measure.cpp
-tests/src/test_utilities.cpp
-tests/src/test_MeshLevel.cpp
-tests/src/test_MeshHierarchy.cpp
-tests/src/test_MeshRefiner.cpp
-tests/src/test_LinearOperator.cpp
-tests/src/test_MassMatrix.cpp
-tests/src/test_LinearQuantizer.cpp
-tests/src/test_UniformMeshHierarchy.cpp
-tests/src/test_UniformMeshRefiner.cpp
-tests/src/test_UniformEdgeFamilies.cpp
-tests/src/test_UniformRestriction.cpp
-tests/src/test_EnumeratedMeshRange.cpp
-tests/src/test_SituatedCoefficientRange.cpp
-tests/src/test_IndicatorInput.cpp
-tests/src/test_MultilevelCoefficientQuantizer.cpp
-tests/src/test_shuffle.cpp
-tests/src/test_TensorMeshHierarchy.cpp
-tests/src/test_TensorMeshHierarchyIteration.cpp
-tests/src/test_TensorLinearOperator.cpp
-tests/src/test_TensorMassMatrix.cpp
-tests/src/test_TensorProlongation.cpp
-tests/src/test_TensorRestriction.cpp
-tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
-tests/src/test_TensorNorms.cpp
-tests/src/test_TensorQuantityOfInterest.cpp
-tests/src/test_compress.cpp
-tests/src/test_decompose.cpp
+set(
+	MGARD_TESTS_CPP
+	tests/src/testing_utilities.cpp
+	tests/src/test_blas.cpp
+	tests/src/test_estimators.cpp
+	tests/src/test_indicators.cpp
+	tests/src/test_norms.cpp
+	tests/src/test_data.cpp
+	tests/src/test_pcg.cpp
+	tests/src/test_measure.cpp
+	tests/src/test_utilities.cpp
+	tests/src/test_MeshLevel.cpp
+	tests/src/test_MeshHierarchy.cpp
+	tests/src/test_MeshRefiner.cpp
+	tests/src/test_LinearOperator.cpp
+	tests/src/test_MassMatrix.cpp
+	tests/src/test_LinearQuantizer.cpp
+	tests/src/test_UniformMeshHierarchy.cpp
+	tests/src/test_UniformMeshRefiner.cpp
+	tests/src/test_UniformEdgeFamilies.cpp
+	tests/src/test_UniformRestriction.cpp
+	tests/src/test_EnumeratedMeshRange.cpp
+	tests/src/test_SituatedCoefficientRange.cpp
+	tests/src/test_IndicatorInput.cpp
+	tests/src/test_MultilevelCoefficientQuantizer.cpp
+	tests/src/test_shuffle.cpp
+	tests/src/test_TensorMeshHierarchy.cpp
+	tests/src/test_TensorMeshHierarchyIteration.cpp
+	tests/src/test_TensorLinearOperator.cpp
+	tests/src/test_TensorMassMatrix.cpp
+	tests/src/test_TensorProlongation.cpp
+	tests/src/test_TensorRestriction.cpp
+	tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
+	tests/src/test_TensorNorms.cpp
+	tests/src/test_TensorQuantityOfInterest.cpp
+	tests/src/test_compress.cpp
+	tests/src/test_decompose.cpp
+)
+
+set(
+	MGARD_EXECUTABLE_HPP
+	include/arguments.hpp
+	include/cmdline.hpp
+	include/metadata.hpp
+	include/output.hpp
+)
+set(
+	MGARD_EXECUTABLE_TPP
+	include/arguments.tpp
+)
+set(
+	MGARD_EXECUTABLE_CPP
+	src/arguments.cpp
+	src/cmdline.cpp
+	src/executable.cpp
+	src/metadata.cpp
+	src/output.cpp
+)
+
+set(
+	MGARD_BENCHMARK_CPP
+	src/benchmarks.cpp
 )
 
 find_package(Catch2)
 
 if(Catch2_FOUND)
 	configure_file("tests/include/testing_paths.hpp.in" "include/testing_paths.hpp")
-
-	add_executable(mgard-tests
-${MGARD_TESTS_HEADER}
-${MGARD_TESTS_TEMPLATE_DEFINITION}
-${MGARD_TESTS_SOURCE}
-	)
+	add_executable(mgard-tests ${MGARD_TESTS_CPP})
 	target_include_directories(mgard-tests PRIVATE tests/include "${CMAKE_CURRENT_BINARY_DIR}/include")
 	target_link_libraries(mgard-tests PRIVATE mgard-library Catch2::Catch2WithMain)
 	set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
@@ -467,7 +498,7 @@ install(
 find_package(benchmark)
 
 if(benchmark_FOUND)
-	add_executable(mgard-benchmarks src/benchmarks.cpp)
+	add_executable(mgard-benchmarks ${MGARD_BENCHMARK_CPP})
 	target_link_libraries(mgard-benchmarks PRIVATE benchmark::benchmark benchmark::benchmark_main mgard-library)
 	set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
 else()
@@ -479,18 +510,7 @@ find_package(archive)
 find_package(TCLAP)
 
 if (yaml-cpp_FOUND AND archive_FOUND AND TCLAP_FOUND)
-	add_executable(
-		mgard-executable
-		src/executable.cpp
-		src/arguments.cpp
-		include/arguments.hpp
-		src/metadata.cpp
-		include/metadata.hpp
-		src/cmdline.cpp
-		include/cmdline.hpp
-		src/output.cpp
-		include/output.hpp
-	)
+	add_executable(mgard-executable ${MGARD_EXECUTABLE_CPP})
 	target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
 	target_link_libraries(mgard-executable PRIVATE mgard-library yaml-cpp::yaml-cpp archive::archive TCLAP::TCLAP)
 	set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
