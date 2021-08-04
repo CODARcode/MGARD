@@ -25,9 +25,9 @@ $ cmake --install build
 
 ### GPU Acceleration
 
-Detailed instructions for using MGARD with GPU acceleration can be found [here][gpu].
+Detailed instructions for using MGARD with GPU acceleration can be found [here][gpu instructions].
 
-[gpu]: README_MGARD_GPU.md
+[gpu instructions]: README_MGARD_GPU.md
 
 ## Including and Linking
 
