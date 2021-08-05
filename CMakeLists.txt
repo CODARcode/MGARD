@@ -413,6 +413,28 @@ set(
 	src/benchmarks.cpp
 )
 
+find_program(DOXYGEN NAMES "doxygen")
+
+set(
+	MGARD_DOC_PAGES
+	doc/MGARD-GPU.md
+	examples/basic/README.md
+)
+
+if(NOT DOXYGEN STREQUAL "DOXYGEN-NOTFOUND")
+	list(JOIN MGARD_EXECUTABLE_HPP " " MGARD_EXECUTABLE_HPP_JOINED)
+	list(JOIN MGARD_DOC_PAGES " " MGARD_DOC_PAGES_JOINED)
+	configure_file(".doxygen.in" ".doxygen")
+	add_custom_target(
+		mgard-documentation
+		COMMAND "${DOXYGEN}" "${CMAKE_CURRENT_BINARY_DIR}/.doxygen"
+		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/README.md"
+	)
+else()
+	message("-- Will not build documentation (dependencies not met).")
+endif()
+
 find_package(Catch2)
 
 if(Catch2_FOUND)

@@ -27,7 +27,7 @@ $ cmake --install build
 
 Detailed instructions for using MGARD with GPU acceleration can be found [here][gpu instructions].
 
-[gpu instructions]: README_MGARD_GPU.md
+[gpu instructions]: doc/MGARD-GPU.md
 
 ## Including and Linking
 
@@ -39,7 +39,7 @@ If you're using CMake, you can call `find_package(mgard)` and add a dependency t
 See [the examples directory][examples] for a basic example.
 
 [api]: include/compress.hpp
-[examples]: examples/
+[examples]: examples/basic/README.md
 
 ## Command Line Interface
 
