@@ -1,3 +1,5 @@
+# Basic Compression Example
+
 To build and run this example, build and install MGARD and then run the following in the directory containing this file.
 
 ```console
