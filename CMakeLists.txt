@@ -414,6 +414,7 @@ set(
 )
 
 find_program(DOXYGEN NAMES "doxygen")
+find_program(SED NAMES "sed")
 
 set(
 	MGARD_DOC_PAGES
@@ -421,9 +422,19 @@ set(
 	examples/basic/README.md
 )
 
-if(NOT DOXYGEN STREQUAL "DOXYGEN-NOTFOUND")
+if(NOT DOXYGEN STREQUAL "DOXYGEN-NOTFOUND" AND NOT SED STREQUAL "SED-NOTFOUND")
 	list(JOIN MGARD_EXECUTABLE_HPP " " MGARD_EXECUTABLE_HPP_JOINED)
 	list(JOIN MGARD_DOC_PAGES " " MGARD_DOC_PAGES_JOINED)
+	#Get rid of the workflow status badges.
+	add_custom_command(
+		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/README.md"
+		COMMAND "${SED}"
+		ARGS
+			"--expression" "s/\\\\s*\\\\[!\\\\[[^]]\\\\+\\\\]\\\\[[^]]\\\\+\\\\]\\\\]\\\\[[^]]\\\\+\\\\]//g"
+			"<" "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
+			">" "${CMAKE_CURRENT_BINARY_DIR}/README.md"
+		DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
+	)
 	configure_file(".doxygen.in" ".doxygen")
 	add_custom_target(
 		mgard-documentation
