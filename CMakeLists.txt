@@ -335,8 +335,7 @@ set_target_properties(mgard-library PROPERTIES
 install(TARGETS mgard-library EXPORT mgard-targets)
 
 install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
-
-install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
+install(DIRECTORY "include/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 
 #It would be better if these took `MOAB_FOUND` into account.
 set(
@@ -419,7 +418,9 @@ find_program(SED NAMES "sed")
 set(
 	MGARD_DOC_PAGES
 	doc/MGARD-GPU.md
-	examples/basic/README.md
+	examples/README.md
+	examples/linking/README.md
+	examples/compression/README.md
 )
 
 if(NOT DOXYGEN STREQUAL "DOXYGEN-NOTFOUND" AND NOT SED STREQUAL "SED-NOTFOUND")
@@ -438,10 +439,12 @@ if(NOT DOXYGEN STREQUAL "DOXYGEN-NOTFOUND" AND NOT SED STREQUAL "SED-NOTFOUND")
 	configure_file(".doxygen.in" ".doxygen")
 	add_custom_target(
 		mgard-documentation
+		ALL
 		COMMAND "${DOXYGEN}" "${CMAKE_CURRENT_BINARY_DIR}/.doxygen"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/README.md"
 	)
+	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/html/" TYPE DOC)
 else()
 	message("-- Will not build documentation (dependencies not met).")
 endif()
