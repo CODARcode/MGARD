@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(basic)
+project(linking LANGUAGES CXX)
 
 add_executable(main src/main.cpp)
 

@@ -39,7 +39,7 @@ If you're using CMake, you can call `find_package(mgard)` and add a dependency t
 See [the examples directory][examples] for a basic example.
 
 [api]: include/compress.hpp
-[examples]: examples/basic/README.md
+[examples]: examples/README.md
 
 ## Command Line Interface
 
