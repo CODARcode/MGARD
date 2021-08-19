@@ -6,7 +6,7 @@ PROJECT_NAME           = "MGARD"
 PROJECT_NUMBER         = @MGARD_VERSION@
 PROJECT_BRIEF          = "MultiGrid Adaptive Reduction of Data"
 PROJECT_LOGO           =
-OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/doc
+OUTPUT_DIRECTORY       = "@PROJECT_BINARY_DIR@/doxygen"
 
 #---------------------------------------------------------------------------
 # Build related configuration options
@@ -33,11 +33,11 @@ WARN_AS_ERROR          = YES
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
 
-INPUT                  = include @CMAKE_CURRENT_BINARY_DIR@/README.md @MGARD_DOC_PAGES_JOINED@
+INPUT                  = include @MGARD_DOC_PAGES_JOINED@
 RECURSIVE              = YES
 FILE_PATTERNS          = *.h *.hpp
 EXCLUDE                = include/cuda @MGARD_EXECUTABLE_HPP_JOINED@
-USE_MDFILE_AS_MAINPAGE = @CMAKE_CURRENT_BINARY_DIR@/README.md
+USE_MDFILE_AS_MAINPAGE = @MGARD_DOC_MAINPAGE@
 
 #---------------------------------------------------------------------------
 # Configuration options related to the HTML output
