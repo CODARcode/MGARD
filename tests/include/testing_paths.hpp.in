@@ -1,6 +1,7 @@
 #ifndef TESTING_PATHS_HPP
 #define TESTING_PATHS_HPP
-//!\file  Filesystem paths used by the tests.
+//!\file
+//!\brief Filesystem paths used by the tests.
 
 #include <string>
 
