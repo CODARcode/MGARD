@@ -1,0 +1,13 @@
+==============================================================================================
+RUN TestXGCBasic.cpp
+mpirun -np 32 ./TestXGCBasic /gpfs/alpine/proj-shared/csc143/gongq/andes/MReduction/MGARD-SMC/ d3d_coarse_v2_700.bp 4 1e14 0
+
+==============================================================================================
+RUN TestXGC5DTemporal.cpp 
+mpirun -np 32 ./TestXGC5DTemporal /gpfs/alpine/proj-shared/csc143/gongq/andes/MReduction/MGARD-SMC/ d3d_coarse_v2_700.bp 1e14 0 8
+
+==============================================================================================
+./CalcSnormDensity /gpfs/alpine/proj-shared/csc143/gongq/andes/MReduction/MGARD-SMC/xgc.f0.mesh.bp
+
+==============================================================================================
+./TestXGC4DNonuniform /gpfs/alpine/proj-shared/csc143/gongq/andes/MReduction/MGARD-SMC/ d3d_coarse_v2_700.bp 1e14 0

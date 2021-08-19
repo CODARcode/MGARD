@@ -19,8 +19,6 @@ void FileWriter_ad(const char *filename, Type *data, std::vector<size_t> global_
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     adios2::ADIOS ad(MPI_COMM_WORLD);
     adios2::IO bpIO = ad.DeclareIO("WriteBP_File");
-    std::cout << "processor " << rank << ": {" << global_dim[0] << ", " << global_dim[1] << ", " << global_dim[2] << ", " << global_dim[3] << "}, {";
-    std::cout << local_dim[0] << ", " <<local_dim[1] << ", " << local_dim[2] << ", " << local_dim[3] << "}, " << para_dim*rank << "\n";
     adios2::Variable<Type> bp_fdata = bpIO.DefineVariable<Type>(
           "i_f_4d", global_dim, {0, para_dim*rank, 0, 0}, local_dim,  adios2::ConstantDims);
     // Engine derived class, spawned to start IO operations //
@@ -29,22 +27,46 @@ void FileWriter_ad(const char *filename, Type *data, std::vector<size_t> global_
     bpFileWriter.Close();
 }
 
+template<typename Type>
+void CheckReconstruction(Type *ori_buff, Type *rct_buff, double tol, 
+        size_t local_sz)
+{
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    double gb_L_inf, error_L_inf_norm = 0;
+    double gb_L2, error_L2 = 0;
+    for (size_t it=0; it<local_sz; it++) {
+        double temp = fabs(ori_buff[it] - rct_buff[it]);
+        if (temp > error_L_inf_norm)
+            error_L_inf_norm = temp;
+        error_L2 += temp * temp;
+    }
+    error_L2 = sqrt(error_L2/local_sz);
+    MPI_Allreduce(&error_L2, &gb_L2, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&error_L_inf_norm, &gb_L_inf, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    if (rank==0) {
+        if (gb_L2 < tol) {
+            printf("SUCCESS: Error tolerance met!...requested %f, measured L2=%f, L-inf=%f\n", tol, gb_L2, gb_L_inf);
+        } else {
+            printf("FAILURE: Error tolerance NOT met!...requested %f, measured L2= %f, L-inf=%f\n", tol, gb_L2, gb_L_inf);
+        }
+    }
+}
+
 // MPI parallelize the second dimension -- # of mesh nodes 
-// abs or rel
 // argv[1]: data path
 // argv[2]: filename
 // argv[3]: compression dimension 
-// argv[4]: rel or abs
-// argv[5]: eb
-// agrv[6]: snorm
+// argv[4]: eb
+// agrv[5]: snorm
 // XGC data: n_phi x n_nodes x vx x vy
 int main(int argc, char **argv) {
-    if (argc != 7) {
+    if (argc != 6) {
         printf("Inputs: \n");
         printf("-- data files directory\n");
         printf("-- data file prefix (suffix is the timestep, 0, 1, 2, ...)\n");
-		printf("-- Dimensions used for compression\n\n");
-        printf("-- rel (relative eb) or abs (absolute eb)\n");
+		printf("-- Dimensions used for compression\n");
         printf("-- eb \n");
         printf("-- snorm (default is 0)\n");
         return -1;
@@ -59,9 +81,8 @@ int main(int argc, char **argv) {
     strcpy(datapath, argv[++nargv]);
     strcpy(filename, argv[++nargv]);
 	sprintf(readin_f, "%s%s", datapath, filename);
-	sprintf(write_f, "%s%s", filename, ".mgard.bp");
+	sprintf(write_f, "%s%s", filename, ".mgard");
 	int D      = atoi(argv[++nargv]);
-    bool rel   = (strcmp(argv[++nargv], "rel") == 0);
 	double tol = atof(argv[++nargv]);
     double s_norm = atof(argv[++nargv]);
     
@@ -83,11 +104,7 @@ int main(int argc, char **argv) {
             printf("%lu ", shape[d]);
         }
         printf(")\n");
-        if (rel) {
-            printf("Relative error tolerance = %f\n", tol);
-        } else {
-            printf("Absolute error tolerance = %f\n", tol);
-        }
+        printf("Absolute error tolerance = %f\n", tol);
         printf("Snorm: %f\n", s_norm);
 		printf("XGC data shape: {%ld, %ld, %ld, %ld}\n", shape[0], shape[1], shape[2], shape[3]);
 		switch (D) {
@@ -111,7 +128,6 @@ int main(int argc, char **argv) {
 	    MPI_Finalize();
 		return -1;
 	}
-    double abs_tol = rel ? log(1+tol) : tol;
 
     size_t temp_dim  = (size_t)ceil((float)shape[1]/np_size);
     size_t local_dim = ((rank==np_size-1) ? (shape[1]-temp_dim*rank) : temp_dim);
@@ -123,10 +139,6 @@ int main(int argc, char **argv) {
     std::vector<double> i_f;
     reader.Get<double>(var_i_f_in, i_f);
     reader.Close();
-    if (rel) {
-        for (size_t it=0; it < local_sz; it++) 
-            i_f.at(it) = log(i_f.at(it));
-    }
     if (rank == 0) {
         printf("begin compression...\n");
 	}
@@ -135,55 +147,40 @@ int main(int argc, char **argv) {
 	double *mgard_out_buff;
 	if (D == 2) {
 		const mgard::TensorMeshHierarchy<2, double> hierarchy({shape[0]*local_dim, shape[2]*shape[3]});
-        const mgard::CompressedDataset<2, double> compressed = mgard::compress(hierarchy, i_f.data(), s_norm, abs_tol);
+        const mgard::CompressedDataset<2, double> compressed = mgard::compress(hierarchy, i_f.data(), s_norm, tol);
         compressed_sz = compressed.size();
+        if (rank==0) printf("begin decompression...\n");
         const mgard::DecompressedDataset<2, double> decompressed = mgard::decompress(compressed);
-		mgard_out_buff = (double *)decompressed.data();
+        mgard_out_buff = (double *)decompressed.data();
+        CheckReconstruction(i_f.data(), mgard_out_buff, tol, local_sz);
+        FileWriter_ad(write_f, mgard_out_buff, {shape[0], shape[1], shape[2], shape[3]}, {shape[0], local_dim, shape[2], shape[3]}, temp_dim);
+        
 	} else if (D == 3) {
 		const mgard::TensorMeshHierarchy<3, double> hierarchy({shape[0]*local_dim, shape[2], shape[3]});
-		const mgard::CompressedDataset<3, double> compressed = mgard::compress(hierarchy, i_f.data(), s_norm, abs_tol);
+		const mgard::CompressedDataset<3, double> compressed = mgard::compress(hierarchy, i_f.data(), s_norm, tol);
         compressed_sz = compressed.size();
+        if (rank==0) printf("begin decompression...\n");
         const mgard::DecompressedDataset<3, double> decompressed = mgard::decompress(compressed);
-		mgard_out_buff = (double *)decompressed.data();
+        mgard_out_buff = (double *)decompressed.data();
+  	    CheckReconstruction(i_f.data(), mgard_out_buff, tol, local_sz);
+        FileWriter_ad(write_f, mgard_out_buff, {shape[0], shape[1], shape[2], shape[3]}, {shape[0], local_dim, shape[2], shape[3]}, temp_dim);	
 	} else if (D == 4) {
 		const mgard::TensorMeshHierarchy<4, double> hierarchy({shape[0], local_dim, shape[2], shape[3]});
-	    const mgard::CompressedDataset<4, double> compressed = mgard::compress(hierarchy, i_f.data(), s_norm, abs_tol);
+	    const mgard::CompressedDataset<4, double> compressed = mgard::compress(hierarchy, i_f.data(), s_norm, tol);
         compressed_sz = compressed.size();
+        if (rank==0) printf("begin decompression...\n");
         const mgard::DecompressedDataset<4, double> decompressed = mgard::decompress(compressed);
-		mgard_out_buff = (double *)decompressed.data();
+        mgard_out_buff = (double *)decompressed.data();
+	    CheckReconstruction(i_f.data(), mgard_out_buff, tol, local_sz);
+        if (rank ==0) printf("%s\n", write_f);
+        FileWriter_ad(write_f, mgard_out_buff, {shape[0], shape[1], shape[2], shape[3]}, {shape[0], local_dim, shape[2], shape[3]}, temp_dim);	
 	}
 	MPI_Allreduce(&compressed_sz, &gb_compressed, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
-	double data_L_inf_norm = 0;
-	if (rel) {
-        for (size_t it=0; it<local_sz; it++) {
-            mgard_out_buff[it] = exp(mgard_out_buff[it]);
-			double temp = fabs(i_f.data()[it]);
-			if (data_L_inf_norm < temp) 
-				data_L_inf_norm = temp;
-		}
-    }
-	double error_L_inf_norm = 0;
-	for (size_t it=0; it<local_sz; it++) {
-		double temp = fabs(i_f.data()[it] - mgard_out_buff[it]);
-		if (temp > error_L_inf_norm) 
-			error_L_inf_norm = temp;
-	}
-    if (rel) {
-        error_L_inf_norm = error_L_inf_norm / data_L_inf_norm;
-    }
-	if (error_L_inf_norm < tol) {
-		printf("SUCCESS: Error tolerance met!\n");
-	} else {
-		printf("FAILURE: Error tolerance NOT met!\n");
-		MPI_Finalize();
-		return -1;
-	}
     MPI_Barrier(MPI_COMM_WORLD);
 	if (rank == 0) {
-		printf("Compression ratio = %.3f\n", ((double)shape[0]*shape[1]*shape[2]*shape[3]) / gb_compressed);
+        printf("finish...\n");
+		printf("Compression ratio = %.3f\n", ((double)8.0*shape[0]*shape[1]*shape[2]*shape[3]) / gb_compressed);
 	}
-    FileWriter_ad(write_f, mgard_out_buff, {shape[0], shape[1], shape[2], shape[3]}, {shape[0], local_dim, shape[2], shape[3]}, temp_dim);
-	free(mgard_out_buff);
     MPI_Finalize();
 	return 0;
 }
