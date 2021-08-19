@@ -1,4 +1,4 @@
-#include </Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/math.h>
+#include <math.h>
 #include <fstream>
 #include <iostream>
 #include <vector>
