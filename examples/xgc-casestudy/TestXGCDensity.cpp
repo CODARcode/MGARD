@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     strcpy(filename, argv[++nargv]);
     sprintf(readin_f, "%s%s", datapath, filename);
 	sprintf(snorm_f, "%s%s", datapath, argv[++nargv]);
-    sprintf(write_f, "%s%s", filename, ".mgard.bp");
+    sprintf(write_f, "%s%s", filename, ".mgard");
     double tol = atof(argv[++nargv]);
 
     unsigned char *compressed_data = 0;

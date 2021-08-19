@@ -34,12 +34,10 @@ void FileWriter_ad(const char *filename, Type *data, std::vector<size_t> global_
     bpFileWriter.Close();
 }
 
-// abs or rel
 // argv[1]: data path
 // argv[2]: filename
-// argv[3]: rel or abs
-// argv[4]: eb
-// agrv[5]: snorm
+// argv[3]: eb
+// agrv[4]: snorm
 // XGC data: n_phi x n_nodes x vx x vy
 // Require xgc.f0.mesh.bp file located in the same folder as the data file 
 int main(int argc, char **argv) {
@@ -49,11 +47,9 @@ int main(int argc, char **argv) {
     strcpy(datapath, argv[++nargv]);
     strcpy(filename, argv[++nargv]);
     sprintf(readin_f, "%s%s", datapath, filename);
-    sprintf(write_f, "%s%s", filename, ".mgard.non.bp");
-    bool rel   = (strcmp(argv[++nargv], "rel") == 0);
+    sprintf(write_f, "%s%s", filename, ".mgard.non");
     double tol = atof(argv[++nargv]);
     double s_norm = atof(argv[++nargv]);
-	double abs_tol = rel ? log(1+tol) : tol;
 
 	unsigned char *compressed_data = 0;
 
@@ -69,18 +65,10 @@ int main(int argc, char **argv) {
     reader.Get<double>(var_i_f_in, i_f);
     reader.Close();
     size_t num_elements = shape[0]*shape[1]*shape[2]*shape[3];
-    if (rel) {
-        for (size_t it=0; it < num_elements; it++)
-            i_f.at(it) = log(i_f.at(it));
-    }
 
     printf("Read in: %s\n", readin_f);
     printf(" XGC data shape: (%ld, %ld, %ld, %ld)\n ", shape[0], shape[1], shape[2], shape[3]);
-	if (rel) {
-        printf("Relative error tolerance = %f\n", tol);
-    } else {
-        printf("Absolute error tolerance = %f\n", tol);
-    }
+    printf("Absolute error tolerance = %f\n", tol);
 	printf("Snorm: %f\n", s_norm);
 	printf("This program requires a xgc.f0.mesh.bp file for the non-uniform coordinates\n");
 
@@ -119,37 +107,12 @@ int main(int argc, char **argv) {
     const std::array<std::size_t, 4> dims = {shape[0], shape[1], shape[2], shape[3]};
     const mgard::TensorMeshHierarchy<4, double> hierarchy(dims, coords);
     const size_t ndof = hierarchy.ndof();
-    const mgard::CompressedDataset<4, double> compressed = mgard::compress(hierarchy, i_f.data(), s_norm, abs_tol); 
+    const mgard::CompressedDataset<4, double> compressed = mgard::compress(hierarchy, i_f.data(), s_norm, tol); 
     const mgard::DecompressedDataset<4, double> decompressed = mgard::decompress(compressed);
     size_t compressed_sz = compressed.size();
-	printf("Compression ratio: %.2f\n", ((double)num_elements) / compressed.size());
-	double data_L_inf_norm = 0;
-	double *mgard_out_buff = (double *)decompressed.data();
-    if (rel) {
-        for (size_t it=0; it<num_elements; it++) {
-            mgard_out_buff[it] = exp(mgard_out_buff[it]);
-            double temp = fabs(i_f.data()[it]);
-            if (data_L_inf_norm < temp)
-                data_L_inf_norm = temp;
-        }
-    }
-    double error_L_inf_norm = 0;
-    for (size_t it=0; it<num_elements; it++) {
-        double temp = fabs(i_f.data()[it] - mgard_out_buff[it]);
-        if (temp > error_L_inf_norm)
-            error_L_inf_norm = temp;
-    }
-    if (rel) {
-        error_L_inf_norm = error_L_inf_norm / data_L_inf_norm;
-    }
-    if (error_L_inf_norm < tol) {
-        printf("SUCCESS: Error tolerance met!\n");
-    } else {
-        printf("FAILURE: Error tolerance NOT met!\n");
-        MPI_Finalize();
-        return -1;
-    }
+	printf("Compression ratio: %.2f\n", ((double)8.0*num_elements) / compressed.size());
 
     FileWriter_ad(write_f, (double *)decompressed.data(), {shape[0], shape[1], shape[2], shape[3]});
 
+    return 0;
 }

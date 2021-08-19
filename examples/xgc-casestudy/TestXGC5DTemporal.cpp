@@ -32,19 +32,42 @@ void FileWriter_ad(const char *filename, Type *data, std::vector<size_t> global_
     bpFileWriter.Close();
 }
 
+template<typename Type>
+void CheckReconstruction(Type *ori_buff, Type *rct_buff, double tol, size_t local_sz)
+{
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    double gb_L_inf, error_L_inf_norm = 0;
+    double gb_L2, error_L2 = 0;
+    for (size_t it=0; it<local_sz; it++) {
+        double temp = fabs(ori_buff[it] - rct_buff[it]);
+        if (temp > error_L_inf_norm)
+            error_L_inf_norm = temp;
+        error_L2 += temp * temp;
+    }
+    error_L2 = sqrt(error_L2/local_sz);
+    MPI_Allreduce(&error_L2, &gb_L2, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&error_L_inf_norm, &gb_L_inf, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    if (rank==0) {
+        if (gb_L2 < tol) {
+            printf("SUCCESS: Error tolerance met!...requested %f, measured L2=%f, L-inf=%f\n", tol, gb_L2, gb_L_inf);
+        } else {
+            printf("FAILURE: Error tolerance NOT met!...requested %f, measured L2= %f, L-inf=%f\n", tol, gb_L2, gb_L_inf);
+        }
+    }
+}
 
 // MPI parallelize the second dimension -- # of mesh nodes 
-// abs or rel
 // argv[1]: error type 
 // argv[2]: number of timesteps
 // argv[3],[4]: data path and filename
 // input: n_phi x n_nodes x vx x vy
 int main(int argc, char **argv) {
-	if (argc != 7) {
+	if (argc != 6) {
 		printf("Inputs: \n");
 		printf("-- data files directory\n");
 		printf("-- data file prefix (suffix is the timestep, 0, 1, 2, ...)\n");
-		printf("-- rel (relative eb) or abs (absolute eb)\n");
 		printf("-- eb \n");
 		printf("-- snorm (default is 0)\n");
 		printf("-- number of timesteps\n");
@@ -60,7 +83,6 @@ int main(int argc, char **argv) {
     char datapath[2048], filename[2048], readin_f[2048], write_f[2048];
     strcpy(datapath, argv[++nargv]);
     strcpy(filename, argv[++nargv]);
-    bool rel   = (strcmp(argv[++nargv], "rel") == 0);
     double tol = atof(argv[++nargv]);
     double s_norm = atof(argv[++nargv]);
     size_t timeSteps = atoi(argv[++nargv]);
@@ -74,15 +96,10 @@ int main(int argc, char **argv) {
     if (rank==0) {
         printf("Read in: %s\n", readin_f);
         printf(" 4D + temporal copression\n");
-        if (rel) {
-            printf("Relative error tolerance = %f\n", tol);
-        } else {
-            printf("Absolute error tolerance = %f\n", tol);
-        }
+        printf("Absolute error tolerance = %f\n", tol);
         printf("Snorm: %f\n", s_norm);
         printf("number of timeSteps: %ld\n", timeSteps); 
     }
-	double abs_tol = rel ? log(1+tol) : tol;
     adios2::ADIOS ad(MPI_COMM_WORLD);
     adios2::IO reader_io = ad.DeclareIO("XGC");
 
@@ -98,7 +115,6 @@ int main(int argc, char **argv) {
             ts_fn.resize(ts_fn.size() - 5);
             sprintf(readin_f, "%s%s%ld.bp", datapath, ts_fn.c_str(), (ts)*10);
         }
-        std::cout << readin_f << "\n";
         adios2::Engine reader = reader_io.Open(readin_f, adios2::Mode::Read);
         // Inquire variable
         adios2::Variable<double> var_i_f_in;
@@ -118,10 +134,6 @@ int main(int argc, char **argv) {
         reader.Get<double>(var_i_f_in, &i_f_5d[ts*local_sz]);
         reader.Close();
     }
-    if (rel) {
-        for (size_t it=0; it < local_sz * timeSteps; it++) 
-            i_f_5d[it] = log(i_f_5d[it]);
-    }
 	if (rank == 0) {
 	    printf("begin compression...\n");
 	}
@@ -135,33 +147,10 @@ int main(int argc, char **argv) {
     const mgard::DecompressedDataset<5, double> decompressed = mgard::decompress(compressed); 
 	double data_L_inf_norm = 0;
 	double *mgard_out_buff = (double *)decompressed.data();
-    if (rel) {
-        for (size_t it=0; it<local_sz; it++) {
-            mgard_out_buff[it] = exp(mgard_out_buff[it]);
-            double temp = fabs(i_f_5d[it]);
-            if (data_L_inf_norm < temp)
-                data_L_inf_norm = temp;
-        }
-    }
-    double error_L_inf_norm = 0;
-    for (size_t it=0; it<local_sz; it++) {
-        double temp = fabs(i_f_5d[it] - mgard_out_buff[it]);
-        if (temp > error_L_inf_norm)
-            error_L_inf_norm = temp;
-    }
-    if (rel) {
-        error_L_inf_norm = error_L_inf_norm / data_L_inf_norm;
-    }
-    if (error_L_inf_norm < tol) {
-        printf("SUCCESS: Error tolerance met!\n");
-    } else {
-        printf("FAILURE: Error tolerance NOT met!\n");
-        MPI_Finalize();
-        return -1;
-    }
+    CheckReconstruction(i_f_5d, mgard_out_buff, tol, local_sz);
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
-        printf("Compression ratio = %.3f\n", ((double)shape[0]*shape[1]*shape[2]*shape[3]) / gb_compressed);
+        printf("Compression ratio = %.3f\n", ((double)8.0*shape[0]*shape[1]*shape[2]*shape[3]) / gb_compressed);
     }
 	FileWriter_ad(write_f, ((double *)decompressed.data()), {shape[0], shape[1], shape[2], shape[3]}, {shape[0], local_dim, shape[2], shape[3]}, temp_dim, timeSteps);
     delete i_f_5d;
