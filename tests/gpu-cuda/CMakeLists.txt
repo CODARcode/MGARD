@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(mgard_cuda_example CXX)
+project(mgard_cuda_example CXX C)
 find_package(mgard)
+find_package(MPI REQUIRED)
+find_package(ADIOS2 REQUIRED)
+
+add_definitions(-DOMPI_SKIP_MPICXX -DMPICH_SKIP_MPICXX)
 
 add_executable(SimpleExample SimpleExample.cpp)
 target_link_libraries(SimpleExample mgard::mgard)
