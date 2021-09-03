@@ -91,24 +91,17 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
 
   // Size of metadata: 4
   // Signature: 19
-  // Version: 1 + 1 
+  // Version: 1 + 1
   // Type: 1
   // Number of dims: 1
   // Tolerance: 8
   // S: 8
   // L-inf norm or s-norm: 8
   // Target level: 4
-  uint32_t metadata_size = 4
-                         + 19 
-                         + 1 + 1 
-                         + 1
-                         + 1
-                         + N * 8
-                         + 8 + 8 + 8
-                         + 4
-                         + 1;
+  uint32_t metadata_size = 4 + 19 + 1 + 1 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
   // pack the minimal metadata for now, i.e., error tolerence and s
-  unsigned char *const buffer = static_cast<unsigned char *>(std::malloc(zstd_outsize + metadata_size));
+  unsigned char *const buffer =
+      static_cast<unsigned char *>(std::malloc(zstd_outsize + metadata_size));
   unsigned char *b = buffer;
 
   *(uint32_t *)b = metadata_size;
@@ -157,19 +150,20 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   b += 1;
 
   std::memcpy(buffer + metadata_size, buffer_h, zstd_outsize);
-  std::free(buffer_h); 
+  std::free(buffer_h);
 
   const std::size_t size = zstd_outsize + metadata_size;
 #endif
   return CompressedDataset<N, Real>(hierarchy, s, tolerance, buffer, size);
 }
 
-void const * mgard_decompress(void const *const compressed_buffer, std::size_t compressed_size) {
+void const *mgard_decompress(void const *const compressed_buffer,
+                             std::size_t compressed_size) {
   unsigned char *b = (unsigned char *)compressed_buffer;
 
   uint32_t metadata_size = *(uint32_t *)b;
   b += 4;
- 
+
   char sig_str[SIGNATURE_STR.size() + 1];
   std::memcpy(sig_str, b, SIGNATURE_STR.size());
   b += SIGNATURE_STR.size();
@@ -189,7 +183,7 @@ void const * mgard_decompress(void const *const compressed_buffer, std::size_t c
   uint8_t type = *(uint8_t *)b;
   b += 1;
 
-  // Number of dims 
+  // Number of dims
   uint8_t ndims = *(uint8_t *)b;
   b += 1;
 
@@ -219,38 +213,42 @@ void const * mgard_decompress(void const *const compressed_buffer, std::size_t c
   uint32_t grid_type = *(uint8_t *)b;
   b += 1;
 
-  std::cout << "ndims = " << (unsigned)ndims << " tol = " << tol << " s = " << s << " target_level = "<< target_level << " grid_type = "<<grid_type<<"\n";
+  std::cout << "ndims = " << (unsigned)ndims << " tol = " << tol << " s = " << s
+            << " target_level = " << target_level
+            << " grid_type = " << grid_type << "\n";
 
-  unsigned char *cb_copy = (unsigned char*)std::malloc(compressed_size - metadata_size);
-  std::memcpy(cb_copy, compressed_buffer + metadata_size, compressed_size - metadata_size);
+  unsigned char *cb_copy =
+      (unsigned char *)std::malloc(compressed_size - metadata_size);
+  std::memcpy(cb_copy, compressed_buffer + metadata_size,
+              compressed_size - metadata_size);
 
-  void * decompressed_buffer = 0;
+  void *decompressed_buffer = 0;
 
-  switch(ndims) {
-    case 1:
-      if (type == 0) {
-      } else if (type == 1) {
-      }
-      break;
-    case 2:
-      if (type == 0) {
-        const std::array<std::size_t, 2> dims = {shape[0], shape[1]};
-        TensorMeshHierarchy<2, double> hierarchy(dims);
-        const mgard::CompressedDataset<2, double> compressed(hierarchy, s, tol,
-                                                             cb_copy,
-                                                             compressed_size - metadata_size);
-        const mgard::DecompressedDataset<2, double> decompressed =
+  switch (ndims) {
+  case 1:
+    if (type == 0) {
+    } else if (type == 1) {
+    }
+    break;
+  case 2:
+    if (type == 0) {
+      const std::array<std::size_t, 2> dims = {shape[0], shape[1]};
+      TensorMeshHierarchy<2, double> hierarchy(dims);
+      const mgard::CompressedDataset<2, double> compressed(
+          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
+      const mgard::DecompressedDataset<2, double> decompressed =
           mgard::decompress(compressed);
-        decompressed_buffer = std::malloc(hierarchy.ndof() * 8);
-        std::memcpy(decompressed_buffer, decompressed.data(), hierarchy.ndof() * 8);
-      } else if (type == 1) {
-      }
-      break;
-    case 3:
-      if (type == 0) {
-      } else if (type == 1) {
-      }
-      break;
+      decompressed_buffer = std::malloc(hierarchy.ndof() * 8);
+      std::memcpy(decompressed_buffer, decompressed.data(),
+                  hierarchy.ndof() * 8);
+    } else if (type == 1) {
+    }
+    break;
+  case 3:
+    if (type == 0) {
+    } else if (type == 1) {
+    }
+    break;
   }
 
   return decompressed_buffer;
