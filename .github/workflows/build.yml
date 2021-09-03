@@ -1,5 +1,5 @@
 name: build
-on: [push]
+on: [push, pull_request]
 env:
         MOAB_CACHE_KEY: "MOAB-5.2.1"
         MOAB_INSTALL_PREFIX: "${{ github.workspace }}/moab"

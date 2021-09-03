@@ -1,5 +1,5 @@
 name: format
-on: [push]
+on: [push, pull_request]
 env:
         RCF_REPO_DIR: "run-clang-format"
         MGARD_REPO_DIR: "MGARD"
