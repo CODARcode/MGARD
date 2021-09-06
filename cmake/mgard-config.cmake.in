@@ -2,18 +2,22 @@ include(CMakeFindDependencyMacro)
 
 set(REQUIRED_VARS)
 
+if(@ZSTD_FOUND@)
+  find_package(PkgConfig)
+endif()
+
 if(@ZLIB_FOUND@)
 	find_dependency(ZLIB)
 	list(APPEND REQUIRED_VARS ZLIB_FOUND)
 endif()
 
 if(@ZSTD_FOUND@)
-	find_dependency(ZSTD)
+  pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL REQUIRED libzstd)
 	list(APPEND REQUIRED_VARS ZSTD_FOUND)
 endif()
 
 if(@NVCOMP_FOUND@)
-	find_dependency(NVCOMP)
+	find_dependency(nvcomp)
 	list(APPEND REQUIRED_VARS NVCOMP_FOUND)
 endif()
 
