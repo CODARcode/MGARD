@@ -8,15 +8,17 @@
 #ifndef MGRAD_CUDA_LINEAR_PROCESSSING_KERNEL_3D_TEMPLATE
 #define MGRAD_CUDA_LINEAR_PROCESSSING_KERNEL_3D_TEMPLATE
 
+#include "CommonInternal.h"
+#include "LPKFunctor.h"
 #include "LinearProcessingKernel.h"
 namespace mgard_cuda {
 
-template <typename T, int R, int C, int F>
-__global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
-                              int zero_c, int zero_f, T *ddist_f, T *dratio_f,
-                              T *dv1, int lddv11, int lddv12, T *dv2,
-                              int lddv21, int lddv22, T *dw, int lddw1,
-                              int lddw2) {
+template <typename T, SIZE R, SIZE C, SIZE F>
+__global__ void _lpk_reo_1_3d(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, SIZE zero_r,
+                              SIZE zero_c, SIZE zero_f, T *ddist_f, T *dratio_f,
+                              T *dv1, SIZE lddv11, SIZE lddv12, T *dv2,
+                              SIZE lddv21, SIZE lddv22, T *dw, SIZE lddw1,
+                              SIZE lddw2) {
 
   // bool debug = false;
   // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 1 &&
@@ -31,8 +33,8 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
   T *sm = SharedMemory<T>();
   // extern __shared__ double sm[]; // size: (blockDim.x + 1) * (blockDim.y + 1)
   // * (blockDim.z + 1)
-  int ldsm1 = F * 2 + 3;
-  int ldsm2 = C;
+  SIZE ldsm1 = F * 2 + 3;
+  SIZE ldsm2 = C;
   T *v_sm = sm;
   T *dist_f_sm = sm + ldsm1 * ldsm2 * R;
   T *ratio_f_sm = dist_f_sm + ldsm1;
@@ -41,17 +43,17 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
   // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
   // threadIdx.z == 0 && threadIdx.y == 0 ) debug = true;
 
-  register int r_gl = blockIdx.z * blockDim.z + threadIdx.z;
-  register int c_gl = blockIdx.y * blockDim.y + threadIdx.y;
-  register int f_gl = blockIdx.x * blockDim.x + threadIdx.x;
+  SIZE r_gl = blockIdx.z * blockDim.z + threadIdx.z;
+  SIZE c_gl = blockIdx.y * blockDim.y + threadIdx.y;
+  SIZE f_gl = blockIdx.x * blockDim.x + threadIdx.x;
 
-  register int blockId = blockIdx.x;
+  SIZE blockId = blockIdx.x;
 
-  register int r_sm = threadIdx.z;
-  register int c_sm = threadIdx.y;
-  register int f_sm = threadIdx.x;
+  SIZE r_sm = threadIdx.z;
+  SIZE c_sm = threadIdx.y;
+  SIZE f_sm = threadIdx.x;
 
-  int actual_F = F;
+  SIZE actual_F = F;
   if (nf_c - blockId * blockDim.x < F) {
     actual_F = nf_c - blockId * blockDim.x;
   }
@@ -101,7 +103,7 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
         // if (debug) printf("load left-1 vsm[0]: 0.0\n");
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = 0.0;
       } else {
-        if (f_gl - 1 >= 0) {
+        if (f_gl >= 1) {
           // other (-1)
           // if (debug) printf("load left-1 vsm[0]: %f\n", dv1[get_idx(lddv11,
           // lddv12, r_gl, c_gl, f_gl-1)]);
@@ -118,7 +120,7 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
     // right
     if (!PADDING) {
       if (nf_c % 2 != 0) {
-        if (f_gl - 1 >= 0 && f_gl - 1 < nf_c - 1) {
+        if (f_gl >= 1 && f_gl < nf_c) {
           // if (debug) printf("load right vsm[%d]: %f <- %d %d %d\n", f_sm * 2
           // + 1, dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl - 1)], r_gl,
           // c_gl, f_gl - 1);
@@ -142,7 +144,7 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
       }
     } else { // PADDING
       if (nf_c % 2 != 0) {
-        if (f_gl - 1 >= 0 && f_gl - 1 < nf_c - 2) {
+        if (f_gl >= 1 && f_gl < nf_c - 1) {
           // if (debug) printf("load right vsm[%d]: %f <- %d %d %d\n", f_sm * 2
           // + 1, dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl - 1)], r_gl,
           // c_gl, f_gl - 1);
@@ -182,7 +184,7 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
             v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, actual_F * 2 + 1)] = 0.0;
           }
         } else { // nf_c % 2 == 0
-          if (f_gl - actual_F >= 0) {
+          if (f_gl >= actual_F) {
             // if (debug) printf("load right-1 vsm[1]: %f <- %d %d %d\n",
             // dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl - actual_F)], r_gl,
             // c_gl, f_gl - actual_F);
@@ -207,7 +209,7 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
             v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, actual_F * 2 + 1)] = 0.0;
           }
         } else { // nf_c % 2 == 0
-          if (f_gl - actual_F >= 0 && f_gl - actual_F < nf_c - 2) {
+          if (f_gl >= actual_F && f_gl - actual_F < nf_c - 2) {
             // if (debug) printf("load right-1 vsm[1]: %f <- %d %d %d\n",
             // dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl - actual_F)], r_gl,
             // c_gl, f_gl - actual_F);
@@ -222,20 +224,30 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
     }
   }
 
+  bool debug = false;
+  // if (r_gl == 0 && c_gl == 0) debug = true;
+
   if (r_sm == 0 && c_sm == 0 && f_sm < actual_F) {
-    if (blockId * F * 2 + f_sm < nf - 1) {
+    if (blockId * F * 2 + f_sm < nf) {
       dist_f_sm[2 + f_sm] = ddist_f[blockId * F * 2 + f_sm];
       ratio_f_sm[2 + f_sm] = dratio_f[blockId * F * 2 + f_sm];
+      if (debug)
+        printf("load dist[%d] -> sm[%d]: %f\n", blockId * F * 2 + f_sm,
+               2 + f_sm, ddist_f[blockId * F * 2 + f_sm]);
     } else {
       dist_f_sm[2 + f_sm] = 0.0;
       ratio_f_sm[2 + f_sm] = 0.0;
     }
 
-    if (blockId * F * 2 + actual_F + f_sm < nf - 2) {
+    if (blockId * F * 2 + actual_F + f_sm < nf) {
       dist_f_sm[2 + actual_F + f_sm] =
           ddist_f[blockId * F * 2 + actual_F + f_sm];
       ratio_f_sm[2 + actual_F + f_sm] =
           dratio_f[blockId * F * 2 + actual_F + f_sm];
+      if (debug)
+        printf("load dist[%d] -> sm[%d]: %f\n",
+               blockId * F * 2 + actual_F + f_sm, 2 + actual_F + f_sm,
+               ddist_f[blockId * F * 2 + actual_F + f_sm]);
     } else {
       dist_f_sm[2 + actual_F + f_sm] = 0.0;
       ratio_f_sm[2 + actual_F + f_sm] = 0.0;
@@ -248,8 +260,10 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
 
   if (blockId > 0) {
     if (f_sm < 2) {
-      dist_f_sm[f_sm] = ddist_f[f_gl - 2];
-      ratio_f_sm[f_sm] = dratio_f[f_gl - 2];
+      // dist_f_sm[f_sm] = ddist_f[f_gl - 2];
+      // ratio_f_sm[f_sm] = dratio_f[f_gl - 2];
+      dist_f_sm[f_sm] = ddist_f[blockId * F * 2 + f_sm - 2];
+      ratio_f_sm[f_sm] = dratio_f[blockId * F * 2 + f_sm - 2];
     }
   } else {
     if (f_sm < 2) {
@@ -275,7 +289,7 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
     T d = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm * 2 + 3)];
     T e = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm * 2 + 4)];
 
-    // if (debug) {
+    // if (f_gl == nf_c - 1) {
     //   printf("f_sm(%d) %f %f %f %f %f\n",f_sm, a,b,c,d,e);
     //   printf("f_sm_h(%d) %f %f %f %f\n",f_sm, h1,h2,h3,h4);
     //   printf("f_sm_r(%d) %f %f %f %f\n",f_sm, r1,r2,r3,r4);
@@ -309,27 +323,28 @@ __global__ void _lpk_reo_1_3d(int nr, int nc, int nf, int nf_c, int zero_r,
   }
 }
 
-template <uint32_t D, typename T, int R, int C, int F>
-void lpk_reo_1_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc,
-                                    int nf, int nf_c, int zero_r, int zero_c,
-                                    int zero_f, T *ddist_f, T *dratio_f, T *dv1,
-                                    int lddv11, int lddv12, T *dv2, int lddv21,
-                                    int lddv22, T *dw, int lddw1, int lddw2,
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
+void lpk_reo_1_3d_adaptive_launcher(Handle<D, T> &handle, SIZE nr, SIZE nc,
+                                    SIZE nf, SIZE nf_c, SIZE zero_r,
+                                    SIZE zero_c, SIZE zero_f, T *ddist_f,
+                                    T *dratio_f, T *dv1, SIZE lddv11,
+                                    SIZE lddv12, T *dv2, SIZE lddv21,
+                                    SIZE lddv22, T *dw, SIZE lddw1, SIZE lddw2,
                                     int queue_idx) {
   // printf("dratio_f: ");
   // print_matrix_cuda(1, (nf-1)*2, dratio_f, (nf-1)*2);
-  int total_thread_z = nr;
-  int total_thread_y = nc;
-  int total_thread_x = nf_c;
+  SIZE total_thread_z = nr;
+  SIZE total_thread_y = nc;
+  SIZE total_thread_x = nf_c;
   // if (nf_c % 2 == 1) { total_thread_x = nf_c - 1; }
   // else { total_thread_x = nf; }
-  int tbx, tby, tbz, gridx, gridy, gridz;
+  SIZE tbx, tby, tbz, gridx, gridy, gridz;
   dim3 threadsPerBlock, blockPerGrid;
   size_t sm_size;
 
-  tbz = std::min(R, total_thread_z);
-  tby = std::min(C, total_thread_y);
-  tbx = std::min(F, total_thread_x);
+  tbz = R;
+  tby = C;
+  tbx = F;
   sm_size = (R * C * (F * 2 + 3) + (F * 2 + 3) * 2) * sizeof(T);
   gridz = ceil((float)total_thread_z / tbz);
   gridy = ceil((float)total_thread_y / tby);
@@ -346,17 +361,17 @@ void lpk_reo_1_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc,
       nr, nc, nf, nf_c, zero_r, zero_c, zero_f, ddist_f, dratio_f, dv1, lddv11,
       lddv12, dv2, lddv21, lddv22, dw, lddw1, lddw2);
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
-  gpuErrchk(cudaDeviceSynchronize());
-#endif
+  if (handle.sync_and_check_all_kernels) {
+    gpuErrchk(cudaDeviceSynchronize());
+  }
 }
 
-template <uint32_t D, typename T>
-void lpk_reo_1_3d(Handle<D, T> &handle, int nr, int nc, int nf, int nf_c,
-                  int zero_r, int zero_c, int zero_f, T *ddist_f, T *dratio_f,
-                  T *dv1, int lddv11, int lddv12, T *dv2, int lddv21,
-                  int lddv22, T *dw, int lddw1, int lddw2, int queue_idx,
-                  int config) {
+template <DIM D, typename T>
+void lpk_reo_1_3d(Handle<D, T> &handle, SIZE nr, SIZE nc, SIZE nf, SIZE nf_c,
+                  SIZE zero_r, SIZE zero_c, SIZE zero_f, T *ddist_f,
+                  T *dratio_f, T *dv1, SIZE lddv11, SIZE lddv12, T *dv2,
+                  SIZE lddv21, SIZE lddv22, T *dw, SIZE lddw1, SIZE lddw2,
+                  int queue_idx, int config) {
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
@@ -367,9 +382,9 @@ void lpk_reo_1_3d(Handle<D, T> &handle, int nr, int nc, int nf, int nf_c,
   }
 
   bool profile = false;
-#ifdef MGARD_CUDA_KERNEL_PROFILE
-  profile = true;
-#endif
+  if (handle.profile_kernels) {
+    profile = true;
+  }
   if (D == 3) {
     if (profile || config == 6) {
       LPK(2, 2, 128)
@@ -440,11 +455,11 @@ void lpk_reo_1_3d(Handle<D, T> &handle, int nr, int nc, int nf, int nf_c,
 #undef LPK
 }
 
-template <typename T, int R, int C, int F>
-__global__ void _lpk_reo_2_3d(int nr, int nc, int nf_c, int nc_c, T *ddist_c,
-                              T *dratio_c, T *dv1, int lddv11, int lddv12,
-                              T *dv2, int lddv21, int lddv22, T *dw, int lddw1,
-                              int lddw2) {
+template <typename T, SIZE R, SIZE C, SIZE F>
+__global__ void _lpk_reo_2_3d(SIZE nr, SIZE nc, SIZE nf_c, SIZE nc_c,
+                              T *ddist_c, T *dratio_c, T *dv1, SIZE lddv11,
+                              SIZE lddv12, T *dv2, SIZE lddv21, SIZE lddv22,
+                              T *dw, SIZE lddw1, SIZE lddw2) {
 
   // bool debug = false;
   // if (blockIdx.y == gridDim.y-1 && blockIdx.x == 0 &&
@@ -460,8 +475,8 @@ __global__ void _lpk_reo_2_3d(int nr, int nc, int nf_c, int nc_c, T *ddist_c,
 
   // extern __shared__ double sm[]; // size: (blockDim.x + 1) * (blockDim.y + 1)
   // * (blockDim.z + 1)
-  int ldsm1 = F;
-  int ldsm2 = C * 2 + 3;
+  SIZE ldsm1 = F;
+  SIZE ldsm2 = C * 2 + 3;
   T *v_sm = sm;
   T *dist_c_sm = sm + ldsm1 * ldsm2 * R;
   T *ratio_c_sm = dist_c_sm + ldsm2;
@@ -470,17 +485,17 @@ __global__ void _lpk_reo_2_3d(int nr, int nc, int nf_c, int nc_c, T *ddist_c,
   // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
   // threadIdx.z == 0 && threadIdx.x == 0 ) debug = false;
 
-  register int r_gl = blockIdx.z * blockDim.z + threadIdx.z;
-  register int c_gl = blockIdx.y * blockDim.y + threadIdx.y;
-  register int f_gl = blockIdx.x * blockDim.x + threadIdx.x;
+  SIZE r_gl = blockIdx.z * blockDim.z + threadIdx.z;
+  SIZE c_gl = blockIdx.y * blockDim.y + threadIdx.y;
+  SIZE f_gl = blockIdx.x * blockDim.x + threadIdx.x;
 
-  register int blockId = blockIdx.y;
+  SIZE blockId = blockIdx.y;
 
-  register int r_sm = threadIdx.z;
-  register int c_sm = threadIdx.y;
-  register int f_sm = threadIdx.x;
+  SIZE r_sm = threadIdx.z;
+  SIZE c_sm = threadIdx.y;
+  SIZE f_sm = threadIdx.x;
 
-  int actual_C = C;
+  SIZE actual_C = C;
   if (nc_c - blockIdx.y * blockDim.y < C) {
     actual_C = nc_c - blockIdx.y * blockDim.y;
   }
@@ -516,7 +531,7 @@ __global__ void _lpk_reo_2_3d(int nr, int nc, int nf_c, int nc_c, T *ddist_c,
     }
 
     if (c_sm == 0) {
-      if (c_gl - 1 >= 0) {
+      if (c_gl >= 1) {
         // if (debug) printf("load up-1 vsm[0]: %f <- %d %d %d\n",
         // dv1[get_idx(lddv11, lddv12, r_gl, c_gl-1, f_gl)], r_gl, c_gl-1,
         // f_gl);
@@ -550,7 +565,7 @@ __global__ void _lpk_reo_2_3d(int nr, int nc, int nf_c, int nc_c, T *ddist_c,
       }
     }
 
-    if (c_gl - 1 >= 0 &&
+    if (c_gl >= 1 &&
         (PADDING && c_gl - 1 < nc_c - 2 || !PADDING && c_gl - 1 < nc_c - 1)) {
       if (c_sm == 0) {
         // if (debug) printf("PADDING: %d, c_gl-1: %d nc_c-2: %d\n", PADDING,
@@ -571,7 +586,7 @@ __global__ void _lpk_reo_2_3d(int nr, int nc, int nf_c, int nc_c, T *ddist_c,
   // load dist/ratio using f_sm for better performance
   // assumption F >= C
   if (r_sm == 0 && c_sm == 0 && f_sm < actual_C) {
-    if (blockId * C * 2 + f_sm < nc - 1) {
+    if (blockId * C * 2 + f_sm < nc) {
       dist_c_sm[2 + f_sm] = ddist_c[blockId * C * 2 + f_sm];
       ratio_c_sm[2 + f_sm] = dratio_c[blockId * C * 2 + f_sm];
     } else {
@@ -579,7 +594,7 @@ __global__ void _lpk_reo_2_3d(int nr, int nc, int nf_c, int nc_c, T *ddist_c,
       ratio_c_sm[2 + f_sm] = 0.0;
     }
 
-    if (blockId * C * 2 + actual_C + f_sm < nc - 1) {
+    if (blockId * C * 2 + actual_C + f_sm < nc) {
       dist_c_sm[2 + actual_C + f_sm] =
           ddist_c[blockId * C * 2 + actual_C + f_sm];
       ratio_c_sm[2 + actual_C + f_sm] =
@@ -658,26 +673,27 @@ __global__ void _lpk_reo_2_3d(int nr, int nc, int nf_c, int nc_c, T *ddist_c,
   }
 }
 
-template <uint32_t D, typename T, int R, int C, int F>
-void lpk_reo_2_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc,
-                                    int nf_c, int nc_c, T *ddist_c, T *dratio_c,
-                                    T *dv1, int lddv11, int lddv12, T *dv2,
-                                    int lddv21, int lddv22, T *dw, int lddw1,
-                                    int lddw2, int queue_idx) {
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
+void lpk_reo_2_3d_adaptive_launcher(Handle<D, T> &handle, SIZE nr, SIZE nc,
+                                    SIZE nf_c, SIZE nc_c, T *ddist_c,
+                                    T *dratio_c, T *dv1, SIZE lddv11,
+                                    SIZE lddv12, T *dv2, SIZE lddv21,
+                                    SIZE lddv22, T *dw, SIZE lddw1, SIZE lddw2,
+                                    int queue_idx) {
   cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
   cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
-  int total_thread_z = nr;
-  int total_thread_y = nc_c;
+  SIZE total_thread_z = nr;
+  SIZE total_thread_y = nc_c;
   // if (nc_c % 2 == 1) { total_thread_y = nc_c - 1; }
   // else { total_thread_y = nc_c; }
-  int total_thread_x = nf_c;
-  int tbx, tby, tbz, gridx, gridy, gridz;
+  SIZE total_thread_x = nf_c;
+  SIZE tbx, tby, tbz, gridx, gridy, gridz;
   dim3 threadsPerBlock, blockPerGrid;
   size_t sm_size;
 
-  tbz = std::min(R, total_thread_z);
-  tby = std::min(C, total_thread_y);
-  tbx = std::min(F, total_thread_x);
+  tbz = R;
+  tby = C;
+  tbx = F;
   sm_size = (R * (C * 2 + 3) * F + (C * 2 + 3) * 2) * sizeof(T);
   gridz = ceil((float)total_thread_z / tbz);
   gridy = ceil((float)total_thread_y / tby);
@@ -694,16 +710,16 @@ void lpk_reo_2_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc,
       nr, nc, nf_c, nc_c, ddist_c, dratio_c, dv1, lddv11, lddv12, dv2, lddv21,
       lddv22, dw, lddw1, lddw2);
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
-  gpuErrchk(cudaDeviceSynchronize());
-#endif
+  if (handle.sync_and_check_all_kernels) {
+    gpuErrchk(cudaDeviceSynchronize());
+  }
 }
 
-template <uint32_t D, typename T>
-void lpk_reo_2_3d(Handle<D, T> &handle, int nr, int nc, int nf_c, int nc_c,
-                  T *ddist_c, T *dratio_c, T *dv1, int lddv11, int lddv12,
-                  T *dv2, int lddv21, int lddv22, T *dw, int lddw1, int lddw2,
-                  int queue_idx, int config) {
+template <DIM D, typename T>
+void lpk_reo_2_3d(Handle<D, T> &handle, SIZE nr, SIZE nc, SIZE nf_c, SIZE nc_c,
+                  T *ddist_c, T *dratio_c, T *dv1, SIZE lddv11, SIZE lddv12,
+                  T *dv2, SIZE lddv21, SIZE lddv22, T *dw, SIZE lddw1,
+                  SIZE lddw2, int queue_idx, int config) {
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
@@ -713,9 +729,9 @@ void lpk_reo_2_3d(Handle<D, T> &handle, int nr, int nc, int nf_c, int nc_c,
   }
 
   bool profile = false;
-#ifdef MGARD_CUDA_KERNEL_PROFILE
-  profile = true;
-#endif
+  if (handle.profile_kernels) {
+    profile = true;
+  }
   if (D == 3) {
     if (profile || config == 6) {
       LPK(2, 2, 128)
@@ -766,41 +782,41 @@ void lpk_reo_2_3d(Handle<D, T> &handle, int nr, int nc, int nf_c, int nc_c,
 #undef LPK
 }
 
-template <typename T, int R, int C, int F>
-__global__ void _lpk_reo_3_3d(int nr, int nc_c, int nf_c, int nr_c, T *ddist_r,
-                              T *dratio_r, T *dv1, int lddv11, int lddv12,
-                              T *dv2, int lddv21, int lddv22, T *dw, int lddw1,
-                              int lddw2) {
+template <typename T, SIZE R, SIZE C, SIZE F>
+__global__ void _lpk_reo_3_3d(SIZE nr, SIZE nc_c, SIZE nf_c, SIZE nr_c,
+                              T *ddist_r, T *dratio_r, T *dv1, SIZE lddv11,
+                              SIZE lddv12, T *dv2, SIZE lddv21, SIZE lddv22,
+                              T *dw, SIZE lddw1, SIZE lddw2) {
 
   // bool debug = false;
-  // if (blockIdx.z == gridDim.z-1 && blockIdx.y == 0 && blockIdx.x == 0 &&
-  // threadIdx.y == 0 && threadIdx.x == 0 ) debug = false;
+  // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
+  // threadIdx.y == 0 && threadIdx.x == 0 ) debug = true;
 
   // bool debug2 = false;
-  // if (blockIdx.z == gridDim.z-1 && blockIdx.y == 1 && blockIdx.x == 16)
-  // debug2 = false;
+  // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0)
+  // debug2 = true;
 
   bool PADDING = (nr % 2 == 0);
   T *sm = SharedMemory<T>();
-  int ldsm1 = F;
-  int ldsm2 = C;
+  SIZE ldsm1 = F;
+  SIZE ldsm2 = C;
   T *v_sm = sm;
   T *dist_r_sm = sm + ldsm1 * ldsm2 * (R * 2 + 3);
   T *ratio_r_sm = dist_r_sm + (R * 2 + 3);
 
-  register int r_gl = blockIdx.z * blockDim.z + threadIdx.z;
-  register int c_gl = blockIdx.y * blockDim.y + threadIdx.y;
-  register int f_gl = blockIdx.x * blockDim.x + threadIdx.x;
+  SIZE r_gl = blockIdx.z * blockDim.z + threadIdx.z;
+  SIZE c_gl = blockIdx.y * blockDim.y + threadIdx.y;
+  SIZE f_gl = blockIdx.x * blockDim.x + threadIdx.x;
 
   // if (debug) printf("debugging gl: %d %d %d\n", r_gl, c_gl, f_gl);
 
-  register int blockId = blockIdx.z;
+  SIZE blockId = blockIdx.z;
 
-  register int r_sm = threadIdx.z;
-  register int c_sm = threadIdx.y;
-  register int f_sm = threadIdx.x;
+  SIZE r_sm = threadIdx.z;
+  SIZE c_sm = threadIdx.y;
+  SIZE f_sm = threadIdx.x;
 
-  int actual_R = R;
+  SIZE actual_R = R;
   if (nr_c - blockIdx.z * blockDim.z < R) {
     actual_R = nr_c - blockIdx.z * blockDim.z;
   }
@@ -835,7 +851,7 @@ __global__ void _lpk_reo_3_3d(int nr, int nc_c, int nf_c, int nr_c, T *ddist_r,
     }
 
     if (r_sm == 0) {
-      if (r_gl - 1 >= 0) {
+      if (r_gl >= 1) {
         // if (debug) printf("load front-1 vsm[0]: %f <- %d %d %d\n",
         // dv1[get_idx(lddv11, lddv12, r_gl-1, c_gl, f_gl)], r_gl-1, c_gl,
         // f_gl);
@@ -869,8 +885,8 @@ __global__ void _lpk_reo_3_3d(int nr, int nc_c, int nf_c, int nr_c, T *ddist_r,
       }
     }
 
-    if (r_gl - 1 >= 0 &&
-        (PADDING && r_gl - 1 < nr_c - 2 || !PADDING && r_gl - 1 < nr_c - 1)) {
+    if (r_gl >= 1 &&
+        (PADDING && r_gl - 1 < nr_c - 2 || !PADDING && r_gl < nr_c)) {
       // if (blockId > 0) {
       if (r_sm == 0) {
         // if (debug) printf("load back-1 vsm[1]: %f <- %d %d %d\n",
@@ -889,8 +905,12 @@ __global__ void _lpk_reo_3_3d(int nr, int nc_c, int nf_c, int nr_c, T *ddist_r,
 
   // load dist/ratio using f_sm for better performance
   // assumption F >= R
+  // if (debug2) printf("actual_R: %u\n", actual_R);
   if (r_sm == 0 && c_sm == 0 && f_sm < actual_R) {
-    if (blockId * R * 2 + f_sm < nr - 1) {
+    // if (debug2) printf(" RCF (%u %u %u)blockid(%u) fsm(%u) nr(%u)\n", R, C,
+    // F, blockId, blockId * R * 2 + f_sm, nr);
+    if (blockId * R * 2 + f_sm < nr) {
+
       dist_r_sm[2 + f_sm] = ddist_r[blockId * R * 2 + f_sm];
       // if (debug2 ) printf("load dist 1 [%d]: %f [%d]\n", 2 + f_sm,
       // dist_r_sm[2 + f_sm], blockId * R * 2 + f_sm);
@@ -901,7 +921,7 @@ __global__ void _lpk_reo_3_3d(int nr, int nc_c, int nf_c, int nr_c, T *ddist_r,
       dist_r_sm[2 + f_sm] = 0.0;
       ratio_r_sm[2 + f_sm] = 0.0;
     }
-    if (blockId * R * 2 + actual_R + f_sm < nr - 2) {
+    if (blockId * R * 2 + actual_R + f_sm < nr) {
       dist_r_sm[2 + actual_R + f_sm] =
           ddist_r[blockId * R * 2 + actual_R + f_sm];
       // if (debug2 )printf("load dist 2 [%d]: %f [%d]\n", 2 + actual_R + f_sm,
@@ -958,9 +978,9 @@ __global__ void _lpk_reo_3_3d(int nr, int nc_c, int nf_c, int nr_c, T *ddist_r,
     // }
     // __syncthreads();
 
-    // T tb = a * h1 + b * 2 * (h1+h2) + c * h2;
-    // T tc = b * h2 + c * 2 * (h2+h3) + d * h3;
-    // T td = c * h3 + d * 2 * (h3+h4) + e * h4;
+    // T tb = a * h1/6 + b * 2 * (h1+h2)/6 + c * h2/6;
+    // T tc = b * h2/6 + c * 2 * (h2+h3)/6 + d * h3/6;
+    // T td = c * h3/6 + d * 2 * (h3+h4)/6 + e * h4/6;
 
     // if (debug) printf("f_sm(%d) tb tc td tc: %f %f %f %f\n", f_sm, tb, tc,
     // td, tc+tb * r1 + td * r4);
@@ -993,26 +1013,27 @@ __global__ void _lpk_reo_3_3d(int nr, int nc_c, int nf_c, int nr_c, T *ddist_r,
   }
 }
 
-template <uint32_t D, typename T, int R, int C, int F>
-void lpk_reo_3_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc_c,
-                                    int nf_c, int nr_c, T *ddist_r, T *dratio_r,
-                                    T *dv1, int lddv11, int lddv12, T *dv2,
-                                    int lddv21, int lddv22, T *dw, int lddw1,
-                                    int lddw2, int queue_idx) {
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
+void lpk_reo_3_3d_adaptive_launcher(Handle<D, T> &handle, SIZE nr, SIZE nc_c,
+                                    SIZE nf_c, SIZE nr_c, T *ddist_r,
+                                    T *dratio_r, T *dv1, SIZE lddv11,
+                                    SIZE lddv12, T *dv2, SIZE lddv21,
+                                    SIZE lddv22, T *dw, SIZE lddw1, SIZE lddw2,
+                                    int queue_idx) {
 
-  int total_thread_z = nr_c;
+  SIZE total_thread_z = nr_c;
   // if (nr_c % 2 == 1){ total_thread_z = nr_c - 1; }
   // else { total_thread_z = nr_c; }
-  int total_thread_y = nc_c;
-  int total_thread_x = nf_c;
+  SIZE total_thread_y = nc_c;
+  SIZE total_thread_x = nf_c;
 
-  int tbx, tby, tbz, gridx, gridy, gridz;
+  SIZE tbx, tby, tbz, gridx, gridy, gridz;
   dim3 threadsPerBlock, blockPerGrid;
   size_t sm_size;
 
-  tbz = std::min(R, total_thread_z);
-  tby = std::min(C, total_thread_y);
-  tbx = std::min(F, total_thread_x);
+  tbz = R;
+  tby = C;
+  tbx = F;
   sm_size = ((R * 2 + 3) * C * F + (R * 2 + 3) * 2) * sizeof(T);
   gridz = ceil((float)total_thread_z / tbz);
   gridy = ceil((float)total_thread_y / tby);
@@ -1028,16 +1049,16 @@ void lpk_reo_3_3d_adaptive_launcher(Handle<D, T> &handle, int nr, int nc_c,
       nr, nc_c, nf_c, nr_c, ddist_r, dratio_r, dv1, lddv11, lddv12, dv2, lddv21,
       lddv22, dw, lddw1, lddw2);
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
-  gpuErrchk(cudaDeviceSynchronize());
-#endif
+  if (handle.sync_and_check_all_kernels) {
+    gpuErrchk(cudaDeviceSynchronize());
+  }
 }
 
-template <uint32_t D, typename T>
-void lpk_reo_3_3d(Handle<D, T> &handle, int nr, int nc_c, int nf_c, int nr_c,
-                  T *ddist_r, T *dratio_r, T *dv1, int lddv11, int lddv12,
-                  T *dv2, int lddv21, int lddv22, T *dw, int lddw1, int lddw2,
-                  int queue_idx, int config) {
+template <DIM D, typename T>
+void lpk_reo_3_3d(Handle<D, T> &handle, SIZE nr, SIZE nc_c, SIZE nf_c,
+                  SIZE nr_c, T *ddist_r, T *dratio_r, T *dv1, SIZE lddv11,
+                  SIZE lddv12, T *dv2, SIZE lddv21, SIZE lddv22, T *dw,
+                  SIZE lddw1, SIZE lddw2, int queue_idx, int config) {
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
@@ -1046,9 +1067,9 @@ void lpk_reo_3_3d(Handle<D, T> &handle, int nr, int nc_c, int nf_c, int nr_c,
         dv2, lddv21, lddv22, dw, lddw1, lddw2, queue_idx);                     \
   }
   bool profile = false;
-#ifdef MGARD_CUDA_KERNEL_PROFILE
-  profile = true;
-#endif
+  if (handle.profile_kernels) {
+    profile = true;
+  }
   if (D == 3) {
     if (profile || config == 6) {
       LPK(2, 2, 128)

@@ -9,24 +9,25 @@
 #define MGRAD_CUDA_LINEAR_QUANTIZATION
 
 #include "Common.h"
-#include "CommonInternal.h"
 
 namespace mgard_cuda {
 
-template <uint32_t D, typename T>
-void levelwise_linear_quantize(Handle<D, T> &handle, int *shapes, int l_target,
-                               quant_meta<T> m, T *dv, int *ldvs, int *dwork,
-                               int *ldws, bool prep_huffmam, int *shape,
-                               size_t *outlier_count, unsigned int *outlier_idx,
-                               int *outliers, int queue_idx);
+template <DIM D, typename T>
+void levelwise_linear_quantize(Handle<D, T> &handle, SIZE *shapes,
+                               SIZE l_target, T *volumes, SIZE ldvolumes,
+                               Metadata m, T *dv, SIZE *ldvs,
+                               QUANTIZED_INT *dwork, SIZE *ldws,
+                               bool prep_huffmam, SIZE *shape,
+                               LENGTH *outlier_count, LENGTH *outlier_idx,
+                               QUANTIZED_INT *outliers, int queue_idx);
 
-template <uint32_t D, typename T>
-void levelwise_linear_dequantize(Handle<D, T> &handle, int *shapes,
-                                 int l_target, quant_meta<T> m, int *dv,
-                                 int *ldvs, T *dwork, int *ldws,
-                                 size_t outlier_count,
-                                 unsigned int *outlier_idx, int *outliers,
-                                 int queue_idx);
+template <DIM D, typename T>
+void levelwise_linear_dequantize(Handle<D, T> &handle, SIZE *shapes,
+                                 SIZE l_target, T *volumes, SIZE ldvolumes,
+                                 Metadata m, QUANTIZED_INT *dv, SIZE *ldvs,
+                                 T *dwork, SIZE *ldws, bool prep_huffmam,
+                                 LENGTH outlier_count, LENGTH *outlier_idx,
+                                 QUANTIZED_INT *outliers, int queue_idx);
 
 } // namespace mgard_cuda
 

@@ -7,34 +7,38 @@
 
 #ifndef MGARD_CUDA_ARRAY
 #define MGARD_CUDA_ARRAY
-#include <stdint.h>
+#include "Common.h"
 #include <vector>
 
 namespace mgard_cuda {
 
-template <uint32_t D, typename T> class Array {
+template <DIM D, typename T> class Array {
 public:
-  Array(std::vector<size_t> shape);
+  Array();
+  Array(std::vector<SIZE> shape);
+  Array(const Array &array);
   Array(Array &array);
+  Array &operator=(const Array &array);
+  Array(Array &&array);
   ~Array();
-  void loadData(T *data, size_t ld = 0);
+  void loadData(const T *data, SIZE ld = 0);
   T *getDataHost();
-  T *getDataDevice(size_t &ld);
-  std::vector<size_t> getShape();
+  T *getDataDevice(SIZE &ld);
+  std::vector<SIZE> getShape();
   T *get_dv();
-  std::vector<int> get_ldvs_h();
-  int *get_ldvs_d();
+  std::vector<SIZE> get_ldvs_h();
+  SIZE *get_ldvs_d();
 
 private:
-  int D_padded;
+  DIM D_padded;
   T *dv;
   T *hv;
   bool device_allocated;
   bool host_allocated;
-  std::vector<int> ldvs_h;
-  int *ldvs_d;
-  std::vector<size_t> shape;
-  size_t linearized_depth;
+  std::vector<SIZE> ldvs_h;
+  SIZE *ldvs_d;
+  std::vector<SIZE> shape;
+  SIZE linearized_depth;
 };
 
 } // namespace mgard_cuda

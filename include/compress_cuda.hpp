@@ -8,6 +8,7 @@
 #include "cuda/Common.h"
 #include "cuda/CompressionWorkflow.h"
 #include "cuda/MemoryManagement.h"
+#include <cstdint>
 
 #ifndef MGARD_API_CUDA_H
 #define MGARD_API_CUDA_H
@@ -41,6 +42,18 @@ template <uint32_t D, typename T>
 Array<D, T> decompress(Handle<D, T> &handle,
                        Array<1, unsigned char> &compressed_array);
 
+void compress(std::vector<SIZE> shape, data_type T, double tol, double s,
+              enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size, Config config,
+              bool isAllocated);
+
+void decompress(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, Config config, bool isAllocated);
+
+bool verify(const void *compressed_data, size_t compressed_size);
+enum data_type infer_type(const void *compressed_data, size_t compressed_size);
+std::vector<SIZE> infer_shape(const void *compressed_data,
+                              size_t compressed_size);
 } // namespace mgard_cuda
 
 #endif

@@ -5,6 +5,8 @@
  * Date: April 2, 2021
  */
 
+#include "cuda/CommonInternal.h"
+
 #include "cuda/IterativeProcessingKernel3D.h"
 #include "cuda/IterativeProcessingKernel3D.hpp"
 
@@ -12,8 +14,8 @@ namespace mgard_cuda {
 
 #define KERNELS(D, T)                                                          \
   template void ipk_1_3d<D, T>(                                                \
-      Handle<D, T> & handle, int nr, int nc, int nf_c, T *am, T *bm,           \
-      T *ddist_f, T *dv, int lddv1, int lddv2, int queue_idx, int config);
+      Handle<D, T> & handle, SIZE nr, SIZE nc, SIZE nf_c, T * am, T * bm,      \
+      T * ddist_f, T * dv, SIZE lddv1, SIZE lddv2, int queue_idx, int config);
 
 KERNELS(1, double)
 KERNELS(1, float)

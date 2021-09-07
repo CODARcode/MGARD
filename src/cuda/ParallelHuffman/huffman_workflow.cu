@@ -134,7 +134,7 @@ void PrintChunkHuffmanCoding(size_t *dH_bit_meta, //
   cout << endl;
 }
 
-template <uint32_t D, typename T, typename S, typename Q, typename H>
+template <mgard_cuda::DIM D, typename T, typename S, typename Q, typename H>
 void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
                    std::vector<size_t> &outlier_idx, H *&dmeta,
                    size_t &dmeta_size, H *&ddata, size_t &ddata_size,
@@ -156,8 +156,9 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
 
   // Q * dprimary;
   // S * doutlier;
-  // mgard_cuda::cudaMallocHelper((void **)&dprimary, primary_count *
-  // sizeof(Q)); mgard_cuda::cudaMallocHelper((void **)&doutlier, outlier_count
+  // mgard_cuda::cudaMallocHelper(handle, (void **)&dprimary, primary_count *
+  // sizeof(Q)); mgard_cuda::cudaMallocHelper(handle, (void **)&doutlier,
+  // outlier_count
   // * sizeof(S));
 
   // // for (int i = 0 ; i < outlier_count; i++) { printf("%d\n",
@@ -296,9 +297,9 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
       sizeof(size_t) + 2 * nchunk * sizeof(size_t) + sizeof(size_t) +
       (sizeof(H) * (2 * type_bw) + sizeof(S) * dict_size) * sizeof(uint8_t);
 
-  mgard_cuda::cudaMallocHelper((void **)&dmeta, dmeta_size);
+  mgard_cuda::cudaMallocHelper(handle, (void **)&dmeta, dmeta_size);
   ddata_size = total_uInts * sizeof(H);
-  mgard_cuda::cudaMallocHelper((void **)&ddata, ddata_size);
+  mgard_cuda::cudaMallocHelper(handle, (void **)&ddata, ddata_size);
 
   void *dmeta_p = (void *)dmeta;
   // //outlier
@@ -377,7 +378,7 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   delete[] h_meta;
 }
 
-template <uint32_t D, typename T, typename S, typename Q, typename H>
+template <mgard_cuda::DIM D, typename T, typename S, typename Q, typename H>
 void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
                    H *dmeta, size_t dmeta_size, H *ddata, size_t ddata_size) {
 
@@ -400,8 +401,8 @@ void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
   // mgard_cuda::cudaMemcpyAsyncHelper(handle, &outlier_counD, Tmeta_p,
   // sizeof(size_t), mgard_cuda::D2H, 0); dmeta_p = dmeta_p + sizeof(size_t);
   // // printf("decompress outlier_count: %llu\n", outlier_count);
-  // mgard_cuda::cudaMallocHelper((void**)&doutlier, outlier_count*sizeof(S));
-  // outlier_idx = new size_t[outlier_count];
+  // mgard_cuda::cudaMallocHelper(handle, (void**)&doutlier,
+  // outlier_count*sizeof(S)); outlier_idx = new size_t[outlier_count];
   // mgard_cuda::cudaMemcpyAsyncHelper(handle, outlier_idx, dmeta_p,
   // outlier_count * sizeof(size_t), mgard_cuda::D2H, 0);
   // // printf("decompress outlier_idx: "); for(int i = 0; i < outlier_count;
@@ -416,7 +417,8 @@ void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
                                     sizeof(size_t), mgard_cuda::D2H, 0);
   dmeta_p = dmeta_p + sizeof(size_t);
   // printf("decompress primary_count: %llu\n", primary_count);
-  mgard_cuda::cudaMallocHelper((void **)&dprimary, primary_count * sizeof(Q));
+  mgard_cuda::cudaMallocHelper(handle, (void **)&dprimary,
+                               primary_count * sizeof(Q));
 
   mgard_cuda::cudaMemcpyAsyncHelper(handle, &dict_size, dmeta_p, sizeof(int),
                                     mgard_cuda::D2H, 0);
@@ -428,7 +430,7 @@ void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
                                     sizeof(size_t), mgard_cuda::D2H, 0);
   dmeta_p = dmeta_p + sizeof(size_t);
   // printf("decompress huffmeta_size: %llu\n", huffmeta_size);
-  mgard_cuda::cudaMallocHelper((void **)&huffmeta, huffmeta_size);
+  mgard_cuda::cudaMallocHelper(handle, (void **)&huffmeta, huffmeta_size);
   mgard_cuda::cudaMemcpyAsyncHelper(handle, huffmeta, dmeta_p, huffmeta_size,
                                     mgard_cuda::D2D, 0);
   // // huffmeta = (size_t *)dmeta_p;
@@ -437,7 +439,7 @@ void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
                                     sizeof(size_t), mgard_cuda::D2H, 0);
   dmeta_p = dmeta_p + sizeof(size_t);
   // printf("decompress decodebook_size: %llu\n", decodebook_size);
-  mgard_cuda::cudaMallocHelper((void **)&decodebook, decodebook_size);
+  mgard_cuda::cudaMallocHelper(handle, (void **)&decodebook, decodebook_size);
   mgard_cuda::cudaMemcpyAsyncHelper(handle, decodebook, dmeta_p,
                                     decodebook_size, mgard_cuda::D2D, 0);
   // // decodebook = (uint8_t *)dmeta_p;
@@ -458,7 +460,7 @@ void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
 
   // n = primary_count + outlier_count;
   // // printf("start combine\n");
-  // mgard_cuda::cudaMallocHelper((void **)&dqv, n * sizeof(S));
+  // mgard_cuda::cudaMallocHelper(handle, (void **)&dqv, n * sizeof(S));
 
   // size_t p = 0;
   // size_t pp = 0;

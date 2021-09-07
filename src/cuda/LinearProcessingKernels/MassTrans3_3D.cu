@@ -5,6 +5,8 @@
  * Date: April 2, 2021
  */
 
+#include "cuda/CommonInternal.h"
+
 #include "cuda/LinearProcessingKernel3D.h"
 #include "cuda/LinearProcessingKernel3D.hpp"
 
@@ -12,9 +14,10 @@ namespace mgard_cuda {
 
 #define KERNELS(D, T)                                                          \
   template void lpk_reo_3_3d<D, T>(                                            \
-      Handle<D, T> & handle, int nr, int nc_c, int nf_c, int nr_c, T *ddist_r, \
-      T *dratio_r, T *dv1, int lddv11, int lddv12, T *dv2, int lddv21,         \
-      int lddv22, T *dw, int lddw1, int lddw2, int queue_idx, int config);
+      Handle<D, T> & handle, SIZE nr, SIZE nc_c, SIZE nf_c, SIZE nr_c,         \
+      T * ddist_r, T * dratio_r, T * dv1, SIZE lddv11, SIZE lddv12, T * dv2,   \
+      SIZE lddv21, SIZE lddv22, T * dw, SIZE lddw1, SIZE lddw2, int queue_idx, \
+      int config);
 
 KERNELS(1, double)
 KERNELS(1, float)

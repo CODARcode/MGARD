@@ -35,9 +35,9 @@ MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which signific
 
 ## Using MGARD-GPU APIs
 
-* **Step 1: Include the header file.** MGARD-GPU APIs are included in both ```mgard/compress.hpp``` and ```mgard/mgard_cuda_api.h```.
+* **Step 1: Include the header file.** MGARD-GPU APIs are included in both ```mgard/compress.hpp``` and ```mgard/compress_cuda.hpp```.
      + Use ```mgard/compress.hpp``` if the user programs are to be compiled with ***C/C++*** compilers.
-     + Use ```mgard/mgard_cuda_api.h``` if the user programs are to be compiled with ***CUDA*** compilers.
+     + Use ```mgard/compress_cuda.hpp``` if the user programs are to be compiled with ***CUDA*** compilers.
 
 * **Step 2: Initialize mgard_cuda::Handle.**
 An object ```mgard_cuda::Handle``` needs to be created and initialized. This initializes the necessary environment for efficient compression on the GPU. It only needs to be created once if the input shape is not changed. For example, compressing the same variable on different timesteps only needs the handle to be created once. Also, the same handle can be shared in between compression and decompression APIs.
