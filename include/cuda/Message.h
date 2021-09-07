@@ -7,14 +7,15 @@
 
 using std::string;
 
+namespace mgard_cuda {
+namespace log {
+
 extern const string log_null;
 extern const string log_err;
 extern const string log_dbg;
 extern const string log_info;
 extern const string log_warn;
-
-namespace mgard_cuda {
-namespace log {
+extern const string log_time;
 
 // https://stackoverflow.com/a/26080768/8740097
 template <typename T> void build(std::ostream &o, T t);

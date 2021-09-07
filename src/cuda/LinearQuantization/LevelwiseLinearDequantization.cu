@@ -5,6 +5,8 @@
  * Date: April 2, 2021
  */
 
+#include "cuda/CommonInternal.h"
+
 #include "cuda/LinearQuantization.h"
 #include "cuda/LinearQuantization.hpp"
 
@@ -12,9 +14,10 @@ namespace mgard_cuda {
 
 #define KERNELS(D, T)                                                          \
   template void levelwise_linear_dequantize<D, T>(                             \
-      Handle<D, T> & handle, int *shapes, int l_target, quant_meta<T> m,       \
-      int *dv, int *ldvs, T *dwork, int *ldws, size_t outlier_count,           \
-      unsigned int *outlier_idx, int *outliers, int queue_idx);
+      Handle<D, T> & handle, SIZE * shapes, SIZE l_target, T * volumes,        \
+      SIZE ldvolumes, Metadata m, QUANTIZED_INT * dv, SIZE * ldvs, T * dwork,  \
+      SIZE * ldws, bool prep_huffman, LENGTH outlier_count,                    \
+      LENGTH *outlier_idx, QUANTIZED_INT *outliers, int queue_idx);
 
 KERNELS(1, double)
 KERNELS(1, float)

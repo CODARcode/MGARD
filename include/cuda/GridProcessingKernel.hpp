@@ -8,20 +8,23 @@
 #ifndef MGRAD_CUDA_GRID_PROCESSING_KERNEL_TEMPLATE
 #define MGRAD_CUDA_GRID_PROCESSING_KERNEL_TEMPLATE
 
+#include "CommonInternal.h"
+#include "GPKFunctor.h"
 #include "GridProcessingKernel.h"
 
 namespace mgard_cuda {
 
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
+template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE>
 __global__ void
-_gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
-         int *unprocessed_dims, int curr_dim_r, int curr_dim_c, int curr_dim_f,
-         T *dratio_r, T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2,
-         T *dw, int lddw1, int lddw2, T *dwf, int lddwf1, int lddwf2, T *dwc,
-         int lddwc1, int lddwc2, T *dwr, int lddwr1, int lddwr2, T *dwcf,
-         int lddwcf1, int lddwcf2, T *dwrf, int lddwrf1, int lddwrf2, T *dwrc,
-         int lddwrc1, int lddwrc2, T *dwrcf, int lddwrcf1, int lddwrcf2) {
+_gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
+         DIM *unprocessed_dims, DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+         T *dratio_r, T *dratio_c, T *dratio_f, T *dv, LENGTH lddv1,
+         LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2, T *dwf, LENGTH lddwf1,
+         LENGTH lddwf2, T *dwc, LENGTH lddwc1, LENGTH lddwc2, T *dwr,
+         LENGTH lddwr1, LENGTH lddwr2, T *dwcf, LENGTH lddwcf1, LENGTH lddwcf2,
+         T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1,
+         LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2) {
 
   // bool debug = false;
   // if (blockIdx.x == 0 && blockIdx.y ==0 && blockIdx.z == 0 &&
@@ -32,41 +35,52 @@ _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   // volatile clock_t end = 0;
   // volatile unsigned long long sum_time = 0;
 
-  size_t threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
+  LENGTH threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
                     (threadIdx.y * blockDim.x) + threadIdx.x;
 
-  int nr, nc, nf;
-  int nr_c, nc_c, nf_c;
-  int r, c, f;
-  int rest_r, rest_c, rest_f;
-  int nr_p, nc_p, nf_p;
-  int rest_r_p, rest_c_p, rest_f_p;
-  int r_sm, c_sm, f_sm;
-  int r_sm_ex, c_sm_ex, f_sm_ex;
-  int r_gl, c_gl, f_gl;
-  int r_gl_ex, c_gl_ex, f_gl_ex;
+  SIZE nr, nc, nf;
+  SIZE nr_c, nc_c, nf_c;
+  SIZE r, c, f;
+  SIZE rest_r, rest_c, rest_f;
+  SIZE nr_p, nc_p, nf_p;
+  SIZE rest_r_p, rest_c_p, rest_f_p;
+  SIZE r_sm, c_sm, f_sm;
+  SIZE r_sm_ex, c_sm_ex, f_sm_ex;
+  SIZE r_gl, c_gl, f_gl;
+  SIZE r_gl_ex, c_gl_ex, f_gl_ex;
   T res;
   bool in_next = true;
 
-  // extern __shared__ __align__(sizeof(T)) unsigned char smem[];
-  // T * sm = reinterpret_cast<T *>(smem);
-
   T *sm = SharedMemory<T>();
+  SIZE ldsm1 = F * 2 + 1;
+  SIZE ldsm2 = C * 2 + 1;
 
-  // extern __shared__ double sm[]; // size: (blockDim.x + 1) * (blockDim.y + 1)
-  // * (blockDim.z + 1)
-  int ldsm1 = F * 2 + 1;
-  int ldsm2 = C * 2 + 1;
   T *v_sm = sm;
-  T *ratio_f_sm = sm + (F * 2 + 1) * (C * 2 + 1) * (R * 2 + 1);
-  T *ratio_c_sm = ratio_f_sm + F * 2;
-  T *ratio_r_sm = ratio_c_sm + C * 2;
-  int *shape_sm = (int *)(ratio_r_sm + R * 2);
-  int *shape_c_sm = shape_sm + D_GLOBAL;
-  int *unprocessed_dims_sm = shape_c_sm + D_GLOBAL;
-  int *ldvs_sm = unprocessed_dims_sm + D_GLOBAL;
-  int *ldws_sm = ldvs_sm + D_GLOBAL;
-  int idx[D_GLOBAL];
+  sm += (F * 2 + 1) * (C * 2 + 1) * (R * 2 + 1);
+  T *ratio_f_sm = sm;
+  sm += F * 2;
+  T *ratio_c_sm = sm;
+  sm += C * 2;
+  T *ratio_r_sm = sm;
+  sm += R * 2;
+
+  SIZE *sm_size = (SIZE *)sm;
+  SIZE *shape_sm = sm_size;
+  sm_size += D_GLOBAL;
+  SIZE *shape_c_sm = sm_size;
+  sm_size += D_GLOBAL;
+  SIZE *ldvs_sm = sm_size;
+  sm_size += D_GLOBAL;
+  SIZE *ldws_sm = sm_size;
+  sm_size += D_GLOBAL;
+  sm = (T *)sm_size;
+
+  DIM *sm_dim = (DIM *)sm;
+  DIM *unprocessed_dims_sm = sm_dim;
+  sm_dim += D_GLOBAL;
+  sm = (T *)sm_dim;
+
+  SIZE idx[D_GLOBAL];
   if (threadId < D_GLOBAL) {
     shape_sm[threadId] = shape[threadId];
     shape_c_sm[threadId] = shape_c[threadId];
@@ -79,7 +93,7 @@ _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   }
   __syncthreads();
 
-  for (int d = 0; d < D_GLOBAL; d++)
+  for (DIM d = 0; d < D_GLOBAL; d++)
     idx[d] = 0;
 
   nr = shape_sm[curr_dim_r];
@@ -101,8 +115,8 @@ _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
 
   r = blockIdx.z * blockDim.z;
   c = blockIdx.y * blockDim.y;
-  int bidx = blockIdx.x;
-  int firstD = div_roundup(shape_sm[0] - 1, blockDim.x);
+  SIZE bidx = blockIdx.x;
+  SIZE firstD = div_roundup(shape_sm[0] - 1, blockDim.x);
   f = (bidx % firstD) * blockDim.x;
 
   bidx /= firstD;
@@ -133,7 +147,7 @@ _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
     rest_f_p = nf_p - f;
   }
 
-  for (int d = 0; d < D_GLOBAL; d++) {
+  for (DIM d = 0; d < D_GLOBAL; d++) {
     if (D_LOCAL == 3 && d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
       idx[d] = bidx % shape_sm[d];
       bidx /= shape_sm[d];
@@ -150,8 +164,8 @@ _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
 
   int skip = 0;
 #pragma unroll 1
-  for (int t = 0; t < D_GLOBAL; t++) {
-    for (int k = 0; k < unprocessed_n; k++) {
+  for (DIM t = 0; t < D_GLOBAL; t++) {
+    for (DIM k = 0; k < unprocessed_n; k++) {
       if (t == unprocessed_dims_sm[k] &&
           (shape_sm[t] % 2 == 1 && idx[t] % 2 == 1 ||
            shape_sm[t] % 2 == 0 && idx[t] % 2 == 1 &&
@@ -168,8 +182,8 @@ _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   // }
   // }
 
-  size_t other_offset_v = get_idx<D_GLOBAL>(ldvs_sm, idx);
-  size_t other_offset_w = get_idx<D_GLOBAL>(ldws_sm, idx);
+  LENGTH other_offset_v = get_idx<D_GLOBAL>(ldvs_sm, idx);
+  LENGTH other_offset_w = get_idx<D_GLOBAL>(ldws_sm, idx);
 
   dv = dv + other_offset_v;
   dw = dw + other_offset_w;
@@ -1895,33 +1909,32 @@ _gpk_reo(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   // }
 }
 
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
+template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE>
 void gpk_reo_adaptive_launcher(
-    Handle<D_GLOBAL, T> &handle, thrust::device_vector<int> shape,
-    thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
-    thrust::device_vector<int> ldws,
-    thrust::device_vector<int> unprocessed_dims, int curr_dim_r, int curr_dim_c,
-    int curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv, int lddv1,
-    int lddv2, T *dw, int lddw1, int lddw2, T *dwf, int lddwf1, int lddwf2,
-    T *dwc, int lddwc1, int lddwc2, T *dwr, int lddwr1, int lddwr2, T *dwcf,
-    int lddwcf1, int lddwcf2, T *dwrf, int lddwrf1, int lddwrf2, T *dwrc,
-    int lddwrc1, int lddwrc2, T *dwrcf, int lddwrcf1, int lddwrcf2,
-    int queue_idx) {
+    Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d, SIZE *shape_c_d,
+    SIZE *ldvs, SIZE *ldws, DIM unprocessed_n, DIM *unprocessed_dims,
+    DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, T *dratio_r, T *dratio_c,
+    T *dratio_f, T *dv, LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1,
+    LENGTH lddw2, T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1,
+    LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
+    LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2,
+    T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1,
+    LENGTH lddwrcf2, int queue_idx) {
 
-  int nr = shape[curr_dim_r];
-  int nc = shape[curr_dim_c];
-  int nf = shape[curr_dim_f];
+  SIZE nr = shape_h[curr_dim_r];
+  SIZE nc = shape_h[curr_dim_c];
+  SIZE nf = shape_h[curr_dim_f];
   if (D_LOCAL == 2) {
     nr = 1;
   }
-  int total_thread_z = std::max(nr - 1, 1);
-  int total_thread_y = std::max(nc - 1, 1);
-  int total_thread_x = std::max(nf - 1, 1);
+  SIZE total_thread_z = std::max(nr - 1, (SIZE)1);
+  SIZE total_thread_y = std::max(nc - 1, (SIZE)1);
+  SIZE total_thread_x = std::max(nf - 1, (SIZE)1);
 
-  int tbx, tby, tbz, gridx, gridy, gridz;
+  SIZE tbx, tby, tbz, gridx, gridy, gridz;
   dim3 threadsPerBlock, blockPerGrid;
-  size_t sm_size;
+  SIZE sm_size;
   // const int R = 4;
   // const int C = 4;
   // const int F = 16;
@@ -1932,183 +1945,13 @@ void gpk_reo_adaptive_launcher(
   tby = C;
   tbx = F;
   sm_size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
-  sm_size += (D_GLOBAL * 5) * sizeof(int);
+  sm_size += (D_GLOBAL * 4) * sizeof(SIZE);
+  sm_size += (D_GLOBAL * 1) * sizeof(DIM);
 
   gridz = ceil((float)total_thread_z / tbz);
   gridy = ceil((float)total_thread_y / tby);
   gridx = ceil((float)total_thread_x / tbx);
-  for (int d = 0; d < D_GLOBAL; d++) {
-    if (D_LOCAL == 3 && d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
-      gridx *= shape[d];
-    }
-    if (D_LOCAL == 2 && d != curr_dim_f && d != curr_dim_c) {
-      gridx *= shape[d];
-    }
-  }
-  threadsPerBlock = dim3(tbx, tby, tbz);
-  blockPerGrid = dim3(gridx, gridy, gridz);
-
-  // printf("_gpk_reo exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz,
-  // gridx, gridy, gridz);
-  _gpk_reo<D_GLOBAL, D_LOCAL, T, R / 2, C / 2, F / 2, INTERPOLATION, CALC_COEFF,
-           TYPE><<<blockPerGrid, threadsPerBlock, sm_size,
-                   *(cudaStream_t *)handle.get(queue_idx)>>>(
-      thrust::raw_pointer_cast(shape.data()),
-      thrust::raw_pointer_cast(shape_c.data()),
-      thrust::raw_pointer_cast(ldvs.data()),
-      thrust::raw_pointer_cast(ldws.data()), unprocessed_dims.size(),
-      thrust::raw_pointer_cast(unprocessed_dims.data()), curr_dim_r, curr_dim_c,
-      curr_dim_f, dratio_r, dratio_c, dratio_f, dv, lddv1, lddv2, dw, lddw1,
-      lddw2, dwf, lddwf1, lddwf2, dwc, lddwc1, lddwc2, dwr, lddwr1, lddwr2,
-      dwcf, lddwcf1, lddwcf2, dwrf, lddwrf1, lddwrf2, dwrc, lddwrc1, lddwrc2,
-      dwrcf, lddwrcf1, lddwrcf2);
-  gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
-  gpuErrchk(cudaDeviceSynchronize());
-#endif
-}
-
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, bool INTERPOLATION,
-          bool CALC_COEFF, int TYPE>
-void gpk_reo(Handle<D_GLOBAL, T> &handle, thrust::device_vector<int> shape,
-             thrust::device_vector<int> shape_c,
-             thrust::device_vector<int> ldvs, thrust::device_vector<int> ldws,
-             thrust::device_vector<int> unprocessed_dims, int curr_dim_r,
-             int curr_dim_c, int curr_dim_f, T *dratio_r, T *dratio_c,
-             T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1,
-             int lddw2, T *dwf, int lddwf1, int lddwf2, T *dwc, int lddwc1,
-             int lddwc2, T *dwr, int lddwr1, int lddwr2, T *dwcf, int lddwcf1,
-             int lddwcf2, T *dwrf, int lddwrf1, int lddwrf2, T *dwrc,
-             int lddwrc1, int lddwrc2, T *dwrcf, int lddwrcf1, int lddwrcf2,
-             int queue_idx, int config) {
-
-#define GPK(R, C, F)                                                           \
-  {                                                                            \
-    gpk_reo_adaptive_launcher<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,    \
-                              CALC_COEFF, TYPE>(                               \
-        handle, shape, shape_c, ldvs, ldws, unprocessed_dims, curr_dim_r,      \
-        curr_dim_c, curr_dim_f, dratio_r, dratio_c, dratio_f, dv, lddv1,       \
-        lddv2, dw, lddw1, lddw2, dwf, lddwf1, lddwf2, dwc, lddwc1, lddwc2,     \
-        dwr, lddwr1, lddwr2, dwcf, lddwcf1, lddwcf2, dwrf, lddwrf1, lddwrf2,   \
-        dwrc, lddwrc1, lddwrc2, dwrcf, lddwrcf1, lddwrcf2, queue_idx);         \
-  }
-  bool profile = false;
-#ifdef MGARD_CUDA_KERNEL_PROFILE
-  profile = true;
-#endif
-  if (D_LOCAL == 3) {
-    if (profile || config == 6) {
-      GPK(2, 2, 128)
-    }
-    if (profile || config == 5) {
-      GPK(2, 2, 64)
-    }
-    if (profile || config == 4) {
-      GPK(4, 4, 32)
-    }
-    if (profile || config == 3) {
-      GPK(4, 4, 16)
-    }
-    if (profile || config == 2) {
-      GPK(4, 4, 8)
-    }
-    if (profile || config == 1) {
-      GPK(4, 4, 4)
-    }
-    if (profile || config == 0) {
-      GPK(2, 2, 2)
-    }
-    // GPK(T, 4, 4, 4)
-  } else if (D_LOCAL == 2) {
-    if (profile || config == 6) {
-      GPK(1, 2, 128)
-    }
-    if (profile || config == 5) {
-      GPK(1, 2, 64)
-    }
-    if (profile || config == 4) {
-      GPK(1, 4, 32)
-    }
-    if (profile || config == 3) {
-      GPK(1, 4, 16)
-    }
-    if (profile || config == 2) {
-      GPK(1, 4, 8)
-    }
-    if (profile || config == 1) {
-      GPK(1, 4, 4)
-    }
-    if (profile || config == 0) {
-      GPK(1, 2, 4)
-    }
-    // GPK(T, 1, 4, 4)
-  } else if (D_LOCAL == 1) {
-    if (profile || config == 6) {
-      GPK(1, 1, 128)
-    }
-    if (profile || config == 5) {
-      GPK(1, 1, 64)
-    }
-    if (profile || config == 4) {
-      GPK(1, 1, 32)
-    }
-    if (profile || config == 3) {
-      GPK(1, 1, 16)
-    }
-    if (profile || config == 2) {
-      GPK(1, 1, 8)
-    }
-    if (profile || config == 1) {
-      GPK(1, 1, 8)
-    }
-    if (profile || config == 0) {
-      GPK(1, 1, 8)
-    }
-  }
-#undef GPK
-}
-
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
-          bool INTERPOLATION, bool CALC_COEFF, int TYPE>
-void gpk_reo_adaptive_launcher(
-    Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d, int *shape_c_d,
-    int *ldvs, int *ldws, int unprocessed_n, int *unprocessed_dims,
-    int curr_dim_r, int curr_dim_c, int curr_dim_f, T *dratio_r, T *dratio_c,
-    T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1, int lddw2,
-    T *dwf, int lddwf1, int lddwf2, T *dwc, int lddwc1, int lddwc2, T *dwr,
-    int lddwr1, int lddwr2, T *dwcf, int lddwcf1, int lddwcf2, T *dwrf,
-    int lddwrf1, int lddwrf2, T *dwrc, int lddwrc1, int lddwrc2, T *dwrcf,
-    int lddwrcf1, int lddwrcf2, int queue_idx) {
-
-  int nr = shape_h[curr_dim_r];
-  int nc = shape_h[curr_dim_c];
-  int nf = shape_h[curr_dim_f];
-  if (D_LOCAL == 2) {
-    nr = 1;
-  }
-  int total_thread_z = std::max(nr - 1, 1);
-  int total_thread_y = std::max(nc - 1, 1);
-  int total_thread_x = std::max(nf - 1, 1);
-
-  int tbx, tby, tbz, gridx, gridy, gridz;
-  dim3 threadsPerBlock, blockPerGrid;
-  size_t sm_size;
-  // const int R = 4;
-  // const int C = 4;
-  // const int F = 16;
-  // tbz = std::min(R, total_thread_z);
-  // tby = std::min(C, total_thread_y);
-  // tbx = std::min(F, total_thread_x);
-  tbz = R;
-  tby = C;
-  tbx = F;
-  sm_size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
-  sm_size += (D_GLOBAL * 5) * sizeof(int);
-
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
-  for (int d = 0; d < D_GLOBAL; d++) {
+  for (DIM d = 0; d < D_GLOBAL; d++) {
     if (D_LOCAL == 3 && d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       gridx *= shape_h[d];
     }
@@ -2133,25 +1976,23 @@ void gpk_reo_adaptive_launcher(
       lddwrc1, lddwrc2, dwrcf, lddwrcf1, lddwrcf2);
 
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
-  gpuErrchk(cudaDeviceSynchronize());
-#endif
-  // high_resolution_clock::time_point t2 = high_resolution_clock::now();
-  // duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-  // printf("gpk_reo_kernel time: %.6f s\n", time_span.count());
+  if (handle.sync_and_check_all_kernels) {
+    gpuErrchk(cudaDeviceSynchronize());
+  }
 }
 
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, bool INTERPOLATION,
+template <DIM D_GLOBAL, DIM D_LOCAL, typename T, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE>
-void gpk_reo(Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d,
-             int *shape_c_d, int *ldvs, int *ldws, int unprocessed_n,
-             int *unprocessed_dims, int curr_dim_r, int curr_dim_c,
-             int curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv,
-             int lddv1, int lddv2, T *dw, int lddw1, int lddw2, T *dwf,
-             int lddwf1, int lddwf2, T *dwc, int lddwc1, int lddwc2, T *dwr,
-             int lddwr1, int lddwr2, T *dwcf, int lddwcf1, int lddwcf2, T *dwrf,
-             int lddwrf1, int lddwrf2, T *dwrc, int lddwrc1, int lddwrc2,
-             T *dwrcf, int lddwrcf1, int lddwrcf2, int queue_idx, int config) {
+void gpk_reo(Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d,
+             SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
+             DIM *unprocessed_dims, DIM curr_dim_r, DIM curr_dim_c,
+             DIM curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv,
+             LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2,
+             T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1,
+             LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
+             LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1,
+             LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf,
+             LENGTH lddwrcf1, LENGTH lddwrcf2, int queue_idx, int config) {
 
 #define GPK(R, C, F)                                                           \
   {                                                                            \
@@ -2165,9 +2006,9 @@ void gpk_reo(Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d,
         lddwrcf1, lddwrcf2, queue_idx);                                        \
   }
   bool profile = false;
-#ifdef MGARD_CUDA_KERNEL_PROFILE
-  profile = true;
-#endif
+  if (handle.profile_kernels) {
+    profile = true;
+  }
   if (D_LOCAL == 3) {
     if (profile || config == 6) {
       GPK(2, 2, 128)
@@ -2240,62 +2081,74 @@ void gpk_reo(Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d,
 #undef GPK
 }
 
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
+template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F,
           bool INTERPOLATION, bool COEFF_RESTORE, int TYPE>
 __global__ void
-_gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
-         int *unprocessed_dims, int curr_dim_r, int curr_dim_c, int curr_dim_f,
-         T *dratio_r, T *dratio_c, T *dratio_f, T *dv, int lddv1, int lddv2,
-         T *dw, int lddw1, int lddw2, T *dwf, int lddwf1, int lddwf2, T *dwc,
-         int lddwc1, int lddwc2, T *dwr, int lddwr1, int lddwr2, T *dwcf,
-         int lddwcf1, int lddwcf2, T *dwrf, int lddwrf1, int lddwrf2, T *dwrc,
-         int lddwrc1, int lddwrc2, T *dwrcf, int lddwrcf1, int lddwrcf2,
-         int svr, int svc, int svf, int nvr, int nvc, int nvf) {
+_gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
+         DIM *unprocessed_dims, DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+         T *dratio_r, T *dratio_c, T *dratio_f, T *dv, LENGTH lddv1,
+         LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2, T *dwf, LENGTH lddwf1,
+         LENGTH lddwf2, T *dwc, LENGTH lddwc1, LENGTH lddwc2, T *dwr,
+         LENGTH lddwr1, LENGTH lddwr2, T *dwcf, LENGTH lddwcf1, LENGTH lddwcf2,
+         T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1,
+         LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2, SIZE svr,
+         SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf) {
 
-  bool debug = false;
-  if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0 &&
-      threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)
-    debug = false;
+  // bool debug = false;
+  // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0 &&
+  //     threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)
+  //   debug = false;
 
-  bool debug2 = false;
-  if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0)
-    debug2 = false;
+  // bool debug2 = false;
+  // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0)
+  //   debug2 = false;
 
-  size_t threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
+  LENGTH threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
                     (threadIdx.y * blockDim.x) + threadIdx.x;
 
-  int nr, nc, nf;
-  int nr_c, nc_c, nf_c;
-  int r, c, f;
-  int rest_r, rest_c, rest_f;
-  int nr_p, nc_p, nf_p;
-  int rest_r_p, rest_c_p, rest_f_p;
-  int r_sm, c_sm, f_sm;
-  int r_sm_ex, c_sm_ex, f_sm_ex;
-  int r_gl, c_gl, f_gl;
-  int r_gl_ex, c_gl_ex, f_gl_ex;
+  SIZE nr, nc, nf;
+  SIZE nr_c, nc_c, nf_c;
+  SIZE r, c, f;
+  SIZE rest_r, rest_c, rest_f;
+  SIZE nr_p, nc_p, nf_p;
+  SIZE rest_r_p, rest_c_p, rest_f_p;
+  SIZE r_sm, c_sm, f_sm;
+  SIZE r_sm_ex, c_sm_ex, f_sm_ex;
+  SIZE r_gl, c_gl, f_gl;
+  SIZE r_gl_ex, c_gl_ex, f_gl_ex;
   T res;
   bool in_next = true;
 
-  // extern __shared__ __align__(sizeof(T)) unsigned char smem[];
-  // T * sm = reinterpret_cast<T *>(smem);
-
   T *sm = SharedMemory<T>();
+  SIZE ldsm1 = F * 2 + 1;
+  SIZE ldsm2 = C * 2 + 1;
 
-  // extern __shared__ double sm[]; // size: (blockDim.x + 1) * (blockDim.y + 1)
-  // * (blockDim.z + 1)
-  int ldsm1 = F * 2 + 1;
-  int ldsm2 = C * 2 + 1;
   T *v_sm = sm;
-  T *ratio_f_sm = sm + (F * 2 + 1) * (C * 2 + 1) * (R * 2 + 1);
-  T *ratio_c_sm = ratio_f_sm + F * 2;
-  T *ratio_r_sm = ratio_c_sm + C * 2;
-  int *shape_sm = (int *)(ratio_r_sm + R * 2);
-  int *shape_c_sm = shape_sm + D_GLOBAL;
-  int *unprocessed_dims_sm = shape_c_sm + D_GLOBAL;
-  int *ldvs_sm = unprocessed_dims_sm + D_GLOBAL;
-  int *ldws_sm = ldvs_sm + D_GLOBAL;
-  int idx[D_GLOBAL];
+  sm += (F * 2 + 1) * (C * 2 + 1) * (R * 2 + 1);
+  T *ratio_f_sm = sm;
+  sm += F * 2;
+  T *ratio_c_sm = sm;
+  sm += C * 2;
+  T *ratio_r_sm = sm;
+  sm += R * 2;
+
+  SIZE *sm_size = (SIZE *)sm;
+  SIZE *shape_sm = sm_size;
+  sm_size += D_GLOBAL;
+  SIZE *shape_c_sm = sm_size;
+  sm_size += D_GLOBAL;
+  SIZE *ldvs_sm = sm_size;
+  sm_size += D_GLOBAL;
+  SIZE *ldws_sm = sm_size;
+  sm_size += D_GLOBAL;
+  sm = (T *)sm_size;
+
+  DIM *sm_dim = (DIM *)sm;
+  DIM *unprocessed_dims_sm = sm_dim;
+  sm_dim += D_GLOBAL;
+  sm = (T *)sm_dim;
+
+  SIZE idx[D_GLOBAL];
   if (threadId < D_GLOBAL) {
     shape_sm[threadId] = shape[threadId];
     shape_c_sm[threadId] = shape_c[threadId];
@@ -2307,7 +2160,7 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
     unprocessed_dims_sm[threadId] = unprocessed_dims[threadId];
   }
   __syncthreads();
-  for (int d = 0; d < D_GLOBAL; d++)
+  for (DIM d = 0; d < D_GLOBAL; d++)
     idx[d] = 0;
 
   nr = shape_sm[curr_dim_r];
@@ -2329,8 +2182,8 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
 
   r = blockIdx.z * blockDim.z;
   c = blockIdx.y * blockDim.y;
-  int bidx = blockIdx.x;
-  int firstD = div_roundup(shape_sm[0] - 1, blockDim.x);
+  SIZE bidx = blockIdx.x;
+  SIZE firstD = div_roundup(shape_sm[0] - 1, blockDim.x);
   f = (bidx % firstD) * blockDim.x;
 
   bidx /= firstD;
@@ -2381,8 +2234,8 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
 
   int skip = 0;
 #pragma unroll 1
-  for (int t = 0; t < D_GLOBAL; t++) {
-    for (int k = 0; k < unprocessed_n; k++) {
+  for (DIM t = 0; t < D_GLOBAL; t++) {
+    for (DIM k = 0; k < unprocessed_n; k++) {
       if (t == unprocessed_dims_sm[k] && idx[t] >= shape_c_sm[t]) {
         skip = 1;
       }
@@ -2396,8 +2249,8 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   // }
   // }
 
-  size_t other_offset_v = get_idx<D_GLOBAL>(ldvs_sm, idx);
-  size_t other_offset_w = get_idx<D_GLOBAL>(ldws_sm, idx);
+  LENGTH other_offset_v = get_idx<D_GLOBAL>(ldvs_sm, idx);
+  LENGTH other_offset_w = get_idx<D_GLOBAL>(ldws_sm, idx);
 
   dv = dv + other_offset_v;
   dw = dw + other_offset_w;
@@ -2487,9 +2340,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
           r_gl < nr_c && c_gl < nc_c && f_gl < nf) {
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
-        if (debug2)
-          printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-                 dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+        // if (debug2)
+        //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
+        //          f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2512,9 +2366,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
           r_gl < nr_c && c_gl < nc_c && f_gl < nf) {
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
-        if (debug2)
-          printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-                 dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+        // if (debug2)
+        //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
+        //          f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2581,9 +2436,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
           r_gl < nr_c && c_gl < nc_c && f_gl < nf) {
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
-        if (debug2)
-          printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-                 dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+        // if (debug2)
+        //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
+        //          f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2649,9 +2505,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
           r_gl < nr_c && c_gl < nc_c && f_gl < nf) {
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
-        if (debug2)
-          printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-                 dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+        // if (debug2)
+        //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
+        //          f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2715,9 +2572,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
           r_gl < nr_c && c_gl < nc_c && f_gl < nf) {
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
-        if (debug2)
-          printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-                 dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+        // if (debug2)
+        //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
+        //          f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2782,9 +2640,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
           r_gl < nr_c && c_gl < nc_c && f_gl < nf) {
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
-        if (debug2)
-          printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-                 dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+        // if (debug2)
+        //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
+        //          f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2848,9 +2707,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
           r_gl < nr_c && c_gl < nc_c && f_gl < nf) {
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
-        if (debug2)
-          printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-                 dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+        // if (debug2)
+        //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
+        //          f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2914,9 +2774,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
           r_gl < nr_c && c_gl < nc_c && f_gl < nf) {
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
-        if (debug2)
-          printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-                 dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+        // if (debug2)
+        //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
+        //          f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2981,9 +2842,10 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
           r_gl < nr_c && c_gl < nc_c && f_gl < nf) {
         v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
-        if (debug2)
-          printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-                 dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+        // if (debug2)
+        //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
+        //          f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -3004,21 +2866,21 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
 
   __syncthreads();
 
-  __syncthreads();
-  if (debug) {
-    printf("TYPE: %d %d %d %d\n", TYPE, min(rest_r_p, R * 2 + 1),
-           min(rest_c_p, C * 2 + 1), min(rest_f_p, F * 2 + 1));
-    for (int i = 0; i < min(rest_r_p, R * 2 + 1); i++) {
-      for (int j = 0; j < min(rest_c_p, C * 2 + 1); j++) {
-        for (int k = 0; k < min(rest_f_p, F * 2 + 1); k++) {
-          printf("%2.2f ", v_sm[get_idx(ldsm1, ldsm2, i, j, k)]);
-        }
-        printf("\n");
-      }
-      printf("\n");
-    }
-  }
-  __syncthreads();
+  // __syncthreads();
+  // if (debug) {
+  //   printf("TYPE: %d %d %d %d\n", TYPE, min(rest_r_p, R * 2 + 1),
+  //          min(rest_c_p, C * 2 + 1), min(rest_f_p, F * 2 + 1));
+  //   for (int i = 0; i < min(rest_r_p, R * 2 + 1); i++) {
+  //     for (int j = 0; j < min(rest_c_p, C * 2 + 1); j++) {
+  //       for (int k = 0; k < min(rest_f_p, F * 2 + 1); k++) {
+  //         printf("%2.2f ", v_sm[get_idx(ldsm1, ldsm2, i, j, k)]);
+  //       }
+  //       printf("\n");
+  //     }
+  //     printf("\n");
+  //   }
+  // }
+  // __syncthreads();
 
   if (dwf && threadId >= R * C * F && threadId < R * C * F * 2) {
 
@@ -3539,7 +3401,7 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
         c_gl = c / 2 + C;
         f_gl = f / 2 + (threadId - R * C * F) % F;
 
-        if (TYPE) {
+        if (TYPE == 1) {
           if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
               r_gl < nr_c && c_gl < nc_c && f_gl < nf - nf_c) {
             res = dwf[get_idx(lddwf1, lddwf2, r_gl, c_gl, f_gl)];
@@ -3945,21 +3807,21 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
     }
   }
 
-  __syncthreads();
-  if (debug) {
-    printf("TYPE: %d %d %d %d\n", TYPE, min(rest_r_p, R * 2 + 1),
-           min(rest_c_p, C * 2 + 1), min(rest_f_p, F * 2 + 1));
-    for (int i = 0; i < min(rest_r_p, R * 2 + 1); i++) {
-      for (int j = 0; j < min(rest_c_p, C * 2 + 1); j++) {
-        for (int k = 0; k < min(rest_f_p, F * 2 + 1); k++) {
-          printf("%2.2f ", v_sm[get_idx(ldsm1, ldsm2, i, j, k)]);
-        }
-        printf("\n");
-      }
-      printf("\n");
-    }
-  }
-  __syncthreads();
+  // __syncthreads();
+  // if (debug) {
+  //   printf("TYPE: %d %d %d %d\n", TYPE, min(rest_r_p, R * 2 + 1),
+  //          min(rest_c_p, C * 2 + 1), min(rest_f_p, F * 2 + 1));
+  //   for (int i = 0; i < min(rest_r_p, R * 2 + 1); i++) {
+  //     for (int j = 0; j < min(rest_c_p, C * 2 + 1); j++) {
+  //       for (int k = 0; k < min(rest_f_p, F * 2 + 1); k++) {
+  //         printf("%2.2f ", v_sm[get_idx(ldsm1, ldsm2, i, j, k)]);
+  //       }
+  //       printf("\n");
+  //     }
+  //     printf("\n");
+  //   }
+  // }
+  // __syncthreads();
 
   __syncthreads();
 
@@ -4273,31 +4135,31 @@ _gpk_rev(int *shape, int *shape_c, int *ldvs, int *ldws, int unprocessed_n,
   }
 }
 
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
+template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F,
           bool INTERPOLATION, bool COEFF_RESTORE, int TYPE>
 void gpk_rev_adaptive_launcher(
-    Handle<D_GLOBAL, T> &handle, thrust::device_vector<int> shape,
-    thrust::device_vector<int> shape_c, thrust::device_vector<int> ldvs,
-    thrust::device_vector<int> ldws,
-    thrust::device_vector<int> unprocessed_dims, int curr_dim_r, int curr_dim_c,
-    int curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv, int lddv1,
-    int lddv2, T *dw, int lddw1, int lddw2, T *dwf, int lddwf1, int lddwf2,
-    T *dwc, int lddwc1, int lddwc2, T *dwr, int lddwr1, int lddwr2, T *dwcf,
-    int lddwcf1, int lddwcf2, T *dwrf, int lddwrf1, int lddwrf2, T *dwrc,
-    int lddwrc1, int lddwrc2, T *dwrcf, int lddwrcf1, int lddwrcf2, int svr,
-    int svc, int svf, int nvr, int nvc, int nvf, int queue_idx) {
+    Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d, SIZE *shape_c_d,
+    SIZE *ldvs, SIZE *ldws, DIM unprocessed_n, DIM *unprocessed_dims,
+    DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, T *dratio_r, T *dratio_c,
+    T *dratio_f, T *dv, LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1,
+    LENGTH lddw2, T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1,
+    LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
+    LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2,
+    T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1,
+    LENGTH lddwrcf2, SIZE svr, SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf,
+    int queue_idx) {
 
-  int nr = shape[curr_dim_r];
-  int nc = shape[curr_dim_c];
-  int nf = shape[curr_dim_f];
+  SIZE nr = shape_h[curr_dim_r];
+  SIZE nc = shape_h[curr_dim_c];
+  SIZE nf = shape_h[curr_dim_f];
   if (D_LOCAL == 2) {
     nr = 1;
   }
-  int total_thread_z = std::max(nr - 1, 1);
-  int total_thread_y = std::max(nc - 1, 1);
-  int total_thread_x = std::max(nf - 1, 1);
+  SIZE total_thread_z = std::max(nr - 1, (SIZE)1);
+  SIZE total_thread_y = std::max(nc - 1, (SIZE)1);
+  SIZE total_thread_x = std::max(nf - 1, (SIZE)1);
 
-  int tbx, tby, tbz, gridx, gridy, gridz;
+  SIZE tbx, tby, tbz, gridx, gridy, gridz;
   dim3 threadsPerBlock, blockPerGrid;
   size_t sm_size;
 
@@ -4308,183 +4170,13 @@ void gpk_rev_adaptive_launcher(
   tby = C;
   tbx = F;
   sm_size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
-  sm_size += (D_GLOBAL * 5 + 1) * sizeof(int);
+  sm_size += (D_GLOBAL * 4) * sizeof(SIZE);
+  sm_size += (D_GLOBAL * 1) * sizeof(DIM);
 
   gridz = ceil((float)total_thread_z / tbz);
   gridy = ceil((float)total_thread_y / tby);
   gridx = ceil((float)total_thread_x / tbx);
-  for (int d = 0; d < D_GLOBAL; d++) {
-    if (D_LOCAL == 3 && d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
-      gridx *= shape[d];
-    }
-    if (D_LOCAL == 2 && d != curr_dim_f && d != curr_dim_c) {
-      gridx *= shape[d];
-    }
-  }
-
-  threadsPerBlock = dim3(tbx, tby, tbz);
-  blockPerGrid = dim3(gridx, gridy, gridz);
-
-  // printf("gpk_rev exec: %d %d %d %d %d %d\n", tbx, tby, tbz, gridx, gridy,
-  // gridz);
-  _gpk_rev<D_GLOBAL, D_LOCAL, T, R / 2, C / 2, F / 2, INTERPOLATION,
-           COEFF_RESTORE, TYPE><<<blockPerGrid, threadsPerBlock, sm_size,
-                                  *(cudaStream_t *)handle.get(queue_idx)>>>(
-      thrust::raw_pointer_cast(shape.data()),
-      thrust::raw_pointer_cast(shape_c.data()),
-      thrust::raw_pointer_cast(ldvs.data()),
-      thrust::raw_pointer_cast(ldws.data()), unprocessed_dims.size(),
-      thrust::raw_pointer_cast(unprocessed_dims.data()), curr_dim_r, curr_dim_c,
-      curr_dim_f, dratio_r, dratio_c, dratio_f, dv, lddv1, lddv2, dw, lddw1,
-      lddw2, dwf, lddwf1, lddwf2, dwc, lddwc1, lddwc2, dwr, lddwr1, lddwr2,
-      dwcf, lddwcf1, lddwcf2, dwrf, lddwrf1, lddwrf2, dwrc, lddwrc1, lddwrc2,
-      dwrcf, lddwrcf1, lddwrcf2, svr, svc, svf, nvr, nvc, nvf);
-  gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
-  gpuErrchk(cudaDeviceSynchronize());
-#endif
-}
-
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, bool INTERPOLATION,
-          bool COEFF_RESTORE, int TYPE>
-void gpk_rev(Handle<D_GLOBAL, T> &handle, thrust::device_vector<int> shape,
-             thrust::device_vector<int> shape_c,
-             thrust::device_vector<int> ldvs, thrust::device_vector<int> ldws,
-             thrust::device_vector<int> unprocessed_dims, int curr_dim_r,
-             int curr_dim_c, int curr_dim_f, T *dratio_r, T *dratio_c,
-             T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1,
-             int lddw2, T *dwf, int lddwf1, int lddwf2, T *dwc, int lddwc1,
-             int lddwc2, T *dwr, int lddwr1, int lddwr2, T *dwcf, int lddwcf1,
-             int lddwcf2, T *dwrf, int lddwrf1, int lddwrf2, T *dwrc,
-             int lddwrc1, int lddwrc2, T *dwrcf, int lddwrcf1, int lddwrcf2,
-             int svr, int svc, int svf, int nvr, int nvc, int nvf,
-             int queue_idx, int config) {
-
-#define GPK(R, C, F)                                                           \
-  {                                                                            \
-    gpk_rev_adaptive_launcher<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,    \
-                              COEFF_RESTORE, TYPE>(                            \
-        handle, shape, shape_c, ldvs, ldws, unprocessed_dims, curr_dim_r,      \
-        curr_dim_c, curr_dim_f, dratio_r, dratio_c, dratio_f, dv, lddv1,       \
-        lddv2, dw, lddw1, lddw2, dwf, lddwf1, lddwf2, dwc, lddwc1, lddwc2,     \
-        dwr, lddwr1, lddwr2, dwcf, lddwcf1, lddwcf2, dwrf, lddwrf1, lddwrf2,   \
-        dwrc, lddwrc1, lddwrc2, dwrcf, lddwrcf1, lddwrcf2, svr, svc, svf, nvr, \
-        nvc, nvf, queue_idx);                                                  \
-  }
-  bool profile = false;
-#ifdef MGARD_CUDA_KERNEL_PROFILE
-  profile = true;
-#endif
-  if (D_LOCAL == 3) {
-    if (profile || config == 6) {
-      GPK(2, 2, 128)
-    }
-    if (profile || config == 5) {
-      GPK(2, 2, 64)
-    }
-    if (profile || config == 4) {
-      GPK(4, 4, 32)
-    }
-    if (profile || config == 3) {
-      GPK(4, 4, 16)
-    }
-    if (profile || config == 2) {
-      GPK(4, 4, 8)
-    }
-    if (profile || config == 1) {
-      GPK(4, 4, 4)
-    }
-    if (profile || config == 0) {
-      GPK(4, 4, 4)
-    }
-  } else if (D_LOCAL == 2) {
-    if (profile || config == 6) {
-      GPK(1, 2, 128)
-    }
-    if (profile || config == 5) {
-      GPK(1, 2, 64)
-    }
-    if (profile || config == 4) {
-      GPK(1, 4, 32)
-    }
-    if (profile || config == 3) {
-      GPK(1, 4, 16)
-    }
-    if (profile || config == 2) {
-      GPK(1, 4, 8)
-    }
-    if (profile || config == 1) {
-      GPK(1, 4, 4)
-    }
-    if (profile || config == 0) {
-      GPK(1, 2, 2)
-    }
-  } else if (D_LOCAL == 1) {
-    if (profile || config == 6) {
-      GPK(1, 1, 128)
-    }
-    if (profile || config == 5) {
-      GPK(1, 1, 64)
-    }
-    if (profile || config == 4) {
-      GPK(1, 1, 32)
-    }
-    if (profile || config == 3) {
-      GPK(1, 1, 16)
-    }
-    if (profile || config == 2) {
-      GPK(1, 1, 8)
-    }
-    if (profile || config == 1) {
-      GPK(1, 1, 4)
-    }
-    if (profile || config == 0) {
-      GPK(1, 1, 2)
-    }
-  }
-#undef GPK
-}
-
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, int R, int C, int F,
-          bool INTERPOLATION, bool COEFF_RESTORE, int TYPE>
-void gpk_rev_adaptive_launcher(
-    Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d, int *shape_c_d,
-    int *ldvs, int *ldws, int unprocessed_n, int *unprocessed_dims,
-    int curr_dim_r, int curr_dim_c, int curr_dim_f, T *dratio_r, T *dratio_c,
-    T *dratio_f, T *dv, int lddv1, int lddv2, T *dw, int lddw1, int lddw2,
-    T *dwf, int lddwf1, int lddwf2, T *dwc, int lddwc1, int lddwc2, T *dwr,
-    int lddwr1, int lddwr2, T *dwcf, int lddwcf1, int lddwcf2, T *dwrf,
-    int lddwrf1, int lddwrf2, T *dwrc, int lddwrc1, int lddwrc2, T *dwrcf,
-    int lddwrcf1, int lddwrcf2, int svr, int svc, int svf, int nvr, int nvc,
-    int nvf, int queue_idx) {
-
-  int nr = shape_h[curr_dim_r];
-  int nc = shape_h[curr_dim_c];
-  int nf = shape_h[curr_dim_f];
-  if (D_LOCAL == 2) {
-    nr = 1;
-  }
-  int total_thread_z = std::max(nr - 1, 1);
-  int total_thread_y = std::max(nc - 1, 1);
-  int total_thread_x = std::max(nf - 1, 1);
-
-  int tbx, tby, tbz, gridx, gridy, gridz;
-  dim3 threadsPerBlock, blockPerGrid;
-  size_t sm_size;
-
-  // tbz = std::min(R, total_thread_z);
-  // tby = std::min(C, total_thread_y);
-  // tbx = std::min(F, total_thread_x);
-  tbz = R;
-  tby = C;
-  tbx = F;
-  sm_size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
-  sm_size += (D_GLOBAL * 5 + 1) * sizeof(int);
-
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
-  for (int d = 0; d < D_GLOBAL; d++) {
+  for (DIM d = 0; d < D_GLOBAL; d++) {
     if (D_LOCAL == 3 && d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       gridx *= shape_h[d];
     }
@@ -4508,23 +4200,24 @@ void gpk_rev_adaptive_launcher(
       lddwrc1, lddwrc2, dwrcf, lddwrcf1, lddwrcf2, svr, svc, svf, nvr, nvc,
       nvf);
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
-  gpuErrchk(cudaDeviceSynchronize());
-#endif
+  if (handle.sync_and_check_all_kernels) {
+    gpuErrchk(cudaDeviceSynchronize());
+  }
 }
 
-template <uint32_t D_GLOBAL, uint32_t D_LOCAL, typename T, bool INTERPOLATION,
+template <DIM D_GLOBAL, DIM D_LOCAL, typename T, bool INTERPOLATION,
           bool COEFF_RESTORE, int TYPE>
-void gpk_rev(Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d,
-             int *shape_c_d, int *ldvs, int *ldws, int unprocessed_n,
-             int *unprocessed_dims, int curr_dim_r, int curr_dim_c,
-             int curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv,
-             int lddv1, int lddv2, T *dw, int lddw1, int lddw2, T *dwf,
-             int lddwf1, int lddwf2, T *dwc, int lddwc1, int lddwc2, T *dwr,
-             int lddwr1, int lddwr2, T *dwcf, int lddwcf1, int lddwcf2, T *dwrf,
-             int lddwrf1, int lddwrf2, T *dwrc, int lddwrc1, int lddwrc2,
-             T *dwrcf, int lddwrcf1, int lddwrcf2, int svr, int svc, int svf,
-             int nvr, int nvc, int nvf, int queue_idx, int config) {
+void gpk_rev(Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d,
+             SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
+             DIM *unprocessed_dims, DIM curr_dim_r, DIM curr_dim_c,
+             DIM curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv,
+             LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2,
+             T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1,
+             LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
+             LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1,
+             LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf,
+             LENGTH lddwrcf1, LENGTH lddwrcf2, SIZE svr, SIZE svc, SIZE svf,
+             SIZE nvr, SIZE nvc, SIZE nvf, int queue_idx, int config) {
 
 #define GPK(R, C, F)                                                           \
   {                                                                            \
@@ -4538,31 +4231,31 @@ void gpk_rev(Handle<D_GLOBAL, T> &handle, int *shape_h, int *shape_d,
         lddwrcf1, lddwrcf2, svr, svc, svf, nvr, nvc, nvf, queue_idx);          \
   }
   bool profile = false;
-#ifdef MGARD_CUDA_KERNEL_PROFILE
-  profile = true;
-#endif
+  if (handle.profile_kernels) {
+    profile = true;
+  }
   if (D_LOCAL == 3) {
-    if (profile || config == 6) {
-      GPK(2, 2, 128)
-    }
-    if (profile || config == 5) {
-      GPK(2, 2, 64)
-    }
-    if (profile || config == 4) {
-      GPK(4, 4, 32)
-    }
-    if (profile || config == 3) {
-      GPK(4, 4, 16)
-    }
-    if (profile || config == 2) {
-      GPK(4, 4, 8)
-    }
-    if (profile || config == 1) {
-      GPK(4, 4, 4)
-    }
-    if (profile || config == 0) {
-      GPK(4, 4, 4)
-    }
+    // if (profile || config == 6) {
+    //   GPK(2, 2, 128)
+    // }
+    // if (profile || config == 5) {
+    //   GPK(2, 2, 64)
+    // }
+    // if (profile || config == 4) {
+    //   GPK(4, 4, 32)
+    // }
+    // if (profile || config == 3) {
+    //   GPK(4, 4, 16)
+    // }
+    // if (profile || config == 2) {
+    //   GPK(4, 4, 8)
+    // }
+    // if (profile || config == 1) {
+    GPK(4, 4, 4)
+    // }
+    // if (profile || config == 0) {
+    //   GPK(4, 4, 4)
+    // }
   } else if (D_LOCAL == 2) {
     if (profile || config == 6) {
       GPK(1, 2, 128)

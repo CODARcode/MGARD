@@ -8,36 +8,53 @@
 #ifndef MGRAD_CUDA_HANDLE
 #define MGRAD_CUDA_HANDLE
 
+#include "Common.h"
+
 namespace mgard_cuda {
 
 struct Config {
   int dev_id;
-  int l_target;
-  int huff_dict_size;
-  int huff_block_size;
+  SIZE l_target;
+  SIZE huff_dict_size;
+  SIZE huff_block_size;
   bool enable_lz4;
-  int lz4_block_size;
+  SIZE lz4_block_size;
+  bool gpu_lossless;
+  bool reduce_memory_footprint;
+  bool profile_kernels;
+  bool sync_and_check_all_kernels;
+  bool timing;
 
   Config() {
     dev_id = 0;
     l_target = -1; // no limit
     huff_dict_size = 8192;
+#ifdef MGARD_CUDA_OPTIMIZE_TURING
     huff_block_size = 1024 * 30;
+#endif
+#ifdef MGARD_CUDA_OPTIMIZE_VOLTA
+    huff_block_size = 1024 * 20;
+#endif
     enable_lz4 = true;
     lz4_block_size = 1 << 15;
+    gpu_lossless = true;
+    reduce_memory_footprint = false;
+    profile_kernels = false;
+    sync_and_check_all_kernels = false;
+    timing = false;
   }
 };
 
-template <uint32_t D, typename T> struct Handle {
+template <DIM D, typename T> struct Handle {
 
   /* for Internal use only */
   Handle();
 
   /* for general users */
-  Handle(std::vector<size_t> shape);
-  Handle(std::vector<size_t> shape, std::vector<T *> coords);
-  Handle(std::vector<size_t> shape, Config config);
-  Handle(std::vector<size_t> shape, std::vector<T *> coords, Config config);
+  Handle(std::vector<SIZE> shape);
+  Handle(std::vector<SIZE> shape, std::vector<T *> coords);
+  Handle(std::vector<SIZE> shape, Config config);
+  Handle(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
 
   ~Handle();
 
@@ -53,38 +70,52 @@ template <uint32_t D, typename T> struct Handle {
   int dev_id = 0;
 
   /* Refactoring env */
-  int l_target;
-  int D_padded;
-  std::vector<std::vector<int>> dofs;
-  std::vector<int *> shapes_h;
-  std::vector<int *> shapes_d;
+  SIZE l_target;
+  DIM D_padded;
+  std::vector<SIZE> shape;
+  std::vector<std::vector<SIZE>> dofs;
+  std::vector<SIZE *> shapes_h;
+  std::vector<SIZE *> shapes_d;
+  SIZE *ranges_h;
+  SIZE *ranges_d;
   std::vector<T *> coords;
   std::vector<std::vector<T *>> dist;
   std::vector<std::vector<T *>> ratio;
+  T *volumes;
+  SIZE ldvolumes;
   std::vector<std::vector<T *>> am;
   std::vector<std::vector<T *>> bm;
-  size_t linearized_depth;
-  size_t padded_linearized_depth;
+  LENGTH linearized_depth;
+  LENGTH padded_linearized_depth;
 
   T *quantizers;
-  int huff_dict_size;
-  int huff_block_size;
+  SIZE huff_dict_size;
+  SIZE huff_block_size;
   bool enable_lz4;
-  int lz4_block_size;
+  SIZE lz4_block_size;
+  bool gpu_lossless;
+  bool reduce_memory_footprint;
+  bool profile_kernels;
+  bool sync_and_check_all_kernels;
+  bool timing;
 
-  int *processed_n;
-  int **processed_dims_h;
-  int **processed_dims_d;
+  DIM *processed_n;
+  DIM **processed_dims_h;
+  DIM **processed_dims_d;
+
+  DIM *unprocessed_n;
+  DIM **unprocessed_dims_h;
+  DIM **unprocessed_dims_d;
 
   T *dw;
-  int lddw1, lddw2;
-  std::vector<int> ldws_h;
-  int *ldws_d;
+  SIZE lddw1, lddw2;
+  std::vector<SIZE> ldws_h;
+  SIZE *ldws_d;
 
   T *db;
-  int lddb1, lddb2;
-  std::vector<int> ldbs_h;
-  int *ldbs_d;
+  SIZE lddb1, lddb2;
+  std::vector<SIZE> ldbs_h;
+  SIZE *ldbs_d;
 
   int ***auto_tuning_cc;
   int ***auto_tuning_mr1, ***auto_tuning_ts1;
@@ -93,12 +124,12 @@ template <uint32_t D, typename T> struct Handle {
   int arch, precision;
 
 private:
-  void padding_dimensions(std::vector<size_t> &shape, std::vector<T *> &coords);
+  void padding_dimensions(std::vector<SIZE> &shape, std::vector<T *> &coords);
 
   void create_queues();
   void destroy_queues();
 
-  std::vector<T *> create_uniform_coords(std::vector<size_t> shape);
+  std::vector<T *> create_uniform_coords(std::vector<SIZE> shape);
   bool uniform_coords_created = false;
 
   int num_arch = 3;
@@ -108,7 +139,12 @@ private:
   void destroy_auto_tuning_table();
   bool auto_tuning_table_created = false;
 
-  void init(std::vector<size_t> shape, std::vector<T *> coords, Config config);
+  void coord_to_dist(SIZE dof, T *coord, T *dist);
+  void dist_to_ratio(SIZE dof, T *dist, T *ratio);
+  void reduce_dist(SIZE dof, T *dist, T *dist2);
+  void calc_am_bm(SIZE dof, T *dist, T *am, T *bm);
+  void calc_volume(SIZE dof, T *dist, T *volume);
+  void init(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
   void destroy();
   bool initialized = false;
 };

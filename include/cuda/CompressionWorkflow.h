@@ -12,14 +12,13 @@
 
 namespace mgard_cuda {
 
-template <uint32_t D, typename T>
-Array<1, unsigned char>
-refactor_qz_cuda(Handle<D, T> &handle, Array<D, T> &in_array,
-                 enum error_bound_type type, T tol, T s);
+template <DIM D, typename T>
+Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
+                                 enum error_bound_type type, T tol, T s);
 
-template <uint32_t D, typename T>
-Array<D, T> recompose_udq_cuda(Handle<D, T> &handle,
-                               Array<1, unsigned char> &compressed_array);
+template <DIM D, typename T>
+Array<D, T> decompress(Handle<D, T> &handle,
+                       Array<1, unsigned char> &compressed_array);
 
 } // namespace mgard_cuda
 

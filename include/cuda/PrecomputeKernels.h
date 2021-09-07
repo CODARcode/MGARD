@@ -9,26 +9,25 @@
 #define MGARD_CUDA_PRECOMPUTE_KERNELS
 
 #include "Common.h"
-#include "CommonInternal.h"
 
 namespace mgard_cuda {
-template <uint32_t D, typename T>
+template <DIM D, typename T>
 void calc_cpt_dist(Handle<D, T> &handle, int n, T *dcoord, T *ddist,
                    int queue_idx);
 
-template <uint32_t D, typename T>
+template <DIM D, typename T>
 void reduce_two_dist(Handle<D, T> &handle, int n, T *ddist, T *ddist_reduced,
                      int queue_idx);
 
-template <uint32_t D, typename T>
-void calc_cpt_dist_ratio(Handle<D, T> &handle, int n, T *dcoord, T *dratio,
-                         int queue_idx);
-
-template <uint32_t D, typename T>
+template <DIM D, typename T>
 void dist_to_ratio(Handle<D, T> &handle, int n, T *ddist, T *dratio,
                    int queue_idx);
 
-template <uint32_t D, typename T>
+template <DIM D, typename T>
+void dist_to_volume(Handle<D, T> &handle, int n, T *ddist, T *dvolume,
+                    int queue_idx);
+
+template <DIM D, typename T>
 void calc_am_bm(Handle<D, T> &handle, int n, T *ddist, T *am, T *bm,
                 int queue_idx);
 } // namespace mgard_cuda
