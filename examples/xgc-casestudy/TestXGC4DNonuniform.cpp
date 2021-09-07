@@ -6,7 +6,7 @@
 #include <mpi.h>
 
 #include "adios2.h"
-#include "mgard/mgard_api.h"
+#include "mgard/compress.hpp"
 
 // only compress the plane 0 
 

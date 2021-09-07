@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 #include "mgard/TensorQuantityOfInterest.hpp"
-#include "mgard/mgard_api.h"
+#include "mgard/compress.hpp"
 #include "adios2.h"
 
 class AverageFunctional {
