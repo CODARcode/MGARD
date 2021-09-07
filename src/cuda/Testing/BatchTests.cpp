@@ -7,12 +7,12 @@
 
 #include <chrono>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <iomanip>
-#include <iostream>
 
 #include "compress.hpp"
 
@@ -38,14 +38,11 @@ void print_usage_message(char *argv[], FILE *fp) {
   exit(0);
 }
 
-
-
-
 template <typename T>
-void readfile(char * input_file, size_t num_bytes, bool check_size, T * in_buff) {
+void readfile(char *input_file, size_t num_bytes, bool check_size, T *in_buff) {
   if (strcmp(input_file, "random") == 0) {
-    srand (7117);
-    for (mgard_cuda::LENGTH i = 0; i < num_bytes/sizeof(T); i++) {
+    srand(7117);
+    for (mgard_cuda::LENGTH i = 0; i < num_bytes / sizeof(T); i++) {
       in_buff[i] = rand() % 10 + 1;
     }
   } else {
@@ -77,19 +74,20 @@ void readfile(char * input_file, size_t num_bytes, bool check_size, T * in_buff)
   }
 }
 
-
 template <mgard_cuda::DIM D, typename T>
-void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, 
-                T tol, T s, enum mgard_cuda::error_bound_type mode, T norm, 
-                T * original_data, 
-                unsigned char * &compressed_data, size_t &compressed_size, mgard_cuda::Config config) {
+void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
+                 T s, enum mgard_cuda::error_bound_type mode, T norm,
+                 T *original_data, unsigned char *&compressed_data,
+                 size_t &compressed_size, mgard_cuda::Config config) {
   // printf("Start compressing\n");
   std::array<std::size_t, D> array_shape;
   std::copy(shape.begin(), shape.end(), array_shape.begin());
   if (dev == CPU) {
-    if (mode == mgard_cuda::REL) tol *= norm;
+    if (mode == mgard_cuda::REL)
+      tol *= norm;
     const mgard::TensorMeshHierarchy<D, T> hierarchy(array_shape);
-    mgard::CompressedDataset<D, T> compressed_dataset = mgard::compress(hierarchy, original_data, s, tol);
+    mgard::CompressedDataset<D, T> compressed_dataset =
+        mgard::compress(hierarchy, original_data, s, tol);
     compressed_size = compressed_dataset.size();
     compressed_data = (unsigned char *)malloc(compressed_size);
     memcpy(compressed_data, compressed_dataset.data(), compressed_size);
@@ -101,36 +99,38 @@ void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev,
         mgard_cuda::compress(handle, in_array, mode, tol, s);
     compressed_size = compressed_array.getShape()[0];
     compressed_data = (unsigned char *)malloc(compressed_size);
-    memcpy(compressed_data, compressed_array.getDataHost(),
-           compressed_size);  
+    memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
   }
 }
 
-
 template <mgard_cuda::DIM D, typename T>
-void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, 
-                T tol, T s, enum mgard_cuda::error_bound_type mode, T norm, 
-                unsigned char * compressed_data, size_t compressed_size,
-                T *& decompressed_data, mgard_cuda::Config config) {
+void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
+                   T s, enum mgard_cuda::error_bound_type mode, T norm,
+                   unsigned char *compressed_data, size_t compressed_size,
+                   T *&decompressed_data, mgard_cuda::Config config) {
 
   // printf("Start decompressing\n");
   size_t original_size = 1;
-  for (mgard_cuda::DIM i = 0; i < D; i++) original_size *= shape[i];
-  decompressed_data = (T*)malloc(original_size * sizeof(T));
+  for (mgard_cuda::DIM i = 0; i < D; i++)
+    original_size *= shape[i];
+  decompressed_data = (T *)malloc(original_size * sizeof(T));
   if (dev == CPU) {
-    if (mode == mgard_cuda::REL) tol *= norm;
+    if (mode == mgard_cuda::REL)
+      tol *= norm;
     std::array<std::size_t, D> array_shape;
     std::copy(shape.begin(), shape.end(), array_shape.begin());
     const mgard::TensorMeshHierarchy<D, T> hierarchy(array_shape);
-    mgard::CompressedDataset<D, T> compressed_dataset(hierarchy, s,
-                    tol, compressed_data, compressed_size);
-    mgard::DecompressedDataset<D, T> decompressed_dataset = mgard::decompress(compressed_dataset);
-    memcpy(decompressed_data, decompressed_dataset.data(), original_size * sizeof(T));
+    mgard::CompressedDataset<D, T> compressed_dataset(
+        hierarchy, s, tol, compressed_data, compressed_size);
+    mgard::DecompressedDataset<D, T> decompressed_dataset =
+        mgard::decompress(compressed_dataset);
+    memcpy(decompressed_data, decompressed_dataset.data(),
+           original_size * sizeof(T));
   } else { // GPU
     mgard_cuda::Handle<D, T> handle(shape, config);
-    std::vector<mgard_cuda::SIZE> compressed_shape(1); 
+    std::vector<mgard_cuda::SIZE> compressed_shape(1);
     compressed_shape[0] = compressed_size;
-    mgard_cuda::Array<1, unsigned char> compressed_array (compressed_shape);
+    mgard_cuda::Array<1, unsigned char> compressed_array(compressed_shape);
     compressed_array.loadData(compressed_data);
     mgard_cuda::Array<D, T> out_array =
         mgard_cuda::decompress(handle, compressed_array);
@@ -140,10 +140,14 @@ void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev,
 }
 
 template <typename T>
-struct Result test(mgard_cuda::DIM D, T * original_data, std::vector<mgard_cuda::SIZE> shape, enum device dev, double tol, double s, enum mgard_cuda::error_bound_type mode) {
+struct Result test(mgard_cuda::DIM D, T *original_data,
+                   std::vector<mgard_cuda::SIZE> shape, enum device dev,
+                   double tol, double s,
+                   enum mgard_cuda::error_bound_type mode) {
 
   size_t original_size = 1;
-  for (mgard_cuda::DIM i = 0; i < D; i++) original_size *= shape[i];
+  for (mgard_cuda::DIM i = 0; i < D; i++)
+    original_size *= shape[i];
   // T * original_data = (T*)malloc(original_size * sizeof(T));
   // readfile(input_file, original_size * sizeof(T), false, original_data);
 
@@ -158,52 +162,60 @@ struct Result test(mgard_cuda::DIM D, T * original_data, std::vector<mgard_cuda:
   config.gpu_lossless = true;
   config.sync_and_check_all_kernels = true;
 
-  unsigned char * compressed_data;
+  unsigned char *compressed_data;
   size_t compressed_size;
-  T * decompressed_data;
+  T *decompressed_data;
   if (D == 1) {
-    compression<1, T>(shape, dev, tol, s, mode, norm, original_data, 
-                compressed_data, compressed_size, config);
-    decompression<1, T>(shape, dev, tol, s, mode, norm, 
-                compressed_data, compressed_size, decompressed_data, config);
+    compression<1, T>(shape, dev, tol, s, mode, norm, original_data,
+                      compressed_data, compressed_size, config);
+    decompression<1, T>(shape, dev, tol, s, mode, norm, compressed_data,
+                        compressed_size, decompressed_data, config);
   }
   if (D == 2) {
-    compression<2, T>(shape, dev, tol, s, mode, norm, original_data, 
-                compressed_data, compressed_size, config);
-    decompression<2, T>(shape, dev, tol, s, mode, norm, 
-                compressed_data, compressed_size, decompressed_data, config);
+    compression<2, T>(shape, dev, tol, s, mode, norm, original_data,
+                      compressed_data, compressed_size, config);
+    decompression<2, T>(shape, dev, tol, s, mode, norm, compressed_data,
+                        compressed_size, decompressed_data, config);
   }
   if (D == 3) {
-    compression<3, T>(shape, dev, tol, s, mode, norm, original_data, 
-                compressed_data, compressed_size, config);
-    decompression<3, T>(shape, dev, tol, s, mode, norm, 
-                compressed_data, compressed_size, decompressed_data, config);
+    compression<3, T>(shape, dev, tol, s, mode, norm, original_data,
+                      compressed_data, compressed_size, config);
+    decompression<3, T>(shape, dev, tol, s, mode, norm, compressed_data,
+                        compressed_size, decompressed_data, config);
   }
   if (D == 4) {
-    compression<4, T>(shape, dev, tol, s, mode, norm, original_data, 
-                compressed_data, compressed_size, config);
-    decompression<4, T>(shape, dev, tol, s, mode, norm, 
-                compressed_data, compressed_size, decompressed_data, config);
+    compression<4, T>(shape, dev, tol, s, mode, norm, original_data,
+                      compressed_data, compressed_size, config);
+    decompression<4, T>(shape, dev, tol, s, mode, norm, compressed_data,
+                        compressed_size, decompressed_data, config);
   }
   if (D == 5) {
-    compression<5, T>(shape, dev, tol, s, mode, norm, original_data, 
-                compressed_data, compressed_size, config);
-    decompression<5, T>(shape, dev, tol, s, mode, norm, 
-                compressed_data, compressed_size, decompressed_data, config);
+    compression<5, T>(shape, dev, tol, s, mode, norm, original_data,
+                      compressed_data, compressed_size, config);
+    decompression<5, T>(shape, dev, tol, s, mode, norm, compressed_data,
+                        compressed_size, decompressed_data, config);
   }
 
-  // printf("In size:  %10ld  Out size: %10ld  Compression ratio: %10ld \n", original_size * sizeof(T),
+  // printf("In size:  %10ld  Out size: %10ld  Compression ratio: %10ld \n",
+  // original_size * sizeof(T),
   //        compressed_size, original_size * sizeof(T) / compressed_size);
 
   T error;
   if (s == std::numeric_limits<T>::infinity()) {
-    error = mgard_cuda::L_inf_error(original_size, original_data, decompressed_data);
-    if (mode ==  mgard_cuda::REL) { error /= norm; /*printf("Rel. L^infty error: %10.5E \n", error);*/ }
-    //if (mode ==  mgard_cuda::ABS) printf("Abs. L^infty error: %10.5E \n", error);
+    error = mgard_cuda::L_inf_error(original_size, original_data,
+                                    decompressed_data);
+    if (mode == mgard_cuda::REL) {
+      error /= norm; /*printf("Rel. L^infty error: %10.5E \n", error);*/
+    }
+    // if (mode ==  mgard_cuda::ABS) printf("Abs. L^infty error: %10.5E \n",
+    // error);
   } else {
-    error = mgard_cuda::L_2_error(original_size, original_data, decompressed_data);
-    if (mode ==  mgard_cuda::REL) { error /= norm; /*printf("Rel. L^2 error: %10.5E \n", error);*/ }
-    //if (mode ==  mgard_cuda::ABS) printf("Abs. L^2 error: %10.5E \n", error);
+    error =
+        mgard_cuda::L_2_error(original_size, original_data, decompressed_data);
+    if (mode == mgard_cuda::REL) {
+      error /= norm; /*printf("Rel. L^2 error: %10.5E \n", error);*/
+    }
+    // if (mode ==  mgard_cuda::ABS) printf("Abs. L^2 error: %10.5E \n", error);
   }
 
   // if (error < tol) {
@@ -214,23 +226,28 @@ struct Result test(mgard_cuda::DIM D, T * original_data, std::vector<mgard_cuda:
   //   return -1;
   // }
 
-
   struct Result result;
   result.actual_error = error;
   result.cr = original_size * sizeof(T) / compressed_size;
   return result;
 }
 
-
 void print_config(enum data_type dtype, std::vector<mgard_cuda::SIZE> shape,
-                  double tol, double s, enum mgard_cuda::error_bound_type mode) {
+                  double tol, double s,
+                  enum mgard_cuda::error_bound_type mode) {
   mgard_cuda::DIM d = 0;
-  for (d = 0; d < shape.size(); d++) std::cout << std::setw(5) << shape[d];
-  for (; d < 5; d++) std::cout << std::setw(5) << "";
-  if (dtype == DOUBLE) std::cout << std::setw(3) << "64";
-  if (dtype == SINGLE) std::cout << std::setw(3) << "32";
-  if (mode == mgard_cuda::REL) std::cout << std::setw(4) << "Rel";
-  if (mode == mgard_cuda::ABS) std::cout << std::setw(4) << "Abs";
+  for (d = 0; d < shape.size(); d++)
+    std::cout << std::setw(5) << shape[d];
+  for (; d < 5; d++)
+    std::cout << std::setw(5) << "";
+  if (dtype == DOUBLE)
+    std::cout << std::setw(3) << "64";
+  if (dtype == SINGLE)
+    std::cout << std::setw(3) << "32";
+  if (mode == mgard_cuda::REL)
+    std::cout << std::setw(4) << "Rel";
+  if (mode == mgard_cuda::ABS)
+    std::cout << std::setw(4) << "Abs";
   std::cout << std::setw(6) << std::setprecision(0) << std::scientific << tol;
   std::cout << std::setw(6) << std::setprecision(1) << std::fixed << s;
   // if (dev == CPU) std::cout << std::setw(4) << "CPU\n";
@@ -244,9 +261,9 @@ int main(int argc, char *argv[]) {
 
   int i = 1;
 
-  char *input_file;    //, *outfile;
+  char *input_file; //, *outfile;
   input_file = argv[i++];
-  
+
   std::vector<std::vector<mgard_cuda::SIZE>> shapes;
 
   shapes.push_back({5});
@@ -282,7 +299,7 @@ int main(int argc, char *argv[]) {
   // shapes.push_back({10, 10, 1000, 10});
   // shapes.push_back({10, 10, 10, 1000});
 
-  //XGC
+  // XGC
   // shapes.push_back({8, 16395, 39, 39});
 
   // shapes.push_back({5, 5, 5, 5, 5});
@@ -297,9 +314,11 @@ int main(int argc, char *argv[]) {
   // shapes.push_back({10, 100, 10, 100, 10});
   // shapes.push_back({100, 10, 100, 10, 10});
 
-  // std::vector<enum data_type> dtypes = {data_type::SINGLE, data_type::DOUBLE};
+  // std::vector<enum data_type> dtypes = {data_type::SINGLE,
+  // data_type::DOUBLE};
   std::vector<enum data_type> dtypes = {data_type::SINGLE};
-  // std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::ABS, mgard_cuda::REL};
+  // std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::ABS,
+  // mgard_cuda::REL};
   std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::REL};
 
   std::vector<float> tols = {1e-1, 1e-2, 1e-3, 1e-4};
@@ -316,40 +335,58 @@ int main(int argc, char *argv[]) {
             struct Result result_cpu, result_gpu;
             if (dtypes[dt] == SINGLE) {
               size_t original_size = 1;
-              for (mgard_cuda::DIM i = 0; i < shapes[sp].size(); i++) original_size *= shapes[sp][i];
-              float * original_data = (float*)malloc(original_size * sizeof(float));
-              readfile(input_file, original_size * sizeof(float), false, original_data);
-              result_cpu = test<float>(shapes[sp].size(), 
-                    original_data, shapes[sp], CPU, tols[tol], ssf[s], ebtypes[ebt]);
-              result_gpu = test<float>(shapes[sp].size(), 
-                    original_data, shapes[sp], GPU, tols[tol], ssf[s], ebtypes[ebt]);
-              delete [] original_data;
+              for (mgard_cuda::DIM i = 0; i < shapes[sp].size(); i++)
+                original_size *= shapes[sp][i];
+              float *original_data =
+                  (float *)malloc(original_size * sizeof(float));
+              readfile(input_file, original_size * sizeof(float), false,
+                       original_data);
+              result_cpu =
+                  test<float>(shapes[sp].size(), original_data, shapes[sp], CPU,
+                              tols[tol], ssf[s], ebtypes[ebt]);
+              result_gpu =
+                  test<float>(shapes[sp].size(), original_data, shapes[sp], GPU,
+                              tols[tol], ssf[s], ebtypes[ebt]);
+              delete[] original_data;
             } else {
               size_t original_size = 1;
-              for (mgard_cuda::DIM i = 0; i < shapes[sp].size(); i++) original_size *= shapes[sp][i];
-              double * original_data = (double*)malloc(original_size * sizeof(double));
-              readfile(input_file, original_size * sizeof(double), false, original_data);
-              result_cpu = test<double>(shapes[sp].size(), 
-                    original_data, shapes[sp], CPU, told[tol], ssd[s], ebtypes[ebt]);
-              result_gpu = test<double>(shapes[sp].size(), 
-                    original_data, shapes[sp], GPU, told[tol], ssd[s], ebtypes[ebt]);
-              delete [] original_data;
+              for (mgard_cuda::DIM i = 0; i < shapes[sp].size(); i++)
+                original_size *= shapes[sp][i];
+              double *original_data =
+                  (double *)malloc(original_size * sizeof(double));
+              readfile(input_file, original_size * sizeof(double), false,
+                       original_data);
+              result_cpu =
+                  test<double>(shapes[sp].size(), original_data, shapes[sp],
+                               CPU, told[tol], ssd[s], ebtypes[ebt]);
+              result_gpu =
+                  test<double>(shapes[sp].size(), original_data, shapes[sp],
+                               GPU, told[tol], ssd[s], ebtypes[ebt]);
+              delete[] original_data;
             }
 
-            print_config(dtypes[dt], shapes[sp], tols[tol], ssd[s], ebtypes[ebt]);
-            
-            std::cout << std::setw(12) << std::setprecision(4) << std::scientific << result_cpu.actual_error;
-            std::cout << std::setw(10) << std::setprecision(2) << std::scientific << result_cpu.cr;
+            print_config(dtypes[dt], shapes[sp], tols[tol], ssd[s],
+                         ebtypes[ebt]);
+
+            std::cout << std::setw(12) << std::setprecision(4)
+                      << std::scientific << result_cpu.actual_error;
+            std::cout << std::setw(10) << std::setprecision(2)
+                      << std::scientific << result_cpu.cr;
 
             // std::cout << std::endl;
-            // print_config(input_file, dtypes[dt], shapes[sp], GPU, tols[tol], ssd[s], ebtypes[ebt]);
-            //if (std::abs(result_cpu.actual_error-result_gpu.actual_error) > 1e-4) std::cout << ANSI_RED;
-            if (std::abs(log10(result_cpu.actual_error)-log10(result_gpu.actual_error)) > 1) std::cout << ANSI_RED;
-            std::cout << std::setw(12) << std::setprecision(4) << std::scientific << result_gpu.actual_error;
+            // print_config(input_file, dtypes[dt], shapes[sp], GPU, tols[tol],
+            // ssd[s], ebtypes[ebt]);
+            // if (std::abs(result_cpu.actual_error-result_gpu.actual_error) >
+            // 1e-4) std::cout << ANSI_RED;
+            if (std::abs(log10(result_cpu.actual_error) -
+                         log10(result_gpu.actual_error)) > 1)
+              std::cout << ANSI_RED;
+            std::cout << std::setw(12) << std::setprecision(4)
+                      << std::scientific << result_gpu.actual_error;
             std::cout << ANSI_RESET;
-            std::cout << std::setw(10) << std::setprecision(2) << std::scientific << result_gpu.cr;
+            std::cout << std::setw(10) << std::setprecision(2)
+                      << std::scientific << result_gpu.cr;
             std::cout << std::endl;
-            
           }
         }
       }
