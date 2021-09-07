@@ -6,7 +6,7 @@
 #include <mpi.h>
 
 #include "adios2.h"
-#include "mgard/mgard_api.h"
+#include "mgard/compress.hpp"
 
 #define SECONDS(d) std::chrono::duration_cast<std::chrono::seconds>(d).count()
 
