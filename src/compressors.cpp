@@ -7,6 +7,7 @@
 #include <cstring>
 #include <queue>
 #include <vector>
+#include <iostream>
 
 #ifdef MGARD_TIMING
 #include <chrono>
@@ -282,6 +283,7 @@ void decompress_memory_huffman(unsigned char *data, const std::size_t data_len,
   out_data_miss_size = *(size_t *)buf;
   buf += sizeof(size_t);
 
+std::cout << "decompress total len = " << data_len << " out_tree_size = " << out_tree_size << " out_data_hit_size = " << out_data_hit_size << " out_data_miss_size = " << out_data_miss_size << "\n"; 
   size_t total_huffman_size =
       out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
   unsigned char *huffman_encoding_p =
@@ -494,6 +496,9 @@ unsigned char *compress_memory_huffman(const std::vector<long int> &qv,
   bufp += sizeof(size_t);
 
   std::copy(out_data.begin(), out_data.end(), bufp);
+
+std::cout << "outsize = " << outsize << " out_tree_size = " <<
+out_tree_size << " out_data_hit_size = " << out_data_hit_size << " out_data_miss_size = " << out_data_miss_size << "\n";
   return buffer;
 }
 
