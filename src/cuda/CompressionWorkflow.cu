@@ -454,7 +454,7 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     SERIALIZED_TYPE *serizalied_meta = m.Serialize(meta_size);
 
     SIZE outsize = 0;
-    outsize += sizeof(meta_size);
+    outsize += meta_size;
     outsize += sizeof(size_t) + cpu_lossless_size;
     // printf("cpu_lossless_size: %llu\n", cpu_lossless_size);
     std::vector<SIZE> out_shape(1);

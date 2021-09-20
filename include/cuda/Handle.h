@@ -24,6 +24,7 @@ struct Config {
   bool profile_kernels;
   bool sync_and_check_all_kernels;
   bool timing;
+  int uniform_coord_mode;
 
   Config() {
     dev_id = 0;
@@ -42,6 +43,7 @@ struct Config {
     profile_kernels = false;
     sync_and_check_all_kernels = false;
     timing = false;
+    uniform_coord_mode = 0;
   }
 };
 
@@ -129,7 +131,7 @@ private:
   void create_queues();
   void destroy_queues();
 
-  std::vector<T *> create_uniform_coords(std::vector<SIZE> shape);
+  std::vector<T *> create_uniform_coords(std::vector<SIZE> shape, int mode);
   bool uniform_coords_created = false;
 
   int num_arch = 3;
