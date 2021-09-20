@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "compress.hpp"
+#include "compress_cuda.hpp"
 
 #define ANSI_RED "\x1b[31m"
 #define ANSI_GREEN "\x1b[32m"
@@ -161,6 +162,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   mgard_cuda::Config config;
   config.gpu_lossless = true;
   config.sync_and_check_all_kernels = true;
+  config.uniform_coord_mode = 1;
 
   unsigned char *compressed_data;
   size_t compressed_size;
@@ -203,18 +205,18 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   T error;
   if (s == std::numeric_limits<T>::infinity()) {
     error = mgard_cuda::L_inf_error(original_size, original_data,
-                                    decompressed_data);
-    if (mode == mgard_cuda::REL) {
-      error /= norm; /*printf("Rel. L^infty error: %10.5E \n", error);*/
-    }
+                                    decompressed_data, mode);
+    // if (mode == mgard_cuda::REL) {
+    //   error /= norm; printf("Rel. L^infty error: %10.5E \n", error);
+    // }
     // if (mode ==  mgard_cuda::ABS) printf("Abs. L^infty error: %10.5E \n",
     // error);
   } else {
-    error =
-        mgard_cuda::L_2_error(original_size, original_data, decompressed_data);
-    if (mode == mgard_cuda::REL) {
-      error /= norm; /*printf("Rel. L^2 error: %10.5E \n", error);*/
-    }
+    error = mgard_cuda::L_2_error(original_size, original_data,
+                                  decompressed_data, mode);
+    // if (mode == mgard_cuda::REL) {
+    //   error /= norm; printf("Rel. L^2 error: %10.5E \n", error);
+    // }
     // if (mode ==  mgard_cuda::ABS) printf("Abs. L^2 error: %10.5E \n", error);
   }
 
@@ -317,12 +319,12 @@ int main(int argc, char *argv[]) {
   // std::vector<enum data_type> dtypes = {data_type::SINGLE,
   // data_type::DOUBLE};
   std::vector<enum data_type> dtypes = {data_type::SINGLE};
-  // std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::ABS,
-  // mgard_cuda::REL};
-  std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::REL};
+  std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::ABS,
+                                                            mgard_cuda::REL};
+  // std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::REL};
 
-  std::vector<float> tols = {1e-1, 1e-2, 1e-3, 1e-4};
-  std::vector<double> told = {1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6};
+  std::vector<float> tols = {1e-2, 1e-3, 1e-4};
+  std::vector<double> told = {1e-2, 1e-3, 1e-4, 1e-5, 1e-6};
 
   std::vector<float> ssf = {std::numeric_limits<float>::infinity(), 0, 1, -1};
   std::vector<double> ssd = {std::numeric_limits<double>::infinity(), 0, 1, -1};

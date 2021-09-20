@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "compress.hpp"
 #include "compress_cuda.hpp"
 
 using namespace std::chrono;
@@ -175,16 +176,40 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 }
 
 template <typename T>
-void print_statistics(size_t n, T *original_data, T *decompressed_data) {
-  std::cout << mgard_cuda::log::log_info << "L_inf error: "
-            << mgard_cuda::L_inf_error(n, original_data, decompressed_data)
-            << "\n";
-  std::cout << mgard_cuda::log::log_info << "L_2 error: "
-            << mgard_cuda::L_2_error(n, original_data, decompressed_data)
-            << "\n";
+void print_statistics(double s, enum mgard_cuda::error_bound_type mode,
+                      size_t n, T *original_data, T *decompressed_data) {
+  std::cout << std::scientific;
+  if (s == std::numeric_limits<T>::infinity()) {
+    if (mode == mgard_cuda::ABS) {
+      std::cout << mgard_cuda::log::log_info << "Absoluate L_inf error: "
+                << mgard_cuda::L_inf_error(n, original_data, decompressed_data,
+                                           mode)
+                << "\n";
+    } else if (mode == mgard_cuda::REL) {
+      std::cout << mgard_cuda::log::log_info << "Relative L_inf error: "
+                << mgard_cuda::L_inf_error(n, original_data, decompressed_data,
+                                           mode)
+                << "\n";
+    }
+  } else {
+    if (mode == mgard_cuda::ABS) {
+      std::cout << mgard_cuda::log::log_info << "Absoluate L_2 error: "
+                << mgard_cuda::L_2_error(n, original_data, decompressed_data,
+                                         mode)
+                << "\n";
+    } else if (mode == mgard_cuda::REL) {
+      std::cout << mgard_cuda::log::log_info << "Relative L_2 error: "
+                << mgard_cuda::L_2_error(n, original_data, decompressed_data,
+                                         mode)
+                << "\n";
+    }
+  }
+  // std::cout << mgard_cuda::log::log_info << "L_2 error: " <<
+  // mgard_cuda::L_2_error(n, original_data, decompressed_data) << "\n";
   std::cout << mgard_cuda::log::log_info
             << "MSE: " << mgard_cuda::MSE(n, original_data, decompressed_data)
             << "\n";
+  std::cout << std::defaultfloat;
   std::cout << mgard_cuda::log::log_info
             << "PSNR: " << mgard_cuda::PSNR(n, original_data, decompressed_data)
             << "\n";
@@ -214,13 +239,6 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     std::cout << mgard_cuda::log::log_err << "input file size mismatch!\n";
   }
 
-  // T norm;
-  // if (s == std::numeric_limits<T>::infinity()) {
-  //   norm = mgard_cuda::L_inf_norm(original_size, original_data);
-  // } else {
-  //   norm = mgard_cuda::L_2_norm(original_size, original_data);
-  // }
-
   mgard_cuda::Config config;
   config.huff_dict_size = 8192;
 #ifdef MGARD_CUDA_OPTIMIZE_TURING
@@ -243,9 +261,10 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     config.gpu_lossless = true;
     config.enable_lz4 = false;
   }
-  void *compressed_data;
-  size_t compressed_size;
-  void *decompressed_data;
+
+  void *compressed_data = NULL;
+  size_t compressed_size = 0;
+  void *decompressed_data = NULL;
   mgard_cuda::compress(shape, dtype, tol, s, mode, (void *)original_data,
                        compressed_data, compressed_size, config, false);
   writefile(output_file, compressed_size, compressed_data);
@@ -258,7 +277,8 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     config.timing = verbose;
     mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data,
                            config, false);
-    print_statistics<T>(original_size, original_data, (T *)decompressed_data);
+    print_statistics<T>(s, mode, original_size, original_data,
+                        (T *)decompressed_data);
     delete[](T *) decompressed_data;
   }
 
@@ -357,7 +377,9 @@ bool try_compression(int argc, char *argv[]) {
   double tol = get_arg_double(argc, argv, "-e");
   double s = get_arg_double(argc, argv, "-s");
 
+  std::cout << std::scientific;
   std::cout << mgard_cuda::log::log_info << "error bound: " << tol << "\n";
+  std::cout << std::defaultfloat;
   std::cout << mgard_cuda::log::log_info << "s: " << s << "\n";
 
   int lossless_level = get_arg_int(argc, argv, "-l");

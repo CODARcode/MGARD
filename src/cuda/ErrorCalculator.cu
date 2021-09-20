@@ -5,6 +5,7 @@
  * Date: April 2, 2021
  */
 
+#include <cuda/Common.h>
 #include <math.h>
 
 namespace mgard_cuda {
@@ -29,24 +30,38 @@ template <typename T> T L_2_norm(size_t n, T *data) {
 }
 
 template <typename T>
-T L_inf_error(size_t n, T *original_data, T *decompressed_data) {
+T L_inf_error(size_t n, T *original_data, T *decompressed_data,
+              enum error_bound_type mode) {
   T error_L_inf_norm = 0;
   for (int i = 0; i < n; ++i) {
     T temp = fabs(original_data[i] - decompressed_data[i]);
     if (temp > error_L_inf_norm)
       error_L_inf_norm = temp;
   }
-  return error_L_inf_norm;
+  if (mode == error_bound_type::ABS) {
+    return error_L_inf_norm;
+  } else if (mode == error_bound_type::REL) {
+    return error_L_inf_norm / L_inf_norm(n, original_data);
+  } else {
+    return 0;
+  }
 }
 
 template <typename T>
-T L_2_error(size_t n, T *original_data, T *decompressed_data) {
+T L_2_error(size_t n, T *original_data, T *decompressed_data,
+            enum error_bound_type mode) {
   T error_L_2_norm = 0;
   for (int i = 0; i < n; ++i) {
     T temp = fabs(original_data[i] - decompressed_data[i]);
     error_L_2_norm += temp * temp;
   }
-  return std::sqrt(error_L_2_norm);
+  if (mode == error_bound_type::ABS) {
+    return std::sqrt(error_L_2_norm);
+  } else if (mode == error_bound_type::REL) {
+    return std::sqrt(error_L_2_norm) / L_2_norm(n, original_data);
+  } else {
+    return 0;
+  }
 }
 
 template <typename T> T MSE(size_t n, T *original_data, T *decompressed_data) {
@@ -89,13 +104,17 @@ template float L_2_norm<float>(size_t n, float *data);
 template double L_2_norm<double>(size_t n, double *data);
 
 template float L_inf_error<float>(size_t n, float *original_data,
-                                  float *decompressed_data);
+                                  float *decompressed_data,
+                                  enum error_bound_type mode);
 template double L_inf_error<double>(size_t n, double *original_data,
-                                    double *decompressed_data);
+                                    double *decompressed_data,
+                                    enum error_bound_type mode);
 template float L_2_error<float>(size_t n, float *original_data,
-                                float *decompressed_data);
+                                float *decompressed_data,
+                                enum error_bound_type mode);
 template double L_2_error<double>(size_t n, double *original_data,
-                                  double *decompressed_data);
+                                  double *decompressed_data,
+                                  enum error_bound_type mode);
 template float MSE<float>(size_t n, float *original_data,
                           float *decompressed_data);
 template double MSE<double>(size_t n, double *original_data,

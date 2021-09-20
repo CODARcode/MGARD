@@ -14,6 +14,7 @@
 
 #include "compress.hpp"
 #include "compress_cuda.hpp"
+
 using namespace std::chrono;
 
 void print_usage_message(std::string error) {
@@ -195,16 +196,40 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 }
 
 template <typename T>
-void print_statistics(size_t n, T *original_data, T *decompressed_data) {
-  std::cout << mgard_cuda::log::log_info << "L_inf error: "
-            << mgard_cuda::L_inf_error(n, original_data, decompressed_data)
-            << "\n";
-  std::cout << mgard_cuda::log::log_info << "L_2 error: "
-            << mgard_cuda::L_2_error(n, original_data, decompressed_data)
-            << "\n";
+void print_statistics(double s, enum mgard_cuda::error_bound_type mode,
+                      size_t n, T *original_data, T *decompressed_data) {
+  std::cout << std::scientific;
+  if (s == std::numeric_limits<T>::infinity()) {
+    if (mode == mgard_cuda::ABS) {
+      std::cout << mgard_cuda::log::log_info << "Absoluate L_inf error: "
+                << mgard_cuda::L_inf_error(n, original_data, decompressed_data,
+                                           mode)
+                << "\n";
+    } else if (mode == mgard_cuda::REL) {
+      std::cout << mgard_cuda::log::log_info << "Relative L_inf error: "
+                << mgard_cuda::L_inf_error(n, original_data, decompressed_data,
+                                           mode)
+                << "\n";
+    }
+  } else {
+    if (mode == mgard_cuda::ABS) {
+      std::cout << mgard_cuda::log::log_info << "Absoluate L_2 error: "
+                << mgard_cuda::L_2_error(n, original_data, decompressed_data,
+                                         mode)
+                << "\n";
+    } else if (mode == mgard_cuda::REL) {
+      std::cout << mgard_cuda::log::log_info << "Relative L_2 error: "
+                << mgard_cuda::L_2_error(n, original_data, decompressed_data,
+                                         mode)
+                << "\n";
+    }
+  }
+  // std::cout << mgard_cuda::log::log_info << "L_2 error: " <<
+  // mgard_cuda::L_2_error(n, original_data, decompressed_data) << "\n";
   std::cout << mgard_cuda::log::log_info
             << "MSE: " << mgard_cuda::MSE(n, original_data, decompressed_data)
             << "\n";
+  std::cout << std::defaultfloat;
   std::cout << mgard_cuda::log::log_info
             << "PSNR: " << mgard_cuda::PSNR(n, original_data, decompressed_data)
             << "\n";
@@ -353,7 +378,8 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     launch_decompress<T>(D, dtype, output_file, temp, shape, tol, s, mode,
                          true);
     readfile(temp, decompressed_data);
-    print_statistics<T>(original_size, original_data, (T *)decompressed_data);
+    print_statistics<T>(s, mode, original_size, original_data,
+                        (T *)decompressed_data);
     delete[](T *) decompressed_data;
   }
 
@@ -628,7 +654,9 @@ bool try_decompression(int argc, char *argv[]) {
   double tol = get_arg_double(argc, argv, "-e");
   double s = get_arg_double(argc, argv, "-s");
 
+  std::cout << std::scientific;
   std::cout << mgard_cuda::log::log_info << "error bound: " << tol << "\n";
+  std::cout << std::defaultfloat;
   std::cout << mgard_cuda::log::log_info << "s: " << s << "\n";
 
   bool verbose = has_arg(argc, argv, "-v");
