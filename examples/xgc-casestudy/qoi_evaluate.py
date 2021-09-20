@@ -1,6 +1,5 @@
 import numpy as np
 import sys
-sys.path.append('/ccs/home/gongq/andes/indir/lib/python3.7/site-packages/adios2/')
 import adios2 as ad2
 import matplotlib
 matplotlib.use('Agg')
@@ -57,7 +56,7 @@ def compute_diff(name, x, x_):
         
     print("{}, shape = {}: L-inf error = {}, RMSE = {}, NRMSE = {}, maxv = {}, minv = {}".format(name, x.shape, np.max(gb_L_inf), l2_err, l2_err/(np.max(x)-np.min(x)), np.max(x), np.min(x)))
 
-exdir = '/gpfs/alpine/proj-shared/csc143/jyc/summit/xgc-deeplearning/d3d_coarse_v2/'
+exdir = ''
 with ad2.open(exdir+'xgc.mesh.bp', 'r') as f:
 # psi_surf: psi value of each surface
 # surf_len: # of nodes of each surface
@@ -86,10 +85,8 @@ f0_f = np.moveaxis(f0_f, 1, 2)
 ## module for xgc experiment: https://github.com/jychoi-hpc/xgc4py
 import xgc4py
 xgcexp = xgc4py.XGC(exdir)
-#xgcexp = xgc4py.XGC('/gpfs/alpine/world-shared/csc143/jyc/summit/d3d_coarse_small')
 
-res_path = 'build/'
-filename = res_path + "d3d_coarse_v2_700.bp.mgard" 
+filename = "d3d_coarse_v2_700.bp.mgard" 
 with ad2.open(filename, 'r') as f:
     print(filename)
     f0_g = f.read('i_f_4d')
