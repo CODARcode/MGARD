@@ -211,11 +211,10 @@ void test_compression_on_flat_mesh(
   const mgard::CompressedDataset<M, Real> obtained =
       mgard::compress(flat_hierarchy, v, expected.s, expected.tolerance);
   tracker += expected.size() == (obtained.size() - (M - N) * 8);
-std::cout << "expected.size() = " << expected.size() << " obtained.size() = " << obtained.size() - (M - N) * 8 << "\n";
   const std::size_t metadata_expected = 4 + 19 + 1 + 1 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
   const std::size_t metadata_obtained = 4 + 19 + 1 + 1 + 1 + 1 + M * 8 + 8 + 8 + 8 + 4 + 1;;
   tracker +=
-      std::memcmp(expected.data() + metadata_expected, obtained.data() + metadata_obtained, expected.size() - metadata_expected) == 0;
+      std::memcmp(static_cast<unsigned char *>(const_cast<void *>(expected.data())) + metadata_expected, static_cast<unsigned char *>(const_cast<void *>(obtained.data())) + metadata_obtained, expected.size() - metadata_expected) == 0;
 }
 
 } // namespace
@@ -267,7 +266,7 @@ template <std::size_t N, std::size_t M, typename Real>
 void test_decompression_on_flat_mesh(
     const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
     const mgard::CompressedDataset<N, Real> &compressed,
-    const mgard::DecompressedDataset<N, Real> &expected,
+    const Real * expected,
     const std::array<std::size_t, M> shape, TrialTracker &tracker) {
   const std::size_t ndof = hierarchy.ndof();
   const mgard::TensorMeshHierarchy<M, Real> flat_hierarchy =
@@ -277,13 +276,13 @@ void test_decompression_on_flat_mesh(
   const mgard::CompressedDataset<M, Real> flat_compressed(
       flat_hierarchy, compressed.s, compressed.tolerance, data,
       compressed.size());
-  const mgard::DecompressedDataset<M, Real> obtained =
-      mgard::decompress(flat_compressed);
+
+  const Real * obtained = (const Real *)mgard::mgard_decompress(flat_compressed.data(), flat_compressed.size());
   // Originally we compared `expected.data()` and `obtained.data()` bitwise.
   // When using `-ffast-math` after precomputing the shuffled indices, though,
   // we were getting some small discrepancies.
-  Real const *const p = expected.data();
-  Real const *const q = obtained.data();
+  Real const *const p = expected;
+  Real const *const q = obtained;
   for (std::size_t i = 0; i < ndof; ++i) {
     const Real expected_ = p[i];
     const Real obtained_ = q[i];
@@ -292,7 +291,7 @@ void test_decompression_on_flat_mesh(
 }
 
 } // namespace
-#if 0
+
 TEST_CASE("decompressing on 'flat' meshes", "[compress]") {
   std::default_random_engine gen(780037);
   std::uniform_real_distribution<double> dis(2, 3);
@@ -319,8 +318,7 @@ TEST_CASE("decompressing on 'flat' meshes", "[compress]") {
     for (const double tolerance : tolerances) {
       const mgard::CompressedDataset<3, double> compressed =
           mgard::compress(hierarchy, u, s, tolerance);
-      const mgard::DecompressedDataset<3, double> expected =
-          mgard::decompress(compressed);
+      const double * expected = (const double *)mgard::mgard_decompress(compressed.data(), compressed.size());
 
       test_decompression_on_flat_mesh<3, 4, double>(
           hierarchy, compressed, expected, {6, 5, 1, 7}, tracker);
@@ -335,4 +333,3 @@ TEST_CASE("decompressing on 'flat' meshes", "[compress]") {
   std::free(v);
   std::free(u);
 }
-#endif
