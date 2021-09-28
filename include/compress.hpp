@@ -108,6 +108,8 @@ template <std::size_t N, typename Real>
 DecompressedDataset<N, Real>
 decompress(const CompressedDataset<N, Real> &compressed);
 
+void const *mgard_decompress(void const *const compressed_data);
+
 } // namespace mgard
 
 namespace mgard_cuda {
