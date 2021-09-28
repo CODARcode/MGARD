@@ -18,6 +18,7 @@
 #include "TensorNorms.hpp"
 #include "decompose.hpp"
 #include "shuffle.hpp"
+#include "MGARDConfig.hpp"
 
 namespace mgard {
 
@@ -49,7 +50,7 @@ Real const *DecompressedDataset<N, Real>::data() const {
   return data_.get();
 }
 
-const std::string SIGNATURE_STR = "COMPRESSED_BY_MGARD";
+const std::string SIGNATURE_STR = "MGARD";
 using DEFAULT_INT_T = long int;
 
 template <std::size_t N, typename Real>
@@ -87,8 +88,7 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
 
   void *const buffer_h = compress_memory_huffman(quantized, zstd_outsize);
 
-  // Size of metadata: 4
-  // Signature: 19
+  // Signature: 5
   // Version: 1 + 1
   // Type: 1
   // Number of dims: 1
@@ -96,23 +96,37 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   // S: 8
   // L-inf norm or s-norm: 8
   // Target level: 4
-  uint32_t metadata_size = 4 + 19 + 1 + 1 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
+  uint32_t metadata_size = 5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
   // pack the minimal metadata for now, i.e., error tolerence and s
   unsigned char *const buffer =
       static_cast<unsigned char *>(std::malloc(zstd_outsize + metadata_size));
   unsigned char *b = buffer;
-
+#if 0
   *(uint32_t *)b = metadata_size;
   b += 4;
-
+#endif
   std::memcpy(b, SIGNATURE_STR.c_str(), SIGNATURE_STR.size());
   b += SIGNATURE_STR.size();
 
-  // Version major and minor
-  *(uint8_t *)b = 0;
+  // Software version major, minor and patch
+  *(uint8_t *)b = MGARD_VERSION_MAJOR;
   b += 1;
-  *(uint8_t *)b = 1;
+  *(uint8_t *)b = MGARD_VERSION_MINOR;
   b += 1;
+ *(uint8_t *)b = MGARD_VERSION_PATCH;
+  b += 1;
+
+  // File version major, minor and patch
+  *(uint8_t *)b = MGARD_VERSION_MAJOR;
+  b += 1;
+  *(uint8_t *)b = MGARD_VERSION_MINOR;
+  b += 1;
+ *(uint8_t *)b = MGARD_VERSION_PATCH;
+  b += 1;
+
+  // Size of metadata
+  *(uint32_t *)b = metadata_size;
+  b += 4;
 
   // Type: double 0, float 1
   if (std::is_same<Real, double>::value) {
@@ -151,6 +165,10 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   *(uint8_t *)b = 0;
   b += 1;
 
+  if (metadata_size != (b - buffer)) {
+    throw std::invalid_argument("Error in parsing metadata. Likely, this is due to the incompability of MGARD versions");
+  }
+
   // Coordinates
   FILE *file = fopen(".coord.mgard", "wb");
   for (std::size_t i = 0; i < N; i++) {
@@ -168,12 +186,9 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   return CompressedDataset<N, Real>(hierarchy, s, tolerance, buffer, size);
 }
 
-void const *mgard_decompress(void const *const compressed_buffer,
-                             std::size_t compressed_size) {
+void const *decompress(void const *const compressed_buffer,
+                       std::size_t compressed_size) {
   unsigned char *b = (unsigned char *)compressed_buffer;
-
-  uint32_t metadata_size = *(uint32_t *)b;
-  b += 4;
 
   char sig_str[SIGNATURE_STR.size() + 1];
   std::memcpy(sig_str, b, SIGNATURE_STR.size());
@@ -183,12 +198,25 @@ void const *mgard_decompress(void const *const compressed_buffer,
     throw std::invalid_argument("Data was not compressed by MGARD.");
   }
 
-  // Version major and minor
-  uint8_t version_major = *(uint8_t *)b;
+  // Software version major, minor and patch
+  uint8_t sv_major = *(uint8_t *)b;
+  b += 1;
+  uint8_t sv_minor = *(uint8_t *)b;
+  b += 1;
+  uint8_t sv_patch = *(uint8_t *)b;
   b += 1;
 
-  uint8_t version_minor = *(uint8_t *)b;
+  // File major, minor and patch
+  uint8_t fv_major = *(uint8_t *)b;
   b += 1;
+  uint8_t fv_minor = *(uint8_t *)b;
+  b += 1;
+  uint8_t fv_patch = *(uint8_t *)b;
+  b += 1;
+
+  // Size of metadata
+  uint32_t metadata_size = *(uint32_t *)b;
+  b += 4;
 
   // Type
   uint8_t type = *(uint8_t *)b;
@@ -224,6 +252,9 @@ void const *mgard_decompress(void const *const compressed_buffer,
   uint32_t grid_type = *(uint8_t *)b;
   b += 1;
 
+  if (metadata_size != b - (unsigned char *) compressed_buffer) {
+    throw std::invalid_argument("Error in parsing metadata. Likely, this is due to the incompability of MGARD versions");
+  }
 #if 0
   std::cout << "ndims = " << (unsigned)ndims << " tol = " << tol << " s = " << s
             << " target_level = " << target_level
