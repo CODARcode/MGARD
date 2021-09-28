@@ -38,7 +38,7 @@ template <std::size_t N, typename Real>
 TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
     const std::array<std::size_t, N> &shape,
     const std::array<std::vector<Real>, N> &coordinates)
-    : coordinates(coordinates) {
+    : coordinates(coordinates), uniform(false) {
   for (std::size_t i = 0; i < N; ++i) {
     if (coordinates.at(i).size() != shape.at(i)) {
       throw std::invalid_argument("incorrect number of node coordinates given");
@@ -159,7 +159,9 @@ default_node_coordinates(const std::array<std::size_t, N> &shape) {
 template <std::size_t N, typename Real>
 TensorMeshHierarchy<N, Real>::TensorMeshHierarchy(
     const std::array<std::size_t, N> &shape)
-    : TensorMeshHierarchy(shape, default_node_coordinates<N, Real>(shape)) {}
+    : TensorMeshHierarchy(shape, default_node_coordinates<N, Real>(shape)) {
+  uniform = true;
+}
 
 template <std::size_t N, typename Real>
 bool operator==(const TensorMeshHierarchy<N, Real> &a,

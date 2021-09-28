@@ -86,6 +86,14 @@ public:
   //! Coordinates of the nodes in the finest mesh.
   std::array<std::vector<Real>, N> coordinates;
 
+  //! Whether the mesh on the finest level is the default one (nodes uniformly
+  //! spaced on `[0, 1]` in each dimension).
+  //!
+  //!\note If the default mesh is manually passed to the constructor, this flag
+  //! will be set to `false`. Manually passed meshes are not checked for
+  //! equality with the default mesh.
+  bool uniform;
+
   //! Index of finest mesh.
   std::size_t L;
 
