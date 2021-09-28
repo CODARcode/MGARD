@@ -57,8 +57,8 @@ void test_compression_decompression(
       const mgard::CompressedDataset<N, Real> compressed =
           mgard::compress(hierarchy, v, s, tolerance);
 
-      const Real *new_data = (const Real *)mgard::decompress(
-          compressed.data(), compressed.size());
+      const Real *new_data =
+          (const Real *)mgard::decompress(compressed.data(), compressed.size());
       blas::axpy(ndof, static_cast<Real>(-1), new_data, error);
       // `error` is calculated, but it's unshuffled. `mgard::norm` expects its
       // input to be shuffled, so we shuffle into `buffer`.
@@ -110,8 +110,8 @@ void test_compression_error_bound(
   const mgard::CompressedDataset<N, Real> compressed =
       mgard::compress(hierarchy, v, s, tolerance);
 
-  const Real *new_data = (const Real *)mgard::decompress(
-      compressed.data(), compressed.size());
+  const Real *new_data =
+      (const Real *)mgard::decompress(compressed.data(), compressed.size());
   blas::axpy(ndof, static_cast<Real>(-1), new_data, error);
 
   const Real achieved = mgard::norm(hierarchy, error, s);

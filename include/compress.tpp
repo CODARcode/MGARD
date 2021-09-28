@@ -14,11 +14,11 @@
 #include <numeric>
 #include <vector>
 
+#include "MGARDConfig.hpp"
 #include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorNorms.hpp"
 #include "decompose.hpp"
 #include "shuffle.hpp"
-#include "MGARDConfig.hpp"
 
 namespace mgard {
 
@@ -96,7 +96,8 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   // S: 8
   // L-inf norm or s-norm: 8
   // Target level: 4
-  uint32_t metadata_size = 5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
+  uint32_t metadata_size =
+      5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
   // pack the minimal metadata for now, i.e., error tolerence and s
   unsigned char *const buffer =
       static_cast<unsigned char *>(std::malloc(zstd_outsize + metadata_size));
@@ -113,7 +114,7 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   b += 1;
   *(uint8_t *)b = MGARD_VERSION_MINOR;
   b += 1;
- *(uint8_t *)b = MGARD_VERSION_PATCH;
+  *(uint8_t *)b = MGARD_VERSION_PATCH;
   b += 1;
 
   // File version major, minor and patch
@@ -121,7 +122,7 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   b += 1;
   *(uint8_t *)b = MGARD_VERSION_MINOR;
   b += 1;
- *(uint8_t *)b = MGARD_VERSION_PATCH;
+  *(uint8_t *)b = MGARD_VERSION_PATCH;
   b += 1;
 
   // Size of metadata
@@ -166,7 +167,8 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   b += 1;
 
   if (metadata_size != (b - buffer)) {
-    throw std::invalid_argument("Error in parsing metadata. Likely, this is due to the incompability of MGARD versions");
+    throw std::invalid_argument("Error in parsing metadata. Likely, this is "
+                                "due to the incompability of MGARD versions");
   }
 
   // Coordinates
@@ -252,8 +254,9 @@ void const *decompress(void const *const compressed_buffer,
   uint32_t grid_type = *(uint8_t *)b;
   b += 1;
 
-  if (metadata_size != b - (unsigned char *) compressed_buffer) {
-    throw std::invalid_argument("Error in parsing metadata. Likely, this is due to the incompability of MGARD versions");
+  if (metadata_size != b - (unsigned char *)compressed_buffer) {
+    throw std::invalid_argument("Error in parsing metadata. Likely, this is "
+                                "due to the incompability of MGARD versions");
   }
 #if 0
   std::cout << "ndims = " << (unsigned)ndims << " tol = " << tol << " s = " << s
