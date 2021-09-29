@@ -1,13 +1,13 @@
-#include <math.h>
 #include <cstddef>
+#include <math.h>
 
 #include <array>
 #include <iostream>
 #include <stdexcept>
 
+#include "adios2.h"
 #include "mgard/TensorQuantityOfInterest.hpp"
 #include "mgard/compress.hpp"
-#include "adios2.h"
 
 class AverageFunctional {
 public:
@@ -22,7 +22,7 @@ public:
   }
 
   double operator()(const mgard::TensorMeshHierarchy<2, double> &hierarchy,
-                   double  const *const u) const {
+                    double const *const u) const {
     const std::array<std::size_t, 2> shape = hierarchy.shapes.back();
     const std::size_t n = shape.at(0);
     const std::size_t m = shape.at(1);
@@ -33,8 +33,14 @@ public:
     std::size_t count = 0;
     for (std::size_t i = lower_left.at(0); i < upper_right.at(0); ++i) {
       for (std::size_t j = lower_left.at(1); j < upper_right.at(1); ++j) {
-        double coeff = (i==lower_left.at(0) || i==upper_right.at(0) || j==lower_left.at(1) || j==upper_right.at(1)) ?
-            (((i==lower_left.at(0) || i==upper_right.at(0)) && (j==lower_left.at(1) || j==upper_right.at(1))) ? 0.25 : 0.5) : 1.0;
+        double coeff =
+            (i == lower_left.at(0) || i == upper_right.at(0) ||
+             j == lower_left.at(1) || j == upper_right.at(1))
+                ? (((i == lower_left.at(0) || i == upper_right.at(0)) &&
+                    (j == lower_left.at(1) || j == upper_right.at(1)))
+                       ? 0.25
+                       : 0.5)
+                : 1.0;
         total += u[n * i + j] * coeff;
         ++count;
       }
@@ -69,7 +75,7 @@ int main(int argc, char **argv) {
   var_sz_in = reader_io.InquireVariable<int32_t>("f0_nmu");
   reader_vol.Get<int32_t>(var_sz_in, &temp);
   reader_vol.PerformGets();
-  vx = (size_t)temp*2 + 1;
+  vx = (size_t)temp * 2 + 1;
   var_sz_in = reader_io.InquireVariable<int32_t>("f0_nvp");
   reader_vol.Get<int32_t>(var_sz_in, &temp);
   reader_vol.PerformGets();
@@ -80,18 +86,19 @@ int main(int argc, char **argv) {
   std::vector<double> Q_norm(nnodes);
   adios2::IO bpIO = ad.DeclareIO("WriteBP_File");
   adios2::Variable<double> bp_fdata = bpIO.DefineVariable<double>(
-          "Q_norm", {nnodes}, {0}, {nnodes},  adios2::ConstantDims);
-  adios2::Engine bpFileWriter = bpIO.Open("RsQ.bp", adios2::Mode::Write); 
-  for (size_t innode=0; innode<nnodes; innode++) {
+      "Q_norm", {nnodes}, {0}, {nnodes}, adios2::ConstantDims);
+  adios2::Engine bpFileWriter = bpIO.Open("RsQ.bp", adios2::Mode::Write);
+  for (size_t innode = 0; innode < nnodes; innode++) {
     const AverageFunctional average({0, 0}, {vx, vy}, grid_vol.at(innode));
     const mgard::TensorQuantityOfInterest<2, double> Q(hierarchy, average);
-    Q_norm.at(innode) = Q.norm(0); 
-    if (innode % 100 ==0)
-        std::cout << "norm of the average as a functional on L^2: " << Q_norm.at(innode) << " for vol = " << grid_vol.at(innode) <<  std::endl;
-
+    Q_norm.at(innode) = Q.norm(0);
+    if (innode % 100 == 0)
+      std::cout << "norm of the average as a functional on L^2: "
+                << Q_norm.at(innode) << " for vol = " << grid_vol.at(innode)
+                << std::endl;
   }
   bpFileWriter.Put<double>(bp_fdata, Q_norm.data());
   bpFileWriter.Close();
-  
+
   return 0;
 }
