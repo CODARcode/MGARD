@@ -1,1 +1,1 @@
-from .XGC import XGC
+from.XGC import XGC

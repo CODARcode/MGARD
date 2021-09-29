@@ -1,14 +1,8 @@
-import numpy as np
-import adios2 as ad2
-from tqdm import tqdm
+import numpy as np import adios2 as ad2 from tqdm import tqdm
 
-import os
-import subprocess
+    import os import subprocess
 
-from math import sqrt, floor, exp
-try:
-    import torch
-except ImportError:
+    from math import sqrt, floor, exp try : import torch except ImportError:
     import warnings
     warnings.warn("No torch module. Disabled.")
 
@@ -91,8 +85,8 @@ class XGC:
             self.vp_vol[0] = 0.5
             self.vp_vol[-1] = 0.5
 
-            #f0_smu_max = 3.0
-            #f0_dsmu = f0_smu_max/f0_nmu
+#f0_smu_max = 3.0
+#f0_dsmu = f0_smu_max / f0_nmu
             self.mu = (np.arange(self.f0_nmu+1, dtype=np.float128)*self.f0_dsmu)**2
             self.vp = np.arange(-self.f0_nvp, self.f0_nvp+1, dtype=np.float128)*self.f0_dvp
 
@@ -254,11 +248,11 @@ class XGC:
       implicit none
       type(grid_type), intent(in) :: grid
       real (8), intent(in) :: v2d(grid%nnode)
-    #ifdef CONVERT_GRID2
+#ifdef CONVERT_GRID2
       real (8), intent(out)  :: v1d(grid%npsi_surf)
-    #else
+#else
       real (8), intent(out)  :: v1d(grid%npsi00)
-    #endif
+#endif
 
       call mat_transpose_mult(grid%cnv_2d_00,v2d,v1d)
       v1d=v1d/grid%cnv_norm_1d00
@@ -385,26 +379,26 @@ class XGC:
 
         self.epsil_psi =  1E-5
 
-        # fname = os.path.join(expdir, 'xgc.f0analysis.static.bp')
-        # if os.path.exists(fname):
-        #     print (f"Reading: {fname}")
-        #     with ad2.open(fname, 'r') as f:
-        #         self.sml_inpsi = f.read('sml_inpsi')
-        #         self.sml_outpsi = f.read('sml_outpsi')
+#fname = os.path.join(expdir, 'xgc.f0analysis.static.bp')
+#if os.path.exists(fname) :
+#print(f "Reading: {fname}")
+#with ad2.open(fname, 'r') as f:
+#self.sml_inpsi = f.read('sml_inpsi')
+#self.sml_outpsi = f.read('sml_outpsi')
 
         fname = os.path.join(expdir, 'fort.input.used')
         result = subprocess.run(['/usr/bin/grep', '-a', 'SML_OUTPSI', fname], stdout=subprocess.PIPE)
         kv = result.stdout.decode().replace(' ','').replace(',','').split('\n')[0].split('=')
         self.sml_outpsi = float(kv[1])
         self.sml_outpsi = self.sml_outpsi * self.eq_x_psi
-        # print ('sml_outpsi=', self.sml_outpsi)
+#print('sml_outpsi=', self.sml_outpsi)
 
         fname = os.path.join(expdir, 'fort.input.used')
         result = subprocess.run(['/usr/bin/grep', '-a', 'SML_INPSI', fname], stdout=subprocess.PIPE)
         kv = result.stdout.decode().replace(' ','').replace(',','').split('\n')[0].split('=')
         self.sml_inpsi = float(kv[1])
         self.sml_inpsi = self.sml_inpsi * self.eq_x_psi
-        # print ('sml_inpsi=', self.sml_inpsi)
+#print('sml_inpsi=', self.sml_inpsi)
 
         self.sml_00_npsi = self.grid.npsi
         print ('sml_00_npsi, sml_inpsi, sml_outpsi=', self.sml_00_npsi, self.sml_inpsi, self.sml_outpsi)
@@ -433,15 +427,15 @@ class XGC:
         self.sml_rhomax = float(kv[1])
         print ('sml_rhomax=', self.sml_rhomax)
 
-        #!min-max of grid
+#!min - max of grid
         self.grid.npsi00 = self.sml_00_npsi
-        # self.grid.psi00min = self.sml_inpsi * self.eq_x_psi
-        # self.grid.psi00max = self.sml_outpsi * self.eq_x_psi
+#self.grid.psi00min = self.sml_inpsi * self.eq_x_psi
+#self.grid.psi00max = self.sml_outpsi * self.eq_x_psi
         self.grid.psi00min = self.sml_inpsi
         self.grid.psi00max = self.sml_outpsi
         self.grid.dpsi00 = (self.grid.psi00max - self.grid.psi00min)/float(self.grid.npsi00-1)
 
-        #!rho
+#!rho
         self.grid.nrho=self.sml_grid_nrho  #! rho indexing starts from 0
         self.grid.rhomax=self.sml_rhomax   #! rho min is 0.
         self.grid.drho = self.grid.rhomax/self.grid.nrho
@@ -459,7 +453,7 @@ class XGC:
             current = [0,]*self.mesh.nnodes
             for i in range(self.mesh.nnodes):
                 current[i] = self.mesh.nextnode[prev[i]]
-                #print (i, prev[i], nextnode[prev[i]])
+#print(i, prev[i], nextnode[prev[i]])
             nextnode_list.append(current)
         self.nextnode_arr = np.array(nextnode_list)
 
@@ -530,7 +524,7 @@ class XGC:
         ## Check
         if f0_f.ndim == 2:
             f0_f = f0_f[np.newaxis,:]
-        #print (f0_f.shape, (ndata, f0_nmu+1, f0_nvp*2+1))
+#print(f0_f.shape, (ndata, f0_nmu + 1, f0_nvp * 2 + 1))
         assert(f0_f.shape[0] == ndata)
         assert(f0_f.shape[1] == f0_nmu+1)
         assert(f0_f.shape[2] >= f0_nvp*2+1)
@@ -547,36 +541,38 @@ class XGC:
         ptl_e_charge_eu=-1.0
         ptl_charge = [ptl_e_charge_eu*sml_e_charge, ptl_charge_eu*sml_e_charge]
 
-        # (2020/12) use pre-computed in xgc4py
-        # ## index: imu, range: [0, f0_nmu]
-        # mu_vol = np.ones(f0_nmu+1)
-        # mu_vol[0] = 0.5
-        # mu_vol[-1] = 0.5
+#(2020 / 12) use pre - computed in xgc4py
+# ##index : imu, range : [0, f0_nmu]
+#mu_vol = np.ones(f0_nmu + 1)
+#mu_vol[0] = 0.5
+#mu_vol[-1] = 0.5
 
-        # ## index: ivp, range: [-f0_nvp, f0_nvp]
-        # vp_vol = np.ones(f0_nvp*2+1)
-        # vp_vol[0] = 0.5
-        # vp_vol[-1] = 0.5
+# ##index : ivp, range : [- f0_nvp, f0_nvp]
+#vp_vol = np.ones(f0_nvp * 2 + 1)
+#vp_vol[0] = 0.5
+#vp_vol[-1] = 0.5
 
-        #f0_smu_max = 3.0
-        #f0_dsmu = f0_smu_max/f0_nmu
-        # mu = (np.arange(f0_nmu+1, dtype=np.float64)*f0_dsmu)**2
-        # vp = np.arange(-f0_nvp, f0_nvp+1, dtype=np.float64)*f0_dvp
+#f0_smu_max = 3.0
+#f0_dsmu = f0_smu_max / f0_nmu
+#mu = (np.arange(f0_nmu + 1, dtype = np.float64) * f0_dsmu) * *2
+#vp = np.arange(-f0_nvp, f0_nvp + 1, dtype = np.float64) * f0_dvp
 
-        # (2020/12) update to use matrix-vector operations.
-        # 1) Density, parallel flow, and T_perp moments
+#(2020 / 12) update to use matrix - vector operations.
+# 1) Density, parallel flow, and T_perp moments
         vol_ = f0_grid_vol[:,np.newaxis,np.newaxis]*mu_vp_vol[np.newaxis,:,:]
         den_ = f0_f.astype(np.float128) * vol_
         u_para_ = f0_f.astype(np.float128) * vol_ * vth[:,np.newaxis,np.newaxis] * vp[np.newaxis,np.newaxis,:]
         T_perp_ = f0_f.astype(np.float128) * vol_ * 0.5 * mu[np.newaxis,:,np.newaxis] * vth2[:,np.newaxis,np.newaxis] * ptl_mass[isp]
-#        print(np.sum(f0_f.astype(np.float128)*mu[np.newaxis,:,np.newaxis], axis=(1,2))[0] , vth2[0], ptl_mass[isp])
-#        print(mu)
+#print(np.sum(f0_f.astype(np.float128) * mu [np.newaxis, :, np.newaxis],       \
+              axis = (1, 2))[0],                                               \
+       vth2[0], ptl_mass[isp])
+#print(mu)
         s_den_  = np.sum(den_, axis=(1,2), dtype=np.float128)
         u_para_ = np.sum(u_para_, axis=(1,2), dtype=np.float128)/s_den_
         T_perp_ = np.sum(T_perp_, axis=(1,2), dtype=np.float128)/s_den_/sml_e_charge
-#        print(T_perp_[0])
+#print(T_perp_[0])
 
-        # 2) T_para moment
+# 2) T_para moment
         upar_ = u_para_/vth
         en_   = 0.5 * (vp[np.newaxis,:].astype(np.float128) - upar_[:,np.newaxis])**2
 
@@ -589,66 +585,69 @@ class XGC:
         return (s_den_, u_para_, T_perp_, T_para_, n0_, T0_)
 
         ## (2020/12) Just for a reference
-        # # out
-        # den = np.zeros((ndata, f0_nmu+1, 2*f0_nvp+1))
-        # u_para = np.zeros((ndata, f0_nmu+1, 2*f0_nvp+1))
-        # T_perp = np.zeros((ndata, f0_nmu+1, 2*f0_nvp+1))
-        # T_para = np.zeros((ndata, f0_nmu+1, 2*f0_nvp+1))
+# #out
+#den = np.zeros((ndata, f0_nmu + 1, 2 * f0_nvp + 1))
+#u_para = np.zeros((ndata, f0_nmu + 1, 2 * f0_nvp + 1))
+#T_perp = np.zeros((ndata, f0_nmu + 1, 2 * f0_nvp + 1))
+#T_para = np.zeros((ndata, f0_nmu + 1, 2 * f0_nvp + 1))
 
-        # # 1) Density, parallel flow, and T_perp moments
-        # for inode in tqdm(range(0, ndata), disable=not progress):
-        #     ## Mesh properties
-        #     en_th = f0_T_ev[isp,f0_inode1+inode]*sml_ev2j
-        #     vth = np.sqrt(en_th/ptl_mass[isp])
-        #     f0_grid_vol = f0_grid_vol_vonly[isp,f0_inode1+inode]
+# #1) Density, parallel flow, and T_perp moments
+#for inode in tqdm(range(0, ndata), disable = not progress):
+# ##Mesh properties
+#en_th = f0_T_ev[isp, f0_inode1 + inode] * sml_ev2j
+#vth = np.sqrt(en_th / ptl_mass[isp])
+#f0_grid_vol = f0_grid_vol_vonly[isp, f0_inode1 + inode]
 
-        #     for imu in range(0, f0_nmu+1):
-        #         for ivp in range(0, f0_nvp*2+1):
-        #             ## Vspace properties
-        #             vol = f0_grid_vol * mu_vol[imu] * vp_vol[ivp]
-        #             vp = (ivp - f0_nvp) * f0_dvp
-        #             en = 0.5 * mu[imu]
+#for imu in range(0, f0_nmu + 1):
+#for ivp in range(0, f0_nvp * 2 + 1):
+# ##Vspace properties
+#vol = f0_grid_vol * mu_vol[imu] * vp_vol[ivp]
+#vp = (ivp - f0_nvp) * f0_dvp
+#en = 0.5 * mu[imu]
 
-        #             f = f0_f[inode, imu, ivp] #f0_f(ivp,inode,imu,isp)
-        #             den[inode, imu, ivp] = f * vol
-        #             u_para[inode, imu, ivp] = f * vol * vp * vth
-        #             T_perp[inode, imu, ivp] = f * vol * en * vth**2 * ptl_mass[isp]
-        #             #if (inode==0): print ('imu,inode,ivp,ptl_mass,vth,en,vol=',imu,inode,ivp,ptl_mass[isp],vth,en,vol)
+#f = f0_f[inode, imu, ivp] #f0_f(ivp, inode, imu, isp)
+#den[inode, imu, ivp] = f * vol
+#u_para[inode, imu, ivp] = f * vol * vp * vth
+#T_perp[inode, imu, ivp] = f * vol * en * vth * *2 * ptl_mass[isp]
+# #if (inode == 0) : print('imu,inode,ivp,ptl_mass,vth,en,vol=', imu, inode,   \
+                           ivp, ptl_mass[isp], vth, en, vol)
 
-        # for inode in range(0, ndata):
-        #     u_para[inode,:] = u_para[inode,:]/np.sum(den[inode,:])
-        #     T_perp[inode,:] = T_perp[inode,:]/np.sum(den[inode,:])/sml_e_charge
+#for inode in range(0, ndata):
+#u_para[inode, : ] = u_para[inode, : ] / np.sum(den [inode, :])
+#T_perp[inode, : ] = T_perp[inode, : ] / np.sum(den [inode, :]) / sml_e_charge
 
-        # upar = np.sum(u_para, axis=(1,2))
+#upar = np.sum(u_para, axis = (1, 2))
 
-        # # 2) T_para moment
-        # for inode in tqdm(range(0, ndata), disable=not progress):
-        #     ## Mesh properties
-        #     en_th = f0_T_ev[isp,f0_inode1+inode]*sml_ev2j
-        #     vth = np.sqrt(en_th/ptl_mass[isp])
-        #     f0_grid_vol = f0_grid_vol_vonly[isp,f0_inode1+inode]
+# #2) T_para moment
+#for inode in tqdm(range(0, ndata), disable = not progress):
+# ##Mesh properties
+#en_th = f0_T_ev[isp, f0_inode1 + inode] * sml_ev2j
+#vth = np.sqrt(en_th / ptl_mass[isp])
+#f0_grid_vol = f0_grid_vol_vonly[isp, f0_inode1 + inode]
 
-        #     for imu in range(0, f0_nmu+1):
-        #         for ivp in range(0, f0_nvp*2+1):
-        #             ## Vspace properties
-        #             vol = f0_grid_vol * mu_vol[imu] * vp_vol[ivp]
-        #             vp = (ivp - f0_nvp) * f0_dvp
-        #             en = 0.5 * (vp - upar[inode] / vth)**2
+#for imu in range(0, f0_nmu + 1):
+#for ivp in range(0, f0_nvp * 2 + 1):
+# ##Vspace properties
+#vol = f0_grid_vol * mu_vol[imu] * vp_vol[ivp]
+#vp = (ivp - f0_nvp) * f0_dvp
+#en = 0.5 * (vp - upar[inode] / vth) * *2
 
-        #             f = f0_f[inode, imu, ivp] #f0_f(ivp,inode,imu,isp)
-        #             T_para[inode, imu, ivp] = f * vol * en * vth**2 * ptl_mass[isp]
+#f = f0_f[inode, imu, ivp] #f0_f(ivp, inode, imu, isp)
+#T_para[inode, imu, ivp] = f * vol * en * vth * *2 * ptl_mass[isp]
 
-        # for inode in range(0, ndata):
-        #     T_para[inode,:] = 2.0*T_para[inode,:]/np.sum(den[inode,:])/sml_e_charge
+#for inode in range(0, ndata):
+#T_para[inode, : ] = 2.0 * T_para[inode, : ] / np.sum(den [inode, :]) /        \
+                                  sml_e_charge
 
-        # n0 = np.sum(den, axis=(1,2))
-        # T0 = (2.0*np.sum(T_perp, axis=(1,2))+np.sum(T_para, axis=(1,2)))/3.0
+#n0 = np.sum(den, axis = (1, 2))
+#T0 = (2.0 * np.sum(T_perp, axis = (1, 2)) + np.sum(T_para, axis = (1, 2))) /  \
+      3.0
 
-        # # 3) Get the flux-surface average of n and T
-        # #    And the toroidal averages of n, T, and u_par
-        # # jyc: We need all plane data to get flux-surface average. Call f0_avg_diag
+# #3) Get the flux - surface average of n and T
+# #And the toroidal averages of n, T, and u_par
+# #jyc : We need all plane data to get flux - surface average.Call f0_avg_diag
 
-        # return (den, u_para, T_perp, T_para, n0, T0)
+#return (den, u_para, T_perp, T_para, n0, T0)
 
     def to(self, device):
         """
@@ -723,7 +722,7 @@ class XGC:
         ## Check
         if f0_f.ndim == 2:
             f0_f = f0_f[np.newaxis,:]
-        #print (f0_f.shape, (ndata, f0_nmu+1, f0_nvp*2+1))
+#print(f0_f.shape, (ndata, f0_nmu + 1, f0_nvp * 2 + 1))
         assert(f0_f.shape[0] == ndata)
         assert(f0_f.shape[1] == f0_nmu+1)
         assert(f0_f.shape[2] >= f0_nvp*2+1)
@@ -740,24 +739,24 @@ class XGC:
         ptl_e_charge_eu=-1.0
         ptl_charge = [ptl_e_charge_eu*sml_e_charge, ptl_charge_eu*sml_e_charge]
 
-        # (2020/12) use pre-computed in xgc4py
-        # ## index: imu, range: [0, f0_nmu]
-        # mu_vol = np.ones(f0_nmu+1)
-        # mu_vol[0] = 0.5
-        # mu_vol[-1] = 0.5
+#(2020 / 12) use pre - computed in xgc4py
+# ##index : imu, range : [0, f0_nmu]
+#mu_vol = np.ones(f0_nmu + 1)
+#mu_vol[0] = 0.5
+#mu_vol[-1] = 0.5
 
-        # ## index: ivp, range: [-f0_nvp, f0_nvp]
-        # vp_vol = np.ones(f0_nvp*2+1)
-        # vp_vol[0] = 0.5
-        # vp_vol[-1] = 0.5
+# ##index : ivp, range : [- f0_nvp, f0_nvp]
+#vp_vol = np.ones(f0_nvp * 2 + 1)
+#vp_vol[0] = 0.5
+#vp_vol[-1] = 0.5
 
-        #f0_smu_max = 3.0
-        #f0_dsmu = f0_smu_max/f0_nmu
-        # mu = (np.arange(f0_nmu+1, dtype=np.float64)*f0_dsmu)**2
-        # vp = np.arange(-f0_nvp, f0_nvp+1, dtype=np.float64)*f0_dvp
+#f0_smu_max = 3.0
+#f0_dsmu = f0_smu_max / f0_nmu
+#mu = (np.arange(f0_nmu + 1, dtype = np.float64) * f0_dsmu) * *2
+#vp = np.arange(-f0_nvp, f0_nvp + 1, dtype = np.float64) * f0_dvp
 
-        # (2020/12) update to use matrix-vector operations.
-        # 1) Density, parallel flow, and T_perp moments
+#(2020 / 12) update to use matrix - vector operations.
+# 1) Density, parallel flow, and T_perp moments
         vol_ = f0_grid_vol[:,np.newaxis,np.newaxis]*mu_vp_vol[np.newaxis,:,:]
         den_ = f0_f * vol_
         u_para_ = f0_f * vol_ * vth[:,np.newaxis,np.newaxis] * vp[np.newaxis,np.newaxis,:]
@@ -767,7 +766,7 @@ class XGC:
         u_para_ = u_para_/s_den_[:,np.newaxis,np.newaxis]
         T_perp_ = T_perp_/s_den_[:,np.newaxis,np.newaxis]/sml_e_charge
 
-        # 2) T_para moment
+# 2) T_para moment
         upar_ = torch.sum(u_para_, axis=(1,2))/vth
         en_ = 0.5 * (vp[np.newaxis,:] - upar_[:,np.newaxis])**2
 
@@ -806,38 +805,49 @@ class XGC:
         over_abs_grad_psi=1.0/sqrt(grad_psi_sqr)
 
         if isp >= 1:
-            #! Ions
+#!Ions
             rhoi=sqrt(2.0*mass*mu_mks/b)/charge
             rhon=min(rhoi,self.grid.rhomax)/self.grid.drho
             irho=min(floor(rhon),self.grid.nrho-1)
             wrho[1]=rhon - float(irho)
             wrho[0]=1.0-wrho[1]
 
-            # pot_rho = wrho(1)*0.5D0*(psn%pot_rho_ff(0,irho  ,node)+psn%pot_rho_ff(1,irho  ,node))  &
-            #          +wrho(2)*0.5D0*(psn%pot_rho_ff(0,irho+1,node)+psn%pot_rho_ff(1,irho+1,node))
-            # E   = E   + wrho(1)*0.5D0*(psn%E_rho_ff(:,0,irho  ,node)+psn%E_rho_ff(:,1,irho  ,node))
-            # E   = E   + wrho(2)*0.5D0*(psn%E_rho_ff(:,0,irho+1,node)+psn%E_rho_ff(:,1,irho+1,node))
+#pot_rho =                                                                     \
+    wrho(1) * 0.5D0 *                                                          \
+    (psn % pot_rho_ff(0, irho, node) + psn % pot_rho_ff(1, irho, node)) &
+#+ wrho(2) * 0.5D0 *(psn % pot_rho_ff(0, irho + 1, node) +                     \
+                                      psn % pot_rho_ff(1, irho + 1, node))
+#E = E + wrho(1) * 0.5D0 *                                                     \
+             (psn % E_rho_ff(                                                  \
+                        :, 0, irho, node) +                                    \
+              psn % E_rho_ff(                                                  \
+                        :, 1, irho, node))
+#E = E + wrho(2) * 0.5D0 *                                                     \
+             (psn % E_rho_ff(                                                  \
+                        :, 0, irho + 1, node) +                                \
+              psn % E_rho_ff(                                                  \
+                        :, 1, irho + 1, node))
 
             pot_rho = wrho[0]*0.5*(self.psn.pot_rho_ff[iphi,node,irho  ,0]+self.psn.pot_rho_ff[iphi,node,irho  ,1])  \
                     + wrho[1]*0.5*(self.psn.pot_rho_ff[iphi,node,irho+1,0]+self.psn.pot_rho_ff[iphi,node,irho+1,1])
             E   = E   + wrho[0]*0.5*(self.psn.E_rho_ff[iphi,node,irho  ,0,:]+self.psn.E_rho_ff[iphi,node,irho  ,1,:])
             E   = E   + wrho[1]*0.5*(self.psn.E_rho_ff[iphi,node,irho+1,0,:]+self.psn.E_rho_ff[iphi,node,irho+1,1,:])
         else:
-            #! Electrons
+#!Electrons
             pot_rho = 0.5*(self.psn.pot_rho_ff[iphi,node,0,0]+self.psn.pot_rho_ff[iphi,node,0,1])
             E = 0.5*(self.psn.E_rho_ff[iphi,node,0,0,:]+self.psn.E_rho_ff[iphi,node,0,1,:])
 
-        # The ExB drift
+#The ExB drift
         v_exb = np.zeros(3, dtype=np.float64)
         if self.grid.basis[node]==1:
-            #!rh This is good if E(1:2) is in R,Z basis -->
+#!rh This is good if E(1 : 2) is in R, Z basis -->
             vr       = D * ( E[2]*self.grid.bfield[node,1] - E[1]*self.grid.bfield[node,2] ) * over_B2
             vz       = D * ( E[0]*self.grid.bfield[node,2] - E[2]*self.grid.bfield[node,0] ) * over_B2
             v_exb[0] = vr * grad_psi[0] + vz * grad_psi[1]
             v_exb[1] = (- vr * grad_psi[1] + vz * grad_psi[0]) * over_abs_grad_psi
             v_exb[2] = D * ( E[1]*self.grid.bfield[node,0] - E[0]*self.grid.bfield[node,1] ) * over_B2
         else:
-            #!rh E(1:2) is now E_psi and E_theta!!! -->
+#!rh E(1 : 2) is now E_psi and E_theta !!!-->
             v_exb[0] = -D * E[1]*self.grid.bfield[node,2]*over_B2/over_abs_grad_psi #!! -E_theta*B_phi
             v_exb[1] =  D * E[0]*self.grid.bfield[node,2]*over_B2  #!! E_psi*B_phi
             v_exb[2] = -D * E[0]*(-self.grid.bfield[node,0]*grad_psi[1]+self.grid.bfield[node,1]*grad_psi[0]) \
@@ -932,9 +942,9 @@ class XGC:
         nnodes = self.mesh.nnodes
 
         ## Check
-        # if f0_f.ndim == 2:
-        #     f0_f = f0_f[np.newaxis,:]
-        #print (f0_f.shape, (ndata, f0_nmu+1, f0_nvp*2+1))
+#if f0_f.ndim == 2:
+#f0_f = f0_f[np.newaxis, : ]
+#print(f0_f.shape, (ndata, f0_nmu + 1, f0_nvp * 2 + 1))
         assert(f0_f.shape[0] == self.nphi)
         assert(f0_f.shape[1] == ndata)
         assert(f0_f.shape[2] == f0_nmu+1)
@@ -962,18 +972,32 @@ class XGC:
         vp_vol[0] = 0.5
         vp_vol[-1] = 0.5
 
-        #f0_smu_max = 3.0
-        #f0_dsmu = f0_smu_max/f0_nmu
+#f0_smu_max = 3.0
+#f0_dsmu = f0_smu_max / f0_nmu
         mu = (np.arange(f0_nmu+1, dtype=np.float64)*f0_dsmu)**2
         smu = (np.arange(f0_nmu+1, dtype=np.float64)*f0_dsmu)
         smu[0] = f0_dsmu/self.grid.f0_mu0_factor
 
-        # call t_startf("DIAG_3D_F_CALC3")
-        # allocate(v_exb_n0(3,f0_inode1:f0_inode2,0:f0_nmu,diag_1d_isp:diag_1d_nsp))
-        # allocate(boltz_fac_n0(f0_inode1:f0_inode2,0:f0_nmu,diag_1d_isp:diag_1d_nsp))
-        # allocate(ftot_n0(-f0_nvp:f0_nvp,f0_inode1:f0_inode2,0:f0_nmu,diag_1d_isp:diag_1d_nsp))
-        # allocate(dpot_n0(f0_inode1:f0_inode2,0:f0_nmu,diag_1d_isp:diag_1d_nsp),  &
-        #         dpot_turb(f0_inode1:f0_inode2,0:f0_nmu,diag_1d_isp:diag_1d_nsp))
+#call t_startf("DIAG_3D_F_CALC3")
+#allocate(v_exb_n0(3, f0_inode1                                                \
+                   : f0_inode2, 0                                              \
+                   : f0_nmu, diag_1d_isp                                       \
+                   : diag_1d_nsp))
+#allocate(boltz_fac_n0(f0_inode1                                               \
+                       : f0_inode2, 0                                          \
+                       : f0_nmu, diag_1d_isp                                   \
+                       : diag_1d_nsp))
+#allocate(ftot_n0(-f0_nvp                                                      \
+                  : f0_nvp, f0_inode1                                          \
+                  : f0_inode2, 0                                               \
+                  : f0_nmu, diag_1d_isp                                        \
+                  : diag_1d_nsp))
+#allocate(dpot_n0(f0_inode1                                                    \
+                  : f0_inode2, 0                                               \
+                  : f0_nmu, diag_1d_isp                                        \
+                  : diag_1d_nsp),                                              \
+              &
+#dpot_turb(f0_inode1 : f0_inode2, 0 : f0_nmu, diag_1d_isp : diag_1d_nsp))
         _v_exb_n0 = np.zeros((self.nphi,f0_nmu+1,ndata,3))
         _boltz_fac_n0 = np.zeros((self.nphi,f0_nmu+1,ndata))
         _dpot_turb = np.zeros((self.nphi,f0_nmu+1,ndata))
@@ -989,17 +1013,17 @@ class XGC:
                     _boltz_fac_n0[_iphi,imu,inode] = exp(-csign/T0_avg[inode]*(pot_rho-self.psn.pot0[_iphi,f0_inode1+inode]))
                     _dpot_turb[_iphi,imu,inode] = pot_rho
 
-        # call t_startf("DIAG_3D_F_MPI2")
-        # v_exb_n0 = v_exb_n0 avg over planes
-        # boltz_fac_n0 = boltz_fac_n0 avg over planes
-        # dpot_n0 = dpot_turb avg over planes
-        # ftot_n0 = f0_f avg over planes
+#call t_startf("DIAG_3D_F_MPI2")
+#v_exb_n0 = v_exb_n0 avg over planes
+#boltz_fac_n0 = boltz_fac_n0 avg over planes
+#dpot_n0 = dpot_turb avg over planes
+#ftot_n0 = f0_f avg over planes
         v_exb_n0 = np.mean(_v_exb_n0, axis=0)
         boltz_fac_n0 = np.mean(_boltz_fac_n0, axis=0)
         dpot_n0 = np.mean(_dpot_turb, axis=0)
         ftot_n0 = np.mean(f0_f, axis=0)
 
-        # call t_startf("DIAG_3D_F_CALC4")
+#call t_startf("DIAG_3D_F_CALC4")
         fn_n0 = np.zeros((ndata,f0_nmu+1,f0_nvp*2+1), dtype=np.float64)
         fn_turb = np.zeros((ndata,f0_nmu+1,f0_nvp*2+1), dtype=np.float64)
         n_energy=8 
@@ -1008,7 +1032,9 @@ class XGC:
         csign = ptl_charge[isp]/sml_e_charge
         for inode in tqdm(range(0, ndata), disable=not progress):
             if (self.grid.psi[f0_inode1+inode] > self.sml_outpsi or self.grid.psi[f0_inode1+inode] < self.sml_inpsi or (self.grid.rgn[f0_inode1+inode]==3 and self.sml_exclude_private) ):
-                # print ('skip:', f0_inode1+inode, self.grid.psi[f0_inode1+inode], self.sml_outpsi, self.sml_inpsi, self.grid.rgn[f0_inode1+inode], self.sml_exclude_private)
+#print('skip:', f0_inode1 + inode, self.grid.psi[f0_inode1 + inode],           \
+       self.sml_outpsi, self.sml_inpsi, self.grid.rgn[f0_inode1 + inode],      \
+       self.sml_exclude_private)
                 continue
             en_th = f0_T_ev[isp,f0_inode1+inode]*sml_ev2j
             vth = sqrt(en_th/ptl_mass[isp])
@@ -1016,37 +1042,42 @@ class XGC:
 
             for imu in range(0, f0_nmu+1):
                 for ivp in range(0, f0_nvp*2+1):
-                    # vol=f0_grid_vol_vonly(node,isp)*mu_vol(imu)*vp_vol(ivp)
+#vol = f0_grid_vol_vonly(node, isp) * mu_vol(imu) * vp_vol(ivp)
                     vol = f0_grid_vol * mu_vol[imu] * vp_vol[ivp]
                     vp = (ivp - f0_nvp) * f0_dvp
-                    # call get_drift_velocity(grid,psn,node,mu(imu),vp,isp,vth,v_mag,v_exb,v_pardrift,pot_rho,grad_psi_sqr)
+#call get_drift_velocity(grid, psn, node, mu(imu), vp, isp, vth, v_mag, v_exb, \
+                         v_pardrift, pot_rho, grad_psi_sqr)
                     v_mag,v_exb,v_pardrift,pot_rho,grad_psi_sqr = self.get_drift_velocity(iphi,f0_inode1+inode,mu[imu],vp,isp,vth)
 
-                    # ! Adiabatic distribution function <f_M> exp(-q dphi/T) ~ <f_M> (1-q dphi/T)
-                    # ! (It is safe to compute radial grad(B) and curvature fluxes from f_M because
-                    # !  the numerical error <v_gradB>_r != 0 is removed in get_drift_velocity.)
+#!Adiabatic distribution function <f_M> exp(- q dphi / T) ~ <f_M>              \
+    (1 - q dphi / T)
+#!(It is safe to compute radial grad(B) and curvature fluxes from f_M because
+#!the numerical error <v_gradB> _r != 0 is removed in get_drift_velocity.)
                     en = 0.5 * (mu[imu]+vp*vp)
                     i_en = max(0,min(round(sqrt(2.0*en)*en_max*n_energy),n_energy))
                     f0_prefac = sqrt(f0_T_ev[isp,f0_inode1+inode]/T0_avg[inode]) * n0_avg[inode]/T0_avg[inode] \
                                 * exp(-f0_T_ev[isp,f0_inode1+inode]/T0_avg[inode]*en)*smu[imu]
 
-                    # ! Nonaxisymmetric parts of ExB velocity and Boltzmann-factor
+#!Nonaxisymmetric parts of ExB velocity and Boltzmann - factor
                     v_exb_turb     = v_exb[:] - v_exb_n0[imu,inode,:]
                     boltz_fac_turb = exp(-csign/T0_avg[inode]*(pot_rho-self.psn.pot0[iphi,f0_inode1+inode])) - boltz_fac_n0[imu,inode]
 
-                    # ! Axisymmetric and non-axisymmetric adiabatic distribution functions
+#!Axisymmetric and non - axisymmetric adiabatic distribution functions
                     f_adia_n0   = f0_prefac * boltz_fac_n0[imu,inode]
                     f_adia_turb = f0_prefac * boltz_fac_turb
 
-                    # ! Axisymmetric and non-axisymmetric Non-adiabatic distribution functions
+#!Axisymmetric and non - axisymmetric Non - adiabatic distribution functions
                     f_nonadia_n0   = ftot_n0[inode,imu,ivp]-f_adia_n0
                     f_nonadia_turb = (f0_f[iphi,inode,imu,ivp]-ftot_n0[inode,imu,ivp])-f_adia_turb
 
                     fn_n0[inode,imu,ivp] = f_nonadia_n0
                     fn_turb[inode,imu,ivp] = f_nonadia_turb
-                    # if (imu==0) and (ivp==0) and (f0_inode1+inode==16000):
-                    #     print ('fn_n0:',self.grid.psi[f0_inode1+inode], self.sml_outpsi, self.sml_inpsi, self.grid.rgn[f0_inode1+inode], self.sml_exclude_private)
-                    #     print ('fn_n0:',imu,ivp,'=>',f_nonadia_n0,ftot_n0[inode,imu,ivp],f_adia_n0)
+#if (imu == 0) and (ivp == 0) and (f0_inode1 + inode == 16000) :
+#print('fn_n0:', self.grid.psi[f0_inode1 + inode], self.sml_outpsi,            \
+       self.sml_inpsi, self.grid.rgn[f0_inode1 + inode],                       \
+       self.sml_exclude_private)
+#print('fn_n0:', imu, ivp, '=>', f_nonadia_n0, ftot_n0[inode, imu, ivp],       \
+       f_adia_n0)
         
         return (fn_n0, fn_turb, np.moveaxis(boltz_fac_n0,1,0), np.moveaxis(dpot_n0,1,0), np.moveaxis(v_exb_n0,1,0))
 
