@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include "cuda/CommonInternal.h"
@@ -316,15 +316,16 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
   cudaMallocHelper(*this, (void **)&(quantizers), (l_target + 1) * sizeof(T));
 
   // handle coords
+  this->coords_h = coords;
   for (int i = 0; i < shape.size(); i++) {
     T *curr_dcoords;
     cudaMallocHelper(*this, (void **)&(curr_dcoords), shape[i] * sizeof(T));
-    cudaMemcpyAsyncHelper(*this, curr_dcoords, coords[i], shape[i] * sizeof(T),
-                          AUTO, 0);
-    this->coords.push_back(curr_dcoords);
+    cudaMemcpyAsyncHelper(*this, curr_dcoords, coords_h[i],
+                          shape[i] * sizeof(T), AUTO, 0);
+    this->coords_d.push_back(curr_dcoords);
     // delete temporaly create uniform coords on host
-    if (uniform_coords_created)
-      delete[] coords[i];
+    // if (uniform_coords_created)
+    //   delete[] coords[i];
   }
 
   // calculate dist and ratio
@@ -337,7 +338,7 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
     cudaMallocHelper(*this, (void **)&curr_dratio0, dofs[i][0] * sizeof(T));
     curr_ddist_l.push_back(curr_ddist0);
     curr_dratio_l.push_back(curr_dratio0);
-    coord_to_dist(dofs[i][0], this->coords[i], curr_ddist_l[0]);
+    coord_to_dist(dofs[i][0], this->coords_d[i], curr_ddist_l[0]);
     dist_to_ratio(dofs[i][0], curr_ddist_l[0], curr_dratio_l[0]);
 
     // for l = 1 ... l_target
@@ -404,17 +405,61 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
     bm.push_back(curr_bm_l);
   }
 
+  lossless = config.lossless;
   huff_dict_size = config.huff_dict_size;
   huff_block_size = config.huff_block_size;
-  enable_lz4 = config.enable_lz4;
   lz4_block_size = config.lz4_block_size;
-  gpu_lossless = config.gpu_lossless;
   reduce_memory_footprint = config.reduce_memory_footprint;
   profile_kernels = config.profile_kernels;
   sync_and_check_all_kernels = config.sync_and_check_all_kernels;
   timing = config.timing;
 
   initialized = true;
+}
+
+// re init for non-uniform spacing
+template <DIM D, typename T>
+void Handle<D, T>::re_init(std::vector<T *> coords) {
+  // handle coords
+  this->coords_h = coords;
+  for (int i = 0; i < shape.size(); i++) {
+    T *curr_dcoords = this->coords_d[i];
+    cudaMemcpyAsyncHelper(*this, curr_dcoords, coords_h[i],
+                          shape[i] * sizeof(T), AUTO, 0);
+  }
+
+  // calculate dist and ratio
+  for (int i = 0; i < shape.size(); i++) {
+    // for level 0
+    int last_dist = dofs[i][0] - 1;
+    coord_to_dist(dofs[i][0], this->coords_d[i], dist[i][0]);
+    dist_to_ratio(dofs[i][0], dist[i][0], ratio[i][0]);
+
+    // for l = 1 ... l_target
+    for (int l = 1; l < l_target + 1; l++) {
+      reduce_dist(dofs[i][l - 1], dist[i][l - 1], dist[i][l]);
+      dist_to_ratio(dofs[i][l], dist[i][l], ratio[i][l]);
+    }
+  }
+
+  // volume for quantization
+  SIZE volumes_width = 0;
+  for (int d = 0; d < D; d++) {
+    volumes_width = std::max(volumes_width, dofs[d][0]);
+  }
+
+  for (int d = 0; d < D; d++) {
+    for (int l = 0; l < l_target + 1; l++) {
+      calc_volume(dofs[d][l], dist[d][l],
+                  volumes + ldvolumes * (d * (l_target + 1) + (l_target - l)));
+    }
+  }
+
+  for (DIM i = 0; i < D; i++) {
+    for (SIZE l = 0; l < l_target + 1; l++) {
+      calc_am_bm(dofs[i][l], dist[i][l], am[i][l], bm[i][l]);
+    }
+  }
 }
 
 template <DIM D, typename T> void Handle<D, T>::destroy() {
@@ -446,7 +491,7 @@ template <DIM D, typename T> void Handle<D, T>::destroy() {
   cudaFreeHelper(quantizers);
 
   for (int i = 0; i < D_padded; i++) {
-    cudaFreeHelper(coords[i]);
+    cudaFreeHelper(coords_d[i]);
   }
 
   for (int i = 0; i < dist.size(); i++) {
@@ -524,7 +569,6 @@ std::vector<T *> Handle<D, T>::create_uniform_coords(std::vector<SIZE> shape,
     }
     coords[d] = curr_coords;
   }
-
   uniform_coords_created = true;
   return coords;
 }
@@ -1003,6 +1047,7 @@ template <DIM D, typename T> Handle<D, T>::Handle(std::vector<SIZE> shape) {
                  "mgard_cuda::Hanlde not "
                  "initialized!\n";
   }
+  dstype = data_structure_type::Cartesian_Grid_Uniform;
   std::vector<T *> coords = create_uniform_coords(shape, 0);
   padding_dimensions(shape, coords);
   create_queues();
@@ -1030,6 +1075,8 @@ Handle<D, T>::Handle(std::vector<SIZE> shape, std::vector<T *> coords) {
                  "mgard_cuda::Hanlde not "
                  "initialized!\n";
   }
+
+  dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
   padding_dimensions(shape, coords);
   create_queues();
   init_auto_tuning_table();
@@ -1058,6 +1105,8 @@ Handle<D, T>::Handle(std::vector<SIZE> shape, Config config) {
                  "mgard_cuda::Hanlde not "
                  "initialized!\n";
   }
+
+  dstype = data_structure_type::Cartesian_Grid_Uniform;
   padding_dimensions(shape, coords);
   create_queues();
   init_auto_tuning_table();
@@ -1084,6 +1133,8 @@ Handle<D, T>::Handle(std::vector<SIZE> shape, std::vector<T *> coords,
                  "mgard_cuda::Hanlde not "
                  "initialized!\n";
   }
+
+  dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
   padding_dimensions(shape, coords);
   create_queues();
   init_auto_tuning_table();

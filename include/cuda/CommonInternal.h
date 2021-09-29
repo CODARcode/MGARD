@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 #include <stdint.h>
 
@@ -12,23 +12,28 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
+
+
 #ifndef MGRAD_CUDA_COMMON_INTERNAL
 #define MGRAD_CUDA_COMMON_INTERNAL
 
-#define MGARDm_CONT __host__ __inline__
+#define MGARDm_CONT __host__  __inline__
 #define MGARDm_KERL __global__
 #define MGARDm_EXEC __device__ __forceinline__
 #define MGARDm_CONT_EXEC __host__ __device__ __forceinline__
 #define MGARDm_COMPILE_EXEC __CUDACC__
 
 #include "Common.h"
-#include "Metadata.h"
 #include "SubArray.h"
+#include "Metadata.h"
 
 #define MAX_GRID_X 2147483647
 #define MAX_GRID_Y 65536
 #define MAX_GRID_Z 65536
 #define MGARDm_WARP_SIZE 32
+#define MGARDm_MAX_NUM_WARPS_PER_TB 32
+#define MGARDm_NUM_SMs 68
+
 #define SIZE_MAX_VALUE 4294967295
 
 #define COPY 0
@@ -57,6 +62,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
 
 namespace mgard_cuda {
 
+
 template <class T> struct SharedMemory {
   __device__ inline operator T *() {
     extern __shared__ int __smem[];
@@ -69,19 +75,6 @@ template <class T> struct SharedMemory {
   }
 };
 
-// template <DIM D, typename T> struct Metadata {
-//   char signature[SIGNATURE_SIZE] = SIGNATURE;
-//   enum data_type dtype;
-//   DIM total_dims = D;
-//   SIZE shape[D];
-//   SIZE l_target;
-//   bool gpu_lossless;
-//   bool enable_lz4;
-//   SIZE dict_size;
-//   T norm;
-//   T tol;
-//   T s;
-// };
 
 template <DIM D> int check_shape(std::vector<SIZE> shape);
 
@@ -93,25 +86,21 @@ bool is_2kplus1_cuda(double num);
 // j,
 //                        const int k);
 
-// __forceinline__ __device__ int get_idx(const int ld, const int i, const int
-// j) {
+// __forceinline__ __device__ int get_idx(const int ld, const int i, const int j) {
 //   return ld * i + j;
 // }
 
 // ld2 = nrow
 // ld1 = pitch
 // for 1-3D
-__host__ __forceinline__ __device__ LENGTH get_idx(const SIZE ld1,
-                                                   const SIZE ld2, const SIZE z,
-                                                   const SIZE y, const SIZE x) {
+__host__ __forceinline__ __device__ LENGTH
+get_idx(const SIZE ld1, const SIZE ld2, const SIZE z, const SIZE y, const SIZE x) {
   return ld2 * ld1 * z + ld1 * y + x;
 }
 
 // for 3D+
-__host__ __forceinline__ __device__ LENGTH get_idx(const LENGTH ld1,
-                                                   const LENGTH ld2,
-                                                   const SIZE z, const SIZE y,
-                                                   const SIZE x) {
+__host__ __forceinline__ __device__ LENGTH
+get_idx(const LENGTH ld1, const LENGTH ld2, const SIZE z, const SIZE y, const SIZE x) {
   return ld2 * ld1 * z + ld1 * y + x;
 }
 
@@ -126,8 +115,7 @@ __host__ inline LENGTH get_idx(std::vector<SIZE> lds, std::vector<SIZE> idx) {
   return ret_idx;
 }
 
-template <DIM D>
-__forceinline__ __device__ LENGTH get_idx(SIZE *lds, SIZE *idx) {
+template <DIM D> __forceinline__ __device__ LENGTH get_idx(SIZE *lds, SIZE *idx) {
   LENGTH curr_stride = 1;
   LENGTH ret_idx = 0;
   for (DIM i = 0; i < D; i++) {
@@ -138,8 +126,8 @@ __forceinline__ __device__ LENGTH get_idx(SIZE *lds, SIZE *idx) {
 }
 
 __host__ inline std::vector<SIZE> gen_idx(DIM D, DIM curr_dim_r, DIM curr_dim_c,
-                                          DIM curr_dim_f, SIZE idx_r,
-                                          SIZE idx_c, SIZE idx_f) {
+                                         DIM curr_dim_f, SIZE idx_r, SIZE idx_c,
+                                         SIZE idx_f) {
   std::vector<SIZE> idx(D, 0);
   idx[curr_dim_r] = idx_r;
   idx[curr_dim_c] = idx_c;
@@ -152,14 +140,12 @@ __host__ __forceinline__ __device__ int div_roundup(SIZE a, SIZE b) {
 }
 
 // template <int D, int R, int C, int F>
-// __host__ inline void kernel_config(thrust::device_vector<int> &shape, int
-// &tbx,
-//                                    int &tby, int &tbz, int &gridx, int
-//                                    &gridy, int &gridz,
+// __host__ inline void kernel_config(thrust::device_vector<int> &shape, int &tbx,
+//                                    int &tby, int &tbz, int &gridx, int &gridy,
+//                                    int &gridz,
 //                                    thrust::device_vector<int> &assigned_dimx,
 //                                    thrust::device_vector<int> &assigned_dimy,
-//                                    thrust::device_vector<int> &assigned_dimz)
-//                                    {
+//                                    thrust::device_vector<int> &assigned_dimz) {
 
 //   tbx = F;
 //   tby = C;
@@ -246,8 +232,13 @@ __host__ __forceinline__ __device__ int div_roundup(SIZE a, SIZE b) {
 
 template <typename T> __device__ T _get_dist(T *coords, int i, int j);
 
-// // __host__ __device__ int get_lindex_cuda(const int n, const int no, const
-// int i);
+// // __host__ __device__ int get_lindex_cuda(const int n, const int no, const int i);
+
+
+
+
+
+
 
 // template <typename T>
 // __device__ inline T tridiag_forward(T prev, T bm, T curr) {
@@ -277,6 +268,10 @@ template <typename T> __device__ T _get_dist(T *coords, int i, int j);
 // #endif
 // }
 
+
+
+
 } // namespace mgard_cuda
 
 #endif
+

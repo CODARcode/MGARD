@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include "cuda/Common.h"
@@ -16,44 +16,70 @@
 namespace mgard_cuda {
 
 //!\file
-//!\brief Compression and decompression API.
+//!\brief High level compression and decompression API.
 
-//! Compress a function on an N-D tensor product grid
+//! Compress a function on an N-D tensor product grid with uniform spacing
 //!
-//!\param[in] handle Handle type for storing precomputed variable to
-//! help speed up compression.
-//!\param[in] in_array Dataset to be compressed.
-//!\param[in] type Error bound type: REL or ABS.
-//!\param[in] tol Relative error tolerance.
-//!\param[in] s Smoothness parameter to use in compressing the function.
-//!
-//!\return Compressed dataset.
-template <uint32_t D, typename T>
-Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
-                                 enum error_bound_type type, T tol, T s);
-
-//! Decompress a function on an N-D tensor product grid
-//!
-//!\param[in] handle Handle type for storing precomputed variable to
-//! help speed up decompression.
-//!\param[in] compressed_array Compressed dataset.
-//!\return Decompressed dataset.
-template <uint32_t D, typename T>
-Array<D, T> decompress(Handle<D, T> &handle,
-                       Array<1, unsigned char> &compressed_array);
-
-void compress(std::vector<SIZE> shape, data_type T, double tol, double s,
-              enum error_bound_type mode, const void *original_data,
+//!\param[in] shape Shape of the Dataset to be compressed.
+//!\param[in] data_type Data type of the Dataset to be compressed (Float or
+//!Double). \param[in] type Error bound type: REL or ABS. \param[in] tol Error
+//!tolerance. \param[in] s Smoothness parameter to use in compressing the
+//!function. \param[in] compressed_data Dataset to be compressed. \param[out]
+//!compressed_size Size of comrpessed data. \param[in] config For configuring
+//!the compression process. \param[in] isAllocated Whether or not the compressed
+//!buffer is pre-allocated.
+void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size, Config config,
               bool isAllocated);
 
+//! Compress a function on an N-D tensor product grid with non-uniform spacing
+//!
+//!\param[in] shape Shape of the Dataset to be compressed.
+//!\param[in] data_type Data type of the Dataset to be compressed (Float or
+//!Double). \param[in] type Error bound type: REL or ABS. \param[in] tol Error
+//!tolerance. \param[in] s Smoothness parameter to use in compressing the
+//!function. \param[in] compressed_data Dataset to be compressed. \param[out]
+//!compressed_size Size of comrpessed data. \param[in] config For configuring
+//!the compression process. \param[in] isAllocated Whether or not the compressed
+//!buffer is pre-allocated. \param[in] coords Coordinates data. \param[in]
+//!non_uniform_coords_file For associating non uniform coordinate file with
+//!compressed data.
+void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size, Config config,
+              bool isAllocated, std::vector<const Byte *> coords);
+
+//! Decompress a function on an N-D tensor product grid with both
+//! uniform/non-uniform spacing
+//!
+//!\param[in] compressed_data Compressed data.
+//!\param[in] compressed_size Size of comrpessed data.
+//!\param[out] decompressed_data Decompressed data.
+//!\param[in] config For configuring the compression process.
+//!\param[in] isAllocated Whether or not the decompressed buffer is
+//!pre-allocated.
 void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data, Config config, bool isAllocated);
 
+//! Verify the compressed data
 bool verify(const void *compressed_data, size_t compressed_size);
+
+//! Check the data type of original data
 enum data_type infer_type(const void *compressed_data, size_t compressed_size);
+
+//! Check the shape of original data
 std::vector<SIZE> infer_shape(const void *compressed_data,
                               size_t compressed_size);
+
+//! Check the data structure of original data
+enum data_structure_type infer_data_structure(const void *compressed_data,
+                                              size_t compressed_size);
+
+//! Check the file used to store the coordinates data
+std::string infer_nonuniform_coords_file(const void *compressed_data,
+                                         size_t compressed_size);
+
 } // namespace mgard_cuda
 
 #endif

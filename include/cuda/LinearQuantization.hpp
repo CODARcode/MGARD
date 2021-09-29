@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #ifndef MGRAD_CUDA_LINEAR_QUANTIZATION_TEMPLATE
@@ -15,15 +15,17 @@
 namespace mgard_cuda {
 
 template <DIM D, typename T>
-void calc_quantizers(Handle<D, T> &handle, T *quantizers, double norm,
-                     double tol, double s, SIZE l_target, bool reciprocal) {
+void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata m,
+                     bool reciprocal) {
 
-  // printf("tol %f, norm %f, l_target %d, D %d\n", tol, norm, l_target, D);
-  tol *= norm;
+  double abs_tol = m.tol;
+  if (m.ebtype == error_bound_type::REL) {
+    abs_tol *= m.norm;
+  }
 
   // printf("tol %f, l_target %d, D %d\n", tol, l_target, D);
 
-  tol *= 2;
+  abs_tol *= 2;
 
   // original
   // tol /= l_target + 2;
@@ -61,12 +63,12 @@ void calc_quantizers(Handle<D, T> &handle, T *quantizers, double norm,
   //     quantizers[l] = 1.0f / quantizers[l];
   // }
 
-  if (s == std::numeric_limits<T>::infinity()) {
+  if (m.ntype == norm_type::L_Inf) {
 
     // printf("quantizers: ");
-    for (int l = 0; l < l_target + 1; l++) {
+    for (int l = 0; l < m.l_target + 1; l++) {
       // ben
-      quantizers[l] = (tol) / ((l_target + 1) * (1 + std::pow(3, D)));
+      quantizers[l] = (abs_tol) / ((m.l_target + 1) * (1 + std::pow(3, D)));
       // xin
       // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) / 4));
 
@@ -76,7 +78,7 @@ void calc_quantizers(Handle<D, T> &handle, T *quantizers, double norm,
     }
     // printf("\n");
 
-  } else { // s != inf
+  } else if (m.ntype == norm_type::L_2) { // s != inf
     // xin - uniform
     // T C2 = 1 + 3 * std::sqrt(3) / 4;
     // T c = std::sqrt(std::pow(2, D - 2 * s));
@@ -98,9 +100,9 @@ void calc_quantizers(Handle<D, T> &handle, T *quantizers, double norm,
       dof *= handle.dofs[d][0];
     // printf("tol: %f, dof: %llu\n", tol, dof);
     // printf ("dof = %llu\n", dof);
-    for (int l = 0; l < l_target + 1; l++) {
+    for (int l = 0; l < m.l_target + 1; l++) {
 
-      quantizers[l] = (tol) / (std::exp2(s * l) * std::sqrt(dof));
+      quantizers[l] = (abs_tol) / (std::exp2(m.s * l) * std::sqrt(dof));
 
       // printf("l %d, vol: %f quantizer: %f \n", l, std::pow(2, (l_target - l)
       // * D), quantizers[l]);
@@ -285,7 +287,7 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
 
   __syncthreads();
 
-  SIZE level = 0;
+  int level = 0;
   for (DIM d = 0; d < D; d++) {
     long long unsigned int l_bit = 0l;
     for (SIZE l = 0; l < l_target + 1; l++) {
@@ -375,7 +377,7 @@ void levelwise_linear_quantize_adaptive_launcher(
     LENGTH *outlier_idx, QUANTIZED_INT *outliers, int queue_idx) {
 
   T *quantizers = new T[l_target + 1];
-  calc_quantizers(handle, quantizers, m.norm, m.tol, m.s, l_target, false);
+  calc_quantizers(handle, quantizers, m, false);
   cudaMemcpyAsyncHelper(handle, handle.quantizers, quantizers,
                         sizeof(T) * (l_target + 1), H2D, queue_idx);
   // printf("norm: %f, tol: %f, s: %f, dict_size: %d\n", m.norm, m.tol, m.s,
@@ -410,20 +412,23 @@ void levelwise_linear_quantize_adaptive_launcher(
   if (D > 3)
     sm_size += (D - 3) * (l_target + 1) * sizeof(T);
   // printf("sm_size: %llu\n", sm_size);
-  if (m.s == std::numeric_limits<T>::infinity()) {
+  if (m.ntype == norm_type::L_Inf) {
     _levelwise_linear_quantize<D, T, R, C, F, false>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
             shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
             dwork, ldws, prep_huffmam, m.dict_size, shape, outlier_count,
             outlier_idx, outliers);
-  } else {
+  } else if (m.ntype == norm_type::L_2) {
     _levelwise_linear_quantize<D, T, R, C, F, true>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
             shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
             dwork, ldws, prep_huffmam, m.dict_size, shape, outlier_count,
             outlier_idx, outliers);
+  } else {
+    std::cout << log::log_err << "unsupported norm type!\n";
+    exit(-1);
   }
 
   gpuErrchk(cudaGetLastError());
@@ -626,7 +631,7 @@ __global__ void _levelwise_linear_dequantize(
 
   __syncthreads();
 
-  SIZE level = 0;
+  int level = 0;
   for (DIM d = 0; d < D; d++) {
     long long unsigned int l_bit = 0l;
     for (SIZE l = 0; l < l_target + 1; l++) {
@@ -771,7 +776,7 @@ __global__ void _levelwise_linear_dequantize_outliers(
     QUANTIZED_INT outliter = outliers[gloablId];
     outliter -= dict_size / 2;
 
-    SIZE level = 0;
+    int level = 0;
     for (DIM d = 0; d < D; d++) {
       long long unsigned int l_bit = 0l;
       for (SIZE l = 0; l < l_target + 1; l++) {
@@ -818,7 +823,7 @@ void levelwise_linear_dequantize_adaptive_launcher(
   // m.dict_size);
 
   T *quantizers = new T[l_target + 1];
-  calc_quantizers(handle, quantizers, m.norm, m.tol, m.s, l_target, false);
+  calc_quantizers(handle, quantizers, m, false);
   cudaMemcpyAsyncHelper(handle, handle.quantizers, quantizers,
                         sizeof(T) * (l_target + 1), H2D, queue_idx);
 
@@ -848,7 +853,7 @@ void levelwise_linear_dequantize_adaptive_launcher(
   if (D > 3)
     sm_size += (D - 3) * (l_target + 1) * sizeof(T);
 
-  if (m.s == std::numeric_limits<T>::infinity()) {
+  if (m.ntype == norm_type::L_Inf) {
     _levelwise_linear_dequantize<D, T, R, C, F, false>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
@@ -862,7 +867,7 @@ void levelwise_linear_dequantize_adaptive_launcher(
               shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
               dwork, ldws, m.dict_size, outlier_count, outlier_idx, outliers);
     }
-  } else {
+  } else if (m.ntype == norm_type::L_2) {
     _levelwise_linear_dequantize<D, T, R, C, F, true>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
@@ -876,6 +881,9 @@ void levelwise_linear_dequantize_adaptive_launcher(
               shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
               dwork, ldws, m.dict_size, outlier_count, outlier_idx, outliers);
     }
+  } else {
+    std::cout << log::log_err << "unsupported norm type!\n";
+    exit(-1);
   }
   gpuErrchk(cudaGetLastError());
   if (handle.sync_and_check_all_kernels) {

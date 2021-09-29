@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #ifndef MGARD_CUDA_MEMORY_MANAGEMENT
@@ -15,6 +15,8 @@
 namespace mgard_cuda {
 
 enum copy_type { H2D, D2H, D2D, H2H, AUTO };
+
+enum endiness_type CheckEndianess();
 
 template <typename SubArrayType>
 void PrintSubarray(std::string name, SubArrayType subArray);
