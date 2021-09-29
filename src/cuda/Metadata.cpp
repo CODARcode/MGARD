@@ -10,7 +10,6 @@
 
 #include "MGARDConfig.hpp"
 
-
 namespace mgard_cuda {
 
 SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {

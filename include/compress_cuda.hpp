@@ -20,47 +20,41 @@ namespace mgard_cuda {
 
 //! Compress a function on an N-D tensor product grid with uniform spacing
 //!
-//!\param[in] shape Shape of the Dataset to be compressed.
-//!\param[in] data_type Data type of the Dataset to be compressed (Float or
-//!Double). \param[in] type Error bound type: REL or ABS. \param[in] tol Error
-//!tolerance. \param[in] s Smoothness parameter to use in compressing the
-//!function. \param[in] compressed_data Dataset to be compressed. \param[out]
-//!compressed_size Size of comrpessed data. \param[in] config For configuring
-//!the compression process. \param[in] isAllocated Whether or not the compressed
-//!buffer is pre-allocated.
+//!\param[in] shape Shape of the Dataset to be compressed
+//!\param[in] data_type Data type Float or Double
+//!\param[in] type Error bound type REL or ABS.
+//!\param[in] tol Error tolerance.
+//!\param[in] s Smoothness parameter.
+//!\param[in] compressed_data Dataset to be compressed.
+//!\param[out] compressed_size Size of comrpessed data.
+//!\param[in] config For configuring the compression process.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size, Config config,
-              bool isAllocated);
+              void *&compressed_data, size_t &compressed_size, Config config);
 
 //! Compress a function on an N-D tensor product grid with non-uniform spacing
-//!
-//!\param[in] shape Shape of the Dataset to be compressed.
-//!\param[in] data_type Data type of the Dataset to be compressed (Float or
-//!Double). \param[in] type Error bound type: REL or ABS. \param[in] tol Error
-//!tolerance. \param[in] s Smoothness parameter to use in compressing the
-//!function. \param[in] compressed_data Dataset to be compressed. \param[out]
-//!compressed_size Size of comrpessed data. \param[in] config For configuring
-//!the compression process. \param[in] isAllocated Whether or not the compressed
-//!buffer is pre-allocated. \param[in] coords Coordinates data. \param[in]
-//!non_uniform_coords_file For associating non uniform coordinate file with
-//!compressed data.
+//!\param[in] shape Shape of the Dataset to be compressed
+//!\param[in] data_type Data type Float or Double
+//!\param[in] type Error bound type REL or ABS.
+//!\param[in] tol Error tolerance.
+//!\param[in] s Smoothness parameter.
+//!\param[in] compressed_data Dataset to be compressed.
+//!\param[out] compressed_size Size of comrpessed data.
+//!\param[in] config For configuring the compression process.
+//!\param[in] coords Coordinates data.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size, Config config,
-              bool isAllocated, std::vector<const Byte *> coords);
+              std::vector<const Byte *> coords);
 
-//! Decompress a function on an N-D tensor product grid with both
-//! uniform/non-uniform spacing
+//! Decompress a function on an N-D tensor product grid
 //!
 //!\param[in] compressed_data Compressed data.
 //!\param[in] compressed_size Size of comrpessed data.
 //!\param[out] decompressed_data Decompressed data.
 //!\param[in] config For configuring the compression process.
-//!\param[in] isAllocated Whether or not the decompressed buffer is
-//!pre-allocated.
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, Config config, bool isAllocated);
+                void *&decompressed_data, Config config);
 
 //! Verify the compressed data
 bool verify(const void *compressed_data, size_t compressed_size);
