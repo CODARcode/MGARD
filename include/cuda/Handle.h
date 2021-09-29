@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #ifndef MGRAD_CUDA_HANDLE
@@ -17,14 +17,13 @@ struct Config {
   SIZE l_target;
   SIZE huff_dict_size;
   SIZE huff_block_size;
-  bool enable_lz4;
   SIZE lz4_block_size;
-  bool gpu_lossless;
   bool reduce_memory_footprint;
   bool profile_kernels;
   bool sync_and_check_all_kernels;
   bool timing;
   int uniform_coord_mode;
+  enum lossless_type lossless;
 
   Config() {
     dev_id = 0;
@@ -36,14 +35,13 @@ struct Config {
 #ifdef MGARD_CUDA_OPTIMIZE_VOLTA
     huff_block_size = 1024 * 20;
 #endif
-    enable_lz4 = true;
     lz4_block_size = 1 << 15;
-    gpu_lossless = true;
     reduce_memory_footprint = false;
     profile_kernels = false;
     sync_and_check_all_kernels = false;
     timing = false;
     uniform_coord_mode = 0;
+    lossless = lossless_type::GPU_Huffman;
   }
 };
 
@@ -57,7 +55,7 @@ template <DIM D, typename T> struct Handle {
   Handle(std::vector<SIZE> shape, std::vector<T *> coords);
   Handle(std::vector<SIZE> shape, Config config);
   Handle(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
-
+  void re_init(std::vector<T *> coords);
   ~Handle();
 
   void allocate_workspace();
@@ -80,7 +78,8 @@ template <DIM D, typename T> struct Handle {
   std::vector<SIZE *> shapes_d;
   SIZE *ranges_h;
   SIZE *ranges_d;
-  std::vector<T *> coords;
+  std::vector<T *> coords_h;
+  std::vector<T *> coords_d;
   std::vector<std::vector<T *>> dist;
   std::vector<std::vector<T *>> ratio;
   T *volumes;
@@ -90,12 +89,13 @@ template <DIM D, typename T> struct Handle {
   LENGTH linearized_depth;
   LENGTH padded_linearized_depth;
 
+  enum data_structure_type dstype;
   T *quantizers;
   SIZE huff_dict_size;
   SIZE huff_block_size;
-  bool enable_lz4;
   SIZE lz4_block_size;
-  bool gpu_lossless;
+  enum lossless_type lossless;
+
   bool reduce_memory_footprint;
   bool profile_kernels;
   bool sync_and_check_all_kernels;
@@ -147,6 +147,7 @@ private:
   void calc_am_bm(SIZE dof, T *dist, T *am, T *bm);
   void calc_volume(SIZE dof, T *dist, T *volume);
   void init(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
+
   void destroy();
   bool initialized = false;
 };

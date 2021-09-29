@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include <fstream>
@@ -26,6 +26,16 @@
 #define ANSI_RESET "\x1b[0m"
 
 namespace mgard_cuda {
+
+enum endiness_type CheckEndianess() {
+  int i = 1;
+  char *p = (char *)&i;
+  if (p[0] == 1) {
+    return endiness_type::Little_Endian;
+  } else {
+    return endiness_type::Big_Endian;
+  }
+}
 
 template <typename SubArrayType>
 void PrintSubarray(std::string name, SubArrayType subArray) {
@@ -404,16 +414,16 @@ template <DIM D, typename T>
 void cudaMalloc3DHelper(Handle<D, T> &handle, void **devPtr, size_t *pitch,
                         size_t width, size_t height, size_t depth) {
 
-  if (handle.reduce_memory_footprint) {
-    cudaMallocHelper(handle, devPtr, width * height * depth);
-    *pitch = width;
-  } else {
-    cudaPitchedPtr devPitchedPtr;
-    cudaExtent extent = make_cudaExtent(width, height, depth);
-    gpuErrchk(cudaMalloc3D(&devPitchedPtr, extent));
-    *devPtr = devPitchedPtr.ptr;
-    *pitch = devPitchedPtr.pitch;
-  }
+  // if (handle.reduce_memory_footprint) {
+  cudaMallocHelper(handle, devPtr, width * height * depth);
+  *pitch = width;
+  // } else {
+  // cudaPitchedPtr devPitchedPtr;
+  // cudaExtent extent = make_cudaExtent(width, height, depth);
+  // gpuErrchk(cudaMalloc3D(&devPitchedPtr, extent));
+  // *devPtr = devPitchedPtr.ptr;
+  // *pitch = devPitchedPtr.pitch;
+  // }
 }
 
 // Allocate page-locked memory on host
@@ -717,7 +727,15 @@ KERNELS(4, double)
 KERNELS(4, float)
 KERNELS(5, double)
 KERNELS(5, float)
+KERNELS(1, uint8_t)
+KERNELS(1, uint16_t)
+KERNELS(1, uint32_t)
+KERNELS(1, uint64_t)
 KERNELS(2, uint8_t)
+KERNELS(2, uint16_t)
+KERNELS(2, uint32_t)
+KERNELS(2, uint64_t)
+KERNELS(1, bool)
 
 #undef KERNELS
 

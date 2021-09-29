@@ -13,9 +13,7 @@
 
 #include <memory>
 
-#include "cuda/Common.h"
-#include "cuda/CompressionWorkflow.h"
-#include "cuda/MemoryManagement.h"
+#include "compress_cuda.hpp"
 
 //! Implementation of the MGARD compression and decompression algorithms.
 namespace mgard {

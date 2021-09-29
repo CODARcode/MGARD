@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include <chrono>
@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include "compress.hpp"
-#include "compress_cuda.hpp"
+// #include "compress_cuda.hpp"
 
 #define ANSI_RED "\x1b[31m"
 #define ANSI_GREEN "\x1b[32m"
@@ -84,7 +84,7 @@ void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
   std::array<std::size_t, D> array_shape;
   std::copy(shape.begin(), shape.end(), array_shape.begin());
   if (dev == CPU) {
-    if (mode == mgard_cuda::REL)
+    if (mode == mgard_cuda::error_bound_type::REL)
       tol *= norm;
     const mgard::TensorMeshHierarchy<D, T> hierarchy(array_shape);
     mgard::CompressedDataset<D, T> compressed_dataset =
@@ -116,16 +116,20 @@ void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     original_size *= shape[i];
   decompressed_data = (T *)malloc(original_size * sizeof(T));
   if (dev == CPU) {
-    if (mode == mgard_cuda::REL)
+    if (mode == mgard_cuda::error_bound_type::REL)
       tol *= norm;
-    std::array<std::size_t, D> array_shape;
-    std::copy(shape.begin(), shape.end(), array_shape.begin());
-    const mgard::TensorMeshHierarchy<D, T> hierarchy(array_shape);
-    mgard::CompressedDataset<D, T> compressed_dataset(
-        hierarchy, s, tol, compressed_data, compressed_size);
-    mgard::DecompressedDataset<D, T> decompressed_dataset =
-        mgard::decompress(compressed_dataset);
-    memcpy(decompressed_data, decompressed_dataset.data(),
+    // std::array<std::size_t, D> array_shape;
+    // std::copy(shape.begin(), shape.end(), array_shape.begin());
+    // const mgard::TensorMeshHierarchy<D, T> hierarchy(array_shape);
+    // mgard::CompressedDataset<D, T> compressed_dataset(
+    //     hierarchy, s, tol, compressed_data, compressed_size);
+    // mgard::DecompressedDataset<D, T> decompressed_dataset =
+    //     mgard::decompress(compressed_dataset);
+    // memcpy(decompressed_data, decompressed_dataset.data(),
+    //        original_size * sizeof(T));
+    const void *decompressed_data_void =
+        mgard::decompress(compressed_data, compressed_size);
+    memcpy(decompressed_data, decompressed_data_void,
            original_size * sizeof(T));
   } else { // GPU
     mgard_cuda::Handle<D, T> handle(shape, config);
@@ -160,7 +164,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   }
 
   mgard_cuda::Config config;
-  config.gpu_lossless = true;
+  config.lossless = mgard_cuda::lossless_type::GPU_Huffman;
   config.sync_and_check_all_kernels = true;
   config.uniform_coord_mode = 1;
 
@@ -246,9 +250,9 @@ void print_config(enum data_type dtype, std::vector<mgard_cuda::SIZE> shape,
     std::cout << std::setw(3) << "64";
   if (dtype == SINGLE)
     std::cout << std::setw(3) << "32";
-  if (mode == mgard_cuda::REL)
+  if (mode == mgard_cuda::error_bound_type::REL)
     std::cout << std::setw(4) << "Rel";
-  if (mode == mgard_cuda::ABS)
+  if (mode == mgard_cuda::error_bound_type::ABS)
     std::cout << std::setw(4) << "Abs";
   std::cout << std::setw(6) << std::setprecision(0) << std::scientific << tol;
   std::cout << std::setw(6) << std::setprecision(1) << std::fixed << s;
@@ -319,8 +323,8 @@ int main(int argc, char *argv[]) {
   // std::vector<enum data_type> dtypes = {data_type::SINGLE,
   // data_type::DOUBLE};
   std::vector<enum data_type> dtypes = {data_type::SINGLE};
-  std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::ABS,
-                                                            mgard_cuda::REL};
+  std::vector<enum mgard_cuda::error_bound_type> ebtypes = {
+      mgard_cuda::error_bound_type::ABS, mgard_cuda::error_bound_type::REL};
   // std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::REL};
 
   std::vector<float> tols = {1e-2, 1e-3, 1e-4};

@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include <chrono>
@@ -69,7 +69,7 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     start = high_resolution_clock::now();
   T norm = (T)1.0;
 
-  if (type == REL) {
+  if (type == error_bound_type::REL) {
     // printf("Calculate norm\n");
     if (handle.timing)
       t1 = high_resolution_clock::now();
@@ -205,8 +205,8 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
   // Quantization
   if (handle.timing)
     t1 = high_resolution_clock::now();
-  bool prep_huffman = handle.gpu_lossless; // Disable preparation for huffman
-                                           // when we do lossless on CPU
+  bool prep_huffman = handle.lossless == lossless_type::GPU_Huffman ||
+                      handle.lossless == lossless_type::GPU_Huffman_LZ4;
   SIZE dict_size = handle.huff_dict_size, block_size = handle.huff_block_size;
   LENGTH quantized_count =
       handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
@@ -238,19 +238,35 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
   cudaMemcpyAsyncHelper(handle, outlier_count_d, &zero, sizeof(LENGTH), H2D, 0);
 
   Metadata m;
-  m.total_dims = D;
-  m.shape = new SIZE[D];
-  for (int d = 0; d < D; d++)
-    m.shape[d] = handle.dofs[D - 1 - d][0];
+  m.ptype = processor_type::GPU_CUDA;
+  m.ebtype = type;
+  if (type == error_bound_type::REL) {
+    m.norm = norm;
+  }
+  m.tol = tol;
+  if (s == std::numeric_limits<T>::infinity()) {
+    m.ntype = norm_type::L_Inf;
+  } else {
+    m.ntype = norm_type::L_2;
+    m.s = s;
+  }
+  m.l_target = handle.l_target;
+  m.ltype = handle.lossless;
+  m.dict_size = dict_size;
+
   m.dtype =
       std::is_same<T, double>::value ? data_type::Double : data_type::Float;
-  m.norm = norm;
-  m.s = s;
-  m.tol = tol;
-  m.dict_size = dict_size;
-  m.enable_lz4 = handle.enable_lz4;
-  m.l_target = handle.l_target;
-  m.gpu_lossless = handle.gpu_lossless;
+  m.etype = CheckEndianess();
+  m.dstype = handle.dstype;
+  m.total_dims = D;
+  m.shape = new uint64_t[D];
+  for (int d = 0; d < D; d++)
+    m.shape[d] = (uint64_t)handle.dofs[D - 1 - d][0];
+  if (m.dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
+    m.cltype = coordinate_location::Embedded;
+    for (auto &coord : handle.coords_h)
+      m.coords.push_back((Byte *)coord);
+  }
 
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
   // (double)(total-free)/1e9, (double)total/1e9);
@@ -288,7 +304,8 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
 
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
   // (double)(total-free)/1e9, (double)total/1e9);
-  if (handle.gpu_lossless) {
+  if (handle.lossless == lossless_type::GPU_Huffman ||
+      handle.lossless == lossless_type::GPU_Huffman_LZ4) {
     // printf("gpu lossless\n");
     // Huffman compression
     if (handle.timing)
@@ -319,7 +336,7 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     void *lz4_hufdata;
     size_t lz4_hufdata_size;
 
-    if (handle.enable_lz4) {
+    if (handle.lossless == lossless_type::GPU_Huffman_LZ4) {
       if (handle.timing)
         t1 = high_resolution_clock::now();
       lz4_compress(handle, hufdata, hufdata_size / sizeof(uint64_t),
@@ -356,10 +373,10 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     if (handle.timing)
       t1 = high_resolution_clock::now();
 
-    SIZE meta_size;
-    SERIALIZED_TYPE *serizalied_meta = m.Serialize(meta_size);
+    SIZE metadata_size;
+    SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
     SIZE outsize = 0;
-    outsize += meta_size;
+    outsize += metadata_size;
     outsize += sizeof(LENGTH) + outlier_count * sizeof(LENGTH) +
                outlier_count * sizeof(QUANTIZED_INT);
     outsize += sizeof(size_t) + hufmeta_size;
@@ -372,9 +389,9 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     SERIALIZED_TYPE *buffer = compressed_array.get_dv();
     void *buffer_p = (void *)buffer;
 
-    cudaMemcpyAsyncHelper(handle, buffer_p, serizalied_meta, meta_size, AUTO,
-                          0);
-    buffer_p = buffer_p + meta_size;
+    cudaMemcpyAsyncHelper(handle, buffer_p, serizalied_meta, metadata_size,
+                          AUTO, 0);
+    buffer_p = buffer_p + metadata_size;
     cudaMemcpyAsyncHelper(handle, buffer_p, outlier_count_d, sizeof(LENGTH),
                           AUTO, 0);
     buffer_p = buffer_p + sizeof(LENGTH);
@@ -450,11 +467,11 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     if (handle.timing)
       t1 = high_resolution_clock::now();
 
-    SIZE meta_size;
-    SERIALIZED_TYPE *serizalied_meta = m.Serialize(meta_size);
+    SIZE metadata_size;
+    SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
 
     SIZE outsize = 0;
-    outsize += meta_size;
+    outsize += metadata_size;
     outsize += sizeof(size_t) + cpu_lossless_size;
     // printf("cpu_lossless_size: %llu\n", cpu_lossless_size);
     std::vector<SIZE> out_shape(1);
@@ -467,9 +484,9 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     // unsigned char *buffer = (unsigned char *)malloc(outsize);
 
     void *buffer_p = (void *)buffer;
-    cudaMemcpyAsyncHelper(handle, buffer_p, serizalied_meta, meta_size, AUTO,
-                          0);
-    buffer_p = buffer_p + meta_size;
+    cudaMemcpyAsyncHelper(handle, buffer_p, serizalied_meta, metadata_size,
+                          AUTO, 0);
+    buffer_p = buffer_p + metadata_size;
     cudaMemcpyAsyncHelper(handle, buffer_p, &cpu_lossless_size, sizeof(size_t),
                           AUTO, 0);
     buffer_p = buffer_p + sizeof(size_t);
@@ -517,21 +534,52 @@ Array<D, T> decompress(Handle<D, T> &handle,
   void *data_p = compressed_array.get_dv(); //(void *)data;
 
   Metadata m;
-  SIZE meta_size;
-  cudaMemcpyAsyncHelper(handle, &meta_size, data_p, sizeof(SIZE), AUTO, 0);
-  SERIALIZED_TYPE *serizalied_meta = (SERIALIZED_TYPE *)std::malloc(meta_size);
-  cudaMemcpyAsyncHelper(handle, serizalied_meta, data_p, meta_size, AUTO, 0);
-  data_p = data_p + meta_size;
-  m.Deserialize(serizalied_meta, meta_size);
+  SIZE metadata_size;
+  cudaMemcpyAsyncHelper(handle, &metadata_size,
+                        data_p + m.metadata_size_offset(), sizeof(uint32_t),
+                        AUTO, 0);
+  SERIALIZED_TYPE *serizalied_meta =
+      (SERIALIZED_TYPE *)std::malloc(metadata_size);
+  cudaMemcpyAsyncHelper(handle, serizalied_meta, data_p, metadata_size, AUTO,
+                        0);
+  data_p = data_p + metadata_size;
+  m.Deserialize(serizalied_meta, metadata_size);
 
-  if (strcmp(m.signature, SIGNATURE) != 0) {
-    std::cout << log::log_err
-              << "This data was not compressed with MGARD-CUDA or corrupted!\n";
+  if (m.etype != CheckEndianess()) {
+    std::cout
+        << log::log_err
+        << "This data was compressed on a machine with different endianess!\n";
     exit(-1);
   }
 
+  if (strcmp(m.magic_word, MAGIC_WORD) != 0) {
+    std::cout << log::log_err
+              << "This data was not compressed with MGARD or corrupted!\n";
+    exit(-1);
+  }
+
+  if (m.ptype != processor_type::GPU_CUDA) {
+    std::cout << log::log_err
+              << "This data was not compressed with GPU, please use CPU to "
+                 "decompress!\n";
+    exit(-1);
+  }
+
+  if (m.dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
+    std::vector<T *> coords;
+    if (m.cltype == coordinate_location::Embedded) {
+      for (auto &coord : handle.coords_h)
+        coords.push_back((T *)coord);
+    }
+    // in handle is not initilized with non-uniform cooridinate
+    if (handle.dstype != data_structure_type::Cartesian_Grid_Non_Uniform) {
+      handle.re_init(coords);
+    }
+  }
+
   // printf("m.cpu_lossless: %d\n", m.cpu_lossless);
-  if (m.gpu_lossless) {
+  if (m.ltype == lossless_type::GPU_Huffman ||
+      m.ltype == lossless_type::GPU_Huffman_LZ4) {
     // printf("gpu lossless\n");
     if (handle.timing)
       t1 = high_resolution_clock::now();
@@ -597,15 +645,9 @@ Array<D, T> decompress(Handle<D, T> &handle,
     if (handle.timing)
       start = high_resolution_clock::now();
 
-    if (m.enable_lz4) {
-      if (!handle.enable_lz4)
-        std::cout
-            << log::log_warn
-            << "Warning: This data was compressed with LZ4, but handler is "
-               "configed to disable LZ4! Enabling LZ4 decompressor.\n";
+    if (m.ltype == lossless_type::GPU_Huffman_LZ4) {
       if (handle.timing)
         t1 = high_resolution_clock::now();
-
       uint64_t *lz4_decompressed_hufdata;
       size_t lz4_decompressed_hufdata_size;
       lz4_decompress(handle, (void *)hufdata, hufdata_size,
@@ -647,12 +689,8 @@ Array<D, T> decompress(Handle<D, T> &handle,
     // printf("cpu lossless\n");
     // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
     //(double)(total-free)/1e9, (double)total/1e9);
-    if (handle.gpu_lossless)
-      std::cout << log::log_warn
-                << "This data was compressed with CPU lossless compressors, "
-                   "but handler is "
-                   "configed to use GPU lossless compressors! Switching to GPU "
-                   "lossless decompressor.\n";
+    if (handle.timing)
+      start = high_resolution_clock::now();
     if (handle.timing)
       t1 = high_resolution_clock::now();
     unsigned char *cpu_lossless_data; // on GPU memory
@@ -700,7 +738,8 @@ Array<D, T> decompress(Handle<D, T> &handle,
   // printf("dqv\n");
   // print_matrix_cuda(1, quantized_count, dqv, quantized_count);
 
-  bool prep_huffman = m.gpu_lossless;
+  bool prep_huffman = m.ltype == lossless_type::GPU_Huffman ||
+                      m.ltype == lossless_type::GPU_Huffman_LZ4;
   levelwise_linear_dequantize<D, T>(
       handle, handle.ranges_d, handle.l_target, handle.volumes,
       handle.ldvolumes, m, dqv, thrust::raw_pointer_cast(ldqvs.data()),

@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include <chrono>
@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "compress.hpp"
-#include "compress_cuda.hpp"
+// #include "compress_cuda.hpp"
 
 using namespace std::chrono;
 
@@ -200,24 +200,24 @@ void print_statistics(double s, enum mgard_cuda::error_bound_type mode,
                       size_t n, T *original_data, T *decompressed_data) {
   std::cout << std::scientific;
   if (s == std::numeric_limits<T>::infinity()) {
-    if (mode == mgard_cuda::ABS) {
+    if (mode == mgard_cuda::error_bound_type::ABS) {
       std::cout << mgard_cuda::log::log_info << "Absoluate L_inf error: "
                 << mgard_cuda::L_inf_error(n, original_data, decompressed_data,
                                            mode)
                 << "\n";
-    } else if (mode == mgard_cuda::REL) {
+    } else if (mode == mgard_cuda::error_bound_type::REL) {
       std::cout << mgard_cuda::log::log_info << "Relative L_inf error: "
                 << mgard_cuda::L_inf_error(n, original_data, decompressed_data,
                                            mode)
                 << "\n";
     }
   } else {
-    if (mode == mgard_cuda::ABS) {
+    if (mode == mgard_cuda::error_bound_type::ABS) {
       std::cout << mgard_cuda::log::log_info << "Absoluate L_2 error: "
                 << mgard_cuda::L_2_error(n, original_data, decompressed_data,
                                          mode)
                 << "\n";
-    } else if (mode == mgard_cuda::REL) {
+    } else if (mode == mgard_cuda::error_bound_type::REL) {
       std::cout << mgard_cuda::log::log_info << "Relative L_2 error: "
                 << mgard_cuda::L_2_error(n, original_data, decompressed_data,
                                          mode)
@@ -263,7 +263,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
   size_t compressed_size = 0;
   void *decompressed_data = NULL;
 
-  if (mode == mgard_cuda::REL)
+  if (mode == mgard_cuda::error_bound_type::REL)
     tol *= norm;
 
   if (D == 1) {
@@ -403,116 +403,24 @@ int launch_decompress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
   for (mgard_cuda::DIM i = 0; i < shape.size(); i++)
     original_size *= shape[i];
 
-  void *decompressed_data;
-  decompressed_data = (T *)malloc(original_size * sizeof(T));
-
   T norm = 1;
-  if (mode == mgard_cuda::REL)
+  if (mode == mgard_cuda::error_bound_type::REL)
     tol *= norm;
-  if (D == 1) {
-    std::array<std::size_t, 1> array_shape;
-    std::copy(shape.begin(), shape.end(), array_shape.begin());
-    const mgard::TensorMeshHierarchy<1, T> hierarchy(array_shape);
-    mgard::CompressedDataset<1, T> compressed_dataset(
-        hierarchy, s, tol, compressed_data, compressed_size);
-    if (verbose)
-      start = high_resolution_clock::now();
-    mgard::DecompressedDataset<1, T> decompressed_dataset =
-        mgard::decompress(compressed_dataset);
-    if (verbose) {
-      end = high_resolution_clock::now();
-      time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
-                << "Overall decompression time: " << time_span.count() << " s ("
-                << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
-                << " GB/s)\n";
-    }
-    memcpy(decompressed_data, decompressed_dataset.data(),
-           original_size * sizeof(T));
-  }
-  if (D == 2) {
-    std::array<std::size_t, 2> array_shape;
-    std::copy(shape.begin(), shape.end(), array_shape.begin());
-    const mgard::TensorMeshHierarchy<2, T> hierarchy(array_shape);
-    mgard::CompressedDataset<2, T> compressed_dataset(
-        hierarchy, s, tol, compressed_data, compressed_size);
-    if (verbose)
-      start = high_resolution_clock::now();
-    mgard::DecompressedDataset<2, T> decompressed_dataset =
-        mgard::decompress(compressed_dataset);
-    if (verbose) {
-      end = high_resolution_clock::now();
-      time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
-                << "Overall decompression time: " << time_span.count() << " s ("
-                << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
-                << " GB/s)\n";
-    }
-    memcpy(decompressed_data, decompressed_dataset.data(),
-           original_size * sizeof(T));
-  }
-  if (D == 3) {
-    std::array<std::size_t, 3> array_shape;
-    std::copy(shape.begin(), shape.end(), array_shape.begin());
-    const mgard::TensorMeshHierarchy<3, T> hierarchy(array_shape);
-    mgard::CompressedDataset<3, T> compressed_dataset(
-        hierarchy, s, tol, compressed_data, compressed_size);
-    if (verbose)
-      start = high_resolution_clock::now();
-    mgard::DecompressedDataset<3, T> decompressed_dataset =
-        mgard::decompress(compressed_dataset);
-    if (verbose) {
-      end = high_resolution_clock::now();
-      time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
-                << "Overall decompression time: " << time_span.count() << " s ("
-                << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
-                << " GB/s)\n";
-    }
-    memcpy(decompressed_data, decompressed_dataset.data(),
-           original_size * sizeof(T));
-  }
-  if (D == 4) {
-    std::array<std::size_t, 4> array_shape;
-    std::copy(shape.begin(), shape.end(), array_shape.begin());
-    const mgard::TensorMeshHierarchy<4, T> hierarchy(array_shape);
-    mgard::CompressedDataset<4, T> compressed_dataset(
-        hierarchy, s, tol, compressed_data, compressed_size);
-    if (verbose)
-      start = high_resolution_clock::now();
-    mgard::DecompressedDataset<4, T> decompressed_dataset =
-        mgard::decompress(compressed_dataset);
-    if (verbose) {
-      end = high_resolution_clock::now();
-      time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
-                << "Overall decompression time: " << time_span.count() << " s ("
-                << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
-                << " GB/s)\n";
-    }
-    memcpy(decompressed_data, decompressed_dataset.data(),
-           original_size * sizeof(T));
-  }
-  if (D == 5) {
-    std::array<std::size_t, 5> array_shape;
-    std::copy(shape.begin(), shape.end(), array_shape.begin());
-    const mgard::TensorMeshHierarchy<5, T> hierarchy(array_shape);
-    mgard::CompressedDataset<5, T> compressed_dataset(
-        hierarchy, s, tol, compressed_data, compressed_size);
-    if (verbose)
-      start = high_resolution_clock::now();
-    mgard::DecompressedDataset<5, T> decompressed_dataset =
-        mgard::decompress(compressed_dataset);
-    if (verbose) {
-      end = high_resolution_clock::now();
-      time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
-                << "Overall decompression time: " << time_span.count() << " s ("
-                << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
-                << " GB/s)\n";
-    }
-    memcpy(decompressed_data, decompressed_dataset.data(),
-           original_size * sizeof(T));
+
+  if (verbose)
+    start = high_resolution_clock::now();
+  // mgard::DecompressedDataset<1, T> decompressed_dataset =
+  // mgard::decompress(compressed_dataset);
+  void const *const compressed_data_const = compressed_data;
+  const void *decompressed_data = decompressed_data =
+      mgard::decompress(compressed_data_const, compressed_size);
+  if (verbose) {
+    end = high_resolution_clock::now();
+    time_span = duration_cast<duration<double>>(end - start);
+    std::cout << mgard_cuda::log::log_time
+              << "Overall decompression time: " << time_span.count() << " s ("
+              << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
+              << " GB/s)\n";
   }
 
   int elem_size = 0;
@@ -584,10 +492,10 @@ bool try_compression(int argc, char *argv[]) {
   enum mgard_cuda::error_bound_type mode; // REL or ABS
   std::string em = get_arg(argc, argv, "-m");
   if (em.compare("rel") == 0) {
-    mode = mgard_cuda::REL;
+    mode = mgard_cuda::error_bound_type::REL;
     std::cout << mgard_cuda::log::log_info << "error bound mode: Relative\n";
   } else if (em.compare("abs") == 0) {
-    mode = mgard_cuda::ABS;
+    mode = mgard_cuda::error_bound_type::ABS;
     std::cout << mgard_cuda::log::log_info << "error bound mode: Absolute\n";
   } else
     print_usage_message("wrong error bound mode.");
@@ -643,10 +551,10 @@ bool try_decompression(int argc, char *argv[]) {
   enum mgard_cuda::error_bound_type mode; // REL or ABS
   std::string em = get_arg(argc, argv, "-m");
   if (em.compare("rel") == 0) {
-    mode = mgard_cuda::REL;
+    mode = mgard_cuda::error_bound_type::REL;
     std::cout << mgard_cuda::log::log_info << "error bound mode: Relative\n";
   } else if (em.compare("abs") == 0) {
-    mode = mgard_cuda::ABS;
+    mode = mgard_cuda::error_bound_type::ABS;
     std::cout << mgard_cuda::log::log_info << "error bound mode: Absolute\n";
   } else
     print_usage_message("wrong error bound mode.");
