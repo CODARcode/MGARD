@@ -55,7 +55,6 @@ template <DIM D, typename T> struct Handle {
   Handle(std::vector<SIZE> shape, std::vector<T *> coords);
   Handle(std::vector<SIZE> shape, Config config);
   Handle(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
-  void re_init(std::vector<T *> coords);
   ~Handle();
 
   void allocate_workspace();
