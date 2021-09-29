@@ -320,12 +320,9 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
   for (int i = 0; i < shape.size(); i++) {
     T *curr_dcoords;
     cudaMallocHelper(*this, (void **)&(curr_dcoords), shape[i] * sizeof(T));
-    cudaMemcpyAsyncHelper(*this, curr_dcoords, coords_h[i],
+    cudaMemcpyAsyncHelper(*this, curr_dcoords, this->coords_h[i],
                           shape[i] * sizeof(T), AUTO, 0);
     this->coords_d.push_back(curr_dcoords);
-    // delete temporaly create uniform coords on host
-    // if (uniform_coords_created)
-    //   delete[] coords[i];
   }
 
   // calculate dist and ratio
@@ -417,51 +414,6 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
   initialized = true;
 }
 
-// re init for non-uniform spacing
-template <DIM D, typename T>
-void Handle<D, T>::re_init(std::vector<T *> coords) {
-  // handle coords
-  this->coords_h = coords;
-  for (int i = 0; i < shape.size(); i++) {
-    T *curr_dcoords = this->coords_d[i];
-    cudaMemcpyAsyncHelper(*this, curr_dcoords, coords_h[i],
-                          shape[i] * sizeof(T), AUTO, 0);
-  }
-
-  // calculate dist and ratio
-  for (int i = 0; i < shape.size(); i++) {
-    // for level 0
-    int last_dist = dofs[i][0] - 1;
-    coord_to_dist(dofs[i][0], this->coords_d[i], dist[i][0]);
-    dist_to_ratio(dofs[i][0], dist[i][0], ratio[i][0]);
-
-    // for l = 1 ... l_target
-    for (int l = 1; l < l_target + 1; l++) {
-      reduce_dist(dofs[i][l - 1], dist[i][l - 1], dist[i][l]);
-      dist_to_ratio(dofs[i][l], dist[i][l], ratio[i][l]);
-    }
-  }
-
-  // volume for quantization
-  SIZE volumes_width = 0;
-  for (int d = 0; d < D; d++) {
-    volumes_width = std::max(volumes_width, dofs[d][0]);
-  }
-
-  for (int d = 0; d < D; d++) {
-    for (int l = 0; l < l_target + 1; l++) {
-      calc_volume(dofs[d][l], dist[d][l],
-                  volumes + ldvolumes * (d * (l_target + 1) + (l_target - l)));
-    }
-  }
-
-  for (DIM i = 0; i < D; i++) {
-    for (SIZE l = 0; l < l_target + 1; l++) {
-      calc_am_bm(dofs[i][l], dist[i][l], am[i][l], bm[i][l]);
-    }
-  }
-}
-
 template <DIM D, typename T> void Handle<D, T>::destroy() {
 
   for (int i = 0; i < shapes_d.size(); i++) {
@@ -506,6 +458,13 @@ template <DIM D, typename T> void Handle<D, T>::destroy() {
       cudaFreeHelper(am[i][l]);
       cudaFreeHelper(bm[i][l]);
     }
+  }
+
+  if (uniform_coords_created) {
+    for (int d = 0; d < D; d++) {
+      // delete [] this->coords_h[d];
+    }
+    uniform_coords_created = false;
   }
 }
 

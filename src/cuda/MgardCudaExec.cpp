@@ -303,7 +303,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
       coords_byte.push_back((const mgard_cuda::Byte *)coord);
     }
     mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
-                         compressed_data, compressed_size, config, coords_byte);
+                         compressed_data, compressed_size, coords_byte, config);
   }
 
   writefile(output_file, compressed_size, compressed_data);
@@ -320,11 +320,9 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
 
     print_statistics<T>(s, mode, original_size, original_data,
                         (T *)decompressed_data);
-    delete[](T *) decompressed_data;
   }
 
   delete[](T *) original_data;
-  delete[](mgard_cuda::SERIALIZED_TYPE *) compressed_data;
   return 0;
 }
 
@@ -358,11 +356,6 @@ int launch_decompress(const char *input_file, const char *output_file,
     elem_size = 4;
   }
   writefile(output_file, original_size * elem_size, decompressed_data);
-
-  if (dtype == mgard_cuda::data_type::Double)
-    delete[](double *) decompressed_data;
-  else if (dtype == mgard_cuda::data_type::Float)
-    delete[](float *) decompressed_data;
 
   delete[] compressed_data;
   return 0;
