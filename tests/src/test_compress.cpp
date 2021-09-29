@@ -57,8 +57,8 @@ void test_compression_decompression(
       const mgard::CompressedDataset<N, Real> compressed =
           mgard::compress(hierarchy, v, s, tolerance);
 
-      const Real *new_data = (const Real *)mgard::mgard_decompress(
-          compressed.data(), compressed.size());
+      const Real *new_data =
+          (const Real *)mgard::decompress(compressed.data(), compressed.size());
       blas::axpy(ndof, static_cast<Real>(-1), new_data, error);
       // `error` is calculated, but it's unshuffled. `mgard::norm` expects its
       // input to be shuffled, so we shuffle into `buffer`.
@@ -110,8 +110,8 @@ void test_compression_error_bound(
   const mgard::CompressedDataset<N, Real> compressed =
       mgard::compress(hierarchy, v, s, tolerance);
 
-  const Real *new_data = (const Real *)mgard::mgard_decompress(
-      compressed.data(), compressed.size());
+  const Real *new_data =
+      (const Real *)mgard::decompress(compressed.data(), compressed.size());
   blas::axpy(ndof, static_cast<Real>(-1), new_data, error);
 
   const Real achieved = mgard::norm(hierarchy, error, s);
@@ -214,9 +214,9 @@ void test_compression_on_flat_mesh(
       mgard::compress(flat_hierarchy, v, expected.s, expected.tolerance);
   tracker += expected.size() == (obtained.size() - (M - N) * 8);
   const std::size_t metadata_expected =
-      4 + 19 + 1 + 1 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
+      5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
   const std::size_t metadata_obtained =
-      4 + 19 + 1 + 1 + 1 + 1 + M * 8 + 8 + 8 + 8 + 4 + 1;
+      5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 + 1 + M * 8 + 8 + 8 + 8 + 4 + 1;
   ;
   tracker +=
       std::memcmp(
@@ -286,7 +286,7 @@ void test_decompression_on_flat_mesh(
       flat_hierarchy, compressed.s, compressed.tolerance, data,
       compressed.size());
 
-  const Real *obtained = (const Real *)mgard::mgard_decompress(
+  const Real *obtained = (const Real *)mgard::decompress(
       flat_compressed.data(), flat_compressed.size());
   // Originally we compared `expected.data()` and `obtained.data()` bitwise.
   // When using `-ffast-math` after precomputing the shuffled indices, though,
@@ -328,7 +328,7 @@ TEST_CASE("decompressing on 'flat' meshes", "[compress]") {
     for (const double tolerance : tolerances) {
       const mgard::CompressedDataset<3, double> compressed =
           mgard::compress(hierarchy, u, s, tolerance);
-      const double *expected = (const double *)mgard::mgard_decompress(
+      const double *expected = (const double *)mgard::decompress(
           compressed.data(), compressed.size());
 
       test_decompression_on_flat_mesh<3, 4, double>(

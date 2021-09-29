@@ -51,6 +51,7 @@ TEST_CASE("hierarchy mesh shapes", "[TensorMeshHierarchy]") {
 TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
   {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({17});
+    REQUIRE(hierarchy.uniform);
     REQUIRE(hierarchy.L == 4);
     std::vector<std::size_t> ndofs(hierarchy.L + 1);
     for (std::size_t l = 0; l <= hierarchy.L; ++l) {
@@ -62,6 +63,7 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
   }
   {
     const mgard::TensorMeshHierarchy<2, double> hierarchy({12, 39});
+    REQUIRE(hierarchy.uniform);
     REQUIRE(hierarchy.L == 4);
     std::vector<std::size_t> ndofs(hierarchy.L + 1);
     for (std::size_t l = 0; l <= hierarchy.L; ++l) {
@@ -90,6 +92,7 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
   }
   {
     const mgard::TensorMeshHierarchy<3, double> hierarchy({15, 6, 129});
+    REQUIRE(hierarchy.uniform);
     REQUIRE(hierarchy.L == 3);
     // Note that the final dimension doesn't begin decreasing until every index
     // is of the form `2^k + 1`.
@@ -100,6 +103,7 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
   {
     const mgard::TensorMeshHierarchy<3, float> hierarchy(
         {5, 3, 2}, {{{0.0, 0.5, 0.75, 1.0, 1.25}, {-3, -2, -1}, {10.5, 9.5}}});
+    REQUIRE(not hierarchy.uniform);
     REQUIRE_NOTHROW(hierarchy);
   }
   {
