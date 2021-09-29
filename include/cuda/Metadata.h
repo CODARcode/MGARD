@@ -55,8 +55,13 @@ public:
     return offset;
   }
   ~Metadata() {
-    if (total_dims) {
-      // delete [] shape;
+    if (self_initialized) {
+      delete[] shape;
+      if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
+        for (size_t d = 0; d < total_dims; d++) {
+          delete[] coords[d];
+        }
+      }
     }
   }
 
@@ -104,12 +109,16 @@ private:
                    enum data_type dtype, SERIALIZED_TYPE *&p) {
     for (size_t i = 0; i < coords.size(); i++) {
       if (dtype == data_type::Float) {
+        coords[i] = (Byte *)std::malloc(shape[i] * sizeof(float));
         Deserialize(coords[i], shape[i] * sizeof(float), p);
       } else if (dtype == data_type::Double) {
+        coords[i] = (Byte *)std::malloc(shape[i] * sizeof(double));
         Deserialize(coords[i], shape[i] * sizeof(double), p);
       }
     }
   }
+
+  bool self_initialized;
 };
 } // namespace mgard_cuda
 

@@ -260,14 +260,15 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
   m.dstype = handle.dstype;
   m.total_dims = D;
   m.shape = new uint64_t[D];
-  for (int d = 0; d < D; d++)
+  for (int d = 0; d < D; d++) {
     m.shape[d] = (uint64_t)handle.dofs[D - 1 - d][0];
+  }
   if (m.dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
     m.cltype = coordinate_location::Embedded;
-    for (auto &coord : handle.coords_h)
-      m.coords.push_back((Byte *)coord);
+    for (int d = 0; d < D; d++) {
+      m.coords.push_back((Byte *)handle.coords_h[D - 1 - d]);
+    }
   }
-
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
   // (double)(total-free)/1e9, (double)total/1e9);
 
@@ -375,6 +376,7 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
 
     SIZE metadata_size;
     SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
+    delete[] m.shape;
     SIZE outsize = 0;
     outsize += metadata_size;
     outsize += sizeof(LENGTH) + outlier_count * sizeof(LENGTH) +
@@ -469,6 +471,7 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
 
     SIZE metadata_size;
     SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
+    delete[] m.shape;
 
     SIZE outsize = 0;
     outsize += metadata_size;
@@ -513,7 +516,6 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
 template <DIM D, typename T>
 Array<D, T> decompress(Handle<D, T> &handle,
                        Array<1, unsigned char> &compressed_array) {
-
   cudaSetDeviceHelper(handle.dev_id);
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
@@ -563,18 +565,6 @@ Array<D, T> decompress(Handle<D, T> &handle,
               << "This data was not compressed with GPU, please use CPU to "
                  "decompress!\n";
     exit(-1);
-  }
-
-  if (m.dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-    std::vector<T *> coords;
-    if (m.cltype == coordinate_location::Embedded) {
-      for (auto &coord : handle.coords_h)
-        coords.push_back((T *)coord);
-    }
-    // in handle is not initilized with non-uniform cooridinate
-    if (handle.dstype != data_structure_type::Cartesian_Grid_Non_Uniform) {
-      handle.re_init(coords);
-    }
   }
 
   // printf("m.cpu_lossless: %d\n", m.cpu_lossless);
@@ -745,7 +735,6 @@ Array<D, T> decompress(Handle<D, T> &handle,
       handle.ldvolumes, m, dqv, thrust::raw_pointer_cast(ldqvs.data()),
       decompressed_data.get_dv(), decompressed_data.get_ldvs_d(), prep_huffman,
       outlier_count, outlier_idx_d, outliers, 0);
-  // printf("sync_all 8\n");
   handle.sync_all();
   cudaFreeHelper(dqv);
   if (prep_huffman) {

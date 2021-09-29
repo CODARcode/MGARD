@@ -116,7 +116,7 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
       Serialize(nonuniform_coords_file, p);
     }
   }
-
+  self_initialized = false;
   return serialized_data;
 }
 
@@ -153,15 +153,19 @@ void Metadata::Deserialize(SERIALIZED_TYPE *serialized_data,
   Deserialize(total_dims, p);
   shape = new uint64_t[total_dims];
   Deserialize(shape, total_dims, p);
+
   if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
+    // printf("Deserialize Non_Uniform\n");
     Deserialize(cltype, p);
     if (cltype == coordinate_location::Embedded) {
+      coords = std::vector<Byte *>(total_dims);
       Deserialize(coords, shape, dtype, p);
     } else if (cltype == coordinate_location::External) {
       Deserialize(nonuniform_coords_file, p);
     }
   }
   total_size = p - serialized_data;
+  self_initialized = true;
 }
 
 } // namespace mgard_cuda
