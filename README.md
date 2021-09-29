@@ -16,7 +16,7 @@ To build and install MGARD, run the following from the root of the repository.
 You will need [CMake][cmake].
 
 ```console
-$ cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<location to install MGARD>
+$ cmake -S . -B build -D CMAKE_INSTALL_PREFIX=<location to install MGARD>
 $ cmake --build build
 $ cmake --install build
 ```
@@ -28,6 +28,15 @@ $ cmake --install build
 Detailed instructions for using MGARD with GPU acceleration can be found [here][gpu instructions].
 
 [gpu instructions]: doc/MGARD-GPU.md
+
+### Documentation
+
+To build the documentation, run `cmake` with `-D MGARD_ENABLE_DOCS=ON`.
+You will need [Doxygen][doxygen].
+The documentation will be installed to `${CMAKE_INSTALL_PREFIX}/share/doc/MGARD/` by default.
+Open `index.html` with a browser to read.
+
+[doxygen]: https://www.doxygen.nl/
 
 ## Including and Linking
 
