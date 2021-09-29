@@ -28,7 +28,7 @@ jobs:
                                   tar --file "moab-5.2.1.tar" --extract
                                   cd "moab-5.2.1"
                                   autoreconf --force --install
-                                  ./configure --prefix="${{ env.MOAB_INSTALL_PREFIX }}"
+                                  ./configure --prefix="${{ env.MOAB_INSTALL_PREFIX }}" --enable-shared
                                   make --jobs
                                   make install
 
