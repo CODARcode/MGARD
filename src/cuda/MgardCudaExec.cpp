@@ -143,10 +143,12 @@ template <typename T> void min_max(size_t n, T *in_buff) {
   T min = std::numeric_limits<T>::infinity();
   T max = 0;
   for (size_t i = 0; i < n; i++) {
-    if (min > in_buff[i])
+    if (min > in_buff[i]) {
       min = in_buff[i];
-    if (max < in_buff[i])
+    }
+    if (max < in_buff[i]) {
       max = in_buff[i];
+    }
   }
   printf("Min: %f, Max: %f\n", min, max);
 }
@@ -258,16 +260,6 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
                     bool verbose) {
 
   mgard_cuda::Config config;
-  config.huff_dict_size = 8192;
-#ifdef MGARD_CUDA_OPTIMIZE_TURING
-  config.huff_block_size = 1024 * 30;
-#endif
-#ifdef MGARD_CUDA_OPTIMIZE_VOLTA
-  config.huff_block_size = 1024 * 20;
-#endif
-  config.lz4_block_size = 1 << 15;
-  config.reduce_memory_footprint = true;
-  config.sync_and_check_all_kernels = false;
   config.timing = verbose;
 
   if (lossless == 0) {
@@ -301,17 +293,17 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
   std::vector<const mgard_cuda::Byte *> coords_byte;
   if (!non_uniform) {
     mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
-                         compressed_data, compressed_size, config, false);
+                         compressed_data, compressed_size, config);
   } else {
     std::vector<T *> coords;
     if (non_uniform) {
       coords = readcoords<T>(coords_file, D, shape);
     }
-    for (auto &coord : coords)
+    for (auto &coord : coords) {
       coords_byte.push_back((const mgard_cuda::Byte *)coord);
+    }
     mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
-                         compressed_data, compressed_size, config, false,
-                         coords_byte);
+                         compressed_data, compressed_size, config, coords_byte);
   }
 
   writefile(output_file, compressed_size, compressed_data);
@@ -324,7 +316,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     config.timing = verbose;
 
     mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data,
-                           config, false);
+                           config);
 
     print_statistics<T>(s, mode, original_size, original_data,
                         (T *)decompressed_data);
@@ -340,16 +332,6 @@ int launch_decompress(const char *input_file, const char *output_file,
                       bool verbose) {
 
   mgard_cuda::Config config;
-  config.huff_dict_size = 8192;
-#ifdef MGARD_CUDA_OPTIMIZE_TURING
-  config.huff_block_size = 1024 * 30;
-#endif
-#ifdef MGARD_CUDA_OPTIMIZE_VOLTA
-  config.huff_block_size = 1024 * 20;
-#endif
-  config.lz4_block_size = 1 << 15;
-  config.reduce_memory_footprint = true;
-  config.sync_and_check_all_kernels = false;
   config.timing = verbose;
 
   mgard_cuda::SERIALIZED_TYPE *compressed_data;
@@ -360,19 +342,21 @@ int launch_decompress(const char *input_file, const char *output_file,
       mgard_cuda::infer_type(compressed_data, compressed_size);
 
   size_t original_size = 1;
-  for (mgard_cuda::DIM i = 0; i < shape.size(); i++)
+  for (mgard_cuda::DIM i = 0; i < shape.size(); i++) {
     original_size *= shape[i];
+  }
 
   void *decompressed_data;
 
   mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data,
-                         config, false);
+                         config);
 
   int elem_size = 0;
-  if (dtype == mgard_cuda::data_type::Double)
+  if (dtype == mgard_cuda::data_type::Double) {
     elem_size = 8;
-  else if (dtype == mgard_cuda::data_type::Float)
+  } else if (dtype == mgard_cuda::data_type::Float) {
     elem_size = 4;
+  }
   writefile(output_file, original_size * elem_size, decompressed_data);
 
   if (dtype == mgard_cuda::data_type::Double)
@@ -455,14 +439,15 @@ bool try_compression(int argc, char *argv[]) {
   bool verbose = has_arg(argc, argv, "-v");
   if (verbose)
     std::cout << mgard_cuda::log::log_info << "Verbose: enabled\n";
-  if (dtype == mgard_cuda::data_type::Double)
+  if (dtype == mgard_cuda::data_type::Double) {
     launch_compress<double>(D, dtype, input_file.c_str(), output_file.c_str(),
                             shape, non_uniform, non_uniform_coords_file.c_str(),
                             tol, s, mode, lossless_level, verbose);
-  else if (dtype == mgard_cuda::data_type::Float)
+  } else if (dtype == mgard_cuda::data_type::Float) {
     launch_compress<float>(D, dtype, input_file.c_str(), output_file.c_str(),
                            shape, non_uniform, non_uniform_coords_file.c_str(),
                            tol, s, mode, lossless_level, verbose);
+  }
   return true;
 }
 
