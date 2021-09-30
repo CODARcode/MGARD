@@ -223,6 +223,7 @@ target_include_directories(mgard-library
 )
 target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
 if(MOAB_FOUND)
+	add_compile_definitions(MGARD_MOAB)
 	target_sources(mgard-library PRIVATE ${MGARD_MOAB_CPP})
 	target_link_libraries(mgard-library PUBLIC MOAB::MOAB)
 endif()
