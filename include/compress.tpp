@@ -135,11 +135,11 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   b += 1;
 
   // File version major, minor and patch
-  *(uint8_t *)b = MGARD_VERSION_MAJOR;
+  *(uint8_t *)b = MGARD_FILE_VERSION_MAJOR;
   b += 1;
-  *(uint8_t *)b = MGARD_VERSION_MINOR;
+  *(uint8_t *)b = MGARD_FILE_VERSION_MINOR;
   b += 1;
-  *(uint8_t *)b = MGARD_VERSION_PATCH;
+  *(uint8_t *)b = MGARD_FILE_VERSION_PATCH;
   b += 1;
 
   // Size of metadata
