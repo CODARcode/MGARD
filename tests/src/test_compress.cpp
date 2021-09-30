@@ -212,12 +212,29 @@ void test_compression_on_flat_mesh(
   std::copy(u, u + ndof, v);
   const mgard::CompressedDataset<M, Real> obtained =
       mgard::compress(flat_hierarchy, v, expected.s, expected.tolerance);
-  tracker += expected.size() == (obtained.size() - (M - N) * 8);
-  const std::size_t metadata_expected =
-      5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
-  const std::size_t metadata_obtained =
-      5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 + 1 + M * 8 + 8 + 8 + 8 + 4 + 1;
-  ;
+
+  std::size_t coord_size_expected = 0;
+  for (std::size_t i = 0; i < N; i++) {
+    coord_size_expected += hierarchy.coordinates.at(i).size() * sizeof(Real);
+  }
+
+  std::size_t coord_size_obtained = 0;
+  for (std::size_t i = 0; i < M; i++) {
+    coord_size_obtained +=
+        flat_hierarchy.coordinates.at(i).size() * sizeof(Real);
+  }
+
+  tracker += expected.size() == (obtained.size() - (M - N) * 8 -
+                                 (coord_size_obtained - coord_size_expected));
+
+  const std::size_t metadata_expected = 5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 +
+                                        1 + N * 8 + 8 + 8 + 8 + 4 + 1 +
+                                        coord_size_expected;
+
+  const std::size_t metadata_obtained = 5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 +
+                                        1 + M * 8 + 8 + 8 + 8 + 4 + 1 +
+                                        coord_size_obtained;
+
   tracker +=
       std::memcmp(
           static_cast<unsigned char *>(const_cast<void *>(expected.data())) +
