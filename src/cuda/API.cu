@@ -44,7 +44,8 @@ bool verify(const void *compressed_data, size_t compressed_size) {
   }
 }
 
-enum data_type infer_type(const void *compressed_data, size_t compressed_size) {
+enum data_type infer_data_type(const void *compressed_data,
+                               size_t compressed_size) {
   if (!verify(compressed_data, compressed_size)) {
     std::cout << log::log_err << "cannot verify the data!\n";
     exit(-1);
@@ -312,7 +313,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data, Config config) {
 
   std::vector<SIZE> shape = infer_shape(compressed_data, compressed_size);
-  data_type dtype = infer_type(compressed_data, compressed_size);
+  data_type dtype = infer_data_type(compressed_data, compressed_size);
   data_structure_type dstype =
       infer_data_structure(compressed_data, compressed_size);
 
