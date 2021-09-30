@@ -1,7 +1,6 @@
 # MGARD [![build status][push workflow badge]][push workflow] [![format status][format workflow badge]][format workflow]
 
 MGARD (MultiGrid Adaptive Reduction of Data) is a technique for multilevel lossy compression of scientific data based on the theory of multigrid methods.
-This is an experimental C++ implementation for integration with existing software; use at your own risk!
 We encourage you to [make a GitHub issue][issue form] if you run into any problems using MGARD, have any questions or suggestions, etc.
 
 [push workflow]: https://github.com/CODARcode/MGARD/actions/workflows/build.yml
@@ -60,8 +59,9 @@ See [the examples directory][examples] for a basic example.
 
 ## Command Line Interface
 
-Assuming the dependencies are met, an executable called `mgard` will be built and installed.
-You can get help with the executable by running the following commands.
+Assuming the dependencies are met, a convenience executable called `mgard` will be built and installed.
+*This executable is an experimental part of the API.*
+You can get help with it by running the following commands.
 
 ```console
 $ mgard --help

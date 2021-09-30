@@ -45,6 +45,8 @@ public:
   const Real tolerance;
 
   //! Return a pointer to the compressed dataset.
+  //!
+  //! *The format of the compressed dataset is an experimental part of the API.*
   void const *data() const;
 
   //! Return the size in bytes of the compressed dataset.
@@ -107,6 +109,8 @@ DecompressedDataset<N, Real>
 decompress(const CompressedDataset<N, Real> &compressed);
 
 //! Decompress a dataset stored in self-describing format.
+//!
+//! *This is an experimental part of the API.*
 //!
 //!\param data Self-describing compressed dataset.
 //!\param size Size in bytes of compressed dataset.
