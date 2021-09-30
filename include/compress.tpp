@@ -22,6 +22,19 @@
 
 namespace mgard {
 
+enum GridType { UNIFORM = 0, NONUNIFORM };
+
+enum GridType GetGridType(uint8_t g) {
+  switch (g) {
+  case 0:
+    return UNIFORM;
+  case 1:
+    return NONUNIFORM;
+  default:
+    throw std::runtime_error("U.");
+  }
+}
+
 template <std::size_t N, typename Real>
 CompressedDataset<N, Real>::CompressedDataset(
     const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
@@ -98,14 +111,18 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   // Target level: 4
   uint32_t metadata_size =
       5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 + 1 + N * 8 + 8 + 8 + 8 + 4 + 1;
+
+  if (!hierarchy.uniform) {
+    for (std::size_t i = 0; i < N; i++) {
+      metadata_size += hierarchy.coordinates.at(i).size() * sizeof(Real);
+    }
+  }
+
   // pack the minimal metadata for now, i.e., error tolerence and s
   unsigned char *const buffer =
       static_cast<unsigned char *>(std::malloc(zstd_outsize + metadata_size));
   unsigned char *b = buffer;
-#if 0
-  *(uint32_t *)b = metadata_size;
-  b += 4;
-#endif
+
   std::memcpy(b, SIGNATURE_STR.c_str(), SIGNATURE_STR.size());
   b += SIGNATURE_STR.size();
 
@@ -163,22 +180,27 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   b += 4;
 
   // Grid level. 0: uniform; 1: non-uniform
-  *(uint8_t *)b = 0;
+  if (hierarchy.uniform) {
+    *(uint8_t *)b = 0;
+  } else {
+    *(uint8_t *)b = 1;
+  }
+
   b += 1;
 
+  // For nonuniform, write the coordinates
+  if (!hierarchy.uniform) {
+    for (std::size_t i = 0; i < N; i++) {
+      std::memcpy(b, hierarchy.coordinates.at(i).data(),
+                  hierarchy.coordinates.at(i).size() * sizeof(Real));
+      b += hierarchy.coordinates.at(i).size() * sizeof(Real);
+    }
+  }
+
   if (metadata_size != (b - buffer)) {
-    throw std::invalid_argument("Error in parsing metadata. Likely, this is "
-                                "due to the incompability of MGARD versions");
+    throw std::runtime_error("Error in parsing metadata. Likely, this is "
+                             "due to the incompability of MGARD versions");
   }
-
-  // Coordinates
-  FILE *file = fopen(".coord.mgard", "wb");
-  for (std::size_t i = 0; i < N; i++) {
-    fwrite(hierarchy.coordinates.at(i).data(), sizeof(Real),
-           hierarchy.coordinates.at(i).size(), file);
-  }
-
-  fclose(file);
 
   std::memcpy(buffer + metadata_size, buffer_h, zstd_outsize);
   std::free(buffer_h);
@@ -186,6 +208,42 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   const std::size_t size = zstd_outsize + metadata_size;
 #endif
   return CompressedDataset<N, Real>(hierarchy, s, tolerance, buffer, size);
+}
+
+template <std::size_t N, typename Real>
+void *decompresss_internal(unsigned char *b, unsigned char *cb_copy,
+                           const Real s, const Real tol, uint64_t *shape,
+                           GridType grid_type, std::size_t compressed_size,
+                           uint32_t metadata_size) {
+  std::array<std::size_t, N> dims = {};
+  for (std::size_t i = 0; i < N; i++) {
+    dims.at(i) = shape[i];
+  }
+
+  std::array<std::vector<Real>, N> coordinates =
+      default_node_coordinates<N, Real>(dims);
+
+  // For non-uniform grid, retrieve the coordinates from metadata
+  if (grid_type == NONUNIFORM) {
+    for (std::size_t i = 0; i < N; i++) {
+      Real *file_buffer = (Real *)std::malloc(sizeof(Real) * shape[i]);
+      std::memcpy(file_buffer, b, sizeof(Real) * shape[i]);
+      b += sizeof(Real) * shape[i];
+      std::copy(file_buffer, file_buffer + shape[i], coordinates.at(i).begin());
+      std::free(file_buffer);
+    }
+  }
+
+  TensorMeshHierarchy<N, Real> hierarchy(dims, coordinates);
+  const mgard::CompressedDataset<N, Real> compressed(
+      hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
+  const mgard::DecompressedDataset<N, Real> decompressed =
+      mgard::decompress(compressed);
+  void *decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(Real));
+  std::memcpy(decompressed_buffer, decompressed.data(),
+              hierarchy.ndof() * sizeof(Real));
+
+  return decompressed_buffer;
 }
 
 void const *decompress(void const *const compressed_buffer,
@@ -251,13 +309,9 @@ void const *decompress(void const *const compressed_buffer,
   b += 4;
 
   // Grid type
-  uint32_t grid_type = *(uint8_t *)b;
+  GridType grid_type = GetGridType(*(uint8_t *)b);
   b += 1;
 
-  if (metadata_size != b - (unsigned char *)compressed_buffer) {
-    throw std::invalid_argument("Error in parsing metadata. Likely, this is "
-                                "due to the incompability of MGARD versions");
-  }
 #if 0
   std::cout << "ndims = " << (unsigned)ndims << " tol = " << tol << " s = " << s
             << " target_level = " << target_level
@@ -273,215 +327,81 @@ void const *decompress(void const *const compressed_buffer,
 
   void *decompressed_buffer = 0;
 
-  FILE *file = fopen(".coord.mgard", "r");
-  if (file == NULL) {
-    throw std::invalid_argument("Cannot find coordinate file!");
-  }
-
   switch (ndims) {
   case 1:
     if (type == 0) {
-      std::array<std::vector<double>, 1> coordinates;
-      for (std::size_t i = 0; i < ndims; i++) {
-        coordinates.at(i).resize(shape[i]);
-      }
-
-      for (std::size_t i = 0; i < ndims; i++) {
-        double *file_buffer = (double *)std::malloc(sizeof(double) * shape[i]);
-        fread(file_buffer, sizeof(double), shape[i], file);
-        std::copy(file_buffer, file_buffer + shape[i],
-                  coordinates.at(i).begin());
-        std::free(file_buffer);
-      }
-
-      const std::array<std::size_t, 1> dims = {shape[0]};
-      TensorMeshHierarchy<1, double> hierarchy(dims, coordinates);
-      const mgard::CompressedDataset<1, double> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<1, double> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(double));
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * sizeof(double));
+      decompressed_buffer = decompresss_internal<1, double>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     } else if (type == 1) {
-      std::array<std::vector<float>, 1> coordinates;
-      for (std::size_t i = 0; i < ndims; i++) {
-        coordinates.at(i).resize(shape[i]);
-      }
-
-      for (std::size_t i = 0; i < ndims; i++) {
-        float *file_buffer = (float *)std::malloc(sizeof(float) * shape[i]);
-        fread(file_buffer, sizeof(float), shape[i], file);
-        std::copy(file_buffer, file_buffer + shape[i],
-                  coordinates.at(i).begin());
-        std::free(file_buffer);
-      }
-
-      const std::array<std::size_t, 1> dims = {shape[0]};
-      TensorMeshHierarchy<1, float> hierarchy(dims, coordinates);
-      const mgard::CompressedDataset<1, float> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<1, float> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(float));
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * sizeof(float));
+      decompressed_buffer = decompresss_internal<1, float>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     }
     break;
   case 2:
     if (type == 0) {
-      std::array<std::vector<double>, 2> coordinates;
-      for (std::size_t i = 0; i < ndims; i++) {
-        coordinates.at(i).resize(shape[i]);
-      }
-
-      for (std::size_t i = 0; i < ndims; i++) {
-        double *file_buffer = (double *)std::malloc(sizeof(double) * shape[i]);
-        fread(file_buffer, sizeof(double), shape[i], file);
-        std::copy(file_buffer, file_buffer + shape[i],
-                  coordinates.at(i).begin());
-        std::free(file_buffer);
-      }
-
-      const std::array<std::size_t, 2> dims = {shape[0], shape[1]};
-      TensorMeshHierarchy<2, double> hierarchy(dims, coordinates);
-      const mgard::CompressedDataset<2, double> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<2, double> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * 8);
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * 8);
+      decompressed_buffer = decompresss_internal<2, double>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     } else if (type == 1) {
-      std::array<std::vector<float>, 2> coordinates;
-      for (std::size_t i = 0; i < ndims; i++) {
-        coordinates.at(i).resize(shape[i]);
-      }
-
-      for (std::size_t i = 0; i < ndims; i++) {
-        float *file_buffer = (float *)std::malloc(sizeof(float) * shape[i]);
-        fread(file_buffer, sizeof(float), shape[i], file);
-        std::copy(file_buffer, file_buffer + shape[i],
-                  coordinates.at(i).begin());
-        std::free(file_buffer);
-      }
-
-      const std::array<std::size_t, 2> dims = {shape[0], shape[1]};
-      TensorMeshHierarchy<2, float> hierarchy(dims, coordinates);
-      const mgard::CompressedDataset<2, float> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<2, float> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * 8);
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * 8);
+      decompressed_buffer = decompresss_internal<2, float>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     }
     break;
   case 3:
     if (type == 0) {
-      std::array<std::vector<double>, 3> coordinates;
-      for (std::size_t i = 0; i < ndims; i++) {
-        coordinates.at(i).resize(shape[i]);
-      }
-
-      for (std::size_t i = 0; i < ndims; i++) {
-        double *file_buffer = (double *)std::malloc(sizeof(double) * shape[i]);
-        fread(file_buffer, sizeof(double), shape[i], file);
-        std::copy(file_buffer, file_buffer + shape[i],
-                  coordinates.at(i).begin());
-        std::free(file_buffer);
-      }
-
-      const std::array<std::size_t, 3> dims = {shape[0], shape[1], shape[2]};
-      TensorMeshHierarchy<3, double> hierarchy(dims, coordinates);
-      const mgard::CompressedDataset<3, double> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<3, double> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(double));
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * sizeof(double));
+      decompressed_buffer = decompresss_internal<3, double>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     } else if (type == 1) {
-      std::array<std::vector<float>, 3> coordinates;
-      for (std::size_t i = 0; i < ndims; i++) {
-        coordinates.at(i).resize(shape[i]);
-      }
-
-      for (std::size_t i = 0; i < ndims; i++) {
-        float *file_buffer = (float *)std::malloc(sizeof(float) * shape[i]);
-        fread(file_buffer, sizeof(float), shape[i], file);
-        std::copy(file_buffer, file_buffer + shape[i],
-                  coordinates.at(i).begin());
-        std::free(file_buffer);
-      }
-
-      const std::array<std::size_t, 3> dims = {shape[0], shape[1], shape[2]};
-      TensorMeshHierarchy<3, float> hierarchy(dims, coordinates);
-      const mgard::CompressedDataset<3, float> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<3, float> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(float));
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * sizeof(float));
+      decompressed_buffer = decompresss_internal<3, float>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     }
     break;
   case 4:
     if (type == 0) {
-      const std::array<std::size_t, 4> dims = {shape[0], shape[1], shape[2],
-                                               shape[3]};
-      TensorMeshHierarchy<4, double> hierarchy(dims);
-      const mgard::CompressedDataset<4, double> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<4, double> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(double));
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * sizeof(double));
+      decompressed_buffer = decompresss_internal<4, double>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     } else if (type == 1) {
-      const std::array<std::size_t, 4> dims = {shape[0], shape[1], shape[2],
-                                               shape[3]};
-      TensorMeshHierarchy<4, float> hierarchy(dims);
-      const mgard::CompressedDataset<4, float> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<4, float> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(float));
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * sizeof(float));
+      decompressed_buffer = decompresss_internal<4, float>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     }
     break;
   case 5:
     if (type == 0) {
-      const std::array<std::size_t, 5> dims = {shape[0], shape[1], shape[2],
-                                               shape[3], shape[4]};
-      TensorMeshHierarchy<5, double> hierarchy(dims);
-      const mgard::CompressedDataset<5, double> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<5, double> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(double));
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * sizeof(double));
+      decompressed_buffer = decompresss_internal<5, double>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     } else if (type == 1) {
-      const std::array<std::size_t, 5> dims = {shape[0], shape[1], shape[2],
-                                               shape[3], shape[4]};
-      TensorMeshHierarchy<5, float> hierarchy(dims);
-      const mgard::CompressedDataset<5, float> compressed(
-          hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
-      const mgard::DecompressedDataset<5, float> decompressed =
-          mgard::decompress(compressed);
-      decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(float));
-      std::memcpy(decompressed_buffer, decompressed.data(),
-                  hierarchy.ndof() * sizeof(float));
+      decompressed_buffer = decompresss_internal<5, float>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
+    }
+    break;
+  case 6:
+    if (type == 0) {
+      decompressed_buffer = decompresss_internal<6, double>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
+    } else if (type == 1) {
+      decompressed_buffer = decompresss_internal<6, float>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
+    }
+    break;
+  case 7:
+    if (type == 0) {
+      decompressed_buffer = decompresss_internal<7, double>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
+    } else if (type == 1) {
+      decompressed_buffer = decompresss_internal<7, float>(
+          b, cb_copy, s, tol, shape, grid_type, compressed_size, metadata_size);
     }
     break;
   default:
-    throw std::invalid_argument("The number of dimensions is not supported.");
+    throw std::invalid_argument(
+        "The number of dimensions beyond 7 is not supported.");
   }
-
-  fclose(file);
-
+#if 0
+  if (metadata_size != b - (unsigned char *)compressed_buffer) {
+std::cout << "metadata_size = " << metadata_size << " and = " << b - (unsigned char *)compressed_buffer << "\n";
+    throw std::invalid_argument("Error in parsing metadata. Likely, this is "
+                                "due to the incompability of MGARD versions");
+  }
+#endif
   return decompressed_buffer;
 }
 
