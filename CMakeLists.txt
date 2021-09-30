@@ -27,6 +27,8 @@ project(
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #Configurable Options
+option(MGARD_ENABLE_BENCHMARKS "Build benchmarks." OFF)
+
 option(MGARD_ENABLE_DOCS "build documentation" OFF)
 
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
@@ -493,15 +495,16 @@ install(
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT dev
 )
 
-#Google Benchmark for benchmarks. See <https://github.com/google/benchmark>.
-find_package(benchmark)
+if(MGARD_ENABLE_BENCHMARKS)
+	find_package(benchmark)
 
-if(benchmark_FOUND AND MOAB_FOUND)
-	add_executable(mgard-benchmarks ${MGARD_BENCHMARK_CPP})
-	target_link_libraries(mgard-benchmarks PRIVATE benchmark::benchmark benchmark::benchmark_main mgard-library)
-	set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
-else()
-	message("-- Will not build benchmarks (dependencies not met).")
+	if(benchmark_FOUND)
+		add_executable(mgard-benchmarks ${MGARD_BENCHMARK_CPP})
+		target_link_libraries(mgard-benchmarks PRIVATE benchmark::benchmark benchmark::benchmark_main mgard-library)
+		set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
+	else()
+		message("-- Will not build benchmarks (Google Benchmark not found).")
+	endif()
 endif()
 
 find_package(yaml-cpp)
@@ -541,4 +544,6 @@ message("      Catch2: ${Catch2_FOUND}")
 message("    yaml-cpp: ${yaml-cpp_FOUND}")
 message("     archive: ${archive_FOUND}")
 message("       TCLAP: ${TCLAP_FOUND}")
-message("   benchmark: ${benchmark_FOUND}")
+if(MGARD_ENABLE_BENCHMARKS)
+	message("   benchmark: ${benchmark_FOUND}")
+endif()

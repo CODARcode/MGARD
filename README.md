@@ -38,6 +38,14 @@ Open `index.html` with a browser to read.
 
 [doxygen]: https://www.doxygen.nl/
 
+### Benchmarks
+
+To build the benchmarks, run `cmake` with `-D MGARD_ENABLE_BENCHMARKS=ON`.
+You will need [Google Benchmark][benchmark].
+You can then run the benchmarks with `build/bin/benchmarks`.
+
+[benchmark]: https://github.com/google/benchmark
+
 ## Including and Linking
 
 The API consists of a header file `compress.hpp` providing declarations for function templates `mgard::compress` and `mgard::decompress`.
