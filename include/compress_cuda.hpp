@@ -59,20 +59,26 @@ void decompress(const void *compressed_data, size_t compressed_size,
 //! Verify the compressed data
 bool verify(const void *compressed_data, size_t compressed_size);
 
-//! Check the data type of original data
-enum data_type infer_type(const void *compressed_data, size_t compressed_size);
+//! Query the data type of original data
+enum data_type infer_data_type(const void *compressed_data,
+                               size_t compressed_size);
 
-//! Check the shape of original data
+//! Query the shape of original data
 std::vector<SIZE> infer_shape(const void *compressed_data,
                               size_t compressed_size);
 
-//! Check the data structure of original data
+//! Query the data structure of original data
 enum data_structure_type infer_data_structure(const void *compressed_data,
                                               size_t compressed_size);
 
-//! Check the file used to store the coordinates data
+//! Query the file used to store the coordinates data
 std::string infer_nonuniform_coords_file(const void *compressed_data,
                                          size_t compressed_size);
+
+//! Query the coordinates
+template <typename T>
+std::vector<T *> infer_coords(const void *compressed_data,
+                              size_t compressed_size);
 
 } // namespace mgard_cuda
 

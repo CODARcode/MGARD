@@ -27,7 +27,7 @@ mgard_cuda_build_dir=${home_dir}/build
 mgard_cuda_install_dir=${home_dir}/install
 rm -rf ${mgard_cuda_build_dir} && mkdir -p ${mgard_cuda_build_dir}
 cmake -S ${mgard_cuda_src_dir} -B ${mgard_cuda_build_dir} \
-	  -DNVCOMP_ROOT=${nvcomp_build_dir}\
+	  -DCMAKE_PREFIX_PATH=${nvcomp_build_dir}\
 	  -DMGARD_ENABLE_CUDA=ON\
 	  -DMGARD_ENABLE_CUDA_FMA=ON\
 	  -DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=ON\

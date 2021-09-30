@@ -337,7 +337,7 @@ int launch_decompress(const char *input_file, const char *output_file,
   std::vector<mgard_cuda::SIZE> shape =
       mgard_cuda::infer_shape(compressed_data, compressed_size);
   mgard_cuda::data_type dtype =
-      mgard_cuda::infer_type(compressed_data, compressed_size);
+      mgard_cuda::infer_data_type(compressed_data, compressed_size);
 
   size_t original_size = 1;
   for (mgard_cuda::DIM i = 0; i < shape.size(); i++) {
