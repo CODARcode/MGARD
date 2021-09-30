@@ -347,6 +347,7 @@ set(
 	examples/README.md
 	examples/linking/README.md
 	examples/compression/README.md
+	examples/decompression/README.md
 )
 
 if(MGARD_ENABLE_DOCS)
