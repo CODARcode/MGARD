@@ -20,25 +20,30 @@ namespace mgard_cuda {
 
 //! Compress a function on an N-D tensor product grid with uniform spacing
 //!
+//!\param[in] D Dimension.
+//!\param[in] dtype Data type Float or Double
 //!\param[in] shape Shape of the Dataset to be compressed
-//!\param[in] data_type Data type Float or Double
-//!\param[in] type Error bound type REL or ABS.
 //!\param[in] tol Error tolerance.
 //!\param[in] s Smoothness parameter.
-//!\param[in] compressed_data Dataset to be compressed.
-//!\param[out] compressed_size Size of comrpessed data.
+//!\param[in] mode Error bound type REL or ABS.
+//!\param[in] original_data Dataset to be compressed.
+//!\param[out] compressed_data Compressed data.
+//!\param[out] compressed_size Size of compressed data.
 //!\param[in] config For configuring the compression process (optional).
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size, Config config);
 
 //! Compress a function on an N-D tensor product grid with non-uniform spacing
+//!
+//!\param[in] D Dimension.
+//!\param[in] dtype Data type Float or Double
 //!\param[in] shape Shape of the Dataset to be compressed
-//!\param[in] data_type Data type Float or Double
-//!\param[in] type Error bound type REL or ABS.
 //!\param[in] tol Error tolerance.
 //!\param[in] s Smoothness parameter.
-//!\param[in] compressed_data Dataset to be compressed.
+//!\param[in] mode Error bound type REL or ABS.
+//!\param[in] original_data Dataset to be compressed.
+//!\param[out] compressed_data Compressed data.
 //!\param[out] compressed_size Size of comrpessed data.
 //!\param[in] coords Coordinates data.
 //!\param[in] config For configuring the compression process (optional).
