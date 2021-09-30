@@ -24,6 +24,10 @@ project(
 	LANGUAGES CXX
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+option(MGARD_ENABLE_DOCS "build documentation" ON)
+
 #Configurable Options
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 
@@ -33,6 +37,7 @@ option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" OFF)
 option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimized for Turing GPUs" OFF)
 
 # Some boilerplate to setup nice output directories
+include(CTest)
 include(GNUInstallDirs)
 if(WIN32 AND NOT CYGWIN)
   set(CMAKE_INSTALL_CMAKEDIR CMake
@@ -73,7 +78,8 @@ endif()
 
 if(MGARD_ENABLE_CUDA)
   enable_language(CUDA)
-  find_package(NVCOMP)
+  find_package(nvcomp)
+  find_path(NVCOMP_INCLUDE_DIR nvcomp.h ${NVCOMP_INCLUDE_OPTS})
   find_package(CUDAToolkit)
   set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -105,7 +111,8 @@ if(MGARD_ENABLE_CUDA)
 endif()
 
 find_package(ZLIB REQUIRED)
-find_package(ZSTD)
+find_package(PkgConfig)
+pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
 find_package(MOAB)
 
 set(
@@ -169,7 +176,6 @@ set(
 
 add_library(
 	mgard-library
-	STATIC
 	${MGARD_LIBRARY_CPP}
 	${MGARD_CUDA_SRC}
 )
@@ -178,9 +184,25 @@ set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra")
+
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+  set(SANITIZER_DEFAULT ON)
 else()
+  set(SANITIZER_DEFAULT OFF)
+endif()
+option(MGARD_ENABLE_ASAN "compile with address sanitizer support" ${SANITIZER_DEFAULT})
+option(MGARD_ENABLE_UBSAN "compile with undefined behavior sanitizer support" ${SANITIZER_DEFAULT})
+if(MGARD_ENABLE_UBSAN)
+  target_compile_options(mgard-library PUBLIC "-fsanitize=undefined")
+  target_link_libraries(mgard-library PUBLIC "-fsanitize=undefined")
+endif()
+if(MGARD_ENABLE_ASAN)
+  target_compile_options(mgard-library PUBLIC "-fsanitize=address")
+  target_link_libraries(mgard-library PUBLIC "-fsanitize=address")
+endif()
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
   execute_process(COMMAND "arch" OUTPUT_VARIABLE ARCH)
   string(REGEX REPLACE "\n$" "" ARCH "${ARCH}")
   if("${ARCH}" STREQUAL "x86_64")
@@ -202,11 +224,13 @@ if(MOAB_FOUND)
 	target_link_libraries(mgard-library PUBLIC MOAB::MOAB)
 endif()
 if(ZSTD_FOUND)
-	target_link_libraries(mgard-library PUBLIC ZSTD::ZSTD)
+  target_compile_definitions(mgard-library PUBLIC MGARD_ZSTD)
+	target_link_libraries(mgard-library PUBLIC PkgConfig::ZSTD)
 endif()
 
 if(MGARD_ENABLE_CUDA)
-  target_link_libraries(mgard-library PUBLIC NVCOMP::NVCOMP CUDA::cudart ${CUDAToolkit_LIBRARY_DIR}/libcudadevrt.a)
+  target_link_libraries(mgard-library PUBLIC nvcomp::nvcomp CUDA::cudart ${CUDAToolkit_LIBRARY_DIR}/libcudadevrt.a)
+  target_include_directories(mgard-library PUBLIC ${NVCOMP_INCLUDE_DIR})
 endif()
 
 find_package(OpenMP)
@@ -339,7 +363,7 @@ set(
 	examples/compression/README.md
 )
 
-if(NOT DOXYGEN STREQUAL "DOXYGEN-NOTFOUND" AND NOT SED STREQUAL "SED-NOTFOUND" AND NOT PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
+if(MGARD_ENABLE_DOCS AND NOT DOXYGEN STREQUAL "DOXYGEN-NOTFOUND" AND NOT SED STREQUAL "SED-NOTFOUND" AND NOT PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
 	configure_file("scripts/modify_documentation_links.py.in" "scripts/modify_documentation_links.py")
 	foreach(MGARD_DOC_PAGE ${MGARD_DOC_PAGES})
 		set(MGARD_DOC_PAGE_FIXED "${CMAKE_CURRENT_BINARY_DIR}/${MGARD_DOC_PAGE}")
@@ -380,7 +404,7 @@ endif()
 
 find_package(Catch2)
 
-if(Catch2_FOUND)
+if(Catch2_FOUND AND BUILD_TESTING)
 	configure_file("tests/include/testing_paths.hpp.in" "include/testing_paths.hpp")
 	add_executable(mgard-tests ${MGARD_TESTS_CPP})
 	target_include_directories(mgard-tests PRIVATE tests/include "${CMAKE_CURRENT_BINARY_DIR}/include")
@@ -400,11 +424,12 @@ if(MGARD_ENABLE_CUDA)
     target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
     target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-
-    add_executable(BatchTests ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/BatchTests.cpp)
-    target_link_libraries(BatchTests mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(BatchTests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    if(BUILD_TESTING)
+        add_executable(BatchTests ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/BatchTests.cpp)
+        target_link_libraries(BatchTests mgard-library  ${CMAKE_DL_LIBS})
+        target_include_directories(BatchTests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    endif()
 endif()
 
 if(MGARD_ENABLE_CUDA)
@@ -464,7 +489,7 @@ install(
 #Google Benchmark for benchmarks. See <https://github.com/google/benchmark>.
 find_package(benchmark)
 
-if(benchmark_FOUND)
+if(benchmark_FOUND AND MOAB_FOUND)
 	add_executable(mgard-benchmarks ${MGARD_BENCHMARK_CPP})
 	target_link_libraries(mgard-benchmarks PRIVATE benchmark::benchmark benchmark::benchmark_main mgard-library)
 	set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
@@ -473,13 +498,13 @@ else()
 endif()
 
 find_package(yaml-cpp)
-find_package(archive)
-find_package(TCLAP)
+pkg_search_module(archive IMPORTED_TARGET GLOBAL libarchive)
+pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
 
 if(yaml-cpp_FOUND AND archive_FOUND AND TCLAP_FOUND)
 	add_executable(mgard-executable ${MGARD_EXECUTABLE_CPP})
 	target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
-	target_link_libraries(mgard-executable PRIVATE mgard-library yaml-cpp::yaml-cpp archive::archive TCLAP::TCLAP)
+  target_link_libraries(mgard-executable PRIVATE mgard-library yaml-cpp PkgConfig::archive PkgConfig::TCLAP)
 	set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
 
 	install(TARGETS mgard-executable RUNTIME)
