@@ -211,10 +211,10 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
 }
 
 template <std::size_t N, typename Real>
-void *decompresss_internal(unsigned char *b, unsigned char *cb_copy,
-                           const Real s, const Real tol, uint64_t *shape,
-                           GridType grid_type, std::size_t compressed_size,
-                           uint32_t metadata_size) {
+std::unique_ptr<unsigned char const []>
+decompresss_internal(unsigned char *b, unsigned char *cb_copy, const Real s,
+                     const Real tol, uint64_t *shape, GridType grid_type,
+                     std::size_t compressed_size, uint32_t metadata_size) {
   std::array<std::size_t, N> dims = {};
   for (std::size_t i = 0; i < N; i++) {
     dims.at(i) = shape[i];
@@ -239,15 +239,16 @@ void *decompresss_internal(unsigned char *b, unsigned char *cb_copy,
       hierarchy, s, tol, cb_copy, compressed_size - metadata_size);
   const mgard::DecompressedDataset<N, Real> decompressed =
       mgard::decompress(compressed);
-  void *decompressed_buffer = std::malloc(hierarchy.ndof() * sizeof(Real));
+  unsigned char *const decompressed_buffer =
+      new unsigned char[hierarchy.ndof() * sizeof(Real)];
   std::memcpy(decompressed_buffer, decompressed.data(),
               hierarchy.ndof() * sizeof(Real));
 
-  return decompressed_buffer;
+  return std::unique_ptr<unsigned char const[]>(decompressed_buffer);
 }
 
-void const *decompress(void const *const compressed_buffer,
-                       std::size_t compressed_size) {
+std::unique_ptr<unsigned char const []> decompress(
+    void const *const compressed_buffer, std::size_t compressed_size) {
   unsigned char *b = (unsigned char *)compressed_buffer;
 
   char sig_str[SIGNATURE_STR.size() + 1];
@@ -325,7 +326,7 @@ void const *decompress(void const *const compressed_buffer,
           metadata_size,
       compressed_size - metadata_size);
 
-  void *decompressed_buffer = 0;
+  std::unique_ptr<unsigned char const[]> decompressed_buffer;
 
   switch (ndims) {
   case 1:
@@ -406,8 +407,8 @@ std::cout << "metadata_size = " << metadata_size << " and = " << b - (unsigned c
 }
 
 template <std::size_t N, typename Real>
-DecompressedDataset<N, Real>
-decompress(const CompressedDataset<N, Real> &compressed) {
+DecompressedDataset<N, Real> decompress(
+    const CompressedDataset<N, Real> &compressed) {
   const std::size_t ndof = compressed.hierarchy.ndof();
   DEFAULT_INT_T *const quantized =
       static_cast<DEFAULT_INT_T *>(std::malloc(ndof * sizeof(*quantized)));

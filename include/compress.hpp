@@ -106,7 +106,12 @@ template <std::size_t N, typename Real>
 DecompressedDataset<N, Real>
 decompress(const CompressedDataset<N, Real> &compressed);
 
-void const *decompress(void const *const compressed_data);
+//! Decompress a dataset stored in self-describing format.
+//!
+//!\param data Self-describing compressed dataset.
+//!\param size Size in bytes of compressed dataset.
+std::unique_ptr<unsigned char const[]> decompress(void const *const data,
+                                                  const std::size_t size);
 
 } // namespace mgard
 
