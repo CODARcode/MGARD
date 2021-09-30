@@ -5,14 +5,19 @@
 #include <string>
 
 #include "blas.hpp"
+
+#ifdef MGARD_MOAB
 #include "moab/Core.hpp"
+#endif
 
 #include "compress.hpp"
 
+#ifdef MGARD_MOAB
 #include "MassMatrix.hpp"
 #include "MeshLevel.hpp"
 #include "UniformMeshHierarchy.hpp"
 #include "data.hpp"
+#endif
 
 #include "TensorMassMatrix.hpp"
 #include "TensorMultilevelCoefficientQuantizer.hpp"
@@ -304,6 +309,7 @@ COMPRESS_DECOMPRESS_BENCHMARK(1, double);
 COMPRESS_DECOMPRESS_BENCHMARK(2, double);
 COMPRESS_DECOMPRESS_BENCHMARK(3, double);
 
+#ifdef MGARD_MOAB
 static mgard::UniformMeshHierarchy
 read_mesh_and_refine(moab::Core &mbcore, const std::string &filename,
                      const std::size_t L) {
@@ -430,5 +436,6 @@ BENCHMARK_CAPTURE(BM_unstructured_mass_matrix, circle, "circle.msh")
     ->DenseRange(2, 7, 1)
     ->Complexity()
     ->Unit(benchmark::kMillisecond);
+#endif
 
 BENCHMARK_MAIN();
