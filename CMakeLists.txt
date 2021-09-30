@@ -38,8 +38,8 @@ option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add inst
 option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" OFF)
 option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimized for Turing GPUs" OFF)
 
-# Some boilerplate to setup nice output directories
 include(CTest)
+# Some boilerplate to setup nice output directories
 include(GNUInstallDirs)
 if(WIN32 AND NOT CYGWIN)
   set(CMAKE_INSTALL_CMAKEDIR CMake
@@ -187,7 +187,6 @@ set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra")
 
-
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(SANITIZER_DEFAULT ON)
 else()
@@ -260,7 +259,6 @@ install(TARGETS mgard-library EXPORT mgard-targets)
 install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 install(DIRECTORY "include/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 
-#It would be better if these took `MOAB_FOUND` into account.
 set(
 	MGARD_TESTS_HPP
 	tests/include/testing_random.hpp
@@ -274,28 +272,8 @@ set(
 set(
 	MGARD_TESTS_CPP
 	tests/src/testing_utilities.cpp
-	tests/src/test_blas.cpp
-	tests/src/test_estimators.cpp
-	tests/src/test_indicators.cpp
-	tests/src/test_norms.cpp
-	tests/src/test_data.cpp
-	tests/src/test_pcg.cpp
-	tests/src/test_measure.cpp
 	tests/src/test_utilities.cpp
-	tests/src/test_MeshLevel.cpp
-	tests/src/test_MeshHierarchy.cpp
-	tests/src/test_MeshRefiner.cpp
-	tests/src/test_LinearOperator.cpp
-	tests/src/test_MassMatrix.cpp
-	tests/src/test_LinearQuantizer.cpp
-	tests/src/test_UniformMeshHierarchy.cpp
-	tests/src/test_UniformMeshRefiner.cpp
-	tests/src/test_UniformEdgeFamilies.cpp
-	tests/src/test_UniformRestriction.cpp
-	tests/src/test_EnumeratedMeshRange.cpp
-	tests/src/test_SituatedCoefficientRange.cpp
-	tests/src/test_IndicatorInput.cpp
-	tests/src/test_MultilevelCoefficientQuantizer.cpp
+	tests/src/test_blas.cpp
 	tests/src/test_shuffle.cpp
 	tests/src/test_TensorMeshHierarchy.cpp
 	tests/src/test_TensorMeshHierarchyIteration.cpp
@@ -309,6 +287,32 @@ set(
 	tests/src/test_compress.cpp
 	tests/src/test_decompose.cpp
 )
+if(MOAB_FOUND)
+	list(
+		APPEND
+		MGARD_TESTS_CPP
+		tests/src/test_estimators.cpp
+		tests/src/test_indicators.cpp
+		tests/src/test_norms.cpp
+		tests/src/test_data.cpp
+		tests/src/test_pcg.cpp
+		tests/src/test_measure.cpp
+		tests/src/test_MeshLevel.cpp
+		tests/src/test_MeshHierarchy.cpp
+		tests/src/test_MeshRefiner.cpp
+		tests/src/test_LinearOperator.cpp
+		tests/src/test_MassMatrix.cpp
+		tests/src/test_LinearQuantizer.cpp
+		tests/src/test_UniformMeshHierarchy.cpp
+		tests/src/test_UniformMeshRefiner.cpp
+		tests/src/test_UniformEdgeFamilies.cpp
+		tests/src/test_UniformRestriction.cpp
+		tests/src/test_EnumeratedMeshRange.cpp
+		tests/src/test_SituatedCoefficientRange.cpp
+		tests/src/test_IndicatorInput.cpp
+		tests/src/test_MultilevelCoefficientQuantizer.cpp
+	)
+endif()
 
 set(
 	MGARD_EXECUTABLE_HPP
@@ -411,16 +415,18 @@ if(MGARD_ENABLE_DOCS)
 	endif()
 endif()
 
-find_package(Catch2)
+if(BUILD_TESTING)
+	find_package(Catch2)
 
-if(Catch2_FOUND AND BUILD_TESTING)
-	configure_file("tests/include/testing_paths.hpp.in" "include/testing_paths.hpp")
-	add_executable(mgard-tests ${MGARD_TESTS_CPP})
-	target_include_directories(mgard-tests PRIVATE tests/include "${CMAKE_CURRENT_BINARY_DIR}/include")
-	target_link_libraries(mgard-tests PRIVATE mgard-library Catch2::Catch2WithMain)
-	set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
-else()
-	message("-- Will not build tests (dependencies not met).")
+	if(Catch2_FOUND)
+		configure_file("tests/include/testing_paths.hpp.in" "include/testing_paths.hpp")
+		add_executable(mgard-tests ${MGARD_TESTS_CPP})
+		target_include_directories(mgard-tests PRIVATE "tests/include" "${CMAKE_CURRENT_BINARY_DIR}/include")
+		target_link_libraries(mgard-tests PRIVATE mgard-library Catch2::Catch2WithMain)
+		set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
+	else()
+		message("-- Will not build tests (Catch2 not found).")
+	endif()
 endif()
 
 if(MGARD_ENABLE_CUDA)
@@ -540,7 +546,9 @@ message("    CUDA-FMA: ${MGARD_ENABLE_CUDA_FMA}")
 message("  CUDA-VOLTA: ${MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA}")
 message(" CUDA-TURING: ${MGARD_ENABLE_CUDA_OPTIMIZE_TURING}")
 message("        MOAB: ${MOAB_FOUND}")
-message("      Catch2: ${Catch2_FOUND}")
+if(BUILD_TESTING)
+	message("      Catch2: ${Catch2_FOUND}")
+endif()
 message("    yaml-cpp: ${yaml-cpp_FOUND}")
 message("     archive: ${archive_FOUND}")
 message("       TCLAP: ${TCLAP_FOUND}")
