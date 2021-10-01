@@ -436,17 +436,6 @@ if(MGARD_ENABLE_CUDA)
     target_link_libraries(MgardCudaExec mgard-library  ${CMAKE_DL_LIBS})
     target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-
-    add_executable(MgardSerialExec ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/MgardSerialExec.cpp)
-    target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-    if(BUILD_TESTING)
-        add_executable(BatchTests ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/BatchTests.cpp)
-        target_link_libraries(BatchTests mgard-library  ${CMAKE_DL_LIBS})
-        target_include_directories(BatchTests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                 $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-    endif()
 endif()
 
 if(MGARD_ENABLE_CUDA)

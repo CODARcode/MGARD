@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "compress.hpp"
+#include "mgard/compress.hpp"
 // #include "compress_cuda.hpp"
 
 #define ANSI_RED "\x1b[31m"
@@ -116,19 +116,12 @@ void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     original_size *= shape[i];
   decompressed_data = (T *)malloc(original_size * sizeof(T));
   if (dev == CPU) {
-    if (mode == mgard_cuda::error_bound_type::REL)
+    if (mode == mgard_cuda::error_bound_type::REL) {
       tol *= norm;
-    // std::array<std::size_t, D> array_shape;
-    // std::copy(shape.begin(), shape.end(), array_shape.begin());
-    // const mgard::TensorMeshHierarchy<D, T> hierarchy(array_shape);
-    // mgard::CompressedDataset<D, T> compressed_dataset(
-    //     hierarchy, s, tol, compressed_data, compressed_size);
-    // mgard::DecompressedDataset<D, T> decompressed_dataset =
-    //     mgard::decompress(compressed_dataset);
-    // memcpy(decompressed_data, decompressed_dataset.data(),
-    //        original_size * sizeof(T));
-    const void *decompressed_data_void =
+    }
+    const std::unique_ptr<unsigned char const[]> new_data_ =
         mgard::decompress(compressed_data, compressed_size);
+    const void *decompressed_data_void = new_data_.get();
     memcpy(decompressed_data, decompressed_data_void,
            original_size * sizeof(T));
   } else { // GPU
