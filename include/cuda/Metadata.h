@@ -8,8 +8,6 @@
 #ifndef MGRAD_CUDA_METADATA
 #define MGRAD_CUDA_METADATA
 
-#include <stdint.h>
-
 #define MAGIC_WORD "MGARD"
 #define MAGIC_WORD_SIZE 5
 
@@ -17,7 +15,7 @@ namespace mgard_cuda {
 
 struct Metadata {
   // about MGARD software
-  char magic_word[MAGIC_WORD_SIZE + 1] = MAGIC_WORD;
+  char magic_word[MAGIC_WORD_SIZE+1] = MAGIC_WORD;
   uint8_t software_version[3];
   uint8_t file_version[3];
   uint32_t metadata_size;
@@ -26,7 +24,7 @@ struct Metadata {
 
   // about compression
   enum error_bound_type ebtype;
-  double norm; // optional
+  double norm; //optional
   double tol;
   enum norm_type ntype;
   double s; // optional
@@ -39,14 +37,15 @@ struct Metadata {
   enum endiness_type etype;
   enum data_structure_type dstype;
   uint8_t total_dims = 0;
-  uint64_t *shape;
+  uint64_t * shape;
   enum coordinate_location cltype;
-  char *nonuniform_coords_file;
+  char * nonuniform_coords_file;
   std::vector<Byte *> coords;
-
+  
 public:
   SERIALIZED_TYPE *Serialize(uint32_t &total_size);
-  void Deserialize(SERIALIZED_TYPE *serialized_data, uint32_t &total_size);
+  void Deserialize(SERIALIZED_TYPE * serialized_data, 
+                              uint32_t &total_size);
   size_t metadata_size_offset() {
     size_t offset = 0;
     offset += strlen(magic_word);
@@ -66,22 +65,23 @@ public:
   }
 
 private:
-  template <typename T> void Serialize(T &item, SERIALIZED_TYPE *&p) {
-    std::memcpy(p, &item, sizeof(item));
+
+  template <typename T>
+  void Serialize(T &item, SERIALIZED_TYPE * &p) {
+    std::memcpy(p, &item, sizeof(item)); 
     p += sizeof(item);
   }
-  void Serialize(char *item, SERIALIZED_TYPE *&p) {
-    std::memcpy(p, item, strlen(item));
+  void Serialize(char *item, SERIALIZED_TYPE * &p) {
+    std::memcpy(p, item, strlen(item)); 
     p += strlen(item);
-  }
+  } 
   template <typename T, typename N>
-  void Serialize(T *&item, N n, SERIALIZED_TYPE *&p) {
-    std::memcpy(p, item, sizeof(T) * n);
+  void Serialize(T *&item, N n, SERIALIZED_TYPE * &p) {
+    std::memcpy(p, item, sizeof(T) * n); 
     p += sizeof(T) * n;
-  }
+  } 
 
-  void Serialize(std::vector<Byte *> &coords, uint64_t *shape,
-                 enum data_type dtype, SERIALIZED_TYPE *&p) {
+  void Serialize(std::vector<Byte *>& coords, uint64_t * shape, enum data_type dtype, SERIALIZED_TYPE * &p) {
     for (size_t i = 0; i < coords.size(); i++) {
       if (dtype == data_type::Float) {
         Serialize(coords[i], shape[i] * sizeof(float), p);
@@ -89,24 +89,24 @@ private:
         Serialize(coords[i], shape[i] * sizeof(double), p);
       }
     }
-  }
+  } 
 
-  template <typename T> void Deserialize(T &item, SERIALIZED_TYPE *&p) {
-    std::memcpy(&item, p, sizeof(item));
+  template <typename T>
+  void Deserialize(T &item, SERIALIZED_TYPE * &p) {
+    std::memcpy(&item, p, sizeof(item)); 
     p += sizeof(item);
   }
-  void Deserialize(char *item, SERIALIZED_TYPE *&p) {
-    std::memcpy(item, p, strlen(item));
+  void Deserialize(char *item, SERIALIZED_TYPE * &p) {
+    std::memcpy(item, p, strlen(item)); 
     p += strlen(item);
-  }
+  } 
   template <typename T, typename N>
-  void Deserialize(T *&item, N n, SERIALIZED_TYPE *&p) {
-    std::memcpy(item, p, sizeof(T) * n);
+  void Deserialize(T *&item, N n, SERIALIZED_TYPE * &p) {
+    std::memcpy(item, p, sizeof(T) * n); 
     p += sizeof(T) * n;
-  }
+  } 
 
-  void Deserialize(std::vector<Byte *> &coords, uint64_t *shape,
-                   enum data_type dtype, SERIALIZED_TYPE *&p) {
+  void Deserialize(std::vector<Byte *>& coords, uint64_t * shape, enum data_type dtype, SERIALIZED_TYPE * &p) {
     for (size_t i = 0; i < coords.size(); i++) {
       if (dtype == data_type::Float) {
         coords[i] = (Byte *)std::malloc(shape[i] * sizeof(float));
@@ -120,6 +120,6 @@ private:
 
   bool self_initialized;
 };
-} // namespace mgard_cuda
+}
 
 #endif

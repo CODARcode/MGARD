@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #ifndef MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_TEMPLATE
@@ -13,7 +13,7 @@
 #include "IterativeProcessingKernel.h"
 namespace mgard_cuda {
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, int G>
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
 __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
                        DIM processed_n, DIM *processed_dims, DIM curr_dim_r,
                        DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T *dist_f,
@@ -34,28 +34,20 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   T *sm = SharedMemory<T>();
   SIZE ldsm1 = F + G;
   SIZE ldsm2 = C;
-  T *vec_sm = sm;
-  sm += R * ldsm1 * ldsm2;
-  T *am_sm = sm;
-  sm += ldsm1;
-  T *bm_sm = sm;
-  sm += ldsm1;
+  T *vec_sm = sm; sm += R * ldsm1 * ldsm2;
+  T *am_sm = sm; sm += ldsm1;
+  T *bm_sm = sm; sm += ldsm1;
 
-  SIZE *sm_size = (SIZE *)sm;
-  SIZE *shape_sm = sm_size;
-  sm_size += D;
-  SIZE *shape_c_sm = sm_size;
-  sm_size += D;
-  SIZE *ldvs_sm = sm_size;
-  sm_size += D;
-  SIZE *ldws_sm = sm_size;
-  sm_size += D;
-  sm = (T *)sm_size;
+  SIZE * sm_size = (SIZE*)sm;
+  SIZE *shape_sm = sm_size; sm_size += D;
+  SIZE *shape_c_sm = sm_size; sm_size += D;
+  SIZE *ldvs_sm = sm_size; sm_size += D;
+  SIZE *ldws_sm = sm_size; sm_size += D;
+  sm = (T*)sm_size;
 
-  DIM *sm_dim = (DIM *)sm;
-  DIM *processed_dims_sm = sm_dim;
-  sm_dim += D;
-  sm = (T *)sm_dim;
+  DIM * sm_dim = (DIM*)sm;
+  DIM *processed_dims_sm = sm_dim; sm_dim += D;
+  sm = (T*)sm_dim;
 
   SIZE idx[D];
 
@@ -65,8 +57,7 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     ldvs_sm[i] = ldvs[i];
     ldws_sm[i] = ldws[i];
   }
-  for (LENGTH i = threadId; i < processed_n;
-       i += blockDim.x * blockDim.y * blockDim.z) {
+  for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * blockDim.z) {
     processed_dims_sm[i] = processed_dims[i];
   }
   __syncthreads();
@@ -87,43 +78,41 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   SIZE firstD = div_roundup(nc, C);
   SIZE blockId = bidx % firstD;
   // if (debug2) {
-  //   printf("blockIdx.x %u nc %u blockDim.x %u firstD: %u blockId %u\n",
-  //   blockIdx.x, nc, blockDim.x, firstD, blockId);
+  //   printf("blockIdx.x %u nc %u blockDim.x %u firstD: %u blockId %u\n", blockIdx.x, nc, blockDim.x, firstD, blockId);
   // }
   bidx /= firstD;
 
   for (DIM d = 0; d < D; d++) {
     if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
       SIZE t = shape_sm[d];
-      // for (DIM k = 0; k < processed_n; k++) {
+      //for (DIM k = 0; k < processed_n; k++) {
       //  if (d == processed_dims[k]) {
-      t = shape_c_sm[d];
+          t = shape_c_sm[d];
       //  }
       //}
       // if (debug2) {
-      //   printf("%u mod %u = %u, %u / %u = %u (shape_c: %u %u %u %u %u)\n",
-      //   bidx, t, bidx % t, bidx, t, bidx/t, shape_c_sm[4],
-      //   shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
+      //   printf("%u mod %u = %u, %u / %u = %u (shape_c: %u %u %u %u %u)\n", bidx, t, bidx % t, bidx, t, bidx/t, shape_c_sm[4], shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
       // }
       idx[d] = bidx % t;
       bidx /= t;
     }
   }
 
+
   size_t other_offset_v = get_idx<D>(ldvs_sm, idx);
   v = v + other_offset_v;
 
+
   // if (debug2) {
-  //   printf("ipk1 idx: %u %u %u %u %u ld: %u %u %u %u %u\n", idx[4], idx[3],
-  //   idx[2], idx[1], idx[0], ldvs_sm[4], ldvs_sm[3], ldvs_sm[2], ldvs_sm[1],
-  //   ldvs_sm[0]); printf("ipk1 other_offset_v: %llu\n", other_offset_v);
+  //   printf("ipk1 idx: %u %u %u %u %u ld: %u %u %u %u %u\n", idx[4], idx[3], idx[2], idx[1], idx[0], ldvs_sm[4], ldvs_sm[3], ldvs_sm[2], ldvs_sm[1], ldvs_sm[0]);
+  //   printf("ipk1 other_offset_v: %llu\n", other_offset_v);
 
   //   LENGTH curr_stride = 1;
   //   LENGTH ret_idx = 0;
   //   for (DIM i = 0; i < D; i++) {
   //     ret_idx += idx[i] * curr_stride;
-  //     printf("%llu * %llu = %llu\n", curr_stride, ldvs_sm[i],
-  //     curr_stride*ldvs_sm[i]); curr_stride *= ldvs_sm[i];
+  //     printf("%llu * %llu = %llu\n", curr_stride, ldvs_sm[i], curr_stride*ldvs_sm[i]);
+  //     curr_stride *= ldvs_sm[i];
 
   //   }
   // }
@@ -142,10 +131,9 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   // }
 
   // if (debug2) {
-  //   printf("ld: (%d %d %d %d %d) (shape_c: %u %u %u %u %u)\n",
+  //   printf("ld: (%d %d %d %d %d) (shape_c: %u %u %u %u %u)\n", 
   //     ldvs_sm[4], ldvs_sm[3],ldvs_sm[2],ldvs_sm[1],ldvs_sm[0],
-  //     shape_c_sm[4],
-  //     shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
+  //     shape_c_sm[4], shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
   // }
 
   T *vec = v + get_idx(ldv1, ldv2, r_gl, c_gl, 0);
@@ -170,7 +158,7 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
           vec[get_idx(ldv1, ldv2, r_sm, i, f_gl)];
       // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n", r0_stride,
       // i, vec_sm[i * ldsm + c_sm]);
-    }
+    } 
   }
 
   if (r_sm == 0 && f_sm < f_ghost) {
@@ -202,28 +190,25 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     if (r_sm < r_rest && c_sm < c_rest) {
       // if (debug) printf("forward %f <- %f %f %f %f\n",
       //             tridiag_forward2(
-      //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
-      //     c_sm, 0)]),
-      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
-      //             ldsm2, r_sm, c_sm, 0)]);
+      //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
+      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
-      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
-          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
+          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
       //#pragma unroll 32
       for (SIZE i = 1; i < F; i++) {
         // if (debug) printf("forward %f <- %f %f %f %f\n",
         //           tridiag_forward2(
-        //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
-        //     bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
-        //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
-        //           bm_sm[i],
+        //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+        //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
+        //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_forward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+
       }
 
       /* Store last v */
@@ -293,13 +278,10 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     if (r_sm < r_rest && c_sm < c_rest) {
       // if (debug) printf("forward %f <- %f %f %f %f\n",
       //             tridiag_forward2(
-      //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
-      //     c_sm, 0)]),
-      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
-      //             ldsm2, r_sm, c_sm, 0)]);
-      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
-          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+      //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
+      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
+          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
     }
@@ -309,24 +291,20 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     if (r_sm < r_rest && c_sm < c_rest) {
       // if (debug) printf("forward %f <- %f %f %f %f\n",
       //             tridiag_forward2(
-      //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
-      //     c_sm, 0)]),
-      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
-      //             ldsm2, r_sm, c_sm, 0)]);
-      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
-          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+      //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
+      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
+          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
       for (SIZE i = 1; i < f_ghost + f_rest; i++) {
         // if (debug) printf("forward %f <- %f %f %f %f\n",
         //           tridiag_forward2(
-        //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
-        //     bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
-        //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
-        //           bm_sm[i],
+        //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+        //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
+        //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_forward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
       }
     }
   }
@@ -385,27 +363,24 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       // if (debug) printf("backward %f <- %f %f %f %f\n",
       //             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
       //                      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
-      //             ldsm2, r_sm, c_sm, 0)]);
+      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
       //#pragma unroll 32
       for (SIZE i = 1; i < F; i++) {
 
         // if (debug) printf("backward %f <- %f %f %f %f\n",
         //           tridiag_backward2(
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
-        //     i)]),
+        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
         //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
-        //     i)]);
+        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_backward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
+            am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
       }
       /* Store last v */
       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, blockDim.x - 1)];
@@ -461,12 +436,11 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       // if (debug) printf("backward %f <- %f %f %f %f\n",
       //             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
       //                      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
-      //             ldsm2, r_sm, c_sm, 0)]);
+      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
     }
@@ -477,26 +451,24 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       // if (debug) printf("backward %f <- %f %f %f %f\n",
       //             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
       //                      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
-      //             ldsm2, r_sm, c_sm, 0)]);
+      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
       for (SIZE i = 1; i < f_ghost + f_rest; i++) {
 
         // if (debug) printf("backward %f <- %f %f %f %f\n",
         //           tridiag_backward2(
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
-        //     i)]),
+        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
         //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
-        //     i)]);
+        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+
 
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_backward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], 
+            am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
       }
     }
   }
@@ -514,14 +486,15 @@ __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   __syncthreads();
 }
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, int G>
-void ipk_1_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
-                             SIZE *shape_c_h, SIZE *shape_d, SIZE *shape_c_d,
-                             SIZE *ldvs, SIZE *ldws, DIM processed_n,
-                             DIM *processed_dims_h, DIM *processed_dims_d,
-                             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-                             T *am, T *bm, T *ddist_f, T *dv, LENGTH lddv1,
-                             LENGTH lddv2, int queue_idx) {
+
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
+void ipk_1_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
+                             SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws,
+                             DIM processed_n, DIM *processed_dims_h,
+                             DIM *processed_dims_d, DIM curr_dim_r,
+                             DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm,
+                             T *ddist_f, T *dv, LENGTH lddv1, LENGTH lddv2,
+                             int queue_idx) {
 
   SIZE nr = shape_c_h[curr_dim_r];
   SIZE nc = shape_c_h[curr_dim_c];
@@ -550,9 +523,9 @@ void ipk_1_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
   for (DIM d = 0; d < D; d++) {
     if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       SIZE t = shape_h[d];
-      // for (DIM k = 0; k < processed_n; k++) {
+      //for (DIM k = 0; k < processed_n; k++) {
       //  if (d == processed_dims_h[k]) {
-      t = shape_c_h[d];
+          t = shape_c_h[d];
       //  }
       //}
       gridx *= t;
@@ -665,7 +638,7 @@ void ipk_1(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
 #undef IPK
 }
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, int G>
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
 __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
                        DIM processed_n, DIM *processed_dims, DIM curr_dim_r,
                        DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T *dist_c,
@@ -683,42 +656,36 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   LENGTH threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
                     (threadIdx.y * blockDim.x) + threadIdx.x;
 
+
   T *sm = SharedMemory<T>();
   SIZE ldsm1 = F;
   SIZE ldsm2 = C + G;
-  T *vec_sm = sm;
-  sm += R * ldsm1 * ldsm2;
-  T *am_sm = sm;
-  sm += ldsm2;
-  T *bm_sm = sm;
-  sm += ldsm2;
+  T *vec_sm = sm; sm += R * ldsm1 * ldsm2;
+  T *am_sm = sm; sm += ldsm2;
+  T *bm_sm = sm; sm += ldsm2;
 
-  SIZE *sm_size = (SIZE *)sm;
-  SIZE *shape_sm = sm_size;
-  sm_size += D;
-  SIZE *shape_c_sm = sm_size;
-  sm_size += D;
-  SIZE *ldvs_sm = sm_size;
-  sm_size += D;
-  SIZE *ldws_sm = sm_size;
-  sm_size += D;
-  sm = (T *)sm_size;
+  SIZE * sm_size = (SIZE*)sm;
+  SIZE *shape_sm = sm_size; sm_size += D;
+  SIZE *shape_c_sm = sm_size; sm_size += D;
+  SIZE *ldvs_sm = sm_size; sm_size += D;
+  SIZE *ldws_sm = sm_size; sm_size += D;
+  sm = (T*)sm_size;
 
-  DIM *sm_dim = (DIM *)sm;
-  DIM *processed_dims_sm = sm_dim;
-  sm_dim += D;
-  sm = (T *)sm_dim;
+  DIM * sm_dim = (DIM*)sm;
+  DIM *processed_dims_sm = sm_dim; sm_dim += D;
+  sm = (T*)sm_dim;
+
+
 
   SIZE idx[D];
 
-  for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * blockDim.z) {
+ for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * blockDim.z) {
     shape_sm[i] = shape[i];
     shape_c_sm[i] = shape_c[i];
     ldvs_sm[i] = ldvs[i];
     ldws_sm[i] = ldws[i];
   }
-  for (LENGTH i = threadId; i < processed_n;
-       i += blockDim.x * blockDim.y * blockDim.z) {
+   for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * blockDim.z) {
     processed_dims_sm[i] = processed_dims[i];
   }
   __syncthreads();
@@ -742,9 +709,9 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   for (DIM d = 0; d < D; d++) {
     if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
       SIZE t = shape_sm[d];
-      // for (DIM k = 0; k < processed_n; k++) {
+      //for (DIM k = 0; k < processed_n; k++) {
       //  if (d == processed_dims[k]) {
-      t = shape_c_sm[d];
+          t = shape_c_sm[d];
       //  }
       //}
       idx[d] = bidx % t;
@@ -820,9 +787,8 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm *
       //       bm_sm[0];
       // #endif
-      vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
-          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
+      vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
+          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 
       for (SIZE i = 1; i < C; i++) {
         // #ifdef MGARD_CUDA_FMA
@@ -845,8 +811,8 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)] * bm_sm[i];
         // #endif
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_forward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i], bm_sm[i],
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
       }
       /* Store last v */
       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, C - 1, f_sm)];
@@ -913,9 +879,8 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm *
       //       bm_sm[0];
       // #endif
-      vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
-          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
+      vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
+          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
     }
@@ -931,9 +896,8 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm *
       //       bm_sm[0];
       // #endif
-      vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
-          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
+      vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
+          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
       for (SIZE i = 1; i < c_ghost + c_rest; i++) {
         // #ifdef MGARD_CUDA_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
@@ -945,8 +909,8 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)] * bm_sm[i];
         // #endif
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_forward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i], bm_sm[i],
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
       }
     }
   }
@@ -982,8 +946,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
           vec[get_idx(ldv1, ldv2, r_sm, (nc_c - 1) - (c_gl + i), f_sm)];
       // if (debug)
-      //   printf("load vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i,
-      //   f_sm),
+      //   printf("load vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i, f_sm),
       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
     }
   }
@@ -1033,10 +996,9 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       // #endif
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
+                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
       // if (debug)
-      //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0,
-      //   f_sm),
+      //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0, f_sm),
       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 
       for (SIZE i = 1; i < C; i++) {
@@ -1062,12 +1024,11 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
         // #endif
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_backward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], 
+            am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 
         // if (debug)
-        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i,
-        //   f_sm),
+        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i, f_sm),
         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
       }
 
@@ -1144,10 +1105,9 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       // #endif
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
+                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
       // if (debug)
-      //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0,
-      //   f_sm),
+      //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0, f_sm),
       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
@@ -1172,10 +1132,9 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       // #endif
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
+                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
       // if (debug)
-      //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0,
-      //   f_sm),
+      //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0, f_sm),
       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
       for (SIZE i = 1; i < c_ghost + c_rest; i++) {
 
@@ -1199,11 +1158,10 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
         //          f_sm)]) / am_sm[i];
         // #endif
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_backward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)],
+            am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
         // if (debug)
-        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i,
-        //   f_sm),
+        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i, f_sm),
         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
       }
     }
@@ -1222,14 +1180,14 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   __syncthreads();
 }
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, int G>
-void ipk_2_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
-                             SIZE *shape_c_h, SIZE *shape_d, SIZE *shape_c_d,
-                             SIZE *ldvs, SIZE *ldws, DIM processed_n,
-                             DIM *processed_dims_h, DIM *processed_dims_d,
-                             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-                             T *am, T *bm, T *ddist_c, T *dv, LENGTH lddv1,
-                             LENGTH lddv2, int queue_idx) {
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
+void ipk_2_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
+                             SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws,
+                             DIM processed_n, DIM *processed_dims_h,
+                             DIM *processed_dims_d, DIM curr_dim_r,
+                             DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm,
+                             T *ddist_c, T *dv, LENGTH lddv1, LENGTH lddv2,
+                             int queue_idx) {
   SIZE nr = shape_c_h[curr_dim_r];
   SIZE nc_c = shape_c_h[curr_dim_c];
   SIZE nf_c = shape_c_h[curr_dim_f];
@@ -1241,8 +1199,8 @@ void ipk_2_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
   dim3 threadsPerBlock, blockPerGrid;
   size_t sm_size;
 
-  tbx = F; // std::max(F, std::min(F, total_thread_x));
-  tby = R; // std::max(R, std::min(R, total_thread_y));
+  tbx = F;//std::max(F, std::min(F, total_thread_x));
+  tby = R;//std::max(R, std::min(R, total_thread_y));
   tbz = 1;
   sm_size = (R * F + 2) * (C + G) * sizeof(T);
   sm_size += (D * 4) * sizeof(SIZE);
@@ -1255,9 +1213,9 @@ void ipk_2_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
     if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       SIZE t = shape_h[d];
       // for (DIM k = 0; k < processed_n; k++) {
-      // if (d == processed_dims_h[k]) {
-      t = shape_c_h[d];
-      // }
+        // if (d == processed_dims_h[k]) {
+          t = shape_c_h[d];
+        // }
       // }
       gridx *= t;
     }
@@ -1344,7 +1302,7 @@ void ipk_2(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
 #undef IPK
 }
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, int G>
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
 __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
                        DIM processed_n, DIM *processed_dims, DIM curr_dim_r,
                        DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T *dist_r,
@@ -1365,28 +1323,20 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   SIZE ldsm1 = F;
   SIZE ldsm2 = C;
 
-  T *vec_sm = sm;
-  sm += (R + G) * ldsm1 * ldsm2;
-  T *am_sm = sm;
-  sm += (R + G);
-  T *bm_sm = sm;
-  sm += (R + G);
+  T *vec_sm = sm; sm += (R + G) * ldsm1 * ldsm2;
+  T *am_sm = sm; sm += (R + G);
+  T *bm_sm = sm; sm += (R + G);
 
-  SIZE *sm_size = (SIZE *)sm;
-  SIZE *shape_sm = sm_size;
-  sm_size += D;
-  SIZE *shape_c_sm = sm_size;
-  sm_size += D;
-  SIZE *ldvs_sm = sm_size;
-  sm_size += D;
-  SIZE *ldws_sm = sm_size;
-  sm_size += D;
-  sm = (T *)sm_size;
+  SIZE * sm_size = (SIZE*)sm;
+  SIZE *shape_sm = sm_size; sm_size += D;
+  SIZE *shape_c_sm = sm_size; sm_size += D;
+  SIZE *ldvs_sm = sm_size; sm_size += D;
+  SIZE *ldws_sm = sm_size; sm_size += D;
+  sm = (T*)sm_size;
 
-  DIM *sm_dim = (DIM *)sm;
-  DIM *processed_dims_sm = sm_dim;
-  sm_dim += D;
-  sm = (T *)sm_dim;
+  DIM * sm_dim = (DIM*)sm;
+  DIM *processed_dims_sm = sm_dim; sm_dim += D;
+  sm = (T*)sm_dim;
 
   SIZE idx[D];
   for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * blockDim.z) {
@@ -1395,8 +1345,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     ldvs_sm[i] = ldvs[i];
     ldws_sm[i] = ldws[i];
   }
-  for (LENGTH i = threadId; i < processed_n;
-       i += blockDim.x * blockDim.y * blockDim.z) {
+  for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * blockDim.z) {
     processed_dims_sm[i] = processed_dims[i];
   }
   __syncthreads();
@@ -1418,9 +1367,9 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
       SIZE t = shape_sm[d];
       // for (DIM k = 0; k < processed_n; k++) {
-      // if (d == processed_dims[k]) {
-      t = shape_c_sm[d];
-      // }
+        // if (d == processed_dims[k]) {
+          t = shape_c_sm[d];
+        // }
       // }
       idx[d] = bidx % t;
       bidx /= t;
@@ -1502,9 +1451,8 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       //               prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
       //               c_sm, f_sm)]);
 
-      vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+      vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
+          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
 
       for (SIZE i = 1; i < R; i++) {
         // #ifdef MGARD_CUDA_FMA
@@ -1525,8 +1473,8 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_forward2(
-            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i], bm_sm[i],
+            vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
       }
 
       /* Store last v */
@@ -1607,9 +1555,8 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       //               prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
       //               c_sm, f_sm)]);
 
-      vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+      vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
+          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
     }
@@ -1632,9 +1579,8 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       //               prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
       //               c_sm, f_sm)]);
 
-      vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+      vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
+          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (SIZE i = 1; i < r_ghost + r_rest; i++) {
         // #ifdef MGARD_CUDA_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
@@ -1653,8 +1599,8 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_forward2(
-            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i], bm_sm[i],
+            vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
       }
     }
   }
@@ -1741,7 +1687,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                            vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+                           vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (SIZE i = 1; i < R; i++) {
 
         // #ifdef MGARD_CUDA_FMA
@@ -1764,8 +1710,8 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_backward2(
-            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], 
+            am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
       }
 
       /* Store last v */
@@ -1863,7 +1809,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                            vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+                           vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
     }
@@ -1898,7 +1844,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                            vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+                           vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (SIZE i = 1; i < r_ghost + r_rest; i++) {
 
         // #ifdef MGARD_CUDA_FMA
@@ -1930,8 +1876,8 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_backward2(
-            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
-            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], 
+            am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
       }
     }
   }
@@ -1953,14 +1899,15 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   __syncthreads();
 }
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, int G>
-void ipk_3_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
-                             SIZE *shape_c_h, SIZE *shape_d, SIZE *shape_c_d,
-                             SIZE *ldvs, SIZE *ldws, DIM processed_n,
-                             DIM *processed_dims_h, DIM *processed_dims_d,
-                             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-                             T *am, T *bm, T *ddist_r, T *dv, LENGTH lddv1,
-                             LENGTH lddv2, int queue_idx) {
+
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
+void ipk_3_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
+                             SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws,
+                             DIM processed_n, DIM *processed_dims_h,
+                             DIM *processed_dims_d, DIM curr_dim_r,
+                             DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm,
+                             T *ddist_r, T *dv, LENGTH lddv1, LENGTH lddv2,
+                             int queue_idx) {
 
   // printf("am: ");
   // print_matrix_cuda(1, nr, am, nr);
@@ -1978,8 +1925,8 @@ void ipk_3_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
   dim3 threadsPerBlock, blockPerGrid;
   size_t sm_size;
 
-  tbx = F; // std::max(F, std::min(F, total_thread_x));
-  tby = C; // std::max(C, std::min(C, total_thread_y));
+  tbx = F;//std::max(F, std::min(F, total_thread_x));
+  tby = C;//std::max(C, std::min(C, total_thread_y));
   tbz = 1;
   sm_size = (C * F + 2) * (R + G) * sizeof(T);
   sm_size += (D * 4) * sizeof(SIZE);
@@ -1992,8 +1939,8 @@ void ipk_3_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
     if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       SIZE t = shape_h[d];
       // for (DIM k = 0; k < processed_n; k++) {
-      // if (d == processed_dims_h[k]) {
-      t = shape_c_h[d];
+        // if (d == processed_dims_h[k]) {
+          t = shape_c_h[d];
       //   // }
       // }
       gridx *= t;

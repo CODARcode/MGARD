@@ -1,7 +1,7 @@
 set(MGARD_CUDA_SRC
       ${CMAKE_CURRENT_SOURCE_DIR}/API.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/Array.cu
-      ${CMAKE_CURRENT_SOURCE_DIR}/SubArray.cu
+      #${CMAKE_CURRENT_SOURCE_DIR}/SubArray.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/Message.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/CompressionWorkflow.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/Handle.cu
@@ -10,6 +10,8 @@ set(MGARD_CUDA_SRC
       ${CMAKE_CURRENT_SOURCE_DIR}/CommonInternal.cu    
       ${CMAKE_CURRENT_SOURCE_DIR}/PrecomputeKernels.cu  
       ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring.cu   
+      ${CMAKE_CURRENT_SOURCE_DIR}/DeviceAdapters/DeviceAdapterCuda.cu   
+      #${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring_AMR.cu   
       ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernels/InterpCalcCoeff.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernels/InterpCalcCoeff_3D.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernels/Interpolation.cu
@@ -32,6 +34,7 @@ set(MGARD_CUDA_SRC
       ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernels/SolveTridiag1_3D.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernels/SolveTridiag2_3D.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernels/SolveTridiag3_3D.cu
+      #${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernels/SolveTridiag1_3D_AMR.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/LevelwiseProcessingKernels/CopyLevel.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/LevelwiseProcessingKernels/AddLevel.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/LevelwiseProcessingKernels/SubtractLevel.cu
@@ -51,4 +54,7 @@ set(MGARD_CUDA_SRC
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/par_huffman_sortbyfreq.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/par_merge.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/types.cc
+      ${CMAKE_CURRENT_SOURCE_DIR}/MDR/BitplaneEncoder/PerBitBPEncoderGPU.cu
+      #${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsGPU.cu
+      #${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsCPU.cpp
       PARENT_SCOPE)

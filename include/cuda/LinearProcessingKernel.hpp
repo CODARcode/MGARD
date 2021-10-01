@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #ifndef MGRAD_CUDA_LINEAR_PROCESSING_KERNEL_TEMPLATE
@@ -13,12 +13,11 @@
 #include "LinearProcessingKernel.h"
 namespace mgard_cuda {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
-__global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
-                           DIM processed_n, DIM *processed_dims, DIM curr_dim_r,
-                           DIM curr_dim_c, DIM curr_dim_f, T *ddist_f,
-                           T *dratio_f, T *dv1, LENGTH lddv11, LENGTH lddv12,
-                           T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,
-                           LENGTH lddw1, LENGTH lddw2) {
+__global__ void
+_lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM processed_n,
+           DIM *processed_dims, DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+           T *ddist_f, T *dratio_f, T *dv1, LENGTH lddv11, LENGTH lddv12, T *dv2,
+           LENGTH lddv21, LENGTH lddv22, T *dw, LENGTH lddw1, LENGTH lddw2) {
 
   // bool debug = false;
   // if (blockIdx.z == 0 && blockIdx.y == 1 && blockIdx.x == 1 &&
@@ -34,29 +33,21 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   T *sm = SharedMemory<T>();
   SIZE ldsm1 = F * 2 + 3;
   SIZE ldsm2 = C;
-  T *v_sm = sm;
-  sm += ldsm1 * ldsm2 * R;
+  T *v_sm = sm; sm += ldsm1 * ldsm2 * R;
 
-  T *dist_f_sm = sm;
-  sm += ldsm1;
-  T *ratio_f_sm = sm;
-  sm += ldsm1;
+  T *dist_f_sm = sm; sm += ldsm1;
+  T *ratio_f_sm = sm; sm += ldsm1;
 
-  SIZE *sm_size = (SIZE *)sm;
-  SIZE *shape_sm = sm_size;
-  sm_size += D;
-  SIZE *shape_c_sm = sm_size;
-  sm_size += D;
-  SIZE *ldvs_sm = sm_size;
-  sm_size += D;
-  SIZE *ldws_sm = sm_size;
-  sm_size += D;
-  sm = (T *)sm_size;
+  SIZE * sm_size = (SIZE*)sm;
+  SIZE *shape_sm = sm_size; sm_size += D;
+  SIZE *shape_c_sm = sm_size; sm_size += D;
+  SIZE *ldvs_sm = sm_size; sm_size += D;
+  SIZE *ldws_sm = sm_size; sm_size += D;
+  sm = (T*)sm_size;
 
-  DIM *sm_dim = (DIM *)sm;
-  DIM *processed_dims_sm = sm_dim;
-  sm_dim += D;
-  sm = (T *)sm_dim;
+  DIM * sm_dim = (DIM*)sm;
+  DIM *processed_dims_sm = sm_dim; sm_dim += D;
+  sm = (T*)sm_dim;
 
   SIZE idx[D];
   if (threadId < D) {
@@ -204,10 +195,9 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     }
 
     // right
-    if (!PADDING) { // other = nf_c - 1
+    if (!PADDING) { //other = nf_c - 1
       if (nf_c % 2 != 0) {
-        if (f_gl >= 1 && f_gl < nf_c) { // shift for better memory access
-                                        // pattern
+        if (f_gl >= 1 && f_gl < nf_c) { //shift for better memory access pattern
           // if (debug) printf("load right vsm[%d]: %f <- %d %d %d\n", f_sm * 2
           // + 1, dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl - 1)], r_gl,
           // c_gl, f_gl - 1);
@@ -218,7 +208,7 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
           v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm * 2 + 1)] = 0.0;
         }
       } else { // nf_c % 2 == 0, do not shift
-        if (f_gl < nf_c - 1) {
+        if (f_gl < nf_c - 1) { 
           // if (debug) printf("load right vsm[%d]: %f <- %d %d %d\n", f_sm * 2
           // + 3, dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl)], r_gl, c_gl,
           // f_gl);
@@ -231,8 +221,7 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       }
     } else { // PADDING other = nf_c - 2
       if (nf_c % 2 != 0) {
-        if (f_gl >= 1 &&
-            f_gl < nf_c - 1) { // shift for better memory access pattern
+        if (f_gl >= 1 && f_gl < nf_c - 1) { //shift for better memory access pattern
           // if (debug) printf("load right vsm[%d]: %f <- %d %d %d\n", f_sm * 2
           // + 1, dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl - 1)], r_gl,
           // c_gl, f_gl - 1);
@@ -242,7 +231,7 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
           // if (debug) printf("load right vsm[%d]: 0\n", f_sm * 2 + 1);
           v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm * 2 + 1)] = 0.0;
         }
-      } else {                 // nf_c % 2 == 0
+      } else { // nf_c % 2 == 0
         if (f_gl < nf_c - 2) { // do not shift
           // if (debug) printf("load right vsm[%d]: %f <- %d %d %d\n", f_sm * 2
           // + 3, dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl)], r_gl, c_gl,
@@ -286,9 +275,8 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       } else {
         if (nf_c % 2 != 0) {
           if (f_gl < nf_c - 2) {
-            // if (debug) printf("actual_F(%d), load right+1 vsm[%d]: %f <- %d
-            // %d %d\n", actual_F, actual_F * 2 + 1, dv2[get_idx(lddv21, lddv22,
-            // r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
+            // if (debug) printf("actual_F(%d), load right+1 vsm[%d]: %f <- %d %d %d\n", 
+                              // actual_F, actual_F * 2 + 1, dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
             v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, actual_F * 2 + 1)] =
                 dv2[get_idx(lddv21, lddv22, r_gl, c_gl, f_gl)];
           } else {
@@ -314,12 +302,9 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
   // if (debug)  printf("actual_F: %d\n", actual_F);
   if (r_sm == 0 && c_sm == 0 && f_sm < actual_F) {
-    // if (debug) printf("blockId * F * 2 + f_sm = %d\n", blockId * F * 2 +
-    // f_sm);
-    if (blockId * F * 2 + f_sm <
-        nf) { // padding: num of dist == nf, non-padding: non of dist == nf - 1
-      // if (debug) printf("load dist/ratio1[%d]: %f <- %d\n", 2 + f_sm,
-      // ddist_f[blockId * F * 2 + f_sm], blockId * F * 2 + f_sm);
+    // if (debug) printf("blockId * F * 2 + f_sm = %d\n", blockId * F * 2 + f_sm);
+    if (blockId * F * 2 + f_sm < nf) { // padding: num of dist == nf, non-padding: non of dist == nf - 1 
+      // if (debug) printf("load dist/ratio1[%d]: %f <- %d\n", 2 + f_sm, ddist_f[blockId * F * 2 + f_sm], blockId * F * 2 + f_sm);
       dist_f_sm[2 + f_sm] = ddist_f[blockId * F * 2 + f_sm];
       ratio_f_sm[2 + f_sm] = dratio_f[blockId * F * 2 + f_sm];
     } else {
@@ -329,9 +314,7 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     }
 
     if (blockId * F * 2 + actual_F + f_sm < nf) {
-      // if (debug) printf("load dist/ratio2[%d]: %f <- %d\n", 2 + actual_F +
-      // f_sm, ddist_f[blockId * F * 2 + actual_F + f_sm], blockId * F * 2 +
-      // actual_F + f_sm);
+      // if (debug) printf("load dist/ratio2[%d]: %f <- %d\n", 2 + actual_F + f_sm, ddist_f[blockId * F * 2 + actual_F + f_sm], blockId * F * 2 + actual_F + f_sm);
       dist_f_sm[2 + actual_F + f_sm] =
           ddist_f[blockId * F * 2 + actual_F + f_sm];
       ratio_f_sm[2 + actual_F + f_sm] =
@@ -347,8 +330,7 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     if (f_sm < 2) {
       // dist_f_sm[f_sm] = ddist_f[f_gl - 2];
       // ratio_f_sm[f_sm] = dratio_f[f_gl - 2];
-      // if (debug) printf("load dist/ratio-1[%d]: %f <- %d\n", f_sm,
-      // ddist_f[blockId * F * 2 + f_sm - 2], blockId * F * 2 + f_sm - 2);
+      // if (debug) printf("load dist/ratio-1[%d]: %f <- %d\n", f_sm, ddist_f[blockId * F * 2 + f_sm - 2], blockId * F * 2 + f_sm - 2);
       dist_f_sm[f_sm] = ddist_f[blockId * F * 2 + f_sm - 2];
       ratio_f_sm[f_sm] = dratio_f[blockId * F * 2 + f_sm - 2];
     }
@@ -377,12 +359,11 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     T d = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm * 2 + 3)];
     T e = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm * 2 + 4)];
 
+
     // bool debug = false;
     // if (idx[3] == 0) debug = false;
     // if (debug) {
-    //   printf("f_sm(%d) %f %f %f %f %f f_sm_h %f %f %f %f f_sm_r %f %f %f %f,
-    //   out: %f\n",f_sm, a,b,c,d,e, h1,h2,h3,h4,r1,r2,r3,r4, mass_trans(a, b,
-    //   c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
+    //   printf("f_sm(%d) %f %f %f %f %f f_sm_h %f %f %f %f f_sm_r %f %f %f %f, out: %f\n",f_sm, a,b,c,d,e, h1,h2,h3,h4,r1,r2,r3,r4, mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
     // }
 
     // T tb = a * h1/6 + b * (h1+h2)/3 + c * h2/6;
@@ -414,13 +395,14 @@ __global__ void _lpk_reo_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 }
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
-void lpk_reo_1_adaptive_launcher(
-    Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
-    SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,
-    DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,
-    DIM curr_dim_c, DIM curr_dim_f, T *ddist_f, T *dratio_f, T *dv1,
-    LENGTH lddv11, LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,
-    LENGTH lddw1, LENGTH lddw2, int queue_idx) {
+void lpk_reo_1_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
+                                 SIZE *shape_c_h, SIZE *shape_d, SIZE *shape_c_d,
+                                 SIZE *ldvs, SIZE *ldws, DIM processed_n,
+                                 DIM *processed_dims_h, DIM *processed_dims_d,
+                                 DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+                                 T *ddist_f, T *dratio_f, T *dv1, LENGTH lddv11,
+                                 LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22,
+                                 T *dw, LENGTH lddw1, LENGTH lddw2, int queue_idx) {
   SIZE nr = shape_h[curr_dim_r];
   SIZE nc = shape_h[curr_dim_c];
   SIZE nf = shape_h[curr_dim_f];
@@ -472,13 +454,12 @@ void lpk_reo_1_adaptive_launcher(
 }
 
 template <DIM D, typename T>
-void lpk_reo_1(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
-               SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws,
-               DIM processed_n, DIM *processed_dims_h, DIM *processed_dims_d,
-               DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, T *ddist_f,
-               T *dratio_f, T *dv1, LENGTH lddv11, LENGTH lddv12, T *dv2,
-               LENGTH lddv21, LENGTH lddv22, T *dw, LENGTH lddw1, LENGTH lddw2,
-               int queue_idx, int config) {
+void lpk_reo_1(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
+               SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,
+               DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,
+               DIM curr_dim_c, DIM curr_dim_f, T *ddist_f, T *dratio_f, T *dv1,
+               LENGTH lddv11, LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,
+               LENGTH lddw1, LENGTH lddw2, int queue_idx, int config) {
 #define LPK(R, C, F)                                                           \
   {                                                                            \
     lpk_reo_1_adaptive_launcher<D, T, R, C, F>(                                \
@@ -564,12 +545,11 @@ void lpk_reo_1(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
 }
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
-__global__ void _lpk_reo_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
-                           DIM processed_n, DIM *processed_dims, DIM curr_dim_r,
-                           DIM curr_dim_c, DIM curr_dim_f, T *ddist_c,
-                           T *dratio_c, T *dv1, LENGTH lddv11, LENGTH lddv12,
-                           T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,
-                           LENGTH lddw1, LENGTH lddw2) {
+__global__ void
+_lpk_reo_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM processed_n,
+           DIM *processed_dims, DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+           T *ddist_c, T *dratio_c, T *dv1, LENGTH lddv11, LENGTH lddv12, T *dv2,
+           LENGTH lddv21, LENGTH lddv22, T *dw, LENGTH lddw1, LENGTH lddw2) {
 
   // bool debug = false;
   // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
@@ -582,32 +562,25 @@ __global__ void _lpk_reo_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   LENGTH threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
                     (threadIdx.y * blockDim.x) + threadIdx.x;
 
+
   T *sm = SharedMemory<T>();
   SIZE ldsm1 = F;
   SIZE ldsm2 = C * 2 + 3;
-  T *v_sm = sm;
-  sm += ldsm1 * ldsm2 * R;
+  T *v_sm = sm; sm += ldsm1 * ldsm2 * R;
 
-  T *dist_c_sm = sm;
-  sm += ldsm2;
-  T *ratio_c_sm = sm;
-  sm += ldsm2;
+  T *dist_c_sm = sm; sm += ldsm2;
+  T *ratio_c_sm = sm; sm += ldsm2;
 
-  SIZE *sm_size = (SIZE *)sm;
-  SIZE *shape_sm = sm_size;
-  sm_size += D;
-  SIZE *shape_c_sm = sm_size;
-  sm_size += D;
-  SIZE *ldvs_sm = sm_size;
-  sm_size += D;
-  SIZE *ldws_sm = sm_size;
-  sm_size += D;
-  sm = (T *)sm_size;
+  SIZE * sm_size = (SIZE*)sm;
+  SIZE *shape_sm = sm_size; sm_size += D;
+  SIZE *shape_c_sm = sm_size; sm_size += D;
+  SIZE *ldvs_sm = sm_size; sm_size += D;
+  SIZE *ldws_sm = sm_size; sm_size += D;
+  sm = (T*)sm_size;
 
-  DIM *sm_dim = (DIM *)sm;
-  DIM *processed_dims_sm = sm_dim;
-  sm_dim += D;
-  sm = (T *)sm_dim;
+  DIM * sm_dim = (DIM*)sm;
+  DIM *processed_dims_sm = sm_dim; sm_dim += D;
+  sm = (T*)sm_dim;
 
   SIZE idx[D];
   if (threadId < D) {
@@ -836,10 +809,9 @@ __global__ void _lpk_reo_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     //   // printf("f_sm(%d) b c d: %f %f %f\n", f_sm, tb, tc, td);
     // }
 
+    
     // if (debug) {
-    //   printf("f_sm(%d) %f %f %f %f %f f_sm_h %f %f %f %f f_sm_r %f %f %f %f,
-    //   out: %f\n",f_sm, a,b,c,d,e, h1,h2,h3,h4,r1,r2,r3,r4, mass_trans(a, b,
-    //   c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
+    //   printf("f_sm(%d) %f %f %f %f %f f_sm_h %f %f %f %f f_sm_r %f %f %f %f, out: %f\n",f_sm, a,b,c,d,e, h1,h2,h3,h4,r1,r2,r3,r4, mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
     // }
 
     dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)] =
@@ -861,14 +833,16 @@ __global__ void _lpk_reo_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   }
 }
 
+
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
-void lpk_reo_2_adaptive_launcher(
-    Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
-    SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,
-    DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,
-    DIM curr_dim_c, DIM curr_dim_f, T *ddist_c, T *dratio_c, T *dv1,
-    LENGTH lddv11, LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,
-    LENGTH lddw1, LENGTH lddw2, int queue_idx) {
+void lpk_reo_2_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
+                                 SIZE *shape_c_h, SIZE *shape_d, SIZE *shape_c_d,
+                                 SIZE *ldvs, SIZE *ldws, DIM processed_n,
+                                 DIM *processed_dims_h, DIM *processed_dims_d,
+                                 DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+                                 T *ddist_c, T *dratio_c, T *dv1, LENGTH lddv11,
+                                 LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22,
+                                 T *dw, LENGTH lddw1, LENGTH lddw2, int queue_idx) {
 
   SIZE nr = shape_h[curr_dim_r];
   SIZE nc = shape_h[curr_dim_c];
@@ -922,13 +896,12 @@ void lpk_reo_2_adaptive_launcher(
 }
 
 template <DIM D, typename T>
-void lpk_reo_2(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
-               SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws,
-               DIM processed_n, DIM *processed_dims_h, DIM *processed_dims_d,
-               DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, T *ddist_c,
-               T *dratio_c, T *dv1, LENGTH lddv11, LENGTH lddv12, T *dv2,
-               LENGTH lddv21, LENGTH lddv22, T *dw, LENGTH lddw1, LENGTH lddw2,
-               int queue_idx, int config) {
+void lpk_reo_2(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
+               SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,
+               DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,
+               DIM curr_dim_c, DIM curr_dim_f, T *ddist_c, T *dratio_c, T *dv1,
+               LENGTH lddv11, LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,
+               LENGTH lddw1, LENGTH lddw2, int queue_idx, int config) {
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \
@@ -995,12 +968,11 @@ void lpk_reo_2(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
 }
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
-__global__ void _lpk_reo_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
-                           DIM processed_n, DIM *processed_dims, DIM curr_dim_r,
-                           DIM curr_dim_c, DIM curr_dim_f, T *ddist_r,
-                           T *dratio_r, T *dv1, LENGTH lddv11, LENGTH lddv12,
-                           T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,
-                           LENGTH lddw1, LENGTH lddw2) {
+__global__ void
+_lpk_reo_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM processed_n,
+           DIM *processed_dims, DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+           T *ddist_r, T *dratio_r, T *dv1, LENGTH lddv11, LENGTH lddv12, T *dv2,
+           LENGTH lddv21, LENGTH lddv22, T *dw, LENGTH lddw1, LENGTH lddw2) {
 
   // bool debug = false;
   // if (blockIdx.z == gridDim.z-1 && blockIdx.y == 0 && blockIdx.x == 0 &&
@@ -1016,29 +988,21 @@ __global__ void _lpk_reo_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   T *sm = SharedMemory<T>();
   SIZE ldsm1 = F;
   SIZE ldsm2 = C;
-  T *v_sm = sm;
-  sm += ldsm1 * ldsm2 * (R * 2 + 3);
+  T *v_sm = sm; sm += ldsm1 * ldsm2 * (R * 2 + 3);
 
-  T *dist_r_sm = sm;
-  sm += (R * 2 + 3);
-  T *ratio_r_sm = sm;
-  sm += (R * 2 + 3);
+  T *dist_r_sm = sm; sm += (R * 2 + 3);
+  T *ratio_r_sm = sm; sm += (R * 2 + 3);
 
-  SIZE *sm_size = (SIZE *)sm;
-  SIZE *shape_sm = sm_size;
-  sm_size += D;
-  SIZE *shape_c_sm = sm_size;
-  sm_size += D;
-  SIZE *ldvs_sm = sm_size;
-  sm_size += D;
-  SIZE *ldws_sm = sm_size;
-  sm_size += D;
-  sm = (T *)sm_size;
+  SIZE * sm_size = (SIZE*)sm;
+  SIZE *shape_sm = sm_size; sm_size += D;
+  SIZE *shape_c_sm = sm_size; sm_size += D;
+  SIZE *ldvs_sm = sm_size; sm_size += D;
+  SIZE *ldws_sm = sm_size; sm_size += D;
+  sm = (T*)sm_size;
 
-  DIM *sm_dim = (DIM *)sm;
-  DIM *processed_dims_sm = sm_dim;
-  sm_dim += D;
-  sm = (T *)sm_dim;
+  DIM * sm_dim = (DIM*)sm;
+  DIM *processed_dims_sm = sm_dim; sm_dim += D;
+  sm = (T*)sm_dim;
 
   SIZE idx[D];
   if (threadId < D) {
@@ -1273,9 +1237,7 @@ __global__ void _lpk_reo_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     // tc += tb * r1 + td * r4;
 
     // if (debug) {
-    //   printf("f_sm(%d) %f %f %f %f %f f_sm_h %f %f %f %f f_sm_r %f %f %f %f,
-    //   out: %f\n",f_sm, a,b,c,d,e, h1,h2,h3,h4,r1,r2,r3,r4, mass_trans(a, b,
-    //   c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
+    //   printf("f_sm(%d) %f %f %f %f %f f_sm_h %f %f %f %f f_sm_r %f %f %f %f, out: %f\n",f_sm, a,b,c,d,e, h1,h2,h3,h4,r1,r2,r3,r4, mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
     // }
 
     dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)] =
@@ -1305,13 +1267,14 @@ __global__ void _lpk_reo_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 }
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
-void lpk_reo_3_adaptive_launcher(
-    Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
-    SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,
-    DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,
-    DIM curr_dim_c, DIM curr_dim_f, T *ddist_r, T *dratio_r, T *dv1,
-    LENGTH lddv11, LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,
-    LENGTH lddw1, LENGTH lddw2, int queue_idx) {
+void lpk_reo_3_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
+                                 SIZE *shape_c_h, SIZE *shape_d, SIZE *shape_c_d,
+                                 SIZE *ldvs, SIZE *ldws, DIM processed_n,
+                                 DIM *processed_dims_h, DIM *processed_dims_d,
+                                 DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+                                 T *ddist_r, T *dratio_r, T *dv1, LENGTH lddv11,
+                                 LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22,
+                                 T *dw, LENGTH lddw1, LENGTH lddw2, int queue_idx) {
 
   SIZE nr = shape_h[curr_dim_r];
   SIZE nc = shape_h[curr_dim_c];
@@ -1367,13 +1330,12 @@ void lpk_reo_3_adaptive_launcher(
 }
 
 template <DIM D, typename T>
-void lpk_reo_3(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
-               SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws,
-               DIM processed_n, DIM *processed_dims_h, DIM *processed_dims_d,
-               DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, T *ddist_r,
-               T *dratio_r, T *dv1, LENGTH lddv11, LENGTH lddv12, T *dv2,
-               LENGTH lddv21, LENGTH lddv22, T *dw, LENGTH lddw1, LENGTH lddw2,
-               int queue_idx, int config) {
+void lpk_reo_3(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
+               SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,
+               DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,
+               DIM curr_dim_c, DIM curr_dim_f, T *ddist_r, T *dratio_r, T *dv1,
+               LENGTH lddv11, LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,
+               LENGTH lddw1, LENGTH lddw2, int queue_idx, int config) {
 
 #define LPK(R, C, F)                                                           \
   {                                                                            \

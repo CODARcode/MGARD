@@ -5,12 +5,12 @@
  * Date: September 27, 2021
  */
 #include "cuda/CommonInternal.h"
-
+#include "MGARDConfig.hpp"
 #include "cuda/Metadata.h"
 
-#include "MGARDConfig.hpp"
-
 namespace mgard_cuda {
+
+
 
 SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   total_size = 0;
@@ -33,10 +33,9 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   if (ntype == norm_type::L_2) {
     total_size += sizeof(s); // s
   }
-  total_size += sizeof(l_target); // l_target;
+  total_size += sizeof(l_target); //l_target;
   total_size += sizeof(ltype);
-  if (ltype == lossless_type::GPU_Huffman ||
-      ltype == lossless_type::GPU_Huffman_LZ4) {
+  if (ltype == lossless_type::GPU_Huffman || ltype == lossless_type::GPU_Huffman_LZ4) {
     total_size += sizeof(dict_size); // dict size
   }
 
@@ -44,13 +43,13 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   total_size += sizeof(dtype);
   total_size += sizeof(etype);
   total_size += sizeof(dstype);
-  total_size += sizeof(total_dims);            // total_dims;
+  total_size += sizeof(total_dims); // total_dims;
   total_size += sizeof(shape[0]) * total_dims; // shape;
   if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
     total_size += sizeof(cltype);
     if (cltype == coordinate_location::Embedded) {
       size_t coord_size = 0;
-      for (DIM d = 0; d < total_dims; d++) {
+      for (DIM d = 0; d < total_dims; d ++) {
         if (dtype == data_type::Float) {
           coord_size += shape[d] * sizeof(float);
         } else if (dtype == data_type::Double) {
@@ -66,6 +65,7 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   // initialize some fields
   metadata_size = total_size;
 
+
   software_version[0] = MGARD_VERSION_MAJOR;
   software_version[1] = MGARD_VERSION_MINOR;
   software_version[2] = MGARD_VERSION_PATCH;
@@ -73,13 +73,13 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   file_version[0] = MGARD_FILE_VERSION_MAJOR;
   file_version[1] = MGARD_FILE_VERSION_MINOR;
   file_version[2] = MGARD_FILE_VERSION_PATCH;
-
+  
   // to be replaced with actual CRC-32 checksum
   metadata_crc32 = 0;
-
+  
   // start serializing
-  SERIALIZED_TYPE *serialized_data = (SERIALIZED_TYPE *)std::malloc(total_size);
-  SERIALIZED_TYPE *p = serialized_data;
+  SERIALIZED_TYPE * serialized_data = (SERIALIZED_TYPE *)std::malloc(total_size);
+  SERIALIZED_TYPE * p = serialized_data;
   Serialize(&magic_word[0], p);
   Serialize(software_version, p);
   Serialize(file_version, p);
@@ -87,9 +87,10 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   Serialize(metadata_crc32, p);
   Serialize(ptype, p);
 
+
   Serialize(ebtype, p);
-  if (ebtype == error_bound_type::REL) {
-    Serialize(norm, p);
+  if (ebtype == error_bound_type::REL) { 
+    Serialize(norm, p); 
   }
   Serialize(tol, p);
   Serialize(ntype, p);
@@ -98,8 +99,7 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   }
   Serialize(l_target, p);
   Serialize(ltype, p);
-  if (ltype == lossless_type::GPU_Huffman ||
-      ltype == lossless_type::GPU_Huffman_LZ4) {
+  if (ltype == lossless_type::GPU_Huffman || ltype == lossless_type::GPU_Huffman_LZ4) {
     Serialize(dict_size, p);
   }
 
@@ -112,7 +112,7 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
     Serialize(cltype, p);
     if (cltype == coordinate_location::Embedded) {
       Serialize(coords, shape, dtype, p);
-    } else if (cltype == coordinate_location::External) {
+    } else if (cltype == coordinate_location::External){
       Serialize(nonuniform_coords_file, p);
     }
   }
@@ -120,9 +120,9 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   return serialized_data;
 }
 
-void Metadata::Deserialize(SERIALIZED_TYPE *serialized_data,
-                           uint32_t &total_size) {
-  SERIALIZED_TYPE *p = serialized_data;
+void Metadata::Deserialize(SERIALIZED_TYPE * serialized_data, 
+                            uint32_t &total_size) {
+  SERIALIZED_TYPE * p = serialized_data;
 
   Deserialize(&magic_word[0], p);
   Deserialize(software_version, p);
@@ -132,8 +132,8 @@ void Metadata::Deserialize(SERIALIZED_TYPE *serialized_data,
   Deserialize(ptype, p);
 
   Deserialize(ebtype, p);
-  if (ebtype == error_bound_type::REL) {
-    Deserialize(norm, p);
+  if (ebtype == error_bound_type::REL) { 
+    Deserialize(norm, p); 
   }
   Deserialize(tol, p);
   Deserialize(ntype, p);
@@ -142,8 +142,7 @@ void Metadata::Deserialize(SERIALIZED_TYPE *serialized_data,
   }
   Deserialize(l_target, p);
   Deserialize(ltype, p);
-  if (ltype == lossless_type::GPU_Huffman ||
-      ltype == lossless_type::GPU_Huffman_LZ4) {
+  if (ltype == lossless_type::GPU_Huffman || ltype == lossless_type::GPU_Huffman_LZ4) {
     Deserialize(dict_size, p);
   }
 
@@ -168,4 +167,4 @@ void Metadata::Deserialize(SERIALIZED_TYPE *serialized_data,
   self_initialized = true;
 }
 
-} // namespace mgard_cuda
+}

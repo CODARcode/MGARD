@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #ifndef MGARD_CUDA_PRECOMPUTE_KERNELS
@@ -25,7 +25,7 @@ void dist_to_ratio(Handle<D, T> &handle, int n, T *ddist, T *dratio,
 
 template <DIM D, typename T>
 void dist_to_volume(Handle<D, T> &handle, int n, T *ddist, T *dvolume,
-                    int queue_idx);
+                   int queue_idx);
 
 template <DIM D, typename T>
 void calc_am_bm(Handle<D, T> &handle, int n, T *ddist, T *am, T *bm,
