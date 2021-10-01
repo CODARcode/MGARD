@@ -2,10 +2,10 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 #include "cuda/CommonInternal.h"
-
+ 
 #include "cuda/IterativeProcessingKernel3D.h"
 #include "cuda/IterativeProcessingKernel3D.hpp"
 
@@ -13,8 +13,9 @@ namespace mgard_cuda {
 
 #define KERNELS(D, T)                                                          \
   template void ipk_3_3d<D, T>(                                                \
-      Handle<D, T> & handle, SIZE nr_c, SIZE nc_c, SIZE nf_c, T * am, T * bm,  \
-      T * ddist_r, T * dv, SIZE lddv1, SIZE lddv2, int queue_idx, int config);
+      Handle<D, T> & handle, SIZE nr_c, SIZE nc_c, SIZE nf_c, T *am, T *bm,       \
+      T *ddist_r, T *dv, SIZE lddv1, SIZE lddv2, int queue_idx, int config);\
+  template class Ipk3Reo3D<Handle<D, T>, D, T, CUDA>;
 
 KERNELS(1, double)
 KERNELS(1, float)

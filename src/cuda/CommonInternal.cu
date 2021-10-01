@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include "cuda/CommonInternal.h"
@@ -35,16 +35,7 @@ bool is_2kplus1_cuda(double num) {
 //   return ld2 * ld1 * z + ld1 * y + x;
 // }
 
-template <DIM D> int check_shape(std::vector<SIZE> shape) {
-  if (D != shape.size()) {
-    return -1;
-  }
-  for (DIM i = 0; i < shape.size(); i++) {
-    if (shape[i] < 3)
-      return -2;
-  }
-  return 0;
-}
+
 
 template int check_shape<1>(std::vector<SIZE> shape);
 template int check_shape<2>(std::vector<SIZE> shape);

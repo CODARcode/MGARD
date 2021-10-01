@@ -5,8 +5,9 @@
  * Date: September 27, 2021
  */
 
-#ifndef MGARD_CUDA_MEMORY_MANAGEMENT
-#define MGARD_CUDA_MEMORY_MANAGEMENT
+#ifndef MGARD_CUDA_MEMORY_MANAGEMENT_H
+#define MGARD_CUDA_MEMORY_MANAGEMENT_H
+
 
 #include "Handle.h"
 
@@ -18,7 +19,7 @@ enum copy_type { H2D, D2H, D2D, H2H, AUTO };
 
 enum endiness_type CheckEndianess();
 
-template <typename SubArrayType>
+template <typename SubArrayType> 
 void PrintSubarray(std::string name, SubArrayType subArray);
 
 template <typename T> void print_matrix(SIZE nrow, SIZE ncol, T *v, SIZE ldv);
@@ -37,13 +38,12 @@ template <typename T>
 bool compare_matrix_cuda(SIZE nrow, SIZE ncol, T *dv1, SIZE lddv1, T *dv2,
                          SIZE lddv2);
 template <typename T>
-bool compare_matrix(SIZE nrow, SIZE ncol, SIZE nfib, T *v1, SIZE ldv11,
-                    SIZE ldv12, T *v2, SIZE ldv21, SIZE ldv22,
-                    bool print_matrix);
+bool compare_matrix(SIZE nrow, SIZE ncol, SIZE nfib, T *v1, SIZE ldv11, SIZE ldv12,
+                    T *v2, SIZE ldv21, SIZE ldv22, bool print_matrix);
 template <typename T>
 bool compare_matrix_cuda(SIZE nrow, SIZE ncol, SIZE nfib, T *dv1, SIZE lddv11,
-                         SIZE lddv12, SIZE sizex1, T *dv2, SIZE lddv21,
-                         SIZE lddv22, SIZE sizex2, bool print_matrix);
+                         SIZE lddv12, SIZE sizex1, T *dv2, SIZE lddv21, SIZE lddv22,
+                         SIZE sizex2, bool print_matrix);
 
 template <typename T>
 void verify_matrix(SIZE nrow, SIZE ncol, SIZE nfib, T *v, SIZE ldv1, SIZE ldv2,
@@ -57,12 +57,12 @@ template <DIM D, typename T>
 void cudaMallocHelper(Handle<D, T> &handle, void **devPtr, size_t size_t);
 
 template <DIM D, typename T>
-void cudaMallocPitchHelper(Handle<D, T> &handle, void **devPtr, size_t *pitch,
-                           size_t width, size_t height);
+void cudaMallocPitchHelper(Handle<D, T> &handle, void **devPtr, size_t *pitch, size_t width,
+                           size_t height);
 
 template <DIM D, typename T>
-void cudaMalloc3DHelper(Handle<D, T> &handle, void **devPtr, size_t *pitch,
-                        size_t width, size_t height, size_t depth);
+void cudaMalloc3DHelper(Handle<D, T> &handle, void **devPtr, size_t *pitch, size_t width,
+                        size_t height, size_t depth);
 void cudaMallocHostHelper(void **ptr, size_t size_t);
 
 template <DIM D, typename T>

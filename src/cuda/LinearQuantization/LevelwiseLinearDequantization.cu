@@ -2,11 +2,11 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include "cuda/CommonInternal.h"
-
+ 
 #include "cuda/LinearQuantization.h"
 #include "cuda/LinearQuantization.hpp"
 
@@ -17,7 +17,9 @@ namespace mgard_cuda {
       Handle<D, T> & handle, SIZE * shapes, SIZE l_target, T * volumes,        \
       SIZE ldvolumes, Metadata & m, QUANTIZED_INT * dv, SIZE * ldvs,           \
       T * dwork, SIZE * ldws, bool prep_huffman, LENGTH outlier_count,         \
-      LENGTH *outlier_idx, QUANTIZED_INT *outliers, int queue_idx);
+      LENGTH *outlier_idx, QUANTIZED_INT *outliers, int queue_idx);\
+  template class LevelwiseLinearDequantizeND<Handle<D, T>, D, T, CUDA>;
+
 
 KERNELS(1, double)
 KERNELS(1, float)

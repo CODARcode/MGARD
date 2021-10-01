@@ -1,15 +1,17 @@
 set(MGARD_CUDA_HEADER
-      ${CMAKE_CURRENT_SOURCE_DIR}/../compress_cuda.hpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/Array.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/SubArray.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/../mgard_cuda_api.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/Array.hpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/SubArray.hpp
       ${CMAKE_CURRENT_SOURCE_DIR}/Message.h
       ${CMAKE_CURRENT_SOURCE_DIR}/Handle.h
       ${CMAKE_CURRENT_SOURCE_DIR}/MemoryManagement.h  
+      ${CMAKE_CURRENT_SOURCE_DIR}/MemoryManagement.hpp 
       ${CMAKE_CURRENT_SOURCE_DIR}/Metadata.h               
       ${CMAKE_CURRENT_SOURCE_DIR}/Common.h
       ${CMAKE_CURRENT_SOURCE_DIR}/CommonInternal.h   
       ${CMAKE_CURRENT_SOURCE_DIR}/PrecomputeKernels.h   
       ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring.h   
+      #${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring_AMR.h
       ${CMAKE_CURRENT_SOURCE_DIR}/GPKFunctor.h
       ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.hpp   
       ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.h
@@ -25,6 +27,8 @@ set(MGARD_CUDA_HEADER
       ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel.h
       ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel3D.hpp   
       ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel3D.h
+      #${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel3D_AMR.hpp   
+      #${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel3D_AMR.h
       ${CMAKE_CURRENT_SOURCE_DIR}/LevelwiseProcessingKernel.hpp   
       ${CMAKE_CURRENT_SOURCE_DIR}/LevelwiseProcessingKernel.h
       ${CMAKE_CURRENT_SOURCE_DIR}/LinearQuantization.hpp
@@ -45,4 +49,8 @@ set(MGARD_CUDA_HEADER
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/par_merge.cuh
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/timer.hh
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/types.hh
+      # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsCPU.h
+      # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsCPU.hpp
+      # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsGPU.h
+      # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsGPU.hpp
       PARENT_SCOPE)

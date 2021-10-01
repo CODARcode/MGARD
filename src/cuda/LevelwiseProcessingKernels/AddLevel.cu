@@ -2,20 +2,21 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include "cuda/CommonInternal.h"
-
+ 
 #include "cuda/LevelwiseProcessingKernel.h"
 #include "cuda/LevelwiseProcessingKernel.hpp"
 
 namespace mgard_cuda {
 
 #define KERNELS(D, T)                                                          \
-  template void lwpk<D, T, ADD>(Handle<D, T> & handle, SIZE * shape_h,         \
-                                SIZE * shape_d, T * dv, SIZE * ldvs,           \
-                                T * dwork, SIZE * ldws, int queue_idx);
+  template void lwpk<D, T, ADD>(Handle<D, T> & handle, SIZE *shape_h,           \
+                                SIZE *shape_d, T *dv, SIZE *ldvs, T *dwork,      \
+                                SIZE *ldws, int queue_idx);\
+  template class LwpkReo3D<Handle<D, T>, D, T, ADD, CUDA>;
 
 KERNELS(1, double)
 KERNELS(1, float)

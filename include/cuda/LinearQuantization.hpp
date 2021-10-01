@@ -12,11 +12,17 @@
 
 #include "LinearQuantization.h"
 
+#include "Functor.h"
+#include "AutoTuner.h"
+#include "Task.h"
+#include "DeviceAdapters/DeviceAdapterCuda.h"
+
 namespace mgard_cuda {
 
 template <DIM D, typename T>
 void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata &m,
                      bool reciprocal) {
+
 
   double abs_tol = m.tol;
   if (m.ebtype == error_bound_type::REL) {
@@ -64,14 +70,15 @@ void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata &m,
   // }
 
   if (m.ntype == norm_type::L_Inf) {
-
+    
     // printf("quantizers: ");
     for (int l = 0; l < m.l_target + 1; l++) {
-      // ben
+      //ben
       quantizers[l] = (abs_tol) / ((m.l_target + 1) * (1 + std::pow(3, D)));
-      // xin
+      //xin
       // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) / 4));
 
+      
       // printf("%f ", quantizers[l]);
       if (reciprocal)
         quantizers[l] = 1.0f / quantizers[l];
@@ -79,7 +86,7 @@ void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata &m,
     // printf("\n");
 
   } else if (m.ntype == norm_type::L_2) { // s != inf
-    // xin - uniform
+    //xin - uniform
     // T C2 = 1 + 3 * std::sqrt(3) / 4;
     // T c = std::sqrt(std::pow(2, D - 2 * s));
     // T cc = (1 - c) / (1 - std::pow(c, l_target + 1));
@@ -92,29 +99,29 @@ void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata &m,
     //     quantizers[l] = 1.0f / quantizers[l];
     // }
 
-    // ben - uniform
+    //ben - uniform
     // printf("quantizers: ");
 
+
     size_t dof = 1;
-    for (int d = 0; d < D; d++)
-      dof *= handle.dofs[d][0];
+    for (int d = 0; d < D; d++) dof *= handle.dofs[d][0];
     // printf("tol: %f, dof: %llu\n", tol, dof);
     // printf ("dof = %llu\n", dof);
     for (int l = 0; l < m.l_target + 1; l++) {
 
       quantizers[l] = (abs_tol) / (std::exp2(m.s * l) * std::sqrt(dof));
 
-      // printf("l %d, vol: %f quantizer: %f \n", l, std::pow(2, (l_target - l)
-      // * D), quantizers[l]);
+      // printf("l %d, vol: %f quantizer: %f \n", l, std::pow(2, (l_target - l) * D), quantizers[l]);
 
       // printf("tol: %f quant: %e \n", tol, quantizers[l]);
       if (reciprocal)
         quantizers[l] = 1.0f / quantizers[l];
     }
     // printf("\n");
+
   }
 
-  // print quantizers
+  //print quantizers
   // printf("quantizers: ");
   // for (int l = 0; l < l_target+1; l++) {
   //   printf("%f ", 1.0f/quantizers[l]);
@@ -122,42 +129,824 @@ void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata &m,
   // printf("\n");
 }
 
+
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
+class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
+  public:
+  MGARDm_CONT LevelwiseLinearQuantizeNDFunctor(SubArray<1, SIZE> shapes, SIZE l_target, 
+                                               SubArray<1, T> quantizers, SubArray<2, T> volumes, 
+                                               SubArray<D, T> v,
+                                               SubArray<D, QUANTIZED_INT> work, bool prep_huffman, bool calc_vol,
+                                               SIZE dict_size, SubArray<1, SIZE> shape, 
+                                               SubArray<1, LENGTH> outlier_count,
+                                               SubArray<1, LENGTH> outlier_idx, 
+                                               SubArray<1, QUANTIZED_INT> outliers):
+                                                shapes(shapes), l_target(l_target), quantizers(quantizers),
+                                                volumes(volumes), v(v), work(work), prep_huffman(prep_huffman),
+                                                calc_vol(calc_vol),
+                                                dict_size(dict_size), shape(shape), outlier_count(outlier_count),
+                                                outlier_idx(outlier_idx), outliers(outliers) {
+    Functor<DeviceType>();                            
+  }
+
+  MGARDm_EXEC void
+  Operation1() {
+    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
+                    (this->thready * this->nblockx) + this->threadx;
+
+    T * smT = (T*)this->shared_memory;
+    quantizers_sm = smT; smT += l_target + 1;
+
+    volumes_0 = smT; if (calc_vol) smT += this->nblockx * (l_target + 1);
+    volumes_1 = smT; if (calc_vol) smT += this->nblocky * (l_target + 1);
+    volumes_2 = smT; if (calc_vol) smT += this->nblockz * (l_target + 1);
+    volumes_3_plus = smT;
+    if (calc_vol && D > 3) smT += (D-3) * (l_target + 1);
+
+    SIZE * smInt = (SIZE *)smT;
+    shape_sm = smInt; smInt += D;
+    shapes_sm = smInt; smInt += D * (l_target + 2);
+    
+
+    if (threadId < l_target + 1) {
+      quantizers_sm[threadId] = *quantizers(threadId);
+    }
+    if (threadId < D) {
+      shape_sm[threadId] = *shape(threadId);
+    }
+    if (threadId < D * (l_target + 2)) {
+      shapes_sm[threadId] = *shapes(threadId);
+    }
+  }
+
+  MGARDm_EXEC void
+  Operation2() {
+    // determine global idx
+    SIZE firstD = div_roundup(shapes_sm[l_target + 1], F);
+
+    SIZE bidx = this->blockx;
+    idx[0] = (bidx % firstD) * F + this->threadx;
+    idx0[0] = (bidx % firstD) * F;
+
+    // printf("shapes_sm[l_target+1]: %d firstD %d idx[0] %d\n",
+    // shapes_sm[l_target+1], firstD, idx[0]);
+
+    bidx /= firstD;
+    if (D >= 2) {
+      idx[1] = this->blocky * this->nblocky + this->thready;
+      idx0[1] = this->blocky * this->nblocky;
+    }
+    if (D >= 3) {
+      idx[2] = this->blockz * this->nblockz + this->threadz;
+      idx0[2] = this->blockz * this->nblockz;
+    }
+
+    for (int d = 3; d < D; d++) {
+      idx[d] = bidx % shapes_sm[(l_target + 2) * d + l_target + 1];
+      idx0[d] = idx[d];
+      bidx /= shapes_sm[(l_target + 2) * d + l_target + 1];
+
+    }
+
+    if (calc_vol) {
+      // cache volumes
+      for (int l = 0; l < l_target+1; l++) {
+        // volumes 0
+        if (threadId < this->nblockx && idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
+          volumes_0[l * this->nblockx + threadId] = 
+            *volumes((0 * (l_target + 1) + l), + idx0[0] + threadId);
+          // printf("load %f\n", volumes[(0 * (l_target + 1) + l) * ldvolumes + idx0[0] + threadId]);
+        }
+        if (D >= 2) {
+          // volumes 1
+          if (threadId < this->nblocky && idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
+            volumes_1[l * this->nblocky + threadId] = 
+              *volumes((1 * (l_target + 1) + l), idx0[1] + threadId);
+          }
+        }
+        if (D >= 3) {
+          // volumes 2
+          if (threadId < this->nblockz && idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
+            volumes_2[l * this->nblockz + threadId] = 
+              *volumes((2 * (l_target + 1) + l), idx0[2] + threadId);
+          }
+        }
+      }
+
+      if (D >= 4) {
+        if (threadId < 1) {
+          for (int d = 3; d < D; d++) {
+            for (int l = 0; l < l_target+1; l++) {
+                volumes_3_plus[(d-3) * (l_target + 1) + l] = 
+                  *volumes((d * (l_target + 1) + l), idx[d]);
+            }
+          }
+        }
+      }
+    }
+
+    // if (blockIdx.y == 0 && blockIdx.x == 0 && blockIdx.z == 0 && threadId == 0) {
+    //   printf("volumes_0: ");
+    //   for (int l = 0; l < l_target+1; l++) {
+    //     printf("l = %d\n", l);
+    //     for (int i = 0; i < min(blockDim.x, shapes_sm[(l_target + 2) * 0 + l_target + 1]) ; i++) {
+    //       printf("%f ", volumes_0[l * blockDim.x + i]);
+    //     }
+    //     printf("\n");
+    //   }
+    //   printf("\n");
+    //   if (D >= 2) {
+    //     printf("volumes_1: ");
+    //     for (int l = 0; l < l_target+1; l++) {
+    //       printf("l = %d\n", l);
+    //       for (int i = 0; i < min(blockDim.y, shapes_sm[(l_target + 2) * 1 + l_target + 1]); i++) {
+    //         printf("%f ", volumes_1[l * blockDim.y + i]);
+    //       }
+    //       printf("\n");
+    //     }
+
+    //     printf("\n");
+    //   }
+    //   if (D >= 3) {
+    //     printf("volumes_2: ");
+    //     for (int l = 0; l < l_target+1; l++) {
+    //       printf("l = %d\n", l);
+    //       for (int i = 0; i < min(blockDim.z, shapes_sm[(l_target + 2) * 2 + l_target + 1]); i++) {
+    //         printf("%f ", volumes_2[l * blockDim.y + i]);
+    //       }
+    //       printf("\n");
+    //     }
+    //   }  
+    // }
+  }
+
+  MGARDm_EXEC void
+  Operation3() {
+    int level = 0;
+    for (DIM d = 0; d < D; d++) {
+      long long unsigned int l_bit = 0l;
+      for (SIZE l = 0; l < l_target + 1; l++) {
+        int bit = (idx[d] >= shapes_sm[(l_target + 2) * d + l]) &&
+                  (idx[d] < shapes_sm[(l_target + 2) * d + l + 1]);
+        l_bit += bit << l;
+        // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
+      }
+      level = max(level, __ffsll(l_bit));
+    }
+    level = level - 1;
+
+    bool in_range = true;
+    for (DIM d = 0; d < D; d++) {
+      if (idx[d] >= shapes_sm[(l_target + 2) * d + l_target + 1])
+        in_range = false;
+    }
+
+    // printf("idx %llu, level: %d, in_range: %d idx[0]: shape_sm: %d\n",
+    // get_idx<D>(shape_sm, idx), level, in_range, shapes_sm[(l_target+2) * 0 +
+    // l_target+1]);
+
+    if (level >= 0 && level <= l_target && in_range) {
+      T t = *v(idx);
+      T volume = 1;
+      if (calc_vol) {
+        volume *= volumes_0[level * this->nblockx + this->threadx];
+        if (D >= 2) {
+          volume *= volumes_1[level * this->nblocky + this->thready]; 
+        }
+        if (D >= 3) {
+          volume *= volumes_2[level * this->nblockz + this->threadz];
+        }
+        if (D >= 4) {
+          for (int d = 3; d < D; d++) {
+            volume *= volumes_3_plus[(d-3) * (l_target + 1) + level]; 
+          }
+        }
+        if (sizeof(T) == sizeof(double)) volume = sqrt(volume);
+        else if (sizeof(T) == sizeof(float)) volume = sqrtf(volume);
+      }
+      // printf("l: %d, vol %f(%f*%f*%f), quantizers_sm: %f, quantizers: %f, before: %f, quantized: %d\n", level, volume, 
+      //   volumes_0[level * blockDim.x + threadIdx.x], volumes_1[level * blockDim.y + threadIdx.y], volumes_2[level * blockDim.z + threadIdx.z],
+      //   quantizers_sm[level],
+      //   (quantizers_sm[level] / volume), t, (int)copysign(0.5 + fabs(t /( quantizers_sm[level] / volume)), t));
+
+      QUANTIZED_INT quantized_data = copysign(0.5 + fabs(t / (quantizers_sm[level] * volume) ), t);
+      // QUANTIZED_INT quantized_data = copysign(0.5 + fabs(t / (quantizers_sm[level] / volume) ), t);
+      // printf("calc_vol: %d, dv %f quantizers[%d]%f %f -> dw %d \n",
+      //       calc_vol, t,
+      //       level, quantizers_sm[level], volume,
+      //       quantized_data+dict_size / 2);
+
+      if (prep_huffman) {
+        quantized_data += dict_size / 2;
+        if (quantized_data >= 0 && quantized_data < dict_size) {
+          // do nothing
+        } else {
+          LENGTH i = atomicAdd(outlier_count((IDX)0), (LENGTH)1);
+          *outlier_idx(i) = get_idx<D>(shape_sm, idx);
+          *outliers(i) = quantized_data;
+          quantized_data = 0;
+        }
+        // if (get_idx<D>(shape_sm, idx) < quant_meta_size_ratio) {
+        //   size_t i = atomicAdd((unsigned long long int*)outlier_count,
+        //   (unsigned long long int)1); outlier_idx[i] = get_idx<D>(shape_sm,
+        //   idx);
+        // }
+      }
+
+      *work(idx) = quantized_data;
+    }
+  }
+
+  MGARDm_EXEC void
+  Operation4() {}
+
+  MGARDm_EXEC void
+  Operation5() {}
+
+  MGARDm_CONT size_t
+  shared_memory_size() {
+    size_t size = D * sizeof(SIZE);
+    // quantizer
+    size += (l_target + 1) * sizeof(T);
+    // ranges
+    size += (l_target + 2) * D * sizeof(SIZE);
+    // volumes
+    size += F * (l_target + 1) * sizeof(T);
+    size += C * (l_target + 1) * sizeof(T);
+    size += R * (l_target + 1) * sizeof(T);
+    if (D > 3) size += (D-3) * (l_target + 1) * sizeof(T);
+    return size;
+  }
+
+  private:
+  IDX threadId;
+  SubArray<1, SIZE> shapes; 
+  SIZE l_target;
+  SubArray<1, T> quantizers;
+  SubArray<2, T> volumes;
+  SubArray<D, T> v;
+  SubArray<D, QUANTIZED_INT> work;
+  bool prep_huffman;
+  bool calc_vol;
+  SIZE dict_size;
+  SubArray<1, SIZE> shape; 
+  SubArray<1, LENGTH> outlier_count;
+  SubArray<1, LENGTH> outlier_idx;
+  SubArray<1, QUANTIZED_INT> outliers;
+
+
+  T * quantizers_sm;
+  T * volumes_0;
+  T * volumes_1;
+  T * volumes_2;
+  T * volumes_3_plus;
+
+  SIZE *shape_sm;
+  SIZE *shapes_sm;
+
+  SIZE idx[D]; //thread global idx
+  SIZE idx0[D]; //block global idx
+
+};
+
+
+template <typename HandleType, DIM D, typename T, typename DeviceType>
+class LevelwiseLinearQuantizeND: public AutoTuner<HandleType, DeviceType> {
+public:
+  MGARDm_CONT
+  LevelwiseLinearQuantizeND(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+
+  template <SIZE R, SIZE C, SIZE F>
+  MGARDm_CONT
+  Task<LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType> > 
+  GenTask(SubArray<1, SIZE> ranges, SIZE l_target, 
+          SubArray<2, T> volumes, 
+          Metadata &m, SubArray<D, T> v,
+          SubArray<D, QUANTIZED_INT> work, bool prep_huffman,
+          SubArray<1, SIZE> shape,
+          SubArray<1, LENGTH> outlier_count,
+          SubArray<1, LENGTH> outlier_idx, 
+          SubArray<1, QUANTIZED_INT> outliers,
+          int queue_idx) {
+    using FunctorType = LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;
+
+    T *quantizers = new T[l_target + 1];
+    calc_quantizers(this->handle, quantizers, m, false);
+    cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
+                          sizeof(T) * (l_target + 1), H2D, queue_idx);
+
+    SubArray<1, T> quantizers_subarray({l_target + 1}, this->handle.quantizers);
+
+    bool calc_vol = m.ntype == norm_type::L_2;
+    FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
+                        v, work, prep_huffman, calc_vol, m.dict_size, shape,
+                        outlier_count, outlier_idx, outliers);
+
+    SIZE total_thread_z = shape.dataHost()[2];
+    SIZE total_thread_y = shape.dataHost()[1];
+    SIZE total_thread_x = shape.dataHost()[0];
+
+    SIZE tbx, tby, tbz, gridx, gridy, gridz;
+    size_t sm_size = functor.shared_memory_size();
+    tbz = R;
+    tby = C;
+    tbx = F;
+    gridz = ceil((float)total_thread_z / tbz);
+    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((float)total_thread_x / tbx);
+    for (DIM d = 3; d < D; d++) {
+      gridx *= shape.dataHost()[d];
+    }
+
+    // printf("%u %u %u %u %u %u %u %u %u\n", total_thread_x, total_thread_y, total_thread_z, tbx, tby, tbz, gridx, gridy, gridz);
+    return Task(functor, gridz, gridy, gridx, 
+                tbz, tby, tbx, sm_size, queue_idx); 
+  }
+
+  MGARDm_CONT
+  void Execute(SubArray<1, SIZE> ranges, SIZE l_target, 
+                SubArray<2, T> volumes, 
+                Metadata &m, SubArray<D, T> v,
+                SubArray<D, QUANTIZED_INT> work, bool prep_huffman,
+                SubArray<1, SIZE> shape,
+                SubArray<1, LENGTH> outlier_count,
+                SubArray<1, LENGTH> outlier_idx, 
+                SubArray<1, QUANTIZED_INT> outliers,
+                int queue_idx) {
+    const int R=LWQK_CONFIG[D-1][0];
+    const int C=LWQK_CONFIG[D-1][1];
+    const int F=LWQK_CONFIG[D-1][2];
+    using FunctorType = LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;
+    using TaskType = Task<FunctorType>;
+    TaskType task = GenTask<R, C, F>(ranges, l_target, volumes, m,
+                                    v, work, prep_huffman, shape,
+                                    outlier_count, outlier_idx, outliers,
+                                    queue_idx); 
+    DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); 
+    adapter.Execute(task);
+  }
+};
+
+
+
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
+class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
+  public:
+  MGARDm_CONT LevelwiseLinearDequantizeNDFunctor(SubArray<1, SIZE> shapes, SIZE l_target, 
+                                               SubArray<1, T> quantizers, SubArray<2, T> volumes, 
+                                               SubArray<D, T> v,
+                                               SubArray<D, QUANTIZED_INT> work, bool prep_huffman, bool calc_vol,
+                                               SIZE dict_size, SubArray<1, SIZE> shape, 
+                                               SubArray<1, LENGTH> outlier_count,
+                                               SubArray<1, LENGTH> outlier_idx, 
+                                               SubArray<1, QUANTIZED_INT> outliers):
+                                                shapes(shapes), l_target(l_target), quantizers(quantizers),
+                                                volumes(volumes), v(v), work(work), prep_huffman(prep_huffman),
+                                                calc_vol(calc_vol),
+                                                dict_size(dict_size), shape(shape), outlier_count(outlier_count),
+                                                outlier_idx(outlier_idx), outliers(outliers) {
+    Functor<DeviceType>();                            
+  }
+
+  MGARDm_EXEC void
+  Operation1() {
+    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
+                    (this->thready * this->nblockx) + this->threadx;
+    blockId = (this->blockz * (this->ngridx * this->ngridy)) +
+                   (this->blocky * this->ngridx) + this->blockx;
+    gloablId = blockId * this->nblockx * this->nblocky * this->nblockz + threadId;
+
+    T * smT = (T*)this->shared_memory;
+    quantizers_sm = smT; smT += l_target + 1;
+
+    volumes_0 = smT; if (calc_vol) smT += this->nblockx * (l_target + 1);
+    volumes_1 = smT; if (calc_vol) smT += this->nblocky * (l_target + 1);
+    volumes_2 = smT; if (calc_vol) smT += this->nblockz * (l_target + 1);
+    volumes_3_plus = smT;
+    if (calc_vol && D > 3) smT += (D-3) * (l_target + 1);
+
+    SIZE * smInt = (SIZE *)smT;
+    shape_sm = smInt; smInt += D;
+    shapes_sm = smInt; smInt += D * (l_target + 2);
+    
+
+    if (threadId < l_target + 1) {
+      quantizers_sm[threadId] = *quantizers(threadId);
+    }
+    if (threadId < D) {
+      shape_sm[threadId] = *shape(threadId);
+    }
+    if (threadId < D * (l_target + 2)) {
+      shapes_sm[threadId] = *shapes(threadId);
+    }
+  }
+
+  MGARDm_EXEC void
+  Operation2() {
+    // determine global idx
+    SIZE firstD = div_roundup(shapes_sm[l_target + 1], F);
+
+    SIZE bidx = this->blockx;
+    idx[0] = (bidx % firstD) * F + this->threadx;
+    idx0[0] = (bidx % firstD) * F;
+
+    // printf("shapes_sm[l_target+1]: %d firstD %d idx[0] %d\n",
+    // shapes_sm[l_target+1], firstD, idx[0]);
+
+    bidx /= firstD;
+    if (D >= 2) {
+      idx[1] = this->blocky * this->nblocky + this->thready;
+      idx0[1] = this->blocky * this->nblocky;
+    }
+    if (D >= 3) {
+      idx[2] = this->blockz * this->nblockz + this->threadz;
+      idx0[2] = this->blockz * this->nblockz;
+    }
+
+    for (int d = 3; d < D; d++) {
+      idx[d] = bidx % shapes_sm[(l_target + 2) * d + l_target + 1];
+      idx0[d] = idx[d];
+      bidx /= shapes_sm[(l_target + 2) * d + l_target + 1];
+
+    }
+
+    if (calc_vol) {
+      // cache volumes
+      for (int l = 0; l < l_target+1; l++) {
+        // volumes 0
+        if (threadId < this->nblockx && idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
+          volumes_0[l * this->nblockx + threadId] = 
+            *volumes((0 * (l_target + 1) + l), + idx0[0] + threadId);
+          // printf("load %f\n", volumes[(0 * (l_target + 1) + l) * ldvolumes + idx0[0] + threadId]);
+        }
+        if (D >= 2) {
+          // volumes 1
+          if (threadId < this->nblocky && idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
+            volumes_1[l * this->nblocky + threadId] = 
+              *volumes((1 * (l_target + 1) + l), idx0[1] + threadId);
+          }
+        }
+        if (D >= 3) {
+          // volumes 2
+          if (threadId < this->nblockz && idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
+            volumes_2[l * this->nblockz + threadId] = 
+              *volumes((2 * (l_target + 1) + l), idx0[2] + threadId);
+          }
+        }
+      }
+
+      if (D >= 4) {
+        if (threadId < 1) {
+          for (int d = 3; d < D; d++) {
+            for (int l = 0; l < l_target+1; l++) {
+                volumes_3_plus[(d-3) * (l_target + 1) + l] = 
+                  *volumes((d * (l_target + 1) + l), idx[d]);
+            }
+          }
+        }
+      }
+    }
+
+    // if (blockIdx.y == 0 && blockIdx.x == 0 && blockIdx.z == 0 && threadId == 0) {
+    //   printf("volumes_0: ");
+    //   for (int l = 0; l < l_target+1; l++) {
+    //     printf("l = %d\n", l);
+    //     for (int i = 0; i < min(blockDim.x, shapes_sm[(l_target + 2) * 0 + l_target + 1]) ; i++) {
+    //       printf("%f ", volumes_0[l * blockDim.x + i]);
+    //     }
+    //     printf("\n");
+    //   }
+    //   printf("\n");
+    //   if (D >= 2) {
+    //     printf("volumes_1: ");
+    //     for (int l = 0; l < l_target+1; l++) {
+    //       printf("l = %d\n", l);
+    //       for (int i = 0; i < min(blockDim.y, shapes_sm[(l_target + 2) * 1 + l_target + 1]); i++) {
+    //         printf("%f ", volumes_1[l * blockDim.y + i]);
+    //       }
+    //       printf("\n");
+    //     }
+
+    //     printf("\n");
+    //   }
+    //   if (D >= 3) {
+    //     printf("volumes_2: ");
+    //     for (int l = 0; l < l_target+1; l++) {
+    //       printf("l = %d\n", l);
+    //       for (int i = 0; i < min(blockDim.z, shapes_sm[(l_target + 2) * 2 + l_target + 1]); i++) {
+    //         printf("%f ", volumes_2[l * blockDim.y + i]);
+    //       }
+    //       printf("\n");
+    //     }
+    //   }  
+    // }
+  }
+
+  MGARDm_EXEC void
+  Operation3() {
+    int level = 0;
+    for (DIM d = 0; d < D; d++) {
+      long long unsigned int l_bit = 0l;
+      for (SIZE l = 0; l < l_target + 1; l++) {
+        int bit = (idx[d] >= shapes_sm[(l_target + 2) * d + l]) &&
+                  (idx[d] < shapes_sm[(l_target + 2) * d + l + 1]);
+        l_bit += bit << l;
+        // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
+      }
+      level = max(level, __ffsll(l_bit));
+    }
+    level = level - 1;
+
+    bool in_range = true;
+    for (DIM d = 0; d < D; d++) {
+      if (idx[d] >= shapes_sm[(l_target + 2) * d + l_target + 1])
+        in_range = false;
+    }
+
+    // printf("idx %llu, level: %d, in_range: %d idx[0]: shape_sm: %d\n",
+    // get_idx<D>(shape_sm, idx), level, in_range, shapes_sm[(l_target+2) * 0 +
+    // l_target+1]);
+
+    if (level >= 0 && level <= l_target && in_range) {
+      // printf("%d %d %d %d\n", idx[3], idx[2], idx[1], idx[0]);
+      // printf("idx: %d %d l: %d\n", idx[1], idx[0], level);
+      QUANTIZED_INT quantized_data = *work(idx);
+      T volume = 1;
+      if (calc_vol) {
+        volume *= volumes_0[level * this->nblockx + this->threadx];
+        if (D >= 2) volume *= volumes_1[level * this->nblocky + this->thready];
+        if (D >= 3) volume *= volumes_2[level * this->nblockz + this->threadz];
+        if (D >= 4) {
+          for (int d = 3; d < D; d++) {
+            volume *= volumes_3_plus[(d-3) * (l_target + 1) + level]; 
+          }
+        }
+        if (sizeof(T) == sizeof(double)) volume = sqrt(volume);
+        else if (sizeof(T) == sizeof(float)) volume = sqrtf(volume);
+      }
+
+      if (prep_huffman) {
+        quantized_data -= dict_size / 2;
+      }
+
+      // printf("%d %d %d %d %d %d vol %f (%f * %f * %f), dequantizers: %f, before: %d, dequantized: %f\n", blockIdx.z, blockIdx.y, blockIdx.x, threadIdx.z, threadIdx.y, threadIdx.x, volume, 
+      //   volumes_0[level * blockDim.x + threadIdx.x], volumes_1[level * blockDim.y + threadIdx.y], volumes_2[level * blockDim.z + threadIdx.z],
+      //   quantizers_sm[level] / volume, quantized_data, (quantizers_sm[level] / volume) * (T)quantized_data);
+      *v(idx) = (quantizers_sm[level] * volume) * (T)quantized_data;
+      // dwork[get_idx<D>(ldws, idx)] = (quantizers_sm[level] / volume) * (T)quantized_data;
+      // dwork[get_idx<D>(ldws, idx)] = (T)dv[get_idx<D>(ldvs, idx)];
+
+      // printf("dw[%llu] %d dequantizers[%d]%f -> dw[%llu]%f \n",
+      // get_idx<D>(ldvs, idx),
+      //       quantized_data, level, quantizers_sm[level], get_idx<D>(ldws, idx),
+      //       quantizers_sm[level] * (T)quantized_data);
+    }
+  }
+
+  MGARDm_EXEC void
+  Operation4() {}
+
+  MGARDm_EXEC void
+  Operation5() {}
+
+  MGARDm_CONT size_t
+  shared_memory_size() {
+    size_t size = D * sizeof(SIZE);
+    // quantizer
+    size += (l_target + 1) * sizeof(T);
+    // ranges
+    size += (l_target + 2) * D * sizeof(SIZE);
+    // volumes
+    size += F * (l_target + 1) * sizeof(T);
+    size += C * (l_target + 1) * sizeof(T);
+    size += R * (l_target + 1) * sizeof(T);
+    if (D > 3) size += (D-3) * (l_target + 1) * sizeof(T);
+    return size;
+  }
+
+  private:
+  IDX threadId, blockId, gloablId;
+  SubArray<1, SIZE> shapes; 
+  SIZE l_target;
+  SubArray<1, T> quantizers;
+  SubArray<2, T> volumes;
+  SubArray<D, T> v;
+  SubArray<D, QUANTIZED_INT> work;
+  bool prep_huffman;
+  bool calc_vol;
+  SIZE dict_size;
+  SubArray<1, SIZE> shape; 
+  SubArray<1, LENGTH> outlier_count;
+  SubArray<1, LENGTH> outlier_idx;
+  SubArray<1, QUANTIZED_INT> outliers;
+
+
+  T * quantizers_sm;
+  T * volumes_0;
+  T * volumes_1;
+  T * volumes_2;
+  T * volumes_3_plus;
+
+  SIZE *shape_sm;
+  SIZE *shapes_sm;
+
+  SIZE idx[D]; //thread global idx
+  SIZE idx0[D]; //block global idx
+};
+
+
+template <DIM D, typename T, typename DeviceType>
+class OutlierRestoreFunctor: public Functor<DeviceType> {
+  public:
+  MGARDm_CONT OutlierRestoreFunctor(SubArray<D, QUANTIZED_INT> work,
+                                     SubArray<1, LENGTH> outlier_count,
+                                     SubArray<1, LENGTH> outlier_idx, 
+                                     SubArray<1, QUANTIZED_INT> outliers):
+                                      work(work), outlier_count(outlier_count),
+                                      outlier_idx(outlier_idx), outliers(outliers) {
+    Functor<DeviceType>();                            
+  }
+
+  MGARDm_EXEC void
+  Operation1() {
+    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
+                    (this->thready * this->nblockx) + this->threadx;
+    blockId = (this->blockz * (this->ngridx * this->ngridy)) +
+                   (this->blocky * this->ngridx) + this->blockx;
+    gloablId = blockId * this->nblockx * this->nblocky * this->nblockz + threadId;
+
+    if (gloablId < *outlier_count((IDX)0)) {
+      LENGTH linerized_idx = *outlier_idx(gloablId);
+      QUANTIZED_INT outliter = *outliers(gloablId);
+      *work(linerized_idx) = outliter;
+    }
+  }
+
+  MGARDm_EXEC void
+  Operation2() {}
+
+  MGARDm_EXEC void
+  Operation3() {}
+
+  MGARDm_EXEC void
+  Operation4() {}
+
+  MGARDm_EXEC void
+  Operation5() {}
+
+  MGARDm_CONT size_t
+  shared_memory_size() {
+    return 0;
+  }
+
+  private:
+  IDX threadId, blockId, gloablId;
+  SubArray<D, QUANTIZED_INT> work;
+  SubArray<1, LENGTH> outlier_count;
+  SubArray<1, LENGTH> outlier_idx;
+  SubArray<1, QUANTIZED_INT> outliers;
+};
+
+
+
+template <typename HandleType, DIM D, typename T, typename DeviceType>
+class LevelwiseLinearDequantizeND: public AutoTuner<HandleType, DeviceType> {
+public:
+  MGARDm_CONT
+  LevelwiseLinearDequantizeND(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+
+  template <SIZE F>
+  MGARDm_CONT
+  Task<OutlierRestoreFunctor<D, T, DeviceType> > 
+  GenTask1(SubArray<D, QUANTIZED_INT> work, 
+          SubArray<1, LENGTH> outlier_count,
+          SubArray<1, LENGTH> outlier_idx, 
+          SubArray<1, QUANTIZED_INT> outliers,
+          int queue_idx) {
+    using FunctorType = OutlierRestoreFunctor<D, T, DeviceType>;
+    FunctorType functor(work, outlier_count, outlier_idx, outliers);
+    SIZE total_thread_z = 1;
+    SIZE total_thread_y = 1;
+    SIZE total_thread_x = outlier_count.dataHost()[0];
+    SIZE tbx, tby, tbz, gridx, gridy, gridz;
+    size_t sm_size = functor.shared_memory_size();
+    tbz = 1;
+    tby = 1;
+    tbx = F;
+    gridz = ceil((float)total_thread_z / tbz);
+    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((float)total_thread_x / tbx);
+    return Task(functor, gridz, gridy, gridx, 
+                tbz, tby, tbx, sm_size, queue_idx); 
+  }
+
+  template <SIZE R, SIZE C, SIZE F>
+  MGARDm_CONT
+  Task<LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType> > 
+  GenTask2(SubArray<1, SIZE> ranges, SIZE l_target, 
+          SubArray<2, T> volumes, 
+          Metadata &m, SubArray<D, T> v,
+          SubArray<D, QUANTIZED_INT> work, bool prep_huffman,
+          SubArray<1, SIZE> shape,
+          SubArray<1, LENGTH> outlier_count,
+          SubArray<1, LENGTH> outlier_idx, 
+          SubArray<1, QUANTIZED_INT> outliers,
+          int queue_idx) {
+    using FunctorType = LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType>;
+
+    T *quantizers = new T[l_target + 1];
+    calc_quantizers(this->handle, quantizers, m, false);
+    cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
+                          sizeof(T) * (l_target + 1), H2D, queue_idx);
+
+    SubArray<1, T> quantizers_subarray({l_target + 1}, this->handle.quantizers);
+
+    bool calc_vol = m.ntype == norm_type::L_2;
+    FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
+                        v, work, prep_huffman, calc_vol, m.dict_size, shape,
+                        outlier_count, outlier_idx, outliers);
+
+    SIZE total_thread_z = shape.dataHost()[2];
+    SIZE total_thread_y = shape.dataHost()[1];
+    SIZE total_thread_x = shape.dataHost()[0];
+
+    SIZE tbx, tby, tbz, gridx, gridy, gridz;
+    size_t sm_size = functor.shared_memory_size();
+    tbz = R;
+    tby = C;
+    tbx = F;
+    gridz = ceil((float)total_thread_z / tbz);
+    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((float)total_thread_x / tbx);
+    for (DIM d = 3; d < D; d++) {
+      gridx *= shape.dataHost()[d];
+    }
+
+    // printf("%u %u %u %u %u %u %u %u %u\n", total_thread_x, total_thread_y, total_thread_z, tbx, tby, tbz, gridx, gridy, gridz);
+    return Task(functor, gridz, gridy, gridx, 
+                tbz, tby, tbx, sm_size, queue_idx); 
+  }
+
+  
+
+  MGARDm_CONT
+  void Execute(SubArray<1, SIZE> ranges, SIZE l_target, 
+                SubArray<2, T> volumes, 
+                Metadata &m, SubArray<D, T> v,
+                SubArray<D, QUANTIZED_INT> work, bool prep_huffman,
+                SubArray<1, SIZE> shape,
+                SubArray<1, LENGTH> outlier_count,
+                SubArray<1, LENGTH> outlier_idx, 
+                SubArray<1, QUANTIZED_INT> outliers,
+                int queue_idx) {
+
+    if (prep_huffman && outlier_count.dataHost()[0]) {
+      using FunctorType = OutlierRestoreFunctor<D, T, DeviceType>;
+      using TaskType = Task<FunctorType>;
+      TaskType task = GenTask1<256>(work, outlier_count, outlier_idx, outliers, queue_idx); 
+      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); 
+      adapter.Execute(task);
+    }
+
+    const int R=LWQK_CONFIG[D-1][0];
+    const int C=LWQK_CONFIG[D-1][1];
+    const int F=LWQK_CONFIG[D-1][2];
+    using FunctorType = LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType>;
+    using TaskType = Task<FunctorType>;
+    TaskType task = GenTask2<R, C, F>(ranges, l_target, volumes, m,
+                                    v, work, prep_huffman, shape,
+                                    outlier_count, outlier_idx, outliers,
+                                    queue_idx); 
+    DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); 
+    adapter.Execute(task);
+  }
+};
+
+
 template <DIM D, typename T, int R, int C, int F, bool CALC_VOL>
 __global__ void
-_levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
-                           T *volumes, SIZE ldvolumes, T *dv, SIZE *ldvs,
-                           QUANTIZED_INT *dwork, SIZE *ldws, bool prep_huffmam,
+_levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers, T * volumes, SIZE ldvolumes, T *dv,
+                           SIZE *ldvs, QUANTIZED_INT *dwork, SIZE *ldws, bool prep_huffman,
                            SIZE dict_size, SIZE *shape, LENGTH *outlier_count,
                            LENGTH *outlier_idx, QUANTIZED_INT *outliers) {
 
   size_t threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
                     (threadIdx.y * blockDim.x) + threadIdx.x;
-  T *smT = SharedMemory<T>();
-  T *quantizers_sm = smT;
-  smT += l_target + 1;
+  T * smT = SharedMemory<T>();
+  T * quantizers_sm = smT; smT += l_target + 1;
 
-  T *volumes_0 = smT;
-  if (CALC_VOL)
-    smT += blockDim.x * (l_target + 1);
-  T *volumes_1 = smT;
-  if (CALC_VOL)
-    smT += blockDim.y * (l_target + 1);
-  T *volumes_2 = smT;
-  if (CALC_VOL)
-    smT += blockDim.z * (l_target + 1);
-  T *volumes_3_plus = smT;
-  if (CALC_VOL && D > 3)
-    smT += (D - 3) * (l_target + 1);
+  T * volumes_0 = smT; if (CALC_VOL) smT += blockDim.x * (l_target + 1);
+  T * volumes_1 = smT; if (CALC_VOL) smT += blockDim.y * (l_target + 1);
+  T * volumes_2 = smT; if (CALC_VOL) smT += blockDim.z * (l_target + 1);
+  T * volumes_3_plus = smT;
+  if (CALC_VOL && D > 3) smT += (D-3) * (l_target + 1);
 
-  SIZE *smInt = (SIZE *)smT;
-  SIZE *ldvs_sm = smInt;
-  smInt += D;
-  SIZE *ldws_sm = smInt;
-  smInt += D;
-  SIZE *shape_sm = smInt;
-  smInt += D;
-  SIZE *shapes_sm = smInt;
-  smInt += D * (l_target + 2);
+  SIZE * smInt = (SIZE *)smT;
+  SIZE *ldvs_sm = smInt; smInt += D;
+  SIZE *ldws_sm = smInt; smInt += D;
+  SIZE *shape_sm = smInt; smInt += D;
+  SIZE *shapes_sm = smInt; smInt += D * (l_target + 2);
+  
 
   if (threadId < l_target + 1) {
     quantizers_sm[threadId] = quantizers[threadId];
@@ -166,6 +955,9 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
     ldvs_sm[threadId] = ldvs[threadId];
     ldws_sm[threadId] = ldws[threadId];
     shape_sm[threadId] = shape[threadId];
+    // if (threadId == 0) {
+    //   printf("%u %u %u %u %u %u\n", shape[0], shape[1], shape[2], ldws[0], ldws[1], ldws[2]);
+    // }
   }
   if (threadId < D * (l_target + 2)) {
     shapes_sm[threadId] = shapes[threadId];
@@ -176,9 +968,9 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
   __syncthreads();
 
   // determine global idx
-  SIZE idx[D];  // thread global idx
-  SIZE idx0[D]; // block global idx
-
+  SIZE idx[D]; //thread global idx
+  SIZE idx0[D]; //block global idx
+  
   SIZE firstD = div_roundup(shapes_sm[l_target + 1], F);
 
   SIZE bidx = blockIdx.x;
@@ -202,35 +994,30 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
     idx[d] = bidx % shapes_sm[(l_target + 2) * d + l_target + 1];
     idx0[d] = idx[d];
     bidx /= shapes_sm[(l_target + 2) * d + l_target + 1];
+
   }
 
   if (CALC_VOL) {
     // cache volumes
-    for (int l = 0; l < l_target + 1; l++) {
+    for (int l = 0; l < l_target+1; l++) {
       // volumes 0
-      if (threadId < blockDim.x &&
-          idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
-        volumes_0[l * blockDim.x + threadId] =
-            volumes[(0 * (l_target + 1) + l) * ldvolumes + idx0[0] + threadId];
-        // printf("load %f\n", volumes[(0 * (l_target + 1) + l) * ldvolumes +
-        // idx0[0] + threadId]);
+      if (threadId < blockDim.x && idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
+        volumes_0[l * blockDim.x + threadId] = 
+          volumes[(0 * (l_target + 1) + l) * ldvolumes + idx0[0] + threadId];
+        // printf("load %f\n", volumes[(0 * (l_target + 1) + l) * ldvolumes + idx0[0] + threadId]);
       }
       if (D >= 2) {
         // volumes 1
-        if (threadId < blockDim.y &&
-            idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
-          volumes_1[l * blockDim.y + threadId] =
-              volumes[(1 * (l_target + 1) + l) * ldvolumes + idx0[1] +
-                      threadId];
+        if (threadId < blockDim.y && idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
+          volumes_1[l * blockDim.y + threadId] = 
+            volumes[(1 * (l_target + 1) + l) * ldvolumes + idx0[1] + threadId];
         }
       }
       if (D >= 3) {
         // volumes 2
-        if (threadId < blockDim.z &&
-            idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
-          volumes_2[l * blockDim.z + threadId] =
-              volumes[(2 * (l_target + 1) + l) * ldvolumes + idx0[2] +
-                      threadId];
+        if (threadId < blockDim.z && idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
+          volumes_2[l * blockDim.z + threadId] = 
+            volumes[(2 * (l_target + 1) + l) * ldvolumes + idx0[2] + threadId];
         }
       }
     }
@@ -238,8 +1025,8 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
     if (D >= 4) {
       if (threadId < 1) {
         for (int d = 3; d < D; d++) {
-          for (int l = 0; l < l_target + 1; l++) {
-            volumes_3_plus[(d - 3) * (l_target + 1) + l] =
+          for (int l = 0; l < l_target+1; l++) {
+              volumes_3_plus[(d-3) * (l_target + 1) + l] = 
                 volumes[(d * (l_target + 1) + l) * ldvolumes + idx[d]];
           }
         }
@@ -247,13 +1034,11 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
     }
   }
 
-  // if (blockIdx.y == 0 && blockIdx.x == 0 && blockIdx.z == 0 && threadId == 0)
-  // {
+  // if (blockIdx.y == 0 && blockIdx.x == 0 && blockIdx.z == 0 && threadId == 0) {
   //   printf("volumes_0: ");
   //   for (int l = 0; l < l_target+1; l++) {
   //     printf("l = %d\n", l);
-  //     for (int i = 0; i < min(blockDim.x, shapes_sm[(l_target + 2) * 0 +
-  //     l_target + 1]) ; i++) {
+  //     for (int i = 0; i < min(blockDim.x, shapes_sm[(l_target + 2) * 0 + l_target + 1]) ; i++) {
   //       printf("%f ", volumes_0[l * blockDim.x + i]);
   //     }
   //     printf("\n");
@@ -263,8 +1048,7 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
   //     printf("volumes_1: ");
   //     for (int l = 0; l < l_target+1; l++) {
   //       printf("l = %d\n", l);
-  //       for (int i = 0; i < min(blockDim.y, shapes_sm[(l_target + 2) * 1 +
-  //       l_target + 1]); i++) {
+  //       for (int i = 0; i < min(blockDim.y, shapes_sm[(l_target + 2) * 1 + l_target + 1]); i++) {
   //         printf("%f ", volumes_1[l * blockDim.y + i]);
   //       }
   //       printf("\n");
@@ -276,16 +1060,16 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
   //     printf("volumes_2: ");
   //     for (int l = 0; l < l_target+1; l++) {
   //       printf("l = %d\n", l);
-  //       for (int i = 0; i < min(blockDim.z, shapes_sm[(l_target + 2) * 2 +
-  //       l_target + 1]); i++) {
+  //       for (int i = 0; i < min(blockDim.z, shapes_sm[(l_target + 2) * 2 + l_target + 1]); i++) {
   //         printf("%f ", volumes_2[l * blockDim.y + i]);
   //       }
   //       printf("\n");
   //     }
-  //   }
+  //   }  
   // }
 
   __syncthreads();
+
 
   int level = 0;
   for (DIM d = 0; d < D; d++) {
@@ -316,39 +1100,32 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
     if (CALC_VOL) {
       volume *= volumes_0[level * blockDim.x + threadIdx.x];
       if (D >= 2) {
-        volume *= volumes_1[level * blockDim.y + threadIdx.y];
+        volume *= volumes_1[level * blockDim.y + threadIdx.y]; 
       }
       if (D >= 3) {
         volume *= volumes_2[level * blockDim.z + threadIdx.z];
       }
       if (D >= 4) {
         for (int d = 3; d < D; d++) {
-          volume *= volumes_3_plus[(d - 3) * (l_target + 1) + level];
+          volume *= volumes_3_plus[(d-3) * (l_target + 1) + level]; 
         }
       }
-      if (sizeof(T) == sizeof(double))
-        volume = sqrt(volume);
-      else if (sizeof(T) == sizeof(float))
-        volume = sqrtf(volume);
+      if (sizeof(T) == sizeof(double)) volume = sqrt(volume);
+      else if (sizeof(T) == sizeof(float)) volume = sqrtf(volume);
     }
-    // printf("l: %d, vol %f(%f*%f*%f), quantizers_sm: %f, quantizers: %f,
-    // before: %f, quantized: %d\n", level, volume,
-    //   volumes_0[level * blockDim.x + threadIdx.x], volumes_1[level *
-    //   blockDim.y + threadIdx.y], volumes_2[level * blockDim.z + threadIdx.z],
+    // printf("l: %d, vol %f(%f*%f*%f), quantizers_sm: %f, quantizers: %f, before: %f, quantized: %d\n", level, volume, 
+    //   volumes_0[level * blockDim.x + threadIdx.x], volumes_1[level * blockDim.y + threadIdx.y], volumes_2[level * blockDim.z + threadIdx.z],
     //   quantizers_sm[level],
-    //   (quantizers_sm[level] / volume), t, (int)copysign(0.5 + fabs(t /(
-    //   quantizers_sm[level] / volume)), t));
+    //   (quantizers_sm[level] / volume), t, (int)copysign(0.5 + fabs(t /( quantizers_sm[level] / volume)), t));
 
-    QUANTIZED_INT quantized_data =
-        copysign(0.5 + fabs(t / (quantizers_sm[level] * volume)), t);
-    // QUANTIZED_INT quantized_data = copysign(0.5 + fabs(t /
-    // (quantizers_sm[level] / volume) ), t); printf("dv[%llu] %f
-    // quantizers[%d]%f -> dw[%llu]%d \n",
+    QUANTIZED_INT quantized_data = copysign(0.5 + fabs(t / (quantizers_sm[level] * volume) ), t);
+    // QUANTIZED_INT quantized_data = copysign(0.5 + fabs(t / (quantizers_sm[level] / volume) ), t);
+    // printf("dv[%llu] %f quantizers[%d]%f -> dw[%llu]%d \n",
     //       get_idx<D>(ldvs, idx), t,
     //       level, quantizers_sm[level],
     //       get_idx<D>(ldws, idx), quantized_data+dict_size / 2);
 
-    if (prep_huffmam) {
+    if (prep_huffman) {
       quantized_data += dict_size / 2;
       if (quantized_data >= 0 && quantized_data < dict_size) {
         // do nothing
@@ -365,7 +1142,7 @@ _levelwise_linear_quantize(SIZE *shapes, SIZE l_target, T *quantizers,
       // }
     }
 
-    dwork[get_idx<D>(ldws, idx)] = quantized_data;
+    dwork[get_idx<D>(ldws_sm, idx)] = quantized_data;
   }
 }
 
@@ -373,7 +1150,7 @@ template <DIM D, typename T, int R, int C, int F>
 void levelwise_linear_quantize_adaptive_launcher(
     Handle<D, T> &handle, SIZE *shapes, SIZE l_target, T *volumes,
     SIZE ldvolumes, Metadata &m, T *dv, SIZE *ldvs, QUANTIZED_INT *dwork,
-    SIZE *ldws, bool prep_huffmam, SIZE *shape, LENGTH *outlier_count,
+    SIZE *ldws, bool prep_huffman, SIZE *shape, LENGTH *outlier_count,
     LENGTH *outlier_idx, QUANTIZED_INT *outliers, int queue_idx) {
 
   T *quantizers = new T[l_target + 1];
@@ -409,23 +1186,22 @@ void levelwise_linear_quantize_adaptive_launcher(
   sm_size += tbx * (l_target + 1) * sizeof(T);
   sm_size += tby * (l_target + 1) * sizeof(T);
   sm_size += tbz * (l_target + 1) * sizeof(T);
-  if (D > 3)
-    sm_size += (D - 3) * (l_target + 1) * sizeof(T);
+  if (D > 3) sm_size += (D-3) * (l_target + 1) * sizeof(T);
   // printf("sm_size: %llu\n", sm_size);
   if (m.ntype == norm_type::L_Inf) {
     _levelwise_linear_quantize<D, T, R, C, F, false>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
-            shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
-            dwork, ldws, prep_huffmam, m.dict_size, shape, outlier_count,
-            outlier_idx, outliers);
+            shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws,
+            prep_huffman, m.dict_size, shape, outlier_count, outlier_idx,
+            outliers);
   } else if (m.ntype == norm_type::L_2) {
     _levelwise_linear_quantize<D, T, R, C, F, true>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
-            shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
-            dwork, ldws, prep_huffmam, m.dict_size, shape, outlier_count,
-            outlier_idx, outliers);
+            shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws,
+            prep_huffman, m.dict_size, shape, outlier_count, outlier_idx,
+            outliers);
   } else {
     std::cout << log::log_err << "unsupported norm type!\n";
     exit(-1);
@@ -442,15 +1218,14 @@ void levelwise_linear_quantize(Handle<D, T> &handle, SIZE *shapes,
                                SIZE l_target, T *volumes, SIZE ldvolumes,
                                Metadata &m, T *dv, SIZE *ldvs,
                                QUANTIZED_INT *dwork, SIZE *ldws,
-                               bool prep_huffmam, SIZE *shape,
+                               bool prep_huffman, SIZE *shape,
                                LENGTH *outlier_count, LENGTH *outlier_idx,
                                QUANTIZED_INT *outliers, int queue_idx) {
-#define QUANTIZE(R, C, F)                                                      \
+  #define QUANTIZE(R, C, F)                                                      \
   {                                                                            \
     levelwise_linear_quantize_adaptive_launcher<D, T, R, C, F>(                \
-        handle, shapes, l_target, volumes, ldvolumes, m, dv, ldvs, dwork,      \
-        ldws, prep_huffmam, shape, outlier_count, outlier_idx, outliers,       \
-        queue_idx);                                                            \
+        handle, shapes, l_target, volumes, ldvolumes, m, dv, ldvs, dwork, ldws, prep_huffman,      \
+        shape, outlier_count, outlier_idx, outliers, queue_idx);               \
   }
 
   if (D >= 3) {
@@ -462,16 +1237,15 @@ void levelwise_linear_quantize(Handle<D, T> &handle, SIZE *shapes,
   if (D == 1) {
     QUANTIZE(1, 1, 64)
   }
-
-#undef QUANTIZE
+  #undef QUANTIZE
 }
 
 template <DIM D, typename T, int R, int C, int F, bool CALC_VOL>
-__global__ void _levelwise_linear_dequantize(
-    SIZE *shapes, SIZE l_target, T *quantizers, T *volumes, SIZE ldvolumes,
-    QUANTIZED_INT *dv, SIZE *ldvs, T *dwork, SIZE *ldws, bool prep_huffmam,
-    SIZE dict_size, LENGTH outlier_count, LENGTH *outlier_idx,
-    QUANTIZED_INT *outliers) {
+__global__ void
+_levelwise_linear_dequantize(SIZE *shapes, SIZE l_target, T *quantizers, T * volumes, SIZE ldvolumes, QUANTIZED_INT *dv,
+                             SIZE *ldvs, T *dwork, SIZE *ldws, bool prep_huffman, SIZE dict_size,
+                             LENGTH outlier_count, LENGTH *outlier_idx,
+                             QUANTIZED_INT *outliers) {
 
   LENGTH threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
                     (threadIdx.y * blockDim.x) + threadIdx.x;
@@ -479,31 +1253,19 @@ __global__ void _levelwise_linear_dequantize(
                    (blockIdx.y * gridDim.x) + blockIdx.x;
   LENGTH gloablId = blockId * blockDim.x * blockDim.y * blockDim.z + threadId;
 
-  T *smT = SharedMemory<T>();
-  T *quantizers_sm = smT;
-  smT += l_target + 1;
-  T *volumes_0 = smT;
-  if (CALC_VOL)
-    smT += blockDim.x * (l_target + 1);
-  T *volumes_1 = smT;
-  if (CALC_VOL)
-    smT += blockDim.y * (l_target + 1);
-  T *volumes_2 = smT;
-  if (CALC_VOL)
-    smT += blockDim.z * (l_target + 1);
-  T *volumes_3_plus = smT;
-  if (CALC_VOL && D > 3)
-    smT += (D - 3) * (l_target + 1);
+  T * smT = SharedMemory<T>();
+  T * quantizers_sm = smT; smT += l_target + 1;
+  T * volumes_0 = smT; if (CALC_VOL) smT += blockDim.x * (l_target + 1);
+  T * volumes_1 = smT; if (CALC_VOL) smT += blockDim.y * (l_target + 1);
+  T * volumes_2 = smT; if (CALC_VOL) smT += blockDim.z * (l_target + 1);
+  T * volumes_3_plus = smT;
+  if (CALC_VOL && D > 3) smT += (D-3) * (l_target + 1);
 
-  SIZE *smInt = (SIZE *)smT;
-  SIZE *ldvs_sm = smInt;
-  smInt += D;
-  SIZE *ldws_sm = smInt;
-  smInt += D;
-  SIZE *shape_sm = smInt;
-  smInt += D;
-  SIZE *shapes_sm = smInt;
-  smInt += D * (l_target + 2);
+  SIZE * smInt = (SIZE *)smT;
+  SIZE *ldvs_sm = smInt; smInt += D;
+  SIZE *ldws_sm = smInt; smInt += D;
+  SIZE *shape_sm = smInt; smInt += D;
+  SIZE *shapes_sm = smInt; smInt += D * (l_target + 2);
 
   if (threadId < l_target + 1) {
     quantizers_sm[threadId] = quantizers[threadId];
@@ -522,20 +1284,20 @@ __global__ void _levelwise_linear_dequantize(
   // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0 &&
   //     threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
   //   debug = true;
-  // for (int d = 0; d < D; d ++) {
-  //   printf("shapes_sm[%d]\n", d);
-  //   for (int l = 0; l < l_target + 1; l++) {
-  //     printf("%d ", shapes_sm[(l_target+1) * d + l]);
-  //   }
-  //   printf("\n");
-  // }
+    // for (int d = 0; d < D; d ++) {
+    //   printf("shapes_sm[%d]\n", d);
+    //   for (int l = 0; l < l_target + 1; l++) {
+    //     printf("%d ", shapes_sm[(l_target+1) * d + l]);
+    //   }
+    //   printf("\n");
+    // }
   // }
   // __syncthreads();
 
   // determine global idx
-  SIZE idx[D];  // thread global idx
-  SIZE idx0[D]; // block global idx
-
+  SIZE idx[D]; //thread global idx
+  SIZE idx0[D]; //block global idx
+  
   SIZE firstD = div_roundup(shapes_sm[l_target + 1], F);
 
   SIZE bidx = blockIdx.x;
@@ -559,37 +1321,33 @@ __global__ void _levelwise_linear_dequantize(
     idx[d] = bidx % shapes_sm[(l_target + 2) * d + l_target + 1];
     idx0[d] = idx[d];
     bidx /= shapes_sm[(l_target + 2) * d + l_target + 1];
+
   }
 
   if (CALC_VOL) {
     // cache volumes
-    for (SIZE l = 0; l < l_target + 1; l++) {
+    for (SIZE l = 0; l < l_target+1; l++) {
       // volumes 0
-      if (threadId < blockDim.x &&
-          idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
-        // printf("%d < %d[%d, %d, %d]\n", idx0[0] + (int)threadId,
+      if (threadId < blockDim.x && idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
+        // printf("%d < %d[%d, %d, %d]\n", idx0[0] + (int)threadId, 
         //   shapes_sm[(l_target + 2) * 0 + l_target + 1],
         //   l_target, (l_target + 2) * 0 + l_target + 1, l_target + 2);
-        volumes_0[l * blockDim.x + threadId] =
-            volumes[(0 * (l_target + 1) + l) * ldvolumes + idx0[0] + threadId];
+        volumes_0[l * blockDim.x + threadId] = 
+          volumes[(0 * (l_target + 1) + l) * ldvolumes + idx0[0] + threadId];
         // printf("load %f\n", volumes_0[l * blockDim.x + threadId]);
       }
       if (D >= 2) {
         // volumes 1
-        if (threadId < blockDim.y &&
-            idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
-          volumes_1[l * blockDim.y + threadId] =
-              volumes[(1 * (l_target + 1) + l) * ldvolumes + idx0[1] +
-                      threadId];
+        if (threadId < blockDim.y && idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
+          volumes_1[l * blockDim.y + threadId] = 
+            volumes[(1 * (l_target + 1) + l) * ldvolumes + idx0[1] + threadId];
         }
       }
       if (D >= 3) {
         // volumes 2
-        if (threadId < blockDim.z &&
-            idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
-          volumes_2[l * blockDim.z + threadId] =
-              volumes[(2 * (l_target + 1) + l) * ldvolumes + idx0[2] +
-                      threadId];
+        if (threadId < blockDim.z && idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
+          volumes_2[l * blockDim.z + threadId] = 
+            volumes[(2 * (l_target + 1) + l) * ldvolumes + idx0[2] + threadId];
         }
       }
     }
@@ -597,8 +1355,8 @@ __global__ void _levelwise_linear_dequantize(
     if (D >= 4) {
       if (threadId < 1) {
         for (DIM d = 3; d < D; d++) {
-          for (SIZE l = 0; l < l_target + 1; l++) {
-            volumes_3_plus[(d - 3) * (l_target + 1) + l] =
+          for (SIZE l = 0; l < l_target+1; l++) {
+              volumes_3_plus[(d-3) * (l_target + 1) + l] = 
                 volumes[(d * (l_target + 1) + l) * ldvolumes + idx[d]];
           }
         }
@@ -610,8 +1368,7 @@ __global__ void _levelwise_linear_dequantize(
   //   printf("volumes_0: ");
   //   for (int l = 0; l < l_target+1; l++) {
   //     printf("l = %d\n", l);
-  //     for (int i = 0; i < min(blockDim.x, shapes_sm[(l_target + 2) * 0 +
-  //     l_target + 1]) ; i++) {
+  //     for (int i = 0; i < min(blockDim.x, shapes_sm[(l_target + 2) * 0 + l_target + 1]) ; i++) {
   //       printf("%f ", volumes_0[l * blockDim.x + i]);
   //     }
   //     printf("\n");
@@ -620,13 +1377,12 @@ __global__ void _levelwise_linear_dequantize(
   //   printf("volumes_1: ");
   //   for (int l = 0; l < l_target+1; l++) {
   //     printf("l = %d\n", l);
-  //     for (int i = 0; i < min(blockDim.y, shapes_sm[(l_target + 2) * 1 +
-  //     l_target + 1]); i++) {
+  //     for (int i = 0; i < min(blockDim.y, shapes_sm[(l_target + 2) * 1 + l_target + 1]); i++) {
   //       printf("%f ", volumes_1[l * blockDim.y + i]);
   //     }
   //     printf("\n");
   //   }
-
+    
   // }
 
   __syncthreads();
@@ -657,37 +1413,27 @@ __global__ void _levelwise_linear_dequantize(
     T volume = 1;
     if (CALC_VOL) {
       volume *= volumes_0[level * blockDim.x + threadIdx.x];
-      if (D >= 2)
-        volume *= volumes_1[level * blockDim.y + threadIdx.y];
-      if (D >= 3)
-        volume *= volumes_2[level * blockDim.z + threadIdx.z];
+      if (D >= 2) volume *= volumes_1[level * blockDim.y + threadIdx.y];
+      if (D >= 3) volume *= volumes_2[level * blockDim.z + threadIdx.z];
       if (D >= 4) {
         for (int d = 3; d < D; d++) {
-          volume *= volumes_3_plus[(d - 3) * (l_target + 1) + level];
+          volume *= volumes_3_plus[(d-3) * (l_target + 1) + level]; 
         }
       }
-      if (sizeof(T) == sizeof(double))
-        volume = sqrt(volume);
-      else if (sizeof(T) == sizeof(float))
-        volume = sqrtf(volume);
+      if (sizeof(T) == sizeof(double)) volume = sqrt(volume);
+      else if (sizeof(T) == sizeof(float)) volume = sqrtf(volume);
     }
 
-    if (prep_huffmam) {
+    if (prep_huffman) {
       quantized_data -= dict_size / 2;
     }
 
-    // printf("%d %d %d %d %d %d vol %f (%f * %f * %f), dequantizers: %f,
-    // before: %d, dequantized: %f\n", blockIdx.z, blockIdx.y, blockIdx.x,
-    // threadIdx.z, threadIdx.y, threadIdx.x, volume,
-    //   volumes_0[level * blockDim.x + threadIdx.x], volumes_1[level *
-    //   blockDim.y + threadIdx.y], volumes_2[level * blockDim.z + threadIdx.z],
-    //   quantizers_sm[level] / volume, quantized_data, (quantizers_sm[level] /
-    //   volume) * (T)quantized_data);
-    dwork[get_idx<D>(ldws, idx)] =
-        (quantizers_sm[level] * volume) * (T)quantized_data;
-    // dwork[get_idx<D>(ldws, idx)] = (quantizers_sm[level] / volume) *
-    // (T)quantized_data; dwork[get_idx<D>(ldws, idx)] = (T)dv[get_idx<D>(ldvs,
-    // idx)];
+    // printf("%d %d %d %d %d %d vol %f (%f * %f * %f), dequantizers: %f, before: %d, dequantized: %f\n", blockIdx.z, blockIdx.y, blockIdx.x, threadIdx.z, threadIdx.y, threadIdx.x, volume, 
+    //   volumes_0[level * blockDim.x + threadIdx.x], volumes_1[level * blockDim.y + threadIdx.y], volumes_2[level * blockDim.z + threadIdx.z],
+    //   quantizers_sm[level] / volume, quantized_data, (quantizers_sm[level] / volume) * (T)quantized_data);
+    dwork[get_idx<D>(ldws, idx)] = (quantizers_sm[level] * volume) * (T)quantized_data;
+    // dwork[get_idx<D>(ldws, idx)] = (quantizers_sm[level] / volume) * (T)quantized_data;
+    // dwork[get_idx<D>(ldws, idx)] = (T)dv[get_idx<D>(ldvs, idx)];
 
     // printf("dw[%llu] %d dequantizers[%d]%f -> dw[%llu]%f \n",
     // get_idx<D>(ldvs, idx),
@@ -730,9 +1476,9 @@ __global__ void _levelwise_linear_dequantize(
 
 template <DIM D, typename T, int R, int C, int F, bool CALC_VOL>
 __global__ void _levelwise_linear_dequantize_outliers(
-    SIZE *shapes, SIZE l_target, T *quantizers, T *volumes, SIZE ldvolumes,
-    QUANTIZED_INT *dv, SIZE *ldvs, T *dwork, SIZE *ldws, SIZE dict_size,
-    LENGTH outlier_count, LENGTH *outlier_idx, QUANTIZED_INT *outliers) {
+    SIZE *shapes, SIZE l_target, T *quantizers, T * volumes, SIZE ldvolumes,  QUANTIZED_INT *dv, SIZE *ldvs, T *dwork,
+    SIZE *ldws, SIZE dict_size, LENGTH outlier_count, LENGTH *outlier_idx,
+    QUANTIZED_INT *outliers) {
 
   size_t threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
                     (threadIdx.y * blockDim.x) + threadIdx.x;
@@ -741,16 +1487,12 @@ __global__ void _levelwise_linear_dequantize_outliers(
   size_t gloablId = blockId * blockDim.x * blockDim.y * blockDim.z + threadId;
 
   T *sm = SharedMemory<T>();
-  T *quantizers_sm = sm;
-  sm += l_target + 1;
+  T *quantizers_sm = sm; sm += l_target + 1;
 
-  SIZE *sm_size = (SIZE *)sm;
-  SIZE *ldvs_sm = sm_size;
-  sm_size += D;
-  SIZE *ldws_sm = sm_size;
-  sm_size += D;
-  SIZE *shapes_sm = sm_size;
-  sm_size += D * (l_target + 2);
+  SIZE *sm_size = (SIZE*)sm;
+  SIZE *ldvs_sm = sm_size; sm_size += D;
+  SIZE *ldws_sm = sm_size; sm_size += D;
+  SIZE *shapes_sm = sm_size; sm_size += D * (l_target + 2);
 
   if (threadId < l_target + 1) {
     quantizers_sm[threadId] = quantizers[threadId];
@@ -764,51 +1506,45 @@ __global__ void _levelwise_linear_dequantize_outliers(
   }
 
   __syncthreads();
-  SIZE idx[D]; // thread global idx
+  SIZE idx[D]; //thread global idx
 
   // outliers
   if (gloablId < outlier_count) {
     size_t linerized_idx = outlier_idx[gloablId];
-    for (DIM d = 0; d < D; d++) {
-      idx[d] = linerized_idx % shapes_sm[(l_target + 2) * d + l_target + 1];
-      linerized_idx /= shapes_sm[(l_target + 2) * d + l_target + 1];
-    }
+    // for (DIM d = 0; d < D; d++) {
+    //   idx[d] = linerized_idx % shapes_sm[(l_target + 2) * d + l_target + 1];
+    //   linerized_idx /= shapes_sm[(l_target + 2) * d + l_target + 1];
+    // }
     QUANTIZED_INT outliter = outliers[gloablId];
-    outliter -= dict_size / 2;
 
-    int level = 0;
-    for (DIM d = 0; d < D; d++) {
-      long long unsigned int l_bit = 0l;
-      for (SIZE l = 0; l < l_target + 1; l++) {
-        int bit = (idx[d] >= shapes_sm[(l_target + 2) * d + l]) &&
-                  (idx[d] < shapes_sm[(l_target + 2) * d + l + 1]);
-        l_bit += bit << l;
-        // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
-      }
-      level = max(level, __ffsll(l_bit));
-    }
-    level = level - 1;
+    dv[linerized_idx] = outliter;
+    // printf("put back[%llu] <- outlier[%llu]: %llu\n", linerized_idx, gloablId, outliter);
 
-    T volume = 1;
+    // outliter -= dict_size / 2;
 
-    if (CALC_VOL) {
-      for (DIM d = 0; d < D; d++) {
-        volume *= volumes[(d * (l_target + 1) + level) * ldvolumes + idx[d]];
-      }
-      if (sizeof(T) == sizeof(double))
-        volume = sqrt(volume);
-      else if (sizeof(T) == sizeof(float))
-        volume = sqrtf(volume);
-    }
-    dwork[get_idx<D>(ldws, idx)] =
-        (quantizers_sm[level] * volume) * (T)outliter;
-    // dwork[get_idx<D>(ldws, idx)] = (quantizers_sm[level] / volume) *
-    // (T)outliter;
+    // int level = 0;
+    // for (DIM d = 0; d < D; d++) {
+    //   long long unsigned int l_bit = 0l;
+    //   for (SIZE l = 0; l < l_target + 1; l++) {
+    //     int bit = (idx[d] >= shapes_sm[(l_target + 2) * d + l]) &&
+    //               (idx[d] < shapes_sm[(l_target + 2) * d + l + 1]);
+    //     l_bit += bit << l;
+    //     // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
+    //   }
+    //   level = max(level, __ffsll(l_bit));
+    // }
+    // level = level - 1;
 
-    // printf("outliter: dw[%llu] %d dequantizers[%d]%f -> dw[%llu]%f \n",
-    // get_idx<D>(ldvs, idx),
-    //       outliter, level, quantizers_sm[level], get_idx<D>(ldws, idx),
-    //       quantizers_sm[level] * (T)outliter);
+    // T volume = 1;
+
+    // if (CALC_VOL) {
+    //   for (DIM d = 0; d < D; d++) {
+    //     volume *= volumes[(d * (l_target+1) + level) * ldvolumes + idx[d]];
+    //   }
+    //   if (sizeof(T) == sizeof(double)) volume = sqrt(volume);
+    //   else if (sizeof(T) == sizeof(float)) volume = sqrtf(volume);
+    // }
+    // dwork[get_idx<D>(ldws, idx)] = (quantizers_sm[level] * volume) * (T)outliter;
   }
 }
 
@@ -850,41 +1586,42 @@ void levelwise_linear_dequantize_adaptive_launcher(
   sm_size += tbx * (l_target + 1) * sizeof(T);
   sm_size += tby * (l_target + 1) * sizeof(T);
   sm_size += tbz * (l_target + 1) * sizeof(T);
-  if (D > 3)
-    sm_size += (D - 3) * (l_target + 1) * sizeof(T);
+  if (D > 3) sm_size += (D-3) * (l_target + 1) * sizeof(T);
 
   if (m.ntype == norm_type::L_Inf) {
-    _levelwise_linear_dequantize<D, T, R, C, F, false>
-        <<<blockPerGrid, threadsPerBlock, sm_size,
-           *(cudaStream_t *)handle.get(queue_idx)>>>(
-            shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
-            dwork, ldws, prep_huffman, m.dict_size, outlier_count, outlier_idx,
-            outliers);
     if (prep_huffman) {
       _levelwise_linear_dequantize_outliers<D, T, R, C, F, false>
           <<<blockPerGrid, threadsPerBlock, sm_size,
              *(cudaStream_t *)handle.get(queue_idx)>>>(
-              shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
-              dwork, ldws, m.dict_size, outlier_count, outlier_idx, outliers);
+              shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws,
+              m.dict_size, outlier_count, outlier_idx, outliers);
     }
-  } else if (m.ntype == norm_type::L_2) {
-    _levelwise_linear_dequantize<D, T, R, C, F, true>
+    gpuErrchk(cudaDeviceSynchronize());
+    _levelwise_linear_dequantize<D, T, R, C, F, false>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
-            shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
-            dwork, ldws, prep_huffman, m.dict_size, outlier_count, outlier_idx,
-            outliers);
+            shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws, prep_huffman,
+            m.dict_size, outlier_count, outlier_idx, outliers);
+    gpuErrchk(cudaDeviceSynchronize());
+  } else if (m.ntype == norm_type::L_2){
     if (prep_huffman) {
       _levelwise_linear_dequantize_outliers<D, T, R, C, F, true>
           <<<blockPerGrid, threadsPerBlock, sm_size,
              *(cudaStream_t *)handle.get(queue_idx)>>>(
-              shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs,
-              dwork, ldws, m.dict_size, outlier_count, outlier_idx, outliers);
+              shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws,
+              m.dict_size, outlier_count, outlier_idx, outliers);
     }
+    gpuErrchk(cudaDeviceSynchronize());
+    _levelwise_linear_dequantize<D, T, R, C, F, true>
+        <<<blockPerGrid, threadsPerBlock, sm_size,
+           *(cudaStream_t *)handle.get(queue_idx)>>>(
+            shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws, prep_huffman,
+            m.dict_size, outlier_count, outlier_idx, outliers);
+    gpuErrchk(cudaDeviceSynchronize());
   } else {
     std::cout << log::log_err << "unsupported norm type!\n";
     exit(-1);
-  }
+  } 
   gpuErrchk(cudaGetLastError());
   if (handle.sync_and_check_all_kernels) {
     gpuErrchk(cudaDeviceSynchronize());
@@ -895,14 +1632,14 @@ template <DIM D, typename T>
 void levelwise_linear_dequantize(Handle<D, T> &handle, SIZE *shapes,
                                  SIZE l_target, T *volumes, SIZE ldvolumes,
                                  Metadata &m, QUANTIZED_INT *dv, SIZE *ldvs,
-                                 T *dwork, SIZE *ldws, bool prep_huffmam,
+                                 T *dwork, SIZE *ldws, bool prep_huffman,
                                  LENGTH outlier_count, LENGTH *outlier_idx,
                                  QUANTIZED_INT *outliers, int queue_idx) {
 #define DEQUANTIZE(R, C, F)                                                    \
   {                                                                            \
     levelwise_linear_dequantize_adaptive_launcher<D, T, R, C, F>(              \
-        handle, shapes, l_target, volumes, ldvolumes, m, dv, ldvs, dwork,      \
-        ldws, prep_huffmam, outlier_count, outlier_idx, outliers, queue_idx);  \
+        handle, shapes, l_target, volumes, ldvolumes, m, dv, ldvs, dwork, ldws, prep_huffman, outlier_count,     \
+        outlier_idx, outliers, queue_idx);                                     \
   }
 
   if (D >= 3) {
