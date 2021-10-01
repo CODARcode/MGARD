@@ -33,7 +33,7 @@ MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which signific
 
 			cmake -S <MGARD_SRC_DIR> -B <MGARD_BUILD_DIR>
 				  -DMGARD_ENABLE_CUDA=ON
-				  -DNVCOMP_ROOT=<NVCOMP_INSTALL_DIR> 
+				  -DCMAKE_PREFIX_PATH=<NVCOMP_INSTALL_DIR> 
 			
 	+ **Step 3:** build MGARD: ```cmake --build <MGARD_BUILD_DIR> -j8```
 
@@ -150,7 +150,7 @@ An object ```mgard_cuda::Handle``` needs to be created and initialized. This ini
 	+ To free pinned memory on CPU: ```mgard_cuda::cudaFreeHostHelper(void * data_ptr)```
 
 ## A simple example
-The following code shows how to compress/decompress a 3D dataset. 
+The following code shows how to compress/decompress a 3D dataset with the low-level APIs. 
 
 		#include <vector>
 		#include <iostream>
@@ -191,4 +191,4 @@ The following code shows how to compress/decompress a 3D dataset.
 ## A comprehensive example
 * A comprehensive example about how to use MGARD-GPU is located in [here][example].
 
-[example]:tests/gpu-cuda
+[example]:../examples/gpu-cuda/SimpleExample
