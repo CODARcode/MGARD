@@ -71,18 +71,22 @@ template <DIM D, typename T> struct Handle {
   /* Refactoring env */
   SIZE l_target;
   DIM D_padded;
+  std::vector<SIZE> shape_org;
   std::vector<SIZE> shape;
   std::vector<std::vector<SIZE>> dofs;
   std::vector<SIZE *> shapes_h;
   std::vector<SIZE *> shapes_d;
-  SIZE *ranges_h;
-  SIZE *ranges_d;
+  std::vector<Array<1, SIZE>> shapes;
+  SIZE * ranges_h;
+  SIZE * ranges_d;
+  Array<1, SIZE> ranges;
   std::vector<T *> coords_h;
   std::vector<T *> coords_d;
   std::vector<std::vector<T *>> dist;
   std::vector<std::vector<T *>> ratio;
-  T *volumes;
+  T * volumes;
   SIZE ldvolumes;
+  Array<2, T> volumes_array;
   std::vector<std::vector<T *>> am;
   std::vector<std::vector<T *>> bm;
   LENGTH linearized_depth;
@@ -107,6 +111,7 @@ template <DIM D, typename T> struct Handle {
   DIM *unprocessed_n;
   DIM **unprocessed_dims_h;
   DIM **unprocessed_dims_d;
+
 
   T *dw;
   SIZE lddw1, lddw2;
@@ -140,11 +145,11 @@ private:
   void destroy_auto_tuning_table();
   bool auto_tuning_table_created = false;
 
-  void coord_to_dist(SIZE dof, T *coord, T *dist);
-  void dist_to_ratio(SIZE dof, T *dist, T *ratio);
-  void reduce_dist(SIZE dof, T *dist, T *dist2);
-  void calc_am_bm(SIZE dof, T *dist, T *am, T *bm);
-  void calc_volume(SIZE dof, T *dist, T *volume);
+  void coord_to_dist(SIZE dof, T * coord, T * dist);
+  void dist_to_ratio(SIZE dof, T * dist, T * ratio);
+  void reduce_dist(SIZE dof, T * dist, T * dist2);
+  void calc_am_bm(SIZE dof, T * dist, T * am, T * bm);
+  void calc_volume(SIZE dof, T * dist, T * volume);
   void init(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
 
   void destroy();

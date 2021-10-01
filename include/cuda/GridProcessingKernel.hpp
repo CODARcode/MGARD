@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #ifndef MGRAD_CUDA_GRID_PROCESSING_KERNEL_TEMPLATE
@@ -19,12 +19,11 @@ template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F,
 __global__ void
 _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
          DIM *unprocessed_dims, DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-         T *dratio_r, T *dratio_c, T *dratio_f, T *dv, LENGTH lddv1,
-         LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2, T *dwf, LENGTH lddwf1,
-         LENGTH lddwf2, T *dwc, LENGTH lddwc1, LENGTH lddwc2, T *dwr,
-         LENGTH lddwr1, LENGTH lddwr2, T *dwcf, LENGTH lddwcf1, LENGTH lddwcf2,
-         T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1,
-         LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2) {
+         T *dratio_r, T *dratio_c, T *dratio_f, T *dv, LENGTH lddv1, LENGTH lddv2,
+         T *dw, LENGTH lddw1, LENGTH lddw2, T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc,
+         LENGTH lddwc1, LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
+         LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc,
+         LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2) {
 
   // bool debug = false;
   // if (blockIdx.x == 0 && blockIdx.y ==0 && blockIdx.z == 0 &&
@@ -55,30 +54,21 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
   SIZE ldsm1 = F * 2 + 1;
   SIZE ldsm2 = C * 2 + 1;
 
-  T *v_sm = sm;
-  sm += (F * 2 + 1) * (C * 2 + 1) * (R * 2 + 1);
-  T *ratio_f_sm = sm;
-  sm += F * 2;
-  T *ratio_c_sm = sm;
-  sm += C * 2;
-  T *ratio_r_sm = sm;
-  sm += R * 2;
+  T *v_sm = sm; sm += (F * 2 + 1) * (C * 2 + 1) * (R * 2 + 1);
+  T *ratio_f_sm = sm; sm += F * 2;
+  T *ratio_c_sm = sm; sm += C * 2;
+  T *ratio_r_sm = sm; sm += R * 2;
 
-  SIZE *sm_size = (SIZE *)sm;
-  SIZE *shape_sm = sm_size;
-  sm_size += D_GLOBAL;
-  SIZE *shape_c_sm = sm_size;
-  sm_size += D_GLOBAL;
-  SIZE *ldvs_sm = sm_size;
-  sm_size += D_GLOBAL;
-  SIZE *ldws_sm = sm_size;
-  sm_size += D_GLOBAL;
-  sm = (T *)sm_size;
+  SIZE * sm_size = (SIZE*)sm;
+  SIZE *shape_sm = sm_size; sm_size += D_GLOBAL;
+  SIZE *shape_c_sm = sm_size; sm_size += D_GLOBAL;
+  SIZE *ldvs_sm = sm_size; sm_size += D_GLOBAL;
+  SIZE *ldws_sm = sm_size; sm_size += D_GLOBAL;
+  sm = (T*)sm_size;
 
-  DIM *sm_dim = (DIM *)sm;
-  DIM *unprocessed_dims_sm = sm_dim;
-  sm_dim += D_GLOBAL;
-  sm = (T *)sm_dim;
+  DIM * sm_dim = (DIM*)sm;
+  DIM *unprocessed_dims_sm = sm_dim; sm_dim += D_GLOBAL;
+  sm = (T*)sm_dim;
 
   SIZE idx[D_GLOBAL];
   if (threadId < D_GLOBAL) {
@@ -1915,12 +1905,11 @@ void gpk_reo_adaptive_launcher(
     Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d, SIZE *shape_c_d,
     SIZE *ldvs, SIZE *ldws, DIM unprocessed_n, DIM *unprocessed_dims,
     DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, T *dratio_r, T *dratio_c,
-    T *dratio_f, T *dv, LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1,
-    LENGTH lddw2, T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1,
-    LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
-    LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2,
-    T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1,
-    LENGTH lddwrcf2, int queue_idx) {
+    T *dratio_f, T *dv, LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2,
+    T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1, LENGTH lddwc2, T *dwr,
+    LENGTH lddwr1, LENGTH lddwr2, T *dwcf, LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf,
+    LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf,
+    LENGTH lddwrcf1, LENGTH lddwrcf2, int queue_idx) {
 
   SIZE nr = shape_h[curr_dim_r];
   SIZE nc = shape_h[curr_dim_c];
@@ -1987,12 +1976,11 @@ void gpk_reo(Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d,
              SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
              DIM *unprocessed_dims, DIM curr_dim_r, DIM curr_dim_c,
              DIM curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv,
-             LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2,
-             T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1,
-             LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
-             LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1,
-             LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf,
-             LENGTH lddwrcf1, LENGTH lddwrcf2, int queue_idx, int config) {
+             LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2, T *dwf,
+             LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1, LENGTH lddwc2, T *dwr,
+             LENGTH lddwr1, LENGTH lddwr2, T *dwcf, LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf,
+             LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2,
+             T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2, int queue_idx, int config) {
 
 #define GPK(R, C, F)                                                           \
   {                                                                            \
@@ -2086,13 +2074,12 @@ template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F,
 __global__ void
 _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
          DIM *unprocessed_dims, DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-         T *dratio_r, T *dratio_c, T *dratio_f, T *dv, LENGTH lddv1,
-         LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2, T *dwf, LENGTH lddwf1,
-         LENGTH lddwf2, T *dwc, LENGTH lddwc1, LENGTH lddwc2, T *dwr,
-         LENGTH lddwr1, LENGTH lddwr2, T *dwcf, LENGTH lddwcf1, LENGTH lddwcf2,
-         T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1,
-         LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2, SIZE svr,
-         SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf) {
+         T *dratio_r, T *dratio_c, T *dratio_f, T *dv, LENGTH lddv1, LENGTH lddv2,
+         T *dw, LENGTH lddw1, LENGTH lddw2, T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc,
+         LENGTH lddwc1, LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
+         LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc,
+         LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2,
+         SIZE svr, SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf) {
 
   // bool debug = false;
   // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0 &&
@@ -2123,30 +2110,21 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
   SIZE ldsm1 = F * 2 + 1;
   SIZE ldsm2 = C * 2 + 1;
 
-  T *v_sm = sm;
-  sm += (F * 2 + 1) * (C * 2 + 1) * (R * 2 + 1);
-  T *ratio_f_sm = sm;
-  sm += F * 2;
-  T *ratio_c_sm = sm;
-  sm += C * 2;
-  T *ratio_r_sm = sm;
-  sm += R * 2;
+  T *v_sm = sm; sm += (F * 2 + 1) * (C * 2 + 1) * (R * 2 + 1);
+  T *ratio_f_sm = sm; sm += F * 2;
+  T *ratio_c_sm = sm; sm += C * 2;
+  T *ratio_r_sm = sm; sm += R * 2;
 
-  SIZE *sm_size = (SIZE *)sm;
-  SIZE *shape_sm = sm_size;
-  sm_size += D_GLOBAL;
-  SIZE *shape_c_sm = sm_size;
-  sm_size += D_GLOBAL;
-  SIZE *ldvs_sm = sm_size;
-  sm_size += D_GLOBAL;
-  SIZE *ldws_sm = sm_size;
-  sm_size += D_GLOBAL;
-  sm = (T *)sm_size;
+  SIZE * sm_size = (SIZE*)sm;
+  SIZE *shape_sm = sm_size; sm_size += D_GLOBAL;
+  SIZE *shape_c_sm = sm_size; sm_size += D_GLOBAL;
+  SIZE *ldvs_sm = sm_size; sm_size += D_GLOBAL;
+  SIZE *ldws_sm = sm_size; sm_size += D_GLOBAL;
+  sm = (T*)sm_size;
 
-  DIM *sm_dim = (DIM *)sm;
-  DIM *unprocessed_dims_sm = sm_dim;
-  sm_dim += D_GLOBAL;
-  sm = (T *)sm_dim;
+  DIM * sm_dim = (DIM*)sm;
+  DIM *unprocessed_dims_sm = sm_dim; sm_dim += D_GLOBAL;
+  sm = (T*)sm_dim;
 
   SIZE idx[D_GLOBAL];
   if (threadId < D_GLOBAL) {
@@ -2342,8 +2320,7 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
         // if (debug2)
         //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
-        //          f_gl);
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2368,8 +2345,7 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
         // if (debug2)
         //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
-        //          f_gl);
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2438,8 +2414,7 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
         // if (debug2)
         //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
-        //          f_gl);
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2507,8 +2482,7 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
         // if (debug2)
         //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
-        //          f_gl);
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2574,8 +2548,7 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
         // if (debug2)
         //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
-        //          f_gl);
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2642,8 +2615,7 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
         // if (debug2)
         //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
-        //          f_gl);
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2709,8 +2681,7 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
         // if (debug2)
         //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
-        //          f_gl);
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2776,8 +2747,7 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
         // if (debug2)
         //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
-        //          f_gl);
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -2844,8 +2814,7 @@ _gpk_rev(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
             dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)];
         // if (debug2)
         //   printf("(%d %d %d) %f <- (%d %d %d)\n", r_sm, c_sm, f_sm,
-        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl,
-        //          f_gl);
+        //          dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)], r_gl, c_gl, f_gl);
         if (!skip) {
           if (INTERPOLATION) {
             ;
@@ -4141,13 +4110,12 @@ void gpk_rev_adaptive_launcher(
     Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d, SIZE *shape_c_d,
     SIZE *ldvs, SIZE *ldws, DIM unprocessed_n, DIM *unprocessed_dims,
     DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, T *dratio_r, T *dratio_c,
-    T *dratio_f, T *dv, LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1,
-    LENGTH lddw2, T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1,
-    LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
-    LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2,
-    T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1,
-    LENGTH lddwrcf2, SIZE svr, SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf,
-    int queue_idx) {
+    T *dratio_f, T *dv, LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2,
+    T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1, LENGTH lddwc2, T *dwr,
+    LENGTH lddwr1, LENGTH lddwr2, T *dwcf, LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf,
+    LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf,
+    LENGTH lddwrcf1, LENGTH lddwrcf2, SIZE svr, SIZE svc, SIZE svf, SIZE nvr, SIZE nvc,
+    SIZE nvf, int queue_idx) {
 
   SIZE nr = shape_h[curr_dim_r];
   SIZE nc = shape_h[curr_dim_c];
@@ -4211,12 +4179,11 @@ void gpk_rev(Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d,
              SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
              DIM *unprocessed_dims, DIM curr_dim_r, DIM curr_dim_c,
              DIM curr_dim_f, T *dratio_r, T *dratio_c, T *dratio_f, T *dv,
-             LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2,
-             T *dwf, LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1,
-             LENGTH lddwc2, T *dwr, LENGTH lddwr1, LENGTH lddwr2, T *dwcf,
-             LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1,
-             LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf,
-             LENGTH lddwrcf1, LENGTH lddwrcf2, SIZE svr, SIZE svc, SIZE svf,
+             LENGTH lddv1, LENGTH lddv2, T *dw, LENGTH lddw1, LENGTH lddw2, T *dwf,
+             LENGTH lddwf1, LENGTH lddwf2, T *dwc, LENGTH lddwc1, LENGTH lddwc2, T *dwr,
+             LENGTH lddwr1, LENGTH lddwr2, T *dwcf, LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf,
+             LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2,
+             T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2, SIZE svr, SIZE svc, SIZE svf,
              SIZE nvr, SIZE nvc, SIZE nvf, int queue_idx, int config) {
 
 #define GPK(R, C, F)                                                           \
@@ -4251,7 +4218,7 @@ void gpk_rev(Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d,
     //   GPK(4, 4, 8)
     // }
     // if (profile || config == 1) {
-    GPK(4, 4, 4)
+      GPK(4, 4, 4)
     // }
     // if (profile || config == 0) {
     //   GPK(4, 4, 4)

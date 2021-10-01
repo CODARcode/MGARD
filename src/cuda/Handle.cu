@@ -20,43 +20,39 @@
 namespace mgard_cuda {
 
 template <DIM D, typename T>
-void Handle<D, T>::coord_to_dist(SIZE dof, T *coord, T *dist) {
-  if (dof <= 1)
-    return;
+void Handle<D, T>::coord_to_dist(SIZE dof, T * coord, T * dist) {
+  if (dof <= 1) return;
   // printf("coord_to_dist\n");
-  T *h_coord = new T[dof];
-  T *h_dist = new T[dof];
-  for (int i = 0; i < dof; i++)
-    h_dist[i] = 0.0;
+  T * h_coord = new T[dof];
+  T * h_dist = new T[dof];
+  for (int i = 0; i < dof; i ++)  h_dist[i] = 0.0;
   cudaMemcpyAsyncHelper(*this, h_coord, coord, dof * sizeof(T), AUTO, 0);
   this->sync(0);
   for (int i = 0; i < dof - 1; i++) {
-    h_dist[i] = h_coord[i + 1] - h_coord[i];
+    h_dist[i] = h_coord[i+1] - h_coord[i];
   }
-  if (dof != 2 && dof % 2 == 0) {
-    T last_dist = h_dist[dof - 2];
-    h_dist[dof - 2] = last_dist / 2.0;
-    h_dist[dof - 1] = last_dist / 2.0;
+  if (dof !=2 && dof % 2 == 0) {
+    T last_dist = h_dist[dof-2];
+    h_dist[dof-2] = last_dist / 2.0;
+    h_dist[dof-1] = last_dist / 2.0;
   }
   cudaMemcpyAsyncHelper(*this, dist, h_dist, dof * sizeof(T), AUTO, 0);
   this->sync(0);
-  delete[] h_coord;
-  delete[] h_dist;
+  delete [] h_coord;
+  delete [] h_dist;
 }
 
 template <DIM D, typename T>
-void Handle<D, T>::dist_to_ratio(SIZE dof, T *dist, T *ratio) {
-  if (dof <= 1)
-    return;
+void Handle<D, T>::dist_to_ratio(SIZE dof, T * dist, T * ratio) {
+  if (dof <= 1) return;
   // printf("dist_to_ratio %llu\n", dof);
-  T *h_dist = new T[dof];
-  T *h_ratio = new T[dof];
-  for (int i = 0; i < dof; i++)
-    h_ratio[i] = 0.0;
+  T * h_dist = new T[dof];
+  T * h_ratio = new T[dof];
+  for (int i = 0; i < dof; i ++)  h_ratio[i] = 0.0;
   cudaMemcpyAsyncHelper(*this, h_dist, dist, dof * sizeof(T), AUTO, 0);
   this->sync(0);
   for (int i = 0; i < dof - 2; i++) {
-    h_ratio[i] = h_dist[i] / (h_dist[i + 1] + h_dist[i]);
+    h_ratio[i] = h_dist[i] / (h_dist[i+1] + h_dist[i]);
     // printf("dof: %llu ratio: %f\n", dof, h_ratio[i]);
   }
   if (dof % 2 == 0) {
@@ -65,117 +61,105 @@ void Handle<D, T>::dist_to_ratio(SIZE dof, T *dist, T *ratio) {
   }
   cudaMemcpyAsyncHelper(*this, ratio, h_ratio, dof * sizeof(T), AUTO, 0);
   this->sync(0);
-  delete[] h_dist;
-  delete[] h_ratio;
+  delete [] h_dist;
+  delete [] h_ratio;
 }
 
 template <DIM D, typename T>
-void Handle<D, T>::reduce_dist(SIZE dof, T *dist, T *dist2) {
-  if (dof <= 1)
-    return;
+void Handle<D, T>::reduce_dist(SIZE dof, T * dist, T * dist2) {
+  if (dof <= 1) return;
   // printf("reduce_dist\n");
   SIZE dof2 = dof / 2 + 1;
-  T *h_dist = new T[dof];
-  T *h_dist2 = new T[dof2];
-  for (int i = 0; i < dof2; i++)
-    h_dist2[i] = 0.0;
+  T * h_dist = new T[dof];
+  T * h_dist2 = new T[dof2];
+  for (int i = 0; i < dof2; i ++)  h_dist2[i] = 0.0;
   cudaMemcpyAsyncHelper(*this, h_dist, dist, dof * sizeof(T), AUTO, 0);
-  this->sync(0);
+  this->sync(0);  
   for (int i = 0; i < dof2 - 1; i++) {
-    h_dist2[i] = h_dist[i * 2] + h_dist[i * 2 + 1];
+    h_dist2[i] = h_dist[i*2] + h_dist[i*2+1]; 
   }
-  if (dof2 != 2 && dof2 % 2 == 0) {
-    T last_dist = h_dist2[dof2 - 2];
-    h_dist2[dof2 - 2] = last_dist / 2.0;
-    h_dist2[dof2 - 1] = last_dist / 2.0;
+  if (dof2 !=2 && dof2 % 2 == 0) {
+    T last_dist = h_dist2[dof2-2];
+    h_dist2[dof2-2] = last_dist / 2.0;
+    h_dist2[dof2-1] = last_dist / 2.0;
   }
   cudaMemcpyAsyncHelper(*this, dist2, h_dist2, dof2 * sizeof(T), AUTO, 0);
   this->sync(0);
-  delete[] h_dist;
-  delete[] h_dist2;
+  delete [] h_dist;
+  delete [] h_dist2;
 }
 
 template <DIM D, typename T>
-void Handle<D, T>::calc_am_bm(SIZE dof, T *dist, T *am, T *bm) {
-  T *h_dist = new T[dof];
-  T *h_am = new T[dof + 1];
-  T *h_bm = new T[dof + 1];
-  for (int i = 0; i < dof + 1; i++) {
-    h_am[i] = 0.0;
-    h_bm[i] = 0.0;
-  }
+void Handle<D, T>::calc_am_bm(SIZE dof, T * dist, T * am, T * bm) {
+  T * h_dist = new T[dof];
+  T * h_am = new T[dof+1];
+  T * h_bm = new T[dof+1];
+  for (int i = 0; i < dof+1; i ++) { h_am[i] = 0.0; h_bm[i] = 0.0; }
   cudaMemcpyAsyncHelper(*this, h_dist, dist, dof * sizeof(T), AUTO, 0);
-  this->sync(0);
+  this->sync(0);  
   h_bm[0] = 2 * h_dist[0] / 6;
   h_am[0] = 0.0;
 
-  for (int i = 1; i < dof - 1; i++) {
-    T a_j = h_dist[i - 1] / 6;
-    T w = a_j / h_bm[i - 1];
-    h_bm[i] = 2 * (h_dist[i - 1] + h_dist[i]) / 6 - w * a_j;
+  for (int i = 1; i < dof-1; i++) {
+    T a_j = h_dist[i-1] / 6;
+    T w = a_j / h_bm[i-1];
+    h_bm[i] = 2 * (h_dist[i-1] + h_dist[i]) / 6 - w * a_j;
     h_am[i] = a_j;
   }
-  T a_j = h_dist[dof - 2] / 6;
-  T w = a_j / h_bm[dof - 2];
-  h_bm[dof - 1] = 2 * h_dist[dof - 2] / 6 - w * a_j;
-  h_am[dof - 1] = a_j;
+  T a_j = h_dist[dof-2] / 6;
+  T w = a_j / h_bm[dof-2];
+  h_bm[dof-1] = 2 * h_dist[dof-2] / 6 - w * a_j;
+  h_am[dof-1] = a_j;
 #ifdef MGARD_CUDA_FMA
-  for (int i = 0; i < dof + 1; i++) {
-    h_am[i] = -1 * h_am[i];
-    h_bm[i] = 1 / h_bm[i];
-  }
+  for (int i = 0; i < dof+1; i ++) { h_am[i] = -1 * h_am[i]; h_bm[i] = 1 / h_bm[i]; }
 #endif
   cudaMemcpyAsyncHelper(*this, am, h_am, dof * sizeof(T), AUTO, 0);
-  cudaMemcpyAsyncHelper(*this, bm + 1, h_bm, dof * sizeof(T), AUTO,
-                        0); // add offset
+  cudaMemcpyAsyncHelper(*this, bm+1, h_bm, dof * sizeof(T), AUTO, 0); //add offset
   T one = 1;
-  cudaMemcpyAsyncHelper(*this, bm, &one, sizeof(T), AUTO, 0); // add offset
+  cudaMemcpyAsyncHelper(*this, bm, &one, sizeof(T), AUTO, 0); //add offset
   T zero = 0;
-  cudaMemcpyAsyncHelper(*this, am + dof, &zero, sizeof(T), AUTO, 0);
+  cudaMemcpyAsyncHelper(*this, am+dof, &zero, sizeof(T), AUTO, 0);
 
   this->sync(0);
-  delete[] h_dist;
-  delete[] h_am;
-  delete[] h_bm;
+  delete [] h_dist;
+  delete [] h_am;
+  delete [] h_bm;
 }
 
 template <DIM D, typename T>
-void Handle<D, T>::calc_volume(SIZE dof, T *dist, T *volume) {
-  T *h_dist = new T[dof];
-  T *h_volume = new T[dof];
-  for (int i = 0; i < dof; i++) {
-    h_volume[i] = 0.0;
-  }
+void Handle<D, T>::calc_volume(SIZE dof, T * dist, T * volume) {
+  T * h_dist = new T[dof];
+  T * h_volume = new T[dof];
+  for (int i = 0; i < dof; i ++) { h_volume[i] = 0.0; }
   cudaMemcpyAsyncHelper(*this, h_dist, dist, dof * sizeof(T), AUTO, 0);
-  this->sync(0);
+  this->sync(0);  
   if (dof == 2) {
     h_volume[0] = h_dist[0] / 2;
     h_volume[1] = h_dist[0] / 2;
   } else {
     int node_coeff_div = dof / 2 + 1;
     h_volume[0] = h_dist[0] / 2;
-    for (int i = 1; i < dof - 1; i++) {
-      if (i % 2 == 0) { // node
-        h_volume[i / 2] = (h_dist[i - 1] + h_dist[i]) / 2;
-      } else { // coeff
-        h_volume[node_coeff_div + i / 2] = (h_dist[i - 1] + h_dist[i]) / 2;
+    for (int i = 1; i < dof-1; i++) {
+      if (i % 2 == 0) { //node
+        h_volume[i/2] = (h_dist[i-1] + h_dist[i]) / 2;
+      } else { //coeff
+        h_volume[node_coeff_div+i/2] = (h_dist[i-1] + h_dist[i]) / 2;
       }
     }
     if (dof % 2 != 0) {
-      h_volume[node_coeff_div - 1] = h_dist[dof - 2] / 2;
+      h_volume[node_coeff_div-1] = h_dist[dof-2] / 2;
     } else {
-      h_volume[node_coeff_div - 1] = h_dist[dof - 1] / 2;
+      h_volume[node_coeff_div-1] = h_dist[dof-1] / 2;
     }
   }
 
-  for (int i = 0; i < dof; i++) {
-    h_volume[i] = 1.0 / h_volume[i];
-  }
+  for (int i = 0; i < dof; i ++) { h_volume[i] = 1.0/h_volume[i]; }
   cudaMemcpyAsyncHelper(*this, volume, h_volume, dof * sizeof(T), AUTO, 0);
   this->sync(0);
-  delete[] h_dist;
-  delete[] h_volume;
+  delete [] h_dist;
+  delete [] h_volume;
 }
+
 
 template <DIM D, typename T>
 void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
@@ -191,13 +175,13 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
       curr_dofs.push_back(n);
       n = n / 2 + 1;
     }
-    if (shape[i] > 1)
-      curr_dofs.push_back(2);
+    if (shape[i] > 1) curr_dofs.push_back(2);
     dofs.push_back(curr_dofs);
     // printf("dofs[%d].size() = %d\n", i, dofs[i].size());
   }
 
   // printf("isGPUPointer: %d\n", isGPUPointer(shape.data()));
+
 
   linearized_depth = 1;
   for (int i = 2; i < shape.size(); i++) {
@@ -250,22 +234,33 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
     cudaMemcpyAsyncHelper(*this, curr_shape_d, curr_shape_h,
                           D_padded * sizeof(SIZE), mgard_cuda::H2D, 0);
     shapes_d.push_back(curr_shape_d);
+
+    Array<1, SIZE> shape_array({D_padded});
+    cudaMemcpyAsyncHelper(*this, shape_array.get_dv(), curr_shape_h,
+                          D_padded * sizeof(SIZE), mgard_cuda::H2D, 0);
+    sync(0);
+    shapes.push_back(shape_array);
   }
 
-  // ranges
+
+
+  //ranges
   ranges_h = new SIZE[D * (l_target + 2)];
   for (int d = 0; d < D; d++) {
     ranges_h[d * (l_target + 2)] = 0;
     for (int l = 1; l < l_target + 2; l++) {
-      ranges_h[d * (l_target + 2) + l] = dofs[d][l_target + 1 - l];
+      ranges_h[d * (l_target + 2) + l] =
+          dofs[d][l_target + 1 - l];
     }
     // printf("hshapes[%d]: ", d);
     // for (int l = 0; l < handle.l_target+2; l++) { printf("%d ", hshapes[d *
     // (handle.l_target+2)+l]); } printf("\n");
   }
-  cudaMallocHelper(*this, (void **)&ranges_d,
-                   D * (l_target + 2) * sizeof(SIZE));
+  cudaMallocHelper(*this, (void **)&ranges_d, D * (l_target + 2) * sizeof(SIZE));
   cudaMemcpyAsyncHelper(*this, ranges_d, ranges_h,
+                        D * (l_target + 2) * sizeof(SIZE), H2D, 0);
+  ranges = Array<1, SIZE>({D * (l_target + 2)});
+  cudaMemcpyAsyncHelper(*this, ranges.get_dv(), ranges_h,
                         D * (l_target + 2) * sizeof(SIZE), H2D, 0);
 
   processed_n = new DIM[D];
@@ -298,7 +293,7 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
     unprocessed_dims_d = new DIM *[tmp.size()];
 
     //+1 is used for storing empty status
-    for (int d = 0; d < (int)D - 3 + 1; d++) {
+    for (int d = 0; d < (int)D-3+1; d++) {
       unprocessed_n[d] = tmp.size();
       unprocessed_dims_h[d] = new DIM[unprocessed_n[d]];
       cudaMemcpyAsyncHelper(*this, unprocessed_dims_h[d],
@@ -322,6 +317,7 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
     cudaMallocHelper(*this, (void **)&(curr_dcoords), shape[i] * sizeof(T));
     cudaMemcpyAsyncHelper(*this, curr_dcoords, this->coords_h[i],
                           shape[i] * sizeof(T), AUTO, 0);
+
     this->coords_d.push_back(curr_dcoords);
   }
 
@@ -345,7 +341,7 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
       cudaMallocHelper(*this, (void **)&curr_dratio, dofs[i][l] * sizeof(T));
       curr_ddist_l.push_back(curr_ddist);
       curr_dratio_l.push_back(curr_dratio);
-      reduce_dist(dofs[i][l - 1], curr_ddist_l[l - 1], curr_ddist_l[l]);
+      reduce_dist(dofs[i][l-1], curr_ddist_l[l - 1], curr_ddist_l[l]);
       dist_to_ratio(dofs[i][l], curr_ddist_l[l], curr_dratio_l[l]);
     }
     dist.push_back(curr_ddist_l);
@@ -362,33 +358,41 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
   //   }
   // }
 
-  // volume for quantization
+  //volume for quantization
   SIZE volumes_width = 0;
   for (int d = 0; d < D; d++) {
-    volumes_width = std::max(volumes_width, dofs[d][0]);
+    volumes_width = std::max(volumes_width, dofs[d][0]); 
   }
   size_t volumes_pitch;
-  cudaMallocPitchHelper(*this, (void **)&volumes, &volumes_pitch,
-                        volumes_width * sizeof(T), D * (l_target + 1));
+  cudaMallocPitchHelper(*this, (void**)&volumes, &volumes_pitch, volumes_width * sizeof(T),
+                           D * (l_target+1));
   ldvolumes = (SIZE)volumes_pitch / sizeof(T);
   for (int d = 0; d < D; d++) {
     for (int l = 0; l < l_target + 1; l++) {
-      calc_volume(dofs[d][l], dist[d][l],
-                  volumes + ldvolumes * (d * (l_target + 1) + (l_target - l)));
+      calc_volume(dofs[d][l], dist[d][l], volumes+ldvolumes*(d*(l_target + 1) + (l_target-l)));
     }
   }
+
+  volumes_array = Array<2, T>({D * (l_target+1), volumes_width});
+  SubArray<2, T> volumes_subarray(volumes_array);
+  for (int d = 0; d < D; d++) {
+    for (int l = 0; l < l_target + 1; l++) {
+      calc_volume(dofs[d][l], dist[d][l], volumes_subarray((d*(l_target + 1) + (l_target-l)), 0));
+    }
+  }
+
 
   // printf("volumes:\n");
   //  print_matrix_cuda(D * (l_target+1), volumes_width, volumes, ldvolumes);
 
   for (DIM i = 0; i < D; i++) {
     std::vector<T *> curr_am_l, curr_bm_l;
-    for (SIZE l = 0; l < l_target + 1; l++) {
+    for (SIZE l = 0; l < l_target+1; l++) {
       T *curr_am, *curr_bm;
-      cudaMallocHelper(*this, (void **)&curr_am, (dofs[i][l] + 1) * sizeof(T));
-      cudaMallocHelper(*this, (void **)&curr_bm, (dofs[i][l] + 1) * sizeof(T));
-      cudaMemsetHelper((void **)&curr_am, (dofs[i][l] + 1) * sizeof(T), 0);
-      cudaMemsetHelper((void **)&curr_bm, (dofs[i][l] + 1) * sizeof(T), 0);
+      cudaMallocHelper(*this, (void **)&curr_am, (dofs[i][l]+1) * sizeof(T));
+      cudaMallocHelper(*this, (void **)&curr_bm, (dofs[i][l]+1) * sizeof(T));
+      cudaMemsetHelper((void **)&curr_am, (dofs[i][l]+1) * sizeof(T), 0);
+      cudaMemsetHelper((void **)&curr_bm, (dofs[i][l]+1) * sizeof(T), 0);
       curr_am_l.push_back(curr_am);
       curr_bm_l.push_back(curr_bm);
       calc_am_bm(dofs[i][l], dist[i][l], curr_am_l[l], curr_bm_l[l]);
@@ -410,9 +414,10 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
   profile_kernels = config.profile_kernels;
   sync_and_check_all_kernels = config.sync_and_check_all_kernels;
   timing = config.timing;
-
+  sync(0);
   initialized = true;
 }
+
 
 template <DIM D, typename T> void Handle<D, T>::destroy() {
 
@@ -431,7 +436,7 @@ template <DIM D, typename T> void Handle<D, T>::destroy() {
   delete[] processed_dims_h;
   delete[] processed_dims_d;
 
-  for (int d = 0; d < (int)D - 3; d++) {
+  for (int d = 0; d < (int)D-3; d++) {
     // printf("d=%d D-3=%d\n",d, D-3);
     delete[] unprocessed_dims_h[d];
     cudaFreeHelper(unprocessed_dims_d[d]);
@@ -504,12 +509,14 @@ template <DIM D, typename T> void Handle<D, T>::destroy_queues() {
   for (int i = 0; i < num_of_queues; i++) {
     gpuErrchk(cudaStreamDestroy(ptr[i]));
   }
+
 }
 
 template <DIM D, typename T>
-std::vector<T *> Handle<D, T>::create_uniform_coords(std::vector<SIZE> shape,
-                                                     int mode) {
+std::vector<T *>
+Handle<D, T>::create_uniform_coords(std::vector<SIZE> shape, int mode) {
 
+  
   std::vector<T *> coords(D);
   for (int d = 0; d < D; d++) {
     T *curr_coords = new T[shape[d]];
@@ -519,8 +526,8 @@ std::vector<T *> Handle<D, T>::create_uniform_coords(std::vector<SIZE> shape,
         // printf("create_uniform_coords %d\n", mode);
         curr_coords[i] = (T)i;
       } else if (mode == 1) {
-        // 0...1
-        curr_coords[i] = (T)i / (shape[d] - 1);
+        //0...1
+        curr_coords[i] = (T)i / (shape[d]-1);
       } else {
         std::cout << log::log_err << "wrong uniform coordinates mode!\n";
         exit(-1);
@@ -868,7 +875,8 @@ template <DIM D, typename T> void Handle<D, T>::init_auto_tuning_table() {
   auto_tuning_table_created = true;
 }
 
-template <DIM D, typename T> void Handle<D, T>::destroy_auto_tuning_table() {
+template <DIM D, typename T>
+void Handle<D, T>::destroy_auto_tuning_table() {
   for (int i = 0; i < num_arch; i++) {
     for (int j = 0; j < num_precision; j++) {
       delete[] this->auto_tuning_cc[i][j];
@@ -902,8 +910,7 @@ template <DIM D, typename T> void Handle<D, T>::allocate_workspace() {
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
   // (double)(total-free)/1e9, (double)total/1e9);
 
-  // printf("allocate_workspace: %llu\n", (shapes_h[0][0] + 2) * sizeof(T) *
-  // (shapes_h[0][1] + 2) * padded_linearized_depth);
+  // printf("allocate_workspace: %llu\n", (shapes_h[0][0] + 2) * sizeof(T) * (shapes_h[0][1] + 2) * padded_linearized_depth);
   size_t dw_pitch;
   mgard_cuda::cudaMalloc3DHelper(*this, (void **)&(dw), &dw_pitch,
                                  (shapes_h[0][0] + 2) * sizeof(T),
@@ -930,15 +937,14 @@ template <DIM D, typename T> void Handle<D, T>::allocate_workspace() {
     ldws_h.push_back(shapes_h[0][i] + 2);
   }
 
-  mgard_cuda::cudaMallocHelper(*this, (void **)&ldws_d,
-                               D_padded * sizeof(SIZE));
+
+  mgard_cuda::cudaMallocHelper(*this, (void **)&ldws_d, D_padded * sizeof(SIZE));
   mgard_cuda::cudaMemcpyAsyncHelper(*this, ldws_d, ldws_h.data(),
-                                    D_padded * sizeof(SIZE), mgard_cuda::H2D,
-                                    0);
+                                    D_padded * sizeof(SIZE), mgard_cuda::H2D, 0);
+
 
   if (D > 3) {
-    // printf("allocate_workspace: %llu\n", (shapes_h[0][0] + 2) * sizeof(T) *
-    // (shapes_h[0][1] + 2) * padded_linearized_depth);
+    // printf("allocate_workspace: %llu\n", (shapes_h[0][0] + 2) * sizeof(T) * (shapes_h[0][1] + 2) * padded_linearized_depth);
     size_t db_pitch;
     mgard_cuda::cudaMalloc3DHelper(*this, (void **)&(db), &db_pitch,
                                    (shapes_h[0][0] + 2) * sizeof(T),
@@ -962,8 +968,7 @@ template <DIM D, typename T> void Handle<D, T>::allocate_workspace() {
       ldbs_h.push_back(shapes_h[0][i] + 2);
     }
 
-    mgard_cuda::cudaMallocHelper(*this, (void **)&ldbs_d,
-                                 D_padded * sizeof(SIZE));
+    mgard_cuda::cudaMallocHelper(*this, (void **)&ldbs_d, D_padded * sizeof(SIZE));
     mgard_cuda::cudaMemcpyAsyncHelper(*this, ldbs_d, ldbs_h.data(),
                                       D_padded * sizeof(SIZE), mgard_cuda::H2D,
                                       0);
@@ -988,9 +993,11 @@ template <DIM D, typename T> Handle<D, T>::Handle() {
   create_queues();
 }
 
-template <DIM D, typename T> Handle<D, T>::Handle(std::vector<SIZE> shape) {
+template <DIM D, typename T>
+Handle<D, T>::Handle(std::vector<SIZE> shape) {
   Config config;
   dev_id = config.dev_id;
+  shape_org = shape;
   cudaSetDeviceHelper(dev_id);
   std::reverse(shape.begin(), shape.end());
   int ret = check_shape<D>(shape);
@@ -1018,6 +1025,7 @@ template <DIM D, typename T>
 Handle<D, T>::Handle(std::vector<SIZE> shape, std::vector<T *> coords) {
   Config config;
   dev_id = config.dev_id;
+  shape_org = shape;
   cudaSetDeviceHelper(dev_id);
   std::reverse(shape.begin(), shape.end());
   std::reverse(coords.begin(), coords.end());
@@ -1045,12 +1053,11 @@ Handle<D, T>::Handle(std::vector<SIZE> shape, std::vector<T *> coords) {
 template <DIM D, typename T>
 Handle<D, T>::Handle(std::vector<SIZE> shape, Config config) {
   dev_id = config.dev_id;
-
+  shape_org = shape;
   cudaSetDeviceHelper(dev_id);
-
+  
   std::reverse(shape.begin(), shape.end());
-  std::vector<T *> coords =
-      create_uniform_coords(shape, config.uniform_coord_mode);
+  std::vector<T *> coords = create_uniform_coords(shape, config.uniform_coord_mode);
   int ret = check_shape<D>(shape);
   if (ret == -1) {
     std::cerr << log::log_err
@@ -1076,6 +1083,7 @@ template <DIM D, typename T>
 Handle<D, T>::Handle(std::vector<SIZE> shape, std::vector<T *> coords,
                      Config config) {
   dev_id = config.dev_id;
+  shape_org = shape;
   cudaSetDeviceHelper(dev_id);
   std::reverse(shape.begin(), shape.end());
   std::reverse(coords.begin(), coords.end());

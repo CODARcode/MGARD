@@ -2,11 +2,11 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include "cuda/CommonInternal.h"
-
+ 
 #include "cuda/LinearProcessingKernel.h"
 #include "cuda/LinearProcessingKernel.hpp"
 
@@ -14,12 +14,12 @@ namespace mgard_cuda {
 
 #define KERNELS(D, T)                                                          \
   template void lpk_reo_3<D, T>(                                               \
-      Handle<D, T> & handle, SIZE * shape_h, SIZE * shape_c_h, SIZE * shape_d, \
-      SIZE * shape_c_d, SIZE * ldvs, SIZE * ldws, DIM processed_n,             \
-      DIM * processed_dims_h, DIM * processed_dims_d, DIM curr_dim_r,          \
-      DIM curr_dim_c, DIM curr_dim_f, T * ddist_r, T * dratio_r, T * dv1,      \
-      LENGTH lddv11, LENGTH lddv12, T * dv2, LENGTH lddv21, LENGTH lddv22,     \
-      T * dw, LENGTH lddw1, LENGTH lddw2, int queue_idx, int config);
+      Handle<D, T> & handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,       \
+      SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,                   \
+      DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,            \
+      DIM curr_dim_c, DIM curr_dim_f, T *ddist_r, T *dratio_r, T *dv1,         \
+      LENGTH lddv11, LENGTH lddv12, T *dv2, LENGTH lddv21, LENGTH lddv22, T *dw,           \
+      LENGTH lddw1, LENGTH lddw2, int queue_idx, int config);
 
 KERNELS(1, double)
 KERNELS(1, float)

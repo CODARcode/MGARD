@@ -37,48 +37,6 @@ enum endiness_type CheckEndianess() {
   }
 }
 
-template <typename SubArrayType>
-void PrintSubarray(std::string name, SubArrayType subArray) {
-  Handle<1, float> tmp_handle;
-
-  SIZE nrow = 1;
-  SIZE ncol = 1;
-  SIZE nfib = 1;
-
-  nfib = subArray.shape[0];
-  ncol = subArray.shape[1];
-  nrow = subArray.shape[2];
-
-  using T = typename SubArrayType::DataType;
-  T *v = new T[nrow * ncol * nfib];
-  cudaMemcpy3DAsyncHelper(tmp_handle, v, nfib * sizeof(T), nfib * sizeof(T),
-                          ncol, subArray.data(), subArray.lddv1 * sizeof(T),
-                          nfib * sizeof(T), subArray.lddv2, nfib * sizeof(T),
-                          ncol, nrow, D2H, 0);
-  tmp_handle.sync(0);
-
-  std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * "
-            << nfib << ") sizeof(T) = " << sizeof(T) << std::endl;
-  for (int i = 0; i < nrow; i++) {
-    printf("[i = %d]\n", i);
-    for (int j = 0; j < ncol; j++) {
-      for (int k = 0; k < nfib; k++) {
-        if (std::is_same<T, std::uint8_t>::value) {
-          std::cout << std::setw(8)
-                    << (unsigned int)v[nfib * ncol * i + nfib * j + k] << ", ";
-        } else {
-          std::cout << std::setw(8) << std::setprecision(6) << std::fixed
-                    << v[nfib * ncol * i + nfib * j + k] << ", ";
-        }
-      }
-      std::cout << std::endl;
-    }
-    std::cout << std::endl;
-  }
-  std::cout << std::endl;
-  delete[] v;
-}
-
 // print 2D CPU
 template <typename T> void print_matrix(SIZE nrow, SIZE ncol, T *v, SIZE ldv) {
   // std::cout << std::setw(10);

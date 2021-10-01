@@ -110,7 +110,7 @@ void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     }
 
     mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
-                         compressed_data, compressed_size, config);
+                          compressed_data, compressed_size, config);
   }
 }
 
@@ -153,8 +153,7 @@ void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
       dtype = mgard_cuda::data_type::Float;
     }
 
-    mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data,
-                           config);
+    mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data, config);
   }
 }
 
@@ -223,7 +222,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   T error;
   if (s == std::numeric_limits<T>::infinity()) {
     error = mgard_cuda::L_inf_error(original_size, original_data,
-                                    (T *)decompressed_data, mode);
+                                    (T*)decompressed_data, mode);
     // if (mode == mgard_cuda::REL) {
     //   error /= norm; printf("Rel. L^infty error: %10.5E \n", error);
     // }
@@ -231,7 +230,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
     // error);
   } else {
     error = mgard_cuda::L_2_error(original_size, original_data,
-                                  (T *)decompressed_data, mode);
+                                  (T*)decompressed_data, mode);
     // if (mode == mgard_cuda::REL) {
     //   error /= norm; printf("Rel. L^2 error: %10.5E \n", error);
     // }
