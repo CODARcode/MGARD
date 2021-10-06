@@ -177,7 +177,8 @@ huffman_codec *build_huffman_codec(long int *quantized_data, size_t **ft,
 
 namespace {
 
-void huffman_decoding(long int *quantized_data, const std::size_t,
+void huffman_decoding(long int *quantized_data,
+                      const std::size_t quantized_data_size,
                       unsigned char *out_data_hit, size_t out_data_hit_size,
                       unsigned char *out_data_miss, size_t out_data_miss_size,
                       unsigned char *out_tree, size_t out_tree_size) {
@@ -210,7 +211,7 @@ void huffman_decoding(long int *quantized_data, const std::size_t,
   long int *q = quantized_data;
   size_t i = 0;
   size_t num_missed = 0;
-  while (start_bit < out_data_hit_size) {
+  while (q < (quantized_data + (quantized_data_size / sizeof(*q)))) {
     htree_node *root = phtree->top();
     assert(root);
 
@@ -251,7 +252,13 @@ void huffman_decoding(long int *quantized_data, const std::size_t,
     start_bit += len;
   }
 
+  assert(start_bit == out_data_hit_size);
   assert(sizeof(int) * num_missed == out_data_miss_size);
+
+  // Avoid unused argument warning. If NDEBUG is defined, then the assert
+  // becomes empty and out_data_hit_size is unused. Tell the compiler that
+  // is OK and expected.
+  (void)out_data_hit_size;
 
   free(miss_bufp);
   miss_bufp = 0;
@@ -359,13 +366,13 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
       cnt_missed++;
     }
 
-    assert(len > 0);
+    // Note that if len == 0, then that means that either the data is all the
+    // same number or (more likely) all data are outside the quantization
+    // range. Either way, the code contains no information and is therefore 0
+    // bits.
+    assert(len >= 0);
 
-    if (32 - start_bit % 32 >= len) {
-      code = code << (32 - start_bit % 32 - len);
-      *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
-      start_bit += len;
-    } else {
+    if (32 - start_bit % 32 < len) {
       // current unsigned int cannot hold the code
       // copy 32 - start_bit % 32 bits to the current int
       // and copy  the rest len - (32 - start_bit % 32) to the next int
@@ -375,6 +382,12 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
       *(cur + start_bit / 32 + 1) =
           (*(cur + start_bit / 32 + 1)) | (code << lshift);
       start_bit += len;
+    } else if (len > 0) {
+      code = code << (32 - start_bit % 32 - len);
+      *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
+      start_bit += len;
+    } else {
+      // Sequence is empty (everything must be the same). Do nothing.
     }
   }
 
