@@ -1,0 +1,13 @@
+name: docs
+on: [push, pull_request]
+jobs:
+        doxygen:
+                runs-on: ubuntu-latest
+                steps:
+                        - run: sudo apt-get install doxygen
+                        - name: checkout
+                          uses: actions/checkout@v2.3.4
+                        - name: configure
+                          run: cmake -S . -B "build" -D MGARD_ENABLE_DOCS=ON
+                        - name: build
+                          run: cmake --build "build" --target "mgard-documentation" --parallel
