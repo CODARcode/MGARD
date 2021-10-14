@@ -65,7 +65,6 @@ template <DIM D, typename T> Array<D, T>::Array(std::vector<SIZE> shape) {
 }
 
 template <DIM D, typename T> Array<D, T>::Array(const Array<D, T> &array) {
-
   this->host_allocated = false;
   this->device_allocated = false;
   this->shape = array.shape;
@@ -226,7 +225,7 @@ template <DIM D, typename T> Array<D, T>::~Array() {
     cudaFreeHelper(dv);
   }
   if (host_allocated) {
-    delete[] hv;
+    cudaFreeHostHelper(hv);
   }
 }
 
@@ -248,13 +247,14 @@ template <DIM D, typename T> T *Array<D, T>::getDataHost() {
   if (!host_allocated) {
     cudaMallocHostHelper((void **)&hv,
                          sizeof(T) * shape[0] * shape[1] * linearized_depth);
+    host_allocated = true;
   }
   cudaMemcpy3DAsyncHelper(
       handle, hv, shape[0] * sizeof(T), shape[0] * sizeof(T), shape[1], dv,
       ldvs_h[0] * sizeof(T), shape[0] * sizeof(T), shape[1],
       shape[0] * sizeof(T), shape[1], linearized_depth, AUTO, 0);
   handle.sync(0);
-  // host_allocated = true;
+
   return hv;
 }
 
