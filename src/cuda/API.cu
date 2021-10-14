@@ -133,7 +133,15 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
   Array<1, unsigned char> compressed_array =
       compress(handle, in_array, mode, tol, s);
   compressed_size = compressed_array.getShape()[0];
-  compressed_data = compressed_array.getDataHost();
+  if (isGPUPointer(original_data)) {
+    cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
+    cudaMemcpyAsyncHelper(handle, compressed_data, compressed_array.get_dv(),
+                          compressed_size, AUTO, 0);
+    handle.sync(0);
+  } else {
+    compressed_data = (unsigned char *)malloc(compressed_size);
+    memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
+  }
 }
 
 template <DIM D, typename T>
@@ -146,7 +154,15 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
   Array<1, unsigned char> compressed_array =
       compress(handle, in_array, mode, tol, s);
   compressed_size = compressed_array.getShape()[0];
-  compressed_data = compressed_array.getDataHost();
+  if (isGPUPointer(original_data)) {
+    cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
+    cudaMemcpyAsyncHelper(handle, compressed_data, compressed_array.get_dv(),
+                          compressed_size, AUTO, 0);
+    handle.sync(0);
+  } else {
+    compressed_data = (unsigned char *)malloc(compressed_size);
+    memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
+  }
 }
 
 template <DIM D, typename T>
@@ -163,7 +179,18 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   Array<1, unsigned char> compressed_array(compressed_shape);
   compressed_array.loadData((const unsigned char *)compressed_data);
   Array<D, T> out_array = decompress(handle, compressed_array);
-  decompressed_data = out_array.getDataHost();
+
+  if (isGPUPointer(compressed_data)) {
+    cudaMallocHelper(handle, (void **)&decompressed_data,
+                     original_size * sizeof(T));
+    cudaMemcpyAsyncHelper(handle, decompressed_data, out_array.get_dv(),
+                          original_size * sizeof(T), AUTO, 0);
+    handle.sync(0);
+  } else {
+    decompressed_data = (T *)malloc(original_size * sizeof(T));
+    memcpy(decompressed_data, out_array.getDataHost(),
+           original_size * sizeof(T));
+  }
 }
 
 template <DIM D, typename T>
@@ -179,7 +206,17 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   Array<1, unsigned char> compressed_array(compressed_shape);
   compressed_array.loadData((const unsigned char *)compressed_data);
   Array<D, T> out_array = decompress(handle, compressed_array);
-  decompressed_data = out_array.getDataHost();
+  if (isGPUPointer(compressed_data)) {
+    cudaMallocHelper(handle, (void **)&decompressed_data,
+                     original_size * sizeof(T));
+    cudaMemcpyAsyncHelper(handle, decompressed_data, out_array.get_dv(),
+                          original_size * sizeof(T), AUTO, 0);
+    handle.sync(0);
+  } else {
+    decompressed_data = (T *)malloc(original_size * sizeof(T));
+    memcpy(decompressed_data, out_array.getDataHost(),
+           original_size * sizeof(T));
+  }
 }
 
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,

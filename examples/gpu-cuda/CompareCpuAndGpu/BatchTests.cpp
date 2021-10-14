@@ -78,7 +78,7 @@ void readfile(char *input_file, size_t num_bytes, bool check_size, T *in_buff) {
 template <mgard_cuda::DIM D, typename T>
 void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
                  T s, enum mgard_cuda::error_bound_type mode, T norm,
-                 T *original_data, unsigned char *&compressed_data,
+                 T *original_data, void *&compressed_data,
                  size_t &compressed_size, mgard_cuda::Config config) {
   // printf("Start compressing\n");
   std::array<std::size_t, D> array_shape;
@@ -90,50 +90,76 @@ void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     mgard::CompressedDataset<D, T> compressed_dataset =
         mgard::compress(hierarchy, original_data, s, tol);
     compressed_size = compressed_dataset.size();
-    compressed_data = (unsigned char *)malloc(compressed_size);
+    compressed_data = (void *)malloc(compressed_size);
     memcpy(compressed_data, compressed_dataset.data(), compressed_size);
   } else {
-    mgard_cuda::Array<D, T> in_array(shape);
-    in_array.loadData(original_data);
-    mgard_cuda::Handle<D, T> handle(shape, config);
-    mgard_cuda::Array<1, unsigned char> compressed_array =
-        mgard_cuda::compress(handle, in_array, mode, tol, s);
-    compressed_size = compressed_array.getShape()[0];
-    compressed_data = (unsigned char *)malloc(compressed_size);
-    memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
+    // mgard_cuda::Array<D, T> in_array(shape);
+    // in_array.loadData(original_data);
+    // mgard_cuda::Handle<D, T> handle(shape, config);
+    // mgard_cuda::Array<1, unsigned char> compressed_array =
+    //     mgard_cuda::compress(handle, in_array, mode, tol, s);
+    // compressed_size = compressed_array.getShape()[0];
+    // compressed_data = (unsigned char *)malloc(compressed_size);
+    // memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
+
+    mgard_cuda::data_type dtype;
+    if (std::is_same<T, double>::value){
+      dtype = mgard_cuda::data_type::Double;
+    } else if (std::is_same<T, float>::value) {
+      dtype = mgard_cuda::data_type::Float;
+    }
+
+    mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
+             compressed_data, compressed_size, config);
+
   }
 }
 
 template <mgard_cuda::DIM D, typename T>
 void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
                    T s, enum mgard_cuda::error_bound_type mode, T norm,
-                   unsigned char *compressed_data, size_t compressed_size,
-                   T *&decompressed_data, mgard_cuda::Config config) {
+                   void *compressed_data, size_t compressed_size,
+                   void *&decompressed_data, mgard_cuda::Config config) {
 
   // printf("Start decompressing\n");
   size_t original_size = 1;
   for (mgard_cuda::DIM i = 0; i < D; i++)
     original_size *= shape[i];
-  decompressed_data = (T *)malloc(original_size * sizeof(T));
+  
   if (dev == CPU) {
+    decompressed_data = (T *)malloc(original_size * sizeof(T));
     if (mode == mgard_cuda::error_bound_type::REL) {
       tol *= norm;
     }
     const std::unique_ptr<unsigned char const[]> new_data_ =
-        mgard::decompress(compressed_data, compressed_size);
+        mgard::decompress((unsigned char *)compressed_data, compressed_size);
     const void *decompressed_data_void = new_data_.get();
     memcpy(decompressed_data, decompressed_data_void,
            original_size * sizeof(T));
   } else { // GPU
-    mgard_cuda::Handle<D, T> handle(shape, config);
-    std::vector<mgard_cuda::SIZE> compressed_shape(1);
-    compressed_shape[0] = compressed_size;
-    mgard_cuda::Array<1, unsigned char> compressed_array(compressed_shape);
-    compressed_array.loadData(compressed_data);
-    mgard_cuda::Array<D, T> out_array =
-        mgard_cuda::decompress(handle, compressed_array);
-    memcpy(decompressed_data, out_array.getDataHost(),
-           original_size * sizeof(T));
+    // mgard_cuda::Handle<D, T> handle(shape, config);
+    // std::vector<mgard_cuda::SIZE> compressed_shape(1);
+    // compressed_shape[0] = compressed_size;
+    // mgard_cuda::Array<1, unsigned char> compressed_array(compressed_shape);
+    // compressed_array.loadData((unsigned char *)compressed_data);
+    // mgard_cuda::Array<D, T> out_array =
+    //     mgard_cuda::decompress(handle, compressed_array);
+    // memcpy(decompressed_data, out_array.getDataHost(),
+    //        original_size * sizeof(T));
+
+    mgard_cuda::data_type dtype;
+    if (std::is_same<T, double>::value){
+      dtype = mgard_cuda::data_type::Double;
+    } else if (std::is_same<T, float>::value) {
+      dtype = mgard_cuda::data_type::Float;
+    }
+
+    mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data, config);
+ 
+
+    
+
+
   }
 }
 
@@ -161,9 +187,9 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   config.sync_and_check_all_kernels = true;
   config.uniform_coord_mode = 1;
 
-  unsigned char *compressed_data;
-  size_t compressed_size;
-  T *decompressed_data;
+  void *compressed_data = NULL;
+  size_t compressed_size = 0;
+  void *decompressed_data = NULL;
   if (D == 1) {
     compression<1, T>(shape, dev, tol, s, mode, norm, original_data,
                       compressed_data, compressed_size, config);
@@ -202,7 +228,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   T error;
   if (s == std::numeric_limits<T>::infinity()) {
     error = mgard_cuda::L_inf_error(original_size, original_data,
-                                    decompressed_data, mode);
+                                    (T*)decompressed_data, mode);
     // if (mode == mgard_cuda::REL) {
     //   error /= norm; printf("Rel. L^infty error: %10.5E \n", error);
     // }
@@ -210,7 +236,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
     // error);
   } else {
     error = mgard_cuda::L_2_error(original_size, original_data,
-                                  decompressed_data, mode);
+                                  (T*)decompressed_data, mode);
     // if (mode == mgard_cuda::REL) {
     //   error /= norm; printf("Rel. L^2 error: %10.5E \n", error);
     // }

@@ -623,7 +623,7 @@ void cudaMemcpy3DPeerAsyncHelper(Handle<D, T> &handle, void *dst, int dst_dev,
 #endif
 }
 
-bool isGPUPointer(void *ptr) {
+bool isGPUPointer(const void *ptr) {
   cudaPointerAttributes attr;
   cudaPointerGetAttributes(&attr, ptr);
   return attr.type == cudaMemoryTypeDevice;
