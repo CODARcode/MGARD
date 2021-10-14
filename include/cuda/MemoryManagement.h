@@ -102,7 +102,7 @@ void cudaMemcpy3DPeerAsyncHelper(Handle<D, T> &handle, void *dst, int dst_dev,
                                  const void *src, int src_dev, size_t spitch,
                                  size_t swidth, size_t sheight, size_t width,
                                  size_t height, size_t depth, int queue_idx);
-bool isGPUPointer(void *ptr);
+bool isGPUPointer(const void *ptr);
 } // namespace mgard_cuda
 
 #endif
