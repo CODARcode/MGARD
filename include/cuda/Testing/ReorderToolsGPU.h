@@ -6,11 +6,11 @@
 namespace mgard_cuda {
 
 template <DIM D, typename T>
-void ReorderGPU(Handle<D, T> &handle, SubArray<D, T> dinput, 
-                             SubArray<D, T> &doutput, int l_target, int queue_idx);
+void ReorderGPU(Handle<D, T> &handle, SubArray<D, T, CUDA> dinput, 
+                             SubArray<D, T, CUDA> &doutput, int l_target, int queue_idx);
 template <DIM D, typename T>
-void ReverseReorderGPU(Handle<D, T> &handle, SubArray<D, T> dinput, 
-                             SubArray<D, T> &doutput, int l_target, int queue_idx);
+void ReverseReorderGPU(Handle<D, T> &handle, SubArray<D, T, CUDA> dinput, 
+                             SubArray<D, T, CUDA> &doutput, int l_target, int queue_idx);
 
 }
 

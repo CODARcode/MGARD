@@ -16,15 +16,15 @@ namespace MDR {
             static_assert(std::is_integral<T_stream>::value, "NegaBinaryEncoder: streams must be unsigned integers.");
         }
 
-        std::vector<uint8_t *> encode(T_data const * data, int32_t n, int32_t exp, uint8_t num_bitplanes, std::vector<uint32_t>& stream_sizes) const {
+        std::vector<uint8_t *> encode(T_data const * data, SIZE n, int32_t exp, uint8_t num_bitplanes, std::vector<SIZE>& stream_sizes) const {
             
             assert(num_bitplanes > 0);
             // leave room for negabinary format
             exp += 2;
             // determine block size based on bitplane integer type
-            uint32_t block_size = block_size_based_on_bitplane_int_type<T_stream>();
+            SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
             std::vector<uint8_t> starting_bitplanes = std::vector<uint8_t>((n - 1)/block_size + 1, 0);
-            stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
+            stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
             // define fixed point type
             using T_fps = typename std::conditional<std::is_same<T_data, double>::value, int64_t, int32_t>::type;
             using T_fp = typename std::conditional<std::is_same<T_data, double>::value, uint64_t, uint32_t>::type;
@@ -64,14 +64,14 @@ namespace MDR {
         }
 
         // only differs in error collection
-        std::vector<uint8_t *> encode(T_data const * data, int32_t n, int32_t exp, uint8_t num_bitplanes, std::vector<uint32_t>& stream_sizes, std::vector<double>& level_errors) const {
+        std::vector<uint8_t *> encode(T_data const * data, int32_t n, SIZE exp, uint8_t num_bitplanes, std::vector<SIZE>& stream_sizes, std::vector<double>& level_errors) const {
             assert(num_bitplanes > 0);
             // leave room for negabinary format
             exp += 2;
             // determine block size based on bitplane integer type
-            uint32_t block_size = block_size_based_on_bitplane_int_type<T_stream>();
+            SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
             std::vector<uint8_t> starting_bitplanes = std::vector<uint8_t>((n - 1)/block_size + 1, 0);
-            stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
+            stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
             // define fixed point type
             using T_fps = typename std::conditional<std::is_same<T_data, double>::value, int64_t, int32_t>::type;
             using T_fp = typename std::conditional<std::is_same<T_data, double>::value, uint64_t, uint32_t>::type;
@@ -135,8 +135,8 @@ namespace MDR {
         }
 
         // decode the data and record necessary information for progressiveness
-        T_data * progressive_decode(const std::vector<uint8_t const *>& streams, int32_t n, int exp, uint8_t starting_bitplane, uint8_t num_bitplanes, int level) {
-            uint32_t block_size = block_size_based_on_bitplane_int_type<T_stream>();
+        T_data * progressive_decode(const std::vector<uint8_t const *>& streams, SIZE n, int exp, uint8_t starting_bitplane, uint8_t num_bitplanes, int level) {
+            SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
             T_data * data = (T_data *) malloc(n * sizeof(T_data));
             if(num_bitplanes == 0){
                 memset(data, 0, n * sizeof(T_data));
@@ -202,8 +202,8 @@ namespace MDR {
         }
     private:
         template<class T>
-        uint32_t block_size_based_on_bitplane_int_type() const {
-            uint32_t block_size = 0;
+        SIZE block_size_based_on_bitplane_int_type() const {
+            SIZE block_size = 0;
             if(std::is_same<T, uint64_t>::value){
                 block_size = 64;
             }
@@ -244,7 +244,7 @@ namespace MDR {
             level_errors[0] += data * data;
         }
         template <class T_int>
-        inline void encode_block(T_int const * data, size_t n, uint8_t num_bitplanes, std::vector<T_stream *>& streams_pos) const {
+        inline void encode_block(T_int const * data, SIZE n, uint8_t num_bitplanes, std::vector<T_stream *>& streams_pos) const {
             for(int k=num_bitplanes - 1; k>=0; k--){
                 T_stream bitplane_value = 0;
                 T_stream bitplane_index = num_bitplanes - 1 - k;
@@ -255,7 +255,7 @@ namespace MDR {
             }
         }
         template <class T_int>
-        inline void decode_block(std::vector<T_stream const *>& streams_pos, size_t n, uint8_t num_bitplanes, T_int * data) const {
+        inline void decode_block(std::vector<T_stream const *>& streams_pos, SIZE n, uint8_t num_bitplanes, T_int * data) const {
             for(int k=num_bitplanes - 1; k>=0; k--){
                 T_stream bitplane_index = num_bitplanes - 1 - k;
                 T_stream bitplane_value = *(streams_pos[bitplane_index] ++);

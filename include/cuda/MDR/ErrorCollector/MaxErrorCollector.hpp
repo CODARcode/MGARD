@@ -11,7 +11,7 @@ namespace MDR {
         MaxErrorCollector() {
             static_assert(std::is_floating_point<T>::value, "MaxErrorCollector: input data must be floating points.");
         }
-        std::vector<double> collect_level_error(T const * data, size_t n, int num_bitplanes, T max_level_error) const {
+        std::vector<double> collect_level_error(T const * data, SIZE n, int num_bitplanes, T max_level_error) const {
             int level_exp = 0;
             frexp(max_level_error, &level_exp);
             std::vector<double> max_e = std::vector<double>(num_bitplanes + 1, 0);

@@ -32,7 +32,7 @@ bool verify(const void *compressed_data, size_t compressed_size) {
   char magic_word[MAGIC_WORD_SIZE + 1];
   if (compressed_size < sizeof(magic_word))
     return false;
-  SIZE meta_size = *(SIZE *)compressed_data;
+  uint32_t meta_size = *(SIZE *)compressed_data;
   Metadata meta;
   meta.Deserialize((SERIALIZED_TYPE *)compressed_data, meta_size);
   std::memcpy(magic_word, meta.magic_word, MAGIC_WORD_SIZE);
@@ -51,7 +51,7 @@ enum data_type infer_data_type(const void *compressed_data,
     exit(-1);
   }
   Metadata meta;
-  SIZE meta_size = *(SIZE *)compressed_data + meta.metadata_size_offset();
+  uint32_t meta_size = *(uint32_t *)compressed_data + meta.metadata_size_offset();
   meta.Deserialize((SERIALIZED_TYPE *)compressed_data, meta_size);
   return meta.dtype;
 }
@@ -128,10 +128,10 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config) {
   Handle<D, T> handle(shape, config);
-  mgard_cuda::Array<D, T> in_array(shape);
+  mgard_cuda::Array<D, T, CUDA> in_array(shape);
   in_array.loadData((const T *)original_data);
-  Array<1, unsigned char> compressed_array =
-      compress(handle, in_array, mode, tol, s);
+  Array<1, unsigned char, CUDA> compressed_array =
+      compress<D, T, CUDA>(handle, in_array, mode, tol, s);
   compressed_size = compressed_array.getShape()[0];
   if (isGPUPointer(original_data)) {
     cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
@@ -149,10 +149,10 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config, std::vector<T *> coords) {
   Handle<D, T> handle(shape, coords, config);
-  mgard_cuda::Array<D, T> in_array(shape);
+  mgard_cuda::Array<D, T, CUDA> in_array(shape);
   in_array.loadData((const T *)original_data);
-  Array<1, unsigned char> compressed_array =
-      compress(handle, in_array, mode, tol, s);
+  Array<1, unsigned char, CUDA> compressed_array =
+      compress<D, T, CUDA>(handle, in_array, mode, tol, s);
   compressed_size = compressed_array.getShape()[0];
   if (isGPUPointer(original_data)) {
     cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
@@ -176,9 +176,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   Handle<D, T> handle(shape, coords, config);
   std::vector<SIZE> compressed_shape(1);
   compressed_shape[0] = compressed_size;
-  Array<1, unsigned char> compressed_array(compressed_shape);
+  Array<1, unsigned char, CUDA> compressed_array(compressed_shape);
   compressed_array.loadData((const unsigned char *)compressed_data);
-  Array<D, T> out_array = decompress(handle, compressed_array);
+  Array<D, T, CUDA> out_array = decompress<D, T, CUDA>(handle, compressed_array);
 
   if (isGPUPointer(compressed_data)) {
     cudaMallocHelper(handle, (void **)&decompressed_data,
@@ -203,9 +203,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   Handle<D, T> handle(shape, config);
   std::vector<SIZE> compressed_shape(1);
   compressed_shape[0] = compressed_size;
-  Array<1, unsigned char> compressed_array(compressed_shape);
+  Array<1, unsigned char, CUDA> compressed_array(compressed_shape);
   compressed_array.loadData((const unsigned char *)compressed_data);
-  Array<D, T> out_array = decompress(handle, compressed_array);
+  Array<D, T, CUDA> out_array = decompress<D, T, CUDA>(handle, compressed_array);
   if (isGPUPointer(compressed_data)) {
     cudaMallocHelper(handle, (void **)&decompressed_data,
                      original_size * sizeof(T));

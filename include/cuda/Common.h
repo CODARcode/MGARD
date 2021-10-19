@@ -9,6 +9,8 @@
 #define MGRAD_CUDA_COMMON
 
 #include <stdint.h>
+#include <algorithm>
+#include <cstdio>
 
 namespace mgard_cuda {
 
@@ -34,7 +36,7 @@ class Kokkos: public Device {};
 
 using IDX = unsigned long long int;
 using LENGTH = unsigned long long int;
-using SIZE = unsigned int;
+using SIZE = uint64_t;//unsigned int;
 // using SIZE = int;
 using DIM = uint32_t;
 using QUANTIZED_INT = int;

@@ -12,16 +12,16 @@
 #include "Functor.h"
 #include "AutoTuner.h"
 #include "Task.h"
-#include "DeviceAdapters/DeviceAdapterCuda.h"
+#include "DeviceAdapters/DeviceAdapter.h"
 
 #include "LevelwiseProcessingKernel.h"
 namespace mgard_cuda {
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP, typename DeviceType>
-class LwpkReo3DFunctor: public Functor<DeviceType> {
+class LwpkReoFunctor: public Functor<DeviceType> {
 public:
-  MGARDm_CONT LwpkReo3DFunctor(SubArray<1, SIZE> shape, 
-                              SubArray<D, T> v, SubArray<D, T> work):
+  MGARDm_CONT LwpkReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
+                              SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work):
                               shape(shape), v(v), work(work) {
     Functor<DeviceType>();                            
   }
@@ -95,26 +95,26 @@ public:
   }
 
 private:
-  SubArray<1, SIZE> shape;
-  SubArray<D, T> v, work;
+  SubArray<1, SIZE, DeviceType> shape;
+  SubArray<D, T, DeviceType> v, work;
 
   IDX threadId;
   SIZE *shape_sm;
 };
 
 template <typename HandleType, DIM D, typename T, OPTION OP, typename DeviceType>
-class LwpkReo3D: public AutoTuner<HandleType, DeviceType> {
+class LwpkReo: public AutoTuner<HandleType, DeviceType> {
 public:
   MGARDm_CONT
-  LwpkReo3D(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  LwpkReo(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDm_CONT
-  Task<LwpkReo3DFunctor<D, T, R, C, F, OP, DeviceType> > 
-  GenTask(SubArray<1, SIZE> shape,
-          SubArray<D, T> v, SubArray<D, T> work,
+  Task<LwpkReoFunctor<D, T, R, C, F, OP, DeviceType> > 
+  GenTask(SubArray<1, SIZE, DeviceType> shape,
+          SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
           int queue_idx) {
-    using FunctorType = LwpkReo3DFunctor<D, T, R, C, F, OP, DeviceType>;
+    using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;
     FunctorType functor(shape, v, work);
 
     SIZE total_thread_z = shape.dataHost()[2];
@@ -139,13 +139,13 @@ public:
   }
 
   MGARDm_CONT
-  void Execute(SubArray<1, SIZE> shape,
-              SubArray<D, T> v, SubArray<D, T> work,
+  void Execute(SubArray<1, SIZE, DeviceType> shape,
+              SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
               int queue_idx) {
     const int R=LWPK_CONFIG[D-1][0];
     const int C=LWPK_CONFIG[D-1][1];
     const int F=LWPK_CONFIG[D-1][2];
-    using FunctorType = LwpkReo3DFunctor<D, T, R, C, F, OP, DeviceType>;
+    using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;
     using TaskType = Task<FunctorType>;
     TaskType task = GenTask<R, C, F>( shape, v, work, queue_idx); 
     DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); 
@@ -267,7 +267,7 @@ template <mgard_cuda::DIM D, typename T, int R, int C, int F, OPTION OP, typenam
 class LevelwiseCalcNDFunctor : public Functor<DeviceType> {
 public:
   MGARDm_CONT
-  LevelwiseCalcNDFunctor(SIZE *shape, SubArray<D, T> v, SubArray<D, T> w): 
+  LevelwiseCalcNDFunctor(SIZE *shape, SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w): 
                         shape(shape), v(v), w(w) {
     Functor<DeviceType>();
   }
@@ -340,8 +340,8 @@ public:
 
 private:
   SIZE *shape;
-  SubArray<D, T> v;
-  SubArray<D, T> w;
+  SubArray<D, T, DeviceType> v;
+  SubArray<D, T, DeviceType> w;
 
   SIZE *shape_sm;
   size_t threadId;
@@ -359,7 +359,7 @@ public:
   template <SIZE R, SIZE C, SIZE F>
   MGARDm_CONT
   Task<LevelwiseCalcNDFunctor<D, T, R, C, F, Direction, DeviceType>> 
-  GenTask(SIZE *shape_h, SIZE *shape_d, SubArray<D, T> v, SubArray<D, T> w, int queue_idx) {
+  GenTask(SIZE *shape_h, SIZE *shape_d, SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w, int queue_idx) {
     using FunctorType = LevelwiseCalcNDFunctor<D, T, R, C, F, Direction, DeviceType>;
     FunctorType functor(shape_d, v, w);
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
@@ -381,7 +381,7 @@ public:
   }
 
   MGARDm_CONT
-  void Execute(SIZE *shape_h, SIZE *shape_d, SubArray<D, T> v, SubArray<D, T> w, int queue_idx) {
+  void Execute(SIZE *shape_h, SIZE *shape_d, SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w, int queue_idx) {
     #define KERNEL(R, C, F)\
     {\
       using FunctorType = LevelwiseCalcNDFunctor<D, T, R, C, F, Direction, DeviceType>;\

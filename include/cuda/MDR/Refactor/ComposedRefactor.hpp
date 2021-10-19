@@ -20,7 +20,7 @@ namespace MDR {
         ComposedRefactor(Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorCollector collector, Writer writer)
             : decomposer(decomposer), interleaver(interleaver), encoder(encoder), compressor(compressor), collector(collector), writer(writer) {}
 
-        void refactor(T const * data_, const std::vector<uint32_t>& dims, uint8_t target_level, uint8_t num_bitplanes){
+        void refactor(T const * data_, const std::vector<SIZE>& dims, uint8_t target_level, uint8_t num_bitplanes){
             Timer timer;
             timer.start();
             dimensions = dims;
@@ -48,7 +48,7 @@ namespace MDR {
         }
 
         void write_metadata() const {
-            uint32_t metadata_size = sizeof(uint8_t) + get_size(dimensions) // dimensions
+            SIZE metadata_size = sizeof(uint8_t) + get_size(dimensions) // dimensions
                             + sizeof(uint8_t) + get_size(level_error_bounds) + get_size(level_squared_errors) + get_size(level_sizes) // level information
                             + get_size(stopping_indices) + get_size(level_num);
             uint8_t * metadata = (uint8_t *) malloc(metadata_size);
@@ -97,11 +97,11 @@ namespace MDR {
             level_sizes.clear();
             auto level_dims = compute_level_dims(dimensions, target_level);
             auto level_elements = compute_level_elements(level_dims, target_level);
-            std::vector<uint32_t> dims_dummy(dimensions.size(), 0);
+            std::vector<SIZE> dims_dummy(dimensions.size(), 0);
             SquaredErrorCollector<T> s_collector = SquaredErrorCollector<T>();
             for(int i=0; i<=target_level; i++){
                 timer.start();
-                const std::vector<uint32_t>& prev_dims = (i == 0) ? dims_dummy : level_dims[i - 1];
+                const std::vector<SIZE>& prev_dims = (i == 0) ? dims_dummy : level_dims[i - 1];
                 T * buffer = (T *) malloc(level_elements[i] * sizeof(T));
                 // extract level i component
                 printf("l = %d, prev_dim: %u %u %u, curr_dim: %u %u %u\n", i, prev_dims[0], prev_dims[1], prev_dims[2],
@@ -120,7 +120,7 @@ namespace MDR {
                 int level_exp = 0;
                 frexp(level_max_error, &level_exp);
                 printf("level: %d, level_exp: %d\n", i, level_exp);
-                std::vector<uint32_t> stream_sizes;
+                std::vector<SIZE> stream_sizes;
                 std::vector<double> level_sq_err;                
                 auto streams = encoder.encode(buffer, level_elements[i], level_exp, num_bitplanes, stream_sizes, level_sq_err);
                 free(buffer);
@@ -148,12 +148,12 @@ namespace MDR {
         ErrorCollector collector;
         Writer writer;
         std::vector<T> data;
-        std::vector<uint32_t> dimensions;
+        std::vector<SIZE> dimensions;
         std::vector<T> level_error_bounds;
         std::vector<uint8_t> stopping_indices;
         std::vector<std::vector<uint8_t*>> level_components;
-        std::vector<std::vector<uint32_t>> level_sizes;
-        std::vector<uint32_t> level_num;
+        std::vector<std::vector<SIZE>> level_sizes;
+        std::vector<SIZE> level_num;
         std::vector<std::vector<double>> level_squared_errors;
     };
 }
@@ -174,11 +174,11 @@ namespace MDR {
               printf("ComposedRefactor\n");
             }
 
-        void refactor(T_data const * data_, const std::vector<uint32_t>& dims, uint8_t target_level, uint8_t num_bitplanes){
+        void refactor(T_data const * data_, const std::vector<mgard_cuda::SIZE>& dims, uint8_t target_level, uint8_t num_bitplanes){
 
             mgard_cuda::MDR::Timer timer;
             timer.start();
-            data_array = mgard_cuda::Array<D, T_data>(handle.shape);
+            data_array = mgard_cuda::Array<D, T_data, mgard_cuda::CUDA>(handle.shape);
             data_array.loadData(data_);
             timer.end();
             timer.print("Copy to GPU");
@@ -202,7 +202,7 @@ namespace MDR {
         }
 
         void write_metadata() const {
-            uint32_t metadata_size = sizeof(uint8_t) + mgard_cuda::MDR::get_size(dimensions) // dimensions
+            mgard_cuda::SIZE metadata_size = sizeof(uint8_t) + mgard_cuda::MDR::get_size(dimensions) // dimensions
                             + sizeof(uint8_t) + mgard_cuda::MDR::get_size(level_error_bounds) + mgard_cuda::MDR::get_size(level_squared_errors) + mgard_cuda::MDR::get_size(level_sizes) // level information
                             + mgard_cuda::MDR::get_size(stopping_indices) + mgard_cuda::MDR::get_size(level_num);
             uint8_t * metadata = (uint8_t *) malloc(metadata_size);
@@ -241,7 +241,7 @@ namespace MDR {
             dimensions.push_back(handle.dofs[d][0]);
           }
 
-          mgard_cuda::SubArray<D, T_data> data(data_array);
+          mgard_cuda::SubArray<D, T_data, mgard_cuda::CUDA> data(data_array);
 
           mgard_cuda::MDR::Timer timer;
           // // decompose data hierarchically
@@ -269,11 +269,11 @@ namespace MDR {
           }
           printf("\n");
 
-          mgard_cuda::Array<1, T_data> * levels_array = new mgard_cuda::Array<1, T_data>[target_level + 1];
-          mgard_cuda::SubArray<1, T_data> * levels_data = new mgard_cuda::SubArray<1, T_data>[target_level + 1];
+          mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> * levels_array = new mgard_cuda::Array<1, T_data, mgard_cuda::CUDA>[target_level + 1];
+          mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> * levels_data = new mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA>[target_level + 1];
           for(int level_idx = 0; level_idx < target_level + 1; level_idx ++){
-            levels_array[level_idx] = mgard_cuda::Array<1, T_data>({level_num_elems[level_idx]});
-            levels_data [level_idx] = mgard_cuda::SubArray<1, T_data>(levels_array[level_idx]);
+            levels_array[level_idx] = mgard_cuda::Array<1, T_data, mgard_cuda::CUDA>({level_num_elems[level_idx]});
+            levels_data [level_idx] = mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA>(levels_array[level_idx]);
           }
 
           printf("done create levels_data\n");
@@ -286,12 +286,12 @@ namespace MDR {
           
           mgard_cuda::DeviceReduce<HandleType, T_data, mgard_cuda::CUDA> deviceReduce(handle);
 
-          std::vector<std::vector<mgard_cuda::Array<1, mgard_cuda::Byte>>> compressed_bitplanes;
+          std::vector<std::vector<mgard_cuda::Array<1, mgard_cuda::Byte, mgard_cuda::CUDA>>> compressed_bitplanes;
           for(int level_idx = 0; level_idx < target_level + 1; level_idx++){
             
             timer.start();
-            mgard_cuda::Array<1, T_data> result_array({1});
-            mgard_cuda::SubArray<1, T_data> result(result_array);
+            mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> result_array({1});
+            mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> result(result_array);
             
             deviceReduce.AbsMax(levels_data[level_idx].shape[0], levels_data[level_idx], result, queue_idx);
             T_data level_max_error = *(result_array.getDataHost());
@@ -303,10 +303,10 @@ namespace MDR {
             timer.print("level_max_error");
 
             timer.start();
-            mgard_cuda::Array<1, T_error> level_errors_array({num_bitplanes+1});
-            mgard_cuda::SubArray<1, T_error> level_errors(level_errors_array);
+            mgard_cuda::Array<1, T_error, mgard_cuda::CUDA> level_errors_array({num_bitplanes+1});
+            mgard_cuda::SubArray<1, T_error, mgard_cuda::CUDA> level_errors(level_errors_array);
             std::vector<mgard_cuda::SIZE> bitplane_sizes(num_bitplanes);
-            mgard_cuda::Array<2, T_bitplane> encoded_bitplanes = 
+            mgard_cuda::Array<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes = 
                             encoder.encode(level_num_elems[level_idx], num_bitplanes, level_exp, 
                                            levels_data[level_idx],
                                            level_errors, bitplane_sizes, queue_idx);
@@ -326,7 +326,7 @@ namespace MDR {
             timer.print("Encoding");
 
             timer.start();
-            std::vector<mgard_cuda::Array<1, mgard_cuda::Byte>> compressed_encoded_bitplanes;
+            std::vector<mgard_cuda::Array<1, mgard_cuda::Byte, mgard_cuda::CUDA>> compressed_encoded_bitplanes;
             compressed_bitplanes.push_back(compressed_encoded_bitplanes);
             uint8_t stopping_index = compressor.compress_level(bitplane_sizes,
                                                                encoded_bitplanes,
@@ -362,15 +362,15 @@ namespace MDR {
         ErrorCollector collector;
         Writer writer;
 
-        mgard_cuda::Array<D, T_data> data_array;
+        mgard_cuda::Array<D, T_data, mgard_cuda::CUDA> data_array;
         // std::vector<T> data;
 
-        std::vector<uint32_t> dimensions;
+        std::vector<mgard_cuda::SIZE> dimensions;
         std::vector<T_data> level_error_bounds;
         std::vector<uint8_t> stopping_indices;
         std::vector<std::vector<mgard_cuda::Byte *>> level_components;
         std::vector<std::vector<mgard_cuda::SIZE>> level_sizes;
-        std::vector<uint32_t> level_num;
+        std::vector<mgard_cuda::SIZE> level_num;
         std::vector<std::vector<T_error>> level_squared_errors;
     };
 }

@@ -81,12 +81,12 @@ namespace MDR {
             static_assert(std::is_integral<T_stream>::value, "PerBitBPEncoder: streams must be unsigned integers.");
         }
 
-        std::vector<uint8_t *> encode(T_data const * data, int32_t n, int32_t exp, uint8_t num_bitplanes, std::vector<uint32_t>& stream_sizes) const {
+        std::vector<uint8_t *> encode(T_data const * data, SIZE n, int32_t exp, uint8_t num_bitplanes, std::vector<SIZE>& stream_sizes) const {
             
             assert(num_bitplanes > 0);
             // determine block size based on bitplane integer type
             const int32_t block_size = PER_BIT_BLOCK_SIZE;
-            stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
+            stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
             // define fixed point type
             using T_fp = typename std::conditional<std::is_same<T_data, double>::value, uint64_t, uint32_t>::type;
             std::vector<uint8_t *> streams;
@@ -151,11 +151,11 @@ namespace MDR {
         }
 
         // only differs in error collection
-        std::vector<uint8_t *> encode(T_data const * data, int32_t n, int32_t exp, uint8_t num_bitplanes, std::vector<uint32_t>& stream_sizes, std::vector<double>& level_errors) const {
+        std::vector<uint8_t *> encode(T_data const * data, SIZE n, int32_t exp, uint8_t num_bitplanes, std::vector<SIZE>& stream_sizes, std::vector<double>& level_errors) const {
             assert(num_bitplanes > 0);
             // determine block size based on bitplane integer type
             const int32_t block_size = PER_BIT_BLOCK_SIZE;
-            stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
+            stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
             // define fixed point type
             using T_fp = typename std::conditional<std::is_same<T_data, double>::value, uint64_t, uint32_t>::type;
             std::vector<uint8_t *> streams;
@@ -236,7 +236,7 @@ namespace MDR {
             return streams;
         }
 
-        T_data * decode(const std::vector<uint8_t const *>& streams, int32_t n, int exp, uint8_t num_bitplanes) {
+        T_data * decode(const std::vector<uint8_t const *>& streams, SIZE n, int exp, uint8_t num_bitplanes) {
             const int32_t block_size = PER_BIT_BLOCK_SIZE;
             // define fixed point type
             using T_fp = typename std::conditional<std::is_same<T_data, double>::value, uint64_t, uint32_t>::type;
@@ -298,7 +298,7 @@ namespace MDR {
             return data;
         }
 
-        T_data * progressive_decode(const std::vector<uint8_t const *>& streams, int32_t n, int exp, uint8_t starting_bitplane, uint8_t num_bitplanes, int level) {
+        T_data * progressive_decode(const std::vector<uint8_t const *>& streams, SIZE n, int exp, uint8_t starting_bitplane, uint8_t num_bitplanes, int level) {
             const int32_t block_size = PER_BIT_BLOCK_SIZE;
             // define fixed point type
             using T_fp = typename std::conditional<std::is_same<T_data, double>::value, uint64_t, uint32_t>::type;

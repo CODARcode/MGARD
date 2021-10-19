@@ -15,10 +15,10 @@ namespace MDR {
     class DirectInterleaver : public concepts::InterleaverInterface<D, T> {
     public:
         DirectInterleaver(Handle<D, T> &handle): _handle(handle) {}
-        void interleave(T const * data, const std::vector<uint32_t>& dims, const std::vector<uint32_t>& dims_fine, const std::vector<uint32_t>& dims_coasre, T * buffer) const {
-            uint32_t dim0_offset = dims[1] * dims[2];
-            uint32_t dim1_offset = dims[2];
-            uint32_t count = 0;
+        void interleave(T const * data, const std::vector<SIZE>& dims, const std::vector<SIZE>& dims_fine, const std::vector<SIZE>& dims_coasre, T * buffer) const {
+            SIZE dim0_offset = dims[1] * dims[2];
+            SIZE dim1_offset = dims[2];
+            SIZE count = 0;
             for(int i=0; i<dims_fine[0]; i++){
                 for(int j=0; j<dims_fine[1]; j++){
                     for(int k=0; k<dims_fine[2]; k++){
@@ -29,10 +29,10 @@ namespace MDR {
                 }
             }
         }
-        void reposition(T const * buffer, const std::vector<uint32_t>& dims, const std::vector<uint32_t>& dims_fine, const std::vector<uint32_t>& dims_coasre, T * data) const {
-            uint32_t dim0_offset = dims[1] * dims[2];
-            uint32_t dim1_offset = dims[2];
-            uint32_t count = 0;
+        void reposition(T const * buffer, const std::vector<SIZE>& dims, const std::vector<SIZE>& dims_fine, const std::vector<SIZE>& dims_coasre, T * data) const {
+            SIZE dim0_offset = dims[1] * dims[2];
+            SIZE dim1_offset = dims[2];
+            SIZE count = 0;
             for(int i=0; i<dims_fine[0]; i++){
                 for(int j=0; j<dims_fine[1]; j++){
                     for(int k=0; k<dims_fine[2]; k++){
@@ -64,8 +64,8 @@ class DirectInterleaverFunctor: public mgard_cuda::Functor<DeviceType> {
 public:
   MGARDm_CONT
   DirectInterleaverFunctor(mgard_cuda::SIZE *ranges, mgard_cuda::SIZE l_target, 
-                              mgard_cuda::SubArray<D, T> v,
-                              mgard_cuda::SubArray<1, T> * level_v): 
+                              mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v,
+                              mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * level_v): 
                               ranges(ranges), l_target(l_target), v(v), level_v(level_v){
     mgard_cuda::Functor<DeviceType>();
   }
@@ -147,7 +147,7 @@ public:
                     (idx[d] < ranges_sm[(l_target + 2) * d + l + 1]);
           l_bit[d] += bit << l;
         }
-        level = max(level, __ffsll(l_bit[d]));
+        level = max((int)level, __ffsll(l_bit[d]));
       }
       
 
@@ -258,8 +258,8 @@ public:
 private:
   mgard_cuda::SIZE *ranges;
   mgard_cuda::SIZE l_target;
-  mgard_cuda::SubArray<D, T> v;
-  mgard_cuda::SubArray<1, T> * level_v;
+  mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v;
+  mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * level_v;
 
   // thread private variables
   bool debug;
@@ -275,7 +275,7 @@ template <typename HandleType, mgard_cuda::DIM D, typename T, mgard_cuda::OPTION
   template <mgard_cuda::SIZE R, mgard_cuda::SIZE C, mgard_cuda::SIZE F>
   MGARDm_CONT
   mgard_cuda::Task<DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>> 
-  GenTask(mgard_cuda::SubArray<D, T> v, mgard_cuda::SubArray<1, T> * level_v, int queue_idx) {
+  GenTask(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * level_v, int queue_idx) {
     using FunctorType = DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>;
     FunctorType functor(this->handle.ranges_d, this->handle.l_target, v, level_v);
     mgard_cuda::SIZE tbx, tby, tbz, gridx, gridy, gridz;
@@ -298,8 +298,8 @@ template <typename HandleType, mgard_cuda::DIM D, typename T, mgard_cuda::OPTION
   }
 
   MGARDm_CONT
-  void Execute(mgard_cuda::SubArray<D, T> v,
-               mgard_cuda::SubArray<1, T> * level_v,
+  void Execute(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v,
+               mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * level_v,
                int queue_idx) {
     #define KERNEL(R, C, F)\
     {\
@@ -330,15 +330,15 @@ template <typename HandleType, mgard_cuda::DIM D, typename T, mgard_cuda::OPTION
   class DirectInterleaver : public concepts::InterleaverInterface<HandleType, D, T> {
   public:
       DirectInterleaver(HandleType &handle): handle(handle) {}
-      void interleave(mgard_cuda::SubArray<D, T> decomposed_data, 
-                      mgard_cuda::SubArray<1, T> * levels_decomposed_data, 
+      void interleave(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> decomposed_data, 
+                      mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data, 
                       int queue_idx) const {
         // mgard_cuda::PrintSubarray("decomposed_data", decomposed_data);
-        mgard_cuda::SubArray<1, T> * levels_decomposed_data_device;
+        mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data_device;
         mgard_cuda::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
-                            sizeof(mgard_cuda::SubArray<1, T>)*(this->handle.l_target+1));
+                            sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1));
         mgard_cuda::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
-                                          sizeof(mgard_cuda::SubArray<1, T>)*(this->handle.l_target+1), mgard_cuda::AUTO, queue_idx);
+                                          sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1), mgard_cuda::AUTO, queue_idx);
         handle.sync(queue_idx);
         DirectInterleaverKernel<HandleType, D, T, Interleave, mgard_cuda::CUDA>(handle).
                       Execute(decomposed_data, levels_decomposed_data_device, queue_idx);
@@ -349,15 +349,15 @@ template <typename HandleType, mgard_cuda::DIM D, typename T, mgard_cuda::OPTION
         //   mgard_cuda::PrintSubarray("levels_decomposed_data", levels_decomposed_data[i]);
         // }
       }
-      void reposition(mgard_cuda::SubArray<1, T> * levels_decomposed_data, 
-                      mgard_cuda::SubArray<D, T> decomposed_data, 
+      void reposition(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data, 
+                      mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> decomposed_data, 
                       int queue_idx) const {
         
-        mgard_cuda::SubArray<1, T> * levels_decomposed_data_device;
+        mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data_device;
         mgard_cuda::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
-                            sizeof(mgard_cuda::SubArray<1, T>)*(this->handle.l_target+1));
+                            sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1));
         mgard_cuda::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
-                                          sizeof(mgard_cuda::SubArray<1, T>)*(this->handle.l_target+1), mgard_cuda::AUTO, queue_idx);
+                                          sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1), mgard_cuda::AUTO, queue_idx);
         handle.sync(queue_idx);
         DirectInterleaverKernel<HandleType, D, T, Reposition, mgard_cuda::CUDA>(handle).
                       Execute(decomposed_data, levels_decomposed_data_device, queue_idx);

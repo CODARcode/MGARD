@@ -10,7 +10,7 @@ namespace MDR {
     class DefaultLevelCompressor : public concepts::LevelCompressorInterface {
     public:
         DefaultLevelCompressor(){}
-        uint8_t compress_level(std::vector<uint8_t*>& streams, std::vector<uint32_t>& stream_sizes) const {
+        uint8_t compress_level(std::vector<uint8_t*>& streams, std::vector<SIZE>& stream_sizes) const {
             Timer timer;
             for(int i=0; i<streams.size(); i++){
                 uint8_t * compressed = NULL;
@@ -24,7 +24,7 @@ namespace MDR {
             timer.print("Lossless: ");
             return 0;
         }
-        void decompress_level(std::vector<const uint8_t*>& streams, const std::vector<uint32_t>& stream_sizes, uint8_t starting_bitplane, uint8_t num_bitplanes, uint8_t stopping_index) {
+        void decompress_level(std::vector<const uint8_t*>& streams, const std::vector<SIZE>& stream_sizes, uint8_t starting_bitplane, uint8_t num_bitplanes, uint8_t stopping_index) {
             for(int i=0; i<num_bitplanes; i++){
                 uint8_t * decompressed = NULL;
                 auto decompressed_size = ZSTD::decompress(streams[i], stream_sizes[starting_bitplane + i], &decompressed);
@@ -63,10 +63,10 @@ public:
 
     // compress level, overwrite and free original streams; rewrite streams sizes
     uint8_t compress_level(std::vector<mgard_cuda::SIZE>& bitplane_sizes,
-                           mgard_cuda::Array<2, T>& encoded_bitplanes,
-                           std::vector<mgard_cuda::Array<1, mgard_cuda::Byte>>& compressed_bitplanes) {
+                           mgard_cuda::Array<2, T, mgard_cuda::CUDA>& encoded_bitplanes,
+                           std::vector<mgard_cuda::Array<1, mgard_cuda::Byte, mgard_cuda::CUDA>>& compressed_bitplanes) {
 
-      mgard_cuda::SubArray<2, T> encoded_bitplanes_subarray(encoded_bitplanes);
+      mgard_cuda::SubArray<2, T, mgard_cuda::CUDA> encoded_bitplanes_subarray(encoded_bitplanes);
       for (mgard_cuda::SIZE bitplane_idx = 0; bitplane_idx < encoded_bitplanes_subarray.shape[1]; bitplane_idx++) {
         T * bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
         T * bitplane_host = new T[bitplane_sizes[bitplane_idx]];
@@ -76,7 +76,7 @@ public:
         mgard_cuda::Byte * compressed_host = NULL;
         mgard_cuda::SIZE compressed_bitplane_size = 
           mgard_cuda::MDR::ZSTD::compress((uint8_t*)bitplane_host, bitplane_sizes[bitplane_idx], &compressed_host);
-        mgard_cuda::Array<1, mgard_cuda::Byte> compressed_bitplane({compressed_bitplane_size});
+        mgard_cuda::Array<1, mgard_cuda::Byte, mgard_cuda::CUDA> compressed_bitplane({compressed_bitplane_size});
         compressed_bitplane.loadData(compressed_host);
         compressed_bitplanes.push_back(compressed_bitplane);
         bitplane_sizes[bitplane_idx] = compressed_bitplane_size;
@@ -86,14 +86,14 @@ public:
 
     // decompress level, create new buffer and overwrite original streams; will not change stream sizes
     void decompress_level(std::vector<mgard_cuda::SIZE>& bitplane_sizes,
-                          std::vector<mgard_cuda::Array<1, mgard_cuda::Byte>>& compressed_bitplanes, 
-                          mgard_cuda::Array<2, T>& encoded_bitplanes,
+                          std::vector<mgard_cuda::Array<1, mgard_cuda::Byte, mgard_cuda::CUDA>>& compressed_bitplanes, 
+                          mgard_cuda::Array<2, T, mgard_cuda::CUDA>& encoded_bitplanes,
                           uint8_t starting_bitplane, uint8_t num_bitplanes, uint8_t stopping_index) {
 
-      mgard_cuda::SubArray<2, T> encoded_bitplanes_subarray(encoded_bitplanes);
+      mgard_cuda::SubArray<2, T, mgard_cuda::CUDA> encoded_bitplanes_subarray(encoded_bitplanes);
 
       for (mgard_cuda::SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
-        mgard_cuda::SubArray<1, mgard_cuda::Byte> compressed_bitplane_subarray(compressed_bitplanes[bitplane_idx]);
+        mgard_cuda::SubArray<1, mgard_cuda::Byte, mgard_cuda::CUDA> compressed_bitplane_subarray(compressed_bitplanes[bitplane_idx]);
         mgard_cuda::Byte * compressed_host = new mgard_cuda::Byte[bitplane_sizes[bitplane_idx]];
         mgard_cuda::cudaMemcpyAsyncHelper(handle, compressed_host, compressed_bitplane_subarray.data(),
                                           bitplane_sizes[starting_bitplane + bitplane_idx], mgard_cuda::AUTO, 0);

@@ -34,6 +34,8 @@
 #define MGARDm_MAX_NUM_WARPS_PER_TB 32
 #define MGARDm_NUM_SMs 68
 
+#define MGARDm_NUM_QUEUES 16
+
 #define SIZE_MAX_VALUE 4294967295
 
 #define COPY 0
@@ -145,6 +147,11 @@ __host__ inline std::vector<SIZE> gen_idx(DIM D, DIM curr_dim_r, DIM curr_dim_c,
 
 __host__ __forceinline__ __device__ int div_roundup(SIZE a, SIZE b) {
   return (a - 1) / b + 1;
+}
+
+template<typename T1, typename T2>
+__host__ __forceinline__ __device__ SIZE roundup(T2 a) {
+  return ((a - 1) / sizeof(T1) + 1) * sizeof(T1);
 }
 
 // template <int D, int R, int C, int F>
@@ -287,6 +294,11 @@ template <typename T> __device__ T _get_dist(T *coords, int i, int j);
 #include "Metadata.h"
 #include "AutoTuner.h"
 #include "Task.h"
+
+// #include "Functor.h"
+// #include "AutoTuner.h"
+// #include "Task.h"
+// #include "DeviceAdapters/DeviceAdapter.h"
 
 #endif
 

@@ -12,7 +12,7 @@
 
 namespace mgard_cuda {
 
-template <DIM D, typename T> class Array {
+template <DIM D, typename T, typename DeviceType> class Array {
 public:
   Array();
   Array(std::vector<SIZE> shape, bool pitched = true);

@@ -20,7 +20,7 @@ namespace MDR {
             static_assert(std::is_floating_point<T>::value, "SquaredErrorCollector: input data must be floating points.");
             static_assert(!std::is_same<T, long double>::value, "SquaredErrorCollector: long double is not supported.");
         }
-        std::vector<double> collect_level_error(T const * data, size_t n, int num_bitplanes, T max_level_error) const {
+        std::vector<double> collect_level_error(T const * data, SIZE n, int num_bitplanes, T max_level_error) const {
             int level_exp = 0;
             frexp(max_level_error, &level_exp);
             const int prec = std::is_same<T, double>::value ? 52 : 23;

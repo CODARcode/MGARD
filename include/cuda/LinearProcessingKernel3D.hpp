@@ -15,7 +15,7 @@
 #include "Functor.h"
 #include "AutoTuner.h"
 #include "Task.h"
-#include "DeviceAdapters/DeviceAdapterCuda.h"
+#include "DeviceAdapters/DeviceAdapter.h"
 
 namespace mgard_cuda {
 
@@ -24,9 +24,9 @@ class Lpk1Reo3DFunctor: public Functor<DeviceType> {
 public:
   MGARDm_CONT Lpk1Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, 
                               SIZE zero_r, SIZE zero_c, SIZE zero_f, 
-                              SubArray<1, T> ddist_f, SubArray<1, T> dratio_f,
-                              SubArray<D, T> dv1, SubArray<D, T> dv2,
-                              SubArray<D, T> dw):
+                              SubArray<1, T, DeviceType> ddist_f, SubArray<1, T, DeviceType> dratio_f,
+                              SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
+                              SubArray<D, T, DeviceType> dw):
                               nr(nr), nc(nc), nf(nf), nf_c(nf_c),
                               zero_r(zero_r), zero_c(zero_c), zero_f(zero_f),
                               ddist_f(ddist_f), dratio_f(dratio_f),
@@ -352,9 +352,9 @@ public:
 private:
   // functor parameters
   SIZE nr, nc, nf, nf_c, zero_r, zero_c, zero_f;
-  SubArray<1, T> ddist_f;
-  SubArray<1, T> dratio_f;
-  SubArray<D, T> dv1, dv2, dw;
+  SubArray<1, T, DeviceType> ddist_f;
+  SubArray<1, T, DeviceType> dratio_f;
+  SubArray<D, T, DeviceType> dv1, dv2, dw;
 
 
   // thread local variables
@@ -382,9 +382,9 @@ public:
   Task<Lpk1Reo3DFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, 
           SIZE zero_r, SIZE zero_c, SIZE zero_f, 
-          SubArray<1, T> ddist_f, SubArray<1, T> dratio_f,
-          SubArray<D, T> dv1, SubArray<D, T> dv2,
-          SubArray<D, T> dw, int queue_idx) {
+          SubArray<1, T, DeviceType> ddist_f, SubArray<1, T, DeviceType> dratio_f,
+          SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
+          SubArray<D, T, DeviceType> dw, int queue_idx) {
     using FunctorType = Lpk1Reo3DFunctor<D, T, R, C, F, DeviceType>;
     FunctorType functor(nr, nc, nf, nf_c,
                         zero_r, zero_c, zero_f,
@@ -410,9 +410,9 @@ public:
   MGARDm_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, 
               SIZE zero_r, SIZE zero_c, SIZE zero_f, 
-              SubArray<1, T> ddist_f, SubArray<1, T> dratio_f,
-              SubArray<D, T> dv1, SubArray<D, T> dv2,
-              SubArray<D, T> dw, int queue_idx) {
+              SubArray<1, T, DeviceType> ddist_f, SubArray<1, T, DeviceType> dratio_f,
+              SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
+              SubArray<D, T, DeviceType> dw, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int config = this->handle.auto_tuning_mr1[this->handle.arch][this->handle.precision][range_l];
     #define LPK(CONFIG)\
@@ -447,9 +447,9 @@ template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk2Reo3DFunctor: public Functor<DeviceType> {
 public:
   MGARDm_CONT Lpk2Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf_c, SIZE nc_c, 
-                              SubArray<1, T> ddist_c, SubArray<1, T> dratio_c,
-                              SubArray<D, T> dv1, SubArray<D, T> dv2,
-                              SubArray<D, T> dw):
+                              SubArray<1, T, DeviceType> ddist_c, SubArray<1, T, DeviceType> dratio_c,
+                              SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
+                              SubArray<D, T, DeviceType> dw):
                               nr(nr), nc(nc), nf_c(nf_c), nc_c(nc_c),
                               ddist_c(ddist_c), dratio_c(dratio_c),
                               dv1(dv1), dv2(dv2), dw(dw) {
@@ -688,9 +688,9 @@ public:
 private:
   // functor parameters
   SIZE nr, nc, nf_c, nc_c;
-  SubArray<1, T> ddist_c;
-  SubArray<1, T> dratio_c;
-  SubArray<D, T> dv1, dv2, dw;
+  SubArray<1, T, DeviceType> ddist_c;
+  SubArray<1, T, DeviceType> dratio_c;
+  SubArray<D, T, DeviceType> dv1, dv2, dw;
 
   // thread local variables
   bool PADDING;
@@ -717,9 +717,9 @@ public:
   MGARDm_CONT
   Task<Lpk2Reo3DFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf_c, SIZE nc_c, 
-          SubArray<1, T> ddist_c, SubArray<1, T> dratio_c,
-          SubArray<D, T> dv1, SubArray<D, T> dv2,
-          SubArray<D, T> dw, int queue_idx) {
+          SubArray<1, T, DeviceType> ddist_c, SubArray<1, T, DeviceType> dratio_c,
+          SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
+          SubArray<D, T, DeviceType> dw, int queue_idx) {
     using FunctorType = Lpk2Reo3DFunctor<D, T, R, C, F, DeviceType>;
     FunctorType functor(nr, nc, nf_c, nc_c,
                         ddist_c, dratio_c,
@@ -742,9 +742,9 @@ public:
 
   MGARDm_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf_c, SIZE nc_c, 
-              SubArray<1, T> ddist_c, SubArray<1, T> dratio_c,
-              SubArray<D, T> dv1, SubArray<D, T> dv2,
-              SubArray<D, T> dw, int queue_idx) {
+              SubArray<1, T, DeviceType> ddist_c, SubArray<1, T, DeviceType> dratio_c,
+              SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
+              SubArray<D, T, DeviceType> dw, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf_c) - 1);
     int config = this->handle.auto_tuning_mr2[this->handle.arch][this->handle.precision][range_l];
     #define LPK(CONFIG)\
@@ -778,9 +778,9 @@ template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk3Reo3DFunctor: public Functor<DeviceType> {
 public:
   MGARDm_CONT Lpk3Reo3DFunctor(SIZE nr, SIZE nc_c, SIZE nf_c, SIZE nr_c, 
-                              SubArray<1, T> ddist_r, SubArray<1, T> dratio_r,
-                              SubArray<D, T> dv1, SubArray<D, T> dv2,
-                              SubArray<D, T> dw):
+                              SubArray<1, T, DeviceType> ddist_r, SubArray<1, T, DeviceType> dratio_r,
+                              SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
+                              SubArray<D, T, DeviceType> dw):
                               nr(nr), nc_c(nc_c), nf_c(nf_c), nr_c(nr_c),
                               ddist_r(ddist_r), dratio_r(dratio_r),
                               dv1(dv1), dv2(dv2), dw(dw) {
@@ -1033,9 +1033,9 @@ public:
 private:
   // functor parameters
   SIZE nr, nc_c, nf_c, nr_c;
-  SubArray<1, T> ddist_r;
-  SubArray<1, T> dratio_r;
-  SubArray<D, T> dv1, dv2, dw;
+  SubArray<1, T, DeviceType> ddist_r;
+  SubArray<1, T, DeviceType> dratio_r;
+  SubArray<D, T, DeviceType> dv1, dv2, dw;
 
   // thread local variables
   bool PADDING;
@@ -1061,9 +1061,9 @@ public:
   MGARDm_CONT
   Task<Lpk3Reo3DFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SIZE nr, SIZE nc_c, SIZE nf_c, SIZE nr_c, 
-          SubArray<1, T> ddist_r, SubArray<1, T> dratio_r,
-          SubArray<D, T> dv1, SubArray<D, T> dv2,
-          SubArray<D, T> dw, int queue_idx) {
+          SubArray<1, T, DeviceType> ddist_r, SubArray<1, T, DeviceType> dratio_r,
+          SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
+          SubArray<D, T, DeviceType> dw, int queue_idx) {
     using FunctorType = Lpk3Reo3DFunctor<D, T, R, C, F, DeviceType>;
     FunctorType functor(nr, nc_c, nf_c, nr_c,
                         ddist_r, dratio_r,
@@ -1086,9 +1086,9 @@ public:
 
   MGARDm_CONT
   void Execute(SIZE nr, SIZE nc_c, SIZE nf_c, SIZE nr_c, 
-              SubArray<1, T> ddist_r, SubArray<1, T> dratio_r,
-              SubArray<D, T> dv1, SubArray<D, T> dv2,
-              SubArray<D, T> dw, int queue_idx) {
+              SubArray<1, T, DeviceType> ddist_r, SubArray<1, T, DeviceType> dratio_r,
+              SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
+              SubArray<D, T, DeviceType> dw, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf_c) - 1);
     int config = this->handle.auto_tuning_mr3[this->handle.arch][this->handle.precision][range_l];
     #define LPK(CONFIG)\

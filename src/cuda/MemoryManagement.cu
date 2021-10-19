@@ -672,8 +672,8 @@ KERNELS(5, float)
 #undef KERNELS
 
 #define KERNELS(D, T)                                                          \
-  template void PrintSubarray<SubArray<D, T>>(std::string name,                \
-                                              SubArray<D, T> subArray);
+  template void PrintSubarray<SubArray<D, T, CUDA>>(std::string name,                \
+                                              SubArray<D, T, CUDA> subArray);
 
 KERNELS(1, double)
 KERNELS(1, float)

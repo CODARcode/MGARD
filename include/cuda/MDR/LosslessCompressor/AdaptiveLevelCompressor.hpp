@@ -10,7 +10,7 @@ namespace MDR {
     class AdaptiveLevelCompressor : public concepts::LevelCompressorInterface {
     public:
         AdaptiveLevelCompressor(int l = 26) : latter_index(l) {}
-        uint8_t compress_level(std::vector<uint8_t*>& streams, std::vector<uint32_t>& stream_sizes) const {
+        uint8_t compress_level(std::vector<uint8_t*>& streams, std::vector<SIZE>& stream_sizes) const {
             int stopping_index = stream_sizes.size();
             for(int i=0; i<streams.size(); i++){
                 uint8_t * compressed = NULL;
@@ -36,7 +36,7 @@ namespace MDR {
             }
             return stopping_index;
         }
-        void decompress_level(std::vector<const uint8_t*>& streams, const std::vector<uint32_t>& stream_sizes, uint8_t starting_bitplane, uint8_t num_bitplanes, uint8_t stopping_index) {
+        void decompress_level(std::vector<const uint8_t*>& streams, const std::vector<SIZE>& stream_sizes, uint8_t starting_bitplane, uint8_t num_bitplanes, uint8_t stopping_index) {
             for(int i=0; i<num_bitplanes; i++){
                 int bitplane_index = starting_bitplane + i;
                 if((bitplane_index <= stopping_index) || (bitplane_index >= latter_index)){

@@ -46,24 +46,24 @@ public:
 };
 
 
-template <typename FunctorType, typename T_reduce>
-class ReduceTask {
-public:
-  MGARDm_CONT
-  ReduceTask(int num_items, SubArray<1, T_reduce> d_in, SubArray<1, T_reduce> d_out, T_reduce init, int queue_idx): 
-            num_items(num_items), d_in(d_in), d_out(d_out), init(init), queue_idx(queue_idx) {}
-  MGARDm_CONT int get_queue_idx() { return queue_idx; }
-  MGARDm_CONT int get_num_items() { return num_items; }
-  MGARDm_CONT SubArray<1, T_reduce>  get_d_in() { return d_in; }
-  MGARDm_CONT SubArray<1, T_reduce>  get_d_out() { return d_out; }
-  MGARDm_CONT T_reduce get_init() { return init; }
-private:
-  int num_items;
-  SubArray<1, T_reduce> d_in;
-  SubArray<1, T_reduce> d_out;
-  T_reduce init;
-  int queue_idx;
-};
+// template <typename FunctorType, typename T_reduce>
+// class ReduceTask {
+// public:
+//   MGARDm_CONT
+//   ReduceTask(int num_items, SubArray<1, T_reduce> d_in, SubArray<1, T_reduce> d_out, T_reduce init, int queue_idx): 
+//             num_items(num_items), d_in(d_in), d_out(d_out), init(init), queue_idx(queue_idx) {}
+//   MGARDm_CONT int get_queue_idx() { return queue_idx; }
+//   MGARDm_CONT int get_num_items() { return num_items; }
+//   MGARDm_CONT SubArray<1, T_reduce>  get_d_in() { return d_in; }
+//   MGARDm_CONT SubArray<1, T_reduce>  get_d_out() { return d_out; }
+//   MGARDm_CONT T_reduce get_init() { return init; }
+// private:
+//   int num_items;
+//   SubArray<1, T_reduce> d_in;
+//   SubArray<1, T_reduce> d_out;
+//   T_reduce init;
+//   int queue_idx;
+// };
 
 
 }
