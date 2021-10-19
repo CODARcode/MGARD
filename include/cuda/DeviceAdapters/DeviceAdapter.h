@@ -4,10 +4,15 @@
  * Author: Jieyang Chen (chenj3@ornl.gov)
  * Date: September 27, 2021
  */
-#ifndef MGARD_CUDA_DEVICE_ADAPTER
-#define MGARD_CUDA_DEVICE_ADAPTER
+#ifndef MGARD_CUDA_DEVICE_ADAPTER_H
+#define MGARD_CUDA_DEVICE_ADAPTER_H
+
+#include "../SubArray.hpp"
+#include "../Functor.h"
+#include "../Task.h"
 
 namespace mgard_cuda {
+
 
 template <typename DeviceType> 
 struct SyncThreads {
@@ -72,6 +77,27 @@ struct ErrorCollect{
 };
 
 
+template <typename DeviceType>
+class DeviceQueues {
+  public:
+  MGARDm_CONT
+  DeviceQueues(){}
+
+  template <typename QueueType>
+  MGARDm_CONT
+  QueueType GetQueue(SIZE queue_id){}
+
+  MGARDm_CONT
+  void SyncQueue(SIZE queue_id){}
+
+  MGARDm_CONT
+  void SyncAllQueues(){}
+
+  MGARDm_CONT
+  ~DeviceQueues(){}
+};
+
+
 
 template <typename HandleType, typename TaskType, typename DeviceType>
 class DeviceAdapter {
@@ -88,18 +114,89 @@ public:
 
 template <typename HandleType, typename T_reduce, typename DeviceType>
 class DeviceReduce {
-public:
+  public:
   MGARDm_CONT
   DeviceReduce(HandleType& handle):handle(handle){};
   MGARDm_CONT
-  void Sum(SIZE n, SubArray<1, T_reduce>& v, SubArray<1, T_reduce>& result, int queue_idx);
+  void Sum(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
   MGARDm_CONT
-  void AbsMax(SIZE n, SubArray<1, T_reduce>& v, SubArray<1, T_reduce>& result, int queue_idx);
-private:
+  void AbsMax(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
+  private:
   HandleType& handle;
 };
 
 
+
+template <typename DeviceType>
+class MemoryManager {
+  public:
+  MGARDm_CONT
+  MemoryManager(){};
+
+  template <typename T>
+  MGARDm_CONT
+  void Malloc1D(T *& ptr, SIZE n, int queue_idx);
+
+  template <typename T>
+  MGARDm_CONT
+  void MallocND(T *& ptr, SIZE n1, SIZE n2, SIZE &ld, int queue_idx);
+
+  template <typename T>
+  MGARDm_CONT
+  void Free(T * ptr);
+
+  template <typename T>
+  MGARDm_CONT
+  void Copy1D(T * dst_ptr, const T * src_ptr, SIZE n, int queue_idx);
+
+  template <typename T>
+  MGARDm_CONT
+  void CopyND(T * dst_ptr, SIZE dst_ld, const T * src_ptr, SIZE src_ld, SIZE n1, SIZE n2, int queue_idx);
+
+  template <typename T>
+  MGARDm_CONT
+  void MallocHost(T *& ptr, SIZE n, int queue_idx);
+
+  template <typename T>
+  MGARDm_CONT
+  void FreeHost(T * ptr);
+
+  static bool ReduceMemoryFootprint;
+};
+
+
+template <typename DeviceType>
+class DeviceRuntime {
+  public:
+  MGARDm_CONT
+  DeviceRuntime(){}
+
+  MGARDm_CONT static
+  void SelectDevice(SIZE dev_id){}
+
+  template <typename QueueType>
+  MGARDm_CONT static
+  QueueType GetQueue(SIZE queue_id){}
+
+  MGARDm_CONT static
+  void SyncQueue(SIZE queue_id){}
+
+  MGARDm_CONT static
+  void SyncAllQueues(){}
+
+  MGARDm_CONT static
+  void SyncDevice(){}
+
+  MGARDm_CONT
+  ~DeviceRuntime(){}
+
+  static int curr_dev_id;
+  static DeviceQueues<DeviceType> queues;
+  static bool SyncAllKernelsAndCheckErrors;
+};
+
 }
+
+#include "DeviceAdapterCuda.h"
 
 #endif

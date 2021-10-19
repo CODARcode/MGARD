@@ -11,12 +11,12 @@ namespace MDR {
     public:
         HPSSFileWriter(const std::string& metadata_file, const std::vector<std::string>& level_files, int num_process, int min_HPSS_size) : metadata_file(metadata_file), level_files(level_files), min_size((min_HPSS_size - 1)/num_process + 1) {}
 
-        std::vector<uint32_t> write_level_components(const std::vector<std::vector<uint8_t*>>& level_components, const std::vector<std::vector<uint32_t>>& level_sizes) const {
-            std::vector<uint32_t> level_num;
+        std::vector<SIZE> write_level_components(const std::vector<std::vector<uint8_t*>>& level_components, const std::vector<std::vector<SIZE>>& level_sizes) const {
+            std::vector<SIZE> level_num;
             for(int i=0; i<level_components.size(); i++){
-                uint32_t concated_level_size = 0;
-                uint32_t prev_index = 0;
-                uint32_t count = 0;
+                SIZE concated_level_size = 0;
+                SIZE prev_index = 0;
+                SIZE count = 0;
                 for(int j=0; j<level_components[i].size(); j++){
                     concated_level_size += level_sizes[i][j];
                     if((concated_level_size >= min_size) || (j == level_components[i].size() - 1)){
@@ -41,7 +41,7 @@ namespace MDR {
             return level_num;
         }
 
-        void write_metadata(uint8_t const * metadata, uint32_t size) const {
+        void write_metadata(uint8_t const * metadata, SIZE size) const {
             FILE * file = fopen(metadata_file.c_str(), "w");
             fwrite(metadata, 1, size, file);
             fclose(file);
@@ -53,7 +53,7 @@ namespace MDR {
             std::cout << "HPSS file writer." << std::endl;
         }
     private:
-        uint32_t min_size = 0;
+        SIZE min_size = 0;
         std::vector<std::string> level_files;
         std::string metadata_file;
     };

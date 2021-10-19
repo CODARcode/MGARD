@@ -15,7 +15,7 @@
 #include "Functor.h"
 #include "AutoTuner.h"
 #include "Task.h"
-#include "DeviceAdapters/DeviceAdapterCuda.h"
+#include "DeviceAdapters/DeviceAdapter.h"
 
 namespace mgard_cuda {
 
@@ -25,11 +25,11 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
   public:
   MGARDm_CONT GpkReo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
                                   SIZE nr_c, SIZE nc_c, SIZE nf_c, 
-                                  SubArray<1, T> ratio_r, SubArray<1, T> ratio_c, SubArray<1, T> ratio_f,
-                                  SubArray<D, T> v, SubArray<D, T>w, 
-                                  SubArray<D, T>wf, SubArray<D, T>wc, SubArray<D, T>wr, 
-                                  SubArray<D, T>wcf, SubArray<D, T>wrf, SubArray<D, T>wrc, 
-                                  SubArray<D, T>wrcf):
+                                  SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
+                                  SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
+                                  SubArray<D, T, DeviceType>wf, SubArray<D, T, DeviceType>wc, SubArray<D, T, DeviceType>wr, 
+                                  SubArray<D, T, DeviceType>wcf, SubArray<D, T, DeviceType>wrf, SubArray<D, T, DeviceType>wrc, 
+                                  SubArray<D, T, DeviceType>wrcf):
                                   nr(nr), nc(nc), nf(nf),
                                   nr_c(nr_c), nc_c(nc_c), nf_c(nf_c), 
                                   ratio_r(ratio_r), ratio_c(ratio_c),ratio_f(ratio_f),
@@ -1036,8 +1036,8 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
 
     // functor parameters
     SIZE nr, nc, nf, nr_c, nc_c, nf_c;
-    SubArray<1, T> ratio_r, ratio_c, ratio_f;
-    SubArray<D, T> v, w, wf, wc, wr, wcf, wrf, wrc, wrcf;
+    SubArray<1, T, DeviceType> ratio_r, ratio_c, ratio_f;
+    SubArray<D, T, DeviceType> v, w, wf, wc, wr, wcf, wrf, wrc, wrcf;
 
     // thread local variables
     SIZE r, c, f;
@@ -1071,11 +1071,11 @@ public:
   MGARDm_CONT
   Task<GpkReo3DFunctor<D, T, R, C, F, DeviceType> > GenTask(SIZE nr, SIZE nc, SIZE nf, 
                                                         SIZE nr_c, SIZE nc_c, SIZE nf_c, 
-                                                        SubArray<1, T> ratio_r, SubArray<1, T> ratio_c, SubArray<1, T> ratio_f, 
-                                                        SubArray<D, T> v, SubArray<D, T>w, 
-                                                        SubArray<D, T>wf, SubArray<D, T>wc, SubArray<D, T>wr, 
-                                                        SubArray<D, T>wcf, SubArray<D, T>wrf, SubArray<D, T>wrc, 
-                                                        SubArray<D, T>wrcf,
+                                                        SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f, 
+                                                        SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
+                                                        SubArray<D, T, DeviceType>wf, SubArray<D, T, DeviceType>wc, SubArray<D, T, DeviceType>wr, 
+                                                        SubArray<D, T, DeviceType>wcf, SubArray<D, T, DeviceType>wrf, SubArray<D, T, DeviceType>wrc, 
+                                                        SubArray<D, T, DeviceType>wrcf,
                                                         int queue_idx) {
     using FunctorType = GpkReo3DFunctor<D, T, R, C, F, DeviceType>;
     FunctorType functor(nr, nc, nf, nr_c, nc_c, nf_c,
@@ -1104,11 +1104,11 @@ public:
   MGARDm_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
               SIZE nr_c, SIZE nc_c, SIZE nf_c, 
-              SubArray<1, T> ratio_r, SubArray<1, T> ratio_c, SubArray<1, T> ratio_f,
-              SubArray<D, T> v, SubArray<D, T>w, 
-              SubArray<D, T>wf, SubArray<D, T>wc, SubArray<D, T>wr, 
-              SubArray<D, T>wcf, SubArray<D, T>wrf, SubArray<D, T>wrc, 
-              SubArray<D, T>wrcf,
+              SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
+              SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
+              SubArray<D, T, DeviceType>wf, SubArray<D, T, DeviceType>wc, SubArray<D, T, DeviceType>wr, 
+              SubArray<D, T, DeviceType>wcf, SubArray<D, T, DeviceType>wrf, SubArray<D, T, DeviceType>wrc, 
+              SubArray<D, T, DeviceType>wrcf,
               int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int config = this->handle.auto_tuning_cc[this->handle.arch][this->handle.precision][range_l];
@@ -1147,11 +1147,11 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
   public:
   MGARDm_CONT GpkRev3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
                                   SIZE nr_c, SIZE nc_c, SIZE nf_c, 
-                                  SubArray<1, T> ratio_r, SubArray<1, T> ratio_c, SubArray<1, T> ratio_f,
-                                  SubArray<D, T> v, SubArray<D, T>w, 
-                                  SubArray<D, T>wf, SubArray<D, T>wc, SubArray<D, T>wr, 
-                                  SubArray<D, T>wcf, SubArray<D, T>wrf, SubArray<D, T>wrc, 
-                                  SubArray<D, T>wrcf,
+                                  SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
+                                  SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
+                                  SubArray<D, T, DeviceType>wf, SubArray<D, T, DeviceType>wc, SubArray<D, T, DeviceType>wr, 
+                                  SubArray<D, T, DeviceType>wcf, SubArray<D, T, DeviceType>wrf, SubArray<D, T, DeviceType>wrc, 
+                                  SubArray<D, T, DeviceType>wrcf,
                                   SIZE svr, SIZE svc, SIZE svf, 
                                   SIZE nvr, SIZE nvc, SIZE nvf):
                                   nr(nr), nc(nc), nf(nf),
@@ -2141,8 +2141,8 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
 
     // functor parameters
     SIZE nr, nc, nf, nr_c, nc_c, nf_c;
-    SubArray<1, T> ratio_r, ratio_c, ratio_f;
-    SubArray<D, T> v, w, wf, wc, wr, wcf, wrf, wrc, wrcf;
+    SubArray<1, T, DeviceType> ratio_r, ratio_c, ratio_f;
+    SubArray<D, T, DeviceType> v, w, wf, wc, wr, wcf, wrf, wrc, wrcf;
     SIZE svr, svc, svf, nvr, nvc, nvf;
 
     // thread local variables
@@ -2176,11 +2176,11 @@ public:
   MGARDm_CONT
   Task<GpkRev3DFunctor<D, T, R, C, F, DeviceType> > GenTask(SIZE nr, SIZE nc, SIZE nf, 
                                                         SIZE nr_c, SIZE nc_c, SIZE nf_c, 
-                                                        SubArray<1, T> ratio_r, SubArray<1, T> ratio_c, SubArray<1, T> ratio_f, 
-                                                        SubArray<D, T> v, SubArray<D, T>w, 
-                                                        SubArray<D, T>wf, SubArray<D, T>wc, SubArray<D, T>wr, 
-                                                        SubArray<D, T>wcf, SubArray<D, T>wrf, SubArray<D, T>wrc, 
-                                                        SubArray<D, T>wrcf,
+                                                        SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f, 
+                                                        SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
+                                                        SubArray<D, T, DeviceType>wf, SubArray<D, T, DeviceType>wc, SubArray<D, T, DeviceType>wr, 
+                                                        SubArray<D, T, DeviceType>wcf, SubArray<D, T, DeviceType>wrf, SubArray<D, T, DeviceType>wrc, 
+                                                        SubArray<D, T, DeviceType>wrcf,
                                                         SIZE svr, SIZE svc, SIZE svf, 
                                                         SIZE nvr, SIZE nvc, SIZE nvf,
                                                         int queue_idx) {
@@ -2213,11 +2213,11 @@ public:
   MGARDm_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
               SIZE nr_c, SIZE nc_c, SIZE nf_c, 
-              SubArray<1, T> ratio_r, SubArray<1, T> ratio_c, SubArray<1, T> ratio_f,
-              SubArray<D, T> v, SubArray<D, T>w, 
-              SubArray<D, T>wf, SubArray<D, T>wc, SubArray<D, T>wr, 
-              SubArray<D, T>wcf, SubArray<D, T>wrf, SubArray<D, T>wrc, 
-              SubArray<D, T>wrcf,
+              SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
+              SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
+              SubArray<D, T, DeviceType>wf, SubArray<D, T, DeviceType>wc, SubArray<D, T, DeviceType>wr, 
+              SubArray<D, T, DeviceType>wcf, SubArray<D, T, DeviceType>wrf, SubArray<D, T, DeviceType>wrc, 
+              SubArray<D, T, DeviceType>wrcf,
               SIZE svr, SIZE svc, SIZE svf, 
               SIZE nvr, SIZE nvc, SIZE nvf,
               int queue_idx) {

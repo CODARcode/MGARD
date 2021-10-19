@@ -11,7 +11,7 @@
 using namespace std;
 
 template <class T, class Refactor>
-void evaluate(const vector<T>& data, const vector<uint32_t>& dims, int target_level, int num_bitplanes, Refactor& refactor){
+void evaluate(const vector<T>& data, const vector<mgard_cuda::SIZE>& dims, int target_level, int num_bitplanes, Refactor& refactor){
     printf("evaluate\n");
     struct timespec start, end;
     int err = 0;
@@ -23,7 +23,7 @@ void evaluate(const vector<T>& data, const vector<uint32_t>& dims, int target_le
 }
 
 template <class T, class Decomposer, class Interleaver, class Encoder, class Compressor, class ErrorCollector, class Writer>
-void test(string filename, const vector<uint32_t>& dims, int target_level, int num_bitplanes, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorCollector collector, Writer writer){
+void test(string filename, const vector<mgard_cuda::SIZE>& dims, int target_level, int num_bitplanes, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorCollector collector, Writer writer){
     auto refactor = mgard_cuda::MDR::ComposedRefactor<T, Decomposer, Interleaver, Encoder, Compressor, ErrorCollector, Writer>(decomposer, interleaver, encoder, compressor, collector, writer);
     size_t num_elements = 1;
     
@@ -37,7 +37,7 @@ void test(string filename, const vector<uint32_t>& dims, int target_level, int n
 }
 
 template <typename HandleType, mgard_cuda::DIM D, class T_data, class T_bitplane, class Decomposer, class Interleaver, class Encoder, class Compressor, class ErrorCollector, class Writer>
-void test2(string filename, const vector<uint32_t>& dims, int target_level, int num_bitplanes, HandleType& handle, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorCollector collector, Writer writer){
+void test2(string filename, const vector<mgard_cuda::SIZE>& dims, int target_level, int num_bitplanes, HandleType& handle, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorCollector collector, Writer writer){
     printf("test2\n");
 
     auto refactor = mgard_m::MDR::ComposedRefactor<HandleType, D, T_data, T_bitplane, Decomposer, Interleaver, Encoder, Compressor, ErrorCollector, Writer>(handle, decomposer, interleaver, encoder, compressor, collector, writer);
@@ -67,7 +67,7 @@ int main(int argc, char ** argv){
         std::cout << "Change to " << num_bitplanes + 1 << " bitplanes for simplicity of negabinary encoding" << std::endl;
     }
     int num_dims = atoi(argv[argv_id ++]);
-    vector<uint32_t> dims(num_dims, 0);
+    vector<mgard_cuda::SIZE> dims(num_dims, 0);
     for(int i=0; i<num_dims; i++){
         dims[i] = atoi(argv[argv_id ++]);
     }
@@ -126,7 +126,7 @@ int main(int argc, char ** argv){
     }
 
     if (true) {
-        std::vector<mgard_cuda::Array<1, bool>> level_signs;
+        std::vector<mgard_cuda::Array<1, bool, mgard_cuda::CUDA>> level_signs;
 
         auto decomposer = mgard_m::MDR::MGARDOrthoganalDecomposer<HandleType, D, T>(handle);
         auto interleaver = mgard_m::MDR::DirectInterleaver<HandleType, D, T>(handle);

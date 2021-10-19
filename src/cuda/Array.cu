@@ -13,38 +13,38 @@
 
 namespace mgard_cuda {
 
-template class Array<1, double>;
-template class Array<1, float>;
-template class Array<2, double>;
-template class Array<2, float>;
-template class Array<3, double>;
-template class Array<3, float>;
-template class Array<4, double>;
-template class Array<4, float>;
-template class Array<5, double>;
-template class Array<5, float>;
+template class Array<1, double, CUDA>;
+template class Array<1, float, CUDA>;
+template class Array<2, double, CUDA>;
+template class Array<2, float, CUDA>;
+template class Array<3, double, CUDA>;
+template class Array<3, float, CUDA>;
+template class Array<4, double, CUDA>;
+template class Array<4, float, CUDA>;
+template class Array<5, double, CUDA>;
+template class Array<5, float, CUDA>;
 
-// template class Array<1, unsigned char>;
+// template class Array<1, unsigned char, CUDA>;
 
 
-template class Array<1, bool>;
+template class Array<1, bool, CUDA>;
 
-template class Array<1, uint8_t>;
-template class Array<1, uint16_t>;
-template class Array<1, uint32_t>;
-template class Array<1, uint64_t>;
+template class Array<1, uint8_t, CUDA>;
+template class Array<1, uint16_t, CUDA>;
+template class Array<1, uint32_t, CUDA>;
+template class Array<1, uint64_t, CUDA>;
 
-template class Array<2, uint8_t>;
-template class Array<2, uint16_t>;
-template class Array<2, uint32_t>;
-template class Array<2, uint64_t>;
+template class Array<2, uint8_t, CUDA>;
+template class Array<2, uint16_t, CUDA>;
+template class Array<2, uint32_t, CUDA>;
+template class Array<2, uint64_t, CUDA>;
 
-template class Array<1, unsigned long long>;
+template class Array<1, unsigned long long, CUDA>;
 
-// template class Array<1, QUANTIZED_INT>;
-// template class Array<2, QUANTIZED_INT>;
-// template class Array<3, QUANTIZED_INT>;
-// template class Array<4, QUANTIZED_INT>;
-// template class Array<5, QUANTIZED_INT>;
+// template class Array<1, QUANTIZED_INT, CUDA>;
+// template class Array<2, QUANTIZED_INT, CUDA>;
+// template class Array<3, QUANTIZED_INT, CUDA>;
+// template class Array<4, QUANTIZED_INT, CUDA>;
+// template class Array<5, QUANTIZED_INT, CUDA>;
 
 } // namespace mgard_cuda

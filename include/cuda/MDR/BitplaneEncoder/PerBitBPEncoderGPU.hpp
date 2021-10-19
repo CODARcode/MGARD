@@ -17,9 +17,9 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       MGARDm_CONT PerBitEncoderFunctor(SIZE n,
                                        SIZE num_bitplanes,
                                        SIZE exp,
-                                       SubArray<1, T> v,
-                                       SubArray<2, T_bitplane> encoded_bitplanes,
-                                       SubArray<2, T_error> level_errors_workspace):
+                                       SubArray<1, T, CUDA> v,
+                                       SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+                                       SubArray<2, T_error, CUDA> level_errors_workspace):
                                        n(n), num_bitplanes(num_bitplanes),
                                        exp(exp), encoded_bitplanes(encoded_bitplanes),
                                        v(v), level_errors_workspace(level_errors_workspace) {
@@ -283,9 +283,9 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       SIZE n;
       SIZE num_bitplanes;
       SIZE exp;
-      SubArray<1, T> v;
-      SubArray<2, T_bitplane> encoded_bitplanes;
-      SubArray<2, T_error> level_errors_workspace;
+      SubArray<1, T, CUDA> v;
+      SubArray<2, T_bitplane, CUDA> encoded_bitplanes;
+      SubArray<2, T_error, CUDA> level_errors_workspace;
 
       // stateful thread local variables
       bool debug;
@@ -314,9 +314,9 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
     Task<PerBitEncoderFunctor<T, T_fp, T_bitplane, T_error, B, DeviceType> > GenTask(SIZE n,
                                                        SIZE num_bitplanes,
                                                        SIZE exp,
-                                                       SubArray<1, T> v,
-                                                       SubArray<2, T_bitplane> encoded_bitplanes,
-                                                       SubArray<2, T_error> level_errors_workspace,
+                                                       SubArray<1, T, CUDA> v,
+                                                       SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+                                                       SubArray<2, T_error, CUDA> level_errors_workspace,
                                                        int queue_idx) 
     {
       using FunctorType = PerBitEncoderFunctor<T, T_fp, T_bitplane, T_error, B, DeviceType>;
@@ -340,10 +340,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
     void Execute(SIZE n,
                  SIZE num_bitplanes,
                  SIZE exp,
-                 SubArray<1, T> v,
-                 SubArray<2, uint8_t> encoded_bitplanes,
-                 SubArray<1, double> level_errors,
-                 SubArray<2, double> level_errors_workspace,
+                 SubArray<1, T, CUDA> v,
+                 SubArray<2, uint8_t, CUDA> encoded_bitplanes,
+                 SubArray<1, double, CUDA> level_errors,
+                 SubArray<2, double, CUDA> level_errors_workspace,
                  int queue_idx) {
       
       const int B = 32;
@@ -368,8 +368,8 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       SIZE reduce_size = (n-1)/B+1;
       DeviceReduce<HandleType, T_reduce, DeviceType> deviceReduce(this->handle);
       for (int i = 0; i < num_bitplanes + 1; i++) {
-        SubArray<1, T_reduce> curr_errors({reduce_size}, level_errors_workspace(i, 0));
-        SubArray<1, T_reduce> sum_error({1}, level_errors(i));
+        SubArray<1, T_reduce, CUDA> curr_errors({reduce_size}, level_errors_workspace(i, 0));
+        SubArray<1, T_reduce, CUDA> sum_error({1}, level_errors(i));
         deviceReduce.Sum(reduce_size, curr_errors, sum_error, queue_idx);
       }
 
@@ -403,10 +403,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
                                        SIZE starting_bitplane,
                                        SIZE num_bitplanes,
                                        SIZE exp,
-                                       SubArray<2, T_bitplane> encoded_bitplanes,
-                                       SubArray<1, bool> flags,
-                                       SubArray<1, bool> signs,
-                                       SubArray<1, T> v):
+                                       SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+                                       SubArray<1, bool, CUDA> flags,
+                                       SubArray<1, bool, CUDA> signs,
+                                       SubArray<1, T, CUDA> v):
                                        n(n), starting_bitplane(starting_bitplane), num_bitplanes(num_bitplanes),
                                        exp(exp), encoded_bitplanes(encoded_bitplanes), flags(flags), signs(signs),
                                        v(v) {
@@ -599,10 +599,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       SIZE starting_bitplane;
       SIZE num_bitplanes;
       SIZE exp;
-      SubArray<2, T_bitplane> encoded_bitplanes;
-      SubArray<1, bool> flags;
-      SubArray<1, bool> signs;
-      SubArray<1, T> v;
+      SubArray<2, T_bitplane, CUDA> encoded_bitplanes;
+      SubArray<1, bool, CUDA> flags;
+      SubArray<1, bool, CUDA> signs;
+      SubArray<1, T, CUDA> v;
 
       // stateful thread local variables
       bool debug;
@@ -629,10 +629,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
                                                                            SIZE starting_bitplane,
                                                                            SIZE num_bitplanes,
                                                                            SIZE exp,
-                                                                           SubArray<2, T_bitplane> encoded_bitplanes,
-                                                                           SubArray<1, bool> flags,
-                                                                           SubArray<1, bool> signs,
-                                                                           SubArray<1, T> v,
+                                                                           SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+                                                                           SubArray<1, bool, CUDA> flags,
+                                                                           SubArray<1, bool, CUDA> signs,
+                                                                           SubArray<1, T, CUDA> v,
                                                                            int queue_idx) 
     {
       using FunctorType = PerBitDecoderFunctor<T, T_fp, T_bitplane, B, DeviceType>;
@@ -657,10 +657,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
                  SIZE starting_bitplane,
                  SIZE num_bitplanes,
                  SIZE exp,
-                 SubArray<2, uint8_t> encoded_bitplanes,
-                 SubArray<1, bool> flags,
-                 SubArray<1, bool> signs,
-                 SubArray<1, T> v,
+                 SubArray<2, uint8_t, CUDA> encoded_bitplanes,
+                 SubArray<1, bool, CUDA> flags,
+                 SubArray<1, bool, CUDA> signs,
+                 SubArray<1, T, CUDA> v,
                  int queue_idx) {
       
       const int B = 32;
@@ -761,12 +761,12 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
         }
 
 
-        std::vector<uint8_t *> encode(T_data const * data, int32_t n, int32_t exp, uint8_t num_bitplanes, std::vector<uint32_t>& stream_sizes) const {
+        std::vector<uint8_t *> encode(T_data const * data, SIZE n, int32_t exp, uint8_t num_bitplanes, std::vector<SIZE>& stream_sizes) const {
             
             assert(num_bitplanes > 0);
             // determine block size based on bitplane integer type
             const int32_t block_size = PER_BIT_BLOCK_SIZE;
-            stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
+            stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
             // define fixed point type
             using T_fp = typename std::conditional<std::is_same<T_data, double>::value, uint64_t, uint32_t>::type;
             std::vector<uint8_t *> streams;
@@ -831,7 +831,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
         }
 
         // only differs in error collection
-        std::vector<uint8_t *> encode(T_data const * data, int32_t n, int32_t exp, uint8_t num_bitplanes, std::vector<uint32_t>& stream_sizes, std::vector<double>& level_errors) const {
+        std::vector<uint8_t *> encode(T_data const * data, SIZE n, int32_t exp, uint8_t num_bitplanes, std::vector<SIZE>& stream_sizes, std::vector<double>& level_errors) const {
             
             // init level errors
             level_errors.clear();
@@ -839,14 +839,14 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             for(int i=0; i<level_errors.size(); i++){
                 level_errors[i] = 0;
             }
-            stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
+            stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
 
-            Array<1, T_data> v_array({(SIZE)n});
+            Array<1, T_data, CUDA> v_array({(SIZE)n});
             v_array.loadData(data);
-            SubArray<1, T_data> v(v_array);
+            SubArray<1, T_data, CUDA> v(v_array);
             
-            Array<1, double> level_errors_array({(SIZE)num_bitplanes+1});
-            SubArray<1, double> level_errors_subarray(level_errors_array);
+            Array<1, double, CUDA> level_errors_array({(SIZE)num_bitplanes+1});
+            SubArray<1, double, CUDA> level_errors_subarray(level_errors_array);
             
             const int B = 32;
             using T_bitplane = uint8_t;
@@ -854,11 +854,11 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             SIZE num_blocks = (n-1)/B+1;
             SIZE bitplane_max_length_total = bitplane_max_length_per_block * num_blocks;
 
-            Array<2, double> level_errors_work_array({(SIZE)num_bitplanes+1, num_blocks});
-            SubArray<2, double> level_errors_work_subarray(level_errors_work_array);
+            Array<2, double, CUDA> level_errors_work_array({(SIZE)num_bitplanes+1, num_blocks});
+            SubArray<2, double, CUDA> level_errors_work_subarray(level_errors_work_array);
 
-            Array<2, uint8_t> encoded_bitplanes_array({(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
-            SubArray<2, uint8_t> encoded_bitplanes_subarray(encoded_bitplanes_array);
+            Array<2, uint8_t, CUDA> encoded_bitplanes_array({(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
+            SubArray<2, uint8_t, CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
             // printf("calling PerBitEncoder\n");
             PerBitEncoder<Handle<D, T_data>, T_data, CUDA>(_handle).Execute(n, num_bitplanes, exp, v, encoded_bitplanes_subarray, level_errors_subarray, level_errors_work_subarray, 0);
@@ -983,7 +983,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             return streams;
         }
 
-        T_data * decode(const std::vector<uint8_t const *>& streams, int32_t n, int exp, uint8_t num_bitplanes) {
+        T_data * decode(const std::vector<uint8_t const *>& streams, SIZE n, int exp, uint8_t num_bitplanes) {
             const int32_t block_size = PER_BIT_BLOCK_SIZE;
             // define fixed point type
             using T_fp = typename std::conditional<std::is_same<T_data, double>::value, uint64_t, uint32_t>::type;
@@ -1045,7 +1045,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             return data;
         }
 
-        T_data * progressive_decode(const std::vector<uint8_t const *>& streams, int32_t n, int exp, uint8_t starting_bitplane, uint8_t num_bitplanes, int level) {
+        T_data * progressive_decode(const std::vector<uint8_t const *>& streams, SIZE n, int exp, uint8_t starting_bitplane, uint8_t num_bitplanes, int level) {
             
             if(level_signs.size() == level){
               level_signs.push_back(std::vector<bool>(n, false));
@@ -1061,8 +1061,8 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             }
 
 
-            Array<1, T_data> v_array({(SIZE)n});
-            SubArray<1, T_data> v(v_array);
+            Array<1, T_data, CUDA> v_array({(SIZE)n});
+            SubArray<1, T_data, CUDA> v(v_array);
             
             
             const int B = 32;
@@ -1075,9 +1075,9 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             for (int i = 0; i < num_bitplanes; i++) {
                memcpy(encoded_bitplanes + i * bitplane_max_length_total, streams[i], bitplane_max_length_total * sizeof(uint8_t));
             }
-            Array<2, uint8_t> encoded_bitplanes_array({(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
+            Array<2, uint8_t, CUDA> encoded_bitplanes_array({(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
             encoded_bitplanes_array.loadData(encoded_bitplanes);
-            SubArray<2, uint8_t> encoded_bitplanes_subarray(encoded_bitplanes_array);
+            SubArray<2, uint8_t, CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
             // PrintSubarray("decode encoded_bitplanes_subarray", encoded_bitplanes_subarray);
 
@@ -1089,14 +1089,14 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
               new_signs[i] = signs[i];
             }
 
-            Array<1, bool> flags_array({(SIZE)n});
+            Array<1, bool, CUDA> flags_array({(SIZE)n});
             flags_array.loadData(new_flags);
-            SubArray<1, bool> flags_subarray(flags_array);
+            SubArray<1, bool, CUDA> flags_subarray(flags_array);
 
 
-            Array<1, bool> signs_array({(SIZE)n});
+            Array<1, bool, CUDA> signs_array({(SIZE)n});
             signs_array.loadData(new_signs);
-            SubArray<1, bool> signs_subarray(signs_array);
+            SubArray<1, bool, CUDA> signs_subarray(signs_array);
 
             delete [] new_flags;
             delete [] new_signs;

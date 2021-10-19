@@ -14,7 +14,7 @@ namespace MDR {
 
             virtual ~RefactorInterface() = default;
 
-            virtual void refactor(T const * data_, const std::vector<uint32_t>& dims, uint8_t target_level, uint8_t num_bitplanes) = 0;
+            virtual void refactor(T const * data_, const std::vector<SIZE>& dims, uint8_t target_level, uint8_t num_bitplanes) = 0;
 
             virtual void write_metadata() const = 0;
 
@@ -35,7 +35,7 @@ namespace MDR {
 
             virtual ~RefactorInterface() = default;
 
-            virtual void refactor(T_data const * data_, const std::vector<uint32_t>& dims, uint8_t target_level, uint8_t num_bitplanes) = 0;
+            virtual void refactor(T_data const * data_, const std::vector<mgard_cuda::SIZE>& dims, uint8_t target_level, uint8_t num_bitplanes) = 0;
 
             virtual void write_metadata() const = 0;
 

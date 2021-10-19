@@ -235,7 +235,7 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
                           D_padded * sizeof(SIZE), mgard_cuda::H2D, 0);
     shapes_d.push_back(curr_shape_d);
 
-    Array<1, SIZE> shape_array({D_padded});
+    Array<1, SIZE, CUDA> shape_array({D_padded});
     cudaMemcpyAsyncHelper(*this, shape_array.get_dv(), curr_shape_h,
                           D_padded * sizeof(SIZE), mgard_cuda::H2D, 0);
     sync(0);
@@ -259,7 +259,7 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
   cudaMallocHelper(*this, (void **)&ranges_d, D * (l_target + 2) * sizeof(SIZE));
   cudaMemcpyAsyncHelper(*this, ranges_d, ranges_h,
                         D * (l_target + 2) * sizeof(SIZE), H2D, 0);
-  ranges = Array<1, SIZE>({D * (l_target + 2)});
+  ranges = Array<1, SIZE, CUDA>({D * (l_target + 2)});
   cudaMemcpyAsyncHelper(*this, ranges.get_dv(), ranges_h,
                         D * (l_target + 2) * sizeof(SIZE), H2D, 0);
 
@@ -373,8 +373,8 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
     }
   }
 
-  volumes_array = Array<2, T>({D * (l_target+1), volumes_width});
-  SubArray<2, T> volumes_subarray(volumes_array);
+  volumes_array = Array<2, T, CUDA>({D * (l_target+1), volumes_width});
+  SubArray<2, T, CUDA> volumes_subarray(volumes_array);
   for (int d = 0; d < D; d++) {
     for (int l = 0; l < l_target + 1; l++) {
       calc_volume(dofs[d][l], dist[d][l], volumes_subarray((d*(l_target + 1) + (l_target-l)), 0));

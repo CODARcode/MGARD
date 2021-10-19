@@ -13,9 +13,9 @@ namespace MDR {
 
             virtual ~DecomposerInterface() = default;
 
-            virtual void decompose(T * data, const std::vector<uint32_t>& dimensions, uint32_t target_level) const = 0;
+            virtual void decompose(T * data, const std::vector<SIZE>& dimensions, SIZE target_level) const = 0;
 
-            virtual void recompose(T * data, const std::vector<uint32_t>& dimensions, uint32_t target_level) const = 0;
+            virtual void recompose(T * data, const std::vector<SIZE>& dimensions, SIZE target_level) const = 0;
 
             virtual void print() const = 0;
         };
@@ -34,9 +34,9 @@ namespace MDR {
 
             virtual ~DecomposerInterface() = default;
 
-            virtual void decompose(mgard_cuda::SubArray<D, T> v, mgard_cuda::SIZE target_level, int queue_idx) const = 0;
+            virtual void decompose(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SIZE target_level, int queue_idx) const = 0;
 
-            virtual void recompose(mgard_cuda::SubArray<D, T> v, mgard_cuda::SIZE target_level, int queue_idx) const = 0;
+            virtual void recompose(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SIZE target_level, int queue_idx) const = 0;
 
             virtual void print() const = 0;
         };

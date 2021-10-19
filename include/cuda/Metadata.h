@@ -8,6 +8,8 @@
 #ifndef MGRAD_CUDA_METADATA
 #define MGRAD_CUDA_METADATA
 
+#include <cstring>
+
 #define MAGIC_WORD "MGARD"
 #define MAGIC_WORD_SIZE 5
 

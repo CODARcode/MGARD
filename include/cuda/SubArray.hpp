@@ -5,8 +5,8 @@
  * Date: Jul 20, 2021
  */
 
-#ifndef MGARD_CUDA_SUBARRAY
-#define MGARD_CUDA_SUBARRAY
+#ifndef MGARD_CUDA_SUBARRAY_HPP
+#define MGARD_CUDA_SUBARRAY_HPP
 #include "Common.h"
 #include "CommonInternal.h"
 #include <vector>
@@ -14,15 +14,15 @@
 
 namespace mgard_cuda {
 
-template <DIM D, typename T> class SubArray {
+template <DIM D, typename T, typename DeviceType> class SubArray {
 public:
   SubArray();
-  SubArray(Array<D, T> &array, bool get_host_pointer = false);
+  SubArray(Array<D, T, DeviceType> &array, bool get_host_pointer = false);
   SubArray(std::vector<SIZE> shape, T * dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d);
   SubArray(std::vector<SIZE> shape, T * dv);
-  SubArray(SubArray<D, T> &subArray);
-  SubArray(const SubArray<D, T> &subArray);
-  SubArray<D, T>& operator = (const SubArray<D, T> &subArray);
+  SubArray(SubArray<D, T, DeviceType> &subArray);
+  SubArray(const SubArray<D, T, DeviceType> &subArray);
+  SubArray<D, T, DeviceType>& operator = (const SubArray<D, T, DeviceType> &subArray);
   void offset(std::vector<SIZE> idx);
   void resize(std::vector<SIZE> shape);
   void offset(DIM dim, SIZE offset_value);
@@ -107,14 +107,14 @@ public:
 };
 
 
-template <DIM D, typename T>
-SubArray<D, T>::SubArray() {
+template <DIM D, typename T, typename DeviceType>
+SubArray<D, T, DeviceType>::SubArray() {
   lddv1 = 1;
   lddv2 = 1;
 }
 
-template <DIM D, typename T>
-SubArray<D, T>::SubArray(Array<D, T> &array, bool get_host_pointer) {
+template <DIM D, typename T, typename DeviceType>
+SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array, bool get_host_pointer) {
   this->shape  = array.getShape();
   this->dv     = array.get_dv();
   this->ldvs_h = array.get_ldvs_h();
@@ -127,8 +127,8 @@ SubArray<D, T>::SubArray(Array<D, T> &array, bool get_host_pointer) {
   }
 }
 
-template <DIM D, typename T>
-SubArray<D, T>::SubArray(std::vector<SIZE> shape, T * dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d) {
+template <DIM D, typename T, typename DeviceType>
+SubArray<D, T, DeviceType>::SubArray(std::vector<SIZE> shape, T * dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d) {
   this->shape  = shape;
   this->dv     = dv;
   this->ldvs_h = ldvs_h;
@@ -137,14 +137,15 @@ SubArray<D, T>::SubArray(std::vector<SIZE> shape, T * dv, std::vector<SIZE> ldvs
   lddv2 = ldvs_h[1];
 }
 
-template <DIM D, typename T>
-SubArray<D, T>::SubArray(std::vector<SIZE> shape, T * dv) {
+template <DIM D, typename T, typename DeviceType>
+SubArray<D, T, DeviceType>::SubArray(std::vector<SIZE> shape, T * dv) {
   this->shape  = shape;
   this->dv     = dv;
 }
 
 
-template <DIM D, typename T> SubArray<D, T>::SubArray(SubArray<D, T> &subArray) {
+template <DIM D, typename T, typename DeviceType> 
+SubArray<D, T, DeviceType>::SubArray(SubArray<D, T, DeviceType> &subArray) {
   this->shape  = subArray.shape;
   this->dv     = subArray.dv;
   this->ldvs_h = subArray.ldvs_h;
@@ -165,7 +166,8 @@ template <DIM D, typename T> SubArray<D, T>::SubArray(SubArray<D, T> &subArray) 
 
 }
 
-template <DIM D, typename T> SubArray<D, T>::SubArray(const SubArray<D, T> &subArray) {
+template <DIM D, typename T, typename DeviceType> 
+SubArray<D, T, DeviceType>::SubArray(const SubArray<D, T, DeviceType> &subArray) {
   this->shape  = subArray.shape;
   this->dv     = subArray.dv;
   this->ldvs_h = subArray.ldvs_h;
@@ -185,7 +187,8 @@ template <DIM D, typename T> SubArray<D, T>::SubArray(const SubArray<D, T> &subA
 
 }
 
- template <DIM D, typename T> SubArray<D, T>& SubArray<D, T>::operator = (const SubArray<D, T> &subArray) {
+template <DIM D, typename T, typename DeviceType> 
+SubArray<D, T, DeviceType>& SubArray<D, T, DeviceType>::operator = (const SubArray<D, T, DeviceType> &subArray) {
   this->shape  = subArray.shape;
   this->dv     = subArray.dv;
   this->ldvs_h = subArray.ldvs_h;
@@ -206,25 +209,30 @@ template <DIM D, typename T> SubArray<D, T>::SubArray(const SubArray<D, T> &subA
   return *this;
 }
 
-template <DIM D, typename T> void SubArray<D, T>::offset(std::vector<SIZE> idx) {
+template <DIM D, typename T, typename DeviceType> 
+void SubArray<D, T, DeviceType>::offset(std::vector<SIZE> idx) {
   dv += get_idx(ldvs_h, idx);
 }
 
-template <DIM D, typename T> void SubArray<D, T>::resize(std::vector<SIZE> shape) {
+template <DIM D, typename T, typename DeviceType> 
+void SubArray<D, T, DeviceType>::resize(std::vector<SIZE> shape) {
   this->shape = shape;
 }
 
-template <DIM D, typename T> void SubArray<D, T>::offset(DIM dim, SIZE offset_value) {
+template <DIM D, typename T, typename DeviceType> 
+void SubArray<D, T, DeviceType>::offset(DIM dim, SIZE offset_value) {
   std::vector<SIZE> idx(D, 0);
   idx[dim] = offset_value;
   dv += get_idx(ldvs_h, idx);
 }
 
-template <DIM D, typename T> void SubArray<D, T>::resize(DIM dim, SIZE new_size) {
+template <DIM D, typename T, typename DeviceType> 
+void SubArray<D, T, DeviceType>::resize(DIM dim, SIZE new_size) {
   shape[dim] = new_size;
 }
 
-template <DIM D, typename T> void SubArray<D, T>::project(DIM dim0, DIM dim1, DIM dim2) {
+template <DIM D, typename T, typename DeviceType> 
+void SubArray<D, T, DeviceType>::project(DIM dim0, DIM dim1, DIM dim2) {
   projected_dim0 = dim0;
   projected_dim1 = dim1;
   projected_dim2 = dim2;
@@ -238,9 +246,9 @@ template <DIM D, typename T> void SubArray<D, T>::project(DIM dim0, DIM dim1, DI
 }
 
 
-// template <DIM D, typename T> 
+// template <DIM D, typename T, typename DeviceType> 
 // MGARDm_EXEC 
-// T* SubArray<D, T>::operator()(IDX z, IDX y, IDX x) {
+// T* SubArray<D, T, DeviceType>::operator()(IDX z, IDX y, IDX x) {
 //   return dv + lddv2 * lddv1 * z + lddv1 * y + x;
 // }
 
@@ -256,7 +264,8 @@ template <DIM D, typename T> void SubArray<D, T>::project(DIM dim0, DIM dim1, DI
 
 
 
-template <DIM D, typename T> SubArray<D, T>::~SubArray() {
+template <DIM D, typename T, typename DeviceType> 
+SubArray<D, T, DeviceType>::~SubArray() {
   // nothing needs to be released
 }
 

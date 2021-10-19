@@ -15,7 +15,7 @@
 #include "Functor.h"
 #include "AutoTuner.h"
 #include "Task.h"
-#include "DeviceAdapters/DeviceAdapterCuda.h"
+#include "DeviceAdapters/DeviceAdapter.h"
 
 namespace mgard_cuda {
 
@@ -133,14 +133,14 @@ void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata &m,
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT LevelwiseLinearQuantizeNDFunctor(SubArray<1, SIZE> shapes, SIZE l_target, 
-                                               SubArray<1, T> quantizers, SubArray<2, T> volumes, 
-                                               SubArray<D, T> v,
-                                               SubArray<D, QUANTIZED_INT> work, bool prep_huffman, bool calc_vol,
-                                               SIZE dict_size, SubArray<1, SIZE> shape, 
-                                               SubArray<1, LENGTH> outlier_count,
-                                               SubArray<1, LENGTH> outlier_idx, 
-                                               SubArray<1, QUANTIZED_INT> outliers):
+  MGARDm_CONT LevelwiseLinearQuantizeNDFunctor(SubArray<1, SIZE, DeviceType> shapes, SIZE l_target, 
+                                               SubArray<1, T, DeviceType> quantizers, SubArray<2, T, DeviceType> volumes, 
+                                               SubArray<D, T, DeviceType> v,
+                                               SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman, bool calc_vol,
+                                               SIZE dict_size, SubArray<1, SIZE, DeviceType> shape, 
+                                               SubArray<1, LENGTH, DeviceType> outlier_count,
+                                               SubArray<1, LENGTH, DeviceType> outlier_idx, 
+                                               SubArray<1, QUANTIZED_INT, DeviceType> outliers):
                                                 shapes(shapes), l_target(l_target), quantizers(quantizers),
                                                 volumes(volumes), v(v), work(work), prep_huffman(prep_huffman),
                                                 calc_vol(calc_vol),
@@ -154,18 +154,31 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
     threadId = (this->threadz * (this->nblockx * this->nblocky)) +
                     (this->thready * this->nblockx) + this->threadx;
 
-    T * smT = (T*)this->shared_memory;
-    quantizers_sm = smT; smT += l_target + 1;
+    // T * smT = (T*)this->shared_memory;
+    // quantizers_sm = smT; smT += roundup<T>(l_target + 1);
 
-    volumes_0 = smT; if (calc_vol) smT += this->nblockx * (l_target + 1);
-    volumes_1 = smT; if (calc_vol) smT += this->nblocky * (l_target + 1);
-    volumes_2 = smT; if (calc_vol) smT += this->nblockz * (l_target + 1);
-    volumes_3_plus = smT;
-    if (calc_vol && D > 3) smT += (D-3) * (l_target + 1);
+    // volumes_0 = smT; if (calc_vol) smT += roundup<T>(this->nblockx * (l_target + 1));
+    // volumes_1 = smT; if (calc_vol) smT += roundup<T>(this->nblocky * (l_target + 1));
+    // volumes_2 = smT; if (calc_vol) smT += roundup<T>(this->nblockz * (l_target + 1));
+    // volumes_3_plus = smT;
+    // if (calc_vol && D > 3) smT += roundup<T>((D-3) * (l_target + 1));
 
-    SIZE * smInt = (SIZE *)smT;
-    shape_sm = smInt; smInt += D;
-    shapes_sm = smInt; smInt += D * (l_target + 2);
+    // SIZE * smInt = (SIZE *)smT;
+    // shape_sm = smInt; smInt += roundup<SIZE>(D);
+    // shapes_sm = smInt; smInt += roundup<SIZE>(D * (l_target + 2));
+
+
+    Byte * sm = this->shared_memory;
+    quantizers_sm = (T*)sm; sm += roundup<SIZE>((l_target + 1) * sizeof(T));
+
+    volumes_0 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblockx * (l_target + 1) * sizeof(T));
+    volumes_1 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblocky * (l_target + 1) * sizeof(T));
+    volumes_2 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblockz * (l_target + 1) * sizeof(T));
+    volumes_3_plus = (T*)sm;
+    if (calc_vol && D > 3) sm += roundup<SIZE>((D-3) * (l_target + 1) * sizeof(T));
+
+    shape_sm = (SIZE*)sm; sm += roundup<SIZE>(D * sizeof(SIZE));
+    shapes_sm = (SIZE*)sm; sm += roundup<SIZE>(D * (l_target + 2) * sizeof(SIZE));
     
 
     if (threadId < l_target + 1) {
@@ -365,34 +378,34 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
 
   MGARDm_CONT size_t
   shared_memory_size() {
-    size_t size = D * sizeof(SIZE);
+    size_t size = roundup<SIZE>(D * sizeof(SIZE));
     // quantizer
-    size += (l_target + 1) * sizeof(T);
+    size += roundup<SIZE>((l_target + 1) * sizeof(T));
     // ranges
-    size += (l_target + 2) * D * sizeof(SIZE);
+    size += roundup<SIZE>((l_target + 2) * D * sizeof(SIZE));
     // volumes
-    size += F * (l_target + 1) * sizeof(T);
-    size += C * (l_target + 1) * sizeof(T);
-    size += R * (l_target + 1) * sizeof(T);
-    if (D > 3) size += (D-3) * (l_target + 1) * sizeof(T);
+    size += roundup<SIZE>(F * (l_target + 1) * sizeof(T));
+    size += roundup<SIZE>(C * (l_target + 1) * sizeof(T));
+    size += roundup<SIZE>(R * (l_target + 1) * sizeof(T));
+    if (D > 3) size += roundup<SIZE>((D-3) * (l_target + 1) * sizeof(T));
     return size;
   }
 
   private:
   IDX threadId;
-  SubArray<1, SIZE> shapes; 
+  SubArray<1, SIZE, DeviceType> shapes; 
   SIZE l_target;
-  SubArray<1, T> quantizers;
-  SubArray<2, T> volumes;
-  SubArray<D, T> v;
-  SubArray<D, QUANTIZED_INT> work;
+  SubArray<1, T, DeviceType> quantizers;
+  SubArray<2, T, DeviceType> volumes;
+  SubArray<D, T, DeviceType> v;
+  SubArray<D, QUANTIZED_INT, DeviceType> work;
   bool prep_huffman;
   bool calc_vol;
   SIZE dict_size;
-  SubArray<1, SIZE> shape; 
-  SubArray<1, LENGTH> outlier_count;
-  SubArray<1, LENGTH> outlier_idx;
-  SubArray<1, QUANTIZED_INT> outliers;
+  SubArray<1, SIZE, DeviceType> shape; 
+  SubArray<1, LENGTH, DeviceType> outlier_count;
+  SubArray<1, LENGTH, DeviceType> outlier_idx;
+  SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 
 
   T * quantizers_sm;
@@ -419,14 +432,14 @@ public:
   template <SIZE R, SIZE C, SIZE F>
   MGARDm_CONT
   Task<LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType> > 
-  GenTask(SubArray<1, SIZE> ranges, SIZE l_target, 
-          SubArray<2, T> volumes, 
-          Metadata &m, SubArray<D, T> v,
-          SubArray<D, QUANTIZED_INT> work, bool prep_huffman,
-          SubArray<1, SIZE> shape,
-          SubArray<1, LENGTH> outlier_count,
-          SubArray<1, LENGTH> outlier_idx, 
-          SubArray<1, QUANTIZED_INT> outliers,
+  GenTask(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
+          SubArray<2, T, DeviceType> volumes, 
+          Metadata &m, SubArray<D, T, DeviceType> v,
+          SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
+          SubArray<1, SIZE, DeviceType> shape,
+          SubArray<1, LENGTH, DeviceType> outlier_count,
+          SubArray<1, LENGTH, DeviceType> outlier_idx, 
+          SubArray<1, QUANTIZED_INT, DeviceType> outliers,
           int queue_idx) {
     using FunctorType = LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;
 
@@ -435,7 +448,7 @@ public:
     cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
                           sizeof(T) * (l_target + 1), H2D, queue_idx);
 
-    SubArray<1, T> quantizers_subarray({l_target + 1}, this->handle.quantizers);
+    SubArray<1, T, DeviceType> quantizers_subarray({l_target + 1}, this->handle.quantizers);
 
     bool calc_vol = m.ntype == norm_type::L_2;
     FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
@@ -464,14 +477,14 @@ public:
   }
 
   MGARDm_CONT
-  void Execute(SubArray<1, SIZE> ranges, SIZE l_target, 
-                SubArray<2, T> volumes, 
-                Metadata &m, SubArray<D, T> v,
-                SubArray<D, QUANTIZED_INT> work, bool prep_huffman,
-                SubArray<1, SIZE> shape,
-                SubArray<1, LENGTH> outlier_count,
-                SubArray<1, LENGTH> outlier_idx, 
-                SubArray<1, QUANTIZED_INT> outliers,
+  void Execute(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
+                SubArray<2, T, DeviceType> volumes, 
+                Metadata &m, SubArray<D, T, DeviceType> v,
+                SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
+                SubArray<1, SIZE, DeviceType> shape,
+                SubArray<1, LENGTH, DeviceType> outlier_count,
+                SubArray<1, LENGTH, DeviceType> outlier_idx, 
+                SubArray<1, QUANTIZED_INT, DeviceType> outliers,
                 int queue_idx) {
     const int R=LWQK_CONFIG[D-1][0];
     const int C=LWQK_CONFIG[D-1][1];
@@ -492,14 +505,14 @@ public:
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT LevelwiseLinearDequantizeNDFunctor(SubArray<1, SIZE> shapes, SIZE l_target, 
-                                               SubArray<1, T> quantizers, SubArray<2, T> volumes, 
-                                               SubArray<D, T> v,
-                                               SubArray<D, QUANTIZED_INT> work, bool prep_huffman, bool calc_vol,
-                                               SIZE dict_size, SubArray<1, SIZE> shape, 
-                                               SubArray<1, LENGTH> outlier_count,
-                                               SubArray<1, LENGTH> outlier_idx, 
-                                               SubArray<1, QUANTIZED_INT> outliers):
+  MGARDm_CONT LevelwiseLinearDequantizeNDFunctor(SubArray<1, SIZE, DeviceType> shapes, SIZE l_target, 
+                                               SubArray<1, T, DeviceType> quantizers, SubArray<2, T, DeviceType> volumes, 
+                                               SubArray<D, T, DeviceType> v,
+                                               SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman, bool calc_vol,
+                                               SIZE dict_size, SubArray<1, SIZE, DeviceType> shape, 
+                                               SubArray<1, LENGTH, DeviceType> outlier_count,
+                                               SubArray<1, LENGTH, DeviceType> outlier_idx, 
+                                               SubArray<1, QUANTIZED_INT, DeviceType> outliers):
                                                 shapes(shapes), l_target(l_target), quantizers(quantizers),
                                                 volumes(volumes), v(v), work(work), prep_huffman(prep_huffman),
                                                 calc_vol(calc_vol),
@@ -516,18 +529,30 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
                    (this->blocky * this->ngridx) + this->blockx;
     gloablId = blockId * this->nblockx * this->nblocky * this->nblockz + threadId;
 
-    T * smT = (T*)this->shared_memory;
-    quantizers_sm = smT; smT += l_target + 1;
+    // T * smT = (T*)this->shared_memory;
+    // quantizers_sm = smT; smT += roundup<T>(l_target + 1);
 
-    volumes_0 = smT; if (calc_vol) smT += this->nblockx * (l_target + 1);
-    volumes_1 = smT; if (calc_vol) smT += this->nblocky * (l_target + 1);
-    volumes_2 = smT; if (calc_vol) smT += this->nblockz * (l_target + 1);
-    volumes_3_plus = smT;
-    if (calc_vol && D > 3) smT += (D-3) * (l_target + 1);
+    // volumes_0 = smT; if (calc_vol) smT += roundup<T>(this->nblockx * (l_target + 1));
+    // volumes_1 = smT; if (calc_vol) smT += roundup<T>(this->nblocky * (l_target + 1));
+    // volumes_2 = smT; if (calc_vol) smT += roundup<T>(this->nblockz * (l_target + 1));
+    // volumes_3_plus = smT;
+    // if (calc_vol && D > 3) smT += roundup<T>((D-3) * (l_target + 1));
 
-    SIZE * smInt = (SIZE *)smT;
-    shape_sm = smInt; smInt += D;
-    shapes_sm = smInt; smInt += D * (l_target + 2);
+    // SIZE * smInt = (SIZE *)smT;
+    // shape_sm = smInt; smInt += roundup<SIZE>(D);
+    // shapes_sm = smInt; smInt += roundup<SIZE>(D * (l_target + 2));
+
+    Byte * sm = this->shared_memory;
+    quantizers_sm = (T*)sm; sm += roundup<SIZE>((l_target + 1) * sizeof(T));
+
+    volumes_0 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblockx * (l_target + 1) * sizeof(T));
+    volumes_1 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblocky * (l_target + 1) * sizeof(T));
+    volumes_2 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblockz * (l_target + 1) * sizeof(T));
+    volumes_3_plus = (T*)sm;
+    if (calc_vol && D > 3) sm += roundup<SIZE>((D-3) * (l_target + 1) * sizeof(T));
+
+    shape_sm = (SIZE*)sm; sm += roundup<SIZE>(D * sizeof(SIZE));
+    shapes_sm = (SIZE*)sm; sm += roundup<SIZE>(D * (l_target + 2) * sizeof(SIZE));
     
 
     if (threadId < l_target + 1) {
@@ -711,34 +736,34 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
 
   MGARDm_CONT size_t
   shared_memory_size() {
-    size_t size = D * sizeof(SIZE);
+    size_t size = roundup<SIZE>(D * sizeof(SIZE));
     // quantizer
-    size += (l_target + 1) * sizeof(T);
+    size += roundup<SIZE>((l_target + 1) * sizeof(T));
     // ranges
-    size += (l_target + 2) * D * sizeof(SIZE);
+    size += roundup<SIZE>((l_target + 2) * D * sizeof(SIZE));
     // volumes
-    size += F * (l_target + 1) * sizeof(T);
-    size += C * (l_target + 1) * sizeof(T);
-    size += R * (l_target + 1) * sizeof(T);
-    if (D > 3) size += (D-3) * (l_target + 1) * sizeof(T);
+    size += roundup<SIZE>(F * (l_target + 1) * sizeof(T));
+    size += roundup<SIZE>(C * (l_target + 1) * sizeof(T));
+    size += roundup<SIZE>(R * (l_target + 1) * sizeof(T));
+    if (D > 3) size += roundup<SIZE>((D-3) * (l_target + 1) * sizeof(T));
     return size;
   }
 
   private:
   IDX threadId, blockId, gloablId;
-  SubArray<1, SIZE> shapes; 
+  SubArray<1, SIZE, DeviceType> shapes; 
   SIZE l_target;
-  SubArray<1, T> quantizers;
-  SubArray<2, T> volumes;
-  SubArray<D, T> v;
-  SubArray<D, QUANTIZED_INT> work;
+  SubArray<1, T, DeviceType> quantizers;
+  SubArray<2, T, DeviceType> volumes;
+  SubArray<D, T, DeviceType> v;
+  SubArray<D, QUANTIZED_INT, DeviceType> work;
   bool prep_huffman;
   bool calc_vol;
   SIZE dict_size;
-  SubArray<1, SIZE> shape; 
-  SubArray<1, LENGTH> outlier_count;
-  SubArray<1, LENGTH> outlier_idx;
-  SubArray<1, QUANTIZED_INT> outliers;
+  SubArray<1, SIZE, DeviceType> shape; 
+  SubArray<1, LENGTH, DeviceType> outlier_count;
+  SubArray<1, LENGTH, DeviceType> outlier_idx;
+  SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 
 
   T * quantizers_sm;
@@ -758,10 +783,10 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class OutlierRestoreFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT OutlierRestoreFunctor(SubArray<D, QUANTIZED_INT> work,
-                                     SubArray<1, LENGTH> outlier_count,
-                                     SubArray<1, LENGTH> outlier_idx, 
-                                     SubArray<1, QUANTIZED_INT> outliers):
+  MGARDm_CONT OutlierRestoreFunctor(SubArray<D, QUANTIZED_INT, DeviceType> work,
+                                     SubArray<1, LENGTH, DeviceType> outlier_count,
+                                     SubArray<1, LENGTH, DeviceType> outlier_idx, 
+                                     SubArray<1, QUANTIZED_INT, DeviceType> outliers):
                                       work(work), outlier_count(outlier_count),
                                       outlier_idx(outlier_idx), outliers(outliers) {
     Functor<DeviceType>();                            
@@ -801,10 +826,10 @@ class OutlierRestoreFunctor: public Functor<DeviceType> {
 
   private:
   IDX threadId, blockId, gloablId;
-  SubArray<D, QUANTIZED_INT> work;
-  SubArray<1, LENGTH> outlier_count;
-  SubArray<1, LENGTH> outlier_idx;
-  SubArray<1, QUANTIZED_INT> outliers;
+  SubArray<D, QUANTIZED_INT, DeviceType> work;
+  SubArray<1, LENGTH, DeviceType> outlier_count;
+  SubArray<1, LENGTH, DeviceType> outlier_idx;
+  SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 };
 
 
@@ -818,10 +843,10 @@ public:
   template <SIZE F>
   MGARDm_CONT
   Task<OutlierRestoreFunctor<D, T, DeviceType> > 
-  GenTask1(SubArray<D, QUANTIZED_INT> work, 
-          SubArray<1, LENGTH> outlier_count,
-          SubArray<1, LENGTH> outlier_idx, 
-          SubArray<1, QUANTIZED_INT> outliers,
+  GenTask1(SubArray<D, QUANTIZED_INT, DeviceType> work, 
+          SubArray<1, LENGTH, DeviceType> outlier_count,
+          SubArray<1, LENGTH, DeviceType> outlier_idx, 
+          SubArray<1, QUANTIZED_INT, DeviceType> outliers,
           int queue_idx) {
     using FunctorType = OutlierRestoreFunctor<D, T, DeviceType>;
     FunctorType functor(work, outlier_count, outlier_idx, outliers);
@@ -843,14 +868,14 @@ public:
   template <SIZE R, SIZE C, SIZE F>
   MGARDm_CONT
   Task<LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType> > 
-  GenTask2(SubArray<1, SIZE> ranges, SIZE l_target, 
-          SubArray<2, T> volumes, 
-          Metadata &m, SubArray<D, T> v,
-          SubArray<D, QUANTIZED_INT> work, bool prep_huffman,
-          SubArray<1, SIZE> shape,
-          SubArray<1, LENGTH> outlier_count,
-          SubArray<1, LENGTH> outlier_idx, 
-          SubArray<1, QUANTIZED_INT> outliers,
+  GenTask2(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
+          SubArray<2, T, DeviceType> volumes, 
+          Metadata &m, SubArray<D, T, DeviceType> v,
+          SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
+          SubArray<1, SIZE, DeviceType> shape,
+          SubArray<1, LENGTH, DeviceType> outlier_count,
+          SubArray<1, LENGTH, DeviceType> outlier_idx, 
+          SubArray<1, QUANTIZED_INT, DeviceType> outliers,
           int queue_idx) {
     using FunctorType = LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType>;
 
@@ -859,7 +884,7 @@ public:
     cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
                           sizeof(T) * (l_target + 1), H2D, queue_idx);
 
-    SubArray<1, T> quantizers_subarray({l_target + 1}, this->handle.quantizers);
+    SubArray<1, T, DeviceType> quantizers_subarray({l_target + 1}, this->handle.quantizers);
 
     bool calc_vol = m.ntype == norm_type::L_2;
     FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
@@ -890,14 +915,14 @@ public:
   
 
   MGARDm_CONT
-  void Execute(SubArray<1, SIZE> ranges, SIZE l_target, 
-                SubArray<2, T> volumes, 
-                Metadata &m, SubArray<D, T> v,
-                SubArray<D, QUANTIZED_INT> work, bool prep_huffman,
-                SubArray<1, SIZE> shape,
-                SubArray<1, LENGTH> outlier_count,
-                SubArray<1, LENGTH> outlier_idx, 
-                SubArray<1, QUANTIZED_INT> outliers,
+  void Execute(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
+                SubArray<2, T, DeviceType> volumes, 
+                Metadata &m, SubArray<D, T, DeviceType> v,
+                SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
+                SubArray<1, SIZE, DeviceType> shape,
+                SubArray<1, LENGTH, DeviceType> outlier_count,
+                SubArray<1, LENGTH, DeviceType> outlier_idx, 
+                SubArray<1, QUANTIZED_INT, DeviceType> outliers,
                 int queue_idx) {
 
     if (prep_huffman && outlier_count.dataHost()[0]) {

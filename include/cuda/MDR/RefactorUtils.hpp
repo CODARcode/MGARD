@@ -18,10 +18,10 @@ namespace MDR {
         @params dims: input dimensions
         @params target_level: the target decomposition level
     */
-    std::vector<std::vector<uint32_t>> compute_level_dims(const std::vector<uint32_t>& dims, uint32_t target_level){
-        std::vector<std::vector<uint32_t>> level_dims;
+    std::vector<std::vector<SIZE>> compute_level_dims(const std::vector<SIZE>& dims, SIZE target_level){
+        std::vector<std::vector<SIZE>> level_dims;
         for(int i=0; i<=target_level; i++){
-            level_dims.push_back(std::vector<uint32_t>(dims.size()));
+            level_dims.push_back(std::vector<SIZE>(dims.size()));
         }
         for(int i=0; i<dims.size(); i++){
             int n = dims[i];
@@ -38,17 +38,17 @@ namespace MDR {
         @params level_dims: dimensions for all levels
         @params target_level: the target decomposition level
     */
-    std::vector<uint32_t> compute_level_elements(const std::vector<std::vector<uint32_t>>& level_dims, int target_level){
+    std::vector<SIZE> compute_level_elements(const std::vector<std::vector<SIZE>>& level_dims, int target_level){
         assert(level_dims.size());
         uint8_t num_dims = level_dims[0].size();
-        std::vector<uint32_t> level_elements(level_dims.size());
+        std::vector<SIZE> level_elements(level_dims.size());
         level_elements[0] = 1;
         for(int j=0; j<num_dims; j++){
             level_elements[0] *= level_dims[0][j];
         }
-        uint32_t pre_num_elements = level_elements[0];
+        SIZE pre_num_elements = level_elements[0];
         for(int i=1; i<=target_level; i++){
-            uint32_t num_elements = 1;
+            SIZE num_elements = 1;
             for(int j=0; j<num_dims; j++){
                 num_elements *= level_dims[i][j];
             }
@@ -66,7 +66,7 @@ namespace MDR {
     @params n: number of level data points
     */
     template <class T>
-    T compute_max_abs_value(const T * data, uint32_t n){
+    T compute_max_abs_value(const T * data, SIZE n){
         T max_val = 0;
         for(int i=0; i<n; i++){
             T val = fabs(data[i]);
@@ -77,14 +77,14 @@ namespace MDR {
 
     // Get size of vector
     template <class T>
-    inline uint32_t get_size(const std::vector<T>& vec){
+    inline SIZE get_size(const std::vector<T>& vec){
         return vec.size() * sizeof(T);
     }
     template <class T>
-    uint32_t get_size(const std::vector<std::vector<T>>& vec){
-        uint32_t size = 0;
+    SIZE get_size(const std::vector<std::vector<T>>& vec){
+        SIZE size = 0;
         for(int i=0; i<vec.size(); i++){
-            size += sizeof(uint32_t) + vec[i].size() * sizeof(T);
+            size += sizeof(SIZE) + vec[i].size() * sizeof(T);
         }
         return size;
     }
@@ -100,24 +100,24 @@ namespace MDR {
     void serialize(const std::vector<std::vector<T>>& vec, uint8_t *& buffer_pos){
         uint8_t const * const start = buffer_pos;
         for(int i=0; i<vec.size(); i++){
-            *reinterpret_cast<uint32_t*>(buffer_pos) = vec[i].size();
-            buffer_pos += sizeof(uint32_t);
+            *reinterpret_cast<SIZE*>(buffer_pos) = vec[i].size();
+            buffer_pos += sizeof(SIZE);
             memcpy(buffer_pos, vec[i].data(), vec[i].size() * sizeof(T));
             buffer_pos += vec[i].size() * sizeof(T);
         }
     }
     template <class T>
-    inline void deserialize(uint8_t const *& buffer_pos, uint32_t size, std::vector<T>& vec){
+    inline void deserialize(uint8_t const *& buffer_pos, SIZE size, std::vector<T>& vec){
         vec.clear();
         vec = std::vector<T>(reinterpret_cast<const T*>(buffer_pos), reinterpret_cast<const T*>(buffer_pos) + size);
         buffer_pos += size * sizeof(T);
     }
     template <class T>
-    void deserialize(uint8_t const *& buffer_pos, uint32_t num_levels, std::vector<std::vector<T>>& vec){
+    void deserialize(uint8_t const *& buffer_pos, SIZE num_levels, std::vector<std::vector<T>>& vec){
         vec.clear();
         for(int i=0; i<num_levels; i++){
-            uint32_t num = *reinterpret_cast<const uint32_t*>(buffer_pos);
-            buffer_pos += sizeof(uint32_t);
+            SIZE num = *reinterpret_cast<const SIZE*>(buffer_pos);
+            buffer_pos += sizeof(SIZE);
             std::vector<T> level_vec = std::vector<T>(reinterpret_cast<const T *>(buffer_pos), reinterpret_cast<const T *>(buffer_pos) + num);
             vec.push_back(level_vec);
             buffer_pos += num * sizeof(T);

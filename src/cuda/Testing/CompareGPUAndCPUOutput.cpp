@@ -23,8 +23,8 @@
 
 #include "cuda/DataRefactoring.h"
 #include "cuda/LinearQuantization.h"
-#include "cuda/Testing/ReorderToolsGPU.hpp"
-#include "cuda/Testing/ReorderToolsCPU.hpp"
+// #include "cuda/Testing/ReorderToolsGPU.hpp"
+// #include "cuda/Testing/ReorderToolsCPU.hpp"
 
 enum data_type { SINGLE, DOUBLE };
 

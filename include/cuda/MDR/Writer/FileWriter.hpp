@@ -10,10 +10,10 @@ namespace MDR {
     public:
         ConcatLevelFileWriter(const std::string& metadata_file, const std::vector<std::string>& level_files) : metadata_file(metadata_file), level_files(level_files) {}
 
-        std::vector<uint32_t> write_level_components(const std::vector<std::vector<uint8_t*>>& level_components, const std::vector<std::vector<uint32_t>>& level_sizes) const {
-            std::vector<uint32_t> level_num;
+        std::vector<SIZE> write_level_components(const std::vector<std::vector<uint8_t*>>& level_components, const std::vector<std::vector<SIZE>>& level_sizes) const {
+            std::vector<SIZE> level_num;
             for(int i=0; i<level_components.size(); i++){
-                uint32_t concated_level_size = 0;
+                SIZE concated_level_size = 0;
                 for(int j=0; j<level_components[i].size(); j++){
                     concated_level_size += level_sizes[i][j];
                 }
@@ -32,7 +32,7 @@ namespace MDR {
             return level_num;
         }
 
-        void write_metadata(uint8_t const * metadata, uint32_t size) const {
+        void write_metadata(uint8_t const * metadata, SIZE size) const {
             FILE * file = fopen(metadata_file.c_str(), "w");
             fwrite(metadata, 1, size, file);
             fclose(file);

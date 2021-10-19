@@ -4,7 +4,7 @@
  * Author: Jieyang Chen (chenj3@ornl.gov)
  * Date: September 27, 2021
  */
-#include "cuda/CommonInternal.h"
+#include "cuda/Common.h"
 #include "MGARDConfig.hpp"
 #include "cuda/Metadata.h"
 
