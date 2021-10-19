@@ -15,7 +15,7 @@
 #include "Functor.h"
 #include "AutoTuner.h"
 #include "Task.h"
-#include "DeviceAdapters/DeviceAdapterCuda.h"
+#include "DeviceAdapters/DeviceAdapter.h"
 
 namespace mgard_cuda {
 
@@ -23,8 +23,8 @@ template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G, typename DeviceType
 class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
 public:
   MGARDm_CONT Ipk1Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
-                              SubArray<1, T> am, SubArray<1, T> bm, 
-                              SubArray<1, T> dist_f, SubArray<D, T> v):
+                              SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+                              SubArray<1, T, DeviceType> dist_f, SubArray<D, T, DeviceType> v):
                               nr(nr), nc(nc), nf(nf),
                               am(am), bm(bm), 
                               dist_f(dist_f), v(v) {
@@ -363,9 +363,9 @@ public:
 private:
   // functor parameters
   SIZE nr, nc, nf;
-  SubArray<1, T> am, bm;
-  SubArray<1, T> dist_f;
-  SubArray<D, T> v;
+  SubArray<1, T, DeviceType> am, bm;
+  SubArray<1, T, DeviceType> dist_f;
+  SubArray<D, T, DeviceType> v;
 
   // thread local variables
   SIZE c_gl, r_gl, f_gl;
@@ -390,8 +390,8 @@ public:
   MGARDm_CONT
   Task<Ipk1Reo3DFunctor<D, T, R, C, F, G, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf, 
-          SubArray<1, T> am, SubArray<1, T> bm, 
-          SubArray<1, T> dist_f, SubArray<D, T> v, 
+          SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+          SubArray<1, T, DeviceType> dist_f, SubArray<D, T, DeviceType> v, 
           int queue_idx) {
     using FunctorType = Ipk1Reo3DFunctor<D, T, R, C, F, G, DeviceType>;
     FunctorType functor(nr, nc, nf,
@@ -417,8 +417,8 @@ public:
 
   MGARDm_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
-              SubArray<1, T> am, SubArray<1, T> bm, 
-              SubArray<1, T> dist_f, SubArray<D, T> v, 
+              SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+              SubArray<1, T, DeviceType> dist_f, SubArray<D, T, DeviceType> v, 
               int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int config = this->handle.auto_tuning_ts1[this->handle.arch][this->handle.precision][range_l];
@@ -455,8 +455,8 @@ template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G, typename DeviceType
 class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
 public:
   MGARDm_CONT Ipk2Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
-                              SubArray<1, T> am, SubArray<1, T> bm, 
-                              SubArray<1, T> dist_c, SubArray<D, T> v):
+                              SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+                              SubArray<1, T, DeviceType> dist_c, SubArray<D, T, DeviceType> v):
                               nr(nr), nc(nc), nf(nf),
                               am(am), bm(bm), 
                               dist_c(dist_c), v(v) {
@@ -781,9 +781,9 @@ public:
 private:
   // functor parameters
   SIZE nr, nc, nf;
-  SubArray<1, T> am, bm;
-  SubArray<1, T> dist_c;
-  SubArray<D, T> v;
+  SubArray<1, T, DeviceType> am, bm;
+  SubArray<1, T, DeviceType> dist_c;
+  SubArray<D, T, DeviceType> v;
 
   // thread local variables
   SIZE c_gl, r_gl, f_gl;
@@ -808,8 +808,8 @@ public:
   MGARDm_CONT
   Task<Ipk2Reo3DFunctor<D, T, R, C, F, G, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf, 
-          SubArray<1, T> am, SubArray<1, T> bm, 
-          SubArray<1, T> dist_c, SubArray<D, T> v, 
+          SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+          SubArray<1, T, DeviceType> dist_c, SubArray<D, T, DeviceType> v, 
           int queue_idx) {
     using FunctorType = Ipk2Reo3DFunctor<D, T, R, C, F, G, DeviceType>;
     FunctorType functor(nr, nc, nf,
@@ -834,8 +834,8 @@ public:
 
   MGARDm_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
-              SubArray<1, T> am, SubArray<1, T> bm, 
-              SubArray<1, T> dist_c, SubArray<D, T> v, 
+              SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+              SubArray<1, T, DeviceType> dist_c, SubArray<D, T, DeviceType> v, 
               int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int config = this->handle.auto_tuning_ts2[this->handle.arch][this->handle.precision][range_l];
@@ -872,8 +872,8 @@ template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G, typename DeviceType
 class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
 public:
   MGARDm_CONT Ipk3Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
-                              SubArray<1, T> am, SubArray<1, T> bm, 
-                              SubArray<1, T> dist_r, SubArray<D, T> v):
+                              SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+                              SubArray<1, T, DeviceType> dist_r, SubArray<D, T, DeviceType> v):
                               nr(nr), nc(nc), nf(nf),
                               am(am), bm(bm), 
                               dist_r(dist_r), v(v) {
@@ -1198,9 +1198,9 @@ public:
 private:
   // functor parameters
   SIZE nr, nc, nf;
-  SubArray<1, T> am, bm;
-  SubArray<1, T> dist_r;
-  SubArray<D, T> v;
+  SubArray<1, T, DeviceType> am, bm;
+  SubArray<1, T, DeviceType> dist_r;
+  SubArray<D, T, DeviceType> v;
 
   // thread local variables
   SIZE c_gl, r_gl, f_gl;
@@ -1225,8 +1225,8 @@ public:
   MGARDm_CONT
   Task<Ipk3Reo3DFunctor<D, T, R, C, F, G, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf, 
-          SubArray<1, T> am, SubArray<1, T> bm, 
-          SubArray<1, T> dist_r, SubArray<D, T> v, 
+          SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+          SubArray<1, T, DeviceType> dist_r, SubArray<D, T, DeviceType> v, 
           int queue_idx) {
     using FunctorType = Ipk3Reo3DFunctor<D, T, R, C, F, G, DeviceType>;
     FunctorType functor(nr, nc, nf,
@@ -1251,8 +1251,8 @@ public:
 
   MGARDm_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
-              SubArray<1, T> am, SubArray<1, T> bm, 
-              SubArray<1, T> dist_r, SubArray<D, T> v, 
+              SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+              SubArray<1, T, DeviceType> dist_r, SubArray<D, T, DeviceType> v, 
               int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int config = this->handle.auto_tuning_ts3[this->handle.arch][this->handle.precision][range_l];

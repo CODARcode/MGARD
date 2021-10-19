@@ -12,13 +12,13 @@
 
 namespace mgard_cuda {
 
-template <DIM D, typename T>
-Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
+template <DIM D, typename T, typename DeviceType>
+Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, DeviceType> &in_array,
                                  enum error_bound_type type, T tol, T s);
 
-template <DIM D, typename T>
-Array<D, T> decompress(Handle<D, T> &handle,
-                       Array<1, unsigned char> &compressed_array);
+template <DIM D, typename T, typename DeviceType>
+Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
+                       Array<1, unsigned char, DeviceType> &compressed_array);
 
 } // namespace mgard_cuda
 

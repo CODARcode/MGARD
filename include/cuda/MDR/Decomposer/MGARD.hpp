@@ -13,7 +13,7 @@ namespace MDR {
     class MGARDOrthoganalDecomposer : public concepts::DecomposerInterface<D, T> {
     public:
         MGARDOrthoganalDecomposer(Handle<D, T> &handle): _handle(handle){}
-        void decompose(T * data, const std::vector<uint32_t>& dimensions, uint32_t target_level) const {
+        void decompose(T * data, const std::vector<SIZE>& dimensions, SIZE target_level) const {
             MGARD::Decomposer<T> decomposer;
             std::vector<size_t> dims(dimensions.size());
             for(int i=0; i<dims.size(); i++){
@@ -37,7 +37,7 @@ namespace MDR {
             // handle.free_workspace();
             // std::memcpy(data, array.getDataHost(), size*sizeof(T)); 
         }
-        void recompose(T * data, const std::vector<uint32_t>& dimensions, uint32_t target_level) const {
+        void recompose(T * data, const std::vector<SIZE>& dimensions, SIZE target_level) const {
             MGARD::Recomposer<T> recomposer;
             std::vector<size_t> dims(dimensions.size());
             for(int i=0; i<dims.size(); i++){
@@ -73,7 +73,7 @@ namespace MDR {
     class MGARDHierarchicalDecomposer : public concepts::DecomposerInterface<D, T> {
     public:
         MGARDHierarchicalDecomposer(Handle<D, T> &handle): _handle(handle){}
-        void decompose(T * data, const std::vector<uint32_t>& dimensions, uint32_t target_level) const {
+        void decompose(T * data, const std::vector<SIZE>& dimensions, SIZE target_level) const {
             // MGARD::Decomposer<T> decomposer;
             // std::vector<size_t> dims(dimensions.size());
             // for(int i=0; i<dims.size(); i++){
@@ -81,7 +81,7 @@ namespace MDR {
             // }
             // decomposer.decompose(data, dims, target_level, true);
         }
-        void recompose(T * data, const std::vector<uint32_t>& dimensions, uint32_t target_level) const {
+        void recompose(T * data, const std::vector<SIZE>& dimensions, SIZE target_level) const {
             // MGARD::Recomposer<T> recomposer;
             // std::vector<size_t> dims(dimensions.size());
             // for(int i=0; i<dims.size(); i++){
@@ -106,15 +106,15 @@ namespace MDR {
     class MGARDOrthoganalDecomposer : public concepts::DecomposerInterface<HandleType, D, T> {
     public:
         MGARDOrthoganalDecomposer(HandleType &handle): handle(handle){}
-        void decompose(mgard_cuda::SubArray<D, T> v, mgard_cuda::SIZE target_level, int queue_idx) const {
+        void decompose(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SIZE target_level, int queue_idx) const {
             handle.allocate_workspace();
-            mgard_cuda::decompose<D, T>(handle, v.dv, v.ldvs_h, v.ldvs_d, target_level, queue_idx);
+            mgard_cuda::decompose<D, T, mgard_cuda::CUDA>(handle, v.dv, v.ldvs_h, v.ldvs_d, target_level, queue_idx);
             handle.sync(queue_idx);
             handle.free_workspace();
         }
-        void recompose(mgard_cuda::SubArray<D, T> v, mgard_cuda::SIZE target_level, int queue_idx) const {
+        void recompose(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SIZE target_level, int queue_idx) const {
             handle.allocate_workspace();
-            mgard_cuda::recompose<D, T>(handle, v.dv, v.ldvs_h, v.ldvs_d, target_level, queue_idx);
+            mgard_cuda::recompose<D, T, mgard_cuda::CUDA>(handle, v.dv, v.ldvs_h, v.ldvs_d, target_level, queue_idx);
             handle.sync(queue_idx);
             handle.free_workspace();
         }

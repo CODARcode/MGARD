@@ -12,11 +12,11 @@
 namespace mgard_cuda {
 
 template <DIM D, typename T>
-void ReorderGPU(Handle<D, T> &handle, SubArray<D, T> dinput, 
-                             SubArray<D, T> &doutput, int l_target, int queue_idx) {
+void ReorderGPU(Handle<D, T> &handle, SubArray<D, T, CUDA> dinput, 
+                             SubArray<D, T, CUDA> &doutput, int l_target, int queue_idx) {
 
 
-  SubArray<D, T> dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, 
+  SubArray<D, T, CUDA> dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, 
                  dcoeff_cf, dcoeff_rf, dcoeff_rc,
                  dcoeff_rcf;
 
@@ -169,10 +169,10 @@ void ReorderGPU(Handle<D, T> &handle, SubArray<D, T> dinput,
 }
 
 template <DIM D, typename T>
-void ReverseReorderGPU(Handle<D, T> &handle, SubArray<D, T> dinput, 
-                             SubArray<D, T> &doutput, int l_target, int queue_idx) {
+void ReverseReorderGPU(Handle<D, T> &handle, SubArray<D, T, CUDA> dinput, 
+                             SubArray<D, T, CUDA> &doutput, int l_target, int queue_idx) {
 
-  SubArray<D, T> dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, 
+  SubArray<D, T, CUDA> dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, 
                  dcoeff_cf, dcoeff_rf, dcoeff_rc,
                  dcoeff_rcf;
 

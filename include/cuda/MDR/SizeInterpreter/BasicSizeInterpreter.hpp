@@ -13,9 +13,9 @@ namespace MDR {
         InorderSizeInterpreter(const ErrorEstimator& e){
             error_estimator = e;
         }
-        std::vector<uint32_t> interpret_retrieve_size(const std::vector<std::vector<uint32_t>>& level_sizes, const std::vector<std::vector<double>>& level_errors, double tolerance, std::vector<uint8_t>& index) const {
+        std::vector<SIZE> interpret_retrieve_size(const std::vector<std::vector<SIZE>>& level_sizes, const std::vector<std::vector<double>>& level_errors, double tolerance, std::vector<uint8_t>& index) const {
             const int num_levels = level_sizes.size();
-            std::vector<uint32_t> retrieve_sizes(num_levels, 0);
+            std::vector<SIZE> retrieve_sizes(num_levels, 0);
             double accumulated_error = 0;
             for(int i=0; i<num_levels; i++){
                 accumulated_error += error_estimator.estimate_error(level_errors[i][index[i]], i);
@@ -50,9 +50,9 @@ namespace MDR {
         RoundRobinSizeInterpreter(const ErrorEstimator& e){
             error_estimator = e;
         }
-        std::vector<uint32_t> interpret_retrieve_size(const std::vector<std::vector<uint32_t>>& level_sizes, const std::vector<std::vector<double>>& level_errors, double tolerance, std::vector<uint8_t>& index) const {
+        std::vector<SIZE> interpret_retrieve_size(const std::vector<std::vector<SIZE>>& level_sizes, const std::vector<std::vector<double>>& level_errors, double tolerance, std::vector<uint8_t>& index) const {
             const int num_levels = level_sizes.size();
-            std::vector<uint32_t> retrieve_sizes(num_levels, 0);
+            std::vector<SIZE> retrieve_sizes(num_levels, 0);
             double accumulated_error = 0;
             for(int i=0; i<num_levels; i++){
                 accumulated_error += error_estimator.estimate_error(level_errors[i][index[i]], i);

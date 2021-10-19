@@ -10,7 +10,7 @@ namespace MDR {
 
             virtual ~ReorganizerInterface() = default;
 
-            virtual uint8_t * reorganize(const std::vector<std::vector<uint8_t*>>& level_components, const std::vector<std::vector<uint32_t>>& level_sizes, std::vector<uint8_t>& order, uint32_t& total_size) const = 0;
+            virtual uint8_t * reorganize(const std::vector<std::vector<uint8_t*>>& level_components, const std::vector<std::vector<SIZE>>& level_sizes, std::vector<uint8_t>& order, SIZE& total_size) const = 0;
 
             virtual void print() const = 0;
         };

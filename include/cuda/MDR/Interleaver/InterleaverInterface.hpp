@@ -14,9 +14,9 @@ namespace MDR {
 
             virtual ~InterleaverInterface() = default;
 
-            virtual void interleave(T const * data, const std::vector<uint32_t>& dims, const std::vector<uint32_t>& dims_fine, const std::vector<uint32_t>& dims_coasre, T * buffer) const = 0;
+            virtual void interleave(T const * data, const std::vector<SIZE>& dims, const std::vector<SIZE>& dims_fine, const std::vector<SIZE>& dims_coasre, T * buffer) const = 0;
 
-            virtual void reposition(T const * buffer, const std::vector<uint32_t>& dims, const std::vector<uint32_t>& dims_fine, const std::vector<uint32_t>& dims_coasre, T * data) const = 0;
+            virtual void reposition(T const * buffer, const std::vector<SIZE>& dims, const std::vector<SIZE>& dims_fine, const std::vector<SIZE>& dims_coasre, T * data) const = 0;
 
             virtual void print() const = 0;
         };
@@ -36,12 +36,12 @@ namespace MDR {
 
             virtual ~InterleaverInterface() = default;
 
-            virtual void interleave(mgard_cuda::SubArray<D, T> decomposed_data, 
-                                    mgard_cuda::SubArray<1, T> * levels_decomposed_data, 
+            virtual void interleave(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> decomposed_data, 
+                                    mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data, 
                                     int queue_idx) const = 0;
 
-            virtual void reposition(mgard_cuda::SubArray<1, T> * levels_decomposed_data, 
-                                    mgard_cuda::SubArray<D, T> decomposed_data, 
+            virtual void reposition(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data, 
+                                    mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> decomposed_data, 
                                     int queue_idx) const = 0;
 
             virtual void print() const = 0;

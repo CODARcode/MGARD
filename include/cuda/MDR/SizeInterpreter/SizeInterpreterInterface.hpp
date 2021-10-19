@@ -10,7 +10,7 @@ namespace MDR {
 
             virtual ~SizeInterpreterInterface() = default;
 
-            virtual std::vector<uint32_t> interpret_retrieve_size(const std::vector<std::vector<uint32_t>>& level_sizes, const std::vector<std::vector<double>>& level_errors, double tolerance, std::vector<uint8_t>& index) const = 0;
+            virtual std::vector<SIZE> interpret_retrieve_size(const std::vector<std::vector<SIZE>>& level_sizes, const std::vector<std::vector<double>>& level_errors, double tolerance, std::vector<uint8_t>& index) const = 0;
 
             virtual void print() const = 0;
         };

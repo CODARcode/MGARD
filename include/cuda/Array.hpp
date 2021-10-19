@@ -14,16 +14,20 @@
 
 #include "Array.h"
 
+
+#include "DeviceAdapters/DeviceAdapter.h"
+
 namespace mgard_cuda {
 
-template <DIM D, typename T>
-Array<D, T>::Array() {
+template <DIM D, typename T, typename DeviceType>
+Array<D, T, DeviceType>::Array() {
   this->host_allocated = false;
   this->device_allocated = false;
 }
 
-template <DIM D, typename T>
-Array<D, T>::Array(std::vector<SIZE> shape, bool pitched) {
+template <DIM D, typename T, typename DeviceType>
+Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched) {
+  // printf("Array allocate\n");
   this->host_allocated = false;
   this->device_allocated = false;
   this->pitched = pitched;
@@ -52,36 +56,61 @@ Array<D, T>::Array(std::vector<SIZE> shape, bool pitched) {
     this->linearized_depth *= this->shape[i];
   }
   Handle<1, float> handle;
+  // DeviceRuntime<DeviceType> deviceRT;
   if (this->pitched) {
-    size_t dv_pitch;
-    cudaMalloc3DHelper(handle, (void **)&(this->dv), &dv_pitch,
-                       this->shape[0] * sizeof(T), this->shape[1],
-                       this->linearized_depth);
-    this->ldvs_h.push_back((SIZE)dv_pitch / sizeof(T));
+    // size_t dv_pitch;
+    // cudaMalloc3DHelper(handle, (void **)&(this->dv), &dv_pitch,
+    //                    this->shape[0] * sizeof(T), this->shape[1],
+    //                    this->linearized_depth);
+    // this->ldvs_h.push_back((SIZE)dv_pitch / sizeof(T));
+
+    SIZE ld = 0;
+    MemoryManager<DeviceType>().MallocND(
+                      this->dv, this->shape[0], this->shape[1] * this->linearized_depth,
+                      ld, 0);
+    this->ldvs_h.push_back(ld);
     for (int i = 1; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   } else {
-    cudaMallocHelper(handle, (void **)&(this->dv), this->shape[0] * this->shape[1] *
-                       this->linearized_depth * sizeof(T));
+    MemoryManager<DeviceType>().Malloc1D(
+                      this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
+                      0);
+
+    // cudaMallocHelper(handle, (void **)&(this->dv), this->shape[0] * this->shape[1] *
+    //                    this->linearized_depth * sizeof(T));
     for (int i = 0; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
 
   }
+
+  MemoryManager<DeviceType>().Malloc1D(
+                      this->ldvs_d, this->ldvs_h.size(),
+                      0);
   
-  cudaMallocHelper(handle, (void **)&(this->ldvs_d), this->ldvs_h.size() * sizeof(SIZE));
-  cudaMemcpyAsyncHelper(handle, this->ldvs_d, this->ldvs_h.data(),
-                        this->ldvs_h.size() * sizeof(SIZE), AUTO, 0);
+  // cudaMallocHelper(handle, (void **)&(this->ldvs_d), this->ldvs_h.size() * sizeof(SIZE));
+
+  MemoryManager<DeviceType>().Copy1D(
+                      this->ldvs_d, this->ldvs_h.data(),
+                        this->ldvs_h.size(),
+                      0);
+
+  // cudaMemcpyAsyncHelper(handle, this->ldvs_d, this->ldvs_h.data(),
+  //                       this->ldvs_h.size() * sizeof(SIZE), AUTO, 0);
+
+
 
   // printf("Array constructured: %u %u %u %u %u %u\n", 
   //                         this->shape[0], this->shape[1], this->shape[2],
   //                         this->ldvs_h[0], this->ldvs_h[1], this->ldvs_h[2]);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   this->device_allocated = true;
 }
 
-template <DIM D, typename T> Array<D, T>::Array(const Array<D, T> &array) {
-  
+template <DIM D, typename T, typename DeviceType> 
+Array<D, T, DeviceType>::Array(const Array<D, T, DeviceType> &array) {
+  // printf("Array copy 1\n");
   this->host_allocated = false;
   this->device_allocated = false;
   this->shape = array.shape;
@@ -103,37 +132,50 @@ template <DIM D, typename T> Array<D, T>::Array(const Array<D, T> &array) {
     this->linearized_depth *= this->shape[i];
   }
   Handle<1, float> handle;
+  // DeviceRuntime<DeviceType> deviceRT;
   if (this->pitched) {
-    size_t dv_pitch;
-    cudaMalloc3DHelper(handle, (void **)&(this->dv), &dv_pitch,
-                       this->shape[0] * sizeof(T), this->shape[1],
-                       this->linearized_depth);
-    this->ldvs_h.push_back((SIZE)dv_pitch / sizeof(T));
+    SIZE ld = 0;
+    MemoryManager<DeviceType>().MallocND(
+                      this->dv, this->shape[0], this->shape[1] * this->linearized_depth,
+                      ld, 0);
+    this->ldvs_h.push_back(ld);
     for (int i = 1; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   } else {
-    cudaMallocHelper(handle, (void **)&(this->dv), this->shape[0] * this->shape[1] *
-                       this->linearized_depth * sizeof(T));
+    MemoryManager<DeviceType>().Malloc1D(
+                      this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
+                      0);
     for (int i = 0; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   }
   
-  cudaMallocHelper(handle, (void **)&(this->ldvs_d), this->ldvs_h.size() * sizeof(SIZE));
-  cudaMemcpyAsyncHelper(handle, this->ldvs_d, this->ldvs_h.data(),
-                        this->ldvs_h.size() * sizeof(SIZE), AUTO, 0);
-  cudaMemcpy3DAsyncHelper(
-      handle, this->dv, this->ldvs_h[0] * sizeof(T), this->shape[0] * sizeof(T),
-      this->shape[1], array.dv, array.ldvs_h[0] * sizeof(T),
-      array.shape[0] * sizeof(T), array.shape[1], this->shape[0] * sizeof(T),
-      this->shape[1], this->linearized_depth, AUTO, 0);
+  MemoryManager<DeviceType>().Malloc1D(
+                      this->ldvs_d, this->ldvs_h.size(),
+                      0);
+  MemoryManager<DeviceType>().Copy1D(
+                      this->ldvs_d, this->ldvs_h.data(),
+                        this->ldvs_h.size(),
+                      0);
+
+  MemoryManager<DeviceType>().CopyND(
+          this->dv, this->ldvs_h[0], array.dv, array.ldvs_h[0], 
+          array.shape[0], array.shape[1]*this->linearized_depth, 0);
+  // cudaMemcpy3DAsyncHelper(
+  //     handle, this->dv, this->ldvs_h[0] * sizeof(T), this->shape[0] * sizeof(T),
+  //     this->shape[1], array.dv, array.ldvs_h[0] * sizeof(T),
+  //     array.shape[0] * sizeof(T), array.shape[1], this->shape[0] * sizeof(T),
+  //     this->shape[1], this->linearized_depth, AUTO, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   this->device_allocated = true;
 
   // printf("Array copy1 %llu -> %llu\n", array.dv, this->dv);
 }
 
-template <DIM D, typename T> Array<D, T>::Array(Array<D, T> &array) {
+template <DIM D, typename T, typename DeviceType> 
+Array<D, T, DeviceType>::Array(Array<D, T, DeviceType> &array) {
+  // printf("Array copy2\n");
   this->host_allocated = false;
   this->device_allocated = false;
   this->shape = array.shape;
@@ -155,37 +197,44 @@ template <DIM D, typename T> Array<D, T>::Array(Array<D, T> &array) {
     this->linearized_depth *= this->shape[i];
   }
   Handle<1, float> handle;
+  // DeviceRuntime<DeviceType> deviceRT;
   if (this->pitched) {
-    size_t dv_pitch;
-    cudaMalloc3DHelper(handle, (void **)&(this->dv), &dv_pitch,
-                       this->shape[0] * sizeof(T), this->shape[1],
-                       this->linearized_depth);
-    this->ldvs_h.push_back((SIZE)dv_pitch / sizeof(T));
+    SIZE ld = 0;
+    MemoryManager<DeviceType>().MallocND(
+                      this->dv, this->shape[0], this->shape[1] * this->linearized_depth,
+                      ld, 0);
+    this->ldvs_h.push_back(ld);
     for (int i = 1; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   } else {
-    cudaMallocHelper(handle, (void **)&(this->dv), this->shape[0] * this->shape[1] *
-                       this->linearized_depth * sizeof(T));
+    MemoryManager<DeviceType>().Malloc1D(
+                      this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
+                      0);
     for (int i = 0; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   }
   
-  cudaMallocHelper(handle, (void **)&(this->ldvs_d), this->ldvs_h.size() * sizeof(SIZE));
-  cudaMemcpyAsyncHelper(handle, this->ldvs_d, this->ldvs_h.data(),
-                        this->ldvs_h.size() * sizeof(SIZE), AUTO, 0);
-  cudaMemcpy3DAsyncHelper(
-      handle, this->dv, this->ldvs_h[0] * sizeof(T), this->shape[0] * sizeof(T),
-      this->shape[1], array.dv, array.ldvs_h[0] * sizeof(T),
-      array.shape[0] * sizeof(T), array.shape[1], this->shape[0] * sizeof(T),
-      this->shape[1], this->linearized_depth, AUTO, 0);
+  MemoryManager<DeviceType>().Malloc1D(
+                      this->ldvs_d, this->ldvs_h.size(),
+                      0);
+  MemoryManager<DeviceType>().Copy1D(
+                      this->ldvs_d, this->ldvs_h.data(),
+                        this->ldvs_h.size(),
+                      0);
+  MemoryManager<DeviceType>().CopyND(
+          this->dv, this->ldvs_h[0], array.dv, array.ldvs_h[0], 
+          array.shape[0], array.shape[1]*this->linearized_depth, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   this->device_allocated = true;
   // printf("Array copy2 %llu -> %llu\n", array.dv, this->dv);
 }
 
 
-template <DIM D, typename T> Array<D, T>& Array<D, T>::operator = (const Array<D, T> &array) {
+template <DIM D, typename T, typename DeviceType> 
+Array<D, T, DeviceType>& Array<D, T, DeviceType>::operator = (const Array<D, T, DeviceType> &array) {
+  // printf("Array operator =\n");
   this->host_allocated = false;
   this->device_allocated = false;
   this->shape = array.shape;
@@ -207,38 +256,45 @@ template <DIM D, typename T> Array<D, T>& Array<D, T>::operator = (const Array<D
     this->linearized_depth *= this->shape[i];
   }
   Handle<1, float> handle;
+  // DeviceRuntime<DeviceType> deviceRT;
   if (this->pitched) {
-    size_t dv_pitch;
-    cudaMalloc3DHelper(handle, (void **)&(this->dv), &dv_pitch,
-                       this->shape[0] * sizeof(T), this->shape[1],
-                       this->linearized_depth);
-    this->ldvs_h.push_back((SIZE)dv_pitch / sizeof(T));
+    SIZE ld = 0;
+    MemoryManager<DeviceType>().MallocND(
+                      this->dv, this->shape[0], this->shape[1] * this->linearized_depth,
+                      ld, 0);
+    this->ldvs_h.push_back(ld);
     for (int i = 1; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   } else {
-    cudaMallocHelper(handle, (void **)&(this->dv), this->shape[0] * this->shape[1] *
-                       this->linearized_depth * sizeof(T));
+    MemoryManager<DeviceType>().Malloc1D(
+                      this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
+                      0);
     for (int i = 0; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   }
   
-  cudaMallocHelper(handle, (void **)&(this->ldvs_d), this->ldvs_h.size() * sizeof(SIZE));
-  cudaMemcpyAsyncHelper(handle, this->ldvs_d, this->ldvs_h.data(),
-                        this->ldvs_h.size() * sizeof(SIZE), AUTO, 0);
-  cudaMemcpy3DAsyncHelper(
-      handle, this->dv, this->ldvs_h[0] * sizeof(T), this->shape[0] * sizeof(T),
-      this->shape[1], array.dv, array.ldvs_h[0] * sizeof(T),
-      array.shape[0] * sizeof(T), array.shape[1], this->shape[0] * sizeof(T),
-      this->shape[1], this->linearized_depth, AUTO, 0);
+  MemoryManager<DeviceType>().Malloc1D(
+                      this->ldvs_d, this->ldvs_h.size(),
+                      0);
+  MemoryManager<DeviceType>().Copy1D(
+                      this->ldvs_d, this->ldvs_h.data(),
+                        this->ldvs_h.size(),
+                      0);
+  MemoryManager<DeviceType>().CopyND(
+          this->dv, this->ldvs_h[0], array.dv, array.ldvs_h[0], 
+          array.shape[0], array.shape[1]*this->linearized_depth, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   this->device_allocated = true;
   // printf("Array copy3 %llu -> %llu\n", array.dv, this->dv);
   return *this;
 }
 
 
-template <DIM D, typename T> Array<D, T>::Array(Array<D, T> && array) {
+template <DIM D, typename T, typename DeviceType> 
+Array<D, T, DeviceType>::Array(Array<D, T, DeviceType> && array) {
+  // printf("Array move\n");
   this->host_allocated = false;
   this->device_allocated = false;
   this->shape = array.shape;
@@ -258,70 +314,94 @@ template <DIM D, typename T> Array<D, T>::Array(Array<D, T> && array) {
   for (int i = 2; i < this->D_padded; i++) {
     this->linearized_depth *= this->shape[i];
   }
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   this->ldvs_h = array.ldvs_h;
   this->ldvs_d = array.ldvs_d;
   this->dv = array.dv;
+
   array.device_allocated = false;
   this->device_allocated = true;
   // printf("Array move %llu -> %llu\n", array.dv, this->dv);
 }
 
-template <DIM D, typename T> Array<D, T>::~Array() {
-  // printf("Array deleted %llu\n", this->dv);
+template <DIM D, typename T, typename DeviceType>
+Array<D, T, DeviceType>::~Array() {
+  
+  // printf("~Array() %d %d\n", device_allocated, host_allocated);
+  
   if (device_allocated) {
-    cudaFreeHelper(ldvs_d);
-    cudaFreeHelper(dv);
+    Handle<1, float> handle;
+    // printf("Array deleted %llu\n", this->dv);
+    MemoryManager<DeviceType>().Free(ldvs_d);
+    MemoryManager<DeviceType>().Free(dv);
+    // cudaFreeHelper(ldvs_d);
+    // cudaFreeHelper(dv);
   }
   if (host_allocated) {
-    cudaFreeHostHelper(hv);
+    Handle<1, float> handle;
+    MemoryManager<DeviceType>().FreeHost(hv);
+    // cudaFreeHostHelper(hv);
   }
 
 }
 
-template <DIM D, typename T>
-void Array<D, T>::loadData(const T *data, SIZE ld) {
+template <DIM D, typename T, typename DeviceType>
+void Array<D, T, DeviceType>::loadData(const T *data, SIZE ld) {
   if (ld == 0) {
     ld = shape[0];
   }
   Handle<1, float> handle;
-  cudaMemcpy3DAsyncHelper(handle, dv, ldvs_h[0] * sizeof(T),
-                          shape[0] * sizeof(T), shape[1], data, ld * sizeof(T),
-                          shape[0] * sizeof(T), shape[1], shape[0] * sizeof(T),
-                          shape[1], linearized_depth, AUTO, 0);
-  handle.sync(0);
+  MemoryManager<DeviceType>().CopyND(
+                  dv, ldvs_h[0], data, ld,
+                  shape[0], shape[1] * linearized_depth, 0);
+  // cudaMemcpy3DAsyncHelper(handle, dv, ldvs_h[0] * sizeof(T),
+  //                         shape[0] * sizeof(T), shape[1], data, ld * sizeof(T),
+  //                         shape[0] * sizeof(T), shape[1], shape[0] * sizeof(T),
+  //                         shape[1], linearized_depth, AUTO, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
-template <DIM D, typename T> T *Array<D, T>::getDataHost() {
+template <DIM D, typename T, typename DeviceType> 
+T *Array<D, T, DeviceType>::getDataHost() {
   Handle<1, float> handle;
   if (!host_allocated) {
-    cudaMallocHostHelper((void **)&hv,
-                         sizeof(T) * shape[0] * shape[1] * linearized_depth);
+    MemoryManager<DeviceType>().MallocHost(
+                hv, shape[0] * shape[1] * linearized_depth, 0);
+    // cudaMallocHostHelper((void **)&hv,
+    //                      sizeof(T) * shape[0] * shape[1] * linearized_depth);
     host_allocated = true;
   }
-  cudaMemcpy3DAsyncHelper(
-      handle, hv, shape[0] * sizeof(T), shape[0] * sizeof(T), shape[1], dv,
-      ldvs_h[0] * sizeof(T), shape[0] * sizeof(T), shape[1],
-      shape[0] * sizeof(T), shape[1], linearized_depth, AUTO, 0);
-  handle.sync(0);
+  MemoryManager<DeviceType>().CopyND(
+    hv, shape[0], dv, ldvs_h[0], shape[0], shape[1] * linearized_depth, 0);
+  // cudaMemcpy3DAsyncHelper(
+  //     handle, hv, shape[0] * sizeof(T), shape[0] * sizeof(T), shape[1], dv,
+  //     ldvs_h[0] * sizeof(T), shape[0] * sizeof(T), shape[1],
+  //     shape[0] * sizeof(T), shape[1], linearized_depth, AUTO, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   return hv;
 }
 
-template <DIM D, typename T> T *Array<D, T>::getDataDevice(SIZE &ld) {
+template <DIM D, typename T, typename DeviceType> 
+T *Array<D, T, DeviceType>::getDataDevice(SIZE &ld) {
   ld = ldvs_h[0];
   return dv;
 }
 
-template <DIM D, typename T> std::vector<SIZE> Array<D, T>::getShape() {
+template <DIM D, typename T, typename DeviceType> 
+std::vector<SIZE> Array<D, T, DeviceType>::getShape() {
   return shape;
 }
 
-template <DIM D, typename T> T *Array<D, T>::get_dv() { return dv; }
+template <DIM D, typename T, typename DeviceType> 
+T *Array<D, T, DeviceType>::get_dv() { return dv; }
 
-template <DIM D, typename T> std::vector<SIZE> Array<D, T>::get_ldvs_h() {
+template <DIM D, typename T, typename DeviceType> 
+std::vector<SIZE> Array<D, T, DeviceType>::get_ldvs_h() {
   return ldvs_h;
 }
 
-template <DIM D, typename T> SIZE *Array<D, T>::get_ldvs_d() {
+template <DIM D, typename T, typename DeviceType> 
+SIZE *Array<D, T, DeviceType>::get_ldvs_d() {
   return ldvs_d;
 }
 }

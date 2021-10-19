@@ -96,21 +96,21 @@ void test(mgard_cuda::SIZE n,
 
   mgard_cuda::MDR::GroupedEncoder<HandleType, T_data, T_bitplane, T_error, BINARY, DataEncodingAlgorithm, ErrorCollectingAlgorithm, mgard_cuda::CUDA> encoder(handle);
 
-  mgard_cuda::Array<1, T_data> v_array({n});
+  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> v_array({n});
   v_array.loadData(v);
-  mgard_cuda::SubArray<1, T_data> v_subarray(v_array);
+  mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v_subarray(v_array);
   // mgard_cuda::PrintSubarray("v_subarray", v_subarray);
 
-  mgard_cuda::Array<2, T_error> level_errors_work_array({encoding_num_bitplanes+1, num_TB});
-  mgard_cuda::SubArray<2, T_error> level_errors_work(level_errors_work_array);
-  mgard_cuda::Array<1, T_error> level_errors_array({encoding_num_bitplanes+1});
-  mgard_cuda::SubArray<1, T_error> level_errors(level_errors_array);
+  mgard_cuda::Array<2, T_error, mgard_cuda::CUDA> level_errors_work_array({encoding_num_bitplanes+1, num_TB});
+  mgard_cuda::SubArray<2, T_error, mgard_cuda::CUDA> level_errors_work(level_errors_work_array);
+  mgard_cuda::Array<1, T_error, mgard_cuda::CUDA> level_errors_array({encoding_num_bitplanes+1});
+  mgard_cuda::SubArray<1, T_error, mgard_cuda::CUDA> level_errors(level_errors_array);
 
-  mgard_cuda::Array<2, T_bitplane> encoded_bitplanes_array({encoding_num_bitplanes, encoder.MaxBitplaneLength(n)});
-  mgard_cuda::SubArray<2, T_bitplane> encoded_bitplanes_subarray(encoded_bitplanes_array);
+  mgard_cuda::Array<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_array({encoding_num_bitplanes, encoder.MaxBitplaneLength(n)});
+  mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
-  mgard_cuda::Array<1, T_data> result_array({1});
-  mgard_cuda::SubArray<1, T_data> result(result_array);
+  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> result_array({1});
+  mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> result(result_array);
   mgard_cuda::DeviceReduce<HandleType, T_data, mgard_cuda::CUDA> deviceReduce(handle);
   deviceReduce.AbsMax(v_subarray.shape[0], v_subarray, result, 0);
   handle.sync_all();
@@ -175,11 +175,11 @@ void test(mgard_cuda::SIZE n,
   total_data = (n*decoding_num_bitplanes)/8/1e9;
 
   mgard_cuda::SIZE starting_bitplane = 0;
-  mgard_cuda::Array<1, bool> signs_array({n});
-  mgard_cuda::SubArray<1, bool> signs_subarray(signs_array);
+  mgard_cuda::Array<1, bool, mgard_cuda::CUDA> signs_array({n});
+  mgard_cuda::SubArray<1, bool, mgard_cuda::CUDA> signs_subarray(signs_array);
 
-  mgard_cuda::Array<1, T_data> v2_array({n});
-  mgard_cuda::SubArray<1, T_data> v2_subarray(v2_array);
+  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> v2_array({n});
+  mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v2_subarray(v2_array);
 
   handle.sync_all();
   t1 = high_resolution_clock::now();

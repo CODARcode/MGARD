@@ -116,7 +116,7 @@ DATA=../../512x512x512/velocity_x.dat
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-3 -s 0 -l 1 -v
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e5 -s inf -l 2 -v
 
-# $MgardCudaExec -z -i random -c random.out -t s -n 1 5 -m abs -e 1 -s inf -l 2 -v
+# $MgardCudaExec -z -i random -c random.out -t s -n 1 400 -m abs -e 1 -s inf -l 2 -v
 
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m abs -e 1e5 -s inf -v
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e5 -s inf -v

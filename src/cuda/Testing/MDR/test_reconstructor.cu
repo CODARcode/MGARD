@@ -119,21 +119,21 @@ int main(int argc, char ** argv){
     string metadata_file = "refactored_data/metadata.bin";
     int num_levels = 0;
     int num_dims = 0;
-    vector<uint32_t> dims;
+    vector<mgard_cuda::SIZE> dims;
     {
         // metadata interpreter, otherwise information needs to be provided
         size_t num_bytes = 0;
         auto metadata = readfile<uint8_t>(metadata_file.c_str(), num_bytes);
-        assert(num_bytes > num_dims * sizeof(uint32_t) + 2);
+        assert(num_bytes > num_dims * sizeof(mgard_cuda::SIZE) + 2);
         num_dims = metadata[0];
-        uint32_t * dim = (uint32_t*)&(metadata[1]);
+        mgard_cuda::SIZE * dim = (mgard_cuda::SIZE*)&(metadata[1]);
         printf("dim: ");
         for (int i = 0; i < num_dims; i++) {
             dims.push_back(dim[i]);
             printf("%u ", dim[i]);
         }
         printf("\n");
-        num_levels = metadata[num_dims * sizeof(uint32_t) + 1];
+        num_levels = metadata[num_dims * sizeof(mgard_cuda::SIZE) + 1];
         cout << "number of dimension = " << num_dims << ", number of levels = " << num_levels << endl;
 
     }

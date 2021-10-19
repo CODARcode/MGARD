@@ -19,8 +19,8 @@ class DirectInterleaverGPUFunctor: public Functor<DeviceType> {
 public:
   MGARDm_CONT
   DirectInterleaverGPUFunctor(mgard_cuda::SIZE *ranges, mgard_cuda::SIZE l_target, 
-                              SubArray<D, T> v,
-                              SubArray<1, T> * level_v): 
+                              SubArray<D, T, CUDA> v,
+                              SubArray<1, T, CUDA> * level_v): 
                               ranges(ranges), l_target(l_target), v(v), level_v(level_v){
     Functor<DeviceType>();
   }
@@ -155,8 +155,8 @@ public:
 private:
   mgard_cuda::SIZE *ranges;
   mgard_cuda::SIZE l_target;
-  SubArray<D, T> v;
-  SubArray<1, T> * level_v;
+  SubArray<D, T, CUDA> v;
+  SubArray<1, T, CUDA> * level_v;
 
   // thread private variables
   size_t threadId;
@@ -184,8 +184,8 @@ class DirectInterleaverGPU: public mgard_cuda::AutoTuner<HandleType, DeviceType>
   MGARDm_CONT
   Task<DirectInterleaverGPUFunctor<D, T, R, C, F, DeviceType>> 
   GenTask(mgard_cuda::SIZE *shapes_h, mgard_cuda::SIZE *ranges_d, mgard_cuda::SIZE l_target, 
-          SubArray<D, T> v,
-          SubArray<1, T> * level_v) {
+          SubArray<D, T, CUDA> v,
+          SubArray<1, T, CUDA> * level_v) {
     using FunctorType = DirectInterleaverGPUFunctor<D, T, R, C, F, Direction, DeviceType>;
     FunctorType functor(ranges_d, l_target, v, level_v);
     mgard_cuda::SIZE tbx, tby, tbz, gridx, gridy, gridz;
@@ -208,8 +208,8 @@ class DirectInterleaverGPU: public mgard_cuda::AutoTuner<HandleType, DeviceType>
 
   MGARDm_CONT
   void Execute(mgard_cuda::SIZE *shapes_h, mgard_cuda::SIZE *ranges_d, mgard_cuda::SIZE l_target, 
-               SubArray<D, T> v,
-               SubArray<1, T> * level_v
+               SubArray<D, T, CUDA> v,
+               SubArray<1, T, CUDA> * level_v
                int queue_idx) {
     #define KERNEL(R, C, F)\
     {\

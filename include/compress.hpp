@@ -67,8 +67,8 @@ namespace mgard_cuda {
 //!\param[in] s Smoothness parameter to use in compressing the function.
 //!
 //!\return Compressed dataset.
-template <uint32_t D, typename T>
-Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
+template <uint32_t D, typename T, typename DeviceType>
+Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, DeviceType> &in_array,
                                  enum error_bound_type type, T tol, T s);
 
 //! Decompress a function on an N-D tensor product grid
@@ -77,9 +77,9 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
 //! help speed up decompression.
 //!\param[in] compressed_array Compressed dataset.
 //!\return Decompressed dataset.
-template <uint32_t D, typename T>
-Array<D, T> decompress(Handle<D, T> &handle,
-                       Array<1, unsigned char> &compressed_array);
+template <uint32_t D, typename T, typename DeviceType>
+Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
+                       Array<1, unsigned char, DeviceType> &compressed_array);
 
 } // namespace mgard_cuda
 
