@@ -73,7 +73,7 @@ jobs:
                         - name: build
                           run: cmake --build "${{ env.MGARD_BUILD_DIR }}" --parallel
                         - name: test
-                          run: "${{ env.MGARD_BUILD_DIR }}/bin/tests"
+                          run: "LD_LIBRARY_PATH=\"${LD_LIBRARY_PATH}:${MOAB_INSTALL_PREFIX}/lib\" ${{ env.MGARD_BUILD_DIR }}/bin/tests"
                         - name: install
                           run: cmake --install "${{ env.MGARD_BUILD_DIR }}"
                         - name: cache-MGARD
