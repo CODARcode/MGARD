@@ -10,6 +10,17 @@
 
 namespace mgard {
 
+//! Magic number identifying a file format.
+struct MagicNumber {
+  //! Initial bytes.
+  std::array<char, 5> bytes;
+}
+
+//! Magic number for the MGARD file format.
+//!
+//! The `char`s encode "MGARD" in ASCII.
+const MagicNumber MGARD_MAGIC_NUMBER = {.bytes = {77, 71, 65, 82, 68}};
+
 //! Processor used to compress (determining algorithm).
 enum Processor : uint8_t { CPU, GPU, LAST };
 
