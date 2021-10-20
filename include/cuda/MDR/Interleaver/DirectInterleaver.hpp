@@ -3,7 +3,7 @@
 
 #include "../../CommonInternal.h"
 #include "../../Functor.h"
-#include "../../AutoTuner.h"
+#include "../../AutoTuners/AutoTuner.h"
 #include "../../Task.h"
 #include "../../DeviceAdapters/DeviceAdapterCuda.h"
 
@@ -63,9 +63,9 @@ template <mgard_cuda::DIM D, typename T, int R, int C, int F, mgard_cuda::OPTION
 class DirectInterleaverFunctor: public mgard_cuda::Functor<DeviceType> {
 public:
   MGARDm_CONT
-  DirectInterleaverFunctor(mgard_cuda::SIZE *ranges, mgard_cuda::SIZE l_target, 
-                              mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v,
-                              mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * level_v): 
+  DirectInterleaverFunctor(mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> ranges, mgard_cuda::SIZE l_target, 
+                              mgard_cuda::SubArray<D, T, DeviceType> v,
+                              mgard_cuda::SubArray<1, T, DeviceType> * level_v): 
                               ranges(ranges), l_target(l_target), v(v), level_v(level_v){
     mgard_cuda::Functor<DeviceType>();
   }
@@ -88,7 +88,7 @@ public:
     
 
     for (mgard_cuda::SIZE i = threadId; i < D * (l_target + 2); i += this->nblockx * this->nblocky * this->nblockz) {
-      ranges_sm[i] = ranges[i];
+      ranges_sm[i] = *ranges(i);
     }
 
     __syncthreads();
@@ -256,33 +256,35 @@ public:
 
 
 private:
-  mgard_cuda::SIZE *ranges;
+  mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> ranges;
   mgard_cuda::SIZE l_target;
-  mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v;
-  mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * level_v;
+  mgard_cuda::SubArray<D, T, DeviceType> v;
+  mgard_cuda::SubArray<1, T, DeviceType> * level_v;
 
   // thread private variables
   bool debug;
   mgard_cuda::SIZE * ranges_sm;
 };
 
-template <typename HandleType, mgard_cuda::DIM D, typename T, mgard_cuda::OPTION Direction, typename DeviceType>
-  class DirectInterleaverKernel: public mgard_cuda::AutoTuner<HandleType, DeviceType> {
+template <mgard_cuda::DIM D, typename T, mgard_cuda::OPTION Direction, typename DeviceType>
+  class DirectInterleaverKernel: public mgard_cuda::AutoTuner<DeviceType> {
   public:
   MGARDm_CONT
-  DirectInterleaverKernel(HandleType& handle): mgard_cuda::AutoTuner<HandleType, DeviceType>(handle) {}
+  DirectInterleaverKernel(): mgard_cuda::AutoTuner<DeviceType>() {}
 
   template <mgard_cuda::SIZE R, mgard_cuda::SIZE C, mgard_cuda::SIZE F>
   MGARDm_CONT
   mgard_cuda::Task<DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>> 
-  GenTask(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * level_v, int queue_idx) {
+  GenTask(mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> shape, mgard_cuda::SIZE l_target,
+          mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> ranges,
+          mgard_cuda::SubArray<D, T, DeviceType> v, mgard_cuda::SubArray<1, T, DeviceType> * level_v, int queue_idx) {
     using FunctorType = DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>;
-    FunctorType functor(this->handle.ranges_d, this->handle.l_target, v, level_v);
+    FunctorType functor(ranges, l_target, v, level_v);
     mgard_cuda::SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
-    int total_thread_z = this->handle.dofs[2][0];
-    int total_thread_y = this->handle.dofs[1][0];
-    int total_thread_x = this->handle.dofs[0][0];
+    int total_thread_z = shape.dataHost()[2];
+    int total_thread_y = shape.dataHost()[1];
+    int total_thread_x = shape.dataHost()[0];
     // linearize other dimensions
     tbz = R;
     tby = C;
@@ -292,21 +294,24 @@ template <typename HandleType, mgard_cuda::DIM D, typename T, mgard_cuda::OPTION
     gridx = ceil((float)total_thread_x / tbx);
     printf("DirectInterleaverKernel config: %u %u %u %u %u %u\n", tbx, tby, tbz, gridx, gridy, gridz);
     for (int d = 3; d < D; d++) {
-      gridx *= this->handle.dofs[d][0];
+      gridx *= shape.dataHost()[d];
     }
     return mgard_cuda::Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
   }
 
   MGARDm_CONT
-  void Execute(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v,
-               mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * level_v,
+  void Execute(mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> shape,
+               mgard_cuda::SIZE l_target,
+               mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> ranges,
+               mgard_cuda::SubArray<D, T, DeviceType> v,
+               mgard_cuda::SubArray<1, T, DeviceType> * level_v,
                int queue_idx) {
     #define KERNEL(R, C, F)\
     {\
       using FunctorType = DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>;\
       using TaskType = mgard_cuda::Task<FunctorType>;\
-      TaskType task = GenTask<R, C, F>(v, level_v, queue_idx);\
-      mgard_cuda::DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); \
+      TaskType task = GenTask<R, C, F>(shape, l_target, ranges, v, level_v, queue_idx);\
+      mgard_cuda::DeviceAdapter<TaskType, DeviceType> adapter; \
       adapter.Execute(task);\
     }
 
@@ -340,8 +345,10 @@ template <typename HandleType, mgard_cuda::DIM D, typename T, mgard_cuda::OPTION
         mgard_cuda::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
                                           sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1), mgard_cuda::AUTO, queue_idx);
         handle.sync(queue_idx);
-        DirectInterleaverKernel<HandleType, D, T, Interleave, mgard_cuda::CUDA>(handle).
-                      Execute(decomposed_data, levels_decomposed_data_device, queue_idx);
+        DirectInterleaverKernel<D, T, Interleave, mgard_cuda::CUDA>().
+                      Execute(mgard_cuda::SubArray<1, mgard_cuda::SIZE, mgard_cuda::CUDA>(handle.shapes[0], true), handle.l_target, 
+                        mgard_cuda::SubArray<1, mgard_cuda::SIZE, mgard_cuda::CUDA>(handle.ranges),
+                        decomposed_data, levels_decomposed_data_device, queue_idx);
         
         handle.sync(queue_idx);
         // for (int i = 0; i < this->handle.l_target+1; i++) {
@@ -359,8 +366,9 @@ template <typename HandleType, mgard_cuda::DIM D, typename T, mgard_cuda::OPTION
         mgard_cuda::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
                                           sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1), mgard_cuda::AUTO, queue_idx);
         handle.sync(queue_idx);
-        DirectInterleaverKernel<HandleType, D, T, Reposition, mgard_cuda::CUDA>(handle).
-                      Execute(decomposed_data, levels_decomposed_data_device, queue_idx);
+        DirectInterleaverKernel<D, T, Reposition, mgard_cuda::CUDA>().
+                      Execute(mgard_cuda::SubArray<1, mgard_cuda::SIZE, mgard_cuda::CUDA>(handle.shapes[0], true), handle.l_target, 
+                        mgard_cuda::SubArray<1, mgard_cuda::SIZE, mgard_cuda::CUDA>(handle.ranges), decomposed_data, levels_decomposed_data_device, queue_idx);
       }
       void print() const {
           std::cout << "Direct interleaver" << std::endl;

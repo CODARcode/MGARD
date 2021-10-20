@@ -13,7 +13,7 @@
 #include "GridProcessingKernel3D.h"
 
 #include "Functor.h"
-#include "AutoTuner.h"
+#include "AutoTuners/AutoTuner.h"
 #include "Task.h"
 #include "DeviceAdapters/DeviceAdapter.h"
 
@@ -1061,11 +1061,11 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
 
 
 
-template <typename HandleType, DIM D, typename T, typename DeviceType>
-class GpkReo3D: public AutoTuner<HandleType, DeviceType> {
+template <DIM D, typename T, typename DeviceType>
+class GpkReo3D: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  GpkReo3D(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  GpkReo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDm_CONT
@@ -1111,9 +1111,11 @@ public:
               SubArray<D, T, DeviceType>wrcf,
               int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int config = this->handle.auto_tuning_cc[this->handle.arch][this->handle.precision][range_l];
+    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
+    int prec = TypeToIdx<T>();
+    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_cc[arch][prec][range_l];
     #define GPK(CONFIG)                                    \
-    if (config == CONFIG || this->handle.profile_kernels) { \
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=GPK_CONFIG[D-1][CONFIG][0];\
       const int C=GPK_CONFIG[D-1][CONFIG][1];\
       const int F=GPK_CONFIG[D-1][CONFIG][2];\
@@ -1126,7 +1128,7 @@ public:
                                 wf, wc, wr, \
                                 wcf, wrf, wrc,\
                                 wrcf, queue_idx); \
-      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); \
+      DeviceAdapter<TaskType, DeviceType> adapter; \
       adapter.Execute(task);\
     }
 
@@ -2166,11 +2168,11 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
 };
 
 
-template <typename HandleType, DIM D, typename T, typename DeviceType>
-class GpkRev3D: public AutoTuner<HandleType, DeviceType> {
+template <DIM D, typename T, typename DeviceType>
+class GpkRev3D: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  GpkRev3D(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  GpkRev3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDm_CONT
@@ -2222,9 +2224,11 @@ public:
               SIZE nvr, SIZE nvc, SIZE nvf,
               int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int config = this->handle.auto_tuning_cc[this->handle.arch][this->handle.precision][range_l];
+    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
+    int prec = TypeToIdx<T>();
+    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_cc[arch][prec][range_l];
     #define GPK(CONFIG)                                    \
-    if (config == CONFIG || this->handle.profile_kernels) { \
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=GPK_CONFIG[D-1][CONFIG][0];\
       const int C=GPK_CONFIG[D-1][CONFIG][1];\
       const int F=GPK_CONFIG[D-1][CONFIG][2];\
@@ -2240,7 +2244,7 @@ public:
                                 svr, svc, svf,\
                                 nvr, nvc, nvf,\
                                 queue_idx); \
-      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); \
+      DeviceAdapter<TaskType, DeviceType> adapter; \
       adapter.Execute(task);\
     }
 

@@ -1,6 +1,6 @@
 #include "cuda/CommonInternal.h"
 #include "cuda/Functor.h"
-#include "cuda/AutoTuner.h"
+#include "cuda/AutoTuners/AutoTuner.h"
 #include "cuda/Task.h"
 #include "cuda/DeviceAdapters/DeviceAdapterCuda.h"
 #include "cuda/MDR/BitplaneEncoder/BitplaneEncoder.hpp"
@@ -51,9 +51,9 @@ void test(mgard_cuda::LENGTH n,
                          std::to_string(DataDecodingAlgorithm) + ".csv";
 
   std::string path = __FILE__;
-  path.erase (path.end()-std::string("test_encoding_warp.cu").length(), path.end());
-  ofs.open (path + "/encoding_perf_results/" + filename, std::ofstream::out );
-  if(!ofs) std::cout<<"Writing to file failed"<<std::endl;
+  // path.erase (path.end()-std::string("test_encoding_warp.cu").length(), path.end());
+  // ofs.open (path + "/encoding_perf_results/" + filename, std::ofstream::out );
+  // if(!ofs) std::cout<<"Writing to file failed"<<std::endl;
 
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
@@ -85,9 +85,10 @@ void test(mgard_cuda::LENGTH n,
 
   mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> result_array({1});
   mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> result(result_array);
-  mgard_cuda::DeviceReduce<HandleType, T_data, mgard_cuda::CUDA> deviceReduce(handle);
+  mgard_cuda::DeviceReduce<T_data, mgard_cuda::CUDA> deviceReduce;
   deviceReduce.AbsMax(v_subarray.shape[0], v_subarray, result, 0);
-  handle.sync_all();
+  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+  // handle.sync_all();
 
   mgard_cuda::SIZE starting_bitplane = 0;
   T_data level_max_error = *(result_array.getDataHost());
@@ -124,15 +125,15 @@ void test(mgard_cuda::LENGTH n,
 
   //GPU-Warp
   {
-    mgard_cuda::MDR::GroupedWarpEncoder<HandleType, T_data, T_bitplane, T_error, 
+    mgard_cuda::MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error, 
                                         NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, 
                                         DataEncodingAlgorithm, ErrorCollectingAlgorithm, 
-                                        mgard_cuda::CUDA>encoder(handle);
+                                        mgard_cuda::CUDA>encoder;
 
-    mgard_cuda::MDR::GroupedWarpDecoder<HandleType, T_data, T_bitplane, 
+    mgard_cuda::MDR::GroupedWarpDecoder<T_data, T_bitplane, 
                                         NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, 
                                         DataDecodingAlgorithm, 
-                                        mgard_cuda::CUDA> decoder(handle);
+                                        mgard_cuda::CUDA> decoder;
 
     mgard_cuda::Array<2, T_error, mgard_cuda::CUDA> level_errors_work_array({encoding_num_bitplanes+1, MGARDm_NUM_SMs});
     mgard_cuda::SubArray<2, T_error, mgard_cuda::CUDA> level_errors_work(level_errors_work_array);
@@ -147,13 +148,15 @@ void test(mgard_cuda::LENGTH n,
                         v_subarray, encoded_bitplanes_subarray, level_errors, level_errors_work, 0);
     }
 
-    handle.sync(0);
+    // handle.sync(0);
+    mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
     t1 = high_resolution_clock::now();
     for (int r = 0; r < repeat; r++) {
       encoder.Execute(n, encoding_num_bitplanes, exp, 
                       v_subarray, encoded_bitplanes_subarray, level_errors, level_errors_work, 0);
     }
-    handle.sync(0);
+    // handle.sync(0);
+    mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
     t2 = high_resolution_clock::now();
     time_span = duration_cast<duration<double>>(t2 - t1) / repeat;
     std::cout << "GPU Encoding time: " << time_span.count() <<" s (" << total_data/time_span.count() << "GB/s)\n";
@@ -168,13 +171,14 @@ void test(mgard_cuda::LENGTH n,
                       encoded_bitplanes_subarray, signs_subarray, v_subarray, 0);
     }
 
-    handle.sync(0);
+    // handle.mgard_cuda::mgard_cuda::DeviceRuntime(0);
+    mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
     t1 = high_resolution_clock::now();
     for (int r = 0; r < repeat; r++) {
       decoder.Execute(n, starting_bitplane, decoding_num_bitplanes, exp, 
                       encoded_bitplanes_subarray, signs_subarray, v_subarray, 0);
     }
-    handle.sync(0);
+    mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
     t2 = high_resolution_clock::now();
     time_span = duration_cast<duration<double>>(t2 - t1) / repeat;
     std::cout << "GPU Decoding time: " << time_span.count() <<" s (" << total_data/time_span.count() << "GB/s)\n";
@@ -282,7 +286,7 @@ void test(mgard_cuda::LENGTH n,
   }
 
   
-  ofs.close();
+  // ofs.close();
   delete [] v;
   // mgard_cuda::cudaFreeHostHelper(v2);
 
@@ -299,8 +303,8 @@ void test_method() {
   int warmup = 0;
   int repeat = 1;
 
-  for(mgard_cuda::LENGTH N = 1024; N <= 512*1024*1024 ; N *= 2) 
-  // mgard_cuda::SIZE N = 200;
+  // for(mgard_cuda::LENGTH N = 1024; N <= 512*1024*1024 ; N *= 2) 
+  mgard_cuda::SIZE N = 200;
   // mgard_cuda::SIZE N = 512*1024*1024;
   { 
 

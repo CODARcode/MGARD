@@ -284,7 +284,7 @@ namespace MDR {
           timer.print("Interleave");
 
           
-          mgard_cuda::DeviceReduce<HandleType, T_data, mgard_cuda::CUDA> deviceReduce(handle);
+          mgard_cuda::DeviceReduce<T_data, mgard_cuda::CUDA> deviceReduce;
 
           std::vector<std::vector<mgard_cuda::Array<1, mgard_cuda::Byte, mgard_cuda::CUDA>>> compressed_bitplanes;
           for(int level_idx = 0; level_idx < target_level + 1; level_idx++){

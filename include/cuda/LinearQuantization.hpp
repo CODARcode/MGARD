@@ -13,7 +13,7 @@
 #include "LinearQuantization.h"
 
 #include "Functor.h"
-#include "AutoTuner.h"
+#include "AutoTuners/AutoTuner.h"
 #include "Task.h"
 #include "DeviceAdapters/DeviceAdapter.h"
 
@@ -129,6 +129,116 @@ void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata &m,
   // printf("\n");
 }
 
+
+template <DIM D, typename T>
+void calc_quantizers(size_t dof, T *quantizers, Metadata &m,
+                     bool reciprocal) {
+
+
+  double abs_tol = m.tol;
+  if (m.ebtype == error_bound_type::REL) {
+    abs_tol *= m.norm;
+  }
+
+  // printf("tol %f, l_target %d, D %d\n", tol, l_target, D);
+
+  abs_tol *= 2;
+
+  // original
+  // tol /= l_target + 2;
+  // for (int l = 0; l < l_target+1; l++) {
+  //   quantizers[l] = tol;
+  // }
+  // printf("l_target %d\n", l_target);
+
+  // levelwise
+  // tol *= 2;
+  // T C2 = 1 + 3*std::sqrt(3)/4;
+  // T c = std::sqrt(std::pow(2, D));
+  // T cc = (1 - c) / (1 - std::pow(c, l_target+1));
+  // T level_eb = cc * tol / C2;
+
+  // for (int l = 0; l < l_target+1; l++) {
+  //   quantizers[l] = level_eb;
+  //   level_eb *= c;
+  // }
+
+  // s = 0;
+
+  // levelwise with s
+  // tol *= 2;
+  // T C2 = 1 + 3 * std::sqrt(3) / 4;
+  // T c = std::sqrt(std::pow(2, D - 2 * s));
+  // T cc = (1 - c) / (1 - std::pow(c, l_target + 1));
+  // T level_eb = cc * tol / C2;
+
+  // for (int l = 0; l < l_target + 1; l++) {
+  //   quantizers[l] = level_eb;
+  //   // T c = std::sqrt(std::pow(2, 2*s*l + D * (l_target - l)));
+  //   level_eb *= c;
+  //   if (reciprocal)
+  //     quantizers[l] = 1.0f / quantizers[l];
+  // }
+
+  if (m.ntype == norm_type::L_Inf) {
+    
+    // printf("quantizers: ");
+    for (int l = 0; l < m.l_target + 1; l++) {
+      //ben
+      quantizers[l] = (abs_tol) / ((m.l_target + 1) * (1 + std::pow(3, D)));
+      //xin
+      // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) / 4));
+
+      
+      // printf("%f ", quantizers[l]);
+      if (reciprocal)
+        quantizers[l] = 1.0f / quantizers[l];
+    }
+    // printf("\n");
+
+  } else if (m.ntype == norm_type::L_2) { // s != inf
+    //xin - uniform
+    // T C2 = 1 + 3 * std::sqrt(3) / 4;
+    // T c = std::sqrt(std::pow(2, D - 2 * s));
+    // T cc = (1 - c) / (1 - std::pow(c, l_target + 1));
+    // T level_eb = cc * tol / C2;
+    // for (int l = 0; l < l_target + 1; l++) {
+    //   quantizers[l] = level_eb;
+    //   // T c = std::sqrt(std::pow(2, 2*s*l + D * (l_target - l)));
+    //   level_eb *= c;
+    //   if (reciprocal)
+    //     quantizers[l] = 1.0f / quantizers[l];
+    // }
+
+    //ben - uniform
+    // printf("quantizers: ");
+
+
+    // size_t dof = 1;
+    // for (int d = 0; d < D; d++) dof *= handle.dofs[d][0];
+    // printf("tol: %f, dof: %llu\n", tol, dof);
+    // printf ("dof = %llu\n", dof);
+    for (int l = 0; l < m.l_target + 1; l++) {
+
+      quantizers[l] = (abs_tol) / (std::exp2(m.s * l) * std::sqrt(dof));
+
+      // printf("l %d, vol: %f quantizer: %f \n", l, std::pow(2, (l_target - l) * D), quantizers[l]);
+
+      // printf("tol: %f quant: %e \n", tol, quantizers[l]);
+      if (reciprocal)
+        quantizers[l] = 1.0f / quantizers[l];
+    }
+    // printf("\n");
+
+  }
+
+  //print quantizers
+  // printf("quantizers: ");
+  // for (int l = 0; l < l_target+1; l++) {
+  //   printf("%f ", 1.0f/quantizers[l]);
+  // }
+  // printf("\n");
+}
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
@@ -423,11 +533,11 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
 };
 
 
-template <typename HandleType, DIM D, typename T, typename DeviceType>
-class LevelwiseLinearQuantizeND: public AutoTuner<HandleType, DeviceType> {
+template <DIM D, typename T, typename DeviceType>
+class LevelwiseLinearQuantizeND: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  LevelwiseLinearQuantizeND(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  LevelwiseLinearQuantizeND():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDm_CONT
@@ -444,11 +554,18 @@ public:
     using FunctorType = LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;
 
     T *quantizers = new T[l_target + 1];
-    calc_quantizers(this->handle, quantizers, m, false);
-    cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
-                          sizeof(T) * (l_target + 1), H2D, queue_idx);
+    size_t dof = 1;
+    for (int d = 0; d < D; d++) dof *= shape.dataHost()[d];
 
-    SubArray<1, T, DeviceType> quantizers_subarray({l_target + 1}, this->handle.quantizers);
+    calc_quantizers<D, T>(dof, quantizers, m, false);
+
+    Array<1, T, DeviceType> quantizers_array({l_target + 1});
+    quantizers_array.loadData(quantizers);
+
+    // cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
+    //                       sizeof(T) * (l_target + 1), H2D, queue_idx);
+
+    SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
 
     bool calc_vol = m.ntype == norm_type::L_2;
     FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
@@ -495,7 +612,7 @@ public:
                                     v, work, prep_huffman, shape,
                                     outlier_count, outlier_idx, outliers,
                                     queue_idx); 
-    DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); 
+    DeviceAdapter<TaskType, DeviceType> adapter; 
     adapter.Execute(task);
   }
 };
@@ -834,11 +951,11 @@ class OutlierRestoreFunctor: public Functor<DeviceType> {
 
 
 
-template <typename HandleType, DIM D, typename T, typename DeviceType>
-class LevelwiseLinearDequantizeND: public AutoTuner<HandleType, DeviceType> {
+template <DIM D, typename T, typename DeviceType>
+class LevelwiseLinearDequantizeND: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  LevelwiseLinearDequantizeND(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  LevelwiseLinearDequantizeND():AutoTuner<DeviceType>() {}
 
   template <SIZE F>
   MGARDm_CONT
@@ -880,11 +997,17 @@ public:
     using FunctorType = LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType>;
 
     T *quantizers = new T[l_target + 1];
-    calc_quantizers(this->handle, quantizers, m, false);
-    cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
-                          sizeof(T) * (l_target + 1), H2D, queue_idx);
+    size_t dof = 1;
+    for (int d = 0; d < D; d++) dof *= shape.dataHost()[d];
+    calc_quantizers<D, T>(dof, quantizers, m, false);
 
-    SubArray<1, T, DeviceType> quantizers_subarray({l_target + 1}, this->handle.quantizers);
+    Array<1, T, DeviceType> quantizers_array({l_target + 1});
+    quantizers_array.loadData(quantizers);
+
+    // cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
+    //                       sizeof(T) * (l_target + 1), H2D, queue_idx);
+
+    SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
 
     bool calc_vol = m.ntype == norm_type::L_2;
     FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
@@ -929,7 +1052,7 @@ public:
       using FunctorType = OutlierRestoreFunctor<D, T, DeviceType>;
       using TaskType = Task<FunctorType>;
       TaskType task = GenTask1<256>(work, outlier_count, outlier_idx, outliers, queue_idx); 
-      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); 
+      DeviceAdapter<TaskType, DeviceType> adapter; 
       adapter.Execute(task);
     }
 
@@ -942,7 +1065,7 @@ public:
                                     v, work, prep_huffman, shape,
                                     outlier_count, outlier_idx, outliers,
                                     queue_idx); 
-    DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); 
+    DeviceAdapter<TaskType, DeviceType> adapter; 
     adapter.Execute(task);
   }
 };

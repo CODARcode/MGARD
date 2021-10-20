@@ -18,7 +18,7 @@ namespace mgard_cuda {
       SIZE ldvolumes, Metadata & m, QUANTIZED_INT * dv, SIZE * ldvs,           \
       T * dwork, SIZE * ldws, bool prep_huffman, LENGTH outlier_count,         \
       LENGTH *outlier_idx, QUANTIZED_INT *outliers, int queue_idx);\
-  template class LevelwiseLinearDequantizeND<Handle<D, T>, D, T, CUDA>;
+  template class LevelwiseLinearDequantizeND<D, T, CUDA>;
 
 
 KERNELS(1, double)

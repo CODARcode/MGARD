@@ -13,7 +13,7 @@
 #include "IterativeProcessingKernel3D.h"
 
 #include "Functor.h"
-#include "AutoTuner.h"
+#include "AutoTuners/AutoTuner.h"
 #include "Task.h"
 #include "DeviceAdapters/DeviceAdapter.h"
 
@@ -380,11 +380,11 @@ private:
 };
 
 
-template <typename HandleType, DIM D, typename T, typename DeviceType>
-class Ipk1Reo3D: public AutoTuner<HandleType, DeviceType> {
+template <DIM D, typename T, typename DeviceType>
+class Ipk1Reo3D: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  Ipk1Reo3D(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  Ipk1Reo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
   MGARDm_CONT
@@ -421,9 +421,11 @@ public:
               SubArray<1, T, DeviceType> dist_f, SubArray<D, T, DeviceType> v, 
               int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int config = this->handle.auto_tuning_ts1[this->handle.arch][this->handle.precision][range_l];
+    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
+    int prec = TypeToIdx<T>();
+    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts1[arch][prec][range_l];
     #define IPK(CONFIG)\
-    if (config == CONFIG || this->handle.profile_kernels) { \
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=IPK_CONFIG[D-1][CONFIG][0];\
       const int C=IPK_CONFIG[D-1][CONFIG][1];\
       const int F=IPK_CONFIG[D-1][CONFIG][2];\
@@ -435,7 +437,7 @@ public:
                               am, bm,\
                               dist_f, v,\
                               queue_idx); \
-      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); \
+      DeviceAdapter<TaskType, DeviceType> adapter; \
       adapter.Execute(task);\
     }
 
@@ -798,11 +800,11 @@ private:
 };
 
 
-template <typename HandleType, DIM D, typename T, typename DeviceType>
-class Ipk2Reo3D: public AutoTuner<HandleType, DeviceType> {
+template <DIM D, typename T, typename DeviceType>
+class Ipk2Reo3D: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  Ipk2Reo3D(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  Ipk2Reo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
   MGARDm_CONT
@@ -838,9 +840,11 @@ public:
               SubArray<1, T, DeviceType> dist_c, SubArray<D, T, DeviceType> v, 
               int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int config = this->handle.auto_tuning_ts2[this->handle.arch][this->handle.precision][range_l];
+    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
+    int prec = TypeToIdx<T>();
+    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts2[arch][prec][range_l];
     #define IPK(CONFIG)\
-    if (config == CONFIG || this->handle.profile_kernels) { \
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=IPK_CONFIG[D-1][CONFIG][0];\
       const int C=IPK_CONFIG[D-1][CONFIG][1];\
       const int F=IPK_CONFIG[D-1][CONFIG][2];\
@@ -852,7 +856,7 @@ public:
                               am, bm,\
                               dist_c, v,\
                               queue_idx); \
-      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); \
+      DeviceAdapter<TaskType, DeviceType> adapter; \
       adapter.Execute(task);\
     }
 
@@ -1215,11 +1219,11 @@ private:
 };
 
 
-template <typename HandleType, DIM D, typename T, typename DeviceType>
-class Ipk3Reo3D: public AutoTuner<HandleType, DeviceType> {
+template <DIM D, typename T, typename DeviceType>
+class Ipk3Reo3D: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  Ipk3Reo3D(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  Ipk3Reo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
   MGARDm_CONT
@@ -1255,9 +1259,11 @@ public:
               SubArray<1, T, DeviceType> dist_r, SubArray<D, T, DeviceType> v, 
               int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int config = this->handle.auto_tuning_ts3[this->handle.arch][this->handle.precision][range_l];
+    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
+    int prec = TypeToIdx<T>();
+    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts3[arch][prec][range_l];
     #define IPK(CONFIG)\
-    if (config == CONFIG || this->handle.profile_kernels) { \
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=IPK_CONFIG[D-1][CONFIG][0];\
       const int C=IPK_CONFIG[D-1][CONFIG][1];\
       const int F=IPK_CONFIG[D-1][CONFIG][2];\
@@ -1269,7 +1275,7 @@ public:
                               am, bm,\
                               dist_r, v,\
                               queue_idx); \
-      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); \
+      DeviceAdapter<TaskType, DeviceType> adapter; \
       adapter.Execute(task);\
     }
 

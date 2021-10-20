@@ -16,7 +16,7 @@ namespace mgard_cuda {
   template void ipk_1_3d<D, T>(                                                \
       Handle<D, T> & handle, SIZE nr, SIZE nc, SIZE nf_c, T *am, T *bm,           \
       T *ddist_f, T *dv, SIZE lddv1, SIZE lddv2, int queue_idx, int config); \
-  template class Ipk1Reo3D<Handle<D, T>, D, T, CUDA>;
+  template class Ipk1Reo3D<D, T, CUDA>;
 
 KERNELS(1, double)
 KERNELS(1, float)

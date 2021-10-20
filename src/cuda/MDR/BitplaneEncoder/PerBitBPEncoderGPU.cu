@@ -11,16 +11,16 @@
 namespace mgard_cuda {
 namespace MDR {
 
-#define KERNELS(D, T) template class PerBitEncoder<Handle<D, T>, T, CUDA>;
+// #define KERNELS(D, T) template class PerBitEncoder<T, CUDA>;
 
-KERNELS(1, double)
-KERNELS(1, float)
-KERNELS(2, double)
-KERNELS(2, float)
-KERNELS(3, double)
-KERNELS(3, float)
+// KERNELS(1, double)
+// KERNELS(1, float)
+// KERNELS(2, double)
+// KERNELS(2, float)
+// KERNELS(3, double)
+// KERNELS(3, float)
 
-#undef KERNELS
+// #undef KERNELS
 
 }
 } // namespace mgard_cuda

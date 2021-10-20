@@ -77,6 +77,19 @@ struct ErrorCollect{
 };
 
 
+
+template <typename DeviceType>
+class DeviceSpecification {
+  public:
+  MGARDm_CONT
+  DeviceSpecification(){}
+  int MaxSharedMemorySize;
+  int WarpSize;
+  int NumSMs;
+  int ArchitectureGeneration;
+};
+
+
 template <typename DeviceType>
 class DeviceQueues {
   public:
@@ -85,13 +98,13 @@ class DeviceQueues {
 
   template <typename QueueType>
   MGARDm_CONT
-  QueueType GetQueue(SIZE queue_id){}
+  QueueType GetQueue(int dev_id, SIZE queue_id){}
 
   MGARDm_CONT
-  void SyncQueue(SIZE queue_id){}
+  void SyncQueue(int dev_id, SIZE queue_id){}
 
   MGARDm_CONT
-  void SyncAllQueues(){}
+  void SyncAllQueues(int dev_id){}
 
   MGARDm_CONT
   ~DeviceQueues(){}
@@ -99,30 +112,27 @@ class DeviceQueues {
 
 
 
-template <typename HandleType, typename TaskType, typename DeviceType>
+template <typename TaskType, typename DeviceType>
 class DeviceAdapter {
 public:
   MGARDm_CONT
-  DeviceAdapter(HandleType& handle):handle(handle){};
+  DeviceAdapter(){};
   MGARDm_CONT
   void Execute() {};
-  HandleType& handle;
 };
 
 
 
 
-template <typename HandleType, typename T_reduce, typename DeviceType>
+template <typename T_reduce, typename DeviceType>
 class DeviceReduce {
   public:
   MGARDm_CONT
-  DeviceReduce(HandleType& handle):handle(handle){};
+  DeviceReduce(){};
   MGARDm_CONT
   void Sum(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
   MGARDm_CONT
   void AbsMax(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
-  private:
-  HandleType& handle;
 };
 
 
@@ -193,6 +203,7 @@ class DeviceRuntime {
   static int curr_dev_id;
   static DeviceQueues<DeviceType> queues;
   static bool SyncAllKernelsAndCheckErrors;
+  static DeviceSpecification<DeviceType> DeviceSpecs;
 };
 
 }

@@ -3,7 +3,7 @@
 
 #include "../../CommonInternal.h"
 #include "../../Functor.h"
-#include "../../AutoTuner.h"
+#include "../../AutoTuners/AutoTuner.h"
 #include "../../Task.h"
 #include "../../DeviceAdapters/DeviceAdapterCuda.h"
 
@@ -53,9 +53,9 @@ namespace MDR {
                                       SIZE num_batches_per_TB,
                                       SIZE num_bitplanes,
                                       SIZE exp,
-                                      SubArray<1, T, CUDA> v,
-                                      SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-                                      SubArray<2, T_error, CUDA> level_errors_workspace):
+                                      SubArray<1, T, DeviceType> v,
+                                      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                                      SubArray<2, T_error, DeviceType> level_errors_workspace):
                                       n(n), num_bitplanes(num_bitplanes), num_batches_per_TB(num_batches_per_TB),
                                       exp(exp), encoded_bitplanes(encoded_bitplanes),
                                       v(v), level_errors_workspace(level_errors_workspace) {
@@ -272,9 +272,9 @@ namespace MDR {
     SIZE num_batches_per_TB;
     SIZE num_bitplanes;
     SIZE exp;
-    SubArray<1, T, CUDA> v;
-    SubArray<2, T_bitplane, CUDA> encoded_bitplanes;
-    SubArray<2, T_error, CUDA> level_errors_workspace;
+    SubArray<1, T, DeviceType> v;
+    SubArray<2, T_bitplane, DeviceType> encoded_bitplanes;
+    SubArray<2, T_error, DeviceType> level_errors_workspace;
 
     // stateful thread local variables
     
@@ -294,11 +294,11 @@ namespace MDR {
   };
 
 
-  template <typename HandleType, typename T, typename T_bitplane, typename T_error, OPTION BinaryType, OPTION EncodingAlgorithm, OPTION ErrorColectingAlgorithm, typename DeviceType>
-  class GroupedEncoder: public AutoTuner<HandleType, DeviceType> {
+  template <typename T, typename T_bitplane, typename T_error, OPTION BinaryType, OPTION EncodingAlgorithm, OPTION ErrorColectingAlgorithm, typename DeviceType>
+  class GroupedEncoder: public AutoTuner<DeviceType> {
   public:
     MGARDm_CONT
-    GroupedEncoder(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+    GroupedEncoder():AutoTuner<DeviceType>() {}
 
     using T_sfp = typename std::conditional<std::is_same<T, double>::value, int64_t, int32_t>::type;
     using T_fp = typename std::conditional<std::is_same<T, double>::value, uint64_t, uint32_t>::type;
@@ -313,9 +313,9 @@ namespace MDR {
                     SIZE num_batches_per_TB,
                     SIZE num_bitplanes,
                     SIZE exp,
-                    SubArray<1, T, CUDA> v,
-                    SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-                    SubArray<2, T_error, CUDA> level_errors_workspace,
+                    SubArray<1, T, DeviceType> v,
+                    SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                    SubArray<2, T_error, DeviceType> level_errors_workspace,
                     int queue_idx) 
     {
       FunctorType functor(n, num_batches_per_TB, num_bitplanes, exp, v, encoded_bitplanes, level_errors_workspace);
@@ -337,28 +337,30 @@ namespace MDR {
                  SIZE num_batches_per_TB,
                  SIZE num_bitplanes,
                  SIZE exp,
-                 SubArray<1, T, CUDA> v,
-                 SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-                 SubArray<1, T_error, CUDA> level_errors,
-                 SubArray<2, T_error, CUDA> level_errors_workspace,
+                 SubArray<1, T, DeviceType> v,
+                 SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                 SubArray<1, T_error, DeviceType> level_errors,
+                 SubArray<2, T_error, DeviceType> level_errors_workspace,
                  int queue_idx) {
       
       // PrintSubarray("v", v);
       TaskType task = GenTask<T_fp, T_sfp>(n, num_batches_per_TB, num_bitplanes, exp, v, encoded_bitplanes, level_errors_workspace, queue_idx);
-      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle);
+      DeviceAdapter<TaskType, DeviceType> adapter;
       adapter.Execute(task);
-      this->handle.sync_all();
+      DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
+      // this->handle.sync_all();
       // PrintSubarray("level_errors_workspace", level_errors_workspace);
       // get level error
       const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
       SIZE reduce_size = (n-1)/num_elems_per_TB+1;
-      DeviceReduce<HandleType, T_error, DeviceType> deviceReduce(this->handle);
+      DeviceReduce<T_error, DeviceType> deviceReduce;
       for (int i = 0; i < num_bitplanes + 1; i++) {
-        SubArray<1, T_error, CUDA> curr_errors({reduce_size}, level_errors_workspace(i, 0));
-        SubArray<1, T_error, CUDA> sum_error({1}, level_errors(i));
+        SubArray<1, T_error, DeviceType> curr_errors({reduce_size}, level_errors_workspace(i, 0));
+        SubArray<1, T_error, DeviceType> sum_error({1}, level_errors(i));
         deviceReduce.Sum(reduce_size, curr_errors, sum_error, queue_idx);
       }
-      this->handle.sync_all();
+      DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
+      // this->handle.sync_all();
 
       // PrintSubarray("v", v);
 
@@ -389,9 +391,9 @@ namespace MDR {
                                         SIZE starting_bitplane,
                                         SIZE num_bitplanes,
                                         SIZE exp,
-                                        SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-                                        SubArray<1, bool, CUDA> signs,
-                                        SubArray<1, T, CUDA> v):
+                                        SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                                        SubArray<1, bool, DeviceType> signs,
+                                        SubArray<1, T, DeviceType> v):
                                         n(n), num_batches_per_TB(num_batches_per_TB),
                                         starting_bitplane(starting_bitplane), num_bitplanes(num_bitplanes),
                                         exp(exp), encoded_bitplanes(encoded_bitplanes), signs(signs),
@@ -585,9 +587,9 @@ namespace MDR {
       SIZE starting_bitplane;
       SIZE num_bitplanes;
       SIZE exp;
-      SubArray<2, T_bitplane, CUDA> encoded_bitplanes;
-      SubArray<1, bool, CUDA> signs;
-      SubArray<1, T, CUDA> v;
+      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes;
+      SubArray<1, bool, DeviceType> signs;
+      SubArray<1, T, DeviceType> v;
 
       // stateful thread local variables
       bool debug, debug2;
@@ -608,11 +610,11 @@ namespace MDR {
   };
 
 
-  template <typename HandleType, typename T, typename T_bitplane, OPTION BinaryType, OPTION DecodingAlgorithm, typename DeviceType>
-  class GroupedDecoder: public AutoTuner<HandleType, DeviceType> {
+  template <typename T, typename T_bitplane, OPTION BinaryType, OPTION DecodingAlgorithm, typename DeviceType>
+  class GroupedDecoder: public AutoTuner<DeviceType> {
   public:
     MGARDm_CONT
-    GroupedDecoder(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+    GroupedDecoder():AutoTuner<DeviceType>() {}
 
     using T_sfp = typename std::conditional<std::is_same<T, double>::value, int64_t, int32_t>::type;
     using T_fp = typename std::conditional<std::is_same<T, double>::value, uint64_t, uint32_t>::type;
@@ -626,9 +628,9 @@ namespace MDR {
                      SIZE starting_bitplane,
                      SIZE num_bitplanes,
                      SIZE exp,
-                     SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-                     SubArray<1, bool, CUDA> signs,
-                     SubArray<1, T, CUDA> v,
+                     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                     SubArray<1, bool, DeviceType> signs,
+                     SubArray<1, T, DeviceType> v,
                      int queue_idx) 
 {
       // using FunctorType = GroupedDecoderFunctor<T, T_fp, T_sfp, T_bitplane, BinaryType, DeviceType>;
@@ -652,9 +654,9 @@ namespace MDR {
                  SIZE starting_bitplane,
                  SIZE num_bitplanes,
                  SIZE exp,
-                 SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-                 SubArray<1, bool, CUDA> signs,
-                 SubArray<1, T, CUDA> v,
+                 SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                 SubArray<1, bool, DeviceType> signs,
+                 SubArray<1, T, DeviceType> v,
                  int queue_idx) 
     {
       TaskType task = GenTask<T_fp, T_sfp>(n, 
@@ -666,9 +668,9 @@ namespace MDR {
                                           signs, 
                                           v, 
                                           queue_idx);
-      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle);
+      DeviceAdapter<TaskType, DeviceType> adapter;
       adapter.Execute(task);
-      this->handle.sync_all();
+      // this->handle.sync_all();
       // PrintSubarray("v", v);
     }
   };
@@ -776,7 +778,7 @@ namespace MDR {
             Array<2, T_bitplane, CUDA> encoded_bitplanes_array({(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
             SubArray<2, T_bitplane, CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
             
-            GroupedEncoder<Handle<D, T_data>, T_data, T_bitplane, double, BINARY_TYPE, DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, CUDA>(_handle).Execute(n, num_batches_per_TB, num_bitplanes, exp, v, encoded_bitplanes_subarray, level_errors_subarray, level_errors_work_subarray, 0);
+            GroupedEncoder<T_data, T_bitplane, double, BINARY_TYPE, DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, CUDA>().Execute(n, num_batches_per_TB, num_bitplanes, exp, v, encoded_bitplanes_subarray, level_errors_subarray, level_errors_work_subarray, 0);
 
             cudaMemcpyAsyncHelper(_handle, level_errors.data(), level_errors_subarray.data(), (num_bitplanes+1)* sizeof(double), AUTO, 0);
             _handle.sync_all();
@@ -970,7 +972,7 @@ namespace MDR {
             Array<1, T_data, CUDA> v_array({(SIZE)n});
             SubArray<1, T_data, CUDA> v(v_array);
 
-            GroupedDecoder<Handle<D, T_data>, T_data, T_bitplane, BINARY_TYPE, DATA_DECODING_ALGORITHM, CUDA>(_handle).Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp, encoded_bitplanes_subarray, signs_subarray, v, 0);
+            GroupedDecoder<T_data, T_bitplane, BINARY_TYPE, DATA_DECODING_ALGORITHM, CUDA>().Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp, encoded_bitplanes_subarray, signs_subarray, v, 0);
 
             new_signs = signs_array.getDataHost();
 
@@ -1185,7 +1187,7 @@ public:
     mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
 
-    mgard_cuda::MDR::GroupedEncoder<HandleType, T_data, T_bitplane, T_error, BINARY_TYPE, DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, mgard_cuda::CUDA>(handle).
+    mgard_cuda::MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY_TYPE, DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, mgard_cuda::CUDA>().
                   Execute(n, num_batches_per_TB, num_bitplanes, exp, 
                           v, encoded_bitplanes_subarray, level_errors, level_errors_work, 
                           queue_idx);
@@ -1240,8 +1242,8 @@ public:
     // Array<1, T_data> v_array({(SIZE)n});
     // SubArray<1, T_data> v(v_array);
 
-    mgard_cuda::MDR::GroupedDecoder<HandleType, T_data, T_bitplane, BINARY_TYPE, 
-                  DATA_DECODING_ALGORITHM, mgard_cuda::CUDA>(handle).
+    mgard_cuda::MDR::GroupedDecoder<T_data, T_bitplane, BINARY_TYPE, 
+                  DATA_DECODING_ALGORITHM, mgard_cuda::CUDA>().
                   Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp, 
                   encoded_bitplanes, signs_subarray, v, queue_idx);
 

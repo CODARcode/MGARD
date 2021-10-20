@@ -10,7 +10,7 @@
 
 #include "CommonInternal.h"
 #include "Functor.h"
-#include "AutoTuner.h"
+#include "AutoTuners/AutoTuner.h"
 #include "Task.h"
 #include "DeviceAdapters/DeviceAdapter.h"
 
@@ -102,11 +102,11 @@ private:
   SIZE *shape_sm;
 };
 
-template <typename HandleType, DIM D, typename T, OPTION OP, typename DeviceType>
-class LwpkReo: public AutoTuner<HandleType, DeviceType> {
+template <DIM D, typename T, OPTION OP, typename DeviceType>
+class LwpkReo: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  LwpkReo(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  LwpkReo():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDm_CONT
@@ -147,8 +147,8 @@ public:
     const int F=LWPK_CONFIG[D-1][2];
     using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask<R, C, F>( shape, v, work, queue_idx); 
-    DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); 
+    TaskType task = GenTask<R, C, F>(shape, v, work, queue_idx); 
+    DeviceAdapter<TaskType, DeviceType> adapter; 
     adapter.Execute(task);
   }
 };
@@ -349,12 +349,12 @@ private:
 
 };
 
-template <typename HandleType, DIM D, typename T, OPTION Direction, typename DeviceType>
-class LevelwiseCalcNDKernel: public AutoTuner<HandleType, DeviceType> {
+template <DIM D, typename T, OPTION Direction, typename DeviceType>
+class LevelwiseCalcNDKernel: public AutoTuner<DeviceType> {
 
 public:
   MGARDm_CONT
-  LevelwiseCalcNDKernel(HandleType& handle): AutoTuner<HandleType, DeviceType>(handle) {}
+  LevelwiseCalcNDKernel(): AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDm_CONT
@@ -387,7 +387,7 @@ public:
       using FunctorType = LevelwiseCalcNDFunctor<D, T, R, C, F, Direction, DeviceType>;\
       using TaskType = Task<FunctorType>;\
       TaskType task = GenTask<R, C, F>(shape_h, shape_d, v, w, queue_idx);\
-      DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); \
+      DeviceAdapter<TaskType, DeviceType> adapter; \
       adapter.Execute(task);\
     }
 
