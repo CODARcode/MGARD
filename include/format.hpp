@@ -5,6 +5,7 @@
 
 #include <cstdint>
 
+#include <array>
 #include <vector>
 
 namespace mgard {
@@ -41,6 +42,9 @@ struct VersionNumber {
 
   //! Patch version.
   uint8_t patch;
+
+  //! Pack the components into an array.
+  std::array<uint8_t, 3> to_array() const;
 };
 
 //! Equality comparison.

@@ -1,40 +1,33 @@
 #include "format.hpp"
 
-#include <array>
-
 namespace mgard {
 
-namespace {
-
-// Version number as array.
-std::array<uint8_t, 3> vnaa(const VersionNumber &a) {
+std::array<uint8_t, 3> VersionNumber::to_array() {
   return {a.major, a.minor, a.patch};
 }
 
-} // namespace
-
 bool operator==(const VersionNumber &a, const VersionNumber &b) {
-  return operator==(vnaa(a), vnaa(b));
+  return operator==(a.to_array(), b.to_array());
 }
 
 bool operator!=(const VersionNumber &a, const VersionNumber &b) {
-  return operator!=(vnaa(a), vnaa(b));
+  return operator!=(a.to_array(), b.to_array());
 }
 
 bool operator>=(const VersionNumber &a, const VersionNumber &b) {
-  return operator>=(vnaa(a), vnaa(b));
+  return operator>=(a.to_array(), b.to_array());
 }
 
 bool operator>(const VersionNumber &a, const VersionNumber &b) {
-  return operator>(vnaa(a), vnaa(b));
+  return operator>(a.to_array(), b.to_array());
 }
 
 bool operator<=(const VersionNumber &a, const VersionNumber &b) {
-  return operator<=(vnaa(a), vnaa(b));
+  return operator<=(a.to_array(), b.to_array());
 }
 
 bool operator<(const VersionNumber &a, const VersionNumber &b) {
-  return operator<(vnaa(a), vnaa(b));
+  return operator<(a.to_array(), b.to_array());
 }
 
 MetadataReader::MetadataReader(unsigned char const *const p) : p(p) {}
