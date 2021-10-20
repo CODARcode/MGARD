@@ -42,6 +42,7 @@ set(MGARD_CUDA_HEADER
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/dbg_gpu_printing.cuh
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/format.hh
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/histogram.cuh
+      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/Histogram.hpp
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/huffman_codec.cuh
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/huffman_workflow.cuh
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/io.hh

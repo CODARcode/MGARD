@@ -3,7 +3,7 @@
 
 #include "../../CommonInternal.h"
 #include "../../Functor.h"
-#include "../../AutoTuner.h"
+#include "../../AutoTuners/AutoTuner.h"
 #include "../../Task.h"
 #include "../../DeviceAdapters/DeviceAdapterCuda.h"
 
@@ -385,9 +385,9 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
   public: 
   MGARDm_CONT GroupedWarpEncoderFunctor(LENGTH n,
                                         SIZE exp,
-                                        SubArray<1, T, CUDA> v,
-                                        SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-                                        SubArray<2, T_error, CUDA> level_errors_workspace):
+                                        SubArray<1, T, DeviceType> v,
+                                        SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                                        SubArray<2, T_error, DeviceType> level_errors_workspace):
                                         n(n),
                                         exp(exp), encoded_bitplanes(encoded_bitplanes),
                                         v(v), level_errors_workspace(level_errors_workspace) {
@@ -659,9 +659,9 @@ private:
   // parameters
   LENGTH n;
   SIZE exp;
-  SubArray<1, T, CUDA> v;
-  SubArray<2, T_bitplane, CUDA> encoded_bitplanes;
-  SubArray<2, T_error, CUDA> level_errors_workspace;
+  SubArray<1, T, DeviceType> v;
+  SubArray<2, T_bitplane, DeviceType> encoded_bitplanes;
+  SubArray<2, T_error, DeviceType> level_errors_workspace;
 
   // stateful thread local variables
   
@@ -690,12 +690,12 @@ private:
 };
 
 
-template <typename HandleType, typename T, typename T_bitplane, typename T_error,
+template <typename T, typename T_bitplane, typename T_error,
           SIZE NumGroupsPerWarpPerIter, SIZE NumWarpsPerTB, OPTION BinaryType, OPTION EncodingAlgorithm, OPTION ErrorColectingAlgorithm, typename DeviceType>
-class GroupedWarpEncoder: public AutoTuner<HandleType, DeviceType> {
+class GroupedWarpEncoder: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  GroupedWarpEncoder(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  GroupedWarpEncoder():AutoTuner<DeviceType>() {}
 
   using T_sfp = typename std::conditional<std::is_same<T, double>::value, int64_t, int32_t>::type;
   using T_fp = typename std::conditional<std::is_same<T, double>::value, uint64_t, uint32_t>::type;
@@ -706,9 +706,9 @@ public:
   Task<GroupedWarpEncoderFunctor<T, T_fp, T_sfp, T_bitplane, T_error, NumEncodingBitplanes, NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, EncodingAlgorithm, ErrorColectingAlgorithm, DeviceType>> 
   GenTask(LENGTH n,
           SIZE exp,
-          SubArray<1, T, CUDA> v,
-          SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-          SubArray<2, T_error, CUDA> level_errors_workspace,
+          SubArray<1, T, DeviceType> v,
+          SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+          SubArray<2, T_error, DeviceType> level_errors_workspace,
           int queue_idx) 
   {
     using FunctorType = GroupedWarpEncoderFunctor<T, T_fp, T_sfp, T_bitplane, T_error, NumEncodingBitplanes, NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, EncodingAlgorithm, ErrorColectingAlgorithm, DeviceType>;
@@ -729,10 +729,10 @@ public:
   void Execute(LENGTH n,
                SIZE num_bitplanes,
                SIZE exp,
-               SubArray<1, T, CUDA> v,
-               SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-               SubArray<1, T_error, CUDA> level_errors,
-               SubArray<2, T_error, CUDA> level_errors_workspace,
+               SubArray<1, T, DeviceType> v,
+               SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+               SubArray<1, T_error, DeviceType> level_errors,
+               SubArray<2, T_error, DeviceType> level_errors_workspace,
                int queue_idx) {
     
     // PrintSubarray("v", v);
@@ -741,7 +741,7 @@ public:
         using FunctorType = GroupedWarpEncoderFunctor<T, T_fp, T_sfp, T_bitplane, T_error, NumEncodingBitplanes, NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, EncodingAlgorithm, ErrorColectingAlgorithm, DeviceType>;\
         using TaskType = Task<FunctorType>; \
         TaskType task = GenTask<T_fp, T_sfp, NumEncodingBitplanes>(n, exp, v, encoded_bitplanes, level_errors_workspace, queue_idx);\
-        DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle);\
+        DeviceAdapter<TaskType, DeviceType> adapter;\
         adapter.Execute(task); \
       }
 
@@ -812,17 +812,19 @@ public:
 
     #undef ENCODE
 
-    this->handle.sync_all();
+    // this->handle.sync_all();
+    DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
     // PrintSubarray("level_errors_workspace", level_errors_workspace);
     // get level error
     SIZE reduce_size = MGARDm_NUM_SMs;
-    DeviceReduce<HandleType, T_error, DeviceType> deviceReduce(this->handle);
+    DeviceReduce<T_error, DeviceType> deviceReduce;
     for (int i = 0; i < num_bitplanes + 1; i++) {
       SubArray<1, T_error, CUDA> curr_errors({reduce_size}, level_errors_workspace(i, 0));
       SubArray<1, T_error, CUDA> sum_error({1}, level_errors(i));
       deviceReduce.Sum(reduce_size, curr_errors, sum_error, queue_idx);
     }
-    this->handle.sync_all();
+    DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
+    // this->handle.sync_all();
 
     // PrintSubarray("v", v);
 
@@ -853,9 +855,9 @@ public:
   MGARDm_CONT GroupedWarpDecoderFunctor(LENGTH n,
                                     SIZE starting_bitplane,
                                     SIZE exp,
-                                    SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-                                    SubArray<1, bool, CUDA> signs,
-                                    SubArray<1, T, CUDA> v):
+                                    SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                                    SubArray<1, bool, DeviceType> signs,
+                                    SubArray<1, T, DeviceType> v):
                                     n(n),
                                     starting_bitplane(starting_bitplane),
                                     exp(exp), encoded_bitplanes(encoded_bitplanes), signs(signs),
@@ -1054,9 +1056,9 @@ private:
   LENGTH n;
   SIZE starting_bitplane;
   SIZE exp;
-  SubArray<2, T_bitplane, CUDA> encoded_bitplanes;
-  SubArray<1, bool, CUDA> signs;
-  SubArray<1, T, CUDA> v;
+  SubArray<2, T_bitplane, DeviceType> encoded_bitplanes;
+  SubArray<1, bool, DeviceType> signs;
+  SubArray<1, T, DeviceType> v;
 
   // stateful thread local variables
   bool debug, debug2;
@@ -1080,12 +1082,12 @@ private:
 };
 
 
-template <typename HandleType, typename T, typename T_bitplane,
+template <typename T, typename T_bitplane,
           SIZE NumGroupsPerWarpPerIter, SIZE NumWarpsPerTB, OPTION BinaryType, OPTION DecodingAlgorithm, typename DeviceType>
-class GroupedWarpDecoder: public AutoTuner<HandleType, DeviceType> {
+class GroupedWarpDecoder: public AutoTuner<DeviceType> {
 public:
   MGARDm_CONT
-  GroupedWarpDecoder(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+  GroupedWarpDecoder():AutoTuner<DeviceType>() {}
 
   using T_sfp = typename std::conditional<std::is_same<T, double>::value, int64_t, int32_t>::type;
   using T_fp = typename std::conditional<std::is_same<T, double>::value, uint64_t, uint32_t>::type;
@@ -1097,9 +1099,9 @@ public:
   GenTask(LENGTH n,
           SIZE starting_bitplane,
           SIZE exp,
-          SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-          SubArray<1, bool, CUDA> signs,
-          SubArray<1, T, CUDA> v,
+          SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+          SubArray<1, bool, DeviceType> signs,
+          SubArray<1, T, DeviceType> v,
           int queue_idx) 
   {
     using FunctorType = GroupedWarpDecoderFunctor<T, T_fp, T_sfp, T_bitplane, NumDecodingBitplanes, NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, DecodingAlgorithm, DeviceType>;
@@ -1121,9 +1123,9 @@ public:
                SIZE starting_bitplane,
                SIZE num_bitplanes,
                SIZE exp,
-               SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-               SubArray<1, bool, CUDA> signs,
-               SubArray<1, T, CUDA> v,
+               SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+               SubArray<1, bool, DeviceType> signs,
+               SubArray<1, T, DeviceType> v,
                int queue_idx) 
   {
     #define DECODE(NumDecodingBitplanes) \
@@ -1131,7 +1133,7 @@ public:
         using FunctorType = GroupedWarpDecoderFunctor<T, T_fp, T_sfp, T_bitplane, NumDecodingBitplanes, NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, DecodingAlgorithm, DeviceType>;\
         using TaskType = Task<FunctorType>;\
         TaskType task = GenTask<T_fp, T_sfp, NumDecodingBitplanes>(n, starting_bitplane, exp, encoded_bitplanes, signs, v, queue_idx);\
-        DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle);\
+        DeviceAdapter<TaskType, DeviceType> adapter;\
         adapter.Execute(task);\
       }
 
@@ -1202,7 +1204,8 @@ public:
 
     #undef DECODE
 
-    this->handle.sync_all();
+    DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
+    // this->handle.sync_all();
     // PrintSubarray("v", v);
   }
 };
@@ -1235,10 +1238,10 @@ public:
 
     
 
-    mgard_cuda::MDR::GroupedWarpEncoder<HandleType, T_data, T_bitplane, T_error, 
+    mgard_cuda::MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error, 
                                         NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB, BINARY_TYPE, 
                                         DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, 
-                                        mgard_cuda::CUDA>encoder(handle);
+                                        mgard_cuda::CUDA>encoder;
 
     mgard_cuda::Array<2, T_error, mgard_cuda::CUDA> level_errors_work_array({num_bitplanes+1, MGARDm_NUM_SMs});
     mgard_cuda::SubArray<2, T_error, mgard_cuda::CUDA> level_errors_work(level_errors_work_array);
@@ -1275,9 +1278,9 @@ public:
 
     // const mgard_cuda::SIZE NumGroupsPerWarpPerIter = 2;
     // const mgard_cuda::SIZE NumWarpsPerTB = 16;
-    mgard_cuda::MDR::GroupedWarpDecoder<HandleType, T_data, T_bitplane, 
+    mgard_cuda::MDR::GroupedWarpDecoder<T_data, T_bitplane, 
                   NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB, BINARY_TYPE, 
-                  DATA_DECODING_ALGORITHM, mgard_cuda::CUDA> decoder(handle);
+                  DATA_DECODING_ALGORITHM, mgard_cuda::CUDA> decoder;
 
     if(level_signs.size() == level){
       level_signs.push_back(mgard_cuda::Array<1, bool, mgard_cuda::CUDA>({(mgard_cuda::SIZE)n}));
@@ -1300,10 +1303,10 @@ public:
 
 
   mgard_cuda::SIZE buffer_size(mgard_cuda::SIZE n) const {
-    mgard_cuda::MDR::GroupedWarpEncoder<HandleType, T_data, T_bitplane, T_error, 
+    mgard_cuda::MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error, 
                                         NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB, BINARY_TYPE, 
                                         DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, 
-                                        mgard_cuda::CUDA>encoder(handle);
+                                        mgard_cuda::CUDA>encoder;
     return encoder.MaxBitplaneLength(n);
   }
 

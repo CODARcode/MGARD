@@ -239,7 +239,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   //     prep_huffman, handle.shapes[0].get_dv(), outlier_count_array.get_dv(), outlier_idx_array.get_dv(), outliers_array.get_dv(), 0);
 
 
-  LevelwiseLinearQuantizeND<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+  LevelwiseLinearQuantizeND<D, T, DeviceType>().Execute(
           SubArray<1, SIZE, DeviceType>(handle.ranges), handle.l_target, 
           SubArray<2, T, DeviceType>(handle.volumes_array), 
           m, SubArray<D, T, DeviceType>(in_array),
@@ -586,7 +586,7 @@ Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
 
   // printf("outlier_count: %u\n", outlier_count_array.getDataHost()[0]);
 
-  LevelwiseLinearDequantizeND<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+  LevelwiseLinearDequantizeND<D, T, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.ranges), handle.l_target, 
             SubArray<2, T, DeviceType>(handle.volumes_array), 
             m, SubArray<D, T, DeviceType>(decompressed_data),

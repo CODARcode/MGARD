@@ -3,7 +3,7 @@
 
 #include "../../CommonInternal.h"
 #include "../../Functor.h"
-#include "../../AutoTuner.h"
+#include "../../AutoTuners/AutoTuner.h"
 #include "../../Task.h"
 #include "../../DeviceAdapters/DeviceAdapterCuda.h"
 
@@ -303,11 +303,11 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
   };
 
 
-  template <typename HandleType, typename T, typename DeviceType>
-  class PerBitEncoder: public AutoTuner<HandleType, DeviceType> {
+  template <typename T, typename DeviceType>
+  class PerBitEncoder: public AutoTuner<DeviceType> {
   public:
     MGARDm_CONT
-    PerBitEncoder(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+    PerBitEncoder():AutoTuner<DeviceType>() {}
 
     template <typename T_fp, typename T_bitplane, typename T_error, SIZE B>
     MGARDm_CONT
@@ -351,13 +351,13 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
         using FunctorType = PerBitEncoderFunctor<T, uint64_t, uint8_t, double, B, DeviceType>;
         using TaskType = Task<FunctorType>;
         TaskType task = GenTask<uint64_t, uint8_t, double, B>(n, num_bitplanes, exp, v, encoded_bitplanes, level_errors_workspace, queue_idx);
-        DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle);
+        DeviceAdapter<TaskType, DeviceType> adapter;
         adapter.Execute(task);
       } else if (std::is_same<T, float>::value) {
         using FunctorType = PerBitEncoderFunctor<T, uint32_t, uint8_t, double, B, DeviceType>;
         using TaskType = Task<FunctorType>;
         TaskType task = GenTask<uint32_t, uint8_t, double, B>(n, num_bitplanes, exp, v, encoded_bitplanes, level_errors_workspace, queue_idx);
-        DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle);
+        DeviceAdapter<TaskType, DeviceType> adapter;
         adapter.Execute(task);
       }
 
@@ -366,10 +366,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       // get level error
       using T_reduce = double;
       SIZE reduce_size = (n-1)/B+1;
-      DeviceReduce<HandleType, T_reduce, DeviceType> deviceReduce(this->handle);
+      DeviceReduce<T_reduce, DeviceType> deviceReduce(this->handle);
       for (int i = 0; i < num_bitplanes + 1; i++) {
-        SubArray<1, T_reduce, CUDA> curr_errors({reduce_size}, level_errors_workspace(i, 0));
-        SubArray<1, T_reduce, CUDA> sum_error({1}, level_errors(i));
+        SubArray<1, T_reduce, DeviceType> curr_errors({reduce_size}, level_errors_workspace(i, 0));
+        SubArray<1, T_reduce, DeviceType> sum_error({1}, level_errors(i));
         deviceReduce.Sum(reduce_size, curr_errors, sum_error, queue_idx);
       }
 
@@ -377,7 +377,8 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       // PrintSubarray("level_errors", level_errors);
 
       T_reduce * level_errors_temp = new T_reduce[num_bitplanes+1];
-      cudaMemcpyAsyncHelper(this->handle, level_errors_temp, level_errors.data(), (num_bitplanes+1)* sizeof(T_reduce), AUTO, queue_idx);
+      // cudaMemcpyAsyncHelper(this->handle, level_errors_temp, level_errors.data(), (num_bitplanes+1)* sizeof(T_reduce), AUTO, queue_idx);
+      MemoryManager<DeviceType>().Copy1D(level_errors_temp, level_errors.data(), num_bitplanes+1, queue_idx);
 
       for(int i=0; i<num_bitplanes+1; i++){
         // printf("%f <- %f exp %d\n", ldexp(level_errors_temp[i], 2*(- (int)num_bitplanes + exp)),
@@ -385,9 +386,11 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
         level_errors_temp[i] = ldexp(level_errors_temp[i], 2*(- (int)num_bitplanes + exp));
         
       }
-      cudaMemcpyAsyncHelper(this->handle, level_errors.data(), level_errors_temp, (num_bitplanes+1)* sizeof(T_reduce), AUTO, queue_idx);
-      
-      this->handle.sync_all();
+      // cudaMemcpyAsyncHelper(this->handle, level_errors.data(), level_errors_temp, (num_bitplanes+1)* sizeof(T_reduce), AUTO, queue_idx);
+      MemoryManager<DeviceType>().Copy1D(level_errors.data(), level_errors_temp, num_bitplanes+1, queue_idx);
+
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+      // this->handle.sync_all();
       // PrintSubarray("level_errors", level_errors);
 
 
@@ -599,10 +602,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       SIZE starting_bitplane;
       SIZE num_bitplanes;
       SIZE exp;
-      SubArray<2, T_bitplane, CUDA> encoded_bitplanes;
-      SubArray<1, bool, CUDA> flags;
-      SubArray<1, bool, CUDA> signs;
-      SubArray<1, T, CUDA> v;
+      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes;
+      SubArray<1, bool, DeviceType> flags;
+      SubArray<1, bool, DeviceType> signs;
+      SubArray<1, T, DeviceType> v;
 
       // stateful thread local variables
       bool debug;
@@ -617,11 +620,11 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
   };
 
 
-  template <typename HandleType, typename T, typename DeviceType>
-  class PerBitDecoder: public AutoTuner<HandleType, DeviceType> {
+  template <typename T, typename DeviceType>
+  class PerBitDecoder: public AutoTuner<DeviceType> {
   public:
     MGARDm_CONT
-    PerBitDecoder(HandleType& handle):AutoTuner<HandleType, DeviceType>(handle) {}
+    PerBitDecoder():AutoTuner<DeviceType>() {}
 
     template <typename T_fp, typename T_bitplane, SIZE B>
     MGARDm_CONT
@@ -629,10 +632,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
                                                                            SIZE starting_bitplane,
                                                                            SIZE num_bitplanes,
                                                                            SIZE exp,
-                                                                           SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
-                                                                           SubArray<1, bool, CUDA> flags,
-                                                                           SubArray<1, bool, CUDA> signs,
-                                                                           SubArray<1, T, CUDA> v,
+                                                                           SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                                                                           SubArray<1, bool, DeviceType> flags,
+                                                                           SubArray<1, bool, DeviceType> signs,
+                                                                           SubArray<1, T, DeviceType> v,
                                                                            int queue_idx) 
     {
       using FunctorType = PerBitDecoderFunctor<T, T_fp, T_bitplane, B, DeviceType>;
@@ -657,10 +660,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
                  SIZE starting_bitplane,
                  SIZE num_bitplanes,
                  SIZE exp,
-                 SubArray<2, uint8_t, CUDA> encoded_bitplanes,
-                 SubArray<1, bool, CUDA> flags,
-                 SubArray<1, bool, CUDA> signs,
-                 SubArray<1, T, CUDA> v,
+                 SubArray<2, uint8_t, DeviceType> encoded_bitplanes,
+                 SubArray<1, bool, DeviceType> flags,
+                 SubArray<1, bool, DeviceType> signs,
+                 SubArray<1, T, DeviceType> v,
                  int queue_idx) {
       
       const int B = 32;
@@ -668,13 +671,13 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
         using FunctorType = PerBitDecoderFunctor<T, uint64_t, uint8_t, B, DeviceType>;
         using TaskType = Task<FunctorType>;
         TaskType task = GenTask<uint64_t, uint8_t, B>(n, starting_bitplane, num_bitplanes, exp, encoded_bitplanes, flags, signs, v, queue_idx);
-        DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle);
+        DeviceAdapter<TaskType, DeviceType> adapter;
         adapter.Execute(task);
       } else if (std::is_same<T, float>::value) {
         using FunctorType = PerBitDecoderFunctor<T, uint32_t, uint8_t, B, DeviceType>;
         using TaskType = Task<FunctorType>;
         TaskType task = GenTask<uint32_t, uint8_t, B>(n, starting_bitplane, num_bitplanes, exp, encoded_bitplanes, flags, signs, v, queue_idx);
-        DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle);
+        DeviceAdapter<TaskType, DeviceType> adapter;
         adapter.Execute(task);
       }
 
@@ -861,7 +864,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             SubArray<2, uint8_t, CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
             // printf("calling PerBitEncoder\n");
-            PerBitEncoder<Handle<D, T_data>, T_data, CUDA>(_handle).Execute(n, num_bitplanes, exp, v, encoded_bitplanes_subarray, level_errors_subarray, level_errors_work_subarray, 0);
+            PerBitEncoder<T_data, CUDA>().Execute(n, num_bitplanes, exp, v, encoded_bitplanes_subarray, level_errors_subarray, level_errors_work_subarray, 0);
 
             cudaMemcpyAsyncHelper(_handle, level_errors.data(), level_errors_subarray.data(), (num_bitplanes+1)* sizeof(double), AUTO, 0);
             _handle.sync_all();
@@ -1101,7 +1104,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             delete [] new_flags;
             delete [] new_signs;
 
-            PerBitDecoder<Handle<D, T_data>, T_data, CUDA>(_handle).Execute(n, starting_bitplane, num_bitplanes, exp, encoded_bitplanes_subarray, flags_subarray, signs_subarray, v, 0);
+            PerBitDecoder<T_data, CUDA>().Execute(n, starting_bitplane, num_bitplanes, exp, encoded_bitplanes_subarray, flags_subarray, signs_subarray, v, 0);
 
             new_flags = flags_array.getDataHost();
             new_signs = signs_array.getDataHost();

@@ -1,6 +1,6 @@
 #include "cuda/CommonInternal.h"
 #include "cuda/Functor.h"
-#include "cuda/AutoTuner.h"
+#include "cuda/AutoTuners/AutoTuner.h"
 #include "cuda/Task.h"
 #include "cuda/DeviceAdapters/DeviceAdapterCuda.h"
 #include "cuda/MDR/BitplaneEncoder/GroupedBPEncoderGPU.hpp"
@@ -94,7 +94,7 @@ void test(mgard_cuda::SIZE n,
   printf("n: %u, num_batches_per_TB: %u, num_elems_per_TB: %u, num_TB: %u\n", n, num_batches_per_TB, num_elems_per_TB, num_TB);
 
 
-  mgard_cuda::MDR::GroupedEncoder<HandleType, T_data, T_bitplane, T_error, BINARY, DataEncodingAlgorithm, ErrorCollectingAlgorithm, mgard_cuda::CUDA> encoder(handle);
+  mgard_cuda::MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY, DataEncodingAlgorithm, ErrorCollectingAlgorithm, mgard_cuda::CUDA> encoder;
 
   mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> v_array({n});
   v_array.loadData(v);
@@ -111,22 +111,22 @@ void test(mgard_cuda::SIZE n,
 
   mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> result_array({1});
   mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> result(result_array);
-  mgard_cuda::DeviceReduce<HandleType, T_data, mgard_cuda::CUDA> deviceReduce(handle);
+  mgard_cuda::DeviceReduce<T_data, mgard_cuda::CUDA> deviceReduce;
   deviceReduce.AbsMax(v_subarray.shape[0], v_subarray, result, 0);
-  handle.sync_all();
+  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
   T_data level_max_error = *(result_array.getDataHost());
   int exp = 0;
   frexp(level_max_error, &exp);
 
 
-  handle.sync_all();
+  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
   t1 = high_resolution_clock::now();
 
   encoder.Execute(n, num_batches_per_TB, encoding_num_bitplanes, exp, 
                   v_subarray, encoded_bitplanes_subarray, level_errors, level_errors_work, 0);
 
   // mgard_cuda::EncodingTest<mgard_cuda::Handle<1, float>, T_data, T_bitplane, METHOD, mgard_cuda::CUDA>(handle).Execute(n, v_subarray, bitplane_subarray, encoding_num_bitplanes, 0);
-  handle.sync_all();
+  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
   t2 = high_resolution_clock::now();
   time_span = duration_cast<duration<double>>(t2 - t1);
 
@@ -181,17 +181,17 @@ void test(mgard_cuda::SIZE n,
   mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> v2_array({n});
   mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v2_subarray(v2_array);
 
-  handle.sync_all();
+  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
   t1 = high_resolution_clock::now();
 
-  mgard_cuda::MDR::GroupedDecoder<HandleType, T_data, T_bitplane, BinaryType, 
-                  DataDecodingAlgorithm, mgard_cuda::CUDA>(handle).
+  mgard_cuda::MDR::GroupedDecoder<T_data, T_bitplane, BinaryType, 
+                  DataDecodingAlgorithm, mgard_cuda::CUDA>().
                   Execute(n, num_batches_per_TB, starting_bitplane, decoding_num_bitplanes, exp, 
                   encoded_bitplanes_subarray, signs_subarray, v2_subarray, 0);
 
 
   // mgard_cuda::DecodingTest<mgard_cuda::Handle<1, float>, T_bitplane, T_data, METHOD, mgard_cuda::CUDA>(handle).Execute(n, bitplane_subarray, v2_subarray, decoding_num_bitplanes, 0);
-  handle.sync_all();
+  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
   t2 = high_resolution_clock::now();
   time_span = duration_cast<duration<double>>(t2 - t1);
   std::cout << "Decoding time: " << time_span.count() <<" s (" << total_data/time_span.count() << "GB/s)\n";

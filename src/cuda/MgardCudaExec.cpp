@@ -284,7 +284,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     in_size = readfile(input_file, original_data);
   }
   if (in_size != original_size * sizeof(T)) {
-    std::cout << mgard_cuda::log::log_err << "input file size mismatch!\n";
+    std::cout << mgard_cuda::log::log_err << "input file size mismatch" << in_size << "vs." << original_size * sizeof(T) << "!\n";
   }
 
   void *compressed_data = NULL;

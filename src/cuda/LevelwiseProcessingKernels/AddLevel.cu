@@ -16,7 +16,7 @@ namespace mgard_cuda {
   template void lwpk<D, T, ADD>(Handle<D, T> & handle, SIZE *shape_h,           \
                                 SIZE *shape_d, T *dv, SIZE *ldvs, T *dwork,      \
                                 SIZE *ldws, int queue_idx);\
-  template class LwpkReo<Handle<D, T>, D, T, ADD, CUDA>;
+  template class LwpkReo<D, T, ADD, CUDA>;
 
 KERNELS(1, double)
 KERNELS(1, float)

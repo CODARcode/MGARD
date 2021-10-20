@@ -2,10 +2,10 @@
 #define _MDR_DIRECT_INTERLEAVER_GPU_HPP
 
 #include "../../CommonInternal.h"
-#include "../../Functor.h"
-#include "../../AutoTuner.h"
-#include "../../Task.h"
-#include "../../DeviceAdapters/DeviceAdapterCuda.h"
+// #include "../../Functor.h"
+// #include "../../AutoTuner.h"
+// #include "../../Task.h"
+// #include "../../DeviceAdapters/DeviceAdapterCuda.h"
 
 #include "InterleaverInterface.hpp"
 namespace mgard_m {
@@ -174,11 +174,11 @@ private:
   int level;
 };
 
-template <typename HandleType, mgard_cuda::DIM D, typename T, OPTION Direction, typename DeviceType>
+template <mgard_cuda::DIM D, typename T, OPTION Direction, typename DeviceType>
 class DirectInterleaverGPU: public mgard_cuda::AutoTuner<HandleType, DeviceType> {
   public:
   MGARDm_CONT
-  DirectInterleaverGPU(HandleType& handle): mgard_cuda::AutoTuner<HandleType, DeviceType>(handle) {}
+  DirectInterleaverGPU(): mgard_cuda::AutoTuner<HandleType, DeviceType>() {}
 
   template <mgard_cuda::SIZE R, mgard_cuda::SIZE C, mgard_cuda::SIZE F>
   MGARDm_CONT
@@ -218,7 +218,7 @@ class DirectInterleaverGPU: public mgard_cuda::AutoTuner<HandleType, DeviceType>
       TaskType task = GenTask<R, C, F>(\
                               shapes_h, ranges_d, l_target\
                               v, level_v);\
-      mgard_cuda::DeviceAdapter<HandleType, TaskType, DeviceType> adapter(this->handle); \
+      mgard_cuda::DeviceAdapter<TaskType, DeviceType> adapter; \
       adapter.Execute(task);\
     }
 
