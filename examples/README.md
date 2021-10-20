@@ -10,4 +10,4 @@ This directory contains examples showing how to use MGARD.
 [linking]: linking/README.md
 [compression]: compression/README.md
 [decompression]: decompression/README.md
-[gpu-cuda]: gpu-cuda/SimpleExample
+[gpu-cuda]: gpu-cuda/SimpleExample/README.md
