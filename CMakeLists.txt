@@ -391,10 +391,12 @@ if(MGARD_ENABLE_DOCS)
 				"${CMAKE_CURRENT_BINARY_DIR}/scripts/modify_documentation_links.py"
 				"${MGARD_DOC_PAGE}"
 				"${MGARD_DOC_PAGE_FIXED}"
-				#Get rid of the workflow status badges.
 				COMMAND "${SED}"
 				ARGS
-				"--expression" "s/\\\\s*\\\\[!\\\\[[^]]\\\\+\\\\]\\\\[[^]]\\\\+\\\\]\\\\]\\\\[[^]]\\\\+\\\\]//g"
+				#Get rid of the workflow status badges.
+				"--expression" "'s/\\s*\\[!\\[[^]]\\+\\]\\[[^]]\\+\\]\\]\\[[^]]\\+\\]//g'"
+				#Stop Doxygen from interpreting something like 'Huffman@GPU' – but not something like ' @ref' (added by the Python script above) – as a command.
+				"--expression" "'s/\\([[:alnum:]]\\)@\\([[:alnum:]]\\)/\\1\\\\@\\2/g'"
 				"--in-place"
 				"${MGARD_DOC_PAGE_FIXED}"
 				WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
