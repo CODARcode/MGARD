@@ -292,7 +292,7 @@ template <typename T> __device__ T _get_dist(T *coords, int i, int j);
 #include "Array.hpp"
 #include "SubArray.hpp"
 #include "Metadata.h"
-#include "AutoTuner.h"
+#include "AutoTuners/AutoTuner.h"
 #include "Task.h"
 
 // #include "Functor.h"

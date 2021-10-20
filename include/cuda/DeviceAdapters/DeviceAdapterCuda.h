@@ -44,44 +44,129 @@ static __device__ __inline__ uint32_t __mylaneid(){
 namespace mgard_cuda {
 
 template <>
+class DeviceSpecification<CUDA> {
+  public:
+  MGARDm_CONT
+  DeviceSpecification(){
+    cudaGetDeviceCount(&NumDevices);
+    MaxSharedMemorySize = new int[NumDevices];
+    WarpSize = new int[NumDevices];
+    NumSMs = new int[NumDevices];
+    ArchitectureGeneration = new int[NumDevices];
+
+    for (int d = 0; d < NumDevices; d++) {
+      gpuErrchk(cudaSetDevice(d));
+      int maxbytes;
+      int maxbytesOptIn;
+      cudaDeviceGetAttribute(&maxbytes, cudaDevAttrMaxSharedMemoryPerBlock, d);
+      cudaDeviceGetAttribute(&maxbytesOptIn, cudaDevAttrMaxSharedMemoryPerBlockOptin, d);
+      MaxSharedMemorySize[d] = std::max(maxbytes, maxbytesOptIn);
+      cudaDeviceGetAttribute(&WarpSize[d], cudaDevAttrWarpSize, d);
+      cudaDeviceGetAttribute(&NumSMs[d], cudaDevAttrMultiProcessorCount, d);
+
+      cudaDeviceProp prop;
+      cudaGetDeviceProperties(&prop, d);
+      ArchitectureGeneration[d] = 1; // default optimized for Volta
+      if (prop.major == 7 && prop.minor == 0) {
+        ArchitectureGeneration[d] = 1;
+      } else if (prop.major == 7 && (prop.minor == 2 || prop.minor == 5)) {
+        ArchitectureGeneration[d] = 2;
+      }
+    }
+  }
+
+  MGARDm_CONT int
+  GetNumDevices() {
+    return NumDevices;
+  }
+
+  MGARDm_CONT int
+  GetMaxSharedMemorySize(int dev_id) {
+    return MaxSharedMemorySize[dev_id];
+  }
+
+  MGARDm_CONT int
+  GetWarpSize(int dev_id) {
+    return WarpSize[dev_id];
+  }
+
+  MGARDm_CONT int
+  GetNumSMs(int dev_id) {
+    return NumSMs[dev_id];
+  }
+
+  MGARDm_CONT int
+  GetArchitectureGeneration(int dev_id) {
+    return ArchitectureGeneration[dev_id];
+  }
+
+  MGARDm_CONT
+  ~DeviceSpecification() {
+    delete [] MaxSharedMemorySize;
+    delete [] WarpSize;
+    delete [] NumSMs;
+    delete [] ArchitectureGeneration;
+  }
+
+  int NumDevices;
+  int* MaxSharedMemorySize;
+  int* WarpSize;
+  int* NumSMs;
+  int* ArchitectureGeneration;
+};
+
+
+
+template <>
 class DeviceQueues<CUDA> {
   public:
   MGARDm_CONT
   DeviceQueues(){
-    streams = new cudaStream_t[MGARDm_NUM_QUEUES];
-    for (SIZE i = 0; i < MGARDm_NUM_QUEUES; i++) {
-      gpuErrchk(cudaStreamCreate(&streams[i]));
+    cudaGetDeviceCount(&NumDevices);
+    streams = new cudaStream_t*[NumDevices];
+    for (int d = 0; d < NumDevices; d++) {
+      gpuErrchk(cudaSetDevice(d));
+      streams[d] = new cudaStream_t[MGARDm_NUM_QUEUES];
+      for (SIZE i = 0; i < MGARDm_NUM_QUEUES; i++) {
+        gpuErrchk(cudaStreamCreate(&streams[d][i]));
+      }
     }
   }
 
   MGARDm_CONT cudaStream_t 
-  GetQueue(SIZE queue_id){
-    return streams[queue_id];
+  GetQueue(int dev_id, SIZE queue_id){
+    return streams[dev_id][queue_id];
   }
 
   MGARDm_CONT void 
-  SyncQueue(SIZE queue_id){
-    cudaStreamSynchronize(streams[queue_id]);
+  SyncQueue(int dev_id, SIZE queue_id){
+    cudaStreamSynchronize(streams[dev_id][queue_id]);
   }
 
   MGARDm_CONT void 
-  SyncAllQueues(){
+  SyncAllQueues(int dev_id){
     for (SIZE i = 0; i < MGARDm_NUM_QUEUES; i++) {
-      gpuErrchk(cudaStreamSynchronize(streams[i]));
+      gpuErrchk(cudaStreamSynchronize(streams[dev_id][i]));
     }
   }
 
   MGARDm_CONT
   ~DeviceQueues(){
-    for (int i = 0; i < MGARDm_NUM_QUEUES; i++) {
-      gpuErrchk(cudaStreamDestroy(streams[i]));
+    for (int d = 0; d < NumDevices; d++) {
+      gpuErrchk(cudaSetDevice(d));
+      for (int i = 0; i < MGARDm_NUM_QUEUES; i++) {
+        gpuErrchk(cudaStreamDestroy(streams[d][i]));
+      }
+      delete [] streams[d];
     }
     delete [] streams;
     streams = NULL;
   }
-  private:
-  cudaStream_t * streams = NULL;
+  
+  int NumDevices;
+  cudaStream_t ** streams = NULL;
 };
+
 
 
 template <>
@@ -99,19 +184,19 @@ class DeviceRuntime<CUDA> {
   MGARDm_CONT static cudaStream_t 
   GetQueue(SIZE queue_id){
     gpuErrchk(cudaSetDevice(curr_dev_id));
-    return queues.GetQueue(queue_id);
+    return queues.GetQueue(curr_dev_id, queue_id);
   }
 
   MGARDm_CONT static void 
   SyncQueue(SIZE queue_id){
     gpuErrchk(cudaSetDevice(curr_dev_id));
-    queues.SyncQueue(queue_id);
+    queues.SyncQueue(curr_dev_id, queue_id);
   }
 
   MGARDm_CONT static void 
   SyncAllQueues(){
     gpuErrchk(cudaSetDevice(curr_dev_id));
-    queues.SyncAllQueues();
+    queues.SyncAllQueues(curr_dev_id);
   }
 
   MGARDm_CONT static void
@@ -120,26 +205,23 @@ class DeviceRuntime<CUDA> {
   }
 
   MGARDm_CONT static int
-  GetMaxSharedMemorySize(){
-    int maxbytes;
-    int maxbytesOptIn;
-    cudaDeviceGetAttribute(&maxbytes, cudaDevAttrMaxSharedMemoryPerBlock, curr_dev_id);
-    cudaDeviceGetAttribute(&maxbytesOptIn, cudaDevAttrMaxSharedMemoryPerBlockOptin, curr_dev_id);
-    return std::max(maxbytes, maxbytesOptIn);
+  GetMaxSharedMemorySize() {
+    return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
   }
 
   MGARDm_CONT static int
-  GetWarpSize(){
-    int WarpSize;
-    cudaDeviceGetAttribute(&WarpSize, cudaDevAttrWarpSize, curr_dev_id);
-    return WarpSize;
+  GetWarpSize() {
+    return DeviceSpecs.GetWarpSize(curr_dev_id);
   }
 
   MGARDm_CONT static int
-  GetNumSMs(){
-    int NumSMs;
-    cudaDeviceGetAttribute(&NumSMs, cudaDevAttrMultiProcessorCount, curr_dev_id);
-    return NumSMs;
+  GetNumSMs() {
+    return DeviceSpecs.GetNumSMs(curr_dev_id);
+  }
+
+  MGARDm_CONT static int
+  GetArchitectureGeneration() {
+    return DeviceSpecs.GetArchitectureGeneration(curr_dev_id);
   }
 
   MGARDm_CONT
@@ -149,6 +231,7 @@ class DeviceRuntime<CUDA> {
   static int curr_dev_id;
   static DeviceQueues<CUDA> queues;
   static bool SyncAllKernelsAndCheckErrors;
+  static DeviceSpecification<CUDA> DeviceSpecs;
 };
 
 
@@ -869,11 +952,11 @@ MGARDm_KERL void IterKernel(Task task) {
 }
 
 
-template <typename HandleType, typename TaskType>
-class DeviceAdapter<HandleType, TaskType, CUDA> {
+template <typename TaskType>
+class DeviceAdapter<TaskType, CUDA> {
 public:
   MGARDm_CONT
-  DeviceAdapter(HandleType& handle):handle(handle){};
+  DeviceAdapter(){};
 
   MGARDm_CONT
   void Execute(TaskType& task) {
@@ -886,22 +969,17 @@ public:
     size_t sm_size = task.get_shared_memory_size();
     // printf("exec config (%d %d %d) (%d %d %d) sm_size: %llu\n", threadsPerBlock.x, threadsPerBlock.y, threadsPerBlock.z, 
     //                 blockPerGrid.x, blockPerGrid.y, blockPerGrid.z, sm_size);
-    cudaStream_t stream = *(cudaStream_t *)(this->handle.get(task.get_queue_idx()));
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(task.get_queue_idx());
     if constexpr (TaskType::Functor::ExecType == SequentialFunctor) {
       Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (TaskType::Functor::ExecType == IterativeFunctor) {
       IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     }
     gpuErrchk(cudaGetLastError());
-    // if (this->handle.sync_and_check_all_kernels) {
-    //   gpuErrchk(cudaDeviceSynchronize());
-    // }
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
-private:
-  HandleType& handle;
 };
 
 
@@ -915,22 +993,22 @@ struct AbsMaxOp
 };
 
 
-template <typename HandleType, typename T_reduce>
-class DeviceReduce<HandleType, T_reduce, CUDA>{
+template <typename T_reduce>
+class DeviceReduce<T_reduce, CUDA>{
 public:
   MGARDm_CONT
-  DeviceReduce(HandleType& handle):handle(handle){};
+  DeviceReduce(){};
 
   MGARDm_CONT
   void Sum(SIZE n, SubArray<1, T_reduce, CUDA>& v, SubArray<1, T_reduce, CUDA>& result, int queue_idx) {
     void     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
-    cudaStream_t stream = *(cudaStream_t *)(this->handle.get(queue_idx));
-    bool debug = this->handle.sync_and_check_all_kernels;
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, stream, debug);
     cudaMalloc(&d_temp_storage, temp_storage_bytes);
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, stream, debug);
-    this->handle.sync(queue_idx);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     cudaFree(d_temp_storage);
   }
 
@@ -939,16 +1017,14 @@ public:
     void     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
     AbsMaxOp absMaxOp;
-    cudaStream_t stream = *(cudaStream_t *)(this->handle.get(queue_idx));
-    bool debug = this->handle.sync_and_check_all_kernels;
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, absMaxOp, 0, stream, debug);
     cudaMalloc(&d_temp_storage, temp_storage_bytes);
     cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, absMaxOp, 0, stream, debug);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     cudaFree(d_temp_storage);
   }
-
-private:
-  HandleType& handle;
 };
 
 

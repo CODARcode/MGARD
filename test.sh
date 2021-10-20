@@ -7,7 +7,7 @@ make install
 # For details, refer to: 
 # (1) NCU: https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html
 # (2) NVPROF: https://docs.nvidia.com/cuda/profiler-users-guide/index.html
-NCU=/usr/local/cuda-10.2/nsight-compute-2019.5.0/target/linux-desktop-glibc_2_11_3-x64/nv-nsight-cu-cli
+NCU=/usr/local/cuda-11.4/bin/ncu
 NVPROF=nvprof
 
 ####### User's executable binary #######
@@ -113,10 +113,10 @@ test_group_l_inf () {
 # test_group_l_inf d rel $1
 
 DATA=../../512x512x512/velocity_x.dat
-# $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-3 -s 0 -l 1 -v
+$MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-3 -s 0 -l 1 -v
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e5 -s inf -l 2 -v
 
-# $MgardCudaExec -z -i random -c random.out -t s -n 1 400 -m abs -e 1 -s inf -l 2 -v
+# $MgardCudaExec -z -i random -c random.out -t s -n 1 400 -m abs - e 1 -s inf -l 2 -v
 
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m abs -e 1e5 -s inf -v
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e5 -s inf -v
@@ -158,7 +158,7 @@ DATA=../../512x512x512/velocity_x.dat
 # DATA=/home/jieyang/dev/data/pk.data
 # DATA=/home/jieyang/dev/data/enst.dat
 
-cd ../examples/gpu-cuda/CompareCpuAndGpu && rm -rf build && ./build_script.sh && ./build/BatchTests random
+# cd ../examples/gpu-cuda/CompareCpuAndGpu && rm -rf build && ./build_script.sh && ./build/BatchTests random
 
 
 # $XGC_4D
@@ -215,14 +215,18 @@ NPROC=2
 # "sudo" is requred to access low level performance counters
 # KERNEL=gpk_reo
 # KERNEL=lpk_reo_1
-KERNEL=ipk
+KERNEL=Kernel
 # KERNEL=lpk_reo_2
 # KERNEL=ipk_2
 # KERNEL=lpk_reo_3
 # KERNEL=ipk_3
 # KERNEL=lwpk
 INVOCAION=1
-METRIC=l1tex__t_bytes_pipe_lsu_mem_global_op_ld.sum.per_second,l1tex__t_bytes_pipe_lsu_mem_global_op_st.sum.per_second
+# METRIC=l1tex__t_bytes_pipe_lsu_mem_global_op_ld.sum.per_second,l1tex__t_bytes_pipe_lsu_mem_global_op_st.sum.per_second
+
+BIN=./bin/test_encoding_warp
+# sudo $NCU $BIN
+# sudo $NCU --kernel-id ::$KERNEL:$INVOCAION --section LaunchStats --section Occupancy --target-processes all  $BIN
 # sudo $NCU --kernel-id ::$KERNEL:$INVOCAION --metric $METRIC $BIN
 
 # METRIC=l1tex__t_bytes_pipe_lsu_mem_global_op_st.sum.per_second

@@ -21,7 +21,7 @@ namespace mgard_cuda {
       SIZE lddwrf1, SIZE lddwrf2, T *dwrc, SIZE lddwrc1, SIZE lddwrc2, T *dwrcf,   \
       SIZE lddwrcf1, SIZE lddwrcf2, SIZE svr, SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, \
       SIZE nvf, int queue_idx, int config);\
-  template class GpkRev3D<Handle<D, T>, D, T, CUDA>;
+  template class GpkRev3D<D, T, CUDA>;
 
 KERNELS(1, double)
 KERNELS(1, float)

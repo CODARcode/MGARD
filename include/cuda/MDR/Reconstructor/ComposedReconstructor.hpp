@@ -4,7 +4,7 @@
 
 #include "../../CommonInternal.h"
 #include "../../Functor.h"
-#include "../../AutoTuner.h"
+#include "../../AutoTuners/AutoTuner.h"
 #include "../../Task.h"
 #include "../../DeviceAdapters/DeviceAdapterCuda.h"
 
@@ -267,7 +267,7 @@ namespace MDR {
 
             reconstruct(tolerance);
 
-            mgard_cuda::LevelwiseCalcNDKernel<HandleType, D, T_data, ADD, mgard_cuda::CUDA>(handle).Execute(handle.shapes_h[0], 
+            mgard_cuda::LevelwiseCalcNDKernel<D, T_data, ADD, mgard_cuda::CUDA>().Execute(handle.shapes_h[0], 
                                                       handle.shapes_d[0],
                                                       mgard_cuda::SubArray<D, T_data, mgard_cuda::CUDA>(curr_data_array),
                                                       mgard_cuda::SubArray<D, T_data, mgard_cuda::CUDA>(data_array),

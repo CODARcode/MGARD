@@ -34,6 +34,8 @@ using namespace std::chrono;
 #include "cuda/ParallelHuffman/par_huffman.cuh"
 #include "cuda/ParallelHuffman/types.hh"
 
+#include "cuda/ParallelHuffman/Histogram.hpp"
+
 int ht_state_num;
 int ht_all_nodes;
 using uint8__t = uint8_t;
@@ -219,6 +221,13 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   ht_all_nodes = 2 * ht_state_num;
   auto freq = mem::CreateCUDASpace<unsigned int>(ht_all_nodes);
   wrapper::GetFrequency(dprimary, primary_count, freq, dict_size);
+
+  // mgard_cuda::SubArray<1, Q, mgard_cuda::CUDA> dprimary_subarray({n}, dprimary);
+  // mgard_cuda::SubArray<1, unsigned int, mgard_cuda::CUDA> freq_subarray({(mgard_cuda::SIZE)ht_all_nodes}, freq);
+
+  // mgard_cuda::Histogram<Q, unsigned int, mgard_cuda::CUDA>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
+
+
   gpuErrchk(cudaDeviceSynchronize());
 
   // Allocate cb memory

@@ -21,7 +21,7 @@ namespace mgard_cuda {
          bool prep_huffmam,                                                    \
       SIZE *shape, LENGTH *outlier_count, LENGTH *outlier_idx,                 \
       QUANTIZED_INT *outliers, int queue_idx);\
-    template class LevelwiseLinearQuantizeND<Handle<D, T>, D, T, CUDA>;
+    template class LevelwiseLinearQuantizeND<D, T, CUDA>;
 
 
 KERNELS(1, double)

@@ -162,7 +162,7 @@ void calc_coefficients_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
   SubArray<1, T, DeviceType> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
 
   T *null = NULL;
-  GpkReo3D<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+  GpkReo3D<D, T, DeviceType>().Execute(
       handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
       handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
       ratio_r, ratio_c, ratio_f,
@@ -267,7 +267,7 @@ void coefficients_restore_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
   SubArray<1, T, DeviceType> ratio_c({handle.dofs[1][l]}, handle.ratio[1][l]);
   SubArray<1, T, DeviceType> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
 
-  GpkRev3D<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+  GpkRev3D<D, T, DeviceType>().Execute(
       handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
       handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
       ratio_r, ratio_c, ratio_f,
@@ -421,7 +421,7 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
 
     SubArray<1, T, DeviceType> dist_f({handle.dofs[0][l]}, handle.dist[0][l]);
     SubArray<1, T, DeviceType> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
-    Lpk1Reo3D<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+    Lpk1Reo3D<D, T, DeviceType>().Execute(
         handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
         handle.dofs[0][l + 1], handle.dofs[2][l + 1], handle.dofs[1][l + 1],
         handle.dofs[0][l + 1], dist_f, ratio_f, dw_in1, dw_in2, dw_out, queue_idx);
@@ -462,7 +462,7 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
 
     SubArray<1, T, DeviceType> dist_c({handle.dofs[1][l]}, handle.dist[1][l]);
     SubArray<1, T, DeviceType> ratio_c({handle.dofs[1][l]}, handle.ratio[1][l]);
-    Lpk2Reo3D<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+    Lpk2Reo3D<D, T, DeviceType>().Execute(
         handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l + 1],
         handle.dofs[1][l + 1], dist_c, ratio_c, dw_in1, dw_in2, dw_out, queue_idx);
 
@@ -500,7 +500,7 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
 
     SubArray<1, T, DeviceType> dist_r({handle.dofs[2][l]}, handle.dist[2][l]);
     SubArray<1, T, DeviceType> ratio_r({handle.dofs[2][l]}, handle.ratio[2][l]);
-    Lpk3Reo3D<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+    Lpk3Reo3D<D, T, DeviceType>().Execute(
     handle.dofs[2][l], handle.dofs[1][l+1], handle.dofs[0][l+1], 
     handle.dofs[2][l+1], dist_r, ratio_r, dw_in1, dw_in2, dw_out, queue_idx);
 
@@ -545,7 +545,7 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     // PrintSubarray("am_f_c", am_f_c);
     // PrintSubarray("bm_f_c", bm_f_c);
 
-    Ipk1Reo3D<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+    Ipk1Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
             am_f_c, bm_f_c, dist_f_c, dw_out, queue_idx);
     // ipk_1_3d(
@@ -572,7 +572,7 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     SubArray<1, T, DeviceType> bm_c_c({handle.dofs[1][l+1]+1}, handle.bm[1][l+1]);
     SubArray<1, T, DeviceType> dist_c_c({handle.dofs[1][l+1]}, handle.dist[1][l+1]);
 
-    Ipk2Reo3D<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+    Ipk2Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
             am_c_c, bm_c_c, dist_c_c, dw_out, queue_idx);
 
@@ -602,7 +602,7 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     SubArray<1, T, DeviceType> bm_r_c({handle.dofs[2][l+1]+1}, handle.bm[2][l+1]);
     SubArray<1, T, DeviceType> dist_r_c({handle.dofs[2][l+1]}, handle.dist[2][l+1]);
 
-    Ipk3Reo3D<Handle<D, T>, D, T, DeviceType>(handle).Execute(
+    Ipk3Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
             am_r_c, bm_r_c, dist_r_c, dw_out, queue_idx);
 
@@ -1642,7 +1642,7 @@ void decompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldv
       SubArray<D, T, DeviceType> doutput({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
                             dv, ldvs_h, ldvs_d);
 
-      LwpkReo<Handle<D, T>, D, T, COPY, DeviceType>(handle).Execute(
+      LwpkReo<D, T, COPY, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), doutput, dinput, queue_idx);
 
       calc_coefficients_3d(handle, dinput, doutput, l, 0);
@@ -1654,7 +1654,7 @@ void decompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldv
 
       calc_correction_3d(handle, dcoeff, dcorrection, l, 0);
 
-      LwpkReo<Handle<D, T>, D, T, ADD, DeviceType>(handle).Execute(
+      LwpkReo<D, T, ADD, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), dcorrection, dcoeff, queue_idx);
 
       // lwpk<D, T, ADD>(
@@ -1841,7 +1841,7 @@ void recompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldv
       //         dcorrection.dv,
       //         dcorrection.ldvs_d, dv, ldvs_d, queue_idx);
 
-      LwpkReo<Handle<D, T>, D, T, SUBTRACT, DeviceType>(handle).Execute(
+      LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), dcorrection, dcoeff, queue_idx);
 
       SubArray<D, T, DeviceType> dinput({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
@@ -1859,7 +1859,7 @@ void recompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldv
       // lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
       //                  handle.dw, handle.ldws_d, dv, ldvs_d, queue_idx);
 
-      LwpkReo<Handle<D, T>, D, T, COPY, DeviceType>(handle).Execute(
+      LwpkReo<D, T, COPY, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), doutput, dinput, queue_idx);
 
 
