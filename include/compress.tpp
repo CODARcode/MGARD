@@ -415,7 +415,7 @@ DecompressedDataset<N, Real> decompress(
   // TODO: Figure out all these casts here and above.
 #ifndef MGARD_ZSTD
   decompress_memory_z(const_cast<void *>(compressed.data()), compressed.size(),
-                      reinterpret_cast<int *>(quantized),
+                      reinterpret_cast<unsigned char *>(quantized),
                       ndof * sizeof(*quantized));
 #else
   decompress_memory_huffman(

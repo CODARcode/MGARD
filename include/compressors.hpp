@@ -62,7 +62,7 @@ void compress_memory_z(void *const in_data, const std::size_t in_data_size,
 //!\param dst Decompressed array.
 //!\param dstLen Size in bytes of the decompressed array.
 void decompress_memory_z(void *const src, const std::size_t srcLen,
-                         int *const dst, const std::size_t dstLen);
+                         unsigned char *const dst, const std::size_t dstLen);
 
 } // namespace mgard
 
