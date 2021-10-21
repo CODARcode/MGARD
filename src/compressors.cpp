@@ -608,7 +608,7 @@ void compress_memory_z(void *const in_data, const std::size_t in_data_size,
 }
 
 void decompress_memory_z(void *const src, const std::size_t srcLen,
-                         int *const dst, const std::size_t dstLen) {
+                         unsigned char *const dst, const std::size_t dstLen) {
   z_stream strm = {};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;
