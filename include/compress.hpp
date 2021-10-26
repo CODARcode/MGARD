@@ -13,6 +13,11 @@
 
 #include <memory>
 
+#ifdef __NVCC__
+#error "Please include `compress_cuda.hpp` instead of `compress.hpp` when "\
+  "compiling with NVCC."
+#endif
+
 #include "compress_cuda.hpp"
 
 //! Implementation of the MGARD compression and decompression algorithms.
