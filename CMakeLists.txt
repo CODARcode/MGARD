@@ -174,6 +174,7 @@ set(
 )
 set(
 	MGARD_LIBRARY_CPP
+        src/compress.cpp
 	src/compressors.cpp
 )
 
