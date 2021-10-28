@@ -274,8 +274,12 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size) {
+
+  Config config;
+  // config.lossless = lossless_type::GPU_Huffman_LZ4;
+  // config.uniform_coord_mode = 1;
   compress(D, dtype, shape, tol, s, mode, original_data, compressed_data,
-           compressed_size, Config());
+           compressed_size, config);
 }
 
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
@@ -342,8 +346,11 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
               std::vector<const Byte *> coords) {
+  Config config;
+  // config.lossless = lossless_type::GPU_Huffman_LZ4;
+  // config.uniform_coord_mode = 1;
   compress(D, dtype, shape, tol, s, mode, original_data, compressed_data,
-           compressed_size, coords, Config());
+           compressed_size, coords, config);
 }
 
 void decompress(const void *compressed_data, size_t compressed_size,
@@ -459,7 +466,10 @@ void decompress(const void *compressed_data, size_t compressed_size,
 
 void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data) {
-  decompress(compressed_data, compressed_size, decompressed_data, Config());
+  Config config;
+  config.lossless = lossless_type::GPU_Huffman_LZ4;
+  config.uniform_coord_mode = 1;
+  decompress(compressed_data, compressed_size, decompressed_data, config);
 }
 
 } // namespace mgard_cuda

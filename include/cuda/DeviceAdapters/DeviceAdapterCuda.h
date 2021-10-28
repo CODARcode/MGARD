@@ -235,6 +235,90 @@ class DeviceRuntime<CUDA> {
 };
 
 
+template <>
+class MemoryManager<CUDA> {
+  public:
+  MGARDm_CONT
+  MemoryManager(){};
+
+  template <typename T>
+  MGARDm_CONT
+  void Malloc1D(T *& ptr, SIZE n, int queue_idx) {
+    gpuErrchk(cudaMalloc(&ptr, n * sizeof(T)));
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
+  }
+
+  template <typename T>
+  MGARDm_CONT
+  void MallocND(T *& ptr, SIZE n1, SIZE n2, SIZE &ld, int queue_idx) {
+    if (ReduceMemoryFootprint) {
+      gpuErrchk(cudaMalloc(&ptr, n1 * n2 * sizeof(T)));
+      ld = n1;
+    } else {
+      size_t pitch = 0;
+      gpuErrchk(cudaMallocPitch(&ptr, &pitch, n1 * sizeof(T), (size_t)n2));
+      ld = pitch / sizeof(T);
+    }
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
+  }
+
+  template <typename T>
+  MGARDm_CONT
+  void Free(T * ptr) {
+    // printf("MemoryManager.Free(%llu)\n", ptr);
+    gpuErrchk(cudaFree(ptr));
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
+  }
+
+  template <typename T>
+  MGARDm_CONT
+  void Copy1D(T * dst_ptr, const T * src_ptr, SIZE n, int queue_idx) {
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    gpuErrchk(cudaMemcpyAsync(dst_ptr, src_ptr, n*sizeof(T), cudaMemcpyDefault, stream));
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
+  }
+
+  template <typename T>
+  MGARDm_CONT
+  void CopyND(T * dst_ptr, SIZE dst_ld, const T * src_ptr, SIZE src_ld, SIZE n1, SIZE n2, int queue_idx) {
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    gpuErrchk(cudaMemcpy2DAsync(dst_ptr, dst_ld * sizeof(T), src_ptr, src_ld * sizeof(T), n1 * sizeof(T), n2,
+                              cudaMemcpyDefault, stream));
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
+  }
+
+  template <typename T>
+  MGARDm_CONT
+  void MallocHost(T *& ptr, SIZE n, int queue_idx) {
+    gpuErrchk(cudaMallocHost(&ptr, n * sizeof(T)));
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
+  }
+
+  template <typename T>
+  MGARDm_CONT
+  void FreeHost(T * ptr) {
+    gpuErrchk(cudaFreeHost(ptr));
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
+  }
+
+  static bool ReduceMemoryFootprint;
+};
+
+
 MGARDm_CONT_EXEC
 uint64_t binary2negabinary(const int64_t x) {
     return (x + (uint64_t)0xaaaaaaaaaaaaaaaaull) ^ (uint64_t)0xaaaaaaaaaaaaaaaaull;
@@ -994,10 +1078,10 @@ struct AbsMaxOp
 
 
 template <typename T_reduce>
-class DeviceReduce<T_reduce, CUDA>{
+class DeviceCollective<T_reduce, CUDA>{
 public:
   MGARDm_CONT
-  DeviceReduce(){};
+  DeviceCollective(){};
 
   MGARDm_CONT
   void Sum(SIZE n, SubArray<1, T_reduce, CUDA>& v, SubArray<1, T_reduce, CUDA>& result, int queue_idx) {
@@ -1025,6 +1109,45 @@ public:
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     cudaFree(d_temp_storage);
   }
+
+  MGARDm_CONT
+  void ScanSumInclusive(SIZE n, SubArray<1, T_reduce, CUDA>& v, SubArray<1, T_reduce, CUDA>& result, int queue_idx) {
+    Byte     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
+    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
+    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
+    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
+    MemoryManager<CUDA>().Free(d_temp_storage);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+  }
+  MGARDm_CONT
+  void ScanSumExclusive(SIZE n, SubArray<1, T_reduce, CUDA>& v, SubArray<1, T_reduce, CUDA>& result, int queue_idx) {
+    Byte     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
+    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
+    MemoryManager<CUDA>().Free(d_temp_storage);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+  }
+  MGARDm_CONT
+  void ScanSumExtended(SIZE n, SubArray<1, T_reduce, CUDA>& v, SubArray<1, T_reduce, CUDA>& result, int queue_idx) {
+    Byte     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
+    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data()+1, n);
+    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
+    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data()+1, n);
+    MemoryManager<CUDA>().Free(d_temp_storage);
+    T_reduce zero = 0;
+    MemoryManager<CUDA>().Copy1D(result.data(), &zero, 1, queue_idx);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+  }
 };
 
 
@@ -1034,88 +1157,7 @@ public:
 
 
 
-template <>
-class MemoryManager<CUDA> {
-  public:
-  MGARDm_CONT
-  MemoryManager(){};
 
-  template <typename T>
-  MGARDm_CONT
-  void Malloc1D(T *& ptr, SIZE n, int queue_idx) {
-    gpuErrchk(cudaMalloc(&ptr, n * sizeof(T)));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      gpuErrchk(cudaDeviceSynchronize());
-    }
-  }
-
-  template <typename T>
-  MGARDm_CONT
-  void MallocND(T *& ptr, SIZE n1, SIZE n2, SIZE &ld, int queue_idx) {
-    if (ReduceMemoryFootprint) {
-      gpuErrchk(cudaMalloc(&ptr, n1 * n2 * sizeof(T)));
-      ld = n1;
-    } else {
-      size_t pitch = 0;
-      gpuErrchk(cudaMallocPitch(&ptr, &pitch, n1 * sizeof(T), (size_t)n2));
-      ld = pitch / sizeof(T);
-    }
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      gpuErrchk(cudaDeviceSynchronize());
-    }
-  }
-
-  template <typename T>
-  MGARDm_CONT
-  void Free(T * ptr) {
-    // printf("MemoryManager.Free(%llu)\n", ptr);
-    gpuErrchk(cudaFree(ptr));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      gpuErrchk(cudaDeviceSynchronize());
-    }
-  }
-
-  template <typename T>
-  MGARDm_CONT
-  void Copy1D(T * dst_ptr, const T * src_ptr, SIZE n, int queue_idx) {
-    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
-    gpuErrchk(cudaMemcpyAsync(dst_ptr, src_ptr, n*sizeof(T), cudaMemcpyDefault, stream));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      gpuErrchk(cudaDeviceSynchronize());
-    }
-  }
-
-  template <typename T>
-  MGARDm_CONT
-  void CopyND(T * dst_ptr, SIZE dst_ld, const T * src_ptr, SIZE src_ld, SIZE n1, SIZE n2, int queue_idx) {
-    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
-    gpuErrchk(cudaMemcpy2DAsync(dst_ptr, dst_ld * sizeof(T), src_ptr, src_ld * sizeof(T), n1 * sizeof(T), n2,
-                              cudaMemcpyDefault, stream));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      gpuErrchk(cudaDeviceSynchronize());
-    }
-  }
-
-  template <typename T>
-  MGARDm_CONT
-  void MallocHost(T *& ptr, SIZE n, int queue_idx) {
-    gpuErrchk(cudaMallocHost(&ptr, n * sizeof(T)));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      gpuErrchk(cudaDeviceSynchronize());
-    }
-  }
-
-  template <typename T>
-  MGARDm_CONT
-  void FreeHost(T * ptr) {
-    gpuErrchk(cudaFreeHost(ptr));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      gpuErrchk(cudaDeviceSynchronize());
-    }
-  }
-
-  static bool ReduceMemoryFootprint;
-};
 
 
 

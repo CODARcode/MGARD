@@ -578,21 +578,21 @@ if(MGARD_ENABLE_CUDA)
 
     add_executable(test_reconstructor ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_reconstructor.cu)
     target_link_libraries(test_reconstructor mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    target_include_directories(test_reconstructor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     set_property(TARGET test_reconstructor PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
 
 
     add_executable(test_encoding ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_encoding.cu)
     target_link_libraries(test_encoding mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    target_include_directories(test_encoding PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     set_property(TARGET test_encoding PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
 
 
     add_executable(test_encoding_warp ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_encoding_warp.cu)
     target_link_libraries(test_encoding_warp mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    target_include_directories(test_encoding_warp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     set_property(TARGET test_encoding_warp PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
 

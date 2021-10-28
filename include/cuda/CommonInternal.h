@@ -294,7 +294,7 @@ template <typename T> __device__ T _get_dist(T *coords, int i, int j);
 #include "Metadata.h"
 #include "AutoTuners/AutoTuner.h"
 #include "Task.h"
-
+#include "Utilities/Timer.hpp"
 // #include "Functor.h"
 // #include "AutoTuner.h"
 // #include "Task.h"
