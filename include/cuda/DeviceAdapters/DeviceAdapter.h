@@ -125,15 +125,23 @@ public:
 
 
 template <typename T_reduce, typename DeviceType>
-class DeviceReduce {
+class DeviceCollective {
   public:
   MGARDm_CONT
-  DeviceReduce(){};
+  DeviceCollective(){};
   MGARDm_CONT
   void Sum(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
   MGARDm_CONT
   void AbsMax(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
+  MGARDm_CONT
+  void ScanSumInclusive(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
+  MGARDm_CONT
+  void ScanSumExclusive(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
+  MGARDm_CONT
+  void ScanSumExtended(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
 };
+
+
 
 
 

@@ -1,5 +1,4 @@
 /*
- * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
  * Date: Jul 20, 2021
@@ -28,6 +27,8 @@ public:
   void offset(DIM dim, SIZE offset_value);
   void resize(DIM dim, SIZE new_size);
   void project(DIM dim0, DIM dim1, DIM dim2);
+
+  SubArray<1, T, DeviceType> Linearize();
  
   MGARDm_CONT_EXEC
   T* operator()(SIZE * idx) {
@@ -104,6 +105,7 @@ public:
   SIZE lddv2;
   using DataType = T;
   static const DIM NumDims = D;
+  bool pitched;
 };
 
 
@@ -125,6 +127,7 @@ SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array, bool get_ho
     this->v = array.getDataHost();
     has_host_pointer = true;
   }
+  pitched = array.is_pitched();
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -163,7 +166,7 @@ SubArray<D, T, DeviceType>::SubArray(SubArray<D, T, DeviceType> &subArray) {
     this->v = subArray.v;
   }
 
-
+  this->pitched = subArray.pitched;
 }
 
 template <DIM D, typename T, typename DeviceType> 
@@ -184,6 +187,7 @@ SubArray<D, T, DeviceType>::SubArray(const SubArray<D, T, DeviceType> &subArray)
     this->has_host_pointer = true;
     this->v = subArray.v;
   }
+  this->pitched = subArray.pitched;
 
 }
 
@@ -205,8 +209,38 @@ SubArray<D, T, DeviceType>& SubArray<D, T, DeviceType>::operator = (const SubArr
     this->has_host_pointer = true;
     this->v = subArray.v;
   }
-  
+  this->pitched = subArray.pitched;
   return *this;
+}
+
+template <DIM D, typename T, typename DeviceType> 
+SubArray<1, T, DeviceType> SubArray<D, T, DeviceType>::Linearize() {
+  SubArray<1, T, DeviceType> subArray;
+  if (!this->pitched) {
+    SIZE linearized_shape = 1;
+    for (DIM d = 0; d < D; d++) linearized_shape *= this->shape[d];
+    subArray.shape = {linearized_shape};
+    subArray.dv     = this->dv;
+    subArray.ldvs_h = this->ldvs_h;
+    subArray.ldvs_d = this->ldvs_d;
+
+    subArray.lddv1 = linearized_shape;
+    subArray.lddv2 = 1;
+
+    subArray.projected_dim0 = this->projected_dim0;
+    subArray.projected_dim1 = this->projected_dim1;
+    subArray.projected_dim2 = this->projected_dim2;
+
+    if (this->has_host_pointer) {
+      subArray.has_host_pointer = true;
+      subArray.v = this->v;
+    }
+    subArray.pitched = this->pitched;
+  } else {
+    std::cout << log::log_err << "Linearized pitched SubArray not implemented!\n";
+    exit(-1);
+  }
+  return subArray;
 }
 
 template <DIM D, typename T, typename DeviceType> 

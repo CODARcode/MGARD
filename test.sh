@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 make -j
 make install
 
@@ -25,6 +26,9 @@ TestReconstructorOrg="/home/jieyang/dev/MDR/build/test/test_reconstructor"
 
 CPU=0
 GPU=1
+
+
+
 
 # ./convert.py ../512x512x512/velocity_x.dat 512 512 512 s data_513_d.dat 513 513 513 d 
 # ./convert.py ../512x512x512/velocity_x.dat 512 512 512 s data_257_d.dat 257 257 257 d 
@@ -113,10 +117,14 @@ test_group_l_inf () {
 # test_group_l_inf d rel $1
 
 DATA=../../512x512x512/velocity_x.dat
-$MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-3 -s 0 -l 1 -v
+# $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-3 -s 0 -l 1 -v
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e5 -s inf -l 2 -v
 
-# $MgardCudaExec -z -i random -c random.out -t s -n 1 400 -m abs - e 1 -s inf -l 2 -v
+# ./bin/test_flying_edges -i $DATA -n 3 512 512 512
+# ./bin/test_flying_edges -i random -n 3 5 5 5
+
+
+# $MgardCudaExec -z -i random -c random.out -t s -n 1 400 -m abs -e 1 -s inf -l 2 -v
 
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m abs -e 1e5 -s inf -v
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e5 -s inf -v
@@ -158,7 +166,17 @@ $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-3 -
 # DATA=/home/jieyang/dev/data/pk.data
 # DATA=/home/jieyang/dev/data/enst.dat
 
-# cd ../examples/gpu-cuda/CompareCpuAndGpu && rm -rf build && ./build_script.sh && ./build/BatchTests random
+cd ../examples/gpu-cuda/CompareCpuAndGpu && rm -rf ../examples/gpu-cuda/CompareCpuAndGpu/build && ./build_script.sh && ./build/BatchTests random
+# cmake --build ../../vtk-m/build -j
+# cmake --build ../examples/gpu-cuda/FlyingEdges/build 
+# ../examples/gpu-cuda/FlyingEdges/build/FlyingEdges -i random -n 3 800 800 800 -s 1.5
+# ../examples/gpu-cuda/FlyingEdges/build/FlyingEdges -i random -n 3 900 900 900 -s 1.5
+
+# ../examples/gpu-cuda/FlyingEdges/build/FlyingEdges -i random -n 3 1000 1000 1000 -s 1.5
+
+# ../examples/gpu-cuda/FlyingEdges/build/FlyingEdges -i $DATA -n 3 512 512 512 -s 2e6
+
+# cd ../examples/gpu-cuda/FlyingEdges && rm -rf build && ./build_script.sh && ./build/FlyingEdges random -n 3 5 5 5
 
 
 # $XGC_4D
