@@ -93,15 +93,6 @@ void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     compressed_data = (void *)malloc(compressed_size);
     memcpy(compressed_data, compressed_dataset.data(), compressed_size);
   } else {
-    // mgard_cuda::Array<D, T> in_array(shape);
-    // in_array.loadData(original_data);
-    // mgard_cuda::Handle<D, T> handle(shape, config);
-    // mgard_cuda::Array<1, unsigned char> compressed_array =
-    //     mgard_cuda::compress(handle, in_array, mode, tol, s);
-    // compressed_size = compressed_array.getShape()[0];
-    // compressed_data = (unsigned char *)malloc(compressed_size);
-    // memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
-
     mgard_cuda::data_type dtype;
     if (std::is_same<T, double>::value) {
       dtype = mgard_cuda::data_type::Double;
@@ -110,7 +101,9 @@ void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     }
 
     mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
-                          compressed_data, compressed_size, config);
+             compressed_data, compressed_size, config);
+    // mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
+    //          compressed_data, compressed_size);
   }
 }
 
@@ -119,8 +112,6 @@ void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
                    T s, enum mgard_cuda::error_bound_type mode, T norm,
                    void *compressed_data, size_t compressed_size,
                    void *&decompressed_data, mgard_cuda::Config config) {
-
-  // printf("Start decompressing\n");
   size_t original_size = 1;
   for (mgard_cuda::DIM i = 0; i < D; i++)
     original_size *= shape[i];
@@ -136,24 +127,8 @@ void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     memcpy(decompressed_data, decompressed_data_void,
            original_size * sizeof(T));
   } else { // GPU
-    // mgard_cuda::Handle<D, T> handle(shape, config);
-    // std::vector<mgard_cuda::SIZE> compressed_shape(1);
-    // compressed_shape[0] = compressed_size;
-    // mgard_cuda::Array<1, unsigned char> compressed_array(compressed_shape);
-    // compressed_array.loadData((unsigned char *)compressed_data);
-    // mgard_cuda::Array<D, T> out_array =
-    //     mgard_cuda::decompress(handle, compressed_array);
-    // memcpy(decompressed_data, out_array.getDataHost(),
-    //        original_size * sizeof(T));
-
-    mgard_cuda::data_type dtype;
-    if (std::is_same<T, double>::value) {
-      dtype = mgard_cuda::data_type::Double;
-    } else if (std::is_same<T, float>::value) {
-      dtype = mgard_cuda::data_type::Float;
-    }
-
     mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data, config);
+    // mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data);
   }
 }
 
@@ -177,8 +152,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   }
 
   mgard_cuda::Config config;
-  config.lossless = mgard_cuda::lossless_type::GPU_Huffman;
-  config.sync_and_check_all_kernels = true;
+  config.lossless = mgard_cuda::lossless_type::GPU_Huffman_LZ4;
   config.uniform_coord_mode = 1;
 
   void *compressed_data = NULL;

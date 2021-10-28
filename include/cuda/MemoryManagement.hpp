@@ -33,7 +33,7 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
 
   nfib = subArray.shape[0];
   if (SubArrayType::NumDims >= 2) ncol = subArray.shape[1];
-  if (SubArrayType::NumDims >= 30) nrow = subArray.shape[2];
+  if (SubArrayType::NumDims >= 3) nrow = subArray.shape[2];
 
   using T = typename SubArrayType::DataType;
 

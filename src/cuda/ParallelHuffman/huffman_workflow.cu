@@ -220,12 +220,12 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   ht_state_num = 2 * dict_size;
   ht_all_nodes = 2 * ht_state_num;
   auto freq = mem::CreateCUDASpace<unsigned int>(ht_all_nodes);
-  wrapper::GetFrequency(dprimary, primary_count, freq, dict_size);
+  // wrapper::GetFrequency(dprimary, primary_count, freq, dict_size);
 
-  // mgard_cuda::SubArray<1, Q, mgard_cuda::CUDA> dprimary_subarray({n}, dprimary);
-  // mgard_cuda::SubArray<1, unsigned int, mgard_cuda::CUDA> freq_subarray({(mgard_cuda::SIZE)ht_all_nodes}, freq);
+  mgard_cuda::SubArray<1, Q, mgard_cuda::CUDA> dprimary_subarray({(mgard_cuda::SIZE)n}, dprimary);
+  mgard_cuda::SubArray<1, unsigned int, mgard_cuda::CUDA> freq_subarray({(mgard_cuda::SIZE)ht_all_nodes}, freq);
 
-  // mgard_cuda::Histogram<Q, unsigned int, mgard_cuda::CUDA>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
+  mgard_cuda::Histogram<Q, unsigned int, mgard_cuda::CUDA>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
 
 
   gpuErrchk(cudaDeviceSynchronize());

@@ -28,6 +28,7 @@ public:
   T *get_dv();
   std::vector<SIZE> get_ldvs_h();
   SIZE *get_ldvs_d();
+  bool is_pitched();
 
 private:
   DIM D_padded;
