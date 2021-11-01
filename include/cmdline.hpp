@@ -28,43 +28,62 @@ public:
               TCLAP::CmdLineOutput *const output);
 
   //! Add an argument to the interface.
-  virtual void add(TCLAP::Arg &a) override;
+  virtual TCLAP::ArgContainer &add(TCLAP::Arg &a) override;
 
   //!\copydoc BaseCmdLine::add(TCLAP::Arg &)
-  virtual void add(TCLAP::Arg *a) override;
+  virtual TCLAP::ArgContainer &add(TCLAP::Arg *a) override;
+
+  //! Add an argument to the internal argument list.
+  //!
+  //!\note This is an internal function. Do not call it.
+  virtual void addToArgList(TCLAP::Arg *a) override;
+
+  //! Add an argument group to the interface.
+  virtual TCLAP::ArgContainer &add(TCLAP::ArgGroup &args) override;
 
   //! Add a mutually exclusive pair of arguments.
+  //!
+  //!\deprecated Use `OneOf` instead.
   virtual void xorAdd(TCLAP::Arg &a, TCLAP::Arg &b) override;
 
   //! Add a mutually exclusive list of arguments.
-  virtual void xorAdd(std::vector<TCLAP::Arg *> &xors) override;
-
-  //! Return associated output object.
-  virtual TCLAP::CmdLineOutput *getOutput() override;
+  //!
+  //!\deprecated Use `OneOf` instead.
+  virtual void xorAdd(const std::vector<TCLAP::Arg *> &xors) override;
 
   //! Set associated output object.
   virtual void setOutput(TCLAP::CmdLineOutput *co) override;
 
   //! Return version string.
-  virtual std::string &getVersion() override;
+  virtual std::string getVersion() const override;
 
   //! Return program name.
-  virtual std::string &getProgramName() override;
+  virtual std::string getProgramName() const override;
 
   //! Return list of arguments.
-  virtual std::list<TCLAP::Arg *> &getArgList() override;
+  virtual std::list<TCLAP::Arg *> getArgList() const override;
 
-  //! Return handler for mutually exclusive arguments.
-  virtual TCLAP::XorHandler &getXorHandler() override;
+  //! Return list of argument groups.
+  virtual std::list<TCLAP::ArgGroup *> getArgGroups() override;
 
   //! Return the character used to separate argument names from values.
-  virtual char getDelimiter() override;
+  virtual char getDelimiter() const override;
 
   //! Return message describing program.
-  virtual std::string &getMessage() override;
+  virtual std::string getMessage() const override;
 
   //! Reset the `BaseCmdLine`.
   virtual void reset() override;
+
+  //! Begin ignoring arguments.
+  //!
+  //!\note This is an internal function. Do not call it.
+  virtual void beginIgnoring() override;
+
+  //! Return whether the rest of the arguments should be ignored.
+  //!
+  //!\note This is an internal function. Do not call it.
+  virtual bool ignoreRest() override;
 
 protected:
   //! Name used to call the program.
@@ -108,7 +127,7 @@ public:
   void parse(std::vector<std::string> &args);
 
   //! Return whether the parser has automatic help and version switches.
-  virtual bool hasHelpAndVersion() override;
+  virtual bool hasHelpAndVersion() const override;
 
   //! Add the help argument to the argument list.
   //!
@@ -138,7 +157,7 @@ public:
   void parse(std::vector<std::string> &args);
 
   //!\copydoc SubCmdLine::hasHelpAndVersion()
-  virtual bool hasHelpAndVersion() override;
+  virtual bool hasHelpAndVersion() const override;
 
   //! Report the subcommand specified by the arguments.
   //!

@@ -20,37 +20,50 @@ BaseCmdLine::BaseCmdLine(const std::string &version, const std::string &message,
   setOutput(_output);
 }
 
-void BaseCmdLine::add(TCLAP::Arg &a) { return add(&a); }
+TCLAP::ArgContainer &BaseCmdLine::add(TCLAP::Arg &a) { return add(&a); }
 
-void BaseCmdLine::add(TCLAP::Arg *a) { a->addToList(_argList); }
+TCLAP::ArgContainer &BaseCmdLine::add(TCLAP::Arg *a) {
+  a->addToList(_argList);
+  return *this;
+}
+
+void BaseCmdLine::addToArgList(TCLAP::Arg *) {
+  throw std::logic_error("not implemented");
+}
 
 void BaseCmdLine::xorAdd(TCLAP::Arg &, TCLAP::Arg &) {
-  throw std::runtime_error("not implemented");
+  throw std::logic_error("not implemented");
 }
 
-void BaseCmdLine::xorAdd(std::vector<TCLAP::Arg *> &) {
-  throw std::runtime_error("not implemented");
+void BaseCmdLine::xorAdd(const std::vector<TCLAP::Arg *> &) {
+  throw std::logic_error("not implemented");
 }
 
-TCLAP::CmdLineOutput *BaseCmdLine::getOutput() { return _output; }
+TCLAP::ArgContainer &BaseCmdLine::add(TCLAP::ArgGroup &) {
+  throw std::logic_error("not implemented");
+}
 
 void BaseCmdLine::setOutput(TCLAP::CmdLineOutput *co) { _output = co; }
 
-std::string &BaseCmdLine::getVersion() { return _version; }
+std::string BaseCmdLine::getVersion() const { return _version; }
 
-std::string &BaseCmdLine::getProgramName() { return _programName; }
+std::string BaseCmdLine::getProgramName() const { return _programName; }
 
-std::list<TCLAP::Arg *> &BaseCmdLine::getArgList() { return _argList; }
+std::list<TCLAP::Arg *> BaseCmdLine::getArgList() const { return _argList; }
 
-TCLAP::XorHandler &BaseCmdLine::getXorHandler() {
-  throw std::runtime_error("not implemented");
+std::list<TCLAP::ArgGroup *> BaseCmdLine::getArgGroups() {
+  throw std::logic_error("not implemented");
 }
 
-char BaseCmdLine::getDelimiter() { return ' '; }
+char BaseCmdLine::getDelimiter() const { return ' '; }
 
-std::string &BaseCmdLine::getMessage() { return _message; }
+std::string BaseCmdLine::getMessage() const { return _message; }
 
-void BaseCmdLine::reset() { throw std::runtime_error("not implemented"); }
+void BaseCmdLine::reset() { throw std::logic_error("not implemented"); }
+
+void BaseCmdLine::beginIgnoring() { throw std::logic_error("not implemented"); }
+
+bool BaseCmdLine::ignoreRest() { throw std::logic_error("not implemented"); }
 
 SubCmdLine::SubCmdLine(const std::string &version, const std::string &message)
     : BaseCmdLine(version, message, new SubOutput()) {
@@ -104,7 +117,7 @@ void SubCmdLine::parse(std::vector<std::string> &args) {
   }
 }
 
-bool SubCmdLine::hasHelpAndVersion() { return false; }
+bool SubCmdLine::hasHelpAndVersion() const { return false; }
 
 void SubCmdLine::addHelpArgument() { add(_helpArg); }
 
@@ -189,7 +202,7 @@ void SuperCmdLine::parse(std::vector<std::string> &args) {
   }
 }
 
-bool SuperCmdLine::hasHelpAndVersion() { return true; }
+bool SuperCmdLine::hasHelpAndVersion() const { return true; }
 
 SubCmdLine *SuperCmdLine::getSubcommand() {
   return _subcommands[_subcommandArg.getValue()];
