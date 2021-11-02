@@ -120,7 +120,17 @@ endif()
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig)
 pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
+
 find_package(MOAB)
+#We run into this when building MOAB 5.3.0 with `./configure && make`.
+if(MOAB_FOUND AND NOT TARGET MOAB)
+	message(STATUS "MOAB found, but configuration file ")
+	list(APPEND CMAKE_MESSAGE_INDENT "    ")
+	message(STATUS "${MOAB_CONFIG}")
+	list(POP_BACK CMAKE_MESSAGE_INDENT)
+	message(STATUS "did not define a library target.")
+	set(MOAB_FOUND FALSE)
+endif()
 
 set(
 	MGARD_MOAB_HPP
