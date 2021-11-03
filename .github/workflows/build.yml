@@ -5,6 +5,8 @@ env:
         MOAB_INSTALL_PREFIX: "${{ github.workspace }}/moab"
         CATCH2_CACHE_KEY: "Catch2-3.0.0"
         CATCH2_INSTALL_PREFIX: "${{ github.workspace }}/catch2"
+        TCLAP_CACHE_KEY: "TCLAP-1.4.0-rc1"
+        TCLAP_INSTALL_PREFIX: "${{ github.workspace }}/tclap"
         MGARD_CACHE_KEY: "MGARD-${{ github.sha }}"
         MGARD_INSTALL_PREFIX: "${{ github.workspace }}/mgard"
         MGARD_BUILD_TYPE: "Release"
@@ -49,11 +51,30 @@ jobs:
                                   cmake --build "build" --parallel
                                   cmake --install "build"
 
-        build-MGARD:
-                needs: [build-MOAB, build-Catch2]
+        build-TCLAP:
                 runs-on: ubuntu-latest
                 steps:
-                        - run: sudo apt-get install mpich libmpich-dev liblapack-dev libzstd1 libzstd-dev libarchive-dev libyaml-cpp-dev libtclap-dev
+                        - name: cache-TCLAP
+                          id: cache-TCLAP
+                          uses: actions/cache@v2.1.6
+                          with:
+                                  key: "${{ env.TCLAP_CACHE_KEY }}"
+                                  path: "${{ env.TCLAP_INSTALL_PREFIX }}"
+                        - name: build-TCLAP
+                          if: steps.cache-TCLAP.outputs.cache-hit != 'true'
+                          run: |
+                                  wget https://sourceforge.net/projects/tclap/files/tclap-1.4.0-rc1.tar.bz2
+                                  bunzip2 "tclap-1.4.0-rc1.tar.bz2"
+                                  tar --file "tclap-1.4.0-rc1.tar" --extract
+                                  cmake -S "tclap-1.4.0-rc1" -B "build" -DCMAKE_INSTALL_PREFIX="${{ env.TCLAP_INSTALL_PREFIX }}"
+                                  cmake --build "build" --parallel
+                                  cmake --install "build"
+
+        build-MGARD:
+                needs: [build-MOAB, build-Catch2, build-TCLAP]
+                runs-on: ubuntu-latest
+                steps:
+                        - run: sudo apt-get install mpich libmpich-dev liblapack-dev libzstd1 libzstd-dev libarchive-dev libyaml-cpp-dev
                         - name: checkout
                           uses: actions/checkout@v2.3.4
                         - name: fetch-MOAB
@@ -66,12 +87,17 @@ jobs:
                           with:
                                   key: "${{ env.CATCH2_CACHE_KEY }}"
                                   path: "${{ env.CATCH2_INSTALL_PREFIX }}"
+                        - name: fetch-TCLAP
+                          uses: actions/cache@v2.1.6
+                          with:
+                                  key: "${{ env.TCLAP_CACHE_KEY }}"
+                                  path: "${{ env.TCLAP_INSTALL_PREFIX }}"
                         - name: configure
-                          run: cmake -S . -B "${{ env.MGARD_BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.MOAB_INSTALL_PREFIX }};${{ env.CATCH2_INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.MGARD_BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.MGARD_INSTALL_PREFIX }}"
+                          run: cmake -S . -B "${{ env.MGARD_BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.MOAB_INSTALL_PREFIX }};${{ env.CATCH2_INSTALL_PREFIX }};${{ env.TCLAP_INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.MGARD_BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.MGARD_INSTALL_PREFIX }}"
                         - name: build
                           run: cmake --build "${{ env.MGARD_BUILD_DIR }}" --parallel
                         - name: test
-                          run: "LD_LIBRARY_PATH=\"${LD_LIBRARY_PATH}:${MOAB_INSTALL_PREFIX}/lib\" ${{ env.MGARD_BUILD_DIR }}/bin/tests"
+                          run: "${{ env.MGARD_BUILD_DIR }}/bin/tests"
                         - name: install
                           run: cmake --install "${{ env.MGARD_BUILD_DIR }}"
                         - name: cache-MGARD
