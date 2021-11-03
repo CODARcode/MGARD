@@ -118,7 +118,9 @@ if(MGARD_ENABLE_CUDA)
 endif()
 
 find_package(ZLIB REQUIRED)
+
 find_package(PkgConfig)
+
 pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
 
 find_package(MOAB)
@@ -526,7 +528,15 @@ endif()
 
 find_package(yaml-cpp)
 pkg_search_module(archive IMPORTED_TARGET GLOBAL libarchive)
+
 pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
+if(NOT TCLAP_FOUND)
+	find_package(TCLAP 1.4)
+	if(TCLAP_FOUND)
+		#Mimic target defined by `pkg_search_module`.
+		add_library(PkgConfig::TCLAP ALIAS TCLAP::TCLAP)
+	endif()
+endif()
 
 if(NOT yaml-cpp_FOUND)
 	message(STATUS "Will not build executable (yaml-cpp not found).")
