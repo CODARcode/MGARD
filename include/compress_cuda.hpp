@@ -29,7 +29,25 @@ namespace mgard_cuda {
 //!\param[in] original_data Dataset to be compressed.
 //!\param[out] compressed_data Compressed data.
 //!\param[out] compressed_size Size of compressed data.
-//!\param[in] config For configuring the compression process (optional).
+void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size);
+
+//!\file
+//!\brief High level compression and decompression API.
+
+//! Compress a function on an N-D tensor product grid with uniform spacing
+//!
+//!\param[in] D Dimension.
+//!\param[in] dtype Data type Float or Double
+//!\param[in] shape Shape of the Dataset to be compressed
+//!\param[in] tol Error tolerance.
+//!\param[in] s Smoothness parameter.
+//!\param[in] mode Error bound type REL or ABS.
+//!\param[in] original_data Dataset to be compressed.
+//!\param[out] compressed_data Compressed data.
+//!\param[out] compressed_size Size of compressed data.
+//!\param[in] config For configuring the compression process.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size, Config config);
@@ -46,7 +64,24 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[out] compressed_data Compressed data.
 //!\param[out] compressed_size Size of comrpessed data.
 //!\param[in] coords Coordinates data.
-//!\param[in] config For configuring the compression process (optional).
+void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size,
+              std::vector<const Byte *> coords);
+
+//! Compress a function on an N-D tensor product grid with non-uniform spacing
+//!
+//!\param[in] D Dimension.
+//!\param[in] dtype Data type Float or Double
+//!\param[in] shape Shape of the Dataset to be compressed
+//!\param[in] tol Error tolerance.
+//!\param[in] s Smoothness parameter.
+//!\param[in] mode Error bound type REL or ABS.
+//!\param[in] original_data Dataset to be compressed.
+//!\param[out] compressed_data Compressed data.
+//!\param[out] compressed_size Size of comrpessed data.
+//!\param[in] coords Coordinates data.
+//!\param[in] config For configuring the compression process.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
@@ -57,7 +92,15 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[in] compressed_data Compressed data.
 //!\param[in] compressed_size Size of comrpessed data.
 //!\param[out] decompressed_data Decompressed data.
-//!\param[in] config For configuring the decompression process (optional).
+void decompress(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data);
+
+//! Decompress a function on an N-D tensor product grid
+//!
+//!\param[in] compressed_data Compressed data.
+//!\param[in] compressed_size Size of comrpessed data.
+//!\param[out] decompressed_data Decompressed data.
+//!\param[in] config For configuring the decompression process.
 void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data, Config config);
 
