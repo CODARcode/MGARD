@@ -2,7 +2,7 @@
  * Copyright 2021, Oak Ridge National Laboratory.
  * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: April 2, 2021
+ * Date: September 27, 2021
  */
 
 #include "compressors.hpp"
@@ -78,8 +78,8 @@ template <uint32_t D, typename T, typename C>
 void lz4_compress(Handle<D, T> &handle, C *input_data, size_t input_count,
                   void *&output_data, size_t &output_size, size_t chunk_size,
                   int queue_idx) {
-
-  nvcomp::LZ4Compressor compressor(chunk_size);
+  nvcompType_t dtype = NVCOMP_TYPE_UCHAR;
+  nvcomp::LZ4Compressor compressor(chunk_size, dtype);
 
   size_t *temp_bytes;
   cudaMallocHostHelper((void **)&temp_bytes, sizeof(size_t));
