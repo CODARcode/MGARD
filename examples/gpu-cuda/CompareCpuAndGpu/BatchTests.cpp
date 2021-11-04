@@ -103,15 +103,14 @@ void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     // memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
 
     mgard_cuda::data_type dtype;
-    if (std::is_same<T, double>::value){
+    if (std::is_same<T, double>::value) {
       dtype = mgard_cuda::data_type::Double;
     } else if (std::is_same<T, float>::value) {
       dtype = mgard_cuda::data_type::Float;
     }
 
     mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
-             compressed_data, compressed_size, config);
-
+                         compressed_data, compressed_size, config);
   }
 }
 
@@ -125,7 +124,7 @@ void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
   size_t original_size = 1;
   for (mgard_cuda::DIM i = 0; i < D; i++)
     original_size *= shape[i];
-  
+
   if (dev == CPU) {
     decompressed_data = (T *)malloc(original_size * sizeof(T));
     if (mode == mgard_cuda::error_bound_type::REL) {
@@ -148,18 +147,14 @@ void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     //        original_size * sizeof(T));
 
     mgard_cuda::data_type dtype;
-    if (std::is_same<T, double>::value){
+    if (std::is_same<T, double>::value) {
       dtype = mgard_cuda::data_type::Double;
     } else if (std::is_same<T, float>::value) {
       dtype = mgard_cuda::data_type::Float;
     }
 
-    mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data, config);
- 
-
-    
-
-
+    mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data,
+                           config);
   }
 }
 
@@ -228,7 +223,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   T error;
   if (s == std::numeric_limits<T>::infinity()) {
     error = mgard_cuda::L_inf_error(original_size, original_data,
-                                    (T*)decompressed_data, mode);
+                                    (T *)decompressed_data, mode);
     // if (mode == mgard_cuda::REL) {
     //   error /= norm; printf("Rel. L^infty error: %10.5E \n", error);
     // }
@@ -236,7 +231,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
     // error);
   } else {
     error = mgard_cuda::L_2_error(original_size, original_data,
-                                  (T*)decompressed_data, mode);
+                                  (T *)decompressed_data, mode);
     // if (mode == mgard_cuda::REL) {
     //   error /= norm; printf("Rel. L^2 error: %10.5E \n", error);
     // }
