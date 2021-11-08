@@ -817,7 +817,7 @@ public:
     // PrintSubarray("level_errors_workspace", level_errors_workspace);
     // get level error
     SIZE reduce_size = MGARDm_NUM_SMs;
-    DeviceCollective<T_error, DeviceType> deviceReduce;
+    DeviceCollective<DeviceType> deviceReduce;
     for (int i = 0; i < num_bitplanes + 1; i++) {
       SubArray<1, T_error, CUDA> curr_errors({reduce_size}, level_errors_workspace(i, 0));
       SubArray<1, T_error, CUDA> sum_error({1}, level_errors(i));

@@ -10,9 +10,6 @@
 
 namespace mgard_cuda {
 
-#define SequentialFunctor 0
-#define IterativeFunctor 1
-
 template <typename DeviceType>
 class Functor {
 public:
@@ -48,7 +45,6 @@ public:
   IDX blockz, blocky, blockx;
   IDX threadz, thready, threadx;
   Byte * shared_memory;
-  static constexpr OPTION ExecType = SequentialFunctor;
 };
 
 template <typename DeviceType>
@@ -128,7 +124,81 @@ public:
   IDX blockz, blocky, blockx;
   IDX threadz, thready, threadx;
   Byte * shared_memory;
-  static constexpr OPTION ExecType = IterativeFunctor;
+};
+
+
+template <typename DeviceType>
+class HuffmanCLCustomizedFunctor {
+public:
+  MGARDm_EXEC void
+  Init(IDX ngridz, IDX ngridy, IDX ngridx,
+       IDX nblockz, IDX nblocky, IDX nblockx,
+       IDX blockz, IDX blocky, IDX blockx,
+       IDX threadz, IDX thready, IDX threadx, Byte * shared_memory) {
+    this->ngridz = ngridz; this->ngridy = ngridy; this->ngridx = ngridx;
+    this->nblockz = nblockz; this->nblocky = nblocky; this->nblockx = nblockx;
+    this->blockz = blockz; this->blocky = blocky; this->blockx = blockx;
+    this->threadz = threadz; this->thready = thready; this->threadx = threadx;
+    this->shared_memory = shared_memory;
+  }
+
+  MGARDm_EXEC void
+  Operation1(); //init
+
+  MGARDm_EXEC bool
+  LoopCondition1(); // global loop
+
+  MGARDm_EXEC void
+  Operation2(); // combine two nodes
+
+  MGARDm_EXEC void
+  Operation3(); // copy to temp
+
+  MGARDm_EXEC void
+  Operation4(); // updatre iterator
+
+  MGARDm_EXEC void
+  Operation5(); // parallel merge: diagonal devide: init
+
+  MGARDm_EXEC bool
+  LoopCondition2(); // parallel merge: diagonal devide: found
+
+  MGARDm_EXEC void
+  Operation6(); // parallel merge: diagonal devide: generate 0/1
+
+  MGARDm_EXEC void
+  Operation7(); // parallel merge: diagonal devide: check 0/1
+
+  MGARDm_EXEC void
+  Operation8(); // parallel merge: diagonal devide: adjust window
+
+  //end of loop 2
+
+  MGARDm_EXEC void
+  Operation9(); // parallel merge: diagonal devide: boundary cases
+
+  MGARDm_EXEC void
+  Operation10(); // parallel merge: merge path
+  
+  // end of parallel merge
+
+  MGARDm_EXEC void
+  Operation11(); // meld
+
+  MGARDm_EXEC void
+  Operation12(); // update iNodeRear
+
+  MGARDm_EXEC void
+  Operation13(); // update leaders
+
+  MGARDm_EXEC void
+  Operation14(); // update iNodesSize
+
+  IDX ngridz, ngridy, ngridx;
+  IDX nblockz, nblocky, nblockx;
+  IDX blockz, blocky, blockx;
+  IDX threadz, thready, threadx;
+  Byte * shared_memory;
 };
 }
 

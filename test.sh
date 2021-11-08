@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 set -x
-make -j
+make -j 7
 make install
 
 ###### Necessary CUDA profiler binaries #######
