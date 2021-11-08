@@ -15,9 +15,22 @@ namespace mgard_cuda {
 
 
 template <typename DeviceType> 
-struct SyncThreads {
-  MGARDm_EXEC 
-  void operator()();
+struct SyncBlock {
+  MGARDm_EXEC static
+  void Sync();
+};
+
+template <typename DeviceType> 
+struct SyncGrid {
+  MGARDm_EXEC static
+  void Sync();
+};
+
+template <typename DeviceType> 
+struct Atomic {
+  template <typename T>
+  MGARDm_EXEC static
+  void Min(T * result, T value);
 };
 
 template <typename T, SIZE nblockx, SIZE nblocky, SIZE nblockz, typename DeviceType> 
@@ -124,21 +137,24 @@ public:
 
 
 
-template <typename T_reduce, typename DeviceType>
+template <typename DeviceType>
 class DeviceCollective {
   public:
-  MGARDm_CONT
+  template <typename T> MGARDm_CONT
   DeviceCollective(){};
-  MGARDm_CONT
-  void Sum(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
-  MGARDm_CONT
-  void AbsMax(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
-  MGARDm_CONT
-  void ScanSumInclusive(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
-  MGARDm_CONT
-  void ScanSumExclusive(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
-  MGARDm_CONT
-  void ScanSumExtended(SIZE n, SubArray<1, T_reduce, DeviceType>& v, SubArray<1, T_reduce, DeviceType>& result, int queue_idx);
+  template <typename T> MGARDm_CONT
+  void Sum(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
+  template <typename T> MGARDm_CONT
+  void AbsMax(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
+  template <typename T> MGARDm_CONT
+  void ScanSumInclusive(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
+  template <typename T> MGARDm_CONT
+  void ScanSumExclusive(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
+  template <typename T> MGARDm_CONT
+  void ScanSumExtended(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
+  template <typename KeyT, typename ValueT> MGARDm_CONT
+  void SortByKey(SIZE n, SubArray<1, KeyT, DeviceType>& keys, SubArray<1, ValueT, DeviceType>& values, int queue_idx);
+
 };
 
 

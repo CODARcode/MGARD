@@ -236,11 +236,11 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   auto type_bw = sizeof(H) * 8;
   // first, entry, reversed codebook
   // CHANGED first and entry to H type
-  size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(S) * dict_size;
+  size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size;
   uint8_t *decodebook = mem::CreateCUDASpace<uint8_t>(decodebook_size);
 
   // Get codebooks
-  ParGetCodebook<unsigned int, H>(dict_size, freq, codebook, decodebook);
+  ParGetCodebook<Q, H, mgard_cuda::CUDA>(dict_size, freq, codebook, decodebook);
   cudaDeviceSynchronize();
 
   // auto decode_meta = mem::CreateHostSpaceAndMemcpyFromDevice(d_decode_meta,

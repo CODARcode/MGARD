@@ -12,6 +12,9 @@
 #include "cuda/ParallelHuffman/par_huffman.cuh"
 #include "cuda/ParallelHuffman/par_merge.cuh"
 
+#include "cuda/ParallelHuffman/FillArraySequence.hpp"
+#include "cuda/ParallelHuffman/GetFirstNonzeroIndex.hpp"
+
 __device__ int iNodesFront = 0;
 __device__ int iNodesRear = 0;
 __device__ int lNodesCur = 0;
@@ -50,8 +53,7 @@ __global__ void parHuff::GPU_GenerateCL(
     F* iNodesFreq,  int* iNodesLeader,
     F* tempFreq,    int* tempIsLeaf,    int* tempIndex,
     F* copyFreq,    int* copyIsLeaf,    int* copyIndex,
-    uint32_t* diagonal_path_intersections, int mblocks, int mthreads)
-{
+    uint32_t* diagonal_path_intersections, int mblocks, int mthreads){
   // clang-format on
 
   extern __shared__ int32_t shmem[];
@@ -363,6 +365,7 @@ __global__ void parHuff::GPU_GenerateCW(F *CL, H *CW, H *first, H *entry,
     }
 
     // Update entry and first arrays in O(1) time
+    // Jieyang: not useful?
     if (thread > CCL && thread < updateEnd) {
       entry[i] = curEntryVal + numCCL;
     }
@@ -378,6 +381,7 @@ __global__ void parHuff::GPU_GenerateCW(F *CL, H *CW, H *first, H *entry,
     if (thread == CCL) {
       // Flip least significant CL[CDPI] bits
       first[CCL] = CW[CDPI] ^ (((H)1 << (H)CL[CDPI]) - 1);
+      // printf("first[%d]: %llu\n", CCL, first[CCL]);
     }
     if (thread > CCL && thread < updateEnd) {
       first[i] = std::numeric_limits<H>::max();
@@ -401,6 +405,7 @@ __global__ void parHuff::GPU_GenerateCW(F *CL, H *CW, H *first, H *entry,
     current_grid.sync();
   }
 
+  // encoding CL into CW (highest 8 bits)
   if (thread < size) {
     CW[i] = (CW[i] | (((H)CL[i] & (H)0xffu) << ((sizeof(H) * 8) - 8))) ^
             (((H)1 << (H)CL[i]) - 1);
@@ -445,6 +450,12 @@ __global__ void GPU_GetMaxCWLength(unsigned int *CL, unsigned int size,
 
 // Reorders given a set of indices. Programmer must ensure that all index[i]
 // are unique or else race conditions may occur
+// Jieyang: this kernel rely on whole grid sychronized execution
+// For example, adding
+//   if (thread == 0) {
+//      __nanosleep(1e9);
+//   }
+// will cause incorrect results
 template <typename T, typename Q>
 __global__ void GPU_ReorderByIndex(T *array, Q *index, unsigned int size) {
   unsigned int thread = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -469,7 +480,7 @@ __global__ void GPU_ReverseArray(T *array, unsigned int size) {
 }
 
 // Parallel codebook generation wrapper
-template <typename Q, typename H>
+template <typename Q, typename H, typename DeviceType>
 void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
                     uint8_t *_d_decode_meta) {
   // Metadata
@@ -479,26 +490,47 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   auto _d_qcode =
       reinterpret_cast<Q *>(_d_decode_meta + (sizeof(H) * 2 * type_bw));
 
+  mgard_cuda::SubArray<1, unsigned int, DeviceType> _d_freq_subarray({(mgard_cuda::SIZE)dict_size}, _d_freq);
+  mgard_cuda::SubArray<1, Q, DeviceType> _d_qcode_subarray({(mgard_cuda::SIZE)dict_size}, _d_qcode);
+
+
   // Sort Qcodes by frequency
   int nblocks = (dict_size / 1024) + 1;
-  GPU_FillArraySequence<Q>
-      <<<nblocks, 1024>>>(_d_qcode, (unsigned int)dict_size);
+  // GPU_FillArraySequence<Q>
+  //     <<<nblocks, 1024>>>(_d_qcode, (unsigned int)dict_size);
+  mgard_cuda::FillArraySequence<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
+
+
   cudaDeviceSynchronize();
 
-  SortByFreq(_d_freq, _d_qcode, dict_size);
+  // SortByFreq(_d_freq, _d_qcode, dict_size);
+  mgard_cuda::DeviceCollective<DeviceType>().SortByKey(dict_size, _d_freq_subarray, _d_qcode_subarray, 0);
   cudaDeviceSynchronize();
 
-  unsigned int *d_first_nonzero_index;
-  unsigned int first_nonzero_index = dict_size;
-  cudaMalloc(&d_first_nonzero_index, sizeof(unsigned int));
-  cudaMemcpy(d_first_nonzero_index, &first_nonzero_index, sizeof(unsigned int),
-             cudaMemcpyHostToDevice);
-  GPU_GetFirstNonzeroIndex<unsigned int>
-      <<<nblocks, 1024>>>(_d_freq, dict_size, d_first_nonzero_index);
+  // unsigned int *d_first_nonzero_index;
+  unsigned int first_nonzero_index;// = dict_size;
+  // cudaMalloc(&d_first_nonzero_index, sizeof(unsigned int));
+  // cudaMemcpy(d_first_nonzero_index, &first_nonzero_index, sizeof(unsigned int),
+  //            cudaMemcpyHostToDevice);
+
+  mgard_cuda::Array<1, unsigned int, DeviceType> first_nonzero_index_array({1});
+  first_nonzero_index_array.loadData((unsigned int*)&dict_size);
+
+  // mgard_cuda::SubArray<1, unsigned int, DeviceType> d_first_nonzero_index_subarray({1}, d_first_nonzero_index);
+  mgard_cuda::GetFirstNonzeroIndex<unsigned int, DeviceType>().Execute(_d_freq_subarray, first_nonzero_index_array, dict_size, 0);
+
+
+  // GPU_GetFirstNonzeroIndex<unsigned int>
+  //     <<<nblocks, 1024>>>(_d_freq, dict_size, d_first_nonzero_index);
+
+
   cudaDeviceSynchronize();
-  cudaMemcpy(&first_nonzero_index, d_first_nonzero_index, sizeof(unsigned int),
-             cudaMemcpyDeviceToHost);
-  cudaFree(d_first_nonzero_index);
+
+  first_nonzero_index = first_nonzero_index_array.getDataHost()[0];
+
+  // cudaMemcpy(&first_nonzero_index, d_first_nonzero_index, sizeof(unsigned int),
+  //            cudaMemcpyDeviceToHost);
+  // cudaFree(d_first_nonzero_index);
 
   int nz_dict_size = dict_size - first_nonzero_index;
   unsigned int *_nz_d_freq = _d_freq + first_nonzero_index;
@@ -639,6 +671,9 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   GPU_ReverseArray<Q><<<nblocks, 1024>>>(_d_qcode, (unsigned int)dict_size);
   cudaDeviceSynchronize();
 
+  // print_codebook<H><<<1, 32>>>(_d_codebook, dict_size); // PASS
+  // cudaDeviceSynchronize();
+
   GPU_ReorderByIndex<H, Q>
       <<<nblocks, 1024>>>(_d_codebook, _d_qcode, (unsigned int)dict_size);
   cudaDeviceSynchronize();
@@ -664,27 +699,27 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
 }
 
 // Specialize wrapper
-template void ParGetCodebook<uint8_t, uint32_t>(int dict_size,
+template void ParGetCodebook<uint8_t, uint32_t, mgard_cuda::CUDA>(int dict_size,
                                                 unsigned int *freq,
                                                 uint32_t *codebook,
                                                 uint8_t *meta);
-template void ParGetCodebook<uint8_t, uint64_t>(int dict_size,
+template void ParGetCodebook<uint8_t, uint64_t, mgard_cuda::CUDA>(int dict_size,
                                                 unsigned int *freq,
                                                 uint64_t *codebook,
                                                 uint8_t *meta);
-template void ParGetCodebook<uint16_t, uint32_t>(int dict_size,
+template void ParGetCodebook<uint16_t, uint32_t, mgard_cuda::CUDA>(int dict_size,
                                                  unsigned int *freq,
                                                  uint32_t *codebook,
                                                  uint8_t *meta);
-template void ParGetCodebook<uint16_t, uint64_t>(int dict_size,
+template void ParGetCodebook<uint16_t, uint64_t, mgard_cuda::CUDA>(int dict_size,
                                                  unsigned int *freq,
                                                  uint64_t *codebook,
                                                  uint8_t *meta);
-template void ParGetCodebook<uint32_t, uint32_t>(int dict_size,
+template void ParGetCodebook<uint32_t, uint32_t, mgard_cuda::CUDA>(int dict_size,
                                                  unsigned int *freq,
                                                  uint32_t *codebook,
                                                  uint8_t *meta);
-template void ParGetCodebook<uint32_t, uint64_t>(int dict_size,
+template void ParGetCodebook<uint32_t, uint64_t, mgard_cuda::CUDA>(int dict_size,
                                                  unsigned int *freq,
                                                  uint64_t *codebook,
                                                  uint8_t *meta);
