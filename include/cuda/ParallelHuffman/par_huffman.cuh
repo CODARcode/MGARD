@@ -71,7 +71,7 @@ __global__ void GPU_GenerateCW(F *CL, H *CW, H *first, H *entry, int size);
 // Thrust sort functionality implemented in separate file
 template <typename K, typename V> void SortByFreq(K *freq, V *qcode, int size);
 
-template <typename Q, typename H>
+template <typename Q, typename H, typename DeviceType>
 void ParGetCodebook(int stateNum, unsigned int *freq, H *codebook,
                     uint8_t *meta);
 

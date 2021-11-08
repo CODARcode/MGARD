@@ -353,7 +353,7 @@ namespace MDR {
       // get level error
       const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
       SIZE reduce_size = (n-1)/num_elems_per_TB+1;
-      DeviceCollective<T_error, DeviceType> deviceReduce;
+      DeviceCollective<DeviceType> deviceReduce;
       for (int i = 0; i < num_bitplanes + 1; i++) {
         SubArray<1, T_error, DeviceType> curr_errors({reduce_size}, level_errors_workspace(i, 0));
         SubArray<1, T_error, DeviceType> sum_error({1}, level_errors(i));

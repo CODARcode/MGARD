@@ -366,7 +366,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       // get level error
       using T_reduce = double;
       SIZE reduce_size = (n-1)/B+1;
-      DeviceCollective<T_reduce, DeviceType> deviceReduce(this->handle);
+      DeviceCollective<DeviceType> deviceReduce(this->handle);
       for (int i = 0; i < num_bitplanes + 1; i++) {
         SubArray<1, T_reduce, DeviceType> curr_errors({reduce_size}, level_errors_workspace(i, 0));
         SubArray<1, T_reduce, DeviceType> sum_error({1}, level_errors(i));

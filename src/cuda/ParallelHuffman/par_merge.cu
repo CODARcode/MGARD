@@ -113,7 +113,7 @@ __device__ void cudaWorkloadDiagonals(
     int32_t current_x = x_top - ((x_top - x_bottom) >> 1) - threadOffset;
     int32_t current_y = y_top + ((y_bottom - y_top) >> 1) + threadOffset;
     int32_t getfrom_x = current_x + cStart - 1;
-    // Below statement is a more efficienD, Tivmodless version of the following
+    // Below statement is a more efficient, divmodless version of the following
     // int32_t getfrom_y = MOD(iStart + current_y, iNodesCap);
     int32_t getfrom_y = iStart + current_y;
 

@@ -85,7 +85,7 @@ void test(mgard_cuda::LENGTH n,
 
   mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> result_array({1});
   mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> result(result_array);
-  mgard_cuda::DeviceCollective<T_data, mgard_cuda::CUDA> deviceReduce;
+  mgard_cuda::DeviceCollective<mgard_cuda::CUDA> deviceReduce;
   deviceReduce.AbsMax(v_subarray.shape[0], v_subarray, result, 0);
   mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
   // handle.sync_all();
