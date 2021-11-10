@@ -1,8 +1,11 @@
 #ifndef TENSORLINEAROPERATOR_HPP
 #define TENSORLINEAROPERATOR_HPP
+// clang-format off
+// disable formatting here because the formula below breaks the parser in NVCC
+// sometimes if it is split onto multiple lines
 //!\file
-//!\brief Base class for representing linear operators \f$R^{N_{1}} \otimes
-//! \cdots \otimes R^{N_{d}} \to R^{N_{1}} \otimes \cdots \otimes R^{N_{d}}\f$.
+//!\brief Base class for representing linear operators \f$R^{N_{1}} \otimes \cdots \otimes R^{N_{d}} \to R^{N_{1}} \otimes \cdots \otimes R^{N_{d}}\f$.
+// clang-format on
 
 #include <cstddef>
 
