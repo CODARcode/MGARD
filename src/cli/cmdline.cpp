@@ -129,7 +129,7 @@ std::vector<std::string>
 subcommandNames(const std::map<std::string, SubCmdLine *> &subcommands) {
   std::vector<std::string> names;
   names.reserve(subcommands.size());
-  for (const std::pair<const std::string, SubCmdLine *> pair : subcommands) {
+  for (const std::pair<const std::string, SubCmdLine *> &pair : subcommands) {
     names.push_back(pair.first);
   }
   return names;

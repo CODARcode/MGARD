@@ -3,6 +3,7 @@
 //!\file
 //!\brief Parsers for the executable command line interface.
 
+#include <limits>
 #include <list>
 #include <map>
 #include <string>
