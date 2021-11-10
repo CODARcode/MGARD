@@ -3,6 +3,7 @@
 //!\file
 //!\brief Parsers for the executable command line interface.
 
+#include <limits>
 #include <list>
 #include <map>
 #include <string>
@@ -37,7 +38,11 @@ public:
   virtual void xorAdd(TCLAP::Arg &a, TCLAP::Arg &b) override;
 
   //! Add a mutually exclusive list of arguments.
+#if TCLAP_USE_CONST
+  virtual void xorAdd(std::vector<TCLAP::Arg *> const &xors) override;
+#else
   virtual void xorAdd(std::vector<TCLAP::Arg *> &xors) override;
+#endif
 
   //! Return associated output object.
   virtual TCLAP::CmdLineOutput *getOutput() override;
