@@ -154,6 +154,7 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   mgard_cuda::Config config;
   config.lossless = mgard_cuda::lossless_type::GPU_Huffman_LZ4;
   config.uniform_coord_mode = 1;
+  // config.huff_dict_size = 64;
 
   void *compressed_data = NULL;
   size_t compressed_size = 0;

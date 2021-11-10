@@ -5,12 +5,16 @@
  * Date: September 27, 2021
  */
 
-#iTndeT MGRAD_CUDA_GENERATE_CL_TEMPLATE_HPP
-#deTine MGRAD_CUDA_GENERATE_CL_TEMPLATE_HPP
+#ifndef MGRAD_CUDA_GENERATE_CL_TEMPLATE_HPP
+#define MGRAD_CUDA_GENERATE_CL_TEMPLATE_HPP
 
 #include "../CommonInternal.h"
 
 namespace mgard_cuda {
+
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MOD(a, b) ((((a) % (b)) + (b)) % (b))
 
 MGARDm_EXEC int iNodesFront = 0;
 MGARDm_EXEC int iNodesRear = 0;
@@ -28,13 +32,8 @@ MGARDm_EXEC int mergeRear;
 
 MGARDm_EXEC int lNodesIndex;
 
-// GenerateCW Locals
-MGARDm_EXEC int CCL;
-MGARDm_EXEC int CDPI;
-MGARDm_EXEC int newCDPI;
-
 template <typename T, typename DeviceType>
-class GenerateCLFunctor: public Functor<DeviceType> {
+class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
   public:
   MGARDm_CONT GenerateCLFunctor(
     SubArray<1, T, DeviceType> histogram,  SubArray<1, T, DeviceType> CL,  int size,
@@ -55,18 +54,20 @@ class GenerateCLFunctor: public Functor<DeviceType> {
     iNodesFreq(iNodesFreq), iNodesLeader(iNodesLeader),
     tempFreq(tempFreq), tempIsLeaf(tempIsLeaf), tempIndex(tempIndex),
     copyFreq(copyFreq), copyIsLeaf(copyIsLeaf), copyIndex(copyIndex),
-    diagonal_path_intersections(diagonal_path_intersections), this->ngridx(mblocks), this->nblockx(mthreads)
+    diagonal_path_intersections(diagonal_path_intersections)
     // (iNodesFront)iNodesFront, (iNodesRear)iNodesRear, (iNodesSize)iNodesSize, 
     // (lNodesCur)lNodesCur, (curLeavesNum)curLeavesNum, (minFreq)minFreq, 
     // (tempLength)tempLength, (mergeFront)mergeFront, (mergeRear)mergeRear, 
     // (lNodesIndex)lNodesIndex, (CCL)CCL, (CDPI)CDPI, 
     // (newCDPI)newCDPI 
     {
-    Functor<DeviceType>();                  
+    HuffmanCLCustomizedFunctor<DeviceType>();                  
   }
 
   MGARDm_EXEC void
   Operation1() {
+    mblocks = this->ngridx;
+    mthreads = this->nblockx;
     int32_t * sm = (int32_t*)this->shared_memory;
     x_top = &sm[0];
     y_top = &sm[1];
@@ -80,8 +81,8 @@ class GenerateCLFunctor: public Functor<DeviceType> {
 
     /* Initialization */
     if (thread < size) {
-      *lNodesLeader(i) = -1;
-      *CL(i) = 0;
+      *lNodesLeader((IDX)i) = -1;
+      *CL((IDX)i) = 0;
     }
 
     if (thread == 0) {
@@ -95,6 +96,7 @@ class GenerateCLFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC bool
   LoopCondition1() {
+    // printf("LoopCondition1 %d %u %d\n", lNodesCur, size, iNodesSize);
     return lNodesCur < size || iNodesSize > 1;
   }
 
@@ -102,10 +104,12 @@ class GenerateCLFunctor: public Functor<DeviceType> {
   Operation2() {
     /* Combine two most frequent nodes on same level */
     if (thread == 0) {
-      F midFreq[4];
+      T midFreq[4];
       int midIsLeaf[4];
-      for (int i = 0; i < 4; ++i)
+      for (int i = 0; i < 4; ++i) {
         midFreq[i] = UINT_MAX;
+        midIsLeaf[i] = 0;
+      }
 
       if (lNodesCur < size) {
         midFreq[0] = *lNodesFreq(lNodesCur);
@@ -124,10 +128,12 @@ class GenerateCLFunctor: public Functor<DeviceType> {
         midIsLeaf[3] = 0;
       }
 
+      // printf("midIsLeaf: %d %d %d %d\n", midIsLeaf[0], midIsLeaf[1], midIsLeaf[2], midIsLeaf[3]);
+
       /* Select the minimum of minimums - 4elt sorting network */
       /* TODO There's likely a good 1-warp faster way to do this */
       {
-        F tempFreq;
+        T tempFreq;
         int tempIsLeaf;
         if (midFreq[1] > midFreq[3]) {
           tempFreq = midFreq[1];
@@ -171,37 +177,49 @@ class GenerateCLFunctor: public Functor<DeviceType> {
         }
       }
 
+      // printf("mine: lNodesCur: %u, iNodesSize: %u\n", lNodesCur, iNodesSize);
+      // printf("mine: midFreq[0]: %u, midFreq[1]: %u\n", midFreq[0], midFreq[1]);
+      // printf("mine: midIsLeaf[0]: %u, midIsLeaf[1]: %u\n", midIsLeaf[0], midIsLeaf[1]);
+
       minFreq = midFreq[0];
       if (midFreq[1] < UINT_MAX) {
         minFreq += midFreq[1];
       }
-      *iNodesFreq(iNodesRear) = minFreq;
-      *iNodesLeader(iNodesRear) = -1;
+      *iNodesFreq((IDX)iNodesRear) = minFreq;
+      *iNodesLeader((IDX)iNodesRear) = -1;
+
+      // printf("mine: iNodesLeader(0.leader) = %d, iNodesRear: %u\n", *iNodesLeader(IDX(0)), iNodesRear);
 
       /* If is leaf */
       if (midIsLeaf[0]) {
-        *lNodesLeader(lNodesCur) = iNodesRear;
-        ++(*CL(lNodesCur)), ++lNodesCur;
+        *lNodesLeader((IDX)lNodesCur) = iNodesRear;
+        ++(*CL((IDX)lNodesCur)), ++lNodesCur;
+        // printf("update CL(%d) = %u\n", lNodesCur-1, *CL(lNodesCur-1));
       } else {
-        *iNodesLeader(iNodesFront) = iNodesRear;
+        *iNodesLeader((IDX)iNodesFront) = iNodesRear;
         iNodesFront = MOD(iNodesFront + 1, size);
       }
       if (midIsLeaf[1]) {
-        *lNodesLeader(lNodesCur) = iNodesRear;
-        ++(*CL(lNodesCur)), ++lNodesCur;
+        *lNodesLeader((IDX)lNodesCur) = iNodesRear;
+        ++(*CL((IDX)lNodesCur)), ++lNodesCur;
       } else {
-        *iNodesLeader(iNodesFront) = iNodesRear;
+        *iNodesLeader((IDX)iNodesFront) = iNodesRear;
+        // printf("*iNodesLeader(%d): %d\n", iNodesFront, *iNodesLeader(iNodesFront));
         iNodesFront = MOD(iNodesFront + 1, size); /* ? */
       }
 
       // iNodesRear = MOD(iNodesRear + 1, size);
 
       iNodesSize = MOD(iNodesRear - iNodesFront, size);
+
+      // printf("mine: iNodesLeader(0.leader) = %d, iNodesRear: %u\n", *iNodesLeader(IDX(0)), iNodesRear);
     }
 
     // int curLeavesNum;
     /* Select elements to copy -- parallelized */
     curLeavesNum = 0;
+
+
   }
 
   MGARDm_EXEC void
@@ -210,22 +228,27 @@ class GenerateCLFunctor: public Functor<DeviceType> {
     if (i >= lNodesCur && i < size) {
       // Parallel component
       int threadCurLeavesNum;
-      if (lNodesFreq[i] <= minFreq) {
+      if (*lNodesFreq((IDX)i) <= minFreq) {
         threadCurLeavesNum = i - lNodesCur + 1;
         // Atomic max -- Largest valid index
         atomicMax(&curLeavesNum, threadCurLeavesNum);
       }
 
       if (i - lNodesCur < curLeavesNum) {
-        *copyFreq(i - lNodesCur) = *lNodesFreq(i);
-        *copyIndex(i - lNodesCur) = i;
-        *copyIsLeaf(i - lNodesCur) = 1;
+        *copyFreq((IDX)i - lNodesCur) = *lNodesFreq((IDX)i);
+        *copyIndex((IDX)i - lNodesCur) = i;
+        *copyIsLeaf((IDX)i - lNodesCur) = 7;
       }
     }
   }
 
   MGARDm_EXEC void
   Operation4() {
+
+    // if (!thread) {
+    //   printf("curLeavesNum: %d\n", curLeavesNum);
+    // }
+
     /* Updates Iterators */
     if (thread == 0) {
       mergeRear = iNodesRear;
@@ -237,8 +260,8 @@ class GenerateCLFunctor: public Functor<DeviceType> {
       /* Odd number of nodes to merge - leave out one*/
       else if ((iNodesSize != 0)      //
                and (curLeavesNum == 0 //
-                    or (*histogram(lNodesCur + curLeavesNum) <=
-                        *iNodesFreq(MOD(iNodesRear - 1, size)))) //
+                    or (*histogram((IDX)lNodesCur + curLeavesNum) <=
+                        *iNodesFreq((IDX)MOD(iNodesRear - 1, size)))) //
       ) {
         mergeRear = MOD(mergeRear - 1, size);
         iNodesFront = MOD(iNodesRear - 1, size);
@@ -250,6 +273,10 @@ class GenerateCLFunctor: public Functor<DeviceType> {
       lNodesCur = lNodesCur + curLeavesNum;
       iNodesRear = MOD(iNodesRear + 1, size);
     }
+  }
+
+  MGARDm_EXEC void
+  Operation5() {
 
     cStart = 0;
     cEnd = curLeavesNum;
@@ -258,22 +285,23 @@ class GenerateCLFunctor: public Functor<DeviceType> {
     iNodesCap = size;
     blocks = mblocks;
     threads = mthreads;
-  }
-
-  MGARDm_EXEC void
-  Operation5() {
+    
     tempLength = (cEnd - cStart) + MOD(iEnd - iStart, iNodesCap);
     if (tempLength == 0) return;
     A_length = cEnd - cStart;
     B_length = MOD(iEnd - iStart, iNodesCap);
+
+    // if (!thread) {
+    //   printf("A_length: %d, B_length: %d, tempLength: %d\n", A_length, B_length, tempLength);
+    // }
     // Calculate combined index around the MergePath "matrix"
     combinedIndex =
         ((uint64_t)this->blockx * ((uint64_t)A_length + (uint64_t)B_length)) /
         (uint64_t)this->ngridx;
-    /*
-    __shared__ int32_t x_top, y_top, x_bottom, y_bottom,  found;
-    __shared__ int32_t oneorzero[32];
-    */
+
+    // if (!this->threadx) {
+    //   printf("A_length: %d, B_length: %d, tempLength: %d, combinedIndex: %d\n", A_length, B_length, tempLength, combinedIndex);
+    // }
     threadOffset = this->threadx - MGARDm_WARP_SIZE/2;
 
     if (this->threadx < MGARDm_WARP_SIZE) {
@@ -281,26 +309,35 @@ class GenerateCLFunctor: public Functor<DeviceType> {
       if (A_length >= B_length) {
         *x_top = MIN(combinedIndex, A_length);
         *y_top = combinedIndex > A_length ? combinedIndex - (A_length) : 0;
-        *x_bottom = y_top;
-        *y_bottom = x_top;
+        *x_bottom = *y_top;
+        *y_bottom = *x_top;
       } else {
         *y_bottom = MIN(combinedIndex, B_length);
         *x_bottom = combinedIndex > B_length ? combinedIndex - (B_length) : 0;
-        *y_top = x_bottom;
-        *x_top = y_bottom;
+        *y_top = *x_bottom;
+        *x_top = *y_bottom;
       }
     }
-    found = 0;
+    *found = 0;
+  }
+
+  MGARDm_EXEC bool
+  BranchCondition1() {
+    return tempLength > 0;
   }
 
   MGARDm_EXEC bool
   LoopCondition2() {
-    return !found;
+    // printf("%u LoopCondition2\n", this->blockx);
+    return !(*found);
   }
 
   MGARDm_EXEC void
   Operation6() {
     // Update our coordinates within the 32-wide section of the diagonal
+    // if (!this->threadx) {
+    //   printf("x %d %d y: %d %d\n", *x_top, *x_bottom, *y_top, *y_bottom);
+    // }
     current_x = *x_top - ((*x_top - *x_bottom) >> 1) - threadOffset;
     current_y = *y_top + ((*y_bottom - *y_top) >> 1) + threadOffset;
     getfrom_x = current_x + cStart - 1;
@@ -326,16 +363,28 @@ class GenerateCLFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation7() {
+    //     if (!this->threadx)
+    //     printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d \n\
+    // %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d \n\n",
+    //             oneorzero[0], oneorzero[1], oneorzero[2], oneorzero[3],
+    //             oneorzero[4], oneorzero[5], oneorzero[6], oneorzero[7],
+    //             oneorzero[8], oneorzero[9], oneorzero[10], oneorzero[11],
+    //             oneorzero[12], oneorzero[13], oneorzero[14], oneorzero[15],
+    //             oneorzero[16], oneorzero[17], oneorzero[18], oneorzero[19],
+    //             oneorzero[20], oneorzero[21], oneorzero[22], oneorzero[23],
+    //             oneorzero[24], oneorzero[25], oneorzero[26], oneorzero[27],
+    //             oneorzero[28], oneorzero[29], oneorzero[30], oneorzero[31]);
     // If we find the meeting of the '1's and '0's, we found the
     // intersection of the path and diagonal
     if (this->threadx > 0 and                                    //
         this->threadx < MGARDm_WARP_SIZE and                                   //
         (oneorzero[this->threadx] != oneorzero[this->threadx - 1]) //
     ) {
-      found = 1;
+      // printf("found\n");
+      *found = 1;
 
-      *diagonal_path_intersections(this->blockx) = current_x;
-      *diagonal_path_intersections(this->blockx + this->ngridx + 1) = current_y;
+      *diagonal_path_intersections((IDX)this->blockx) = current_x;
+      *diagonal_path_intersections((IDX)this->blockx + this->ngridx + 1) = current_y;
     }
   }
 
@@ -353,16 +402,16 @@ class GenerateCLFunctor: public Functor<DeviceType> {
     }
   }
 
-  //end oT loop 2
+  //end of loop 2
 
   MGARDm_EXEC void
   Operation9() {
     // Set the boundary diagonals (through 0,0 and A_length,B_length)
     if (this->threadx == 0 && this->blockx == 0) {
-      *diagonal_path_intersections(0) = 0;
-      *diagonal_path_intersections(this->ngridx + 1) = 0;
-      *diagonal_path_intersections(this->ngridx) = A_length;
-      *diagonal_path_intersections(this->ngridx + this->ngridx + 1) = B_length;
+      *diagonal_path_intersections((IDX)0) = 0;
+      *diagonal_path_intersections((IDX)this->ngridx + 1) = 0;
+      *diagonal_path_intersections((IDX)this->ngridx) = A_length;
+      *diagonal_path_intersections((IDX)this->ngridx + this->ngridx + 1) = B_length;
     }
   }
 
@@ -370,10 +419,10 @@ class GenerateCLFunctor: public Functor<DeviceType> {
   Operation10() {
     if (threadIdx.x == 0) {
       // Boundaries
-      int x_block_top = diagonal_path_intersections[blockIdx.x];
-      int y_block_top = diagonal_path_intersections[blockIdx.x + gridDim.x + 1];
-      int x_block_stop = diagonal_path_intersections[blockIdx.x + 1];
-      int y_block_stop = diagonal_path_intersections[blockIdx.x + gridDim.x + 2];
+      int x_block_top = *diagonal_path_intersections((IDX)this->blockx);
+      int y_block_top = *diagonal_path_intersections((IDX)this->blockx + this->ngridx + 1);
+      int x_block_stop = *diagonal_path_intersections((IDX)this->blockx + 1);
+      int y_block_stop = *diagonal_path_intersections((IDX)this->blockx + this->ngridx + 2);
 
       // Actual indexes
       int x_start = x_block_top + cStart;
@@ -383,67 +432,89 @@ class GenerateCLFunctor: public Functor<DeviceType> {
 
       int offset = x_block_top + y_block_top;
 
+      // printf("x_block_top: %d y_block_top: %d, offset: %d\n", x_block_top, y_block_top, offset);
+
       int dummy; // Unused result
       // TODO optimize serial merging of each partition
       int len = 0;
 
-      int iterCopy = cStart, iterINodes = iStart;
+      int iterCopy = x_start, iterINodes = y_start;
 
-      while (iterCopy < cEnd && MOD(iEnd - iterINodes, iNodesCap) > 0) {
-        if (*copyFreq(iterCopy) <= *iNodesFreq(iterINodes)) {
-          *tempFreq(offset+len) = *copyFreq(iterCopy);
-          *tempIndex(offset+len) = *copyIndex(iterCopy);
-          *tempIsLeaf(offset+len) = *copyIsLeaf(iterCopy);
+      while (iterCopy < x_end && MOD(y_end - iterINodes, iNodesCap) > 0) {
+        if (*copyFreq((IDX)iterCopy) <= *iNodesFreq((IDX)iterINodes)) {
+          *tempFreq((IDX)offset+len) = *copyFreq((IDX)iterCopy);
+          *tempIndex((IDX)offset+len) = *copyIndex((IDX)iterCopy);
+          *tempIsLeaf((IDX)offset+len) = *copyIsLeaf((IDX)iterCopy);
           ++iterCopy;
         } else {
-          *tempFreq(offset+len) = *iNodesFreq(iterINodes);
-          *tempIndex(offset+len) = iterINodes;
-          *tempIsLeaf(offset+len) = 0;
+          *tempFreq((IDX)offset+len) = *iNodesFreq((IDX)iterINodes);
+          *tempIndex((IDX)offset+len) = iterINodes;
+          *tempIsLeaf((IDX)offset+len) = 0;
           iterINodes = MOD(iterINodes + 1, iNodesCap);
         }
         ++len;
       }
 
-      while (iterCopy < cEnd) {
-        *tempFreq(offset+len) = *copyFreq(iterCopy);
-        *tempIndex(offset+len) = *copyIndex(iterCopy);
-        *tempIsLeaf(offset+len) = *copyIsLeaf(iterCopy);
+      while (iterCopy < x_end) {
+        *tempFreq((IDX)offset+len) = *copyFreq((IDX)iterCopy);
+        *tempIndex((IDX)offset+len) = *copyIndex((IDX)iterCopy);
+        *tempIsLeaf((IDX)offset+len) = *copyIsLeaf((IDX)iterCopy);
         ++iterCopy;
         ++len;
       }
-      while (MOD(iEnd - iterINodes, iNodesCap) > 0) {
-        *tempFreq(offset+len) = *iNodesFreq(iterINodes);
-        *tempIndex(offset+len) = iterINodes;
-        *tempIsLeaf(offset+len) = 0;
+      while (MOD(y_end - iterINodes, iNodesCap) > 0) {
+        *tempFreq((IDX)offset+len) = *iNodesFreq((IDX)iterINodes);
+        *tempIndex((IDX)offset+len) = iterINodes;
+        *tempIsLeaf((IDX)offset+len) = 0;
         iterINodes = MOD(iterINodes + 1, iNodesCap);
         ++len;
       }
 
-      // tempLength = len;
+      // for (int i = 0; i < len; i++) {
+      //   if (*tempIsLeaf((IDX)offset+i) == 2 ) {
+      //     printf("*copyIsLeaf((IDX)iterCopy) = 2\n");
+      //   }
+      // }
+
+      // if (threadIdx.x == 0) {
+      //   printf("this->ngridx: %llu, offset: %d, len: %d\n", this->ngridx, offset, len);
+      //   printf("leaf: %d %d\n", *tempIsLeaf((IDX)2 * 4), *tempIsLeaf((IDX)2 * 4 + 1));
+      // }
     }
+
+    // cg::this_grid().sync();
+    // if (threadIdx.x == 0) {
+    //   // printf("this->ngridx: %u, offset: %d, len: %d\n", this->ngridx, offset, len);
+    //   printf("leaf: %d %d\n", *tempIsLeaf((IDX)2 * 4), *tempIsLeaf((IDX)2 * 4 + 1));
+    // }
+
   }
   
-  // end oT parallel merge
+  // end of parallel merge
 
   MGARDm_EXEC void
   Operation11() {
+    // if (thread == 0) {
+    //   printf("leaf: %d %d\n", *tempIsLeaf((IDX)2 * 4), *tempIsLeaf((IDX)2 * 4 + 1));
+    // }
     /* Melding phase -- New */
     if (thread < tempLength / 2) {
       int ind = MOD(iNodesRear + i, size);
-      *iNodesFreq(ind) = *tempFreq(2 * i) + *tempFreq(2 * i + 1);
-      *iNodesLeader(ind) = -1;
+      // printf("Melding(i=%d): %u(%d) %u(%d)\n", i, *tempFreq((IDX)2 * i), *tempIsLeaf((IDX)2 * i), *tempFreq((IDX)2 * i + 1), *tempIsLeaf((IDX)2 * i + 1));
+      *iNodesFreq((IDX)ind) = *tempFreq((IDX)2 * i) + *tempFreq((IDX)2 * i + 1);
+      *iNodesLeader((IDX)ind) = -1;
 
-      if (*tempIsLeaf(2 * i)) {
-        *lNodesLeader(*tempIndex((2 * i))) = ind;
+      if (*tempIsLeaf((IDX)2 * i)) {
+        *lNodesLeader((IDX)*tempIndex((IDX)2 * i)) = ind;
         ++(*CL(*tempIndex(2 * i)));
       } else {
-        *iNodesLeader(*tempIndex(2 * i)) = ind;
+        *iNodesLeader((IDX)*tempIndex((IDX)2 * i)) = ind;
       }
-      if (*tempIsLeaf(2 * i + 1)) {
-        *lNodesLeader(*tempIndex(2 * i + 1)) = ind;
+      if (*tempIsLeaf((IDX)2 * i + 1)) {
+        *lNodesLeader((IDX)*tempIndex((IDX)2 * i + 1)) = ind;
         ++(*CL(*tempIndex(2 * i + 1)));
       } else {
-        *iNodesLeader(*tempIndex(2 * i + 1)) = ind;
+        *iNodesLeader((IDX)*tempIndex((IDX)2 * i + 1)) = ind;
       }
     }
   }
@@ -458,11 +529,15 @@ class GenerateCLFunctor: public Functor<DeviceType> {
   MGARDm_EXEC void
   Operation13() {
     /* Update leaders */
+    // if (thread == 0) {
+    //   printf("mine: iNodesLeader(0.leader) = %d, iNodesRear: %u\n", *iNodesLeader(IDX(0)), iNodesRear);
+    // }
     if (thread < size) {
-      if (*lNodesLeader(i) != -1) {
-        if (*iNodesLeader(*lNodesLeader(i)) != -1) {
-          *lNodesLeader(i) = *iNodesLeader(*lNodesLeader(i));
-          ++(*CL(i));
+      if (*lNodesLeader((IDX)i) != -1) {
+        if (*iNodesLeader((IDX)*lNodesLeader((IDX)i)) != -1) {
+          *lNodesLeader((IDX)i) = *iNodesLeader((IDX)*lNodesLeader((IDX)i));
+          ++(*CL((IDX)i));
+          // printf("update CL(%d):%d\n", i, *CL(i));
         }
       }
     }
@@ -582,20 +657,40 @@ public:
     gridx = mblocks;
     // printT("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
     // PrintSubarray("shape", shape);
+
+    // printf("mblocks: %d, tbx: %d\n", mblocks, tbx);
+
     return Task(Functor, gridz, gridy, gridx, 
                 tbz, tby, tbx, sm_size, queue_idx); 
   }
 
   MGARDm_CONT
-  void Execute(SubArray<1, T, DeviceType> array, SIZE dict_size, int queue_idx) {
+  void Execute(SubArray<1, T, DeviceType> histogram,  SubArray<1, T, DeviceType> CL, int dict_size,
+    /* Global Arrays */
+    SubArray<1, T, DeviceType> lNodesFreq,  SubArray<1, int, DeviceType> lNodesLeader,
+    SubArray<1, T, DeviceType> iNodesFreq,  SubArray<1, int, DeviceType> iNodesLeader,
+    SubArray<1, T, DeviceType> tempFreq,    SubArray<1, int, DeviceType> tempIsLeaf,    SubArray<1, int, DeviceType> tempIndex,
+    SubArray<1, T, DeviceType> copyFreq,    SubArray<1, int, DeviceType> copyIsLeaf,    SubArray<1, int, DeviceType> copyIndex,
+    SubArray<1, uint32_t, DeviceType> diagonal_path_intersections, int queue_idx) {
     using FunctorType = GenerateCLFunctor<T, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(array, dict_size, queue_idx); 
+    TaskType task = GenTask(histogram, CL, dict_size, 
+                        lNodesFreq, lNodesLeader,
+                        iNodesFreq, iNodesLeader,
+                        tempFreq, tempIsLeaf, tempIndex,
+                        copyFreq, copyIsLeaf, copyIndex,
+                        diagonal_path_intersections, queue_idx); 
     DeviceAdapter<TaskType, DeviceType> adapter; 
     adapter.Execute(task);
   }
 };
 
+#undef MOD
+#undef MIN
+#undef MAX
+
 }
 
-#endiT
+
+
+#endif

@@ -167,18 +167,20 @@ MGARDm_KERL void HuffmanCLCustomizedKernel(Task task) {
     SyncGrid<CUDA>::Sync();
     task.get_functor().Operation5();
     SyncBlock<CUDA>::Sync();
-    while (task.get_functor().LoopCondition2()) {
-      task.get_functor().Operation6();
-      SyncBlock<CUDA>::Sync();
-      task.get_functor().Operation7();
-      SyncBlock<CUDA>::Sync();
-      task.get_functor().Operation8();
-      SyncBlock<CUDA>::Sync();
+    if (task.get_functor().BranchCondition1()) {
+      while (task.get_functor().LoopCondition2()) {
+        task.get_functor().Operation6();
+        SyncBlock<CUDA>::Sync();
+        task.get_functor().Operation7();
+        SyncBlock<CUDA>::Sync();
+        task.get_functor().Operation8();
+        SyncBlock<CUDA>::Sync();
+      }
+      task.get_functor().Operation9();
+      SyncGrid<CUDA>::Sync();
+      task.get_functor().Operation10();
+      SyncGrid<CUDA>::Sync();
     }
-    task.get_functor().Operation9();
-    SyncBlock<CUDA>::Sync();
-    task.get_functor().Operation10();
-    SyncGrid<CUDA>::Sync();
     task.get_functor().Operation11();
     SyncGrid<CUDA>::Sync();
     task.get_functor().Operation12();
@@ -189,6 +191,43 @@ MGARDm_KERL void HuffmanCLCustomizedKernel(Task task) {
     SyncGrid<CUDA>::Sync();
   }
 }
+
+template <typename Task>
+MGARDm_KERL void HuffmanCWCustomizedKernel(Task task) {
+  Byte *shared_memory = SharedMemory<Byte>();
+
+  task.get_functor().Init(gridDim.z, gridDim.y, gridDim.x, 
+       blockDim.z, blockDim.y, blockDim.x,
+       blockIdx.z,  blockIdx.y,  blockIdx.x, 
+       threadIdx.z, threadIdx.y, threadIdx.x,
+       shared_memory);
+
+  task.get_functor().Operation1();
+  SyncGrid<CUDA>::Sync();
+  task.get_functor().Operation2();
+  SyncGrid<CUDA>::Sync();
+  task.get_functor().Operation3();
+  SyncGrid<CUDA>::Sync();
+
+  while (task.get_functor().LoopCondition1()) {
+    task.get_functor().Operation4();
+    SyncGrid<CUDA>::Sync();
+    task.get_functor().Operation5();
+    SyncGrid<CUDA>::Sync();
+    task.get_functor().Operation6();
+    SyncGrid<CUDA>::Sync();
+    task.get_functor().Operation7();
+    SyncBlock<CUDA>::Sync();
+    task.get_functor().Operation8();
+    SyncBlock<CUDA>::Sync();
+  }
+  task.get_functor().Operation9();
+  SyncBlock<CUDA>::Sync();
+  task.get_functor().Operation10();
+  SyncGrid<CUDA>::Sync();
+}
+
+
 
 
 template <>
@@ -1170,6 +1209,10 @@ public:
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<CUDA>, typename TaskType::Functor>::value) {
       void * Args[] = { (void*)&task };
       cudaLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
+                              blockPerGrid, threadsPerBlock, Args, sm_size);
+    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<CUDA>, typename TaskType::Functor>::value) {
+      void * Args[] = { (void*)&task };
+      cudaLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
                               blockPerGrid, threadsPerBlock, Args, sm_size);
     }
     gpuErrchk(cudaGetLastError());
