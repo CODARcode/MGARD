@@ -144,6 +144,9 @@ template <DIM D, typename T, typename DeviceType>
 SubArray<D, T, DeviceType>::SubArray(std::vector<SIZE> shape, T * dv) {
   this->shape  = shape;
   this->dv     = dv;
+  this->ldvs_h = shape;
+  lddv1 = ldvs_h[0];
+  lddv2 = ldvs_h[1];
 }
 
 

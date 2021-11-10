@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 set -x
-make -j 7
+make -j 8
 make install
 
 ###### Necessary CUDA profiler binaries #######
@@ -118,13 +118,13 @@ test_group_l_inf () {
 
 DATA=../../512x512x512/velocity_x.dat
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-3 -s 0 -l 1 -v
-# $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e5 -s inf -l 2 -v
+# $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e6 -s inf -l 2 -v
 
 # ./bin/test_flying_edges -i $DATA -n 3 512 512 512
 # ./bin/test_flying_edges -i random -n 3 5 5 5
 
 
-# $MgardCudaExec -z -i random -c random.out -t s -n 1 400 -m abs -e 1 -s inf -l 2 -v
+$MgardCudaExec -z -i random -c random.out -t s -n 1 129 -m abs -e 1e-2 -s 0 -l 2 -v
 
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m abs -e 1e5 -s inf -v
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e5 -s inf -v
