@@ -73,8 +73,13 @@ __device__ void cudaWorkloadDiagonals(
     int32_t& found, int32_t* oneorzero)
 {
   // clang-format on
+
   uint32_t A_length = cEnd - cStart;
   uint32_t B_length = MOD(iEnd - iStart, iNodesCap);
+
+  // if (!threadIdx.x && !blockIdx.x) {
+  //     printf("A_length: %d, B_length: %d\n", A_length, B_length);
+  //   }
   // Calculate combined index around the MergePath "matrix"
   int32_t combinedIndex =
       ((uint64_t)blockIdx.x * ((uint64_t)A_length + (uint64_t)B_length)) /

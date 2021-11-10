@@ -499,7 +499,6 @@ void cudaMemcpy3DAsyncHelper(Handle<D, T> &handle, void *dst, size_t dpitch,
   //   break;
   // }
   p.kind = cuda_copy_type;
-
   gpuErrchk(cudaMemcpy3DAsync(&p, stream));
 #ifdef MGARD_CUDA_DEBUG
   gpuErrchk(cudaDeviceSynchronize());

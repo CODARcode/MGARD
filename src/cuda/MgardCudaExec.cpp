@@ -261,7 +261,8 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
 
   mgard_cuda::Config config;
   config.timing = verbose;
-  config.huff_dict_size = 64;
+  config.uniform_coord_mode = 1;
+  // config.huff_dict_size = 64;
 
   if (lossless == 0) {
     config.lossless = mgard_cuda::lossless_type::CPU_Lossless;
@@ -279,6 +280,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
   if (std::string(input_file).compare("random") == 0) {
     in_size = original_size * sizeof(T);
     original_data = new T[original_size];
+    srand(7117);
     for (size_t i = 0; i < original_size; i++)
       original_data[i] = rand() % 10 + 1;
   } else {
