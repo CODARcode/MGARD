@@ -262,6 +262,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
   mgard_cuda::Config config;
   config.timing = verbose;
   config.uniform_coord_mode = 1;
+
   // config.huff_dict_size = 64;
 
   if (lossless == 0) {

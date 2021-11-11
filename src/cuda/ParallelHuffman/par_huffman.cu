@@ -15,6 +15,9 @@
 #include "cuda/ParallelHuffman/FillArraySequence.hpp"
 #include "cuda/ParallelHuffman/GetFirstNonzeroIndex.hpp"
 #include "cuda/ParallelHuffman/GenerateCL.hpp"
+#include "cuda/ParallelHuffman/GenerateCW.hpp"
+#include "cuda/ParallelHuffman/ReverseArray.hpp"
+#include "cuda/ParallelHuffman/ReorderByIndex.hpp"
 
 __device__ int iNodesFront = 0;
 __device__ int iNodesRear = 0;
@@ -432,6 +435,9 @@ __global__ void parHuff::GPU_GenerateCW(F *CL, H *CW, H *first, H *entry,
         CW[newCDPI + 1] = ((CW[CDPI] + 1) << CLDiff);
         CCL = CL[newCDPI + 1];
 
+        // printf("CLDiff: %d  %llu <- %llu\n", CLDiff, CW[newCDPI + 1], CW[CDPI]);
+
+
         ++newCDPI;
       }
 
@@ -444,8 +450,11 @@ __global__ void parHuff::GPU_GenerateCW(F *CL, H *CW, H *first, H *entry,
 
   // encoding CL into CW (highest 8 bits)
   if (thread < size) {
+    // printf("flip: %llu ^ 1 << %u -> %llu\n", CW[i], CL[i], CW[i] ^ ((H)1 << (H)CL[i] - 1) );
+
     CW[i] = (CW[i] | (((H)CL[i] & (H)0xffu) << ((sizeof(H) * 8) - 8))) ^
             (((H)1 << (H)CL[i]) - 1);
+
   }
   current_grid.sync();
 
@@ -646,12 +655,13 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   mgard_cuda::SubArray<1, int, DeviceType> copyIndex_subarray({(mgard_cuda::SIZE)nz_dict_size}, copyIndex);
   mgard_cuda::SubArray<1, uint32_t, DeviceType> diagonal_path_intersections_subarray({(mgard_cuda::SIZE)(2 * (mblocks + 1))}, diagonal_path_intersections);
 
-  mgard_cuda::GenerateCL<unsigned int, DeviceType>().Execute(_nz_d_freq_subarray, CL_subarray, nz_dict_size,
-                                                            _nz_d_freq_subarray, lNodesLeader_subarray, 
-                                                            iNodesFreq_subarray, iNodesLeader_subarray,
-                                                            tempFreq_subarray, tempIsLeaf_subarray, tempIndex_subarray, 
-                                                            copyFreq_subarray, copyIsLeaf_subarray, copyIndex_subarray,
-                                                            diagonal_path_intersections_subarray, 0);
+  mgard_cuda::GenerateCL<unsigned int, DeviceType> generateCL;
+  generateCL.Execute(_nz_d_freq_subarray, CL_subarray, nz_dict_size,
+                      _nz_d_freq_subarray, lNodesLeader_subarray, 
+                      iNodesFreq_subarray, iNodesLeader_subarray,
+                      tempFreq_subarray, tempIsLeaf_subarray, tempIndex_subarray, 
+                      copyFreq_subarray, copyIsLeaf_subarray, copyIndex_subarray,
+                      diagonal_path_intersections_subarray, 0);
 
 
 
@@ -702,15 +712,15 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   // the adaptive representation can handle
   // TODO do  proper cleanup
 
-  unsigned int *d_max_CL;
+  // unsigned int *d_max_CL;
   unsigned int max_CL;
-  cudaMalloc(&d_max_CL, sizeof(unsigned int));
-  GPU_GetMaxCWLength<<<1, 1>>>(CL, nz_dict_size, d_max_CL);
-  cudaDeviceSynchronize();
-  cudaMemcpy(&max_CL, d_max_CL, sizeof(unsigned int), cudaMemcpyDeviceToHost);
-  cudaFree(d_max_CL);
+  // cudaMalloc(&d_max_CL, sizeof(unsigned int));
+  // GPU_GetMaxCWLength<<<1, 1>>>(CL, nz_dict_size, d_max_CL);
+  // cudaDeviceSynchronize();
+  // cudaMemcpy(&max_CL, d_max_CL, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+  // cudaFree(d_max_CL);
 
-  // mgard_cuda::MemoryManager<DeviceType>().Copy1D(&max_CL, CL_subarray(mgard_cuda::IDX(0)), 1, 0);
+  mgard_cuda::MemoryManager<DeviceType>().Copy1D(&max_CL, CL_subarray(mgard_cuda::IDX(0)), 1, 0);
   cudaDeviceSynchronize();
 
   int max_CW_bits = (sizeof(H) * 8) - 8;
@@ -746,28 +756,56 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
                      (void *)&nz_dict_size};
 
   // Call second kernel
-  cudaLaunchCooperativeKernel(
-      (void *)parHuff::GPU_GenerateCW<unsigned int, H>, //
-      cw_mblocks,                                       //
-      1024,                                             //
-      CW_Args);
+  // cudaLaunchCooperativeKernel(
+  //     (void *)parHuff::GPU_GenerateCW<unsigned int, H>, //
+  //     cw_mblocks,                                       //
+  //     1024,                                             //
+  //     CW_Args);
   cudaDeviceSynchronize();
 
-#ifdef D_DEBUG_PRINT
-  print_codebook<H><<<1, 32>>>(_d_codebook, dict_size); // PASS
-  cudaDeviceSynchronize();
-#endif
+  mgard_cuda::SubArray<1, H, DeviceType> _nz_d_codebook_subarray({(mgard_cuda::SIZE)nz_dict_size}, _nz_d_codebook);
+  mgard_cuda::SubArray<1, H, DeviceType> _d_first_subarray({(mgard_cuda::SIZE)type_bw}, _d_first);
+  mgard_cuda::SubArray<1, H, DeviceType> _d_entry_subarray({(mgard_cuda::SIZE)type_bw}, _d_entry);
 
-  // Reverse _d_qcode and _d_codebook
-  GPU_ReverseArray<H><<<nblocks, 1024>>>(_d_codebook, (unsigned int)dict_size);
-  GPU_ReverseArray<Q><<<nblocks, 1024>>>(_d_qcode, (unsigned int)dict_size);
+  mgard_cuda::GenerateCW<unsigned int, H, DeviceType> generateCW;
+  generateCW.Execute(CL_subarray, _nz_d_codebook_subarray,
+                     _d_first_subarray, _d_entry_subarray, 
+                     nz_dict_size, 0);
+
   cudaDeviceSynchronize();
 
   // print_codebook<H><<<1, 32>>>(_d_codebook, dict_size); // PASS
   // cudaDeviceSynchronize();
 
-  GPU_ReorderByIndex<H, Q>
-      <<<nblocks, 1024>>>(_d_codebook, _d_qcode, (unsigned int)dict_size);
+
+  
+
+// #ifdef D_DEBUG_PRINT
+  // print_codebook<H><<<1, 32>>>(_d_codebook, dict_size); // PASS
+  // cudaDeviceSynchronize();
+// #endif
+
+  // Reverse _d_qcode and _d_codebook
+  // GPU_ReverseArray<H><<<nblocks, 1024>>>(_d_codebook, (unsigned int)dict_size);
+  // GPU_ReverseArray<Q><<<nblocks, 1024>>>(_d_qcode, (unsigned int)dict_size);
+
+  mgard_cuda::SubArray<1, H, DeviceType> _d_codebook_subarray({(mgard_cuda::SIZE)dict_size}, _d_codebook);
+  mgard_cuda::ReverseArray<H, DeviceType>().Execute(_d_codebook_subarray, dict_size, 0);
+  mgard_cuda::ReverseArray<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
+
+
+
+  cudaDeviceSynchronize();
+
+  // print_codebook<H><<<1, 32>>>(_d_codebook, dict_size); // PASS
+  // cudaDeviceSynchronize();
+
+  // GPU_ReorderByIndex<H, Q>
+  //     <<<nblocks, 1024>>>(_d_codebook, _d_qcode, (unsigned int)dict_size);
+
+  mgard_cuda::ReorderByIndex<H, Q, DeviceType>().Execute(_d_codebook_subarray, _d_qcode_subarray, dict_size, 0);
+
+
   cudaDeviceSynchronize();
 
   // Cleanup

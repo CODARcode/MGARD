@@ -22,50 +22,52 @@ namespace mgard_cuda {
     MGARDm_CONT HistogramFunctor(SubArray<1, T, DeviceType> input_data, 
                                  SubArray<1, Q, DeviceType> output, 
                                  SIZE N, 
-                                 int bins, int R):
-                                input_data(input_data), output(output), N(N), bins(bins), R(R) {
+                                 int bins, int R)
+                                :
+                                input_data(input_data), output(output), N(N), bins(bins), R(R) 
+                                {
       Functor<DeviceType>();                            
     }
 
     MGARDm_EXEC void
     Operation1() {
-      // Hs = (int*)this->shared_memory;
+      Hs = (int*)this->shared_memory;
 
-      // warpid = (int)(this->threadx / MGARDm_WARP_SIZE);
-      // lane = this->threadx % MGARDm_WARP_SIZE;
-      // warps_block = this->nblockx / MGARDm_WARP_SIZE;
+      warpid = (int)(this->threadx / MGARDm_WARP_SIZE);
+      lane = this->threadx % MGARDm_WARP_SIZE;
+      warps_block = this->nblockx / MGARDm_WARP_SIZE;
 
-      // off_rep = (bins + 1) * (this->threadx % R);
+      off_rep = (bins + 1) * (this->threadx % R);
 
-      // begin = (N / warps_block) * warpid + MGARDm_WARP_SIZE * this->blockx + lane;
-      // end = (N / warps_block) * (warpid + 1);
-      // step = MGARDm_WARP_SIZE * this->ngridx;
+      begin = (N / warps_block) * warpid + MGARDm_WARP_SIZE * this->blockx + lane;
+      end = (N / warps_block) * (warpid + 1);
+      step = MGARDm_WARP_SIZE * this->ngridx;
 
-      // // final warp handles data outside of the warps_block partitions
-      // if (warpid >= warps_block - 1)
-      //   end = N;
+      // final warp handles data outside of the warps_block partitions
+      if (warpid >= warps_block - 1)
+        end = N;
 
-      // for (unsigned int pos = this->threadx; pos < (bins + 1) * R; pos += this->nblockx)
-      //   Hs[pos] = 0;
+      for (unsigned int pos = this->threadx; pos < (bins + 1) * R; pos += this->nblockx)
+        Hs[pos] = 0;
     }
 
     MGARDm_EXEC void
     Operation2() {
-      // for (unsigned int i = begin; i < end; i += step) {
-      //   int d = *input_data(i);
-      //   atomicAdd(&Hs[off_rep + d], 1);
-      // }
+      for (unsigned int i = begin; i < end; i += step) {
+        int d = *input_data(i);
+        atomicAdd(&Hs[off_rep + d], 1);
+      }
     }
 
     MGARDm_EXEC void
     Operation3() {
-      // for (unsigned int pos = this->threadx; pos < bins; pos += this->nblockx) {
-      //   int sum = 0;
-      //   for (int base = 0; base < (bins + 1) * R; base += bins + 1) {
-      //     sum += Hs[base + pos];
-      //   }
-      //   atomicAdd(output(pos), sum);
-      // }
+      for (unsigned int pos = this->threadx; pos < bins; pos += this->nblockx) {
+        int sum = 0;
+        for (int base = 0; base < (bins + 1) * R; base += bins + 1) {
+          sum += Hs[base + pos];
+        }
+        atomicAdd(output(pos), sum);
+      }
     }
 
     MGARDm_EXEC void
@@ -122,6 +124,8 @@ namespace mgard_cuda {
       int RPerBlock = (maxbytes / (int)sizeof(int)) / (numBuckets + 1);
       int numBlocks = numSMs;
 
+      // printf("dict_size: %u, RPerBlock: %d\n", dict_size, RPerBlock);
+
       int threadsPerBlock =
           ((((numValues / (numBlocks * itemsPerThread)) + 1) / 64) + 1) * 64;
       while (threadsPerBlock > 1024) {
@@ -135,7 +139,11 @@ namespace mgard_cuda {
         }
       }
 
+      // printf("dict_size: %u, RPerBlock: %d\n", dict_size, RPerBlock);
+
       FunctorType functor(input_data, output, len, dict_size, RPerBlock);
+
+      DeviceRuntime<DeviceType>::SetMaxDynamicSharedMemorySize(functor, maxbytes);
 
       SIZE tbx, tby, tbz, gridx, gridy, gridz;
       size_t sm_size = functor.shared_memory_size();
@@ -147,7 +155,7 @@ namespace mgard_cuda {
       gridx = numBlocks;
       // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
       // PrintSubarray("shape", shape);
-      printf("numBlocks: %d, threadsPerBlock: %d, sm: %d\n", numBlocks, threadsPerBlock, sm_size);
+      // printf("numBlocks: %d, threadsPerBlock: %d, sm: %llu\n", numBlocks, threadsPerBlock, sm_size);
 
       return Task(functor, gridz, gridy, gridx, 
                   tbz, tby, tbx, sm_size, queue_idx); 
@@ -156,11 +164,11 @@ namespace mgard_cuda {
     MGARDm_CONT
     void Execute(SubArray<1, T, DeviceType> input_data, SubArray<1, Q, DeviceType> output, SIZE len, 
                   int dict_size, int queue_idx) {
-      // using FunctorType = HistogramFunctor<T, Q, DeviceType>;
-      // using TaskType = Task<FunctorType>;
-      // TaskType task = GenTask(input_data, output, len, dict_size, queue_idx); 
-      // DeviceAdapter<TaskType, DeviceType> adapter; 
-      // adapter.Execute(task);
+      using FunctorType = HistogramFunctor<T, Q, DeviceType>;
+      using TaskType = Task<FunctorType>;
+      TaskType task = GenTask(input_data, output, len, dict_size, queue_idx); 
+      DeviceAdapter<TaskType, DeviceType> adapter; 
+      adapter.Execute(task);
     }
   };
 

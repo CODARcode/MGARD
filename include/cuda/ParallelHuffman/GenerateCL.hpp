@@ -683,6 +683,8 @@ public:
     DeviceAdapter<TaskType, DeviceType> adapter; 
     adapter.Execute(task);
   }
+
+  
 };
 
 #undef MOD
