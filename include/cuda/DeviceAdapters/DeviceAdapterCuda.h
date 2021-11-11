@@ -217,12 +217,12 @@ MGARDm_KERL void HuffmanCWCustomizedKernel(Task task) {
     task.get_functor().Operation6();
     SyncGrid<CUDA>::Sync();
     task.get_functor().Operation7();
-    SyncBlock<CUDA>::Sync();
+    SyncGrid<CUDA>::Sync();
     task.get_functor().Operation8();
-    SyncBlock<CUDA>::Sync();
+    SyncGrid<CUDA>::Sync();
   }
   task.get_functor().Operation9();
-  SyncBlock<CUDA>::Sync();
+  SyncGrid<CUDA>::Sync();
   task.get_functor().Operation10();
   SyncGrid<CUDA>::Sync();
 }
@@ -433,20 +433,58 @@ class DeviceRuntime<CUDA> {
 
     if constexpr (std::is_base_of<Functor<CUDA>, 
       FunctorType>::value) {
-      cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+      gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
       &numBlocks, 
        Kernel<Task<FunctorType>>,
        blockSize, 
-       dynamicSMemSize);
+       dynamicSMemSize));
     } else if constexpr (std::is_base_of<IterFunctor<CUDA>, FunctorType>::value) {
-      cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-      &numBlocks, IterKernel<Task<FunctorType>>, blockSize, dynamicSMemSize);
+      gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+      &numBlocks, IterKernel<Task<FunctorType>>, blockSize, dynamicSMemSize));
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<CUDA>, FunctorType>::value) {
-      cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-      &numBlocks, HuffmanCLCustomizedKernel<Task<FunctorType>>, blockSize, dynamicSMemSize);
+      gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+      &numBlocks, HuffmanCLCustomizedKernel<Task<FunctorType>>, blockSize, dynamicSMemSize));
+    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<CUDA>, FunctorType>::value) {
+      gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+      &numBlocks, HuffmanCWCustomizedKernel<Task<FunctorType>>, blockSize, dynamicSMemSize));
+    } else {
+      std::cout << log::log_err << "GetOccupancyMaxActiveBlocksPerSM Error!\n";
     }
     return numBlocks;
   }
+
+  template <typename FunctorType>
+  MGARDm_CONT static void
+  SetMaxDynamicSharedMemorySize(FunctorType functor, int maxbytes) {
+    int numBlocks = 0;
+    Task<FunctorType> task = Task(functor, 1, 1, 1, 1, 1, 1, 0, 0);
+
+    if constexpr (std::is_base_of<Functor<CUDA>, 
+      FunctorType>::value) {
+      gpuErrchk(cudaFuncSetAttribute( 
+       Kernel<Task<FunctorType>>,
+       cudaFuncAttributeMaxDynamicSharedMemorySize,
+       maxbytes));
+    } else if constexpr (std::is_base_of<IterFunctor<CUDA>, FunctorType>::value) {
+      gpuErrchk(cudaFuncSetAttribute( 
+       IterKernel<Task<FunctorType>>,
+       cudaFuncAttributeMaxDynamicSharedMemorySize,
+       maxbytes));
+    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<CUDA>, FunctorType>::value) {
+      gpuErrchk(cudaFuncSetAttribute( 
+       HuffmanCLCustomizedKernel<Task<FunctorType>>,
+       cudaFuncAttributeMaxDynamicSharedMemorySize,
+       maxbytes));
+    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<CUDA>, FunctorType>::value) {
+      gpuErrchk(cudaFuncSetAttribute( 
+       HuffmanCWCustomizedKernel<Task<FunctorType>>,
+       cudaFuncAttributeMaxDynamicSharedMemorySize,
+       maxbytes));
+    } else {
+      std::cout << log::log_err << "SetPreferredSharedMemoryCarveout Error!\n";
+    }
+  }
+
 
   MGARDm_CONT
   ~DeviceRuntime(){

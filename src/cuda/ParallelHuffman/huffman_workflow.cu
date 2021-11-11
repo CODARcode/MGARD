@@ -35,6 +35,9 @@ using namespace std::chrono;
 #include "cuda/ParallelHuffman/types.hh"
 
 #include "cuda/ParallelHuffman/Histogram.hpp"
+#include "cuda/ParallelHuffman/EncodeFixedLen.hpp"
+#include "cuda/ParallelHuffman/Deflate.hpp"
+#include "cuda/ParallelHuffman/Decode.hpp"
 
 int ht_state_num;
 int ht_all_nodes;
@@ -69,9 +72,13 @@ void wrapper::GetFrequency(Q *d_bcode, size_t len, unsigned int *d_freq,
   int numBlocks = numSMs;
   cudaFuncSetAttribute(p2013Histogram<Q, unsigned int>,
                        cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
+
+  // printf("dict_size: %u, RPerBlock: %d\n", dict_size, RPerBlock);
+
   // fits to size
   int threadsPerBlock =
       ((((numValues / (numBlocks * itemsPerThread)) + 1) / 64) + 1) * 64;
+
   while (threadsPerBlock > 1024) {
     if (RPerBlock <= 1) {
       threadsPerBlock = 1024;
@@ -221,7 +228,7 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   ht_state_num = 2 * dict_size;
   ht_all_nodes = 2 * ht_state_num;
   auto freq = mem::CreateCUDASpace<unsigned int>(ht_all_nodes);
-  wrapper::GetFrequency(dprimary, primary_count, freq, dict_size);
+  // wrapper::GetFrequency(dprimary, primary_count, freq, dict_size);
 
   mgard_cuda::SubArray<1, Q, mgard_cuda::CUDA> dprimary_subarray({(mgard_cuda::SIZE)n}, dprimary);
   mgard_cuda::SubArray<1, unsigned int, mgard_cuda::CUDA> freq_subarray({(mgard_cuda::SIZE)ht_all_nodes}, freq);
@@ -243,6 +250,7 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size;
   uint8_t *decodebook = mem::CreateCUDASpace<uint8_t>(decodebook_size);
 
+  mgard_cuda::SubArray<1, H, mgard_cuda::CUDA> codebook_subarray({(mgard_cuda::SIZE)dict_size}, codebook);
   // Get codebooks
   ParGetCodebook<Q, H, mgard_cuda::CUDA>(dict_size, freq, codebook, decodebook);
   cudaDeviceSynchronize();
@@ -256,18 +264,30 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   // fix-length space
   auto blockDim = tBLK_ENCODE;
   auto gridDim = (primary_count - 1) / blockDim + 1;
-  EncodeFixedLen<unsigned int, H>
-      <<<gridDim, blockDim>>>(dprimary, huff, primary_count, codebook);
+  // EncodeFixedLen<unsigned int, H>
+  //     <<<gridDim, blockDim>>>(dprimary, huff, primary_count, codebook);
   gpuErrchk(cudaDeviceSynchronize());
+
+  mgard_cuda::SubArray<1, H, mgard_cuda::CUDA> huff_subarray({(mgard_cuda::SIZE)primary_count}, huff);
+  mgard_cuda::EncodeFixedLen<unsigned int, H, mgard_cuda::CUDA>().Execute(dprimary_subarray,
+                                                              huff_subarray,
+                                                              primary_count,
+                                                              codebook_subarray, 0);
 
   // deflate
   auto nchunk = (primary_count - 1) / chunk_size + 1; // |
   auto huff_bitwidths = mem::CreateCUDASpace<size_t>(nchunk);
   blockDim = tBLK_DEFLATE;
   gridDim = (nchunk - 1) / blockDim + 1;
-  Deflate<H>
-      <<<gridDim, blockDim>>>(huff, primary_count, huff_bitwidths, chunk_size);
+  // Deflate<H>
+  //     <<<gridDim, blockDim>>>(huff, primary_count, huff_bitwidths, chunk_size);
   gpuErrchk(cudaDeviceSynchronize());
+
+
+  mgard_cuda::SubArray<1, size_t, mgard_cuda::CUDA> huff_bitwidths_subarray({(mgard_cuda::SIZE)nchunk}, huff_bitwidths);
+  mgard_cuda::Deflate<H, mgard_cuda::CUDA>().Execute(huff_subarray, primary_count, huff_bitwidths_subarray, chunk_size, 0);
+  gpuErrchk(cudaDeviceSynchronize());
+
 
   // dump TODO change to int
   auto h_meta = new size_t[nchunk * 3]();
@@ -461,11 +481,21 @@ void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
   auto blockDim = tBLK_DEFLATE; // the same as deflating
   auto gridDim = (nchunk - 1) / blockDim + 1;
 
-  Decode<<<gridDim, blockDim, decodebook_size>>>( //
-      ddata, huffmeta, dprimary, primary_count, chunk_size, nchunk,
-      (uint8_t *)decodebook, (size_t)decodebook_size);
+  // Decode<<<gridDim, blockDim, decodebook_size>>>( //
+  //     ddata, huffmeta, dprimary, primary_count, chunk_size, nchunk,
+  //     (uint8_t *)decodebook, (size_t)decodebook_size);
   cudaDeviceSynchronize();
 
+  mgard_cuda::SubArray<1, H, mgard_cuda::CUDA> ddata_subarray({(mgard_cuda::SIZE)ddata_size}, ddata);
+  mgard_cuda::SubArray<1, size_t, mgard_cuda::CUDA> huffmeta_subarray({(mgard_cuda::SIZE)huffmeta_size/(mgard_cuda::SIZE)sizeof(size_t)}, huffmeta);
+  mgard_cuda::SubArray<1, Q, mgard_cuda::CUDA> dprimary_subarray({(mgard_cuda::SIZE)primary_count}, dprimary);
+  mgard_cuda::SubArray<1, uint8_t, mgard_cuda::CUDA> decodebook_subarray({(mgard_cuda::SIZE)decodebook_size}, decodebook);
+  mgard_cuda::Decode<Q, H, mgard_cuda::CUDA>().Execute(ddata_subarray,
+                                                       huffmeta_subarray,
+                                                       dprimary_subarray,
+                                                       primary_count, chunk_size, nchunk,
+                                                       decodebook_subarray, decodebook_size, 0);
+  cudaDeviceSynchronize();
   dqv = (S *)dprimary;
   n = primary_count;
 
