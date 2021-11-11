@@ -144,7 +144,7 @@ void PrintChunkHuffmanCoding(size_t *dH_bit_meta, //
   cout << endl;
 }
 
-template <mgard_cuda::DIM D, typename T, typename S, typename Q, typename H>
+template <mgard_cuda::DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
 void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
                    std::vector<size_t> &outlier_idx, H *&dmeta,
                    size_t &dmeta_size, H *&ddata, size_t &ddata_size,
@@ -153,80 +153,18 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
 
-  // high_resolution_clock::time_point t1 = high_resolution_clock::now();
-
-  // size_t outlier_count = outlier_idx.size();
-  // size_t primary_count = n - outlier_count;
-
-  // // printf("compress outlier_idx: "); for(int i = 0; i < outlier_count; i++)
-  // {printf("%llu ", outlier_idx[i]);} printf("\n");
-
-  // printf("compress outlier_count: %llu\n", outlier_count);
-  // printf("compress primary_count: %llu\n", primary_count);
-
-  // Q * dprimary;
-  // S * doutlier;
-  // mgard_cuda::cudaMallocHelper(handle, (void **)&dprimary, primary_count *
-  // sizeof(Q)); mgard_cuda::cudaMallocHelper(handle, (void **)&doutlier, outlier_count
-  // * sizeof(S));
-
-  // // for (int i = 0 ; i < outlier_count; i++) { printf("%d\n",
-  // outlier_idx[i]);}
-
   int queue_idx = 0;
-
-  // size_t p = 0;
-  // size_t pp = 0;
-  // size_t op = 0;
-  // size_t size = outlier_idx[0] - 0;
-  // // printf("copy primary\n");
-  // if (size > 0) { mgard_cuda::cudaMemcpyAsyncHelper(handle, dprimary + pp,
-  // dqv + p, size * sizeof(Q), mgard_cuda::D2D,
-  // (queue_idx++)%handle.num_of_queues); } pp += size; p += size;
-
-  // for (int i = 0; i < outlier_idx.size() - 1; i++) {
-  //   size = 1;
-  //   // printf("copy outlier\n");
-  //   mgard_cuda::cudaMemcpyAsyncHelper(handle, doutlier + op, dqv + p, size *
-  //   sizeof(S), mgard_cuda::D2D, (queue_idx++)%handle.num_of_queues); op +=
-  //   size; p += size; size = outlier_idx[i + 1] - outlier_idx[i] - 1;
-  //   // printf("copy primary %d %d %d\n", p, size,
-  //   outlier_idx[outlier_idx.size() - 1]); if (size > 0) {
-  //   mgard_cuda::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p, size *
-  //   sizeof(Q), mgard_cuda::D2D, (queue_idx++)%handle.num_of_queues); } pp +=
-  //   size; p += size;
-  // }
-  // size = 1;
-  // // printf("copy outlier\n");
-  // mgard_cuda::cudaMemcpyAsyncHelper(handle, doutlier + op, dqv + p, size *
-  // sizeof(S), mgard_cuda::D2D, (queue_idx++)%handle.num_of_queues); op +=
-  // size; p += size; size = n - outlier_idx[outlier_idx.size() - 1] - 1;
-  // // printf("copy primary %d %d %d\n", p, size,
-  // outlier_idx[outlier_idx.size() - 1]); if (size > 0) {
-  // mgard_cuda::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p, size *
-  // sizeof(Q), mgard_cuda::D2D, (queue_idx++)%handle.num_of_queues); }
-  // // printf("done copy primary\n");
-  // pp += size;
-  // p += size;
-
-  // if (pp != primary_count || op != outlier_count) { printf("Primary or
-  // outlier size mismatch!\n"); } handle.sync_all();
-
-  // gpuErrchk(cudaDeviceSynchronize());
 
   Q *dprimary = (Q *)dqv;
   size_t primary_count = n;
-  // printf("primary_count: %lld\n", primary_count);
-
-  // high_resolution_clock::time_point t2 = high_resolution_clock::now();
-  // duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-  // printf("separate time: %.6f s\n", time_span.count());
 
   t1 = high_resolution_clock::now();
   // start huffman
   // histogram
   ht_state_num = 2 * dict_size;
   ht_all_nodes = 2 * ht_state_num;
+
+  mgard_cuda::Array<1, unsigned int, DeviceType> freq_array({(mgard_cuda::SIZE)ht_all_nodes});
   auto freq = mem::CreateCUDASpace<unsigned int>(ht_all_nodes);
   // wrapper::GetFrequency(dprimary, primary_count, freq, dict_size);
 
@@ -410,7 +348,7 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   delete[] h_meta;
 }
 
-template <mgard_cuda::DIM D, typename T, typename S, typename Q, typename H>
+template <mgard_cuda::DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
 void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
                    H *dmeta, size_t dmeta_size, H *ddata, size_t ddata_size) {
 
@@ -483,7 +421,7 @@ void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
 
   // Decode<<<gridDim, blockDim, decodebook_size>>>( //
   //     ddata, huffmeta, dprimary, primary_count, chunk_size, nchunk,
-  //     (uint8_t *)decodebook, (size_t)decodebook_size);
+      // (uint8_t *)decodebook, (size_t)decodebook_size);
   cudaDeviceSynchronize();
 
   mgard_cuda::SubArray<1, H, mgard_cuda::CUDA> ddata_subarray({(mgard_cuda::SIZE)ddata_size}, ddata);
@@ -596,11 +534,11 @@ template void PrintChunkHuffmanCoding<uint64_t>(size_t *, size_t *, size_t, int,
 //                           dmeta_size, uint32_t * ddata, size_t ddata_size);
 
 #define KERNELS(D, T, S, Q, H)                                                 \
-  template void HuffmanEncode<D, T, S, Q, H>(                                  \
+  template void HuffmanEncode<D, T, S, Q, H, mgard_cuda::CUDA>(                                  \
       mgard_cuda::Handle<D, T> & handle, S * dqv, size_t n,                    \
       std::vector<size_t> & outlier_idx, H * &dmeta, size_t & dmeta_size,      \
       H * &ddata, size_t & ddata_size, int chunk_size, int dict_size);         \
-  template void HuffmanDecode<D, T, S, Q, H>(                                  \
+  template void HuffmanDecode<D, T, S, Q, H, mgard_cuda::CUDA>(                                  \
       mgard_cuda::Handle<D, T> & handle, S * &dqv, size_t & n, H * dmeta,      \
       size_t dmeta_size, H * ddata, size_t ddata_size);
 

@@ -44,13 +44,13 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
                               size_t primary_count, S *doutlier, Q *dprimary,
                               int queue_idx);
 
-template <DIM D, typename T, typename S, typename Q, typename H>
+template <DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
 void huffman_compress(Handle<D, T> &handle, S *input_data, size_t input_count,
                       std::vector<size_t> &outlier_idx, H *&out_meta,
                       size_t &out_meta_size, H *&out_data,
                       size_t &out_data_size, int chunk_size, int dict_size,
                       int queue_idx);
-template <DIM D, typename T, typename S, typename Q, typename H>
+template <DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
 void huffman_decompress(Handle<D, T> &handle, H *in_meta, size_t in_meta_size,
                         H *in_data, size_t in_data_size, S *&output_data,
                         size_t &output_count, int queue_idx);
