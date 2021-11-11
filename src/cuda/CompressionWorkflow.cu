@@ -292,7 +292,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   uint64_t *hufdata;
   size_t hufmeta_size;
   size_t hufdata_size;
-  huffman_compress<D, T, int, DIM, uint64_t>(
+  huffman_compress<D, T, int, DIM, uint64_t, DeviceType>(
       handle, dqv_array.get_dv(), quantized_count, outlier_idx, hufmeta, hufmeta_size, hufdata,
       hufdata_size, block_size, dict_size, 0);
   // printf("sync_all 3\n");
@@ -537,7 +537,7 @@ Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
   }
 
   if (handle.timing) t1 = high_resolution_clock::now();
-  huffman_decompress<D, T, int, DIM, uint64_t>(
+  huffman_decompress<D, T, int, DIM, uint64_t, DeviceType>(
       handle, (uint64_t *)hufmeta, hufmeta_size, hufdata, hufdata_size, dqv,
       outsize, 0);
   handle.sync_all();

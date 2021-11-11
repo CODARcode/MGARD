@@ -529,6 +529,10 @@ __global__ void GPU_ReverseArray(T *array, unsigned int size) {
 template <typename Q, typename H, typename DeviceType>
 void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
                     uint8_t *_d_decode_meta) {
+
+
+  
+
   // Metadata
   auto type_bw = sizeof(H) * 8;
   auto _d_first = reinterpret_cast<H *>(_d_decode_meta);
@@ -536,8 +540,15 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   auto _d_qcode =
       reinterpret_cast<Q *>(_d_decode_meta + (sizeof(H) * 2 * type_bw));
 
+  mgard_cuda::SubArray<1, uint8_t, DeviceType> _d_decode_meta_subarray(
+          {(mgard_cuda::SIZE)(sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size)}, 
+          _d_decode_meta);
+
   mgard_cuda::SubArray<1, unsigned int, DeviceType> _d_freq_subarray({(mgard_cuda::SIZE)dict_size}, _d_freq);
-  mgard_cuda::SubArray<1, Q, DeviceType> _d_qcode_subarray({(mgard_cuda::SIZE)dict_size}, _d_qcode);
+
+  mgard_cuda::SubArray<1, H, DeviceType> _d_first_subarray({(mgard_cuda::SIZE)type_bw}, (H*)_d_decode_meta_subarray((mgard_cuda::IDX)0));
+  mgard_cuda::SubArray<1, H, DeviceType> _d_entry_subarray({(mgard_cuda::SIZE)type_bw}, (H*)_d_decode_meta_subarray(sizeof(H) * type_bw));
+  mgard_cuda::SubArray<1, Q, DeviceType> _d_qcode_subarray({(mgard_cuda::SIZE)dict_size}, (Q*)_d_decode_meta_subarray(sizeof(H) * 2 * type_bw));
 
 
   // Sort Qcodes by frequency
@@ -547,11 +558,11 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   mgard_cuda::FillArraySequence<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
 
 
-  cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
 
   // SortByFreq(_d_freq, _d_qcode, dict_size);
   mgard_cuda::DeviceCollective<DeviceType>().SortByKey(dict_size, _d_freq_subarray, _d_qcode_subarray, 0);
-  cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
 
   unsigned int *d_first_nonzero_index;
   unsigned int first_nonzero_index;// = dict_size;
@@ -565,14 +576,15 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   mgard_cuda::SubArray<1, unsigned int, DeviceType> d_first_nonzero_index_subarray({1}, d_first_nonzero_index);
   mgard_cuda::GetFirstNonzeroIndex<unsigned int, DeviceType>().Execute(_d_freq_subarray, first_nonzero_index_array, dict_size, 0);
 
+  // cudaDeviceSynchronize();
+  mgard_cuda::DeviceRuntime<DeviceType>::SyncQueue(0);
+  first_nonzero_index = first_nonzero_index_array.getDataHost()[0];
 
   // GPU_GetFirstNonzeroIndex<unsigned int>
   //     <<<nblocks, 1024>>>(_d_freq, dict_size, d_first_nonzero_index);
 
 
-  cudaDeviceSynchronize();
-
-  first_nonzero_index = first_nonzero_index_array.getDataHost()[0];
+  
 
   // cudaMemcpy(&first_nonzero_index, d_first_nonzero_index, sizeof(unsigned int),
   //            cudaMemcpyDeviceToHost);
@@ -764,8 +776,8 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   cudaDeviceSynchronize();
 
   mgard_cuda::SubArray<1, H, DeviceType> _nz_d_codebook_subarray({(mgard_cuda::SIZE)nz_dict_size}, _nz_d_codebook);
-  mgard_cuda::SubArray<1, H, DeviceType> _d_first_subarray({(mgard_cuda::SIZE)type_bw}, _d_first);
-  mgard_cuda::SubArray<1, H, DeviceType> _d_entry_subarray({(mgard_cuda::SIZE)type_bw}, _d_entry);
+  // mgard_cuda::SubArray<1, H, DeviceType> _d_first_subarray({(mgard_cuda::SIZE)type_bw}, _d_first);
+  // mgard_cuda::SubArray<1, H, DeviceType> _d_entry_subarray({(mgard_cuda::SIZE)type_bw}, _d_entry);
 
   mgard_cuda::GenerateCW<unsigned int, H, DeviceType> generateCW;
   generateCW.Execute(CL_subarray, _nz_d_codebook_subarray,
