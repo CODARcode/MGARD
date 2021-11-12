@@ -115,10 +115,14 @@ if (MGARD_ENABLE_SERIAL OR
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 endif()
 
+#Adding library here so we can set compile definitions for it.
+add_library(mgard-library)
+
 if(MGARD_ENABLE_SERIAL)
   set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
-  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_SERIAL -w")
+  target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_SERIAL)
+  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
 endif()
 
 if(MGARD_ENABLE_CUDA)
@@ -143,18 +147,15 @@ if(MGARD_ENABLE_CUDA)
     target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
-  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_CUDA")
-  set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_CUDA")
+  target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_CUDA)
   set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
   
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)
 
   if(MGARD_ENABLE_CUDA_FMA)
-    set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_X_FMA")
-    set (CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_X_FMA")
-    set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_FMA")
-    set (CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_FMA")
+    target_compile_definitions(mgard-library PUBLIC MGARD_X_FMA)
+    target_compile_definitions(mgard-library PUBLIC MGARD_CUDA_FMA)
   endif()
 endif()
 
@@ -164,7 +165,8 @@ if (MGARD_ENABLE_HIP)
   enable_language(HIP)
   set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
-  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_HIP -w")
+  target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_HIP)
+  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
 endif()
 
 if (MGARD_ENABLE_KOKKOS)
@@ -257,8 +259,9 @@ list(APPEND MGARD_LIBRARY_CPP "${MGARD_COMPRESS_INTERNAL_CPP}")
 #See <https://github.com/protocolbuffers/protobuf/issues/2032>.
 set_source_files_properties("${MGARD_FILE_FORMAT_CPP}" PROPERTIES COMPILE_FLAGS "-Wno-unused-parameter")
 
-add_library(
+target_sources(
   mgard-library
+  PRIVATE
   ${MGARD_LIBRARY_CPP}
   ${MGARD_CUDA_SRC}
   ${MGARD_X_SRC}
