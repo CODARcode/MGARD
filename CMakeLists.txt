@@ -72,6 +72,7 @@ cmake_dependent_option(BUILD_SHARED_LIBS
   "SHARED_LIBS_SUPPORTED" OFF
 )
 mark_as_advanced(BUILD_SHARED_LIBS)
+find_package(OpenMP)
 
 # Default to a release build if not specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -96,21 +97,7 @@ if(MGARD_ENABLE_CUDA)
 
   SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
 
-  if(MGARD_ENABLE_CUDA_FMA)
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_FMA")
-    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_FMA")
-  endif()
 
-  if(MGARD_ENABLE_CUDA_OPTIMIZE_TURING)
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_OPTIMIZE_TURING")
-    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_OPTIMIZE_TURING")
-    set(CUDA_ARCH_STRING "${CUDA_ARCH_STRING};75")
-  endif()
-  if(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA)
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_OPTIMIZE_VOLTA")
-    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_OPTIMIZE_VOLTA")
-    set(CUDA_ARCH_STRING "${CUDA_ARCH_STRING};70;72")
-  endif()
 endif()
 
 find_package(ZLIB REQUIRED)
@@ -233,11 +220,21 @@ if(ZSTD_FOUND)
 endif()
 
 if(MGARD_ENABLE_CUDA)
+  if(MGARD_ENABLE_CUDA_FMA)
+    target_compile_definitions(mgard-library PUBLIC "MGARD_CUDA_FMA")
+  endif()
+  if(MGARD_ENABLE_CUDA_OPTIMIZE_TURING)
+    target_compile_definitions(mgard-library PUBLIC MGARD_CUDA_OPTIMIZE_TURING)
+    set(CUDA_ARCH_STRING "${CUDA_ARCH_STRING};75")
+  endif()
+  if(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA)
+    target_compile_definitions(mgard-library PUBLIC MGARD_CUDA_OPTIMIZE_VOLTA)
+    set(CUDA_ARCH_STRING "${CUDA_ARCH_STRING};70;72")
+  endif()
   target_link_libraries(mgard-library PUBLIC nvcomp::nvcomp CUDA::cudart )
   # target_include_directories(mgard-library PUBLIC ${NVCOMP_INCLUDE_DIR})
 endif()
 
-find_package(OpenMP)
 if(OpenMP_FOUND)
 	target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
 endif()
