@@ -504,7 +504,7 @@ class MemoryManager<CUDA> {
   MemoryManager(){};
 
   template <typename T>
-  MGARDm_CONT
+  MGARDm_CONT static
   void Malloc1D(T *& ptr, SIZE n, int queue_idx) {
     gpuErrchk(cudaMalloc(&ptr, n * sizeof(T)));
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
@@ -513,7 +513,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT
+  MGARDm_CONT static
   void MallocND(T *& ptr, SIZE n1, SIZE n2, SIZE &ld, int queue_idx) {
     if (ReduceMemoryFootprint) {
       gpuErrchk(cudaMalloc(&ptr, n1 * n2 * sizeof(T)));
@@ -529,7 +529,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT
+  MGARDm_CONT static
   void Free(T * ptr) {
     // printf("MemoryManager.Free(%llu)\n", ptr);
     gpuErrchk(cudaFree(ptr));
@@ -539,7 +539,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT
+  MGARDm_CONT static
   void Copy1D(T * dst_ptr, const T * src_ptr, SIZE n, int queue_idx) {
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     gpuErrchk(cudaMemcpyAsync(dst_ptr, src_ptr, n*sizeof(T), cudaMemcpyDefault, stream));
@@ -549,7 +549,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT
+  MGARDm_CONT static
   void CopyND(T * dst_ptr, SIZE dst_ld, const T * src_ptr, SIZE src_ld, SIZE n1, SIZE n2, int queue_idx) {
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     gpuErrchk(cudaMemcpy2DAsync(dst_ptr, dst_ld * sizeof(T), src_ptr, src_ld * sizeof(T), n1 * sizeof(T), n2,
@@ -560,7 +560,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT
+  MGARDm_CONT static
   void MallocHost(T *& ptr, SIZE n, int queue_idx) {
     gpuErrchk(cudaMallocHost(&ptr, n * sizeof(T)));
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
@@ -569,12 +569,24 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT
+  MGARDm_CONT static
   void FreeHost(T * ptr) {
     gpuErrchk(cudaFreeHost(ptr));
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
+  }
+
+  template <typename T>
+  MGARDm_CONT static
+  void Memset1D(T * ptr, SIZE n, int value) {
+    gpuErrchk(cudaMemset(ptr, value, n * sizeof(T)));
+  }
+
+  template <typename T>
+  MGARDm_CONT static
+  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value) {
+    gpuErrchk(cudaMemset2D(ptr, ld * sizeof(T), value, n1 * sizeof(T), n2));
   }
 
   static bool ReduceMemoryFootprint;

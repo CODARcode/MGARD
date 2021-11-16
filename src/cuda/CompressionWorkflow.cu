@@ -30,6 +30,8 @@
 
 #include "cuda/DeviceAdapters/DeviceAdapter.h"
 
+#include "cuda/ParallelHuffman/Huffman.hpp"
+
 
 #define BLOCK_SIZE 64
 
@@ -292,10 +294,21 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   uint64_t *hufdata;
   size_t hufmeta_size;
   size_t hufdata_size;
-  huffman_compress<D, T, int, DIM, uint64_t, DeviceType>(
-      handle, dqv_array.get_dv(), quantized_count, outlier_idx, hufmeta, hufmeta_size, hufdata,
-      hufdata_size, block_size, dict_size, 0);
-  // printf("sync_all 3\n");
+
+  SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType> qv({(SIZE)(handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth)},
+                                                  (QUANTIZED_UNSIGNED_INT*)dqv_array.get_dv());
+  
+  Array<1, Byte, DeviceType> huffman_compressed_array =
+  HuffmanCompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(
+      qv, block_size, dict_size);
+
+  SubArray huffman_compressed_subarray(huffman_compressed_array);
+
+  // hufmeta = (uint64_t*)huffman_compressed_subarray((IDX)0);
+  // hufdata = (uint64_t*)huffman_compressed_subarray(hufmeta_size);
+  hufdata = (uint64_t*)huffman_compressed_subarray((IDX)0);
+  hufdata_size = huffman_compressed_subarray.shape[0];
+
   handle.sync_all();
   cudaFreeHelper(dqv);
   if (handle.timing) {
@@ -374,13 +387,12 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
                         AUTO, 0);
   buffer_p = buffer_p + outlier_count * sizeof(QUANTIZED_INT);
 
-  // memcpy(buffer_p, &hufmeta_size, sizeof(size_t));
-  cudaMemcpyAsyncHelper(handle, buffer_p, &hufmeta_size, sizeof(size_t), AUTO,
-                        0);
+  // cudaMemcpyAsyncHelper(handle, buffer_p, &hufmeta_size, sizeof(size_t), AUTO,
+  //                       0);
 
-  buffer_p = buffer_p + sizeof(size_t);
-  cudaMemcpyAsyncHelper(handle, buffer_p, hufmeta, hufmeta_size, AUTO, 0);
-  buffer_p = buffer_p + hufmeta_size;
+  // buffer_p = buffer_p + sizeof(size_t);
+  // cudaMemcpyAsyncHelper(handle, buffer_p, hufmeta, hufmeta_size, AUTO, 0);
+  // buffer_p = buffer_p + hufmeta_size;
 
   cudaMemcpyAsyncHelper(handle, buffer_p, &hufdata_size, sizeof(size_t), AUTO,
                         0);
@@ -400,8 +412,8 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   cudaFreeHelper(outlier_count_d);
   cudaFreeHelper(outlier_idx_d);
   cudaFreeHelper(outliers);
-  cudaFreeHelper(hufmeta);
-  cudaFreeHelper(hufdata);
+  // cudaFreeHelper(hufmeta);
+  // cudaFreeHelper(hufdata);
 
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
   // (double)(total-free)/1e9, (double)total/1e9);
@@ -490,14 +502,14 @@ Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
   cudaMemcpyAsyncHelper(handle, outliers, data_p, outlier_count * sizeof(QUANTIZED_INT), AUTO, 0);
   //outliers = (QUANTIZED_INT *) data_p;
 	data_p = data_p + outlier_count * sizeof(QUANTIZED_INT);
-  cudaMemcpyAsyncHelper(handle, &hufmeta_size, data_p, sizeof(size_t), AUTO, 0);
-  data_p = data_p + sizeof(size_t);
-  handle.sync(0);
+  // cudaMemcpyAsyncHelper(handle, &hufmeta_size, data_p, sizeof(size_t), AUTO, 0);
+  // data_p = data_p + sizeof(size_t);
+  // handle.sync(0);
   
-	cudaMallocHelper(handle, (void **)&hufmeta, hufmeta_size);
-  cudaMemcpyAsyncHelper(handle, hufmeta, data_p, hufmeta_size, AUTO, 0);
-  //hufmeta = (uint8_t *)data_p;
-	data_p = data_p + hufmeta_size;
+	// cudaMallocHelper(handle, (void **)&hufmeta, hufmeta_size);
+  // cudaMemcpyAsyncHelper(handle, hufmeta, data_p, hufmeta_size, AUTO, 0);
+	// data_p = data_p + hufmeta_size;
+
   cudaMemcpyAsyncHelper(handle, &hufdata_size, data_p, sizeof(size_t), AUTO, 0);
   data_p = data_p + sizeof(size_t);
   handle.sync(0);
@@ -536,18 +548,22 @@ Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
     }
   }
 
+  QUANTIZED_UNSIGNED_INT * unsigned_dqv;
   if (handle.timing) t1 = high_resolution_clock::now();
-  huffman_decompress<D, T, int, DIM, uint64_t, DeviceType>(
-      handle, (uint64_t *)hufmeta, hufmeta_size, hufdata, hufdata_size, dqv,
-      outsize, 0);
+
+  SubArray<1, Byte, DeviceType> huffdata_subarray({(SIZE) hufdata_size}, (Byte*)hufdata);
+  Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> primary =
+  HuffmanDecompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(huffdata_subarray);
   handle.sync_all();
-	cudaFreeHelper(hufmeta);
-	cudaFreeHelper(hufdata);
+	// cudaFreeHelper(hufmeta);
+	// cudaFreeHelper(hufdata);
   if (handle.timing) {
     t2 = high_resolution_clock::now();
     time_span = duration_cast<duration<double>>(t2 - t1);
     std::cout << log::log_time << "GPU Huffman decoding time: " << time_span.count() <<" s\n";
   }
+
+  dqv = (QUANTIZED_INT*)primary.get_dv();
 
   
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
@@ -602,7 +618,7 @@ Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
 
 
   handle.sync_all();
-  cudaFreeHelper(dqv);
+  // cudaFreeHelper(dqv);
   if (prep_huffman) {
 		cudaFreeHelper(outlier_idx_d);
 		cudaFreeHelper(outliers);

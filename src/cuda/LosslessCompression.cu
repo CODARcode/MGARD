@@ -10,6 +10,8 @@
 #include "cuda/CommonInternal.h"
 #include "cuda/LosslessCompression.h"
 #include "cuda/ParallelHuffman/huffman_workflow.cuh"
+// #include "cuda/ParallelHuffman/Huffman.hpp"
+ 
 #include <typeinfo>
 
 namespace mgard_cuda {
@@ -338,17 +340,17 @@ void huffman_compress(Handle<D, T> &handle, S *input_data, size_t input_count,
                       size_t &out_data_size, int chunk_size, int dict_size,
                       int queue_idx) {
 
-  HuffmanEncode<D, T, S, Q, H, DeviceType>(handle, input_data, input_count, outlier_idx,
-                               out_meta, out_meta_size, out_data, out_data_size,
-                               chunk_size, dict_size);
+  // HuffmanEncode<D, T, S, Q, H, DeviceType>(handle, input_data, input_count, outlier_idx,
+  //                              out_meta, out_meta_size, out_data, out_data_size,
+  //                              chunk_size, dict_size);
 }
 
 template <uint32_t D, typename T, typename S, typename Q, typename H, typename DeviceType>
 void huffman_decompress(Handle<D, T> &handle, H *in_meta, size_t in_meta_size,
                         H *in_data, size_t in_data_size, S *&output_data,
                         size_t &output_count, int queue_idx) {
-  HuffmanDecode<D, T, S, Q, H, DeviceType>(handle, output_data, output_count, in_meta,
-                               in_meta_size, in_data, in_data_size);
+  // HuffmanDecode<D, T, S, Q, H, DeviceType>(handle, output_data, output_count, in_meta,
+  //                              in_meta_size, in_data, in_data_size);
 }
 
 #define KERNELS(D, T, S, Q, H)                                                 \

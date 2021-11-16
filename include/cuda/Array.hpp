@@ -200,6 +200,20 @@ Array<D, T, DeviceType>::Array(Array<D, T, DeviceType> &array) {
   this->device_allocated = true;
 }
 
+template <DIM D, typename T, typename DeviceType> 
+void Array<D, T, DeviceType>::memset(int value) {
+  if (this->pitched) {
+    MemoryManager<DeviceType>().MemsetND(this->dv, this->ldvs_h[0], 
+                                         this->shape[0], 
+                                         this->shape[1] * this->linearized_depth,
+                                         value);
+  } else {
+    MemoryManager<DeviceType>().Memset1D(this->dv,
+                                         this->shape[0] *
+                                         this->shape[1] * this->linearized_depth,
+                                         value);
+  }
+}
 
 template <DIM D, typename T, typename DeviceType> 
 Array<D, T, DeviceType>& Array<D, T, DeviceType>::operator = (const Array<D, T, DeviceType> &array) {
@@ -292,12 +306,10 @@ Array<D, T, DeviceType>::Array(Array<D, T, DeviceType> && array) {
 template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType>::~Array() {
   if (device_allocated) {
-    Handle<1, float> handle;
     MemoryManager<DeviceType>().Free(ldvs_d);
     MemoryManager<DeviceType>().Free(dv);
   }
   if (host_allocated) {
-    Handle<1, float> handle;
     MemoryManager<DeviceType>().FreeHost(hv);
   }
 
@@ -308,10 +320,10 @@ void Array<D, T, DeviceType>::loadData(const T *data, SIZE ld) {
   if (ld == 0) {
     ld = shape[0];
   }
-  Handle<1, float> handle;
   MemoryManager<DeviceType>().CopyND(
                   dv, ldvs_h[0], data, ld,
                   shape[0], shape[1] * linearized_depth, 0);
+
   DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
