@@ -21,6 +21,7 @@ public:
   Array& operator = (const Array &array);
   Array(Array && array);
   ~Array();
+  void memset(int value);
   void loadData(const T *data, SIZE ld = 0);
   T *getDataHost();
   T *getDataDevice(SIZE &ld);

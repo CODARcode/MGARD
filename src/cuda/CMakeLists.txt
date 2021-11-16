@@ -49,9 +49,9 @@ set(MGARD_CUDA_SRC
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/histogram.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/Histogram.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/huffman_codec.cu
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/huffman_workflow.cu
+      # ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/huffman_workflow.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/huffman.cu
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/par_huffman.cu
+      # ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/par_huffman.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/par_huffman_sortbyfreq.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/par_merge.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/types.cc

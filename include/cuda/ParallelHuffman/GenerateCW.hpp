@@ -238,11 +238,11 @@ public:
 
     int cw_tthreads = gridx * tbx;
     if (cw_tthreads < dict_size) {
-      cout << log_err << "Insufficient on-device parallelism to construct a "
-           << dict_size << " non-zero item codebook" << endl;
-      cout << log_err << "Provided parallelism: " << gridx << " blocks, "
-           << 1024 << " threads, " << cw_tthreads << " total" << endl
-           << endl;
+      std::cout << log::log_err << "Insufficient on-device parallelism to construct a "
+           << dict_size << " non-zero item codebook" << std::endl;
+      std::cout << log::log_err << "Provided parallelism: " << gridx << " blocks, "
+           << 1024 << " threads, " << cw_tthreads << " total" << std::endl
+           << std::endl;
       exit(1);
     }
 

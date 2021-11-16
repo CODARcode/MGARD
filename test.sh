@@ -124,7 +124,7 @@ DATA=../../512x512x512/velocity_x.dat
 # ./bin/test_flying_edges -i random -n 3 5 5 5
 
 
-$MgardCudaExec -z -i random -c random.out -t s -n 2 129 129 -m abs -e 1e-2 -s inf -l 1 -v
+# $MgardCudaExec -z -i random -c random.out -t s -n 2 500 50 -m abs -e 1e-2 -s inf -l 1 -v
 
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m abs -e 1e5 -s inf -v
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e5 -s inf -v

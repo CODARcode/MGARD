@@ -64,6 +64,13 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     HuffmanCLCustomizedFunctor<DeviceType>();                  
   }
 
+  // MGARDm_CONT void
+  // Init_diagonal_path_intersections(SIZE mblocks) {
+  //   printf("init array: %u\n", 2 * (mblocks + 1));
+  //   diagonal_path_intersections_array = Array<1, uint32_t, DeviceType>({(SIZE)(2 * (mblocks + 1))});  
+  //   diagonal_path_intersections = SubArray<1, uint32_t, DeviceType>(diagonal_path_intersections_array);    
+  // }
+
   MGARDm_EXEC void
   Operation1() {
     mblocks = this->ngridx;
@@ -574,6 +581,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
   SubArray<1, int, DeviceType> copyIsLeaf;
   SubArray<1, int, DeviceType> copyIndex;
   SubArray<1, uint32_t, DeviceType> diagonal_path_intersections;
+  // Array<1, uint32_t, DeviceType> diagonal_path_intersections_array;
   int mblocks;
   int mthreads;
   // SubArray<1, int, DeviceType> *iNodesFront.data();
@@ -657,6 +665,8 @@ public:
     gridx = mblocks;
     // printT("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
     // PrintSubarray("shape", shape);
+
+    // Functor.Init_diagonal_path_intersections(mblocks);
 
     // printf("mblocks: %d, tbx: %d\n", mblocks, tbx);
 

@@ -545,6 +545,7 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
           _d_decode_meta);
 
   mgard_cuda::SubArray<1, unsigned int, DeviceType> _d_freq_subarray({(mgard_cuda::SIZE)dict_size}, _d_freq);
+  mgard_cuda::SubArray<1, H, DeviceType> _d_codebook_subarray({(mgard_cuda::SIZE)dict_size}, _d_codebook);
 
   mgard_cuda::SubArray<1, H, DeviceType> _d_first_subarray({(mgard_cuda::SIZE)type_bw}, (H*)_d_decode_meta_subarray((mgard_cuda::IDX)0));
   mgard_cuda::SubArray<1, H, DeviceType> _d_entry_subarray({(mgard_cuda::SIZE)type_bw}, (H*)_d_decode_meta_subarray(sizeof(H) * type_bw));
@@ -583,9 +584,6 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   // GPU_GetFirstNonzeroIndex<unsigned int>
   //     <<<nblocks, 1024>>>(_d_freq, dict_size, d_first_nonzero_index);
 
-
-  
-
   // cudaMemcpy(&first_nonzero_index, d_first_nonzero_index, sizeof(unsigned int),
   //            cudaMemcpyDeviceToHost);
   // cudaFree(d_first_nonzero_index);
@@ -595,77 +593,102 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   H *_nz_d_codebook = _d_codebook + first_nonzero_index;
   int nz_nblocks = (nz_dict_size / 1024) + 1;
 
+  mgard_cuda::SubArray<1, unsigned int, DeviceType> _nz_d_freq_subarray(
+        {(mgard_cuda::SIZE)nz_dict_size}, _d_freq_subarray(first_nonzero_index));
+  mgard_cuda::SubArray<1, H, DeviceType> _nz_d_codebook_subarray(
+        {(mgard_cuda::SIZE)nz_dict_size}, _d_codebook_subarray(first_nonzero_index));
+
+  mgard_cuda::Array<1, unsigned int, DeviceType> CL_array({(mgard_cuda::SIZE)nz_dict_size});
+  mgard_cuda::Array<1, int, DeviceType> lNodesLeader_array({(mgard_cuda::SIZE)nz_dict_size});
+  mgard_cuda::Array<1, unsigned int, DeviceType> iNodesFreq_array({(mgard_cuda::SIZE)nz_dict_size});
+  mgard_cuda::Array<1, int, DeviceType> iNodesLeader_array({(mgard_cuda::SIZE)nz_dict_size});
+  mgard_cuda::Array<1, unsigned int, DeviceType> tempFreq_array({(mgard_cuda::SIZE)nz_dict_size});
+  mgard_cuda::Array<1, int, DeviceType> tempIsLeaf_array({(mgard_cuda::SIZE)nz_dict_size});
+  mgard_cuda::Array<1, int, DeviceType> tempIndex_array({(mgard_cuda::SIZE)nz_dict_size});
+  mgard_cuda::Array<1, unsigned int, DeviceType> copyFreq_array({(mgard_cuda::SIZE)nz_dict_size});
+  mgard_cuda::Array<1, int, DeviceType> copyIsLeaf_array({(mgard_cuda::SIZE)nz_dict_size});
+  mgard_cuda::Array<1, int, DeviceType> copyIndex_array({(mgard_cuda::SIZE)nz_dict_size});
+
   // Memory Allocation -- Perhaps put in another wrapper
   // clang-format off
-    unsigned int *CL         = nullptr;
-    /*unsigned int* lNodesFreq*/         int *lNodesLeader = nullptr;
-    unsigned int *iNodesFreq = nullptr;  int *iNodesLeader = nullptr;
-    unsigned int *tempFreq   = nullptr;  int *tempIsLeaf   = nullptr;  int *tempIndex = nullptr;
-    unsigned int *copyFreq   = nullptr;  int *copyIsLeaf   = nullptr;  int *copyIndex = nullptr;
-    cudaMalloc(&CL,           nz_dict_size * sizeof(unsigned int) );
-    cudaMalloc(&lNodesLeader, nz_dict_size * sizeof(int)          );
-    cudaMalloc(&iNodesFreq,   nz_dict_size * sizeof(unsigned int) );
-    cudaMalloc(&iNodesLeader, nz_dict_size * sizeof(int)          );
-    cudaMalloc(&tempFreq,     nz_dict_size * sizeof(unsigned int) );
-    cudaMalloc(&tempIsLeaf,   nz_dict_size * sizeof(int)          );
-    cudaMalloc(&tempIndex,    nz_dict_size * sizeof(int)          );
-    cudaMalloc(&copyFreq,     nz_dict_size * sizeof(unsigned int) );
-    cudaMalloc(&copyIsLeaf,   nz_dict_size * sizeof(int)          );
-    cudaMalloc(&copyIndex,    nz_dict_size * sizeof(int)          );
+    unsigned int *CL         = CL_array.get_dv();//nullptr;
+    /*unsigned int* lNodesFreq*/         
+    int *lNodesLeader = lNodesLeader_array.get_dv(); //nullptr;
+    unsigned int *iNodesFreq = iNodesFreq_array.get_dv(); //nullptr;  
+    int *iNodesLeader = iNodesLeader_array.get_dv(); //nullptr;
+    unsigned int *tempFreq   = tempFreq_array.get_dv(); //nullptr;  
+    int *tempIsLeaf   = tempIsLeaf_array.get_dv(); //nullptr;  
+    int *tempIndex = tempIndex_array.get_dv(); //nullptr;
+    unsigned int *copyFreq   = copyFreq_array.get_dv(); //nullptr;  
+    int *copyIsLeaf   = copyIsLeaf_array.get_dv(); //nullptr;  
+    int *copyIndex = copyIndex_array.get_dv(); //nullptr;
+    // cudaMalloc(&CL,           nz_dict_size * sizeof(unsigned int) );
+    // cudaMalloc(&lNodesLeader, nz_dict_size * sizeof(int)          );
+    // cudaMalloc(&iNodesFreq,   nz_dict_size * sizeof(unsigned int) );
+    // cudaMalloc(&iNodesLeader, nz_dict_size * sizeof(int)          );
+    // cudaMalloc(&tempFreq,     nz_dict_size * sizeof(unsigned int) );
+    // cudaMalloc(&tempIsLeaf,   nz_dict_size * sizeof(int)          );
+    // cudaMalloc(&tempIndex,    nz_dict_size * sizeof(int)          );
+    // cudaMalloc(&copyFreq,     nz_dict_size * sizeof(unsigned int) );
+    // cudaMalloc(&copyIsLeaf,   nz_dict_size * sizeof(int)          );
+    // cudaMalloc(&copyIndex,    nz_dict_size * sizeof(int)          );
     cudaMemset(CL, 0,         nz_dict_size * sizeof(int)          );
   // clang-format on
 
   // Grid configuration for CL -- based on Cooperative Groups
-  int cg_mblocks;
-  int cg_blocks_sm;
-  int device_id;
-  int mthreads = 32; // 1 warp
-  cudaDeviceProp deviceProp;
-  cudaGetDevice(&device_id);
-  cudaGetDeviceProperties(&deviceProp, device_id);
-  cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-      &cg_blocks_sm, parHuff::GPU_GenerateCL<unsigned int>, mthreads,
-      5 * sizeof(int32_t) + 32 * sizeof(int32_t));
-  cg_mblocks = deviceProp.multiProcessorCount * cg_blocks_sm;
+  // int cg_mblocks;
+  // int cg_blocks_sm;
+  // int device_id;
+  // int mthreads = 32; // 1 warp
+  // cudaDeviceProp deviceProp;
+  // cudaGetDevice(&device_id);
+  // cudaGetDeviceProperties(&deviceProp, device_id);
+  // cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+  //     &cg_blocks_sm, parHuff::GPU_GenerateCL<unsigned int>, mthreads,
+  //     5 * sizeof(int32_t) + 32 * sizeof(int32_t));
+  // cg_mblocks = deviceProp.multiProcessorCount * cg_blocks_sm;
 
-  int ELTS_PER_SEQ_MERGE = 16;
-  int mblocks = std::min(cg_mblocks, (nz_dict_size / ELTS_PER_SEQ_MERGE) + 1);
+  // int ELTS_PER_SEQ_MERGE = 16;
+  // int mblocks = std::min(cg_mblocks, (nz_dict_size / ELTS_PER_SEQ_MERGE) + 1);
 
-  // Exit if not enough exposed parallelism -- TODO modify kernels so this is
-  // unneeded
-  int tthreads = mthreads * mblocks;
-  if (tthreads < nz_dict_size) {
-    cout << log_err << "Insufficient on-device parallelism to construct a "
-         << nz_dict_size << " non-zero item codebook" << endl;
-    cout << log_err << "Provided parallelism: " << mblocks << " blocks, "
-         << mthreads << " threads, " << tthreads << " total" << endl
-         << endl;
-    exit(1);
-  }
+  // // Exit if not enough exposed parallelism -- TODO modify kernels so this is
+  // // unneeded
+  // int tthreads = mthreads * mblocks;
+  // if (tthreads < nz_dict_size) {
+  //   cout << log_err << "Insufficient on-device parallelism to construct a "
+  //        << nz_dict_size << " non-zero item codebook" << endl;
+  //   cout << log_err << "Provided parallelism: " << mblocks << " blocks, "
+  //        << mthreads << " threads, " << tthreads << " total" << endl
+  //        << endl;
+  //   exit(1);
+  // }
 
+  mgard_cuda::SIZE mblocks = (mgard_cuda::DeviceRuntime<DeviceType>::GetMaxNumThreadsPerSM() / 
+            mgard_cuda::DeviceRuntime<DeviceType>::GetWarpSize()) * 
+            mgard_cuda::DeviceRuntime<DeviceType>::GetNumSMs();
   uint32_t *diagonal_path_intersections;
-  cudaMalloc(&diagonal_path_intersections,
-             (2 * (mblocks + 1)) * sizeof(uint32_t));
+  mgard_cuda::Array<1, uint32_t, DeviceType> diagonal_path_intersections_array({2 * (mblocks + 1)});
+  // cudaMalloc(&diagonal_path_intersections,
+  //            (2 * (mblocks + 1)) * sizeof(uint32_t));
 
   // Codebook already init'ed
   cudaDeviceSynchronize();
 
   
 
-  mgard_cuda::SubArray<1, unsigned int, DeviceType> _nz_d_freq_subarray({(mgard_cuda::SIZE)nz_dict_size}, _nz_d_freq);
   // mgard_cuda::PrintSubarray("_nz_d_freq_subarray", _nz_d_freq_subarray);
 
-  mgard_cuda::SubArray<1, unsigned int, DeviceType> CL_subarray({(mgard_cuda::SIZE)nz_dict_size}, CL);
-  mgard_cuda::SubArray<1, int, DeviceType> lNodesLeader_subarray({(mgard_cuda::SIZE)nz_dict_size}, lNodesLeader);
-  mgard_cuda::SubArray<1, unsigned int, DeviceType> iNodesFreq_subarray({(mgard_cuda::SIZE)nz_dict_size}, iNodesFreq);
-  mgard_cuda::SubArray<1, int, DeviceType> iNodesLeader_subarray({(mgard_cuda::SIZE)nz_dict_size}, iNodesLeader);
-  mgard_cuda::SubArray<1, unsigned int, DeviceType> tempFreq_subarray({(mgard_cuda::SIZE)nz_dict_size}, tempFreq);
-  mgard_cuda::SubArray<1, int, DeviceType> tempIsLeaf_subarray({(mgard_cuda::SIZE)nz_dict_size}, tempIsLeaf);
-  mgard_cuda::SubArray<1, int, DeviceType> tempIndex_subarray({(mgard_cuda::SIZE)nz_dict_size}, tempIndex);
-  mgard_cuda::SubArray<1, unsigned int, DeviceType> copyFreq_subarray({(mgard_cuda::SIZE)nz_dict_size}, copyFreq);
-  mgard_cuda::SubArray<1, int, DeviceType> copyIsLeaf_subarray({(mgard_cuda::SIZE)nz_dict_size}, copyIsLeaf);
-  mgard_cuda::SubArray<1, int, DeviceType> copyIndex_subarray({(mgard_cuda::SIZE)nz_dict_size}, copyIndex);
-  mgard_cuda::SubArray<1, uint32_t, DeviceType> diagonal_path_intersections_subarray({(mgard_cuda::SIZE)(2 * (mblocks + 1))}, diagonal_path_intersections);
+  mgard_cuda::SubArray<1, unsigned int, DeviceType> CL_subarray(CL_array);
+  mgard_cuda::SubArray<1, int, DeviceType> lNodesLeader_subarray(lNodesLeader_array);
+  mgard_cuda::SubArray<1, unsigned int, DeviceType> iNodesFreq_subarray(iNodesFreq_array);
+  mgard_cuda::SubArray<1, int, DeviceType> iNodesLeader_subarray(iNodesLeader_array);
+  mgard_cuda::SubArray<1, unsigned int, DeviceType> tempFreq_subarray(tempFreq_array);
+  mgard_cuda::SubArray<1, int, DeviceType> tempIsLeaf_subarray(tempIsLeaf_array);
+  mgard_cuda::SubArray<1, int, DeviceType> tempIndex_subarray(tempIndex_array);
+  mgard_cuda::SubArray<1, unsigned int, DeviceType> copyFreq_subarray(copyFreq_array);
+  mgard_cuda::SubArray<1, int, DeviceType> copyIsLeaf_subarray(copyIsLeaf_array);
+  mgard_cuda::SubArray<1, int, DeviceType> copyIndex_subarray(copyIndex_array);
+  mgard_cuda::SubArray<1, uint32_t, DeviceType> diagonal_path_intersections_subarray(diagonal_path_intersections_array);
 
   mgard_cuda::GenerateCL<unsigned int, DeviceType> generateCL;
   generateCL.Execute(_nz_d_freq_subarray, CL_subarray, nz_dict_size,
@@ -675,10 +698,7 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
                       copyFreq_subarray, copyIsLeaf_subarray, copyIndex_subarray,
                       diagonal_path_intersections_subarray, 0);
 
-
-
-
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   // unsigned int * CL_mine = new unsigned int[nz_dict_size];
   // mgard_cuda::MemoryManager<DeviceType>().Copy1D(CL_mine, CL_subarray.data(), nz_dict_size, 0);
@@ -686,15 +706,15 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
 
   // Call first kernel
   // Collect arguments
-  void *CL_Args[] = {
-      (void *)&_nz_d_freq,   (void *)&CL,
-      (void *)&nz_dict_size, (void *)&_nz_d_freq,
-      (void *)&lNodesLeader, (void *)&iNodesFreq,
-      (void *)&iNodesLeader, (void *)&tempFreq,
-      (void *)&tempIsLeaf,   (void *)&tempIndex,
-      (void *)&copyFreq,     (void *)&copyIsLeaf,
-      (void *)&copyIndex,    (void *)&diagonal_path_intersections,
-      (void *)&mblocks,      (void *)&mthreads};
+  // void *CL_Args[] = {
+  //     (void *)&_nz_d_freq,   (void *)&CL,
+  //     (void *)&nz_dict_size, (void *)&_nz_d_freq,
+  //     (void *)&lNodesLeader, (void *)&iNodesFreq,
+  //     (void *)&iNodesLeader, (void *)&tempFreq,
+  //     (void *)&tempIsLeaf,   (void *)&tempIndex,
+  //     (void *)&copyFreq,     (void *)&copyIsLeaf,
+  //     (void *)&copyIndex,    (void *)&diagonal_path_intersections,
+  //     (void *)&mblocks,      (void *)&mthreads};
   // Cooperative Launch
   // printf("mblocks: %d, mthreads: %d\n", mblocks, mthreads);
   // cudaLaunchCooperativeKernel((void *)parHuff::GPU_GenerateCL<unsigned int>,
@@ -733,7 +753,7 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   // cudaFree(d_max_CL);
 
   mgard_cuda::MemoryManager<DeviceType>().Copy1D(&max_CL, CL_subarray(mgard_cuda::IDX(0)), 1, 0);
-  cudaDeviceSynchronize();
+  mgard_cuda::DeviceRuntime<DeviceType>::SyncQueue(0);
 
   int max_CW_bits = (sizeof(H) * 8) - 8;
   if (max_CL > max_CW_bits) {
@@ -745,27 +765,27 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
     exit(1);
   }
 
-  // Configure CW for 1024 threads/block
-  int cg_cw_mblocks = (cg_mblocks * mthreads) / 1024;
-  int cw_mblocks = std::min(cg_cw_mblocks, nz_nblocks);
+  // // Configure CW for 1024 threads/block
+  // int cg_cw_mblocks = (cg_mblocks * mthreads) / 1024;
+  // int cw_mblocks = std::min(cg_cw_mblocks, nz_nblocks);
 
-  // Exit if not enough exposed parallelism -- TODO modify kernels so this is
-  // unneeded
-  int cw_tthreads = cw_mblocks * 1024;
-  if (cw_tthreads < nz_dict_size) {
-    cout << log_err << "Insufficient on-device parallelism to construct a "
-         << nz_dict_size << " non-zero item codebook" << endl;
-    cout << log_err << "Provided parallelism: " << cw_mblocks << " blocks, "
-         << 1024 << " threads, " << cw_tthreads << " total" << endl
-         << endl;
-    exit(1);
-  }
+  // // Exit if not enough exposed parallelism -- TODO modify kernels so this is
+  // // unneeded
+  // int cw_tthreads = cw_mblocks * 1024;
+  // if (cw_tthreads < nz_dict_size) {
+  //   cout << log_err << "Insufficient on-device parallelism to construct a "
+  //        << nz_dict_size << " non-zero item codebook" << endl;
+  //   cout << log_err << "Provided parallelism: " << cw_mblocks << " blocks, "
+  //        << 1024 << " threads, " << cw_tthreads << " total" << endl
+  //        << endl;
+  //   exit(1);
+  // }
 
-  void *CW_Args[] = {(void *)&CL,             //
-                     (void *)&_nz_d_codebook, //
-                     (void *)&_d_first,       //
-                     (void *)&_d_entry,       //
-                     (void *)&nz_dict_size};
+  // void *CW_Args[] = {(void *)&CL,             //
+  //                    (void *)&_nz_d_codebook, //
+  //                    (void *)&_d_first,       //
+  //                    (void *)&_d_entry,       //
+  //                    (void *)&nz_dict_size};
 
   // Call second kernel
   // cudaLaunchCooperativeKernel(
@@ -773,9 +793,9 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   //     cw_mblocks,                                       //
   //     1024,                                             //
   //     CW_Args);
-  cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
 
-  mgard_cuda::SubArray<1, H, DeviceType> _nz_d_codebook_subarray({(mgard_cuda::SIZE)nz_dict_size}, _nz_d_codebook);
+  
   // mgard_cuda::SubArray<1, H, DeviceType> _d_first_subarray({(mgard_cuda::SIZE)type_bw}, _d_first);
   // mgard_cuda::SubArray<1, H, DeviceType> _d_entry_subarray({(mgard_cuda::SIZE)type_bw}, _d_entry);
 
@@ -784,7 +804,7 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
                      _d_first_subarray, _d_entry_subarray, 
                      nz_dict_size, 0);
 
-  cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
 
   // print_codebook<H><<<1, 32>>>(_d_codebook, dict_size); // PASS
   // cudaDeviceSynchronize();
@@ -801,13 +821,13 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   // GPU_ReverseArray<H><<<nblocks, 1024>>>(_d_codebook, (unsigned int)dict_size);
   // GPU_ReverseArray<Q><<<nblocks, 1024>>>(_d_qcode, (unsigned int)dict_size);
 
-  mgard_cuda::SubArray<1, H, DeviceType> _d_codebook_subarray({(mgard_cuda::SIZE)dict_size}, _d_codebook);
+  
   mgard_cuda::ReverseArray<H, DeviceType>().Execute(_d_codebook_subarray, dict_size, 0);
   mgard_cuda::ReverseArray<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
 
 
 
-  cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
 
   // print_codebook<H><<<1, 32>>>(_d_codebook, dict_size); // PASS
   // cudaDeviceSynchronize();
@@ -816,28 +836,28 @@ void ParGetCodebook(int dict_size, unsigned int *_d_freq, H *_d_codebook,
   //     <<<nblocks, 1024>>>(_d_codebook, _d_qcode, (unsigned int)dict_size);
 
   mgard_cuda::ReorderByIndex<H, Q, DeviceType>().Execute(_d_codebook_subarray, _d_qcode_subarray, dict_size, 0);
+  mgard_cuda::DeviceRuntime<DeviceType>::SyncQueue(0);
 
-
-  cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
 
   // Cleanup
-  cudaFree(CL);
-  cudaFree(lNodesLeader);
-  cudaFree(iNodesFreq);
-  cudaFree(iNodesLeader);
-  cudaFree(tempFreq);
-  cudaFree(tempIsLeaf);
-  cudaFree(tempIndex);
-  cudaFree(copyFreq);
-  cudaFree(copyIsLeaf);
-  cudaFree(copyIndex);
-  cudaFree(diagonal_path_intersections);
-  cudaDeviceSynchronize();
+  // cudaFree(CL);
+  // cudaFree(lNodesLeader);
+  // cudaFree(iNodesFreq);
+  // cudaFree(iNodesLeader);
+  // cudaFree(tempFreq);
+  // cudaFree(tempIsLeaf);
+  // cudaFree(tempIndex);
+  // cudaFree(copyFreq);
+  // cudaFree(copyIsLeaf);
+  // cudaFree(copyIndex);
+  // cudaFree(diagonal_path_intersections);
+  // cudaDeviceSynchronize();
 
-#ifdef D_DEBUG_PRINT
-  print_codebook<H><<<1, 32>>>(_d_codebook, dict_size); // PASS
-  cudaDeviceSynchronize();
-#endif
+// #ifdef D_DEBUG_PRINT
+//   print_codebook<H><<<1, 32>>>(_d_codebook, dict_size); // PASS
+//   cudaDeviceSynchronize();
+// #endif
 }
 
 // Specialize wrapper
