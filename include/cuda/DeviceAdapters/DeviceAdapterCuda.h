@@ -1283,13 +1283,23 @@ struct AbsMaxOp
 };
 
 
+struct SquareOp
+{
+    template <typename T>
+    __device__ __forceinline__
+    T operator()(const T &a) const {
+        return a * a;
+    }
+};
+
+
 template <>
 class DeviceCollective<CUDA>{
 public:
   MGARDm_CONT
   DeviceCollective(){};
 
-  template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
   void Sum(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     void     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1302,7 +1312,7 @@ public:
     cudaFree(d_temp_storage);
   }
 
-  template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
   void AbsMax(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     void     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1316,7 +1326,23 @@ public:
     cudaFree(d_temp_storage);
   }
 
- template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
+  void SquareSum(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
+    SquareOp squareOp;
+    cub::TransformInputIterator<T, SquareOp, T*> transformed_input_iter(v.data(), squareOp);
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, transformed_input_iter, result.data(), n, stream, debug);
+    cudaMalloc(&d_temp_storage, temp_storage_bytes);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, transformed_input_iter, result.data(), n, stream, debug);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    cudaFree(d_temp_storage);
+  }
+ 
+ 
+ template <typename T> MGARDm_CONT static
   void ScanSumInclusive(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     Byte     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1329,7 +1355,7 @@ public:
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
   }
 
-  template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
   void ScanSumExclusive(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     Byte     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1342,7 +1368,7 @@ public:
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
   }
 
-  template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
   void ScanSumExtended(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     Byte     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1357,7 +1383,7 @@ public:
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
   }
 
-  template <typename KeyT, typename ValueT> MGARDm_CONT
+  template <typename KeyT, typename ValueT> MGARDm_CONT static
   void SortByKey(SIZE n, SubArray<1, KeyT, CUDA>& keys, SubArray<1, ValueT, CUDA>& values, 
                  int queue_idx) {
     void     *d_temp_storage = NULL;

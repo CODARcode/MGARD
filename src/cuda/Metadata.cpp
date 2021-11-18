@@ -36,7 +36,8 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   total_size += sizeof(l_target); //l_target;
   total_size += sizeof(ltype);
   if (ltype == lossless_type::GPU_Huffman || ltype == lossless_type::GPU_Huffman_LZ4) {
-    total_size += sizeof(dict_size); // dict size
+    total_size += sizeof(huff_dict_size); // dict size
+    total_size += sizeof(huff_block_size); // block size
   }
 
   // about data
@@ -100,7 +101,8 @@ SERIALIZED_TYPE *Metadata::Serialize(uint32_t &total_size) {
   Serialize(l_target, p);
   Serialize(ltype, p);
   if (ltype == lossless_type::GPU_Huffman || ltype == lossless_type::GPU_Huffman_LZ4) {
-    Serialize(dict_size, p);
+    Serialize(huff_dict_size, p);
+    Serialize(huff_block_size, p);
   }
 
   Serialize(dtype, p);
@@ -143,7 +145,8 @@ void Metadata::Deserialize(SERIALIZED_TYPE * serialized_data,
   Deserialize(l_target, p);
   Deserialize(ltype, p);
   if (ltype == lossless_type::GPU_Huffman || ltype == lossless_type::GPU_Huffman_LZ4) {
-    Deserialize(dict_size, p);
+    Deserialize(huff_dict_size, p);
+    Deserialize(huff_block_size, p);
   }
 
   Deserialize(dtype, p);

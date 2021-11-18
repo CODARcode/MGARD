@@ -1594,8 +1594,7 @@ void calc_correction_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
 }
 
 template <DIM D, typename T, typename DeviceType>
-void decompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d,
-               SIZE l_target, int queue_idx) {
+void decompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v, SIZE l_target, int queue_idx) {
 
   std::string prefix = "decomp_";
   if (sizeof(T) == sizeof(double))
@@ -1606,206 +1605,118 @@ void decompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldv
     prefix += std::to_string(handle.shapes_h[0][d]) + "_";
   // std::cout << prefix << std::endl;
 
+  std::vector<SIZE> workspace_shape(D);
+  for (DIM d = 0; d < D; d++) workspace_shape[d] = handle.dofs[d][0] + 2;
+  std::reverse(workspace_shape.begin(), workspace_shape.end());
+  Array<D, T, DeviceType> workspace(workspace_shape);
+  SubArray w(workspace);
+
   if (D <= 3) {
     for (int l = 0; l < l_target; ++l) {
-      // printf("[gpu] l = %d\n", l);
-      int stride = std::pow(2, l);
-      int Cstride = stride * 2;
-      int range_l = std::min(6, (int)std::log2(handle.dofs[0][l]) - 1);
-      int range_lp1 = std::min(6, (int)std::log2(handle.dofs[0][l + 1]) - 1);
-
-      // for calculate corrections
-      T *dw_out = NULL;
-      T *dw_in1 = NULL;
-      T *dw_in2 = NULL;
-
-      // printf("range_l: %d, range_lp1: %d\n", range_l, range_lp1);
-
       if (debug_print) {
-        printf("input v\n");
-        print_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l],
-        handle.dofs[0][l], dv, ldvs_h[0], ldvs_h[1], ldvs_h[0]);
+        PrintSubarray("input v", v);
       }
-
-      // verify_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l],
-      //                    handle.dofs[0][l], dv, ldvs_h[0], ldvs_h[1], ldvs_h[0],
-      //                    prefix + "begin" + "_level_" + std::to_string(l),
-      //                    store, verify);
-
-      
-
-      // lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
-      //                  ldvs_d, handle.dw, handle.ldws_d, queue_idx);
-
-      SubArray<D, T, DeviceType> dinput({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
-                            handle.dw, handle.ldws_h, handle.ldws_d);
-      SubArray<D, T, DeviceType> doutput({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
-                            dv, ldvs_h, ldvs_d);
 
       LwpkReo<D, T, COPY, DeviceType>().Execute(
-            SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), doutput, dinput, queue_idx);
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), v, w, queue_idx);
 
-      calc_coefficients_3d(handle, dinput, doutput, l, 0);
-
-      SubArray<D, T, DeviceType> dcoeff({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
-                            dv, ldvs_h, ldvs_d);
-      SubArray<D, T, DeviceType> dcorrection({handle.dofs[0][l]+1, handle.dofs[1][l]+1, handle.dofs[2][l]+1},
-                            handle.dw, handle.ldws_h, handle.ldws_d);
-
-      calc_correction_3d(handle, dcoeff, dcorrection, l, 0);
+      calc_coefficients_3d(handle, w, v, l, 0);
+      calc_correction_3d(handle, v, w, l, 0);
 
       LwpkReo<D, T, ADD, DeviceType>().Execute(
-            SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), dcorrection, dcoeff, queue_idx);
-
-      // lwpk<D, T, ADD>(
-      //         handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
-      //         dcorrection.dv,
-      //         dcorrection.ldvs_d, dv, ldvs_d, queue_idx);
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), w, v, queue_idx);
 
       if (debug_print) {
-        printf("after add\n");
-        print_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l],
-        handle.dofs[0][l], dv, ldvs_h[0], ldvs_h[1], ldvs_h[0]);
+        PrintSubarray("after add", v);
       }
-
     } // end of loop
 
     if (debug_print) {
-      printf("output of decomposition\n");
-      print_matrix_cuda(handle.dofs[2][0], handle.dofs[1][0],
-      handle.dofs[0][0], dv, ldvs_h[0], ldvs_h[1], ldvs_h[0]);
+      PrintSubarray("output of decomposition", v);
     }
   }
 
   if (D > 3) {
-
+    Array<D, T, DeviceType> workspace2(workspace_shape);
+    SubArray b(workspace2);
     for (int l = 0; l < l_target; ++l) {
-      // printf("[gpu] l = %d\n", l);
-      int stride = std::pow(2, l);
-      int Cstride = stride * 2;
-      int range_l = std::min(6, (int)std::log2(handle.dofs[0][l]) - 1);
-      int range_lp1 = std::min(6, (int)std::log2(handle.dofs[0][l + 1]) - 1);
-      bool f_padding = handle.dofs[0][l] % 2 == 0;
-      bool c_padding = handle.dofs[1][l] % 2 == 0;
-      bool r_padding = handle.dofs[2][l] % 2 == 0;
-
-      DIM curr_dim_r, curr_dim_c, curr_dim_f;
-      LENGTH lddv1, lddv2;
-      LENGTH lddw1, lddw2;
-      LENGTH lddb1, lddb2;
-
-      int unprocessed_idx = 0;
-
       if (debug_print){ // debug
         printf("decomposition: before coeff\n");
         for (int i = 0; i < handle.dofs[3][0]; i++) {
           printf("i = %d\n", i);
           print_matrix_cuda(handle.dofs[2][0], handle.dofs[1][0],
           handle.dofs[0][0],
-                            dv+i*ldvs_h[0]*ldvs_h[1]*ldvs_h[2], ldvs_h[0], ldvs_h[1],
-                            ldvs_h[0]);
+                            v.dv+i*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2], v.ldvs_h[0], v.ldvs_h[1],
+                            v.ldvs_h[0]);
         }
       }
-
-
-      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
-                       ldvs_d, handle.dw, handle.ldws_d, queue_idx);
-      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
-                       ldvs_d, handle.db, handle.ldbs_d, queue_idx);
 
       std::vector<SIZE> shape(handle.D_padded);
       for (DIM d = 0; d < handle.D_padded; d++) shape[d] = handle.shapes_h[l][d];
 
-      SubArray<D, T, DeviceType> dinput1(shape, handle.dw, handle.ldws_h, handle.ldws_d);
-      SubArray<D, T, DeviceType> dinput2(shape, handle.db, handle.ldbs_h, handle.ldbs_d);
-      SubArray<D, T, DeviceType> doutput(shape, dv, ldvs_h, ldvs_d);
+      gpuErrchk(cudaDeviceSynchronize());
+      LwpkReo<D, T, COPY, DeviceType>().Execute(
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), v, w, queue_idx);
+      LwpkReo<D, T, COPY, DeviceType>().Execute(
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), v, b, queue_idx);
+      gpuErrchk(cudaDeviceSynchronize());
 
-      calc_coefficients_nd(handle, dinput1, dinput2, doutput, l, queue_idx);
-
-          // printf ("cjy3113\n");
+      calc_coefficients_nd(handle, w, b, v, l, queue_idx);
 
       if (debug_print){ // debug
-      printf("decomposition: after coeff[%d]\n", l);
-      for (int k = 0; k < doutput.shape[4]; k++) {
-        for (int j = 0; j < doutput.shape[3]; j++) {
-          printf("i,j = %d,%d\n", k,j);
-          print_matrix_cuda(doutput.shape[2], doutput.shape[1], doutput.shape[0],
-                            doutput.dv+k*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2]*doutput.ldvs_h[3]+j*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2], doutput.ldvs_h[0], doutput.ldvs_h[1],
-                            doutput.ldvs_h[0]);
+        printf("decomposition: after coeff[%d]\n", l);
+        for (int k = 0; k < v.shape[4]; k++) {
+          for (int j = 0; j < v.shape[3]; j++) {
+            printf("i,j = %d,%d\n", k,j);
+            print_matrix_cuda(v.shape[2], v.shape[1], v.shape[0],
+                              v.dv+
+                              k*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2]*v.ldvs_h[3]+
+                              j*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2], v.ldvs_h[0], 
+                              v.ldvs_h[1], v.ldvs_h[0]);
+          }
         }
-      }
-    } //debug
+      } //debug
 
+      calc_correction_nd(handle, v, w, l, 0);
 
-      SubArray<D, T, DeviceType> dcoeff(shape, dv, ldvs_h, ldvs_d);
-      SubArray<D, T, DeviceType> dcorrection(shape, handle.dw, handle.ldws_h, handle.ldws_d);
+      gpuErrchk(cudaDeviceSynchronize());
 
-      calc_correction_nd(handle, dcoeff, dcorrection, l, 0);
+      LwpkReo<D, T, ADD, DeviceType>().Execute(
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), w, v, queue_idx);
+      gpuErrchk(cudaDeviceSynchronize());
 
-      lwpk<D, T, ADD>(
-              handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
-              dcorrection.dv,
-              dcorrection.ldvs_d, dv, 
-              ldvs_d, queue_idx);
       if (debug_print){ // debug
         printf("decomposition: after apply correction[%d]\n", l);
-        for (int k = 0; k < doutput.shape[4]; k++) {
-          for (int j = 0; j < doutput.shape[3]; j++) {
+        for (int k = 0; k < v.shape[4]; k++) {
+          for (int j = 0; j < v.shape[3]; j++) {
             printf("i,j = %d,%d\n", k,j);
-            print_matrix_cuda(doutput.shape[2], doutput.shape[1], doutput.shape[0],
-                              doutput.dv+k*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2]*doutput.ldvs_h[3]+j*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2], doutput.ldvs_h[0], doutput.ldvs_h[1],
-                              doutput.ldvs_h[0]);
+            print_matrix_cuda(v.shape[2], v.shape[1], v.shape[0],
+                              v.dv+
+                              k*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2]*v.ldvs_h[3]+
+                              j*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2], 
+                              v.ldvs_h[0], v.ldvs_h[1],
+                              v.ldvs_h[0]);
           }
         }
       } //debug
     }
-
-    //   { // debug
-    //     lwpk<D, T, COPY>(handle, handle.shapes_h[0], handle.shapes_d[0], dv,
-    //                        ldvs_d, handle.db, handle.ldbs_d, queue_idx);
-    //     std::vector<SIZE> shape(D);
-    //     for (DIM d = 0; d < D; d++) shape[d] = handle.shapes_h[0][d];
-    //     SubArray<D, T, DeviceType> dcoeff(shape, handle.db, handle.ldbs_h, handle.ldbs_d);
-    //     SubArray<D, T, DeviceType> doutput(shape, handle.dw, handle.ldws_h, handle.ldws_d);
-    //     ReverseReorderGPU(handle, dcoeff, doutput, 0);
-
-
-        // printf("decomposition: after applying correction\n");
-        // for (int i = 0; i < handle.dofs[3][0]; i++) {
-        //   printf("i = %d\n", i);
-        //   print_matrix_cuda(handle.dofs[2][0], handle.dofs[1][0],
-        //   handle.dofs[0][0],
-        //                     dv+i*ldvs_h[0]*ldvs_h[1]*ldvs_h[2], ldvs_h[0], ldvs_h[1],
-        //                     ldvs_h[0]);
-        // }
-
-
-    //     printf("after coeff reverse\n");
-    //     for (int i = 0; i < handle.dofs[3][0]; i++) {
-    //       printf("i = %d\n", i);
-    //       print_matrix_cuda(handle.dofs[2][0], handle.dofs[1][0],
-    //       handle.dofs[0][0],
-    //                         doutput.dv+i*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2], doutput.ldvs_h[0], doutput.ldvs_h[1],
-    //                         doutput.ldvs_h[0]);
-    //   }
-    // }
   }
-
-
 }
 
 template <DIM D, typename T, typename DeviceType>
-void recompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d,
+void recompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v,
                SIZE l_target, int queue_idx) {
 
+
+  std::vector<SIZE> workspace_shape(D);
+  for (DIM d = 0; d < D; d++) workspace_shape[d] = handle.dofs[d][0] + 2;
+  std::reverse(workspace_shape.begin(), workspace_shape.end());
+  Array<D, T, DeviceType> workspace(workspace_shape);
+  SubArray w(workspace);
   if (D <= 3) {
-
     if (debug_print) {
-      printf("input of recomposition\n");
-      print_matrix_cuda(handle.dofs[2][0], handle.dofs[1][0],
-      handle.dofs[0][0], dv, ldvs_h[0], ldvs_h[1], ldvs_h[0]);
+      PrintSubarray("input of recomposition", v);
     }
-
     std::string prefix = "recomp_";
     if (sizeof(T) == sizeof(double))
       prefix += "d_";
@@ -1816,68 +1727,51 @@ void recompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldv
     // std::cout << prefix << std::endl;
 
     for (int l = l_target - 1; l >= 0; l--) {
-      // printf("[gpu] l = %d\n", l);
-      int range_l = std::min(6, (int)std::log2(handle.dofs[0][l]) - 1);
-      int range_lp1 = std::min(6, (int)std::log2(handle.dofs[0][l + 1]) - 1);
 
-      bool f_padding = handle.dofs[0][l] % 2 == 0;
-      bool c_padding = handle.dofs[1][l] % 2 == 0;
-      bool r_padding = handle.dofs[0][l] % 2 == 0;
+      // SubArray<D, T, DeviceType> dcoeff({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
+      //                       dv, ldvs_h, ldvs_d);
+      // SubArray<D, T, DeviceType> dcorrection({handle.dofs[0][l]+1, handle.dofs[1][l]+1, handle.dofs[2][l]+1},
+      //                       handle.dw, handle.ldws_h, handle.ldws_d);
 
-      // printf("input v\n");
-      // print_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l],
-      // handle.dofs[0][l],
-      //                   dv, ldvs_h[0], ldvs_h[1], ldvs_h[0]);
-
-      SubArray<D, T, DeviceType> dcoeff({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
-                            dv, ldvs_h, ldvs_d);
-      SubArray<D, T, DeviceType> dcorrection({handle.dofs[0][l]+1, handle.dofs[1][l]+1, handle.dofs[2][l]+1},
-                            handle.dw, handle.ldws_h, handle.ldws_d);
-
-      calc_correction_3d(handle, dcoeff, dcorrection, l, 0);
+      calc_correction_3d(handle, v, w, l, 0);
 
       // lwpk<D, T, SUBTRACT>(
       //         handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
       //         dcorrection.dv,
       //         dcorrection.ldvs_d, dv, ldvs_d, queue_idx);
 
+      gpuErrchk(cudaDeviceSynchronize());
       LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(
-            SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), dcorrection, dcoeff, queue_idx);
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), w, v, queue_idx);
+      gpuErrchk(cudaDeviceSynchronize());
+      // SubArray<D, T, DeviceType> dinput({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
+      //                 dv, ldvs_h, ldvs_d);
 
-      SubArray<D, T, DeviceType> dinput({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
-                      dv, ldvs_h, ldvs_d);
-
-      SubArray<D, T, DeviceType> doutput({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
-                            handle.dw, handle.ldws_h, handle.ldws_d);
+      // SubArray<D, T, DeviceType> doutput({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
+      //                       handle.dw, handle.ldws_h, handle.ldws_d);
 
 
-      coefficients_restore_3d(handle, dinput, doutput, l, 0);
+      coefficients_restore_3d(handle, v, w, l, 0);
 
 
       
 
       // lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
       //                  handle.dw, handle.ldws_d, dv, ldvs_d, queue_idx);
-
+      gpuErrchk(cudaDeviceSynchronize());
       LwpkReo<D, T, COPY, DeviceType>().Execute(
-            SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), doutput, dinput, queue_idx);
-
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), w, v, queue_idx);
+      gpuErrchk(cudaDeviceSynchronize());
 
       if (debug_print) {
-        printf("output of recomposition:\n");
-        print_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l],
-        handle.dofs[0][l], dv, ldvs_h[0], ldvs_h[1], ldvs_h[0]);
+        PrintSubarray("output of recomposition", v);
       }
     }
   }
   if (D > 3) {
+    Array<D, T, DeviceType> workspace2(workspace_shape);
+    SubArray b(workspace2);
     for (int l = l_target - 1; l >= 0; l--) {
-      // printf("[gpu] l = %d\n", l);
-      int range_l = std::min(6, (int)std::log2(handle.dofs[0][l]) - 1);
-      int range_lp1 = std::min(6, (int)std::log2(handle.dofs[0][l + 1]) - 1);
-      bool f_padding = handle.dofs[0][l] % 2 == 0;
-      bool c_padding = handle.dofs[1][l] % 2 == 0;
-      bool r_padding = handle.dofs[0][l] % 2 == 0;
 
       if (debug_print){ // debug
         printf("recomposition: before corection\n");
@@ -1885,8 +1779,8 @@ void recompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldv
           printf("i = %d\n", i);
           print_matrix_cuda(handle.dofs[2][0], handle.dofs[1][0],
           handle.dofs[0][0],
-                            dv+i*ldvs_h[0]*ldvs_h[1]*ldvs_h[2], ldvs_h[0], ldvs_h[1],
-                            ldvs_h[0]);
+                            v.dv+i*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2], v.ldvs_h[0], v.ldvs_h[1],
+                            v.ldvs_h[0]);
         }
       }
 
@@ -1898,52 +1792,46 @@ void recompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldv
       std::vector<SIZE> shape(handle.D_padded);
       for (DIM d = 0; d < handle.D_padded; d++) shape[d] = handle.shapes_h[l][d];
 
-      SubArray<D, T, DeviceType> dcoeff(shape, dv, ldvs_h, ldvs_d);
-      SubArray<D, T, DeviceType> dcorrection(shape, handle.dw, handle.ldws_h, handle.ldws_d);
-
       if (debug_print){ // debug
         printf("before subtract correction [%d]\n", l);
-        for (int k = 0; k < dcoeff.shape[4]; k++) {
-          for (int j = 0; j < dcoeff.shape[3]; j++) {
+        for (int k = 0; k < v.shape[4]; k++) {
+          for (int j = 0; j < v.shape[3]; j++) {
             printf("i,j = %d,%d\n", k,j);
-            print_matrix_cuda(dcoeff.shape[2], dcoeff.shape[1], dcoeff.shape[0],
-                              dcoeff.dv+k*dcoeff.ldvs_h[0]*dcoeff.ldvs_h[1]*dcoeff.ldvs_h[2]*dcoeff.ldvs_h[3]+j*dcoeff.ldvs_h[0]*dcoeff.ldvs_h[1]*dcoeff.ldvs_h[2], dcoeff.ldvs_h[0], dcoeff.ldvs_h[1],
-                              dcoeff.ldvs_h[0]);
+            print_matrix_cuda(v.shape[2], v.shape[1], v.shape[0],
+                              v.dv+k*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2]*v.ldvs_h[3]+j*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2], v.ldvs_h[0], v.ldvs_h[1],
+                              v.ldvs_h[0]);
           }
         }
       } //deb
 
 
-      calc_correction_nd(handle, dcoeff, dcorrection, l, 0);
+      calc_correction_nd(handle, v, w, l, 0);
 
-      lwpk<D, T, SUBTRACT>(
-              handle, handle.shapes_h[l + 1], handle.shapes_d[l + 1],
-              dcorrection.dv,
-              dcorrection.ldvs_d, dv, ldvs_d, queue_idx);
-
+      gpuErrchk(cudaDeviceSynchronize());
+      LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), w, v, queue_idx);
+      gpuErrchk(cudaDeviceSynchronize());
 
       if (debug_print){ // debug
         printf("after subtract correction [%d]\n", l);
-        for (int k = 0; k < dcoeff.shape[4]; k++) {
-          for (int j = 0; j < dcoeff.shape[3]; j++) {
+        for (int k = 0; k < v.shape[4]; k++) {
+          for (int j = 0; j < v.shape[3]; j++) {
             printf("i,j = %d,%d\n", k,j);
-            print_matrix_cuda(dcoeff.shape[2], dcoeff.shape[1], dcoeff.shape[0],
-                              dcoeff.dv+k*dcoeff.ldvs_h[0]*dcoeff.ldvs_h[1]*dcoeff.ldvs_h[2]*dcoeff.ldvs_h[3]+j*dcoeff.ldvs_h[0]*dcoeff.ldvs_h[1]*dcoeff.ldvs_h[2], dcoeff.ldvs_h[0], dcoeff.ldvs_h[1],
-                              dcoeff.ldvs_h[0]);
+            print_matrix_cuda(v.shape[2], v.shape[1], v.shape[0],
+                              v.dv+k*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2]*v.ldvs_h[3]+j*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2], v.ldvs_h[0], v.ldvs_h[1],
+                              v.ldvs_h[0]);
           }
         }
       } //deb
 
-      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
-                       ldvs_d, handle.db, handle.ldbs_d, queue_idx);
-      lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
-                       ldvs_d, handle.dw, handle.ldws_d, queue_idx);
+      gpuErrchk(cudaDeviceSynchronize());
+      LwpkReo<D, T, COPY, DeviceType>().Execute(
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), v, b, queue_idx);
+      LwpkReo<D, T, COPY, DeviceType>().Execute(
+            SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), v, w, queue_idx);
+      gpuErrchk(cudaDeviceSynchronize());
 
-      SubArray<D, T, DeviceType> dinput1(shape, handle.dw, handle.ldws_h, handle.ldws_d);
-      SubArray<D, T, DeviceType> dinput2(shape, handle.db, handle.ldbs_h, handle.ldbs_d);
-      SubArray<D, T, DeviceType> doutput(shape, dv, ldvs_h, ldvs_d);
-
-      coefficients_restore_nd(handle, dinput1, dinput2, doutput, l, queue_idx);
+      coefficients_restore_nd(handle, w, b, v, l, queue_idx);
 
     } // loop levels
 
@@ -1951,48 +1839,17 @@ void recompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldv
     if (debug_print){ // debug
       std::vector<SIZE> shape(handle.D_padded);
       for (DIM d = 0; d < handle.D_padded; d++) shape[d] = handle.shapes_h[0][d];
-      SubArray<D, T, DeviceType> dcoeff(shape, dv, ldvs_h, ldvs_d);
+      // SubArray<D, T, DeviceType> v(shape, dv, ldvs_h, ldvs_d);
       printf("final output\n");
-      for (int k = 0; k < dcoeff.shape[4]; k++) {
-        for (int j = 0; j < dcoeff.shape[3]; j++) {
+      for (int k = 0; k < v.shape[4]; k++) {
+        for (int j = 0; j < v.shape[3]; j++) {
           printf("i,j = %d,%d\n", k,j);
-          print_matrix_cuda(dcoeff.shape[2], dcoeff.shape[1], dcoeff.shape[0],
-                            dcoeff.dv+k*dcoeff.ldvs_h[0]*dcoeff.ldvs_h[1]*dcoeff.ldvs_h[2]*dcoeff.ldvs_h[3]+j*dcoeff.ldvs_h[0]*dcoeff.ldvs_h[1]*dcoeff.ldvs_h[2], dcoeff.ldvs_h[0], dcoeff.ldvs_h[1],
-                            dcoeff.ldvs_h[0]);
+          print_matrix_cuda(v.shape[2], v.shape[1], v.shape[0],
+                            v.dv+k*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2]*v.ldvs_h[3]+j*v.ldvs_h[0]*v.ldvs_h[1]*v.ldvs_h[2], v.ldvs_h[0], v.ldvs_h[1],
+                            v.ldvs_h[0]);
         }
       }
     } //deb
-
-
-    // { // debug
-    //     lwpk<D, T, COPY>(handle, handle.shapes_h[0], handle.shapes_d[0], dv,
-    //                        ldvs_d, handle.db, handle.ldbs_d, queue_idx);
-    //     std::vector<SIZE> shape(D);
-    //     for (DIM d = 0; d < D; d++) shape[d] = handle.shapes_h[0][d];
-    //     SubArray<D, T, DeviceType> dcoeff(shape, handle.db, handle.ldbs_h, handle.ldbs_d);
-    //     SubArray<D, T, DeviceType> doutput(shape, handle.dw, handle.ldws_h, handle.ldws_d);
-    //     ReverseReorderGPU(handle, dcoeff, doutput, 0);
-
-
-    //     printf("recomposition: done\n");
-    //     for (int i = 0; i < handle.dofs[3][0]; i++) {
-    //       printf("i = %d\n", i);
-    //       print_matrix_cuda(handle.dofs[2][0], handle.dofs[1][0],
-    //       handle.dofs[0][0],
-    //                         dv+i*ldvs_h[0]*ldvs_h[1]*ldvs_h[2], ldvs_h[0], ldvs_h[1],
-    //                         ldvs_h[0]);
-    //     }
-
-
-    //     // printf("after coeff reverse\n");
-    //     // for (int i = 0; i < handle.dofs[3][0]; i++) {
-    //     //   printf("i = %d\n", i);
-    //     //   print_matrix_cuda(handle.dofs[2][0], handle.dofs[1][0],
-    //     //   handle.dofs[0][0],
-    //     //                     doutput.dv+i*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2], doutput.ldvs_h[0], doutput.ldvs_h[1],
-    //     //                     doutput.ldvs_h[0]);
-    //   }
-
   } // D > 3
 }
 

@@ -32,7 +32,8 @@ struct Metadata {
   double s; // optional
   uint32_t l_target;
   enum lossless_type ltype;
-  uint32_t dict_size; // optional (for GPU_Huffman)
+  uint32_t huff_dict_size; // optional (for GPU_Huffman)
+  uint32_t huff_block_size; // optional (for GPU_Huffman)
 
   // about data
   enum data_type dtype;
