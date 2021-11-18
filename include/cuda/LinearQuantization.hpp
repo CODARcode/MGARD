@@ -569,7 +569,7 @@ public:
 
     bool calc_vol = m.ntype == norm_type::L_2;
     FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
-                        v, work, prep_huffman, calc_vol, m.dict_size, shape,
+                        v, work, prep_huffman, calc_vol, m.huff_dict_size, shape,
                         outlier_count, outlier_idx, outliers);
 
     SIZE total_thread_z = shape.dataHost()[2];
@@ -627,7 +627,7 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
                                                SubArray<D, T, DeviceType> v,
                                                SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman, bool calc_vol,
                                                SIZE dict_size, SubArray<1, SIZE, DeviceType> shape, 
-                                               SubArray<1, LENGTH, DeviceType> outlier_count,
+                                               LENGTH outlier_count,
                                                SubArray<1, LENGTH, DeviceType> outlier_idx, 
                                                SubArray<1, QUANTIZED_INT, DeviceType> outliers):
                                                 shapes(shapes), l_target(l_target), quantizers(quantizers),
@@ -878,7 +878,7 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
   bool calc_vol;
   SIZE dict_size;
   SubArray<1, SIZE, DeviceType> shape; 
-  SubArray<1, LENGTH, DeviceType> outlier_count;
+  LENGTH outlier_count;
   SubArray<1, LENGTH, DeviceType> outlier_idx;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 
@@ -901,7 +901,7 @@ template <DIM D, typename T, typename DeviceType>
 class OutlierRestoreFunctor: public Functor<DeviceType> {
   public:
   MGARDm_CONT OutlierRestoreFunctor(SubArray<D, QUANTIZED_INT, DeviceType> work,
-                                     SubArray<1, LENGTH, DeviceType> outlier_count,
+                                     LENGTH outlier_count,
                                      SubArray<1, LENGTH, DeviceType> outlier_idx, 
                                      SubArray<1, QUANTIZED_INT, DeviceType> outliers):
                                       work(work), outlier_count(outlier_count),
@@ -917,7 +917,7 @@ class OutlierRestoreFunctor: public Functor<DeviceType> {
                    (this->blocky * this->ngridx) + this->blockx;
     gloablId = blockId * this->nblockx * this->nblocky * this->nblockz + threadId;
 
-    if (gloablId < *outlier_count((IDX)0)) {
+    if (gloablId < outlier_count) {
       LENGTH linerized_idx = *outlier_idx(gloablId);
       QUANTIZED_INT outliter = *outliers(gloablId);
       *work(linerized_idx) = outliter;
@@ -944,7 +944,7 @@ class OutlierRestoreFunctor: public Functor<DeviceType> {
   private:
   IDX threadId, blockId, gloablId;
   SubArray<D, QUANTIZED_INT, DeviceType> work;
-  SubArray<1, LENGTH, DeviceType> outlier_count;
+  LENGTH outlier_count;
   SubArray<1, LENGTH, DeviceType> outlier_idx;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 };
@@ -961,7 +961,7 @@ public:
   MGARDm_CONT
   Task<OutlierRestoreFunctor<D, T, DeviceType> > 
   GenTask1(SubArray<D, QUANTIZED_INT, DeviceType> work, 
-          SubArray<1, LENGTH, DeviceType> outlier_count,
+          LENGTH outlier_count,
           SubArray<1, LENGTH, DeviceType> outlier_idx, 
           SubArray<1, QUANTIZED_INT, DeviceType> outliers,
           int queue_idx) {
@@ -969,7 +969,7 @@ public:
     FunctorType functor(work, outlier_count, outlier_idx, outliers);
     SIZE total_thread_z = 1;
     SIZE total_thread_y = 1;
-    SIZE total_thread_x = outlier_count.dataHost()[0];
+    SIZE total_thread_x = outlier_count;
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
     tbz = 1;
@@ -990,7 +990,7 @@ public:
           Metadata &m, SubArray<D, T, DeviceType> v,
           SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
           SubArray<1, SIZE, DeviceType> shape,
-          SubArray<1, LENGTH, DeviceType> outlier_count,
+          LENGTH outlier_count,
           SubArray<1, LENGTH, DeviceType> outlier_idx, 
           SubArray<1, QUANTIZED_INT, DeviceType> outliers,
           int queue_idx) {
@@ -1011,7 +1011,7 @@ public:
 
     bool calc_vol = m.ntype == norm_type::L_2;
     FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
-                        v, work, prep_huffman, calc_vol, m.dict_size, shape,
+                        v, work, prep_huffman, calc_vol, m.huff_dict_size, shape,
                         outlier_count, outlier_idx, outliers);
 
     SIZE total_thread_z = shape.dataHost()[2];
@@ -1043,12 +1043,12 @@ public:
                 Metadata &m, SubArray<D, T, DeviceType> v,
                 SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
                 SubArray<1, SIZE, DeviceType> shape,
-                SubArray<1, LENGTH, DeviceType> outlier_count,
+                LENGTH outlier_count,
                 SubArray<1, LENGTH, DeviceType> outlier_idx, 
                 SubArray<1, QUANTIZED_INT, DeviceType> outliers,
                 int queue_idx) {
 
-    if (prep_huffman && outlier_count.dataHost()[0]) {
+    if (prep_huffman && outlier_count) {
       using FunctorType = OutlierRestoreFunctor<D, T, DeviceType>;
       using TaskType = Task<FunctorType>;
       TaskType task = GenTask1<256>(work, outlier_count, outlier_idx, outliers, queue_idx); 
@@ -1341,14 +1341,14 @@ void levelwise_linear_quantize_adaptive_launcher(
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
             shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws,
-            prep_huffman, m.dict_size, shape, outlier_count, outlier_idx,
+            prep_huffman, m.huff_dict_size, shape, outlier_count, outlier_idx,
             outliers);
   } else if (m.ntype == norm_type::L_2) {
     _levelwise_linear_quantize<D, T, R, C, F, true>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
             shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws,
-            prep_huffman, m.dict_size, shape, outlier_count, outlier_idx,
+            prep_huffman, m.huff_dict_size, shape, outlier_count, outlier_idx,
             outliers);
   } else {
     std::cout << log::log_err << "unsupported norm type!\n";
@@ -1742,14 +1742,14 @@ void levelwise_linear_dequantize_adaptive_launcher(
           <<<blockPerGrid, threadsPerBlock, sm_size,
              *(cudaStream_t *)handle.get(queue_idx)>>>(
               shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws,
-              m.dict_size, outlier_count, outlier_idx, outliers);
+              m.huff_dict_size, outlier_count, outlier_idx, outliers);
     }
     gpuErrchk(cudaDeviceSynchronize());
     _levelwise_linear_dequantize<D, T, R, C, F, false>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
             shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws, prep_huffman,
-            m.dict_size, outlier_count, outlier_idx, outliers);
+            m.huff_dict_size, outlier_count, outlier_idx, outliers);
     gpuErrchk(cudaDeviceSynchronize());
   } else if (m.ntype == norm_type::L_2){
     if (prep_huffman) {
@@ -1757,14 +1757,14 @@ void levelwise_linear_dequantize_adaptive_launcher(
           <<<blockPerGrid, threadsPerBlock, sm_size,
              *(cudaStream_t *)handle.get(queue_idx)>>>(
               shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws,
-              m.dict_size, outlier_count, outlier_idx, outliers);
+              m.huff_dict_size, outlier_count, outlier_idx, outliers);
     }
     gpuErrchk(cudaDeviceSynchronize());
     _levelwise_linear_dequantize<D, T, R, C, F, true>
         <<<blockPerGrid, threadsPerBlock, sm_size,
            *(cudaStream_t *)handle.get(queue_idx)>>>(
             shapes, l_target, handle.quantizers, volumes, ldvolumes, dv, ldvs, dwork, ldws, prep_huffman,
-            m.dict_size, outlier_count, outlier_idx, outliers);
+            m.huff_dict_size, outlier_count, outlier_idx, outliers);
     gpuErrchk(cudaDeviceSynchronize());
   } else {
     std::cout << log::log_err << "unsupported norm type!\n";

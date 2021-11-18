@@ -31,14 +31,12 @@
 #include "cuda/DeviceAdapters/DeviceAdapter.h"
 
 #include "cuda/ParallelHuffman/Huffman.hpp"
+#include "cuda/Lossless/LZ4.hpp"
 
 
 #define BLOCK_SIZE 64
 
 using namespace std::chrono;
-
-template <typename T>
-void add( T a, T b) { a=1; b=2;}
 
 namespace mgard_cuda {
 
@@ -56,11 +54,9 @@ template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, DeviceType> &in_array,
                                  enum error_bound_type type, T tol, T s) {
 
-  T a, b;
-  add<int>(a, b);
-  // cudaSetDeviceHelper(handle.dev_id);
-  DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
 
+  DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
+  Timer timer_total, timer_each;
   for (DIM i = 0; i < D; i++) {
     if (handle.shapes_h[0][i] != in_array.getShape()[i]) {
       std::cout << log::log_err
@@ -72,133 +68,87 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
       return empty;
     }
   }
-  // handle.l_target = 3;
-  high_resolution_clock::time_point t1, t2, start, end;
-  duration<double> time_span;
-  size_t free, total;
 
-  //cudaMemGetInfo(&free, &total); 
-  //printf("Mem: %f/%f\n", (double)(total-free)/1e9, (double)total/1e9); 
+  SubArray in_subarray(in_array);
+  SIZE total_elems = handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
 
-  if (handle.timing) start = high_resolution_clock::now();
+  if (handle.timing) timer_total.start();
   T norm = (T)1.0;
 
   if (type == error_bound_type::REL) {
-    // printf("Calculate norm\n");
-    if (handle.timing) t1 = high_resolution_clock::now();
+    if (handle.timing) timer_each.start();
     thrust::device_vector<T> v_vec(handle.dofs[0][0] * handle.dofs[1][0] *
                                    handle.linearized_depth);
-    // cudaMemcpy3DAsyncHelper(
-    //     handle, thrust::raw_pointer_cast(v_vec.data()),
-    //     handle.dofs[0][0] * sizeof(T), handle.dofs[0][0] * sizeof(T),
-    //     handle.dofs[1][0], in_array.get_dv(),
-    //     in_array.get_ldvs_h()[0] * sizeof(T), handle.dofs[0][0] * sizeof(T),
-    //     handle.dofs[1][0], handle.dofs[0][0] * sizeof(T), handle.dofs[1][0],
-    //     handle.linearized_depth, AUTO, 0);
-    // DeviceRuntime<DeviceType> deviceRT;
+
+    Array<1, T, DeviceType> temp_array(
+          {(SIZE)(handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth)}, 
+          false);
+    MemoryManager<DeviceType>().CopyND(
+                      temp_array.get_dv(), handle.dofs[0][0],
+                      in_array.get_dv(), in_array.get_ldvs_h()[0], 
+                      handle.dofs[0][0], (SIZE)(handle.dofs[1][0] * handle.linearized_depth),
+                      0);
+
+
     MemoryManager<DeviceType>().CopyND(
                       thrust::raw_pointer_cast(v_vec.data()), handle.dofs[0][0],
                       in_array.get_dv(), in_array.get_ldvs_h()[0], 
                       handle.dofs[0][0], (SIZE)(handle.dofs[1][0] * handle.linearized_depth),
                       0);
-    handle.sync(0);
+
+    SubArray temp_subarray(temp_array);
+    Array<1, T, DeviceType> norm_array({1});
+    SubArray norm_subarray(norm_array);
+
+    DeviceRuntime<DeviceType>::SyncQueue(0);
     if (s == std::numeric_limits<T>::infinity()) {
-      norm = thrust::reduce(v_vec.begin(), v_vec.end(), (T)0, linf_norm<T>());
+      // norm = thrust::reduce(v_vec.begin(), v_vec.end(), (T)0, linf_norm<T>());
+      DeviceCollective<DeviceType>::AbsMax(total_elems, temp_subarray, norm_subarray, 0);
+      DeviceRuntime<CUDA>::SyncQueue(0);
+      norm = norm_array.getDataHost()[0];
     } else {
-      thrust::transform(v_vec.begin(), v_vec.end(), v_vec.begin(), l2_norm<T>());
-      norm = thrust::reduce(v_vec.begin(), v_vec.end(), (T)0);
+      // thrust::transform(v_vec.begin(), v_vec.end(), v_vec.begin(), l2_norm<T>());
+      // norm = thrust::reduce(v_vec.begin(), v_vec.end(), (T)0);
+      // printf("thrust norm: %f\n", norm);
+      // norm = std::sqrt(norm);
+      DeviceCollective<DeviceType>::SquareSum(total_elems, temp_subarray, norm_subarray, 0);
+      DeviceRuntime<CUDA>::SyncQueue(0);
+      norm = norm_array.getDataHost()[0];
       norm = std::sqrt(norm);
     }
     if (handle.timing) {
-      t2 = high_resolution_clock::now();
-      time_span = duration_cast<duration<double>>(t2 - t1);
-      std::cout << log::log_time << "Calculating norm using NVIDIA::Thrust: " << time_span.count() <<" s\n";
+      timer_each.end();
+      timer_each.print("Calculating norm");
+      timer_each.clear();
     }
   }
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-  handle.allocate_workspace();
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-
   
   // Decomposition
-  if (handle.timing) t1 = high_resolution_clock::now();
-  decompose<D, T, DeviceType>(handle, in_array.get_dv(), in_array.get_ldvs_h(), in_array.get_ldvs_d(),
-                  handle.l_target, 0);
-  handle.sync_all();
+  if (handle.timing) timer_each.start();
+  decompose<D, T, DeviceType>(handle, in_subarray, handle.l_target, 0);
+  DeviceRuntime<DeviceType>::SyncDevice();
   if (handle.timing) {
-    t2 = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(t2 - t1);
-    std::cout << log::log_time << "decomposition time: " << time_span.count() <<" s\n";
+    timer_each.end();
+    timer_each.print("Decomposition");
+    timer_each.clear();
   }
-
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-  // printf("sync_all 2\n");
-  // handle.sync_all();
-  handle.free_workspace();
-
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-
-  /**** refactoring ****/
-  // outsize = (handle.linearized_depth * handle.dofs[1][0] * handle.dofs[0][0])
-  // * sizeof(T); unsigned char *buffer = (unsigned char *)malloc(outsize);
-  // cudaMemcpy3DAsyncHelper(
-  //       handle,
-  //       buffer, handle.dofs[0][0] * sizeof(T), handle.dofs[0][0] * sizeof(T),
-  //       handle.dofs[1][0], dv, lddv1 * sizeof(T), handle.dofs[0][0] *
-  //       sizeof(T), handle.dofs[1][0], handle.dofs[0][0] * sizeof(T),
-  //       handle.dofs[1][0], handle.linearized_depth, D2H, 0);
 
   // Quantization
-  if (handle.timing) t1 = high_resolution_clock::now();
-  bool prep_huffman = 
-      handle.lossless == lossless_type::GPU_Huffman || handle.lossless == lossless_type::GPU_Huffman_LZ4;
-  SIZE dict_size = handle.huff_dict_size, block_size = handle.huff_block_size;
-  LENGTH quantized_count =
-      handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
+  bool prep_huffman = handle.lossless == lossless_type::GPU_Huffman ||
+                      handle.lossless == lossless_type::GPU_Huffman_LZ4;
 
-  QUANTIZED_INT *dqv;
-  cudaMallocHelper(handle, (void **)&dqv, (handle.dofs[0][0] * handle.dofs[1][0] *
-                                   handle.linearized_depth) *
-                                      sizeof(QUANTIZED_INT));
-
-  thrust::device_vector<SIZE> ldqvs(handle.D_padded);
-  ldqvs[0] = handle.dofs[0][0];
-  for (int i = 1; i < handle.D_padded; i++) {
-    ldqvs[i] = handle.dofs[i][0];
-  }
-
+  if (handle.timing) timer_each.start();
 
   Array<D, QUANTIZED_INT, DeviceType> dqv_array(handle.shape_org, false);
-  // printf("shape_org: %u %u %u\n", handle.shape_org[0], handle.shape_org[1], handle.shape_org[2]);
 
-
-  LENGTH estimate_outlier_count = (double)handle.dofs[0][0] *
-                                  handle.dofs[1][0] * handle.linearized_depth *
-                                  1;
-  // printf("estimate_outlier_count: %llu\n", estimate_outlier_count);
-  LENGTH *outlier_count_d;
-  LENGTH *outlier_idx_d;
-  QUANTIZED_INT *outliers;
-  cudaMallocHelper(handle, (void **)&outliers, estimate_outlier_count * sizeof(QUANTIZED_INT));
-  cudaMallocHelper(handle, (void **)&outlier_count_d, sizeof(LENGTH));
-  cudaMallocHelper(handle, (void **)&outlier_idx_d,
-                   estimate_outlier_count * sizeof(LENGTH));
-  LENGTH zero = 0, outlier_count, *outlier_idx_h;
-  cudaMemcpyAsyncHelper(handle, outlier_count_d, &zero, sizeof(LENGTH), H2D, 0);
-
+  LENGTH estimate_outlier_count = (double)total_elems * 1;
+  LENGTH zero = 0, outlier_count;
   Array<1, LENGTH, DeviceType> outlier_count_array({1});
   Array<1, LENGTH, DeviceType> outlier_idx_array({(SIZE)estimate_outlier_count});
   Array<1, QUANTIZED_INT, DeviceType> outliers_array({(SIZE)estimate_outlier_count});
-  cudaMemcpyAsyncHelper(handle, outlier_count_array.get_dv(), &zero, sizeof(LENGTH), H2D, 0);
-
-  cudaMemsetHelper(outlier_idx_array.get_dv(), 0, estimate_outlier_count* sizeof(LENGTH));
-  cudaMemsetHelper(outliers_array.get_dv(), 0, estimate_outlier_count* sizeof(QUANTIZED_INT));
-
-  handle.sync_all();
+  MemoryManager<DeviceType>::Copy1D(outlier_count_array.get_dv(), &zero, 1, 0);
+  MemoryManager<DeviceType>::Memset1D(outlier_idx_array.get_dv(), estimate_outlier_count, 0);
+  MemoryManager<DeviceType>::Memset1D(outliers_array.get_dv(), estimate_outlier_count, 0);
 
   Metadata m;
   m.ptype = processor_type::GPU_CUDA;
@@ -215,7 +165,8 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   }
   m.l_target = handle.l_target;
   m.ltype = handle.lossless;
-  m.dict_size = dict_size;
+  m.huff_dict_size = handle.huff_dict_size;
+  m.huff_block_size = handle.huff_block_size;
 
   m.dtype = std::is_same<T, double>::value ? data_type::Double : data_type::Float;
   m.etype = CheckEndianess();
@@ -231,15 +182,10 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
       m.coords.push_back((Byte *)handle.coords_h[D - 1 - d]);
     }
   }
+
+
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
   // (double)(total-free)/1e9, (double)total/1e9);
-
-
-  // levelwise_linear_quantize<D, T>(
-  //     handle, handle.ranges.get_dv(), handle.l_target, handle.volumes_array.get_dv(), handle.volumes_array.get_ldvs_h()[0], m, in_array.get_dv(),
-  //     in_array.get_ldvs_d(), dqv_array.get_dv(), dqv_array.get_ldvs_d(),
-  //     prep_huffman, handle.shapes[0].get_dv(), outlier_count_array.get_dv(), outlier_idx_array.get_dv(), outliers_array.get_dv(), 0);
-
 
   LevelwiseLinearQuantizeND<D, T, DeviceType>().Execute(
           SubArray<1, SIZE, DeviceType>(handle.ranges), handle.l_target, 
@@ -250,111 +196,67 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
           SubArray<1, LENGTH, DeviceType>(outlier_count_array), SubArray<1, LENGTH, DeviceType>(outlier_idx_array),
           SubArray<1, QUANTIZED_INT, DeviceType>(outliers_array),
           0);
-  gpuErrchk(cudaDeviceSynchronize());
+  MemoryManager<DeviceType>::Copy1D(&outlier_count, outlier_count_array.get_dv(), 1, 0);
 
-  cudaMemcpyAsyncHelper(handle, &outlier_count, outlier_count_array.get_dv(), sizeof(LENGTH),
-                        D2H, 0);
-  handle.sync_all();
-
-  // PrintSubarray("dqv", SubArray<D, QUANTIZED_INT>(dqv_array));
-  // printf("outlier_count: %llu\n", outlier_count);
-  // PrintSubarray("outlier_idx", SubArray<1, LENGTH>(outlier_idx_array));
-  // PrintSubarray("outliers", SubArray<1, QUANTIZED_INT>(outliers_array));
-
-  
-  
-
-
-
-  // printf("dqv\n");
-  // print_matrix_cuda(1, quantized_count, dqv, quantized_count);
-
-  // printf("outlier_idx_d\n");
-  // print_matrix_cuda(1, outlier_count, outlier_idx_d, quantized_count);
-
-  // printf("outliers\n");
-  // print_matrix_cuda(1, outlier_count, outliers, quantized_count);
-
-  std::vector<size_t> outlier_idx;
+  DeviceRuntime<DeviceType>::SyncDevice();
 
   if (handle.timing) {
-    t2 = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(t2 - t1);
-    std::cout << log::log_time << "Quantization time: " << time_span.count() <<" s\n";
+    timer_each.end();
+    timer_each.print("Quantization");
+    timer_each.clear();
   }
 
-  // cudaFreeHelper(dv);
-
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-  // printf("gpu lossless\n");
   // Huffman compression
-  if (handle.timing) t1 = high_resolution_clock::now();
-  uint64_t *hufmeta;
+  if (handle.timing) timer_each.start();
+
   uint64_t *hufdata;
-  size_t hufmeta_size;
   size_t hufdata_size;
+  Array<1, Byte, DeviceType> huffman_array;
+  Array<1, Byte, DeviceType> lz4_array;
+  SubArray<1, Byte, DeviceType> lossless_compressed_subarray;
 
-  SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType> qv({(SIZE)(handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth)},
+  // Cast to QUANTIZED_UNSIGNED_INT
+  SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType> qv({total_elems},
                                                   (QUANTIZED_UNSIGNED_INT*)dqv_array.get_dv());
-  
-  Array<1, Byte, DeviceType> huffman_compressed_array =
+  huffman_array =
   HuffmanCompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(
-      qv, block_size, dict_size);
-
-  SubArray huffman_compressed_subarray(huffman_compressed_array);
-
-  // hufmeta = (uint64_t*)huffman_compressed_subarray((IDX)0);
-  // hufdata = (uint64_t*)huffman_compressed_subarray(hufmeta_size);
-  hufdata = (uint64_t*)huffman_compressed_subarray((IDX)0);
-  hufdata_size = huffman_compressed_subarray.shape[0];
+      qv, handle.huff_block_size, handle.huff_dict_size);
+  lossless_compressed_subarray = SubArray(huffman_array);
 
   handle.sync_all();
-  cudaFreeHelper(dqv);
-  if (handle.timing) {
-    t2 = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(t2 - t1);
-    std::cout << log::log_time << "GPU Huffman encoding time: " << time_span.count() <<" s\n";
-  }
 
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
+  if (handle.timing) {
+    timer_each.end();
+    timer_each.print("Huffman Compress");
+    timer_each.clear();
+  }
 
   // LZ4 compression
-  void *lz4_hufmeta;
-  size_t lz4_hufmeta_size;
-  void *lz4_hufdata;
-  size_t lz4_hufdata_size;
-
   if (handle.lossless == lossless_type::GPU_Huffman_LZ4) {
-    if (handle.timing) t1 = high_resolution_clock::now();
-    lz4_compress(handle, hufdata, hufdata_size / sizeof(uint64_t), lz4_hufdata,
-                 lz4_hufdata_size, handle.lz4_block_size, 0);
-    // printf("sync_all 4\n");
-    handle.sync_all();
-    cudaFreeHelper(hufdata);
-    hufdata = (uint64_t *)lz4_hufdata;
-    hufdata_size = lz4_hufdata_size;
-    if (handle.timing) {
-      t2 = high_resolution_clock::now();
-      time_span = duration_cast<duration<double>>(t2 - t1);
-      std::cout << log::log_time << "NVComp::LZ4 compression time: " << time_span.count() <<" s\n";
-    }
+    if (handle.timing) timer_each.start();
+    // lz4_compress(handle, hufdata, hufdata_size / sizeof(uint64_t), lz4_hufdata,
+    //              lz4_hufdata_size, handle.lz4_block_size, 0);
+    lz4_array = 
+    LZ4Compress(lossless_compressed_subarray, handle.lz4_block_size);
+    lossless_compressed_subarray = SubArray(lz4_array);
 
-    // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-    // (double)(total-free)/1e9, (double)total/1e9);
+    if (handle.timing) {
+      timer_each.end();
+      timer_each.print("LZ4 Compress");
+      timer_each.clear();
+    }
   }
 
   if (handle.timing) {
-    end = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(end - start);
-    std::cout << log::log_time << "Overall compression time: " << time_span.count() <<" s (" <<
-      (double)(handle.dofs[0][0] * handle.dofs[1][0] *handle.linearized_depth
-          *sizeof(T))/time_span.count()/1e9 << " GB/s)\n";
+    timer_total.end();
+    timer_total.print("Overall Compress");
+    std::cout << log::log_time << "Compression Throughput: " <<
+      (double)(total_elems*sizeof(T))/timer_total.get() << " GB/s)\n";
+    timer_total.clear();
   }
 
   // Output serilization
-  if (handle.timing) t1 = high_resolution_clock::now();
+  if (handle.timing) timer_each.start();
 
   uint32_t metadata_size;
 
@@ -362,92 +264,66 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   delete[] m.shape;
 
   SIZE outsize = 0;
-  outsize += metadata_size;
-  outsize += sizeof(LENGTH) + outlier_count * sizeof(LENGTH) +
-             outlier_count * sizeof(QUANTIZED_INT);
-  outsize += sizeof(size_t) + hufmeta_size;
-  outsize += sizeof(size_t) + hufdata_size;
-  
-  std::vector<SIZE> out_shape(1);
-  out_shape[0] = outsize;
-  gpuErrchk(cudaDeviceSynchronize());
-  Array<1, unsigned char, DeviceType> compressed_array(out_shape);
+  SIZE byte_offset = 0;
+  advance_with_align<SERIALIZED_TYPE>(byte_offset, metadata_size);
+  advance_with_align<LENGTH>(byte_offset, 1);
+  advance_with_align<LENGTH>(byte_offset, outlier_count);
+  advance_with_align<QUANTIZED_INT>(byte_offset, outlier_count);
+  advance_with_align<SIZE>(byte_offset, 1);
+  align_byte_offset<uint64_t>(byte_offset);
+  advance_with_align<Byte>(byte_offset, lossless_compressed_subarray.shape[0]);
+
+  outsize = byte_offset;
+  DeviceRuntime<DeviceType>::SyncDevice();
+
+  Array<1, unsigned char, DeviceType> compressed_array({outsize});
+  SubArray compressed_subarray(compressed_array);
+
   SERIALIZED_TYPE *buffer = compressed_array.get_dv();
   void *buffer_p = (void *)buffer;
+  byte_offset = 0;
 
-  cudaMemcpyAsyncHelper(handle, buffer_p, serizalied_meta, metadata_size, AUTO, 0);
-  buffer_p = buffer_p + metadata_size;
-  cudaMemcpyAsyncHelper(handle, buffer_p, outlier_count_array.get_dv(), sizeof(LENGTH), AUTO,
-                        0);
-  buffer_p = buffer_p + sizeof(LENGTH);
-  cudaMemcpyAsyncHelper(handle, buffer_p, outlier_idx_array.get_dv(),
-                        outlier_count * sizeof(LENGTH), AUTO, 0);
-  buffer_p = buffer_p + outlier_count * sizeof(LENGTH);
-  cudaMemcpyAsyncHelper(handle, buffer_p, outliers_array.get_dv(), outlier_count * sizeof(QUANTIZED_INT),
-                        AUTO, 0);
-  buffer_p = buffer_p + outlier_count * sizeof(QUANTIZED_INT);
+  SerializeArray<SERIALIZED_TYPE>(compressed_subarray, serizalied_meta, metadata_size, byte_offset);
+  SerializeArray<LENGTH>(compressed_subarray, outlier_count_array.get_dv(), 1, byte_offset);
+  SerializeArray<LENGTH>(compressed_subarray, outlier_idx_array.get_dv(), outlier_count, byte_offset);
+  SerializeArray<QUANTIZED_INT>(compressed_subarray, outliers_array.get_dv(), outlier_count, byte_offset);
+  SerializeArray<SIZE>(compressed_subarray, &lossless_compressed_subarray.shape[0], 1, byte_offset);
 
-  // cudaMemcpyAsyncHelper(handle, buffer_p, &hufmeta_size, sizeof(size_t), AUTO,
-  //                       0);
+  align_byte_offset<uint64_t>(byte_offset);
+  SerializeArray<Byte>(compressed_subarray, lossless_compressed_subarray.data(), 
+                       lossless_compressed_subarray.shape[0], byte_offset);
 
-  // buffer_p = buffer_p + sizeof(size_t);
-  // cudaMemcpyAsyncHelper(handle, buffer_p, hufmeta, hufmeta_size, AUTO, 0);
-  // buffer_p = buffer_p + hufmeta_size;
-
-  cudaMemcpyAsyncHelper(handle, buffer_p, &hufdata_size, sizeof(size_t), AUTO,
-                        0);
-  buffer_p = buffer_p + sizeof(size_t);
-
-  cudaMemcpyAsyncHelper(handle, buffer_p, hufdata, hufdata_size, AUTO, 0);
-  buffer_p = buffer_p + hufdata_size;
-  // printf("sync_all 5\n");
   handle.sync_all();
   if (handle.timing) {
-    t2 = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(t2 - t1);
-    std::cout << log::log_time << "Compressed output seralization time: " << time_span.count() <<" s\n";
+    timer_each.end();
+    timer_each.print("Serilization");
+    timer_each.clear();
   }
 
   delete serizalied_meta;
-  cudaFreeHelper(outlier_count_d);
-  cudaFreeHelper(outlier_idx_d);
-  cudaFreeHelper(outliers);
-  // cudaFreeHelper(hufmeta);
-  // cudaFreeHelper(hufdata);
-
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
   return compressed_array;  
 }
 
 template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
                        Array<1, unsigned char, DeviceType> &compressed_array) {
-  cudaSetDeviceHelper(handle.dev_id);
-  high_resolution_clock::time_point t1, t2, start, end;
-  duration<double> time_span;
+  DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
+  Timer timer_total, timer_each;
 
-  size_t free, total;
+  SIZE total_elems = handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
 
-  QUANTIZED_INT *dqv;
-  LENGTH quantized_count =
-        handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
-
-  LENGTH outlier_count;
-  LENGTH *outlier_idx_d;
-  QUANTIZED_INT *outliers;
-
-	//cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  //   (double)(total-free)/1e9, (double)total/1e9);
-
-  void *data_p = compressed_array.get_dv(); //(void *)data;
+  SubArray compressed_subarray(compressed_array);
+  SIZE byte_offset = 0;
 
   Metadata m;
   uint32_t metadata_size;
-  cudaMemcpyAsyncHelper(handle, &metadata_size, data_p + m.metadata_size_offset(), sizeof(uint32_t), AUTO, 0);  
+  SERIALIZED_TYPE * metadata_size_prt = (SERIALIZED_TYPE*)&metadata_size;
+  byte_offset = m.metadata_size_offset();
+  DeserializeArray<SERIALIZED_TYPE>(compressed_subarray, metadata_size_prt, sizeof(uint32_t), byte_offset, false);
   SERIALIZED_TYPE * serizalied_meta = (SERIALIZED_TYPE *)std::malloc(metadata_size);
-  cudaMemcpyAsyncHelper(handle, serizalied_meta, data_p, metadata_size, AUTO, 0);
-  data_p = data_p + metadata_size;
+  byte_offset = 0;
+  DeserializeArray<SERIALIZED_TYPE>(compressed_subarray, serizalied_meta, metadata_size, byte_offset, false);
+
   m.Deserialize(serizalied_meta, metadata_size);
 
   if (m.etype != CheckEndianess()) {
@@ -465,265 +341,131 @@ Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
     exit(-1);
   }
 
-  // printf("m.cpu_lossless: %d\n", m.cpu_lossless);
-  // printf("gpu lossless\n");
-  if (handle.timing) t1 = high_resolution_clock::now();
+  if (handle.timing) timer_each.start();
   void *lz4_hufmeta;
   size_t lz4_hufmeta_size;
   void *lz4_hufdata;
   size_t lz4_hufdata_size;
 
   uint8_t *hufmeta;
-  uint64_t *hufdata;
+  Byte *hufdata;
   size_t hufmeta_size;
-  size_t hufdata_size;
+  SIZE hufdata_size;
   size_t outsize;
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-  Array<1, LENGTH, DeviceType> outlier_count_array({1});
-  cudaMemcpyAsyncHelper(handle, outlier_count_array.get_dv(), data_p, sizeof(LENGTH), AUTO, 0);
-  cudaMemcpyAsyncHelper(handle, &outlier_count, data_p, sizeof(LENGTH), AUTO, 0);
-  data_p = data_p + sizeof(LENGTH);
-  handle.sync(0);
 
-  Array<1, LENGTH, DeviceType> outlier_idx_array({(SIZE)outlier_count});
-  cudaMemcpyAsyncHelper(handle, outlier_idx_array.get_dv(), data_p,
-                        outlier_count * sizeof(LENGTH), AUTO, 0);
-  cudaMallocHelper(handle, (void **)&outlier_idx_d, outlier_count * sizeof(LENGTH));
-  cudaMemcpyAsyncHelper(handle, outlier_idx_d, data_p,
-                        outlier_count * sizeof(LENGTH), AUTO, 0);
-
-  //outlier_idx_d = (LENGTH *) data_p;
-	data_p = data_p + outlier_count * sizeof(LENGTH);
-
-  Array<1, QUANTIZED_INT, DeviceType> outliers_array({(SIZE)outlier_count});
-  cudaMemcpyAsyncHelper(handle, outliers_array.get_dv(), data_p, outlier_count * sizeof(QUANTIZED_INT), AUTO, 0);
-  cudaMallocHelper(handle, (void **)&outliers, outlier_count * sizeof(QUANTIZED_INT));
-  cudaMemcpyAsyncHelper(handle, outliers, data_p, outlier_count * sizeof(QUANTIZED_INT), AUTO, 0);
-  //outliers = (QUANTIZED_INT *) data_p;
-	data_p = data_p + outlier_count * sizeof(QUANTIZED_INT);
-  // cudaMemcpyAsyncHelper(handle, &hufmeta_size, data_p, sizeof(size_t), AUTO, 0);
-  // data_p = data_p + sizeof(size_t);
-  // handle.sync(0);
+  LENGTH outlier_count;
+  LENGTH * outlier_count_ptr = &outlier_count;
+  LENGTH * outlier_idx;
+  QUANTIZED_INT * outliers;
+  SIZE lossless_size;
+  SIZE * lossless_size_ptr = &lossless_size;
+  Byte * lossless_data;
   
-	// cudaMallocHelper(handle, (void **)&hufmeta, hufmeta_size);
-  // cudaMemcpyAsyncHelper(handle, hufmeta, data_p, hufmeta_size, AUTO, 0);
-	// data_p = data_p + hufmeta_size;
-
-  cudaMemcpyAsyncHelper(handle, &hufdata_size, data_p, sizeof(size_t), AUTO, 0);
-  data_p = data_p + sizeof(size_t);
-  handle.sync(0);
-  cudaMallocHelper(handle, (void **)&hufdata, hufdata_size);
-  cudaMemcpyAsyncHelper(handle, hufdata, data_p, hufdata_size, H2D, 0);
-  //hufdata = (uint64_t *)data_p;
-	data_p = data_p + hufdata_size;
-  handle.sync(0);
-
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-
+  DeserializeArray<LENGTH>(compressed_subarray, outlier_count_ptr, 1, byte_offset, false);
+  DeserializeArray<LENGTH>(compressed_subarray, outlier_idx, outlier_count, byte_offset, true);
+  DeserializeArray<QUANTIZED_INT>(compressed_subarray, outliers, outlier_count, byte_offset, true);
+  DeserializeArray<SIZE>(compressed_subarray, lossless_size_ptr, 1, byte_offset, false);
+  align_byte_offset<uint64_t>(byte_offset);
+  DeserializeArray<Byte>(compressed_subarray, lossless_data, lossless_size, byte_offset, true);
   if (handle.timing) {
-    t2 = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(t2 - t1);
-    std::cout << log::log_time << "Compressed data deserialization time: " << time_span.count() <<" s\n";
+    timer_each.end();
+    timer_each.print("Deserilization");
+    timer_each.clear();
   }
 
-  if (handle.timing) start = high_resolution_clock::now();
+  DeviceRuntime<DeviceType>::SyncDevice();
 
+  SubArray<1, LENGTH, DeviceType> outlier_idx_subarray({(SIZE)outlier_count}, outlier_idx);
+  SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray({(SIZE)outlier_count}, outliers);
+  SubArray<1, Byte, DeviceType> lossless_compressed_subarray({(SIZE) lossless_size}, lossless_data);
+  
+
+  Array<1, Byte, DeviceType> lz4_array;
+  Array<1, Byte, DeviceType> huffman_array;
+
+  if (handle.timing) timer_total.start();
   if (m.ltype == lossless_type::GPU_Huffman_LZ4) {
-    if (handle.timing) t1 = high_resolution_clock::now();
-    uint64_t *lz4_decompressed_hufdata;
-    size_t lz4_decompressed_hufdata_size;
-    lz4_decompress(handle, (void *)hufdata, hufdata_size,
-                   lz4_decompressed_hufdata, lz4_decompressed_hufdata_size, 0);
-    // printf("sync_all 6\n");
-    handle.sync_all();
-    cudaFreeHelper(hufdata);
-    hufdata = lz4_decompressed_hufdata;
-    hufdata_size = lz4_decompressed_hufdata_size;
-    t2 = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(t2 - t1);
+    if (handle.timing) timer_each.start();
+    // uint64_t *lz4_decompressed_hufdata;
+    // size_t lz4_decompressed_hufdata_size;
+    // lz4_decompress(handle, (void *)hufdata, hufdata_size,
+    //                lz4_decompressed_hufdata, lz4_decompressed_hufdata_size, 0);
+
+    lz4_array = 
+    LZ4Decompress<Byte, DeviceType>(lossless_compressed_subarray);
+    lossless_compressed_subarray =  SubArray(lz4_array);
+    DeviceRuntime<DeviceType>::SyncDevice();
+
     if (handle.timing) {
-      std::cout << log::log_time << "NVComp::LZ4 decompression time: " << time_span.count() <<" s\n";
+      timer_each.end();
+      timer_each.print("LZ4 Decompress");
+      timer_each.clear();
     }
   }
 
   QUANTIZED_UNSIGNED_INT * unsigned_dqv;
-  if (handle.timing) t1 = high_resolution_clock::now();
-
-  SubArray<1, Byte, DeviceType> huffdata_subarray({(SIZE) hufdata_size}, (Byte*)hufdata);
-  Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> primary =
-  HuffmanDecompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(huffdata_subarray);
-  handle.sync_all();
-	// cudaFreeHelper(hufmeta);
-	// cudaFreeHelper(hufdata);
-  if (handle.timing) {
-    t2 = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(t2 - t1);
-    std::cout << log::log_time << "GPU Huffman decoding time: " << time_span.count() <<" s\n";
-  }
-
-  dqv = (QUANTIZED_INT*)primary.get_dv();
+  if (handle.timing) timer_each.start();
 
   
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-
-  if (handle.timing) t1 = high_resolution_clock::now();
-  thrust::device_vector<SIZE> ldqvs(handle.D_padded);
-  ldqvs[0] = handle.dofs[0][0];
-  for (int i = 1; i < handle.D_padded; i++) {
-    ldqvs[i] = handle.dofs[i][0];
+  Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> primary =
+  HuffmanDecompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(lossless_compressed_subarray);
+  DeviceRuntime<DeviceType>::SyncDevice();
+  if (handle.timing) {
+    timer_each.end();
+    timer_each.print("Huffman Decompress");
+    timer_each.clear();
   }
+
+  if (handle.timing) timer_each.start();
 
   std::vector<SIZE> decompressed_shape(D);
   for (int i = 0; i < D; i++)
     decompressed_shape[i] = handle.shapes_h[0][i];
   std::reverse(decompressed_shape.begin(), decompressed_shape.end());
   Array<D, T, DeviceType> decompressed_data(decompressed_shape);
-
-  // printf("sync_all 7.5\n");
-  handle.sync_all();
-
-  // printf("dqv\n");
-  // print_matrix_cuda(1, quantized_count, dqv, quantized_count);
+  SubArray<D, T, DeviceType> decompressed_subarray(decompressed_data);
 
   bool prep_huffman = m.ltype == lossless_type::GPU_Huffman ||
                       m.ltype == lossless_type::GPU_Huffman_LZ4;
-  // levelwise_linear_dequantize<D, T>(
-  //     handle, handle.ranges_d, handle.l_target, handle.volumes,
-  //     handle.ldvolumes, m, dqv, thrust::raw_pointer_cast(ldqvs.data()),
-  //     decompressed_data.get_dv(), decompressed_data.get_ldvs_d(), prep_huffman,
-  //     outlier_count, outlier_idx_d, outliers, 0);
 
   Array<D, QUANTIZED_INT, DeviceType> dqv_array(handle.shape_org, false);
-  cudaMemcpyAsyncHelper(handle, dqv_array.get_dv(), dqv, quantized_count * sizeof(QUANTIZED_INT), AUTO,
-                            0);
-
-  // printf("outlier_count: %u\n", outlier_count_array.getDataHost()[0]);
+  MemoryManager<DeviceType>::Copy1D(dqv_array.get_dv(), (QUANTIZED_INT*)primary.get_dv(), total_elems, 0);
 
   LevelwiseLinearDequantizeND<D, T, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.ranges), handle.l_target, 
             SubArray<2, T, DeviceType>(handle.volumes_array), 
-            m, SubArray<D, T, DeviceType>(decompressed_data),
+            m, decompressed_subarray,
             SubArray<D, QUANTIZED_INT, DeviceType>(dqv_array), prep_huffman,
             SubArray<1, SIZE, DeviceType>(handle.shapes[0], true),
-            SubArray<1, LENGTH, DeviceType>(outlier_count_array, true), SubArray<1, LENGTH, DeviceType>(outlier_idx_array),
-            SubArray<1, QUANTIZED_INT, DeviceType>(outliers_array),
-            0);
+            outlier_count, outlier_idx_subarray, outliers_subarray, 0);
 
-    gpuErrchk(cudaDeviceSynchronize());
-
-  // PrintSubarray("decompressed_data", SubArray<D, T>(decompressed_data));
-
+  DeviceRuntime<DeviceType>::SyncDevice();
 
   handle.sync_all();
-  // cudaFreeHelper(dqv);
-  if (prep_huffman) {
-		cudaFreeHelper(outlier_idx_d);
-		cudaFreeHelper(outliers);
-	}
   if (handle.timing) {
-    t2 = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(t2 - t1);
-    std::cout << log::log_time << "Dequantization time: " << time_span.count() <<" s\n";
+    timer_each.end();
+    timer_each.print("Dequantization");
+    timer_each.clear();
   }
 
-
-
-  // cudaMemGetInfo(&free, &total);
-  // printf("Mem: %f/%f\n", (double)(total-free)/1e9, (double)total/1e9);
-
-  // printf("dv:\n");
-  // print_matrix_cuda(1, quantized_count, dv, quantized_count);
-
-  /**** refactoring ****/
-
-  // cudaMemcpy3DAsyncHelper( handle,
-  //   dv, lddv1 * sizeof(T), handle.dofs[0][0] * sizeof(T), handle.dofs[1][0],
-  //     data, handle.dofs[0][0] * sizeof(T), handle.dofs[0][0] * sizeof(T),
-  //     handle.dofs[1][0], handle.dofs[0][0] * sizeof(T), handle.dofs[1][0],
-  //     handle.linearized_depth, H2D, 0);
-
-  handle.allocate_workspace();
-
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-
-  if (handle.timing) t1 = high_resolution_clock::now();
-  recompose<D, T, DeviceType>(handle, decompressed_data.get_dv(),
-                  decompressed_data.get_ldvs_h(), decompressed_data.get_ldvs_d(), m.l_target, 0);
-
-
-  {
-    // int block_size = BLOCK_SIZE;
-    // for (int i = 0; i < handle.dofs[0][0]; i += block_size) {
-    //   for (int j = 0; j < handle.dofs[1][0]; j += block_size) {
-    //     for (int k = 0; k < handle.dofs[2][0]; k += block_size) {
-    //       size_t b0 = std::min(block_size, handle.dofs[0][0] - i); 
-    //       size_t b1 = std::min(block_size, handle.dofs[1][0] - j); 
-    //       size_t b2 = std::min(block_size, handle.dofs[2][0] - k); 
-    //       std::vector<size_t> block_shape = {b2, b1, b0};
-    //       // mgard_cuda::Array<3, T> block_array(block_shape);
-    //       mgard_cuda::Handle<3, T> block_handle(block_shape);
-    //       std::vector<int> idx = {(int)i, (int)j, (int)k};
-    //       // printf("recompose: %llu, %llu, %llu\n", i, j, k);
-    //       // printf("block_array: %llu, %llu, %llu ld %d %d %d\n", b0, b1, b2, block_array.get_ldvs_h()[0], 
-    //       //         block_array.get_ldvs_h()[1], block_array.get_ldvs_h()[2]);
-
-    //       // block_array.loadData(in_array.get_dv()+get_idx(in_array.get_ldvs_h(), idx), in_array.get_ldvs_h()[0]);
-    //       block_handle.allocate_workspace();
-    //       recompose<3, T>(block_handle, decompressed_data.get_dv()+get_idx(decompressed_data.get_ldvs_h(), idx), decompressed_data.get_ldvs_h(),
-    //               block_handle.l_target);
-    //       block_handle.free_workspace();
-    //     }
-    //   }
-    // }
-
-
-  } 
-
-
-
-  // printf("sync_all 9\n");
+  if (handle.timing) timer_each.start();
+  recompose<D, T, DeviceType>(handle, decompressed_subarray, m.l_target, 0);
   handle.sync_all();
   if (handle.timing) {
-    t2 = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(t2 - t1);
-    std::cout << log::log_time << "Recomposition time: " << time_span.count() <<" s\n";
+    timer_each.end();
+    timer_each.print("Recomposition");
+    timer_each.clear();
   }
 
-  handle.free_workspace();
-
-  // printf("sync_all 10\n");
   handle.sync_all();
   if (handle.timing) {
-    end = high_resolution_clock::now();
-    time_span = duration_cast<duration<double>>(end - start);
-    std::cout << log::log_time << "Overall decompression time: " << time_span.count() <<" s (" <<
-              (double)(handle.dofs[0][0] * handle.dofs[1][0]
-      *handle.linearized_depth *sizeof(T))/time_span.count()/1e9 << " GB/s)\n";
+    timer_total.end();
+    timer_total.print("Overall Decompression");
+    std::cout << log::log_time << "Decompression Throughput: " << 
+      (double)(total_elems*sizeof(T))/timer_total.get() << " GB/s)\n";
+    timer_total.clear();
   }
 
-  // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
-
-  // T *v;
-  // cudaMallocHostHelper((void **)&v, handle.dofs[0][0] * handle.dofs[1][0] *
-  // handle.linearized_depth * sizeof(T));
-  // // = (T *)malloc(handle.dofs[0][0] * handle.dofs[1][0] *
-  // handle.linearized_depth * sizeof(T));
-
-  // cudaMemcpy3DAsyncHelper(
-  //     handle, v, handle.dofs[0][0] * sizeof(T), handle.dofs[0][0] *
-  //     sizeof(T), handle.dofs[1][0], dv, lddv1 * sizeof(T), handle.dofs[0][0]
-  //     * sizeof(T), handle.dofs[1][0], handle.dofs[0][0] * sizeof(T),
-  //     handle.dofs[1][0], handle.linearized_depth, D2H, 0);
-
-  // cudaFreeHelper(dv);
-
-  //cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
-  // (double)(total-free)/1e9, (double)total/1e9);
   return decompressed_data;
 }
 

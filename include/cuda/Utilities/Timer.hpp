@@ -27,7 +27,7 @@ class Timer{
         total_time = 0;
     }
     void print(std::string s){
-        std::cout << s << " time: " << total_time << "s" << std::endl;
+        std::cout << log::log_time << s << " time: " << total_time << "s" << std::endl;
         clear();
     }
   private:
