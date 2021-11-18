@@ -154,7 +154,8 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   mgard_cuda::Config config;
   config.lossless = mgard_cuda::lossless_type::GPU_Huffman;
   config.uniform_coord_mode = 1;
-  config.huff_dict_size = 64;
+  // config.huff_dict_size = 64;
+  config.timing = false;
 
   void *compressed_data = NULL;
   size_t compressed_size = 0;
@@ -283,10 +284,10 @@ int main(int argc, char *argv[]) {
   shapes.push_back({100, 10, 1000});
   shapes.push_back({10, 1000, 100});
 
-  // shapes.push_back({5, 5, 5, 5});
+  shapes.push_back({5, 5, 5, 5});
   // shapes.push_back({3, 3, 3, 4});
   // shapes.push_back({65, 65, 65, 65});
-  // shapes.push_back({100, 10, 100, 10});
+  shapes.push_back({100, 10, 100, 10});
   // shapes.push_back({10, 100, 10, 100});
   // shapes.push_back({1000, 10, 10, 10});
   // shapes.push_back({10, 1000, 10, 10});
@@ -298,7 +299,7 @@ int main(int argc, char *argv[]) {
 
   // shapes.push_back({5, 5, 5, 5, 5});
   // shapes.push_back({17, 17, 17, 17, 17});
-  // shapes.push_back({10, 10, 10, 10, 100});
+  shapes.push_back({10, 10, 10, 10, 100});
   // shapes.push_back({10, 10, 10, 100, 10});
   // shapes.push_back({10, 10, 100, 10, 10});
   // shapes.push_back({10, 100, 10, 10, 10});

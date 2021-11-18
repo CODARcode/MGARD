@@ -142,17 +142,19 @@ class DeviceCollective {
   public:
   template <typename T> MGARDm_CONT
   DeviceCollective(){};
-  template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
   void Sum(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
-  template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
   void AbsMax(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
-  template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
+  void SquareSum(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
+  template <typename T> MGARDm_CONT static
   void ScanSumInclusive(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
-  template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
   void ScanSumExclusive(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
-  template <typename T> MGARDm_CONT
+  template <typename T> MGARDm_CONT static
   void ScanSumExtended(SIZE n, SubArray<1, T, DeviceType>& v, SubArray<1, T, DeviceType>& result, int queue_idx);
-  template <typename KeyT, typename ValueT> MGARDm_CONT
+  template <typename KeyT, typename ValueT> MGARDm_CONT static
   void SortByKey(SIZE n, SubArray<1, KeyT, DeviceType>& keys, SubArray<1, ValueT, DeviceType>& values, int queue_idx);
 
 };

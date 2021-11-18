@@ -108,13 +108,13 @@ namespace MDR {
         MGARDOrthoganalDecomposer(HandleType &handle): handle(handle){}
         void decompose(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SIZE target_level, int queue_idx) const {
             handle.allocate_workspace();
-            mgard_cuda::decompose<D, T, mgard_cuda::CUDA>(handle, v.dv, v.ldvs_h, v.ldvs_d, target_level, queue_idx);
+            // mgard_cuda::decompose<D, T, mgard_cuda::CUDA>(handle, v, target_level, queue_idx);
             handle.sync(queue_idx);
             handle.free_workspace();
         }
         void recompose(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SIZE target_level, int queue_idx) const {
             handle.allocate_workspace();
-            mgard_cuda::recompose<D, T, mgard_cuda::CUDA>(handle, v.dv, v.ldvs_h, v.ldvs_d, target_level, queue_idx);
+            // mgard_cuda::recompose<D, T, mgard_cuda::CUDA>(handle, v.dv, v.ldvs_h, v.ldvs_d, target_level, queue_idx);
             handle.sync(queue_idx);
             handle.free_workspace();
         }

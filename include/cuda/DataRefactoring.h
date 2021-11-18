@@ -50,11 +50,11 @@ namespace mgard_cuda {
 //                         SubArray<D, T> &dcorrection, SIZE l, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
-void decompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d,
+void decompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v, 
                SIZE l_target, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
-void recompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d,
+void recompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v, 
                SIZE l_target, int queue_idx);
 
 } // namespace mgard_cuda
