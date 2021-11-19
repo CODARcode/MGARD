@@ -1,8 +1,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include <omp.h>
-
 #include "utilities.hpp"
 
 namespace mgard {
