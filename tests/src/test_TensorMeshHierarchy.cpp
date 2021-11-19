@@ -1,5 +1,4 @@
-#include "catch2/catch_approx.hpp"
-#include "catch2/catch_test_macros.hpp"
+#include "catch2/catch.hpp"
 
 #include <algorithm>
 #include <array>
@@ -149,7 +148,7 @@ number_nodes_before(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
   // × m_{N}`. The values of `β_{1}`, …, `β_{i - 1}` are prescribed. `β_{i}` is
   // of the form `floor((j * (M_{i} - 1)) / (m_{i} - 1))`. We want `β_{i} <
   // α_{i}`, so `j` will go from zero up to some maximal value, after which
-  // `β_{i} ≥ α_{i}`. The count of possible `j` values is the least `j` such
+  // `β_{i} ≥ α_{i}`. The count of possible `j` values is the least `j` such
   // that `β_{i} ≥ α_{i}`. A bit of algebra shows that this is
   // `ceil((α_{i} * (m_{i} - 1)) / (M_{i} - 1))`. So, the count of possible
   // `β`s for this option is (assuming the constraints on `β_{1}`, …,
