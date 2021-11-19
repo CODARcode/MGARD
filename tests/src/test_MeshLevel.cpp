@@ -60,23 +60,23 @@ TEST_CASE("MeshLevel construction", "[MeshLevel]") {
   // Don't want to deal with a lot of nonrational lengths, so I'm only checking
   // a few.
   const moab::Range &edges = mesh.entities[moab::MBEDGE];
-  REQUIRE(mesh.measure(edges[0]) == Catch::Approx(5));
-  REQUIRE(mesh.measure(edges[3]) == Catch::Approx(7));
-  REQUIRE(mesh.measure(edges[6]) == Catch::Approx(6));
+  REQUIRE(mesh.measure(edges[0]) == Approx(5));
+  REQUIRE(mesh.measure(edges[3]) == Approx(7));
+  REQUIRE(mesh.measure(edges[6]) == Approx(6));
 
   const moab::Range &elements = mesh.entities[mesh.element_type];
   double triangle_areas[num_tris] = {20, 10.5, 15, 12};
   SECTION("measures without precomputing") {
     //`precompute_measures` should be called by `measure`.
     for (std::size_t i = 0; i < num_tris; ++i) {
-      REQUIRE(mesh.measure(elements[i]) == Catch::Approx(triangle_areas[i]));
+      REQUIRE(mesh.measure(elements[i]) == Approx(triangle_areas[i]));
     }
   }
 
   SECTION("measures with precomputing") {
     mesh.precompute_element_measures();
     for (std::size_t i = 0; i < num_tris; ++i) {
-      REQUIRE(mesh.measure(elements[i]) == Catch::Approx(triangle_areas[i]));
+      REQUIRE(mesh.measure(elements[i]) == Approx(triangle_areas[i]));
     }
   }
 

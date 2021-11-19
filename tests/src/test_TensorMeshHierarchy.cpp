@@ -84,7 +84,7 @@ TEST_CASE("TensorMeshHierarchy construction", "[TensorMeshHierarchy]") {
       const std::vector<double> &xs = hierarchy.coordinates.at(i);
       const std::size_t n = SHAPE.at(i);
       for (std::size_t j = 0; j < n; ++j) {
-        tracker += xs.at(j) == Catch::Approx(static_cast<double>(j) / (n - 1));
+        tracker += xs.at(j) == Approx(static_cast<double>(j) / (n - 1));
       }
     }
     REQUIRE(tracker);

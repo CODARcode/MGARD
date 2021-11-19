@@ -64,7 +64,7 @@ TEST_CASE("unstructured basic norm properties", "[norms]") {
         blas::scal(N, alpha, copy.data);
         tracker +=
             mgard::norm(copy, hierarchy, s) ==
-            Catch::Approx(std::abs(alpha) * mgard::norm(u, hierarchy, s));
+            Approx(std::abs(alpha) * mgard::norm(u, hierarchy, s));
       }
       REQUIRE(tracker);
     }
@@ -115,13 +115,13 @@ TEST_CASE("comparison with Python implementation: unstructured norms",
   }
   mgard::NodalCoefficients u(u_.data());
 
-  REQUIRE(mgard::norm(u, hierarchy, inf) == Catch::Approx(2.99974381309398));
-  REQUIRE(mgard::norm(u, hierarchy, -1.5) == Catch::Approx(1.041534180771523));
-  REQUIRE(mgard::norm(u, hierarchy, -1.0) == Catch::Approx(1.086120609647959));
-  REQUIRE(mgard::norm(u, hierarchy, -0.5) == Catch::Approx(1.1720508380006622));
-  REQUIRE(mgard::norm(u, hierarchy, 0.0) == Catch::Approx(1.3338133542219779));
-  REQUIRE(mgard::norm(u, hierarchy, 1e-9) == Catch::Approx(1.3338133546552449));
-  REQUIRE(mgard::norm(u, hierarchy, 0.5) == Catch::Approx(1.6305906723975383));
-  REQUIRE(mgard::norm(u, hierarchy, 1.0) == Catch::Approx(2.1667011853555294));
-  REQUIRE(mgard::norm(u, hierarchy, 1.5) == Catch::Approx(3.14182423518829));
+  REQUIRE(mgard::norm(u, hierarchy, inf) == Approx(2.99974381309398));
+  REQUIRE(mgard::norm(u, hierarchy, -1.5) == Approx(1.041534180771523));
+  REQUIRE(mgard::norm(u, hierarchy, -1.0) == Approx(1.086120609647959));
+  REQUIRE(mgard::norm(u, hierarchy, -0.5) == Approx(1.1720508380006622));
+  REQUIRE(mgard::norm(u, hierarchy, 0.0) == Approx(1.3338133542219779));
+  REQUIRE(mgard::norm(u, hierarchy, 1e-9) == Approx(1.3338133546552449));
+  REQUIRE(mgard::norm(u, hierarchy, 0.5) == Approx(1.6305906723975383));
+  REQUIRE(mgard::norm(u, hierarchy, 1.0) == Approx(2.1667011853555294));
+  REQUIRE(mgard::norm(u, hierarchy, 1.5) == Approx(3.14182423518829));
 }

@@ -63,15 +63,15 @@ TEST_CASE("comparison with Python implementation: indicators", "[indicators]") {
   mgard::MultilevelCoefficients u_mc = hierarchy.decompose(u_nc);
 
   REQUIRE(unscaled_indicator(u_mc, hierarchy, -1.6) ==
-          Catch::Approx(3.6534422088028458));
+          Approx(3.6534422088028458));
   REQUIRE(unscaled_indicator(u_mc, hierarchy, -0.8) ==
-          Catch::Approx(4.7577598954771325));
+          Approx(4.7577598954771325));
   REQUIRE(unscaled_indicator(u_mc, hierarchy, 0.0) ==
-          Catch::Approx(8.80618193171665));
+          Approx(8.80618193171665));
   REQUIRE(unscaled_indicator(u_mc, hierarchy, 0.8) ==
-          Catch::Approx(26.420258062021407));
+          Approx(26.420258062021407));
   REQUIRE(unscaled_indicator(u_mc, hierarchy, 1.6) ==
-          Catch::Approx(112.02614999556158));
+          Approx(112.02614999556158));
 }
 
 TEST_CASE("indicators should track estimators", "[indicators]") {

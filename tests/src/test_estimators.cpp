@@ -55,19 +55,19 @@ TEST_CASE("comparison with Python implementation: estimators", "[estimators]") {
   // estimate, we can use the unscaled estimator in the following.
 
   REQUIRE(mgard::estimator(u_mc, hierarchy, -1.5) ==
-          Catch::Approx(14.408831895461581));
+          Approx(14.408831895461581));
   REQUIRE(mgard::estimator(u_mc, hierarchy, -1.0) ==
-          Catch::Approx(14.414586335331334));
+          Approx(14.414586335331334));
   REQUIRE(mgard::estimator(u_mc, hierarchy, -0.5) ==
-          Catch::Approx(14.454292254136842));
+          Approx(14.454292254136842));
   REQUIRE(mgard::estimator(u_mc, hierarchy, 0.0) ==
-          Catch::Approx(15.34865518032767));
+          Approx(15.34865518032767));
   REQUIRE(mgard::estimator(u_mc, hierarchy, 0.5) ==
-          Catch::Approx(32.333348842187284));
+          Approx(32.333348842187284));
   REQUIRE(mgard::estimator(u_mc, hierarchy, 1.0) ==
-          Catch::Approx(162.87659345811159));
+          Approx(162.87659345811159));
   REQUIRE(mgard::estimator(u_mc, hierarchy, 1.5) ==
-          Catch::Approx(914.1806446523887));
+          Approx(914.1806446523887));
 }
 
 TEST_CASE("estimators should track norms", "[estimators]") {

@@ -38,7 +38,7 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
       blas::scal(ndof, static_cast<float>(1) / 48, expected.data());
       TrialTracker tracker;
       for (std::size_t i = 0; i < ndof; ++i) {
-        tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
+        tracker += buffer_.at(i) == Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -55,7 +55,7 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
       }
       TrialTracker tracker;
       for (std::size_t i = 0; i < ndof; ++i) {
-        tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
+        tracker += buffer_.at(i) == Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -86,7 +86,7 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
       TrialTracker tracker;
       const std::array<float, ndof> &expected = expecteds.at(l);
       for (std::size_t i = 0; i < ndof; ++i) {
-        tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
+        tracker += buffer_.at(i) == Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -139,7 +139,7 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
                                                  10};
       TrialTracker tracker;
       for (std::size_t i = 0; i < ndof; ++i) {
-        tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
+        tracker += buffer_.at(i) == Approx(expected.at(i));
       }
       REQUIRE(tracker);
     }
@@ -180,7 +180,7 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
       for (std::size_t i = 0; i < ndof; ++i) {
         // Changed the margin because we were getting a tiny error at index 10
         // (where the exact value is zero).
-        tracker += buffer_.at(i) == Catch::Approx(expected.at(i)).margin(1e-15);
+        tracker += buffer_.at(i) == Approx(expected.at(i)).margin(1e-15);
       }
       REQUIRE(tracker);
     }
@@ -198,7 +198,7 @@ TEST_CASE("constituent mass matrices", "[TensorMassMatrix]") {
         tracker += buffer_.at(i) == u_.at(i);
       }
       for (std::size_t i = ndof - 5; i < ndof; ++i) {
-        tracker += buffer_.at(i) == Catch::Approx(expected.at(i - 20));
+        tracker += buffer_.at(i) == Approx(expected.at(i - 20));
       }
       REQUIRE(tracker);
     }
@@ -232,7 +232,7 @@ TEST_CASE("tensor product mass matrices", "[TensorMassMatrix]") {
                                                0.3541666666666667};
     TrialTracker tracker;
     for (std::size_t i = 0; i < ndof; ++i) {
-      tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
+      tracker += buffer_.at(i) == Approx(expected.at(i));
     }
     REQUIRE(tracker);
   }
@@ -247,7 +247,7 @@ TEST_CASE("tensor product mass matrices", "[TensorMassMatrix]") {
         0.3611111111111111,   -1.0, 0.22222222222222224};
     TrialTracker tracker;
     for (std::size_t i = 0; i < ndof; ++i) {
-      tracker += buffer_.at(i) == Catch::Approx(expected.at(i));
+      tracker += buffer_.at(i) == Approx(expected.at(i));
     }
     REQUIRE(tracker);
   }
@@ -288,7 +288,7 @@ void exhaustive_constituent_inverse_test(
         A(multiindex, v);
         mgard::unshuffle(hierarchy, v, buffer);
         for (std::size_t i = 0; i < ndof; ++i) {
-          tracker += buffer[i] == Catch::Approx(u[i]);
+          tracker += buffer[i] == Approx(u[i]);
         }
         multiindex_components_.at(dimension) =
             multiindex_components.at(dimension);
@@ -322,7 +322,7 @@ TEST_CASE("constituent mass matrix inverses", "[TensorMassMatrix]") {
       mgard::unshuffle(hierarchy, v, buffer);
       TrialTracker tracker;
       for (std::size_t i = 0; i < ndof; ++i) {
-        tracker += buffer_.at(i) == Catch::Approx(u_.at(i));
+        tracker += buffer_.at(i) == Approx(u_.at(i));
       }
       REQUIRE(tracker);
     }
@@ -339,7 +339,7 @@ TEST_CASE("constituent mass matrix inverses", "[TensorMassMatrix]") {
       mgard::unshuffle(hierarchy, v, buffer);
       TrialTracker tracker;
       for (std::size_t i = 0; i < ndof; ++i) {
-        tracker += buffer_.at(i) == Catch::Approx(u_.at(i));
+        tracker += buffer_.at(i) == Approx(u_.at(i));
       }
       REQUIRE(tracker);
     }

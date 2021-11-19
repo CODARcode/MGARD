@@ -203,5 +203,5 @@ TEST_CASE("contiguous subset mass matrix", "[MassMatrix]") {
 
   REQUIRE(U_sq_norm >= 0);
   REQUIRE(u_sq_norm >= 0);
-  REQUIRE(u_sq_norm == Catch::Approx(U_sq_norm));
+  REQUIRE(u_sq_norm == Approx(U_sq_norm));
 }

@@ -102,7 +102,7 @@ void test_qoi_norm_equality(std::default_random_engine &generator,
   const mgard::TensorQuantityOfInterest<N, Real> Q(hierarchy, functional);
   std::free(representative);
 
-  REQUIRE(Q.norm(s) == Catch::Approx(representative_norm));
+  REQUIRE(Q.norm(s) == Approx(representative_norm));
 }
 
 } // namespace
@@ -141,7 +141,7 @@ void test_average_norms(const std::array<std::size_t, N> shape) {
     minimum_norm = std::min(minimum_norm, norm);
     maximum_norm = std::max(maximum_norm, norm);
   }
-  REQUIRE(minimum_norm == Catch::Approx(maximum_norm).epsilon(1e-3));
+  REQUIRE(minimum_norm == Approx(maximum_norm).epsilon(1e-3));
 }
 
 } // namespace
