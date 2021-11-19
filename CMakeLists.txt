@@ -31,6 +31,8 @@ option(MGARD_ENABLE_BENCHMARKS "Build benchmarks." OFF)
 
 option(MGARD_ENABLE_DOCS "build documentation" OFF)
 
+option(MGARD_ENABLE_OPENMP "Enable OpenMP support" ON)
+
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 
 #For performance optimization
@@ -237,9 +239,11 @@ if(MGARD_ENABLE_CUDA)
   # target_include_directories(mgard-library PUBLIC ${NVCOMP_INCLUDE_DIR})
 endif()
 
-find_package(OpenMP)
-if(OpenMP_FOUND)
-	target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
+if(MGARD_ENABLE_OPENMP)
+  find_package(OpenMP)
+  if(OpenMP_FOUND)
+    target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
+  endif()
 endif()
 
 option(DEFINE_MGARD_TIMING "Enable/disable MGARD timing" OFF)
@@ -539,7 +543,7 @@ message("")
 message("  Build Type: ${CMAKE_BUILD_TYPE}")
 message("  Shared Lib: ${BUILD_SHARED_LIBS}")
 message("     Testing: ${BUILD_TESTING}")
-message("      OpenMP: ${OpenMP_FOUND}")
+message("      OpenMP: ${MGARD_ENABLE_OPENMP}")
 message("        CUDA: ${MGARD_ENABLE_CUDA}")
 message("    CUDA-FMA: ${MGARD_ENABLE_CUDA_FMA}")
 message("  CUDA-VOLTA: ${MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA}")
