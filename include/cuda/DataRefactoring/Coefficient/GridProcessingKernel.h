@@ -8,7 +8,7 @@
 #ifndef MGRAD_CUDA_GRID_PROCESSING_KERNEL
 #define MGRAD_CUDA_GRID_PROCESSING_KERNEL
 
-#include "Common.h"
+#include "../../Common.h"
 
 namespace mgard_cuda {
 
@@ -37,6 +37,8 @@ void gpk_rev(Handle<D_GLOBAL, T> &handle, SIZE *shape_h, SIZE *shape_d,
              LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc, LENGTH lddwrc1, LENGTH lddwrc2,
              T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2, SIZE svr, SIZE svc, SIZE svf,
              SIZE nvr, SIZE nvc, SIZE nvf, int queue_idx, int config);
+
+template <DIM D_GLOBAL, DIM D_LOCAL, typename T, bool INTERPOLATION, bool CALC_COEFF, int TYPE, typename DeviceType> class GpkReo;
 
 } // namespace mgard_cuda
 

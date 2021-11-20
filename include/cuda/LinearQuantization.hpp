@@ -590,7 +590,7 @@ public:
 
     // printf("%u %u %u %u %u %u %u %u %u\n", total_thread_x, total_thread_y, total_thread_z, tbx, tby, tbz, gridx, gridy, gridz);
     return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx); 
+                tbz, tby, tbx, sm_size, queue_idx, "LevelwiseLinearQuantizeND"); 
   }
 
   MGARDm_CONT
@@ -979,7 +979,7 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
     return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx); 
+                tbz, tby, tbx, sm_size, queue_idx, "OutlierRestore"); 
   }
 
   template <SIZE R, SIZE C, SIZE F>
@@ -1032,7 +1032,7 @@ public:
 
     // printf("%u %u %u %u %u %u %u %u %u\n", total_thread_x, total_thread_y, total_thread_z, tbx, tby, tbz, gridx, gridy, gridz);
     return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx); 
+                tbz, tby, tbx, sm_size, queue_idx, "LevelwiseLinearDequantizeND"); 
   }
 
   

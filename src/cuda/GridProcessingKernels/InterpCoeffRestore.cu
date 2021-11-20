@@ -6,8 +6,8 @@
  */
 #include "cuda/CommonInternal.h"
  
-#include "cuda/GridProcessingKernel.h"
-#include "cuda/GridProcessingKernel.hpp"
+#include "cuda/DataRefactoring/Coefficient/GridProcessingKernel.h"
+#include "cuda/DataRefactoring/Coefficient/GridProcessingKernel.hpp"
 
 namespace mgard_cuda {
 
@@ -23,7 +23,7 @@ namespace mgard_cuda {
       LENGTH lddwcf1, LENGTH lddwcf2, T *dwrf, LENGTH lddwrf1, LENGTH lddwrf2, T *dwrc,    \
       LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2, SIZE svr, \
       SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf, int queue_idx, int config);
-
+      
 KERNELS(1, 1, double, true, true, 1)
 KERNELS(1, 1, float, true, true, 1)
 KERNELS(2, 2, double, true, true, 1)

@@ -86,7 +86,7 @@ public:
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
     // PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx); 
+                tbz, tby, tbx, sm_size, queue_idx, "EncodeFixedLen"); 
   }
 
   MGARDm_CONT

@@ -671,7 +671,7 @@ public:
     // printf("mblocks: %d, tbx: %d\n", mblocks, tbx);
 
     return Task(Functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx); 
+                tbz, tby, tbx, sm_size, queue_idx, "GenerateCL"); 
   }
 
   MGARDm_CONT
