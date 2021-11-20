@@ -13,7 +13,7 @@
 
 namespace mgard_cuda {
 
-template <DIM D, typename T, typename DeviceType> class SubArray {
+template <DIM D, typename T, typename DeviceType> class MGARDm_ALIGN(16) SubArray {
 public:
   SubArray();
   SubArray(Array<D, T, DeviceType> &array, bool get_host_pointer = false);
@@ -21,6 +21,8 @@ public:
   SubArray(std::vector<SIZE> shape, T * dv);
   SubArray(SubArray<D, T, DeviceType> &subArray);
   SubArray(const SubArray<D, T, DeviceType> &subArray);
+
+  MGARDm_CONT_EXEC
   SubArray<D, T, DeviceType>& operator = (const SubArray<D, T, DeviceType> &subArray);
   void offset(std::vector<SIZE> idx);
   void resize(std::vector<SIZE> shape);
@@ -58,16 +60,21 @@ public:
     return dv + x;
   }
 
-  MGARDm_CONT_EXEC
-  T* offset(IDX z, IDX y, IDX x) {
+  MGARDm_EXEC void
+  offset(SIZE * idx) {
+    dv += get_idx<D>(ldvs_d, idx);
+  }
+
+  MGARDm_CONT_EXEC void
+  offset(IDX z, IDX y, IDX x) {
     dv += lddv2 * lddv1 * z + lddv1 * y + x;
   }
-  MGARDm_CONT_EXEC
-  T* offset(IDX y, IDX x) {
+  MGARDm_CONT_EXEC void
+  offset(IDX y, IDX x) {
     dv += lddv1 * y + x;
   }
-  MGARDm_CONT_EXEC
-  T* offset(IDX x) {
+  MGARDm_CONT_EXEC void
+  offset(IDX x) {
     dv += x;
   }
 
@@ -195,6 +202,7 @@ SubArray<D, T, DeviceType>::SubArray(const SubArray<D, T, DeviceType> &subArray)
 }
 
 template <DIM D, typename T, typename DeviceType> 
+MGARDm_CONT_EXEC
 SubArray<D, T, DeviceType>& SubArray<D, T, DeviceType>::operator = (const SubArray<D, T, DeviceType> &subArray) {
   this->shape  = subArray.shape;
   this->dv     = subArray.dv;

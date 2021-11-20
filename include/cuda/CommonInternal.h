@@ -17,6 +17,15 @@
 #ifndef MGRAD_CUDA_COMMON_INTERNAL
 #define MGRAD_CUDA_COMMON_INTERNAL
 
+#if defined(__CUDACC__) // NVCC
+   #define MGARDm_ALIGN(n) __align__(n)
+#elif defined(__GNUC__) // GCC
+  #define MGARDm_ALIGN(n) __attribute__((aligned(n)))
+#elif defined(_MSC_VER) // MSVC
+  #define MGARDm_ALIGN(n) __declspec(align(n))
+#else
+  #error "Please provide a definition for MY_ALIGN macro for your host compiler!"
+#endif
 
 
 #define MGARDm_CONT __host__  __inline__

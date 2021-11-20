@@ -12,11 +12,11 @@ set(MGARD_CUDA_HEADER
       ${CMAKE_CURRENT_SOURCE_DIR}/PrecomputeKernels.h   
       ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring.h   
       #${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring_AMR.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/GPKFunctor.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.hpp   
-      ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel3D.hpp   
-      ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel3D.h
+      #${CMAKE_CURRENT_SOURCE_DIR}/GPKFunctor.h
+      #${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.hpp   
+      #${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.h
+      #${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel3D.hpp   
+      #${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel3D.h
       ${CMAKE_CURRENT_SOURCE_DIR}/LPKFunctor.h
       ${CMAKE_CURRENT_SOURCE_DIR}/LinearProcessingKernel.hpp   
       ${CMAKE_CURRENT_SOURCE_DIR}/LinearProcessingKernel.h
@@ -56,3 +56,5 @@ set(MGARD_CUDA_HEADER
       # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsGPU.h
       # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsGPU.hpp
       PARENT_SCOPE)
+
+add_subdirectory(DataRefactoring)

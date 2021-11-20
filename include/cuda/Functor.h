@@ -11,7 +11,7 @@
 namespace mgard_cuda {
 
 template <typename DeviceType>
-class Functor {
+class MGARDm_ALIGN(16) Functor {
 public:
   MGARDm_EXEC void
   Init(IDX ngridz, IDX ngridy, IDX ngridx,
@@ -26,19 +26,56 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation1();
+  Init_config(IDX ngridz, IDX ngridy, IDX ngridx,
+              IDX nblockz, IDX nblocky, IDX nblockx) {
+    this->ngridz = ngridz; this->ngridy = ngridy; this->ngridx = ngridx;
+    this->nblockz = nblockz; this->nblocky = nblocky; this->nblockx = nblockx;
+  }
 
   MGARDm_EXEC void
-  Operation2();
+  Init_block_id(IDX blockz, IDX blocky, IDX blockx) {
+    this->blockz = blockz; this->blocky = blocky; this->blockx = blockx;
+  }
 
   MGARDm_EXEC void
-  Operation3();
+  Init_thread_id(IDX threadz, IDX thready, IDX threadx) {
+    this->threadz = threadz; this->thready = thready; this->threadx = threadx;
+  }
 
   MGARDm_EXEC void
-  Operation4();
+  Init_shared_memory(Byte * shared_memory) {
+    this->shared_memory = shared_memory;
+  }
 
   MGARDm_EXEC void
-  Operation5();
+  Operation1() {}
+
+  MGARDm_EXEC void
+  Operation2() {}
+
+  MGARDm_EXEC void
+  Operation3() {}
+
+  MGARDm_EXEC void
+  Operation4() {}
+
+  MGARDm_EXEC void
+  Operation5() {}
+
+  MGARDm_EXEC void
+  Operation6() {}
+
+  MGARDm_EXEC void
+  Operation7() {}
+
+  MGARDm_EXEC void
+  Operation8() {}
+
+  MGARDm_EXEC void
+  Operation9() {}
+
+  MGARDm_EXEC void
+  Operation10() {}
 
   IDX ngridz, ngridy, ngridx;
   IDX nblockz, nblocky, nblockx;
@@ -59,6 +96,28 @@ public:
     this->nblockz = nblockz; this->nblocky = nblocky; this->nblockx = nblockx;
     this->blockz = blockz; this->blocky = blocky; this->blockx = blockx;
     this->threadz = threadz; this->thready = thready; this->threadx = threadx;
+    this->shared_memory = shared_memory;
+  }
+
+  MGARDm_EXEC void
+  Init_config(IDX ngridz, IDX ngridy, IDX ngridx,
+              IDX nblockz, IDX nblocky, IDX nblockx) {
+    this->ngridz = ngridz; this->ngridy = ngridy; this->ngridx = ngridx;
+    this->nblockz = nblockz; this->nblocky = nblocky; this->nblockx = nblockx;
+  }
+
+  MGARDm_EXEC void
+  Init_block_id(IDX blockz, IDX blocky, IDX blockx) {
+    this->blockz = blockz; this->blocky = blocky; this->blockx = blockx;
+  }
+
+  MGARDm_EXEC void
+  Init_thread_id(IDX threadz, IDX thready, IDX threadx) {
+    this->threadz = threadz; this->thready = thready; this->threadx = threadx;
+  }
+
+  MGARDm_EXEC void
+  Init_shared_memory(Byte * shared_memory) {
     this->shared_memory = shared_memory;
   }
 
@@ -143,6 +202,28 @@ public:
   }
 
   MGARDm_EXEC void
+  Init_config(IDX ngridz, IDX ngridy, IDX ngridx,
+              IDX nblockz, IDX nblocky, IDX nblockx) {
+    this->ngridz = ngridz; this->ngridy = ngridy; this->ngridx = ngridx;
+    this->nblockz = nblockz; this->nblocky = nblocky; this->nblockx = nblockx;
+  }
+
+  MGARDm_EXEC void
+  Init_block_id(IDX blockz, IDX blocky, IDX blockx) {
+    this->blockz = blockz; this->blocky = blocky; this->blockx = blockx;
+  }
+
+  MGARDm_EXEC void
+  Init_thread_id(IDX threadz, IDX thready, IDX threadx) {
+    this->threadz = threadz; this->thready = thready; this->threadx = threadx;
+  }
+
+  MGARDm_EXEC void
+  Init_shared_memory(Byte * shared_memory) {
+    this->shared_memory = shared_memory;
+  }
+
+  MGARDm_EXEC void
   Operation1(); //init
 
   MGARDm_EXEC bool
@@ -213,6 +294,28 @@ public:
     this->nblockz = nblockz; this->nblocky = nblocky; this->nblockx = nblockx;
     this->blockz = blockz; this->blocky = blocky; this->blockx = blockx;
     this->threadz = threadz; this->thready = thready; this->threadx = threadx;
+    this->shared_memory = shared_memory;
+  }
+
+  MGARDm_EXEC void
+  Init_config(IDX ngridz, IDX ngridy, IDX ngridx,
+              IDX nblockz, IDX nblocky, IDX nblockx) {
+    this->ngridz = ngridz; this->ngridy = ngridy; this->ngridx = ngridx;
+    this->nblockz = nblockz; this->nblocky = nblocky; this->nblockx = nblockx;
+  }
+
+  MGARDm_EXEC void
+  Init_block_id(IDX blockz, IDX blocky, IDX blockx) {
+    this->blockz = blockz; this->blocky = blocky; this->blockx = blockx;
+  }
+
+  MGARDm_EXEC void
+  Init_thread_id(IDX threadz, IDX thready, IDX threadx) {
+    this->threadz = threadz; this->thready = thready; this->threadx = threadx;
+  }
+
+  MGARDm_EXEC void
+  Init_shared_memory(Byte * shared_memory) {
     this->shared_memory = shared_memory;
   }
 

@@ -8,7 +8,7 @@
 #ifndef MGRAD_CUDA_GRID_PROCESSING_KERNEL_3D
 #define MGRAD_CUDA_GRID_PROCESSING_KERNEL_3D
 
-#include "Common.h"
+#include "../../Common.h"
 
 namespace mgard_cuda {
 

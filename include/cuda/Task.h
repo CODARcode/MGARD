@@ -26,6 +26,17 @@ public:
           shared_memory_size(shared_memory_size),
           queue_idx(queue_idx) {}
 
+    Task(FunctorType functor, 
+         IDX ngridz, IDX ngridy, IDX ngridx,
+         IDX nblockz, IDX nblocky, IDX nblockx,
+         LENGTH shared_memory_size,
+         int queue_idx, std::string functor_name): 
+          functor(functor), 
+          ngridz(ngridz), ngridy(ngridy), ngridx(ngridx),
+          nblockz(nblockz), nblocky(nblocky), nblockx(nblockx),
+          shared_memory_size(shared_memory_size),
+          queue_idx(queue_idx), functor_name(functor_name) {}
+
     // copy contructure does not work in device so return by reference
     MGARDm_EXEC FunctorType& get_functor() {return functor;}
     MGARDm_CONT int get_queue_idx() {return queue_idx;}
@@ -35,7 +46,9 @@ public:
     MGARDm_CONT IDX get_nblockz() {return nblockz;}
     MGARDm_CONT IDX get_nblocky() {return nblocky;}
     MGARDm_CONT IDX get_nblockx() {return nblockx;}
-    MGARDm_CONT LENGTH get_shared_memory_size () {return shared_memory_size; }
+    MGARDm_CONT LENGTH get_shared_memory_size () { return shared_memory_size; }
+    MGARDm_CONT void set_functor_name(std::string functor_name) { this->functor_name = functor_name; }
+    MGARDm_CONT std::string get_functor_name() { return this->functor_name; }
     using Functor = FunctorType;
   private:
     FunctorType functor;
@@ -43,6 +56,7 @@ public:
     IDX nblockz, nblocky, nblockx;
     LENGTH shared_memory_size;
     int queue_idx;
+    std::string functor_name;
 };
 
 
