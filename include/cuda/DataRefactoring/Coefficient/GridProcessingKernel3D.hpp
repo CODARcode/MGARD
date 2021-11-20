@@ -8,14 +8,14 @@
 #ifndef MGRAD_CUDA_GRID_PROCESSING_KERNEL_3D_TEMPLATE
 #define MGRAD_CUDA_GRID_PROCESSING_KERNEL_3D_TEMPLATE
 
-#include "CommonInternal.h"
+#include "../../CommonInternal.h"
 #include "GPKFunctor.h"
 #include "GridProcessingKernel3D.h"
 
-#include "Functor.h"
-#include "AutoTuners/AutoTuner.h"
-#include "Task.h"
-#include "DeviceAdapters/DeviceAdapter.h"
+#include "../../Functor.h"
+#include "../../AutoTuners/AutoTuner.h"
+#include "../../Task.h"
+#include "../../DeviceAdapters/DeviceAdapter.h"
 
 namespace mgard_cuda {
 
@@ -24,21 +24,21 @@ template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class GpkReo3DFunctor: public Functor<DeviceType> {
   public:
   MGARDm_CONT GpkReo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
-                                  SIZE nr_c, SIZE nc_c, SIZE nf_c, 
-                                  SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
-                                  SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
-                                  SubArray<D, T, DeviceType>wf, SubArray<D, T, DeviceType>wc, SubArray<D, T, DeviceType>wr, 
-                                  SubArray<D, T, DeviceType>wcf, SubArray<D, T, DeviceType>wrf, SubArray<D, T, DeviceType>wrc, 
-                                  SubArray<D, T, DeviceType>wrcf):
-                                  nr(nr), nc(nc), nf(nf),
-                                  nr_c(nr_c), nc_c(nc_c), nf_c(nf_c), 
-                                  ratio_r(ratio_r), ratio_c(ratio_c),ratio_f(ratio_f),
-                                  v(v), w(w), 
-                                  wf(wf), wc(wc), wr(wr), 
-                                  wcf(wcf), wrf(wrf), wrc(wrc),
-                                  wrcf(wrcf) {
-                                    Functor<DeviceType>();
-                                  }
+                              SIZE nr_c, SIZE nc_c, SIZE nf_c, 
+                              SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
+                              SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
+                              SubArray<D, T, DeviceType>wf, SubArray<D, T, DeviceType>wc, SubArray<D, T, DeviceType>wr, 
+                              SubArray<D, T, DeviceType>wcf, SubArray<D, T, DeviceType>wrf, SubArray<D, T, DeviceType>wrc, 
+                              SubArray<D, T, DeviceType>wrcf):
+                              nr(nr), nc(nc), nf(nf),
+                              nr_c(nr_c), nc_c(nc_c), nf_c(nf_c), 
+                              ratio_r(ratio_r), ratio_c(ratio_c),ratio_f(ratio_f),
+                              v(v), w(w), 
+                              wf(wf), wc(wc), wr(wr), 
+                              wcf(wcf), wrf(wrf), wrc(wrc),
+                              wrcf(wrcf) {
+                                Functor<DeviceType>();
+                              }
 
   MGARDm_EXEC void
   Operation1() {
@@ -1098,7 +1098,7 @@ public:
       gridy = ceil((float)total_thread_y / tby);
       gridx = ceil((float)total_thread_x / tbx);
       return Task(functor, gridz, gridy, gridx, 
-                        tbz, tby, tbx, sm_size, queue_idx); 
+                  tbz, tby, tbx, sm_size, queue_idx, "GpkReo3D"); 
   }
 
   MGARDm_CONT
@@ -2209,7 +2209,7 @@ public:
       gridy = ceil((float)total_thread_y / tby);
       gridx = ceil((float)total_thread_x / tbx);
       return Task(functor, gridz, gridy, gridx, 
-                        tbz, tby, tbx, sm_size, queue_idx); 
+                        tbz, tby, tbx, sm_size, queue_idx, "GpkRev3D"); 
   }
 
   MGARDm_CONT

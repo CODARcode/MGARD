@@ -8,11 +8,14 @@
 #ifndef MGARD_CUDA_DEVICE_ADAPTER_CUDA_H
 #define MGARD_CUDA_DEVICE_ADAPTER_CUDA_H
 
+#include "../Message.h"
+#include <iostream>
 #include <cub/cub.cuh>
 #include <mma.h>
 #include <cooperative_groups.h>
 using namespace nvcuda;
 namespace cg = cooperative_groups;
+
 
 
 
@@ -41,9 +44,33 @@ static __device__ __inline__ uint32_t __mylaneid(){
 }
  
 
-
-
 namespace mgard_cuda {
+  
+template <typename TaskType>
+inline void ErrorAsyncCheck(cudaError_t code, TaskType &task,
+                      bool abort = true) {
+  if (code != cudaSuccess) {
+    std::cout << 
+              log::log_err << cudaGetErrorString(code) 
+              <<" while executing "<< task.get_functor_name().c_str()
+              <<" with CUDA (Async-check)\n";
+    if (abort) exit(code);
+  }
+}
+
+template <typename TaskType>
+inline void ErrorSyncCheck(cudaError_t code, TaskType &task,
+                      bool abort = true) {
+  if (code != cudaSuccess) {
+    std::cout << log::log_err << cudaGetErrorString(code) 
+              <<" while executing "<< task.get_functor_name().c_str()
+              <<" with CUDA (Sync-check)\n";
+    if (abort) exit(code);
+  }
+}
+
+
+
 
 template<>
 struct SyncBlock<CUDA> {
@@ -90,6 +117,16 @@ MGARDm_KERL void Kernel(Task task) {
   task.get_functor().Operation4();
   SyncBlock<CUDA>::Sync();
   task.get_functor().Operation5();
+  SyncBlock<CUDA>::Sync();
+  task.get_functor().Operation6();
+  SyncBlock<CUDA>::Sync();
+  task.get_functor().Operation7();
+  SyncBlock<CUDA>::Sync();
+  task.get_functor().Operation8();
+  SyncBlock<CUDA>::Sync();
+  task.get_functor().Operation9();
+  SyncBlock<CUDA>::Sync();
+  task.get_functor().Operation10();
 }
 
 template <typename Task>
@@ -1265,9 +1302,10 @@ public:
       cudaLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
                               blockPerGrid, threadsPerBlock, Args, sm_size);
     }
+    ErrorAsyncCheck(cudaGetLastError(), task);
     gpuErrchk(cudaGetLastError());
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      gpuErrchk(cudaDeviceSynchronize());
+      ErrorSyncCheck(cudaDeviceSynchronize(), task);
     }
   }
 };
@@ -1306,10 +1344,10 @@ public:
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, stream, debug);
-    cudaMalloc(&d_temp_storage, temp_storage_bytes);
+    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, stream, debug);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    cudaFree(d_temp_storage);
+    MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
   template <typename T> MGARDm_CONT static
@@ -1320,10 +1358,10 @@ public:
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, absMaxOp, 0, stream, debug);
-    cudaMalloc(&d_temp_storage, temp_storage_bytes);
+    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
     cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, absMaxOp, 0, stream, debug);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    cudaFree(d_temp_storage);
+    MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
   template <typename T> MGARDm_CONT static
@@ -1335,10 +1373,10 @@ public:
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, transformed_input_iter, result.data(), n, stream, debug);
-    cudaMalloc(&d_temp_storage, temp_storage_bytes);
+    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, transformed_input_iter, result.data(), n, stream, debug);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    cudaFree(d_temp_storage);
+    MemoryManager<CUDA>().Free(d_temp_storage);
   }
  
  
@@ -1351,8 +1389,8 @@ public:
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
     MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
-    MemoryManager<CUDA>().Free(d_temp_storage);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
   template <typename T> MGARDm_CONT static
@@ -1364,8 +1402,8 @@ public:
     cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
     MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
     cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
-    MemoryManager<CUDA>().Free(d_temp_storage);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
   template <typename T> MGARDm_CONT static
@@ -1377,10 +1415,10 @@ public:
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data()+1, n);
     MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data()+1, n);
-    MemoryManager<CUDA>().Free(d_temp_storage);
     T zero = 0;
     MemoryManager<CUDA>().Copy1D(result.data(), &zero, 1, queue_idx);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
   template <typename KeyT, typename ValueT> MGARDm_CONT static
@@ -1405,6 +1443,7 @@ public:
     MemoryManager<CUDA>().Copy1D(keys.data(), out_keys.get_dv(), n, queue_idx);
     MemoryManager<CUDA>().Copy1D(values.data(), out_values.get_dv(), n, queue_idx);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
 };

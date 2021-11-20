@@ -8,7 +8,7 @@
 #ifndef MGRAD_CUDA_GRID_PROCESSING_KERNEL_TEMPLATE
 #define MGRAD_CUDA_GRID_PROCESSING_KERNEL_TEMPLATE
 
-#include "CommonInternal.h"
+#include "../../CommonInternal.h"
 #include "GPKFunctor.h"
 #include "GridProcessingKernel.h"
 
@@ -51,13 +51,13 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
   bool in_next = true;
 
   T *sm = SharedMemory<T>();
-  SIZE ldsm1 = F * 2 + 1;
-  SIZE ldsm2 = C * 2 + 1;
+  SIZE ldsm1 = (F/2) * 2 + 1;
+  SIZE ldsm2 = (C/2) * 2 + 1;
 
-  T *v_sm = sm; sm += (F * 2 + 1) * (C * 2 + 1) * (R * 2 + 1);
-  T *ratio_f_sm = sm; sm += F * 2;
-  T *ratio_c_sm = sm; sm += C * 2;
-  T *ratio_r_sm = sm; sm += R * 2;
+  T *v_sm = sm; sm += ((F/2) * 2 + 1) * ((C/2) * 2 + 1) * ((R/2) * 2 + 1);
+  T *ratio_f_sm = sm; sm += (F/2) * 2;
+  T *ratio_c_sm = sm; sm += (C/2) * 2;
+  T *ratio_r_sm = sm; sm += (R/2) * 2;
 
   SIZE * sm_size = (SIZE*)sm;
   SIZE *shape_sm = sm_size; sm_size += D_GLOBAL;
@@ -153,7 +153,7 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
   }
 
   int skip = 0;
-#pragma unroll 1
+  #pragma unroll 1
   for (DIM t = 0; t < D_GLOBAL; t++) {
     for (DIM k = 0; k < unprocessed_n; k++) {
       if (t == unprocessed_dims_sm[k] &&
@@ -198,23 +198,23 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
     c_sm = threadIdx.y;
     f_sm = threadIdx.x;
 
-    r_sm_ex = R * 2;
-    c_sm_ex = C * 2;
-    f_sm_ex = F * 2;
+    r_sm_ex = (R/2) * 2;
+    c_sm_ex = (C/2) * 2;
+    f_sm_ex = (F/2) * 2;
 
     r_gl = r + r_sm;
-    r_gl_ex = r + R * 2;
+    r_gl_ex = r + (R/2) * 2;
     c_gl = c + c_sm;
-    c_gl_ex = c + C * 2;
+    c_gl_ex = c + (C/2) * 2;
     f_gl = f + f_sm;
-    f_gl_ex = f + F * 2;
+    f_gl_ex = f + (F/2) * 2;
 
     //  __syncthreads();
     // if (r_sm == 0 && c_sm == 0 && f_sm == 0) {
     //   //printf("setting zeros\n");
-    //   for (int i = 0; i < R * 2 + 1; i++) {
-    //     for (int j = 0; j < C * 2 + 1; j++) {
-    //       for (int k = 0; k < F * 2 + 1; k++) {
+    //   for (int i = 0; i < (R/2) * 2 + 1; i++) {
+    //     for (int j = 0; j < (C/2) * 2 + 1; j++) {
+    //       for (int k = 0; k < (F/2) * 2 + 1; k++) {
     //         v_sm[get_idx(ldsm1, ldsm2, i, j, k)] = 0.0;
     //       }
     //     }
@@ -247,43 +247,43 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       //           other_offset_v+r_gl, c_gl, f_gl, lddv1, lddv2);
       // }
       if (r_sm == 0) {
-        if (rest_r > R * 2) {
+        if (rest_r > (R/2) * 2) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm, f_sm)] =
               dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl, f_gl)];
         }
       }
       if (c_sm == 0) {
-        if (rest_c > C * 2) {
+        if (rest_c > (C/2) * 2) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm_ex, f_sm)] =
               dv[get_idx(lddv1, lddv2, r_gl, c_gl_ex, f_gl)];
         }
       }
       if (f_sm == 0) {
-        if (rest_f > F * 2) {
+        if (rest_f > (F/2) * 2) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm_ex)] =
               dv[get_idx(lddv1, lddv2, r_gl, c_gl, f_gl_ex)];
         }
       }
       if (c_sm == 0 && f_sm == 0) {
-        if (rest_c > C * 2 && rest_f > F * 2) {
+        if (rest_c > (C/2) * 2 && rest_f > (F/2) * 2) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm_ex, f_sm_ex)] =
               dv[get_idx(lddv1, lddv2, r_gl, c_gl_ex, f_gl_ex)];
         }
       }
       if (r_sm == 0 && f_sm == 0) {
-        if (rest_r > R * 2 && rest_f > F * 2) {
+        if (rest_r > (R/2) * 2 && rest_f > (F/2) * 2) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm, f_sm_ex)] =
               dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl, f_gl_ex)];
         }
       }
       if (r_sm == 0 && c_sm == 0) {
-        if (rest_r > R * 2 && rest_c > C * 2) {
+        if (rest_r > (R/2) * 2 && rest_c > (C/2) * 2) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm_ex, f_sm)] =
               dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl_ex, f_gl)];
         }
       }
       if (r_sm == 0 && c_sm == 0 && f_sm == 0) {
-        if (rest_r > R * 2 && rest_c > C * 2 && rest_f > F * 2) {
+        if (rest_r > (R/2) * 2 && rest_c > (C/2) * 2 && rest_f > (F/2) * 2) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm_ex, f_sm_ex)] =
               dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl_ex, f_gl_ex)];
         }
@@ -308,7 +308,7 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       // load extra surface
 
       if (r_sm == 0) {
-        if (rest_r > R * 2) {
+        if (rest_r > (R/2) * 2) {
           // v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm, f_sm)] =
           //     dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl, f_gl)];
           // printf("load-r[%d %d %d]:%f --> [%d %d %d]\n", r_gl_ex, c_gl, f_gl,
@@ -330,7 +330,7 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
 
       if (c_sm == 0) {
-        if (rest_c > C * 2) {
+        if (rest_c > (C/2) * 2) {
           // v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm_ex, f_sm)] =
           //     dv[get_idx(lddv1, lddv2, r_gl, c_gl_ex, f_gl)];
           // printf("load-c[%d %d %d]:%f --> [%d %d %d]\n", r_gl, c_gl_ex, f_gl,
@@ -343,7 +343,7 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
 
       if (f_sm == 0) {
-        if (rest_f > F * 2) {
+        if (rest_f > (F/2) * 2) {
           // v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm_ex)] =
           //     dv[get_idx(lddv1, lddv2, r_gl, c_gl, f_gl_ex)];
           // printf("load-f[%d %d %d]:%f --> [%d %d %d]\n", r_gl, c_gl, f_gl_ex,
@@ -357,65 +357,65 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
 
       // load extra edges
       if (c_sm == 0 && f_sm == 0) {
-        if (rest_c > C * 2 && rest_f > F * 2) {
+        if (rest_c > (C/2) * 2 && rest_f > (F/2) * 2) {
           // v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm_ex, f_sm_ex)] =
           //     dv[get_idx(lddv1, lddv2, r_gl, c_gl_ex, f_gl_ex)];
           // printf("load-cf[%d %d %d]:%f --> [%d %d %d]\n", r_gl, c_gl_ex,
           // f_gl_ex, dv[get_idx(lddv1, lddv2, r_gl, c_gl_ex, f_gl_ex)], r_sm,
           // c_sm_ex, f_sm_ex);
-        } else if (rest_c <= C * 2 && rest_f <= F * 2 && nc % 2 == 0 &&
+        } else if (rest_c <= (C/2) * 2 && rest_f <= (F/2) * 2 && nc % 2 == 0 &&
                    nf % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm, rest_c_p - 1, rest_f_p - 1)] =
               v_sm[get_idx(ldsm1, ldsm2, r_sm, rest_c - 1, rest_f - 1)];
-        } else if (rest_c > C * 2 && rest_f <= F * 2 && nf % 2 == 0) {
+        } else if (rest_c > (C/2) * 2 && rest_f <= (F/2) * 2 && nf % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm_ex, rest_f_p - 1)] =
               v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm_ex, rest_f - 1)];
-        } else if (rest_c <= C * 2 && rest_f > F * 2 && nc % 2 == 0) {
+        } else if (rest_c <= (C/2) * 2 && rest_f > (F/2) * 2 && nc % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm, rest_c_p - 1, f_sm_ex)] =
               v_sm[get_idx(ldsm1, ldsm2, r_sm, rest_c - 1, f_sm_ex)];
         }
       }
 
       if (r_sm == 0 && f_sm == 0) {
-        if (rest_r > R * 2 && rest_f > F * 2) {
+        if (rest_r > (R/2) * 2 && rest_f > (F/2) * 2) {
           // v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm, f_sm_ex)] =
           //     dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl, f_gl_ex)];
           // printf("load-rf[%d %d %d]:%f --> [%d %d %d]\n", r_gl_ex, c_gl,
           // f_gl_ex, dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl, f_gl_ex)],
           // r_sm_ex, c_sm, f_sm_ex);
-        } else if (rest_r <= R * 2 && rest_f <= F * 2 && nr % 2 == 0 &&
+        } else if (rest_r <= (R/2) * 2 && rest_f <= (F/2) * 2 && nr % 2 == 0 &&
                    nf % 2 == 0) {
           // printf("padding (%d %d %d) <- (%d %d %d)\n", rest_r_p - 1, c_sm,
           // rest_f_p - 1, rest_r - 1, c_sm, rest_f - 1);
           v_sm[get_idx(ldsm1, ldsm2, rest_r_p - 1, c_sm, rest_f_p - 1)] =
               v_sm[get_idx(ldsm1, ldsm2, rest_r - 1, c_sm, rest_f - 1)];
-        } else if (rest_r > R * 2 && rest_f <= F * 2 && nf % 2 == 0) {
+        } else if (rest_r > (R/2) * 2 && rest_f <= (F/2) * 2 && nf % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm, rest_f_p - 1)] =
               v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm, rest_f - 1)];
-        } else if (rest_r <= R * 2 && rest_f > F * 2 && nr % 2 == 0) {
+        } else if (rest_r <= (R/2) * 2 && rest_f > (F/2) * 2 && nr % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, rest_r_p - 1, c_sm, f_sm_ex)] =
               v_sm[get_idx(ldsm1, ldsm2, rest_r - 1, c_sm, f_sm_ex)];
         }
       }
 
       if (r_sm == 0 && c_sm == 0) {
-        if (rest_r > R * 2 && rest_c > C * 2) {
+        if (rest_r > (R/2) * 2 && rest_c > (C/2) * 2) {
           // v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm_ex, f_sm)] =
           //     dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl_ex, f_gl)];
           // printf("load-rc[%d %d %d]:%f --> [%d %d %d]\n", r_gl_ex, c_gl_ex,
           // f_gl, dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl_ex, f_gl)], r_sm_ex,
           // c_sm_ex, f_sm);
-        } else if (rest_r <= R * 2 && rest_c <= C * 2 && nr % 2 == 0 &&
+        } else if (rest_r <= (R/2) * 2 && rest_c <= (C/2) * 2 && nr % 2 == 0 &&
                    nc % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, rest_r_p - 1, rest_c_p - 1, f_sm)] =
               v_sm[get_idx(ldsm1, ldsm2, rest_r - 1, rest_c - 1, f_sm)];
           // printf("padding (%d %d %d) <- (%d %d %d): %f\n", rest_r_p - 1,
           // rest_c_p - 1, f_sm, rest_r - 1, rest_c - 1, f_sm,
           // v_sm[get_idx(ldsm1, ldsm2, rest_r - 1, rest_c - 1, f_sm)]);
-        } else if (rest_r > R * 2 && rest_c <= C * 2 && nc % 2 == 0) {
+        } else if (rest_r > (R/2) * 2 && rest_c <= (C/2) * 2 && nc % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, rest_c_p - 1, f_sm)] =
               v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, rest_c - 1, f_sm)];
-        } else if (rest_r <= R * 2 && rest_c > C * 2 && nr % 2 == 0) {
+        } else if (rest_r <= (R/2) * 2 && rest_c > (C/2) * 2 && nr % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, rest_r_p - 1, c_sm_ex, f_sm)] =
               v_sm[get_idx(ldsm1, ldsm2, rest_r - 1, c_sm_ex, f_sm)];
         }
@@ -423,38 +423,38 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       // load extra vertex
 
       if (r_sm == 0 && c_sm == 0 && f_sm == 0) {
-        if (rest_r > R * 2 && rest_c > C * 2 && rest_f > F * 2) {
+        if (rest_r > (R/2) * 2 && rest_c > (C/2) * 2 && rest_f > (F/2) * 2) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm_ex, f_sm_ex)] =
               dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl_ex, f_gl_ex)];
           // printf("load-rcf[%d %d %d]:%f --> [%d %d %d]\n", r_gl_ex, c_gl_ex,
           // f_gl_ex, dv[get_idx(lddv1, lddv2, r_gl_ex, c_gl_ex, f_gl_ex)],
           // r_sm_ex, c_sm_ex, f_sm_ex);
-        } else if (rest_r <= R * 2 && rest_c <= C * 2 && rest_f <= F * 2 &&
+        } else if (rest_r <= (R/2) * 2 && rest_c <= (C/2) * 2 && rest_f <= (F/2) * 2 &&
                    nr % 2 == 0 && nc % 2 == 0 && nf % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, rest_r_p - 1, rest_c_p - 1,
                        rest_f_p - 1)] =
               v_sm[get_idx(ldsm1, ldsm2, rest_r - 1, rest_c - 1, rest_f - 1)];
-        } else if (rest_r > R * 2 && rest_c > C * 2 && rest_f <= F * 2 &&
+        } else if (rest_r > (R/2) * 2 && rest_c > (C/2) * 2 && rest_f <= (F/2) * 2 &&
                    nf % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm_ex, rest_f_p - 1)] =
               v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, c_sm_ex, rest_f - 1)];
-        } else if (rest_r > R * 2 && rest_c <= C * 2 && rest_f > F * 2 &&
+        } else if (rest_r > (R/2) * 2 && rest_c <= (C/2) * 2 && rest_f > (F/2) * 2 &&
                    nc % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, rest_c_p - 1, f_sm_ex)] =
               v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, rest_c - 1, f_sm_ex)];
-        } else if (rest_r > R * 2 && rest_c <= C * 2 && rest_f <= F * 2 &&
+        } else if (rest_r > (R/2) * 2 && rest_c <= (C/2) * 2 && rest_f <= (F/2) * 2 &&
                    nc % 2 == 0 && nf % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, rest_c_p - 1, rest_f_p - 1)] =
               v_sm[get_idx(ldsm1, ldsm2, r_sm_ex, rest_c - 1, rest_f - 1)];
-        } else if (rest_r <= R * 2 && rest_c > C * 2 && rest_f > F * 2 &&
+        } else if (rest_r <= (R/2) * 2 && rest_c > (C/2) * 2 && rest_f > (F/2) * 2 &&
                    nr % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, rest_r_p - 1, c_sm_ex, f_sm_ex)] =
               v_sm[get_idx(ldsm1, ldsm2, rest_r - 1, c_sm_ex, f_sm_ex)];
-        } else if (rest_r <= R * 2 && rest_c > C * 2 && rest_f <= F * 2 &&
+        } else if (rest_r <= (R/2) * 2 && rest_c > (C/2) * 2 && rest_f <= (F/2) * 2 &&
                    nr % 2 == 0 && nf % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, rest_r_p - 1, c_sm_ex, rest_f_p - 1)] =
               v_sm[get_idx(ldsm1, ldsm2, rest_r - 1, c_sm_ex, rest_f - 1)];
-        } else if (rest_r <= R * 2 && rest_c <= C * 2 && rest_f > F * 2 &&
+        } else if (rest_r <= (R/2) * 2 && rest_c <= (C/2) * 2 && rest_f > (F/2) * 2 &&
                    nr % 2 == 0 && nc % 2 == 0) {
           v_sm[get_idx(ldsm1, ldsm2, rest_r_p - 1, rest_c_p - 1, f_sm_ex)] =
               v_sm[get_idx(ldsm1, ldsm2, rest_r - 1, rest_c - 1, f_sm_ex)];
@@ -470,19 +470,19 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       if (c_sm == 0 && f_sm == 0 && r_sm < rest_r_p - 2) {
         // printf("%d/%d load %f\n", r_sm, rest_r - 2, dratio_r[r + r_sm]);
         ratio_r_sm[r_sm] = dratio_r[r + r_sm];
-        // if (nr % 2 == 0 && R * 2 + 1 >= rest_r_p && r_sm == 0) {
+        // if (nr % 2 == 0 && (R/2) * 2 + 1 >= rest_r_p && r_sm == 0) {
         //   ratio_r_sm[rest_r_p - 3] = 0.5;
         // }
       }
       if (r_sm == 0 && f_sm == 0 && c_sm < rest_c_p - 2) {
         ratio_c_sm[c_sm] = dratio_c[c + c_sm];
-        // if (nc % 2 == 0 && C * 2 + 1 >= rest_c_p && c_sm == 0) {
+        // if (nc % 2 == 0 && (C/2) * 2 + 1 >= rest_c_p && c_sm == 0) {
         //   ratio_c_sm[rest_c_p - 3] = 0.5;
         // }
       }
       if (c_sm == 0 && r_sm == 0 && f_sm < rest_f_p - 2) {
         ratio_f_sm[f_sm] = dratio_f[f + f_sm];
-        // if (nf % 2 == 0 && F * 2 + 1 >= rest_f_p && f_sm == 0) {
+        // if (nf % 2 == 0 && (F/2) * 2 + 1 >= rest_f_p && f_sm == 0) {
         //   ratio_f_sm[rest_f_p - 3] = 0.5;
         // }
       }
@@ -490,7 +490,7 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       // if (r == 0 && c == 0 && f == 0 && r_sm == 0 && c_sm == 0 && f_sm == 0)
       // {
       //   printf("ratio:");
-      //   for (int i = 0; i < R * 2 + 1; i++) {
+      //   for (int i = 0; i < (R/2) * 2 + 1; i++) {
       //     printf("%2.2f ", ratio_r_sm[i]);
       //   }
       //   printf("\n");
@@ -506,12 +506,12 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
     // __syncthreads();
     // // debug print
     // if (debug) {
-    //   printf("in config: %d %d %d (%d %d %d)\n", R, C, F, r,c,f);
+    //   printf("in config: %d %d %d (%d %d %d)\n", (R/2), (C/2), (F/2), r,c,f);
     //   printf("rest_p: %d %d %d\n", rest_r_p, rest_c_p, rest_f_p);
     //   bool print = false;
-    //   for (int i = 0; i < R * 2 + 1; i++) {
-    //     for (int j = 0; j < C * 2 + 1; j++) {
-    //       for (int k = 0; k < F * 2 + 1; k++) {
+    //   for (int i = 0; i < (R/2) * 2 + 1; i++) {
+    //     for (int j = 0; j < (C/2) * 2 + 1; j++) {
+    //       for (int k = 0; k < (F/2) * 2 + 1; k++) {
     //         // if (abs(v_sm[get_idx(ldsm1, ldsm2, i, j, k)]) > 10000) {
     //           // print = true;
     //           // printf("(block %d %d %d) %2.2f \n", r,c,f,
@@ -527,13 +527,13 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
     // }
     __syncthreads();
 
-    if (dw && threadId < R * C * F) {
-      r_sm = (threadId / (C * F)) * 2;
-      c_sm = ((threadId % (C * F)) / F) * 2;
-      f_sm = ((threadId % (C * F)) % F) * 2;
-      r_gl = r / 2 + threadId / (C * F);
-      c_gl = c / 2 + threadId % (C * F) / F;
-      f_gl = f / 2 + threadId % (C * F) % F;
+    if (dw && threadId < (R/2) * (C/2) * (F/2)) {
+      r_sm = (threadId / ((C/2) * (F/2))) * 2;
+      c_sm = ((threadId % ((C/2) * (F/2))) / (F/2)) * 2;
+      f_sm = ((threadId % ((C/2) * (F/2))) % (F/2)) * 2;
+      r_gl = r / 2 + threadId / ((C/2) * (F/2));
+      c_gl = c / 2 + threadId % ((C/2) * (F/2)) / (F/2);
+      f_gl = f / 2 + threadId % ((C/2) * (F/2)) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -573,17 +573,17 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
     // blockIdx.y, blockIdx.x, start); start = clock64();
     int base = 0;
     // printf("TYPE =%d \n", TYPE);
-    // printf("%d == %d && %llu >= %d && %llu < %d\n", r + R * 2, nr_p - 1,
-    // threadId, base, threadId, base + C * F);
+    // printf("%d == %d && %llu >= %d && %llu < %d\n", r + (R/2) * 2, nr_p - 1,
+    // threadId, base, threadId, base + (C/2) * (F/2));
 
-    if (dw && r + R * 2 == nr_p - 1 && threadId >= base &&
-        threadId < base + C * F) {
-      r_sm = R * 2;
-      c_sm = ((threadId - base) / F) * 2;
-      f_sm = ((threadId - base) % F) * 2;
-      r_gl = r / 2 + R;
-      c_gl = c / 2 + (threadId - base) / F;
-      f_gl = f / 2 + (threadId - base) % F;
+    if (dw && r + (R/2) * 2 == nr_p - 1 && threadId >= base &&
+        threadId < base + (C/2) * (F/2)) {
+      r_sm = (R/2) * 2;
+      c_sm = ((threadId - base) / (F/2)) * 2;
+      f_sm = ((threadId - base) % (F/2)) * 2;
+      r_gl = r / 2 + (R/2);
+      c_gl = c / 2 + (threadId - base) / (F/2);
+      f_gl = f / 2 + (threadId - base) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -617,15 +617,15 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
     }
 
-    base += C * F; // ROUND_UP_WARP(C * F) * WARP_SIZE;
-    if (dw && c + C * 2 == nc_p - 1 && threadId >= base &&
-        threadId < base + R * F) {
-      r_sm = ((threadId - base) / F) * 2;
-      c_sm = C * 2;
-      f_sm = ((threadId - base) % F) * 2;
-      r_gl = r / 2 + (threadId - base) / F;
-      c_gl = c / 2 + C;
-      f_gl = f / 2 + (threadId - base) % F;
+    base += (C/2) * (F/2); // ROUND_UP_WARP((C/2) * (F/2)) * WARP_SIZE;
+    if (dw && c + (C/2) * 2 == nc_p - 1 && threadId >= base &&
+        threadId < base + (R/2) * (F/2)) {
+      r_sm = ((threadId - base) / (F/2)) * 2;
+      c_sm = (C/2) * 2;
+      f_sm = ((threadId - base) % (F/2)) * 2;
+      r_gl = r / 2 + (threadId - base) / (F/2);
+      c_gl = c / 2 + (C/2);
+      f_gl = f / 2 + (threadId - base) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -662,16 +662,16 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       //         r_gl, c_gl, f_gl)]);
     }
 
-    base += R * F; // ROUND_UP_WARP(R * F) * WARP_SIZE;
+    base += (R/2) * (F/2); // ROUND_UP_WARP((R/2) * (F/2)) * WARP_SIZE;
     // printf("%d %d\n", base,  threadId);
-    if (dw && f + F * 2 == nf_p - 1 && threadId >= base &&
-        threadId < base + R * C) {
-      r_sm = ((threadId - base) / C) * 2;
-      c_sm = ((threadId - base) % C) * 2;
-      f_sm = F * 2;
-      r_gl = r / 2 + (threadId - base) / C;
-      c_gl = c / 2 + (threadId - base) % C;
-      f_gl = f / 2 + F;
+    if (dw && f + (F/2) * 2 == nf_p - 1 && threadId >= base &&
+        threadId < base + (R/2) * (C/2)) {
+      r_sm = ((threadId - base) / (C/2)) * 2;
+      c_sm = ((threadId - base) % (C/2)) * 2;
+      f_sm = (F/2) * 2;
+      r_gl = r / 2 + (threadId - base) / (C/2);
+      c_gl = c / 2 + (threadId - base) % (C/2);
+      f_gl = f / 2 + (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -705,16 +705,16 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
     }
 
-    base += R * C; // ROUND_UP_WARP(R * C) * WARP_SIZE;
+    base += (R/2) * (C/2); // ROUND_UP_WARP((R/2) * (C/2)) * WARP_SIZE;
     // load extra edges
-    if (dw && c + C * 2 == nc_p - 1 && f + F * 2 == nf_p - 1 &&
-        threadId >= base && threadId < base + R) {
+    if (dw && c + (C/2) * 2 == nc_p - 1 && f + (F/2) * 2 == nf_p - 1 &&
+        threadId >= base && threadId < base + (R/2)) {
       r_sm = (threadId - base) * 2;
-      c_sm = C * 2;
-      f_sm = F * 2;
+      c_sm = (C/2) * 2;
+      f_sm = (F/2) * 2;
       r_gl = r / 2 + threadId - base;
-      c_gl = c / 2 + C;
-      f_gl = f / 2 + F;
+      c_gl = c / 2 + (C/2);
+      f_gl = f / 2 + (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -748,17 +748,17 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
     }
 
-    base += R; // ROUND_UP_WARP(R) * WARP_SIZE;
-    // if (TYPE == 2) printf("%d %d, %d, %llu, %d\n",dw == NULL, f + F * 2, nf_p
-    // - 1, threadId, C);
-    if (dw && r + R * 2 == nr_p - 1 && f + F * 2 == nf_p - 1 &&
-        threadId >= base && threadId < base + C) {
-      r_sm = R * 2;
+    base += (R/2); // ROUND_UP_WARP((R/2)) * WARP_SIZE;
+    // if (TYPE == 2) printf("%d %d, %d, %llu, %d\n",dw == NULL, f + (F/2) * 2, nf_p
+    // - 1, threadId, (C/2));
+    if (dw && r + (R/2) * 2 == nr_p - 1 && f + (F/2) * 2 == nf_p - 1 &&
+        threadId >= base && threadId < base + (C/2)) {
+      r_sm = (R/2) * 2;
       c_sm = (threadId - base) * 2;
-      f_sm = F * 2;
-      r_gl = r / 2 + R;
+      f_sm = (F/2) * 2;
+      r_gl = r / 2 + (R/2);
       c_gl = c / 2 + threadId - base;
-      f_gl = f / 2 + F;
+      f_gl = f / 2 + (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -794,14 +794,14 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       // ldsm2, r_sm, c_sm, f_sm)]);
     }
 
-    base += C; // ROUND_UP_WARP(C) * WARP_SIZE;
-    if (dw && r + R * 2 == nr_p - 1 && c + C * 2 == nc_p - 1 &&
-        threadId >= base && threadId < base + F) {
-      r_sm = R * 2;
-      c_sm = C * 2;
+    base += (C/2); // ROUND_UP_WARP((C/2)) * WARP_SIZE;
+    if (dw && r + (R/2) * 2 == nr_p - 1 && c + (C/2) * 2 == nc_p - 1 &&
+        threadId >= base && threadId < base + (F/2)) {
+      r_sm = (R/2) * 2;
+      c_sm = (C/2) * 2;
       f_sm = (threadId - base) * 2;
-      r_gl = r / 2 + R;
-      c_gl = c / 2 + C;
+      r_gl = r / 2 + (R/2);
+      c_gl = c / 2 + (C/2);
       f_gl = f / 2 + threadId - base;
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
@@ -835,16 +835,16 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
         }
       }
     }
-    base += F; // ROUND_UP_WARP(F) * WARP_SIZE;
+    base += (F/2); // ROUND_UP_WARP((F/2)) * WARP_SIZE;
     // // load extra vertex
-    if (dw && r + R * 2 == nr_p - 1 && c + C * 2 == nc_p - 1 &&
-        f + F * 2 == nf_p - 1 && threadId >= base && threadId < base + 1) {
-      r_sm = R * 2;
-      c_sm = C * 2;
-      f_sm = F * 2;
-      r_gl = r / 2 + R;
-      c_gl = c / 2 + C;
-      f_gl = f / 2 + F;
+    if (dw && r + (R/2) * 2 == nr_p - 1 && c + (C/2) * 2 == nc_p - 1 &&
+        f + (F/2) * 2 == nf_p - 1 && threadId >= base && threadId < base + 1) {
+      r_sm = (R/2) * 2;
+      c_sm = (C/2) * 2;
+      f_sm = (F/2) * 2;
+      r_gl = r / 2 + (R/2);
+      c_gl = c / 2 + (C/2);
+      f_gl = f / 2 + (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -885,13 +885,13 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
 
     // start = clock64();
 
-    if (dwf && threadId >= R * C * F && threadId < R * C * F * 2) {
-      r_sm = ((threadId - R * C * F) / (C * F)) * 2;
-      c_sm = (((threadId - R * C * F) % (C * F)) / F) * 2;
-      f_sm = (((threadId - R * C * F) % (C * F)) % F) * 2 + 1;
-      r_gl = r / 2 + (threadId - R * C * F) / (C * F);
-      c_gl = c / 2 + ((threadId - R * C * F) % (C * F)) / F;
-      f_gl = f / 2 + ((threadId - R * C * F) % (C * F)) % F;
+    if (dwf && threadId >= (R/2) * (C/2) * (F/2) && threadId < (R/2) * (C/2) * (F/2) * 2) {
+      r_sm = ((threadId - (R/2) * (C/2) * (F/2)) / ((C/2) * (F/2))) * 2;
+      c_sm = (((threadId - (R/2) * (C/2) * (F/2)) % ((C/2) * (F/2))) / (F/2)) * 2;
+      f_sm = (((threadId - (R/2) * (C/2) * (F/2)) % ((C/2) * (F/2))) % (F/2)) * 2 + 1;
+      r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2)) / ((C/2) * (F/2));
+      c_gl = c / 2 + ((threadId - (R/2) * (C/2) * (F/2)) % ((C/2) * (F/2))) / (F/2);
+      f_gl = f / 2 + ((threadId - (R/2) * (C/2) * (F/2)) % ((C/2) * (F/2))) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -936,23 +936,23 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       // f_sm);
       // asm volatile("membar.cta;");
       // start = clock64() - start;
-      // printf("[F-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
+      // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
       // blockIdx.y, blockIdx.x, start); start = clock64();
     }
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[F-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
+    // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
     // blockIdx.y, blockIdx.x, start); start = clock64();
 
     // if (r_sm % 2 == 0 && c_sm % 2 != 0 && f_sm % 2 == 0) {
 
-    if (dwc && threadId >= R * C * F * 2 && threadId < R * C * F * 3) {
-      r_sm = ((threadId - R * C * F * 2) / (C * F)) * 2;
-      c_sm = (((threadId - R * C * F * 2) % (C * F)) / F) * 2 + 1;
-      f_sm = (((threadId - R * C * F * 2) % (C * F)) % F) * 2;
-      r_gl = r / 2 + (threadId - R * C * F * 2) / (C * F);
-      c_gl = c / 2 + ((threadId - R * C * F * 2) % (C * F)) / F;
-      f_gl = f / 2 + ((threadId - R * C * F * 2) % (C * F)) % F;
+    if (dwc && threadId >= (R/2) * (C/2) * (F/2) * 2 && threadId < (R/2) * (C/2) * (F/2) * 3) {
+      r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 2) / ((C/2) * (F/2))) * 2;
+      c_sm = (((threadId - (R/2) * (C/2) * (F/2) * 2) % ((C/2) * (F/2))) / (F/2)) * 2 + 1;
+      f_sm = (((threadId - (R/2) * (C/2) * (F/2) * 2) % ((C/2) * (F/2))) % (F/2)) * 2;
+      r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2) * 2) / ((C/2) * (F/2));
+      c_gl = c / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 2) % ((C/2) * (F/2))) / (F/2);
+      f_gl = f / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 2) % ((C/2) * (F/2))) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -996,17 +996,17 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
 
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[C-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
+    // printf("[(C/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
     // blockIdx.y, blockIdx.x, start); start = clock64();
 
     // if (r_sm % 2 != 0 && c_sm % 2 == 0 && f_sm % 2 == 0) {
-    if (dwr && threadId >= R * C * F * 3 && threadId < R * C * F * 4) {
-      r_sm = ((threadId - R * C * F * 3) / (C * F)) * 2 + 1;
-      c_sm = (((threadId - R * C * F * 3) % (C * F)) / F) * 2;
-      f_sm = (((threadId - R * C * F * 3) % (C * F)) % F) * 2;
-      r_gl = r / 2 + (threadId - R * C * F * 3) / (C * F);
-      c_gl = c / 2 + ((threadId - R * C * F * 3) % (C * F)) / F;
-      f_gl = f / 2 + ((threadId - R * C * F * 3) % (C * F)) % F;
+    if (dwr && threadId >= (R/2) * (C/2) * (F/2) * 3 && threadId < (R/2) * (C/2) * (F/2) * 4) {
+      r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 3) / ((C/2) * (F/2))) * 2 + 1;
+      c_sm = (((threadId - (R/2) * (C/2) * (F/2) * 3) % ((C/2) * (F/2))) / (F/2)) * 2;
+      f_sm = (((threadId - (R/2) * (C/2) * (F/2) * 3) % ((C/2) * (F/2))) % (F/2)) * 2;
+      r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2) * 3) / ((C/2) * (F/2));
+      c_gl = c / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 3) % ((C/2) * (F/2))) / (F/2);
+      f_gl = f / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 3) % ((C/2) * (F/2))) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1047,16 +1047,16 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
 
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[R-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
+    // printf("[(R/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
     // blockIdx.y, blockIdx.x, start); start = clock64();
     __syncthreads();
-    if (dwcf && threadId >= R * C * F * 4 && threadId < R * C * F * 5) {
-      r_sm = ((threadId - R * C * F * 4) / (C * F)) * 2;
-      c_sm = (((threadId - R * C * F * 4) % (C * F)) / F) * 2 + 1;
-      f_sm = (((threadId - R * C * F * 4) % (C * F)) % F) * 2 + 1;
-      r_gl = r / 2 + (threadId - R * C * F * 4) / (C * F);
-      c_gl = c / 2 + ((threadId - R * C * F * 4) % (C * F)) / F;
-      f_gl = f / 2 + ((threadId - R * C * F * 4) % (C * F)) % F;
+    if (dwcf && threadId >= (R/2) * (C/2) * (F/2) * 4 && threadId < (R/2) * (C/2) * (F/2) * 5) {
+      r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 4) / ((C/2) * (F/2))) * 2;
+      c_sm = (((threadId - (R/2) * (C/2) * (F/2) * 4) % ((C/2) * (F/2))) / (F/2)) * 2 + 1;
+      f_sm = (((threadId - (R/2) * (C/2) * (F/2) * 4) % ((C/2) * (F/2))) % (F/2)) * 2 + 1;
+      r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2) * 4) / ((C/2) * (F/2));
+      c_gl = c / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 4) % ((C/2) * (F/2))) / (F/2);
+      f_gl = f / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 4) % ((C/2) * (F/2))) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1105,13 +1105,13 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
     // printf("[CF-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
     // blockIdx.y, blockIdx.x, start); start = clock64();
 
-    if (dwrf && threadId >= R * C * F * 5 && threadId < R * C * F * 6) {
-      r_sm = ((threadId - R * C * F * 5) / (C * F)) * 2 + 1;
-      c_sm = (((threadId - R * C * F * 5) % (C * F)) / F) * 2;
-      f_sm = (((threadId - R * C * F * 5) % (C * F)) % F) * 2 + 1;
-      r_gl = r / 2 + (threadId - R * C * F * 5) / (C * F);
-      c_gl = c / 2 + ((threadId - R * C * F * 5) % (C * F)) / F;
-      f_gl = f / 2 + ((threadId - R * C * F * 5) % (C * F)) % F;
+    if (dwrf && threadId >= (R/2) * (C/2) * (F/2) * 5 && threadId < (R/2) * (C/2) * (F/2) * 6) {
+      r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 5) / ((C/2) * (F/2))) * 2 + 1;
+      c_sm = (((threadId - (R/2) * (C/2) * (F/2) * 5) % ((C/2) * (F/2))) / (F/2)) * 2;
+      f_sm = (((threadId - (R/2) * (C/2) * (F/2) * 5) % ((C/2) * (F/2))) % (F/2)) * 2 + 1;
+      r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2) * 5) / ((C/2) * (F/2));
+      c_gl = c / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 5) % ((C/2) * (F/2))) / (F/2);
+      f_gl = f / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 5) % ((C/2) * (F/2))) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1154,13 +1154,13 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
     }
 
-    if (dwrc && threadId >= R * C * F * 6 && threadId < R * C * F * 7) {
-      r_sm = ((threadId - R * C * F * 6) / (C * F)) * 2 + 1;
-      c_sm = (((threadId - R * C * F * 6) % (C * F)) / F) * 2 + 1;
-      f_sm = (((threadId - R * C * F * 6) % (C * F)) % F) * 2;
-      r_gl = r / 2 + (threadId - R * C * F * 6) / (C * F);
-      c_gl = c / 2 + ((threadId - R * C * F * 6) % (C * F)) / F;
-      f_gl = f / 2 + ((threadId - R * C * F * 6) % (C * F)) % F;
+    if (dwrc && threadId >= (R/2) * (C/2) * (F/2) * 6 && threadId < (R/2) * (C/2) * (F/2) * 7) {
+      r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 6) / ((C/2) * (F/2))) * 2 + 1;
+      c_sm = (((threadId - (R/2) * (C/2) * (F/2) * 6) % ((C/2) * (F/2))) / (F/2)) * 2 + 1;
+      f_sm = (((threadId - (R/2) * (C/2) * (F/2) * 6) % ((C/2) * (F/2))) % (F/2)) * 2;
+      r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2) * 6) / ((C/2) * (F/2));
+      c_gl = c / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 6) % ((C/2) * (F/2))) / (F/2);
+      f_gl = f / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 6) % ((C/2) * (F/2))) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1207,13 +1207,13 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
     }
 
-    if (dwrcf && threadId >= R * C * F * 7 && threadId < R * C * F * 8) {
-      r_sm = ((threadId - R * C * F * 7) / (C * F)) * 2 + 1;
-      c_sm = (((threadId - R * C * F * 7) % (C * F)) / F) * 2 + 1;
-      f_sm = (((threadId - R * C * F * 7) % (C * F)) % F) * 2 + 1;
-      r_gl = r / 2 + (threadId - R * C * F * 7) / (C * F);
-      c_gl = c / 2 + ((threadId - R * C * F * 7) % (C * F)) / F;
-      f_gl = f / 2 + ((threadId - R * C * F * 7) % (C * F)) % F;
+    if (dwrcf && threadId >= (R/2) * (C/2) * (F/2) * 7 && threadId < (R/2) * (C/2) * (F/2) * 8) {
+      r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 7) / ((C/2) * (F/2))) * 2 + 1;
+      c_sm = (((threadId - (R/2) * (C/2) * (F/2) * 7) % ((C/2) * (F/2))) / (F/2)) * 2 + 1;
+      f_sm = (((threadId - (R/2) * (C/2) * (F/2) * 7) % ((C/2) * (F/2))) % (F/2)) * 2 + 1;
+      r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2) * 7) / ((C/2) * (F/2));
+      c_gl = c / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 7) % ((C/2) * (F/2))) / (F/2);
+      f_gl = f / 2 + ((threadId - (R/2) * (C/2) * (F/2) * 7) % ((C/2) * (F/2))) % (F/2);
       res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
       if (TYPE == 1) {
         if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1278,18 +1278,18 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
     // asm volatile("membar.cta;");
     // if (threadId < 256 && blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x ==
     // 0) printf("threadId %d elapsed %lu\n", threadId, end-start);
-    if (r + R * 2 == nr_p - 1) {
+    if (r + (R/2) * 2 == nr_p - 1) {
       // printf("test\n");
-      if (threadId < C * F) {
+      if (threadId < (C/2) * (F/2)) {
         // printf("test1\n");
         if (dwf) {
           // printf("test2\n");
-          r_sm = R * 2;
-          c_sm = (threadId / F) * 2;
-          f_sm = (threadId % F) * 2 + 1;
-          r_gl = r / 2 + R;
-          c_gl = c / 2 + threadId / F;
-          f_gl = f / 2 + threadId % F;
+          r_sm = (R/2) * 2;
+          c_sm = (threadId / (F/2)) * 2;
+          f_sm = (threadId % (F/2)) * 2 + 1;
+          r_gl = r / 2 + (R/2);
+          c_gl = c / 2 + threadId / (F/2);
+          f_gl = f / 2 + threadId % (F/2);
           res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
           if (TYPE == 1) {
             if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1334,12 +1334,12 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
         }
 
         if (dwc) {
-          r_sm = R * 2;
-          c_sm = (threadId / F) * 2 + 1;
-          f_sm = (threadId % F) * 2;
-          r_gl = r / 2 + R;
-          c_gl = c / 2 + threadId / F;
-          f_gl = f / 2 + threadId % F;
+          r_sm = (R/2) * 2;
+          c_sm = (threadId / (F/2)) * 2 + 1;
+          f_sm = (threadId % (F/2)) * 2;
+          r_gl = r / 2 + (R/2);
+          c_gl = c / 2 + threadId / (F/2);
+          f_gl = f / 2 + threadId % (F/2);
           res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
           if (TYPE == 1) {
             if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1382,12 +1382,12 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
         //         r_sm, c_sm, f_sm, r_gl, c_gl, f_gl, v_sm[get_idx(ldsm1,
         //         ldsm2, r_sm, c_sm, f_sm)]);
         if (dwcf) {
-          r_sm = R * 2;
-          c_sm = (threadId / F) * 2 + 1;
-          f_sm = (threadId % F) * 2 + 1;
-          r_gl = r / 2 + R;
-          c_gl = c / 2 + threadId / F;
-          f_gl = f / 2 + threadId % F;
+          r_sm = (R/2) * 2;
+          c_sm = (threadId / (F/2)) * 2 + 1;
+          f_sm = (threadId % (F/2)) * 2 + 1;
+          r_gl = r / 2 + (R/2);
+          c_gl = c / 2 + threadId / (F/2);
+          f_gl = f / 2 + threadId % (F/2);
           res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
           if (TYPE == 1) {
             if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1434,15 +1434,15 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
     }
 
-    if (c + C * 2 == nc_p - 1) {
-      if (threadId >= R * C * F && threadId < R * C * F + R * F) {
+    if (c + (C/2) * 2 == nc_p - 1) {
+      if (threadId >= (R/2) * (C/2) * (F/2) && threadId < (R/2) * (C/2) * (F/2) + (R/2) * (F/2)) {
         if (dwf) {
-          r_sm = ((threadId - R * C * F) / F) * 2;
-          c_sm = C * 2;
-          f_sm = ((threadId - R * C * F) % F) * 2 + 1;
-          r_gl = r / 2 + (threadId - R * C * F) / F;
-          c_gl = c / 2 + C;
-          f_gl = f / 2 + (threadId - R * C * F) % F;
+          r_sm = ((threadId - (R/2) * (C/2) * (F/2)) / (F/2)) * 2;
+          c_sm = (C/2) * 2;
+          f_sm = ((threadId - (R/2) * (C/2) * (F/2)) % (F/2)) * 2 + 1;
+          r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2)) / (F/2);
+          c_gl = c / 2 + (C/2);
+          f_gl = f / 2 + (threadId - (R/2) * (C/2) * (F/2)) % (F/2);
           res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
           if (TYPE == 1) {
             if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1485,12 +1485,12 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
         }
 
         if (dwr) {
-          r_sm = ((threadId - R * C * F) / F) * 2 + 1;
-          c_sm = C * 2;
-          f_sm = ((threadId - R * C * F) % F) * 2;
-          r_gl = r / 2 + (threadId - R * C * F) / F;
-          c_gl = c / 2 + C;
-          f_gl = f / 2 + (threadId - R * C * F) % F;
+          r_sm = ((threadId - (R/2) * (C/2) * (F/2)) / (F/2)) * 2 + 1;
+          c_sm = (C/2) * 2;
+          f_sm = ((threadId - (R/2) * (C/2) * (F/2)) % (F/2)) * 2;
+          r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2)) / (F/2);
+          c_gl = c / 2 + (C/2);
+          f_gl = f / 2 + (threadId - (R/2) * (C/2) * (F/2)) % (F/2);
           res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
           if (TYPE == 1) {
             if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1530,12 +1530,12 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
         }
 
         if (dwrf) {
-          r_sm = ((threadId - R * C * F) / F) * 2 + 1;
-          c_sm = C * 2;
-          f_sm = ((threadId - R * C * F) % F) * 2 + 1;
-          r_gl = r / 2 + (threadId - R * C * F) / F;
-          c_gl = c / 2 + C;
-          f_gl = f / 2 + (threadId - R * C * F) % F;
+          r_sm = ((threadId - (R/2) * (C/2) * (F/2)) / (F/2)) * 2 + 1;
+          c_sm = (C/2) * 2;
+          f_sm = ((threadId - (R/2) * (C/2) * (F/2)) % (F/2)) * 2 + 1;
+          r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2)) / (F/2);
+          c_gl = c / 2 + (C/2);
+          f_gl = f / 2 + (threadId - (R/2) * (C/2) * (F/2)) % (F/2);
           res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
           if (TYPE == 1) {
             if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1582,15 +1582,15 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
     }
 
-    if (f + F * 2 == nf_p - 1) {
-      if (threadId >= R * C * F * 2 && threadId < R * C * F * 2 + R * C) {
+    if (f + (F/2) * 2 == nf_p - 1) {
+      if (threadId >= (R/2) * (C/2) * (F/2) * 2 && threadId < (R/2) * (C/2) * (F/2) * 2 + (R/2) * (C/2)) {
         if (dwc) {
-          r_sm = ((threadId - R * C * F * 2) / C) * 2;
-          c_sm = ((threadId - R * C * F * 2) % C) * 2 + 1;
-          f_sm = F * 2;
-          r_gl = r / 2 + (threadId - R * C * F * 2) / C;
-          c_gl = c / 2 + (threadId - R * C * F * 2) % C;
-          f_gl = f / 2 + F;
+          r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 2) / (C/2)) * 2;
+          c_sm = ((threadId - (R/2) * (C/2) * (F/2) * 2) % (C/2)) * 2 + 1;
+          f_sm = (F/2) * 2;
+          r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2) * 2) / (C/2);
+          c_gl = c / 2 + (threadId - (R/2) * (C/2) * (F/2) * 2) % (C/2);
+          f_gl = f / 2 + (F/2);
           res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
           if (TYPE == 1) {
             if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1630,12 +1630,12 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
         }
 
         if (dwr) {
-          r_sm = ((threadId - R * C * F * 2) / C) * 2 + 1;
-          c_sm = ((threadId - R * C * F * 2) % C) * 2;
-          f_sm = F * 2;
-          r_gl = r / 2 + (threadId - R * C * F * 2) / C;
-          c_gl = c / 2 + (threadId - R * C * F * 2) % C;
-          f_gl = f / 2 + F;
+          r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 2) / (C/2)) * 2 + 1;
+          c_sm = ((threadId - (R/2) * (C/2) * (F/2) * 2) % (C/2)) * 2;
+          f_sm = (F/2) * 2;
+          r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2) * 2) / (C/2);
+          c_gl = c / 2 + (threadId - (R/2) * (C/2) * (F/2) * 2) % (C/2);
+          f_gl = f / 2 + (F/2);
           res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
           if (TYPE == 1) {
             if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1675,12 +1675,12 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
         }
 
         if (dwrc) {
-          r_sm = ((threadId - R * C * F * 2) / C) * 2 + 1;
-          c_sm = ((threadId - R * C * F * 2) % C) * 2 + 1;
-          f_sm = F * 2;
-          r_gl = r / 2 + (threadId - R * C * F * 2) / C;
-          c_gl = c / 2 + (threadId - R * C * F * 2) % C;
-          f_gl = f / 2 + F;
+          r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 2) / (C/2)) * 2 + 1;
+          c_sm = ((threadId - (R/2) * (C/2) * (F/2) * 2) % (C/2)) * 2 + 1;
+          f_sm = (F/2) * 2;
+          r_gl = r / 2 + (threadId - (R/2) * (C/2) * (F/2) * 2) / (C/2);
+          c_gl = c / 2 + (threadId - (R/2) * (C/2) * (F/2) * 2) % (C/2);
+          f_gl = f / 2 + (F/2);
           res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
           if (TYPE == 1) {
             if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1733,14 +1733,14 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
     }
 
-    if (dwr && c + C * 2 == nc_p - 1 && f + F * 2 == nf_p - 1) {
-      if (threadId >= R * C * F * 3 && threadId < R * C * F * 3 + R) {
-        r_sm = (threadId - R * C * F * 3) * 2 + 1;
-        c_sm = C * 2;
-        f_sm = F * 2;
-        r_gl = r / 2 + threadId - R * C * F * 3;
-        c_gl = c / 2 + C;
-        f_gl = f / 2 + F;
+    if (dwr && c + (C/2) * 2 == nc_p - 1 && f + (F/2) * 2 == nf_p - 1) {
+      if (threadId >= (R/2) * (C/2) * (F/2) * 3 && threadId < (R/2) * (C/2) * (F/2) * 3 + (R/2)) {
+        r_sm = (threadId - (R/2) * (C/2) * (F/2) * 3) * 2 + 1;
+        c_sm = (C/2) * 2;
+        f_sm = (F/2) * 2;
+        r_gl = r / 2 + threadId - (R/2) * (C/2) * (F/2) * 3;
+        c_gl = c / 2 + (C/2);
+        f_gl = f / 2 + (F/2);
         res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
         if (TYPE == 1) {
           if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1780,14 +1780,14 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
       }
     }
 
-    if (dwc && r + R * 2 == nr_p - 1 && f + F * 2 == nf_p - 1) {
-      if (threadId >= R * C * F * 4 && threadId < R * C * F * 4 + C) {
-        r_sm = R * 2;
-        c_sm = (threadId - R * C * F * 4) * 2 + 1;
-        f_sm = F * 2;
-        r_gl = r / 2 + R;
-        c_gl = c / 2 + threadId - R * C * F * 4;
-        f_gl = f / 2 + F;
+    if (dwc && r + (R/2) * 2 == nr_p - 1 && f + (F/2) * 2 == nf_p - 1) {
+      if (threadId >= (R/2) * (C/2) * (F/2) * 4 && threadId < (R/2) * (C/2) * (F/2) * 4 + (C/2)) {
+        r_sm = (R/2) * 2;
+        c_sm = (threadId - (R/2) * (C/2) * (F/2) * 4) * 2 + 1;
+        f_sm = (F/2) * 2;
+        r_gl = r / 2 + (R/2);
+        c_gl = c / 2 + threadId - (R/2) * (C/2) * (F/2) * 4;
+        f_gl = f / 2 + (F/2);
         res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
         if (TYPE == 1) {
           if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1828,16 +1828,16 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
     }
 
     // printf("test1\n");
-    if (dwf && r + R * 2 == nr_p - 1 && c + C * 2 == nc_p - 1) {
+    if (dwf && r + (R/2) * 2 == nr_p - 1 && c + (C/2) * 2 == nc_p - 1) {
       // printf("test2\n");
-      if (threadId >= R * C * F * 5 && threadId < R * C * F * 5 + F) {
+      if (threadId >= (R/2) * (C/2) * (F/2) * 5 && threadId < (R/2) * (C/2) * (F/2) * 5 + (F/2)) {
         // printf("test3\n");
-        r_sm = R * 2;
-        c_sm = C * 2;
-        f_sm = (threadId - R * C * F * 5) * 2 + 1;
-        r_gl = r / 2 + R;
-        c_gl = c / 2 + C;
-        f_gl = f / 2 + threadId - R * C * F * 5;
+        r_sm = (R/2) * 2;
+        c_sm = (C/2) * 2;
+        f_sm = (threadId - (R/2) * (C/2) * (F/2) * 5) * 2 + 1;
+        r_gl = r / 2 + (R/2);
+        c_gl = c / 2 + (C/2);
+        f_gl = f / 2 + threadId - (R/2) * (C/2) * (F/2) * 5;
         res = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)];
         if (TYPE == 1) {
           if (r_sm < rest_r_p && c_sm < rest_c_p && f_sm < rest_f_p &&
@@ -1886,10 +1886,10 @@ _gpk_reo(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws, DIM unprocessed_n,
   } // skip
 
   // if (r == 0 && c == 0 && f == 0 && threadId == 0) {
-  //   printf("out config: %d %d %d (%d %d %d)\n", R, C, F, r,c,f);
-  //   for (int i = 0; i < R * 2 + 1; i++) {
-  //     for (int j = 0; j < C * 2 + 1; j++) {
-  //       for (int k = 0; k < F * 2 + 1; k++) {
+  //   printf("out config: %d %d %d (%d %d %d)\n", (R/2), (C/2), (F/2), r,c,f);
+  //   for (int i = 0; i < (R/2) * 2 + 1; i++) {
+  //     for (int j = 0; j < (C/2) * 2 + 1; j++) {
+  //       for (int k = 0; k < (F/2) * 2 + 1; k++) {
   //         printf("%2.2f ", v_sm[get_idx(ldsm1, ldsm2, i, j, k)]);
   //       }
   //       printf("\n");
@@ -1937,6 +1937,9 @@ void gpk_reo_adaptive_launcher(
   sm_size += (D_GLOBAL * 4) * sizeof(SIZE);
   sm_size += (D_GLOBAL * 1) * sizeof(DIM);
 
+  // printf("sm_size: %llu\n", sm_size);
+  //   printf("RCF: %u %u %u\n", R, C, F);      
+
   gridz = ceil((float)total_thread_z / tbz);
   gridy = ceil((float)total_thread_y / tby);
   gridx = ceil((float)total_thread_x / tbx);
@@ -1955,7 +1958,7 @@ void gpk_reo_adaptive_launcher(
   // gridx, gridy, gridz);
 
   // high_resolution_clock::time_point t1 = high_resolution_clock::now();
-  _gpk_reo<D_GLOBAL, D_LOCAL, T, R / 2, C / 2, F / 2, INTERPOLATION, CALC_COEFF,
+  _gpk_reo<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION, CALC_COEFF,
            TYPE><<<blockPerGrid, threadsPerBlock, sm_size,
                    *(cudaStream_t *)handle.get(queue_idx)>>>(
       shape_d, shape_c_d, ldvs, ldws, unprocessed_n, unprocessed_dims,

@@ -12,9 +12,10 @@
 #include "cuda/SubArray.hpp"
 #include "cuda/DeviceAdapters/DeviceAdapterCuda.h"
 
-#include "cuda/GridProcessingKernel.h"
-#include "cuda/GridProcessingKernel3D.h"
-#include "cuda/GridProcessingKernel3D.hpp"
+#include "cuda/DataRefactoring/Coefficient/GridProcessingKernel.h"
+#include "cuda/DataRefactoring/Coefficient/GridProcessingKernel3D.h"
+#include "cuda/DataRefactoring/Coefficient/GridProcessingKernel3D.hpp"
+#include "cuda/DataRefactoring/Coefficient/GridProcessingKernel2.hpp"
 #include "cuda/IterativeProcessingKernel.h"
 #include "cuda/IterativeProcessingKernel3D.h"
 #include "cuda/IterativeProcessingKernel3D.hpp"
@@ -26,7 +27,7 @@
 
 #include "cuda/DataRefactoring.h"
 
-#include "cuda/Testing/ReorderToolsGPU.hpp"
+// #include "cuda/Testing/ReorderToolsGPU.hpp"
 
 #include <iostream>
 
@@ -36,6 +37,9 @@ namespace mgard_cuda {
 static bool store = false;
 static bool verify = false;
 static bool debug_print = false;
+
+// template <4, 3, true, false, 1, CUDA> class GpkReo;
+
 
 template <DIM D, typename T, typename DeviceType>
 void calc_coeff_pointers(Handle<D, T> &handle, DIM curr_dims[3], DIM l, SubArray<D, T, DeviceType> doutput,
@@ -664,31 +668,89 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
                       dcoeff_cf, dcoeff_rf, dcoeff_rc,
                       dcoeff_rcf);
 
-  gpk_reo<D, 3, T, true, false, 1>(
-      handle, handle.shapes_h[l], handle.shapes_d[l],
-      handle.shapes_d[l + 1], dinput1.ldvs_d, doutput.ldvs_d,
+
+  // printf(" before interpolation1\n");
+  // for (int k = 0; k < dinput1.shape[4]; k++) {
+  //   for (int j = 0; j < dinput1.shape[3]; j++) {
+  //     printf("i,j = %d,%d\n", k,j);
+  //     print_matrix_cuda(dinput1.shape[2], dinput1.shape[1], dinput1.shape[0],
+  //                       dinput1.dv+k*dinput1.ldvs_h[0]*dinput1.ldvs_h[1]*dinput1.ldvs_h[2]*dinput1.ldvs_h[3]+j*dinput1.ldvs_h[0]*dinput1.ldvs_h[1]*dinput1.ldvs_h[2], dinput1.ldvs_h[0], dinput1.ldvs_h[1],
+  //                       dinput1.ldvs_h[0]);
+  //   }
+  // }
+
+  // gpk_reo<D, 3, T, true, false, 1>(
+  //     handle, handle.shapes_h[l], handle.shapes_d[l],
+  //     handle.shapes_d[l + 1], dinput1.ldvs_d, doutput.ldvs_d,
+  //     handle.unprocessed_n[unprocessed_idx],
+  //     handle.unprocessed_dims_d[unprocessed_idx],
+  //     curr_dims[2], curr_dims[1], curr_dims[0],
+  //     handle.ratio[curr_dims[2]][l], handle.ratio[curr_dims[1]][l], handle.ratio[curr_dims[0]][l], 
+  //     dinput1.dv, dinput1.lddv1, dinput1.lddv2, 
+  //     dcoarse.dv, dcoarse.lddv1, dcoarse.lddv2, 
+  //     // null, lddv1, lddv2,
+  //     dcoeff_f.dv, dcoeff_f.lddv1, dcoeff_f.lddv2, 
+  //     // null, lddv1, lddv2,
+  //     dcoeff_c.dv, dcoeff_c.lddv1, dcoeff_c.lddv2, 
+  //     // null, lddv1, lddv2,
+  //     dcoeff_r.dv, dcoeff_r.lddv1, dcoeff_r.lddv2, 
+  //     // null, lddv1, lddv2,
+  //     dcoeff_cf.dv, dcoeff_cf.lddv1, dcoeff_cf.lddv2, 
+  //     // null, lddv1, lddv2,
+  //     dcoeff_rf.dv, dcoeff_rf.lddv1, dcoeff_rf.lddv2, 
+  //     // null, lddv1, lddv2,
+  //     dcoeff_rc.dv, dcoeff_rc.lddv1, dcoeff_rc.lddv2, 
+  //     // null, lddv1, lddv2,
+  //     dcoeff_rcf.dv, dcoeff_rcf.lddv1, dcoeff_rcf.lddv2, 
+  //     // null, lddv1, lddv2,
+  //     queue_idx, handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
+
+
+  // printf(" after interpolation1\n");
+  // for (int k = 0; k < doutput.shape[4]; k++) {
+  //   for (int j = 0; j < doutput.shape[3]; j++) {
+  //     printf("i,j = %d,%d\n", k,j);
+  //     print_matrix_cuda(doutput.shape[2], doutput.shape[1], doutput.shape[0],
+  //                       doutput.dv+k*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2]*doutput.ldvs_h[3]+j*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2], doutput.ldvs_h[0], doutput.ldvs_h[1],
+  //                       doutput.ldvs_h[0]);
+  //   }
+  // }
+
+  SubArray<1, DIM, DeviceType> unprocessed_dims_subarray({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+                                                          handle.unprocessed_dims_d[unprocessed_idx]);
+  SubArray<1, T, DeviceType> ratio_r({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+  SubArray<1, T, DeviceType> ratio_c({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+  SubArray<1, T, DeviceType> ratio_f({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+
+  SubArray<D, T, DeviceType> dummy({1}, NULL);
+  // printf("call GpkReo\n");
+  // printf("unprocessed_n: %u\n", handle.unprocessed_n[unprocessed_idx]);
+  gpuErrchk(cudaDeviceSynchronize());
+  GpkReo<D, 3, T, true, false, 1, DeviceType>().Execute(
+      SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
+      SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
+      dinput1.ldvs_d, doutput.ldvs_d,
       handle.unprocessed_n[unprocessed_idx],
-      handle.unprocessed_dims_d[unprocessed_idx],
+      unprocessed_dims_subarray,
       curr_dims[2], curr_dims[1], curr_dims[0],
-      handle.ratio[curr_dims[2]][l], handle.ratio[curr_dims[1]][l], handle.ratio[curr_dims[0]][l], 
-      dinput1.dv, dinput1.lddv1, dinput1.lddv2, 
-      dcoarse.dv, dcoarse.lddv1, dcoarse.lddv2, 
-      // null, lddv1, lddv2,
-      dcoeff_f.dv, dcoeff_f.lddv1, dcoeff_f.lddv2, 
-      // null, lddv1, lddv2,
-      dcoeff_c.dv, dcoeff_c.lddv1, dcoeff_c.lddv2, 
-      // null, lddv1, lddv2,
-      dcoeff_r.dv, dcoeff_r.lddv1, dcoeff_r.lddv2, 
-      // null, lddv1, lddv2,
-      dcoeff_cf.dv, dcoeff_cf.lddv1, dcoeff_cf.lddv2, 
-      // null, lddv1, lddv2,
-      dcoeff_rf.dv, dcoeff_rf.lddv1, dcoeff_rf.lddv2, 
-      // null, lddv1, lddv2,
-      dcoeff_rc.dv, dcoeff_rc.lddv1, dcoeff_rc.lddv2, 
-      // null, lddv1, lddv2,
-      dcoeff_rcf.dv, dcoeff_rcf.lddv1, dcoeff_rcf.lddv2, 
-      // null, lddv1, lddv2,
-      queue_idx, handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
+      ratio_r, ratio_c, ratio_f, 
+      dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
+      dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, 0);
+  gpuErrchk(cudaDeviceSynchronize());
+
+
+  // printf(" after interpolation2\n");
+  // for (int k = 0; k < doutput.shape[4]; k++) {
+  //   for (int j = 0; j < doutput.shape[3]; j++) {
+  //     printf("i,j = %d,%d\n", k,j);
+  //     print_matrix_cuda(doutput.shape[2], doutput.shape[1], doutput.shape[0],
+  //                       doutput.dv+k*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2]*doutput.ldvs_h[3]+j*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2], doutput.ldvs_h[0], doutput.ldvs_h[1],
+  //                       doutput.ldvs_h[0]);
+  //   }
+  // }
+
+
+  
 
   for (DIM d = 3; d < D; d += 2) {
     //copy back to input1 for interpolation again
@@ -1804,6 +1866,7 @@ void recompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v,
         }
       } //deb
 
+      gpuErrchk(cudaDeviceSynchronize());
 
       calc_correction_nd(handle, v, w, l, 0);
 

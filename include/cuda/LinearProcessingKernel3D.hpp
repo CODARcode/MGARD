@@ -404,7 +404,7 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
     return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx); 
+                tbz, tby, tbx, sm_size, queue_idx, "Lpk1Reo3D"); 
   }
 
   MGARDm_CONT
@@ -739,7 +739,7 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
     return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx); 
+                tbz, tby, tbx, sm_size, queue_idx, "Lpk2Reo3D"); 
   }
 
   MGARDm_CONT
@@ -1085,7 +1085,7 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
     return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx); 
+                tbz, tby, tbx, sm_size, queue_idx, "Lpk3Reo3D"); 
   }
 
   MGARDm_CONT

@@ -158,7 +158,7 @@ namespace mgard_cuda {
       // printf("numBlocks: %d, threadsPerBlock: %d, sm: %llu\n", numBlocks, threadsPerBlock, sm_size);
 
       return Task(functor, gridz, gridy, gridx, 
-                  tbz, tby, tbx, sm_size, queue_idx); 
+                  tbz, tby, tbx, sm_size, queue_idx, "Histogram"); 
     }
 
     MGARDm_CONT

@@ -9,7 +9,12 @@ set(MGARD_CUDA_SRC
       ${CMAKE_CURRENT_SOURCE_DIR}/Metadata.cpp               
       ${CMAKE_CURRENT_SOURCE_DIR}/CommonInternal.cu    
       ${CMAKE_CURRENT_SOURCE_DIR}/PrecomputeKernels.cu  
-      ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring.cu   
+      #${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring.cu   
+      ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring/CUDA/DataRefactoring1D.cu  
+      ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring/CUDA/DataRefactoring2D.cu  
+      ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring/CUDA/DataRefactoring3D.cu  
+      ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring/CUDA/DataRefactoring4D.cu  
+      ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring/CUDA/DataRefactoring5D.cu   
       ${CMAKE_CURRENT_SOURCE_DIR}/DeviceAdapters/DeviceAdapterCuda.cu   
       #${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring_AMR.cu   
       ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernels/InterpCalcCoeff.cu
@@ -59,3 +64,5 @@ set(MGARD_CUDA_SRC
       #${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsGPU.cu
       #${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsCPU.cpp
       PARENT_SCOPE)
+
+add_subdirectory (DataRefactoring)

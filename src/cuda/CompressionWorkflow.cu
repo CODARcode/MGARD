@@ -251,7 +251,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
     timer_total.end();
     timer_total.print("Overall Compress");
     std::cout << log::log_time << "Compression Throughput: " <<
-      (double)(total_elems*sizeof(T))/timer_total.get() << " GB/s)\n";
+      (double)(total_elems*sizeof(T))/timer_total.get()/1e9 << " GB/s)\n";
     timer_total.clear();
   }
 
@@ -462,7 +462,7 @@ Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
     timer_total.end();
     timer_total.print("Overall Decompression");
     std::cout << log::log_time << "Decompression Throughput: " << 
-      (double)(total_elems*sizeof(T))/timer_total.get() << " GB/s)\n";
+      (double)(total_elems*sizeof(T))/timer_total.get()/1e9 << " GB/s)\n";
     timer_total.clear();
   }
 

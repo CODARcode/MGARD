@@ -7,8 +7,8 @@
 
 #include "cuda/CommonInternal.h"
  
-#include "cuda/GridProcessingKernel3D.h"
-#include "cuda/GridProcessingKernel3D.hpp"
+#include "cuda/DataRefactoring/Coefficient/GridProcessingKernel3D.h"
+#include "cuda/DataRefactoring/Coefficient/GridProcessingKernel3D.hpp"
 
 namespace mgard_cuda {
 
