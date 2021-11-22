@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+package mgard.pb;
+
+// The GNU C library defines macros `major` and `minor`.
+message VersionNumber {
+	uint64 major_ = 1;
+	uint64 minor_ = 2;
+	uint64 patch_ = 3;
+}
+
+message Domain {
+	enum Topology {
+		CARTESIAN_GRID = 0;
+	}
+	enum Geometry {
+		UNIT_CUBE = 0;
+		// EXPLICIT = 1;
+	}
+
+	Topology topology = 1;
+	uint64 dimension = 2;
+	repeated uint64 shape = 3;
+
+	Geometry geometry = 4;
+	// oneof coordinates {
+	// 	repeated double coordinates_array = 5;
+	// 	string coordinates_filename = 6;
+	// }
+}
+
+message Dataset {
+	enum Type {
+		FLOAT = 0;
+		DOUBLE = 1;
+	}
+
+	Type type = 1;
+	// In case we want to support vector-valued data in the future.
+	uint64 dimension = 2;
+}
+
+message ErrorControl {
+	enum Mode {
+		ABSOLUTE = 0;
+		RELATIVE = 1;
+	}
+	enum Norm {
+		L_INFINITY = 0;
+		S_NORM = 1;
+	}
+
+	Mode mode = 1;
+	Norm norm = 2;
+	// Only relevant when `error_norm == S_NORM`.
+	double s = 3;
+	// Only relevant when `error_mode == RELATIVE`.
+	double norm_of_original_data = 4;
+	double tolerance = 5;
+}
+
+message Decomposition {
+	enum Transform {
+		MULTILEVEL_COEFFICIENTS = 0;
+	}
+	enum Hierarchy {
+		POWER_OF_TWO_PLUS_ONE = 0;
+		GHOST_NODES = 1;
+	}
+
+	Transform transform = 1;
+	Hierarchy hierarchy = 2;
+	// Currently only relevant when `hierarchy == GHOST_NODES`.
+	uint64 L_target = 3;
+}
+
+message Quantization {
+	enum Method {
+		COEFFICIENTWISE_LINEAR = 0;
+	}
+	enum BinWidths {
+		PER_COEFFICIENT = 0;
+		PER_LEVEL = 1;
+	}
+	enum Type {
+		INT8_T = 0;
+		INT16_T = 1;
+		INT32_T = 2;
+		INT64_T = 3;
+	}
+
+	Method method = 1;
+	BinWidths bin_widths = 2;
+	Type type = 3;
+	bool big_endian = 4;
+}
+
+message Encoding {
+	enum Preprocessor {
+		SHUFFLE = 0;
+	}
+	enum Compressor {
+		NOOP = 0;
+		CPU_HUFFMAN_ZLIB = 1;
+		CPU_HUFFMAN_ZSTD = 2;
+		GPU_HUFFMAN = 3;
+		GPU_HUFFMAN_LZ4 = 4;
+	}
+
+	Preprocessor preprocessor = 1;
+	Compressor compressor = 2;
+	// Only relevant when `compressor == GPU_HUFFMAN` or `lossless_compressor == GPU_HUFFMAN_LZ4`.
+	uint64 huffman_dictionary_size = 3;
+}
+
+message Buffer {
+	enum Interpretation {
+		SINGLE_DATASET = 0;
+	}
+
+	Interpretation interpretation = 1;
+	repeated bytes buffer = 2;
+}
+
+message CompressedDataset {
+	// enum Structure {
+	// 	TRANFORM_QUANTIZE_ENCODE = 0;
+	// }
+
+	// Structure structure = 1;
+	VersionNumber mgard_version = 2;
+	VersionNumber file_format_version = 3;
+	Domain domain = 4;
+	Dataset dataset = 5;
+	ErrorControl error_control = 6;
+	Decomposition decomposition = 7;
+	Quantization quantization = 8;
+	Encoding encoding = 9;
+	Buffer buffer = 10;
+}
