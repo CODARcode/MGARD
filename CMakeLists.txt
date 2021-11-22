@@ -554,6 +554,35 @@ else()
 	install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
 endif()
 
+pkg_search_module(archive IMPORTED_TARGET GLOBAL libarchive)
+pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
+
+set(MGARD_FILE_FORMAT_PROTO "src/mgard.proto")
+set(MGARD_FILE_FORMAT_INCLUDEDIR "${CMAKE_CURRENT_BINARY_DIR}/include")
+set(MGARD_FILE_FORMAT_DIR "${MGARD_FILE_FORMAT_INCLUDEDIR}/proto")
+set(MGARD_FILE_FORMAT_HPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.h")
+set(MGARD_FILE_FORMAT_CPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.cc")
+
+pkg_search_module(protobuf IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
+find_program(PROTOC NAMES "protoc")
+if(protobuf_FOUND AND NOT PROTOC STREQUAL "PROTOC-NOTFOUND")
+	file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_DIR}")
+	get_filename_component(PROTO_PATH "${MGARD_FILE_FORMAT_PROTO}" DIRECTORY)
+	add_custom_command(
+		OUTPUT
+		"${MGARD_FILE_FORMAT_HPP}"
+		"${MGARD_FILE_FORMAT_CPP}"
+		COMMAND "${PROTOC}"
+		ARGS
+		"--cpp_out=${MGARD_FILE_FORMAT_DIR}"
+		"--proto_path=${PROTO_PATH}"
+		"${PROTO_PATH_OPTION}"
+		"${MGARD_FILE_FORMAT_PROTO}"
+		DEPENDS "${MGARD_FILE_FORMAT_PROTO}"
+		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+	)
+endif()
+
 message(STATUS "")
 message(STATUS "Configuration summary:")
 list(APPEND CMAKE_MESSAGE_INDENT "  ")
@@ -602,6 +631,7 @@ endif()
 message(STATUS "yaml-cpp:  ${yaml-cpp_FOUND}")
 message(STATUS "archive:   ${archive_FOUND}")
 message(STATUS "TCLAP:     ${TCLAP_FOUND}")
+message(STATUS "protobuf:  ${protobuf_FOUND}")
 list(POP_BACK CMAKE_MESSAGE_INDENT)
 
 list(POP_BACK CMAKE_MESSAGE_INDENT)
