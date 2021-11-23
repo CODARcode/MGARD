@@ -84,7 +84,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
 
-  size_t primary_count = dprimary_subarray.shape[0];
+  size_t primary_count = dprimary_subarray.getShape(0);
 
   t1 = high_resolution_clock::now();
 

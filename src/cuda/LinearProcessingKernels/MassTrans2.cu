@@ -6,8 +6,8 @@
  */
 #include "cuda/CommonInternal.h"
  
-#include "cuda/LinearProcessingKernel.h"
-#include "cuda/LinearProcessingKernel.hpp"
+#include "cuda/DataRefactoring/Correction/LinearProcessingKernel.h"
+#include "cuda/DataRefactoring/Correction/LinearProcessingKernel.hpp"
 
 namespace mgard_cuda {
 

@@ -8,8 +8,8 @@
 #ifndef MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_3D_AMR
 #define MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_3D_AMR
 
-#include "Common.h"
-#include "CommonInternal.h"
+#include "../../Common.h"
+#include "../../CommonInternal.h"
 
 namespace mgard_cuda {
 

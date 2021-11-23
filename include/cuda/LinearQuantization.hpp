@@ -264,20 +264,6 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
     threadId = (this->threadz * (this->nblockx * this->nblocky)) +
                     (this->thready * this->nblockx) + this->threadx;
 
-    // T * smT = (T*)this->shared_memory;
-    // quantizers_sm = smT; smT += roundup<T>(l_target + 1);
-
-    // volumes_0 = smT; if (calc_vol) smT += roundup<T>(this->nblockx * (l_target + 1));
-    // volumes_1 = smT; if (calc_vol) smT += roundup<T>(this->nblocky * (l_target + 1));
-    // volumes_2 = smT; if (calc_vol) smT += roundup<T>(this->nblockz * (l_target + 1));
-    // volumes_3_plus = smT;
-    // if (calc_vol && D > 3) smT += roundup<T>((D-3) * (l_target + 1));
-
-    // SIZE * smInt = (SIZE *)smT;
-    // shape_sm = smInt; smInt += roundup<SIZE>(D);
-    // shapes_sm = smInt; smInt += roundup<SIZE>(D * (l_target + 2));
-
-
     Byte * sm = this->shared_memory;
     quantizers_sm = (T*)sm; sm += roundup<SIZE>((l_target + 1) * sizeof(T));
 
@@ -311,9 +297,6 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
     idx[0] = (bidx % firstD) * F + this->threadx;
     idx0[0] = (bidx % firstD) * F;
 
-    // printf("shapes_sm[l_target+1]: %d firstD %d idx[0] %d\n",
-    // shapes_sm[l_target+1], firstD, idx[0]);
-
     bidx /= firstD;
     if (D >= 2) {
       idx[1] = this->blocky * this->nblocky + this->thready;
@@ -338,7 +321,6 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
         if (threadId < this->nblockx && idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
           volumes_0[l * this->nblockx + threadId] = 
             *volumes((0 * (l_target + 1) + l), + idx0[0] + threadId);
-          // printf("load %f\n", volumes[(0 * (l_target + 1) + l) * ldvolumes + idx0[0] + threadId]);
         }
         if (D >= 2) {
           // volumes 1
@@ -367,40 +349,6 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
         }
       }
     }
-
-    // if (blockIdx.y == 0 && blockIdx.x == 0 && blockIdx.z == 0 && threadId == 0) {
-    //   printf("volumes_0: ");
-    //   for (int l = 0; l < l_target+1; l++) {
-    //     printf("l = %d\n", l);
-    //     for (int i = 0; i < min(blockDim.x, shapes_sm[(l_target + 2) * 0 + l_target + 1]) ; i++) {
-    //       printf("%f ", volumes_0[l * blockDim.x + i]);
-    //     }
-    //     printf("\n");
-    //   }
-    //   printf("\n");
-    //   if (D >= 2) {
-    //     printf("volumes_1: ");
-    //     for (int l = 0; l < l_target+1; l++) {
-    //       printf("l = %d\n", l);
-    //       for (int i = 0; i < min(blockDim.y, shapes_sm[(l_target + 2) * 1 + l_target + 1]); i++) {
-    //         printf("%f ", volumes_1[l * blockDim.y + i]);
-    //       }
-    //       printf("\n");
-    //     }
-
-    //     printf("\n");
-    //   }
-    //   if (D >= 3) {
-    //     printf("volumes_2: ");
-    //     for (int l = 0; l < l_target+1; l++) {
-    //       printf("l = %d\n", l);
-    //       for (int i = 0; i < min(blockDim.z, shapes_sm[(l_target + 2) * 2 + l_target + 1]); i++) {
-    //         printf("%f ", volumes_2[l * blockDim.y + i]);
-    //       }
-    //       printf("\n");
-    //     }
-    //   }  
-    // }
   }
 
   MGARDm_EXEC void
@@ -424,10 +372,6 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
         in_range = false;
     }
 
-    // printf("idx %llu, level: %d, in_range: %d idx[0]: shape_sm: %d\n",
-    // get_idx<D>(shape_sm, idx), level, in_range, shapes_sm[(l_target+2) * 0 +
-    // l_target+1]);
-
     if (level >= 0 && level <= l_target && in_range) {
       T t = *v(idx);
       T volume = 1;
@@ -447,17 +391,8 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
         if (sizeof(T) == sizeof(double)) volume = sqrt(volume);
         else if (sizeof(T) == sizeof(float)) volume = sqrtf(volume);
       }
-      // printf("l: %d, vol %f(%f*%f*%f), quantizers_sm: %f, quantizers: %f, before: %f, quantized: %d\n", level, volume, 
-      //   volumes_0[level * blockDim.x + threadIdx.x], volumes_1[level * blockDim.y + threadIdx.y], volumes_2[level * blockDim.z + threadIdx.z],
-      //   quantizers_sm[level],
-      //   (quantizers_sm[level] / volume), t, (int)copysign(0.5 + fabs(t /( quantizers_sm[level] / volume)), t));
 
       QUANTIZED_INT quantized_data = copysign(0.5 + fabs(t / (quantizers_sm[level] * volume) ), t);
-      // QUANTIZED_INT quantized_data = copysign(0.5 + fabs(t / (quantizers_sm[level] / volume) ), t);
-      // printf("calc_vol: %d, dv %f quantizers[%d]%f %f -> dw %d \n",
-      //       calc_vol, t,
-      //       level, quantizers_sm[level], volume,
-      //       quantized_data+dict_size / 2);
 
       if (prep_huffman) {
         quantized_data += dict_size / 2;
@@ -469,11 +404,6 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
           *outliers(i) = quantized_data;
           quantized_data = 0;
         }
-        // if (get_idx<D>(shape_sm, idx) < quant_meta_size_ratio) {
-        //   size_t i = atomicAdd((unsigned long long int*)outlier_count,
-        //   (unsigned long long int)1); outlier_idx[i] = get_idx<D>(shape_sm,
-        //   idx);
-        // }
       }
 
       *work(idx) = quantized_data;
@@ -543,6 +473,7 @@ public:
   MGARDm_CONT
   Task<LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
+          SubArray<1, T, DeviceType> quantizers, 
           SubArray<2, T, DeviceType> volumes, 
           Metadata &m, SubArray<D, T, DeviceType> v,
           SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
@@ -553,22 +484,8 @@ public:
           int queue_idx) {
     using FunctorType = LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;
 
-    T *quantizers = new T[l_target + 1];
-    size_t dof = 1;
-    for (int d = 0; d < D; d++) dof *= shape.dataHost()[d];
-
-    calc_quantizers<D, T>(dof, quantizers, m, false);
-
-    Array<1, T, DeviceType> quantizers_array({l_target + 1});
-    quantizers_array.loadData(quantizers);
-
-    // cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
-    //                       sizeof(T) * (l_target + 1), H2D, queue_idx);
-
-    SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
-
     bool calc_vol = m.ntype == norm_type::L_2;
-    FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
+    FunctorType functor(ranges, l_target, quantizers, volumes,
                         v, work, prep_huffman, calc_vol, m.huff_dict_size, shape,
                         outlier_count, outlier_idx, outliers);
 
@@ -595,6 +512,7 @@ public:
 
   MGARDm_CONT
   void Execute(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
+                SubArray<1, T, DeviceType> quantizers, 
                 SubArray<2, T, DeviceType> volumes, 
                 Metadata &m, SubArray<D, T, DeviceType> v,
                 SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
@@ -603,12 +521,14 @@ public:
                 SubArray<1, LENGTH, DeviceType> outlier_idx, 
                 SubArray<1, QUANTIZED_INT, DeviceType> outliers,
                 int queue_idx) {
+
     const int R=LWQK_CONFIG[D-1][0];
     const int C=LWQK_CONFIG[D-1][1];
     const int F=LWQK_CONFIG[D-1][2];
     using FunctorType = LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask<R, C, F>(ranges, l_target, volumes, m,
+    TaskType task = GenTask<R, C, F>(ranges, l_target, quantizers,
+                                    volumes, m,
                                     v, work, prep_huffman, shape,
                                     outlier_count, outlier_idx, outliers,
                                     queue_idx); 
@@ -986,6 +906,7 @@ public:
   MGARDm_CONT
   Task<LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType> > 
   GenTask2(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
+           SubArray<1, T, DeviceType> quantizers, 
           SubArray<2, T, DeviceType> volumes, 
           Metadata &m, SubArray<D, T, DeviceType> v,
           SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
@@ -996,21 +917,18 @@ public:
           int queue_idx) {
     using FunctorType = LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType>;
 
-    T *quantizers = new T[l_target + 1];
-    size_t dof = 1;
-    for (int d = 0; d < D; d++) dof *= shape.dataHost()[d];
-    calc_quantizers<D, T>(dof, quantizers, m, false);
+    // T *quantizers = new T[l_target + 1];
+    // size_t dof = 1;
+    // for (int d = 0; d < D; d++) dof *= shape.dataHost()[d];
+    // calc_quantizers<D, T>(dof, quantizers, m, false);
 
-    Array<1, T, DeviceType> quantizers_array({l_target + 1});
-    quantizers_array.loadData(quantizers);
+    // Array<1, T, DeviceType> quantizers_array({l_target + 1});
+    // quantizers_array.loadData(quantizers);
 
-    // cudaMemcpyAsyncHelper(this->handle, this->handle.quantizers, quantizers,
-    //                       sizeof(T) * (l_target + 1), H2D, queue_idx);
-
-    SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
+    // SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
 
     bool calc_vol = m.ntype == norm_type::L_2;
-    FunctorType functor(ranges, l_target, quantizers_subarray, volumes,
+    FunctorType functor(ranges, l_target, quantizers, volumes,
                         v, work, prep_huffman, calc_vol, m.huff_dict_size, shape,
                         outlier_count, outlier_idx, outliers);
 
@@ -1039,6 +957,7 @@ public:
 
   MGARDm_CONT
   void Execute(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
+               SubArray<1, T, DeviceType> quantizers, 
                 SubArray<2, T, DeviceType> volumes, 
                 Metadata &m, SubArray<D, T, DeviceType> v,
                 SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
@@ -1061,7 +980,7 @@ public:
     const int F=LWQK_CONFIG[D-1][2];
     using FunctorType = LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask2<R, C, F>(ranges, l_target, volumes, m,
+    TaskType task = GenTask2<R, C, F>(ranges, l_target, quantizers, volumes, m,
                                     v, work, prep_huffman, shape,
                                     outlier_count, outlier_idx, outliers,
                                     queue_idx); 
