@@ -64,6 +64,11 @@ public:
   std::size_t size() const;
 
 #ifdef MGARD_PROTOBUF
+  //! Return a pointer to the compressed dataset header.
+  //!
+  //! *This is an experimental part of the API.*
+  pb::CompressedDataset const *header() const;
+
   //! Serialize the compressed dataset.
   //!
   //! *This is an experimental part of the API.*
@@ -79,7 +84,9 @@ private:
 
 #ifdef MGARD_PROTOBUF
   //! Header for compressed dataset.
-  pb::CompressedDataset protocol_buffer;
+  //!
+  //! *This is an experimental part of the API.*
+  pb::CompressedDataset header_;
 #endif
 };
 
@@ -111,6 +118,13 @@ public:
 private:
   //! Decompressed dataset.
   std::unique_ptr<const Real[]> data_;
+
+#ifdef MGARD_PROTOBUF
+  //! Header for decompressed dataset.
+  //!
+  //! *This is an experimental part of the API.*
+  pb::CompressedDataset header_;
+#endif
 };
 
 //! Compress a function on a tensor product grid.
