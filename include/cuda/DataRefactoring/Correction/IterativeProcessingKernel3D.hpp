@@ -8,14 +8,14 @@
 #ifndef MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_3D_TEMPLATE
 #define MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_3D_TEMPLATE
 
-#include "CommonInternal.h"
+#include "../../CommonInternal.h"
 #include "IPKFunctor.h"
 #include "IterativeProcessingKernel3D.h"
 
-#include "Functor.h"
-#include "AutoTuners/AutoTuner.h"
-#include "Task.h"
-#include "DeviceAdapters/DeviceAdapter.h"
+#include "../../Functor.h"
+#include "../../AutoTuners/AutoTuner.h"
+#include "../../Task.h"
+#include "../../DeviceAdapters/DeviceAdapter.h"
 
 namespace mgard_cuda {
 

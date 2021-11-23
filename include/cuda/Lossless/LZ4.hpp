@@ -16,7 +16,7 @@ LZ4Compress(SubArray<1, C, DeviceType> &input_data, size_t chunk_size) {
   Mem::MallocHost(output_bytes, 1, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
-  size_t input_count = input_data.shape[0];
+  size_t input_count = input_data.getShape(0);
 
   compressor.configure(input_count * sizeof(C), temp_bytes, output_bytes);
 
@@ -43,7 +43,7 @@ LZ4Decompress(SubArray<1, Byte, DeviceType> &input_data) {
   Mem::MallocHost(output_bytes, 1, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
-  size_t input_size = input_data.shape[0];
+  size_t input_size = input_data.getShape(0);
 
   decompressor.configure(input_data.data(), input_size, temp_bytes, output_bytes,
                          DeviceRuntime<CUDA>::GetQueue(0));

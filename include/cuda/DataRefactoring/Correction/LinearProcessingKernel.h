@@ -8,7 +8,7 @@
 #ifndef MGRAD_CUDA_LINEAR_PROCESSING_KERNEL
 #define MGRAD_CUDA_LINEAR_PROCESSING_KERNEL
 
-#include "Common.h"
+#include "../../Common.h"
 
 namespace mgard_cuda {
 

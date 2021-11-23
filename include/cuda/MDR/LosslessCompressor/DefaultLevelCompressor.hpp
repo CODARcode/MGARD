@@ -67,7 +67,7 @@ public:
                            std::vector<mgard_cuda::Array<1, mgard_cuda::Byte, mgard_cuda::CUDA>>& compressed_bitplanes) {
 
       mgard_cuda::SubArray<2, T, mgard_cuda::CUDA> encoded_bitplanes_subarray(encoded_bitplanes);
-      for (mgard_cuda::SIZE bitplane_idx = 0; bitplane_idx < encoded_bitplanes_subarray.shape[1]; bitplane_idx++) {
+      for (mgard_cuda::SIZE bitplane_idx = 0; bitplane_idx < encoded_bitplanes_subarray.getShape(1); bitplane_idx++) {
         T * bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
         T * bitplane_host = new T[bitplane_sizes[bitplane_idx]];
         mgard_cuda::cudaMemcpyAsyncHelper(handle, bitplane_host, bitplane,
