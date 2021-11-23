@@ -52,14 +52,14 @@ CompressedDataset<N, Real>::CompressedDataset(
     mgard_version->set_major_(MGARD_VERSION_MAJOR);
     mgard_version->set_minor_(MGARD_VERSION_MINOR);
     mgard_version->set_patch_(MGARD_VERSION_PATCH);
-    protocol_buffer.set_allocated_mgard_version(mgard_version);
+    header_.set_allocated_mgard_version(mgard_version);
   }
   {
     pb::VersionNumber *const file_format_version = new pb::VersionNumber;
     file_format_version->set_major_(MGARD_FILE_VERSION_MAJOR);
     file_format_version->set_minor_(MGARD_FILE_VERSION_MINOR);
     file_format_version->set_patch_(MGARD_FILE_VERSION_PATCH);
-    protocol_buffer.set_allocated_file_format_version(file_format_version);
+    header_.set_allocated_file_format_version(file_format_version);
   }
   {
     pb::Domain *const domain = new pb::Domain;
@@ -91,7 +91,7 @@ CompressedDataset<N, Real>::CompressedDataset(
       }
     }
     domain->set_geometry(geometry);
-    protocol_buffer.set_allocated_domain(domain);
+    header_.set_allocated_domain(domain);
   }
   {
     pb::Dataset *const dataset = new pb::Dataset;
@@ -106,7 +106,7 @@ CompressedDataset<N, Real>::CompressedDataset(
     }
     dataset->set_type(dataset_type);
     dataset->set_dimension(1);
-    protocol_buffer.set_allocated_dataset(dataset);
+    header_.set_allocated_dataset(dataset);
   }
   {
     pb::ErrorControl *const error_control = new pb::ErrorControl;
@@ -120,13 +120,13 @@ CompressedDataset<N, Real>::CompressedDataset(
     }
     error_control->set_norm(norm);
     error_control->set_tolerance(tolerance);
-    protocol_buffer.set_allocated_error_control(error_control);
+    header_.set_allocated_error_control(error_control);
   }
   {
     pb::Decomposition *const decomposition = new pb::Decomposition;
     decomposition->set_transform(pb::Decomposition::MULTILEVEL_COEFFICIENTS);
     decomposition->set_hierarchy(pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
-    protocol_buffer.set_allocated_decomposition(decomposition);
+    header_.set_allocated_decomposition(decomposition);
   }
   {
     pb::Quantization *const quantization = new pb::Quantization;
@@ -138,7 +138,7 @@ CompressedDataset<N, Real>::CompressedDataset(
       quantization->set_big_endian(
           not*reinterpret_cast<std::int8_t const *>(&a));
     }
-    protocol_buffer.set_allocated_quantization(quantization);
+    header_.set_allocated_quantization(quantization);
   }
   {
     pb::Encoding *const encoding = new pb::Encoding;
@@ -152,12 +152,12 @@ CompressedDataset<N, Real>::CompressedDataset(
         pb::Encoding::NOOP
 #endif
     );
-    protocol_buffer.set_allocated_encoding(encoding);
+    header_.set_allocated_encoding(encoding);
   }
   {
     pb::Buffer *const buffer = new pb::Buffer;
     buffer->set_interpretation(pb::Buffer::SINGLE_DATASET_AFTER);
-    protocol_buffer.set_allocated_buffer(buffer);
+    header_.set_allocated_buffer(buffer);
   }
 }
 
@@ -173,8 +173,13 @@ std::size_t CompressedDataset<N, Real>::size() const {
 
 #ifdef MGARD_PROTOBUF
 template <std::size_t N, typename Real>
+pb::CompressedDataset const *CompressedDataset<N, Real>::header() const {
+  return &header_;
+}
+
+template <std::size_t N, typename Real>
 void CompressedDataset<N, Real>::write(std::ostream &ostream) const {
-  if (not protocol_buffer.SerializeToOstream(&ostream)) {
+  if (not header_.SerializeToOstream(&ostream)) {
     throw std::runtime_error("failed to serialize protocol buffer");
   }
   ostream.write(static_cast<char const *>(data()), size());
@@ -185,7 +190,13 @@ template <std::size_t N, typename Real>
 DecompressedDataset<N, Real>::DecompressedDataset(
     const CompressedDataset<N, Real> &compressed, Real const *const data)
     : hierarchy(compressed.hierarchy), s(compressed.s),
-      tolerance(compressed.tolerance), data_(data) {}
+      tolerance(compressed.tolerance), data_(data)
+#ifdef MGARD_PROTOBUF
+      ,
+      header_(*compressed.header())
+#endif
+{
+}
 
 template <std::size_t N, typename Real>
 Real const *DecompressedDataset<N, Real>::data() const {
