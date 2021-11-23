@@ -9,24 +9,34 @@ message VersionNumber {
 	uint64 patch_ = 3;
 }
 
+message CartesianGridTopology {
+	uint64 dimension = 1;
+	repeated uint64 shape = 2;
+}
+
+message ExplicitCubeGeometry {
+	repeated double coordinates = 2;
+}
+
 message Domain {
 	enum Topology {
 		CARTESIAN_GRID = 0;
 	}
 	enum Geometry {
 		UNIT_CUBE = 0;
-		// EXPLICIT = 1;
+		EXPLICIT_CUBE = 1;
 	}
 
 	Topology topology = 1;
-	uint64 dimension = 2;
-	repeated uint64 shape = 3;
+	oneof topology_definition {
+		CartesianGridTopology cartesian_grid_topology = 2;
+	}
 
-	Geometry geometry = 4;
-	// oneof coordinates {
-	// 	repeated double coordinates_array = 5;
-	// 	string coordinates_filename = 6;
-	// }
+	Geometry geometry = 3;
+	oneof geometry_definition {
+		ExplicitCubeGeometry explicit_cube_geometry = 4;
+		string explicit_cube_filename = 5;
+	}
 }
 
 message Dataset {
@@ -115,11 +125,11 @@ message Encoding {
 
 message Buffer {
 	enum Interpretation {
-		SINGLE_DATASET = 0;
+		SINGLE_DATASET_AFTER = 0;
 	}
 
 	Interpretation interpretation = 1;
-	repeated bytes buffer = 2;
+	// repeated bytes buffer = 2;
 }
 
 message CompressedDataset {
