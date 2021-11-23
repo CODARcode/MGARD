@@ -20,6 +20,12 @@
 
 #include "compress_cuda.hpp"
 
+#ifdef MGARD_PROTOBUF
+#include <ostream>
+
+#include "proto/mgard.pb.h"
+#endif
+
 //! Implementation of the MGARD compression and decompression algorithms.
 namespace mgard {
 
@@ -57,12 +63,24 @@ public:
   //! Return the size in bytes of the compressed dataset.
   std::size_t size() const;
 
+#ifdef MGARD_PROTOBUF
+  //! Serialize the compressed dataset.
+  //!
+  //! *This is an experimental part of the API.*
+  void write(std::ostream &ostream) const;
+#endif
+
 private:
   //! Compressed dataset.
   std::unique_ptr<const unsigned char[]> data_;
 
   //! Size of the compressed dataset in bytes.
   const std::size_t size_;
+
+#ifdef MGARD_PROTOBUF
+  //! Header for compressed dataset.
+  pb::CompressedDataset protocol_buffer;
+#endif
 };
 
 //! Decompressed dataset and associated compression parameters.

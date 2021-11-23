@@ -194,6 +194,39 @@ set(
 	src/compressors.cpp
 )
 
+set(MGARD_FILE_FORMAT_PROTO "src/mgard.proto")
+set(MGARD_FILE_FORMAT_INCLUDEDIR "${CMAKE_CURRENT_BINARY_DIR}/include")
+set(MGARD_FILE_FORMAT_DIR "${MGARD_FILE_FORMAT_INCLUDEDIR}/proto")
+set(MGARD_FILE_FORMAT_HPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.h")
+set(MGARD_FILE_FORMAT_CPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.cc")
+
+pkg_search_module(protobuf IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
+find_program(PROTOC NAMES "protoc")
+if(protobuf_FOUND AND NOT PROTOC STREQUAL "PROTOC-NOTFOUND")
+	set(USING_PROTOBUF TRUE)
+	file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_DIR}")
+	get_filename_component(PROTO_PATH "${MGARD_FILE_FORMAT_PROTO}" DIRECTORY)
+	add_custom_command(
+		OUTPUT
+		"${MGARD_FILE_FORMAT_HPP}"
+		"${MGARD_FILE_FORMAT_CPP}"
+		COMMAND "${PROTOC}"
+		ARGS
+		"--cpp_out=${MGARD_FILE_FORMAT_DIR}"
+		"--proto_path=${PROTO_PATH}"
+		"${PROTO_PATH_OPTION}"
+		"${MGARD_FILE_FORMAT_PROTO}"
+		DEPENDS "${MGARD_FILE_FORMAT_PROTO}"
+		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+	)
+
+	list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}")
+else()
+	set(USING_PROTOBUF FALSE)
+	#TODO: Update message to something else.
+	message(STATUS "Will not build writer code (protoc not found).")
+endif()
+
 add_library(
 	mgard-library
 	${MGARD_LIBRARY_CPP}
@@ -202,6 +235,11 @@ add_library(
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
+
+if(USING_PROTOBUF)
+	target_link_libraries(mgard-library PUBLIC PkgConfig::protobuf)
+	target_compile_definitions(mgard-library PUBLIC MGARD_PROTOBUF)
+endif()
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra")
 
