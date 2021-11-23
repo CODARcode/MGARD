@@ -134,7 +134,7 @@ __host__ inline LENGTH get_idx(std::vector<SIZE> lds, std::vector<SIZE> idx) {
   return ret_idx;
 }
 
-template <DIM D> __forceinline__ __device__ LENGTH get_idx(SIZE *lds, SIZE *idx) {
+template <DIM D> MGARDm_CONT_EXEC LENGTH get_idx(SIZE *lds, SIZE *idx) {
   LENGTH curr_stride = 1;
   LENGTH ret_idx = 0;
   for (DIM i = 0; i < D; i++) {
@@ -297,13 +297,13 @@ template <typename T> __device__ T _get_dist(T *coords, int i, int j);
 
 } // namespace mgard_cuda
 
-#include "MemoryManagement.hpp"
 #include "Array.hpp"
 #include "SubArray.hpp"
 #include "Metadata.h"
 #include "AutoTuners/AutoTuner.h"
 #include "Task.h"
 #include "Utilities/Timer.hpp"
+#include "MemoryManagement.hpp"
 // #include "Functor.h"
 // #include "AutoTuner.h"
 // #include "Task.h"

@@ -54,7 +54,6 @@ template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, DeviceType> &in_array,
                                  enum error_bound_type type, T tol, T s) {
 
-
   DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
   Timer timer_total, timer_each;
   for (DIM i = 0; i < D; i++) {
@@ -187,8 +186,17 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
   // (double)(total-free)/1e9, (double)total/1e9);
 
+  T *quantizers = new T[m.l_target + 1];
+  size_t dof = 1;
+  for (int d = 0; d < D; d++) dof *= handle.dofs[d][0];
+  calc_quantizers<D, T>(dof, quantizers, m, false);
+  Array<1, T, DeviceType> quantizers_array({m.l_target + 1});
+  quantizers_array.loadData(quantizers);
+  SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
+  delete [] quantizers;
+
   LevelwiseLinearQuantizeND<D, T, DeviceType>().Execute(
-          SubArray<1, SIZE, DeviceType>(handle.ranges), handle.l_target, 
+          SubArray<1, SIZE, DeviceType>(handle.ranges), handle.l_target, quantizers_subarray,
           SubArray<2, T, DeviceType>(handle.volumes_array), 
           m, SubArray<D, T, DeviceType>(in_array),
           SubArray<D, QUANTIZED_INT, DeviceType>(dqv_array), prep_huffman,
@@ -271,7 +279,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   advance_with_align<QUANTIZED_INT>(byte_offset, outlier_count);
   advance_with_align<SIZE>(byte_offset, 1);
   align_byte_offset<uint64_t>(byte_offset);
-  advance_with_align<Byte>(byte_offset, lossless_compressed_subarray.shape[0]);
+  advance_with_align<Byte>(byte_offset, lossless_compressed_subarray.getShape(0));
 
   outsize = byte_offset;
   DeviceRuntime<DeviceType>::SyncDevice();
@@ -287,11 +295,12 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   SerializeArray<LENGTH>(compressed_subarray, outlier_count_array.get_dv(), 1, byte_offset);
   SerializeArray<LENGTH>(compressed_subarray, outlier_idx_array.get_dv(), outlier_count, byte_offset);
   SerializeArray<QUANTIZED_INT>(compressed_subarray, outliers_array.get_dv(), outlier_count, byte_offset);
-  SerializeArray<SIZE>(compressed_subarray, &lossless_compressed_subarray.shape[0], 1, byte_offset);
+  SIZE lossless_size = lossless_compressed_subarray.getShape(0);
+  SerializeArray<SIZE>(compressed_subarray, &lossless_size, 1, byte_offset);
 
   align_byte_offset<uint64_t>(byte_offset);
   SerializeArray<Byte>(compressed_subarray, lossless_compressed_subarray.data(), 
-                       lossless_compressed_subarray.shape[0], byte_offset);
+                       lossless_compressed_subarray.getShape(0), byte_offset);
 
   handle.sync_all();
   if (handle.timing) {
@@ -431,8 +440,18 @@ Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
   Array<D, QUANTIZED_INT, DeviceType> dqv_array(handle.shape_org, false);
   MemoryManager<DeviceType>::Copy1D(dqv_array.get_dv(), (QUANTIZED_INT*)primary.get_dv(), total_elems, 0);
 
+  T *quantizers = new T[m.l_target + 1];
+  size_t dof = 1;
+  for (int d = 0; d < D; d++) dof *= handle.dofs[d][0];
+  calc_quantizers<D, T>(dof, quantizers, m, false);
+  Array<1, T, DeviceType> quantizers_array({m.l_target + 1});
+  quantizers_array.loadData(quantizers);
+  SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
+  delete [] quantizers;
+
   LevelwiseLinearDequantizeND<D, T, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.ranges), handle.l_target, 
+            quantizers_subarray,
             SubArray<2, T, DeviceType>(handle.volumes_array), 
             m, decompressed_subarray,
             SubArray<D, QUANTIZED_INT, DeviceType>(dqv_array), prep_huffman,

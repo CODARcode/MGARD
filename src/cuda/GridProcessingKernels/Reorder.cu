@@ -9,7 +9,7 @@
  
 #include "cuda/DataRefactoring/Coefficient/GridProcessingKernel.h"
 #include "cuda/DataRefactoring/Coefficient/GridProcessingKernel.hpp"
-#include "cuda/DataRefactoring/Coefficient/GridProcessingKernel2.hpp"
+// #include "cuda/DataRefactoring/Coefficient/GridProcessingKernel2.hpp"
 
 
 namespace mgard_cuda {

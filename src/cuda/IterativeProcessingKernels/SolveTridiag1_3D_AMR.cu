@@ -6,8 +6,8 @@
  */
 #include "cuda/CommonInternal.h"
  
-#include "cuda/IterativeProcessingKernel3D_AMR.h"
-#include "cuda/IterativeProcessingKernel3D_AMR.hpp"
+#include "cuda/DataRefactoring/Correction/IterativeProcessingKernel3D_AMR.h"
+#include "cuda/DataRefactoring/Correction/IterativeProcessingKernel3D_AMR.hpp"
 
 namespace mgard_cuda {
 

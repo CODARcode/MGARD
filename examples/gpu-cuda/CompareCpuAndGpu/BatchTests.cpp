@@ -287,18 +287,18 @@ int main(int argc, char *argv[]) {
   shapes.push_back({5, 5, 5, 5});
   shapes.push_back({3, 3, 3, 4});
   // shapes.push_back({65, 65, 65, 65});
-  shapes.push_back({100, 10, 100, 10});
-  shapes.push_back({10, 100, 10, 100});
-  shapes.push_back({1000, 10, 10, 10});
-  shapes.push_back({10, 1000, 10, 10});
-  shapes.push_back({10, 10, 1000, 10});
-  shapes.push_back({10, 10, 10, 1000});
+  // shapes.push_back({100, 10, 100, 10});
+  // shapes.push_back({10, 100, 10, 100});
+  // shapes.push_back({1000, 10, 10, 10});
+  // shapes.push_back({10, 1000, 10, 10});
+  // shapes.push_back({10, 10, 1000, 10});
+  // shapes.push_back({10, 10, 10, 1000});
 
   // XGC
   // shapes.push_back({8, 16395, 39, 39});
 
-  // shapes.push_back({5, 5, 5, 5, 5});
-  // shapes.push_back({17, 17, 17, 17, 17});
+  shapes.push_back({5, 5, 5, 5, 5});
+  shapes.push_back({17, 17, 17, 17, 17});
   // shapes.push_back({10, 10, 10, 10, 100});
   // shapes.push_back({10, 10, 10, 100, 10});
   // shapes.push_back({10, 10, 100, 10, 10});

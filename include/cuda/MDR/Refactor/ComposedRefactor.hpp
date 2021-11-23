@@ -293,7 +293,7 @@ namespace MDR {
             mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> result_array({1});
             mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> result(result_array);
             
-            deviceReduce.AbsMax(levels_data[level_idx].shape[0], levels_data[level_idx], result, queue_idx);
+            deviceReduce.AbsMax(levels_data[level_idx].getShape(0), levels_data[level_idx], result, queue_idx);
             T_data level_max_error = *(result_array.getDataHost());
             int level_exp = 0;
             frexp(level_max_error, &level_exp);

@@ -7,8 +7,8 @@
 
 #include "cuda/CommonInternal.h"
  
-#include "cuda/IterativeProcessingKernel3D.h"
-#include "cuda/IterativeProcessingKernel3D.hpp"
+#include "cuda/DataRefactoring/Correction/IterativeProcessingKernel3D.h"
+#include "cuda/DataRefactoring/Correction/IterativeProcessingKernel3D.hpp"
 
 namespace mgard_cuda {
 
