@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include <chrono>
@@ -19,7 +19,7 @@ using namespace std::chrono;
 
 void print_usage_message(std::string error) {
   if (error.compare("") != 0) {
-    std::cout << mgard_cuda::log::log_err << error << std::endl;
+    std::cout << mgard_x::log::log_err << error << std::endl;
   }
   printf("Options\n\
 \t -z: compress data\n\
@@ -53,15 +53,15 @@ void print_usage_message(std::string error) {
   exit(0);
 }
 template <typename T>
-int launch_decompress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
+int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                       const char *input_file, const char *output_file,
-                      std::vector<mgard_cuda::SIZE> shape, T tol, T s,
-                      enum mgard_cuda::error_bound_type mode, bool verbose);
+                      std::vector<mgard_x::SIZE> shape, T tol, T s,
+                      enum mgard_x::error_bound_type mode, bool verbose);
 template <typename T>
-int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
+int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     const char *input_file, const char *output_file,
-                    std::vector<mgard_cuda::SIZE> shape, T tol, T s,
-                    enum mgard_cuda::error_bound_type mode, bool verbose);
+                    std::vector<mgard_x::SIZE> shape, T tol, T s,
+                    enum mgard_x::error_bound_type mode, bool verbose);
 
 bool has_arg(int argc, char *argv[], std::string option) {
   for (int i = 0; i < argc; i++) {
@@ -113,9 +113,9 @@ int get_arg_int(int argc, char *argv[], std::string option) {
   return 0;
 }
 
-std::vector<mgard_cuda::SIZE> get_arg_dims(int argc, char *argv[],
+std::vector<mgard_x::SIZE> get_arg_dims(int argc, char *argv[],
                                            std::string option) {
-  std::vector<mgard_cuda::SIZE> shape;
+  std::vector<mgard_x::SIZE> shape;
   if (require_arg(argc, argv, option)) {
     std::string arg;
     int arg_idx = 0, i;
@@ -196,74 +196,74 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 }
 
 template <typename T>
-void print_statistics(double s, enum mgard_cuda::error_bound_type mode,
+void print_statistics(double s, enum mgard_x::error_bound_type mode,
                       size_t n, T *original_data, T *decompressed_data) {
   std::cout << std::scientific;
   if (s == std::numeric_limits<T>::infinity()) {
-    if (mode == mgard_cuda::error_bound_type::ABS) {
-      std::cout << mgard_cuda::log::log_info << "Absoluate L_inf error: "
-                << mgard_cuda::L_inf_error(n, original_data, decompressed_data,
+    if (mode == mgard_x::error_bound_type::ABS) {
+      std::cout << mgard_x::log::log_info << "Absoluate L_inf error: "
+                << mgard_x::L_inf_error(n, original_data, decompressed_data,
                                            mode)
                 << "\n";
-    } else if (mode == mgard_cuda::error_bound_type::REL) {
-      std::cout << mgard_cuda::log::log_info << "Relative L_inf error: "
-                << mgard_cuda::L_inf_error(n, original_data, decompressed_data,
+    } else if (mode == mgard_x::error_bound_type::REL) {
+      std::cout << mgard_x::log::log_info << "Relative L_inf error: "
+                << mgard_x::L_inf_error(n, original_data, decompressed_data,
                                            mode)
                 << "\n";
     }
   } else {
-    if (mode == mgard_cuda::error_bound_type::ABS) {
-      std::cout << mgard_cuda::log::log_info << "Absoluate L_2 error: "
-                << mgard_cuda::L_2_error(n, original_data, decompressed_data,
+    if (mode == mgard_x::error_bound_type::ABS) {
+      std::cout << mgard_x::log::log_info << "Absoluate L_2 error: "
+                << mgard_x::L_2_error(n, original_data, decompressed_data,
                                          mode)
                 << "\n";
-    } else if (mode == mgard_cuda::error_bound_type::REL) {
-      std::cout << mgard_cuda::log::log_info << "Relative L_2 error: "
-                << mgard_cuda::L_2_error(n, original_data, decompressed_data,
+    } else if (mode == mgard_x::error_bound_type::REL) {
+      std::cout << mgard_x::log::log_info << "Relative L_2 error: "
+                << mgard_x::L_2_error(n, original_data, decompressed_data,
                                          mode)
                 << "\n";
     }
   }
-  // std::cout << mgard_cuda::log::log_info << "L_2 error: " <<
-  // mgard_cuda::L_2_error(n, original_data, decompressed_data) << "\n";
-  std::cout << mgard_cuda::log::log_info
-            << "MSE: " << mgard_cuda::MSE(n, original_data, decompressed_data)
+  // std::cout << mgard_x::log::log_info << "L_2 error: " <<
+  // mgard_x::L_2_error(n, original_data, decompressed_data) << "\n";
+  std::cout << mgard_x::log::log_info
+            << "MSE: " << mgard_x::MSE(n, original_data, decompressed_data)
             << "\n";
   std::cout << std::defaultfloat;
-  std::cout << mgard_cuda::log::log_info
-            << "PSNR: " << mgard_cuda::PSNR(n, original_data, decompressed_data)
+  std::cout << mgard_x::log::log_info
+            << "PSNR: " << mgard_x::PSNR(n, original_data, decompressed_data)
             << "\n";
 }
 
 template <typename T>
-int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
+int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     const char *input_file, const char *output_file,
-                    std::vector<mgard_cuda::SIZE> shape, T tol, T s,
-                    enum mgard_cuda::error_bound_type mode, bool verbose) {
+                    std::vector<mgard_x::SIZE> shape, T tol, T s,
+                    enum mgard_x::error_bound_type mode, bool verbose) {
   high_resolution_clock::time_point start, end;
   duration<double> time_span;
 
   size_t original_size = 1;
-  for (mgard_cuda::DIM i = 0; i < D; i++)
+  for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
   T *original_data;
   size_t in_size = readfile(input_file, original_data);
   if (in_size != original_size * sizeof(T)) {
-    std::cout << mgard_cuda::log::log_err << "input file size mismatch!\n";
+    std::cout << mgard_x::log::log_err << "input file size mismatch!\n";
   }
 
   T norm;
   if (s == std::numeric_limits<T>::infinity()) {
-    norm = mgard_cuda::L_inf_norm(original_size, original_data);
+    norm = mgard_x::L_inf_norm(original_size, original_data);
   } else {
-    norm = mgard_cuda::L_2_norm(original_size, original_data);
+    norm = mgard_x::L_2_norm(original_size, original_data);
   }
 
   void *compressed_data = NULL;
   size_t compressed_size = 0;
   void *decompressed_data = NULL;
 
-  if (mode == mgard_cuda::error_bound_type::REL)
+  if (mode == mgard_x::error_bound_type::REL)
     tol *= norm;
 
   if (D == 1) {
@@ -277,7 +277,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     if (verbose) {
       end = high_resolution_clock::now();
       time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
+      std::cout << mgard_x::log::log_time
                 << "Overall compression time: " << time_span.count() << " s ("
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
@@ -297,7 +297,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     if (verbose) {
       end = high_resolution_clock::now();
       time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
+      std::cout << mgard_x::log::log_time
                 << "Overall compression time: " << time_span.count() << " s ("
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
@@ -317,7 +317,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     if (verbose) {
       end = high_resolution_clock::now();
       time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
+      std::cout << mgard_x::log::log_time
                 << "Overall compression time: " << time_span.count() << " s ("
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
@@ -337,7 +337,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     if (verbose) {
       end = high_resolution_clock::now();
       time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
+      std::cout << mgard_x::log::log_time
                 << "Overall compression time: " << time_span.count() << " s ("
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
@@ -357,7 +357,7 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
     if (verbose) {
       end = high_resolution_clock::now();
       time_span = duration_cast<duration<double>>(end - start);
-      std::cout << mgard_cuda::log::log_time
+      std::cout << mgard_x::log::log_time
                 << "Overall compression time: " << time_span.count() << " s ("
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
@@ -384,27 +384,27 @@ int launch_compress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
   }
 
   delete[](T *) original_data;
-  delete[](mgard_cuda::SERIALIZED_TYPE *) compressed_data;
+  delete[](mgard_x::SERIALIZED_TYPE *) compressed_data;
   return 0;
 }
 
 template <typename T>
-int launch_decompress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
+int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                       const char *input_file, const char *output_file,
-                      std::vector<mgard_cuda::SIZE> shape, T tol, T s,
-                      enum mgard_cuda::error_bound_type mode, bool verbose) {
+                      std::vector<mgard_x::SIZE> shape, T tol, T s,
+                      enum mgard_x::error_bound_type mode, bool verbose) {
 
   high_resolution_clock::time_point start, end;
   duration<double> time_span;
 
-  mgard_cuda::SERIALIZED_TYPE *compressed_data;
+  mgard_x::SERIALIZED_TYPE *compressed_data;
   size_t compressed_size = readfile(input_file, compressed_data);
   size_t original_size = 1;
-  for (mgard_cuda::DIM i = 0; i < shape.size(); i++)
+  for (mgard_x::DIM i = 0; i < shape.size(); i++)
     original_size *= shape[i];
 
   T norm = 1;
-  if (mode == mgard_cuda::error_bound_type::REL)
+  if (mode == mgard_x::error_bound_type::REL)
     tol *= norm;
 
   if (verbose) {
@@ -419,22 +419,22 @@ int launch_decompress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
   if (verbose) {
     end = high_resolution_clock::now();
     time_span = duration_cast<duration<double>>(end - start);
-    std::cout << mgard_cuda::log::log_time
+    std::cout << mgard_x::log::log_time
               << "Overall decompression time: " << time_span.count() << " s ("
               << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
               << " GB/s)\n";
   }
 
   int elem_size = 0;
-  if (dtype == mgard_cuda::data_type::Double)
+  if (dtype == mgard_x::data_type::Double)
     elem_size = 8;
-  else if (dtype == mgard_cuda::data_type::Float)
+  else if (dtype == mgard_x::data_type::Float)
     elem_size = 4;
   writefile(output_file, original_size * elem_size, decompressed_data);
 
-  if (dtype == mgard_cuda::data_type::Double)
+  if (dtype == mgard_x::data_type::Double)
     delete[](double *) decompressed_data;
-  else if (dtype == mgard_cuda::data_type::Float)
+  else if (dtype == mgard_x::data_type::Float)
     delete[](float *) decompressed_data;
 
   // causing segfault
@@ -443,78 +443,78 @@ int launch_decompress(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
 }
 
 template int
-launch_compress<float>(mgard_cuda::DIM D, enum mgard_cuda::data_type dtype,
+launch_compress<float>(mgard_x::DIM D, enum mgard_x::data_type dtype,
                        const char *input_file, const char *output_file,
-                       std::vector<mgard_cuda::SIZE> shape, float tol, float s,
-                       enum mgard_cuda::error_bound_type mode, bool verbose);
+                       std::vector<mgard_x::SIZE> shape, float tol, float s,
+                       enum mgard_x::error_bound_type mode, bool verbose);
 template int launch_compress<double>(
-    mgard_cuda::DIM D, enum mgard_cuda::data_type dtype, const char *input_file,
-    const char *output_file, std::vector<mgard_cuda::SIZE> shape, double tol,
-    double s, enum mgard_cuda::error_bound_type mode, bool verbose);
+    mgard_x::DIM D, enum mgard_x::data_type dtype, const char *input_file,
+    const char *output_file, std::vector<mgard_x::SIZE> shape, double tol,
+    double s, enum mgard_x::error_bound_type mode, bool verbose);
 
 template int launch_decompress<float>(
-    mgard_cuda::DIM D, enum mgard_cuda::data_type dtype, const char *input_file,
-    const char *output_file, std::vector<mgard_cuda::SIZE> shape, float tol,
-    float s, enum mgard_cuda::error_bound_type mode, bool verbose);
+    mgard_x::DIM D, enum mgard_x::data_type dtype, const char *input_file,
+    const char *output_file, std::vector<mgard_x::SIZE> shape, float tol,
+    float s, enum mgard_x::error_bound_type mode, bool verbose);
 template int launch_decompress<double>(
-    mgard_cuda::DIM D, enum mgard_cuda::data_type dtype, const char *input_file,
-    const char *output_file, std::vector<mgard_cuda::SIZE> shape, double tol,
-    double s, enum mgard_cuda::error_bound_type mode, bool verbose);
+    mgard_x::DIM D, enum mgard_x::data_type dtype, const char *input_file,
+    const char *output_file, std::vector<mgard_x::SIZE> shape, double tol,
+    double s, enum mgard_x::error_bound_type mode, bool verbose);
 
 bool try_compression(int argc, char *argv[]) {
   if (!has_arg(argc, argv, "-z"))
     return false;
-  std::cout << mgard_cuda::log::log_info << "mode: compression\n";
+  std::cout << mgard_x::log::log_info << "mode: compression\n";
   std::string input_file = get_arg(argc, argv, "-i");
   std::string output_file = get_arg(argc, argv, "-c");
 
-  std::cout << mgard_cuda::log::log_info << "original data: " << input_file
+  std::cout << mgard_x::log::log_info << "original data: " << input_file
             << "\n";
-  std::cout << mgard_cuda::log::log_info << "compressed data: " << output_file
+  std::cout << mgard_x::log::log_info << "compressed data: " << output_file
             << "\n";
 
-  enum mgard_cuda::data_type dtype;
+  enum mgard_x::data_type dtype;
   std::string dt = get_arg(argc, argv, "-t");
   if (dt.compare("s") == 0) {
-    dtype = mgard_cuda::data_type::Float;
-    std::cout << mgard_cuda::log::log_info << "data type: Single precision\n";
+    dtype = mgard_x::data_type::Float;
+    std::cout << mgard_x::log::log_info << "data type: Single precision\n";
   } else if (dt.compare("d") == 0) {
-    dtype = mgard_cuda::data_type::Double;
-    std::cout << mgard_cuda::log::log_info << "data type: Double precision\n";
+    dtype = mgard_x::data_type::Double;
+    std::cout << mgard_x::log::log_info << "data type: Double precision\n";
   } else
     print_usage_message("wrong data type.");
 
-  mgard_cuda::DIM D = get_arg_int(argc, argv, "-n");
-  std::vector<mgard_cuda::SIZE> shape = get_arg_dims(argc, argv, "-n");
+  mgard_x::DIM D = get_arg_int(argc, argv, "-n");
+  std::vector<mgard_x::SIZE> shape = get_arg_dims(argc, argv, "-n");
   std::string shape_string = "shape (";
-  for (mgard_cuda::DIM d = 0; d < shape.size(); d++)
+  for (mgard_x::DIM d = 0; d < shape.size(); d++)
     shape_string = shape_string + std::to_string(shape[d]) + " ";
   shape_string = shape_string + ")";
 
-  enum mgard_cuda::error_bound_type mode; // REL or ABS
+  enum mgard_x::error_bound_type mode; // REL or ABS
   std::string em = get_arg(argc, argv, "-m");
   if (em.compare("rel") == 0) {
-    mode = mgard_cuda::error_bound_type::REL;
-    std::cout << mgard_cuda::log::log_info << "error bound mode: Relative\n";
+    mode = mgard_x::error_bound_type::REL;
+    std::cout << mgard_x::log::log_info << "error bound mode: Relative\n";
   } else if (em.compare("abs") == 0) {
-    mode = mgard_cuda::error_bound_type::ABS;
-    std::cout << mgard_cuda::log::log_info << "error bound mode: Absolute\n";
+    mode = mgard_x::error_bound_type::ABS;
+    std::cout << mgard_x::log::log_info << "error bound mode: Absolute\n";
   } else
     print_usage_message("wrong error bound mode.");
 
   double tol = get_arg_double(argc, argv, "-e");
   double s = get_arg_double(argc, argv, "-s");
 
-  std::cout << mgard_cuda::log::log_info << "error bound: " << tol << "\n";
-  std::cout << mgard_cuda::log::log_info << "s: " << s << "\n";
+  std::cout << mgard_x::log::log_info << "error bound: " << tol << "\n";
+  std::cout << mgard_x::log::log_info << "s: " << s << "\n";
 
   bool verbose = has_arg(argc, argv, "-v");
   if (verbose)
-    std::cout << mgard_cuda::log::log_info << "Verbose: enabled\n";
-  if (dtype == mgard_cuda::data_type::Double)
+    std::cout << mgard_x::log::log_info << "Verbose: enabled\n";
+  if (dtype == mgard_x::data_type::Double)
     launch_compress<double>(D, dtype, input_file.c_str(), output_file.c_str(),
                             shape, (double)tol, (double)s, mode, verbose);
-  else if (dtype == mgard_cuda::data_type::Float)
+  else if (dtype == mgard_x::data_type::Float)
     launch_compress<float>(D, dtype, input_file.c_str(), output_file.c_str(),
                            shape, (float)tol, (float)s, mode, verbose);
   return true;
@@ -523,41 +523,41 @@ bool try_compression(int argc, char *argv[]) {
 bool try_decompression(int argc, char *argv[]) {
   if (!has_arg(argc, argv, "-x"))
     return false;
-  std::cout << mgard_cuda::log::log_info << "mode: decompression\n";
+  std::cout << mgard_x::log::log_info << "mode: decompression\n";
   std::string input_file = get_arg(argc, argv, "-c");
   std::string output_file = get_arg(argc, argv, "-d");
 
-  std::cout << mgard_cuda::log::log_info << "compressed data: " << input_file
+  std::cout << mgard_x::log::log_info << "compressed data: " << input_file
             << "\n";
-  std::cout << mgard_cuda::log::log_info << "decompressed data: " << output_file
+  std::cout << mgard_x::log::log_info << "decompressed data: " << output_file
             << "\n";
 
-  enum mgard_cuda::data_type dtype;
+  enum mgard_x::data_type dtype;
   std::string dt = get_arg(argc, argv, "-t");
   if (dt.compare("s") == 0) {
-    dtype = mgard_cuda::data_type::Float;
-    std::cout << mgard_cuda::log::log_info << "data type: Single precision\n";
+    dtype = mgard_x::data_type::Float;
+    std::cout << mgard_x::log::log_info << "data type: Single precision\n";
   } else if (dt.compare("d") == 0) {
-    dtype = mgard_cuda::data_type::Double;
-    std::cout << mgard_cuda::log::log_info << "data type: Double precision\n";
+    dtype = mgard_x::data_type::Double;
+    std::cout << mgard_x::log::log_info << "data type: Double precision\n";
   } else
     print_usage_message("wrong data type.");
 
-  mgard_cuda::DIM D = get_arg_int(argc, argv, "-n");
-  std::vector<mgard_cuda::SIZE> shape = get_arg_dims(argc, argv, "-n");
+  mgard_x::DIM D = get_arg_int(argc, argv, "-n");
+  std::vector<mgard_x::SIZE> shape = get_arg_dims(argc, argv, "-n");
   std::string shape_string = "shape (";
-  for (mgard_cuda::DIM d = 0; d < shape.size(); d++)
+  for (mgard_x::DIM d = 0; d < shape.size(); d++)
     shape_string = shape_string + std::to_string(shape[d]) + " ";
   shape_string = shape_string + ")";
 
-  enum mgard_cuda::error_bound_type mode; // REL or ABS
+  enum mgard_x::error_bound_type mode; // REL or ABS
   std::string em = get_arg(argc, argv, "-m");
   if (em.compare("rel") == 0) {
-    mode = mgard_cuda::error_bound_type::REL;
-    std::cout << mgard_cuda::log::log_info << "error bound mode: Relative\n";
+    mode = mgard_x::error_bound_type::REL;
+    std::cout << mgard_x::log::log_info << "error bound mode: Relative\n";
   } else if (em.compare("abs") == 0) {
-    mode = mgard_cuda::error_bound_type::ABS;
-    std::cout << mgard_cuda::log::log_info << "error bound mode: Absolute\n";
+    mode = mgard_x::error_bound_type::ABS;
+    std::cout << mgard_x::log::log_info << "error bound mode: Absolute\n";
   } else
     print_usage_message("wrong error bound mode.");
 
@@ -565,17 +565,17 @@ bool try_decompression(int argc, char *argv[]) {
   double s = get_arg_double(argc, argv, "-s");
 
   std::cout << std::scientific;
-  std::cout << mgard_cuda::log::log_info << "error bound: " << tol << "\n";
+  std::cout << mgard_x::log::log_info << "error bound: " << tol << "\n";
   std::cout << std::defaultfloat;
-  std::cout << mgard_cuda::log::log_info << "s: " << s << "\n";
+  std::cout << mgard_x::log::log_info << "s: " << s << "\n";
 
   bool verbose = has_arg(argc, argv, "-v");
   if (verbose)
-    std::cout << mgard_cuda::log::log_info << "Verbose: enabled\n";
-  if (dtype == mgard_cuda::data_type::Double)
+    std::cout << mgard_x::log::log_info << "Verbose: enabled\n";
+  if (dtype == mgard_x::data_type::Double)
     launch_decompress<double>(D, dtype, input_file.c_str(), output_file.c_str(),
                               shape, (double)tol, (double)s, mode, verbose);
-  else if (dtype == mgard_cuda::data_type::Float)
+  else if (dtype == mgard_x::data_type::Float)
     launch_decompress<float>(D, dtype, input_file.c_str(), output_file.c_str(),
                              shape, (float)tol, (float)s, mode, verbose);
   return true;

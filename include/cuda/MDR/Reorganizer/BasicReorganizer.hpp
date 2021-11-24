@@ -2,7 +2,7 @@
 #define _MDR_BASIC_REORGANIZER_HPP
 
 #include "ReorganizerInterface.hpp"
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     // direct in-order bit-plane placement
     class InOrderReorganizer : public concepts::ReorganizerInterface {

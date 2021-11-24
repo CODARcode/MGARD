@@ -3,7 +3,7 @@
 
 #include "WriterInterface.hpp"
 #include <cstdio>
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     // A writer that writes the concatenated level components
     class ConcatLevelFileWriter : public concepts::WriterInterface {

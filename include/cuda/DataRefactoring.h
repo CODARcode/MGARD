@@ -1,16 +1,16 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_DATA_REFACTORING
-#define MGRAD_CUDA_DATA_REFACTORING
+#ifndef MGARD_X_DATA_REFACTORING
+#define MGARD_X_DATA_REFACTORING
 
 #include "Common.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 // template <DIM D, typename T, typename DeviceType>
 // void calc_coeff_pointers(Handle<D, T> &handle, DIM curr_dims[3], DIM l, SubArray<D, T> doutput,
@@ -57,6 +57,6 @@ template <DIM D, typename T, typename DeviceType>
 void recompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v, 
                SIZE l_target, int queue_idx);
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

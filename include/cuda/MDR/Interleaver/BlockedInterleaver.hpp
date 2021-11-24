@@ -2,7 +2,7 @@
 #define _MDR_BLOCKED_INTERLEAVER_HPP
 
 #include "InterleaverInterface.hpp"
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     // direct interleaver with in-order recording
     template<DIM D, typename T>

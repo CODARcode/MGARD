@@ -32,7 +32,7 @@
 #define ERROR_COLLECTING_ALGORITHM Error_Collecting_Parallel_Bitplanes_Reduce_Error
 
 
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
 
 
@@ -371,11 +371,11 @@ namespace MDR {
 
     MGARDm_CONT
     SIZE MaxBitplaneLength(LENGTH n) {
-      mgard_cuda::SIZE num_batches_per_TB = 2;
-      const mgard_cuda::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-      const mgard_cuda::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-      mgard_cuda::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
-      mgard_cuda::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
+      mgard_x::SIZE num_batches_per_TB = 2;
+      const mgard_x::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
+      const mgard_x::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+      mgard_x::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
+      mgard_x::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
       return bitplane_max_length_total;
 
     }
@@ -1158,7 +1158,7 @@ namespace MDR {
 namespace mgard_m {
 namespace MDR {
 // general bitplane encoder that encodes data by block using T_stream type buffer
-template<typename HandleType, mgard_cuda::DIM D, typename T_data, typename T_bitplane, typename T_error>
+template<typename HandleType, mgard_x::DIM D, typename T_data, typename T_bitplane, typename T_error>
 class GroupedBPEncoder : public concepts::BitplaneEncoderInterface<HandleType, D, T_data, T_bitplane, T_error> {
 public:
   GroupedBPEncoder(HandleType& handle): handle(handle) {
@@ -1169,25 +1169,25 @@ public:
     static_assert(std::is_integral<T_bitplane>::value, "GroupedBPBlockEncoder: streams must be unsigned integers.");
   }
 
-  mgard_cuda::Array<2, T_bitplane, mgard_cuda::CUDA> encode(mgard_cuda::SIZE n, mgard_cuda::SIZE num_bitplanes, int32_t exp, 
-              mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v,
-              mgard_cuda::SubArray<1, T_error, mgard_cuda::CUDA> level_errors,
-              std::vector<mgard_cuda::SIZE>& streams_sizes, int queue_idx) const {
+  mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp, 
+              mgard_x::SubArray<1, T_data, mgard_x::CUDA> v,
+              mgard_x::SubArray<1, T_error, mgard_x::CUDA> level_errors,
+              std::vector<mgard_x::SIZE>& streams_sizes, int queue_idx) const {
 
-    mgard_cuda::SIZE num_batches_per_TB = 2;
-    const mgard_cuda::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const mgard_cuda::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    mgard_cuda::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
-    mgard_cuda::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
+    mgard_x::SIZE num_batches_per_TB = 2;
+    const mgard_x::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
+    const mgard_x::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+    mgard_x::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
+    mgard_x::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
 
-    mgard_cuda::Array<2, T_error, mgard_cuda::CUDA> level_errors_work_array({(mgard_cuda::SIZE)num_bitplanes+1, num_blocks});
-    mgard_cuda::SubArray<2, T_error, mgard_cuda::CUDA> level_errors_work(level_errors_work_array);
+    mgard_x::Array<2, T_error, mgard_x::CUDA> level_errors_work_array({(mgard_x::SIZE)num_bitplanes+1, num_blocks});
+    mgard_x::SubArray<2, T_error, mgard_x::CUDA> level_errors_work(level_errors_work_array);
     
-    mgard_cuda::Array<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_array({(mgard_cuda::SIZE)num_bitplanes, (mgard_cuda::SIZE)bitplane_max_length_total});
-    mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
+    mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_array({(mgard_x::SIZE)num_bitplanes, (mgard_x::SIZE)bitplane_max_length_total});
+    mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
 
-    mgard_cuda::MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY_TYPE, DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, mgard_cuda::CUDA>().
+    mgard_x::MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY_TYPE, DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, mgard_x::CUDA>().
                   Execute(n, num_batches_per_TB, num_bitplanes, exp, 
                           v, encoded_bitplanes_subarray, level_errors, level_errors_work, 
                           queue_idx);
@@ -1199,25 +1199,25 @@ public:
     return encoded_bitplanes_array;
   }
 
-  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> decode(mgard_cuda::SIZE n, mgard_cuda::SIZE num_bitplanes, int32_t exp, 
-                  mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes, int level,
+  mgard_x::Array<1, T_data, mgard_x::CUDA> decode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp, 
+                  mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes, int level,
                   int queue_idx) {
 
   }
 
   // decode the data and record necessary information for progressiveness
-  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> progressive_decode(mgard_cuda::SIZE n, mgard_cuda::SIZE starting_bitplane, mgard_cuda::SIZE num_bitplanes, int32_t exp, 
-                          mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes, int level,
+  mgard_x::Array<1, T_data, mgard_x::CUDA> progressive_decode(mgard_x::SIZE n, mgard_x::SIZE starting_bitplane, mgard_x::SIZE num_bitplanes, int32_t exp, 
+                          mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes, int level,
                           int queue_idx) {
 
-    mgard_cuda::SIZE num_batches_per_TB = 2;
-    const mgard_cuda::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const mgard_cuda::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    mgard_cuda::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
-    mgard_cuda::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
+    mgard_x::SIZE num_batches_per_TB = 2;
+    const mgard_x::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
+    const mgard_x::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+    mgard_x::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
+    mgard_x::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
 
     if(level_signs.size() == level){
-      level_signs.push_back(mgard_cuda::Array<1, bool, mgard_cuda::CUDA>({n}));
+      level_signs.push_back(mgard_x::Array<1, bool, mgard_x::CUDA>({n}));
     }
 
 
@@ -1231,10 +1231,10 @@ public:
 
     // Array<1, bool> signs_array({(SIZE)n});
     // signs_array.loadData(new_signs);
-    mgard_cuda::SubArray<1, bool, mgard_cuda::CUDA> signs_subarray(level_signs[level]);
+    mgard_x::SubArray<1, bool, mgard_x::CUDA> signs_subarray(level_signs[level]);
 
-    mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> v_array({(mgard_cuda::SIZE)n});
-    mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v(v_array);
+    mgard_x::Array<1, T_data, mgard_x::CUDA> v_array({(mgard_x::SIZE)n});
+    mgard_x::SubArray<1, T_data, mgard_x::CUDA> v(v_array);
 
 
     // delete [] new_signs;
@@ -1242,8 +1242,8 @@ public:
     // Array<1, T_data> v_array({(SIZE)n});
     // SubArray<1, T_data> v(v_array);
 
-    mgard_cuda::MDR::GroupedDecoder<T_data, T_bitplane, BINARY_TYPE, 
-                  DATA_DECODING_ALGORITHM, mgard_cuda::CUDA>().
+    mgard_x::MDR::GroupedDecoder<T_data, T_bitplane, BINARY_TYPE, 
+                  DATA_DECODING_ALGORITHM, mgard_x::CUDA>().
                   Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp, 
                   encoded_bitplanes, signs_subarray, v, queue_idx);
 
@@ -1260,12 +1260,12 @@ public:
   }
 
 
-  mgard_cuda::SIZE buffer_size(mgard_cuda::SIZE n) const {
-    mgard_cuda::SIZE num_batches_per_TB = 2;
-    const mgard_cuda::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const mgard_cuda::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    mgard_cuda::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
-    mgard_cuda::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
+  mgard_x::SIZE buffer_size(mgard_x::SIZE n) const {
+    mgard_x::SIZE num_batches_per_TB = 2;
+    const mgard_x::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
+    const mgard_x::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+    mgard_x::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
+    mgard_x::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
     return bitplane_max_length_total;
   }
 
@@ -1275,7 +1275,7 @@ public:
   }
 private:
 HandleType& handle;
-std::vector<mgard_cuda::Array<1, bool, mgard_cuda::CUDA>> level_signs;
+std::vector<mgard_x::Array<1, bool, mgard_x::CUDA>> level_signs;
 std::vector<std::vector<uint8_t>> level_recording_bitplanes;
 
 };

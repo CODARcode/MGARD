@@ -9,7 +9,7 @@ using std::string;
 
 
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 namespace log {
 

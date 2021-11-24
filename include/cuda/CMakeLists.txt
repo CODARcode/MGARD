@@ -1,5 +1,5 @@
-set(MGARD_CUDA_HEADER
-      ${CMAKE_CURRENT_SOURCE_DIR}/../mgard_cuda_api.h
+set(MGARD_X_HEADER
+      ${CMAKE_CURRENT_SOURCE_DIR}/../mgard_x_api.h
       ${CMAKE_CURRENT_SOURCE_DIR}/Array.hpp
       ${CMAKE_CURRENT_SOURCE_DIR}/SubArray.hpp
       ${CMAKE_CURRENT_SOURCE_DIR}/Message.h

@@ -2,7 +2,7 @@
 #define _MDR_MAX_ERROR_COLLECTOR_HPP
 
 #include "ErrorCollectorInterface.hpp"
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     // max error collector: computing according to bit-plane definition
     template<typename T>

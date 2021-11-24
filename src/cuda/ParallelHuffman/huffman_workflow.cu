@@ -91,7 +91,7 @@ void wrapper::GetFrequency(Q *d_bcode, size_t len, unsigned int *d_freq,
     }
   }
 
-  // mgard_cuda::print_matrix_cuda(1, 10, (int *)d_bcode, 10);
+  // mgard_x::print_matrix_cuda(1, 10, (int *)d_bcode, 10);
 
   // printf("maxbytes: %d, p2013Histogram: %d\n", maxbytes,(numBuckets + 1) *
   // sizeof(int));
@@ -145,14 +145,14 @@ void PrintChunkHuffmanCoding(size_t *dH_bit_meta, //
   cout << endl;
 }
 
-// template <mgard_cuda::DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
-// void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
+// template <mgard_x::DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
+// void HuffmanEncode(mgard_x::Handle<D, T> &handle, S *dqv, size_t n,
 //                    std::vector<size_t> &outlier_idx, H *&dmeta,
 //                    size_t &dmeta_size, H *&ddata, size_t &ddata_size,
 //                    int chunk_size, int dict_size) {
 
-template <mgard_cuda::DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
-void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
+template <mgard_x::DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
+void HuffmanEncode(mgard_x::Handle<D, T> &handle, S *dqv, size_t n,
                    std::vector<size_t> &outlier_idx, H *&dmeta,
                    size_t &dmeta_size, H *&ddata, size_t &ddata_size,
                    int chunk_size, int dict_size) {
@@ -170,53 +170,53 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   ht_state_num = 2 * dict_size;
   ht_all_nodes = 2 * ht_state_num;
 
-  mgard_cuda::Array<1, unsigned int, DeviceType> freq_array({(mgard_cuda::SIZE)ht_all_nodes});
+  mgard_x::Array<1, unsigned int, DeviceType> freq_array({(mgard_x::SIZE)ht_all_nodes});
   freq_array.memset(0);
 
-  mgard_cuda::SubArray<1, Q, DeviceType> dprimary_subarray({(mgard_cuda::SIZE)n}, dprimary);
-  mgard_cuda::SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
-  mgard_cuda::Histogram<Q, unsigned int, DeviceType>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
+  mgard_x::SubArray<1, Q, DeviceType> dprimary_subarray({(mgard_x::SIZE)n}, dprimary);
+  mgard_x::SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
+  mgard_x::Histogram<Q, unsigned int, DeviceType>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
   gpuErrchk(cudaDeviceSynchronize());
 
   auto type_bw = sizeof(H) * 8;
   size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size;
-  mgard_cuda::Array<1, H, DeviceType> codebook_array({(mgard_cuda::SIZE)dict_size});
+  mgard_x::Array<1, H, DeviceType> codebook_array({(mgard_x::SIZE)dict_size});
   codebook_array.memset(0);
-  mgard_cuda::Array<1, uint8_t, DeviceType> decodebook_array({(mgard_cuda::SIZE)decodebook_size});
+  mgard_x::Array<1, uint8_t, DeviceType> decodebook_array({(mgard_x::SIZE)decodebook_size});
   codebook_array.memset(0xff);
 
   H * codebook = codebook_array.get_dv();
   uint8_t *decodebook = decodebook_array.get_dv();
 
 
-  mgard_cuda::SubArray<1, H, DeviceType> codebook_subarray(codebook_array);
-  mgard_cuda::SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
+  mgard_x::SubArray<1, H, DeviceType> codebook_subarray(codebook_array);
+  mgard_x::SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
 
-  mgard_cuda::GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray, decodebook_subarray);
+  mgard_x::GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray, decodebook_subarray);
   cudaDeviceSynchronize();
 
-  mgard_cuda::Array<1, H, DeviceType> huff_array({(mgard_cuda::SIZE)primary_count});
+  mgard_x::Array<1, H, DeviceType> huff_array({(mgard_x::SIZE)primary_count});
   huff_array.memset(0);
   H * huff = huff_array.get_dv();
 
   gpuErrchk(cudaDeviceSynchronize());
 
-  mgard_cuda::SubArray<1, H, DeviceType> huff_subarray(huff_array);
-  mgard_cuda::EncodeFixedLen<unsigned int, H, DeviceType>().Execute(dprimary_subarray,
+  mgard_x::SubArray<1, H, DeviceType> huff_subarray(huff_array);
+  mgard_x::EncodeFixedLen<unsigned int, H, DeviceType>().Execute(dprimary_subarray,
                                                               huff_subarray,
                                                               primary_count,
                                                               codebook_subarray, 0);
 
   // deflate
   auto nchunk = (primary_count - 1) / chunk_size + 1; 
-  mgard_cuda::Array<1, size_t, DeviceType> huff_bitwidths_array({(mgard_cuda::SIZE)nchunk});
+  mgard_x::Array<1, size_t, DeviceType> huff_bitwidths_array({(mgard_x::SIZE)nchunk});
   huff_bitwidths_array.memset(0);
   size_t * huff_bitwidths = huff_bitwidths_array.get_dv();
 
-  mgard_cuda::SubArray<1, size_t, DeviceType> huff_bitwidths_subarray({(mgard_cuda::SIZE)nchunk}, huff_bitwidths);
-  mgard_cuda::Deflate<H, DeviceType>().Execute(huff_subarray, primary_count, huff_bitwidths_subarray, chunk_size, 0);
+  mgard_x::SubArray<1, size_t, DeviceType> huff_bitwidths_subarray({(mgard_x::SIZE)nchunk}, huff_bitwidths);
+  mgard_x::Deflate<H, DeviceType>().Execute(huff_subarray, primary_count, huff_bitwidths_subarray, chunk_size, 0);
 
-  mgard_cuda::DeviceRuntime<DeviceType>::SyncQueue(0);
+  mgard_x::DeviceRuntime<DeviceType>::SyncQueue(0);
 
 
   // dump TODO change to int
@@ -225,7 +225,7 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   size_t* dH_bit_meta = h_meta + nchunk;
   size_t* dH_uInt_entry = h_meta + nchunk * 2;
 
-  mgard_cuda::MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths, nchunk, 0);
+  mgard_x::MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths, nchunk, 0);
   gpuErrchk(cudaDeviceSynchronize());
   // transform in uInt
   memcpy(dH_uInt_meta, dH_bit_meta, nchunk * sizeof(size_t));
@@ -259,43 +259,43 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
       (sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size) * sizeof(uint8_t);
 
 
-  mgard_cuda::cudaMallocHelper(handle, (void **)&dmeta, dmeta_size);
+  mgard_x::cudaMallocHelper(handle, (void **)&dmeta, dmeta_size);
   ddata_size = total_uInts * sizeof(H);
-  mgard_cuda::cudaMallocHelper(handle, (void **)&ddata, ddata_size);
+  mgard_x::cudaMallocHelper(handle, (void **)&ddata, ddata_size);
 
-  mgard_cuda::Array<1, mgard_cuda::Byte, DeviceType> meta_array({(mgard_cuda::SIZE)dmeta_size});
-  mgard_cuda::Array<1, mgard_cuda::Byte, DeviceType> data_array({(mgard_cuda::SIZE)ddata_size});
+  mgard_x::Array<1, mgard_x::Byte, DeviceType> meta_array({(mgard_x::SIZE)dmeta_size});
+  mgard_x::Array<1, mgard_x::Byte, DeviceType> data_array({(mgard_x::SIZE)ddata_size});
 
   void *dmeta_p = (void *)dmeta;
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, dmeta_p, &primary_count,
-                                    sizeof(size_t), mgard_cuda::H2D,
+  mgard_x::cudaMemcpyAsyncHelper(handle, dmeta_p, &primary_count,
+                                    sizeof(size_t), mgard_x::H2D,
                                     (queue_idx++) % handle.num_of_queues);
   dmeta_p = dmeta_p + sizeof(size_t);
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, dmeta_p, &dict_size, sizeof(int),
-                                    mgard_cuda::H2D,
+  mgard_x::cudaMemcpyAsyncHelper(handle, dmeta_p, &dict_size, sizeof(int),
+                                    mgard_x::H2D,
                                     (queue_idx++) % handle.num_of_queues);
   dmeta_p = dmeta_p + sizeof(int);
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, dmeta_p, &chunk_size, sizeof(int),
-                                    mgard_cuda::H2D,
+  mgard_x::cudaMemcpyAsyncHelper(handle, dmeta_p, &chunk_size, sizeof(int),
+                                    mgard_x::H2D,
                                     (queue_idx++) % handle.num_of_queues);
   dmeta_p = dmeta_p + sizeof(int);
   size_t huffmeta_size = 2 * nchunk * sizeof(size_t);
   // printf("compress huffmeta_size: %llu\n", huffmeta_size);
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, dmeta_p, &huffmeta_size,
-                                    sizeof(size_t), mgard_cuda::H2D,
+  mgard_x::cudaMemcpyAsyncHelper(handle, dmeta_p, &huffmeta_size,
+                                    sizeof(size_t), mgard_x::H2D,
                                     (queue_idx++) % handle.num_of_queues);
   dmeta_p = dmeta_p + sizeof(size_t);
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, dmeta_p, h_meta + nchunk,
-                                    huffmeta_size, mgard_cuda::H2D,
+  mgard_x::cudaMemcpyAsyncHelper(handle, dmeta_p, h_meta + nchunk,
+                                    huffmeta_size, mgard_x::H2D,
                                     (queue_idx++) % handle.num_of_queues);
   dmeta_p = dmeta_p + huffmeta_size;
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, dmeta_p, &decodebook_size,
-                                    sizeof(size_t), mgard_cuda::H2D,
+  mgard_x::cudaMemcpyAsyncHelper(handle, dmeta_p, &decodebook_size,
+                                    sizeof(size_t), mgard_x::H2D,
                                     (queue_idx++) % handle.num_of_queues);
   dmeta_p = dmeta_p + sizeof(size_t);
   // printf("compress decodebook_size: %llu\n", decodebook_size);
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, dmeta_p, decodebook,
-                                    decodebook_size, mgard_cuda::H2D,
+  mgard_x::cudaMemcpyAsyncHelper(handle, dmeta_p, decodebook,
+                                    decodebook_size, mgard_x::H2D,
                                     (queue_idx++) % handle.num_of_queues);
   dmeta_p = dmeta_p + decodebook_size;
 
@@ -307,9 +307,9 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   t1 = high_resolution_clock::now();
 
   for (auto i = 0; i < nchunk; i++) {
-    mgard_cuda::cudaMemcpyAsyncHelper(
+    mgard_x::cudaMemcpyAsyncHelper(
         handle, ddata + dH_uInt_entry[i], (void *)(huff + i * chunk_size),
-        dH_uInt_meta[i] * sizeof(H), mgard_cuda::D2D,
+        dH_uInt_meta[i] * sizeof(H), mgard_x::D2D,
         (queue_idx++) % handle.num_of_queues);
   }
 
@@ -330,8 +330,8 @@ void HuffmanEncode(mgard_cuda::Handle<D, T> &handle, S *dqv, size_t n,
   delete[] h_meta;
 }
 
-template <mgard_cuda::DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
-void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
+template <mgard_x::DIM D, typename T, typename S, typename Q, typename H, typename DeviceType>
+void HuffmanDecode(mgard_x::Handle<D, T> &handle, S *&dqv, size_t &n,
                    H *dmeta, size_t dmeta_size, H *ddata, size_t ddata_size) {
 
   Q *dprimary;
@@ -350,34 +350,34 @@ void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
   void *dmeta_p = (void *)dmeta;
 
   // primary
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, &primary_count, dmeta_p,
-                                    sizeof(size_t), mgard_cuda::D2H, 0);
+  mgard_x::cudaMemcpyAsyncHelper(handle, &primary_count, dmeta_p,
+                                    sizeof(size_t), mgard_x::D2H, 0);
   dmeta_p = dmeta_p + sizeof(size_t);
   // printf("decompress primary_count: %llu\n", primary_count);
-  mgard_cuda::cudaMallocHelper(handle, (void **)&dprimary, primary_count * sizeof(Q));
+  mgard_x::cudaMallocHelper(handle, (void **)&dprimary, primary_count * sizeof(Q));
 
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, &dict_size, dmeta_p, sizeof(int),
-                                    mgard_cuda::D2H, 0);
+  mgard_x::cudaMemcpyAsyncHelper(handle, &dict_size, dmeta_p, sizeof(int),
+                                    mgard_x::D2H, 0);
   dmeta_p = dmeta_p + sizeof(int);
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, &chunk_size, dmeta_p, sizeof(int),
-                                    mgard_cuda::D2H, 0);
+  mgard_x::cudaMemcpyAsyncHelper(handle, &chunk_size, dmeta_p, sizeof(int),
+                                    mgard_x::D2H, 0);
   dmeta_p = dmeta_p + sizeof(int);
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, &huffmeta_size, dmeta_p,
-                                    sizeof(size_t), mgard_cuda::D2H, 0);
+  mgard_x::cudaMemcpyAsyncHelper(handle, &huffmeta_size, dmeta_p,
+                                    sizeof(size_t), mgard_x::D2H, 0);
   dmeta_p = dmeta_p + sizeof(size_t);
   // printf("decompress huffmeta_size: %llu\n", huffmeta_size);
-  mgard_cuda::cudaMallocHelper(handle, (void **)&huffmeta, huffmeta_size);
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, huffmeta, dmeta_p, huffmeta_size,
-                                    mgard_cuda::D2D, 0);
+  mgard_x::cudaMallocHelper(handle, (void **)&huffmeta, huffmeta_size);
+  mgard_x::cudaMemcpyAsyncHelper(handle, huffmeta, dmeta_p, huffmeta_size,
+                                    mgard_x::D2D, 0);
   // // huffmeta = (size_t *)dmeta_p;
   dmeta_p = dmeta_p + huffmeta_size;
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, &decodebook_size, dmeta_p,
-                                    sizeof(size_t), mgard_cuda::D2H, 0);
+  mgard_x::cudaMemcpyAsyncHelper(handle, &decodebook_size, dmeta_p,
+                                    sizeof(size_t), mgard_x::D2H, 0);
   dmeta_p = dmeta_p + sizeof(size_t);
   // printf("decompress decodebook_size: %llu\n", decodebook_size);
-  mgard_cuda::cudaMallocHelper(handle, (void **)&decodebook, decodebook_size);
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, decodebook, dmeta_p,
-                                    decodebook_size, mgard_cuda::D2D, 0);
+  mgard_x::cudaMallocHelper(handle, (void **)&decodebook, decodebook_size);
+  mgard_x::cudaMemcpyAsyncHelper(handle, decodebook, dmeta_p,
+                                    decodebook_size, mgard_x::D2D, 0);
   // // decodebook = (uint8_t *)dmeta_p;
   dmeta_p = dmeta_p + decodebook_size;
 
@@ -391,11 +391,11 @@ void HuffmanDecode(mgard_cuda::Handle<D, T> &handle, S *&dqv, size_t &n,
       // (uint8_t *)decodebook, (size_t)decodebook_size);
   cudaDeviceSynchronize();
 
-  mgard_cuda::SubArray<1, H, mgard_cuda::CUDA> ddata_subarray({(mgard_cuda::SIZE)ddata_size}, ddata);
-  mgard_cuda::SubArray<1, size_t, mgard_cuda::CUDA> huffmeta_subarray({(mgard_cuda::SIZE)huffmeta_size/(mgard_cuda::SIZE)sizeof(size_t)}, huffmeta);
-  mgard_cuda::SubArray<1, Q, mgard_cuda::CUDA> dprimary_subarray({(mgard_cuda::SIZE)primary_count}, dprimary);
-  mgard_cuda::SubArray<1, uint8_t, mgard_cuda::CUDA> decodebook_subarray({(mgard_cuda::SIZE)decodebook_size}, decodebook);
-  mgard_cuda::Decode<Q, H, mgard_cuda::CUDA>().Execute(ddata_subarray,
+  mgard_x::SubArray<1, H, mgard_x::CUDA> ddata_subarray({(mgard_x::SIZE)ddata_size}, ddata);
+  mgard_x::SubArray<1, size_t, mgard_x::CUDA> huffmeta_subarray({(mgard_x::SIZE)huffmeta_size/(mgard_x::SIZE)sizeof(size_t)}, huffmeta);
+  mgard_x::SubArray<1, Q, mgard_x::CUDA> dprimary_subarray({(mgard_x::SIZE)primary_count}, dprimary);
+  mgard_x::SubArray<1, uint8_t, mgard_x::CUDA> decodebook_subarray({(mgard_x::SIZE)decodebook_size}, decodebook);
+  mgard_x::Decode<Q, H, mgard_x::CUDA>().Execute(ddata_subarray,
                                                        huffmeta_subarray,
                                                        dprimary_subarray,
                                                        primary_count, chunk_size, nchunk,
@@ -454,12 +454,12 @@ template void PrintChunkHuffmanCoding<uint64_t>(size_t *, size_t *, size_t, int,
 //                           dmeta_size, uint32_t * ddata, size_t ddata_size);
 
 #define KERNELS(D, T, S, Q, H)                                                 \
-  template void HuffmanEncode<D, T, S, Q, H, mgard_cuda::CUDA>(                                  \
-      mgard_cuda::Handle<D, T> & handle, S * dqv, size_t n,                    \
+  template void HuffmanEncode<D, T, S, Q, H, mgard_x::CUDA>(                                  \
+      mgard_x::Handle<D, T> & handle, S * dqv, size_t n,                    \
       std::vector<size_t> & outlier_idx, H * &dmeta, size_t & dmeta_size,      \
       H * &ddata, size_t & ddata_size, int chunk_size, int dict_size);         \
-  template void HuffmanDecode<D, T, S, Q, H, mgard_cuda::CUDA>(                                  \
-      mgard_cuda::Handle<D, T> & handle, S * &dqv, size_t & n, H * dmeta,      \
+  template void HuffmanDecode<D, T, S, Q, H, mgard_x::CUDA>(                                  \
+      mgard_x::Handle<D, T> & handle, S * &dqv, size_t & n, H * dmeta,      \
       size_t dmeta_size, H * ddata, size_t ddata_size);
 
 KERNELS(1, double, int, uint32_t, uint32_t)

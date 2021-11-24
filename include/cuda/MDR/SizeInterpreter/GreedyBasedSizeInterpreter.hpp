@@ -6,7 +6,7 @@
 #include "../RefactorUtils.hpp"
 
 // inorder and round-robin size interpreter
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     struct UnitErrorGain{
         double unit_error_gain;

@@ -1,12 +1,12 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_LEVELWISE_PROCESSING_KERNEL_TEMPLATE
-#define MGRAD_CUDA_LEVELWISE_PROCESSING_KERNEL_TEMPLATE
+#ifndef MGARD_X_LEVELWISE_PROCESSING_KERNEL_TEMPLATE
+#define MGARD_X_LEVELWISE_PROCESSING_KERNEL_TEMPLATE
 
 #include "CommonInternal.h"
 #include "Functor.h"
@@ -15,7 +15,7 @@
 #include "DeviceAdapters/DeviceAdapter.h"
 
 #include "LevelwiseProcessingKernel.h"
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP, typename DeviceType>
 class LwpkReoFunctor: public Functor<DeviceType> {
@@ -263,7 +263,7 @@ void lwpk(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_d, T *dv, SIZE *ldvs,
 }
 
 
-template <mgard_cuda::DIM D, typename T, int R, int C, int F, OPTION OP, typename DeviceType>
+template <mgard_x::DIM D, typename T, int R, int C, int F, OPTION OP, typename DeviceType>
 class LevelwiseCalcNDFunctor : public Functor<DeviceType> {
 public:
   MGARDm_CONT
@@ -404,6 +404,6 @@ public:
   }
 };
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

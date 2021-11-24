@@ -1,6 +1,6 @@
 #ifndef _MDR_REORGANIZER_INTERFACE_HPP
 #define _MDR_REORGANIZER_INTERFACE_HPP
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     namespace concepts {
 

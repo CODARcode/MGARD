@@ -1,12 +1,12 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_HUFFMAN_HISTOGRAM_TEMPLATE_HPP
-#define MGRAD_CUDA_HUFFMAN_HISTOGRAM_TEMPLATE_HPP
+#ifndef MGARD_X_HUFFMAN_HISTOGRAM_TEMPLATE_HPP
+#define MGARD_X_HUFFMAN_HISTOGRAM_TEMPLATE_HPP
 
 
 #include "../CommonInternal.h"
@@ -15,7 +15,7 @@
 #include "../Task.h"
 #include "../DeviceAdapters/DeviceAdapter.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
   template <typename T, typename Q, typename DeviceType>
   class HistogramFunctor: public Functor<DeviceType> {
     public:

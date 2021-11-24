@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(mgard_cuda_xgc CXX C)
+project(mgard_x_xgc CXX C)
 find_package(mgard)
 find_package(MPI REQUIRED)
 find_package(ADIOS2 REQUIRED)

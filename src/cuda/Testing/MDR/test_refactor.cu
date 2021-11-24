@@ -11,7 +11,7 @@
 using namespace std;
 
 template <class T, class Refactor>
-void evaluate(const vector<T>& data, const vector<mgard_cuda::SIZE>& dims, int target_level, int num_bitplanes, Refactor& refactor){
+void evaluate(const vector<T>& data, const vector<mgard_x::SIZE>& dims, int target_level, int num_bitplanes, Refactor& refactor){
     printf("evaluate\n");
     struct timespec start, end;
     int err = 0;
@@ -23,8 +23,8 @@ void evaluate(const vector<T>& data, const vector<mgard_cuda::SIZE>& dims, int t
 }
 
 template <class T, class Decomposer, class Interleaver, class Encoder, class Compressor, class ErrorCollector, class Writer>
-void test(string filename, const vector<mgard_cuda::SIZE>& dims, int target_level, int num_bitplanes, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorCollector collector, Writer writer){
-    auto refactor = mgard_cuda::MDR::ComposedRefactor<T, Decomposer, Interleaver, Encoder, Compressor, ErrorCollector, Writer>(decomposer, interleaver, encoder, compressor, collector, writer);
+void test(string filename, const vector<mgard_x::SIZE>& dims, int target_level, int num_bitplanes, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorCollector collector, Writer writer){
+    auto refactor = mgard_x::MDR::ComposedRefactor<T, Decomposer, Interleaver, Encoder, Compressor, ErrorCollector, Writer>(decomposer, interleaver, encoder, compressor, collector, writer);
     size_t num_elements = 1;
     
     FILE *pFile;
@@ -36,8 +36,8 @@ void test(string filename, const vector<mgard_cuda::SIZE>& dims, int target_leve
     evaluate(data, dims, target_level, num_bitplanes, refactor);
 }
 
-template <typename HandleType, mgard_cuda::DIM D, class T_data, class T_bitplane, class Decomposer, class Interleaver, class Encoder, class Compressor, class ErrorCollector, class Writer>
-void test2(string filename, const vector<mgard_cuda::SIZE>& dims, int target_level, int num_bitplanes, HandleType& handle, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorCollector collector, Writer writer){
+template <typename HandleType, mgard_x::DIM D, class T_data, class T_bitplane, class Decomposer, class Interleaver, class Encoder, class Compressor, class ErrorCollector, class Writer>
+void test2(string filename, const vector<mgard_x::SIZE>& dims, int target_level, int num_bitplanes, HandleType& handle, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorCollector collector, Writer writer){
     printf("test2\n");
 
     auto refactor = mgard_m::MDR::ComposedRefactor<HandleType, D, T_data, T_bitplane, Decomposer, Interleaver, Encoder, Compressor, ErrorCollector, Writer>(handle, decomposer, interleaver, encoder, compressor, collector, writer);
@@ -67,7 +67,7 @@ int main(int argc, char ** argv){
         std::cout << "Change to " << num_bitplanes + 1 << " bitplanes for simplicity of negabinary encoding" << std::endl;
     }
     int num_dims = atoi(argv[argv_id ++]);
-    vector<mgard_cuda::SIZE> dims(num_dims, 0);
+    vector<mgard_x::SIZE> dims(num_dims, 0);
     for(int i=0; i<num_dims; i++){
         dims[i] = atoi(argv[argv_id ++]);
     }
@@ -85,57 +85,57 @@ int main(int argc, char ** argv){
         num_bitplanes = 32;
         std::cout << "Only less than 32 bitplanes are supported for single-precision floating point" << std::endl;
     }
-    const mgard_cuda::DIM D = 3;
-    using HandleType = mgard_cuda::Handle<D, T>;
+    const mgard_x::DIM D = 3;
+    using HandleType = mgard_x::Handle<D, T>;
     printf("dims: %u %u %u\n", dims[2], dims[1], dims[0]);
 
-    mgard_cuda::Config config;
+    mgard_x::Config config;
     config.l_target = target_level;
     HandleType handle(dims, config);
     printf("Handle initialized\n");
     printf("handle.shape: %u %u %u\n", handle.shape[2], handle.shape[1], handle.shape[0]);
 
     if (false) {
-        auto decomposer = mgard_cuda::MDR::MGARDOrthoganalDecomposer<D, T>(handle);
-        // auto decomposer = mgard_cuda::MDR::MGARDHierarchicalDecomposer<T>();
+        auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T>(handle);
+        // auto decomposer = mgard_x::MDR::MGARDHierarchicalDecomposer<T>();
 
 
-        auto interleaver = mgard_cuda::MDR::DirectInterleaver<D, T>(handle);
-        // auto interleaver = mgard_cuda::MDR::SFCInterleaver<T>();
-        // auto interleaver = mgard_cuda::MDR::BlockedInterleaver<T>();
+        auto interleaver = mgard_x::MDR::DirectInterleaver<D, T>(handle);
+        // auto interleaver = mgard_x::MDR::SFCInterleaver<T>();
+        // auto interleaver = mgard_x::MDR::BlockedInterleaver<T>();
         
 
-        auto encoder = mgard_cuda::MDR::GroupedBPEncoder<D, T, T_stream>(handle);
-        // auto encoder = mgard_cuda::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
-        // auto encoder = mgard_cuda::MDR::NegaBinaryBPEncoder<D, T, T_stream>(handle);
-        // auto encoder = mgard_cuda::MDR::PerBitBPEncoder<D, T, T_stream>(handle);
-        // auto encoder = mgard_cuda::MDR::PerBitBPEncoderGPU<D, T, T_stream>(handle);
-        // auto encoder = mgard_cuda::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
+        auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T, T_stream>(handle);
+        // auto encoder = mgard_x::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
+        // auto encoder = mgard_x::MDR::NegaBinaryBPEncoder<D, T, T_stream>(handle);
+        // auto encoder = mgard_x::MDR::PerBitBPEncoder<D, T, T_stream>(handle);
+        // auto encoder = mgard_x::MDR::PerBitBPEncoderGPU<D, T, T_stream>(handle);
+        // auto encoder = mgard_x::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
 
 
-        auto compressor = mgard_cuda::MDR::DefaultLevelCompressor();
-        // auto compressor = mgard_cuda::MDR::AdaptiveLevelCompressor(32);
-        // auto compressor = mgard_cuda::MDR::NullLevelCompressor();
+        auto compressor = mgard_x::MDR::DefaultLevelCompressor();
+        // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
+        // auto compressor = mgard_x::MDR::NullLevelCompressor();
         
-        auto collector = mgard_cuda::MDR::SquaredErrorCollector<T>();
+        auto collector = mgard_x::MDR::SquaredErrorCollector<T>();
         
-        auto writer = mgard_cuda::MDR::ConcatLevelFileWriter(metadata_file, files);
-        // auto writer = mgard_cuda::MDR::HPSSFileWriter(metadata_file, files, 2048, 512 * 1024 * 1024);
+        auto writer = mgard_x::MDR::ConcatLevelFileWriter(metadata_file, files);
+        // auto writer = mgard_x::MDR::HPSSFileWriter(metadata_file, files, 2048, 512 * 1024 * 1024);
 
         test<T>(filename, dims, target_level, num_bitplanes, decomposer, interleaver, encoder, compressor, collector, writer);
     }
 
     if (true) {
-        std::vector<mgard_cuda::Array<1, bool, mgard_cuda::CUDA>> level_signs;
+        std::vector<mgard_x::Array<1, bool, mgard_x::CUDA>> level_signs;
 
         auto decomposer = mgard_m::MDR::MGARDOrthoganalDecomposer<HandleType, D, T>(handle);
         auto interleaver = mgard_m::MDR::DirectInterleaver<HandleType, D, T>(handle);
         // auto encoder = mgard_m::MDR::GroupedBPEncoder<HandleType, D, T, T_stream, T_error>(handle);
         auto encoder = mgard_m::MDR::GroupedWarpBPEncoder<HandleType, D, T, T_stream, T_error>(handle);
         auto compressor = mgard_m::MDR::DefaultLevelCompressor<HandleType, D, T_stream>(handle);
-        auto collector = mgard_cuda::MDR::SquaredErrorCollector<T>();
-        auto writer = mgard_cuda::MDR::ConcatLevelFileWriter(metadata_file, files);
-        test2<mgard_cuda::Handle<D, T>, D, T, T_stream>(filename, dims, target_level, num_bitplanes, handle, decomposer, interleaver, encoder, compressor, collector, writer);
+        auto collector = mgard_x::MDR::SquaredErrorCollector<T>();
+        auto writer = mgard_x::MDR::ConcatLevelFileWriter(metadata_file, files);
+        test2<mgard_x::Handle<D, T>, D, T, T_stream>(filename, dims, target_level, num_bitplanes, handle, decomposer, interleaver, encoder, compressor, collector, writer);
     }
 
     return 0;

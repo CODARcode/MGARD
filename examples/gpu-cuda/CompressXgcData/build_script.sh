@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Copyright 2021, Oak Ridge National Laboratory.
-# MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+# MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
 # Author: Jieyang Chen (chenj3@ornl.gov)
 # Date: April 2, 2021
 # Script for building the example

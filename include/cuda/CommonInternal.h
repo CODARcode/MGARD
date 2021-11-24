@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 #include <stdint.h>
 
@@ -14,8 +14,8 @@
 
 
 
-#ifndef MGRAD_CUDA_COMMON_INTERNAL
-#define MGRAD_CUDA_COMMON_INTERNAL
+#ifndef MGARD_X_COMMON_INTERNAL
+#define MGARD_X_COMMON_INTERNAL
 
 #if defined(__CUDACC__) // NVCC
    #define MGARDm_ALIGN(n) __align__(n)
@@ -71,7 +71,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
   }
 }
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 
 template <class T> struct SharedMemory {
@@ -267,7 +267,7 @@ template <typename T> __device__ T _get_dist(T *coords, int i, int j);
 // template <typename T>
 // __device__ inline T tridiag_forward(T prev, T bm, T curr) {
 
-// #ifdef MGARD_CUDA_FMA
+// #ifdef MGARD_X_FMA
 //   if (sizeof(T) == sizeof(double)) {
 //     return fma(prev, bm, curr);
 //   } else if (sizeof(T) == sizeof(float)) {
@@ -281,7 +281,7 @@ template <typename T> __device__ T _get_dist(T *coords, int i, int j);
 // template <typename T>
 // __device__ inline T tridiag_backward(T prev, T dist, T am, T curr) {
 
-// #ifdef MGARD_CUDA_FMA
+// #ifdef MGARD_X_FMA
 //   if (sizeof(T) == sizeof(double)) {
 //     return fma(-1 * dist, prev, curr) * am;
 //   } else if (sizeof(T) == sizeof(float)) {
@@ -295,7 +295,7 @@ template <typename T> __device__ T _get_dist(T *coords, int i, int j);
 
 
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #include "Array.hpp"
 #include "SubArray.hpp"

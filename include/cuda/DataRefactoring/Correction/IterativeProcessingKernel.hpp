@@ -1,17 +1,17 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_TEMPLATE
-#define MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_TEMPLATE
+#ifndef MGARD_X_ITERATIVE_PROCESSING_KERNEL_TEMPLATE
+#define MGARD_X_ITERATIVE_PROCESSING_KERNEL_TEMPLATE
 
 #include "../../CommonInternal.h"
 #include "IPKFunctor.h"
 #include "IterativeProcessingKernel.h"
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
 __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
@@ -779,7 +779,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     /* Computation of v in parallel*/
     if (r_sm < r_rest && f_sm < f_rest) {
 
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]);
@@ -791,7 +791,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 
       for (SIZE i = 1; i < C; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
         //       __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)],
         //       bm_sm[i],
@@ -871,7 +871,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   if (c_ghost + c_rest == 1) {
     if (r_sm < r_rest && f_sm < f_rest) {
       // vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm * bm_sm[0];
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]);
@@ -888,7 +888,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
   } else {
     if (r_sm < r_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]);
@@ -899,7 +899,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
       for (SIZE i = 1; i < c_ghost + c_rest; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
         //       __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)],
         //       bm_sm[i],
@@ -980,7 +980,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     // printf("*****test\n");
     /* Computation of v in parallel*/
     if (r_sm < r_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]) * am_sm[0];
@@ -1002,7 +1002,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 
       for (SIZE i = 1; i < C; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
         //       f_sm)],
@@ -1089,7 +1089,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   /* Only 1 col remain */
   if (c_ghost + c_rest == 1) {
     if (r_sm < r_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]) * am_sm[0];
@@ -1116,7 +1116,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
   } else {
     if (r_sm < r_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]) * am_sm[0];
@@ -1138,7 +1138,7 @@ __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
       for (SIZE i = 1; i < c_ghost + c_rest; i++) {
 
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
         //       f_sm)],
@@ -1437,7 +1437,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
 
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]);
@@ -1455,7 +1455,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
 
       for (SIZE i = 1; i < R; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
         //       __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
         //       bm_sm[i],
@@ -1541,7 +1541,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   if (r_ghost + r_rest == 1) {
     if (c_sm < c_rest && f_sm < f_rest) {
 
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]);
@@ -1564,7 +1564,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
   } else {
     if (c_sm < c_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]);
@@ -1582,7 +1582,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (SIZE i = 1; i < r_ghost + r_rest; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
         //       __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
         //       bm_sm[i],
@@ -1669,7 +1669,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]) * am_sm[0];
@@ -1690,7 +1690,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
                            vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (SIZE i = 1; i < R; i++) {
 
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
         //       f_sm)],
@@ -1783,7 +1783,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
   /* Only 1 col remain */
   if (r_ghost + r_rest == 1) {
     if (c_sm < c_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]) * am_sm[0];
@@ -1817,7 +1817,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 
   } else {
     if (c_sm < c_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]) * am_sm[0];
@@ -1847,7 +1847,7 @@ __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
                            vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (SIZE i = 1; i < r_ghost + r_rest; i++) {
 
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
         //       f_sm)],
@@ -2009,6 +2009,6 @@ void ipk_3(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
 #undef IPK
 }
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

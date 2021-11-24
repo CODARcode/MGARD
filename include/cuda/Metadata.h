@@ -1,19 +1,19 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_METADATA
-#define MGRAD_CUDA_METADATA
+#ifndef MGARD_X_METADATA
+#define MGARD_X_METADATA
 
 #include <cstring>
 
 #define MAGIC_WORD "MGARD"
 #define MAGIC_WORD_SIZE 5
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 struct Metadata {
   // about MGARD software

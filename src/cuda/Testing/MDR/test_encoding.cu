@@ -21,11 +21,11 @@ print_bits(T v, int num_bits, bool reverse = false) {
 }
 
 
-template <typename T_data, typename T_bitplane, mgard_cuda::OPTION BinaryType, mgard_cuda::OPTION DataEncodingAlgorithm, mgard_cuda::OPTION ErrorCollectingAlgorithm, mgard_cuda::OPTION DataDecodingAlgorithm>
-void test(mgard_cuda::SIZE n, 
-          mgard_cuda::SIZE num_batches_per_TB, 
-          mgard_cuda::SIZE encoding_num_bitplanes, 
-          mgard_cuda::SIZE decoding_num_bitplanes){
+template <typename T_data, typename T_bitplane, mgard_x::OPTION BinaryType, mgard_x::OPTION DataEncodingAlgorithm, mgard_x::OPTION ErrorCollectingAlgorithm, mgard_x::OPTION DataDecodingAlgorithm>
+void test(mgard_x::SIZE n, 
+          mgard_x::SIZE num_batches_per_TB, 
+          mgard_x::SIZE encoding_num_bitplanes, 
+          mgard_x::SIZE decoding_num_bitplanes){
   
   bool check_correctness = true;
 
@@ -70,67 +70,67 @@ void test(mgard_cuda::SIZE n,
 
   // T_bitplane * bitplane = new T_bitplane[num_blocks*sizeof(T_data)*8];
 
-  // mgard_cuda::Handle<1, float> handle;
+  // mgard_x::Handle<1, float> handle;
 
   
 
-  // mgard_cuda::Array<1, T_bitplane> bitplane_array({(mgard_cuda::SIZE)num_blocks*(int)sizeof(T_data)*8});
-  // mgard_cuda::SubArray<1, T_bitplane> bitplane_subarray(bitplane_array);
+  // mgard_x::Array<1, T_bitplane> bitplane_array({(mgard_x::SIZE)num_blocks*(int)sizeof(T_data)*8});
+  // mgard_x::SubArray<1, T_bitplane> bitplane_subarray(bitplane_array);
 
 
   
 
   // printf("Starting encoding\n");
-  using HandleType = mgard_cuda::Handle<1, float>;
+  using HandleType = mgard_x::Handle<1, float>;
   using T_error = double;
   HandleType handle({5});
 
   
 
-  const mgard_cuda::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-  const mgard_cuda::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-  mgard_cuda::SIZE num_TB = (n-1)/num_elems_per_TB+1;
-  mgard_cuda::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_TB;
+  const mgard_x::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
+  const mgard_x::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+  mgard_x::SIZE num_TB = (n-1)/num_elems_per_TB+1;
+  mgard_x::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_TB;
   printf("n: %u, num_batches_per_TB: %u, num_elems_per_TB: %u, num_TB: %u\n", n, num_batches_per_TB, num_elems_per_TB, num_TB);
 
 
-  mgard_cuda::MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY, DataEncodingAlgorithm, ErrorCollectingAlgorithm, mgard_cuda::CUDA> encoder;
+  mgard_x::MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY, DataEncodingAlgorithm, ErrorCollectingAlgorithm, mgard_x::CUDA> encoder;
 
-  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> v_array({n});
+  mgard_x::Array<1, T_data, mgard_x::CUDA> v_array({n});
   v_array.loadData(v);
-  mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v_subarray(v_array);
-  // mgard_cuda::PrintSubarray("v_subarray", v_subarray);
+  mgard_x::SubArray<1, T_data, mgard_x::CUDA> v_subarray(v_array);
+  // mgard_x::PrintSubarray("v_subarray", v_subarray);
 
-  mgard_cuda::Array<2, T_error, mgard_cuda::CUDA> level_errors_work_array({encoding_num_bitplanes+1, num_TB});
-  mgard_cuda::SubArray<2, T_error, mgard_cuda::CUDA> level_errors_work(level_errors_work_array);
-  mgard_cuda::Array<1, T_error, mgard_cuda::CUDA> level_errors_array({encoding_num_bitplanes+1});
-  mgard_cuda::SubArray<1, T_error, mgard_cuda::CUDA> level_errors(level_errors_array);
+  mgard_x::Array<2, T_error, mgard_x::CUDA> level_errors_work_array({encoding_num_bitplanes+1, num_TB});
+  mgard_x::SubArray<2, T_error, mgard_x::CUDA> level_errors_work(level_errors_work_array);
+  mgard_x::Array<1, T_error, mgard_x::CUDA> level_errors_array({encoding_num_bitplanes+1});
+  mgard_x::SubArray<1, T_error, mgard_x::CUDA> level_errors(level_errors_array);
 
-  mgard_cuda::Array<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_array({encoding_num_bitplanes, encoder.MaxBitplaneLength(n)});
-  mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
+  mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_array({encoding_num_bitplanes, encoder.MaxBitplaneLength(n)});
+  mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
-  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> result_array({1});
-  mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> result(result_array);
-  mgard_cuda::DeviceCollective<mgard_cuda::CUDA> deviceReduce;
+  mgard_x::Array<1, T_data, mgard_x::CUDA> result_array({1});
+  mgard_x::SubArray<1, T_data, mgard_x::CUDA> result(result_array);
+  mgard_x::DeviceCollective<mgard_x::CUDA> deviceReduce;
   deviceReduce.AbsMax(v_subarray.getShape(0), v_subarray, result, 0);
-  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+  mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
   T_data level_max_error = *(result_array.getDataHost());
   int exp = 0;
   frexp(level_max_error, &exp);
 
 
-  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+  mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
   t1 = high_resolution_clock::now();
 
   encoder.Execute(n, num_batches_per_TB, encoding_num_bitplanes, exp, 
                   v_subarray, encoded_bitplanes_subarray, level_errors, level_errors_work, 0);
 
-  // mgard_cuda::EncodingTest<mgard_cuda::Handle<1, float>, T_data, T_bitplane, METHOD, mgard_cuda::CUDA>(handle).Execute(n, v_subarray, bitplane_subarray, encoding_num_bitplanes, 0);
-  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+  // mgard_x::EncodingTest<mgard_x::Handle<1, float>, T_data, T_bitplane, METHOD, mgard_x::CUDA>(handle).Execute(n, v_subarray, bitplane_subarray, encoding_num_bitplanes, 0);
+  mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
   t2 = high_resolution_clock::now();
   time_span = duration_cast<duration<double>>(t2 - t1);
 
-  // mgard_cuda::PrintSubarray("encoded_bitplanes_subarray", encoded_bitplanes_subarray);
+  // mgard_x::PrintSubarray("encoded_bitplanes_subarray", encoded_bitplanes_subarray);
   
   // printf("Done encoding\n");
   
@@ -174,24 +174,24 @@ void test(mgard_cuda::SIZE n,
 
   total_data = (n*decoding_num_bitplanes)/8/1e9;
 
-  mgard_cuda::SIZE starting_bitplane = 0;
-  mgard_cuda::Array<1, bool, mgard_cuda::CUDA> signs_array({n});
-  mgard_cuda::SubArray<1, bool, mgard_cuda::CUDA> signs_subarray(signs_array);
+  mgard_x::SIZE starting_bitplane = 0;
+  mgard_x::Array<1, bool, mgard_x::CUDA> signs_array({n});
+  mgard_x::SubArray<1, bool, mgard_x::CUDA> signs_subarray(signs_array);
 
-  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> v2_array({n});
-  mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v2_subarray(v2_array);
+  mgard_x::Array<1, T_data, mgard_x::CUDA> v2_array({n});
+  mgard_x::SubArray<1, T_data, mgard_x::CUDA> v2_subarray(v2_array);
 
-  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+  mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
   t1 = high_resolution_clock::now();
 
-  mgard_cuda::MDR::GroupedDecoder<T_data, T_bitplane, BinaryType, 
-                  DataDecodingAlgorithm, mgard_cuda::CUDA>().
+  mgard_x::MDR::GroupedDecoder<T_data, T_bitplane, BinaryType, 
+                  DataDecodingAlgorithm, mgard_x::CUDA>().
                   Execute(n, num_batches_per_TB, starting_bitplane, decoding_num_bitplanes, exp, 
                   encoded_bitplanes_subarray, signs_subarray, v2_subarray, 0);
 
 
-  // mgard_cuda::DecodingTest<mgard_cuda::Handle<1, float>, T_bitplane, T_data, METHOD, mgard_cuda::CUDA>(handle).Execute(n, bitplane_subarray, v2_subarray, decoding_num_bitplanes, 0);
-  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+  // mgard_x::DecodingTest<mgard_x::Handle<1, float>, T_bitplane, T_data, METHOD, mgard_x::CUDA>(handle).Execute(n, bitplane_subarray, v2_subarray, decoding_num_bitplanes, 0);
+  mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
   t2 = high_resolution_clock::now();
   time_span = duration_cast<duration<double>>(t2 - t1);
   std::cout << "Decoding time: " << time_span.count() <<" s (" << total_data/time_span.count() << "GB/s)\n";
@@ -247,16 +247,16 @@ void test(mgard_cuda::SIZE n,
 }
 
 
-template <mgard_cuda::OPTION BinaryType,
-          mgard_cuda::OPTION DataEncodingAlgorithm,
-          mgard_cuda::OPTION ErrorCollectingAlgorithm,
-          mgard_cuda::OPTION DataDecodingAlgorithm>
+template <mgard_x::OPTION BinaryType,
+          mgard_x::OPTION DataEncodingAlgorithm,
+          mgard_x::OPTION ErrorCollectingAlgorithm,
+          mgard_x::OPTION DataDecodingAlgorithm>
 void test_method() {
   typedef unsigned long long int uint64_t;
 
-  // for(mgard_cuda::SIZE N = 1; N <= 16*1024*1024 ; N *= 2) 
-  mgard_cuda::SIZE N = 8*1024*1024;
-  for(mgard_cuda::SIZE num_batches_per_TB = 1; num_batches_per_TB <= 1; num_batches_per_TB *= 2)
+  // for(mgard_x::SIZE N = 1; N <= 16*1024*1024 ; N *= 2) 
+  mgard_x::SIZE N = 8*1024*1024;
+  for(mgard_x::SIZE num_batches_per_TB = 1; num_batches_per_TB <= 1; num_batches_per_TB *= 2)
   { 
 
     // test<uint32_t, uint8_t, METHOD>(N, 30, 10);

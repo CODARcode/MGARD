@@ -1,17 +1,17 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_3D_AMR
-#define MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_3D_AMR
+#ifndef MGARD_X_ITERATIVE_PROCESSING_KERNEL_3D_AMR
+#define MGARD_X_ITERATIVE_PROCESSING_KERNEL_3D_AMR
 
 #include "../../Common.h"
 #include "../../CommonInternal.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <uint32_t D, typename T>
 void ipk_1_3d_amr(Handle<D, T> &handle, int nr, int nc, int nf_c, T *am, T *bm,
@@ -29,6 +29,6 @@ void ipk_1_3d_amr(Handle<D, T> &handle, int nr, int nc, int nf_c, T *am, T *bm,
 //               T *ddist_r, T *dv, int lddv1, int lddv2, int queue_idx,
 //               int config);
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

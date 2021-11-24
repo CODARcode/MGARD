@@ -3,7 +3,7 @@
 
 #include "LevelCompressorInterface.hpp"
 #include "LosslessCompressor.hpp"
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     #define CR_THRESHOLD 1.05
     // compress all layers

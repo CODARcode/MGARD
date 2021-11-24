@@ -33,7 +33,7 @@
 // #define ERROR_COLLECTING_ALGORITHM Warp_Error_Collecting_Serial_Bitplanes_Reduce_Error
 
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <SIZE N, typename T>
 struct RegisterArray {
@@ -364,7 +364,7 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, CUDA>{
 
 }
 
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
 
 
@@ -1218,7 +1218,7 @@ public:
 namespace mgard_m {
 namespace MDR {
 // general bitplane encoder that encodes data by block using T_stream type buffer
-template<typename HandleType, mgard_cuda::DIM D, typename T_data, typename T_bitplane, typename T_error>
+template<typename HandleType, mgard_x::DIM D, typename T_data, typename T_bitplane, typename T_error>
 class GroupedWarpBPEncoder : public concepts::BitplaneEncoderInterface<HandleType, D, T_data, T_bitplane, T_error> {
 public:
   GroupedWarpBPEncoder(HandleType& handle): handle(handle) {
@@ -1231,23 +1231,23 @@ public:
 
   
 
-  mgard_cuda::Array<2, T_bitplane, mgard_cuda::CUDA> encode(mgard_cuda::SIZE n, mgard_cuda::SIZE num_bitplanes, int32_t exp, 
-              mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v,
-              mgard_cuda::SubArray<1, T_error, mgard_cuda::CUDA> level_errors,
-              std::vector<mgard_cuda::SIZE>& streams_sizes, int queue_idx) const {
+  mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp, 
+              mgard_x::SubArray<1, T_data, mgard_x::CUDA> v,
+              mgard_x::SubArray<1, T_error, mgard_x::CUDA> level_errors,
+              std::vector<mgard_x::SIZE>& streams_sizes, int queue_idx) const {
 
     
 
-    mgard_cuda::MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error, 
+    mgard_x::MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error, 
                                         NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB, BINARY_TYPE, 
                                         DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, 
-                                        mgard_cuda::CUDA>encoder;
+                                        mgard_x::CUDA>encoder;
 
-    mgard_cuda::Array<2, T_error, mgard_cuda::CUDA> level_errors_work_array({num_bitplanes+1, MGARDm_NUM_SMs});
-    mgard_cuda::SubArray<2, T_error, mgard_cuda::CUDA> level_errors_work(level_errors_work_array);
+    mgard_x::Array<2, T_error, mgard_x::CUDA> level_errors_work_array({num_bitplanes+1, MGARDm_NUM_SMs});
+    mgard_x::SubArray<2, T_error, mgard_x::CUDA> level_errors_work(level_errors_work_array);
     
-    mgard_cuda::Array<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_array({num_bitplanes, encoder.MaxBitplaneLength(n)});
-    mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
+    mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_array({num_bitplanes, encoder.MaxBitplaneLength(n)});
+    mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
     encoder.Execute(n, num_bitplanes, exp, v, encoded_bitplanes_subarray, level_errors, level_errors_work, queue_idx);
 
@@ -1258,42 +1258,42 @@ public:
     return encoded_bitplanes_array;
   }
 
-  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> decode(mgard_cuda::SIZE n, mgard_cuda::SIZE num_bitplanes, int32_t exp, 
-                  mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes, int level,
+  mgard_x::Array<1, T_data, mgard_x::CUDA> decode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp, 
+                  mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes, int level,
                   int queue_idx) {
 
   }
 
   // decode the data and record necessary information for progressiveness
-  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> progressive_decode(mgard_cuda::SIZE n, mgard_cuda::SIZE starting_bitplane, mgard_cuda::SIZE num_bitplanes, int32_t exp, 
-                          mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes, int level,
+  mgard_x::Array<1, T_data, mgard_x::CUDA> progressive_decode(mgard_x::SIZE n, mgard_x::SIZE starting_bitplane, mgard_x::SIZE num_bitplanes, int32_t exp, 
+                          mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes, int level,
                           int queue_idx) {
 
 
-    // mgard_cuda::SIZE num_batches_per_TB = 2;
-    // const mgard_cuda::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    // const mgard_cuda::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    // mgard_cuda::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
-    // mgard_cuda::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
+    // mgard_x::SIZE num_batches_per_TB = 2;
+    // const mgard_x::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
+    // const mgard_x::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+    // mgard_x::SIZE num_blocks = (n-1)/num_elems_per_TB+1;
+    // mgard_x::SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
 
-    // const mgard_cuda::SIZE NumGroupsPerWarpPerIter = 2;
-    // const mgard_cuda::SIZE NumWarpsPerTB = 16;
-    mgard_cuda::MDR::GroupedWarpDecoder<T_data, T_bitplane, 
+    // const mgard_x::SIZE NumGroupsPerWarpPerIter = 2;
+    // const mgard_x::SIZE NumWarpsPerTB = 16;
+    mgard_x::MDR::GroupedWarpDecoder<T_data, T_bitplane, 
                   NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB, BINARY_TYPE, 
-                  DATA_DECODING_ALGORITHM, mgard_cuda::CUDA> decoder;
+                  DATA_DECODING_ALGORITHM, mgard_x::CUDA> decoder;
 
     if(level_signs.size() == level){
-      level_signs.push_back(mgard_cuda::Array<1, bool, mgard_cuda::CUDA>({(mgard_cuda::SIZE)n}));
+      level_signs.push_back(mgard_x::Array<1, bool, mgard_x::CUDA>({(mgard_x::SIZE)n}));
     }
 
-    mgard_cuda::SubArray<1, bool, mgard_cuda::CUDA> signs_subarray(level_signs[level]);
+    mgard_x::SubArray<1, bool, mgard_x::CUDA> signs_subarray(level_signs[level]);
 
-    mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> v_array({(mgard_cuda::SIZE)n});
-    mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v(v_array);
+    mgard_x::Array<1, T_data, mgard_x::CUDA> v_array({(mgard_x::SIZE)n});
+    mgard_x::SubArray<1, T_data, mgard_x::CUDA> v(v_array);
 
     if (num_bitplanes > 0) {
       // if (num_bitplanes == 1) {
-      //   mgard_cuda::PrintSubarray("signs_subarray", signs_subarray);
+      //   mgard_x::PrintSubarray("signs_subarray", signs_subarray);
       // }
       decoder.Execute(n, starting_bitplane, num_bitplanes, exp, 
                     encoded_bitplanes, signs_subarray, v, queue_idx);
@@ -1302,11 +1302,11 @@ public:
   }
 
 
-  mgard_cuda::SIZE buffer_size(mgard_cuda::SIZE n) const {
-    mgard_cuda::MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error, 
+  mgard_x::SIZE buffer_size(mgard_x::SIZE n) const {
+    mgard_x::MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error, 
                                         NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB, BINARY_TYPE, 
                                         DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, 
-                                        mgard_cuda::CUDA>encoder;
+                                        mgard_x::CUDA>encoder;
     return encoder.MaxBitplaneLength(n);
   }
 
@@ -1316,7 +1316,7 @@ public:
   }
 private:
 HandleType& handle;
-std::vector<mgard_cuda::Array<1, bool, mgard_cuda::CUDA>> level_signs;
+std::vector<mgard_x::Array<1, bool, mgard_x::CUDA>> level_signs;
 std::vector<std::vector<uint8_t>> level_recording_bitplanes;
 
 };
