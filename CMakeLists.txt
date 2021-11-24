@@ -98,24 +98,24 @@ if(MGARD_ENABLE_CUDA)
 
   SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA")
   SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA")
-  set (MGARD_CUDA_SEPARATE_COMPILE_COMPILATION_OPTION 
+  set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)
 
   SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
 
   if(MGARD_ENABLE_CUDA_FMA)
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_FMA")
-    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_FMA")
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_X_FMA")
+    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_X_FMA")
   endif()
 
   if(MGARD_ENABLE_CUDA_OPTIMIZE_TURING)
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_OPTIMIZE_TURING")
-    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_OPTIMIZE_TURING -lineinfo")
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_X_OPTIMIZE_TURING")
+    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_X_OPTIMIZE_TURING -lineinfo")
     set(CUDA_ARCH_STRING "${CUDA_ARCH_STRING};75")
   endif()
   if(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA)
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_CUDA_OPTIMIZE_VOLTA")
-    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_CUDA_OPTIMIZE_VOLTA -lineinfo")
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_X_OPTIMIZE_VOLTA")
+    SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_X_OPTIMIZE_VOLTA -lineinfo")
     set(CUDA_ARCH_STRING "${CUDA_ARCH_STRING};70;72")
   endif()
 endif()
@@ -269,7 +269,7 @@ list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}" "${MGARD_COMPRESS_INTER
 add_library(
   mgard-library
   ${MGARD_LIBRARY_CPP}
-  ${MGARD_CUDA_SRC}
+  ${MGARD_X_SRC}
 )
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
@@ -346,7 +346,7 @@ set_target_properties(mgard-library PROPERTIES
   EXPORT_NAME mgard
   VERSION ${MGARD_VERSION}
   SOVERSION ${MGARD_VERSION_MAJOR}
-  ${MGARD_CUDA_SEPARATE_COMPILE_COMPILATION_OPTION}
+  ${MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION}
 )
 
 install(TARGETS mgard-library EXPORT mgard-targets)
@@ -569,32 +569,32 @@ if(MGARD_ENABLE_CUDA)
     target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
-    add_executable(test_refactor ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_refactor.cu)        
-    target_link_libraries(test_refactor mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(test_refactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-    set_property(TARGET test_refactor PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
+    # add_executable(test_refactor ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_refactor.cu)        
+    # target_link_libraries(test_refactor mgard-library  ${CMAKE_DL_LIBS})
+    # target_include_directories(test_refactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    #                                                 $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    # set_property(TARGET test_refactor PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
 
 
-    add_executable(test_reconstructor ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_reconstructor.cu)
-    target_link_libraries(test_reconstructor mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(test_reconstructor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-    set_property(TARGET test_reconstructor PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
+    # add_executable(test_reconstructor ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_reconstructor.cu)
+    # target_link_libraries(test_reconstructor mgard-library  ${CMAKE_DL_LIBS})
+    # target_include_directories(test_reconstructor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    #                                                 $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    # set_property(TARGET test_reconstructor PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
 
 
-    add_executable(test_encoding ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_encoding.cu)
-    target_link_libraries(test_encoding mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(test_encoding PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-    set_property(TARGET test_encoding PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
+    # add_executable(test_encoding ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_encoding.cu)
+    # target_link_libraries(test_encoding mgard-library  ${CMAKE_DL_LIBS})
+    # target_include_directories(test_encoding PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    #                                                 $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    # set_property(TARGET test_encoding PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
 
 
-    add_executable(test_encoding_warp ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_encoding_warp.cu)
-    target_link_libraries(test_encoding_warp mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(test_encoding_warp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-    set_property(TARGET test_encoding_warp PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
+    # add_executable(test_encoding_warp ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/Testing/MDR/test_encoding_warp.cu)
+    # target_link_libraries(test_encoding_warp mgard-library  ${CMAKE_DL_LIBS})
+    # target_include_directories(test_encoding_warp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    #                                                 $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    # set_property(TARGET test_encoding_warp PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCH_STRING})
 
 endif()
 

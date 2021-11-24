@@ -1,16 +1,16 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGARD_CUDA_PRECOMPUTE_KERNELS
-#define MGARD_CUDA_PRECOMPUTE_KERNELS
+#ifndef MGARD_X_PRECOMPUTE_KERNELS
+#define MGARD_X_PRECOMPUTE_KERNELS
 
 #include "Common.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 template <DIM D, typename T>
 void calc_cpt_dist(Handle<D, T> &handle, int n, T *dcoord, T *ddist,
                    int queue_idx);
@@ -30,6 +30,6 @@ void dist_to_volume(Handle<D, T> &handle, int n, T *ddist, T *dvolume,
 template <DIM D, typename T>
 void calc_am_bm(Handle<D, T> &handle, int n, T *ddist, T *am, T *bm,
                 int queue_idx);
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

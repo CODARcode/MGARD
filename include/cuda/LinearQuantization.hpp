@@ -1,12 +1,12 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_LINEAR_QUANTIZATION_TEMPLATE
-#define MGRAD_CUDA_LINEAR_QUANTIZATION_TEMPLATE
+#ifndef MGARD_X_LINEAR_QUANTIZATION_TEMPLATE
+#define MGARD_X_LINEAR_QUANTIZATION_TEMPLATE
 
 #include "CommonInternal.h"
 
@@ -17,7 +17,7 @@
 #include "Task.h"
 #include "DeviceAdapters/DeviceAdapter.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T>
 void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata &m,
@@ -1722,6 +1722,6 @@ void levelwise_linear_dequantize(Handle<D, T> &handle, SIZE *shapes,
 #undef DEQUANTIZE
 }
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

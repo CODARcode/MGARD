@@ -26,7 +26,7 @@ MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which signific
 
 [nvcomp]: https://github.com/NVIDIA/nvcomp.git
 ## Configure and build
-* **Option 1:** one-step configure and build MGARD with NVCOMP: ```build_mgard_cuda.sh```
+* **Option 1:** one-step configure and build MGARD with NVCOMP: ```build_mgard_x.sh```
 * **Option 2:** manual confiugre and build
 	+ **Step 1:** configure and build NVCOMP.
 	+ **Step 2:** configure MGARD as follows:
@@ -64,19 +64,19 @@ MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which signific
 * **Include the header file.** MGARD-GPU APIs are included in both ```mgard/compress.hpp``` and ```mgard/compress_cuda.hpp```.
      + Use ```mgard/compress.hpp``` if the user programs are to be compiled with ***C/C++*** compilers.
      + Use ```mgard/compress_cuda.hpp``` if the user programs are to be compiled with ***CUDA*** compilers.
-* **Configure using ```mgard_cuda::Config```** Both high-level APIs and low-level APIs have an optional parameter for users to configure the compression/decomrpession process via ```mgard_cuda::Config``` class. To configure, create a ```mgard_cuda::Config``` object and configure its fields:
+* **Configure using ```mgard_x::Config```** Both high-level APIs and low-level APIs have an optional parameter for users to configure the compression/decomrpession process via ```mgard_x::Config``` class. To configure, create a ```mgard_x::Config``` object and configure its fields:
   + ```Config.dev_id```: sepcifying a specific GPU to use in multi-GPU systems.
   + ```Config.timing```: timing each steps of compression and printing them out.
   + ```Config.lossless```: control the lossless compression used: 
-    + ```mgard_cuda::lossless_type::CPU_Lossless```: CPU lossless (ZLIB/ZSTD)
-    + ```mgard_cuda::lossless_type::GPU_Huffman```: GPU Huffman compression
-    + ```mgard_cuda::lossless_type::GPU_Huffman_LZ4```: GPU Huffman and LZ4 compression
+    + ```mgard_x::lossless_type::CPU_Lossless```: CPU lossless (ZLIB/ZSTD)
+    + ```mgard_x::lossless_type::GPU_Huffman```: GPU Huffman compression
+    + ```mgard_x::lossless_type::GPU_Huffman_LZ4```: GPU Huffman and LZ4 compression
     + *Note:* there will be no effect configuring the lossless comrpessor for decompression as MGARD has to use the same lossless compressor that was used for compression.
 ## Using high-level APIs
-* **For compression:** ```void mgard_cuda::compress(mgard_cuda::DIM D, mgard_cuda::data_type dtype, std::vector<mgard_cuda::SIZE> shape, double tol, double s, enum error_bound_type mode, const void *original_data, void *&compressed_data, size_t &compressed_size, mgard_cuda::Config config)```
+* **For compression:** ```void mgard_x::compress(mgard_x::DIM D, mgard_x::data_type dtype, std::vector<mgard_x::SIZE> shape, double tol, double s, enum error_bound_type mode, const void *original_data, void *&compressed_data, size_t &compressed_size, mgard_x::Config config)```
   + ```[In] shape:``` Shape of the Dataset to be compressed (from slowest to fastest).
-  + ```[In] data_type:``` mgard_cuda::data_type::Float or mgard_cuda::data_type::Double.
-  + ```[In] type:``` mgard_cuda::error_bound_type::REL or mgard_cuda::error_bound_type::ABS.
+  + ```[In] data_type:``` mgard_x::data_type::Float or mgard_x::data_type::Double.
+  + ```[In] type:``` mgard_x::error_bound_type::REL or mgard_x::error_bound_type::ABS.
   + ```[In] tol:``` Error tolerance.
   + ```[In] s:``` Smoothness parameter.
   + ```[In] compressed_data:``` Dataset to be compressed.
@@ -91,34 +91,34 @@ MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which signific
   + ```[In][Optional] config:``` For configuring the decompression process (optional).
 
 ## Using low-level APIs
-* **Step 2: Initialize mgard_cuda::Handle.**
-An object ```mgard_cuda::Handle``` needs to be created and initialized. This initializes the necessary environment for efficient compression on the GPU. It only needs to be created once if the input shape is not changed. For example, compressing the same variable on different timesteps only needs the handle to be created once. Also, the same handle can be shared in between compression and decompression APIs.
-     + ```mgard_cuda::Handle<N_dims, D_type>(std::vector<size_t> shape, std::vector<T*> coords, mgard_cuda::Config config)```.
+* **Step 2: Initialize mgard_x::Handle.**
+An object ```mgard_x::Handle``` needs to be created and initialized. This initializes the necessary environment for efficient compression on the GPU. It only needs to be created once if the input shape is not changed. For example, compressing the same variable on different timesteps only needs the handle to be created once. Also, the same handle can be shared in between compression and decompression APIs.
+     + ```mgard_x::Handle<N_dims, D_type>(std::vector<size_t> shape, std::vector<T*> coords, mgard_x::Config config)```.
         + ```[In] D_type```: Input data type (float or double).
         + ```[In] N_dims```: Total number of dimensions (<=4)
         + ```[In] shape```: Stores the size in each dimension (from slowest to fastest).
         + ```[In][Optional] coords```: The coordinates in each dimension (from slowest to fastest).
       	+ ```[In][Optional] config```: For configuring compression/decomrpession.
-* **Step 3: Use mgard_cuda::Array.** ```mgard_cuda::Array``` is used for holding a managed array on GPU.
-     +  For ***creating*** an array. ```mgard_cuda::Array::Array<N_dims, D_type>(std::vector<size_t> shape)``` creates an manged array on GPU with ```shape```.
-     +  For ***loading data*** into an array. ```void mgard_cuda::Array::loadData(D_type *data, size_t ld = 0)``` copies ```data``` into the the managed array on GPU. ```data``` can be on either on CPU or GPU. An optional ```ld``` can be provided for specifying the size of the leading dimension.
-     +  For ***accessing data from CPU*** ```D_type * mgard_cuda::Array::getDataHost()``` returns a CPU pointer of the array.
-     +  For ***accessing data from GPU***```D_type * mgard_cuda::Array::getDataDevice(size_t &ld)``` returns a GPU pointer of the array with the leading dimension.
-     +  For ***getting the shape*** of an array. ```std::vector<size_t> mgard_cuda::Array::getShape()``` returns the shape of the managed array.
+* **Step 3: Use mgard_x::Array.** ```mgard_x::Array``` is used for holding a managed array on GPU.
+     +  For ***creating*** an array. ```mgard_x::Array::Array<N_dims, D_type>(std::vector<size_t> shape)``` creates an manged array on GPU with ```shape```.
+     +  For ***loading data*** into an array. ```void mgard_x::Array::loadData(D_type *data, size_t ld = 0)``` copies ```data``` into the the managed array on GPU. ```data``` can be on either on CPU or GPU. An optional ```ld``` can be provided for specifying the size of the leading dimension.
+     +  For ***accessing data from CPU*** ```D_type * mgard_x::Array::getDataHost()``` returns a CPU pointer of the array.
+     +  For ***accessing data from GPU***```D_type * mgard_x::Array::getDataDevice(size_t &ld)``` returns a GPU pointer of the array with the leading dimension.
+     +  For ***getting the shape*** of an array. ```std::vector<size_t> mgard_x::Array::getShape()``` returns the shape of the managed array.
 
-   ***Note:*** ```mgard_cuda::Array``` will automatically release its internal CPU/GPU array when it goes out of scope.
+   ***Note:*** ```mgard_x::Array``` will automatically release its internal CPU/GPU array when it goes out of scope.
 
 * **Step 4: Query specifications of original data from compressed data** In case the data type/structure/shape are unknown when decompression, the following APIs can be use to infer those information
 
-  + For **infering data type**: ```enum mgard_cuda::data_type mgard_cuda::infer_data_type(const void *compressed_data, size_t compressed_size)```
+  + For **infering data type**: ```enum mgard_x::data_type mgard_x::infer_data_type(const void *compressed_data, size_t compressed_size)```
     + ```[In] compressed_data:``` Compressed data.
     + ```[In] compressed_size:``` Size of comrpessed data.
     + ```[Return] Data type```
-  + For **infering data shape**: ```std::vector<mgard_cuda::SIZE> mgard_cuda::infer_shape(const void *compressed_data, size_t compressed_size)```
+  + For **infering data shape**: ```std::vector<mgard_x::SIZE> mgard_x::infer_shape(const void *compressed_data, size_t compressed_size)```
     + ```[In] compressed_data:``` Compressed data.
     + ```[In] compressed_size:``` Size of comrpessed data.
     + ```[Return] Data shape```
-  + For **infering data structure**: ```enum mgard_cuda::data_structure infer_data_structure(const void *compressed_data, size_t compressed_size)```
+  + For **infering data structure**: ```enum mgard_x::data_structure infer_data_structure(const void *compressed_data, size_t compressed_size)```
     + ```[In] compressed_data:``` Compressed data.
     + ```[In] compressed_size:``` Size of comrpessed data.
     + ```[Return] Data structure```
@@ -128,13 +128,13 @@ An object ```mgard_cuda::Handle``` needs to be created and initialized. This ini
     + ```[Return] Coordinates```          
 * **Step 4: Invoke compression/decompression.**:
   	+ For ***compression***: ```
-			mgard_cuda::Array<1, unsigned char> mgard_cuda::compress(mgard_cuda::Handle<N_dims, D_type> &handle, mgard_cuda::Array<N_dims, D_type> in_array, mgard_cuda::error_bound_type type, D_type tol, D_type s)```
+			mgard_x::Array<1, unsigned char> mgard_x::compress(mgard_x::Handle<N_dims, D_type> &handle, mgard_x::Array<N_dims, D_type> in_array, mgard_x::error_bound_type type, D_type tol, D_type s)```
      	- ```[In] in_array ```: Input data to be compressed (its value will be altered during compression).
-     	- ```[In] type ```: Error bound type. ```mgard_cuda::REL``` for relative error bound or ```mgard_cuda::ABS``` for absolute error bound. 
+     	- ```[In] type ```: Error bound type. ```mgard_x::REL``` for relative error bound or ```mgard_x::ABS``` for absolute error bound. 
 	  	- ```[In] tol```: Error bound.
 	  	- ```[In] s```: Smoothness parameter.
 	  	- ```[Return]```: Compressed data.
-  	+ For ***decompression***: ```mgard_cuda::Array<N_dims, D_type> mgard_cuda::decompress(mgard_cuda::Handle<N_dims, D_type> &handle, mgard_cuda::Array<1, unsigned char> compressed_data)```    
+  	+ For ***decompression***: ```mgard_x::Array<N_dims, D_type> mgard_x::decompress(mgard_x::Handle<N_dims, D_type> &handle, mgard_x::Array<1, unsigned char> compressed_data)```    
   		- ```[In] compressed_data ```: Compressed data.
   		- ```[Return]```: Decompressed data.
 	
@@ -145,9 +145,9 @@ An object ```mgard_cuda::Handle``` needs to be created and initialized. This ini
 	+ For ***Turing*** GPUs: ```-DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=ON```
 * **Optimize for GPUs on edge systems:** MGARD-GPU capable of using FMA instructions that can help improve the compression/decompression performance on consumer-class GPUs (GeForce GPUs on edge systems), where they have relative low throughput on some arithmetic operations. To enable this optimization, enable the following option when configuring MGARD-GPU. 
 	+ ```-MGARD_ENABLE_CUDA_FMA=ON```
-* **Optimize for fast CPU-GPU data transfer:** It is recommanded to use pinned memory on CPU for loading data into ```mgard_cuda::Array``` such that it can enable fast CPU-GPU data transfer. 
-	+ To allocate pinned memory on CPU: ```mgard_cuda::cudaMallocHostHelper(void ** data_ptr, size_t size)```.
-	+ To free pinned memory on CPU: ```mgard_cuda::cudaFreeHostHelper(void * data_ptr)```
+* **Optimize for fast CPU-GPU data transfer:** It is recommanded to use pinned memory on CPU for loading data into ```mgard_x::Array``` such that it can enable fast CPU-GPU data transfer. 
+	+ To allocate pinned memory on CPU: ```mgard_x::cudaMallocHostHelper(void ** data_ptr, size_t size)```.
+	+ To free pinned memory on CPU: ```mgard_x::cudaFreeHostHelper(void * data_ptr)```
 
 ## A simple example
 The following code shows how to compress/decompress a 3D dataset with the low-level APIs. 
@@ -157,35 +157,35 @@ The following code shows how to compress/decompress a 3D dataset with the low-le
 		#include "mgard/compress.hpp"
 		int main() 
 		{
-		  mgard_cuda::SIZE n1 = 10;
-		  mgard_cuda::SIZE n2 = 20;
-		  mgard_cuda::SIZE n3 = 30;
+		  mgard_x::SIZE n1 = 10;
+		  mgard_x::SIZE n2 = 20;
+		  mgard_x::SIZE n3 = 30;
 		
 		  //prepare 
 		  std::cout << "Preparing data...";
 		  double * in_array_cpu;
-		  mgard_cuda::cudaMallocHostHelper((void **)&in_array_cpu, sizeof(double)*n1*n2*n3);
+		  mgard_x::cudaMallocHostHelper((void **)&in_array_cpu, sizeof(double)*n1*n2*n3);
 		  //... load data into in_array_cpu
-		  std::vector<mgard_cuda::SIZE> shape{ n1, n2, n3 };
-		  mgard_cuda::Handle<3, double> handle(shape);
-		  mgard_cuda::Array<3, double> in_array(shape);
+		  std::vector<mgard_x::SIZE> shape{ n1, n2, n3 };
+		  mgard_x::Handle<3, double> handle(shape);
+		  mgard_x::Array<3, double> in_array(shape);
 		  in_array.loadData(in_array_cpu);
 		  std::cout << "Done\n";
 		
 		  std::cout << "Compressing with MGARD-GPU...";
 		  double tol = 0.01, s = 0;
-		  mgard_cuda::Array<1, unsigned char> compressed_array = mgard_cuda::compress(handle, in_array, mgard_cuda::REL, tol, s);
-		  mgard_cuda::SIZE compressed_size = compressed_array.getShape()[0]; //compressed size in number of bytes.          
+		  mgard_x::Array<1, unsigned char> compressed_array = mgard_x::compress(handle, in_array, mgard_x::REL, tol, s);
+		  mgard_x::SIZE compressed_size = compressed_array.getShape()[0]; //compressed size in number of bytes.          
 		  unsigned char * compressed_array_cpu = compressed_array.getDataHost();
 		  std::cout << "Done\n";
 		
 		  std::cout << "Decompressing with MGARD-GPU...";
 		  // decompression
-		  mgard_cuda::Array<3, double> decompressed_array = mgard_cuda::decompress(handle, compressed_array);
+		  mgard_x::Array<3, double> decompressed_array = mgard_x::decompress(handle, compressed_array);
 		  double * decompressed_array_cpu = decompressed_array.getDataHost();
 		  std::cout << "Done\n";
 		  
-		  mgard_cuda::cudaFreeHostHelper(in_array_cpu);
+		  mgard_x::cudaFreeHostHelper(in_array_cpu);
 	}
 
 ## A comprehensive example

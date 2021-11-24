@@ -1,16 +1,16 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_COMPRESSION_WORKFLOW
-#define MGRAD_CUDA_COMPRESSION_WORKFLOW
+#ifndef MGARD_X_COMPRESSION_WORKFLOW
+#define MGARD_X_COMPRESSION_WORKFLOW
 
 #include "Common.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, DeviceType> &in_array,
@@ -20,6 +20,6 @@ template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
                        Array<1, unsigned char, DeviceType> &compressed_array);
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

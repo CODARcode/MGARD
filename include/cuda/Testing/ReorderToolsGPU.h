@@ -3,7 +3,7 @@
 
 #include "../Common.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T>
 void ReorderGPU(Handle<D, T> &handle, SubArray<D, T, CUDA> dinput, 

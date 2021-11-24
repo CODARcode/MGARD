@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(mgard_cuda_cpu_compare CXX C)
+project(mgard_x_cpu_compare CXX C)
 find_package(mgard)
 
 add_executable(BatchTests BatchTests.cpp)

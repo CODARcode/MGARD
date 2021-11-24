@@ -9,7 +9,7 @@
 
 #include "BitplaneEncoderInterface.hpp"
 #include <bitset>
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
 template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE B, typename DeviceType>
   class PerBitEncoderFunctor: public Functor<DeviceType> {

@@ -1,19 +1,19 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_IPK_FUNCTOR
-#define MGRAD_CUDA_IPK_FUNCTOR
+#ifndef MGARD_X_IPK_FUNCTOR
+#define MGARD_X_IPK_FUNCTOR
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <typename T>
 __device__ inline T tridiag_forward2(T prev, T am, T bm, T curr) {
 
-#ifdef MGARD_CUDA_FMA
+#ifdef MGARD_X_FMA
   if (sizeof(T) == sizeof(double)) {
     // printf("forward: %f < %f %f %f %f\n", fma(prev, am * bm, curr),
     //         curr, prev, am , bm);
@@ -33,7 +33,7 @@ __device__ inline T tridiag_forward2(T prev, T am, T bm, T curr) {
 template <typename T>
 __device__ inline T tridiag_backward2(T prev, T am, T bm, T curr) {
 
-#ifdef MGARD_CUDA_FMA
+#ifdef MGARD_X_FMA
   if (sizeof(T) == sizeof(double)) {
     // printf("backward: %f < %f %f %f %f\n", fma(am, prev, curr) * bm,
     //         curr, prev, am , bm);

@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 
@@ -11,7 +11,7 @@
 #include <iostream>
 
 #include <chrono>
-namespace mgard_cuda {
+namespace mgard_x {
 
 #define KERNELS(D, T)                                        \
   template void decompose<D, T, CUDA>(Handle<D, T> & handle, \
@@ -25,4 +25,4 @@ KERNELS(3, double)
 KERNELS(3, float)
 #undef KERNELS
 
-} // namespace mgard_cuda
+} // namespace mgard_x

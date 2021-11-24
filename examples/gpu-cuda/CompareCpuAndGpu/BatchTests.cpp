@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include <chrono>
@@ -43,7 +43,7 @@ template <typename T>
 void readfile(char *input_file, size_t num_bytes, bool check_size, T *in_buff) {
   if (strcmp(input_file, "random") == 0) {
     srand(7117);
-    for (mgard_cuda::LENGTH i = 0; i < num_bytes / sizeof(T); i++) {
+    for (mgard_x::LENGTH i = 0; i < num_bytes / sizeof(T); i++) {
       in_buff[i] = rand() % 10 + 1;
     }
   } else {
@@ -75,16 +75,16 @@ void readfile(char *input_file, size_t num_bytes, bool check_size, T *in_buff) {
   }
 }
 
-template <mgard_cuda::DIM D, typename T>
-void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
-                 T s, enum mgard_cuda::error_bound_type mode, T norm,
+template <mgard_x::DIM D, typename T>
+void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
+                 T s, enum mgard_x::error_bound_type mode, T norm,
                  T *original_data, void *&compressed_data,
-                 size_t &compressed_size, mgard_cuda::Config config) {
+                 size_t &compressed_size, mgard_x::Config config) {
   // printf("Start compressing\n");
   std::array<std::size_t, D> array_shape;
   std::copy(shape.begin(), shape.end(), array_shape.begin());
   if (dev == CPU) {
-    if (mode == mgard_cuda::error_bound_type::REL)
+    if (mode == mgard_x::error_bound_type::REL)
       tol *= norm;
     const mgard::TensorMeshHierarchy<D, T> hierarchy(array_shape);
     mgard::CompressedDataset<D, T> compressed_dataset =
@@ -97,28 +97,28 @@ void compression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     if (std::is_same<T, double>::value) {
       dtype = mgard_cuda::data_type::Double;
     } else if (std::is_same<T, float>::value) {
-      dtype = mgard_cuda::data_type::Float;
+      dtype = mgard_x::data_type::Float;
     }
 
-    mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
+    mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
              compressed_data, compressed_size, config);
-    // mgard_cuda::compress(D, dtype, shape, tol, s, mode, original_data,
+    // mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
     //          compressed_data, compressed_size);
   }
 }
 
-template <mgard_cuda::DIM D, typename T>
-void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
-                   T s, enum mgard_cuda::error_bound_type mode, T norm,
+template <mgard_x::DIM D, typename T>
+void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
+                   T s, enum mgard_x::error_bound_type mode, T norm,
                    void *compressed_data, size_t compressed_size,
-                   void *&decompressed_data, mgard_cuda::Config config) {
+                   void *&decompressed_data, mgard_x::Config config) {
   size_t original_size = 1;
-  for (mgard_cuda::DIM i = 0; i < D; i++)
+  for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
 
   if (dev == CPU) {
     decompressed_data = (T *)malloc(original_size * sizeof(T));
-    if (mode == mgard_cuda::error_bound_type::REL) {
+    if (mode == mgard_x::error_bound_type::REL) {
       tol *= norm;
     }
     const std::unique_ptr<unsigned char const[]> new_data_ =
@@ -127,32 +127,32 @@ void decompression(std::vector<mgard_cuda::SIZE> shape, enum device dev, T tol,
     memcpy(decompressed_data, decompressed_data_void,
            original_size * sizeof(T));
   } else { // GPU
-    mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data, config);
-    // mgard_cuda::decompress(compressed_data, compressed_size, decompressed_data);
+    mgard_x::decompress(compressed_data, compressed_size, decompressed_data, config);
+    // mgard_x::decompress(compressed_data, compressed_size, decompressed_data);
   }
 }
 
 template <typename T>
-struct Result test(mgard_cuda::DIM D, T *original_data,
-                   std::vector<mgard_cuda::SIZE> shape, enum device dev,
+struct Result test(mgard_x::DIM D, T *original_data,
+                   std::vector<mgard_x::SIZE> shape, enum device dev,
                    double tol, double s,
-                   enum mgard_cuda::error_bound_type mode) {
+                   enum mgard_x::error_bound_type mode) {
 
   size_t original_size = 1;
-  for (mgard_cuda::DIM i = 0; i < D; i++)
+  for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
   // T * original_data = (T*)malloc(original_size * sizeof(T));
   // readfile(input_file, original_size * sizeof(T), false, original_data);
 
   T norm;
   if (s == std::numeric_limits<T>::infinity()) {
-    norm = mgard_cuda::L_inf_norm(original_size, original_data);
+    norm = mgard_x::L_inf_norm(original_size, original_data);
   } else {
-    norm = mgard_cuda::L_2_norm(original_size, original_data);
+    norm = mgard_x::L_2_norm(original_size, original_data);
   }
 
-  mgard_cuda::Config config;
-  config.lossless = mgard_cuda::lossless_type::GPU_Huffman_LZ4;
+  mgard_x::Config config;
+  config.lossless = mgard_x::lossless_type::GPU_Huffman_LZ4;
   config.uniform_coord_mode = 1;
   // config.huff_dict_size = 64;
   config.timing = false;
@@ -197,20 +197,20 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
 
   T error;
   if (s == std::numeric_limits<T>::infinity()) {
-    error = mgard_cuda::L_inf_error(original_size, original_data,
+    error = mgard_x::L_inf_error(original_size, original_data,
                                     (T*)decompressed_data, mode);
-    // if (mode == mgard_cuda::REL) {
+    // if (mode == mgard_x::REL) {
     //   error /= norm; printf("Rel. L^infty error: %10.5E \n", error);
     // }
-    // if (mode ==  mgard_cuda::ABS) printf("Abs. L^infty error: %10.5E \n",
+    // if (mode ==  mgard_x::ABS) printf("Abs. L^infty error: %10.5E \n",
     // error);
   } else {
-    error = mgard_cuda::L_2_error(original_size, original_data,
+    error = mgard_x::L_2_error(original_size, original_data,
                                   (T*)decompressed_data, mode);
-    // if (mode == mgard_cuda::REL) {
+    // if (mode == mgard_x::REL) {
     //   error /= norm; printf("Rel. L^2 error: %10.5E \n", error);
     // }
-    // if (mode ==  mgard_cuda::ABS) printf("Abs. L^2 error: %10.5E \n", error);
+    // if (mode ==  mgard_x::ABS) printf("Abs. L^2 error: %10.5E \n", error);
   }
 
   // if (error < tol) {
@@ -227,10 +227,10 @@ struct Result test(mgard_cuda::DIM D, T *original_data,
   return result;
 }
 
-void print_config(enum data_type dtype, std::vector<mgard_cuda::SIZE> shape,
+void print_config(enum data_type dtype, std::vector<mgard_x::SIZE> shape,
                   double tol, double s,
-                  enum mgard_cuda::error_bound_type mode) {
-  mgard_cuda::DIM d = 0;
+                  enum mgard_x::error_bound_type mode) {
+  mgard_x::DIM d = 0;
   for (d = 0; d < shape.size(); d++)
     std::cout << std::setw(5) << shape[d];
   for (; d < 5; d++)
@@ -239,9 +239,9 @@ void print_config(enum data_type dtype, std::vector<mgard_cuda::SIZE> shape,
     std::cout << std::setw(3) << "64";
   if (dtype == SINGLE)
     std::cout << std::setw(3) << "32";
-  if (mode == mgard_cuda::error_bound_type::REL)
+  if (mode == mgard_x::error_bound_type::REL)
     std::cout << std::setw(4) << "Rel";
-  if (mode == mgard_cuda::error_bound_type::ABS)
+  if (mode == mgard_x::error_bound_type::ABS)
     std::cout << std::setw(4) << "Abs";
   std::cout << std::setw(6) << std::setprecision(0) << std::scientific << tol;
   std::cout << std::setw(6) << std::setprecision(1) << std::fixed << s;
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
   char *input_file; //, *outfile;
   input_file = argv[i++];
 
-  std::vector<std::vector<mgard_cuda::SIZE>> shapes;
+  std::vector<std::vector<mgard_x::SIZE>> shapes;
 
   // shapes.push_back({5});
   // shapes.push_back({129});
@@ -312,9 +312,9 @@ int main(int argc, char *argv[]) {
   // std::vector<enum data_type> dtypes = {data_type::SINGLE,
   // data_type::DOUBLE};
   std::vector<enum data_type> dtypes = {data_type::SINGLE};
-  // std::vector<enum mgard_cuda::error_bound_type> ebtypes = {
-  //     mgard_cuda::error_bound_type::ABS, mgard_cuda::error_bound_type::REL};
-  std::vector<enum mgard_cuda::error_bound_type> ebtypes = {mgard_cuda::error_bound_type::REL};
+  // std::vector<enum mgard_x::error_bound_type> ebtypes = {
+  //     mgard_x::error_bound_type::ABS, mgard_x::error_bound_type::REL};
+  std::vector<enum mgard_x::error_bound_type> ebtypes = {mgard_x::error_bound_type::REL};
 
   // std::vector<float> tols = {1e-2, 1e-3, 1e-4};
       std::vector<float> tols = {1e-4};
@@ -324,15 +324,15 @@ int main(int argc, char *argv[]) {
   std::vector<float> ssf = {std::numeric_limits<float>::infinity(), 0, 1, -1};
   std::vector<double> ssd = {std::numeric_limits<double>::infinity(), 0, 1, -1};
 
-  for (mgard_cuda::DIM sp = 0; sp < shapes.size(); sp++) {
-    for (mgard_cuda::DIM dt = 0; dt < dtypes.size(); dt++) {
-      for (mgard_cuda::DIM ebt = 0; ebt < ebtypes.size(); ebt++) {
-        for (mgard_cuda::DIM s = 0; s < ssd.size(); s++) {
-          for (mgard_cuda::DIM tol = 0; tol < tols.size(); tol++) {
+  for (mgard_x::DIM sp = 0; sp < shapes.size(); sp++) {
+    for (mgard_x::DIM dt = 0; dt < dtypes.size(); dt++) {
+      for (mgard_x::DIM ebt = 0; ebt < ebtypes.size(); ebt++) {
+        for (mgard_x::DIM s = 0; s < ssd.size(); s++) {
+          for (mgard_x::DIM tol = 0; tol < tols.size(); tol++) {
             struct Result result_cpu, result_gpu;
             if (dtypes[dt] == SINGLE) {
               size_t original_size = 1;
-              for (mgard_cuda::DIM i = 0; i < shapes[sp].size(); i++)
+              for (mgard_x::DIM i = 0; i < shapes[sp].size(); i++)
                 original_size *= shapes[sp][i];
               float *original_data =
                   (float *)malloc(original_size * sizeof(float));
@@ -347,7 +347,7 @@ int main(int argc, char *argv[]) {
               delete[] original_data;
             } else {
               size_t original_size = 1;
-              for (mgard_cuda::DIM i = 0; i < shapes[sp].size(); i++)
+              for (mgard_x::DIM i = 0; i < shapes[sp].size(); i++)
                 original_size *= shapes[sp][i];
               double *original_data =
                   (double *)malloc(original_size * sizeof(double));

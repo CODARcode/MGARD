@@ -42,30 +42,30 @@ GPU=1
 # ./convert.py ../512x512x512/velocity_x.dat 512 512 512 s data_65_s.dat 65 65 65 s 
 # ./convert.py ../512x512x512/velocity_x.dat 512 512 512 s data_33_s.dat 33 33 33 s 
 
-# BIN="./build/bin/mgard_cuda_float_test ./test.dat 65 65 65 1 1"
+# BIN="./build/bin/mgard_x_float_test ./test.dat 65 65 65 1 1"
 
 
-# BIN="./bin/mgard_cuda_double_test 0 1 100  0.001 1"
-# BIN="./bin/mgard_cuda_double_test 0 2 10 10 0.01 1"
-# BIN="./bin/mgard_cuda_double_test 0 3 64 5 12 0.00001 0 1"
+# BIN="./bin/mgard_x_double_test 0 1 100  0.001 1"
+# BIN="./bin/mgard_x_double_test 0 2 10 10 0.01 1"
+# BIN="./bin/mgard_x_double_test 0 3 64 5 12 0.00001 0 1"
 
 BIN=$BIN_DOUBLE" 0 3 513 513 513 1 0 1"
 
 
-# BIN="./bin/mgard_cuda_double_test 1 ../data_513_d.dat 3 513 513 513 0.1 0 1"
-#BIN="./bin/mgard_cuda_float_test 1 ../../512x512x512/velocity_x.dat 3 512 512 512 1 0 1"
-# BIN="./bin/mgard_cuda_float_test 0 3 513 513 513 1 1"
+# BIN="./bin/mgard_x_double_test 1 ../data_513_d.dat 3 513 513 513 0.1 0 1"
+#BIN="./bin/mgard_x_float_test 1 ../../512x512x512/velocity_x.dat 3 512 512 512 1 0 1"
+# BIN="./bin/mgard_x_float_test 0 3 513 513 513 1 1"
 
 
 
-# BIN="./bin/mgard_cuda_double_test 0 3 70 170 170 0.001 0 1"
-# BIN="./bin/mgard_cuda_double_test 0 4 7 7 7 7 1 1"
-# BIN="./bin/mgard_cuda_double_test 0 4 30 50 50 50 0.00001 1"
-# BIN="./bin/mgard_cuda_double_test 0 4 5 5 5 5 0.000001 1"
-# BIN="./bin/mgard_cuda_double_test 0 5 5 5 5 5 5 0.000001 1"
+# BIN="./bin/mgard_x_double_test 0 3 70 170 170 0.001 0 1"
+# BIN="./bin/mgard_x_double_test 0 4 7 7 7 7 1 1"
+# BIN="./bin/mgard_x_double_test 0 4 30 50 50 50 0.00001 1"
+# BIN="./bin/mgard_x_double_test 0 4 5 5 5 5 0.000001 1"
+# BIN="./bin/mgard_x_double_test 0 5 5 5 5 5 5 0.000001 1"
 
 
-# BIN="./build/bin/mgard_cuda_double_test 5 5 5 1 1"
+# BIN="./build/bin/mgard_x_double_test 5 5 5 1 1"
 
 test_amr () { 
    $1 0 2 9 9 0.001 0 1
@@ -209,7 +209,7 @@ test_perf () {
 
 # for N in 513 257 129 65 33 17 9
 # do
-	# BIN="./build/bin/mgard_cuda_double_test $N $N $N 1 1"
+	# BIN="./build/bin/mgard_x_double_test $N $N $N 1 1"
 	# $NVPROF --print-gpu-trace --csv --normalized-time-unit ms --log-file kernel_trace.csv $BIN
 	# ./parse_trace.py kernel_trace.csv 0 pi_Ql_cpt2 cpt_to_pow2p1_add
 # done

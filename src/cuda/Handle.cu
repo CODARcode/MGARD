@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include "cuda/CommonInternal.h"
@@ -17,7 +17,7 @@
 #include <limits>
 #include <vector>
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T>
 void Handle<D, T>::coord_to_dist(SIZE dof, T * coord, T * dist) {
@@ -110,7 +110,7 @@ void Handle<D, T>::calc_am_bm(SIZE dof, T * dist, T * am, T * bm) {
   T w = a_j / h_bm[dof-2];
   h_bm[dof-1] = 2 * h_dist[dof-2] / 6 - w * a_j;
   h_am[dof-1] = a_j;
-#ifdef MGARD_CUDA_FMA
+#ifdef MGARD_X_FMA
   for (int i = 0; i < dof+1; i ++) { h_am[i] = -1 * h_am[i]; h_bm[i] = 1 / h_bm[i]; }
 #endif
   cudaMemcpyAsyncHelper(*this, am, h_am, dof * sizeof(T), AUTO, 0);
@@ -232,12 +232,12 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
     SIZE *curr_shape_d;
     cudaMallocHelper(*this, (void **)&(curr_shape_d), D_padded * sizeof(SIZE));
     cudaMemcpyAsyncHelper(*this, curr_shape_d, curr_shape_h,
-                          D_padded * sizeof(SIZE), mgard_cuda::H2D, 0);
+                          D_padded * sizeof(SIZE), mgard_x::H2D, 0);
     shapes_d.push_back(curr_shape_d);
 
     Array<1, SIZE, CUDA> shape_array({D_padded});
     cudaMemcpyAsyncHelper(*this, shape_array.get_dv(), curr_shape_h,
-                          D_padded * sizeof(SIZE), mgard_cuda::H2D, 0);
+                          D_padded * sizeof(SIZE), mgard_x::H2D, 0);
     sync(0);
     shapes.push_back(shape_array);
   }
@@ -267,19 +267,25 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
   processed_dims_h = new DIM *[D];
   processed_dims_d = new DIM *[D];
 
+
   {
     thrust::device_vector<DIM> tmp(0);
     for (int d = 0; d < D; d++) {
       processed_n[d] = tmp.size();
       processed_dims_h[d] = new DIM[processed_n[d]];
+
+      processed_dims[d] = Array<1, DIM, CUDA>({(SIZE)tmp.size()});
+
       cudaMemcpyAsyncHelper(*this, processed_dims_h[d],
                             thrust::raw_pointer_cast(tmp.data()),
-                            processed_n[d] * sizeof(DIM), mgard_cuda::D2H, 0);
+                            processed_n[d] * sizeof(DIM), mgard_x::D2H, 0);
       cudaMallocHelper(*this, (void **)&processed_dims_d[d],
                        processed_n[d] * sizeof(DIM));
       cudaMemcpyAsyncHelper(*this, processed_dims_d[d],
                             thrust::raw_pointer_cast(tmp.data()),
-                            processed_n[d] * sizeof(DIM), mgard_cuda::D2D, 0);
+                            processed_n[d] * sizeof(DIM), mgard_x::D2D, 0);
+
+      processed_dims[d].loadData(thrust::raw_pointer_cast(tmp.data()));
       tmp.push_back(d);
     }
   }
@@ -291,19 +297,23 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
     unprocessed_n = new DIM[tmp.size()];
     unprocessed_dims_h = new DIM *[tmp.size()];
     unprocessed_dims_d = new DIM *[tmp.size()];
+    
 
     //+1 is used for storing empty status
     for (int d = 0; d < (int)D-3+1; d++) {
       unprocessed_n[d] = tmp.size();
       unprocessed_dims_h[d] = new DIM[unprocessed_n[d]];
+
+      unprocessed_dims[d] = Array<1, DIM, CUDA>({(SIZE)tmp.size()});
       cudaMemcpyAsyncHelper(*this, unprocessed_dims_h[d],
                             thrust::raw_pointer_cast(tmp.data()),
-                            unprocessed_n[d] * sizeof(DIM), mgard_cuda::D2H, 0);
+                            unprocessed_n[d] * sizeof(DIM), mgard_x::D2H, 0);
       cudaMallocHelper(*this, (void **)&unprocessed_dims_d[d],
                        unprocessed_n[d] * sizeof(DIM));
       cudaMemcpyAsyncHelper(*this, unprocessed_dims_d[d],
                             thrust::raw_pointer_cast(tmp.data()),
-                            unprocessed_n[d] * sizeof(DIM), mgard_cuda::D2D, 0);
+                            unprocessed_n[d] * sizeof(DIM), mgard_x::D2D, 0);
+      unprocessed_dims[d].loadData(thrust::raw_pointer_cast(tmp.data()));
       tmp.pop_back();
     }
   }
@@ -324,28 +334,49 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
   // calculate dist and ratio
   for (int i = 0; i < shape.size(); i++) {
     std::vector<T *> curr_ddist_l, curr_dratio_l;
+    std::vector<Array<1, T, CUDA>> curr_ddist_array_l, curr_dratio_array_l;
+
     // for level 0
     int last_dist = dofs[i][0] - 1;
     T *curr_ddist0, *curr_dratio0;
     cudaMallocHelper(*this, (void **)&curr_ddist0, dofs[i][0] * sizeof(T));
     cudaMallocHelper(*this, (void **)&curr_dratio0, dofs[i][0] * sizeof(T));
+    Array<1, T, CUDA> curr_ddist0_array({dofs[i][0]});
+    Array<1, T, CUDA> curr_dratio0_array({dofs[i][0]});
+
     curr_ddist_l.push_back(curr_ddist0);
     curr_dratio_l.push_back(curr_dratio0);
+    curr_ddist_array_l.push_back(curr_ddist0_array);
+    curr_dratio_array_l.push_back(curr_dratio0_array);
+
     coord_to_dist(dofs[i][0], this->coords_d[i], curr_ddist_l[0]);
     dist_to_ratio(dofs[i][0], curr_ddist_l[0], curr_dratio_l[0]);
+    coord_to_dist(dofs[i][0], this->coords_d[i], curr_ddist_array_l[0].get_dv());
+    dist_to_ratio(dofs[i][0], curr_ddist_l[0], curr_dratio_array_l[0].get_dv());
+
 
     // for l = 1 ... l_target
     for (int l = 1; l < l_target + 1; l++) {
       T *curr_ddist, *curr_dratio;
       cudaMallocHelper(*this, (void **)&curr_ddist, dofs[i][l] * sizeof(T));
       cudaMallocHelper(*this, (void **)&curr_dratio, dofs[i][l] * sizeof(T));
+      Array<1, T, CUDA> curr_ddist_array({dofs[i][l]});
+      Array<1, T, CUDA> curr_dratio_array({dofs[i][l]});
+
       curr_ddist_l.push_back(curr_ddist);
       curr_dratio_l.push_back(curr_dratio);
+      curr_ddist_array_l.push_back(curr_ddist_array);
+      curr_dratio_array_l.push_back(curr_dratio_array);
+
       reduce_dist(dofs[i][l-1], curr_ddist_l[l - 1], curr_ddist_l[l]);
       dist_to_ratio(dofs[i][l], curr_ddist_l[l], curr_dratio_l[l]);
+      reduce_dist(dofs[i][l-1], curr_ddist_l[l - 1], curr_ddist_array_l[l].get_dv());
+      dist_to_ratio(dofs[i][l], curr_ddist_l[l], curr_dratio_array_l[l].get_dv());
     }
     dist.push_back(curr_ddist_l);
     ratio.push_back(curr_dratio_l);
+    dist_array.push_back(curr_ddist_array_l);
+    ratio_array.push_back(curr_dratio_array_l);
   }
 
   // for (int l = 0; l < l_target+1; l++) {
@@ -912,7 +943,7 @@ template <DIM D, typename T> void Handle<D, T>::allocate_workspace() {
 
   // printf("allocate_workspace: %llu\n", (shapes_h[0][0] + 2) * sizeof(T) * (shapes_h[0][1] + 2) * padded_linearized_depth);
   size_t dw_pitch;
-  mgard_cuda::cudaMalloc3DHelper(*this, (void **)&(dw), &dw_pitch,
+  mgard_x::cudaMalloc3DHelper(*this, (void **)&(dw), &dw_pitch,
                                  (shapes_h[0][0] + 2) * sizeof(T),
                                  shapes_h[0][1] + 2, padded_linearized_depth);
   // printf("pitch %llu\n", dw_pitch);
@@ -938,15 +969,15 @@ template <DIM D, typename T> void Handle<D, T>::allocate_workspace() {
   }
 
 
-  mgard_cuda::cudaMallocHelper(*this, (void **)&ldws_d, D_padded * sizeof(SIZE));
-  mgard_cuda::cudaMemcpyAsyncHelper(*this, ldws_d, ldws_h.data(),
-                                    D_padded * sizeof(SIZE), mgard_cuda::H2D, 0);
+  mgard_x::cudaMallocHelper(*this, (void **)&ldws_d, D_padded * sizeof(SIZE));
+  mgard_x::cudaMemcpyAsyncHelper(*this, ldws_d, ldws_h.data(),
+                                    D_padded * sizeof(SIZE), mgard_x::H2D, 0);
 
 
   if (D > 3) {
     // printf("allocate_workspace: %llu\n", (shapes_h[0][0] + 2) * sizeof(T) * (shapes_h[0][1] + 2) * padded_linearized_depth);
     size_t db_pitch;
-    mgard_cuda::cudaMalloc3DHelper(*this, (void **)&(db), &db_pitch,
+    mgard_x::cudaMalloc3DHelper(*this, (void **)&(db), &db_pitch,
                                    (shapes_h[0][0] + 2) * sizeof(T),
                                    shapes_h[0][1] + 2, padded_linearized_depth);
 
@@ -968,9 +999,9 @@ template <DIM D, typename T> void Handle<D, T>::allocate_workspace() {
       ldbs_h.push_back(shapes_h[0][i] + 2);
     }
 
-    mgard_cuda::cudaMallocHelper(*this, (void **)&ldbs_d, D_padded * sizeof(SIZE));
-    mgard_cuda::cudaMemcpyAsyncHelper(*this, ldbs_d, ldbs_h.data(),
-                                      D_padded * sizeof(SIZE), mgard_cuda::H2D,
+    mgard_x::cudaMallocHelper(*this, (void **)&ldbs_d, D_padded * sizeof(SIZE));
+    mgard_x::cudaMemcpyAsyncHelper(*this, ldbs_d, ldbs_h.data(),
+                                      D_padded * sizeof(SIZE), mgard_x::H2D,
                                       0);
   }
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
@@ -978,12 +1009,12 @@ template <DIM D, typename T> void Handle<D, T>::allocate_workspace() {
 }
 
 template <DIM D, typename T> void Handle<D, T>::free_workspace() {
-  mgard_cuda::cudaFreeHelper(dw);
-  mgard_cuda::cudaFreeHelper(ldws_d);
+  mgard_x::cudaFreeHelper(dw);
+  mgard_x::cudaFreeHelper(ldws_d);
   if (D > 3) {
-    mgard_cuda::cudaFreeHelper(db);
+    mgard_x::cudaFreeHelper(db);
     // delete [] ldbs_h;
-    mgard_cuda::cudaFreeHelper(ldbs_d);
+    mgard_x::cudaFreeHelper(ldbs_d);
   }
 }
 
@@ -1003,14 +1034,14 @@ Handle<D, T>::Handle(std::vector<SIZE> shape) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
     std::cerr << log::log_err
-              << "Number of dimensions mismatch. mgard_cuda::Hanlde not "
+              << "Number of dimensions mismatch. mgard_x::Hanlde not "
                  "initialized!\n";
     return;
   }
   if (ret == -2) {
     std::cerr << log::log_err
               << "Size of any dimensions cannot be smaller than 3. "
-                 "mgard_cuda::Hanlde not "
+                 "mgard_x::Hanlde not "
                  "initialized!\n";
   }
   dstype = data_structure_type::Cartesian_Grid_Uniform;
@@ -1032,14 +1063,14 @@ Handle<D, T>::Handle(std::vector<SIZE> shape, std::vector<T *> coords) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
     std::cerr << log::log_err
-              << "Number of dimensions mismatch. mgard_cuda::Hanlde not "
+              << "Number of dimensions mismatch. mgard_x::Hanlde not "
                  "initialized!\n";
     return;
   }
   if (ret == -2) {
     std::cerr << log::log_err
               << "Size of any dimensions cannot be smaller than 3. "
-                 "mgard_cuda::Hanlde not "
+                 "mgard_x::Hanlde not "
                  "initialized!\n";
   }
 
@@ -1061,14 +1092,14 @@ Handle<D, T>::Handle(std::vector<SIZE> shape, Config config) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
     std::cerr << log::log_err
-              << "Number of dimensions mismatch. mgard_cuda::Hanlde not "
+              << "Number of dimensions mismatch. mgard_x::Hanlde not "
                  "initialized!\n";
     return;
   }
   if (ret == -2) {
     std::cerr << log::log_err
               << "Size of any dimensions cannot be smaller than 3. "
-                 "mgard_cuda::Hanlde not "
+                 "mgard_x::Hanlde not "
                  "initialized!\n";
   }
 
@@ -1090,14 +1121,14 @@ Handle<D, T>::Handle(std::vector<SIZE> shape, std::vector<T *> coords,
   int ret = check_shape<D>(shape);
   if (ret == -1) {
     std::cerr << log::log_err
-              << "Number of dimensions mismatch. mgard_cuda::Hanlde not "
+              << "Number of dimensions mismatch. mgard_x::Hanlde not "
                  "initialized!\n";
     return;
   }
   if (ret == -2) {
     std::cerr << log::log_err
               << "Size of any dimensions cannot be smaller than 3. "
-                 "mgard_cuda::Hanlde not "
+                 "mgard_x::Hanlde not "
                  "initialized!\n";
   }
 
@@ -1150,4 +1181,4 @@ template class Handle<4, float>;
 template class Handle<5, double>;
 template class Handle<5, float>;
 
-} // namespace mgard_cuda
+} // namespace mgard_x

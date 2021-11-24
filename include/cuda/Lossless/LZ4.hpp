@@ -1,7 +1,7 @@
-#ifndef MGRAD_CUDA_LZ4_TEMPLATE_HPP
-#define MGRAD_CUDA_LZ4_TEMPLATE_HPP
+#ifndef MGARD_X_LZ4_TEMPLATE_HPP
+#define MGARD_X_LZ4_TEMPLATE_HPP
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <typename C, typename DeviceType>
 Array<1, Byte, DeviceType> 

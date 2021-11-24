@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include "cuda/CommonInternal.h"
@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <iostream>
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <typename T>
 __global__ void _calc_cpt_dist(int n, T *dcoord, T *ddist) {
@@ -71,7 +71,7 @@ void calc_cpt_dist(Handle<D, T> &handle, int n, T *dcoord, T *ddist,
   _calc_cpt_dist<<<blockPerGrid, threadsPerBlock, sm_size,
                    *(cudaStream_t *)handle.get(queue_idx)>>>(n, dcoord, ddist);
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -117,7 +117,7 @@ void reduce_two_dist(Handle<D, T> &handle, int n, T *ddist, T *ddist_reduced,
                      *(cudaStream_t *)handle.get(queue_idx)>>>(n, ddist,
                                                                ddist_reduced);
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -172,7 +172,7 @@ void dist_to_ratio(Handle<D, T> &handle, int n, T *ddist, T *dratio,
   _dist_to_ratio<<<blockPerGrid, threadsPerBlock, sm_size,
                    *(cudaStream_t *)handle.get(queue_idx)>>>(n, ddist, dratio);
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -244,7 +244,7 @@ void dist_to_volume(Handle<D, T> &handle, int n, T *ddist, T *dvolume,
   _dist_to_volume<<<blockPerGrid, threadsPerBlock, sm_size,
                    *(cudaStream_t *)handle.get(queue_idx)>>>(n, ddist, dvolume);
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -283,7 +283,7 @@ __global__ void _calc_am_bm(int n, T *ddist, T *am, T *bm) {
       prev_dist = ddist_sm[blockDim.x - 1];
     }
     __syncthreads();
-#ifdef MGARD_CUDA_FMA
+#ifdef MGARD_X_FMA
     am[c] = 1 / am_sm[c_sm];
     bm[c] = bm_sm[c_sm] * -1;
 #else
@@ -322,7 +322,7 @@ __global__ void _calc_am_bm(int n, T *ddist, T *am, T *bm) {
   }
   __syncthreads();
   if (c_sm < rest) {
-#ifdef MGARD_CUDA_FMA
+#ifdef MGARD_X_FMA
     am[c] = 1 / am_sm[c_sm];
     bm[c] = bm_sm[c_sm] * -1;
 #else
@@ -348,7 +348,7 @@ void calc_am_bm(Handle<D, T> &handle, int n, T *ddist, T *am, T *bm,
   _calc_am_bm<<<blockPerGrid, threadsPerBlock, sm_size,
                 *(cudaStream_t *)handle.get(queue_idx)>>>(n, ddist, am, bm);
   gpuErrchk(cudaGetLastError());
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -377,4 +377,4 @@ KERNELS(5, double)
 KERNELS(5, float)
 #undef KERNELS
 
-} // namespace mgard_cuda
+} // namespace mgard_x

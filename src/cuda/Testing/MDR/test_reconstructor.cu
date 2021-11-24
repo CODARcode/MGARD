@@ -84,7 +84,7 @@ void evaluate(const vector<T>& data, const vector<double>& tolerance, Reconstruc
 
 template <class T, class Decomposer, class Interleaver, class Encoder, class Compressor, class ErrorEstimator, class SizeInterpreter, class Retriever>
 void test(string filename, const vector<double>& tolerance, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorEstimator estimator, SizeInterpreter interpreter, Retriever retriever){
-    auto reconstructor = mgard_cuda::MDR::ComposedReconstructor<T, Decomposer, Interleaver, Encoder, Compressor, SizeInterpreter, ErrorEstimator, Retriever>(decomposer, interleaver, encoder, compressor, interpreter, retriever);
+    auto reconstructor = mgard_x::MDR::ComposedReconstructor<T, Decomposer, Interleaver, Encoder, Compressor, SizeInterpreter, ErrorEstimator, Retriever>(decomposer, interleaver, encoder, compressor, interpreter, retriever);
     cout << "loading metadata" << endl;
     reconstructor.load_metadata();
 
@@ -93,7 +93,7 @@ void test(string filename, const vector<double>& tolerance, Decomposer decompose
     evaluate(data, tolerance, reconstructor);
 }
 
-template <typename HandleType, mgard_cuda::DIM D, class T, class T_stream, class Decomposer, class Interleaver, class Encoder, class Compressor, class ErrorEstimator, class SizeInterpreter, class Retriever>
+template <typename HandleType, mgard_x::DIM D, class T, class T_stream, class Decomposer, class Interleaver, class Encoder, class Compressor, class ErrorEstimator, class SizeInterpreter, class Retriever>
 void test2(string filename, const vector<double>& tolerance, HandleType& handle, Decomposer decomposer, Interleaver interleaver, Encoder encoder, Compressor compressor, ErrorEstimator estimator, SizeInterpreter interpreter, Retriever retriever){
     auto reconstructor = mgard_m::MDR::ComposedReconstructor<HandleType, D, T, T_stream, Decomposer, Interleaver, Encoder, Compressor, SizeInterpreter, ErrorEstimator, Retriever>(handle, decomposer, interleaver, encoder, compressor, interpreter, retriever);
     cout << "loading metadata" << endl;
@@ -119,21 +119,21 @@ int main(int argc, char ** argv){
     string metadata_file = "refactored_data/metadata.bin";
     int num_levels = 0;
     int num_dims = 0;
-    vector<mgard_cuda::SIZE> dims;
+    vector<mgard_x::SIZE> dims;
     {
         // metadata interpreter, otherwise information needs to be provided
         size_t num_bytes = 0;
         auto metadata = readfile<uint8_t>(metadata_file.c_str(), num_bytes);
-        assert(num_bytes > num_dims * sizeof(mgard_cuda::SIZE) + 2);
+        assert(num_bytes > num_dims * sizeof(mgard_x::SIZE) + 2);
         num_dims = metadata[0];
-        mgard_cuda::SIZE * dim = (mgard_cuda::SIZE*)&(metadata[1]);
+        mgard_x::SIZE * dim = (mgard_x::SIZE*)&(metadata[1]);
         printf("dim: ");
         for (int i = 0; i < num_dims; i++) {
             dims.push_back(dim[i]);
             printf("%u ", dim[i]);
         }
         printf("\n");
-        num_levels = metadata[num_dims * sizeof(mgard_cuda::SIZE) + 1];
+        num_levels = metadata[num_dims * sizeof(mgard_x::SIZE) + 1];
         cout << "number of dimension = " << num_dims << ", number of levels = " << num_levels << endl;
 
     }
@@ -147,49 +147,49 @@ int main(int argc, char ** argv){
     using T_stream = uint32_t;
     using T_error = double;
 
-    const mgard_cuda::DIM D = 3;
-    using HandleType = mgard_cuda::Handle<D, T>;
-    mgard_cuda::Config config;
+    const mgard_x::DIM D = 3;
+    using HandleType = mgard_x::Handle<D, T>;
+    mgard_x::Config config;
     config.l_target = num_levels - 1;
     HandleType handle(dims, config);
 
     if (false) {
-        auto decomposer = mgard_cuda::MDR::MGARDOrthoganalDecomposer<D, T>(handle);
+        auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T>(handle);
         // auto decomposer = MDR::MGARDHierarchicalDecomposer<T>();
-        auto interleaver = mgard_cuda::MDR::DirectInterleaver<D, T>(handle);
+        auto interleaver = mgard_x::MDR::DirectInterleaver<D, T>(handle);
         // auto interleaver = MDR::SFCInterleaver<T>();
         // auto interleaver = MDR::BlockedInterleaver<T>();
 
 
 
-        auto encoder = mgard_cuda::MDR::GroupedBPEncoder<D, T, T_stream>(handle);
-        // auto encoder = mgard_cuda::MDR::NegaBinaryBPEncoder<D, T, T_stream>(handle);
-        // auto encoder = mgard_cuda::MDR::PerBitBPEncoder<D, T, T_stream>(handle);
+        auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T, T_stream>(handle);
+        // auto encoder = mgard_x::MDR::NegaBinaryBPEncoder<D, T, T_stream>(handle);
+        // auto encoder = mgard_x::MDR::PerBitBPEncoder<D, T, T_stream>(handle);
 
 
-        // auto encoder = mgard_cuda::MDR::PerBitBPEncoderGPU<D, T, T_stream>(handle);
-        // auto encoder = mgard_cuda::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
+        // auto encoder = mgard_x::MDR::PerBitBPEncoderGPU<D, T, T_stream>(handle);
+        // auto encoder = mgard_x::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
         
 
-        auto compressor = mgard_cuda::MDR::DefaultLevelCompressor();
-        // auto compressor = mgard_cuda::MDR::AdaptiveLevelCompressor(32);
+        auto compressor = mgard_x::MDR::DefaultLevelCompressor();
+        // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
         // auto compressor = MDR::NullLevelCompressor();
-        auto retriever = mgard_cuda::MDR::ConcatLevelFileRetriever(metadata_file, files);
+        auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);
         switch(error_mode){
             case 1:{
-                auto estimator = mgard_cuda::MDR::SNormErrorEstimator<T>(num_dims, num_levels - 1, s);
-                // auto interpreter = mgard_cuda::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_cuda::MDR::SNormErrorEstimator<T>>(estimator);
-                // auto interpreter = mgard_cuda::MDR::NegaBinaryGreedyBasedSizeInterpreter<mgard_cuda::MDR::SNormErrorEstimator<T>>(estimator);
-                auto interpreter = mgard_cuda::MDR::RoundRobinSizeInterpreter<mgard_cuda::MDR::SNormErrorEstimator<T>>(estimator);
-                // auto interpreter = mgard_cuda::MDR::InorderSizeInterpreter<mgard_cuda::MDR::SNormErrorEstimator<T>>(estimator);
-                // auto estimator = mgard_cuda::MDR::L2ErrorEstimator_HB<T>(num_dims, num_levels - 1);
-                // auto interpreter = mgard_cuda::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_cuda::MDR::L2ErrorEstimator_HB<T>>(estimator);
+                auto estimator = mgard_x::MDR::SNormErrorEstimator<T>(num_dims, num_levels - 1, s);
+                // auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+                // auto interpreter = mgard_x::MDR::NegaBinaryGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+                auto interpreter = mgard_x::MDR::RoundRobinSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+                // auto interpreter = mgard_x::MDR::InorderSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+                // auto estimator = mgard_x::MDR::L2ErrorEstimator_HB<T>(num_dims, num_levels - 1);
+                // auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::L2ErrorEstimator_HB<T>>(estimator);
                 test<T>(filename, tolerance, decomposer, interleaver, encoder, compressor, estimator, interpreter, retriever);            
                 break;
             }
             default:{
-                auto estimator = mgard_cuda::MDR::MaxErrorEstimatorOB<T>(num_dims);
-                auto interpreter = mgard_cuda::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_cuda::MDR::MaxErrorEstimatorOB<T>>(estimator);
+                auto estimator = mgard_x::MDR::MaxErrorEstimatorOB<T>(num_dims);
+                auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::MaxErrorEstimatorOB<T>>(estimator);
                 // auto interpreter = MDR::RoundRobinSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
                 // auto interpreter = MDR::InorderSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
                 // auto estimator = MDR::MaxErrorEstimatorHB<T>();
@@ -207,26 +207,26 @@ int main(int argc, char ** argv){
         auto encoder = mgard_m::MDR::GroupedWarpBPEncoder<HandleType, D, T, T_stream, T_error>(handle);
 
         auto compressor = mgard_m::MDR::DefaultLevelCompressor<HandleType, D, T_stream>(handle);
-        auto retriever = mgard_cuda::MDR::ConcatLevelFileRetriever(metadata_file, files);
+        auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);
         switch(error_mode){
             case 1:{
-                auto estimator = mgard_cuda::MDR::SNormErrorEstimator<T>(num_dims, num_levels - 1, s);
+                auto estimator = mgard_x::MDR::SNormErrorEstimator<T>(num_dims, num_levels - 1, s);
                 // auto interpreter = MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::SNormErrorEstimator<T>>(estimator);
-                // auto interpreter = mgard_cuda::MDR::NegaBinaryGreedyBasedSizeInterpreter<mgard_cuda::MDR::SNormErrorEstimator<T>>(estimator);
-                auto interpreter = mgard_cuda::MDR::RoundRobinSizeInterpreter<mgard_cuda::MDR::SNormErrorEstimator<T>>(estimator);
-                // auto interpreter = mgard_cuda::MDR::InorderSizeInterpreter<MDR::SNormErrorEstimator<T>>(estimator);
-                // auto estimator = mgard_cuda::MDR::L2ErrorEstimator_HB<T>(num_dims, num_levels - 1);
-                // auto interpreter = mgard_cuda::MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::L2ErrorEstimator_HB<T>>(estimator);
+                // auto interpreter = mgard_x::MDR::NegaBinaryGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+                auto interpreter = mgard_x::MDR::RoundRobinSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+                // auto interpreter = mgard_x::MDR::InorderSizeInterpreter<MDR::SNormErrorEstimator<T>>(estimator);
+                // auto estimator = mgard_x::MDR::L2ErrorEstimator_HB<T>(num_dims, num_levels - 1);
+                // auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::L2ErrorEstimator_HB<T>>(estimator);
                 test2<HandleType, D, T, T_stream>(filename, tolerance, handle, decomposer, interleaver, encoder, compressor, estimator, interpreter, retriever);            
                 break;
             }
             default:{
-                auto estimator = mgard_cuda::MDR::MaxErrorEstimatorOB<T>(num_dims);
-                auto interpreter = mgard_cuda::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_cuda::MDR::MaxErrorEstimatorOB<T>>(estimator);
-                // auto interpreter = mgard_cuda::MDR::RoundRobinSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
-                // auto interpreter = mgard_cuda::MDR::InorderSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
-                // auto estimator = mgard_cuda::MDR::MaxErrorEstimatorHB<T>();
-                // auto interpreter = mgard_cuda::MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorHB<T>>(estimator);
+                auto estimator = mgard_x::MDR::MaxErrorEstimatorOB<T>(num_dims);
+                auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::MaxErrorEstimatorOB<T>>(estimator);
+                // auto interpreter = mgard_x::MDR::RoundRobinSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
+                // auto interpreter = mgard_x::MDR::InorderSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
+                // auto estimator = mgard_x::MDR::MaxErrorEstimatorHB<T>();
+                // auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorHB<T>>(estimator);
                 test2<HandleType, D, T, T_stream>(filename, tolerance, handle, decomposer, interleaver, encoder, compressor, estimator, interpreter, retriever);
             }
         }    

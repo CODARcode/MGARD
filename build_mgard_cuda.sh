@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Copyright 2021, Oak Ridge National Laboratory.
-# MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+# MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
 # Author: Jieyang Chen (chenj3@ornl.gov)
 # Date: April 2, 2021
 # Script for building MGARD-GPU
@@ -22,17 +22,18 @@ if [ ! -f "$nvcomp_library" ]; then
 fi
 
 #build MGARD-CUDA
-mgard_cuda_src_dir=${home_dir}
-mgard_cuda_build_dir=${home_dir}/build
-mgard_cuda_install_dir=${home_dir}/install
-rm -rf ${mgard_cuda_build_dir} && mkdir -p ${mgard_cuda_build_dir}
-cmake -S ${mgard_cuda_src_dir} -B ${mgard_cuda_build_dir} \
+mgard_x_src_dir=${home_dir}
+mgard_x_build_dir=${home_dir}/build
+mgard_x_install_dir=${home_dir}/install
+rm -rf ${mgard_x_build_dir} && mkdir -p ${mgard_x_build_dir}
+cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
 	  -DCMAKE_PREFIX_PATH=${nvcomp_build_dir}\
 	  -DMGARD_ENABLE_CUDA=ON\
 	  -DMGARD_ENABLE_CUDA_FMA=ON\
 	  -DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=OFF\
 	  -DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=ON\
-	  -DCMAKE_INSTALL_PREFIX=${mgard_cuda_install_dir}
-cmake --build ${mgard_cuda_build_dir} -j8
-cmake --install ${mgard_cuda_build_dir}
+	  -DCMAKE_BUILD_TYPE=Release\
+	  -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
+cmake --build ${mgard_x_build_dir} -j8
+cmake --install ${mgard_x_build_dir}
 

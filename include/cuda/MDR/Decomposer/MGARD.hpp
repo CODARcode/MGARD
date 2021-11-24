@@ -6,7 +6,7 @@
 #include "recompose.hpp"
 #include "../../DataRefactoring.h"
 #include <cstring>
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     // MGARD decomposer with orthogonal basis
     template<DIM D, typename T>
@@ -22,16 +22,16 @@ namespace MDR {
             decomposer.decompose(data, dims, target_level);
 
             // size_t size = 1;
-            // std::vector<mgard_cuda::SIZE> shape(D);
-            // for(mgard_cuda::DIM i = 0; i<D; i++){
+            // std::vector<mgard_x::SIZE> shape(D);
+            // for(mgard_x::DIM i = 0; i<D; i++){
             //     shape[i] = dimensions[i];
             //     size *= dimensions[i];
             // }
-            // mgard_cuda::Handle<D, T> handle(shape);
-            // mgard_cuda::Array<D, T> array(shape);
+            // mgard_x::Handle<D, T> handle(shape);
+            // mgard_x::Array<D, T> array(shape);
             // array.loadData((const T*)data);
             // handle.allocate_workspace();
-            // mgard_cuda::decompose<D, T>(handle, array.get_dv(), array.get_ldvs_h(), array.get_ldvs_d(),
+            // mgard_x::decompose<D, T>(handle, array.get_dv(), array.get_ldvs_h(), array.get_ldvs_d(),
             // target_level, 0);
             // handle.sync_all();
             // handle.free_workspace();
@@ -46,16 +46,16 @@ namespace MDR {
             recomposer.recompose(data, dims, target_level);
 
             // size_t size = 1;
-            // std::vector<mgard_cuda::SIZE> shape(D);
-            // for(mgard_cuda::DIM i=0; i<D; i++){
+            // std::vector<mgard_x::SIZE> shape(D);
+            // for(mgard_x::DIM i=0; i<D; i++){
             //     shape[i] = dimensions[i];
             //     size *= dimensions[i];
             // }
-            // mgard_cuda::Handle<D, T> handle(shape);
-            // mgard_cuda::Array<D, T> array(shape);
+            // mgard_x::Handle<D, T> handle(shape);
+            // mgard_x::Array<D, T> array(shape);
             // array.loadData((const T*)data);
             // handle.allocate_workspace();
-            // mgard_cuda::recompose<D, T>(handle, array.get_dv(), array.get_ldvs_h(), array.get_ldvs_d(),
+            // mgard_x::recompose<D, T>(handle, array.get_dv(), array.get_ldvs_h(), array.get_ldvs_d(),
             // target_level, 0);
             // handle.sync_all();
             // handle.free_workspace();
@@ -102,19 +102,19 @@ namespace MDR {
 namespace mgard_m {
 namespace MDR {
     // MGARD decomposer with orthogonal basis
-    template<typename HandleType, mgard_cuda::DIM D, typename T>
+    template<typename HandleType, mgard_x::DIM D, typename T>
     class MGARDOrthoganalDecomposer : public concepts::DecomposerInterface<HandleType, D, T> {
     public:
         MGARDOrthoganalDecomposer(HandleType &handle): handle(handle){}
-        void decompose(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SIZE target_level, int queue_idx) const {
+        void decompose(mgard_x::SubArray<D, T, mgard_x::CUDA> v, mgard_x::SIZE target_level, int queue_idx) const {
             handle.allocate_workspace();
-            // mgard_cuda::decompose<D, T, mgard_cuda::CUDA>(handle, v, target_level, queue_idx);
+            // mgard_x::decompose<D, T, mgard_x::CUDA>(handle, v, target_level, queue_idx);
             handle.sync(queue_idx);
             handle.free_workspace();
         }
-        void recompose(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> v, mgard_cuda::SIZE target_level, int queue_idx) const {
+        void recompose(mgard_x::SubArray<D, T, mgard_x::CUDA> v, mgard_x::SIZE target_level, int queue_idx) const {
             handle.allocate_workspace();
-            // mgard_cuda::recompose<D, T, mgard_cuda::CUDA>(handle, v.dv, v.ldvs_h, v.ldvs_d, target_level, queue_idx);
+            // mgard_x::recompose<D, T, mgard_x::CUDA>(handle, v.dv, v.ldvs_h, v.ldvs_d, target_level, queue_idx);
             handle.sync(queue_idx);
             handle.free_workspace();
         }

@@ -22,15 +22,15 @@ print_bits(T v, int num_bits, bool reverse = false) {
 }
 
 
-template <typename T_data, typename T_bitplane, mgard_cuda::OPTION NumGroupsPerWarpPerIter, mgard_cuda::SIZE NumWarpsPerTB, mgard_cuda::OPTION BinaryType, mgard_cuda::OPTION DataEncodingAlgorithm, mgard_cuda::OPTION ErrorCollectingAlgorithm, mgard_cuda::OPTION DataDecodingAlgorithm>
-void test(mgard_cuda::LENGTH n, 
-          mgard_cuda::SIZE encoding_num_bitplanes, 
-          mgard_cuda::SIZE decoding_num_bitplanes,
+template <typename T_data, typename T_bitplane, mgard_x::OPTION NumGroupsPerWarpPerIter, mgard_x::SIZE NumWarpsPerTB, mgard_x::OPTION BinaryType, mgard_x::OPTION DataEncodingAlgorithm, mgard_x::OPTION ErrorCollectingAlgorithm, mgard_x::OPTION DataDecodingAlgorithm>
+void test(mgard_x::LENGTH n, 
+          mgard_x::SIZE encoding_num_bitplanes, 
+          mgard_x::SIZE decoding_num_bitplanes,
           int warmup, int repeat){
   
   using T_sfp = typename std::conditional<std::is_same<T_data, double>::value, int64_t, int32_t>::type;
   using T_fp = typename std::conditional<std::is_same<T_data, double>::value, uint64_t, uint32_t>::type;
-  using HandleType = mgard_cuda::Handle<3, float>;
+  using HandleType = mgard_x::Handle<3, float>;
   using T_error = float;
   HandleType handle({5, 5, 5});
 
@@ -68,39 +68,39 @@ void test(mgard_cuda::LENGTH n,
 
 
 
-  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> v_array({(mgard_cuda::SIZE)n});
+  mgard_x::Array<1, T_data, mgard_x::CUDA> v_array({(mgard_x::SIZE)n});
   v_array.loadData(v);
-  mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v_subarray(v_array);
-  // mgard_cuda::PrintSubarray("v_subarray", v_subarray);
+  mgard_x::SubArray<1, T_data, mgard_x::CUDA> v_subarray(v_array);
+  // mgard_x::PrintSubarray("v_subarray", v_subarray);
 
-  mgard_cuda::Array<1, T_error, mgard_cuda::CUDA> level_errors_array({encoding_num_bitplanes+1});
-  mgard_cuda::SubArray<1, T_error, mgard_cuda::CUDA> level_errors(level_errors_array);
+  mgard_x::Array<1, T_error, mgard_x::CUDA> level_errors_array({encoding_num_bitplanes+1});
+  mgard_x::SubArray<1, T_error, mgard_x::CUDA> level_errors(level_errors_array);
 
-  mgard_cuda::Array<1, bool, mgard_cuda::CUDA> signs_array({(mgard_cuda::SIZE)n});
-  mgard_cuda::SubArray<1, bool, mgard_cuda::CUDA> signs_subarray(signs_array);
+  mgard_x::Array<1, bool, mgard_x::CUDA> signs_array({(mgard_x::SIZE)n});
+  mgard_x::SubArray<1, bool, mgard_x::CUDA> signs_subarray(signs_array);
 
-  // mgard_cuda::Array<1, T_data> v2_array({(mgard_cuda::SIZE)n});
-  // mgard_cuda::SubArray<1, T_data> v2_subarray(v2_array);
+  // mgard_x::Array<1, T_data> v2_array({(mgard_x::SIZE)n});
+  // mgard_x::SubArray<1, T_data> v2_subarray(v2_array);
 
 
-  mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> result_array({1});
-  mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> result(result_array);
-  mgard_cuda::DeviceCollective<mgard_cuda::CUDA> deviceReduce;
+  mgard_x::Array<1, T_data, mgard_x::CUDA> result_array({1});
+  mgard_x::SubArray<1, T_data, mgard_x::CUDA> result(result_array);
+  mgard_x::DeviceCollective<mgard_x::CUDA> deviceReduce;
   deviceReduce.AbsMax(v_subarray.getShape(0), v_subarray, result, 0);
-  mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+  mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
   // handle.sync_all();
 
-  mgard_cuda::SIZE starting_bitplane = 0;
+  mgard_x::SIZE starting_bitplane = 0;
   T_data level_max_error = *(result_array.getDataHost());
   int exp = 0;
   frexp(level_max_error, &exp);
 
-  std::vector<mgard_cuda::SIZE> stream_sizes;
+  std::vector<mgard_x::SIZE> stream_sizes;
   std::vector<double> level_sq_err; 
   // CPU
   { 
     total_data = (n*encoding_num_bitplanes)/8/1e9;
-    auto encoder = mgard_cuda::MDR::GroupedBPEncoder<3, T_data, T_bitplane>(handle);
+    auto encoder = mgard_x::MDR::GroupedBPEncoder<3, T_data, T_bitplane>(handle);
     t1 = high_resolution_clock::now();
     auto streams = encoder.encode(v, n, exp, encoding_num_bitplanes, stream_sizes, level_sq_err);
     t2 = high_resolution_clock::now();
@@ -125,21 +125,21 @@ void test(mgard_cuda::LENGTH n,
 
   //GPU-Warp
   {
-    mgard_cuda::MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error, 
+    mgard_x::MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error, 
                                         NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, 
                                         DataEncodingAlgorithm, ErrorCollectingAlgorithm, 
-                                        mgard_cuda::CUDA>encoder;
+                                        mgard_x::CUDA>encoder;
 
-    mgard_cuda::MDR::GroupedWarpDecoder<T_data, T_bitplane, 
+    mgard_x::MDR::GroupedWarpDecoder<T_data, T_bitplane, 
                                         NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, 
                                         DataDecodingAlgorithm, 
-                                        mgard_cuda::CUDA> decoder;
+                                        mgard_x::CUDA> decoder;
 
-    mgard_cuda::Array<2, T_error, mgard_cuda::CUDA> level_errors_work_array({encoding_num_bitplanes+1, MGARDm_NUM_SMs});
-    mgard_cuda::SubArray<2, T_error, mgard_cuda::CUDA> level_errors_work(level_errors_work_array);
+    mgard_x::Array<2, T_error, mgard_x::CUDA> level_errors_work_array({encoding_num_bitplanes+1, MGARDm_NUM_SMs});
+    mgard_x::SubArray<2, T_error, mgard_x::CUDA> level_errors_work(level_errors_work_array);
     
-    mgard_cuda::Array<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_array({encoding_num_bitplanes, encoder.MaxBitplaneLength(n)});
-    mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
+    mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_array({encoding_num_bitplanes, encoder.MaxBitplaneLength(n)});
+    mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
     total_data = (n*encoding_num_bitplanes)/8/1e9;
 
@@ -149,19 +149,19 @@ void test(mgard_cuda::LENGTH n,
     }
 
     // handle.sync(0);
-    mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+    mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
     t1 = high_resolution_clock::now();
     for (int r = 0; r < repeat; r++) {
       encoder.Execute(n, encoding_num_bitplanes, exp, 
                       v_subarray, encoded_bitplanes_subarray, level_errors, level_errors_work, 0);
     }
     // handle.sync(0);
-    mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+    mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
     t2 = high_resolution_clock::now();
     time_span = duration_cast<duration<double>>(t2 - t1) / repeat;
     std::cout << "GPU Encoding time: " << time_span.count() <<" s (" << total_data/time_span.count() << "GB/s)\n";
     ofs << total_data/time_span.count() << ",";
-    // mgard_cuda::PrintSubarray("encoded_bitplanes_subarray", encoded_bitplanes_subarray);
+    // mgard_x::PrintSubarray("encoded_bitplanes_subarray", encoded_bitplanes_subarray);
 
     total_data = (n*decoding_num_bitplanes)/8/1e9;
     
@@ -171,14 +171,14 @@ void test(mgard_cuda::LENGTH n,
                       encoded_bitplanes_subarray, signs_subarray, v_subarray, 0);
     }
 
-    // handle.mgard_cuda::mgard_cuda::DeviceRuntime(0);
-    mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+    // handle.mgard_x::mgard_x::DeviceRuntime(0);
+    mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
     t1 = high_resolution_clock::now();
     for (int r = 0; r < repeat; r++) {
       decoder.Execute(n, starting_bitplane, decoding_num_bitplanes, exp, 
                       encoded_bitplanes_subarray, signs_subarray, v_subarray, 0);
     }
-    mgard_cuda::DeviceRuntime<mgard_cuda::CUDA>().SyncQueue(0);
+    mgard_x::DeviceRuntime<mgard_x::CUDA>().SyncQueue(0);
     t2 = high_resolution_clock::now();
     time_span = duration_cast<duration<double>>(t2 - t1) / repeat;
     std::cout << "GPU Decoding time: " << time_span.count() <<" s (" << total_data/time_span.count() << "GB/s)\n";
@@ -225,7 +225,7 @@ void test(mgard_cuda::LENGTH n,
       if (BinaryType == BINARY) {
         fp_data = (T_fp) fabs(shifted_data);
       } else if (BinaryType == NEGABINARY) {
-        fp_data = mgard_cuda::binary2negabinary((T_sfp)shifted_data);
+        fp_data = mgard_x::binary2negabinary((T_sfp)shifted_data);
       }
       T_fp mask = ~((1u << sizeof(T_fp)*8 - decoding_num_bitplanes) - 1);
       // print_bits(mask, sizeof(T_fp)*8, false);
@@ -236,7 +236,7 @@ void test(mgard_cuda::LENGTH n,
         cur_data2 = ldexp((T_data)fp_data, - encoding_num_bitplanes + exp);
         cur_data2 = sign == 1 ? -cur_data2 : cur_data2;
       } else if (BinaryType == NEGABINARY) {
-        cur_data2 = ldexp((T_data)mgard_cuda::negabinary2binary(fp_data), - encoding_num_bitplanes + exp);
+        cur_data2 = ldexp((T_data)mgard_x::negabinary2binary(fp_data), - encoding_num_bitplanes + exp);
         cur_data2 = decoding_num_bitplanes % 2 != 0 ? -cur_data2 : cur_data2;
       }
 
@@ -248,7 +248,7 @@ void test(mgard_cuda::LENGTH n,
       {
         T_fp fp_data = (T_fp) fabs(shifted_data);
         T_sfp fps_data = (T_sfp) shifted_data;
-        T_fp ngb_data = mgard_cuda::binary2negabinary(fps_data);
+        T_fp ngb_data = mgard_x::binary2negabinary(fps_data);
         T_error mantissa;
         if (BinaryType == BINARY) {
           mantissa = fabs(shifted_data) - fp_data;
@@ -263,7 +263,7 @@ void test(mgard_cuda::LENGTH n,
           if (BinaryType == BINARY) {
             diff = (T_error) (fp_data & mask) + mantissa;
           } else if (BinaryType == NEGABINARY) {
-            diff = (T_error) mgard_cuda::negabinary2binary(ngb_data & mask) + mantissa;
+            diff = (T_error) mgard_x::negabinary2binary(ngb_data & mask) + mantissa;
           }
           errors[encoding_num_bitplanes-bitplane_idx] += diff * diff;
           // printf("%f ", diff * diff);
@@ -276,7 +276,7 @@ void test(mgard_cuda::LENGTH n,
     if (pass) printf("\e[32mpass\e[0m\n");
     else printf("\e[31mno pass\e[0m\n");
 
-    // mgard_cuda::PrintSubarray("level_errors", level_errors);
+    // mgard_x::PrintSubarray("level_errors", level_errors);
     // printf("errors: ");
     // for (int i = 0; i < encoding_num_bitplanes+1; i++) {
     //   errors[i] = ldexp(errors[i], 2*(- (int)encoding_num_bitplanes + exp));
@@ -288,24 +288,24 @@ void test(mgard_cuda::LENGTH n,
   
   // ofs.close();
   delete [] v;
-  // mgard_cuda::cudaFreeHostHelper(v2);
+  // mgard_x::cudaFreeHostHelper(v2);
 
 }
 
 
-template <mgard_cuda::OPTION BinaryType,
-          mgard_cuda::OPTION DataEncodingAlgorithm,
-          mgard_cuda::OPTION ErrorCollectingAlgorithm,
-          mgard_cuda::OPTION DataDecodingAlgorithm>
+template <mgard_x::OPTION BinaryType,
+          mgard_x::OPTION DataEncodingAlgorithm,
+          mgard_x::OPTION ErrorCollectingAlgorithm,
+          mgard_x::OPTION DataDecodingAlgorithm>
 void test_method() {
   typedef unsigned long long int uint64_t;
 
   int warmup = 0;
   int repeat = 1;
 
-  // for(mgard_cuda::LENGTH N = 1024; N <= 512*1024*1024 ; N *= 2) 
-  mgard_cuda::SIZE N = 200;
-  // mgard_cuda::SIZE N = 512*1024*1024;
+  // for(mgard_x::LENGTH N = 1024; N <= 512*1024*1024 ; N *= 2) 
+  mgard_x::SIZE N = 200;
+  // mgard_x::SIZE N = 512*1024*1024;
   { 
 
     // for debug
@@ -337,7 +337,7 @@ void test_method() {
     // test<uint64_t, uint32_t, METHOD>(N, 50, 10);
     // test<uint64_t, uint64_t, METHOD>(N, 50, 10);
 
-    // for (mgard_cuda::SIZE num_bitplanes = 1; num_bitplanes <= 32; num_bitplanes++) {
+    // for (mgard_x::SIZE num_bitplanes = 1; num_bitplanes <= 32; num_bitplanes++) {
     //   test<float, uint32_t, 4, 16,
     //       BinaryType, DataEncodingAlgorithm, ErrorCollectingAlgorithm, DataDecodingAlgorithm>
     //       (N, num_bitplanes, num_bitplanes, warmup, repeat);

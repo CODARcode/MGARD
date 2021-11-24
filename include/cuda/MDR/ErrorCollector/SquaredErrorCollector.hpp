@@ -2,7 +2,7 @@
 #define _MDR_SQUARED_ERROR_COLLECTOR_HPP
 
 #include "ErrorCollectorInterface.hpp"
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     union FloatingInt32{
         float f;

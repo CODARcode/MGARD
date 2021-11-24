@@ -28,10 +28,10 @@
 
 enum data_type { SINGLE, DOUBLE };
 
-template <mgard_cuda::DIM D, typename T>
-T* generate_data(std::vector<mgard_cuda::SIZE> shape) {
-	mgard_cuda::LENGTH linearized_n = 1;
-	for (mgard_cuda::DIM d = 0; d < D; d++) linearized_n *= shape[d];
+template <mgard_x::DIM D, typename T>
+T* generate_data(std::vector<mgard_x::SIZE> shape) {
+	mgard_x::LENGTH linearized_n = 1;
+	for (mgard_x::DIM d = 0; d < D; d++) linearized_n *= shape[d];
 	T * in_buff = new T[linearized_n];
 	for (int i = 0; i < linearized_n; i++) {
       in_buff[i] = rand() % 10 + 1;
@@ -39,67 +39,67 @@ T* generate_data(std::vector<mgard_cuda::SIZE> shape) {
   return in_buff;
 }
 
-template <mgard_cuda::DIM D, typename T>
-void test_reorder(std::vector<mgard_cuda::SIZE> shape) {
+template <mgard_x::DIM D, typename T>
+void test_reorder(std::vector<mgard_x::SIZE> shape) {
 	T * original = generate_data<D, T>(shape);
-	mgard_cuda::Handle<D, T> handle(shape);
-  mgard_cuda::Array<D, T> gpu_original (shape);
-  mgard_cuda::Array<D, T> gpu_reordered (shape);
-  mgard_cuda::Array<D, T> gpu_restored (shape);
+	mgard_x::Handle<D, T> handle(shape);
+  mgard_x::Array<D, T> gpu_original (shape);
+  mgard_x::Array<D, T> gpu_reordered (shape);
+  mgard_x::Array<D, T> gpu_restored (shape);
   gpu_original.loadData(original);
-  mgard_cuda::SubArray org_array(gpu_original);
-  mgard_cuda::SubArray reo_array(gpu_reordered);
-  mgard_cuda::SubArray rev_array(gpu_restored);
+  mgard_x::SubArray org_array(gpu_original);
+  mgard_x::SubArray reo_array(gpu_reordered);
+  mgard_x::SubArray rev_array(gpu_restored);
   // ReorderGPU(handle, org_array, reo_array, 0);
   // ReverseReorderGPU(handle, reo_array, rev_array, 0);
   printf("org_array:\n");
-  mgard_cuda::print_matrix_cuda(shape[1], shape[0],
+  mgard_x::print_matrix_cuda(shape[1], shape[0],
     org_array.dv, org_array.ldvs_h[0]);
   printf("reo_array:\n");
-  mgard_cuda::print_matrix_cuda(shape[1], shape[0],
+  mgard_x::print_matrix_cuda(shape[1], shape[0],
     reo_array.dv, reo_array.ldvs_h[0]);
   printf("rev_array:\n");
-  mgard_cuda::print_matrix_cuda(shape[1], shape[0],
+  mgard_x::print_matrix_cuda(shape[1], shape[0],
     rev_array.dv, rev_array.ldvs_h[0]);
 }
 
-template <mgard_cuda::DIM D, typename T>
-void test_quantization(std::vector<mgard_cuda::SIZE> shape) {
+template <mgard_x::DIM D, typename T>
+void test_quantization(std::vector<mgard_x::SIZE> shape) {
 	T * original = generate_data<D, T>(shape);
-	mgard_cuda::Handle<D, T> handle(shape);
-  mgard_cuda::Array<D, T> gpu_original (shape);
-  mgard_cuda::Array<D, T> gpu_reordered (shape);
-  mgard_cuda::Array<D, T> gpu_restored (shape);
+	mgard_x::Handle<D, T> handle(shape);
+  mgard_x::Array<D, T> gpu_original (shape);
+  mgard_x::Array<D, T> gpu_reordered (shape);
+  mgard_x::Array<D, T> gpu_restored (shape);
   gpu_original.loadData(original);
-  mgard_cuda::SubArray org_array(gpu_original);
-  mgard_cuda::SubArray reo_array(gpu_reordered);
-  mgard_cuda::SubArray rev_array(gpu_restored);
+  mgard_x::SubArray org_array(gpu_original);
+  mgard_x::SubArray reo_array(gpu_reordered);
+  mgard_x::SubArray rev_array(gpu_restored);
   // ReorderGPU(handle, org_array, reo_array, 0);
   printf("org_array:\n");
-  mgard_cuda::print_matrix_cuda(shape[1], shape[0],
+  mgard_x::print_matrix_cuda(shape[1], shape[0],
     org_array.dv, org_array.ldvs_h[0]);
   printf("reo_array:\n");
-  mgard_cuda::print_matrix_cuda(shape[1], shape[0],
+  mgard_x::print_matrix_cuda(shape[1], shape[0],
     reo_array.dv, reo_array.ldvs_h[0]);
 
 
-  mgard_cuda::LENGTH quantized_count =
+  mgard_x::LENGTH quantized_count =
       handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
-  mgard_cuda::QUANTIZED_INT *dqv;
-  mgard_cuda::cudaMallocHelper((void **)&dqv, (handle.dofs[0][0] * handle.dofs[1][0] *
+  mgard_x::QUANTIZED_INT *dqv;
+  mgard_x::cudaMallocHelper((void **)&dqv, (handle.dofs[0][0] * handle.dofs[1][0] *
                                    handle.linearized_depth) *
-                                      sizeof(mgard_cuda::QUANTIZED_INT));
+                                      sizeof(mgard_x::QUANTIZED_INT));
 
-  std::vector<mgard_cuda::SIZE> ldqvs_h(handle.D_padded);
+  std::vector<mgard_x::SIZE> ldqvs_h(handle.D_padded);
   ldqvs_h[0] = handle.dofs[0][0];
   for (int i = 1; i < handle.D_padded; i++) {
     ldqvs_h[i] = handle.dofs[i][0];
   }
-  mgard_cuda::SIZE * ldqvs_d;
-  mgard_cuda::cudaMallocHelper((void **)&ldqvs_d, handle.D_padded * sizeof(mgard_cuda::SIZE));
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, ldqvs_d, ldqvs_h.data(), handle.D_padded * sizeof(mgard_cuda::SIZE), mgard_cuda::H2D, 0);
+  mgard_x::SIZE * ldqvs_d;
+  mgard_x::cudaMallocHelper((void **)&ldqvs_d, handle.D_padded * sizeof(mgard_x::SIZE));
+  mgard_x::cudaMemcpyAsyncHelper(handle, ldqvs_d, ldqvs_h.data(), handle.D_padded * sizeof(mgard_x::SIZE), mgard_x::H2D, 0);
 
-	mgard_cuda::quant_meta<T> m;
+	mgard_x::quant_meta<T> m;
   m.norm = 1;
   m.s = 0;
   m.tol = 0.1;
@@ -109,31 +109,31 @@ void test_quantization(std::vector<mgard_cuda::SIZE> shape) {
   m.gpu_lossless = false;
   bool prep_huffman = false;
 
-  mgard_cuda::LENGTH estimate_outlier_count = (double)handle.dofs[0][0] *
+  mgard_x::LENGTH estimate_outlier_count = (double)handle.dofs[0][0] *
                                   handle.dofs[1][0] * handle.linearized_depth *
                                   1;
   // printf("estimate_outlier_count: %llu\n", estimate_outlier_count);
-  // mgard_cuda::LENGTH *outlier_count_d;
-  // mgard_cuda::LENGTH *outlier_idx_d;
-  // mgard_cuda::QUANTIZED_INT *outliers;
-  // mgard_cuda::cudaMallocHelper((void **)&outliers, estimate_outlier_count * sizeof(mgard_cuda::QUANTIZED_INT));
-  // mgard_cuda::cudaMallocHelper((void **)&outlier_count_d, sizeof(mgard_cuda::LENGTH));
-  // mgard_cuda::cudaMallocHelper((void **)&outlier_idx_d,
-  //                  estimate_outlier_count * sizeof(mgard_cuda::LENGTH));
-  // mgard_cuda::LENGTH zero = 0, outlier_count, *outlier_idx_h;
-  // mgard_cuda::cudaMemcpyAsyncHelper(handle, outlier_count_d, &zero, sizeof(mgard_cuda::LENGTH), mgard_cuda::H2D, 0);
+  // mgard_x::LENGTH *outlier_count_d;
+  // mgard_x::LENGTH *outlier_idx_d;
+  // mgard_x::QUANTIZED_INT *outliers;
+  // mgard_x::cudaMallocHelper((void **)&outliers, estimate_outlier_count * sizeof(mgard_x::QUANTIZED_INT));
+  // mgard_x::cudaMallocHelper((void **)&outlier_count_d, sizeof(mgard_x::LENGTH));
+  // mgard_x::cudaMallocHelper((void **)&outlier_idx_d,
+  //                  estimate_outlier_count * sizeof(mgard_x::LENGTH));
+  // mgard_x::LENGTH zero = 0, outlier_count, *outlier_idx_h;
+  // mgard_x::cudaMemcpyAsyncHelper(handle, outlier_count_d, &zero, sizeof(mgard_x::LENGTH), mgard_x::H2D, 0);
 
-  // mgard_cuda::levelwise_linear_quantize<D, T>(
+  // mgard_x::levelwise_linear_quantize<D, T>(
   //     handle, handle.ranges_d, handle.l_target, handle.volumes, handle.ldvolumes, m, reo_array.dv,
   //     reo_array.ldvs_d, dqv, ldqvs_d,
   //     prep_huffman, handle.shapes_d[0], outlier_count_d, outlier_idx_d, outliers, 0);
 
   // printf("before quantization:\n");
-  // mgard_cuda::print_matrix_cuda(shape[1], shape[0],
+  // mgard_x::print_matrix_cuda(shape[1], shape[0],
   //   reo_array.dv, handle.dofs[0][0]);
 
   // printf("after quantization:\n");
-  // mgard_cuda::print_matrix_cuda(shape[1], shape[0],
+  // mgard_x::print_matrix_cuda(shape[1], shape[0],
   //   dqv,  handle.dofs[0][0]);
 
   // T * cpu_reordered = new T[handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth];
@@ -155,13 +155,13 @@ void test_quantization(std::vector<mgard_cuda::SIZE> shape) {
 }
 
 template <int D, typename T>
-void tests_dimensions(std::vector<mgard_cuda::SIZE> shape) {
+void tests_dimensions(std::vector<mgard_x::SIZE> shape) {
 	//test_reorder<D, T>(shape);
 	test_quantization<D, T>(shape);
 }
 
 template <typename T>
-void tests_precision(int D, std::vector<mgard_cuda::SIZE> shape) {
+void tests_precision(int D, std::vector<mgard_x::SIZE> shape) {
 	if (D == 1) {
     tests_dimensions<1, T>(shape);
   }
@@ -188,9 +188,9 @@ int main(int argc, char *argv[]){
   if (strcmp(dt, "s") == 0) dtype = SINGLE;
   else if (strcmp(dt, "d") == 0) dtype = DOUBLE;
 
-  std::vector<mgard_cuda::SIZE> shape;
+  std::vector<mgard_x::SIZE> shape;
   int D = atoi(argv[i++]);
-  for (mgard_cuda::DIM d = 0; d < D; d++) {
+  for (mgard_x::DIM d = 0; d < D; d++) {
     shape.push_back(atoi(argv[i++]));
   }
 

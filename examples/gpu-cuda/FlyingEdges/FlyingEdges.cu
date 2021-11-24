@@ -48,13 +48,13 @@ bool require_arg(int argc, char *argv[], std::string option) {
 
 template <typename T> 
 size_t readfile(const char *input_file, T *&in_buff) {
-  std::cout << mgard_cuda::log::log_info << "Loading file: " << input_file
+  std::cout << mgard_x::log::log_info << "Loading file: " << input_file
             << "\n";
 
   FILE *pFile;
   pFile = fopen(input_file, "rb");
   if (pFile == NULL) {
-    std::cout << mgard_cuda::log::log_err << "file open error!\n";
+    std::cout << mgard_x::log::log_err << "file open error!\n";
     exit(1);
   }
   fseek(pFile, 0, SEEK_END);
@@ -98,9 +98,9 @@ int get_arg_int(int argc, char *argv[], std::string option) {
   return 0;
 }
 
-std::vector<mgard_cuda::SIZE> get_arg_dims(int argc, char *argv[],
+std::vector<mgard_x::SIZE> get_arg_dims(int argc, char *argv[],
                                            std::string option) {
-  std::vector<mgard_cuda::SIZE> shape;
+  std::vector<mgard_x::SIZE> shape;
   if (require_arg(argc, argv, option)) {
     std::string arg;
     int arg_idx = 0;
@@ -143,9 +143,9 @@ double get_arg_double(int argc, char *argv[], std::string option) {
 }
 
 template <typename T>
-void test_vtkm(int argc, char *argv[], std::vector<mgard_cuda::SIZE> shape, T *original_data, T iso_value,
-              mgard_cuda::SIZE& numTriangles, mgard_cuda::SIZE * &Triangles, 
-              mgard_cuda::SIZE& numPoints, T * &Points) {
+void test_vtkm(int argc, char *argv[], std::vector<mgard_x::SIZE> shape, T *original_data, T iso_value,
+              mgard_x::SIZE& numTriangles, mgard_x::SIZE * &Triangles, 
+              mgard_x::SIZE& numPoints, T * &Points) {
   // vtkm::cont::InitializeOptions options = vtkm::cont::InitializeOptions::
   vtkm::cont::Initialize(argc, argv);
   vtkm::cont::RuntimeDeviceTracker& deviceTracker = vtkm::cont::GetRuntimeDeviceTracker();
@@ -155,7 +155,7 @@ void test_vtkm(int argc, char *argv[], std::vector<mgard_cuda::SIZE> shape, T *o
   vtkm::Id3 spc(1, 1, 1);
 
   size_t original_size = 1;
-  for (mgard_cuda::DIM i = 0; i < shape.size(); i++)
+  for (mgard_x::DIM i = 0; i < shape.size(); i++)
     original_size *= shape[i];
 
 
@@ -176,7 +176,7 @@ void test_vtkm(int argc, char *argv[], std::vector<mgard_cuda::SIZE> shape, T *o
   vtkm::cont::DataSet ds_from_mc = contour.Execute(inputDataSet);
 
   vtkm::cont::CellSetSingleType<> TriangleCells = ds_from_mc.GetCellSet().template Cast<vtkm::cont::CellSetSingleType<>>();
-  Triangles = new mgard_cuda::SIZE[TriangleCells.GetNumberOfCells()*3];
+  Triangles = new mgard_x::SIZE[TriangleCells.GetNumberOfCells()*3];
   numTriangles = TriangleCells.GetNumberOfCells();
 
   if (numTriangles == 0) { return; }
@@ -212,17 +212,17 @@ void test_vtkm(int argc, char *argv[], std::vector<mgard_cuda::SIZE> shape, T *o
 
 
 template <typename T>
-void test_mine(std::vector<mgard_cuda::SIZE> shape, T *original_data, T iso_value,
-              mgard_cuda::SIZE& numTriangles, mgard_cuda::SIZE * &Triangles, 
-              mgard_cuda::SIZE& numPoints, T * &Points) {
-  mgard_cuda::Array<3, T, mgard_cuda::CUDA> v({shape[2], shape[1], shape[0]});
+void test_mine(std::vector<mgard_x::SIZE> shape, T *original_data, T iso_value,
+              mgard_x::SIZE& numTriangles, mgard_x::SIZE * &Triangles, 
+              mgard_x::SIZE& numPoints, T * &Points) {
+  mgard_x::Array<3, T, mgard_x::CUDA> v({shape[2], shape[1], shape[0]});
   v.loadData(original_data);
 
-  mgard_cuda::Array<1, mgard_cuda::SIZE, mgard_cuda::CUDA> TrianglesArray;
-  mgard_cuda::Array<1, T, mgard_cuda::CUDA> PointsArray;
+  mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
+  mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
 
-  mgard_cuda::FlyingEdges<T, mgard_cuda::CUDA>().Execute(shape[2], shape[1], shape[0],
-                                     mgard_cuda::SubArray<3, T, mgard_cuda::CUDA>(v),
+  mgard_x::FlyingEdges<T, mgard_x::CUDA>().Execute(shape[2], shape[1], shape[0],
+                                     mgard_x::SubArray<3, T, mgard_x::CUDA>(v),
                                      iso_value, TrianglesArray, PointsArray, 0);
 
   numTriangles = TrianglesArray.getShape()[0]/3;
@@ -230,14 +230,14 @@ void test_mine(std::vector<mgard_cuda::SIZE> shape, T *original_data, T iso_valu
 
   if (numTriangles == 0 || numPoints == 0) { printf("returing %u %u from test_mine\n", numTriangles, numPoints); return; }
 
-  Triangles = new mgard_cuda::SIZE[TrianglesArray.getShape()[0]];
+  Triangles = new mgard_x::SIZE[TrianglesArray.getShape()[0]];
   Points = new T[PointsArray.getShape()[0]];
 
-  memcpy(Triangles, TrianglesArray.getDataHost(), numTriangles * 3 * sizeof(mgard_cuda::SIZE));
+  memcpy(Triangles, TrianglesArray.getDataHost(), numTriangles * 3 * sizeof(mgard_x::SIZE));
   memcpy(Points, PointsArray.getDataHost(), numPoints * 3 * sizeof(T));
 
-  // mgard_cuda::PrintSubarray("Triangles", mgard_cuda::SubArray(TrianglesArray));
-  // mgard_cuda::PrintSubarray("Points", mgard_cuda::SubArray(PointsArray));
+  // mgard_x::PrintSubarray("Triangles", mgard_x::SubArray(TrianglesArray));
+  // mgard_x::PrintSubarray("Points", mgard_x::SubArray(PointsArray));
 
   
 }
@@ -246,12 +246,12 @@ int main(int argc, char *argv[]) {
 
   std::cout << "start\n";
   std::string input_file = get_arg(argc, argv, "-i");
-  mgard_cuda::DIM D = get_arg_int(argc, argv, "-n");
-  std::vector<mgard_cuda::SIZE> shape = get_arg_dims(argc, argv, "-n");
+  mgard_x::DIM D = get_arg_int(argc, argv, "-n");
+  std::vector<mgard_x::SIZE> shape = get_arg_dims(argc, argv, "-n");
   float iso_value = (float)get_arg_double(argc, argv, "-s");
 
   size_t original_size = 1;
-  for (mgard_cuda::DIM i = 0; i < D; i++)
+  for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
   float *original_data;
   size_t in_size = 0;
@@ -274,18 +274,18 @@ int main(int argc, char *argv[]) {
     in_size = readfile(input_file.c_str(), original_data);
   }
   if (in_size != original_size * sizeof(float)) {
-    std::cout << mgard_cuda::log::log_err << "input file size mismatch" << in_size << "vs." << original_size * sizeof(float) << "!\n";
+    std::cout << mgard_x::log::log_err << "input file size mismatch" << in_size << "vs." << original_size * sizeof(float) << "!\n";
   }
 
 
-  mgard_cuda::SIZE numTriangles_vtkm;
-  mgard_cuda::SIZE * Triangles_vtkm;
-  mgard_cuda::SIZE numPoints_vtkm;
+  mgard_x::SIZE numTriangles_vtkm;
+  mgard_x::SIZE * Triangles_vtkm;
+  mgard_x::SIZE numPoints_vtkm;
   float * Points_vtkm;
 
-  mgard_cuda::SIZE numTriangles_mine;
-  mgard_cuda::SIZE * Triangles_mine;
-  mgard_cuda::SIZE numPoints_mine;
+  mgard_x::SIZE numTriangles_mine;
+  mgard_x::SIZE * Triangles_mine;
+  mgard_x::SIZE numPoints_mine;
   float * Points_mine;
 
   // float iso_value = 2e6;

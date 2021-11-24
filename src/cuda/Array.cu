@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include <algorithm>
@@ -11,7 +11,7 @@
 
 #include "cuda/Array.hpp"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template class Array<1, double, CUDA>;
 template class Array<1, float, CUDA>;
@@ -47,4 +47,4 @@ template class Array<1, unsigned long long, CUDA>;
 // template class Array<4, QUANTIZED_INT, CUDA>;
 // template class Array<5, QUANTIZED_INT, CUDA>;
 
-} // namespace mgard_cuda
+} // namespace mgard_x
