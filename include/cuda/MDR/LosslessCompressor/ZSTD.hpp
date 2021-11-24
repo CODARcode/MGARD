@@ -2,7 +2,7 @@
 #define _MDR_ZSTD_HPP
 
 #include "zstd.h"
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     namespace ZSTD{
         #define ZSTD_LEVEL 3 //default setting of level is 3

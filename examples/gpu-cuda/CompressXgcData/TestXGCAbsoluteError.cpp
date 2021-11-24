@@ -1,6 +1,6 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
  * Date: April 2, 2021
  */
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
   size_t local_elements = nphi * vx * local_nnodes * vy;
   size_t lSize = sizeof(double) * gb_elements;
   double *in_buff;
-  mgard_cuda::cudaMallocHostHelper((void **)&in_buff,
+  mgard_x::cudaMallocHostHelper((void **)&in_buff,
                                    sizeof(double) * local_elements);
   if (rank == 0) {
     std::cout << "total data size: {" << nphi << ", " << vx << ", " << nnodes
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
 
     double *mgard_out_buff = NULL;
     //        printf("Start compressing and decompressing with GPU\n");
-    mgard_cuda::Array<4, double> in_array(shape);
+    mgard_x::Array<4, double> in_array(shape);
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
       in_time = -MPI_Wtime();
@@ -150,14 +150,14 @@ int main(int argc, char *argv[]) {
     //        std::cout << "loadData: " << shape[0] << ", " << shape[1] << ", "
     //        << shape[2] << ", " << shape[3] << "\n";
 
-    mgard_cuda::Handle<4, double> handle(shape);
+    mgard_x::Handle<4, double> handle(shape);
     //        std::cout << "before compression\n";
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
       compress_time = -MPI_Wtime();
     }
-    mgard_cuda::Array<1, unsigned char> compressed_array =
-        mgard_cuda::compress(handle, in_array, mgard_cuda::ABS, tol, s);
+    mgard_x::Array<1, unsigned char> compressed_array =
+        mgard_x::compress(handle, in_array, mgard_x::ABS, tol, s);
     //        std::cout << "after compression\n";
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
@@ -169,8 +169,8 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
       decompress_time = -MPI_Wtime();
     }
-    mgard_cuda::Array<4, double> out_array =
-        mgard_cuda::decompress(handle, compressed_array);
+    mgard_x::Array<4, double> out_array =
+        mgard_x::decompress(handle, compressed_array);
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
       gpu_decompress_time += (decompress_time + MPI_Wtime());
@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
               << ", decompress time: " << gpu_decompress_time << "\n";
   }
 
-  mgard_cuda::cudaFreeHostHelper(in_buff);
+  mgard_x::cudaFreeHostHelper(in_buff);
   size_t gb_compressed;
   MPI_Allreduce(&out_size, &gb_compressed, 1, MPI_UNSIGNED_LONG, MPI_SUM,
                 MPI_COMM_WORLD);

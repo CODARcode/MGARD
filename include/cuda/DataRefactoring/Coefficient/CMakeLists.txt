@@ -1,4 +1,4 @@
-list(APPEND MGARD_CUDA_HEADER
+list(APPEND MGARD_X_HEADER
     ${CMAKE_CURRENT_SOURCE_DIR}/GPKFunctor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.hpp   
     ${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.h

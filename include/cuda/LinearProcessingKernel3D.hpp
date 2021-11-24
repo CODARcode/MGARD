@@ -8,14 +8,14 @@
 #ifndef MGARD_X_LINEAR_PROCESSSING_KERNEL_3D_TEMPLATE
 #define MGARD_X_LINEAR_PROCESSSING_KERNEL_3D_TEMPLATE
 
-#include "../../CommonInternal.h"
+#include "CommonInternal.h"
 #include "LPKFunctor.h"
 #include "LinearProcessingKernel.h"
 
-#include "../../Functor.h"
-#include "../../AutoTuners/AutoTuner.h"
-#include "../../Task.h"
-#include "../../DeviceAdapters/DeviceAdapter.h"
+#include "Functor.h"
+#include "AutoTuners/AutoTuner.h"
+#include "Task.h"
+#include "DeviceAdapters/DeviceAdapter.h"
 
 namespace mgard_x {
 

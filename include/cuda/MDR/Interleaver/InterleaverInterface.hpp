@@ -3,12 +3,12 @@
 
 #include "../../CommonInternal.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     namespace concepts {
 
         // level data interleaver: interleave level coefficients
-        template<mgard_cuda::DIM D, typename T>
+        template<mgard_x::DIM D, typename T>
         class InterleaverInterface {
         public:
 
@@ -30,18 +30,18 @@ namespace MDR {
     namespace concepts {
 
         // level data interleaver: interleave level coefficients
-        template<typename HandleType, mgard_cuda::DIM D, typename T>
+        template<typename HandleType, mgard_x::DIM D, typename T>
         class InterleaverInterface {
         public:
 
             virtual ~InterleaverInterface() = default;
 
-            virtual void interleave(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> decomposed_data, 
-                                    mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data, 
+            virtual void interleave(mgard_x::SubArray<D, T, mgard_x::CUDA> decomposed_data, 
+                                    mgard_x::SubArray<1, T, mgard_x::CUDA> * levels_decomposed_data, 
                                     int queue_idx) const = 0;
 
-            virtual void reposition(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data, 
-                                    mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> decomposed_data, 
+            virtual void reposition(mgard_x::SubArray<1, T, mgard_x::CUDA> * levels_decomposed_data, 
+                                    mgard_x::SubArray<D, T, mgard_x::CUDA> decomposed_data, 
                                     int queue_idx) const = 0;
 
             virtual void print() const = 0;

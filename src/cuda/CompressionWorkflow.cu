@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include <chrono>
@@ -38,7 +38,7 @@
 
 using namespace std::chrono;
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <typename T>
 struct linf_norm : public thrust::binary_function<T, T, T> {
@@ -507,4 +507,4 @@ KERNELS(5, double)
 KERNELS(5, float)
 #undef KERNELS
 
-} // namespace mgard_cuda
+} // namespace mgard_x

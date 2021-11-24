@@ -1,16 +1,16 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_HANDLE
-#define MGRAD_CUDA_HANDLE
+#ifndef MGARD_X_HANDLE
+#define MGARD_X_HANDLE
 
 #include "Common.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 struct Config {
   int dev_id;
@@ -29,10 +29,10 @@ struct Config {
     dev_id = 0;
     l_target = -1; // no limit
     huff_dict_size = 8192;
-//#ifdef MGARD_CUDA_OPTIMIZE_TURING
+//#ifdef MGARD_X_OPTIMIZE_TURING
 //    huff_block_size = 1024 * 30;
 //#endif
-//#ifdef MGARD_CUDA_OPTIMIZE_VOLTA
+//#ifdef MGARD_X_OPTIMIZE_VOLTA
     huff_block_size = 1024 * 20;
 //#endif
     lz4_block_size = 1 << 15;
@@ -84,6 +84,10 @@ template <DIM D, typename T> struct Handle {
   std::vector<T *> coords_d;
   std::vector<std::vector<T *>> dist;
   std::vector<std::vector<T *>> ratio;
+
+  std::vector<std::vector<Array<1, T, CUDA>>> dist_array;
+  std::vector<std::vector<Array<1, T, CUDA>>> ratio_array;
+
   T * volumes;
   SIZE ldvolumes;
   Array<2, T, CUDA> volumes_array;
@@ -111,6 +115,9 @@ template <DIM D, typename T> struct Handle {
   DIM *unprocessed_n;
   DIM **unprocessed_dims_h;
   DIM **unprocessed_dims_d;
+
+  Array<1, DIM, CUDA> processed_dims[D];
+  Array<1, DIM, CUDA> unprocessed_dims[D];
 
 
   T *dw;
@@ -156,6 +163,6 @@ private:
   bool initialized = false;
 };
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

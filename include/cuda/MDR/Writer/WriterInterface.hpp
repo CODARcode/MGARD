@@ -1,6 +1,6 @@
 #ifndef _MDR_WRITER_INTERFACE_HPP
 #define _MDR_WRITER_INTERFACE_HPP
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     namespace concepts {
 

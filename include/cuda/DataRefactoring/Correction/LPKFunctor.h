@@ -1,20 +1,20 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_LPK_FUNCTOR
-#define MGRAD_CUDA_LPK_FUNCTOR
+#ifndef MGARD_X_LPK_FUNCTOR
+#define MGARD_X_LPK_FUNCTOR
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <typename T>
 __device__ inline T mass_trans(T a, T b, T c, T d, T e, T h1, T h2, T h3, T h4,
                                T r1, T r2, T r3, T r4) {
   T tb, tc, td, tb1, tb2, tc1, tc2, td1, td2;
-#ifdef MGARD_CUDA_FMA
+#ifdef MGARD_X_FMA
   if (sizeof(T) == sizeof(double)) {
     tb1 = fma(c, h2/6, a * h1/6);
     tb2 = fma(b, h2/6, b * h1/6);

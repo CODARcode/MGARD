@@ -1,16 +1,16 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGARD_CUDA_ARRAY
-#define MGARD_CUDA_ARRAY
+#ifndef MGARD_X_ARRAY
+#define MGARD_X_ARRAY
 #include "Common.h"
 #include <vector>
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType> class Array {
 public:
@@ -34,8 +34,8 @@ public:
 private:
   DIM D_padded;
   bool pitched;
-  T *dv;
-  T *hv;
+  T *dv = NULL;
+  T *hv = NULL;
   bool device_allocated;
   bool host_allocated;
   std::vector<SIZE> ldvs_h;
@@ -46,5 +46,5 @@ private:
 
 
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 #endif

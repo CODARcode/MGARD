@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include <chrono>
@@ -26,7 +26,7 @@
 #include "cuda/LinearQuantization.h"
 #include "cuda/LosslessCompression.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 bool verify(const void *compressed_data, size_t compressed_size) {
   char magic_word[MAGIC_WORD_SIZE + 1];
@@ -127,8 +127,17 @@ template <DIM D, typename T>
 void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config) {
+  // {
+  //   printf("Construct handle\n");
+  //   Handle<D, T> handle(shape, config);
+  //   // SubArray<1, SIZE, CUDA>(handle.processed_dims[0], true);
+  //   handle.processed_dims[0].getDataHost();
+  //   printf("Deconstruct handle\n");
+  // }
+  // printf("done Deconstruct handle\n");
+
   Handle<D, T> handle(shape, config);
-  mgard_cuda::Array<D, T, CUDA> in_array(shape);
+  mgard_x::Array<D, T, CUDA> in_array(shape);
   in_array.loadData((const T *)original_data);
   Array<1, unsigned char, CUDA> compressed_array =
       compress<D, T, CUDA>(handle, in_array, mode, tol, s);
@@ -149,7 +158,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config, std::vector<T *> coords) {
   Handle<D, T> handle(shape, coords, config);
-  mgard_cuda::Array<D, T, CUDA> in_array(shape);
+  mgard_x::Array<D, T, CUDA> in_array(shape);
   in_array.loadData((const T *)original_data);
   Array<1, unsigned char, CUDA> compressed_array =
       compress<D, T, CUDA>(handle, in_array, mode, tol, s);
@@ -472,4 +481,4 @@ void decompress(const void *compressed_data, size_t compressed_size,
   decompress(compressed_data, compressed_size, decompressed_data, config);
 }
 
-} // namespace mgard_cuda
+} // namespace mgard_x

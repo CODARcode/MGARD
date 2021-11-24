@@ -1,16 +1,16 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_3D_AMR_TEMPLATE
-#define MGRAD_CUDA_ITERATIVE_PROCESSING_KERNEL_3D_AMR_TEMPLATE
+#ifndef MGARD_X_ITERATIVE_PROCESSING_KERNEL_3D_AMR_TEMPLATE
+#define MGARD_X_ITERATIVE_PROCESSING_KERNEL_3D_AMR_TEMPLATE
 
 #include "../../IPKFunctor.h"
 #include "../../IterativeProcessingKernel3D_AMR.h"
-namespace mgard_cuda {
+namespace mgard_x {
 
 
 // fv has shape nc (lead dim.) * nr * nf_c / block_size
@@ -184,7 +184,7 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
   /* Only 1 col remain */
   if (f_ghost + f_rest == 1) {
     if (r_sm < r_rest && c_sm < c_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, c_sm, 0)]);
@@ -209,7 +209,7 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
 
   } else {
     if (r_sm < r_rest && c_sm < c_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, c_sm, 0)]);
@@ -228,7 +228,7 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
       f_progress ++;
 
       for (int i = 1; i < f_ghost + f_rest; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] =
         //         __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
         //         bm_sm[i],
@@ -317,7 +317,7 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] - dist_sm[0]
       //             * prev_vec_sm) / am_sm[0]);
 
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm,
       //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]) * am_sm[0];
@@ -349,7 +349,7 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
         //           * vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i-1)]) *
         //           am_sm[i]);
 
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i
         //       - 1)],
@@ -423,7 +423,7 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
   /* Only 1 col remain */
   if (f_ghost + f_rest == 1) {
     if (r_sm < r_rest && c_sm < c_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm,
       //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]) * am_sm[0];
@@ -451,7 +451,7 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
   } else {
     if (r_sm < r_rest && c_sm < c_rest) {
 
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm,
       //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]) * am_sm[0];
@@ -473,7 +473,7 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
       f_progress--;
 
       for (int i = 1; i < f_ghost + f_rest; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i
         //       - 1)],
@@ -699,7 +699,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
     /* Computation of v in parallel*/
     if (r_sm < r_rest && f_sm < f_rest) {
 
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]);
@@ -711,7 +711,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
           prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 
       for (int i = 1; i < C; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
         //       __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)],
         //       bm_sm[i],
@@ -787,7 +787,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
   if (c_ghost + c_rest == 1) {
     if (r_sm < r_rest && f_sm < f_rest) {
       // vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm * bm_sm[0];
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]);
@@ -804,7 +804,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
 
   } else {
     if (r_sm < r_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]);
@@ -815,7 +815,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward(
           prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
       for (int i = 1; i < c_ghost + c_rest; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
         //       __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)],
         //       bm_sm[i],
@@ -894,7 +894,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
     // printf("*****test\n");
     /* Computation of v in parallel*/
     if (r_sm < r_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]) * am_sm[0];
@@ -915,7 +915,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
       // 0, f_sm), vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 
       for (int i = 1; i < C; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
         //       f_sm)],
@@ -1000,7 +1000,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
   /* Only 1 col remain */
   if (c_ghost + c_rest == 1) {
     if (r_sm < r_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]) * am_sm[0];
@@ -1026,7 +1026,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
 
   } else {
     if (r_sm < r_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
       //       r_sm, 0, f_sm)]) * am_sm[0];
@@ -1047,7 +1047,7 @@ __global__ void _ipk_2_3d(int nr, int nc_c, int nf_c, T *am, T *bm, T *dist_c,
       // 0, f_sm), vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
       for (int i = 1; i < c_ghost + c_rest; i++) {
 
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
         //       f_sm)],
@@ -1241,7 +1241,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
 
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]);
@@ -1252,7 +1252,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward(
           prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (int i = 1; i < R; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
         //       __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
         //       bm_sm[i],
@@ -1316,7 +1316,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
   if (r_ghost + r_rest == 1) {
     if (c_sm < c_rest && f_sm < f_rest) {
 
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]);
@@ -1333,7 +1333,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
 
   } else {
     if (c_sm < c_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]);
@@ -1344,7 +1344,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward(
           prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (int i = 1; i < r_ghost + r_rest; i++) {
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
         //       __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
         //       bm_sm[i],
@@ -1413,7 +1413,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
 
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]) * am_sm[0];
@@ -1428,7 +1428,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
                            vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (int i = 1; i < R; i++) {
 
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
         //       f_sm)],
@@ -1504,7 +1504,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
   /* Only 1 col remain */
   if (r_ghost + r_rest == 1) {
     if (c_sm < c_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]) * am_sm[0];
@@ -1532,7 +1532,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
 
   } else {
     if (c_sm < c_rest && f_sm < f_rest) {
-      // #ifdef MGARD_CUDA_FMA
+      // #ifdef MGARD_X_FMA
       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
       //       c_sm, f_sm)]) * am_sm[0];
@@ -1556,7 +1556,7 @@ __global__ void _ipk_3_3d(int nr_c, int nc_c, int nf_c, T *am, T *bm, T *dist_r,
                            vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (int i = 1; i < r_ghost + r_rest; i++) {
 
-        // #ifdef MGARD_CUDA_FMA
+        // #ifdef MGARD_X_FMA
         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
         //       f_sm)],
@@ -1676,6 +1676,6 @@ void ipk_3_3d(Handle<D, T> &handle, int nr_c, int nc_c, int nf_c, T *am, T *bm,
 #undef IPK
 }
 #endif
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

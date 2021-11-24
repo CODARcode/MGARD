@@ -52,7 +52,7 @@ MemoryBuffer<const unsigned char> decompress(void const *const data,
 
 } // namespace mgard
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 //!\file
 //!\brief Compression and decompression API.
@@ -81,7 +81,7 @@ template <uint32_t D, typename T, typename DeviceType>
 Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
                        Array<1, unsigned char, DeviceType> &compressed_array);
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #include "compress.tpp"
 #endif

@@ -5,7 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <ctime>
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
 
     // MDR utility functions

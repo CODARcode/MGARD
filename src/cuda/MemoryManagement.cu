@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include <fstream>
@@ -25,7 +25,7 @@
 #define ANSI_GREEN "\x1b[32m"
 #define ANSI_RESET "\x1b[0m"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 enum endiness_type CheckEndianess() {
   int i = 1;
@@ -424,7 +424,7 @@ void cudaMemcpyAsyncHelper(Handle<D, T> &handle, void *dst, const void *src,
   //   break;
   // }
   gpuErrchk(cudaMemcpyAsync(dst, src, count, cuda_copy_type, stream));
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -451,7 +451,7 @@ void cudaMemcpy2DAsyncHelper(Handle<D, T> &handle, void *dst, size_t dpitch,
   // }
   gpuErrchk(cudaMemcpy2DAsync(dst, dpitch, src, spitch, width, height,
                               cuda_copy_type, stream));
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -500,7 +500,7 @@ void cudaMemcpy3DAsyncHelper(Handle<D, T> &handle, void *dst, size_t dpitch,
   // }
   p.kind = cuda_copy_type;
   gpuErrchk(cudaMemcpy3DAsync(&p, stream));
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -540,7 +540,7 @@ void cudaMemcpyPeerAsyncHelper(Handle<D, T> &handle, void *dst, int dst_dev,
 
   cudaStream_t stream = *(cudaStream_t *)handle.get(queue_idx);
   gpuErrchk(cudaMemcpyPeerAsync(dst, dst_dev, src, src_dev, count, stream));
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -575,7 +575,7 @@ void cudaMemcpy3DPeerAsyncHelper(Handle<D, T> &handle, void *dst, int dst_dev,
   // printf("src_dev: %d - dst_dev: %d\n", dst_dev, src_dev);
 
   gpuErrchk(cudaMemcpy3DPeerAsync(&p, stream));
-#ifdef MGARD_CUDA_DEBUG
+#ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
@@ -696,4 +696,4 @@ KERNELS(1, bool)
 
 #undef KERNELS
 
-} // namespace mgard_cuda
+} // namespace mgard_x

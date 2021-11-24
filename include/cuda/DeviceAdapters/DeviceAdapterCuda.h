@@ -1,12 +1,12 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGARD_CUDA_DEVICE_ADAPTER_CUDA_H
-#define MGARD_CUDA_DEVICE_ADAPTER_CUDA_H
+#ifndef MGARD_X_DEVICE_ADAPTER_CUDA_H
+#define MGARD_X_DEVICE_ADAPTER_CUDA_H
 
 #include "../Message.h"
 #include <iostream>
@@ -44,7 +44,7 @@ static __device__ __inline__ uint32_t __mylaneid(){
 }
  
 
-namespace mgard_cuda {
+namespace mgard_x {
   
 template <typename TaskType>
 inline void ErrorAsyncCheck(cudaError_t code, TaskType &task,
@@ -569,6 +569,7 @@ class MemoryManager<CUDA> {
   MGARDm_CONT static
   void Free(T * ptr) {
     // printf("MemoryManager.Free(%llu)\n", ptr);
+    if (ptr == NULL) return;
     gpuErrchk(cudaFree(ptr));
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
@@ -608,6 +609,7 @@ class MemoryManager<CUDA> {
   template <typename T>
   MGARDm_CONT static
   void FreeHost(T * ptr) {
+    if (ptr == NULL) return;
     gpuErrchk(cudaFreeHost(ptr));
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());

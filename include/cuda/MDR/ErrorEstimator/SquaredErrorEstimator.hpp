@@ -2,7 +2,7 @@
 #define _MDR_SQUARED_ERROR_ESTIMATOR_HPP
 
 #include "ErrorEstimatorInterface.hpp"
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     template<class T>
     class SquaredErrorEstimator : public concepts::ErrorEstimatorInterface<T>{};

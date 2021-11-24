@@ -3,7 +3,7 @@
 
 #include "RetrieverInterface.hpp"
 #include <cstdio>
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     // Data retriever for files
     class ConcatLevelFileRetriever : public concepts::RetrieverInterface {

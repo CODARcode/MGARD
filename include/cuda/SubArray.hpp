@@ -1,17 +1,17 @@
 /*
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
  * Date: Jul 20, 2021
  */
 
-#ifndef MGARD_CUDA_SUBARRAY_HPP
-#define MGARD_CUDA_SUBARRAY_HPP
+#ifndef MGARD_X_SUBARRAY_HPP
+#define MGARD_X_SUBARRAY_HPP
 #include "Common.h"
 #include "CommonInternal.h"
 #include <vector>
 #include <iostream>
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType> class MGARDm_ALIGN(16) SubArray {
 public:
@@ -507,5 +507,5 @@ SubArray<D, T, DeviceType>::~SubArray() {
   // nothing needs to be released
 }
 
-} // namespace mgard_cuda
+} // namespace mgard_x
 #endif

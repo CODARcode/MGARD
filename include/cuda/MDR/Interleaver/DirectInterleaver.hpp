@@ -8,7 +8,7 @@
 #include "../../DeviceAdapters/DeviceAdapterCuda.h"
 
 #include "InterleaverInterface.hpp"
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     // direct interleaver with in-order recording
     template<DIM D, typename T>
@@ -59,15 +59,15 @@ namespace MDR {
 #define Interleave 0
 #define Reposition 1
 
-template <mgard_cuda::DIM D, typename T, int R, int C, int F, mgard_cuda::OPTION Direction, typename DeviceType>
-class DirectInterleaverFunctor: public mgard_cuda::Functor<DeviceType> {
+template <mgard_x::DIM D, typename T, int R, int C, int F, mgard_x::OPTION Direction, typename DeviceType>
+class DirectInterleaverFunctor: public mgard_x::Functor<DeviceType> {
 public:
   MGARDm_CONT
-  DirectInterleaverFunctor(mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> ranges, mgard_cuda::SIZE l_target, 
-                              mgard_cuda::SubArray<D, T, DeviceType> v,
-                              mgard_cuda::SubArray<1, T, DeviceType> * level_v): 
+  DirectInterleaverFunctor(mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> ranges, mgard_x::SIZE l_target, 
+                              mgard_x::SubArray<D, T, DeviceType> v,
+                              mgard_x::SubArray<1, T, DeviceType> * level_v): 
                               ranges(ranges), l_target(l_target), v(v), level_v(level_v){
-    mgard_cuda::Functor<DeviceType>();
+    mgard_x::Functor<DeviceType>();
   }
 
   MGARDm_EXEC void
@@ -79,15 +79,15 @@ public:
         debug = true;
 
 
-    mgard_cuda::SIZE threadId = (this->threadz * this->nblockx * this->nblocky) +
+    mgard_x::SIZE threadId = (this->threadz * this->nblockx * this->nblocky) +
                 (this->thready * this->nblockx) + this->threadx;
 
     int8_t * sm_p = (int8_t *)this->shared_memory;
-    ranges_sm = (mgard_cuda::SIZE*) sm_p; sm_p += D * (l_target + 2) * sizeof(mgard_cuda::SIZE);
+    ranges_sm = (mgard_x::SIZE*) sm_p; sm_p += D * (l_target + 2) * sizeof(mgard_x::SIZE);
 
     
 
-    for (mgard_cuda::SIZE i = threadId; i < D * (l_target + 2); i += this->nblockx * this->nblocky * this->nblockz) {
+    for (mgard_x::SIZE i = threadId; i < D * (l_target + 2); i += this->nblockx * this->nblocky * this->nblockz) {
       ranges_sm[i] = *ranges(i);
     }
 
@@ -109,13 +109,13 @@ public:
   MGARDm_EXEC void
   Operation2() {
     
-    mgard_cuda::SIZE idx[D];
+    mgard_x::SIZE idx[D];
 
-    mgard_cuda::SIZE firstD = mgard_cuda::div_roundup(ranges_sm[l_target + 1], F);
+    mgard_x::SIZE firstD = mgard_x::div_roundup(ranges_sm[l_target + 1], F);
     if (debug) {
       // printf("ranges_sm[l_target + 1]: %u\n", ranges_sm[l_target + 1]);
     }
-    mgard_cuda::SIZE bidx = this->blockx;
+    mgard_x::SIZE bidx = this->blockx;
     idx[0] = (bidx % firstD) * F + this->threadx;
     bidx /= firstD;
     if (D >= 2) {
@@ -125,24 +125,24 @@ public:
       idx[2] = this->blockz * this->nblockz + this->threadz;
     }
 
-    for (mgard_cuda::DIM d = 3; d < D; d++) {
+    for (mgard_x::DIM d = 3; d < D; d++) {
       idx[d] = bidx % ranges_sm[(l_target + 2) * d + l_target + 1];
       bidx /= ranges_sm[(l_target + 2) * d + l_target + 1];
     }
 
     bool in_range = true;
-    for (mgard_cuda::DIM d = 0; d < D; d++) {
+    for (mgard_x::DIM d = 0; d < D; d++) {
       if (idx[d] >= ranges_sm[(l_target + 2) * d + l_target + 1]) {
         in_range = false;
       }
     }
 
     if (in_range) {
-      mgard_cuda::SIZE level = 0;
+      mgard_x::SIZE level = 0;
       long long unsigned int l_bit[D];
-      for (mgard_cuda::DIM d = 0; d < D; d++) {
+      for (mgard_x::DIM d = 0; d < D; d++) {
         l_bit[d] = 0l;
-        for (mgard_cuda::SIZE l = 0; l < l_target + 1; l++) {
+        for (mgard_x::SIZE l = 0; l < l_target + 1; l++) {
           long long unsigned int bit = (idx[d] >= ranges_sm[(l_target + 2) * d + l]) &&
                     (idx[d] < ranges_sm[(l_target + 2) * d + l + 1]);
           l_bit[d] += bit << l;
@@ -152,9 +152,9 @@ public:
       
 
       // distinguish different regions
-      mgard_cuda::SIZE curr_region = 0;
-      for (mgard_cuda::DIM d = 0; d < D; d++) {
-        mgard_cuda::SIZE bit = !(level == __ffsll(l_bit[d]));
+      mgard_x::SIZE curr_region = 0;
+      for (mgard_x::DIM d = 0; d < D; d++) {
+        mgard_x::SIZE bit = !(level == __ffsll(l_bit[d]));
         curr_region += bit << (D - 1 - d);
       }
 
@@ -162,22 +162,22 @@ public:
       level = level - 1;
 
       // region size
-      mgard_cuda::SIZE coarse_level_size[D];
-      mgard_cuda::SIZE diff_level_size[D];
-      mgard_cuda::SIZE curr_region_dims[D];
-      for (mgard_cuda::DIM d = 0; d < D; d++) {
+      mgard_x::SIZE coarse_level_size[D];
+      mgard_x::SIZE diff_level_size[D];
+      mgard_x::SIZE curr_region_dims[D];
+      for (mgard_x::DIM d = 0; d < D; d++) {
         coarse_level_size[d] = ranges_sm[(l_target + 2) * d + level];
         diff_level_size[d] = ranges_sm[(l_target + 2) * d + level + 1] - 
                              ranges_sm[(l_target + 2) * d + level];
       }
 
-      for (mgard_cuda::DIM d = 0; d < D; d++) {
-        mgard_cuda::SIZE bit = (curr_region >> (D - 1 - d)) & 1u;
+      for (mgard_x::DIM d = 0; d < D; d++) {
+        mgard_x::SIZE bit = (curr_region >> (D - 1 - d)) & 1u;
         curr_region_dims[d] = bit ? coarse_level_size[d] : diff_level_size[d];
       }
 
-      mgard_cuda::SIZE curr_region_size = 1;
-      for (mgard_cuda::DIM d = 0; d < D; d++) {
+      mgard_x::SIZE curr_region_size = 1;
+      for (mgard_x::DIM d = 0; d < D; d++) {
         curr_region_size *= curr_region_dims[d];
       }
 
@@ -188,11 +188,11 @@ public:
       //                                           diff_level_size[0], diff_level_size[1], diff_level_size[2]);
 
       // region offset
-      mgard_cuda::SIZE curr_region_offset = 0;
-      for (mgard_cuda::SIZE prev_region = 0; prev_region < curr_region; prev_region++) {
-        mgard_cuda::SIZE prev_region_size = 1;
-        for (mgard_cuda::DIM d = 0; d < D; d++) {
-          mgard_cuda::SIZE bit = (prev_region >> (D - 1 - d)) & 1u;
+      mgard_x::SIZE curr_region_offset = 0;
+      for (mgard_x::SIZE prev_region = 0; prev_region < curr_region; prev_region++) {
+        mgard_x::SIZE prev_region_size = 1;
+        for (mgard_x::DIM d = 0; d < D; d++) {
+          mgard_x::SIZE bit = (prev_region >> (D - 1 - d)) & 1u;
           prev_region_size *= bit ? coarse_level_size[d] : diff_level_size[d];
         }
         curr_region_offset += prev_region_size;
@@ -203,15 +203,15 @@ public:
 
 
       // thread offset
-      mgard_cuda::SIZE curr_region_thread_idx[D]; 
-      mgard_cuda::SIZE curr_thread_offset = 0;
-      for (mgard_cuda::SIZE d = 0; d < D; d++) {
-        mgard_cuda::SIZE bit = (curr_region >> D - 1 - d) & 1u;
+      mgard_x::SIZE curr_region_thread_idx[D]; 
+      mgard_x::SIZE curr_thread_offset = 0;
+      for (mgard_x::SIZE d = 0; d < D; d++) {
+        mgard_x::SIZE bit = (curr_region >> D - 1 - d) & 1u;
         curr_region_thread_idx[d] = bit ? idx[d] : idx[d] - coarse_level_size[d];
       }
 
-      mgard_cuda::SIZE stride = 1;
-      for (mgard_cuda::SIZE d = 0; d < D; d++) {
+      mgard_x::SIZE stride = 1;
+      for (mgard_x::SIZE d = 0; d < D; d++) {
         curr_thread_offset += curr_region_thread_idx[d] * stride;
         stride *= curr_region_dims[d];
       }
@@ -220,7 +220,7 @@ public:
 
       
 
-      mgard_cuda::SIZE level_offset = curr_region_offset + curr_thread_offset;
+      mgard_x::SIZE level_offset = curr_region_offset + curr_thread_offset;
 
       // printf("(%u %u %u): level: %u, region: %u, size: %u, region_offset: %u, thread_offset: %u, level_offset: %u, l_bit %llu %llu %llu\n", 
       //                                           idx[0], idx[1], idx[2], 
@@ -230,9 +230,9 @@ public:
 
       if (Direction == Interleave) {
         // printf("%u %u %u (%f) --> %u\n", idx[0], idx[1], idx[2], *v(idx), level_offset);
-        *(level_v[level]((mgard_cuda::IDX)level_offset)) = *v(idx);
+        *(level_v[level]((mgard_x::IDX)level_offset)) = *v(idx);
       } else if (Direction == Reposition) {
-        *v(idx) = *(level_v[level]((mgard_cuda::IDX)level_offset));
+        *v(idx) = *(level_v[level]((mgard_x::IDX)level_offset));
       }
     }
   }
@@ -249,38 +249,38 @@ public:
   MGARDm_CONT size_t
   shared_memory_size() {
     size_t size = 0;
-    size += D * (l_target + 2) * sizeof(mgard_cuda::SIZE);
+    size += D * (l_target + 2) * sizeof(mgard_x::SIZE);
     printf("sm_size: %llu\n", size);
     return size;
   }
 
 
 private:
-  mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> ranges;
-  mgard_cuda::SIZE l_target;
-  mgard_cuda::SubArray<D, T, DeviceType> v;
-  mgard_cuda::SubArray<1, T, DeviceType> * level_v;
+  mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> ranges;
+  mgard_x::SIZE l_target;
+  mgard_x::SubArray<D, T, DeviceType> v;
+  mgard_x::SubArray<1, T, DeviceType> * level_v;
 
   // thread private variables
   bool debug;
-  mgard_cuda::SIZE * ranges_sm;
+  mgard_x::SIZE * ranges_sm;
 };
 
-template <mgard_cuda::DIM D, typename T, mgard_cuda::OPTION Direction, typename DeviceType>
-  class DirectInterleaverKernel: public mgard_cuda::AutoTuner<DeviceType> {
+template <mgard_x::DIM D, typename T, mgard_x::OPTION Direction, typename DeviceType>
+  class DirectInterleaverKernel: public mgard_x::AutoTuner<DeviceType> {
   public:
   MGARDm_CONT
-  DirectInterleaverKernel(): mgard_cuda::AutoTuner<DeviceType>() {}
+  DirectInterleaverKernel(): mgard_x::AutoTuner<DeviceType>() {}
 
-  template <mgard_cuda::SIZE R, mgard_cuda::SIZE C, mgard_cuda::SIZE F>
+  template <mgard_x::SIZE R, mgard_x::SIZE C, mgard_x::SIZE F>
   MGARDm_CONT
-  mgard_cuda::Task<DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>> 
-  GenTask(mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> shape, mgard_cuda::SIZE l_target,
-          mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> ranges,
-          mgard_cuda::SubArray<D, T, DeviceType> v, mgard_cuda::SubArray<1, T, DeviceType> * level_v, int queue_idx) {
+  mgard_x::Task<DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>> 
+  GenTask(mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> shape, mgard_x::SIZE l_target,
+          mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> ranges,
+          mgard_x::SubArray<D, T, DeviceType> v, mgard_x::SubArray<1, T, DeviceType> * level_v, int queue_idx) {
     using FunctorType = DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>;
     FunctorType functor(ranges, l_target, v, level_v);
-    mgard_cuda::SIZE tbx, tby, tbz, gridx, gridy, gridz;
+    mgard_x::SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
     int total_thread_z = shape.dataHost()[2];
     int total_thread_y = shape.dataHost()[1];
@@ -296,22 +296,22 @@ template <mgard_cuda::DIM D, typename T, mgard_cuda::OPTION Direction, typename 
     for (int d = 3; d < D; d++) {
       gridx *= shape.dataHost()[d];
     }
-    return mgard_cuda::Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
+    return mgard_x::Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
   }
 
   MGARDm_CONT
-  void Execute(mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> shape,
-               mgard_cuda::SIZE l_target,
-               mgard_cuda::SubArray<1, mgard_cuda::SIZE, DeviceType> ranges,
-               mgard_cuda::SubArray<D, T, DeviceType> v,
-               mgard_cuda::SubArray<1, T, DeviceType> * level_v,
+  void Execute(mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> shape,
+               mgard_x::SIZE l_target,
+               mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> ranges,
+               mgard_x::SubArray<D, T, DeviceType> v,
+               mgard_x::SubArray<1, T, DeviceType> * level_v,
                int queue_idx) {
     #define KERNEL(R, C, F)\
     {\
       using FunctorType = DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>;\
-      using TaskType = mgard_cuda::Task<FunctorType>;\
+      using TaskType = mgard_x::Task<FunctorType>;\
       TaskType task = GenTask<R, C, F>(shape, l_target, ranges, v, level_v, queue_idx);\
-      mgard_cuda::DeviceAdapter<TaskType, DeviceType> adapter; \
+      mgard_x::DeviceAdapter<TaskType, DeviceType> adapter; \
       adapter.Execute(task);\
     }
 
@@ -331,44 +331,44 @@ template <mgard_cuda::DIM D, typename T, mgard_cuda::OPTION Direction, typename 
 
 
   // direct interleaver with in-order recording
-  template<typename HandleType, mgard_cuda::DIM D, typename T>
+  template<typename HandleType, mgard_x::DIM D, typename T>
   class DirectInterleaver : public concepts::InterleaverInterface<HandleType, D, T> {
   public:
       DirectInterleaver(HandleType &handle): handle(handle) {}
-      void interleave(mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> decomposed_data, 
-                      mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data, 
+      void interleave(mgard_x::SubArray<D, T, mgard_x::CUDA> decomposed_data, 
+                      mgard_x::SubArray<1, T, mgard_x::CUDA> * levels_decomposed_data, 
                       int queue_idx) const {
-        // mgard_cuda::PrintSubarray("decomposed_data", decomposed_data);
-        mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data_device;
-        mgard_cuda::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
-                            sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1));
-        mgard_cuda::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
-                                          sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1), mgard_cuda::AUTO, queue_idx);
+        // mgard_x::PrintSubarray("decomposed_data", decomposed_data);
+        mgard_x::SubArray<1, T, mgard_x::CUDA> * levels_decomposed_data_device;
+        mgard_x::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
+                            sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1));
+        mgard_x::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
+                                          sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1), mgard_x::AUTO, queue_idx);
         handle.sync(queue_idx);
-        DirectInterleaverKernel<D, T, Interleave, mgard_cuda::CUDA>().
-                      Execute(mgard_cuda::SubArray<1, mgard_cuda::SIZE, mgard_cuda::CUDA>(handle.shapes[0], true), handle.l_target, 
-                        mgard_cuda::SubArray<1, mgard_cuda::SIZE, mgard_cuda::CUDA>(handle.ranges),
+        DirectInterleaverKernel<D, T, Interleave, mgard_x::CUDA>().
+                      Execute(mgard_x::SubArray<1, mgard_x::SIZE, mgard_x::CUDA>(handle.shapes[0], true), handle.l_target, 
+                        mgard_x::SubArray<1, mgard_x::SIZE, mgard_x::CUDA>(handle.ranges),
                         decomposed_data, levels_decomposed_data_device, queue_idx);
         
         handle.sync(queue_idx);
         // for (int i = 0; i < this->handle.l_target+1; i++) {
         //   printf("l = %d\n", i);
-        //   mgard_cuda::PrintSubarray("levels_decomposed_data", levels_decomposed_data[i]);
+        //   mgard_x::PrintSubarray("levels_decomposed_data", levels_decomposed_data[i]);
         // }
       }
-      void reposition(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data, 
-                      mgard_cuda::SubArray<D, T, mgard_cuda::CUDA> decomposed_data, 
+      void reposition(mgard_x::SubArray<1, T, mgard_x::CUDA> * levels_decomposed_data, 
+                      mgard_x::SubArray<D, T, mgard_x::CUDA> decomposed_data, 
                       int queue_idx) const {
         
-        mgard_cuda::SubArray<1, T, mgard_cuda::CUDA> * levels_decomposed_data_device;
-        mgard_cuda::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
-                            sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1));
-        mgard_cuda::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
-                                          sizeof(mgard_cuda::SubArray<1, T, mgard_cuda::CUDA>)*(this->handle.l_target+1), mgard_cuda::AUTO, queue_idx);
+        mgard_x::SubArray<1, T, mgard_x::CUDA> * levels_decomposed_data_device;
+        mgard_x::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
+                            sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1));
+        mgard_x::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
+                                          sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1), mgard_x::AUTO, queue_idx);
         handle.sync(queue_idx);
-        DirectInterleaverKernel<D, T, Reposition, mgard_cuda::CUDA>().
-                      Execute(mgard_cuda::SubArray<1, mgard_cuda::SIZE, mgard_cuda::CUDA>(handle.shapes[0], true), handle.l_target, 
-                        mgard_cuda::SubArray<1, mgard_cuda::SIZE, mgard_cuda::CUDA>(handle.ranges), decomposed_data, levels_decomposed_data_device, queue_idx);
+        DirectInterleaverKernel<D, T, Reposition, mgard_x::CUDA>().
+                      Execute(mgard_x::SubArray<1, mgard_x::SIZE, mgard_x::CUDA>(handle.shapes[0], true), handle.l_target, 
+                        mgard_x::SubArray<1, mgard_x::SIZE, mgard_x::CUDA>(handle.ranges), decomposed_data, levels_decomposed_data_device, queue_idx);
       }
       void print() const {
           std::cout << "Direct interleaver" << std::endl;

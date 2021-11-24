@@ -1,19 +1,19 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGARD_CUDA_LOSSLESS
-#define MGARD_CUDA_LOSSLESS
+#ifndef MGARD_X_LOSSLESS
+#define MGARD_X_LOSSLESS
 
 #include "Common.h"
 #include "nvcomp/cascaded.hpp"
 #include "nvcomp/lz4.hpp"
 #include "nvcomp.hpp"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T, typename C>
 void cascaded_compress(Handle<D, T> &handle, C *input_data, size_t intput_count,
@@ -61,6 +61,6 @@ void cpu_lossless_compression(Handle<D, T> &handle, S *input_data, size_t input_
 template <DIM D, typename T, typename S, typename H>
 void cpu_lossless_decompression(Handle<D, T> &handle, H *input_data, size_t input_count,
   S *&out_data, size_t output_count);
-} // namespace mgard_cuda
+} // namespace mgard_x
 
 #endif

@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include "Histogram.hpp"
@@ -15,10 +15,10 @@
 
 using namespace std::chrono;
 
-#ifndef MGRAD_CUDA_HUFFMAN_TEMPLATE_HPP
-#define MGRAD_CUDA_HUFFMAN_TEMPLATE_HPP
+#ifndef MGARD_X_HUFFMAN_TEMPLATE_HPP
+#define MGARD_X_HUFFMAN_TEMPLATE_HPP
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <typename T>
 void align_byte_offset(SIZE &byte_offset) { 
@@ -91,59 +91,59 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
   int ht_state_num = 2 * dict_size;
   int ht_all_nodes = 2 * ht_state_num;
 
-  mgard_cuda::Array<1, unsigned int, DeviceType> freq_array({(mgard_cuda::SIZE)ht_all_nodes});
+  mgard_x::Array<1, unsigned int, DeviceType> freq_array({(mgard_x::SIZE)ht_all_nodes});
   freq_array.memset(0);
 
-  mgard_cuda::SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
-  mgard_cuda::Histogram<Q, unsigned int, DeviceType>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
+  mgard_x::SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
+  mgard_x::Histogram<Q, unsigned int, DeviceType>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
   gpuErrchk(cudaDeviceSynchronize());
 
   auto type_bw = sizeof(H) * 8;
   size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size;
-  mgard_cuda::Array<1, H, DeviceType> codebook_array({(mgard_cuda::SIZE)dict_size});
+  mgard_x::Array<1, H, DeviceType> codebook_array({(mgard_x::SIZE)dict_size});
   codebook_array.memset(0);
-  mgard_cuda::Array<1, uint8_t, DeviceType> decodebook_array({(mgard_cuda::SIZE)decodebook_size});
+  mgard_x::Array<1, uint8_t, DeviceType> decodebook_array({(mgard_x::SIZE)decodebook_size});
   codebook_array.memset(0xff);
 
   H * codebook = codebook_array.get_dv();
   uint8_t *decodebook = decodebook_array.get_dv();
 
 
-  mgard_cuda::SubArray<1, H, DeviceType> codebook_subarray(codebook_array);
-  mgard_cuda::SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
+  mgard_x::SubArray<1, H, DeviceType> codebook_subarray(codebook_array);
+  mgard_x::SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
 
-  mgard_cuda::GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray, decodebook_subarray);
+  mgard_x::GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray, decodebook_subarray);
   cudaDeviceSynchronize();
 
-  mgard_cuda::Array<1, H, DeviceType> huff_array({(mgard_cuda::SIZE)primary_count});
+  mgard_x::Array<1, H, DeviceType> huff_array({(mgard_x::SIZE)primary_count});
   huff_array.memset(0);
   H * huff = huff_array.get_dv();
 
   gpuErrchk(cudaDeviceSynchronize());
 
-  mgard_cuda::SubArray<1, H, DeviceType> huff_subarray(huff_array);
-  mgard_cuda::EncodeFixedLen<unsigned int, H, DeviceType>().Execute(dprimary_subarray,
+  mgard_x::SubArray<1, H, DeviceType> huff_subarray(huff_array);
+  mgard_x::EncodeFixedLen<unsigned int, H, DeviceType>().Execute(dprimary_subarray,
                                                               huff_subarray,
                                                               primary_count,
                                                               codebook_subarray, 0);
 
   // deflate
   auto nchunk = (primary_count - 1) / chunk_size + 1; 
-  mgard_cuda::Array<1, size_t, DeviceType> huff_bitwidths_array({(mgard_cuda::SIZE)nchunk});
+  mgard_x::Array<1, size_t, DeviceType> huff_bitwidths_array({(mgard_x::SIZE)nchunk});
   huff_bitwidths_array.memset(0);
   size_t * huff_bitwidths = huff_bitwidths_array.get_dv();
 
-  mgard_cuda::SubArray<1, size_t, DeviceType> huff_bitwidths_subarray({(mgard_cuda::SIZE)nchunk}, huff_bitwidths);
-  mgard_cuda::Deflate<H, DeviceType>().Execute(huff_subarray, primary_count, huff_bitwidths_subarray, chunk_size, 0);
+  mgard_x::SubArray<1, size_t, DeviceType> huff_bitwidths_subarray({(mgard_x::SIZE)nchunk}, huff_bitwidths);
+  mgard_x::Deflate<H, DeviceType>().Execute(huff_subarray, primary_count, huff_bitwidths_subarray, chunk_size, 0);
 
-  mgard_cuda::DeviceRuntime<DeviceType>::SyncQueue(0);
+  mgard_x::DeviceRuntime<DeviceType>::SyncQueue(0);
 
   size_t* h_meta = new size_t[nchunk * 3]();
   size_t* dH_uInt_meta = h_meta;
   size_t* dH_bit_meta = h_meta + nchunk;
   size_t* dH_uInt_entry = h_meta + nchunk * 2;
 
-  mgard_cuda::MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths, nchunk, 0);
+  mgard_x::MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths, nchunk, 0);
   gpuErrchk(cudaDeviceSynchronize());
   // transform in uInt
   memcpy(dH_uInt_meta, dH_bit_meta, nchunk * sizeof(size_t));
@@ -252,11 +252,11 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data) {
   Array<1, Q, DeviceType> dprimary({(SIZE)primary_count});
   align_byte_offset<H>(byte_offset);
   int nchunk = (primary_count - 1) / chunk_size + 1;
-  mgard_cuda::SubArray<1, H, mgard_cuda::CUDA> ddata_subarray({(mgard_cuda::SIZE)ddata_size}, (H*)compressed_data((IDX)byte_offset));
-  mgard_cuda::SubArray<1, size_t, mgard_cuda::CUDA> huffmeta_subarray({(mgard_cuda::SIZE)huffmeta_size}, huffmeta);
-  mgard_cuda::SubArray<1, Q, mgard_cuda::CUDA> dprimary_subarray(dprimary);
-  mgard_cuda::SubArray<1, uint8_t, mgard_cuda::CUDA> decodebook_subarray({(mgard_cuda::SIZE)decodebook_size}, decodebook);
-  mgard_cuda::Decode<Q, H, mgard_cuda::CUDA>().Execute(ddata_subarray,
+  mgard_x::SubArray<1, H, mgard_x::CUDA> ddata_subarray({(mgard_x::SIZE)ddata_size}, (H*)compressed_data((IDX)byte_offset));
+  mgard_x::SubArray<1, size_t, mgard_x::CUDA> huffmeta_subarray({(mgard_x::SIZE)huffmeta_size}, huffmeta);
+  mgard_x::SubArray<1, Q, mgard_x::CUDA> dprimary_subarray(dprimary);
+  mgard_x::SubArray<1, uint8_t, mgard_x::CUDA> decodebook_subarray({(mgard_x::SIZE)decodebook_size}, decodebook);
+  mgard_x::Decode<Q, H, mgard_x::CUDA>().Execute(ddata_subarray,
                                                        huffmeta_subarray,
                                                        dprimary_subarray,
                                                        primary_count, chunk_size, nchunk,

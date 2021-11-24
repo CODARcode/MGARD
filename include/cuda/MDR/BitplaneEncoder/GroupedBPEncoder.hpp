@@ -5,7 +5,7 @@
 
 #include "BitplaneEncoderInterface.hpp"
 #include <string.h>
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     // general bitplane encoder that encodes data by block using T_stream type buffer
     template<DIM D, typename T_data, typename T_stream>

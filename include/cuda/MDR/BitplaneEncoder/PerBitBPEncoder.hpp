@@ -3,7 +3,7 @@
 
 #include "BitplaneEncoderInterface.hpp"
 #include <bitset>
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     class BitEncoder{
     public:

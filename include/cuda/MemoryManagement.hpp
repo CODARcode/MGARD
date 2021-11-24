@@ -1,12 +1,12 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGARD_CUDA_MEMORY_MANAGEMENT_HPP
-#define MGARD_CUDA_MEMORY_MANAGEMENT_HPP
+#ifndef MGARD_X_MEMORY_MANAGEMENT_HPP
+#define MGARD_X_MEMORY_MANAGEMENT_HPP
 
 #include <fstream>
 #include <iomanip>
@@ -25,7 +25,7 @@
 #define ANSI_GREEN "\x1b[32m"
 #define ANSI_RESET "\x1b[0m"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <typename SubArrayType> 
 void PrintSubarray(std::string name, SubArrayType subArray) {

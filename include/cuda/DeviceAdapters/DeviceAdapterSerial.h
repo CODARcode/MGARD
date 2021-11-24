@@ -1,7 +1,7 @@
-#ifndef MGARD_CUDA_DEVICE_ADAPTER_SERIAL_H
-#define MGARD_CUDA_DEVICE_ADAPTER_SERIAL_H
+#ifndef MGARD_X_DEVICE_ADAPTER_SERIAL_H
+#define MGARD_X_DEVICE_ADAPTER_SERIAL_H
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template<>
 struct SyncBlock<Serial> {

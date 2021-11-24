@@ -1,12 +1,12 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGARD_CUDA_ARRAY_HPP
-#define MGARD_CUDA_ARRAY_HPP
+#ifndef MGARD_X_ARRAY_HPP
+#define MGARD_X_ARRAY_HPP
 #include "Common.h"
 
 #include "CommonInternal.h"
@@ -17,10 +17,11 @@
 
 #include "DeviceAdapters/DeviceAdapter.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType>::Array() {
+  // printf("Array allocate empty\n");
   this->host_allocated = false;
   this->device_allocated = false;
 }
@@ -36,7 +37,7 @@ Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
     std::cerr << log::log_err
-              << "Number of dimensions mismatch (" << D << " != " << shape.size() << "). mgard_cuda::Array not "
+              << "Number of dimensions mismatch (" << D << " != " << shape.size() << "). mgard_x::Array not "
                  "initialized!\n";
     return;
   }
@@ -147,6 +148,7 @@ Array<D, T, DeviceType>::Array(const Array<D, T, DeviceType> &array) {
 
 template <DIM D, typename T, typename DeviceType> 
 Array<D, T, DeviceType>::Array(Array<D, T, DeviceType> &array) {
+  // printf("Array copy2\n");
   this->host_allocated = false;
   this->device_allocated = false;
   this->shape = array.shape;
@@ -331,6 +333,7 @@ template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::getDataHost() {
   if (!device_allocated) { 
     std::cout << log::log_err << "device buffer not initialized.\n";
+    exit(-1);
   }
   if (!host_allocated) {
     MemoryManager<DeviceType>().MallocHost(

@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include "cuda/CommonInternal.h"
@@ -10,7 +10,7 @@
 #include "cuda/Testing/ReorderToolsGPU.h"
 #include "cuda/Testing/ReorderToolsGPU.hpp"
 
-namespace mgard_cuda {
+namespace mgard_x {
     #define KERNELS(D, T)                                                          \
       template void ReorderGPU<D, T>(Handle<D, T> &handle, SubArray<D, T> dinput,  \
                              SubArray<D, T> &doutput, int l_target, int queue_idx);              \

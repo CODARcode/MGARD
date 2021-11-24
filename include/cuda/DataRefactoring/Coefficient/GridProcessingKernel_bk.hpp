@@ -1,12 +1,12 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
-#ifndef MGRAD_CUDA_GRID_PROCESSING_KERNEL_2_TEMPLATE
-#define MGRAD_CUDA_GRID_PROCESSING_KERNEL_2_TEMPLATE
+#ifndef MGARD_X_GRID_PROCESSING_KERNEL_2_TEMPLATE
+#define MGARD_X_GRID_PROCESSING_KERNEL_2_TEMPLATE
 
 #include "../../CommonInternal.h"
 #include "GPKFunctor.h"
@@ -17,7 +17,7 @@
 #include "../../Task.h"
 #include "../../DeviceAdapters/DeviceAdapter.h"
 
-namespace mgard_cuda {
+namespace mgard_x {
 template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F, 
           bool INTERPOLATION, bool CALC_COEFF, int TYPE, typename DeviceType>
 class GpkReoFunctor: public Functor<DeviceType> {

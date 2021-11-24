@@ -1,8 +1,8 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: September 27, 2021
+ * Date: December 1, 2021
  */
 
 #include "compressors.hpp"
@@ -14,7 +14,7 @@
  
 #include <typeinfo>
 
-namespace mgard_cuda {
+namespace mgard_x {
 
 template <uint32_t D, typename T, typename C>
 void cascaded_compress(Handle<D, T> &handle, C *input_data, size_t intput_count,
@@ -199,8 +199,8 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   size_t size = outlier_idx[0] - 0;
   // printf("copy primary\n");
   if (size > 0) {
-    mgard_cuda::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p,
-                                      size * sizeof(Q), mgard_cuda::D2D,
+    mgard_x::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p,
+                                      size * sizeof(Q), mgard_x::D2D,
                                       queue_idx);
   }
   pp += size;
@@ -209,8 +209,8 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   for (int i = 0; i < outlier_count - 1; i++) {
     size = 1;
     // printf("copy outlier\n");
-    mgard_cuda::cudaMemcpyAsyncHelper(handle, doutlier + op, dqv + p,
-                                      size * sizeof(S), mgard_cuda::D2D,
+    mgard_x::cudaMemcpyAsyncHelper(handle, doutlier + op, dqv + p,
+                                      size * sizeof(S), mgard_x::D2D,
                                       queue_idx);
     op += size;
     p += size;
@@ -218,8 +218,8 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
     // printf("copy primary %d %d %d\n", p, size, outlier_idx[outlier_idx.size()
     // - 1]);
     if (size > 0) {
-      mgard_cuda::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p,
-                                        size * sizeof(Q), mgard_cuda::D2D,
+      mgard_x::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p,
+                                        size * sizeof(Q), mgard_x::D2D,
                                         queue_idx);
     }
     pp += size;
@@ -227,8 +227,8 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   }
   size = 1;
   // printf("copy outlier\n");
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, doutlier + op, dqv + p,
-                                    size * sizeof(S), mgard_cuda::D2D,
+  mgard_x::cudaMemcpyAsyncHelper(handle, doutlier + op, dqv + p,
+                                    size * sizeof(S), mgard_x::D2D,
                                     queue_idx);
   op += size;
   p += size;
@@ -236,8 +236,8 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   // printf("copy primary %d %d %d\n", p, size, outlier_idx[outlier_idx.size() -
   // 1]);
   if (size > 0) {
-    mgard_cuda::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p,
-                                      size * sizeof(Q), mgard_cuda::D2D,
+    mgard_x::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p,
+                                      size * sizeof(Q), mgard_x::D2D,
                                       queue_idx);
   }
   // printf("done copy primary\n");
@@ -261,8 +261,8 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   size_t size = outlier_idx[0] - 0;
   // printf("copy primary\n");
   if (size > 0) {
-    mgard_cuda::cudaMemcpyAsyncHelper(handle, dqv + p, dprimary + pp,
-                                      size * sizeof(Q), mgard_cuda::D2D,
+    mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, dprimary + pp,
+                                      size * sizeof(Q), mgard_x::D2D,
                                       queue_idx);
   }
   pp += size;
@@ -271,8 +271,8 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   for (int i = 0; i < outlier_count - 1; i++) {
     size = 1;
     // printf("copy outlier\n");
-    mgard_cuda::cudaMemcpyAsyncHelper(handle, dqv + p, doutlier + op,
-                                      size * sizeof(S), mgard_cuda::D2D,
+    mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, doutlier + op,
+                                      size * sizeof(S), mgard_x::D2D,
                                       queue_idx);
     op += size;
     p += size;
@@ -280,8 +280,8 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
     // printf("copy primary %d %d %d\n", p, size, outlier_idx[outlier_idx.size()
     // - 1]);
     if (size > 0) {
-      mgard_cuda::cudaMemcpyAsyncHelper(handle, dqv + p, dprimary + pp,
-                                        size * sizeof(Q), mgard_cuda::D2D,
+      mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, dprimary + pp,
+                                        size * sizeof(Q), mgard_x::D2D,
                                         queue_idx);
     }
     pp += size;
@@ -289,8 +289,8 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   }
   size = 1;
   // printf("copy outlier\n");
-  mgard_cuda::cudaMemcpyAsyncHelper(handle, dqv + p, doutlier + op,
-                                    size * sizeof(S), mgard_cuda::D2D,
+  mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, doutlier + op,
+                                    size * sizeof(S), mgard_x::D2D,
                                     queue_idx);
   op += size;
   p += size;
@@ -298,8 +298,8 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   // printf("copy primary %d %d %d\n", p, size, outlier_idx[outlier_idx.size() -
   // 1]);
   if (size > 0) {
-    mgard_cuda::cudaMemcpyAsyncHelper(handle, dqv + p, dprimary + pp,
-                                      size * sizeof(Q), mgard_cuda::D2D,
+    mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, dprimary + pp,
+                                      size * sizeof(Q), mgard_x::D2D,
                                       queue_idx);
   }
   // printf("done copy primary\n");
@@ -472,4 +472,4 @@ KERNELS(4, float, int, unsigned char)
 KERNELS(5, double, int, unsigned char)
 KERNELS(5, float, int, unsigned char)
 
-} // namespace mgard_cuda
+} // namespace mgard_x

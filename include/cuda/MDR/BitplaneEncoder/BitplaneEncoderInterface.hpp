@@ -2,7 +2,7 @@
 #define _MDR_BITPLANE_ENCODER_INTERFACE_HPP
 
 #include <cassert>
-namespace mgard_cuda {
+namespace mgard_x {
 namespace MDR {
     namespace concepts {
         #define UINT8_BITS 8 
@@ -30,26 +30,26 @@ namespace mgard_m {
 namespace MDR {
     namespace concepts {
         // concept of encoder which encodes T type data into bitstreams
-        template<typename HandleType, mgard_cuda::DIM D, typename T_data, typename T_bitplane, typename T_error>
+        template<typename HandleType, mgard_x::DIM D, typename T_data, typename T_bitplane, typename T_error>
         class BitplaneEncoderInterface {
         public:
 
             virtual ~BitplaneEncoderInterface() = default;
 
-            virtual mgard_cuda::Array<2, T_bitplane, mgard_cuda::CUDA> encode(mgard_cuda::SIZE n, mgard_cuda::SIZE num_bitplanes, int32_t exp, 
-                                                            mgard_cuda::SubArray<1, T_data, mgard_cuda::CUDA> v,
-                                                            mgard_cuda::SubArray<1, T_error, mgard_cuda::CUDA> level_errors,
-                                                            std::vector<mgard_cuda::SIZE>& streams_sizes, int queue_idx) const = 0;
+            virtual mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp, 
+                                                            mgard_x::SubArray<1, T_data, mgard_x::CUDA> v,
+                                                            mgard_x::SubArray<1, T_error, mgard_x::CUDA> level_errors,
+                                                            std::vector<mgard_x::SIZE>& streams_sizes, int queue_idx) const = 0;
 
-            virtual mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> decode(mgard_cuda::SIZE n, mgard_cuda::SIZE num_bitplanes, int32_t exp, 
-                                                        mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes, int level,
+            virtual mgard_x::Array<1, T_data, mgard_x::CUDA> decode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp, 
+                                                        mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes, int level,
                                                         int queue_idx) = 0;
 
-            virtual mgard_cuda::Array<1, T_data, mgard_cuda::CUDA> progressive_decode(mgard_cuda::SIZE n, mgard_cuda::SIZE starting_bitplanes, mgard_cuda::SIZE num_bitplanes, int32_t exp, 
-                                                                   mgard_cuda::SubArray<2, T_bitplane, mgard_cuda::CUDA> encoded_bitplanes,  int level,
+            virtual mgard_x::Array<1, T_data, mgard_x::CUDA> progressive_decode(mgard_x::SIZE n, mgard_x::SIZE starting_bitplanes, mgard_x::SIZE num_bitplanes, int32_t exp, 
+                                                                   mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes,  int level,
                                                                    int queue_idx) = 0;
 
-            virtual mgard_cuda::SIZE buffer_size(mgard_cuda::SIZE n) const = 0;
+            virtual mgard_x::SIZE buffer_size(mgard_x::SIZE n) const = 0;
 
             virtual void print() const = 0;
 

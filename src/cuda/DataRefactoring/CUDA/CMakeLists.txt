@@ -1,4 +1,4 @@
-set(MGARD_CUDA_SRC
+set(MGARD_X_SRC
       ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring1D.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring2D.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring3D.cu
