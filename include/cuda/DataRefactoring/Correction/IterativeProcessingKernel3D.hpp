@@ -79,13 +79,16 @@ public:
     f_rest -= f_ghost;
   }
 
+  MGARDm_EXEC void
+  Operation2() {}
+
   MGARDm_EXEC bool
   LoopCondition1() {
     return f_rest > F - f_ghost;
   }
 
   MGARDm_EXEC void
-  Operation2() {
+  Operation3() {
     f_main = min(F, f_rest);
     if (r_sm < r_rest && f_sm < f_main) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -101,7 +104,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation3() {
+  Operation4() {
     /* Computation of v in parallel*/
     if (r_sm < r_rest && c_sm < c_rest) {
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
@@ -120,7 +123,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation4() {
+  Operation5() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < F) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -131,7 +134,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation5() {
+  Operation6() {
      /* Update unloaded col */
     f_rest -= f_main;
 
@@ -153,7 +156,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation6() {
+  Operation7() {
     /* Load all rest col */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -169,7 +172,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation7() {
+  Operation8() {
     /* Only 1 col remain */
     if (f_ghost + f_rest == 1) {
       if (r_sm < r_rest && c_sm < c_rest) {
@@ -194,7 +197,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation8() {
+  Operation9() {
      /* flush results to v */
     if (r_sm < r_rest && f_sm < f_ghost + f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -205,7 +208,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation9() {
+  Operation10() {
     /* backward */
     f_rest = nf;
     f_ghost = min(nf, G);
@@ -236,7 +239,7 @@ public:
   
 
   MGARDm_EXEC void
-  Operation10() {
+  Operation11() {
     f_main = min(F, f_rest);
     if (r_sm < r_rest && f_sm < f_main) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -251,7 +254,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation11() {
+  Operation12() {
     /* Computation of v in parallel*/
     if (r_sm < r_rest && c_sm < c_rest) {
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
@@ -269,7 +272,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation12() {
+  Operation13() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < F) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -280,7 +283,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation13() {
+  Operation14() {
     /* Update unloaded col */
     f_rest -= f_main;
 
@@ -302,7 +305,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation14() {
+  Operation15() {
     /* Load all rest col */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -318,7 +321,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation15() {
+  Operation16() {
     /* Only 1 col remain */
     if (f_ghost + f_rest == 1) {
       if (r_sm < r_rest && c_sm < c_rest) {
@@ -343,7 +346,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation16() {
+  Operation17() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_ghost + f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -508,13 +511,16 @@ public:
     c_rest -= c_ghost;
   }
 
+  MGARDm_EXEC void
+  Operation2() {}
+
   MGARDm_EXEC bool
   LoopCondition1() {
     return c_rest > C - c_ghost;
   }
 
   MGARDm_EXEC void
-  Operation2() {
+  Operation3() {
     c_main = min(C, c_rest);
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_main; i++) {
@@ -529,7 +535,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation3() {
+  Operation4() {
     /* Computation of v in parallel*/
     if (r_sm < r_rest && f_sm < f_rest) {
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
@@ -546,7 +552,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation4() {
+  Operation5() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < C; i++) {
@@ -557,7 +563,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation5() {
+  Operation6() {
     /* Update unloaded col */
     c_rest -= c_main;
 
@@ -579,7 +585,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation6() {
+  Operation7() {
     /* Load all rest col */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -594,7 +600,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation7() {
+  Operation8() {
     /* Only 1 col remain */
     if (c_ghost + c_rest == 1) {
       if (r_sm < r_rest && f_sm < f_rest) {
@@ -617,7 +623,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation8() {
+  Operation9() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_ghost + c_rest; i++) {
@@ -628,7 +634,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation9() {
+  Operation10() {
     /* backward */
     c_rest = nc;
     c_ghost = min(nc, G);
@@ -656,7 +662,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation10() {
+  Operation11() {
     c_main = min(C, c_rest);
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_main; i++) {
@@ -671,7 +677,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation11() {
+  Operation12() {
     /* Computation of v in parallel*/
     if (r_sm < r_rest && f_sm < f_rest) {
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
@@ -690,7 +696,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation12() {
+  Operation13() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < C; i++) {
@@ -701,7 +707,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation13() {
+  Operation14() {
     /* Update unloaded col */
     c_rest -= c_main;
 
@@ -723,7 +729,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation14() {
+  Operation15() {
     // Load all rest col
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -738,7 +744,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation15() {
+  Operation16() {
     /* Only 1 col remain */
     if (c_ghost + c_rest == 1) {
       if (r_sm < r_rest && f_sm < f_rest) {
@@ -763,7 +769,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation16() {
+  Operation17() {
     /* flush results to v */
   if (r_sm < r_rest && f_sm < f_rest) {
     for (SIZE i = 0; i < c_ghost + c_rest; i++) {
@@ -926,13 +932,16 @@ public:
     r_rest -= r_ghost;
   }
 
+  MGARDm_EXEC void
+  Operation2() {}
+
   MGARDm_EXEC bool
   LoopCondition1() {
     return r_rest > R - r_ghost;
   }
 
   MGARDm_EXEC void
-  Operation2() {
+  Operation3() {
     r_main = min(R, r_rest);
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_main; i++) {
@@ -947,7 +956,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation3() {
+  Operation4() {
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
@@ -964,7 +973,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation4() {
+  Operation5() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < R; i++) {
@@ -975,7 +984,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation5() {
+  Operation6() {
     // /* Update unloaded col */
     r_rest -= r_main;
 
@@ -997,7 +1006,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation6() {
+  Operation7() {
     /* Load all rest col */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_rest; i++) {
@@ -1013,7 +1022,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation7() {
+  Operation8() {
     /* Only 1 col remain */
     if (r_ghost + r_rest == 1) {
       if (c_sm < c_rest && f_sm < f_rest) {
@@ -1036,7 +1045,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation8() {
+  Operation9() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_ghost + r_rest; i++) {
@@ -1047,7 +1056,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation9() {
+  Operation10() {
     /* backward */
     r_rest = nr;
     r_ghost = min(nr, G);
@@ -1076,7 +1085,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation10() {
+  Operation11() {
     r_main = min(R, r_rest);
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_main; i++) {
@@ -1091,7 +1100,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation11() {
+  Operation12() {
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
@@ -1109,7 +1118,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation12() {
+  Operation13() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < R; i++) {
@@ -1120,7 +1129,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation13() {
+  Operation14() {
     // /* Update unloaded col */
     r_rest -= r_main;
 
@@ -1142,7 +1151,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation14() {
+  Operation15() {
     /* Load all rest col */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_rest; i++) {
@@ -1157,7 +1166,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation15() {
+  Operation16() {
     /* Only 1 col remain */
     if (r_ghost + r_rest == 1) {
       if (c_sm < c_rest && f_sm < f_rest) {
@@ -1182,7 +1191,7 @@ public:
   }
 
   MGARDm_EXEC void
-  Operation16() {
+  Operation17() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_ghost + r_rest; i++) {
