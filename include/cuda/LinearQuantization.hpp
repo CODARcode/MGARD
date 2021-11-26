@@ -261,15 +261,15 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
-                    (this->thready * this->nblockx) + this->threadx;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                    (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
-    Byte * sm = this->shared_memory;
+    Byte * sm = FunctorBase<DeviceType>::GetSharedMemory();
     quantizers_sm = (T*)sm; sm += roundup<SIZE>((l_target + 1) * sizeof(T));
 
-    volumes_0 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblockx * (l_target + 1) * sizeof(T));
-    volumes_1 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblocky * (l_target + 1) * sizeof(T));
-    volumes_2 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblockz * (l_target + 1) * sizeof(T));
+    volumes_0 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(FunctorBase<DeviceType>::GetBlockDimX() * (l_target + 1) * sizeof(T));
+    volumes_1 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(FunctorBase<DeviceType>::GetBlockDimY() * (l_target + 1) * sizeof(T));
+    volumes_2 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(FunctorBase<DeviceType>::GetBlockDimZ() * (l_target + 1) * sizeof(T));
     volumes_3_plus = (T*)sm;
     if (calc_vol && D > 3) sm += roundup<SIZE>((D-3) * (l_target + 1) * sizeof(T));
 
@@ -293,18 +293,18 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
     // determine global idx
     SIZE firstD = div_roundup(shapes_sm[l_target + 1], F);
 
-    SIZE bidx = this->blockx;
-    idx[0] = (bidx % firstD) * F + this->threadx;
+    SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
+    idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
     idx0[0] = (bidx % firstD) * F;
 
     bidx /= firstD;
     if (D >= 2) {
-      idx[1] = this->blocky * this->nblocky + this->thready;
-      idx0[1] = this->blocky * this->nblocky;
+      idx[1] = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
+      idx0[1] = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
     }
     if (D >= 3) {
-      idx[2] = this->blockz * this->nblockz + this->threadz;
-      idx0[2] = this->blockz * this->nblockz;
+      idx[2] = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
+      idx0[2] = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
     }
 
     for (int d = 3; d < D; d++) {
@@ -318,21 +318,21 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
       // cache volumes
       for (int l = 0; l < l_target+1; l++) {
         // volumes 0
-        if (threadId < this->nblockx && idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
-          volumes_0[l * this->nblockx + threadId] = 
+        if (threadId < FunctorBase<DeviceType>::GetBlockDimX() && idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
+          volumes_0[l * FunctorBase<DeviceType>::GetBlockDimX() + threadId] = 
             *volumes((0 * (l_target + 1) + l), + idx0[0] + threadId);
         }
         if (D >= 2) {
           // volumes 1
-          if (threadId < this->nblocky && idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
-            volumes_1[l * this->nblocky + threadId] = 
+          if (threadId < FunctorBase<DeviceType>::GetBlockDimY() && idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
+            volumes_1[l * FunctorBase<DeviceType>::GetBlockDimY() + threadId] = 
               *volumes((1 * (l_target + 1) + l), idx0[1] + threadId);
           }
         }
         if (D >= 3) {
           // volumes 2
-          if (threadId < this->nblockz && idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
-            volumes_2[l * this->nblockz + threadId] = 
+          if (threadId < FunctorBase<DeviceType>::GetBlockDimZ() && idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
+            volumes_2[l * FunctorBase<DeviceType>::GetBlockDimZ() + threadId] = 
               *volumes((2 * (l_target + 1) + l), idx0[2] + threadId);
           }
         }
@@ -376,12 +376,12 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
       T t = *v(idx);
       T volume = 1;
       if (calc_vol) {
-        volume *= volumes_0[level * this->nblockx + this->threadx];
+        volume *= volumes_0[level * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX()];
         if (D >= 2) {
-          volume *= volumes_1[level * this->nblocky + this->thready]; 
+          volume *= volumes_1[level * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY()]; 
         }
         if (D >= 3) {
-          volume *= volumes_2[level * this->nblockz + this->threadz];
+          volume *= volumes_2[level * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ()];
         }
         if (D >= 4) {
           for (int d = 3; d < D; d++) {
@@ -560,18 +560,18 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
-                    (this->thready * this->nblockx) + this->threadx;
-    blockId = (this->blockz * (this->ngridx * this->ngridy)) +
-                   (this->blocky * this->ngridx) + this->blockx;
-    gloablId = blockId * this->nblockx * this->nblocky * this->nblockz + threadId;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                    (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+    blockId = (FunctorBase<DeviceType>::GetBlockIdZ() * (FunctorBase<DeviceType>::GetGridDimX() * FunctorBase<DeviceType>::GetGridDimY())) +
+                   (FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetGridDimX()) + FunctorBase<DeviceType>::GetBlockIdX();
+    gloablId = blockId * FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ() + threadId;
 
-    // T * smT = (T*)this->shared_memory;
+    // T * smT = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     // quantizers_sm = smT; smT += roundup<T>(l_target + 1);
 
-    // volumes_0 = smT; if (calc_vol) smT += roundup<T>(this->nblockx * (l_target + 1));
-    // volumes_1 = smT; if (calc_vol) smT += roundup<T>(this->nblocky * (l_target + 1));
-    // volumes_2 = smT; if (calc_vol) smT += roundup<T>(this->nblockz * (l_target + 1));
+    // volumes_0 = smT; if (calc_vol) smT += roundup<T>(FunctorBase<DeviceType>::GetBlockDimX() * (l_target + 1));
+    // volumes_1 = smT; if (calc_vol) smT += roundup<T>(FunctorBase<DeviceType>::GetBlockDimY() * (l_target + 1));
+    // volumes_2 = smT; if (calc_vol) smT += roundup<T>(FunctorBase<DeviceType>::GetBlockDimZ() * (l_target + 1));
     // volumes_3_plus = smT;
     // if (calc_vol && D > 3) smT += roundup<T>((D-3) * (l_target + 1));
 
@@ -579,12 +579,12 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
     // shape_sm = smInt; smInt += roundup<SIZE>(D);
     // shapes_sm = smInt; smInt += roundup<SIZE>(D * (l_target + 2));
 
-    Byte * sm = this->shared_memory;
+    Byte * sm = FunctorBase<DeviceType>::GetSharedMemory();
     quantizers_sm = (T*)sm; sm += roundup<SIZE>((l_target + 1) * sizeof(T));
 
-    volumes_0 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblockx * (l_target + 1) * sizeof(T));
-    volumes_1 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblocky * (l_target + 1) * sizeof(T));
-    volumes_2 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(this->nblockz * (l_target + 1) * sizeof(T));
+    volumes_0 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(FunctorBase<DeviceType>::GetBlockDimX() * (l_target + 1) * sizeof(T));
+    volumes_1 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(FunctorBase<DeviceType>::GetBlockDimY() * (l_target + 1) * sizeof(T));
+    volumes_2 = (T*)sm; if (calc_vol) sm += roundup<SIZE>(FunctorBase<DeviceType>::GetBlockDimZ() * (l_target + 1) * sizeof(T));
     volumes_3_plus = (T*)sm;
     if (calc_vol && D > 3) sm += roundup<SIZE>((D-3) * (l_target + 1) * sizeof(T));
 
@@ -608,8 +608,8 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
     // determine global idx
     SIZE firstD = div_roundup(shapes_sm[l_target + 1], F);
 
-    SIZE bidx = this->blockx;
-    idx[0] = (bidx % firstD) * F + this->threadx;
+    SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
+    idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
     idx0[0] = (bidx % firstD) * F;
 
     // printf("shapes_sm[l_target+1]: %d firstD %d idx[0] %d\n",
@@ -617,12 +617,12 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
 
     bidx /= firstD;
     if (D >= 2) {
-      idx[1] = this->blocky * this->nblocky + this->thready;
-      idx0[1] = this->blocky * this->nblocky;
+      idx[1] = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
+      idx0[1] = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
     }
     if (D >= 3) {
-      idx[2] = this->blockz * this->nblockz + this->threadz;
-      idx0[2] = this->blockz * this->nblockz;
+      idx[2] = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
+      idx0[2] = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
     }
 
     for (int d = 3; d < D; d++) {
@@ -636,22 +636,22 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
       // cache volumes
       for (int l = 0; l < l_target+1; l++) {
         // volumes 0
-        if (threadId < this->nblockx && idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
-          volumes_0[l * this->nblockx + threadId] = 
+        if (threadId < FunctorBase<DeviceType>::GetBlockDimX() && idx0[0] + threadId < shapes_sm[(l_target + 2) * 0 + l_target + 1]) {
+          volumes_0[l * FunctorBase<DeviceType>::GetBlockDimX() + threadId] = 
             *volumes((0 * (l_target + 1) + l), + idx0[0] + threadId);
           // printf("load %f\n", volumes[(0 * (l_target + 1) + l) * ldvolumes + idx0[0] + threadId]);
         }
         if (D >= 2) {
           // volumes 1
-          if (threadId < this->nblocky && idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
-            volumes_1[l * this->nblocky + threadId] = 
+          if (threadId < FunctorBase<DeviceType>::GetBlockDimY() && idx0[1] + threadId < shapes_sm[(l_target + 2) * 1 + l_target + 1]) {
+            volumes_1[l * FunctorBase<DeviceType>::GetBlockDimY() + threadId] = 
               *volumes((1 * (l_target + 1) + l), idx0[1] + threadId);
           }
         }
         if (D >= 3) {
           // volumes 2
-          if (threadId < this->nblockz && idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
-            volumes_2[l * this->nblockz + threadId] = 
+          if (threadId < FunctorBase<DeviceType>::GetBlockDimZ() && idx0[2] + threadId < shapes_sm[(l_target + 2) * 2 + l_target + 1]) {
+            volumes_2[l * FunctorBase<DeviceType>::GetBlockDimZ() + threadId] = 
               *volumes((2 * (l_target + 1) + l), idx0[2] + threadId);
           }
         }
@@ -735,9 +735,9 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
       QUANTIZED_INT quantized_data = *work(idx);
       T volume = 1;
       if (calc_vol) {
-        volume *= volumes_0[level * this->nblockx + this->threadx];
-        if (D >= 2) volume *= volumes_1[level * this->nblocky + this->thready];
-        if (D >= 3) volume *= volumes_2[level * this->nblockz + this->threadz];
+        volume *= volumes_0[level * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX()];
+        if (D >= 2) volume *= volumes_1[level * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY()];
+        if (D >= 3) volume *= volumes_2[level * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ()];
         if (D >= 4) {
           for (int d = 3; d < D; d++) {
             volume *= volumes_3_plus[(d-3) * (l_target + 1) + level]; 
@@ -831,11 +831,11 @@ class OutlierRestoreFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
-                    (this->thready * this->nblockx) + this->threadx;
-    blockId = (this->blockz * (this->ngridx * this->ngridy)) +
-                   (this->blocky * this->ngridx) + this->blockx;
-    gloablId = blockId * this->nblockx * this->nblocky * this->nblockz + threadId;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                    (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+    blockId = (FunctorBase<DeviceType>::GetBlockIdZ() * (FunctorBase<DeviceType>::GetGridDimX() * FunctorBase<DeviceType>::GetGridDimY())) +
+                   (FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetGridDimX()) + FunctorBase<DeviceType>::GetBlockIdX();
+    gloablId = blockId * FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ() + threadId;
 
     if (gloablId < outlier_count) {
       LENGTH linerized_idx = *outlier_idx(gloablId);

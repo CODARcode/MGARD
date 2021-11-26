@@ -33,7 +33,7 @@ class EncodeFixedLenFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    unsigned int gid = (this->blockx * this->nblockx) + this->threadx;
+    unsigned int gid = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     if (gid >= data_len)
       return;
     *hcoded(gid) = *codebook(*data(gid)); // try to exploit cache?

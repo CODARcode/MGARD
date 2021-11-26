@@ -31,7 +31,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    thread = (this->blockx * this->nblockx) + this->threadx;
+    thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     i = thread; // Porting convenience
     type_bw = sizeof(H) * 8;
 

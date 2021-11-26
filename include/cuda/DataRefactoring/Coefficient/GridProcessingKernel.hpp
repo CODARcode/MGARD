@@ -62,7 +62,7 @@ class GpkReoFunctor: public Functor<DeviceType> {
   
     in_next = true;
 
-    T *sm = (T*)this->shared_memory;
+    T *sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = (F/2) * 2 + 1;
     ldsm2 = (C/2) * 2 + 1;
 
@@ -2066,13 +2066,6 @@ public:
                         ratio_r, ratio_c, ratio_f,
                         v, w, wf, wc, wr, wcf, 
                         wrf, wrc, wrcf); 
-
-    size_t base = (size_t)&(functor.ngridz);
-
-    // printf("ngridz\t%llu\n", &(functor.ngridz));
-    // printf("shape\t%llu\n", &(functor.shape));
-    // printf("threadId\t%llu\n", &(functor.threadId));
-    // printf("v_sm\t%llu\n", &(functor.v_sm));
                                                         
     SIZE nr = shape.dataHost()[curr_dim_r];
     SIZE nc = shape.dataHost()[curr_dim_c];
@@ -2206,7 +2199,7 @@ class GpkRevFunctor: public Functor<DeviceType> {
     r_gl_ex, c_gl_ex, f_gl_ex;
     in_next = true;
 
-    T *sm = (T*)this->shared_memory;
+    T *sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = (F/2) * 2 + 1;
     ldsm2 = (C/2) * 2 + 1;
 
@@ -4307,13 +4300,6 @@ public:
                         v, w, wf, wc, wr, wcf, 
                         wrf, wrc, wrcf,
                         svr, svc, svf, nvr, nvc, nvf); 
-
-    size_t base = (size_t)&(functor.ngridz);
-
-    // printf("ngridz\t%llu\n", &(functor.ngridz));
-    // printf("shape\t%llu\n", &(functor.shape));
-    // printf("threadId\t%llu\n", &(functor.threadId));
-    // printf("v_sm\t%llu\n", &(functor.v_sm));
                                                         
     SIZE nr = shape.dataHost()[curr_dim_r];
     SIZE nc = shape.dataHost()[curr_dim_c];

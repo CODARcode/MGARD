@@ -68,15 +68,9 @@ void CompareSubarray4D(SubArrayType subArray1, SubArrayType subArray2) {
     SubArrayType temp2 = subArray2;
     temp1.offset(3, i);
     temp2.offset(3, i);
-    // PrintSubarray("", temp1);
-
-    // SubArray<3, T, CUDA> subArray11({subArray1.getShape(0), subArray1.getShape(1), subArray1.getShape(2)}, temp1.data(), temp1.getLdh(), temp1.getLdd());
-    // SubArray<3, T, CUDA> subArray22({subArray2.getShape(0), subArray2.getShape(1), subArray2.getShape(2)}, temp2.data(), temp1.getLdh(), temp1.getLdd());
-
     CompareSubarray("4D = " + std::to_string(i), temp1.Slice3D(0, 1, 2), temp2.Slice3D(0, 1, 2));
   } 
 }
-
 
 template <typename SubArrayType> 
 void PrintSubarray4D(std::string name, SubArrayType subArray1) {
@@ -88,8 +82,6 @@ void PrintSubarray4D(std::string name, SubArrayType subArray1) {
     idx[3] = i;
     SubArrayType temp1 = subArray1;
     temp1.offset(3, i);
-    // SubArray<3, T, CUDA> subArray11({subArray1.getShape(0), subArray1.getShape(1), subArray1.getShape(2)}, temp1.data(), temp1.getLdh(), temp1.getLdd());
-
     PrintSubarray("i = " + std::to_string(i), temp1.Slice3D(0, 1, 2));
   } 
 }
@@ -226,7 +218,10 @@ void calc_coefficients_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
   GpkReo3D<D, T, DeviceType>().Execute(
       handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
       handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
-      ratio_r, ratio_c, ratio_f,
+      SubArray(handle.ratio_array[2][l]),
+      SubArray(handle.ratio_array[1][l]),
+      SubArray(handle.ratio_array[0][l]),
+      // ratio_r, ratio_c, ratio_f,
       dinput, dcoarse,
       dcoeff_f, dcoeff_c, dcoeff_r,
       dcoeff_cf, dcoeff_rf, dcoeff_rc,
@@ -329,7 +324,10 @@ void coefficients_restore_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
   GpkRev3D<D, T, DeviceType>().Execute(
       handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
       handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
-      ratio_r, ratio_c, ratio_f,
+      SubArray(handle.ratio_array[2][l]),
+      SubArray(handle.ratio_array[1][l]),
+      SubArray(handle.ratio_array[0][l]),
+      // ratio_r, ratio_c, ratio_f,
       doutput, dcoarse,
       dcoeff_f, dcoeff_c, dcoeff_r,
       dcoeff_cf, dcoeff_rf, dcoeff_rc,
@@ -481,7 +479,11 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     Lpk1Reo3D<D, T, DeviceType>().Execute(
         handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
         handle.dofs[0][l + 1], handle.dofs[2][l + 1], handle.dofs[1][l + 1],
-        handle.dofs[0][l + 1], dist_f, ratio_f, dw_in1, dw_in2, dw_out, queue_idx);
+        handle.dofs[0][l + 1], 
+        SubArray(handle.dist_array[0][l]),
+        SubArray(handle.ratio_array[0][l]),
+        // dist_f, ratio_f, 
+        dw_in1, dw_in2, dw_out, queue_idx);
 
 
     // lpk_reo_1_3d(
@@ -522,7 +524,11 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     SubArray<1, T, DeviceType> ratio_c({handle.dofs[1][l]}, handle.ratio[1][l]);
     Lpk2Reo3D<D, T, DeviceType>().Execute(
         handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l + 1],
-        handle.dofs[1][l + 1], dist_c, ratio_c, dw_in1, dw_in2, dw_out, queue_idx);
+        handle.dofs[1][l + 1], 
+        SubArray(handle.dist_array[1][l]),
+        SubArray(handle.ratio_array[1][l]),
+        // dist_c, ratio_c, 
+        dw_in1, dw_in2, dw_out, queue_idx);
 
 
     // lpk_reo_2_3d(
@@ -561,7 +567,11 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     SubArray<1, T, DeviceType> ratio_r({handle.dofs[2][l]}, handle.ratio[2][l]);
     Lpk3Reo3D<D, T, DeviceType>().Execute(
     handle.dofs[2][l], handle.dofs[1][l+1], handle.dofs[0][l+1], 
-    handle.dofs[2][l+1], dist_r, ratio_r, dw_in1, dw_in2, dw_out, queue_idx);
+    handle.dofs[2][l+1], 
+    SubArray(handle.dist_array[2][l]),
+    SubArray(handle.ratio_array[2][l]),
+    // dist_r, ratio_r, 
+    dw_in1, dw_in2, dw_out, queue_idx);
 
     // lpk_reo_3_3d(handle,
     //              handle.dofs[2][l], handle.dofs[1][l+1],
@@ -604,7 +614,11 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
 
     Ipk1Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
-            am_f_c, bm_f_c, dist_f_c, dw_out, queue_idx);
+            SubArray(handle.am_array[0][l+1]),
+            SubArray(handle.bm_array[0][l+1]),
+            SubArray(handle.dist_array[0][l+1]),
+            // am_f_c, bm_f_c, dist_f_c, 
+            dw_out, queue_idx);
     // ipk_1_3d(
     //     handle, handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l + 1],
     //     handle.am[0][l + 1], handle.bm[0][l + 1], handle.dist[0][l + 1],
@@ -628,7 +642,11 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
 
     Ipk2Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
-            am_c_c, bm_c_c, dist_c_c, dw_out, queue_idx);
+            SubArray(handle.am_array[1][l+1]),
+            SubArray(handle.bm_array[1][l+1]),
+            SubArray(handle.dist_array[1][l+1]),
+            // am_c_c, bm_c_c, dist_c_c, 
+            dw_out, queue_idx);
 
     // ipk_2_3d(
     //     handle, handle.dofs[2][l+1], handle.dofs[1][l + 1],
@@ -655,7 +673,11 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
 
     Ipk3Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
-            am_r_c, bm_r_c, dist_r_c, dw_out, queue_idx);
+            SubArray(handle.am_array[2][l+1]),
+            SubArray(handle.bm_array[2][l+1]),
+            SubArray(handle.dist_array[2][l+1]),
+            // am_r_c, bm_r_c, dist_r_c, 
+            dw_out, queue_idx);
 
     // ipk_3_3d(
     //     handle, handle.dofs[2][l + 1], handle.dofs[1][l + 1],
@@ -785,9 +807,13 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
       SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
       SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
       handle.unprocessed_n[unprocessed_idx],
-      unprocessed_dims_subarray,
+      // unprocessed_dims_subarray,
+      SubArray(handle.unprocessed_dims[unprocessed_idx]),
       curr_dims[2], curr_dims[1], curr_dims[0],
-      ratio_r, ratio_c, ratio_f, 
+      SubArray(handle.ratio_array[curr_dims[2]][l]),
+      SubArray(handle.ratio_array[curr_dims[1]][l]),
+      SubArray(handle.ratio_array[curr_dims[0]][l]),
+      // ratio_r, ratio_c, ratio_f, 
       dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
       dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
   // gpuErrchk(cudaDeviceSynchronize());
@@ -890,9 +916,13 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
               SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
               SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
               handle.unprocessed_n[unprocessed_idx],
-              unprocessed_dims_subarray,
+              SubArray(handle.unprocessed_dims[unprocessed_idx]),
+              // unprocessed_dims_subarray,
               curr_dims[2], curr_dims[1], curr_dims[0],
-              ratio_r, ratio_c, ratio_f, 
+              // ratio_r, ratio_c, ratio_f, 
+              SubArray(handle.ratio_array[curr_dims[2]][l]),
+              SubArray(handle.ratio_array[curr_dims[1]][l]),
+              SubArray(handle.ratio_array[curr_dims[0]][l]),
               dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
               dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
           // gpuErrchk(cudaDeviceSynchronize());
@@ -939,9 +969,13 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
           SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
           SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
           handle.unprocessed_n[unprocessed_idx],
-          unprocessed_dims_subarray,
+          SubArray(handle.unprocessed_dims[unprocessed_idx]),
+          // unprocessed_dims_subarray,
           curr_dims[2], curr_dims[1], curr_dims[0],
-          ratio_r, ratio_c, ratio_f, 
+          // ratio_r, ratio_c, ratio_f, 
+          SubArray(handle.ratio_array[curr_dims[2]][l]),
+          SubArray(handle.ratio_array[curr_dims[1]][l]),
+          SubArray(handle.ratio_array[curr_dims[0]][l]),
           dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
           dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
       // gpuErrchk(cudaDeviceSynchronize());
@@ -1004,9 +1038,13 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
         handle.unprocessed_n[unprocessed_idx],
-        unprocessed_dims_subarray,
+        SubArray(handle.unprocessed_dims[unprocessed_idx]),
+        // unprocessed_dims_subarray,
         curr_dims[2], curr_dims[1], curr_dims[0],
-        ratio_r, ratio_c, ratio_f, 
+        // ratio_r, ratio_c, ratio_f,
+        SubArray(handle.ratio_array[curr_dims[2]][l]),
+        SubArray(handle.ratio_array[curr_dims[1]][l]),
+        SubArray(handle.ratio_array[curr_dims[0]][l]), 
         dinput2, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
         dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
     // gpuErrchk(cudaDeviceSynchronize());
@@ -1073,9 +1111,13 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
         handle.unprocessed_n[unprocessed_idx],
-        unprocessed_dims_subarray,
+        SubArray(handle.unprocessed_dims[unprocessed_idx]),
+        // unprocessed_dims_subarray,
         curr_dims[2], curr_dims[1], curr_dims[0],
-        ratio_r, ratio_c, ratio_f, 
+        // ratio_r, ratio_c, ratio_f, 
+        SubArray(handle.ratio_array[curr_dims[2]][l]),
+        SubArray(handle.ratio_array[curr_dims[1]][l]),
+        SubArray(handle.ratio_array[curr_dims[0]][l]),
         dinput2, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
         dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
     // gpuErrchk(cudaDeviceSynchronize());
@@ -1134,9 +1176,13 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
         handle.unprocessed_n[unprocessed_idx],
-        unprocessed_dims_subarray,
+        SubArray(handle.unprocessed_dims[unprocessed_idx]),
+        // unprocessed_dims_subarray,
         curr_dims[2], curr_dims[1], curr_dims[0],
-        ratio_r, ratio_c, ratio_f, 
+        // ratio_r, ratio_c, ratio_f, 
+        SubArray(handle.ratio_array[curr_dims[2]][l]),
+        SubArray(handle.ratio_array[curr_dims[1]][l]),
+        SubArray(handle.ratio_array[curr_dims[0]][l]),
         dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
         dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
     // gpuErrchk(cudaDeviceSynchronize());
@@ -1181,9 +1227,13 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
         handle.unprocessed_n[unprocessed_idx],
-        unprocessed_dims_subarray,
+        SubArray(handle.unprocessed_dims[unprocessed_idx]),
+        // unprocessed_dims_subarray,
         curr_dims[2], curr_dims[1], curr_dims[0],
-        ratio_r, ratio_c, ratio_f, 
+        // ratio_r, ratio_c, ratio_f, 
+        SubArray(handle.ratio_array[curr_dims[2]][l]),
+        SubArray(handle.ratio_array[curr_dims[1]][l]),
+        SubArray(handle.ratio_array[curr_dims[0]][l]),
         dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
         dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
     // gpuErrchk(cudaDeviceSynchronize());
@@ -1272,9 +1322,13 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
       SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
       SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
       handle.unprocessed_n[unprocessed_idx],
-      unprocessed_dims_subarray,
+      SubArray(handle.unprocessed_dims[unprocessed_idx]),
+      // unprocessed_dims_subarray,
       curr_dims[2], curr_dims[1], curr_dims[0],
-      ratio_r, ratio_c, ratio_f, 
+      // ratio_r, ratio_c, ratio_f, 
+      SubArray(handle.ratio_array[curr_dims[2]][l]),
+      SubArray(handle.ratio_array[curr_dims[1]][l]),
+      SubArray(handle.ratio_array[curr_dims[0]][l]),
       doutput, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
       dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, 
       0, 0, 0, 
@@ -1345,9 +1399,13 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
           SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
           SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
           handle.unprocessed_n[unprocessed_idx],
-          unprocessed_dims_subarray,
+          SubArray(handle.unprocessed_dims[unprocessed_idx]),
+          // unprocessed_dims_subarray,
           curr_dims[2], curr_dims[1], curr_dims[0],
-          ratio_r, ratio_c, ratio_f, 
+          // ratio_r, ratio_c, ratio_f, 
+          SubArray(handle.ratio_array[curr_dims[2]][l]),
+          SubArray(handle.ratio_array[curr_dims[1]][l]),
+          SubArray(handle.ratio_array[curr_dims[0]][l]),
           doutput, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
           dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, 
           0, 0, 0, 
@@ -1397,9 +1455,13 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
           SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
           SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
           handle.unprocessed_n[unprocessed_idx],
-          unprocessed_dims_subarray,
+          SubArray(handle.unprocessed_dims[unprocessed_idx]),
+          // unprocessed_dims_subarray,
           curr_dims[2], curr_dims[1], curr_dims[0],
-          ratio_r, ratio_c, ratio_f, 
+          // ratio_r, ratio_c, ratio_f, 
+          SubArray(handle.ratio_array[curr_dims[2]][l]),
+          SubArray(handle.ratio_array[curr_dims[1]][l]),
+          SubArray(handle.ratio_array[curr_dims[0]][l]),
           doutput, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
           dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, 
           0, 0, 0, 
@@ -1471,9 +1533,13 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
       SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
       SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
       handle.unprocessed_n[unprocessed_idx],
-      unprocessed_dims_subarray,
+      SubArray(handle.unprocessed_dims[unprocessed_idx]),
+      // unprocessed_dims_subarray,
       curr_dims[2], curr_dims[1], curr_dims[0],
-      ratio_r, ratio_c, ratio_f, 
+      // ratio_r, ratio_c, ratio_f, 
+      SubArray(handle.ratio_array[curr_dims[2]][l]),
+      SubArray(handle.ratio_array[curr_dims[1]][l]),
+      SubArray(handle.ratio_array[curr_dims[0]][l]),
       dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
       dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, 
       0, 0, 0, 
@@ -1552,9 +1618,13 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
         handle.unprocessed_n[unprocessed_idx],
-        unprocessed_dims_subarray,
+        SubArray(handle.unprocessed_dims[unprocessed_idx]),
+        // unprocessed_dims_subarray,
         curr_dims[2], curr_dims[1], curr_dims[0],
-        ratio_r, ratio_c, ratio_f, 
+        // ratio_r, ratio_c, ratio_f, 
+        SubArray(handle.ratio_array[curr_dims[2]][l]),
+        SubArray(handle.ratio_array[curr_dims[1]][l]),
+        SubArray(handle.ratio_array[curr_dims[0]][l]),
         dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
         dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, 
         0, 0, 0, 
@@ -1618,9 +1688,13 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
         handle.unprocessed_n[unprocessed_idx],
-        unprocessed_dims_subarray,
+        SubArray(handle.unprocessed_dims[unprocessed_idx]),
+        // unprocessed_dims_subarray,
         curr_dims[2], curr_dims[1], curr_dims[0],
-        ratio_r, ratio_c, ratio_f, 
+        // ratio_r, ratio_c, ratio_f, 
+        SubArray(handle.ratio_array[curr_dims[2]][l]),
+        SubArray(handle.ratio_array[curr_dims[1]][l]),
+        SubArray(handle.ratio_array[curr_dims[0]][l]), 
         doutput, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
         dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, 
         0, 0, 0, 
@@ -1672,9 +1746,13 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
         handle.unprocessed_n[unprocessed_idx],
-        unprocessed_dims_subarray,
+        SubArray(handle.unprocessed_dims[unprocessed_idx]),
+        // unprocessed_dims_subarray,
         curr_dims[2], curr_dims[1], curr_dims[0],
-        ratio_r, ratio_c, ratio_f, 
+        // ratio_r, ratio_c, ratio_f, 
+        SubArray(handle.ratio_array[curr_dims[2]][l]),
+        SubArray(handle.ratio_array[curr_dims[1]][l]),
+        SubArray(handle.ratio_array[curr_dims[0]][l]),
         doutput, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
         dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, 
         0, 0, 0, 

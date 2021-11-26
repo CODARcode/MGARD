@@ -30,15 +30,15 @@ class DecodeFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    _s_singleton = (uint8_t*)this->shared_memory;
-    if (this->threadx == 0) {
+    _s_singleton = (uint8_t*)FunctorBase<DeviceType>::GetSharedMemory();
+    if (FunctorBase<DeviceType>::GetThreadIdX() == 0) {
       memcpy(_s_singleton, singleton((IDX)0), singleton_size);
     }
   }
 
   MGARDm_EXEC void
   Operation2() { 
-    size_t chunk_id = this->blockx * this->nblockx + this->threadx;
+    size_t chunk_id = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
     // if (chunk_id == 0) printf("n_chunk: %lu\n", n_chunk);
     if (chunk_id >= n_chunk)
       return;

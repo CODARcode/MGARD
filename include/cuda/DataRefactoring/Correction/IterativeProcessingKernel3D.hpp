@@ -33,16 +33,16 @@ public:
 
   MGARDm_EXEC void
   Operation1() {
-    c_gl = this->blockx * C;
-    r_gl = this->blocky * R;
-    f_gl = this->threadx;
+    c_gl = FunctorBase<DeviceType>::GetBlockIdX() * C;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdY() * R;
+    f_gl = FunctorBase<DeviceType>::GetThreadIdX();
 
-    c_sm = this->threadx;
-    r_sm = this->thready;
-    f_sm = this->threadx;
+    c_sm = FunctorBase<DeviceType>::GetThreadIdX();
+    r_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     v.offset(r_gl, c_gl, 0);
-    T * sm = (T*)this->shared_memory;
+    T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F + G;
     ldsm2 = C;
     vec_sm = sm;
@@ -51,8 +51,8 @@ public:
 
     prev_vec_sm = 0.0;
 
-    c_rest = min((IDX)C, nc - this->blockx * C);
-    r_rest = min((IDX)R, nr - this->blocky * R);
+    c_rest = min(C, nc - FunctorBase<DeviceType>::GetBlockIdX() * C);
+    r_rest = min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
     // printf("r_rest: %u, c_rest: %u\n", r_rest, c_rest);
     // printf("RCF: %u %u %u\n", R,C,F);
@@ -149,8 +149,8 @@ public:
             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm + F)];
       }
       if (r_sm == 0) {
-        am_sm[f_sm] = am_sm[f_sm + this->nblockx];
-        bm_sm[f_sm] = bm_sm[f_sm + this->nblockx];
+        am_sm[f_sm] = am_sm[f_sm + FunctorBase<DeviceType>::GetBlockDimX()];
+        bm_sm[f_sm] = bm_sm[f_sm + FunctorBase<DeviceType>::GetBlockDimX()];
       }
     }
   }
@@ -213,7 +213,7 @@ public:
     f_rest = nf;
     f_ghost = min(nf, G);
     f_main = F;
-    f_gl = this->threadx;
+    f_gl = FunctorBase<DeviceType>::GetThreadIdX();
     prev_vec_sm = 0.0;
 
     /* Load first ghost */
@@ -267,7 +267,7 @@ public:
             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
       }
       /* Store last v */
-      prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, this->nblockx - 1)];
+      prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, FunctorBase<DeviceType>::GetBlockDimX() - 1)];
     }
   }
 
@@ -470,16 +470,16 @@ public:
 
   MGARDm_EXEC void
   Operation1() {
-    f_gl = this->blockx * F;
-    r_gl = this->blocky * R;
+    f_gl = FunctorBase<DeviceType>::GetBlockIdX() * F;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdY() * R;
     c_gl = 0;
 
-    f_sm = this->threadx;
-    r_sm = this->thready;
-    c_sm = this->threadx;
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
+    r_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     v.offset(r_gl, 0, f_gl);
-    T * sm = (T*)this->shared_memory;
+    T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C + G;
     vec_sm = sm;
@@ -488,8 +488,8 @@ public:
 
     prev_vec_sm = 0.0;
 
-    f_rest = min((IDX)F, nf - this->blockx * F);
-    r_rest = min((IDX)R, nr - this->blocky * R);
+    f_rest = min(F, nf - FunctorBase<DeviceType>::GetBlockIdX() * F);
+    r_rest = min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
     c_rest = nc;
     c_ghost = min(nc, G);
@@ -892,16 +892,16 @@ public:
 
   MGARDm_EXEC void
   Operation1() {
-    f_gl = this->blockx * F;
-    c_gl = this->blocky * C;
+    f_gl = FunctorBase<DeviceType>::GetBlockIdX() * F;
+    c_gl = FunctorBase<DeviceType>::GetBlockIdY() * C;
     r_gl = 0;
 
-    f_sm = this->threadx;
-    c_sm = this->thready;
-    r_sm = this->threadx;
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    r_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     v.offset(0, c_gl, f_gl);
-    T * sm = (T*)this->shared_memory;
+    T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C;
     vec_sm = sm;
@@ -910,8 +910,8 @@ public:
 
     T prev_vec_sm = 0.0;
 
-    f_rest = min((IDX)F, nf - this->blockx * F);
-    c_rest = min((IDX)C, nc - this->blocky * C);
+    f_rest = min(F, nf - FunctorBase<DeviceType>::GetBlockIdX() * F);
+    c_rest = min(C, nc - FunctorBase<DeviceType>::GetBlockIdY() * C);
 
     r_rest = nr;
     r_ghost = min(nr, G);
