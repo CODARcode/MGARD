@@ -402,11 +402,11 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
   MGARDm_EXEC void
   Operation1() {
     debug = false;
-    if (this->blockz == 0 && this->blocky == 0 && this->blockx == 0 &&
-          this->threadx == 0 && this->thready == 0 && this->threadz == 0) 
+    if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+          FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) 
       debug = true;
 
-    int8_t * sm_p = (int8_t *)this->shared_memory;
+    int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
     sm_errors =       (T_error*)sm_p;    sm_p += NumWarpsPerTB * (NumEncodingBitplanes + 1) * sizeof(T_error);
     sm_errors_sum =   (T_error*)sm_p;    sm_p += (NumEncodingBitplanes + 1)                 * sizeof(T_error);
     sm_fix_point =    (T_fp*)sm_p;       sm_p += NumElemPerTBPerIter              * sizeof(T_fp);
@@ -425,10 +425,10 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
 
     // Data
     // For iter offsets
-    NumElemPerIter = this->ngridx * NumElemPerTBPerIter;
+    NumElemPerIter = FunctorBase<DeviceType>::GetGridDimX() * NumElemPerTBPerIter;
     NumIters = (n-1) / NumElemPerIter + 1;
     // TB and Warp offsets
-    SIZE TB_data_offset = this->blockx * NumElemPerTBPerIter;
+    SIZE TB_data_offset = FunctorBase<DeviceType>::GetBlockIdX() * NumElemPerTBPerIter;
     SIZE warp_data_offset = __mywarpid() * NumElemPerGroup * NumGroupsPerWarpPerIter;
     // Warp local shared memory
     T_fp * sm_warp_local_fix_point = sm_fix_point + warp_data_offset;
@@ -439,11 +439,11 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
     }
 
     // Bitplane
-    NumGroupsPerIter = this->ngridx * NumGroupsPerTBPerIter;
+    NumGroupsPerIter = FunctorBase<DeviceType>::GetGridDimX() * NumGroupsPerTBPerIter;
     // For iter offsets
-    // MaxLengthPerIter = this->ngridx * NumGroupsPerIter;//MaxLengthPerTBPerIter;
+    // MaxLengthPerIter = FunctorBase<DeviceType>::GetGridDimX() * NumGroupsPerIter;//MaxLengthPerTBPerIter;
     // TB and Warp offsets
-    SIZE TB_bitplane_offset = this->blockx * NumGroupsPerTBPerIter;//MaxLengthPerTBPerIter;
+    SIZE TB_bitplane_offset = FunctorBase<DeviceType>::GetBlockIdX() * NumGroupsPerTBPerIter;//MaxLengthPerTBPerIter;
     SIZE warp_bitplane_offset = __mywarpid() * NumGroupsPerWarpPerIter;//MaxLengthPerWarpPerIter;//NumGroupsPerWarpPerIter;
     T_bitplane * sm_warp_local_bitplanes = sm_bitplanes + warp_bitplane_offset;
     T_bitplane * sm_warp_local_bitplanes_sign = sm_bitplanes_sign + warp_bitplane_offset;
@@ -511,7 +511,7 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
                                      sm_warp_local_bitplanes_sign + group_bitplane_offset, ld_sm_bitplanes_sign);
                                      // NumElemPerGroup, 1);
           // printf("NumGroupsPerTBPerIter + group_bitplane_offset = %u\n", NumGroupsPerTBPerIter + group_bitplane_offset);
-          // if (__mywarpid() < 2 && __mylaneid() == 0) printf("blockx: %llu, sign: %u\n", this->blockx, *(sm_warp_local_bitplanes_sign + group_bitplane_offset));
+          // if (__mywarpid() < 2 && __mylaneid() == 0) printf("blockx: %llu, sign: %u\n", FunctorBase<DeviceType>::GetBlockIdX(), *(sm_warp_local_bitplanes_sign + group_bitplane_offset));
         }
         warpErrorCollector.Collect<sizeof(T_bitplane)*8, NumEncodingBitplanes>(sm_warp_local_shifted + group_data_offset, sm_warp_local_errors);
       }
@@ -535,7 +535,7 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
   MGARDm_EXEC void
   Operation2() {
     // Sum error from each warp
-    SIZE liearized_idx = this->thready * this->nblockx + this->threadx;
+    SIZE liearized_idx = FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
     BlockReduce<T, NumWarpsPerTB, 1, 1, DeviceType> blockReducer;
     for (SIZE bitplane_idx = 0; bitplane_idx < NumEncodingBitplanes + 1; bitplane_idx ++) {
       T_error error = 0;
@@ -550,8 +550,8 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
         sm_errors_sum[bitplane_idx] = error_sum;
       }
     }
-    for (SIZE bitplane_idx = liearized_idx; bitplane_idx < NumEncodingBitplanes + 1; bitplane_idx += this->nblockx * this->nblocky) {
-      *level_errors_workspace(bitplane_idx, this->blockx) = sm_errors_sum[bitplane_idx];
+    for (SIZE bitplane_idx = liearized_idx; bitplane_idx < NumEncodingBitplanes + 1; bitplane_idx += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY()) {
+      *level_errors_workspace(bitplane_idx, FunctorBase<DeviceType>::GetBlockIdX()) = sm_errors_sum[bitplane_idx];
     }
   }
 
@@ -866,15 +866,15 @@ public:
   MGARDm_EXEC void
   Operation1() {
     debug = false;
-    if (this->blockz == 0 && this->blocky == 0 && this->blockx == 0 &&
-          this->threadx == 0 && this->thready == 0 && this->threadz == 0) 
+    if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+          FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) 
       debug = true;
 
     debug2 = false;
-    if (this->blockz == 0 && this->blocky == 0 && this->blockx == 0) 
+    if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0) 
       debug2 = false;
 
-    int8_t * sm_p = (int8_t *)this->shared_memory;
+    int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
     sm_fix_point =    (T_fp*)sm_p;       sm_p += NumElemPerTBPerIter              * sizeof(T_fp);
     if (BinaryType == BINARY) {
       sm_signs =      (T_fp*)sm_p;       sm_p += NumElemPerTBPerIter              * sizeof(T_fp);
@@ -889,10 +889,10 @@ public:
 
     // Data
     // For iter offsets
-    NumElemPerIter = this->ngridx * NumElemPerTBPerIter;
+    NumElemPerIter = FunctorBase<DeviceType>::GetGridDimX() * NumElemPerTBPerIter;
     NumIters = (n-1) / NumElemPerIter + 1;
     // TB and Warp offsets
-    SIZE TB_data_offset = this->blockx * NumElemPerTBPerIter;
+    SIZE TB_data_offset = FunctorBase<DeviceType>::GetBlockIdX() * NumElemPerTBPerIter;
     SIZE warp_data_offset = __mywarpid() * NumElemPerGroup * NumGroupsPerWarpPerIter;
     // Warp local shared memory
     T_fp * sm_warp_local_fix_point = sm_fix_point + warp_data_offset;
@@ -902,11 +902,11 @@ public:
     }
 
     // Bitplane
-    NumGroupsPerIter = this->ngridx * NumGroupsPerTBPerIter;
+    NumGroupsPerIter = FunctorBase<DeviceType>::GetGridDimX() * NumGroupsPerTBPerIter;
     // For iter offsets
-    // MaxLengthPerIter = this->ngridx * NumGroupsPerIter;//MaxLengthPerTBPerIter;
+    // MaxLengthPerIter = FunctorBase<DeviceType>::GetGridDimX() * NumGroupsPerIter;//MaxLengthPerTBPerIter;
     // TB and Warp offsets
-    SIZE TB_bitplane_offset = this->blockx * NumGroupsPerTBPerIter;//MaxLengthPerTBPerIter;
+    SIZE TB_bitplane_offset = FunctorBase<DeviceType>::GetBlockIdX() * NumGroupsPerTBPerIter;//MaxLengthPerTBPerIter;
     SIZE warp_bitplane_offset = __mywarpid() * NumGroupsPerWarpPerIter;//MaxLengthPerWarpPerIter;//NumGroupsPerWarpPerIter;
     T_bitplane * sm_warp_local_bitplanes = sm_bitplanes + warp_bitplane_offset;
     T_bitplane * sm_warp_local_bitplanes_sign = sm_bitplanes_sign + warp_bitplane_offset;
@@ -953,7 +953,7 @@ public:
             warpBitTranspose.Transpose<1, sizeof(T_bitplane)*8>(sm_warp_local_bitplanes_sign + group_bitplane_offset, ld_sm_bitplanes_sign,
                                        sm_warp_local_signs + group_data_offset, 1); 
                                        // 1, NumElemPerGroup);
-            // if (__mywarpid() < 2 && __mylaneid() == 0) printf("blockx: %llu, sign: %u\n", this->blockx, *(sm_warp_local_bitplanes_sign + group_bitplane_offset));
+            // if (__mywarpid() < 2 && __mylaneid() == 0) printf("blockx: %llu, sign: %u\n", FunctorBase<DeviceType>::GetBlockIdX(), *(sm_warp_local_bitplanes_sign + group_bitplane_offset));
 
           } else {
             if (global_data_idx + __mylaneid() < n) {

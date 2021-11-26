@@ -48,49 +48,50 @@ class MGARDm_ALIGN(16) FunctorBase {
   }
 
   MGARDm_EXEC
-  IDX GetThreadIdX() const { return threadx; }
+  SIZE GetThreadIdX() const { return threadx; }
 
   MGARDm_EXEC
-  IDX GetThreadIdY() const { return thready; }
+  SIZE GetThreadIdY() const { return thready; }
 
   MGARDm_EXEC
-  IDX GetThreadIdZ() const { return threadz; }
+  SIZE GetThreadIdZ() const { return threadz; }
 
   MGARDm_EXEC
-  IDX GetBlockDimX() const { return nblockx; }
+  SIZE GetBlockDimX() const { return nblockx; }
 
   MGARDm_EXEC
-  IDX GetBlockDimY() const { return nblocky; }
+  SIZE GetBlockDimY() const { return nblocky; }
 
   MGARDm_EXEC
-  IDX GetBlockDimZ() const { return nblockz; }
+  SIZE GetBlockDimZ() const { return nblockz; }
 
   MGARDm_EXEC
-  IDX GetBlockIdX() const { return blockx; }
+  SIZE GetBlockIdX() const { return blockx; }
 
   MGARDm_EXEC
-  IDX GetBlockIdY() const { return blocky; }
+  SIZE GetBlockIdY() const { return blocky; }
 
   MGARDm_EXEC
-  IDX GetBlockIdZ() const { return blockz; }
+  SIZE GetBlockIdZ() const { return blockz; }
 
   MGARDm_EXEC
-  IDX GetGridDimX() const { return ngridx; }
+  SIZE GetGridDimX() const { return ngridx; }
 
   MGARDm_EXEC
-  IDX GetGridDimY() const { return ngridy; }
+  SIZE GetGridDimY() const { return ngridy; }
 
   MGARDm_EXEC
-  IDX GetGridDimZ() const { return ngridz; }
+  SIZE GetGridDimZ() const { return ngridz; }
 
   MGARDm_EXEC
   Byte * GetSharedMemory() { return shared_memory; }
 
-  IDX ngridz, ngridy, ngridx;
-  IDX nblockz, nblocky, nblockx;
-  IDX blockz, blocky, blockx;
-  IDX threadz, thready, threadx;
+  private:
   Byte * shared_memory;
+  SIZE threadz, thready, threadx;
+  SIZE blockz, blocky, blockx;
+  SIZE ngridz, ngridy, ngridx;
+  SIZE nblockz, nblocky, nblockx;
 
 };
 

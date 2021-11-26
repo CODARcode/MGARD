@@ -27,13 +27,13 @@ public:
 
   MGARDm_EXEC void
   Operation1() {
-    threadId = (this->threadx * this->nblockx * this->blocky) +
-                (this->thready * this->nblockx) + this->threadx;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdX() * FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockIdY()) +
+                (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
-    int8_t * sm_p = (int8_t *)this->shared_memory;
+    int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
     mgard_x::SIZE *ranges_sm = (mgard_x::SIZE*) sm_p; sm_p += D * (l_target + 2) * sizeof(mgard_x::SIZE);
 
-    for (mgard_x::SIZE i = threadId; i < D * (l_target + 2); i += this->nblockx * this->blocky * this->nblockz) {
+    for (mgard_x::SIZE i = threadId; i < D * (l_target + 2); i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
       ranges_sm[i] = ranges[i];
     }
   }
@@ -42,13 +42,13 @@ public:
   Operation2() {
     mgard_x::SIZE firstD = div_roundup(ranges_sm[l_target + 1], F);
     mgard_x::SIZE bidx = blockx;
-    idx[0] = (bidx % firstD) * F + this->threadx;
+    idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
     bidx /= firstD;
     if (D >= 2) {
-      idx[1] = this->blocky * this->nblocky + this->thready;
+      idx[1] = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
     }
     if (D >= 3) {
-      idx[2] = this->blockz * this->nblockz + this->threadz;
+      idx[2] = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
     }
 
     for (mgard_x::DIM d = 3; d < D; d++) {

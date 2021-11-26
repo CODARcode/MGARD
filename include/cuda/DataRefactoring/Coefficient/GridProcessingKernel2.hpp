@@ -70,7 +70,7 @@ class GpkRevFunctor: public Functor<DeviceType> {
     r_gl_ex, c_gl_ex, f_gl_ex;
     in_next = true;
 
-    T *sm = (T*)this->shared_memory;
+    T *sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = (F/2) * 2 + 1;
     ldsm2 = (C/2) * 2 + 1;
 

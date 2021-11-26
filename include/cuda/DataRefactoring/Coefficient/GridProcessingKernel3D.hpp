@@ -43,7 +43,7 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
   MGARDm_EXEC void
   Operation1() {
 
-    sm = (T*)this->shared_memory;
+    sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = (F/2) * 2 + 1;
     ldsm2 = (C/2) * 2 + 1;
     v_sm = sm;
@@ -51,9 +51,9 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
     ratio_c_sm = ratio_f_sm + (F/2) * 2;
     ratio_r_sm = ratio_c_sm + (C/2) * 2;
 
-    r = this->blockz * this->nblockz;
-    c = this->blocky * this->nblocky;
-    f = this->blockx * this->nblockx;
+    r = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
+    c = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
+    f = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX();
 
     rest_r = nr - r;
     rest_c = nc - c;
@@ -80,16 +80,16 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
       rest_f_p = nf_p - f;
     }
 
-    r_sm = this->threadz;
-    c_sm = this->thready;
-    f_sm = this->threadx;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     r_sm_ex = (R/2) * 2;
     c_sm_ex = (C/2) * 2;
     f_sm_ex = (F/2) * 2;
 
-    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
-    (this->thready * this->nblockx) + this->threadx;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+    (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
     r_gl = r + r_sm;
     r_gl_ex = r + (R/2) * 2;
@@ -1171,19 +1171,19 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
   MGARDm_EXEC void
   Operation1() 
   {
-    r = this->blockz * this->nblockz;
-    c = this->blocky * this->nblocky;
-    f = this->blockx * this->nblockx;
+    r = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
+    c = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
+    f = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX();
 
-    r_sm = this->threadz;
-    c_sm = this->thready;
-    f_sm = this->threadx;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     r_sm_ex = (R/2) * 2;
     c_sm_ex = (C/2) * 2;
     f_sm_ex = (F/2) * 2;
 
-    sm = (T*)this->shared_memory;
+    sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
 
     ldsm1 = (F/2) * 2 + 1;
     ldsm2 = (C/2) * 2 + 1;
@@ -1200,8 +1200,8 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
     nc_p = nc;
     nf_p = nf;
 
-    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
-                   (this->thready * this->nblockx) + this->threadx;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                   (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
     rest_r_p = rest_r;
     rest_c_p = rest_c;
@@ -1879,13 +1879,13 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
   MGARDm_EXEC void
   Operation4() 
   {
-    r_sm = this->threadz;
-    c_sm = this->thready;
-    f_sm = this->threadx;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
-    r_sm_ex = this->nblockz;
-    c_sm_ex = this->nblocky;
-    f_sm_ex = this->nblockx;
+    r_sm_ex = FunctorBase<DeviceType>::GetBlockDimZ();
+    c_sm_ex = FunctorBase<DeviceType>::GetBlockDimY();
+    f_sm_ex = FunctorBase<DeviceType>::GetBlockDimX();
 
     r_gl = r + r_sm;
     c_gl = c + c_sm;

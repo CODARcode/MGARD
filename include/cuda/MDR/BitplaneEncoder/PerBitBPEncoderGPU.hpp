@@ -36,14 +36,14 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       {
 
         debug = false;
-        if (this->blockz == 0 && this->blocky == 0 && this->blockx == 0 &&
-              this->threadx == 0 && this->thready == 0 && this->threadz == 0) 
+        if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+              FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) 
           debug = false;
 
         // assume 1D parallelization
         // B needs to be a multiply of MGARDm_WARP_SIZE
         // B >= num_bitplanes
-        int8_t * sm_p = (int8_t *)this->shared_memory;
+        int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
         sm_level_errors =  (T_error*)sm_p;    sm_p += ((num_bitplanes + 1) * B) * sizeof(T_error);
         sm_fix_point =     (T_fp*)sm_p;       sm_p += B * sizeof(T_fp);
         sm_shifted =       (T*)sm_p;          sm_p += B * sizeof(T);
@@ -54,9 +54,9 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
         // task = threadx;
         // global_idx = blockx * nblockx + task;
 
-        local_idx = this->threadx;
-        global_idx = this->blockx * B + local_idx;
-        bitplane_idx = this->thready;
+        local_idx = FunctorBase<DeviceType>::GetThreadIdX();
+        global_idx = FunctorBase<DeviceType>::GetBlockIdX() * B + local_idx;
+        bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY();
 
 
         // memset sm_level_errors to 0 to avoid thread divergence when reduce
@@ -116,8 +116,8 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
         if (debug) {
           printf("encode data: ");
           for (int i = 0; i < B; i++) {
-            if (this->blockx*B + i < n) {
-              printf("%f ", *v(this->blockx*B + i));
+            if (FunctorBase<DeviceType>::GetBlockIdX()*B + i < n) {
+              printf("%f ", *v(FunctorBase<DeviceType>::GetBlockIdX()*B + i));
             }
           }
           printf("\n");
@@ -217,8 +217,8 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             T_error error = sm_level_errors[i * B + local_idx];
             T_error error_sum = 0;
             error_sum = blockReduce.Sum(error);
-            if (this->threadx == 0 && this->thready == 0 && this->threadz == 0) {
-              *level_errors_workspace(i, this->blockx) = error_sum;
+            if (FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) {
+              *level_errors_workspace(i, FunctorBase<DeviceType>::GetBlockIdX()) = error_sum;
             }
             // if (debug) {
             //   printf("sum[%d]: %.2e\n", i, *level_errors_workspace(i, blockx));
@@ -242,7 +242,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       Operation4() {
         if (local_idx < bitplane_max_length) {
           for (SIZE bitplane_index = 0; bitplane_index < num_bitplanes; bitplane_index++) {
-            SIZE block_offset = bitplane_max_length * this->blockx;
+            SIZE block_offset = bitplane_max_length * FunctorBase<DeviceType>::GetBlockIdX();
             *encoded_bitplanes(bitplane_index, block_offset + local_idx) = sm_bitplanes[local_idx * B + bitplane_index];
           }
         }
@@ -425,22 +425,22 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       {
 
         debug = false;
-        if (this->blockz == 0 && this->blocky == 0 && this->blockx == 0 &&
-              this->threadx == 0 && this->thready == 0 && this->threadz == 0) 
+        if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+              FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) 
           debug = false;
 
         // assume 1D parallelization
         // B needs to be a multiply of MGARDm_WARP_SIZE
         // B >= num_bitplanes
-        int8_t * sm_p = (int8_t *)this->shared_memory;
+        int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
         sm_bitplanes =    (T_bitplane*)sm_p; sm_p += B * bitplane_max_length * sizeof(T_bitplane);
         sm_data =         (T*)sm_p;          sm_p += B * sizeof(T);
         // task = threadx;
         // global_idx = blockx * nblockx + task;
 
-        local_idx = this->threadx;
-        global_idx = this->blockx * B + local_idx;
-        bitplane_idx = this->thready;
+        local_idx = FunctorBase<DeviceType>::GetThreadIdX();
+        global_idx = FunctorBase<DeviceType>::GetBlockIdX() * B + local_idx;
+        bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY();
 
         ending_bitplane = starting_bitplane + num_bitplanes;
 
@@ -453,7 +453,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
 
         if (local_idx < bitplane_max_length) {
           for (SIZE i = 0; i < num_bitplanes; i++) {
-            SIZE block_offset = bitplane_max_length * this->blockx;
+            SIZE block_offset = bitplane_max_length * FunctorBase<DeviceType>::GetBlockIdX();
             sm_bitplanes[local_idx * B + i] = *encoded_bitplanes(i, block_offset + local_idx);
           }
         }
@@ -488,7 +488,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
           SIZE bitplane_index_rev = min(num_bitplanes - local_idx - 1, B);
           T_bitplane buffer = sm_bitplanes[bitplane_pos * B + bitplane_index];
           for (SIZE i = 0; i < B; i++) {
-            LENGTH gloabl_data_idx = this->blockx * B + i;
+            LENGTH gloabl_data_idx = FunctorBase<DeviceType>::GetBlockIdX() * B + i;
             bit = buffer & 1u;
             buffer = buffer >> 1;
             pos_in_buffer ++; 
@@ -564,12 +564,12 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       // get max bit-plane length 
       MGARDm_EXEC void
       Operation3() {
-        *v(this->blockx*B + local_idx) = sm_data[local_idx];
+        *v(FunctorBase<DeviceType>::GetBlockIdX()*B + local_idx) = sm_data[local_idx];
 
         if (debug) {
           printf("dencode data: ");
           for (int i = 0; i < B; i++) {
-            if (this->blockx*B + i < n) {
+            if (FunctorBase<DeviceType>::GetBlockIdX()*B + i < n) {
               printf("%f ", sm_data[i]);
             }
           }

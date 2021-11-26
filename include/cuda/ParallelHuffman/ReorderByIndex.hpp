@@ -31,7 +31,7 @@ class ReorderByIndexFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    unsigned int thread = (this->blockx * this->nblockx) + this->threadx;
+    unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     T temp;
     Q newIndex;
     if (thread < size) {

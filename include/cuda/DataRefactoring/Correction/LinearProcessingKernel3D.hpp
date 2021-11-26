@@ -46,7 +46,7 @@ public:
 
     PADDING = (nf % 2 == 0);
 
-    T * sm = (T*)this->shared_memory;
+    T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F * 2 + 3;
     ldsm2 = C;
     v_sm = sm;
@@ -57,19 +57,19 @@ public:
     // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
     // threadIdx.z == 0 && threadIdx.y == 0 ) debug = true;
 
-    r_gl = this->blockz * this->nblockz + this->threadz;
-    c_gl = this->blocky * this->nblocky + this->thready;
-    f_gl = this->blockx * this->nblockx + this->threadx;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
+    c_gl = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
+    f_gl = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
 
-    blockId = this->blockx;
+    blockId = FunctorBase<DeviceType>::GetBlockIdX();
 
-    r_sm = this->threadz;
-    c_sm = this->thready;
-    f_sm = this->threadx;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     actual_F = F;
-    if (nf_c - blockId * this->nblockx < F) {
-      actual_F = nf_c - blockId * this->nblockx;
+    if (nf_c - blockId * FunctorBase<DeviceType>::GetBlockDimX() < F) {
+      actual_F = nf_c - blockId * FunctorBase<DeviceType>::GetBlockDimX();
     }
 
     // if (nf_c % 2 == 1){
@@ -469,7 +469,7 @@ public:
 
     PADDING = (nc % 2 == 0);
 
-    T * sm = (T*)this->shared_memory;
+    T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C * 2 + 3;
     v_sm = sm;
@@ -480,19 +480,19 @@ public:
     // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
     // threadIdx.z == 0 && threadIdx.x == 0 ) debug = false;
 
-    r_gl = this->blockz * this->nblockz + this->threadz;
-    c_gl = this->blocky * this->nblocky + this->thready;
-    f_gl = this->blockx * this->nblockx + this->threadx;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
+    c_gl = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
+    f_gl = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
 
-    blockId = this->blocky;
+    blockId = FunctorBase<DeviceType>::GetBlockIdY();
 
-    r_sm = this->threadz;
-    c_sm = this->thready;
-    f_sm = this->threadx;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     actual_C = C;
-    if (nc_c - this->blocky * this->nblocky < C) {
-      actual_C = nc_c - this->blocky * this->nblocky;
+    if (nc_c - FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() < C) {
+      actual_C = nc_c - FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
     }
 
     // if (nc_c % 2 == 1){
@@ -802,28 +802,28 @@ public:
     // debug2 = true;
 
     PADDING = (nr % 2 == 0);
-    T * sm = (T*)this->shared_memory;
+    T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C;
     v_sm = sm;
     dist_r_sm = sm + ldsm1 * ldsm2 * (R * 2 + 3);
     ratio_r_sm = dist_r_sm + (R * 2 + 3);
 
-    r_gl = this->blockz * this->nblockz + this->threadz;
-    c_gl = this->blocky * this->nblocky + this->thready;
-    f_gl = this->blockx * this->nblockx + this->threadx;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
+    c_gl = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
+    f_gl = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
 
     // if (debug) printf("debugging gl: %d %d %d\n", r_gl, c_gl, f_gl);
 
-    blockId = this->blockz;
+    blockId = FunctorBase<DeviceType>::GetBlockIdZ();
 
-    r_sm = this->threadz;
-    c_sm = this->thready;
-    f_sm = this->threadx;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     actual_R = R;
-    if (nr_c - this->blockz * this->nblockz < R) {
-      actual_R = nr_c - this->blockz * this->nblockz;
+    if (nr_c - FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() < R) {
+      actual_R = nr_c - FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
     }
     // if (nr_c % 2 == 1){
     //   if(nr_c-1 - blockIdx.z * blockDim.z < R) { actual_R = nr_c - 1 -
