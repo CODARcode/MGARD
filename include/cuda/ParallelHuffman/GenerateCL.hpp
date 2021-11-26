@@ -73,9 +73,9 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    mblocks = this->ngridx;
-    mthreads = this->nblockx;
-    int32_t * sm = (int32_t*)this->shared_memory;
+    mblocks = FunctorBase<DeviceType>::GetGridDimX();
+    mthreads = FunctorBase<DeviceType>::GetBlockDimX();
+    int32_t * sm = (int32_t*)FunctorBase<DeviceType>::GetSharedMemory();
     x_top = &sm[0];
     y_top = &sm[1];
     x_bottom = &sm[2];
@@ -83,7 +83,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     found = &sm[4];
     oneorzero = &sm[5];
 
-    thread = (this->blockx * this->nblockx) + this->threadx;
+    thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     i = thread; // Adaptation for easier porting
 
     /* Initialization */
@@ -303,15 +303,15 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     // }
     // Calculate combined index around the MergePath "matrix"
     combinedIndex =
-        ((uint64_t)this->blockx * ((uint64_t)A_length + (uint64_t)B_length)) /
-        (uint64_t)this->ngridx;
+        ((uint64_t)FunctorBase<DeviceType>::GetBlockIdX() * ((uint64_t)A_length + (uint64_t)B_length)) /
+        (uint64_t)FunctorBase<DeviceType>::GetGridDimX();
 
-    // if (!this->threadx) {
+    // if (!FunctorBase<DeviceType>::GetThreadIdX()) {
     //   printf("A_length: %d, B_length: %d, tempLength: %d, combinedIndex: %d\n", A_length, B_length, tempLength, combinedIndex);
     // }
-    threadOffset = this->threadx - MGARDm_WARP_SIZE/2;
+    threadOffset = FunctorBase<DeviceType>::GetThreadIdX() - MGARDm_WARP_SIZE/2;
 
-    if (this->threadx < MGARDm_WARP_SIZE) {
+    if (FunctorBase<DeviceType>::GetThreadIdX() < MGARDm_WARP_SIZE) {
       // Figure out the coordinates of our diagonal
       if (A_length >= B_length) {
         *x_top = MIN(combinedIndex, A_length);
@@ -335,14 +335,14 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   MGARDm_EXEC bool
   LoopCondition2() {
-    // printf("%u LoopCondition2\n", this->blockx);
+    // printf("%u LoopCondition2\n", FunctorBase<DeviceType>::GetBlockIdX());
     return !(*found);
   }
 
   MGARDm_EXEC void
   Operation6() {
     // Update our coordinates within the 32-wide section of the diagonal
-    // if (!this->threadx) {
+    // if (!FunctorBase<DeviceType>::GetThreadIdX()) {
     //   printf("x %d %d y: %d %d\n", *x_top, *x_bottom, *y_top, *y_bottom);
     // }
     current_x = *x_top - ((*x_top - *x_bottom) >> 1) - threadOffset;
@@ -352,17 +352,17 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     // int32_t getfrom_y = MOD(iStart + current_y, iNodesCap);
     getfrom_y = iStart + current_y;
 
-    if (this->threadx < MGARDm_WARP_SIZE) {
+    if (FunctorBase<DeviceType>::GetThreadIdX() < MGARDm_WARP_SIZE) {
       if (getfrom_y >= iNodesCap)
         getfrom_y -= iNodesCap;
 
       // Are we a '1' or '0' with respect to A[x] <= B[x]
       if (current_x > (int32_t)A_length or current_y < 0) {
-        oneorzero[this->threadx] = 0;
+        oneorzero[FunctorBase<DeviceType>::GetThreadIdX()] = 0;
       } else if (current_y >= (int32_t)B_length || current_x < 1) {
-        oneorzero[this->threadx] = 1;
+        oneorzero[FunctorBase<DeviceType>::GetThreadIdX()] = 1;
       } else {
-        oneorzero[this->threadx] =
+        oneorzero[FunctorBase<DeviceType>::GetThreadIdX()] =
             (*copyFreq(getfrom_x) <= *iNodesFreq(getfrom_y)) ? 1 : 0;
       }
     }
@@ -370,7 +370,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   MGARDm_EXEC void
   Operation7() {
-    //     if (!this->threadx)
+    //     if (!FunctorBase<DeviceType>::GetThreadIdX())
     //     printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d \n\
     // %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d \n\n",
     //             oneorzero[0], oneorzero[1], oneorzero[2], oneorzero[3],
@@ -383,22 +383,22 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     //             oneorzero[28], oneorzero[29], oneorzero[30], oneorzero[31]);
     // If we find the meeting of the '1's and '0's, we found the
     // intersection of the path and diagonal
-    if (this->threadx > 0 and                                    //
-        this->threadx < MGARDm_WARP_SIZE and                                   //
-        (oneorzero[this->threadx] != oneorzero[this->threadx - 1]) //
+    if (FunctorBase<DeviceType>::GetThreadIdX() > 0 and                                    //
+        FunctorBase<DeviceType>::GetThreadIdX() < MGARDm_WARP_SIZE and                                   //
+        (oneorzero[FunctorBase<DeviceType>::GetThreadIdX()] != oneorzero[FunctorBase<DeviceType>::GetThreadIdX() - 1]) //
     ) {
       // printf("found\n");
       *found = 1;
 
-      *diagonal_path_intersections((IDX)this->blockx) = current_x;
-      *diagonal_path_intersections((IDX)this->blockx + this->ngridx + 1) = current_y;
+      *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetBlockIdX()) = current_x;
+      *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetBlockIdX() + FunctorBase<DeviceType>::GetGridDimX() + 1) = current_y;
     }
   }
 
   MGARDm_EXEC void
   Operation8() {
     // Adjust the search window on the diagonal
-    if (this->threadx == 16) {
+    if (FunctorBase<DeviceType>::GetThreadIdX() == 16) {
       if (oneorzero[31] != 0) {
         *x_bottom = current_x;
         *y_bottom = current_y;
@@ -414,11 +414,11 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
   MGARDm_EXEC void
   Operation9() {
     // Set the boundary diagonals (through 0,0 and A_length,B_length)
-    if (this->threadx == 0 && this->blockx == 0) {
+    if (FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0) {
       *diagonal_path_intersections((IDX)0) = 0;
-      *diagonal_path_intersections((IDX)this->ngridx + 1) = 0;
-      *diagonal_path_intersections((IDX)this->ngridx) = A_length;
-      *diagonal_path_intersections((IDX)this->ngridx + this->ngridx + 1) = B_length;
+      *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetGridDimX() + 1) = 0;
+      *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetGridDimX()) = A_length;
+      *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetGridDimX() + FunctorBase<DeviceType>::GetGridDimX() + 1) = B_length;
     }
   }
 
@@ -426,10 +426,10 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
   Operation10() {
     if (threadIdx.x == 0) {
       // Boundaries
-      int x_block_top = *diagonal_path_intersections((IDX)this->blockx);
-      int y_block_top = *diagonal_path_intersections((IDX)this->blockx + this->ngridx + 1);
-      int x_block_stop = *diagonal_path_intersections((IDX)this->blockx + 1);
-      int y_block_stop = *diagonal_path_intersections((IDX)this->blockx + this->ngridx + 2);
+      int x_block_top = *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetBlockIdX());
+      int y_block_top = *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetBlockIdX() + FunctorBase<DeviceType>::GetGridDimX() + 1);
+      int x_block_stop = *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetBlockIdX() + 1);
+      int y_block_stop = *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetBlockIdX() + FunctorBase<DeviceType>::GetGridDimX() + 2);
 
       // Actual indexes
       int x_start = x_block_top + cStart;
@@ -484,14 +484,14 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
       // }
 
       // if (threadIdx.x == 0) {
-      //   printf("this->ngridx: %llu, offset: %d, len: %d\n", this->ngridx, offset, len);
+      //   printf("FunctorBase<DeviceType>::GetGridDimX(): %llu, offset: %d, len: %d\n", FunctorBase<DeviceType>::GetGridDimX(), offset, len);
       //   printf("leaf: %d %d\n", *tempIsLeaf((IDX)2 * 4), *tempIsLeaf((IDX)2 * 4 + 1));
       // }
     }
 
     // cg::this_grid().sync();
     // if (threadIdx.x == 0) {
-    //   // printf("this->ngridx: %u, offset: %d, len: %d\n", this->ngridx, offset, len);
+    //   // printf("FunctorBase<DeviceType>::GetGridDimX(): %u, offset: %d, len: %d\n", FunctorBase<DeviceType>::GetGridDimX(), offset, len);
     //   printf("leaf: %d %d\n", *tempIsLeaf((IDX)2 * 4), *tempIsLeaf((IDX)2 * 4 + 1));
     // }
 

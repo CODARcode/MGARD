@@ -74,20 +74,20 @@ public:
   Operation1() {
 
     debug = false;
-      if (this->blockz == 0 && this->blocky == 0 && this->blockx == 0 &&
-          this->threadx == 0 && this->thready == 0 && this->threadz == 0) 
+      if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+          FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) 
         debug = true;
 
 
-    mgard_x::SIZE threadId = (this->threadz * this->nblockx * this->nblocky) +
-                (this->thready * this->nblockx) + this->threadx;
+    mgard_x::SIZE threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY()) +
+                (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
-    int8_t * sm_p = (int8_t *)this->shared_memory;
+    int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
     ranges_sm = (mgard_x::SIZE*) sm_p; sm_p += D * (l_target + 2) * sizeof(mgard_x::SIZE);
 
     
 
-    for (mgard_x::SIZE i = threadId; i < D * (l_target + 2); i += this->nblockx * this->nblocky * this->nblockz) {
+    for (mgard_x::SIZE i = threadId; i < D * (l_target + 2); i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
       ranges_sm[i] = *ranges(i);
     }
 
@@ -115,14 +115,14 @@ public:
     if (debug) {
       // printf("ranges_sm[l_target + 1]: %u\n", ranges_sm[l_target + 1]);
     }
-    mgard_x::SIZE bidx = this->blockx;
-    idx[0] = (bidx % firstD) * F + this->threadx;
+    mgard_x::SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
+    idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
     bidx /= firstD;
     if (D >= 2) {
-      idx[1] = this->blocky * this->nblocky + this->thready;
+      idx[1] = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
     }
     if (D >= 3) {
-      idx[2] = this->blockz * this->nblockz + this->threadz;
+      idx[2] = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
     }
 
     for (mgard_x::DIM d = 3; d < D; d++) {

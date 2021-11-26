@@ -33,7 +33,7 @@ class DeflateFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    size_t gid = this->blockx * this->nblockx + this->threadx;
+    size_t gid = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
     if (gid >= (len - 1) / PART_SIZE + 1)
       return;
     uint8_t bitwidth;

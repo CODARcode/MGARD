@@ -821,8 +821,8 @@ class Pass1Functor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    SIZE f = this->blockx * this->nblockx + this->threadx;
-    SIZE r = this->blocky * this->nblocky + this->thready;
+    SIZE f = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
+    SIZE r = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
 
     SIZE _axis_sum = 0;
     SIZE _axis_min = nc;
@@ -909,8 +909,8 @@ class Pass2Functor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    SIZE f = this->blockx * this->nblockx + this->threadx;
-    SIZE r = this->blocky * this->nblocky + this->thready;
+    SIZE f = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
+    SIZE r = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
 
     if (f >= nf - 1 || r >= nr - 1) { return; }
 
@@ -1039,8 +1039,8 @@ class Pass4Functor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    SIZE f = this->blockx * this->nblockx + this->threadx;
-    SIZE r = this->blocky * this->nblocky + this->thready;
+    SIZE f = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
+    SIZE r = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
 
     if (f >= nf - 1 || r >= nr - 1) { return; }
 

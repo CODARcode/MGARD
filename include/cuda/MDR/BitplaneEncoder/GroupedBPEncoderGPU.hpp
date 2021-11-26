@@ -74,11 +74,11 @@ namespace MDR {
     Operation1() {
 
       debug = false;
-      if (this->blockz == 0 && this->blocky == 0 && this->blockx == 0 &&
-            this->threadx == 0 && this->thready == 0 && this->threadz == 0) 
+      if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+            FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) 
         debug = true;
 
-      int8_t * sm_p = (int8_t *)this->shared_memory;
+      int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
       sm_temp_errors =  (T_error*)sm_p;    sm_p += (num_bitplanes + 1) * num_elems_per_TB * sizeof(T_error);
       sm_errors =       (T_error*)sm_p;    sm_p += (num_bitplanes + 1)                    * sizeof(T_error);
       sm_fix_point =    (T_fp*)sm_p;       sm_p += num_elems_per_TB                       * sizeof(T_fp);
@@ -91,13 +91,13 @@ namespace MDR {
       // sm_reduce =  (blockReduce_error.TempStorageType*) sm_p;
       // blockReduce_error.AllocateTempStorage();
       // thread orginal data mapping
-      local_data_idx = this->thready * this->nblockx + this->threadx;
-      global_data_idx = this->blockx * num_elems_per_TB + local_data_idx;
+      local_data_idx = FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
+      global_data_idx = FunctorBase<DeviceType>::GetBlockIdX() * num_elems_per_TB + local_data_idx;
 
-      local_bitplane_idx = this->thready * this->nblockx + this->threadx;
+      local_bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
       // // thread bitplane mapping (transposed of data mapping for more efficient )
-      // bitplane_idx = this->threadx / B;
-      // block_idx = this->threadx % B;
+      // bitplane_idx = FunctorBase<DeviceType>::GetThreadIdX() / B;
+      // block_idx = FunctorBase<DeviceType>::GetThreadIdX() % B;
 
       // if (local_data_idx < num_elems_per_TB) {
       //   sm_fix_point[local_data_idx] = 0;
@@ -166,9 +166,9 @@ namespace MDR {
     MGARDm_EXEC void
     Operation3() {
       // data
-      block_offset = max_length_per_TB * this->blockx;
-      for (SIZE bitplane_idx = this->thready; bitplane_idx < num_bitplanes; bitplane_idx += 32) {
-        for (SIZE batch_idx = this->threadx; batch_idx < num_batches_per_TB; batch_idx += 32) {
+      block_offset = max_length_per_TB * FunctorBase<DeviceType>::GetBlockIdX();
+      for (SIZE bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY(); bitplane_idx < num_bitplanes; bitplane_idx += 32) {
+        for (SIZE batch_idx = FunctorBase<DeviceType>::GetThreadIdX(); batch_idx < num_batches_per_TB; batch_idx += 32) {
           *encoded_bitplanes(bitplane_idx, block_offset + batch_idx) = 
               sm_bitplanes[batch_idx * num_bitplanes + bitplane_idx];
         }
@@ -188,7 +188,7 @@ namespace MDR {
       }
 
       if (local_bitplane_idx < num_bitplanes + 1) {
-        *level_errors_workspace(local_bitplane_idx, this->blockx) = sm_errors[local_bitplane_idx];
+        *level_errors_workspace(local_bitplane_idx, FunctorBase<DeviceType>::GetBlockIdX()) = sm_errors[local_bitplane_idx];
       }
 
     }
@@ -197,7 +197,7 @@ namespace MDR {
     Operation4() {
       if (debug) {
         // for (int i = 0; i < num_elems_per_TB; i++) {
-        //   printf("input[%u]\torg\t%f\t2^%d\tfp\t%llu:\t", i, *v(this->blockx*num_elems_per_TB+i), (int)num_bitplanes - (int)exp, sm_fix_point[i]);
+        //   printf("input[%u]\torg\t%f\t2^%d\tfp\t%llu:\t", i, *v(FunctorBase<DeviceType>::GetBlockIdX()*num_elems_per_TB+i), (int)num_bitplanes - (int)exp, sm_fix_point[i]);
         //   print_bits(sm_fix_point[i], num_bitplanes);
         //   printf("\n");
         // }
@@ -412,15 +412,15 @@ namespace MDR {
       MGARDm_EXEC void
       Operation1() {
         debug = false;
-        if (this->blockz == 0 && this->blocky == 0 && this->blockx == 0 &&
-              this->threadx == 0 && this->thready == 0 && this->threadz == 0) 
+        if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+              FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) 
           debug = true;
 
         debug2 = false;
-        if (this->blockz == 0 && this->blocky == 0 && this->blockx == 0) 
+        if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0) 
           debug2 = true;
 
-        int8_t * sm_p = (int8_t *)this->shared_memory;
+        int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
         sm_fix_point =  (T_fp*)sm_p;       sm_p += num_elems_per_TB                       * sizeof(T_fp);
         if (BinaryType == BINARY) {
           sm_signs =        (T_fp*)sm_p;       sm_p += num_elems_per_TB                       * sizeof(T_fp);
@@ -428,16 +428,16 @@ namespace MDR {
         sm_bitplanes  = (T_bitplane*)sm_p; sm_p += num_batches_per_TB * (num_bitplanes+1) * sizeof(T_bitplane);
         
 
-        local_data_idx = this->thready * this->nblockx + this->threadx;
-        global_data_idx = this->blockx * num_elems_per_TB + local_data_idx;
+        local_data_idx = FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
+        global_data_idx = FunctorBase<DeviceType>::GetBlockIdX() * num_elems_per_TB + local_data_idx;
 
         ending_bitplane = starting_bitplane + num_bitplanes;
 
         if (BinaryType == NEGABINARY) exp += 2;
         // data
-        block_offset = max_length_per_TB * this->blockx;
-        for (SIZE bitplane_idx = this->thready; bitplane_idx < num_bitplanes; bitplane_idx += 32) {
-          for (SIZE batch_idx = this->threadx; batch_idx < num_batches_per_TB; batch_idx += 32) {
+        block_offset = max_length_per_TB * FunctorBase<DeviceType>::GetBlockIdX();
+        for (SIZE bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY(); bitplane_idx < num_bitplanes; bitplane_idx += 32) {
+          for (SIZE batch_idx = FunctorBase<DeviceType>::GetThreadIdX(); batch_idx < num_batches_per_TB; batch_idx += 32) {
             sm_bitplanes[batch_idx * num_bitplanes + bitplane_idx] = 
               *encoded_bitplanes(bitplane_idx, block_offset + batch_idx);
           }
@@ -558,7 +558,7 @@ namespace MDR {
         // if (debug) {
         //   printf("decoded data:\t");
         //   for (int i = 0; i < num_elems_per_TB; i++) {
-        //     printf("%f\t", *v(this->blockx * num_elems_per_TB + i));
+        //     printf("%f\t", *v(FunctorBase<DeviceType>::GetBlockIdX() * num_elems_per_TB + i));
         //   }
         //   printf("\n");
         // }

@@ -24,7 +24,7 @@ class GetFirstNonzeroIndexFunctor: public Functor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-    unsigned int thread = (this->blockx * this->nblockx) + this->threadx;
+    unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     if (thread < size && *array(thread) != 0) {
       Atomic<DeviceType>::Min(result((IDX)0), thread);
     }

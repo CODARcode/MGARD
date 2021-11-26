@@ -28,10 +28,10 @@ public:
 
   MGARDm_EXEC void
   Operation1() {
-    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
-                    (this->thready * this->nblockx) + this->threadx;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                    (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
-    SIZE * sm = (SIZE*)this->shared_memory;
+    SIZE * sm = (SIZE*)FunctorBase<DeviceType>::GetSharedMemory();
     shape_sm = sm;
 
     if (threadId < D) {
@@ -45,15 +45,15 @@ public:
     SIZE firstD = div_roundup(shape_sm[0], F);
 
     SIZE bidx = blockIdx.x;
-    idx[0] = (bidx % firstD) * F + this->threadx;
+    idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
 
     // printf("firstD %d idx[0] %d\n", firstD, idx[0]);
 
     bidx /= firstD;
     if (D >= 2)
-      idx[1] = this->blocky * this->nblocky + this->thready;
+      idx[1] = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
     if (D >= 3)
-      idx[2] = this->blockz * this->nblockz + this->threadz;
+      idx[2] = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
 
     for (DIM d = 3; d < D; d++) {
       idx[d] = bidx % shape_sm[d];
@@ -274,10 +274,10 @@ public:
 
   MGARDm_EXEC void
   Operation1() {
-    threadId = (this->threadz * (this->nblockx * this->nblocky)) +
-                    (this->thready * this->nblockx) + this->threadx;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                    (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
-    int8_t * sm_p = (int8_t *)this->shared_memory;
+    int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
     shape_sm = (SIZE *)sm_p; sm_p += D * sizeof(SIZE);
 
     if (threadId < D) {
@@ -290,16 +290,16 @@ public:
 
     SIZE firstD = div_roundup(shape_sm[0], F);
 
-    SIZE bidx = this->blockx;
-    idx[0] = (bidx % firstD) * F + this->threadx;
+    SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
+    idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
 
     // printf("firstD %d idx[0] %d\n", firstD, idx[0]);
 
     bidx /= firstD;
     if (D >= 2)
-      idx[1] = this->blocky * this->nblocky + this->thready;
+      idx[1] = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
     if (D >= 3)
-      idx[2] = this->blockz * this->nblockz + this->threadz;
+      idx[2] = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
 
     for (DIM d = 3; d < D; d++) {
       idx[d] = bidx % shape_sm[d];

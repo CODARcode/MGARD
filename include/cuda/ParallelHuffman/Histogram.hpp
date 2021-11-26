@@ -31,23 +31,23 @@ namespace mgard_x {
 
     MGARDm_EXEC void
     Operation1() {
-      Hs = (int*)this->shared_memory;
+      Hs = (int*)FunctorBase<DeviceType>::GetSharedMemory();
 
-      warpid = (int)(this->threadx / MGARDm_WARP_SIZE);
-      lane = this->threadx % MGARDm_WARP_SIZE;
-      warps_block = this->nblockx / MGARDm_WARP_SIZE;
+      warpid = (int)(FunctorBase<DeviceType>::GetThreadIdX() / MGARDm_WARP_SIZE);
+      lane = FunctorBase<DeviceType>::GetThreadIdX() % MGARDm_WARP_SIZE;
+      warps_block = FunctorBase<DeviceType>::GetBlockDimX() / MGARDm_WARP_SIZE;
 
-      off_rep = (bins + 1) * (this->threadx % R);
+      off_rep = (bins + 1) * (FunctorBase<DeviceType>::GetThreadIdX() % R);
 
-      begin = (N / warps_block) * warpid + MGARDm_WARP_SIZE * this->blockx + lane;
+      begin = (N / warps_block) * warpid + MGARDm_WARP_SIZE * FunctorBase<DeviceType>::GetBlockIdX() + lane;
       end = (N / warps_block) * (warpid + 1);
-      step = MGARDm_WARP_SIZE * this->ngridx;
+      step = MGARDm_WARP_SIZE * FunctorBase<DeviceType>::GetGridDimX();
 
       // final warp handles data outside of the warps_block partitions
       if (warpid >= warps_block - 1)
         end = N;
 
-      for (unsigned int pos = this->threadx; pos < (bins + 1) * R; pos += this->nblockx)
+      for (unsigned int pos = FunctorBase<DeviceType>::GetThreadIdX(); pos < (bins + 1) * R; pos += FunctorBase<DeviceType>::GetBlockDimX())
         Hs[pos] = 0;
     }
 
@@ -61,7 +61,7 @@ namespace mgard_x {
 
     MGARDm_EXEC void
     Operation3() {
-      for (unsigned int pos = this->threadx; pos < bins; pos += this->nblockx) {
+      for (unsigned int pos = FunctorBase<DeviceType>::GetThreadIdX(); pos < bins; pos += FunctorBase<DeviceType>::GetBlockDimX()) {
         int sum = 0;
         for (int base = 0; base < (bins + 1) * R; base += bins + 1) {
           sum += Hs[base + pos];

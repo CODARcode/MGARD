@@ -33,7 +33,7 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
   MGARDm_EXEC void
   Operation1() {
     // bool debug = false;
-    // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
+    // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
     //     FunctorBase<DeviceType>::GetThreadIdZ() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0)
     //   debug = false;
 
@@ -41,7 +41,7 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     // if (FunctorBase<DeviceType>::GetThreadIdZ() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0)
     //   debug2 = false;
 
-    LENGTH threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                       (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
     T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
@@ -64,13 +64,13 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
 
     // SIZE idx[D];
 
-    for (LENGTH i = threadId; i < D; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * blockDim.z) {
+    for (LENGTH i = threadId; i < D; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
       shape_sm[i] = *shape(i);
       shape_c_sm[i] = *shape_c(i);
       // ldvs_sm[i] = ldvs[i];
       // ldws_sm[i] = ldws[i];
     }
-    for (LENGTH i = threadId; i < processed_n; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * blockDim.z) {
+    for (LENGTH i = threadId; i < processed_n; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
       processed_dims_sm[i] = *processed_dims(i);
     }
 
@@ -92,11 +92,11 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     if (D < 2)
       nc = 1;
 
-    SIZE bidx = blockIdx.x;
+    SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     SIZE firstD = div_roundup(nc, C);
     SIZE blockId = bidx % firstD;
     // if (debug2) {
-    //   printf("blockIdx.x %u nc %u FunctorBase<DeviceType>::GetBlockDimX() %u firstD: %u blockId %u\n", blockIdx.x, nc, FunctorBase<DeviceType>::GetBlockDimX(), firstD, blockId);
+    //   printf("FunctorBase<DeviceType>::GetBlockIdX() %u nc %u FunctorBase<DeviceType>::GetBlockDimX() %u firstD: %u blockId %u\n", FunctorBase<DeviceType>::GetBlockIdX(), nc, FunctorBase<DeviceType>::GetBlockDimX(), firstD, blockId);
     // }
     bidx /= firstD;
 
@@ -136,7 +136,7 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     // }
 
     c_gl = blockId * C;
-    r_gl = blockIdx.y * R;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdY() * R;
     f_gl = FunctorBase<DeviceType>::GetThreadIdX();
 
     c_sm = FunctorBase<DeviceType>::GetThreadIdX();
@@ -161,7 +161,7 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     prev_vec_sm = 0.0;
 
     c_rest = min(C, nc - blockId * C);
-    r_rest = min(R, nr - blockIdx.y * R);
+    r_rest = min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
     f_rest = nf;
     f_ghost = min(nf, G);
@@ -255,14 +255,14 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < F) {
       for (SIZE i = 0; i < c_rest; i++) {
-        // if (blockIdx.x == 0 && blockIdx.y == 0 && r_sm == 0 && i == 1) {
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
         //   printf("store [%d %d %d] %f<-%f [%d %d %d]\n",
         //     r_sm, i, f_gl, *v(r_sm, i, f_gl),
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)], r_sm, i, f_sm);
         // }
         *v(r_sm, i, f_gl) =
             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
-        // if (blockIdx.x == 0 && blockIdx.y == 0 && r_sm == 0 && i == 1) {
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
         //   printf("store [%d %d %d] %f<-%f [%d %d %d]\n",
         //     r_sm, i, f_gl, *v(r_sm, i, f_gl),
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)], r_sm, i, f_sm);
@@ -748,11 +748,11 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     processed_dims_sm = sm_dim; sm_dim += D;
     sm = (T*)sm_dim;
 
-    for (LENGTH i = threadId; i < D; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * blockDim.z) {
+    for (LENGTH i = threadId; i < D; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
       shape_sm[i] = *shape(i);
       shape_c_sm[i] = *shape_c(i);
     }
-     for (LENGTH i = threadId; i < processed_n; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * blockDim.z) {
+     for (LENGTH i = threadId; i < processed_n; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
       processed_dims_sm[i] = *processed_dims(i);
     }
 
@@ -772,7 +772,7 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     if (D < 3)
       nr = 1;
 
-    SIZE bidx = blockIdx.x;
+    SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     SIZE firstD = div_roundup(nf, FunctorBase<DeviceType>::GetBlockDimX());
     SIZE blockId = bidx % firstD;
 
@@ -796,7 +796,7 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     // v = v + other_offset_v;
 
     f_gl = blockId * F;
-    r_gl = blockIdx.y * R;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdY() * R;
     c_gl = 0;
 
     f_sm = FunctorBase<DeviceType>::GetThreadIdX();
@@ -809,9 +809,9 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     prev_vec_sm = 0.0;
 
     f_rest = min(F, nf - blockId * F);
-    r_rest = min(R, nr - blockIdx.y * R);
+    r_rest = min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
-    // if (blockIdx.x == 1 && blockIdx.y == 0 && f_sm == 0 && r_sm == 0) {
+    // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
     //   prSIZEf("f_rest: %d r_rest: %d\n", f_rest, r_rest);
     // }
 
@@ -883,7 +883,7 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
         //       bm_sm[i],
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
         // #else
-        //       // if (blockIdx.x == 1 && blockIdx.y == 0 && f_sm == 0 && r_sm
+        //       // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm
         //       == 0) {
         //       //   printf("calc: %f %f %f -> %f \n", vec_sm[get_idx(ldsm1,
         //       ldsm2, r_sm, i, f_sm)],
@@ -912,7 +912,7 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < C; i++) {
-        // if (blockIdx.x == 1 && blockIdx.y == 0 && f_sm == 0 && r_sm == 0) {
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
         //   printf("store: %f\n", vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
         //   f_sm)]);
         // }
@@ -1041,8 +1041,8 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     // if (f_gl + f_sm == 0 && r_gl + r_sm == 0 && idx[3] == 0)
     //   debug = false;
     // if (debug)
-    //   printf("block id: (%d %d %d) thread id: (%d %d %d)\n", blockIdx.x,
-    //          blockIdx.y, blockIdx.z, FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY(), FunctorBase<DeviceType>::GetThreadIdZ());
+    //   printf("block id: (%d %d %d) thread id: (%d %d %d)\n", FunctorBase<DeviceType>::GetBlockIdX(),
+    //          FunctorBase<DeviceType>::GetBlockIdY(), blockIdx.z, FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY(), FunctorBase<DeviceType>::GetThreadIdZ());
 
     /* Load first ghost */
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -1466,16 +1466,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
 
   MGARDm_EXEC void
   Operation1() {
-
-    // printf("%llu %llu %llu, %llu %llu %llu\n",
-    //         FunctorBase<DeviceType>::GetBlockIdX(),
-    //         FunctorBase<DeviceType>::GetBlockIdY(),
-    //         FunctorBase<DeviceType>::GetBlockIdZ(),
-    //         FunctorBase<DeviceType>::GetThreadIdX(),
-    //         FunctorBase<DeviceType>::GetThreadIdY(),
-    //         FunctorBase<DeviceType>::GetThreadIdZ());
-
-    LENGTH threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                       (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
     T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
@@ -1495,11 +1486,11 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     processed_dims_sm = sm_dim; sm_dim += D;
     sm = (T*)sm_dim;
 
-    for (LENGTH i = threadId; i < D; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * blockDim.z) {
+    for (LENGTH i = threadId; i < D; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
       shape_sm[i] = *shape(i);
       shape_c_sm[i] = *shape_c(i);
     }
-    for (LENGTH i = threadId; i < processed_n; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * blockDim.z) {
+    for (LENGTH i = threadId; i < processed_n; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
       processed_dims_sm[i] = *processed_dims(i);
     }
 
@@ -1512,11 +1503,11 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     for (DIM d = 0; d < D; d++)
       idx[d] = 0;
 
-    SIZE nr = shape_c_sm[curr_dim_r];
-    SIZE nc = shape_c_sm[curr_dim_c];
-    SIZE nf = shape_c_sm[curr_dim_f];
+    nr = shape_c_sm[curr_dim_r];
+    nc = shape_c_sm[curr_dim_c];
+    nf = shape_c_sm[curr_dim_f];
 
-    SIZE bidx = blockIdx.x;
+    SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     SIZE firstD = div_roundup(nf, FunctorBase<DeviceType>::GetBlockDimX());
     SIZE blockId = bidx % firstD;
 
@@ -1540,7 +1531,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     // v = v + other_offset_v;
 
     f_gl = blockId * F;
-    c_gl = blockIdx.y * C;
+    c_gl = FunctorBase<DeviceType>::GetBlockIdY() * C;
     r_gl = 0;
 
     f_sm = FunctorBase<DeviceType>::GetThreadIdX();
@@ -1552,8 +1543,8 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
 
     prev_vec_sm = 0.0;
 
-    f_rest = min(F, nf - blockId * F);
-    c_rest = min(C, nc - blockIdx.y * C);
+    f_rest = min(F, (SIZE)(nf - blockId * F));
+    c_rest = min(C, (SIZE)(nc - FunctorBase<DeviceType>::GetBlockIdY() * C));
 
     r_rest = nr;
     r_ghost = min(nr, G);
@@ -1586,7 +1577,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
 
   MGARDm_EXEC void
   Operation3() {
-  // while (r_rest > R - r_ghost) {
+    // while (r_rest > R - r_ghost) {
     r_main = min(R, r_rest);
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_main; i++) {
@@ -1608,42 +1599,10 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
   Operation4() {
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
-
-      // #ifdef MGARD_X_FMA
-      //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-      //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
-      //       c_sm, f_sm)]);
-      // #else
-      //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] -= prev_vec_sm *
-      //       bm_sm[0];
-      // #endif
-      // if (debug) printf("compute sm[%d] %f <- %f %f %f\n", 0,
-      //               tridiag_forward(prev_vec_sm, bm_sm[0],
-      //               vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]),
-      //               prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
-      //               c_sm, f_sm)]);
-
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
 
       for (SIZE i = 1; i < R; i++) {
-        // #ifdef MGARD_X_FMA
-        //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
-        //       __fma_rn(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
-        //       bm_sm[i],
-        //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
-        // #else
-        //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] -=
-        //          vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)] * bm_sm[i];
-        // #endif
-
-        // if (debug) printf("compute sm[%d] %f <- %f %f %f\n", i,
-        //             tridiag_forward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
-        //             f_sm)],
-        //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]),
-        //             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
-        //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
-
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_forward2(
             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i], bm_sm[i],
             vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
@@ -1695,9 +1654,9 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
   }
 
 
-      // __syncthreads();
+  //     // __syncthreads();
 
-    // } // end of while
+  //   // } // end of while
 
   MGARDm_EXEC void
   Operation7() {
@@ -1828,13 +1787,6 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
       for (SIZE i = 0; i < r_ghost; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
             *v((nr - 1) - (r_gl + i), c_sm, f_sm);
-
-        // if (debug) printf("load first sm[%d] %f [%d]\n", i,
-        //             vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)], (nr - 1) -
-        //             (r_gl + i));
-
-        // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n", r0_stride,
-        // i, vec_sm[i * ldsm + c_sm]);
       }
     }
 
@@ -1931,7 +1883,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < R; i++) {
-        // if (blockIdx.x == 0 && blockIdx.y == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
         // FunctorBase<DeviceType>::GetThreadIdY() == 0) {
         //   printf("%d %d %d (%f) <- %d %d %d\n", (nr - 1) - (r_gl + i), c_sm,
         //   f_sm,
@@ -2010,7 +1962,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
         //       (vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] - dist_sm[0] *
         //       prev_vec_sm) / am_sm[0];
         // #endif
-        // if (blockIdx.x == 0 && blockIdx.y == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
         // FunctorBase<DeviceType>::GetThreadIdY() == 0) {
         //   printf("backward 1 (%f) %f %f %f %f\n", tridiag_backward(prev_vec_sm,
         //   dist_sm[0], am_sm[0],
@@ -2044,7 +1996,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
         //       (vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] - dist_sm[0] *
         //       prev_vec_sm) / am_sm[0];
         // #endif
-        // if (blockIdx.x == 0 && blockIdx.y == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
         // FunctorBase<DeviceType>::GetThreadIdY() == 0) {
         //   printf("backward 1 (%f) %f %f %f %f\n", tridiag_backward(prev_vec_sm,
         //   dist_sm[0], am_sm[0],
@@ -2076,7 +2028,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
           //          dist_sm[i] * vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
           //          f_sm)]) / am_sm[i];
           // #endif
-          //   if (blockIdx.x == 0 && blockIdx.y == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
+          //   if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
           //   FunctorBase<DeviceType>::GetThreadIdY() == 0) { printf("backward R=%d (%f) %f %f %f %f\n", i,
           //   tridiag_backward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
           //    dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
@@ -2229,7 +2181,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
     int range_l = std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts2[arch][prec][range_l];
+    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts3[arch][prec][range_l];
     #define IPK(CONFIG)\
     if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=IPK_CONFIG[D-1][CONFIG][0];\
@@ -2268,7 +2220,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //                        T *v, LENGTH ldv1, LENGTH ldv2) {
 
 //   // bool debug = false;
-//   // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
+//   // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
 //   //     threadIdx.z == 0 && threadIdx.y == 0)
 //   //   debug = false;
 
@@ -2299,13 +2251,13 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 
 //   SIZE idx[D];
 
-//   for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * blockDim.z) {
+//   for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     shape_sm[i] = shape[i];
 //     shape_c_sm[i] = shape_c[i];
 //     ldvs_sm[i] = ldvs[i];
 //     ldws_sm[i] = ldws[i];
 //   }
-//   for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * blockDim.z) {
+//   for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     processed_dims_sm[i] = processed_dims[i];
 //   }
 //   __syncthreads();
@@ -2322,11 +2274,11 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   if (D < 2)
 //     nc = 1;
 
-//   SIZE bidx = blockIdx.x;
+//   SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
 //   SIZE firstD = div_roundup(nc, C);
 //   SIZE blockId = bidx % firstD;
 //   // if (debug2) {
-//   //   printf("blockIdx.x %u nc %u blockDim.x %u firstD: %u blockId %u\n", blockIdx.x, nc, blockDim.x, firstD, blockId);
+//   //   printf("FunctorBase<DeviceType>::GetBlockIdX() %u nc %u blockDim.x %u firstD: %u blockId %u\n", FunctorBase<DeviceType>::GetBlockIdX(), nc, blockDim.x, firstD, blockId);
 //   // }
 //   bidx /= firstD;
 
@@ -2366,7 +2318,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   // }
 
 //   SIZE c_gl = blockId * C;
-//   SIZE r_gl = blockIdx.y * R;
+//   SIZE r_gl = FunctorBase<DeviceType>::GetBlockIdY() * R;
 //   SIZE f_gl = threadIdx.x;
 
 //   SIZE c_sm = threadIdx.x;
@@ -2389,7 +2341,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   T prev_vec_sm = 0.0;
 
 //   SIZE c_rest = min(C, nc - blockId * C);
-//   SIZE r_rest = min(R, nr - blockIdx.y * R);
+//   SIZE r_rest = min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
 //   SIZE f_rest = nf_c;
 //   SIZE f_ghost = min(nf_c, G);
@@ -2467,14 +2419,14 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     /* flush results to v */
 //     if (r_sm < r_rest && f_sm < F) {
 //       for (SIZE i = 0; i < c_rest; i++) {
-//         // if (blockIdx.x == 0 && blockIdx.y == 0 && r_sm == 0 && i == 1) {
+//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
 //         //   printf("store [%d %d %d] %f<-%f [%d %d %d]\n",
 //         //     r_sm, i, f_gl, vec[get_idx(ldv1, ldv2, r_sm, i, f_gl)],
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)], r_sm, i, f_sm);
 //         // }
 //         vec[get_idx(ldv1, ldv2, r_sm, i, f_gl)] =
 //             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
-//         // if (blockIdx.x == 0 && blockIdx.y == 0 && r_sm == 0 && i == 1) {
+//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
 //         //   printf("store [%d %d %d] %f<-%f [%d %d %d]\n",
 //         //     r_sm, i, f_gl, vec[get_idx(ldv1, ldv2, r_sm, i, f_gl)],
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)], r_sm, i, f_sm);
@@ -2892,7 +2844,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //                        T *v, LENGTH ldv1, LENGTH ldv2) {
 
 //   // bool debug = false;
-//   // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
+//   // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
 //   //     threadIdx.z == 0 && threadIdx.y == 0)
 //   //   debug = false;
 
@@ -2926,13 +2878,13 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 
 //   SIZE idx[D];
 
-//  for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * blockDim.z) {
+//  for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     shape_sm[i] = shape[i];
 //     shape_c_sm[i] = shape_c[i];
 //     ldvs_sm[i] = ldvs[i];
 //     ldws_sm[i] = ldws[i];
 //   }
-//    for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * blockDim.z) {
+//    for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     processed_dims_sm[i] = processed_dims[i];
 //   }
 //   __syncthreads();
@@ -2947,7 +2899,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   if (D < 3)
 //     nr = 1;
 
-//   SIZE bidx = blockIdx.x;
+//   SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
 //   SIZE firstD = div_roundup(nf_c, blockDim.x);
 //   SIZE blockId = bidx % firstD;
 
@@ -2970,7 +2922,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   v = v + other_offset_v;
 
 //   SIZE f_gl = blockId * F;
-//   SIZE r_gl = blockIdx.y * R;
+//   SIZE r_gl = FunctorBase<DeviceType>::GetBlockIdY() * R;
 //   SIZE c_gl = 0;
 
 //   SIZE f_sm = threadIdx.x;
@@ -2982,9 +2934,9 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   T prev_vec_sm = 0.0;
 
 //   SIZE f_rest = min(F, nf_c - blockId * F);
-//   SIZE r_rest = min(R, nr - blockIdx.y * R);
+//   SIZE r_rest = min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
-//   // if (blockIdx.x == 1 && blockIdx.y == 0 && f_sm == 0 && r_sm == 0) {
+//   // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
 //   //   prSIZEf("f_rest: %d r_rest: %d\n", f_rest, r_rest);
 //   // }
 
@@ -3044,7 +2996,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //       bm_sm[i],
 //         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 //         // #else
-//         //       // if (blockIdx.x == 1 && blockIdx.y == 0 && f_sm == 0 && r_sm
+//         //       // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm
 //         //       == 0) {
 //         //       //   printf("calc: %f %f %f -> %f \n", vec_sm[get_idx(ldsm1,
 //         //       ldsm2, r_sm, i, f_sm)],
@@ -3069,7 +3021,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     /* flush results to v */
 //     if (r_sm < r_rest && f_sm < f_rest) {
 //       for (SIZE i = 0; i < C; i++) {
-//         // if (blockIdx.x == 1 && blockIdx.y == 0 && f_sm == 0 && r_sm == 0) {
+//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
 //         //   printf("store: %f\n", vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
 //         //   f_sm)]);
 //         // }
@@ -3184,8 +3136,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   // if (f_gl + f_sm == 0 && r_gl + r_sm == 0 && idx[3] == 0)
 //   //   debug = false;
 //   // if (debug)
-//   //   printf("block id: (%d %d %d) thread id: (%d %d %d)\n", blockIdx.x,
-//   //          blockIdx.y, blockIdx.z, threadIdx.x, threadIdx.y, threadIdx.z);
+//   //   printf("block id: (%d %d %d) thread id: (%d %d %d)\n", FunctorBase<DeviceType>::GetBlockIdX(),
+//   //          FunctorBase<DeviceType>::GetBlockIdY(), blockIdx.z, threadIdx.x, threadIdx.y, threadIdx.z);
 
 //   /* Load first ghost */
 //   if (r_sm < r_rest && f_sm < f_rest) {
@@ -3556,7 +3508,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //                        T *v, LENGTH ldv1, LENGTH ldv2) {
 
 //   // bool debug = false;
-//   // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
+//   // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
 //   // threadIdx.z == 0 && threadIdx.y == 0 ) debug = false;
 
 //   // bool debug2 = false;
@@ -3586,13 +3538,13 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   sm = (T*)sm_dim;
 
 //   SIZE idx[D];
-//   for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * blockDim.z) {
+//   for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     shape_sm[i] = shape[i];
 //     shape_c_sm[i] = shape_c[i];
 //     ldvs_sm[i] = ldvs[i];
 //     ldws_sm[i] = ldws[i];
 //   }
-//   for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * blockDim.z) {
+//   for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     processed_dims_sm[i] = processed_dims[i];
 //   }
 //   __syncthreads();
@@ -3604,7 +3556,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   SIZE nc_c = shape_c_sm[curr_dim_c];
 //   SIZE nf_c = shape_c_sm[curr_dim_f];
 
-//   SIZE bidx = blockIdx.x;
+//   SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
 //   SIZE firstD = div_roundup(nf_c, blockDim.x);
 //   SIZE blockId = bidx % firstD;
 
@@ -3627,7 +3579,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   v = v + other_offset_v;
 
 //   SIZE f_gl = blockId * F;
-//   SIZE c_gl = blockIdx.y * C;
+//   SIZE c_gl = FunctorBase<DeviceType>::GetBlockIdY() * C;
 //   SIZE r_gl = 0;
 
 //   SIZE f_sm = threadIdx.x;
@@ -3639,7 +3591,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   T prev_vec_sm = 0.0;
 
 //   SIZE f_rest = min(F, nf_c - blockId * F);
-//   SIZE c_rest = min(C, nc_c - blockIdx.y * C);
+//   SIZE c_rest = min(C, nc_c - FunctorBase<DeviceType>::GetBlockIdY() * C);
 
 //   SIZE r_rest = nr_c;
 //   SIZE r_ghost = min(nr_c, G);
@@ -3969,7 +3921,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     /* flush results to v */
 //     if (c_sm < c_rest && f_sm < f_rest) {
 //       for (SIZE i = 0; i < R; i++) {
-//         // if (blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 0 &&
+//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
 //         // threadIdx.y == 0) {
 //         //   printf("%d %d %d (%f) <- %d %d %d\n", (nr - 1) - (r_gl + i), c_sm,
 //         //   f_sm,
@@ -4039,7 +3991,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //       (vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] - dist_sm[0] *
 //       //       prev_vec_sm) / am_sm[0];
 //       // #endif
-//       // if (blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 0 &&
+//       // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
 //       // threadIdx.y == 0) {
 //       //   printf("backward 1 (%f) %f %f %f %f\n", tridiag_backward(prev_vec_sm,
 //       //   dist_sm[0], am_sm[0],
@@ -4073,7 +4025,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //       (vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] - dist_sm[0] *
 //       //       prev_vec_sm) / am_sm[0];
 //       // #endif
-//       // if (blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 0 &&
+//       // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
 //       // threadIdx.y == 0) {
 //       //   printf("backward 1 (%f) %f %f %f %f\n", tridiag_backward(prev_vec_sm,
 //       //   dist_sm[0], am_sm[0],
@@ -4105,7 +4057,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //          dist_sm[i] * vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
 //         //          f_sm)]) / am_sm[i];
 //         // #endif
-//         //   if (blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 0 &&
+//         //   if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
 //         //   threadIdx.y == 0) { printf("backward R=%d (%f) %f %f %f %f\n", i,
 //         //   tridiag_backward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
 //         //    dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
