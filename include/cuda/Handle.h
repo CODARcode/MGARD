@@ -93,6 +93,10 @@ template <DIM D, typename T> struct Handle {
   Array<2, T, CUDA> volumes_array;
   std::vector<std::vector<T *>> am;
   std::vector<std::vector<T *>> bm;
+
+  std::vector<std::vector<Array<1, T, CUDA>>> am_array;
+  std::vector<std::vector<Array<1, T, CUDA>>> bm_array;
+
   LENGTH linearized_depth;
   LENGTH padded_linearized_depth;
 
