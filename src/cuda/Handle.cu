@@ -418,15 +418,26 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
 
   for (DIM i = 0; i < D; i++) {
     std::vector<T *> curr_am_l, curr_bm_l;
+    std::vector<Array<1, T, CUDA>> curr_am_l_array, curr_bm_l_array;
     for (SIZE l = 0; l < l_target+1; l++) {
       T *curr_am, *curr_bm;
       cudaMallocHelper(*this, (void **)&curr_am, (dofs[i][l]+1) * sizeof(T));
       cudaMallocHelper(*this, (void **)&curr_bm, (dofs[i][l]+1) * sizeof(T));
       cudaMemsetHelper((void **)&curr_am, (dofs[i][l]+1) * sizeof(T), 0);
       cudaMemsetHelper((void **)&curr_bm, (dofs[i][l]+1) * sizeof(T), 0);
+
+      Array<1, T, CUDA> curr_am_array({dofs[i][l]+1});
+      Array<1, T, CUDA> curr_bm_array({dofs[i][l]+1});
+      curr_am_array.memset(0);
+      curr_bm_array.memset(0);
+
       curr_am_l.push_back(curr_am);
       curr_bm_l.push_back(curr_bm);
+      curr_am_l_array.push_back(curr_am_array);
+      curr_bm_l_array.push_back(curr_bm_array);
+
       calc_am_bm(dofs[i][l], dist[i][l], curr_am_l[l], curr_bm_l[l]);
+      calc_am_bm(dofs[i][l], dist[i][l], curr_am_l_array[l].get_dv(), curr_bm_l_array[l].get_dv());
       // printf("d: %d, l: %d\n", i, l);
       // printf("am: ");
       // print_matrix_cuda(1, dofs[i][l]+1, curr_am_l[l], dofs[i][l]+1);
@@ -435,6 +446,8 @@ void Handle<D, T>::init(std::vector<SIZE> shape, std::vector<T *> coords,
     }
     am.push_back(curr_am_l);
     bm.push_back(curr_bm_l);
+    am_array.push_back(curr_am_l_array);
+    bm_array.push_back(curr_bm_l_array);
   }
 
   lossless = config.lossless;

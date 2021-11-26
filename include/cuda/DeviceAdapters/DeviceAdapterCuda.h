@@ -142,43 +142,45 @@ MGARDm_KERL void IterKernel(Task task) {
   task.get_functor().Operation1();
   SyncBlock<CUDA>::Sync();
 
+  task.get_functor().Operation2();
+  SyncBlock<CUDA>::Sync();
+
   while (task.get_functor().LoopCondition1()) {
-    task.get_functor().Operation2();
-    SyncBlock<CUDA>::Sync();
     task.get_functor().Operation3();
     SyncBlock<CUDA>::Sync();
     task.get_functor().Operation4();
     SyncBlock<CUDA>::Sync();
     task.get_functor().Operation5();
     SyncBlock<CUDA>::Sync();
+    task.get_functor().Operation6();
+    SyncBlock<CUDA>::Sync();
   }
 
-  task.get_functor().Operation6();
-  SyncBlock<CUDA>::Sync();
   task.get_functor().Operation7();
   SyncBlock<CUDA>::Sync();
   task.get_functor().Operation8();
   SyncBlock<CUDA>::Sync();
-
   task.get_functor().Operation9();
+  SyncBlock<CUDA>::Sync();
+  task.get_functor().Operation10();
   SyncBlock<CUDA>::Sync();
   
   while (task.get_functor().LoopCondition2()) {
-    task.get_functor().Operation10();
-    SyncBlock<CUDA>::Sync();
     task.get_functor().Operation11();
     SyncBlock<CUDA>::Sync();
     task.get_functor().Operation12();
     SyncBlock<CUDA>::Sync();
     task.get_functor().Operation13();
     SyncBlock<CUDA>::Sync();
+    task.get_functor().Operation14();
+    SyncBlock<CUDA>::Sync();
   }
 
-  task.get_functor().Operation14();
-  SyncBlock<CUDA>::Sync();
   task.get_functor().Operation15();
   SyncBlock<CUDA>::Sync();
   task.get_functor().Operation16();
+  SyncBlock<CUDA>::Sync();
+  task.get_functor().Operation17();
   SyncBlock<CUDA>::Sync();
 }
 

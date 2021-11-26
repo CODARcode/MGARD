@@ -22,10 +22,11 @@
 #include "DataRefactoring/Correction/IterativeProcessingKernel.h"
 #include "DataRefactoring/Correction/IterativeProcessingKernel3D.h"
 #include "DataRefactoring/Correction/IterativeProcessingKernel3D.hpp"
+#include "DataRefactoring/Correction/IterativeProcessingKernel.hpp"
 #include "LevelwiseProcessingKernel.h"
 #include "LevelwiseProcessingKernel.hpp"
 #include "DataRefactoring/Correction/LinearProcessingKernel.h"
-#include "DataRefactoring/Correction/LinearProcessingKernel2.hpp"
+#include "DataRefactoring/Correction/LinearProcessingKernel.hpp"
 #include "DataRefactoring/Correction/LinearProcessingKernel3D.h"
 #include "DataRefactoring/Correction/LinearProcessingKernel3D.hpp"
 
@@ -1902,17 +1903,28 @@ void calc_correction_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
   dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
 
   // printf("solve tridiag 1D\n");
-  ipk_1<D, T>(
-      handle, handle.shapes_h[l], handle.shapes_h[l + 1],
-      handle.shapes_d[l], handle.shapes_d[l + 1], 
-      dw_out.getLdd(), dw_out.getLdd(), 
-      handle.processed_n[0], handle.processed_dims_h[0],
-      handle.processed_dims_d[0], 
-      curr_dim_r, curr_dim_c, curr_dim_f,
-      handle.am[curr_dim_f][l + 1], handle.bm[curr_dim_f][l + 1],
-      handle.dist[curr_dim_f][l + 1], 
-      dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
-      handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
+  // ipk_1<D, T>(
+  //     handle, handle.shapes_h[l], handle.shapes_h[l + 1],
+  //     handle.shapes_d[l], handle.shapes_d[l + 1], 
+  //     dw_out.getLdd(), dw_out.getLdd(), 
+  //     handle.processed_n[0], handle.processed_dims_h[0],
+  //     handle.processed_dims_d[0], 
+  //     curr_dim_r, curr_dim_c, curr_dim_f,
+  //     handle.am[curr_dim_f][l + 1], handle.bm[curr_dim_f][l + 1],
+  //     handle.dist[curr_dim_f][l + 1], 
+  //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
+  //     handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
+
+  gpuErrchk(cudaDeviceSynchronize());
+  Ipk1Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
+                                      SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
+                                      handle.processed_n[0], 
+                                      SubArray<1, SIZE, DeviceType>(handle.processed_dims[0], true), 
+                                      curr_dim_r, curr_dim_c, curr_dim_f,
+                                      SubArray(handle.am_array[curr_dim_f][l+1]), 
+                                      SubArray(handle.bm_array[curr_dim_f][l+1]), 
+                                      dw_out, 0);
+  gpuErrchk(cudaDeviceSynchronize());
 
   if (debug_print){ // debug
     PrintSubarray4D(format("decomposition: after TR-1D[{}]", l), dw_out);
@@ -1924,17 +1936,29 @@ void calc_correction_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
   dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
 
   // printf("solve tridiag 2D\n");
-  ipk_2<D, T>(
-      handle, handle.shapes_h[l], handle.shapes_h[l + 1],
-      handle.shapes_d[l], handle.shapes_d[l + 1], 
-      dw_out.getLdd(), dw_out.getLdd(),
-      handle.processed_n[1], handle.processed_dims_h[1],
-      handle.processed_dims_d[1], 
-      curr_dim_r, curr_dim_c, curr_dim_f,
-      handle.am[curr_dim_c][l + 1], handle.bm[curr_dim_c][l + 1],
-      handle.dist[curr_dim_c][l + 1], 
-      dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
-      handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
+  // ipk_2<D, T>(
+  //     handle, handle.shapes_h[l], handle.shapes_h[l + 1],
+  //     handle.shapes_d[l], handle.shapes_d[l + 1], 
+  //     dw_out.getLdd(), dw_out.getLdd(),
+  //     handle.processed_n[1], handle.processed_dims_h[1],
+  //     handle.processed_dims_d[1], 
+  //     curr_dim_r, curr_dim_c, curr_dim_f,
+  //     handle.am[curr_dim_c][l + 1], handle.bm[curr_dim_c][l + 1],
+  //     handle.dist[curr_dim_c][l + 1], 
+  //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
+  //     handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
+
+  gpuErrchk(cudaDeviceSynchronize());
+  Ipk2Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
+                                      SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
+                                      handle.processed_n[1], 
+                                      SubArray<1, SIZE, DeviceType>(handle.processed_dims[1], true), 
+                                      curr_dim_r, curr_dim_c, curr_dim_f,
+                                      SubArray(handle.am_array[curr_dim_c][l+1]), 
+                                      SubArray(handle.bm_array[curr_dim_c][l+1]), 
+                                      // SubArray(handle.dist_array[curr_dim_f][l+1]), 
+                                      dw_out, 0);
+  gpuErrchk(cudaDeviceSynchronize());
 
   if (debug_print){ // debug
     PrintSubarray4D(format("decomposition: after TR-2D[{}]", l), dw_out);
@@ -1946,16 +1970,28 @@ void calc_correction_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
   dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
 
   // printf("solve tridiag 3D\n");
-  ipk_3<D, T>(
-      handle, handle.shapes_h[l], handle.shapes_h[l + 1],
-      handle.shapes_d[l], handle.shapes_d[l + 1], 
-      dw_out.getLdd(), dw_out.getLdd(),
-      handle.processed_n[2], handle.processed_dims_h[2],
-      handle.processed_dims_d[2], curr_dim_r, curr_dim_c, curr_dim_f,
-      handle.am[curr_dim_r][l + 1], handle.bm[curr_dim_r][l + 1],
-      handle.dist[curr_dim_r][l + 1], 
-      dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
-      handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
+  // ipk_3<D, T>(
+  //     handle, handle.shapes_h[l], handle.shapes_h[l + 1],
+  //     handle.shapes_d[l], handle.shapes_d[l + 1], 
+  //     dw_out.getLdd(), dw_out.getLdd(),
+  //     handle.processed_n[2], handle.processed_dims_h[2],
+  //     handle.processed_dims_d[2], curr_dim_r, curr_dim_c, curr_dim_f,
+  //     handle.am[curr_dim_r][l + 1], handle.bm[curr_dim_r][l + 1],
+  //     handle.dist[curr_dim_r][l + 1], 
+  //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
+  //     handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
+
+  gpuErrchk(cudaDeviceSynchronize());
+  Ipk3Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
+                                      SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
+                                      handle.processed_n[2], 
+                                      SubArray<1, SIZE, DeviceType>(handle.processed_dims[2], true), 
+                                      curr_dim_r, curr_dim_c, curr_dim_f,
+                                      SubArray(handle.am_array[curr_dim_r][l+1]), 
+                                      SubArray(handle.bm_array[curr_dim_r][l+1]), 
+                                      // SubArray(handle.dist_array[curr_dim_f][l+1]), 
+                                      dw_out, 0);
+  gpuErrchk(cudaDeviceSynchronize());
 
 
   if (debug_print){ // debug
@@ -1969,16 +2005,28 @@ void calc_correction_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     dw_in2.project(curr_dim_f, curr_dim_c, curr_dim_r);
     dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
     // printf("solve tridiag %dD\n", i+1);
-    ipk_3<D, T>(
-        handle, handle.shapes_h[l], handle.shapes_h[l + 1],
-        handle.shapes_d[l], handle.shapes_d[l + 1], 
-        dw_out.getLdd(), dw_out.getLdd(),
-        handle.processed_n[i], handle.processed_dims_h[i],
-        handle.processed_dims_d[i], curr_dim_r, curr_dim_c, curr_dim_f,
-        handle.am[curr_dim_r][l + 1], handle.bm[curr_dim_r][l + 1],
-        handle.dist[curr_dim_r][l + 1], 
-        dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
-        handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
+    // ipk_3<D, T>(
+    //     handle, handle.shapes_h[l], handle.shapes_h[l + 1],
+    //     handle.shapes_d[l], handle.shapes_d[l + 1], 
+    //     dw_out.getLdd(), dw_out.getLdd(),
+    //     handle.processed_n[i], handle.processed_dims_h[i],
+    //     handle.processed_dims_d[i], curr_dim_r, curr_dim_c, curr_dim_f,
+    //     handle.am[curr_dim_r][l + 1], handle.bm[curr_dim_r][l + 1],
+    //     handle.dist[curr_dim_r][l + 1], 
+    //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
+    //     handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
+
+    gpuErrchk(cudaDeviceSynchronize());
+    Ipk3Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
+                                      SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
+                                      handle.processed_n[i], 
+                                      SubArray<1, SIZE, DeviceType>(handle.processed_dims[i], true), 
+                                      curr_dim_r, curr_dim_c, curr_dim_f,
+                                      SubArray(handle.am_array[curr_dim_r][l+1]), 
+                                      SubArray(handle.bm_array[curr_dim_r][l+1]), 
+                                      // SubArray(handle.dist_array[curr_dim_f][l+1]), 
+                                      dw_out, 0);
+    gpuErrchk(cudaDeviceSynchronize());
     if (debug_print){ // debug
       PrintSubarray4D(format("decomposition: after TR-{}D[{}]", i+1, l), dw_out);
     } //debug

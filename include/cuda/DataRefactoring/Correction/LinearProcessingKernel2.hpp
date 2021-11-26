@@ -21,7 +21,7 @@ namespace mgard_x {
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk1ReoFunctor: public Functor<DeviceType> {
-public:
+  public:
   MGARDm_CONT Lpk1ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
                              SubArray<1, SIZE, DeviceType> shape_c,
                              DIM processed_n, 
@@ -40,10 +40,10 @@ public:
 
   MGARDm_EXEC void
   Operation1() {
-    threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
-                      (threadIdx.y * blockDim.x) + threadIdx.x;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                      (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
-    T *sm = (T*)this->shared_memory;
+    T *sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F * 2 + 3;
     ldsm2 = C;
     v_sm = sm; sm += ldsm1 * ldsm2 * R;
@@ -84,11 +84,11 @@ public:
     zero_other = true;
     PADDING = (nf % 2 == 0);
 
-    bidx = blockIdx.x;
+    bidx = FunctorBase<DeviceType>::GetBlockIdX();
     if (nf_c % 2 == 1) {
-      firstD = div_roundup(nf_c, blockDim.x);
+      firstD = div_roundup(nf_c, FunctorBase<DeviceType>::GetBlockDimX());
     } else {
-      firstD = div_roundup(nf_c, blockDim.x);
+      firstD = div_roundup(nf_c, FunctorBase<DeviceType>::GetBlockDimX());
     }
     blockId = bidx % firstD;
     bidx /= firstD;
@@ -130,25 +130,25 @@ public:
     //   printf("other_offset_v: %llu\n", other_offset_v);
     //   printf("other_offset_w: %llu\n", other_offset_w);
     // }
-    r_gl = blockIdx.z * blockDim.z + threadIdx.z;
-    c_gl = blockIdx.y * blockDim.y + threadIdx.y;
-    f_gl = blockId * blockDim.x + threadIdx.x;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
+    c_gl = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
+    f_gl = blockId * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
 
-    r_sm = threadIdx.z;
-    c_sm = threadIdx.y;
-    f_sm = threadIdx.x;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     actual_F = F;
-    if (nf_c - blockId * blockDim.x < F) {
-      actual_F = nf_c - blockId * blockDim.x;
+    if (nf_c - blockId * FunctorBase<DeviceType>::GetBlockDimX() < F) {
+      actual_F = nf_c - blockId * FunctorBase<DeviceType>::GetBlockDimX();
     }
 
     // if (nf_c % 2 == 1){
-    //   if(nf_c-1 - blockId * blockDim.x < F) { actual_F = nf_c - 1 - blockId *
-    //   blockDim.x; }
+    //   if(nf_c-1 - blockId * FunctorBase<DeviceType>::GetBlockDimX() < F) { actual_F = nf_c - 1 - blockId *
+    //   FunctorBase<DeviceType>::GetBlockDimX(); }
     // } else {
-    //   if(nf_c - blockId * blockDim.x < F) { actual_F = nf_c - blockId *
-    //   blockDim.x; }
+    //   if(nf_c - blockId * FunctorBase<DeviceType>::GetBlockDimX() < F) { actual_F = nf_c - blockId *
+    //   FunctorBase<DeviceType>::GetBlockDimX(); }
     // }
 
     // if (debug) printf("actual_F %d\n", actual_F);
@@ -417,7 +417,7 @@ public:
     return size;
   }
  
-private:
+  private:
   // functor parameters
   SubArray<1, SIZE, DeviceType> shape;
   SubArray<1, SIZE, DeviceType> shape_c;
@@ -468,7 +468,7 @@ private:
 
 template <DIM D, typename T, typename DeviceType>
 class Lpk1Reo: public AutoTuner<DeviceType> {
-public:
+  public:
   MGARDm_CONT
   Lpk1Reo():AutoTuner<DeviceType>() {}
 
@@ -565,7 +565,7 @@ public:
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk2ReoFunctor: public Functor<DeviceType> {
-public:
+  public:
   MGARDm_CONT Lpk2ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
                              SubArray<1, SIZE, DeviceType> shape_c,
                              DIM processed_n, 
@@ -584,11 +584,11 @@ public:
 
   MGARDm_EXEC void
   Operation1() {
-    threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
-                      (threadIdx.y * blockDim.x) + threadIdx.x;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                      (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
 
-    T *sm = (T*)this->shared_memory;
+    T *sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C * 2 + 3;
     v_sm = sm; sm += ldsm1 * ldsm2 * R;
@@ -631,8 +631,8 @@ public:
       nr = 1;
     }
 
-    bidx = blockIdx.x;
-    firstD = div_roundup(nf_c, blockDim.x);
+    bidx = FunctorBase<DeviceType>::GetBlockIdX();
+    firstD = div_roundup(nf_c, FunctorBase<DeviceType>::GetBlockDimX());
     blockId_f = bidx % firstD;
     bidx /= firstD;
 
@@ -666,27 +666,27 @@ public:
     //   printf("other_offset_w: %llu\n", other_offset_w);
     // }
 
-    r_gl = blockIdx.z * blockDim.z + threadIdx.z;
-    c_gl = blockIdx.y * blockDim.y + threadIdx.y;
-    f_gl = blockId_f * blockDim.x + threadIdx.x;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
+    c_gl = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
+    f_gl = blockId_f * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
 
-    blockId = blockIdx.y;
+    blockId = FunctorBase<DeviceType>::GetBlockIdY();
 
-    r_sm = threadIdx.z;
-    c_sm = threadIdx.y;
-    f_sm = threadIdx.x;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     actual_C = C;
-    if (nc_c - blockIdx.y * blockDim.y < C) {
-      actual_C = nc_c - blockIdx.y * blockDim.y;
+    if (nc_c - FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() < C) {
+      actual_C = nc_c - FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
     }
 
     // if (nc_c % 2 == 1){
-    //   if(nc_c-1 - blockIdx.y * blockDim.y < C) { actual_C = nc_c - 1 -
-    //   blockIdx.y * blockDim.y; }
+    //   if(nc_c-1 - FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() < C) { actual_C = nc_c - 1 -
+    //   FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY(); }
     // } else {
-    //   if(nc_c - blockIdx.y * blockDim.y < C) { actual_C = nc_c - blockIdx.y *
-    //   blockDim.y; }
+    //   if(nc_c - FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() < C) { actual_C = nc_c - FunctorBase<DeviceType>::GetBlockIdY() *
+    //   FunctorBase<DeviceType>::GetBlockDimY(); }
     // }
 
     // bool debug = false;
@@ -877,7 +877,7 @@ public:
     return size;
   }
  
-private:
+  private:
   // functor parameters
   SubArray<1, SIZE, DeviceType> shape;
   SubArray<1, SIZE, DeviceType> shape_c;
@@ -929,7 +929,7 @@ private:
 
 template <DIM D, typename T, typename DeviceType>
 class Lpk2Reo: public AutoTuner<DeviceType> {
-public:
+  public:
   MGARDm_CONT
   Lpk2Reo():AutoTuner<DeviceType>() {}
 
@@ -1028,7 +1028,7 @@ public:
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk3ReoFunctor: public Functor<DeviceType> {
-public:
+  public:
   MGARDm_CONT Lpk3ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
                              SubArray<1, SIZE, DeviceType> shape_c,
                              DIM processed_n, 
@@ -1047,10 +1047,10 @@ public:
 
   MGARDm_EXEC void
   Operation1() {
-    threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
-                      (threadIdx.y * blockDim.x) + threadIdx.x;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                      (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
-    T *sm = (T*)this->shared_memory;
+    T *sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C;
     v_sm = sm; sm += ldsm1 * ldsm2 * (R * 2 + 3);
@@ -1088,8 +1088,8 @@ public:
     nr_c = shape_c_sm[curr_dim_r];
     PADDING = (nr % 2 == 0);
 
-    bidx = blockIdx.x;
-    firstD = div_roundup(nf_c, blockDim.x);
+    bidx = FunctorBase<DeviceType>::GetBlockIdX();
+    firstD = div_roundup(nf_c, FunctorBase<DeviceType>::GetBlockDimX());
     blockId_f = bidx % firstD;
     bidx /= firstD;
 
@@ -1123,26 +1123,26 @@ public:
     //   printf("other_offset_w: %llu\n", other_offset_w);
     // }
 
-    r_gl = blockIdx.z * blockDim.z + threadIdx.z;
-    c_gl = blockIdx.y * blockDim.y + threadIdx.y;
-    f_gl = blockId_f * blockDim.x + threadIdx.x;
+    r_gl = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() + FunctorBase<DeviceType>::GetThreadIdZ();
+    c_gl = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
+    f_gl = blockId_f * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
 
-    blockId = blockIdx.z;
+    blockId = FunctorBase<DeviceType>::GetBlockIdZ();
 
-    r_sm = threadIdx.z;
-    c_sm = threadIdx.y;
-    f_sm = threadIdx.x;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     actual_R = R;
-    if (nr_c - blockIdx.z * blockDim.z < R) {
-      actual_R = nr_c - blockIdx.z * blockDim.z;
+    if (nr_c - FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() < R) {
+      actual_R = nr_c - FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
     }
     // if (nr_c % 2 == 1){
-    //   if(nr_c-1 - blockIdx.z * blockDim.z < R) { actual_R = nr_c - 1 -
-    //   blockIdx.z * blockDim.z; }
+    //   if(nr_c-1 - FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() < R) { actual_R = nr_c - 1 -
+    //   FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ(); }
     // } else {
-    //   if(nr_c - blockIdx.z * blockDim.z < R) { actual_R = nr_c - blockIdx.z *
-    //   blockDim.z; }
+    //   if(nr_c - FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ() < R) { actual_R = nr_c - FunctorBase<DeviceType>::GetBlockIdZ() *
+    //   FunctorBase<DeviceType>::GetBlockDimZ(); }
     // }
 
     // if (debug) printf("actual_R %d\n", actual_R);
@@ -1348,7 +1348,7 @@ public:
     return size;
   }
  
-private:
+  private:
   // functor parameters
   SubArray<1, SIZE, DeviceType> shape;
   SubArray<1, SIZE, DeviceType> shape_c;
@@ -1400,7 +1400,7 @@ private:
 
 template <DIM D, typename T, typename DeviceType>
 class Lpk3Reo: public AutoTuner<DeviceType> {
-public:
+  public:
   MGARDm_CONT
   Lpk3Reo():AutoTuner<DeviceType>() {}
 
