@@ -5,7 +5,7 @@ set(MGARD_X_SRC
       ${CMAKE_CURRENT_SOURCE_DIR}/Message.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/CompressionWorkflow.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/Handle.cu
-      ${CMAKE_CURRENT_SOURCE_DIR}/MemoryManagement.cu   
+      #${CMAKE_CURRENT_SOURCE_DIR}/MemoryManagement.cu   
       ${CMAKE_CURRENT_SOURCE_DIR}/Metadata.cpp               
       ${CMAKE_CURRENT_SOURCE_DIR}/CommonInternal.cu    
       ${CMAKE_CURRENT_SOURCE_DIR}/PrecomputeKernels.cu  
@@ -69,7 +69,7 @@ set(MGARD_X_SRC
       #${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernels/SolveTridiag1_3D_AMR.cu
       
       
-      ${CMAKE_CURRENT_SOURCE_DIR}/LosslessCompression.cu
+      #${CMAKE_CURRENT_SOURCE_DIR}/LosslessCompression.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ErrorCalculator.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/canonical.cu
       ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/constants.cc

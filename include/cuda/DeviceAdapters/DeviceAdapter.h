@@ -205,6 +205,10 @@ class MemoryManager {
   MGARDm_CONT static
   void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value);
 
+  template <typename T>
+  MGARDm_CONT static
+  bool IsDevicePointer(T * ptr);
+
   static bool ReduceMemoryFootprint;
 };
 

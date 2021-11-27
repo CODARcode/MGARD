@@ -340,17 +340,24 @@ template <mgard_x::DIM D, typename T, mgard_x::OPTION Direction, typename Device
                       int queue_idx) const {
         // mgard_x::PrintSubarray("decomposed_data", decomposed_data);
         mgard_x::SubArray<1, T, mgard_x::CUDA> * levels_decomposed_data_device;
-        mgard_x::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
-                            sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1));
-        mgard_x::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
-                                          sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1), mgard_x::AUTO, queue_idx);
-        handle.sync(queue_idx);
+        // mgard_x::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
+        //                     sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1));
+        // mgard_x::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
+        //                                   sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1), mgard_x::AUTO, queue_idx);
+        // handle.sync(queue_idx);
+        
+        MemoryManager<CUDA>::Malloc1D(levels_decomposed_data_device, this->handle.l_target+1, 0);
+        MemoryManager<CUDA>::Copy1D(levels_decomposed_data_device, levels_decomposed_data, this->handle.l_target+1, 0);
+        DeviceRuntime<CUDA>::SyncQueue(0);
+
+
         DirectInterleaverKernel<D, T, Interleave, mgard_x::CUDA>().
                       Execute(mgard_x::SubArray<1, mgard_x::SIZE, mgard_x::CUDA>(handle.shapes[0], true), handle.l_target, 
                         mgard_x::SubArray<1, mgard_x::SIZE, mgard_x::CUDA>(handle.ranges),
                         decomposed_data, levels_decomposed_data_device, queue_idx);
         
-        handle.sync(queue_idx);
+        DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+        // handle.sync(queue_idx);
         // for (int i = 0; i < this->handle.l_target+1; i++) {
         //   printf("l = %d\n", i);
         //   mgard_x::PrintSubarray("levels_decomposed_data", levels_decomposed_data[i]);
@@ -361,14 +368,21 @@ template <mgard_x::DIM D, typename T, mgard_x::OPTION Direction, typename Device
                       int queue_idx) const {
         
         mgard_x::SubArray<1, T, mgard_x::CUDA> * levels_decomposed_data_device;
-        mgard_x::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
-                            sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1));
-        mgard_x::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
-                                          sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1), mgard_x::AUTO, queue_idx);
-        handle.sync(queue_idx);
+        // mgard_x::cudaMallocHelper(this->handle, (void**)&levels_decomposed_data_device, 
+        //                     sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1));
+        // mgard_x::cudaMemcpyAsyncHelper(this->handle, levels_decomposed_data_device, levels_decomposed_data,
+        //                                   sizeof(mgard_x::SubArray<1, T, mgard_x::CUDA>)*(this->handle.l_target+1), mgard_x::AUTO, queue_idx);
+        // handle.sync(queue_idx);
+
+        MemoryManager<CUDA>::Malloc1D(levels_decomposed_data_device, this->handle.l_target+1, 0);
+        MemoryManager<CUDA>::Copy1D(levels_decomposed_data_device, levels_decomposed_data, this->handle.l_target+1, 0);
+        DeviceRuntime<CUDA>::SyncQueue(0);
+
+
         DirectInterleaverKernel<D, T, Reposition, mgard_x::CUDA>().
                       Execute(mgard_x::SubArray<1, mgard_x::SIZE, mgard_x::CUDA>(handle.shapes[0], true), handle.l_target, 
                         mgard_x::SubArray<1, mgard_x::SIZE, mgard_x::CUDA>(handle.ranges), decomposed_data, levels_decomposed_data_device, queue_idx);
+        DeviceRuntime<CUDA>::SyncQueue(queue_idx);
       }
       void print() const {
           std::cout << "Direct interleaver" << std::endl;

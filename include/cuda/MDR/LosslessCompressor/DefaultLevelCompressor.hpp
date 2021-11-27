@@ -70,9 +70,12 @@ public:
       for (mgard_x::SIZE bitplane_idx = 0; bitplane_idx < encoded_bitplanes_subarray.getShape(1); bitplane_idx++) {
         T * bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
         T * bitplane_host = new T[bitplane_sizes[bitplane_idx]];
-        mgard_x::cudaMemcpyAsyncHelper(handle, bitplane_host, bitplane,
-                                          bitplane_sizes[bitplane_idx], mgard_x::AUTO, 0);
-        handle.sync(0);
+        // mgard_x::cudaMemcpyAsyncHelper(handle, bitplane_host, bitplane,
+        //                                   bitplane_sizes[bitplane_idx], mgard_x::AUTO, 0);
+        // handle.sync(0);
+        MemoryManager<CUDA>::Copy1D(bitplane_host, bitplane, bitplane_sizes[bitplane_idx]/sizeof(T), 0);
+        DeviceRuntime<CUDA>::SyncQueue(0);
+
         mgard_x::Byte * compressed_host = NULL;
         mgard_x::SIZE compressed_bitplane_size = 
           mgard_x::MDR::ZSTD::compress((uint8_t*)bitplane_host, bitplane_sizes[bitplane_idx], &compressed_host);
@@ -95,15 +98,22 @@ public:
       for (mgard_x::SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
         mgard_x::SubArray<1, mgard_x::Byte, mgard_x::CUDA> compressed_bitplane_subarray(compressed_bitplanes[bitplane_idx]);
         mgard_x::Byte * compressed_host = new mgard_x::Byte[bitplane_sizes[bitplane_idx]];
-        mgard_x::cudaMemcpyAsyncHelper(handle, compressed_host, compressed_bitplane_subarray.data(),
-                                          bitplane_sizes[starting_bitplane + bitplane_idx], mgard_x::AUTO, 0);
-        handle.sync(0);
+        // mgard_x::cudaMemcpyAsyncHelper(handle, compressed_host, compressed_bitplane_subarray.data(),
+        //                                   bitplane_sizes[starting_bitplane + bitplane_idx], mgard_x::AUTO, 0);
+        // handle.sync(0);
+        MemoryManager<CUDA>::Copy1D(compressed_host, compressed_bitplane_subarray.data(),
+                                    bitplane_sizes[starting_bitplane + bitplane_idx], 0);
+        DeviceRuntime<CUDA>::SyncQueue(0);
+
         mgard_x::Byte * bitplane_host = NULL;
         bitplane_sizes[bitplane_idx] = mgard_x::MDR::ZSTD::decompress(compressed_host, bitplane_sizes[bitplane_idx], &bitplane_host);
         T * bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
-        mgard_x::cudaMemcpyAsyncHelper(handle, bitplane, bitplane_host,
-                                          bitplane_sizes[bitplane_idx], mgard_x::AUTO, 0);
-        handle.sync(0);
+        // mgard_x::cudaMemcpyAsyncHelper(handle, bitplane, bitplane_host,
+        //                                   bitplane_sizes[bitplane_idx], mgard_x::AUTO, 0);
+        // handle.sync(0);
+        MemoryManager<CUDA>::Copy1D(bitplane, bitplane_host,
+                                    bitplane_sizes[bitplane_idx]/sizeof(T), 0);
+        DeviceRuntime<CUDA>::SyncQueue(0);
       }
     }
 

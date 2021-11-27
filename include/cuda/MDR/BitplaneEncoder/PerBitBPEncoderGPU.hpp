@@ -866,8 +866,10 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
             // printf("calling PerBitEncoder\n");
             PerBitEncoder<T_data, CUDA>().Execute(n, num_bitplanes, exp, v, encoded_bitplanes_subarray, level_errors_subarray, level_errors_work_subarray, 0);
 
-            cudaMemcpyAsyncHelper(_handle, level_errors.data(), level_errors_subarray.data(), (num_bitplanes+1)* sizeof(double), AUTO, 0);
-            _handle.sync_all();
+            // cudaMemcpyAsyncHelper(_handle, level_errors.data(), level_errors_subarray.data(), (num_bitplanes+1)* sizeof(double), AUTO, 0);
+            MemoryManager<CUDA>::Copy1D(level_errors.data(), level_errors_subarray.data(), num_bitplanes+1, 0);
+            DeviceRuntime<CUDA>::SyncQueue(0);
+            // _handle.sync_all();
 
             // PrintSubarray("encoded_bitplanes_subarray", encoded_bitplanes_subarray);
 

@@ -57,8 +57,8 @@ template <DIM D, typename T> struct Handle {
   Handle(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
   ~Handle();
 
-  void allocate_workspace();
-  void free_workspace();
+  // void allocate_workspace();
+  // void free_workspace();
   void *get(int i);
   void sync(int i);
   void sync_all();
@@ -74,25 +74,26 @@ template <DIM D, typename T> struct Handle {
   std::vector<SIZE> shape_org;
   std::vector<SIZE> shape;
   std::vector<std::vector<SIZE>> dofs;
-  std::vector<SIZE *> shapes_h;
-  std::vector<SIZE *> shapes_d;
+  // std::vector<SIZE *> shapes_h;
+  // std::vector<SIZE *> shapes_d;
   std::vector<Array<1, SIZE, CUDA>> shapes;
   SIZE * ranges_h;
-  SIZE * ranges_d;
+  // SIZE * ranges_d;
   Array<1, SIZE, CUDA> ranges;
   std::vector<T *> coords_h;
   std::vector<T *> coords_d;
-  std::vector<std::vector<T *>> dist;
-  std::vector<std::vector<T *>> ratio;
+  std::vector<Array<1, T, CUDA>> coords;
+  // std::vector<std::vector<T *>> dist;
+  // std::vector<std::vector<T *>> ratio;
 
   std::vector<std::vector<Array<1, T, CUDA>>> dist_array;
   std::vector<std::vector<Array<1, T, CUDA>>> ratio_array;
 
-  T * volumes;
-  SIZE ldvolumes;
+  // T * volumes;
+  // SIZE ldvolumes;
   Array<2, T, CUDA> volumes_array;
-  std::vector<std::vector<T *>> am;
-  std::vector<std::vector<T *>> bm;
+  // std::vector<std::vector<T *>> am;
+  // std::vector<std::vector<T *>> bm;
 
   std::vector<std::vector<Array<1, T, CUDA>>> am_array;
   std::vector<std::vector<Array<1, T, CUDA>>> bm_array;
@@ -101,7 +102,7 @@ template <DIM D, typename T> struct Handle {
   LENGTH padded_linearized_depth;
 
   enum data_structure_type dstype;
-  T *quantizers;
+  // T *quantizers;
   SIZE huff_dict_size;
   SIZE huff_block_size;
   SIZE lz4_block_size;
@@ -113,12 +114,12 @@ template <DIM D, typename T> struct Handle {
   bool timing;
 
   DIM *processed_n;
-  DIM **processed_dims_h;
-  DIM **processed_dims_d;
+  // DIM **processed_dims_h;
+  // DIM **processed_dims_d;
 
   DIM *unprocessed_n;
-  DIM **unprocessed_dims_h;
-  DIM **unprocessed_dims_d;
+  // DIM **unprocessed_dims_h;
+  // DIM **unprocessed_dims_d;
 
   Array<1, DIM, CUDA> processed_dims[D];
   Array<1, DIM, CUDA> unprocessed_dims[D];
