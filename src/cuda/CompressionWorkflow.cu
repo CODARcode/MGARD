@@ -21,7 +21,7 @@
 
 #include "cuda/CompressionWorkflow.h"
 
-#include "cuda/MemoryManagement.h"
+// #include "cuda/MemoryManagement.h"
 
 #include "cuda/DataRefactoring.h"
 #include "cuda/LinearQuantization.h"
@@ -32,7 +32,7 @@
 
 #include "cuda/ParallelHuffman/Huffman.hpp"
 #include "cuda/Lossless/LZ4.hpp"
-
+#include "cuda/Utilities/CheckEndianess.hpp"
 
 #define BLOCK_SIZE 64
 
@@ -57,7 +57,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
   DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
   Timer timer_total, timer_each;
   for (DIM i = 0; i < D; i++) {
-    if (handle.shapes_h[0][i] != in_array.getShape()[i]) {
+    if (handle.shape[i] != in_array.getShape()[i]) {
       std::cout << log::log_err
                 << "The shape of input array does not match the shape "
                    "initilized in handle!\n";
@@ -429,7 +429,7 @@ Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
 
   std::vector<SIZE> decompressed_shape(D);
   for (int i = 0; i < D; i++)
-    decompressed_shape[i] = handle.shapes_h[0][i];
+    decompressed_shape[i] = handle.shape[i];
   std::reverse(decompressed_shape.begin(), decompressed_shape.end());
   Array<D, T, DeviceType> decompressed_data(decompressed_shape);
   SubArray<D, T, DeviceType> decompressed_subarray(decompressed_data);

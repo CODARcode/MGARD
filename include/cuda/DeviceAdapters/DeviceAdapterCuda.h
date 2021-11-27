@@ -435,7 +435,8 @@ class DeviceRuntime<CUDA> {
 
   MGARDm_CONT static void
   SyncDevice(){
-    cudaSetDeviceHelper(curr_dev_id);
+    gpuErrchk(cudaSetDevice(curr_dev_id));
+    gpuErrchk(cudaDeviceSynchronize());
   }
 
   MGARDm_CONT static int
@@ -629,6 +630,15 @@ class MemoryManager<CUDA> {
   void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value) {
     gpuErrchk(cudaMemset2D(ptr, ld * sizeof(T), value, n1 * sizeof(T), n2));
   }
+
+  template <typename T>
+  MGARDm_CONT static
+  bool IsDevicePointer(T * ptr) {
+    cudaPointerAttributes attr;
+    cudaPointerGetAttributes(&attr, ptr);
+    return attr.type == cudaMemoryTypeDevice;
+  }
+
 
   static bool ReduceMemoryFootprint;
 };
