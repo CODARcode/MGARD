@@ -780,8 +780,10 @@ namespace MDR {
             
             GroupedEncoder<T_data, T_bitplane, double, BINARY_TYPE, DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, CUDA>().Execute(n, num_batches_per_TB, num_bitplanes, exp, v, encoded_bitplanes_subarray, level_errors_subarray, level_errors_work_subarray, 0);
 
-            cudaMemcpyAsyncHelper(_handle, level_errors.data(), level_errors_subarray.data(), (num_bitplanes+1)* sizeof(double), AUTO, 0);
-            _handle.sync_all();
+            // cudaMemcpyAsyncHelper(_handle, level_errors.data(), level_errors_subarray.data(), (num_bitplanes+1)* sizeof(double), AUTO, 0);
+            MemoryManager<CUDA>::Copy1D(level_errors.data(), level_errors_subarray.data(), (num_bitplanes+1), 0);
+            DeviceRuntime<CUDA>::SyncQueue(0);
+            // _handle.sync_all();
 
             T_bitplane * encoded_bitplanes = encoded_bitplanes_array.getDataHost();
 

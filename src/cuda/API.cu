@@ -20,7 +20,7 @@
 // #include "cuda/CompressionWorkflow.h"
 #include "compress_cuda.hpp"
 
-#include "cuda/MemoryManagement.h"
+// #include "cuda/MemoryManagement.h"
 
 #include "cuda/DataRefactoring.h"
 #include "cuda/LinearQuantization.h"
@@ -142,10 +142,14 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
   Array<1, unsigned char, CUDA> compressed_array =
       compress<D, T, CUDA>(handle, in_array, mode, tol, s);
   compressed_size = compressed_array.getShape()[0];
-  if (isGPUPointer(original_data)) {
-    cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
-    cudaMemcpyAsyncHelper(handle, compressed_data, compressed_array.get_dv(),
-                          compressed_size, AUTO, 0);
+  if (MemoryManager<CUDA>::IsDevicePointer(original_data)) {
+    // cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
+    // cudaMemcpyAsyncHelper(handle, compressed_data, compressed_array.get_dv(),
+    //                       compressed_size, AUTO, 0);
+    MemoryManager<CUDA>::Malloc1D(compressed_data, compressed_size, 0);
+    MemoryManager<CUDA>::Copy1D(compressed_data, (void*)compressed_array.get_dv(),
+                                compressed_size, 0);
+    DeviceRuntime<CUDA>::SyncQueue(0);
     handle.sync(0);
   } else {
     compressed_data = (unsigned char *)malloc(compressed_size);
@@ -163,11 +167,15 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
   Array<1, unsigned char, CUDA> compressed_array =
       compress<D, T, CUDA>(handle, in_array, mode, tol, s);
   compressed_size = compressed_array.getShape()[0];
-  if (isGPUPointer(original_data)) {
-    cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
-    cudaMemcpyAsyncHelper(handle, compressed_data, compressed_array.get_dv(),
-                          compressed_size, AUTO, 0);
-    handle.sync(0);
+  if (MemoryManager<CUDA>::IsDevicePointer(original_data)) {
+    // cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
+    // cudaMemcpyAsyncHelper(handle, compressed_data, compressed_array.get_dv(),
+    //                       compressed_size, AUTO, 0);
+    // handle.sync(0);
+    MemoryManager<CUDA>::Malloc1D(compressed_data, compressed_size, 0);
+    MemoryManager<CUDA>::Copy1D(compressed_data, (void*)compressed_array.get_dv(),
+                                compressed_size, 0);
+    DeviceRuntime<CUDA>::SyncQueue(0);
   } else {
     compressed_data = (unsigned char *)malloc(compressed_size);
     memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
@@ -189,12 +197,18 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   compressed_array.loadData((const unsigned char *)compressed_data);
   Array<D, T, CUDA> out_array = decompress<D, T, CUDA>(handle, compressed_array);
 
-  if (isGPUPointer(compressed_data)) {
-    cudaMallocHelper(handle, (void **)&decompressed_data,
-                     original_size * sizeof(T));
-    cudaMemcpyAsyncHelper(handle, decompressed_data, out_array.get_dv(),
-                          original_size * sizeof(T), AUTO, 0);
-    handle.sync(0);
+  if (MemoryManager<CUDA>::IsDevicePointer(compressed_data)) {
+    // cudaMallocHelper(handle, (void **)&decompressed_data,
+    //                  original_size * sizeof(T));
+    // cudaMemcpyAsyncHelper(handle, decompressed_data, out_array.get_dv(),
+    //                       original_size * sizeof(T), AUTO, 0);
+    // handle.sync(0);
+
+    MemoryManager<CUDA>::Malloc1D(decompressed_data, original_size * sizeof(T), 0);
+    MemoryManager<CUDA>::Copy1D(decompressed_data, (void*)out_array.get_dv(),
+                                original_size * sizeof(T), 0);
+    DeviceRuntime<CUDA>::SyncQueue(0);
+
   } else {
     decompressed_data = (T *)malloc(original_size * sizeof(T));
     memcpy(decompressed_data, out_array.getDataHost(),
@@ -215,12 +229,16 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   Array<1, unsigned char, CUDA> compressed_array(compressed_shape);
   compressed_array.loadData((const unsigned char *)compressed_data);
   Array<D, T, CUDA> out_array = decompress<D, T, CUDA>(handle, compressed_array);
-  if (isGPUPointer(compressed_data)) {
-    cudaMallocHelper(handle, (void **)&decompressed_data,
-                     original_size * sizeof(T));
-    cudaMemcpyAsyncHelper(handle, decompressed_data, out_array.get_dv(),
-                          original_size * sizeof(T), AUTO, 0);
-    handle.sync(0);
+  if (MemoryManager<CUDA>::IsDevicePointer(compressed_data)) {
+    // cudaMallocHelper(handle, (void **)&decompressed_data,
+    //                  original_size * sizeof(T));
+    // cudaMemcpyAsyncHelper(handle, decompressed_data, out_array.get_dv(),
+    //                       original_size * sizeof(T), AUTO, 0);
+    // handle.sync(0);
+    MemoryManager<CUDA>::Malloc1D(decompressed_data, original_size * sizeof(T), 0);
+    MemoryManager<CUDA>::Copy1D(decompressed_data, (void*)out_array.get_dv(),
+                                original_size * sizeof(T), 0);
+    DeviceRuntime<CUDA>::SyncQueue(0);
   } else {
     decompressed_data = (T *)malloc(original_size * sizeof(T));
     memcpy(decompressed_data, out_array.getDataHost(),

@@ -174,7 +174,7 @@ void calc_coefficients_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(handle.shapes_h[0][d]) + "_";
+    prefix += std::to_string(handle.shape[d]) + "_";
 
   dinput.project(0, 1, 2);
   doutput.project(0, 1, 2);
@@ -210,9 +210,9 @@ void calc_coefficients_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
   dcoeff_rcf.offset({ff, cc, rr});
   dcoeff_rcf.resize({f-ff, c-cc, r-rr});
 
-  SubArray<1, T, DeviceType> ratio_r({handle.dofs[2][l]}, handle.ratio[2][l]);
-  SubArray<1, T, DeviceType> ratio_c({handle.dofs[1][l]}, handle.ratio[1][l]);
-  SubArray<1, T, DeviceType> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
+  // SubArray<1, T, DeviceType> ratio_r({handle.dofs[2][l]}, handle.ratio[2][l]);
+  // SubArray<1, T, DeviceType> ratio_c({handle.dofs[1][l]}, handle.ratio[1][l]);
+  // SubArray<1, T, DeviceType> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
 
   T *null = NULL;
   GpkReo3D<D, T, DeviceType>().Execute(
@@ -279,7 +279,7 @@ void coefficients_restore_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(handle.shapes_h[0][d]) + "_";
+    prefix += std::to_string(handle.shape[d]) + "_";
 
   dinput.project(0, 1, 2);
   doutput.project(0, 1, 2);
@@ -317,9 +317,9 @@ void coefficients_restore_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
 
 
 
-  SubArray<1, T, DeviceType> ratio_r({handle.dofs[2][l]}, handle.ratio[2][l]);
-  SubArray<1, T, DeviceType> ratio_c({handle.dofs[1][l]}, handle.ratio[1][l]);
-  SubArray<1, T, DeviceType> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
+  // SubArray<1, T, DeviceType> ratio_r({handle.dofs[2][l]}, handle.ratio[2][l]);
+  // SubArray<1, T, DeviceType> ratio_c({handle.dofs[1][l]}, handle.ratio[1][l]);
+  // SubArray<1, T, DeviceType> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
 
   GpkRev3D<D, T, DeviceType>().Execute(
       handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
@@ -453,7 +453,7 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(handle.shapes_h[0][d]) + "_";
+    prefix += std::to_string(handle.shape[d]) + "_";
 
   // SubArray<1, T, DeviceType> dist_r({handle.dofs[2][l]}, handle.dist[2][l]);
   // SubArray<1, T, DeviceType> dist_c({handle.dofs[1][l]}, handle.dist[1][l]);
@@ -474,8 +474,8 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     dw_out = dcorrection;
     dw_out.resize({handle.dofs[0][l+1], 0, 0});
 
-    SubArray<1, T, DeviceType> dist_f({handle.dofs[0][l]}, handle.dist[0][l]);
-    SubArray<1, T, DeviceType> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
+    // SubArray<1, T, DeviceType> dist_f({handle.dofs[0][l]}, handle.dist[0][l]);
+    // SubArray<1, T, DeviceType> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
     Lpk1Reo3D<D, T, DeviceType>().Execute(
         handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
         handle.dofs[0][l + 1], handle.dofs[2][l + 1], handle.dofs[1][l + 1],
@@ -520,8 +520,8 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     dw_out.offset({handle.dofs[0][l+1], 0, 0});
     dw_out.resize({handle.dofs[0][l+1], handle.dofs[1][l+1], handle.dofs[2][l]});
 
-    SubArray<1, T, DeviceType> dist_c({handle.dofs[1][l]}, handle.dist[1][l]);
-    SubArray<1, T, DeviceType> ratio_c({handle.dofs[1][l]}, handle.ratio[1][l]);
+    // SubArray<1, T, DeviceType> dist_c({handle.dofs[1][l]}, handle.dist[1][l]);
+    // SubArray<1, T, DeviceType> ratio_c({handle.dofs[1][l]}, handle.ratio[1][l]);
     Lpk2Reo3D<D, T, DeviceType>().Execute(
         handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l + 1],
         handle.dofs[1][l + 1], 
@@ -563,8 +563,8 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     dw_out.offset({handle.dofs[0][l+1], handle.dofs[1][l+1], 0});
     dw_out.resize({handle.dofs[0][l+1], handle.dofs[1][l+1], handle.dofs[2][l+1]});
 
-    SubArray<1, T, DeviceType> dist_r({handle.dofs[2][l]}, handle.dist[2][l]);
-    SubArray<1, T, DeviceType> ratio_r({handle.dofs[2][l]}, handle.ratio[2][l]);
+    // SubArray<1, T, DeviceType> dist_r({handle.dofs[2][l]}, handle.dist[2][l]);
+    // SubArray<1, T, DeviceType> ratio_r({handle.dofs[2][l]}, handle.ratio[2][l]);
     Lpk3Reo3D<D, T, DeviceType>().Execute(
     handle.dofs[2][l], handle.dofs[1][l+1], handle.dofs[0][l+1], 
     handle.dofs[2][l+1], 
@@ -606,9 +606,9 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
   // SubArray<1, T, DeviceType> dist_f_c({handle.dofs[0][l+1]}, handle.dist[0][l+1]);
 
   if (D >= 1) {
-    SubArray<1, T, DeviceType> am_f_c({handle.dofs[0][l+1]+1}, handle.am[0][l+1]);
-    SubArray<1, T, DeviceType> bm_f_c({handle.dofs[0][l+1]+1}, handle.bm[0][l+1]);
-    SubArray<1, T, DeviceType> dist_f_c({handle.dofs[0][l+1]}, handle.dist[0][l+1]);
+    // SubArray<1, T, DeviceType> am_f_c({handle.dofs[0][l+1]+1}, handle.am[0][l+1]);
+    // SubArray<1, T, DeviceType> bm_f_c({handle.dofs[0][l+1]+1}, handle.bm[0][l+1]);
+    // SubArray<1, T, DeviceType> dist_f_c({handle.dofs[0][l+1]}, handle.dist[0][l+1]);
     // PrintSubarray("am_f_c", am_f_c);
     // PrintSubarray("bm_f_c", bm_f_c);
 
@@ -636,9 +636,9 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
     }
   }
   if (D >= 2) {
-    SubArray<1, T, DeviceType> am_c_c({handle.dofs[1][l+1]+1}, handle.am[1][l+1]);
-    SubArray<1, T, DeviceType> bm_c_c({handle.dofs[1][l+1]+1}, handle.bm[1][l+1]);
-    SubArray<1, T, DeviceType> dist_c_c({handle.dofs[1][l+1]}, handle.dist[1][l+1]);
+    // SubArray<1, T, DeviceType> am_c_c({handle.dofs[1][l+1]+1}, handle.am[1][l+1]);
+    // SubArray<1, T, DeviceType> bm_c_c({handle.dofs[1][l+1]+1}, handle.bm[1][l+1]);
+    // SubArray<1, T, DeviceType> dist_c_c({handle.dofs[1][l+1]}, handle.dist[1][l+1]);
 
     Ipk2Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
@@ -667,9 +667,9 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
   }
 
   if (D == 3) {
-    SubArray<1, T, DeviceType> am_r_c({handle.dofs[2][l+1]+1}, handle.am[2][l+1]);
-    SubArray<1, T, DeviceType> bm_r_c({handle.dofs[2][l+1]+1}, handle.bm[2][l+1]);
-    SubArray<1, T, DeviceType> dist_r_c({handle.dofs[2][l+1]}, handle.dist[2][l+1]);
+    // SubArray<1, T, DeviceType> am_r_c({handle.dofs[2][l+1]+1}, handle.am[2][l+1]);
+    // SubArray<1, T, DeviceType> bm_r_c({handle.dofs[2][l+1]+1}, handle.bm[2][l+1]);
+    // SubArray<1, T, DeviceType> dist_r_c({handle.dofs[2][l+1]}, handle.dist[2][l+1]);
 
     Ipk3Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
@@ -715,7 +715,7 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(handle.shapes_h[0][d]) + "_";
+    prefix += std::to_string(handle.shape[d]) + "_";
   // printf("interpolate 1-3D\n");
 
   SubArray<D, T, DeviceType> dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, 
@@ -784,11 +784,11 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
   //   }
   // }
 
-  SubArray<1, DIM, DeviceType> unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-  SubArray<1, T, DeviceType> ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-  SubArray<1, T, DeviceType> ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-  SubArray<1, T, DeviceType> ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+  // SubArray<1, DIM, DeviceType> unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+  //                                                         handle.unprocessed_dims_d[unprocessed_idx]);
+  // SubArray<1, T, DeviceType> ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+  // SubArray<1, T, DeviceType> ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+  // SubArray<1, T, DeviceType> ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
   // printf("call GpkReo\n");
   // printf("unprocessed_n: %u\n", handle.unprocessed_n[unprocessed_idx]);
@@ -853,11 +853,11 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
     // lddw1, lddw2);
     if (D - d == 1) {
       unprocessed_idx+=1;
-      unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-      ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-      ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-      ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+      // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+      //                                                     handle.unprocessed_dims_d[unprocessed_idx]);
+      // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+      // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+      // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
       // gpk_reo<D, 2, T, true, false, 2>(
       //     handle, handle.shapes_h[l], handle.shapes_d[l],
       //     handle.shapes_d[l + 1], dinput1.getLdd(), doutput.getLdd(),
@@ -932,11 +932,11 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
 
     } else { //D - d >= 2
       unprocessed_idx += 2;
-      unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-      ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-      ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-      ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+      // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+      //                                                     handle.unprocessed_dims_d[unprocessed_idx]);
+      // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+      // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+      // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
       // gpk_reo<D, 3, T, true, false, 2>(
       //     handle, handle.shapes_h[l], handle.shapes_d[l],
@@ -994,11 +994,11 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
   dinput2.project(curr_dims[0], curr_dims[1], curr_dims[2]);
   dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]); //reuse input1 as temp output
 
-  unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-  ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-  ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-  ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+  // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+  //                                                         handle.unprocessed_dims_d[unprocessed_idx]);
+  // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+  // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+  // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
 
   calc_coeff_pointers(handle, curr_dims, l, dinput1, 
@@ -1067,11 +1067,11 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
     dinput2.project(curr_dims[0], curr_dims[1], curr_dims[2]);
     dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]); //reuse input1 as temp output
 
-    unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-    ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-    ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-    ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+    // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+    //                                                       handle.unprocessed_dims_d[unprocessed_idx]);
+    // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+    // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+    // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
 
     calc_coeff_pointers(handle, curr_dims, l, dinput1, 
@@ -1138,11 +1138,11 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
     // unprocessed_dims.pop_back();
     unprocessed_idx += 1;
 
-    unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-    ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-    ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-    ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+    // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+    //                                                       handle.unprocessed_dims_d[unprocessed_idx]);
+    // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+    // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+    // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
 
     // gpk_reo<D, 2, T, false, true, 2>(
@@ -1190,11 +1190,11 @@ void calc_coefficients_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dinpu
   } else { //D-D_reduced == 2
     unprocessed_idx += 2;
 
-    unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-    ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-    ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-    ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+    // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+    //                                                       handle.unprocessed_dims_d[unprocessed_idx]);
+    // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+    // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+    // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
     // gpk_reo<D, 3, T, false, true, 2>(
     //     handle, handle.shapes_h[l], handle.shapes_d[l],
@@ -1260,7 +1260,7 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(handle.shapes_h[0][d]) + "_";
+    prefix += std::to_string(handle.shape[d]) + "_";
   
 
   SubArray<D, T, DeviceType> dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, 
@@ -1275,11 +1275,11 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
   dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
   doutput.project(curr_dims[0], curr_dims[1], curr_dims[2]);
 
-  SubArray<1, DIM, DeviceType> unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-  SubArray<1, T, DeviceType> ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-  SubArray<1, T, DeviceType> ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-  SubArray<1, T, DeviceType> ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+  // SubArray<1, DIM, DeviceType> unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+  //                                                         handle.unprocessed_dims_d[unprocessed_idx]);
+  // SubArray<1, T, DeviceType> ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+  // SubArray<1, T, DeviceType> ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+  // SubArray<1, T, DeviceType> ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
 
   calc_coeff_pointers(handle, curr_dims, l, dinput1, 
@@ -1359,11 +1359,11 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
 
     if (D - d == 1) {
       unprocessed_idx += 1;
-      unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-      ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-      ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-      ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+      // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+      //                                                     handle.unprocessed_dims_d[unprocessed_idx]);
+      // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+      // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+      // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
       // gpk_rev<D, 2, T, true, false, 2>(
       //     handle, handle.shapes_h[l], handle.shapes_d[l],
@@ -1415,11 +1415,11 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
 
     } else { // D - d >= 2
       unprocessed_idx += 2;
-      unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-      ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-      ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-      ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+      // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+      //                                                     handle.unprocessed_dims_d[unprocessed_idx]);
+      // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+      // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+      // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
       // gpk_rev<D, 3, T, true, false, 2>(
       //     handle, handle.shapes_h[l], handle.shapes_d[l],
@@ -1486,11 +1486,11 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
   dinput2.project(curr_dims[0], curr_dims[1], curr_dims[2]);
   dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]); //reuse input1 as temp space
 
-  unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-  ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-  ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-  ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+  // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+  //                                                         handle.unprocessed_dims_d[unprocessed_idx]);
+  // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+  // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+  // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
 
   calc_coeff_pointers(handle, curr_dims, l, dinput2, 
@@ -1577,11 +1577,11 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
 
     unprocessed_idx += 2;
 
-    unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-    ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-    ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-    ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+    // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+    //                                                       handle.unprocessed_dims_d[unprocessed_idx]);
+    // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+    // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+    // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
 
     // gpk_rev<D, 3, T, false, false, 2>(
@@ -1647,11 +1647,11 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
     // printf("coeff-restore %u-%dD\n", D_reduced+1, D_reduced+1);
     unprocessed_idx += 1;
 
-    unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-    ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-    ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-    ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+    // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+    //                                                       handle.unprocessed_dims_d[unprocessed_idx]);
+    // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+    // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+    // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
 
     // gpk_rev<D, 2, T, false, true, 2>(
@@ -1705,11 +1705,11 @@ void coefficients_restore_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> di
     // printf("coeff-restore %u-%dD\n", D_reduced+1, D_reduced+2);
     unprocessed_idx += 2;
 
-    unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-                                                          handle.unprocessed_dims_d[unprocessed_idx]);
-    ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-    ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-    ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+    // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
+    //                                                       handle.unprocessed_dims_d[unprocessed_idx]);
+    // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
+    // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
+    // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
 
 
     // gpk_rev<D, 3, T, false, true, 2>(
@@ -1779,7 +1779,7 @@ void calc_correction_nd(Handle<D, T> &handle, SubArray<D, T, DeviceType> dcoeff,
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(handle.shapes_h[0][d]) + "_";
+    prefix += std::to_string(handle.shape[d]) + "_";
 
   SubArray<D, T, DeviceType> dw_in1 = dcoeff;
   SubArray<D, T, DeviceType> dw_in2 = dcoeff;
@@ -2122,7 +2122,7 @@ void decompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v, SIZE l_targe
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(handle.shapes_h[0][d]) + "_";
+    prefix += std::to_string(handle.shape[d]) + "_";
   // std::cout << prefix << std::endl;
 
   std::vector<SIZE> workspace_shape(D);
@@ -2164,8 +2164,8 @@ void decompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v, SIZE l_targe
         PrintSubarray4D("before coeff", v);
       }
 
-      std::vector<SIZE> shape(handle.D_padded);
-      for (DIM d = 0; d < handle.D_padded; d++) shape[d] = handle.shapes_h[l][d];
+      // std::vector<SIZE> shape(handle.D_padded);
+      // for (DIM d = 0; d < handle.D_padded; d++) shape[d] = handle.shapes_h[l][d];
 
       // gpuErrchk(cudaDeviceSynchronize());
       LwpkReo<D, T, COPY, DeviceType>().Execute(
@@ -2215,7 +2215,7 @@ void recompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v,
     if (sizeof(T) == sizeof(float))
       prefix += "f_";
     for (int d = 0; d < D; d++)
-      prefix += std::to_string(handle.shapes_h[0][d]) + "_";
+      prefix += std::to_string(handle.shape[d]) + "_";
     // std::cout << prefix << std::endl;
 
     for (int l = l_target - 1; l >= 0; l--) {
@@ -2274,8 +2274,8 @@ void recompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v,
       int lddw1, lddw2;
       int lddb1, lddb2;
       // un-apply correction
-      std::vector<SIZE> shape(handle.D_padded);
-      for (DIM d = 0; d < handle.D_padded; d++) shape[d] = handle.shapes_h[l][d];
+      // std::vector<SIZE> shape(handle.D_padded);
+      // for (DIM d = 0; d < handle.D_padded; d++) shape[d] = handle.shapes_h[l][d];
 
       if (debug_print){ // debug
         PrintSubarray4D(format("before subtract correction[%d]", l), v);
@@ -2308,7 +2308,7 @@ void recompose(Handle<D, T> &handle, SubArray<D, T, DeviceType>& v,
 
     if (debug_print){ // debug
       std::vector<SIZE> shape(handle.D_padded);
-      for (DIM d = 0; d < handle.D_padded; d++) shape[d] = handle.shapes_h[0][d];
+      // for (DIM d = 0; d < handle.D_padded; d++) shape[d] = handle.shapes_h[0][d];
       PrintSubarray4D(format("final output"), v);
     } //deb
   } // D > 3
