@@ -1,0 +1,5 @@
+add_subdirectory (DataRefactoring)
+add_subdirectory (HighLevelAPI)
+add_subdirectory (RuntimeX)
+add_subdirectory (CompressionWorkflow)
+set(MGARD_X_SRC ${MGARD_X_SRC} PARENT_SCOPE)

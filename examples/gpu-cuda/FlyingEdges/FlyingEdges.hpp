@@ -8,7 +8,7 @@
 #ifndef MGARD_X_FLYING_EDGES_HPP
 #define MGARD_X_FLYING_EDGES_HPP
 
-#include "mgard/cuda/CommonInternal.h"
+#include "mgard/cuda/RuntimeX/RuntimeX.h"
 
 namespace mgard_x {
 
