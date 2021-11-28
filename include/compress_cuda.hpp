@@ -5,9 +5,9 @@
  * Date: December 1, 2021
  */
 
-#include "cuda/Common.h"
-#include "cuda/CompressionWorkflow.h"
-#include "cuda/MemoryManagement.h"
+#include "mgard-x/Types.h"
+#include "mgard-x/RuntimeX/RuntimeXPublic.h"
+#include "mgard-x/CompressionWorkflow.h"
 #include <cstdint>
 
 #ifndef MGARD_API_CUDA_H

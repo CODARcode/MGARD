@@ -68,7 +68,7 @@ namespace mgard_x {
 //!
 //!\return Compressed dataset.
 template <uint32_t D, typename T, typename DeviceType>
-Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, DeviceType> &in_array,
+Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
                                  enum error_bound_type type, T tol, T s);
 
 //! Decompress a function on an N-D tensor product grid
@@ -78,7 +78,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T> &handle, Array<D, T, D
 //!\param[in] compressed_array Compressed dataset.
 //!\return Decompressed dataset.
 template <uint32_t D, typename T, typename DeviceType>
-Array<D, T, DeviceType> decompress(Handle<D, T> &handle,
+Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
                        Array<1, unsigned char, DeviceType> &compressed_array);
 
 } // namespace mgard_x
