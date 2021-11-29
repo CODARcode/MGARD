@@ -91,60 +91,64 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
   int ht_state_num = 2 * dict_size;
   int ht_all_nodes = 2 * ht_state_num;
 
-  mgard_x::Array<1, unsigned int, DeviceType> freq_array({(mgard_x::SIZE)ht_all_nodes});
+  Array<1, unsigned int, DeviceType> freq_array({(SIZE)ht_all_nodes});
   freq_array.memset(0);
 
-  mgard_x::SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
-  mgard_x::Histogram<Q, unsigned int, DeviceType>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
-  gpuErrchk(cudaDeviceSynchronize());
+  SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
+  Histogram<Q, unsigned int, DeviceType>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
+  // gpuErrchk(DeviceTypeDeviceSynchronize());
+  DeviceRuntime<DeviceType>::SyncDevice();
 
   auto type_bw = sizeof(H) * 8;
   size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size;
-  mgard_x::Array<1, H, DeviceType> codebook_array({(mgard_x::SIZE)dict_size});
+  Array<1, H, DeviceType> codebook_array({(SIZE)dict_size});
   codebook_array.memset(0);
-  mgard_x::Array<1, uint8_t, DeviceType> decodebook_array({(mgard_x::SIZE)decodebook_size});
+  Array<1, uint8_t, DeviceType> decodebook_array({(SIZE)decodebook_size});
   codebook_array.memset(0xff);
 
   H * codebook = codebook_array.get_dv();
   uint8_t *decodebook = decodebook_array.get_dv();
 
 
-  mgard_x::SubArray<1, H, DeviceType> codebook_subarray(codebook_array);
-  mgard_x::SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
+  SubArray<1, H, DeviceType> codebook_subarray(codebook_array);
+  SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
 
-  mgard_x::GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray, decodebook_subarray);
-  cudaDeviceSynchronize();
+  GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray, decodebook_subarray);
+  // DeviceTypeDeviceSynchronize();
+  DeviceRuntime<DeviceType>::SyncDevice();
 
-  mgard_x::Array<1, H, DeviceType> huff_array({(mgard_x::SIZE)primary_count});
+  Array<1, H, DeviceType> huff_array({(SIZE)primary_count});
   huff_array.memset(0);
   H * huff = huff_array.get_dv();
 
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(DeviceTypeDeviceSynchronize());
+  DeviceRuntime<DeviceType>::SyncDevice();
 
-  mgard_x::SubArray<1, H, DeviceType> huff_subarray(huff_array);
-  mgard_x::EncodeFixedLen<unsigned int, H, DeviceType>().Execute(dprimary_subarray,
+  SubArray<1, H, DeviceType> huff_subarray(huff_array);
+  EncodeFixedLen<unsigned int, H, DeviceType>().Execute(dprimary_subarray,
                                                               huff_subarray,
                                                               primary_count,
                                                               codebook_subarray, 0);
 
   // deflate
   auto nchunk = (primary_count - 1) / chunk_size + 1; 
-  mgard_x::Array<1, size_t, DeviceType> huff_bitwidths_array({(mgard_x::SIZE)nchunk});
+  Array<1, size_t, DeviceType> huff_bitwidths_array({(SIZE)nchunk});
   huff_bitwidths_array.memset(0);
   size_t * huff_bitwidths = huff_bitwidths_array.get_dv();
 
-  mgard_x::SubArray<1, size_t, DeviceType> huff_bitwidths_subarray({(mgard_x::SIZE)nchunk}, huff_bitwidths);
-  mgard_x::Deflate<H, DeviceType>().Execute(huff_subarray, primary_count, huff_bitwidths_subarray, chunk_size, 0);
+  SubArray<1, size_t, DeviceType> huff_bitwidths_subarray({(SIZE)nchunk}, huff_bitwidths);
+  Deflate<H, DeviceType>().Execute(huff_subarray, primary_count, huff_bitwidths_subarray, chunk_size, 0);
 
-  mgard_x::DeviceRuntime<DeviceType>::SyncQueue(0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
 
   size_t* h_meta = new size_t[nchunk * 3]();
   size_t* dH_uInt_meta = h_meta;
   size_t* dH_bit_meta = h_meta + nchunk;
   size_t* dH_uInt_entry = h_meta + nchunk * 2;
 
-  mgard_x::MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths, nchunk, 0);
-  gpuErrchk(cudaDeviceSynchronize());
+  MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths, nchunk, 0);
+  // gpuErrchk(DeviceTypeDeviceSynchronize());
+  DeviceRuntime<DeviceType>::SyncDevice();
   // transform in uInt
   memcpy(dH_uInt_meta, dH_bit_meta, nchunk * sizeof(size_t));
   std::for_each(dH_uInt_meta, dH_uInt_meta + nchunk,
@@ -160,7 +164,8 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
   auto total_uInts =
       std::accumulate(dH_uInt_meta, dH_uInt_meta + nchunk, (size_t)0);
 
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(DeviceTypeDeviceSynchronize());
+  DeviceRuntime<DeviceType>::SyncDevice();
   t2 = high_resolution_clock::now();
   time_span = duration_cast<duration<double>>(t2 - t1);
   // printf("huffman encode time: %.6f s\n", time_span.count());
@@ -252,11 +257,11 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data) {
   Array<1, Q, DeviceType> dprimary({(SIZE)primary_count});
   align_byte_offset<H>(byte_offset);
   int nchunk = (primary_count - 1) / chunk_size + 1;
-  mgard_x::SubArray<1, H, mgard_x::CUDA> ddata_subarray({(mgard_x::SIZE)ddata_size}, (H*)compressed_data((IDX)byte_offset));
-  mgard_x::SubArray<1, size_t, mgard_x::CUDA> huffmeta_subarray({(mgard_x::SIZE)huffmeta_size}, huffmeta);
-  mgard_x::SubArray<1, Q, mgard_x::CUDA> dprimary_subarray(dprimary);
-  mgard_x::SubArray<1, uint8_t, mgard_x::CUDA> decodebook_subarray({(mgard_x::SIZE)decodebook_size}, decodebook);
-  mgard_x::Decode<Q, H, mgard_x::CUDA>().Execute(ddata_subarray,
+  SubArray<1, H, DeviceType> ddata_subarray({(SIZE)ddata_size}, (H*)compressed_data((IDX)byte_offset));
+  SubArray<1, size_t, DeviceType> huffmeta_subarray({(SIZE)huffmeta_size}, huffmeta);
+  SubArray<1, Q, DeviceType> dprimary_subarray(dprimary);
+  SubArray<1, uint8_t, DeviceType> decodebook_subarray({(SIZE)decodebook_size}, decodebook);
+  Decode<Q, H, DeviceType>().Execute(ddata_subarray,
                                                        huffmeta_subarray,
                                                        dprimary_subarray,
                                                        primary_count, chunk_size, nchunk,

@@ -22,7 +22,8 @@ namespace mgard_x {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk1Reo3DFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT Lpk1Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, 
+  MGARDX_CONT Lpk1Reo3DFunctor() {}
+  MGARDX_CONT Lpk1Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, 
                               SIZE zero_r, SIZE zero_c, SIZE zero_f, 
                               SubArray<1, T, DeviceType> ddist_f, SubArray<1, T, DeviceType> dratio_f,
                               SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
@@ -34,7 +35,7 @@ class Lpk1Reo3DFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     // bool debug = false;
     // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 1 &&
@@ -282,7 +283,7 @@ class Lpk1Reo3DFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     if (r_gl < nr && c_gl < nc && f_gl < nf_c) {
       T h1 = dist_f_sm[f_sm * 2];
@@ -333,16 +334,16 @@ class Lpk1Reo3DFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = (R * C * (F * 2 + 3) + (F * 2 + 3) * 2) * sizeof(T);
@@ -374,11 +375,11 @@ class Lpk1Reo3DFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class Lpk1Reo3D: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   Lpk1Reo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Lpk1Reo3DFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, 
           SIZE zero_r, SIZE zero_c, SIZE zero_f, 
@@ -407,7 +408,7 @@ class Lpk1Reo3D: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "Lpk1Reo3D"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, 
               SIZE zero_r, SIZE zero_c, SIZE zero_f, 
               SubArray<1, T, DeviceType> ddist_f, SubArray<1, T, DeviceType> dratio_f,
@@ -448,7 +449,8 @@ class Lpk1Reo3D: public AutoTuner<DeviceType> {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk2Reo3DFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT Lpk2Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf_c, SIZE nc_c, 
+  MGARDX_CONT Lpk2Reo3DFunctor() {}
+  MGARDX_CONT Lpk2Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf_c, SIZE nc_c, 
                               SubArray<1, T, DeviceType> ddist_c, SubArray<1, T, DeviceType> dratio_c,
                               SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
                               SubArray<D, T, DeviceType> dw):
@@ -457,7 +459,7 @@ class Lpk2Reo3DFunctor: public Functor<DeviceType> {
                               dv1(dv1), dv2(dv2), dw(dw) {
     Functor<DeviceType>();
   }
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     // bool debug = false;
     // if (blockIdx.y == gridDim.y-1 && blockIdx.x == 0 &&
@@ -614,7 +616,7 @@ class Lpk2Reo3DFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     if (r_gl < nr && c_gl < nc_c && f_gl < nf_c) {
       T h1 = dist_c_sm[c_sm * 2];
@@ -671,16 +673,16 @@ class Lpk2Reo3DFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = (R * (C * 2 + 3) * F + (C * 2 + 3) * 2) * sizeof(T);
@@ -712,11 +714,11 @@ class Lpk2Reo3DFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class Lpk2Reo3D: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   Lpk2Reo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Lpk2Reo3DFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf_c, SIZE nc_c, 
           SubArray<1, T, DeviceType> ddist_c, SubArray<1, T, DeviceType> dratio_c,
@@ -742,7 +744,7 @@ class Lpk2Reo3D: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "Lpk2Reo3D"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf_c, SIZE nc_c, 
               SubArray<1, T, DeviceType> ddist_c, SubArray<1, T, DeviceType> dratio_c,
               SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
@@ -781,7 +783,8 @@ class Lpk2Reo3D: public AutoTuner<DeviceType> {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk3Reo3DFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT Lpk3Reo3DFunctor(SIZE nr, SIZE nc_c, SIZE nf_c, SIZE nr_c, 
+  MGARDX_CONT Lpk3Reo3DFunctor() {}
+  MGARDX_CONT Lpk3Reo3DFunctor(SIZE nr, SIZE nc_c, SIZE nf_c, SIZE nr_c, 
                               SubArray<1, T, DeviceType> ddist_r, SubArray<1, T, DeviceType> dratio_r,
                               SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
                               SubArray<D, T, DeviceType> dw):
@@ -791,7 +794,7 @@ class Lpk3Reo3DFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() { 
     // bool debug = false;
     // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
@@ -957,7 +960,7 @@ class Lpk3Reo3DFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     // int adjusted_nr_c = nr_c;
     if (r_gl < nr_c && c_gl < nc_c && f_gl < nf_c) {
@@ -1018,16 +1021,16 @@ class Lpk3Reo3DFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = ((R * 2 + 3) * C * F + (R * 2 + 3) * 2) * sizeof(T);
@@ -1058,11 +1061,11 @@ class Lpk3Reo3DFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class Lpk3Reo3D: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   Lpk3Reo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Lpk3Reo3DFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SIZE nr, SIZE nc_c, SIZE nf_c, SIZE nr_c, 
           SubArray<1, T, DeviceType> ddist_r, SubArray<1, T, DeviceType> dratio_r,
@@ -1088,7 +1091,7 @@ class Lpk3Reo3D: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "Lpk3Reo3D"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE nr, SIZE nc_c, SIZE nf_c, SIZE nr_c, 
               SubArray<1, T, DeviceType> ddist_r, SubArray<1, T, DeviceType> dratio_r,
               SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,

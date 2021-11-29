@@ -11,6 +11,7 @@
 
 // #include "CommonInternal.h"
 #include <vector>
+#include <algorithm>
 
 #include "Array.h"
 

@@ -238,7 +238,8 @@ void calc_quantizers(size_t dof, T *quantizers, Metadata &m,
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT LevelwiseLinearQuantizeNDFunctor(SubArray<1, SIZE, DeviceType> shapes, SIZE l_target, 
+  MGARDX_CONT LevelwiseLinearQuantizeNDFunctor(){}
+  MGARDX_CONT LevelwiseLinearQuantizeNDFunctor(SubArray<1, SIZE, DeviceType> shapes, SIZE l_target, 
                                                SubArray<1, T, DeviceType> quantizers, SubArray<2, T, DeviceType> volumes, 
                                                SubArray<D, T, DeviceType> v,
                                                SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman, bool calc_vol,
@@ -254,7 +255,7 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                     (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
@@ -283,7 +284,7 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     // determine global idx
     SIZE firstD = div_roundup(shapes_sm[l_target + 1], F);
@@ -346,7 +347,7 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
     int level = 0;
     for (DIM d = 0; d < D; d++) {
@@ -357,7 +358,7 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
         l_bit += bit << l;
         // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
       }
-      level = max(level, __ffsll(l_bit));
+      level = Math<DeviceType>::Max(level, Math<DeviceType>::ffsll(l_bit));
     }
     level = level - 1;
 
@@ -394,7 +395,7 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
         if (quantized_data >= 0 && quantized_data < dict_size) {
           // do nothing
         } else {
-          LENGTH i = atomicAdd(outlier_count((IDX)0), (LENGTH)1);
+          LENGTH i = Atomic<DeviceType>::Add(outlier_count((IDX)0), (LENGTH)1);
           *outlier_idx(i) = get_idx<D>(shape_sm, idx);
           *outliers(i) = quantized_data;
           quantized_data = 0;
@@ -405,13 +406,13 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = roundup<SIZE>(D * sizeof(SIZE));
     // quantizer
@@ -461,11 +462,11 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class LevelwiseLinearQuantizeND: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   LevelwiseLinearQuantizeND():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
           SubArray<1, T, DeviceType> quantizers, 
@@ -505,7 +506,7 @@ public:
                 tbz, tby, tbx, sm_size, queue_idx, "LevelwiseLinearQuantizeND"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
                 SubArray<1, T, DeviceType> quantizers, 
                 SubArray<2, T, DeviceType> volumes, 
@@ -537,7 +538,8 @@ public:
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT LevelwiseLinearDequantizeNDFunctor(SubArray<1, SIZE, DeviceType> shapes, SIZE l_target, 
+  MGARDX_CONT LevelwiseLinearDequantizeNDFunctor(){}
+  MGARDX_CONT LevelwiseLinearDequantizeNDFunctor(SubArray<1, SIZE, DeviceType> shapes, SIZE l_target, 
                                                SubArray<1, T, DeviceType> quantizers, SubArray<2, T, DeviceType> volumes, 
                                                SubArray<D, T, DeviceType> v,
                                                SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman, bool calc_vol,
@@ -553,7 +555,7 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                     (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
@@ -598,7 +600,7 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     // determine global idx
     SIZE firstD = div_roundup(shapes_sm[l_target + 1], F);
@@ -699,7 +701,7 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
     // }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
     int level = 0;
     for (DIM d = 0; d < D; d++) {
@@ -710,7 +712,7 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
         l_bit += bit << l;
         // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
       }
-      level = max(level, __ffsll(l_bit));
+      level = Math<DeviceType>::Max(level, Math<DeviceType>::ffsll(l_bit));
     }
     level = level - 1;
 
@@ -760,13 +762,13 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = roundup<SIZE>(D * sizeof(SIZE));
     // quantizer
@@ -815,7 +817,8 @@ class LevelwiseLinearDequantizeNDFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class OutlierRestoreFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT OutlierRestoreFunctor(SubArray<D, QUANTIZED_INT, DeviceType> work,
+  MGARDX_CONT OutlierRestoreFunctor(){}
+  MGARDX_CONT OutlierRestoreFunctor(SubArray<D, QUANTIZED_INT, DeviceType> work,
                                      LENGTH outlier_count,
                                      SubArray<1, LENGTH, DeviceType> outlier_idx, 
                                      SubArray<1, QUANTIZED_INT, DeviceType> outliers):
@@ -824,7 +827,7 @@ class OutlierRestoreFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                     (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
@@ -839,19 +842,19 @@ class OutlierRestoreFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     return 0;
   }
@@ -869,11 +872,11 @@ class OutlierRestoreFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class LevelwiseLinearDequantizeND: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   LevelwiseLinearDequantizeND():AutoTuner<DeviceType>() {}
 
   template <SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<OutlierRestoreFunctor<D, T, DeviceType> > 
   GenTask1(SubArray<D, QUANTIZED_INT, DeviceType> work, 
           LENGTH outlier_count,
@@ -898,7 +901,7 @@ public:
   }
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType> > 
   GenTask2(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
            SubArray<1, T, DeviceType> quantizers, 
@@ -950,7 +953,7 @@ public:
 
   
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
                SubArray<1, T, DeviceType> quantizers, 
                 SubArray<2, T, DeviceType> volumes, 

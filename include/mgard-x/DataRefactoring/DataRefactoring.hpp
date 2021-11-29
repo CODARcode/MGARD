@@ -1811,7 +1811,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
 
   // SubArray<1, T, DeviceType> dist_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dim_f][l]}, handle.dist[curr_dim_f][l]);
   // SubArray<1, T, DeviceType> ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dim_f][l]}, handle.ratio[curr_dim_f][l]);
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
   Lpk1Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
                                     SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
                                     handle.processed_n[0], 
@@ -1821,7 +1821,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
                                     SubArray(handle.dist_array[curr_dim_f][l]), 
                                     SubArray(handle.ratio_array[curr_dim_f][l]), 
                                     dw_in1, dw_in2, dw_out, 0);
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   if (debug_print){ // debug
     PrintSubarray4D(format("decomposition: after MR-1D[{}]", l), dw_out);
@@ -1859,7 +1859,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
   //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
   //     handle.auto_tuning_mr1[handle.arch][handle.precision][range_lp1]);
 
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
   Lpk2Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
                                     SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
                                     handle.processed_n[1], 
@@ -1869,7 +1869,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
                                     SubArray(handle.dist_array[curr_dim_c][l]), 
                                     SubArray(handle.ratio_array[curr_dim_c][l]), 
                                     dw_in1, dw_in2, dw_out, 0);
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   if (debug_print){ // debug
     PrintSubarray4D(format("decomposition: after MR-2D[{}]", l), dw_out);
@@ -1908,7 +1908,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
   //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
   //     handle.auto_tuning_mr1[handle.arch][handle.precision][range_lp1]);
 
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
   Lpk3Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
                                     SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
                                     handle.processed_n[2], 
@@ -1918,7 +1918,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
                                     SubArray(handle.dist_array[curr_dim_r][l]), 
                                     SubArray(handle.ratio_array[curr_dim_r][l]), 
                                     dw_in1, dw_in2, dw_out, 0);
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   if (debug_print){ // debug
     PrintSubarray4D(format("decomposition: after MR-3D[{}]", l), dw_out);
@@ -1956,7 +1956,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
     //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
     //     handle.auto_tuning_mr1[handle.arch][handle.precision][range_lp1]);
 
-    gpuErrchk(cudaDeviceSynchronize());
+    // gpuErrchk(cudaDeviceSynchronize());
     Lpk3Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
                                       SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
                                       handle.processed_n[i], 
@@ -1966,7 +1966,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
                                       SubArray(handle.dist_array[curr_dim_r][l]), 
                                       SubArray(handle.ratio_array[curr_dim_r][l]), 
                                       dw_in1, dw_in2, dw_out, 0);
-    gpuErrchk(cudaDeviceSynchronize());
+    // gpuErrchk(cudaDeviceSynchronize());
 
     if (debug_print){ // debug
       PrintSubarray4D(format("decomposition: after MR-{}D[{}]", i+1, l), dw_out);
@@ -1991,7 +1991,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
   //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
   //     handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
 
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
   Ipk1Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
                                       SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
                                       handle.processed_n[0], 
@@ -2000,7 +2000,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
                                       SubArray(handle.am_array[curr_dim_f][l+1]), 
                                       SubArray(handle.bm_array[curr_dim_f][l+1]), 
                                       dw_out, 0);
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   if (debug_print){ // debug
     PrintSubarray4D(format("decomposition: after TR-1D[{}]", l), dw_out);
@@ -2024,7 +2024,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
   //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
   //     handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
 
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
   Ipk2Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
                                       SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
                                       handle.processed_n[1], 
@@ -2034,7 +2034,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
                                       SubArray(handle.bm_array[curr_dim_c][l+1]), 
                                       // SubArray(handle.dist_array[curr_dim_f][l+1]), 
                                       dw_out, 0);
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   if (debug_print){ // debug
     PrintSubarray4D(format("decomposition: after TR-2D[{}]", l), dw_out);
@@ -2057,7 +2057,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
   //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
   //     handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
 
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
   Ipk3Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
                                       SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
                                       handle.processed_n[2], 
@@ -2067,7 +2067,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
                                       SubArray(handle.bm_array[curr_dim_r][l+1]), 
                                       // SubArray(handle.dist_array[curr_dim_f][l+1]), 
                                       dw_out, 0);
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
 
 
   if (debug_print){ // debug
@@ -2092,7 +2092,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
     //     dw_out.data(), dw_out.getLddv1(), dw_out.getLddv2(), queue_idx,
     //     handle.auto_tuning_ts1[handle.arch][handle.precision][range_lp1]);
 
-    gpuErrchk(cudaDeviceSynchronize());
+    // gpuErrchk(cudaDeviceSynchronize());
     Ipk3Reo<D, T, DeviceType>().Execute(SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
                                       SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
                                       handle.processed_n[i], 
@@ -2102,7 +2102,7 @@ void calc_correction_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
                                       SubArray(handle.bm_array[curr_dim_r][l+1]), 
                                       // SubArray(handle.dist_array[curr_dim_f][l+1]), 
                                       dw_out, 0);
-    gpuErrchk(cudaDeviceSynchronize());
+    // gpuErrchk(cudaDeviceSynchronize());
     if (debug_print){ // debug
       PrintSubarray4D(format("decomposition: after TR-{}D[{}]", i+1, l), dw_out);
     } //debug
@@ -2178,9 +2178,9 @@ void decompose(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceType>& v, 
         PrintSubarray4D(format("after coeff[%d]", l), v);
       } //debug
 
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
       calc_correction_nd(handle, v, w, l, 0);
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
 
       LwpkReo<D, T, ADD, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), w, v, queue_idx);
@@ -2230,10 +2230,10 @@ void recompose(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceType>& v,
       //         dcorrection.data(),
       //         dcorrection.getLdd(), dv, ldvs_d, queue_idx);
 
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
       LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), w, v, queue_idx);
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
       // SubArray<D, T, DeviceType> dinput({handle.dofs[0][l], handle.dofs[1][l], handle.dofs[2][l]},
       //                 dv, ldvs_h, ldvs_d);
 
@@ -2242,16 +2242,16 @@ void recompose(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceType>& v,
 
       
       coefficients_restore_3d(handle, v, w, l, 0);
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
 
       
 
       // lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
       //                  handle.dw, handle.ldws_d, dv, ldvs_d, queue_idx);
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
       LwpkReo<D, T, COPY, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), w, v, queue_idx);
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
 
       if (debug_print) {
         PrintSubarray("output of recomposition", v);
@@ -2279,25 +2279,25 @@ void recompose(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceType>& v,
         PrintSubarray4D(format("before subtract correction[%d]", l), v);
       } //deb
 
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
 
       calc_correction_nd(handle, v, w, l, 0);
 
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
       LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true), w, v, queue_idx);
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
 
       if (debug_print){ // debug
         PrintSubarray4D(format("after subtract correction[%d]", l), v);
       } //deb
 
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
       LwpkReo<D, T, COPY, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), v, b, queue_idx);
       LwpkReo<D, T, COPY, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), v, w, queue_idx);
-      gpuErrchk(cudaDeviceSynchronize());
+      // gpuErrchk(cudaDeviceSynchronize());
 
       coefficients_restore_nd(handle, w, b, v, l, queue_idx);
 

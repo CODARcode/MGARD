@@ -13,14 +13,15 @@
 namespace mgard_x {
 
 // GenerateCW Locals
-__device__ int CCL;
-__device__ int CDPI;
-__device__ int newCDPI;
+MGARDX_EXEC int CCL;
+MGARDX_EXEC int CDPI;
+MGARDX_EXEC int newCDPI;
 
 template <typename T, typename H, typename DeviceType>
 class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
   public:
-  MGARDm_CONT GenerateCWFunctor(SubArray<1, T, DeviceType> CL,
+  MGARDX_CONT GenerateCWFunctor(){}
+  MGARDX_CONT GenerateCWFunctor(SubArray<1, T, DeviceType> CL,
                                 SubArray<1, H, DeviceType> CW,
                                 SubArray<1, H, DeviceType> first,
                                 SubArray<1, H, DeviceType> entry,
@@ -29,7 +30,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     HuffmanCWCustomizedFunctor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     i = thread; // Porting convenience
@@ -43,7 +44,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     if (thread == 0) {
       CCL = *CL((IDX)0);
@@ -58,7 +59,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
     // Initialize first and entry arrays
     if (thread < CCL) {
@@ -69,14 +70,14 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   LoopCondition1() {
     // if (! thread)
       // printf("thread: %u, CDPI: %d, newCDPI: %d, size: %u\n", thread, CDPI, newCDPI, size);
     return CDPI < size - 1;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {
     // CDPI update
     if (i < size - 1 && *CL((IDX)i + 1) > CCL) {
@@ -84,7 +85,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {
     // Last element to update
     updateEnd = (newCDPI >= size - 1) ? type_bw : *CL((IDX)newCDPI + 1);
@@ -103,7 +104,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation6() {
     if (i < size) {
       // Parallel canonical codeword generation
@@ -125,7 +126,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation7() {
     // Update first array in O(1) time
     if (thread == CCL) {
@@ -138,7 +139,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation8() {
     if (thread == 0) {
       if (newCDPI < size - 1) {
@@ -162,7 +163,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation9() {
     // encoding CL into CW (highest 8 bits)
     if (thread < size) {
@@ -174,7 +175,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation10() {
     /* Reverse partial codebook */
 
@@ -186,7 +187,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() { return 0; }
 
   private:
@@ -209,10 +210,10 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
 template <typename T, typename H, typename DeviceType>
 class GenerateCW: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   GenerateCW():AutoTuner<DeviceType>() {}
 
-  MGARDm_CONT
+  MGARDX_CONT
   Task<GenerateCWFunctor<T, H, DeviceType> > 
   GenTask(SubArray<1, T, DeviceType> CL,
           SubArray<1, H, DeviceType> CW,
@@ -255,7 +256,7 @@ public:
                 tbz, tby, tbx, sm_size, queue_idx, "GenerateCW"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, T, DeviceType> CL,
                 SubArray<1, H, DeviceType> CW,
                 SubArray<1, H, DeviceType> first,

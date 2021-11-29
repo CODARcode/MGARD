@@ -15,13 +15,15 @@ namespace mgard_x {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP, typename DeviceType>
 class LwpkReoFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT LwpkReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
+
+  MGARDX_CONT LwpkReoFunctor() {}
+  MGARDX_CONT LwpkReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
                               SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work):
                               shape(shape), v(v), work(work) {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                     (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
@@ -34,12 +36,12 @@ class LwpkReoFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     SIZE idx[D];
     SIZE firstD = div_roundup(shape_sm[0], F);
 
-    SIZE bidx = blockIdx.x;
+    SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
 
     // printf("firstD %d idx[0] %d\n", firstD, idx[0]);
@@ -73,16 +75,16 @@ class LwpkReoFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = D * sizeof(SIZE);
@@ -100,11 +102,11 @@ class LwpkReoFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, OPTION OP, typename DeviceType>
 class LwpkReo: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   LwpkReo():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<LwpkReoFunctor<D, T, R, C, F, OP, DeviceType> > 
   GenTask(SubArray<1, SIZE, DeviceType> shape,
           SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
@@ -133,7 +135,7 @@ class LwpkReo: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "LwpkReo"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, SIZE, DeviceType> shape,
               SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
               int queue_idx) {
@@ -169,7 +171,7 @@ class LwpkReo: public AutoTuner<DeviceType> {
 //   SIZE idx[D];
 //   SIZE firstD = div_roundup(shape_sm[0], F);
 
-//   SIZE bidx = blockIdx.x;
+//   SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
 //   idx[0] = (bidx % firstD) * F + threadIdx.x;
 
 //   // printf("firstD %d idx[0] %d\n", firstD, idx[0]);
@@ -261,13 +263,13 @@ class LwpkReo: public AutoTuner<DeviceType> {
 template <mgard_x::DIM D, typename T, int R, int C, int F, OPTION OP, typename DeviceType>
 class LevelwiseCalcNDFunctor : public Functor<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   LevelwiseCalcNDFunctor(SIZE *shape, SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w): 
                         shape(shape), v(v), w(w) {
     Functor<DeviceType>();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                     (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
@@ -280,7 +282,7 @@ public:
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
 
     SIZE firstD = div_roundup(shape_sm[0], F);
@@ -317,16 +319,16 @@ public:
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size += D * sizeof(SIZE);
@@ -348,11 +350,11 @@ template <DIM D, typename T, OPTION Direction, typename DeviceType>
 class LevelwiseCalcNDKernel: public AutoTuner<DeviceType> {
 
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   LevelwiseCalcNDKernel(): AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<LevelwiseCalcNDFunctor<D, T, R, C, F, Direction, DeviceType>> 
   GenTask(SIZE *shape_h, SIZE *shape_d, SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w, int queue_idx) {
     using FunctorType = LevelwiseCalcNDFunctor<D, T, R, C, F, Direction, DeviceType>;
@@ -375,7 +377,7 @@ public:
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE *shape_h, SIZE *shape_d, SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w, int queue_idx) {
     #define KERNEL(R, C, F)\
     {\

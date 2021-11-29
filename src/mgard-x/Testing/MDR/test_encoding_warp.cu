@@ -13,7 +13,7 @@ using namespace nvcuda;
 #include <chrono>
 using namespace std::chrono;
 template <typename T>
-MGARDm_CONT_EXEC void
+MGARDX_CONT_EXEC void
 print_bits(T v, int num_bits, bool reverse = false) {
   for (int j = 0; j < num_bits; j++) {
     if (!reverse) printf("%u", (v >> sizeof(T)*8-1-j) & 1u);
@@ -135,7 +135,7 @@ void test(mgard_x::LENGTH n,
                                         DataDecodingAlgorithm, 
                                         mgard_x::CUDA> decoder;
 
-    mgard_x::Array<2, T_error, mgard_x::CUDA> level_errors_work_array({encoding_num_bitplanes+1, MGARDm_NUM_SMs});
+    mgard_x::Array<2, T_error, mgard_x::CUDA> level_errors_work_array({encoding_num_bitplanes+1, MGARDX_NUM_SMs});
     mgard_x::SubArray<2, T_error, mgard_x::CUDA> level_errors_work(level_errors_work_array);
     
     mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_array({encoding_num_bitplanes, encoder.MaxBitplaneLength(n)});

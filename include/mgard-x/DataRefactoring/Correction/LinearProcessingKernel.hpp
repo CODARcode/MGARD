@@ -17,7 +17,8 @@ namespace mgard_x {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk1ReoFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT Lpk1ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
+  MGARDX_CONT Lpk1ReoFunctor() {}
+  MGARDX_CONT Lpk1ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
                              SubArray<1, SIZE, DeviceType> shape_c,
                              DIM processed_n, 
                              SubArray<1, DIM, DeviceType> processed_dims, 
@@ -33,7 +34,7 @@ class Lpk1ReoFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                       (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
@@ -64,7 +65,7 @@ class Lpk1ReoFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     // __syncthreads();
 
@@ -346,7 +347,7 @@ class Lpk1ReoFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
 
     // __syncthreads();
@@ -403,7 +404,7 @@ class Lpk1ReoFunctor: public Functor<DeviceType> {
   }
 
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = (R * C * (F * 2 + 3) + (F * 2 + 3) * 2) * sizeof(T);
@@ -464,11 +465,11 @@ class Lpk1ReoFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class Lpk1Reo: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   Lpk1Reo():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Lpk1ReoFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SubArray<1, SIZE, DeviceType> shape, 
           SubArray<1, SIZE, DeviceType> shape_c,
@@ -518,7 +519,7 @@ class Lpk1Reo: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "Lpk1Reo"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, SIZE, DeviceType> shape, 
                SubArray<1, SIZE, DeviceType> shape_c,
                DIM processed_n, 
@@ -561,7 +562,8 @@ class Lpk1Reo: public AutoTuner<DeviceType> {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk2ReoFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT Lpk2ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
+  MGARDX_CONT Lpk2ReoFunctor() {}
+  MGARDX_CONT Lpk2ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
                              SubArray<1, SIZE, DeviceType> shape_c,
                              DIM processed_n, 
                              SubArray<1, DIM, DeviceType> processed_dims, 
@@ -577,7 +579,7 @@ class Lpk2ReoFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                       (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
@@ -609,7 +611,7 @@ class Lpk2ReoFunctor: public Functor<DeviceType> {
 
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     // __syncthreads();
 
@@ -797,7 +799,7 @@ class Lpk2ReoFunctor: public Functor<DeviceType> {
 
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
 
     // __syncthreads();
@@ -863,7 +865,7 @@ class Lpk2ReoFunctor: public Functor<DeviceType> {
   }
 
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = (R * (C * 2 + 3) * F + (C * 2 + 3) * 2) * sizeof(T);
@@ -925,11 +927,11 @@ class Lpk2ReoFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class Lpk2Reo: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   Lpk2Reo():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Lpk2ReoFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SubArray<1, SIZE, DeviceType> shape, 
           SubArray<1, SIZE, DeviceType> shape_c,
@@ -980,7 +982,7 @@ class Lpk2Reo: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "Lpk2Reo"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, SIZE, DeviceType> shape, 
                SubArray<1, SIZE, DeviceType> shape_c,
                DIM processed_n, 
@@ -1024,7 +1026,8 @@ class Lpk2Reo: public AutoTuner<DeviceType> {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk3ReoFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT Lpk3ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
+  MGARDX_CONT Lpk3ReoFunctor() {}
+  MGARDX_CONT Lpk3ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
                              SubArray<1, SIZE, DeviceType> shape_c,
                              DIM processed_n, 
                              SubArray<1, DIM, DeviceType> processed_dims, 
@@ -1040,7 +1043,7 @@ class Lpk3ReoFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
                       (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
@@ -1070,7 +1073,7 @@ class Lpk3ReoFunctor: public Functor<DeviceType> {
       processed_dims_sm[threadId] = *processed_dims(threadId);
     }
   }
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     // __syncthreads();
 
@@ -1265,11 +1268,11 @@ class Lpk3ReoFunctor: public Functor<DeviceType> {
 
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
     // __syncthreads();
 
-    int adjusted_nr_c = nr_c;
+    // int adjusted_nr_c = nr_c;
     if (r_gl < nr_c && c_gl < nc_c && f_gl < nf_c) {
       T h1 = dist_r_sm[r_sm * 2];
       T h2 = dist_r_sm[r_sm * 2 + 1];
@@ -1334,7 +1337,7 @@ class Lpk3ReoFunctor: public Functor<DeviceType> {
   }
 
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = ((R * 2 + 3) * C * F + (R * 2 + 3) * 2) * sizeof(T);
@@ -1396,11 +1399,11 @@ class Lpk3ReoFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class Lpk3Reo: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   Lpk3Reo():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Lpk3ReoFunctor<D, T, R, C, F, DeviceType> > 
   GenTask(SubArray<1, SIZE, DeviceType> shape, 
           SubArray<1, SIZE, DeviceType> shape_c,
@@ -1452,7 +1455,7 @@ class Lpk3Reo: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "Lpk3Reo"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, SIZE, DeviceType> shape, 
                SubArray<1, SIZE, DeviceType> shape_c,
                DIM processed_n, 

@@ -16,26 +16,27 @@ namespace mgard_x {
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MOD(a, b) ((((a) % (b)) + (b)) % (b))
 
-MGARDm_EXEC int iNodesFront = 0;
-MGARDm_EXEC int iNodesRear = 0;
-MGARDm_EXEC int lNodesCur = 0;
+MGARDX_EXEC int iNodesFront = 0;
+MGARDX_EXEC int iNodesRear = 0;
+MGARDX_EXEC int lNodesCur = 0;
 
-MGARDm_EXEC int iNodesSize = 0;
-MGARDm_EXEC int curLeavesNum;
+MGARDX_EXEC int iNodesSize = 0;
+MGARDX_EXEC int curLeavesNum;
 
-MGARDm_EXEC int minFreq;
+MGARDX_EXEC int minFreq;
 
-MGARDm_EXEC int tempLength;
+MGARDX_EXEC int tempLength;
 
-MGARDm_EXEC int mergeFront;
-MGARDm_EXEC int mergeRear;
+MGARDX_EXEC int mergeFront;
+MGARDX_EXEC int mergeRear;
 
-MGARDm_EXEC int lNodesIndex;
+MGARDX_EXEC int lNodesIndex;
 
 template <typename T, typename DeviceType>
 class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
   public:
-  MGARDm_CONT GenerateCLFunctor(
+  MGARDX_CONT GenerateCLFunctor(){}
+  MGARDX_CONT GenerateCLFunctor(
     SubArray<1, T, DeviceType> histogram,  SubArray<1, T, DeviceType> CL,  int size,
     /* Global Arrays */
     SubArray<1, T, DeviceType> lNodesFreq,  SubArray<1, int, DeviceType> lNodesLeader,
@@ -64,14 +65,14 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     HuffmanCLCustomizedFunctor<DeviceType>();                  
   }
 
-  // MGARDm_CONT void
+  // MGARDX_CONT void
   // Init_diagonal_path_intersections(SIZE mblocks) {
   //   printf("init array: %u\n", 2 * (mblocks + 1));
   //   diagonal_path_intersections_array = Array<1, uint32_t, DeviceType>({(SIZE)(2 * (mblocks + 1))});  
   //   diagonal_path_intersections = SubArray<1, uint32_t, DeviceType>(diagonal_path_intersections_array);    
   // }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     mblocks = FunctorBase<DeviceType>::GetGridDimX();
     mthreads = FunctorBase<DeviceType>::GetBlockDimX();
@@ -101,13 +102,13 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   LoopCondition1() {
     // printf("LoopCondition1 %d %u %d\n", lNodesCur, size, iNodesSize);
     return lNodesCur < size || iNodesSize > 1;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     /* Combine two most frequent nodes on same level */
     if (thread == 0) {
@@ -229,7 +230,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
     /* Select elements to copy -- parallelized */
     if (i >= lNodesCur && i < size) {
@@ -238,7 +239,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
       if (*lNodesFreq((IDX)i) <= minFreq) {
         threadCurLeavesNum = i - lNodesCur + 1;
         // Atomic max -- Largest valid index
-        atomicMax(&curLeavesNum, threadCurLeavesNum);
+        Atomic<DeviceType>::Max(&curLeavesNum, threadCurLeavesNum);
       }
 
       if (i - lNodesCur < curLeavesNum) {
@@ -249,7 +250,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {
 
     // if (!thread) {
@@ -282,7 +283,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {
 
     cStart = 0;
@@ -309,9 +310,9 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     // if (!FunctorBase<DeviceType>::GetThreadIdX()) {
     //   printf("A_length: %d, B_length: %d, tempLength: %d, combinedIndex: %d\n", A_length, B_length, tempLength, combinedIndex);
     // }
-    threadOffset = FunctorBase<DeviceType>::GetThreadIdX() - MGARDm_WARP_SIZE/2;
+    threadOffset = FunctorBase<DeviceType>::GetThreadIdX() - MGARDX_WARP_SIZE/2;
 
-    if (FunctorBase<DeviceType>::GetThreadIdX() < MGARDm_WARP_SIZE) {
+    if (FunctorBase<DeviceType>::GetThreadIdX() < MGARDX_WARP_SIZE) {
       // Figure out the coordinates of our diagonal
       if (A_length >= B_length) {
         *x_top = MIN(combinedIndex, A_length);
@@ -328,18 +329,18 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     *found = 0;
   }
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   BranchCondition1() {
     return tempLength > 0;
   }
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   LoopCondition2() {
     // printf("%u LoopCondition2\n", FunctorBase<DeviceType>::GetBlockIdX());
     return !(*found);
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation6() {
     // Update our coordinates within the 32-wide section of the diagonal
     // if (!FunctorBase<DeviceType>::GetThreadIdX()) {
@@ -352,7 +353,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     // int32_t getfrom_y = MOD(iStart + current_y, iNodesCap);
     getfrom_y = iStart + current_y;
 
-    if (FunctorBase<DeviceType>::GetThreadIdX() < MGARDm_WARP_SIZE) {
+    if (FunctorBase<DeviceType>::GetThreadIdX() < MGARDX_WARP_SIZE) {
       if (getfrom_y >= iNodesCap)
         getfrom_y -= iNodesCap;
 
@@ -368,7 +369,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation7() {
     //     if (!FunctorBase<DeviceType>::GetThreadIdX())
     //     printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d \n\
@@ -384,7 +385,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     // If we find the meeting of the '1's and '0's, we found the
     // intersection of the path and diagonal
     if (FunctorBase<DeviceType>::GetThreadIdX() > 0 and                                    //
-        FunctorBase<DeviceType>::GetThreadIdX() < MGARDm_WARP_SIZE and                                   //
+        FunctorBase<DeviceType>::GetThreadIdX() < MGARDX_WARP_SIZE and                                   //
         (oneorzero[FunctorBase<DeviceType>::GetThreadIdX()] != oneorzero[FunctorBase<DeviceType>::GetThreadIdX() - 1]) //
     ) {
       // printf("found\n");
@@ -395,7 +396,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation8() {
     // Adjust the search window on the diagonal
     if (FunctorBase<DeviceType>::GetThreadIdX() == 16) {
@@ -411,7 +412,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   //end of loop 2
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation9() {
     // Set the boundary diagonals (through 0,0 and A_length,B_length)
     if (FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0) {
@@ -422,9 +423,9 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation10() {
-    if (threadIdx.x == 0) {
+    if (FunctorBase<DeviceType>::GetThreadIdX() == 0) {
       // Boundaries
       int x_block_top = *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetBlockIdX());
       int y_block_top = *diagonal_path_intersections((IDX)FunctorBase<DeviceType>::GetBlockIdX() + FunctorBase<DeviceType>::GetGridDimX() + 1);
@@ -483,14 +484,14 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
       //   }
       // }
 
-      // if (threadIdx.x == 0) {
+      // if (FunctorBase<DeviceType>::GetThreadIdX() == 0) {
       //   printf("FunctorBase<DeviceType>::GetGridDimX(): %llu, offset: %d, len: %d\n", FunctorBase<DeviceType>::GetGridDimX(), offset, len);
       //   printf("leaf: %d %d\n", *tempIsLeaf((IDX)2 * 4), *tempIsLeaf((IDX)2 * 4 + 1));
       // }
     }
 
     // cg::this_grid().sync();
-    // if (threadIdx.x == 0) {
+    // if (FunctorBase<DeviceType>::GetThreadIdX() == 0) {
     //   // printf("FunctorBase<DeviceType>::GetGridDimX(): %u, offset: %d, len: %d\n", FunctorBase<DeviceType>::GetGridDimX(), offset, len);
     //   printf("leaf: %d %d\n", *tempIsLeaf((IDX)2 * 4), *tempIsLeaf((IDX)2 * 4 + 1));
     // }
@@ -499,7 +500,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
   
   // end of parallel merge
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation11() {
     // if (thread == 0) {
     //   printf("leaf: %d %d\n", *tempIsLeaf((IDX)2 * 4), *tempIsLeaf((IDX)2 * 4 + 1));
@@ -526,14 +527,14 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation12() {
     if (thread == 0) {
       iNodesRear = MOD(iNodesRear + (tempLength / 2), size);
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation13() {
     /* Update leaders */
     // if (thread == 0) {
@@ -550,14 +551,14 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation14() {
     if (thread == 0) {
       iNodesSize = MOD(iNodesRear - iNodesFront, size);
     }
   }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() { 
     size_t sm_size = 0;
     sm_size += 5 * sizeof(int32_t);
@@ -629,10 +630,10 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 template <typename T, typename DeviceType>
 class GenerateCL: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   GenerateCL():AutoTuner<DeviceType>() {}
 
-  MGARDm_CONT
+  MGARDX_CONT
   Task<GenerateCLFunctor<T, DeviceType> > 
   GenTask(SubArray<1, T, DeviceType> histogram,  SubArray<1, T, DeviceType> CL, int dict_size,
     /* Global Arrays */
@@ -674,7 +675,7 @@ public:
                 tbz, tby, tbx, sm_size, queue_idx, "GenerateCL"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, T, DeviceType> histogram,  SubArray<1, T, DeviceType> CL, int dict_size,
     /* Global Arrays */
     SubArray<1, T, DeviceType> lNodesFreq,  SubArray<1, int, DeviceType> lNodesLeader,

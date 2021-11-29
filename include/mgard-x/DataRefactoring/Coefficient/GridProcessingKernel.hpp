@@ -19,7 +19,9 @@ template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE, typename DeviceType>
 class GpkReoFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT GpkReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
+
+  MGARDX_CONT GpkReoFunctor(){}
+  MGARDX_CONT GpkReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
                             SubArray<1, SIZE, DeviceType> shape_c,  
                             DIM unprocessed_n, SubArray<1, DIM, DeviceType> unprocessed_dims, 
                             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
@@ -45,20 +47,20 @@ class GpkReoFunctor: public Functor<DeviceType> {
                               Functor<DeviceType>();
                             }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
 
     // bool debug = false;
-    // if (blockIdx.x == 0 && blockIdx.y ==0 && blockIdx.z == 0 &&
-    //     threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) debug =
+    // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() ==0 && FunctorBase<DeviceType>::GetBlockIdZ() == 0 &&
+    //     FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) debug =
     //     false;
 
     // volatile clock_t start = 0;
     // volatile clock_t end = 0;
     // volatile unsigned long long sum_time = 0;
 
-    threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
-                      (threadIdx.y * blockDim.x) + threadIdx.x;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                      (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
   
     in_next = true;
@@ -95,7 +97,7 @@ class GpkReoFunctor: public Functor<DeviceType> {
     }
   }
   
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     // __syncthreads();
 
@@ -119,11 +121,11 @@ class GpkReoFunctor: public Functor<DeviceType> {
       nc_c = 1;
     }
 
-    r = blockIdx.z * blockDim.z;
-    c = blockIdx.y * blockDim.y;
-    SIZE bidx = blockIdx.x;
-    SIZE firstD = div_roundup(shape_sm[0] - 1, blockDim.x);
-    f = (bidx % firstD) * blockDim.x;
+    r = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
+    c = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
+    SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
+    SIZE firstD = div_roundup(shape_sm[0] - 1, FunctorBase<DeviceType>::GetBlockDimX());
+    f = (bidx % firstD) * FunctorBase<DeviceType>::GetBlockDimX();
 
     bidx /= firstD;
 
@@ -181,8 +183,8 @@ class GpkReoFunctor: public Functor<DeviceType> {
       }
     }
 
-    // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0) {
-    // if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+    // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdZ() == 0) {
+    // if (FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) {
     //   printf("total_idx_sm: %d %d %d %d (skip: %d)\n", idx[3], idx[2], idx[1],
     //   idx[0], skip);
     // }
@@ -224,11 +226,11 @@ class GpkReoFunctor: public Functor<DeviceType> {
     }
 
   }
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
-    r_sm = threadIdx.z;
-    c_sm = threadIdx.y;
-    f_sm = threadIdx.x;
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     r_sm_ex = (R/2) * 2;
     c_sm_ex = (C/2) * 2;
@@ -272,7 +274,7 @@ class GpkReoFunctor: public Functor<DeviceType> {
       // start = clock64();
       v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
           *v(r_gl, c_gl, f_gl);
-      // if (blockIdx.x==0 && blockIdx.y==0&&blockIdx.z==0) {
+      // if (FunctorBase<DeviceType>::GetBlockIdX()==0 && FunctorBase<DeviceType>::GetBlockIdY()==0&&FunctorBase<DeviceType>::GetBlockIdZ()==0) {
       //   printf("load (%d %d %d) %f <- %d+(%d %d %d) (ld: %d %d)\n",
       //           r_sm, c_sm, f_sm,
       //           dv[get_idx(lddv1, lddv2, r_gl, c_gl, f_gl)],
@@ -324,7 +326,7 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {
     // __syncthreads();
 
@@ -338,8 +340,8 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
       // asm volatile("membar.cta;");
       // start = clock64() - start;
-      // printf("[load main] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-      // blockIdx.y, blockIdx.x, start); start = clock64();
+      // printf("[load main] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+      // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
       // load extra surface
 
@@ -499,8 +501,8 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
       // asm volatile("membar.cta;");
       // start = clock64() - start;
-      // printf("[load extra] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-      // blockIdx.y, blockIdx.x, start); start = clock64();
+      // printf("[load extra] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+      // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
       // load dist
       if (c_sm == 0 && f_sm == 0 && r_sm < rest_r_p - 2) {
@@ -539,8 +541,8 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[load ratio] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-    // blockIdx.y, blockIdx.x, start); start = clock64();
+    // printf("[load ratio] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+    // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
     // __syncthreads();
     // // debug print
@@ -567,7 +569,7 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {
     // __syncthreads();
 
@@ -613,8 +615,8 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[store coarse] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-    // blockIdx.y, blockIdx.x, start); start = clock64();
+    // printf("[store coarse] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+    // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
     int base = 0;
     // printf("TYPE =%d \n", TYPE);
     // printf("%d == %d && %llu >= %d && %llu < %d\n", r + (R/2) * 2, nr_p - 1,
@@ -927,8 +929,8 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[store extra] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-    // blockIdx.y, blockIdx.x, start); start = clock64();
+    // printf("[store extra] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+    // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
     // start = clock64();
 
@@ -990,13 +992,13 @@ class GpkReoFunctor: public Functor<DeviceType> {
       // f_sm);
       // asm volatile("membar.cta;");
       // start = clock64() - start;
-      // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-      // blockIdx.y, blockIdx.x, start); start = clock64();
+      // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+      // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
     }
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-    // blockIdx.y, blockIdx.x, start); start = clock64();
+    // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+    // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
     // if (r_sm % 2 == 0 && c_sm % 2 != 0 && f_sm % 2 == 0) {
 
@@ -1050,8 +1052,8 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[(C/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-    // blockIdx.y, blockIdx.x, start); start = clock64();
+    // printf("[(C/2)-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+    // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
     // if (r_sm % 2 != 0 && c_sm % 2 == 0 && f_sm % 2 == 0) {
     if (!wr.isNull() && threadId >= (R/2) * (C/2) * (F/2) * 3 && threadId < (R/2) * (C/2) * (F/2) * 4) {
@@ -1101,12 +1103,12 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[(R/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-    // blockIdx.y, blockIdx.x, start); start = clock64();
+    // printf("[(R/2)-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+    // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation6() {
     // __syncthreads();
     if (!wcf.isNull() && threadId >= (R/2) * (C/2) * (F/2) * 4 && threadId < (R/2) * (C/2) * (F/2) * 5) {
@@ -1161,8 +1163,8 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
     // asm volatile("membar.cta;");
     // start = clock64() - start;
-    // printf("[CF-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-    // blockIdx.y, blockIdx.x, start); start = clock64();
+    // printf("[CF-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+    // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
     if (!wrf.isNull() && threadId >= (R/2) * (C/2) * (F/2) * 5 && threadId < (R/2) * (C/2) * (F/2) * 6) {
       r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 5) / ((C/2) * (F/2))) * 2 + 1;
@@ -1335,7 +1337,7 @@ class GpkReoFunctor: public Functor<DeviceType> {
     // end = clock64();
 
     // asm volatile("membar.cta;");
-    // if (threadId < 256 && blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x ==
+    // if (threadId < 256 && FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() ==
     // 0) printf("threadId %d elapsed %lu\n", threadId, end-start);
     if (r + (R/2) * 2 == nr_p - 1) {
       // printf("test\n");
@@ -1978,7 +1980,7 @@ class GpkReoFunctor: public Functor<DeviceType> {
 
 
  
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
@@ -2043,11 +2045,11 @@ template <DIM D_GLOBAL, DIM D_LOCAL, typename T,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE, typename DeviceType>
 class GpkReo: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   GpkReo():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<GpkReoFunctor<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION, CALC_COEFF, TYPE, DeviceType>> 
   GenTask(SubArray<1, SIZE, DeviceType> shape, SubArray<1, SIZE, DeviceType> shape_c,
           DIM unprocessed_n, SubArray<1, DIM, DeviceType> unprocessed_dims,
@@ -2101,7 +2103,7 @@ class GpkReo: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "GpkReo"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, SIZE, DeviceType> shape, SubArray<1, SIZE, DeviceType> shape_c,
             DIM unprocessed_n, SubArray<1, DIM, DeviceType> unprocessed_dims,
             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
@@ -2152,7 +2154,10 @@ template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F,
           bool INTERPOLATION, bool COEFF_RESTORE, int TYPE, typename DeviceType>
 class GpkRevFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT GpkRevFunctor(SubArray<1, SIZE, DeviceType> shape, 
+
+  MGARDX_CONT GpkRevFunctor(){}
+
+  MGARDX_CONT GpkRevFunctor(SubArray<1, SIZE, DeviceType> shape, 
                             SubArray<1, SIZE, DeviceType> shape_c,  
                             DIM unprocessed_n, SubArray<1, DIM, DeviceType> unprocessed_dims, 
                             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
@@ -2182,11 +2187,12 @@ class GpkRevFunctor: public Functor<DeviceType> {
                               Functor<DeviceType>();
                             }
 
-  MGARDm_EXEC void
+
+  MGARDX_EXEC void
   Operation1() {
 
-    threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
-                      (threadIdx.y * blockDim.x) + threadIdx.x;
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+                      (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
 
     nr, nc, nf;
     nr_c, nc_c, nf_c;
@@ -2204,7 +2210,7 @@ class GpkRevFunctor: public Functor<DeviceType> {
     ldsm1 = (F/2) * 2 + 1;
     ldsm2 = (C/2) * 2 + 1;
 
-    T *v_sm = sm; sm += ((F/2) * 2 + 1) * ((C/2) * 2 + 1) * ((R/2) * 2 + 1);
+    v_sm = sm; sm += ((F/2) * 2 + 1) * ((C/2) * 2 + 1) * ((R/2) * 2 + 1);
     ratio_f_sm = sm; sm += (F/2) * 2;
     ratio_c_sm = sm; sm += (C/2) * 2;
     ratio_r_sm = sm; sm += (R/2) * 2;
@@ -2220,7 +2226,7 @@ class GpkRevFunctor: public Functor<DeviceType> {
     unprocessed_dims_sm = sm_dim; sm_dim += D_GLOBAL;
     sm = (T*)sm_dim;
 
-    SIZE idx[D_GLOBAL];
+    // SIZE idx[D_GLOBAL];
     if (threadId < D_GLOBAL) {
       shape_sm[threadId] = *shape(threadId);
       shape_c_sm[threadId] = *shape_c(threadId);
@@ -2232,7 +2238,11 @@ class GpkRevFunctor: public Functor<DeviceType> {
       unprocessed_dims_sm[threadId] = *unprocessed_dims(threadId);
     }
 
-    __syncthreads();
+  }
+
+  MGARDX_EXEC void
+  Operation2() {
+    // __syncthreads();
     for (DIM d = 0; d < D_GLOBAL; d++)
       idx[d] = 0;
 
@@ -2253,11 +2263,11 @@ class GpkRevFunctor: public Functor<DeviceType> {
       nc_c = 1;
     }
 
-    r = blockIdx.z * blockDim.z;
-    c = blockIdx.y * blockDim.y;
-    SIZE bidx = blockIdx.x;
-    SIZE firstD = div_roundup(shape_sm[0] - 1, blockDim.x);
-    f = (bidx % firstD) * blockDim.x;
+    r = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
+    c = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
+    SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
+    SIZE firstD = div_roundup(shape_sm[0] - 1, FunctorBase<DeviceType>::GetBlockDimX());
+    f = (bidx % firstD) * FunctorBase<DeviceType>::GetBlockDimX();
 
     bidx /= firstD;
 
@@ -2305,7 +2315,7 @@ class GpkRevFunctor: public Functor<DeviceType> {
       }
     }
 
-    int skip = 0;
+    skip = 0;
     #pragma unroll 1
     for (DIM t = 0; t < D_GLOBAL; t++) {
       for (DIM k = 0; k < unprocessed_n; k++) {
@@ -2315,8 +2325,8 @@ class GpkRevFunctor: public Functor<DeviceType> {
       }
     }
 
-    // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0) {
-    // if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+    // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdZ() == 0) {
+    // if (FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) {
     //   printf("TYPE %d total_idx_sm: %d %d %d %d (skip: %d)\n", TYPE, idx[3],
     //   idx[2], idx[1], idx[0], skip);
     // }
@@ -2351,11 +2361,16 @@ class GpkRevFunctor: public Functor<DeviceType> {
       wrf = wr;
       wrcf = wrc;
     }
-    __syncthreads();
 
-    r_sm = threadIdx.z;
-    c_sm = threadIdx.y;
-    f_sm = threadIdx.x;
+  }
+
+  MGARDX_EXEC void
+  Operation3() {
+    // __syncthreads();
+
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
     r_sm_ex = (R/2) * 2;
     c_sm_ex = (C/2) * 2;
@@ -2388,7 +2403,7 @@ class GpkRevFunctor: public Functor<DeviceType> {
       }
     }
 
-    if (threadIdx.z == 0 && threadIdx.y == 0 && threadIdx.x == 0) {
+    if (FunctorBase<DeviceType>::GetThreadIdZ() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0) {
       for (int i = 0; i < (R/2) * 2 + 1; i++) {
         for (int j = 0; j < (C/2) * 2 + 1; j++) {
           for (int k = 0; k < (F/2) * 2 + 1; k++) {
@@ -2397,8 +2412,11 @@ class GpkRevFunctor: public Functor<DeviceType> {
         }
       }
     }
+  }
+  MGARDX_EXEC void
+  Operation4() {
 
-    __syncthreads();
+    // __syncthreads();
 
     if (!w.isNull() && threadId < (R/2) * (C/2) * (F/2)) {
       r_sm = (threadId / ((C/2) * (F/2))) * 2;
@@ -2937,8 +2955,12 @@ class GpkRevFunctor: public Functor<DeviceType> {
         }
       }
     }
+  }
 
-    __syncthreads();
+  MGARDX_EXEC void
+  Operation5() {
+
+    // __syncthreads();
 
     // __syncthreads();
     // if (debug) {
@@ -3897,15 +3919,18 @@ class GpkRevFunctor: public Functor<DeviceType> {
     // }
     // __syncthreads();
 
-    __syncthreads();
+    // __syncthreads();
+  }
 
-    r_sm = threadIdx.z;
-    c_sm = threadIdx.y;
-    f_sm = threadIdx.x;
+  MGARDX_EXEC void
+  Operation6() {
+    r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
+    c_sm = FunctorBase<DeviceType>::GetThreadIdY();
+    f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
-    r_sm_ex = blockDim.z;
-    c_sm_ex = blockDim.y;
-    f_sm_ex = blockDim.x;
+    r_sm_ex = FunctorBase<DeviceType>::GetBlockDimZ();
+    c_sm_ex = FunctorBase<DeviceType>::GetBlockDimY();
+    f_sm_ex = FunctorBase<DeviceType>::GetBlockDimX();
 
     r_gl = r + r_sm;
     c_gl = c + c_sm;
@@ -4193,7 +4218,11 @@ class GpkRevFunctor: public Functor<DeviceType> {
       }
     }
 
-    __syncthreads();
+  }
+   
+  MGARDX_EXEC void
+  Operation7() {
+    // __syncthreads();
 
     if (r_sm < rest_r && c_sm < rest_c && f_sm < rest_f) {
       if (r_gl >= svr && r_gl < svr + nvr && c_gl >= svc && c_gl < svc + nvc &&
@@ -4211,7 +4240,7 @@ class GpkRevFunctor: public Functor<DeviceType> {
 
 
  
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
@@ -4257,13 +4286,13 @@ class GpkRevFunctor: public Functor<DeviceType> {
   SIZE ldsm1, ldsm2;
   
 
-  SIZE * sm_size;
+  // SIZE * sm_size;
   SIZE * shape_sm;
   SIZE * shape_c_sm;
-  SIZE * lvs_sm;
-  SIZE * ldws_sm;
+  // SIZE * lvs_sm;
+  // SIZE * ldws_sm;
 
-  DIM * sm_dim;
+  // DIM * sm_dim;
   DIM * unprocessed_dims_sm;
 
   SIZE idx[D_GLOBAL];
@@ -4275,11 +4304,11 @@ template <DIM D_GLOBAL, DIM D_LOCAL, typename T,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE, typename DeviceType>
 class GpkRev: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   GpkRev():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<GpkRevFunctor<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION, CALC_COEFF, TYPE, DeviceType>> 
   GenTask(SubArray<1, SIZE, DeviceType> shape, SubArray<1, SIZE, DeviceType> shape_c,
           DIM unprocessed_n, SubArray<1, DIM, DeviceType> unprocessed_dims,
@@ -4335,7 +4364,7 @@ class GpkRev: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "GpkRev"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, SIZE, DeviceType> shape, SubArray<1, SIZE, DeviceType> shape_c,
             DIM unprocessed_n, SubArray<1, DIM, DeviceType> unprocessed_dims,
             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
@@ -4395,7 +4424,7 @@ class GpkRev: public AutoTuner<DeviceType> {
 //          LENGTH lddwrc1, LENGTH lddwrc2, T *dwrcf, LENGTH lddwrcf1, LENGTH lddwrcf2) {
 
 //   // bool debug = false;
-//   // if (blockIdx.x == 0 && blockIdx.y ==0 && blockIdx.z == 0 &&
+//   // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() ==0 && FunctorBase<DeviceType>::GetBlockIdZ() == 0 &&
 //   //     threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) debug =
 //   //     false;
 
@@ -4403,8 +4432,8 @@ class GpkRev: public AutoTuner<DeviceType> {
 //   // volatile clock_t end = 0;
 //   // volatile unsigned long long sum_time = 0;
 
-//   LENGTH threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
-//                     (threadIdx.y * blockDim.x) + threadIdx.x;
+//   LENGTH threadId = (threadIdx.z * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+//                     (threadIdx.y * FunctorBase<DeviceType>::GetBlockDimX()) + threadIdx.x;
 
 //   SIZE nr, nc, nf;
 //   SIZE nr_c, nc_c, nf_c;
@@ -4472,11 +4501,11 @@ class GpkRev: public AutoTuner<DeviceType> {
 //     nc_c = 1;
 //   }
 
-//   r = blockIdx.z * blockDim.z;
-//   c = blockIdx.y * blockDim.y;
-//   SIZE bidx = blockIdx.x;
-//   SIZE firstD = div_roundup(shape_sm[0] - 1, blockDim.x);
-//   f = (bidx % firstD) * blockDim.x;
+//   r = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
+//   c = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
+//   SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
+//   SIZE firstD = div_roundup(shape_sm[0] - 1, FunctorBase<DeviceType>::GetBlockDimX());
+//   f = (bidx % firstD) * FunctorBase<DeviceType>::GetBlockDimX();
 
 //   bidx /= firstD;
 
@@ -4534,7 +4563,7 @@ class GpkRev: public AutoTuner<DeviceType> {
 //     }
 //   }
 
-//   // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0) {
+//   // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdZ() == 0) {
 //   // if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
 //   //   printf("total_idx_sm: %d %d %d %d (skip: %d)\n", idx[3], idx[2], idx[1],
 //   //   idx[0], skip);
@@ -4609,7 +4638,7 @@ class GpkRev: public AutoTuner<DeviceType> {
 //       // start = clock64();
 //       v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm)] =
 //           dv[get_idx(lddv1, lddv2, r_gl, c_gl, f_gl)];
-//       // if (blockIdx.x==0 && blockIdx.y==0&&blockIdx.z==0) {
+//       // if (FunctorBase<DeviceType>::GetBlockIdX()==0 && FunctorBase<DeviceType>::GetBlockIdY()==0&&FunctorBase<DeviceType>::GetBlockIdZ()==0) {
 //       //   printf("load (%d %d %d) %f <- %d+(%d %d %d) (ld: %d %d)\n",
 //       //           r_sm, c_sm, f_sm,
 //       //           dv[get_idx(lddv1, lddv2, r_gl, c_gl, f_gl)],
@@ -4671,8 +4700,8 @@ class GpkRev: public AutoTuner<DeviceType> {
 
 //       // asm volatile("membar.cta;");
 //       // start = clock64() - start;
-//       // printf("[load main] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//       // blockIdx.y, blockIdx.x, start); start = clock64();
+//       // printf("[load main] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//       // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
 //       // load extra surface
 
@@ -4832,8 +4861,8 @@ class GpkRev: public AutoTuner<DeviceType> {
 
 //       // asm volatile("membar.cta;");
 //       // start = clock64() - start;
-//       // printf("[load extra] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//       // blockIdx.y, blockIdx.x, start); start = clock64();
+//       // printf("[load extra] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//       // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
 //       // load dist
 //       if (c_sm == 0 && f_sm == 0 && r_sm < rest_r_p - 2) {
@@ -4869,8 +4898,8 @@ class GpkRev: public AutoTuner<DeviceType> {
 
 //     // asm volatile("membar.cta;");
 //     // start = clock64() - start;
-//     // printf("[load ratio] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//     // blockIdx.y, blockIdx.x, start); start = clock64();
+//     // printf("[load ratio] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//     // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
 //     // __syncthreads();
 //     // // debug print
@@ -4938,8 +4967,8 @@ class GpkRev: public AutoTuner<DeviceType> {
 
 //     // asm volatile("membar.cta;");
 //     // start = clock64() - start;
-//     // printf("[store coarse] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//     // blockIdx.y, blockIdx.x, start); start = clock64();
+//     // printf("[store coarse] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//     // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 //     int base = 0;
 //     // printf("TYPE =%d \n", TYPE);
 //     // printf("%d == %d && %llu >= %d && %llu < %d\n", r + (R/2) * 2, nr_p - 1,
@@ -5249,8 +5278,8 @@ class GpkRev: public AutoTuner<DeviceType> {
 
 //     // asm volatile("membar.cta;");
 //     // start = clock64() - start;
-//     // printf("[store extra] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//     // blockIdx.y, blockIdx.x, start); start = clock64();
+//     // printf("[store extra] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//     // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
 //     // start = clock64();
 
@@ -5305,13 +5334,13 @@ class GpkRev: public AutoTuner<DeviceType> {
 //       // f_sm);
 //       // asm volatile("membar.cta;");
 //       // start = clock64() - start;
-//       // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//       // blockIdx.y, blockIdx.x, start); start = clock64();
+//       // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//       // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 //     }
 //     // asm volatile("membar.cta;");
 //     // start = clock64() - start;
-//     // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//     // blockIdx.y, blockIdx.x, start); start = clock64();
+//     // printf("[(F/2)-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//     // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
 //     // if (r_sm % 2 == 0 && c_sm % 2 != 0 && f_sm % 2 == 0) {
 
@@ -5365,8 +5394,8 @@ class GpkRev: public AutoTuner<DeviceType> {
 
 //     // asm volatile("membar.cta;");
 //     // start = clock64() - start;
-//     // printf("[(C/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//     // blockIdx.y, blockIdx.x, start); start = clock64();
+//     // printf("[(C/2)-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//     // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
 //     // if (r_sm % 2 != 0 && c_sm % 2 == 0 && f_sm % 2 == 0) {
 //     if (dwr && threadId >= (R/2) * (C/2) * (F/2) * 3 && threadId < (R/2) * (C/2) * (F/2) * 4) {
@@ -5416,8 +5445,8 @@ class GpkRev: public AutoTuner<DeviceType> {
 
 //     // asm volatile("membar.cta;");
 //     // start = clock64() - start;
-//     // printf("[(R/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//     // blockIdx.y, blockIdx.x, start); start = clock64();
+//     // printf("[(R/2)-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//     // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 //     __syncthreads();
 //     if (dwcf && threadId >= (R/2) * (C/2) * (F/2) * 4 && threadId < (R/2) * (C/2) * (F/2) * 5) {
 //       r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 4) / ((C/2) * (F/2))) * 2;
@@ -5471,8 +5500,8 @@ class GpkRev: public AutoTuner<DeviceType> {
 
 //     // asm volatile("membar.cta;");
 //     // start = clock64() - start;
-//     // printf("[CF-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
-//     // blockIdx.y, blockIdx.x, start); start = clock64();
+//     // printf("[CF-store] block id %d,%d,%d elapsed %lu\n", FunctorBase<DeviceType>::GetBlockIdZ(),
+//     // FunctorBase<DeviceType>::GetBlockIdY(), FunctorBase<DeviceType>::GetBlockIdX(), start); start = clock64();
 
 //     if (dwrf && threadId >= (R/2) * (C/2) * (F/2) * 5 && threadId < (R/2) * (C/2) * (F/2) * 6) {
 //       r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 5) / ((C/2) * (F/2))) * 2 + 1;
@@ -5645,7 +5674,7 @@ class GpkRev: public AutoTuner<DeviceType> {
 //     // end = clock64();
 
 //     // asm volatile("membar.cta;");
-//     // if (threadId < 256 && blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x ==
+//     // if (threadId < 256 && FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() ==
 //     // 0) printf("threadId %d elapsed %lu\n", threadId, end-start);
 //     if (r + (R/2) * 2 == nr_p - 1) {
 //       // printf("test\n");
@@ -6457,16 +6486,16 @@ class GpkRev: public AutoTuner<DeviceType> {
 //          SIZE svr, SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf) {
 
 //   // bool debug = false;
-//   // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0 &&
+//   // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdZ() == 0 &&
 //   //     threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)
 //   //   debug = false;
 
 //   // bool debug2 = false;
-//   // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0)
+//   // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdZ() == 0)
 //   //   debug2 = false;
 
-//   LENGTH threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
-//                     (threadIdx.y * blockDim.x) + threadIdx.x;
+//   LENGTH threadId = (threadIdx.z * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
+//                     (threadIdx.y * FunctorBase<DeviceType>::GetBlockDimX()) + threadIdx.x;
 
 //   SIZE nr, nc, nf;
 //   SIZE nr_c, nc_c, nf_c;
@@ -6533,11 +6562,11 @@ class GpkRev: public AutoTuner<DeviceType> {
 //     nc_c = 1;
 //   }
 
-//   r = blockIdx.z * blockDim.z;
-//   c = blockIdx.y * blockDim.y;
-//   SIZE bidx = blockIdx.x;
-//   SIZE firstD = div_roundup(shape_sm[0] - 1, blockDim.x);
-//   f = (bidx % firstD) * blockDim.x;
+//   r = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
+//   c = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY();
+//   SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
+//   SIZE firstD = div_roundup(shape_sm[0] - 1, FunctorBase<DeviceType>::GetBlockDimX());
+//   f = (bidx % firstD) * FunctorBase<DeviceType>::GetBlockDimX();
 
 //   bidx /= firstD;
 
@@ -6595,7 +6624,7 @@ class GpkRev: public AutoTuner<DeviceType> {
 //     }
 //   }
 
-//   // if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0) {
+//   // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdZ() == 0) {
 //   // if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
 //   //   printf("TYPE %d total_idx_sm: %d %d %d %d (skip: %d)\n", TYPE, idx[3],
 //   //   idx[2], idx[1], idx[0], skip);
@@ -8173,9 +8202,9 @@ class GpkRev: public AutoTuner<DeviceType> {
 //   c_sm = threadIdx.y;
 //   f_sm = threadIdx.x;
 
-//   r_sm_ex = blockDim.z;
-//   c_sm_ex = blockDim.y;
-//   f_sm_ex = blockDim.x;
+//   r_sm_ex = FunctorBase<DeviceType>::GetBlockDimZ();
+//   c_sm_ex = FunctorBase<DeviceType>::GetBlockDimY();
+//   f_sm_ex = FunctorBase<DeviceType>::GetBlockDimX();
 
 //   r_gl = r + r_sm;
 //   c_gl = c + c_sm;

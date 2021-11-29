@@ -12,7 +12,7 @@ using namespace nvcuda;
 #include <chrono>
 using namespace std::chrono;
 template <typename T>
-MGARDm_CONT_EXEC void
+MGARDX_CONT_EXEC void
 print_bits(T v, int num_bits, bool reverse = false) {
   for (int j = 0; j < num_bits; j++) {
     if (!reverse) printf("%u", (v >> sizeof(T)*8-1-j) & 1u);

@@ -23,7 +23,8 @@ namespace mgard_x {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class GpkReo3DFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT GpkReo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
+  MGARDX_CONT GpkReo3DFunctor() {}
+  MGARDX_CONT GpkReo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
                               SIZE nr_c, SIZE nc_c, SIZE nf_c, 
                               SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
                               SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
@@ -40,7 +41,7 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
                                 Functor<DeviceType>();
                               }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
 
     sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
@@ -167,7 +168,7 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
        // apply padding is necessary
     if (r_sm < rest_r && c_sm < rest_c && f_sm < rest_f) {
@@ -402,7 +403,7 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
     // __syncthreads();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
     if (!w.isNull() && threadId < (R/2) * (C/2) * (F/2)) {
       r_sm = (threadId / ((C/2) * (F/2))) * 2;
@@ -654,7 +655,7 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
     // start = clock64() - start;
     // printf("[(R/2)-store] block id %d,%d,%d elapsed %lu\n", blockIdx.z,
     // blockIdx.y, blockIdx.x, start); start = clock64();
-    __syncthreads();
+    // __syncthreads();
     if (!wcf.isNull() && threadId >= (R/2) * (C/2) * (F/2) * 4 && threadId < (R/2) * (C/2) * (F/2) * 5) {
       r_sm = ((threadId - (R/2) * (C/2) * (F/2) * 4) / ((C/2) * (F/2))) * 2;
       c_sm = (((threadId - (R/2) * (C/2) * (F/2) * 4) % ((C/2) * (F/2))) / (F/2)) * 2 + 1;
@@ -1026,10 +1027,10 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
     // }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
   private:
@@ -1064,11 +1065,11 @@ class GpkReo3DFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class GpkReo3D: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   GpkReo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<GpkReo3DFunctor<D, T, R, C, F, DeviceType> > GenTask(SIZE nr, SIZE nc, SIZE nf, 
                                                         SIZE nr_c, SIZE nc_c, SIZE nf_c, 
                                                         SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f, 
@@ -1101,7 +1102,7 @@ public:
                   tbz, tby, tbx, sm_size, queue_idx, "GpkReo3D"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
               SIZE nr_c, SIZE nc_c, SIZE nf_c, 
               SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
@@ -1147,7 +1148,8 @@ public:
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class GpkRev3DFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT GpkRev3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
+  MGARDX_CONT GpkRev3DFunctor() {}
+  MGARDX_CONT GpkRev3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
                                   SIZE nr_c, SIZE nc_c, SIZE nf_c, 
                                   SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
                                   SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType>w, 
@@ -1168,7 +1170,7 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
                                     Functor<DeviceType>();
                                   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() 
   {
     r = FunctorBase<DeviceType>::GetBlockIdZ() * FunctorBase<DeviceType>::GetBlockDimZ();
@@ -1242,7 +1244,7 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() 
   {
   
@@ -1429,7 +1431,7 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
 
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() 
   {
     if (!wf.isNull() && threadId >= (R/2) * (C/2) * (F/2) && threadId < (R/2) * (C/2) * (F/2) * 2) {
@@ -1876,7 +1878,7 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
     // __syncthreads();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() 
   {
     r_sm = FunctorBase<DeviceType>::GetThreadIdZ();
@@ -2121,7 +2123,7 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5()
   {
     if (r_sm < rest_r && c_sm < rest_c && f_sm < rest_f) {
@@ -2171,11 +2173,11 @@ class GpkRev3DFunctor: public Functor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class GpkRev3D: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   GpkRev3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<GpkRev3DFunctor<D, T, R, C, F, DeviceType> > GenTask(SIZE nr, SIZE nc, SIZE nf, 
                                                         SIZE nr_c, SIZE nc_c, SIZE nf_c, 
                                                         SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f, 
@@ -2212,7 +2214,7 @@ public:
                         tbz, tby, tbx, sm_size, queue_idx, "GpkRev3D"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
               SIZE nr_c, SIZE nc_c, SIZE nf_c, 
               SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c, SubArray<1, T, DeviceType> ratio_f,
@@ -2261,7 +2263,7 @@ public:
 
 
 // template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
-// MGARDm_EXEC void
+// MGARDX_EXEC void
 // __gpk_reo_3d(IDX ngridz, IDX ngridy, IDX ngridx,
 //              IDX nblockz, IDX nblocky, IDX nblockx,
 //              IDX blockz, IDX blocky, IDX blockx,
@@ -3308,7 +3310,7 @@ public:
 
 
 // template <DIM D, typename T, SIZE R, SIZE C, SIZE F>
-// MGARDm_KERL void
+// MGARDX_KERL void
 // _gpk_reo_3d(SIZE nr, SIZE nc, SIZE nf, 
 //             SIZE nr_c, SIZE nc_c, SIZE nf_c, 
 //             T *dratio_r, T *dratio_c, T *dratio_f, 
