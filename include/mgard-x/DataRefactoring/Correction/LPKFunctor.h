@@ -11,7 +11,7 @@
 namespace mgard_x {
 
 template <typename T>
-__device__ inline T mass_trans(T a, T b, T c, T d, T e, T h1, T h2, T h3, T h4,
+MGARDX_EXEC T mass_trans(T a, T b, T c, T d, T e, T h1, T h2, T h3, T h4,
                                T r1, T r2, T r3, T r4) {
   T tb, tc, td, tb1, tb2, tc1, tc2, td1, td2;
 #ifdef MGARD_X_FMA

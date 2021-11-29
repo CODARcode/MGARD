@@ -9,10 +9,6 @@
 #include <iomanip>
 #include <iostream>
 #include <numeric>
-// #include <thrust/device_vector.h>
-// #include <thrust/functional.h>
-// #include <thrust/host_vector.h>
-// #include <thrust/reduce.h>
 #include <vector>
 
 #include "compress_cuda.hpp"
@@ -121,14 +117,6 @@ template <DIM D, typename T>
 void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config) {
-  // {
-  //   printf("Construct handle\n");
-  //   Handle<D, T> handle(shape, config);
-  //   // SubArray<1, SIZE, CUDA>(handle.processed_dims[0], true);
-  //   handle.processed_dims[0].getDataHost();
-  //   printf("Deconstruct handle\n");
-  // }
-  // printf("done Deconstruct handle\n");
 
   Handle<D, T, CUDA> handle(shape, config);
   mgard_x::Array<D, T, CUDA> in_array(shape);
@@ -137,14 +125,10 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
       compress<D, T, CUDA>(handle, in_array, mode, tol, s);
   compressed_size = compressed_array.getShape()[0];
   if (MemoryManager<CUDA>::IsDevicePointer(original_data)) {
-    // cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
-    // cudaMemcpyAsyncHelper(handle, compressed_data, compressed_array.get_dv(),
-    //                       compressed_size, AUTO, 0);
     MemoryManager<CUDA>::Malloc1D(compressed_data, compressed_size, 0);
     MemoryManager<CUDA>::Copy1D(compressed_data, (void*)compressed_array.get_dv(),
                                 compressed_size, 0);
     DeviceRuntime<CUDA>::SyncQueue(0);
-    // handle.sync(0);
   } else {
     compressed_data = (unsigned char *)malloc(compressed_size);
     memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
@@ -162,10 +146,6 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
       compress<D, T, CUDA>(handle, in_array, mode, tol, s);
   compressed_size = compressed_array.getShape()[0];
   if (MemoryManager<CUDA>::IsDevicePointer(original_data)) {
-    // cudaMallocHelper(handle, (void **)&compressed_data, compressed_size);
-    // cudaMemcpyAsyncHelper(handle, compressed_data, compressed_array.get_dv(),
-    //                       compressed_size, AUTO, 0);
-    // handle.sync(0);
     MemoryManager<CUDA>::Malloc1D(compressed_data, compressed_size, 0);
     MemoryManager<CUDA>::Copy1D(compressed_data, (void*)compressed_array.get_dv(),
                                 compressed_size, 0);
@@ -192,12 +172,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   Array<D, T, CUDA> out_array = decompress<D, T, CUDA>(handle, compressed_array);
 
   if (MemoryManager<CUDA>::IsDevicePointer(compressed_data)) {
-    // cudaMallocHelper(handle, (void **)&decompressed_data,
-    //                  original_size * sizeof(T));
-    // cudaMemcpyAsyncHelper(handle, decompressed_data, out_array.get_dv(),
-    //                       original_size * sizeof(T), AUTO, 0);
-    // handle.sync(0);
-
     MemoryManager<CUDA>::Malloc1D(decompressed_data, original_size * sizeof(T), 0);
     MemoryManager<CUDA>::Copy1D(decompressed_data, (void*)out_array.get_dv(),
                                 original_size * sizeof(T), 0);
@@ -224,11 +198,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   compressed_array.loadData((const unsigned char *)compressed_data);
   Array<D, T, CUDA> out_array = decompress<D, T, CUDA>(handle, compressed_array);
   if (MemoryManager<CUDA>::IsDevicePointer(compressed_data)) {
-    // cudaMallocHelper(handle, (void **)&decompressed_data,
-    //                  original_size * sizeof(T));
-    // cudaMemcpyAsyncHelper(handle, decompressed_data, out_array.get_dv(),
-    //                       original_size * sizeof(T), AUTO, 0);
-    // handle.sync(0);
     MemoryManager<CUDA>::Malloc1D(decompressed_data, original_size * sizeof(T), 0);
     MemoryManager<CUDA>::Copy1D(decompressed_data, (void*)out_array.get_dv(),
                                 original_size * sizeof(T), 0);

@@ -10,7 +10,7 @@ namespace MDR {
 template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE B, typename DeviceType>
   class PerBitEncoderFunctor: public Functor<DeviceType> {
       public: 
-      MGARDm_CONT PerBitEncoderFunctor(SIZE n,
+      MGARDX_CONT PerBitEncoderFunctor(SIZE n,
                                        SIZE num_bitplanes,
                                        SIZE exp,
                                        SubArray<1, T, CUDA> v,
@@ -27,7 +27,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       // calculate error
       // store signs
       // find the most significant bit
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation1() 
       {
 
@@ -37,7 +37,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
           debug = false;
 
         // assume 1D parallelization
-        // B needs to be a multiply of MGARDm_WARP_SIZE
+        // B needs to be a multiply of MGARDX_WARP_SIZE
         // B >= num_bitplanes
         int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
         sm_level_errors =  (T_error*)sm_p;    sm_p += ((num_bitplanes + 1) * B) * sizeof(T_error);
@@ -127,7 +127,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
 
       // convert fix point to bit-planes
       // level error reduction (intra block)
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation2() {
 
         //collect errors 
@@ -195,7 +195,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       }
 
       // get max bit-plane length 
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation3() {
 
         { // level error reduction (intra block)
@@ -234,7 +234,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       }
 
       // store bit-plane
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation4() {
         if (local_idx < bitplane_max_length) {
           for (SIZE bitplane_index = 0; bitplane_index < num_bitplanes; bitplane_index++) {
@@ -259,11 +259,11 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
         }
       }
 
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation5() {
 
       }
-      MGARDm_CONT size_t
+      MGARDX_CONT size_t
       shared_memory_size() {
         size_t size = 0;
         size += ((num_bitplanes + 1) * B) * sizeof(T_error);
@@ -302,11 +302,11 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
   template <typename T, typename DeviceType>
   class PerBitEncoder: public AutoTuner<DeviceType> {
   public:
-    MGARDm_CONT
+    MGARDX_CONT
     PerBitEncoder():AutoTuner<DeviceType>() {}
 
     template <typename T_fp, typename T_bitplane, typename T_error, SIZE B>
-    MGARDm_CONT
+    MGARDX_CONT
     Task<PerBitEncoderFunctor<T, T_fp, T_bitplane, T_error, B, DeviceType> > GenTask(SIZE n,
                                                        SIZE num_bitplanes,
                                                        SIZE exp,
@@ -332,7 +332,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
                           tbz, tby, tbx, sm_size, queue_idx); 
     }
 
-    MGARDm_CONT
+    MGARDX_CONT
     void Execute(SIZE n,
                  SIZE num_bitplanes,
                  SIZE exp,
@@ -398,7 +398,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
   template <typename T, typename T_fp, typename T_bitplane, SIZE B, typename DeviceType>
     class PerBitDecoderFunctor: public Functor<DeviceType> {
       public: 
-      MGARDm_CONT PerBitDecoderFunctor(SIZE n,
+      MGARDX_CONT PerBitDecoderFunctor(SIZE n,
                                        SIZE starting_bitplane,
                                        SIZE num_bitplanes,
                                        SIZE exp,
@@ -416,7 +416,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       // exponent align
       // store signs
       // find the most significant bit
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation1() 
       {
 
@@ -426,7 +426,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
           debug = false;
 
         // assume 1D parallelization
-        // B needs to be a multiply of MGARDm_WARP_SIZE
+        // B needs to be a multiply of MGARDX_WARP_SIZE
         // B >= num_bitplanes
         int8_t * sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
         sm_bitplanes =    (T_bitplane*)sm_p; sm_p += B * bitplane_max_length * sizeof(T_bitplane);
@@ -457,7 +457,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
 
       // convert fix point to bit-planes
       // level error reduction (intra block)
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation2() {
 
         if (debug) {
@@ -558,7 +558,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       }
 
       // get max bit-plane length 
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation3() {
         *v(FunctorBase<DeviceType>::GetBlockIdX()*B + local_idx) = sm_data[local_idx];
 
@@ -576,16 +576,16 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
       }
 
       // store bit-plane
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation4() {
         
       }
 
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation5() {
 
       }
-      MGARDm_CONT size_t
+      MGARDX_CONT size_t
       shared_memory_size() {
         size_t size = 0;
         size += B * bitplane_max_length * sizeof(T_bitplane);
@@ -619,11 +619,11 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
   template <typename T, typename DeviceType>
   class PerBitDecoder: public AutoTuner<DeviceType> {
   public:
-    MGARDm_CONT
+    MGARDX_CONT
     PerBitDecoder():AutoTuner<DeviceType>() {}
 
     template <typename T_fp, typename T_bitplane, SIZE B>
-    MGARDm_CONT
+    MGARDX_CONT
     Task<PerBitDecoderFunctor<T, T_fp, T_bitplane, B, DeviceType> > GenTask(SIZE n,
                                                                            SIZE starting_bitplane,
                                                                            SIZE num_bitplanes,
@@ -651,7 +651,7 @@ template <typename T, typename T_fp, typename T_bitplane, typename T_error, SIZE
                           tbz, tby, tbx, sm_size, queue_idx); 
     }
 
-    MGARDm_CONT
+    MGARDX_CONT
     void Execute(SIZE n,
                  SIZE starting_bitplane,
                  SIZE num_bitplanes,

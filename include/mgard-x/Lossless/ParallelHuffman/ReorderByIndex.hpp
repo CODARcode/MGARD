@@ -22,14 +22,15 @@ namespace mgard_x {
 template <typename T, typename Q, typename DeviceType>
 class ReorderByIndexFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT ReorderByIndexFunctor(SubArray<1, T, DeviceType> array, 
+  MGARDX_CONT ReorderByIndexFunctor(){}
+  MGARDX_CONT ReorderByIndexFunctor(SubArray<1, T, DeviceType> array, 
                                     SubArray<1, Q, DeviceType> index, 
                                   SIZE size):
                                   array(array), index(index), size(size) {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     T temp;
@@ -41,19 +42,19 @@ class ReorderByIndexFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() { return 0; }
 
   private:
@@ -66,10 +67,10 @@ class ReorderByIndexFunctor: public Functor<DeviceType> {
 template <typename T, typename Q, typename DeviceType>
 class ReorderByIndex: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   ReorderByIndex():AutoTuner<DeviceType>() {}
 
-  MGARDm_CONT
+  MGARDX_CONT
   Task<ReorderByIndexFunctor<T, Q, DeviceType> > 
   GenTask(SubArray<1, T, DeviceType> array, SubArray<1, Q, DeviceType> index, SIZE size, int queue_idx) {
     using FunctorType = ReorderByIndexFunctor<T, Q, DeviceType>;
@@ -93,7 +94,7 @@ public:
                 tbz, tby, tbx, sm_size, queue_idx, "ReorderByIndex"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, T, DeviceType> array, SubArray<1, Q, DeviceType> index, SIZE size, int queue_idx) {
     using FunctorType = ReorderByIndexFunctor<T, Q, DeviceType>;
     using TaskType = Task<FunctorType>;

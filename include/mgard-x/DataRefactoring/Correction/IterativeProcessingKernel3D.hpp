@@ -22,7 +22,8 @@ namespace mgard_x {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G, typename DeviceType>
 class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
   public:
-  MGARDm_CONT Ipk1Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
+  MGARDX_CONT Ipk1Reo3DFunctor() {}
+  MGARDX_CONT Ipk1Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
                               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
                               SubArray<1, T, DeviceType> dist_f, SubArray<D, T, DeviceType> v):
                               nr(nr), nc(nc), nf(nf),
@@ -31,7 +32,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     c_gl = FunctorBase<DeviceType>::GetBlockIdX() * C;
     r_gl = FunctorBase<DeviceType>::GetBlockIdY() * R;
@@ -51,14 +52,14 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
 
     prev_vec_sm = 0.0;
 
-    c_rest = min(C, nc - FunctorBase<DeviceType>::GetBlockIdX() * C);
-    r_rest = min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
+    c_rest = Math<DeviceType>::Min(C, nc - FunctorBase<DeviceType>::GetBlockIdX() * C);
+    r_rest = Math<DeviceType>::Min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
     // printf("r_rest: %u, c_rest: %u\n", r_rest, c_rest);
     // printf("RCF: %u %u %u\n", R,C,F);
     // printf("n: %u %u %u\n", nr, nc, nf_c);
     f_rest = nf;
-    f_ghost = min(nf, G);
+    f_ghost = Math<DeviceType>::Min(nf, G);
     // printf("G%u, f_ghost:%u\n ", G, f_ghost);
     f_main = F;
 
@@ -79,17 +80,17 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     f_rest -= f_ghost;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {}
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   LoopCondition1() {
     return f_rest > F - f_ghost;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
-    f_main = min(F, f_rest);
+    f_main = Math<DeviceType>::Min(F, f_rest);
     if (r_sm < r_rest && f_sm < f_main) {
       for (SIZE i = 0; i < c_rest; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm + f_ghost)] =
@@ -103,7 +104,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {
     /* Computation of v in parallel*/
     if (r_sm < r_rest && c_sm < c_rest) {
@@ -122,7 +123,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < F) {
@@ -133,7 +134,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation6() {
      /* Update unloaded col */
     f_rest -= f_main;
@@ -142,7 +143,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     f_gl += F;
 
     /* Copy next ghost to main */
-    f_ghost = min(G, f_main - (F - G));
+    f_ghost = Math<DeviceType>::Min(G, f_main - (F - G));
     if (r_sm < r_rest && f_sm < f_ghost) {
       for (SIZE i = 0; i < c_rest; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
@@ -155,7 +156,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation7() {
     /* Load all rest col */
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -171,7 +172,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation8() {
     /* Only 1 col remain */
     if (f_ghost + f_rest == 1) {
@@ -196,7 +197,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation9() {
      /* flush results to v */
     if (r_sm < r_rest && f_sm < f_ghost + f_rest) {
@@ -207,11 +208,11 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation10() {
     /* backward */
     f_rest = nf;
-    f_ghost = min(nf, G);
+    f_ghost = Math<DeviceType>::Min(nf, G);
     f_main = F;
     f_gl = FunctorBase<DeviceType>::GetThreadIdX();
     prev_vec_sm = 0.0;
@@ -230,7 +231,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     f_rest -= f_ghost;
   }
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   LoopCondition2() {
     return f_rest > F - f_ghost;
   }
@@ -238,9 +239,9 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
 
   
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation11() {
-    f_main = min(F, f_rest);
+    f_main = Math<DeviceType>::Min(F, f_rest);
     if (r_sm < r_rest && f_sm < f_main) {
       for (SIZE i = 0; i < c_rest; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm + f_ghost)] =
@@ -253,7 +254,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation12() {
     /* Computation of v in parallel*/
     if (r_sm < r_rest && c_sm < c_rest) {
@@ -271,7 +272,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation13() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < F) {
@@ -282,7 +283,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation14() {
     /* Update unloaded col */
     f_rest -= f_main;
@@ -291,7 +292,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     f_gl += F;
 
     /* Copy next ghost to main */
-    f_ghost = min(G, f_main - (F - G));
+    f_ghost = Math<DeviceType>::Min(G, f_main - (F - G));
     if (r_sm < r_rest && f_sm < f_ghost) {
       for (SIZE i = 0; i < c_rest; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
@@ -304,7 +305,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation15() {
     /* Load all rest col */
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -320,7 +321,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation16() {
     /* Only 1 col remain */
     if (f_ghost + f_rest == 1) {
@@ -345,7 +346,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation17() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_ghost + f_rest) {
@@ -356,7 +357,7 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = (R * C + 2) * (F + G) * sizeof(T);
@@ -386,11 +387,11 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class Ipk1Reo3D: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   Ipk1Reo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Ipk1Reo3DFunctor<D, T, R, C, F, G, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf, 
           SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
@@ -418,7 +419,7 @@ class Ipk1Reo3D: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "Ipk1Reo3D"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
               SubArray<1, T, DeviceType> dist_f, SubArray<D, T, DeviceType> v, 
@@ -459,7 +460,8 @@ class Ipk1Reo3D: public AutoTuner<DeviceType> {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G, typename DeviceType>
 class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
   public:
-  MGARDm_CONT Ipk2Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
+  MGARDX_CONT Ipk2Reo3DFunctor() {}
+  MGARDX_CONT Ipk2Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
                               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
                               SubArray<1, T, DeviceType> dist_c, SubArray<D, T, DeviceType> v):
                               nr(nr), nc(nc), nf(nf),
@@ -468,7 +470,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     f_gl = FunctorBase<DeviceType>::GetBlockIdX() * F;
     r_gl = FunctorBase<DeviceType>::GetBlockIdY() * R;
@@ -488,11 +490,11 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
 
     prev_vec_sm = 0.0;
 
-    f_rest = min(F, nf - FunctorBase<DeviceType>::GetBlockIdX() * F);
-    r_rest = min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
+    f_rest = Math<DeviceType>::Min(F, nf - FunctorBase<DeviceType>::GetBlockIdX() * F);
+    r_rest = Math<DeviceType>::Min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
     c_rest = nc;
-    c_ghost = min(nc, G);
+    c_ghost = Math<DeviceType>::Min(nc, G);
     c_main = C;
 
     /* Load first ghost */
@@ -511,17 +513,17 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     c_rest -= c_ghost;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {}
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   LoopCondition1() {
     return c_rest > C - c_ghost;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
-    c_main = min(C, c_rest);
+    c_main = Math<DeviceType>::Min(C, c_rest);
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_main; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i + c_ghost, f_sm)] =
@@ -534,7 +536,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {
     /* Computation of v in parallel*/
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -551,7 +553,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -562,7 +564,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation6() {
     /* Update unloaded col */
     c_rest -= c_main;
@@ -571,7 +573,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     c_gl += C;
 
     /* Copy next ghost to main */
-    c_ghost = min(G, c_main - (C - G));
+    c_ghost = Math<DeviceType>::Min(G, c_main - (C - G));
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_ghost; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
@@ -584,7 +586,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation7() {
     /* Load all rest col */
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -599,7 +601,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation8() {
     /* Only 1 col remain */
     if (c_ghost + c_rest == 1) {
@@ -622,7 +624,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation9() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -633,11 +635,11 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation10() {
     /* backward */
     c_rest = nc;
-    c_ghost = min(nc, G);
+    c_ghost = Math<DeviceType>::Min(nc, G);
     c_main = C;
     c_gl = 0;
     prev_vec_sm = 0.0;
@@ -656,14 +658,14 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     c_rest -= c_ghost;
   }
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   LoopCondition2() {
     return c_rest > C - c_ghost;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation11() {
-    c_main = min(C, c_rest);
+    c_main = Math<DeviceType>::Min(C, c_rest);
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_main; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i + c_ghost, f_sm)] = 
@@ -676,7 +678,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation12() {
     /* Computation of v in parallel*/
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -695,7 +697,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation13() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -706,7 +708,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation14() {
     /* Update unloaded col */
     c_rest -= c_main;
@@ -715,7 +717,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     c_gl += C;
 
     /* Copy next ghost to main */
-    c_ghost = min(G, c_main - (C - G));
+    c_ghost = Math<DeviceType>::Min(G, c_main - (C - G));
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_ghost; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
@@ -728,7 +730,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation15() {
     // Load all rest col
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -743,7 +745,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation16() {
     /* Only 1 col remain */
     if (c_ghost + c_rest == 1) {
@@ -768,7 +770,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation17() {
     /* flush results to v */
   if (r_sm < r_rest && f_sm < f_rest) {
@@ -779,7 +781,7 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
   }
   }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = (R * F + 2) * (C + G) * sizeof(T);
@@ -809,11 +811,11 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class Ipk2Reo3D: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   Ipk2Reo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Ipk2Reo3DFunctor<D, T, R, C, F, G, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf, 
           SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
@@ -840,7 +842,7 @@ class Ipk2Reo3D: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "Ipk2Reo3D"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
               SubArray<1, T, DeviceType> dist_c, SubArray<D, T, DeviceType> v, 
@@ -881,7 +883,8 @@ class Ipk2Reo3D: public AutoTuner<DeviceType> {
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G, typename DeviceType>
 class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
   public:
-  MGARDm_CONT Ipk3Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
+  MGARDX_CONT Ipk3Reo3DFunctor() {}
+  MGARDX_CONT Ipk3Reo3DFunctor(SIZE nr, SIZE nc, SIZE nf, 
                               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
                               SubArray<1, T, DeviceType> dist_r, SubArray<D, T, DeviceType> v):
                               nr(nr), nc(nc), nf(nf),
@@ -890,7 +893,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     f_gl = FunctorBase<DeviceType>::GetBlockIdX() * F;
     c_gl = FunctorBase<DeviceType>::GetBlockIdY() * C;
@@ -910,11 +913,11 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
 
     T prev_vec_sm = 0.0;
 
-    f_rest = min(F, nf - FunctorBase<DeviceType>::GetBlockIdX() * F);
-    c_rest = min(C, nc - FunctorBase<DeviceType>::GetBlockIdY() * C);
+    f_rest = Math<DeviceType>::Min(F, nf - FunctorBase<DeviceType>::GetBlockIdX() * F);
+    c_rest = Math<DeviceType>::Min(C, nc - FunctorBase<DeviceType>::GetBlockIdY() * C);
 
     r_rest = nr;
-    r_ghost = min(nr, G);
+    r_ghost = Math<DeviceType>::Min(nr, G);
     r_main = R;
 
     /* Load first ghost */
@@ -932,17 +935,17 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     r_rest -= r_ghost;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {}
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   LoopCondition1() {
     return r_rest > R - r_ghost;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {
-    r_main = min(R, r_rest);
+    r_main = Math<DeviceType>::Min(R, r_rest);
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_main; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)] =
@@ -955,7 +958,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -972,7 +975,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -983,7 +986,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation6() {
     // /* Update unloaded col */
     r_rest -= r_main;
@@ -992,7 +995,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     r_gl += R;
 
     /* Copy next ghost to main */
-    r_ghost = min(G, r_main - (R - G));
+    r_ghost = Math<DeviceType>::Min(G, r_main - (R - G));
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_ghost; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
@@ -1005,7 +1008,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation7() {
     /* Load all rest col */
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -1021,7 +1024,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation8() {
     /* Only 1 col remain */
     if (r_ghost + r_rest == 1) {
@@ -1044,7 +1047,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation9() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -1055,11 +1058,11 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation10() {
     /* backward */
     r_rest = nr;
-    r_ghost = min(nr, G);
+    r_ghost = Math<DeviceType>::Min(nr, G);
     r_main = R;
     r_gl = 0;
     prev_vec_sm = 0.0;
@@ -1079,14 +1082,14 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     r_rest -= r_ghost;
   }
 
-  MGARDm_EXEC bool
+  MGARDX_EXEC bool
   LoopCondition2() {
     return r_rest > R - r_ghost;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation11() {
-    r_main = min(R, r_rest);
+    r_main = Math<DeviceType>::Min(R, r_rest);
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_main; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)] = 
@@ -1099,7 +1102,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation12() {
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -1117,7 +1120,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation13() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -1128,7 +1131,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation14() {
     // /* Update unloaded col */
     r_rest -= r_main;
@@ -1137,7 +1140,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     r_gl += R;
 
     /* Copy next ghost to main */
-    r_ghost = min(G, r_main - (R - G));
+    r_ghost = Math<DeviceType>::Min(G, r_main - (R - G));
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_ghost; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
@@ -1150,7 +1153,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation15() {
     /* Load all rest col */
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -1165,7 +1168,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation16() {
     /* Only 1 col remain */
     if (r_ghost + r_rest == 1) {
@@ -1190,7 +1193,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation17() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -1201,7 +1204,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size = (C * F + 2) * (R + G) * sizeof(T);
@@ -1231,11 +1234,11 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
 template <DIM D, typename T, typename DeviceType>
 class Ipk3Reo3D: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   Ipk3Reo3D():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Ipk3Reo3DFunctor<D, T, R, C, F, G, DeviceType> > 
   GenTask(SIZE nr, SIZE nc, SIZE nf, 
           SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
@@ -1262,7 +1265,7 @@ class Ipk3Reo3D: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx, "Ipk3Reo3D"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
               SubArray<1, T, DeviceType> dist_r, SubArray<D, T, DeviceType> v, 

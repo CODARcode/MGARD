@@ -11,7 +11,7 @@
 namespace mgard_x {
 
 template <typename T>
-__device__ inline T tridiag_forward2(T prev, T am, T bm, T curr) {
+MGARDX_EXEC T tridiag_forward2(T prev, T am, T bm, T curr) {
 
 #ifdef MGARD_X_FMA
   if (sizeof(T) == sizeof(double)) {
@@ -31,7 +31,7 @@ __device__ inline T tridiag_forward2(T prev, T am, T bm, T curr) {
 }
 
 template <typename T>
-__device__ inline T tridiag_backward2(T prev, T am, T bm, T curr) {
+MGARDX_EXEC T tridiag_backward2(T prev, T am, T bm, T curr) {
 
 #ifdef MGARD_X_FMA
   if (sizeof(T) == sizeof(double)) {

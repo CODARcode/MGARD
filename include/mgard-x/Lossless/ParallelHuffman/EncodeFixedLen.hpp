@@ -22,7 +22,8 @@ namespace mgard_x {
 template <typename Q, typename H, typename DeviceType>
 class EncodeFixedLenFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT EncodeFixedLenFunctor(SubArray<1, Q, DeviceType> data, 
+  MGARDX_CONT EncodeFixedLenFunctor(){}
+  MGARDX_CONT EncodeFixedLenFunctor(SubArray<1, Q, DeviceType> data, 
                                     SubArray<1, H, DeviceType> hcoded, 
                                     SIZE data_len,
                                     SubArray<1, H, DeviceType> codebook):
@@ -31,7 +32,7 @@ class EncodeFixedLenFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     unsigned int gid = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     if (gid >= data_len)
@@ -39,19 +40,19 @@ class EncodeFixedLenFunctor: public Functor<DeviceType> {
     *hcoded(gid) = *codebook(*data(gid)); // try to exploit cache?
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() { return 0; }
 
   private:
@@ -65,10 +66,10 @@ class EncodeFixedLenFunctor: public Functor<DeviceType> {
 template <typename Q, typename H, typename DeviceType>
 class EncodeFixedLen: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   EncodeFixedLen():AutoTuner<DeviceType>() {}
 
-  MGARDm_CONT
+  MGARDX_CONT
   Task<EncodeFixedLenFunctor<Q, H, DeviceType> > 
   GenTask(SubArray<1, Q, DeviceType> data, SubArray<1, H, DeviceType> hcoded, 
               SIZE data_len, SubArray<1, H, DeviceType> codebook, int queue_idx) {
@@ -89,7 +90,7 @@ public:
                 tbz, tby, tbx, sm_size, queue_idx, "EncodeFixedLen"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, Q, DeviceType> data, SubArray<1, H, DeviceType> hcoded, 
               SIZE data_len, SubArray<1, H, DeviceType> codebook, int queue_idx) {
     using FunctorType = EncodeFixedLenFunctor<Q, H, DeviceType>;

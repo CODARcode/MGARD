@@ -15,7 +15,8 @@ namespace mgard_x {
 template <typename Q, typename H, typename DeviceType>
 class DecodeFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT DecodeFunctor(SubArray<1, H, DeviceType> densely, 
+  MGARDX_CONT DecodeFunctor(){}
+  MGARDX_CONT DecodeFunctor(SubArray<1, H, DeviceType> densely, 
                             SubArray<1, size_t, DeviceType> dH_meta,
                             SubArray<1, Q, DeviceType> bcode,
                             SIZE len, int chunk_size, int n_chunk, 
@@ -28,7 +29,7 @@ class DecodeFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     _s_singleton = (uint8_t*)FunctorBase<DeviceType>::GetSharedMemory();
     if (FunctorBase<DeviceType>::GetThreadIdX() == 0) {
@@ -36,7 +37,7 @@ class DecodeFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() { 
     size_t chunk_id = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
     // if (chunk_id == 0) printf("n_chunk: %lu\n", n_chunk);
@@ -80,16 +81,16 @@ class DecodeFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() { return singleton_size; }
 
   private:
@@ -109,10 +110,10 @@ class DecodeFunctor: public Functor<DeviceType> {
 template <typename Q, typename H, typename DeviceType>
 class Decode: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   Decode():AutoTuner<DeviceType>() {}
 
-  MGARDm_CONT
+  MGARDX_CONT
   Task<DecodeFunctor<Q, H, DeviceType> > 
   GenTask(SubArray<1, H, DeviceType> densely, 
           SubArray<1, size_t, DeviceType> dH_meta,
@@ -139,7 +140,7 @@ public:
                 tbz, tby, tbx, sm_size, queue_idx, "Decode"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, H, DeviceType> densely, 
               SubArray<1, size_t, DeviceType> dH_meta,
               SubArray<1, Q, DeviceType> bcode,

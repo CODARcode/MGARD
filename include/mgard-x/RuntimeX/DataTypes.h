@@ -12,12 +12,52 @@
 
 namespace mgard_x {
 
+
+#if defined(__CUDACC__) // NVCC
+   #define MGARDX_ALIGN(n) __align__(n)
+#elif defined(__GNUC__) // GCC
+  #define MGARDX_ALIGN(n) __attribute__((aligned(n)))
+#elif defined(_MSC_VER) // MSVC
+  #define MGARDX_ALIGN(n) __declspec(align(n))
+#else
+  #error "Please provide a definition for MY_ALIGN macro for your host compiler!"
+#endif
+
+#ifdef __CUDACC__
+#define MGARDX_CONT __host__  __inline__
+#define MGARDX_KERL __global__
+#define MGARDX_EXEC __device__ __forceinline__
+#define MGARDX_CONT_EXEC __host__ __device__ __forceinline__
+#else
+#define MGARDX_CONT __inline__
+#define MGARDX_KERL 
+#define MGARDX_EXEC __inline__
+#define MGARDX_CONT_EXEC __inline__
+#endif
+
+#define MAX_GRID_X 2147483647
+#define MAX_GRID_Y 65536
+#define MAX_GRID_Z 65536
+#define MGARDX_WARP_SIZE 32
+#define MGARDX_MAX_NUM_WARPS_PER_TB 32
+#define MGARDX_NUM_SMs 68
+
+#define MGARDX_NUM_QUEUES 16
+#define SIZE_MAX_VALUE 4294967295
+
+#define COPY 0
+#define ADD 1
+#define SUBTRACT 2
+    
+
 class Device {};
 class CUDA: public Device {};
 class HIP: public Device {};
 class DPCxx: public Device {};
 class OpenMp: public Device {};
-class Kokkos: public Device {};
+class KOKKOS: public Device {};
+class Serial: public Device {};
+
 
 using IDX = unsigned long long int;
 using LENGTH = unsigned long long int;

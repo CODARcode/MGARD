@@ -34,8 +34,8 @@ option(MGARD_ENABLE_BENCHMARKS "Build benchmarks." OFF)
 option(MGARD_ENABLE_DOCS "Build documentation." OFF)
 
 option(MGARD_ENABLE_OPENMP "Enable OpenMP support." ON)
-
-option(MGARD_ENABLE_CUDA "Enable CUDA support." OFF)
+option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
+option(MGARD_ENABLE_SERIAL "Enable CUDA support" OFF)
 
 #For performance optimization
 option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction." OFF)
@@ -90,14 +90,25 @@ if(MGARD_ENABLE_CUDA)
   # find_path(NVCOMP_INCLUDE_DIR nvcomp.h ${NVCOMP_INCLUDE_OPTS})
   # message(STATUS "NVCOMP_INCLUDE_OPTS: ${NVCOMP_INCLUDE_OPTS}")
   find_package(CUDAToolkit REQUIRED)
+
+  find_package(Kokkos REQUIRED)
+
+
   set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
   add_subdirectory (src/mgard-x)
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)
 
-  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_X_CUDA")
-  SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_X_CUDA")
+  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_CUDA")
+  SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_CUDA")
+
+  # SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_KOKKOS")
+  # SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_KOKKOS")
+
+  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_SERIAL -w")
+  SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_SERIAL")
+
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)
 
@@ -324,7 +335,7 @@ if(ZSTD_FOUND)
 endif()
 
 if(MGARD_ENABLE_CUDA)
-  target_link_libraries(mgard-library PUBLIC nvcomp CUDA::cudart ${CUDAToolkit_LIBRARY_DIR}/libcudadevrt.a)
+  target_link_libraries(mgard-library PUBLIC nvcomp CUDA::cudart)
   # target_include_directories(mgard-library PUBLIC ${NVCOMP_INCLUDE_DIR})
 endif()
 
