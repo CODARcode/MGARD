@@ -6,6 +6,7 @@
  */
 
 
+#include "DeviceAdapter.h"
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <iostream>
@@ -20,13 +21,15 @@ namespace cg = cooperative_groups;
 #ifndef MGARD_X_DEVICE_ADAPTER_CUDA_H
 #define MGARD_X_DEVICE_ADAPTER_CUDA_H
 
+
+
 template <class T> struct SharedMemory {
-  MGARDm_EXEC operator T *() {
+  MGARDX_EXEC operator T *() {
     extern __shared__ int __smem[];
     return (T *)__smem;
   }
 
-  MGARDm_EXEC operator const T *() const {
+  MGARDX_EXEC operator const T *() const {
     extern __shared__ int __smem[];
     return (T *)__smem;
   }
@@ -53,7 +56,7 @@ inline void ErrorAsyncCheck(cudaError_t code, TaskType &task,
   if (code != cudaSuccess) {
     std::cout << 
               log::log_err << cudaGetErrorString(code) 
-              <<" while executing "<< task.get_functor_name().c_str()
+              <<" while executing "<< task.GetFunctorName().c_str()
               <<" with CUDA (Async-check)\n";
     if (abort) exit(code);
   }
@@ -64,7 +67,7 @@ inline void ErrorSyncCheck(cudaError_t code, TaskType &task,
                       bool abort = true) {
   if (code != cudaSuccess) {
     std::cout << log::log_err << cudaGetErrorString(code) 
-              <<" while executing "<< task.get_functor_name().c_str()
+              <<" while executing "<< task.GetFunctorName().c_str()
               <<" with CUDA (Sync-check)\n";
     if (abort) exit(code);
   }
@@ -88,14 +91,14 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
 
 template<>
 struct SyncBlock<CUDA> {
-  MGARDm_EXEC static void Sync() {
+  MGARDX_EXEC static void Sync() {
     __syncthreads();
   }
 };
 
 template<>
 struct SyncGrid<CUDA> {
-  MGARDm_EXEC static void Sync() {
+  MGARDX_EXEC static void Sync() {
     cg::this_grid().sync();
   }
 };
@@ -103,180 +106,213 @@ struct SyncGrid<CUDA> {
 template <> 
 struct Atomic<CUDA> {
   template <typename T>
-  MGARDm_EXEC static
-  void Min(T * result, T value) {
-    atomicMin(result, value);
+  MGARDX_EXEC static
+  T Min(T * result, T value) {
+    return atomicMin(result, value);
+  }
+  template <typename T>
+  MGARDX_EXEC static
+  T Max(T * result, T value) {
+    return atomicMax(result, value);
+  }
+  template <typename T>
+  MGARDX_EXEC static
+  T Add(T * result, T value) {
+    return atomicAdd(result, value);
   }
 };
 
+template <> 
+struct Math<CUDA> {
+  template <typename T>
+  MGARDX_EXEC static
+  T Min(T a, T b) {
+    return min(a, b);
+  }
+  template <typename T>
+  MGARDX_EXEC static
+  T Max(T a, T b) {
+    return max(a, b);
+  }
+  MGARDX_EXEC static
+  int ffsl(unsigned int a) {
+    return  __ffs(a);
+  }
+  MGARDX_EXEC static
+  int ffsll(long long unsigned int a) {
+    return  __ffsll(a);
+  }
+};
+
+
 template <typename Task>
-MGARDm_KERL void kernel() {
+MGARDX_KERL void kernel() {
 }
 
 template <typename Task>
-MGARDm_KERL void Kernel(Task task) {
+MGARDX_KERL void Kernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
-  task.get_functor().Init(gridDim.z, gridDim.y, gridDim.x, 
+  task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, 
        blockDim.z, blockDim.y, blockDim.x,
        blockIdx.z,  blockIdx.y,  blockIdx.x, 
        threadIdx.z, threadIdx.y, threadIdx.x,
        shared_memory);
 
-  task.get_functor().Operation1();
+  task.GetFunctor().Operation1();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation2();
+  task.GetFunctor().Operation2();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation3();
+  task.GetFunctor().Operation3();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation4();
+  task.GetFunctor().Operation4();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation5();
+  task.GetFunctor().Operation5();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation6();
+  task.GetFunctor().Operation6();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation7();
+  task.GetFunctor().Operation7();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation8();
+  task.GetFunctor().Operation8();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation9();
+  task.GetFunctor().Operation9();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation10();
+  task.GetFunctor().Operation10();
 }
 
 template <typename Task>
-MGARDm_KERL void IterKernel(Task task) {
+MGARDX_KERL void IterKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
-  task.get_functor().Init(gridDim.z, gridDim.y, gridDim.x, 
+  task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, 
        blockDim.z, blockDim.y, blockDim.x,
        blockIdx.z,  blockIdx.y,  blockIdx.x, 
        threadIdx.z, threadIdx.y, threadIdx.x,
        shared_memory);
 
-  task.get_functor().Operation1();
+  task.GetFunctor().Operation1();
   SyncBlock<CUDA>::Sync();
 
-  task.get_functor().Operation2();
+  task.GetFunctor().Operation2();
   SyncBlock<CUDA>::Sync();
 
-  while (task.get_functor().LoopCondition1()) {
-    task.get_functor().Operation3();
+  while (task.GetFunctor().LoopCondition1()) {
+    task.GetFunctor().Operation3();
     SyncBlock<CUDA>::Sync();
-    task.get_functor().Operation4();
+    task.GetFunctor().Operation4();
     SyncBlock<CUDA>::Sync();
-    task.get_functor().Operation5();
+    task.GetFunctor().Operation5();
     SyncBlock<CUDA>::Sync();
-    task.get_functor().Operation6();
+    task.GetFunctor().Operation6();
     SyncBlock<CUDA>::Sync();
   }
 
-  task.get_functor().Operation7();
+  task.GetFunctor().Operation7();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation8();
+  task.GetFunctor().Operation8();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation9();
+  task.GetFunctor().Operation9();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation10();
+  task.GetFunctor().Operation10();
   SyncBlock<CUDA>::Sync();
   
-  while (task.get_functor().LoopCondition2()) {
-    task.get_functor().Operation11();
+  while (task.GetFunctor().LoopCondition2()) {
+    task.GetFunctor().Operation11();
     SyncBlock<CUDA>::Sync();
-    task.get_functor().Operation12();
+    task.GetFunctor().Operation12();
     SyncBlock<CUDA>::Sync();
-    task.get_functor().Operation13();
+    task.GetFunctor().Operation13();
     SyncBlock<CUDA>::Sync();
-    task.get_functor().Operation14();
+    task.GetFunctor().Operation14();
     SyncBlock<CUDA>::Sync();
   }
 
-  task.get_functor().Operation15();
+  task.GetFunctor().Operation15();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation16();
+  task.GetFunctor().Operation16();
   SyncBlock<CUDA>::Sync();
-  task.get_functor().Operation17();
+  task.GetFunctor().Operation17();
   SyncBlock<CUDA>::Sync();
 }
 
 
 template <typename Task>
-MGARDm_KERL void HuffmanCLCustomizedKernel(Task task) {
+MGARDX_KERL void HuffmanCLCustomizedKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
-  task.get_functor().Init(gridDim.z, gridDim.y, gridDim.x, 
+  task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, 
        blockDim.z, blockDim.y, blockDim.x,
        blockIdx.z,  blockIdx.y,  blockIdx.x, 
        threadIdx.z, threadIdx.y, threadIdx.x,
        shared_memory);
 
-  task.get_functor().Operation1();
+  task.GetFunctor().Operation1();
   SyncGrid<CUDA>::Sync();
-  while (task.get_functor().LoopCondition1()) {
-    task.get_functor().Operation2();
+  while (task.GetFunctor().LoopCondition1()) {
+    task.GetFunctor().Operation2();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation3();
+    task.GetFunctor().Operation3();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation4();
+    task.GetFunctor().Operation4();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation5();
+    task.GetFunctor().Operation5();
     SyncBlock<CUDA>::Sync();
-    if (task.get_functor().BranchCondition1()) {
-      while (task.get_functor().LoopCondition2()) {
-        task.get_functor().Operation6();
+    if (task.GetFunctor().BranchCondition1()) {
+      while (task.GetFunctor().LoopCondition2()) {
+        task.GetFunctor().Operation6();
         SyncBlock<CUDA>::Sync();
-        task.get_functor().Operation7();
+        task.GetFunctor().Operation7();
         SyncBlock<CUDA>::Sync();
-        task.get_functor().Operation8();
+        task.GetFunctor().Operation8();
         SyncBlock<CUDA>::Sync();
       }
-      task.get_functor().Operation9();
+      task.GetFunctor().Operation9();
       SyncGrid<CUDA>::Sync();
-      task.get_functor().Operation10();
+      task.GetFunctor().Operation10();
       SyncGrid<CUDA>::Sync();
     }
-    task.get_functor().Operation11();
+    task.GetFunctor().Operation11();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation12();
+    task.GetFunctor().Operation12();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation13();
+    task.GetFunctor().Operation13();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation14();
+    task.GetFunctor().Operation14();
     SyncGrid<CUDA>::Sync();
   }
 }
 
 template <typename Task>
-MGARDm_KERL void HuffmanCWCustomizedKernel(Task task) {
+MGARDX_KERL void HuffmanCWCustomizedKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
-  task.get_functor().Init(gridDim.z, gridDim.y, gridDim.x, 
+  task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, 
        blockDim.z, blockDim.y, blockDim.x,
        blockIdx.z,  blockIdx.y,  blockIdx.x, 
        threadIdx.z, threadIdx.y, threadIdx.x,
        shared_memory);
 
-  task.get_functor().Operation1();
+  task.GetFunctor().Operation1();
   SyncGrid<CUDA>::Sync();
-  task.get_functor().Operation2();
+  task.GetFunctor().Operation2();
   SyncGrid<CUDA>::Sync();
-  task.get_functor().Operation3();
+  task.GetFunctor().Operation3();
   SyncGrid<CUDA>::Sync();
 
-  while (task.get_functor().LoopCondition1()) {
-    task.get_functor().Operation4();
+  while (task.GetFunctor().LoopCondition1()) {
+    task.GetFunctor().Operation4();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation5();
+    task.GetFunctor().Operation5();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation6();
+    task.GetFunctor().Operation6();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation7();
+    task.GetFunctor().Operation7();
     SyncGrid<CUDA>::Sync();
-    task.get_functor().Operation8();
+    task.GetFunctor().Operation8();
     SyncGrid<CUDA>::Sync();
   }
-  task.get_functor().Operation9();
+  task.GetFunctor().Operation9();
   SyncGrid<CUDA>::Sync();
-  task.get_functor().Operation10();
+  task.GetFunctor().Operation10();
   SyncGrid<CUDA>::Sync();
 }
 
@@ -286,7 +322,7 @@ MGARDm_KERL void HuffmanCWCustomizedKernel(Task task) {
 template <>
 class DeviceSpecification<CUDA> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   DeviceSpecification(){
     cudaGetDeviceCount(&NumDevices);
     MaxSharedMemorySize = new int[NumDevices];
@@ -317,37 +353,37 @@ class DeviceSpecification<CUDA> {
     }
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetNumDevices() {
     return NumDevices;
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetMaxSharedMemorySize(int dev_id) {
     return MaxSharedMemorySize[dev_id];
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetWarpSize(int dev_id) {
     return WarpSize[dev_id];
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetNumSMs(int dev_id) {
     return NumSMs[dev_id];
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetArchitectureGeneration(int dev_id) {
     return ArchitectureGeneration[dev_id];
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetMaxNumThreadsPerSM(int dev_id) {
     return MaxNumThreadsPerSM[dev_id];
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   ~DeviceSpecification() {
     delete [] MaxSharedMemorySize;
     delete [] WarpSize;
@@ -368,41 +404,41 @@ class DeviceSpecification<CUDA> {
 template <>
 class DeviceQueues<CUDA> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   DeviceQueues(){
     cudaGetDeviceCount(&NumDevices);
     streams = new cudaStream_t*[NumDevices];
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(cudaSetDevice(d));
-      streams[d] = new cudaStream_t[MGARDm_NUM_QUEUES];
-      for (SIZE i = 0; i < MGARDm_NUM_QUEUES; i++) {
+      streams[d] = new cudaStream_t[MGARDX_NUM_QUEUES];
+      for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
         gpuErrchk(cudaStreamCreate(&streams[d][i]));
       }
     }
   }
 
-  MGARDm_CONT cudaStream_t 
+  MGARDX_CONT cudaStream_t 
   GetQueue(int dev_id, SIZE queue_id){
     return streams[dev_id][queue_id];
   }
 
-  MGARDm_CONT void 
+  MGARDX_CONT void 
   SyncQueue(int dev_id, SIZE queue_id){
     cudaStreamSynchronize(streams[dev_id][queue_id]);
   }
 
-  MGARDm_CONT void 
+  MGARDX_CONT void 
   SyncAllQueues(int dev_id){
-    for (SIZE i = 0; i < MGARDm_NUM_QUEUES; i++) {
+    for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
       gpuErrchk(cudaStreamSynchronize(streams[dev_id][i]));
     }
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   ~DeviceQueues(){
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(cudaSetDevice(d));
-      for (int i = 0; i < MGARDm_NUM_QUEUES; i++) {
+      for (int i = 0; i < MGARDX_NUM_QUEUES; i++) {
         gpuErrchk(cudaStreamDestroy(streams[d][i]));
       }
       delete [] streams[d];
@@ -420,66 +456,66 @@ class DeviceQueues<CUDA> {
 template <>
 class DeviceRuntime<CUDA> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   DeviceRuntime(){}
 
-  MGARDm_CONT static void 
+  MGARDX_CONT static void 
   SelectDevice(SIZE dev_id){
     gpuErrchk(cudaSetDevice(dev_id));
     curr_dev_id = dev_id;
   }
 
-  MGARDm_CONT static cudaStream_t 
+  MGARDX_CONT static cudaStream_t 
   GetQueue(SIZE queue_id){
     gpuErrchk(cudaSetDevice(curr_dev_id));
     return queues.GetQueue(curr_dev_id, queue_id);
   }
 
-  MGARDm_CONT static void 
+  MGARDX_CONT static void 
   SyncQueue(SIZE queue_id){
     gpuErrchk(cudaSetDevice(curr_dev_id));
     queues.SyncQueue(curr_dev_id, queue_id);
   }
 
-  MGARDm_CONT static void 
+  MGARDX_CONT static void 
   SyncAllQueues(){
     gpuErrchk(cudaSetDevice(curr_dev_id));
     queues.SyncAllQueues(curr_dev_id);
   }
 
-  MGARDm_CONT static void
+  MGARDX_CONT static void
   SyncDevice(){
     gpuErrchk(cudaSetDevice(curr_dev_id));
     gpuErrchk(cudaDeviceSynchronize());
   }
 
-  MGARDm_CONT static int
+  MGARDX_CONT static int
   GetMaxSharedMemorySize() {
     return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
   }
 
-  MGARDm_CONT static int
+  MGARDX_CONT static int
   GetWarpSize() {
     return DeviceSpecs.GetWarpSize(curr_dev_id);
   }
 
-  MGARDm_CONT static int
+  MGARDX_CONT static int
   GetNumSMs() {
     return DeviceSpecs.GetNumSMs(curr_dev_id);
   }
 
-  MGARDm_CONT static int
+  MGARDX_CONT static int
   GetArchitectureGeneration() {
     return DeviceSpecs.GetArchitectureGeneration(curr_dev_id);
   }
 
-  MGARDm_CONT static int
+  MGARDX_CONT static int
   GetMaxNumThreadsPerSM() {
     return DeviceSpecs.GetMaxNumThreadsPerSM(curr_dev_id);
   }
 
   template <typename FunctorType>
-  MGARDm_CONT static int
+  MGARDX_CONT static int
   GetOccupancyMaxActiveBlocksPerSM(FunctorType functor, int blockSize, size_t dynamicSMemSize) {
     int numBlocks = 0;
     Task<FunctorType> task = Task(functor, 1, 1, 1, 
@@ -508,7 +544,7 @@ class DeviceRuntime<CUDA> {
   }
 
   template <typename FunctorType>
-  MGARDm_CONT static void
+  MGARDX_CONT static void
   SetMaxDynamicSharedMemorySize(FunctorType functor, int maxbytes) {
     int numBlocks = 0;
     Task<FunctorType> task = Task(functor, 1, 1, 1, 1, 1, 1, 0, 0);
@@ -540,7 +576,7 @@ class DeviceRuntime<CUDA> {
   }
 
 
-  MGARDm_CONT
+  MGARDX_CONT
   ~DeviceRuntime(){
   }
 
@@ -554,11 +590,11 @@ class DeviceRuntime<CUDA> {
 template <>
 class MemoryManager<CUDA> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   MemoryManager(){};
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   void Malloc1D(T *& ptr, SIZE n, int queue_idx) {
     gpuErrchk(cudaMalloc(&ptr, n * sizeof(T)));
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
@@ -567,7 +603,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   void MallocND(T *& ptr, SIZE n1, SIZE n2, SIZE &ld, int queue_idx) {
     if (ReduceMemoryFootprint) {
       gpuErrchk(cudaMalloc(&ptr, n1 * n2 * sizeof(T)));
@@ -583,7 +619,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   void Free(T * ptr) {
     // printf("MemoryManager.Free(%llu)\n", ptr);
     if (ptr == NULL) return;
@@ -594,7 +630,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   void Copy1D(T * dst_ptr, const T * src_ptr, SIZE n, int queue_idx) {
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     gpuErrchk(cudaMemcpyAsync(dst_ptr, src_ptr, n*sizeof(T), cudaMemcpyDefault, stream));
@@ -604,7 +640,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   void CopyND(T * dst_ptr, SIZE dst_ld, const T * src_ptr, SIZE src_ld, SIZE n1, SIZE n2, int queue_idx) {
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     gpuErrchk(cudaMemcpy2DAsync(dst_ptr, dst_ld * sizeof(T), src_ptr, src_ld * sizeof(T), n1 * sizeof(T), n2,
@@ -615,7 +651,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   void MallocHost(T *& ptr, SIZE n, int queue_idx) {
     gpuErrchk(cudaMallocHost(&ptr, n * sizeof(T)));
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
@@ -624,7 +660,7 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   void FreeHost(T * ptr) {
     if (ptr == NULL) return;
     gpuErrchk(cudaFreeHost(ptr));
@@ -634,19 +670,19 @@ class MemoryManager<CUDA> {
   }
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   void Memset1D(T * ptr, SIZE n, int value) {
     gpuErrchk(cudaMemset(ptr, value, n * sizeof(T)));
   }
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value) {
     gpuErrchk(cudaMemset2D(ptr, ld * sizeof(T), value, n1 * sizeof(T), n2));
   }
 
   template <typename T>
-  MGARDm_CONT static
+  MGARDX_CONT static
   bool IsDevicePointer(T * ptr) {
     cudaPointerAttributes attr;
     cudaPointerGetAttributes(&attr, ptr);
@@ -658,22 +694,22 @@ class MemoryManager<CUDA> {
 };
 
 
-MGARDm_CONT_EXEC
+MGARDX_CONT_EXEC
 uint64_t binary2negabinary(const int64_t x) {
     return (x + (uint64_t)0xaaaaaaaaaaaaaaaaull) ^ (uint64_t)0xaaaaaaaaaaaaaaaaull;
 }
 
-MGARDm_CONT_EXEC
+MGARDX_CONT_EXEC
 uint32_t binary2negabinary(const int32_t x) {
     return (x + (uint32_t)0xaaaaaaaau) ^ (uint32_t)0xaaaaaaaau;
 }
 
-MGARDm_CONT_EXEC
+MGARDX_CONT_EXEC
 int64_t negabinary2binary(const uint64_t x) {
     return (x ^0xaaaaaaaaaaaaaaaaull) - 0xaaaaaaaaaaaaaaaaull;
 }
 
-MGARDm_CONT_EXEC
+MGARDX_CONT_EXEC
 int32_t negabinary2binary(const uint32_t x) {
     return (x ^0xaaaaaaaau) - 0xaaaaaaaau;
 }
@@ -687,23 +723,23 @@ struct BlockReduce<T, nblockx, nblocky, nblockz, CUDA> {
 
   BlockReduceType* blockReduce;
 
-  MGARDm_EXEC
+  MGARDX_EXEC
   BlockReduce() {
     __shared__ TempStorageType temp_storage;
     blockReduce = new BlockReduceType(temp_storage);
   }
 
-  MGARDm_EXEC
+  MGARDX_EXEC
   ~BlockReduce() {
     delete blockReduce;
   }
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   T Sum(T intput) {
     return blockReduce->Sum(intput);
   }
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   T Max(T intput) {
     return blockReduce->Reduce(intput, cub::Max());
   }
@@ -753,7 +789,7 @@ typedef unsigned long long int uint64_cu;
 
 template <typename T, OPTION METHOD>
 struct EncodeSignBits<T, METHOD, CUDA>{
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   T Atomic(T bit, SIZE b_idx) {
     T buffer = 0;
     T shifted_bit;
@@ -762,7 +798,7 @@ struct EncodeSignBits<T, METHOD, CUDA>{
     return buffer;
   }
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   T Reduction(T bit, SIZE b_idx) {
     T buffer = 0;
     T shifted_bit;
@@ -775,13 +811,13 @@ struct EncodeSignBits<T, METHOD, CUDA>{
     return buffer;
   }
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   T Ballot(T bit, SIZE b_idx) {
     return (T)__ballot_sync (0xffffffff, (int)bit);
   }
 
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   T Encode(T bit, SIZE b_idx) {
     if (METHOD == Sign_Encoding_Atomic) return Atomic(bit, b_idx);
     else if (METHOD == Sign_Encoding_Reduce) return Reduction(bit, b_idx);
@@ -793,7 +829,7 @@ struct EncodeSignBits<T, METHOD, CUDA>{
 
 template <typename T, OPTION METHOD>
 struct DecodeSignBits<T, METHOD, CUDA>{
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   T Decode(T sign_bitplane, SIZE b_idx) {
     return (sign_bitplane >> (sizeof(T)*8-1-b_idx)) & 1u;
   }
@@ -809,7 +845,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
   typedef cub::BlockReduce<T_trans, nblockx, cub::BLOCK_REDUCE_WARP_REDUCTIONS, nblocky, nblockz> BlockReduceType;
   using BlockReduceStorageType = typename BlockReduceType::TempStorage;
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Serial_All(T_org * v, T_trans * tv, SIZE b, SIZE B) {
     if (threadIdx.x == 0 && threadIdx.y == 0) {
       // printf("add-in: %llu %u\n", v, v[0]);
@@ -841,7 +877,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
     }
   }
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Parallel_B_Serial_b(T_org * v, T_trans * tv, SIZE b, SIZE B) {
     if (threadIdx.y == 0) {
       for (SIZE B_idx = threadIdx.x; B_idx < B; B_idx += 32) {
@@ -860,7 +896,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
     }
   }  
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Parallel_B_Atomic_b(T_org * v, T_trans * tv, SIZE b, SIZE B) {
     if (threadIdx.x < b && threadIdx.y < B) {
       SIZE i = threadIdx.x;
@@ -880,7 +916,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
     }
   }  
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Parallel_B_Reduction_b(T_org * v, T_trans * tv, SIZE b, SIZE B) {
 
     // __syncthreads(); long long start = clock64();
@@ -928,7 +964,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
     // __syncthreads(); start = clock64();
   }  
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Parallel_B_Ballot_b(T_org * v, T_trans * tv, SIZE b, SIZE B) {
 
     SIZE warp_idx = threadIdx.y;
@@ -1000,7 +1036,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
     // __syncthreads(); start = clock64();
   }
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void TCU(T_org * v, T_trans * tv, SIZE b, SIZE B) {
     __syncthreads();
     long long start = clock64();
@@ -1058,7 +1094,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
 
   }
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Transpose(T_org * v, T_trans * tv, SIZE b, SIZE B) {
     if (METHOD == Bit_Transpose_Serial_All)  Serial_All(v, tv, b, B);
     else if (METHOD == Bit_Transpose_Parallel_B_Serial_b) Parallel_B_Serial_b(v, tv, b, B);
@@ -1081,7 +1117,7 @@ struct ErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, METHOD, 
   using BlockReduceStorageType = typename BlockReduceType::TempStorage;
 
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Serial_All(T * v, T_error * temp, T_error * errors, SIZE num_elems, SIZE num_bitplanes) {
     if (threadIdx.x == 0 && threadIdx.y == 0) {
       for (SIZE elem_idx = 0; elem_idx < num_elems; elem_idx++) {
@@ -1113,7 +1149,7 @@ struct ErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, METHOD, 
     }
   }
 
-  MGARDm_EXEC
+  MGARDX_EXEC
   void Parallel_Bitplanes_Serial_Error(T * v, T_error * temp, T_error * errors, SIZE num_elems, SIZE num_bitplanes) {
     SIZE bitplane_idx = threadIdx.y * blockDim.x + threadIdx.x;
     if (bitplane_idx < num_bitplanes) {
@@ -1146,7 +1182,7 @@ struct ErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, METHOD, 
     }
   }
 
-    MGARDm_EXEC
+    MGARDX_EXEC
   void Parallel_Bitplanes_Atomic_Error(T * v, T_error * temp, T_error * errors, SIZE num_elems, SIZE num_bitplanes) {
     for (SIZE elem_idx = threadIdx.x; elem_idx < num_elems; elem_idx += blockDim.x) {
       for(SIZE bitplane_idx = threadIdx.y; bitplane_idx < num_bitplanes; bitplane_idx += blockDim.y){
@@ -1191,7 +1227,7 @@ struct ErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, METHOD, 
     }
   }
 
-  MGARDm_EXEC
+  MGARDX_EXEC
   void Parallel_Bitplanes_Reduce_Error(T * v, T_error * temp, T_error * errors, SIZE num_elems, SIZE num_bitplanes) {
     for (SIZE elem_idx = threadIdx.x; elem_idx < num_elems; elem_idx += blockDim.x) {
       for(SIZE bitplane_idx = threadIdx.y; bitplane_idx < num_bitplanes; bitplane_idx += blockDim.y){
@@ -1257,7 +1293,7 @@ struct ErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, METHOD, 
 
   }
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Collect(T * v, T_error * temp, T_error * errors, SIZE num_elems, SIZE num_bitplanes) {
     if (METHOD == Error_Collecting_Serial_All) Serial_All(v, temp, errors, num_elems, num_bitplanes);
     else if (METHOD == Error_Collecting_Parallel_Bitplanes_Serial_Error) Parallel_Bitplanes_Serial_Error(v, temp, errors, num_elems, num_bitplanes);
@@ -1271,7 +1307,7 @@ struct ErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, METHOD, 
 template <typename T> 
 struct BlockBroadcast<T, CUDA> {
   
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   T Broadcast(T input, SIZE src_threadx, SIZE src_thready, SIZE src_threadz) {
     __shared__ T value[1];
     if (threadIdx.x == src_threadx && 
@@ -1297,21 +1333,21 @@ struct BlockBroadcast<T, CUDA> {
 template <typename TaskType>
 class DeviceAdapter<TaskType, CUDA> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   DeviceAdapter(){};
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(TaskType& task) {
-    dim3 threadsPerBlock(task.get_nblockx(),
-                         task.get_nblocky(),
-                         task.get_nblockz());
-    dim3 blockPerGrid(task.get_ngridx(),
-                      task.get_ngridy(),
-                      task.get_ngridz());
-    size_t sm_size = task.get_shared_memory_size();
+    dim3 threadsPerBlock(task.GetBlockDimX(),
+                         task.GetBlockDimY(),
+                         task.GetBlockDimZ());
+    dim3 blockPerGrid(task.GetGridDimX(),
+                      task.GetGridDimY(),
+                      task.GetGridDimZ());
+    size_t sm_size = task.GetSharedMemorySize();
     // printf("exec config (%d %d %d) (%d %d %d) sm_size: %llu\n", threadsPerBlock.x, threadsPerBlock.y, threadsPerBlock.z, 
     //                 blockPerGrid.x, blockPerGrid.y, blockPerGrid.z, sm_size);
-    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(task.get_queue_idx());
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(task.GetQueueIdx());
 
     // if constexpr evalute at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<CUDA>, typename TaskType::Functor>::value) {
@@ -1362,10 +1398,10 @@ struct SquareOp
 template <>
 class DeviceCollective<CUDA>{
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   DeviceCollective(){};
 
-  template <typename T> MGARDm_CONT static
+  template <typename T> MGARDX_CONT static
   void Sum(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     void     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1378,7 +1414,7 @@ public:
     MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
-  template <typename T> MGARDm_CONT static
+  template <typename T> MGARDX_CONT static
   void AbsMax(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     void     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1392,7 +1428,7 @@ public:
     MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
-  template <typename T> MGARDm_CONT static
+  template <typename T> MGARDX_CONT static
   void SquareSum(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     SquareOp squareOp;
     cub::TransformInputIterator<T, SquareOp, T*> transformed_input_iter(v.data(), squareOp);
@@ -1408,7 +1444,7 @@ public:
   }
  
  
- template <typename T> MGARDm_CONT static
+ template <typename T> MGARDX_CONT static
   void ScanSumInclusive(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     Byte     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1421,7 +1457,7 @@ public:
     MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
-  template <typename T> MGARDm_CONT static
+  template <typename T> MGARDX_CONT static
   void ScanSumExclusive(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     Byte     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1434,7 +1470,7 @@ public:
     MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
-  template <typename T> MGARDm_CONT static
+  template <typename T> MGARDX_CONT static
   void ScanSumExtended(SIZE n, SubArray<1, T, CUDA>& v, SubArray<1, T, CUDA>& result, int queue_idx) {
     Byte     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
@@ -1449,7 +1485,7 @@ public:
     MemoryManager<CUDA>().Free(d_temp_storage);
   }
 
-  template <typename KeyT, typename ValueT> MGARDm_CONT static
+  template <typename KeyT, typename ValueT> MGARDX_CONT static
   void SortByKey(SIZE n, SubArray<1, KeyT, CUDA>& keys, SubArray<1, ValueT, CUDA>& values, 
                  int queue_idx) {
     void     *d_temp_storage = NULL;

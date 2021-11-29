@@ -1,3 +1,6 @@
+if(MGARD_ENABLE_SERIAL)
+  add_subdirectory (Serial)
+endif()
 if(MGARD_ENABLE_CUDA)
   add_subdirectory (CUDA)
 endif()

@@ -13,7 +13,7 @@ namespace MDR {
 template <mgard_x::DIM D, typename T, int R, int C, int F, OPTION Direction, typename DeviceType>
 class DirectInterleaverGPUFunctor: public Functor<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   DirectInterleaverGPUFunctor(mgard_x::SIZE *ranges, mgard_x::SIZE l_target, 
                               SubArray<D, T, CUDA> v,
                               SubArray<1, T, CUDA> * level_v): 
@@ -21,7 +21,7 @@ public:
     Functor<DeviceType>();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     threadId = (FunctorBase<DeviceType>::GetThreadIdX() * FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockIdY()) +
                 (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
@@ -34,7 +34,7 @@ public:
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     mgard_x::SIZE firstD = div_roundup(ranges_sm[l_target + 1], F);
     mgard_x::SIZE bidx = blockx;
@@ -131,16 +131,16 @@ public:
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size += D * (l_target + 2) * sizeof(mgard_x::SIZE);
@@ -173,11 +173,11 @@ private:
 template <mgard_x::DIM D, typename T, OPTION Direction, typename DeviceType>
 class DirectInterleaverGPU: public mgard_x::AutoTuner<HandleType, DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   DirectInterleaverGPU(): mgard_x::AutoTuner<HandleType, DeviceType>() {}
 
   template <mgard_x::SIZE R, mgard_x::SIZE C, mgard_x::SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<DirectInterleaverGPUFunctor<D, T, R, C, F, DeviceType>> 
   GenTask(mgard_x::SIZE *shapes_h, mgard_x::SIZE *ranges_d, mgard_x::SIZE l_target, 
           SubArray<D, T, CUDA> v,
@@ -202,7 +202,7 @@ class DirectInterleaverGPU: public mgard_x::AutoTuner<HandleType, DeviceType> {
     return mgard_x::Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(mgard_x::SIZE *shapes_h, mgard_x::SIZE *ranges_d, mgard_x::SIZE l_target, 
                SubArray<D, T, CUDA> v,
                SubArray<1, T, CUDA> * level_v

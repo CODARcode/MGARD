@@ -58,7 +58,7 @@ namespace MDR {
 template <mgard_x::DIM D, typename T, int R, int C, int F, mgard_x::OPTION Direction, typename DeviceType>
 class DirectInterleaverFunctor: public mgard_x::Functor<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   DirectInterleaverFunctor(mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> ranges, mgard_x::SIZE l_target, 
                               mgard_x::SubArray<D, T, DeviceType> v,
                               mgard_x::SubArray<1, T, DeviceType> * level_v): 
@@ -66,7 +66,7 @@ public:
     mgard_x::Functor<DeviceType>();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
 
     debug = false;
@@ -102,7 +102,7 @@ public:
     __syncthreads();
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     
     mgard_x::SIZE idx[D];
@@ -233,16 +233,16 @@ public:
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size += D * (l_target + 2) * sizeof(mgard_x::SIZE);
@@ -265,11 +265,11 @@ private:
 template <mgard_x::DIM D, typename T, mgard_x::OPTION Direction, typename DeviceType>
   class DirectInterleaverKernel: public mgard_x::AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   DirectInterleaverKernel(): mgard_x::AutoTuner<DeviceType>() {}
 
   template <mgard_x::SIZE R, mgard_x::SIZE C, mgard_x::SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   mgard_x::Task<DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>> 
   GenTask(mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> shape, mgard_x::SIZE l_target,
           mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> ranges,
@@ -295,7 +295,7 @@ template <mgard_x::DIM D, typename T, mgard_x::OPTION Direction, typename Device
     return mgard_x::Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> shape,
                mgard_x::SIZE l_target,
                mgard_x::SubArray<1, mgard_x::SIZE, DeviceType> ranges,

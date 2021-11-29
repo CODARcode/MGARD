@@ -10,7 +10,7 @@
 
 namespace mgard_x {
 
-template <typename T> __device__ inline T lerp(T v0, T v1, T t) {
+template <typename T> MGARDX_EXEC T lerp(T v0, T v1, T t) {
 #ifdef MGARD_X_FMA
   if (sizeof(T) == sizeof(double)) {
     return fma(t, v1, fma(-t, v0, v0));

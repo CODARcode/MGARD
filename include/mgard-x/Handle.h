@@ -64,20 +64,20 @@ template <DIM D, typename T, typename DeviceType> struct Handle {
   std::vector<SIZE> shape_org;
   std::vector<SIZE> shape;
   std::vector<std::vector<SIZE>> dofs;
-  std::vector<Array<1, SIZE, CUDA>> shapes;
+  std::vector<Array<1, SIZE, DeviceType>> shapes;
   SIZE * ranges_h;
-  Array<1, SIZE, CUDA> ranges;
+  Array<1, SIZE, DeviceType> ranges;
   std::vector<T *> coords_h;
   std::vector<T *> coords_d;
-  std::vector<Array<1, T, CUDA>> coords;
+  std::vector<Array<1, T, DeviceType>> coords;
 
-  std::vector<std::vector<Array<1, T, CUDA>>> dist_array;
-  std::vector<std::vector<Array<1, T, CUDA>>> ratio_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> dist_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> ratio_array;
 
-  Array<2, T, CUDA> volumes_array;
+  Array<2, T, DeviceType> volumes_array;
 
-  std::vector<std::vector<Array<1, T, CUDA>>> am_array;
-  std::vector<std::vector<Array<1, T, CUDA>>> bm_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> am_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> bm_array;
 
   LENGTH linearized_depth;
   LENGTH padded_linearized_depth;
@@ -96,8 +96,8 @@ template <DIM D, typename T, typename DeviceType> struct Handle {
   DIM *processed_n;
   DIM *unprocessed_n;
 
-  Array<1, DIM, CUDA> processed_dims[D];
-  Array<1, DIM, CUDA> unprocessed_dims[D];
+  Array<1, DIM, DeviceType> processed_dims[D];
+  Array<1, DIM, DeviceType> unprocessed_dims[D];
 
 private:
   void padding_dimensions(std::vector<SIZE> &shape, std::vector<T *> &coords);

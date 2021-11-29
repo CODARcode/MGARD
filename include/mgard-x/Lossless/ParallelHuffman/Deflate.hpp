@@ -21,7 +21,8 @@ namespace mgard_x {
 template <typename H, typename DeviceType>
 class DeflateFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT DeflateFunctor(SubArray<1, H, DeviceType> hcoded, 
+  MGARDX_CONT DeflateFunctor(){}
+  MGARDX_CONT DeflateFunctor(SubArray<1, H, DeviceType> hcoded, 
                              SIZE len,
                              SubArray<1, size_t, DeviceType> densely_meta,
                              int PART_SIZE):
@@ -30,7 +31,7 @@ class DeflateFunctor: public Functor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     size_t gid = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
     if (gid >= (len - 1) / PART_SIZE + 1)
@@ -76,19 +77,19 @@ class DeflateFunctor: public Functor<DeviceType> {
     *densely_meta(gid) = total_bitwidth;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() { return 0; }
 
   private:
@@ -102,10 +103,10 @@ class DeflateFunctor: public Functor<DeviceType> {
 template <typename H, typename DeviceType>
 class Deflate: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   Deflate():AutoTuner<DeviceType>() {}
 
-  MGARDm_CONT
+  MGARDX_CONT
   Task<DeflateFunctor<H, DeviceType> > 
   GenTask(SubArray<1, H, DeviceType> hcoded, 
                    SIZE len,
@@ -129,7 +130,7 @@ public:
                 tbz, tby, tbx, sm_size, queue_idx, "Deflate"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, H, DeviceType> hcoded, 
                SIZE len,
                SubArray<1, size_t, DeviceType> densely_meta,

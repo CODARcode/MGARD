@@ -97,7 +97,8 @@ void GetCodebook(int dict_size,
   uint32_t *diagonal_path_intersections;
   Array<1, uint32_t, DeviceType> diagonal_path_intersections_array({2 * (mblocks + 1)});
 
-  cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
+  DeviceRuntime<DeviceType>::SyncDevice();
 
   SubArray<1, unsigned int, DeviceType> CL_subarray(CL_array);
   SubArray<1, int, DeviceType> lNodesLeader_subarray(lNodesLeader_array);

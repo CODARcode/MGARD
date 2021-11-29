@@ -26,8 +26,8 @@ void Handle<D, T, DeviceType>::coord_to_dist(SIZE dof, T * coord, T * dist) {
   T * h_dist = new T[dof];
   for (int i = 0; i < dof; i ++)  h_dist[i] = 0.0;
   // cudaMemcpyAsyncHelper(*this, h_coord, coord, dof * sizeof(T), AUTO, 0);
-  MemoryManager<CUDA>::Copy1D(h_coord, coord, dof, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0);
+  MemoryManager<DeviceType>::Copy1D(h_coord, coord, dof, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   // this->sync(0);
   for (int i = 0; i < dof - 1; i++) {
     h_dist[i] = h_coord[i+1] - h_coord[i];
@@ -39,8 +39,8 @@ void Handle<D, T, DeviceType>::coord_to_dist(SIZE dof, T * coord, T * dist) {
   }
   // cudaMemcpyAsyncHelper(*this, dist, h_dist, dof * sizeof(T), AUTO, 0);
   // this->sync(0);
-  MemoryManager<CUDA>::Copy1D(dist, h_dist, dof, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0);
+  MemoryManager<DeviceType>::Copy1D(dist, h_dist, dof, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
 
   delete [] h_coord;
   delete [] h_dist;
@@ -55,8 +55,8 @@ void Handle<D, T, DeviceType>::dist_to_ratio(SIZE dof, T * dist, T * ratio) {
   for (int i = 0; i < dof; i ++)  h_ratio[i] = 0.0;
   // cudaMemcpyAsyncHelper(*this, h_dist, dist, dof * sizeof(T), AUTO, 0);
   // this->sync(0);
-  MemoryManager<CUDA>::Copy1D(h_dist, dist, dof, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0);
+  MemoryManager<DeviceType>::Copy1D(h_dist, dist, dof, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   for (int i = 0; i < dof - 2; i++) {
     h_ratio[i] = h_dist[i] / (h_dist[i+1] + h_dist[i]);
     // printf("dof: %llu ratio: %f\n", dof, h_ratio[i]);
@@ -67,8 +67,8 @@ void Handle<D, T, DeviceType>::dist_to_ratio(SIZE dof, T * dist, T * ratio) {
   }
   // cudaMemcpyAsyncHelper(*this, ratio, h_ratio, dof * sizeof(T), AUTO, 0);
   // this->sync(0);
-  MemoryManager<CUDA>::Copy1D(ratio, h_ratio, dof, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0);
+  MemoryManager<DeviceType>::Copy1D(ratio, h_ratio, dof, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   delete [] h_dist;
   delete [] h_ratio;
 }
@@ -83,8 +83,8 @@ void Handle<D, T, DeviceType>::reduce_dist(SIZE dof, T * dist, T * dist2) {
   for (int i = 0; i < dof2; i ++)  h_dist2[i] = 0.0;
   // cudaMemcpyAsyncHelper(*this, h_dist, dist, dof * sizeof(T), AUTO, 0);
   // this->sync(0); 
-  MemoryManager<CUDA>::Copy1D(h_dist, dist, dof, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0); 
+  MemoryManager<DeviceType>::Copy1D(h_dist, dist, dof, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0); 
   for (int i = 0; i < dof2 - 1; i++) {
     h_dist2[i] = h_dist[i*2] + h_dist[i*2+1]; 
   }
@@ -95,8 +95,8 @@ void Handle<D, T, DeviceType>::reduce_dist(SIZE dof, T * dist, T * dist2) {
   }
   // cudaMemcpyAsyncHelper(*this, dist2, h_dist2, dof2 * sizeof(T), AUTO, 0);
   // this->sync(0);
-  MemoryManager<CUDA>::Copy1D(dist2, h_dist2, dof2, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0); 
+  MemoryManager<DeviceType>::Copy1D(dist2, h_dist2, dof2, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0); 
   delete [] h_dist;
   delete [] h_dist2;
 }
@@ -109,8 +109,8 @@ void Handle<D, T, DeviceType>::calc_am_bm(SIZE dof, T * dist, T * am, T * bm) {
   for (int i = 0; i < dof+1; i ++) { h_am[i] = 0.0; h_bm[i] = 0.0; }
   // cudaMemcpyAsyncHelper(*this, h_dist, dist, dof * sizeof(T), AUTO, 0);
   // this->sync(0);  
-  MemoryManager<CUDA>::Copy1D(h_dist, dist, dof, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0); 
+  MemoryManager<DeviceType>::Copy1D(h_dist, dist, dof, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0); 
   h_bm[0] = 2 * h_dist[0] / 6;
   h_am[0] = 0.0;
 
@@ -136,11 +136,11 @@ void Handle<D, T, DeviceType>::calc_am_bm(SIZE dof, T * dist, T * am, T * bm) {
   T zero = 0;
   // cudaMemcpyAsyncHelper(*this, am+dof, &zero, sizeof(T), AUTO, 0);
 
-  MemoryManager<CUDA>::Copy1D(am, h_am, dof, 0);
-  MemoryManager<CUDA>::Copy1D(bm+1, h_bm, dof, 0);
-  MemoryManager<CUDA>::Copy1D(bm, &one, 1, 0);
-  MemoryManager<CUDA>::Copy1D(am+dof, &zero, 1, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0); 
+  MemoryManager<DeviceType>::Copy1D(am, h_am, dof, 0);
+  MemoryManager<DeviceType>::Copy1D(bm+1, h_bm, dof, 0);
+  MemoryManager<DeviceType>::Copy1D(bm, &one, 1, 0);
+  MemoryManager<DeviceType>::Copy1D(am+dof, &zero, 1, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0); 
 
   // this->sync(0);
   delete [] h_dist;
@@ -155,8 +155,8 @@ void Handle<D, T, DeviceType>::calc_volume(SIZE dof, T * dist, T * volume) {
   for (int i = 0; i < dof; i ++) { h_volume[i] = 0.0; }
   // cudaMemcpyAsyncHelper(*this, h_dist, dist, dof * sizeof(T), AUTO, 0);
   // this->sync(0);  
-  MemoryManager<CUDA>::Copy1D(h_dist, dist, dof, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0); 
+  MemoryManager<DeviceType>::Copy1D(h_dist, dist, dof, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0); 
   if (dof == 2) {
     h_volume[0] = h_dist[0] / 2;
     h_volume[1] = h_dist[0] / 2;
@@ -180,8 +180,8 @@ void Handle<D, T, DeviceType>::calc_volume(SIZE dof, T * dist, T * volume) {
   for (int i = 0; i < dof; i ++) { h_volume[i] = 1.0/h_volume[i]; }
   // cudaMemcpyAsyncHelper(*this, volume, h_volume, dof * sizeof(T), AUTO, 0);
   // this->sync(0);
-  MemoryManager<CUDA>::Copy1D(volume, h_volume, dof, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0); 
+  MemoryManager<DeviceType>::Copy1D(volume, h_volume, dof, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0); 
   delete [] h_dist;
   delete [] h_volume;
 }
@@ -240,7 +240,7 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
       curr_shape_h[d] = dofs[d][l];
     }
 
-    Array<1, SIZE, CUDA> shape_array({D_padded});
+    Array<1, SIZE, DeviceType> shape_array({D_padded});
     shape_array.loadData(curr_shape_h);
     shapes.push_back(shape_array);
     delete [] curr_shape_h;
@@ -255,23 +255,24 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
           dofs[d][l_target + 1 - l];
     }
   }
-  ranges = Array<1, SIZE, CUDA>({D * (l_target + 2)});
+  ranges = Array<1, SIZE, DeviceType>({D * (l_target + 2)});
   ranges.loadData(ranges_h);
 
   {
     processed_n = new DIM[D];
-    thrust::device_vector<DIM> tmp(0);
+
+    std::vector<DIM> tmp(0);
     for (int d = 0; d < D; d++) {
       processed_n[d] = tmp.size();
       // processed_dims_h[d] = new DIM[processed_n[d]];
 
-      processed_dims[d] = Array<1, DIM, CUDA>({(SIZE)tmp.size()});
-      processed_dims[d].loadData(thrust::raw_pointer_cast(tmp.data()));
+      processed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
+      processed_dims[d].loadData(tmp.data());
       tmp.push_back(d);
     }
   }
   {
-    thrust::device_vector<DIM> tmp(0);
+    std::vector<DIM> tmp(0);
     for (int i = 3; i < D; i++) {
       tmp.push_back(i);
     }
@@ -280,8 +281,8 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
     //+1 is used for storing empty status
     for (int d = 0; d < (int)D-3+1; d++) {
       unprocessed_n[d] = tmp.size();
-      unprocessed_dims[d] = Array<1, DIM, CUDA>({(SIZE)tmp.size()});
-      unprocessed_dims[d].loadData(thrust::raw_pointer_cast(tmp.data()));
+      unprocessed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
+      unprocessed_dims[d].loadData(tmp.data());
       tmp.pop_back();
     }
   }
@@ -289,7 +290,7 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
   // handle coords
   this->coords_h = coords;
   for (int i = 0; i < shape.size(); i++) {
-    Array<1, T, CUDA> coord({shape[i]});
+    Array<1, T, DeviceType> coord({shape[i]});
     coord.loadData(coords[i]);
     this->coords.push_back(coord);
   }
@@ -297,9 +298,9 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
   // calculate dist and ratio
   for (int i = 0; i < shape.size(); i++) {
     // std::vector<T *> curr_ddist_l, curr_dratio_l;
-    std::vector<Array<1, T, CUDA>> curr_ddist_array_l, curr_dratio_array_l;
-    Array<1, T, CUDA> curr_ddist0_array({dofs[i][0]});
-    Array<1, T, CUDA> curr_dratio0_array({dofs[i][0]});
+    std::vector<Array<1, T, DeviceType>> curr_ddist_array_l, curr_dratio_array_l;
+    Array<1, T, DeviceType> curr_ddist0_array({dofs[i][0]});
+    Array<1, T, DeviceType> curr_dratio0_array({dofs[i][0]});
     curr_ddist_array_l.push_back(curr_ddist0_array);
     curr_dratio_array_l.push_back(curr_dratio0_array);
 
@@ -308,8 +309,8 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
 
     // for l = 1 ... l_target
     for (int l = 1; l < l_target + 1; l++) {
-      Array<1, T, CUDA> curr_ddist_array({dofs[i][l]});
-      Array<1, T, CUDA> curr_dratio_array({dofs[i][l]});
+      Array<1, T, DeviceType> curr_ddist_array({dofs[i][l]});
+      Array<1, T, DeviceType> curr_dratio_array({dofs[i][l]});
       curr_ddist_array_l.push_back(curr_ddist_array);
       curr_dratio_array_l.push_back(curr_dratio_array);
       reduce_dist(dofs[i][l-1], curr_ddist_array_l[l - 1].get_dv(), curr_ddist_array_l[l].get_dv());
@@ -325,8 +326,8 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
     volumes_width = std::max(volumes_width, dofs[d][0]); 
   }
 
-  volumes_array = Array<2, T, CUDA>({D * (l_target+1), volumes_width});
-  SubArray<2, T, CUDA> volumes_subarray(volumes_array);
+  volumes_array = Array<2, T, DeviceType>({D * (l_target+1), volumes_width});
+  SubArray<2, T, DeviceType> volumes_subarray(volumes_array);
   for (int d = 0; d < D; d++) {
     for (int l = 0; l < l_target + 1; l++) {
       calc_volume(dofs[d][l], dist_array[d][l].get_dv(), volumes_subarray((d*(l_target + 1) + (l_target-l)), 0));
@@ -336,10 +337,10 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
 
   for (DIM i = 0; i < D; i++) {
     // std::vector<T *> curr_am_l, curr_bm_l;
-    std::vector<Array<1, T, CUDA>> curr_am_l_array, curr_bm_l_array;
+    std::vector<Array<1, T, DeviceType>> curr_am_l_array, curr_bm_l_array;
     for (SIZE l = 0; l < l_target+1; l++) {
-      Array<1, T, CUDA> curr_am_array({dofs[i][l]+1});
-      Array<1, T, CUDA> curr_bm_array({dofs[i][l]+1});
+      Array<1, T, DeviceType> curr_am_array({dofs[i][l]+1});
+      Array<1, T, DeviceType> curr_bm_array({dofs[i][l]+1});
       curr_am_array.memset(0);
       curr_bm_array.memset(0);
 

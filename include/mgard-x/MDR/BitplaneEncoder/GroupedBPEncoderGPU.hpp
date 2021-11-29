@@ -34,7 +34,7 @@ namespace MDR {
 
 
   template <typename T>
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   print_bits(T v, int num_bits, bool reverse = false) {
     for (int j = 0; j < num_bits; j++) {
       if (!reverse) printf("%u", (v >> num_bits-1-j) & 1u);
@@ -45,7 +45,7 @@ namespace MDR {
   template <typename T, typename T_fp, typename T_sfp, typename T_bitplane, typename T_error, OPTION BinaryType, OPTION EncodingAlgorithm, OPTION ErrorColectingAlgorithm,typename DeviceType>
   class GroupedEncoderFunctor: public Functor<DeviceType> {
     public: 
-    MGARDm_CONT GroupedEncoderFunctor(SIZE n,
+    MGARDX_CONT GroupedEncoderFunctor(SIZE n,
                                       SIZE num_batches_per_TB,
                                       SIZE num_bitplanes,
                                       SIZE exp,
@@ -66,7 +66,7 @@ namespace MDR {
     // calculate error
     // store signs
     // find the most significant bit
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation1() {
 
       debug = false;
@@ -137,7 +137,7 @@ namespace MDR {
 
     // convert fix point to bit-planes
     // level error reduction (intra block)
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation2() {
       // data
       BlockBitTranspose<T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT, EncodingAlgorithm, DeviceType> blockBitTranspose;
@@ -159,7 +159,7 @@ namespace MDR {
     }
 
     // get max bit-plane length 
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation3() {
       // data
       block_offset = max_length_per_TB * FunctorBase<DeviceType>::GetBlockIdX();
@@ -189,7 +189,7 @@ namespace MDR {
 
     }
 
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation4() {
       if (debug) {
         // for (int i = 0; i < num_elems_per_TB; i++) {
@@ -245,10 +245,10 @@ namespace MDR {
       }
     }
 
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation5() {}
 
-    MGARDm_CONT size_t
+    MGARDX_CONT size_t
     shared_memory_size() {
       size_t size = 0;
       size += (num_bitplanes + 1) * num_elems_per_TB  * sizeof(T_error);
@@ -293,7 +293,7 @@ namespace MDR {
   template <typename T, typename T_bitplane, typename T_error, OPTION BinaryType, OPTION EncodingAlgorithm, OPTION ErrorColectingAlgorithm, typename DeviceType>
   class GroupedEncoder: public AutoTuner<DeviceType> {
   public:
-    MGARDm_CONT
+    MGARDX_CONT
     GroupedEncoder():AutoTuner<DeviceType>() {}
 
     using T_sfp = typename std::conditional<std::is_same<T, double>::value, int64_t, int32_t>::type;
@@ -303,7 +303,7 @@ namespace MDR {
 
 
     template <typename T_fp, typename T_sfp>
-    MGARDm_CONT
+    MGARDX_CONT
     TaskType GenTask(
                     SIZE n,
                     SIZE num_batches_per_TB,
@@ -328,7 +328,7 @@ namespace MDR {
         return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
     }
 
-    MGARDm_CONT
+    MGARDX_CONT
     void Execute(SIZE n,
                  SIZE num_batches_per_TB,
                  SIZE num_bitplanes,
@@ -365,7 +365,7 @@ namespace MDR {
 
     }
 
-    MGARDm_CONT
+    MGARDX_CONT
     SIZE MaxBitplaneLength(LENGTH n) {
       mgard_x::SIZE num_batches_per_TB = 2;
       const mgard_x::SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
@@ -382,7 +382,7 @@ namespace MDR {
   class GroupedDecoderFunctor: public Functor<DeviceType> 
   {
       public: 
-      MGARDm_CONT GroupedDecoderFunctor(SIZE n,
+      MGARDX_CONT GroupedDecoderFunctor(SIZE n,
                                         SIZE num_batches_per_TB,
                                         SIZE starting_bitplane,
                                         SIZE num_bitplanes,
@@ -405,7 +405,7 @@ namespace MDR {
       // exponent align
       // store signs
       // find the most significant bit
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation1() {
         debug = false;
         if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
@@ -458,7 +458,7 @@ namespace MDR {
 
       // convert fix point to bit-planes
       // level error reduction (intra block)
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation2() {
         //data
         BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType> blockBitTranspose;
@@ -510,7 +510,7 @@ namespace MDR {
 
 
       // store bit-plane
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation3() {
         if (local_data_idx < num_elems_per_TB) {
           T_fp fp_data = sm_fix_point[local_data_idx];
@@ -525,7 +525,7 @@ namespace MDR {
         }
       }
 
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation4() {
 
         if (debug) {
@@ -562,11 +562,11 @@ namespace MDR {
 
       
 
-      MGARDm_EXEC void
+      MGARDX_EXEC void
       Operation5() {
 
       }
-      MGARDm_CONT size_t
+      MGARDX_CONT size_t
       shared_memory_size() {
         size_t size = 0;
         size += num_batches_per_TB * (num_bitplanes+1) * sizeof(T_bitplane);
@@ -609,7 +609,7 @@ namespace MDR {
   template <typename T, typename T_bitplane, OPTION BinaryType, OPTION DecodingAlgorithm, typename DeviceType>
   class GroupedDecoder: public AutoTuner<DeviceType> {
   public:
-    MGARDm_CONT
+    MGARDX_CONT
     GroupedDecoder():AutoTuner<DeviceType>() {}
 
     using T_sfp = typename std::conditional<std::is_same<T, double>::value, int64_t, int32_t>::type;
@@ -618,7 +618,7 @@ namespace MDR {
     using TaskType = Task<FunctorType>;
 
     template <typename T_fp, typename T_sfp>
-    MGARDm_CONT
+    MGARDX_CONT
     TaskType GenTask(SIZE n,
                      SIZE num_batches_per_TB,
                      SIZE starting_bitplane,
@@ -644,7 +644,7 @@ namespace MDR {
         return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
     }
 
-    MGARDm_CONT
+    MGARDX_CONT
     void Execute(SIZE n,
                  SIZE num_batches_per_TB,
                  SIZE starting_bitplane,

@@ -21,7 +21,7 @@ namespace mgard_x {
 #define MGARD_MaxBoundary 2
 
 template <typename DeviceType>
-MGARDm_EXEC bool 
+MGARDX_EXEC bool 
 computeTrimBounds(SIZE r, SIZE f, SIZE rightMax,
                   SubArray<3, SIZE, DeviceType>& edges,
                   SubArray<2, SIZE, DeviceType>& axis_min,
@@ -87,7 +87,7 @@ computeTrimBounds(SIZE r, SIZE f, SIZE rightMax,
 }
 
 template <typename DeviceType>
-MGARDm_EXEC SIZE 
+MGARDX_EXEC SIZE 
 getEdgeCase(SIZE r, SIZE c, SIZE f, 
             SubArray<3, SIZE, DeviceType>& edges) {
   SIZE e0 = *edges(r, c, f);
@@ -98,7 +98,7 @@ getEdgeCase(SIZE r, SIZE c, SIZE f,
   return edgeCase;
 }
 
-MGARDm_EXEC SIZE
+MGARDX_EXEC SIZE
 GetNumberOfPrimitives(SIZE edgeCase) {
   // if (edgeCase >= 256) { printf("GetNumberOfPrimitives out of range\n"); edgeCase = 0; }
   static constexpr SIZE numTris[256] = {
@@ -115,7 +115,7 @@ GetNumberOfPrimitives(SIZE edgeCase) {
   return numTris[edgeCase];
 }
 
-MGARDm_EXEC SIZE const *
+MGARDX_EXEC SIZE const *
 GetEdgeUses(SIZE edgeCase) {
 
   // if (edgeCase >= 256) { printf("GetEdgeUses out of range\n"); edgeCase = 0; }
@@ -190,7 +190,7 @@ GetEdgeUses(SIZE edgeCase) {
   return edgeCase < 128 ? edgeUses[edgeCase] : edgeUses[127 - (edgeCase - 128)];
 }
 
-MGARDm_EXEC void
+MGARDX_EXEC void
 CountBoundaryEdgeUses(bool * onBoundary,
                       SIZE const * edgeUses,
                       SIZE * _axis_sum,
@@ -219,7 +219,7 @@ CountBoundaryEdgeUses(bool * onBoundary,
   }
 }
 
-MGARDm_EXEC SIZE const *
+MGARDX_EXEC SIZE const *
 GetTriEdgeCases(SIZE edgecase) {
 
   // if (edgecase >= 256) { printf("GetTriEdgeCases out of range\n"); edgecase = 0; }
@@ -501,7 +501,7 @@ struct Pass4TrimState
   bool hasWork = true;
 
 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   Pass4TrimState(SIZE r, SIZE f, 
                  SIZE nf, SIZE nc, SIZE nr,  
                  SubArray<2, SIZE, DeviceType>& axis_min,
@@ -560,7 +560,7 @@ struct Pass4TrimState
     }
   }
 
-  MGARDm_EXEC void 
+  MGARDX_EXEC void 
   increment()
   {
     //compute what the current cellId is
@@ -583,7 +583,7 @@ struct Pass4TrimState
 };
 
 template <typename DeviceType>
-MGARDm_EXEC void
+MGARDX_EXEC void
 init_voxelIds(SIZE r, SIZE f, SIZE edgeCase, 
               SubArray<3, SIZE, DeviceType>& axis_sum, 
               SIZE * edgeIds) {
@@ -604,7 +604,7 @@ init_voxelIds(SIZE r, SIZE f, SIZE edgeCase,
   edgeIds[11] = edgeIds[10] + edgeUses[10];
 }
 
-MGARDm_EXEC void
+MGARDX_EXEC void
 advance_voxelIds(SIZE const * edgeUses, SIZE * edgeIds) {
   edgeIds[0] += edgeUses[0]; // x-edges
   edgeIds[1] += edgeUses[1];
@@ -622,7 +622,7 @@ advance_voxelIds(SIZE const * edgeUses, SIZE * edgeIds) {
 
 
 template<typename DeviceType> 
-MGARDm_EXEC void
+MGARDX_EXEC void
 generate_tris(SIZE edgeCase,
               SIZE numTris,
               SIZE * edgeIds,
@@ -677,20 +677,20 @@ generate_tris(SIZE edgeCase,
   cell_tri_offset += numTris;
 }
 
-MGARDm_EXEC bool 
+MGARDX_EXEC bool 
 fully_interior(const SIZE * boundaryStatus) {
   return boundaryStatus[0] == MGARD_Interior &&
          boundaryStatus[1] == MGARD_Interior && 
          boundaryStatus[2] == MGARD_Interior;
 }
 
-MGARDm_EXEC bool 
+MGARDX_EXEC bool 
 case_includes_axes(const SIZE * const edgeUses) {
 
   return (edgeUses[0] != 0 || edgeUses[4] != 0 || edgeUses[8] != 0);
 }
 
-MGARDm_EXEC SIZE const *
+MGARDX_EXEC SIZE const *
 GetVertMap(SIZE index) {
   static constexpr SIZE vertMap[12][2] = {
     { 0, 1 }, { 2, 3 }, { 4, 5 }, { 6, 7 }, { 0, 2 }, { 1, 3 },
@@ -699,7 +699,7 @@ GetVertMap(SIZE index) {
   return vertMap[index];
 }
 
-MGARDm_EXEC SIZE const *
+MGARDX_EXEC SIZE const *
 GetVertOffsets(SIZE Vert) {
   static constexpr SIZE vertMap[8][3] = {
     { 0, 0, 0 }, { 0, 1, 0 }, { 1, 0, 0 }, { 1, 1, 0 },
@@ -710,7 +710,7 @@ return vertMap[Vert];
 
 
 template<typename T, typename DeviceType> 
-MGARDm_EXEC void
+MGARDX_EXEC void
 InterpolateEdge(SIZE edgeNum,
          SIZE f, SIZE c, SIZE r,
          SIZE const * edgeUses,
@@ -753,7 +753,7 @@ InterpolateEdge(SIZE edgeNum,
 
 
 template<typename T, typename DeviceType>
-MGARDm_EXEC void
+MGARDX_EXEC void
 Generate(SIZE f, SIZE c, SIZE r,
          SIZE * boundaryStatus,
          SIZE const * edgeUses,
@@ -805,7 +805,7 @@ Generate(SIZE f, SIZE c, SIZE r,
 template <typename T, typename DeviceType>
 class Pass1Functor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT Pass1Functor(SIZE nr, SIZE nc, SIZE nf, 
+  MGARDX_CONT Pass1Functor(SIZE nr, SIZE nc, SIZE nf, 
                           SubArray<3, T, DeviceType> v, 
                           T iso_value,
                           SubArray<3, SIZE, DeviceType> axis_sum,
@@ -819,7 +819,7 @@ class Pass1Functor: public Functor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     SIZE f = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
     SIZE r = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
@@ -860,19 +860,19 @@ class Pass1Functor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     return size;
@@ -891,7 +891,7 @@ class Pass1Functor: public Functor<DeviceType> {
 template <typename T, typename DeviceType>
 class Pass2Functor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT Pass2Functor(SIZE nr, SIZE nc, SIZE nf, 
+  MGARDX_CONT Pass2Functor(SIZE nr, SIZE nc, SIZE nf, 
                           SubArray<3, SIZE, DeviceType> axis_sum,  
                           SubArray<2, SIZE, DeviceType> axis_min,
                           SubArray<2, SIZE, DeviceType> axis_max,
@@ -907,7 +907,7 @@ class Pass2Functor: public Functor<DeviceType> {
 
 
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     SIZE f = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
     SIZE r = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
@@ -986,19 +986,19 @@ class Pass2Functor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     return size;
@@ -1018,7 +1018,7 @@ class Pass2Functor: public Functor<DeviceType> {
 template <typename T, typename DeviceType>
 class Pass4Functor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT Pass4Functor(SIZE nr, SIZE nc, SIZE nf,
+  MGARDX_CONT Pass4Functor(SIZE nr, SIZE nc, SIZE nf,
                           SubArray<3, T, DeviceType> v,
                           T iso_value,
                           SubArray<3, SIZE, DeviceType> axis_sum, 
@@ -1037,7 +1037,7 @@ class Pass4Functor: public Functor<DeviceType> {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     SIZE f = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
     SIZE r = FunctorBase<DeviceType>::GetBlockIdY() * FunctorBase<DeviceType>::GetBlockDimY() + FunctorBase<DeviceType>::GetThreadIdY();
@@ -1080,19 +1080,19 @@ class Pass4Functor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     return size;
@@ -1114,11 +1114,11 @@ class Pass4Functor: public Functor<DeviceType> {
 template <typename T, typename DeviceType>
 class FlyingEdges: public AutoTuner<DeviceType> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   FlyingEdges():AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Pass1Functor<T, DeviceType> > 
   GenTask1(SIZE nr, SIZE nc, SIZE nf, 
           SubArray<3, T, DeviceType> v, 
@@ -1152,7 +1152,7 @@ class FlyingEdges: public AutoTuner<DeviceType> {
 
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Pass2Functor<T, DeviceType> > 
   GenTask2(SIZE nr, SIZE nc, SIZE nf, 
            SubArray<3, SIZE, DeviceType> axis_sum, 
@@ -1185,7 +1185,7 @@ class FlyingEdges: public AutoTuner<DeviceType> {
   }
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<Pass4Functor<T, DeviceType> > 
   GenTask4(SIZE nr, SIZE nc, SIZE nf,
            SubArray<3, T, DeviceType> v,
@@ -1222,7 +1222,7 @@ class FlyingEdges: public AutoTuner<DeviceType> {
                 tbz, tby, tbx, sm_size, queue_idx); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, 
                SubArray<3, T, DeviceType> v, 
                T iso_value,

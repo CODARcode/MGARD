@@ -43,7 +43,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
   using WarpReduceStorageType = typename WarpReduceType::TempStorage;
 
   template <SIZE b, SIZE B> 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Serial_All(T_org * v, SIZE inc_v, T_trans * tv, SIZE inc_tv) {
     // long long start;
     // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
@@ -66,11 +66,11 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
   }
 
   template <SIZE b, SIZE B> 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Parallel_B_Serial_b(T_org * v, SIZE inc_v, T_trans * tv, SIZE inc_tv) {
     // long long start;
     // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
-    for (SIZE B_idx = __mylaneid(); B_idx < B; B_idx += MGARDm_WARP_SIZE) {
+    for (SIZE B_idx = __mylaneid(); B_idx < B; B_idx += MGARDX_WARP_SIZE) {
       T_trans buffer = 0; 
       for (SIZE b_idx = 0; b_idx < b; b_idx++) {
         T_trans bit = (v[b_idx * inc_v] >> (sizeof(T_org)*8 - 1 - B_idx)) & 1u;
@@ -87,15 +87,15 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
   }
 
   template <SIZE b, SIZE B> 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Serial_B_Atomic_b(T_org * v, SIZE inc_v, T_trans * tv, SIZE inc_tv) {
     // long long start;
     // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
-    for (SIZE B_idx = __mylaneid(); B_idx < B; B_idx += MGARDm_WARP_SIZE) {
+    for (SIZE B_idx = __mylaneid(); B_idx < B; B_idx += MGARDX_WARP_SIZE) {
       tv[B_idx * inc_tv] = 0;
     }
     for (SIZE B_idx = 0; B_idx < B; B_idx++) {
-      for (SIZE b_idx = __mylaneid(); b_idx < b; b_idx += MGARDm_WARP_SIZE) {
+      for (SIZE b_idx = __mylaneid(); b_idx < b; b_idx += MGARDX_WARP_SIZE) {
         T_trans bit = (v[b_idx * inc_v] >> (sizeof(T_org)*8 - 1 - B_idx)) & 1u;
         T_trans shifted_bit = 0;
         if (ALIGN == ALIGN_LEFT) {
@@ -111,7 +111,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
   }
 
   template <SIZE b, SIZE B> 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Serial_B_Reduce_b(T_org * v, SIZE inc_v, T_trans * tv, SIZE inc_tv) {
     // long long start;
     // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
@@ -122,7 +122,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
     T_trans sum = 0;
     for (SIZE B_idx = 0; B_idx < B; B_idx++) {
       sum = 0;
-      for (SIZE b_idx = __mylaneid(); b_idx < ((b-1)/MGARDm_WARP_SIZE+1)*MGARDm_WARP_SIZE; b_idx += MGARDm_WARP_SIZE) {
+      for (SIZE b_idx = __mylaneid(); b_idx < ((b-1)/MGARDX_WARP_SIZE+1)*MGARDX_WARP_SIZE; b_idx += MGARDX_WARP_SIZE) {
         if (b_idx < b) {
           bit = (v[b_idx * inc_v] >> (sizeof(T_org)*8 - 1 - B_idx)) & 1u;
         }
@@ -142,7 +142,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
   }
 
   template <SIZE b, SIZE B> 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Serial_B_Ballot_b(T_org * v, SIZE inc_v, T_trans * tv, SIZE inc_tv) {
     // long long start;
     // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
@@ -151,7 +151,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
     for (SIZE B_idx = 0; B_idx < B; B_idx++) {
       sum = 0;
       SIZE shift = 0;
-      for (SIZE b_idx = __mylaneid(); b_idx < ((b-1)/MGARDm_WARP_SIZE+1)*MGARDm_WARP_SIZE; b_idx += MGARDm_WARP_SIZE) {
+      for (SIZE b_idx = __mylaneid(); b_idx < ((b-1)/MGARDX_WARP_SIZE+1)*MGARDX_WARP_SIZE; b_idx += MGARDX_WARP_SIZE) {
         bit = 0;
         if (b_idx < b) {
           if (ALIGN == ALIGN_LEFT) {
@@ -161,7 +161,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
           } else { }
         }
         sum += ((T_trans)__ballot_sync (0xffffffff, bit)) << shift;
-        shift += MGARDm_WARP_SIZE;
+        shift += MGARDX_WARP_SIZE;
       }
       if (__mylaneid() == 0) {
         tv[B_idx * inc_tv] = sum;
@@ -171,7 +171,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
   }
 
   template <SIZE b, SIZE B> 
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Transpose(T_org * v, SIZE inc_v, T_trans * tv, SIZE inc_tv) {
     if (METHOD == Warp_Bit_Transpose_Serial_All) { Serial_All<b, B>(v, inc_v, tv, inc_tv); }
     else if (METHOD == Warp_Bit_Transpose_Parallel_B_Serial_b) { Parallel_B_Serial_b<b, B>(v, inc_v, tv, inc_tv); }
@@ -180,9 +180,9 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
     else if (METHOD == Warp_Bit_Transpose_Serial_B_Ballot_b) { Serial_B_Ballot_b<b, B>(v, inc_v, tv, inc_tv); }
   }
 
-  // MGARDm_EXEC 
-  // RegisterArray<W*sizeof(T_org)*8/MGARDm_WARP_SIZE, T_trans> 
-  // Transpose(RegisterArray<W*sizeof(T_trans)*8/MGARDm_WARP_SIZE, T_org> v, SIZE b, SIZE B) {}
+  // MGARDX_EXEC 
+  // RegisterArray<W*sizeof(T_org)*8/MGARDX_WARP_SIZE, T_trans> 
+  // Transpose(RegisterArray<W*sizeof(T_trans)*8/MGARDX_WARP_SIZE, T_org> v, SIZE b, SIZE B) {}
 
 };
 
@@ -194,7 +194,7 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, CUDA>{
   using WarpReduceStorageType = typename WarpReduceType::TempStorage;
 
   template<SIZE num_elems, SIZE num_bitplanes>
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Serial_All(T * v, T_error * errors) {
     if (__mylaneid() == 0) {
       for (SIZE elem_idx = 0; elem_idx < num_elems; elem_idx++) {
@@ -228,12 +228,12 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, CUDA>{
   }
 
   template<SIZE num_elems, SIZE num_bitplanes>
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Parallel_Bitplanes_Serial_Error(T * v, T_error * errors) {
 
     __shared__ WarpReduceStorageType warp_storage;
 
-    for(SIZE bitplane_idx = __mylaneid(); bitplane_idx < num_bitplanes; bitplane_idx += MGARDm_WARP_SIZE){
+    for(SIZE bitplane_idx = __mylaneid(); bitplane_idx < num_bitplanes; bitplane_idx += MGARDX_WARP_SIZE){
       for (SIZE elem_idx = 0; elem_idx < num_elems; elem_idx++) {
         T data = v[elem_idx];
         T_fp fp_data = (T_fp) fabs(data);
@@ -258,7 +258,7 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, CUDA>{
     }
 
     T data = 0;
-    for (SIZE elem_idx = __mylaneid(); elem_idx < ((num_elems-1)/MGARDm_WARP_SIZE+1)*MGARDm_WARP_SIZE; elem_idx += MGARDm_WARP_SIZE) {
+    for (SIZE elem_idx = __mylaneid(); elem_idx < ((num_elems-1)/MGARDX_WARP_SIZE+1)*MGARDX_WARP_SIZE; elem_idx += MGARDX_WARP_SIZE) {
       if (elem_idx < num_elems) {
         data = v[elem_idx];
       }
@@ -268,10 +268,10 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, CUDA>{
   }
 
   template<SIZE num_elems, SIZE num_bitplanes>
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Serial_Bitplanes_Atomic_Error(T * v, T_error * errors) {
     T data = 0;
-    for (SIZE elem_idx = __mylaneid(); elem_idx < ((num_elems-1)/MGARDm_WARP_SIZE+1)*MGARDm_WARP_SIZE; elem_idx += MGARDm_WARP_SIZE) {
+    for (SIZE elem_idx = __mylaneid(); elem_idx < ((num_elems-1)/MGARDX_WARP_SIZE+1)*MGARDX_WARP_SIZE; elem_idx += MGARDX_WARP_SIZE) {
       if (elem_idx < num_elems) { 
         data = v[elem_idx];
       } else {
@@ -306,13 +306,13 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, CUDA>{
   }
 
   template<SIZE num_elems, SIZE num_bitplanes>
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Serial_Bitplanes_Reduce_Error(T * v, T_error * errors) {
 
     __shared__ WarpReduceStorageType warp_storage;
 
     T data = 0;
-    for (SIZE elem_idx = __mylaneid(); elem_idx < ((num_elems-1)/MGARDm_WARP_SIZE+1)*MGARDm_WARP_SIZE; elem_idx += MGARDm_WARP_SIZE) {
+    for (SIZE elem_idx = __mylaneid(); elem_idx < ((num_elems-1)/MGARDX_WARP_SIZE+1)*MGARDX_WARP_SIZE; elem_idx += MGARDX_WARP_SIZE) {
       if (elem_idx < num_elems) { 
         data = v[elem_idx];
       } else {
@@ -347,7 +347,7 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, CUDA>{
   }
 
   template<SIZE num_elems, SIZE num_bitplanes>
-  MGARDm_EXEC 
+  MGARDX_EXEC 
   void Collect(T * v, T_error * errors) {
     if (METHOD == Warp_Error_Collecting_Serial_All) { Serial_All<num_elems, num_bitplanes>(v, errors); }
     if (METHOD == Warp_Error_Collecting_Parallel_Bitplanes_Serial_Error) { Parallel_Bitplanes_Serial_Error<num_elems, num_bitplanes>(v, errors); }
@@ -367,7 +367,7 @@ namespace MDR {
 
 
 template <typename T>
-MGARDm_EXEC void
+MGARDX_EXEC void
 print_bits2(T v, int num_bits, bool reverse = false) {
   for (int j = 0; j < num_bits; j++) {
     if (!reverse) printf("%u", (v >> num_bits-1-j) & 1u);
@@ -379,7 +379,7 @@ template <typename T, typename T_fp, typename T_sfp, typename T_bitplane, typena
           SIZE NumGroupsPerWarpPerIter, SIZE NumWarpsPerTB, OPTION BinaryType, OPTION EncodingAlgorithm, OPTION ErrorColectingAlgorithm, typename DeviceType>
 class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
   public: 
-  MGARDm_CONT GroupedWarpEncoderFunctor(LENGTH n,
+  MGARDX_CONT GroupedWarpEncoderFunctor(LENGTH n,
                                         SIZE exp,
                                         SubArray<1, T, DeviceType> v,
                                         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
@@ -395,7 +395,7 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
                                           //   MaxLengthPerTBPerIter *= 2;
                                           // }
                                         }
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     debug = false;
     if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
@@ -450,7 +450,7 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
     WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm, DeviceType> warpBitTranspose;
     WarpErrorCollect<T, T_fp, T_sfp, T_error, ErrorColectingAlgorithm, BinaryType, DeviceType> warpErrorCollector;
 
-    for (SIZE i = __mylaneid(); i < NumEncodingBitplanes + 1; i += MGARDm_WARP_SIZE) {
+    for (SIZE i = __mylaneid(); i < NumEncodingBitplanes + 1; i += MGARDX_WARP_SIZE) {
       sm_warp_local_errors[i] = 0; 
     }
 
@@ -459,7 +459,7 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
     // convert to fixpoint data
     if (BinaryType == NEGABINARY) exp += 2;
     
-    SIZE NumGroupsPerBatch = (MGARDm_WARP_SIZE - 1) / NumElemPerGroup + 1;
+    SIZE NumGroupsPerBatch = (MGARDX_WARP_SIZE - 1) / NumElemPerGroup + 1;
     SIZE NumBatches = NumGroupsPerWarpPerIter / NumGroupsPerBatch;
 
     for (SIZE Iter = 0; Iter < NumIters; Iter ++) { // avoid TB context switch
@@ -514,13 +514,13 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
 
       // store encoded bitplanes to gloabl memory
       for (SIZE bitplane_idx = 0; bitplane_idx < NumEncodingBitplanes; bitplane_idx++) {
-        for (SIZE offset = __mylaneid(); offset < NumGroupsPerWarpPerIter; offset += MGARDm_WARP_SIZE) {
+        for (SIZE offset = __mylaneid(); offset < NumGroupsPerWarpPerIter; offset += MGARDX_WARP_SIZE) {
           *encoded_bitplanes(bitplane_idx, global_bitplane_idx + offset) = 
             sm_warp_local_bitplanes[bitplane_idx * ld_sm_bitplanes + offset];
         }
       }
       if (BinaryType == BINARY) {
-        for (SIZE offset = __mylaneid(); offset < NumGroupsPerWarpPerIter; offset += MGARDm_WARP_SIZE) {
+        for (SIZE offset = __mylaneid(); offset < NumGroupsPerWarpPerIter; offset += MGARDX_WARP_SIZE) {
           *encoded_bitplanes(0, global_bitplane_idx + NumGroupsPerIter * NumIters + offset) = 
             sm_warp_local_bitplanes_sign[offset];
         }
@@ -528,7 +528,7 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {
     // Sum error from each warp
     SIZE liearized_idx = FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
@@ -551,10 +551,10 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {
     if (debug) {
 
@@ -616,7 +616,7 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
       // }
 
       
-    //   for (int i = 0; i < MGARDm_MAX_NUM_WARPS_PER_TB; i++) {
+    //   for (int i = 0; i < MGARDX_MAX_NUM_WARPS_PER_TB; i++) {
     //     printf("error-warp[%d]: ", i);
     //     for (int j = 0; j < num_bitplanes + 1; j++) {
     //       printf (" %f ", sm_errors[i * (num_bitplanes + 1) + j]);
@@ -633,10 +633,10 @@ class GroupedWarpEncoderFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {}
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size += NumWarpsPerTB * (NumEncodingBitplanes + 1) * sizeof(T_error);
@@ -690,7 +690,7 @@ template <typename T, typename T_bitplane, typename T_error,
           SIZE NumGroupsPerWarpPerIter, SIZE NumWarpsPerTB, OPTION BinaryType, OPTION EncodingAlgorithm, OPTION ErrorColectingAlgorithm, typename DeviceType>
 class GroupedWarpEncoder: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   GroupedWarpEncoder():AutoTuner<DeviceType>() {}
 
   using T_sfp = typename std::conditional<std::is_same<T, double>::value, int64_t, int32_t>::type;
@@ -698,7 +698,7 @@ public:
   
 
   template <typename T_fp, typename T_sfp, SIZE NumEncodingBitplanes>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<GroupedWarpEncoderFunctor<T, T_fp, T_sfp, T_bitplane, T_error, NumEncodingBitplanes, NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, EncodingAlgorithm, ErrorColectingAlgorithm, DeviceType>> 
   GenTask(LENGTH n,
           SIZE exp,
@@ -713,15 +713,15 @@ public:
       size_t sm_size = functor.shared_memory_size();
       tbz = 1;
       tby = NumWarpsPerTB;
-      tbx = MGARDm_WARP_SIZE;
+      tbx = MGARDX_WARP_SIZE;
       gridz = 1;
       gridy = 1;
-      gridx = MGARDm_NUM_SMs;
+      gridx = MGARDX_NUM_SMs;
       // printf("GroupedWarpEncoder config(%u %u %u) (%u %u %u), sm_size: %llu\n", tbx, tby, tbz, gridx, gridy, gridz, sm_size);
       return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(LENGTH n,
                SIZE num_bitplanes,
                SIZE exp,
@@ -812,7 +812,7 @@ public:
     DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
     // PrintSubarray("level_errors_workspace", level_errors_workspace);
     // get level error
-    SIZE reduce_size = MGARDm_NUM_SMs;
+    SIZE reduce_size = MGARDX_NUM_SMs;
     DeviceCollective<DeviceType> deviceReduce;
     for (int i = 0; i < num_bitplanes + 1; i++) {
       SubArray<1, T_error, CUDA> curr_errors({reduce_size}, level_errors_workspace(i, 0));
@@ -829,7 +829,7 @@ public:
 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   SIZE MaxBitplaneLength(LENGTH n) {
     SIZE NumElemPerGroup = sizeof(T_bitplane) * 8;
     SIZE NumElemPerTBPerIter = NumElemPerGroup * NumGroupsPerWarpPerIter * NumWarpsPerTB;
@@ -837,8 +837,8 @@ public:
     if (BinaryType == BINARY) {
       MaxLengthPerTBPerIter *= 2;
     }
-    LENGTH NumIters = (n-1) / (MGARDm_NUM_SMs * NumElemPerTBPerIter) + 1;
-    return MaxLengthPerTBPerIter * MGARDm_NUM_SMs * NumIters;
+    LENGTH NumIters = (n-1) / (MGARDX_NUM_SMs * NumElemPerTBPerIter) + 1;
+    return MaxLengthPerTBPerIter * MGARDX_NUM_SMs * NumIters;
   }
 };
 
@@ -848,7 +848,7 @@ template <typename T, typename T_fp, typename T_sfp, typename T_bitplane, SIZE N
 class GroupedWarpDecoderFunctor: public Functor<DeviceType> 
 {
 public: 
-  MGARDm_CONT GroupedWarpDecoderFunctor(LENGTH n,
+  MGARDX_CONT GroupedWarpDecoderFunctor(LENGTH n,
                                     SIZE starting_bitplane,
                                     SIZE exp,
                                     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
@@ -859,7 +859,7 @@ public:
                                     exp(exp), encoded_bitplanes(encoded_bitplanes), signs(signs),
                                     v(v) { Functor<DeviceType>(); }
   
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     debug = false;
     if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
@@ -921,13 +921,13 @@ public:
 
       // load encoded bitplanes to shared memory
       for (SIZE bitplane_idx = 0; bitplane_idx < NumDecodingBitplanes; bitplane_idx++) {
-        for (SIZE offset = __mylaneid(); offset < NumGroupsPerWarpPerIter; offset += MGARDm_WARP_SIZE) {
+        for (SIZE offset = __mylaneid(); offset < NumGroupsPerWarpPerIter; offset += MGARDX_WARP_SIZE) {
           sm_warp_local_bitplanes[bitplane_idx * ld_sm_bitplanes + offset] = 
             *encoded_bitplanes(bitplane_idx, global_bitplane_idx + offset);
         }
       }
       if (BinaryType == BINARY) {
-        for (SIZE offset = __mylaneid(); offset < NumGroupsPerWarpPerIter; offset += MGARDm_WARP_SIZE) {
+        for (SIZE offset = __mylaneid(); offset < NumGroupsPerWarpPerIter; offset += MGARDX_WARP_SIZE) {
           sm_warp_local_bitplanes_sign[offset] = 
             *encoded_bitplanes(0, global_bitplane_idx + NumGroupsPerIter * NumIters + offset);
         }
@@ -981,13 +981,13 @@ public:
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() {}
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() {
 
     if (debug) {
@@ -1032,11 +1032,11 @@ public:
 
   
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() {
 
   }
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() {
     size_t size = 0;
     size += NumElemPerTBPerIter              * sizeof(T_fp);
@@ -1082,7 +1082,7 @@ template <typename T, typename T_bitplane,
           SIZE NumGroupsPerWarpPerIter, SIZE NumWarpsPerTB, OPTION BinaryType, OPTION DecodingAlgorithm, typename DeviceType>
 class GroupedWarpDecoder: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   GroupedWarpDecoder():AutoTuner<DeviceType>() {}
 
   using T_sfp = typename std::conditional<std::is_same<T, double>::value, int64_t, int32_t>::type;
@@ -1090,7 +1090,7 @@ public:
   
 
   template <typename T_fp, typename T_sfp, SIZE NumDecodingBitplanes>
-  MGARDm_CONT
+  MGARDX_CONT
   Task<GroupedWarpDecoderFunctor<T, T_fp, T_sfp, T_bitplane, NumDecodingBitplanes, NumGroupsPerWarpPerIter, NumWarpsPerTB, BinaryType, DecodingAlgorithm, DeviceType>> 
   GenTask(LENGTH n,
           SIZE starting_bitplane,
@@ -1106,15 +1106,15 @@ public:
     size_t sm_size = functor.shared_memory_size();
     tbz = 1;
     tby = NumWarpsPerTB;
-    tbx = MGARDm_WARP_SIZE;
+    tbx = MGARDX_WARP_SIZE;
     gridz = 1;
     gridy = 1;
-    gridx = MGARDm_NUM_SMs;
+    gridx = MGARDX_NUM_SMs;
     // printf("GroupedWarpDecoder config(%u %u %u) (%u %u %u), sm_size: %llu\n", tbx, tby, tbz, gridx, gridy, gridz, sm_size);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(LENGTH n,
                SIZE starting_bitplane,
                SIZE num_bitplanes,
@@ -1239,7 +1239,7 @@ public:
                                         DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, 
                                         mgard_x::CUDA>encoder;
 
-    mgard_x::Array<2, T_error, mgard_x::CUDA> level_errors_work_array({num_bitplanes+1, MGARDm_NUM_SMs});
+    mgard_x::Array<2, T_error, mgard_x::CUDA> level_errors_work_array({num_bitplanes+1, MGARDX_NUM_SMs});
     mgard_x::SubArray<2, T_error, mgard_x::CUDA> level_errors_work(level_errors_work_array);
     
     mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_array({num_bitplanes, encoder.MaxBitplaneLength(n)});

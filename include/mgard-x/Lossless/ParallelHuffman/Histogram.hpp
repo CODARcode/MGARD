@@ -15,7 +15,8 @@ namespace mgard_x {
   template <typename T, typename Q, typename DeviceType>
   class HistogramFunctor: public Functor<DeviceType> {
     public:
-    MGARDm_CONT HistogramFunctor(SubArray<1, T, DeviceType> input_data, 
+    MGARDX_CONT HistogramFunctor(){}
+    MGARDX_CONT HistogramFunctor(SubArray<1, T, DeviceType> input_data, 
                                  SubArray<1, Q, DeviceType> output, 
                                  SIZE N, 
                                  int bins, int R)
@@ -25,19 +26,19 @@ namespace mgard_x {
       Functor<DeviceType>();                            
     }
 
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation1() {
       Hs = (int*)FunctorBase<DeviceType>::GetSharedMemory();
 
-      warpid = (int)(FunctorBase<DeviceType>::GetThreadIdX() / MGARDm_WARP_SIZE);
-      lane = FunctorBase<DeviceType>::GetThreadIdX() % MGARDm_WARP_SIZE;
-      warps_block = FunctorBase<DeviceType>::GetBlockDimX() / MGARDm_WARP_SIZE;
+      warpid = (int)(FunctorBase<DeviceType>::GetThreadIdX() / MGARDX_WARP_SIZE);
+      lane = FunctorBase<DeviceType>::GetThreadIdX() % MGARDX_WARP_SIZE;
+      warps_block = FunctorBase<DeviceType>::GetBlockDimX() / MGARDX_WARP_SIZE;
 
       off_rep = (bins + 1) * (FunctorBase<DeviceType>::GetThreadIdX() % R);
 
-      begin = (N / warps_block) * warpid + MGARDm_WARP_SIZE * FunctorBase<DeviceType>::GetBlockIdX() + lane;
+      begin = (N / warps_block) * warpid + MGARDX_WARP_SIZE * FunctorBase<DeviceType>::GetBlockIdX() + lane;
       end = (N / warps_block) * (warpid + 1);
-      step = MGARDm_WARP_SIZE * FunctorBase<DeviceType>::GetGridDimX();
+      step = MGARDX_WARP_SIZE * FunctorBase<DeviceType>::GetGridDimX();
 
       // final warp handles data outside of the warps_block partitions
       if (warpid >= warps_block - 1)
@@ -47,32 +48,32 @@ namespace mgard_x {
         Hs[pos] = 0;
     }
 
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation2() {
       for (unsigned int i = begin; i < end; i += step) {
         int d = *input_data(i);
-        atomicAdd(&Hs[off_rep + d], 1);
+        Atomic<DeviceType>::Add(&Hs[off_rep + d], 1);
       }
     }
 
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation3() {
       for (unsigned int pos = FunctorBase<DeviceType>::GetThreadIdX(); pos < bins; pos += FunctorBase<DeviceType>::GetBlockDimX()) {
         int sum = 0;
         for (int base = 0; base < (bins + 1) * R; base += bins + 1) {
           sum += Hs[base + pos];
         }
-        atomicAdd(output(pos), sum);
+        Atomic<DeviceType>::Add(output(pos), (Q)sum);
       }
     }
 
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation4() { }
 
-    MGARDm_EXEC void
+    MGARDX_EXEC void
     Operation5() { }
 
-    MGARDm_CONT size_t
+    MGARDX_CONT size_t
     shared_memory_size() {
       size_t size = 0;
       size = (bins + 1) * R * sizeof(int);
@@ -102,10 +103,10 @@ namespace mgard_x {
   template <typename T, typename Q, typename DeviceType>
   class Histogram: public AutoTuner<DeviceType> {
   public:
-    MGARDm_CONT
+    MGARDX_CONT
     Histogram():AutoTuner<DeviceType>() {}
 
-    MGARDm_CONT
+    MGARDX_CONT
     Task<HistogramFunctor<T, Q, DeviceType> > 
     GenTask(SubArray<1, T, DeviceType> input_data, SubArray<1, Q, DeviceType> output, SIZE len, 
             int dict_size, int queue_idx) {
@@ -157,7 +158,7 @@ namespace mgard_x {
                   tbz, tby, tbx, sm_size, queue_idx, "Histogram"); 
     }
 
-    MGARDm_CONT
+    MGARDX_CONT
     void Execute(SubArray<1, T, DeviceType> input_data, SubArray<1, Q, DeviceType> output, SIZE len, 
                   int dict_size, int queue_idx) {
       using FunctorType = HistogramFunctor<T, Q, DeviceType>;

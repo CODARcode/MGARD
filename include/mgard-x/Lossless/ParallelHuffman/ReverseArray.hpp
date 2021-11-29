@@ -15,13 +15,14 @@ namespace mgard_x {
 template <typename T, typename DeviceType>
 class ReverseArrayFunctor: public Functor<DeviceType> {
   public:
-  MGARDm_CONT ReverseArrayFunctor(SubArray<1, T, DeviceType> array, 
+  MGARDX_CONT ReverseArrayFunctor(){}
+  MGARDX_CONT ReverseArrayFunctor(SubArray<1, T, DeviceType> array, 
                                   SIZE size):
                                   array(array), size(size) {
     Functor<DeviceType>();                            
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation1() {
     unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     if (thread < size / 2) {
@@ -31,19 +32,19 @@ class ReverseArrayFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation2() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation3() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation4() { }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   Operation5() { }
 
-  MGARDm_CONT size_t
+  MGARDX_CONT size_t
   shared_memory_size() { return 0; }
 
   private:
@@ -55,10 +56,10 @@ class ReverseArrayFunctor: public Functor<DeviceType> {
 template <typename T, typename DeviceType>
 class ReverseArray: public AutoTuner<DeviceType> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   ReverseArray():AutoTuner<DeviceType>() {}
 
-  MGARDm_CONT
+  MGARDX_CONT
   Task<ReverseArrayFunctor<T, DeviceType> > 
   GenTask(SubArray<1, T, DeviceType> array, SIZE dict_size, int queue_idx) {
     using FunctorType = ReverseArrayFunctor<T, DeviceType>;
@@ -78,7 +79,7 @@ public:
                 tbz, tby, tbx, sm_size, queue_idx, "ReverseArray"); 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void Execute(SubArray<1, T, DeviceType> array, SIZE dict_size, int queue_idx) {
     using FunctorType = ReverseArrayFunctor<T, DeviceType>;
     using TaskType = Task<FunctorType>;

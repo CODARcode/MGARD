@@ -1,18 +1,27 @@
 #ifndef MGARD_X_DEVICE_ADAPTER_SERIAL_H
 #define MGARD_X_DEVICE_ADAPTER_SERIAL_H
 
+#include "DeviceAdapter.h"
+#include <cstdlib>
+#include <cstring>
+#include <numeric>
+#include <utility>
+#include <algorithm>
+#include <climits>
+#include <cmath>
+
 namespace mgard_x {
 
 template<>
 struct SyncBlock<Serial> {
-  MGARDm_EXEC static void Sync() {
+  MGARDX_EXEC static void Sync() {
     // do nothing
   }
 };
 
 template<>
 struct SyncGrid<Serial> {
-  MGARDm_EXEC static void Sync() {
+  MGARDX_EXEC static void Sync() {
     // do nothing
   }
 };
@@ -20,297 +29,336 @@ struct SyncGrid<Serial> {
 template <> 
 struct Atomic<Serial> {
   template <typename T>
-  MGARDm_EXEC static
-  void Min(T * result, T value) {
-    * result = value;
+  MGARDX_EXEC static
+  T Min(T * result, T value) {
+    T old = *result;
+    *result = std::min(*result, value);
+    return old;
+  }
+  template <typename T>
+  MGARDX_EXEC static
+  T Max(T * result, T value) {
+    T old = *result;
+    *result = std::max(*result, value);
+    return old;
+  }
+  template <typename T>
+  MGARDX_EXEC static
+  T Add(T * result, T value) {
+    T old = *result;
+    * result += value;
+    return old;
   }
 };
 
-#define COMPUTE_BLOCK(OPERATION) \
-  for (SIZE threadz = 0; threadz < blockDim_z; threadz++) { \
-    for (SIZE thready = 0; thready < blockDim_y; thread++) { \
-      for (SIZE threadx = 0; threadx < blockDim_x;threadx++) { \
-        task.get_functor().Init_thread_id(threadz, thready, threadx); \
-        task.get_functor().OPERATION(); \
-      } \
-    } \
-  } 
+template <> 
+struct Math<Serial> {
+  template <typename T>
+  MGARDX_EXEC static
+  T Min(T a, T b) {
+    return std::min(a, b);
+  }
+  template <typename T>
+  MGARDX_EXEC static
+  T Max(T a, T b) {
+    return std::max(a, b);
+  }
 
-#define COMPUTE_CONDITION(CONDITION_VAR, CONDITION_OP) \
-  task.get_functor().Init_thread_id(0, 0, 0); \
-  CONDITION_VAR = task.get_functor().CONDITION_OP(); \
-  for (SIZE threadz = 0; threadz < blockDim_z; threadz++) { \
-    for (SIZE thready = 0; thready < blockDim_y; thread++) { \
-      for (SIZE threadx = 0; threadx < blockDim_x;threadx++) { \
-        task.get_functor().Init_thread_id(threadz, thready, threadx); \
-        if(CONDITION_VAR != task.get_functor().CONDITION_OP()) { \
+  MGARDX_EXEC static
+  int ffsl(unsigned int a) {
+    return ffs(a);
+  }
+  MGARDX_EXEC static
+  int ffsll(long long unsigned int a) {
+    return ffsll(a);
+  }
+};
+
+
+#define INIT_BLOCK \
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+        Task &thread = threads[threadz * task.GetBlockDimY() * task.GetBlockDimX() + \
+                thready * task.GetBlockDimX() + threadx];\
+        thread = task;\
+        thread.GetFunctor().Init(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
+                                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(),\
+                                 blockz, blocky, blockx, threadz, thready, threadx,\
+                                 shared_memory);\
+      }\
+    }\
+  }
+
+#define COMPUTE_BLOCK(OPERATION) \
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+        Task &thread = threads[threadz * task.GetBlockDimY() * task.GetBlockDimX() + \
+                thready * task.GetBlockDimX() + threadx];\
+        thread.GetFunctor().OPERATION();\
+      }\
+    }\
+  }
+
+#define COMPUTE_CONDITION_BLOCK(CONDITION_VAR, CONDITION_OP) \
+  CONDITION_VAR = threads[0].GetFunctor().CONDITION_OP(); \
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+        Task &thread = threads[threadz * task.GetBlockDimY() * task.GetBlockDimX() + \
+                thready * task.GetBlockDimX() + threadx];\
+        if(CONDITION_VAR != thread.GetFunctor().CONDITION_OP()) { \
           std::cout << log::log_err << "IterKernel<Serial> inconsistant condition."; \
           exit(-1); \
         } \
-      } \
-    } \
+      }\
+    }\
   }
 
-#define COMPUTE_BLOCK(OPERATION) \
-  for (SIZE gridz = 0; gridz < gridDim_z; gridz++) { \
-    for (SIZE gridy = 0; gridy < gridDim_y; gridy++) { \
-      for (SIZE gridx = 0; gridx < gridDim_x; gridx++) { \
-        task.get_functor().Init_block_id(blockz, blocky, blockx); \
-        for (SIZE blockz = 0; blockz < blockDim_z; gridz++) { \
-          for (SIZE blocky = 0; blocky < blockDim_y; gridy++) { \
-            for (SIZE blockx = 0; blockx < blockDim_x; gridx++) { \
-              task.get_functor().Init_thread_id(threadz, thready, threadx); \
-              task.get_functor().OPERATION(); \
-            } \
-          } \
-        } \
-      } \
-    } \
+#define INIT_GRID \
+  Task ****** threads = new Task*****[task.GetBlockDimZ()];\
+  Byte ******* shared_memory = new Byte******[task.GetBlockDimZ()];\
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    threads[blockz] = new Task****[task.GetBlockDimY()];\
+    shared_memory[blockz] = new Byte*****[task.GetBlockDimY()];\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      threads[blockz][blocky] = new Task***[task.GetBlockDimX()];\
+      shared_memory[blockz][blocky] = new Byte****[task.GetBlockDimX()];\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        threads[blockz][blocky][blockx] = new Task**[task.GetBlockDimZ()];\
+        shared_memory[blockz][blocky][blockx] = new Byte***[task.GetBlockDimZ()];\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          threads[blockz][blocky][blockx][threadz] = new Task*[task.GetBlockDimY()];\
+          shared_memory[blockz][blocky][blockx][threadz] = new Byte**[task.GetBlockDimY()];\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            threads[blockz][blocky][blockx][threadz][thready] = new Task[task.GetBlockDimX()];\
+            shared_memory[blockz][blocky][blockx][threadz][thready] = new Byte*[task.GetBlockDimX()];\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              threads[blockz][blocky][blockx][threadz][thready][threadx] = task;\
+              shared_memory[blockz][blocky][blockx][threadz][thready][threadx] = new Byte[task.GetSharedMemorySize()];\
+              threads[blockz][blocky][blockx][threadz][thready][threadx].GetFunctor().Init(\
+                                 task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
+                                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(),\
+                                 blockz, blocky, blockx, threadz, thready, threadx,\
+                                 shared_memory[blockz][blocky][blockx][threadz][thready][threadx]);\
+            }\
+          }\
+        }\
+      }\
+    }\
   }
 
+#define COMPUTE_GRID(OPERATION) \
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              Task &thread = threads[blockz][blocky][blockx][threadz][thready][threadx];\
+              thread.GetFunctor().OPERATION();\
+            }\
+          }\
+        }\
+      }\
+    }\
+  }
 
+#define COMPUTE_CONDITION_GRID(CONDITION_VAR, CONDITION_OP) \
+  CONDITION_VAR = threads[0][0][0][0][0].GetFunctor().CONDITION_OP(); \
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              Task &thread = threads[blockz][blocky][blockx][threadz][thready][threadx];\
+              if(CONDITION_VAR != thread.GetFunctor().CONDITION_OP()) { \
+                std::cout << log::log_err << "IterKernel<Serial> inconsistant condition."; \
+                exit(-1); \
+              } \
+            }\
+          }\
+        }\
+      }\
+    }\
+  }
+
+#define FINALIZE_GRID \
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              delete [] shared_memory[blockz][blocky][blockx][threadz][thready][threadx];\
+            }\
+            delete [] threads[blockz][blocky][blockx][threadz][thready];\
+            delete [] shared_memory[blockz][blocky][blockx][threadz][thready];\
+          }\
+          delete [] threads[blockz][blocky][blockx][threadz];\
+          delete [] shared_memory[blockz][blocky][blockx][threadz];\
+        }\
+        delete [] threads[blockz][blocky][blockx];\
+        delete [] shared_memory[blockz][blocky][blockx];\
+      }\
+      delete [] threads[blockz][blocky];\
+      delete [] shared_memory[blockz][blocky];\
+    }\
+    delete [] threads[blockz];\
+    delete [] shared_memory[blockz];\
+  }\
+  delete [] threads;\
+  delete [] shared_memory;
 
 template <typename Task>
-MGARDm_KERL void Kernel(Task task, 
-                        SIZE gridDim_z, SIZE gridDim_y, SIZE gridDim_x,
-                        SIZE blockDim_z, SIZE blockDim_y, SIZE blockDim_x,
-                        size_t shared_memory_size) {
-  Byte * shared_memory = new Byte[shared_memory_size];
-  task.get_functor().Init_shared_memory(shared_memory);
-  task.get_functor().Init_config(gridDim_z, gridDim_y, gridDim_x, 
-                                 blockDim_z, blockDim_y, blockDim_x);
+MGARDX_KERL void SerialKernel(Task task) {
+  Byte *shared_memory = new Byte[task.GetSharedMemorySize()];
 
-  for (SIZE blockz = 0; blockz < gridDim_z; blockz++) {
-    for (SIZE blocky = 0; blocky < gridDim_y; blocky++) {
-      for (SIZE blockx = 0; blockx < gridDim_x; blockx++) {
-        task.get_functor().Init_block_id(blockz, blocky, blockx);
+  Task * threads = new Task[task.GetBlockDimX() *
+                            task.GetBlockDimY() *
+                            task.GetBlockDimZ()];
+
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
+        INIT_BLOCK;
         COMPUTE_BLOCK(Operation1);
-        SyncBlock<Serial>::Sync();
         COMPUTE_BLOCK(Operation2);
-        SyncBlock<Serial>::Sync();
         COMPUTE_BLOCK(Operation3);
-        SyncBlock<Serial>::Sync();
         COMPUTE_BLOCK(Operation4);
-        SyncBlock<Serial>::Sync();
         COMPUTE_BLOCK(Operation5);
-        SyncBlock<Serial>::Sync();
-      } //blockx
-    } //blocky
-  } //blockz
-
-  delete[] shared_memory;
-}
-
-template <typename Task>
-MGARDm_KERL void IterKernel(Task task,
-                            SIZE gridDim_z, SIZE gridDim_y, SIZE gridDim_x,
-                            SIZE blockDim_z, SIZE blockDim_y, SIZE blockDim_x,
-                            size_t shared_memory_size) {
-
-  Byte * shared_memory = new Byte[shared_memory_size];
-  bool condition1, condition2;
-
-  task.get_functor().Init_shared_memory(shared_memory);
-  task.get_functor().Init_config(gridDim_z, gridDim_y, gridDim_x, 
-                                 blockDim_z, blockDim_y, blockDim_x);
-
-
-
-  bool * loop_condition = new bool[blockDim_z * blockDim_y * blockDim_x];
-
-  for (SIZE blockz = 0; blockz < gridDim_z; blockz++) {
-    for (SIZE blocky = 0; blocky < gridDim_y; blocky++) {
-      for (SIZE blockx = 0; blockx < gridDim_x; blockx++) {
-        task.get_functor().Init_block_id(blockz, blocky, blockx);
-
-        COMPUTE_BLOCK(Operation1);
-        SyncBlock<Serial>::Sync();
-
-        COMPUTE_CONDITION(condition1, LoopCondition1);
-        while (condition1) {
-          COMPUTE_BLOCK(Operation2);
-          SyncBlock<Serial>::Sync();
-          COMPUTE_BLOCK(Operation3);
-          SyncBlock<Serial>::Sync();
-          COMPUTE_BLOCK(Operation4);
-          SyncBlock<Serial>::Sync();
-          COMPUTE_BLOCK(Operation5);
-          SyncBlock<Serial>::Sync();
-          COMPUTE_CONDITION(condition1, LoopCondition1);
-          SyncBlock<Serial>::Sync();
-        } // loop1
-
         COMPUTE_BLOCK(Operation6);
-        SyncBlock<Serial>::Sync();
         COMPUTE_BLOCK(Operation7);
-        SyncBlock<Serial>::Sync();
         COMPUTE_BLOCK(Operation8);
-        SyncBlock<Serial>::Sync();
         COMPUTE_BLOCK(Operation9);
-        SyncBlock<Serial>::Sync();
+        COMPUTE_BLOCK(Operation10);
+      }
+    }
+  }
+  delete [] shared_memory;
+  delete [] threads;
+}
 
-        COMPUTE_CONDITION(condition2, LoopCondition2); 
+
+template <typename Task>
+MGARDX_KERL void SerialIterKernel(Task task) {
+  Byte *shared_memory = new Byte[task.GetSharedMemorySize()];
+
+  Task * threads = new Task[task.GetBlockDimX() *
+                            task.GetBlockDimY() *
+                            task.GetBlockDimZ()];
+  bool condition1 = false;
+  bool condition2 = false;
+
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
+        INIT_BLOCK;
+        COMPUTE_BLOCK(Operation1);
+        COMPUTE_BLOCK(Operation2);
+        COMPUTE_CONDITION_BLOCK(condition1, LoopCondition1);
+        while (condition1) {
+          COMPUTE_BLOCK(Operation3);
+          COMPUTE_BLOCK(Operation4);
+          COMPUTE_BLOCK(Operation5);
+          COMPUTE_BLOCK(Operation6);
+          COMPUTE_CONDITION_BLOCK(condition1, LoopCondition1);
+        }
+        COMPUTE_BLOCK(Operation7);
+        COMPUTE_BLOCK(Operation8);
+        COMPUTE_BLOCK(Operation9);
+        COMPUTE_BLOCK(Operation10);
+        COMPUTE_CONDITION_BLOCK(condition2, LoopCondition2);
         while (condition2) {
-          COMPUTE_BLOCK(Operation10);
-          SyncBlock<Serial>::Sync();
           COMPUTE_BLOCK(Operation11);
-          SyncBlock<Serial>::Sync();
           COMPUTE_BLOCK(Operation12);
-          SyncBlock<Serial>::Sync();
           COMPUTE_BLOCK(Operation13);
-          SyncBlock<Serial>::Sync();
-          COMPUTE_CONDITION(condition2, LoopCondition2);
-          SyncBlock<Serial>::Sync();
+          COMPUTE_BLOCK(Operation14);
+          COMPUTE_CONDITION_BLOCK(condition2, LoopCondition2);
         }
-
-        COMPUTE_BLOCK(Operation14);
-        SyncBlock<Serial>::Sync();
         COMPUTE_BLOCK(Operation15);
-        SyncBlock<Serial>::Sync();
         COMPUTE_BLOCK(Operation16);
-        SyncBlock<Serial>::Sync();
+        COMPUTE_BLOCK(Operation17);
       }
     }
   }
-
   delete [] shared_memory;
+  delete [] threads;
 }
 
 template <typename Task>
-MGARDm_KERL void HuffmanCLCustomizedKernel(Task task,
-                                           SIZE gridDim_z, SIZE gridDim_y, SIZE gridDim_x,
-                                           SIZE blockDim_z, SIZE blockDim_y, SIZE blockDim_x,
-                                           size_t shared_memory_size) {
-  Byte * shared_memory = new Byte[shared_memory_size];
+MGARDX_KERL void SerialHuffmanCLCustomizedKernel(Task task) {
 
-  task.get_functor().Init_shared_memory(shared_memory);
-  task.get_functor().Init_config(gridDim_z, gridDim_y, gridDim_x, 
-                                 blockDim_z, blockDim_y, blockDim_x);
+  bool loop_condition1 = false;
+  bool loop_condition2 = false;
+  bool branch_condition1 = false;
 
-
-  for (SIZE gridz = 0; gridz < gridDim_z; gridz++) {
-    for (SIZE gridy = 0; gridy < gridDim_y; gridy++) {
-      for (SIZE gridx = 0; gridx < gridDim_x; gridx++) {
-        task.get_functor().Init_block_id(blockz, blocky, blockx);
-        for (SIZE blockz = 0; blockz < blockDim_z; gridz++) {
-          for (SIZE blocky = 0; blocky < blockDim_y; gridy++) {
-            for (SIZE blockx = 0; blockx < blockDim_x; gridx++) {
-              task.get_functor().Init_thread_id(threadz, thready, threadx);
-              task.get_functor().Operation1();
-            }
-          }
-        }
+  INIT_GRID;
+  COMPUTE_GRID(Operation1);
+  COMPUTE_CONDITION_GRID(loop_condition1, LoopCondition1);
+  while (loop_condition1) {
+    COMPUTE_GRID(Operation2);
+    COMPUTE_GRID(Operation3);
+    COMPUTE_GRID(Operation4);
+    COMPUTE_GRID(Operation5);
+    COMPUTE_CONDITION_GRID(branch_condition1, BranchCondition1);
+    if (branch_condition1) {
+      COMPUTE_CONDITION_GRID(loop_condition2, LoopCondition2);
+      while (loop_condition2) {
+        COMPUTE_GRID(Operation6);
+        COMPUTE_GRID(Operation7);
+        COMPUTE_GRID(Operation8);
+        COMPUTE_CONDITION_GRID(loop_condition2, LoopCondition2);
       }
+      COMPUTE_GRID(Operation9)
+      COMPUTE_GRID(Operation10);;
     }
+
+    COMPUTE_GRID(Operation11);
+    COMPUTE_GRID(Operation12);
+    COMPUTE_GRID(Operation13);
+    COMPUTE_GRID(Operation14);
+
+    COMPUTE_CONDITION_GRID(loop_condition1, LoopCondition1);
   }
 
-
-
-
-              task.get_functor().Init(gridDim_z, gridDim_y, gridDim_x, 
-                                      blockDim_z, blockDim_y, blockDim_x,
-                                      gridz, gridy, gridx, 
-                                      blockz, blocky, blockx,
-                                      shared_memory);
-
-              task.get_functor().Operation1();
-              SyncGrid<Serial>::Sync();
-              while (task.get_functor().LoopCondition1()) {
-                task.get_functor().Operation2();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation3();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation4();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation5();
-                SyncBlock<Serial>::Sync();
-                if (task.get_functor().BranchCondition1()) {
-                  while (task.get_functor().LoopCondition2()) {
-                    task.get_functor().Operation6();
-                    SyncBlock<Serial>::Sync();
-                    task.get_functor().Operation7();
-                    SyncBlock<Serial>::Sync();
-                    task.get_functor().Operation8();
-                    SyncBlock<Serial>::Sync();
-                  }
-                  task.get_functor().Operation9();
-                  SyncGrid<Serial>::Sync();
-                  task.get_functor().Operation10();
-                  SyncGrid<Serial>::Sync();
-                }
-                task.get_functor().Operation11();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation12();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation13();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation14();
-                SyncGrid<Serial>::Sync();
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  delete [] shared_memory;
+  FINALIZE_GRID;
 }
 
 
 template <typename Task>
-MGARDm_KERL void HuffmanCWCustomizedKernel(Task task) {
-  Byte * shared_memory = new Byte[shared_memory_size];
+MGARDX_KERL void SerialHuffmanCWCustomizedKernel(Task task) {
 
-  for (SIZE gridz = 0; gridz < gridDim_z; gridz++) {
-    for (SIZE gridy = 0; gridy < gridDim_y; gridy++) {
-      for (SIZE gridx = 0; gridx < gridDim_x; gridx++) {
-        for (SIZE blockz = 0; blockz < blockDim_z; gridz++) {
-          for (SIZE blocky = 0; blocky < blockDim_y; gridy++) {
-            for (SIZE blockx = 0; blockx < blockDim_x; gridx++) {
+  bool loop_condition1 = false;
 
-              task.get_functor().Init(gridDim_z, gridDim_y, gridDim_x, 
-                                      blockDim_z, blockDim_y, blockDim_x,
-                                      gridz, gridy, gridx, 
-                                      blockz, blocky, blockx,
-                                      shared_memory);
-
-              task.get_functor().Operation1();
-              SyncGrid<Serial>::Sync();
-              task.get_functor().Operation2();
-              SyncGrid<Serial>::Sync();
-              task.get_functor().Operation3();
-              SyncGrid<Serial>::Sync();
-
-              while (task.get_functor().LoopCondition1()) {
-                task.get_functor().Operation4();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation5();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation6();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation7();
-                SyncGrid<Serial>::Sync();
-                task.get_functor().Operation8();
-                SyncGrid<Serial>::Sync();
-              }
-              task.get_functor().Operation9();
-              SyncGrid<Serial>::Sync();
-              task.get_functor().Operation10();
-              SyncGrid<Serial>::Sync();
-            }
-          }
-        }
-      }
-    }
+  INIT_GRID;
+  COMPUTE_GRID(Operation1);
+  COMPUTE_GRID(Operation2);
+  COMPUTE_GRID(Operation3);
+  COMPUTE_CONDITION_GRID(loop_condition1, LoopCondition1);
+  while (loop_condition1) {
+    COMPUTE_GRID(Operation4);
+    COMPUTE_GRID(Operation5);
+    COMPUTE_GRID(Operation6);
+    COMPUTE_GRID(Operation7);
+    COMPUTE_GRID(Operation8);
+    COMPUTE_CONDITION_GRID(loop_condition1, LoopCondition1);
   }
-  delete [] shared_memory;
+  COMPUTE_GRID(Operation9)
+  COMPUTE_GRID(Operation10);;
+
+  FINALIZE_GRID;
 }
+
+
 
 
 template <>
 class DeviceSpecification<Serial> {
   public:
-  MGARDm_CONT
+  MGARDX_CONT
   DeviceSpecification(){
     NumDevices = 1;
     MaxSharedMemorySize = new int[NumDevices];
@@ -328,37 +376,37 @@ class DeviceSpecification<Serial> {
     }
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetNumDevices() {
     return NumDevices;
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetMaxSharedMemorySize(int dev_id) {
     return MaxSharedMemorySize[dev_id];
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetWarpSize(int dev_id) {
     return WarpSize[dev_id];
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetNumSMs(int dev_id) {
     return NumSMs[dev_id];
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetArchitectureGeneration(int dev_id) {
     return ArchitectureGeneration[dev_id];
   }
 
-  MGARDm_CONT int
+  MGARDX_CONT int
   GetMaxNumThreadsPerSM(int dev_id) {
     return MaxNumThreadsPerSM[dev_id];
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   ~DeviceSpecification() {
     delete [] MaxSharedMemorySize;
     delete [] WarpSize;
@@ -372,6 +420,286 @@ class DeviceSpecification<Serial> {
   int* NumSMs;
   int* ArchitectureGeneration;
   int* MaxNumThreadsPerSM;
+};
+
+template <>
+class DeviceQueues<Serial> {
+  public:
+  MGARDX_CONT
+  DeviceQueues(){
+    // do nothing
+  }
+
+  MGARDX_CONT int 
+  GetQueue(int dev_id, SIZE queue_id){
+    return 0;
+  }
+
+  MGARDX_CONT void 
+  SyncQueue(int dev_id, SIZE queue_id){
+    // do nothing
+  }
+
+  MGARDX_CONT void 
+  SyncAllQueues(int dev_id){
+    // do nothing
+  }
+
+  MGARDX_CONT
+  ~DeviceQueues(){
+    // do nothing
+  }
+};
+
+template <>
+class DeviceRuntime<Serial> {
+  public:
+  MGARDX_CONT
+  DeviceRuntime(){}
+
+  MGARDX_CONT static void 
+  SelectDevice(SIZE dev_id){
+    // do nothing
+  }
+
+  MGARDX_CONT static int 
+  GetQueue(SIZE queue_id){
+    return 0;
+  }
+
+  MGARDX_CONT static void 
+  SyncQueue(SIZE queue_id){
+    // do nothing
+  }
+
+  MGARDX_CONT static void 
+  SyncAllQueues(){
+    // do nothing
+  }
+
+  MGARDX_CONT static void
+  SyncDevice(){
+    // do nothing
+  }
+
+  MGARDX_CONT static int
+  GetMaxSharedMemorySize() {
+    return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
+  }
+
+  MGARDX_CONT static int
+  GetWarpSize() {
+    return DeviceSpecs.GetWarpSize(curr_dev_id);
+  }
+
+  MGARDX_CONT static int
+  GetNumSMs() {
+    return DeviceSpecs.GetNumSMs(curr_dev_id);
+  }
+
+  MGARDX_CONT static int
+  GetArchitectureGeneration() {
+    return DeviceSpecs.GetArchitectureGeneration(curr_dev_id);
+  }
+
+  MGARDX_CONT static int
+  GetMaxNumThreadsPerSM() {
+    return DeviceSpecs.GetMaxNumThreadsPerSM(curr_dev_id);
+  }
+
+  template <typename FunctorType>
+  MGARDX_CONT static int
+  GetOccupancyMaxActiveBlocksPerSM(FunctorType functor, int blockSize, size_t dynamicSMemSize) {
+    return 1;
+  }
+
+  template <typename FunctorType>
+  MGARDX_CONT static void
+  SetMaxDynamicSharedMemorySize(FunctorType functor, int maxbytes) {
+    // do nothing
+  }
+
+
+  MGARDX_CONT
+  ~DeviceRuntime(){
+  }
+
+  static int curr_dev_id;
+  static DeviceQueues<Serial> queues;
+  static bool SyncAllKernelsAndCheckErrors;
+  static DeviceSpecification<Serial> DeviceSpecs;
+};
+
+template <>
+class MemoryManager<Serial> {
+  public:
+  MGARDX_CONT
+  MemoryManager(){};
+
+  template <typename T>
+  MGARDX_CONT static
+  void Malloc1D(T *& ptr, SIZE n, int queue_idx) {
+    ptr = (T*)std::malloc(n * sizeof(T));
+    if (ptr == NULL) {
+      std::cout << log::log_err << "MemoryManager<Serial>::Malloc1D error.\n";
+    }
+  }
+
+  template <typename T>
+  MGARDX_CONT static
+  void MallocND(T *& ptr, SIZE n1, SIZE n2, SIZE &ld, int queue_idx) {
+    ptr = (T*)std::malloc(n1 * n2 * sizeof(T));
+    ld = n1;
+    if (ptr == NULL) {
+      std::cout << log::log_err << "MemoryManager<Serial>::Malloc1D error.\n";
+    }
+  }
+
+  template <typename T>
+  MGARDX_CONT static
+  void Free(T * ptr) {
+    if (ptr == NULL) return;
+    std::free(ptr);
+  }
+
+  template <typename T>
+  MGARDX_CONT static
+  void Copy1D(T * dst_ptr, const T * src_ptr, SIZE n, int queue_idx) {
+    std::memcpy(dst_ptr, src_ptr, sizeof(T) * n);
+  }
+
+  template <typename T>
+  MGARDX_CONT static
+  void CopyND(T * dst_ptr, SIZE dst_ld, const T * src_ptr, SIZE src_ld, SIZE n1, SIZE n2, int queue_idx) {
+    std::memcpy(dst_ptr, src_ptr, sizeof(T) * n1 * n2);
+  }
+
+  template <typename T>
+  MGARDX_CONT static
+  void MallocHost(T *& ptr, SIZE n, int queue_idx) {
+    ptr = (T*)std::malloc(n * sizeof(T));
+    if (ptr == NULL) {
+      std::cout << log::log_err << "MemoryManager<Serial>::Malloc1D error.\n";
+    }
+  }
+
+  template <typename T>
+  MGARDX_CONT static
+  void FreeHost(T * ptr) {
+    if (ptr == NULL) return;
+    std::free(ptr);
+  }
+
+  template <typename T>
+  MGARDX_CONT static
+  void Memset1D(T * ptr, SIZE n, int value) {
+    memset(ptr, value, n * sizeof(T));
+  }
+
+  template <typename T>
+  MGARDX_CONT static
+  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value) {
+    memset(ptr, value, n1 * n2 * sizeof(T));
+  }
+
+  template <typename T>
+  MGARDX_CONT static
+  bool IsDevicePointer(T * ptr) {
+    return true;
+  }
+  static bool ReduceMemoryFootprint;
+};
+
+
+template <typename TaskType>
+class DeviceAdapter<TaskType, Serial> {
+public:
+  MGARDX_CONT
+  DeviceAdapter(){};
+
+  MGARDX_CONT
+  void Execute(TaskType& task) {
+    // if constexpr evalute at compile time otherwise this does not compile
+    if constexpr (std::is_base_of<Functor<Serial>, typename TaskType::Functor>::value) {
+      SerialKernel(task);
+    } else if constexpr (std::is_base_of<IterFunctor<Serial>, typename TaskType::Functor>::value) {
+      SerialIterKernel(task);
+    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<Serial>, typename TaskType::Functor>::value) {
+      SerialHuffmanCLCustomizedKernel(task);
+    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<Serial>, typename TaskType::Functor>::value) {
+      SerialHuffmanCWCustomizedKernel(task);
+    }
+  }
+};
+
+template <typename KeyT, typename ValueT>
+struct KeyValueComparator{
+    bool operator()(std::pair<KeyT, ValueT> a, std::pair<KeyT, ValueT> b) const { return a.first < b.first; }
+};
+
+template <>
+class DeviceCollective<Serial>{
+public:
+  MGARDX_CONT
+  DeviceCollective(){};
+
+  template <typename T> MGARDX_CONT static
+  void Sum(SIZE n, SubArray<1, T, Serial>& v, SubArray<1, T, Serial>& result, int queue_idx) {
+    *result((IDX)0) = std::accumulate(v(0), v(n), 0);
+  }
+
+  template <typename T> MGARDX_CONT static
+  void AbsMax(SIZE n, SubArray<1, T, Serial>& v, SubArray<1, T, Serial>& result, int queue_idx) {
+    T max_result = 0;
+    for (SIZE i = 0; i < n; ++i) {
+      max_result = std::max((T)fabs(*v(i)), max_result);
+    }
+    *result((IDX)0) = max_result;
+  }
+
+  template <typename T> MGARDX_CONT static
+  void SquareSum(SIZE n, SubArray<1, T, Serial>& v, SubArray<1, T, Serial>& result, int queue_idx) {
+    T sum_result = 0;
+    for (SIZE i = 0; i < n; ++i) {
+      T tmp = *v(i);
+      sum_result += tmp * tmp; 
+    }
+    *result((IDX)0) = sum_result;
+  }
+ 
+ 
+ template <typename T> MGARDX_CONT static
+  void ScanSumInclusive(SIZE n, SubArray<1, T, Serial>& v, SubArray<1, T, Serial>& result, int queue_idx) {
+    // std::inclusive_scan(v(0), v(n), result(0));
+    std::cout << log::log_err << "ScanSumInclusive<Serial> not implemented.\n";
+  }
+
+  template <typename T> MGARDX_CONT static
+  void ScanSumExclusive(SIZE n, SubArray<1, T, Serial>& v, SubArray<1, T, Serial>& result, int queue_idx) {
+    // std::exclusive_scan(v(0), v(n), result(0));
+    std::cout << log::log_err << "ScanSumExclusive<Serial> not implemented.\n";
+  }
+
+  template <typename T> MGARDX_CONT static
+  void ScanSumExtended(SIZE n, SubArray<1, T, Serial>& v, SubArray<1, T, Serial>& result, int queue_idx) {
+    // std::inclusive_scan(v(0), v(n), result(1));
+    // result(0) = 0;
+    std::cout << log::log_err << "ScanSumExtended<Serial> not implemented.\n";
+  }
+
+  template <typename KeyT, typename ValueT> MGARDX_CONT static
+  void SortByKey(SIZE n, SubArray<1, KeyT, Serial>& keys, SubArray<1, ValueT, Serial>& values, 
+                 int queue_idx) {
+    std::vector<std::pair<KeyT, ValueT>> data(n);
+    for (SIZE i = 0; i < n; ++i) {
+      data[i] = std::pair<KeyT, ValueT>(*keys(i), *values(i));
+    }
+    std::sort(data.begin(), data.end(), KeyValueComparator<KeyT, ValueT>{});
+    for (SIZE i = 0; i < n; ++i) {
+      *keys(i) = data[i].first;
+      *values(i) = data[i].second;
+    }
+  }
 };
 
 

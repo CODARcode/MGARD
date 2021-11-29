@@ -10,35 +10,10 @@
 
 namespace mgard_x {
 
-
-  constexpr int GPK_CONFIG[5][7][3] = {{{1, 1, 8},{1, 1, 8},{1, 1, 8},{1, 1, 16},{1, 1, 32},{1, 1, 64},{1, 1, 128}},
-                                     {{1, 2, 4},{1, 4, 4},{1, 4, 8},{1, 4, 16},{1, 4, 32},{1, 2, 64},{1, 2, 128}},
-                                     {{2, 2, 2},{4, 4, 4},{4, 4, 8},{4, 4, 16},{4, 4, 32},{2, 2, 64},{2, 2, 128}},
-                                     {{2, 2, 2},{4, 4, 4},{4, 4, 8},{4, 4, 16},{4, 4, 32},{2, 2, 64},{2, 2, 128}},
-                                     {{2, 2, 2},{4, 4, 4},{4, 4, 8},{4, 4, 16},{4, 4, 32},{2, 2, 64},{2, 2, 128}}};
-
-  constexpr int LPK_CONFIG[5][7][3] = {{{1, 1, 8},{1, 1, 8},{1, 1, 8},{1, 1, 16},{1, 1, 32},{1, 1, 64},{1, 1, 128}},
-                                       {{1, 2, 4},{1, 4, 4},{1, 8, 8},{1, 4, 16},{1, 2, 32},{1, 2, 64},{1, 2, 128}},
-                                       {{2, 2, 2},{4, 4, 4},{8, 8, 8},{4, 4, 16},{2, 2, 32},{2, 2, 64},{2, 2, 128}},
-                                       {{2, 2, 2},{4, 4, 4},{8, 8, 8},{4, 4, 16},{2, 2, 32},{2, 2, 64},{2, 2, 128}},
-                                       {{2, 2, 2},{4, 4, 4},{8, 8, 8},{4, 4, 16},{2, 2, 32},{2, 2, 64},{2, 2, 128}}};
-
-  constexpr int IPK_CONFIG[5][7][4] = {{{1, 1, 8, 2},{1, 1, 8, 4},{1, 1, 8, 4},{1, 1, 16, 4},{1, 1, 32, 2},{1, 1, 64, 2},{1, 1, 128, 2}},
-                                       {{1, 2, 4, 2},{1, 4, 4, 4},{1, 8, 8, 4},{1, 4, 16, 4},{1, 2, 32, 2},{1, 2, 64, 2},{1, 2, 128, 2}},
-                                       {{2, 2, 2, 2},{4, 4, 4, 4},{8, 8, 8, 4},{4, 4, 16, 4},{2, 2, 32, 2},{2, 2, 64, 2},{2, 2, 128, 2}},
-                                       {{2, 2, 2, 2},{4, 4, 4, 4},{8, 8, 8, 4},{4, 4, 16, 4},{2, 2, 32, 2},{2, 2, 64, 2},{2, 2, 128, 2}},
-                                       {{2, 2, 2, 2},{4, 4, 4, 4},{8, 8, 8, 4},{4, 4, 16, 4},{2, 2, 32, 2},{2, 2, 64, 2},{2, 2, 128, 2}}};
-
-  constexpr int LWPK_CONFIG[5][3] = {{1, 1, 8},{1, 4, 4},{4, 4, 4},{4, 4, 4},{4, 4, 4}};
-
-
-  constexpr int LWQK_CONFIG[5][3] = {{1, 1, 64},{1, 4, 32},{4, 4, 16},{4, 4, 16},{4, 4, 16}};
-
-
 template <>
 class KernelConfigs<CUDA> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   KernelConfigs(){};
 
 
@@ -48,7 +23,7 @@ public:
 template <>
 class AutoTuningTable<CUDA> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   AutoTuningTable(){
     this->auto_tuning_cc = new int **[num_arch];
     this->auto_tuning_mr1 = new int **[num_arch];
@@ -361,7 +336,7 @@ public:
 
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   ~AutoTuningTable() {
     for (int i = 0; i < num_arch; i++) {
       for (int j = 0; j < num_precision; j++) {
@@ -401,21 +376,12 @@ public:
 
 };
 
-template<typename T>
-MGARDm_CONT
-int TypeToIdx() {
-  if (std::is_same<T, float>::value) {
-    return 0;
-  } else if (std::is_same<T, double>::value) {
-    return 1;
-  }
-}
 
 
 template <>
 class AutoTuner<CUDA> {
 public:
-  MGARDm_CONT
+  MGARDX_CONT
   AutoTuner(){};
 
   static KernelConfigs<CUDA> kernelConfigs;

@@ -13,31 +13,31 @@
 
 namespace mgard_x {
 
-template <DIM D, typename T, typename DeviceType> class MGARDm_ALIGN(16) SubArray {
+template <DIM D, typename T, typename DeviceType> class SubArray {
 public:
   SubArray();
   SubArray(Array<D, T, DeviceType> &array, bool get_host_pointer = false);
   // SubArray(std::vector<SIZE> shape, T * dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d);
   SubArray(std::vector<SIZE> shape, T * dv);
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SubArray(SubArray<D, T, DeviceType> &subArray);
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SubArray(const SubArray<D, T, DeviceType> &subArray);
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   T * data() {
     return this->dv;
   }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   void setdata(T * dv) {
     this->dv = dv;
   }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   bool hasHostData() {return has_host_pointer;};
 
-  MGARDm_CONT
+  MGARDX_CONT
   T * dataHost() {
     if (!has_host_pointer) {
       std::cerr << log::log_err
@@ -47,7 +47,7 @@ public:
     return v;
   }
 
-  MGARDm_CONT
+  MGARDX_CONT
   void setDataHost(T * v) {
     this->has_host_pointer = true;
     this->v = v;
@@ -55,15 +55,15 @@ public:
 
 
   // shape
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SIZE getShape(DIM d) const { return this->_shape[d]; }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SIZE* getShape() { 
     return this->_shape; 
   }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   void setShape(DIM d, SIZE n) { 
     if (d >= D) {
       return;
@@ -71,49 +71,49 @@ public:
     this->_shape[d] = n; 
   }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   void setShape(SIZE shape[D]) { 
     for (DIM d = 0; d < D; d++) {
       this->_shape[d] = shape[d]; 
     }
   }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SIZE getLd(DIM d) const { return this->_ldvs[d]; }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SIZE* getLd()  { return this->_ldvs; }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   void setLd(DIM d, SIZE ld) { this->_ldvs[d] = ld; }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   void setLd(SIZE ldvs[D]) { for (DIM d = 0; d < D; d++) this->_ldvs[d] = ldvs[d]; }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   bool isPitched() { return this->pitched; }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   void setPitched(bool pitched) { this->pitched = pitched; }
 
 
-  // MGARDm_CONT_EXEC
+  // MGARDX_CONT_EXEC
   // SIZE getLdh(DIM d) const { return _ldvs[d]; }
 
-  // MGARDm_CONT_EXEC
+  // MGARDX_CONT_EXEC
   // std::vector<SIZE> getLdh() const  { return _ldvs; }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SIZE * getLdd() { return this->ldvs_d; }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SIZE getLddv1() const { return this->lddv1; }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SIZE getLddv2() const { return this->lddv2; }
 
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SubArray<D, T, DeviceType>& operator = (const SubArray<D, T, DeviceType> &subArray);
   void offset(std::vector<SIZE> idx);
   void resize(std::vector<SIZE> shape);
@@ -124,13 +124,13 @@ public:
   SubArray<1, T, DeviceType> Linearize();
   SubArray<3, T, DeviceType> Slice3D(DIM d1, DIM d2, DIM d3);
  
-//   MGARDm_CONT_EXEC
+//   MGARDX_CONT_EXEC
 //   T* operator()(SIZE * idx) {
 //     LENGTH curr_stride = 1;
 //     LENGTH offset = 0;
 //     for (DIM i = 0; i < D; i++) {
 //       offset += idx[i] * curr_stride;
-// #ifdef MGARDm_COMPILE_EXEC
+// #ifdef MGARDX_COMPILE_EXEC
 //       curr_stride *= ldvs_d[i];
 // #else
 //       curr_stride *= ldvs_h[i];
@@ -139,13 +139,13 @@ public:
 //     return dv + offset;
 //   }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   T* operator()(SIZE idx[D]) {
     LENGTH curr_stride = 1;
     LENGTH offset = 0;
     for (DIM i = 0; i < D; i++) {
       offset += idx[i] * curr_stride;
-// #ifdef MGARDm_COMPILE_EXEC
+// #ifdef MGARDX_COMPILE_EXEC
 //       curr_stride *= ldvs_d[i];
 // #else
 //       curr_stride *= ldvs_h[i];
@@ -155,47 +155,47 @@ public:
     return this->dv + offset;
   }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   T* operator()(IDX z, IDX y, IDX x) {
     return this->dv + this->lddv2 * this->lddv1 * z + this->lddv1 * y + x;
   }
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   T* operator()(IDX y, IDX x) {
     return this->dv + this->lddv1 * y + x;
   }
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   T* operator()(IDX x) {
     return this->dv + x;
   }
 
-  MGARDm_EXEC void
+  MGARDX_EXEC void
   offset(SIZE idx[D]) {
     dv += calc_offset(idx);
   }
 
-  MGARDm_CONT_EXEC void
+  MGARDX_CONT_EXEC void
   offset(IDX z, IDX y, IDX x) {
     this->dv += this->lddv2 * this->lddv1 * z + this->lddv1 * y + x;
   }
-  MGARDm_CONT_EXEC void
+  MGARDX_CONT_EXEC void
   offset(IDX y, IDX x) {
     this->dv += this->lddv1 * y + x;
   }
-  MGARDm_CONT_EXEC void
+  MGARDX_CONT_EXEC void
   offset(IDX x) {
     this->dv += x;
   }
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   bool isNull() {
     return this->dv == NULL;
   }
-  // MGARDm_CONT_EXEC
+  // MGARDX_CONT_EXEC
   // T * data() {
   //   return dv;
   // }
 
-  // MGARDm_CONT
+  // MGARDX_CONT
   // T * dataHost() {
   //   if (!has_host_pointer) {
   //     std::cerr << log::log_err
@@ -230,7 +230,7 @@ private:
 
   bool pitched;
 
-  MGARDm_CONT_EXEC
+  MGARDX_CONT_EXEC
   SIZE calc_offset(SIZE idx[D]) {
     SIZE curr_stride = 1;
     SIZE offset = 0;
@@ -358,7 +358,7 @@ SubArray<D, T, DeviceType>::SubArray(const SubArray<D, T, DeviceType> &subArray)
 }
 
 template <DIM D, typename T, typename DeviceType> 
-MGARDm_CONT_EXEC
+MGARDX_CONT_EXEC
 SubArray<D, T, DeviceType>& SubArray<D, T, DeviceType>::operator = (const SubArray<D, T, DeviceType> &subArray) {
   // this->shape  = subArray.shape;
   this->dv     = subArray.dv;
