@@ -15,7 +15,9 @@ namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType> class SubArray {
 public:
+  MGARDX_CONT_EXEC
   SubArray();
+  MGARDX_CONT
   SubArray(Array<D, T, DeviceType> &array, bool get_host_pointer = false);
   // SubArray(std::vector<SIZE> shape, T * dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d);
   SubArray(std::vector<SIZE> shape, T * dv);
@@ -96,13 +98,6 @@ public:
   MGARDX_CONT_EXEC
   void setPitched(bool pitched) { this->pitched = pitched; }
 
-
-  // MGARDX_CONT_EXEC
-  // SIZE getLdh(DIM d) const { return _ldvs[d]; }
-
-  // MGARDX_CONT_EXEC
-  // std::vector<SIZE> getLdh() const  { return _ldvs; }
-
   MGARDX_CONT_EXEC
   SIZE * getLdd() { return this->ldvs_d; }
 
@@ -112,32 +107,27 @@ public:
   MGARDX_CONT_EXEC
   SIZE getLddv2() const { return this->lddv2; }
 
-
   MGARDX_CONT_EXEC
   SubArray<D, T, DeviceType>& operator = (const SubArray<D, T, DeviceType> &subArray);
   void offset(std::vector<SIZE> idx);
+
+  MGARDX_CONT
   void resize(std::vector<SIZE> shape);
+
+  MGARDX_CONT
   void offset(DIM dim, SIZE offset_value);
+
+  MGARDX_CONT
   void resize(DIM dim, SIZE new_size);
+
+  MGARDX_CONT
   void project(DIM dim0, DIM dim1, DIM dim2);
 
+  MGARDX_CONT
   SubArray<1, T, DeviceType> Linearize();
+
+  MGARDX_CONT
   SubArray<3, T, DeviceType> Slice3D(DIM d1, DIM d2, DIM d3);
- 
-//   MGARDX_CONT_EXEC
-//   T* operator()(SIZE * idx) {
-//     LENGTH curr_stride = 1;
-//     LENGTH offset = 0;
-//     for (DIM i = 0; i < D; i++) {
-//       offset += idx[i] * curr_stride;
-// #ifdef MGARDX_COMPILE_EXEC
-//       curr_stride *= ldvs_d[i];
-// #else
-//       curr_stride *= ldvs_h[i];
-// #endif
-//     }
-//     return dv + offset;
-//   }
 
   MGARDX_CONT_EXEC
   T* operator()(SIZE idx[D]) {
@@ -145,11 +135,6 @@ public:
     LENGTH offset = 0;
     for (DIM i = 0; i < D; i++) {
       offset += idx[i] * curr_stride;
-// #ifdef MGARDX_COMPILE_EXEC
-//       curr_stride *= ldvs_d[i];
-// #else
-//       curr_stride *= ldvs_h[i];
-// #endif
       curr_stride *= this->_ldvs[i];
     }
     return this->dv + offset;
@@ -190,20 +175,6 @@ public:
   bool isNull() {
     return this->dv == NULL;
   }
-  // MGARDX_CONT_EXEC
-  // T * data() {
-  //   return dv;
-  // }
-
-  // MGARDX_CONT
-  // T * dataHost() {
-  //   if (!has_host_pointer) {
-  //     std::cerr << log::log_err
-  //               << "Host pointer not initialized!\n";
-  //     exit(-1);
-  //   }
-  //   return v;
-  // }
 
   ~SubArray();
 
@@ -247,12 +218,14 @@ private:
 
 
 template <DIM D, typename T, typename DeviceType>
+MGARDX_CONT_EXEC
 SubArray<D, T, DeviceType>::SubArray() {
   lddv1 = 1;
   lddv2 = 1;
 }
 
 template <DIM D, typename T, typename DeviceType>
+MGARDX_CONT
 SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array, bool get_host_pointer) {
   // this->shape  = array.getShape();
   this->dv     = array.get_dv();
@@ -272,23 +245,8 @@ SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array, bool get_ho
   this->pitched = array.is_pitched();
 }
 
-// template <DIM D, typename T, typename DeviceType>
-// SubArray<D, T, DeviceType>::SubArray(std::vector<SIZE> shape, T * dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d) {
-//   // this->shape  = shape;
-//   this->dv     = dv;
-//   this->ldvs_h = ldvs_h;
-//   this->ldvs_d = ldvs_d;
-
-//   for (DIM d = 0; d < D; d++) {
-//     _shape[d] = shape[d];
-//     _ldvs[d] = ldvs_h[d];
-//   }
-
-//   lddv1 = _ldvs[0];
-//   lddv2 = _ldvs[1];
-// }
-
 template <DIM D, typename T, typename DeviceType>
+MGARDX_CONT
 SubArray<D, T, DeviceType>::SubArray(std::vector<SIZE> shape, T * dv) {
   // this->shape  = shape;
   this->dv     = dv;
@@ -305,6 +263,7 @@ SubArray<D, T, DeviceType>::SubArray(std::vector<SIZE> shape, T * dv) {
 
 
 template <DIM D, typename T, typename DeviceType> 
+MGARDX_CONT_EXEC
 SubArray<D, T, DeviceType>::SubArray(SubArray<D, T, DeviceType> &subArray) {
   // this->shape  = subArray.shape;
   this->dv     = subArray.dv;
@@ -332,6 +291,7 @@ SubArray<D, T, DeviceType>::SubArray(SubArray<D, T, DeviceType> &subArray) {
 }
 
 template <DIM D, typename T, typename DeviceType> 
+MGARDX_CONT_EXEC
 SubArray<D, T, DeviceType>::SubArray(const SubArray<D, T, DeviceType> &subArray) {
   // this->shape  = subArray.shape;
   this->dv     = subArray.dv;
@@ -387,6 +347,7 @@ SubArray<D, T, DeviceType>& SubArray<D, T, DeviceType>::operator = (const SubArr
 }
 
 template <DIM D, typename T, typename DeviceType> 
+MGARDX_CONT
 SubArray<1, T, DeviceType> SubArray<D, T, DeviceType>::Linearize() {
   SubArray<1, T, DeviceType> subArray;
   if (!this->pitched) {
@@ -419,8 +380,8 @@ SubArray<1, T, DeviceType> SubArray<D, T, DeviceType>::Linearize() {
   return subArray;
 }
 
-
 template <DIM D, typename T, typename DeviceType> 
+MGARDX_CONT
 SubArray<3, T, DeviceType> SubArray<D, T, DeviceType>::Slice3D(DIM d1, DIM d2, DIM d3) {
   
   if (D < 3) {
@@ -454,7 +415,8 @@ SubArray<3, T, DeviceType> SubArray<D, T, DeviceType>::Slice3D(DIM d1, DIM d2, D
   return subArray;
 }
 
-template <DIM D, typename T, typename DeviceType> 
+template <DIM D, typename T, typename DeviceType>
+MGARDX_CONT 
 void SubArray<D, T, DeviceType>::offset(std::vector<SIZE> idx) {
   SIZE _idx[D];
   for (DIM d = 0; d < D; d++) _idx[d] = idx[d];
@@ -463,6 +425,7 @@ void SubArray<D, T, DeviceType>::offset(std::vector<SIZE> idx) {
 }
 
 template <DIM D, typename T, typename DeviceType> 
+MGARDX_CONT
 void SubArray<D, T, DeviceType>::resize(std::vector<SIZE> shape) {
   // this->shape = shape;
   for (DIM d = 0; d < D; d++) {
@@ -471,6 +434,7 @@ void SubArray<D, T, DeviceType>::resize(std::vector<SIZE> shape) {
 }
 
 template <DIM D, typename T, typename DeviceType> 
+MGARDX_CONT
 void SubArray<D, T, DeviceType>::offset(DIM dim, SIZE offset_value) {
   // std::vector<SIZE> idx(D, 0);
   // idx[dim] = offset_value;
@@ -483,11 +447,13 @@ void SubArray<D, T, DeviceType>::offset(DIM dim, SIZE offset_value) {
 }
 
 template <DIM D, typename T, typename DeviceType> 
+MGARDX_CONT
 void SubArray<D, T, DeviceType>::resize(DIM dim, SIZE new_size) {
   _shape[dim] = new_size;
 }
 
 template <DIM D, typename T, typename DeviceType> 
+MGARDX_CONT
 void SubArray<D, T, DeviceType>::project(DIM dim0, DIM dim1, DIM dim2) {
   projected_dim0 = dim0;
   projected_dim1 = dim1;
@@ -501,9 +467,8 @@ void SubArray<D, T, DeviceType>::project(DIM dim0, DIM dim1, DIM dim2) {
   }
 }
 
-
-
 template <DIM D, typename T, typename DeviceType> 
+MGARDX_CONT_EXEC
 SubArray<D, T, DeviceType>::~SubArray() {
   // nothing needs to be released
 }

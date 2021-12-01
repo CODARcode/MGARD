@@ -6,6 +6,7 @@
  */
 
 
+#define MGARDX_COMPILE_CUDA
 #include "mgard-x/DataRefactoring/DataRefactoring.hpp"
 
 #include <iostream>
@@ -17,3 +18,6 @@ template void recompose<1, double, CUDA>(Handle<1, double, CUDA> & handle,
                                       SubArray<1, double, CUDA>& v,
                                       SIZE l_target, int queue_idx);
 } // namespace mgard_x
+#undef MGARDX_COMPILE_CUDA
+
+

@@ -5,7 +5,7 @@
  * Date: December 1, 2021
  */
 
-
+#define MGARDX_COMPILE_SERIAL
 #include "mgard-x/CompressionWorkflow.hpp"
 
 #include <iostream>
@@ -33,3 +33,4 @@ KERNELS(5, float)
 #undef KERNELS
 
 } // namespace mgard_x
+#undef MGARDX_COMPILE_SERIAL

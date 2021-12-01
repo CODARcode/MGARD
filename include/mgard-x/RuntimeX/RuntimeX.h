@@ -31,14 +31,20 @@ namespace mgard_x {
 #include "AutoTuners/AutoTuner.h"
 #include "Tasks/Task.h"
 
-#if defined(MGARD_ENABLE_CUDA) && defined(__CUDACC__)
+#ifdef MGARDX_COMPILE_SERIAL
+#include "DeviceAdapters/DeviceAdapterSerial.h"
+#endif
+
+#ifdef MGARDX_COMPILE_CUDA
 #include "DeviceAdapters/DeviceAdapterCuda.h"
 #endif
+
+#ifdef MGARDX_COMPILE_HIP
+#include "DeviceAdapters/DeviceAdapterHip.h"
+#endif
+
 #ifdef MGARD_ENABLE_KOKKOS
 #include "DeviceAdapters/DeviceAdapterKokkos.h"
-#endif
-#ifdef MGARD_ENABLE_SERIAL
-#include "DeviceAdapters/DeviceAdapterSerial.h"
 #endif
 
 // #include "Utilities/CheckEndianess.hpp"

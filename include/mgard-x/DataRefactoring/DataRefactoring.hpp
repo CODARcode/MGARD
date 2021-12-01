@@ -37,6 +37,9 @@
 #include <chrono>
 namespace mgard_x {
 
+static bool store = false;
+static bool verify = false;
+static bool debug_print = false;
 
 template<typename ... Args>
 std::string format( const std::string& format, Args ... args )
@@ -48,10 +51,6 @@ std::string format( const std::string& format, Args ... args )
     std::snprintf( buf.get(), size, format.c_str(), args ... );
     return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
-
-static bool store = false;
-static bool verify = false;
-static bool debug_print = false;
 
 template <typename SubArrayType> 
 void CompareSubarray4D(SubArrayType subArray1, SubArrayType subArray2) {

@@ -37,13 +37,13 @@ void print_usage_message(std::string error) {
 \t\t -e <error>: error bound\n\
 \t\t -s <smoothness>: smoothness parameter\n\
 \t\t -l choose lossless compressor (0:ZSTD@CPU 1:Huffman 2:Huffman+LZ4)\n\
-\t\t -d <serial|cuda>: device type\n\
+\t\t -d <serial|cuda|hip>: device type\n\
 \t\t -v enable verbose (show timing and statistics)\n\
 \n\
 \t -x: decompress data\n\
 \t\t -c <path to compressed file>\n\
 \t\t -d <path to decompressed file>\n\
-\t\t -d <serial|cuda>: device type\n\
+\t\t -d <serial|cuda|hip>: device type\n\
 \t\t -v enable verbose (show timing and statistics)\n");
   exit(0);
 }
@@ -301,6 +301,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   void *decompressed_data = NULL;
   std::vector<const mgard_x::Byte *> coords_byte;
   if (!non_uniform) {
+    printf("calling compress\n");
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
                          compressed_data, compressed_size, config,
                          dev_type, false);
@@ -450,6 +451,9 @@ bool try_compression(int argc, char *argv[]) {
   } else if (dev.compare("cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
     std::cout << mgard_x::log::log_info << "device type: CUDA\n";
+  } else if (dev.compare("hip") == 0) {
+    dev_type = mgard_x::device_type::HIP;
+    std::cout << mgard_x::log::log_info << "device type: HIP\n";
   } else {
     print_usage_message("wrong device type.");
   }
@@ -479,17 +483,22 @@ bool try_decompression(int argc, char *argv[]) {
             << "\n";
   std::cout << mgard_x::log::log_info << "decompressed data: " << output_file
             << "\n";
+
   enum mgard_x::device_type dev_type; // REL or ABS
   std::string dev = get_arg(argc, argv, "-d");
   if (dev.compare("serial") == 0) {
     dev_type = mgard_x::device_type::Serial;
-    std::cout << mgard_x::log::log_info << "devie type: Serial\n";
+    std::cout << mgard_x::log::log_info << "device type: Serial\n";
   } else if (dev.compare("cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
-    std::cout << mgard_x::log::log_info << "devie type: CUDA\n";
+    std::cout << mgard_x::log::log_info << "device type: CUDA\n";
+  } else if (dev.compare("hip") == 0) {
+    dev_type = mgard_x::device_type::HIP;
+    std::cout << mgard_x::log::log_info << "device type: HIP\n";
   } else {
     print_usage_message("wrong device type.");
   }
+  
   bool verbose = has_arg(argc, argv, "-v");
   if (verbose)
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
