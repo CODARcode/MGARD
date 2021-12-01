@@ -1,60 +1,16 @@
-set(MGARD_X_HEADER
-      ${CMAKE_CURRENT_SOURCE_DIR}/../mgard_x_api.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/Array.hpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/SubArray.hpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/Message.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/Handle.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/MemoryManagement.h  
-      ${CMAKE_CURRENT_SOURCE_DIR}/MemoryManagement.hpp 
-      ${CMAKE_CURRENT_SOURCE_DIR}/Metadata.h               
-      ${CMAKE_CURRENT_SOURCE_DIR}/Common.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/CommonInternal.h   
-      ${CMAKE_CURRENT_SOURCE_DIR}/PrecomputeKernels.h   
-      ${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring.h   
-      #${CMAKE_CURRENT_SOURCE_DIR}/DataRefactoring_AMR.h
-      #${CMAKE_CURRENT_SOURCE_DIR}/GPKFunctor.h
-      #${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.hpp   
-      #${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel.h
-      #${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel3D.hpp   
-      #${CMAKE_CURRENT_SOURCE_DIR}/GridProcessingKernel3D.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/LPKFunctor.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/LinearProcessingKernel.hpp   
-      ${CMAKE_CURRENT_SOURCE_DIR}/LinearProcessingKernel.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/LinearProcessingKernel3D.hpp   
-      ${CMAKE_CURRENT_SOURCE_DIR}/LinearProcessingKernel3D.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/IPKFunctor.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel.hpp   
-      ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel3D.hpp   
-      ${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel3D.h
-      #${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel3D_AMR.hpp   
-      #${CMAKE_CURRENT_SOURCE_DIR}/IterativeProcessingKernel3D_AMR.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/LevelwiseProcessingKernel.hpp   
-      ${CMAKE_CURRENT_SOURCE_DIR}/LevelwiseProcessingKernel.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/LinearQuantization.hpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/LinearQuantization.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/LosslessCompression.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/ErrorCalculator.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/canonical.cuh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/constants.hh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/cuda_error_handling.cuh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/cuda_mem.cuh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/dbg_gpu_printing.cuh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/format.hh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/histogram.cuh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/Histogram.hpp
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/huffman_codec.cuh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/huffman_workflow.cuh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/io.hh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/par_huffman.cuh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/par_merge.cuh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/timer.hh
-      ${CMAKE_CURRENT_SOURCE_DIR}/ParallelHuffman/types.hh
-      ${CMAKE_CURRENT_SOURCE_DIR}/utilities/Timers.hpp
-      # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsCPU.h
-      # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsCPU.hpp
-      # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsGPU.h
-      # ${CMAKE_CURRENT_SOURCE_DIR}/Testing/ReorderToolsGPU.hpp
-      PARENT_SCOPE)
-
 add_subdirectory(DataRefactoring)
+add_subdirectory(Lossless)
+add_subdirectory(Quantization)
+add_subdirectory(RuntimeX)
+list(APPEND MGARD_X_HEADER
+    ${CMAKE_CURRENT_SOURCE_DIR}/CompressionWorkflow.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/CompressionWorkflow.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Handle.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Handle.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/HighLevelAPI.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/HighLevelAPI.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Metadata.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Types.h
+    )
+set(MGARD_X_HEADER ${MGARD_X_HEADER} PARENT_SCOPE)
+

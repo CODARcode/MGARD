@@ -17,6 +17,7 @@ mkdir build
 cmake -S .  -B ./build \
 	    -DCMAKE_MODULE_PATH=${mgard_src_dir}/cmake\
 	    -Dmgard_ROOT=${mgard_src_dir}/install\
+	    -DCMAKE_BUILD_TYPE=Debug\
 	    -DCMAKE_PREFIX_PATH=${nvcomp_build_dir}
 	  
 cmake --build ./build

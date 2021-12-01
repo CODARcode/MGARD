@@ -135,7 +135,7 @@ struct Math<CUDA> {
     return max(a, b);
   }
   MGARDX_EXEC static
-  int ffsl(unsigned int a) {
+  int ffs(unsigned int a) {
     return  __ffs(a);
   }
   MGARDX_EXEC static

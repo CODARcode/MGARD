@@ -57,6 +57,7 @@ class DPCxx: public Device {};
 class OpenMp: public Device {};
 class KOKKOS: public Device {};
 class Serial: public Device {};
+class Default: public Device {};
 
 
 using IDX = unsigned long long int;

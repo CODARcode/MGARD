@@ -58,7 +58,7 @@ struct Math {
   T Max(T a, T b);
 
   MGARDX_EXEC static
-  int ffsl(unsigned int a);
+  int ffs(unsigned int a);
   MGARDX_EXEC static
   int ffsll(long long unsigned int a);
 };

@@ -35,7 +35,7 @@ option(MGARD_ENABLE_DOCS "Build documentation." OFF)
 
 option(MGARD_ENABLE_OPENMP "Enable OpenMP support." ON)
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
-option(MGARD_ENABLE_SERIAL "Enable CUDA support" OFF)
+option(MGARD_ENABLE_SERIAL "Enable SERIAL support" OFF)
 
 #For performance optimization
 option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction." OFF)
@@ -84,21 +84,35 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+
+add_subdirectory (src/mgard-x)
+add_subdirectory (include/mgard-x)
+add_subdirectory (include/mgard-x/MDR)
+
+if(MGARD_ENABLE_SERIAL)
+	set (CMAKE_CXX_STANDARD 14)
+  set (CMAKE_CXX_STANDARD_REQUIRED ON)
+  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_SERIAL -w")
+  # add_executable(MgardCudaExec ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardCudaExec.cpp)
+  # target_link_libraries(MgardCudaExec mgard-library  ${CMAKE_DL_LIBS})
+  # target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  #                                                 $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+
+  # add_executable(MgardSerialExec ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardSerialExec.cpp)
+  # target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
+  # target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  #                                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+
+endif()
+
 if(MGARD_ENABLE_CUDA)
   enable_language(CUDA)
   find_package(nvcomp REQUIRED)
-  # find_path(NVCOMP_INCLUDE_DIR nvcomp.h ${NVCOMP_INCLUDE_OPTS})
-  # message(STATUS "NVCOMP_INCLUDE_OPTS: ${NVCOMP_INCLUDE_OPTS}")
   find_package(CUDAToolkit REQUIRED)
-
-  find_package(Kokkos REQUIRED)
-
+  # find_package(Kokkos REQUIRED)
 
   set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
-  add_subdirectory (src/mgard-x)
-  add_subdirectory (include/mgard-x)
-  add_subdirectory (include/mgard-x/MDR)
 
   SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_CUDA")
   SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_CUDA")
@@ -106,8 +120,8 @@ if(MGARD_ENABLE_CUDA)
   # SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_KOKKOS")
   # SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_KOKKOS")
 
-  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_SERIAL -w")
-  SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_SERIAL")
+  # SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_SERIAL -w")
+  # SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_SERIAL")
 
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)
@@ -292,7 +306,7 @@ target_compile_definitions(mgard-library PUBLIC MGARD_PROTOBUF)
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(SANITIZER_DEFAULT ON)
+  # set(SANITIZER_DEFAULT ON)
 else()
   set(SANITIZER_DEFAULT OFF)
 endif()
