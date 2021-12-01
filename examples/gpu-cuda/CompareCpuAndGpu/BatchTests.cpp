@@ -16,7 +16,7 @@
 
 #include "mgard/compress.hpp"
 // #include "compress_cuda.hpp"
-#include "mgard/cuda/Utilities/ErrorCalculator.h"
+#include "mgard/mgard-x/Utilities/ErrorCalculator.h"
 
 #define ANSI_RED "\x1b[31m"
 #define ANSI_GREEN "\x1b[32m"
@@ -80,7 +80,8 @@ template <mgard_x::DIM D, typename T>
 void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
                  T s, enum mgard_x::error_bound_type mode, T norm,
                  T *original_data, void *&compressed_data,
-                 size_t &compressed_size, mgard_x::Config config) {
+                 size_t &compressed_size, mgard_x::Config config,
+                 enum mgard_x::device_type dev_type) {
   // printf("Start compressing\n");
   std::array<std::size_t, D> array_shape;
   std::copy(shape.begin(), shape.end(), array_shape.begin());
@@ -102,7 +103,7 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     }
 
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-             compressed_data, compressed_size, config);
+             compressed_data, compressed_size, config, dev_type, false);
     // mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
     //          compressed_data, compressed_size);
   }
@@ -112,7 +113,8 @@ template <mgard_x::DIM D, typename T>
 void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
                    T s, enum mgard_x::error_bound_type mode, T norm,
                    void *compressed_data, size_t compressed_size,
-                   void *&decompressed_data, mgard_x::Config config) {
+                   void *&decompressed_data, mgard_x::Config config,
+                   enum mgard_x::device_type dev_type) {
   size_t original_size = 1;
   for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
@@ -128,7 +130,7 @@ void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     memcpy(decompressed_data, decompressed_data_void,
            original_size * sizeof(T));
   } else { // GPU
-    mgard_x::decompress(compressed_data, compressed_size, decompressed_data, config);
+    mgard_x::decompress(compressed_data, compressed_size, decompressed_data, config, dev_type, false);
     // mgard_x::decompress(compressed_data, compressed_size, decompressed_data);
   }
 }
@@ -137,7 +139,8 @@ template <typename T>
 struct Result test(mgard_x::DIM D, T *original_data,
                    std::vector<mgard_x::SIZE> shape, enum device dev,
                    double tol, double s,
-                   enum mgard_x::error_bound_type mode) {
+                   enum mgard_x::error_bound_type mode,
+                   enum mgard_x::device_type dev_type) {
 
   size_t original_size = 1;
   for (mgard_x::DIM i = 0; i < D; i++)
@@ -163,33 +166,33 @@ struct Result test(mgard_x::DIM D, T *original_data,
   void *decompressed_data = NULL;
   if (D == 1) {
     compression<1, T>(shape, dev, tol, s, mode, norm, original_data,
-                      compressed_data, compressed_size, config);
+                      compressed_data, compressed_size, config, dev_type);
     decompression<1, T>(shape, dev, tol, s, mode, norm, compressed_data,
-                        compressed_size, decompressed_data, config);
+                        compressed_size, decompressed_data, config, dev_type);
   }
   if (D == 2) {
     compression<2, T>(shape, dev, tol, s, mode, norm, original_data,
-                      compressed_data, compressed_size, config);
+                      compressed_data, compressed_size, config, dev_type);
     decompression<2, T>(shape, dev, tol, s, mode, norm, compressed_data,
-                        compressed_size, decompressed_data, config);
+                        compressed_size, decompressed_data, config, dev_type);
   }
   if (D == 3) {
     compression<3, T>(shape, dev, tol, s, mode, norm, original_data,
-                      compressed_data, compressed_size, config);
+                      compressed_data, compressed_size, config, dev_type);
     decompression<3, T>(shape, dev, tol, s, mode, norm, compressed_data,
-                        compressed_size, decompressed_data, config);
+                        compressed_size, decompressed_data, config, dev_type);
   }
   if (D == 4) {
     compression<4, T>(shape, dev, tol, s, mode, norm, original_data,
-                      compressed_data, compressed_size, config);
+                      compressed_data, compressed_size, config, dev_type);
     decompression<4, T>(shape, dev, tol, s, mode, norm, compressed_data,
-                        compressed_size, decompressed_data, config);
+                        compressed_size, decompressed_data, config, dev_type);
   }
   if (D == 5) {
     compression<5, T>(shape, dev, tol, s, mode, norm, original_data,
-                      compressed_data, compressed_size, config);
+                      compressed_data, compressed_size, config, dev_type);
     decompression<5, T>(shape, dev, tol, s, mode, norm, compressed_data,
-                        compressed_size, decompressed_data, config);
+                        compressed_size, decompressed_data, config, dev_type);
   }
 
   // printf("In size:  %10ld  Out size: %10ld  Compression ratio: %10ld \n",
@@ -260,30 +263,44 @@ int main(int argc, char *argv[]) {
   char *input_file; //, *outfile;
   input_file = argv[i++];
 
+  char *dev; //, *outfile;
+  dev = argv[i++];
+
+
+
+  enum mgard_x::device_type dev_type;
+
+  if (strcmp (dev, "serial") == 0) {
+    dev_type = mgard_x::device_type::Serial;
+  } else if (strcmp (dev, "cuda") == 0) {
+    dev_type = mgard_x::device_type::CUDA;
+  }
+
+
   std::vector<std::vector<mgard_x::SIZE>> shapes;
 
-  // shapes.push_back({5});
-  // shapes.push_back({129});
-  // shapes.push_back({100});
-  // shapes.push_back({400});
-  // shapes.push_back({1000});
+  shapes.push_back({5});
+  shapes.push_back({129});
+  shapes.push_back({100});
+  shapes.push_back({400});
+  shapes.push_back({1000});
 
-  // shapes.push_back({5, 5});
-  // shapes.push_back({129, 129});
-  // shapes.push_back({100, 100});
-  // shapes.push_back({1000, 1000});
-  // shapes.push_back({100, 1000});
-  // shapes.push_back({1000, 100});
-  // shapes.push_back({10, 1000});
-  // shapes.push_back({1000, 10});
+  shapes.push_back({5, 5});
+  shapes.push_back({129, 129});
+  shapes.push_back({100, 100});
+  shapes.push_back({1000, 1000});
+  shapes.push_back({100, 1000});
+  shapes.push_back({1000, 100});
+  shapes.push_back({10, 1000});
+  shapes.push_back({1000, 10});
 
-  // shapes.push_back({5, 5, 5});
-  // shapes.push_back({129, 129, 129});
-  // shapes.push_back({100, 100, 100});
-  // shapes.push_back({200, 200, 200});
-  // shapes.push_back({1000, 100, 10});
-  // shapes.push_back({100, 10, 1000});
-  // shapes.push_back({10, 1000, 100});
+  shapes.push_back({5, 5, 5});
+  shapes.push_back({129, 129, 129});
+  shapes.push_back({100, 100, 100});
+  shapes.push_back({200, 200, 200});
+  shapes.push_back({1000, 100, 10});
+  shapes.push_back({100, 10, 1000});
+  shapes.push_back({10, 1000, 100});
 
   shapes.push_back({5, 5, 5, 5});
   shapes.push_back({3, 3, 3, 4});
@@ -343,11 +360,11 @@ int main(int argc, char *argv[]) {
                        original_data);
               result_cpu =
                   test<float>(shapes[sp].size(), original_data, shapes[sp], CPU,
-                              tols[tol], ssf[s], ebtypes[ebt]);
+                              tols[tol], ssf[s], ebtypes[ebt], dev_type);
               result_gpu =
                   test<float>(shapes[sp].size(), original_data, shapes[sp], GPU,
-                              tols[tol], ssf[s], ebtypes[ebt]);
-              delete[] original_data;
+                              tols[tol], ssf[s], ebtypes[ebt], dev_type);
+              free(original_data);
             } else {
               size_t original_size = 1;
               for (mgard_x::DIM i = 0; i < shapes[sp].size(); i++)
@@ -358,11 +375,11 @@ int main(int argc, char *argv[]) {
                        original_data);
               result_cpu =
                   test<double>(shapes[sp].size(), original_data, shapes[sp],
-                               CPU, told[tol], ssd[s], ebtypes[ebt]);
+                               CPU, told[tol], ssd[s], ebtypes[ebt], dev_type);
               result_gpu =
                   test<double>(shapes[sp].size(), original_data, shapes[sp],
-                               GPU, told[tol], ssd[s], ebtypes[ebt]);
-              delete[] original_data;
+                               GPU, told[tol], ssd[s], ebtypes[ebt], dev_type);
+              free(original_data);
             }
 
             print_config(dtypes[dt], shapes[sp], tols[tol], ssd[s],

@@ -5,11 +5,8 @@
  * Date: December 1, 2021
  */
 
-#ifndef MGARD_X_CHECK_ENDIANESS_HPP
-#define MGARD_X_CHECK_ENDIANESS_HPP
 
-
-#include "../Types.h"
+#include "mgard-x/Types.h"
 
 namespace mgard_x {
 enum endiness_type CheckEndianess() {
@@ -23,4 +20,3 @@ enum endiness_type CheckEndianess() {
 }
 
 }
-#endif

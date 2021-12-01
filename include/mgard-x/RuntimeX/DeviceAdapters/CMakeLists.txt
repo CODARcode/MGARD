@@ -1,0 +1,8 @@
+list(APPEND MGARD_X_HEADER
+    ${CMAKE_CURRENT_SOURCE_DIR}/DeviceAdapter.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/DeviceAdapterSerial.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/DeviceAdapterCuda.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/DeviceAdapterHip.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/DeviceAdapterKokkos.h
+    )
+set(MGARD_X_HEADER ${MGARD_X_HEADER} PARENT_SCOPE)

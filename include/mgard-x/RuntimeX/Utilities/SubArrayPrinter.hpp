@@ -40,6 +40,7 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
   if (SubArrayType::NumDims >= 3) nrow = subArray.getShape(2);
 
   using T = typename SubArrayType::DataType;
+  using DeviceType = typename SubArrayType::DevType;
 
   std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * " << nfib << ") sizeof(T) = "  <<sizeof(T) << std::endl;
 
@@ -47,9 +48,9 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
   // cudaMemcpy3DAsyncHelper(tmp_handle, v, nfib * sizeof(T), nfib * sizeof(T),
   //                         ncol, subArray.data(), subArray.lddv1 * sizeof(T), nfib * sizeof(T), subArray.lddv2,
   //                         nfib * sizeof(T), ncol, nrow, D2H, 0);
-  MemoryManager<CUDA>::CopyND(v, nfib, subArray.data(), subArray.getLddv1(),
+  MemoryManager<DeviceType>::CopyND(v, nfib, subArray.data(), subArray.getLddv1(),
                               nfib, ncol * nrow, 0);
-  DeviceRuntime<CUDA>::SyncQueue(0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   // tmp_handle.sync(0);
   
   
@@ -92,14 +93,14 @@ void CompareSubarray(std::string name, SubArrayType subArray1, SubArrayType subA
   }
 
   using T = typename SubArrayType::DataType;
-
+  using DeviceType = typename SubArrayType::DevType;
   std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * " << nfib << ") sizeof(T) = "  <<sizeof(T) << std::endl;
 
   T *v1 = new T[nrow * ncol * nfib];
   T *v2= new T[nrow * ncol * nfib];
-  MemoryManager<CUDA>::CopyND(v1, nfib, subArray1.data(), subArray1.getLddv1(),
+  MemoryManager<DeviceType>::CopyND(v1, nfib, subArray1.data(), subArray1.getLddv1(),
                               nfib, ncol * nrow, 0);
-  MemoryManager<CUDA>::CopyND(v2, nfib, subArray2.data(), subArray2.getLddv1(),
+  MemoryManager<DeviceType>::CopyND(v2, nfib, subArray2.data(), subArray2.getLddv1(),
                               nfib, ncol * nrow, 0);
 
   // Handle<1, float> tmp_handle;
@@ -111,7 +112,7 @@ void CompareSubarray(std::string name, SubArrayType subArray1, SubArrayType subA
   //                         ncol, subArray2.data(), subArray2.lddv1 * sizeof(T), nfib * sizeof(T), subArray2.lddv2,
   //                         nfib * sizeof(T), ncol, nrow, D2H, 0);
   // gpuErrchk(cudaDeviceSynchronize());
-  DeviceRuntime<CUDA>::SyncQueue(0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
 
   for (int i = 0; i < nrow; i++) {
     printf("[i = %d]\n", i);
@@ -192,7 +193,7 @@ void verify_matrix(SIZE nrow, SIZE ncol, SIZE nfib, T *v, SIZE ldv1, SIZE ldv2,
       }
     }
 
-    delete v2;
+    delete [] v2;
     if (mismatch)
       exit(-1);
   }
@@ -214,9 +215,9 @@ void verify_matrix_cuda(SIZE nrow, SIZE ncol, SIZE nfib, T *dv, SIZE lddv1,
     //                         ncol, dv, lddv1 * sizeof(T), sizex * sizeof(T),
     //                         lddv2, nfib * sizeof(T), ncol, nrow, D2H,
     //                         queue_idx);
-    MemoryManager<CUDA>::CopyND(v, nfib, dv, lddv1,
-                              nfib, ncol * nrow, 0);
-    DeviceRuntime<CUDA>::SyncQueue(0);
+    // MemoryManager<CUDA>::CopyND(v, nfib, dv, lddv1,
+    //                           nfib, ncol * nrow, 0);
+    // DeviceRuntime<CUDA>::SyncQueue(0);
     // tmp_handle->sync(queue_idx);
     verify_matrix(nrow, ncol, nfib, v, nfib, ncol, file_prefix, store, verify);
     delete[] v;

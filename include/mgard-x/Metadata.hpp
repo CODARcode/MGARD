@@ -281,6 +281,21 @@ private:
   bool self_initialized;
 };
 
+bool verify(const void *compressed_data, size_t compressed_size);
+enum data_type infer_data_type(const void *compressed_data,
+                               size_t compressed_size);
+std::vector<SIZE> infer_shape(const void *compressed_data,
+                              size_t compressed_size);
+enum data_structure_type infer_data_structure(const void *compressed_data,
+                                              size_t compressed_size);
+template <typename T>
+std::vector<T *> infer_coords(const void *compressed_data,
+                              size_t compressed_size);
+
+std::string infer_nonuniform_coords_file(const void *compressed_data,
+                                         size_t compressed_size);
+
+
 }
 
 #endif

@@ -208,13 +208,14 @@ public:
   ~SubArray();
 
   using DataType = T;
+  using DevType = DeviceType;
   static const DIM NumDims = D;
 
 private:
   // std::vector<SIZE> shape;
   T *dv; // device pointer
   T *v; // host pointer
-  bool has_host_pointer;
+  bool has_host_pointer = false;
 
   // std::vector<SIZE> ldvs_h;
   SIZE *ldvs_d;

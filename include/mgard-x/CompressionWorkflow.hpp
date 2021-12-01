@@ -21,7 +21,7 @@
 #include "Quantization/LinearQuantization.hpp"
 #include "Lossless/ParallelHuffman/Huffman.hpp"
 // #include "Lossless/LZ4.hpp"
-#include "Utilities/CheckEndianess.hpp"
+#include "Utilities/CheckEndianess.h"
 
 #define BLOCK_SIZE 64
 
@@ -29,15 +29,7 @@ using namespace std::chrono;
 
 namespace mgard_x {
 
-// template <typename T>
-// struct linf_norm : public thrust::binary_function<T, T, T> {
-//   __host__ __device__ T operator()(T x, T y) { return max(abs(x), abs(y)); }
-// };
-
-// template <typename T>
-// struct l2_norm : public thrust::unary_function<T, T> {
-//   __host__ __device__ T operator()(T x) { return x*x; }
-// };
+static bool debug_print = false;
 
 template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
@@ -194,13 +186,17 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
           SubArray<1, QUANTIZED_INT, DeviceType>(outliers_array),
           0);
   MemoryManager<DeviceType>::Copy1D(&outlier_count, outlier_count_array.get_dv(), 1, 0);
-
   DeviceRuntime<DeviceType>::SyncDevice();
-
   if (handle.timing) {
     timer_each.end();
     timer_each.print("Quantization");
     timer_each.clear();
+  }
+  if (debug_print) {
+    PrintSubarray("quantized parimary", SubArray<D, QUANTIZED_INT, DeviceType>(dqv_array));
+    std::cout << "outlier_count: " << outlier_count << std::endl;
+    PrintSubarray("quantized outliers_array", SubArray<1, QUANTIZED_INT, DeviceType>(outliers_array));
+    PrintSubarray("quantized outlier_idx_array", SubArray<1, LENGTH, DeviceType>(outlier_idx_array));
   }
 
   // Huffman compression
@@ -220,12 +216,17 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
       qv, handle.huff_block_size, handle.huff_dict_size);
   lossless_compressed_subarray = SubArray(huffman_array);
 
-  // handle.sync_all();
+  Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> primary =
+  HuffmanDecompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(lossless_compressed_subarray);
 
+  
   if (handle.timing) {
     timer_each.end();
     timer_each.print("Huffman Compress");
     timer_each.clear();
+  }
+  if (debug_print) {
+    PrintSubarray("Huffman lossless_compressed_subarray", lossless_compressed_subarray);
   }
 
   // LZ4 compression
@@ -288,7 +289,6 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   align_byte_offset<uint64_t>(byte_offset);
   SerializeArray<Byte>(compressed_subarray, lossless_compressed_subarray.data(), 
                        lossless_compressed_subarray.getShape(0), byte_offset);
-
   // handle.sync_all();
   if (handle.timing) {
     timer_each.end();
@@ -296,7 +296,11 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
     timer_each.clear();
   }
 
-  delete serizalied_meta;
+  if (debug_print) {
+    PrintSubarray("Final compressed_subarray", compressed_subarray);
+  }
+
+  free(serizalied_meta);
   return compressed_array;  
 }
 
@@ -309,6 +313,10 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
   SIZE total_elems = handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
 
   SubArray compressed_subarray(compressed_array);
+
+  if (debug_print) {
+    PrintSubarray("Before decompression", compressed_subarray);
+  }
   SIZE byte_offset = 0;
 
   Metadata m;
@@ -395,9 +403,12 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
   // }
 
   QUANTIZED_UNSIGNED_INT * unsigned_dqv;
-  if (handle.timing) timer_each.start();
-
   
+  if (debug_print) {
+    PrintSubarray("Huffman lossless_compressed_subarray", lossless_compressed_subarray);
+  }
+
+  if (handle.timing) timer_each.start();
   Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> primary =
   HuffmanDecompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(lossless_compressed_subarray);
   DeviceRuntime<DeviceType>::SyncDevice();
@@ -406,6 +417,11 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
     timer_each.print("Huffman Decompress");
     timer_each.clear();
   }
+
+  if (debug_print) {
+    PrintSubarray("Quantized primary", SubArray(primary));
+  }
+
 
   if (handle.timing) timer_each.start();
 
@@ -447,6 +463,11 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
     timer_each.end();
     timer_each.print("Dequantization");
     timer_each.clear();
+  }
+
+
+  if (debug_print) {
+    PrintSubarray("Dequanzed primary", SubArray(primary));
   }
 
   if (handle.timing) timer_each.start();
