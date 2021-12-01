@@ -45,6 +45,14 @@ kokkos_install_dir=${kokkos_dir}/install
 	# cmake --install ${kokkos_build_dir}
 # fi
 
+# hip_dir=${external_dir}/hip
+# hip_src_dir=${hip_dir}/src
+# hip_build_dir=${hip_dir}/build
+# hip_install_dir=${hip_dir}/install
+# if [ ! -d "${hip_src_dir}" ]; then
+# 	rm -rf ${hip_dir} && mkdir -p ${hip_dir}
+# 	git clone https://github.com/ROCm-Developer-Tools/HIP.git ${hip_src_dir}
+# fi
 
 #build MGARD-CUDA
 mgard_x_src_dir=${home_dir}
@@ -52,13 +60,14 @@ mgard_x_build_dir=${home_dir}/build
 mgard_x_install_dir=${home_dir}/install
 rm -rf ${mgard_x_build_dir} && mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
-	  -DCMAKE_PREFIX_PATH="${nvcomp_build_dir};${kokkos_install_dir}"\
+	  -DCMAKE_PREFIX_PATH="${nvcomp_build_dir};${kokkos_install_dir};${hip_src_dir}"\
 	  -DMGARD_ENABLE_SERIAL=ON\
-	  -DMGARD_ENABLE_CUDA=ON\
+	  -DMGARD_ENABLE_CUDA=OFF\
 	  -DMGARD_ENABLE_CUDA_FMA=ON\
 	  -DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=OFF\
 	  -DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=ON\
-	  -DCMAKE_BUILD_TYPE=Debug\
+	  -DMGARD_ENABLE_HIP=ON\
+	  -DCMAKE_BUILD_TYPE=Release\
 	  -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
 cmake --build ${mgard_x_build_dir} -j8
 cmake --install ${mgard_x_build_dir}
