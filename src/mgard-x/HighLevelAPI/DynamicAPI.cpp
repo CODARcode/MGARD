@@ -12,9 +12,9 @@
 #include <vector>
 
 #include "compress_cuda.hpp"
-#include "mgard-x/Handle.hpp" 
+#include "mgard-x/Handle.h" 
 #include "mgard-x/Metadata.hpp"
-#include "mgard-x/RuntimeX/RuntimeX.h"
+#include "mgard-x/RuntimeX/RuntimeXPublic.h"
 #include "mgard-x/HighLevelAPI.h"
 
 
@@ -303,6 +303,15 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
     #endif
+  } else if (dev_type == device_type::HIP) {
+    #ifdef MGARD_ENABLE_HIP
+    compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data, compressed_size, config, output_pre_allocated);
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    exit(-1);
+    #endif
+  } else {
+    std::cout << log::log_err << "Unsupported backend.\n";
   }
 }
 
@@ -325,6 +334,15 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
     #endif
+  } else if (dev_type == device_type::HIP) {
+    #ifdef MGARD_ENABLE_HIP
+    compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data, compressed_size, output_pre_allocated);
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    exit(-1);
+    #endif
+  } else {
+    std::cout << log::log_err << "Unsupported backend.\n";
   }
 }
 
@@ -347,6 +365,15 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
     #endif
+  } else if (dev_type == device_type::HIP) {
+    #ifdef MGARD_ENABLE_HIP
+    compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data, compressed_size, coords, config, output_pre_allocated);
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    exit(-1);
+    #endif
+  } else {
+    std::cout << log::log_err << "Unsupported backend.\n";
   }
 }
 
@@ -369,6 +396,15 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
     #endif
+  } else if (dev_type == device_type::HIP) {
+    #ifdef MGARD_ENABLE_HIP
+    compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data, compressed_size, coords, output_pre_allocated);
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    exit(-1);
+    #endif
+  } else {
+    std::cout << log::log_err << "Unsupported backend.\n";
   }
 }
 
@@ -389,6 +425,15 @@ void decompress(const void *compressed_data, size_t compressed_size,
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
     #endif
+  } else if (dev_type == device_type::HIP) {
+    #ifdef MGARD_ENABLE_HIP
+    decompress<HIP>(compressed_data, compressed_size, decompressed_data, config, output_pre_allocated);
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    exit(-1);
+    #endif
+  } else {
+    std::cout << log::log_err << "Unsupported backend.\n";
   }
 }
 
@@ -409,6 +454,15 @@ void decompress(const void *compressed_data, size_t compressed_size,
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
     #endif
+  } else if (dev_type == device_type::HIP) {
+    #ifdef MGARD_ENABLE_HIP
+    decompress<HIP>(compressed_data, compressed_size, decompressed_data, output_pre_allocated);
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    exit(-1);
+    #endif
+  } else {
+    std::cout << log::log_err << "Unsupported backend.\n";
   }
 }
 

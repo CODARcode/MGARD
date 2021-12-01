@@ -23,17 +23,30 @@ namespace mgard_x {
   #error "Please provide a definition for MY_ALIGN macro for your host compiler!"
 #endif
 
-#ifdef __CUDACC__
-#define MGARDX_CONT __host__  __inline__
-#define MGARDX_KERL __global__
-#define MGARDX_EXEC __device__ __forceinline__
-#define MGARDX_CONT_EXEC __host__ __device__ __forceinline__
-#else
+
+#ifdef MGARDX_COMPILE_SERIAL 
 #define MGARDX_CONT __inline__
 #define MGARDX_KERL 
 #define MGARDX_EXEC __inline__
 #define MGARDX_CONT_EXEC __inline__
+#endif  
+
+
+#ifdef MGARDX_COMPILE_CUDA
+#define MGARDX_CONT __host__  __inline__
+#define MGARDX_KERL __global__
+#define MGARDX_EXEC __device__ __forceinline__
+#define MGARDX_CONT_EXEC __host__ __device__ __forceinline__
 #endif
+
+
+#ifdef MGARDX_COMPILE_HIP
+#define MGARDX_CONT __host__  __inline__
+#define MGARDX_KERL __global__
+#define MGARDX_EXEC __device__ __inline__
+#define MGARDX_CONT_EXEC __host__ __device__ __inline__
+#endif
+
 
 #define MAX_GRID_X 2147483647
 #define MAX_GRID_Y 65536

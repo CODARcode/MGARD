@@ -5,9 +5,7 @@
  * Date: December 1, 2021
  */
 
-#ifndef MGARD_X_DEVICE_ADAPTER_KOKKOS_CPP
-#define MGARD_X_DEVICE_ADAPTER_KOKKOS_CPP
-
+#define MGARDX_COMPILE_KOKKOS
 #include "mgard-x/RuntimeX/RuntimeX.h"
  
 namespace mgard_x {
@@ -24,4 +22,4 @@ bool DeviceRuntime<KOKKOS>::SyncAllKernelsAndCheckErrors = false;
 // bool AutoTuner<CUDA>::ProfileKernels = false;
 
 }
-#endif
+#undef MGARDX_COMPILE_KOKKOS

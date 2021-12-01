@@ -4,5 +4,8 @@ endif()
 if(MGARD_ENABLE_CUDA)
   add_subdirectory (CUDA)
 endif()
+if(MGARD_ENABLE_HIP)
+  add_subdirectory (HIP)
+endif()
 
 set(MGARD_X_SRC ${MGARD_X_SRC} PARENT_SCOPE)

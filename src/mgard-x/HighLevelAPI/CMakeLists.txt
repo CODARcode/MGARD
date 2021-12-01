@@ -4,6 +4,9 @@ endif()
 if(MGARD_ENABLE_CUDA)
   add_subdirectory (CUDA)
 endif()
+if(MGARD_ENABLE_HIP)
+  add_subdirectory (HIP)
+endif()
 
 list(APPEND MGARD_X_SRC  
       ${CMAKE_CURRENT_SOURCE_DIR}/DynamicAPI.cpp

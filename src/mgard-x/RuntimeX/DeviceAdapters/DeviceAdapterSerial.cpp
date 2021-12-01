@@ -5,9 +5,7 @@
  * Date: December 1, 2021
  */
 
-#ifndef MGARD_X_DEVICE_ADAPTER_SERIAL_CPP
-#define MGARD_X_DEVICE_ADAPTER_SERIAL_CPP
-
+#define MGARDX_COMPILE_SERIAL
 #include "mgard-x/RuntimeX/RuntimeX.h"
 
 namespace mgard_x {
@@ -24,4 +22,4 @@ AutoTuningTable<Serial> AutoTuner<Serial>::autoTuningTable;
 bool AutoTuner<Serial>::ProfileKernels = false;
 
 }
-#endif
+#undef MGARDX_COMPILE_SERIAL

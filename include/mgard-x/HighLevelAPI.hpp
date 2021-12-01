@@ -25,7 +25,6 @@ template <DIM D, typename T, typename DeviceType>
 void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config, bool output_pre_allocated) {
-
   Handle<D, T, DeviceType> handle(shape, config);
   mgard_x::Array<D, T, DeviceType> in_array(shape);
   in_array.loadData((const T *)original_data);

@@ -86,7 +86,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
 
-if (MGARD_ENABLE_SERIAL OR MGARD_ENABLE_CUDA)
+if (MGARD_ENABLE_SERIAL OR 
+    MGARD_ENABLE_CUDA   OR
+    MGARD_ENABLE_HIP)
   add_subdirectory (src/mgard-x)
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)
@@ -153,6 +155,9 @@ endif()
 if (MGARD_ENABLE_HIP) 
   find_package(HIP)
   enable_language(HIP)
+  set (CMAKE_CXX_STANDARD 14)
+  set (CMAKE_CXX_STANDARD_REQUIRED ON)
+  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_HIP -w")
 endif()
 
 find_package(ZLIB REQUIRED)
