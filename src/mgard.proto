@@ -123,16 +123,15 @@ message Encoding {
 	uint64 huffman_dictionary_size = 3;
 }
 
-message Buffer {
+message BufferStructure {
 	enum Interpretation {
 		SINGLE_DATASET_AFTER = 0;
 	}
 
 	Interpretation interpretation = 1;
-	// repeated bytes buffer = 2;
 }
 
-message CompressedDataset {
+message Header {
 	// enum Structure {
 	// 	TRANFORM_QUANTIZE_ENCODE = 0;
 	// }
@@ -146,5 +145,5 @@ message CompressedDataset {
 	Decomposition decomposition = 7;
 	Quantization quantization = 8;
 	Encoding encoding = 9;
-	Buffer buffer = 10;
+	BufferStructure buffer_structure = 10;
 }
