@@ -126,7 +126,7 @@ DATA=../../512x512x512/velocity_x.dat
 
 # cuda-memcheck 
 # valgrind 
-$MgardCudaExec -z -i random -c random.out -t d -n 2 129 129 129  -m abs -e 1e-4 -s inf -l 1 -v -d $1
+$MgardCudaExec -z -i random -c random.out -t d -n 3 129 129 129  -m abs -e 1e-4 -s inf -l 1 -v -d $1
 # $MgardCudaExec -z -i random -c random.out -t d -n 1 1000 -m rel -e 1e-4 -s 0 -l 1 -v -d $1
 # $MgardCudaExec -z -i random -c random.out -t s -n 1 5  -m abs -e 1 -s inf -l 1 -v -d cuda
 
