@@ -245,7 +245,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
       if (i - lNodesCur < curLeavesNum) {
         *copyFreq((IDX)i - lNodesCur) = *lNodesFreq((IDX)i);
         *copyIndex((IDX)i - lNodesCur) = i;
-        *copyIsLeaf((IDX)i - lNodesCur) = 7;
+        *copyIsLeaf((IDX)i - lNodesCur) = 1;
       }
     }
   }
@@ -664,12 +664,16 @@ public:
     gridz = 1;
     gridy = 1;
     gridx = mblocks;
-    // printT("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
-    // PrintSubarray("shape", shape);
 
-    // Functor.Init_diagonal_path_intersections(mblocks);
-
-    // printf("mblocks: %d, tbx: %d\n", mblocks, tbx);
+    int tthreads = tbx * gridx;
+    if (tthreads < dict_size) {
+      std::cout << log::log_err << "Insufficient on-device parallelism to construct a "
+           << dict_size << " non-zero item codebook" << std::endl;
+      std::cout << log::log_err << "Provided parallelism: " << gridx << " blocks, "
+           << tbx << " threads, " << tthreads << " total" << std::endl
+           << std::endl;
+      exit(1);
+    }
 
     return Task(Functor, gridz, gridy, gridx, 
                 tbz, tby, tbx, sm_size, queue_idx, "GenerateCL"); 

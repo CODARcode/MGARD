@@ -29,7 +29,7 @@ struct Config {
   Config() {
     dev_id = 0;
     l_target = -1; // no limit
-    huff_dict_size = 8192;
+    huff_dict_size = 64;
 //#ifdef MGARD_X_OPTIMIZE_TURING
 //    huff_block_size = 1024 * 30;
 //#endif

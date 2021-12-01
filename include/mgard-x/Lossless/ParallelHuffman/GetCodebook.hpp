@@ -56,6 +56,12 @@ void GetCodebook(int dict_size,
   DeviceRuntime<DeviceType>::SyncQueue(0);
   first_nonzero_index = first_nonzero_index_array.getDataHost()[0];
 
+  if (debug_print_huffman) {
+    PrintSubarray("SortByKey::_d_freq_subarray", _d_freq_subarray);
+    PrintSubarray("SortByKey::_d_qcode_subarray", _d_qcode_subarray);
+    // std::cout << "first_nonzero_index: " << first_nonzero_index << std::endl;
+  }
+
   int nz_dict_size = dict_size - first_nonzero_index;
   // unsigned int *_nz_d_freq = _d_freq + first_nonzero_index;
   // H *_nz_d_codebook = _d_codebook + first_nonzero_index;
@@ -124,6 +130,11 @@ void GetCodebook(int dict_size,
   MemoryManager<DeviceType>().Copy1D(&max_CL, CL_subarray(IDX(0)), 1, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
+  if (debug_print_huffman) {
+    PrintSubarray("GenerateCL::CL_subarray", CL_subarray);
+    std::cout << "GenerateCL: max_CL" << max_CL << std::endl;
+  }
+
   int max_CW_bits = (sizeof(H) * 8) - 8;
   if (max_CL > max_CW_bits) {
     std::cout << log::log_err << "Cannot store all Huffman codewords in "
@@ -142,7 +153,10 @@ void GetCodebook(int dict_size,
   ReverseArray<H, DeviceType>().Execute(_d_codebook_subarray, dict_size, 0);
   ReverseArray<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
 
-  ReorderByIndex<H, Q, DeviceType>().Execute(_d_codebook_subarray, _d_qcode_subarray, dict_size, 0);
+  Array<1, H, DeviceType> _d_codebook_array_org({_d_codebook_subarray.getShape(0)});
+  _d_codebook_array_org.loadData(_d_codebook_subarray.data());
+  SubArray _d_codebook_subarray_org(_d_codebook_array_org);
+  ReorderByIndex<H, Q, DeviceType>().Execute(_d_codebook_subarray_org, _d_codebook_subarray, _d_qcode_subarray, dict_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 

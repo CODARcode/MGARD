@@ -65,27 +65,63 @@ struct Math<Serial> {
   }
 
   MGARDX_EXEC static
-  int ffsl(unsigned int a) {
+  int ffs(unsigned int a) {
     return ffs(a);
   }
   MGARDX_EXEC static
   int ffsll(long long unsigned int a) {
-    return ffsll(a);
+    // return ffsll(a);
+    unsigned pos = 0;
+    if (a == 0) return pos;
+    while (!(a & 1))
+    {
+      a >>= 1;
+      ++pos;
+    }
+    return pos + 1;
   }
 };
 
+
+#define ALLOC_BLOCK \
+  Byte *shared_memory = new Byte[task.GetSharedMemorySize()];\
+  TaskType *** threads = new TaskType**[task.GetBlockDimZ()];\
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    threads[threadz] = new TaskType*[task.GetBlockDimY()];\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      threads[threadz][thready] = new TaskType[task.GetBlockDimX()];\
+      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+        TaskType &thread = threads[threadz][thready][threadx];\
+        thread = task;\
+        thread.GetFunctor().InitConfig(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
+                                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX());\
+        thread.GetFunctor().InitSharedMemory(shared_memory);\
+        thread.GetFunctor().InitThreadId(threadz, thready, threadx);\
+      }\
+    }\
+  }
+
+#define DEALLOC_BLOCK \
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      delete [] threads[threadz][thready];\
+    }\
+    delete [] threads[threadz];\
+  }\
+  delete [] threads;\
+  delete [] shared_memory;
 
 #define INIT_BLOCK \
   for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
     for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
       for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
-        Task &thread = threads[threadz * task.GetBlockDimY() * task.GetBlockDimX() + \
-                thready * task.GetBlockDimX() + threadx];\
+        TaskType &thread = threads[threadz][thready][threadx];\
         thread = task;\
-        thread.GetFunctor().Init(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
-                                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(),\
-                                 blockz, blocky, blockx, threadz, thready, threadx,\
-                                 shared_memory);\
+        threads[threadz][thready][threadx].GetFunctor().Init(\
+                 task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
+                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(),\
+                 blockz, blocky, blockx, threadz, thready, threadx,\
+                 shared_memory);\
       }\
     }\
   }
@@ -94,132 +130,15 @@ struct Math<Serial> {
   for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
     for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
       for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
-        Task &thread = threads[threadz * task.GetBlockDimY() * task.GetBlockDimX() + \
-                thready * task.GetBlockDimX() + threadx];\
+        TaskType &thread = threads[threadz][thready][threadx];\
         thread.GetFunctor().OPERATION();\
       }\
     }\
   }
 
-#define COMPUTE_CONDITION_BLOCK(CONDITION_VAR, CONDITION_OP) \
-  CONDITION_VAR = threads[0].GetFunctor().CONDITION_OP(); \
-  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
-    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
-      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
-        Task &thread = threads[threadz * task.GetBlockDimY() * task.GetBlockDimX() + \
-                thready * task.GetBlockDimX() + threadx];\
-        if(CONDITION_VAR != thread.GetFunctor().CONDITION_OP()) { \
-          std::cout << log::log_err << "IterKernel<Serial> inconsistant condition."; \
-          exit(-1); \
-        } \
-      }\
-    }\
-  }
-
-#define INIT_GRID \
-  Task ****** threads = new Task*****[task.GetBlockDimZ()];\
-  Byte ******* shared_memory = new Byte******[task.GetBlockDimZ()];\
-  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
-    threads[blockz] = new Task****[task.GetBlockDimY()];\
-    shared_memory[blockz] = new Byte*****[task.GetBlockDimY()];\
-    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
-      threads[blockz][blocky] = new Task***[task.GetBlockDimX()];\
-      shared_memory[blockz][blocky] = new Byte****[task.GetBlockDimX()];\
-      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
-        threads[blockz][blocky][blockx] = new Task**[task.GetBlockDimZ()];\
-        shared_memory[blockz][blocky][blockx] = new Byte***[task.GetBlockDimZ()];\
-        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
-          threads[blockz][blocky][blockx][threadz] = new Task*[task.GetBlockDimY()];\
-          shared_memory[blockz][blocky][blockx][threadz] = new Byte**[task.GetBlockDimY()];\
-          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
-            threads[blockz][blocky][blockx][threadz][thready] = new Task[task.GetBlockDimX()];\
-            shared_memory[blockz][blocky][blockx][threadz][thready] = new Byte*[task.GetBlockDimX()];\
-            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
-              threads[blockz][blocky][blockx][threadz][thready][threadx] = task;\
-              shared_memory[blockz][blocky][blockx][threadz][thready][threadx] = new Byte[task.GetSharedMemorySize()];\
-              threads[blockz][blocky][blockx][threadz][thready][threadx].GetFunctor().Init(\
-                                 task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
-                                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(),\
-                                 blockz, blocky, blockx, threadz, thready, threadx,\
-                                 shared_memory[blockz][blocky][blockx][threadz][thready][threadx]);\
-            }\
-          }\
-        }\
-      }\
-    }\
-  }
-
-#define COMPUTE_GRID(OPERATION) \
-  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
-    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
-      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
-        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
-          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
-            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
-              Task &thread = threads[blockz][blocky][blockx][threadz][thready][threadx];\
-              thread.GetFunctor().OPERATION();\
-            }\
-          }\
-        }\
-      }\
-    }\
-  }
-
-#define COMPUTE_CONDITION_GRID(CONDITION_VAR, CONDITION_OP) \
-  CONDITION_VAR = threads[0][0][0][0][0].GetFunctor().CONDITION_OP(); \
-  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
-    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
-      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
-        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
-          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
-            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
-              Task &thread = threads[blockz][blocky][blockx][threadz][thready][threadx];\
-              if(CONDITION_VAR != thread.GetFunctor().CONDITION_OP()) { \
-                std::cout << log::log_err << "IterKernel<Serial> inconsistant condition."; \
-                exit(-1); \
-              } \
-            }\
-          }\
-        }\
-      }\
-    }\
-  }
-
-#define FINALIZE_GRID \
-  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
-    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
-      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
-        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
-          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
-            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
-              delete [] shared_memory[blockz][blocky][blockx][threadz][thready][threadx];\
-            }\
-            delete [] threads[blockz][blocky][blockx][threadz][thready];\
-            delete [] shared_memory[blockz][blocky][blockx][threadz][thready];\
-          }\
-          delete [] threads[blockz][blocky][blockx][threadz];\
-          delete [] shared_memory[blockz][blocky][blockx][threadz];\
-        }\
-        delete [] threads[blockz][blocky][blockx];\
-        delete [] shared_memory[blockz][blocky][blockx];\
-      }\
-      delete [] threads[blockz][blocky];\
-      delete [] shared_memory[blockz][blocky];\
-    }\
-    delete [] threads[blockz];\
-    delete [] shared_memory[blockz];\
-  }\
-  delete [] threads;\
-  delete [] shared_memory;
-
-template <typename Task>
-MGARDX_KERL void SerialKernel(Task task) {
-  Byte *shared_memory = new Byte[task.GetSharedMemorySize()];
-
-  Task * threads = new Task[task.GetBlockDimX() *
-                            task.GetBlockDimY() *
-                            task.GetBlockDimZ()];
-
+template <typename TaskType>
+MGARDX_KERL void SerialKernel(TaskType task) {
+  ALLOC_BLOCK;
   for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
@@ -237,119 +156,384 @@ MGARDX_KERL void SerialKernel(Task task) {
       }
     }
   }
-  delete [] shared_memory;
-  delete [] threads;
+  DEALLOC_BLOCK;
 }
 
 
-template <typename Task>
-MGARDX_KERL void SerialIterKernel(Task task) {
-  Byte *shared_memory = new Byte[task.GetSharedMemorySize()];
+#define ALLOC_BLOCK_CONDITION \
+  Byte *shared_memory = new Byte[task.GetSharedMemorySize()];\
+  TaskType *** threads = new TaskType**[task.GetBlockDimZ()];\
+  bool *** active = new bool**[task.GetBlockDimZ()];\
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    threads[threadz] = new TaskType*[task.GetBlockDimY()];\
+    active[threadz] = new bool*[task.GetBlockDimY()];\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      threads[threadz][thready] = new TaskType[task.GetBlockDimX()];\
+      active[threadz][thready] = new bool[task.GetBlockDimX()];\
+      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+        active[threadz][thready][threadx] = true;\
+        TaskType &thread = threads[threadz][thready][threadx];\
+        thread = task;\
+        thread.GetFunctor().InitConfig(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
+                                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX());\
+        thread.GetFunctor().InitSharedMemory(shared_memory);\
+      }\
+    }\
+  }
 
-  Task * threads = new Task[task.GetBlockDimX() *
-                            task.GetBlockDimY() *
-                            task.GetBlockDimZ()];
+#define DEALLOC_BLOCK_CONDITION \
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      delete [] threads[threadz][thready];\
+      delete [] active[threadz][thready];\
+    }\
+    delete [] threads[threadz];\
+    delete [] active[threadz];\
+  }\
+  delete [] threads;\
+  delete [] active;\
+  delete [] shared_memory;
+
+#define INIT_BLOCK_CONDITION \
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+        TaskType &thread = threads[threadz][thready][threadx];\
+        thread = task;\
+        thread.GetFunctor().InitConfig(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
+                                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX());\
+        thread.GetFunctor().InitSharedMemory(shared_memory);\
+        thread.GetFunctor().InitBlockId(blockz, blocky, blockx);\
+        thread.GetFunctor().InitThreadId(threadz, thready, threadx);\
+        active[threadz][thready][threadx] = true;\
+      }\
+    }\
+  }
+
+#define RESET_BLOCK_CONDITION \
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+        active[threadz][thready][threadx] = true;\
+      } \
+    }\
+  }
+
+#define EVALUATE_BLOCK_CONDITION(CONDITION_VAR, CONDITION_OP) \
+  CONDITION_VAR = false;\
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+        TaskType &thread = threads[threadz][thready][threadx];\
+        bool thread_active = thread.GetFunctor().CONDITION_OP();\
+        active[threadz][thready][threadx] = thread_active;\
+        CONDITION_VAR = CONDITION_VAR | thread_active;\
+      } \
+    }\
+  }
+
+#define COMPUTE_BLOCK_CONDITION(OPERATION) \
+  for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+    for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+      for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+        TaskType &thread = threads[threadz][thready][threadx];\
+        if (active[threadz][thready][threadx]) {\
+          thread.GetFunctor().OPERATION();\
+        }\
+      }\
+    }\
+  }
+
+
+template <typename TaskType>
+MGARDX_KERL void SerialIterKernel(TaskType task) {
+  ALLOC_BLOCK_CONDITION;
   bool condition1 = false;
   bool condition2 = false;
-
   for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
-        INIT_BLOCK;
-        COMPUTE_BLOCK(Operation1);
-        COMPUTE_BLOCK(Operation2);
-        COMPUTE_CONDITION_BLOCK(condition1, LoopCondition1);
+        INIT_BLOCK_CONDITION;
+        COMPUTE_BLOCK_CONDITION(Operation1);
+        COMPUTE_BLOCK_CONDITION(Operation2);
+        EVALUATE_BLOCK_CONDITION(condition1, LoopCondition1);
         while (condition1) {
-          COMPUTE_BLOCK(Operation3);
-          COMPUTE_BLOCK(Operation4);
-          COMPUTE_BLOCK(Operation5);
-          COMPUTE_BLOCK(Operation6);
-          COMPUTE_CONDITION_BLOCK(condition1, LoopCondition1);
+          COMPUTE_BLOCK_CONDITION(Operation3);
+          COMPUTE_BLOCK_CONDITION(Operation4);
+          COMPUTE_BLOCK_CONDITION(Operation5);
+          COMPUTE_BLOCK_CONDITION(Operation6);
+          EVALUATE_BLOCK_CONDITION(condition1, LoopCondition1);
         }
-        COMPUTE_BLOCK(Operation7);
-        COMPUTE_BLOCK(Operation8);
-        COMPUTE_BLOCK(Operation9);
-        COMPUTE_BLOCK(Operation10);
-        COMPUTE_CONDITION_BLOCK(condition2, LoopCondition2);
+        RESET_BLOCK_CONDITION;
+        COMPUTE_BLOCK_CONDITION(Operation7);
+        COMPUTE_BLOCK_CONDITION(Operation8);
+        COMPUTE_BLOCK_CONDITION(Operation9);
+        COMPUTE_BLOCK_CONDITION(Operation10);
+        EVALUATE_BLOCK_CONDITION(condition2, LoopCondition2);
         while (condition2) {
-          COMPUTE_BLOCK(Operation11);
-          COMPUTE_BLOCK(Operation12);
-          COMPUTE_BLOCK(Operation13);
-          COMPUTE_BLOCK(Operation14);
-          COMPUTE_CONDITION_BLOCK(condition2, LoopCondition2);
+          COMPUTE_BLOCK_CONDITION(Operation11);
+          COMPUTE_BLOCK_CONDITION(Operation12);
+          COMPUTE_BLOCK_CONDITION(Operation13);
+          COMPUTE_BLOCK_CONDITION(Operation14);
+          EVALUATE_BLOCK_CONDITION(condition2, LoopCondition2);
         }
-        COMPUTE_BLOCK(Operation15);
-        COMPUTE_BLOCK(Operation16);
-        COMPUTE_BLOCK(Operation17);
+        RESET_BLOCK_CONDITION;
+        COMPUTE_BLOCK_CONDITION(Operation15);
+        COMPUTE_BLOCK_CONDITION(Operation16);
+        COMPUTE_BLOCK_CONDITION(Operation17);
       }
     }
   }
-  delete [] shared_memory;
-  delete [] threads;
+  DEALLOC_BLOCK_CONDITION;
 }
 
-template <typename Task>
-MGARDX_KERL void SerialHuffmanCLCustomizedKernel(Task task) {
+
+#define ALLOC_GRID \
+  TaskType ****** threads = new TaskType*****[task.GetGridDimZ()];\
+  Byte **** shared_memory = new Byte***[task.GetGridDimZ()];\
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    threads[blockz] = new TaskType****[task.GetGridDimY()];\
+    shared_memory[blockz] = new Byte**[task.GetGridDimY()];\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      threads[blockz][blocky] = new TaskType***[task.GetGridDimX()];\
+      shared_memory[blockz][blocky] = new Byte*[task.GetGridDimX()];\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        threads[blockz][blocky][blockx] = new TaskType**[task.GetBlockDimZ()];\
+        shared_memory[blockz][blocky][blockx] = new Byte[task.GetSharedMemorySize()];\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          threads[blockz][blocky][blockx][threadz] = new TaskType*[task.GetBlockDimY()];\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            threads[blockz][blocky][blockx][threadz][thready] = new TaskType[task.GetBlockDimX()];\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              threads[blockz][blocky][blockx][threadz][thready][threadx] = task;\
+              threads[blockz][blocky][blockx][threadz][thready][threadx].GetFunctor().Init(\
+                                 task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
+                                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(),\
+                                 blockz, blocky, blockx, threadz, thready, threadx,\
+                                 shared_memory[blockz][blocky][blockx]);\
+            }\
+          }\
+        }\
+      }\
+    }\
+  }
+
+#define ALLOC_ACTIVE_GRID(ACTIVE_VAR) \
+  bool ****** ACTIVE_VAR = new bool*****[task.GetGridDimZ()];\
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    ACTIVE_VAR[blockz] = new bool****[task.GetGridDimY()];\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      ACTIVE_VAR[blockz][blocky] = new bool***[task.GetGridDimX()];\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        ACTIVE_VAR[blockz][blocky][blockx] = new bool**[task.GetBlockDimZ()];\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          ACTIVE_VAR[blockz][blocky][blockx][threadz] = new bool*[task.GetBlockDimY()];\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            ACTIVE_VAR[blockz][blocky][blockx][threadz][thready] = new bool[task.GetBlockDimX()];\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              ACTIVE_VAR[blockz][blocky][blockx][threadz][thready][threadx] = true;\
+            }\
+          }\
+        }\
+      }\
+    }\
+  }
+
+
+#define DEALLOC_GRID \
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+            }\
+            delete [] threads[blockz][blocky][blockx][threadz][thready];\
+          }\
+          delete [] threads[blockz][blocky][blockx][threadz];\
+        }\
+        delete [] threads[blockz][blocky][blockx];\
+        delete [] shared_memory[blockz][blocky][blockx];\
+      }\
+      delete [] threads[blockz][blocky];\
+      delete [] shared_memory[blockz][blocky];\
+    }\
+    delete [] threads[blockz];\
+    delete [] shared_memory[blockz];\
+  }\
+  delete [] threads;\
+  delete [] shared_memory;
+
+
+#define DEALLOC_ACTIVE_GRID(ACTIVE_VAR) \
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+            }\
+            delete [] ACTIVE_VAR[blockz][blocky][blockx][threadz][thready];\
+          }\
+          delete [] ACTIVE_VAR[blockz][blocky][blockx][threadz];\
+        }\
+        delete [] ACTIVE_VAR[blockz][blocky][blockx];\
+      }\
+      delete [] ACTIVE_VAR[blockz][blocky];\
+    }\
+    delete [] ACTIVE_VAR[blockz];\
+  }\
+  delete [] ACTIVE_VAR;
+
+
+#define COMPUTE_GRID(OPERATION, ACTIVE_VAR) \
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              TaskType &thread = threads[blockz][blocky][blockx][threadz][thready][threadx];\
+              if (ACTIVE_VAR[blockz][blocky][blockx][threadz][thready][threadx]) {\
+                thread.GetFunctor().OPERATION();\
+              }\
+            }\
+          }\
+        }\
+      }\
+    }\
+  }
+
+#define RESER_CONDITION_GRID(ACTIVE_VAR) \
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              ACTIVE_VAR[blockz][blocky][blockx][threadz][thready][threadx] = true;\
+            }\
+          }\
+        }\
+      }\
+    }\
+  }
+
+
+#define INHERENT_CONDITION_GRID(ACTIVE_VAR1, ACTIVE_VAR2) \
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              ACTIVE_VAR2[blockz][blocky][blockx][threadz][thready][threadx] = \
+              ACTIVE_VAR1[blockz][blocky][blockx][threadz][thready][threadx];\
+            }\
+          }\
+        }\
+      }\
+    }\
+  }
+
+
+#define EVALUATE_CONDITION_GRID(CONDITION_VAR, ACTIVE_VAR, CONDITION_OP) \
+  CONDITION_VAR = false; \
+  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {\
+    for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {\
+      for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {\
+        for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+          for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+            for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+              TaskType &thread = threads[blockz][blocky][blockx][threadz][thready][threadx];\
+              bool thread_active = thread.GetFunctor().CONDITION_OP();\
+              ACTIVE_VAR[blockz][blocky][blockx][threadz][thready][threadx] = thread_active;\
+              CONDITION_VAR = CONDITION_VAR | thread_active;\
+            }\
+          }\
+        }\
+      }\
+    }\
+  }
+
+
+template <typename TaskType>
+MGARDX_KERL void SerialHuffmanCLCustomizedKernel(TaskType task) {
 
   bool loop_condition1 = false;
   bool loop_condition2 = false;
   bool branch_condition1 = false;
 
-  INIT_GRID;
-  COMPUTE_GRID(Operation1);
-  COMPUTE_CONDITION_GRID(loop_condition1, LoopCondition1);
+  ALLOC_GRID;
+  ALLOC_ACTIVE_GRID(all_active);
+  ALLOC_ACTIVE_GRID(loop1_active);
+  ALLOC_ACTIVE_GRID(loop2_active);
+  ALLOC_ACTIVE_GRID(branch1_active);
+
+  COMPUTE_GRID(Operation1, all_active);
+  INHERENT_CONDITION_GRID(all_active, loop1_active);
+  EVALUATE_CONDITION_GRID(loop_condition1, loop1_active, LoopCondition1);
   while (loop_condition1) {
-    COMPUTE_GRID(Operation2);
-    COMPUTE_GRID(Operation3);
-    COMPUTE_GRID(Operation4);
-    COMPUTE_GRID(Operation5);
-    COMPUTE_CONDITION_GRID(branch_condition1, BranchCondition1);
+    COMPUTE_GRID(Operation2, loop1_active);
+    COMPUTE_GRID(Operation3, loop1_active);
+    COMPUTE_GRID(Operation4, loop1_active);
+    COMPUTE_GRID(Operation5, loop1_active);
+    INHERENT_CONDITION_GRID(loop1_active, branch1_active);
+    EVALUATE_CONDITION_GRID(branch_condition1, branch1_active, BranchCondition1);
     if (branch_condition1) {
-      COMPUTE_CONDITION_GRID(loop_condition2, LoopCondition2);
+      INHERENT_CONDITION_GRID(branch1_active, loop2_active);
+      EVALUATE_CONDITION_GRID(loop_condition2, loop2_active, LoopCondition2);
       while (loop_condition2) {
-        COMPUTE_GRID(Operation6);
-        COMPUTE_GRID(Operation7);
-        COMPUTE_GRID(Operation8);
-        COMPUTE_CONDITION_GRID(loop_condition2, LoopCondition2);
+        COMPUTE_GRID(Operation6, loop2_active);
+        COMPUTE_GRID(Operation7, loop2_active);
+        COMPUTE_GRID(Operation8, loop2_active);
+        EVALUATE_CONDITION_GRID(loop_condition2, loop2_active, LoopCondition2);
       }
-      COMPUTE_GRID(Operation9)
-      COMPUTE_GRID(Operation10);;
+      COMPUTE_GRID(Operation9, branch1_active)
+      COMPUTE_GRID(Operation10, branch1_active);
     }
-
-    COMPUTE_GRID(Operation11);
-    COMPUTE_GRID(Operation12);
-    COMPUTE_GRID(Operation13);
-    COMPUTE_GRID(Operation14);
-
-    COMPUTE_CONDITION_GRID(loop_condition1, LoopCondition1);
+    COMPUTE_GRID(Operation11, loop1_active);
+    COMPUTE_GRID(Operation12, loop1_active);
+    COMPUTE_GRID(Operation13, loop1_active);
+    COMPUTE_GRID(Operation14, loop1_active);
+    EVALUATE_CONDITION_GRID(loop_condition1, loop1_active, LoopCondition1);
   }
 
-  FINALIZE_GRID;
+  DEALLOC_GRID;
+  DEALLOC_ACTIVE_GRID(all_active);
+  DEALLOC_ACTIVE_GRID(loop1_active);
+  DEALLOC_ACTIVE_GRID(loop2_active);
+  DEALLOC_ACTIVE_GRID(branch1_active);
 }
 
 
-template <typename Task>
-MGARDX_KERL void SerialHuffmanCWCustomizedKernel(Task task) {
+template <typename TaskType>
+MGARDX_KERL void SerialHuffmanCWCustomizedKernel(TaskType task) {
 
   bool loop_condition1 = false;
 
-  INIT_GRID;
-  COMPUTE_GRID(Operation1);
-  COMPUTE_GRID(Operation2);
-  COMPUTE_GRID(Operation3);
-  COMPUTE_CONDITION_GRID(loop_condition1, LoopCondition1);
+  ALLOC_GRID;
+  ALLOC_ACTIVE_GRID(all_active);
+  ALLOC_ACTIVE_GRID(loop1_active);
+  COMPUTE_GRID(Operation1, all_active);
+  COMPUTE_GRID(Operation2, all_active);
+  COMPUTE_GRID(Operation3, all_active);
+  INHERENT_CONDITION_GRID(all_active, loop1_active);
+  EVALUATE_CONDITION_GRID(loop_condition1, loop1_active, LoopCondition1);
   while (loop_condition1) {
-    COMPUTE_GRID(Operation4);
-    COMPUTE_GRID(Operation5);
-    COMPUTE_GRID(Operation6);
-    COMPUTE_GRID(Operation7);
-    COMPUTE_GRID(Operation8);
-    COMPUTE_CONDITION_GRID(loop_condition1, LoopCondition1);
+    COMPUTE_GRID(Operation4, loop1_active);
+    COMPUTE_GRID(Operation5, loop1_active);
+    COMPUTE_GRID(Operation6, loop1_active);
+    COMPUTE_GRID(Operation7, loop1_active);
+    COMPUTE_GRID(Operation8, loop1_active);
+    EVALUATE_CONDITION_GRID(loop_condition1, loop1_active, LoopCondition1);
   }
-  COMPUTE_GRID(Operation9)
-  COMPUTE_GRID(Operation10);;
+  COMPUTE_GRID(Operation9, all_active);
+  COMPUTE_GRID(Operation10, all_active);
 
-  FINALIZE_GRID;
+  DEALLOC_GRID;
+  DEALLOC_ACTIVE_GRID(all_active);
+  DEALLOC_ACTIVE_GRID(loop1_active);
 }
 
 
@@ -510,7 +694,7 @@ class DeviceRuntime<Serial> {
   template <typename FunctorType>
   MGARDX_CONT static int
   GetOccupancyMaxActiveBlocksPerSM(FunctorType functor, int blockSize, size_t dynamicSMemSize) {
-    return 1;
+    return 80;
   }
 
   template <typename FunctorType>
@@ -539,7 +723,8 @@ class MemoryManager<Serial> {
   template <typename T>
   MGARDX_CONT static
   void Malloc1D(T *& ptr, SIZE n, int queue_idx) {
-    ptr = (T*)std::malloc(n * sizeof(T));
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    ptr = (T*)std::malloc(n * sizeof(converted_T));
     if (ptr == NULL) {
       std::cout << log::log_err << "MemoryManager<Serial>::Malloc1D error.\n";
     }
@@ -548,7 +733,8 @@ class MemoryManager<Serial> {
   template <typename T>
   MGARDX_CONT static
   void MallocND(T *& ptr, SIZE n1, SIZE n2, SIZE &ld, int queue_idx) {
-    ptr = (T*)std::malloc(n1 * n2 * sizeof(T));
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    ptr = (T*)std::malloc(n1 * n2 * sizeof(converted_T));
     ld = n1;
     if (ptr == NULL) {
       std::cout << log::log_err << "MemoryManager<Serial>::Malloc1D error.\n";
@@ -565,19 +751,22 @@ class MemoryManager<Serial> {
   template <typename T>
   MGARDX_CONT static
   void Copy1D(T * dst_ptr, const T * src_ptr, SIZE n, int queue_idx) {
-    std::memcpy(dst_ptr, src_ptr, sizeof(T) * n);
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    std::memcpy(dst_ptr, src_ptr, sizeof(converted_T) * n);
   }
 
   template <typename T>
   MGARDX_CONT static
   void CopyND(T * dst_ptr, SIZE dst_ld, const T * src_ptr, SIZE src_ld, SIZE n1, SIZE n2, int queue_idx) {
-    std::memcpy(dst_ptr, src_ptr, sizeof(T) * n1 * n2);
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    std::memcpy(dst_ptr, src_ptr, sizeof(converted_T) * n1 * n2);
   }
 
   template <typename T>
   MGARDX_CONT static
   void MallocHost(T *& ptr, SIZE n, int queue_idx) {
-    ptr = (T*)std::malloc(n * sizeof(T));
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    ptr = (T*)std::malloc(n * sizeof(converted_T));
     if (ptr == NULL) {
       std::cout << log::log_err << "MemoryManager<Serial>::Malloc1D error.\n";
     }
@@ -593,13 +782,15 @@ class MemoryManager<Serial> {
   template <typename T>
   MGARDX_CONT static
   void Memset1D(T * ptr, SIZE n, int value) {
-    memset(ptr, value, n * sizeof(T));
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    memset(ptr, value, n * sizeof(converted_T));
   }
 
   template <typename T>
   MGARDX_CONT static
   void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value) {
-    memset(ptr, value, n1 * n2 * sizeof(T));
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    memset(ptr, value, n1 * n2 * sizeof(converted_T));
   }
 
   template <typename T>
@@ -611,22 +802,23 @@ class MemoryManager<Serial> {
 };
 
 
-template <typename TaskType>
-class DeviceAdapter<TaskType, Serial> {
+template <typename TaskTypeType>
+class DeviceAdapter<TaskTypeType, Serial> {
 public:
   MGARDX_CONT
   DeviceAdapter(){};
 
   MGARDX_CONT
-  void Execute(TaskType& task) {
+  void Execute(TaskTypeType& task) {
+    // std::cout << "Executing: " << task.GetFunctorName() << "\n";
     // if constexpr evalute at compile time otherwise this does not compile
-    if constexpr (std::is_base_of<Functor<Serial>, typename TaskType::Functor>::value) {
+    if constexpr (std::is_base_of<Functor<Serial>, typename TaskTypeType::Functor>::value) {
       SerialKernel(task);
-    } else if constexpr (std::is_base_of<IterFunctor<Serial>, typename TaskType::Functor>::value) {
+    } else if constexpr (std::is_base_of<IterFunctor<Serial>, typename TaskTypeType::Functor>::value) {
       SerialIterKernel(task);
-    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<Serial>, typename TaskType::Functor>::value) {
+    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<Serial>, typename TaskTypeType::Functor>::value) {
       SerialHuffmanCLCustomizedKernel(task);
-    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<Serial>, typename TaskType::Functor>::value) {
+    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<Serial>, typename TaskTypeType::Functor>::value) {
       SerialHuffmanCWCustomizedKernel(task);
     }
   }
@@ -694,7 +886,7 @@ public:
     for (SIZE i = 0; i < n; ++i) {
       data[i] = std::pair<KeyT, ValueT>(*keys(i), *values(i));
     }
-    std::sort(data.begin(), data.end(), KeyValueComparator<KeyT, ValueT>{});
+    std::stable_sort(data.begin(), data.end(), KeyValueComparator<KeyT, ValueT>{});
     for (SIZE i = 0; i < n; ++i) {
       *keys(i) = data[i].first;
       *values(i) = data[i].second;

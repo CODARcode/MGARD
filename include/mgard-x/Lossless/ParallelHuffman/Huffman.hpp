@@ -5,6 +5,8 @@
  * Date: December 1, 2021
  */
 
+static bool debug_print_huffman = false;
+
 #include "Histogram.hpp"
 #include "GetCodebook.hpp"
 #include "EncodeFixedLen.hpp"
@@ -19,6 +21,8 @@ using namespace std::chrono;
 #define MGARD_X_HUFFMAN_TEMPLATE_HPP
 
 namespace mgard_x {
+
+
 
 template <typename T>
 void align_byte_offset(SIZE &byte_offset) { 
@@ -96,8 +100,11 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
 
   SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
   Histogram<Q, unsigned int, DeviceType>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
-  // gpuErrchk(DeviceTypeDeviceSynchronize());
   DeviceRuntime<DeviceType>::SyncDevice();
+
+  if (debug_print_huffman) {
+    // PrintSubarray("Histogram::freq_subarray", freq_subarray);
+  }
 
   auto type_bw = sizeof(H) * 8;
   size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size;
@@ -114,8 +121,12 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
   SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
 
   GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray, decodebook_subarray);
-  // DeviceTypeDeviceSynchronize();
   DeviceRuntime<DeviceType>::SyncDevice();
+
+  if (debug_print_huffman) {
+    // PrintSubarray("GetCodebook::codebook_subarray", codebook_subarray);
+    // PrintSubarray("GetCodebook::decodebook_subarray", decodebook_subarray);
+  }
 
   Array<1, H, DeviceType> huff_array({(SIZE)primary_count});
   huff_array.memset(0);
@@ -129,6 +140,10 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
                                                               huff_subarray,
                                                               primary_count,
                                                               codebook_subarray, 0);
+  DeviceRuntime<DeviceType>::SyncDevice();
+  if (debug_print_huffman) {
+    // PrintSubarray("EncodeFixedLen::huff_subarray", huff_subarray);
+  }
 
   // deflate
   auto nchunk = (primary_count - 1) / chunk_size + 1; 
@@ -138,8 +153,12 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
 
   SubArray<1, size_t, DeviceType> huff_bitwidths_subarray({(SIZE)nchunk}, huff_bitwidths);
   Deflate<H, DeviceType>().Execute(huff_subarray, primary_count, huff_bitwidths_subarray, chunk_size, 0);
-
   DeviceRuntime<DeviceType>::SyncQueue(0);
+
+  if (debug_print_huffman) {
+    // PrintSubarray("Deflate::huff_subarray", huff_subarray);
+    // PrintSubarray("Deflate::huff_bitwidths_subarray", huff_bitwidths_subarray);
+  }
 
   size_t* h_meta = new size_t[nchunk * 3]();
   size_t* dH_uInt_meta = h_meta;

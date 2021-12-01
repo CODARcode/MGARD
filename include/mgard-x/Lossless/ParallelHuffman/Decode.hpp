@@ -52,10 +52,10 @@ class DecodeFunctor: public Functor<DeviceType> {
     size_t idx_bit;
     size_t idx_byte = 0;
     size_t idx_bcoded = 0;
-    auto first = reinterpret_cast<H *>(_s_singleton);
+    auto first = reinterpret_cast<H *>(singleton((IDX)0));
     auto entry = first + sizeof(H) * 8;
     auto keys =
-        reinterpret_cast<Q *>(_s_singleton + sizeof(H) * (2 * sizeof(H) * 8));
+        reinterpret_cast<Q *>(singleton((IDX)0) + sizeof(H) * (2 * sizeof(H) * 8));
     H v = (*densely(densely_offset + idx_byte) >> (sizeof(H) * 8 - 1)) & 0x1; // get the first bit
     size_t l = 1;
     size_t i = 0;
@@ -68,6 +68,25 @@ class DecodeFunctor: public Functor<DeviceType> {
         v = (v << 1) | next_bit;
         ++l;
       }
+      // if (!chunk_id) {
+      // if ((entry[l] + v - first[l])*sizeof(Q) + sizeof(H) * (2 * sizeof(H) * 8) >= 1280) {
+        // printf("out of range: %llu\n", (entry[l] + v - first[l])*sizeof(Q) + sizeof(H) * (2 * sizeof(H) * 8));
+        // std::cout << "l:" << l << std::endl;
+        // std::cout << "entry[l]:" << entry[l] << std::endl;
+        // std::cout << "v:" << v << std::endl;
+        // std::cout << "first[l]:" << first[l] << std::endl;
+        // printf("entry:");
+        // for (int i = 0; i < 64; i++) {
+        //   printf("%llu ", entry[i]);
+        // }
+        // printf("\n");
+        // printf("first:");
+        // for (int i = 0; i < 64; i++) {
+        //   printf("%llu ", first[i]);
+        // }
+        // printf("\n");
+
+      // }
       *bcode(bcode_offset + idx_bcoded) = keys[entry[l] + v - first[l]];
       idx_bcoded++;
       {
@@ -134,6 +153,9 @@ public:
     gridz = 1;
     gridy = 1;
     gridx = (nchunk - 1) / tbx + 1;
+    // printf("sm_size: %llu\n", sm_size);
+    // SubArray<1, H, DeviceType> temp({(SIZE)(singleton_size/sizeof(H))}, (H*)singleton.data());
+    // PrintSubarray("singleton", temp);
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
     // PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, 

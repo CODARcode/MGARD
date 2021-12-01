@@ -36,12 +36,15 @@ void print_usage_message(std::string error) {
 \t\t -m <abs|rel>: error bound mode (abs: abolute; rel: relative)\n\
 \t\t -e <error>: error bound\n\
 \t\t -s <smoothness>: smoothness parameter\n\
-\t\t -l choose lossless compressor (0:ZSTD@CPU 1:Huffman@GPU 2:Huffman@GPU+LZ4@GPU)\n\
+\t\t -l choose lossless compressor (0:ZSTD@CPU 1:Huffman 2:Huffman+LZ4)\n\
+\t\t -d <serial|cuda>: device type\n\
 \t\t -v enable verbose (show timing and statistics)\n\
 \n\
 \t -x: decompress data\n\
 \t\t -c <path to compressed file>\n\
-\t\t -d <path to decompressed file>\n");
+\t\t -d <path to decompressed file>\n\
+\t\t -d <serial|cuda>: device type\n\
+\t\t -v enable verbose (show timing and statistics)\n");
   exit(0);
 }
 
@@ -258,6 +261,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     std::vector<mgard_x::SIZE> shape, bool non_uniform,
                     const char *coords_file, double tol, double s,
                     enum mgard_x::error_bound_type mode, int lossless,
+                    enum mgard_x::device_type dev_type, 
                     bool verbose) {
 
   mgard_x::Config config;
@@ -298,7 +302,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   std::vector<const mgard_x::Byte *> coords_byte;
   if (!non_uniform) {
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                         compressed_data, compressed_size, config);
+                         compressed_data, compressed_size, config,
+                         dev_type, false);
   } else {
     std::vector<T *> coords;
     if (non_uniform) {
@@ -308,7 +313,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
       coords_byte.push_back((const mgard_x::Byte *)coord);
     }
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                         compressed_data, compressed_size, coords_byte, config);
+                         compressed_data, compressed_size, coords_byte, config,
+                         dev_type, false);
   }
 
   writefile(output_file, compressed_size, compressed_data);
@@ -321,7 +327,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.timing = verbose;
 
     mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                           config);
+                           config, dev_type, false);
 
     print_statistics<T>(s, mode, original_size, original_data,
                         (T *)decompressed_data);
@@ -332,6 +338,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 }
 
 int launch_decompress(const char *input_file, const char *output_file,
+                      enum mgard_x::device_type dev_type, 
                       bool verbose) {
 
   mgard_x::Config config;
@@ -352,7 +359,7 @@ int launch_decompress(const char *input_file, const char *output_file,
   void *decompressed_data;
 
   mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                         config);
+                         config, dev_type, false);
 
   int elem_size = 0;
   if (dtype == mgard_x::data_type::Double) {
@@ -429,22 +436,35 @@ bool try_compression(int argc, char *argv[]) {
   if (lossless_level == 0) {
     std::cout << mgard_x::log::log_info << "lossless: ZSTD@CPU\n";
   } else if (lossless_level == 1) {
-    std::cout << mgard_x::log::log_info << "lossless: Huffman@GPU\n";
+    std::cout << mgard_x::log::log_info << "lossless: Huffman\n";
   } else if (lossless_level == 2) {
     std::cout << mgard_x::log::log_info
-              << "lossless: Huffman@GPU + LZ4@GPU\n";
+              << "lossless: Huffman + LZ4\n";
   }
+
+  enum mgard_x::device_type dev_type; // REL or ABS
+  std::string dev = get_arg(argc, argv, "-d");
+  if (dev.compare("serial") == 0) {
+    dev_type = mgard_x::device_type::Serial;
+    std::cout << mgard_x::log::log_info << "device type: Serial\n";
+  } else if (dev.compare("cuda") == 0) {
+    dev_type = mgard_x::device_type::CUDA;
+    std::cout << mgard_x::log::log_info << "device type: CUDA\n";
+  } else {
+    print_usage_message("wrong device type.");
+  }
+
   bool verbose = has_arg(argc, argv, "-v");
   if (verbose)
     std::cout << mgard_x::log::log_info << "Verbose: enabled\n";
   if (dtype == mgard_x::data_type::Double) {
     launch_compress<double>(D, dtype, input_file.c_str(), output_file.c_str(),
                             shape, non_uniform, non_uniform_coords_file.c_str(),
-                            tol, s, mode, lossless_level, verbose);
+                            tol, s, mode, lossless_level, dev_type, verbose);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_compress<float>(D, dtype, input_file.c_str(), output_file.c_str(),
                            shape, non_uniform, non_uniform_coords_file.c_str(),
-                           tol, s, mode, lossless_level, verbose);
+                           tol, s, mode, lossless_level, dev_type, verbose);
   }
   return true;
 }
@@ -459,10 +479,21 @@ bool try_decompression(int argc, char *argv[]) {
             << "\n";
   std::cout << mgard_x::log::log_info << "decompressed data: " << output_file
             << "\n";
+  enum mgard_x::device_type dev_type; // REL or ABS
+  std::string dev = get_arg(argc, argv, "-d");
+  if (dev.compare("serial") == 0) {
+    dev_type = mgard_x::device_type::Serial;
+    std::cout << mgard_x::log::log_info << "devie type: Serial\n";
+  } else if (dev.compare("cuda") == 0) {
+    dev_type = mgard_x::device_type::CUDA;
+    std::cout << mgard_x::log::log_info << "devie type: CUDA\n";
+  } else {
+    print_usage_message("wrong device type.");
+  }
   bool verbose = has_arg(argc, argv, "-v");
   if (verbose)
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
-  launch_decompress(input_file.c_str(), output_file.c_str(), verbose);
+  launch_decompress(input_file.c_str(), output_file.c_str(), dev_type, verbose);
   return true;
 }
 

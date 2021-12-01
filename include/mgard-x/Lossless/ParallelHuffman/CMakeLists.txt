@@ -1,0 +1,15 @@
+list(APPEND MGARD_X_HEADER
+    ${CMAKE_CURRENT_SOURCE_DIR}/Decode.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Deflate.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/EncodeFixLen.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/FillArraySequance.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/GenerateCL.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/GenerateCW.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/GetCodeBook.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/GetFirstNonzeroIndex.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Histogram.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Huffman.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ReorderByIndex.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ReverseArray.hpp
+    )
+set(MGARD_X_HEADER ${MGARD_X_HEADER} PARENT_SCOPE)

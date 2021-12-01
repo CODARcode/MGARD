@@ -31,7 +31,7 @@ namespace mgard_x {
 //!\param[out] compressed_size Size of compressed data.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size);
+              void *&compressed_data, size_t &compressed_size, enum device_type dev_type, bool output_pre_allocated);
 
 //!\file
 //!\brief High level compression and decompression API.
@@ -50,7 +50,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[in] config For configuring the compression process.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size, Config config);
+              void *&compressed_data, size_t &compressed_size, Config config, enum device_type dev_type, bool output_pre_allocated);
 
 //! Compress a function on an N-D tensor product grid with non-uniform spacing
 //!
@@ -67,7 +67,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords);
+              std::vector<const Byte *> coords, enum device_type dev_type, bool output_pre_allocated);
 
 //! Compress a function on an N-D tensor product grid with non-uniform spacing
 //!
@@ -85,7 +85,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, Config config);
+              std::vector<const Byte *> coords, Config config, enum device_type dev_type, bool output_pre_allocated);
 
 //! Decompress a function on an N-D tensor product grid
 //!
@@ -93,7 +93,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[in] compressed_size Size of comrpessed data.
 //!\param[out] decompressed_data Decompressed data.
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data);
+                void *&decompressed_data, enum device_type dev_type, bool output_pre_allocated);
 
 //! Decompress a function on an N-D tensor product grid
 //!
@@ -102,7 +102,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
 //!\param[out] decompressed_data Decompressed data.
 //!\param[in] config For configuring the decompression process.
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, Config config);
+                void *&decompressed_data, Config config, enum device_type dev_type, bool output_pre_allocated);
 
 //! Verify the compressed data
 bool verify(const void *compressed_data, size_t compressed_size);

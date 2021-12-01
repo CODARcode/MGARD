@@ -19,14 +19,14 @@ nvcomp_src_dir=${nvcomp_dir}/src
 nvcomp_build_dir=${nvcomp_dir}/build
 nvcomp_install_dir=${nvcomp_dir}/install
 nvcomp_library=${nvcomp_dir}/build/lib/libnvcomp.so
-# if [ ! -f "${nvcomp_dir}" ]; then
-	# rm -rf ${nvcomp_dir} && mkdir -p ${nvcomp_dir}
-	# git clone https://github.com/NVIDIA/nvcomp.git ${nvcomp_src_dir}
-	# cmake -S ${nvcomp_src_dir} -B ${nvcomp_build_dir}\
-	# 	  -DCMAKE_INSTALL_PREFIX=${nvcomp_install_dir}
-	# cmake --build ${nvcomp_build_dir} -j8
-	# cmake --install ${nvcomp_build_dir}
-# fi
+if [ ! -f "${nvcomp_library}" ]; then
+	rm -rf ${nvcomp_dir} && mkdir -p ${nvcomp_dir}
+	git clone https://github.com/NVIDIA/nvcomp.git ${nvcomp_src_dir}
+	cmake -S ${nvcomp_src_dir} -B ${nvcomp_build_dir}\
+		  -DCMAKE_INSTALL_PREFIX=${nvcomp_install_dir}
+	cmake --build ${nvcomp_build_dir} -j8
+	cmake --install ${nvcomp_build_dir}
+fi
 
 #build Kokkos
 kokkos_dir=${external_dir}/kokkos
@@ -58,7 +58,7 @@ cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
 	  -DMGARD_ENABLE_CUDA_FMA=ON\
 	  -DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=OFF\
 	  -DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=ON\
-	  -DCMAKE_BUILD_TYPE=Release\
+	  -DCMAKE_BUILD_TYPE=Debug\
 	  -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
 cmake --build ${mgard_x_build_dir} -j8
 cmake --install ${mgard_x_build_dir}
