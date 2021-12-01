@@ -34,7 +34,6 @@ static bool debug_print = false;
 template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
                                  enum error_bound_type type, T tol, T s) {
-
   // DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
   Timer timer_total, timer_each;
   for (DIM i = 0; i < D; i++) {

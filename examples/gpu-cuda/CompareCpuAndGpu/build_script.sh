@@ -21,3 +21,4 @@ cmake -S .  -B ./build \
 	    -DCMAKE_PREFIX_PATH=${nvcomp_build_dir}
 	  
 cmake --build ./build
+

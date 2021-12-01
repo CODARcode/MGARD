@@ -5,9 +5,9 @@
  * Date: December 1, 2021
  */
 
-#ifndef MGARD_X_DEVICE_ADAPTER_CUDA_CU
-#define MGARD_X_DEVICE_ADAPTER_CUDA_CU
 
+
+#define MGARDX_COMPILE_CUDA
 #include "mgard-x/RuntimeX/RuntimeX.h"
  
 namespace mgard_x {
@@ -24,4 +24,4 @@ AutoTuningTable<CUDA> AutoTuner<CUDA>::autoTuningTable;
 bool AutoTuner<CUDA>::ProfileKernels = false;
 
 }
-#endif
+#undef MGARDX_COMPILE_CUDA

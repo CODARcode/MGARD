@@ -71,7 +71,8 @@ public:
 };
 }
 
-#include "AutoTunerCuda.h"
 #include "AutoTunerSerial.h"
+#include "AutoTunerCuda.h"
+#include "AutoTunerHip.h"
 
 #endif

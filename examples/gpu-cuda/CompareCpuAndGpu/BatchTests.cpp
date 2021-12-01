@@ -274,6 +274,8 @@ int main(int argc, char *argv[]) {
     dev_type = mgard_x::device_type::Serial;
   } else if (strcmp (dev, "cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
+  } else if (strcmp (dev, "hip") == 0) {
+    dev_type = mgard_x::device_type::HIP;
   }
 
 
@@ -358,9 +360,15 @@ int main(int argc, char *argv[]) {
                   (float *)malloc(original_size * sizeof(float));
               readfile(input_file, original_size * sizeof(float), false,
                        original_data);
-              result_cpu =
-                  test<float>(shapes[sp].size(), original_data, shapes[sp], CPU,
-                              tols[tol], ssf[s], ebtypes[ebt], dev_type);
+              if (dev_type == mgard_x::device_type::Serial) {
+                result_cpu =
+                    test<float>(shapes[sp].size(), original_data, shapes[sp],
+                                 CPU, told[tol], ssd[s], ebtypes[ebt], dev_type);
+              } else {
+                result_cpu =
+                    test<float>(shapes[sp].size(), original_data, shapes[sp],
+                                 GPU, told[tol], ssd[s], ebtypes[ebt], mgard_x::device_type::Serial);
+              }
               result_gpu =
                   test<float>(shapes[sp].size(), original_data, shapes[sp], GPU,
                               tols[tol], ssf[s], ebtypes[ebt], dev_type);
@@ -373,9 +381,17 @@ int main(int argc, char *argv[]) {
                   (double *)malloc(original_size * sizeof(double));
               readfile(input_file, original_size * sizeof(double), false,
                        original_data);
-              result_cpu =
-                  test<double>(shapes[sp].size(), original_data, shapes[sp],
-                               CPU, told[tol], ssd[s], ebtypes[ebt], dev_type);
+
+              if (dev_type == mgard_x::device_type::Serial) {
+                result_cpu =
+                    test<double>(shapes[sp].size(), original_data, shapes[sp],
+                                 CPU, told[tol], ssd[s], ebtypes[ebt], dev_type);
+              } else {
+                result_cpu =
+                    test<double>(shapes[sp].size(), original_data, shapes[sp],
+                                 GPU, told[tol], ssd[s], ebtypes[ebt], mgard_x::device_type::Serial);
+              }
+
               result_gpu =
                   test<double>(shapes[sp].size(), original_data, shapes[sp],
                                GPU, told[tol], ssd[s], ebtypes[ebt], dev_type);

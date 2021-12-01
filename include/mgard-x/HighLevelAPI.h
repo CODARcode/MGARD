@@ -12,9 +12,9 @@
 #include <vector>
 
 #include "compress_cuda.hpp"
-#include "mgard-x/Handle.hpp" 
+#include "mgard-x/Handle.h" 
 #include "mgard-x/Metadata.hpp"
-#include "mgard-x/RuntimeX/RuntimeX.h"
+#include "mgard-x/RuntimeX/RuntimeXPublic.h"
 
 #ifndef MGARD_X_HIGH_LEVEL_API_H
 #define MGARD_X_HIGH_LEVEL_API_H

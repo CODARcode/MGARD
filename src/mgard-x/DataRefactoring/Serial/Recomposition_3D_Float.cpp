@@ -5,7 +5,7 @@
  * Date: December 1, 2021
  */
 
-
+#define MGARDX_COMPILE_SERIAL
 #include "mgard-x/DataRefactoring/DataRefactoring.hpp"
 
 #include <iostream>
@@ -17,3 +17,4 @@ template void recompose<3, float, Serial>(Handle<3, float, Serial> & handle,
                                       SubArray<3, float, Serial>& v,
                                       SIZE l_target, int queue_idx);
 } // namespace mgard_x
+#undef MGARDX_COMPILE_SERIAL

@@ -8,11 +8,11 @@
 
 #include "DeviceAdapter.h"
 
-#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
 #include <iostream>
 #include <hipcub/hipcub.hpp>
-#include <mma.h>
-#include <cooperative_groups.h>
+// #include <mma.h>
+#include <hip/hip_cooperative_groups.h>
 
 
 // using namespace nvhip;
@@ -107,10 +107,44 @@ template <>
 struct Atomic<HIP> {
   template <typename T>
   MGARDX_EXEC static
-  void Min(T * result, T value) {
-    atomicMin(result, value);
+  T Min(T * result, T value) {
+    return atomicMin(result, value);
+  }
+  template <typename T>
+  MGARDX_EXEC static
+  T Max(T * result, T value) {
+    return atomicMax(result, value);
+  }
+  template <typename T>
+  MGARDX_EXEC static
+  T Add(T * result, T value) {
+    return atomicAdd(result, value);
   }
 };
+
+template <> 
+struct Math<HIP> {
+  template <typename T>
+  MGARDX_EXEC static
+  T Min(T a, T b) {
+    return min(a, b);
+  }
+  template <typename T>
+  MGARDX_EXEC static
+  T Max(T a, T b) {
+    return max(a, b);
+  }
+  MGARDX_EXEC static
+  int ffs(unsigned int a) {
+    return  __ffs(a);
+  }
+  MGARDX_EXEC static
+  int ffsll(long long unsigned int a) {
+    return  __ffsll(a);
+  }
+};
+
+
 
 template <typename Task>
 MGARDX_KERL void kernel() {
@@ -301,15 +335,13 @@ class DeviceSpecification<HIP> {
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(hipSetDevice(d));
       int maxbytes;
-      int maxbytesOptIn;
-      hipDeviceGetAttribute(&maxbytes, hipDevAttrMaxSharedMemoryPerBlock, d);
-      hipDeviceGetAttribute(&maxbytesOptIn, hipDevAttrMaxSharedMemoryPerBlockOptin, d);
-      MaxSharedMemorySize[d] = std::max(maxbytes, maxbytesOptIn);
-      hipDeviceGetAttribute(&WarpSize[d], hipDevAttrWarpSize, d);
-      hipDeviceGetAttribute(&NumSMs[d], hipDevAttrMultiProcessorCount, d);
-      hipDeviceGetAttribute(&MaxNumThreadsPerSM[d], hipDevAttrMaxThreadsPerMultiProcessor, d);
-
-      hipDeviceProp prop;
+      hipDeviceGetAttribute(&maxbytes, hipDeviceAttributeMaxSharedMemoryPerBlock, d);
+      MaxSharedMemorySize[d] = maxbytes;
+      hipDeviceGetAttribute(&WarpSize[d], hipDeviceAttributeWarpSize, d);
+      hipDeviceGetAttribute(&NumSMs[d], hipDeviceAttributeMultiprocessorCount, d);
+      hipDeviceGetAttribute(&MaxNumThreadsPerSM[d], hipDeviceAttributeMaxThreadsPerMultiProcessor, d);
+      // printf("d = %d, MaxNumThreadsPerSM: %d\n", d, MaxNumThreadsPerSM[d]);
+      hipDeviceProp_t prop;
       hipGetDeviceProperties(&prop, d);
       ArchitectureGeneration[d] = 1; // default optimized for Volta
       if (prop.major == 7 && prop.minor == 0) {
@@ -317,6 +349,8 @@ class DeviceSpecification<HIP> {
       } else if (prop.major == 7 && (prop.minor == 2 || prop.minor == 5)) {
         ArchitectureGeneration[d] = 2;
       }
+      MaxNumThreadsPerSM[d] = 1024;
+      WarpSize[d] = 32;
     }
   }
 
@@ -519,22 +553,22 @@ class DeviceRuntime<HIP> {
     if constexpr (std::is_base_of<Functor<HIP>, 
       FunctorType>::value) {
       gpuErrchk(hipFuncSetAttribute( 
-       Kernel<Task<FunctorType>>,
+       (const void*)Kernel<Task<FunctorType>>,
        hipFuncAttributeMaxDynamicSharedMemorySize,
        maxbytes));
     } else if constexpr (std::is_base_of<IterFunctor<HIP>, FunctorType>::value) {
       gpuErrchk(hipFuncSetAttribute( 
-       IterKernel<Task<FunctorType>>,
+        (const void*)IterKernel<Task<FunctorType>>,
        hipFuncAttributeMaxDynamicSharedMemorySize,
        maxbytes));
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>, FunctorType>::value) {
       gpuErrchk(hipFuncSetAttribute( 
-       HuffmanCLCustomizedKernel<Task<FunctorType>>,
+        (const void*)HuffmanCLCustomizedKernel<Task<FunctorType>>,
        hipFuncAttributeMaxDynamicSharedMemorySize,
        maxbytes));
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>, FunctorType>::value) {
       gpuErrchk(hipFuncSetAttribute( 
-       HuffmanCWCustomizedKernel<Task<FunctorType>>,
+        (const void*)HuffmanCWCustomizedKernel<Task<FunctorType>>,
        hipFuncAttributeMaxDynamicSharedMemorySize,
        maxbytes));
     } else {
@@ -563,7 +597,8 @@ class MemoryManager<HIP> {
   template <typename T>
   MGARDX_CONT static
   void Malloc1D(T *& ptr, SIZE n, int queue_idx) {
-    gpuErrchk(hipMalloc(&ptr, n * sizeof(T)));
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    gpuErrchk(hipMalloc(&ptr, n * sizeof(converted_T)));
     if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
@@ -572,13 +607,14 @@ class MemoryManager<HIP> {
   template <typename T>
   MGARDX_CONT static
   void MallocND(T *& ptr, SIZE n1, SIZE n2, SIZE &ld, int queue_idx) {
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     if (ReduceMemoryFootprint) {
-      gpuErrchk(hipMalloc(&ptr, n1 * n2 * sizeof(T)));
+      gpuErrchk(hipMalloc((void **)&ptr, n1 * n2 * sizeof(converted_T)));
       ld = n1;
     } else {
       size_t pitch = 0;
-      gpuErrchk(hipMallocPitch(&ptr, &pitch, n1 * sizeof(T), (size_t)n2));
-      ld = pitch / sizeof(T);
+      gpuErrchk(hipMallocPitch((void **)&ptr, &pitch, n1 * sizeof(converted_T), (size_t)n2));
+      ld = pitch / sizeof(converted_T);
     }
     if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
@@ -599,8 +635,9 @@ class MemoryManager<HIP> {
   template <typename T>
   MGARDX_CONT static
   void Copy1D(T * dst_ptr, const T * src_ptr, SIZE n, int queue_idx) {
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    gpuErrchk(hipMemcpyAsync(dst_ptr, src_ptr, n*sizeof(T), hipMemcpyDefault, stream));
+    gpuErrchk(hipMemcpyAsync(dst_ptr, src_ptr, n*sizeof(converted_T), hipMemcpyDefault, stream));
     if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
@@ -609,18 +646,27 @@ class MemoryManager<HIP> {
   template <typename T>
   MGARDX_CONT static
   void CopyND(T * dst_ptr, SIZE dst_ld, const T * src_ptr, SIZE src_ld, SIZE n1, SIZE n2, int queue_idx) {
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    gpuErrchk(hipMemcpy2DAsync(dst_ptr, dst_ld * sizeof(T), src_ptr, src_ld * sizeof(T), n1 * sizeof(T), n2,
-                              hipMemcpyDefault, stream));
-    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
-      gpuErrchk(hipDeviceSynchronize());
+    // printf("CopyND: dst: %d, src: %d\n", IsDevicePointer(dst_ptr), IsDevicePointer(src_ptr));
+    if (!IsDevicePointer(dst_ptr) && !IsDevicePointer(src_ptr)) {
+      for (SIZE i = 0; i < n2; i++) {
+        memcpy(dst_ptr + i * dst_ld, src_ptr + i * src_ld, n1 * sizeof(converted_T));
+      }
+    } else {
+      gpuErrchk(hipMemcpy2DAsync(dst_ptr, dst_ld * sizeof(converted_T), src_ptr, src_ld * sizeof(converted_T), n1 * sizeof(converted_T), n2,
+                                hipMemcpyDefault, stream));
+      if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+        gpuErrchk(hipDeviceSynchronize());
+      }
     }
   }
 
   template <typename T>
   MGARDX_CONT static
   void MallocHost(T *& ptr, SIZE n, int queue_idx) {
-    gpuErrchk(hipMallocHost(&ptr, n * sizeof(T)));
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    gpuErrchk(hipMallocHost((void **)&ptr, n * sizeof(converted_T)));
     if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
@@ -639,21 +685,23 @@ class MemoryManager<HIP> {
   template <typename T>
   MGARDX_CONT static
   void Memset1D(T * ptr, SIZE n, int value) {
-    gpuErrchk(hipMemset(ptr, value, n * sizeof(T)));
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    gpuErrchk(hipMemset(ptr, value, n * sizeof(converted_T)));
   }
 
   template <typename T>
   MGARDX_CONT static
   void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value) {
-    gpuErrchk(hipMemset2D(ptr, ld * sizeof(T), value, n1 * sizeof(T), n2));
+    using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    gpuErrchk(hipMemset2D(ptr, ld * sizeof(converted_T), value, n1 * sizeof(converted_T), n2));
   }
 
   template <typename T>
   MGARDX_CONT static
   bool IsDevicePointer(T * ptr) {
-    hipPointerAttributes attr;
+    hipPointerAttribute_t attr;
     hipPointerGetAttributes(&attr, ptr);
-    return attr.type == hipMemoryTypeDevice;
+    return attr.memoryType == hipMemoryTypeDevice;
   }
 
 
@@ -685,7 +733,7 @@ int32_t negabinary2binary(const uint32_t x) {
 
 template <typename T, SIZE nblockx, SIZE nblocky, SIZE nblockz> 
 struct BlockReduce<T, nblockx, nblocky, nblockz, HIP> {
-  typedef cub::BlockReduce<T, nblockx, cub::BLOCK_REDUCE_WARP_REDUCTIONS, nblocky, nblockz> BlockReduceType;
+  typedef hipcub::BlockReduce<T, nblockx, hipcub::BLOCK_REDUCE_WARP_REDUCTIONS, nblocky, nblockz> BlockReduceType;
   using TempStorageType = typename BlockReduceType::TempStorage;
 
   BlockReduceType* blockReduce;
@@ -708,7 +756,7 @@ struct BlockReduce<T, nblockx, nblocky, nblockz, HIP> {
 
   MGARDX_EXEC 
   T Max(T intput) {
-    return blockReduce->Reduce(intput, cub::Max());
+    return blockReduce->Reduce(intput, hipcub::Max());
   }
 };
 
@@ -771,7 +819,7 @@ struct EncodeSignBits<T, METHOD, HIP>{
     T shifted_bit;
     shifted_bit = bit << sizeof(T)*8-1-b_idx;
 
-    typedef cub::WarpReduce<T> WarpReduceType;
+    typedef hipcub::WarpReduce<T> WarpReduceType;
     using WarpReduceStorageType = typename WarpReduceType::TempStorage;
     __shared__ WarpReduceStorageType warp_storage;
     buffer = WarpReduceType(warp_storage).Sum(shifted_bit);
@@ -780,9 +828,8 @@ struct EncodeSignBits<T, METHOD, HIP>{
 
   MGARDX_EXEC 
   T Ballot(T bit, SIZE b_idx) {
-    return (T)__ballot_sync (0xffffffff, (int)bit);
+    return (T)__ballot ((int)bit);
   }
-
 
   MGARDX_EXEC 
   T Encode(T bit, SIZE b_idx) {
@@ -806,10 +853,10 @@ struct DecodeSignBits<T, METHOD, HIP>{
 template <typename T_org, typename T_trans, SIZE nblockx, SIZE nblocky, SIZE nblockz, OPTION ALIGN, OPTION METHOD> 
 struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHOD, HIP> {
   
-  typedef cub::WarpReduce<T_trans> WarpReduceType;
+  typedef hipcub::WarpReduce<T_trans> WarpReduceType;
   using WarpReduceStorageType = typename WarpReduceType::TempStorage;
 
-  typedef cub::BlockReduce<T_trans, nblockx, cub::BLOCK_REDUCE_WARP_REDUCTIONS, nblocky, nblockz> BlockReduceType;
+  typedef hipcub::BlockReduce<T_trans, nblockx, hipcub::BLOCK_REDUCE_WARP_REDUCTIONS, nblocky, nblockz> BlockReduceType;
   using BlockReduceStorageType = typename BlockReduceType::TempStorage;
 
   MGARDX_EXEC 
@@ -961,7 +1008,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
         // __syncthreads(); start = clock64() - start;
         // if (threadIdx.y == 0 && threadIdx.x == 0) printf("time1: %llu\n", start);
         // __syncthreads(); start = clock64();
-        sum += ((T_trans)__ballot_sync (0xffffffff, bit)) << shift;
+        sum += ((T_trans)__ballot (bit)) << shift;
         // sum += WarpReduceType(warp_storage[warp_idx]).Sum(shifted_bit);
         // if (B_idx == 32) printf("shifted_bit[%u] %u sum %u\n", b_idx, shifted_bit, sum);
         shift += 32;
@@ -1045,14 +1092,14 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
     __syncthreads();
     
     if (warp_idx < 4) { 
-      wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::row_major> a_frag;
-      wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::row_major> b_frag;
-      wmma::fragment<wmma::accumulator, 16, 16, 16, float> c_frag;
-      wmma::load_matrix_sync(a_frag, tile_a, 16);
-      wmma::load_matrix_sync(b_frag, tile_b + (warp_idx/2)*16 + (warp_idx%2)*16, 32);
-      wmma::fill_fragment(c_frag, 0.0f);
-      wmma::mma_sync(c_frag, a_frag, b_frag, c_frag);
-      wmma::store_matrix_sync(output+ (warp_idx/2)*16 + (warp_idx%2)*16, c_frag, 32, wmma::mem_row_major);
+      // wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::row_major> a_frag;
+      // wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::row_major> b_frag;
+      // wmma::fragment<wmma::accumulator, 16, 16, 16, float> c_frag;
+      // wmma::load_matrix_sync(a_frag, tile_a, 16);
+      // wmma::load_matrix_sync(b_frag, tile_b + (warp_idx/2)*16 + (warp_idx%2)*16, 32);
+      // wmma::fill_fragment(c_frag, 0.0f);
+      // wmma::mma_sync(c_frag, a_frag, b_frag, c_frag);
+      // wmma::store_matrix_sync(output+ (warp_idx/2)*16 + (warp_idx%2)*16, c_frag, 32, wmma::mem_row_major);
     }
 
     __syncthreads();
@@ -1077,10 +1124,10 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN, METHO
 template <typename T, typename T_fp, typename T_sfp, typename T_error, SIZE nblockx, SIZE nblocky, SIZE nblockz, OPTION METHOD, OPTION BinaryType> 
 struct ErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, METHOD, BinaryType, HIP>{
 
-  typedef cub::WarpReduce<T_error> WarpReduceType;
+  typedef hipcub::WarpReduce<T_error> WarpReduceType;
   using WarpReduceStorageType = typename WarpReduceType::TempStorage;
 
-  typedef cub::BlockReduce<T_error, nblockx, cub::BLOCK_REDUCE_WARP_REDUCTIONS, nblocky, nblockz> BlockReduceType;
+  typedef hipcub::BlockReduce<T_error, nblockx, hipcub::BLOCK_REDUCE_WARP_REDUCTIONS, nblocky, nblockz> BlockReduceType;
   using BlockReduceStorageType = typename BlockReduceType::TempStorage;
 
 
@@ -1327,11 +1374,11 @@ public:
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>, typename TaskType::Functor>::value) {
       void * Args[] = { (void*)&task };
       hipLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
-                              blockPerGrid, threadsPerBlock, Args, sm_size);
+                              blockPerGrid, threadsPerBlock, Args, sm_size, stream);
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>, typename TaskType::Functor>::value) {
       void * Args[] = { (void*)&task };
       hipLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
-                              blockPerGrid, threadsPerBlock, Args, sm_size);
+                              blockPerGrid, threadsPerBlock, Args, sm_size, stream);
     }
     ErrorAsyncCheck(hipGetLastError(), task);
     gpuErrchk(hipGetLastError());
@@ -1374,9 +1421,9 @@ public:
     size_t   temp_storage_bytes = 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, stream, debug);
+    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, stream, debug);
     MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, stream, debug);
+    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, stream, debug);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
     MemoryManager<HIP>().Free(d_temp_storage);
   }
@@ -1388,9 +1435,9 @@ public:
     AbsMaxOp absMaxOp;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
-    cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, absMaxOp, 0, stream, debug);
+    hipcub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, absMaxOp, 0, stream, debug);
     MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, absMaxOp, 0, stream, debug);
+    hipcub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n, absMaxOp, 0, stream, debug);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
     MemoryManager<HIP>().Free(d_temp_storage);
   }
@@ -1398,14 +1445,14 @@ public:
   template <typename T> MGARDX_CONT static
   void SquareSum(SIZE n, SubArray<1, T, HIP>& v, SubArray<1, T, HIP>& result, int queue_idx) {
     SquareOp squareOp;
-    cub::TransformInputIterator<T, SquareOp, T*> transformed_input_iter(v.data(), squareOp);
+    hipcub::TransformInputIterator<T, SquareOp, T*> transformed_input_iter(v.data(), squareOp);
     void     *d_temp_storage = NULL;
     size_t   temp_storage_bytes = 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, transformed_input_iter, result.data(), n, stream, debug);
+    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, transformed_input_iter, result.data(), n, stream, debug);
     MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, transformed_input_iter, result.data(), n, stream, debug);
+    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, transformed_input_iter, result.data(), n, stream, debug);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
     MemoryManager<HIP>().Free(d_temp_storage);
   }
@@ -1417,9 +1464,9 @@ public:
     size_t   temp_storage_bytes = 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
-    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
+    hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
     MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
+    hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
     MemoryManager<HIP>().Free(d_temp_storage);
   }
@@ -1430,9 +1477,9 @@ public:
     size_t   temp_storage_bytes = 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
     MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data(), n);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
     MemoryManager<HIP>().Free(d_temp_storage);
   }
@@ -1443,9 +1490,9 @@ public:
     size_t   temp_storage_bytes = 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
-    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data()+1, n);
+    hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data()+1, n);
     MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data()+1, n);
+    hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(), result.data()+1, n);
     T zero = 0;
     MemoryManager<HIP>().Copy1D(result.data(), &zero, 1, queue_idx);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
@@ -1462,12 +1509,12 @@ public:
     Array<1, KeyT, HIP> out_keys({n});
     Array<1, ValueT, HIP> out_values({n});
 
-    cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
                                     keys.data(), out_keys.get_dv(), 
                                     values.data(), out_values.get_dv(), n,
                                     0, sizeof(KeyT) * 8, stream, debug);
     MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
+    hipcub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
                                     keys.data(), out_keys.get_dv(), 
                                     values.data(), out_values.get_dv(), n,
                                     0, sizeof(KeyT) * 8, stream, debug);

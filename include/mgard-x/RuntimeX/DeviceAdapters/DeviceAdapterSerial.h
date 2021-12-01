@@ -138,19 +138,19 @@ struct Math<Serial> {
 
 template <typename TaskType>
 MGARDX_KERL void SerialKernel(TaskType task) {
-  Timer timer_op, timer_alloc, timer_init, timer_dealloc;
-  timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
+  // Timer timer_op, timer_alloc, timer_init, timer_dealloc;
+  // timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
     
-  timer_alloc.start();
+  // timer_alloc.start();
   ALLOC_BLOCK;
-  timer_alloc.end();
+  // timer_alloc.end();
   for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
-        timer_init.start();
+        // timer_init.start();
         INIT_BLOCK;
-        timer_init.end();
-        timer_op.start();
+        // timer_init.end();
+        // timer_op.start();
         COMPUTE_BLOCK(Operation1);
         COMPUTE_BLOCK(Operation2);
         COMPUTE_BLOCK(Operation3);
@@ -161,19 +161,19 @@ MGARDX_KERL void SerialKernel(TaskType task) {
         COMPUTE_BLOCK(Operation8);
         COMPUTE_BLOCK(Operation9);
         COMPUTE_BLOCK(Operation10);
-        timer_op.end();
+        // timer_op.end();
       }
     }
   }
-  timer_dealloc.start();
+  // timer_dealloc.start();
   DEALLOC_BLOCK;
-  timer_dealloc.end();
+  // timer_dealloc.end();
 
-  timer_op.print(task.GetFunctorName() + "_Op");
-  timer_alloc.print(task.GetFunctorName() + "_Alloc");
-  timer_init.print(task.GetFunctorName() + "_Init");
-  timer_dealloc.print(task.GetFunctorName() + "_Dealloc");
-  timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
+  // timer_op.print(task.GetFunctorName() + "_Op");
+  // timer_alloc.print(task.GetFunctorName() + "_Alloc");
+  // timer_init.print(task.GetFunctorName() + "_Init");
+  // timer_dealloc.print(task.GetFunctorName() + "_Dealloc");
+  // timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
 }
 
 
@@ -828,8 +828,8 @@ public:
   MGARDX_CONT
   void Execute(TaskTypeType& task) {
     // std::cout << "Executing: " << task.GetFunctorName() << "\n";
-    Timer timer;
-    timer.start();
+    // Timer timer;
+    // timer.start();
     // if constexpr evalute at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<Serial>, typename TaskTypeType::Functor>::value) {
       SerialKernel(task);
@@ -840,9 +840,9 @@ public:
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<Serial>, typename TaskTypeType::Functor>::value) {
       SerialHuffmanCWCustomizedKernel(task);
     }
-    timer.end();
-    timer.print(task.GetFunctorName());
-    timer.clear();
+    // timer.end();
+    // timer.print(task.GetFunctorName());
+    // timer.clear();
   }
 };
 

@@ -126,7 +126,9 @@ DATA=../../512x512x512/velocity_x.dat
 
 # cuda-memcheck 
 # valgrind 
-$MgardCudaExec -z -i random -c random.out -t d -n 3 129 129 129  -m abs -e 1e-4 -s inf -l 1 -v -d $1
+$MgardCudaExec -z -i random -c random.out -t d -n 1 5  -m rel -e 1e-4 -s inf -l 1 -v -d $1
+
+$MgardCudaExec -z -i random -c random.out -t d -n 3 129 129 129  -m rel -e 1e-4 -s inf -l 1 -v -d $1
 # $MgardCudaExec -z -i random -c random.out -t d -n 1 1000 -m rel -e 1e-4 -s 0 -l 1 -v -d $1
 # $MgardCudaExec -z -i random -c random.out -t s -n 1 5  -m abs -e 1 -s inf -l 1 -v -d cuda
 
@@ -171,7 +173,7 @@ $MgardCudaExec -z -i random -c random.out -t d -n 3 129 129 129  -m abs -e 1e-4 
 # DATA=/home/jieyang/dev/data/pk.data
 # DATA=/home/jieyang/dev/data/enst.dat
 
-# cd ../examples/gpu-cuda/CompareCpuAndGpu && rm -rf ../examples/gpu-cuda/CompareCpuAndGpu/build && ./build_script.sh && ./build/BatchTests random $1
+cd ../examples/gpu-cuda/CompareCpuAndGpu && rm -rf ../examples/gpu-cuda/CompareCpuAndGpu/build && ./build_script.sh && ./build/BatchTests random $1
 # cmake --build ../../vtk-m/build -j
 # cmake --build ../examples/gpu-cuda/FlyingEdges/build 
 # ../examples/gpu-cuda/FlyingEdges/build/FlyingEdges -i random -n 3 800 800 800 -s 1.5
