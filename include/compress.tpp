@@ -155,9 +155,10 @@ CompressedDataset<N, Real>::CompressedDataset(
     header_.set_allocated_encoding(encoding);
   }
   {
-    pb::Buffer *const buffer = new pb::Buffer;
-    buffer->set_interpretation(pb::Buffer::SINGLE_DATASET_AFTER);
-    header_.set_allocated_buffer(buffer);
+    pb::BufferStructure *const buffer_structure = new pb::BufferStructure;
+    buffer_structure->set_interpretation(
+        pb::BufferStructure::SINGLE_DATASET_AFTER);
+    header_.set_allocated_buffer_structure(buffer_structure);
   }
 }
 
@@ -173,7 +174,7 @@ std::size_t CompressedDataset<N, Real>::size() const {
 
 #ifdef MGARD_PROTOBUF
 template <std::size_t N, typename Real>
-pb::CompressedDataset const *CompressedDataset<N, Real>::header() const {
+pb::Header const *CompressedDataset<N, Real>::header() const {
   return &header_;
 }
 

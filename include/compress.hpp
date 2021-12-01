@@ -67,7 +67,7 @@ public:
   //! Return a pointer to the compressed dataset header.
   //!
   //! *This is an experimental part of the API.*
-  pb::CompressedDataset const *header() const;
+  pb::Header const *header() const;
 
   //! Serialize the compressed dataset.
   //!
@@ -86,7 +86,7 @@ private:
   //! Header for compressed dataset.
   //!
   //! *This is an experimental part of the API.*
-  pb::CompressedDataset header_;
+  pb::Header header_;
 #endif
 };
 
@@ -123,7 +123,7 @@ private:
   //! Header for decompressed dataset.
   //!
   //! *This is an experimental part of the API.*
-  pb::CompressedDataset header_;
+  pb::Header header_;
 #endif
 };
 
