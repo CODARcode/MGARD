@@ -192,6 +192,7 @@ set(
 	MGARD_LIBRARY_CPP
         src/compress.cpp
 	src/compressors.cpp
+	src/format.cpp
 )
 
 set(MGARD_FILE_FORMAT_PROTO "src/mgard.proto")
@@ -344,6 +345,7 @@ set(
 	tests/src/test_TensorQuantityOfInterest.cpp
 	tests/src/test_compress.cpp
 	tests/src/test_decompose.cpp
+	tests/src/test_format.cpp
 )
 if(MOAB_FOUND)
 	list(
