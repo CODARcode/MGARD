@@ -11,6 +11,7 @@
 
 #include "TensorMeshHierarchy.hpp"
 
+#include <array>
 #include <memory>
 
 #ifdef __NVCC__
@@ -28,6 +29,9 @@
 
 //! Implementation of the MGARD compression and decompression algorithms.
 namespace mgard {
+
+//! Magic bytes for MGARD file format ('MGARD' in ASCII).
+inline constexpr std::array<char, 5> SIGNATURE{0x4d, 0x47, 0x41, 0x52, 0x44};
 
 //! Compressed dataset and associated compression parameters.
 template <std::size_t N, typename Real> class CompressedDataset {
