@@ -14,6 +14,10 @@
 #include "shuffle.hpp"
 #include "utilities.hpp"
 
+#ifdef MGARD_PROTOBUF
+#include "proto/mgard.pb.h"
+#endif
+
 TEST_CASE("hierarchy mesh shapes", "[TensorMeshHierarchy]") {
   {
     const std::array<std::size_t, 1> shape = {5};
@@ -566,3 +570,80 @@ TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {
     REQUIRE(tracker);
   }
 }
+
+#ifdef MGARD_PROTOBUF
+namespace {
+
+template <std::size_t N>
+void check_cartesian_topology(const mgard::pb::Domain &domain,
+                              const std::array<std::size_t, N> &shape) {
+  REQUIRE(domain.topology() == mgard::pb::Domain::CARTESIAN_GRID);
+  REQUIRE(domain.topology_definition_case() ==
+          mgard::pb::Domain::kCartesianGridTopology);
+  const mgard::pb::CartesianGridTopology &cgt =
+      domain.cartesian_grid_topology();
+  REQUIRE(cgt.dimension() == N);
+  const google::protobuf::RepeatedField<google::protobuf::uint64> &shape_ =
+      cgt.shape();
+  REQUIRE(shape_.size() == N);
+  REQUIRE(std::equal(shape_.begin(), shape_.end(), shape.begin()));
+}
+
+} // namespace
+
+TEST_CASE("header field population", "[TensorMeshHierarchy]") {
+  {
+    mgard::pb::Header header;
+    const std::array<std::size_t, 1> shape{123};
+    const mgard::TensorMeshHierarchy<1, float> hierarchy(shape);
+    hierarchy.populate(header);
+
+    const mgard::pb::Domain &domain = header.domain();
+    check_cartesian_topology(domain, shape);
+
+    REQUIRE(domain.geometry() == mgard::pb::Domain::UNIT_CUBE);
+    REQUIRE(domain.geometry_definition_case() ==
+            mgard::pb::Domain::GEOMETRY_DEFINITION_NOT_SET);
+
+    const mgard::pb::Dataset &dataset = header.dataset();
+    REQUIRE(dataset.type() == mgard::pb::Dataset::FLOAT);
+    REQUIRE(dataset.dimension() == 1);
+  }
+  {
+    mgard::pb::Header header;
+    const std::array<std::size_t, 3> shape{5, 5, 4};
+    std::array<std::vector<double>, 3> coordinates;
+    coordinates.at(0) = {0, 0.2, 0.3, 0.5, 0.6};
+    coordinates.at(1) = {20.5, 21.5, 22.5, 23, 23.5};
+    coordinates.at(2) = {0, 1, 2, 3};
+    // Expected flattened (as a single array) coordinates.
+    std::vector<double> efc;
+    efc.resize(std::accumulate(shape.begin(), shape.end(), 0));
+    {
+      std::vector<double>::iterator p = efc.begin();
+      for (const std::vector<double> &xs : coordinates) {
+        std::copy(xs.begin(), xs.end(), p);
+        p += xs.size();
+      }
+    }
+    const mgard::TensorMeshHierarchy<3, double> hierarchy(shape, coordinates);
+    hierarchy.populate(header);
+
+    const mgard::pb::Domain &domain = header.domain();
+    check_cartesian_topology(domain, shape);
+
+    REQUIRE(domain.geometry() == mgard::pb::Domain::EXPLICIT_CUBE);
+    REQUIRE(domain.geometry_definition_case() ==
+            mgard::pb::Domain::kExplicitCubeGeometry);
+    const mgard::pb::ExplicitCubeGeometry &ecg =
+        domain.explicit_cube_geometry();
+    const google::protobuf::RepeatedField<double> &coordinates_ =
+        ecg.coordinates();
+    REQUIRE(std::equal(coordinates_.begin(), coordinates_.end(), efc.begin()));
+
+    const mgard::pb::Dataset &dataset = header.dataset();
+    REQUIRE(dataset.type() == mgard::pb::Dataset::DOUBLE);
+    REQUIRE(dataset.dimension() == 1);
+  }
+}
+#endif
