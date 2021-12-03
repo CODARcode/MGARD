@@ -589,6 +589,11 @@ void check_cartesian_topology(const mgard::pb::Domain &domain,
   REQUIRE(std::equal(shape_.begin(), shape_.end(), shape.begin()));
 }
 
+void check_decomposition_hierarchy(const mgard::pb::Header &header) {
+  REQUIRE(header.decomposition().hierarchy() ==
+          mgard::pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
+}
+
 } // namespace
 
 TEST_CASE("header field population", "[TensorMeshHierarchy]") {
@@ -608,6 +613,8 @@ TEST_CASE("header field population", "[TensorMeshHierarchy]") {
     const mgard::pb::Dataset &dataset = header.dataset();
     REQUIRE(dataset.type() == mgard::pb::Dataset::FLOAT);
     REQUIRE(dataset.dimension() == 1);
+
+    check_decomposition_hierarchy(header);
   }
   {
     mgard::pb::Header header;
@@ -644,6 +651,8 @@ TEST_CASE("header field population", "[TensorMeshHierarchy]") {
     const mgard::pb::Dataset &dataset = header.dataset();
     REQUIRE(dataset.type() == mgard::pb::Dataset::DOUBLE);
     REQUIRE(dataset.dimension() == 1);
+
+    check_decomposition_hierarchy(header);
   }
 }
 #endif

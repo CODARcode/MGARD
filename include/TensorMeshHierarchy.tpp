@@ -340,9 +340,18 @@ void TensorMeshHierarchy<N, Real>::populate_dataset(pb::Header &header) const {
 }
 
 template <std::size_t N, typename Real>
+void TensorMeshHierarchy<N, Real>::populate_decomposition(
+    pb::Header &header) const {
+  pb::Decomposition *const decomposition = new pb::Decomposition;
+  decomposition->set_hierarchy(pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
+  header.set_allocated_decomposition(decomposition);
+}
+
+template <std::size_t N, typename Real>
 void TensorMeshHierarchy<N, Real>::populate(pb::Header &header) const {
   populate_domain(header);
   populate_dataset(header);
+  populate_decomposition(header);
 }
 #endif
 
