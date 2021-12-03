@@ -89,7 +89,7 @@ public:
   //!
   //! *This is an experimental part of the API.*
   //!
-  //!\param header Header to be modified.
+  //!\param header Header to be populated.
   void populate(pb::Header &header) const;
 #endif
 
@@ -167,21 +167,21 @@ private:
   //!
   //! *This is an experimental part of the API.*
   //!
-  //!\param header Header to be modified.
+  //!\param header Header to be populated.
   void populate_domain(pb::Header &header) const;
 
   //! Populate the dataset message of a file format header.
   //!
   //! *This is an experimental part of the API.*
   //!
-  //!\param header Header to be modified.
+  //!\param header Header to be populated.
   void populate_dataset(pb::Header &header) const;
 
   //! Populate the decomposition message of a file format header.
   //!
   //! *This is an experimental part of the API.*
   //!
-  //!\param header Header to be modified.
+  //!\param header Header to be populated.
   void populate_decomposition(pb::Header &header) const;
 #endif
 };

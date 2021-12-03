@@ -50,6 +50,11 @@ serialize_header_crc32(std::uint_least64_t crc32);
 #ifdef MGARD_PROTOBUF
 //! Return the `Dataset::Type` value corresponding to a floating point type.
 template <typename Real> pb::Dataset::Type type_to_dataset_type();
+
+//! Populate a header with the MGARD and file format version numbers.
+//!
+//!\param Header to be populated.
+void populate_version_numbers(pb::Header &header);
 #endif
 
 } // namespace mgard
