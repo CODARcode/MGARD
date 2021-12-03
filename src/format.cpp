@@ -26,4 +26,14 @@ serialize_header_crc32(std::uint_least64_t crc32) {
   return serialize<std::uint_least32_t, HEADER_CRC32_SIZE>(crc32);
 }
 
+#ifdef MGARD_PROTOBUF
+template <> pb::Dataset::Type type_to_dataset_type<float>() {
+  return pb::Dataset::FLOAT;
+}
+
+template <> pb::Dataset::Type type_to_dataset_type<double>() {
+  return pb::Dataset::DOUBLE;
+}
+#endif
+
 } // namespace mgard

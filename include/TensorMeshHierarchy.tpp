@@ -5,6 +5,10 @@
 #include <stdexcept>
 #include <type_traits>
 
+#ifdef MGARD_PROTOBUF
+#include "format.hpp"
+#endif
+
 namespace mgard {
 
 static std::size_t log2(std::size_t n) {
@@ -287,6 +291,60 @@ const Real &TensorMeshHierarchy<N, Real>::at(
     Real const *const v, const std::array<std::size_t, N> multiindex) const {
   return at<const Real>(v, multiindex);
 }
+
+#ifdef MGARD_PROTOBUF
+template <std::size_t N, typename Real>
+void TensorMeshHierarchy<N, Real>::populate_domain(pb::Header &header) const {
+  const std::array<std::size_t, N> &SHAPE = shapes.back();
+  pb::Domain *const domain = new pb::Domain;
+
+  domain->set_topology(pb::Domain::CARTESIAN_GRID);
+
+  pb::CartesianGridTopology *const cartesian_grid_topology =
+      new pb::CartesianGridTopology;
+  cartesian_grid_topology->set_dimension(N);
+  google::protobuf::RepeatedField<google::protobuf::uint64> *const shape =
+      cartesian_grid_topology->mutable_shape();
+  shape->Resize(N, 0);
+  std::copy(SHAPE.begin(), SHAPE.end(), shape->mutable_data());
+  domain->set_allocated_cartesian_grid_topology(cartesian_grid_topology);
+
+  pb::Domain::Geometry geometry;
+  if (uniform) {
+    geometry = pb::Domain::UNIT_CUBE;
+  } else {
+    geometry = pb::Domain::EXPLICIT_CUBE;
+    pb::ExplicitCubeGeometry *const explicit_cube_geometry =
+        new pb::ExplicitCubeGeometry;
+    google::protobuf::RepeatedField<double> *const coordinates_ =
+        explicit_cube_geometry->mutable_coordinates();
+    coordinates_->Resize(std::accumulate(SHAPE.begin(), SHAPE.end(), 0), 0);
+    double *p = coordinates_->mutable_data();
+    for (const std::vector<Real> &xs : coordinates) {
+      std::copy(xs.begin(), xs.end(), p);
+      p += xs.size();
+    }
+    domain->set_allocated_explicit_cube_geometry(explicit_cube_geometry);
+  }
+  domain->set_geometry(geometry);
+
+  header.set_allocated_domain(domain);
+}
+
+template <std::size_t N, typename Real>
+void TensorMeshHierarchy<N, Real>::populate_dataset(pb::Header &header) const {
+  pb::Dataset *const dataset = new pb::Dataset;
+  dataset->set_type(type_to_dataset_type<Real>());
+  dataset->set_dimension(1);
+  header.set_allocated_dataset(dataset);
+}
+
+template <std::size_t N, typename Real>
+void TensorMeshHierarchy<N, Real>::populate(pb::Header &header) const {
+  populate_domain(header);
+  populate_dataset(header);
+}
+#endif
 
 template <std::size_t N, typename Real>
 std::size_t TensorMeshHierarchy<N, Real>::ndof(const std::size_t l) const {

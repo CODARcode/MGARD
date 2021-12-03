@@ -7,6 +7,10 @@
 
 #include <array>
 
+#ifdef MGARD_PROTOBUF
+#include "proto/mgard.pb.h"
+#endif
+
 namespace mgard {
 
 // Size in bytes of the serialized header size.
@@ -42,6 +46,11 @@ serialize_header_size(std::uint_least64_t size);
 //!\return bytes Serialized header CRC32.
 std::array<unsigned char, HEADER_CRC32_SIZE>
 serialize_header_crc32(std::uint_least64_t crc32);
+
+#ifdef MGARD_PROTOBUF
+//! Return the `Dataset::Type` value corresponding to a floating point type.
+template <typename Real> pb::Dataset::Type type_to_dataset_type();
+#endif
 
 } // namespace mgard
 
