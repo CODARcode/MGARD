@@ -176,6 +176,13 @@ private:
   //!
   //!\param header Header to be modified.
   void populate_dataset(pb::Header &header) const;
+
+  //! Populate the decomposition message of a file format header.
+  //!
+  //! *This is an experimental part of the API.*
+  //!
+  //!\param header Header to be modified.
+  void populate_decomposition(pb::Header &header) const;
 #endif
 };
 
