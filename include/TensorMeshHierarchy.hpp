@@ -13,6 +13,10 @@
 #include "TensorMeshHierarchyIteration.hpp"
 #include "utilities.hpp"
 
+#ifdef MGARD_PROTOBUF
+#include "proto/mgard.pb.h"
+#endif
+
 namespace mgard {
 
 //! Hierarchy of meshes produced by subsampling an initial mesh.
@@ -79,6 +83,15 @@ public:
   //!\overload
   const Real &at(Real const *const u,
                  const std::array<std::size_t, N> multiindex) const;
+
+#ifdef MGARD_PROTOBUF
+  //! Populate the relevant fields of a file format header.
+  //!
+  //! *This is an experimental part of the API.*
+  //!
+  //!\param header Header to be modified.
+  void populate(pb::Header &header) const;
+#endif
 
   //! Shapes of the meshes composing the hierarchy, in 'increasing' order.
   std::vector<std::array<std::size_t, N>> shapes;
@@ -148,6 +161,22 @@ private:
   //! Implement `at`.
   template <typename T>
   T &at(T *const v, const std::array<std::size_t, N> multiindex) const;
+
+#ifdef MGARD_PROTOBUF
+  //! Populate the domain message of a file format header.
+  //!
+  //! *This is an experimental part of the API.*
+  //!
+  //!\param header Header to be modified.
+  void populate_domain(pb::Header &header) const;
+
+  //! Populate the dataset message of a file format header.
+  //!
+  //! *This is an experimental part of the API.*
+  //!
+  //!\param header Header to be modified.
+  void populate_dataset(pb::Header &header) const;
+#endif
 };
 
 //! Equality comparison.
