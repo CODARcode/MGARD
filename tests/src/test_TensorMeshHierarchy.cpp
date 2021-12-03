@@ -654,5 +654,20 @@ TEST_CASE("header field population", "[TensorMeshHierarchy]") {
 
     check_decomposition_hierarchy(header);
   }
+
+  // Check that we don't lose fields that were set to start with (that we don't
+  // set in `TensorMeshHierarchy::populate`).
+  {
+    mgard::pb::Header header;
+    header.mutable_domain()->set_geometry(mgard::pb::Domain::EXPLICIT_CUBE);
+    header.mutable_error_control()->set_norm(mgard::pb::ErrorControl::S_NORM);
+    header.mutable_quantization()->set_type(mgard::pb::Quantization::INT32_T);
+
+    const mgard::TensorMeshHierarchy<2, double> hierarchy({10, 9});
+    hierarchy.populate(header);
+    REQUIRE(header.domain().geometry() == mgard::pb::Domain::UNIT_CUBE);
+    REQUIRE(header.error_control().norm() == mgard::pb::ErrorControl::S_NORM);
+    REQUIRE(header.quantization().type() == mgard::pb::Quantization::INT32_T);
+  }
 }
 #endif
