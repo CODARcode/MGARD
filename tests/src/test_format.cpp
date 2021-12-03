@@ -4,6 +4,7 @@
 
 #include "testing_utilities.hpp"
 
+#include "MGARDConfig.hpp"
 #include "format.hpp"
 
 namespace {
@@ -68,3 +69,27 @@ TEST_CASE("deserialization inverts serialization", "[format]") {
     REQUIRE(tracker);
   }
 }
+
+#ifdef MGARD_PROTOBUF
+namespace {
+
+void check_version_number(const mgard::pb::VersionNumber &version_number,
+                          const google::protobuf::uint64 major_,
+                          const google::protobuf::uint64 minor_,
+                          const google::protobuf::uint64 patch_) {
+  REQUIRE(version_number.major_() == major_);
+  REQUIRE(version_number.minor_() == minor_);
+  REQUIRE(version_number.patch_() == patch_);
+}
+
+} // namespace
+
+TEST_CASE("setting version numbers", "[format]") {
+  mgard::pb::Header header;
+  mgard::populate_version_numbers(header);
+  check_version_number(header.mgard_version(), MGARD_VERSION_MAJOR,
+                       MGARD_VERSION_MINOR, MGARD_VERSION_PATCH);
+  check_version_number(header.file_format_version(), MGARD_FILE_VERSION_MAJOR,
+                       MGARD_FILE_VERSION_MINOR, MGARD_FILE_VERSION_PATCH);
+}
+#endif
