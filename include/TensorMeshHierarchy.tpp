@@ -296,7 +296,7 @@ const Real &TensorMeshHierarchy<N, Real>::at(
 template <std::size_t N, typename Real>
 void TensorMeshHierarchy<N, Real>::populate_domain(pb::Header &header) const {
   const std::array<std::size_t, N> &SHAPE = shapes.back();
-  pb::Domain *const domain = new pb::Domain;
+  pb::Domain *const domain = header.mutable_domain();
 
   domain->set_topology(pb::Domain::CARTESIAN_GRID);
 
@@ -327,24 +327,20 @@ void TensorMeshHierarchy<N, Real>::populate_domain(pb::Header &header) const {
     domain->set_allocated_explicit_cube_geometry(explicit_cube_geometry);
   }
   domain->set_geometry(geometry);
-
-  header.set_allocated_domain(domain);
 }
 
 template <std::size_t N, typename Real>
 void TensorMeshHierarchy<N, Real>::populate_dataset(pb::Header &header) const {
-  pb::Dataset *const dataset = new pb::Dataset;
+  pb::Dataset *const dataset = header.mutable_dataset();
   dataset->set_type(type_to_dataset_type<Real>());
   dataset->set_dimension(1);
-  header.set_allocated_dataset(dataset);
 }
 
 template <std::size_t N, typename Real>
 void TensorMeshHierarchy<N, Real>::populate_decomposition(
     pb::Header &header) const {
-  pb::Decomposition *const decomposition = new pb::Decomposition;
+  pb::Decomposition *const decomposition = header.mutable_decomposition();
   decomposition->set_hierarchy(pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
-  header.set_allocated_decomposition(decomposition);
 }
 
 template <std::size_t N, typename Real>
