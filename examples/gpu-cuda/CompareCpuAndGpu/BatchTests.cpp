@@ -103,7 +103,7 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     }
 
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-             compressed_data, compressed_size, config, dev_type, false);
+             compressed_data, compressed_size, config, false);
     // mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
     //          compressed_data, compressed_size);
   }
@@ -130,7 +130,7 @@ void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     memcpy(decompressed_data, decompressed_data_void,
            original_size * sizeof(T));
   } else { // GPU
-    mgard_x::decompress(compressed_data, compressed_size, decompressed_data, config, dev_type, false);
+    mgard_x::decompress(compressed_data, compressed_size, decompressed_data, config, false);
     // mgard_x::decompress(compressed_data, compressed_size, decompressed_data);
   }
 }
@@ -160,6 +160,7 @@ struct Result test(mgard_x::DIM D, T *original_data,
   config.uniform_coord_mode = 1;
   // config.huff_dict_size = 64;
   config.timing = false;
+  config.dev_type = dev_type;
 
   void *compressed_data = NULL;
   size_t compressed_size = 0;
@@ -328,18 +329,18 @@ int main(int argc, char *argv[]) {
   // shapes.push_back({10, 10, 100, 10, 100});
   // shapes.push_back({10, 100, 10, 100, 10});
   // shapes.push_back({100, 10, 100, 10, 10});
-
-  // std::vector<enum data_type> dtypes = {data_type::SINGLE,
-  // data_type::DOUBLE};
+// 
+  std::vector<enum data_type> dtypes = {data_type::SINGLE,
+  data_type::DOUBLE};
   // std::vector<enum data_type> dtypes = {data_type::SINGLE};
-  std::vector<enum data_type> dtypes = {data_type::DOUBLE};
+  // std::vector<enum data_type> dtypes = {data_type::DOUBLE};
 
-  // std::vector<enum mgard_x::error_bound_type> ebtypes = {
-  //     mgard_x::error_bound_type::ABS, mgard_x::error_bound_type::REL};
-  std::vector<enum mgard_x::error_bound_type> ebtypes = {mgard_x::error_bound_type::REL};
+  std::vector<enum mgard_x::error_bound_type> ebtypes = {
+      mgard_x::error_bound_type::ABS, mgard_x::error_bound_type::REL};
+  // std::vector<enum mgard_x::error_bound_type> ebtypes = {mgard_x::error_bound_type::REL};
 
-  // std::vector<float> tols = {1e-2, 1e-3, 1e-4};
-      std::vector<float> tols = {1e-4};
+  std::vector<float> tols = {1e-2, 1e-3, 1e-4};
+      // std::vector<float> tols = {1e-4};
 
   std::vector<double> told = {1e-2, 1e-3, 1e-4, 1e-5, 1e-6};
 
@@ -360,15 +361,15 @@ int main(int argc, char *argv[]) {
                   (float *)malloc(original_size * sizeof(float));
               readfile(input_file, original_size * sizeof(float), false,
                        original_data);
-              if (dev_type == mgard_x::device_type::Serial) {
+              // if (dev_type == mgard_x::device_type::Serial) {
                 result_cpu =
                     test<float>(shapes[sp].size(), original_data, shapes[sp],
                                  CPU, told[tol], ssd[s], ebtypes[ebt], dev_type);
-              } else {
-                result_cpu =
-                    test<float>(shapes[sp].size(), original_data, shapes[sp],
-                                 GPU, told[tol], ssd[s], ebtypes[ebt], mgard_x::device_type::Serial);
-              }
+              // } else {
+              //   result_cpu =
+              //       test<float>(shapes[sp].size(), original_data, shapes[sp],
+              //                    GPU, told[tol], ssd[s], ebtypes[ebt], mgard_x::device_type::Serial);
+              // }
               result_gpu =
                   test<float>(shapes[sp].size(), original_data, shapes[sp], GPU,
                               tols[tol], ssf[s], ebtypes[ebt], dev_type);
@@ -382,15 +383,15 @@ int main(int argc, char *argv[]) {
               readfile(input_file, original_size * sizeof(double), false,
                        original_data);
 
-              if (dev_type == mgard_x::device_type::Serial) {
+              // if (dev_type == mgard_x::device_type::Serial) {
                 result_cpu =
                     test<double>(shapes[sp].size(), original_data, shapes[sp],
                                  CPU, told[tol], ssd[s], ebtypes[ebt], dev_type);
-              } else {
-                result_cpu =
-                    test<double>(shapes[sp].size(), original_data, shapes[sp],
-                                 GPU, told[tol], ssd[s], ebtypes[ebt], mgard_x::device_type::Serial);
-              }
+              // } else {
+              //   result_cpu =
+              //       test<double>(shapes[sp].size(), original_data, shapes[sp],
+              //                    GPU, told[tol], ssd[s], ebtypes[ebt], mgard_x::device_type::Serial);
+              // }
 
               result_gpu =
                   test<double>(shapes[sp].size(), original_data, shapes[sp],

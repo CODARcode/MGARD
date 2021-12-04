@@ -1,5 +1,5 @@
-#ifndef MESSGAE_HH
-#define MESSGAE_HH
+#ifndef MGARD_X_MESSGAE_HH
+#define MGARD_X_MESSGAE_HH
 
 #include <iostream>
 #include <sstream>

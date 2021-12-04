@@ -10,6 +10,10 @@
 
 #include <stdint.h>
 
+#if defined MGARDX_COMPILE_KOKKOS
+#include "Kokkos_Core.hpp"
+#endif  
+
 namespace mgard_x {
 
 
@@ -47,6 +51,13 @@ namespace mgard_x {
 #define MGARDX_CONT_EXEC __host__ __device__ __inline__
 #endif
 
+#if defined MGARDX_COMPILE_KOKKOS
+#define MGARDX_CONT __inline__
+#define MGARDX_KERL 
+#define MGARDX_EXEC __inline__
+#define MGARDX_CONT_EXEC KOKKOS_INLINE_FUNCTION
+#endif  
+
 
 #define MAX_GRID_X 2147483647
 #define MAX_GRID_Y 65536
@@ -64,13 +75,21 @@ namespace mgard_x {
     
 
 class Device {};
+class Serial: public Device {};
 class CUDA: public Device {};
 class HIP: public Device {};
+class None: public Device {};
+
+#if defined MGARDX_COMPILE_KOKKOS
+using KOKKOS = Kokkos::DefaultExecutionSpace;
+#else
+using KOKKOS = None;
+#endif
+
 class DPCxx: public Device {};
 class OpenMp: public Device {};
-class KOKKOS: public Device {};
-class Serial: public Device {};
-class Default: public Device {};
+
+
 
 
 using IDX = unsigned long long int;

@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "compress.hpp"
+#include "compress_x.hpp"
 #include "mgard-x/Utilities/ErrorCalculator.h"
 // #include "compress_cuda.hpp"
 
@@ -37,13 +37,13 @@ void print_usage_message(std::string error) {
 \t\t -e <error>: error bound\n\
 \t\t -s <smoothness>: smoothness parameter\n\
 \t\t -l choose lossless compressor (0:ZSTD@CPU 1:Huffman 2:Huffman+LZ4)\n\
-\t\t -d <serial|cuda|hip>: device type\n\
+\t\t -d <auto|serial|cuda|hip>: device type\n\
 \t\t -v enable verbose (show timing and statistics)\n\
 \n\
 \t -x: decompress data\n\
 \t\t -c <path to compressed file>\n\
 \t\t -d <path to decompressed file>\n\
-\t\t -d <serial|cuda|hip>: device type\n\
+\t\t -d <auto|serial|cuda|hip>: device type\n\
 \t\t -v enable verbose (show timing and statistics)\n");
   exit(0);
 }
@@ -267,6 +267,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   mgard_x::Config config;
   config.timing = verbose;
   config.uniform_coord_mode = 1;
+  config.dev_type = dev_type;
 
   // config.huff_dict_size = 64;
 
@@ -301,10 +302,9 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   void *decompressed_data = NULL;
   std::vector<const mgard_x::Byte *> coords_byte;
   if (!non_uniform) {
-    printf("calling compress\n");
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
                          compressed_data, compressed_size, config,
-                         dev_type, false);
+                         false);
   } else {
     std::vector<T *> coords;
     if (non_uniform) {
@@ -315,7 +315,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
                          compressed_data, compressed_size, coords_byte, config,
-                         dev_type, false);
+                         false);
   }
 
   writefile(output_file, compressed_size, compressed_data);
@@ -328,7 +328,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.timing = verbose;
 
     mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                           config, dev_type, false);
+                           config, false);
 
     print_statistics<T>(s, mode, original_size, original_data,
                         (T *)decompressed_data);
@@ -344,6 +344,7 @@ int launch_decompress(const char *input_file, const char *output_file,
 
   mgard_x::Config config;
   config.timing = verbose;
+  config.dev_type = dev_type;
 
   mgard_x::SERIALIZED_TYPE *compressed_data;
   size_t compressed_size = readfile(input_file, compressed_data);
@@ -360,7 +361,7 @@ int launch_decompress(const char *input_file, const char *output_file,
   void *decompressed_data;
 
   mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                         config, dev_type, false);
+                         config, false);
 
   int elem_size = 0;
   if (dtype == mgard_x::data_type::Double) {
@@ -443,9 +444,12 @@ bool try_compression(int argc, char *argv[]) {
               << "lossless: Huffman + LZ4\n";
   }
 
-  enum mgard_x::device_type dev_type; // REL or ABS
+  enum mgard_x::device_type dev_type;
   std::string dev = get_arg(argc, argv, "-d");
-  if (dev.compare("serial") == 0) {
+  if (dev.compare("auto") == 0) {
+    dev_type = mgard_x::device_type::Auto;
+    std::cout << mgard_x::log::log_info << "device type: Auto\n";
+  } else if (dev.compare("serial") == 0) {
     dev_type = mgard_x::device_type::Serial;
     std::cout << mgard_x::log::log_info << "device type: Serial\n";
   } else if (dev.compare("cuda") == 0) {
@@ -484,9 +488,12 @@ bool try_decompression(int argc, char *argv[]) {
   std::cout << mgard_x::log::log_info << "decompressed data: " << output_file
             << "\n";
 
-  enum mgard_x::device_type dev_type; // REL or ABS
+  enum mgard_x::device_type dev_type;
   std::string dev = get_arg(argc, argv, "-d");
-  if (dev.compare("serial") == 0) {
+  if (dev.compare("auto") == 0) {
+    dev_type = mgard_x::device_type::Auto;
+    std::cout << mgard_x::log::log_info << "device type: Auto\n";
+  } else if (dev.compare("serial") == 0) {
     dev_type = mgard_x::device_type::Serial;
     std::cout << mgard_x::log::log_info << "device type: Serial\n";
   } else if (dev.compare("cuda") == 0) {

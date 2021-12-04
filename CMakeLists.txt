@@ -38,6 +38,7 @@ option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 option(MGARD_ENABLE_SERIAL "Enable SERIAL support" OFF)
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 option(MGARD_ENABLE_HIP "Enable HIP support" OFF)
+option(MGARD_ENABLE_KOKKOS "Enable Kokkos support" OFF)
 
 #For performance optimization
 option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction." OFF)
@@ -88,19 +89,20 @@ endif()
 
 if (MGARD_ENABLE_SERIAL OR 
     MGARD_ENABLE_CUDA   OR
-    MGARD_ENABLE_HIP)
+    MGARD_ENABLE_HIP    OR
+    MGARD_ENABLE_KOKKOS)
   add_subdirectory (src/mgard-x)
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)
-  add_executable(MgardCudaExec ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardCudaExec.cpp)
-  target_link_libraries(MgardCudaExec mgard-library  ${CMAKE_DL_LIBS})
-  target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  add_executable(mgard-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mgard-x.cpp)
+  target_link_libraries(mgard-x mgard-library  ${CMAKE_DL_LIBS})
+  target_include_directories(mgard-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
-  add_executable(MgardSerialExec ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardSerialExec.cpp)
-  target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
-  target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+  # add_executable(MgardSerialExec ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardSerialExec.cpp)
+  # target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
+  # target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  #                                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 endif()
 
 if(MGARD_ENABLE_SERIAL)
@@ -115,20 +117,22 @@ if(MGARD_ENABLE_CUDA)
   enable_language(CUDA)
   find_package(nvcomp REQUIRED)
   find_package(CUDAToolkit REQUIRED)
-  # find_package(Kokkos REQUIRED)
-
   set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
+  # Legacy CUDA version
+  add_subdirectory (src/cuda)
+  add_subdirectory (include/cuda)
+  option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction" OFF)
+  option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" OFF)
+  option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimized for Turing GPUs" OFF)
+
+
+
+
   SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_CUDA")
   SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_CUDA")
-
-  # SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_KOKKOS")
-  # SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_KOKKOS")
-
-  # SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_SERIAL -w")
-  # SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_SERIAL")
-
+  
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)
 
@@ -153,11 +157,17 @@ endif()
 
 
 if (MGARD_ENABLE_HIP) 
-  find_package(HIP)
+  find_package(HIP REQUIRED)
   enable_language(HIP)
   set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
   SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_HIP -w")
+endif()
+
+if (MGARD_ENABLE_KOKKOS)
+  find_package(Kokkos REQUIRED)
+  set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
+         CUDA_SEPARABLE_COMPILATION ON)
 endif()
 
 find_package(ZLIB REQUIRED)
@@ -309,6 +319,7 @@ list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}" "${MGARD_COMPRESS_INTER
 add_library(
   mgard-library
   ${MGARD_LIBRARY_CPP}
+  ${MGARD_CUDA_SRC}
   ${MGARD_X_SRC}
 )
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
@@ -374,6 +385,10 @@ if(MGARD_ENABLE_OPENMP)
 	if(OpenMP_FOUND)
 		target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
 	endif()
+endif()
+
+if(MGARD_ENABLE_KOKKOS)
+  target_link_libraries(mgard-library PUBLIC Kokkos::kokkoscore)
 endif()
 
 option(MGARD_ENABLE_TIMING "Enable MGARD timing." OFF)

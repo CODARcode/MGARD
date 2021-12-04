@@ -11,7 +11,7 @@
 #include <numeric>
 #include <vector>
 
-#include "compress_cuda.hpp"
+#include "compress_x.hpp"
 #include "mgard-x/Handle.h" 
 #include "mgard-x/Metadata.hpp"
 #include "mgard-x/RuntimeX/RuntimeXPublic.h"
@@ -285,10 +285,35 @@ void decompress(const void *compressed_data, size_t compressed_size,
   decompress<DeviceType>(compressed_data, compressed_size, decompressed_data, config, output_pre_allocated);
 }
 
+
+enum device_type auto_detect_device() {
+  enum device_type dev_type = device_type::None;
+  #ifdef MGARD_ENABLE_SERIAL
+  dev_type = device_type::Serial;
+  #endif
+  #ifdef MGARD_ENABLE_CUDA
+  dev_type = device_type::CUDA;
+  #endif
+  #ifdef MGARD_ENABLE_HIP
+  dev_type = device_type::HIP;
+  #endif
+  if (dev_type == device_type::None) {
+    std::cout << log::log_err << "MGARD-X was not built with any backend.\n";
+    exit(-1);
+  }
+  return dev_type;
+}
+
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size, Config config,
-              enum device_type dev_type, bool output_pre_allocated) {
+              bool output_pre_allocated) {
+
+  enum device_type dev_type = config.dev_type;
+  if (dev_type == device_type::Auto) {
+    dev_type = auto_detect_device();
+  }
+
   if (dev_type == device_type::Serial) {
     #ifdef MGARD_ENABLE_SERIAL
     compress<Serial>(D, dtype, shape, tol, s, mode, original_data, compressed_data, compressed_size, config, output_pre_allocated);
@@ -319,7 +344,10 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
-              enum device_type dev_type, bool output_pre_allocated) {
+              bool output_pre_allocated) {
+
+  enum device_type dev_type = auto_detect_device();
+
   if (dev_type == device_type::Serial) {
     #ifdef MGARD_ENABLE_SERIAL
     compress<Serial>(D, dtype, shape, tol, s, mode, original_data, compressed_data, compressed_size, output_pre_allocated);
@@ -350,7 +378,13 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,  
               std::vector<const Byte *> coords, Config config,
-              enum device_type dev_type, bool output_pre_allocated) {
+              bool output_pre_allocated) {
+
+  enum device_type dev_type = config.dev_type;
+  if (dev_type == device_type::Auto) {
+    dev_type = auto_detect_device();
+  }
+
   if (dev_type == device_type::Serial) {
     #ifdef MGARD_ENABLE_SERIAL
     compress<Serial>(D, dtype, shape, tol, s, mode, original_data, compressed_data, compressed_size, coords, config, output_pre_allocated);
@@ -380,8 +414,10 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size, 
-              std::vector<const Byte *> coords,
-              enum device_type dev_type, bool output_pre_allocated) {
+              std::vector<const Byte *> coords, bool output_pre_allocated) {
+
+  enum device_type dev_type = auto_detect_device();
+
   if (dev_type == device_type::Serial) {
     #ifdef MGARD_ENABLE_SERIAL
     compress<Serial>(D, dtype, shape, tol, s, mode, original_data, compressed_data, compressed_size, coords, output_pre_allocated);
@@ -410,7 +446,13 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 
 void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data, Config config,
-                enum device_type dev_type, bool output_pre_allocated) {
+                bool output_pre_allocated) {
+
+  enum device_type dev_type = config.dev_type;
+  if (dev_type == device_type::Auto) {
+    dev_type = auto_detect_device();
+  }
+
   if (dev_type == device_type::Serial) {
     #ifdef MGARD_ENABLE_SERIAL
     decompress<Serial>(compressed_data, compressed_size, decompressed_data, config, output_pre_allocated);
@@ -438,8 +480,10 @@ void decompress(const void *compressed_data, size_t compressed_size,
 }
 
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data,
-                enum device_type dev_type, bool output_pre_allocated) {
+                void *&decompressed_data, bool output_pre_allocated) {
+
+  enum device_type dev_type = auto_detect_device();
+
   if (dev_type == device_type::Serial) {
     #ifdef MGARD_ENABLE_SERIAL
     decompress<Serial>(compressed_data, compressed_size, decompressed_data, output_pre_allocated);

@@ -1,19 +1,19 @@
 /*
  * Copyright 2021, Oak Ridge National Laboratory.
- * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ * MGARD-GPU: MultiGrid Adaptive Reduction of Data Accelerated by GPUs
  * Author: Jieyang Chen (chenj3@ornl.gov)
- * Date: December 1, 2021
+ * Date: September 27, 2021
  */
 
-#include "mgard-x/Types.h"
-#include "mgard-x/RuntimeX/RuntimeXPublic.h"
-#include "mgard-x/CompressionWorkflow.h"
+#include "cuda/Common.h"
+#include "cuda/CompressionWorkflow.h"
+#include "cuda/MemoryManagement.h"
 #include <cstdint>
 
 #ifndef MGARD_API_CUDA_H
 #define MGARD_API_CUDA_H
 
-namespace mgard_x {
+namespace mgard_cuda {
 
 //!\file
 //!\brief High level compression and decompression API.
@@ -31,7 +31,7 @@ namespace mgard_x {
 //!\param[out] compressed_size Size of compressed data.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size, enum device_type dev_type, bool output_pre_allocated);
+              void *&compressed_data, size_t &compressed_size);
 
 //!\file
 //!\brief High level compression and decompression API.
@@ -50,7 +50,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[in] config For configuring the compression process.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size, Config config, enum device_type dev_type, bool output_pre_allocated);
+              void *&compressed_data, size_t &compressed_size, Config config);
 
 //! Compress a function on an N-D tensor product grid with non-uniform spacing
 //!
@@ -67,7 +67,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, enum device_type dev_type, bool output_pre_allocated);
+              std::vector<const Byte *> coords);
 
 //! Compress a function on an N-D tensor product grid with non-uniform spacing
 //!
@@ -85,7 +85,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, Config config, enum device_type dev_type, bool output_pre_allocated);
+              std::vector<const Byte *> coords, Config config);
 
 //! Decompress a function on an N-D tensor product grid
 //!
@@ -93,7 +93,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[in] compressed_size Size of comrpessed data.
 //!\param[out] decompressed_data Decompressed data.
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, enum device_type dev_type, bool output_pre_allocated);
+                void *&decompressed_data);
 
 //! Decompress a function on an N-D tensor product grid
 //!
@@ -102,7 +102,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
 //!\param[out] decompressed_data Decompressed data.
 //!\param[in] config For configuring the decompression process.
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, Config config, enum device_type dev_type, bool output_pre_allocated);
+                void *&decompressed_data, Config config);
 
 //! Verify the compressed data
 bool verify(const void *compressed_data, size_t compressed_size);
@@ -128,6 +128,6 @@ template <typename T>
 std::vector<T *> infer_coords(const void *compressed_data,
                               size_t compressed_size);
 
-} // namespace mgard_x
+} // namespace mgard_cuda
 
 #endif
