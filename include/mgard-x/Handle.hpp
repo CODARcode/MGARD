@@ -354,6 +354,8 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
     bm_array.push_back(curr_bm_l_array);
   }
 
+  dev_type = config.dev_type;
+  dev_id = config.dev_id;
   lossless = config.lossless;
   huff_dict_size = config.huff_dict_size;
   huff_block_size = config.huff_block_size;

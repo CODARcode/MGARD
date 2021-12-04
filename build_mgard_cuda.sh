@@ -45,5 +45,3 @@ cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
 	  -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
 cmake --build ${mgard_x_build_dir} -j8
 cmake --install ${mgard_x_build_dir}
-
-	  # -DCMAKE_PREFIX_PATH=${kokkos_install_dir}\

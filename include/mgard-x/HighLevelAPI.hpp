@@ -11,7 +11,7 @@
 #include <numeric>
 #include <vector>
 
-#include "compress_cuda.hpp"
+#include "compress_x.hpp"
 #include "mgard-x/Handle.hpp" 
 #include "mgard-x/Metadata.hpp"
 #include "mgard-x/RuntimeX/RuntimeX.h"

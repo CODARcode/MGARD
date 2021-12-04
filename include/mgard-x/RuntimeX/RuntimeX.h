@@ -43,15 +43,14 @@ namespace mgard_x {
 #include "DeviceAdapters/DeviceAdapterHip.h"
 #endif
 
-#ifdef MGARD_ENABLE_KOKKOS
+#ifdef MGARDX_COMPILE_KOKKOS
 #include "DeviceAdapters/DeviceAdapterKokkos.h"
 #endif
 
-// #include "Utilities/CheckEndianess.hpp"
 #include "Utilities/CheckShape.hpp"
 #include "Utilities/OffsetCalculators.hpp"
 
 #include "DataStructures/Array.hpp"
 #include "DataStructures/SubArray.hpp"
+#include "DataStructures/SubArrayCopy.hpp"
 #include "Utilities/SubArrayPrinter.hpp"
-

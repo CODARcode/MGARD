@@ -14,6 +14,7 @@
 namespace mgard_x {
 
 struct Config {
+  device_type dev_type;
   int dev_id;
   SIZE l_target;
   SIZE huff_dict_size;
@@ -27,9 +28,10 @@ struct Config {
   enum lossless_type lossless;
 
   Config() {
+    dev_type = device_type::Auto;
     dev_id = 0;
     l_target = -1; // no limit
-    huff_dict_size = 64;
+    huff_dict_size = 8192;
 //#ifdef MGARD_X_OPTIMIZE_TURING
 //    huff_block_size = 1024 * 30;
 //#endif
@@ -58,7 +60,10 @@ template <DIM D, typename T, typename DeviceType> struct Handle {
   Handle(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
   ~Handle();
 
+
   /* Refactoring env */
+  enum device_type dev_type;
+  int dev_id;
   SIZE l_target;
   DIM D_padded;
   std::vector<SIZE> shape_org;

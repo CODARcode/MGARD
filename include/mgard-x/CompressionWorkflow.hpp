@@ -20,8 +20,13 @@
 #include "DataRefactoring/DataRefactoring.h"
 #include "Quantization/LinearQuantization.hpp"
 #include "Lossless/ParallelHuffman/Huffman.hpp"
-// #include "Lossless/LZ4.hpp"
+#include "Lossless/LZ4.hpp"
+#include "Lossless/Cascaded.hpp"
+// #include "Lossless/Bitcomp.hpp"
 #include "Utilities/CheckEndianess.h"
+
+// for debugging
+// #include "../cuda/DataRefactoring.h"
 
 #define BLOCK_SIZE 64
 
@@ -34,7 +39,7 @@ static bool debug_print = false;
 template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
                                  enum error_bound_type type, T tol, T s) {
-  // DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
+  DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
   Timer timer_total, timer_each;
   for (DIM i = 0; i < D; i++) {
     if (handle.shape[i] != in_array.getShape()[i]) {
@@ -48,11 +53,6 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
     }
   }
 
-
-  // Array<1, T, Serial> serial_array({100});
-  // SubArray serial_subarray(serial_array);
-  // PrintSubarray("serial_subarray", serial_subarray);
-
   SubArray in_subarray(in_array);
   SIZE total_elems = handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
 
@@ -61,29 +61,24 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
 
   if (type == error_bound_type::REL) {
     if (handle.timing) timer_each.start();
-    // thrust::device_vector<T> v_vec(handle.dofs[0][0] * handle.dofs[1][0] *
-    //                                handle.linearized_depth);
 
-    Array<1, T, DeviceType> temp_array(
-          {(SIZE)(handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth)}, 
-          false);
-    MemoryManager<DeviceType>().CopyND(
-                      temp_array.get_dv(), handle.dofs[0][0],
-                      in_array.get_dv(), in_array.get_ldvs_h()[0], 
-                      handle.dofs[0][0], (SIZE)(handle.dofs[1][0] * handle.linearized_depth),
-                      0);
-
-
-    // MemoryManager<DeviceType>().CopyND(
-    //                   thrust::raw_pointer_cast(v_vec.data()), handle.dofs[0][0],
-    //                   in_array.get_dv(), in_array.get_ldvs_h()[0], 
-    //                   handle.dofs[0][0], (SIZE)(handle.dofs[1][0] * handle.linearized_depth),
-    //                   0);
-
-    SubArray temp_subarray(temp_array);
+    Array<1, T, DeviceType> temp_array;
+    SubArray<1, T, DeviceType> temp_subarray;
     Array<1, T, DeviceType> norm_array({1});
-    SubArray norm_subarray(norm_array);
-
+    SubArray<1, T, DeviceType> norm_subarray(norm_array);
+    if (MemoryManager<CUDA>::ReduceMemoryFootprint) { // zero copy
+      temp_subarray = SubArray<1, T, DeviceType>({total_elems}, in_array.get_dv());
+    } else { // need to linearized
+      temp_array = Array<1, T, DeviceType>(
+            {(SIZE)(handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth)}, 
+            false);
+      MemoryManager<DeviceType>().CopyND(
+                        temp_array.get_dv(), handle.dofs[0][0],
+                        in_array.get_dv(), in_array.get_ldvs_h()[0], 
+                        handle.dofs[0][0], (SIZE)(handle.dofs[1][0] * handle.linearized_depth),
+                        0);
+      temp_subarray = SubArray<1, T, DeviceType>(temp_array);
+    }
     DeviceRuntime<DeviceType>::SyncQueue(0);
     if (s == std::numeric_limits<T>::infinity()) {
       DeviceCollective<DeviceType>::AbsMax(total_elems, temp_subarray, norm_subarray, 0);
@@ -99,6 +94,11 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
       timer_each.end();
       timer_each.print("Calculating norm");
       timer_each.clear();
+      if (s == std::numeric_limits<T>::infinity()) {
+        std::cout << log::log_info << "L_inf norm: " << norm << std::endl;
+      } else {
+        std::cout << log::log_info << "L_2 norm: " << norm << std::endl;
+      }
     }
   }
   
@@ -111,6 +111,17 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
     timer_each.print("Decomposition");
     timer_each.clear();
   }
+
+
+  // {
+  //   mgard_cuda::Array<D, T> in_array2(in_array.getShape());
+  //   MemoryManager<DeviceType>::CopyND(in_array2.get_dv(), in_array2.get_ldvs_h()[0],
+  //                                     in_array.get_dv(), in_array.get_ldvs_h()[0],
+  //                                     handle.dofs[0][0], handle.dofs[1][0] * handle.linearized_depth);
+  //   decompose<D, T>(handle, in_array2.get_dv(), in_array2.get_ldvs_h(),
+  //                 in_array2.get_ldvs_d(), handle.l_target, 0);
+    
+  // }
 
   // Quantization
   bool prep_huffman = handle.lossless == lossless_type::GPU_Huffman ||
@@ -201,8 +212,6 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   // Huffman compression
   if (handle.timing) timer_each.start();
 
-  uint64_t *hufdata;
-  size_t hufdata_size;
   Array<1, Byte, DeviceType> huffman_array;
   Array<1, Byte, DeviceType> lz4_array;
   SubArray<1, Byte, DeviceType> lossless_compressed_subarray;
@@ -214,39 +223,42 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   HuffmanCompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(
       qv, handle.huff_block_size, handle.huff_dict_size);
   lossless_compressed_subarray = SubArray(huffman_array);
-
-  Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> primary =
-  HuffmanDecompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(lossless_compressed_subarray);
-
   
   if (handle.timing) {
     timer_each.end();
     timer_each.print("Huffman Compress");
+    std::cout << log::log_info << "Huffman compress ratio: " << 
+      (double)total_elems*sizeof(QUANTIZED_UNSIGNED_INT) / lossless_compressed_subarray.getShape(0) << "\n"; 
     timer_each.clear();
   }
   if (debug_print) {
-    PrintSubarray("Huffman lossless_compressed_subarray", lossless_compressed_subarray);
+    // PrintSubarray("Huffman lossless_compressed_subarray", lossless_compressed_subarray);
   }
 
   // LZ4 compression
-  // if (handle.lossless == lossless_type::GPU_Huffman_LZ4) {
-  //   if (handle.timing) timer_each.start();
-  //   lz4_array = 
-  //   LZ4Compress(lossless_compressed_subarray, handle.lz4_block_size);
-  //   lossless_compressed_subarray = SubArray(lz4_array);
-
-  //   if (handle.timing) {
-  //     timer_each.end();
-  //     timer_each.print("LZ4 Compress");
-  //     timer_each.clear();
-  //   }
-  // }
+  if (handle.lossless == lossless_type::GPU_Huffman_LZ4) {
+    if (handle.timing) timer_each.start();
+    SIZE lz4_before_size = lossless_compressed_subarray.getShape(0);
+    lz4_array = 
+    LZ4Compress(lossless_compressed_subarray, handle.lz4_block_size);
+    // CascadedCompress(lossless_compressed_subarray, 
+    //              0, 0, true);
+    lossless_compressed_subarray = SubArray(lz4_array);
+    SIZE lz4_after_size = lossless_compressed_subarray.getShape(0);
+    if (handle.timing) {
+      timer_each.end();
+      timer_each.print("LZ4 Compress");
+      std::cout << log::log_info << "LZ4 compress ratio: " << 
+      (double)lz4_before_size / lz4_after_size << "\n"; 
+      timer_each.clear();
+    }
+  }
 
   if (handle.timing) {
     timer_total.end();
     timer_total.print("Overall Compress");
     std::cout << log::log_time << "Compression Throughput: " <<
-      (double)(total_elems*sizeof(T))/timer_total.get()/1e9 << " GB/s)\n";
+      (double)(total_elems*sizeof(T))/timer_total.get()/1e9 << " GB/s\n";
     timer_total.clear();
   }
 
@@ -296,7 +308,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   }
 
   if (debug_print) {
-    PrintSubarray("Final compressed_subarray", compressed_subarray);
+    // PrintSubarray("Final compressed_subarray", compressed_subarray);
   }
 
   free(serizalied_meta);
@@ -306,7 +318,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
 template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
                        Array<1, unsigned char, DeviceType> &compressed_array) {
-  // DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
+  DeviceRuntime<DeviceType>::SelectDevice(handle.dev_id);
   Timer timer_total, timer_each;
 
   SIZE total_elems = handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
@@ -314,7 +326,7 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
   SubArray compressed_subarray(compressed_array);
 
   if (debug_print) {
-    PrintSubarray("Before decompression", compressed_subarray);
+    // PrintSubarray("Before decompression", compressed_subarray);
   }
   SIZE byte_offset = 0;
 
@@ -345,15 +357,7 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
   }
 
   if (handle.timing) timer_each.start();
-  void *lz4_hufmeta;
-  size_t lz4_hufmeta_size;
-  void *lz4_hufdata;
-  size_t lz4_hufdata_size;
 
-  uint8_t *hufmeta;
-  Byte *hufdata;
-  size_t hufmeta_size;
-  SIZE hufdata_size;
   size_t outsize;
 
   LENGTH outlier_count;
@@ -387,24 +391,24 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
   Array<1, Byte, DeviceType> huffman_array;
 
   if (handle.timing) timer_total.start();
-  // if (m.ltype == lossless_type::GPU_Huffman_LZ4) {
-  //   if (handle.timing) timer_each.start();
-  //   lz4_array = 
-  //   LZ4Decompress<Byte, DeviceType>(lossless_compressed_subarray);
-  //   lossless_compressed_subarray =  SubArray(lz4_array);
-  //   DeviceRuntime<DeviceType>::SyncDevice();
+  if (m.ltype == lossless_type::GPU_Huffman_LZ4) {
+    if (handle.timing) timer_each.start();
+    lz4_array = 
+    LZ4Decompress<Byte, DeviceType>(lossless_compressed_subarray);
+    lossless_compressed_subarray =  SubArray(lz4_array);
+    DeviceRuntime<DeviceType>::SyncDevice();
 
-  //   if (handle.timing) {
-  //     timer_each.end();
-  //     timer_each.print("LZ4 Decompress");
-  //     timer_each.clear();
-  //   }
-  // }
+    if (handle.timing) {
+      timer_each.end();
+      timer_each.print("LZ4 Decompress");
+      timer_each.clear();
+    }
+  }
 
   QUANTIZED_UNSIGNED_INT * unsigned_dqv;
   
   if (debug_print) {
-    PrintSubarray("Huffman lossless_compressed_subarray", lossless_compressed_subarray);
+    // PrintSubarray("Huffman lossless_compressed_subarray", lossless_compressed_subarray);
   }
 
   if (handle.timing) timer_each.start();
@@ -483,7 +487,7 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
     timer_total.end();
     timer_total.print("Overall Decompression");
     std::cout << log::log_time << "Decompression Throughput: " << 
-      (double)(total_elems*sizeof(T))/timer_total.get()/1e9 << " GB/s)\n";
+      (double)(total_elems*sizeof(T))/timer_total.get()/1e9 << " GB/s\n";
     timer_total.clear();
   }
 
