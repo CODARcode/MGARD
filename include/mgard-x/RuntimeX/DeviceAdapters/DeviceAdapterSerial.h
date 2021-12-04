@@ -571,7 +571,7 @@ class DeviceSpecification<Serial> {
     for (int d = 0; d < NumDevices; d++) {
       MaxSharedMemorySize[d] = 1e6;
       WarpSize[d] = 32;
-      NumSMs[d] = 1;
+      NumSMs[d] = 80;
       MaxNumThreadsPerSM[d] = 1024;
       ArchitectureGeneration[d] = 1;
     }
@@ -711,7 +711,7 @@ class DeviceRuntime<Serial> {
   template <typename FunctorType>
   MGARDX_CONT static int
   GetOccupancyMaxActiveBlocksPerSM(FunctorType functor, int blockSize, size_t dynamicSMemSize) {
-    return 80;
+    return 32;
   }
 
   template <typename FunctorType>

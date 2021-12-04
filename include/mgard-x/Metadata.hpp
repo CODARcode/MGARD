@@ -49,7 +49,7 @@ struct Metadata {
   char * nonuniform_coords_file;
   std::vector<Byte *> coords;
   
-public:
+  public:
   SERIALIZED_TYPE *Serialize(uint32_t &total_size) {
     total_size = 0;
 
@@ -224,7 +224,7 @@ public:
     }
   }
 
-private:
+  private:
 
   template <typename T>
   void Serialize(T &item, SERIALIZED_TYPE * &p) {

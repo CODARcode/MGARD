@@ -1,10 +1,10 @@
 #ifndef MGARD_X_LZ4_TEMPLATE_HPP
 #define MGARD_X_LZ4_TEMPLATE_HPP
 
-namespace mgard_x {
-
-#include "nvcomp/lz4.hpp"
 #include "nvcomp.hpp"
+#include "nvcomp/lz4.hpp"
+
+namespace mgard_x {
 
 template <typename C, typename DeviceType>
 Array<1, Byte, DeviceType> 
@@ -28,10 +28,12 @@ LZ4Compress(SubArray<1, C, DeviceType> &input_data, size_t chunk_size) {
 
   compressor.compress_async(input_data.data(), input_count * sizeof(C), temp_space.get_dv(),
                             *temp_bytes, output_data.get_dv(), output_bytes,
-                            DeviceRuntime<CUDA>::GetQueue(0));
+                            DeviceRuntime<DeviceType>::GetQueue(0));
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
   output_data.getShape()[0] = *output_bytes;
+  Mem::FreeHost(temp_bytes);
+  Mem::FreeHost(output_bytes);
   return output_data;
 }
 
@@ -49,17 +51,19 @@ LZ4Decompress(SubArray<1, Byte, DeviceType> &input_data) {
   size_t input_size = input_data.getShape(0);
 
   decompressor.configure(input_data.data(), input_size, temp_bytes, output_bytes,
-                         DeviceRuntime<CUDA>::GetQueue(0));
+                         DeviceRuntime<DeviceType>::GetQueue(0));
 
   Array<1, Byte, DeviceType> temp_space({(SIZE)*temp_bytes});
-  Array<1, Byte, DeviceType> output_data({(SIZE)*output_bytes});
+  Array<1, C, DeviceType> output_data({(SIZE)*output_bytes});
 
   decompressor.decompress_async(input_data.data(), input_size, temp_space.get_dv(), *temp_bytes,
                                 output_data.get_dv(), *output_bytes,
-                                DeviceRuntime<CUDA>::GetQueue(0));
+                                DeviceRuntime<DeviceType>::GetQueue(0));
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
   output_data.getShape()[0] = (*output_bytes)/sizeof(C);
+  Mem::FreeHost(temp_bytes);
+  Mem::FreeHost(output_bytes);
   return output_data;
 }
 

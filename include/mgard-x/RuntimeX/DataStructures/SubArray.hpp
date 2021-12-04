@@ -19,7 +19,7 @@ public:
   SubArray();
   MGARDX_CONT
   SubArray(Array<D, T, DeviceType> &array, bool get_host_pointer = false);
-  // SubArray(std::vector<SIZE> shape, T * dv, std::vector<SIZE> ldvs_h, SIZE * ldvs_d);
+  MGARDX_CONT
   SubArray(std::vector<SIZE> shape, T * dv);
   MGARDX_CONT_EXEC
   SubArray(SubArray<D, T, DeviceType> &subArray);
@@ -176,6 +176,7 @@ public:
     return this->dv == NULL;
   }
 
+  MGARDX_CONT_EXEC
   ~SubArray();
 
   using DataType = T;

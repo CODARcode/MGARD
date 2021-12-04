@@ -524,10 +524,7 @@ class DeviceRuntime<CUDA> {
     if constexpr (std::is_base_of<Functor<CUDA>, 
       FunctorType>::value) {
       gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-      &numBlocks, 
-       Kernel<Task<FunctorType>>,
-       blockSize, 
-       dynamicSMemSize));
+      &numBlocks, Kernel<Task<FunctorType>>, blockSize, dynamicSMemSize));
     } else if constexpr (std::is_base_of<IterFunctor<CUDA>, FunctorType>::value) {
       gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
       &numBlocks, IterKernel<Task<FunctorType>>, blockSize, dynamicSMemSize));
@@ -1338,6 +1335,7 @@ public:
 
   MGARDX_CONT
   void Execute(TaskType& task) {
+
     dim3 threadsPerBlock(task.GetBlockDimX(),
                          task.GetBlockDimY(),
                          task.GetBlockDimZ());
@@ -1348,6 +1346,9 @@ public:
     // printf("exec config (%d %d %d) (%d %d %d) sm_size: %llu\n", threadsPerBlock.x, threadsPerBlock.y, threadsPerBlock.z, 
     //                 blockPerGrid.x, blockPerGrid.y, blockPerGrid.z, sm_size);
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(task.GetQueueIdx());
+
+    // Timer timer;
+    // timer.start();
 
     // if constexpr evalute at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<CUDA>, typename TaskType::Functor>::value) {
@@ -1371,6 +1372,12 @@ public:
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       ErrorSyncCheck(cudaDeviceSynchronize(), task);
     }
+
+    // timer.end();
+    // timer.print(task.GetFunctorName());
+    // timer.clear();
+
+    
   }
 };
 
@@ -1380,7 +1387,7 @@ struct AbsMaxOp
     template <typename T>
     __device__ __forceinline__
     T operator()(const T &a, const T &b) const {
-        return (fabs(b) > fabs(a)) ? b : a;
+        return (fabs(b) > fabs(a)) ? fabs(b) : fabs(a);
     }
 };
 
