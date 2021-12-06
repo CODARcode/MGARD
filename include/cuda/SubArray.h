@@ -63,6 +63,7 @@ public:
   SIZE lddv1;
   SIZE lddv2;
   using DataType = T;
+  static const DIM NumDims = D;
 };
 
 } // namespace mgard_cuda

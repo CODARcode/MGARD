@@ -20,13 +20,15 @@
 #include "DataRefactoring/DataRefactoring.h"
 #include "Quantization/LinearQuantization.hpp"
 #include "Lossless/ParallelHuffman/Huffman.hpp"
-#include "Lossless/LZ4.hpp"
+// #include "Lossless/LZ4.hpp"
 #include "Lossless/Cascaded.hpp"
 // #include "Lossless/Bitcomp.hpp"
 #include "Utilities/CheckEndianess.h"
 
 // for debugging
-// #include "../cuda/DataRefactoring.h"
+#include "../cuda/CommonInternal.h"
+#include "../cuda/DataRefactoring.h"
+#include "../cuda/SubArray.h"
 
 #define BLOCK_SIZE 64
 
@@ -34,7 +36,77 @@ using namespace std::chrono;
 
 namespace mgard_x {
 
-static bool debug_print = false;
+
+// template <typename SubArrayType> 
+// void CompareSubarray2(std::string name, SubArrayType subArray1, SubArrayType subArray2) {
+//   // Handle<1, float> tmp_handle;
+
+//   SIZE nrow = 1;
+//   SIZE ncol = 1;
+//   SIZE nfib = 1;
+
+//   nfib = subArray1.getShape(0);
+//   if (SubArrayType::NumDims >= 2) ncol = subArray1.getShape(1);
+//   if (SubArrayType::NumDims >= 3) nrow = subArray1.getShape(2);
+
+//   if (subArray1.getShape(0) != subArray2.getShape(0) ||
+//       subArray1.getShape(1) != subArray2.getShape(1) ||
+//       subArray1.getShape(2) != subArray2.getShape(2)) {
+//     std::cout << log::log_err <<"CompareSubarray: shape mismatch!\n";
+//     exit(-1);
+//   }
+
+//   using T = typename SubArrayType::DataType;
+//   using DeviceType = typename SubArrayType::DevType;
+//   std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * " << nfib << ") sizeof(T) = "  <<sizeof(T) << std::endl;
+
+//   T *v1 = new T[nrow * ncol * nfib];
+//   T *v2= new T[nrow * ncol * nfib];
+
+//   for (SIZE i = 0; i < nrow; i++) {
+//     MemoryManager<DeviceType>::CopyND(v1 + ncol * nfib * i, nfib, subArray1.data() + subArray1.getLddv1() * subArray1.getLddv2() * i, subArray1.getLddv1(),
+//                                 nfib, ncol, 0);
+//     MemoryManager<DeviceType>::CopyND(v2 + ncol * nfib * i, nfib, subArray2.data() + subArray2.getLddv1() * subArray2.getLddv2() * i, subArray2.getLddv1(),
+//                                 nfib, ncol, 0);
+//   }
+//   DeviceRuntime<DeviceType>::SyncQueue(0);
+
+//   T max_error = 0;
+//   bool pass = true;
+//   for (int i = 0; i < nrow; i++) {
+//     printf("[i = %d]\n", i);
+//     for (int j = 0; j < ncol; j++) {
+//       for (int k = 0; k < nfib; k++) {
+//         T a = v1[nfib * ncol * i + nfib * j + k];
+//         T b = v2[nfib * ncol * i + nfib * j + k];
+//         max_error = std::max(max_error, fabs(a-b));
+//         printf("max_error %f, fabs(a-b) %f\n", max_error, fabs(a-b));
+//         if (fabs(a-b) > 1e-5 * fabs(a)) {
+//           std::cout << ANSI_RED;
+//           pass = false;
+//         } else {
+//           std::cout << ANSI_GREEN;
+//         }
+//         if (std::is_same<T, std::uint8_t>::value) {
+//           std::cout << std::setw(8) << (unsigned int)v2[nfib * ncol * i + nfib * j + k] << ", ";
+//         } else {
+//           std::cout << std::setw(8) << std::setprecision(6) << std::fixed
+//                   << v2[nfib * ncol * i + nfib * j + k] << ", ";
+//         }
+//         std::cout << ANSI_RESET;
+//       }
+//       std::cout << std::endl;
+//     }
+//     std::cout << std::endl;
+//   }
+//   std::cout << std::endl;
+
+//   printf("Check: %d, max error: %f\n", pass, max_error);
+//   delete [] v1;
+//   delete [] v2;
+// }
+
+static bool debug_print = true;
 
 template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
@@ -102,26 +174,56 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
     }
   }
   
+
+  // std::vector<SIZE> shape2(D);
+  // for (int i = 0; i < D; i++) {
+  //   shape2[i] = in_array.getShape()[i];
+  // }
+  // mgard_cuda::Array<D, T> in_array2(shape2);
+  // std::cout << "copy\n";
+  // MemoryManager<DeviceType>::CopyND(in_array2.get_dv(), in_array2.get_ldvs_h()[0],
+  //                                   in_array.get_dv(), in_array.get_ldvs_h()[0],
+  //                                   handle.dofs[0][0], handle.dofs[1][0] * handle.linearized_depth, 0);
+  DeviceRuntime<DeviceType>::SyncDevice();
+
+  if (debug_print) {
+    // PrintSubarray2("before decompresition", SubArray<D, T, DeviceType>(in_array));
+  }
+
   // Decomposition
   if (handle.timing) timer_each.start();
   decompose<D, T, DeviceType>(handle, in_subarray, handle.l_target, 0);
-  DeviceRuntime<DeviceType>::SyncDevice();
   if (handle.timing) {
     timer_each.end();
     timer_each.print("Decomposition");
     timer_each.clear();
   }
 
+  gpuErrchk(cudaDeviceSynchronize());
 
-  // {
-  //   mgard_cuda::Array<D, T> in_array2(in_array.getShape());
-  //   MemoryManager<DeviceType>::CopyND(in_array2.get_dv(), in_array2.get_ldvs_h()[0],
-  //                                     in_array.get_dv(), in_array.get_ldvs_h()[0],
-  //                                     handle.dofs[0][0], handle.dofs[1][0] * handle.linearized_depth);
-  //   decompose<D, T>(handle, in_array2.get_dv(), in_array2.get_ldvs_h(),
-  //                 in_array2.get_ldvs_d(), handle.l_target, 0);
+  if (debug_print) {
+    // PrintSubarray("after decompresition", in_subarray);
+  }
+
+
+  // { //**************debug********************
     
-  // }
+  //   mgard_cuda::Config config;
+  //   mgard_cuda::Handle<D, T> handle2(shape2, config);
+  //   config.sync_and_check_all_kernels = true;
+  //   std::cout << "decompose\n";
+  //   handle2.allocate_workspace();
+  //   mgard_cuda::decompose<D, T>(handle2, in_array2.get_dv(), in_array2.get_ldvs_h(),
+  //                 in_array2.get_ldvs_d(), handle2.l_target, 0);
+  //   std::cout << "decompose done\n";
+  //   DeviceRuntime<DeviceType>::SyncDevice();
+  //   handle2.free_workspace();
+
+  //   // PrintSubarray("decompose1", in_subarray);
+  //   // mgard_cuda::PrintSubarray("decompose2", mgard_cuda::SubArray(in_array2));
+
+  //   CompareSubarray("decompose", in_subarray, mgard_cuda::SubArray(in_array2), false, 1e-3);
+  // } //**************debug********************
 
   // Quantization
   bool prep_huffman = handle.lossless == lossless_type::GPU_Huffman ||
@@ -203,10 +305,11 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
     timer_each.clear();
   }
   if (debug_print) {
-    PrintSubarray("quantized parimary", SubArray<D, QUANTIZED_INT, DeviceType>(dqv_array));
-    std::cout << "outlier_count: " << outlier_count << std::endl;
-    PrintSubarray("quantized outliers_array", SubArray<1, QUANTIZED_INT, DeviceType>(outliers_array));
-    PrintSubarray("quantized outlier_idx_array", SubArray<1, LENGTH, DeviceType>(outlier_idx_array));
+     // PrintSubarray("decompresed", SubArray<D, T, DeviceType>(in_array));
+    // PrintSubarray("quantized parimary", SubArray<D, QUANTIZED_INT, DeviceType>(dqv_array));
+    // std::cout << "outlier_count: " << outlier_count << std::endl;
+    // PrintSubarray("quantized outliers_array", SubArray<1, QUANTIZED_INT, DeviceType>(outliers_array));
+    // PrintSubarray("quantized outlier_idx_array", SubArray<1, LENGTH, DeviceType>(outlier_idx_array));
   }
 
   // Huffman compression
@@ -236,23 +339,23 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   }
 
   // LZ4 compression
-  if (handle.lossless == lossless_type::GPU_Huffman_LZ4) {
-    if (handle.timing) timer_each.start();
-    SIZE lz4_before_size = lossless_compressed_subarray.getShape(0);
-    lz4_array = 
-    LZ4Compress(lossless_compressed_subarray, handle.lz4_block_size);
-    // CascadedCompress(lossless_compressed_subarray, 
-    //              0, 0, true);
-    lossless_compressed_subarray = SubArray(lz4_array);
-    SIZE lz4_after_size = lossless_compressed_subarray.getShape(0);
-    if (handle.timing) {
-      timer_each.end();
-      timer_each.print("LZ4 Compress");
-      std::cout << log::log_info << "LZ4 compress ratio: " << 
-      (double)lz4_before_size / lz4_after_size << "\n"; 
-      timer_each.clear();
-    }
-  }
+  // if (handle.lossless == lossless_type::GPU_Huffman_LZ4) {
+  //   if (handle.timing) timer_each.start();
+  //   SIZE lz4_before_size = lossless_compressed_subarray.getShape(0);
+  //   lz4_array = 
+  //   LZ4Compress(lossless_compressed_subarray, handle.lz4_block_size);
+  //   // CascadedCompress(lossless_compressed_subarray, 
+  //   //              0, 0, true);
+  //   lossless_compressed_subarray = SubArray(lz4_array);
+  //   SIZE lz4_after_size = lossless_compressed_subarray.getShape(0);
+  //   if (handle.timing) {
+  //     timer_each.end();
+  //     timer_each.print("LZ4 Compress");
+  //     std::cout << log::log_info << "LZ4 compress ratio: " << 
+  //     (double)lz4_before_size / lz4_after_size << "\n"; 
+  //     timer_each.clear();
+  //   }
+  // }
 
   if (handle.timing) {
     timer_total.end();
@@ -391,19 +494,19 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
   Array<1, Byte, DeviceType> huffman_array;
 
   if (handle.timing) timer_total.start();
-  if (m.ltype == lossless_type::GPU_Huffman_LZ4) {
-    if (handle.timing) timer_each.start();
-    lz4_array = 
-    LZ4Decompress<Byte, DeviceType>(lossless_compressed_subarray);
-    lossless_compressed_subarray =  SubArray(lz4_array);
-    DeviceRuntime<DeviceType>::SyncDevice();
+  // if (m.ltype == lossless_type::GPU_Huffman_LZ4) {
+  //   if (handle.timing) timer_each.start();
+  //   lz4_array = 
+  //   LZ4Decompress<Byte, DeviceType>(lossless_compressed_subarray);
+  //   lossless_compressed_subarray =  SubArray(lz4_array);
+  //   DeviceRuntime<DeviceType>::SyncDevice();
 
-    if (handle.timing) {
-      timer_each.end();
-      timer_each.print("LZ4 Decompress");
-      timer_each.clear();
-    }
-  }
+  //   if (handle.timing) {
+  //     timer_each.end();
+  //     timer_each.print("LZ4 Decompress");
+  //     timer_each.clear();
+  //   }
+  // }
 
   QUANTIZED_UNSIGNED_INT * unsigned_dqv;
   
@@ -421,9 +524,9 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
     timer_each.clear();
   }
 
-  if (debug_print) {
-    PrintSubarray("Quantized primary", SubArray(primary));
-  }
+  // if (debug_print) {
+  //   PrintSubarray("Quantized primary", SubArray(primary));
+  // }
 
 
   if (handle.timing) timer_each.start();
@@ -469,9 +572,9 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
   }
 
 
-  if (debug_print) {
-    PrintSubarray("Dequanzed primary", SubArray(primary));
-  }
+  // if (debug_print) {
+  //   PrintSubarray2("Dequanzed primary", SubArray(primary));
+  // }
 
   if (handle.timing) timer_each.start();
   recompose<D, T, DeviceType>(handle, decompressed_subarray, m.l_target, 0);
@@ -490,6 +593,11 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
       (double)(total_elems*sizeof(T))/timer_total.get()/1e9 << " GB/s\n";
     timer_total.clear();
   }
+
+  // if (debug_print) {
+  //   PrintSubarray2("decompressed_subarray", SubArray<D, T, DeviceType>(decompressed_subarray));
+  // }
+
 
   return decompressed_data;
 }
