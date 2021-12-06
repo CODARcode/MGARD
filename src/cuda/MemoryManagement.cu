@@ -139,24 +139,26 @@ void print_matrix_cuda(SIZE nrow, SIZE ncol, SIZE nfib, T *dv, SIZE lddv1,
   std::cout << std::setprecision(2) << std::fixed;
   Handle<3, float> *tmp_handle = new Handle<3, float>();
   int queue_idx = 0;
-
+  gpuErrchk(cudaDeviceSynchronize());
   T *v = new T[nrow * ncol * nfib];
   cudaMemcpy3DAsyncHelper(*tmp_handle, v, nfib * sizeof(T), nfib * sizeof(T),
                           ncol, dv, lddv1 * sizeof(T), sizex * sizeof(T), lddv2,
                           nfib * sizeof(T), ncol, nrow, D2H, queue_idx);
   tmp_handle->sync(queue_idx);
+  gpuErrchk(cudaDeviceSynchronize());
   print_matrix(nrow, ncol, nfib, v, nfib, ncol);
   delete[] v;
   delete tmp_handle;
+  gpuErrchk(cudaDeviceSynchronize());
 }
 
 // print 3D CPU
 template <typename T>
 void print_matrix(SIZE nrow, SIZE ncol, SIZE nfib, T *v, SIZE ldv1, SIZE ldv2) {
-  std::cout << std::setw(10);
-  std::cout << std::setprecision(2) << std::fixed;
+  // std::cout << std::setw(10);
+  // std::cout << std::setprecision(2) << std::fixed;
   for (int i = 0; i < nrow; i++) {
-    std::cout << "[ nrow = " << i << " ]\n";
+    std::cout << "[ i = " << i << " ]\n";
     print_matrix(ncol, nfib, v + i * ldv1 * ldv2, ldv1);
     // std::cout << std::endl;
   }

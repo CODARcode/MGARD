@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "mgard/compress.hpp"
+#include "mgard/compress_x.hpp"
 // #include "compress_cuda.hpp"
 #include "mgard/mgard-x/Utilities/ErrorCalculator.h"
 

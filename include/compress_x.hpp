@@ -10,8 +10,8 @@
 #include "mgard-x/CompressionWorkflow.h"
 #include <cstdint>
 
-#ifndef MGARD_API_CUDA_H
-#define MGARD_API_CUDA_H
+#ifndef MGARD_X_API_H
+#define MGARD_X_API_H
 
 namespace mgard_x {
 

@@ -39,7 +39,7 @@ __global__ void _lpk_reo_1_3d(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, SIZE zero_r,
   T *dist_f_sm = sm + ldsm1 * ldsm2 * R;
   T *ratio_f_sm = dist_f_sm + ldsm1;
 
-  // bool debug = false;
+  bool debug = false;
   // if (blockIdx.z == 0 && blockIdx.y == 0 && blockIdx.x == 0 &&
   // threadIdx.z == 0 && threadIdx.y == 0 ) debug = true;
 
@@ -224,16 +224,16 @@ __global__ void _lpk_reo_1_3d(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, SIZE zero_r,
     }
   }
 
-  bool debug = false;
+  // bool debug = false;
   // if (r_gl == 0 && c_gl == 0) debug = true;
 
   if (r_sm == 0 && c_sm == 0 && f_sm < actual_F) {
     if (blockId * F * 2 + f_sm < nf) {
       dist_f_sm[2 + f_sm] = ddist_f[blockId * F * 2 + f_sm];
       ratio_f_sm[2 + f_sm] = dratio_f[blockId * F * 2 + f_sm];
-      if (debug)
-        printf("load dist[%d] -> sm[%d]: %f\n", blockId * F * 2 + f_sm,
-               2 + f_sm, ddist_f[blockId * F * 2 + f_sm]);
+      // if (debug)
+      //   printf("load dist[%d] -> sm[%d]: %f\n", blockId * F * 2 + f_sm,
+      //          2 + f_sm, ddist_f[blockId * F * 2 + f_sm]);
     } else {
       dist_f_sm[2 + f_sm] = 0.0;
       ratio_f_sm[2 + f_sm] = 0.0;
@@ -244,10 +244,10 @@ __global__ void _lpk_reo_1_3d(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, SIZE zero_r,
           ddist_f[blockId * F * 2 + actual_F + f_sm];
       ratio_f_sm[2 + actual_F + f_sm] =
           dratio_f[blockId * F * 2 + actual_F + f_sm];
-      if (debug)
-        printf("load dist[%d] -> sm[%d]: %f\n",
-               blockId * F * 2 + actual_F + f_sm, 2 + actual_F + f_sm,
-               ddist_f[blockId * F * 2 + actual_F + f_sm]);
+      // if (debug)
+      //   printf("load dist[%d] -> sm[%d]: %f\n",
+      //          blockId * F * 2 + actual_F + f_sm, 2 + actual_F + f_sm,
+      //          ddist_f[blockId * F * 2 + actual_F + f_sm]);
     } else {
       dist_f_sm[2 + actual_F + f_sm] = 0.0;
       ratio_f_sm[2 + actual_F + f_sm] = 0.0;
@@ -289,26 +289,37 @@ __global__ void _lpk_reo_1_3d(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, SIZE zero_r,
     T d = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm * 2 + 3)];
     T e = v_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, f_sm * 2 + 4)];
 
-    // if (f_gl == nf_c - 1) {
+    // if (f_gl == 0 && c_gl == 2 && r_gl == 0) {
     //   printf("f_sm(%d) %f %f %f %f %f\n",f_sm, a,b,c,d,e);
     //   printf("f_sm_h(%d) %f %f %f %f\n",f_sm, h1,h2,h3,h4);
     //   printf("f_sm_r(%d) %f %f %f %f\n",f_sm, r1,r2,r3,r4);
     // }
 
-    // T tb = a * h1 + b * 2 * (h1+h2) + c * h2;
-    // T tc = b * h2 + c * 2 * (h2+h3) + d * h3;
-    // T td = c * h3 + d * 2 * (h3+h4) + e * h4;
+    // T tb = a * h1/6 + b * (h1+h2)/3 + c * h2/6;
+    // T tc = b * h2/6 + c * (h2+h3)/3 + d * h3/6;
+    // T td = c * h3/6 + d * (h3+h4)/3 + e * h4/6;
+
+    // if (f_gl == 0 && c_gl == 2 && r_gl == 0) {
+    //   printf("tb tc td %f %f %f\n", tb, tc, td);
+    // }
 
     // if (debug) printf("f_sm(%d) tb tc td tc: %f %f %f %f\n", f_sm, tb, tc,
     // td, tc+tb * r1 + td * r4);
 
     // tc += tb * r1 + td * r4;
 
+    // if (f_gl == 0 && c_gl == 2 && r_gl == 0) {
+    //   printf("tc %f\n", tc, td);
+    // }
+
     dw[get_idx(lddw1, lddw2, r_gl, c_gl, f_gl)] =
         mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4);
 
-    // if (debug) printf("store[%d %d %d] %f \n", r_gl, c_gl, f_gl,
-    //           mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
+    // if (f_gl == 0 && c_gl == 2 && r_gl == 0) {
+    //   // if (debug) 
+    //     printf("store[%d %d %d] %f \n", r_gl, c_gl, f_gl,
+    //             mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
+    // }
 
     // printf("test block %d F %d nf %d\n", blockId, F, nf);
     // if (f_gl+1 == nf_c-1) {
