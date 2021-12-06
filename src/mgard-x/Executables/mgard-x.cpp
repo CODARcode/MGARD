@@ -266,7 +266,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   mgard_x::Config config;
   config.timing = verbose;
-  config.uniform_coord_mode = 1;
+  config.uniform_coord_mode = 0;
   config.dev_type = dev_type;
 
   // config.huff_dict_size = 64;

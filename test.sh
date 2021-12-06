@@ -30,9 +30,9 @@ GPU=1
 # test_group_l_inf d rel $1
 
 DATA=../../512x512x512/velocity_x.dat
-$MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 1 5 5 5  -m rel -e 1e-1 -s 0 -l 1 -v -d $1
-# $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-2 -s 0 -l 2 -v -d $1
-# $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m abs -e 1e5 -s 0 -l 1 -v -d $1
+# $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 6 6 6    -m rel -e 1e-5 -s 0 -l 1 -v -d $1
+# $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 5 5 5 -m rel -e 1e-3 -s 0 -l 1 -v -d $1
+# $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m abs -e 1e6 -s 0 -l 1 -v -d $1
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-4 -s 0 -l 2 -v -d $1
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e6 -s inf -l 2 -v -d $1
 
@@ -42,7 +42,7 @@ $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 1 5 5 5  -m rel -e 1e-1 -s 0 -
 
 # cuda-memcheck 
 # valgrind 
-# $MgardCudaExec -z -i random -c random.out -t d -n 1 5  -m abs -e 1e-3 -s inf -l 1 -v -d $1
+# $MgardCudaExec -z -i random -c random.out -t d -n 3 5 5 5   -m abs -e 1e-3 -s inf -l 1 -v -d $1
 
 # $MgardCudaExec -z -i random -c random.out -t d -n 3 129 129 129  -m rel -e 1e-4 -s inf -l 1 -v -d $1
 # $MgardCudaExec -z -i random -c random.out -t d -n 1 1000 -m rel -e 1e-4 -s 0 -l 1 -v -d $1
@@ -82,7 +82,7 @@ $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 1 5 5 5  -m rel -e 1e-1 -s 0 -
 # DATA=/home/jieyang/dev/data/pk.data
 # DATA=/home/jieyang/dev/data/enst.dat
 # 
-# cd ../examples/gpu-cuda/CompareCpuAndGpu && rm -rf ../examples/gpu-cuda/CompareCpuAndGpu/build && ./build_script.sh && ./build/BatchTests random $1
+cd ../examples/mgard-x/CompareMgardXAndCpu && rm -rf ../examples/gpu-cuda/CompareMgardXAndCpu/build && ./build_script.sh && ./build/BatchTests random $1
 # cmake --build ../../vtk-m/build -j
 # cmake --build ../examples/gpu-cuda/FlyingEdges/build 
 # ../examples/gpu-cuda/FlyingEdges/build/FlyingEdges -i random -n 3 800 800 800 -s 1.5

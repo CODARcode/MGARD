@@ -10,8 +10,8 @@
 #include "cuda/MemoryManagement.h"
 #include <cstdint>
 
-#ifndef MGARD_API_CUDA_H
-#define MGARD_API_CUDA_H
+#ifndef MGARD_CUDA_API_H
+#define MGARD_CUDA_API_H
 
 namespace mgard_cuda {
 

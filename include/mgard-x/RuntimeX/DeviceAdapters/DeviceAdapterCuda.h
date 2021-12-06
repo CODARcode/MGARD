@@ -1361,11 +1361,11 @@ public:
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<CUDA>, typename TaskType::Functor>::value) {
       void * Args[] = { (void*)&task };
       cudaLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
-                              blockPerGrid, threadsPerBlock, Args, sm_size);
+                              blockPerGrid, threadsPerBlock, Args, sm_size, stream);
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<CUDA>, typename TaskType::Functor>::value) {
       void * Args[] = { (void*)&task };
       cudaLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
-                              blockPerGrid, threadsPerBlock, Args, sm_size);
+                              blockPerGrid, threadsPerBlock, Args, sm_size, stream);
     }
     ErrorAsyncCheck(cudaGetLastError(), task);
     gpuErrchk(cudaGetLastError());

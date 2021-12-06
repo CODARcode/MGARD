@@ -390,6 +390,8 @@ class LevelwiseLinearQuantizeNDFunctor: public Functor<DeviceType> {
 
       QUANTIZED_INT quantized_data = copysign(0.5 + fabs(t / (quantizers_sm[level] * volume) ), t);
 
+      // printf("%f / %f * %f = %d\n", t, quantizers_sm[level], volume, quantized_data);
+
       if (prep_huffman) {
         quantized_data += dict_size / 2;
         if (quantized_data >= 0 && quantized_data < dict_size) {

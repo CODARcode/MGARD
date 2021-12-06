@@ -81,8 +81,6 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               bool output_pre_allocated) {
 
   Config config;
-  // config.lossless = lossless_type::GPU_Huffman_LZ4;
-  // config.uniform_coord_mode = 1;
   compress<DeviceType>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
            compressed_size, config, output_pre_allocated);
 }
@@ -156,8 +154,6 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               std::vector<const Byte *> coords,
               bool output_pre_allocated) {
   Config config;
-  // config.lossless = lossless_type::GPU_Huffman_LZ4;
-  // config.uniform_coord_mode = 1;
   compress<DeviceType>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
            compressed_size, coords, config, output_pre_allocated);
 }
@@ -280,8 +276,6 @@ void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data,
               bool output_pre_allocated) {
   Config config;
-  config.lossless = lossless_type::GPU_Huffman_LZ4;
-  config.uniform_coord_mode = 1;
   decompress<DeviceType>(compressed_data, compressed_size, decompressed_data, config, output_pre_allocated);
 }
 

@@ -155,22 +155,22 @@ void calc_coefficients_3d(Handle<D, T> &handle, SubArray<D, T> dinput,
   SubArray<1, T> ratio_f({handle.dofs[0][l]}, handle.ratio[0][l]);
 
   T *null = NULL;
-  // GpkReo3D<Handle<D, T>, D, T, CUDA>(handle).Execute(
-  //     handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
-  //     handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
-  //     ratio_r, ratio_c, ratio_f,
-  //     dinput, dcoarse,
-  //     dcoeff_f, dcoeff_c, dcoeff_r,
-  //     dcoeff_cf, dcoeff_rf, dcoeff_rc,
-  //     dcoeff_rcf,
-  //     queue_idx);
-  // handle.sync_all();
-  if (debug_print) {
-    printf("after pi_Ql_reo1\n");
-    print_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
-                      doutput.dv, doutput.ldvs_h[0], doutput.ldvs_h[1],
-                      doutput.ldvs_h[0]);
-  }
+  // // GpkReo3D<Handle<D, T>, D, T, CUDA>(handle).Execute(
+  // //     handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
+  // //     handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
+  // //     ratio_r, ratio_c, ratio_f,
+  // //     dinput, dcoarse,
+  // //     dcoeff_f, dcoeff_c, dcoeff_r,
+  // //     dcoeff_cf, dcoeff_rf, dcoeff_rc,
+  // //     dcoeff_rcf,
+  // //     queue_idx);
+  // // handle.sync_all();
+  // if (debug_print) {
+  //   printf("after pi_Ql_reo\n");
+  //   print_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
+  //                     doutput.dv, doutput.ldvs_h[0], doutput.ldvs_h[1],
+  //                     doutput.ldvs_h[0]);
+  // }
 
   gpk_reo_3d(
       handle, handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
@@ -199,7 +199,7 @@ void calc_coefficients_3d(Handle<D, T> &handle, SubArray<D, T> dinput,
       prefix + "gpk_reo_3d" + "_level_" + std::to_string(l), store, verify);
 
   if (debug_print) {
-    printf("after pi_Ql_reo2\n");
+    printf("after pi_Ql_reo\n");
     print_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
                       doutput.dv, doutput.ldvs_h[0], doutput.ldvs_h[1],
                       doutput.ldvs_h[0]);
@@ -401,7 +401,7 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T> dcoeff,
     dw_in2.resize({handle.dofs[0][l] - handle.dofs[0][l + 1], handle.dofs[1][l],
                    handle.dofs[2][l]});
     dw_out = dcorrection;
-    dw_out.resize({handle.dofs[0][l + 1], 0, 0});
+    dw_out.resize({handle.dofs[0][l + 1], handle.dofs[1][l], handle.dofs[2][l]});
 
     lpk_reo_1_3d(
         handle, handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
@@ -423,6 +423,11 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T> dcoeff,
                         handle.dofs[0][l + 1], dw_out.dv, dw_out.ldvs_h[0],
                         dw_out.ldvs_h[1], dw_out.ldvs_h[0]);
     }
+
+    // PrintSubarray("after mass_trans_multiply_1_cpt::dw_in1", dw_in1);
+    // PrintSubarray("after mass_trans_multiply_1_cpt::dw_in2", dw_in2);
+    // PrintSubarray("after mass_trans_multiply_1_cpt::dw_out", dw_out);
+
   }
 
   if (D >= 2) {
@@ -1561,7 +1566,6 @@ void decompose(Handle<D, T> &handle, T *dv, std::vector<SIZE> ldvs_h,
       //                    handle.dofs[0][l], dv, ldvs_h[0], ldvs_h[1],
       //                    ldvs_h[0], prefix + "begin" + "_level_" +
       //                    std::to_string(l), store, verify);
-
       lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], dv,
                        ldvs_d, handle.dw, handle.ldws_d, queue_idx);
 
