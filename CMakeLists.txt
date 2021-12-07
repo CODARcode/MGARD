@@ -126,7 +126,10 @@ if(MGARD_ENABLE_CUDA)
   option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction" OFF)
   option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimized for Volta GPUs" OFF)
   option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimized for Turing GPUs" OFF)
-
+  add_executable(MgardCudaExec ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/MgardCudaExec.cpp)
+    target_link_libraries(MgardCudaExec mgard-library  ${CMAKE_DL_LIBS})
+    target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
 
 
