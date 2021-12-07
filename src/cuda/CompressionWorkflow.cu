@@ -44,6 +44,8 @@ template <DIM D, typename T>
 Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
                                  enum error_bound_type type, T tol, T s) {
 
+  printf("compress: tol: %f, s: %f\n", tol, s);
+
   cudaSetDeviceHelper(handle.dev_id);
 
   for (DIM i = 0; i < D; i++) {
@@ -516,6 +518,7 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
 template <DIM D, typename T>
 Array<D, T> decompress(Handle<D, T> &handle,
                        Array<1, unsigned char> &compressed_array) {
+
   cudaSetDeviceHelper(handle.dev_id);
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
