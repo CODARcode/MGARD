@@ -544,7 +544,6 @@ void calc_correction_3d(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
     }
   }
 
-  DeviceRuntime<DeviceType>::SyncDevice();
   if (D >= 1) {
     Ipk1Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
@@ -561,7 +560,6 @@ void calc_correction_3d(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
       PrintSubarray("after solve_tridiag_1_cpt", dw_out);
     }
   }
-  DeviceRuntime<DeviceType>::SyncDevice();
   if (D >= 2) {
     Ipk2Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
@@ -579,7 +577,6 @@ void calc_correction_3d(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
       PrintSubarray("after solve_tridiag_2_cpt", dw_out);
     }
   }
-  DeviceRuntime<DeviceType>::SyncDevice();
   if (D == 3) {
     Ipk3Reo3D<D, T, DeviceType>().Execute(
             handle.dofs[2][l+1], handle.dofs[1][l+1], handle.dofs[0][l+1],
@@ -597,8 +594,6 @@ void calc_correction_3d(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceT
       PrintSubarray("after solve_tridiag_3_cpt", dw_out);
     }
   }
-  DeviceRuntime<DeviceType>::SyncDevice();
-
   // final correction output
   dcorrection = dw_out;
 }

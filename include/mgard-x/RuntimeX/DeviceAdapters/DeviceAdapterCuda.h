@@ -1352,11 +1352,8 @@ public:
 
     // if constexpr evalute at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<CUDA>, typename TaskType::Functor>::value) {
-    // if constexpr (TaskType::Functor::ExecType == SequentialFunctor) {
       Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
-
     } else if constexpr (std::is_base_of<IterFunctor<CUDA>, typename TaskType::Functor>::value) {
-    // } else if constexpr (TaskType::Functor::ExecType == IterativeFunctor) {
       IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<CUDA>, typename TaskType::Functor>::value) {
       void * Args[] = { (void*)&task };

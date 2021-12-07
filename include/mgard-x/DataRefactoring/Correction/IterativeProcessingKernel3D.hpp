@@ -911,7 +911,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
     am_sm = sm + (R + G) * ldsm1 * ldsm2;
     bm_sm = am_sm + (R + G);
 
-    T prev_vec_sm = 0.0;
+    prev_vec_sm = 0.0;
 
     f_rest = Math<DeviceType>::Min(F, nf - FunctorBase<DeviceType>::GetBlockIdX() * F);
     c_rest = Math<DeviceType>::Min(C, nc - FunctorBase<DeviceType>::GetBlockIdY() * C);
