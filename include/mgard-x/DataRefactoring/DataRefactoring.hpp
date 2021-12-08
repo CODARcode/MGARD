@@ -632,73 +632,6 @@ void calc_coefficients_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, Devic
                       dcoeff_cf, dcoeff_rf, dcoeff_rc,
                       dcoeff_rcf);
 
-
-  // printf(" before interpolation1\n");
-  // for (int k = 0; k < dinput1.shape[4]; k++) {
-  //   for (int j = 0; j < dinput1.shape[3]; j++) {
-  //     printf("i,j = %d,%d\n", k,j);
-  //     print_matrix_cuda(dinput1.shape[2], dinput1.shape[1], dinput1.shape[0],
-  //                       dinput1.data()+k*dinput1.ldvs_h[0]*dinput1.ldvs_h[1]*dinput1.ldvs_h[2]*dinput1.ldvs_h[3]+j*dinput1.ldvs_h[0]*dinput1.ldvs_h[1]*dinput1.ldvs_h[2], dinput1.ldvs_h[0], dinput1.ldvs_h[1],
-  //                       dinput1.ldvs_h[0]);
-  //   }
-  // }
-
-  // gpk_reo<D, 3, T, true, false, 1>(
-  //     handle, handle.shapes_h[l], handle.shapes_d[l],
-  //     handle.shapes_d[l + 1], dinput1.getLdd(), doutput.getLdd(),
-  //     handle.unprocessed_n[unprocessed_idx],
-  //     handle.unprocessed_dims_d[unprocessed_idx],
-  //     curr_dims[2], curr_dims[1], curr_dims[0],
-  //     handle.ratio[curr_dims[2]][l], handle.ratio[curr_dims[1]][l], handle.ratio[curr_dims[0]][l], 
-  //     dinput1.data(), dinput1.getLddv1(), dinput1.getLddv2(), 
-  //     dcoarse.data(), dcoarse.getLddv1(), dcoarse.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_f.data(), dcoeff_f.getLddv1(), dcoeff_f.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_c.data(), dcoeff_c.getLddv1(), dcoeff_c.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_r.data(), dcoeff_r.getLddv1(), dcoeff_r.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_cf.data(), dcoeff_cf.getLddv1(), dcoeff_cf.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_rf.data(), dcoeff_rf.getLddv1(), dcoeff_rf.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_rc.data(), dcoeff_rc.getLddv1(), dcoeff_rc.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_rcf.data(), dcoeff_rcf.getLddv1(), dcoeff_rcf.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     queue_idx, handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
-
-
-  // gpuErrchk(cudaDeviceSynchronize());
-  // printf(" after interpolation1\n");
-  // for (int k = 0; k < doutput.shape[4]; k++) {
-  //   for (int j = 0; j < doutput.shape[3]; j++) {
-  //     printf("i,j = %d,%d\n", k,j);
-  //     print_matrix_cuda(doutput.shape[2], doutput.shape[1], doutput.shape[0],
-  //                       doutput.data()+k*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2]*doutput.ldvs_h[3]+j*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2], doutput.ldvs_h[0], doutput.ldvs_h[1],
-  //                       doutput.ldvs_h[0]);
-  //   }
-  // }
-
-  // SubArray<1, DIM, DeviceType> unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-  //                                                         handle.unprocessed_dims_d[unprocessed_idx]);
-  // SubArray<1, T, DeviceType> ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-  // SubArray<1, T, DeviceType> ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-  // SubArray<1, T, DeviceType> ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
-
-  // printf("call GpkReo\n");
-  // printf("unprocessed_n: %u\n", handle.unprocessed_n[unprocessed_idx]);
-
-  
-
-  // calc_coeff_pointers(handle, curr_dims, l, output2_subarray, 
-  //                     dcoarse, 
-  //                     dcoeff_f, dcoeff_c, dcoeff_r, 
-  //                     dcoeff_cf, dcoeff_rf, dcoeff_rc,
-  //                     dcoeff_rcf);
-
-
   // gpuErrchk(cudaDeviceSynchronize());
   GpkReo<D, 3, T, true, false, 1, DeviceType>().Execute(
       SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
@@ -715,22 +648,8 @@ void calc_coefficients_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, Devic
       dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
   // gpuErrchk(cudaDeviceSynchronize());
 
-  // CompareSubarray4D(doutput, output2_subarray);
-  // printf(" after interpolation2\n");
-  // for (int k = 0; k < doutput.shape[4]; k++) {
-  //   for (int j = 0; j < doutput.shape[3]; j++) {
-  //     printf("i,j = %d,%d\n", k,j);
-  //     print_matrix_cuda(doutput.shape[2], doutput.shape[1], doutput.shape[0],
-  //                       doutput.data()+k*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2]*doutput.ldvs_h[3]+j*doutput.ldvs_h[0]*doutput.ldvs_h[1]*doutput.ldvs_h[2], doutput.ldvs_h[0], doutput.ldvs_h[1],
-  //                       doutput.ldvs_h[0]);
-  //   }
-  // }
-
   for (DIM d = 3; d < D; d += 2) {
     //copy back to input1 for interpolation again
-    // lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l], doutput.data(),
-    //                doutput.getLdd(), dinput1.data(), dinput1.getLdd(), queue_idx);
-
     LwpkReo<D, T, COPY, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), doutput, dinput1, queue_idx);
 
@@ -744,124 +663,23 @@ void calc_coefficients_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, Devic
                         dcoeff_cf, dcoeff_rf, dcoeff_rc,
                         dcoeff_rcf);
 
-    
-
-    // printf("lddv1(%d), lddv2(%d), lddw1(%d), lddw2(%d)\n", lddv1, lddv2,
-    // lddw1, lddw2);
     if (D - d == 1) {
       unprocessed_idx+=1;
-      // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-      //                                                     handle.unprocessed_dims_d[unprocessed_idx]);
-      // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-      // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-      // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
-      // gpk_reo<D, 2, T, true, false, 2>(
-      //     handle, handle.shapes_h[l], handle.shapes_d[l],
-      //     handle.shapes_d[l + 1], dinput1.getLdd(), doutput.getLdd(),
-      //     handle.unprocessed_n[unprocessed_idx],
-      //     handle.unprocessed_dims_d[unprocessed_idx],
-      //     curr_dims[2], curr_dims[1], curr_dims[0],
-      //     handle.ratio[curr_dims[2]][l], handle.ratio[curr_dims[1]][l], handle.ratio[curr_dims[0]][l], 
-      //     dinput1.data(), dinput1.getLddv1(), dinput1.getLddv2(), 
-      //     dcoarse.data(), dcoarse.getLddv1(), dcoarse.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_f.data(), dcoeff_f.getLddv1(), dcoeff_f.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_c.data(), dcoeff_c.getLddv1(), dcoeff_c.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_r.data(), dcoeff_r.getLddv1(), dcoeff_r.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_cf.data(), dcoeff_cf.getLddv1(), dcoeff_cf.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_rf.data(), dcoeff_rf.getLddv1(), dcoeff_rf.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_rc.data(), dcoeff_rc.getLddv1(), dcoeff_rc.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_rcf.data(), dcoeff_rcf.getLddv1(), dcoeff_rcf.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     queue_idx, handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
 
-
-          // std::vector<SIZE> shape(D);
-          // for (DIM d = 0; d < D; d++) {
-          //   shape[D-1-d] = doutput.getShape(d);
-          // }
-
-          // Array<D, T, DeviceType> output2_array(shape);
-          // SubArray output2_subarray(output2_array);
-          // output2_subarray.project(curr_dims[0], curr_dims[1], curr_dims[2]);
-
-          // calc_coeff_pointers(handle, curr_dims, l, output2_subarray, 
-          //       dcoarse, 
-          //       dcoeff_f, dcoeff_c, dcoeff_r, 
-          //       dcoeff_cf, dcoeff_rf, dcoeff_rc,
-          //       dcoeff_rcf);
-
-          // gpuErrchk(cudaDeviceSynchronize());
-          // printf(" input2\n");
-          // for (int k = 0; k < dinput1.shape[4]; k++) {
-          //   for (int j = 0; j < dinput1.shape[3]; j++) {
-          //     printf("i,j = %d,%d\n", k,j);
-          //     print_matrix_cuda(dinput1.shape[2], dinput1.shape[1], dinput1.shape[0],
-          //                       dinput1.data()+k*dinput1.ldvs_h[0]*dinput1.ldvs_h[1]*dinput1.ldvs_h[2]*dinput1.ldvs_h[3]+j*dinput1.ldvs_h[0]*dinput1.ldvs_h[1]*dinput1.ldvs_h[2], dinput1.ldvs_h[0], dinput1.ldvs_h[1],
-          //                       dinput1.ldvs_h[0]);
-          //   }
-          // }
-
-          // gpuErrchk(cudaDeviceSynchronize());
-          GpkReo<D, 2, T, true, false, 2, DeviceType>().Execute(
-              SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
-              SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
-              handle.unprocessed_n[unprocessed_idx],
-              SubArray(handle.unprocessed_dims[unprocessed_idx]),
-              // unprocessed_dims_subarray,
-              curr_dims[2], curr_dims[1], curr_dims[0],
-              // ratio_r, ratio_c, ratio_f, 
-              SubArray(handle.ratio_array[curr_dims[2]][l]),
-              SubArray(handle.ratio_array[curr_dims[1]][l]),
-              SubArray(handle.ratio_array[curr_dims[0]][l]),
-              dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
-              dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
-          // gpuErrchk(cudaDeviceSynchronize());
-
-          // CompareSubarray4D(doutput, output2_subarray);
-
+      GpkReo<D, 2, T, true, false, 2, DeviceType>().Execute(
+          SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
+          SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
+          handle.unprocessed_n[unprocessed_idx],
+          SubArray(handle.unprocessed_dims[unprocessed_idx]),
+          curr_dims[2], curr_dims[1], curr_dims[0],
+          SubArray(handle.ratio_array[curr_dims[2]][l]),
+          SubArray(handle.ratio_array[curr_dims[1]][l]),
+          SubArray(handle.ratio_array[curr_dims[0]][l]),
+          dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
+          dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
 
     } else { //D - d >= 2
       unprocessed_idx += 2;
-      // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-      //                                                     handle.unprocessed_dims_d[unprocessed_idx]);
-      // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-      // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-      // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
-
-      // gpk_reo<D, 3, T, true, false, 2>(
-      //     handle, handle.shapes_h[l], handle.shapes_d[l],
-      //     handle.shapes_d[l + 1], dinput1.getLdd(), doutput.getLdd(),
-      //     handle.unprocessed_n[unprocessed_idx],
-      //     handle.unprocessed_dims_d[unprocessed_idx],
-      //     curr_dims[2], curr_dims[1], curr_dims[0],
-      //     handle.ratio[curr_dims[2]][l], handle.ratio[curr_dims[1]][l], handle.ratio[curr_dims[0]][l], 
-      //     dinput1.data(), dinput1.getLddv1(), dinput1.getLddv2(), 
-      //     dcoarse.data(), dcoarse.getLddv1(), dcoarse.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_f.data(), dcoeff_f.getLddv1(), dcoeff_f.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_c.data(), dcoeff_c.getLddv1(), dcoeff_c.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_r.data(), dcoeff_r.getLddv1(), dcoeff_r.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_cf.data(), dcoeff_cf.getLddv1(), dcoeff_cf.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_rf.data(), dcoeff_rf.getLddv1(), dcoeff_rf.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_rc.data(), dcoeff_rc.getLddv1(), dcoeff_rc.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     dcoeff_rcf.data(), dcoeff_rcf.getLddv1(), dcoeff_rcf.getLddv2(), 
-      //     // null, lddv1, lddv2,
-      //     queue_idx, handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
-
-      // gpuErrchk(cudaDeviceSynchronize());
       GpkReo<D, 3, T, true, false, 2, DeviceType>().Execute(
           SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
           SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
@@ -875,8 +693,6 @@ void calc_coefficients_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, Devic
           SubArray(handle.ratio_array[curr_dims[0]][l]),
           dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
           dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
-      // gpuErrchk(cudaDeviceSynchronize());
-
     }
   }
 
@@ -891,119 +707,45 @@ void calc_coefficients_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, Devic
   dinput2.project(curr_dims[0], curr_dims[1], curr_dims[2]);
   dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]); //reuse input1 as temp output
 
-  // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-  //                                                         handle.unprocessed_dims_d[unprocessed_idx]);
-  // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-  // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-  // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
-
-
   calc_coeff_pointers(handle, curr_dims, l, dinput1, 
                       dcoarse, 
                       dcoeff_f, dcoeff_c, dcoeff_r, 
                       dcoeff_cf, dcoeff_rf, dcoeff_rc,
                       dcoeff_rcf);
 
-  // gpk_reo<D, 3, T, false, false, 1>(
-  //     handle, handle.shapes_h[l], handle.shapes_d[l],
-  //     handle.shapes_d[l + 1], dinput2.getLdd(), dinput1.getLdd(),
-  //     handle.unprocessed_n[unprocessed_idx],
-  //     handle.unprocessed_dims_d[unprocessed_idx],
-  //     curr_dims[2], curr_dims[1], curr_dims[0],
-  //     handle.ratio[curr_dims[2]][l], handle.ratio[curr_dims[1]][l], handle.ratio[curr_dims[0]][l], 
-  //     dinput2.data(), dinput2.getLddv1(), dinput2.getLddv2(), 
-  //     dcoarse.data(), dcoarse.getLddv1(), dcoarse.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_f.data(), dcoeff_f.getLddv1(), dcoeff_f.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_c.data(), dcoeff_c.getLddv1(), dcoeff_c.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_r.data(), dcoeff_r.getLddv1(), dcoeff_r.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_cf.data(), dcoeff_cf.getLddv1(), dcoeff_cf.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_rf.data(), dcoeff_rf.getLddv1(), dcoeff_rf.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_rc.data(), dcoeff_rc.getLddv1(), dcoeff_rc.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     dcoeff_rcf.data(), dcoeff_rcf.getLddv1(), dcoeff_rcf.getLddv2(), 
-  //     // null, lddv1, lddv2,
-  //     queue_idx, handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
-
-    // gpuErrchk(cudaDeviceSynchronize());
-    GpkReo<D, 3, T, false, false, 1, DeviceType>().Execute(
-        SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
-        SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
-        handle.unprocessed_n[unprocessed_idx],
-        SubArray(handle.unprocessed_dims[unprocessed_idx]),
-        // unprocessed_dims_subarray,
-        curr_dims[2], curr_dims[1], curr_dims[0],
-        // ratio_r, ratio_c, ratio_f,
-        SubArray(handle.ratio_array[curr_dims[2]][l]),
-        SubArray(handle.ratio_array[curr_dims[1]][l]),
-        SubArray(handle.ratio_array[curr_dims[0]][l]), 
-        dinput2, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
-        dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
-    // gpuErrchk(cudaDeviceSynchronize());
-
+  GpkReo<D, 3, T, false, false, 1, DeviceType>().Execute(
+      SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
+      SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
+      handle.unprocessed_n[unprocessed_idx],
+      SubArray(handle.unprocessed_dims[unprocessed_idx]),
+      // unprocessed_dims_subarray,
+      curr_dims[2], curr_dims[1], curr_dims[0],
+      // ratio_r, ratio_c, ratio_f,
+      SubArray(handle.ratio_array[curr_dims[2]][l]),
+      SubArray(handle.ratio_array[curr_dims[1]][l]),
+      SubArray(handle.ratio_array[curr_dims[0]][l]), 
+      dinput2, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
+      dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
 
   DIM D_reduced = D % 2 == 0 ? D-1 : D-2;
   for (DIM d = 3; d < D_reduced; d += 2) {
     //copy back to input2 for reordering again
-    // lwpk<D, T, COPY>(handle, handle.shapes_h[l], handle.shapes_d[l],
-    //                dinput1.data(), dinput1.getLdd(), dinput2.data(), dinput2.getLdd(), queue_idx);
 
     LwpkReo<D, T, COPY, DeviceType>().Execute(
             SubArray<1, SIZE, DeviceType>(handle.shapes[l], true), dinput1, dinput2, queue_idx);
 
-    // gpuErrchk(cudaDeviceSynchronize());
-    
     unprocessed_idx += 2;
     // printf("reorder %u-%uD\n", d+1, d+2);
     curr_dims[0] = 0; curr_dims[1] = d; curr_dims[2] = d+1;
     dinput2.project(curr_dims[0], curr_dims[1], curr_dims[2]);
     dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]); //reuse input1 as temp output
 
-    // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-    //                                                       handle.unprocessed_dims_d[unprocessed_idx]);
-    // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-    // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-    // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
-
-
     calc_coeff_pointers(handle, curr_dims, l, dinput1, 
                         dcoarse, 
                         dcoeff_f, dcoeff_c, dcoeff_r, 
                         dcoeff_cf, dcoeff_rf, dcoeff_rc,
                         dcoeff_rcf);
-    
-    // gpk_reo<D, 3, T, false, false, 2>(
-    //   handle, handle.shapes_h[l], handle.shapes_d[l],
-    //   handle.shapes_d[l + 1], dinput2.getLdd(), dinput1.getLdd(),
-    //   handle.unprocessed_n[unprocessed_idx],
-    //   handle.unprocessed_dims_d[unprocessed_idx],
-    //   curr_dims[2], curr_dims[1], curr_dims[0],
-    //   handle.ratio[curr_dims[2]][l], handle.ratio[curr_dims[1]][l], handle.ratio[curr_dims[0]][l], 
-    //   dinput2.data(), dinput2.getLddv1(), dinput2.getLddv2(), 
-    //   dcoarse.data(), dcoarse.getLddv1(), dcoarse.getLddv2(), 
-    //   // null, lddv1, lddv2,
-    //   dcoeff_f.data(), dcoeff_f.getLddv1(), dcoeff_f.getLddv2(), 
-    //   // null, lddv1, lddv2,
-    //   dcoeff_c.data(), dcoeff_c.getLddv1(), dcoeff_c.getLddv2(), 
-    //   // null, lddv1, lddv2,
-    //   dcoeff_r.data(), dcoeff_r.getLddv1(), dcoeff_r.getLddv2(), 
-    //   // null, lddv1, lddv2,
-    //   dcoeff_cf.data(), dcoeff_cf.getLddv1(), dcoeff_cf.getLddv2(), 
-    //   // null, lddv1, lddv2,
-    //   dcoeff_rf.data(), dcoeff_rf.getLddv1(), dcoeff_rf.getLddv2(), 
-    //   // null, lddv1, lddv2,
-    //   dcoeff_rc.data(), dcoeff_rc.getLddv1(), dcoeff_rc.getLddv2(), 
-    //   // null, lddv1, lddv2,
-    //   dcoeff_rcf.data(), dcoeff_rcf.getLddv1(), dcoeff_rcf.getLddv2(), 
-    //   // null, lddv1, lddv2,
-    //   queue_idx, handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
 
-    // gpuErrchk(cudaDeviceSynchronize());
     GpkReo<D, 3, T, false, false, 2, DeviceType>().Execute(
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
@@ -1032,43 +774,7 @@ void calc_coefficients_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, Devic
                       dcoeff_cf, dcoeff_rf, dcoeff_rc,
                       dcoeff_rcf);
   if (D-D_reduced == 1) {
-    // unprocessed_dims.pop_back();
     unprocessed_idx += 1;
-
-    // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-    //                                                       handle.unprocessed_dims_d[unprocessed_idx]);
-    // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-    // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-    // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
-
-
-    // gpk_reo<D, 2, T, false, true, 2>(
-    //     handle, handle.shapes_h[l], handle.shapes_d[l],
-    //     handle.shapes_d[l + 1], dinput1.getLdd(), doutput.getLdd(),
-    //     handle.unprocessed_n[unprocessed_idx],
-    //     handle.unprocessed_dims_d[unprocessed_idx],
-    //     curr_dims[2], curr_dims[1], curr_dims[0],
-    //     handle.ratio[curr_dims[2]][l], handle.ratio[curr_dims[1]][l], handle.ratio[curr_dims[0]][l], 
-    //     dinput1.data(), dinput1.getLddv1(), dinput1.getLddv2(), 
-    //     dcoarse.data(), dcoarse.getLddv1(), dcoarse.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_f.data(), dcoeff_f.getLddv1(), dcoeff_f.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_c.data(), dcoeff_c.getLddv1(), dcoeff_c.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_r.data(), dcoeff_r.getLddv1(), dcoeff_r.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_cf.data(), dcoeff_cf.getLddv1(), dcoeff_cf.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_rf.data(), dcoeff_rf.getLddv1(), dcoeff_rf.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_rc.data(), dcoeff_rc.getLddv1(), dcoeff_rc.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_rcf.data(), dcoeff_rcf.getLddv1(), dcoeff_rcf.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     queue_idx, handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
-
-    // gpuErrchk(cudaDeviceSynchronize());
     GpkReo<D, 2, T, false, true, 2, DeviceType>().Execute(
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
@@ -1087,54 +793,17 @@ void calc_coefficients_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, Devic
   } else { //D-D_reduced == 2
     unprocessed_idx += 2;
 
-    // unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-    //                                                       handle.unprocessed_dims_d[unprocessed_idx]);
-    // ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-    // ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-    // ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
-
-    // gpk_reo<D, 3, T, false, true, 2>(
-    //     handle, handle.shapes_h[l], handle.shapes_d[l],
-    //     handle.shapes_d[l + 1], dinput1.getLdd(), doutput.getLdd(),
-    //     handle.unprocessed_n[unprocessed_idx],
-    //     handle.unprocessed_dims_d[unprocessed_idx],
-    //     curr_dims[2], curr_dims[1], curr_dims[0],
-    //     handle.ratio[curr_dims[2]][l], handle.ratio[curr_dims[1]][l], handle.ratio[curr_dims[0]][l], 
-    //     dinput1.data(), dinput1.getLddv1(), dinput1.getLddv2(), 
-    //     dcoarse.data(), dcoarse.getLddv1(), dcoarse.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_f.data(), dcoeff_f.getLddv1(), dcoeff_f.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_c.data(), dcoeff_c.getLddv1(), dcoeff_c.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_r.data(), dcoeff_r.getLddv1(), dcoeff_r.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_cf.data(), dcoeff_cf.getLddv1(), dcoeff_cf.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_rf.data(), dcoeff_rf.getLddv1(), dcoeff_rf.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_rc.data(), dcoeff_rc.getLddv1(), dcoeff_rc.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     dcoeff_rcf.data(), dcoeff_rcf.getLddv1(), dcoeff_rcf.getLddv2(), 
-    //     // null, lddv1, lddv2,
-    //     queue_idx, handle.auto_tuning_cc[handle.arch][handle.precision][range_l]);
-
-    // gpuErrchk(cudaDeviceSynchronize());
     GpkReo<D, 3, T, false, true, 2, DeviceType>().Execute(
         SubArray<1, SIZE, DeviceType>(handle.shapes[l], true),
         SubArray<1, SIZE, DeviceType>(handle.shapes[l+1], true),
         handle.unprocessed_n[unprocessed_idx],
         SubArray(handle.unprocessed_dims[unprocessed_idx]),
-        // unprocessed_dims_subarray,
         curr_dims[2], curr_dims[1], curr_dims[0],
-        // ratio_r, ratio_c, ratio_f, 
         SubArray(handle.ratio_array[curr_dims[2]][l]),
         SubArray(handle.ratio_array[curr_dims[1]][l]),
         SubArray(handle.ratio_array[curr_dims[0]][l]),
         dinput1, dcoarse, dcoeff_f, dcoeff_c, dcoeff_r,
         dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf, queue_idx);
-    // gpuErrchk(cudaDeviceSynchronize());
-
   }
 
   if (debug_print) { // debug
@@ -1172,11 +841,7 @@ void coefficients_restore_nd(Handle<D, T, DeviceType> &handle, SubArray<D, T, De
   dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
   doutput.project(curr_dims[0], curr_dims[1], curr_dims[2]);
 
-  // SubArray<1, DIM, DeviceType> unprocessed_dims_subarray = SubArray<1, DIM, DeviceType>({(SIZE)handle.unprocessed_n[unprocessed_idx]}, 
-  //                                                         handle.unprocessed_dims_d[unprocessed_idx]);
-  // SubArray<1, T, DeviceType> ratio_r = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[2]][l]}, handle.ratio[curr_dims[2]][l]);
-  // SubArray<1, T, DeviceType> ratio_c = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[1]][l]}, handle.ratio[curr_dims[1]][l]);
-  // SubArray<1, T, DeviceType> ratio_f = SubArray<1, T, DeviceType>({handle.dofs[curr_dims[0]][l]}, handle.ratio[curr_dims[0]][l]);
+
 
 
   calc_coeff_pointers(handle, curr_dims, l, dinput1, 

@@ -233,6 +233,20 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
                                       huff + i * chunk_size, dH_uInt_meta[i], 0);
   }
 
+  // { // debug
+  //   Byte * huffdata = compressed_data_subarray((IDX)byte_offset);
+  //   SubArray<1, Byte, DeviceType> temp({(SIZE)(ddata_size*sizeof(H))}, huffdata);
+
+  //   // PrintSubarray("Huffman lossless_compressed_subarray", temp);
+
+  //   Array<1, Byte, DeviceType> lz4_array = LZ4Compress(temp, 32768);
+  //   SubArray<1, Byte, DeviceType> lossless_compressed_subarray = SubArray(lz4_array);
+  //   SIZE lz4_after_size = lz4_array.getShape()[0];
+  //   std::cout << log::log_info << "LZ4 compress ratio: " << 
+  //     ddata_size*sizeof(H) << "/" << lz4_after_size << " (" <<
+  //     (double)ddata_size*sizeof(H) / lz4_after_size << ")\n"; 
+  // }
+
   DeviceRuntime<DeviceType>::SyncQueue(0);
   t2 = high_resolution_clock::now();
   time_span = duration_cast<duration<double>>(t2 - t1);

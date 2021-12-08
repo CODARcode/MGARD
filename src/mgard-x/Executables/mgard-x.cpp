@@ -36,7 +36,7 @@ void print_usage_message(std::string error) {
 \t\t -m <abs|rel>: error bound mode (abs: abolute; rel: relative)\n\
 \t\t -e <error>: error bound\n\
 \t\t -s <smoothness>: smoothness parameter\n\
-\t\t -l choose lossless compressor (0:ZSTD@CPU 1:Huffman 2:Huffman+LZ4)\n\
+\t\t -l choose lossless compressor (0:Huffman 1:Huffman+LZ4 3:Huffman+Zstd)\n\
 \t\t -d <auto|serial|cuda|hip>: device type\n\
 \t\t -v enable verbose (show timing and statistics)\n\
 \n\
@@ -272,11 +272,11 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   // config.huff_dict_size = 64;
 
   if (lossless == 0) {
-    config.lossless = mgard_x::lossless_type::CPU_Lossless;
+    config.lossless = mgard_x::lossless_type::Huffman;
   } else if (lossless == 1) {
-    config.lossless = mgard_x::lossless_type::GPU_Huffman;
+    config.lossless = mgard_x::lossless_type::Huffman_LZ4;
   } else if (lossless == 2) {
-    config.lossless = mgard_x::lossless_type::GPU_Huffman_LZ4;
+    config.lossless = mgard_x::lossless_type::Huffman_Zstd;
   }
 
   size_t original_size = 1;
@@ -436,12 +436,11 @@ bool try_compression(int argc, char *argv[]) {
 
   int lossless_level = get_arg_int(argc, argv, "-l");
   if (lossless_level == 0) {
-    std::cout << mgard_x::log::log_info << "lossless: ZSTD@CPU\n";
-  } else if (lossless_level == 1) {
     std::cout << mgard_x::log::log_info << "lossless: Huffman\n";
+  } else if (lossless_level == 1) {
+    std::cout << mgard_x::log::log_info << "lossless: Huffman + LZ4\n";
   } else if (lossless_level == 2) {
-    std::cout << mgard_x::log::log_info
-              << "lossless: Huffman + LZ4\n";
+    std::cout << mgard_x::log::log_info << "lossless: Huffman + Zstd\n";
   }
 
   enum mgard_x::device_type dev_type;

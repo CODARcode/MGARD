@@ -25,7 +25,7 @@ public:
   void loadData(const T *data, SIZE ld = 0);
   T *getDataHost();
   T *getDataDevice(SIZE &ld);
-  std::vector<SIZE> getShape();
+  std::vector<SIZE>& getShape();
   T *get_dv();
   std::vector<SIZE> get_ldvs_h();
   SIZE *get_ldvs_d();

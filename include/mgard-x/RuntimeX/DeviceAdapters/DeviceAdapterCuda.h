@@ -581,6 +581,8 @@ class DeviceRuntime<CUDA> {
   static DeviceQueues<CUDA> queues;
   static bool SyncAllKernelsAndCheckErrors;
   static DeviceSpecification<CUDA> DeviceSpecs;
+  static bool TimingAllKernels;
+  static bool PrintKernelConfig;
 };
 
 
@@ -1343,12 +1345,25 @@ public:
                       task.GetGridDimY(),
                       task.GetGridDimZ());
     size_t sm_size = task.GetSharedMemorySize();
-    // printf("exec config (%d %d %d) (%d %d %d) sm_size: %llu\n", threadsPerBlock.x, threadsPerBlock.y, threadsPerBlock.z, 
-    //                 blockPerGrid.x, blockPerGrid.y, blockPerGrid.z, sm_size);
+
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(task.GetQueueIdx());
 
-    // Timer timer;
-    // timer.start();
+
+    if (DeviceRuntime<CUDA>::PrintKernelConfig) {
+      std::cout << log::log_info << task.GetFunctorName() << ": <" <<
+                task.GetBlockDimX() << ", " <<
+                task.GetBlockDimY() << ", " <<
+                task.GetBlockDimZ() << "> <" <<
+                task.GetGridDimX() << ", " <<
+                task.GetGridDimY() << ", " <<
+                task.GetGridDimZ() << ">\n";
+    }
+
+    Timer timer;
+    if (DeviceRuntime<CUDA>::TimingAllKernels) {
+      cudaDeviceSynchronize();
+      timer.start();
+    }
 
     // if constexpr evalute at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<CUDA>, typename TaskType::Functor>::value) {
@@ -1370,11 +1385,12 @@ public:
       ErrorSyncCheck(cudaDeviceSynchronize(), task);
     }
 
-    // timer.end();
-    // timer.print(task.GetFunctorName());
-    // timer.clear();
-
-    
+    if (DeviceRuntime<CUDA>::TimingAllKernels) {
+      cudaDeviceSynchronize();
+      timer.end();
+      timer.print(task.GetFunctorName());
+      timer.clear();
+    }
   }
 };
 

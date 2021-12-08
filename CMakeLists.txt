@@ -99,10 +99,10 @@ if (MGARD_ENABLE_SERIAL OR
   target_include_directories(mgard-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
-  # add_executable(MgardSerialExec ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardSerialExec.cpp)
-  # target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
-  # target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  #                                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+  add_executable(MgardSerialExec ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardSerialExec.cpp)
+  target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
+  target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 endif()
 
 if(MGARD_ENABLE_SERIAL)
