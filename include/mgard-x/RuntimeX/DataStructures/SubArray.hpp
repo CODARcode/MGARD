@@ -98,8 +98,8 @@ public:
   MGARDX_CONT_EXEC
   void setPitched(bool pitched) { this->pitched = pitched; }
 
-  MGARDX_CONT_EXEC
-  SIZE * getLdd() { return this->ldvs_d; }
+  // MGARDX_CONT_EXEC
+  // SIZE * getLdd() { return this->ldvs_d; }
 
   MGARDX_CONT_EXEC
   SIZE getLddv1() const { return this->lddv1; }
@@ -190,7 +190,7 @@ private:
   bool has_host_pointer = false;
 
   // std::vector<SIZE> ldvs_h;
-  SIZE *ldvs_d;
+  // SIZE *ldvs_d;
   SIZE _ldvs[D];
   SIZE _shape[D];
 
@@ -231,7 +231,7 @@ SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array, bool get_ho
   // this->shape  = array.getShape();
   this->dv     = array.get_dv();
   // this->ldvs_h = array.get_ldvs_h();
-  this->ldvs_d = array.get_ldvs_d();
+  // this->ldvs_d = array.get_ldvs_d();
 
   for (DIM d = 0; d < D; d++) {
     this->_shape[d] = array.getShape()[d];
@@ -269,7 +269,7 @@ SubArray<D, T, DeviceType>::SubArray(SubArray<D, T, DeviceType> &subArray) {
   // this->shape  = subArray.shape;
   this->dv     = subArray.dv;
   // this->ldvs_h = subArray.ldvs_h;
-  this->ldvs_d = subArray.ldvs_d;
+  // this->ldvs_d = subArray.ldvs_d;
 
   for (DIM d = 0; d < D; d++) {
     this->_shape[d] = subArray.getShape(d);
@@ -297,7 +297,7 @@ SubArray<D, T, DeviceType>::SubArray(const SubArray<D, T, DeviceType> &subArray)
   // this->shape  = subArray.shape;
   this->dv     = subArray.dv;
   // this->ldvs_h = subArray.ldvs_h;
-  this->ldvs_d = subArray.ldvs_d;
+  // this->ldvs_d = subArray.ldvs_d;
 
   for (DIM d = 0; d < D; d++) {
     this->_shape[d] = subArray._shape[d];
@@ -325,7 +325,7 @@ SubArray<D, T, DeviceType>& SubArray<D, T, DeviceType>::operator = (const SubArr
   // this->shape  = subArray.shape;
   this->dv     = subArray.dv;
   // this->ldvs_h = subArray.ldvs_h;
-  this->ldvs_d = subArray.ldvs_d;
+  // this->ldvs_d = subArray.ldvs_d;
 
   for (DIM d = 0; d < D; d++) {
     this->_shape[d] = subArray._shape[d];
@@ -357,7 +357,7 @@ SubArray<1, T, DeviceType> SubArray<D, T, DeviceType>::Linearize() {
     // subArray.shape = {linearized_shape};
     subArray.dv     = this->dv;
     // subArray.ldvs_h = this->ldvs_h;
-    subArray.ldvs_d = this->ldvs_d;
+    // subArray.ldvs_d = this->ldvs_d;
 
     this->_shape[0] = linearized_shape;
     this->_ldvs[0] = linearized_shape;

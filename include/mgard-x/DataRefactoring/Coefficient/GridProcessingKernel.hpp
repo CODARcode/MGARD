@@ -171,7 +171,7 @@ class GpkReoFunctor: public Functor<DeviceType> {
     }
 
     skip = 0;
-    #pragma unroll 1
+    // #pragma unroll 1
     for (DIM t = 0; t < D_GLOBAL; t++) {
       for (DIM k = 0; k < unprocessed_n; k++) {
         if (t == unprocessed_dims_sm[k] &&
@@ -183,16 +183,6 @@ class GpkReoFunctor: public Functor<DeviceType> {
       }
     }
 
-    // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdZ() == 0) {
-    // if (FunctorBase<DeviceType>::GetThreadIdX() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdZ() == 0) {
-    //   printf("total_idx_sm: %d %d %d %d (skip: %d)\n", idx[3], idx[2], idx[1],
-    //   idx[0], skip);
-    // }
-    // }
-
-    // LENGTH other_offset_v = get_idx<D_GLOBAL>(ldvs_sm, idx);
-    // LENGTH other_offset_w = get_idx<D_GLOBAL>(ldws_sm, idx);
-
     v.offset(idx);
     w.offset(idx);
     wf.offset(idx);
@@ -202,27 +192,12 @@ class GpkReoFunctor: public Functor<DeviceType> {
     wrf.offset(idx);
     wrc.offset(idx);
     wrcf.offset(idx);
-    // dv = dv + other_offset_v;
-    // dw = dw + other_offset_w;
-    // dwr = dwr + other_offset_w;
-    // dwc = dwc + other_offset_w;
-    // dwf = dwf + other_offset_w;
-    // dwrf = dwrf + other_offset_w;
-    // dwrc = dwrc + other_offset_w;
-    // dwcf = dwcf + other_offset_w;
-    // dwrcf = dwrcf + other_offset_w;
-
-    // if (idx[1] == 0 && idx[2] == 0 && threadId == 0) printf("before wf(00): %lld, w: %lld\n", wf((IDX)0), w((IDX)0));
-    // if (idx[1] == 1 && idx[2] == 0 && threadId == 0) printf("before wf(01): %lld, w: %lld\n", wf((IDX)0), w((IDX)0));
-
     
     if (TYPE == 2) {
-      // if (idx[1] == 0 && idx[2] == 0 && threadId == 0) printf("before wf: %lld, w: %lld\n", wf((IDX)0), w((IDX)0));
       wf = w;
       wcf = wc;
       wrf = wr;
       wrcf = wrc;
-      // if (idx[1] == 0 && idx[2] == 0 && threadId == 0) printf("after wf: %lld, w: %lld\n", wf((IDX)0), w((IDX)0));
     }
 
   }
@@ -2316,7 +2291,7 @@ class GpkRevFunctor: public Functor<DeviceType> {
     }
 
     skip = 0;
-    #pragma unroll 1
+    // #pragma unroll 1
     for (DIM t = 0; t < D_GLOBAL; t++) {
       for (DIM k = 0; k < unprocessed_n; k++) {
         if (t == unprocessed_dims_sm[k] && idx[t] >= shape_c_sm[t]) {

@@ -73,7 +73,9 @@ struct Metadata {
     }
     total_size += sizeof(l_target); //l_target;
     total_size += sizeof(ltype);
-    if (ltype == lossless_type::GPU_Huffman || ltype == lossless_type::GPU_Huffman_LZ4) {
+    if (ltype == lossless_type::Huffman || 
+        ltype == lossless_type::Huffman_LZ4 ||
+        ltype == lossless_type::Huffman_Zstd) {
       total_size += sizeof(huff_dict_size); // dict size
       total_size += sizeof(huff_block_size); // block size
     }
@@ -138,7 +140,9 @@ struct Metadata {
     }
     Serialize(l_target, p);
     Serialize(ltype, p);
-    if (ltype == lossless_type::GPU_Huffman || ltype == lossless_type::GPU_Huffman_LZ4) {
+    if (ltype == lossless_type::Huffman ||
+        ltype == lossless_type::Huffman_LZ4 ||
+        ltype == lossless_type::Huffman_Zstd) {
       Serialize(huff_dict_size, p);
       Serialize(huff_block_size, p);
     }
@@ -181,7 +185,9 @@ struct Metadata {
     }
     Deserialize(l_target, p);
     Deserialize(ltype, p);
-    if (ltype == lossless_type::GPU_Huffman || ltype == lossless_type::GPU_Huffman_LZ4) {
+    if (ltype == lossless_type::Huffman ||
+        ltype == lossless_type::Huffman_LZ4 ||
+        ltype == lossless_type::Huffman_Zstd) {
       Deserialize(huff_dict_size, p);
       Deserialize(huff_block_size, p);
     }

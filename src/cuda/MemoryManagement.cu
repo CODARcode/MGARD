@@ -46,8 +46,8 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
   SIZE nfib = 1;
 
   nfib = subArray.shape[0];
-  ncol = subArray.shape[1];
-  nrow = subArray.shape[2];
+  if (SubArrayType::NumDims >= 2) ncol = subArray.shape[1];
+  if (SubArrayType::NumDims >= 3) nrow = subArray.shape[2];
 
   using T = typename SubArrayType::DataType;
   T *v = new T[nrow * ncol * nfib];

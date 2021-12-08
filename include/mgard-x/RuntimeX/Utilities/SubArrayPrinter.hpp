@@ -42,8 +42,8 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
   using T = typename SubArrayType::DataType;
   using DeviceType = typename SubArrayType::DevType;
 
-  // std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * " << nfib << ") sizeof(T) = "  <<sizeof(T) << std::endl;
-  std::cout << name << "\n";
+  std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * " << nfib << ") sizeof(T) = "  <<sizeof(T) << std::endl;
+  // std::cout << name << "\n";
 
   T *v = new T[nrow * ncol * nfib];
   // cudaMemcpy3DAsyncHelper(tmp_handle, v, nfib * sizeof(T), nfib * sizeof(T),

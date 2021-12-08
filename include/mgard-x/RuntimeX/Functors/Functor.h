@@ -16,10 +16,10 @@ class MGARDX_ALIGN(16) FunctorBase {
   MGARDX_CONT
   FunctorBase() {}
   MGARDX_EXEC void
-  Init(IDX ngridz, IDX ngridy, IDX ngridx,
-       IDX nblockz, IDX nblocky, IDX nblockx,
-       IDX blockz, IDX blocky, IDX blockx,
-       IDX threadz, IDX thready, IDX threadx, Byte * shared_memory) {
+  Init(THREAD_IDX ngridz, THREAD_IDX ngridy, THREAD_IDX ngridx,
+       THREAD_IDX nblockz, THREAD_IDX nblocky, THREAD_IDX nblockx,
+       THREAD_IDX blockz, THREAD_IDX blocky, THREAD_IDX blockx,
+       THREAD_IDX threadz, THREAD_IDX thready, THREAD_IDX threadx, Byte * shared_memory) {
     this->ngridz = ngridz; this->ngridy = ngridy; this->ngridx = ngridx;
     this->nblockz = nblockz; this->nblocky = nblocky; this->nblockx = nblockx;
     this->blockz = blockz; this->blocky = blocky; this->blockx = blockx;
@@ -28,19 +28,19 @@ class MGARDX_ALIGN(16) FunctorBase {
   }
 
   MGARDX_EXEC void
-  InitConfig(IDX ngridz, IDX ngridy, IDX ngridx,
-              IDX nblockz, IDX nblocky, IDX nblockx) {
+  InitConfig(THREAD_IDX ngridz, THREAD_IDX ngridy, THREAD_IDX ngridx,
+              THREAD_IDX nblockz, THREAD_IDX nblocky, THREAD_IDX nblockx) {
     this->ngridz = ngridz; this->ngridy = ngridy; this->ngridx = ngridx;
     this->nblockz = nblockz; this->nblocky = nblocky; this->nblockx = nblockx;
   }
 
   MGARDX_EXEC void
-  InitBlockId(IDX blockz, IDX blocky, IDX blockx) {
+  InitBlockId(THREAD_IDX blockz, THREAD_IDX blocky, THREAD_IDX blockx) {
     this->blockz = blockz; this->blocky = blocky; this->blockx = blockx;
   }
 
   MGARDX_EXEC void
-  InitThreadId(IDX threadz, IDX thready, IDX threadx) {
+  InitThreadId(THREAD_IDX threadz, THREAD_IDX thready, THREAD_IDX threadx) {
     this->threadz = threadz; this->thready = thready; this->threadx = threadx;
   }
 
@@ -50,50 +50,50 @@ class MGARDX_ALIGN(16) FunctorBase {
   }
 
   MGARDX_EXEC
-  SIZE GetThreadIdX() const { return threadx; }
+  const THREAD_IDX& GetThreadIdX() const { return threadx; }
 
   MGARDX_EXEC
-  SIZE GetThreadIdY() const { return thready; }
+  const THREAD_IDX& GetThreadIdY() const { return thready; }
 
   MGARDX_EXEC
-  SIZE GetThreadIdZ() const { return threadz; }
+  const THREAD_IDX& GetThreadIdZ() const { return threadz; }
 
   MGARDX_EXEC
-  SIZE GetBlockDimX() const { return nblockx; }
+  const THREAD_IDX& GetBlockDimX() const { return nblockx; }
 
   MGARDX_EXEC
-  SIZE GetBlockDimY() const { return nblocky; }
+  const THREAD_IDX& GetBlockDimY() const { return nblocky; }
 
   MGARDX_EXEC
-  SIZE GetBlockDimZ() const { return nblockz; }
+  const THREAD_IDX& GetBlockDimZ() const { return nblockz; }
 
   MGARDX_EXEC
-  SIZE GetBlockIdX() const { return blockx; }
+  const THREAD_IDX& GetBlockIdX() const { return blockx; }
 
   MGARDX_EXEC
-  SIZE GetBlockIdY() const { return blocky; }
+  const THREAD_IDX& GetBlockIdY() const { return blocky; }
 
   MGARDX_EXEC
-  SIZE GetBlockIdZ() const { return blockz; }
+  const THREAD_IDX& GetBlockIdZ() const { return blockz; }
 
   MGARDX_EXEC
-  SIZE GetGridDimX() const { return ngridx; }
+  const THREAD_IDX& GetGridDimX() const { return ngridx; }
 
   MGARDX_EXEC
-  SIZE GetGridDimY() const { return ngridy; }
+  const THREAD_IDX& GetGridDimY() const { return ngridy; }
 
   MGARDX_EXEC
-  SIZE GetGridDimZ() const { return ngridz; }
+  const THREAD_IDX& GetGridDimZ() const { return ngridz; }
 
   MGARDX_EXEC
   Byte * GetSharedMemory() { return shared_memory; }
 
   private:
   Byte * shared_memory;
-  SIZE threadz, thready, threadx;
-  SIZE blockz, blocky, blockx;
-  SIZE ngridz, ngridy, ngridx;
-  SIZE nblockz, nblocky, nblockx;
+  THREAD_IDX threadz, thready, threadx;
+  THREAD_IDX blockz, blocky, blockx;
+  THREAD_IDX ngridz, ngridy, ngridx;
+  THREAD_IDX nblockz, nblocky, nblockx;
 
 };
 
