@@ -381,11 +381,11 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     readfile(temp, decompressed_data);
     print_statistics<T>(s, mode, original_size, original_data,
                         (T *)decompressed_data);
-    delete[](T *) decompressed_data;
+    // delete[](T *) decompressed_data;
   }
 
-  delete[](T *) original_data;
-  delete[](mgard_x::SERIALIZED_TYPE *) compressed_data;
+  // delete[](T *) original_data;
+  // delete[](mgard_x::SERIALIZED_TYPE *) compressed_data;
   return 0;
 }
 
@@ -433,10 +433,10 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     elem_size = 4;
   writefile(output_file, original_size * elem_size, decompressed_data);
 
-  if (dtype == mgard_x::data_type::Double)
-    delete[](double *) decompressed_data;
-  else if (dtype == mgard_x::data_type::Float)
-    delete[](float *) decompressed_data;
+  // if (dtype == mgard_x::data_type::Double)
+  //   delete[](double *) decompressed_data;
+  // else if (dtype == mgard_x::data_type::Float)
+  //   delete[](float *) decompressed_data;
 
   // causing segfault
   // delete [] compressed_data;

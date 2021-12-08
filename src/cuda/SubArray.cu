@@ -42,6 +42,12 @@ template <DIM D, typename T>
 SubArray<D, T>::SubArray(std::vector<SIZE> shape, T *dv) {
   this->shape = shape;
   this->dv = dv;
+  this->lddv1 = shape[0];
+  if (D > 1) {
+    this->lddv2 = shape[1];
+  } else {
+    this->lddv2 = 1;
+  }
 }
 
 template <DIM D, typename T>

@@ -31,7 +31,7 @@ LZ4Compress(SubArray<1, C, DeviceType> &input_data, size_t chunk_size) {
                             DeviceRuntime<DeviceType>::GetQueue(0));
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  output_data.getShape()[0] = *output_bytes;
+  output_data.getShape()[0] = *output_bytes;  
   Mem::FreeHost(temp_bytes);
   Mem::FreeHost(output_bytes);
   return output_data;

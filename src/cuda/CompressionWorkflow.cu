@@ -44,8 +44,6 @@ template <DIM D, typename T>
 Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
                                  enum error_bound_type type, T tol, T s) {
 
-  printf("compress: tol: %f, s: %f\n", tol, s);
-
   cudaSetDeviceHelper(handle.dev_id);
 
   for (DIM i = 0; i < D; i++) {
@@ -70,6 +68,8 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
   if (handle.timing)
     start = high_resolution_clock::now();
   T norm = (T)1.0;
+
+  SIZE total_elems = handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
 
   if (type == error_bound_type::REL) {
     // printf("Calculate norm\n");
@@ -119,71 +119,7 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
               << " s\n";
   }
 
-  // /////test
-  // if (0){
-  //   int block_size = BLOCK_SIZE;
-  //   int queue_idx = 0;
-  //   mgard_cuda::Handle<3, T> **** block_handle = new mgard_cuda::Handle<3,
-  //   T>***[(int)std::ceil((float)handle.dofs[0][0]/block_size)]; for (int i =
-  //   0; i < handle.dofs[0][0]; i += block_size) {
-  //     block_handle[i/block_size] = new mgard_cuda::Handle<3,
-  //     T>**[(int)std::ceil((float)handle.dofs[1][0]/block_size)]; for (int j =
-  //     0; j < handle.dofs[1][0]; j += block_size) {
-  //       block_handle[i/block_size][j/block_size] = new mgard_cuda::Handle<3,
-  //       T>*[(int)std::ceil((float)handle.dofs[2][0]/block_size)]; for (int k
-  //       = 0; k < handle.dofs[2][0]; k += block_size) {
-  //         size_t b0 = std::min(block_size, handle.dofs[0][0] - i);
-  //         size_t b1 = std::min(block_size, handle.dofs[1][0] - j);
-  //         size_t b2 = std::min(block_size, handle.dofs[2][0] - k);
-  //         std::vector<size_t> block_shape = {b2, b1, b0};
-  //         block_handle[i/block_size][j/block_size][k/block_size] = new
-  //         mgard_cuda::Handle<3, T>(block_shape);
-  //         block_handle[i/block_size][j/block_size][k/block_size]->allocate_workspace();
-  //       }
-  //     }
-  //   }
-
-  //   t1 = high_resolution_clock::now();
-  //   for (int i = 0; i < handle.dofs[0][0]; i += block_size) {
-  //     for (int j = 0; j < handle.dofs[1][0]; j += block_size) {
-  //       for (int k = 0; k < handle.dofs[2][0]; k += block_size) {
-  //         size_t b0 = std::min(block_size, handle.dofs[0][0] - i);
-  //         size_t b1 = std::min(block_size, handle.dofs[1][0] - j);
-  //         size_t b2 = std::min(block_size, handle.dofs[2][0] - k);
-  //         std::vector<size_t> block_shape = {b2, b1, b0};
-  //         std::vector<int> idx = {(int)i, (int)j, (int)k};
-  //         decompose<3,
-  //         T>(*(block_handle[i/block_size][j/block_size][k/block_size]),
-  //                         in_array.get_dv()+get_idx(in_array.get_ldvs_h(),
-  //                         idx), in_array.get_ldvs_h(), in_array.get_ldvs_d(),
-  //                 block_handle[i/block_size][j/block_size][k/block_size]->l_target,
-  //                 0);
-  //         block_handle[i/block_size][j/block_size][k/block_size]->sync_all();
-  //       }
-  //     }
-  //   }
-
-  // for (int i = 0; i < handle.dofs[0][0]; i += block_size) {
-  //   for (int j = 0; j < handle.dofs[1][0]; j += block_size) {
-  //     for (int k = 0; k < handle.dofs[2][0]; k += block_size) {
-  //       block_handle[i/block_size][j/block_size][k/block_size]->sync_all();
-  //     }
-  //   }
-  // }
-
-  //   t2 = high_resolution_clock::now();
-  //   time_span = duration_cast<duration<double>>(t2 - t1);
-  //   printf("Blocked Decomposition time: %.6f s\n", time_span.count());
-
-  //   for (int i = 0; i < handle.dofs[0][0]; i += block_size) {
-  //     for (int j = 0; j < handle.dofs[1][0]; j += block_size) {
-  //       for (int k = 0; k < handle.dofs[2][0]; k += block_size) {
-
-  //         block_handle[i/block_size][j/block_size][k/block_size]->free_workspace();
-  //       }
-  //     }
-  //   }
-  // }
+  // PrintSubarray("decomposed", SubArray<D, T>(in_array));
 
   // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
   // (double)(total-free)/1e9, (double)total/1e9);
@@ -301,6 +237,7 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     time_span = duration_cast<duration<double>>(t2 - t1);
     std::cout << log::log_time << "Quantization time: " << time_span.count()
               << " s\n";
+    std::cout << log::log_info << "Outlier ratio: " << (double)100*outlier_count/total_elems << "%\n"; 
   }
 
   // cudaFreeHelper(dv);
@@ -328,7 +265,18 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
       time_span = duration_cast<duration<double>>(t2 - t1);
       std::cout << log::log_time
                 << "GPU Huffman encoding time: " << time_span.count() << " s\n";
+      std::cout << log::log_info << "Huffman block size: " << 
+      block_size << "\n"; 
+      std::cout << log::log_info << "Huffman dictionary size: " << 
+      dict_size << "\n"; 
+      std::cout << log::log_info << "Huffman compress ratio: " << 
+      total_elems*sizeof(int) << "/" <<
+      hufmeta_size + hufdata_size << " (" <<
+      (double)total_elems*sizeof(int) / (hufmeta_size + hufdata_size) << ")\n"; 
     }
+
+    // SubArray<1, Byte> lossless_compressed_subarray({(SIZE)(hufdata_size)}, (Byte*)hufdata);
+    // PrintSubarray("Huffman lossless_compressed_subarray", lossless_compressed_subarray);
 
     // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
     // (double)(total-free)/1e9, (double)total/1e9);
@@ -339,7 +287,9 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     void *lz4_hufdata;
     size_t lz4_hufdata_size;
 
+
     if (handle.lossless == lossless_type::GPU_Huffman_LZ4) {
+      SIZE lz4_before_size = hufdata_size;
       if (handle.timing)
         t1 = high_resolution_clock::now();
       lz4_compress(handle, hufdata, hufdata_size / sizeof(uint64_t),
@@ -349,12 +299,18 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
       cudaFreeHelper(hufdata);
       hufdata = (uint64_t *)lz4_hufdata;
       hufdata_size = lz4_hufdata_size;
+      SIZE lz4_after_size = lz4_hufdata_size;
       if (handle.timing) {
         t2 = high_resolution_clock::now();
         time_span = duration_cast<duration<double>>(t2 - t1);
+        std::cout << log::log_info << "LZ4 block size: " << 
+                     handle.lz4_block_size << "\n"; 
         std::cout << log::log_time
                   << "NVComp::LZ4 compression time: " << time_span.count()
                   << " s\n";
+
+        std::cout << log::log_info << "LZ4 compress ratio: " << 
+            (double)lz4_before_size / lz4_after_size << "\n"; 
       }
 
       // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",

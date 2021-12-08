@@ -360,6 +360,7 @@ void Handle<D, T, DeviceType>::init(std::vector<SIZE> shape, std::vector<T *> co
   huff_dict_size = config.huff_dict_size;
   huff_block_size = config.huff_block_size;
   lz4_block_size = config.lz4_block_size;
+  zstd_compress_level = config.zstd_compress_level;
   reduce_memory_footprint = config.reduce_memory_footprint;
   profile_kernels = config.profile_kernels;
   sync_and_check_all_kernels = config.sync_and_check_all_kernels;

@@ -20,6 +20,7 @@ struct Config {
   SIZE huff_dict_size;
   SIZE huff_block_size;
   SIZE lz4_block_size;
+  int zstd_compress_level;
   bool reduce_memory_footprint;
   bool profile_kernels;
   bool sync_and_check_all_kernels;
@@ -39,12 +40,13 @@ struct Config {
     huff_block_size = 1024 * 20;
 //#endif
     lz4_block_size = 1 << 15;
+    zstd_compress_level = 3;
     reduce_memory_footprint = false;
     profile_kernels = false;
     sync_and_check_all_kernels = false;
     timing = false;
     uniform_coord_mode = 0;
-    lossless = lossless_type::GPU_Huffman;
+    lossless = lossless_type::Huffman_LZ4;
   }
 };
 
@@ -91,6 +93,7 @@ template <DIM D, typename T, typename DeviceType> struct Handle {
   SIZE huff_dict_size;
   SIZE huff_block_size;
   SIZE lz4_block_size;
+  int zstd_compress_level;
   enum lossless_type lossless;
 
   bool reduce_memory_footprint;

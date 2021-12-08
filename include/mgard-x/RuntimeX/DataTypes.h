@@ -102,6 +102,7 @@ using QUANTIZED_UNSIGNED_INT = uint32_t;
 using SERIALIZED_TYPE = unsigned char;
 using Byte = unsigned char;
 using OPTION = int8_t;
+using THREAD_IDX = unsigned int;
 }
 
 #endif
