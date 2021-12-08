@@ -173,6 +173,16 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
   std::free(buffer);
 }
 
+#ifdef MGARD_PROTOBUF
+template <std::size_t N, typename Real>
+void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
+               pb::Header &header) {
+  decompose(hierarchy, v);
+  header.mutable_decomposition()->set_transform(
+      pb::Decomposition::MULTILEVEL_COEFFICIENTS);
+}
+#endif
+
 template <std::size_t N, typename Real>
 void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
   const std::size_t ndof = hierarchy.ndof();

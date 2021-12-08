@@ -13,6 +13,10 @@
 
 #include "TensorMeshHierarchy.hpp"
 
+#ifdef MGARD_PROTOBUF
+#include "proto/mgard.pb.h"
+#endif
+
 namespace mgard {
 
 //! Transform nodal coefficients into multilevel coefficients.
@@ -22,6 +26,17 @@ namespace mgard {
 //! in the hierarchy.
 template <std::size_t N, typename Real>
 void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v);
+
+#ifdef MGARD_PROTOBUF
+//!\overload
+//!
+//!\param[in] hierarchy Mesh hierarchy on which the input function is defined.
+//!\param[in, out] v Nodal coefficients of the input function on the finest mesh
+//!\param[in, out] v Header to be populated.
+template <std::size_t N, typename Real>
+void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
+               pb::Header &header);
+#endif
 
 //! Transform multilevel coefficients into nodal coefficients.
 //!

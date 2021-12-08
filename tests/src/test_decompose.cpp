@@ -794,3 +794,16 @@ TEST_CASE("recomposition", "[mgard]") {
     }
   }
 }
+
+#ifdef MGARD_PROTOBUF
+TEST_CASE("header population", "[mgard]") {
+  const mgard::TensorMeshHierarchy<1, float> hierarchy({5});
+
+  mgard::pb::Header header;
+  float *const u = new float[hierarchy.ndof()];
+  decompose(hierarchy, u, header);
+  delete[] u;
+  REQUIRE(header.decomposition().transform() ==
+          mgard::pb::Decomposition::MULTILEVEL_COEFFICIENTS);
+}
+#endif
