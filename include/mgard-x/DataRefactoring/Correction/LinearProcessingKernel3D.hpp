@@ -428,6 +428,11 @@ class Lpk1Reo3D: public AutoTuner<DeviceType> {
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_mr1[arch][prec][range_l];
+
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+    Timer timer;
+
     #define LPK(CONFIG)\
     if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=LPK_CONFIG[D-1][CONFIG][0];\
@@ -441,7 +446,20 @@ class Lpk1Reo3D: public AutoTuner<DeviceType> {
                               ddist_f, dratio_f,\
                               dv1, dv2, dw, queue_idx); \
       DeviceAdapter<TaskType, DeviceType> adapter; \
+      if (AutoTuner<DeviceType>::ProfileKernels) { \
+        DeviceRuntime<DeviceType>::SyncDevice(); \
+        timer.start(); \
+      } \
       adapter.Execute(task);\
+      if (AutoTuner<DeviceType>::ProfileKernels) { \
+        DeviceRuntime<DeviceType>::SyncDevice(); \
+        timer.end(); \
+        double time = timer.get(); \
+        if (min_time > time) { \
+          min_time = time; \
+          min_config = CONFIG; \
+        } \
+      } \
     }
 
     LPK(0)
@@ -452,6 +470,10 @@ class Lpk1Reo3D: public AutoTuner<DeviceType> {
     LPK(5)
     LPK(6)
     #undef LPK
+
+    if (AutoTuner<DeviceType>::ProfileKernels) {
+      // printf("********** min time: %f, min_config: %d ************\n", min_time, min_config);
+    }
   }
 };
 

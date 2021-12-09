@@ -50,6 +50,34 @@ int TypeToIdx() {
 }
 
 template <typename DeviceType>
+MGARDX_CONT void 
+FillAutoTunerTable(std::string kernel_name, int precision_idx, int range_l){
+
+    std::ifstream t("file.txt");
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    std::cout << "********************read file: " << buffer.str() << "\n";
+
+    std::regex e("(int lpk.*\\{\n)((.*\\{.*\\}.*\n){0})(.*\\{(., ){3})(.)", std::regex_constants::ECMAScript);
+    std::string new_string = std::regex_replace(buffer.str(), e, "$1$2$4 4");
+    std::cout << "********************new file: " << new_string << "\n";
+
+    std::regex e2(",  (.)", std::regex_constants::ECMAScript);
+    std::string new_string2 = std::regex_replace(new_string, e2, ", $1");
+    std::cout << "********************new file2: " << new_string2 << "\n";
+
+
+    std::ofstream ofs("file.txt", std::ofstream::trunc);
+
+    ofs << new_string2;
+
+    ofs.close();
+
+
+
+  }
+
+template <typename DeviceType>
 class KernelConfigs {
 public:
   MGARDX_CONT
