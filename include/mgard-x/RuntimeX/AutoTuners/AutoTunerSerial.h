@@ -373,7 +373,6 @@ public:
   int ***auto_tuning_mr2, ***auto_tuning_ts2;
   int ***auto_tuning_mr3, ***auto_tuning_ts3;
   int arch, precision;
-
 };
 
 
