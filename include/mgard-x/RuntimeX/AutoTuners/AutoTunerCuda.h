@@ -374,6 +374,10 @@ public:
   int ***auto_tuning_mr3, ***auto_tuning_ts3;
   int arch, precision;
 
+  int lpk[2][9] = {
+                    {0, 0, 0, 0, 0, 0, 0, 0, 0},
+                    {0, 0, 0, 0, 9, 0, 0, 0, 0}
+                  };
 };
 
 

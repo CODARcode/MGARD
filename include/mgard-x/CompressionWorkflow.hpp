@@ -31,6 +31,8 @@
 #include "../cuda/DataRefactoring.h"
 #include "../cuda/SubArray.h"
 
+#include <regex>
+
 #define BLOCK_SIZE 64
 
 using namespace std::chrono;
