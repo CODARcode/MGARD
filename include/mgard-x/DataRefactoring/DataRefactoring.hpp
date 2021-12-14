@@ -1680,7 +1680,7 @@ void decompose(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceType>& v, 
   for (DIM d = 0; d < D; d++) workspace_shape[d] = handle.dofs[d][0] + 2;
   std::reverse(workspace_shape.begin(), workspace_shape.end());
   Array<D, T, DeviceType> workspace(workspace_shape);
-  workspace.memset(0);
+  // workspace.memset(0); can cause large overhead in HIP
   SubArray w(workspace);
 
   if (D <= 3) {
@@ -1759,7 +1759,7 @@ void recompose(Handle<D, T, DeviceType> &handle, SubArray<D, T, DeviceType>& v,
   for (DIM d = 0; d < D; d++) workspace_shape[d] = handle.dofs[d][0] + 2;
   std::reverse(workspace_shape.begin(), workspace_shape.end());
   Array<D, T, DeviceType> workspace(workspace_shape);
-  workspace.memset(0);
+  // workspace.memset(0); // can cause large overhead in HIP
   SubArray w(workspace);
   if (D <= 3) {
     if (debug_print) {

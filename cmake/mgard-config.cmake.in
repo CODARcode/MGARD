@@ -7,8 +7,9 @@ if(@ZLIB_FOUND@)
 	list(APPEND REQUIRED_VARS ZLIB_FOUND)
 endif()
 
-if(@ZSTD_FOUND@)
+if(@zstd_FOUND@)
   find_dependency(zstd)
+	list(APPEND REQUIRED_VARS zstd_FOUND)
 endif()
 
 if(@NVCOMP_FOUND@)
@@ -33,8 +34,7 @@ if(@protobuf_FOUND@)
 endif()
 
 if(@OpenMP_FOUND@)
-	#find_dependency(OpenMP)
-	find_package(OpenMP)
+	find_dependency(OpenMP)
 	list(APPEND REQUIRED_VARS OpenMP_FOUND)
 endif()
 
@@ -55,14 +55,15 @@ set(MGARD_INCLUDE_DIRS
   $<TARGET_PROPERTY:mgard::mgard,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
-if (MGARD_ENABLE_SERIAL)
+
+if (@MGARD_ENABLE_SERIAL@)
 	SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_SERIAL")
 endif()
-if (MGARD_ENABLE_CUDA)
+if (@MGARD_ENABLE_CUDA@)
 	SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_CUDA")
 	SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_CUDA")
 endif()
-if (MGARD_ENABLE_HIP)
+if (@MGARD_ENABLE_HIP@)
 	SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_HIP")
 endif()
 

@@ -130,6 +130,16 @@ void GetCodebook(int dict_size,
   MemoryManager<DeviceType>().Copy1D(&max_CL, CL_subarray(IDX(0)), 1, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
+
+  // if (std::is_same<DeviceType, Serial>::value) {
+  //   DumpSubArray("CL_subarray", CL_subarray);
+  // }
+
+  // if (std::is_same<DeviceType, HIP>::value) {
+  //   LoadSubArray("CL_subarray", CL_subarray);
+  // }
+
+
   if (debug_print_huffman) {
     PrintSubarray("GenerateCL::CL_subarray", CL_subarray);
     std::cout << "GenerateCL: max_CL" << max_CL << std::endl;
@@ -150,6 +160,35 @@ void GetCodebook(int dict_size,
                      _d_first_subarray, _d_entry_subarray, 
                      nz_dict_size, 0);
 
+  // PrintSubarray("_d_entry_subarray", _d_entry_subarray);
+
+  if (std::is_same<DeviceType, Serial>::value) {
+    DumpSubArray("_nz_d_codebook_subarray", _nz_d_codebook_subarray);
+  }
+
+  if (std::is_same<DeviceType, HIP>::value) {
+    LoadSubArray("_nz_d_codebook_subarray", _nz_d_codebook_subarray);
+  }
+
+  if (std::is_same<DeviceType, Serial>::value) {
+    DumpSubArray("_d_first_subarray", _d_first_subarray);
+  }
+
+  if (std::is_same<DeviceType, HIP>::value) {
+    LoadSubArray("_d_first_subarray", _d_first_subarray);
+  }
+
+  // if (std::is_same<DeviceType, Serial>::value) {
+  //   DumpSubArray("_d_entry_subarray", _d_entry_subarray);
+  // }
+
+  // if (std::is_same<DeviceType, HIP>::value) {
+  //   LoadSubArray("_d_entry_subarray", _d_entry_subarray);
+  // }
+
+
+
+
   ReverseArray<H, DeviceType>().Execute(_d_codebook_subarray, dict_size, 0);
   ReverseArray<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
 
@@ -158,6 +197,11 @@ void GetCodebook(int dict_size,
   SubArray _d_codebook_subarray_org(_d_codebook_array_org);
   ReorderByIndex<H, Q, DeviceType>().Execute(_d_codebook_subarray_org, _d_codebook_subarray, _d_qcode_subarray, dict_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
+
+  
+
+
+
 }
 
 }

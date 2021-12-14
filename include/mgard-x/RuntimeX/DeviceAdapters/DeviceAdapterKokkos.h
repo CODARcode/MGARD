@@ -90,7 +90,6 @@ MGARDX_KERL void KOKKOSKernel(TaskType task) {
     team_member.team_barrier();
     task.Operations10();
     team_member.team_barrier();
-    barrier();
   });
 }
 

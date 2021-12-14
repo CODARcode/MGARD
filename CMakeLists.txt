@@ -179,7 +179,8 @@ find_package(ZLIB REQUIRED)
 find_package(PkgConfig)
 
 # pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
-find_package(zstd)
+
+find_package(zstd REQUIRED)
 
 find_package(MOAB)
 #We run into this when building MOAB 5.3.0 with `./configure && make`.
@@ -374,7 +375,8 @@ if(MOAB_FOUND)
 	target_sources(mgard-library PRIVATE ${MGARD_MOAB_CPP})
 	target_link_libraries(mgard-library PUBLIC MOAB)
 endif()
-if(ZSTD_FOUND)
+
+if(zstd_FOUND)
   target_compile_definitions(mgard-library PUBLIC MGARD_ZSTD)
   target_link_libraries(mgard-library PUBLIC zstd::libzstd_shared)
   # target_link_libraries(mgard-library PUBLIC PkgConfig::ZSTD)
