@@ -61,12 +61,14 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
     printf("[i = %d]\n", i);
     for (int j = 0; j < ncol; j++) {
       for (int k = 0; k < nfib; k++) {
+        std::cout << "[ " << j << ", " << k <<" ]: ";
         if (std::is_same<T, std::uint8_t>::value) {
           std::cout << std::setw(8) << (unsigned int)v[nfib * ncol * i + nfib * j + k] << ", ";
         } else {
           std::cout << std::setw(8) << std::setprecision(6) << std::fixed
                   << v[nfib * ncol * i + nfib * j + k] << ", ";
         }
+        std::cout << "\n";
       }
       std::cout << std::endl;
     }

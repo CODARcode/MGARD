@@ -42,7 +42,7 @@ void print_usage_message(std::string error) {
 \n\
 \t -x: decompress data\n\
 \t\t -c <path to compressed file>\n\
-\t\t -d <path to decompressed file>\n\
+\t\t -o <path to decompressed file>\n\
 \t\t -d <auto|serial|cuda|hip>: device type\n\
 \t\t -v enable verbose (show timing and statistics)\n");
   exit(0);
@@ -266,10 +266,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   mgard_x::Config config;
   config.timing = verbose;
-  config.uniform_coord_mode = 0;
+  // config.uniform_coord_mode = 0;
   config.dev_type = dev_type;
-
-  // config.huff_dict_size = 64;
+  // config.zstd_compress_level = 1;
+  config.huff_dict_size = 2048;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
@@ -481,7 +481,7 @@ bool try_decompression(int argc, char *argv[]) {
     return false;
   std::cout << mgard_x::log::log_info << "mode: decompress\n";
   std::string input_file = get_arg(argc, argv, "-c");
-  std::string output_file = get_arg(argc, argv, "-d");
+  std::string output_file = get_arg(argc, argv, "-o");
   std::cout << mgard_x::log::log_info << "compressed data: " << input_file
             << "\n";
   std::cout << mgard_x::log::log_info << "decompressed data: " << output_file

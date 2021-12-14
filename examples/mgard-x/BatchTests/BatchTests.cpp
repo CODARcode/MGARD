@@ -452,7 +452,8 @@ int main(int argc, char *argv[]) {
   // std::vector<enum data_type> dtypes = {data_type::SINGLE,
   // data_type::DOUBLE};
   std::vector<enum data_type> dtypes = {data_type::SINGLE};
-  std::vector<enum error_type> ebtypes = {error_type::ABS, error_type::REL};
+  // std::vector<enum error_type> ebtypes = {error_type::ABS, error_type::REL};
+  std::vector<enum error_type> ebtypes = {error_type::REL};
 
   std::vector<float> tols = {1e-2, 1e-3, 1e-4};
   std::vector<double> told = {1e-2, 1e-3, 1e-4, 1e-5, 1e-6};

@@ -80,6 +80,48 @@ void CompareSubArrays(SubArray<1, T, DeviceType> array1, SubArray<1, T, DeviceTy
   delete [] q2;
 }
 
+template <typename T, typename DeviceType>
+void DumpSubArray(std::string name, SubArray<1, T, DeviceType> array) {
+  SIZE n = array.getShape(0);
+  using Mem = MemoryManager<DeviceType>;
+  T * q = new T[n];
+  Mem::Copy1D(q, array.data(), n, 0);
+  std::fstream myfile;
+  myfile.open(name, std::ios::out | std::ios::binary);
+  if (!myfile) {
+    printf("Error: cannot open file\n");
+    return;
+  }
+  myfile.write((char *)q, n * sizeof(T));
+  myfile.close();
+  if (!myfile.good()) {
+    printf("Error occurred at write time!\n");
+    return;
+  }
+  delete [] q;
+}
+
+template <typename T, typename DeviceType>
+void LoadSubArray(std::string name, SubArray<1, T, DeviceType> array) {
+  SIZE n = array.getShape(0);
+  using Mem = MemoryManager<DeviceType>;
+  T * q = new T[n];
+  std::fstream myfile;
+  myfile.open(name, std::ios::in | std::ios::binary);
+  if (!myfile) {
+    printf("Error: cannot open file\n");
+    return;
+  }
+  myfile.read((char *)q, n * sizeof(T));
+  myfile.close();
+  if (!myfile.good()) {
+    printf("Error occurred at read time!\n");
+    return;
+  }
+  Mem::Copy1D(array.data(), q, n, 0);
+  delete [] q;
+}
+
 template <typename Q, typename H, typename DeviceType>
 Array<1, Byte, DeviceType>
 HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
@@ -105,8 +147,16 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
   Histogram<Q, unsigned int, DeviceType>().Execute(dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
   DeviceRuntime<DeviceType>::SyncDevice();
 
-  if (debug_print_huffman) {
+  // if (debug_print_huffman) {
     // PrintSubarray("Histogram::freq_subarray", freq_subarray);
+  // }
+
+  if (std::is_same<DeviceType, Serial>::value) {
+    DumpSubArray("dprimary_subarray", dprimary_subarray);
+  }
+
+  if (std::is_same<DeviceType, HIP>::value) {
+    LoadSubArray("dprimary_subarray", dprimary_subarray);
   }
 
   auto type_bw = sizeof(H) * 8;
@@ -114,7 +164,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
   Array<1, H, DeviceType> codebook_array({(SIZE)dict_size});
   codebook_array.memset(0);
   Array<1, uint8_t, DeviceType> decodebook_array({(SIZE)decodebook_size});
-  codebook_array.memset(0xff);
+  decodebook_array.memset(0xff);
 
   H * codebook = codebook_array.get_dv();
   uint8_t *decodebook = decodebook_array.get_dv();
@@ -125,6 +175,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
 
   GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray, decodebook_subarray);
   DeviceRuntime<DeviceType>::SyncDevice();
+
 
   if (debug_print_huffman) {
     // PrintSubarray("GetCodebook::codebook_subarray", codebook_subarray);
@@ -246,20 +297,6 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
   SerializeArray<LENGTH>(compressed_data_subarray, &outlier_count, 1, byte_offset);
   SerializeArray<LENGTH>(compressed_data_subarray, outlier_idx_subarray.data(), outlier_count, byte_offset);
   SerializeArray<QUANTIZED_INT>(compressed_data_subarray, outlier_subarray.data(), outlier_count, byte_offset);
-
-  // { // debug
-  //   Byte * huffdata = compressed_data_subarray((IDX)byte_offset);
-  //   SubArray<1, Byte, DeviceType> temp({(SIZE)(ddata_size*sizeof(H))}, huffdata);
-
-  //   // PrintSubarray("Huffman lossless_compressed_subarray", temp);
-
-  //   Array<1, Byte, DeviceType> lz4_array = LZ4Compress(temp, 32768);
-  //   SubArray<1, Byte, DeviceType> lossless_compressed_subarray = SubArray(lz4_array);
-  //   SIZE lz4_after_size = lz4_array.getShape()[0];
-  //   std::cout << log::log_info << "LZ4 compress ratio: " << 
-  //     ddata_size*sizeof(H) << "/" << lz4_after_size << " (" <<
-  //     (double)ddata_size*sizeof(H) / lz4_after_size << ")\n"; 
-  // }
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
   t2 = high_resolution_clock::now();

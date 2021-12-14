@@ -167,9 +167,9 @@ public:
 };
 }
 
-#ifdef MGARDX_COMPILE_SERIAL 
+// #ifdef MGARDX_COMPILE_SERIAL 
 #include "AutoTunerSerial.h"
-#endif
+// #endif
 
 #ifdef MGARDX_COMPILE_CUDA
 #include "AutoTunerCuda.h"
