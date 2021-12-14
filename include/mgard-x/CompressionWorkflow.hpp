@@ -111,13 +111,24 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   // Decomposition
   if (handle.timing) timer_each.start();
   decompose<D, T, DeviceType>(handle, in_subarray, handle.l_target, 0);
+
+
+  // debug
+  Array<D, T, Serial> in_array_serial({1000, 1000});
+  SubArray in_subarray_serial(in_array_serial);
+  MemoryManager<DeviceType>::CopyND(in_subarray_serial.data(), in_subarray_serial.getLd(0),
+                                    in_subarray.data(), in_subarray.getLd(0),
+                                    1000, 1000, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  Handle<D, T, Serial> handle_serial({1000, 1000});
+  decompose<D, T, Serial>(handle_serial, in_subarray_serial, handle.l_target, 0);
+
   if (handle.timing) {
+    DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_each.end();
     timer_each.print("Decomposition");
     timer_each.clear();
   }
-
-  // gpuErrchk(cudaDeviceSynchronize());
 
   // Quantization
   bool prep_huffman = true; // always do Huffman
@@ -214,7 +225,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
     (double)100*outlier_count/total_elems << "%)\n"; 
   }
   if (debug_print) {
-     // PrintSubarray("decompresed", SubArray<D, T, DeviceType>(in_array));
+     // PrintSubarray("decompresed", SubArray<D, T, Serial>(in_array_serial));
     // PrintSubarray("quantized parimary", SubArray<D, QUANTIZED_INT, DeviceType>(dqv_array));
     // std::cout << "outlier_count: " << outlier_count << std::endl;
     // PrintSubarray("quantized outliers_array", SubArray<1, QUANTIZED_INT, DeviceType>(outliers_array));

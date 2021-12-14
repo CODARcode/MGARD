@@ -302,6 +302,7 @@ MGARDX_KERL void HuffmanCWCustomizedKernel(Task task) {
   while (task.GetFunctor().LoopCondition1()) {
     task.GetFunctor().Operation4();
     SyncGrid<HIP>::Sync();
+    __nanosleep(1e10);
     task.GetFunctor().Operation5();
     SyncGrid<HIP>::Sync();
     task.GetFunctor().Operation6();

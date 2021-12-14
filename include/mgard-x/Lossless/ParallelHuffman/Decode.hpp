@@ -68,24 +68,29 @@ class DecodeFunctor: public Functor<DeviceType> {
         v = (v << 1) | next_bit;
         ++l;
       }
-      // if (!chunk_id) {
-      // if ((entry[l] + v - first[l])*sizeof(Q) + sizeof(H) * (2 * sizeof(H) * 8) >= 1280) {
-        // printf("out of range: %llu\n", (entry[l] + v - first[l])*sizeof(Q) + sizeof(H) * (2 * sizeof(H) * 8));
-        // std::cout << "l:" << l << std::endl;
-        // std::cout << "entry[l]:" << entry[l] << std::endl;
-        // std::cout << "v:" << v << std::endl;
-        // std::cout << "first[l]:" << first[l] << std::endl;
-        // printf("entry:");
-        // for (int i = 0; i < 64; i++) {
-        //   printf("%llu ", entry[i]);
-        // }
-        // printf("\n");
-        // printf("first:");
-        // for (int i = 0; i < 64; i++) {
-        //   printf("%llu ", first[i]);
-        // }
-        // printf("\n");
 
+      // debug - start
+      // if (!chunk_id) {
+      // // if ((entry[l] + v - first[l])*sizeof(Q) + sizeof(H) * (2 * sizeof(H) * 8) >= 1280) {
+      //   printf("out of range: %llu\n", (entry[l] + v - first[l])*sizeof(Q) + sizeof(H) * (2 * sizeof(H) * 8));
+      //   printf("l: %llu\n", l);
+      //   printf("entry[l]: %llu\n", entry[l]);
+      //   printf("v: %llu\n", v);
+      //   printf("first[l]: %llu\n", first[l]);
+      //   printf("entry:");
+      //   for (int i = 0; i < 64; i++) {
+      //     printf("%llu ", entry[i]);
+      //   }
+      //   printf("\n");
+      //   printf("first:");
+      //   for (int i = 0; i < 64; i++) {
+      //     printf("%llu ", first[i]);
+      //   }
+      //   printf("\n");
+      // } 
+      //debug - end
+      // if (entry[l] + v - first[l] > 100000) {
+      //   printf("offset: %llu + %llu i: %llu l: %llu (%llu, %llu, %llu)\n", sizeof(H) * (2 * sizeof(H) * 8), entry[l] + v - first[l], i, l, entry[l], v, first[l]);
       // }
       *bcode(bcode_offset + idx_bcoded) = keys[entry[l] + v - first[l]];
       idx_bcoded++;

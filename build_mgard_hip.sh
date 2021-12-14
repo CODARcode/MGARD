@@ -39,7 +39,7 @@ mgard_x_install_dir=${home_dir}/install
 rm -rf ${mgard_x_build_dir} && mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DCMAKE_PREFIX_PATH="${zstd_install_dir}/lib/cmake/zstd"\
-    -DMGARD_ENABLE_SERIAL=OFF\
+    -DMGARD_ENABLE_SERIAL=ON\
     -DMGARD_ENABLE_HIP=ON\
     -DCMAKE_CXX_COMPILER=/opt/rocm-4.3.0/bin/hipcc\
     -DCMAKE_CXX_FLAGS="--amdgpu-target=gfx908"\
