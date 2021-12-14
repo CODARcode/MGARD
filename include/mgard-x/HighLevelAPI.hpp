@@ -134,6 +134,17 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   }
 }
 
+template<typename DeviceType>
+void BeginAutoTuning() {
+  AutoTuner<DeviceType>::ProfileKernels = true;
+}
+
+template<typename DeviceType>
+void EndAutoTuning() {
+  AutoTuner<DeviceType>::ProfileKernels = false;
+}
+
+
 }
 
 #endif

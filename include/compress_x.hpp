@@ -128,6 +128,9 @@ template <typename T>
 std::vector<T *> infer_coords(const void *compressed_data,
                               size_t compressed_size);
 
+void BeginAutoTuning(enum device_type dev_type);
+void EndAutoTuning(enum device_type dev_type);
+
 
 //!\file
 //!\brief Low level compression and decompression API.
@@ -155,6 +158,10 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
 template <uint32_t D, typename T, typename DeviceType>
 Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
                        Array<1, unsigned char, DeviceType> &compressed_array);
+
+template<typename DeviceType> void BeginAutoTuning();
+
+template<typename DeviceType> void EndAutoTuning();
 
 } // namespace mgard_x
 

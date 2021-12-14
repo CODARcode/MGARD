@@ -139,14 +139,47 @@ class LwpkReo: public AutoTuner<DeviceType> {
   void Execute(SubArray<1, SIZE, DeviceType> shape,
               SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
               int queue_idx) {
-    const int R=LWPK_CONFIG[D-1][0];
-    const int C=LWPK_CONFIG[D-1][1];
-    const int F=LWPK_CONFIG[D-1][2];
-    using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;
-    using TaskType = Task<FunctorType>;
-    TaskType task = GenTask<R, C, F>(shape, v, work, queue_idx); 
-    DeviceAdapter<TaskType, DeviceType> adapter; 
-    adapter.Execute(task);
+
+    int range_l = std::min(6, (int)std::log2(shape.dataHost()[0]) - 1);
+    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
+    int prec = TypeToIdx<T>();
+
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+
+    // int config = 0;
+    int config = AutoTuner<DeviceType>::autoTuningTable.lwpk[prec][range_l];
+
+    #define LWPK(CONFIG)\
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
+      const int R=LWPK_CONFIG[D-1][CONFIG][0];\
+      const int C=LWPK_CONFIG[D-1][CONFIG][1];\
+      const int F=LWPK_CONFIG[D-1][CONFIG][2];\
+      using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;\
+      using TaskType = Task<FunctorType>;\
+      TaskType task = GenTask<R, C, F>(shape, v, work, queue_idx); \
+      DeviceAdapter<TaskType, DeviceType> adapter; \
+      ExecutionReturn ret = adapter.Execute(task);\
+      if (AutoTuner<DeviceType>::ProfileKernels) { \
+        if (min_time > ret.execution_time) { \
+          min_time = ret.execution_time; \
+          min_config = CONFIG; \
+        }\
+      }\
+    }
+
+    LWPK(0)
+    LWPK(1)
+    LWPK(2)
+    LWPK(3)
+    LWPK(4)  
+    LWPK(5)
+    LWPK(6)
+    #undef LWPK
+
+    if (AutoTuner<DeviceType>::ProfileKernels) {
+      FillAutoTunerTable<DeviceType>("lwpk", prec, range_l, min_config);
+    }
   }
 };
 

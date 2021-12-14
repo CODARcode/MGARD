@@ -13,6 +13,21 @@ home_dir=$(pwd)
 external_dir=${home_dir}/external
 mkdir -p ${external_dir}
 
+#build ZSTD
+zstd_dir=${external_dir}/zstd
+zstd_src_dir=${zstd_dir}/src
+zstd_build_dir=${zstd_dir}/build
+zstd_install_dir=${zstd_dir}/install
+if [ ! -d "${zstd_install_dir}" ]; then
+  rm -rf ${zstd_dir} && mkdir -p ${zstd_dir}
+  git clone -b v1.5.0 https://github.com/facebook/zstd.git ${zstd_src_dir}
+  cmake -S ${zstd_src_dir}/build/cmake -B ${zstd_build_dir}\
+      -DZSTD_MULTITHREAD_SUPPORT=ON\
+      -DCMAKE_INSTALL_LIBDIR=lib\
+      -DCMAKE_INSTALL_PREFIX=${zstd_install_dir}
+  cmake --build ${zstd_build_dir} -j8
+  cmake --install ${zstd_build_dir}
+fi
 
 #build MGARD
 mgard_x_src_dir=${home_dir}
@@ -20,8 +35,9 @@ mgard_x_build_dir=${home_dir}/build
 mgard_x_install_dir=${home_dir}/install
 rm -rf ${mgard_x_build_dir} && mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
-	  -DMGARD_ENABLE_SERIAL=ON\
-	  -DCMAKE_BUILD_TYPE=Release\
-	  -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
+    -DCMAKE_PREFIX_PATH="${zstd_install_dir}/lib/cmake/zstd"\
+    -DMGARD_ENABLE_SERIAL=ON\
+    -DCMAKE_BUILD_TYPE=Release\
+    -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
 cmake --build ${mgard_x_build_dir} -j8
 cmake --install ${mgard_x_build_dir}

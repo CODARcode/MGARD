@@ -373,6 +373,41 @@ public:
   int ***auto_tuning_mr2, ***auto_tuning_ts2;
   int ***auto_tuning_mr3, ***auto_tuning_ts3;
   int arch, precision;
+
+  static int gpk_reo_3d[2][9];
+
+  static int gpk_rev_3d[2][9];
+
+  static int gpk_reo_nd[2][9];
+
+  static int gpk_rev_nd[2][9];
+
+  static int lpk1_3d[2][9];
+
+  static int lpk2_3d[2][9];
+
+  static int lpk3_3d[2][9];
+
+  static int lpk1_nd[2][9];
+
+  static int lpk2_nd[2][9];
+
+  static int lpk3_nd[2][9];
+
+  static int ipk1_3d[2][9];
+
+  static int ipk2_3d[2][9];
+
+  static int ipk3_3d[2][9];
+
+  static int ipk1_nd[2][9];
+
+  static int ipk2_nd[2][9];
+
+  static int ipk3_nd[2][9];
+
+  static int lwpk[2][9];
+  
 };
 
 
