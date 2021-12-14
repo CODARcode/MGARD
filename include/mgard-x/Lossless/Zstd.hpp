@@ -31,7 +31,7 @@ ZstdCompress(SubArray<1, C, DeviceType> &input_data, int compressionLevel) {
   uint8_t *out_data = NULL;//(uint8_t *)malloc(cBuffSize);
   MemoryManager<DeviceType>::MallocHost(out_data, estimated_out_size + sizeof(size_t), 0);
 
-  assert(cBuff);
+  // assert(cBuff);
 
   C * in_data = NULL;
   MemoryManager<DeviceType>::MallocHost(in_data, input_count, 0);

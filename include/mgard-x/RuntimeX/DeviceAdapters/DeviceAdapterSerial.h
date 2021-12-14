@@ -729,6 +729,8 @@ class DeviceRuntime<Serial> {
   static DeviceQueues<Serial> queues;
   static bool SyncAllKernelsAndCheckErrors;
   static DeviceSpecification<Serial> DeviceSpecs;
+  static bool TimingAllKernels;
+  static bool PrintKernelConfig;
 };
 
 template <>
@@ -826,10 +828,24 @@ public:
   DeviceAdapter(){};
 
   MGARDX_CONT
-  void Execute(TaskTypeType& task) {
-    // std::cout << "Executing: " << task.GetFunctorName() << "\n";
-    // Timer timer;
-    // timer.start();
+  ExecutionReturn Execute(TaskTypeType& task) {
+
+    if (DeviceRuntime<Serial>::PrintKernelConfig) {
+      std::cout << log::log_info << task.GetFunctorName() << ": <" <<
+                task.GetBlockDimX() << ", " <<
+                task.GetBlockDimY() << ", " <<
+                task.GetBlockDimZ() << "> <" <<
+                task.GetGridDimX() << ", " <<
+                task.GetGridDimY() << ", " <<
+                task.GetGridDimZ() << ">\n";
+    }
+
+
+    Timer timer;
+    if (DeviceRuntime<Serial>::TimingAllKernels || AutoTuner<Serial>::ProfileKernels) {
+      DeviceRuntime<Serial>::SyncDevice();
+      timer.start();
+    }
     // if constexpr evalute at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<Serial>, typename TaskTypeType::Functor>::value) {
       SerialKernel(task);
@@ -843,6 +859,18 @@ public:
     // timer.end();
     // timer.print(task.GetFunctorName());
     // timer.clear();
+    ExecutionReturn ret;
+    if (DeviceRuntime<Serial>::TimingAllKernels || AutoTuner<Serial>::ProfileKernels) {
+      DeviceRuntime<Serial>::SyncDevice();
+      timer.end();
+      if (DeviceRuntime<Serial>::TimingAllKernels) {
+        timer.print(task.GetFunctorName());
+      }
+      if (AutoTuner<Serial>::ProfileKernels) {
+        ret.execution_time = timer.get();
+      }
+    }
+    return ret;
   }
 };
 

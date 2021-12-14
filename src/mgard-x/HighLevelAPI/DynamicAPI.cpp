@@ -504,4 +504,68 @@ void decompress(const void *compressed_data, size_t compressed_size,
   }
 }
 
+void BeginAutoTuning(enum device_type dev_type) {
+
+  if (dev_type == device_type::Auto) {
+    dev_type = auto_detect_device();
+  }
+
+  if (dev_type == device_type::Serial) {
+    #ifdef MGARD_ENABLE_SERIAL
+    mgard_x::BeginAutoTuning<mgard_x::Serial>();
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with Serial backend.\n";
+    exit(-1);
+    #endif
+  } else if (dev_type == device_type::CUDA) {
+    #ifdef MGARD_ENABLE_CUDA
+    mgard_x::BeginAutoTuning<mgard_x::CUDA>();
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    exit(-1);
+    #endif
+  } else if (dev_type == device_type::HIP) {
+    #ifdef MGARD_ENABLE_HIP
+    mgard_x::BeginAutoTuning<mgard_x::HIP>();
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    exit(-1);
+    #endif
+  } else {
+    std::cout << log::log_err << "Unsupported backend.\n";
+  }
+}
+
+void EndAutoTuning(enum device_type dev_type) {
+
+  if (dev_type == device_type::Auto) {
+    dev_type = auto_detect_device();
+  }
+
+  if (dev_type == device_type::Serial) {
+    #ifdef MGARD_ENABLE_SERIAL
+    mgard_x::EndAutoTuning<mgard_x::Serial>();
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with Serial backend.\n";
+    exit(-1);
+    #endif
+  } else if (dev_type == device_type::CUDA) {
+    #ifdef MGARD_ENABLE_CUDA
+    mgard_x::EndAutoTuning<mgard_x::CUDA>();
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    exit(-1);
+    #endif
+  } else if (dev_type == device_type::HIP) {
+    #ifdef MGARD_ENABLE_HIP
+    mgard_x::EndAutoTuning<mgard_x::HIP>();
+    #else
+    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    exit(-1);
+    #endif
+  } else {
+    std::cout << log::log_err << "Unsupported backend.\n";
+  }
+}
+
 } // namespace mgard_x

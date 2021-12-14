@@ -41,17 +41,6 @@ static bool store = false;
 static bool verify = false;
 static bool debug_print = false;
 
-template<typename ... Args>
-std::string format( const std::string& format, Args ... args )
-{
-    int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-    if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
-    auto size = static_cast<size_t>( size_s );
-    auto buf = std::make_unique<char[]>( size );
-    std::snprintf( buf.get(), size, format.c_str(), args ... );
-    return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
-}
-
 template <typename SubArrayType> 
 void CompareSubarray4D(SubArrayType subArray1, SubArrayType subArray2) {
   if (SubArrayType::NumDims != 4) {std::cout << log::log_err << "CompareSubarray4D expects 4D subarray type.\n"; exit(-1); }

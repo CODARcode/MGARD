@@ -1336,7 +1336,7 @@ public:
   DeviceAdapter(){};
 
   MGARDX_CONT
-  void Execute(TaskType& task) {
+  ExecutionReturn Execute(TaskType& task) {
 
     dim3 threadsPerBlock(task.GetBlockDimX(),
                          task.GetBlockDimY(),
@@ -1360,8 +1360,8 @@ public:
     }
 
     Timer timer;
-    if (DeviceRuntime<CUDA>::TimingAllKernels) {
-      cudaDeviceSynchronize();
+    if (DeviceRuntime<CUDA>::TimingAllKernels || AutoTuner<CUDA>::ProfileKernels) {
+      DeviceRuntime<CUDA>::SyncDevice();
       timer.start();
     }
 
@@ -1385,12 +1385,19 @@ public:
       ErrorSyncCheck(cudaDeviceSynchronize(), task);
     }
 
-    if (DeviceRuntime<CUDA>::TimingAllKernels) {
-      cudaDeviceSynchronize();
+    ExecutionReturn ret;
+
+    if (DeviceRuntime<CUDA>::TimingAllKernels || AutoTuner<CUDA>::ProfileKernels) {
+      DeviceRuntime<CUDA>::SyncDevice();
       timer.end();
-      timer.print(task.GetFunctorName());
-      timer.clear();
+      if (DeviceRuntime<CUDA>::TimingAllKernels) {
+        timer.print(task.GetFunctorName());
+      }
+      if (AutoTuner<CUDA>::ProfileKernels) {
+        ret.execution_time = timer.get();
+      }
     }
+    return ret;
   }
 };
 

@@ -20,18 +20,19 @@
 #include "DataRefactoring/DataRefactoring.h"
 #include "Quantization/LinearQuantization.hpp"
 #include "Lossless/ParallelHuffman/Huffman.hpp"
+
+#ifdef MGARDX_COMPILE_CUDA
 #include "Lossless/LZ4.hpp"
 #include "Lossless/Cascaded.hpp"
+#endif
+
 #include "Lossless/Zstd.hpp"
-// #include "Lossless/Bitcomp.hpp"
 #include "Utilities/CheckEndianess.h"
 
 // for debugging
-#include "../cuda/CommonInternal.h"
-#include "../cuda/DataRefactoring.h"
-#include "../cuda/SubArray.h"
-
-#include <regex>
+// #include "../cuda/CommonInternal.h"
+// #include "../cuda/DataRefactoring.h"
+// #include "../cuda/SubArray.h"
 
 #define BLOCK_SIZE 64
 
@@ -71,7 +72,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
     SubArray<1, T, DeviceType> temp_subarray;
     Array<1, T, DeviceType> norm_array({1});
     SubArray<1, T, DeviceType> norm_subarray(norm_array);
-    if (MemoryManager<CUDA>::ReduceMemoryFootprint) { // zero copy
+    if (MemoryManager<DeviceType>::ReduceMemoryFootprint) { // zero copy
       temp_subarray = SubArray<1, T, DeviceType>({total_elems}, in_array.get_dv());
     } else { // need to linearized
       temp_array = Array<1, T, DeviceType>(
@@ -116,7 +117,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
     timer_each.clear();
   }
 
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   // Quantization
   bool prep_huffman = true; // always do Huffman
@@ -160,6 +161,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   m.huff_dict_size = handle.huff_dict_size;
   m.huff_block_size = handle.huff_block_size;
 
+
   m.dtype = std::is_same<T, double>::value ? data_type::Double : data_type::Float;
   m.etype = CheckEndianess();
   m.dstype = handle.dstype;
@@ -188,17 +190,21 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
   delete [] quantizers;
 
+  SubArray<1, LENGTH, DeviceType> outlier_idx_subarray(outlier_idx_array);
+  SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray(outliers_array);
+
   LevelwiseLinearQuantizeND<D, T, DeviceType>().Execute(
           SubArray<1, SIZE, DeviceType>(handle.ranges), handle.l_target, quantizers_subarray,
           SubArray<2, T, DeviceType>(handle.volumes_array), 
           m, SubArray<D, T, DeviceType>(in_array),
           SubArray<D, QUANTIZED_INT, DeviceType>(dqv_array), prep_huffman,
           SubArray<1, SIZE, DeviceType>(handle.shapes[0], true),
-          SubArray<1, LENGTH, DeviceType>(outlier_count_array), SubArray<1, LENGTH, DeviceType>(outlier_idx_array),
-          SubArray<1, QUANTIZED_INT, DeviceType>(outliers_array),
+          SubArray<1, LENGTH, DeviceType>(outlier_count_array), outlier_idx_subarray,
+          outliers_subarray,
           0);
   MemoryManager<DeviceType>::Copy1D(&outlier_count, outlier_count_array.get_dv(), 1, 0);
   DeviceRuntime<DeviceType>::SyncDevice();
+  m.huff_outlier_count = outlier_count;
   if (handle.timing) {
     timer_each.end();
     timer_each.print("Quantization");
@@ -227,7 +233,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
                                                   (QUANTIZED_UNSIGNED_INT*)dqv_array.get_dv());
   huffman_array =
   HuffmanCompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(
-      qv, handle.huff_block_size, handle.huff_dict_size);
+      qv, handle.huff_block_size, handle.huff_dict_size, outlier_count, outlier_idx_subarray, outliers_subarray);
   lossless_compressed_subarray = SubArray(huffman_array);
   
   if (handle.timing) {
@@ -246,6 +252,7 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
 
   // LZ4 compression
   if (handle.lossless == lossless_type::Huffman_LZ4) {
+#ifdef MGARDX_COMPILE_CUDA
     if (handle.timing) timer_each.start();
     SIZE lz4_before_size = lossless_compressed_subarray.getShape(0);
     lossless_compressed_array = 
@@ -261,7 +268,14 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
       (double)lz4_before_size / lz4_after_size << "\n"; 
       timer_each.clear();
     }
-  } else if (handle.lossless == lossless_type::Huffman_Zstd) {
+#else
+    std::cout << log::log_warn << "LZ4 only available in CUDA. Switched to Zstd.\n";
+    handle.lossless = lossless_type::Huffman_Zstd;
+    m.ltype = handle.lossless; // update matadata
+#endif
+  } 
+
+  if (handle.lossless == lossless_type::Huffman_Zstd) {
     if (handle.timing) timer_each.start();
     SIZE zstd_before_size = lossless_compressed_subarray.getShape(0);
     lossless_compressed_array = 
@@ -298,11 +312,11 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   SIZE outsize = 0;
   SIZE byte_offset = 0;
   advance_with_align<SERIALIZED_TYPE>(byte_offset, metadata_size);
-  advance_with_align<LENGTH>(byte_offset, 1);
-  advance_with_align<LENGTH>(byte_offset, outlier_count);
-  advance_with_align<QUANTIZED_INT>(byte_offset, outlier_count);
+  // advance_with_align<LENGTH>(byte_offset, 1);
+  // advance_with_align<LENGTH>(byte_offset, outlier_count);
+  // advance_with_align<QUANTIZED_INT>(byte_offset, outlier_count);
   advance_with_align<SIZE>(byte_offset, 1);
-  align_byte_offset<uint64_t>(byte_offset);
+  align_byte_offset<uint64_t>(byte_offset); // for zero copy when deserialize 
   advance_with_align<Byte>(byte_offset, lossless_compressed_subarray.getShape(0));
 
   outsize = byte_offset;
@@ -316,9 +330,9 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
   byte_offset = 0;
 
   SerializeArray<SERIALIZED_TYPE>(compressed_subarray, serizalied_meta, metadata_size, byte_offset);
-  SerializeArray<LENGTH>(compressed_subarray, outlier_count_array.get_dv(), 1, byte_offset);
-  SerializeArray<LENGTH>(compressed_subarray, outlier_idx_array.get_dv(), outlier_count, byte_offset);
-  SerializeArray<QUANTIZED_INT>(compressed_subarray, outliers_array.get_dv(), outlier_count, byte_offset);
+  // SerializeArray<LENGTH>(compressed_subarray, outlier_count_array.get_dv(), 1, byte_offset);
+  // SerializeArray<LENGTH>(compressed_subarray, outlier_idx_array.get_dv(), outlier_count, byte_offset);
+  // SerializeArray<QUANTIZED_INT>(compressed_subarray, outliers_array.get_dv(), outlier_count, byte_offset);
   SIZE lossless_size = lossless_compressed_subarray.getShape(0);
   SerializeArray<SIZE>(compressed_subarray, &lossless_size, 1, byte_offset);
 
@@ -400,9 +414,9 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
   SIZE * lossless_size_ptr = &lossless_size;
   Byte * lossless_data;
   
-  DeserializeArray<LENGTH>(compressed_subarray, outlier_count_ptr, 1, byte_offset, false);
-  DeserializeArray<LENGTH>(compressed_subarray, outlier_idx, outlier_count, byte_offset, true);
-  DeserializeArray<QUANTIZED_INT>(compressed_subarray, outliers, outlier_count, byte_offset, true);
+  // DeserializeArray<LENGTH>(compressed_subarray, outlier_count_ptr, 1, byte_offset, false);
+  // DeserializeArray<LENGTH>(compressed_subarray, outlier_idx, outlier_count, byte_offset, true);
+  // DeserializeArray<QUANTIZED_INT>(compressed_subarray, outliers, outlier_count, byte_offset, true);
   DeserializeArray<SIZE>(compressed_subarray, lossless_size_ptr, 1, byte_offset, false);
   align_byte_offset<uint64_t>(byte_offset);
   DeserializeArray<Byte>(compressed_subarray, lossless_data, lossless_size, byte_offset, true);
@@ -414,8 +428,10 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
 
   DeviceRuntime<DeviceType>::SyncDevice();
 
-  SubArray<1, LENGTH, DeviceType> outlier_idx_subarray({(SIZE)outlier_count}, outlier_idx);
-  SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray({(SIZE)outlier_count}, outliers);
+  // SubArray<1, LENGTH, DeviceType> outlier_idx_subarray({(SIZE)outlier_count}, outlier_idx);
+  // SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray({(SIZE)outlier_count}, outliers);
+  SubArray<1, LENGTH, DeviceType> outlier_idx_subarray;
+  SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray;
   SubArray<1, Byte, DeviceType> lossless_compressed_subarray({(SIZE) lossless_size}, lossless_data);
   
 
@@ -423,18 +439,27 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
   Array<1, Byte, DeviceType> huffman_array;
 
   if (handle.timing) timer_total.start();
+
   if (m.ltype == lossless_type::Huffman_LZ4) {
+#ifdef MGARDX_COMPILE_CUDA
     if (handle.timing) timer_each.start();
     lossless_compressed_array = LZ4Decompress<Byte, DeviceType>(lossless_compressed_subarray);
-    ZstdDecompress<Byte, DeviceType>(lossless_compressed_subarray);
-    lossless_compressed_subarray =  SubArray(lossless_compressed_array);
+    lossless_compressed_subarray = SubArray(lossless_compressed_array);
     DeviceRuntime<DeviceType>::SyncDevice();
     if (handle.timing) {
       timer_each.end();
       timer_each.print("LZ4 Decompress");
       timer_each.clear();
     }
-  } else if (m.ltype == lossless_type::Huffman_Zstd) {
+#else
+  std::cout << log::log_warn << "LZ4 only available in CUDA. Switched to Zstd.\n";
+  handle.lossless = lossless_type::Huffman_Zstd;
+  m.ltype = handle.lossless; // update matadata
+#endif
+  }
+
+
+  if (m.ltype == lossless_type::Huffman_Zstd) {
     if (handle.timing) timer_each.start();
     lossless_compressed_array = ZstdDecompress<Byte, DeviceType>(lossless_compressed_subarray);
     lossless_compressed_subarray =  SubArray(lossless_compressed_array);
@@ -452,9 +477,17 @@ Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
     // PrintSubarray("Huffman lossless_compressed_subarray", lossless_compressed_subarray);
   }
 
+
+
+  // SubArray<1, LENGTH, DeviceType> outlier_idx_subarray2({(SIZE)outlier_count}, outlier_idx);
+  // SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray2({(SIZE)outlier_count}, outliers);
+
   if (handle.timing) timer_each.start();
   Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> primary =
-  HuffmanDecompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(lossless_compressed_subarray);
+  HuffmanDecompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(lossless_compressed_subarray,
+                                                                  outlier_count,
+                                                                  outlier_idx_subarray,
+                                                                  outliers_subarray);
   DeviceRuntime<DeviceType>::SyncDevice();
   if (handle.timing) {
     timer_each.end();

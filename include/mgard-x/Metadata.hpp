@@ -36,8 +36,9 @@ struct Metadata {
   double s; // optional
   uint32_t l_target;
   enum lossless_type ltype;
-  uint32_t huff_dict_size; // optional (for GPU_Huffman)
-  uint32_t huff_block_size; // optional (for GPU_Huffman)
+  uint32_t huff_dict_size; // optional (for Huffman)
+  uint32_t huff_block_size; // optional (for Huffman)
+  uint64_t huff_outlier_count; // optional (for Huffman)
 
   // about data
   enum data_type dtype;
@@ -78,6 +79,7 @@ struct Metadata {
         ltype == lossless_type::Huffman_Zstd) {
       total_size += sizeof(huff_dict_size); // dict size
       total_size += sizeof(huff_block_size); // block size
+      total_size += sizeof(huff_outlier_count);
     }
 
     // about data
@@ -145,6 +147,7 @@ struct Metadata {
         ltype == lossless_type::Huffman_Zstd) {
       Serialize(huff_dict_size, p);
       Serialize(huff_block_size, p);
+      Serialize(huff_outlier_count, p);
     }
 
     Serialize(dtype, p);
@@ -190,6 +193,7 @@ struct Metadata {
         ltype == lossless_type::Huffman_Zstd) {
       Deserialize(huff_dict_size, p);
       Deserialize(huff_block_size, p);
+      Deserialize(huff_outlier_count, p);
     }
 
     Deserialize(dtype, p);

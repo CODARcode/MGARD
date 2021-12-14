@@ -94,9 +94,15 @@ if (MGARD_ENABLE_SERIAL OR
   add_subdirectory (src/mgard-x)
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)
+  find_package(zstd REQUIRED)
   add_executable(mgard-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mgard-x.cpp)
   target_link_libraries(mgard-x mgard-library  ${CMAKE_DL_LIBS})
   target_include_directories(mgard-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+
+  add_executable(mgard-x-autotuner ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mgard-x-autotuner.cpp)
+  target_link_libraries(mgard-x-autotuner mgard-library  ${CMAKE_DL_LIBS})
+  target_include_directories(mgard-x-autotuner PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
   add_executable(MgardSerialExec ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardSerialExec.cpp)
@@ -109,8 +115,6 @@ if(MGARD_ENABLE_SERIAL)
 	set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
   SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_SERIAL -w")
-  
-
 endif()
 
 if(MGARD_ENABLE_CUDA)
@@ -131,15 +135,12 @@ if(MGARD_ENABLE_CUDA)
     target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
-
-
   SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_CUDA")
   SET(CMAKE_CUDA_FLAGS  "${CMAKE_CUDA_FLAGS} -DMGARD_ENABLE_CUDA")
+  SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
   
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)
-
-  SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
 
   if(MGARD_ENABLE_CUDA_FMA)
     SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_X_FMA")
@@ -177,7 +178,8 @@ find_package(ZLIB REQUIRED)
 
 find_package(PkgConfig)
 
-pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
+# pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
+find_package(zstd)
 
 find_package(MOAB)
 #We run into this when building MOAB 5.3.0 with `./configure && make`.
@@ -374,7 +376,15 @@ if(MOAB_FOUND)
 endif()
 if(ZSTD_FOUND)
   target_compile_definitions(mgard-library PUBLIC MGARD_ZSTD)
-  target_link_libraries(mgard-library PUBLIC PkgConfig::ZSTD)
+  target_link_libraries(mgard-library PUBLIC zstd::libzstd_shared)
+  # target_link_libraries(mgard-library PUBLIC PkgConfig::ZSTD)
+endif()
+
+if (MGARD_ENABLE_SERIAL OR 
+    MGARD_ENABLE_CUDA   OR
+    MGARD_ENABLE_HIP    OR
+    MGARD_ENABLE_KOKKOS)
+  target_link_libraries(mgard-library PUBLIC zstd::libzstd_shared)
 endif()
 
 if(MGARD_ENABLE_CUDA)
