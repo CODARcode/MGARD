@@ -1114,7 +1114,12 @@ public:
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_cc[arch][prec][range_l];
+    // int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_cc[arch][prec][range_l];
+    int config = AutoTuner<DeviceType>::autoTuningTable.gpk_reo_3d[prec][range_l];
+
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+
     #define GPK(CONFIG)                                    \
     if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=GPK_CONFIG[D-1][CONFIG][0];\
@@ -1130,7 +1135,13 @@ public:
                                 wcf, wrf, wrc,\
                                 wrcf, queue_idx); \
       DeviceAdapter<TaskType, DeviceType> adapter; \
-      adapter.Execute(task);\
+      ExecutionReturn ret = adapter.Execute(task);\
+      if (AutoTuner<DeviceType>::ProfileKernels) { \
+        if (min_time > ret.execution_time) { \
+          min_time = ret.execution_time; \
+          min_config = CONFIG; \
+        } \
+      } \
     }
 
     GPK(0)
@@ -1141,6 +1152,10 @@ public:
     GPK(5)
     GPK(6)
     #undef GPK
+
+    if (AutoTuner<DeviceType>::ProfileKernels) {
+      FillAutoTunerTable<DeviceType>("gpk_reo_3d", prec, range_l, min_config);
+    }
   }
 };
 
@@ -2228,7 +2243,12 @@ public:
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_cc[arch][prec][range_l];
+    // int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_cc[arch][prec][range_l];
+    int config = AutoTuner<DeviceType>::autoTuningTable.gpk_rev_3d[prec][range_l];
+
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+
     #define GPK(CONFIG)                                    \
     if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=GPK_CONFIG[D-1][CONFIG][0];\
@@ -2247,7 +2267,13 @@ public:
                                 nvr, nvc, nvf,\
                                 queue_idx); \
       DeviceAdapter<TaskType, DeviceType> adapter; \
-      adapter.Execute(task);\
+      ExecutionReturn ret = adapter.Execute(task);\
+      if (AutoTuner<DeviceType>::ProfileKernels) { \
+        if (min_time > ret.execution_time) { \
+          min_time = ret.execution_time; \
+          min_config = CONFIG; \
+        } \
+      } \
     }
 
     GPK(0)
@@ -2258,6 +2284,10 @@ public:
     GPK(5)
     GPK(6)
     #undef GPK
+
+    if (AutoTuner<DeviceType>::ProfileKernels) {
+      FillAutoTunerTable<DeviceType>("gpk_rev_3d", prec, range_l, min_config);
+    }
   }
 };
 

@@ -1,0 +1,19 @@
+if(MGARD_ENABLE_SERIAL)
+  list(APPEND MGARD_X_SRC  
+      ${CMAKE_CURRENT_SOURCE_DIR}/AutoTunerSerial.cpp)
+endif()
+if(MGARD_ENABLE_CUDA)
+  list(APPEND MGARD_X_SRC  
+      ${CMAKE_CURRENT_SOURCE_DIR}/AutoTunerCuda.cu)
+endif()
+if(MGARD_ENABLE_HIP)
+  list(APPEND MGARD_X_SRC  
+      ${CMAKE_CURRENT_SOURCE_DIR}/AutoTunerHip.cpp)
+endif()
+if(MGARD_ENABLE_KOKKOS)
+  list(APPEND MGARD_X_SRC  
+      ${CMAKE_CURRENT_SOURCE_DIR}/AutoTunerKokkos.cpp)
+endif()
+
+
+set(MGARD_X_SRC ${MGARD_X_SRC} PARENT_SCOPE)

@@ -22,6 +22,10 @@
 
 namespace mgard_x {
 
+struct ExecutionReturn {
+  double execution_time = 0.0;
+};
+
 
 template <typename DeviceType> 
 struct SyncBlock {
@@ -162,7 +166,7 @@ public:
   MGARDX_CONT
   DeviceAdapter(){};
   MGARDX_CONT
-  void Execute() {};
+  ExecutionReturn Execute() {};
 };
 
 

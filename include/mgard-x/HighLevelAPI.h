@@ -44,6 +44,13 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
                 Config config,
                 bool output_pre_allocated);
 
+template<typename DeviceType>
+void BeginAutoTuning();
+
+template<typename DeviceType>
+void EndAutoTuning();
+
+
 }
 
 #endif

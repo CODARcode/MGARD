@@ -83,7 +83,10 @@ void CompareSubArrays(SubArray<1, T, DeviceType> array1, SubArray<1, T, DeviceTy
 template <typename Q, typename H, typename DeviceType>
 Array<1, Byte, DeviceType>
 HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
-                int chunk_size, int dict_size) {
+                int chunk_size, int dict_size,
+                LENGTH outlier_count,
+                SubArray<1, LENGTH, DeviceType> outlier_idx_subarray,
+                SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray) {
 
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
@@ -208,8 +211,13 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
   advance_with_align<uint8_t>(byte_offset, (sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size));
   advance_with_align<size_t>(byte_offset, 1);
   advance_with_align<H>(byte_offset, ddata_size);
-  Array<1, Byte, DeviceType> compressed_data({(SIZE)(byte_offset)});
+  //outliter
+  advance_with_align<LENGTH>(byte_offset, 1);
+  advance_with_align<LENGTH>(byte_offset, outlier_count);
+  advance_with_align<QUANTIZED_INT>(byte_offset, outlier_count);
 
+
+  Array<1, Byte, DeviceType> compressed_data({(SIZE)(byte_offset)});
   SubArray compressed_data_subarray(compressed_data);
 
   byte_offset = 0;
@@ -232,6 +240,12 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
     MemoryManager<DeviceType>::Copy1D((H*)compressed_data_subarray(byte_offset + dH_uInt_entry[i] * sizeof(H)),
                                       huff + i * chunk_size, dH_uInt_meta[i], 0);
   }
+  advance_with_align<H>(byte_offset, ddata_size);
+
+  // outlier
+  SerializeArray<LENGTH>(compressed_data_subarray, &outlier_count, 1, byte_offset);
+  SerializeArray<LENGTH>(compressed_data_subarray, outlier_idx_subarray.data(), outlier_count, byte_offset);
+  SerializeArray<QUANTIZED_INT>(compressed_data_subarray, outlier_subarray.data(), outlier_count, byte_offset);
 
   // { // debug
   //   Byte * huffdata = compressed_data_subarray((IDX)byte_offset);
@@ -257,7 +271,10 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
 
 template <typename Q, typename H, typename DeviceType>
 Array<1, Q, DeviceType>
-HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data) {
+HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
+                  LENGTH &outlier_count, 
+                  SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
+                  SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray) {
 
   size_t primary_count;
   int dict_size;
@@ -267,6 +284,9 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data) {
   size_t decodebook_size;
   uint8_t *decodebook;
   size_t ddata_size;
+  // LENGTH outlier_count;
+  LENGTH * outlier_idx;
+  QUANTIZED_INT * outlier;
 
   size_t * primary_count_ptr = &primary_count;
   int * dict_size_ptr = &dict_size;
@@ -274,6 +294,7 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data) {
   size_t * huffmeta_size_ptr = &huffmeta_size;
   size_t * decodebook_size_ptr = &decodebook_size;
   size_t * ddata_size_ptr = &ddata_size;
+  LENGTH * outlier_count_ptr = &outlier_count;
 
   H*ddata;
   
@@ -286,14 +307,24 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data) {
   DeserializeArray<size_t>(compressed_data, decodebook_size_ptr, 1, byte_offset, false);
   DeserializeArray<uint8_t>(compressed_data, decodebook, decodebook_size, byte_offset, true);
   DeserializeArray<size_t>(compressed_data, ddata_size_ptr, 1, byte_offset, false);
+  // align_byte_offset<H>(byte_offset);
+  // SubArray<1, H, DeviceType> ddata_subarray({(SIZE)ddata_size}, (H*)compressed_data((IDX)byte_offset));
+  // byte_offset += ddata_size * sizeof(H);
+  DeserializeArray<H>(compressed_data, ddata, ddata_size, byte_offset, true);
 
-  Array<1, Q, DeviceType> dprimary({(SIZE)primary_count});
-  align_byte_offset<H>(byte_offset);
-  int nchunk = (primary_count - 1) / chunk_size + 1;
-  SubArray<1, H, DeviceType> ddata_subarray({(SIZE)ddata_size}, (H*)compressed_data((IDX)byte_offset));
+  //outlier
+  DeserializeArray<LENGTH>(compressed_data, outlier_count_ptr, 1, byte_offset, false);
+  DeserializeArray<LENGTH>(compressed_data, outlier_idx, outlier_count, byte_offset, true);
+  DeserializeArray<QUANTIZED_INT>(compressed_data, outlier, outlier_count, byte_offset, true);
+  outlier_idx_subarray = SubArray<1, LENGTH, DeviceType>({(SIZE)outlier_count}, outlier_idx);
+  outlier_subarray = SubArray<1, QUANTIZED_INT, DeviceType>({(SIZE)outlier_count}, outlier);
+
+  SubArray<1, H, DeviceType> ddata_subarray({(SIZE)ddata_size}, ddata);
   SubArray<1, size_t, DeviceType> huffmeta_subarray({(SIZE)huffmeta_size}, huffmeta);
+  Array<1, Q, DeviceType> dprimary({(SIZE)primary_count});
   SubArray<1, Q, DeviceType> dprimary_subarray(dprimary);
   SubArray<1, uint8_t, DeviceType> decodebook_subarray({(SIZE)decodebook_size}, decodebook);
+  int nchunk = (primary_count - 1) / chunk_size + 1;
   Decode<Q, H, DeviceType>().Execute(ddata_subarray,
                                                        huffmeta_subarray,
                                                        dprimary_subarray,

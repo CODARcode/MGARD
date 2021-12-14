@@ -39,5 +39,7 @@ KERNELS(5, double)
 KERNELS(5, float)
 #undef KERNELS
 
+template void BeginAutoTuning<CUDA>();
+template void EndAutoTuning<CUDA>();
 } // namespace mgard_x
 #undef MGARDX_COMPILE_CUDA

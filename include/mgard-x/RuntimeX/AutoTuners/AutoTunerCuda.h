@@ -10,15 +10,12 @@
 
 namespace mgard_x {
 
-template <>
-class KernelConfigs<CUDA> {
-public:
-  MGARDX_CONT
-  KernelConfigs(){};
-
-
-
-};
+// template <>
+// class KernelConfigs<CUDA> {
+// public:
+//   MGARDX_CONT
+//   KernelConfigs(){};
+// };
 
 template <>
 class AutoTuningTable<CUDA> {
@@ -374,10 +371,40 @@ public:
   int ***auto_tuning_mr3, ***auto_tuning_ts3;
   int arch, precision;
 
-  int lpk[2][9] = {
-                    {0, 0, 0, 0, 0, 0, 0, 0, 0},
-                    {0, 0, 0, 0, 9, 0, 0, 0, 0}
-                  };
+  static int gpk_reo_3d[2][9];
+
+  static int gpk_rev_3d[2][9];
+
+  static int gpk_reo_nd[2][9];
+
+  static int gpk_rev_nd[2][9];
+
+  static int lpk1_3d[2][9];
+
+  static int lpk2_3d[2][9];
+
+  static int lpk3_3d[2][9];
+
+  static int lpk1_nd[2][9];
+
+  static int lpk2_nd[2][9];
+
+  static int lpk3_nd[2][9];
+
+  static int ipk1_3d[2][9];
+
+  static int ipk2_3d[2][9];
+
+  static int ipk3_3d[2][9];
+
+  static int ipk1_nd[2][9];
+
+  static int ipk2_nd[2][9];
+
+  static int ipk3_nd[2][9];
+
+  static int lwpk[2][9];
+
 };
 
 

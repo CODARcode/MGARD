@@ -585,6 +585,8 @@ class DeviceRuntime<HIP> {
   static DeviceQueues<HIP> queues;
   static bool SyncAllKernelsAndCheckErrors;
   static DeviceSpecification<HIP> DeviceSpecs;
+  static bool TimingAllKernels;
+  static bool PrintKernelConfig;
 };
 
 
@@ -1351,7 +1353,7 @@ public:
   DeviceAdapter(){};
 
   MGARDX_CONT
-  void Execute(TaskType& task) {
+  ExecutionReturn Execute(TaskType& task) {
     dim3 threadsPerBlock(task.GetBlockDimX(),
                          task.GetBlockDimY(),
                          task.GetBlockDimZ());
@@ -1363,13 +1365,26 @@ public:
     //                 blockPerGrid.x, blockPerGrid.y, blockPerGrid.z, sm_size);
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(task.GetQueueIdx());
 
+    if (DeviceRuntime<HIP>::PrintKernelConfig) {
+      std::cout << log::log_info << task.GetFunctorName() << ": <" <<
+                task.GetBlockDimX() << ", " <<
+                task.GetBlockDimY() << ", " <<
+                task.GetBlockDimZ() << "> <" <<
+                task.GetGridDimX() << ", " <<
+                task.GetGridDimY() << ", " <<
+                task.GetGridDimZ() << ">\n";
+    }
+
+    Timer timer;
+    if (DeviceRuntime<HIP>::TimingAllKernels || AutoTuner<HIP>::ProfileKernels) {
+      DeviceRuntime<HIP>::SyncDevice();
+      timer.start();
+    }
+
     // if constexpr evalute at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<HIP>, typename TaskType::Functor>::value) {
-    // if constexpr (TaskType::Functor::ExecType == SequentialFunctor) {
       Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
-
     } else if constexpr (std::is_base_of<IterFunctor<HIP>, typename TaskType::Functor>::value) {
-    // } else if constexpr (TaskType::Functor::ExecType == IterativeFunctor) {
       IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>, typename TaskType::Functor>::value) {
       void * Args[] = { (void*)&task };
@@ -1385,6 +1400,19 @@ public:
     if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       ErrorSyncCheck(hipDeviceSynchronize(), task);
     }
+
+    ExecutionReturn ret;
+    if (DeviceRuntime<HIP>::TimingAllKernels || AutoTuner<HIP>::ProfileKernels) {
+      DeviceRuntime<HIP>::SyncDevice();
+      timer.end();
+      if (DeviceRuntime<HIP>::TimingAllKernels) {
+        timer.print(task.GetFunctorName());
+      }
+      if (AutoTuner<HIP>::ProfileKernels) {
+        ret.execution_time = timer.get();
+      }
+    }
+    return ret;
   }
 };
 

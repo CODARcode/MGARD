@@ -39,5 +39,8 @@ KERNELS(5, double)
 KERNELS(5, float)
 #undef KERNELS
 
+template void BeginAutoTuning<HIP>();
+template void EndAutoTuning<HIP>();
+
 } // namespace mgard_x
 #undef MGARDX_COMPILE_HIP

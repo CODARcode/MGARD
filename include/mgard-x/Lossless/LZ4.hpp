@@ -1,6 +1,8 @@
 #ifndef MGARD_X_LZ4_TEMPLATE_HPP
 #define MGARD_X_LZ4_TEMPLATE_HPP
 
+#ifdef MGARDX_COMPILE_CUDA
+
 #include "nvcomp.hpp"
 #include "nvcomp/lz4.hpp"
 
@@ -69,6 +71,6 @@ LZ4Decompress(SubArray<1, Byte, DeviceType> &input_data) {
 
 }
 
-
+#endif
 #endif
 

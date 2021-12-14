@@ -427,7 +427,12 @@ class Ipk1Reo3D: public AutoTuner<DeviceType> {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts1[arch][prec][range_l];
+    // int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts1[arch][prec][range_l];
+    int config = AutoTuner<DeviceType>::autoTuningTable.ipk1_3d[prec][range_l];
+
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+
     #define IPK(CONFIG)\
     if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=IPK_CONFIG[D-1][CONFIG][0];\
@@ -442,7 +447,13 @@ class Ipk1Reo3D: public AutoTuner<DeviceType> {
                               dist_f, v,\
                               queue_idx); \
       DeviceAdapter<TaskType, DeviceType> adapter; \
-      adapter.Execute(task);\
+      ExecutionReturn ret = adapter.Execute(task);\
+      if (AutoTuner<DeviceType>::ProfileKernels) { \
+        if (min_time > ret.execution_time) { \
+          min_time = ret.execution_time; \
+          min_config = CONFIG; \
+        } \
+      } \
     }
 
     IPK(0)
@@ -453,6 +464,10 @@ class Ipk1Reo3D: public AutoTuner<DeviceType> {
     IPK(5)
     IPK(6)
     #undef IPK
+
+    if (AutoTuner<DeviceType>::ProfileKernels) {
+      FillAutoTunerTable<DeviceType>("ipk1_3d", prec, range_l, min_config);
+    }
   }
 };
 
@@ -850,7 +865,12 @@ class Ipk2Reo3D: public AutoTuner<DeviceType> {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts2[arch][prec][range_l];
+    // int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts2[arch][prec][range_l];
+    int config = AutoTuner<DeviceType>::autoTuningTable.ipk2_3d[prec][range_l];
+
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+
     #define IPK(CONFIG)\
     if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=IPK_CONFIG[D-1][CONFIG][0];\
@@ -865,7 +885,13 @@ class Ipk2Reo3D: public AutoTuner<DeviceType> {
                               dist_c, v,\
                               queue_idx); \
       DeviceAdapter<TaskType, DeviceType> adapter; \
-      adapter.Execute(task);\
+      ExecutionReturn ret = adapter.Execute(task);\
+      if (AutoTuner<DeviceType>::ProfileKernels) { \
+        if (min_time > ret.execution_time) { \
+          min_time = ret.execution_time; \
+          min_config = CONFIG; \
+        } \
+      } \
     }
 
     IPK(0)
@@ -876,6 +902,11 @@ class Ipk2Reo3D: public AutoTuner<DeviceType> {
     IPK(5)
     IPK(6)
     #undef IPK
+
+    if (AutoTuner<DeviceType>::ProfileKernels) {
+      FillAutoTunerTable<DeviceType>("ipk2_3d", prec, range_l, min_config);
+    }
+
   }
 };
 
@@ -1273,7 +1304,12 @@ class Ipk3Reo3D: public AutoTuner<DeviceType> {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts3[arch][prec][range_l];
+    // int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts3[arch][prec][range_l];
+    int config = AutoTuner<DeviceType>::autoTuningTable.ipk3_3d[prec][range_l];
+
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+
     #define IPK(CONFIG)\
     if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
       const int R=IPK_CONFIG[D-1][CONFIG][0];\
@@ -1288,7 +1324,13 @@ class Ipk3Reo3D: public AutoTuner<DeviceType> {
                               dist_r, v,\
                               queue_idx); \
       DeviceAdapter<TaskType, DeviceType> adapter; \
-      adapter.Execute(task);\
+      ExecutionReturn ret = adapter.Execute(task);\
+      if (AutoTuner<DeviceType>::ProfileKernels) { \
+        if (min_time > ret.execution_time) { \
+          min_time = ret.execution_time; \
+          min_config = CONFIG; \
+        } \
+      } \
     }
 
     IPK(0)
@@ -1299,6 +1341,11 @@ class Ipk3Reo3D: public AutoTuner<DeviceType> {
     IPK(5)
     IPK(6)
     #undef IPK
+
+    if (AutoTuner<DeviceType>::ProfileKernels) {
+      FillAutoTunerTable<DeviceType>("ipk3_3d", prec, range_l, min_config);
+    }
+
   }
 };
 
