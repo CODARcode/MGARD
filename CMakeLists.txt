@@ -195,17 +195,42 @@ set(
 	src/format.cpp
 )
 
+set(MAXIMUM_DIMENSION 16 CACHE STRING "Maximum supported dimension for self-describing decompression.")
+
+find_program(PYTHON3 NAMES "python3" "python")
+if(NOT PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
+	execute_process(
+		COMMAND "${PYTHON3}" "--version"
+		OUTPUT_VARIABLE PYTHON3_VERSION_OUTPUT
+		ERROR_VARIABLE PYTHON3_VERSION_OUTPUT
+	)
+	string(
+		REGEX REPLACE
+		"^Python ([0-9]+)\.([0-9]+)\.([0-9]+)\n$"
+		"\\1"
+		PYTHON3_VERSION_MAJOR
+		"${PYTHON3_VERSION_OUTPUT}"
+	)
+	if(PYTHON3_VERSION_MAJOR LESS 3)
+		set(PYTHON3 "PYTHON3-NOTFOUND")
+	endif()
+endif()
+
 set(MGARD_FILE_FORMAT_PROTO "src/mgard.proto")
 set(MGARD_FILE_FORMAT_INCLUDEDIR "${CMAKE_CURRENT_BINARY_DIR}/include")
+set(MGARD_FILE_FORMAT_SRCDIR "${CMAKE_CURRENT_BINARY_DIR}/src")
 set(MGARD_FILE_FORMAT_DIR "${MGARD_FILE_FORMAT_INCLUDEDIR}/proto")
 set(MGARD_FILE_FORMAT_HPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.h")
 set(MGARD_FILE_FORMAT_CPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.cc")
+set(MGARD_DECOMPOSE_INTERNAL_CPP "${MGARD_FILE_FORMAT_SRCDIR}/compress_internal.cpp")
 
 pkg_search_module(protobuf IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
 find_program(PROTOC NAMES "protoc")
-if(protobuf_FOUND AND NOT PROTOC STREQUAL "PROTOC-NOTFOUND")
+
+if(protobuf_FOUND AND NOT PROTOC STREQUAL "PROTOC-NOTFOUND" AND NOT PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
 	set(USING_PROTOBUF TRUE)
 	file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_DIR}")
+	file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_SRCDIR}")
 	get_filename_component(PROTO_PATH "${MGARD_FILE_FORMAT_PROTO}" DIRECTORY)
 	add_custom_command(
 		OUTPUT
@@ -220,8 +245,17 @@ if(protobuf_FOUND AND NOT PROTOC STREQUAL "PROTOC-NOTFOUND")
 		DEPENDS "${MGARD_FILE_FORMAT_PROTO}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 	)
+	add_custom_command(
+		OUTPUT
+		"${MGARD_DECOMPOSE_INTERNAL_CPP}"
+		COMMAND "${PYTHON3}"
+		ARGS
+		"${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dimension_switch.py"
+		"${MAXIMUM_DIMENSION}"
+		"${MGARD_DECOMPOSE_INTERNAL_CPP}"
+	)
 
-	list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}")
+	list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}" "${MGARD_DECOMPOSE_INTERNAL_CPP}")
 else()
 	set(USING_PROTOBUF FALSE)
 	#TODO: Update message to something else.
@@ -413,25 +447,6 @@ set(
 if(MGARD_ENABLE_DOCS)
 	find_program(DOXYGEN NAMES "doxygen")
 	find_program(SED NAMES "sed")
-	find_program(PYTHON3 NAMES "python3" "python")
-
-	if(NOT PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
-		execute_process(
-			COMMAND "${PYTHON3}" "--version"
-			OUTPUT_VARIABLE PYTHON3_VERSION_OUTPUT
-			ERROR_VARIABLE PYTHON3_VERSION_OUTPUT
-		)
-		string(
-			REGEX REPLACE
-			"^Python ([0-9]+)\.([0-9]+)\.([0-9]+)\n$"
-			"\\1"
-			PYTHON3_VERSION_MAJOR
-			"${PYTHON3_VERSION_OUTPUT}"
-		)
-		if(PYTHON3_VERSION_MAJOR LESS 3)
-			set(PYTHON3 "PYTHON3-NOTFOUND")
-		endif()
-	endif()
 
 	if(SED STREQUAL "SED-NOTFOUND")
 		message(STATUS "Will not build documentation (sed not found).")
