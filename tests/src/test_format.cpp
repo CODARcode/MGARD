@@ -92,4 +92,16 @@ TEST_CASE("setting version numbers", "[format]") {
   check_version_number(header.file_format_version(), MGARD_FILE_VERSION_MAJOR,
                        MGARD_FILE_VERSION_MINOR, MGARD_FILE_VERSION_PATCH);
 }
+
+TEST_CASE("advancing buffer windows", "[format]") {
+  const std::size_t N = 10;
+  unsigned char const *const p = new unsigned char[N];
+  mgard::BufferWindow window(p, N);
+  REQUIRE(window.current == p);
+  REQUIRE(window.end == p + N);
+  window.current = window.next(3);
+  window.current = window.next(4);
+  window.current = window.next(1);
+  REQUIRE_THROWS(window.next(3));
+}
 #endif

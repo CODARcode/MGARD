@@ -1,5 +1,7 @@
 #include "format.hpp"
 
+#include <stdexcept>
+
 #include "MGARDConfig.hpp"
 
 namespace mgard {
@@ -56,6 +58,17 @@ void populate_version_numbers(pb::Header &header) {
   set_version_number(header.mutable_file_format_version(),
                      MGARD_FILE_VERSION_MAJOR, MGARD_FILE_VERSION_MINOR,
                      MGARD_FILE_VERSION_PATCH);
+}
+
+BufferWindow::BufferWindow(void const *const data, const std::size_t size)
+    : current(static_cast<unsigned char const *>(data)), end(current + size) {}
+
+unsigned char const *BufferWindow::next(const std::size_t size) const {
+  unsigned char const *const q = current + size;
+  if (q > end) {
+    throw std::runtime_error("next read will go past buffer endpoint");
+  }
+  return q;
 }
 #endif
 

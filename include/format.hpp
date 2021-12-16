@@ -55,6 +55,30 @@ template <typename Real> pb::Dataset::Type type_to_dataset_type();
 //!
 //!\param Header to be populated.
 void populate_version_numbers(pb::Header &header);
+
+//! Window of a buffer being parsed.
+//!
+//! The left endpoint of the window is advanced as we parse the buffer. The
+//! right endpoint of the window is fixed.
+struct BufferWindow {
+  //! Constructor.
+  //!
+  //!\param begin Beginning of the buffer.
+  //!\param size Size of the buffer.
+  BufferWindow(void const *const data, const std::size_t size);
+
+  //! Return the right endpoint of the next read, checking bounds.
+  //!
+  //!\param size Size in bytes of next read.
+  //!\return Updated left endpoint after next read.
+  unsigned char const *next(const std::size_t size) const;
+
+  //! Left endpoint of the window.
+  unsigned char const *current;
+
+  //! Right endpoint of the window.
+  unsigned char const *const end;
+};
 #endif
 
 } // namespace mgard
