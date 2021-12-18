@@ -151,13 +151,13 @@ HuffmanCompress(SubArray<1, Q, DeviceType>& dprimary_subarray,
     // PrintSubarray("Histogram::freq_subarray", freq_subarray);
   // }
 
-  if (std::is_same<DeviceType, Serial>::value) {
-    DumpSubArray("dprimary_subarray", dprimary_subarray);
-  }
+  // if (std::is_same<DeviceType, Serial>::value) {
+  //   DumpSubArray("dprimary_subarray", dprimary_subarray);
+  // }
 
-  if (std::is_same<DeviceType, HIP>::value) {
-    LoadSubArray("dprimary_subarray", dprimary_subarray);
-  }
+  // if (std::is_same<DeviceType, HIP>::value) {
+  //   LoadSubArray("dprimary_subarray", dprimary_subarray);
+  // }
 
   auto type_bw = sizeof(H) * 8;
   size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size;

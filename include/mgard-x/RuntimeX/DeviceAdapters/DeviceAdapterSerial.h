@@ -567,12 +567,14 @@ class DeviceSpecification<Serial> {
     NumSMs = new int[NumDevices];
     ArchitectureGeneration = new int[NumDevices];
     MaxNumThreadsPerSM = new int[NumDevices];
+    MaxNumThreadsPerTB = new int[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       MaxSharedMemorySize[d] = 1e6;
       WarpSize[d] = 32;
       NumSMs[d] = 80;
       MaxNumThreadsPerSM[d] = 1024;
+      MaxNumThreadsPerTB[d] = 1024;
       ArchitectureGeneration[d] = 1;
     }
   }
@@ -607,6 +609,11 @@ class DeviceSpecification<Serial> {
     return MaxNumThreadsPerSM[dev_id];
   }
 
+  MGARDX_CONT int
+  GetMaxNumThreadsPerTB(int dev_id) {
+    return MaxNumThreadsPerTB[dev_id];
+  }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete [] MaxSharedMemorySize;
@@ -621,6 +628,7 @@ class DeviceSpecification<Serial> {
   int* NumSMs;
   int* ArchitectureGeneration;
   int* MaxNumThreadsPerSM;
+  int* MaxNumThreadsPerTB;
 };
 
 template <>
@@ -706,6 +714,11 @@ class DeviceRuntime<Serial> {
   MGARDX_CONT static int
   GetMaxNumThreadsPerSM() {
     return DeviceSpecs.GetMaxNumThreadsPerSM(curr_dev_id);
+  }
+
+  MGARDX_CONT static int
+  GetMaxNumThreadsPerTB() {
+    return DeviceSpecs.GetMaxNumThreadsPerTB(curr_dev_id);
   }
 
   template <typename FunctorType>

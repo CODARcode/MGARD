@@ -97,7 +97,7 @@ void GetCodebook(int dict_size,
   // int *copyIndex = copyIndex_array.get_dv(); //nullptr;
   // cudaMemset(CL, 0,         nz_dict_size * sizeof(int)          );
 
-  SIZE mblocks = (DeviceRuntime<DeviceType>::GetMaxNumThreadsPerSM() / 
+  SIZE mblocks = (DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB() / 
             DeviceRuntime<DeviceType>::GetWarpSize()) * 
             DeviceRuntime<DeviceType>::GetNumSMs();
   uint32_t *diagonal_path_intersections;
@@ -162,21 +162,21 @@ void GetCodebook(int dict_size,
 
   // PrintSubarray("_d_entry_subarray", _d_entry_subarray);
 
-  if (std::is_same<DeviceType, Serial>::value) {
-    DumpSubArray("_nz_d_codebook_subarray", _nz_d_codebook_subarray);
-  }
+  // if (std::is_same<DeviceType, Serial>::value) {
+  //   DumpSubArray("_nz_d_codebook_subarray", _nz_d_codebook_subarray);
+  // }
 
-  if (std::is_same<DeviceType, HIP>::value) {
-    LoadSubArray("_nz_d_codebook_subarray", _nz_d_codebook_subarray);
-  }
+  // if (std::is_same<DeviceType, HIP>::value) {
+  //   LoadSubArray("_nz_d_codebook_subarray", _nz_d_codebook_subarray);
+  // }
 
-  if (std::is_same<DeviceType, Serial>::value) {
-    DumpSubArray("_d_first_subarray", _d_first_subarray);
-  }
+  // if (std::is_same<DeviceType, Serial>::value) {
+  //   DumpSubArray("_d_first_subarray", _d_first_subarray);
+  // }
 
-  if (std::is_same<DeviceType, HIP>::value) {
-    LoadSubArray("_d_first_subarray", _d_first_subarray);
-  }
+  // if (std::is_same<DeviceType, HIP>::value) {
+  //   LoadSubArray("_d_first_subarray", _d_first_subarray);
+  // }
 
   // if (std::is_same<DeviceType, Serial>::value) {
   //   DumpSubArray("_d_entry_subarray", _d_entry_subarray);

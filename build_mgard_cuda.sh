@@ -56,9 +56,9 @@ cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DMGARD_ENABLE_SERIAL=ON\
     -DMGARD_ENABLE_CUDA=ON\
     -DMGARD_ENABLE_CUDA_FMA=ON\
-    -DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=OFF\
-    -DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=ON\
+    -DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=ON\
+    -DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=OFF\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
-cmake --build ${mgard_x_build_dir} -j8
+cmake --build ${mgard_x_build_dir} -j4
 cmake --install ${mgard_x_build_dir}

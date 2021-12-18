@@ -66,10 +66,10 @@ e1=4.5e-3
 e2=4e-2
 e3=4e-1
 e4=5e0
-# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -v # actual error 1e-4
-# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -v # actual error 1e-3
-# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -v # actual error 1e-2
-# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -v # actual error 1e-1
+$MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -v # actual error 1e-4
+$MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -v # actual error 1e-3
+$MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -v # actual error 1e-2
+$MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -v # actual error 1e-1
 
 
 e1=1e-3

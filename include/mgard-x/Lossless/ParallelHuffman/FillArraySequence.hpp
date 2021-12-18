@@ -67,12 +67,11 @@ public:
     size_t sm_size = functor.shared_memory_size();
     tbz = 1;
     tby = 1;
-    tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerSM();
+    tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB();
     gridz = 1;
     gridy = 1;
     gridx = (dict_size / tbx) + 1;
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
-    // PrintSubarray("shape", shape);
+    // printf("tbx: %u, gridx: %u\n", tbx, gridx);
     return Task(functor, gridz, gridy, gridx, 
                 tbz, tby, tbx, sm_size, queue_idx, "FillArraySequence"); 
   }

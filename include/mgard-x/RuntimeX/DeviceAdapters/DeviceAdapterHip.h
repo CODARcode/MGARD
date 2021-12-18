@@ -302,7 +302,6 @@ MGARDX_KERL void HuffmanCWCustomizedKernel(Task task) {
   while (task.GetFunctor().LoopCondition1()) {
     task.GetFunctor().Operation4();
     SyncGrid<HIP>::Sync();
-    __nanosleep(1e10);
     task.GetFunctor().Operation5();
     SyncGrid<HIP>::Sync();
     task.GetFunctor().Operation6();
@@ -332,6 +331,7 @@ class DeviceSpecification<HIP> {
     NumSMs = new int[NumDevices];
     ArchitectureGeneration = new int[NumDevices];
     MaxNumThreadsPerSM = new int[NumDevices];
+    MaxNumThreadsPerTB = new int[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(hipSetDevice(d));
@@ -341,6 +341,7 @@ class DeviceSpecification<HIP> {
       hipDeviceGetAttribute(&WarpSize[d], hipDeviceAttributeWarpSize, d);
       hipDeviceGetAttribute(&NumSMs[d], hipDeviceAttributeMultiprocessorCount, d);
       hipDeviceGetAttribute(&MaxNumThreadsPerSM[d], hipDeviceAttributeMaxThreadsPerMultiProcessor, d);
+      hipDeviceGetAttribute(&MaxNumThreadsPerTB[d], hipDeviceAttributeMaxThreadsPerBlock , d);
       // printf("d = %d, MaxNumThreadsPerSM: %d\n", d, MaxNumThreadsPerSM[d]);
       hipDeviceProp_t prop;
       hipGetDeviceProperties(&prop, d);
@@ -350,7 +351,7 @@ class DeviceSpecification<HIP> {
       } else if (prop.major == 7 && (prop.minor == 2 || prop.minor == 5)) {
         ArchitectureGeneration[d] = 2;
       }
-      MaxNumThreadsPerSM[d] = 1024;
+      MaxNumThreadsPerTB[d] = 32;
       WarpSize[d] = 32;
     }
   }
@@ -385,6 +386,11 @@ class DeviceSpecification<HIP> {
     return MaxNumThreadsPerSM[dev_id];
   }
 
+  MGARDX_CONT int
+  GetMaxNumThreadsPerTB(int dev_id) {
+    return MaxNumThreadsPerTB[dev_id];
+  }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete [] MaxSharedMemorySize;
@@ -399,6 +405,7 @@ class DeviceSpecification<HIP> {
   int* NumSMs;
   int* ArchitectureGeneration;
   int* MaxNumThreadsPerSM;
+  int* MaxNumThreadsPerTB;
 };
 
 
@@ -514,6 +521,11 @@ class DeviceRuntime<HIP> {
   MGARDX_CONT static int
   GetMaxNumThreadsPerSM() {
     return DeviceSpecs.GetMaxNumThreadsPerSM(curr_dev_id);
+  }
+
+  MGARDX_CONT static int
+  GetMaxNumThreadsPerTB() {
+    return DeviceSpecs.GetMaxNumThreadsPerTB(curr_dev_id);
   }
 
   template <typename FunctorType>

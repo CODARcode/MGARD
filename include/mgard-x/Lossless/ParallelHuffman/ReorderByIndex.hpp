@@ -84,7 +84,7 @@ public:
     size_t sm_size = functor.shared_memory_size();
     tbz = 1;
     tby = 1;
-    tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerSM();
+    tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB();
     gridz = 1;
     gridy = 1;
     gridx = (size / tbx) + 1;
