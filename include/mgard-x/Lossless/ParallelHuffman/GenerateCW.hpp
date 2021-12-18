@@ -81,20 +81,12 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
   Operation4() {
     // CDPI update
     if (i < size - 1 && *CL((IDX)i + 1) > CCL) {
-      if (CDPI == 740) {
-        printf("Atomic: %d\n", i);
-      }
       Atomic<DeviceType>::Min(&newCDPI, (int)i);
     }
   }
 
   MGARDX_EXEC void
   Operation5() {
-    if (i == 0) {
-      if (CDPI == 740) {
-        printf("newCDPI (%d) \n", newCDPI);
-      }
-    }
     // Last element to update
     updateEnd = (newCDPI >= size - 1) ? type_bw : *CL((IDX)newCDPI + 1);
     // Fill base
@@ -125,13 +117,11 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     // Jieyang: not useful?
     if (thread > CCL && thread < updateEnd) {
       *entry((IDX)i) = curEntryVal + numCCL;
-      // printf("entry[%d]: %llu\n", i, *entry((IDX)i));
     }
     // Add number of entries to next CCL
     if (thread == 0) {
       if (updateEnd < type_bw) {
         *entry((IDX)updateEnd) = curEntryVal + numCCL;
-        // printf("entry[%d]: %llu = %llu + %llu\n", updateEnd, *entry((IDX)updateEnd), curEntryVal, numCCL);
       }
     }
   }
@@ -142,7 +132,7 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     if (thread == CCL) {
       // Flip least significant CL[CDPI] bits
       *first((IDX)CCL) = *CW((IDX)CDPI) ^ (((H)1 << (H)*CL((IDX)CDPI)) - 1);
-      // printf("first[%d]: %llu, CW[%d]]: %llu, CL[%d]\n", CCL, *first((IDX)CCL), CDPI, *CW((IDX)CDPI), CDPI, *CL((IDX)CDPI) );
+      // printf("first[%d]: %llu\n", CCL, first[CCL]);
     }
     if (thread > CCL && thread < updateEnd) {
       *first((IDX)i) = std::numeric_limits<H>::max();
@@ -237,7 +227,7 @@ public:
     size_t sm_size = Functor.shared_memory_size();
     tbz = 1;
     tby = 1;
-    tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerSM();
+    tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB();
 
     int nz_nblocks = (dict_size / tbx) + 1;
     int cg_blocks_sm = DeviceRuntime<DeviceType>::GetOccupancyMaxActiveBlocksPerSM(Functor, tbx, sm_size);

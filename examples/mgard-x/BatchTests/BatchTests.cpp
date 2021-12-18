@@ -401,14 +401,14 @@ int main(int argc, char *argv[]) {
 
   std::vector<std::vector<mgard_x::SIZE>> shapes;
 
-  shapes.push_back({5});
-  shapes.push_back({129});
-  shapes.push_back({100});
-  shapes.push_back({400});
-  shapes.push_back({1000});
+  // shapes.push_back({5});
+  // shapes.push_back({129});
+  // shapes.push_back({100});
+  // shapes.push_back({400});
+  // shapes.push_back({1000});
 
-  shapes.push_back({5, 5});
-  shapes.push_back({129, 129});
+  // shapes.push_back({5, 5});
+  // shapes.push_back({129, 129});
   shapes.push_back({100, 100});
   shapes.push_back({1000, 1000});
   shapes.push_back({100, 1000});
@@ -466,61 +466,63 @@ int main(int argc, char *argv[]) {
       for (mgard_x::DIM ebt = 0; ebt < ebtypes.size(); ebt++) {
         for (mgard_x::DIM s = 0; s < ssd.size(); s++) {
           for (mgard_x::DIM tol = 0; tol < tols.size(); tol++) {
-            struct Result result_cpu, result_gpu;
-            if (dtypes[dt] == SINGLE) {
-              size_t original_size = 1;
-              for (mgard_x::DIM i = 0; i < shapes[sp].size(); i++)
-                original_size *= shapes[sp][i];
-              float *original_data =
-                  (float *)malloc(original_size * sizeof(float));
-              readfile(input_file, original_size * sizeof(float), false,
-                       original_data);
-              result_cpu =
-                  test<float>(shapes[sp].size(), original_data, shapes[sp], device_type1,
-                              tols[tol], ssf[s], ebtypes[ebt]);
-              result_gpu =
-                  test<float>(shapes[sp].size(), original_data, shapes[sp], device_type2,
-                              tols[tol], ssf[s], ebtypes[ebt]);
-              delete[] original_data;
-            } else {
-              size_t original_size = 1;
-              for (mgard_x::DIM i = 0; i < shapes[sp].size(); i++)
-                original_size *= shapes[sp][i];
-              double *original_data =
-                  (double *)malloc(original_size * sizeof(double));
-              readfile(input_file, original_size * sizeof(double), false,
-                       original_data);
-              result_cpu =
-                  test<double>(shapes[sp].size(), original_data, shapes[sp],
-                               device_type1, told[tol], ssd[s], ebtypes[ebt]);
-              result_gpu =
-                  test<double>(shapes[sp].size(), original_data, shapes[sp],
-                               device_type2, told[tol], ssd[s], ebtypes[ebt]);
-              delete[] original_data;
+            for (int repeat = 0; repeat < 1; repeat++) {
+              struct Result result_cpu, result_gpu;
+              if (dtypes[dt] == SINGLE) {
+                size_t original_size = 1;
+                for (mgard_x::DIM i = 0; i < shapes[sp].size(); i++)
+                  original_size *= shapes[sp][i];
+                float *original_data =
+                    (float *)malloc(original_size * sizeof(float));
+                readfile(input_file, original_size * sizeof(float), false,
+                         original_data);
+                result_cpu =
+                    test<float>(shapes[sp].size(), original_data, shapes[sp], device_type1,
+                                tols[tol], ssf[s], ebtypes[ebt]);
+                result_gpu =
+                    test<float>(shapes[sp].size(), original_data, shapes[sp], device_type2,
+                                tols[tol], ssf[s], ebtypes[ebt]);
+                delete[] original_data;
+              } else {
+                size_t original_size = 1;
+                for (mgard_x::DIM i = 0; i < shapes[sp].size(); i++)
+                  original_size *= shapes[sp][i];
+                double *original_data =
+                    (double *)malloc(original_size * sizeof(double));
+                readfile(input_file, original_size * sizeof(double), false,
+                         original_data);
+                result_cpu =
+                    test<double>(shapes[sp].size(), original_data, shapes[sp],
+                                 device_type1, told[tol], ssd[s], ebtypes[ebt]);
+                result_gpu =
+                    test<double>(shapes[sp].size(), original_data, shapes[sp],
+                                 device_type2, told[tol], ssd[s], ebtypes[ebt]);
+                delete[] original_data;
+              }
+
+              print_config(dtypes[dt], shapes[sp], tols[tol], ssd[s],
+                           ebtypes[ebt]);
+
+              std::cout << std::setw(12) << std::setprecision(4)
+                        << std::scientific << result_cpu.actual_error;
+              std::cout << std::setw(10) << std::setprecision(2)
+                        << std::scientific << result_cpu.cr;
+
+              // std::cout << std::endl;
+              // print_config(input_file, dtypes[dt], shapes[sp], GPU, tols[tol],
+              // ssd[s], ebtypes[ebt]);
+              // if (std::abs(result_cpu.actual_error-result_gpu.actual_error) >
+              // 1e-4) std::cout << ANSI_RED;
+              if (std::abs(log10(result_cpu.actual_error) -
+                           log10(result_gpu.actual_error)) > 1)
+                std::cout << ANSI_RED;
+              std::cout << std::setw(12) << std::setprecision(4)
+                        << std::scientific << result_gpu.actual_error;
+              std::cout << ANSI_RESET;
+              std::cout << std::setw(10) << std::setprecision(2)
+                        << std::scientific << result_gpu.cr;
+              std::cout << std::endl;
             }
-
-            print_config(dtypes[dt], shapes[sp], tols[tol], ssd[s],
-                         ebtypes[ebt]);
-
-            std::cout << std::setw(12) << std::setprecision(4)
-                      << std::scientific << result_cpu.actual_error;
-            std::cout << std::setw(10) << std::setprecision(2)
-                      << std::scientific << result_cpu.cr;
-
-            // std::cout << std::endl;
-            // print_config(input_file, dtypes[dt], shapes[sp], GPU, tols[tol],
-            // ssd[s], ebtypes[ebt]);
-            // if (std::abs(result_cpu.actual_error-result_gpu.actual_error) >
-            // 1e-4) std::cout << ANSI_RED;
-            if (std::abs(log10(result_cpu.actual_error) -
-                         log10(result_gpu.actual_error)) > 1)
-              std::cout << ANSI_RED;
-            std::cout << std::setw(12) << std::setprecision(4)
-                      << std::scientific << result_gpu.actual_error;
-            std::cout << ANSI_RESET;
-            std::cout << std::setw(10) << std::setprecision(2)
-                      << std::scientific << result_gpu.cr;
-            std::cout << std::endl;
           }
         }
       }

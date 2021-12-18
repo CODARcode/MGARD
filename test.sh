@@ -1,8 +1,13 @@
 #!/bin/bash
+#BSUB -P CSC331
+#BSUB -W 00:10
+#BSUB -nnodes 1
+#BSUB -J test
+#BSUB -o test.%J
+#BSUB -e test.%J
+
 set -e
 set -x
-
-
 
 make -j 8
 make -s install > /dev/null
@@ -18,6 +23,7 @@ NVPROF=nvprof
 MgardSerialExec="./bin/MgardSerialExec"
 MgardCudaExec="./bin/MgardCudaExec"
 MgardXExec="./bin/mgard-x"
+MgardXExecAutoTuner="./bin/mgard-x-autotuner"
 TestRefactor="./bin/test_refactor"
 TestReconstructor="./bin/test_reconstructor"
 
@@ -26,6 +32,14 @@ TestReconstructorOrg="/home/jieyang/dev/MDR/build/test/test_reconstructor"
 
 CPU=0
 GPU=1
+
+
+
+# jsrun -n 1 -a 1 -c 1 -g 1 -r 1 $MgardXExecAutoTuner -d cuda
+# make -j 8
+# make -s install > /dev/null
+
+
 
 
 # test_group_l_inf d rel $1
@@ -38,8 +52,8 @@ DATA=$HOME/dev/data/512x512x512/velocity_x.dat
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-4 -s 0 -l 2 -v -d $1
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 129 129 129 -m abs -e 1e6 -s inf -l 2 -v -d $1
 # rocprof --hip-trace 
-$MgardXExec -z -i $DATA -c random.mgard -t s -n 2 1000 1000 -m rel -e 1e-2 -s inf -l 0 -v -d serial 
-$MgardXExec -z -i $DATA -c random.mgard -t s -n 2 1000 1000 -m rel -e 1e-2 -s inf -l 0 -v -d cuda 
+# $MgardXExec -z -i $DATA -c random.mgard -t s -n 2 1000 1000 -m rel -e 1e-2 -s inf -l 0 -v -d serial 
+# $MgardXExec -z -i $DATA -c random.mgard -t s -n 2 100 100 -m rel -e 1e-2 -s inf -l 0 -v -d hip 
 
 # diff hip.out serial.out > diff.out
 # $MgardXExec -z -i random -c random.mgard -t d -n 3 312 16395 39 -m abs -e 1e-4 -s 0 -l 0 -v -d $1
@@ -105,9 +119,9 @@ $MgardXExec -z -i $DATA -c random.mgard -t s -n 2 1000 1000 -m rel -e 1e-2 -s in
 # DATA=/home/jieyang/dev/data/enst.dat
 # 
 
-# cd ../examples/mgard-x/BatchTests && rm -rf ../examples/gpu-cuda/BatchTests/build && ./build_script.sh && ./build/BatchTests $DATA $1 $2
+cd ../examples/mgard-x/BatchTests && rm -rf ../examples/gpu-cuda/BatchTests/build && ./build_script.sh && ./build/BatchTests $DATA $1 $2
 
-# cd ../examples/mgard-x/Evaluation && sh Run_Script.sh $1
+# cd ../examples/mgard-x/Evaluation && sh Run_Script.sh cuda
 
 # cmake --build ../../vtk-m/build -j
 # cmake --build ../examples/gpu-cuda/FlyingEdges/build 

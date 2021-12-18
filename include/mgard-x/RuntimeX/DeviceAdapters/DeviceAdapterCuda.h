@@ -330,6 +330,7 @@ class DeviceSpecification<CUDA> {
     NumSMs = new int[NumDevices];
     ArchitectureGeneration = new int[NumDevices];
     MaxNumThreadsPerSM = new int[NumDevices];
+    MaxNumThreadsPerTB = new int[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(cudaSetDevice(d));
@@ -341,6 +342,7 @@ class DeviceSpecification<CUDA> {
       cudaDeviceGetAttribute(&WarpSize[d], cudaDevAttrWarpSize, d);
       cudaDeviceGetAttribute(&NumSMs[d], cudaDevAttrMultiProcessorCount, d);
       cudaDeviceGetAttribute(&MaxNumThreadsPerSM[d], cudaDevAttrMaxThreadsPerMultiProcessor, d);
+      cudaDeviceGetAttribute(&MaxNumThreadsPerTB[d], cudaDevAttrMaxThreadsPerBlock, d);
 
       cudaDeviceProp prop;
       cudaGetDeviceProperties(&prop, d);
@@ -383,6 +385,11 @@ class DeviceSpecification<CUDA> {
     return MaxNumThreadsPerSM[dev_id];
   }
 
+  MGARDX_CONT int
+  GetMaxNumThreadsPerTB(int dev_id) {
+    return MaxNumThreadsPerTB[dev_id];
+  }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete [] MaxSharedMemorySize;
@@ -397,6 +404,7 @@ class DeviceSpecification<CUDA> {
   int* NumSMs;
   int* ArchitectureGeneration;
   int* MaxNumThreadsPerSM;
+  int* MaxNumThreadsPerTB;
 };
 
 
@@ -512,6 +520,11 @@ class DeviceRuntime<CUDA> {
   MGARDX_CONT static int
   GetMaxNumThreadsPerSM() {
     return DeviceSpecs.GetMaxNumThreadsPerSM(curr_dev_id);
+  }
+
+  MGARDX_CONT static int
+  GetMaxNumThreadsPerTB() {
+    return DeviceSpecs.GetMaxNumThreadsPerTB(curr_dev_id);
   }
 
   template <typename FunctorType>
