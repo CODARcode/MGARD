@@ -114,14 +114,14 @@ Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, A
 
 
   // debug
-  Array<D, T, Serial> in_array_serial({1000, 1000});
-  SubArray in_subarray_serial(in_array_serial);
-  MemoryManager<DeviceType>::CopyND(in_subarray_serial.data(), in_subarray_serial.getLd(0),
-                                    in_subarray.data(), in_subarray.getLd(0),
-                                    1000, 1000, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-  Handle<D, T, Serial> handle_serial({1000, 1000});
-  decompose<D, T, Serial>(handle_serial, in_subarray_serial, handle.l_target, 0);
+  // Array<D, T, Serial> in_array_serial({1000, 1000});
+  // SubArray in_subarray_serial(in_array_serial);
+  // MemoryManager<DeviceType>::CopyND(in_subarray_serial.data(), in_subarray_serial.getLd(0),
+  //                                   in_subarray.data(), in_subarray.getLd(0),
+  //                                   1000, 1000, 0);
+  // DeviceRuntime<DeviceType>::SyncQueue(0);
+  // Handle<D, T, Serial> handle_serial({1000, 1000});
+  // decompose<D, T, Serial>(handle_serial, in_subarray_serial, handle.l_target, 0);
 
   if (handle.timing) {
     DeviceRuntime<DeviceType>::SyncQueue(0);

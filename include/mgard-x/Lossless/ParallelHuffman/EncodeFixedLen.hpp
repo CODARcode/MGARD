@@ -80,7 +80,7 @@ public:
     size_t sm_size = functor.shared_memory_size();
     tbz = 1;
     tby = 1;
-    tbx = tBLK_ENCODE;//DeviceRuntime<DeviceType>::GetMaxNumThreadsPerSM();
+    tbx = tBLK_ENCODE;
     gridz = 1;
     gridy = 1;
     gridx = (data_len - 1) / tbx + 1;
