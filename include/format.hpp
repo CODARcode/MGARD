@@ -13,6 +13,9 @@
 
 namespace mgard {
 
+//! Magic bytes for MGARD file format ('MGARD' in ASCII).
+inline constexpr std::array<char, 5> SIGNATURE{0x4d, 0x47, 0x41, 0x52, 0x44};
+
 // Size in bytes of the serialized header size.
 inline constexpr std::size_t HEADER_SIZE_SIZE = 8;
 
