@@ -8,6 +8,8 @@
 #include <array>
 
 #ifdef MGARD_PROTOBUF
+#include <vector>
+
 #include "proto/mgard.pb.h"
 #endif
 
@@ -52,7 +54,14 @@ serialize_header_crc32(std::uint_least64_t crc32);
 
 #ifdef MGARD_PROTOBUF
 //! Return the `Dataset::Type` value corresponding to a floating point type.
+//!
+//!\return `Dataset::Type` corresponding to `Real`.
 template <typename Real> pb::Dataset::Type type_to_dataset_type();
+
+//! Return the size in bytes of a quantization type.
+//!
+//!\param type Quantization type.
+std::size_t quantization_type_size(const pb::Quantization::Type type);
 
 //! Populate a header with the MGARD and file format version numbers.
 //!
@@ -82,6 +91,152 @@ struct BufferWindow {
   //! Right endpoint of the window.
   unsigned char const *const end;
 };
+
+//! Check that a self-describing buffer starts with the expected magic number.
+//!
+//! The buffer pointer will be advanced past the magic number.
+//!
+//!\param window Window into the self-describing buffer. The current position
+//! should be the start of the magic number.
+void check_magic_number(BufferWindow &window);
+
+//! Read the size of the header from a self-describing buffer.
+//!
+//! The buffer pointer will be advanced past the header size.
+//!
+//!\param window Window into the self-describing buffer. The current position
+//! should be the start of the header size.
+//!\return Size of the header in bytes.
+std::uint_least64_t read_header_size(BufferWindow &window);
+
+//! Read the header CRC32 from a self-describing buffer.
+//!
+//! The buffer pointer will be advanced past the header CRC32.
+//!
+//!\param window Window into the self-describing buffer. The current position
+//! should be the start of the header CRC32.
+//!\return Expected header CRC32.
+std::uint_least32_t read_header_crc32(BufferWindow &window);
+
+//! Check that the header of a self-describing buffer has the expected CRC32.
+//!
+//! The buffer pointer will not be advanced.
+//!
+//!\param window Window into the self-describing buffer. The current position
+//! should be the start of the header.
+//!\param header_size Size in bytes of the header.
+//!\param header_crc32 Expected CRC32 of the header.
+void check_header_crc32(const BufferWindow &window,
+                        const std::uint_least64_t header_size,
+                        const std::uint_least32_t header_crc32);
+
+//! Parse the header of a self-describing buffer.
+//!
+//! The buffer pointer will be advanced past the header.
+//!
+//!\param window Window into the self-describing buffer. The current position
+//! should be the start of the header.
+//!\param header_size Size in bytes of the header.
+//!\return Header of the self-describing buffer.
+pb::Header read_header(BufferWindow &window,
+                       const std::uint_least64_t header_size);
+
+//! Check that a dataset was compressed with a compatible version of MGARD.
+//!
+//!\param header Header of the compressed dataset.
+void check_mgard_version(const pb::Header &header);
+
+//! Check that a header was generated with a compatible version of MGARD.
+//!
+//!\param header Header of a self-describing buffer.
+void check_file_format_version(const pb::Header &header);
+
+//! Topology of a Cartesian grid.
+//!
+//! This struct summarizes a valid `pb::Domain` topology.
+struct CartesianGridTopology {
+  //! Dimension of the grid.
+  std::size_t dimension;
+
+  //! Shape of the grid.
+  std::vector<std::size_t> shape;
+};
+
+//! Read and check the topology of a domain.
+//!
+//!\param domain Domain field of a self-describing header.
+//!\return Topology of the domain.
+CartesianGridTopology read_topology(const pb::Domain &domain);
+
+//! Geometry of a Cartesian grid.
+//!
+//! This struct summarizes a valid `pb::Domain` geometry.
+struct CartesianGridGeometry {
+  //! Whether the nodes are uniformly spaced on `[0, 1]` in each dimension.
+  bool uniform;
+
+  //! Coordinates of the nodes if not `uniform`.
+  std::vector<std::vector<double>> coordinates;
+};
+
+//! Read and check the geometry of a domain.
+//!
+//!\param domain Domain field of a self-describing header.
+//!\param topology Topology of the domain.
+//!\return Geometry of the domain.
+CartesianGridGeometry read_geometry(const pb::Domain &domain,
+                                    const CartesianGridTopology &topology);
+
+//! Read and check the dataset type of a self-describing buffer.
+//!
+//!\param header Header of the self-describing buffer.
+//!\return Dataset type of the self-describing buffer.
+pb::Dataset::Type read_dataset_type(const pb::Header &header);
+
+//! Parameters dictating how the compression error will be controlled.
+//
+//! This struct summarizes a valid `pb::ErrorControl` field.
+struct ErrorControlParameters {
+  //! Smoothness parameter.
+  double s;
+
+  //! Error tolerance.
+  double tolerance;
+};
+
+//! Read and check the error control parameters of a self-describing buffer.
+//!
+//!\param header Header of the self-describing buffer.
+//!\return Error control parameters of the self-describing buffer.
+ErrorControlParameters read_error_control(const pb::Header &header);
+
+//! Check the decomposition parameters of a self-describing buffer.
+//!
+//!\param header Header of the self-describing buffer.
+void check_decomposition_parameters(const pb::Header &header);
+
+//! Parameters dictating how the coefficients will be quantized.
+//!
+//! This struct summarizes a valid `pb::Quantization` field.
+struct QuantizationParameters {
+  //! Type used for quantizer output.
+  pb::Quantization::Type type;
+
+  //! Whether the quantizer output type is big endian.
+  bool big_endian;
+};
+
+//! Read and check the quantization parameters of a self-describing buffer.
+//!
+//!\param header Header of the self-describing buffer.
+//!\return Quantization parameters of the self-describing buffer.
+QuantizationParameters read_quantization(const pb::Header &header);
+
+//! Read and check the encoding compressor of a self-describing buffer.
+//!
+//!\param header Header of the self-describing buffer.
+//!\return Encoding compressor of the self-describing buffer.
+pb::Encoding::Compressor read_encoding_compressor(const pb::Header &header);
 #endif
 
 } // namespace mgard
