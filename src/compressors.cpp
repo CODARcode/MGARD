@@ -276,8 +276,9 @@ void huffman_decoding(long int *quantized_data,
 
 } // namespace
 
-void decompress_memory_huffman(unsigned char *src, const std::size_t srcLen,
-                               long int *dst, const std::size_t dstLen) {
+void decompress_memory_huffman(unsigned char *const src,
+                               const std::size_t srcLen, long int *const dst,
+                               const std::size_t dstLen) {
   unsigned char *out_data_hit = 0;
   size_t out_data_hit_size;
   unsigned char *out_data_miss = 0;
@@ -427,7 +428,7 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
 
 } // namespace
 
-std::vector<unsigned char> compress_memory_huffman(long int const *const src,
+std::vector<unsigned char> compress_memory_huffman(long int *const src,
                                                    const std::size_t srcLen) {
   unsigned char *out_data_hit = 0;
   size_t out_data_hit_size;
@@ -438,9 +439,9 @@ std::vector<unsigned char> compress_memory_huffman(long int const *const src,
 #ifdef MGARD_TIMING
   auto huff_time1 = std::chrono::high_resolution_clock::now();
 #endif
-  huffman_encoding(const_cast<long int *>(src), srcLen, &out_data_hit,
-                   &out_data_hit_size, &out_data_miss, &out_data_miss_size,
-                   &out_tree, &out_tree_size);
+  huffman_encoding(src, srcLen, &out_data_hit, &out_data_hit_size,
+                   &out_data_miss, &out_data_miss_size, &out_tree,
+                   &out_tree_size);
 #ifdef MGARD_TIMING
   auto huff_time2 = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -544,7 +545,7 @@ std::vector<unsigned char> compress_memory_huffman(long int const *const src,
     CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err));                   \
   } while (0)
 
-std::vector<std::uint8_t> compress_memory_zstd(void *const src,
+std::vector<std::uint8_t> compress_memory_zstd(void const *const src,
                                                const std::size_t srcLen) {
   const size_t cBuffSize = ZSTD_compressBound(srcLen);
   std::vector<std::uint8_t> out_data(cBuffSize);
@@ -556,7 +557,7 @@ std::vector<std::uint8_t> compress_memory_zstd(void *const src,
 }
 #endif
 
-std::vector<std::uint8_t> compress_memory_z(void *const src,
+std::vector<std::uint8_t> compress_memory_z(void z_const *const src,
                                             const std::size_t srcLen) {
   std::vector<std::uint8_t> buffer;
 
@@ -566,7 +567,7 @@ std::vector<std::uint8_t> compress_memory_z(void *const src,
   z_stream strm;
   strm.zalloc = Z_NULL;
   strm.zfree = Z_NULL;
-  strm.next_in = static_cast<std::uint8_t *>(src);
+  strm.next_in = static_cast<Bytef z_const *>(src);
   strm.avail_in = srcLen;
   strm.next_out = temp_buffer;
   strm.avail_out = BUFSIZE;
@@ -601,12 +602,12 @@ std::vector<std::uint8_t> compress_memory_z(void *const src,
   return buffer;
 }
 
-void decompress_memory_z(void *const src, const std::size_t srcLen,
+void decompress_memory_z(void z_const *const src, const std::size_t srcLen,
                          unsigned char *const dst, const std::size_t dstLen) {
   z_stream strm = {};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;
-  strm.next_in = static_cast<Bytef *>(src);
+  strm.next_in = static_cast<Bytef z_const *>(src);
   strm.next_out = reinterpret_cast<Bytef *>(dst);
 
   strm.zalloc = Z_NULL;
@@ -625,7 +626,7 @@ void decompress_memory_z(void *const src, const std::size_t srcLen,
 }
 
 #ifdef MGARD_ZSTD
-void decompress_memory_zstd(void *const src, const std::size_t srcLen,
+void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
                             unsigned char *const dst,
                             const std::size_t dstLen) {
   size_t const dSize = ZSTD_decompress(dst, dstLen, src, srcLen);
@@ -653,8 +654,7 @@ void decompress(void const *const src, const std::size_t srcLen,
     }
     break;
   case pb::Encoding::CPU_HUFFMAN_ZLIB:
-    // TODO: Try to avoid casting to `void *`.
-    decompress_memory_z(const_cast<void *>(src), srcLen,
+    decompress_memory_z(const_cast<void z_const *>(src), srcLen,
                         static_cast<unsigned char *>(dst), dstLen);
     break;
   case pb::Encoding::CPU_HUFFMAN_ZSTD:
