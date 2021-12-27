@@ -211,18 +211,28 @@ template <std::size_t N, typename Real>
 CompressedDataset<N, Real>
 compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
          const Real s, const Real tolerance) {
+#ifdef MGARD_PROTOBUF
+  pb::Header header;
+  populate_version_numbers(header);
+  hierarchy.populate(header);
+#endif
+
   const std::size_t ndof = hierarchy.ndof();
   // TODO: Can be smarter about copies later.
   Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
   shuffle(hierarchy, v, u);
+#ifdef MGARD_PROTOBUF
+  decompose(hierarchy, u, header);
+#else
   decompose(hierarchy, u);
+#endif
 
   using Qntzr = TensorMultilevelCoefficientQuantizer<N, Real, DEFAULT_INT_T>;
   const Qntzr quantizer(hierarchy, s, tolerance);
   using It = typename Qntzr::iterator;
   const RangeSlice<It> quantized_range = quantizer(u);
-  const std::vector<DEFAULT_INT_T> quantized(quantized_range.begin(),
-                                             quantized_range.end());
+  std::vector<DEFAULT_INT_T> quantized(quantized_range.begin(),
+                                       quantized_range.end());
   std::free(u);
 #ifndef MGARD_ZSTD
   std::vector<std::uint8_t> z_output =
