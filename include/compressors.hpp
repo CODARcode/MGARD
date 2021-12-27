@@ -8,6 +8,12 @@
 
 #include <vector>
 
+#ifdef MGARD_PROTOBUF
+#include <memory>
+
+#include "proto/mgard.pb.h"
+#endif
+
 namespace mgard {
 
 //! Compress an array using a Huffman tree.
@@ -63,6 +69,21 @@ void compress_memory_z(void *const in_data, const std::size_t in_data_size,
 //!\param dstLen Size in bytes of the decompressed array.
 void decompress_memory_z(void *const src, const std::size_t srcLen,
                          unsigned char *const dst, const std::size_t dstLen);
+
+#ifdef MGARD_PROTOBUF
+//! Decompress an array of quantized multilevel coefficients.
+//!
+//! `dst` must have the correct alignment for the quantization type.
+//!
+//!\param[in] src Compressed array of quantized multilevel coefficients.
+//!\param[in] srcLen Size in bytes of the compressed array.
+//!\param[out] dst Decompressed array.
+//!\param[in] dstLen Size in bytes of the decompressed array.
+//!\param[in] header Header parsed from the original self-describing buffer.
+void decompress(void const *const src, const std::size_t srcLen,
+                void *const dst, const std::size_t dstLen,
+                const pb::Header &header);
+#endif
 
 } // namespace mgard
 

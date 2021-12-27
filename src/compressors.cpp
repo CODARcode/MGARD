@@ -20,7 +20,14 @@
 #include <zstd.h>
 #endif
 
+#ifdef MGARD_PROTOBUF
+#include <stdexcept>
+
+#include "format.hpp"
+#endif
+
 namespace mgard {
+
 const int nql = 32768 * 4;
 
 struct htree_node {
@@ -639,6 +646,43 @@ void decompress_memory_zstd(void *const src, const std::size_t srcLen,
 
   /* When zstd knows the content size, it will error if it doesn't match. */
   CHECK(dstLen == dSize, "Impossible because zstd will check this condition!");
+}
+#endif
+
+#ifdef MGARD_PROTOBUF
+void decompress(void const *const src, const std::size_t srcLen,
+                void *const dst, const std::size_t dstLen,
+                const pb::Header &header) {
+  switch (read_encoding_compressor(header)) {
+  case pb::Encoding::NOOP:
+    if (srcLen != dstLen) {
+      throw std::invalid_argument(
+          "source and destination lengths must be equal");
+    }
+    {
+      unsigned char const *const p = static_cast<unsigned char const *>(src);
+      unsigned char *const q = static_cast<unsigned char *>(dst);
+      std::copy(p, p + srcLen, q);
+    }
+    break;
+  case pb::Encoding::CPU_HUFFMAN_ZLIB:
+    // TODO: Try to avoid casting to `void *`.
+    decompress_memory_z(const_cast<void *>(src), srcLen,
+                        static_cast<unsigned char *>(dst), dstLen);
+    break;
+  case pb::Encoding::CPU_HUFFMAN_ZSTD:
+#ifdef MGARD_ZSTD
+    // TODO: Try to avoid casting to `void *`.
+    decompress_memory_huffman(
+        static_cast<unsigned char *>(const_cast<void *>(src)), srcLen,
+        static_cast<long int *>(dst), dstLen);
+    break;
+#else
+    throw std::runtime_error("MGARD compiled without ZSTD support");
+#endif
+  default:
+    throw std::runtime_error("unsupported lossless encoder");
+  }
 }
 #endif
 
