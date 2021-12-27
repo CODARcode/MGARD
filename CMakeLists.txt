@@ -381,6 +381,7 @@ set(
 	tests/src/test_decompose.cpp
 	tests/src/test_format.cpp
 	tests/src/test_quantize.cpp
+	tests/src/test_compressors.cpp
 )
 if(MOAB_FOUND)
 	list(
