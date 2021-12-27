@@ -225,11 +225,11 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
                                              quantized_range.end());
   std::free(u);
 #ifndef MGARD_ZSTD
-  std::vector<std::uint8_t> z_output;
-  // TODO: Check whether `compress_memory_z` changes its input.
-  compress_memory_z(
-      const_cast<void *>(static_cast<void const *>(quantized.data())),
-      sizeof(DEFAULT_INT_T) * hierarchy.ndof(), z_output);
+  std::vector<std::uint8_t> z_output =
+      // TODO: Check whether `compress_memory_z` changes its input.
+      compress_memory_z(
+          const_cast<void *>(static_cast<void const *>(quantized.data())),
+          sizeof(DEFAULT_INT_T) * hierarchy.ndof());
   // Possibly we should check that `sizeof(std::uint8_t)` is `1`.
   const std::size_t size = z_output.size();
 
@@ -238,11 +238,11 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
             static_cast<unsigned char *>(buffer));
 #else
   // Compress an array of data using `zstd`.
-  std::size_t size;
-  void *const buffer_h = compress_memory_huffman(quantized, size);
+  const std::vector<unsigned char> buffer_h =
+      compress_memory_huffman(quantized.data(), quantized.size());
+  const std::size_t size = buffer_h.size();
   void *const buffer = new unsigned char[size];
-  std::memcpy(static_cast<unsigned char *>(buffer), buffer_h, size);
-  std::free(buffer_h);
+  std::memcpy(static_cast<unsigned char *>(buffer), buffer_h.data(), size);
 #endif
   return CompressedDataset<N, Real>(hierarchy, s, tolerance, buffer, size);
 }
