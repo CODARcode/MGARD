@@ -1,6 +1,8 @@
 #include <cassert>
 #include <climits>
 
+#include <memory>
+#include <stdexcept>
 #include <type_traits>
 
 namespace mgard {
@@ -39,5 +41,17 @@ std::array<unsigned char, N> serialize(T in) {
 }
 
 } // namespace
+
+template <typename T> void check_alignment(void const *const p) {
+  if (p == nullptr) {
+    throw std::invalid_argument("can't check alignment of null pointer");
+  }
+  void *q = const_cast<void *>(p);
+  const std::size_t size = sizeof(T);
+  std::size_t space = 2 * size;
+  if (p != std::align(alignof(T), size, q, space)) {
+    throw std::invalid_argument("pointer misaligned");
+  }
+}
 
 } // namespace mgard
