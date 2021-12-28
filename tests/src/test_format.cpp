@@ -169,10 +169,20 @@ TEST_CASE("dataset types", "[format]") {
 }
 
 TEST_CASE("quantization type sizes", "[format]") {
-  REQUIRE(mgard::quantization_type_size(mgard::pb::Quantization::INT8_T) == 1);
-  REQUIRE(mgard::quantization_type_size(mgard::pb::Quantization::INT16_T) == 2);
-  REQUIRE(mgard::quantization_type_size(mgard::pb::Quantization::INT32_T) == 4);
-  REQUIRE(mgard::quantization_type_size(mgard::pb::Quantization::INT64_T) == 8);
+  mgard::pb::Header header;
+  mgard::pb::Quantization &quantization = *header.mutable_quantization();
+
+  quantization.set_type(mgard::pb::Quantization::INT8_T);
+  REQUIRE(mgard::quantization_type_size(header) == 1);
+
+  quantization.set_type(mgard::pb::Quantization::INT16_T);
+  REQUIRE(mgard::quantization_type_size(header) == 2);
+
+  quantization.set_type(mgard::pb::Quantization::INT32_T);
+  REQUIRE(mgard::quantization_type_size(header) == 4);
+
+  quantization.set_type(mgard::pb::Quantization::INT64_T);
+  REQUIRE(mgard::quantization_type_size(header) == 8);
 }
 
 TEST_CASE("reading topology and geometry", "[format]") {
