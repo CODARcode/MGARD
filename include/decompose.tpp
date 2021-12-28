@@ -16,12 +16,7 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
-
-#ifdef MGARD_TIMING
-#include <chrono>
-#endif
-
-#include "compressors.hpp"
+#include <stdexcept>
 
 #include "TensorMassMatrix.hpp"
 #include "TensorProlongation.hpp"
@@ -222,6 +217,18 @@ void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
   }
   std::free(buffer);
 }
+
+#ifdef MGARD_PROTOBUF
+template <std::size_t N, typename Real>
+void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
+               const pb::Header &header) {
+  if (header.decomposition().transform() !=
+      pb::Decomposition::MULTILEVEL_COEFFICIENTS) {
+    throw std::runtime_error("unrecognized decomposition transform");
+  }
+  recompose(hierarchy, v);
+}
+#endif
 
 } // end namespace mgard
 
