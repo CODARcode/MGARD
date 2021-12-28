@@ -25,11 +25,11 @@ TEST_CASE("quantization", "[quantize]") {
 
   mgard::pb::Header header;
   {
-    mgard::pb::Quantization *const q = header.mutable_quantization();
-    q->set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
-    q->set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
-    q->set_type(mgard::pb::Quantization::INT8_T);
-    q->set_big_endian(false);
+    mgard::pb::Quantization &q = *header.mutable_quantization();
+    q.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
+    q.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
+    q.set_type(mgard::pb::Quantization::INT8_T);
+    q.set_big_endian(false);
   }
 
   std::int8_t *const quantized = new std::int8_t[ndof];
@@ -58,11 +58,11 @@ TEST_CASE("dequantization", "[quantize]") {
 
   mgard::pb::Header header;
   {
-    mgard::pb::Quantization *const q = header.mutable_quantization();
-    q->set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
-    q->set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
-    q->set_type(mgard::pb::Quantization::INT16_T);
-    q->set_big_endian(false);
+    mgard::pb::Quantization &q = *header.mutable_quantization();
+    q.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
+    q.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
+    q.set_type(mgard::pb::Quantization::INT16_T);
+    q.set_big_endian(false);
   }
 
   std::int16_t *const quantized = new std::int16_t[ndof];
@@ -93,11 +93,11 @@ TEST_CASE("alignment and endianness", "[quantize]") {
   float const *const coefficients = nullptr;
   mgard::pb::Header header;
   {
-    mgard::pb::Quantization *const q = header.mutable_quantization();
-    q->set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
-    q->set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
-    q->set_type(mgard::pb::Quantization::INT32_T);
-    q->set_big_endian(false);
+    mgard::pb::Quantization &q = *header.mutable_quantization();
+    q.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
+    q.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
+    q.set_type(mgard::pb::Quantization::INT32_T);
+    q.set_big_endian(false);
   }
 
   void const *const data = nullptr;
@@ -119,8 +119,8 @@ TEST_CASE("alignment and endianness", "[quantize]") {
   delete p_;
 
   {
-    mgard::pb::Quantization *const q = header.mutable_quantization();
-    q->set_big_endian(true);
+    mgard::pb::Quantization &q = *header.mutable_quantization();
+    q.set_big_endian(true);
   }
   {
     std::int32_t *q_ = new std::int32_t[ndof];

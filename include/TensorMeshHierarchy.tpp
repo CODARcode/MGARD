@@ -296,51 +296,49 @@ const Real &TensorMeshHierarchy<N, Real>::at(
 template <std::size_t N, typename Real>
 void TensorMeshHierarchy<N, Real>::populate_domain(pb::Header &header) const {
   const std::array<std::size_t, N> &SHAPE = shapes.back();
-  pb::Domain *const domain = header.mutable_domain();
+  pb::Domain &domain = *header.mutable_domain();
 
-  domain->set_topology(pb::Domain::CARTESIAN_GRID);
+  domain.set_topology(pb::Domain::CARTESIAN_GRID);
 
-  pb::CartesianGridTopology *const cartesian_grid_topology =
-      new pb::CartesianGridTopology;
-  cartesian_grid_topology->set_dimension(N);
-  google::protobuf::RepeatedField<google::protobuf::uint64> *const shape =
-      cartesian_grid_topology->mutable_shape();
-  shape->Resize(N, 0);
-  std::copy(SHAPE.begin(), SHAPE.end(), shape->mutable_data());
-  domain->set_allocated_cartesian_grid_topology(cartesian_grid_topology);
+  pb::CartesianGridTopology &cartesian_grid_topology =
+      *domain.mutable_cartesian_grid_topology();
+  cartesian_grid_topology.set_dimension(N);
+  google::protobuf::RepeatedField<google::protobuf::uint64> &shape =
+      *cartesian_grid_topology.mutable_shape();
+  shape.Resize(N, 0);
+  std::copy(SHAPE.begin(), SHAPE.end(), shape.mutable_data());
 
   pb::Domain::Geometry geometry;
   if (uniform) {
     geometry = pb::Domain::UNIT_CUBE;
   } else {
     geometry = pb::Domain::EXPLICIT_CUBE;
-    pb::ExplicitCubeGeometry *const explicit_cube_geometry =
-        new pb::ExplicitCubeGeometry;
-    google::protobuf::RepeatedField<double> *const coordinates_ =
-        explicit_cube_geometry->mutable_coordinates();
-    coordinates_->Resize(std::accumulate(SHAPE.begin(), SHAPE.end(), 0), 0);
-    double *p = coordinates_->mutable_data();
+    pb::ExplicitCubeGeometry &explicit_cube_geometry =
+        *domain.mutable_explicit_cube_geometry();
+    google::protobuf::RepeatedField<double> &coordinates_ =
+        *explicit_cube_geometry.mutable_coordinates();
+    coordinates_.Resize(std::accumulate(SHAPE.begin(), SHAPE.end(), 0), 0);
+    double *p = coordinates_.mutable_data();
     for (const std::vector<Real> &xs : coordinates) {
       std::copy(xs.begin(), xs.end(), p);
       p += xs.size();
     }
-    domain->set_allocated_explicit_cube_geometry(explicit_cube_geometry);
   }
-  domain->set_geometry(geometry);
+  domain.set_geometry(geometry);
 }
 
 template <std::size_t N, typename Real>
 void TensorMeshHierarchy<N, Real>::populate_dataset(pb::Header &header) const {
-  pb::Dataset *const dataset = header.mutable_dataset();
-  dataset->set_type(type_to_dataset_type<Real>());
-  dataset->set_dimension(1);
+  pb::Dataset &dataset = *header.mutable_dataset();
+  dataset.set_type(type_to_dataset_type<Real>());
+  dataset.set_dimension(1);
 }
 
 template <std::size_t N, typename Real>
 void TensorMeshHierarchy<N, Real>::populate_decomposition(
     pb::Header &header) const {
-  pb::Decomposition *const decomposition = header.mutable_decomposition();
-  decomposition->set_hierarchy(pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
+  pb::Decomposition &decomposition = *header.mutable_decomposition();
+  decomposition.set_hierarchy(pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
 }
 
 template <std::size_t N, typename Real>
