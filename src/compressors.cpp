@@ -1,10 +1,12 @@
 #include "compressors.hpp"
 
-#include <algorithm>
-#include <bitset>
 #include <cassert>
 #include <cmath>
 #include <cstring>
+
+#include <algorithm>
+#include <bitset>
+#include <numeric>
 #include <queue>
 #include <vector>
 
@@ -428,8 +430,8 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
 
 } // namespace
 
-std::vector<unsigned char> compress_memory_huffman(long int *const src,
-                                                   const std::size_t srcLen) {
+MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
+                                                    const std::size_t srcLen) {
   unsigned char *out_data_hit = 0;
   size_t out_data_hit_size;
   unsigned char *out_data_miss = 0;
@@ -475,7 +477,7 @@ std::vector<unsigned char> compress_memory_huffman(long int *const src,
 #ifdef MGARD_TIMING
   auto z_time1 = std::chrono::high_resolution_clock::now();
 #endif
-  const std::vector<unsigned char> out_data =
+  const MemoryBuffer<unsigned char> out_data =
       compress_memory_z(payload, total_size);
 #ifdef MGARD_TIMING
   auto z_time2 = std::chrono::high_resolution_clock::now();
@@ -488,7 +490,7 @@ std::vector<unsigned char> compress_memory_huffman(long int *const src,
 #ifdef MGARD_TIMING
   auto zstd_time1 = std::chrono::high_resolution_clock::now();
 #endif
-  const std::vector<unsigned char> out_data =
+  const MemoryBuffer<unsigned char> out_data =
       compress_memory_zstd(payload, total_size);
 #ifdef MGARD_TIMING
   auto zstd_time2 = std::chrono::high_resolution_clock::now();
@@ -501,9 +503,10 @@ std::vector<unsigned char> compress_memory_huffman(long int *const src,
   free(payload);
   payload = 0;
 
-  std::vector<unsigned char> buffer(3 * sizeof(size_t) + out_data.size());
+  const std::size_t bufferLen = 3 * sizeof(size_t) + out_data.size;
+  unsigned char *const buffer = new unsigned char[bufferLen];
 
-  bufp = buffer.data();
+  bufp = buffer;
   *(size_t *)bufp = out_tree_size;
   bufp += sizeof(size_t);
 
@@ -513,8 +516,11 @@ std::vector<unsigned char> compress_memory_huffman(long int *const src,
   *(size_t *)bufp = out_data_miss_size;
   bufp += sizeof(size_t);
 
-  std::copy(out_data.begin(), out_data.end(), bufp);
-  return buffer;
+  {
+    unsigned char const *const p = out_data.data.get();
+    std::copy(p, p + out_data.size, bufp);
+  }
+  return MemoryBuffer<unsigned char>(buffer, bufferLen);
 }
 
 #ifdef MGARD_ZSTD
@@ -545,32 +551,29 @@ std::vector<unsigned char> compress_memory_huffman(long int *const src,
     CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err));                   \
   } while (0)
 
-std::vector<std::uint8_t> compress_memory_zstd(void const *const src,
-                                               const std::size_t srcLen) {
+MemoryBuffer<unsigned char> compress_memory_zstd(void const *const src,
+                                                 const std::size_t srcLen) {
   const size_t cBuffSize = ZSTD_compressBound(srcLen);
-  std::vector<std::uint8_t> out_data(cBuffSize);
-  const size_t cSize =
-      ZSTD_compress(out_data.data(), cBuffSize, src, srcLen, 1);
+  unsigned char *const buffer = new unsigned char[cBuffSize];
+  const std::size_t cSize = ZSTD_compress(buffer, cBuffSize, src, srcLen, 1);
   CHECK_ZSTD(cSize);
-  out_data.resize(cSize);
-  return out_data;
+  return MemoryBuffer<unsigned char>(buffer, cSize);
 }
 #endif
 
-std::vector<std::uint8_t> compress_memory_z(void z_const *const src,
-                                            const std::size_t srcLen) {
-  std::vector<std::uint8_t> buffer;
-
+MemoryBuffer<unsigned char> compress_memory_z(void z_const *const src,
+                                              const std::size_t srcLen) {
   const std::size_t BUFSIZE = 2048 * 1024;
-  std::uint8_t temp_buffer[BUFSIZE];
+  std::vector<Bytef *> buffers;
+  std::vector<std::size_t> bufferLengths;
 
   z_stream strm;
   strm.zalloc = Z_NULL;
   strm.zfree = Z_NULL;
   strm.next_in = static_cast<Bytef z_const *>(src);
   strm.avail_in = srcLen;
-  strm.next_out = temp_buffer;
-  strm.avail_out = BUFSIZE;
+  buffers.push_back(strm.next_out = new Bytef[BUFSIZE]);
+  bufferLengths.push_back(strm.avail_out = BUFSIZE);
 
   deflateInit(&strm, Z_BEST_COMPRESSION);
 
@@ -578,28 +581,40 @@ std::vector<std::uint8_t> compress_memory_z(void z_const *const src,
     [[maybe_unused]] const int res = deflate(&strm, Z_NO_FLUSH);
     assert(res == Z_OK);
     if (strm.avail_out == 0) {
-      buffer.insert(buffer.end(), temp_buffer, temp_buffer + BUFSIZE);
-      strm.next_out = temp_buffer;
-      strm.avail_out = BUFSIZE;
+      buffers.push_back(strm.next_out = new Bytef[BUFSIZE]);
+      bufferLengths.push_back(strm.avail_out = BUFSIZE);
     }
   }
 
   int res = Z_OK;
   while (res == Z_OK) {
     if (strm.avail_out == 0) {
-      buffer.insert(buffer.end(), temp_buffer, temp_buffer + BUFSIZE);
-      strm.next_out = temp_buffer;
-      strm.avail_out = BUFSIZE;
+      buffers.push_back(strm.next_out = new Bytef[BUFSIZE]);
+      bufferLengths.push_back(strm.avail_out = BUFSIZE);
     }
     res = deflate(&strm, Z_FINISH);
   }
 
   assert(res == Z_STREAM_END);
-  buffer.insert(buffer.end(), temp_buffer,
-                temp_buffer + BUFSIZE - strm.avail_out);
+  bufferLengths.back() -= strm.avail_out;
+  // Could just do `nbuffers * BUFSIZE - strm.avail_out`.
+  const std::size_t bufferLen =
+      std::accumulate(bufferLengths.begin(), bufferLengths.end(), 0);
+  unsigned char *const buffer = new unsigned char[bufferLen];
+  {
+    const std::size_t nbuffers = buffers.size();
+    unsigned char *p = buffer;
+    for (std::size_t i = 0; i < nbuffers; ++i) {
+      unsigned char const *const buffer = buffers.at(i);
+      const std::size_t bufferLength = bufferLengths.at(i);
+      std::copy(buffer, buffer + bufferLength, p);
+      p += bufferLength;
+      delete[] buffer;
+    }
+  }
   deflateEnd(&strm);
 
-  return buffer;
+  return MemoryBuffer<unsigned char>(buffer, bufferLen);
 }
 
 void decompress_memory_z(void z_const *const src, const std::size_t srcLen,

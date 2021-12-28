@@ -18,12 +18,11 @@ void test_huffman_identity(std::default_random_engine &gen,
   std::vector<long int> src(n);
   std::generate(src.begin(), src.end(), f);
   std::vector<long int> src_(src);
-  std::vector<unsigned char> compressed =
+  mgard::MemoryBuffer<unsigned char> compressed =
       mgard::compress_memory_huffman(src_.data(), n);
   long int *const decompressed = new long int[n];
-  mgard::decompress_memory_huffman(compressed.data(), compressed.size(),
+  mgard::decompress_memory_huffman(compressed.data.get(), compressed.size,
                                    decompressed, n * sizeof(long int));
-  std::vector<long int> d(decompressed, decompressed + n);
   REQUIRE(std::equal(src.begin(), src.end(), decompressed));
   delete[] decompressed;
 }
@@ -48,10 +47,10 @@ void test_zstd_identity(std::uniform_int_distribution<unsigned char> &dis,
   std::generate(src, src + n, f);
   unsigned char *const src_ = new unsigned char[n];
   std::copy(src, src + n, src_);
-  std::vector<std::uint8_t> dst = mgard::compress_memory_zstd(src_, n);
+  mgard::MemoryBuffer<unsigned char> dst = mgard::compress_memory_zstd(src_, n);
   delete[] src_;
   unsigned char *const decompressed = new unsigned char[n];
-  mgard::decompress_memory_zstd(dst.data(), dst.size(), decompressed, n);
+  mgard::decompress_memory_zstd(dst.data.get(), dst.size, decompressed, n);
   REQUIRE(std::equal(src, src + n, decompressed));
   delete[] decompressed;
   delete[] src;
@@ -79,10 +78,10 @@ void test_zlib_identity(std::uniform_int_distribution<unsigned char> &dis,
   std::generate(src, src + n, f);
   unsigned char *const src_ = new unsigned char[n];
   std::copy(src, src + n, src_);
-  std::vector<std::uint8_t> dst = mgard::compress_memory_z(src_, n);
+  mgard::MemoryBuffer<unsigned char> dst = mgard::compress_memory_z(src_, n);
   delete[] src_;
   unsigned char *const decompressed = new unsigned char[n];
-  mgard::decompress_memory_z(dst.data(), dst.size(), decompressed, n);
+  mgard::decompress_memory_z(dst.data.get(), dst.size, decompressed, n);
   REQUIRE(std::equal(src, src + n, decompressed));
   delete[] decompressed;
   delete[] src;
@@ -142,14 +141,13 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
   SECTION("zlib") {
     e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
 
-    const std::vector<std::uint8_t> out =
+    const mgard::MemoryBuffer<unsigned char> out =
         mgard::compress_memory_z(quantized, quantizedLen);
 
-    const std::size_t srcLen = out.size() * sizeof(out.front());
+    const std::size_t srcLen = out.size * sizeof(*out.data.get());
     unsigned char *const src = new unsigned char[srcLen];
     {
-      unsigned char const *const p =
-          reinterpret_cast<unsigned char const *>(out.data());
+      unsigned char const *const p = out.data.get();
       std::copy(p, p + srcLen, src);
     }
     mgard::decompress(src, srcLen, reinterpret_cast<unsigned char *>(dst),
@@ -164,15 +162,14 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
 
     std::int64_t *const quantized_ = new std::int64_t[ndof];
     std::copy(quantized, quantized + ndof, quantized_);
-    const std::vector<std::uint8_t> out =
+    const mgard::MemoryBuffer<unsigned char> out =
         mgard::compress_memory_huffman(quantized_, ndof);
     delete[] quantized_;
 
-    const std::size_t srcLen = out.size() * sizeof(out.front());
+    const std::size_t srcLen = out.size;
     unsigned char *const src = new unsigned char[srcLen];
     {
-      unsigned char const *const p =
-          reinterpret_cast<unsigned char const *>(out.data());
+      unsigned char const *const p = out.data.get();
       std::copy(p, p + srcLen, src);
     }
     mgard::decompress(src, srcLen, reinterpret_cast<unsigned char *>(dst),
