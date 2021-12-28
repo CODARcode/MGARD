@@ -806,4 +806,14 @@ TEST_CASE("header population", "[decompose]") {
   REQUIRE(header.decomposition().transform() ==
           mgard::pb::Decomposition::MULTILEVEL_COEFFICIENTS);
 }
+
+TEST_CASE("configuration by header", "[decompose]") {
+  mgard::pb::Header header;
+  header.mutable_decomposition()->set_transform(
+      mgard::pb::Decomposition::MULTILEVEL_COEFFICIENTS);
+  const mgard::TensorMeshHierarchy<3, double> hierarchy({21, 19, 20});
+  double *const u = new double[hierarchy.ndof()];
+  REQUIRE_NOTHROW(recompose(hierarchy, u, header));
+  delete[] u;
+}
 #endif
