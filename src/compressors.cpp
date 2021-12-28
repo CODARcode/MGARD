@@ -8,6 +8,7 @@
 #include <bitset>
 #include <numeric>
 #include <queue>
+#include <stdexcept>
 #include <vector>
 
 #ifdef MGARD_TIMING
@@ -653,6 +654,27 @@ void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
 #endif
 
 #ifdef MGARD_PROTOBUF
+MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
+                                     pb::Header &header) {
+  pb::Encoding &encoding = *header.mutable_encoding();
+  // TODO: Possibly this should be set elsewhere.
+  encoding.set_preprocessor(pb::Encoding::SHUFFLE);
+#ifdef MGARD_ZSTD
+  if (header.quantization().type() != mgard::pb::Quantization::INT64_T) {
+    throw std::runtime_error("Huffman tree not implemented for quantization "
+                             "types other than `std::int64_t`");
+  }
+  encoding.set_compressor(pb::Encoding::CPU_HUFFMAN_ZSTD);
+  const std::size_t qts = quantization_type_size(header);
+  assert(not srcLen % qts);
+  return compress_memory_huffman(reinterpret_cast<long int *>(src),
+                                 srcLen / qts);
+#else
+  encoding.set_compressor(pb::Encoding::CPU_HUFFMAN_ZLIB);
+  return compress_memory_z(src, srcLen);
+#endif
+}
+
 void decompress(void *const src, const std::size_t srcLen, void *const dst,
                 const std::size_t dstLen, const pb::Header &header) {
   switch (read_encoding_compressor(header)) {

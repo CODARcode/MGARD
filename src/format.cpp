@@ -50,9 +50,9 @@ template <> pb::Dataset::Type type_to_dataset_type<double>() {
   return pb::Dataset::DOUBLE;
 }
 
-std::size_t quantization_type_size(const pb::Quantization::Type type) {
+std::size_t quantization_type_size(const pb::Header &header) {
   static_assert(CHAR_BIT == 8, "unexpected number of bits in a byte");
-  switch (type) {
+  switch (header.quantization().type()) {
   case pb::Quantization::INT8_T:
     return sizeof(std::int8_t);
   case pb::Quantization::INT16_T:

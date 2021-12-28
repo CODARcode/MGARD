@@ -83,9 +83,7 @@ DecompressedDataset<N, Real> decompress(
     const CompressedDataset<N, Real> &compressed, const pb::Header &header) {
   const std::size_t ndof = compressed.hierarchy.ndof();
 
-  const QuantizationParameters quantization = read_quantization(header);
-  const std::size_t quantizedLen =
-      ndof * quantization_type_size(quantization.type);
+  const std::size_t quantizedLen = ndof * quantization_type_size(header);
 
   // `quantized` will have the correct alignment for any quantization type. See
   // <https://en.cppreference.com/w/cpp/memory/c/malloc>.
