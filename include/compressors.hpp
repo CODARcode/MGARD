@@ -4,12 +4,11 @@
 //!\brief Lossless compressors for quantized multilevel coefficients.
 
 #include <cstddef>
-#include <cstdint>
-
-#include <vector>
 
 // For `z_const`.
 #include <zlib.h>
+
+#include "utilities.hpp"
 
 #ifdef MGARD_PROTOBUF
 #include <memory>
@@ -23,8 +22,8 @@ namespace mgard {
 //!
 //!\param[in] src Array to be compressed.
 //!\param[in] srcLen Size of array (number of elements) to be compressed.
-std::vector<unsigned char> compress_memory_huffman(long int *const src,
-                                                   const std::size_t srcLen);
+MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
+                                                    const std::size_t srcLen);
 
 //! Decompress an array compressed with `compress_memory_huffman`.
 //!
@@ -41,8 +40,8 @@ void decompress_memory_huffman(unsigned char *const src,
 //!
 //!\param[in] src Array to be compressed.
 //!\param[in] srcLen Size in bytes of the array to be compressed.
-std::vector<std::uint8_t> compress_memory_zstd(void const *const src,
-                                               const std::size_t srcLen);
+MemoryBuffer<unsigned char> compress_memory_zstd(void const *const src,
+                                                 const std::size_t srcLen);
 
 //! Decompress an array compressed with `compress_memory_zstd`.
 //!
@@ -58,8 +57,8 @@ void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
 //!
 //!\param src Array to be compressed.
 //!\param srcLen Size in bytes of the array to be compressed.
-std::vector<std::uint8_t> compress_memory_z(void z_const *const src,
-                                            const std::size_t srcLen);
+MemoryBuffer<unsigned char> compress_memory_z(void z_const *const src,
+                                              const std::size_t srcLen);
 
 //! Decompress an array with `compress_memory_z`.
 //!

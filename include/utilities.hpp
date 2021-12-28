@@ -7,6 +7,7 @@
 
 #include <array>
 #include <iterator>
+#include <memory>
 #include <utility>
 
 namespace mgard {
@@ -414,6 +415,32 @@ private:
 //!\param dimension Dimension index.
 template <std::size_t N>
 void check_dimension_index_bounds(const std::size_t dimension);
+
+//! Owned memory buffer along with its size.
+template <typename T> struct MemoryBuffer {
+  //! Constructor.
+  //!
+  //!\param data Buffer.
+  //!\param data Number of elements in the buffer.
+  MemoryBuffer(std::unique_ptr<T[]> &&data, const std::size_t size);
+
+  //! Constructor.
+  //!
+  //!\overload
+  //!
+  //! The buffer pointed to by `buffer` is freed when this object is destructed.
+  //! It should be allocated with `new T[size]`.
+  //!
+  //!\param buffer Buffer.
+  //!\param data Number of elements in the buffer.
+  MemoryBuffer(T *const buffer, const std::size_t size);
+
+  //! Buffer.
+  std::unique_ptr<T[]> data;
+
+  //! Number of elements in the buffer.
+  std::size_t size;
+};
 
 } // namespace mgard
 
