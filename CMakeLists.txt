@@ -191,6 +191,7 @@ set(
 set(
 	MGARD_LIBRARY_CPP
         src/compress.cpp
+        src/compress_internal.cpp
 	src/compressors.cpp
 	src/format.cpp
 )
@@ -222,7 +223,7 @@ set(MGARD_FILE_FORMAT_SRCDIR "${CMAKE_CURRENT_BINARY_DIR}/src")
 set(MGARD_FILE_FORMAT_DIR "${MGARD_FILE_FORMAT_INCLUDEDIR}/proto")
 set(MGARD_FILE_FORMAT_HPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.h")
 set(MGARD_FILE_FORMAT_CPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.cc")
-set(MGARD_DECOMPOSE_INTERNAL_CPP "${MGARD_FILE_FORMAT_SRCDIR}/compress_internal.cpp")
+set(MGARD_DECOMPOSE_INTERNAL_CPP "${MGARD_FILE_FORMAT_SRCDIR}/compress_internal_generated.cpp")
 
 pkg_search_module(protobuf IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
 find_program(PROTOC NAMES "protoc")
