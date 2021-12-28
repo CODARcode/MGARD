@@ -80,9 +80,8 @@ void decompress_memory_z(void z_const *const src, const std::size_t srcLen,
 //!\param[out] dst Decompressed array.
 //!\param[in] dstLen Size in bytes of the decompressed array.
 //!\param[in] header Header parsed from the original self-describing buffer.
-void decompress(void const *const src, const std::size_t srcLen,
-                void *const dst, const std::size_t dstLen,
-                const pb::Header &header);
+void decompress(void *const src, const std::size_t srcLen, void *const dst,
+                const std::size_t dstLen, const pb::Header &header);
 #endif
 
 } // namespace mgard
