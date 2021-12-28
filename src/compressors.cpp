@@ -665,7 +665,8 @@ MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
                              "types other than `std::int64_t`");
   }
   encoding.set_compressor(pb::Encoding::CPU_HUFFMAN_ZSTD);
-  const std::size_t qts = quantization_type_size(header);
+  // Quantization type size.
+  const std::size_t qts = quantization_buffer(1, header).size;
   assert(not srcLen % qts);
   return compress_memory_huffman(reinterpret_cast<long int *>(src),
                                  srcLen / qts);

@@ -65,10 +65,12 @@ template <typename T> void check_alignment(void const *const p);
 //!\return `Dataset::Type` corresponding to `Real`.
 template <typename Real> pb::Dataset::Type type_to_dataset_type();
 
-//! Return the size in bytes of a quantization type.
+//! Allocate a quantization buffer of the proper alignment and size.
 //!
+//!\param ndof Size of buffer (number of elements).
 //!\param header Self-describing dataset header.
-std::size_t quantization_type_size(const pb::Header &header);
+MemoryBuffer<unsigned char> quantization_buffer(const std::size_t ndof,
+                                                const pb::Header &header);
 
 //! Populate a header with the MGARD and file format version numbers.
 //!

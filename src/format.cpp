@@ -10,6 +10,7 @@
 #include "MGARDConfig.hpp"
 
 #ifdef MGARD_PROTOBUF
+#include <new>
 #include <numeric>
 
 #include <google/protobuf/io/coded_stream.h>
@@ -50,20 +51,37 @@ template <> pb::Dataset::Type type_to_dataset_type<double>() {
   return pb::Dataset::DOUBLE;
 }
 
-std::size_t quantization_type_size(const pb::Header &header) {
+MemoryBuffer<unsigned char> quantization_buffer(const std::size_t ndof,
+                                                const pb::Header &header) {
   static_assert(CHAR_BIT == 8, "unexpected number of bits in a byte");
+  // Quantization type size.
+  std::size_t qts;
+  // Quantization type alignment.
+  std::size_t qta;
   switch (header.quantization().type()) {
   case pb::Quantization::INT8_T:
-    return sizeof(std::int8_t);
+    qts = sizeof(std::int8_t);
+    qta = alignof(std::int8_t);
+    break;
   case pb::Quantization::INT16_T:
-    return sizeof(std::int16_t);
+    qts = sizeof(std::int16_t);
+    qta = alignof(std::int16_t);
+    break;
   case pb::Quantization::INT32_T:
-    return sizeof(std::int32_t);
+    qts = sizeof(std::int32_t);
+    qta = alignof(std::int32_t);
+    break;
   case pb::Quantization::INT64_T:
-    return sizeof(std::int64_t);
+    qts = sizeof(std::int64_t);
+    qta = alignof(std::int64_t);
+    break;
   default:
     throw std::runtime_error("unrecognized quantization type");
   }
+  const std::size_t size = ndof * qts;
+
+  return MemoryBuffer<unsigned char>(
+      new (static_cast<std::align_val_t>(qta)) unsigned char[size], size);
 }
 
 namespace {

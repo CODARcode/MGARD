@@ -83,25 +83,19 @@ DecompressedDataset<N, Real> decompress(
     const CompressedDataset<N, Real> &compressed, const pb::Header &header) {
   const std::size_t ndof = compressed.hierarchy.ndof();
 
-  const std::size_t quantizedLen = ndof * quantization_type_size(header);
-
-  // `quantized` will have the correct alignment for any quantization type. See
-  // <https://en.cppreference.com/w/cpp/memory/c/malloc>.
-  void *const quantized = std::malloc(quantizedLen);
+  MemoryBuffer<unsigned char> quantized = quantization_buffer(ndof, header);
   // TODO: Remove the `const_cast` if `decompress_memory_huffman` can be made to
   // take a `void const *`.
   decompress(const_cast<void *>(compressed.data()), compressed.size(),
-             quantized, quantizedLen, header);
+             quantized.data.get(), quantized.size, header);
 
-  Real *const dequantized =
-      static_cast<Real *>(std::malloc(ndof * sizeof(*dequantized)));
-  dequantize(compressed, quantized, dequantized, header);
-  std::free(quantized);
+  Real *const dequantized = new Real[ndof];
+  dequantize(compressed, quantized.data.get(), dequantized, header);
 
   recompose(compressed.hierarchy, dequantized);
   Real *const v = new Real[ndof];
   unshuffle(compressed.hierarchy, dequantized, v);
-  std::free(dequantized);
+  delete[] dequantized;
 
   return DecompressedDataset<N, Real>(compressed, v);
 }

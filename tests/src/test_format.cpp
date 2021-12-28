@@ -180,18 +180,39 @@ TEST_CASE("dataset types", "[format]") {
 TEST_CASE("quantization type sizes", "[format]") {
   mgard::pb::Header header;
   mgard::pb::Quantization &quantization = *header.mutable_quantization();
+  const std::size_t ndof = 1;
 
   quantization.set_type(mgard::pb::Quantization::INT8_T);
-  REQUIRE(mgard::quantization_type_size(header) == 1);
+  {
+    const mgard::MemoryBuffer<unsigned char> buffer =
+        mgard::quantization_buffer(ndof, header);
+    REQUIRE_NOTHROW(mgard::check_alignment<std::int8_t>(buffer.data.get()));
+    REQUIRE(buffer.size == 1);
+  }
 
   quantization.set_type(mgard::pb::Quantization::INT16_T);
-  REQUIRE(mgard::quantization_type_size(header) == 2);
+  {
+    const mgard::MemoryBuffer<unsigned char> buffer =
+        mgard::quantization_buffer(ndof, header);
+    REQUIRE_NOTHROW(mgard::check_alignment<std::int16_t>(buffer.data.get()));
+    REQUIRE(buffer.size == 2);
+  }
 
   quantization.set_type(mgard::pb::Quantization::INT32_T);
-  REQUIRE(mgard::quantization_type_size(header) == 4);
+  {
+    const mgard::MemoryBuffer<unsigned char> buffer =
+        mgard::quantization_buffer(ndof, header);
+    REQUIRE_NOTHROW(mgard::check_alignment<std::int32_t>(buffer.data.get()));
+    REQUIRE(buffer.size == 4);
+  }
 
   quantization.set_type(mgard::pb::Quantization::INT64_T);
-  REQUIRE(mgard::quantization_type_size(header) == 8);
+  {
+    const mgard::MemoryBuffer<unsigned char> buffer =
+        mgard::quantization_buffer(ndof, header);
+    REQUIRE_NOTHROW(mgard::check_alignment<std::int64_t>(buffer.data.get()));
+    REQUIRE(buffer.size == 8);
+  }
 }
 
 TEST_CASE("reading topology and geometry", "[format]") {
