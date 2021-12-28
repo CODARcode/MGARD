@@ -10,6 +10,8 @@
 #ifdef MGARD_PROTOBUF
 #include <vector>
 
+#include "utilities.hpp"
+
 #include "proto/mgard.pb.h"
 #endif
 
@@ -51,6 +53,11 @@ serialize_header_size(std::uint_least64_t size);
 //!\return bytes Serialized header CRC32.
 std::array<unsigned char, HEADER_CRC32_SIZE>
 serialize_header_crc32(std::uint_least64_t crc32);
+
+//! Check that a pointer has the alignment for a type.
+//!
+//!\param p Pointer whose alignment will be checked.
+template <typename T> void check_alignment(void const *const p);
 
 #ifdef MGARD_PROTOBUF
 //! Return the `Dataset::Type` value corresponding to a floating point type.

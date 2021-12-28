@@ -75,6 +75,15 @@ TEST_CASE("deserialization inverts serialization", "[format]") {
   }
 }
 
+TEST_CASE("checking alignment", "[format]") {
+  double x;
+  double const *const p = &x;
+  REQUIRE_NOTHROW(mgard::check_alignment<double>(p));
+  REQUIRE_NOTHROW(mgard::check_alignment<char>(p));
+  REQUIRE_THROWS(
+      mgard::check_alignment<double>(reinterpret_cast<char const *>(p) + 1));
+}
+
 #ifdef MGARD_PROTOBUF
 namespace {
 

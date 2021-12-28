@@ -2,26 +2,13 @@
 #include <memory>
 #include <stdexcept>
 
-#include <iostream>
-
 #include "TensorMultilevelCoefficientQuantizer.hpp"
+#include "format.hpp"
 #include "utilities.hpp"
 
 namespace mgard {
 
 namespace {
-
-template <typename Int> void check_alignment(void const *const p) {
-  if (p == nullptr) {
-    throw std::invalid_argument("can't check alignment of null pointer");
-  }
-  void *q = const_cast<void *>(p);
-  const std::size_t size = sizeof(Int);
-  std::size_t space = 2 * size;
-  if (p != std::align(alignof(Int), size, q, space)) {
-    throw std::invalid_argument("pointer misaligned");
-  }
-}
 
 // This function checks that the endianness of `Int` matches the endianness
 // requested/expected by the header. Ultimately we should shuffle bytes rather
@@ -52,7 +39,7 @@ template <std::size_t N, typename Real, typename Int>
 void quantize_(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
                const Real tolerance, Real const *const coefficients,
                Int *const quantized, const pb::Header &header) {
-  check_alignment<Int>(static_cast<void const *>(quantized));
+  check_alignment<Int>(quantized);
   check_endianness<Int>(header);
 
   using Qntzr = TensorMultilevelCoefficientQuantizer<N, Real, Int>;
@@ -75,7 +62,7 @@ template <std::size_t N, typename Int, typename Real>
 void dequantize_(const CompressedDataset<N, Real> &compressed,
                  Int const *const quantized, Real *const dequantized,
                  const pb::Header &header) {
-  check_alignment<Int>(static_cast<void const *>(quantized));
+  check_alignment<Int>(quantized);
   check_endianness<Int>(header);
 
   const std::size_t ndof = compressed.hierarchy.ndof();
