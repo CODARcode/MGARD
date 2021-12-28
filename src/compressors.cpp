@@ -638,9 +638,8 @@ void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
 #endif
 
 #ifdef MGARD_PROTOBUF
-void decompress(void const *const src, const std::size_t srcLen,
-                void *const dst, const std::size_t dstLen,
-                const pb::Header &header) {
+void decompress(void *const src, const std::size_t srcLen, void *const dst,
+                const std::size_t dstLen, const pb::Header &header) {
   switch (read_encoding_compressor(header)) {
   case pb::Encoding::NOOP:
     if (srcLen != dstLen) {
@@ -659,10 +658,8 @@ void decompress(void const *const src, const std::size_t srcLen,
     break;
   case pb::Encoding::CPU_HUFFMAN_ZSTD:
 #ifdef MGARD_ZSTD
-    // TODO: Try to avoid casting to `void *`.
-    decompress_memory_huffman(
-        static_cast<unsigned char *>(const_cast<void *>(src)), srcLen,
-        static_cast<long int *>(dst), dstLen);
+    decompress_memory_huffman(static_cast<unsigned char *>(src), srcLen,
+                              static_cast<long int *>(dst), dstLen);
     break;
 #else
     throw std::runtime_error("MGARD compiled without ZSTD support");
