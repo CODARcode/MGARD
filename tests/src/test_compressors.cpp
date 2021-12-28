@@ -14,7 +14,7 @@ template <typename T>
 void test_huffman_identity(std::default_random_engine &gen,
                            const std::size_t n) {
   std::uniform_int_distribution<T> dis(std::numeric_limits<T>::min());
-  const auto f = [&]() -> double { return dis(gen); };
+  const auto f = [&]() -> T { return dis(gen); };
   std::vector<long int> src(n);
   std::generate(src.begin(), src.end(), f);
   std::vector<long int> src_(src);
@@ -42,7 +42,7 @@ namespace {
 
 void test_zstd_identity(std::uniform_int_distribution<unsigned char> &dis,
                         std::default_random_engine &gen, const std::size_t n) {
-  const auto f = [&]() -> double { return dis(gen); };
+  const auto f = [&]() -> unsigned char { return dis(gen); };
   unsigned char *const src = new unsigned char[n];
   std::generate(src, src + n, f);
   unsigned char *const src_ = new unsigned char[n];
@@ -73,7 +73,7 @@ namespace {
 
 void test_zlib_identity(std::uniform_int_distribution<unsigned char> &dis,
                         std::default_random_engine &gen, const std::size_t n) {
-  const auto f = [&]() -> double { return dis(gen); };
+  const auto f = [&]() -> unsigned char { return dis(gen); };
   unsigned char *const src = new unsigned char[n];
   std::generate(src, src + n, f);
   unsigned char *const src_ = new unsigned char[n];
@@ -99,6 +99,41 @@ TEST_CASE("zlib compression", "[compressors]") {
 }
 
 #ifdef MGARD_PROTOBUF
+TEST_CASE("compression with header configuration", "[compressors]") {
+  const std::size_t ndof = 10000;
+  mgard::pb::Header header;
+  // TODO: Once Huffman trees can be built for types other than `long int`, use
+  // something other than `std::int64_t` here.
+  header.mutable_quantization()->set_type(mgard::pb::Quantization::INT64_T);
+  std::int64_t *const quantized = new std::int64_t[ndof];
+  std::uniform_int_distribution<std::int64_t> dis(-250, 250);
+  std::default_random_engine gen(419643);
+  const auto f = [&]() -> std::int64_t { return dis(gen); };
+  std::generate(quantized, quantized + ndof, f);
+  const std::size_t quantizedLen = ndof * sizeof(*quantized);
+  // `dst` must have the correct alignment for the quantization type.
+  std::int64_t *const dst = new std::int64_t[ndof];
+
+  std::int64_t *const quantized_ = new std::int64_t[ndof];
+  std::copy(quantized, quantized + ndof, quantized_);
+  const mgard::MemoryBuffer<unsigned char> compressed =
+      mgard::compress(quantized_, quantizedLen, header);
+  delete[] quantized_;
+
+  const mgard::pb::Encoding &e = header.encoding();
+  REQUIRE(e.preprocessor() == mgard::pb::Encoding::SHUFFLE);
+#ifdef MGARD_ZSTD
+  REQUIRE(e.compressor() == mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
+  mgard::decompress_memory_huffman(compressed.data.get(), compressed.size, dst,
+                                   quantizedLen);
+#else
+  REQUIRE(e.compressor() == mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
+  mgard::decompress_memory_z(compressed.data.get(), compressed.size, dst,
+                             quantizedLen);
+#endif
+  REQUIRE(std::equal(quantized, quantized + ndof, dst));
+}
+
 TEST_CASE("decompression with header configuration", "[compressors]") {
   mgard::pb::Header header;
   mgard::pb::Quantization &q = *header.mutable_quantization();
@@ -115,7 +150,7 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
   std::int64_t *const quantized = new std::int64_t[ndof];
   std::uniform_int_distribution<std::int64_t> dis(-500, 500);
   std::default_random_engine gen(489063);
-  const auto f = [&]() -> double { return dis(gen); };
+  const auto f = [&]() -> std::int64_t { return dis(gen); };
   std::generate(quantized, quantized + ndof, f);
   const std::size_t quantizedLen = ndof * sizeof(*quantized);
   // `dst` must have the correct alignment for the quantization type.
@@ -181,5 +216,32 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
 
   delete[] dst;
   delete[] quantized;
+}
+
+TEST_CASE("compression and decompression with header", "[compressors]") {
+  const std::size_t ndof = 2500;
+  mgard::pb::Header header;
+  // TODO: Once Huffman trees can be built for types other than `long int`, use
+  // something other than `std::int64_t` here.
+  header.mutable_quantization()->set_type(mgard::pb::Quantization::INT64_T);
+  std::int64_t *const quantized = new std::int64_t[ndof];
+  std::uniform_int_distribution<std::int64_t> dis(-1000, 1000);
+  std::default_random_engine gen(995719);
+  const auto f = [&]() -> std::int64_t { return dis(gen); };
+  std::generate(quantized, quantized + ndof, f);
+  const std::size_t quantizedLen = ndof * sizeof(*quantized);
+  // `dst` must have the correct alignment for the quantization type.
+  std::int64_t *const dst = new std::int64_t[ndof];
+
+  std::int64_t *const quantized_ = new std::int64_t[ndof];
+  std::copy(quantized, quantized + ndof, quantized_);
+  const mgard::MemoryBuffer<unsigned char> compressed =
+      mgard::compress(quantized_, quantizedLen, header);
+  delete[] quantized_;
+
+  mgard::decompress(compressed.data.get(), compressed.size, dst, quantizedLen,
+                    header);
+
+  REQUIRE(std::equal(quantized, quantized + ndof, dst));
 }
 #endif

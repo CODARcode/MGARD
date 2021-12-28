@@ -60,8 +60,8 @@ template <typename Real> pb::Dataset::Type type_to_dataset_type();
 
 //! Return the size in bytes of a quantization type.
 //!
-//!\param type Quantization type.
-std::size_t quantization_type_size(const pb::Quantization::Type type);
+//!\param header Self-describing dataset header.
+std::size_t quantization_type_size(const pb::Header &header);
 
 //! Populate a header with the MGARD and file format version numbers.
 //!

@@ -70,6 +70,18 @@ void decompress_memory_z(void z_const *const src, const std::size_t srcLen,
                          unsigned char *const dst, const std::size_t dstLen);
 
 #ifdef MGARD_PROTOBUF
+//! Compress an array of quantized multilevel coefficients.
+//!
+//! `src` must have the correct alignment for the quantization type.
+//!
+//! The relevant fields of `header` will be populated.
+//!
+//!\param[in] src Array of quantized multilevel coefficients.
+//!\param[in] srcLen Size in bytes of the input array.
+//!\param[in, out] header Header for the self-describing buffer.
+MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
+                                     pb::Header &header);
+
 //! Decompress an array of quantized multilevel coefficients.
 //!
 //! `dst` must have the correct alignment for the quantization type.
