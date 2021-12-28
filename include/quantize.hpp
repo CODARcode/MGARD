@@ -18,6 +18,8 @@ namespace mgard {
 //! coefficients, and `quantized` must have the correct alignment for an object
 //! of the quantization type.
 //!
+//! The relevant fields of `header` will be populated.
+//!
 //!\param[in] hierarchy Hierarchy on which the coefficients are defined.
 //!\param[in] s Smoothness parameter. Determines the error norm in which
 //! quantization error is controlled.
@@ -25,7 +27,7 @@ namespace mgard {
 //! multilevel coefficients.
 //!\param[in] coefficients Buffer of multilevel coefficients.
 //!\param[out] quantized Buffer of quantized multilevel coefficients.
-//!\param[in] header Header for the self-describing buffer.
+//!\param[in, out] header Header for the self-describing buffer.
 template <std::size_t N, typename Real>
 void quantize(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
               const Real tolerance, Real const *const coefficients,

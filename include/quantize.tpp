@@ -35,6 +35,9 @@ template <typename Int> void check_endianness(const pb::Header &header) {
   }
 }
 
+// This function has the same signature as `quantize`, so it's named
+// differently.
+
 //! Quantize an array of multilevel coefficients.
 //!
 //!\param[in] hierarchy Hierarchy on which the coefficients are defined.
@@ -46,9 +49,9 @@ template <typename Int> void check_endianness(const pb::Header &header) {
 //!\param[out] quantized Buffer of quantized multilevel coefficients.
 //!\param[in] header Header for the self-describing buffer.
 template <std::size_t N, typename Real, typename Int>
-void quantize(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
-              const Real tolerance, Real const *const coefficients,
-              Int *const quantized, const pb::Header &header) {
+void quantize_(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
+               const Real tolerance, Real const *const coefficients,
+               Int *const quantized, const pb::Header &header) {
   check_alignment<Int>(static_cast<void const *>(quantized));
   check_endianness<Int>(header);
 
@@ -59,6 +62,9 @@ void quantize(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
   std::copy(quantized_.begin(), quantized_.end(), quantized);
 }
 
+// This function has the same signature as `dequantize`, so it's named
+// differently.
+
 //! Dequantize an array of quantized multilevel coefficients.
 //!
 //!\param[in] compressed Compressed dataset of the self-describing buffer.
@@ -66,9 +72,9 @@ void quantize(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
 //!\param[out] dequantized Buffer of dequantized multilevel coefficients.
 //!\param[in] header Header of the self-describing buffer.
 template <std::size_t N, typename Int, typename Real>
-void dequantize(const CompressedDataset<N, Real> &compressed,
-                Int const *const quantized, Real *const dequantized,
-                const pb::Header &header) {
+void dequantize_(const CompressedDataset<N, Real> &compressed,
+                 Int const *const quantized, Real *const dequantized,
+                 const pb::Header &header) {
   check_alignment<Int>(static_cast<void const *>(quantized));
   check_endianness<Int>(header);
 
@@ -91,17 +97,17 @@ void quantize(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
   const QuantizationParameters quantization = read_quantization(header);
   switch (quantization.type) {
   case pb::Quantization::INT8_T:
-    return quantize(hierarchy, s, tolerance, coefficients,
-                    static_cast<std::int8_t *>(quantized), header);
+    return quantize_(hierarchy, s, tolerance, coefficients,
+                     static_cast<std::int8_t *>(quantized), header);
   case pb::Quantization::INT16_T:
-    return quantize(hierarchy, s, tolerance, coefficients,
-                    static_cast<std::int16_t *>(quantized), header);
+    return quantize_(hierarchy, s, tolerance, coefficients,
+                     static_cast<std::int16_t *>(quantized), header);
   case pb::Quantization::INT32_T:
-    return quantize(hierarchy, s, tolerance, coefficients,
-                    static_cast<std::int32_t *>(quantized), header);
+    return quantize_(hierarchy, s, tolerance, coefficients,
+                     static_cast<std::int32_t *>(quantized), header);
   case pb::Quantization::INT64_T:
-    return quantize(hierarchy, s, tolerance, coefficients,
-                    static_cast<std::int64_t *>(quantized), header);
+    return quantize_(hierarchy, s, tolerance, coefficients,
+                     static_cast<std::int64_t *>(quantized), header);
   default:
     throw std::runtime_error("unrecognized quantization type");
   }
@@ -114,17 +120,17 @@ void dequantize(const CompressedDataset<N, Real> &compressed,
   const QuantizationParameters quantization = read_quantization(header);
   switch (quantization.type) {
   case pb::Quantization::INT8_T:
-    return dequantize(compressed, static_cast<std::int8_t const *>(quantized),
-                      dequantized, header);
+    return dequantize_(compressed, static_cast<std::int8_t const *>(quantized),
+                       dequantized, header);
   case pb::Quantization::INT16_T:
-    return dequantize(compressed, static_cast<std::int16_t const *>(quantized),
-                      dequantized, header);
+    return dequantize_(compressed, static_cast<std::int16_t const *>(quantized),
+                       dequantized, header);
   case pb::Quantization::INT32_T:
-    return dequantize(compressed, static_cast<std::int32_t const *>(quantized),
-                      dequantized, header);
+    return dequantize_(compressed, static_cast<std::int32_t const *>(quantized),
+                       dequantized, header);
   case pb::Quantization::INT64_T:
-    return dequantize(compressed, static_cast<std::int64_t const *>(quantized),
-                      dequantized, header);
+    return dequantize_(compressed, static_cast<std::int64_t const *>(quantized),
+                       dequantized, header);
   default:
     throw std::runtime_error("unrecognized quantization type");
   }
