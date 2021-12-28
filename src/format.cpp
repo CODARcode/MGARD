@@ -68,21 +68,21 @@ std::size_t quantization_type_size(const pb::Header &header) {
 
 namespace {
 
-void set_version_number(pb::VersionNumber *const version_number,
+void set_version_number(pb::VersionNumber &version_number,
                         const google::protobuf::uint64 major_,
                         const google::protobuf::uint64 minor_,
                         const google::protobuf::uint64 patch_) {
-  version_number->set_major_(major_);
-  version_number->set_minor_(minor_);
-  version_number->set_patch_(patch_);
+  version_number.set_major_(major_);
+  version_number.set_minor_(minor_);
+  version_number.set_patch_(patch_);
 }
 
 } // namespace
 
 void populate_version_numbers(pb::Header &header) {
-  set_version_number(header.mutable_mgard_version(), MGARD_VERSION_MAJOR,
+  set_version_number(*header.mutable_mgard_version(), MGARD_VERSION_MAJOR,
                      MGARD_VERSION_MINOR, MGARD_VERSION_PATCH);
-  set_version_number(header.mutable_file_format_version(),
+  set_version_number(*header.mutable_file_format_version(),
                      MGARD_FILE_VERSION_MAJOR, MGARD_FILE_VERSION_MINOR,
                      MGARD_FILE_VERSION_PATCH);
 }

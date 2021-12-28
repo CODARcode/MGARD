@@ -212,11 +212,11 @@ TEST_CASE("reading topology and geometry", "[format]") {
 
   {
     domain.set_geometry(mgard::pb::Domain::EXPLICIT_CUBE);
-    mgard::pb::ExplicitCubeGeometry *const ecg =
-        domain.mutable_explicit_cube_geometry();
+    mgard::pb::ExplicitCubeGeometry &ecg =
+        *domain.mutable_explicit_cube_geometry();
     for (const std::size_t n : shape) {
       for (std::size_t i = 0; i < n; ++i) {
-        ecg->add_coordinates(static_cast<double>(i));
+        ecg.add_coordinates(static_cast<double>(i));
       }
     }
   }
@@ -238,28 +238,28 @@ TEST_CASE("reading topology and geometry", "[format]") {
 
 TEST_CASE("reading dataset type", "[format]") {
   mgard::pb::Header header;
-  mgard::pb::Dataset *const d = header.mutable_dataset();
-  d->set_dimension(1);
+  mgard::pb::Dataset &d = *header.mutable_dataset();
+  d.set_dimension(1);
   {
-    d->set_type(mgard::pb::Dataset::FLOAT);
+    d.set_type(mgard::pb::Dataset::FLOAT);
     REQUIRE(mgard::read_dataset_type(header) == mgard::pb::Dataset::FLOAT);
   }
   {
-    d->set_type(mgard::pb::Dataset::DOUBLE);
+    d.set_type(mgard::pb::Dataset::DOUBLE);
     REQUIRE(mgard::read_dataset_type(header) == mgard::pb::Dataset::DOUBLE);
   }
 }
 
 TEST_CASE("reading error control parameters", "[format]") {
   mgard::pb::Header header;
-  mgard::pb::ErrorControl *const e = header.mutable_error_control();
+  mgard::pb::ErrorControl &e = *header.mutable_error_control();
   {
     const double s = -0.25;
     const double tolerance = 0.01;
-    e->set_mode(mgard::pb::ErrorControl::ABSOLUTE);
-    e->set_norm(mgard::pb::ErrorControl::S_NORM);
-    e->set_s(s);
-    e->set_tolerance(tolerance);
+    e.set_mode(mgard::pb::ErrorControl::ABSOLUTE);
+    e.set_norm(mgard::pb::ErrorControl::S_NORM);
+    e.set_s(s);
+    e.set_tolerance(tolerance);
     const mgard::ErrorControlParameters error_control =
         mgard::read_error_control(header);
     REQUIRE(error_control.s == s);
@@ -269,11 +269,11 @@ TEST_CASE("reading error control parameters", "[format]") {
     const double s = std::numeric_limits<double>::infinity();
     const double tolerance = 0.5;
     const double norm_of_original_data = 4;
-    e->set_mode(mgard::pb::ErrorControl::RELATIVE);
-    e->set_norm(mgard::pb::ErrorControl::L_INFINITY);
-    e->set_s(s);
-    e->set_tolerance(tolerance);
-    e->set_norm_of_original_data(norm_of_original_data);
+    e.set_mode(mgard::pb::ErrorControl::RELATIVE);
+    e.set_norm(mgard::pb::ErrorControl::L_INFINITY);
+    e.set_s(s);
+    e.set_tolerance(tolerance);
+    e.set_norm_of_original_data(norm_of_original_data);
     const mgard::ErrorControlParameters error_control =
         mgard::read_error_control(header);
     REQUIRE(error_control.s == s);
@@ -283,30 +283,30 @@ TEST_CASE("reading error control parameters", "[format]") {
 
 TEST_CASE("checking decomposition parameters", "[format]") {
   mgard::pb::Header header;
-  mgard::pb::Decomposition *const d = header.mutable_decomposition();
-  d->set_transform(mgard::pb::Decomposition::MULTILEVEL_COEFFICIENTS);
+  mgard::pb::Decomposition &d = *header.mutable_decomposition();
+  d.set_transform(mgard::pb::Decomposition::MULTILEVEL_COEFFICIENTS);
   {
-    d->set_hierarchy(mgard::pb::Decomposition::GHOST_NODES);
+    d.set_hierarchy(mgard::pb::Decomposition::GHOST_NODES);
     REQUIRE_THROWS(mgard::check_decomposition_parameters(header));
   }
   {
-    d->set_hierarchy(mgard::pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
+    d.set_hierarchy(mgard::pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
     REQUIRE_NOTHROW(mgard::check_decomposition_parameters(header));
   }
 }
 
 TEST_CASE("reading quantization parameters", "[format]") {
   mgard::pb::Header header;
-  mgard::pb::Quantization *const q = header.mutable_quantization();
-  q->set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
+  mgard::pb::Quantization &q = *header.mutable_quantization();
+  q.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
   {
-    q->set_bin_widths(mgard::pb::Quantization::PER_LEVEL);
+    q.set_bin_widths(mgard::pb::Quantization::PER_LEVEL);
     REQUIRE_THROWS(mgard::read_quantization(header));
   }
   {
-    q->set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
-    q->set_type(mgard::pb::Quantization::INT16_T);
-    q->set_big_endian(true);
+    q.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
+    q.set_type(mgard::pb::Quantization::INT16_T);
+    q.set_big_endian(true);
     const mgard::QuantizationParameters quantization =
         mgard::read_quantization(header);
     REQUIRE(quantization.type == mgard::pb::Quantization::INT16_T);
@@ -316,14 +316,14 @@ TEST_CASE("reading quantization parameters", "[format]") {
 
 TEST_CASE("reading encoding compressor", "[format]") {
   mgard::pb::Header header;
-  mgard::pb::Encoding *const e = header.mutable_encoding();
-  e->set_preprocessor(mgard::pb::Encoding::SHUFFLE);
+  mgard::pb::Encoding &e = *header.mutable_encoding();
+  e.set_preprocessor(mgard::pb::Encoding::SHUFFLE);
   {
-    e->set_compressor(mgard::pb::Encoding::GPU_HUFFMAN_LZ4);
+    e.set_compressor(mgard::pb::Encoding::GPU_HUFFMAN_LZ4);
     REQUIRE_THROWS(mgard::read_encoding_compressor(header));
   }
   {
-    e->set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
+    e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
     REQUIRE(mgard::read_encoding_compressor(header) ==
             mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
   }
