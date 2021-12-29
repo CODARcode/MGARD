@@ -60,9 +60,8 @@ template <std::size_t N, typename Real>
 RieszRepresentative<N, Real>::RieszRepresentative(
     const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
     Real const *const representative)
-    : hierarchy(hierarchy), ndof(hierarchy.ndof()),
-      u(static_cast<Real *>(std::malloc(ndof * sizeof(Real)))),
-      f(static_cast<Real *>(std::malloc(ndof * sizeof(Real)))) {
+    : hierarchy(hierarchy), ndof(hierarchy.ndof()), u(new Real[ndof]),
+      f(new Real[ndof]) {
   std::copy(representative, representative + ndof, f);
   const mgard::TensorMassMatrix<N, Real> M(hierarchy, hierarchy.L);
   M(f);
@@ -70,8 +69,8 @@ RieszRepresentative<N, Real>::RieszRepresentative(
 
 template <std::size_t N, typename Real>
 RieszRepresentative<N, Real>::~RieszRepresentative() {
-  std::free(f);
-  std::free(u);
+  delete[] f;
+  delete[] u;
 }
 
 template <std::size_t N, typename Real>
@@ -94,14 +93,13 @@ void test_qoi_norm_equality(std::default_random_engine &generator,
   const mgard::TensorMeshHierarchy<N, Real> hierarchy =
       hierarchy_with_random_spacing(generator, distribution, shape);
 
-  Real *const representative =
-      static_cast<Real *>(std::malloc(hierarchy.ndof() * sizeof(Real)));
+  Real *const representative = new Real[hierarchy.ndof()];
   generate_reasonable_function<N, Real>(hierarchy, static_cast<Real>(1),
                                         generator, representative);
   const Real representative_norm = mgard::norm(hierarchy, representative, -s);
   const RieszRepresentative<N, Real> functional(hierarchy, representative);
   const mgard::TensorQuantityOfInterest<N, Real> Q(hierarchy, functional);
-  std::free(representative);
+  delete[] representative;
 
   REQUIRE(Q.norm(s) == Catch::Approx(representative_norm));
 }
@@ -127,11 +125,10 @@ template <std::size_t N, typename Real>
 void test_average_norms(const std::array<std::size_t, N> shape) {
   const mgard::TensorMeshHierarchy<N, Real> hierarchy(shape);
 
-  Real *const ones =
-      static_cast<Real *>(std::malloc(hierarchy.ndof() * sizeof(Real)));
+  Real *const ones = new Real[hierarchy.ndof()];
   std::fill(ones, ones + hierarchy.ndof(), static_cast<Real>(1));
   const RieszRepresentative<N, Real> functional(hierarchy, ones);
-  std::free(ones);
+  delete[] ones;
   const mgard::TensorQuantityOfInterest<N, Real> Q(hierarchy, functional);
 
   const std::vector<Real> smoothness_parameters = {-1.5, -0.5, 0, 0.5, 1.5};

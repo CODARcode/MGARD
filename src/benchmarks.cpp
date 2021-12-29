@@ -49,11 +49,11 @@ static void BM_TensorLinearOperator(benchmark::State &state) {
   TLO<N, Real> A(hierarchy, hierarchy.L);
 
   const std::size_t ndof = hierarchy.ndof();
-  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const u = new Real[ndof];
   for (auto _ : state) {
     A(u);
   }
-  std::free(u);
+  delete[] u;
 
   state.SetComplexityN(ndof);
   state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
@@ -91,13 +91,13 @@ static void BM_structured_shuffle(benchmark::State &state) {
       mesh_shape<N>(state.range(0)));
 
   const std::size_t ndof = hierarchy.ndof();
-  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
-  Real *const v = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const u = new Real[ndof];
+  Real *const v = new Real[ndof];
   for (auto _ : state) {
     mgard::shuffle(hierarchy, u, v);
   }
-  std::free(v);
-  std::free(u);
+  delete[] v;
+  delete[] u;
 
   state.SetComplexityN(ndof);
   state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
@@ -109,13 +109,13 @@ static void BM_structured_unshuffle(benchmark::State &state) {
       mesh_shape<N>(state.range(0)));
 
   const std::size_t ndof = hierarchy.ndof();
-  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
-  Real *const v = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const u = new Real[ndof];
+  Real *const v = new Real[ndof];
   for (auto _ : state) {
     mgard::unshuffle(hierarchy, u, v);
   }
-  std::free(v);
-  std::free(u);
+  delete[] v;
+  delete[] u;
 
   state.SetComplexityN(ndof);
   state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
@@ -143,11 +143,11 @@ static void BM_structured_decompose(benchmark::State &state) {
       mesh_shape<N>(state.range(0)));
 
   const std::size_t ndof = hierarchy.ndof();
-  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const u = new Real[ndof];
   for (auto _ : state) {
     mgard::decompose(hierarchy, u);
   }
-  std::free(u);
+  delete[] u;
 
   state.SetComplexityN(ndof);
   state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
@@ -159,11 +159,11 @@ static void BM_structured_recompose(benchmark::State &state) {
       mesh_shape<N>(state.range(0)));
 
   const std::size_t ndof = hierarchy.ndof();
-  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const u = new Real[ndof];
   for (auto _ : state) {
     mgard::recompose(hierarchy, u);
   }
-  std::free(u);
+  delete[] u;
 
   state.SetComplexityN(ndof);
   state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
@@ -191,7 +191,7 @@ static void BM_structured_quantize(benchmark::State &state) {
       mesh_shape<N>(state.range(0)));
 
   const std::size_t ndof = hierarchy.ndof();
-  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const u = new Real[ndof];
   std::fill(u, u + ndof, 3);
   const Real s = 1;
   const Real tolerance = 0.75;
@@ -203,7 +203,7 @@ static void BM_structured_quantize(benchmark::State &state) {
     benchmark::DoNotOptimize(std::accumulate(quantized.begin(), quantized.end(),
                                              static_cast<Int>(0)));
   }
-  std::free(u);
+  delete[] u;
 
   state.SetComplexityN(ndof);
   state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
@@ -215,7 +215,7 @@ static void BM_structured_dequantize(benchmark::State &state) {
       mesh_shape<N>(state.range(0)));
 
   const std::size_t ndof = hierarchy.ndof();
-  Int *const n = static_cast<Int *>(std::malloc(ndof * sizeof(Int)));
+  Int *const n = new Int[n];
   std::fill(n, n + ndof, -2);
   const Real s = -1;
   const Real tolerance = 0.25;
@@ -228,7 +228,7 @@ static void BM_structured_dequantize(benchmark::State &state) {
     benchmark::DoNotOptimize(std::accumulate(
         dequantized.begin(), dequantized.end(), static_cast<Real>(0)));
   }
-  std::free(n);
+  delete[] n;
 
   state.SetComplexityN(ndof);
   state.SetBytesProcessed(state.iterations() * ndof * sizeof(Int));
@@ -256,7 +256,7 @@ static void BM_structured_compress(benchmark::State &state) {
       mesh_shape<N>(state.range(0)));
 
   const std::size_t ndof = hierarchy.ndof();
-  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const u = new Real[ndof];
   const Real s = 0;
   const Real tolerance = 0.5;
   for (auto _ : state) {
@@ -264,7 +264,7 @@ static void BM_structured_compress(benchmark::State &state) {
     std::fill(u, u + ndof, 0);
     mgard::compress(hierarchy, u, s, tolerance);
   }
-  std::free(u);
+  delete[] u;
 
   state.SetComplexityN(ndof);
   state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));
@@ -276,7 +276,7 @@ static void BM_structured_decompress(benchmark::State &state) {
       mesh_shape<N>(state.range(0)));
 
   const std::size_t ndof = hierarchy.ndof();
-  Real *const u = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const u = new Real[ndof];
   // TODO: Think of a better way to do this.
   std::fill(u, u + ndof, 0);
   const Real s = 0;
@@ -287,7 +287,7 @@ static void BM_structured_decompress(benchmark::State &state) {
   for (auto _ : state) {
     mgard::decompress(compressed);
   }
-  std::free(u);
+  delete[] u;
 
   state.SetComplexityN(ndof);
   state.SetBytesProcessed(state.iterations() * ndof * sizeof(Real));

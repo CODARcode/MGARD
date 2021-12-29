@@ -86,9 +86,9 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
     for (std::size_t N : Ns) {
       const SimpleDiagonalMatvec A(N);
       const Identity P(N);
-      double *const b = (double *)malloc(N * sizeof(*b));
-      double *const x = (double *)malloc(N * sizeof(*x));
-      double *const buffer = (double *)malloc(4 * N * sizeof(*x));
+      double *const b = new double[N];
+      double *const x = new double[N];
+      double *const buffer = new double[4 * N];
 
       for (std::size_t i = 0; i < N; ++i) {
         b[i] = 4 + (i % 7);
@@ -141,9 +141,9 @@ TEST_CASE("preconditioned conjugate gradient algorithm", "[pcg]") {
         REQUIRE(tracker);
       }
 
-      free(buffer);
-      free(x);
-      free(b);
+      delete[] buffer;
+      delete[] x;
+      delete[] b;
     }
   }
   SECTION("mass matrix system") {
