@@ -29,14 +29,14 @@ Real L_2_norm(const TensorMeshHierarchy<N, Real> &hierarchy,
               Real const *const u) {
   const std::size_t ndof = hierarchy.ndof();
   // TODO: Allow memory buffer to be passed in.
-  Real *const product = static_cast<Real *>(std::malloc(sizeof(Real) * ndof));
+  Real *const product = new Real[ndof];
   {
     std::copy(u, u + ndof, product);
     const TensorMassMatrix<N, Real> M(hierarchy, hierarchy.L);
     M(product);
   }
   const Real norm = std::sqrt(blas::dotu(ndof, u, product));
-  std::free(product);
+  delete[] product;
   return norm;
 }
 
@@ -57,9 +57,7 @@ orthogonal_component_square_norms(const TensorMeshHierarchy<N, Real> &hierarchy,
   // `hierarchy.ndof(L)` `Real`s because the coefficients corresponding to the
   // `hierarchy.L - 1`th level are located at the front of a shuffled array.
   Real *const projection =
-      hierarchy.L ? static_cast<Real *>(std::malloc(
-                        hierarchy.ndof(hierarchy.L - 1) * sizeof(Real)))
-                  : nullptr;
+      hierarchy.L ? new Real[hierarchy.ndof(hierarchy.L - 1)] : nullptr;
   // Shuffled arrays hold the coefficients associated to any of the levels in
   // the hierarchy in a contiguous block at the front. This function relies on
   // this property, although the calls to `hierarchy.on_nodes` might give the
@@ -85,7 +83,7 @@ orthogonal_component_square_norms(const TensorMeshHierarchy<N, Real> &hierarchy,
     square_norms.at(l) =
         blas::dotu(projection_on_l.size, projection_on_l.data, f_on_l.data);
   }
-  std::free(projection);
+  delete[] projection;
 
   for (std::size_t i = 1; i <= hierarchy.L; ++i) {
     const std::size_t l = hierarchy.L - i;
@@ -105,7 +103,7 @@ Real s_norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
             const Real s) {
   const std::size_t ndof = hierarchy.ndof();
 
-  Real *const f = static_cast<Real *>(std::malloc(sizeof(Real) * ndof));
+  Real *const f = new Real[ndof];
   {
     std::copy(u, u + ndof, f);
     const TensorMassMatrix<N, Real> M(hierarchy, hierarchy.L);
@@ -113,7 +111,7 @@ Real s_norm(const TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
   }
   const std::vector<Real> squares_for_norm =
       orthogonal_component_square_norms<N, Real>(hierarchy, u, f);
-  std::free(f);
+  delete[] f;
 
   Real square_norm = 0;
   for (std::size_t l = 0; l <= hierarchy.L; ++l) {

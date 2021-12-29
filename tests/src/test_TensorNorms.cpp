@@ -151,10 +151,10 @@ void test_component_norms_sum(
       hierarchy_with_random_spacing(generator, distribution, shape);
   const std::size_t ndof = hierarchy.ndof();
 
-  Real *const u = static_cast<Real *>(std::malloc(sizeof(Real) * ndof));
+  Real *const u = new Real[ndof];
   generate_reasonable_function(hierarchy, s, generator, u);
 
-  Real *const f = static_cast<Real *>(std::malloc(sizeof(Real) * ndof));
+  Real *const f = new Real[ndof];
   {
     std::copy(u, u + ndof, f);
     const mgard::TensorMassMatrix<N, Real> M(hierarchy, hierarchy.L);
@@ -162,13 +162,13 @@ void test_component_norms_sum(
   }
   const std::vector<Real> square_norms =
       mgard::orthogonal_component_square_norms(hierarchy, u, f);
-  std::free(f);
+  delete[] f;
 
   REQUIRE(std::sqrt(std::accumulate(square_norms.begin(), square_norms.end(),
                                     static_cast<Real>(0))) ==
           Catch::Approx(mgard::norm<N, Real>(hierarchy, u, 0)));
 
-  std::free(u);
+  delete[] u;
 
   {
     TrialTracker tracker;

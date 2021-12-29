@@ -14,10 +14,9 @@ TensorQuantityOfInterest<N, Real>::TensorQuantityOfInterest(
     : hierarchy(hierarchy) {
   const std::size_t ndof = hierarchy.ndof();
   // Riesz representative of the functional.
-  Real *const representative =
-      static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const representative = new Real[ndof];
   // Product of the mass matrix and the Riesz representative.
-  Real *const f = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const f = new Real[ndof];
   {
     // Product of the mass matrix and the Riesz representative (unshuffled
     // order). Reusing `representative`'s memory.
@@ -41,8 +40,8 @@ TensorQuantityOfInterest<N, Real>::TensorQuantityOfInterest(
   }
   component_square_norms =
       orthogonal_component_square_norms(hierarchy, representative, f);
-  std::free(f);
-  std::free(representative);
+  delete[] f;
+  delete[] representative;
 }
 
 template <std::size_t N, typename Real>
