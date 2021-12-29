@@ -46,6 +46,25 @@ public:
                     const Real tolerance, void const *const data,
                     const std::size_t size);
 
+#ifdef MGARD_PROTOBUF
+  //! Constructor.
+  //!
+  //!\overload
+  //!
+  //! The buffer pointed to by `data` is freed when this object is destructed.
+  //! It should be allocated with `new unsigned char[size]`.
+  //!
+  //!\param hierarchy Associated mesh hierarchy.
+  //!\param s Smoothness parameter.
+  //!\param tolerance Error tolerance.
+  //!\param data Compressed dataset.
+  //!\param size Size of the compressed dataset in bytes.
+  //!\param header Compressed dataset header.
+  CompressedDataset(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
+                    const Real tolerance, void const *const data,
+                    const std::size_t size, const pb::Header &header);
+#endif
+
   //! Mesh hierarchy used in compressing the dataset.
   const TensorMeshHierarchy<N, Real> hierarchy;
 
