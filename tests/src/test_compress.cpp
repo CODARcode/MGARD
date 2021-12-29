@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <cstring>
 
 #include <algorithm>
 #include <numeric>
@@ -26,18 +25,16 @@ template <std::size_t N, typename Real>
 void test_compression_decompression(
     const std::array<std::size_t, N> &shape,
     // Used for generating the data.
-    const Real s, std::default_random_engine &generator,
+    const Real s, std::default_random_engine &gen,
     const std::vector<Real> &smoothness_parameters,
     const std::vector<Real> &tolerances) {
-  std::uniform_real_distribution<Real> node_spacing_distribution(1, 2);
+  std::uniform_real_distribution<Real> node_spacing_dis(1, 2);
   const mgard::TensorMeshHierarchy<N, Real> hierarchy =
-      hierarchy_with_random_spacing(generator, node_spacing_distribution,
-                                    shape);
+      hierarchy_with_random_spacing(gen, node_spacing_dis, shape);
+
   const std::size_t ndof = hierarchy.ndof();
-
   Real *const buffer = new Real[ndof];
-  generate_reasonable_function(hierarchy, s, generator, buffer);
-
+  generate_reasonable_function(hierarchy, s, gen, buffer);
   Real *const u = new Real[ndof];
   // `generate_reasonable_function` uses `TensorMeshHierarchy::at`, so the
   // function will come out shuffled. `mgard::compress` shuffles its input,
@@ -53,15 +50,11 @@ void test_compression_decompression(
       blas::copy(ndof, u, v);
       blas::copy(ndof, u, error);
       // `v` and `error` are now unshuffled.
-
       const mgard::CompressedDataset<N, Real> compressed =
           mgard::compress(hierarchy, v, s, tolerance);
-
-      const std::unique_ptr<unsigned char const[]> new_data_ =
-          mgard::decompress(compressed.data(), compressed.size());
-      Real const *const new_data =
-          reinterpret_cast<Real const *>(new_data_.get());
-      blas::axpy(ndof, static_cast<Real>(-1), new_data, error);
+      const mgard::DecompressedDataset<N, Real> decompressed =
+          mgard::decompress(compressed);
+      blas::axpy(ndof, static_cast<Real>(-1), decompressed.data(), error);
       // `error` is calculated, but it's unshuffled. `mgard::norm` expects its
       // input to be shuffled, so we shuffle into `buffer`.
       mgard::shuffle(hierarchy, error, buffer);
@@ -80,23 +73,23 @@ void test_compression_decompression(
 
 TEMPLATE_TEST_CASE("compression followed by decompression", "[compress]", float,
                    double) {
-  std::default_random_engine generator;
+  std::default_random_engine gen(343873);
   const std::vector<TestType> smoothness_parameters = {
       -1.5, -0.5, 0.0, 0.5, 1.5, std::numeric_limits<TestType>::infinity()};
   const std::vector<TestType> tolerances = {1, 0.1, 0.01, 0.001};
 
   test_compression_decompression<1, TestType>(
-      {65}, 0.1, generator, smoothness_parameters, tolerances);
+      {65}, 0.1, gen, smoothness_parameters, tolerances);
   test_compression_decompression<1, TestType>(
-      {55}, 1.0, generator, smoothness_parameters, tolerances);
+      {55}, 1.0, gen, smoothness_parameters, tolerances);
   test_compression_decompression<2, TestType>(
-      {17, 19}, 0.3, generator, smoothness_parameters, tolerances);
+      {17, 19}, 0.3, gen, smoothness_parameters, tolerances);
   test_compression_decompression<2, TestType>(
-      {18, 18}, 0.5, generator, smoothness_parameters, tolerances);
+      {18, 18}, 0.5, gen, smoothness_parameters, tolerances);
   test_compression_decompression<3, TestType>(
-      {10, 5, 12}, 0, generator, smoothness_parameters, tolerances);
+      {10, 5, 12}, 0, gen, smoothness_parameters, tolerances);
   test_compression_decompression<3, TestType>(
-      {9, 9, 6}, 1.5, generator, smoothness_parameters, tolerances);
+      {9, 9, 6}, 1.5, gen, smoothness_parameters, tolerances);
 }
 
 namespace {
@@ -111,12 +104,10 @@ void test_compression_error_bound(
 
   const mgard::CompressedDataset<N, Real> compressed =
       mgard::compress(hierarchy, v, s, tolerance);
+  const mgard::DecompressedDataset<N, Real> decompressed =
+      mgard::decompress(compressed);
 
-  const std::unique_ptr<unsigned char const[]> new_data_ =
-      mgard::decompress(compressed.data(), compressed.size());
-  const Real *const new_data = reinterpret_cast<Real const *>(new_data_.get());
-  blas::axpy(ndof, static_cast<Real>(-1), new_data, error);
-
+  blas::axpy(ndof, static_cast<Real>(-1), decompressed.data(), error);
   const Real achieved = mgard::norm(hierarchy, error, s);
   delete[] error;
 
@@ -133,11 +124,9 @@ TEST_CASE("1D quadratic data", "[compress]") {
     for (std::size_t i = 0; i < ndof; ++i) {
       v[i] = static_cast<float>(i * i) / ndof;
     }
-
     const float s = std::numeric_limits<float>::infinity();
     const float tolerance = 0.001;
     test_compression_error_bound<1, float>(hierarchy, v, s, tolerance);
-
     delete[] v;
   }
   {
@@ -147,11 +136,9 @@ TEST_CASE("1D quadratic data", "[compress]") {
     for (std::size_t i = 0; i < ndof; ++i) {
       v[i] = static_cast<double>(i * i) / ndof;
     }
-
     const double s = std::numeric_limits<double>::infinity();
     const double tolerance = 0.01;
     test_compression_error_bound<1, double>(hierarchy, v, s, tolerance);
-
     delete[] v;
   }
 }
@@ -161,11 +148,9 @@ TEST_CASE("3D constant data", "[compress]") {
   const std::size_t ndof = hierarchy.ndof();
   float *const v = new float[ndof];
   std::fill(v, v + ndof, 10);
-
   const float s = std::numeric_limits<float>::infinity();
   const float tolerance = 0.01;
   test_compression_error_bound<3, float>(hierarchy, v, s, tolerance);
-
   delete[] v;
 }
 
@@ -177,11 +162,9 @@ TEST_CASE("1D cosine data", "[compress]") {
   for (std::size_t i = 0; i < ndof; ++i) {
     v[i] = std::cos(2 * pi * i / ndof);
   }
-
   const double s = std::numeric_limits<double>::infinity();
   const double tolerance = 0.000001;
   test_compression_error_bound<1, double>(hierarchy, v, s, tolerance);
-
   delete[] v;
 }
 
@@ -194,11 +177,9 @@ TEST_CASE("2D cosine data", "[compress]") {
     const std::array<float, 2> xy = coordinates(hierarchy, node);
     hierarchy.at(v, node.multiindex) = std::cos(12 * xy.at(0) - 5 * xy.at(1));
   }
-
   const float s = std::numeric_limits<float>::infinity();
   const float tolerance = 0.001;
   test_compression_error_bound<2, float>(hierarchy, v, s, tolerance);
-
   delete[] v;
 }
 
@@ -208,43 +189,23 @@ template <std::size_t N, std::size_t M, typename Real>
 void test_compression_on_flat_mesh(
     const mgard::TensorMeshHierarchy<N, Real> &hierarchy, Real const *const u,
     const mgard::CompressedDataset<N, Real> &expected,
-    const std::array<std::size_t, M> shape, Real *v, TrialTracker &tracker) {
+    const std::array<std::size_t, M> shape, Real *const v,
+    TrialTracker &tracker) {
   const std::size_t ndof = hierarchy.ndof();
   const mgard::TensorMeshHierarchy<M, Real> flat_hierarchy =
       make_flat_hierarchy<N, M, Real>(hierarchy, shape);
   std::copy(u, u + ndof, v);
   const mgard::CompressedDataset<M, Real> obtained =
       mgard::compress(flat_hierarchy, v, expected.s, expected.tolerance);
-
-  std::size_t coord_size_expected = 0;
-  for (std::size_t i = 0; i < N; i++) {
-    coord_size_expected += hierarchy.coordinates.at(i).size() * sizeof(Real);
+  tracker += expected.size() == obtained.size();
+  {
+    unsigned char const *const p =
+        static_cast<unsigned char const *>(expected.data());
+    unsigned char const *const q =
+        static_cast<unsigned char const *>(obtained.data());
+    const std::size_t n = expected.size();
+    tracker += std::equal(p, p + n, q);
   }
-
-  std::size_t coord_size_obtained = 0;
-  for (std::size_t i = 0; i < M; i++) {
-    coord_size_obtained +=
-        flat_hierarchy.coordinates.at(i).size() * sizeof(Real);
-  }
-
-  tracker += expected.size() == (obtained.size() - (M - N) * 8 -
-                                 (coord_size_obtained - coord_size_expected));
-
-  const std::size_t metadata_expected = 5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 +
-                                        1 + N * 8 + 8 + 8 + 8 + 4 + 1 +
-                                        coord_size_expected;
-
-  const std::size_t metadata_obtained = 5 + (1 + 1 + 1) + (1 + 1 + 1) + 4 + 1 +
-                                        1 + M * 8 + 8 + 8 + 8 + 4 + 1 +
-                                        coord_size_obtained;
-
-  tracker +=
-      std::memcmp(
-          static_cast<unsigned char *>(const_cast<void *>(expected.data())) +
-              metadata_expected,
-          static_cast<unsigned char *>(const_cast<void *>(obtained.data())) +
-              metadata_obtained,
-          expected.size() - metadata_expected) == 0;
 }
 
 } // namespace
@@ -294,25 +255,35 @@ namespace {
 template <std::size_t N, std::size_t M, typename Real>
 void test_decompression_on_flat_mesh(
     const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
-    const mgard::CompressedDataset<N, Real> &compressed, const Real *expected,
+    const mgard::CompressedDataset<N, Real> &compressed,
+    const mgard::DecompressedDataset<N, Real> &expected,
     const std::array<std::size_t, M> shape, TrialTracker &tracker) {
   const std::size_t ndof = hierarchy.ndof();
   const mgard::TensorMeshHierarchy<M, Real> flat_hierarchy =
       make_flat_hierarchy<N, M, Real>(hierarchy, shape);
-  void *const data = new unsigned char[compressed.size()];
-  std::memcpy(data, compressed.data(), compressed.size());
+  const std::size_t nbytes = compressed.size();
+  void *const data = new unsigned char[nbytes];
+  {
+    unsigned char const *const p =
+        static_cast<unsigned char const *>(compressed.data());
+    unsigned char *const q = static_cast<unsigned char *>(data);
+    std::copy(p, p + nbytes, q);
+  }
+
+  // TODO: Figure out how you want to handle this.
+  mgard::pb::Header flat_header = *compressed.header();
+  flat_hierarchy.populate(flat_header);
+
   const mgard::CompressedDataset<M, Real> flat_compressed(
       flat_hierarchy, compressed.s, compressed.tolerance, data,
-      compressed.size());
-
-  const std::unique_ptr<unsigned char const[]> obtained_ =
-      mgard::decompress(flat_compressed.data(), flat_compressed.size());
-  Real const *const obtained = reinterpret_cast<Real const *>(obtained_.get());
+      compressed.size(), flat_header);
+  const mgard::DecompressedDataset<M, Real> obtained =
+      mgard::decompress(flat_compressed);
   // Originally we compared `expected.data()` and `obtained.data()` bitwise.
   // When using `-ffast-math` after precomputing the shuffled indices, though,
   // we were getting some small discrepancies.
-  Real const *const p = expected;
-  Real const *const q = obtained;
+  Real const *const p = expected.data();
+  Real const *const q = obtained.data();
   for (std::size_t i = 0; i < ndof; ++i) {
     const Real expected_ = p[i];
     const Real obtained_ = q[i];
@@ -347,10 +318,8 @@ TEST_CASE("decompressing on 'flat' meshes", "[compress]") {
     for (const double tolerance : tolerances) {
       const mgard::CompressedDataset<3, double> compressed =
           mgard::compress(hierarchy, u, s, tolerance);
-      const std::unique_ptr<unsigned char const[]> expected_ =
-          mgard::decompress(compressed.data(), compressed.size());
-      double const *const expected =
-          reinterpret_cast<double const *>(expected_.get());
+      const mgard::DecompressedDataset<3, double> expected =
+          mgard::decompress(compressed);
 
       test_decompression_on_flat_mesh<3, 4, double>(
           hierarchy, compressed, expected, {6, 5, 1, 7}, tracker);
