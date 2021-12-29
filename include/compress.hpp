@@ -9,6 +9,7 @@
 //!\file
 //!\brief Compression and decompression API.
 
+#include "CompressedDataset.hpp"
 #include "TensorMeshHierarchy.hpp"
 
 #include <memory>
@@ -20,131 +21,8 @@
 
 #include "compress_cuda.hpp"
 
-#ifdef MGARD_PROTOBUF
-#include <ostream>
-
-#include "proto/mgard.pb.h"
-#endif
-
 //! Implementation of the MGARD compression and decompression algorithms.
 namespace mgard {
-
-//! Compressed dataset and associated compression parameters.
-template <std::size_t N, typename Real> class CompressedDataset {
-public:
-  //! Constructor.
-  //!
-  //! The buffer pointed to by `data` is freed when this object is destructed.
-  //! It should be allocated with `new unsigned char[size]`.
-  //!
-  //!\param hierarchy Associated mesh hierarchy.
-  //!\param s Smoothness parameter.
-  //!\param tolerance Error tolerance.
-  //!\param data Compressed dataset.
-  //!\param size Size of the compressed dataset in bytes.
-  CompressedDataset(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
-                    const Real tolerance, void const *const data,
-                    const std::size_t size);
-
-#ifdef MGARD_PROTOBUF
-  //! Constructor.
-  //!
-  //!\overload
-  //!
-  //! The buffer pointed to by `data` is freed when this object is destructed.
-  //! It should be allocated with `new unsigned char[size]`.
-  //!
-  //!\param hierarchy Associated mesh hierarchy.
-  //!\param s Smoothness parameter.
-  //!\param tolerance Error tolerance.
-  //!\param data Compressed dataset.
-  //!\param size Size of the compressed dataset in bytes.
-  //!\param header Compressed dataset header.
-  CompressedDataset(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
-                    const Real tolerance, void const *const data,
-                    const std::size_t size, const pb::Header &header);
-#endif
-
-  //! Mesh hierarchy used in compressing the dataset.
-  const TensorMeshHierarchy<N, Real> hierarchy;
-
-  //! Smoothness parameter used in compressing the dataset.
-  const Real s;
-
-  //! Error tolerance used in compressing the dataset.
-  const Real tolerance;
-
-  //! Return a pointer to the compressed dataset.
-  //!
-  //! *The format of the compressed dataset is an experimental part of the API.*
-  void const *data() const;
-
-  //! Return the size in bytes of the compressed dataset.
-  std::size_t size() const;
-
-#ifdef MGARD_PROTOBUF
-  //! Return a pointer to the compressed dataset header.
-  //!
-  //! *This is an experimental part of the API.*
-  pb::Header const *header() const;
-
-  //! Serialize the compressed dataset.
-  //!
-  //! *This is an experimental part of the API.*
-  void write(std::ostream &ostream) const;
-#endif
-
-private:
-  //! Compressed dataset.
-  std::unique_ptr<const unsigned char[]> data_;
-
-  //! Size of the compressed dataset in bytes.
-  const std::size_t size_;
-
-#ifdef MGARD_PROTOBUF
-  //! Header for compressed dataset.
-  //!
-  //! *This is an experimental part of the API.*
-  pb::Header header_;
-#endif
-};
-
-//! Decompressed dataset and associated compression parameters.
-template <std::size_t N, typename Real> class DecompressedDataset {
-public:
-  //! Constructor.
-  //!
-  //! The buffer pointed to by `data` is freed when this object is destructed.
-  //! It should be allocated with `new Real[size]`.
-  //!
-  //!\param compressed Compressed dataset which was decompressed.
-  //!\param data Nodal values of the decompressed function.
-  DecompressedDataset(const CompressedDataset<N, Real> &compressed,
-                      Real const *const data);
-
-  //! Mesh hierarchy used in compressing the original dataset.
-  const TensorMeshHierarchy<N, Real> hierarchy;
-
-  //! Smoothness parameter used in compressing the original dataset.
-  const Real s;
-
-  //! Error tolerance used in compressing the original dataset.
-  const Real tolerance;
-
-  //! Return a pointer to the decompressed dataset.
-  Real const *data() const;
-
-private:
-  //! Decompressed dataset.
-  std::unique_ptr<const Real[]> data_;
-
-#ifdef MGARD_PROTOBUF
-  //! Header for decompressed dataset.
-  //!
-  //! *This is an experimental part of the API.*
-  pb::Header header_;
-#endif
-};
 
 //! Compress a function on a tensor product grid.
 //!
