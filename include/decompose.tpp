@@ -128,7 +128,7 @@ void zero_on_old_subtract_and_copy_back_on_new(
 template <std::size_t N, typename Real>
 void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
   const std::size_t ndof = hierarchy.ndof();
-  Real *const buffer = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const buffer = new Real[ndof];
   for (std::size_t l = hierarchy.L; l > 0; --l) {
     // We start with `Q_{l}u` on `nodes(l)` of `v`. First we copy the values on
     // `old_nodes(l)` to `buffer`. At the same time, we zero the values on
@@ -165,7 +165,7 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
     // Now we have `(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)` of `v` and
     // `Q_{l - 1}u` on `old_nodes(l)` of `v`.
   }
-  std::free(buffer);
+  delete[] buffer;
 }
 
 #ifdef MGARD_PROTOBUF
@@ -181,7 +181,7 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
 template <std::size_t N, typename Real>
 void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
   const std::size_t ndof = hierarchy.ndof();
-  Real *const buffer = static_cast<Real *>(std::malloc(ndof * sizeof(Real)));
+  Real *const buffer = new Real[ndof];
   for (std::size_t l = 1; l <= hierarchy.L; ++l) {
     // We start with `Q_{l - 1}u` on `old_nodes(l)` of `v` and
     // `(I - Π_{l - 1})Q_{l}u` on `new_nodes(l)` of `v`. We begin by copying
@@ -215,7 +215,7 @@ void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
     copy_negation_on_old_subtract_on_new(hierarchy, buffer, v, l);
     // Now we have `Q_{l}u` on `nodes(l)` of `v`.
   }
-  std::free(buffer);
+  delete[] buffer;
 }
 
 #ifdef MGARD_PROTOBUF

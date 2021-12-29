@@ -246,11 +246,11 @@ template <std::size_t N>
 void test_entry_indexing_exhaustive(const std::array<std::size_t, N> shape) {
   const mgard::TensorMeshHierarchy<N, float> hierarchy(shape);
   const std::size_t ndof = hierarchy.ndof();
-  float *const buffer = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+  float *const buffer = new float[ndof];
   std::iota(buffer, buffer + ndof, 0);
-  float *const u = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+  float *const u = new float[ndof];
   mgard::shuffle(hierarchy, buffer, u);
-  std::free(buffer);
+  delete[] buffer;
   int expected = 0;
   TrialTracker tracker;
   for (const mgard::TensorNode<N> node :
@@ -263,7 +263,7 @@ void test_entry_indexing_exhaustive(const std::array<std::size_t, N> shape) {
     ++expected;
   }
   REQUIRE(tracker);
-  std::free(u);
+  delete[] u;
 }
 
 } // namespace
@@ -412,13 +412,13 @@ TEST_CASE("index iteration", "[TensorMeshHierarchy]") {
 TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
   // The largest of the mesh sizes used below.
   const std::size_t N = 11 * 14;
-  float *const buffer = static_cast<float *>(std::malloc(N * sizeof(float)));
+  float *const buffer = new float[N];
   std::iota(buffer, buffer + N, 1);
 
   {
     const mgard::TensorMeshHierarchy<1, float> hierarchy({17});
     const std::size_t ndof = hierarchy.ndof();
-    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    float *const v = new float[ndof];
     mgard::shuffle(hierarchy, buffer, v);
     std::vector<float> encountered_values;
     std::vector<std::size_t> encountered_ls;
@@ -431,13 +431,13 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     const std::vector<std::size_t> expected_ls = {0, 2, 1, 2, 0};
     REQUIRE(encountered_values == expected_values);
     REQUIRE(encountered_ls == expected_ls);
-    std::free(v);
+    delete[] v;
   }
 
   {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({3, 5});
     const std::size_t ndof = hierarchy.ndof();
-    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    float *const v = new float[ndof];
     mgard::shuffle(hierarchy, buffer, v);
     std::vector<float> encountered;
     // For the indices.
@@ -450,13 +450,13 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     const std::vector<float> expected = {1, 3, 5, 11, 13, 15};
     REQUIRE(encountered == expected);
     REQUIRE(tracker);
-    std::free(v);
+    delete[] v;
   }
 
   {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({9, 3});
     const std::size_t ndof = hierarchy.ndof();
-    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    float *const v = new float[ndof];
     mgard::shuffle(hierarchy, buffer, v);
     std::vector<float> encountered;
     // For the indices.
@@ -469,13 +469,13 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     const std::vector<float> expected = {1, 3, 7, 9, 13, 15, 19, 21, 25, 27};
     REQUIRE(encountered == expected);
     REQUIRE(tracker);
-    std::free(v);
+    delete[] v;
   }
 
   {
     const mgard::TensorMeshHierarchy<3, float> hierarchy({3, 3, 3});
     const std::size_t ndof = hierarchy.ndof();
-    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    float *const v = new float[ndof];
     mgard::shuffle(hierarchy, buffer, v);
     float expected_value = 1;
     TrialTracker tracker;
@@ -493,13 +493,13 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
     }
     REQUIRE(tracker);
     REQUIRE(encountered_ls == expected_ls);
-    std::free(v);
+    delete[] v;
   }
 
   {
     const mgard::TensorMeshHierarchy<2, float> hierarchy({11, 14});
     const std::size_t ndof = hierarchy.ndof();
-    float *const v = static_cast<float *>(std::malloc(ndof * sizeof(float)));
+    float *const v = new float[ndof];
     mgard::shuffle(hierarchy, buffer, v);
     std::vector<std::array<std::size_t, 2>> encountered_multiindices;
     std::vector<std::size_t> encountered_ls;
@@ -519,10 +519,10 @@ TEST_CASE("node iteration", "[TensorMeshHierarchy]") {
                                                   2, 2, 0, 2, 1, 2, 0};
     REQUIRE(encountered_multiindices == expected_multiindices);
     REQUIRE(encountered_ls == expected_ls);
-    std::free(v);
+    delete[] v;
   }
 
-  std::free(buffer);
+  delete[] buffer;
 }
 
 TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {

@@ -172,14 +172,14 @@ int read_compress_write(const cli::CompressionArguments &arguments) {
     }
     inputfile.seekg(0, std::ios_base::beg);
   }
-  Real *const v = static_cast<Real *>(std::malloc(ndof * sizeof(*v)));
+  Real *const v = new Real[ndof];
   inputfile.read(reinterpret_cast<char *>(v), ndof * sizeof(*v));
   inputfile.close();
 
   const mgard::CompressedDataset<N, Real> compressed =
       mgard::compress(hierarchy, v, static_cast<Real>(arguments.s),
                       static_cast<Real>(arguments.tolerance));
-  std::free(v);
+  delete[] v;
 
   std::cout << "size of compressed dataset: " << compressed.size() << " bytes"
             << std::endl;
