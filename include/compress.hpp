@@ -42,6 +42,7 @@ template <std::size_t N, typename Real>
 DecompressedDataset<N, Real>
 decompress(const CompressedDataset<N, Real> &compressed);
 
+#ifdef MGARD_PROTOBUF
 //! Decompress a dataset stored in self-describing format.
 //!
 //! *This is an experimental part of the API.*
@@ -50,6 +51,7 @@ decompress(const CompressedDataset<N, Real> &compressed);
 //!\param size Size in bytes of compressed dataset.
 std::unique_ptr<unsigned char const[]> decompress(void const *const data,
                                                   const std::size_t size);
+#endif
 
 } // namespace mgard
 

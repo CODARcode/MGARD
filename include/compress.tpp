@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <array>
+#include <limits>
 #include <numeric>
 #include <vector>
 
@@ -45,6 +46,17 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   populate_defaults(header);
   hierarchy.populate(header);
   decompose(hierarchy, u, header);
+  {
+    pb::ErrorControl &e = *header.mutable_error_control();
+    e.set_mode(pb::ErrorControl::ABSOLUTE);
+    if (s == std::numeric_limits<Real>::infinity()) {
+      e.set_norm(pb::ErrorControl::L_INFINITY);
+    } else {
+      e.set_norm(pb::ErrorControl::S_NORM);
+      e.set_s(s);
+    }
+    e.set_tolerance(tolerance);
+  }
   MemoryBuffer<unsigned char> quantized = quantization_buffer(ndof, header);
   quantize(hierarchy, s, tolerance, u, quantized.data.get(), header);
   MemoryBuffer<unsigned char> buffer =
