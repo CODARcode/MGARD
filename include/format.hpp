@@ -80,6 +80,9 @@ MemoryBuffer<unsigned char> quantization_buffer(const std::size_t ndof,
 //!\param Header to be populated.
 void populate_version_numbers(pb::Header &header);
 
+//! Populate a header with the default compression settings.
+void populate_defaults(pb::Header &header);
+
 //! Window of a buffer being parsed.
 //!
 //! The left endpoint of the window is advanced as we parse the buffer. The

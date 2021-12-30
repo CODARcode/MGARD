@@ -42,10 +42,9 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
 
 #ifdef MGARD_PROTOBUF
   pb::Header header;
-  populate_version_numbers(header);
+  populate_defaults(header);
   hierarchy.populate(header);
   decompose(hierarchy, u, header);
-  header.mutable_quantization()->set_type(pb::Quantization::INT64_T);
   MemoryBuffer<unsigned char> quantized = quantization_buffer(ndof, header);
   quantize(hierarchy, s, tolerance, u, quantized.data.get(), header);
   MemoryBuffer<unsigned char> buffer =

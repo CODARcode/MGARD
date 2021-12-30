@@ -655,25 +655,31 @@ void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
 
 #ifdef MGARD_PROTOBUF
 MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
-                                     pb::Header &header) {
-  pb::Encoding &encoding = *header.mutable_encoding();
-  // TODO: Possibly this should be set elsewhere.
-  encoding.set_preprocessor(pb::Encoding::SHUFFLE);
+                                     const pb::Header &header) {
+  switch (header.encoding().compressor()) {
+  case pb::Encoding::CPU_HUFFMAN_ZSTD:
 #ifdef MGARD_ZSTD
-  if (header.quantization().type() != mgard::pb::Quantization::INT64_T) {
-    throw std::runtime_error("Huffman tree not implemented for quantization "
-                             "types other than `std::int64_t`");
+  {
+    if (header.quantization().type() != mgard::pb::Quantization::INT64_T) {
+      throw std::runtime_error("Huffman tree not implemented for quantization "
+                               "types other than `std::int64_t`");
+    }
+    // Quantization type size.
+    const std::size_t qts = quantization_buffer(1, header).size;
+    if (srcLen % qts) {
+      throw std::runtime_error("incorrect quantization buffer size");
+    }
+    return compress_memory_huffman(reinterpret_cast<long int *>(src),
+                                   srcLen / qts);
   }
-  encoding.set_compressor(pb::Encoding::CPU_HUFFMAN_ZSTD);
-  // Quantization type size.
-  const std::size_t qts = quantization_buffer(1, header).size;
-  assert(not srcLen % qts);
-  return compress_memory_huffman(reinterpret_cast<long int *>(src),
-                                 srcLen / qts);
 #else
-  encoding.set_compressor(pb::Encoding::CPU_HUFFMAN_ZLIB);
-  return compress_memory_z(src, srcLen);
+    throw std::runtime_error("MGARD compiled without ZSTD support");
 #endif
+  case pb::Encoding::CPU_HUFFMAN_ZLIB:
+    return compress_memory_z(src, srcLen);
+  default:
+    throw std::runtime_error("unrecognized lossless compressor");
+  }
 }
 
 void decompress(void *const src, const std::size_t srcLen, void *const dst,
