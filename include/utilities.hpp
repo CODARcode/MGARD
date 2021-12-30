@@ -421,7 +421,7 @@ template <typename T> struct MemoryBuffer {
   //! Constructor.
   //!
   //!\param data Buffer.
-  //!\param data Number of elements in the buffer.
+  //!\param size Number of elements in the buffer.
   MemoryBuffer(std::unique_ptr<T[]> &&data, const std::size_t size);
 
   //! Constructor.
@@ -432,7 +432,7 @@ template <typename T> struct MemoryBuffer {
   //! It should be allocated with `new T[size]`.
   //!
   //!\param buffer Buffer.
-  //!\param data Number of elements in the buffer.
+  //!\param size Number of elements in the buffer.
   MemoryBuffer(T *const buffer, const std::size_t size);
 
   //! Buffer.
