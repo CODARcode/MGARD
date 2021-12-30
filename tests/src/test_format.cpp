@@ -1,6 +1,8 @@
 #include "catch2/catch_test_macros.hpp"
 
 #include <cstdint>
+
+#include <algorithm>
 #include <random>
 
 #include "testing_utilities.hpp"
@@ -117,6 +119,7 @@ TEST_CASE("advancing buffer windows", "[format]") {
   window.current = window.next(4);
   window.current = window.next(1);
   REQUIRE_THROWS(window.next(3));
+  delete[] p;
 }
 
 TEST_CASE("magic number", "[format]") {
@@ -359,3 +362,23 @@ TEST_CASE("reading encoding compressor", "[format]") {
   }
 }
 #endif
+
+namespace {
+
+template <typename Int> void test_big_endian() {
+  constexpr std::size_t N = sizeof(Int);
+  std::array<unsigned char, N> expected{};
+  expected.at(mgard::big_endian<Int>() ? N - 1 : 0) = 1;
+  const Int n = 1;
+  REQUIRE(std::equal(expected.cbegin(), expected.cend(),
+                     reinterpret_cast<unsigned char const *>(&n)));
+}
+
+} // namespace
+
+TEST_CASE("endianness", "[format]") {
+  test_big_endian<std::int8_t>();
+  test_big_endian<std::int16_t>();
+  test_big_endian<std::int32_t>();
+  test_big_endian<std::int64_t>();
+}
