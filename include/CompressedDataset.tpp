@@ -1,5 +1,7 @@
 #include <stdexcept>
 
+#include "format.hpp"
+
 namespace mgard {
 
 template <std::size_t N, typename Real>
@@ -39,6 +41,7 @@ pb::Header const *CompressedDataset<N, Real>::header() const {
 
 template <std::size_t N, typename Real>
 void CompressedDataset<N, Real>::write(std::ostream &ostream) const {
+  write_metadata(ostream, header_);
   if (not header_.SerializeToOstream(&ostream)) {
     throw std::runtime_error("failed to serialize protocol buffer");
   }
