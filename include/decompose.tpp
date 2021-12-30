@@ -171,10 +171,12 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
 #ifdef MGARD_PROTOBUF
 template <std::size_t N, typename Real>
 void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
-               pb::Header &header) {
+               const pb::Header &header) {
+  if (header.decomposition().transform() !=
+      pb::Decomposition::MULTILEVEL_COEFFICIENTS) {
+    throw std::runtime_error("unrecognized decomposition transform");
+  }
   decompose(hierarchy, v);
-  header.mutable_decomposition()->set_transform(
-      pb::Decomposition::MULTILEVEL_COEFFICIENTS);
 }
 #endif
 

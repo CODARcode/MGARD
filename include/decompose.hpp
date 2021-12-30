@@ -32,14 +32,12 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v);
 //!
 //!\overload
 //!
-//! The relevant fields of `header` will be populated.
-//!
 //!\param[in] hierarchy Mesh hierarchy on which the input function is defined.
 //!\param[in, out] v Nodal coefficients of the input function on the finest mesh
-//!\param[in, out] v Header to be populated.
+//!\param[in] header Header for the self-describing buffer.
 template <std::size_t N, typename Real>
 void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
-               pb::Header &header);
+               const pb::Header &header);
 #endif
 
 //! Transform multilevel coefficients into nodal coefficients.

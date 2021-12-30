@@ -74,13 +74,11 @@ void decompress_memory_z(void z_const *const src, const std::size_t srcLen,
 //!
 //! `src` must have the correct alignment for the quantization type.
 //!
-//! The relevant fields of `header` will be populated.
-//!
 //!\param[in] src Array of quantized multilevel coefficients.
 //!\param[in] srcLen Size in bytes of the input array.
-//!\param[in, out] header Header for the self-describing buffer.
+//!\param[in] header Header for the self-describing buffer.
 MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
-                                     pb::Header &header);
+                                     const pb::Header &header);
 
 //! Decompress an array of quantized multilevel coefficients.
 //!

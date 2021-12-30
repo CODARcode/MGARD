@@ -1,6 +1,7 @@
 #include "format.hpp"
 
 #include <climits>
+#include <cstdint>
 
 #include <fstream>
 #include <stdexcept>
@@ -103,6 +104,34 @@ void populate_version_numbers(pb::Header &header) {
   set_version_number(*header.mutable_file_format_version(),
                      MGARD_FILE_VERSION_MAJOR, MGARD_FILE_VERSION_MINOR,
                      MGARD_FILE_VERSION_PATCH);
+}
+
+void populate_defaults(pb::Header &header) {
+  populate_version_numbers(header);
+  // `TensorMeshHierarchy::populate` sets all of the domain and dataset fields
+  // and all of the decomposition field except for `transform`.
+  {
+    pb::Decomposition &d = *header.mutable_decomposition();
+    d.set_transform(pb::Decomposition::MULTILEVEL_COEFFICIENTS);
+  }
+  {
+    pb::Quantization &q = *header.mutable_quantization();
+    q.set_method(pb::Quantization::COEFFICIENTWISE_LINEAR);
+    q.set_bin_widths(pb::Quantization::PER_COEFFICIENT);
+    q.set_type(pb::Quantization::INT64_T);
+    q.set_big_endian(big_endian<std::int64_t>());
+  }
+  {
+    pb::Encoding &e = *header.mutable_encoding();
+    e.set_preprocessor(pb::Encoding::SHUFFLE);
+    e.set_compressor(
+#ifdef MGARD_ZSTD
+        pb::Encoding::CPU_HUFFMAN_ZSTD
+#else
+        pb::Encoding::CPU_HUFFMAN_ZLIB
+#endif
+    );
+  }
 }
 
 BufferWindow::BufferWindow(void const *const data, const std::size_t size)
