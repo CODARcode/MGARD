@@ -1,6 +1,7 @@
 #ifndef QUANTIZE_HPP
 #define QUANTIZE_HPP
-//!\file Quantize multilevel coefficient arrays for self-describing buffers.
+//!\file
+//!\brief Quantize multilevel coefficient arrays for self-describing buffers.
 
 #include "TensorMeshHierarchy.hpp"
 #include "compress.hpp"
