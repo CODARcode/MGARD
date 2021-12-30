@@ -8,6 +8,7 @@
 #include <array>
 
 #ifdef MGARD_PROTOBUF
+#include <ostream>
 #include <vector>
 
 #include "utilities.hpp"
@@ -144,6 +145,17 @@ std::uint_least32_t read_header_crc32(BufferWindow &window);
 void check_header_crc32(const BufferWindow &window,
                         const std::uint_least64_t header_size,
                         const std::uint_least32_t header_crc32);
+
+//! Read the preheader and header of a self-describing buffer.
+//!
+//!\param window Window into the self-describing buffer. The current position
+//! should be the start of the magic number.
+pb::Header read_metadata(BufferWindow &window);
+
+//! Write the preheader and header of a self-describing buffer.
+//!
+//!\param header Header of the self-describing buffer.
+void write_metadata(std::ostream &ostream, const pb::Header &header);
 
 //! Parse the header of a self-describing buffer.
 //!

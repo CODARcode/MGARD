@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <random>
+#include <sstream>
 
 #include "testing_utilities.hpp"
 
@@ -12,6 +13,8 @@
 
 #ifdef MGARD_PROTOBUF
 #include <zlib.h>
+
+#include <google/protobuf/util/message_differencer.h>
 #endif
 
 namespace {
@@ -381,4 +384,38 @@ TEST_CASE("endianness", "[format]") {
   test_big_endian<std::int16_t>();
   test_big_endian<std::int32_t>();
   test_big_endian<std::int64_t>();
+}
+
+namespace {
+
+void test_serialization_deserialization(const mgard::pb::Header &header) {
+  std::ostringstream ostream(std::ios_base::binary);
+  mgard::write_metadata(ostream, header);
+  const std::string serialization = ostream.str();
+
+  mgard::BufferWindow window(serialization.c_str(), serialization.size());
+  const mgard::pb::Header read = mgard::read_metadata(window);
+
+  REQUIRE(google::protobuf::util::MessageDifferencer::Equivalent(header, read));
+}
+
+} // namespace
+
+TEST_CASE("metadata (de)serialization", "[format]") {
+  mgard::pb::Header header;
+  mgard::populate_defaults(header);
+  { test_serialization_deserialization(header); }
+  {
+    header.mutable_quantization()->set_type(mgard::pb::Quantization::INT8_T);
+    test_serialization_deserialization(header);
+  }
+  {
+    const mgard::TensorMeshHierarchy<3, double> hierarchy({12, 5, 19});
+    hierarchy.populate(header);
+    header.mutable_error_control()->set_mode(mgard::pb::ErrorControl::RELATIVE);
+    header.mutable_decomposition()->set_hierarchy(
+        mgard::pb::Decomposition::GHOST_NODES);
+    header.mutable_encoding()->set_compressor(mgard::pb::Encoding::GPU_HUFFMAN);
+    test_serialization_deserialization(header);
+  }
 }
