@@ -59,6 +59,9 @@ serialize_header_crc32(std::uint_least64_t crc32);
 //!\param p Pointer whose alignment will be checked.
 template <typename T> void check_alignment(void const *const p);
 
+//! Determine whether an integral type is big endian.
+template <typename Int> bool big_endian();
+
 #ifdef MGARD_PROTOBUF
 //! Return the `Dataset::Type` value corresponding to a floating point type.
 //!

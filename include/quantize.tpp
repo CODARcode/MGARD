@@ -15,9 +15,7 @@ namespace {
 // than throwing an exception if there's a mismatch.
 template <typename Int> void check_endianness(const pb::Header &header) {
   const QuantizationParameters quantization = read_quantization(header);
-  const Int n = 1;
-  if ((*reinterpret_cast<unsigned char const *>(&n) == 1) ==
-      quantization.big_endian) {
+  if (big_endian<Int>() != quantization.big_endian) {
     throw std::runtime_error("quantization type endianness mismatch");
   }
 }
