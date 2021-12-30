@@ -21,10 +21,10 @@ namespace mgard {
 //! Magic bytes for MGARD file format ('MGARD' in ASCII).
 inline constexpr std::array<char, 5> SIGNATURE{0x4d, 0x47, 0x41, 0x52, 0x44};
 
-// Size in bytes of the serialized header size.
+//! Size in bytes of the serialized header size.
 inline constexpr std::size_t HEADER_SIZE_SIZE = 8;
 
-// Size in bytes of the serialized header CRC32.
+//! Size in bytes of the serialized header CRC32.
 inline constexpr std::size_t HEADER_CRC32_SIZE = 4;
 
 //! Deserialize header size.
@@ -50,7 +50,7 @@ serialize_header_size(std::uint_least64_t size);
 
 //! Serialize header CRC32.
 //!
-//!\param CRC32 of the header.
+//!\param crc32 CRC32 of the header.
 //!\return bytes Serialized header CRC32.
 std::array<unsigned char, HEADER_CRC32_SIZE>
 serialize_header_crc32(std::uint_least64_t crc32);
@@ -78,10 +78,11 @@ MemoryBuffer<unsigned char> quantization_buffer(const std::size_t ndof,
 
 //! Populate a header with the MGARD and file format version numbers.
 //!
-//!\param Header to be populated.
+//!\param header Header to be populated.
 void populate_version_numbers(pb::Header &header);
 
 //! Populate a header with the default compression settings.
+//!\param header Header to be populated.
 void populate_defaults(pb::Header &header);
 
 //! Window of a buffer being parsed.
@@ -91,7 +92,7 @@ void populate_defaults(pb::Header &header);
 struct BufferWindow {
   //! Constructor.
   //!
-  //!\param begin Beginning of the buffer.
+  //!\param data Beginning of the buffer.
   //!\param size Size of the buffer.
   BufferWindow(void const *const data, const std::size_t size);
 
@@ -154,6 +155,7 @@ pb::Header read_metadata(BufferWindow &window);
 
 //! Write the preheader and header of a self-describing buffer.
 //!
+//!\param ostream Stream to write to.
 //!\param header Header of the self-describing buffer.
 void write_metadata(std::ostream &ostream, const pb::Header &header);
 
