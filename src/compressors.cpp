@@ -377,7 +377,6 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
     // same number or (more likely) all data are outside the quantization
     // range. Either way, the code contains no information and is therefore 0
     // bits.
-    assert(len >= 0);
 
     if (32 - start_bit % 32 < len) {
       // current unsigned int cannot hold the code
