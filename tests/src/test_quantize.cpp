@@ -83,6 +83,7 @@ TEST_CASE("dequantization", "[quantize]") {
 
   REQUIRE(std::equal(dequantized, dequantized + ndof, dequantized_.begin()));
   delete[] dequantized;
+  delete[] quantized;
 }
 
 TEST_CASE("alignment and endianness", "[quantize]") {

@@ -134,6 +134,8 @@ TEST_CASE("compression with header configuration", "[compressors]") {
                              quantizedLen);
 #endif
   REQUIRE(std::equal(quantized, quantized + ndof, dst));
+  delete[] dst;
+  delete[] quantized;
 }
 
 TEST_CASE("decompression with header configuration", "[compressors]") {
@@ -241,5 +243,7 @@ TEST_CASE("compression and decompression with header", "[compressors]") {
                     header);
 
   REQUIRE(std::equal(quantized, quantized + ndof, dst));
+  delete[] dst;
+  delete[] quantized;
 }
 #endif
