@@ -7,6 +7,7 @@
 #include <random>
 
 #include "compressors.hpp"
+#include "format.hpp"
 
 namespace {
 
@@ -100,11 +101,12 @@ TEST_CASE("zlib compression", "[compressors]") {
 
 #ifdef MGARD_PROTOBUF
 TEST_CASE("compression with header configuration", "[compressors]") {
-  const std::size_t ndof = 10000;
   mgard::pb::Header header;
   // TODO: Once Huffman trees can be built for types other than `long int`, use
   // something other than `std::int64_t` here.
-  header.mutable_quantization()->set_type(mgard::pb::Quantization::INT64_T);
+  mgard::populate_defaults(header);
+
+  const std::size_t ndof = 10000;
   std::int64_t *const quantized = new std::int64_t[ndof];
   std::uniform_int_distribution<std::int64_t> dis(-250, 250);
   std::default_random_engine gen(419643);
@@ -136,15 +138,9 @@ TEST_CASE("compression with header configuration", "[compressors]") {
 
 TEST_CASE("decompression with header configuration", "[compressors]") {
   mgard::pb::Header header;
-  mgard::pb::Quantization &q = *header.mutable_quantization();
-  q.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
-  q.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
   // TODO: Once Huffman trees can be built for types other than `long int`, use
   // something other than `std::int64_t` here.
-  q.set_type(mgard::pb::Quantization::INT64_T);
-  q.set_big_endian(false);
-  mgard::pb::Encoding &e = *header.mutable_encoding();
-  e.set_preprocessor(mgard::pb::Encoding::SHUFFLE);
+  mgard::populate_defaults(header);
 
   const std::size_t ndof = 5000;
   std::int64_t *const quantized = new std::int64_t[ndof];
@@ -156,6 +152,7 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
   // `dst` must have the correct alignment for the quantization type.
   std::int64_t *const dst = new std::int64_t[ndof];
 
+  mgard::pb::Encoding &e = *header.mutable_encoding();
   SECTION("noop") {
     e.set_compressor(mgard::pb::Encoding::NOOP);
 
@@ -219,11 +216,12 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
 }
 
 TEST_CASE("compression and decompression with header", "[compressors]") {
-  const std::size_t ndof = 2500;
   mgard::pb::Header header;
   // TODO: Once Huffman trees can be built for types other than `long int`, use
   // something other than `std::int64_t` here.
-  header.mutable_quantization()->set_type(mgard::pb::Quantization::INT64_T);
+  mgard::populate_defaults(header);
+
+  const std::size_t ndof = 2500;
   std::int64_t *const quantized = new std::int64_t[ndof];
   std::uniform_int_distribution<std::int64_t> dis(-1000, 1000);
   std::default_random_engine gen(995719);

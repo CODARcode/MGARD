@@ -123,14 +123,6 @@ message Encoding {
 	uint64 huffman_dictionary_size = 3;
 }
 
-message BufferStructure {
-	enum Interpretation {
-		SINGLE_DATASET_AFTER = 0;
-	}
-
-	Interpretation interpretation = 1;
-}
-
 message Header {
 	// enum Structure {
 	// 	TRANFORM_QUANTIZE_ENCODE = 0;
@@ -145,5 +137,4 @@ message Header {
 	Decomposition decomposition = 7;
 	Quantization quantization = 8;
 	Encoding encoding = 9;
-	BufferStructure buffer_structure = 10;
 }
