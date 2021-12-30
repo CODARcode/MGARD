@@ -169,22 +169,62 @@ std::uint_least32_t read_header_crc32(BufferWindow &window) {
   return deserialize_header_crc32(bytes);
 }
 
+namespace {
+
+std::uint_least32_t compute_crc32(void const *const data,
+                                  const std::size_t size) {
+  // `crc32_z` takes a `z_size_t`.
+  if (size > std::numeric_limits<z_size_t>::max()) {
+    throw std::runtime_error("buffer is too large (size would overflow)");
+  }
+  uLong crc32_ = crc32_z(0, Z_NULL, 0);
+  crc32_ = crc32_z(crc32_, static_cast<const Bytef *>(data), size);
+  return crc32_;
+}
+
+} // namespace
+
 void check_header_crc32(const BufferWindow &window,
                         const std::uint_least64_t header_size,
                         const std::uint_least32_t header_crc32) {
-  // `crc32_z` takes a `z_size_t`.
-  if (header_size > std::numeric_limits<z_size_t>::max()) {
-    throw std::runtime_error("header is too large (size would overflow)");
-  }
   // Check that the read will stay in the buffer.
   window.next(header_size);
-  // Compute the CRC32.
-  uLong crc32_ = crc32_z(0, Z_NULL, 0);
-  crc32_ =
-      crc32_z(crc32_, static_cast<const Bytef *>(window.current), header_size);
-  if (crc32_ != header_crc32) {
+  if (header_crc32 != compute_crc32(window.current, header_size)) {
     throw std::runtime_error("header CRC32 mismatch");
   }
+}
+
+pb::Header read_metadata(BufferWindow &window) {
+  check_magic_number(window);
+  const uint_least64_t header_size = read_header_size(window);
+  const uint_least32_t header_crc32 = read_header_crc32(window);
+  check_header_crc32(window, header_size, header_crc32);
+  return read_header(window, header_size);
+}
+
+namespace {
+
+template <typename T, std::size_t N>
+void write(std::ostream &ostream, const std::array<T, N> &v) {
+  ostream.write(reinterpret_cast<char const *>(v.data()), N * sizeof(T));
+}
+
+} // namespace
+
+void write_metadata(std::ostream &ostream, const pb::Header &header) {
+  write(ostream, SIGNATURE);
+
+  const std::uint_least64_t header_size = header.ByteSize();
+  write(ostream, serialize_header_size(header_size));
+
+  unsigned char *const header_bytes = new unsigned char[header_size];
+  header.SerializeToArray(header_bytes, header_size);
+
+  write(ostream,
+        serialize_header_crc32(compute_crc32(header_bytes, header_size)));
+
+  ostream.write(reinterpret_cast<char const *>(header_bytes), header_size);
+  delete[] header_bytes;
 }
 
 pb::Header read_header(BufferWindow &window,
