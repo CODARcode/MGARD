@@ -6,16 +6,14 @@
 #include <random>
 #include <sstream>
 
+#include <zlib.h>
+
+#include <google/protobuf/util/message_differencer.h>
+
 #include "testing_utilities.hpp"
 
 #include "MGARDConfig.hpp"
 #include "format.hpp"
-
-#ifdef MGARD_PROTOBUF
-#include <zlib.h>
-
-#include <google/protobuf/util/message_differencer.h>
-#endif
 
 namespace {
 using SizeBytes = std::array<unsigned char, mgard::HEADER_SIZE_SIZE>;
@@ -89,7 +87,6 @@ TEST_CASE("checking alignment", "[format]") {
       mgard::check_alignment<double>(reinterpret_cast<char const *>(p) + 1));
 }
 
-#ifdef MGARD_PROTOBUF
 namespace {
 
 void check_version_number(const mgard::pb::VersionNumber &version_number,
@@ -364,7 +361,6 @@ TEST_CASE("reading encoding compressor", "[format]") {
             mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
   }
 }
-#endif
 
 namespace {
 

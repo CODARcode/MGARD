@@ -11,21 +11,17 @@
 #include <stdexcept>
 #include <vector>
 
+#include <zlib.h>
+
+#include "format.hpp"
+
 #ifdef MGARD_TIMING
 #include <chrono>
 #include <iostream>
 #endif
 
-#include <zlib.h>
-
 #ifdef MGARD_ZSTD
 #include <zstd.h>
-#endif
-
-#ifdef MGARD_PROTOBUF
-#include <stdexcept>
-
-#include "format.hpp"
 #endif
 
 namespace mgard {
@@ -652,7 +648,6 @@ void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
 }
 #endif
 
-#ifdef MGARD_PROTOBUF
 MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
                                      const pb::Header &header) {
   switch (header.encoding().compressor()) {
@@ -711,6 +706,5 @@ void decompress(void *const src, const std::size_t srcLen, void *const dst,
     throw std::runtime_error("unsupported lossless encoder");
   }
 }
-#endif
 
 } // namespace mgard

@@ -4,15 +4,13 @@
 
 #include <algorithm>
 
+#include "proto/mgard.pb.h"
+
 #include "TensorMeshHierarchy.hpp"
 #include "TensorMultilevelCoefficientQuantizer.hpp"
+#include "format.hpp"
 #include "quantize.hpp"
 
-#ifdef MGARD_PROTOBUF
-#include "proto/mgard.pb.h"
-#endif
-
-#ifdef MGARD_PROTOBUF
 TEST_CASE("quantization", "[quantize]") {
   const mgard::TensorMeshHierarchy<2, float> hierarchy({9, 10});
   const std::size_t ndof = hierarchy.ndof();
@@ -24,12 +22,10 @@ TEST_CASE("quantization", "[quantize]") {
   }
 
   mgard::pb::Header header;
+  mgard::populate_defaults(header);
   {
     mgard::pb::Quantization &q = *header.mutable_quantization();
-    q.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
-    q.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
     q.set_type(mgard::pb::Quantization::INT8_T);
-    q.set_big_endian(false);
   }
 
   std::int8_t *const quantized = new std::int8_t[ndof];
@@ -53,17 +49,14 @@ TEST_CASE("dequantization", "[quantize]") {
   const double tolerance = 0.01;
   void const *const data = nullptr;
   const std::size_t size = 0;
-  const mgard::CompressedDataset<1, double> compressed(hierarchy, s, tolerance,
-                                                       data, size);
-
   mgard::pb::Header header;
+  mgard::populate_defaults(header);
   {
     mgard::pb::Quantization &q = *header.mutable_quantization();
-    q.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
-    q.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
     q.set_type(mgard::pb::Quantization::INT16_T);
-    q.set_big_endian(false);
   }
+  const mgard::CompressedDataset<1, double> compressed(hierarchy, s, tolerance,
+                                                       data, size, header);
 
   std::int16_t *const quantized = new std::int16_t[ndof];
   for (std::size_t i = 0; i < ndof; ++i) {
@@ -71,7 +64,7 @@ TEST_CASE("dequantization", "[quantize]") {
     quantized[i] = (2 * (j % 2) - 1) * (j / 2);
   }
   double *const dequantized = new double[ndof];
-  mgard::dequantize(compressed, quantized, dequantized, header);
+  mgard::dequantize(compressed, quantized, dequantized);
 
   using Dqntzr =
       mgard::TensorMultilevelCoefficientDequantizer<1, std::int16_t, double>;
@@ -93,18 +86,16 @@ TEST_CASE("alignment and endianness", "[quantize]") {
   const float tolerance = 1;
   float const *const coefficients = nullptr;
   mgard::pb::Header header;
+  mgard::populate_defaults(header);
   {
     mgard::pb::Quantization &q = *header.mutable_quantization();
-    q.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
-    q.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
     q.set_type(mgard::pb::Quantization::INT32_T);
-    q.set_big_endian(false);
   }
 
   void const *const data = nullptr;
   const std::size_t size = 0;
-  const mgard::CompressedDataset<3, float> compressed(hierarchy, s, tolerance,
-                                                      data, size);
+  mgard::CompressedDataset<3, float> compressed(hierarchy, s, tolerance, data,
+                                                size, header);
   float *const dequantized = nullptr;
 
   std::uint32_t *const p_ = new std::uint32_t;
@@ -113,24 +104,21 @@ TEST_CASE("alignment and endianness", "[quantize]") {
   if (p != q) {
     void *quantized = static_cast<void *>(q);
     REQUIRE_THROWS(mgard::quantize(hierarchy, s, tolerance, coefficients,
-                                   quantized, header));
-    REQUIRE_THROWS(
-        mgard::dequantize(compressed, quantized, dequantized, header));
+                                   quantized, compressed.header));
+    REQUIRE_THROWS(mgard::dequantize(compressed, quantized, dequantized));
   }
   delete p_;
 
   {
-    mgard::pb::Quantization &q = *header.mutable_quantization();
+    mgard::pb::Quantization &q = *compressed.header.mutable_quantization();
     q.set_big_endian(true);
   }
   {
     std::int32_t *q_ = new std::int32_t[ndof];
     void *quantized = q_;
     REQUIRE_THROWS(mgard::quantize(hierarchy, s, tolerance, coefficients,
-                                   quantized, header));
-    REQUIRE_THROWS(
-        mgard::dequantize(compressed, quantized, dequantized, header));
+                                   quantized, compressed.header));
+    REQUIRE_THROWS(mgard::dequantize(compressed, quantized, dequantized));
     delete[] q_;
   }
 }
-#endif
