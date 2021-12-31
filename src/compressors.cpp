@@ -648,8 +648,8 @@ void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
 }
 #endif
 
-MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
-                                     const pb::Header &header) {
+MemoryBuffer<unsigned char> compress(const pb::Header &header, void *const src,
+                                     const std::size_t srcLen) {
   switch (header.encoding().compressor()) {
   case pb::Encoding::CPU_HUFFMAN_ZSTD:
 #ifdef MGARD_ZSTD
@@ -659,7 +659,7 @@ MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
                                "types other than `std::int64_t`");
     }
     // Quantization type size.
-    const std::size_t qts = quantization_buffer(1, header).size;
+    const std::size_t qts = quantization_buffer(header, 1).size;
     if (srcLen % qts) {
       throw std::runtime_error("incorrect quantization buffer size");
     }
@@ -676,8 +676,9 @@ MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
   }
 }
 
-void decompress(void *const src, const std::size_t srcLen, void *const dst,
-                const std::size_t dstLen, const pb::Header &header) {
+void decompress(const pb::Header &header, void *const src,
+                const std::size_t srcLen, void *const dst,
+                const std::size_t dstLen) {
   switch (read_encoding_compressor(header)) {
   case pb::Encoding::NOOP:
     if (srcLen != dstLen) {

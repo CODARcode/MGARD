@@ -23,28 +23,29 @@ public:
   //! It should be allocated with `new unsigned char[size]`.
   //!
   //!\param hierarchy Associated mesh hierarchy.
+  //!\param header Compressed dataset header.
   //!\param s Smoothness parameter.
   //!\param tolerance Error tolerance.
   //!\param data Compressed dataset.
   //!\param size Size of the compressed dataset in bytes.
-  //!\param header Compressed dataset header.
-  CompressedDataset(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
+  CompressedDataset(const TensorMeshHierarchy<N, Real> &hierarchy,
+                    const pb::Header &header, const Real s,
                     const Real tolerance, void const *const data,
-                    const std::size_t size, const pb::Header &header);
+                    const std::size_t size);
 
   //! Mesh hierarchy used in compressing the dataset.
   const TensorMeshHierarchy<N, Real> hierarchy;
+
+  //! Header for compressed dataset.
+  //!
+  //! *This is an experimental part of the API.*
+  pb::Header header;
 
   //! Smoothness parameter used in compressing the dataset.
   const Real s;
 
   //! Error tolerance used in compressing the dataset.
   const Real tolerance;
-
-  //! Header for compressed dataset.
-  //!
-  //! *This is an experimental part of the API.*
-  pb::Header header;
 
   //! Return a pointer to the compressed dataset.
   //!
@@ -83,16 +84,16 @@ public:
   //! Mesh hierarchy used in compressing the original dataset.
   const TensorMeshHierarchy<N, Real> hierarchy;
 
+  //! Header for decompressed dataset.
+  //!
+  //! *This is an experimental part of the API.*
+  pb::Header header;
+
   //! Smoothness parameter used in compressing the original dataset.
   const Real s;
 
   //! Error tolerance used in compressing the original dataset.
   const Real tolerance;
-
-  //! Header for decompressed dataset.
-  //!
-  //! *This is an experimental part of the API.*
-  pb::Header header;
 
   //! Return a pointer to the decompressed dataset.
   Real const *data() const;

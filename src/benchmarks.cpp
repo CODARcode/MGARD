@@ -4,15 +4,13 @@
 #include <random>
 #include <string>
 
+#include "proto/mgard.pb.h"
+
 #include "blas.hpp"
 
 #ifdef MGARD_MOAB
 #include "moab/Core.hpp"
-#endif
 
-#include "compress.hpp"
-
-#ifdef MGARD_MOAB
 #include "MassMatrix.hpp"
 #include "MeshLevel.hpp"
 #include "UniformMeshHierarchy.hpp"
@@ -23,7 +21,9 @@
 #include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorProlongation.hpp"
 #include "TensorRestriction.hpp"
+#include "compress.hpp"
 #include "decompose.hpp"
+#include "format.hpp"
 #include "shuffle.hpp"
 
 #define LOG_RANGE_LO 10
@@ -141,11 +141,14 @@ template <std::size_t N, typename Real>
 static void BM_structured_decompose(benchmark::State &state) {
   const mgard::TensorMeshHierarchy<N, Real> hierarchy(
       mesh_shape<N>(state.range(0)));
+  mgard::pb::Header header;
+  mgard::populate_defaults(header);
+  hierarchy.populate(header);
 
   const std::size_t ndof = hierarchy.ndof();
   Real *const u = new Real[ndof];
   for (auto _ : state) {
-    mgard::decompose(hierarchy, u);
+    mgard::decompose(hierarchy, header, u);
   }
   delete[] u;
 
@@ -157,11 +160,14 @@ template <std::size_t N, typename Real>
 static void BM_structured_recompose(benchmark::State &state) {
   const mgard::TensorMeshHierarchy<N, Real> hierarchy(
       mesh_shape<N>(state.range(0)));
+  mgard::pb::Header header;
+  mgard::populate_defaults(header);
+  hierarchy.populate(header);
 
   const std::size_t ndof = hierarchy.ndof();
   Real *const u = new Real[ndof];
   for (auto _ : state) {
-    mgard::recompose(hierarchy, u);
+    mgard::recompose(hierarchy, header, u);
   }
   delete[] u;
 
