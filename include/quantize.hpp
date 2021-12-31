@@ -3,16 +3,13 @@
 //!\file
 //!\brief Quantize multilevel coefficient arrays for self-describing buffers.
 
+#include "proto/mgard.pb.h"
+
 #include "TensorMeshHierarchy.hpp"
 #include "compress.hpp"
 
-#ifdef MGARD_PROTOBUF
-#include "proto/mgard.pb.h"
-#endif
-
 namespace mgard {
 
-#ifdef MGARD_PROTOBUF
 //! Quantize an array of multilevel coefficients.
 //!
 //! The buffer pointed to by `quantized` must be large enough for the quantized
@@ -40,12 +37,9 @@ void quantize(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
 //!\param[in] compressed Compressed dataset of the self-describing buffer.
 //!\param[in] quantized Buffer of quantized multilevel coefficients.
 //!\param[out] dequantized Buffer of dequantized multilevel coefficients.
-//!\param[in] header Header of the self-describing buffer.
 template <std::size_t N, typename Real>
 void dequantize(const CompressedDataset<N, Real> &compressed,
-                void const *const quantized, Real *const dequantized,
-                const pb::Header &header);
-#endif
+                void const *const quantized, Real *const dequantized);
 
 } // namespace mgard
 

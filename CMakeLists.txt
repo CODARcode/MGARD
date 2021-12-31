@@ -198,7 +198,8 @@ set(
 
 set(MAXIMUM_DIMENSION 16 CACHE STRING "Maximum supported dimension for self-describing decompression.")
 
-find_program(PYTHON3 NAMES "python3" "python")
+set(PYTHON3_NAMES "python3" "python")
+find_program(PYTHON3 NAMES ${PYTHON3_NAMES} REQUIRED)
 if(NOT PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
 	execute_process(
 		COMMAND "${PYTHON3}" "--version"
@@ -213,7 +214,9 @@ if(NOT PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
 		"${PYTHON3_VERSION_OUTPUT}"
 	)
 	if(PYTHON3_VERSION_MAJOR LESS 3)
-		set(PYTHON3 "PYTHON3-NOTFOUND")
+		#Mimic the error message we'd have gotten had `find_program` failed.
+		list(JOIN PYTHON3_NAMES ", " PYTHON3_NAMES_JOINED)
+		message(FATAL_ERROR "Could not find PYTHON3 ('python>=3') using the following names: ${PYTHON3_NAMES_JOINED}")
 	endif()
 endif()
 
@@ -225,43 +228,36 @@ set(MGARD_FILE_FORMAT_HPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.h")
 set(MGARD_FILE_FORMAT_CPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.cc")
 set(MGARD_DECOMPOSE_INTERNAL_CPP "${MGARD_FILE_FORMAT_SRCDIR}/compress_internal_generated.cpp")
 
-pkg_search_module(protobuf IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
-find_program(PROTOC NAMES "protoc")
+pkg_search_module(protobuf REQUIRED IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
+find_program(PROTOC NAMES "protoc" REQUIRED)
 
-if(protobuf_FOUND AND NOT PROTOC STREQUAL "PROTOC-NOTFOUND" AND NOT PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
-	set(USING_PROTOBUF TRUE)
-	file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_DIR}")
-	file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_SRCDIR}")
-	get_filename_component(PROTO_PATH "${MGARD_FILE_FORMAT_PROTO}" DIRECTORY)
-	add_custom_command(
-		OUTPUT
-		"${MGARD_FILE_FORMAT_HPP}"
-		"${MGARD_FILE_FORMAT_CPP}"
-		COMMAND "${PROTOC}"
-		ARGS
-		"--cpp_out=${MGARD_FILE_FORMAT_DIR}"
-		"--proto_path=${PROTO_PATH}"
-		"${PROTO_PATH_OPTION}"
-		"${MGARD_FILE_FORMAT_PROTO}"
-		DEPENDS "${MGARD_FILE_FORMAT_PROTO}"
-		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-	)
-	add_custom_command(
-		OUTPUT
-		"${MGARD_DECOMPOSE_INTERNAL_CPP}"
-		COMMAND "${PYTHON3}"
-		ARGS
-		"${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dimension_switch.py"
-		"${MAXIMUM_DIMENSION}"
-		"${MGARD_DECOMPOSE_INTERNAL_CPP}"
-	)
+file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_DIR}")
+file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_SRCDIR}")
+get_filename_component(PROTO_PATH "${MGARD_FILE_FORMAT_PROTO}" DIRECTORY)
+add_custom_command(
+	OUTPUT
+	"${MGARD_FILE_FORMAT_HPP}"
+	"${MGARD_FILE_FORMAT_CPP}"
+	COMMAND "${PROTOC}"
+	ARGS
+	"--cpp_out=${MGARD_FILE_FORMAT_DIR}"
+	"--proto_path=${PROTO_PATH}"
+	"${PROTO_PATH_OPTION}"
+	"${MGARD_FILE_FORMAT_PROTO}"
+	DEPENDS "${MGARD_FILE_FORMAT_PROTO}"
+	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+add_custom_command(
+	OUTPUT
+	"${MGARD_DECOMPOSE_INTERNAL_CPP}"
+	COMMAND "${PYTHON3}"
+	ARGS
+	"${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dimension_switch.py"
+	"${MAXIMUM_DIMENSION}"
+	"${MGARD_DECOMPOSE_INTERNAL_CPP}"
+)
 
-	list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}" "${MGARD_DECOMPOSE_INTERNAL_CPP}")
-else()
-	set(USING_PROTOBUF FALSE)
-	#TODO: Update message to something else.
-	message(STATUS "Will not build writer code (protoc not found).")
-endif()
+list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}" "${MGARD_DECOMPOSE_INTERNAL_CPP}")
 
 add_library(
 	mgard-library
@@ -272,10 +268,8 @@ set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
-if(USING_PROTOBUF)
-	target_link_libraries(mgard-library PUBLIC PkgConfig::protobuf)
-	target_compile_definitions(mgard-library PUBLIC MGARD_PROTOBUF)
-endif()
+target_link_libraries(mgard-library PUBLIC PkgConfig::protobuf)
+target_compile_definitions(mgard-library PUBLIC MGARD_PROTOBUF)
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra")
 
@@ -611,35 +605,6 @@ else()
 
 	install(TARGETS mgard-executable RUNTIME)
 	install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
-endif()
-
-pkg_search_module(archive IMPORTED_TARGET GLOBAL libarchive)
-pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
-
-set(MGARD_FILE_FORMAT_PROTO "src/mgard.proto")
-set(MGARD_FILE_FORMAT_INCLUDEDIR "${CMAKE_CURRENT_BINARY_DIR}/include")
-set(MGARD_FILE_FORMAT_DIR "${MGARD_FILE_FORMAT_INCLUDEDIR}/proto")
-set(MGARD_FILE_FORMAT_HPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.h")
-set(MGARD_FILE_FORMAT_CPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.cc")
-
-pkg_search_module(protobuf IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
-find_program(PROTOC NAMES "protoc")
-if(protobuf_FOUND AND NOT PROTOC STREQUAL "PROTOC-NOTFOUND")
-	file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_DIR}")
-	get_filename_component(PROTO_PATH "${MGARD_FILE_FORMAT_PROTO}" DIRECTORY)
-	add_custom_command(
-		OUTPUT
-		"${MGARD_FILE_FORMAT_HPP}"
-		"${MGARD_FILE_FORMAT_CPP}"
-		COMMAND "${PROTOC}"
-		ARGS
-		"--cpp_out=${MGARD_FILE_FORMAT_DIR}"
-		"--proto_path=${PROTO_PATH}"
-		"${PROTO_PATH_OPTION}"
-		"${MGARD_FILE_FORMAT_PROTO}"
-		DEPENDS "${MGARD_FILE_FORMAT_PROTO}"
-		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-	)
 endif()
 
 message(STATUS "")

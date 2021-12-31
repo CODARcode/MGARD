@@ -126,7 +126,12 @@ void zero_on_old_subtract_and_copy_back_on_new(
 } // namespace
 
 template <std::size_t N, typename Real>
-void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
+void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
+               const pb::Header &header) {
+  if (header.decomposition().transform() !=
+      pb::Decomposition::MULTILEVEL_COEFFICIENTS) {
+    throw std::runtime_error("unrecognized decomposition transform");
+  }
   const std::size_t ndof = hierarchy.ndof();
   Real *const buffer = new Real[ndof];
   for (std::size_t l = hierarchy.L; l > 0; --l) {
@@ -168,20 +173,13 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
   delete[] buffer;
 }
 
-#ifdef MGARD_PROTOBUF
 template <std::size_t N, typename Real>
-void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
+void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
                const pb::Header &header) {
   if (header.decomposition().transform() !=
       pb::Decomposition::MULTILEVEL_COEFFICIENTS) {
     throw std::runtime_error("unrecognized decomposition transform");
   }
-  decompose(hierarchy, v);
-}
-#endif
-
-template <std::size_t N, typename Real>
-void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
   const std::size_t ndof = hierarchy.ndof();
   Real *const buffer = new Real[ndof];
   for (std::size_t l = 1; l <= hierarchy.L; ++l) {
@@ -219,18 +217,6 @@ void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v) {
   }
   delete[] buffer;
 }
-
-#ifdef MGARD_PROTOBUF
-template <std::size_t N, typename Real>
-void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
-               const pb::Header &header) {
-  if (header.decomposition().transform() !=
-      pb::Decomposition::MULTILEVEL_COEFFICIENTS) {
-    throw std::runtime_error("unrecognized decomposition transform");
-  }
-  recompose(hierarchy, v);
-}
-#endif
 
 } // end namespace mgard
 

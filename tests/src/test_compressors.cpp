@@ -99,7 +99,6 @@ TEST_CASE("zlib compression", "[compressors]") {
   }
 }
 
-#ifdef MGARD_PROTOBUF
 TEST_CASE("compression with header configuration", "[compressors]") {
   mgard::pb::Header header;
   // TODO: Once Huffman trees can be built for types other than `long int`, use
@@ -246,4 +245,3 @@ TEST_CASE("compression and decompression with header", "[compressors]") {
   delete[] dst;
   delete[] quantized;
 }
-#endif

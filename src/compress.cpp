@@ -5,10 +5,6 @@
 #include "compress_internal.hpp"
 #include "format.hpp"
 
-#ifndef MGARD_PROTOBUF
-#error "This file shouldn't be compiled if ProtoBuf isn't found."
-#endif
-
 namespace mgard {
 
 std::unique_ptr<unsigned char const []> decompress(void const *const data,

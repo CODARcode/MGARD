@@ -4,6 +4,8 @@
 #include <array>
 #include <numeric>
 
+#include "proto/mgard.pb.h"
+
 #include "blas.hpp"
 
 #include "TensorMeshHierarchy.hpp"
@@ -137,7 +139,10 @@ void test_mc_quantization_error(const std::array<std::size_t, N> shape,
   });
 
   std::vector<Real> u_mc(u_nc);
-  mgard::decompose(hierarchy, u_mc.data());
+  mgard::pb::Header header;
+  mgard::populate_defaults(header);
+  hierarchy.populate(header);
+  mgard::decompose(hierarchy, u_mc.data(), header);
 
   using Qntzr = mgard::TensorMultilevelCoefficientQuantizer<N, Real, Int>;
   using Dqntzr = mgard::TensorMultilevelCoefficientDequantizer<N, Int, Real>;
@@ -153,7 +158,7 @@ void test_mc_quantization_error(const std::array<std::size_t, N> shape,
                                            dequantized_u_mc_range.end());
 
   std::vector<Real> dequantized_u_nc(dequantized_u_mc);
-  mgard::recompose(hierarchy, dequantized_u_nc.data());
+  mgard::recompose(hierarchy, dequantized_u_nc.data(), header);
 
   std::vector<Real> error_nc(u_nc);
   blas::axpy(ndof, static_cast<Real>(-1), dequantized_u_nc.data(),

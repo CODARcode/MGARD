@@ -10,12 +10,10 @@
 #include <type_traits>
 #include <vector>
 
+#include "proto/mgard.pb.h"
+
 #include "TensorMeshHierarchyIteration.hpp"
 #include "utilities.hpp"
-
-#ifdef MGARD_PROTOBUF
-#include "proto/mgard.pb.h"
-#endif
 
 namespace mgard {
 
@@ -84,14 +82,12 @@ public:
   const Real &at(Real const *const u,
                  const std::array<std::size_t, N> multiindex) const;
 
-#ifdef MGARD_PROTOBUF
   //! Populate the relevant fields of a file format header.
   //!
   //! *This is an experimental part of the API.*
   //!
   //!\param header Header to be populated.
   void populate(pb::Header &header) const;
-#endif
 
   //! Shapes of the meshes composing the hierarchy, in 'increasing' order.
   std::vector<std::array<std::size_t, N>> shapes;
@@ -162,7 +158,6 @@ private:
   template <typename T>
   T &at(T *const v, const std::array<std::size_t, N> multiindex) const;
 
-#ifdef MGARD_PROTOBUF
   //! Populate the domain message of a file format header.
   //!
   //! *This is an experimental part of the API.*
@@ -183,7 +178,6 @@ private:
   //!
   //!\param header Header to be populated.
   void populate_decomposition(pb::Header &header) const;
-#endif
 };
 
 //! Equality comparison.

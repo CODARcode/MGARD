@@ -7,16 +7,13 @@
 
 #include <memory>
 
+#include "proto/mgard.pb.h"
+
 #include "TensorMeshHierarchy.hpp"
 #include "compress.hpp"
 
-#ifdef MGARD_PROTOBUF
-#include "proto/mgard.pb.h"
-#endif
-
 namespace mgard {
 
-#ifdef MGARD_PROTOBUF
 //! Decompress a dataset originally stored in self-describing format.
 //!
 //! *This function is not part of the API.*
@@ -104,19 +101,6 @@ std::unique_ptr<unsigned char const[]>
 decompress(void const *const data, const std::size_t size,
            const pb::Header &header,
            const TensorMeshHierarchy<N, Real> &hierarchy);
-
-//! Decompress a dataset originally stored in self-describing format.
-//!
-//! *This function is not part of the API.*
-//!
-//!\param compressed Compressed function to be decompressed.
-//!\param header Header parsed from the original self-describing buffer.
-template <std::size_t N, typename Real>
-DecompressedDataset<N, Real>
-decompress(const CompressedDataset<N, Real> &compressed,
-           const pb::Header &header);
-
-#endif
 
 } // namespace mgard
 

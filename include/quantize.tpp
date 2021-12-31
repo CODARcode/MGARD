@@ -58,10 +58,9 @@ void quantize_(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
 //!\param[in] header Header of the self-describing buffer.
 template <std::size_t N, typename Int, typename Real>
 void dequantize_(const CompressedDataset<N, Real> &compressed,
-                 Int const *const quantized, Real *const dequantized,
-                 const pb::Header &header) {
+                 Int const *const quantized, Real *const dequantized) {
   check_alignment<Int>(quantized);
-  check_endianness<Int>(header);
+  check_endianness<Int>(compressed.header);
 
   const std::size_t ndof = compressed.hierarchy.ndof();
 
@@ -100,22 +99,22 @@ void quantize(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
 
 template <std::size_t N, typename Real>
 void dequantize(const CompressedDataset<N, Real> &compressed,
-                void const *const quantized, Real *const dequantized,
-                const pb::Header &header) {
-  const QuantizationParameters quantization = read_quantization(header);
+                void const *const quantized, Real *const dequantized) {
+  const QuantizationParameters quantization =
+      read_quantization(compressed.header);
   switch (quantization.type) {
   case pb::Quantization::INT8_T:
     return dequantize_(compressed, static_cast<std::int8_t const *>(quantized),
-                       dequantized, header);
+                       dequantized);
   case pb::Quantization::INT16_T:
     return dequantize_(compressed, static_cast<std::int16_t const *>(quantized),
-                       dequantized, header);
+                       dequantized);
   case pb::Quantization::INT32_T:
     return dequantize_(compressed, static_cast<std::int32_t const *>(quantized),
-                       dequantized, header);
+                       dequantized);
   case pb::Quantization::INT64_T:
     return dequantize_(compressed, static_cast<std::int64_t const *>(quantized),
-                       dequantized, header);
+                       dequantized);
   default:
     throw std::runtime_error("unrecognized quantization type");
   }
