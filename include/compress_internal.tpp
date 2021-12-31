@@ -1,5 +1,3 @@
-#include "compress.hpp"
-
 #include <cstdlib>
 
 #include "compressors.hpp"
