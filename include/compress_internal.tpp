@@ -1,5 +1,6 @@
 #include <cstdlib>
 
+#include "compress.hpp"
 #include "compressors.hpp"
 #include "decompose.hpp"
 #include "quantize.hpp"
@@ -8,24 +9,23 @@
 namespace mgard {
 
 template <std::size_t N>
-std::unique_ptr<unsigned char const []> decompress(const pb::Header &header,
-                                                   void const *const data,
-                                                   const std::size_t size) {
+std::unique_ptr<unsigned char const []> decompress_N(const pb::Header &header,
+                                                     void const *const data,
+                                                     const std::size_t size) {
   const pb::Dataset::Type dataset_type = read_dataset_type(header);
   switch (dataset_type) {
   case pb::Dataset::FLOAT:
-    return decompress<N, float>(header, data, size);
+    return decompress_N_Real<N, float>(header, data, size);
   case pb::Dataset::DOUBLE:
-    return decompress<N, double>(header, data, size);
+    return decompress_N_Real<N, double>(header, data, size);
   default:
     throw std::runtime_error("unrecognized dataset type");
   }
 }
 
 template <std::size_t N, typename Real>
-std::unique_ptr<unsigned char const []> decompress(const pb::Header &header,
-                                                   void const *const data,
-                                                   const std::size_t size) {
+std::unique_ptr<unsigned char const []> decompress_N_Real(
+    const pb::Header &header, void const *const data, const std::size_t size) {
   const pb::Domain &domain = header.domain();
   const CartesianGridTopology topology = read_topology(domain);
   const CartesianGridGeometry geometry = read_geometry(domain, topology);

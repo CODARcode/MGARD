@@ -10,7 +10,6 @@
 #include "proto/mgard.pb.h"
 
 #include "TensorMeshHierarchy.hpp"
-#include "compress.hpp"
 
 namespace mgard {
 
@@ -49,6 +48,8 @@ std::unique_ptr<unsigned char const[]> decompress(const pb::Header &header,
                                                   void const *const data,
                                                   const std::size_t size);
 
+// Doxygen threw an error when this function was named `decompress`.
+
 //! Decompress a dataset originally stored in self-describing format.
 //!
 //! *This function is not part of the API.*
@@ -62,9 +63,11 @@ std::unique_ptr<unsigned char const[]> decompress(const pb::Header &header,
 //!\param size Size in bytes of compressed buffer. Note that this parameter must
 //! not include the size of the header.
 template <std::size_t N>
-std::unique_ptr<unsigned char const[]> decompress(const pb::Header &header,
-                                                  void const *const data,
-                                                  const std::size_t size);
+std::unique_ptr<unsigned char const[]> decompress_N(const pb::Header &header,
+                                                    void const *const data,
+                                                    const std::size_t size);
+
+// Doxygen threw an error when this function was named `decompress`.
 
 //! Decompress a dataset originally stored in self-describing format.
 //!
@@ -79,9 +82,9 @@ std::unique_ptr<unsigned char const[]> decompress(const pb::Header &header,
 //!\param size Size in bytes of compressed buffer. Note that this parameter must
 //! not include the size of the header.
 template <std::size_t N, typename Real>
-std::unique_ptr<unsigned char const[]> decompress(const pb::Header &header,
-                                                  void const *const data,
-                                                  const std::size_t size);
+std::unique_ptr<unsigned char const[]>
+decompress_N_Real(const pb::Header &header, void const *const data,
+                  const std::size_t size);
 
 //! Decompress a dataset originally stored in self-describing format.
 //!
