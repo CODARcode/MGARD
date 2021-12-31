@@ -126,8 +126,8 @@ void zero_on_old_subtract_and_copy_back_on_new(
 } // namespace
 
 template <std::size_t N, typename Real>
-void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
-               const pb::Header &header) {
+void decompose(const TensorMeshHierarchy<N, Real> &hierarchy,
+               const pb::Header &header, Real *const v) {
   if (header.decomposition().transform() !=
       pb::Decomposition::MULTILEVEL_COEFFICIENTS) {
     throw std::runtime_error("unrecognized decomposition transform");
@@ -174,8 +174,8 @@ void decompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
 }
 
 template <std::size_t N, typename Real>
-void recompose(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
-               const pb::Header &header) {
+void recompose(const TensorMeshHierarchy<N, Real> &hierarchy,
+               const pb::Header &header, Real *const v) {
   if (header.decomposition().transform() !=
       pb::Decomposition::MULTILEVEL_COEFFICIENTS) {
     throw std::runtime_error("unrecognized decomposition transform");

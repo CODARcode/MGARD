@@ -16,8 +16,9 @@ std::unique_ptr<unsigned char const []> decompress(void const *const data,
   if (header_size > size) {
     throw std::runtime_error("header size larger than overall size");
   }
-  return decompress(static_cast<unsigned char const *>(data) + header_size,
-                    size - header_size, header);
+  return decompress(header,
+                    static_cast<unsigned char const *>(data) + header_size,
+                    size - header_size);
 }
 
 } // namespace mgard

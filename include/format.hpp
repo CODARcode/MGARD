@@ -67,10 +67,10 @@ template <typename Real> pb::Dataset::Type type_to_dataset_type();
 
 //! Allocate a quantization buffer of the proper alignment and size.
 //!
-//!\param ndof Size of buffer (number of elements).
 //!\param header Self-describing dataset header.
-MemoryBuffer<unsigned char> quantization_buffer(const std::size_t ndof,
-                                                const pb::Header &header);
+//!\param ndof Size of buffer (number of elements).
+MemoryBuffer<unsigned char> quantization_buffer(const pb::Header &header,
+                                                const std::size_t ndof);
 
 //! Populate a header with the MGARD and file format version numbers.
 //!

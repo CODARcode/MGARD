@@ -274,8 +274,8 @@ void test_decompression_on_flat_mesh(
   flat_hierarchy.populate(flat_header);
 
   const mgard::CompressedDataset<M, Real> flat_compressed(
-      flat_hierarchy, compressed.s, compressed.tolerance, data,
-      compressed.size(), flat_header);
+      flat_hierarchy, flat_header, compressed.s, compressed.tolerance, data,
+      compressed.size());
   const mgard::DecompressedDataset<M, Real> obtained =
       mgard::decompress(flat_compressed);
   // Originally we compared `expected.data()` and `obtained.data()` bitwise.
