@@ -12,7 +12,7 @@ We encourage you to [make a GitHub issue][issue form] if you run into any proble
 ## Building and Installing
 
 To build and install MGARD, run the following from the root of the repository.
-You will need [CMake][cmake].
+You will need [CMake][cmake] and [Protobuf][protobuf].
 
 ```console
 $ cmake -S . -B build -D CMAKE_INSTALL_PREFIX=<location to install MGARD>
@@ -21,6 +21,7 @@ $ cmake --install build
 ```
 
 [cmake]: https://cmake.org/
+[protobuf]: https://opensource.google/projects/protobuf
 
 ### GPU Acceleration
 

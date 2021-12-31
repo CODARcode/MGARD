@@ -7,16 +7,14 @@
 #include <stdexcept>
 #include <vector>
 
+#include "proto/mgard.pb.h"
+
 #include "testing_utilities.hpp"
 
 #include "TensorMeshHierarchy.hpp"
 #include "TensorMeshHierarchyIteration.hpp"
 #include "shuffle.hpp"
 #include "utilities.hpp"
-
-#ifdef MGARD_PROTOBUF
-#include "proto/mgard.pb.h"
-#endif
 
 TEST_CASE("hierarchy mesh shapes", "[TensorMeshHierarchy]") {
   {
@@ -571,7 +569,6 @@ TEST_CASE("dates of birth", "[TensorMeshHierarchy]") {
   }
 }
 
-#ifdef MGARD_PROTOBUF
 namespace {
 
 template <std::size_t N>
@@ -670,4 +667,3 @@ TEST_CASE("header field population", "[TensorMeshHierarchy]") {
     REQUIRE(header.quantization().type() == mgard::pb::Quantization::INT32_T);
   }
 }
-#endif

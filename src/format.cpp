@@ -4,18 +4,15 @@
 #include <cstdint>
 
 #include <fstream>
+#include <new>
+#include <numeric>
 #include <stdexcept>
 
 #include <zlib.h>
 
-#include "MGARDConfig.hpp"
-
-#ifdef MGARD_PROTOBUF
-#include <new>
-#include <numeric>
-
 #include <google/protobuf/io/coded_stream.h>
-#endif
+
+#include "MGARDConfig.hpp"
 
 namespace mgard {
 
@@ -43,7 +40,6 @@ serialize_header_crc32(std::uint_least64_t crc32) {
   return serialize<std::uint_least32_t, HEADER_CRC32_SIZE>(crc32);
 }
 
-#ifdef MGARD_PROTOBUF
 template <> pb::Dataset::Type type_to_dataset_type<float>() {
   return pb::Dataset::FLOAT;
 }
@@ -514,6 +510,5 @@ pb::Encoding::Compressor read_encoding_compressor(const pb::Header &header) {
 
   return compressor;
 }
-#endif
 
 } // namespace mgard

@@ -6,14 +6,11 @@
 #include <cstddef>
 
 #include <memory>
-
-#include "TensorMeshHierarchy.hpp"
-
-#ifdef MGARD_PROTOBUF
 #include <ostream>
 
 #include "proto/mgard.pb.h"
-#endif
+
+#include "TensorMeshHierarchy.hpp"
 
 namespace mgard {
 
@@ -30,28 +27,10 @@ public:
   //!\param tolerance Error tolerance.
   //!\param data Compressed dataset.
   //!\param size Size of the compressed dataset in bytes.
-  CompressedDataset(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
-                    const Real tolerance, void const *const data,
-                    const std::size_t size);
-
-#ifdef MGARD_PROTOBUF
-  //! Constructor.
-  //!
-  //!\overload
-  //!
-  //! The buffer pointed to by `data` is freed when this object is destructed.
-  //! It should be allocated with `new unsigned char[size]`.
-  //!
-  //!\param hierarchy Associated mesh hierarchy.
-  //!\param s Smoothness parameter.
-  //!\param tolerance Error tolerance.
-  //!\param data Compressed dataset.
-  //!\param size Size of the compressed dataset in bytes.
   //!\param header Compressed dataset header.
   CompressedDataset(const TensorMeshHierarchy<N, Real> &hierarchy, const Real s,
                     const Real tolerance, void const *const data,
                     const std::size_t size, const pb::Header &header);
-#endif
 
   //! Mesh hierarchy used in compressing the dataset.
   const TensorMeshHierarchy<N, Real> hierarchy;
@@ -62,6 +41,11 @@ public:
   //! Error tolerance used in compressing the dataset.
   const Real tolerance;
 
+  //! Header for compressed dataset.
+  //!
+  //! *This is an experimental part of the API.*
+  pb::Header header;
+
   //! Return a pointer to the compressed dataset.
   //!
   //! *The format of the compressed dataset is an experimental part of the API.*
@@ -70,17 +54,10 @@ public:
   //! Return the size in bytes of the compressed dataset.
   std::size_t size() const;
 
-#ifdef MGARD_PROTOBUF
-  //! Return a pointer to the compressed dataset header.
-  //!
-  //! *This is an experimental part of the API.*
-  pb::Header const *header() const;
-
   //! Serialize the compressed dataset.
   //!
   //! *This is an experimental part of the API.*
   void write(std::ostream &ostream) const;
-#endif
 
 private:
   //! Compressed dataset.
@@ -88,13 +65,6 @@ private:
 
   //! Size of the compressed dataset in bytes.
   const std::size_t size_;
-
-#ifdef MGARD_PROTOBUF
-  //! Header for compressed dataset.
-  //!
-  //! *This is an experimental part of the API.*
-  pb::Header header_;
-#endif
 };
 
 //! Decompressed dataset and associated compression parameters.
@@ -119,19 +89,17 @@ public:
   //! Error tolerance used in compressing the original dataset.
   const Real tolerance;
 
+  //! Header for decompressed dataset.
+  //!
+  //! *This is an experimental part of the API.*
+  pb::Header header;
+
   //! Return a pointer to the decompressed dataset.
   Real const *data() const;
 
 private:
   //! Decompressed dataset.
   std::unique_ptr<const Real[]> data_;
-
-#ifdef MGARD_PROTOBUF
-  //! Header for decompressed dataset.
-  //!
-  //! *This is an experimental part of the API.*
-  pb::Header header_;
-#endif
 };
 
 } // namespace mgard

@@ -5,9 +5,7 @@
 #include <stdexcept>
 #include <type_traits>
 
-#ifdef MGARD_PROTOBUF
 #include "format.hpp"
-#endif
 
 namespace mgard {
 
@@ -292,7 +290,6 @@ const Real &TensorMeshHierarchy<N, Real>::at(
   return at<const Real>(v, multiindex);
 }
 
-#ifdef MGARD_PROTOBUF
 template <std::size_t N, typename Real>
 void TensorMeshHierarchy<N, Real>::populate_domain(pb::Header &header) const {
   const std::array<std::size_t, N> &SHAPE = shapes.back();
@@ -347,7 +344,6 @@ void TensorMeshHierarchy<N, Real>::populate(pb::Header &header) const {
   populate_dataset(header);
   populate_decomposition(header);
 }
-#endif
 
 template <std::size_t N, typename Real>
 std::size_t TensorMeshHierarchy<N, Real>::ndof(const std::size_t l) const {

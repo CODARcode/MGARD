@@ -8,13 +8,11 @@
 // For `z_const`.
 #include <zlib.h>
 
-#include "utilities.hpp"
-
-#ifdef MGARD_PROTOBUF
 #include <memory>
 
 #include "proto/mgard.pb.h"
-#endif
+
+#include "utilities.hpp"
 
 namespace mgard {
 
@@ -69,7 +67,6 @@ MemoryBuffer<unsigned char> compress_memory_z(void z_const *const src,
 void decompress_memory_z(void z_const *const src, const std::size_t srcLen,
                          unsigned char *const dst, const std::size_t dstLen);
 
-#ifdef MGARD_PROTOBUF
 //! Compress an array of quantized multilevel coefficients.
 //!
 //! `src` must have the correct alignment for the quantization type.
@@ -91,7 +88,6 @@ MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
 //!\param[in] header Header parsed from the original self-describing buffer.
 void decompress(void *const src, const std::size_t srcLen, void *const dst,
                 const std::size_t dstLen, const pb::Header &header);
-#endif
 
 } // namespace mgard
 

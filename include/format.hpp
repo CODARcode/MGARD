@@ -6,15 +6,12 @@
 #include <cstdint>
 
 #include <array>
-
-#ifdef MGARD_PROTOBUF
 #include <ostream>
 #include <vector>
 
-#include "utilities.hpp"
-
 #include "proto/mgard.pb.h"
-#endif
+
+#include "utilities.hpp"
 
 namespace mgard {
 
@@ -63,7 +60,6 @@ template <typename T> void check_alignment(void const *const p);
 //! Determine whether an integral type is big endian.
 template <typename Int> bool big_endian();
 
-#ifdef MGARD_PROTOBUF
 //! Return the `Dataset::Type` value corresponding to a floating point type.
 //!
 //!\return `Dataset::Type` corresponding to `Real`.
@@ -266,7 +262,6 @@ QuantizationParameters read_quantization(const pb::Header &header);
 //!\param header Header of the self-describing buffer.
 //!\return Encoding compressor of the self-describing buffer.
 pb::Encoding::Compressor read_encoding_compressor(const pb::Header &header);
-#endif
 
 } // namespace mgard
 

@@ -64,9 +64,8 @@ std::unique_ptr<unsigned char const []> decompress(
   }
   const CompressedDataset<N, Real> compressed(hierarchy, error_control.s,
                                               error_control.tolerance,
-                                              data_compressed_, size);
-  const DecompressedDataset<N, Real> decompressed =
-      decompress(compressed, header);
+                                              data_compressed_, size, header);
+  const DecompressedDataset<N, Real> decompressed = decompress(compressed);
   // TODO: Figure out how best to do this later.
   const std::size_t nbytes = hierarchy.ndof() * sizeof(Real);
   unsigned char *const data_decompressed_ = new unsigned char[nbytes];
@@ -76,28 +75,6 @@ std::unique_ptr<unsigned char const []> decompress(
     std::copy(p, p + nbytes, data_decompressed_);
   }
   return std::unique_ptr<unsigned char const[]>(data_decompressed_);
-}
-
-template <std::size_t N, typename Real>
-DecompressedDataset<N, Real> decompress(
-    const CompressedDataset<N, Real> &compressed, const pb::Header &header) {
-  const std::size_t ndof = compressed.hierarchy.ndof();
-
-  MemoryBuffer<unsigned char> quantized = quantization_buffer(ndof, header);
-  // TODO: Remove the `const_cast` if `decompress_memory_huffman` can be made to
-  // take a `void const *`.
-  decompress(const_cast<void *>(compressed.data()), compressed.size(),
-             quantized.data.get(), quantized.size, header);
-
-  Real *const dequantized = new Real[ndof];
-  dequantize(compressed, quantized.data.get(), dequantized, header);
-
-  recompose(compressed.hierarchy, dequantized);
-  Real *const v = new Real[ndof];
-  unshuffle(compressed.hierarchy, dequantized, v);
-  delete[] dequantized;
-
-  return DecompressedDataset<N, Real>(compressed, v);
 }
 
 } // namespace mgard

@@ -270,8 +270,7 @@ void test_decompression_on_flat_mesh(
     std::copy(p, p + nbytes, q);
   }
 
-  // TODO: Figure out how you want to handle this.
-  mgard::pb::Header flat_header = *compressed.header();
+  mgard::pb::Header flat_header = compressed.header;
   flat_hierarchy.populate(flat_header);
 
   const mgard::CompressedDataset<M, Real> flat_compressed(
