@@ -5,8 +5,8 @@
 
 #include "proto/mgard.pb.h"
 
+#include "CompressedDataset.hpp"
 #include "TensorMeshHierarchy.hpp"
-#include "compress.hpp"
 
 namespace mgard {
 

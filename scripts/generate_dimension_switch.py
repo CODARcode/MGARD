@@ -33,7 +33,7 @@ _F_SW_ARG_INDEX: int = 1
 #Argument the generated function switches on.
 F_SWITCH_ARGUMENT: Argument = F_ARGUMENTS[_F_SW_ARG_INDEX]
 #Name of the function the generated function delegates to.
-G_NAME: str = 'decompress'
+G_NAME: str = 'decompress_N'
 #Arguments of the delegate function.
 G_ARGUMENTS: typing.Tuple[Argument, ...] = \
     F_ARGUMENTS[: _F_SW_ARG_INDEX] + F_ARGUMENTS[_F_SW_ARG_INDEX + 1 :]
