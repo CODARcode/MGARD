@@ -29,7 +29,7 @@ TEST_CASE("quantization", "[quantize]") {
   }
 
   std::int8_t *const quantized = new std::int8_t[ndof];
-  mgard::quantize(hierarchy, s, tolerance, coefficients, quantized, header);
+  mgard::quantize(hierarchy, header, s, tolerance, coefficients, quantized);
 
   using Qntzr =
       mgard::TensorMultilevelCoefficientQuantizer<2, float, std::int8_t>;
@@ -55,8 +55,8 @@ TEST_CASE("dequantization", "[quantize]") {
     mgard::pb::Quantization &q = *header.mutable_quantization();
     q.set_type(mgard::pb::Quantization::INT16_T);
   }
-  const mgard::CompressedDataset<1, double> compressed(hierarchy, s, tolerance,
-                                                       data, size, header);
+  const mgard::CompressedDataset<1, double> compressed(hierarchy, header, s,
+                                                       tolerance, data, size);
 
   std::int16_t *const quantized = new std::int16_t[ndof];
   for (std::size_t i = 0; i < ndof; ++i) {
@@ -94,8 +94,8 @@ TEST_CASE("alignment and endianness", "[quantize]") {
 
   void const *const data = nullptr;
   const std::size_t size = 0;
-  mgard::CompressedDataset<3, float> compressed(hierarchy, s, tolerance, data,
-                                                size, header);
+  mgard::CompressedDataset<3, float> compressed(hierarchy, header, s, tolerance,
+                                                data, size);
   float *const dequantized = nullptr;
 
   std::uint32_t *const p_ = new std::uint32_t;
@@ -103,8 +103,8 @@ TEST_CASE("alignment and endianness", "[quantize]") {
   unsigned char *const q = p + sizeof(std::uint32_t) / 2;
   if (p != q) {
     void *quantized = static_cast<void *>(q);
-    REQUIRE_THROWS(mgard::quantize(hierarchy, s, tolerance, coefficients,
-                                   quantized, compressed.header));
+    REQUIRE_THROWS(mgard::quantize(hierarchy, compressed.header, s, tolerance,
+                                   coefficients, quantized));
     REQUIRE_THROWS(mgard::dequantize(compressed, quantized, dequantized));
   }
   delete p_;
@@ -116,8 +116,8 @@ TEST_CASE("alignment and endianness", "[quantize]") {
   {
     std::int32_t *q_ = new std::int32_t[ndof];
     void *quantized = q_;
-    REQUIRE_THROWS(mgard::quantize(hierarchy, s, tolerance, coefficients,
-                                   quantized, compressed.header));
+    REQUIRE_THROWS(mgard::quantize(hierarchy, compressed.header, s, tolerance,
+                                   coefficients, quantized));
     REQUIRE_THROWS(mgard::dequantize(compressed, quantized, dequantized));
     delete[] q_;
   }

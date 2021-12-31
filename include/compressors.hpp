@@ -71,23 +71,24 @@ void decompress_memory_z(void z_const *const src, const std::size_t srcLen,
 //!
 //! `src` must have the correct alignment for the quantization type.
 //!
+//!\param[in] header Header for the self-describing buffer.
 //!\param[in] src Array of quantized multilevel coefficients.
 //!\param[in] srcLen Size in bytes of the input array.
-//!\param[in] header Header for the self-describing buffer.
-MemoryBuffer<unsigned char> compress(void *const src, const std::size_t srcLen,
-                                     const pb::Header &header);
+MemoryBuffer<unsigned char> compress(const pb::Header &header, void *const src,
+                                     const std::size_t srcLen);
 
 //! Decompress an array of quantized multilevel coefficients.
 //!
 //! `dst` must have the correct alignment for the quantization type.
 //!
+//!\param[in] header Header parsed from the original self-describing buffer.
 //!\param[in] src Compressed array of quantized multilevel coefficients.
 //!\param[in] srcLen Size in bytes of the compressed array.
 //!\param[out] dst Decompressed array.
 //!\param[in] dstLen Size in bytes of the decompressed array.
-//!\param[in] header Header parsed from the original self-describing buffer.
-void decompress(void *const src, const std::size_t srcLen, void *const dst,
-                const std::size_t dstLen, const pb::Header &header);
+void decompress(const pb::Header &header, void *const src,
+                const std::size_t srcLen, void *const dst,
+                const std::size_t dstLen);
 
 } // namespace mgard
 

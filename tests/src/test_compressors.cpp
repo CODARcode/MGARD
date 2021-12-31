@@ -118,7 +118,7 @@ TEST_CASE("compression with header configuration", "[compressors]") {
   std::int64_t *const quantized_ = new std::int64_t[ndof];
   std::copy(quantized, quantized + ndof, quantized_);
   const mgard::MemoryBuffer<unsigned char> compressed =
-      mgard::compress(quantized_, quantizedLen, header);
+      mgard::compress(header, quantized_, quantizedLen);
   delete[] quantized_;
 
   const mgard::pb::Encoding &e = header.encoding();
@@ -165,8 +165,8 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
       std::copy(p, p + quantizedLen, src);
     }
 
-    mgard::decompress(src, srcLen, reinterpret_cast<unsigned char *>(dst),
-                      quantizedLen, header);
+    mgard::decompress(header, src, srcLen,
+                      reinterpret_cast<unsigned char *>(dst), quantizedLen);
     delete[] src;
     REQUIRE(std::equal(quantized, quantized + ndof, dst));
   }
@@ -183,8 +183,8 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
       unsigned char const *const p = out.data.get();
       std::copy(p, p + srcLen, src);
     }
-    mgard::decompress(src, srcLen, reinterpret_cast<unsigned char *>(dst),
-                      quantizedLen, header);
+    mgard::decompress(header, src, srcLen,
+                      reinterpret_cast<unsigned char *>(dst), quantizedLen);
     delete[] src;
     REQUIRE(std::equal(quantized, quantized + ndof, dst));
   }
@@ -205,8 +205,8 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
       unsigned char const *const p = out.data.get();
       std::copy(p, p + srcLen, src);
     }
-    mgard::decompress(src, srcLen, reinterpret_cast<unsigned char *>(dst),
-                      quantizedLen, header);
+    mgard::decompress(header, src, srcLen,
+                      reinterpret_cast<unsigned char *>(dst), quantizedLen);
     delete[] src;
     REQUIRE(std::equal(quantized, quantized + ndof, dst));
   }
@@ -235,11 +235,11 @@ TEST_CASE("compression and decompression with header", "[compressors]") {
   std::int64_t *const quantized_ = new std::int64_t[ndof];
   std::copy(quantized, quantized + ndof, quantized_);
   const mgard::MemoryBuffer<unsigned char> compressed =
-      mgard::compress(quantized_, quantizedLen, header);
+      mgard::compress(header, quantized_, quantizedLen);
   delete[] quantized_;
 
-  mgard::decompress(compressed.data.get(), compressed.size, dst, quantizedLen,
-                    header);
+  mgard::decompress(header, compressed.data.get(), compressed.size, dst,
+                    quantizedLen);
 
   REQUIRE(std::equal(quantized, quantized + ndof, dst));
   delete[] dst;

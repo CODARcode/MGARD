@@ -23,17 +23,20 @@ F_NAME: str = 'decompress'
 F_RET_TYPE: str = 'std::unique_ptr<unsigned char const []>'
 #Arguments of the generated function.
 F_ARGUMENTS: typing.Tuple[Argument, ...] = (
-    Argument('void const * const', 'data'),
-    Argument('const std::size_t', 'size'),
     Argument('const pb::Header &', 'header'),
     Argument('const std::size_t', 'dimension'),
+    Argument('void const * const', 'data'),
+    Argument('const std::size_t', 'size'),
 )
+#Index of argument the generated function switches on.
+_F_SW_ARG_INDEX: int = 1
 #Argument the generated function switches on.
-F_SWITCH_ARGUMENT: Argument = F_ARGUMENTS[-1]
+F_SWITCH_ARGUMENT: Argument = F_ARGUMENTS[_F_SW_ARG_INDEX]
 #Name of the function the generated function delegates to.
 G_NAME: str = 'decompress'
 #Arguments of the delegate function.
-G_ARGUMENTS: typing.Tuple[Argument, ...] = F_ARGUMENTS[: -1]
+G_ARGUMENTS: typing.Tuple[Argument, ...] = \
+    F_ARGUMENTS[: _F_SW_ARG_INDEX] + F_ARGUMENTS[_F_SW_ARG_INDEX + 1 :]
 #Exception message if an out-of-range dimension is encountered.
 EXCEPTION_MESSAGE = 'unrecognized topology dimension'
 

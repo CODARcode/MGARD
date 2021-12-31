@@ -142,7 +142,7 @@ void test_mc_quantization_error(const std::array<std::size_t, N> shape,
   mgard::pb::Header header;
   mgard::populate_defaults(header);
   hierarchy.populate(header);
-  mgard::decompose(hierarchy, u_mc.data(), header);
+  mgard::decompose(hierarchy, header, u_mc.data());
 
   using Qntzr = mgard::TensorMultilevelCoefficientQuantizer<N, Real, Int>;
   using Dqntzr = mgard::TensorMultilevelCoefficientDequantizer<N, Int, Real>;
@@ -158,7 +158,7 @@ void test_mc_quantization_error(const std::array<std::size_t, N> shape,
                                            dequantized_u_mc_range.end());
 
   std::vector<Real> dequantized_u_nc(dequantized_u_mc);
-  mgard::recompose(hierarchy, dequantized_u_nc.data(), header);
+  mgard::recompose(hierarchy, header, dequantized_u_nc.data());
 
   std::vector<Real> error_nc(u_nc);
   blas::axpy(ndof, static_cast<Real>(-1), dequantized_u_nc.data(),

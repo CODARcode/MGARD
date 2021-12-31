@@ -41,7 +41,7 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   pb::Header header;
   populate_defaults(header);
   hierarchy.populate(header);
-  decompose(hierarchy, u, header);
+  decompose(hierarchy, header, u);
   {
     pb::ErrorControl &e = *header.mutable_error_control();
     e.set_mode(pb::ErrorControl::ABSOLUTE);
@@ -53,13 +53,13 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
     }
     e.set_tolerance(tolerance);
   }
-  MemoryBuffer<unsigned char> quantized = quantization_buffer(ndof, header);
-  quantize(hierarchy, s, tolerance, u, quantized.data.get(), header);
+  MemoryBuffer<unsigned char> quantized = quantization_buffer(header, ndof);
+  quantize(hierarchy, header, s, tolerance, u, quantized.data.get());
   MemoryBuffer<unsigned char> buffer =
-      compress(quantized.data.get(), quantized.size, header);
+      compress(header, quantized.data.get(), quantized.size);
   delete[] u;
-  return CompressedDataset<N, Real>(hierarchy, s, tolerance,
-                                    buffer.data.release(), buffer.size, header);
+  return CompressedDataset<N, Real>(hierarchy, header, s, tolerance,
+                                    buffer.data.release(), buffer.size);
 }
 
 template <std::size_t N, typename Real>
@@ -69,13 +69,13 @@ decompress(const CompressedDataset<N, Real> &compressed) {
   Real *const dequantized = new Real[ndof];
   Real *const v = new Real[ndof];
   MemoryBuffer<unsigned char> quantized =
-      quantization_buffer(ndof, compressed.header);
+      quantization_buffer(compressed.header, ndof);
 
-  decompress(const_cast<void *>(compressed.data()), compressed.size(),
-             quantized.data.get(), quantized.size, compressed.header);
+  decompress(compressed.header, const_cast<void *>(compressed.data()),
+             compressed.size(), quantized.data.get(), quantized.size);
   dequantize(compressed, quantized.data.get(), dequantized);
 
-  recompose(compressed.hierarchy, dequantized, compressed.header);
+  recompose(compressed.hierarchy, compressed.header, dequantized);
   unshuffle(compressed.hierarchy, dequantized, v);
   delete[] dequantized;
   return DecompressedDataset<N, Real>(compressed, v);

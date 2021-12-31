@@ -48,8 +48,8 @@ template <> pb::Dataset::Type type_to_dataset_type<double>() {
   return pb::Dataset::DOUBLE;
 }
 
-MemoryBuffer<unsigned char> quantization_buffer(const std::size_t ndof,
-                                                const pb::Header &header) {
+MemoryBuffer<unsigned char> quantization_buffer(const pb::Header &header,
+                                                const std::size_t ndof) {
   static_assert(CHAR_BIT == 8, "unexpected number of bits in a byte");
   // Quantization type size.
   std::size_t qts;
