@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <numeric>
 #include <random>
+#include <sstream>
 #include <vector>
 
 #include "testing_random.hpp"
@@ -332,4 +333,81 @@ TEST_CASE("decompressing on 'flat' meshes", "[compress]") {
 
   delete[] v;
   delete[] u;
+}
+
+namespace {
+
+template <std::size_t N, typename Real>
+void test_self_describing_decompression(
+    const std::array<std::size_t, N> &shape,
+    // Used for generating the data.
+    const Real s, std::default_random_engine &gen,
+    const std::vector<Real> &smoothness_parameters,
+    const std::vector<Real> &tolerances) {
+  std::uniform_real_distribution<Real> node_spacing_dis(0.3, 0.45);
+  const mgard::TensorMeshHierarchy<N, Real> hierarchy =
+      hierarchy_with_random_spacing(gen, node_spacing_dis, shape);
+
+  const std::size_t ndof = hierarchy.ndof();
+  Real *const buffer = new Real[ndof];
+  generate_reasonable_function(hierarchy, s, gen, buffer);
+  Real *const u = new Real[ndof];
+  // `generate_reasonable_function` uses `TensorMeshHierarchy::at`, so the
+  // function will come out shuffled. `mgard::compress` shuffles its input,
+  // though, so we need to unshuffle beforehand.
+  mgard::unshuffle(hierarchy, buffer, u);
+  delete[] buffer;
+
+  // Need copies since `decompress` changes its input.
+  Real *const v = new Real[ndof];
+  Real *const w = new Real[ndof];
+
+  TrialTracker tracker;
+  for (const Real s : smoothness_parameters) {
+    for (const Real tolerance : tolerances) {
+      std::copy(u, u + ndof, v);
+      std::copy(u, u + ndof, w);
+
+      const mgard::CompressedDataset<N, Real> v_compressed =
+          mgard::compress(hierarchy, v, s, tolerance);
+      const mgard::DecompressedDataset<N, Real> v_decompressed =
+          mgard::decompress(v_compressed);
+
+      const mgard::CompressedDataset<N, Real> w_compressed =
+          mgard::compress(hierarchy, w, s, tolerance);
+      std::ostringstream w_ostream(std::ios_base::binary);
+      w_compressed.write(w_ostream);
+      const std::string w_serialization = w_ostream.str();
+      const std::unique_ptr<unsigned char const[]> w_decompressed =
+          mgard::decompress(w_serialization.c_str(), w_serialization.size());
+
+      Real const *const p = v_decompressed.data();
+      tracker += std::equal(
+          p, p + ndof, reinterpret_cast<Real const *>(w_decompressed.get()));
+    }
+  }
+  REQUIRE(tracker);
+
+  delete[] w;
+  delete[] v;
+  delete[] u;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("decompressing self-describing buffer", "[compress]", float,
+                   double) {
+  std::default_random_engine gen(32094);
+  const std::vector<TestType> smoothness_parameters = {
+      -1.5, -0.5, 0.0, 0.5, 1.5, std::numeric_limits<TestType>::infinity()};
+  const std::vector<TestType> tolerances = {1, 0.1, 0.01, 0.001};
+
+  test_self_describing_decompression<1, TestType>(
+      {52}, 1.1, gen, smoothness_parameters, tolerances);
+  test_self_describing_decompression<2, TestType>(
+      {92, 36}, 0.4, gen, smoothness_parameters, tolerances);
+  test_self_describing_decompression<3, TestType>(
+      {28, 44, 17}, 0.5, gen, smoothness_parameters, tolerances);
+  test_self_describing_decompression<4, TestType>(
+      {5, 11, 8, 9}, 0.6, gen, smoothness_parameters, tolerances);
 }
