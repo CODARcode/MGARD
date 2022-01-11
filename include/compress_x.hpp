@@ -137,7 +137,7 @@ void EndAutoTuning(enum device_type dev_type);
 
 //! Compress a function on an N-D tensor product grid
 //!
-//!\param[in] handle Handle type for storing precomputed variable to
+//!\param[in] handle Hierarchy type for storing precomputed variable to
 //! help speed up compression.
 //!\param[in] in_array Dataset to be compressed.
 //!\param[in] type Error bound type: REL or ABS.
@@ -146,17 +146,17 @@ void EndAutoTuning(enum device_type dev_type);
 //!
 //!\return Compressed dataset.
 template <uint32_t D, typename T, typename DeviceType>
-Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
+Array<1, unsigned char, DeviceType> compress(Hierarchy<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
                                  enum error_bound_type type, T tol, T s);
 
 //! Decompress a function on an N-D tensor product grid
 //!
-//!\param[in] handle Handle type for storing precomputed variable to
+//!\param[in] handle Hierarchy type for storing precomputed variable to
 //! help speed up decompression.
 //!\param[in] compressed_array Compressed dataset.
 //!\return Decompressed dataset.
 template <uint32_t D, typename T, typename DeviceType>
-Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
+Array<D, T, DeviceType> decompress(Hierarchy<D, T, DeviceType> &handle,
                        Array<1, unsigned char, DeviceType> &compressed_array);
 
 template<typename DeviceType> void BeginAutoTuning();

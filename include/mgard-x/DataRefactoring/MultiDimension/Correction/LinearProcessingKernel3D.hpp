@@ -8,7 +8,7 @@
 #ifndef MGARD_X_LINEAR_PROCESSSING_KERNEL_3D_TEMPLATE
 #define MGARD_X_LINEAR_PROCESSSING_KERNEL_3D_TEMPLATE
 
-#include "../../RuntimeX/RuntimeX.h"
+#include "../../../RuntimeX/RuntimeX.h"
 #include "LPKFunctor.h"
 // #include "LinearProcessingKernel.h"
 

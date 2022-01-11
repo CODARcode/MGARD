@@ -49,6 +49,7 @@ namespace mgard_x {
 
 #include "Utilities/CheckShape.hpp"
 #include "Utilities/OffsetCalculators.hpp"
+#include "Utilities/Serializer.hpp"
 
 #include "DataStructures/Array.hpp"
 #include "DataStructures/SubArray.hpp"

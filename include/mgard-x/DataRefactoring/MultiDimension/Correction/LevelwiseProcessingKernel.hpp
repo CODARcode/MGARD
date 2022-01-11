@@ -8,7 +8,7 @@
 #ifndef MGARD_X_LEVELWISE_PROCESSING_KERNEL_TEMPLATE
 #define MGARD_X_LEVELWISE_PROCESSING_KERNEL_TEMPLATE
 
-#include "../../RuntimeX/RuntimeX.h"
+#include "../../../RuntimeX/RuntimeX.h"
 
 namespace mgard_x {
 

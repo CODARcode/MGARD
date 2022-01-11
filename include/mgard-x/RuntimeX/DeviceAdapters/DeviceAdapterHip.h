@@ -332,6 +332,7 @@ class DeviceSpecification<HIP> {
     ArchitectureGeneration = new int[NumDevices];
     MaxNumThreadsPerSM = new int[NumDevices];
     MaxNumThreadsPerTB = new int[NumDevices];
+    AvailableMemory = new size_t[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(hipSetDevice(d));
@@ -351,7 +352,7 @@ class DeviceSpecification<HIP> {
       } else if (prop.major == 7 && (prop.minor == 2 || prop.minor == 5)) {
         ArchitectureGeneration[d] = 2;
       }
-      MaxNumThreadsPerTB[d] = 32;
+      MaxNumThreadsPerTB[d] = 32; // Due to a bug in Cooperative Groups in HIP
       WarpSize[d] = 32;
     }
   }
@@ -391,12 +392,24 @@ class DeviceSpecification<HIP> {
     return MaxNumThreadsPerTB[dev_id];
   }
 
+  MGARDX_CONT size_t
+  GetAvailableMemory(int dev_id) {
+    gpuErrchk(hipSetDevice(dev_id));
+    size_t free, total;
+    hipMemGetInfo( &free, &total );
+    AvailableMemory[dev_id] = free;
+    return AvailableMemory[dev_id];
+  }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete [] MaxSharedMemorySize;
     delete [] WarpSize;
     delete [] NumSMs;
     delete [] ArchitectureGeneration;
+    delete [] MaxNumThreadsPerSM;
+    delete [] MaxNumThreadsPerTB;
+    delete [] AvailableMemory;
   }
 
   int NumDevices;
@@ -406,6 +419,7 @@ class DeviceSpecification<HIP> {
   int* ArchitectureGeneration;
   int* MaxNumThreadsPerSM;
   int* MaxNumThreadsPerTB;
+  size_t * AvailableMemory;
 };
 
 
@@ -526,6 +540,11 @@ class DeviceRuntime<HIP> {
   MGARDX_CONT static int
   GetMaxNumThreadsPerTB() {
     return DeviceSpecs.GetMaxNumThreadsPerTB(curr_dev_id);
+  }
+
+  MGARDX_CONT static size_t
+  GetAvailableMemory() {
+    return DeviceSpecs.GetAvailableMemory(curr_dev_id);
   }
 
   template <typename FunctorType>

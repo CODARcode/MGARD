@@ -8,7 +8,7 @@
 #ifndef MGARD_X_ITERATIVE_PROCESSING_KERNEL_TEMPLATE
 #define MGARD_X_ITERATIVE_PROCESSING_KERNEL_TEMPLATE
 
-#include "../../RuntimeX/RuntimeX.h"
+#include "../../../RuntimeX/RuntimeX.h"
 #include "IPKFunctor.h"
 // #include "IterativeProcessingKernel.h"
 namespace mgard_x {
