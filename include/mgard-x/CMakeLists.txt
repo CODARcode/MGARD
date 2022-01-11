@@ -5,8 +5,8 @@ add_subdirectory(RuntimeX)
 list(APPEND MGARD_X_HEADER
     ${CMAKE_CURRENT_SOURCE_DIR}/CompressionWorkflow.h
     ${CMAKE_CURRENT_SOURCE_DIR}/CompressionWorkflow.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Handle.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Handle.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Hierarchy.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Hierarchy.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/HighLevelAPI.h
     ${CMAKE_CURRENT_SOURCE_DIR}/HighLevelAPI.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Metadata.hpp

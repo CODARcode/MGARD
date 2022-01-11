@@ -33,7 +33,7 @@ option(MGARD_ENABLE_BENCHMARKS "Build benchmarks." OFF)
 
 option(MGARD_ENABLE_DOCS "Build documentation." OFF)
 
-option(MGARD_ENABLE_OPENMP "Enable OpenMP support." ON)
+option(MGARD_ENABLE_OPENMP "Enable OpenMP support." OFF)
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 option(MGARD_ENABLE_SERIAL "Enable SERIAL support" OFF)
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
@@ -180,7 +180,7 @@ find_package(PkgConfig)
 
 # pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
 
-find_package(zstd REQUIRED)
+find_package(zstd)
 
 find_package(MOAB)
 #We run into this when building MOAB 5.3.0 with `./configure && make`.

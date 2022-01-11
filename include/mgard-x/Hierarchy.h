@@ -27,6 +27,7 @@ struct Config {
   bool timing;
   int uniform_coord_mode;
   enum lossless_type lossless;
+  double global_norm;
 
   Config() {
     dev_type = device_type::Auto;
@@ -41,41 +42,46 @@ struct Config {
 //#endif
     lz4_block_size = 1 << 15;
     zstd_compress_level = 3;
-    reduce_memory_footprint = false;
-    profile_kernels = false;
-    sync_and_check_all_kernels = false;
+    // reduce_memory_footprint = false;
+    // profile_kernels = false;
+    // sync_and_check_all_kernels = false;
     timing = false;
     uniform_coord_mode = 0;
     lossless = lossless_type::Huffman_LZ4;
+    global_norm = 1;
   }
 };
 
-template <DIM D, typename T, typename DeviceType> struct Handle {
+template <DIM D, typename T, typename DeviceType> struct Hierarchy {
 
-  /* for Internal use only */
-  Handle();
+  
 
   /* for general users */
-  Handle(std::vector<SIZE> shape);
-  Handle(std::vector<SIZE> shape, std::vector<T *> coords);
-  Handle(std::vector<SIZE> shape, Config config);
-  Handle(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
-  ~Handle();
+  Hierarchy(std::vector<SIZE> shape, int uniform_coord_mode = 0);
+  Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords);
 
+  /* for Internal use only */
+  Hierarchy();
+  Hierarchy(std::vector<SIZE> shape, DIM domain_decomposed_dim, SIZE domain_decomposed_size, int uniform_coord_mode = 0);
+  Hierarchy(std::vector<SIZE> shape, DIM domain_decomposed_dim, SIZE domain_decomposed_size, std::vector<T *> coords);
+  Hierarchy(const Hierarchy &hierarchy);
+  // Hierarchy(std::vector<SIZE> shape, Config config, int uniform_coord_mode = 0);
+  // Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
+
+  ~Hierarchy();
 
   /* Refactoring env */
-  enum device_type dev_type;
-  int dev_id;
+  // enum device_type dev_type;
+  // int dev_id;
   SIZE l_target;
   DIM D_padded;
   std::vector<SIZE> shape_org;
   std::vector<SIZE> shape;
   std::vector<std::vector<SIZE>> dofs;
   std::vector<Array<1, SIZE, DeviceType>> shapes;
-  SIZE * ranges_h;
   Array<1, SIZE, DeviceType> ranges;
-  std::vector<T *> coords_h;
-  std::vector<T *> coords_d;
+  std::vector<T *> coords_h; // do not copy this
+  // std::vector<T *> coords_d;
   std::vector<Array<1, T, DeviceType>> coords;
 
   std::vector<std::vector<Array<1, T, DeviceType>>> dist_array;
@@ -90,22 +96,17 @@ template <DIM D, typename T, typename DeviceType> struct Handle {
   LENGTH padded_linearized_depth;
 
   enum data_structure_type dstype;
-  SIZE huff_dict_size;
-  SIZE huff_block_size;
-  SIZE lz4_block_size;
-  int zstd_compress_level;
-  enum lossless_type lossless;
-
-  bool reduce_memory_footprint;
-  bool profile_kernels;
-  bool sync_and_check_all_kernels;
-  bool timing;
 
   DIM *processed_n;
   DIM *unprocessed_n;
 
   Array<1, DIM, DeviceType> processed_dims[D];
   Array<1, DIM, DeviceType> unprocessed_dims[D];
+
+  bool domain_decomposed = false;
+  DIM domain_decomposed_dim;
+  SIZE domain_decomposed_size;
+  std::vector<Hierarchy<D, T, DeviceType>> hierarchy_chunck;
 
 private:
   void padding_dimensions(std::vector<SIZE> &shape, std::vector<T *> &coords);
@@ -115,7 +116,12 @@ private:
   void reduce_dist(SIZE dof, T * dist, T * dist2);
   void calc_am_bm(SIZE dof, T * dist, T * am, T * bm);
   void calc_volume(SIZE dof, T * dist, T * volume);
-  void init(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
+  size_t estimate_memory_usgae(std::vector<SIZE> shape);
+  bool need_domain_decomposition(std::vector<SIZE> shape);
+  void domain_decomposition_strategy(std::vector<SIZE> shape);
+  void domain_decompose(std::vector<SIZE> shape, int uniform_coord_mode);
+  void domain_decompose(std::vector<SIZE> shape, std::vector<T *> &coords);
+  void init(std::vector<SIZE> shape, std::vector<T *> coords);
   void destroy();
   bool uniform_coords_created = false;
   bool initialized = false;

@@ -288,8 +288,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     in_size = original_size * sizeof(T);
     original_data = new T[original_size];
     srand(7117);
-    for (size_t i = 0; i < original_size; i++)
-      original_data[i] = rand() % 10 + 1;
+    T c = 0;
+    for (size_t i = 0; i < original_size; i++) {
+      original_data[i] = c;//rand() % 10 + 1;
+      c = c + 1;
+      if (c == 100) c = 0;
+    }
   } else {
     in_size = readfile(input_file, original_data);
   }
@@ -320,9 +324,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   writefile(output_file, compressed_size, compressed_data);
 
-  printf("In size:  %10ld  Out size: %10ld  Compression ratio: %f \n",
-         original_size * sizeof(T), compressed_size,
-         (double)original_size * sizeof(T) / compressed_size);
+  std::cout << mgard_x::log::log_info << "Compression ratio:"
+            << (double)original_size * sizeof(T) / compressed_size
+            << "\n";
+  // printf("In size:  %10ld  Out size: %10ld  Compression ratio: %f \n",
+  //        original_size * sizeof(T), compressed_size,
+  //        (double)original_size * sizeof(T) / compressed_size);
 
   if (verbose) {
     config.timing = verbose;

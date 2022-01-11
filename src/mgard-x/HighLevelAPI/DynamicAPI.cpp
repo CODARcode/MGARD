@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "compress_x.hpp"
-#include "mgard-x/Handle.h" 
+#include "mgard-x/Hierarchy.h" 
 #include "mgard-x/Metadata.hpp"
 #include "mgard-x/RuntimeX/RuntimeXPublic.h"
 #include "mgard-x/HighLevelAPI.h"

@@ -38,7 +38,7 @@ struct Metadata {
   enum lossless_type ltype;
   uint32_t huff_dict_size; // optional (for Huffman)
   uint32_t huff_block_size; // optional (for Huffman)
-  uint64_t huff_outlier_count; // optional (for Huffman)
+  // uint64_t huff_outlier_count; // optional (for Huffman)
 
   // about data
   enum data_type dtype;
@@ -49,6 +49,10 @@ struct Metadata {
   enum coordinate_location cltype;
   char * nonuniform_coords_file;
   std::vector<Byte *> coords;
+  bool domain_decomposed = false;
+  enum domain_decomposition_type ddtype;
+  uint8_t domain_decomposed_dim;
+  uint64_t domain_decomposed_size;
   
   public:
   SERIALIZED_TYPE *Serialize(uint32_t &total_size) {
@@ -69,9 +73,9 @@ struct Metadata {
     }
     total_size += sizeof(tol); // tol
     total_size += sizeof(ntype);
-    if (ntype == norm_type::L_2) {
+    //if (ntype == norm_type::L_2) {
       total_size += sizeof(s); // s
-    }
+    //}
     total_size += sizeof(l_target); //l_target;
     total_size += sizeof(ltype);
     if (ltype == lossless_type::Huffman || 
@@ -79,7 +83,6 @@ struct Metadata {
         ltype == lossless_type::Huffman_Zstd) {
       total_size += sizeof(huff_dict_size); // dict size
       total_size += sizeof(huff_block_size); // block size
-      total_size += sizeof(huff_outlier_count);
     }
 
     // about data
@@ -104,6 +107,14 @@ struct Metadata {
         total_size += sizeof(char) * strlen(nonuniform_coords_file);
       }
     }
+
+    total_size += sizeof(domain_decomposed);
+    if (domain_decomposed) {
+      total_size += sizeof(ddtype);
+      total_size += sizeof(domain_decomposed_dim);
+      total_size += sizeof(domain_decomposed_size);
+    }
+
 
     // initialize some fields
     metadata_size = total_size;
@@ -137,9 +148,9 @@ struct Metadata {
     }
     Serialize(tol, p);
     Serialize(ntype, p);
-    if (ntype == norm_type::L_2) {
+    //if (ntype == norm_type::L_2) {
       Serialize(s, p);
-    }
+    //}
     Serialize(l_target, p);
     Serialize(ltype, p);
     if (ltype == lossless_type::Huffman ||
@@ -147,7 +158,7 @@ struct Metadata {
         ltype == lossless_type::Huffman_Zstd) {
       Serialize(huff_dict_size, p);
       Serialize(huff_block_size, p);
-      Serialize(huff_outlier_count, p);
+      // Serialize(huff_outlier_count, p);
     }
 
     Serialize(dtype, p);
@@ -163,11 +174,18 @@ struct Metadata {
         Serialize(nonuniform_coords_file, p);
       }
     }
+
+    Serialize(domain_decomposed, p);
+    if (domain_decomposed) {
+      Serialize(ddtype, p);
+      Serialize(domain_decomposed_dim, p);
+      Serialize(domain_decomposed_size, p);
+    }
+
     self_initialized = false;
     return serialized_data;
   }
-  void Deserialize(SERIALIZED_TYPE * serialized_data, 
-                              uint32_t &total_size) {
+  void Deserialize(SERIALIZED_TYPE * serialized_data) {
     SERIALIZED_TYPE * p = serialized_data;
 
     Deserialize(&magic_word[0], p);
@@ -183,9 +201,9 @@ struct Metadata {
     }
     Deserialize(tol, p);
     Deserialize(ntype, p);
-    if (ntype == norm_type::L_2) {
+    //if (ntype == norm_type::L_2) {
       Deserialize(s, p);
-    }
+    //}
     Deserialize(l_target, p);
     Deserialize(ltype, p);
     if (ltype == lossless_type::Huffman ||
@@ -193,7 +211,7 @@ struct Metadata {
         ltype == lossless_type::Huffman_Zstd) {
       Deserialize(huff_dict_size, p);
       Deserialize(huff_block_size, p);
-      Deserialize(huff_outlier_count, p);
+      // Deserialize(huff_outlier_count, p);
     }
 
     Deserialize(dtype, p);
@@ -213,7 +231,16 @@ struct Metadata {
         Deserialize(nonuniform_coords_file, p);
       }
     }
-    total_size = p - serialized_data;
+
+     Deserialize(domain_decomposed, p);
+    if (domain_decomposed) {
+      Deserialize(ddtype, p);
+      Deserialize(domain_decomposed_dim, p);
+      Deserialize(domain_decomposed_size, p);
+    }
+
+
+    // total_size = p - serialized_data;
     self_initialized = true;
   }
   size_t metadata_size_offset() {
@@ -223,6 +250,11 @@ struct Metadata {
     offset += sizeof(file_version);
     return offset;
   }
+
+  uint32_t get_metadata_size(SERIALIZED_TYPE * serizalied_meta) {
+    return *(uint32_t*)(serizalied_meta + metadata_size_offset());
+  }
+
   ~Metadata() {
     if (self_initialized) {
       delete[] shape;
@@ -304,6 +336,8 @@ std::vector<T *> infer_coords(const void *compressed_data,
 
 std::string infer_nonuniform_coords_file(const void *compressed_data,
                                          size_t compressed_size);
+
+bool infer_domain_decomposed(const void *compressed_data, size_t compressed_size);
 
 
 }

@@ -29,6 +29,7 @@ enum class endiness_type:uint8_t { Little_Endian, Big_Endian };
 
 enum class coordinate_location:uint8_t { Embedded, External };
 
+enum class domain_decomposition_type:uint8_t { MaxDim, Linearize };
 }
 
 #include <iostream>
@@ -37,7 +38,7 @@ enum class coordinate_location:uint8_t { Embedded, External };
 #include <vector>
 
 // #include "RuntimeX/DataStructures/Array.h"
-#include "Handle.h"
+#include "Hierarchy.h"
 // #include "RuntimeX/Messages/Message.h"
 // #include "ErrorCalculator.h"
 // #include "MemoryManagement.h"

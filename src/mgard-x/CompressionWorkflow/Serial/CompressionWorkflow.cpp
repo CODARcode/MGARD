@@ -15,10 +15,10 @@ namespace mgard_x {
 
 #define KERNELS(D, T)                                        \
   template Array<1, unsigned char, Serial> compress<D, T, Serial>(\
-                                Handle<D, T, Serial> &handle, Array<D, T, Serial> &in_array,\
-                                 enum error_bound_type type, T tol, T s);  \
-  template Array<D, T, Serial> decompress<D, T, Serial>(Handle<D, T, Serial> &handle,\
-                       Array<1, unsigned char, Serial> &compressed_array);
+                                Hierarchy<D, T, Serial> &hierarchy, Array<D, T, Serial> &in_array,\
+                                 enum error_bound_type type, T tol, T s, T &norm, Config config);  \
+  template Array<D, T, Serial> decompress<D, T, Serial>(Hierarchy<D, T, Serial> &hierarchy,\
+                       Array<1, unsigned char, Serial> &compressed_array, enum error_bound_type type, T tol, T s, T norm, Config config);
 
 KERNELS(1, double)
 KERNELS(1, float)

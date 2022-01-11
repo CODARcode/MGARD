@@ -131,10 +131,14 @@ class DeviceSpecification {
   public:
   MGARDX_CONT
   DeviceSpecification(){}
-  int MaxSharedMemorySize;
-  int WarpSize;
-  int NumSMs;
-  int ArchitectureGeneration;
+  int NumDevices;
+  int* MaxSharedMemorySize;
+  int* WarpSize;
+  int* NumSMs;
+  int* ArchitectureGeneration;
+  int* MaxNumThreadsPerSM;
+  int* MaxNumThreadsPerTB;
+  size_t * AvailableMemory;
 };
 
 

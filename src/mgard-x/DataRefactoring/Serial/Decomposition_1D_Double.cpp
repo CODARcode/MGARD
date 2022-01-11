@@ -6,14 +6,14 @@
  */
 
 #define MGARDX_COMPILE_SERIAL
-#include "mgard-x/DataRefactoring/DataRefactoring.hpp"
+#include "mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
 
 #include <iostream>
 
 #include <chrono>
 namespace mgard_x {
 
-template void decompose<1, double, Serial>(Handle<1, double, Serial> & handle,
+template void decompose<1, double, Serial>(Hierarchy<1, double, Serial> & hierarchy,
                                       SubArray<1, double, Serial>& v,
                                       SIZE l_target, int queue_idx);
 } // namespace mgard_x

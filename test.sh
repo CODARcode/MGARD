@@ -58,6 +58,16 @@ DATA=$HOME/dev/data/512x512x512/velocity_x.dat
 # diff hip.out serial.out > diff.out
 # $MgardXExec -z -i random -c random.mgard -t d -n 3 312 16395 39 -m abs -e 1e-4 -s 0 -l 0 -v -d $1
 
+# $MgardXExec -z -i random -c random.mgard -t s -n 3 432 1024 1024 -m rel -e 1e-3 -s inf -l 2  -v -d $1
+# $MgardXExec -z -i random -c random.mgard -t s -n 3 216 1024 2048 -m rel -e 1e-3 -s inf -l 2  -v -d $1
+# $MgardXExec -z -i random -c random.mgard -t s -n 3 216 2048 1024 -m rel -e 1e-3 -s inf -l 2  -v -d $1
+
+# $MgardXExec -z -i random -c random.mgard -t s -n 3 216 1024 1024 -m abs -e 707 -s 0 -l 2 -v -d $1
+
+# $MgardXExec -z -i random -c random.mgard -t s -n 3 5 5 10 -m rel -e 1e-3 -s inf -l 2 -v -d $1
+# $MgardXExec -z -i random -c random.mgard -t s -n 3 10 5 5 -m rel -e 1e-3 -s inf -l 2 -v -d $1
+
+
 
 
 # ./bin/test_flying_edges -i $DATA -n 3 512 512 512
@@ -119,7 +129,7 @@ DATA=$HOME/dev/data/512x512x512/velocity_x.dat
 # DATA=/home/jieyang/dev/data/enst.dat
 # 
 
-cd ../examples/mgard-x/BatchTests && rm -rf ../examples/gpu-cuda/BatchTests/build && ./build_script.sh && ./build/BatchTests $DATA $1 $2
+cd ../examples/mgard-x/BatchTests && rm -rf ../examples/gpu-cuda/BatchTests/build && ./build_script.sh && ./build/BatchTests random $1 $2
 
 # cd ../examples/mgard-x/Evaluation && sh Run_Script.sh cuda
 
