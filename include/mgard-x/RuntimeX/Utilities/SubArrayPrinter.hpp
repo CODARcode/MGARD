@@ -61,14 +61,14 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
     printf("[i = %d]\n", i);
     for (int j = 0; j < ncol; j++) {
       for (int k = 0; k < nfib; k++) {
-        std::cout << "[ " << j << ", " << k <<" ]: ";
+        // std::cout << "[ " << j << ", " << k <<" ]: ";
         if (std::is_same<T, std::uint8_t>::value) {
-          std::cout << std::setw(8) << (unsigned int)v[nfib * ncol * i + nfib * j + k] << ", ";
+          std::cout << std::setw(8) << (unsigned int)v[nfib * ncol * i + nfib * j + k] << " ";
         } else {
           std::cout << std::setw(8) << std::setprecision(6) << std::fixed
-                  << v[nfib * ncol * i + nfib * j + k] << ", ";
+                  << v[nfib * ncol * i + nfib * j + k] << " ";
         }
-        std::cout << "\n";
+        // std::cout << "\n";
       }
       std::cout << std::endl;
     }
@@ -295,6 +295,71 @@ void verify_matrix_cuda(SIZE nrow, SIZE ncol, SIZE nfib, T *dv, SIZE lddv1,
     delete[] v;
     // delete tmp_handle;
   }
+}
+
+
+
+template <typename T, typename DeviceType>
+void CompareSubArrays(SubArray<1, T, DeviceType> array1, SubArray<1, T, DeviceType> array2) {
+  SIZE n = array1.shape[0];
+  using Mem = MemoryManager<DeviceType>;
+  T * q1 = new T[n];
+  T * q2 = new T[n];
+  Mem::Copy1D(q1, array1.data(), n, 0);
+  Mem::Copy1D(q2, array2.data(), n, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  bool pass = true;
+  for (int i = 0; i < n; i++) {
+    if (q1[i] != q2[i] ) {
+      pass = false;
+      std::cout << "diff at " << i << "(" << q1[i] << ", " << q2[i] << ")\n";
+    }
+  }
+  printf("pass: %d\n", pass);
+  delete [] q1;
+  delete [] q2;
+}
+
+template <typename T, typename DeviceType>
+void DumpSubArray(std::string name, SubArray<1, T, DeviceType> array) {
+  SIZE n = array.getShape(0);
+  using Mem = MemoryManager<DeviceType>;
+  T * q = new T[n];
+  Mem::Copy1D(q, array.data(), n, 0);
+  std::fstream myfile;
+  myfile.open(name, std::ios::out | std::ios::binary);
+  if (!myfile) {
+    printf("Error: cannot open file\n");
+    return;
+  }
+  myfile.write((char *)q, n * sizeof(T));
+  myfile.close();
+  if (!myfile.good()) {
+    printf("Error occurred at write time!\n");
+    return;
+  }
+  delete [] q;
+}
+
+template <typename T, typename DeviceType>
+void LoadSubArray(std::string name, SubArray<1, T, DeviceType> array) {
+  SIZE n = array.getShape(0);
+  using Mem = MemoryManager<DeviceType>;
+  T * q = new T[n];
+  std::fstream myfile;
+  myfile.open(name, std::ios::in | std::ios::binary);
+  if (!myfile) {
+    printf("Error: cannot open file\n");
+    return;
+  }
+  myfile.read((char *)q, n * sizeof(T));
+  myfile.close();
+  if (!myfile.good()) {
+    printf("Error occurred at read time!\n");
+    return;
+  }
+  Mem::Copy1D(array.data(), q, n, 0);
+  delete [] q;
 }
 
 }

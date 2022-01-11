@@ -7,14 +7,14 @@
 
 
 #define MGARDX_COMPILE_HIP
-#include "mgard-x/DataRefactoring/DataRefactoring.hpp"
+#include "mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
 
 #include <iostream>
 
 #include <chrono>
 namespace mgard_x {
 
-template void decompose<4, float, HIP>(Handle<4, float, HIP> & handle,
+template void decompose<4, float, HIP>(Hierarchy<4, float, HIP> & hierarchy,
                                       SubArray<4, float, HIP>& v,
                                       SIZE l_target, int queue_idx);
 } // namespace mgard_x

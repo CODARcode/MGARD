@@ -50,7 +50,7 @@ void readfile(char *input_file, size_t num_bytes, bool check_size, T *in_buff) {
       in_buff[i] = rand() % 10 + 1;
     }
   } else {
-    fprintf(stdout, "Loading file: %s\n", input_file);
+    // fprintf(stdout, "Loading file: %s\n", input_file);
     FILE *pFile;
     pFile = fopen(input_file, "rb");
     if (pFile == NULL) {
@@ -409,12 +409,12 @@ int main(int argc, char *argv[]) {
 
   // shapes.push_back({5, 5});
   // shapes.push_back({129, 129});
-  shapes.push_back({100, 100});
-  shapes.push_back({1000, 1000});
-  shapes.push_back({100, 1000});
-  shapes.push_back({1000, 100});
-  shapes.push_back({10, 1000});
-  shapes.push_back({1000, 10});
+  // shapes.push_back({100, 100});
+  // shapes.push_back({1000, 1000});
+  // shapes.push_back({100, 1000});
+  // shapes.push_back({1000, 100});
+  // shapes.push_back({10, 1000});
+  // shapes.push_back({1000, 10});
 
   shapes.push_back({5, 5, 5});
   shapes.push_back({129, 129, 129});
@@ -434,6 +434,9 @@ int main(int argc, char *argv[]) {
   // shapes.push_back({10, 10, 1000, 10});
   // shapes.push_back({10, 10, 10, 1000});
 
+
+  // shapes.push_back({216, 1024, 2048});
+
   // XGC
   // shapes.push_back({8, 16395, 39, 39});
 
@@ -449,11 +452,12 @@ int main(int argc, char *argv[]) {
   // shapes.push_back({10, 100, 10, 100, 10});
   // shapes.push_back({100, 10, 100, 10, 10});
 
-  // std::vector<enum data_type> dtypes = {data_type::SINGLE,
-  // data_type::DOUBLE};
-  std::vector<enum data_type> dtypes = {data_type::SINGLE};
-  // std::vector<enum error_type> ebtypes = {error_type::ABS, error_type::REL};
-  std::vector<enum error_type> ebtypes = {error_type::REL};
+  std::vector<enum data_type> dtypes = {data_type::SINGLE,
+  data_type::DOUBLE};
+  // std::vector<enum data_type> dtypes = {data_type::SINGLE};
+  std::vector<enum error_type> ebtypes = {error_type::ABS, error_type::REL};
+  // std::vector<enum error_type> ebtypes = {error_type::REL};
+  // std::vector<enum error_type> ebtypes = {error_type::ABS};
 
   std::vector<float> tols = {1e-2, 1e-3, 1e-4};
   std::vector<double> told = {1e-2, 1e-3, 1e-4, 1e-5, 1e-6};

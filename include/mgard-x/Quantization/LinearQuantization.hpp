@@ -126,13 +126,14 @@ namespace mgard_x {
 
 
 template <DIM D, typename T>
-void calc_quantizers(size_t dof, T *quantizers, Metadata &m,
+void calc_quantizers(size_t dof, T *quantizers,
+                     enum error_bound_type type, T tol, T s, T norm, SIZE l_target,
                      bool reciprocal) {
 
 
-  double abs_tol = m.tol;
-  if (m.ebtype == error_bound_type::REL) {
-    abs_tol *= m.norm;
+  double abs_tol = tol;
+  if (type == error_bound_type::REL) {
+    abs_tol *= norm;
   }
 
   // printf("tol %f, l_target %d, D %d\n", tol, l_target, D);
@@ -175,12 +176,12 @@ void calc_quantizers(size_t dof, T *quantizers, Metadata &m,
   //     quantizers[l] = 1.0f / quantizers[l];
   // }
 
-  if (m.ntype == norm_type::L_Inf) {
+  if (s == std::numeric_limits<T>::infinity()) {
     
     // printf("quantizers: ");
-    for (int l = 0; l < m.l_target + 1; l++) {
+    for (int l = 0; l < l_target + 1; l++) {
       //ben
-      quantizers[l] = (abs_tol) / ((m.l_target + 1) * (1 + std::pow(3, D)));
+      quantizers[l] = (abs_tol) / ((l_target + 1) * (1 + std::pow(3, D)));
       //xin
       // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) / 4));
 
@@ -191,7 +192,7 @@ void calc_quantizers(size_t dof, T *quantizers, Metadata &m,
     }
     // printf("\n");
 
-  } else if (m.ntype == norm_type::L_2) { // s != inf
+  } else { // s != inf
     //xin - uniform
     // T C2 = 1 + 3 * std::sqrt(3) / 4;
     // T c = std::sqrt(std::pow(2, D - 2 * s));
@@ -213,9 +214,9 @@ void calc_quantizers(size_t dof, T *quantizers, Metadata &m,
     // for (int d = 0; d < D; d++) dof *= handle.dofs[d][0];
     // printf("tol: %f, dof: %llu\n", tol, dof);
     // printf ("dof = %llu\n", dof);
-    for (int l = 0; l < m.l_target + 1; l++) {
+    for (int l = 0; l < l_target + 1; l++) {
 
-      quantizers[l] = (abs_tol) / (std::exp2(m.s * l) * std::sqrt(dof));
+      quantizers[l] = (abs_tol) / (std::exp2(s * l) * std::sqrt(dof));
 
       // printf("l %d, vol: %f quantizer: %f \n", l, std::pow(2, (l_target - l) * D), quantizers[l]);
 
@@ -473,7 +474,7 @@ public:
   GenTask(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
           SubArray<1, T, DeviceType> quantizers, 
           SubArray<2, T, DeviceType> volumes, 
-          Metadata &m, SubArray<D, T, DeviceType> v,
+          T s, SIZE huff_dict_size, SubArray<D, T, DeviceType> v,
           SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
           SubArray<1, SIZE, DeviceType> shape,
           SubArray<1, LENGTH, DeviceType> outlier_count,
@@ -482,9 +483,9 @@ public:
           int queue_idx) {
     using FunctorType = LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;
 
-    bool calc_vol = m.ntype == norm_type::L_2;
+    bool calc_vol = s != std::numeric_limits<T>::infinity(); //m.ntype == norm_type::L_2;
     FunctorType functor(ranges, l_target, quantizers, volumes,
-                        v, work, prep_huffman, calc_vol, m.huff_dict_size, shape,
+                        v, work, prep_huffman, calc_vol, huff_dict_size, shape,
                         outlier_count, outlier_idx, outliers);
 
     SIZE total_thread_z = shape.dataHost()[2];
@@ -512,7 +513,7 @@ public:
   void Execute(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
                 SubArray<1, T, DeviceType> quantizers, 
                 SubArray<2, T, DeviceType> volumes, 
-                Metadata &m, SubArray<D, T, DeviceType> v,
+                T s, SIZE huff_dict_size, SubArray<D, T, DeviceType> v,
                 SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
                 SubArray<1, SIZE, DeviceType> shape,
                 SubArray<1, LENGTH, DeviceType> outlier_count,
@@ -526,7 +527,7 @@ public:
     using FunctorType = LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;
     using TaskType = Task<FunctorType>;
     TaskType task = GenTask<R, C, F>(ranges, l_target, quantizers,
-                                    volumes, m,
+                                    volumes, s, huff_dict_size,
                                     v, work, prep_huffman, shape,
                                     outlier_count, outlier_idx, outliers,
                                     queue_idx); 
@@ -908,7 +909,7 @@ public:
   GenTask2(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
            SubArray<1, T, DeviceType> quantizers, 
           SubArray<2, T, DeviceType> volumes, 
-          Metadata &m, SubArray<D, T, DeviceType> v,
+          T s, SIZE huff_dict_size, SubArray<D, T, DeviceType> v,
           SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
           SubArray<1, SIZE, DeviceType> shape,
           LENGTH outlier_count,
@@ -927,9 +928,10 @@ public:
 
     // SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
 
-    bool calc_vol = m.ntype == norm_type::L_2;
+    //bool calc_vol = m.ntype == norm_type::L_2;
+    bool calc_vol = s != std::numeric_limits<T>::infinity(); 
     FunctorType functor(ranges, l_target, quantizers, volumes,
-                        v, work, prep_huffman, calc_vol, m.huff_dict_size, shape,
+                        v, work, prep_huffman, calc_vol, huff_dict_size, shape,
                         outlier_count, outlier_idx, outliers);
 
     SIZE total_thread_z = shape.dataHost()[2];
@@ -959,7 +961,7 @@ public:
   void Execute(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target, 
                SubArray<1, T, DeviceType> quantizers, 
                 SubArray<2, T, DeviceType> volumes, 
-                Metadata &m, SubArray<D, T, DeviceType> v,
+                T s, SIZE huff_dict_size, SubArray<D, T, DeviceType> v,
                 SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
                 SubArray<1, SIZE, DeviceType> shape,
                 LENGTH outlier_count,
@@ -980,7 +982,7 @@ public:
     const int F=LWQK_CONFIG[D-1][2];
     using FunctorType = LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask2<R, C, F>(ranges, l_target, quantizers, volumes, m,
+    TaskType task = GenTask2<R, C, F>(ranges, l_target, quantizers, volumes, s, huff_dict_size,
                                     v, work, prep_huffman, shape,
                                     outlier_count, outlier_idx, outliers,
                                     queue_idx); 

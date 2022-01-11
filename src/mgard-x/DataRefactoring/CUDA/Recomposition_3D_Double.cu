@@ -7,14 +7,14 @@
 
 
 #define MGARDX_COMPILE_CUDA
-#include "mgard-x/DataRefactoring/DataRefactoring.hpp"
+#include "mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
 
 #include <iostream>
 
 #include <chrono>
 namespace mgard_x {
 
-template void recompose<3, double, CUDA>(Handle<3, double, CUDA> & handle,
+template void recompose<3, double, CUDA>(Hierarchy<3, double, CUDA> & hierarchy,
                                       SubArray<3, double, CUDA>& v,
                                       SIZE l_target, int queue_idx);
 } // namespace mgard_x

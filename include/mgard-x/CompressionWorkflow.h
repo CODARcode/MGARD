@@ -10,17 +10,18 @@
 
 
 #include "RuntimeX/RuntimeXPublic.h"
-#include "Handle.h"
+#include "Hierarchy.h"
 
 namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
-Array<1, unsigned char, DeviceType> compress(Handle<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
-                                 enum error_bound_type type, T tol, T s);
+Array<1, unsigned char, DeviceType> compress(Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, DeviceType> &in_array,
+                                 enum error_bound_type type, T tol, T s, T &norm, Config config);
 
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType> decompress(Handle<D, T, DeviceType> &handle,
-                       Array<1, unsigned char, DeviceType> &compressed_array);
+Array<D, T, DeviceType> decompress(Hierarchy<D, T, DeviceType> &hierarchy,
+                       Array<1, unsigned char, DeviceType> &compressed_array, 
+                       enum error_bound_type type, T tol, T s, T norm, Config config);
 
 } // namespace mgard_x
 
