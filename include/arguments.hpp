@@ -83,7 +83,7 @@ struct CompressionArguments {
   //!\param input Filename of the input dataset.
   //!\param smoothness Smoothness parameter to use in compression.
   //!\param tolerance Error tolerance to use in compression.
-  //!\param output Filename of the output archive.
+  //!\param output Filename of the output buffer.
   CompressionArguments(
       TCLAP::ValueArg<std::string> &datatype, TCLAP::ValueArg<DataShape> &shape,
       TCLAP::ValueArg<std::string> &input,
@@ -111,7 +111,7 @@ struct CompressionArguments {
   //! Error tolerance to use in compression.
   double tolerance;
 
-  //! Filename of the output archive.
+  //! Filename of the output buffer.
   std::string output;
 };
 
@@ -119,12 +119,12 @@ struct CompressionArguments {
 struct DecompressionArguments {
   //! Constructor.
   //!
-  //!\param input Filename of the input archive.
+  //!\param input Filename of the input buffer.
   //!\param output Filename of the output dataset.
   DecompressionArguments(TCLAP::ValueArg<std::string> &input,
                          TCLAP::ValueArg<std::string> &output);
 
-  //! Filename of the input archive.
+  //! Filename of the input buffer.
   std::string input;
 
   //! Filename of the output dataset.
