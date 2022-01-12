@@ -410,7 +410,6 @@ set(
 	MGARD_EXECUTABLE_HPP
 	include/arguments.hpp
 	include/cmdline.hpp
-	include/metadata.hpp
 	include/output.hpp
 )
 set(
@@ -422,7 +421,6 @@ set(
 	src/arguments.cpp
 	src/cmdline.cpp
 	src/executable.cpp
-	src/metadata.cpp
 	src/output.cpp
 )
 
@@ -579,9 +577,6 @@ if(MGARD_ENABLE_BENCHMARKS)
 	endif()
 endif()
 
-find_package(yaml-cpp)
-pkg_search_module(archive IMPORTED_TARGET GLOBAL libarchive)
-
 pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
 if(NOT TCLAP_FOUND)
 	find_package(TCLAP 1.4)
@@ -591,16 +586,12 @@ if(NOT TCLAP_FOUND)
 	endif()
 endif()
 
-if(NOT yaml-cpp_FOUND)
-	message(STATUS "Will not build executable (yaml-cpp not found).")
-elseif(NOT archive_FOUND)
-	message(STATUS "Will not build executable (archive not found).")
-elseif(NOT TCLAP_FOUND)
+if(NOT TCLAP_FOUND)
 	message(STATUS "Will not build executable (TCLAP not found).")
 else()
 	add_executable(mgard-executable ${MGARD_EXECUTABLE_CPP})
 	target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
-  target_link_libraries(mgard-executable PRIVATE mgard-library yaml-cpp PkgConfig::archive PkgConfig::TCLAP)
+	target_link_libraries(mgard-executable PRIVATE mgard-library PkgConfig::TCLAP)
 	set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
 
 	install(TARGETS mgard-executable RUNTIME)
@@ -652,8 +643,6 @@ endif()
 if(MGARD_ENABLE_BENCHMARKS)
 	message(STATUS "benchmark: ${benchmark_FOUND}")
 endif()
-message(STATUS "yaml-cpp:  ${yaml-cpp_FOUND}")
-message(STATUS "archive:   ${archive_FOUND}")
 message(STATUS "TCLAP:     ${TCLAP_FOUND}")
 message(STATUS "protobuf:  ${protobuf_FOUND}")
 list(POP_BACK CMAKE_MESSAGE_INDENT)
