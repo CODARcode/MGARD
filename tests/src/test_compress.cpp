@@ -378,12 +378,13 @@ void test_self_describing_decompression(
       std::ostringstream w_ostream(std::ios_base::binary);
       w_compressed.write(w_ostream);
       const std::string w_serialization = w_ostream.str();
-      const std::unique_ptr<unsigned char const[]> w_decompressed =
+      const mgard::MemoryBuffer<const unsigned char> w_decompressed =
           mgard::decompress(w_serialization.c_str(), w_serialization.size());
 
       Real const *const p = v_decompressed.data();
-      tracker += std::equal(
-          p, p + ndof, reinterpret_cast<Real const *>(w_decompressed.get()));
+      tracker +=
+          std::equal(p, p + ndof,
+                     reinterpret_cast<Real const *>(w_decompressed.data.get()));
     }
   }
   REQUIRE(tracker);

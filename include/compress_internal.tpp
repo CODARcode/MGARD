@@ -9,9 +9,9 @@
 namespace mgard {
 
 template <std::size_t N>
-std::unique_ptr<unsigned char const []> decompress_N(const pb::Header &header,
-                                                     void const *const data,
-                                                     const std::size_t size) {
+MemoryBuffer<const unsigned char> decompress_N(const pb::Header &header,
+                                               void const *const data,
+                                               const std::size_t size) {
   const pb::Dataset::Type dataset_type = read_dataset_type(header);
   switch (dataset_type) {
   case pb::Dataset::FLOAT:
@@ -24,8 +24,9 @@ std::unique_ptr<unsigned char const []> decompress_N(const pb::Header &header,
 }
 
 template <std::size_t N, typename Real>
-std::unique_ptr<unsigned char const []> decompress_N_Real(
-    const pb::Header &header, void const *const data, const std::size_t size) {
+MemoryBuffer<const unsigned char> decompress_N_Real(const pb::Header &header,
+                                                    void const *const data,
+                                                    const std::size_t size) {
   const pb::Domain &domain = header.domain();
   const CartesianGridTopology topology = read_topology(domain);
   const CartesianGridGeometry geometry = read_geometry(domain, topology);
@@ -49,9 +50,10 @@ std::unique_ptr<unsigned char const []> decompress_N_Real(
 }
 
 template <std::size_t N, typename Real>
-std::unique_ptr<unsigned char const []> decompress(
-    const TensorMeshHierarchy<N, Real> &hierarchy, const pb::Header &header,
-    void const *const data, const std::size_t size) {
+MemoryBuffer<const unsigned char>
+decompress(const TensorMeshHierarchy<N, Real> &hierarchy,
+           const pb::Header &header, void const *const data,
+           const std::size_t size) {
   const ErrorControlParameters error_control = read_error_control(header);
   // TODO: Figure out how best to do this later.
   void *const data_compressed_ = new unsigned char[size];
@@ -72,7 +74,7 @@ std::unique_ptr<unsigned char const []> decompress(
         reinterpret_cast<unsigned char const *>(decompressed.data());
     std::copy(p, p + nbytes, data_decompressed_);
   }
-  return std::unique_ptr<unsigned char const[]>(data_decompressed_);
+  return MemoryBuffer<const unsigned char>(data_decompressed_, nbytes);
 }
 
 } // namespace mgard

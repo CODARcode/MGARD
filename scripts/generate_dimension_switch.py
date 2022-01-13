@@ -20,7 +20,7 @@ NAMESPACE: str = 'mgard'
 #Name of the generated function.
 F_NAME: str = 'decompress'
 #Return type of the generated function.
-F_RET_TYPE: str = 'std::unique_ptr<unsigned char const []>'
+F_RET_TYPE: str = 'MemoryBuffer<const unsigned char>'
 #Arguments of the generated function.
 F_ARGUMENTS: typing.Tuple[Argument, ...] = (
     Argument('const pb::Header &', 'header'),

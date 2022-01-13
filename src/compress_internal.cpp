@@ -2,9 +2,9 @@
 
 namespace mgard {
 
-std::unique_ptr<unsigned char const []> decompress(const pb::Header &header,
-                                                   void const *const data,
-                                                   const std::size_t size) {
+MemoryBuffer<const unsigned char> decompress(const pb::Header &header,
+                                             void const *const data,
+                                             const std::size_t size) {
   check_mgard_version(header);
   check_file_format_version(header);
   const pb::Domain &domain = header.domain();
