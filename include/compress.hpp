@@ -11,8 +11,7 @@
 
 #include "CompressedDataset.hpp"
 #include "TensorMeshHierarchy.hpp"
-
-#include <memory>
+#include "utilities.hpp"
 
 #ifdef __NVCC__
 #error "Please include `compress_cuda.hpp` instead of `compress.hpp` when "\
@@ -48,8 +47,8 @@ decompress(const CompressedDataset<N, Real> &compressed);
 //!
 //!\param data Self-describing compressed dataset.
 //!\param size Size in bytes of compressed dataset.
-std::unique_ptr<unsigned char const[]> decompress(void const *const data,
-                                                  const std::size_t size);
+MemoryBuffer<const unsigned char> decompress(void const *const data,
+                                             const std::size_t size);
 
 } // namespace mgard
 

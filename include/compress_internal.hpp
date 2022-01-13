@@ -25,16 +25,16 @@ namespace mgard {
 //! start of the header.
 //!\param size Size in bytes of compressed buffer. Note that this parameter must
 //! not include the size of the header.
-std::unique_ptr<unsigned char const[]> decompress(const pb::Header &header,
-                                                  void const *const data,
-                                                  const std::size_t size);
+MemoryBuffer<const unsigned char> decompress(const pb::Header &header,
+                                             void const *const data,
+                                             const std::size_t size);
 
 //! Decompress a dataset originally stored in self-describing format.
 //!
 //! *This function is not part of the API.*
 //!
 //! This function is called once the topology dimension is determined. Its job
-//! to call the appropriate decompression function template (with the last
+//! to call the appropriate decompression function template (with the second
 //! argument as the template parameter).
 //!
 //!\param header Header parsed from the original self-describing buffer.
@@ -43,10 +43,10 @@ std::unique_ptr<unsigned char const[]> decompress(const pb::Header &header,
 //! start of the header.
 //!\param size Size in bytes of compressed buffer. Note that this parameter must
 //! not include the size of the header.
-std::unique_ptr<unsigned char const[]> decompress(const pb::Header &header,
-                                                  const std::size_t dimension,
-                                                  void const *const data,
-                                                  const std::size_t size);
+MemoryBuffer<const unsigned char> decompress(const pb::Header &header,
+                                             const std::size_t dimension,
+                                             void const *const data,
+                                             const std::size_t size);
 
 // Doxygen threw an error when this function was named `decompress`.
 
@@ -63,9 +63,9 @@ std::unique_ptr<unsigned char const[]> decompress(const pb::Header &header,
 //!\param size Size in bytes of compressed buffer. Note that this parameter must
 //! not include the size of the header.
 template <std::size_t N>
-std::unique_ptr<unsigned char const[]> decompress_N(const pb::Header &header,
-                                                    void const *const data,
-                                                    const std::size_t size);
+MemoryBuffer<const unsigned char> decompress_N(const pb::Header &header,
+                                               void const *const data,
+                                               const std::size_t size);
 
 // Doxygen threw an error when this function was named `decompress`.
 
@@ -82,9 +82,9 @@ std::unique_ptr<unsigned char const[]> decompress_N(const pb::Header &header,
 //!\param size Size in bytes of compressed buffer. Note that this parameter must
 //! not include the size of the header.
 template <std::size_t N, typename Real>
-std::unique_ptr<unsigned char const[]>
-decompress_N_Real(const pb::Header &header, void const *const data,
-                  const std::size_t size);
+MemoryBuffer<const unsigned char> decompress_N_Real(const pb::Header &header,
+                                                    void const *const data,
+                                                    const std::size_t size);
 
 //! Decompress a dataset originally stored in self-describing format.
 //!
@@ -100,7 +100,7 @@ decompress_N_Real(const pb::Header &header, void const *const data,
 //!\param size Size in bytes of compressed buffer. Note that this parameter must
 //! not include the size of the header.
 template <std::size_t N, typename Real>
-std::unique_ptr<unsigned char const[]>
+MemoryBuffer<const unsigned char>
 decompress(const TensorMeshHierarchy<N, Real> &hierarchy,
            const pb::Header &header, void const *const data,
            const std::size_t size);
