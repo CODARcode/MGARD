@@ -46,6 +46,8 @@ option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimize for Turing GPUs." OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)
 
+option(MGARD_ENABLE_UNSTRUCTURED "Enable experimental unstructured mesh support." OFF)
+
 include(CTest)
 # Some boilerplate to setup nice output directories
 include(GNUInstallDirs)
@@ -176,71 +178,6 @@ find_package(PkgConfig)
 
 find_package(zstd)
 
-find_package(MOAB)
-#We run into this when building MOAB 5.3.0 with `./configure && make`.
-if(MOAB_FOUND AND NOT TARGET MOAB)
-  message(STATUS "MOAB found, but configuration file ")
-  list(APPEND CMAKE_MESSAGE_INDENT "    ")
-  message(STATUS "${MOAB_CONFIG}")
-  list(POP_BACK CMAKE_MESSAGE_INDENT)
-  message(STATUS "did not define a library target.")
-  set(MOAB_FOUND FALSE)
-endif()
-
-set(
-  MGARD_MOAB_HPP
-  include/blas.hpp
-  include/utilities.hpp
-  include/data.hpp
-  include/UniformEdgeFamilies.hpp
-  include/LinearQuantizer.hpp
-  include/SituatedCoefficientRange.hpp
-  include/MultilevelCoefficientQuantizer.hpp
-
-  include/measure.hpp
-  include/LinearOperator.hpp
-  include/pcg.hpp
-  include/MassMatrix.hpp
-  include/MeshLevel.hpp
-  include/MeshHierarchy.hpp
-  include/MeshRefiner.hpp
-  include/UniformMeshRefiner.hpp
-  include/UniformMeshHierarchy.hpp
-  include/UniformRestriction.hpp
-  include/norms.hpp
-  include/estimators.hpp
-  include/EnumeratedMeshRange.hpp
-  include/indicators.hpp
-  include/IndicatorInput.hpp
-)
-set(
-  MGARD_MOAB_TPP
-  include/blas.tpp
-  include/utilities.tpp
-  include/data.tpp
-  include/UniformEdgeFamilies.tpp
-  include/LinearQuantizer.tpp
-  include/SituatedCoefficientRange.tpp
-  include/MultilevelCoefficientQuantizer.tpp
-)
-set(
-  MGARD_MOAB_CPP
-  src/measure.cpp
-  src/LinearOperator.cpp
-  src/pcg.cpp
-  src/MassMatrix.cpp
-  src/MeshLevel.cpp
-  src/MeshHierarchy.cpp
-  src/MeshRefiner.cpp
-  src/UniformMeshRefiner.cpp
-  src/UniformMeshHierarchy.cpp
-  src/UniformRestriction.cpp
-  src/norms.cpp
-  src/estimators.cpp
-  src/EnumeratedMeshRange.cpp
-  src/indicators.cpp
-  src/IndicatorInput.cpp
-)
 set(
   MGARD_LIBRARY_CPP
         src/compress.cpp
@@ -322,6 +259,11 @@ add_library(
   ${MGARD_CUDA_SRC}
   ${MGARD_X_SRC}
 )
+
+if(MGARD_ENABLE_UNSTRUCTURED)
+	add_subdirectory("src/unstructured")
+endif()
+
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
@@ -363,11 +305,6 @@ target_include_directories(mgard-library
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
-if(MOAB_FOUND)
-  add_compile_definitions(MGARD_MOAB)
-  target_sources(mgard-library PRIVATE ${MGARD_MOAB_CPP})
-  target_link_libraries(mgard-library PUBLIC MOAB)
-endif()
 
 if(zstd_FOUND)
   target_compile_definitions(mgard-library PUBLIC MGARD_ZSTD)
@@ -439,6 +376,7 @@ set(
   tests/src/test_TensorMassMatrix.cpp
   tests/src/test_TensorProlongation.cpp
   tests/src/test_TensorRestriction.cpp
+  tests/src/test_LinearQuantizer.cpp
   tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
   tests/src/test_TensorNorms.cpp
   tests/src/test_TensorQuantityOfInterest.cpp
@@ -450,30 +388,29 @@ set(
   tests/src/test_CompressedDataset.cpp
 )
 if(MOAB_FOUND)
-  list(
-    APPEND
-    MGARD_TESTS_CPP
-    tests/src/test_estimators.cpp
-    tests/src/test_indicators.cpp
-    tests/src/test_norms.cpp
-    tests/src/test_data.cpp
-    tests/src/test_pcg.cpp
-    tests/src/test_measure.cpp
-    tests/src/test_MeshLevel.cpp
-    tests/src/test_MeshHierarchy.cpp
-    tests/src/test_MeshRefiner.cpp
-    tests/src/test_LinearOperator.cpp
-    tests/src/test_MassMatrix.cpp
-    tests/src/test_LinearQuantizer.cpp
-    tests/src/test_UniformMeshHierarchy.cpp
-    tests/src/test_UniformMeshRefiner.cpp
-    tests/src/test_UniformEdgeFamilies.cpp
-    tests/src/test_UniformRestriction.cpp
-    tests/src/test_EnumeratedMeshRange.cpp
-    tests/src/test_SituatedCoefficientRange.cpp
-    tests/src/test_IndicatorInput.cpp
-    tests/src/test_MultilevelCoefficientQuantizer.cpp
-  )
+	list(
+		APPEND
+		MGARD_TESTS_CPP
+		tests/src/unstructured/test_estimators.cpp
+		tests/src/unstructured/test_indicators.cpp
+		tests/src/unstructured/test_norms.cpp
+		tests/src/unstructured/test_data.cpp
+		tests/src/unstructured/test_pcg.cpp
+		tests/src/unstructured/test_measure.cpp
+		tests/src/unstructured/test_MeshLevel.cpp
+		tests/src/unstructured/test_MeshHierarchy.cpp
+		tests/src/unstructured/test_MeshRefiner.cpp
+		tests/src/unstructured/test_LinearOperator.cpp
+		tests/src/unstructured/test_MassMatrix.cpp
+		tests/src/unstructured/test_UniformMeshHierarchy.cpp
+		tests/src/unstructured/test_UniformMeshRefiner.cpp
+		tests/src/unstructured/test_UniformEdgeFamilies.cpp
+		tests/src/unstructured/test_UniformRestriction.cpp
+		tests/src/unstructured/test_EnumeratedMeshRange.cpp
+		tests/src/unstructured/test_SituatedCoefficientRange.cpp
+		tests/src/unstructured/test_IndicatorInput.cpp
+		tests/src/unstructured/test_MultilevelCoefficientQuantizer.cpp
+	)
 endif()
 
 set(
@@ -652,13 +589,16 @@ message(STATUS "tests:         ${BUILD_TESTING}")
 message(STATUS "benchmarks:    ${MGARD_ENABLE_BENCHMARKS}")
 message(STATUS "documentation: ${MGARD_ENABLE_DOCS}")
 message(STATUS "CLI:           ${MGARD_ENABLE_CLI}")
+message(STATUS "unstructured:  ${MGARD_ENABLE_UNSTRUCTURED}")
 list(POP_BACK CMAKE_MESSAGE_INDENT)
 
 message(STATUS "")
 message(STATUS "Libraries:")
 list(APPEND CMAKE_MESSAGE_INDENT "  ")
-message(STATUS "MOAB:      ${MOAB_FOUND}")
 message(STATUS "protobuf:  ${protobuf_FOUND}")
+if(MGARD_ENABLE_UNSTRUCTURED)
+	message(STATUS "MOAB:      ${MOAB_FOUND}")
+endif()
 if(MGARD_ENABLE_OPENMP)
   message(STATUS "OpenMP:    ${OpenMP_FOUND}")
 endif()

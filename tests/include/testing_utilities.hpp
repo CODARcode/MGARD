@@ -8,16 +8,9 @@
 #include <random>
 #include <string>
 
-#include "moab/Interface.hpp"
 static const double APPROX_MARGIN_DEFAULT = 0;
 
 #include "TensorMeshHierarchy.hpp"
-
-std::string mesh_path(const std::string &filename);
-
-std::string output_path(const std::string &filename);
-
-void require_moab_success(const moab::ErrorCode ecode);
 
 // TODO: Change these? See <https://github.com/catchorg/Catch2/pull/1499>.
 
