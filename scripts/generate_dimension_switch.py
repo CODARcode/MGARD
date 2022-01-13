@@ -126,7 +126,7 @@ g_name: str
 g_arguments: typing.Tuple[FunctionArgument, ...]
 
 if args.compress:
-    header = 'cli_internal.hpp'
+    header = 'cli/cli_internal.hpp'
     namespace = 'cli'
     f_name = 'compress'
     f_ret_type = 'int'

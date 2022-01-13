@@ -65,14 +65,19 @@ See [the examples directory][examples] for a basic example.
 
 ## Command Line Interface
 
-Assuming the dependencies are met, a convenience executable called `mgard` will be built and installed.
-*This executable is an experimental part of the API.*
-You can get help with it by running the following commands.
+To build the command line interface, run `cmake` with `-D MGARD_ENABLE_CLI=ON`.
+You will need [TCLAP][tclap].
+A convenience executable called `mgard` will be built and installed to `${CMAKE_INSTALL_PREFIX}/bin/` by default.
+You can get help with the CLI by running the following commands.
 
 ```console
 $ mgard --help
 $ man mgard
 ```
+
+*This executable is an experimental part of the API.*
+
+[tclap]: http://tclap.sourceforge.net/
 
 ## References
 

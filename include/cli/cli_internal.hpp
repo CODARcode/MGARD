@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-#include "arguments.hpp"
+#include "cli/arguments.hpp"
 
 namespace cli {
 
@@ -53,5 +53,5 @@ int decompress(const DecompressionArguments &arguments);
 
 } // namespace cli
 
-#include "cli_internal.tpp"
+#include "cli/cli_internal.tpp"
 #endif
