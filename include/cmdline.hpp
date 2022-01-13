@@ -16,6 +16,8 @@
 #include <tclap/ValuesConstraint.h>
 #include <tclap/VersionVisitor.h>
 
+namespace cli {
+
 //! Base class for sub- and supercommand parsers.
 class BaseCmdLine : public TCLAP::CmdLineInterface {
 public:
@@ -183,5 +185,7 @@ private:
   //! Argument for the subcommand.
   TCLAP::UnlabeledValueArg<std::string> _subcommandArg;
 };
+
+} // namespace cli
 
 #endif

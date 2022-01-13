@@ -435,6 +435,13 @@ template <typename T> struct MemoryBuffer {
   //!\param size Number of elements in the buffer.
   MemoryBuffer(T *const buffer, const std::size_t size);
 
+  //! Constructor.
+  //!
+  //!\overload
+  //!
+  //!\param size Number of elements in the buffer.
+  MemoryBuffer(const std::size_t size);
+
   //! Buffer.
   std::unique_ptr<T[]> data;
 

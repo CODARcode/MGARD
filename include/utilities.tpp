@@ -341,4 +341,8 @@ template <typename T>
 MemoryBuffer<T>::MemoryBuffer(T *const buffer, const std::size_t size)
     : MemoryBuffer(std::unique_ptr<T[]>(buffer), size) {}
 
+template <typename T>
+MemoryBuffer<T>::MemoryBuffer(const std::size_t size)
+    : MemoryBuffer(new T[size], size) {}
+
 } // namespace mgard

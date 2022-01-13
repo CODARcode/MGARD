@@ -8,6 +8,8 @@
 
 #include "output.hpp"
 
+namespace cli {
+
 BaseCmdLine::BaseCmdLine(const std::string &version, const std::string &message,
                          TCLAP::CmdLineOutput *const output)
     : _version(version), _message(message), _output(output),
@@ -207,3 +209,5 @@ bool SuperCmdLine::hasHelpAndVersion() const { return true; }
 SubCmdLine *SuperCmdLine::getSubcommand() {
   return _subcommands[_subcommandArg.getValue()];
 }
+
+} // namespace cli
