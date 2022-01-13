@@ -65,11 +65,12 @@ void test_serialization(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
   std::ostringstream v_ostream(std::ios_base::binary);
   v_compressed.write(v_ostream);
   const std::string v_serialization = v_ostream.str();
-  std::unique_ptr<unsigned char const[]> v_decompressed =
+  mgard::MemoryBuffer<const unsigned char> v_decompressed =
       mgard::decompress(v_serialization.c_str(), v_serialization.size());
 
   Real const *const p = reinterpret_cast<Real const *>(u_decompressed.data());
-  Real const *const q = reinterpret_cast<Real const *>(v_decompressed.get());
+  Real const *const q =
+      reinterpret_cast<Real const *>(v_decompressed.data.get());
   REQUIRE(std::equal(p, p + ndof, q));
 }
 

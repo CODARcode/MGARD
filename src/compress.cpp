@@ -7,8 +7,8 @@
 
 namespace mgard {
 
-std::unique_ptr<unsigned char const []> decompress(void const *const data,
-                                                   const std::size_t size) {
+MemoryBuffer<const unsigned char> decompress(void const *const data,
+                                             const std::size_t size) {
   BufferWindow window(data, size);
   const pb::Header header = read_metadata(window);
   const std::uint_least64_t header_size =
