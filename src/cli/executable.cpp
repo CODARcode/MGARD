@@ -6,9 +6,9 @@
 
 #include "MGARDConfig.hpp"
 
-#include "arguments.hpp"
-#include "cli_internal.hpp"
-#include "cmdline.hpp"
+#include "cli/arguments.hpp"
+#include "cli/cli_internal.hpp"
+#include "cli/cmdline.hpp"
 
 int main(const int argc, char const *const *const argv) {
   cli::SubCmdLine subcompress(MGARD_VERSION_STR,

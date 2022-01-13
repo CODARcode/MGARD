@@ -12,7 +12,7 @@
 #include <tclap/CmdLineOutput.h>
 #include <tclap/StdOutput.h>
 
-#include "cmdline.hpp"
+#include "cli/cmdline.hpp"
 
 namespace cli {
 

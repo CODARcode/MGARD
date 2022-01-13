@@ -132,5 +132,5 @@ struct DecompressionArguments {
 
 } // namespace cli
 
-#include "arguments.tpp"
+#include "cli/arguments.tpp"
 #endif
