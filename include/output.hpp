@@ -14,6 +14,8 @@
 
 #include "cmdline.hpp"
 
+namespace cli {
+
 //! Printing function object making `TCLAP::StdOutput::spacePrint` accessible.
 class SpacePrinter : private TCLAP::StdOutput {
 public:
@@ -93,5 +95,7 @@ protected:
                               std::stringstream &stream,
                               int &secondLineOffset) const override;
 };
+
+} // namespace cli
 
 #endif

@@ -1,49 +1,101 @@
 import argparse
 import typing
 
-#C++ function argument.
-class Argument:
+#Overengineered. Feel free to change.
+
+Statements = typing.Tuple[typing.Any, ...]
+
+class CaseStatement(typing.NamedTuple):
+    label: str
+    statements: Statements
+
+    def __str__(self) -> str:
+        return '\n'.join((
+            f'case {self.label}: {{',
+            *map(str, self.statements),
+            '}'
+        ))
+
+class DefaultStatement(typing.NamedTuple):
+    statements: Statements
+
+    def __str__(self) -> str:
+        return '\n'.join((
+            'default: {',
+            *map(str, self.statements),
+            '}'
+        ))
+
+#Exception message if an out-of-range dimension is encountered.
+EXCEPTION_MESSAGE = 'unrecognized topology dimension'
+#Common default statement.
+DEFAULT_STATEMENT = DefaultStatement(statements=(
+    f'throw std::runtime_error("{EXCEPTION_MESSAGE}");',
+))
+
+class SwitchStatement(typing.NamedTuple):
+    condition: str
+    cases: typing.Tuple[CaseStatement, ...]
+    default: DefaultStatement
+
+    def __str__(self) -> str:
+        return '\n'.join((
+            f'switch ({self.condition}) {{',
+            *map(str, self.cases),
+            str(self.default),
+            '}'
+        ))
+
+class FunctionArgument(typing.NamedTuple):
     type_: str
     name: str
-
-    def __init__(self, type_: str, name: str) -> None:
-        self.type_ = type_
-        self.name = name
 
     def __str__(self) -> str:
         return f'{self.type_} {self.name}'
 
-#Name of header the generated file will implement.
-HEADER: str = 'compress_internal.hpp'
-#Name of containing namespace.
-NAMESPACE: str = 'mgard'
-#Name of the generated function.
-F_NAME: str = 'decompress'
-#Return type of the generated function.
-F_RET_TYPE: str = 'MemoryBuffer<const unsigned char>'
-#Arguments of the generated function.
-F_ARGUMENTS: typing.Tuple[Argument, ...] = (
-    Argument('const pb::Header &', 'header'),
-    Argument('const std::size_t', 'dimension'),
-    Argument('void const * const', 'data'),
-    Argument('const std::size_t', 'size'),
-)
-#Index of argument the generated function switches on.
-_F_SW_ARG_INDEX: int = 1
-#Argument the generated function switches on.
-F_SWITCH_ARGUMENT: Argument = F_ARGUMENTS[_F_SW_ARG_INDEX]
-#Name of the function the generated function delegates to.
-G_NAME: str = 'decompress_N'
-#Arguments of the delegate function.
-G_ARGUMENTS: typing.Tuple[Argument, ...] = \
-    F_ARGUMENTS[: _F_SW_ARG_INDEX] + F_ARGUMENTS[_F_SW_ARG_INDEX + 1 :]
-#Exception message if an out-of-range dimension is encountered.
-EXCEPTION_MESSAGE = 'unrecognized topology dimension'
+class FunctionDefinition(typing.NamedTuple):
+    return_type: str
+    name: str
+    arguments: typing.Tuple[FunctionArgument, ...]
+    statements: Statements
+
+    def __str__(self) -> str:
+        return '\n'.join((
+            f'{self.return_type} {self.name}(',
+            ',\n'.join(map(str, self.arguments)),
+            ') {',
+            '\n'.join(map(str, self.statements)),
+            '}'
+        ))
+
+class Implementation(typing.NamedTuple):
+    header: str
+    namespace: str
+    definitions: typing.Tuple[FunctionDefinition, ...]
+
+    def __str__(self) -> str:
+        return '\n'.join((
+            f'#include "{self.header}"',
+            f'namespace {self.namespace} {{',
+            *map(str, self.definitions),
+            '}'
+        ))
 
 parser = argparse.ArgumentParser(
     description=(
-        'generate decompression function switching on topology dimension'
+        'generate functions switching on topology dimension'
     ),
+)
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument(
+    '--compress',
+    action='store_true',
+    help='generate compression function',
+)
+group.add_argument(
+    '--decompress',
+    action='store_true',
+    help='generate decompression function',
 )
 parser.add_argument(
     'max_dim',
@@ -56,21 +108,78 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+#Name of header the generated file will implement.
+header: str
+#Name of containing namespace.
+namespace: str
+#Name of the generated function.
+f_name: str
+#Return type of the generated function.
+f_ret_type: str
+#Arguments of the generated function.
+f_arguments: typing.Tuple[FunctionArgument, ...]
+#Argument the generated function switches on.
+f_switch_argument: FunctionArgument
+#Name of the function the generated function delegates to.
+g_name: str
+#Arguments of the delegate function.
+g_arguments: typing.Tuple[FunctionArgument, ...]
+
+if args.compress:
+    header = 'cli_internal.hpp'
+    namespace = 'cli'
+    f_name = 'compress'
+    f_ret_type = 'int'
+    f_arguments = (
+        FunctionArgument('const CompressionArguments &', 'arguments'),
+        FunctionArgument('const std::size_t', 'dimension')
+    )
+    f_switch_argument = f_arguments[1]
+    g_name = 'compress_N'
+    g_arguments = f_arguments[: 1]
+elif args.decompress:
+    header = 'compress_internal.hpp'
+    namespace = 'mgard'
+    f_name = 'decompress'
+    f_ret_type = 'MemoryBuffer<const unsigned char>'
+    f_arguments = (
+        FunctionArgument('const pb::Header &', 'header'),
+        FunctionArgument('const std::size_t', 'dimension'),
+        FunctionArgument('void const * const', 'data'),
+        FunctionArgument('const std::size_t', 'size'),
+    )
+    f_switch_argument = f_arguments[1]
+    g_name = 'decompress_N'
+    g_arguments = f_arguments[: 1] + f_arguments[2 :]
+else:
+    raise RuntimeError
+
+definition = FunctionDefinition(
+    return_type=f_ret_type,
+    name=f_name,
+    arguments=f_arguments,
+    statements=(
+        SwitchStatement(
+            condition=f_switch_argument.name,
+            cases=tuple(
+                CaseStatement(
+                    label=str(d),
+                    statements=(
+                        ''.join((
+                            f'return {g_name}<{d}>(',
+                            ', '.join(arg.name for arg in g_arguments),
+                            ');'
+                        )),
+                    )
+                ) for d in range(1, args.max_dim + 1)
+            ),
+            default=DEFAULT_STATEMENT
+        ),
+    )
+)
 with open(args.outfile, 'w') as f:
-    f.write(f'#include "{HEADER}"\n\n')
-    f.write(f'namespace {NAMESPACE} {{\n')
-    f.write(f'{F_RET_TYPE} {F_NAME}(')
-    f.write(', '.join(map(str, F_ARGUMENTS)))
-    f.write(') {\n')
-    f.write(f'switch ({F_SWITCH_ARGUMENT.name}) {{\n')
-    d: int
-    for d in range(1, args.max_dim + 1) :
-        f.write(f'case {d}: return {G_NAME}<{d}>(')
-        f.write(', '.join(arg.name for arg in G_ARGUMENTS))
-        f.write(');\n')
-    f.write('default: throw std::runtime_error(')
-    f.write(f'"{EXCEPTION_MESSAGE}"')
-    f.write(');\n')
-    f.write('}\n')
-    f.write('}\n')
-    f.write('}')
+    f.write(str(Implementation(
+        header=header,
+        namespace=namespace,
+        definitions=(definition,)
+    )))

@@ -78,6 +78,7 @@ MemoryBuffer<unsigned char> quantization_buffer(const pb::Header &header,
 void populate_version_numbers(pb::Header &header);
 
 //! Populate a header with the default compression settings.
+//!
 //!\param header Header to be populated.
 void populate_defaults(pb::Header &header);
 

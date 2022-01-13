@@ -42,6 +42,8 @@ option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add inst
 option(MGARD_ENABLE_CUDA_OPTIMIZE_VOLTA "Optimize for Volta GPUs." OFF)
 option(MGARD_ENABLE_CUDA_OPTIMIZE_TURING "Optimize for Turing GPUs." OFF)
 
+option(MGARD_ENABLE_CLI "Build executable." OFF)
+
 include(CTest)
 # Some boilerplate to setup nice output directories
 include(GNUInstallDirs)
@@ -226,7 +228,8 @@ set(MGARD_FILE_FORMAT_SRCDIR "${CMAKE_CURRENT_BINARY_DIR}/src")
 set(MGARD_FILE_FORMAT_DIR "${MGARD_FILE_FORMAT_INCLUDEDIR}/proto")
 set(MGARD_FILE_FORMAT_HPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.h")
 set(MGARD_FILE_FORMAT_CPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.cc")
-set(MGARD_DECOMPOSE_INTERNAL_CPP "${MGARD_FILE_FORMAT_SRCDIR}/compress_internal_generated.cpp")
+set(MGARD_GENERATE_DIMENSION_SWITCH "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dimension_switch.py")
+set(MGARD_COMPRESS_INTERNAL_CPP "${MGARD_FILE_FORMAT_SRCDIR}/compress_internal_generated.cpp")
 
 pkg_search_module(protobuf REQUIRED IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
 find_program(PROTOC NAMES "protoc" REQUIRED)
@@ -249,15 +252,16 @@ add_custom_command(
 )
 add_custom_command(
 	OUTPUT
-	"${MGARD_DECOMPOSE_INTERNAL_CPP}"
+	"${MGARD_COMPRESS_INTERNAL_CPP}"
 	COMMAND "${PYTHON3}"
 	ARGS
-	"${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dimension_switch.py"
+	"${MGARD_GENERATE_DIMENSION_SWITCH}"
+	"--decompress"
 	"${MAXIMUM_DIMENSION}"
-	"${MGARD_DECOMPOSE_INTERNAL_CPP}"
+	"${MGARD_COMPRESS_INTERNAL_CPP}"
 )
 
-list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}" "${MGARD_DECOMPOSE_INTERNAL_CPP}")
+list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}" "${MGARD_COMPRESS_INTERNAL_CPP}")
 
 add_library(
 	mgard-library
@@ -406,15 +410,20 @@ if(MOAB_FOUND)
 	)
 endif()
 
+set(MGARD_CLI_SRCDIR "${CMAKE_CURRENT_BINARY_DIR}/src")
+set(MGARD_CLI_INTERNAL_CPP "${MGARD_CLI_SRCDIR}/cli_internal_generated.cpp")
+
 set(
 	MGARD_EXECUTABLE_HPP
 	include/arguments.hpp
 	include/cmdline.hpp
 	include/output.hpp
+	include/cli_internal.hpp
 )
 set(
 	MGARD_EXECUTABLE_TPP
 	include/arguments.tpp
+	include/cli_internal.tpp
 )
 set(
 	MGARD_EXECUTABLE_CPP
@@ -422,6 +431,8 @@ set(
 	src/cmdline.cpp
 	src/executable.cpp
 	src/output.cpp
+	src/cli_internal.cpp
+	"${MGARD_CLI_INTERNAL_CPP}"
 )
 
 set(
@@ -577,25 +588,40 @@ if(MGARD_ENABLE_BENCHMARKS)
 	endif()
 endif()
 
-pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
-if(NOT TCLAP_FOUND)
-	find_package(TCLAP 1.4)
-	if(TCLAP_FOUND)
-		#Mimic target defined by `pkg_search_module`.
-		add_library(PkgConfig::TCLAP ALIAS TCLAP::TCLAP)
+
+if(MGARD_ENABLE_CLI)
+	pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
+	if(NOT TCLAP_FOUND)
+		find_package(TCLAP 1.4)
+		if(TCLAP_FOUND)
+			#Mimic target defined by `pkg_search_module`.
+			add_library(PkgConfig::TCLAP ALIAS TCLAP::TCLAP)
+		endif()
 	endif()
-endif()
 
-if(NOT TCLAP_FOUND)
-	message(STATUS "Will not build executable (TCLAP not found).")
-else()
-	add_executable(mgard-executable ${MGARD_EXECUTABLE_CPP})
-	target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
-	target_link_libraries(mgard-executable PRIVATE mgard-library PkgConfig::TCLAP)
-	set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
+	if(NOT TCLAP_FOUND)
+		message(STATUS "Will not build executable (TCLAP not found).")
+	else()
+		file(MAKE_DIRECTORY "${MGARD_CLI_SRCDIR}")
+		add_custom_command(
+			OUTPUT
+			"${MGARD_CLI_INTERNAL_CPP}"
+			COMMAND "${PYTHON3}"
+			ARGS
+			"${MGARD_GENERATE_DIMENSION_SWITCH}"
+			"--compress"
+			"${MAXIMUM_DIMENSION}"
+			"${MGARD_CLI_INTERNAL_CPP}"
+		)
 
-	install(TARGETS mgard-executable RUNTIME)
-	install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
+		add_executable(mgard-executable ${MGARD_EXECUTABLE_CPP})
+		target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
+		target_link_libraries(mgard-executable PRIVATE mgard-library PkgConfig::TCLAP)
+		set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
+
+		install(TARGETS mgard-executable RUNTIME)
+		install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
+	endif()
 endif()
 
 message(STATUS "")
@@ -628,23 +654,26 @@ message(STATUS "UBSan:         ${MGARD_ENABLE_UBSAN}")
 message(STATUS "tests:         ${BUILD_TESTING}")
 message(STATUS "benchmarks:    ${MGARD_ENABLE_BENCHMARKS}")
 message(STATUS "documentation: ${MGARD_ENABLE_DOCS}")
+message(STATUS "CLI:           ${MGARD_ENABLE_CLI}")
 list(POP_BACK CMAKE_MESSAGE_INDENT)
 
 message(STATUS "")
 message(STATUS "Libraries:")
 list(APPEND CMAKE_MESSAGE_INDENT "  ")
+message(STATUS "MOAB:      ${MOAB_FOUND}")
+message(STATUS "protobuf:  ${protobuf_FOUND}")
 if(MGARD_ENABLE_OPENMP)
 	message(STATUS "OpenMP:    ${OpenMP_FOUND}")
 endif()
-message(STATUS "MOAB:      ${MOAB_FOUND}")
 if(BUILD_TESTING)
 	message(STATUS "Catch2:    ${Catch2_FOUND}")
 endif()
 if(MGARD_ENABLE_BENCHMARKS)
 	message(STATUS "benchmark: ${benchmark_FOUND}")
 endif()
-message(STATUS "TCLAP:     ${TCLAP_FOUND}")
-message(STATUS "protobuf:  ${protobuf_FOUND}")
+if(MGARD_ENABLE_CLI)
+	message(STATUS "TCLAP:     ${TCLAP_FOUND}")
+endif()
 list(POP_BACK CMAKE_MESSAGE_INDENT)
 
 list(POP_BACK CMAKE_MESSAGE_INDENT)

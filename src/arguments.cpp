@@ -17,23 +17,20 @@ DataShape &DataShape::operator=(const std::string &value) {
 }
 
 CompressionArguments::CompressionArguments(
-    TCLAP::ValueArg<std::string> &datatype, TCLAP::ValueArg<DataShape> &shape,
-    TCLAP::ValueArg<std::string> &input,
-    TCLAP::ValueArg<cli::SmoothnessParameter<double>> &smoothness,
-    TCLAP::ValueArg<double> &tolerance, TCLAP::ValueArg<std::string> &output)
+    const TCLAP::ValueArg<std::string> &datatype,
+    const TCLAP::ValueArg<DataShape> &shape,
+    const TCLAP::ValueArg<SmoothnessParameter<double>> &smoothness,
+    const TCLAP::ValueArg<double> &tolerance,
+    const TCLAP::ValueArg<std::string> &input,
+    const TCLAP::ValueArg<std::string> &output)
     : datatype(datatype.getValue()), shape(shape.getValue().shape),
-      dimension(this->shape.size()), coordinate_filenames(dimension),
-      input(input.getValue()), s(smoothness.getValue()),
-      tolerance(tolerance.getValue()), output(output.getValue()) {
-  for (std::size_t i = 0; i < dimension; ++i) {
-    std::stringstream filename;
-    filename << "coordinates_" << i << ".dat";
-    coordinate_filenames.at(i) = filename.str();
-  }
-}
+      dimension(this->shape.size()), s(smoothness.getValue()),
+      tolerance(tolerance.getValue()), input(input.getValue()),
+      output(output.getValue()) {}
 
 DecompressionArguments::DecompressionArguments(
-    TCLAP::ValueArg<std::string> &input, TCLAP::ValueArg<std::string> &output)
+    const TCLAP::ValueArg<std::string> &input,
+    const TCLAP::ValueArg<std::string> &output)
     : input(input.getValue()), output(output.getValue()) {}
 
 } // namespace cli
