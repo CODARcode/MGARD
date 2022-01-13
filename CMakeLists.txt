@@ -327,7 +327,6 @@ set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
 target_link_libraries(mgard-library PUBLIC PkgConfig::protobuf)
-target_compile_definitions(mgard-library PUBLIC MGARD_PROTOBUF)
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra")
 
@@ -477,31 +476,6 @@ if(MOAB_FOUND)
   )
 endif()
 
-set(MGARD_CLI_SRCDIR "${CMAKE_CURRENT_BINARY_DIR}/src")
-set(MGARD_CLI_INTERNAL_CPP "${MGARD_CLI_SRCDIR}/cli_internal_generated.cpp")
-
-set(
-  MGARD_EXECUTABLE_HPP
-  include/arguments.hpp
-  include/cmdline.hpp
-  include/output.hpp
-  include/cli_internal.hpp
-)
-set(
-  MGARD_EXECUTABLE_TPP
-  include/arguments.tpp
-  include/cli_internal.tpp
-)
-set(
-  MGARD_EXECUTABLE_CPP
-  src/arguments.cpp
-  src/cmdline.cpp
-  src/executable.cpp
-  src/output.cpp
-  src/cli_internal.cpp
-  "${MGARD_CLI_INTERNAL_CPP}"
-)
-
 set(
   MGARD_BENCHMARK_CPP
   src/benchmarks.cpp
@@ -634,38 +608,7 @@ endif()
 
 
 if(MGARD_ENABLE_CLI)
-  pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
-  if(NOT TCLAP_FOUND)
-    find_package(TCLAP 1.4)
-    if(TCLAP_FOUND)
-      #Mimic target defined by `pkg_search_module`.
-      add_library(PkgConfig::TCLAP ALIAS TCLAP::TCLAP)
-    endif()
-  endif()
-
-  if(NOT TCLAP_FOUND)
-    message(STATUS "Will not build executable (TCLAP not found).")
-  else()
-    file(MAKE_DIRECTORY "${MGARD_CLI_SRCDIR}")
-    add_custom_command(
-      OUTPUT
-      "${MGARD_CLI_INTERNAL_CPP}"
-      COMMAND "${PYTHON3}"
-      ARGS
-      "${MGARD_GENERATE_DIMENSION_SWITCH}"
-      "--compress"
-      "${MAXIMUM_DIMENSION}"
-      "${MGARD_CLI_INTERNAL_CPP}"
-    )
-
-    add_executable(mgard-executable ${MGARD_EXECUTABLE_CPP})
-    target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
-    target_link_libraries(mgard-executable PRIVATE mgard-library PkgConfig::TCLAP)
-    set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
-
-    install(TARGETS mgard-executable RUNTIME)
-    install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
-  endif()
+	add_subdirectory("src/cli")
 endif()
 
 message(STATUS "")

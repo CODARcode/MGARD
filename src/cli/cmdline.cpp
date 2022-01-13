@@ -1,4 +1,4 @@
-#include "cmdline.hpp"
+#include "cli/cmdline.hpp"
 
 #include <cassert>
 
@@ -6,7 +6,7 @@
 
 #include <tclap/ArgException.h>
 
-#include "output.hpp"
+#include "cli/output.hpp"
 
 namespace cli {
 

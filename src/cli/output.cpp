@@ -1,4 +1,4 @@
-#include "output.hpp"
+#include "cli/output.hpp"
 
 #include <stdexcept>
 
