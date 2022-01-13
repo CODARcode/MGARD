@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+namespace cli {
+
 void SpacePrinter::operator()(std::ostream &os, const std::string &s,
                               const int maxWidth, const int indentSpaces,
                               const int secondLineOffset) const {
@@ -106,3 +108,5 @@ void SuperOutput::_usage_command(TCLAP::CmdLineInterface &c,
 void SuperOutput::version(TCLAP::CmdLineInterface &c) {
   std::cout << c.getProgramName() << " version " << c.getVersion() << std::endl;
 }
+
+} // namespace cli

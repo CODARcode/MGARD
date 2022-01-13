@@ -80,15 +80,17 @@ struct CompressionArguments {
   //!
   //!\param datatype Type of the dataset.
   //!\param shape Shape of the dataset.
-  //!\param input Filename of the input dataset.
   //!\param smoothness Smoothness parameter to use in compression.
   //!\param tolerance Error tolerance to use in compression.
+  //!\param input Filename of the input dataset.
   //!\param output Filename of the output buffer.
   CompressionArguments(
-      TCLAP::ValueArg<std::string> &datatype, TCLAP::ValueArg<DataShape> &shape,
-      TCLAP::ValueArg<std::string> &input,
-      TCLAP::ValueArg<cli::SmoothnessParameter<double>> &smoothness,
-      TCLAP::ValueArg<double> &tolerance, TCLAP::ValueArg<std::string> &output);
+      const TCLAP::ValueArg<std::string> &datatype,
+      const TCLAP::ValueArg<DataShape> &shape,
+      const TCLAP::ValueArg<cli::SmoothnessParameter<double>> &smoothness,
+      const TCLAP::ValueArg<double> &tolerance,
+      const TCLAP::ValueArg<std::string> &input,
+      const TCLAP::ValueArg<std::string> &output);
 
   //! Type of the dataset.
   std::string datatype;
@@ -99,17 +101,14 @@ struct CompressionArguments {
   //! Spatial dimension of the dataset.
   std::size_t dimension;
 
-  //! Filenames of the coordinates of the nodes in each dimension.
-  std::vector<std::string> coordinate_filenames;
-
-  //! Filename of the input dataset.
-  std::string input;
-
   //! Smoothness parameter to use in compression.
   double s;
 
   //! Error tolerance to use in compression.
   double tolerance;
+
+  //! Filename of the input dataset.
+  std::string input;
 
   //! Filename of the output buffer.
   std::string output;
@@ -121,8 +120,8 @@ struct DecompressionArguments {
   //!
   //!\param input Filename of the input buffer.
   //!\param output Filename of the output dataset.
-  DecompressionArguments(TCLAP::ValueArg<std::string> &input,
-                         TCLAP::ValueArg<std::string> &output);
+  DecompressionArguments(const TCLAP::ValueArg<std::string> &input,
+                         const TCLAP::ValueArg<std::string> &output);
 
   //! Filename of the input buffer.
   std::string input;

@@ -105,7 +105,7 @@ void populate_version_numbers(pb::Header &header) {
 void populate_defaults(pb::Header &header) {
   populate_version_numbers(header);
   // `TensorMeshHierarchy::populate` sets all of the domain and dataset fields
-  // and all of the decomposition field except for `transform`.
+  // and all of the decomposition fields except for `transform`.
   {
     pb::Decomposition &d = *header.mutable_decomposition();
     d.set_transform(pb::Decomposition::MULTILEVEL_COEFFICIENTS);
