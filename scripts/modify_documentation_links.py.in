@@ -13,10 +13,10 @@ LINK_LABEL_DEFINITION: typing.Pattern[str] = re.compile(
 '$'
 )
 
-CMAKE_CURRENT_SOURCE_DIR: str = "${CMAKE_CURRENT_SOURCE_DIR}"
+PROJECT_SOURCE_DIR: str = "${PROJECT_SOURCE_DIR}"
 CMAKE_CURRENT_BINARY_DIR: str = "${CMAKE_CURRENT_BINARY_DIR}"
 RELATIVE_BINARY_DIR: str = \
-    os.path.relpath(CMAKE_CURRENT_BINARY_DIR, start=CMAKE_CURRENT_SOURCE_DIR)
+    os.path.relpath(CMAKE_CURRENT_BINARY_DIR, start=PROJECT_SOURCE_DIR)
 
 #I do not guarantee that the following is perfectly accurate in its description
 #of the behavior of GitHub and Doxygen. It should be helpful in explaining what
@@ -47,16 +47,17 @@ parser.add_argument('infile')
 parser.add_argument('outfile')
 args = parser.parse_args()
 
+assert os.path.samefile(os.getcwd(), PROJECT_SOURCE_DIR)
+assert os.sep == '/'
+
 assert args.infile.endswith('.md')
+#`args.infile` must be a path relative to `PROJECT_SOURCE_DIR`.
 assert not os.path.isabs(args.infile)
 infilehead: str = os.path.dirname(args.infile)
 
 assert args.outfile.endswith('.md')
 assert os.path.commonpath((CMAKE_CURRENT_BINARY_DIR, args.outfile)) == \
     CMAKE_CURRENT_BINARY_DIR
-
-assert os.path.samefile(os.getcwd(), CMAKE_CURRENT_SOURCE_DIR)
-assert os.sep == '/'
 
 os.makedirs(os.path.dirname(args.outfile), exist_ok=True)
 
