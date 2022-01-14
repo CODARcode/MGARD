@@ -36,7 +36,7 @@ WARN_AS_ERROR          = YES
 INPUT                  = include @MGARD_DOC_PAGES_JOINED@
 RECURSIVE              = YES
 FILE_PATTERNS          = *.h *.hpp
-EXCLUDE                = include/cuda include/mgard-x @MGARD_EXECUTABLE_HPP_JOINED@
+EXCLUDE                = include/cuda include/mgard-x include/cli
 USE_MDFILE_AS_MAINPAGE = @MGARD_DOC_MAINPAGE@
 
 #---------------------------------------------------------------------------
