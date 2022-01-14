@@ -413,10 +413,9 @@ if(MOAB_FOUND)
 	)
 endif()
 
-set(
-  MGARD_BENCHMARK_CPP
-  src/benchmarks.cpp
-)
+if(MGARD_ENABLE_BENCHMARKS)
+	add_subdirectory("src/benchmarks")
+endif()
 
 set(
   MGARD_DOC_PAGES
@@ -530,19 +529,6 @@ install(
 install(EXPORT mgard-targets NAMESPACE mgard::
   DESTINATION "${CMAKE_INSTALL_CMAKEDIR}" COMPONENT dev
 )
-
-if(MGARD_ENABLE_BENCHMARKS)
-  find_package(benchmark)
-
-  if(benchmark_FOUND)
-    add_executable(mgard-benchmarks ${MGARD_BENCHMARK_CPP})
-    target_link_libraries(mgard-benchmarks PRIVATE benchmark::benchmark benchmark::benchmark_main mgard-library)
-    set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
-  else()
-    message(STATUS "Will not build benchmarks (Google Benchmark not found).")
-  endif()
-endif()
-
 
 if(MGARD_ENABLE_CLI)
 	add_subdirectory("src/cli")
