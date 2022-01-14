@@ -29,7 +29,6 @@ if(MOAB_FOUND AND NOT TARGET MOAB)
 endif()
 
 if(MOAB_FOUND)
-	add_compile_definitions(MGARD_MOAB)
 	target_sources(mgard-library PRIVATE ${MGARD_MOAB_CPP})
 	target_link_libraries(mgard-library PUBLIC MOAB)
 else()
