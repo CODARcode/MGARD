@@ -354,65 +354,6 @@ install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp" DESTINATION "${CMA
 install(DIRECTORY "include/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 install(FILES "${MGARD_FILE_FORMAT_HPP}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard/${MGARD_FILE_FORMAT_INCLUDESUBDIR_COMPONENT}")
 
-set(
-  MGARD_TESTS_HPP
-  tests/include/testing_random.hpp
-  tests/include/testing_utilities.hpp
-)
-set(
-  MGARD_TESTS_TPP
-  tests/include/testing_random.tpp
-  tests/include/testing_utilities.tpp
-)
-set(
-  MGARD_TESTS_CPP
-  tests/src/testing_utilities.cpp
-  tests/src/test_utilities.cpp
-  tests/src/test_blas.cpp
-  tests/src/test_shuffle.cpp
-  tests/src/test_TensorMeshHierarchy.cpp
-  tests/src/test_TensorMeshHierarchyIteration.cpp
-  tests/src/test_TensorLinearOperator.cpp
-  tests/src/test_TensorMassMatrix.cpp
-  tests/src/test_TensorProlongation.cpp
-  tests/src/test_TensorRestriction.cpp
-  tests/src/test_LinearQuantizer.cpp
-  tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
-  tests/src/test_TensorNorms.cpp
-  tests/src/test_TensorQuantityOfInterest.cpp
-  tests/src/test_compress.cpp
-  tests/src/test_decompose.cpp
-  tests/src/test_format.cpp
-  tests/src/test_quantize.cpp
-  tests/src/test_compressors.cpp
-  tests/src/test_CompressedDataset.cpp
-)
-if(MOAB_FOUND)
-	list(
-		APPEND
-		MGARD_TESTS_CPP
-		tests/src/unstructured/test_estimators.cpp
-		tests/src/unstructured/test_indicators.cpp
-		tests/src/unstructured/test_norms.cpp
-		tests/src/unstructured/test_data.cpp
-		tests/src/unstructured/test_pcg.cpp
-		tests/src/unstructured/test_measure.cpp
-		tests/src/unstructured/test_MeshLevel.cpp
-		tests/src/unstructured/test_MeshHierarchy.cpp
-		tests/src/unstructured/test_MeshRefiner.cpp
-		tests/src/unstructured/test_LinearOperator.cpp
-		tests/src/unstructured/test_MassMatrix.cpp
-		tests/src/unstructured/test_UniformMeshHierarchy.cpp
-		tests/src/unstructured/test_UniformMeshRefiner.cpp
-		tests/src/unstructured/test_UniformEdgeFamilies.cpp
-		tests/src/unstructured/test_UniformRestriction.cpp
-		tests/src/unstructured/test_EnumeratedMeshRange.cpp
-		tests/src/unstructured/test_SituatedCoefficientRange.cpp
-		tests/src/unstructured/test_IndicatorInput.cpp
-		tests/src/unstructured/test_MultilevelCoefficientQuantizer.cpp
-	)
-endif()
-
 if(MGARD_ENABLE_BENCHMARKS)
 	add_subdirectory("src/benchmarks")
 endif()
@@ -480,17 +421,7 @@ if(MGARD_ENABLE_DOCS)
 endif()
 
 if(BUILD_TESTING)
-  find_package(Catch2 3.0.0)
-
-  if(Catch2_FOUND)
-    configure_file("tests/include/testing_paths.hpp.in" "include/testing_paths.hpp")
-    add_executable(mgard-tests ${MGARD_TESTS_CPP})
-    target_include_directories(mgard-tests PRIVATE "tests/include" "${CMAKE_CURRENT_BINARY_DIR}/include")
-    target_link_libraries(mgard-tests PRIVATE mgard-library Catch2::Catch2WithMain)
-    set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
-  else()
-    message(STATUS "Will not build tests (Catch2 not found).")
-  endif()
+	add_subdirectory("tests")
 endif()
 
 # Add all targets to the build-tree export set
