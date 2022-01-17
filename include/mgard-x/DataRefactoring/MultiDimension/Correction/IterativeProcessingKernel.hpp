@@ -570,6 +570,7 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
       }
     }
     // __syncthreads();
+    v.reset_offset();
   }
 
   MGARDX_CONT size_t
@@ -1323,6 +1324,7 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       }
     }
     // __syncthreads();
+    v.reset_offset();
   }
 
   MGARDX_CONT size_t
@@ -2104,6 +2106,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
       }
     }
     // __syncthreads();
+    v.reset_offset();
   }
 
   MGARDX_CONT size_t

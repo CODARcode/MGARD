@@ -395,7 +395,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     if (s != std::numeric_limits<T>::infinity()) {
       tol = std::sqrt((tol * tol) / hierarchy.hierarchy_chunck.size());
       if (config.timing) {
-        std::cout << log::log_info << "local bound: " << m.tol << "\n";
+        std::cout << log::log_info << "local bound: " << tol << "\n";
       }
     }
     for (SIZE i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
@@ -593,7 +593,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     if (s != std::numeric_limits<T>::infinity()) {
       tol = std::sqrt((tol * tol) / hierarchy.hierarchy_chunck.size());
       if (config.timing) {
-        std::cout << log::log_info << "local bound: " << m.tol << "\n";
+        std::cout << log::log_info << "local bound: " << tol << "\n";
       }
     }
     for (SIZE i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
