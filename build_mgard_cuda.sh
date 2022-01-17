@@ -50,7 +50,7 @@ export LD_LIBRARY_PATH=${zstd_install_dir}/lib:$LD_LIBRARY_PATH
 mgard_x_src_dir=${home_dir}
 mgard_x_build_dir=${home_dir}/build
 mgard_x_install_dir=${home_dir}/install
-# rm -rf ${mgard_x_build_dir} && mkdir -p ${mgard_x_build_dir}
+rm -rf ${mgard_x_build_dir} && mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DCMAKE_PREFIX_PATH="${nvcomp_build_dir};${zstd_install_dir}/lib/cmake/zstd"\
     -DMGARD_ENABLE_SERIAL=ON\

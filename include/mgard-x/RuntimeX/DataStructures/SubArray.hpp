@@ -129,7 +129,7 @@ public:
   MGARDX_CONT
   SubArray<3, T, DeviceType> Slice3D(DIM d1, DIM d2, DIM d3);
 
-  MGARDX_CONT_EXEC
+  MGARDX_EXEC
   T* operator()(SIZE idx[D]) {
     LENGTH curr_stride = 1;
     LENGTH offset = 0;
@@ -155,20 +155,31 @@ public:
 
   MGARDX_EXEC void
   offset(SIZE idx[D]) {
-    dv += calc_offset(idx);
+    ptr_offset += calc_offset(idx);
+    dv += calc_offset(idx);;
+
   }
 
-  MGARDX_CONT_EXEC void
+  MGARDX_EXEC void
   offset(IDX z, IDX y, IDX x) {
-    this->dv += this->lddv2 * this->lddv1 * z + this->lddv1 * y + x;
+    ptr_offset += this->lddv2 * this->lddv1 * z + this->lddv1 * y + x;
+    this->dv += this->lddv2 * this->lddv1 * z + this->lddv1 * y + x;;
   }
-  MGARDX_CONT_EXEC void
+  MGARDX_EXEC void
   offset(IDX y, IDX x) {
-    this->dv += this->lddv1 * y + x;
+    ptr_offset += this->lddv1 * y + x;
+    this->dv += this->lddv1 * y + x;;
   }
-  MGARDX_CONT_EXEC void
+  MGARDX_EXEC void
   offset(IDX x) {
+    ptr_offset += x;
     this->dv += x;
+  }
+
+  MGARDX_EXEC void
+  reset_offset() {
+    this->dv -= ptr_offset;
+    ptr_offset = 0;
   }
 
   MGARDX_CONT_EXEC
@@ -202,6 +213,8 @@ private:
   SIZE lddv2;
 
   bool pitched;
+
+  LENGTH ptr_offset = 0;
 
   MGARDX_CONT_EXEC
   SIZE calc_offset(SIZE idx[D]) {
