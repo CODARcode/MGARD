@@ -51,6 +51,57 @@ struct Atomic<Serial> {
   }
 };
 
+
+// based on de Bruijn sequence:
+// 0000001000011000101000111001001011001101001111010101110110111111
+// = 151050438420815295
+static const int DeBruijnSubString[64] =
+{
+  0, 1, 2, 4, 
+  8, 16, 33, 3, 
+  6, 12, 24, 49, 
+  34, 5, 10, 20, 
+  40, 17, 35, 7, 
+  14, 28, 57, 50, 
+  36, 9, 18, 37, 
+  11, 22, 44, 25, 
+
+  51, 38, 13, 26, 
+  52, 41, 19, 39, 
+  15, 30, 61, 58, 
+  53, 42, 21, 43, 
+
+  23, 46, 29, 59, 
+  54, 45, 27, 55, 
+  47, 31, 63, 62, 
+  60, 56, 48, 32
+};
+
+
+static const int MultiplyDeBruijnBitPosition[64] =
+{
+  0, 1, 2, 7,
+  3, 13, 8, 19,
+  4, 25, 14, 28,
+  9, 34, 20, 40,
+
+  5, 17, 26, 38,
+  15, 46, 29, 48,
+  10, 31, 35, 54,
+  21, 50, 41, 57,
+
+  63, 6, 12, 18,
+  24, 27, 33, 39,
+  16, 37, 45, 47,
+  30, 53, 49, 56,
+
+  62, 11, 23, 32,
+  36, 44, 52, 55,
+  61, 22, 43, 51,
+  60, 42, 59, 58
+};
+ 
+
 template <> 
 struct Math<Serial> {
   template <typename T>
@@ -71,13 +122,15 @@ struct Math<Serial> {
   MGARDX_EXEC static
   int ffsll(long long unsigned int a) {
     // return ffsll(a);
-    unsigned pos = 0;
+    int pos = 0;
     if (a == 0) return pos;
-    while (!(a & 1))
-    {
-      a >>= 1;
-      ++pos;
-    }
+    pos = MultiplyDeBruijnBitPosition[((long long unsigned int)((a & -a) * 151050438420815295)) >> 58];
+    // while (!(a & 1))
+    // {
+    //   a >>= 1;
+    //   ++pos;
+    // }
+    // if (pos2 != pos) {printf("mismatch: %d %d", pos2, pos);}
     return pos + 1;
   }
 };
@@ -111,17 +164,27 @@ struct Math<Serial> {
   delete [] threads;\
   delete [] shared_memory;
 
-#define INIT_BLOCK \
+// #define INIT_BLOCK \
+//   for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+//     for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+//       for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+//         TaskType &thread = threads[threadz][thready][threadx];\
+//         thread = task;\
+//         threads[threadz][thready][threadx].GetFunctor().Init(\
+//                  task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
+//                  task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(),\
+//                  blockz, blocky, blockx, threadz, thready, threadx,\
+//                  shared_memory);\
+//       }\
+//     }\
+//   }
+
+  #define INIT_BLOCK \
   for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
     for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
       for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
-        TaskType &thread = threads[threadz][thready][threadx];\
-        thread = task;\
-        threads[threadz][thready][threadx].GetFunctor().Init(\
-                 task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
-                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(),\
-                 blockz, blocky, blockx, threadz, thready, threadx,\
-                 shared_memory);\
+        threads[threadz][thready][threadx].GetFunctor().InitBlockId(\
+          blockz, blocky, blockx);\
       }\
     }\
   }
@@ -130,30 +193,35 @@ struct Math<Serial> {
   for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
     for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
       for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
-        TaskType &thread = threads[threadz][thready][threadx];\
-        thread.GetFunctor().OPERATION();\
+        threads[threadz][thready][threadx].GetFunctor().OPERATION();\
       }\
     }\
   }
 
 template <typename TaskType>
 MGARDX_KERL void SerialKernel(TaskType task) {
-  // Timer timer_op, timer_alloc, timer_init, timer_dealloc;
-  // timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
-    
-  // timer_alloc.start();
+  Timer timer_op, timer_op1, timer_op2, timer_op3, timer_alloc, timer_init, timer_dealloc;
+  timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
+  timer_op1.clear(); timer_op2.clear(); timer_op3.clear();
+  timer_alloc.start();
   ALLOC_BLOCK;
-  // timer_alloc.end();
+  timer_alloc.end();
   for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
-        // timer_init.start();
+        timer_init.start();
         INIT_BLOCK;
-        // timer_init.end();
-        // timer_op.start();
+        timer_init.end();
+        timer_op.start();
+        timer_op1.start();
         COMPUTE_BLOCK(Operation1);
+        timer_op1.end();
+        timer_op2.start();
         COMPUTE_BLOCK(Operation2);
+        timer_op2.end();
+        timer_op3.start();
         COMPUTE_BLOCK(Operation3);
+        timer_op3.end();
         COMPUTE_BLOCK(Operation4);
         COMPUTE_BLOCK(Operation5);
         COMPUTE_BLOCK(Operation6);
@@ -161,19 +229,22 @@ MGARDX_KERL void SerialKernel(TaskType task) {
         COMPUTE_BLOCK(Operation8);
         COMPUTE_BLOCK(Operation9);
         COMPUTE_BLOCK(Operation10);
-        // timer_op.end();
+        timer_op.end();
       }
     }
   }
-  // timer_dealloc.start();
+  timer_dealloc.start();
   DEALLOC_BLOCK;
-  // timer_dealloc.end();
+  timer_dealloc.end();
 
-  // timer_op.print(task.GetFunctorName() + "_Op");
-  // timer_alloc.print(task.GetFunctorName() + "_Alloc");
-  // timer_init.print(task.GetFunctorName() + "_Init");
-  // timer_dealloc.print(task.GetFunctorName() + "_Dealloc");
-  // timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
+  timer_op.print(task.GetFunctorName() + "_Op");
+  timer_op1.print(task.GetFunctorName() + "_Op1");
+  timer_op2.print(task.GetFunctorName() + "_Op2");
+  timer_op3.print(task.GetFunctorName() + "_Op3");
+  timer_alloc.print(task.GetFunctorName() + "_Alloc");
+  timer_init.print(task.GetFunctorName() + "_Init");
+  timer_dealloc.print(task.GetFunctorName() + "_Dealloc");
+  timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
 }
 
 
@@ -193,6 +264,7 @@ MGARDX_KERL void SerialKernel(TaskType task) {
         thread = task;\
         thread.GetFunctor().InitConfig(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
                                  task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX());\
+        thread.GetFunctor().InitThreadId(threadz, thready, threadx);\
         thread.GetFunctor().InitSharedMemory(shared_memory);\
       }\
     }\
@@ -211,17 +283,28 @@ MGARDX_KERL void SerialKernel(TaskType task) {
   delete [] active;\
   delete [] shared_memory;
 
+// #define INIT_BLOCK_CONDITION \
+//   for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
+//     for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
+//       for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
+//         TaskType &thread = threads[threadz][thready][threadx];\
+//         thread = task;\
+//         thread.GetFunctor().InitConfig(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
+//                                  task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX());\
+//         thread.GetFunctor().InitSharedMemory(shared_memory);\
+//         thread.GetFunctor().InitBlockId(blockz, blocky, blockx);\
+//         thread.GetFunctor().InitThreadId(threadz, thready, threadx);\
+//         active[threadz][thready][threadx] = true;\
+//       }\
+//     }\
+//   }
+
 #define INIT_BLOCK_CONDITION \
   for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {\
     for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {\
       for (SIZE threadx = 0; threadx < task.GetBlockDimX(); threadx++) {\
         TaskType &thread = threads[threadz][thready][threadx];\
-        thread = task;\
-        thread.GetFunctor().InitConfig(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(),\
-                                 task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX());\
-        thread.GetFunctor().InitSharedMemory(shared_memory);\
         thread.GetFunctor().InitBlockId(blockz, blocky, blockx);\
-        thread.GetFunctor().InitThreadId(threadz, thready, threadx);\
         active[threadz][thready][threadx] = true;\
       }\
     }\
@@ -617,7 +700,7 @@ class DeviceSpecification<Serial> {
 
   MGARDX_CONT int
   GetAvailableMemory(int dev_id) {
-    AvailableMemory[dev_id] = 2e9;
+    AvailableMemory[dev_id] = 8e9;
     return AvailableMemory[dev_id];
   }
 

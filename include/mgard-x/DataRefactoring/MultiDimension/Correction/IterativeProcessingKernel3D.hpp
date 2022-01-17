@@ -355,6 +355,8 @@ class Ipk1Reo3DFunctor: public IterFunctor<DeviceType> {
             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
       }
     }
+
+    v.reset_offset();
   }
 
   MGARDX_CONT size_t
@@ -788,12 +790,13 @@ class Ipk2Reo3DFunctor: public IterFunctor<DeviceType> {
   MGARDX_EXEC void
   Operation17() {
     /* flush results to v */
-  if (r_sm < r_rest && f_sm < f_rest) {
-    for (SIZE i = 0; i < c_ghost + c_rest; i++) {
-      *v(r_sm, (nc - 1) - (c_gl + i), f_sm) =
-          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
+    if (r_sm < r_rest && f_sm < f_rest) {
+      for (SIZE i = 0; i < c_ghost + c_rest; i++) {
+        *v(r_sm, (nc - 1) - (c_gl + i), f_sm) =
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
+      }
     }
-  }
+    v.reset_offset();
   }
 
   MGARDX_CONT size_t
@@ -1233,6 +1236,7 @@ class Ipk3Reo3DFunctor: public IterFunctor<DeviceType> {
             vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)];
       }
     }
+    v.reset_offset();
   }
 
   MGARDX_CONT size_t

@@ -1951,6 +1951,17 @@ class GpkReoFunctor: public Functor<DeviceType> {
     //     printf("\n");
     //   }
     // }
+
+    v.reset_offset();
+    w.reset_offset();
+    wf.reset_offset();
+    wc.reset_offset();
+    wr.reset_offset();
+    wcf.reset_offset();
+    wrf.reset_offset();
+    wrc.reset_offset();
+    wrcf.reset_offset();
+
   }
 
 
@@ -4226,6 +4237,16 @@ class GpkRevFunctor: public Functor<DeviceType> {
         }
       }
     }
+
+    v.reset_offset();
+    w.reset_offset();
+    wf.reset_offset();
+    wc.reset_offset();
+    wr.reset_offset();
+    wcf.reset_offset();
+    wrf.reset_offset();
+    wrc.reset_offset();
+    wrcf.reset_offset();
   }
 
 

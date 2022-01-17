@@ -401,6 +401,9 @@ class Lpk1ReoFunctor: public Functor<DeviceType> {
       // }
     }
 
+    v1.reset_offset();
+    v2.reset_offset();
+    w.reset_offset();
   }
 
 
@@ -877,7 +880,9 @@ class Lpk2ReoFunctor: public Functor<DeviceType> {
       // }
       // }
     }
-
+    v1.reset_offset();
+    v2.reset_offset();
+    w.reset_offset();
   }
 
 
@@ -1364,7 +1369,9 @@ class Lpk3ReoFunctor: public Functor<DeviceType> {
       // }
       //}
     }
-
+    v1.reset_offset();
+    v2.reset_offset();
+    w.reset_offset();
   }
 
 
