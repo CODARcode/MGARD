@@ -652,6 +652,7 @@ class DeviceSpecification<Serial> {
     MaxNumThreadsPerSM = new int[NumDevices];
     MaxNumThreadsPerTB = new int[NumDevices];
     AvailableMemory = new size_t[NumDevices];
+    SupportCooperativeGroups = new bool[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       MaxSharedMemorySize[d] = 1e6;
@@ -660,6 +661,7 @@ class DeviceSpecification<Serial> {
       MaxNumThreadsPerSM[d] = 1024;
       MaxNumThreadsPerTB[d] = 1024;
       ArchitectureGeneration[d] = 1;
+      SupportCooperativeGroups[d] = true;
     }
   }
 
@@ -704,6 +706,11 @@ class DeviceSpecification<Serial> {
     return AvailableMemory[dev_id];
   }
 
+  MGARDX_CONT bool
+  SupportCG(int dev_id) {
+    return SupportCooperativeGroups[dev_id];
+  }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete [] MaxSharedMemorySize;
@@ -713,6 +720,7 @@ class DeviceSpecification<Serial> {
     delete [] MaxNumThreadsPerSM;
     delete [] MaxNumThreadsPerTB;
     delete [] AvailableMemory;
+    delete [] SupportCooperativeGroups;
   }
 
   int NumDevices;
@@ -723,6 +731,7 @@ class DeviceSpecification<Serial> {
   int* MaxNumThreadsPerSM;
   int* MaxNumThreadsPerTB;
   size_t * AvailableMemory;
+  bool * SupportCooperativeGroups;
 };
 
 template <>
@@ -820,6 +829,11 @@ class DeviceRuntime<Serial> {
     return DeviceSpecs.GetAvailableMemory(curr_dev_id);
   }
 
+  MGARDX_CONT static bool
+  SupportCG() {
+    return DeviceSpecs.SupportCG(curr_dev_id);
+  }
+
   template <typename FunctorType>
   MGARDX_CONT static int
   GetOccupancyMaxActiveBlocksPerSM(FunctorType functor, int blockSize, size_t dynamicSMemSize) {
@@ -912,14 +926,14 @@ class MemoryManager<Serial> {
 
   template <typename T>
   MGARDX_CONT static
-  void Memset1D(T * ptr, SIZE n, int value) {
+  void Memset1D(T * ptr, SIZE n, int value, int queue_idx) {
     using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     memset(ptr, value, n * sizeof(converted_T));
   }
 
   template <typename T>
   MGARDX_CONT static
-  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value) {
+  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value, int queue_idx) {
     using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     memset(ptr, value, n1 * n2 * sizeof(converted_T));
   }

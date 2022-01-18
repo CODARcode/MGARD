@@ -209,13 +209,14 @@ void Array<D, T, DeviceType>::memset(int value) {
     MemoryManager<DeviceType>().MemsetND(this->dv, this->ldvs_h[0], 
                                          this->shape[0], 
                                          this->shape[1] * this->linearized_depth,
-                                         value);
+                                         value, 0);
   } else {
     MemoryManager<DeviceType>().Memset1D(this->dv,
                                          this->shape[0] *
                                          this->shape[1] * this->linearized_depth,
-                                         value);
+                                         value, 0);
   }
+  DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
 template <DIM D, typename T, typename DeviceType> 

@@ -238,11 +238,11 @@ class MemoryManager {
 
   template <typename T>
   MGARDX_CONT static
-  void Memset1D(T * ptr, SIZE n, int value);
+  void Memset1D(T * ptr, SIZE n, int value, int queue_idx);
 
   template <typename T>
   MGARDX_CONT static
-  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value);
+  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value, int queue_idx);
 
   template <typename T>
   MGARDX_CONT static
