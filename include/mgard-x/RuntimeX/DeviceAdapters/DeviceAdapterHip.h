@@ -333,6 +333,7 @@ class DeviceSpecification<HIP> {
     MaxNumThreadsPerSM = new int[NumDevices];
     MaxNumThreadsPerTB = new int[NumDevices];
     AvailableMemory = new size_t[NumDevices];
+    SupportCooperativeGroups = new bool[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(hipSetDevice(d));
@@ -343,7 +344,7 @@ class DeviceSpecification<HIP> {
       hipDeviceGetAttribute(&NumSMs[d], hipDeviceAttributeMultiprocessorCount, d);
       hipDeviceGetAttribute(&MaxNumThreadsPerSM[d], hipDeviceAttributeMaxThreadsPerMultiProcessor, d);
       hipDeviceGetAttribute(&MaxNumThreadsPerTB[d], hipDeviceAttributeMaxThreadsPerBlock , d);
-      // printf("d = %d, MaxNumThreadsPerSM: %d\n", d, MaxNumThreadsPerSM[d]);
+      SupportCooperativeGroups[d] = true;
       hipDeviceProp_t prop;
       hipGetDeviceProperties(&prop, d);
       ArchitectureGeneration[d] = 1; // default optimized for Volta
@@ -401,6 +402,11 @@ class DeviceSpecification<HIP> {
     return AvailableMemory[dev_id];
   }
 
+  MGARDX_CONT bool
+  SupportCG(int dev_id) {
+    return SupportCooperativeGroups[dev_id];
+  }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete [] MaxSharedMemorySize;
@@ -410,6 +416,7 @@ class DeviceSpecification<HIP> {
     delete [] MaxNumThreadsPerSM;
     delete [] MaxNumThreadsPerTB;
     delete [] AvailableMemory;
+    delete [] SupportCooperativeGroups;
   }
 
   int NumDevices;
@@ -420,6 +427,7 @@ class DeviceSpecification<HIP> {
   int* MaxNumThreadsPerSM;
   int* MaxNumThreadsPerTB;
   size_t * AvailableMemory;
+  bool * SupportCooperativeGroups;
 };
 
 
@@ -545,6 +553,11 @@ class DeviceRuntime<HIP> {
   MGARDX_CONT static size_t
   GetAvailableMemory() {
     return DeviceSpecs.GetAvailableMemory(curr_dev_id);
+  }
+
+  MGARDX_CONT static bool
+  SupportCG() {
+    return DeviceSpecs.SupportCG(curr_dev_id);
   }
 
   template <typename FunctorType>
@@ -718,16 +731,18 @@ class MemoryManager<HIP> {
 
   template <typename T>
   MGARDX_CONT static
-  void Memset1D(T * ptr, SIZE n, int value) {
+  void Memset1D(T * ptr, SIZE n, int value, int queue_idx) {
     using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
-    gpuErrchk(hipMemset(ptr, value, n * sizeof(converted_T)));
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    gpuErrchk(hipMemsetAsync(ptr, value, n * sizeof(converted_T), stream));
   }
 
   template <typename T>
   MGARDX_CONT static
-  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value) {
+  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value, int queue_idx) {
     using converted_T = typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
-    gpuErrchk(hipMemset2D(ptr, ld * sizeof(converted_T), value, n1 * sizeof(converted_T), n2));
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    gpuErrchk(hipMemset2DAsync(ptr, ld * sizeof(converted_T), value, n1 * sizeof(converted_T), n2, stream));
   }
 
   template <typename T>
