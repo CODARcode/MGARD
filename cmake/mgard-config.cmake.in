@@ -2,17 +2,14 @@ include(CMakeFindDependencyMacro)
 
 set(REQUIRED_VARS)
 
-if(@ZSTD_FOUND@)
-  find_package(PkgConfig)
-endif()
-
 if(@ZLIB_FOUND@)
 	find_dependency(ZLIB)
 	list(APPEND REQUIRED_VARS ZLIB_FOUND)
 endif()
 
 if(@ZSTD_FOUND@)
-  pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL REQUIRED libzstd)
+	find_package(PkgConfig REQUIRED)
+	pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL REQUIRED libzstd)
 	list(APPEND REQUIRED_VARS ZSTD_FOUND)
 endif()
 
@@ -29,6 +26,12 @@ endif()
 if(@MOAB_FOUND@)
 	find_dependency(MOAB)
 	list(APPEND REQUIRED_VARS MOAB_FOUND)
+endif()
+
+if(@protobuf_FOUND@)
+	find_package(PkgConfig REQUIRED)
+	pkg_search_module(protobuf IMPORTED_TARGET GLOBAL REQUIRED protobuf>=3.0.0)
+	list(APPEND REQUIRED_VARS protobuf_FOUND)
 endif()
 
 if(@OpenMP_FOUND@)
