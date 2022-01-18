@@ -45,7 +45,7 @@ GPU=1
 # test_group_l_inf d rel $1
 
 DATA=$HOME/dev/data/512x512x512/velocity_x.dat
-$MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-4 -s 0 -l 0 -v -d $1
+# $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-4 -s 0 -l 0 -v -d $1
 # $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 1 5 -m rel -e 1e-4 -s 0 -l 0 -v -d $1
 
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 100 100 100 -m rel -e 1e-4 -s 0 -l 1 -v -d $1
@@ -64,7 +64,10 @@ $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-4 -s 0
 # $MgardXExec -z -i random -c random.mgard -t s -n 3 216 1024 2048 -m rel -e 1e-3 -s inf -l 2  -v -d $1
 # $MgardXExec -z -i random -c random.mgard -t s -n 3 216 2048 1024 -m rel -e 1e-3 -s inf -l 2  -v -d $1
 
-# $MgardXExec -z -i random -c random.mgard -t s -n 3 216 1024 1024 -m abs -e 707 -s 0 -l 2 -v -d $1
+
+DATA=$HOME/dev/data/ska.dat
+
+$MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 216 1024 2048 -m rel -e 0.1 -s 0 -l 1 -v -d $1
 
 # $MgardXExec -z -i random -c random.mgard -t s -n 3 5 5 10 -m rel -e 1e-3 -s inf -l 2 -v -d $1
 # $MgardXExec -z -i random -c random.mgard -t s -n 3 10 5 5 -m rel -e 1e-3 -s inf -l 2 -v -d $1

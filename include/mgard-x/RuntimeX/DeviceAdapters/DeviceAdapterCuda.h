@@ -332,6 +332,7 @@ class DeviceSpecification<CUDA> {
     MaxNumThreadsPerSM = new int[NumDevices];
     MaxNumThreadsPerTB = new int[NumDevices];
     AvailableMemory = new size_t[NumDevices];
+    SupportCooperativeGroups = new bool[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(cudaSetDevice(d));
@@ -344,7 +345,7 @@ class DeviceSpecification<CUDA> {
       cudaDeviceGetAttribute(&NumSMs[d], cudaDevAttrMultiProcessorCount, d);
       cudaDeviceGetAttribute(&MaxNumThreadsPerSM[d], cudaDevAttrMaxThreadsPerMultiProcessor, d);
       cudaDeviceGetAttribute(&MaxNumThreadsPerTB[d], cudaDevAttrMaxThreadsPerBlock, d);
-
+      SupportCooperativeGroups[d] = true;
       cudaDeviceProp prop;
       cudaGetDeviceProperties(&prop, d);
       ArchitectureGeneration[d] = 1; // default optimized for Volta
@@ -401,6 +402,11 @@ class DeviceSpecification<CUDA> {
     return AvailableMemory[dev_id];
   }
 
+  MGARDX_CONT bool
+  SupportCG(int dev_id) {
+    return SupportCooperativeGroups[dev_id];
+  }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete [] MaxSharedMemorySize;
@@ -410,6 +416,7 @@ class DeviceSpecification<CUDA> {
     delete [] MaxNumThreadsPerSM;
     delete [] MaxNumThreadsPerTB;
     delete [] AvailableMemory;
+    delete [] SupportCooperativeGroups;
   }
 
   int NumDevices;
@@ -420,6 +427,7 @@ class DeviceSpecification<CUDA> {
   int* MaxNumThreadsPerSM;
   int* MaxNumThreadsPerTB;
   size_t * AvailableMemory;
+  bool * SupportCooperativeGroups;
 };
 
 
@@ -545,6 +553,11 @@ class DeviceRuntime<CUDA> {
   MGARDX_CONT static size_t
   GetAvailableMemory() {
     return DeviceSpecs.GetAvailableMemory(curr_dev_id);
+  }
+
+  MGARDX_CONT static bool
+  SupportCG() {
+    return DeviceSpecs.SupportCG(curr_dev_id);
   }
 
   template <typename FunctorType>
@@ -703,14 +716,16 @@ class MemoryManager<CUDA> {
 
   template <typename T>
   MGARDX_CONT static
-  void Memset1D(T * ptr, SIZE n, int value) {
-    gpuErrchk(cudaMemset(ptr, value, n * sizeof(T)));
+  void Memset1D(T * ptr, SIZE n, int value, int queue_idx) {
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    gpuErrchk(cudaMemsetAsync(ptr, value, n * sizeof(T), stream));
   }
 
   template <typename T>
   MGARDX_CONT static
-  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value) {
-    gpuErrchk(cudaMemset2D(ptr, ld * sizeof(T), value, n1 * sizeof(T), n2));
+  void MemsetND(T * ptr, SIZE ld, SIZE n1, SIZE n2, int value, int queue_idx) {
+    cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
+    gpuErrchk(cudaMemset2DAsync(ptr, ld * sizeof(T), value, n1 * sizeof(T), n2, stream));
   }
 
   template <typename T>
