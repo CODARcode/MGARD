@@ -568,17 +568,6 @@ install(EXPORT mgard-targets NAMESPACE mgard::
   DESTINATION "${CMAKE_INSTALL_CMAKEDIR}" COMPONENT dev
 )
 
-# Install pkg-config files for non-cmake projects
-configure_file(
-	"${PROJECT_SOURCE_DIR}/cmake/mgard.pc.in"
-	"${PROJECT_BINARY_DIR}/mgard.pc"
-	@ONLY
-)
-install(
-  FILES "${PROJECT_BINARY_DIR}/mgard.pc"
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT dev
-)
-
 if(MGARD_ENABLE_BENCHMARKS)
 	find_package(benchmark)
 
