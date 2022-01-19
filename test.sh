@@ -67,7 +67,8 @@ DATA=$HOME/dev/data/512x512x512/velocity_x.dat
 
 DATA=$HOME/dev/data/ska.dat
 
-$MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 216 1024 2048 -m rel -e 0.1 -s 0 -l 1 -v -d $1
+# $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 216 1024 2048 -m rel -e 0.1 -s 0 -l 1 -v -d $1
+# $MgardXExec -x -c $DATA.mgard -o $DATA.1e-1.decompressed -v -d $1
 
 # $MgardXExec -z -i random -c random.mgard -t s -n 3 5 5 10 -m rel -e 1e-3 -s inf -l 2 -v -d $1
 # $MgardXExec -z -i random -c random.mgard -t s -n 3 10 5 5 -m rel -e 1e-3 -s inf -l 2 -v -d $1
@@ -134,7 +135,7 @@ $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 216 1024 2048 -m rel -e 0.1 -s 
 # DATA=/home/jieyang/dev/data/enst.dat
 # 
 
-# cd ../examples/mgard-x/BatchTests && rm -rf ../examples/gpu-cuda/BatchTests/build && ./build_script.sh && ./build/BatchTests random $1 $2
+cd ../examples/mgard-x/BatchTests && rm -rf ../examples/gpu-cuda/BatchTests/build && ./build_script.sh && ./build/BatchTests random $1 $2
 
 # cd ../examples/mgard-x/Evaluation && sh Run_Script.sh cuda
 

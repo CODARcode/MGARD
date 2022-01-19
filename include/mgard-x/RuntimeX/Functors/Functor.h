@@ -249,6 +249,8 @@ public:
 
   MGARDX_EXEC void
   Operation14(); // update iNodesSize
+
+  bool use_CG;
 };
 
 template <typename DeviceType>
@@ -292,6 +294,8 @@ public:
 
   MGARDX_EXEC void
   Operation10();
+
+  bool use_CG;
 
 };
 

@@ -33,6 +33,7 @@ namespace mgard_x {
 #define MGARDX_KERL 
 #define MGARDX_EXEC __inline__
 #define MGARDX_CONT_EXEC __inline__
+#define MGARDX_MANAGED
 #endif  
 
 
@@ -41,6 +42,7 @@ namespace mgard_x {
 #define MGARDX_KERL __global__
 #define MGARDX_EXEC __device__ __forceinline__
 #define MGARDX_CONT_EXEC __host__ __device__ __forceinline__
+#define MGARDX_MANAGED __managed__
 #endif
 
 
@@ -49,6 +51,7 @@ namespace mgard_x {
 #define MGARDX_KERL __global__
 #define MGARDX_EXEC __device__ __inline__
 #define MGARDX_CONT_EXEC __host__ __device__ __inline__
+#define MGARDX_MANAGED __managed__
 #endif
 
 #if defined MGARDX_COMPILE_KOKKOS
@@ -56,6 +59,7 @@ namespace mgard_x {
 #define MGARDX_KERL 
 #define MGARDX_EXEC __inline__
 #define MGARDX_CONT_EXEC KOKKOS_INLINE_FUNCTION
+#define MGARDX_MANAGED 
 #endif  
 
 
