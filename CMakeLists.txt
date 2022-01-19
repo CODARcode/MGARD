@@ -48,7 +48,10 @@ option(MGARD_ENABLE_CLI "Build executable." OFF)
 
 option(MGARD_ENABLE_UNSTRUCTURED "Enable experimental unstructured mesh support." OFF)
 
+option(MGARD_ENABLE_TIMING "Enable timing." OFF)
+
 include(CTest)
+
 # Some boilerplate to setup nice output directories
 include(GNUInstallDirs)
 if(WIN32 AND NOT CYGWIN)
@@ -172,7 +175,7 @@ endif()
 
 find_package(ZLIB REQUIRED)
 
-find_package(PkgConfig)
+find_package(PkgConfig REQUIRED)
 
 # pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
 
@@ -218,8 +221,6 @@ set(MGARD_FILE_FORMAT_INCLUDESUBDIR_COMPONENT "proto")
 set(MGARD_FILE_FORMAT_DIR "${MGARD_FILE_FORMAT_INCLUDEDIR}/${MGARD_FILE_FORMAT_INCLUDESUBDIR_COMPONENT}")
 set(MGARD_FILE_FORMAT_HPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.h")
 set(MGARD_FILE_FORMAT_CPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.cc")
-set(MGARD_GENERATE_DIMENSION_SWITCH "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dimension_switch.py")
-set(MGARD_COMPRESS_INTERNAL_CPP "${MGARD_FILE_FORMAT_SRCDIR}/compress_internal_generated.cpp")
 
 pkg_search_module(protobuf REQUIRED IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
 find_program(PROTOC NAMES "protoc" REQUIRED)
@@ -240,6 +241,10 @@ add_custom_command(
   DEPENDS "${MGARD_FILE_FORMAT_PROTO}"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
+list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}")
+
+set(MGARD_GENERATE_DIMENSION_SWITCH "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dimension_switch.py")
+set(MGARD_COMPRESS_INTERNAL_CPP "${MGARD_FILE_FORMAT_SRCDIR}/compress_internal_generated.cpp")
 add_custom_command(
   OUTPUT
   "${MGARD_COMPRESS_INTERNAL_CPP}"
@@ -250,8 +255,7 @@ add_custom_command(
   "${MAXIMUM_DIMENSION}"
   "${MGARD_COMPRESS_INTERNAL_CPP}"
 )
-
-list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}" "${MGARD_COMPRESS_INTERNAL_CPP}")
+list(APPEND MGARD_LIBRARY_CPP "${MGARD_COMPRESS_INTERNAL_CPP}")
 
 add_library(
   mgard-library
@@ -259,10 +263,6 @@ add_library(
   ${MGARD_CUDA_SRC}
   ${MGARD_X_SRC}
 )
-
-if(MGARD_ENABLE_UNSTRUCTURED)
-	add_subdirectory("src/unstructured")
-endif()
 
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
@@ -334,9 +334,8 @@ if(MGARD_ENABLE_KOKKOS)
   target_link_libraries(mgard-library PUBLIC Kokkos::kokkoscore)
 endif()
 
-option(MGARD_ENABLE_TIMING "Enable MGARD timing." OFF)
 if(MGARD_ENABLE_TIMING)
-  add_definitions(-DMGARD_TIMING)
+	target_compile_definitions(mgard-library PRIVATE MGARD_TIMING)
 endif()
 
 target_compile_features(mgard-library PUBLIC cxx_std_17)
@@ -353,6 +352,10 @@ install(TARGETS mgard-library EXPORT mgard-targets)
 install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 install(DIRECTORY "include/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 install(FILES "${MGARD_FILE_FORMAT_HPP}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard/${MGARD_FILE_FORMAT_INCLUDESUBDIR_COMPONENT}")
+
+if(MGARD_ENABLE_UNSTRUCTURED)
+	add_subdirectory("src/unstructured")
+endif()
 
 if(MGARD_ENABLE_BENCHMARKS)
 	add_subdirectory("src/benchmarks")
