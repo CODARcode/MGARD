@@ -82,12 +82,18 @@ int compress_N_Real(const cli::CompressionArguments &arguments) {
     std::cerr << "failed to open '" << arguments.output << "'" << std::endl;
     return 1;
   }
-  const std::size_t outsize = compressed.size();
-  outfile.write(static_cast<char const *>(compressed.data()), outsize);
+  compressed.write(outfile);
   if (not outfile) {
     std::cerr << "failed to write to '" << arguments.output << "'" << std::endl;
     return 1;
   }
+  const std::size_t outsize = outfile.tellp();
+  if (not outfile) {
+    std::cerr << "failed to determine number of bytes written to '"
+              << arguments.output << "'" << std::endl;
+    return 1;
+  }
+
   std::cout << "input size (bytes):  " << insize << std::endl;
   std::cout << "output size (bytes): " << outsize << std::endl;
   std::cout << "compression ratio:   " << static_cast<float>(insize) / outsize
