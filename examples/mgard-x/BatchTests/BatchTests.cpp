@@ -401,38 +401,38 @@ int main(int argc, char *argv[]) {
 
   std::vector<std::vector<mgard_x::SIZE>> shapes;
 
-  // shapes.push_back({5});
-  // shapes.push_back({129});
-  // shapes.push_back({100});
-  // shapes.push_back({400});
-  // shapes.push_back({1000});
+  shapes.push_back({5});
+  shapes.push_back({129});
+  shapes.push_back({100});
+  shapes.push_back({400});
+  shapes.push_back({1000});
 
-  // shapes.push_back({5, 5});
-  // shapes.push_back({129, 129});
-  // shapes.push_back({100, 100});
-  // shapes.push_back({1000, 1000});
-  // shapes.push_back({100, 1000});
-  // shapes.push_back({1000, 100});
-  // shapes.push_back({10, 1000});
-  // shapes.push_back({1000, 10});
+  shapes.push_back({5, 5});
+  shapes.push_back({129, 129});
+  shapes.push_back({100, 100});
+  shapes.push_back({1000, 1000});
+  shapes.push_back({100, 1000});
+  shapes.push_back({1000, 100});
+  shapes.push_back({10, 1000});
+  shapes.push_back({1000, 10});
 
-  // shapes.push_back({5, 5, 5});
-  // shapes.push_back({129, 129, 129});
-  // shapes.push_back({100, 100, 100});
-  // shapes.push_back({200, 200, 200});
-  // shapes.push_back({1000, 100, 10});
-  // shapes.push_back({100, 10, 1000});
-  // shapes.push_back({10, 1000, 100});
+  shapes.push_back({5, 5, 5});
+  shapes.push_back({129, 129, 129});
+  shapes.push_back({100, 100, 100});
+  shapes.push_back({200, 200, 200});
+  shapes.push_back({1000, 100, 10});
+  shapes.push_back({100, 10, 1000});
+  shapes.push_back({10, 1000, 100});
 
   shapes.push_back({5, 5, 5, 5});
   shapes.push_back({3, 3, 3, 4});
-  // shapes.push_back({65, 65, 65, 65});
-  // shapes.push_back({100, 10, 100, 10});
-  // shapes.push_back({10, 100, 10, 100});
-  // shapes.push_back({1000, 10, 10, 10});
-  // shapes.push_back({10, 1000, 10, 10});
-  // shapes.push_back({10, 10, 1000, 10});
-  // shapes.push_back({10, 10, 10, 1000});
+  shapes.push_back({65, 65, 65, 65});
+  shapes.push_back({100, 10, 100, 10});
+  shapes.push_back({10, 100, 10, 100});
+  shapes.push_back({1000, 10, 10, 10});
+  shapes.push_back({10, 1000, 10, 10});
+  shapes.push_back({10, 10, 1000, 10});
+  shapes.push_back({10, 10, 10, 1000});
 
 
   // shapes.push_back({216, 1024, 2048});

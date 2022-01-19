@@ -16,21 +16,30 @@ namespace mgard_x {
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MOD(a, b) ((((a) % (b)) + (b)) % (b))
 
-MGARDX_EXEC int iNodesFront = 0;
-MGARDX_EXEC int iNodesRear = 0;
-MGARDX_EXEC int lNodesCur = 0;
+static MGARDX_MANAGED int iNodesFront = 0;
+static MGARDX_MANAGED int iNodesRear = 0;
+static MGARDX_MANAGED int lNodesCur = 0;
 
-MGARDX_EXEC int iNodesSize = 0;
-MGARDX_EXEC int curLeavesNum;
+static MGARDX_MANAGED int iNodesSize = 0;
+static MGARDX_MANAGED int curLeavesNum;
 
-MGARDX_EXEC int minFreq;
+static MGARDX_MANAGED int minFreq;
 
-MGARDX_EXEC int tempLength;
+static MGARDX_MANAGED int tempLength;
 
-MGARDX_EXEC int mergeFront;
-MGARDX_EXEC int mergeRear;
+static MGARDX_MANAGED int mergeFront;
+static MGARDX_MANAGED int mergeRear;
 
-MGARDX_EXEC int lNodesIndex;
+static MGARDX_MANAGED int lNodesIndex;
+
+
+static MGARDX_MANAGED int cStart;
+static MGARDX_MANAGED int cEnd;
+static MGARDX_MANAGED int iStart;
+static MGARDX_MANAGED int iEnd;
+static MGARDX_MANAGED int iNodesCap;
+
+static MGARDX_MANAGED bool HuffmanCL_loop_condition1;
 
 template <typename T, typename DeviceType>
 class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
@@ -74,26 +83,18 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   MGARDX_EXEC void
   Operation1() {
-    mblocks = FunctorBase<DeviceType>::GetGridDimX();
-    mthreads = FunctorBase<DeviceType>::GetBlockDimX();
-    int32_t * sm = (int32_t*)FunctorBase<DeviceType>::GetSharedMemory();
-    x_top = &sm[0];
-    y_top = &sm[1];
-    x_bottom = &sm[2];
-    y_bottom = &sm[3];
-    found = &sm[4];
-    oneorzero = &sm[5];
-
-    thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
-    i = thread; // Adaptation for easier porting
+    // mblocks = FunctorBase<DeviceType>::GetGridDimX();
+    // mthreads = FunctorBase<DeviceType>::GetBlockDimX();
+    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+    // i = thread; // Adaptation for easier porting
 
     /* Initialization */
-    if (thread < size) {
+    if (i < size) {
       *lNodesLeader((IDX)i) = -1;
       *CL((IDX)i) = 0;
     }
 
-    if (thread == 0) {
+    if (i == 0) {
       iNodesFront = 0;
       iNodesRear = 0;
       lNodesCur = 0;
@@ -102,21 +103,23 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDX_EXEC bool
+  MGARDX_CONT_EXEC bool
   LoopCondition1() {
     // printf("LoopCondition1 %d %u %d\n", lNodesCur, size, iNodesSize);
-    return lNodesCur < size || iNodesSize > 1;
+    HuffmanCL_loop_condition1 = lNodesCur < size || iNodesSize > 1;
+    return HuffmanCL_loop_condition1;
   }
 
   MGARDX_EXEC void
   Operation2() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     /* Combine two most frequent nodes on same level */
-    if (thread == 0) {
+    if (i == 0) {
       T midFreq[4];
       int midIsLeaf[4];
-      for (int i = 0; i < 4; ++i) {
-        midFreq[i] = UINT_MAX;
-        midIsLeaf[i] = 0;
+      for (int j = 0; j < 4; ++j) {
+        midFreq[j] = UINT_MAX;
+        midIsLeaf[j] = 0;
       }
 
       if (lNodesCur < size) {
@@ -232,6 +235,7 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   MGARDX_EXEC void
   Operation3() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     /* Select elements to copy -- parallelized */
     if (i >= lNodesCur && i < size) {
       // Parallel component
@@ -252,13 +256,13 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   MGARDX_EXEC void
   Operation4() {
-
+    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     // if (!thread) {
     //   printf("curLeavesNum: %d\n", curLeavesNum);
     // }
 
     /* Updates Iterators */
-    if (thread == 0) {
+    if (i == 0) {
       mergeRear = iNodesRear;
       mergeFront = iNodesFront;
 
@@ -283,19 +287,38 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     }
   }
 
+  MGARDX_CONT_EXEC bool
+  BranchCondition1() {
+    cStart = 0;
+    cEnd = curLeavesNum;
+    iStart = mergeFront;
+    iEnd = mergeRear;
+    iNodesCap = size;
+    tempLength = (cEnd - cStart) + MOD(iEnd - iStart, iNodesCap);
+    return tempLength > 0;
+  }
+
   MGARDX_EXEC void
   Operation5() {
+
+    int32_t * sm = (int32_t*)FunctorBase<DeviceType>::GetSharedMemory();
+    x_top = &sm[0];
+    y_top = &sm[1];
+    x_bottom = &sm[2];
+    y_bottom = &sm[3];
+    found = &sm[4];
+    oneorzero = &sm[5];
 
     cStart = 0;
     cEnd = curLeavesNum;
     iStart = mergeFront;
     iEnd = mergeRear;
     iNodesCap = size;
-    blocks = mblocks;
-    threads = mthreads;
+    // blocks = mblocks;
+    // threads = mthreads;
     
-    tempLength = (cEnd - cStart) + MOD(iEnd - iStart, iNodesCap);
-    if (tempLength == 0) return;
+    // tempLength = (cEnd - cStart) + MOD(iEnd - iStart, iNodesCap);
+    // if (tempLength == 0) return;
     A_length = cEnd - cStart;
     B_length = MOD(iEnd - iStart, iNodesCap);
 
@@ -329,12 +352,8 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     *found = 0;
   }
 
-  MGARDX_EXEC bool
-  BranchCondition1() {
-    return tempLength > 0;
-  }
 
-  MGARDX_EXEC bool
+  MGARDX_CONT_EXEC bool
   LoopCondition2() {
     // printf("%u LoopCondition2\n", FunctorBase<DeviceType>::GetBlockIdX());
     return !(*found);
@@ -502,11 +521,12 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   MGARDX_EXEC void
   Operation11() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     // if (thread == 0) {
     //   printf("leaf: %d %d\n", *tempIsLeaf((IDX)2 * 4), *tempIsLeaf((IDX)2 * 4 + 1));
     // }
     /* Melding phase -- New */
-    if (thread < tempLength / 2) {
+    if (i < tempLength / 2) {
       int ind = MOD(iNodesRear + i, size);
       // printf("Melding(i=%d): %u(%d) %u(%d)\n", i, *tempFreq((IDX)2 * i), *tempIsLeaf((IDX)2 * i), *tempFreq((IDX)2 * i + 1), *tempIsLeaf((IDX)2 * i + 1));
       *iNodesFreq((IDX)ind) = *tempFreq((IDX)2 * i) + *tempFreq((IDX)2 * i + 1);
@@ -529,18 +549,20 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   MGARDX_EXEC void
   Operation12() {
-    if (thread == 0) {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+    if (i == 0) {
       iNodesRear = MOD(iNodesRear + (tempLength / 2), size);
     }
   }
 
   MGARDX_EXEC void
   Operation13() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     /* Update leaders */
     // if (thread == 0) {
     //   printf("mine: iNodesLeader(0.leader) = %d, iNodesRear: %u\n", *iNodesLeader(IDX(0)), iNodesRear);
     // }
-    if (thread < size) {
+    if (i < size) {
       if (*lNodesLeader((IDX)i) != -1) {
         if (*iNodesLeader((IDX)*lNodesLeader((IDX)i)) != -1) {
           *lNodesLeader((IDX)i) = *iNodesLeader((IDX)*lNodesLeader((IDX)i));
@@ -553,7 +575,8 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
 
   MGARDX_EXEC void
   Operation14() {
-    if (thread == 0) {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+    if (i == 0) {
       iNodesSize = MOD(iNodesRear - iNodesFront, size);
     }
   }
@@ -583,8 +606,8 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
   SubArray<1, int, DeviceType> copyIndex;
   SubArray<1, uint32_t, DeviceType> diagonal_path_intersections;
   // Array<1, uint32_t, DeviceType> diagonal_path_intersections_array;
-  int mblocks;
-  int mthreads;
+  // int mblocks;
+  // int mthreads;
   // SubArray<1, int, DeviceType> *iNodesFront.data();
   // SubArray<1, int, DeviceType> iNodesRear;
   // SubArray<1, int, DeviceType> iNodesSize; 
@@ -606,16 +629,16 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
   int32_t *found;
   int32_t *oneorzero;
 
-  unsigned int thread;
+  // unsigned int thread;
   unsigned int i;
 
-  int cStart;
-  int cEnd;
-  int iStart;
-  int iEnd;
-  int iNodesCap;
-  int blocks;
-  int threads;
+  // int cStart;
+  // int cEnd;
+  // int iStart;
+  // int iEnd;
+  // int iNodesCap;
+  // int blocks;
+  // int threads;
   int threadOffset;
   uint32_t A_length;
   uint32_t B_length;
@@ -675,6 +698,8 @@ public:
       exit(1);
     }
 
+    Functor.use_CG = false;
+
     return Task(Functor, gridz, gridy, gridx, 
                 tbz, tby, tbx, sm_size, queue_idx, "GenerateCL"); 
   }
@@ -696,7 +721,12 @@ public:
                         copyFreq, copyIsLeaf, copyIndex,
                         diagonal_path_intersections, queue_idx); 
     DeviceAdapter<TaskType, DeviceType> adapter; 
+
+
     adapter.Execute(task);
+
+    // DeviceRuntime<DeviceType>::SyncDevice();
+    // std::cout << "iNodesRear: " << iNodesRear << "\n";
   }
 
   
