@@ -43,7 +43,23 @@ void GetCodebook(int dict_size,
   // Sort Qcodes by frequency
   int nblocks = (dict_size / 1024) + 1;
   FillArraySequence<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
-  DeviceCollective<DeviceType>().SortByKey(dict_size, _d_freq_subarray, _d_qcode_subarray, 0);
+  // DeviceCollective<DeviceType>().SortByKey(dict_size, _d_freq_subarray, _d_qcode_subarray, 0);
+  {
+    Array<1, unsigned int, Serial> _h_freq_array({(SIZE)dict_size});
+    Array<1, Q, Serial> _h_qcode_array({(SIZE)dict_size});
+    
+    MemoryManager<DeviceType>::Copy1D(_h_freq_array.get_dv(), _d_freq_subarray.data(), dict_size, 0);
+    MemoryManager<DeviceType>::Copy1D(_h_qcode_array.get_dv(), _d_qcode_subarray.data(), dict_size, 0);
+
+    DeviceRuntime<DeviceType>::SyncDevice();
+    SubArray _h_freq_subarray(_h_freq_array);
+    SubArray _h_qcode_subarray(_h_qcode_array);
+    DeviceCollective<Serial>().SortByKey(dict_size, _h_freq_subarray, _h_qcode_subarray, 0);
+
+    MemoryManager<DeviceType>::Copy1D(_d_freq_subarray.data(), _h_freq_array.get_dv(), dict_size, 0);
+    MemoryManager<DeviceType>::Copy1D(_d_qcode_subarray.data(), _h_qcode_array.get_dv(), dict_size, 0);
+    DeviceRuntime<DeviceType>::SyncDevice();
+  }
 
   unsigned int *d_first_nonzero_index;
   unsigned int first_nonzero_index;
