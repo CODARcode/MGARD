@@ -189,7 +189,7 @@ set(
   src/format.cpp
 )
 
-set(MAXIMUM_DIMENSION 16 CACHE STRING "Maximum supported dimension for self-describing decompression.")
+set(MAXIMUM_DIMENSION 4 CACHE STRING "Maximum supported dimension for self-describing decompression.")
 
 set(PYTHON3_NAMES "python3" "python")
 find_program(PYTHON3 NAMES ${PYTHON3_NAMES} REQUIRED)
