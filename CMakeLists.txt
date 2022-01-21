@@ -257,6 +257,9 @@ add_custom_command(
 )
 list(APPEND MGARD_LIBRARY_CPP "${MGARD_COMPRESS_INTERNAL_CPP}")
 
+#See <https://github.com/protocolbuffers/protobuf/issues/2032>.
+set_source_files_properties("${MGARD_FILE_FORMAT_CPP}" PROPERTIES COMPILE_FLAGS "-Wno-unused-parameter")
+
 add_library(
   mgard-library
   ${MGARD_LIBRARY_CPP}
