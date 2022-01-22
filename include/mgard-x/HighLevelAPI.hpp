@@ -273,8 +273,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config, bool output_pre_allocated) {
   
-  // Hierarchy<D, T, DeviceType> hierarchy(shape, 0, 5, config.uniform_coord_mode);
-    Hierarchy<D, T, DeviceType> hierarchy(shape, config.uniform_coord_mode);
+  Hierarchy<D, T, DeviceType> hierarchy(shape, config.uniform_coord_mode);
 
   Metadata m;
   if (std::is_same<DeviceType, Serial>::value) {
@@ -299,6 +298,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
   m.huff_block_size = config.huff_block_size;
 #ifndef MGARDX_COMPILE_CUDA
   if (config.lossless == lossless_type::Huffman_LZ4) {
+    config.lossless = lossless_type::Huffman_Zstd;
     m.ltype = config.lossless; // update matadata
   }
 #endif
@@ -492,11 +492,12 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
   m.ltype = config.lossless;
   m.huff_dict_size = config.huff_dict_size;
   m.huff_block_size = config.huff_block_size;
-  #ifndef MGARDX_COMPILE_CUDA
+#ifndef MGARDX_COMPILE_CUDA
   if (config.lossless == lossless_type::Huffman_LZ4) {
+    config.lossless = lossless_type::Huffman_Zstd;
     m.ltype = config.lossless; // update matadata
   }
-  #endif
+#endif
   m.dtype = std::is_same<T, double>::value ? data_type::Double : data_type::Float;
   m.etype = CheckEndianess();
   m.dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
@@ -614,7 +615,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       lossless_compressed_data.push_back(temp);
     }
 
-    // Seralize
+    // Serialize
     if (type == error_bound_type::REL) {
       m.norm = norm;
     }

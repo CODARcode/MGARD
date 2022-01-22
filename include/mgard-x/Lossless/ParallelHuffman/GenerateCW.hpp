@@ -251,23 +251,35 @@ public:
     int nz_nblocks = (dict_size / tbx) + 1;
     int cg_blocks_sm = DeviceRuntime<DeviceType>::GetOccupancyMaxActiveBlocksPerSM(Functor, tbx, sm_size);
     int cg_mblocks = cg_blocks_sm * DeviceRuntime<DeviceType>::GetNumSMs();
-    cg_mblocks = std::min(nz_nblocks, cg_mblocks);
+    cg_mblocks = cg_mblocks; //std::min(nz_nblocks, cg_mblocks);
     gridz = 1;
     gridy = 1;
     gridx = cg_mblocks;
 
     int cw_tthreads = gridx * tbx;
-    if (cw_tthreads < dict_size) {
-      std::cout << log::log_err << "Insufficient on-device parallelism to construct a "
-           << dict_size << " non-zero item codebook" << std::endl;
-      std::cout << log::log_err << "Provided parallelism: " << gridx << " blocks, "
-           << tbx << " threads, " << cw_tthreads << " total" << std::endl
-           << std::endl;
-      exit(1);
+    // if (cw_tthreads < dict_size) {
+    //   std::cout << log::log_err << "Insufficient on-device parallelism to construct a "
+    //        << dict_size << " non-zero item codebook" << std::endl;
+    //   std::cout << log::log_err << "Provided parallelism: " << gridx << " blocks, "
+    //        << tbx << " threads, " << cw_tthreads << " total" << std::endl
+    //        << std::endl;
+    //   exit(1);
+    // }
+    if (cw_tthreads >= dict_size) {
+      if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
+        std::cout << log::log_info << "GenerateCW: using Cooperative Groups\n";
+      }
+      Functor.use_CG = true;
+    } else {
+      if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
+        std::cout << log::log_info << "GenerateCW: not using Cooperative Groups\n";
+      }
+      Functor.use_CG = false;
+      gridx = (dict_size - 1) / tbx + 1;
     }
 
         // printf("gridx: %d, tbx: %d\n", gridx, tbx);
-    Functor.use_CG = false;
+    
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
     // PrintSubarray("shape", shape);
