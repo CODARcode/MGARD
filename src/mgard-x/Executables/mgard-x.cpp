@@ -217,30 +217,28 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 
 template <typename T>
 void print_statistics(double s, enum mgard_x::error_bound_type mode,
-                      size_t n, T *original_data, T *decompressed_data) {
+                      size_t n, T *original_data, T *decompressed_data, T tol) {
   std::cout << std::scientific;
   if (s == std::numeric_limits<T>::infinity()) {
+    T actual_error = mgard_x::L_inf_error(n, original_data, decompressed_data, mode);
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info << "Absoluate L_inf error: "
-                << mgard_x::L_inf_error(n, original_data, decompressed_data,
-                                           mode)
+                << actual_error << " (" << (actual_error < tol ? "\e[32mSatisified\e[0m" : "\e[31mNot Satisified\e[0m") << ")" 
                 << "\n";
     } else if (mode == mgard_x::error_bound_type::REL) {
       std::cout << mgard_x::log::log_info << "Relative L_inf error: "
-                << mgard_x::L_inf_error(n, original_data, decompressed_data,
-                                           mode)
+                << actual_error << " (" << (actual_error < tol ? "\e[32mSatisified\e[0m" : "\e[31mNot Satisified\e[0m") << ")" 
                 << "\n";
     }
   } else {
+    T actual_error = mgard_x::L_2_error(n, original_data, decompressed_data, mode);
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info << "Absoluate L_2 error: "
-                << mgard_x::L_2_error(n, original_data, decompressed_data,
-                                         mode)
+                << actual_error << " (" << (actual_error < tol ? "\e[32mSatisified\e[0m" : "\e[31mNot Satisified\e[0m") << ")" 
                 << "\n";
     } else if (mode == mgard_x::error_bound_type::REL) {
       std::cout << mgard_x::log::log_info << "Relative L_2 error: "
-                << mgard_x::L_2_error(n, original_data, decompressed_data,
-                                         mode)
+                << actual_error << " (" << (actual_error < tol ? "\e[32mSatisified\e[0m" : "\e[31mNot Satisified\e[0m") << ")" 
                 << "\n";
     }
   }
@@ -268,8 +266,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.timing = verbose;
   // config.uniform_coord_mode = 0;
   config.dev_type = dev_type;
-  // config.zstd_compress_level = 1;
-  // config.huff_dict_size = 2048;
+  config.zstd_compress_level = 1;
+  config.huff_dict_size = 8192;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
@@ -324,7 +322,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   writefile(output_file, compressed_size, compressed_data);
 
-  std::cout << mgard_x::log::log_info << "Compression ratio:"
+  std::cout << mgard_x::log::log_info << "Compression ratio: "
             << (double)original_size * sizeof(T) / compressed_size
             << "\n";
   // printf("In size:  %10ld  Out size: %10ld  Compression ratio: %f \n",
@@ -338,7 +336,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                            config, false);
 
     print_statistics<T>(s, mode, original_size, original_data,
-                        (T *)decompressed_data);
+                        (T *)decompressed_data, tol);
   }
 
   delete[](T *) original_data;

@@ -53,11 +53,6 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     SubArray<1, T, DeviceType> tempFreq,    SubArray<1, int, DeviceType> tempIsLeaf,    SubArray<1, int, DeviceType> tempIndex,
     SubArray<1, T, DeviceType> copyFreq,    SubArray<1, int, DeviceType> copyIsLeaf,    SubArray<1, int, DeviceType> copyIndex,
     SubArray<1, uint32_t, DeviceType> diagonal_path_intersections
-    // SubArray<1, int, DeviceType> iNodesFront, SubArray<1, int, DeviceType> iNodesRear, SubArray<1, int, DeviceType> iNodesSize, 
-    // SubArray<1, int, DeviceType> lNodesCur, SubArray<1, int, DeviceType> curLeavesNum, SubArray<1, int, DeviceType> minFreq, 
-    // SubArray<1, int, DeviceType> tempLength, SubArray<1, int, DeviceType> mergeFront, SubArray<1, int, DeviceType> mergeRear, 
-    // SubArray<1, int, DeviceType> lNodesIndex, SubArray<1, int, DeviceType> CCL, SubArray<1, int, DeviceType> CDPI, 
-    // SubArray<1, int, DeviceType> newCDPI
     ):
     histogram(histogram), CL(CL), size(size),
     lNodesFreq(lNodesFreq), lNodesLeader(lNodesLeader),
@@ -65,26 +60,12 @@ class GenerateCLFunctor: public HuffmanCLCustomizedFunctor<DeviceType> {
     tempFreq(tempFreq), tempIsLeaf(tempIsLeaf), tempIndex(tempIndex),
     copyFreq(copyFreq), copyIsLeaf(copyIsLeaf), copyIndex(copyIndex),
     diagonal_path_intersections(diagonal_path_intersections)
-    // (iNodesFront)iNodesFront, (iNodesRear)iNodesRear, (iNodesSize)iNodesSize, 
-    // (lNodesCur)lNodesCur, (curLeavesNum)curLeavesNum, (minFreq)minFreq, 
-    // (tempLength)tempLength, (mergeFront)mergeFront, (mergeRear)mergeRear, 
-    // (lNodesIndex)lNodesIndex, (CCL)CCL, (CDPI)CDPI, 
-    // (newCDPI)newCDPI 
     {
     HuffmanCLCustomizedFunctor<DeviceType>();                  
   }
 
-  // MGARDX_CONT void
-  // Init_diagonal_path_intersections(SIZE mblocks) {
-  //   printf("init array: %u\n", 2 * (mblocks + 1));
-  //   diagonal_path_intersections_array = Array<1, uint32_t, DeviceType>({(SIZE)(2 * (mblocks + 1))});  
-  //   diagonal_path_intersections = SubArray<1, uint32_t, DeviceType>(diagonal_path_intersections_array);    
-  // }
-
   MGARDX_EXEC void
   Operation1() {
-    // mblocks = FunctorBase<DeviceType>::GetGridDimX();
-    // mthreads = FunctorBase<DeviceType>::GetBlockDimX();
     i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
     // i = thread; // Adaptation for easier porting
 
@@ -682,23 +663,33 @@ public:
     int cg_blocks_sm = DeviceRuntime<DeviceType>::GetOccupancyMaxActiveBlocksPerSM(Functor, tbx, sm_size);
     int cg_mblocks = cg_blocks_sm * DeviceRuntime<DeviceType>::GetNumSMs();
     int ELTS_PER_SEQ_MERGE = 16;
-    int mblocks = std::min(cg_mblocks, (dict_size / ELTS_PER_SEQ_MERGE) + 1);
+    int mblocks = cg_mblocks; //std::min(cg_mblocks, (dict_size / ELTS_PER_SEQ_MERGE) + 1);
 
     gridz = 1;
     gridy = 1;
     gridx = mblocks;
 
     int tthreads = tbx * gridx;
-    if (tthreads < dict_size) {
-      std::cout << log::log_err << "Insufficient on-device parallelism to construct a "
-           << dict_size << " non-zero item codebook" << std::endl;
-      std::cout << log::log_err << "Provided parallelism: " << gridx << " blocks, "
-           << tbx << " threads, " << tthreads << " total" << std::endl
-           << std::endl;
-      exit(1);
+    // if (tthreads < dict_size) {
+    //   std::cout << log::log_err << "Insufficient on-device parallelism to construct a "
+    //        << dict_size << " non-zero item codebook" << std::endl;
+    //   std::cout << log::log_err << "Provided parallelism: " << gridx << " blocks, "
+    //        << tbx << " threads, " << tthreads << " total" << std::endl
+    //        << std::endl;
+    //   exit(1);
+    // }
+    if (tthreads >= dict_size) {
+      if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
+        std::cout << log::log_info << "GenerateCL: using Cooperative Groups\n";
+      }
+      Functor.use_CG = true;
+    } else {
+      if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
+        std::cout << log::log_info << "GenerateCL: not using Cooperative Groups\n";
+      }
+      Functor.use_CG = false;
+      gridx = (dict_size - 1) / tbx + 1;
     }
-
-    Functor.use_CG = false;
 
     return Task(Functor, gridz, gridy, gridx, 
                 tbz, tby, tbx, sm_size, queue_idx, "GenerateCL"); 
