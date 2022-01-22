@@ -7,8 +7,6 @@ XGC_DATA=$DATA_DIR/d3d_coarse_v2_700.bin
 E3SM_DATA=$DATA_DIR/temperature.dat
 
 
-ls $NYX_DATA
-
 # $MgardSerialExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5e-3 -s inf -v # actual error 1e-4
 # $MgardSerialExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5e-2 -s inf -v # actual error 1e-3
 # $MgardSerialExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5.5e-1 -s inf -v # actual error 1e-2
@@ -66,9 +64,9 @@ e1=4.5e-3
 e2=4e-2
 e3=4e-1
 e4=5e0
-$MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -v # actual error 1e-4
-$MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -v # actual error 1e-3
-$MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -v # actual error 1e-2
+# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -v # actual error 1e-4
+# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -v # actual error 1e-3
+# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -v # actual error 1e-2
 $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -v # actual error 1e-1
 
 
@@ -76,17 +74,17 @@ e1=1e-3
 e2=1e-2
 e3=1.041e-1
 e4=1.05e0
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -l 0 -v -d $1
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -l 0 -v -d $1
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -l 0 -v -d $1
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -l 0 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -l 0 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -l 0 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -l 0 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -l 0 -v -d $1
 
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -l 1 -v -d $1
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -l 1 -v -d $1
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -l 1 -v -d $1
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -l 1 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -l 1 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -l 1 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -l 1 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -l 1 -v -d $1
 
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -l 2 -v -d $1
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -l 2 -v -d $1
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -l 2 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e1 -s inf -l 2 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e2 -s inf -l 2 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e3 -s inf -l 2 -v -d $1
 $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -l 2 -v -d $1

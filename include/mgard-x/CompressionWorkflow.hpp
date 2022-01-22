@@ -27,6 +27,7 @@
 #endif
 
 #include "Lossless/Zstd.hpp"
+#include "Lossless/CPU.hpp"
 #include "Utilities/CheckEndianess.h"
 
 // for debugging
@@ -195,6 +196,7 @@ Array<1, unsigned char, DeviceType> compress(Hierarchy<D, T, DeviceType> &hierar
   lossless_compressed_array =
   HuffmanCompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(
       qv, config.huff_block_size, config.huff_dict_size, outlier_count, outlier_idx_subarray, outliers_subarray);
+  // CPUCompress<QUANTIZED_UNSIGNED_INT, DeviceType>(qv);
   lossless_compressed_subarray = SubArray(lossless_compressed_array);
   
   if (config.timing) {
@@ -327,6 +329,7 @@ Array<D, T, DeviceType> decompress(Hierarchy<D, T, DeviceType> &hierarchy,
                                                                   outlier_count,
                                                                   outlier_idx_subarray,
                                                                   outliers_subarray);
+  // CPUDecompress<QUANTIZED_UNSIGNED_INT, DeviceType>(lossless_compressed_subarray);
   DeviceRuntime<DeviceType>::SyncDevice();
   if (config.timing) {
     timer_each.end();
