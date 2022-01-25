@@ -286,10 +286,14 @@ enum device_type auto_detect_device() {
   dev_type = device_type::Serial;
   #endif
   #ifdef MGARD_ENABLE_CUDA
-  dev_type = device_type::CUDA;
+  if (deviceAvailable<CUDA>()) {
+    dev_type = device_type::CUDA;
+  }
   #endif
   #ifdef MGARD_ENABLE_HIP
-  dev_type = device_type::HIP;
+  if (deviceAvailable<HIP>()) {
+    dev_type = device_type::HIP;
+  }
   #endif
   if (dev_type == device_type::None) {
     std::cout << log::log_err << "MGARD-X was not built with any backend.\n";
