@@ -9,3 +9,15 @@
 #include "DataStructures/Array.h"
 #include "Utilities/Message.h"
 #include "Utilities/Timer.hpp"
+
+#ifndef MGARD_X_RUNTIME_X_PUBLIC_H
+#define MGARD_X_RUNTIME_X_PUBLIC_H
+
+namespace mgard_x {
+
+template <typename DeviceType> 
+bool deviceAvailable();
+
+}
+
+#endif

@@ -45,8 +45,8 @@ GPU=1
 # test_group_l_inf d rel $1
 
 DATA=$HOME/dev/data/512x512x512/velocity_x.dat
-# $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-4 -s 0 -l 0 -v -d $1
-# $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 1 5 -m rel -e 1e-4 -s 0 -l 0 -v -d $1
+# $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-4 -s inf -l 0 -v -d $1
+# $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 1 5 -m rel -e 1e-4 -s inf -l 0 -v -d $1
 
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 100 100 100 -m rel -e 1e-4 -s 0 -l 1 -v -d $1
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 5 5 5 -m rel -e 1e-3 -s 0 -l 1 -v -d $1
@@ -133,7 +133,7 @@ DATA=$HOME/dev/data/d3d_coarse_v2_700.bin
 DATA_DIR=$HOME/dev/data
 E3SM_DATA=$DATA_DIR/temperature.dat
 e4=1.05e0
-$MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -l 0 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -l 0 -v -d $1
 # $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 1 10 -m rel -e $e4 -s inf -l 0 -v -d $1
 
 
@@ -142,7 +142,7 @@ $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s
 # DATA=/home/jieyang/dev/data/enst.dat
 # 
 
-# cd ../examples/mgard-x/BatchTests && rm -rf ../examples/gpu-cuda/BatchTests/build && ./build_script.sh && ./build/BatchTests random $1 $2
+cd ../examples/mgard-x/BatchTests && rm -rf ../examples/gpu-cuda/BatchTests/build && ./build_script.sh && ./build/BatchTests random $1 $2
 
 # cd ../examples/mgard-x/Evaluation && sh Run_Script.sh cuda
 

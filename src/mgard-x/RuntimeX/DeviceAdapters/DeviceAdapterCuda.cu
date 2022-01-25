@@ -25,5 +25,10 @@ KernelConfigs<CUDA> AutoTuner<CUDA>::kernelConfigs;
 AutoTuningTable<CUDA> AutoTuner<CUDA>::autoTuningTable;
 bool AutoTuner<CUDA>::ProfileKernels = false;
 
+template <> 
+bool deviceAvailable<CUDA>() {
+  return DeviceRuntime<CUDA>::GetDeviceCount() > 0;
+}
+
 }
 #undef MGARDX_COMPILE_CUDA
