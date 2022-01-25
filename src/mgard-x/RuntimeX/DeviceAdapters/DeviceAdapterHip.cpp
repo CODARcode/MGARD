@@ -23,5 +23,10 @@ KernelConfigs<HIP> AutoTuner<HIP>::kernelConfigs;
 AutoTuningTable<HIP> AutoTuner<HIP>::autoTuningTable;
 bool AutoTuner<HIP>::ProfileKernels = false;
 
+template <> 
+bool deviceAvailable<HIP>() {
+  return DeviceRuntime<HIP>::GetDeviceCount() > 0;
+}
+
 }
 #undef MGARDX_COMPILE_HIP

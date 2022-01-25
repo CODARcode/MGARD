@@ -769,6 +769,11 @@ class DeviceRuntime<Serial> {
   MGARDX_CONT
   DeviceRuntime(){}
 
+  MGARDX_CONT static int
+  GetDeviceCount() {
+    return DeviceSpecs.NumDevices;
+  }
+
   MGARDX_CONT static void 
   SelectDevice(SIZE dev_id){
     // do nothing
