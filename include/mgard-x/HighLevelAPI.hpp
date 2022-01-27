@@ -293,6 +293,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     m.s = s;
   }
   // m.l_target = hierarchy.l_target;
+  m.reorder = config.reorder;
   m.ltype = config.lossless;
   m.huff_dict_size = config.huff_dict_size;
   m.huff_block_size = config.huff_block_size;
@@ -492,6 +493,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
   m.ltype = config.lossless;
   m.huff_dict_size = config.huff_dict_size;
   m.huff_block_size = config.huff_block_size;
+  m.reorder = config.reorder;
 #ifndef MGARDX_COMPILE_CUDA
   if (config.lossless == lossless_type::Huffman_LZ4) {
     config.lossless = lossless_type::Huffman_Zstd;
@@ -712,6 +714,8 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
     config.huff_block_size = m.huff_block_size;
+    config.reorder = m.reorder;
+    // printf("config.reorder: %d\n", config.reorder);
 
     SIZE lossless_size;
     SIZE * lossless_size_ptr = &lossless_size;
@@ -785,6 +789,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
     config.huff_block_size = m.huff_block_size;
+    config.reorder = m.reorder;
 
     std::vector<SIZE> lossless_compressed_size;
     std::vector<Byte*> lossless_compressed_data;
@@ -922,6 +927,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
     config.huff_block_size = m.huff_block_size;
+    config.reorder = m.reorder;
 
     SIZE lossless_size;
     SIZE * lossless_size_ptr = &lossless_size;
@@ -989,6 +995,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
     config.huff_block_size = m.huff_block_size;
+    config.reorder = m.reorder;
 
     std::vector<SIZE> lossless_compressed_size;
     std::vector<Byte*> lossless_compressed_data;

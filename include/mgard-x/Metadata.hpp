@@ -35,6 +35,7 @@ struct Metadata {
   enum norm_type ntype;
   double s; // optional
   uint32_t l_target;
+  bool reorder;
   enum lossless_type ltype;
   uint32_t huff_dict_size; // optional (for Huffman)
   uint32_t huff_block_size; // optional (for Huffman)
@@ -77,6 +78,7 @@ struct Metadata {
       total_size += sizeof(s); // s
     //}
     total_size += sizeof(l_target); //l_target;
+    total_size += sizeof(reorder);
     total_size += sizeof(ltype);
     if (ltype == lossless_type::Huffman || 
         ltype == lossless_type::Huffman_LZ4 ||
@@ -152,6 +154,7 @@ struct Metadata {
       Serialize(s, p);
     //}
     Serialize(l_target, p);
+    Serialize(reorder, p);
     Serialize(ltype, p);
     if (ltype == lossless_type::Huffman ||
         ltype == lossless_type::Huffman_LZ4 ||
@@ -205,6 +208,7 @@ struct Metadata {
       Deserialize(s, p);
     //}
     Deserialize(l_target, p);
+    Deserialize(reorder, p);
     Deserialize(ltype, p);
     if (ltype == lossless_type::Huffman ||
         ltype == lossless_type::Huffman_LZ4 ||

@@ -268,6 +268,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.dev_type = dev_type;
   config.zstd_compress_level = 1;
   config.huff_dict_size = 8192;
+  config.reorder = true;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
@@ -275,6 +276,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.lossless = mgard_x::lossless_type::Huffman_LZ4;
   } else if (lossless == 2) {
     config.lossless = mgard_x::lossless_type::Huffman_Zstd;
+  } else if (lossless == 3) {
+    config.lossless = mgard_x::lossless_type::CPU_Lossless;
   }
 
   size_t original_size = 1;
@@ -296,7 +299,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     in_size = readfile(input_file, original_data);
   }
   if (in_size != original_size * sizeof(T)) {
-    std::cout << mgard_x::log::log_err << "input file size mismatch" << in_size << "vs." << original_size * sizeof(T) << "!\n";
+    std::cout << mgard_x::log::log_warn << "input file size mismatch " << in_size << " vs. " << original_size * sizeof(T) << "!\n";
   }
 
   void *compressed_data = NULL;
