@@ -28,6 +28,7 @@ struct Config {
   int uniform_coord_mode;
   enum lossless_type lossless;
   double global_norm;
+  bool reorder;
 
   Config() {
     dev_type = device_type::Auto;
@@ -49,6 +50,7 @@ struct Config {
     uniform_coord_mode = 0;
     lossless = lossless_type::Huffman_LZ4;
     global_norm = 1;
+    reorder = false;
   }
 };
 

@@ -20,7 +20,7 @@ enum class device_type:uint8_t { Auto, Serial, CUDA, HIP, None };
 
 enum class error_bound_type:uint8_t { REL, ABS };
 enum class norm_type:uint8_t { L_Inf, L_2 };
-enum class lossless_type:uint8_t { Huffman, Huffman_LZ4, Huffman_Zstd };
+enum class lossless_type:uint8_t { Huffman, Huffman_LZ4, Huffman_Zstd, CPU_Lossless };
 
 enum class data_type:uint8_t { Float, Double };
 enum class data_structure_type:uint8_t { Cartesian_Grid_Uniform, Cartesian_Grid_Non_Uniform};
