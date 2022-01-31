@@ -37,7 +37,6 @@ compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
   const std::size_t ndof = hierarchy.ndof();
   Real *const u = new Real[ndof];
   shuffle(hierarchy, v, u);
-
   pb::Header header;
   populate_defaults(header);
   hierarchy.populate(header);
