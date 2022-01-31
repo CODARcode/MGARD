@@ -46,7 +46,7 @@ GPU=1
 
 DATA=$HOME/dev/data/512x512x512/velocity_x.dat
 # $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3 512 512 512 -m rel -e 1e-4 -s inf -l 0 -v -d $1
-# $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 1 5 -m rel -e 1e-4 -s inf -l 0 -v -d $1
+# $MgardXExec -z -i $DATA -c $DATA.mgard -t s -n 3  5 5 5 -m rel -e 1e-4 -s inf -l 0 -v -d $1
 
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 100 100 100 -m rel -e 1e-4 -s 0 -l 1 -v -d $1
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t s -n 3 5 5 5 -m rel -e 1e-3 -s 0 -l 1 -v -d $1
@@ -116,7 +116,7 @@ DATA=$HOME/dev/data/ska.dat
 
 DATA=$HOME/dev/data/d3d_coarse_v2_700.bin
 # $MgardCudaExec -z -i $DATA -c $DATA.mgard -t d -n 4 8 39 16395 39 -m rel -e 1e-1 -s 0 -l 2 -v
-# $MgardXExec    -z -i $DATA -c $DATA.mgard -t d -n 4 8 39 16395 39 -m rel -e 0.1 -s inf -l 0 -v -d $1
+# $MgardXExec    -z -i $DATA -c $DATA.mgard -t d -n 4 8 39 16395 39 -m rel -e 0.1 -s inf -l 2 -v -d $1
 # $MgardXExec    -z -i $DATA -c $DATA.mgard -t d -n 3 312 16395 39 -m rel -e 1 -s inf -l 0 -v -d $1
 
 # $MgardSerialExec -z -i $DATA -c $DATA.mgard -t d -n 4 8 39 16395 39 -m rel -e 1e-1 -s 0 -v
@@ -132,9 +132,24 @@ DATA=$HOME/dev/data/d3d_coarse_v2_700.bin
 
 DATA_DIR=$HOME/dev/data
 E3SM_DATA=$DATA_DIR/temperature.dat
+
+e4=5e0
 e4=1.05e0
-# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -l 0 -v -d $1
+# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 5 5 5 -m rel -e $e4 -s inf -v
+# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -v
+# $MgardSerialExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 9 9 9 -m rel -e $e4 -s inf -v
+
+
+e4=1.05e0
+# e4=3.05e0
+
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 9 9 9 -m rel -e $e4 -s inf -l 3 -v -d $1
+
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 72 1444 359 -m rel -e $e4 -s inf -l 3 -v -d $1
+# $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 3 3 5 5  -m rel -e 0.1 -s inf -l 1 -v -d $1
 # $MgardXExec -z -i $E3SM_DATA -c out.mgard -t s -n 1 10 -m rel -e $e4 -s inf -l 0 -v -d $1
+
+
 
 
 # BIN="$EXEC $DATA d 1 100 abs 1e15 inf gpu"
