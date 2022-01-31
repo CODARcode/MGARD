@@ -103,8 +103,10 @@ class LevelLinearizerFunctor: public Functor<DeviceType> {
       // distinguish different regions
       SIZE curr_region = 0;
       for (DIM d = 0; d < D; d++) {
-        SIZE bit = !(level == Math<DeviceType>::ffsll(l_bit[d]));
-        curr_region += bit << (D - 1 - d);
+        // SIZE bit = !(level == Math<DeviceType>::ffsll(l_bit[d]));
+        // curr_region += bit << (D - 1 - d);
+        SIZE bit = level == Math<DeviceType>::ffsll(l_bit[d]);
+        curr_region += bit << d;
       }
 
       // convert to 0 based level
@@ -121,8 +123,12 @@ class LevelLinearizerFunctor: public Functor<DeviceType> {
       }
 
       for (DIM d = 0; d < D; d++) {
-        SIZE bit = (curr_region >> (D - 1 - d)) & 1u;
-        curr_region_dims[d] = bit ? coarse_level_size[d] : diff_level_size[d];
+        // SIZE bit = (curr_region >> (D - 1 - d)) & 1u;
+        // curr_region_dims[d] = bit ? coarse_level_size[d] : diff_level_size[d];
+
+        SIZE bit = (curr_region >> d) & 1u;
+        curr_region_dims[d] = bit ? diff_level_size[d] : coarse_level_size[d];
+
       }
 
       SIZE curr_region_size = 1;
@@ -138,11 +144,14 @@ class LevelLinearizerFunctor: public Functor<DeviceType> {
 
       // region offset
       SIZE curr_region_offset = 0;
-      for (SIZE prev_region = 0; prev_region < curr_region; prev_region++) {
+      // for (SIZE prev_region = 0; prev_region < curr_region; prev_region++) {
+      for (SIZE prev_region = 1; prev_region < curr_region; prev_region++) {
         SIZE prev_region_size = 1;
         for (DIM d = 0; d < D; d++) {
-          SIZE bit = (prev_region >> (D - 1 - d)) & 1u;
-          prev_region_size *= bit ? coarse_level_size[d] : diff_level_size[d];
+          // SIZE bit = (prev_region >> (D - 1 - d)) & 1u;
+          // prev_region_size *= bit ? coarse_level_size[d] : diff_level_size[d];
+          SIZE bit = (prev_region >> d) & 1u;
+          prev_region_size *= bit ? diff_level_size[d] : coarse_level_size[d];
         }
         curr_region_offset += prev_region_size;
       }
@@ -155,8 +164,10 @@ class LevelLinearizerFunctor: public Functor<DeviceType> {
       SIZE curr_region_thread_idx[D]; 
       SIZE curr_thread_offset = 0;
       for (SIZE d = 0; d < D; d++) {
-        SIZE bit = (curr_region >> D - 1 - d) & 1u;
-        curr_region_thread_idx[d] = bit ? idx[d] : idx[d] - coarse_level_size[d];
+        // SIZE bit = (curr_region >> D - 1 - d) & 1u;
+        // curr_region_thread_idx[d] = bit ? idx[d] : idx[d] - coarse_level_size[d];
+        SIZE bit = (curr_region >> d) & 1u;
+        curr_region_thread_idx[d] = bit ? idx[d] - coarse_level_size[d]: idx[d];
       }
 
       SIZE stride = 1;
