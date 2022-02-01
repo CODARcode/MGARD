@@ -13,8 +13,9 @@
 #include <chrono>
 namespace mgard_x {
 
-template void recompose<3, float, Serial>(Hierarchy<3, float, Serial> & hierarchy,
-                                      SubArray<3, float, Serial>& v,
-                                      SIZE l_target, int queue_idx);
+template void
+    recompose<3, float, Serial>(Hierarchy<3, float, Serial> &hierarchy,
+                                SubArray<3, float, Serial> &v, SIZE l_target,
+                                int queue_idx);
 } // namespace mgard_x
 #undef MGARDX_COMPILE_SERIAL

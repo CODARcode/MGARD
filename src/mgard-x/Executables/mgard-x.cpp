@@ -99,7 +99,7 @@ int get_arg_int(int argc, char *argv[], std::string option) {
 }
 
 std::vector<mgard_x::SIZE> get_arg_dims(int argc, char *argv[],
-                                           std::string option) {
+                                        std::string option) {
   std::vector<mgard_x::SIZE> shape;
   if (require_arg(argc, argv, option)) {
     std::string arg;
@@ -158,8 +158,7 @@ template <typename T> void min_max(size_t n, T *in_buff) {
 }
 
 template <typename T> size_t readfile(const char *input_file, T *&in_buff) {
-  std::cout << mgard_x::log::log_info << "Loading file: " << input_file
-            << "\n";
+  std::cout << mgard_x::log::log_info << "Loading file: " << input_file << "\n";
 
   FILE *pFile;
   pFile = fopen(input_file, "rb");
@@ -216,29 +215,43 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 }
 
 template <typename T>
-void print_statistics(double s, enum mgard_x::error_bound_type mode,
-                      size_t n, T *original_data, T *decompressed_data, T tol) {
+void print_statistics(double s, enum mgard_x::error_bound_type mode, size_t n,
+                      T *original_data, T *decompressed_data, T tol) {
   std::cout << std::scientific;
   if (s == std::numeric_limits<T>::infinity()) {
-    T actual_error = mgard_x::L_inf_error(n, original_data, decompressed_data, mode);
+    T actual_error =
+        mgard_x::L_inf_error(n, original_data, decompressed_data, mode);
     if (mode == mgard_x::error_bound_type::ABS) {
-      std::cout << mgard_x::log::log_info << "Absoluate L_inf error: "
-                << actual_error << " (" << (actual_error < tol ? "\e[32mSatisified\e[0m" : "\e[31mNot Satisified\e[0m") << ")" 
+      std::cout << mgard_x::log::log_info
+                << "Absoluate L_inf error: " << actual_error << " ("
+                << (actual_error < tol ? "\e[32mSatisified\e[0m"
+                                       : "\e[31mNot Satisified\e[0m")
+                << ")"
                 << "\n";
     } else if (mode == mgard_x::error_bound_type::REL) {
-      std::cout << mgard_x::log::log_info << "Relative L_inf error: "
-                << actual_error << " (" << (actual_error < tol ? "\e[32mSatisified\e[0m" : "\e[31mNot Satisified\e[0m") << ")" 
+      std::cout << mgard_x::log::log_info
+                << "Relative L_inf error: " << actual_error << " ("
+                << (actual_error < tol ? "\e[32mSatisified\e[0m"
+                                       : "\e[31mNot Satisified\e[0m")
+                << ")"
                 << "\n";
     }
   } else {
-    T actual_error = mgard_x::L_2_error(n, original_data, decompressed_data, mode);
+    T actual_error =
+        mgard_x::L_2_error(n, original_data, decompressed_data, mode);
     if (mode == mgard_x::error_bound_type::ABS) {
-      std::cout << mgard_x::log::log_info << "Absoluate L_2 error: "
-                << actual_error << " (" << (actual_error < tol ? "\e[32mSatisified\e[0m" : "\e[31mNot Satisified\e[0m") << ")" 
+      std::cout << mgard_x::log::log_info
+                << "Absoluate L_2 error: " << actual_error << " ("
+                << (actual_error < tol ? "\e[32mSatisified\e[0m"
+                                       : "\e[31mNot Satisified\e[0m")
+                << ")"
                 << "\n";
     } else if (mode == mgard_x::error_bound_type::REL) {
-      std::cout << mgard_x::log::log_info << "Relative L_2 error: "
-                << actual_error << " (" << (actual_error < tol ? "\e[32mSatisified\e[0m" : "\e[31mNot Satisified\e[0m") << ")" 
+      std::cout << mgard_x::log::log_info
+                << "Relative L_2 error: " << actual_error << " ("
+                << (actual_error < tol ? "\e[32mSatisified\e[0m"
+                                       : "\e[31mNot Satisified\e[0m")
+                << ")"
                 << "\n";
     }
   }
@@ -259,8 +272,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     std::vector<mgard_x::SIZE> shape, bool non_uniform,
                     const char *coords_file, double tol, double s,
                     enum mgard_x::error_bound_type mode, int lossless,
-                    enum mgard_x::device_type dev_type, 
-                    bool verbose) {
+                    enum mgard_x::device_type dev_type, bool verbose) {
 
   mgard_x::Config config;
   config.timing = verbose;
@@ -291,15 +303,17 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     srand(7117);
     T c = 0;
     for (size_t i = 0; i < original_size; i++) {
-      original_data[i] = c;//rand() % 10 + 1;
+      original_data[i] = c; // rand() % 10 + 1;
       c = c + 1;
-      if (c == 100) c = 0;
+      if (c == 100)
+        c = 0;
     }
   } else {
     in_size = readfile(input_file, original_data);
   }
   if (in_size != original_size * sizeof(T)) {
-    std::cout << mgard_x::log::log_warn << "input file size mismatch " << in_size << " vs. " << original_size * sizeof(T) << "!\n";
+    std::cout << mgard_x::log::log_warn << "input file size mismatch "
+              << in_size << " vs. " << original_size * sizeof(T) << "!\n";
   }
 
   void *compressed_data = NULL;
@@ -308,8 +322,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   std::vector<const mgard_x::Byte *> coords_byte;
   if (!non_uniform) {
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                         compressed_data, compressed_size, config,
-                         false);
+                      compressed_data, compressed_size, config, false);
   } else {
     std::vector<T *> coords;
     if (non_uniform) {
@@ -319,15 +332,14 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
       coords_byte.push_back((const mgard_x::Byte *)coord);
     }
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                         compressed_data, compressed_size, coords_byte, config,
-                         false);
+                      compressed_data, compressed_size, coords_byte, config,
+                      false);
   }
 
   writefile(output_file, compressed_size, compressed_data);
 
   std::cout << mgard_x::log::log_info << "Compression ratio: "
-            << (double)original_size * sizeof(T) / compressed_size
-            << "\n";
+            << (double)original_size * sizeof(T) / compressed_size << "\n";
   // printf("In size:  %10ld  Out size: %10ld  Compression ratio: %f \n",
   //        original_size * sizeof(T), compressed_size,
   //        (double)original_size * sizeof(T) / compressed_size);
@@ -336,7 +348,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.timing = verbose;
 
     mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                           config, false);
+                        config, false);
 
     print_statistics<T>(s, mode, original_size, original_data,
                         (T *)decompressed_data, tol);
@@ -347,8 +359,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 }
 
 int launch_decompress(const char *input_file, const char *output_file,
-                      enum mgard_x::device_type dev_type, 
-                      bool verbose) {
+                      enum mgard_x::device_type dev_type, bool verbose) {
 
   mgard_x::Config config;
   config.timing = verbose;
@@ -369,7 +380,7 @@ int launch_decompress(const char *input_file, const char *output_file,
   void *decompressed_data;
 
   mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                         config, false);
+                      config, false);
 
   int elem_size = 0;
   if (dtype == mgard_x::data_type::Double) {
@@ -512,7 +523,7 @@ bool try_decompression(int argc, char *argv[]) {
   } else {
     print_usage_message("wrong device type.");
   }
-  
+
   bool verbose = has_arg(argc, argv, "-v");
   if (verbose)
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";

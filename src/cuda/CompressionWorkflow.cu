@@ -69,7 +69,8 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     start = high_resolution_clock::now();
   T norm = (T)1.0;
 
-  SIZE total_elems = handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
+  SIZE total_elems =
+      handle.dofs[0][0] * handle.dofs[1][0] * handle.linearized_depth;
 
   if (type == error_bound_type::REL) {
     // printf("Calculate norm\n");
@@ -237,7 +238,9 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     time_span = duration_cast<duration<double>>(t2 - t1);
     std::cout << log::log_time << "Quantization time: " << time_span.count()
               << " s\n";
-    std::cout << log::log_info << "Outlier ratio: " << (double)100*outlier_count/total_elems << "%\n"; 
+    std::cout << log::log_info
+              << "Outlier ratio: " << (double)100 * outlier_count / total_elems
+              << "%\n";
   }
 
   // cudaFreeHelper(dv);
@@ -265,18 +268,21 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
       time_span = duration_cast<duration<double>>(t2 - t1);
       std::cout << log::log_time
                 << "GPU Huffman encoding time: " << time_span.count() << " s\n";
-      std::cout << log::log_info << "Huffman block size: " << 
-      block_size << "\n"; 
-      std::cout << log::log_info << "Huffman dictionary size: " << 
-      dict_size << "\n"; 
-      std::cout << log::log_info << "Huffman compress ratio: " << 
-      total_elems*sizeof(int) << "/" <<
-      hufmeta_size + hufdata_size << " (" <<
-      (double)total_elems*sizeof(int) / (hufmeta_size + hufdata_size) << ")\n"; 
+      std::cout << log::log_info << "Huffman block size: " << block_size
+                << "\n";
+      std::cout << log::log_info << "Huffman dictionary size: " << dict_size
+                << "\n";
+      std::cout << log::log_info
+                << "Huffman compress ratio: " << total_elems * sizeof(int)
+                << "/" << hufmeta_size + hufdata_size << " ("
+                << (double)total_elems * sizeof(int) /
+                       (hufmeta_size + hufdata_size)
+                << ")\n";
     }
 
-    // SubArray<1, Byte> lossless_compressed_subarray({(SIZE)(hufdata_size)}, (Byte*)hufdata);
-    // PrintSubarray("Huffman lossless_compressed_subarray", lossless_compressed_subarray);
+    // SubArray<1, Byte> lossless_compressed_subarray({(SIZE)(hufdata_size)},
+    // (Byte*)hufdata); PrintSubarray("Huffman lossless_compressed_subarray",
+    // lossless_compressed_subarray);
 
     // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",
     // (double)(total-free)/1e9, (double)total/1e9);
@@ -286,7 +292,6 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
     size_t lz4_hufmeta_size;
     void *lz4_hufdata;
     size_t lz4_hufdata_size;
-
 
     if (handle.lossless == lossless_type::GPU_Huffman_LZ4) {
       SIZE lz4_before_size = hufdata_size;
@@ -303,14 +308,14 @@ Array<1, unsigned char> compress(Handle<D, T> &handle, Array<D, T> &in_array,
       if (handle.timing) {
         t2 = high_resolution_clock::now();
         time_span = duration_cast<duration<double>>(t2 - t1);
-        std::cout << log::log_info << "LZ4 block size: " << 
-                     handle.lz4_block_size << "\n"; 
+        std::cout << log::log_info
+                  << "LZ4 block size: " << handle.lz4_block_size << "\n";
         std::cout << log::log_time
                   << "NVComp::LZ4 compression time: " << time_span.count()
                   << " s\n";
 
-        std::cout << log::log_info << "LZ4 compress ratio: " << 
-            (double)lz4_before_size / lz4_after_size << "\n"; 
+        std::cout << log::log_info << "LZ4 compress ratio: "
+                  << (double)lz4_before_size / lz4_after_size << "\n";
       }
 
       // cudaMemGetInfo(&free, &total); printf("Mem: %f/%f\n",

@@ -7,7 +7,7 @@
 
 #define MGARDX_COMPILE_HIP
 #include "mgard-x/RuntimeX/RuntimeX.h"
- 
+
 namespace mgard_x {
 
 int DeviceRuntime<HIP>::curr_dev_id = 0;
@@ -23,10 +23,9 @@ KernelConfigs<HIP> AutoTuner<HIP>::kernelConfigs;
 AutoTuningTable<HIP> AutoTuner<HIP>::autoTuningTable;
 bool AutoTuner<HIP>::ProfileKernels = false;
 
-template <> 
-bool deviceAvailable<HIP>() {
+template <> bool deviceAvailable<HIP>() {
   return DeviceRuntime<HIP>::GetDeviceCount() > 0;
 }
 
-}
+} // namespace mgard_x
 #undef MGARDX_COMPILE_HIP

@@ -8,20 +8,22 @@
 #ifndef MGARD_X_COMPRESSION_WORKFLOW
 #define MGARD_X_COMPRESSION_WORKFLOW
 
-
-#include "RuntimeX/RuntimeXPublic.h"
 #include "Hierarchy.h"
+#include "RuntimeX/RuntimeXPublic.h"
 
 namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
-Array<1, unsigned char, DeviceType> compress(Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, DeviceType> &in_array,
-                                 enum error_bound_type type, T tol, T s, T &norm, Config config);
+Array<1, unsigned char, DeviceType>
+compress(Hierarchy<D, T, DeviceType> &hierarchy,
+         Array<D, T, DeviceType> &in_array, enum error_bound_type type, T tol,
+         T s, T &norm, Config config);
 
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType> decompress(Hierarchy<D, T, DeviceType> &hierarchy,
-                       Array<1, unsigned char, DeviceType> &compressed_array, 
-                       enum error_bound_type type, T tol, T s, T norm, Config config);
+Array<D, T, DeviceType>
+decompress(Hierarchy<D, T, DeviceType> &hierarchy,
+           Array<1, unsigned char, DeviceType> &compressed_array,
+           enum error_bound_type type, T tol, T s, T norm, Config config);
 
 } // namespace mgard_x
 

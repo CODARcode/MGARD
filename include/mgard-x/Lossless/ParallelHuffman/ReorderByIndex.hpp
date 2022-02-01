@@ -20,20 +20,20 @@ namespace mgard_x {
 // will cause incorrect results
 
 template <typename T, typename Q, typename DeviceType>
-class ReorderByIndexFunctor: public Functor<DeviceType> {
-  public:
-  MGARDX_CONT ReorderByIndexFunctor(){}
-  MGARDX_CONT ReorderByIndexFunctor(SubArray<1, T, DeviceType> old_array, 
-                                    SubArray<1, T, DeviceType> new_array, 
-                                    SubArray<1, Q, DeviceType> index, 
-                                  SIZE size):
-                                  old_array(old_array), new_array(new_array), index(index), size(size) {
-    Functor<DeviceType>();                            
+class ReorderByIndexFunctor : public Functor<DeviceType> {
+public:
+  MGARDX_CONT ReorderByIndexFunctor() {}
+  MGARDX_CONT ReorderByIndexFunctor(SubArray<1, T, DeviceType> old_array,
+                                    SubArray<1, T, DeviceType> new_array,
+                                    SubArray<1, Q, DeviceType> index, SIZE size)
+      : old_array(old_array), new_array(new_array), index(index), size(size) {
+    Functor<DeviceType>();
   }
 
-  MGARDX_EXEC void
-  Operation1() {
-    unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation1() {
+    unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() *
+                           FunctorBase<DeviceType>::GetBlockDimX()) +
+                          FunctorBase<DeviceType>::GetThreadIdX();
     T temp;
     Q newIndex;
     if (thread < size) {
@@ -43,39 +43,33 @@ class ReorderByIndexFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDX_EXEC void
-  Operation2() { }
+  MGARDX_EXEC void Operation2() {}
 
-  MGARDX_EXEC void
-  Operation3() { }
+  MGARDX_EXEC void Operation3() {}
 
-  MGARDX_EXEC void
-  Operation4() { }
+  MGARDX_EXEC void Operation4() {}
 
-  MGARDX_EXEC void
-  Operation5() { }
+  MGARDX_EXEC void Operation5() {}
 
-  MGARDX_CONT size_t
-  shared_memory_size() { return 0; }
+  MGARDX_CONT size_t shared_memory_size() { return 0; }
 
-  private:
+private:
   SubArray<1, T, DeviceType> old_array;
   SubArray<1, T, DeviceType> new_array;
   SubArray<1, Q, DeviceType> index;
-  SIZE size; 
+  SIZE size;
 };
 
-
 template <typename T, typename Q, typename DeviceType>
-class ReorderByIndex: public AutoTuner<DeviceType> {
+class ReorderByIndex : public AutoTuner<DeviceType> {
 public:
   MGARDX_CONT
-  ReorderByIndex():AutoTuner<DeviceType>() {}
+  ReorderByIndex() : AutoTuner<DeviceType>() {}
 
   MGARDX_CONT
-  Task<ReorderByIndexFunctor<T, Q, DeviceType> > 
-  GenTask(SubArray<1, T, DeviceType> old_array, 
-          SubArray<1, T, DeviceType> new_array, 
+  Task<ReorderByIndexFunctor<T, Q, DeviceType>>
+  GenTask(SubArray<1, T, DeviceType> old_array,
+          SubArray<1, T, DeviceType> new_array,
           SubArray<1, Q, DeviceType> index, SIZE size, int queue_idx) {
     using FunctorType = ReorderByIndexFunctor<T, Q, DeviceType>;
     FunctorType functor(old_array, new_array, index, size);
@@ -89,27 +83,27 @@ public:
     gridy = 1;
     gridx = (size / tbx) + 1;
     // if (gridx > DeviceRuntime<DeviceType>::GetNumSMs()) {
-    //   std::cout << log::log_err << "ReorderByIndex: too much threadblocks for concurrent reordering!\n";
-    //   exit(-1);
+    //   std::cout << log::log_err << "ReorderByIndex: too much threadblocks for
+    //   concurrent reordering!\n"; exit(-1);
     // }
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
-    // PrintSubarray("shape", shape);
-    return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx, "ReorderByIndex"); 
+    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
+    // shape.dataHost()[0]); PrintSubarray("shape", shape);
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "ReorderByIndex");
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, T, DeviceType> old_array, 
-               SubArray<1, T, DeviceType> new_array, 
+  void Execute(SubArray<1, T, DeviceType> old_array,
+               SubArray<1, T, DeviceType> new_array,
                SubArray<1, Q, DeviceType> index, SIZE size, int queue_idx) {
     using FunctorType = ReorderByIndexFunctor<T, Q, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(old_array, new_array, index, size, queue_idx); 
-    DeviceAdapter<TaskType, DeviceType> adapter; 
+    TaskType task = GenTask(old_array, new_array, index, size, queue_idx);
+    DeviceAdapter<TaskType, DeviceType> adapter;
     adapter.Execute(task);
   }
 };
 
-}
+} // namespace mgard_x
 
 #endif

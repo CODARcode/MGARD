@@ -11,7 +11,6 @@
 #ifndef MGARD_X_METADATA
 #define MGARD_X_METADATA
 
-
 #include <cstring>
 
 #define MAGIC_WORD "MGARD"
@@ -21,7 +20,7 @@ namespace mgard_x {
 
 struct Metadata {
   // about MGARD software
-  char magic_word[MAGIC_WORD_SIZE+1] = MAGIC_WORD;
+  char magic_word[MAGIC_WORD_SIZE + 1] = MAGIC_WORD;
   uint8_t software_version[3];
   uint8_t file_version[3];
   uint32_t metadata_size;
@@ -30,14 +29,14 @@ struct Metadata {
 
   // about compression
   enum error_bound_type ebtype;
-  double norm; //optional
+  double norm; // optional
   double tol;
   enum norm_type ntype;
   double s; // optional
   uint32_t l_target;
   bool reorder;
   enum lossless_type ltype;
-  uint32_t huff_dict_size; // optional (for Huffman)
+  uint32_t huff_dict_size;  // optional (for Huffman)
   uint32_t huff_block_size; // optional (for Huffman)
   // uint64_t huff_outlier_count; // optional (for Huffman)
 
@@ -46,16 +45,16 @@ struct Metadata {
   enum endiness_type etype;
   enum data_structure_type dstype;
   uint8_t total_dims = 0;
-  uint64_t * shape;
+  uint64_t *shape;
   enum coordinate_location cltype;
-  char * nonuniform_coords_file;
+  char *nonuniform_coords_file;
   std::vector<Byte *> coords;
   bool domain_decomposed = false;
   enum domain_decomposition_type ddtype;
   uint8_t domain_decomposed_dim;
   uint64_t domain_decomposed_size;
-  
-  public:
+
+public:
   SERIALIZED_TYPE *Serialize(uint32_t &total_size) {
     total_size = 0;
 
@@ -74,16 +73,16 @@ struct Metadata {
     }
     total_size += sizeof(tol); // tol
     total_size += sizeof(ntype);
-    //if (ntype == norm_type::L_2) {
-      total_size += sizeof(s); // s
+    // if (ntype == norm_type::L_2) {
+    total_size += sizeof(s); // s
     //}
-    total_size += sizeof(l_target); //l_target;
+    total_size += sizeof(l_target); // l_target;
     total_size += sizeof(reorder);
     total_size += sizeof(ltype);
-    if (ltype == lossless_type::Huffman || 
+    if (ltype == lossless_type::Huffman ||
         ltype == lossless_type::Huffman_LZ4 ||
         ltype == lossless_type::Huffman_Zstd) {
-      total_size += sizeof(huff_dict_size); // dict size
+      total_size += sizeof(huff_dict_size);  // dict size
       total_size += sizeof(huff_block_size); // block size
     }
 
@@ -91,13 +90,13 @@ struct Metadata {
     total_size += sizeof(dtype);
     total_size += sizeof(etype);
     total_size += sizeof(dstype);
-    total_size += sizeof(total_dims); // total_dims;
+    total_size += sizeof(total_dims);            // total_dims;
     total_size += sizeof(shape[0]) * total_dims; // shape;
     if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
       total_size += sizeof(cltype);
       if (cltype == coordinate_location::Embedded) {
         size_t coord_size = 0;
-        for (DIM d = 0; d < total_dims; d ++) {
+        for (DIM d = 0; d < total_dims; d++) {
           if (dtype == data_type::Float) {
             coord_size += shape[d] * sizeof(float);
           } else if (dtype == data_type::Double) {
@@ -117,10 +116,8 @@ struct Metadata {
       total_size += sizeof(domain_decomposed_size);
     }
 
-
     // initialize some fields
     metadata_size = total_size;
-
 
     software_version[0] = MGARD_VERSION_MAJOR;
     software_version[1] = MGARD_VERSION_MINOR;
@@ -129,13 +126,14 @@ struct Metadata {
     file_version[0] = MGARD_FILE_VERSION_MAJOR;
     file_version[1] = MGARD_FILE_VERSION_MINOR;
     file_version[2] = MGARD_FILE_VERSION_PATCH;
-    
+
     // to be replaced with actual CRC-32 checksum
     metadata_crc32 = 0;
-    
+
     // start serializing
-    SERIALIZED_TYPE * serialized_data = (SERIALIZED_TYPE *)std::malloc(total_size);
-    SERIALIZED_TYPE * p = serialized_data;
+    SERIALIZED_TYPE *serialized_data =
+        (SERIALIZED_TYPE *)std::malloc(total_size);
+    SERIALIZED_TYPE *p = serialized_data;
     Serialize(&magic_word[0], p);
     Serialize(software_version, p);
     Serialize(file_version, p);
@@ -143,15 +141,14 @@ struct Metadata {
     Serialize(metadata_crc32, p);
     Serialize(ptype, p);
 
-
     Serialize(ebtype, p);
-    if (ebtype == error_bound_type::REL) { 
-      Serialize(norm, p); 
+    if (ebtype == error_bound_type::REL) {
+      Serialize(norm, p);
     }
     Serialize(tol, p);
     Serialize(ntype, p);
-    //if (ntype == norm_type::L_2) {
-      Serialize(s, p);
+    // if (ntype == norm_type::L_2) {
+    Serialize(s, p);
     //}
     Serialize(l_target, p);
     Serialize(reorder, p);
@@ -173,7 +170,7 @@ struct Metadata {
       Serialize(cltype, p);
       if (cltype == coordinate_location::Embedded) {
         Serialize(coords, shape, dtype, p);
-      } else if (cltype == coordinate_location::External){
+      } else if (cltype == coordinate_location::External) {
         Serialize(nonuniform_coords_file, p);
       }
     }
@@ -188,8 +185,8 @@ struct Metadata {
     self_initialized = false;
     return serialized_data;
   }
-  void Deserialize(SERIALIZED_TYPE * serialized_data) {
-    SERIALIZED_TYPE * p = serialized_data;
+  void Deserialize(SERIALIZED_TYPE *serialized_data) {
+    SERIALIZED_TYPE *p = serialized_data;
 
     Deserialize(&magic_word[0], p);
     Deserialize(software_version, p);
@@ -199,13 +196,13 @@ struct Metadata {
     Deserialize(ptype, p);
 
     Deserialize(ebtype, p);
-    if (ebtype == error_bound_type::REL) { 
-      Deserialize(norm, p); 
+    if (ebtype == error_bound_type::REL) {
+      Deserialize(norm, p);
     }
     Deserialize(tol, p);
     Deserialize(ntype, p);
-    //if (ntype == norm_type::L_2) {
-      Deserialize(s, p);
+    // if (ntype == norm_type::L_2) {
+    Deserialize(s, p);
     //}
     Deserialize(l_target, p);
     Deserialize(reorder, p);
@@ -236,13 +233,12 @@ struct Metadata {
       }
     }
 
-     Deserialize(domain_decomposed, p);
+    Deserialize(domain_decomposed, p);
     if (domain_decomposed) {
       Deserialize(ddtype, p);
       Deserialize(domain_decomposed_dim, p);
       Deserialize(domain_decomposed_size, p);
     }
-
 
     // total_size = p - serialized_data;
     self_initialized = true;
@@ -255,8 +251,8 @@ struct Metadata {
     return offset;
   }
 
-  uint32_t get_metadata_size(SERIALIZED_TYPE * serizalied_meta) {
-    return *(uint32_t*)(serizalied_meta + metadata_size_offset());
+  uint32_t get_metadata_size(SERIALIZED_TYPE *serizalied_meta) {
+    return *(uint32_t *)(serizalied_meta + metadata_size_offset());
   }
 
   ~Metadata() {
@@ -270,24 +266,23 @@ struct Metadata {
     }
   }
 
-  private:
-
-  template <typename T>
-  void Serialize(T &item, SERIALIZED_TYPE * &p) {
-    std::memcpy(p, &item, sizeof(item)); 
+private:
+  template <typename T> void Serialize(T &item, SERIALIZED_TYPE *&p) {
+    std::memcpy(p, &item, sizeof(item));
     p += sizeof(item);
   }
-  void Serialize(char *item, SERIALIZED_TYPE * &p) {
-    std::memcpy(p, item, strlen(item)); 
+  void Serialize(char *item, SERIALIZED_TYPE *&p) {
+    std::memcpy(p, item, strlen(item));
     p += strlen(item);
-  } 
+  }
   template <typename T, typename N>
-  void Serialize(T *&item, N n, SERIALIZED_TYPE * &p) {
-    std::memcpy(p, item, sizeof(T) * n); 
+  void Serialize(T *&item, N n, SERIALIZED_TYPE *&p) {
+    std::memcpy(p, item, sizeof(T) * n);
     p += sizeof(T) * n;
-  } 
+  }
 
-  void Serialize(std::vector<Byte *>& coords, uint64_t * shape, enum data_type dtype, SERIALIZED_TYPE * &p) {
+  void Serialize(std::vector<Byte *> &coords, uint64_t *shape,
+                 enum data_type dtype, SERIALIZED_TYPE *&p) {
     for (size_t i = 0; i < coords.size(); i++) {
       if (dtype == data_type::Float) {
         Serialize(coords[i], shape[i] * sizeof(float), p);
@@ -295,24 +290,24 @@ struct Metadata {
         Serialize(coords[i], shape[i] * sizeof(double), p);
       }
     }
-  } 
+  }
 
-  template <typename T>
-  void Deserialize(T &item, SERIALIZED_TYPE * &p) {
-    std::memcpy(&item, p, sizeof(item)); 
+  template <typename T> void Deserialize(T &item, SERIALIZED_TYPE *&p) {
+    std::memcpy(&item, p, sizeof(item));
     p += sizeof(item);
   }
-  void Deserialize(char *item, SERIALIZED_TYPE * &p) {
-    std::memcpy(item, p, strlen(item)); 
+  void Deserialize(char *item, SERIALIZED_TYPE *&p) {
+    std::memcpy(item, p, strlen(item));
     p += strlen(item);
-  } 
+  }
   template <typename T, typename N>
-  void Deserialize(T *&item, N n, SERIALIZED_TYPE * &p) {
-    std::memcpy(item, p, sizeof(T) * n); 
+  void Deserialize(T *&item, N n, SERIALIZED_TYPE *&p) {
+    std::memcpy(item, p, sizeof(T) * n);
     p += sizeof(T) * n;
-  } 
+  }
 
-  void Deserialize(std::vector<Byte *>& coords, uint64_t * shape, enum data_type dtype, SERIALIZED_TYPE * &p) {
+  void Deserialize(std::vector<Byte *> &coords, uint64_t *shape,
+                   enum data_type dtype, SERIALIZED_TYPE *&p) {
     for (size_t i = 0; i < coords.size(); i++) {
       if (dtype == data_type::Float) {
         coords[i] = (Byte *)std::malloc(shape[i] * sizeof(float));
@@ -341,9 +336,9 @@ std::vector<T *> infer_coords(const void *compressed_data,
 std::string infer_nonuniform_coords_file(const void *compressed_data,
                                          size_t compressed_size);
 
-bool infer_domain_decomposed(const void *compressed_data, size_t compressed_size);
+bool infer_domain_decomposed(const void *compressed_data,
+                             size_t compressed_size);
 
-
-}
+} // namespace mgard_x
 
 #endif

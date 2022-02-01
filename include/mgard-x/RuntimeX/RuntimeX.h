@@ -5,29 +5,10 @@
  * Date: December 1, 2021
  */
 
-
-
-
 #include "RuntimeXPublic.h"
 
-
-#ifndef MGARD_X_RUNTIME_X_H
-#define MGARD_X_RUNTIME_X_H
-
-namespace mgard_x {
-
-
-
-// reduction operations
-// #define SUM 0
-// #define MAX 1
-
-}
-
-#endif
-
-
 #include "DataTypes.h"
+
 #include "AutoTuners/AutoTuner.h"
 #include "Tasks/Task.h"
 

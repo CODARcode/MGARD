@@ -12,7 +12,7 @@
 #include <vector>
 
 // #include "compress_cuda.hpp"
-#include "mgard-x/Hierarchy.h" 
+#include "mgard-x/Hierarchy.h"
 #include "mgard-x/Metadata.hpp"
 #include "mgard-x/RuntimeX/RuntimeXPublic.h"
 
@@ -93,9 +93,9 @@ std::vector<T *> infer_coords(const void *compressed_data,
 }
 
 template std::vector<float *> infer_coords(const void *compressed_data,
-                              size_t compressed_size);
+                                           size_t compressed_size);
 template std::vector<double *> infer_coords(const void *compressed_data,
-                              size_t compressed_size);
+                                            size_t compressed_size);
 
 std::string infer_nonuniform_coords_file(const void *compressed_data,
                                          size_t compressed_size) {
@@ -108,7 +108,8 @@ std::string infer_nonuniform_coords_file(const void *compressed_data,
   return std::string(meta.nonuniform_coords_file);
 }
 
-bool infer_domain_decomposed(const void *compressed_data, size_t compressed_size) {
+bool infer_domain_decomposed(const void *compressed_data,
+                             size_t compressed_size) {
   if (!verify(compressed_data, compressed_size)) {
     std::cout << log::log_err << "cannot verify the data!\n";
     exit(-1);
@@ -118,5 +119,4 @@ bool infer_domain_decomposed(const void *compressed_data, size_t compressed_size
   return meta.domain_decomposed;
 }
 
-
-}
+} // namespace mgard_x

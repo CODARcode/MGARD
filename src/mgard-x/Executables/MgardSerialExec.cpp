@@ -115,7 +115,7 @@ int get_arg_int(int argc, char *argv[], std::string option) {
 }
 
 std::vector<mgard_x::SIZE> get_arg_dims(int argc, char *argv[],
-                                           std::string option) {
+                                        std::string option) {
   std::vector<mgard_x::SIZE> shape;
   if (require_arg(argc, argv, option)) {
     std::string arg;
@@ -197,31 +197,29 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 }
 
 template <typename T>
-void print_statistics(double s, enum mgard_x::error_bound_type mode,
-                      size_t n, T *original_data, T *decompressed_data) {
+void print_statistics(double s, enum mgard_x::error_bound_type mode, size_t n,
+                      T *original_data, T *decompressed_data) {
   std::cout << std::scientific;
   if (s == std::numeric_limits<T>::infinity()) {
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info << "Absoluate L_inf error: "
                 << mgard_x::L_inf_error(n, original_data, decompressed_data,
-                                           mode)
+                                        mode)
                 << "\n";
     } else if (mode == mgard_x::error_bound_type::REL) {
       std::cout << mgard_x::log::log_info << "Relative L_inf error: "
                 << mgard_x::L_inf_error(n, original_data, decompressed_data,
-                                           mode)
+                                        mode)
                 << "\n";
     }
   } else {
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info << "Absoluate L_2 error: "
-                << mgard_x::L_2_error(n, original_data, decompressed_data,
-                                         mode)
+                << mgard_x::L_2_error(n, original_data, decompressed_data, mode)
                 << "\n";
     } else if (mode == mgard_x::error_bound_type::REL) {
       std::cout << mgard_x::log::log_info << "Relative L_2 error: "
-                << mgard_x::L_2_error(n, original_data, decompressed_data,
-                                         mode)
+                << mgard_x::L_2_error(n, original_data, decompressed_data, mode)
                 << "\n";
     }
   }
@@ -285,7 +283,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
     std::ostringstream buf;
     compressed_dataset.write(buf);
-    std::string tmp_str = buf.str(); 
+    std::string tmp_str = buf.str();
     compressed_size = tmp_str.length();
     compressed_data = (void *)malloc(compressed_size);
     memcpy(compressed_data, tmp_str.c_str(), compressed_size);
@@ -308,7 +306,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
     std::ostringstream buf;
     compressed_dataset.write(buf);
-    std::string tmp_str = buf.str(); 
+    std::string tmp_str = buf.str();
     compressed_size = tmp_str.length();
     compressed_data = (void *)malloc(compressed_size);
     memcpy(compressed_data, tmp_str.c_str(), compressed_size);
@@ -331,7 +329,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
     std::ostringstream buf;
     compressed_dataset.write(buf);
-    std::string tmp_str = buf.str(); 
+    std::string tmp_str = buf.str();
     compressed_size = tmp_str.length();
     compressed_data = (void *)malloc(compressed_size);
     memcpy(compressed_data, tmp_str.c_str(), compressed_size);
@@ -354,7 +352,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
     std::ostringstream buf;
     compressed_dataset.write(buf);
-    std::string tmp_str = buf.str(); 
+    std::string tmp_str = buf.str();
     compressed_size = tmp_str.length();
     compressed_data = (void *)malloc(compressed_size);
     memcpy(compressed_data, tmp_str.c_str(), compressed_size);
@@ -377,7 +375,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
     std::ostringstream buf;
     compressed_dataset.write(buf);
-    std::string tmp_str = buf.str(); 
+    std::string tmp_str = buf.str();
     compressed_size = tmp_str.length();
     compressed_data = (void *)malloc(compressed_size);
     memcpy(compressed_data, tmp_str.c_str(), compressed_size);
@@ -431,7 +429,7 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   mgard::MemoryBuffer<const unsigned char> new_data_ =
       mgard::decompress(compressed_data_const, compressed_size);
   const void *decompressed_data = new_data_.data.get();
-  
+
   if (verbose) {
     end = high_resolution_clock::now();
     time_span = duration_cast<duration<double>>(end - start);
@@ -463,15 +461,17 @@ launch_compress<float>(mgard_x::DIM D, enum mgard_x::data_type dtype,
                        const char *input_file, const char *output_file,
                        std::vector<mgard_x::SIZE> shape, float tol, float s,
                        enum mgard_x::error_bound_type mode, bool verbose);
-template int launch_compress<double>(
-    mgard_x::DIM D, enum mgard_x::data_type dtype, const char *input_file,
-    const char *output_file, std::vector<mgard_x::SIZE> shape, double tol,
-    double s, enum mgard_x::error_bound_type mode, bool verbose);
+template int
+launch_compress<double>(mgard_x::DIM D, enum mgard_x::data_type dtype,
+                        const char *input_file, const char *output_file,
+                        std::vector<mgard_x::SIZE> shape, double tol, double s,
+                        enum mgard_x::error_bound_type mode, bool verbose);
 
-template int launch_decompress<float>(
-    mgard_x::DIM D, enum mgard_x::data_type dtype, const char *input_file,
-    const char *output_file, std::vector<mgard_x::SIZE> shape, float tol,
-    float s, enum mgard_x::error_bound_type mode, bool verbose);
+template int
+launch_decompress<float>(mgard_x::DIM D, enum mgard_x::data_type dtype,
+                         const char *input_file, const char *output_file,
+                         std::vector<mgard_x::SIZE> shape, float tol, float s,
+                         enum mgard_x::error_bound_type mode, bool verbose);
 template int launch_decompress<double>(
     mgard_x::DIM D, enum mgard_x::data_type dtype, const char *input_file,
     const char *output_file, std::vector<mgard_x::SIZE> shape, double tol,

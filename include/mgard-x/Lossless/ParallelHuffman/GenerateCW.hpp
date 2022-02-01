@@ -21,25 +21,24 @@ static MGARDX_MANAGED int updateEnd;
 static MGARDX_MANAGED int curEntryVal;
 static MGARDX_MANAGED int numCCL;
 
-
 static MGARDX_MANAGED bool HuffmanCW_loop_condition1;
 
 template <typename T, typename H, typename DeviceType>
-class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
-  public:
-  MGARDX_CONT GenerateCWFunctor(){}
+class GenerateCWFunctor : public HuffmanCWCustomizedFunctor<DeviceType> {
+public:
+  MGARDX_CONT GenerateCWFunctor() {}
   MGARDX_CONT GenerateCWFunctor(SubArray<1, T, DeviceType> CL,
                                 SubArray<1, H, DeviceType> CW,
                                 SubArray<1, H, DeviceType> first,
-                                SubArray<1, H, DeviceType> entry,
-                                SIZE size):
-                                CL(CL), CW(CW), first(first), entry(entry), size(size) {
-    HuffmanCWCustomizedFunctor<DeviceType>();                            
+                                SubArray<1, H, DeviceType> entry, SIZE size)
+      : CL(CL), CW(CW), first(first), entry(entry), size(size) {
+    HuffmanCWCustomizedFunctor<DeviceType>();
   }
 
-  MGARDX_EXEC void
-  Operation1() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation1() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     // i = thread; // Porting convenience
     type_bw = sizeof(H) * 8;
 
@@ -51,9 +50,10 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDX_EXEC void
-  Operation2() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation2() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     if (i == 0) {
       CCL = *CL((IDX)0);
       CDPI = 0;
@@ -67,9 +67,10 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDX_EXEC void
-  Operation3() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation3() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     // Initialize first and entry arrays
     if (i < CCL) {
       // Initialization of first to Max ensures that unused code
@@ -79,26 +80,28 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDX_CONT_EXEC bool
-  LoopCondition1() {
+  MGARDX_CONT_EXEC bool LoopCondition1() {
     // if (! thread)
-      // printf("thread: %u, CDPI: %d, newCDPI: %d, size: %u\n", thread, CDPI, newCDPI, size);
+    // printf("thread: %u, CDPI: %d, newCDPI: %d, size: %u\n", thread, CDPI,
+    // newCDPI, size);
     HuffmanCW_loop_condition1 = CDPI < size - 1;
     return HuffmanCW_loop_condition1;
   }
 
-  MGARDX_EXEC void
-  Operation4() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation4() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     // CDPI update
     if (i < size - 1 && *CL((IDX)i + 1) > CCL) {
       Atomic<DeviceType>::Min(&newCDPI, (int)i);
     }
   }
 
-  MGARDX_EXEC void
-  Operation5() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation5() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     type_bw = sizeof(H) * 8;
     // Last element to update
     updateEnd = (newCDPI >= size - 1) ? type_bw : *CL((IDX)newCDPI + 1);
@@ -117,9 +120,10 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDX_EXEC void
-  Operation6() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation6() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     type_bw = sizeof(H) * 8;
     if (i < size) {
       // Parallel canonical codeword generation
@@ -141,9 +145,10 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDX_EXEC void
-  Operation7() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation7() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     // Update first array in O(1) time
     if (i == CCL) {
       // Flip least significant CL[CDPI] bits
@@ -155,20 +160,22 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDX_EXEC void
-  Operation8() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation8() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     if (i == 0) {
       if (newCDPI < size - 1) {
         int CLDiff = *CL((IDX)newCDPI + 1) - *CL((IDX)newCDPI);
         // Add and shift -- Next canonical code
-      
+
         *CW((IDX)newCDPI + 1) = ((*CW((IDX)CDPI) + 1) << CLDiff);
         CCL = *CL((IDX)newCDPI + 1);
 
         H temp = (*CW((IDX)CDPI) + 1);
 
-        // printf("CLDiff: %d  %llu <- %llu\n", CLDiff, (H)(temp << CLDiff), temp);
+        // printf("CLDiff: %d  %llu <- %llu\n", CLDiff, (H)(temp << CLDiff),
+        // temp);
 
         ++newCDPI;
       }
@@ -176,26 +183,31 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
       // Update CDPI to newCDPI after codeword length increase
       CDPI = newCDPI;
       newCDPI = size - 1;
-      // printf("thread: %u, CDPI: %d, newCDPI: %d, size: %u\n", thread, CDPI, newCDPI, size);
+      // printf("thread: %u, CDPI: %d, newCDPI: %d, size: %u\n", thread, CDPI,
+      // newCDPI, size);
     }
   }
 
-  MGARDX_EXEC void
-  Operation9() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation9() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     // encoding CL into CW (highest 8 bits)
     if (i < size) {
-      *CW((IDX)i) = (*CW((IDX)i) | (((H)*CL((IDX)i) & (H)0xffu) << ((sizeof(H) * 8) - 8))) ^
-              (((H)1 << (H)*CL((IDX)i)) - 1);
-      // printf("flip: %llu ^ 1 << %u -> %llu\n", *CW((IDX)i), *CL((IDX)i), (*CW((IDX)i)) ^ (((H)1 << (H)*CL((IDX)i)) - 1) );
-      // *CW((IDX)i) = (*CW((IDX)i)) ^
+      *CW((IDX)i) = (*CW((IDX)i) |
+                     (((H)*CL((IDX)i) & (H)0xffu) << ((sizeof(H) * 8) - 8))) ^
+                    (((H)1 << (H)*CL((IDX)i)) - 1);
+      // printf("flip: %llu ^ 1 << %u -> %llu\n", *CW((IDX)i), *CL((IDX)i),
+      // (*CW((IDX)i)) ^ (((H)1 << (H)*CL((IDX)i)) - 1) ); *CW((IDX)i) =
+      // (*CW((IDX)i)) ^
       //         (((H)1 << (H)*CL((IDX)i)) - 1);
     }
   }
 
-  MGARDX_EXEC void
-  Operation10() {
-    i = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation10() {
+    i = (FunctorBase<DeviceType>::GetBlockIdX() *
+         FunctorBase<DeviceType>::GetBlockDimX()) +
+        FunctorBase<DeviceType>::GetThreadIdX();
     /* Reverse partial codebook */
 
     if (i < size / 2) {
@@ -206,10 +218,9 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
     }
   }
 
-  MGARDX_CONT size_t
-  shared_memory_size() { return 0; }
+  MGARDX_CONT size_t shared_memory_size() { return 0; }
 
-  private:
+private:
   SubArray<1, T, DeviceType> CL;
   SubArray<1, H, DeviceType> CW;
   SubArray<1, H, DeviceType> first;
@@ -225,19 +236,16 @@ class GenerateCWFunctor: public HuffmanCWCustomizedFunctor<DeviceType> {
   // int numCCL;
 };
 
-
 template <typename T, typename H, typename DeviceType>
-class GenerateCW: public AutoTuner<DeviceType> {
+class GenerateCW : public AutoTuner<DeviceType> {
 public:
   MGARDX_CONT
-  GenerateCW():AutoTuner<DeviceType>() {}
+  GenerateCW() : AutoTuner<DeviceType>() {}
 
   MGARDX_CONT
-  Task<GenerateCWFunctor<T, H, DeviceType> > 
-  GenTask(SubArray<1, T, DeviceType> CL,
-          SubArray<1, H, DeviceType> CW,
-          SubArray<1, H, DeviceType> first,
-          SubArray<1, H, DeviceType> entry,
+  Task<GenerateCWFunctor<T, H, DeviceType>>
+  GenTask(SubArray<1, T, DeviceType> CL, SubArray<1, H, DeviceType> CW,
+          SubArray<1, H, DeviceType> first, SubArray<1, H, DeviceType> entry,
           SIZE dict_size, int queue_idx) {
     using FunctorType = GenerateCWFunctor<T, H, DeviceType>;
     FunctorType Functor(CL, CW, first, entry, dict_size);
@@ -249,18 +257,22 @@ public:
     tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB();
 
     int nz_nblocks = (dict_size / tbx) + 1;
-    int cg_blocks_sm = DeviceRuntime<DeviceType>::GetOccupancyMaxActiveBlocksPerSM(Functor, tbx, sm_size);
+    int cg_blocks_sm =
+        DeviceRuntime<DeviceType>::GetOccupancyMaxActiveBlocksPerSM(
+            Functor, tbx, sm_size);
     int cg_mblocks = cg_blocks_sm * DeviceRuntime<DeviceType>::GetNumSMs();
-    cg_mblocks = cg_mblocks; //std::min(nz_nblocks, cg_mblocks);
+    cg_mblocks = cg_mblocks; // std::min(nz_nblocks, cg_mblocks);
     gridz = 1;
     gridy = 1;
     gridx = cg_mblocks;
 
     int cw_tthreads = gridx * tbx;
     // if (cw_tthreads < dict_size) {
-    //   std::cout << log::log_err << "Insufficient on-device parallelism to construct a "
+    //   std::cout << log::log_err << "Insufficient on-device parallelism to
+    //   construct a "
     //        << dict_size << " non-zero item codebook" << std::endl;
-    //   std::cout << log::log_err << "Provided parallelism: " << gridx << " blocks, "
+    //   std::cout << log::log_err << "Provided parallelism: " << gridx << "
+    //   blocks, "
     //        << tbx << " threads, " << cw_tthreads << " total" << std::endl
     //        << std::endl;
     //   exit(1);
@@ -272,35 +284,34 @@ public:
       Functor.use_CG = true;
     } else {
       if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
-        std::cout << log::log_info << "GenerateCW: not using Cooperative Groups\n";
+        std::cout << log::log_info
+                  << "GenerateCW: not using Cooperative Groups\n";
       }
       Functor.use_CG = false;
       gridx = (dict_size - 1) / tbx + 1;
     }
 
-        // printf("gridx: %d, tbx: %d\n", gridx, tbx);
-    
+    // printf("gridx: %d, tbx: %d\n", gridx, tbx);
 
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
-    // PrintSubarray("shape", shape);
-    return Task(Functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx, "GenerateCW"); 
+    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
+    // shape.dataHost()[0]); PrintSubarray("shape", shape);
+    return Task(Functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "GenerateCW");
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, T, DeviceType> CL,
-                SubArray<1, H, DeviceType> CW,
-                SubArray<1, H, DeviceType> first,
-                SubArray<1, H, DeviceType> entry,
-                SIZE dict_size, int queue_idx) {
+  void Execute(SubArray<1, T, DeviceType> CL, SubArray<1, H, DeviceType> CW,
+               SubArray<1, H, DeviceType> first,
+               SubArray<1, H, DeviceType> entry, SIZE dict_size,
+               int queue_idx) {
     using FunctorType = GenerateCWFunctor<T, H, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(CL, CW, first, entry, dict_size, queue_idx); 
-    DeviceAdapter<TaskType, DeviceType> adapter; 
+    TaskType task = GenTask(CL, CW, first, entry, dict_size, queue_idx);
+    DeviceAdapter<TaskType, DeviceType> adapter;
     adapter.Execute(task);
   }
 };
 
-}
+} // namespace mgard_x
 
 #endif

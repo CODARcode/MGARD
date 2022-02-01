@@ -5,7 +5,6 @@
  * Date: December 1, 2021
  */
 
-
 #define MGARDX_COMPILE_HIP
 #include "mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
 
@@ -14,10 +13,8 @@
 #include <chrono>
 namespace mgard_x {
 
-template void decompose<5, double, HIP>(Hierarchy<5, double, HIP> & hierarchy,
-                                      SubArray<5, double, HIP>& v,
-                                      SIZE l_target, int queue_idx);
+template void decompose<5, double, HIP>(Hierarchy<5, double, HIP> &hierarchy,
+                                        SubArray<5, double, HIP> &v,
+                                        SIZE l_target, int queue_idx);
 } // namespace mgard_x
 #undef MGARDX_COMPILE_HIP
-
-
