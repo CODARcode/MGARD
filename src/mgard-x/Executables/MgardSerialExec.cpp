@@ -283,9 +283,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
     }
-    compressed_size = compressed_dataset.size();
-    compressed_data = (unsigned char *)malloc(compressed_size);
-    memcpy(compressed_data, compressed_dataset.data(), compressed_size);
+    std::ostringstream buf;
+    compressed_dataset.write(buf);
+    std::string tmp_str = buf.str(); 
+    compressed_size = tmp_str.length();
+    compressed_data = (void *)malloc(compressed_size);
+    memcpy(compressed_data, tmp_str.c_str(), compressed_size);
   }
   if (D == 2) {
     std::array<std::size_t, 2> array_shape;
@@ -303,9 +306,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
     }
-    compressed_size = compressed_dataset.size();
-    compressed_data = (unsigned char *)malloc(compressed_size);
-    memcpy(compressed_data, compressed_dataset.data(), compressed_size);
+    std::ostringstream buf;
+    compressed_dataset.write(buf);
+    std::string tmp_str = buf.str(); 
+    compressed_size = tmp_str.length();
+    compressed_data = (void *)malloc(compressed_size);
+    memcpy(compressed_data, tmp_str.c_str(), compressed_size);
   }
   if (D == 3) {
     std::array<std::size_t, 3> array_shape;
@@ -323,9 +329,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
     }
-    compressed_size = compressed_dataset.size();
-    compressed_data = (unsigned char *)malloc(compressed_size);
-    memcpy(compressed_data, compressed_dataset.data(), compressed_size);
+    std::ostringstream buf;
+    compressed_dataset.write(buf);
+    std::string tmp_str = buf.str(); 
+    compressed_size = tmp_str.length();
+    compressed_data = (void *)malloc(compressed_size);
+    memcpy(compressed_data, tmp_str.c_str(), compressed_size);
   }
   if (D == 4) {
     std::array<std::size_t, 4> array_shape;
@@ -343,9 +352,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
     }
-    compressed_size = compressed_dataset.size();
-    compressed_data = (unsigned char *)malloc(compressed_size);
-    memcpy(compressed_data, compressed_dataset.data(), compressed_size);
+    std::ostringstream buf;
+    compressed_dataset.write(buf);
+    std::string tmp_str = buf.str(); 
+    compressed_size = tmp_str.length();
+    compressed_data = (void *)malloc(compressed_size);
+    memcpy(compressed_data, tmp_str.c_str(), compressed_size);
   }
   if (D == 5) {
     std::array<std::size_t, 5> array_shape;
@@ -363,9 +375,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                 << (double)(original_size * sizeof(T)) / time_span.count() / 1e9
                 << " GB/s)\n";
     }
-    compressed_size = compressed_dataset.size();
-    compressed_data = (unsigned char *)malloc(compressed_size);
-    memcpy(compressed_data, compressed_dataset.data(), compressed_size);
+    std::ostringstream buf;
+    compressed_dataset.write(buf);
+    std::string tmp_str = buf.str(); 
+    compressed_size = tmp_str.length();
+    compressed_data = (void *)malloc(compressed_size);
+    memcpy(compressed_data, tmp_str.c_str(), compressed_size);
   }
 
   writefile(output_file, compressed_size, compressed_data);
@@ -413,9 +428,9 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   }
   void const *const compressed_data_const = compressed_data;
 
-  const std::unique_ptr<unsigned char const[]> new_data_ =
+  mgard::MemoryBuffer<const unsigned char> new_data_ =
       mgard::decompress(compressed_data_const, compressed_size);
-  const void *decompressed_data = new_data_.get();
+  const void *decompressed_data = new_data_.data.get();
   
   if (verbose) {
     end = high_resolution_clock::now();

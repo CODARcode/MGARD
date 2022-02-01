@@ -180,7 +180,6 @@ huffman_codec *build_huffman_codec(long int *quantized_data, size_t **ft,
   return codec;
 }
 
-namespace {
 
 void huffman_decoding(long int *quantized_data,
                       const std::size_t quantized_data_size,
@@ -273,7 +272,6 @@ void huffman_decoding(long int *quantized_data,
   ft = 0;
 }
 
-} // namespace
 
 void decompress_memory_huffman(unsigned char *const src,
                                const std::size_t srcLen, long int *const dst,
@@ -317,7 +315,6 @@ void decompress_memory_huffman(unsigned char *const src,
   free(huffman_encoding_p);
 }
 
-namespace {
 
 void huffman_encoding(long int *quantized_data, const std::size_t n,
                       unsigned char **out_data_hit, size_t *out_data_hit_size,
@@ -424,7 +421,6 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
   codec = 0;
 }
 
-} // namespace
 
 MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
                                                     const std::size_t srcLen) {

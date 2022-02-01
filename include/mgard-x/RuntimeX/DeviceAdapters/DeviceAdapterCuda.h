@@ -310,6 +310,8 @@ SINGLE_KERNEL(Operation12);
 SINGLE_KERNEL(Operation13);
 SINGLE_KERNEL(Operation14);
 
+#undef SINGLE_KERNEL
+
 template <typename Task>
 MGARDX_KERL void ParallelMergeKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
@@ -1588,7 +1590,7 @@ public:
       timer.start();
     }
 
-    // if constexpr evalute at compile time otherwise this does not compile
+    // if constexpr evaluate at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<CUDA>, typename TaskType::Functor>::value) {
       Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (std::is_base_of<IterFunctor<CUDA>, typename TaskType::Functor>::value) {

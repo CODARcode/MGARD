@@ -436,7 +436,6 @@ set(
   tests/include/testing_utilities.tpp
 )
 set(
-<<<<<<< HEAD
 	MGARD_TESTS_CPP
 	tests/src/testing_utilities.cpp
 	tests/src/test_utilities.cpp
@@ -457,24 +456,6 @@ set(
 	tests/src/test_quantize.cpp
 	tests/src/test_compressors.cpp
 	tests/src/test_CompressedDataset.cpp
-=======
-  MGARD_TESTS_CPP
-  tests/src/testing_utilities.cpp
-  tests/src/test_utilities.cpp
-  tests/src/test_blas.cpp
-  tests/src/test_shuffle.cpp
-  tests/src/test_TensorMeshHierarchy.cpp
-  tests/src/test_TensorMeshHierarchyIteration.cpp
-  tests/src/test_TensorLinearOperator.cpp
-  tests/src/test_TensorMassMatrix.cpp
-  tests/src/test_TensorProlongation.cpp
-  tests/src/test_TensorRestriction.cpp
-  tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
-  tests/src/test_TensorNorms.cpp
-  tests/src/test_TensorQuantityOfInterest.cpp
-  tests/src/test_compress.cpp
-  tests/src/test_decompose.cpp
->>>>>>> first commit of MGARD-m
 )
 if(MOAB_FOUND)
   list(
@@ -507,7 +488,6 @@ set(MGARD_CLI_SRCDIR "${CMAKE_CURRENT_BINARY_DIR}/src")
 set(MGARD_CLI_INTERNAL_CPP "${MGARD_CLI_SRCDIR}/cli_internal_generated.cpp")
 
 set(
-<<<<<<< HEAD
 	MGARD_EXECUTABLE_HPP
 	include/arguments.hpp
 	include/cmdline.hpp
@@ -527,25 +507,6 @@ set(
 	src/output.cpp
 	src/cli_internal.cpp
 	"${MGARD_CLI_INTERNAL_CPP}"
-=======
-  MGARD_EXECUTABLE_HPP
-  include/arguments.hpp
-  include/cmdline.hpp
-  include/metadata.hpp
-  include/output.hpp
-)
-set(
-  MGARD_EXECUTABLE_TPP
-  include/arguments.tpp
-)
-set(
-  MGARD_EXECUTABLE_CPP
-  src/arguments.cpp
-  src/cmdline.cpp
-  src/executable.cpp
-  src/metadata.cpp
-  src/output.cpp
->>>>>>> first commit of MGARD-m
 )
 
 set(
@@ -711,20 +672,6 @@ install(EXPORT mgard-targets NAMESPACE mgard::
   DESTINATION "${CMAKE_INSTALL_CMAKEDIR}" COMPONENT dev
 )
 
-<<<<<<< HEAD
-=======
-# Install pkg-config files for non-cmake projects
-configure_file(
-  "${PROJECT_SOURCE_DIR}/cmake/mgard.pc.in"
-  "${PROJECT_BINARY_DIR}/mgard.pc"
-  @ONLY
-)
-install(
-  FILES "${PROJECT_BINARY_DIR}/mgard.pc"
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT dev
-)
-
->>>>>>> first commit of MGARD-m
 if(MGARD_ENABLE_BENCHMARKS)
 	find_package(benchmark)
 
@@ -748,7 +695,6 @@ if(MGARD_ENABLE_CLI)
 		endif()
 	endif()
 
-<<<<<<< HEAD
 	if(NOT TCLAP_FOUND)
 		message(STATUS "Will not build executable (TCLAP not found).")
 	else()
@@ -772,22 +718,6 @@ if(MGARD_ENABLE_CLI)
 		install(TARGETS mgard-executable RUNTIME)
 		install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
 	endif()
-=======
-if(NOT yaml-cpp_FOUND)
-	message(STATUS "Will not build executable (yaml-cpp not found).")
-elseif(NOT archive_FOUND)
-	message(STATUS "Will not build executable (archive not found).")
-elseif(NOT TCLAP_FOUND)
-	message(STATUS "Will not build executable (TCLAP not found).")
-else()
-  add_executable(mgard-executable ${MGARD_EXECUTABLE_CPP})
-  target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
-  target_link_libraries(mgard-executable PRIVATE mgard-library yaml-cpp PkgConfig::archive PkgConfig::TCLAP)
-  set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
-
-  install(TARGETS mgard-executable RUNTIME)
-  install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
->>>>>>> first commit of MGARD-m
 endif()
 
 message(STATUS "")
