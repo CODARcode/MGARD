@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,9 +93,14 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     const mgard::TensorMeshHierarchy<D, T> hierarchy(array_shape);
     mgard::CompressedDataset<D, T> compressed_dataset =
         mgard::compress(hierarchy, original_data, s, tol);
-    compressed_size = compressed_dataset.size();
+    std::ostringstream buf;
+    compressed_dataset.write(buf);
+    std::string tmp_str = buf.str(); 
+
+    //compressed_size = compressed_dataset.size();
+    compressed_size = tmp_str.length();
     compressed_data = (void *)malloc(compressed_size);
-    memcpy(compressed_data, compressed_dataset.data(), compressed_size);
+    memcpy(compressed_data, tmp_str.c_str(), compressed_size);
   } else if (dev == CUDA) {
 #ifdef MGARD_ENABLE_CUDA
     mgard_cuda::Config config;
@@ -171,9 +177,9 @@ void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     if (mode == error_type::REL) {
       tol *= norm;
     }
-    const std::unique_ptr<unsigned char const[]> new_data_ =
+    mgard::MemoryBuffer<const unsigned char> new_data_ = 
         mgard::decompress((unsigned char *)compressed_data, compressed_size);
-    const void *decompressed_data_void = new_data_.get();
+    const void *decompressed_data_void = new_data_.data.get();
     memcpy(decompressed_data, decompressed_data_void,
            original_size * sizeof(T));
   } else if (dev == CUDA) {

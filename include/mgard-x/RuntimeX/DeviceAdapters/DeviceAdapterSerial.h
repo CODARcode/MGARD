@@ -200,28 +200,28 @@ struct Math<Serial> {
 
 template <typename TaskType>
 MGARDX_KERL void SerialKernel(TaskType task) {
-  Timer timer_op, timer_op1, timer_op2, timer_op3, timer_alloc, timer_init, timer_dealloc;
-  timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
-  timer_op1.clear(); timer_op2.clear(); timer_op3.clear();
-  timer_alloc.start();
+  // Timer timer_op, timer_op1, timer_op2, timer_op3, timer_alloc, timer_init, timer_dealloc;
+  // timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
+  // timer_op1.clear(); timer_op2.clear(); timer_op3.clear();
+  // timer_alloc.start();
   ALLOC_BLOCK;
-  timer_alloc.end();
+  // timer_alloc.end();
   for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
-        timer_init.start();
+        // timer_init.start();
         INIT_BLOCK;
-        timer_init.end();
-        timer_op.start();
-        timer_op1.start();
+        // timer_init.end();
+        // timer_op.start();
+        // timer_op1.start();
         COMPUTE_BLOCK(Operation1);
-        timer_op1.end();
-        timer_op2.start();
+        // timer_op1.end();
+        // timer_op2.start();
         COMPUTE_BLOCK(Operation2);
-        timer_op2.end();
-        timer_op3.start();
+        // timer_op2.end();
+        // timer_op3.start();
         COMPUTE_BLOCK(Operation3);
-        timer_op3.end();
+        // timer_op3.end();
         COMPUTE_BLOCK(Operation4);
         COMPUTE_BLOCK(Operation5);
         COMPUTE_BLOCK(Operation6);
@@ -229,22 +229,22 @@ MGARDX_KERL void SerialKernel(TaskType task) {
         COMPUTE_BLOCK(Operation8);
         COMPUTE_BLOCK(Operation9);
         COMPUTE_BLOCK(Operation10);
-        timer_op.end();
+        // timer_op.end();
       }
     }
   }
-  timer_dealloc.start();
+  // timer_dealloc.start();
   DEALLOC_BLOCK;
-  timer_dealloc.end();
+  // timer_dealloc.end();
 
-  timer_op.print(task.GetFunctorName() + "_Op");
-  timer_op1.print(task.GetFunctorName() + "_Op1");
-  timer_op2.print(task.GetFunctorName() + "_Op2");
-  timer_op3.print(task.GetFunctorName() + "_Op3");
-  timer_alloc.print(task.GetFunctorName() + "_Alloc");
-  timer_init.print(task.GetFunctorName() + "_Init");
-  timer_dealloc.print(task.GetFunctorName() + "_Dealloc");
-  timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
+  // timer_op.print(task.GetFunctorName() + "_Op");
+  // timer_op1.print(task.GetFunctorName() + "_Op1");
+  // timer_op2.print(task.GetFunctorName() + "_Op2");
+  // timer_op3.print(task.GetFunctorName() + "_Op3");
+  // timer_alloc.print(task.GetFunctorName() + "_Alloc");
+  // timer_init.print(task.GetFunctorName() + "_Init");
+  // timer_dealloc.print(task.GetFunctorName() + "_Dealloc");
+  // timer_op.clear(); timer_alloc.clear();timer_init.clear();timer_dealloc.clear();
 }
 
 
