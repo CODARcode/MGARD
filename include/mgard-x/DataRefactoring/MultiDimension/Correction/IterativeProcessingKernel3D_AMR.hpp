@@ -12,13 +12,13 @@
 #include "../../IterativeProcessingKernel3D_AMR.h"
 namespace mgard_x {
 
-
 // fv has shape nc (lead dim.) * nr * nf_c / block_size
 
 template <typename T, int R, int C, int F, int G>
 __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
-                          T *v, int ldv1, int ldv2, bool retrieve, int block_size, 
-                          T * fv, int ldfv1, int ldfv2, T * bv, int ldbv1, int ldbv2) {
+                              T *v, int ldv1, int ldv2, bool retrieve,
+                              int block_size, T *fv, int ldfv1, int ldfv2,
+                              T *bv, int ldbv1, int ldbv2) {
 
   int c_gl = blockIdx.x * C;
   int r_gl = blockIdx.y * R;
@@ -91,38 +91,40 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
       //                                               ldsm2, r_sm, c_sm,
       //                                               0)]+prev_vec_sm *
       //                                               bm_sm[0]);
-      
+
       // store fv
       if (f_progress % block_size == 0) {
         printf("f_progress0: %d, fv: %f\n", f_progress, prev_vec_sm);
-        fv[get_idx(ldfv1, ldfv2, r_gl+r_sm, f_progress/block_size, c_gl+c_sm)] = prev_vec_sm; 
+        fv[get_idx(ldfv1, ldfv2, r_gl + r_sm, f_progress / block_size,
+                   c_gl + c_sm)] = prev_vec_sm;
       }
 
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward(
           prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
-      f_progress ++;
+      f_progress++;
 
       //#pragma unroll 32
       for (int i = 1; i < F; i++) {
         // store fv
         if (f_progress % block_size == 0) {
-          printf("f_progress1: %d, fv: %f\n", f_progress, vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)]);
-          fv[get_idx(ldfv1, ldfv2, r_gl+r_sm, f_progress/block_size, c_gl+c_sm)] = 
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)]; 
+          printf("f_progress1: %d, fv: %f\n", f_progress,
+                 vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)]);
+          fv[get_idx(ldfv1, ldfv2, r_gl + r_sm, f_progress / block_size,
+                     c_gl + c_sm)] =
+              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)];
         }
 
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_forward(
             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], bm_sm[i],
             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 
-        f_progress ++;
+        f_progress++;
         // printf("calc[%d]: %f\n", i, vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
         // i)]); if (r_gl == 0 && c_gl == 0)
         //   printf("out[%d %d %d] %f\n", r_sm, c_sm, i, vec_sm[get_idx(ldsm1,
         //   ldsm2, r_sm, c_sm, i)]);
       }
-
 
       /* Store last v */
       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, F - 1)];
@@ -193,15 +195,16 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
       //       bm_sm[0];
       // #endif
       if ((f_progress) % block_size == 0) {
-        printf("extra f_progress2: %d, fv(%d %d %d): %f\n", f_progress, f_progress/block_size, r_gl, c_gl, prev_vec_sm);
-        fv[get_idx(ldfv1, ldfv2, r_gl+r_sm, f_progress/block_size, c_gl+c_sm)] = 
-          prev_vec_sm; 
+        printf("extra f_progress2: %d, fv(%d %d %d): %f\n", f_progress,
+               f_progress / block_size, r_gl, c_gl, prev_vec_sm);
+        fv[get_idx(ldfv1, ldfv2, r_gl + r_sm, f_progress / block_size,
+                   c_gl + c_sm)] = prev_vec_sm;
       }
 
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward(
           prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
-      f_progress ++;
+      f_progress++;
       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
     }
@@ -219,13 +222,13 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
       // #endif
       if ((f_progress) % block_size == 0) {
         printf("extra f_progress3: %d, fv: %f\n", f_progress, prev_vec_sm);
-        fv[get_idx(ldfv1, ldfv2, r_gl+r_sm, (f_progress)/block_size, c_gl+c_sm)] = 
-          prev_vec_sm; 
+        fv[get_idx(ldfv1, ldfv2, r_gl + r_sm, (f_progress) / block_size,
+                   c_gl + c_sm)] = prev_vec_sm;
       }
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward(
           prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
-      f_progress ++;
+      f_progress++;
 
       for (int i = 1; i < f_ghost + f_rest; i++) {
         // #ifdef MGARD_X_FMA
@@ -239,16 +242,18 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
         // #endif
 
         if (f_progress % block_size == 0) {
-          printf("extra f_progress4: %d, fv: %f\n", f_progress, vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)]);
-          fv[get_idx(ldfv1, ldfv2, r_gl+r_sm, f_progress/block_size, c_gl+c_sm)] = 
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)]; 
+          printf("extra f_progress4: %d, fv: %f\n", f_progress,
+                 vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)]);
+          fv[get_idx(ldfv1, ldfv2, r_gl + r_sm, f_progress / block_size,
+                     c_gl + c_sm)] =
+              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)];
         }
 
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_forward(
             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], bm_sm[i],
             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 
-        f_progress ++;
+        f_progress++;
       }
     }
   }
@@ -332,9 +337,10 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
       if (f_progress > 0 && f_progress % block_size == 0) {
-        printf("f_progress5: %d, bv: %f\n", f_progress, vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
-        bv[get_idx(ldbv1, ldbv2, r_gl+r_sm, f_progress/block_size-1, c_gl+c_sm)] = 
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]; 
+        printf("f_progress5: %d, bv: %f\n", f_progress,
+               vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+        bv[get_idx(ldbv1, ldbv2, r_gl + r_sm, f_progress / block_size - 1,
+                   c_gl + c_sm)] = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)];
       }
 
       f_progress--;
@@ -365,9 +371,11 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
             am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 
         if (f_progress > 0 && f_progress % block_size == 0) {
-          printf("f_progress6: %d, bv: %f\n", f_progress, vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
-          bv[get_idx(ldbv1, ldbv2, r_gl+r_sm, f_progress/block_size-1, c_gl+c_sm)] = 
-          vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]; 
+          printf("f_progress6: %d, bv: %f\n", f_progress,
+                 vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+          bv[get_idx(ldbv1, ldbv2, r_gl + r_sm, f_progress / block_size - 1,
+                     c_gl + c_sm)] =
+              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)];
         }
 
         f_progress--;
@@ -437,9 +445,10 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
       if (f_progress > 0 && f_progress % block_size == 0) {
-        printf("f_progress7: %d, bv: %f\n", f_progress, vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
-        bv[get_idx(ldbv1, ldbv2, r_gl+r_sm, f_progress/block_size-1, c_gl+c_sm)] = 
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]; 
+        printf("f_progress7: %d, bv: %f\n", f_progress,
+               vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+        bv[get_idx(ldbv1, ldbv2, r_gl + r_sm, f_progress / block_size - 1,
+                   c_gl + c_sm)] = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)];
       }
 
       f_progress--;
@@ -465,9 +474,10 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
       if (f_progress > 0 && f_progress % block_size == 0) {
-        printf("f_progress8: %d, bv: %f\n", f_progress, vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
-        bv[get_idx(ldbv1, ldbv2, r_gl+r_sm, f_progress/block_size-1, c_gl+c_sm)] = 
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]; 
+        printf("f_progress8: %d, bv: %f\n", f_progress,
+               vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+        bv[get_idx(ldbv1, ldbv2, r_gl + r_sm, f_progress / block_size - 1,
+                   c_gl + c_sm)] = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)];
       }
 
       f_progress--;
@@ -489,9 +499,11 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
             am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 
         if (f_progress > 0 && f_progress % block_size == 0) {
-          printf("f_progress9: %d, bv: %f\n", f_progress, vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
-          bv[get_idx(ldbv1, ldbv2, r_gl+r_sm, f_progress/block_size-1, c_gl+c_sm)] = 
-          vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]; 
+          printf("f_progress9: %d, bv: %f\n", f_progress,
+                 vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+          bv[get_idx(ldbv1, ldbv2, r_gl + r_sm, f_progress / block_size - 1,
+                     c_gl + c_sm)] =
+              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)];
         }
 
         f_progress--;
@@ -510,15 +522,15 @@ __global__ void _ipk_1_3d_amr(int nr, int nc, int nf_c, T *am, T *bm, T *dist_f,
     }
   }
   __syncthreads();
-
 }
 
 template <uint32_t D, typename T, int R, int C, int F, int G>
-void ipk_1_3d_amr_adaptive_launcher(Handle<D, T> &handle, int nr, int nc, int nf_c,
-                                T *am, T *bm, T *ddist_f, T *dv, int lddv1,
-                                int lddv2, bool retrieve, int block_size, 
-                                T * fv, int ldfv1, int ldfv2, T * bv, int ldbv1, int ldbv2,
-                                int queue_idx) {
+void ipk_1_3d_amr_adaptive_launcher(Handle<D, T> &handle, int nr, int nc,
+                                    int nf_c, T *am, T *bm, T *ddist_f, T *dv,
+                                    int lddv1, int lddv2, bool retrieve,
+                                    int block_size, T *fv, int ldfv1, int ldfv2,
+                                    T *bv, int ldbv1, int ldbv2,
+                                    int queue_idx) {
   // std::cout << "test\n";
 
   int total_thread_x = nc;
@@ -528,8 +540,8 @@ void ipk_1_3d_amr_adaptive_launcher(Handle<D, T> &handle, int nr, int nc, int nf
   dim3 threadsPerBlock, blockPerGrid;
   size_t sm_size;
 
-  tbx = C;//std::max(C, std::min(C, total_thread_x));
-  tby = R;//std::max(R, std::min(R, total_thread_y));
+  tbx = C; // std::max(C, std::min(C, total_thread_x));
+  tby = R; // std::max(R, std::min(R, total_thread_y));
   tbz = 1;
   sm_size = (R * C + 2) * (F + G) * sizeof(T);
   gridx = ceil((float)total_thread_x / tbx);
@@ -539,9 +551,9 @@ void ipk_1_3d_amr_adaptive_launcher(Handle<D, T> &handle, int nr, int nc, int nf
   blockPerGrid = dim3(gridx, gridy, gridz);
 
   _ipk_1_3d_amr<T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
-                             *(cudaStream_t *)handle.get(queue_idx)>>>(
-      nr, nc, nf_c, am, bm, ddist_f, dv, lddv1, lddv2,
-      retrieve, block_size, fv, ldfv1, ldfv2, bv, ldbv1, ldbv2);
+                                 *(cudaStream_t *)handle.get(queue_idx)>>>(
+      nr, nc, nf_c, am, bm, ddist_f, dv, lddv1, lddv2, retrieve, block_size, fv,
+      ldfv1, ldfv2, bv, ldbv1, ldbv2);
   gpuErrchk(cudaGetLastError());
   if (handle.sync_and_check_all_kernels) {
     gpuErrchk(cudaDeviceSynchronize());
@@ -551,15 +563,15 @@ void ipk_1_3d_amr_adaptive_launcher(Handle<D, T> &handle, int nr, int nc, int nf
 
 template <uint32_t D, typename T>
 void ipk_1_3d_amr(Handle<D, T> &handle, int nr, int nc, int nf_c, T *am, T *bm,
-              T *ddist_f, T *dv, int lddv1, int lddv2, bool retrieve, int block_size, 
-              T * fv, int ldfv1, int ldfv2, T * bv, int ldbv1, int ldbv2, 
-              int queue_idx, int config) {
+                  T *ddist_f, T *dv, int lddv1, int lddv2, bool retrieve,
+                  int block_size, T *fv, int ldfv1, int ldfv2, T *bv, int ldbv1,
+                  int ldbv2, int queue_idx, int config) {
 
 #define IPK(R, C, F, G)                                                        \
   {                                                                            \
-    ipk_1_3d_amr_adaptive_launcher<D, T, R, C, F, G>(                              \
-        handle, nr, nc, nf_c, am, bm, ddist_f, dv, lddv1, lddv2,               \
-        retrieve, block_size, fv, ldfv1, ldfv2, bv, ldbv1, ldbv2, queue_idx); \
+    ipk_1_3d_amr_adaptive_launcher<D, T, R, C, F, G>(                          \
+        handle, nr, nc, nf_c, am, bm, ddist_f, dv, lddv1, lddv2, retrieve,     \
+        block_size, fv, ldfv1, ldfv2, bv, ldbv1, ldbv2, queue_idx);            \
   }
   bool profile = false;
   if (handle.profile_kernels) {

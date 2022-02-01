@@ -60,8 +60,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
   }
 }
 
-
-
 template <class T> struct SharedMemory {
   __device__ inline operator T *() {
     extern __shared__ int __smem[];

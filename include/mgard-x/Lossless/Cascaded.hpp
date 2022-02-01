@@ -14,9 +14,9 @@
 namespace mgard_x {
 
 template <typename C, typename DeviceType>
-Array<1, Byte, DeviceType> 
-CascadedCompress(SubArray<1, C, DeviceType> &input_data, 
-                 int n_rle, int n_de, bool bitpack) {
+Array<1, Byte, DeviceType>
+CascadedCompress(SubArray<1, C, DeviceType> &input_data, int n_rle, int n_de,
+                 bool bitpack) {
   using Mem = MemoryManager<DeviceType>;
   nvcomp::CascadedCompressor compressor(nvcomp::TypeOf<C>(), n_rle, n_de,
                                         bitpack);
@@ -34,8 +34,9 @@ CascadedCompress(SubArray<1, C, DeviceType> &input_data,
   Array<1, Byte, DeviceType> temp_space({(SIZE)*temp_bytes});
   Array<1, Byte, DeviceType> output_data({(SIZE)*output_bytes});
 
-  compressor.compress_async(input_data.data(), input_count * sizeof(C), temp_space.get_dv(),
-                            *temp_bytes, output_data.get_dv(), output_bytes,
+  compressor.compress_async(input_data.data(), input_count * sizeof(C),
+                            temp_space.get_dv(), *temp_bytes,
+                            output_data.get_dv(), output_bytes,
                             DeviceRuntime<DeviceType>::GetQueue(0));
   DeviceRuntime<DeviceType>::SyncQueue(0);
   output_data.getShape()[0] = *output_bytes;
@@ -57,21 +58,22 @@ CascadedDecompress(SubArray<1, Byte, DeviceType> &input_data) {
 
   size_t input_size = input_data.getShape(0);
 
-  decompressor.configure(input_data.data(), input_size, temp_bytes, output_bytes,
-                         DeviceRuntime<DeviceType>::GetQueue(0));
+  decompressor.configure(input_data.data(), input_size, temp_bytes,
+                         output_bytes, DeviceRuntime<DeviceType>::GetQueue(0));
 
   Array<1, Byte, DeviceType> temp_space({(SIZE)*temp_bytes});
   Array<1, C, DeviceType> output_data({(SIZE)*output_bytes});
 
-  decompressor.decompress_async(input_data.data(), input_size, temp_space.get_dv(), *temp_bytes,
+  decompressor.decompress_async(input_data.data(), input_size,
+                                temp_space.get_dv(), *temp_bytes,
                                 output_data.get_dv(), *output_bytes,
                                 DeviceRuntime<DeviceType>::GetQueue(0));
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  output_data.getShape()[0] = (*output_bytes)/sizeof(C);
+  output_data.getShape()[0] = (*output_bytes) / sizeof(C);
   Mem::FreeHost(temp_bytes);
   Mem::FreeHost(output_bytes);
   return output_data;
 }
-}
+} // namespace mgard_x
 
 #endif

@@ -50,6 +50,6 @@ MGARDX_EXEC T tridiag_backward2(T prev, T am, T bm, T curr) {
 #endif
 }
 
-}
+} // namespace mgard_x
 
 #endif

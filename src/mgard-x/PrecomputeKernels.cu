@@ -184,42 +184,43 @@ __global__ void _dist_to_volume(int n, T *ddist, T *dvolume) {
   int x_sm = threadIdx.x;
   if (x < n - 1) {
     // Load dist
-    sm[x_sm+1] = ddist[x];
+    sm[x_sm + 1] = ddist[x];
   }
   if (x == n - 1) {
-    sm[x_sm+1] = 0;
+    sm[x_sm + 1] = 0;
   }
   int left = n - blockIdx.x * blockDim.x;
   if (x_sm == 0) { // load extra
-    sm[0] = x-1 < 0 ? 0 : ddist[x-1];
+    sm[0] = x - 1 < 0 ? 0 : ddist[x - 1];
   }
 
   // if (threadIdx.x == 0) {
   //   for (int i = 0; i < blockDim.x+2; i++) {
-      // printf("dist[%d] = %f\n", i, sm[i]);
+  // printf("dist[%d] = %f\n", i, sm[i]);
   //   }
   // }
   int node_coeff_div = n / 2 + 1;
   if (n == 2) {
-    dvolume[x] = (sm[x_sm] + sm[x_sm+1]) / 2;
+    dvolume[x] = (sm[x_sm] + sm[x_sm + 1]) / 2;
   } else {
     if (n % 2 != 0) {
-      if (x % 2 == 0) { //node
-        dvolume[x/2] = (sm[x_sm] + sm[x_sm+1]) / 2;
+      if (x % 2 == 0) { // node
+        dvolume[x / 2] = (sm[x_sm] + sm[x_sm + 1]) / 2;
       } else { // coeff
-        dvolume[node_coeff_div + x/2] = (sm[x_sm] + sm[x_sm+1]) / 2;
+        dvolume[node_coeff_div + x / 2] = (sm[x_sm] + sm[x_sm + 1]) / 2;
       }
     } else {
       if (x != n - 1) {
-        if (x % 2 == 0) { //node
-          dvolume[x/2] = (sm[x_sm] + sm[x_sm+1]) / 2;
+        if (x % 2 == 0) { // node
+          dvolume[x / 2] = (sm[x_sm] + sm[x_sm + 1]) / 2;
           // printf("%f <- %f %f\n", dvolume[x/2], sm[x_sm], sm[x_sm+1]);
-        } else { //coeff
-          dvolume[node_coeff_div + x/2] = (sm[x_sm] + sm[x_sm+1]) / 2;
-          // printf("%f <- %f %f\n", dvolume[node_coeff_div + x/2], sm[x_sm], sm[x_sm+1]);
+        } else { // coeff
+          dvolume[node_coeff_div + x / 2] = (sm[x_sm] + sm[x_sm + 1]) / 2;
+          // printf("%f <- %f %f\n", dvolume[node_coeff_div + x/2], sm[x_sm],
+          // sm[x_sm+1]);
         }
       } else {
-        dvolume[x/2+1] = (sm[x_sm] + sm[x_sm+1]) / 2;
+        dvolume[x / 2 + 1] = (sm[x_sm] + sm[x_sm + 1]) / 2;
         // printf("%f <- %f %f\n", dvolume[x/2+1], sm[x_sm], sm[x_sm+1]);
       }
     }
@@ -228,7 +229,7 @@ __global__ void _dist_to_volume(int n, T *ddist, T *dvolume) {
 
 template <DIM D, typename T>
 void dist_to_volume(Handle<D, T> &handle, int n, T *ddist, T *dvolume,
-                   int queue_idx) {
+                    int queue_idx) {
 
   int total_thread_x = std::max(n, 1);
   int total_thread_y = 1;
@@ -242,13 +243,13 @@ void dist_to_volume(Handle<D, T> &handle, int n, T *ddist, T *dvolume,
   // printf("reduce_two_dist: n: %d\n", n);
   // printf("sm %d (%d %d) (%d %d)\n", sm_size, tbx, tby, gridx, gridy);
   _dist_to_volume<<<blockPerGrid, threadsPerBlock, sm_size,
-                   *(cudaStream_t *)handle.get(queue_idx)>>>(n, ddist, dvolume);
+                    *(cudaStream_t *)handle.get(queue_idx)>>>(n, ddist,
+                                                              dvolume);
   gpuErrchk(cudaGetLastError());
 #ifdef MGARD_X_DEBUG
   gpuErrchk(cudaDeviceSynchronize());
 #endif
 }
-
 
 template <typename T>
 __global__ void _calc_am_bm(int n, T *ddist, T *am, T *bm) {
@@ -360,8 +361,8 @@ void calc_am_bm(Handle<D, T> &handle, int n, T *ddist, T *am, T *bm,
                                       T *ddist_reduced, int queue_idx);        \
   template void dist_to_ratio<D, T>(Handle<D, T> & handle, int n, T *ddist,    \
                                     T *dratio, int queue_idx);                 \
-  template void dist_to_volume<D, T>(Handle<D, T> &handle, int n, T *ddist,    \
-                                    T *dvolume, int queue_idx);                \
+  template void dist_to_volume<D, T>(Handle<D, T> & handle, int n, T *ddist,   \
+                                     T *dvolume, int queue_idx);               \
   template void calc_am_bm<D, T>(Handle<D, T> & handle, int n, T *ddist,       \
                                  T *am, T *bm, int queue_idx);
 

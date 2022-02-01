@@ -7,7 +7,7 @@
 
 #define MGARDX_COMPILE_KOKKOS
 #include "mgard-x/RuntimeX/RuntimeX.h"
- 
+
 namespace mgard_x {
 
 int DeviceRuntime<KOKKOS>::curr_dev_id = 0;
@@ -21,5 +21,5 @@ bool DeviceRuntime<KOKKOS>::SyncAllKernelsAndCheckErrors = false;
 // AutoTuningTable<CUDA> AutoTuner<CUDA>::autoTuningTable;
 // bool AutoTuner<CUDA>::ProfileKernels = false;
 
-}
+} // namespace mgard_x
 #undef MGARDX_COMPILE_KOKKOS

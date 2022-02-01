@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
   size_t lSize = sizeof(double) * gb_elements;
   double *in_buff;
   mgard_x::cudaMallocHostHelper((void **)&in_buff,
-                                   sizeof(double) * local_elements);
+                                sizeof(double) * local_elements);
   if (rank == 0) {
     std::cout << "total data size: {" << nphi << ", " << vx << ", " << nnodes
               << ", " << vy << "}, number of iters: " << num_iter << "\n";

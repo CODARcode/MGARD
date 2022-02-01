@@ -10,7 +10,7 @@ int main() {
   std::cout << "Preparing data...";
   double *in_array_cpu;
   mgard_x::cudaMallocHostHelper((void **)&in_array_cpu,
-                                   sizeof(double) * n1 * n2 * n3);
+                                sizeof(double) * n1 * n2 * n3);
   //... load data into in_array_cpu
   std::vector<mgard_x::SIZE> shape{n1, n2, n3};
   mgard_x::Handle<3, double> handle(shape);

@@ -13,26 +13,24 @@
 namespace mgard_x {
 
 template <typename Q, typename H, bool CACHE_SINGLETION, typename DeviceType>
-class DecodeFunctor: public Functor<DeviceType> {
-  public:
-  MGARDX_CONT DecodeFunctor(){}
-  MGARDX_CONT DecodeFunctor(SubArray<1, H, DeviceType> densely, 
+class DecodeFunctor : public Functor<DeviceType> {
+public:
+  MGARDX_CONT DecodeFunctor() {}
+  MGARDX_CONT DecodeFunctor(SubArray<1, H, DeviceType> densely,
                             SubArray<1, size_t, DeviceType> dH_meta,
-                            SubArray<1, Q, DeviceType> bcode,
-                            SIZE len, int chunk_size, int n_chunk, 
-                            SubArray<1, uint8_t, DeviceType> singleton, 
-                            size_t singleton_size
-                            ): densely(densely), dH_meta(dH_meta),
-                             bcode(bcode), len(len), chunk_size(chunk_size),
-                             n_chunk(n_chunk), singleton(singleton),
-                             singleton_size(singleton_size){
-    Functor<DeviceType>();                            
+                            SubArray<1, Q, DeviceType> bcode, SIZE len,
+                            int chunk_size, int n_chunk,
+                            SubArray<1, uint8_t, DeviceType> singleton,
+                            size_t singleton_size)
+      : densely(densely), dH_meta(dH_meta), bcode(bcode), len(len),
+        chunk_size(chunk_size), n_chunk(n_chunk), singleton(singleton),
+        singleton_size(singleton_size) {
+    Functor<DeviceType>();
   }
 
-  MGARDX_EXEC void
-  Operation1() {
+  MGARDX_EXEC void Operation1() {
     if (CACHE_SINGLETION) {
-      _s_singleton = (uint8_t*)FunctorBase<DeviceType>::GetSharedMemory();
+      _s_singleton = (uint8_t *)FunctorBase<DeviceType>::GetSharedMemory();
       if (FunctorBase<DeviceType>::GetThreadIdX() == 0) {
         memcpy(_s_singleton, singleton((IDX)0), singleton_size);
       }
@@ -41,9 +39,10 @@ class DecodeFunctor: public Functor<DeviceType> {
     }
   }
 
-  MGARDX_EXEC void
-  Operation2() { 
-    size_t chunk_id = FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX() + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation2() {
+    size_t chunk_id = FunctorBase<DeviceType>::GetBlockIdX() *
+                          FunctorBase<DeviceType>::GetBlockDimX() +
+                      FunctorBase<DeviceType>::GetThreadIdX();
     // if (chunk_id == 0) printf("n_chunk: %lu\n", n_chunk);
     if (chunk_id >= n_chunk)
       return;
@@ -60,7 +59,8 @@ class DecodeFunctor: public Functor<DeviceType> {
     auto entry = first + sizeof(H) * 8;
     auto keys =
         reinterpret_cast<Q *>(_s_singleton + sizeof(H) * (2 * sizeof(H) * 8));
-    H v = (*densely(densely_offset + idx_byte) >> (sizeof(H) * 8 - 1)) & 0x1; // get the first bit
+    H v = (*densely(densely_offset + idx_byte) >> (sizeof(H) * 8 - 1)) &
+          0x1; // get the first bit
     size_t l = 1;
     size_t i = 0;
     while (i < total_bw) {
@@ -68,16 +68,19 @@ class DecodeFunctor: public Functor<DeviceType> {
         ++i;
         idx_byte = i / (sizeof(H) * 8);
         idx_bit = i % (sizeof(H) * 8);
-        next_bit = ((*densely(densely_offset+idx_byte) >> (sizeof(H) * 8 - 1 - idx_bit)) & 0x1);
+        next_bit = ((*densely(densely_offset + idx_byte) >>
+                     (sizeof(H) * 8 - 1 - idx_bit)) &
+                    0x1);
         v = (v << 1) | next_bit;
         ++l;
       }
 
       // debug - start
       // if (!chunk_id) {
-      // // if ((entry[l] + v - first[l])*sizeof(Q) + sizeof(H) * (2 * sizeof(H) * 8) >= 1280) {
-      //   printf("out of range: %llu\n", (entry[l] + v - first[l])*sizeof(Q) + sizeof(H) * (2 * sizeof(H) * 8));
-      //   printf("l: %llu\n", l);
+      // // if ((entry[l] + v - first[l])*sizeof(Q) + sizeof(H) * (2 * sizeof(H)
+      // * 8) >= 1280) {
+      //   printf("out of range: %llu\n", (entry[l] + v - first[l])*sizeof(Q) +
+      //   sizeof(H) * (2 * sizeof(H) * 8)); printf("l: %llu\n", l);
       //   printf("entry[l]: %llu\n", entry[l]);
       //   printf("v: %llu\n", v);
       //   printf("first[l]: %llu\n", first[l]);
@@ -91,10 +94,12 @@ class DecodeFunctor: public Functor<DeviceType> {
       //     printf("%llu ", first[i]);
       //   }
       //   printf("\n");
-      // } 
-      //debug - end
+      // }
+      // debug - end
       // if (entry[l] + v - first[l] > 100000) {
-      //   printf("offset: %llu + %llu i: %llu l: %llu (%llu, %llu, %llu)\n", sizeof(H) * (2 * sizeof(H) * 8), entry[l] + v - first[l], i, l, entry[l], v, first[l]);
+      //   printf("offset: %llu + %llu i: %llu l: %llu (%llu, %llu, %llu)\n",
+      //   sizeof(H) * (2 * sizeof(H) * 8), entry[l] + v - first[l], i, l,
+      //   entry[l], v, first[l]);
       // }
       *bcode(bcode_offset + idx_bcoded) = keys[entry[l] + v - first[l]];
       idx_bcoded++;
@@ -102,63 +107,58 @@ class DecodeFunctor: public Functor<DeviceType> {
         ++i;
         idx_byte = i / (sizeof(H) * 8);
         idx_bit = i % (sizeof(H) * 8);
-        next_bit = ((*densely(densely_offset+idx_byte) >> (sizeof(H) * 8 - 1 - idx_bit)) & 0x1);
+        next_bit = ((*densely(densely_offset + idx_byte) >>
+                     (sizeof(H) * 8 - 1 - idx_bit)) &
+                    0x1);
         v = 0x0 | next_bit;
       }
       l = 1;
     }
   }
 
-  MGARDX_EXEC void
-  Operation3() { }
+  MGARDX_EXEC void Operation3() {}
 
-  MGARDX_EXEC void
-  Operation4() { }
+  MGARDX_EXEC void Operation4() {}
 
-  MGARDX_EXEC void
-  Operation5() { }
+  MGARDX_EXEC void Operation5() {}
 
-  MGARDX_CONT size_t
-  shared_memory_size() { 
+  MGARDX_CONT size_t shared_memory_size() {
     if (CACHE_SINGLETION) {
-      return singleton_size; 
+      return singleton_size;
     } else {
       return 0;
     }
   }
 
-  private:
+private:
   SubArray<1, H, DeviceType> densely;
   SubArray<1, size_t, DeviceType> dH_meta;
   SubArray<1, Q, DeviceType> bcode;
   SIZE len;
   int chunk_size;
-  int n_chunk; 
-  SubArray<1, uint8_t, DeviceType> singleton; 
+  int n_chunk;
+  SubArray<1, uint8_t, DeviceType> singleton;
   size_t singleton_size;
 
-  uint8_t * _s_singleton;
+  uint8_t *_s_singleton;
 };
 
-
 template <typename Q, typename H, typename DeviceType>
-class Decode: public AutoTuner<DeviceType> {
+class Decode : public AutoTuner<DeviceType> {
 public:
   MGARDX_CONT
-  Decode():AutoTuner<DeviceType>() {}
+  Decode() : AutoTuner<DeviceType>() {}
 
-  template<bool CACHE_SINGLETION>
-  MGARDX_CONT
-  Task<DecodeFunctor<Q, H, CACHE_SINGLETION, DeviceType> > 
-  GenTask(SubArray<1, H, DeviceType> densely, 
+  template <bool CACHE_SINGLETION>
+  MGARDX_CONT Task<DecodeFunctor<Q, H, CACHE_SINGLETION, DeviceType>>
+  GenTask(SubArray<1, H, DeviceType> densely,
           SubArray<1, size_t, DeviceType> dH_meta,
-          SubArray<1, Q, DeviceType> bcode,
-          SIZE len, int chunk_size, int n_chunk, 
-          SubArray<1, uint8_t, DeviceType> singleton, 
+          SubArray<1, Q, DeviceType> bcode, SIZE len, int chunk_size,
+          int n_chunk, SubArray<1, uint8_t, DeviceType> singleton,
           size_t singleton_size, int queue_idx) {
     using FunctorType = DecodeFunctor<Q, H, CACHE_SINGLETION, DeviceType>;
-    FunctorType functor(densely, dH_meta, bcode, len, chunk_size,
-                        n_chunk, singleton, singleton_size);
+    FunctorType functor(densely, dH_meta, bcode, len, chunk_size, n_chunk,
+                        singleton, singleton_size);
 
     int nchunk = (len - 1) / chunk_size + 1;
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
@@ -169,46 +169,49 @@ public:
     gridz = 1;
     gridy = 1;
     gridx = (nchunk - 1) / tbx + 1;
-    // SubArray<1, H, DeviceType> temp({(SIZE)(singleton_size/sizeof(H))}, (H*)singleton.data());
-    // PrintSubarray("singleton", temp);
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
+    // SubArray<1, H, DeviceType> temp({(SIZE)(singleton_size/sizeof(H))},
+    // (H*)singleton.data()); PrintSubarray("singleton", temp); printf("%u %u
+    // %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
     // PrintSubarray("shape", shape);
-    return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx, "Decode"); 
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "Decode");
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, H, DeviceType> densely, 
-              SubArray<1, size_t, DeviceType> dH_meta,
-              SubArray<1, Q, DeviceType> bcode,
-              SIZE len, int chunk_size, int n_chunk, 
-              SubArray<1, uint8_t, DeviceType> singleton, 
-              size_t singleton_size, int queue_idx) {
+  void Execute(SubArray<1, H, DeviceType> densely,
+               SubArray<1, size_t, DeviceType> dH_meta,
+               SubArray<1, Q, DeviceType> bcode, SIZE len, int chunk_size,
+               int n_chunk, SubArray<1, uint8_t, DeviceType> singleton,
+               size_t singleton_size, int queue_idx) {
     int maxbytes = DeviceRuntime<DeviceType>::GetMaxSharedMemorySize();
     if (singleton_size <= maxbytes) {
       if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
-        std::cout << log::log_info << "Decode: using share memory to cache decodebook\n";
+        std::cout << log::log_info
+                  << "Decode: using share memory to cache decodebook\n";
       }
       using FunctorType = DecodeFunctor<Q, H, true, DeviceType>;
       using TaskType = Task<FunctorType>;
-      TaskType task = GenTask<true>(densely, dH_meta, bcode, len, chunk_size,
-                          n_chunk, singleton, singleton_size, queue_idx); 
-      DeviceAdapter<TaskType, DeviceType> adapter; 
+      TaskType task =
+          GenTask<true>(densely, dH_meta, bcode, len, chunk_size, n_chunk,
+                        singleton, singleton_size, queue_idx);
+      DeviceAdapter<TaskType, DeviceType> adapter;
       adapter.Execute(task);
     } else {
       if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
-        std::cout << log::log_info << "Decode: not using share memory to cache decodebook\n";
+        std::cout << log::log_info
+                  << "Decode: not using share memory to cache decodebook\n";
       }
       using FunctorType = DecodeFunctor<Q, H, false, DeviceType>;
       using TaskType = Task<FunctorType>;
-      TaskType task = GenTask<false>(densely, dH_meta, bcode, len, chunk_size,
-                          n_chunk, singleton, singleton_size, queue_idx); 
-      DeviceAdapter<TaskType, DeviceType> adapter; 
+      TaskType task =
+          GenTask<false>(densely, dH_meta, bcode, len, chunk_size, n_chunk,
+                         singleton, singleton_size, queue_idx);
+      DeviceAdapter<TaskType, DeviceType> adapter;
       adapter.Execute(task);
     }
   }
 };
 
-}
+} // namespace mgard_x
 
 #endif

@@ -4,8 +4,8 @@
  * Author: Jieyang Chen (chenj3@ornl.gov)
  * Date: December 1, 2021
  */
-
 #include "DataTypes.h"
+
 #include "DataStructures/Array.h"
 #include "Utilities/Message.h"
 #include "Utilities/Timer.hpp"
@@ -15,9 +15,7 @@
 
 namespace mgard_x {
 
-template <typename DeviceType> 
-bool deviceAvailable();
-
+template <typename DeviceType> bool deviceAvailable();
 }
 
 #endif

@@ -11,7 +11,7 @@
 #include "cuda/LosslessCompression.h"
 #include "cuda/ParallelHuffman/huffman_workflow.cuh"
 // #include "cuda/ParallelHuffman/Huffman.hpp"
- 
+
 #include <typeinfo>
 
 namespace mgard_x {
@@ -200,8 +200,7 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   // printf("copy primary\n");
   if (size > 0) {
     mgard_x::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p,
-                                      size * sizeof(Q), mgard_x::D2D,
-                                      queue_idx);
+                                   size * sizeof(Q), mgard_x::D2D, queue_idx);
   }
   pp += size;
   p += size;
@@ -210,8 +209,7 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
     size = 1;
     // printf("copy outlier\n");
     mgard_x::cudaMemcpyAsyncHelper(handle, doutlier + op, dqv + p,
-                                      size * sizeof(S), mgard_x::D2D,
-                                      queue_idx);
+                                   size * sizeof(S), mgard_x::D2D, queue_idx);
     op += size;
     p += size;
     size = outlier_idx[i + 1] - outlier_idx[i] - 1;
@@ -219,8 +217,7 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
     // - 1]);
     if (size > 0) {
       mgard_x::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p,
-                                        size * sizeof(Q), mgard_x::D2D,
-                                        queue_idx);
+                                     size * sizeof(Q), mgard_x::D2D, queue_idx);
     }
     pp += size;
     p += size;
@@ -228,8 +225,7 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   size = 1;
   // printf("copy outlier\n");
   mgard_x::cudaMemcpyAsyncHelper(handle, doutlier + op, dqv + p,
-                                    size * sizeof(S), mgard_x::D2D,
-                                    queue_idx);
+                                 size * sizeof(S), mgard_x::D2D, queue_idx);
   op += size;
   p += size;
   size = n - outlier_idx[outlier_count - 1] - 1;
@@ -237,8 +233,7 @@ void SeparateOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   // 1]);
   if (size > 0) {
     mgard_x::cudaMemcpyAsyncHelper(handle, dprimary + pp, dqv + p,
-                                      size * sizeof(Q), mgard_x::D2D,
-                                      queue_idx);
+                                   size * sizeof(Q), mgard_x::D2D, queue_idx);
   }
   // printf("done copy primary\n");
   pp += size;
@@ -262,8 +257,7 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   // printf("copy primary\n");
   if (size > 0) {
     mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, dprimary + pp,
-                                      size * sizeof(Q), mgard_x::D2D,
-                                      queue_idx);
+                                   size * sizeof(Q), mgard_x::D2D, queue_idx);
   }
   pp += size;
   p += size;
@@ -272,8 +266,7 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
     size = 1;
     // printf("copy outlier\n");
     mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, doutlier + op,
-                                      size * sizeof(S), mgard_x::D2D,
-                                      queue_idx);
+                                   size * sizeof(S), mgard_x::D2D, queue_idx);
     op += size;
     p += size;
     size = outlier_idx[i + 1] - outlier_idx[i] - 1;
@@ -281,8 +274,7 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
     // - 1]);
     if (size > 0) {
       mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, dprimary + pp,
-                                        size * sizeof(Q), mgard_x::D2D,
-                                        queue_idx);
+                                     size * sizeof(Q), mgard_x::D2D, queue_idx);
     }
     pp += size;
     p += size;
@@ -290,8 +282,7 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   size = 1;
   // printf("copy outlier\n");
   mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, doutlier + op,
-                                    size * sizeof(S), mgard_x::D2D,
-                                    queue_idx);
+                                 size * sizeof(S), mgard_x::D2D, queue_idx);
   op += size;
   p += size;
   size = n - outlier_idx[outlier_count - 1] - 1;
@@ -299,8 +290,7 @@ void CombineOutlierAndPrimary(Handle<D, T> &handle, S *dqv, size_t n,
   // 1]);
   if (size > 0) {
     mgard_x::cudaMemcpyAsyncHelper(handle, dqv + p, dprimary + pp,
-                                      size * sizeof(Q), mgard_x::D2D,
-                                      queue_idx);
+                                   size * sizeof(Q), mgard_x::D2D, queue_idx);
   }
   // printf("done copy primary\n");
   pp += size;
@@ -333,33 +323,37 @@ KERNELS(5, double, int, uint32_t)
 KERNELS(5, float, int, uint32_t)
 #undef KERNELS
 
-template <uint32_t D, typename T, typename S, typename Q, typename H, typename DeviceType>
+template <uint32_t D, typename T, typename S, typename Q, typename H,
+          typename DeviceType>
 void huffman_compress(Handle<D, T> &handle, S *input_data, size_t input_count,
                       std::vector<size_t> &outlier_idx, H *&out_meta,
                       size_t &out_meta_size, H *&out_data,
                       size_t &out_data_size, int chunk_size, int dict_size,
                       int queue_idx) {
 
-  // HuffmanEncode<D, T, S, Q, H, DeviceType>(handle, input_data, input_count, outlier_idx,
-  //                              out_meta, out_meta_size, out_data, out_data_size,
-  //                              chunk_size, dict_size);
+  // HuffmanEncode<D, T, S, Q, H, DeviceType>(handle, input_data, input_count,
+  // outlier_idx,
+  //                              out_meta, out_meta_size, out_data,
+  //                              out_data_size, chunk_size, dict_size);
 }
 
-template <uint32_t D, typename T, typename S, typename Q, typename H, typename DeviceType>
+template <uint32_t D, typename T, typename S, typename Q, typename H,
+          typename DeviceType>
 void huffman_decompress(Handle<D, T> &handle, H *in_meta, size_t in_meta_size,
                         H *in_data, size_t in_data_size, S *&output_data,
                         size_t &output_count, int queue_idx) {
-  // HuffmanDecode<D, T, S, Q, H, DeviceType>(handle, output_data, output_count, in_meta,
+  // HuffmanDecode<D, T, S, Q, H, DeviceType>(handle, output_data, output_count,
+  // in_meta,
   //                              in_meta_size, in_data, in_data_size);
 }
 
 #define KERNELS(D, T, S, Q, H)                                                 \
-  template void huffman_compress<D, T, S, Q, H, CUDA>(                               \
+  template void huffman_compress<D, T, S, Q, H, CUDA>(                         \
       Handle<D, T> & handle, S * input_data, size_t input_count,               \
       std::vector<size_t> & outlier_idx, H * &out_meta,                        \
       size_t & out_meta_size, H * &out_data, size_t & out_data_size,           \
       int chunk_size, int dict_size, int queue_idx);                           \
-  template void huffman_decompress<D, T, S, Q, H, CUDA>(                             \
+  template void huffman_decompress<D, T, S, Q, H, CUDA>(                       \
       Handle<D, T> & handle, H * in_meta, size_t in_meta_size, H * in_data,    \
       size_t in_data_size, S * &output_data, size_t & output_count,            \
       int queue_idx);

@@ -5,7 +5,6 @@
  * Date: December 1, 2021
  */
 
-
 #include "mgard-x/Types.h"
 
 namespace mgard_x {
@@ -19,4 +18,4 @@ enum endiness_type CheckEndianess() {
   }
 }
 
-}
+} // namespace mgard_x

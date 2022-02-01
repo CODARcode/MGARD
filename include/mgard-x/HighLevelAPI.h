@@ -12,7 +12,7 @@
 #include <vector>
 
 // #include "compress_cuda.hpp"
-#include "mgard-x/Hierarchy.h" 
+#include "mgard-x/Hierarchy.h"
 #include "mgard-x/Metadata.hpp"
 #include "mgard-x/RuntimeX/RuntimeXPublic.h"
 
@@ -24,7 +24,8 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType>
 void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
               const void *original_data, void *&compressed_data,
-              size_t &compressed_size, Config config, bool output_pre_allocated);
+              size_t &compressed_size, Config config,
+              bool output_pre_allocated);
 
 template <DIM D, typename T, typename DeviceType>
 void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
@@ -40,17 +41,13 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
 template <DIM D, typename T, typename DeviceType>
 void decompress(std::vector<SIZE> shape, const void *compressed_data,
-                size_t compressed_size, void *&decompressed_data,
-                Config config,
+                size_t compressed_size, void *&decompressed_data, Config config,
                 bool output_pre_allocated);
 
-template<typename DeviceType>
-void BeginAutoTuning();
+template <typename DeviceType> void BeginAutoTuning();
 
-template<typename DeviceType>
-void EndAutoTuning();
+template <typename DeviceType> void EndAutoTuning();
 
-
-}
+} // namespace mgard_x
 
 #endif

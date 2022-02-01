@@ -24,6 +24,6 @@ template <typename T> MGARDX_EXEC T lerp(T v0, T v1, T t) {
 #endif
 }
 
-}
+} // namespace mgard_x
 
 #endif

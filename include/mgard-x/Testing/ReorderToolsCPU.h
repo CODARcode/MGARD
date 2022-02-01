@@ -14,10 +14,11 @@
 namespace mgard {
 
 template <std::size_t D, typename T>
-void ReorderCPU(TensorMeshHierarchy<D, T> &hierarchy, T * input, T * output);
+void ReorderCPU(TensorMeshHierarchy<D, T> &hierarchy, T *input, T *output);
 template <std::size_t D, typename T>
-void ReverseReorderCPU(TensorMeshHierarchy<D, T> &hierarchy, T * input, T * output);
+void ReverseReorderCPU(TensorMeshHierarchy<D, T> &hierarchy, T *input,
+                       T *output);
 
-}
+} // namespace mgard
 
 #endif

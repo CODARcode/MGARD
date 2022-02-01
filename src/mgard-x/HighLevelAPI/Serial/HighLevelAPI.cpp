@@ -13,19 +13,24 @@
 #include <chrono>
 namespace mgard_x {
 
-#define KERNELS(D, T)                                        \
-template void compress<D, T, Serial>(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,\
-              const void *original_data, void *&compressed_data,\
-              size_t &compressed_size, Config config, bool output_pre_allocated);\
-template void compress<D, T, Serial>(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,\
-              const void *original_data, void *&compressed_data,\
-              size_t &compressed_size, Config config, std::vector<T *> coords, bool output_pre_allocated);\
-template void decompress<D, T, Serial>(std::vector<SIZE> shape, const void *compressed_data,\
-                size_t compressed_size, void *&decompressed_data,\
-                std::vector<T *> coords, Config config, bool output_pre_allocated);\
-template void decompress<D, T, Serial>(std::vector<SIZE> shape, const void *compressed_data,\
-                size_t compressed_size, void *&decompressed_data,\
-                Config config, bool output_pre_allocated);
+#define KERNELS(D, T)                                                          \
+  template void compress<D, T, Serial>(                                        \
+      std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,         \
+      const void *original_data, void *&compressed_data,                       \
+      size_t &compressed_size, Config config, bool output_pre_allocated);      \
+  template void compress<D, T, Serial>(                                        \
+      std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,         \
+      const void *original_data, void *&compressed_data,                       \
+      size_t &compressed_size, Config config, std::vector<T *> coords,         \
+      bool output_pre_allocated);                                              \
+  template void decompress<D, T, Serial>(                                      \
+      std::vector<SIZE> shape, const void *compressed_data,                    \
+      size_t compressed_size, void *&decompressed_data,                        \
+      std::vector<T *> coords, Config config, bool output_pre_allocated);      \
+  template void decompress<D, T, Serial>(                                      \
+      std::vector<SIZE> shape, const void *compressed_data,                    \
+      size_t compressed_size, void *&decompressed_data, Config config,         \
+      bool output_pre_allocated);
 
 KERNELS(1, double)
 KERNELS(1, float)

@@ -19,7 +19,7 @@ using namespace std::chrono;
 
 template <typename T>
 int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
-                    std::vector<mgard_x::SIZE> shape, 
+                    std::vector<mgard_x::SIZE> shape,
                     enum mgard_x::device_type dev_type) {
 
   mgard_x::Config config;
@@ -46,10 +46,9 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   size_t compressed_size = 0;
   void *decompressed_data = NULL;
   mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                       compressed_data, compressed_size, config,
-                       false);
+                    compressed_data, compressed_size, config, false);
   mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                         config, false);
+                      config, false);
 
   delete[](T *) original_data;
   free(compressed_data);
@@ -57,10 +56,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   return 0;
 }
 
-
 void autotuning(enum mgard_x::device_type dev_type) {
   if (dev_type == mgard_x::device_type::Serial) {
-    std::cout << mgard_x::log::log_info << "Start autotuning MGARD-X::Serial.\n";
+    std::cout << mgard_x::log::log_info
+              << "Start autotuning MGARD-X::Serial.\n";
   } else if (dev_type == mgard_x::device_type::CUDA) {
     std::cout << mgard_x::log::log_info << "Start autotuning MGARD-X::CUDA.\n";
   } else if (dev_type == mgard_x::device_type::HIP) {
@@ -92,7 +91,6 @@ void autotuning(enum mgard_x::device_type dev_type) {
   mgard_x::EndAutoTuning(dev_type);
 }
 
-
 std::string get_arg(int argc, char *argv[], std::string option) {
   for (int i = 0; i < argc; i++) {
     if (option.compare(std::string(argv[i])) == 0) {
@@ -101,7 +99,6 @@ std::string get_arg(int argc, char *argv[], std::string option) {
   }
   return std::string("");
 }
-
 
 int main(int argc, char *argv[]) {
   enum mgard_x::device_type dev_type;

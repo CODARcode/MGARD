@@ -5,9 +5,9 @@
  * Date: December 1, 2021
  */
 
-#include "mgard-x/Types.h"
-#include "mgard-x/RuntimeX/RuntimeXPublic.h"
 #include "mgard-x/CompressionWorkflow.h"
+#include "mgard-x/RuntimeX/RuntimeXPublic.h"
+#include "mgard-x/Types.h"
 #include <cstdint>
 
 #ifndef MGARD_X_API_H
@@ -31,7 +31,8 @@ namespace mgard_x {
 //!\param[out] compressed_size Size of compressed data.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size, bool output_pre_allocated);
+              void *&compressed_data, size_t &compressed_size,
+              bool output_pre_allocated);
 
 //!\file
 //!\brief High level compression and decompression API.
@@ -50,7 +51,8 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[in] config For configuring the compression process.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size, Config config,  bool output_pre_allocated);
+              void *&compressed_data, size_t &compressed_size, Config config,
+              bool output_pre_allocated);
 
 //! Compress a function on an N-D tensor product grid with non-uniform spacing
 //!
@@ -67,7 +69,8 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, enum device_type dev_type, bool output_pre_allocated);
+              std::vector<const Byte *> coords, enum device_type dev_type,
+              bool output_pre_allocated);
 
 //! Compress a function on an N-D tensor product grid with non-uniform spacing
 //!
@@ -85,7 +88,8 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, Config config, bool output_pre_allocated);
+              std::vector<const Byte *> coords, Config config,
+              bool output_pre_allocated);
 
 //! Decompress a function on an N-D tensor product grid
 //!
@@ -102,7 +106,8 @@ void decompress(const void *compressed_data, size_t compressed_size,
 //!\param[out] decompressed_data Decompressed data.
 //!\param[in] config For configuring the decompression process.
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, Config config, bool output_pre_allocated);
+                void *&decompressed_data, Config config,
+                bool output_pre_allocated);
 
 //! Verify the compressed data
 bool verify(const void *compressed_data, size_t compressed_size);
@@ -131,7 +136,6 @@ std::vector<T *> infer_coords(const void *compressed_data,
 void BeginAutoTuning(enum device_type dev_type);
 void EndAutoTuning(enum device_type dev_type);
 
-
 //!\file
 //!\brief Low level compression and decompression API.
 
@@ -146,8 +150,9 @@ void EndAutoTuning(enum device_type dev_type);
 //!
 //!\return Compressed dataset.
 template <uint32_t D, typename T, typename DeviceType>
-Array<1, unsigned char, DeviceType> compress(Hierarchy<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
-                                 enum error_bound_type type, T tol, T s);
+Array<1, unsigned char, DeviceType>
+compress(Hierarchy<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
+         enum error_bound_type type, T tol, T s);
 
 //! Decompress a function on an N-D tensor product grid
 //!
@@ -156,12 +161,13 @@ Array<1, unsigned char, DeviceType> compress(Hierarchy<D, T, DeviceType> &handle
 //!\param[in] compressed_array Compressed dataset.
 //!\return Decompressed dataset.
 template <uint32_t D, typename T, typename DeviceType>
-Array<D, T, DeviceType> decompress(Hierarchy<D, T, DeviceType> &handle,
-                       Array<1, unsigned char, DeviceType> &compressed_array);
+Array<D, T, DeviceType>
+decompress(Hierarchy<D, T, DeviceType> &handle,
+           Array<1, unsigned char, DeviceType> &compressed_array);
 
-template<typename DeviceType> void BeginAutoTuning();
+template <typename DeviceType> void BeginAutoTuning();
 
-template<typename DeviceType> void EndAutoTuning();
+template <typename DeviceType> void EndAutoTuning();
 
 } // namespace mgard_x
 

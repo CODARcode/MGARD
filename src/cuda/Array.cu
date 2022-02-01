@@ -13,8 +13,8 @@
 
 #include <algorithm>
 
-#include "cuda/CommonInternal.h"
 #include "cuda/Array.h"
+#include "cuda/CommonInternal.h"
 
 namespace mgard_cuda {
 

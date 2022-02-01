@@ -7,7 +7,6 @@
 
 using std::string;
 
-
 namespace mgard_x {
 namespace log {
 
@@ -17,7 +16,6 @@ extern const string log_dbg;
 extern const string log_info;
 extern const string log_warn;
 extern const string log_time;
-
 
 // https://stackoverflow.com/a/26080768/8740097
 template <typename T> void build(std::ostream &o, T t);
