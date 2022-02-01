@@ -5,11 +5,9 @@
  * Date: December 1, 2021
  */
 
-
-
 #define MGARDX_COMPILE_CUDA
 #include "mgard-x/RuntimeX/RuntimeX.h"
- 
+
 namespace mgard_x {
 
 int DeviceRuntime<CUDA>::curr_dev_id = 0;
@@ -25,10 +23,9 @@ KernelConfigs<CUDA> AutoTuner<CUDA>::kernelConfigs;
 AutoTuningTable<CUDA> AutoTuner<CUDA>::autoTuningTable;
 bool AutoTuner<CUDA>::ProfileKernels = false;
 
-template <> 
-bool deviceAvailable<CUDA>() {
+template <> bool deviceAvailable<CUDA>() {
   return DeviceRuntime<CUDA>::GetDeviceCount() > 0;
 }
 
-}
+} // namespace mgard_x
 #undef MGARDX_COMPILE_CUDA

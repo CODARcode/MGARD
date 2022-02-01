@@ -10,11 +10,10 @@
 // #include "Common.h"
 
 // #include "CommonInternal.h"
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 #include "Array.h"
-
 
 // #include "../DeviceAdapters/DeviceAdapter.h"
 
@@ -37,8 +36,9 @@ Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched) {
   this->shape = shape;
   int ret = check_shape<D>(shape);
   if (ret == -1) {
-    std::cerr << log::log_err
-              << "Number of dimensions mismatch (" << D << " != " << shape.size() << "). mgard_x::Array not "
+    std::cerr << log::log_err << "Number of dimensions mismatch (" << D
+              << " != " << shape.size()
+              << "). mgard_x::Array not "
                  "initialized!\n";
     return;
   }
@@ -62,35 +62,29 @@ Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched) {
   if (this->pitched) {
     SIZE ld = 0;
     MemoryManager<DeviceType>().MallocND(
-                      this->dv, this->shape[0], this->shape[1] * this->linearized_depth,
-                      ld, 0);
+        this->dv, this->shape[0], this->shape[1] * this->linearized_depth, ld,
+        0);
     this->ldvs_h.push_back(ld);
     for (int i = 1; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   } else {
     MemoryManager<DeviceType>().Malloc1D(
-                      this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
-                      0);
+        this->dv, this->shape[0] * this->shape[1] * this->linearized_depth, 0);
     for (int i = 0; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
-
   }
 
-  MemoryManager<DeviceType>().Malloc1D(
-                      this->ldvs_d, this->ldvs_h.size(),
-                      0);
-  
-  MemoryManager<DeviceType>().Copy1D(
-                      this->ldvs_d, this->ldvs_h.data(),
-                        this->ldvs_h.size(),
-                      0);
+  MemoryManager<DeviceType>().Malloc1D(this->ldvs_d, this->ldvs_h.size(), 0);
+
+  MemoryManager<DeviceType>().Copy1D(this->ldvs_d, this->ldvs_h.data(),
+                                     this->ldvs_h.size(), 0);
 
   this->device_allocated = true;
 }
 
-template <DIM D, typename T, typename DeviceType> 
+template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType>::Array(const Array<D, T, DeviceType> &array) {
   // printf("Array copy 1\n");
   this->host_allocated = false;
@@ -117,37 +111,32 @@ Array<D, T, DeviceType>::Array(const Array<D, T, DeviceType> &array) {
   if (this->pitched) {
     SIZE ld = 0;
     MemoryManager<DeviceType>().MallocND(
-                      this->dv, this->shape[0], this->shape[1] * this->linearized_depth,
-                      ld, 0);
+        this->dv, this->shape[0], this->shape[1] * this->linearized_depth, ld,
+        0);
     this->ldvs_h.push_back(ld);
     for (int i = 1; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   } else {
     MemoryManager<DeviceType>().Malloc1D(
-                      this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
-                      0);
+        this->dv, this->shape[0] * this->shape[1] * this->linearized_depth, 0);
     for (int i = 0; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   }
-  
-  MemoryManager<DeviceType>().Malloc1D(
-                      this->ldvs_d, this->ldvs_h.size(),
-                      0);
-  MemoryManager<DeviceType>().Copy1D(
-                      this->ldvs_d, this->ldvs_h.data(),
-                        this->ldvs_h.size(),
-                      0);
+
+  MemoryManager<DeviceType>().Malloc1D(this->ldvs_d, this->ldvs_h.size(), 0);
+  MemoryManager<DeviceType>().Copy1D(this->ldvs_d, this->ldvs_h.data(),
+                                     this->ldvs_h.size(), 0);
 
   MemoryManager<DeviceType>().CopyND(
-          this->dv, this->ldvs_h[0], array.dv, array.ldvs_h[0], 
-          array.shape[0], array.shape[1]*this->linearized_depth, 0);
+      this->dv, this->ldvs_h[0], array.dv, array.ldvs_h[0], array.shape[0],
+      array.shape[1] * this->linearized_depth, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   this->device_allocated = true;
 }
 
-template <DIM D, typename T, typename DeviceType> 
+template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType>::Array(Array<D, T, DeviceType> &array) {
   // printf("Array copy2\n");
   this->host_allocated = false;
@@ -174,53 +163,47 @@ Array<D, T, DeviceType>::Array(Array<D, T, DeviceType> &array) {
   if (this->pitched) {
     SIZE ld = 0;
     MemoryManager<DeviceType>().MallocND(
-                      this->dv, this->shape[0], this->shape[1] * this->linearized_depth,
-                      ld, 0);
+        this->dv, this->shape[0], this->shape[1] * this->linearized_depth, ld,
+        0);
     this->ldvs_h.push_back(ld);
     for (int i = 1; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   } else {
     MemoryManager<DeviceType>().Malloc1D(
-                      this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
-                      0);
+        this->dv, this->shape[0] * this->shape[1] * this->linearized_depth, 0);
     for (int i = 0; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   }
-  
-  MemoryManager<DeviceType>().Malloc1D(
-                      this->ldvs_d, this->ldvs_h.size(),
-                      0);
-  MemoryManager<DeviceType>().Copy1D(
-                      this->ldvs_d, this->ldvs_h.data(),
-                        this->ldvs_h.size(),
-                      0);
+
+  MemoryManager<DeviceType>().Malloc1D(this->ldvs_d, this->ldvs_h.size(), 0);
+  MemoryManager<DeviceType>().Copy1D(this->ldvs_d, this->ldvs_h.data(),
+                                     this->ldvs_h.size(), 0);
   MemoryManager<DeviceType>().CopyND(
-          this->dv, this->ldvs_h[0], array.dv, array.ldvs_h[0], 
-          array.shape[0], array.shape[1]*this->linearized_depth, 0);
+      this->dv, this->ldvs_h[0], array.dv, array.ldvs_h[0], array.shape[0],
+      array.shape[1] * this->linearized_depth, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   this->device_allocated = true;
 }
 
-template <DIM D, typename T, typename DeviceType> 
+template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::memset(int value) {
   if (this->pitched) {
-    MemoryManager<DeviceType>().MemsetND(this->dv, this->ldvs_h[0], 
-                                         this->shape[0], 
-                                         this->shape[1] * this->linearized_depth,
-                                         value, 0);
+    MemoryManager<DeviceType>().MemsetND(
+        this->dv, this->ldvs_h[0], this->shape[0],
+        this->shape[1] * this->linearized_depth, value, 0);
   } else {
-    MemoryManager<DeviceType>().Memset1D(this->dv,
-                                         this->shape[0] *
-                                         this->shape[1] * this->linearized_depth,
-                                         value, 0);
+    MemoryManager<DeviceType>().Memset1D(
+        this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
+        value, 0);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
-template <DIM D, typename T, typename DeviceType> 
-Array<D, T, DeviceType>& Array<D, T, DeviceType>::operator = (const Array<D, T, DeviceType> &array) {
+template <DIM D, typename T, typename DeviceType>
+Array<D, T, DeviceType> &Array<D, T, DeviceType>::
+operator=(const Array<D, T, DeviceType> &array) {
   // printf("Array operator =\n");
   this->host_allocated = false;
   this->device_allocated = false;
@@ -246,39 +229,33 @@ Array<D, T, DeviceType>& Array<D, T, DeviceType>::operator = (const Array<D, T, 
   if (this->pitched) {
     SIZE ld = 0;
     MemoryManager<DeviceType>().MallocND(
-                      this->dv, this->shape[0], this->shape[1] * this->linearized_depth,
-                      ld, 0);
+        this->dv, this->shape[0], this->shape[1] * this->linearized_depth, ld,
+        0);
     this->ldvs_h.push_back(ld);
     for (int i = 1; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   } else {
     MemoryManager<DeviceType>().Malloc1D(
-                      this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
-                      0);
+        this->dv, this->shape[0] * this->shape[1] * this->linearized_depth, 0);
     for (int i = 0; i < D_padded; i++) {
       this->ldvs_h.push_back(this->shape[i]);
     }
   }
-  
-  MemoryManager<DeviceType>().Malloc1D(
-                      this->ldvs_d, this->ldvs_h.size(),
-                      0);
-  MemoryManager<DeviceType>().Copy1D(
-                      this->ldvs_d, this->ldvs_h.data(),
-                        this->ldvs_h.size(),
-                      0);
+
+  MemoryManager<DeviceType>().Malloc1D(this->ldvs_d, this->ldvs_h.size(), 0);
+  MemoryManager<DeviceType>().Copy1D(this->ldvs_d, this->ldvs_h.data(),
+                                     this->ldvs_h.size(), 0);
   MemoryManager<DeviceType>().CopyND(
-          this->dv, this->ldvs_h[0], array.dv, array.ldvs_h[0], 
-          array.shape[0], array.shape[1]*this->linearized_depth, 0);
+      this->dv, this->ldvs_h[0], array.dv, array.ldvs_h[0], array.shape[0],
+      array.shape[1] * this->linearized_depth, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   this->device_allocated = true;
   return *this;
 }
 
-
-template <DIM D, typename T, typename DeviceType> 
-Array<D, T, DeviceType>::Array(Array<D, T, DeviceType> && array) {
+template <DIM D, typename T, typename DeviceType>
+Array<D, T, DeviceType>::Array(Array<D, T, DeviceType> &&array) {
   this->host_allocated = false;
   this->device_allocated = false;
   this->shape = array.shape;
@@ -316,7 +293,6 @@ Array<D, T, DeviceType>::~Array() {
   if (host_allocated) {
     MemoryManager<DeviceType>().FreeHost(hv);
   }
-
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -324,58 +300,59 @@ void Array<D, T, DeviceType>::loadData(const T *data, SIZE ld) {
   if (ld == 0) {
     ld = shape[0];
   }
-  MemoryManager<DeviceType>().CopyND(
-                  dv, ldvs_h[0], data, ld,
-                  shape[0], shape[1] * linearized_depth, 0);
+  MemoryManager<DeviceType>().CopyND(dv, ldvs_h[0], data, ld, shape[0],
+                                     shape[1] * linearized_depth, 0);
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
-template <DIM D, typename T, typename DeviceType> 
+template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::getDataHost() {
-  if (!device_allocated) { 
+  if (!device_allocated) {
     std::cout << log::log_err << "device buffer not initialized.\n";
     exit(-1);
   }
   if (!host_allocated) {
     MemoryManager<DeviceType>().MallocHost(
-                hv, shape[0] * shape[1] * linearized_depth, 0);
+        hv, shape[0] * shape[1] * linearized_depth, 0);
     host_allocated = true;
   }
-  MemoryManager<DeviceType>().CopyND(
-    hv, shape[0], dv, ldvs_h[0], shape[0], shape[1] * linearized_depth, 0);
+  MemoryManager<DeviceType>().CopyND(hv, shape[0], dv, ldvs_h[0], shape[0],
+                                     shape[1] * linearized_depth, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   return hv;
 }
 
-template <DIM D, typename T, typename DeviceType> 
+template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::getDataDevice(SIZE &ld) {
   ld = ldvs_h[0];
   return dv;
 }
 
-template <DIM D, typename T, typename DeviceType> 
-std::vector<SIZE>& Array<D, T, DeviceType>::getShape() {
+template <DIM D, typename T, typename DeviceType>
+std::vector<SIZE> &Array<D, T, DeviceType>::getShape() {
   return shape;
 }
 
-template <DIM D, typename T, typename DeviceType> 
-T *Array<D, T, DeviceType>::get_dv() { return dv; }
+template <DIM D, typename T, typename DeviceType>
+T *Array<D, T, DeviceType>::get_dv() {
+  return dv;
+}
 
-template <DIM D, typename T, typename DeviceType> 
+template <DIM D, typename T, typename DeviceType>
 std::vector<SIZE> Array<D, T, DeviceType>::get_ldvs_h() {
   return ldvs_h;
 }
 
-template <DIM D, typename T, typename DeviceType> 
+template <DIM D, typename T, typename DeviceType>
 SIZE *Array<D, T, DeviceType>::get_ldvs_d() {
   return ldvs_d;
 }
 
-template <DIM D, typename T, typename DeviceType> 
+template <DIM D, typename T, typename DeviceType>
 bool Array<D, T, DeviceType>::is_pitched() {
   return pitched;
 }
-}
+} // namespace mgard_x
 
 #endif

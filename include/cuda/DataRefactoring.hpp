@@ -167,7 +167,8 @@ void calc_coefficients_3d(Handle<D, T> &handle, SubArray<D, T> dinput,
   // // handle.sync_all();
   // if (debug_print) {
   //   printf("after pi_Ql_reo\n");
-  //   print_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
+  //   print_matrix_cuda(handle.dofs[2][l], handle.dofs[1][l],
+  //   handle.dofs[0][l],
   //                     doutput.dv, doutput.ldvs_h[0], doutput.ldvs_h[1],
   //                     doutput.ldvs_h[0]);
   // }
@@ -401,7 +402,8 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T> dcoeff,
     dw_in2.resize({handle.dofs[0][l] - handle.dofs[0][l + 1], handle.dofs[1][l],
                    handle.dofs[2][l]});
     dw_out = dcorrection;
-    dw_out.resize({handle.dofs[0][l + 1], handle.dofs[1][l], handle.dofs[2][l]});
+    dw_out.resize(
+        {handle.dofs[0][l + 1], handle.dofs[1][l], handle.dofs[2][l]});
 
     lpk_reo_1_3d(
         handle, handle.dofs[2][l], handle.dofs[1][l], handle.dofs[0][l],
@@ -427,7 +429,6 @@ void calc_correction_3d(Handle<D, T> &handle, SubArray<D, T> dcoeff,
     // PrintSubarray("after mass_trans_multiply_1_cpt::dw_in1", dw_in1);
     // PrintSubarray("after mass_trans_multiply_1_cpt::dw_in2", dw_in2);
     // PrintSubarray("after mass_trans_multiply_1_cpt::dw_out", dw_out);
-
   }
 
   if (D >= 2) {

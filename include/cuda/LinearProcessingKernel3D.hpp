@@ -316,7 +316,7 @@ __global__ void _lpk_reo_1_3d(SIZE nr, SIZE nc, SIZE nf, SIZE nf_c, SIZE zero_r,
         mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4);
 
     // if (f_gl == 0 && c_gl == 2 && r_gl == 0) {
-    //   // if (debug) 
+    //   // if (debug)
     //     printf("store[%d %d %d] %f \n", r_gl, c_gl, f_gl,
     //             mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
     // }

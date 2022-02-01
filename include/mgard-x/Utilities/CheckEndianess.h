@@ -8,11 +8,9 @@
 #ifndef MGARD_X_CHECK_ENDIANESS_H
 #define MGARD_X_CHECK_ENDIANESS_H
 
-
 #include "../Types.h"
 
 namespace mgard_x {
 enum endiness_type CheckEndianess();
-
 }
 #endif

@@ -13,72 +13,88 @@
 // #include "IterativeProcessingKernel.h"
 namespace mgard_x {
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G, typename DeviceType>
-class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
-  public:
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G,
+          typename DeviceType>
+class Ipk1ReoFunctor : public IterFunctor<DeviceType> {
+public:
   MGARDX_CONT Ipk1ReoFunctor() {}
-  MGARDX_CONT Ipk1ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
-                             SubArray<1, SIZE, DeviceType> shape_c,
-                             DIM processed_n, 
-                             SubArray<1, DIM, DeviceType> processed_dims, 
-                             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-                             SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
-                             SubArray<D, T, DeviceType> v):
-                             shape(shape), shape_c(shape_c), 
-                             processed_n(processed_n), processed_dims(processed_dims),
-                             curr_dim_r(curr_dim_r), curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f),
-                             am(am), bm(bm), v(v) {
-    Functor<DeviceType>();                            
+  MGARDX_CONT
+  Ipk1ReoFunctor(SubArray<1, SIZE, DeviceType> shape,
+                 SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+                 SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+                 DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+                 SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v)
+      : shape(shape), shape_c(shape_c), processed_n(processed_n),
+        processed_dims(processed_dims), curr_dim_r(curr_dim_r),
+        curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f), am(am), bm(bm), v(v) {
+    Functor<DeviceType>();
   }
 
-  MGARDX_EXEC void
-  Operation1() {
+  MGARDX_EXEC void Operation1() {
     // bool debug = false;
-    // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
-    //     FunctorBase<DeviceType>::GetThreadIdZ() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0)
+    // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 &&
+    // FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+    //     FunctorBase<DeviceType>::GetThreadIdZ() == 0 &&
+    //     FunctorBase<DeviceType>::GetThreadIdY() == 0)
     //   debug = false;
 
     // bool debug2 = false;
-    // if (FunctorBase<DeviceType>::GetThreadIdZ() == 0 && FunctorBase<DeviceType>::GetThreadIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0)
+    // if (FunctorBase<DeviceType>::GetThreadIdZ() == 0 &&
+    // FunctorBase<DeviceType>::GetThreadIdY() == 0 &&
+    // FunctorBase<DeviceType>::GetThreadIdX() == 0)
     //   debug2 = false;
 
-    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
-                      (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() *
+                (FunctorBase<DeviceType>::GetBlockDimX() *
+                 FunctorBase<DeviceType>::GetBlockDimY())) +
+               (FunctorBase<DeviceType>::GetThreadIdY() *
+                FunctorBase<DeviceType>::GetBlockDimX()) +
+               FunctorBase<DeviceType>::GetThreadIdX();
 
-    T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
+    T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F + G;
     ldsm2 = C;
-    vec_sm = sm; sm += R * ldsm1 * ldsm2;
-    am_sm = sm; sm += ldsm1;
-    bm_sm = sm; sm += ldsm1;
+    vec_sm = sm;
+    sm += R * ldsm1 * ldsm2;
+    am_sm = sm;
+    sm += ldsm1;
+    bm_sm = sm;
+    sm += ldsm1;
 
-    SIZE * sm_size = (SIZE*)sm;
-    shape_sm = sm_size; sm_size += D;
-    shape_c_sm = sm_size; sm_size += D;
+    SIZE *sm_size = (SIZE *)sm;
+    shape_sm = sm_size;
+    sm_size += D;
+    shape_c_sm = sm_size;
+    sm_size += D;
     // SIZE *ldvs_sm = sm_size; sm_size += D;
     // SIZE *ldws_sm = sm_size; sm_size += D;
-    sm = (T*)sm_size;
+    sm = (T *)sm_size;
 
-    DIM * sm_dim = (DIM*)sm;
-    processed_dims_sm = sm_dim; sm_dim += D;
-    sm = (T*)sm_dim;
+    DIM *sm_dim = (DIM *)sm;
+    processed_dims_sm = sm_dim;
+    sm_dim += D;
+    sm = (T *)sm_dim;
 
     // SIZE idx[D];
 
-    for (LENGTH i = threadId; i < D; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
+    for (LENGTH i = threadId; i < D;
+         i += FunctorBase<DeviceType>::GetBlockDimX() *
+              FunctorBase<DeviceType>::GetBlockDimY() *
+              FunctorBase<DeviceType>::GetBlockDimZ()) {
       shape_sm[i] = *shape(i);
       shape_c_sm[i] = *shape_c(i);
       // ldvs_sm[i] = ldvs[i];
       // ldws_sm[i] = ldws[i];
     }
-    for (LENGTH i = threadId; i < processed_n; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
+    for (LENGTH i = threadId; i < processed_n;
+         i += FunctorBase<DeviceType>::GetBlockDimX() *
+              FunctorBase<DeviceType>::GetBlockDimY() *
+              FunctorBase<DeviceType>::GetBlockDimZ()) {
       processed_dims_sm[i] = *processed_dims(i);
     }
-
   }
 
-  MGARDX_EXEC void
-  Operation2() {
+  MGARDX_EXEC void Operation2() {
     // __syncthreads();
 
     for (DIM d = 0; d < D; d++)
@@ -97,20 +113,25 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     SIZE firstD = div_roundup(nc, C);
     SIZE blockId = bidx % firstD;
     // if (debug2) {
-    //   printf("FunctorBase<DeviceType>::GetBlockIdX() %u nc %u FunctorBase<DeviceType>::GetBlockDimX() %u firstD: %u blockId %u\n", FunctorBase<DeviceType>::GetBlockIdX(), nc, FunctorBase<DeviceType>::GetBlockDimX(), firstD, blockId);
+    //   printf("FunctorBase<DeviceType>::GetBlockIdX() %u nc %u
+    //   FunctorBase<DeviceType>::GetBlockDimX() %u firstD: %u blockId %u\n",
+    //   FunctorBase<DeviceType>::GetBlockIdX(), nc,
+    //   FunctorBase<DeviceType>::GetBlockDimX(), firstD, blockId);
     // }
     bidx /= firstD;
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
         SIZE t = shape_sm[d];
-        //for (DIM k = 0; k < processed_n; k++) {
+        // for (DIM k = 0; k < processed_n; k++) {
         //  if (d == processed_dims[k]) {
-            t = shape_c_sm[d];
+        t = shape_c_sm[d];
         //  }
         //}
         // if (debug2) {
-        //   printf("%u mod %u = %u, %u / %u = %u (shape_c: %u %u %u %u %u)\n", bidx, t, bidx % t, bidx, t, bidx/t, shape_c_sm[4], shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
+        //   printf("%u mod %u = %u, %u / %u = %u (shape_c: %u %u %u %u %u)\n",
+        //   bidx, t, bidx % t, bidx, t, bidx/t, shape_c_sm[4],
+        //   shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
         // }
         idx[d] = bidx % t;
         bidx /= t;
@@ -121,17 +142,17 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     // size_t other_offset_v = get_idx<D>(ldvs_sm, idx);
     // v = v + other_offset_v;
 
-
     // if (debug2) {
-    //   printf("ipk1 idx: %u %u %u %u %u ld: %u %u %u %u %u\n", idx[4], idx[3], idx[2], idx[1], idx[0], ldvs_sm[4], ldvs_sm[3], ldvs_sm[2], ldvs_sm[1], ldvs_sm[0]);
-    //   printf("ipk1 other_offset_v: %llu\n", other_offset_v);
+    //   printf("ipk1 idx: %u %u %u %u %u ld: %u %u %u %u %u\n", idx[4], idx[3],
+    //   idx[2], idx[1], idx[0], ldvs_sm[4], ldvs_sm[3], ldvs_sm[2], ldvs_sm[1],
+    //   ldvs_sm[0]); printf("ipk1 other_offset_v: %llu\n", other_offset_v);
 
     //   LENGTH curr_stride = 1;
     //   LENGTH ret_idx = 0;
     //   for (DIM i = 0; i < D; i++) {
     //     ret_idx += idx[i] * curr_stride;
-    //     printf("%llu * %llu = %llu\n", curr_stride, ldvs_sm[i], curr_stride*ldvs_sm[i]);
-    //     curr_stride *= ldvs_sm[i];
+    //     printf("%llu * %llu = %llu\n", curr_stride, ldvs_sm[i],
+    //     curr_stride*ldvs_sm[i]); curr_stride *= ldvs_sm[i];
 
     //   }
     // }
@@ -150,9 +171,10 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     // }
 
     // if (debug2) {
-    //   printf("ld: (%d %d %d %d %d) (shape_c: %u %u %u %u %u)\n", 
+    //   printf("ld: (%d %d %d %d %d) (shape_c: %u %u %u %u %u)\n",
     //     ldvs_sm[4], ldvs_sm[3],ldvs_sm[2],ldvs_sm[1],ldvs_sm[0],
-    //     shape_c_sm[4], shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
+    //     shape_c_sm[4],
+    //     shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
     // }
 
     // T *vec = v + get_idx(ldv1, ldv2, r_gl, c_gl, 0);
@@ -162,7 +184,8 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     prev_vec_sm = 0.0;
 
     c_rest = Math<DeviceType>::Min(C, nc - blockId * C);
-    r_rest = Math<DeviceType>::Min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
+    r_rest = Math<DeviceType>::Min(
+        R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
     f_rest = nf;
     f_ghost = Math<DeviceType>::Min(nf, G);
@@ -175,11 +198,10 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     /* Load first ghost */
     if (r_sm < r_rest && f_sm < f_ghost) {
       for (SIZE i = 0; i < c_rest; i++) {
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
-            *v(r_sm, i, f_gl);
+        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = *v(r_sm, i, f_gl);
         // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n", r0_stride,
         // i, vec_sm[i * ldsm + c_sm]);
-      } 
+      }
     }
 
     if (r_sm == 0 && f_sm < f_ghost) {
@@ -188,18 +210,13 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     }
 
     f_rest -= f_ghost;
-
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC bool
-  LoopCondition1() {
-    return f_rest > F - f_ghost;
-  }
+  MGARDX_EXEC bool LoopCondition1() { return f_rest > F - f_ghost; }
 
-  MGARDX_EXEC void
-  Operation3() {
-    //while (f_rest > F - f_ghost) {
+  MGARDX_EXEC void Operation3() {
+    // while (f_rest > F - f_ghost) {
     // if (c_gl == 0 && c_sm == 0 && r_gl == 0 && r_sm == 0) printf("%d %d\n",
     // f_rest, F - f_ghost);
     f_main = Math<DeviceType>::Min(F, f_rest);
@@ -215,69 +232,68 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-      // __syncthreads();
-  MGARDX_EXEC void
-  Operation4() {
+  // __syncthreads();
+  MGARDX_EXEC void Operation4() {
 
     /* Computation of v in parallel*/
     if (r_sm < r_rest && c_sm < c_rest) {
       // if (debug) printf("forward %f <- %f %f %f %f\n",
       //             tridiag_forward2(
-      //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+      //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+      //     c_sm, 0)]),
+      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+      //             ldsm2, r_sm, c_sm, 0)]);
 
-      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
-          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
+          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
+                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
 
       //#pragma unroll 32
       for (SIZE i = 1; i < F; i++) {
         // if (debug) printf("forward %f <- %f %f %f %f\n",
         //           tridiag_forward2(
-        //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
-        //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
-        //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+        //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+        //     bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
+        //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+        //           bm_sm[i],
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_forward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
-
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
       }
 
       /* Store last v */
       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, F - 1)];
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation5() {
+  MGARDX_EXEC void Operation5() {
 
     /* flush results to v */
     if (r_sm < r_rest && f_sm < F) {
       for (SIZE i = 0; i < c_rest; i++) {
-        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+        // FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
         //   printf("store [%d %d %d] %f<-%f [%d %d %d]\n",
         //     r_sm, i, f_gl, *v(r_sm, i, f_gl),
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)], r_sm, i, f_sm);
         // }
-        *v(r_sm, i, f_gl) =
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
-        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
+        *v(r_sm, i, f_gl) = vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+        // FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
         //   printf("store [%d %d %d] %f<-%f [%d %d %d]\n",
         //     r_sm, i, f_gl, *v(r_sm, i, f_gl),
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)], r_sm, i, f_sm);
         // }
       }
     }
-
   }
 
+  // __syncthreads();
 
-     // __syncthreads();
-
-  MGARDX_EXEC void
-  Operation6() {
+  MGARDX_EXEC void Operation6() {
 
     /* Update unloaded col */
     f_rest -= f_main;
@@ -298,10 +314,9 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[f_sm] = bm_sm[f_sm + FunctorBase<DeviceType>::GetBlockDimX()];
     }
   }
-      // __syncthreads();
-   // } // end of while
-  MGARDX_EXEC void
-  Operation7() {
+  // __syncthreads();
+  // } // end of while
+  MGARDX_EXEC void Operation7() {
     /* Load all rest col */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -318,20 +333,22 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation8() {
+  MGARDX_EXEC void Operation8() {
 
     /* Only 1 col remain */
     if (f_ghost + f_rest == 1) {
       if (r_sm < r_rest && c_sm < c_rest) {
         // if (debug) printf("forward %f <- %f %f %f %f\n",
         //             tridiag_forward2(
-        //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-        //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
-            prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+        //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
+        //     r_sm, c_sm, 0)]),
+        //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+        //             ldsm2, r_sm, c_sm, 0)]);
+        vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
+            tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
+                             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
         // printf ("prev_vec_sm = %f\n", prev_vec_sm );
         // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
       }
@@ -341,45 +358,44 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
       if (r_sm < r_rest && c_sm < c_rest) {
         // if (debug) printf("forward %f <- %f %f %f %f\n",
         //             tridiag_forward2(
-        //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-        //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
-            prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+        //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
+        //     r_sm, c_sm, 0)]),
+        //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+        //             ldsm2, r_sm, c_sm, 0)]);
+        vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
+            tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
+                             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
         for (SIZE i = 1; i < f_ghost + f_rest; i++) {
           // if (debug) printf("forward %f <- %f %f %f %f\n",
           //           tridiag_forward2(
-          //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
-          //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
-          //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+          //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+          //     bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
+          //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
+          //           am_sm[i], bm_sm[i],
           //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_forward2(
-              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
-              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
         }
       }
     }
-
   }
 
-  MGARDX_EXEC void
-  Operation9() {
+  MGARDX_EXEC void Operation9() {
     // __syncthreads();
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_ghost + f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
-        *v(r_sm, i, f_gl) =
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
+        *v(r_sm, i, f_gl) = vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
         // printf("c_stride = %d, c_sm = %d, vec_sm = %f, vec[%d] =
         // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv +
         // c_stride, vec[i * row_stride * lddv + c_stride]);
       }
     }
-
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation10() {
+  MGARDX_EXEC void Operation10() {
     /* backward */
     f_rest = nf;
     f_ghost = Math<DeviceType>::Min(nf, G);
@@ -401,17 +417,12 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[f_sm] = *bm(nf - f_gl);
     }
     f_rest -= f_ghost;
-
   }
-    // __syncthreads();
-  MGARDX_EXEC bool
-  LoopCondition2() {
-    return f_rest > F - f_ghost;
-  }
+  // __syncthreads();
+  MGARDX_EXEC bool LoopCondition2() { return f_rest > F - f_ghost; }
 
-  MGARDX_EXEC void
-  Operation11() {
-  //while (f_rest > F - f_ghost) {
+  MGARDX_EXEC void Operation11() {
+    // while (f_rest > F - f_ghost) {
     f_main = Math<DeviceType>::Min(F, f_rest);
     if (r_sm < r_rest && f_sm < f_main) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -424,41 +435,44 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[f_sm + f_ghost] = *bm(nf - f_gl - f_ghost);
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation12() {
+  MGARDX_EXEC void Operation12() {
     /* Computation of v in parallel*/
     if (r_sm < r_rest && c_sm < c_rest) {
       // if (debug) printf("backward %f <- %f %f %f %f\n",
       //             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
       //                      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+      //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+      //             ldsm2, r_sm, c_sm, 0)]);
 
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
       //#pragma unroll 32
       for (SIZE i = 1; i < F; i++) {
 
         // if (debug) printf("backward %f <- %f %f %f %f\n",
         //           tridiag_backward2(
         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
+        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+        //     i)]),
         //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+        //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+        //     i)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_backward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-            am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
       }
       /* Store last v */
-      prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, FunctorBase<DeviceType>::GetBlockDimX() - 1)];
+      prev_vec_sm =
+          vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+                         FunctorBase<DeviceType>::GetBlockDimX() - 1)];
     }
   }
-      // __syncthreads();
-  MGARDX_EXEC void
-  Operation13() {
+  // __syncthreads();
+  MGARDX_EXEC void Operation13() {
 
     /* flush results to v */
     if (r_sm < r_rest && f_sm < F) {
@@ -468,10 +482,9 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
       }
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation14() {
+  MGARDX_EXEC void Operation14() {
     /* Update unloaded col */
     f_rest -= f_main;
 
@@ -491,11 +504,10 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
       }
     }
   }
-      // __syncthreads();
-    // } // end of while
+  // __syncthreads();
+  // } // end of while
 
-  MGARDX_EXEC void
-  Operation15() {
+  MGARDX_EXEC void Operation15() {
     /* Load all rest col */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -508,21 +520,21 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[f_sm + f_ghost] = *bm(nf - f_gl - f_ghost);
     }
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation16() {
+  MGARDX_EXEC void Operation16() {
     /* Only 1 col remain */
     if (f_ghost + f_rest == 1) {
       if (r_sm < r_rest && c_sm < c_rest) {
         // if (debug) printf("backward %f <- %f %f %f %f\n",
         //             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
         //                      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-        //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+        //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+        //             ldsm2, r_sm, c_sm, 0)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+                              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
         // printf ("prev_vec_sm = %f\n", prev_vec_sm );
         // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
       }
@@ -533,31 +545,32 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
         // if (debug) printf("backward %f <- %f %f %f %f\n",
         //             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
         //                      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-        //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+        //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+        //             ldsm2, r_sm, c_sm, 0)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+                              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
         for (SIZE i = 1; i < f_ghost + f_rest; i++) {
 
           // if (debug) printf("backward %f <- %f %f %f %f\n",
           //           tridiag_backward2(
           //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-          //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
+          //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+          //     i)]),
           //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-          //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
-
+          //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+          //     i)]);
 
           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_backward2(
-              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], 
-              am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+              vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
         }
       }
     }
   }
 
-  MGARDX_EXEC void
-  Operation17() {
+  MGARDX_EXEC void Operation17() {
     // __syncthreads();
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_ghost + f_rest) {
@@ -573,8 +586,7 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     v.reset_offset();
   }
 
-  MGARDX_CONT size_t
-  shared_memory_size() {
+  MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
     size = (R * C + 2) * (F + G) * sizeof(T);
     size += (D * 4) * sizeof(SIZE);
@@ -582,12 +594,12 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
     return size;
   }
 
-  private:
+private:
   // functor parameters
   SubArray<1, SIZE, DeviceType> shape;
   SubArray<1, SIZE, DeviceType> shape_c;
   DIM processed_n;
-  SubArray<1, DIM, DeviceType> processed_dims; 
+  SubArray<1, DIM, DeviceType> processed_dims;
   DIM curr_dim_r, curr_dim_c, curr_dim_f;
   SubArray<1, T, DeviceType> am, bm;
   SubArray<D, T, DeviceType> v;
@@ -612,33 +624,29 @@ class Ipk1ReoFunctor: public IterFunctor<DeviceType> {
 
   SIZE c_gl, r_gl, f_gl;
   SIZE c_sm, r_sm, f_sm;
-  
+
   T prev_vec_sm;
   SIZE c_rest, r_rest;
   SIZE f_rest, f_ghost, f_main;
 };
 
 template <DIM D, typename T, typename DeviceType>
-class Ipk1Reo: public AutoTuner<DeviceType> {
-  public:
+class Ipk1Reo : public AutoTuner<DeviceType> {
+public:
   MGARDX_CONT
-  Ipk1Reo():AutoTuner<DeviceType>() {}
+  Ipk1Reo() : AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
-  MGARDX_CONT
-  Task<Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType> > 
-  GenTask(SubArray<1, SIZE, DeviceType> shape, 
-          SubArray<1, SIZE, DeviceType> shape_c,
-          DIM processed_n, 
-          SubArray<1, DIM, DeviceType> processed_dims, 
-          DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-          SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
-          SubArray<D, T, DeviceType> v,
+  MGARDX_CONT Task<Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>>
+  GenTask(SubArray<1, SIZE, DeviceType> shape,
+          SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+          SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+          DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+          SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
           int queue_idx) {
     using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;
-    FunctorType functor(shape, shape_c, processed_n, processed_dims,
-                        curr_dim_r, curr_dim_c, curr_dim_f,
-                        am, bm, v);
+    FunctorType functor(shape, shape_c, processed_n, processed_dims, curr_dim_r,
+                        curr_dim_c, curr_dim_f, am, bm, v);
 
     SIZE nr = shape_c.dataHost()[curr_dim_r];
     SIZE nc = shape_c.dataHost()[curr_dim_c];
@@ -665,60 +673,57 @@ class Ipk1Reo: public AutoTuner<DeviceType> {
       }
     }
 
-    return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx, "Ipk1Reo"); 
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "Ipk1Reo");
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape, 
-               SubArray<1, SIZE, DeviceType> shape_c,
-               DIM processed_n, 
-               SubArray<1, DIM, DeviceType> processed_dims, 
-               DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
-               SubArray<D, T, DeviceType> v,
+  void Execute(SubArray<1, SIZE, DeviceType> shape,
+               SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+               SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+               DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+               SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
                int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
+    int range_l =
+        std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts1[arch][prec][range_l];
+    // int config =
+    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts1[arch][prec][range_l];
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk1_nd[prec][range_l];
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
 
-    #define IPK(CONFIG)\
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
-      const int R=IPK_CONFIG[D-1][CONFIG][0];\
-      const int C=IPK_CONFIG[D-1][CONFIG][1];\
-      const int F=IPK_CONFIG[D-1][CONFIG][2];\
-      const int G=IPK_CONFIG[D-1][CONFIG][3];\
-      using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;\
-      using TaskType = Task<FunctorType>;\
-      TaskType task = GenTask<R, C, F, G>(\
-                              shape, shape_c, processed_n, processed_dims,\
-                              curr_dim_r, curr_dim_c, curr_dim_f,\
-                              am, bm,\
-                              v,\
-                              queue_idx); \
-      DeviceAdapter<TaskType, DeviceType> adapter; \
-      ExecutionReturn ret = adapter.Execute(task);\
-      if (AutoTuner<DeviceType>::ProfileKernels) { \
-        if (min_time > ret.execution_time) { \
-          min_time = ret.execution_time; \
-          min_config = CONFIG; \
-        } \
-      } \
-    }
+#define IPK(CONFIG)                                                            \
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
+    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
+    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
+    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
+    using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task = GenTask<R, C, F, G>(                                       \
+        shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
+        curr_dim_f, am, bm, v, queue_idx);                                     \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ExecutionReturn ret = adapter.Execute(task);                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (min_time > ret.execution_time) {                                     \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
 
     IPK(0)
     IPK(1)
     IPK(2)
     IPK(3)
-    IPK(4)  
+    IPK(4)
     IPK(5)
     IPK(6)
-    #undef IPK
+#undef IPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
       FillAutoTunerTable<DeviceType>("ipk1_nd", prec, range_l, min_config);
@@ -726,58 +731,69 @@ class Ipk1Reo: public AutoTuner<DeviceType> {
   }
 };
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G, typename DeviceType>
-class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
-  public:
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G,
+          typename DeviceType>
+class Ipk2ReoFunctor : public IterFunctor<DeviceType> {
+public:
   MGARDX_CONT Ipk2ReoFunctor() {}
-  MGARDX_CONT Ipk2ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
-                             SubArray<1, SIZE, DeviceType> shape_c,
-                             DIM processed_n, 
-                             SubArray<1, DIM, DeviceType> processed_dims, 
-                             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-                             SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
-                             SubArray<D, T, DeviceType> v):
-                             shape(shape), shape_c(shape_c), 
-                             processed_n(processed_n), processed_dims(processed_dims),
-                             curr_dim_r(curr_dim_r), curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f),
-                             am(am), bm(bm), v(v) {
-    Functor<DeviceType>();                            
+  MGARDX_CONT
+  Ipk2ReoFunctor(SubArray<1, SIZE, DeviceType> shape,
+                 SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+                 SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+                 DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+                 SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v)
+      : shape(shape), shape_c(shape_c), processed_n(processed_n),
+        processed_dims(processed_dims), curr_dim_r(curr_dim_r),
+        curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f), am(am), bm(bm), v(v) {
+    Functor<DeviceType>();
   }
 
-  MGARDX_EXEC void
-  Operation1() {
-    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
-                      (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation1() {
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() *
+                (FunctorBase<DeviceType>::GetBlockDimX() *
+                 FunctorBase<DeviceType>::GetBlockDimY())) +
+               (FunctorBase<DeviceType>::GetThreadIdY() *
+                FunctorBase<DeviceType>::GetBlockDimX()) +
+               FunctorBase<DeviceType>::GetThreadIdX();
 
-
-    T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
+    T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C + G;
-    vec_sm = sm; sm += R * ldsm1 * ldsm2;
-    am_sm = sm; sm += ldsm2;
-    bm_sm = sm; sm += ldsm2;
+    vec_sm = sm;
+    sm += R * ldsm1 * ldsm2;
+    am_sm = sm;
+    sm += ldsm2;
+    bm_sm = sm;
+    sm += ldsm2;
 
-    SIZE * sm_size = (SIZE*)sm;
-    shape_sm = sm_size; sm_size += D;
-    shape_c_sm = sm_size; sm_size += D;
-    sm = (T*)sm_size;
+    SIZE *sm_size = (SIZE *)sm;
+    shape_sm = sm_size;
+    sm_size += D;
+    shape_c_sm = sm_size;
+    sm_size += D;
+    sm = (T *)sm_size;
 
-    DIM * sm_dim = (DIM*)sm;
-    processed_dims_sm = sm_dim; sm_dim += D;
-    sm = (T*)sm_dim;
+    DIM *sm_dim = (DIM *)sm;
+    processed_dims_sm = sm_dim;
+    sm_dim += D;
+    sm = (T *)sm_dim;
 
-    for (LENGTH i = threadId; i < D; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
+    for (LENGTH i = threadId; i < D;
+         i += FunctorBase<DeviceType>::GetBlockDimX() *
+              FunctorBase<DeviceType>::GetBlockDimY() *
+              FunctorBase<DeviceType>::GetBlockDimZ()) {
       shape_sm[i] = *shape(i);
       shape_c_sm[i] = *shape_c(i);
     }
-     for (LENGTH i = threadId; i < processed_n; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
+    for (LENGTH i = threadId; i < processed_n;
+         i += FunctorBase<DeviceType>::GetBlockDimX() *
+              FunctorBase<DeviceType>::GetBlockDimY() *
+              FunctorBase<DeviceType>::GetBlockDimZ()) {
       processed_dims_sm[i] = *processed_dims(i);
     }
-
   }
 
-  MGARDX_EXEC void
-  Operation2() {
+  MGARDX_EXEC void Operation2() {
     // __syncthreads();
 
     for (DIM d = 0; d < D; d++)
@@ -799,9 +815,9 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
         SIZE t = shape_sm[d];
-        //for (DIM k = 0; k < processed_n; k++) {
+        // for (DIM k = 0; k < processed_n; k++) {
         //  if (d == processed_dims[k]) {
-            t = shape_c_sm[d];
+        t = shape_c_sm[d];
         //  }
         //}
         idx[d] = bidx % t;
@@ -827,9 +843,11 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     prev_vec_sm = 0.0;
 
     f_rest = Math<DeviceType>::Min(F, nf - blockId * F);
-    r_rest = Math<DeviceType>::Min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
+    r_rest = Math<DeviceType>::Min(
+        R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
-    // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
+    // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 &&
+    // FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
     //   prSIZEf("f_rest: %d r_rest: %d\n", f_rest, r_rest);
     // }
 
@@ -840,8 +858,7 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     /* Load first ghost */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_ghost; i++) {
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
-            *v(r_sm, c_gl + i, f_sm);
+        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = *v(r_sm, c_gl + i, f_sm);
         // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n", r0_stride,
         // i, vec_sm[i * ldsm + c_sm]);
       }
@@ -851,18 +868,13 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[c_sm] = *bm(c_gl + c_sm);
     }
     c_rest -= c_ghost;
-
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC bool
-  LoopCondition1() {
-    return c_rest > C - c_ghost;
-  }
-    // while (c_rest > C - c_ghost) {
-      // printf("%d %d %d\n", c_rest, C, c_ghost);
-  MGARDX_EXEC void
-  Operation3() {
+  MGARDX_EXEC bool LoopCondition1() { return c_rest > C - c_ghost; }
+  // while (c_rest > C - c_ghost) {
+  // printf("%d %d %d\n", c_rest, C, c_ghost);
+  MGARDX_EXEC void Operation3() {
     c_main = Math<DeviceType>::Min(C, c_rest);
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_main; i++) {
@@ -875,10 +887,9 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[c_sm + c_ghost] = *bm(c_gl + c_sm + c_ghost);
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation4() {
+  MGARDX_EXEC void Operation4() {
 
     /* Computation of v in parallel*/
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -891,8 +902,9 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm *
       //       bm_sm[0];
       // #endif
-      vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
-          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
+      vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
+          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
+                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 
       for (SIZE i = 1; i < C; i++) {
         // #ifdef MGARD_X_FMA
@@ -901,7 +913,9 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
         //       bm_sm[i],
         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
         // #else
-        //       // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm
+        //       // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 &&
+        //       FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 &&
+        //       r_sm
         //       == 0) {
         //       //   printf("calc: %f %f %f -> %f \n", vec_sm[get_idx(ldsm1,
         //       ldsm2, r_sm, i, f_sm)],
@@ -915,33 +929,32 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)] * bm_sm[i];
         // #endif
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_forward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i], bm_sm[i],
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
+            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
       }
       /* Store last v */
       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, C - 1, f_sm)];
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation5() {
+  MGARDX_EXEC void Operation5() {
 
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < C; i++) {
-        // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 &&
+        // FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm ==
+        // 0) {
         //   printf("store: %f\n", vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
         //   f_sm)]);
         // }
-        *v(r_sm, c_gl + i, f_sm) =
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
+        *v(r_sm, c_gl + i, f_sm) = vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
       }
     }
   }
-      // __syncthreads();
-  MGARDX_EXEC void
-  Operation6() {
+  // __syncthreads();
+  MGARDX_EXEC void Operation6() {
     /* Update unloaded col */
     c_rest -= c_main;
 
@@ -961,12 +974,11 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[c_sm] = bm_sm[c_sm + C];
     }
   }
-    // __syncthreads();
+  // __syncthreads();
 
-    // } // end of while
+  // } // end of while
 
-  MGARDX_EXEC void
-  Operation7() {
+  MGARDX_EXEC void Operation7() {
     /* Load all rest col */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
@@ -979,15 +991,14 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[c_sm + c_ghost] = *bm(c_gl + c_sm + c_ghost);
     }
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation8() {
+  MGARDX_EXEC void Operation8() {
     /* Only 1 col remain */
     if (c_ghost + c_rest == 1) {
       if (r_sm < r_rest && f_sm < f_rest) {
-        // vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm * bm_sm[0];
-        // #ifdef MGARD_X_FMA
+        // vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm *
+        // bm_sm[0]; #ifdef MGARD_X_FMA
         //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
         //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
         //       r_sm, 0, f_sm)]);
@@ -995,8 +1006,9 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
         //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm *
         //       bm_sm[0];
         // #endif
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
-            prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
+        vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
+            tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
+                             vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
         // printf ("prev_vec_sm = %f\n", prev_vec_sm );
         // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
       }
@@ -1012,8 +1024,9 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
         //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm *
         //       bm_sm[0];
         // #endif
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
-            prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
+        vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
+            tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
+                             vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
         for (SIZE i = 1; i < c_ghost + c_rest; i++) {
           // #ifdef MGARD_X_FMA
           //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
@@ -1022,33 +1035,31 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
           //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
           // #else
           //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] -=
-          //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)] * bm_sm[i];
+          //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)] *
+          //         bm_sm[i];
           // #endif
           vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_forward2(
-              vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i], bm_sm[i],
-              vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+              vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
+              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
         }
       }
     }
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation9() {
+  MGARDX_EXEC void Operation9() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_ghost + c_rest; i++) {
-        *v(r_sm, c_gl + i, f_sm) =
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
+        *v(r_sm, c_gl + i, f_sm) = vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
         // printf("c_stride = %d, c_sm = %d, vec_sm = %f, vec[%d] =
         // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv +
         // c_stride, vec[i * row_stride * lddv + c_stride]);
       }
     }
   }
-    // __syncthreads();
-  MGARDX_EXEC void
-  Operation10() {
+  // __syncthreads();
+  MGARDX_EXEC void Operation10() {
     /* backward */
     c_rest = nc;
     c_ghost = Math<DeviceType>::Min(nc, G);
@@ -1059,8 +1070,12 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     // if (f_gl + f_sm == 0 && r_gl + r_sm == 0 && idx[3] == 0)
     //   debug = false;
     // if (debug)
-    //   printf("block id: (%d %d %d) thread id: (%d %d %d)\n", FunctorBase<DeviceType>::GetBlockIdX(),
-    //          FunctorBase<DeviceType>::GetBlockIdY(), blockIdx.z, FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY(), FunctorBase<DeviceType>::GetThreadIdZ());
+    //   printf("block id: (%d %d %d) thread id: (%d %d %d)\n",
+    //   FunctorBase<DeviceType>::GetBlockIdX(),
+    //          FunctorBase<DeviceType>::GetBlockIdY(), blockIdx.z,
+    //          FunctorBase<DeviceType>::GetThreadIdX(),
+    //          FunctorBase<DeviceType>::GetThreadIdY(),
+    //          FunctorBase<DeviceType>::GetThreadIdZ());
 
     /* Load first ghost */
     if (r_sm < r_rest && f_sm < f_rest) {
@@ -1068,7 +1083,8 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
             *v(r_sm, (nc - 1) - (c_gl + i), f_sm);
         // if (debug)
-        //   printf("load vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i, f_sm),
+        //   printf("load vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i,
+        //   f_sm),
         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
       }
     }
@@ -1078,21 +1094,17 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     }
     c_rest -= c_ghost;
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC bool
-  LoopCondition2() {
-    return c_rest > C - c_ghost;
-  }
-    // while (c_rest > C - c_ghost) {
-      // printf("%d %d %d\n", c_rest, C, c_ghost);
-  MGARDX_EXEC void
-  Operation11() {
+  MGARDX_EXEC bool LoopCondition2() { return c_rest > C - c_ghost; }
+  // while (c_rest > C - c_ghost) {
+  // printf("%d %d %d\n", c_rest, C, c_ghost);
+  MGARDX_EXEC void Operation11() {
     c_main = Math<DeviceType>::Min(C, c_rest);
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_main; i++) {
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i + c_ghost, f_sm)] = 
-          *v(r_sm, (nc - 1) - (c_gl + i + c_ghost), f_sm);
+        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i + c_ghost, f_sm)] =
+            *v(r_sm, (nc - 1) - (c_gl + i + c_ghost), f_sm);
         // if (debug)
         //   printf("load vec_sm[%d] = %f\n",
         //          get_idx(ldsm1, ldsm2, r_sm, i + c_ghost, f_sm),
@@ -1104,9 +1116,8 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[c_sm + c_ghost] = *bm(nc - (c_gl + c_sm + c_ghost));
     }
   }
-      // __syncthreads();
-  MGARDX_EXEC void
-  Operation12() {
+  // __syncthreads();
+  MGARDX_EXEC void Operation12() {
     // if (r_gl == 0 && f_gl == 0 && r_sm == 0 && f_sm == 0)
     // printf("*****test\n");
     /* Computation of v in parallel*/
@@ -1127,9 +1138,10 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       // #endif
       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
+                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
       // if (debug)
-      //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0, f_sm),
+      //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0,
+      //   f_sm),
       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 
       for (SIZE i = 1; i < C; i++) {
@@ -1155,11 +1167,12 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
 
         // #endif
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_backward2(
-            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], 
-            am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
+            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 
         // if (debug)
-        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i, f_sm),
+        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i,
+        //   f_sm),
         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
       }
 
@@ -1167,9 +1180,8 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, C - 1, f_sm)];
     }
   }
-      // __syncthreads();
-  MGARDX_EXEC void
-  Operation13() {
+  // __syncthreads();
+  MGARDX_EXEC void Operation13() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < C; i++) {
@@ -1178,10 +1190,9 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       }
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation14() {
+  MGARDX_EXEC void Operation14() {
     /* Update unloaded col */
     c_rest -= c_main;
 
@@ -1201,17 +1212,16 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[c_sm] = bm_sm[c_sm + C];
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-    // } // end of while
+  // } // end of while
 
-  MGARDX_EXEC void
-  Operation15() {
+  MGARDX_EXEC void Operation15() {
     // Load all rest col
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
-        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i + c_ghost, f_sm)] = 
-          *v(r_sm, (nc - 1) - (c_gl + i + c_ghost), f_sm);
+        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i + c_ghost, f_sm)] =
+            *v(r_sm, (nc - 1) - (c_gl + i + c_ghost), f_sm);
 
         // if (debug)
         //   printf("load ec_sm[%d] = %f\n",
@@ -1224,10 +1234,9 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[c_sm + c_ghost] = *bm(nc - (c_gl + c_sm + c_ghost));
     }
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation16() {
+  MGARDX_EXEC void Operation16() {
     /* Only 1 col remain */
     if (c_ghost + c_rest == 1) {
       if (r_sm < r_rest && f_sm < f_rest) {
@@ -1247,9 +1256,10 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
         // #endif
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                             vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
+                              vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
         // if (debug)
-        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0, f_sm),
+        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0,
+        //   f_sm),
         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
         // printf ("prev_vec_sm = %f\n", prev_vec_sm );
         // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
@@ -1274,9 +1284,10 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
         // #endif
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                             vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
+                              vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
         // if (debug)
-        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0, f_sm),
+        //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0,
+        //   f_sm),
         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
         for (SIZE i = 1; i < c_ghost + c_rest; i++) {
 
@@ -1284,14 +1295,16 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
           //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
           //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
           //       f_sm)],
-          //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)]) * am_sm[i];
+          //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)]) *
+          //         am_sm[i];
           // #else
           //       // if (r_gl == 0 && f_gl == 0 && r_sm == 0 && f_sm == 0)
           //       //   printf("(%f + %f * %f) * %f -> %f\n",
           //       //             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)],
           //       //             dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
           //       i-1, f_sm)], am_sm[i],
-          //       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] -
+          //       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]
+          //       -
           //       //    dist_sm[i] * vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1,
           //       f_sm)]) / am_sm[i]);
           //        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
@@ -1300,19 +1313,19 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
           //          f_sm)]) / am_sm[i];
           // #endif
           vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_backward2(
-              vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)],
-              am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+              vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
+              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
           // if (debug)
-          //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i, f_sm),
+          //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i,
+          //   f_sm),
           //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
         }
       }
     }
   }
-    // __syncthreads();
-  
-  MGARDX_EXEC void
-  Operation17() {
+  // __syncthreads();
+
+  MGARDX_EXEC void Operation17() {
     /* flush results to v */
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_ghost + c_rest; i++) {
@@ -1327,8 +1340,7 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     v.reset_offset();
   }
 
-  MGARDX_CONT size_t
-  shared_memory_size() {
+  MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
     size = (R * F + 2) * (C + G) * sizeof(T);
     size += (D * 4) * sizeof(SIZE);
@@ -1336,12 +1348,12 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
     return size;
   }
 
-  private:
+private:
   // functor parameters
   SubArray<1, SIZE, DeviceType> shape;
   SubArray<1, SIZE, DeviceType> shape_c;
   DIM processed_n;
-  SubArray<1, DIM, DeviceType> processed_dims; 
+  SubArray<1, DIM, DeviceType> processed_dims;
   DIM curr_dim_r, curr_dim_c, curr_dim_f;
   SubArray<1, T, DeviceType> am, bm;
   SubArray<D, T, DeviceType> v;
@@ -1366,33 +1378,29 @@ class Ipk2ReoFunctor: public IterFunctor<DeviceType> {
 
   SIZE c_gl, r_gl, f_gl;
   SIZE c_sm, r_sm, f_sm;
-  
+
   T prev_vec_sm;
   SIZE f_rest, r_rest;
   SIZE c_rest, c_ghost, c_main;
 };
 
 template <DIM D, typename T, typename DeviceType>
-class Ipk2Reo: public AutoTuner<DeviceType> {
-  public:
+class Ipk2Reo : public AutoTuner<DeviceType> {
+public:
   MGARDX_CONT
-  Ipk2Reo():AutoTuner<DeviceType>() {}
+  Ipk2Reo() : AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
-  MGARDX_CONT
-  Task<Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType> > 
-  GenTask(SubArray<1, SIZE, DeviceType> shape, 
-          SubArray<1, SIZE, DeviceType> shape_c,
-          DIM processed_n, 
-          SubArray<1, DIM, DeviceType> processed_dims, 
-          DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-          SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
-          SubArray<D, T, DeviceType> v,
+  MGARDX_CONT Task<Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>>
+  GenTask(SubArray<1, SIZE, DeviceType> shape,
+          SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+          SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+          DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+          SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
           int queue_idx) {
     using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;
-    FunctorType functor(shape, shape_c, processed_n, processed_dims,
-                        curr_dim_r, curr_dim_c, curr_dim_f,
-                        am, bm, v);
+    FunctorType functor(shape, shape_c, processed_n, processed_dims, curr_dim_r,
+                        curr_dim_c, curr_dim_f, am, bm, v);
 
     SIZE nr = shape_c.dataHost()[curr_dim_r];
     SIZE nc = shape_c.dataHost()[curr_dim_c];
@@ -1419,60 +1427,57 @@ class Ipk2Reo: public AutoTuner<DeviceType> {
       }
     }
 
-    return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx, "Ipk2Reo"); 
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "Ipk2Reo");
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape, 
-               SubArray<1, SIZE, DeviceType> shape_c,
-               DIM processed_n, 
-               SubArray<1, DIM, DeviceType> processed_dims, 
-               DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
-               SubArray<D, T, DeviceType> v,
+  void Execute(SubArray<1, SIZE, DeviceType> shape,
+               SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+               SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+               DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+               SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
                int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
+    int range_l =
+        std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts2[arch][prec][range_l];
+    // int config =
+    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts2[arch][prec][range_l];
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk2_nd[prec][range_l];
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
 
-    #define IPK(CONFIG)\
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
-      const int R=IPK_CONFIG[D-1][CONFIG][0];\
-      const int C=IPK_CONFIG[D-1][CONFIG][1];\
-      const int F=IPK_CONFIG[D-1][CONFIG][2];\
-      const int G=IPK_CONFIG[D-1][CONFIG][3];\
-      using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;\
-      using TaskType = Task<FunctorType>;\
-      TaskType task = GenTask<R, C, F, G>(\
-                              shape, shape_c, processed_n, processed_dims,\
-                              curr_dim_r, curr_dim_c, curr_dim_f,\
-                              am, bm,\
-                              v,\
-                              queue_idx); \
-      DeviceAdapter<TaskType, DeviceType> adapter; \
-      ExecutionReturn ret = adapter.Execute(task);\
-      if (AutoTuner<DeviceType>::ProfileKernels) { \
-        if (min_time > ret.execution_time) { \
-          min_time = ret.execution_time; \
-          min_config = CONFIG; \
-        } \
-      } \
-    }
+#define IPK(CONFIG)                                                            \
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
+    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
+    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
+    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
+    using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task = GenTask<R, C, F, G>(                                       \
+        shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
+        curr_dim_f, am, bm, v, queue_idx);                                     \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ExecutionReturn ret = adapter.Execute(task);                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (min_time > ret.execution_time) {                                     \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
 
     IPK(0)
     IPK(1)
     IPK(2)
     IPK(3)
-    IPK(4)  
+    IPK(4)
     IPK(5)
     IPK(6)
-    #undef IPK
+#undef IPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
       FillAutoTunerTable<DeviceType>("ipk2_nd", prec, range_l, min_config);
@@ -1480,61 +1485,72 @@ class Ipk2Reo: public AutoTuner<DeviceType> {
   }
 };
 
-
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G, typename DeviceType>
-class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
-  public:
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G,
+          typename DeviceType>
+class Ipk3ReoFunctor : public IterFunctor<DeviceType> {
+public:
   MGARDX_CONT Ipk3ReoFunctor() {}
-  MGARDX_CONT Ipk3ReoFunctor(SubArray<1, SIZE, DeviceType> shape, 
-                             SubArray<1, SIZE, DeviceType> shape_c,
-                             DIM processed_n, 
-                             SubArray<1, DIM, DeviceType> processed_dims, 
-                             DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-                             SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
-                             SubArray<D, T, DeviceType> v):
-                             shape(shape), shape_c(shape_c), 
-                             processed_n(processed_n), processed_dims(processed_dims),
-                             curr_dim_r(curr_dim_r), curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f),
-                             am(am), bm(bm), v(v) {
-    IterFunctor<DeviceType>();                            
+  MGARDX_CONT
+  Ipk3ReoFunctor(SubArray<1, SIZE, DeviceType> shape,
+                 SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+                 SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+                 DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+                 SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v)
+      : shape(shape), shape_c(shape_c), processed_n(processed_n),
+        processed_dims(processed_dims), curr_dim_r(curr_dim_r),
+        curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f), am(am), bm(bm), v(v) {
+    IterFunctor<DeviceType>();
   }
 
-  MGARDX_EXEC void
-  Operation1() {
-    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() * (FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY())) +
-                      (FunctorBase<DeviceType>::GetThreadIdY() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation1() {
+    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() *
+                (FunctorBase<DeviceType>::GetBlockDimX() *
+                 FunctorBase<DeviceType>::GetBlockDimY())) +
+               (FunctorBase<DeviceType>::GetThreadIdY() *
+                FunctorBase<DeviceType>::GetBlockDimX()) +
+               FunctorBase<DeviceType>::GetThreadIdX();
 
-    T * sm = (T*)FunctorBase<DeviceType>::GetSharedMemory();
+    T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C;
 
-    vec_sm = sm; sm += (R + G) * ldsm1 * ldsm2;
-    am_sm = sm; sm += (R + G);
-    bm_sm = sm; sm += (R + G);
+    vec_sm = sm;
+    sm += (R + G) * ldsm1 * ldsm2;
+    am_sm = sm;
+    sm += (R + G);
+    bm_sm = sm;
+    sm += (R + G);
 
-    SIZE * sm_size = (SIZE*)sm;
-    shape_sm = sm_size; sm_size += D;
-    shape_c_sm = sm_size; sm_size += D;
-    sm = (T*)sm_size;
+    SIZE *sm_size = (SIZE *)sm;
+    shape_sm = sm_size;
+    sm_size += D;
+    shape_c_sm = sm_size;
+    sm_size += D;
+    sm = (T *)sm_size;
 
-    DIM * sm_dim = (DIM*)sm;
-    processed_dims_sm = sm_dim; sm_dim += D;
-    sm = (T*)sm_dim;
+    DIM *sm_dim = (DIM *)sm;
+    processed_dims_sm = sm_dim;
+    sm_dim += D;
+    sm = (T *)sm_dim;
 
-    for (LENGTH i = threadId; i < D; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
+    for (LENGTH i = threadId; i < D;
+         i += FunctorBase<DeviceType>::GetBlockDimX() *
+              FunctorBase<DeviceType>::GetBlockDimY() *
+              FunctorBase<DeviceType>::GetBlockDimZ()) {
       shape_sm[i] = *shape(i);
       shape_c_sm[i] = *shape_c(i);
     }
-    for (LENGTH i = threadId; i < processed_n; i += FunctorBase<DeviceType>::GetBlockDimX() * FunctorBase<DeviceType>::GetBlockDimY() * FunctorBase<DeviceType>::GetBlockDimZ()) {
+    for (LENGTH i = threadId; i < processed_n;
+         i += FunctorBase<DeviceType>::GetBlockDimX() *
+              FunctorBase<DeviceType>::GetBlockDimY() *
+              FunctorBase<DeviceType>::GetBlockDimZ()) {
       processed_dims_sm[i] = *processed_dims(i);
     }
-
   }
-   
+
   // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation2() {
+  MGARDX_EXEC void Operation2() {
     for (DIM d = 0; d < D; d++)
       idx[d] = 0;
 
@@ -1552,9 +1568,9 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
       if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
         SIZE t = shape_sm[d];
         // for (DIM k = 0; k < processed_n; k++) {
-          // if (d == processed_dims[k]) {
-            t = shape_c_sm[d];
-          // }
+        // if (d == processed_dims[k]) {
+        t = shape_c_sm[d];
+        // }
         // }
         idx[d] = bidx % t;
         bidx /= t;
@@ -1579,7 +1595,8 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     prev_vec_sm = 0.0;
 
     f_rest = Math<DeviceType>::Min(F, (SIZE)(nf - blockId * F));
-    c_rest = Math<DeviceType>::Min(C, (SIZE)(nc - FunctorBase<DeviceType>::GetBlockIdY() * C));
+    c_rest = Math<DeviceType>::Min(
+        C, (SIZE)(nc - FunctorBase<DeviceType>::GetBlockIdY() * C));
 
     r_rest = nr;
     r_ghost = Math<DeviceType>::Min(nr, G);
@@ -1590,8 +1607,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     /* Load first ghost */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_ghost; i++) {
-        vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
-            *v(r_gl + i, c_sm, f_sm);
+        vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = *v(r_gl + i, c_sm, f_sm);
         // if (debug) printf("load first sm[%d] %f [%d]\n", i,
         //             vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)], r_gl + i);
       }
@@ -1604,14 +1620,10 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     r_rest -= r_ghost;
   }
 
-  MGARDX_EXEC bool
-  LoopCondition1() {
-    return r_rest > R - r_ghost;
-  }
-    // __syncthreads();
+  MGARDX_EXEC bool LoopCondition1() { return r_rest > R - r_ghost; }
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation3() {
+  MGARDX_EXEC void Operation3() {
     // while (r_rest > R - r_ghost) {
     r_main = Math<DeviceType>::Min(R, r_rest);
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -1628,42 +1640,39 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[r_sm + r_ghost] = *bm(r_gl + r_sm + r_ghost);
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation4() {
+  MGARDX_EXEC void Operation4() {
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
-      vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
-          prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+      vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
+          tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
+                           vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
 
       for (SIZE i = 1; i < R; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_forward2(
-            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i], bm_sm[i],
-            vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
+            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
       }
 
       /* Store last v */
       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, R - 1, c_sm, f_sm)];
     }
   }
-      // __syncthreads();
-  MGARDX_EXEC void
-  Operation5() {
+  // __syncthreads();
+  MGARDX_EXEC void Operation5() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < R; i++) {
-        *v(r_gl + i, c_sm, f_sm) =
-            vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)];
+        *v(r_gl + i, c_sm, f_sm) = vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)];
         // if (debug) printf("store[%d] %f [%d]\n", r_gl + i,
         //   *v(r_gl + i, c_sm, f_sm), i);
       }
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation6() {
+  MGARDX_EXEC void Operation6() {
 
     // /* Update unloaded col */
     r_rest -= r_main;
@@ -1688,13 +1697,11 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-
   //     // __syncthreads();
 
   //   // } // end of while
 
-  MGARDX_EXEC void
-  Operation7() {
+  MGARDX_EXEC void Operation7() {
     /* Load all rest col */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_rest; i++) {
@@ -1713,10 +1720,9 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     }
   }
 
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation8() {
+  MGARDX_EXEC void Operation8() {
 
     /* Only 1 col remain */
     if (r_ghost + r_rest == 1) {
@@ -1736,8 +1742,9 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
         //               prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
         //               c_sm, f_sm)]);
 
-        vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
-            prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+        vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
+            tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
+                             vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
         // printf ("prev_vec_sm = %f\n", prev_vec_sm );
         // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
       }
@@ -1760,8 +1767,9 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
         //               prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
         //               c_sm, f_sm)]);
 
-        vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
-            prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+        vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
+            tridiag_forward2(prev_vec_sm, am_sm[0], bm_sm[0],
+                             vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
         for (SIZE i = 1; i < r_ghost + r_rest; i++) {
           // #ifdef MGARD_X_FMA
           //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
@@ -1770,32 +1778,33 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
           //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
           // #else
           //       vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] -=
-          //         vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)] * bm_sm[i];
+          //         vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)] *
+          //         bm_sm[i];
           // #endif
           // if (debug) printf("compute-rest sm[%d] %f <- %f %f %f\n", i,
-          //             tridiag_forward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
-          //             f_sm)],
-          //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]),
+          //             tridiag_forward(vec_sm[get_idx(ldsm1, ldsm2, i - 1,
+          //             c_sm, f_sm)],
+          //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+          //              f_sm)]),
           //             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
-          //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+          //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+          //              f_sm)]);
 
           vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_forward2(
-              vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i], bm_sm[i],
-              vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+              vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
+              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
         }
       }
     }
   }
 
-  MGARDX_EXEC void
-  Operation9() {
+  MGARDX_EXEC void Operation9() {
     // __syncthreads();
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_ghost + r_rest; i++) {
 
-        *v(r_gl + i, c_sm, f_sm) =
-            vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)];
+        *v(r_gl + i, c_sm, f_sm) = vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)];
 
         // if (debug) printf("store-rest[%d] %f [%d]\n", r_gl + i,
         //     *v(r_gl + i, c_sm, f_sm), i);
@@ -1805,10 +1814,9 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
       }
     }
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation10() {
+  MGARDX_EXEC void Operation10() {
 
     /* backward */
     r_rest = nr;
@@ -1831,21 +1839,17 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     }
     r_rest -= r_ghost;
   }
-    // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC bool
-  LoopCondition2() {
-    return r_rest > R - r_ghost;
-  }
+  MGARDX_EXEC bool LoopCondition2() { return r_rest > R - r_ghost; }
 
-  MGARDX_EXEC void
-  Operation11() {
+  MGARDX_EXEC void Operation11() {
     // while (r_rest > R - r_ghost) {
     r_main = Math<DeviceType>::Min(R, r_rest);
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_main; i++) {
-        vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)] = 
-        *v((nr - 1) - (r_gl + i + r_ghost), c_sm, f_sm);
+        vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)] =
+            *v((nr - 1) - (r_gl + i + r_ghost), c_sm, f_sm);
         // if (debug) printf("load ghost sm[%d] %f [%d]\n", i + r_ghost,
         //             vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)],
         //             (nr - 1) - (r_gl + i + r_ghost));
@@ -1856,10 +1860,9 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[r_sm + r_ghost] = *bm(nr - (r_gl + r_sm + r_ghost));
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation12() {
+  MGARDX_EXEC void Operation12() {
     /* Computation of v in parallel*/
     if (c_sm < c_rest && f_sm < f_rest) {
       // #ifdef MGARD_X_FMA
@@ -1880,7 +1883,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
 
       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                           vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+                            vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
       for (SIZE i = 1; i < R; i++) {
 
         // #ifdef MGARD_X_FMA
@@ -1903,22 +1906,23 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
 
         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_backward2(
-            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], 
-            am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+            vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
+            bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
       }
 
       /* Store last v */
       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, R - 1, c_sm, f_sm)];
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation13() {
+  MGARDX_EXEC void Operation13() {
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < R; i++) {
-        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+        // FunctorBase<DeviceType>::GetBlockIdY() == 0 &&
+        // FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
         // FunctorBase<DeviceType>::GetThreadIdY() == 0) {
         //   printf("%d %d %d (%f) <- %d %d %d\n", (nr - 1) - (r_gl + i), c_sm,
         //   f_sm,
@@ -1933,10 +1937,9 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
       }
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-  MGARDX_EXEC void
-  Operation14() {
+  MGARDX_EXEC void Operation14() {
     // /* Update unloaded col */
     r_rest -= r_main;
 
@@ -1959,17 +1962,16 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
       bm_sm[r_sm] = bm_sm[r_sm + R];
     }
   }
-      // __syncthreads();
+  // __syncthreads();
 
-    // } // end of while
+  // } // end of while
 
-  MGARDX_EXEC void
-  Operation15() {
+  MGARDX_EXEC void Operation15() {
     /* Load all rest col */
     if (c_sm < c_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < r_rest; i++) {
-        vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)] = 
-        *v((nr - 1) - (r_gl + i + r_ghost), c_sm, f_sm);
+        vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)] =
+            *v((nr - 1) - (r_gl + i + r_ghost), c_sm, f_sm);
 
         // if (debug) printf("load ghost-rest sm[%d] %f [%d]\n", i + r_ghost,
         //               vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)],
@@ -1983,24 +1985,25 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     // __syncthreads();
   }
 
-  MGARDX_EXEC void
-  Operation16() {
+  MGARDX_EXEC void Operation16() {
     /* Only 1 col remain */
     if (r_ghost + r_rest == 1) {
       if (c_sm < c_rest && f_sm < f_rest) {
         // #ifdef MGARD_X_FMA
         //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-        //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
-        //       c_sm, f_sm)]) * am_sm[0];
+        //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
+        //       0, c_sm, f_sm)]) * am_sm[0];
         // #else
         //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
         //       (vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] - dist_sm[0] *
         //       prev_vec_sm) / am_sm[0];
         // #endif
-        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+        // FunctorBase<DeviceType>::GetBlockIdY() == 0 &&
+        // FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
         // FunctorBase<DeviceType>::GetThreadIdY() == 0) {
-        //   printf("backward 1 (%f) %f %f %f %f\n", tridiag_backward(prev_vec_sm,
-        //   dist_sm[0], am_sm[0],
+        //   printf("backward 1 (%f) %f %f %f %f\n",
+        //   tridiag_backward(prev_vec_sm, dist_sm[0], am_sm[0],
         //     vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]), prev_vec_sm,
         //     dist_sm[0], am_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm,
         //     f_sm)]);
@@ -2014,7 +2017,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
 
         vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                             vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+                              vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
         // printf ("prev_vec_sm = %f\n", prev_vec_sm );
         // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
       }
@@ -2024,17 +2027,19 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
       if (c_sm < c_rest && f_sm < f_rest) {
         // #ifdef MGARD_X_FMA
         //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-        //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
-        //       c_sm, f_sm)]) * am_sm[0];
+        //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
+        //       0, c_sm, f_sm)]) * am_sm[0];
         // #else
         //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
         //       (vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] - dist_sm[0] *
         //       prev_vec_sm) / am_sm[0];
         // #endif
-        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
+        // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+        // FunctorBase<DeviceType>::GetBlockIdY() == 0 &&
+        // FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
         // FunctorBase<DeviceType>::GetThreadIdY() == 0) {
-        //   printf("backward 1 (%f) %f %f %f %f\n", tridiag_backward(prev_vec_sm,
-        //   dist_sm[0], am_sm[0],
+        //   printf("backward 1 (%f) %f %f %f %f\n",
+        //   tridiag_backward(prev_vec_sm, dist_sm[0], am_sm[0],
         //     vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]), prev_vec_sm,
         //     dist_sm[0], am_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm,
         //     f_sm)]);
@@ -2049,13 +2054,13 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
 
         vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
-                             vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+                              vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
         for (SIZE i = 1; i < r_ghost + r_rest; i++) {
 
           // #ifdef MGARD_X_FMA
           //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
-          //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
-          //       f_sm)],
+          //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1,
+          //       c_sm, f_sm)],
           //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]) * am_sm[i];
           // #else
           //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
@@ -2063,9 +2068,13 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
           //          dist_sm[i] * vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
           //          f_sm)]) / am_sm[i];
           // #endif
-          //   if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
-          //   FunctorBase<DeviceType>::GetThreadIdY() == 0) { printf("backward R=%d (%f) %f %f %f %f\n", i,
-          //   tridiag_backward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
+          //   if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+          //   FunctorBase<DeviceType>::GetBlockIdY() == 0 &&
+          //   FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
+          //   FunctorBase<DeviceType>::GetThreadIdY() == 0) { printf("backward
+          //   R=%d (%f) %f %f %f %f\n", i,
+          //   tridiag_backward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
+          //   f_sm)],
           //    dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
           //    f_sm)]), vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
           //    dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
@@ -2076,20 +2085,21 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
           // if (debug) printf("compute sm[%d] %f <- %f %f %f %f\n", i,
           //             tridiag_backward(vec_sm[get_idx(ldsm1, ldsm2, i - 1,
           //             c_sm, f_sm)],
-          //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]),
+          //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+          //  f_sm)]),
           //             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
-          //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+          //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+          //  f_sm)]);
 
           vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_backward2(
-              vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], 
-              am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+              vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
+              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
         }
       }
     }
   }
-   
-  MGARDX_EXEC void
-  Operation17() {
+
+  MGARDX_EXEC void Operation17() {
     // __syncthreads();
     /* flush results to v */
     if (c_sm < c_rest && f_sm < f_rest) {
@@ -2109,8 +2119,7 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     v.reset_offset();
   }
 
-  MGARDX_CONT size_t
-  shared_memory_size() {
+  MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
     size = (C * F + 2) * (R + G) * sizeof(T);
     size += (D * 4) * sizeof(SIZE);
@@ -2118,12 +2127,12 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
     return size;
   }
 
-  private:
+private:
   // functor parameters
   SubArray<1, SIZE, DeviceType> shape;
   SubArray<1, SIZE, DeviceType> shape_c;
   DIM processed_n;
-  SubArray<1, DIM, DeviceType> processed_dims; 
+  SubArray<1, DIM, DeviceType> processed_dims;
   DIM curr_dim_r, curr_dim_c, curr_dim_f;
   SubArray<1, T, DeviceType> am, bm;
   SubArray<D, T, DeviceType> v;
@@ -2148,33 +2157,29 @@ class Ipk3ReoFunctor: public IterFunctor<DeviceType> {
 
   SIZE c_gl, r_gl, f_gl;
   SIZE c_sm, r_sm, f_sm;
-  
+
   T prev_vec_sm;
   SIZE c_rest, f_rest;
   SIZE r_rest, r_ghost, r_main;
 };
 
 template <DIM D, typename T, typename DeviceType>
-class Ipk3Reo: public AutoTuner<DeviceType> {
-  public:
+class Ipk3Reo : public AutoTuner<DeviceType> {
+public:
   MGARDX_CONT
-  Ipk3Reo():AutoTuner<DeviceType>() {}
+  Ipk3Reo() : AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
-  MGARDX_CONT
-  Task<Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType> > 
-  GenTask(SubArray<1, SIZE, DeviceType> shape, 
-          SubArray<1, SIZE, DeviceType> shape_c,
-          DIM processed_n, 
-          SubArray<1, DIM, DeviceType> processed_dims, 
-          DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-          SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
-          SubArray<D, T, DeviceType> v,
+  MGARDX_CONT Task<Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>>
+  GenTask(SubArray<1, SIZE, DeviceType> shape,
+          SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+          SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+          DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+          SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
           int queue_idx) {
     using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;
-    FunctorType functor(shape, shape_c, processed_n, processed_dims,
-                        curr_dim_r, curr_dim_c, curr_dim_f,
-                        am, bm, v);
+    FunctorType functor(shape, shape_c, processed_n, processed_dims, curr_dim_r,
+                        curr_dim_c, curr_dim_f, am, bm, v);
 
     SIZE nr = shape_c.dataHost()[curr_dim_r];
     SIZE nc = shape_c.dataHost()[curr_dim_c];
@@ -2201,60 +2206,57 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
       }
     }
 
-    return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx, "Ipk3Reo"); 
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "Ipk3Reo");
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape, 
-               SubArray<1, SIZE, DeviceType> shape_c,
-               DIM processed_n, 
-               SubArray<1, DIM, DeviceType> processed_dims, 
-               DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
-               SubArray<D, T, DeviceType> v,
+  void Execute(SubArray<1, SIZE, DeviceType> shape,
+               SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+               SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+               DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+               SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
                int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
+    int range_l =
+        std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config = AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts3[arch][prec][range_l];
+    // int config =
+    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts3[arch][prec][range_l];
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk3_nd[prec][range_l];
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
 
-    #define IPK(CONFIG)\
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) { \
-      const int R=IPK_CONFIG[D-1][CONFIG][0];\
-      const int C=IPK_CONFIG[D-1][CONFIG][1];\
-      const int F=IPK_CONFIG[D-1][CONFIG][2];\
-      const int G=IPK_CONFIG[D-1][CONFIG][3];\
-      using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;\
-      using TaskType = Task<FunctorType>;\
-      TaskType task = GenTask<R, C, F, G>(\
-                              shape, shape_c, processed_n, processed_dims,\
-                              curr_dim_r, curr_dim_c, curr_dim_f,\
-                              am, bm,\
-                              v,\
-                              queue_idx); \
-      DeviceAdapter<TaskType, DeviceType> adapter; \
-      ExecutionReturn ret = adapter.Execute(task);\
-      if (AutoTuner<DeviceType>::ProfileKernels) { \
-        if (min_time > ret.execution_time) { \
-          min_time = ret.execution_time; \
-          min_config = CONFIG; \
-        } \
-      } \
-    }
+#define IPK(CONFIG)                                                            \
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
+    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
+    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
+    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
+    using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task = GenTask<R, C, F, G>(                                       \
+        shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
+        curr_dim_f, am, bm, v, queue_idx);                                     \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ExecutionReturn ret = adapter.Execute(task);                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (min_time > ret.execution_time) {                                     \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
 
     IPK(0)
     IPK(1)
     IPK(2)
     IPK(3)
-    IPK(4)  
+    IPK(4)
     IPK(5)
     IPK(6)
-    #undef IPK
+#undef IPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
       FillAutoTunerTable<DeviceType>("ipk3_nd", prec, range_l, min_config);
@@ -2262,16 +2264,15 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
   }
 };
 
-
-
 // template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
 // __global__ void _ipk_1(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 //                        DIM processed_n, DIM *processed_dims, DIM curr_dim_r,
-//                        DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T *dist_f,
-//                        T *v, LENGTH ldv1, LENGTH ldv2) {
+//                        DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T
+//                        *dist_f, T *v, LENGTH ldv1, LENGTH ldv2) {
 
 //   // bool debug = false;
-//   // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+//   // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 &&
+//   FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
 //   //     threadIdx.z == 0 && threadIdx.y == 0)
 //   //   debug = false;
 
@@ -2302,13 +2303,15 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 
 //   SIZE idx[D];
 
-//   for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
+//   for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y *
+//   FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     shape_sm[i] = shape[i];
 //     shape_c_sm[i] = shape_c[i];
 //     ldvs_sm[i] = ldvs[i];
 //     ldws_sm[i] = ldws[i];
 //   }
-//   for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
+//   for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y *
+//   FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     processed_dims_sm[i] = processed_dims[i];
 //   }
 //   __syncthreads();
@@ -2329,7 +2332,9 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   SIZE firstD = div_roundup(nc, C);
 //   SIZE blockId = bidx % firstD;
 //   // if (debug2) {
-//   //   printf("FunctorBase<DeviceType>::GetBlockIdX() %u nc %u blockDim.x %u firstD: %u blockId %u\n", FunctorBase<DeviceType>::GetBlockIdX(), nc, blockDim.x, firstD, blockId);
+//   //   printf("FunctorBase<DeviceType>::GetBlockIdX() %u nc %u blockDim.x %u
+//   firstD: %u blockId %u\n", FunctorBase<DeviceType>::GetBlockIdX(), nc,
+//   blockDim.x, firstD, blockId);
 //   // }
 //   bidx /= firstD;
 
@@ -2342,27 +2347,30 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //  }
 //       //}
 //       // if (debug2) {
-//       //   printf("%u mod %u = %u, %u / %u = %u (shape_c: %u %u %u %u %u)\n", bidx, t, bidx % t, bidx, t, bidx/t, shape_c_sm[4], shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
+//       //   printf("%u mod %u = %u, %u / %u = %u (shape_c: %u %u %u %u %u)\n",
+//       bidx, t, bidx % t, bidx, t, bidx/t, shape_c_sm[4],
+//       shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
 //       // }
 //       idx[d] = bidx % t;
 //       bidx /= t;
 //     }
 //   }
 
-
 //   size_t other_offset_v = get_idx<D>(ldvs_sm, idx);
 //   v = v + other_offset_v;
 
-
 //   // if (debug2) {
-//   //   printf("ipk1 idx: %u %u %u %u %u ld: %u %u %u %u %u\n", idx[4], idx[3], idx[2], idx[1], idx[0], ldvs_sm[4], ldvs_sm[3], ldvs_sm[2], ldvs_sm[1], ldvs_sm[0]);
+//   //   printf("ipk1 idx: %u %u %u %u %u ld: %u %u %u %u %u\n", idx[4],
+//   idx[3], idx[2], idx[1], idx[0], ldvs_sm[4], ldvs_sm[3], ldvs_sm[2],
+//   ldvs_sm[1], ldvs_sm[0]);
 //   //   printf("ipk1 other_offset_v: %llu\n", other_offset_v);
 
 //   //   LENGTH curr_stride = 1;
 //   //   LENGTH ret_idx = 0;
 //   //   for (DIM i = 0; i < D; i++) {
 //   //     ret_idx += idx[i] * curr_stride;
-//   //     printf("%llu * %llu = %llu\n", curr_stride, ldvs_sm[i], curr_stride*ldvs_sm[i]);
+//   //     printf("%llu * %llu = %llu\n", curr_stride, ldvs_sm[i],
+//   curr_stride*ldvs_sm[i]);
 //   //     curr_stride *= ldvs_sm[i];
 
 //   //   }
@@ -2382,9 +2390,10 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   // }
 
 //   // if (debug2) {
-//   //   printf("ld: (%d %d %d %d %d) (shape_c: %u %u %u %u %u)\n", 
+//   //   printf("ld: (%d %d %d %d %d) (shape_c: %u %u %u %u %u)\n",
 //   //     ldvs_sm[4], ldvs_sm[3],ldvs_sm[2],ldvs_sm[1],ldvs_sm[0],
-//   //     shape_c_sm[4], shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
+//   //     shape_c_sm[4],
+//   shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
 //   // }
 
 //   T *vec = v + get_idx(ldv1, ldv2, r_gl, c_gl, 0);
@@ -2407,9 +2416,10 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     for (SIZE i = 0; i < c_rest; i++) {
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
 //           vec[get_idx(ldv1, ldv2, r_sm, i, f_gl)];
-//       // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n", r0_stride,
+//       // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n",
+//       r0_stride,
 //       // i, vec_sm[i * ldsm + c_sm]);
-//     } 
+//     }
 //   }
 
 //   if (r_sm == 0 && f_sm < f_ghost) {
@@ -2421,7 +2431,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   __syncthreads();
 
 //   while (f_rest > F - f_ghost) {
-//     // if (c_gl == 0 && c_sm == 0 && r_gl == 0 && r_sm == 0) printf("%d %d\n",
+//     // if (c_gl == 0 && c_sm == 0 && r_gl == 0 && r_sm == 0) printf("%d
+//     %d\n",
 //     // f_rest, F - f_ghost);
 //     f_main = min(F, f_rest);
 //     if (r_sm < r_rest && f_sm < f_main) {
@@ -2441,24 +2452,29 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     if (r_sm < r_rest && c_sm < c_rest) {
 //       // if (debug) printf("forward %f <- %f %f %f %f\n",
 //       //             tridiag_forward2(
-//       //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+//       //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
+//       r_sm, c_sm, 0)]),
+//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+//       ldsm2, r_sm, c_sm, 0)]);
 
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
-//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//           c_sm, 0)]);
 
 //       //#pragma unroll 32
 //       for (SIZE i = 1; i < F; i++) {
 //         // if (debug) printf("forward %f <- %f %f %f %f\n",
 //         //           tridiag_forward2(
-//         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+//         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+//         bm_sm[i],
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
-//         //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+//         //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
+//         am_sm[i], bm_sm[i],
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 
 //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_forward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+//             bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 
 //       }
 
@@ -2470,14 +2486,16 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     /* flush results to v */
 //     if (r_sm < r_rest && f_sm < F) {
 //       for (SIZE i = 0; i < c_rest; i++) {
-//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
+//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+//         FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
 //         //   printf("store [%d %d %d] %f<-%f [%d %d %d]\n",
 //         //     r_sm, i, f_gl, vec[get_idx(ldv1, ldv2, r_sm, i, f_gl)],
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)], r_sm, i, f_sm);
 //         // }
 //         vec[get_idx(ldv1, ldv2, r_sm, i, f_gl)] =
 //             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
-//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
+//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+//         FunctorBase<DeviceType>::GetBlockIdY() == 0 && r_sm == 0 && i == 1) {
 //         //   printf("store [%d %d %d] %f<-%f [%d %d %d]\n",
 //         //     r_sm, i, f_gl, vec[get_idx(ldv1, ldv2, r_sm, i, f_gl)],
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)], r_sm, i, f_sm);
@@ -2529,10 +2547,13 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     if (r_sm < r_rest && c_sm < c_rest) {
 //       // if (debug) printf("forward %f <- %f %f %f %f\n",
 //       //             tridiag_forward2(
-//       //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
-//       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
-//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+//       //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
+//       r_sm, c_sm, 0)]),
+//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+//       ldsm2, r_sm, c_sm, 0)]); vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
+//       tridiag_forward2(
+//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//           c_sm, 0)]);
 //       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
 //       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
 //     }
@@ -2542,20 +2563,25 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     if (r_sm < r_rest && c_sm < c_rest) {
 //       // if (debug) printf("forward %f <- %f %f %f %f\n",
 //       //             tridiag_forward2(
-//       //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
-//       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] = tridiag_forward2(
-//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+//       //     prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
+//       r_sm, c_sm, 0)]),
+//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+//       ldsm2, r_sm, c_sm, 0)]); vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
+//       tridiag_forward2(
+//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//           c_sm, 0)]);
 //       for (SIZE i = 1; i < f_ghost + f_rest; i++) {
 //         // if (debug) printf("forward %f <- %f %f %f %f\n",
 //         //           tridiag_forward2(
-//         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+//         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+//         bm_sm[i],
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
-//         //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
+//         //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
+//         am_sm[i], bm_sm[i],
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_forward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i], bm_sm[i],
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], am_sm[i],
+//             bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
 //       }
 //     }
 //   }
@@ -2566,7 +2592,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       vec[get_idx(ldv1, ldv2, r_sm, i, f_gl)] =
 //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
 //       // printf("c_stride = %d, c_sm = %d, vec_sm = %f, vec[%d] =
-//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv +
+//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv
+//       +
 //       // c_stride, vec[i * row_stride * lddv + c_stride]);
 //     }
 //   }
@@ -2584,7 +2611,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     for (SIZE i = 0; i < c_rest; i++) {
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
 //           vec[get_idx(ldv1, ldv2, r_sm, i, (nf_c - 1) - f_gl)];
-//       // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n", r0_stride,
+//       // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n",
+//       r0_stride,
 //       // i, vec_sm[i * ldsm + c_sm]);
 //     }
 //   }
@@ -2614,7 +2642,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       // if (debug) printf("backward %f <- %f %f %f %f\n",
 //       //             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
 //       //                      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+//       ldsm2, r_sm, c_sm, 0)]);
 
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
 //           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
@@ -2625,16 +2654,20 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         // if (debug) printf("backward %f <- %f %f %f %f\n",
 //         //           tridiag_backward2(
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-//         //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
+//         //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+//         i)]),
 //         //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-//         //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+//         //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+//         i)]);
 
 //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_backward2(
 //             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+//             i)]);
 //       }
 //       /* Store last v */
-//       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, blockDim.x - 1)];
+//       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, blockDim.x -
+//       1)];
 //     }
 //     __syncthreads();
 
@@ -2687,7 +2720,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       // if (debug) printf("backward %f <- %f %f %f %f\n",
 //       //             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
 //       //                      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+//       ldsm2, r_sm, c_sm, 0)]);
 
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
 //           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
@@ -2702,7 +2736,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       // if (debug) printf("backward %f <- %f %f %f %f\n",
 //       //             tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
 //       //                      vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]),
-//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)]);
+//       //             prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1,
+//       ldsm2, r_sm, c_sm, 0)]);
 
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, 0)] =
 //           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
@@ -2712,14 +2747,16 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         // if (debug) printf("backward %f <- %f %f %f %f\n",
 //         //           tridiag_backward2(
 //         //     vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-//         //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]),
+//         //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+//         i)]),
 //         //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
-//         //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
-
+//         //     am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+//         i)]);
 
 //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)] = tridiag_backward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)], 
-//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm, i - 1)],
+//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, c_sm,
+//             i)]);
 //       }
 //     }
 //   }
@@ -2730,7 +2767,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       vec[get_idx(ldv1, ldv2, r_sm, i, (nf_c - 1) - f_gl)] =
 //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
 //       // printf("c_stride = %d, c_sm = %d, vec_sm = %f, vec[%d] =
-//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv +
+//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv
+//       +
 //       // c_stride, vec[i * row_stride * lddv + c_stride]);
 //     }
 //   }
@@ -2738,9 +2776,10 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 // }
 
 // template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
-// void ipk_1_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
-//                              SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws,
-//                              DIM processed_n, DIM *processed_dims_h,
+// void ipk_1_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE
+// *shape_c_h,
+//                              SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE
+//                              *ldws, DIM processed_n, DIM *processed_dims_h,
 //                              DIM *processed_dims_d, DIM curr_dim_r,
 //                              DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm,
 //                              T *ddist_f, T *dv, LENGTH lddv1, LENGTH lddv2,
@@ -2786,12 +2825,13 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   threadsPerBlock = dim3(F, tby, tbz);
 //   blockPerGrid = dim3(gridx, gridy, gridz);
 
-//   // printf("ipk_1 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz, gridx,
+//   // printf("ipk_1 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz,
+//   gridx,
 //   // gridy, gridz);
 //   _ipk_1<D, T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
 //                              *(cudaStream_t *)handle.get(queue_idx)>>>(
-//       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d, curr_dim_r,
-//       curr_dim_c, curr_dim_f, am, bm, ddist_f, dv, lddv1, lddv2);
+//       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d,
+//       curr_dim_r, curr_dim_c, curr_dim_f, am, bm, ddist_f, dv, lddv1, lddv2);
 //   gpuErrchk(cudaGetLastError());
 //   if (handle.sync_and_check_all_kernels) {
 //     gpuErrchk(cudaDeviceSynchronize());
@@ -2800,7 +2840,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 // }
 
 // template <DIM D, typename T>
-// void ipk_1(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
+// void ipk_1(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE
+// *shape_d,
 //            SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,
 //            DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,
 //            DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T *ddist_f, T *dv,
@@ -2891,11 +2932,12 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 // template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
 // __global__ void _ipk_2(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 //                        DIM processed_n, DIM *processed_dims, DIM curr_dim_r,
-//                        DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T *dist_c,
-//                        T *v, LENGTH ldv1, LENGTH ldv2) {
+//                        DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T
+//                        *dist_c, T *v, LENGTH ldv1, LENGTH ldv2) {
 
 //   // bool debug = false;
-//   // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+//   // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 &&
+//   FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
 //   //     threadIdx.z == 0 && threadIdx.y == 0)
 //   //   debug = false;
 
@@ -2905,7 +2947,6 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 
 //   LENGTH threadId = (threadIdx.z * (blockDim.x * blockDim.y)) +
 //                     (threadIdx.y * blockDim.x) + threadIdx.x;
-
 
 //   T *sm = SharedMemory<T>();
 //   SIZE ldsm1 = F;
@@ -2925,17 +2966,17 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   DIM *processed_dims_sm = sm_dim; sm_dim += D;
 //   sm = (T*)sm_dim;
 
-
-
 //   SIZE idx[D];
 
-//  for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
+//  for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y *
+//  FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     shape_sm[i] = shape[i];
 //     shape_c_sm[i] = shape_c[i];
 //     ldvs_sm[i] = ldvs[i];
 //     ldws_sm[i] = ldws[i];
 //   }
-//    for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
+//    for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y *
+//    FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     processed_dims_sm[i] = processed_dims[i];
 //   }
 //   __syncthreads();
@@ -2987,7 +3028,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   SIZE f_rest = min(F, nf_c - blockId * F);
 //   SIZE r_rest = min(R, nr - FunctorBase<DeviceType>::GetBlockIdY() * R);
 
-//   // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
+//   // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 &&
+//   FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
 //   //   prSIZEf("f_rest: %d r_rest: %d\n", f_rest, r_rest);
 //   // }
 
@@ -3000,7 +3042,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     for (SIZE i = 0; i < c_ghost; i++) {
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
 //           vec[get_idx(ldv1, ldv2, r_sm, c_gl + i, f_sm)];
-//       // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n", r0_stride,
+//       // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n",
+//       r0_stride,
 //       // i, vec_sm[i * ldsm + c_sm]);
 //     }
 //   }
@@ -3038,7 +3081,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //       bm_sm[0];
 //       // #endif
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
-//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
+//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//           0, f_sm)]);
 
 //       for (SIZE i = 1; i < C; i++) {
 //         // #ifdef MGARD_X_FMA
@@ -3047,7 +3091,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //       bm_sm[i],
 //         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 //         // #else
-//         //       // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm
+//         //       // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 &&
+//         FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm
 //         //       == 0) {
 //         //       //   printf("calc: %f %f %f -> %f \n", vec_sm[get_idx(ldsm1,
 //         //       ldsm2, r_sm, i, f_sm)],
@@ -3058,11 +3103,12 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //       // }
 
 //         //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] -=
-//         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)] * bm_sm[i];
+//         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)] *
+//         bm_sm[i];
 //         // #endif
 //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_forward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i], bm_sm[i],
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
+//             bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 //       }
 //       /* Store last v */
 //       prev_vec_sm = vec_sm[get_idx(ldsm1, ldsm2, r_sm, C - 1, f_sm)];
@@ -3072,7 +3118,9 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     /* flush results to v */
 //     if (r_sm < r_rest && f_sm < f_rest) {
 //       for (SIZE i = 0; i < C; i++) {
-//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm == 0) {
+//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 1 &&
+//         FunctorBase<DeviceType>::GetBlockIdY() == 0 && f_sm == 0 && r_sm ==
+//         0) {
 //         //   printf("store: %f\n", vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
 //         //   f_sm)]);
 //         // }
@@ -3120,7 +3168,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   /* Only 1 col remain */
 //   if (c_ghost + c_rest == 1) {
 //     if (r_sm < r_rest && f_sm < f_rest) {
-//       // vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm * bm_sm[0];
+//       // vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -= prev_vec_sm *
+//       bm_sm[0];
 //       // #ifdef MGARD_X_FMA
 //       //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] =
 //       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
@@ -3130,7 +3179,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //       bm_sm[0];
 //       // #endif
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
-//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
+//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//           0, f_sm)]);
 //       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
 //       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
 //     }
@@ -3147,7 +3197,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //       bm_sm[0];
 //       // #endif
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] = tridiag_forward2(
-//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
+//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//           0, f_sm)]);
 //       for (SIZE i = 1; i < c_ghost + c_rest; i++) {
 //         // #ifdef MGARD_X_FMA
 //         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
@@ -3156,11 +3207,12 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 //         // #else
 //         //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] -=
-//         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)] * bm_sm[i];
+//         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)] *
+//         bm_sm[i];
 //         // #endif
 //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_forward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i], bm_sm[i],
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], am_sm[i],
+//             bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 //       }
 //     }
 //   }
@@ -3171,7 +3223,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       vec[get_idx(ldv1, ldv2, r_sm, c_gl + i, f_sm)] =
 //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
 //       // printf("c_stride = %d, c_sm = %d, vec_sm = %f, vec[%d] =
-//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv +
+//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv
+//       +
 //       // c_stride, vec[i * row_stride * lddv + c_stride]);
 //     }
 //   }
@@ -3187,8 +3240,10 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   // if (f_gl + f_sm == 0 && r_gl + r_sm == 0 && idx[3] == 0)
 //   //   debug = false;
 //   // if (debug)
-//   //   printf("block id: (%d %d %d) thread id: (%d %d %d)\n", FunctorBase<DeviceType>::GetBlockIdX(),
-//   //          FunctorBase<DeviceType>::GetBlockIdY(), blockIdx.z, threadIdx.x, threadIdx.y, threadIdx.z);
+//   //   printf("block id: (%d %d %d) thread id: (%d %d %d)\n",
+//   FunctorBase<DeviceType>::GetBlockIdX(),
+//   //          FunctorBase<DeviceType>::GetBlockIdY(), blockIdx.z,
+//   threadIdx.x, threadIdx.y, threadIdx.z);
 
 //   /* Load first ghost */
 //   if (r_sm < r_rest && f_sm < f_rest) {
@@ -3196,7 +3251,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
 //           vec[get_idx(ldv1, ldv2, r_sm, (nc_c - 1) - (c_gl + i), f_sm)];
 //       // if (debug)
-//       //   printf("load vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i, f_sm),
+//       //   printf("load vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i,
+//       f_sm),
 //       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 //     }
 //   }
@@ -3241,14 +3297,16 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //       //             dist_sm[0], prev_vec_sm, am_sm[0],
 //       //       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -
 //       //       dist_sm[0] * prev_vec_sm) / am_sm[0]); vec_sm[get_idx(ldsm1,
-//       //       ldsm2, r_sm, 0, f_sm)] = (vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0,
+//       //       ldsm2, r_sm, 0, f_sm)] = (vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//       0,
 //       //       f_sm)] - dist_sm[0] * prev_vec_sm) / am_sm[0];
 //       // #endif
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
 //           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
 //                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
 //       // if (debug)
-//       //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0, f_sm),
+//       //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0,
+//       f_sm),
 //       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 
 //       for (SIZE i = 1; i < C; i++) {
@@ -3256,14 +3314,17 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
 //         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
 //         //       f_sm)],
-//         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)]) * am_sm[i];
+//         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)]) *
+//         am_sm[i];
 //         // #else
 //         //       // if (r_gl == 0 && f_gl == 0 && r_sm == 0 && f_sm == 0)
 //         //       //   printf("(%f + %f * %f) * %f -> %f\n",
 //         //       //             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)],
-//         //       //             dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//         //       //             dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2,
+//         r_sm,
 //         //       i-1, f_sm)], am_sm[i],
-//         //       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] -
+//         //       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]
+//         -
 //         //       //   dist_sm[i] * vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1,
 //         //       f_sm)]) / am_sm[i]);
 
@@ -3274,11 +3335,13 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 
 //         // #endif
 //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_backward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)], 
-//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)],
+//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
+//             f_sm)]);
 
 //         // if (debug)
-//         //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i, f_sm),
+//         //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i,
+//         f_sm),
 //         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 //       }
 
@@ -3296,7 +3359,7 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     }
 //     __syncthreads();
 
-//      Update unloaded col 
+//      Update unloaded col
 //     c_rest -= c_main;
 
 //     /* Advance c */
@@ -3350,14 +3413,16 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //       //             dist_sm[0], prev_vec_sm, am_sm[0],
 //       //       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -
 //       //       dist_sm[0] * prev_vec_sm) / am_sm[0]); vec_sm[get_idx(ldsm1,
-//       //       ldsm2, r_sm, 0, f_sm)] = (vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0,
+//       //       ldsm2, r_sm, 0, f_sm)] = (vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//       0,
 //       //       f_sm)] - dist_sm[0] * prev_vec_sm) / am_sm[0];
 //       // #endif
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
 //           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
 //                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
 //       // if (debug)
-//       //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0, f_sm),
+//       //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0,
+//       f_sm),
 //       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 //       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
 //       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
@@ -3377,14 +3442,16 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //       //             dist_sm[0], prev_vec_sm, am_sm[0],
 //       //       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)] -
 //       //       dist_sm[0] * prev_vec_sm) / am_sm[0]); vec_sm[get_idx(ldsm1,
-//       //       ldsm2, r_sm, 0, f_sm)] = (vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0,
+//       //       ldsm2, r_sm, 0, f_sm)] = (vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//       0,
 //       //       f_sm)] - dist_sm[0] * prev_vec_sm) / am_sm[0];
 //       // #endif
 //       vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)] =
 //           tridiag_backward2(prev_vec_sm, am_sm[0], bm_sm[0],
 //                            vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, c_sm)]);
 //       // if (debug)
-//       //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0, f_sm),
+//       //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, 0,
+//       f_sm),
 //       //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, 0, f_sm)]);
 //       for (SIZE i = 1; i < c_ghost + c_rest; i++) {
 
@@ -3392,14 +3459,17 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
 //         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
 //         //       f_sm)],
-//         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)]) * am_sm[i];
+//         //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)]) *
+//         am_sm[i];
 //         // #else
 //         //       // if (r_gl == 0 && f_gl == 0 && r_sm == 0 && f_sm == 0)
 //         //       //   printf("(%f + %f * %f) * %f -> %f\n",
 //         //       //             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)],
-//         //       //             dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm,
+//         //       //             dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2,
+//         r_sm,
 //         //       i-1, f_sm)], am_sm[i],
-//         //       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] -
+//         //       //             (vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]
+//         -
 //         //       //    dist_sm[i] * vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1,
 //         //       f_sm)]) / am_sm[i]);
 //         //        vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] =
@@ -3409,9 +3479,11 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         // #endif
 //         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)] = tridiag_backward2(
 //             vec_sm[get_idx(ldsm1, ldsm2, r_sm, i - 1, f_sm)],
-//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
+//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, r_sm, i,
+//             f_sm)]);
 //         // if (debug)
-//         //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i, f_sm),
+//         //   printf("calc vec_sm[%d] = %f\n", get_idx(ldsm1, ldsm2, r_sm, i,
+//         f_sm),
 //         //          vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)]);
 //       }
 //     }
@@ -3423,7 +3495,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       vec[get_idx(ldv1, ldv2, r_sm, (nc_c - 1) - (c_gl + i), f_sm)] =
 //           vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm)];
 //       // printf("c_stride = %d, c_sm = %d, vec_sm = %f, vec[%d] =
-//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv +
+//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv
+//       +
 //       // c_stride, vec[i * row_stride * lddv + c_stride]);
 //     }
 //   }
@@ -3431,9 +3504,10 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 // }
 
 // template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
-// void ipk_2_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
-//                              SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws,
-//                              DIM processed_n, DIM *processed_dims_h,
+// void ipk_2_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE
+// *shape_c_h,
+//                              SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE
+//                              *ldws, DIM processed_n, DIM *processed_dims_h,
 //                              DIM *processed_dims_d, DIM curr_dim_r,
 //                              DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm,
 //                              T *ddist_c, T *dv, LENGTH lddv1, LENGTH lddv2,
@@ -3475,8 +3549,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   blockPerGrid = dim3(gridx, gridy, gridz);
 //   _ipk_2<D, T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
 //                              *(cudaStream_t *)handle.get(queue_idx)>>>(
-//       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d, curr_dim_r,
-//       curr_dim_c, curr_dim_f, am, bm, ddist_c, dv, lddv1, lddv2);
+//       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d,
+//       curr_dim_r, curr_dim_c, curr_dim_f, am, bm, ddist_c, dv, lddv1, lddv2);
 //   gpuErrchk(cudaGetLastError());
 //   if (handle.sync_and_check_all_kernels) {
 //     gpuErrchk(cudaDeviceSynchronize());
@@ -3484,7 +3558,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 // }
 
 // template <DIM D, typename T>
-// void ipk_2(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
+// void ipk_2(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE
+// *shape_d,
 //            SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,
 //            DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,
 //            DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T *ddist_c, T *dv,
@@ -3555,11 +3630,12 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 // template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
 // __global__ void _ipk_3(SIZE *shape, SIZE *shape_c, SIZE *ldvs, SIZE *ldws,
 //                        DIM processed_n, DIM *processed_dims, DIM curr_dim_r,
-//                        DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T *dist_r,
-//                        T *v, LENGTH ldv1, LENGTH ldv2) {
+//                        DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T
+//                        *dist_r, T *v, LENGTH ldv1, LENGTH ldv2) {
 
 //   // bool debug = false;
-//   // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+//   // if (blockIdx.z == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 &&
+//   FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
 //   // threadIdx.z == 0 && threadIdx.y == 0 ) debug = false;
 
 //   // bool debug2 = false;
@@ -3589,13 +3665,15 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   sm = (T*)sm_dim;
 
 //   SIZE idx[D];
-//   for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
+//   for (LENGTH i = threadId; i < D; i += blockDim.x * blockDim.y *
+//   FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     shape_sm[i] = shape[i];
 //     shape_c_sm[i] = shape_c[i];
 //     ldvs_sm[i] = ldvs[i];
 //     ldws_sm[i] = ldws[i];
 //   }
-//   for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y * FunctorBase<DeviceType>::GetBlockDimZ()) {
+//   for (LENGTH i = threadId; i < processed_n; i += blockDim.x * blockDim.y *
+//   FunctorBase<DeviceType>::GetBlockDimZ()) {
 //     processed_dims_sm[i] = processed_dims[i];
 //   }
 //   __syncthreads();
@@ -3674,7 +3752,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)] =
 //             vec[get_idx(ldv1, ldv2, r_gl + i + r_ghost, c_sm, f_sm)];
 //         // if (debug) printf("load ghost sm[%d] %f [%d]\n", i + r_ghost,
-//         //              vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)],
+//         //              vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm,
+//         f_sm)],
 //         //              r_gl + i + r_ghost);
 //       }
 //     }
@@ -3689,7 +3768,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 
 //       // #ifdef MGARD_X_FMA
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-//       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
+//       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
+//       0,
 //       //       c_sm, f_sm)]);
 //       // #else
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] -= prev_vec_sm *
@@ -3702,7 +3782,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //               c_sm, f_sm)]);
 
 //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
-//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
+//           c_sm, f_sm)]);
 
 //       for (SIZE i = 1; i < R; i++) {
 //         // #ifdef MGARD_X_FMA
@@ -3712,19 +3793,23 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
 //         // #else
 //         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] -=
-//         //          vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)] * bm_sm[i];
+//         //          vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)] *
+//         bm_sm[i];
 //         // #endif
 
 //         // if (debug) printf("compute sm[%d] %f <- %f %f %f\n", i,
-//         //             tridiag_forward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
+//         //             tridiag_forward(vec_sm[get_idx(ldsm1, ldsm2, i - 1,
+//         c_sm,
 //         //             f_sm)],
-//         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]),
+//         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//         f_sm)]),
 //         //             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
-//         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+//         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//         f_sm)]);
 
 //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_forward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i], bm_sm[i],
-//             vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
+//             bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
 //       }
 
 //       /* Store last v */
@@ -3775,7 +3860,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //           vec[get_idx(ldv1, ldv2, r_gl + i + r_ghost, c_sm, f_sm)];
 
 //       // if (debug) printf("load ghost-rest sm[%d] %f [%d]\n", i + r_ghost,
-//       //               vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)],
+//       //               vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm,
+//       f_sm)],
 //       //               r_gl + i + r_ghost);
 //     }
 //   }
@@ -3793,7 +3879,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 
 //       // #ifdef MGARD_X_FMA
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-//       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
+//       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
+//       0,
 //       //       c_sm, f_sm)]);
 //       // #else
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] -= prev_vec_sm *
@@ -3806,7 +3893,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //               c_sm, f_sm)]);
 
 //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
-//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
+//           c_sm, f_sm)]);
 //       // printf ("prev_vec_sm = %f\n", prev_vec_sm );
 //       // printf ("vec_sm[r_sm * ldsm + 0] = %f\n", vec_sm[r_sm * ldsm + 0] );
 //     }
@@ -3816,7 +3904,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     if (c_sm < c_rest && f_sm < f_rest) {
 //       // #ifdef MGARD_X_FMA
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-//       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
+//       //       __fma_rn(prev_vec_sm, bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2,
+//       0,
 //       //       c_sm, f_sm)]);
 //       // #else
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] -= prev_vec_sm *
@@ -3830,7 +3919,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       //               c_sm, f_sm)]);
 
 //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] = tridiag_forward2(
-//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]);
+//           prev_vec_sm, am_sm[0], bm_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0,
+//           c_sm, f_sm)]);
 //       for (SIZE i = 1; i < r_ghost + r_rest; i++) {
 //         // #ifdef MGARD_X_FMA
 //         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
@@ -3839,18 +3929,22 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
 //         // #else
 //         //       vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] -=
-//         //         vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)] * bm_sm[i];
+//         //         vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)] *
+//         bm_sm[i];
 //         // #endif
 //         // if (debug) printf("compute-rest sm[%d] %f <- %f %f %f\n", i,
-//         //             tridiag_forward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
+//         //             tridiag_forward(vec_sm[get_idx(ldsm1, ldsm2, i - 1,
+//         c_sm,
 //         //             f_sm)],
-//         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]),
+//         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//         f_sm)]),
 //         //             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
-//         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+//         //              bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//         f_sm)]);
 
 //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_forward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i], bm_sm[i],
-//             vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], am_sm[i],
+//             bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
 //       }
 //     }
 //   }
@@ -3865,7 +3959,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       // if (debug) printf("store-rest[%d] %f [%d]\n", r_gl + i,
 //       //     vec[get_idx(ldv1, ldv2, r_gl + i, c_sm, f_sm)], i);
 //       // printf("c_stride = %d, c_sm = %d, vec_sm = %f, vec[%d] =
-//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv +
+//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv
+//       +
 //       // c_stride, vec[i * row_stride * lddv + c_stride]);
 //     }
 //   }
@@ -3885,10 +3980,12 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //           vec[get_idx(ldv1, ldv2, (nr_c - 1) - (r_gl + i), c_sm, f_sm)];
 
 //       // if (debug) printf("load first sm[%d] %f [%d]\n", i,
-//       //             vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)], (nr_c - 1) -
+//       //             vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)], (nr_c - 1)
+//       -
 //       //             (r_gl + i));
 
-//       // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n", r0_stride,
+//       // if (r_sm == 0) printf("r0_stride = %d, vec_sm[%d] = %f\n",
+//       r0_stride,
 //       // i, vec_sm[i * ldsm + c_sm]);
 //     }
 //   }
@@ -3907,7 +4004,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)] = vec[get_idx(
 //             ldv1, ldv2, (nr_c - 1) - (r_gl + i + r_ghost), c_sm, f_sm)];
 //         // if (debug) printf("load ghost sm[%d] %f [%d]\n", i + r_ghost,
-//         //             vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)],
+//         //             vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm,
+//         f_sm)],
 //         //             (nr_c - 1) - (r_gl + i + r_ghost));
 //       }
 //     }
@@ -3921,7 +4019,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     if (c_sm < c_rest && f_sm < f_rest) {
 //       // #ifdef MGARD_X_FMA
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-//       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
+//       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
+//       0,
 //       //       c_sm, f_sm)]) * am_sm[0];
 //       // #else
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
@@ -3942,7 +4041,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 
 //         // #ifdef MGARD_X_FMA
 //         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
-//         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
+//         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1,
+//         c_sm,
 //         //       f_sm)],
 //         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]) * am_sm[i];
 //         // #else
@@ -3955,13 +4055,16 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         // if (debug) printf("compute sm[%d] %f <- %f %f %f %f\n", i,
 //         //             tridiag_backward(vec_sm[get_idx(ldsm1, ldsm2, i - 1,
 //         //             c_sm, f_sm)],
-//         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]),
+//         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//         f_sm)]),
 //         //             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
-//         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+//         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//         f_sm)]);
 
 //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_backward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], 
-//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
+//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//             f_sm)]);
 //       }
 
 //       /* Store last v */
@@ -3972,9 +4075,11 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     /* flush results to v */
 //     if (c_sm < c_rest && f_sm < f_rest) {
 //       for (SIZE i = 0; i < R; i++) {
-//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
+//         // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+//         FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
 //         // threadIdx.y == 0) {
-//         //   printf("%d %d %d (%f) <- %d %d %d\n", (nr - 1) - (r_gl + i), c_sm,
+//         //   printf("%d %d %d (%f) <- %d %d %d\n", (nr - 1) - (r_gl + i),
+//         c_sm,
 //         //   f_sm,
 //         //           vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)], i, c_sm,
 //         //           f_sm);
@@ -3983,7 +4088,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //             vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)];
 
 //         // if (debug) printf("store[%d] %f [%d]\n", (nr_c - 1) - (r_gl + i),
-//         //   vec[get_idx(ldv1, ldv2, (nr_c - 1) - (r_gl + i), c_sm, f_sm)], i);
+//         //   vec[get_idx(ldv1, ldv2, (nr_c - 1) - (r_gl + i), c_sm, f_sm)],
+//         i);
 //       }
 //     }
 //     __syncthreads();
@@ -4020,7 +4126,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //           ldv1, ldv2, (nr_c - 1) - (r_gl + i + r_ghost), c_sm, f_sm)];
 
 //       // if (debug) printf("load ghost-rest sm[%d] %f [%d]\n", i + r_ghost,
-//       //               vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm, f_sm)],
+//       //               vec_sm[get_idx(ldsm1, ldsm2, i + r_ghost, c_sm,
+//       f_sm)],
 //       //               (nr_c - 1) - (r_gl + i + r_ghost));
 //     }
 //   }
@@ -4035,16 +4142,19 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     if (c_sm < c_rest && f_sm < f_rest) {
 //       // #ifdef MGARD_X_FMA
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-//       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
+//       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
+//       0,
 //       //       c_sm, f_sm)]) * am_sm[0];
 //       // #else
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
 //       //       (vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] - dist_sm[0] *
 //       //       prev_vec_sm) / am_sm[0];
 //       // #endif
-//       // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
+//       // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+//       FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
 //       // threadIdx.y == 0) {
-//       //   printf("backward 1 (%f) %f %f %f %f\n", tridiag_backward(prev_vec_sm,
+//       //   printf("backward 1 (%f) %f %f %f %f\n",
+//       tridiag_backward(prev_vec_sm,
 //       //   dist_sm[0], am_sm[0],
 //       //     vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]), prev_vec_sm,
 //       //     dist_sm[0], am_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm,
@@ -4069,16 +4179,19 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //     if (c_sm < c_rest && f_sm < f_rest) {
 //       // #ifdef MGARD_X_FMA
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
-//       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2, 0,
+//       //       __fma_rn(dist_sm[0], prev_vec_sm, vec_sm[get_idx(ldsm1, ldsm2,
+//       0,
 //       //       c_sm, f_sm)]) * am_sm[0];
 //       // #else
 //       //       vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] =
 //       //       (vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)] - dist_sm[0] *
 //       //       prev_vec_sm) / am_sm[0];
 //       // #endif
-//       // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
+//       // if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+//       FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
 //       // threadIdx.y == 0) {
-//       //   printf("backward 1 (%f) %f %f %f %f\n", tridiag_backward(prev_vec_sm,
+//       //   printf("backward 1 (%f) %f %f %f %f\n",
+//       tridiag_backward(prev_vec_sm,
 //       //   dist_sm[0], am_sm[0],
 //       //     vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm, f_sm)]), prev_vec_sm,
 //       //     dist_sm[0], am_sm[0], vec_sm[get_idx(ldsm1, ldsm2, 0, c_sm,
@@ -4099,7 +4212,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 
 //         // #ifdef MGARD_X_FMA
 //         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] =
-//         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
+//         //       __fma_rn(dist_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i - 1,
+//         c_sm,
 //         //       f_sm)],
 //         //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]) * am_sm[i];
 //         // #else
@@ -4108,9 +4222,12 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         //          dist_sm[i] * vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
 //         //          f_sm)]) / am_sm[i];
 //         // #endif
-//         //   if (FunctorBase<DeviceType>::GetBlockIdX() == 0 && FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
-//         //   threadIdx.y == 0) { printf("backward R=%d (%f) %f %f %f %f\n", i,
-//         //   tridiag_backward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
+//         //   if (FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
+//         FunctorBase<DeviceType>::GetBlockIdY() == 0 && threadIdx.x == 0 &&
+//         //   threadIdx.y == 0) { printf("backward R=%d (%f) %f %f %f %f\n",
+//         i,
+//         //   tridiag_backward(vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm,
+//         f_sm)],
 //         //    dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
 //         //    f_sm)]), vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
 //         //    dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
@@ -4121,13 +4238,16 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //         // if (debug) printf("compute sm[%d] %f <- %f %f %f %f\n", i,
 //         //             tridiag_backward(vec_sm[get_idx(ldsm1, ldsm2, i - 1,
 //         //             c_sm, f_sm)],
-//         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]),
+//         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//         f_sm)]),
 //         //             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
-//         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+//         //  dist_sm[i], am_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//         f_sm)]);
 
 //         vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)] = tridiag_backward2(
-//             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)], 
-//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)]);
+//             vec_sm[get_idx(ldsm1, ldsm2, i - 1, c_sm, f_sm)],
+//             am_sm[i], bm_sm[i], vec_sm[get_idx(ldsm1, ldsm2, i, c_sm,
+//             f_sm)]);
 //       }
 //     }
 //   }
@@ -4138,22 +4258,25 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //       vec[get_idx(ldv1, ldv2, (nr_c - 1) - (r_gl + i), c_sm, f_sm)] =
 //           vec_sm[get_idx(ldsm1, ldsm2, i, c_sm, f_sm)];
 
-//       // if (debug) printf("store-rest[%d] %f [%d]\n", (nr_c - 1) - (r_gl + i),
-//       //     vec[get_idx(ldv1, ldv2, (nr_c - 1) - (r_gl + i), c_sm, f_sm)], i);
+//       // if (debug) printf("store-rest[%d] %f [%d]\n", (nr_c - 1) - (r_gl +
+//       i),
+//       //     vec[get_idx(ldv1, ldv2, (nr_c - 1) - (r_gl + i), c_sm, f_sm)],
+//       i);
 
 //       // printf("c_stride = %d, c_sm = %d, vec_sm = %f, vec[%d] =
-//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv +
+//       // %f\n",c_stride, c_sm, vec_sm[r_sm * ldsm + 0],i * row_stride * lddv
+//       +
 //       // c_stride, vec[i * row_stride * lddv + c_stride]);
 //     }
 //   }
 //   __syncthreads();
 // }
 
-
 // template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G>
-// void ipk_3_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h,
-//                              SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws,
-//                              DIM processed_n, DIM *processed_dims_h,
+// void ipk_3_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE
+// *shape_c_h,
+//                              SIZE *shape_d, SIZE *shape_c_d, SIZE *ldvs, SIZE
+//                              *ldws, DIM processed_n, DIM *processed_dims_h,
 //                              DIM *processed_dims_d, DIM curr_dim_r,
 //                              DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm,
 //                              T *ddist_r, T *dv, LENGTH lddv1, LENGTH lddv2,
@@ -4198,12 +4321,13 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 //   }
 //   threadsPerBlock = dim3(tbx, tby, tbz);
 //   blockPerGrid = dim3(gridx, gridy, gridz);
-//   // printf("ipk_1 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz, gridx,
+//   // printf("ipk_1 exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz,
+//   gridx,
 //   // gridy, gridz);
 //   _ipk_3<D, T, R, C, F, G><<<blockPerGrid, threadsPerBlock, sm_size,
 //                              *(cudaStream_t *)handle.get(queue_idx)>>>(
-//       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d, curr_dim_r,
-//       curr_dim_c, curr_dim_f, am, bm, ddist_r, dv, lddv1, lddv2);
+//       shape_d, shape_c_d, ldvs, ldws, processed_n, processed_dims_d,
+//       curr_dim_r, curr_dim_c, curr_dim_f, am, bm, ddist_r, dv, lddv1, lddv2);
 //   gpuErrchk(cudaGetLastError());
 //   if (handle.sync_and_check_all_kernels) {
 //     gpuErrchk(cudaDeviceSynchronize());
@@ -4211,7 +4335,8 @@ class Ipk3Reo: public AutoTuner<DeviceType> {
 // }
 
 // template <DIM D, typename T>
-// void ipk_3(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE *shape_d,
+// void ipk_3(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_c_h, SIZE
+// *shape_d,
 //            SIZE *shape_c_d, SIZE *ldvs, SIZE *ldws, DIM processed_n,
 //            DIM *processed_dims_h, DIM *processed_dims_d, DIM curr_dim_r,
 //            DIM curr_dim_c, DIM curr_dim_f, T *am, T *bm, T *ddist_r, T *dv,

@@ -27,7 +27,7 @@
 
 namespace mgard_x {
 
-template <typename SubArrayType> 
+template <typename SubArrayType>
 void PrintSubarray(std::string name, SubArrayType subArray) {
   // Handle<1, float> tmp_handle;
 
@@ -36,37 +36,43 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
   SIZE nfib = 1;
 
   nfib = subArray.getShape(0);
-  if (SubArrayType::NumDims >= 2) ncol = subArray.getShape(1);
-  if (SubArrayType::NumDims >= 3) nrow = subArray.getShape(2);
+  if (SubArrayType::NumDims >= 2)
+    ncol = subArray.getShape(1);
+  if (SubArrayType::NumDims >= 3)
+    nrow = subArray.getShape(2);
 
   using T = typename SubArrayType::DataType;
   using DeviceType = typename SubArrayType::DevType;
 
-  std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * " << nfib << ") sizeof(T) = "  <<sizeof(T) << std::endl;
+  std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * "
+            << nfib << ") sizeof(T) = " << sizeof(T) << std::endl;
   // std::cout << name << "\n";
 
   T *v = new T[nrow * ncol * nfib];
   // cudaMemcpy3DAsyncHelper(tmp_handle, v, nfib * sizeof(T), nfib * sizeof(T),
-  //                         ncol, subArray.data(), subArray.lddv1 * sizeof(T), nfib * sizeof(T), subArray.lddv2,
-  //                         nfib * sizeof(T), ncol, nrow, D2H, 0);
+  //                         ncol, subArray.data(), subArray.lddv1 * sizeof(T),
+  //                         nfib * sizeof(T), subArray.lddv2, nfib * sizeof(T),
+  //                         ncol, nrow, D2H, 0);
   for (SIZE i = 0; i < nrow; i++) {
-    MemoryManager<DeviceType>::CopyND(v + ncol * nfib * i, nfib, subArray.data() + subArray.getLddv1() * subArray.getLddv2() * i, subArray.getLddv1(),
-                                nfib, ncol, 0);
+    MemoryManager<DeviceType>::CopyND(
+        v + ncol * nfib * i, nfib,
+        subArray.data() + subArray.getLddv1() * subArray.getLddv2() * i,
+        subArray.getLddv1(), nfib, ncol, 0);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   // tmp_handle.sync(0);
-  
-  
+
   for (int i = 0; i < nrow; i++) {
     printf("[i = %d]\n", i);
     for (int j = 0; j < ncol; j++) {
       for (int k = 0; k < nfib; k++) {
         // std::cout << "[ " << j << ", " << k <<" ]: ";
         if (std::is_same<T, std::uint8_t>::value) {
-          std::cout << std::setw(8) << (unsigned int)v[nfib * ncol * i + nfib * j + k] << " ";
+          std::cout << std::setw(8)
+                    << (unsigned int)v[nfib * ncol * i + nfib * j + k] << " ";
         } else {
           std::cout << std::setw(8) << std::setprecision(6) << std::fixed
-                  << v[nfib * ncol * i + nfib * j + k] << " ";
+                    << v[nfib * ncol * i + nfib * j + k] << " ";
         }
         // std::cout << "\n";
       }
@@ -75,11 +81,12 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
     std::cout << std::endl;
   }
   std::cout << std::endl;
-  delete [] v;
+  delete[] v;
 }
 
-template <typename SubArrayType> 
-void CompareSubarray(std::string name, SubArrayType subArray1, SubArrayType subArray2) {
+template <typename SubArrayType>
+void CompareSubarray(std::string name, SubArrayType subArray1,
+                     SubArrayType subArray2) {
   // Handle<1, float> tmp_handle;
 
   SIZE nrow = 1;
@@ -87,28 +94,35 @@ void CompareSubarray(std::string name, SubArrayType subArray1, SubArrayType subA
   SIZE nfib = 1;
 
   nfib = subArray1.getShape(0);
-  if (SubArrayType::NumDims >= 2) ncol = subArray1.getShape(1);
-  if (SubArrayType::NumDims >= 3) nrow = subArray1.getShape(2);
+  if (SubArrayType::NumDims >= 2)
+    ncol = subArray1.getShape(1);
+  if (SubArrayType::NumDims >= 3)
+    nrow = subArray1.getShape(2);
 
   if (subArray1.getShape(0) != subArray2.getShape(0) ||
       subArray1.getShape(1) != subArray2.getShape(1) ||
       subArray1.getShape(2) != subArray2.getShape(2)) {
-    std::cout << log::log_err <<"CompareSubarray: shape mismatch!\n";
+    std::cout << log::log_err << "CompareSubarray: shape mismatch!\n";
     exit(-1);
   }
 
   using T = typename SubArrayType::DataType;
   using DeviceType = typename SubArrayType::DevType;
-  std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * " << nfib << ") sizeof(T) = "  <<sizeof(T) << std::endl;
+  std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * "
+            << nfib << ") sizeof(T) = " << sizeof(T) << std::endl;
 
   T *v1 = new T[nrow * ncol * nfib];
-  T *v2= new T[nrow * ncol * nfib];
+  T *v2 = new T[nrow * ncol * nfib];
 
   for (SIZE i = 0; i < nrow; i++) {
-    MemoryManager<DeviceType>::CopyND(v1 + ncol * nfib * i, nfib, subArray1.data() + subArray1.getLddv1() * subArray1.getLddv2() * i, subArray1.getLddv1(),
-                                nfib, ncol, 0);
-    MemoryManager<DeviceType>::CopyND(v2 + ncol * nfib * i, nfib, subArray2.data() + subArray2.getLddv1() * subArray2.getLddv2() * i, subArray2.getLddv1(),
-                                nfib, ncol, 0);
+    MemoryManager<DeviceType>::CopyND(
+        v1 + ncol * nfib * i, nfib,
+        subArray1.data() + subArray1.getLddv1() * subArray1.getLddv2() * i,
+        subArray1.getLddv1(), nfib, ncol, 0);
+    MemoryManager<DeviceType>::CopyND(
+        v2 + ncol * nfib * i, nfib,
+        subArray2.data() + subArray2.getLddv1() * subArray2.getLddv2() * i,
+        subArray2.getLddv1(), nfib, ncol, 0);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
@@ -120,18 +134,19 @@ void CompareSubarray(std::string name, SubArrayType subArray1, SubArrayType subA
       for (int k = 0; k < nfib; k++) {
         T a = v1[nfib * ncol * i + nfib * j + k];
         T b = v2[nfib * ncol * i + nfib * j + k];
-        max_error = std::max(max_error, fabs(a-b));
-        if (fabs(a-b) > 1e-5 * fabs(a)) {
+        max_error = std::max(max_error, fabs(a - b));
+        if (fabs(a - b) > 1e-5 * fabs(a)) {
           std::cout << ANSI_RED;
           pass = false;
         } else {
           std::cout << ANSI_GREEN;
         }
         if (std::is_same<T, std::uint8_t>::value) {
-          std::cout << std::setw(8) << (unsigned int)v2[nfib * ncol * i + nfib * j + k] << ", ";
+          std::cout << std::setw(8)
+                    << (unsigned int)v2[nfib * ncol * i + nfib * j + k] << ", ";
         } else {
           std::cout << std::setw(8) << std::setprecision(6) << std::fixed
-                  << v2[nfib * ncol * i + nfib * j + k] << ", ";
+                    << v2[nfib * ncol * i + nfib * j + k] << ", ";
         }
         std::cout << ANSI_RESET;
       }
@@ -142,13 +157,14 @@ void CompareSubarray(std::string name, SubArrayType subArray1, SubArrayType subA
   std::cout << std::endl;
 
   printf("Check: %d, max error: %f\n", pass, max_error);
-  delete [] v1;
-  delete [] v2;
+  delete[] v1;
+  delete[] v2;
 }
 
-
-template <typename SubArrayType1, typename SubArrayType2> 
-void CompareSubarray(std::string name, SubArrayType1 subArray1, SubArrayType2 subArray2, bool print, double error_thresold) {
+template <typename SubArrayType1, typename SubArrayType2>
+void CompareSubarray(std::string name, SubArrayType1 subArray1,
+                     SubArrayType2 subArray2, bool print,
+                     double error_thresold) {
   // Handle<1, float> tmp_handle;
 
   SIZE nrow = 1;
@@ -156,63 +172,83 @@ void CompareSubarray(std::string name, SubArrayType1 subArray1, SubArrayType2 su
   SIZE nfib = 1;
 
   nfib = subArray1.getShape(0);
-  if (SubArrayType1::NumDims >= 2) ncol = subArray1.getShape(1);
-  if (SubArrayType1::NumDims >= 3) nrow = subArray1.getShape(2);
+  if (SubArrayType1::NumDims >= 2)
+    ncol = subArray1.getShape(1);
+  if (SubArrayType1::NumDims >= 3)
+    nrow = subArray1.getShape(2);
 
   if (subArray1.getShape(0) != subArray2.shape[0] ||
-      (SubArrayType1::NumDims >= 2 && subArray1.getShape(1) != subArray2.shape[1]) ||
-      (SubArrayType1::NumDims >= 3 && subArray1.getShape(2) != subArray2.shape[2])) {
-    std::cout << log::log_err <<"CompareSubarray: shape mismatch!\n";
+      (SubArrayType1::NumDims >= 2 &&
+       subArray1.getShape(1) != subArray2.shape[1]) ||
+      (SubArrayType1::NumDims >= 3 &&
+       subArray1.getShape(2) != subArray2.shape[2])) {
+    std::cout << log::log_err << "CompareSubarray: shape mismatch!\n";
     exit(-1);
   }
 
   using T = typename SubArrayType1::DataType;
   using DeviceType = typename SubArrayType1::DevType;
-  // std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * " << nfib << ") sizeof(T) = "  <<sizeof(T) << std::endl;
+  // std::cout << "SubArray: " << name << "(" << nrow << " * " << ncol << " * "
+  // << nfib << ") sizeof(T) = "  <<sizeof(T) << std::endl;
   std::cout << name << "\n";
 
   T *v1 = new T[nrow * ncol * nfib];
-  T *v2= new T[nrow * ncol * nfib];
+  T *v2 = new T[nrow * ncol * nfib];
   for (SIZE i = 0; i < nrow; i++) {
-    MemoryManager<DeviceType>::CopyND(v1 + ncol * nfib * i, nfib, subArray1.data() + subArray1.getLddv1() * subArray1.getLddv2() * i, subArray1.getLddv1(),
-                                nfib, ncol, 0);
-    MemoryManager<DeviceType>::CopyND(v2 + ncol * nfib * i, nfib, subArray2.data() + subArray2.lddv1 * subArray2.lddv2 * i, subArray2.lddv1,
-                                nfib, ncol, 0);
+    MemoryManager<DeviceType>::CopyND(
+        v1 + ncol * nfib * i, nfib,
+        subArray1.data() + subArray1.getLddv1() * subArray1.getLddv2() * i,
+        subArray1.getLddv1(), nfib, ncol, 0);
+    MemoryManager<DeviceType>::CopyND(v2 + ncol * nfib * i, nfib,
+                                      subArray2.data() +
+                                          subArray2.lddv1 * subArray2.lddv2 * i,
+                                      subArray2.lddv1, nfib, ncol, 0);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
   T max_error = 0;
   bool pass = true;
   for (int i = 0; i < nrow; i++) {
-    if (print) printf("[i = %d]\n", i);
+    if (print)
+      printf("[i = %d]\n", i);
     for (int j = 0; j < ncol; j++) {
       for (int k = 0; k < nfib; k++) {
         T a = v1[nfib * ncol * i + nfib * j + k];
         T b = v2[nfib * ncol * i + nfib * j + k];
-        max_error = std::max(max_error, fabs(a-b));
-        if (fabs(a-b) > error_thresold * fabs(a)) {
-          if (print) std::cout << ANSI_RED;
+        max_error = std::max(max_error, fabs(a - b));
+        if (fabs(a - b) > error_thresold * fabs(a)) {
+          if (print)
+            std::cout << ANSI_RED;
           pass = false;
         } else {
-          if (print) std::cout << ANSI_GREEN;
+          if (print)
+            std::cout << ANSI_GREEN;
         }
         if (std::is_same<T, std::uint8_t>::value) {
-          if (print) std::cout << std::setw(8) << (unsigned int)v2[nfib * ncol * i + nfib * j + k] << ", ";
+          if (print)
+            std::cout << std::setw(8)
+                      << (unsigned int)v2[nfib * ncol * i + nfib * j + k]
+                      << ", ";
         } else {
-          if (print) std::cout << std::setw(8) << std::setprecision(6) << std::fixed
-                  << v2[nfib * ncol * i + nfib * j + k] << ", ";
+          if (print)
+            std::cout << std::setw(8) << std::setprecision(6) << std::fixed
+                      << v2[nfib * ncol * i + nfib * j + k] << ", ";
         }
-        if (print) std::cout << ANSI_RESET;
+        if (print)
+          std::cout << ANSI_RESET;
       }
-      if (print) std::cout << std::endl;
+      if (print)
+        std::cout << std::endl;
     }
-    if (print) std::cout << std::endl;
+    if (print)
+      std::cout << std::endl;
   }
-  if (print) std::cout << std::endl;
+  if (print)
+    std::cout << std::endl;
 
   printf("Check: %d, max error: %f\n", pass, max_error);
-  delete [] v1;
-  delete [] v2;
+  delete[] v1;
+  delete[] v2;
 }
 
 // print 3D CPU
@@ -265,7 +301,7 @@ void verify_matrix(SIZE nrow, SIZE ncol, SIZE nfib, T *v, SIZE ldv1, SIZE ldv2,
       }
     }
 
-    delete [] v2;
+    delete[] v2;
     if (mismatch)
       exit(-1);
   }
@@ -283,7 +319,8 @@ void verify_matrix_cuda(SIZE nrow, SIZE ncol, SIZE nfib, T *dv, SIZE lddv1,
     int queue_idx = 0;
 
     T *v = new T[nrow * ncol * nfib];
-    // cudaMemcpy3DAsyncHelper(*tmp_handle, v, nfib * sizeof(T), nfib * sizeof(T),
+    // cudaMemcpy3DAsyncHelper(*tmp_handle, v, nfib * sizeof(T), nfib *
+    // sizeof(T),
     //                         ncol, dv, lddv1 * sizeof(T), sizex * sizeof(T),
     //                         lddv2, nfib * sizeof(T), ncol, nrow, D2H,
     //                         queue_idx);
@@ -297,34 +334,33 @@ void verify_matrix_cuda(SIZE nrow, SIZE ncol, SIZE nfib, T *dv, SIZE lddv1,
   }
 }
 
-
-
 template <typename T, typename DeviceType>
-void CompareSubArrays(SubArray<1, T, DeviceType> array1, SubArray<1, T, DeviceType> array2) {
+void CompareSubArrays(SubArray<1, T, DeviceType> array1,
+                      SubArray<1, T, DeviceType> array2) {
   SIZE n = array1.shape[0];
   using Mem = MemoryManager<DeviceType>;
-  T * q1 = new T[n];
-  T * q2 = new T[n];
+  T *q1 = new T[n];
+  T *q2 = new T[n];
   Mem::Copy1D(q1, array1.data(), n, 0);
   Mem::Copy1D(q2, array2.data(), n, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   bool pass = true;
   for (int i = 0; i < n; i++) {
-    if (q1[i] != q2[i] ) {
+    if (q1[i] != q2[i]) {
       pass = false;
       std::cout << "diff at " << i << "(" << q1[i] << ", " << q2[i] << ")\n";
     }
   }
   printf("pass: %d\n", pass);
-  delete [] q1;
-  delete [] q2;
+  delete[] q1;
+  delete[] q2;
 }
 
 template <typename T, typename DeviceType>
 void DumpSubArray(std::string name, SubArray<1, T, DeviceType> array) {
   SIZE n = array.getShape(0);
   using Mem = MemoryManager<DeviceType>;
-  T * q = new T[n];
+  T *q = new T[n];
   Mem::Copy1D(q, array.data(), n, 0);
   std::fstream myfile;
   myfile.open(name, std::ios::out | std::ios::binary);
@@ -338,14 +374,14 @@ void DumpSubArray(std::string name, SubArray<1, T, DeviceType> array) {
     printf("Error occurred at write time!\n");
     return;
   }
-  delete [] q;
+  delete[] q;
 }
 
 template <typename T, typename DeviceType>
 void LoadSubArray(std::string name, SubArray<1, T, DeviceType> array) {
   SIZE n = array.getShape(0);
   using Mem = MemoryManager<DeviceType>;
-  T * q = new T[n];
+  T *q = new T[n];
   std::fstream myfile;
   myfile.open(name, std::ios::in | std::ios::binary);
   if (!myfile) {
@@ -359,9 +395,9 @@ void LoadSubArray(std::string name, SubArray<1, T, DeviceType> array) {
     return;
   }
   Mem::Copy1D(array.data(), q, n, 0);
-  delete [] q;
+  delete[] q;
 }
 
-}
+} // namespace mgard_x
 
 #endif

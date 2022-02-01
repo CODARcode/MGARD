@@ -30,29 +30,24 @@
     CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err));                   \
   } while (0)
 
-
-
 namespace mgard {
-  void huffman_encoding(long int *quantized_data, const std::size_t n,
+void huffman_encoding(long int *quantized_data, const std::size_t n,
                       unsigned char **out_data_hit, size_t *out_data_hit_size,
                       unsigned char **out_data_miss, size_t *out_data_miss_size,
                       unsigned char **out_tree, size_t *out_tree_size);
-  void huffman_decoding(long int *quantized_data,
+void huffman_decoding(long int *quantized_data,
                       const std::size_t quantized_data_size,
                       unsigned char *out_data_hit, size_t out_data_hit_size,
                       unsigned char *out_data_miss, size_t out_data_miss_size,
                       unsigned char *out_tree, size_t out_tree_size);
-}
-
-
-
+} // namespace mgard
 
 namespace mgard_x {
 
 template <typename DeviceType>
-unsigned char * compress_memory_huffman(long int *const src,
-                                                    const std::size_t srcLen,
-                                                    std::size_t &outsize) {
+unsigned char *compress_memory_huffman(long int *const src,
+                                       const std::size_t srcLen,
+                                       std::size_t &outsize) {
   unsigned char *out_data_hit = 0;
   size_t out_data_hit_size;
   unsigned char *out_data_miss = 0;
@@ -60,8 +55,8 @@ unsigned char * compress_memory_huffman(long int *const src,
   unsigned char *out_tree = 0;
   size_t out_tree_size;
   ::mgard::huffman_encoding(src, srcLen, &out_data_hit, &out_data_hit_size,
-                   &out_data_miss, &out_data_miss_size, &out_tree,
-                   &out_tree_size);
+                            &out_data_miss, &out_data_miss_size, &out_tree,
+                            &out_tree_size);
 
   const size_t total_size =
       out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
@@ -88,7 +83,8 @@ unsigned char * compress_memory_huffman(long int *const src,
   const size_t cBuffSize = ZSTD_compressBound(total_size);
   unsigned char *const zstd_buffer = new unsigned char[cBuffSize];
 
-  const std::size_t cSize = ZSTD_compress(zstd_buffer, cBuffSize, payload, total_size, 1);
+  const std::size_t cSize =
+      ZSTD_compress(zstd_buffer, cBuffSize, payload, total_size, 1);
   CHECK_ZSTD(cSize);
 
   free(payload);
@@ -155,38 +151,37 @@ void decompress_memory_huffman(unsigned char *const src,
   unsigned char *huffman_encoding_p =
       (unsigned char *)malloc(total_huffman_size);
 
-  size_t const dSize = ZSTD_decompress(huffman_encoding_p, total_huffman_size, buf, srcLen - 3 * sizeof(size_t));
+  size_t const dSize = ZSTD_decompress(huffman_encoding_p, total_huffman_size,
+                                       buf, srcLen - 3 * sizeof(size_t));
   CHECK_ZSTD(dSize);
 
   /* When zstd knows the content size, it will error if it doesn't match. */
-  CHECK(total_huffman_size == dSize, "Impossible because zstd will check this condition!");
-
+  CHECK(total_huffman_size == dSize,
+        "Impossible because zstd will check this condition!");
 
   out_tree = huffman_encoding_p;
   out_data_hit = huffman_encoding_p + out_tree_size;
   out_data_miss =
       huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
 
-  mgard::huffman_decoding(dst, dstLen, out_data_hit, out_data_hit_size, out_data_miss,
-                   out_data_miss_size, out_tree, out_tree_size);
+  mgard::huffman_decoding(dst, dstLen, out_data_hit, out_data_hit_size,
+                          out_data_miss, out_data_miss_size, out_tree,
+                          out_tree_size);
 
   free(huffman_encoding_p);
 }
 
-
 template <typename C, typename DeviceType>
-Array<1, Byte, DeviceType> 
-CPUCompress(SubArray<1, C, DeviceType> &input_data) {
+Array<1, Byte, DeviceType> CPUCompress(SubArray<1, C, DeviceType> &input_data) {
 
   // PrintSubarray("CPUCompress input", input_data);
 
   size_t input_count = input_data.getShape(0);
 
-  C * in_data = NULL;
+  C *in_data = NULL;
   MemoryManager<DeviceType>::MallocHost(in_data, input_count, 0);
   MemoryManager<DeviceType>::Copy1D(in_data, input_data.data(), input_count, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
-
 
   std::vector<long int> qv(input_count);
   for (size_t i = 0; i < input_count; i++) {
@@ -194,27 +189,28 @@ CPUCompress(SubArray<1, C, DeviceType> &input_data) {
   }
 
   std::size_t actual_out_size;
-  unsigned char * lossless_data = compress_memory_huffman<DeviceType>(qv.data(), qv.size(), actual_out_size);
+  unsigned char *lossless_data = compress_memory_huffman<DeviceType>(
+      qv.data(), qv.size(), actual_out_size);
 
   uint8_t *out_data = NULL;
-  MemoryManager<DeviceType>::MallocHost(out_data, actual_out_size + sizeof(size_t), 0);
+  MemoryManager<DeviceType>::MallocHost(out_data,
+                                        actual_out_size + sizeof(size_t), 0);
 
-
-  *(size_t*)out_data = (size_t)input_count;
+  *(size_t *)out_data = (size_t)input_count;
   std::memcpy(out_data + sizeof(size_t), lossless_data, actual_out_size);
 
-  Array<1, Byte, DeviceType> output_data({(SIZE)(actual_out_size + sizeof(size_t))});
+  Array<1, Byte, DeviceType> output_data(
+      {(SIZE)(actual_out_size + sizeof(size_t))});
   output_data.loadData(out_data);
 
   MemoryManager<DeviceType>::FreeHost(out_data);
   MemoryManager<DeviceType>::FreeHost(in_data);
-  delete [] lossless_data;
+  delete[] lossless_data;
 
   // PrintSubarray("CPUCompress output", SubArray(output_data));
 
   return output_data;
 }
-
 
 template <typename C, typename DeviceType>
 Array<1, C, DeviceType>
@@ -222,22 +218,22 @@ CPUDecompress(SubArray<1, Byte, DeviceType> &input_data) {
 
   // PrintSubarray("CPUDecompress input", input_data);
   size_t input_count = input_data.getShape(0);
-  Byte * in_data = NULL;
+  Byte *in_data = NULL;
   MemoryManager<DeviceType>::MallocHost(in_data, input_count, 0);
   MemoryManager<DeviceType>::Copy1D(in_data, input_data.data(), input_count, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
   uint32_t actual_out_count = 0;
-  actual_out_count = *reinterpret_cast<const size_t*>(in_data);
+  actual_out_count = *reinterpret_cast<const size_t *>(in_data);
   // *oriData = (uint8_t*)malloc(outSize);
-  C * out_data = NULL;
+  C *out_data = NULL;
   MemoryManager<DeviceType>::MallocHost(out_data, actual_out_count, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
-  long int * qv = new long int[actual_out_count];
+  long int *qv = new long int[actual_out_count];
   size_t out_size = actual_out_count * sizeof(long int);
-  decompress_memory_huffman<DeviceType>(in_data + sizeof(size_t), input_count - sizeof(size_t),
-                             qv, out_size);
+  decompress_memory_huffman<DeviceType>(
+      in_data + sizeof(size_t), input_count - sizeof(size_t), qv, out_size);
 
   for (size_t i = 0; i < actual_out_count; i++) {
     out_data[i] = (C)qv[i];
@@ -251,10 +247,9 @@ CPUDecompress(SubArray<1, Byte, DeviceType> &input_data) {
 
   // PrintSubarray("CPUDecompress output", SubArray(output_data));
 
-
   return output_data;
 }
 
-}
+} // namespace mgard_x
 
 #endif

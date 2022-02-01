@@ -13,52 +13,47 @@
 namespace mgard_x {
 
 template <typename T, typename DeviceType>
-class FillArraySequenceFunctor: public Functor<DeviceType> {
-  public:
-  MGARDX_CONT FillArraySequenceFunctor(){}
-  MGARDX_CONT FillArraySequenceFunctor(SubArray<1, T, DeviceType> array, 
-                                       SIZE size):
-                                       array(array), size(size) {
-    Functor<DeviceType>();                            
+class FillArraySequenceFunctor : public Functor<DeviceType> {
+public:
+  MGARDX_CONT FillArraySequenceFunctor() {}
+  MGARDX_CONT FillArraySequenceFunctor(SubArray<1, T, DeviceType> array,
+                                       SIZE size)
+      : array(array), size(size) {
+    Functor<DeviceType>();
   }
 
-  MGARDX_EXEC void
-  Operation1() {
-    unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation1() {
+    unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() *
+                           FunctorBase<DeviceType>::GetBlockDimX()) +
+                          FunctorBase<DeviceType>::GetThreadIdX();
     if (thread < size) {
       *array(thread) = thread;
     }
   }
 
-  MGARDX_EXEC void
-  Operation2() { }
+  MGARDX_EXEC void Operation2() {}
 
-  MGARDX_EXEC void
-  Operation3() { }
+  MGARDX_EXEC void Operation3() {}
 
-  MGARDX_EXEC void
-  Operation4() { }
+  MGARDX_EXEC void Operation4() {}
 
-  MGARDX_EXEC void
-  Operation5() { }
+  MGARDX_EXEC void Operation5() {}
 
-  MGARDX_CONT size_t
-  shared_memory_size() { return 0; }
+  MGARDX_CONT size_t shared_memory_size() { return 0; }
 
-  private:
+private:
   SubArray<1, T, DeviceType> array;
-  SIZE size; 
+  SIZE size;
 };
 
-
 template <typename T, typename DeviceType>
-class FillArraySequence: public AutoTuner<DeviceType> {
+class FillArraySequence : public AutoTuner<DeviceType> {
 public:
   MGARDX_CONT
-  FillArraySequence():AutoTuner<DeviceType>() {}
+  FillArraySequence() : AutoTuner<DeviceType>() {}
 
   MGARDX_CONT
-  Task<FillArraySequenceFunctor<T, DeviceType> > 
+  Task<FillArraySequenceFunctor<T, DeviceType>>
   GenTask(SubArray<1, T, DeviceType> array, SIZE dict_size, int queue_idx) {
     using FunctorType = FillArraySequenceFunctor<T, DeviceType>;
     FunctorType functor(array, dict_size);
@@ -72,20 +67,21 @@ public:
     gridy = 1;
     gridx = (dict_size / tbx) + 1;
     // printf("tbx: %u, gridx: %u\n", tbx, gridx);
-    return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx, "FillArraySequence"); 
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "FillArraySequence");
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, T, DeviceType> array, SIZE dict_size, int queue_idx) {
+  void Execute(SubArray<1, T, DeviceType> array, SIZE dict_size,
+               int queue_idx) {
     using FunctorType = FillArraySequenceFunctor<T, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(array, dict_size, queue_idx); 
-    DeviceAdapter<TaskType, DeviceType> adapter; 
+    TaskType task = GenTask(array, dict_size, queue_idx);
+    DeviceAdapter<TaskType, DeviceType> adapter;
     adapter.Execute(task);
   }
 };
 
-}
+} // namespace mgard_x
 
 #endif

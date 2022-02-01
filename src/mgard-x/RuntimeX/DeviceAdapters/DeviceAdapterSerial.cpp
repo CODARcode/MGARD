@@ -23,10 +23,9 @@ KernelConfigs<Serial> AutoTuner<Serial>::kernelConfigs;
 AutoTuningTable<Serial> AutoTuner<Serial>::autoTuningTable;
 bool AutoTuner<Serial>::ProfileKernels = false;
 
-template <> 
-bool deviceAvailable<Serial>() {
+template <> bool deviceAvailable<Serial>() {
   return DeviceRuntime<Serial>::GetDeviceCount() > 0;
 }
 
-}
+} // namespace mgard_x
 #undef MGARDX_COMPILE_SERIAL

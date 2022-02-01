@@ -10,21 +10,16 @@
 
 namespace mgard_x {
 
-template <>
-class KernelConfigs<KOKKOS> {
+template <> class KernelConfigs<KOKKOS> {
 public:
   MGARDX_CONT
   KernelConfigs(){};
-
-
-
 };
 
-template <>
-class AutoTuningTable<KOKKOS> {
+template <> class AutoTuningTable<KOKKOS> {
 public:
   MGARDX_CONT
-  AutoTuningTable(){
+  AutoTuningTable() {
     this->auto_tuning_cc = new int **[num_arch];
     this->auto_tuning_mr1 = new int **[num_arch];
     this->auto_tuning_mr2 = new int **[num_arch];
@@ -333,7 +328,6 @@ public:
     this->auto_tuning_ts1[2][1][8] = 3;
     this->auto_tuning_ts2[2][1][8] = 6;
     this->auto_tuning_ts3[2][1][8] = 6;
-
   }
 
   MGARDX_CONT
@@ -373,13 +367,9 @@ public:
   int ***auto_tuning_mr2, ***auto_tuning_ts2;
   int ***auto_tuning_mr3, ***auto_tuning_ts3;
   int arch, precision;
-
 };
 
-
-
-template <>
-class AutoTuner<KOKKOS> {
+template <> class AutoTuner<KOKKOS> {
 public:
   MGARDX_CONT
   AutoTuner(){};
@@ -389,6 +379,6 @@ public:
   static bool ProfileKernels;
 };
 
-}
+} // namespace mgard_x
 
 #endif

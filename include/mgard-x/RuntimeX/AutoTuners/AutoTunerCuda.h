@@ -17,11 +17,10 @@ namespace mgard_x {
 //   KernelConfigs(){};
 // };
 
-template <>
-class AutoTuningTable<CUDA> {
+template <> class AutoTuningTable<CUDA> {
 public:
   MGARDX_CONT
-  AutoTuningTable(){
+  AutoTuningTable() {
     this->auto_tuning_cc = new int **[num_arch];
     this->auto_tuning_mr1 = new int **[num_arch];
     this->auto_tuning_mr2 = new int **[num_arch];
@@ -330,7 +329,6 @@ public:
     this->auto_tuning_ts1[2][1][8] = 3;
     this->auto_tuning_ts2[2][1][8] = 6;
     this->auto_tuning_ts3[2][1][8] = 6;
-
   }
 
   MGARDX_CONT
@@ -404,13 +402,9 @@ public:
   static int ipk3_nd[2][9];
 
   static int lwpk[2][9];
-
 };
 
-
-
-template <>
-class AutoTuner<CUDA> {
+template <> class AutoTuner<CUDA> {
 public:
   MGARDX_CONT
   AutoTuner(){};
@@ -420,6 +414,6 @@ public:
   static bool ProfileKernels;
 };
 
-}
+} // namespace mgard_x
 
 #endif

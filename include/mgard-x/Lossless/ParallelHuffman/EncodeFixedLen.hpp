@@ -20,59 +20,53 @@ namespace mgard_x {
 // will cause incorrect results
 
 template <typename Q, typename H, typename DeviceType>
-class EncodeFixedLenFunctor: public Functor<DeviceType> {
-  public:
-  MGARDX_CONT EncodeFixedLenFunctor(){}
-  MGARDX_CONT EncodeFixedLenFunctor(SubArray<1, Q, DeviceType> data, 
-                                    SubArray<1, H, DeviceType> hcoded, 
+class EncodeFixedLenFunctor : public Functor<DeviceType> {
+public:
+  MGARDX_CONT EncodeFixedLenFunctor() {}
+  MGARDX_CONT EncodeFixedLenFunctor(SubArray<1, Q, DeviceType> data,
+                                    SubArray<1, H, DeviceType> hcoded,
                                     SIZE data_len,
-                                    SubArray<1, H, DeviceType> codebook):
-                                  data(data), hcoded(hcoded), data_len(data_len),
-                                  codebook(codebook) {
-    Functor<DeviceType>();                            
+                                    SubArray<1, H, DeviceType> codebook)
+      : data(data), hcoded(hcoded), data_len(data_len), codebook(codebook) {
+    Functor<DeviceType>();
   }
 
-  MGARDX_EXEC void
-  Operation1() {
-    unsigned int gid = (FunctorBase<DeviceType>::GetBlockIdX() * FunctorBase<DeviceType>::GetBlockDimX()) + FunctorBase<DeviceType>::GetThreadIdX();
+  MGARDX_EXEC void Operation1() {
+    unsigned int gid = (FunctorBase<DeviceType>::GetBlockIdX() *
+                        FunctorBase<DeviceType>::GetBlockDimX()) +
+                       FunctorBase<DeviceType>::GetThreadIdX();
     if (gid >= data_len)
       return;
     *hcoded(gid) = *codebook(*data(gid)); // try to exploit cache?
   }
 
-  MGARDX_EXEC void
-  Operation2() { }
+  MGARDX_EXEC void Operation2() {}
 
-  MGARDX_EXEC void
-  Operation3() { }
+  MGARDX_EXEC void Operation3() {}
 
-  MGARDX_EXEC void
-  Operation4() { }
+  MGARDX_EXEC void Operation4() {}
 
-  MGARDX_EXEC void
-  Operation5() { }
+  MGARDX_EXEC void Operation5() {}
 
-  MGARDX_CONT size_t
-  shared_memory_size() { return 0; }
+  MGARDX_CONT size_t shared_memory_size() { return 0; }
 
-  private:
+private:
   SubArray<1, Q, DeviceType> data;
   SubArray<1, H, DeviceType> hcoded;
-  SIZE data_len; 
+  SIZE data_len;
   SubArray<1, H, DeviceType> codebook;
 };
 
-
 template <typename Q, typename H, typename DeviceType>
-class EncodeFixedLen: public AutoTuner<DeviceType> {
+class EncodeFixedLen : public AutoTuner<DeviceType> {
 public:
   MGARDX_CONT
-  EncodeFixedLen():AutoTuner<DeviceType>() {}
+  EncodeFixedLen() : AutoTuner<DeviceType>() {}
 
   MGARDX_CONT
-  Task<EncodeFixedLenFunctor<Q, H, DeviceType> > 
-  GenTask(SubArray<1, Q, DeviceType> data, SubArray<1, H, DeviceType> hcoded, 
-              SIZE data_len, SubArray<1, H, DeviceType> codebook, int queue_idx) {
+  Task<EncodeFixedLenFunctor<Q, H, DeviceType>>
+  GenTask(SubArray<1, Q, DeviceType> data, SubArray<1, H, DeviceType> hcoded,
+          SIZE data_len, SubArray<1, H, DeviceType> codebook, int queue_idx) {
     using FunctorType = EncodeFixedLenFunctor<Q, H, DeviceType>;
     FunctorType functor(data, hcoded, data_len, codebook);
 
@@ -84,23 +78,24 @@ public:
     gridz = 1;
     gridy = 1;
     gridx = (data_len - 1) / tbx + 1;
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1], shape.dataHost()[0]);
-    // PrintSubarray("shape", shape);
-    return Task(functor, gridz, gridy, gridx, 
-                tbz, tby, tbx, sm_size, queue_idx, "EncodeFixedLen"); 
+    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
+    // shape.dataHost()[0]); PrintSubarray("shape", shape);
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "EncodeFixedLen");
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, Q, DeviceType> data, SubArray<1, H, DeviceType> hcoded, 
-              SIZE data_len, SubArray<1, H, DeviceType> codebook, int queue_idx) {
+  void Execute(SubArray<1, Q, DeviceType> data,
+               SubArray<1, H, DeviceType> hcoded, SIZE data_len,
+               SubArray<1, H, DeviceType> codebook, int queue_idx) {
     using FunctorType = EncodeFixedLenFunctor<Q, H, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(data, hcoded, data_len, codebook, queue_idx); 
-    DeviceAdapter<TaskType, DeviceType> adapter; 
+    TaskType task = GenTask(data, hcoded, data_len, codebook, queue_idx);
+    DeviceAdapter<TaskType, DeviceType> adapter;
     adapter.Execute(task);
   }
 };
 
-}
+} // namespace mgard_x
 
 #endif

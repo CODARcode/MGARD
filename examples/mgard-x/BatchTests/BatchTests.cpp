@@ -9,8 +9,8 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <math.h>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,10 +80,9 @@ void readfile(char *input_file, size_t num_bytes, bool check_size, T *in_buff) {
 }
 
 template <mgard_x::DIM D, typename T>
-void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
-                 T s, enum error_type mode, T norm,
-                 T *original_data, void *&compressed_data,
-                 size_t &compressed_size) {
+void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol, T s,
+                 enum error_type mode, T norm, T *original_data,
+                 void *&compressed_data, size_t &compressed_size) {
   // printf("Start compressing\n");
   std::array<std::size_t, D> array_shape;
   std::copy(shape.begin(), shape.end(), array_shape.begin());
@@ -95,9 +94,9 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
         mgard::compress(hierarchy, original_data, s, tol);
     std::ostringstream buf;
     compressed_dataset.write(buf);
-    std::string tmp_str = buf.str(); 
+    std::string tmp_str = buf.str();
 
-    //compressed_size = compressed_dataset.size();
+    // compressed_size = compressed_dataset.size();
     compressed_size = tmp_str.length();
     compressed_data = (void *)malloc(compressed_size);
     memcpy(compressed_data, tmp_str.c_str(), compressed_size);
@@ -132,7 +131,7 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     config.lossless = mgard_x::lossless_type::Huffman;
     config.uniform_coord_mode = 1;
     mgard_x::data_type dtype;
-    if (std::is_same<T, double>::value){
+    if (std::is_same<T, double>::value) {
       dtype = mgard_x::data_type::Double;
     } else if (std::is_same<T, float>::value) {
       dtype = mgard_x::data_type::Float;
@@ -156,16 +155,14 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     config.dev_type = dev_type;
 
     mgard_x::compress(D, dtype, shape, tol, s, ebtype, original_data,
-             compressed_data, compressed_size, config, false);
-
+                      compressed_data, compressed_size, config, false);
   }
 }
 
 template <mgard_x::DIM D, typename T>
 void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
-                   T s, enum error_type mode, T norm,
-                   void *compressed_data, size_t compressed_size,
-                   void *&decompressed_data) {
+                   T s, enum error_type mode, T norm, void *compressed_data,
+                   size_t compressed_size, void *&decompressed_data) {
 
   // printf("Start decompressing\n");
   size_t original_size = 1;
@@ -177,7 +174,7 @@ void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     if (mode == error_type::REL) {
       tol *= norm;
     }
-    mgard::MemoryBuffer<const unsigned char> new_data_ = 
+    mgard::MemoryBuffer<const unsigned char> new_data_ =
         mgard::decompress((unsigned char *)compressed_data, compressed_size);
     const void *decompressed_data_void = new_data_.data.get();
     memcpy(decompressed_data, decompressed_data_void,
@@ -205,7 +202,7 @@ void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     config.lossless = mgard_x::lossless_type::Huffman;
     config.uniform_coord_mode = 1;
     mgard_x::data_type dtype;
-    if (std::is_same<T, double>::value){
+    if (std::is_same<T, double>::value) {
       dtype = mgard_x::data_type::Double;
     } else if (std::is_same<T, float>::value) {
       dtype = mgard_x::data_type::Float;
@@ -222,16 +219,15 @@ void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
 
     config.dev_type = dev_type;
 
-    mgard_x::decompress(compressed_data, compressed_size, decompressed_data, config, false);
-
+    mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
+                        config, false);
   }
 }
 
 template <typename T>
 struct Result test(mgard_x::DIM D, T *original_data,
                    std::vector<mgard_x::SIZE> shape, enum device dev,
-                   double tol, double s,
-                   enum error_type mode) {
+                   double tol, double s, enum error_type mode) {
 
   size_t original_size = 1;
   for (mgard_x::DIM i = 0; i < D; i++)
@@ -285,19 +281,19 @@ struct Result test(mgard_x::DIM D, T *original_data,
   //        compressed_size, original_size * sizeof(T) / compressed_size);
 
   mgard_x::error_bound_type ebtype;
-    if (mode == error_type::ABS) {
-      ebtype = mgard_x::error_bound_type::ABS;
-    } else if (mode == error_type::REL) {
-      ebtype = mgard_x::error_bound_type::REL;
-    }
+  if (mode == error_type::ABS) {
+    ebtype = mgard_x::error_bound_type::ABS;
+  } else if (mode == error_type::REL) {
+    ebtype = mgard_x::error_bound_type::REL;
+  }
 
   T error;
   if (s == std::numeric_limits<T>::infinity()) {
     error = mgard_x::L_inf_error(original_size, original_data,
-                                    (T *)decompressed_data, ebtype);
+                                 (T *)decompressed_data, ebtype);
   } else {
     error = mgard_x::L_2_error(original_size, original_data,
-                                  (T *)decompressed_data, ebtype);
+                               (T *)decompressed_data, ebtype);
   }
 
   // if (error < tol) {
@@ -315,8 +311,7 @@ struct Result test(mgard_x::DIM D, T *original_data,
 }
 
 void print_config(enum data_type dtype, std::vector<mgard_x::SIZE> shape,
-                  double tol, double s,
-                  enum error_type mode) {
+                  double tol, double s, enum error_type mode) {
   mgard_x::DIM d = 0;
   for (d = 0; d < shape.size(); d++)
     std::cout << std::setw(5) << shape[d];
@@ -356,51 +351,51 @@ int main(int argc, char *argv[]) {
   enum mgard_x::device_type dev_type = mgard_x::device_type::None;
 
   std::cout << "Device1: ";
-  if (strcmp (dev1, "x-serial") == 0) {
+  if (strcmp(dev1, "x-serial") == 0) {
     dev_type = mgard_x::device_type::Serial;
     device_type1 = device::X_Serial;
     std::cout << "MGARD-X::Serial\n";
-  } else if (strcmp (dev1, "x-cuda") == 0) {
+  } else if (strcmp(dev1, "x-cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
     device_type1 = device::X_CUDA;
     std::cout << "MGARD-X::CUDA\n";
-  } else if (strcmp (dev1, "x-hip") == 0) {
+  } else if (strcmp(dev1, "x-hip") == 0) {
     dev_type = mgard_x::device_type::HIP;
     device_type1 = device::X_HIP;
     std::cout << "MGARD-X::HIP\n";
   }
 
-  if (strcmp (dev1, "cpu") == 0) {
+  if (strcmp(dev1, "cpu") == 0) {
     device_type1 = device::CPU;
     std::cout << "CPU\n";
   }
 
-  if (strcmp (dev1, "cuda") == 0) {
+  if (strcmp(dev1, "cuda") == 0) {
     device_type1 = device::CUDA;
     std::cout << "LEGACY_CUDA\n";
   }
 
   std::cout << "Device2: ";
-  if (strcmp (dev2, "x-serial") == 0) {
+  if (strcmp(dev2, "x-serial") == 0) {
     dev_type = mgard_x::device_type::Serial;
     device_type2 = device::X_Serial;
     std::cout << "MGARD-X::Serial\n";
-  } else if (strcmp (dev2, "x-cuda") == 0) {
+  } else if (strcmp(dev2, "x-cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
     device_type2 = device::X_CUDA;
     std::cout << "MGARD-X::CUDA\n";
-  } else if (strcmp (dev2, "x-hip") == 0) {
+  } else if (strcmp(dev2, "x-hip") == 0) {
     dev_type = mgard_x::device_type::HIP;
     device_type2 = device::X_HIP;
     std::cout << "MGARD-X::HIP\n";
   }
 
-  if (strcmp (dev2, "cpu") == 0) {
+  if (strcmp(dev2, "cpu") == 0) {
     device_type2 = device::CPU;
     std::cout << "CPU\n";
   }
 
-  if (strcmp (dev2, "cuda") == 0) {
+  if (strcmp(dev2, "cuda") == 0) {
     device_type2 = device::CUDA;
     std::cout << "LEGACY_CUDA\n";
   }
@@ -440,7 +435,6 @@ int main(int argc, char *argv[]) {
   shapes.push_back({10, 10, 1000, 10});
   shapes.push_back({10, 10, 10, 1000});
 
-
   // shapes.push_back({216, 1024, 2048});
 
   // XGC
@@ -458,8 +452,7 @@ int main(int argc, char *argv[]) {
   // shapes.push_back({10, 100, 10, 100, 10});
   // shapes.push_back({100, 10, 100, 10, 10});
 
-  std::vector<enum data_type> dtypes = {data_type::SINGLE,
-  data_type::DOUBLE};
+  std::vector<enum data_type> dtypes = {data_type::SINGLE, data_type::DOUBLE};
   // std::vector<enum data_type> dtypes = {data_type::SINGLE};
   std::vector<enum error_type> ebtypes = {error_type::ABS, error_type::REL};
   // std::vector<enum error_type> ebtypes = {error_type::REL};
@@ -487,11 +480,11 @@ int main(int argc, char *argv[]) {
                 readfile(input_file, original_size * sizeof(float), false,
                          original_data);
                 result_cpu =
-                    test<float>(shapes[sp].size(), original_data, shapes[sp], device_type1,
-                                tols[tol], ssf[s], ebtypes[ebt]);
+                    test<float>(shapes[sp].size(), original_data, shapes[sp],
+                                device_type1, tols[tol], ssf[s], ebtypes[ebt]);
                 result_gpu =
-                    test<float>(shapes[sp].size(), original_data, shapes[sp], device_type2,
-                                tols[tol], ssf[s], ebtypes[ebt]);
+                    test<float>(shapes[sp].size(), original_data, shapes[sp],
+                                device_type2, tols[tol], ssf[s], ebtypes[ebt]);
                 delete[] original_data;
               } else {
                 size_t original_size = 1;
@@ -519,9 +512,9 @@ int main(int argc, char *argv[]) {
                         << std::scientific << result_cpu.cr;
 
               // std::cout << std::endl;
-              // print_config(input_file, dtypes[dt], shapes[sp], GPU, tols[tol],
-              // ssd[s], ebtypes[ebt]);
-              // if (std::abs(result_cpu.actual_error-result_gpu.actual_error) >
+              // print_config(input_file, dtypes[dt], shapes[sp], GPU,
+              // tols[tol], ssd[s], ebtypes[ebt]); if
+              // (std::abs(result_cpu.actual_error-result_gpu.actual_error) >
               // 1e-4) std::cout << ANSI_RED;
               if (std::abs(log10(result_cpu.actual_error) -
                            log10(result_gpu.actual_error)) > 1)

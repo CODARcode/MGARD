@@ -21,6 +21,6 @@ template <DIM D> int check_shape(std::vector<SIZE> shape) {
   return 0;
 }
 
-}
+} // namespace mgard_x
 
 #endif

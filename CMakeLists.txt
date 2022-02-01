@@ -522,7 +522,7 @@ set(
 	examples/linking/README.md
 	examples/compression/README.md
 	examples/decompression/README.md
-	examples/gpu-cuda/SimpleExample/README.md
+	examples/mgard-x/SimpleExample/README.md
 )
 
 if(MGARD_ENABLE_DOCS)
