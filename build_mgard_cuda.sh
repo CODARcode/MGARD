@@ -46,7 +46,7 @@ fi
 
 export LD_LIBRARY_PATH=${zstd_install_dir}/lib:$LD_LIBRARY_PATH
 
-#build MGARD-CUDA
+#build MGARD
 mgard_x_src_dir=${home_dir}
 mgard_x_build_dir=${home_dir}/build
 mgard_x_install_dir=${home_dir}/install
@@ -55,9 +55,7 @@ cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DCMAKE_PREFIX_PATH="${nvcomp_build_dir};${zstd_install_dir}/lib/cmake/zstd"\
     -DMGARD_ENABLE_SERIAL=ON\
     -DMGARD_ENABLE_CUDA=ON\
-    -DMGARD_ENABLE_CUDA_FMA=ON\
-    -DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=ON\
-    -DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=OFF\
+    -DCMAKE_CUDA_ARCHITECTURES="70;72;75"\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
 cmake --build ${mgard_x_build_dir} -j8
