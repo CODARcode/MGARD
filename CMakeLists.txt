@@ -505,7 +505,7 @@ if(MGARD_ENABLE_DOCS)
 endif()
 
 if(BUILD_TESTING)
-	find_package(Catch2)
+	find_package(Catch2 3.0.0)
 
 	if(Catch2_FOUND)
 		configure_file("tests/include/testing_paths.hpp.in" "include/testing_paths.hpp")
