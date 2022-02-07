@@ -1,5 +1,5 @@
-MgardSerialExec="../../../build/bin/MgardSerialExec"
-MgardXExec="../../../build/bin/mgard-x"
+MgardSerialExec="../../../build-$1-$2/bin/MgardSerialExec"
+MgardXExec="../../../build-$1-$2/bin/mgard-x"
 
 DATA_DIR=$HOME/dev/data
 NYX_DATA=$DATA_DIR/512x512x512/velocity_x.dat
@@ -12,7 +12,7 @@ E3SM_DATA=$DATA_DIR/temperature.dat
 # $MgardSerialExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5.5e-1 -s inf -v # actual error 1e-2
 # $MgardSerialExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5e0 -s inf -v # actual error 1e-1
 
-# $MgardXExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5e-3 -s inf -l 0 -v -d $1
+$MgardXExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5e-3 -s inf -l 0 -v -d $1
 # $MgardXExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5e-2 -s inf -l 0 -v -d $1
 # $MgardXExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5.5e-1 -s inf -l 0 -v -d $1
 # $MgardXExec -z -i $NYX_DATA -c out.mgard -t s -n 3 512 512 512 -m rel -e 5e0 -s inf -l 0 -v -d $1
