@@ -9,8 +9,12 @@
 set -e
 set -x
 
+module load cuda/11.4
+module load gcc/9
+module load cmake
+
 home_dir=$(pwd)
-external_dir=${home_dir}/external
+external_dir=${home_dir}/external-cuda-summit
 mkdir -p ${external_dir}
 
 #build NVCOMP
@@ -46,17 +50,35 @@ fi
 
 export LD_LIBRARY_PATH=${zstd_install_dir}/lib:$LD_LIBRARY_PATH
 
+#build Protobuf
+protobuf_dir=${external_dir}/protobuf
+protobuf_src_dir=${protobuf_dir}/src
+protobuf_build_dir=${protobuf_dir}/build
+protobuf_install_dir=${protobuf_dir}/install
+if [ ! -d "${protobuf_install_dir}" ]; then
+  rm -rf ${protobuf_dir} && mkdir -p ${protobuf_dir}
+  git clone -b v3.19.4 https://github.com/protocolbuffers/protobuf.git ${protobuf_src_dir}
+  cd ${protobuf_src_dir} && git submodule update --init --recursive && cd ${home_dir}
+  cmake -S ${protobuf_src_dir}/cmake -B ${protobuf_build_dir}\
+      -Dprotobuf_BUILD_SHARED_LIBS=ON\
+      -DCMAKE_INSTALL_PREFIX=${protobuf_install_dir}
+  cmake --build ${protobuf_build_dir} -j8
+  cmake --install ${protobuf_build_dir}
+fi
+
+
+
 #build MGARD
 mgard_x_src_dir=${home_dir}
-mgard_x_build_dir=${home_dir}/build
-mgard_x_install_dir=${home_dir}/install
+mgard_x_build_dir=${home_dir}/build-cuda-summit
+mgard_x_install_dir=${home_dir}/install-cuda-summit
 rm -rf ${mgard_x_build_dir} && mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
-    -DCMAKE_PREFIX_PATH="${nvcomp_build_dir};${zstd_install_dir}/lib/cmake/zstd"\
+    -DCMAKE_PREFIX_PATH="${nvcomp_build_dir};${zstd_install_dir}/lib/cmake/zstd;${protobuf_install_dir}"\
     -DMGARD_ENABLE_SERIAL=ON\
     -DMGARD_ENABLE_CUDA=ON\
-    -DCMAKE_CUDA_ARCHITECTURES="70;72;75"\
+    -DCMAKE_CUDA_ARCHITECTURES="70"\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
-cmake --build ${mgard_x_build_dir} -j8
+cmake --build ${mgard_x_build_dir} -j6
 cmake --install ${mgard_x_build_dir}
