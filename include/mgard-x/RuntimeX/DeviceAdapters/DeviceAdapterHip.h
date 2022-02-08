@@ -1616,7 +1616,7 @@ public:
 struct AbsMaxOp {
   template <typename T>
   __device__ __forceinline__ T operator()(const T &a, const T &b) const {
-    return (fabs(b) > fabs(a)) ? b : a;
+    return (fabs(b) > fabs(a)) ? fabs(b) : fabs(a);
   }
 };
 
