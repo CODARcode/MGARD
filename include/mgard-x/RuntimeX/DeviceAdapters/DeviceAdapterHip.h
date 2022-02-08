@@ -630,6 +630,14 @@ public:
     }
   }
 
+  template <typename T>
+  MGARDX_CONT static void MallocManaged1D(T *&ptr, SIZE n, int queue_idx) {
+    gpuErrchk(hipMallocManaged(&ptr, n * sizeof(T)));
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
+  }
+
   template <typename T> MGARDX_CONT static void Free(T *ptr) {
     // printf("MemoryManager.Free(%llu)\n", ptr);
     if (ptr == NULL)
@@ -1564,7 +1572,7 @@ public:
       IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>,
                                          typename TaskType::Functor>::value) {
-      if (task.GetFunctor().use_CG) {
+      if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
         void *Args[] = {(void *)&task};
         hipLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
                                    blockPerGrid, threadsPerBlock, Args, sm_size,
@@ -1574,7 +1582,7 @@ public:
       }
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>,
                                          typename TaskType::Functor>::value) {
-      if (task.GetFunctor().use_CG) {
+      if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
         void *Args[] = {(void *)&task};
         hipLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
                                    blockPerGrid, threadsPerBlock, Args, sm_size,

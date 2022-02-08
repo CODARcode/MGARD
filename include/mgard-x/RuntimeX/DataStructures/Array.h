@@ -15,7 +15,7 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType> class Array {
 public:
   Array();
-  Array(std::vector<SIZE> shape, bool pitched = true);
+  Array(std::vector<SIZE> shape, bool pitched = true, bool managed = false);
   Array(const Array &array);
   Array(Array &array);
   Array &operator=(const Array &array);
@@ -34,6 +34,7 @@ public:
 private:
   DIM D_padded;
   bool pitched;
+  bool managed;
   T *dv = NULL;
   T *hv = NULL;
   bool device_allocated;

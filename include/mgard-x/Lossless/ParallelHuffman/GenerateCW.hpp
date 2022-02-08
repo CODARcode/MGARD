@@ -13,15 +13,13 @@
 namespace mgard_x {
 
 // GenerateCW Locals
-static MGARDX_MANAGED int CCL;
-static MGARDX_MANAGED int CDPI;
-static MGARDX_MANAGED int newCDPI;
+#define _CCL 0
+#define _CDPI 1
+#define _newCDPI 2
 
-static MGARDX_MANAGED int updateEnd;
-static MGARDX_MANAGED int curEntryVal;
-static MGARDX_MANAGED int numCCL;
-
-static MGARDX_MANAGED bool HuffmanCW_loop_condition1;
+#define _updateEnd 3
+#define _curEntryVal 4
+#define _numCCL 5
 
 template <typename T, typename H, typename DeviceType>
 class GenerateCWFunctor : public HuffmanCWCustomizedFunctor<DeviceType> {
@@ -30,8 +28,9 @@ public:
   MGARDX_CONT GenerateCWFunctor(SubArray<1, T, DeviceType> CL,
                                 SubArray<1, H, DeviceType> CW,
                                 SubArray<1, H, DeviceType> first,
-                                SubArray<1, H, DeviceType> entry, SIZE size)
-      : CL(CL), CW(CW), first(first), entry(entry), size(size) {
+                                SubArray<1, H, DeviceType> entry, SIZE size,
+                                SubArray<1, int, DeviceType> status)
+      : CL(CL), CW(CW), first(first), entry(entry), size(size), status(status) {
     HuffmanCWCustomizedFunctor<DeviceType>();
   }
 
@@ -55,15 +54,17 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     if (i == 0) {
-      CCL = *CL((IDX)0);
-      CDPI = 0;
-      newCDPI = size - 1;
-      *entry((IDX)CCL) = 0;
+      (*status((IDX)_CCL)) = *CL((IDX)0);
+      (*status((IDX)_CDPI)) = 0;
+      (*status((IDX)_newCDPI)) = size - 1;
+      *entry((IDX)(*status((IDX)_CCL))) = 0;
 
       // Edge case -- only one input symbol
-      *CW((IDX)CDPI) = 0;
-      *first((IDX)CCL) = *CW((IDX)CDPI) ^ (((H)1 << (H)*CL((IDX)CDPI)) - 1);
-      *entry((IDX)CCL + 1) = 1;
+      *CW((IDX)(*status((IDX)_CDPI))) = 0;
+      *first((IDX)(*status((IDX)_CCL))) =
+          *CW((IDX)(*status((IDX)_CDPI))) ^
+          (((H)1 << (H)*CL((IDX)(*status((IDX)_CDPI)))) - 1);
+      *entry((IDX)(*status((IDX)_CCL)) + 1) = 1;
     }
   }
 
@@ -72,7 +73,7 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     // Initialize first and entry arrays
-    if (i < CCL) {
+    if (i < (*status((IDX)_CCL))) {
       // Initialization of first to Max ensures that unused code
       // lengths are skipped over in decoding.
       *first((IDX)i) = std::numeric_limits<H>::max();
@@ -82,19 +83,19 @@ public:
 
   MGARDX_CONT_EXEC bool LoopCondition1() {
     // if (! thread)
-    // printf("thread: %u, CDPI: %d, newCDPI: %d, size: %u\n", thread, CDPI,
-    // newCDPI, size);
-    HuffmanCW_loop_condition1 = CDPI < size - 1;
-    return HuffmanCW_loop_condition1;
+    // printf("thread: %u, (*status((IDX)_CDPI)): %d, (*status((IDX)_newCDPI)):
+    // %d, size: %u\n", thread, (*status((IDX)_CDPI)),
+    // (*status((IDX)_newCDPI)), size);
+    return (*status((IDX)_CDPI)) < size - 1;
   }
 
   MGARDX_EXEC void Operation4() {
     i = (FunctorBase<DeviceType>::GetBlockIdX() *
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
-    // CDPI update
-    if (i < size - 1 && *CL((IDX)i + 1) > CCL) {
-      Atomic<DeviceType>::Min(&newCDPI, (int)i);
+    // (*status((IDX)_CDPI)) update
+    if (i < size - 1 && *CL((IDX)i + 1) > (*status((IDX)_CCL))) {
+      Atomic<DeviceType>::Min(&(*status((IDX)_newCDPI)), (int)i);
     }
   }
 
@@ -104,18 +105,22 @@ public:
         FunctorBase<DeviceType>::GetThreadIdX();
     type_bw = sizeof(H) * 8;
     // Last element to update
-    updateEnd = (newCDPI >= size - 1) ? type_bw : *CL((IDX)newCDPI + 1);
+    (*status((IDX)_updateEnd)) = ((*status((IDX)_newCDPI)) >= size - 1)
+                                     ? type_bw
+                                     : *CL((IDX)(*status((IDX)_newCDPI)) + 1);
     // Fill base
-    curEntryVal = *entry((IDX)CCL);
-    // Number of elements of length CCL
-    numCCL = (newCDPI - CDPI + 1);
+    (*status((IDX)_curEntryVal)) = *entry((IDX)(*status((IDX)_CCL)));
+    // Number of elements of length (*status((IDX)_CCL))
+    (*status((IDX)_numCCL)) =
+        ((*status((IDX)_newCDPI)) - (*status((IDX)_CDPI)) + 1);
 
     // Get first codeword
     if (i == 0) {
-      if (CDPI == 0) {
-        *CW((IDX)newCDPI) = 0;
+      if ((*status((IDX)_CDPI)) == 0) {
+        *CW((IDX)(*status((IDX)_newCDPI))) = 0;
       } else {
-        *CW((IDX)newCDPI) = *CW((IDX)CDPI); // Pre-stored
+        *CW((IDX)(*status((IDX)_newCDPI))) =
+            *CW((IDX)(*status((IDX)_CDPI))); // Pre-stored
       }
     }
   }
@@ -127,20 +132,22 @@ public:
     type_bw = sizeof(H) * 8;
     if (i < size) {
       // Parallel canonical codeword generation
-      if (i >= CDPI && i < newCDPI) {
-        *CW((IDX)i) = *CW((IDX)newCDPI) + (newCDPI - i);
+      if (i >= (*status((IDX)_CDPI)) && i < (*status((IDX)_newCDPI))) {
+        *CW((IDX)i) =
+            *CW((IDX)(*status((IDX)_newCDPI))) + ((*status((IDX)_newCDPI)) - i);
       }
     }
 
     // Update entry and first arrays in O(1) time
     // Jieyang: not useful?
-    if (i > CCL && i < updateEnd) {
-      *entry((IDX)i) = curEntryVal + numCCL;
+    if (i > (*status((IDX)_CCL)) && i < (*status((IDX)_updateEnd))) {
+      *entry((IDX)i) = (*status((IDX)_curEntryVal)) + (*status((IDX)_numCCL));
     }
-    // Add number of entries to next CCL
+    // Add number of entries to next (*status((IDX)_CCL))
     if (i == 0) {
-      if (updateEnd < type_bw) {
-        *entry((IDX)updateEnd) = curEntryVal + numCCL;
+      if ((*status((IDX)_updateEnd)) < type_bw) {
+        *entry((IDX)(*status((IDX)_updateEnd))) =
+            (*status((IDX)_curEntryVal)) + (*status((IDX)_numCCL));
       }
     }
   }
@@ -150,12 +157,15 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     // Update first array in O(1) time
-    if (i == CCL) {
-      // Flip least significant CL[CDPI] bits
-      *first((IDX)CCL) = *CW((IDX)CDPI) ^ (((H)1 << (H)*CL((IDX)CDPI)) - 1);
-      // printf("first[%d]: %llu\n", CCL, first[CCL]);
+    if (i == (*status((IDX)_CCL))) {
+      // Flip least significant CL[(*status((IDX)_CDPI))] bits
+      *first((IDX)(*status((IDX)_CCL))) =
+          *CW((IDX)(*status((IDX)_CDPI))) ^
+          (((H)1 << (H)*CL((IDX)(*status((IDX)_CDPI)))) - 1);
+      // printf("first[%d]: %llu\n", (*status((IDX)_CCL)),
+      // first[(*status((IDX)_CCL))]);
     }
-    if (i > CCL && i < updateEnd) {
+    if (i > (*status((IDX)_CCL)) && i < (*status((IDX)_updateEnd))) {
       *first((IDX)i) = std::numeric_limits<H>::max();
     }
   }
@@ -165,26 +175,31 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     if (i == 0) {
-      if (newCDPI < size - 1) {
-        int CLDiff = *CL((IDX)newCDPI + 1) - *CL((IDX)newCDPI);
+      if ((*status((IDX)_newCDPI)) < size - 1) {
+        int CLDiff = *CL((IDX)(*status((IDX)_newCDPI)) + 1) -
+                     *CL((IDX)(*status((IDX)_newCDPI)));
         // Add and shift -- Next canonical code
 
-        *CW((IDX)newCDPI + 1) = ((*CW((IDX)CDPI) + 1) << CLDiff);
-        CCL = *CL((IDX)newCDPI + 1);
+        *CW((IDX)(*status((IDX)_newCDPI)) + 1) =
+            ((*CW((IDX)(*status((IDX)_CDPI))) + 1) << CLDiff);
+        (*status((IDX)_CCL)) = *CL((IDX)(*status((IDX)_newCDPI)) + 1);
 
-        H temp = (*CW((IDX)CDPI) + 1);
+        H temp = (*CW((IDX)(*status((IDX)_CDPI))) + 1);
 
         // printf("CLDiff: %d  %llu <- %llu\n", CLDiff, (H)(temp << CLDiff),
         // temp);
 
-        ++newCDPI;
+        ++(*status((IDX)_newCDPI));
       }
 
-      // Update CDPI to newCDPI after codeword length increase
-      CDPI = newCDPI;
-      newCDPI = size - 1;
-      // printf("thread: %u, CDPI: %d, newCDPI: %d, size: %u\n", thread, CDPI,
-      // newCDPI, size);
+      // Update (*status((IDX)_CDPI)) to (*status((IDX)_newCDPI)) after codeword
+      // length increase
+      (*status((IDX)_CDPI)) = (*status((IDX)_newCDPI));
+      (*status((IDX)_newCDPI)) = size - 1;
+      // printf("thread: %u, (*status((IDX)_CDPI)): %d,
+      // (*status((IDX)_newCDPI)): %d, size: %u\n", thread,
+      // (*status((IDX)_CDPI)),
+      // (*status((IDX)_newCDPI)), size);
     }
   }
 
@@ -225,15 +240,16 @@ private:
   SubArray<1, H, DeviceType> CW;
   SubArray<1, H, DeviceType> first;
   SubArray<1, H, DeviceType> entry;
+  SubArray<1, int, DeviceType> status;
   SIZE size;
 
   // unsigned int thread;
   unsigned int i;
   size_t type_bw;
 
-  // int updateEnd;
-  // int curEntryVal;
-  // int numCCL;
+  // int (*status((IDX)_updateEnd));
+  // int (*status((IDX)_curEntryVal));
+  // int (*status((IDX)_numCCL));
 };
 
 template <typename T, typename H, typename DeviceType>
@@ -246,9 +262,9 @@ public:
   Task<GenerateCWFunctor<T, H, DeviceType>>
   GenTask(SubArray<1, T, DeviceType> CL, SubArray<1, H, DeviceType> CW,
           SubArray<1, H, DeviceType> first, SubArray<1, H, DeviceType> entry,
-          SIZE dict_size, int queue_idx) {
+          SIZE dict_size, SubArray<1, int, DeviceType> status, int queue_idx) {
     using FunctorType = GenerateCWFunctor<T, H, DeviceType>;
-    FunctorType Functor(CL, CW, first, entry, dict_size);
+    FunctorType Functor(CL, CW, first, entry, dict_size, status);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = Functor.shared_memory_size();
@@ -267,16 +283,6 @@ public:
     gridx = cg_mblocks;
 
     int cw_tthreads = gridx * tbx;
-    // if (cw_tthreads < dict_size) {
-    //   std::cout << log::log_err << "Insufficient on-device parallelism to
-    //   construct a "
-    //        << dict_size << " non-zero item codebook" << std::endl;
-    //   std::cout << log::log_err << "Provided parallelism: " << gridx << "
-    //   blocks, "
-    //        << tbx << " threads, " << cw_tthreads << " total" << std::endl
-    //        << std::endl;
-    //   exit(1);
-    // }
     if (cw_tthreads >= dict_size) {
       if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
         std::cout << log::log_info << "GenerateCW: using Cooperative Groups\n";
@@ -291,10 +297,6 @@ public:
       gridx = (dict_size - 1) / tbx + 1;
     }
 
-    // printf("gridx: %d, tbx: %d\n", gridx, tbx);
-
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
-    // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(Functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
                 "GenerateCW");
   }
@@ -304,9 +306,11 @@ public:
                SubArray<1, H, DeviceType> first,
                SubArray<1, H, DeviceType> entry, SIZE dict_size,
                int queue_idx) {
+    Array<1, int, DeviceType> status({(SIZE)16}, false, true);
     using FunctorType = GenerateCWFunctor<T, H, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(CL, CW, first, entry, dict_size, queue_idx);
+    TaskType task =
+        GenTask(CL, CW, first, entry, dict_size, SubArray(status), queue_idx);
     DeviceAdapter<TaskType, DeviceType> adapter;
     adapter.Execute(task);
   }

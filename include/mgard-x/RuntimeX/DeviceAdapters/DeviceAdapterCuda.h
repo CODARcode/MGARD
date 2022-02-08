@@ -626,6 +626,14 @@ public:
     }
   }
 
+  template <typename T>
+  MGARDX_CONT static void MallocManaged1D(T *&ptr, SIZE n, int queue_idx) {
+    gpuErrchk(cudaMallocManaged(&ptr, n * sizeof(T)));
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
+  }
+
   template <typename T> MGARDX_CONT static void Free(T *ptr) {
     // printf("MemoryManager.Free(%llu)\n", ptr);
     if (ptr == NULL)
@@ -1541,7 +1549,7 @@ public:
       IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<CUDA>,
                                          typename TaskType::Functor>::value) {
-      if (task.GetFunctor().use_CG) {
+      if (task.GetFunctor().use_CG && DeviceRuntime<CUDA>::SupportCG()) {
         void *Args[] = {(void *)&task};
         cudaLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
                                     blockPerGrid, threadsPerBlock, Args,
@@ -1551,7 +1559,7 @@ public:
       }
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<CUDA>,
                                          typename TaskType::Functor>::value) {
-      if (task.GetFunctor().use_CG) {
+      if (task.GetFunctor().use_CG && DeviceRuntime<CUDA>::SupportCG()) {
         void *Args[] = {(void *)&task};
         cudaLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
                                     blockPerGrid, threadsPerBlock, Args,

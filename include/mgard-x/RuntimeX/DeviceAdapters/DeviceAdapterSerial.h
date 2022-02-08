@@ -807,6 +807,17 @@ public:
     }
   }
 
+  template <typename T>
+  MGARDX_CONT static void MallocManaged1D(T *&ptr, SIZE n, int queue_idx) {
+    using converted_T =
+        typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    ptr = (T *)std::malloc(n * sizeof(converted_T));
+    if (ptr == NULL) {
+      std::cout << log::log_err
+                << "MemoryManager<Serial>::MallocManaged1D error.\n";
+    }
+  }
+
   template <typename T> MGARDX_CONT static void Free(T *ptr) {
     if (ptr == NULL)
       return;
