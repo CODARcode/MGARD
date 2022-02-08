@@ -16,29 +16,15 @@ namespace mgard_x {
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MOD(a, b) ((((a) % (b)) + (b)) % (b))
 
-static MGARDX_MANAGED int iNodesFront = 0;
-static MGARDX_MANAGED int iNodesRear = 0;
-static MGARDX_MANAGED int lNodesCur = 0;
-
-static MGARDX_MANAGED int iNodesSize = 0;
-static MGARDX_MANAGED int curLeavesNum;
-
-static MGARDX_MANAGED int minFreq;
-
-static MGARDX_MANAGED int tempLength;
-
-static MGARDX_MANAGED int mergeFront;
-static MGARDX_MANAGED int mergeRear;
-
-static MGARDX_MANAGED int lNodesIndex;
-
-static MGARDX_MANAGED int cStart;
-static MGARDX_MANAGED int cEnd;
-static MGARDX_MANAGED int iStart;
-static MGARDX_MANAGED int iEnd;
-static MGARDX_MANAGED int iNodesCap;
-
-static MGARDX_MANAGED bool HuffmanCL_loop_condition1;
+#define _iNodesFront 0
+#define _iNodesRear 1
+#define _lNodesCur 2
+#define _iNodesSize 3
+#define _curLeavesNum 4
+#define _minFreq 5
+#define _tempLength 6
+#define _mergeFront 7
+#define _mergeRear 8
 
 template <typename T, typename DeviceType>
 class GenerateCLFunctor : public HuffmanCLCustomizedFunctor<DeviceType> {
@@ -58,13 +44,15 @@ public:
       SubArray<1, T, DeviceType> copyFreq,
       SubArray<1, int, DeviceType> copyIsLeaf,
       SubArray<1, int, DeviceType> copyIndex,
-      SubArray<1, uint32_t, DeviceType> diagonal_path_intersections)
+      SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
+      SubArray<1, int, DeviceType> status)
       : histogram(histogram), CL(CL), size(size), lNodesFreq(lNodesFreq),
         lNodesLeader(lNodesLeader), iNodesFreq(iNodesFreq),
         iNodesLeader(iNodesLeader), tempFreq(tempFreq), tempIsLeaf(tempIsLeaf),
         tempIndex(tempIndex), copyFreq(copyFreq), copyIsLeaf(copyIsLeaf),
         copyIndex(copyIndex),
-        diagonal_path_intersections(diagonal_path_intersections) {
+        diagonal_path_intersections(diagonal_path_intersections),
+        status(status) {
     HuffmanCLCustomizedFunctor<DeviceType>();
   }
 
@@ -74,6 +62,15 @@ public:
         FunctorBase<DeviceType>::GetThreadIdX();
     // i = thread; // Adaptation for easier porting
 
+    // iNodesFront = status.data();
+    // iNodesRear = status.data() + 1;
+    // lNodesCur = status.data() + 2;
+    // iNodesSize = status.data() + 3;
+    // curLeavesNum = status.data() + 4;
+    // minFreq = status.data() + 5;
+    // tempLength = status.data() + 6;
+    // mergeFront = status.data() + 7;
+    // mergeRear = status.data() + 8;
     /* Initialization */
     if (i < size) {
       *lNodesLeader((IDX)i) = -1;
@@ -81,18 +78,19 @@ public:
     }
 
     if (i == 0) {
-      iNodesFront = 0;
-      iNodesRear = 0;
-      lNodesCur = 0;
+      (*status((IDX)_iNodesFront)) = 0;
+      (*status((IDX)_iNodesRear)) = 0;
+      (*status((IDX)_lNodesCur)) = 0;
 
-      iNodesSize = 0;
+      (*status((IDX)_iNodesSize)) = 0;
     }
   }
 
   MGARDX_CONT_EXEC bool LoopCondition1() {
-    // printf("LoopCondition1 %d %u %d\n", lNodesCur, size, iNodesSize);
-    HuffmanCL_loop_condition1 = lNodesCur < size || iNodesSize > 1;
-    return HuffmanCL_loop_condition1;
+    // printf("LoopCondition1 %d %u %d\n", (*status((IDX)_lNodesCur)), size,
+    // (*status((IDX)_iNodesSize)));
+    return (*status((IDX)_lNodesCur)) < size || (*status((IDX)_iNodesSize)) > 1;
+    ;
   }
 
   MGARDX_EXEC void Operation2() {
@@ -108,20 +106,20 @@ public:
         midIsLeaf[j] = 0;
       }
 
-      if (lNodesCur < size) {
-        midFreq[0] = *lNodesFreq(lNodesCur);
+      if ((*status((IDX)_lNodesCur)) < size) {
+        midFreq[0] = *lNodesFreq((*status((IDX)_lNodesCur)));
         midIsLeaf[0] = 1;
       }
-      if (lNodesCur < size - 1) {
-        midFreq[1] = *lNodesFreq(lNodesCur + 1);
+      if ((*status((IDX)_lNodesCur)) < size - 1) {
+        midFreq[1] = *lNodesFreq((*status((IDX)_lNodesCur)) + 1);
         midIsLeaf[1] = 1;
       }
-      if (iNodesSize >= 1) {
-        midFreq[2] = *iNodesFreq(iNodesFront);
+      if ((*status((IDX)_iNodesSize)) >= 1) {
+        midFreq[2] = *iNodesFreq((*status((IDX)_iNodesFront)));
         midIsLeaf[2] = 0;
       }
-      if (iNodesSize >= 2) {
-        midFreq[3] = *iNodesFreq(MOD(iNodesFront + 1, size));
+      if ((*status((IDX)_iNodesSize)) >= 2) {
+        midFreq[3] = *iNodesFreq(MOD((*status((IDX)_iNodesFront)) + 1, size));
         midIsLeaf[3] = 0;
       }
 
@@ -175,51 +173,59 @@ public:
         }
       }
 
-      // printf("mine: lNodesCur: %u, iNodesSize: %u\n", lNodesCur, iNodesSize);
-      // printf("mine: midFreq[0]: %u, midFreq[1]: %u\n", midFreq[0],
-      // midFreq[1]); printf("mine: midIsLeaf[0]: %u, midIsLeaf[1]: %u\n",
-      // midIsLeaf[0], midIsLeaf[1]);
+      // printf("mine: (*status((IDX)_lNodesCur)): %u,
+      // (*status((IDX)_iNodesSize)): %u\n", (*status((IDX)_lNodesCur)),
+      // (*status((IDX)_iNodesSize))); printf("mine: midFreq[0]: %u, midFreq[1]:
+      // %u\n", midFreq[0], midFreq[1]); printf("mine: midIsLeaf[0]: %u,
+      // midIsLeaf[1]: %u\n", midIsLeaf[0], midIsLeaf[1]);
 
-      minFreq = midFreq[0];
+      (*status((IDX)_minFreq)) = midFreq[0];
       if (midFreq[1] < UINT_MAX) {
-        minFreq += midFreq[1];
+        (*status((IDX)_minFreq)) += midFreq[1];
       }
-      *iNodesFreq((IDX)iNodesRear) = minFreq;
-      *iNodesLeader((IDX)iNodesRear) = -1;
+      *iNodesFreq((IDX)(*status((IDX)_iNodesRear))) = (*status((IDX)_minFreq));
+      *iNodesLeader((IDX)(*status((IDX)_iNodesRear))) = -1;
 
-      // printf("mine: iNodesLeader(0.leader) = %d, iNodesRear: %u\n",
-      // *iNodesLeader(IDX(0)), iNodesRear);
+      // printf("mine: iNodesLeader(0.leader) = %d, (*status((IDX)_iNodesRear)):
+      // %u\n", *iNodesLeader(IDX(0)), (*status((IDX)_iNodesRear)));
 
       /* If is leaf */
       if (midIsLeaf[0]) {
-        *lNodesLeader((IDX)lNodesCur) = iNodesRear;
-        ++(*CL((IDX)lNodesCur)), ++lNodesCur;
-        // printf("update CL(%d) = %u\n", lNodesCur-1, *CL(lNodesCur-1));
+        *lNodesLeader((IDX)(*status((IDX)_lNodesCur))) =
+            (*status((IDX)_iNodesRear));
+        ++(*CL((IDX)(*status((IDX)_lNodesCur)))), ++(*status((IDX)_lNodesCur));
+        // printf("update CL(%d) = %u\n", (*status((IDX)_lNodesCur))-1,
+        // *CL((*status((IDX)_lNodesCur))-1));
       } else {
-        *iNodesLeader((IDX)iNodesFront) = iNodesRear;
-        iNodesFront = MOD(iNodesFront + 1, size);
+        *iNodesLeader((IDX)(*status((IDX)_iNodesFront))) =
+            (*status((IDX)_iNodesRear));
+        (*status((IDX)_iNodesFront)) =
+            MOD((*status((IDX)_iNodesFront)) + 1, size);
       }
       if (midIsLeaf[1]) {
-        *lNodesLeader((IDX)lNodesCur) = iNodesRear;
-        ++(*CL((IDX)lNodesCur)), ++lNodesCur;
+        *lNodesLeader((IDX)(*status((IDX)_lNodesCur))) =
+            (*status((IDX)_iNodesRear));
+        ++(*CL((IDX)(*status((IDX)_lNodesCur)))), ++(*status((IDX)_lNodesCur));
       } else {
-        *iNodesLeader((IDX)iNodesFront) = iNodesRear;
-        // printf("*iNodesLeader(%d): %d\n", iNodesFront,
-        // *iNodesLeader(iNodesFront));
-        iNodesFront = MOD(iNodesFront + 1, size); /* ? */
+        *iNodesLeader((IDX)(*status((IDX)_iNodesFront))) =
+            (*status((IDX)_iNodesRear));
+        // printf("*iNodesLeader(%d): %d\n", (*status((IDX)_iNodesFront)),
+        // *iNodesLeader((*status((IDX)_iNodesFront))));
+        (*status((IDX)_iNodesFront)) =
+            MOD((*status((IDX)_iNodesFront)) + 1, size); /* ? */
       }
 
-      // iNodesRear = MOD(iNodesRear + 1, size);
+      // (*status((IDX)_iNodesRear)) = MOD((*status((IDX)_iNodesRear)) + 1,
+      // size);
 
-      iNodesSize = MOD(iNodesRear - iNodesFront, size);
+      (*status((IDX)_iNodesSize)) =
+          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)), size);
 
-      // printf("mine: iNodesLeader(0.leader) = %d, iNodesRear: %u\n",
-      // *iNodesLeader(IDX(0)), iNodesRear);
+      // printf("mine: iNodesLeader(0.leader) = %d, (*status((IDX)_iNodesRear)):
+      // %u\n", *iNodesLeader(IDX(0)), (*status((IDX)_iNodesRear)));
+
+      (*status((IDX)_curLeavesNum)) = 0;
     }
-
-    // int curLeavesNum;
-    /* Select elements to copy -- parallelized */
-    curLeavesNum = 0;
   }
 
   MGARDX_EXEC void Operation3() {
@@ -227,19 +233,19 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     /* Select elements to copy -- parallelized */
-    if (i >= lNodesCur && i < size) {
+    if (i >= (*status((IDX)_lNodesCur)) && i < size) {
       // Parallel component
       int threadCurLeavesNum;
-      if (*lNodesFreq((IDX)i) <= minFreq) {
-        threadCurLeavesNum = i - lNodesCur + 1;
+      if (*lNodesFreq((IDX)i) <= (*status((IDX)_minFreq))) {
+        threadCurLeavesNum = i - (*status((IDX)_lNodesCur)) + 1;
         // Atomic max -- Largest valid index
-        Atomic<DeviceType>::Max(&curLeavesNum, threadCurLeavesNum);
+        Atomic<DeviceType>::Max(status((IDX)_curLeavesNum), threadCurLeavesNum);
       }
 
-      if (i - lNodesCur < curLeavesNum) {
-        *copyFreq((IDX)i - lNodesCur) = *lNodesFreq((IDX)i);
-        *copyIndex((IDX)i - lNodesCur) = i;
-        *copyIsLeaf((IDX)i - lNodesCur) = 1;
+      if (i - (*status((IDX)_lNodesCur)) < (*status((IDX)_curLeavesNum))) {
+        *copyFreq((IDX)i - (*status((IDX)_lNodesCur))) = *lNodesFreq((IDX)i);
+        *copyIndex((IDX)i - (*status((IDX)_lNodesCur))) = i;
+        *copyIsLeaf((IDX)i - (*status((IDX)_lNodesCur))) = 1;
       }
     }
   }
@@ -249,43 +255,47 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     // if (!thread) {
-    //   printf("curLeavesNum: %d\n", curLeavesNum);
+    //   printf("(*status((IDX)_curLeavesNum)): %d\n",
+    //   (*status((IDX)_curLeavesNum)));
     // }
 
     /* Updates Iterators */
     if (i == 0) {
-      mergeRear = iNodesRear;
-      mergeFront = iNodesFront;
+      (*status((IDX)_mergeRear)) = (*status((IDX)_iNodesRear));
+      (*status((IDX)_mergeFront)) = (*status((IDX)_iNodesFront));
 
-      if ((curLeavesNum + iNodesSize) % 2 == 0) {
-        iNodesFront = iNodesRear;
+      if (((*status((IDX)_curLeavesNum)) + (*status((IDX)_iNodesSize))) % 2 ==
+          0) {
+        (*status((IDX)_iNodesFront)) = (*status((IDX)_iNodesRear));
       }
       /* Odd number of nodes to merge - leave out one*/
-      else if ((iNodesSize != 0)      //
-               and (curLeavesNum == 0 //
-                    or (*histogram((IDX)lNodesCur + curLeavesNum) <=
-                        *iNodesFreq((IDX)MOD(iNodesRear - 1, size)))) //
+      else if (((*status((IDX)_iNodesSize)) != 0)      //
+               and ((*status((IDX)_curLeavesNum)) == 0 //
+                    or (*histogram((IDX)(*status((IDX)_lNodesCur)) +
+                                   (*status((IDX)_curLeavesNum))) <=
+                        *iNodesFreq((IDX)MOD((*status((IDX)_iNodesRear)) - 1,
+                                             size)))) //
       ) {
-        mergeRear = MOD(mergeRear - 1, size);
-        iNodesFront = MOD(iNodesRear - 1, size);
+        (*status((IDX)_mergeRear)) = MOD((*status((IDX)_mergeRear)) - 1, size);
+        (*status((IDX)_iNodesFront)) =
+            MOD((*status((IDX)_iNodesRear)) - 1, size);
       } else {
-        iNodesFront = iNodesRear;
-        --curLeavesNum;
+        (*status((IDX)_iNodesFront)) = (*status((IDX)_iNodesRear));
+        --(*status((IDX)_curLeavesNum));
       }
 
-      lNodesCur = lNodesCur + curLeavesNum;
-      iNodesRear = MOD(iNodesRear + 1, size);
+      (*status((IDX)_lNodesCur)) =
+          (*status((IDX)_lNodesCur)) + (*status((IDX)_curLeavesNum));
+      (*status((IDX)_iNodesRear)) = MOD((*status((IDX)_iNodesRear)) + 1, size);
+
+      (*status((IDX)_tempLength)) =
+          ((*status((IDX)_curLeavesNum)) - 0) +
+          MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)), size);
     }
   }
 
   MGARDX_CONT_EXEC bool BranchCondition1() {
-    cStart = 0;
-    cEnd = curLeavesNum;
-    iStart = mergeFront;
-    iEnd = mergeRear;
-    iNodesCap = size;
-    tempLength = (cEnd - cStart) + MOD(iEnd - iStart, iNodesCap);
-    return tempLength > 0;
+    return (*status((IDX)_tempLength)) > 0;
   }
 
   MGARDX_EXEC void Operation5() {
@@ -298,22 +308,16 @@ public:
     found = &sm[4];
     oneorzero = &sm[5];
 
-    cStart = 0;
-    cEnd = curLeavesNum;
-    iStart = mergeFront;
-    iEnd = mergeRear;
-    iNodesCap = size;
-    // blocks = mblocks;
-    // threads = mthreads;
-
-    // tempLength = (cEnd - cStart) + MOD(iEnd - iStart, iNodesCap);
-    // if (tempLength == 0) return;
-    A_length = cEnd - cStart;
-    B_length = MOD(iEnd - iStart, iNodesCap);
+    // (*status((IDX)_tempLength)) = (cEnd - 0) + MOD((*status((IDX)_mergeRear))
+    // - (*status((IDX)_mergeFront)), size); if ((*status((IDX)_tempLength)) ==
+    // 0) return;
+    A_length = (*status((IDX)_curLeavesNum)) - 0;
+    B_length =
+        MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)), size);
 
     // if (!thread) {
-    //   printf("A_length: %d, B_length: %d, tempLength: %d\n", A_length,
-    //   B_length, tempLength);
+    //   printf("A_length: %d, B_length: %d, (*status((IDX)_tempLength)): %d\n",
+    //   A_length, B_length, (*status((IDX)_tempLength)));
     // }
     // Calculate combined index around the MergePath "matrix"
     combinedIndex = ((uint64_t)FunctorBase<DeviceType>::GetBlockIdX() *
@@ -321,8 +325,9 @@ public:
                     (uint64_t)FunctorBase<DeviceType>::GetGridDimX();
 
     // if (!FunctorBase<DeviceType>::GetThreadIdX()) {
-    //   printf("A_length: %d, B_length: %d, tempLength: %d, combinedIndex:
-    //   %d\n", A_length, B_length, tempLength, combinedIndex);
+    //   printf("A_length: %d, B_length: %d, (*status((IDX)_tempLength)): %d,
+    //   combinedIndex: %d\n", A_length, B_length, (*status((IDX)_tempLength)),
+    //   combinedIndex);
     // }
     threadOffset =
         FunctorBase<DeviceType>::GetThreadIdX() - MGARDX_WARP_SIZE / 2;
@@ -344,7 +349,7 @@ public:
     *found = 0;
   }
 
-  MGARDX_CONT_EXEC bool LoopCondition2() {
+  MGARDX_EXEC bool LoopCondition2() {
     // printf("%u LoopCondition2\n", FunctorBase<DeviceType>::GetBlockIdX());
     return !(*found);
   }
@@ -356,14 +361,14 @@ public:
     // }
     current_x = *x_top - ((*x_top - *x_bottom) >> 1) - threadOffset;
     current_y = *y_top + ((*y_bottom - *y_top) >> 1) + threadOffset;
-    getfrom_x = current_x + cStart - 1;
+    getfrom_x = current_x + 0 - 1;
     // Below statement is a more efficient, divmodless version of the following
-    // int32_t getfrom_y = MOD(iStart + current_y, iNodesCap);
-    getfrom_y = iStart + current_y;
+    // int32_t getfrom_y = MOD((*status((IDX)_mergeFront)) + current_y, size);
+    getfrom_y = (*status((IDX)_mergeFront)) + current_y;
 
     if (FunctorBase<DeviceType>::GetThreadIdX() < MGARDX_WARP_SIZE) {
-      if (getfrom_y >= iNodesCap)
-        getfrom_y -= iNodesCap;
+      if (getfrom_y >= size)
+        getfrom_y -= size;
 
       // Are we a '1' or '0' with respect to A[x] <= B[x]
       if (current_x > (int32_t)A_length or current_y < 0) {
@@ -452,10 +457,10 @@ public:
           FunctorBase<DeviceType>::GetGridDimX() + 2);
 
       // Actual indexes
-      int x_start = x_block_top + cStart;
-      int x_end = x_block_stop + cStart;
-      int y_start = MOD(iStart + y_block_top, iNodesCap);
-      int y_end = MOD(iStart + y_block_stop, iNodesCap);
+      int x_start = x_block_top + 0;
+      int x_end = x_block_stop + 0;
+      int y_start = MOD((*status((IDX)_mergeFront)) + y_block_top, size);
+      int y_end = MOD((*status((IDX)_mergeFront)) + y_block_stop, size);
 
       int offset = x_block_top + y_block_top;
 
@@ -468,7 +473,7 @@ public:
 
       int iterCopy = x_start, iterINodes = y_start;
 
-      while (iterCopy < x_end && MOD(y_end - iterINodes, iNodesCap) > 0) {
+      while (iterCopy < x_end && MOD(y_end - iterINodes, size) > 0) {
         if (*copyFreq((IDX)iterCopy) <= *iNodesFreq((IDX)iterINodes)) {
           *tempFreq((IDX)offset + len) = *copyFreq((IDX)iterCopy);
           *tempIndex((IDX)offset + len) = *copyIndex((IDX)iterCopy);
@@ -478,7 +483,7 @@ public:
           *tempFreq((IDX)offset + len) = *iNodesFreq((IDX)iterINodes);
           *tempIndex((IDX)offset + len) = iterINodes;
           *tempIsLeaf((IDX)offset + len) = 0;
-          iterINodes = MOD(iterINodes + 1, iNodesCap);
+          iterINodes = MOD(iterINodes + 1, size);
         }
         ++len;
       }
@@ -490,11 +495,11 @@ public:
         ++iterCopy;
         ++len;
       }
-      while (MOD(y_end - iterINodes, iNodesCap) > 0) {
+      while (MOD(y_end - iterINodes, size) > 0) {
         *tempFreq((IDX)offset + len) = *iNodesFreq((IDX)iterINodes);
         *tempIndex((IDX)offset + len) = iterINodes;
         *tempIsLeaf((IDX)offset + len) = 0;
-        iterINodes = MOD(iterINodes + 1, iNodesCap);
+        iterINodes = MOD(iterINodes + 1, size);
         ++len;
       }
 
@@ -532,8 +537,8 @@ public:
     //   + 1));
     // }
     /* Melding phase -- New */
-    if (i < tempLength / 2) {
-      int ind = MOD(iNodesRear + i, size);
+    if (i < (*status((IDX)_tempLength)) / 2) {
+      int ind = MOD((*status((IDX)_iNodesRear)) + i, size);
       // printf("Melding(i=%d): %u(%d) %u(%d)\n", i, *tempFreq((IDX)2 * i),
       // *tempIsLeaf((IDX)2 * i), *tempFreq((IDX)2 * i + 1), *tempIsLeaf((IDX)2
       // * i + 1));
@@ -560,7 +565,9 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     if (i == 0) {
-      iNodesRear = MOD(iNodesRear + (tempLength / 2), size);
+      (*status((IDX)_iNodesRear)) =
+          MOD((*status((IDX)_iNodesRear)) + ((*status((IDX)_tempLength)) / 2),
+              size);
     }
   }
 
@@ -570,8 +577,8 @@ public:
         FunctorBase<DeviceType>::GetThreadIdX();
     /* Update leaders */
     // if (thread == 0) {
-    //   printf("mine: iNodesLeader(0.leader) = %d, iNodesRear: %u\n",
-    //   *iNodesLeader(IDX(0)), iNodesRear);
+    //   printf("mine: iNodesLeader(0.leader) = %d, (*status((IDX)_iNodesRear)):
+    //   %u\n", *iNodesLeader(IDX(0)), (*status((IDX)_iNodesRear)));
     // }
     if (i < size) {
       if (*lNodesLeader((IDX)i) != -1) {
@@ -589,7 +596,8 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     if (i == 0) {
-      iNodesSize = MOD(iNodesRear - iNodesFront, size);
+      (*status((IDX)_iNodesSize)) =
+          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)), size);
     }
   }
 
@@ -616,22 +624,7 @@ private:
   SubArray<1, int, DeviceType> copyIsLeaf;
   SubArray<1, int, DeviceType> copyIndex;
   SubArray<1, uint32_t, DeviceType> diagonal_path_intersections;
-  // Array<1, uint32_t, DeviceType> diagonal_path_intersections_array;
-  // int mblocks;
-  // int mthreads;
-  // SubArray<1, int, DeviceType> *iNodesFront.data();
-  // SubArray<1, int, DeviceType> iNodesRear;
-  // SubArray<1, int, DeviceType> iNodesSize;
-  // SubArray<1, int, DeviceType> *lNodesCur.data();
-  // SubArray<1, int, DeviceType> curLeavesNum;
-  // SubArray<1, int, DeviceType> minFreq;
-  // SubArray<1, int, DeviceType> tempLength;
-  // SubArray<1, int, DeviceType> mergeFront;
-  // SubArray<1, int, DeviceType> mergeRear;
-  // SubArray<1, int, DeviceType> lNodesIndex;
-  // SubArray<1, int, DeviceType> CCL;
-  // SubArray<1, int, DeviceType> CDPI;
-  // SubArray<1, int, DeviceType> newCDPI;
+  SubArray<1, int, DeviceType> status;
 
   int32_t *x_top;
   int32_t *y_top;
@@ -640,16 +633,8 @@ private:
   int32_t *found;
   int32_t *oneorzero;
 
-  // unsigned int thread;
   unsigned int i;
 
-  // int cStart;
-  // int cEnd;
-  // int iStart;
-  // int iEnd;
-  // int iNodesCap;
-  // int blocks;
-  // int threads;
   int threadOffset;
   uint32_t A_length;
   uint32_t B_length;
@@ -682,12 +667,12 @@ public:
           SubArray<1, int, DeviceType> copyIsLeaf,
           SubArray<1, int, DeviceType> copyIndex,
           SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
-          int queue_idx) {
+          SubArray<1, int, DeviceType> status, int queue_idx) {
     using FunctorType = GenerateCLFunctor<T, DeviceType>;
     FunctorType Functor(histogram, CL, dict_size, lNodesFreq, lNodesLeader,
                         iNodesFreq, iNodesLeader, tempFreq, tempIsLeaf,
                         tempIndex, copyFreq, copyIsLeaf, copyIndex,
-                        diagonal_path_intersections);
+                        diagonal_path_intersections, status);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = Functor.shared_memory_size();
@@ -699,25 +684,13 @@ public:
         DeviceRuntime<DeviceType>::GetOccupancyMaxActiveBlocksPerSM(
             Functor, tbx, sm_size);
     int cg_mblocks = cg_blocks_sm * DeviceRuntime<DeviceType>::GetNumSMs();
-    int ELTS_PER_SEQ_MERGE = 16;
-    int mblocks = cg_mblocks; // std::min(cg_mblocks, (dict_size /
-                              // ELTS_PER_SEQ_MERGE) + 1);
+    int mblocks = cg_mblocks;
 
     gridz = 1;
     gridy = 1;
     gridx = mblocks;
 
     int tthreads = tbx * gridx;
-    // if (tthreads < dict_size) {
-    //   std::cout << log::log_err << "Insufficient on-device parallelism to
-    //   construct a "
-    //        << dict_size << " non-zero item codebook" << std::endl;
-    //   std::cout << log::log_err << "Provided parallelism: " << gridx << "
-    //   blocks, "
-    //        << tbx << " threads, " << tthreads << " total" << std::endl
-    //        << std::endl;
-    //   exit(1);
-    // }
     if (tthreads >= dict_size) {
       if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
         std::cout << log::log_info << "GenerateCL: using Cooperative Groups\n";
@@ -752,18 +725,16 @@ public:
                SubArray<1, int, DeviceType> copyIndex,
                SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
                int queue_idx) {
+    Array<1, int, DeviceType> status({(SIZE)16}, false, true);
     using FunctorType = GenerateCLFunctor<T, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task =
-        GenTask(histogram, CL, dict_size, lNodesFreq, lNodesLeader, iNodesFreq,
-                iNodesLeader, tempFreq, tempIsLeaf, tempIndex, copyFreq,
-                copyIsLeaf, copyIndex, diagonal_path_intersections, queue_idx);
+    TaskType task = GenTask(
+        histogram, CL, dict_size, lNodesFreq, lNodesLeader, iNodesFreq,
+        iNodesLeader, tempFreq, tempIsLeaf, tempIndex, copyFreq, copyIsLeaf,
+        copyIndex, diagonal_path_intersections, SubArray(status), queue_idx);
     DeviceAdapter<TaskType, DeviceType> adapter;
 
     adapter.Execute(task);
-
-    // DeviceRuntime<DeviceType>::SyncDevice();
-    // std::cout << "iNodesRear: " << iNodesRear << "\n";
   }
 };
 
