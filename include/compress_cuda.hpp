@@ -10,6 +10,8 @@
 #include "cuda/MemoryManagement.h"
 #include <cstdint>
 
+#warning("The lagacy MGARD-GPU dadicated for Nvidia GPUs will be deprecated in future releases of MGARD. Please use to the MGARD-X portable version.")
+
 #ifndef MGARD_CUDA_API_H
 #define MGARD_CUDA_API_H
 
