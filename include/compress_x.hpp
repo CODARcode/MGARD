@@ -29,6 +29,8 @@ namespace mgard_x {
 //!\param[in] original_data Dataset to be compressed.
 //!\param[out] compressed_data Compressed data.
 //!\param[out] compressed_size Size of compressed data.
+//!\param[in] output_pre_allocated Indicate whether the output buffer is
+//! pre-allocated or not.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
@@ -49,6 +51,8 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[out] compressed_data Compressed data.
 //!\param[out] compressed_size Size of compressed data.
 //!\param[in] config For configuring the compression process.
+//!\param[in] output_pre_allocated Indicate whether the output buffer is
+//! pre-allocated or not.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size, Config config,
@@ -66,11 +70,12 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[out] compressed_data Compressed data.
 //!\param[out] compressed_size Size of comrpessed data.
 //!\param[in] coords Coordinates data.
+//!\param[in] output_pre_allocated Indicate whether the output buffer is
+//! pre-allocated or not.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, enum device_type dev_type,
-              bool output_pre_allocated);
+              std::vector<const Byte *> coords, bool output_pre_allocated);
 
 //! Compress a function on an N-D tensor product grid with non-uniform spacing
 //!
@@ -85,6 +90,8 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[out] compressed_size Size of comrpessed data.
 //!\param[in] coords Coordinates data.
 //!\param[in] config For configuring the compression process.
+//!\param[in] output_pre_allocated Indicate whether the output buffer is
+//! pre-allocated or not.
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
               void *&compressed_data, size_t &compressed_size,
@@ -96,6 +103,8 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 //!\param[in] compressed_data Compressed data.
 //!\param[in] compressed_size Size of comrpessed data.
 //!\param[out] decompressed_data Decompressed data.
+//!\param[in] output_pre_allocated Indicate whether the output buffer is
+//! pre-allocated or not.
 void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data, bool output_pre_allocated);
 
@@ -105,6 +114,8 @@ void decompress(const void *compressed_data, size_t compressed_size,
 //!\param[in] compressed_size Size of comrpessed data.
 //!\param[out] decompressed_data Decompressed data.
 //!\param[in] config For configuring the decompression process.
+//!\param[in] output_pre_allocated Indicate whether the output buffer is
+//! pre-allocated or not.
 void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data, Config config,
                 bool output_pre_allocated);
@@ -133,7 +144,10 @@ template <typename T>
 std::vector<T *> infer_coords(const void *compressed_data,
                               size_t compressed_size);
 
+//! Enable autotuning
 void BeginAutoTuning(enum device_type dev_type);
+
+//! Disable autotuning
 void EndAutoTuning(enum device_type dev_type);
 
 //!\file
@@ -141,7 +155,7 @@ void EndAutoTuning(enum device_type dev_type);
 
 //! Compress a function on an N-D tensor product grid
 //!
-//!\param[in] handle Hierarchy type for storing precomputed variable to
+//!\param[in] hierarchy Hierarchy type for storing precomputed variable to
 //! help speed up compression.
 //!\param[in] in_array Dataset to be compressed.
 //!\param[in] type Error bound type: REL or ABS.
@@ -151,22 +165,25 @@ void EndAutoTuning(enum device_type dev_type);
 //!\return Compressed dataset.
 template <uint32_t D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType>
-compress(Hierarchy<D, T, DeviceType> &handle, Array<D, T, DeviceType> &in_array,
-         enum error_bound_type type, T tol, T s);
+compress(Hierarchy<D, T, DeviceType> &hierarchy,
+         Array<D, T, DeviceType> &in_array, enum error_bound_type type, T tol,
+         T s);
 
 //! Decompress a function on an N-D tensor product grid
 //!
-//!\param[in] handle Hierarchy type for storing precomputed variable to
+//!\param[in] hierarchy Hierarchy type for storing precomputed variable to
 //! help speed up decompression.
 //!\param[in] compressed_array Compressed dataset.
 //!\return Decompressed dataset.
 template <uint32_t D, typename T, typename DeviceType>
 Array<D, T, DeviceType>
-decompress(Hierarchy<D, T, DeviceType> &handle,
+decompress(Hierarchy<D, T, DeviceType> &hierarchy,
            Array<1, unsigned char, DeviceType> &compressed_array);
 
+//! Enable autotuning
 template <typename DeviceType> void BeginAutoTuning();
 
+//! Disable autotuning
 template <typename DeviceType> void EndAutoTuning();
 
 } // namespace mgard_x
