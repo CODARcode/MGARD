@@ -142,7 +142,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     timer_each.start();
 
   Array<D, QUANTIZED_INT, DeviceType> quanzited_array(hierarchy.shape_org,
-                                                      false);
+                                                      false, false);
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_subarray(quanzited_array);
 
   LENGTH estimate_outlier_count = (double)total_elems * 1;
@@ -426,7 +426,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 
   Array<D, QUANTIZED_INT, DeviceType> quantized_array(hierarchy.shape_org,
-                                                      false);
+                                                      false, false);
 
   // PrintSubarray("lossless_compressed_subarray",
   // lossless_compressed_subarray);

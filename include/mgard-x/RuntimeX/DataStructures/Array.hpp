@@ -27,11 +27,13 @@ Array<D, T, DeviceType>::Array() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched) {
+Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched,
+                               bool managed) {
   // printf("Array allocate\n");
   this->host_allocated = false;
   this->device_allocated = false;
   this->pitched = pitched;
+  this->managed = managed;
   std::reverse(shape.begin(), shape.end());
   this->shape = shape;
   int ret = check_shape<D>(shape);
@@ -60,19 +62,34 @@ Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched) {
   }
 
   if (this->pitched) {
-    SIZE ld = 0;
-    MemoryManager<DeviceType>().MallocND(
-        this->dv, this->shape[0], this->shape[1] * this->linearized_depth, ld,
-        0);
-    this->ldvs_h.push_back(ld);
-    for (int i = 1; i < D_padded; i++) {
-      this->ldvs_h.push_back(this->shape[i]);
+    if (!this->managed) {
+      SIZE ld = 0;
+      MemoryManager<DeviceType>().MallocND(
+          this->dv, this->shape[0], this->shape[1] * this->linearized_depth, ld,
+          0);
+      this->ldvs_h.push_back(ld);
+      for (int i = 1; i < D_padded; i++) {
+        this->ldvs_h.push_back(this->shape[i]);
+      }
+    } else {
+      std::cerr << log::log_err
+                << "Does not support managed memory in pitched mode.\n";
     }
   } else {
-    MemoryManager<DeviceType>().Malloc1D(
-        this->dv, this->shape[0] * this->shape[1] * this->linearized_depth, 0);
-    for (int i = 0; i < D_padded; i++) {
-      this->ldvs_h.push_back(this->shape[i]);
+    if (!this->managed) {
+      MemoryManager<DeviceType>().Malloc1D(
+          this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
+          0);
+      for (int i = 0; i < D_padded; i++) {
+        this->ldvs_h.push_back(this->shape[i]);
+      }
+    } else {
+      MemoryManager<DeviceType>().MallocManaged1D(
+          this->dv, this->shape[0] * this->shape[1] * this->linearized_depth,
+          0);
+      for (int i = 0; i < D_padded; i++) {
+        this->ldvs_h.push_back(this->shape[i]);
+      }
     }
   }
 
