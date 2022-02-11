@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 SMALL_SIZE = 12
-MEDIUM_SIZE = 25
+MEDIUM_SIZE = 14
 BIGGER_SIZE = 14
 
 # plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
@@ -17,8 +17,8 @@ plt.rc('figure', titlesize=MEDIUM_SIZE)  # fontsize of the figure title
 
 Actual_error = ['$1e^{-4}$', '$1e^{-3}$', '$1e^{-2}$', '$1e^{-1}$']
 # Types = ['CPU', 'NVIDIA V100 (High Speed, Low CR)', 'NVIDIA V100 (Mid. Speed, Mid, CR)', 'NVIDIA V100 (Low Speed, High CR)', 'AMD MI100 (High Speed, Low CR)', 'AMD MI100 (Low Speed, High CR)']
-Types = ['CPU', 'NVIDIA V100 (High Speed Mode)', 'NVIDIA V100 (High Compress Mode)', 'AMD MI100 (High Speed Mode)', 'AMD MI100 (High Compress Mode)']
-Color = ['teal', 'olivedrab', 'lawngreen', 'yellowgreen', 'maroon', 'lightcoral']
+Types = ['CPU', 'NVIDIA RTX2080', 'NVIDIA V100', 'NVIDIA V100', 'AMD MI100', 'AMD MI100', 'AMD MI250', 'AMD MI250',]
+Color = ['teal', 'olivedrab', 'lawngreen', 'yellowgreen', 'maroon', 'lightcoral', 'maroon', 'lightcoral']
 
 
 # Summit
@@ -134,6 +134,36 @@ XGC = [
 #         ]
 #       ]
 
+
+# Workstation
+# E3SM = [
+#         [ # Compress Ratio
+#           [5.176808, 11.524835, 71.125502, 4880.775704], # original CPU (zstd)
+#           [3.548201, 5.652103, 12.846273, 28.434430], # X-CUDA (Huffman)
+#           [3.545491, 5.659909, 13.964576, 83.733901], # X-CUDA (Huffman + LZ4)
+#           [3.586439, 5.841004, 16.486520, 147.163732], # X-CUDA (Huffman + zstd)
+#           [3.548201, 5.652103, 12.846273, 28.434430], # HIP/Spock (Huffman)
+#           [3.586439, 5.841004, 16.486520, 147.163732], # HIP/Spock (Huffman + zstd)
+#         ],
+#         [ # Compression Speed
+#           [0.0516544, 0.0532094, 0.0529181, 0.053668], # original CPU (zstd)
+#           [3.30916, 3.19597, 3.17304, 3.27932], # X-CUDA (Huffman)
+#           [1.33956, 1.93694, 2.47586, 2.58751], # X-CUDA (Huffman + LZ4)
+#           [1.2768, 1.182, 1.11247, 2.32372], # X-CUDA (Huffman + zstd)
+#           [1.63604, 1.65282, 1.69286, 1.77386], # X-HIP (Huffman)
+#           [0.841459, 0.870178, 1.05042, 1.35576], # X-HIP (Huffman + zstd)
+#         ],
+#         [ # Decompression Speed
+#           [0.0397186, 0.0462312, 0.049839, 0.050244], # original CPU (zstd)
+#           [2.07613, 2.42887, 3.3552, 4.52448], # X-CUDA (Huffman)
+#           [2.37263, 2.87235, 3.56927, 5.12888], # X-CUDA (Huffman + LZ4)
+#           [1.17044, 1.60876, 2.29395, 3.3554], # X-CUDA (Huffman + zstd)
+#           [1.51667, 1.51667, 1.51667, 2.16075], # X-HIP (Huffman)
+#           [0.893723, 0.893723, 1.11982, 1.85127], # X-HIP (Huffman + zstd)
+#         ]
+#       ]
+
+
 #Summit
 E3SM = [
         [ # Compress Ratio
@@ -162,43 +192,48 @@ E3SM = [
         ]
       ]
 
-# Workstation
-# E3SM = [
-#         [ # Compress Ratio
-#           [5.176808, 11.524835, 71.125502, 4880.775704], # original CPU (zstd)
-#           [3.548201, 5.652103, 12.846273, 28.434430], # X-CUDA (Huffman)
-#           [3.545491, 5.659909, 13.964576, 83.733901], # X-CUDA (Huffman + LZ4)
-#           [3.586439, 5.841004, 16.486520, 147.163732], # X-CUDA (Huffman + zstd)
-#           [3.548201, 5.652103, 12.846273, 28.434430], # X-HIP (Huffman)
-#           [3.586439, 5.841004, 16.486520, 147.163732], # X-HIP (Huffman + zstd)
-#         ],
-#         [ # Compression Speed
-#           [0.0516544, 0.0532094, 0.0529181, 0.053668], # original CPU (zstd)
-#           [3.30916, 3.19597, 3.17304, 3.27932], # X-CUDA (Huffman)
-#           [1.33956, 1.93694, 2.47586, 2.58751], # X-CUDA (Huffman + LZ4)
-#           [1.2768, 1.182, 1.11247, 2.32372], # X-CUDA (Huffman + zstd)
-#           [1.63604, 1.65282, 1.69286, 1.77386], # X-HIP (Huffman)
-#           [0.841459, 0.870178, 1.05042, 1.35576], # X-HIP (Huffman + zstd)
-#         ],
-#         [ # Decompression Speed
-#           [0.0397186, 0.0462312, 0.049839, 0.050244], # original CPU (zstd)
-#           [2.07613, 2.42887, 3.3552, 4.52448], # X-CUDA (Huffman)
-#           [2.37263, 2.87235, 3.56927, 5.12888], # X-CUDA (Huffman + LZ4)
-#           [1.17044, 1.60876, 2.29395, 3.3554], # X-CUDA (Huffman + zstd)
-#           [1.51667, 1.51667, 1.51667, 2.16075], # X-HIP (Huffman)
-#           [0.893723, 0.893723, 1.11982, 1.85127], # X-HIP (Huffman + zstd)
-#         ]
-#       ]
-
+#Summit
+SKA = [
+        [ # Compress Ratio
+          [], # original CPU (zstd)
+          [11.924, 15.118, 21.1061, 29.1043], # CUDA/Summit (Huffman)
+          [16.0105, 22.1468, 39.0046, 93.8555], # CUDA/Summit (Huffman + LZ4)
+          [16.8707, 23.6559, 45.0864, 144.294], # CUDA/Summit (Huffman + zstd)
+          [3.548201, 5.652103, 12.846273, 28.434430], # HIP/Spock (Huffman)
+          [3.586439, 5.841004, 16.486520, 147.163732], # HIP/Spock (Huffman + zstd)
+          [3.548201, 5.652103, 12.846273, 28.434430], # HIP/Crusher (Huffman)
+          [3.586439, 5.841004, 16.486520, 147.163732], # HIP/Crusher (Huffman + zstd)
+        ],
+        [ # Compression Speed
+          [], # original CPU (zstd)
+          [3.28016, 3.30284, 3.38432, 3.38279], # CUDA/Summit (Huffman)
+          [2.79863, 2.87956, 3.0097, 3.12528], # CUDA/Summit (Huffman + LZ4)
+          [1.7105, 1.95731, 2.28838, 2.59861], # CUDA/Summit (Huffman + zstd)
+          [5.47641, 5.58331, 5.66189, 5.71698], # HIP/Spock (Huffman)
+          [2.59408, 2.94767, 3.48787, 4.23801], # HIP/Spock (Huffman + zstd)
+          [5.98083, 5.93023, 5.90223, 5.99278], # HIP/Crusher (Huffman)
+          [2.8018, 3.17525, 3.86209, 4.53631], # HIP/Crusher (Huffman + zstd)
+        ],
+        [ # Decompression Speed
+          [], # original CPU (zstd)
+          [6.23788, 6.33209, 6.30265, 6.31642], # CUDA/Summit (Huffman)
+          [6.0017, 6.09931, 6.11641, 6.16075], # CUDA/Summit (Huffman + LZ4)
+          [4.36846, 4.38687, 4.28764, 4.92663], # CUDA/Summit (Huffman + zstd)
+          [8.50796, 9.83805, 11.1272, 12.9081], # HIP/Spock (Huffman)
+          [6.46177, 6.62055, 6.80889, 8.34413], # HIP/Spock (Huffman + zstd)
+          [10.1498, 10.9621, 12.2674, 13.9606], # HIP/Crusher (Huffman)
+          [7.44163, 7.64353, 7.93771, 9.44809], # HIP/Crusher (Huffman + zstd)
+        ]
+      ]
 
 def plot_bar(data, title, output, plot_legend):
-  fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(15,5))
+  fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(9,3))
   width = 0.15
   x_idx = np.array(range(0, len(Actual_error), 1))  
   x_ticks = Actual_error
   y_idx = np.array(range(0, 12, 1))  
 
-  tlt = fig.suptitle(title)
+  # tlt = fig.suptitle(title)
 
   # bars = []
   # for i in range(6):
@@ -217,12 +252,13 @@ def plot_bar(data, title, output, plot_legend):
 
   bars = []
   offset = 0
-  for i in [0, 1, 3, 4, 5]:#range(6):
+  # for i in [0, 1, 3, 4, 5]:#range(6):
+  for i in [1, 6]:#range(6):
     p = ax[0].bar(x_idx+offset, data[1][i], width, color = Color[i])
     offset = offset + width
     bars.append(p)
 
-  ax[0].set_xticks(x_idx+width*3)
+  ax[0].set_xticks(x_idx+width/2)
   ax[0].set_xticklabels(x_ticks)
   # ax1.set_xlabel("Kernels")
   ax[0].tick_params(axis='x', rotation=0)
@@ -234,12 +270,12 @@ def plot_bar(data, title, output, plot_legend):
 
   bars = []
   offset = 0
-  for i in [0, 1, 3, 4, 5]:
+  for i in [1, 6]:#range(6):
     p = ax[1].bar(x_idx+offset, data[2][i], width, color = Color[i])
     offset = offset + width
     bars.append(p)
 
-  ax[1].set_xticks(x_idx+width*3)
+  ax[1].set_xticks(x_idx+width/2)
   ax[1].set_xticklabels(x_ticks)
   # ax1.set_xlabel("Kernels")
   ax[1].tick_params(axis='x', rotation=0)
@@ -249,21 +285,24 @@ def plot_bar(data, title, output, plot_legend):
   ax[1].set_ylabel('Decompression (GB/s)')
   ax[1].grid(which='major', axis='y')
 
+  x0, y0, width, height = 0, 0, 0, 0
+  lgd = fig.legend(tuple(bars), [Types[1], Types[6]])
 
   if (plot_legend):
     x0, y0, width, height = 0, 1.4, 0, 0
-    lgd = fig.legend(tuple(bars), Types, loc = 'upper left', ncol=2, bbox_to_anchor=(x0, y0, width, height))
+    lgd = fig.legend(tuple(bars), [Types[1, 6], Types[6]], loc = 'upper left', ncol=2, bbox_to_anchor=(x0, y0, width, height))
     plt.tight_layout()
     plt.savefig('{}.png'.format(output), bbox_extra_artists=(lgd, tlt), bbox_inches='tight')
   else:
     plt.tight_layout()
-    plt.savefig('{}.png'.format(output), bbox_extra_artists=(tlt,), bbox_inches='tight')
+    # plt.savefig('{}.png'.format(output), bbox_extra_artists=(tlt,), bbox_inches='tight')
+    plt.savefig('{}.png'.format(output))
 
 
-plot_bar(E3SM, "E3SM temperature (FP32/3D/143 MB)", "E3SM", True)
-plot_bar(NYX, "EXASKY velocity (FP32/3D/512 MB)", "NYX", False)
-plot_bar(XGC, "XGC (FP64/5D/1.5 GB)", "XGC", False)
-
+# plot_bar(E3SM, "E3SM temperature (FP32/3D/143 MB)", "E3SM", True)
+# plot_bar(NYX, "EXASKY velocity (FP32/3D/512 MB)", "NYX", False)
+# plot_bar(XGC, "XGC (FP64/5D/1.5 GB)", "XGC", False)
+plot_bar(SKA, "SKA (FP32/3D/1.8 GB)", "SKA", False)
 
 
 def plot_bar_cr(title, output, plot_legend):
@@ -305,4 +344,4 @@ def plot_bar_cr(title, output, plot_legend):
     plt.savefig('{}.png'.format(output), bbox_extra_artists=(tlt,), bbox_inches='tight')
 
 
-plot_bar_cr("", "E3SM_CR", True)
+# plot_bar_cr("", "E3SM_CR", True)

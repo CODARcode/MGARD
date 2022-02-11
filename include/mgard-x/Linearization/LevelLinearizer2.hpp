@@ -178,13 +178,13 @@ public:
         curr_region_offset += prev_region_size;
       }
 
-      // printf("(%u %u %u): level: %u, curr_region_offset: %u\n", idx[0],
-      // idx[1], idx[2],
-      //                                           level, curr_region_offset);
+      // printf("(%u %u): level: %u, curr_region: %u, curr_region_offset: %u\n",
+      // idx[0], idx[1], level, curr_region, curr_region_offset);
 
       // thread offset
       SIZE curr_region_thread_idx[D];
       SIZE curr_thread_offset = 0;
+      SIZE coarse_level_offset = 0;
       for (SIZE d = 0; d < D; d++) {
         // SIZE bit = (curr_region >> D - 1 - d) & 1u;
         // curr_region_thread_idx[d] = bit ? idx[d] : idx[d] -
@@ -194,23 +194,60 @@ public:
             bit ? idx[d] - coarse_level_size[d] : idx[d];
       }
 
-      SIZE stride = 1;
+      SIZE global_data_idx[D];
       for (SIZE d = 0; d < D; d++) {
-        curr_thread_offset += curr_region_thread_idx[d] * stride;
-        stride *= curr_region_dims[d];
+        SIZE bit = (curr_region >> d) & 1u;
+        if (level == 0) {
+          global_data_idx[d] = curr_region_thread_idx[d];
+        } else if (ranges_sm[(l_target + 2) * d + level + 1] % 2 == 0 &&
+                   curr_region_thread_idx[d] ==
+                       ranges_sm[(l_target + 2) * d + level + 1] / 2) {
+          global_data_idx[d] = ranges_sm[(l_target + 2) * d + level + 1] - 1;
+        } else {
+          global_data_idx[d] = curr_region_thread_idx[d] * 2 + bit;
+        }
       }
 
-      SIZE level_offset = curr_region_offset + curr_thread_offset;
+      SIZE stride = 1;
+      for (SIZE d = 0; d < D; d++) {
+        curr_thread_offset += global_data_idx[d] * stride;
+        stride *= ranges_sm[(l_target + 2) * d + level + 1];
+      }
 
-      // printf("(%u %u %u): level: %u, region: %u, size: %u, region_offset: %u,
-      // thread_offset: %u, level_offset: %u, l_bit %llu %llu %llu\n",
-      //                                           idx[0], idx[1], idx[2],
+      stride = 1;
+      for (SIZE d = 0; d < D; d++) {
+        if (global_data_idx[d] % 2 != 0 &&
+            global_data_idx[d] !=
+                ranges_sm[(l_target + 2) * d + level + 1] - 1) {
+          coarse_level_offset = 0;
+        }
+        if (global_data_idx[d]) {
+          coarse_level_offset += ((global_data_idx[d] - 1) / 2 + 1) * stride;
+        }
+        stride *= (ranges_sm[(l_target + 2) * d + level + 1]) / 2 + 1;
+      }
+
+      if (level == 0)
+        coarse_level_offset = 0;
+
+      SIZE level_offset = curr_thread_offset - coarse_level_offset;
+
+      // if (level == 3)
+      // printf("(%u %u): level: %u, curr_region: %u, (%u %u)(%u %u), (%u %u)\
+      // curr_thread_offset: %u, coarse_level_offset: %u, level_offset: %u\n",
+      //                                           idx[0], idx[1],
       //                                           level, curr_region,
-      //                                           curr_region_size,
-      //                                           curr_region_offset,
+      //                                           curr_region_thread_idx[0],
+      //                                           curr_region_thread_idx[1],
+      //                                           global_data_idx[0],
+      //                                           global_data_idx[1],
+      //                                           ranges_sm[(l_target + 2) * 0
+      //                                           + level + 1],
+      //                                           ranges_sm[(l_target + 2) * 1
+      //                                           + level + 1],
       //                                           curr_thread_offset,
-      //                                           level_offset, l_bit[0],
-      //                                           l_bit[1], l_bit[2]);
+      //                                           coarse_level_offset,
+      //                                           level_offset);
 
       if (Direction == Interleave) {
         // printf("%u %u %u (%f) --> %u\n", idx[0], idx[1], idx[2], *v(idx),

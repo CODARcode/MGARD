@@ -28,29 +28,21 @@ struct Config {
   int uniform_coord_mode;
   enum lossless_type lossless;
   double global_norm;
-  bool reorder;
+  int reorder;
 
   Config() {
     dev_type = device_type::Auto;
     dev_id = 0;
     l_target = -1; // no limit
     huff_dict_size = 8192;
-    //#ifdef MGARD_X_OPTIMIZE_TURING
-    //    huff_block_size = 1024 * 30;
-    //#endif
-    //#ifdef MGARD_X_OPTIMIZE_VOLTA
     huff_block_size = 1024 * 20;
-    //#endif
     lz4_block_size = 1 << 15;
     zstd_compress_level = 3;
-    // reduce_memory_footprint = false;
-    // profile_kernels = false;
-    // sync_and_check_all_kernels = false;
     timing = false;
     uniform_coord_mode = 0;
     lossless = lossless_type::Huffman_LZ4;
     global_norm = 1;
-    reorder = false;
+    reorder = 0;
   }
 };
 
