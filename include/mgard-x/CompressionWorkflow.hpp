@@ -219,23 +219,31 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   Array<1, QUANTIZED_INT, DeviceType> quantized_linearized_array({total_elems});
 
-  if (config.reorder) {
+  if (config.reorder != 0) {
     if (config.timing)
       timer_each.start();
     SubArray<1, SIZE, DeviceType> shape(hierarchy.shapes[0], true);
     SubArray<1, SIZE, DeviceType> ranges(hierarchy.ranges, true);
-    LevelLinearizer<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
-        shape, hierarchy.l_target, ranges, quantized_subarray,
-        SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array), 0);
+    if (config.reorder == 1) {
+      LevelLinearizer<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
+          shape, hierarchy.l_target, ranges, quantized_subarray,
+          SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
+          0);
+    } else if (config.reorder == 2) {
+      LevelLinearizer2<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
+          shape, hierarchy.l_target, ranges, quantized_subarray,
+          SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
+          0);
+    } else {
+      std::cout << log::log_err << "wrong reodering type.\n";
+    }
     DeviceRuntime<DeviceType>::SyncDevice();
     if (config.timing) {
       timer_each.end();
-      timer_each.print("Level Linearizer");
+      timer_each.print("Level Linearizer type: " +
+                       std::to_string(config.reorder));
       timer_each.clear();
     }
-    // PrintSubarray("dqv_array", SubArray<D, QUANTIZED_INT,
-    // DeviceType>(dqv_array)); PrintSubarray("linearized_dqv_array",
-    // SubArray(linearized_dqv_array)); printf("test\n");
     unsigned_quantized_linearized_subarray =
         SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
             {total_elems},
@@ -243,9 +251,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     quantized_linearized_subarray = SubArray<1, QUANTIZED_INT, DeviceType>(
         {total_elems}, (QUANTIZED_INT *)quantized_linearized_array.get_dv());
   } else {
-    // printf("test2\n");
     // Cast to QUANTIZED_UNSIGNED_INT
-
     unsigned_quantized_linearized_subarray =
         SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
             {total_elems}, (QUANTIZED_UNSIGNED_INT *)quanzited_array.get_dv());
@@ -441,21 +447,33 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
                 lossless_compressed_subarray, outlier_count,
                 outlier_idx_subarray, outliers_subarray);
 
-    if (config.reorder) {
+    if (config.reorder != 0) {
       if (config.timing)
         timer_each.start();
       SubArray<1, SIZE, DeviceType> shape(hierarchy.shapes[0], true);
       SubArray<1, SIZE, DeviceType> ranges(hierarchy.ranges, true);
-      LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
-          shape, hierarchy.l_target, ranges, SubArray(quantized_array),
-          SubArray<1, QUANTIZED_INT, DeviceType>(
-              {total_elems},
-              (QUANTIZED_INT *)unsigned_quantized_linearized_array.get_dv()),
-          0);
+      if (config.reorder == 1) {
+        LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
+            shape, hierarchy.l_target, ranges, SubArray(quantized_array),
+            SubArray<1, QUANTIZED_INT, DeviceType>(
+                {total_elems},
+                (QUANTIZED_INT *)unsigned_quantized_linearized_array.get_dv()),
+            0);
+      } else if (config.reorder == 2) {
+        LevelLinearizer2<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
+            shape, hierarchy.l_target, ranges, SubArray(quantized_array),
+            SubArray<1, QUANTIZED_INT, DeviceType>(
+                {total_elems},
+                (QUANTIZED_INT *)unsigned_quantized_linearized_array.get_dv()),
+            0);
+      } else {
+        std::cout << log::log_err << "wrong reodering option.\n";
+      }
       DeviceRuntime<DeviceType>::SyncDevice();
       if (config.timing) {
         timer_each.end();
-        timer_each.print("Level Linearizer");
+        timer_each.print("Level Linearizer type: " +
+                         std::to_string(config.reorder));
         timer_each.clear();
       }
     } else {
@@ -477,19 +495,29 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     Array<1, QUANTIZED_INT, DeviceType> quantized_linearized_array =
         CPUDecompress<QUANTIZED_INT, DeviceType>(lossless_compressed_subarray);
 
-    if (config.reorder) {
+    if (config.reorder != 0) {
       if (config.timing)
         timer_each.start();
       SubArray<1, SIZE, DeviceType> shape(hierarchy.shapes[0], true);
       SubArray<1, SIZE, DeviceType> ranges(hierarchy.ranges, true);
-      LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
-          shape, hierarchy.l_target, ranges, SubArray(quantized_array),
-          SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
-          0);
+      if (config.reorder == 1) {
+        LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
+            shape, hierarchy.l_target, ranges, SubArray(quantized_array),
+            SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
+            0);
+      } else if (config.reorder == 2) {
+        LevelLinearizer2<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
+            shape, hierarchy.l_target, ranges, SubArray(quantized_array),
+            SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
+            0);
+      } else {
+        std::cout << log::log_err << "wrong reodering type.\n";
+      }
       DeviceRuntime<DeviceType>::SyncDevice();
       if (config.timing) {
         timer_each.end();
-        timer_each.print("Level Linearizer");
+        timer_each.print("Level Linearizer type: " +
+                         std::to_string(config.reorder));
         timer_each.clear();
       }
     } else {

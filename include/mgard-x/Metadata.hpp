@@ -34,7 +34,7 @@ struct Metadata {
   enum norm_type ntype;
   double s; // optional
   uint32_t l_target;
-  bool reorder;
+  uint32_t reorder;
   enum lossless_type ltype;
   uint32_t huff_dict_size;  // optional (for Huffman)
   uint32_t huff_block_size; // optional (for Huffman)
