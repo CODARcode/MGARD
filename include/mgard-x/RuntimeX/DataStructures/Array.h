@@ -17,8 +17,8 @@ public:
   Array();
   Array(std::vector<SIZE> shape, bool pitched = true, bool managed = false);
   Array(const Array &array);
-  Array(Array &array);
   Array &operator=(const Array &array);
+  Array &operator=(Array &&array);
   Array(Array &&array);
   ~Array();
   void memset(int value);
