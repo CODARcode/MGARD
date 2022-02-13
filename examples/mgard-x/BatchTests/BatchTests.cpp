@@ -103,7 +103,7 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol, T s,
   } else if (dev == CUDA) {
 #ifdef MGARD_ENABLE_CUDA
     mgard_cuda::Config config;
-    config.lossless = mgard_cuda::lossless_type::GPU_Huffman;
+    config.lossless = mgard_cuda::lossless_type::GPU_Huffman_LZ4;
     config.sync_and_check_all_kernels = true;
     config.uniform_coord_mode = 1;
 
@@ -239,7 +239,7 @@ struct Result test(mgard_x::DIM D, T *original_data,
   if (s == std::numeric_limits<T>::infinity()) {
     norm = mgard_x::L_inf_norm(original_size, original_data);
   } else {
-    norm = mgard_x::L_2_norm(original_size, original_data);
+    norm = mgard_x::L_2_norm(shape, original_data);
   }
 
   void *compressed_data = NULL;
@@ -292,8 +292,8 @@ struct Result test(mgard_x::DIM D, T *original_data,
     error = mgard_x::L_inf_error(original_size, original_data,
                                  (T *)decompressed_data, ebtype);
   } else {
-    error = mgard_x::L_2_error(original_size, original_data,
-                               (T *)decompressed_data, ebtype);
+    error = mgard_x::L_2_error(shape, original_data, (T *)decompressed_data,
+                               ebtype);
   }
 
   // if (error < tol) {
