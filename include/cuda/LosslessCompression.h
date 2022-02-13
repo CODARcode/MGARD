@@ -10,13 +10,15 @@
 
 #include "Common.h"
 #include "nvcomp.hpp"
+#include "nvcomp/cascaded.h"
 #include "nvcomp/cascaded.hpp"
 #include "nvcomp/lz4.hpp"
+#include "nvcomp/nvcompManagerFactory.hpp"
 
 namespace mgard_cuda {
 
 template <DIM D, typename T, typename C>
-void cascaded_compress(Handle<D, T> &handle, C *input_data, size_t intput_count,
+void cascaded_compress(Handle<D, T> &handle, C *input_data, size_t input_count,
                        void *&output_data, size_t &output_size, int n_rle,
                        int n_de, bool bitpack, int queue_idx);
 
@@ -25,7 +27,7 @@ void cascaded_decompress(Handle<D, T> &handle, void *input_data,
                          size_t input_size, C *&output_data, int queue_idx);
 
 template <DIM D, typename T, typename C>
-void lz4_compress(Handle<D, T> &handle, C *input_data, size_t intput_count,
+void lz4_compress(Handle<D, T> &handle, C *input_data, size_t input_count,
                   void *&output_data, size_t &output_size, size_t chunk_size,
                   int queue_idx);
 
