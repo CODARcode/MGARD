@@ -215,8 +215,13 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 }
 
 template <typename T>
-void print_statistics(double s, enum mgard_x::error_bound_type mode, size_t n,
-                      T *original_data, T *decompressed_data, T tol) {
+void print_statistics(double s, enum mgard_x::error_bound_type mode,
+                      std::vector<mgard_x::SIZE> shape, T *original_data,
+                      T *decompressed_data, T tol) {
+  mgard_x::SIZE n = 1;
+  for (mgard_x::DIM d = 0; d < shape.size(); d++)
+    n *= shape[d];
+
   std::cout << std::scientific;
   if (s == std::numeric_limits<T>::infinity()) {
     T actual_error =
@@ -238,7 +243,7 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode, size_t n,
     }
   } else {
     T actual_error =
-        mgard_x::L_2_error(n, original_data, decompressed_data, mode);
+        mgard_x::L_2_error(shape, original_data, decompressed_data, mode);
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info
                 << "Absoluate L_2 error: " << actual_error << " ("
@@ -276,11 +281,11 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   mgard_x::Config config;
   config.timing = verbose;
-  // config.uniform_coord_mode = 0;
+  config.uniform_coord_mode = 0;
   config.dev_type = dev_type;
   config.zstd_compress_level = 1;
   config.huff_dict_size = 8192;
-  config.reorder = 2;
+  config.reorder = 0;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
@@ -303,10 +308,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     srand(7117);
     T c = 0;
     for (size_t i = 0; i < original_size; i++) {
-      original_data[i] = c; // rand() % 10 + 1;
-      c = c + 1;
-      if (c == 100)
-        c = 0;
+      original_data[i] = rand() % 10 + 1;
     }
   } else {
     in_size = readfile(input_file, original_data);
@@ -350,8 +352,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
                         config, false);
 
-    print_statistics<T>(s, mode, original_size, original_data,
-                        (T *)decompressed_data, tol);
+    print_statistics<T>(s, mode, shape, original_data, (T *)decompressed_data,
+                        tol);
   }
 
   delete[](T *) original_data;

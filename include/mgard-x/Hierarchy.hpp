@@ -337,8 +337,8 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       dist_to_ratio(dofs[i][l], curr_ddist_array_l[l].get_dv(),
                     curr_dratio_array_l[l].get_dv());
     }
-    dist_array.push_back(curr_ddist_array_l);
-    ratio_array.push_back(curr_dratio_array_l);
+    this->dist_array.push_back(curr_ddist_array_l);
+    this->ratio_array.push_back(curr_dratio_array_l);
   }
 
   // volume for quantization
@@ -436,7 +436,6 @@ Hierarchy<D, T, DeviceType>::create_uniform_coords(std::vector<SIZE> shape,
     for (int i = 0; i < shape[d]; i++) {
       // 0...n-1
       if (mode == 0) {
-        // printf("create_uniform_coords %d\n", mode);
         curr_coords[i] = (T)i;
       } else if (mode == 1) {
         // 0...1
