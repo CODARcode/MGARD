@@ -153,7 +153,6 @@ Array<D, T, DeviceType>::Array(const Array<D, T, DeviceType> &array) {
   this->device_allocated = true;
 }
 
-
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::memset(int value) {
   if (this->pitched) {
@@ -225,8 +224,8 @@ operator=(const Array<D, T, DeviceType> &array) {
 template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType> &Array<D, T, DeviceType>::
 operator=(Array<D, T, DeviceType> &&array) {
-    // printf("Array move = \n");
-  
+  // printf("Array move = \n");
+
   if (device_allocated) {
     MemoryManager<DeviceType>().Free(ldvs_d);
     MemoryManager<DeviceType>().Free(dv);

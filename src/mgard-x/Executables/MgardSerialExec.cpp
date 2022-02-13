@@ -197,8 +197,14 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 }
 
 template <typename T>
-void print_statistics(double s, enum mgard_x::error_bound_type mode, size_t n,
-                      T *original_data, T *decompressed_data) {
+void print_statistics(double s, enum mgard_x::error_bound_type mode,
+                      std::vector<mgard_x::SIZE> shape, T *original_data,
+                      T *decompressed_data) {
+
+  mgard_x::SIZE n = 1;
+  for (mgard_x::DIM d = 0; d < shape.size(); d++)
+    n *= shape[d];
+
   std::cout << std::scientific;
   if (s == std::numeric_limits<T>::infinity()) {
     if (mode == mgard_x::error_bound_type::ABS) {
@@ -215,11 +221,13 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode, size_t n,
   } else {
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info << "Absoluate L_2 error: "
-                << mgard_x::L_2_error(n, original_data, decompressed_data, mode)
+                << mgard_x::L_2_error(shape, original_data, decompressed_data,
+                                      mode)
                 << "\n";
     } else if (mode == mgard_x::error_bound_type::REL) {
       std::cout << mgard_x::log::log_info << "Relative L_2 error: "
-                << mgard_x::L_2_error(n, original_data, decompressed_data, mode)
+                << mgard_x::L_2_error(shape, original_data, decompressed_data,
+                                      mode)
                 << "\n";
     }
   }
@@ -246,7 +254,18 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
   T *original_data;
-  size_t in_size = readfile(input_file, original_data);
+  size_t in_size;
+  if (std::string(input_file).compare("random") == 0) {
+    in_size = original_size * sizeof(T);
+    original_data = new T[original_size];
+    srand(7117);
+    T c = 0;
+    for (size_t i = 0; i < original_size; i++) {
+      original_data[i] = rand() % 10 + 1;
+    }
+  } else {
+    in_size = readfile(input_file, original_data);
+  }
   if (in_size != original_size * sizeof(T)) {
     std::cout << mgard_x::log::log_err << "input file size mismatch!\n";
   }
@@ -255,7 +274,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   if (s == std::numeric_limits<T>::infinity()) {
     norm = mgard_x::L_inf_norm(original_size, original_data);
   } else {
-    norm = mgard_x::L_2_norm(original_size, original_data);
+    norm = mgard_x::L_2_norm(shape, original_data);
   }
 
   void *compressed_data = NULL;
@@ -392,8 +411,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     launch_decompress<T>(D, dtype, output_file, temp, shape, tol, s, mode,
                          true);
     readfile(temp, decompressed_data);
-    print_statistics<T>(s, mode, original_size, original_data,
-                        (T *)decompressed_data);
+    print_statistics<T>(s, mode, shape, original_data, (T *)decompressed_data);
     // delete[](T *) decompressed_data;
   }
 

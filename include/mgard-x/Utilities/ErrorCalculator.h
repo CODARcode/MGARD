@@ -8,6 +8,9 @@
 #ifndef MGARD_X_ERROR_CALCULATOR
 #define MGARD_X_ERROR_CALCULATOR
 
+#include "../../TensorMeshHierarchy.hpp"
+#include "../../TensorNorms.hpp"
+#include "../../shuffle.hpp"
 #include "../Types.h"
 
 namespace mgard_x {
@@ -22,12 +25,54 @@ template <typename T> T L_inf_norm(size_t n, T *data) {
   return L_inf;
 }
 
-template <typename T> T L_2_norm(size_t n, T *data) {
+template <typename T> T L_2_norm(std::vector<SIZE> shape, T *data) {
+  SIZE n = 1;
+  for (DIM d = 0; d < shape.size(); d++)
+    n *= shape[d];
   T L_2 = 0;
   for (size_t i = 0; i < n; ++i) {
     T temp = fabs(data[i]);
     L_2 += temp * temp;
   }
+
+  // Keep for future use
+  // T * const buffer = new T[n];
+  // T l2_norm;
+  // if (shape.size() == 1) {
+  //   std::array<std::size_t, 1> array_shape;
+  //   std::copy(shape.begin(), shape.end(), array_shape.begin());
+  //   const mgard::TensorMeshHierarchy<1, T> hierarchy(array_shape);
+  //   mgard::shuffle(hierarchy, data, buffer);
+  //   l2_norm = mgard::norm<1, T>(hierarchy, buffer, 0);
+  // } else if (shape.size() == 2) {
+  //   std::array<std::size_t, 2> array_shape;
+  //   std::copy(shape.begin(), shape.end(), array_shape.begin());
+  //   const mgard::TensorMeshHierarchy<2, T> hierarchy(array_shape);
+  //   mgard::shuffle(hierarchy, data, buffer);
+  //   l2_norm = mgard::norm<2, T>(hierarchy, buffer, 0);
+  // } else if (shape.size() == 3) {
+  //   std::array<std::size_t, 3> array_shape;
+  //   std::copy(shape.begin(), shape.end(), array_shape.begin());
+  //   const mgard::TensorMeshHierarchy<3, T> hierarchy(array_shape);
+  //   mgard::shuffle(hierarchy, data, buffer);
+  //   l2_norm = mgard::norm<3, T>(hierarchy, buffer, 0);
+  // } else if (shape.size() == 4) {
+  //   std::array<std::size_t, 4> array_shape;
+  //   std::copy(shape.begin(), shape.end(), array_shape.begin());
+  //   const mgard::TensorMeshHierarchy<4, T> hierarchy(array_shape);
+  //   mgard::shuffle(hierarchy, data, buffer);
+  //   l2_norm = mgard::norm<4, T>(hierarchy, buffer, 0);
+  // } else if (shape.size() == 5) {
+  //   std::array<std::size_t, 5> array_shape;
+  //   std::copy(shape.begin(), shape.end(), array_shape.begin());
+  //   const mgard::TensorMeshHierarchy<5, T> hierarchy(array_shape);
+  //   mgard::shuffle(hierarchy, data, buffer);
+  //   l2_norm = mgard::norm<5, T>(hierarchy, buffer, 0);
+  // }
+
+  // delete [] buffer;
+  // return l2_norm;
+
   return std::sqrt(L_2);
 }
 
@@ -50,17 +95,24 @@ T L_inf_error(size_t n, T *original_data, T *decompressed_data,
 }
 
 template <typename T>
-T L_2_error(size_t n, T *original_data, T *decompressed_data,
+T L_2_error(std::vector<SIZE> shape, T *original_data, T *decompressed_data,
             enum error_bound_type mode) {
-  T error_L_2_norm = 0;
+  SIZE n = 1;
+  for (DIM d = 0; d < shape.size(); d++)
+    n *= shape[d];
+  T *const error = new T[n];
   for (size_t i = 0; i < n; ++i) {
     T temp = fabs(original_data[i] - decompressed_data[i]);
-    error_L_2_norm += temp * temp;
+    error[i] = temp;
   }
+  T org_norm = L_2_norm<T>(shape, original_data);
+  T err_norm = L_2_norm<T>(shape, error);
+  delete[] error;
+
   if (mode == error_bound_type::ABS) {
-    return std::sqrt(error_L_2_norm);
+    return err_norm;
   } else if (mode == error_bound_type::REL) {
-    return std::sqrt(error_L_2_norm) / L_2_norm(n, original_data);
+    return err_norm / org_norm;
   } else {
     return 0;
   }
