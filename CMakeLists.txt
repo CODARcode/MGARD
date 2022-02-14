@@ -388,8 +388,7 @@ if (MGARD_ENABLE_SERIAL OR
 endif()
 
 if(MGARD_ENABLE_CUDA)
-  target_link_libraries(mgard-library PUBLIC nvcomp CUDA::cudart)
-  # target_include_directories(mgard-library PUBLIC ${NVCOMP_INCLUDE_DIR})
+  target_link_libraries(mgard-library PUBLIC nvcomp::nvcomp CUDA::cudart)
 endif()
 
 if(MGARD_ENABLE_OPENMP)
