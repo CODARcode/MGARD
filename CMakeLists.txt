@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.19)
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
-	message(
-		FATAL_ERROR
-		"In-source builds are not supported. Please create a build directory "
-		"separate from the source directory."
-	)
+  message(
+    FATAL_ERROR
+    "In-source builds are not supported. Please create a build directory "
+    "separate from the source directory."
+  )
 endif()
 
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -111,7 +111,7 @@ if (MGARD_ENABLE_SERIAL OR
 endif()
 
 if(MGARD_ENABLE_SERIAL)
-	set (CMAKE_CXX_STANDARD 14)
+  set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
   set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DMGARD_ENABLE_SERIAL -w")
 endif()
@@ -183,12 +183,12 @@ find_package(zstd)
 find_package(MOAB)
 #We run into this when building MOAB 5.3.0 with `./configure && make`.
 if(MOAB_FOUND AND NOT TARGET MOAB)
-	message(STATUS "MOAB found, but configuration file ")
-	list(APPEND CMAKE_MESSAGE_INDENT "    ")
-	message(STATUS "${MOAB_CONFIG}")
-	list(POP_BACK CMAKE_MESSAGE_INDENT)
-	message(STATUS "did not define a library target.")
-	set(MOAB_FOUND FALSE)
+  message(STATUS "MOAB found, but configuration file ")
+  list(APPEND CMAKE_MESSAGE_INDENT "    ")
+  message(STATUS "${MOAB_CONFIG}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  message(STATUS "did not define a library target.")
+  set(MOAB_FOUND FALSE)
 endif()
 
 set(
@@ -246,11 +246,11 @@ set(
   src/IndicatorInput.cpp
 )
 set(
-	MGARD_LIBRARY_CPP
+  MGARD_LIBRARY_CPP
         src/compress.cpp
         src/compress_internal.cpp
-	src/compressors.cpp
-	src/format.cpp
+  src/compressors.cpp
+  src/format.cpp
 )
 
 set(MAXIMUM_DIMENSION 16 CACHE STRING "Maximum supported dimension for self-describing decompression.")
@@ -258,23 +258,23 @@ set(MAXIMUM_DIMENSION 16 CACHE STRING "Maximum supported dimension for self-desc
 set(PYTHON3_NAMES "python3" "python")
 find_program(PYTHON3 NAMES ${PYTHON3_NAMES} REQUIRED)
 if(NOT PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
-	execute_process(
-		COMMAND "${PYTHON3}" "--version"
-		OUTPUT_VARIABLE PYTHON3_VERSION_OUTPUT
-		ERROR_VARIABLE PYTHON3_VERSION_OUTPUT
-	)
-	string(
-		REGEX REPLACE
-		"^Python ([0-9]+)\.([0-9]+)\.([0-9]+)\n$"
-		"\\1"
-		PYTHON3_VERSION_MAJOR
-		"${PYTHON3_VERSION_OUTPUT}"
-	)
-	if(PYTHON3_VERSION_MAJOR LESS 3)
-		#Mimic the error message we'd have gotten had `find_program` failed.
-		list(JOIN PYTHON3_NAMES ", " PYTHON3_NAMES_JOINED)
-		message(FATAL_ERROR "Could not find PYTHON3 ('python>=3') using the following names: ${PYTHON3_NAMES_JOINED}")
-	endif()
+  execute_process(
+    COMMAND "${PYTHON3}" "--version"
+    OUTPUT_VARIABLE PYTHON3_VERSION_OUTPUT
+    ERROR_VARIABLE PYTHON3_VERSION_OUTPUT
+  )
+  string(
+    REGEX REPLACE
+    "^Python ([0-9]+)\.([0-9]+)\.([0-9]+)\n$"
+    "\\1"
+    PYTHON3_VERSION_MAJOR
+    "${PYTHON3_VERSION_OUTPUT}"
+  )
+  if(PYTHON3_VERSION_MAJOR LESS 3)
+    #Mimic the error message we'd have gotten had `find_program` failed.
+    list(JOIN PYTHON3_NAMES ", " PYTHON3_NAMES_JOINED)
+    message(FATAL_ERROR "Could not find PYTHON3 ('python>=3') using the following names: ${PYTHON3_NAMES_JOINED}")
+  endif()
 endif()
 
 set(MGARD_FILE_FORMAT_PROTO "src/mgard.proto")
@@ -295,27 +295,27 @@ file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_DIR}")
 file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_SRCDIR}")
 get_filename_component(PROTO_PATH "${MGARD_FILE_FORMAT_PROTO}" DIRECTORY)
 add_custom_command(
-	OUTPUT
-	"${MGARD_FILE_FORMAT_HPP}"
-	"${MGARD_FILE_FORMAT_CPP}"
-	COMMAND "${PROTOC}"
-	ARGS
-	"--cpp_out=${MGARD_FILE_FORMAT_DIR}"
-	"--proto_path=${PROTO_PATH}"
-	"${PROTO_PATH_OPTION}"
-	"${MGARD_FILE_FORMAT_PROTO}"
-	DEPENDS "${MGARD_FILE_FORMAT_PROTO}"
-	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  OUTPUT
+  "${MGARD_FILE_FORMAT_HPP}"
+  "${MGARD_FILE_FORMAT_CPP}"
+  COMMAND "${PROTOC}"
+  ARGS
+  "--cpp_out=${MGARD_FILE_FORMAT_DIR}"
+  "--proto_path=${PROTO_PATH}"
+  "${PROTO_PATH_OPTION}"
+  "${MGARD_FILE_FORMAT_PROTO}"
+  DEPENDS "${MGARD_FILE_FORMAT_PROTO}"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 add_custom_command(
-	OUTPUT
-	"${MGARD_COMPRESS_INTERNAL_CPP}"
-	COMMAND "${PYTHON3}"
-	ARGS
-	"${MGARD_GENERATE_DIMENSION_SWITCH}"
-	"--decompress"
-	"${MAXIMUM_DIMENSION}"
-	"${MGARD_COMPRESS_INTERNAL_CPP}"
+  OUTPUT
+  "${MGARD_COMPRESS_INTERNAL_CPP}"
+  COMMAND "${PYTHON3}"
+  ARGS
+  "${MGARD_GENERATE_DIMENSION_SWITCH}"
+  "--decompress"
+  "${MAXIMUM_DIMENSION}"
+  "${MGARD_COMPRESS_INTERNAL_CPP}"
 )
 
 list(APPEND MGARD_LIBRARY_CPP "${MGARD_FILE_FORMAT_CPP}" "${MGARD_COMPRESS_INTERNAL_CPP}")
@@ -369,9 +369,9 @@ target_include_directories(mgard-library
 )
 target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
 if(MOAB_FOUND)
-	add_compile_definitions(MGARD_MOAB)
-	target_sources(mgard-library PRIVATE ${MGARD_MOAB_CPP})
-	target_link_libraries(mgard-library PUBLIC MOAB)
+  add_compile_definitions(MGARD_MOAB)
+  target_sources(mgard-library PRIVATE ${MGARD_MOAB_CPP})
+  target_link_libraries(mgard-library PUBLIC MOAB)
 endif()
 
 if(zstd_FOUND)
@@ -392,10 +392,10 @@ if(MGARD_ENABLE_CUDA)
 endif()
 
 if(MGARD_ENABLE_OPENMP)
-	find_package(OpenMP)
-	if(OpenMP_FOUND)
-		target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
-	endif()
+  find_package(OpenMP)
+  if(OpenMP_FOUND)
+    target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
+  endif()
 endif()
 
 if(MGARD_ENABLE_KOKKOS)
@@ -433,26 +433,26 @@ set(
   tests/include/testing_utilities.tpp
 )
 set(
-	MGARD_TESTS_CPP
-	tests/src/testing_utilities.cpp
-	tests/src/test_utilities.cpp
-	tests/src/test_blas.cpp
-	tests/src/test_shuffle.cpp
-	tests/src/test_TensorMeshHierarchy.cpp
-	tests/src/test_TensorMeshHierarchyIteration.cpp
-	tests/src/test_TensorLinearOperator.cpp
-	tests/src/test_TensorMassMatrix.cpp
-	tests/src/test_TensorProlongation.cpp
-	tests/src/test_TensorRestriction.cpp
-	tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
-	tests/src/test_TensorNorms.cpp
-	tests/src/test_TensorQuantityOfInterest.cpp
-	tests/src/test_compress.cpp
-	tests/src/test_decompose.cpp
-	tests/src/test_format.cpp
-	tests/src/test_quantize.cpp
-	tests/src/test_compressors.cpp
-	tests/src/test_CompressedDataset.cpp
+  MGARD_TESTS_CPP
+  tests/src/testing_utilities.cpp
+  tests/src/test_utilities.cpp
+  tests/src/test_blas.cpp
+  tests/src/test_shuffle.cpp
+  tests/src/test_TensorMeshHierarchy.cpp
+  tests/src/test_TensorMeshHierarchyIteration.cpp
+  tests/src/test_TensorLinearOperator.cpp
+  tests/src/test_TensorMassMatrix.cpp
+  tests/src/test_TensorProlongation.cpp
+  tests/src/test_TensorRestriction.cpp
+  tests/src/test_TensorMultilevelCoefficientQuantizer.cpp
+  tests/src/test_TensorNorms.cpp
+  tests/src/test_TensorQuantityOfInterest.cpp
+  tests/src/test_compress.cpp
+  tests/src/test_decompose.cpp
+  tests/src/test_format.cpp
+  tests/src/test_quantize.cpp
+  tests/src/test_compressors.cpp
+  tests/src/test_CompressedDataset.cpp
 )
 if(MOAB_FOUND)
   list(
@@ -485,25 +485,25 @@ set(MGARD_CLI_SRCDIR "${CMAKE_CURRENT_BINARY_DIR}/src")
 set(MGARD_CLI_INTERNAL_CPP "${MGARD_CLI_SRCDIR}/cli_internal_generated.cpp")
 
 set(
-	MGARD_EXECUTABLE_HPP
-	include/arguments.hpp
-	include/cmdline.hpp
-	include/output.hpp
-	include/cli_internal.hpp
+  MGARD_EXECUTABLE_HPP
+  include/arguments.hpp
+  include/cmdline.hpp
+  include/output.hpp
+  include/cli_internal.hpp
 )
 set(
-	MGARD_EXECUTABLE_TPP
-	include/arguments.tpp
-	include/cli_internal.tpp
+  MGARD_EXECUTABLE_TPP
+  include/arguments.tpp
+  include/cli_internal.tpp
 )
 set(
-	MGARD_EXECUTABLE_CPP
-	src/arguments.cpp
-	src/cmdline.cpp
-	src/executable.cpp
-	src/output.cpp
-	src/cli_internal.cpp
-	"${MGARD_CLI_INTERNAL_CPP}"
+  MGARD_EXECUTABLE_CPP
+  src/arguments.cpp
+  src/cmdline.cpp
+  src/executable.cpp
+  src/output.cpp
+  src/cli_internal.cpp
+  "${MGARD_CLI_INTERNAL_CPP}"
 )
 
 set(
@@ -512,78 +512,78 @@ set(
 )
 
 set(
-	MGARD_DOC_PAGES
-	README.md
-	doc/MGARD-GPU.md
-	examples/README.md
-	examples/linking/README.md
-	examples/compression/README.md
-	examples/decompression/README.md
-	examples/mgard-x/SimpleExample/README.md
+  MGARD_DOC_PAGES
+  README.md
+  doc/MGARD-GPU.md
+  examples/README.md
+  examples/linking/README.md
+  examples/compression/README.md
+  examples/decompression/README.md
+  examples/mgard-x/SimpleExample/README.md
 )
 
 if(MGARD_ENABLE_DOCS)
-	find_program(DOXYGEN NAMES "doxygen")
-	find_program(SED NAMES "sed")
+  find_program(DOXYGEN NAMES "doxygen")
+  find_program(SED NAMES "sed")
 
-	if(SED STREQUAL "SED-NOTFOUND")
-		message(STATUS "Will not build documentation (sed not found).")
-	elseif(PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
-		message(STATUS "Will not build documentation (Python 3 not found).")
-	elseif(DOXYGEN STREQUAL "DOXYGEN-NOTFOUND")
-		message(STATUS "Will not build documentation (Doxygen not found).")
-	else()
-		configure_file("scripts/modify_documentation_links.py.in" "scripts/modify_documentation_links.py")
-		foreach(MGARD_DOC_PAGE ${MGARD_DOC_PAGES})
-			set(MGARD_DOC_PAGE_FIXED "${CMAKE_CURRENT_BINARY_DIR}/${MGARD_DOC_PAGE}")
-			add_custom_command(
-				OUTPUT "${MGARD_DOC_PAGE_FIXED}"
-				#Fix the relative links.
-				COMMAND "${PYTHON3}"
-				ARGS
-				"${CMAKE_CURRENT_BINARY_DIR}/scripts/modify_documentation_links.py"
-				"${MGARD_DOC_PAGE}"
-				"${MGARD_DOC_PAGE_FIXED}"
-				COMMAND "${SED}"
-				ARGS
-				#Get rid of the workflow status badges.
-				"--expression" "'s/\\s*\\[!\\[[^]]\\+\\]\\[[^]]\\+\\]\\]\\[[^]]\\+\\]//g'"
-				#Stop Doxygen from interpreting something like 'Huffman@GPU' – but not something like ' @ref' (added by the Python script above) – as a command.
-				"--expression" "'s/\\([[:alnum:]]\\)@\\([[:alnum:]]\\)/\\1\\\\@\\2/g'"
-				"--in-place"
-				"${MGARD_DOC_PAGE_FIXED}"
-				WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-				DEPENDS "${MGARD_DOC_PAGE}"
-			)
-		endforeach()
-		list(TRANSFORM MGARD_DOC_PAGES PREPEND "${CMAKE_CURRENT_BINARY_DIR}/")
-		list(GET MGARD_DOC_PAGES 0 MGARD_DOC_MAINPAGE)
-		list(JOIN MGARD_DOC_PAGES " " MGARD_DOC_PAGES_JOINED)
-		list(JOIN MGARD_EXECUTABLE_HPP " " MGARD_EXECUTABLE_HPP_JOINED)
-		configure_file(".doxygen.in" ".doxygen")
-		add_custom_target(
-			mgard-documentation
-			ALL
-			COMMAND "${DOXYGEN}" "${CMAKE_CURRENT_BINARY_DIR}/.doxygen"
-			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-			DEPENDS "${MGARD_DOC_PAGES}"
-		)
-		install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doxygen/html/" TYPE DOC)
-	endif()
+  if(SED STREQUAL "SED-NOTFOUND")
+    message(STATUS "Will not build documentation (sed not found).")
+  elseif(PYTHON3 STREQUAL "PYTHON3-NOTFOUND")
+    message(STATUS "Will not build documentation (Python 3 not found).")
+  elseif(DOXYGEN STREQUAL "DOXYGEN-NOTFOUND")
+    message(STATUS "Will not build documentation (Doxygen not found).")
+  else()
+    configure_file("scripts/modify_documentation_links.py.in" "scripts/modify_documentation_links.py")
+    foreach(MGARD_DOC_PAGE ${MGARD_DOC_PAGES})
+      set(MGARD_DOC_PAGE_FIXED "${CMAKE_CURRENT_BINARY_DIR}/${MGARD_DOC_PAGE}")
+      add_custom_command(
+        OUTPUT "${MGARD_DOC_PAGE_FIXED}"
+        #Fix the relative links.
+        COMMAND "${PYTHON3}"
+        ARGS
+        "${CMAKE_CURRENT_BINARY_DIR}/scripts/modify_documentation_links.py"
+        "${MGARD_DOC_PAGE}"
+        "${MGARD_DOC_PAGE_FIXED}"
+        COMMAND "${SED}"
+        ARGS
+        #Get rid of the workflow status badges.
+        "--expression" "'s/\\s*\\[!\\[[^]]\\+\\]\\[[^]]\\+\\]\\]\\[[^]]\\+\\]//g'"
+        #Stop Doxygen from interpreting something like 'Huffman@GPU' – but not something like ' @ref' (added by the Python script above) – as a command.
+        "--expression" "'s/\\([[:alnum:]]\\)@\\([[:alnum:]]\\)/\\1\\\\@\\2/g'"
+        "--in-place"
+        "${MGARD_DOC_PAGE_FIXED}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        DEPENDS "${MGARD_DOC_PAGE}"
+      )
+    endforeach()
+    list(TRANSFORM MGARD_DOC_PAGES PREPEND "${CMAKE_CURRENT_BINARY_DIR}/")
+    list(GET MGARD_DOC_PAGES 0 MGARD_DOC_MAINPAGE)
+    list(JOIN MGARD_DOC_PAGES " " MGARD_DOC_PAGES_JOINED)
+    list(JOIN MGARD_EXECUTABLE_HPP " " MGARD_EXECUTABLE_HPP_JOINED)
+    configure_file(".doxygen.in" ".doxygen")
+    add_custom_target(
+      mgard-documentation
+      ALL
+      COMMAND "${DOXYGEN}" "${CMAKE_CURRENT_BINARY_DIR}/.doxygen"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      DEPENDS "${MGARD_DOC_PAGES}"
+    )
+    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doxygen/html/" TYPE DOC)
+  endif()
 endif()
 
 if(BUILD_TESTING)
-	find_package(Catch2 3.0.0)
+  find_package(Catch2 3.0.0)
 
-	if(Catch2_FOUND)
-		configure_file("tests/include/testing_paths.hpp.in" "include/testing_paths.hpp")
-		add_executable(mgard-tests ${MGARD_TESTS_CPP})
-		target_include_directories(mgard-tests PRIVATE "tests/include" "${CMAKE_CURRENT_BINARY_DIR}/include")
-		target_link_libraries(mgard-tests PRIVATE mgard-library Catch2::Catch2WithMain)
-		set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
-	else()
-		message(STATUS "Will not build tests (Catch2 not found).")
-	endif()
+  if(Catch2_FOUND)
+    configure_file("tests/include/testing_paths.hpp.in" "include/testing_paths.hpp")
+    add_executable(mgard-tests ${MGARD_TESTS_CPP})
+    target_include_directories(mgard-tests PRIVATE "tests/include" "${CMAKE_CURRENT_BINARY_DIR}/include")
+    target_link_libraries(mgard-tests PRIVATE mgard-library Catch2::Catch2WithMain)
+    set_target_properties(mgard-tests PROPERTIES OUTPUT_NAME tests)
+  else()
+    message(STATUS "Will not build tests (Catch2 not found).")
+  endif()
 endif()
 
 # Add all targets to the build-tree export set
@@ -624,51 +624,51 @@ install(EXPORT mgard-targets NAMESPACE mgard::
 )
 
 if(MGARD_ENABLE_BENCHMARKS)
-	find_package(benchmark)
+  find_package(benchmark)
 
-	if(benchmark_FOUND)
-		add_executable(mgard-benchmarks ${MGARD_BENCHMARK_CPP})
-		target_link_libraries(mgard-benchmarks PRIVATE benchmark::benchmark benchmark::benchmark_main mgard-library)
-		set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
-	else()
-		message(STATUS "Will not build benchmarks (Google Benchmark not found).")
-	endif()
+  if(benchmark_FOUND)
+    add_executable(mgard-benchmarks ${MGARD_BENCHMARK_CPP})
+    target_link_libraries(mgard-benchmarks PRIVATE benchmark::benchmark benchmark::benchmark_main mgard-library)
+    set_target_properties(mgard-benchmarks PROPERTIES OUTPUT_NAME benchmarks)
+  else()
+    message(STATUS "Will not build benchmarks (Google Benchmark not found).")
+  endif()
 endif()
 
 
 if(MGARD_ENABLE_CLI)
-	pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
-	if(NOT TCLAP_FOUND)
-		find_package(TCLAP 1.4)
-		if(TCLAP_FOUND)
-			#Mimic target defined by `pkg_search_module`.
-			add_library(PkgConfig::TCLAP ALIAS TCLAP::TCLAP)
-		endif()
-	endif()
+  pkg_search_module(TCLAP IMPORTED_TARGET GLOBAL tclap>=1.4)
+  if(NOT TCLAP_FOUND)
+    find_package(TCLAP 1.4)
+    if(TCLAP_FOUND)
+      #Mimic target defined by `pkg_search_module`.
+      add_library(PkgConfig::TCLAP ALIAS TCLAP::TCLAP)
+    endif()
+  endif()
 
-	if(NOT TCLAP_FOUND)
-		message(STATUS "Will not build executable (TCLAP not found).")
-	else()
-		file(MAKE_DIRECTORY "${MGARD_CLI_SRCDIR}")
-		add_custom_command(
-			OUTPUT
-			"${MGARD_CLI_INTERNAL_CPP}"
-			COMMAND "${PYTHON3}"
-			ARGS
-			"${MGARD_GENERATE_DIMENSION_SWITCH}"
-			"--compress"
-			"${MAXIMUM_DIMENSION}"
-			"${MGARD_CLI_INTERNAL_CPP}"
-		)
+  if(NOT TCLAP_FOUND)
+    message(STATUS "Will not build executable (TCLAP not found).")
+  else()
+    file(MAKE_DIRECTORY "${MGARD_CLI_SRCDIR}")
+    add_custom_command(
+      OUTPUT
+      "${MGARD_CLI_INTERNAL_CPP}"
+      COMMAND "${PYTHON3}"
+      ARGS
+      "${MGARD_GENERATE_DIMENSION_SWITCH}"
+      "--compress"
+      "${MAXIMUM_DIMENSION}"
+      "${MGARD_CLI_INTERNAL_CPP}"
+    )
 
-		add_executable(mgard-executable ${MGARD_EXECUTABLE_CPP})
-		target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
-		target_link_libraries(mgard-executable PRIVATE mgard-library PkgConfig::TCLAP)
-		set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
+    add_executable(mgard-executable ${MGARD_EXECUTABLE_CPP})
+    target_include_directories(mgard-executable PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
+    target_link_libraries(mgard-executable PRIVATE mgard-library PkgConfig::TCLAP)
+    set_target_properties(mgard-executable PROPERTIES OUTPUT_NAME mgard)
 
-		install(TARGETS mgard-executable RUNTIME)
-		install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
-	endif()
+    install(TARGETS mgard-executable RUNTIME)
+    install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
+  endif()
 endif()
 
 message(STATUS "")
@@ -715,16 +715,16 @@ list(APPEND CMAKE_MESSAGE_INDENT "  ")
 message(STATUS "MOAB:      ${MOAB_FOUND}")
 message(STATUS "protobuf:  ${protobuf_FOUND}")
 if(MGARD_ENABLE_OPENMP)
-	message(STATUS "OpenMP:    ${OpenMP_FOUND}")
+  message(STATUS "OpenMP:    ${OpenMP_FOUND}")
 endif()
 if(BUILD_TESTING)
-	message(STATUS "Catch2:    ${Catch2_FOUND}")
+  message(STATUS "Catch2:    ${Catch2_FOUND}")
 endif()
 if(MGARD_ENABLE_BENCHMARKS)
-	message(STATUS "benchmark: ${benchmark_FOUND}")
+  message(STATUS "benchmark: ${benchmark_FOUND}")
 endif()
 if(MGARD_ENABLE_CLI)
-	message(STATUS "TCLAP:     ${TCLAP_FOUND}")
+  message(STATUS "TCLAP:     ${TCLAP_FOUND}")
 endif()
 list(POP_BACK CMAKE_MESSAGE_INDENT)
 
