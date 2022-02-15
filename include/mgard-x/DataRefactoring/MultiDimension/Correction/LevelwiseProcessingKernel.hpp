@@ -115,9 +115,12 @@ public:
     using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;
     FunctorType functor(shape, v, work);
 
-    SIZE total_thread_z = shape.dataHost()[2];
-    SIZE total_thread_y = shape.dataHost()[1];
-    SIZE total_thread_x = shape.dataHost()[0];
+    SIZE total_thread_z = 1;
+    SIZE total_thread_y = 1;
+    SIZE total_thread_x = 1;
+    if (D >= 3) total_thread_z = shape.dataHost()[2];
+    if (D >= 2) total_thread_y = shape.dataHost()[1];
+    total_thread_x = shape.dataHost()[0];
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
