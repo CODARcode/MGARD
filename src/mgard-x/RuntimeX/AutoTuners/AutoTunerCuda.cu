@@ -10,8 +10,8 @@ int AutoTuningTable<CUDA>::gpk_reo_3d[2][9] = {{5, 5, 5, 3, 3, 5, 5, 0, 0},
 int AutoTuningTable<CUDA>::gpk_rev_3d[2][9] = {{2, 4, 5, 5, 3, 5, 5, 0, 0},
                                                {3, 6, 6, 5, 3, 5, 6, 0, 0}};
 
-int AutoTuningTable<CUDA>::gpk_reo_nd[2][9] = {{0, 0, 3, 4, 3, 0, 0, 0, 0},
-                                               {0, 0, 3, 4, 5, 0, 0, 0, 0}};
+int AutoTuningTable<CUDA>::gpk_reo_nd[2][9] = {{5, 5, 5, 5, 5, 5, 5, 5, 5},
+                                               {5, 5, 5, 5, 5, 5, 5, 5, 5}};
 
 int AutoTuningTable<CUDA>::gpk_rev_nd[2][9] = {{0, 0, 3, 4, 3, 0, 0, 0, 0},
                                                {0, 0, 3, 4, 5, 0, 0, 0, 0}};

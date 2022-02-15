@@ -18,6 +18,7 @@
 #include "RuntimeX/RuntimeX.h"
 
 #include "DataRefactoring/MultiDimension/DataRefactoring.h"
+#include "DataRefactoring/SingleDimension/DataRefactoring.h"
 
 #include "Quantization/LinearQuantization.hpp"
 
@@ -125,6 +126,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   // Decomposition
   if (config.timing)
     timer_each.start();
+
+  decompose_single<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target, 0);
+exit(0);
   decompose<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target, 0);
 
   if (config.timing) {
