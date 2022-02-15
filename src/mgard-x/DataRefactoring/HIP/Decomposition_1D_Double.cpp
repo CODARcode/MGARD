@@ -7,6 +7,7 @@
 
 #define MGARDX_COMPILE_HIP
 #include "mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
+#include "mgard-x/DataRefactoring/SingleDimension/DataRefactoring.hpp"
 
 #include <iostream>
 
@@ -14,6 +15,9 @@
 namespace mgard_x {
 
 template void decompose<1, double, HIP>(Hierarchy<1, double, HIP> &hierarchy,
+                                        SubArray<1, double, HIP> &v,
+                                        SIZE l_target, int queue_idx);
+template void decompose_single<1, double, HIP>(Hierarchy<1, double, HIP> &hierarchy,
                                         SubArray<1, double, HIP> &v,
                                         SIZE l_target, int queue_idx);
 } // namespace mgard_x

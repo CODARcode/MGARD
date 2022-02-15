@@ -7,6 +7,7 @@
 
 #define MGARDX_COMPILE_SERIAL
 #include "mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
+#include "mgard-x/DataRefactoring/SingleDimension/DataRefactoring.hpp"
 
 #include <iostream>
 
@@ -15,6 +16,10 @@ namespace mgard_x {
 
 template void
     recompose<5, float, Serial>(Hierarchy<5, float, Serial> &hierarchy,
+                                SubArray<5, float, Serial> &v, SIZE l_target,
+                                int queue_idx);
+template void
+    recompose_single<5, float, Serial>(Hierarchy<5, float, Serial> &hierarchy,
                                 SubArray<5, float, Serial> &v, SIZE l_target,
                                 int queue_idx);
 } // namespace mgard_x
