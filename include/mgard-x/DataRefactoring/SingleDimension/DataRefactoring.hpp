@@ -7,12 +7,12 @@
 
 #include "../../Hierarchy.hpp"
 #include "../../RuntimeX/RuntimeX.h"
-// #include "SubArray.hpp"
-// #include "DeviceAdapters/DeviceAdapterCuda.h"
 
-// #include "DataRefactoring/Coefficient/GridProcessingKernel.h"
 #include "../MultiDimension/Correction/LevelwiseProcessingKernel.hpp"
+#include "../MultiDimension/Correction/IterativeProcessingKernel.hpp"
 #include "Coefficient/CoefficientKernel.hpp"
+#include "Correction/MassTransKernel.hpp"
+
 
 namespace mgard_x {
 
@@ -51,6 +51,10 @@ void calc_coefficients_single(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
 
+  printf("v_shape: %u %u %u\n", v_shape[0], v_shape[1], v_shape[2]);
+  printf("coarse_shape: %u %u %u\n", coarse_shape[0], coarse_shape[1], coarse_shape[2]);
+  printf("coeff_shape: %u %u %u\n", coeff_shape[0], coeff_shape[1], coeff_shape[2]);
+
   SubArray<D, T, DeviceType> dv = dinput;
   dv.resize(v_shape);
 
@@ -63,7 +67,14 @@ void calc_coefficients_single(Hierarchy<D, T, DeviceType> &hierarchy,
   SingleDimensionCoefficient<D, T, DeviceType>().Execute(curr_dim, SubArray(hierarchy.ratio_array[0][l]), dv, dcoarse, dcoeff, queue_idx);
   DeviceRuntime<DeviceType>::SyncDevice();
 
-  exit(0);
+
+  dv = dinput;
+  dv.resize(coarse_shape);
+  SingleDimensionMassTrans<D, T, DeviceType>().Execute(curr_dim, SubArray(hierarchy.dist_array[0][l]), 
+                                                                 SubArray(hierarchy.ratio_array[0][l]), 
+                                                                 dcoeff, dv, queue_idx);
+  DeviceRuntime<DeviceType>::SyncDevice();
+
   // PrintSubarray("dv", dv);
   // PrintSubarray("doutput", doutput);
 
@@ -81,7 +92,8 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray w(workspace);
 
   for (int l = 0; l < l_target; ++l) {
-    for (DIM curr_dim = 0; curr_dim < D; curr_dim++) {
+    // for (DIM curr_dim = 0; curr_dim < D; curr_dim++) {
+    for (DIM curr_dim = 0; curr_dim < 2; curr_dim++) {
       std::vector<SIZE> v_shape(D);
       for (DIM d = 0; d < D; d ++) {
         if (d < curr_dim) {
