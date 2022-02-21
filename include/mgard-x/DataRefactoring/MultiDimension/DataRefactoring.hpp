@@ -1587,8 +1587,6 @@ void calc_correction_nd(Hierarchy<D, T, DeviceType> &hierarchy,
   // gpuErrchk(cudaDeviceSynchronize());
   Ipk1Reo<D, T, DeviceType>().Execute(
       SubArray<1, SIZE, DeviceType>(hierarchy.shapes[l + 1], true),
-      hierarchy.processed_n[0],
-      SubArray<1, SIZE, DeviceType>(hierarchy.processed_dims[0], true),
       curr_dim_r, curr_dim_c, curr_dim_f,
       SubArray(hierarchy.am_array[curr_dim_f][l + 1]),
       SubArray(hierarchy.bm_array[curr_dim_f][l + 1]), dw_out, 0);
@@ -1619,8 +1617,6 @@ void calc_correction_nd(Hierarchy<D, T, DeviceType> &hierarchy,
   // gpuErrchk(cudaDeviceSynchronize());
   Ipk2Reo<D, T, DeviceType>().Execute(
       SubArray<1, SIZE, DeviceType>(hierarchy.shapes[l + 1], true),
-      hierarchy.processed_n[1],
-      SubArray<1, SIZE, DeviceType>(hierarchy.processed_dims[1], true),
       curr_dim_r, curr_dim_c, curr_dim_f,
       SubArray(hierarchy.am_array[curr_dim_c][l + 1]),
       SubArray(hierarchy.bm_array[curr_dim_c][l + 1]),
@@ -1652,8 +1648,6 @@ void calc_correction_nd(Hierarchy<D, T, DeviceType> &hierarchy,
   // gpuErrchk(cudaDeviceSynchronize());
   Ipk3Reo<D, T, DeviceType>().Execute(
       SubArray<1, SIZE, DeviceType>(hierarchy.shapes[l + 1], true),
-      hierarchy.processed_n[2],
-      SubArray<1, SIZE, DeviceType>(hierarchy.processed_dims[2], true),
       curr_dim_r, curr_dim_c, curr_dim_f,
       SubArray(hierarchy.am_array[curr_dim_r][l + 1]),
       SubArray(hierarchy.bm_array[curr_dim_r][l + 1]),
@@ -1686,8 +1680,6 @@ void calc_correction_nd(Hierarchy<D, T, DeviceType> &hierarchy,
     // gpuErrchk(cudaDeviceSynchronize());
     Ipk3Reo<D, T, DeviceType>().Execute(
         SubArray<1, SIZE, DeviceType>(hierarchy.shapes[l + 1], true),
-        hierarchy.processed_n[i],
-        SubArray<1, SIZE, DeviceType>(hierarchy.processed_dims[i], true),
         curr_dim_r, curr_dim_c, curr_dim_f,
         SubArray(hierarchy.am_array[curr_dim_r][l + 1]),
         SubArray(hierarchy.bm_array[curr_dim_r][l + 1]),
