@@ -12,9 +12,12 @@
 
 #include "../../MultiDimension/Coefficient/GPKFunctor.h"
 
+#define DECOMPOSE 0
+#define RECOMPOSE 1
+
 namespace mgard_x {
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP, typename DeviceType>
 class SingleDimensionCoefficientFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT SingleDimensionCoefficientFunctor() {}
@@ -74,20 +77,52 @@ public:
           corase_idx[d]   = coeff_idx[d];
         }
       }
-      *coeff(coeff_idx) = *v(v_middle_idx) - lerp(*v(v_left_idx), *v(v_right_idx), *ratio(v_left_idx[current_dim]));
-      // if (coeff_idx[current_dim] == 1) {
-      //   printf("left: %f, right: %f, middle: %f, ratio: %f, coeff: %f\n",
-      //         *v(v_left_idx), *v(v_right_idx), *v(v_middle_idx), *ratio(v_left_idx[current_dim]), *coeff(coeff_idx));
-      // }
-      *coarse(corase_idx) = *v(v_left_idx);
-      if (coeff_idx[current_dim] == coeff.getShape(current_dim) - 1) {
-        corase_idx[current_dim]++;
-        *coarse(corase_idx) = *v(v_right_idx);
-        if (v.getShape(current_dim) % 2 == 0) {
-          v_right_idx[current_dim]++;
+
+      if (OP == DECOMPOSE) {
+        *coeff(coeff_idx) = *v(v_middle_idx) - lerp(*v(v_left_idx), *v(v_right_idx), *ratio(v_left_idx[current_dim]));
+        // if (coeff_idx[current_dim] == 1) {
+        //   printf("left: %f, right: %f, middle: %f, ratio: %f, coeff: %f\n",
+        //         *v(v_left_idx), *v(v_right_idx), *v(v_middle_idx), *ratio(v_left_idx[current_dim]), *coeff(coeff_idx));
+        // }
+        *coarse(corase_idx) = *v(v_left_idx);
+        if (coeff_idx[current_dim] == coeff.getShape(current_dim) - 1) {
           corase_idx[current_dim]++;
           *coarse(corase_idx) = *v(v_right_idx);
+          if (v.getShape(current_dim) % 2 == 0) {
+            v_right_idx[current_dim]++;
+            corase_idx[current_dim]++;
+            *coarse(corase_idx) = *v(v_right_idx);
+          }
         }
+      } else if (OP == RECOMPOSE) {
+        T left = *coarse(corase_idx);
+        corase_idx[current_dim]++;
+        T right = *coarse(corase_idx);
+        corase_idx[current_dim]--;
+
+        *v(v_left_idx) = left;
+        if (coeff_idx[current_dim] == coeff.getShape(current_dim) - 1) {
+          corase_idx[current_dim]++;
+          *v(v_right_idx) = right;
+          if (v.getShape(current_dim) % 2 == 0) {
+            v_right_idx[current_dim]++;
+            corase_idx[current_dim]++;
+            *v(v_right_idx) = *coarse(corase_idx);
+            v_right_idx[current_dim]--;
+            corase_idx[current_dim]--;
+          }
+          corase_idx[current_dim]--;
+        }
+
+
+         *v(v_middle_idx) =  *coeff(coeff_idx) + lerp(left, right, *ratio(v_left_idx[current_dim]));
+        // if (coeff_idx[current_dim] == 1) {
+          // printf("left: %f, right: %f, middle: %f (%f), ratio: %f, coeff: %f\n",
+          //       *v(v_left_idx), *v(v_right_idx), *v(v_middle_idx), 
+          //       *coeff(coeff_idx) + lerp(*v(v_left_idx), *v(v_right_idx), *ratio(v_left_idx[current_dim])),
+          //       *ratio(v_left_idx[current_dim]), *coeff(coeff_idx));
+        // }
+
       }
     }
   }
@@ -104,29 +139,28 @@ private:
 };
 
 
-template <DIM D, typename T, typename DeviceType>
+template <DIM D, typename T, OPTION OP, typename DeviceType>
 class SingleDimensionCoefficient : public AutoTuner<DeviceType> {
 public:
   MGARDX_CONT
   SingleDimensionCoefficient() : AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<SingleDimensionCoefficientFunctor<D, T, R, C, F, DeviceType>>
+  MGARDX_CONT Task<SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>>
   GenTask(DIM current_dim,
           SubArray<1, T, DeviceType> ratio, SubArray<D, T, DeviceType> v,
           SubArray<D, T, DeviceType> coarse, SubArray<D, T, DeviceType> coeff, 
           int queue_idx) {
 
     using FunctorType =
-        SingleDimensionCoefficientFunctor<D, T, R, C, F, DeviceType>;
+        SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>;
     FunctorType functor(current_dim, ratio, v, coarse, coeff);
 
-    SIZE nr = coeff.getShape(2);
-    SIZE nc = coeff.getShape(1);
-    SIZE nf = coeff.getShape(0);
-    if (D == 2) {
-      nr = 1;
-    }
+    SIZE nr = 1, nc = 1, nf = 1;
+    if (D >= 3) nr = coeff.getShape(2);
+    if (D >= 2) nc = coeff.getShape(1);
+    nf = coeff.getShape(0);
+
     SIZE total_thread_z = nr;
     SIZE total_thread_y = nc;
     SIZE total_thread_x = nf;
@@ -169,7 +203,7 @@ public:
     const int C = GPK_CONFIG[D - 1][CONFIG][1];                          \
     const int F = GPK_CONFIG[D - 1][CONFIG][2];                          \
     using FunctorType =                                                        \
-        SingleDimensionCoefficientFunctor<D, T, R, C, F, DeviceType>;          \
+        SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>;          \
     using TaskType = Task<FunctorType>;                                        \
     TaskType task = GenTask<R, C, F>(current_dim, ratio, v, coarse, coeff, queue_idx);  \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \

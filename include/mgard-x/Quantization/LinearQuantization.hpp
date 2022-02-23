@@ -14,118 +14,9 @@
 
 namespace mgard_x {
 
-// template <DIM D, typename T>
-// void calc_quantizers(Handle<D, T> &handle, T *quantizers, Metadata &m,
-//                      bool reciprocal) {
-
-//   double abs_tol = m.tol;
-//   if (m.ebtype == error_bound_type::REL) {
-//     abs_tol *= m.norm;
-//   }
-
-//   // printf("tol %f, l_target %d, D %d\n", tol, l_target, D);
-
-//   abs_tol *= 2;
-
-//   // original
-//   // tol /= l_target + 2;
-//   // for (int l = 0; l < l_target+1; l++) {
-//   //   quantizers[l] = tol;
-//   // }
-//   // printf("l_target %d\n", l_target);
-
-//   // levelwise
-//   // tol *= 2;
-//   // T C2 = 1 + 3*std::sqrt(3)/4;
-//   // T c = std::sqrt(std::pow(2, D));
-//   // T cc = (1 - c) / (1 - std::pow(c, l_target+1));
-//   // T level_eb = cc * tol / C2;
-
-//   // for (int l = 0; l < l_target+1; l++) {
-//   //   quantizers[l] = level_eb;
-//   //   level_eb *= c;
-//   // }
-
-//   // s = 0;
-
-//   // levelwise with s
-//   // tol *= 2;
-//   // T C2 = 1 + 3 * std::sqrt(3) / 4;
-//   // T c = std::sqrt(std::pow(2, D - 2 * s));
-//   // T cc = (1 - c) / (1 - std::pow(c, l_target + 1));
-//   // T level_eb = cc * tol / C2;
-
-//   // for (int l = 0; l < l_target + 1; l++) {
-//   //   quantizers[l] = level_eb;
-//   //   // T c = std::sqrt(std::pow(2, 2*s*l + D * (l_target - l)));
-//   //   level_eb *= c;
-//   //   if (reciprocal)
-//   //     quantizers[l] = 1.0f / quantizers[l];
-//   // }
-
-//   if (m.ntype == norm_type::L_Inf) {
-
-//     // printf("quantizers: ");
-//     for (int l = 0; l < m.l_target + 1; l++) {
-//       //ben
-//       quantizers[l] = (abs_tol) / ((m.l_target + 1) * (1 + std::pow(3, D)));
-//       //xin
-//       // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) /
-//       4));
-
-//       // printf("%f ", quantizers[l]);
-//       if (reciprocal)
-//         quantizers[l] = 1.0f / quantizers[l];
-//     }
-//     // printf("\n");
-
-//   } else if (m.ntype == norm_type::L_2) { // s != inf
-//     //xin - uniform
-//     // T C2 = 1 + 3 * std::sqrt(3) / 4;
-//     // T c = std::sqrt(std::pow(2, D - 2 * s));
-//     // T cc = (1 - c) / (1 - std::pow(c, l_target + 1));
-//     // T level_eb = cc * tol / C2;
-//     // for (int l = 0; l < l_target + 1; l++) {
-//     //   quantizers[l] = level_eb;
-//     //   // T c = std::sqrt(std::pow(2, 2*s*l + D * (l_target - l)));
-//     //   level_eb *= c;
-//     //   if (reciprocal)
-//     //     quantizers[l] = 1.0f / quantizers[l];
-//     // }
-
-//     //ben - uniform
-//     // printf("quantizers: ");
-
-//     size_t dof = 1;
-//     for (int d = 0; d < D; d++) dof *= handle.dofs[d][0];
-//     // printf("tol: %f, dof: %llu\n", tol, dof);
-//     // printf ("dof = %llu\n", dof);
-//     for (int l = 0; l < m.l_target + 1; l++) {
-
-//       quantizers[l] = (abs_tol) / (std::exp2(m.s * l) * std::sqrt(dof));
-
-//       // printf("l %d, vol: %f quantizer: %f \n", l, std::pow(2, (l_target -
-//       l) * D), quantizers[l]);
-
-//       // printf("tol: %f quant: %e \n", tol, quantizers[l]);
-//       if (reciprocal)
-//         quantizers[l] = 1.0f / quantizers[l];
-//     }
-//     // printf("\n");
-
-//   }
-
-//   //print quantizers
-//   // printf("quantizers: ");
-//   // for (int l = 0; l < l_target+1; l++) {
-//   //   printf("%f ", 1.0f/quantizers[l]);
-//   // }
-//   // printf("\n");
-// }
-
 template <DIM D, typename T>
 void calc_quantizers(size_t dof, T *quantizers, enum error_bound_type type,
-                     T tol, T s, T norm, SIZE l_target, bool reciprocal) {
+                     T tol, T s, T norm, SIZE l_target, enum decomposition_type decomposition, bool reciprocal) {
 
   double abs_tol = tol;
   if (type == error_bound_type::REL) {
@@ -176,10 +67,15 @@ void calc_quantizers(size_t dof, T *quantizers, enum error_bound_type type,
 
     // printf("quantizers: ");
     for (int l = 0; l < l_target + 1; l++) {
-      // ben
-      quantizers[l] = (abs_tol) / ((l_target + 1) * (1 + std::pow(3, D)));
-      // xin
-      // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) / 4));
+      if (decomposition == decomposition_type::MultiDim) {
+        // ben
+        quantizers[l] = (abs_tol) / ((l_target + 1) * (1 + std::pow(3, D)));
+        // xin
+        // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) / 4));
+      } else if (decomposition == decomposition_type::SingleDim) {
+        // ken
+        quantizers[l] = (abs_tol) / ((l_target + 1) * D * (1 + std::pow(3, 1)));
+      }
 
       // printf("%f ", quantizers[l]);
       if (reciprocal)

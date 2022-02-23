@@ -16,6 +16,7 @@ namespace mgard_x {
 struct Config {
   device_type dev_type;
   int dev_id;
+  enum decomposition_type decomposition;
   SIZE l_target;
   SIZE huff_dict_size;
   SIZE huff_block_size;
@@ -33,6 +34,7 @@ struct Config {
   Config() {
     dev_type = device_type::Auto;
     dev_id = 0;
+    decomposition = decomposition_type::MultiDim;
     l_target = -1; // no limit
     huff_dict_size = 8192;
     huff_block_size = 1024 * 20;

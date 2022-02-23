@@ -281,6 +281,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   mgard_x::Config config;
   config.timing = verbose;
+  config.decomposition = mgard_x::decomposition_type::MultiDim;
   config.uniform_coord_mode = 0;
   config.dev_type = dev_type;
   config.zstd_compress_level = 1;
