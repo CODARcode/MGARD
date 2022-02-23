@@ -19,10 +19,9 @@ class Ipk1ReoFunctor : public IterFunctor<DeviceType> {
 public:
   MGARDX_CONT Ipk1ReoFunctor() {}
   MGARDX_CONT
-  Ipk1ReoFunctor(SubArray<1, SIZE, DeviceType> shape_c, DIM curr_dim_r,
-                 DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+  Ipk1ReoFunctor(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
                  SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v)
-      : shape_c(shape_c), curr_dim_r(curr_dim_r),
+      : curr_dim_r(curr_dim_r),
         curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f), am(am), bm(bm), v(v) {
     Functor<DeviceType>();
   }
@@ -57,18 +56,6 @@ public:
     sm += ldsm1;
     bm_sm = sm;
     sm += ldsm1;
-
-    SIZE *sm_size = (SIZE *)sm;
-    shape_c_sm = sm_size;
-    sm_size += D;
-    sm = (T *)sm_size;
-
-    for (LENGTH i = threadId; i < D;
-         i += FunctorBase<DeviceType>::GetBlockDimX() *
-              FunctorBase<DeviceType>::GetBlockDimY() *
-              FunctorBase<DeviceType>::GetBlockDimZ()) {
-      shape_c_sm[i] = *shape_c(i);
-    }
   }
 
   MGARDX_EXEC void Operation2() {
@@ -77,9 +64,9 @@ public:
     for (DIM d = 0; d < D; d++)
       idx[d] = 0;
 
-    nr = shape_c_sm[curr_dim_r];
-    nc = shape_c_sm[curr_dim_c];
-    nf = shape_c_sm[curr_dim_f];
+    nr = v.getShape(curr_dim_r);
+    nc = v.getShape(curr_dim_c);
+    nf = v.getShape(curr_dim_f);
 
     if (D < 3)
       nr = 1;
@@ -99,13 +86,7 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
-        SIZE t = shape_c_sm[d];
-
-        // if (debug2) {
-        //   printf("%u mod %u = %u, %u / %u = %u (shape_c: %u %u %u %u %u)\n",
-        //   bidx, t, bidx % t, bidx, t, bidx/t, shape_c_sm[4],
-        //   shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
-        // }
+        SIZE t = v.getShape(d);
         idx[d] = bidx % t;
         bidx /= t;
       }
@@ -143,12 +124,6 @@ public:
     //   debug2 = false;
     // }
 
-    // if (debug2) {
-    //   printf("ld: (%d %d %d %d %d) (shape_c: %u %u %u %u %u)\n",
-    //     ldvs_sm[4], ldvs_sm[3],ldvs_sm[2],ldvs_sm[1],ldvs_sm[0],
-    //     shape_c_sm[4],
-    //     shape_c_sm[3],shape_c_sm[2],shape_c_sm[1],shape_c_sm[0]);
-    // }
 
     // T *vec = v + get_idx(ldv1, ldv2, r_gl, c_gl, 0);
 
@@ -562,13 +537,11 @@ public:
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
     size = (R * C + 2) * (F + G) * sizeof(T);
-    size += D * sizeof(SIZE);
     return size;
   }
 
 private:
   // functor parameters
-  SubArray<1, SIZE, DeviceType> shape_c;
   DIM curr_dim_r, curr_dim_c, curr_dim_f;
   SubArray<1, T, DeviceType> am, bm;
   SubArray<D, T, DeviceType> v;
@@ -580,8 +553,6 @@ private:
   SIZE ldsm1, ldsm2;
   T *am_sm;
   T *bm_sm;
-
-  SIZE *shape_c_sm;
 
   SIZE idx[D];
 
@@ -605,17 +576,15 @@ public:
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
   MGARDX_CONT Task<Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>>
-  GenTask(SubArray<1, SIZE, DeviceType> shape_c, DIM curr_dim_r,
-          DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+  GenTask(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
           SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
           int queue_idx) {
     using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;
-    FunctorType functor(shape_c, curr_dim_r,
-                        curr_dim_c, curr_dim_f, am, bm, v);
+    FunctorType functor(curr_dim_r, curr_dim_c, curr_dim_f, am, bm, v);
 
-    SIZE nr = shape_c.dataHost()[curr_dim_r];
-    SIZE nc = shape_c.dataHost()[curr_dim_c];
-    SIZE nf = shape_c.dataHost()[curr_dim_f];
+    SIZE nr = 1, nc = 1;
+    if (D >= 3) nr = v.getShape(curr_dim_r);
+    if (D >= 2) nc = v.getShape(curr_dim_c);
 
     SIZE total_thread_x = nc;
     SIZE total_thread_y = nr;
@@ -633,7 +602,7 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
-        SIZE t = shape_c.dataHost()[d];
+        SIZE t = v.getShape(d);
         gridx *= t;
       }
     }
@@ -643,12 +612,11 @@ public:
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape_c, DIM curr_dim_r,
-               DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+  void Execute(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
                SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
                int queue_idx) {
     int range_l =
-        std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
+        std::min(6, (int)std::log2(v.getShape(curr_dim_f)) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
     // int config =
@@ -667,7 +635,7 @@ public:
     using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
     using TaskType = Task<FunctorType>;                                        \
     TaskType task = GenTask<R, C, F, G>(                                       \
-        shape_c, curr_dim_r, curr_dim_c,   \
+        curr_dim_r, curr_dim_c,   \
         curr_dim_f, am, bm, v, queue_idx);                                     \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
     ExecutionReturn ret = adapter.Execute(task);                               \
@@ -700,10 +668,9 @@ class Ipk2ReoFunctor : public IterFunctor<DeviceType> {
 public:
   MGARDX_CONT Ipk2ReoFunctor() {}
   MGARDX_CONT
-  Ipk2ReoFunctor(SubArray<1, SIZE, DeviceType> shape_c, DIM curr_dim_r,
-                 DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+  Ipk2ReoFunctor(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
                  SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v)
-      : shape_c(shape_c), curr_dim_r(curr_dim_r),
+      : curr_dim_r(curr_dim_r),
         curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f), am(am), bm(bm), v(v) {
     Functor<DeviceType>();
   }
@@ -725,18 +692,6 @@ public:
     sm += ldsm2;
     bm_sm = sm;
     sm += ldsm2;
-
-    SIZE *sm_size = (SIZE *)sm;
-    shape_c_sm = sm_size;
-    sm_size += D;
-    sm = (T *)sm_size;
-
-    for (LENGTH i = threadId; i < D;
-         i += FunctorBase<DeviceType>::GetBlockDimX() *
-              FunctorBase<DeviceType>::GetBlockDimY() *
-              FunctorBase<DeviceType>::GetBlockDimZ()) {
-      shape_c_sm[i] = *shape_c(i);
-    }
   }
 
   MGARDX_EXEC void Operation2() {
@@ -745,9 +700,9 @@ public:
     for (DIM d = 0; d < D; d++)
       idx[d] = 0;
 
-    nr = shape_c_sm[curr_dim_r];
-    nc = shape_c_sm[curr_dim_c];
-    nf = shape_c_sm[curr_dim_f];
+    nr = v.getShape(curr_dim_r);
+    nc = v.getShape(curr_dim_c);
+    nf = v.getShape(curr_dim_f);
 
     if (D < 3)
       nr = 1;
@@ -760,7 +715,7 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
-        SIZE t = shape_c_sm[d];
+        SIZE t = v.getShape(d);
         idx[d] = bidx % t;
         bidx /= t;
       }
@@ -1284,13 +1239,11 @@ public:
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
     size = (R * F + 2) * (C + G) * sizeof(T);
-    size += D * sizeof(SIZE);
     return size;
   }
 
 private:
   // functor parameters
-  SubArray<1, SIZE, DeviceType> shape_c;
   DIM curr_dim_r, curr_dim_c, curr_dim_f;
   SubArray<1, T, DeviceType> am, bm;
   SubArray<D, T, DeviceType> v;
@@ -1302,8 +1255,6 @@ private:
   SIZE ldsm1, ldsm2;
   T *am_sm;
   T *bm_sm;
-
-  SIZE *shape_c_sm;
 
   SIZE idx[D];
 
@@ -1327,17 +1278,16 @@ public:
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
   MGARDX_CONT Task<Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>>
-  GenTask(SubArray<1, SIZE, DeviceType> shape_c, DIM curr_dim_r,
-          DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+  GenTask(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
           SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
           int queue_idx) {
     using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;
-    FunctorType functor(shape_c, curr_dim_r,
+    FunctorType functor(curr_dim_r,
                         curr_dim_c, curr_dim_f, am, bm, v);
 
-    SIZE nr = shape_c.dataHost()[curr_dim_r];
-    SIZE nc = shape_c.dataHost()[curr_dim_c];
-    SIZE nf = shape_c.dataHost()[curr_dim_f];
+    SIZE nr = 1, nf = 1;
+    if (D >= 3) nr = v.getShape(curr_dim_r);
+    nf = v.getShape(curr_dim_f);
 
     SIZE total_thread_x = nf;
     SIZE total_thread_y = nr;
@@ -1355,7 +1305,7 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
-        SIZE t = shape_c.dataHost()[d];
+        SIZE t = v.getShape(d);
         gridx *= t;
       }
     }
@@ -1365,12 +1315,11 @@ public:
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape_c, DIM curr_dim_r,
-               DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+  void Execute(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
                SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
                int queue_idx) {
     int range_l =
-        std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
+        std::min(6, (int)std::log2(v.getShape(curr_dim_f)) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
     // int config =
@@ -1389,7 +1338,7 @@ public:
     using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
     using TaskType = Task<FunctorType>;                                        \
     TaskType task = GenTask<R, C, F, G>(                                       \
-        shape_c, curr_dim_r, curr_dim_c,   \
+        curr_dim_r, curr_dim_c,   \
         curr_dim_f, am, bm, v, queue_idx);                                     \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
     ExecutionReturn ret = adapter.Execute(task);                               \
@@ -1422,10 +1371,9 @@ class Ipk3ReoFunctor : public IterFunctor<DeviceType> {
 public:
   MGARDX_CONT Ipk3ReoFunctor() {}
   MGARDX_CONT
-  Ipk3ReoFunctor(SubArray<1, SIZE, DeviceType> shape_c, DIM curr_dim_r,
-                 DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+  Ipk3ReoFunctor(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
                  SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v)
-      : shape_c(shape_c), curr_dim_r(curr_dim_r),
+      : curr_dim_r(curr_dim_r),
         curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f), am(am), bm(bm), v(v) {
     IterFunctor<DeviceType>();
   }
@@ -1448,18 +1396,6 @@ public:
     sm += (R + G);
     bm_sm = sm;
     sm += (R + G);
-
-    SIZE *sm_size = (SIZE *)sm;
-    shape_c_sm = sm_size;
-    sm_size += D;
-    sm = (T *)sm_size;
-
-    for (LENGTH i = threadId; i < D;
-         i += FunctorBase<DeviceType>::GetBlockDimX() *
-              FunctorBase<DeviceType>::GetBlockDimY() *
-              FunctorBase<DeviceType>::GetBlockDimZ()) {
-      shape_c_sm[i] = *shape_c(i);
-    }
   }
 
   // __syncthreads();
@@ -1468,9 +1404,9 @@ public:
     for (DIM d = 0; d < D; d++)
       idx[d] = 0;
 
-    nr = shape_c_sm[curr_dim_r];
-    nc = shape_c_sm[curr_dim_c];
-    nf = shape_c_sm[curr_dim_f];
+    nr = v.getShape(curr_dim_r);
+    nc = v.getShape(curr_dim_c);
+    nf = v.getShape(curr_dim_f);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     SIZE firstD = div_roundup(nf, FunctorBase<DeviceType>::GetBlockDimX());
@@ -1480,7 +1416,7 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
-        SIZE t = shape_c_sm[d];
+        SIZE t = v.getShape(d);
         idx[d] = bidx % t;
         bidx /= t;
       }
@@ -2031,13 +1967,11 @@ public:
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
     size = (C * F + 2) * (R + G) * sizeof(T);
-    size += D * sizeof(SIZE);
     return size;
   }
 
 private:
   // functor parameters
-  SubArray<1, SIZE, DeviceType> shape_c;
   DIM curr_dim_r, curr_dim_c, curr_dim_f;
   SubArray<1, T, DeviceType> am, bm;
   SubArray<D, T, DeviceType> v;
@@ -2049,8 +1983,6 @@ private:
   SIZE ldsm1, ldsm2;
   T *am_sm;
   T *bm_sm;
-
-  SIZE *shape_c_sm;
 
   SIZE idx[D];
 
@@ -2074,17 +2006,16 @@ public:
 
   template <SIZE R, SIZE C, SIZE F, SIZE G>
   MGARDX_CONT Task<Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>>
-  GenTask(SubArray<1, SIZE, DeviceType> shape_c, DIM curr_dim_r,
+  GenTask(DIM curr_dim_r,
           DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
           SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
           int queue_idx) {
     using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;
-    FunctorType functor(shape_c, curr_dim_r,
-                        curr_dim_c, curr_dim_f, am, bm, v);
+    FunctorType functor(curr_dim_r, curr_dim_c, curr_dim_f, am, bm, v);
 
-    SIZE nr = shape_c.dataHost()[curr_dim_r];
-    SIZE nc = shape_c.dataHost()[curr_dim_c];
-    SIZE nf = shape_c.dataHost()[curr_dim_f];
+    SIZE nc = 1, nf = 1;
+    if (D >= 2) nc = v.getShape(curr_dim_c);
+    nf = v.getShape(curr_dim_f);
 
     SIZE total_thread_x = nf;
     SIZE total_thread_y = nc;
@@ -2102,7 +2033,7 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
-        SIZE t = shape_c.dataHost()[d];
+        SIZE t = v.getShape(d);
         gridx *= t;
       }
     }
@@ -2112,12 +2043,11 @@ public:
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape_c, DIM curr_dim_r,
-               DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
+  void Execute(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> am,
                SubArray<1, T, DeviceType> bm, SubArray<D, T, DeviceType> v,
                int queue_idx) {
     int range_l =
-        std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
+        std::min(6, (int)std::log2(v.getShape(curr_dim_f)) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
     // int config =
@@ -2136,7 +2066,7 @@ public:
     using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
     using TaskType = Task<FunctorType>;                                        \
     TaskType task = GenTask<R, C, F, G>(                                       \
-        shape_c, curr_dim_r, curr_dim_c,   \
+        curr_dim_r, curr_dim_c,   \
         curr_dim_f, am, bm, v, queue_idx);                                     \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
     ExecutionReturn ret = adapter.Execute(task);                               \

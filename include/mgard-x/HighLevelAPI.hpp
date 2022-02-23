@@ -309,6 +309,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     m.s = s;
   }
   // m.l_target = hierarchy.l_target;
+  m.decomposition = config.decomposition;
   m.reorder = config.reorder;
   m.ltype = config.lossless;
   m.huff_dict_size = config.huff_dict_size;
@@ -537,6 +538,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     m.s = s;
   }
   // m.l_target = hierarchy.l_target;
+  m.decomposition = config.decomposition;
   m.ltype = config.lossless;
   m.huff_dict_size = config.huff_dict_size;
   m.huff_block_size = config.huff_block_size;
@@ -793,6 +795,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       exit(-1);
     }
 
+    config.decomposition = m.decomposition;
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
     config.huff_block_size = m.huff_block_size;
@@ -881,6 +884,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       exit(-1);
     }
 
+    config.decomposition = m.decomposition;
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
     config.huff_block_size = m.huff_block_size;
@@ -1036,6 +1040,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       exit(-1);
     }
 
+    config.decomposition = m.decomposition;
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
     config.huff_block_size = m.huff_block_size;
@@ -1115,6 +1120,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       exit(-1);
     }
 
+    config.decomposition = m.decomposition;
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
     config.huff_block_size = m.huff_block_size;
