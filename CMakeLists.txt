@@ -174,12 +174,9 @@ if (MGARD_ENABLE_KOKKOS)
 endif()
 
 find_package(ZLIB REQUIRED)
+find_package(zstd)
 
 find_package(PkgConfig REQUIRED)
-
-# pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
-
-find_package(zstd)
 
 set(
   MGARD_LIBRARY_CPP
@@ -311,15 +308,7 @@ target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
 
 if(zstd_FOUND)
   target_compile_definitions(mgard-library PUBLIC MGARD_ZSTD)
-  target_link_libraries(mgard-library PUBLIC zstd::libzstd_shared)
-  # target_link_libraries(mgard-library PUBLIC PkgConfig::ZSTD)
-endif()
-
-if (MGARD_ENABLE_SERIAL OR 
-    MGARD_ENABLE_CUDA   OR
-    MGARD_ENABLE_HIP    OR
-    MGARD_ENABLE_KOKKOS)
-  target_link_libraries(mgard-library PUBLIC zstd::libzstd_shared)
+  target_link_libraries(mgard-library PUBLIC zstd::zstd)
 endif()
 
 if(MGARD_ENABLE_CUDA)
@@ -460,6 +449,7 @@ list(POP_BACK CMAKE_MESSAGE_INDENT)
 message(STATUS "")
 message(STATUS "Libraries:")
 list(APPEND CMAKE_MESSAGE_INDENT "  ")
+message(STATUS "zstd:      ${zstd_FOUND}")
 message(STATUS "protobuf:  ${protobuf_FOUND}")
 if(MGARD_ENABLE_UNSTRUCTURED)
 	message(STATUS "MOAB:      ${MOAB_FOUND}")
