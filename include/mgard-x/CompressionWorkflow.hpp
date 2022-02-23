@@ -126,10 +126,12 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   // Decomposition
   if (config.timing)
     timer_each.start();
+  if (config.decomposition == decomposition_type::MultiDim) {
+    decompose<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target, 0);
+  } else if (config.decomposition == decomposition_type::SingleDim) {
+    decompose_single<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target, 0);
+  }
 
-  decompose_single<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target, 0);
-exit(0);
-  decompose<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target, 0);
 
   if (config.timing) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -175,7 +177,7 @@ exit(0);
   for (int d = 0; d < D; d++)
     dof *= hierarchy.dofs[d][0];
   calc_quantizers<D, T>(dof, quantizers, type, tol, s, norm, hierarchy.l_target,
-                        false);
+                        config.decomposition, false);
   Array<1, T, DeviceType> quantizers_array({hierarchy.l_target + 1});
   quantizers_array.loadData(quantizers);
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
@@ -559,7 +561,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   for (int d = 0; d < D; d++)
     dof *= hierarchy.dofs[d][0];
   calc_quantizers<D, T>(dof, quantizers, type, tol, s, norm, hierarchy.l_target,
-                        false);
+                        config.decomposition, false);
   Array<1, T, DeviceType> quantizers_array({hierarchy.l_target + 1});
   quantizers_array.loadData(quantizers);
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
@@ -589,8 +591,13 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (config.timing)
     timer_each.start();
-  recompose<D, T, DeviceType>(hierarchy, decompressed_subarray,
-                              hierarchy.l_target, 0);
+  if (config.decomposition == decomposition_type::MultiDim) {
+    recompose<D, T, DeviceType>(hierarchy, decompressed_subarray,
+                                hierarchy.l_target, 0);
+  } else if (config.decomposition == decomposition_type::SingleDim) {
+    recompose_single<D, T, DeviceType>(hierarchy, decompressed_subarray,
+                                hierarchy.l_target, 0);
+  }
   // hierarchy.sync_all();
   if (config.timing) {
     timer_each.end();

@@ -10,6 +10,10 @@
 #include <cub/cub.cuh>
 #include <iostream>
 #include <mma.h>
+
+#include <thrust/scan.h>
+#include <thrust/functional.h>
+#include <thrust/execution_policy.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
@@ -1750,6 +1754,29 @@ public:
                                  queue_idx);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     MemoryManager<CUDA>().Free(d_temp_storage);
+  }
+
+  template <typename KeyT, typename ValueT, typename BinaryOpType>
+  MGARDX_CONT static void ScanOpInclusiveByKey(SubArray<1, SIZE, CUDA> &key, SubArray<1, ValueT, CUDA> &v,
+                                                SubArray<1, ValueT, CUDA> &result, int queue_idx) {
+
+    thrust::equal_to<KeyT> binary_pred;
+
+    struct ThrustBinaryOp : public thrust::binary_function<ValueT, ValueT, ValueT>
+    {
+      MGARDX_CONT_EXEC
+      ValueT operator()(ValueT x, ValueT y) { 
+        BinaryOpType op;
+        return op(x, y); 
+      }
+    };
+
+    ThrustBinaryOp binary_op;
+
+    thrust::inclusive_scan_by_key(thrust::device, 
+                                  thrust::device_ptr<KeyT>(key.data()), thrust::device_ptr<KeyT>(key.data() + key.getShape(0)),
+                                  thrust::device_ptr<ValueT>(v.data()), thrust::device_ptr<ValueT>(result.data()), binary_pred,
+                                  binary_op);
   }
 };
 

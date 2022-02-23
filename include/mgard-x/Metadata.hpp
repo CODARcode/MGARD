@@ -33,6 +33,7 @@ struct Metadata {
   double tol;
   enum norm_type ntype;
   double s; // optional
+  enum decomposition_type decomposition;
   uint32_t l_target;
   uint32_t reorder;
   enum lossless_type ltype;
@@ -76,6 +77,7 @@ public:
     // if (ntype == norm_type::L_2) {
     total_size += sizeof(s); // s
     //}
+    total_size += sizeof(decomposition);
     total_size += sizeof(l_target); // l_target;
     total_size += sizeof(reorder);
     total_size += sizeof(ltype);
@@ -150,6 +152,7 @@ public:
     // if (ntype == norm_type::L_2) {
     Serialize(s, p);
     //}
+    Serialize(decomposition, p);
     Serialize(l_target, p);
     Serialize(reorder, p);
     Serialize(ltype, p);
@@ -204,6 +207,7 @@ public:
     // if (ntype == norm_type::L_2) {
     Deserialize(s, p);
     //}
+    Deserialize(decomposition, p);
     Deserialize(l_target, p);
     Deserialize(reorder, p);
     Deserialize(ltype, p);
