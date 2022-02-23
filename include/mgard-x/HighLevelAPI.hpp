@@ -309,6 +309,9 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     m.s = s;
   }
   // m.l_target = hierarchy.l_target;
+  if (s != std::numeric_limits<T>::infinity()) {
+    m.decomposition = decomposition_type::MultiDim;
+  }
   m.decomposition = config.decomposition;
   m.reorder = config.reorder;
   m.ltype = config.lossless;
@@ -538,6 +541,9 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     m.s = s;
   }
   // m.l_target = hierarchy.l_target;
+  if (s != std::numeric_limits<T>::infinity()) {
+    m.decomposition = decomposition_type::MultiDim;
+  }
   m.decomposition = config.decomposition;
   m.ltype = config.lossless;
   m.huff_dict_size = config.huff_dict_size;
