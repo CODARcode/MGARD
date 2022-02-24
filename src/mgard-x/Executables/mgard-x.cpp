@@ -221,10 +221,10 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode,
   mgard_x::SIZE n = 1;
   for (mgard_x::DIM d = 0; d < shape.size(); d++)
     n *= shape[d];
-
+  T actual_error = 0.0;
   std::cout << std::scientific;
   if (s == std::numeric_limits<T>::infinity()) {
-    T actual_error =
+    actual_error =
         mgard_x::L_inf_error(n, original_data, decompressed_data, mode);
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info
@@ -242,7 +242,7 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode,
                 << "\n";
     }
   } else {
-    T actual_error =
+    actual_error =
         mgard_x::L_2_error(shape, original_data, decompressed_data, mode);
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info
@@ -260,8 +260,7 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode,
                 << "\n";
     }
   }
-  // std::cout << mgard_x::log::log_info << "L_2 error: " <<
-  // mgard_x::L_2_error(n, original_data, decompressed_data) << "\n";
+
   std::cout << mgard_x::log::log_info
             << "MSE: " << mgard_x::MSE(n, original_data, decompressed_data)
             << "\n";
@@ -269,6 +268,8 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode,
   std::cout << mgard_x::log::log_info
             << "PSNR: " << mgard_x::PSNR(n, original_data, decompressed_data)
             << "\n";
+
+  if (actual_error > tol) exit(-1);
 }
 
 template <typename T>
