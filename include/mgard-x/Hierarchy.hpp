@@ -428,20 +428,20 @@ void Hierarchy<D, T, DeviceType>::padding_dimensions(std::vector<SIZE> &shape,
 template <DIM D, typename T, typename DeviceType>
 std::vector<T *>
 Hierarchy<D, T, DeviceType>::create_uniform_coords(std::vector<SIZE> shape,
-                                                   int mode) {
+                                                   int uniform_coord_mode) {
 
   std::vector<T *> coords(D);
   for (int d = 0; d < D; d++) {
     T *curr_coords = new T[shape[d]];
     for (int i = 0; i < shape[d]; i++) {
       // 0...n-1
-      if (mode == 0) {
+      if (uniform_coord_mode == 0) {
         curr_coords[i] = (T)i;
-      } else if (mode == 1) {
+      } else if (uniform_coord_mode == 1) {
         // 0...1
         curr_coords[i] = (T)i / (shape[d] - 1);
       } else {
-        std::cout << log::log_err << "wrong uniform coordinates mode!\n";
+        std::cout << log::log_err << "wrong uniform coordinates mode(" << uniform_coord_mode <<") !\n";
         exit(-1);
       }
     }
