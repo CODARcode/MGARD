@@ -342,7 +342,7 @@ public:
                             hipDeviceAttributeMaxThreadsPerMultiProcessor, d);
       hipDeviceGetAttribute(&MaxNumThreadsPerTB[d],
                             hipDeviceAttributeMaxThreadsPerBlock, d);
-      SupportCooperativeGroups[d] = true;
+      SupportCooperativeGroups[d] = false;
       hipDeviceProp_t prop;
       hipGetDeviceProperties(&prop, d);
       ArchitectureGeneration[d] = 1; // default optimized for Volta
