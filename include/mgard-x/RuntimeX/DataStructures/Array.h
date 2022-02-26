@@ -16,19 +16,22 @@ template <DIM D, typename T, typename DeviceType> class Array {
 public:
   Array();
   Array(std::vector<SIZE> shape, bool pitched = true, bool managed = false);
+  void copy(const Array &array);
+  void move(Array &&array);
+  void memset(int value);
+  void free();
   Array(const Array &array);
   Array &operator=(const Array &array);
   Array &operator=(Array &&array);
   Array(Array &&array);
   ~Array();
-  void memset(int value);
   void loadData(const T *data, SIZE ld = 0);
   T *getDataHost();
   T *getDataDevice(SIZE &ld);
   std::vector<SIZE> &getShape();
   T *get_dv();
   std::vector<SIZE> get_ldvs_h();
-  SIZE *get_ldvs_d();
+  // SIZE *get_ldvs_d();
   bool is_pitched();
 
 private:
@@ -37,11 +40,11 @@ private:
   bool managed;
   T *dv = NULL;
   T *hv = NULL;
-  bool device_allocated;
-  bool host_allocated;
-  std::vector<SIZE> ldvs_h;
-  SIZE *ldvs_d;
-  std::vector<SIZE> shape;
+  bool device_allocated = false;
+  bool host_allocated = false;
+  std::vector<SIZE> _ldvs;
+  // SIZE *ldvs_d = NULL;
+  std::vector<SIZE> _shape;
   SIZE linearized_depth;
 };
 

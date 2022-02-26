@@ -15,7 +15,7 @@ int main() {
   std::vector<mgard_x::SIZE> shape{n1, n2, n3};
   mgard_x::Handle<3, double> handle(shape);
   mgard_x::Array<3, double, CUDA> in_array(shape);
-  in_array.loadData(in_array_cpu);
+  in_array.load(in_array_cpu);
   std::cout << "Done\n";
 
   std::cout << "Compressing with MGARD-GPU...";
@@ -24,7 +24,7 @@ int main() {
       handle, in_array, mgard_x::error_bound_type::REL, tol, s);
   size_t compressed_size =
       compressed_array.getShape()[0]; // compressed size in number of bytes.
-  unsigned char *compressed_array_cpu = compressed_array.getDataHost();
+  unsigned char *compressed_array_cpu = compressed_array.dataHost();
   std::cout << "Done\n";
 
   std::cout << "Decompressing with MGARD-GPU...";
@@ -32,6 +32,6 @@ int main() {
   mgard_x::Array<3, double, CUDA> decompressed_array =
       mgard_x::decompress(handle, compressed_array);
   mgard_x::cudaFreeHostHelper(in_array_cpu);
-  double *decompressed_array_cpu = decompressed_array.getDataHost();
+  double *decompressed_array_cpu = decompressed_array.dataHost();
   std::cout << "Done\n";
 }
