@@ -252,7 +252,7 @@ T *Array<D, T, DeviceType>::data() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-std::vector<SIZE> Array<D, T, DeviceType>::get_ldvs_h() {
+std::vector<SIZE> Array<D, T, DeviceType>::ld() {
   return _ldvs;
 }
 

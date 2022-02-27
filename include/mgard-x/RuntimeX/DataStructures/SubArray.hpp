@@ -226,12 +226,12 @@ MGARDX_CONT SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array,
                                                  bool get_host_pointer) {
   // this->shape  = array.getShape();
   this->dv = array.data();
-  // this->ldvs_h = array.get_ldvs_h();
+  // this->ldvs_h = array.ld();
   // this->ldvs_d = array.get_ldvs_d();
 
   for (DIM d = 0; d < D; d++) {
     this->_shape[d] = array.shape()[d];
-    this->_ldvs[d] = array.get_ldvs_h()[d];
+    this->_ldvs[d] = array.ld()[d];
   }
   this->lddv1 = this->_ldvs[0];
   this->lddv2 = this->_ldvs[1];

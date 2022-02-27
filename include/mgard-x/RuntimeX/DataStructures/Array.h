@@ -30,7 +30,7 @@ public:
   T *data(SIZE &ld);
   std::vector<SIZE> &shape();
   T *data();
-  std::vector<SIZE> get_ldvs_h();
+  std::vector<SIZE> ld();
   // SIZE *get_ldvs_d();
   bool is_pitched();
 

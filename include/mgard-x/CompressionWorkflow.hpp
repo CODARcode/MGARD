@@ -94,7 +94,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
           false);
       MemoryManager<DeviceType>().CopyND(
           temp_array.data(), hierarchy.dofs[0][0], in_array.data(),
-          in_array.get_ldvs_h()[0], hierarchy.dofs[0][0],
+          in_array.ld()[0], hierarchy.dofs[0][0],
           (SIZE)(hierarchy.dofs[1][0] * hierarchy.linearized_depth), 0);
       temp_subarray = SubArray<1, T, DeviceType>(temp_array);
     }
