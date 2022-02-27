@@ -18,17 +18,18 @@ template <typename T, SIZE F, typename DeviceType>
 class ForwardPassMultCoefficientFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT ForwardPassMultCoefficientFunctor() {}
-  MGARDX_CONT ForwardPassMultCoefficientFunctor(
-      SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
-      SubArray<1, T, DeviceType> amXbm)
+  MGARDX_CONT
+  ForwardPassMultCoefficientFunctor(SubArray<1, T, DeviceType> am,
+                                    SubArray<1, T, DeviceType> bm,
+                                    SubArray<1, T, DeviceType> amXbm)
       : am(am), bm(bm), (amXbm) {
     Functor<DeviceType>();
   }
 
   MGARDX_EXEC void Operation1() {
-    SIZE id = FunctorBase<DeviceType>::GetBlockIdX() * 
-                FunctorBase<DeviceType>::GetBlockDimX() + 
-                FunctorBase<DeviceType>::GetThreadIdX();
+    SIZE id = FunctorBase<DeviceType>::GetBlockIdX() *
+                  FunctorBase<DeviceType>::GetBlockDimX() +
+              FunctorBase<DeviceType>::GetThreadIdX();
 
     if (id < am.getShape(0)) {
       *amXbm(id) = (*am(id)) * (*bm(id));
@@ -44,7 +45,6 @@ private:
   SubArray<1, T, DeviceType> amXbm;
 };
 
-
 template <DIM D, typename T, typename DeviceType>
 class SingleDimensionSolveTridiag : public AutoTuner<DeviceType> {
 public:
@@ -56,8 +56,7 @@ public:
   GenTask(SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
           SubArray<1, T, DeviceType> amXbm, int queue_idx) {
 
-    using FunctorType =
-        ForwardPassMultCoefficientFunctor<T, F, DeviceType>;
+    using FunctorType = ForwardPassMultCoefficientFunctor<T, F, DeviceType>;
     FunctorType functor(am, bm, amXbm);
 
     SIZE nf = v.getShape(0);
@@ -78,10 +77,10 @@ public:
   }
 
   MGARDX_CONT
-  void Execute(DIM current_dim,
-               SubArray<1, T, DeviceType> dist, SubArray<1, T, DeviceType> ratio, 
+  void Execute(DIM current_dim, SubArray<1, T, DeviceType> dist,
+               SubArray<1, T, DeviceType> ratio,
                SubArray<D, T, DeviceType> coeff, SubArray<D, T, DeviceType> v,
-               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm, 
+               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
                int queue_idx) {
 
     Array<1, T, DeviceType> amXbm(am.getShape(0));
@@ -95,22 +94,21 @@ public:
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
 
-#define GPK(CONFIG)                                                              \
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-      const int F = GPK_CONFIG[D - 1][CONFIG][2];                                \
-      using FunctorType =                                                        \
-          ForwardPassMultCoefficient<T, F, DeviceType>;                          \
-      using TaskType = Task<FunctorType>;                                        \
-      TaskType task = GenTask<F>(am, bm, SubArray(amXbm), queue_idx);            \
-      DeviceAdapter<TaskType, DeviceType> adapter;                               \
-      ExecutionReturn ret = adapter.Execute(task);                               \
-      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-        if (min_time > ret.execution_time) {                                     \
-          min_time = ret.execution_time;                                         \
-          min_config = CONFIG;                                                   \
-        }                                                                        \
-      }                                                                          \
-    }
+#define GPK(CONFIG)                                                            \
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int F = GPK_CONFIG[D - 1][CONFIG][2];                                \
+    using FunctorType = ForwardPassMultCoefficient<T, F, DeviceType>;          \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task = GenTask<F>(am, bm, SubArray(amXbm), queue_idx);            \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ExecutionReturn ret = adapter.Execute(task);                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (min_time > ret.execution_time) {                                     \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
 
     GPK(0)
     GPK(1)
@@ -122,7 +120,8 @@ public:
 #undef GPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("SingleDimensionSolveTridiag", prec, range_l, min_config);
+      FillAutoTunerTable<DeviceType>("SingleDimensionSolveTridiag", prec,
+                                     range_l, min_config);
     }
   }
 };

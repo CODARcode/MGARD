@@ -1768,8 +1768,7 @@ public:
                                        values.data(), out_values.data(), n, 0,
                                        sizeof(KeyT) * 8, stream, debug);
     MemoryManager<HIP>().Copy1D(keys.data(), out_keys.data(), n, queue_idx);
-    MemoryManager<HIP>().Copy1D(values.data(), out_values.data(), n,
-                                queue_idx);
+    MemoryManager<HIP>().Copy1D(values.data(), out_values.data(), n, queue_idx);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
     MemoryManager<HIP>().Free(d_temp_storage);
   }

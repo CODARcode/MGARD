@@ -17,8 +17,9 @@ namespace mgard_x {
 template void recompose<4, float, HIP>(Hierarchy<4, float, HIP> &hierarchy,
                                        SubArray<4, float, HIP> &v,
                                        SIZE l_target, int queue_idx);
-template void recompose_single<4, float, HIP>(Hierarchy<4, float, HIP> &hierarchy,
-                                       SubArray<4, float, HIP> &v,
-                                       SIZE l_target, int queue_idx);
+template void
+    recompose_single<4, float, HIP>(Hierarchy<4, float, HIP> &hierarchy,
+                                    SubArray<4, float, HIP> &v, SIZE l_target,
+                                    int queue_idx);
 } // namespace mgard_x
 #undef MGARDX_COMPILE_HIP

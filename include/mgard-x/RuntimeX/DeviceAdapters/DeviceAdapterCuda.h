@@ -11,11 +11,11 @@
 #include <iostream>
 #include <mma.h>
 
-#include <thrust/scan.h>
-#include <thrust/functional.h>
-#include <thrust/execution_policy.h>
 #include <thrust/device_vector.h>
+#include <thrust/execution_policy.h>
+#include <thrust/functional.h>
 #include <thrust/host_vector.h>
+#include <thrust/scan.h>
 
 using namespace nvcuda;
 namespace cg = cooperative_groups;
@@ -1740,15 +1740,15 @@ public:
     Array<1, ValueT, CUDA> out_values({n});
 
     cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                    keys.data(), out_keys.data(),
-                                    values.data(), out_values.data(), n, 0,
-                                    sizeof(KeyT) * 8, stream, debug);
+                                    keys.data(), out_keys.data(), values.data(),
+                                    out_values.data(), n, 0, sizeof(KeyT) * 8,
+                                    stream, debug);
     MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
                                    queue_idx);
     cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                    keys.data(), out_keys.data(),
-                                    values.data(), out_values.data(), n, 0,
-                                    sizeof(KeyT) * 8, stream, debug);
+                                    keys.data(), out_keys.data(), values.data(),
+                                    out_values.data(), n, 0, sizeof(KeyT) * 8,
+                                    stream, debug);
     MemoryManager<CUDA>().Copy1D(keys.data(), out_keys.data(), n, queue_idx);
     MemoryManager<CUDA>().Copy1D(values.data(), out_values.data(), n,
                                  queue_idx);
@@ -1757,26 +1757,29 @@ public:
   }
 
   template <typename KeyT, typename ValueT, typename BinaryOpType>
-  MGARDX_CONT static void ScanOpInclusiveByKey(SubArray<1, SIZE, CUDA> &key, SubArray<1, ValueT, CUDA> &v,
-                                                SubArray<1, ValueT, CUDA> &result, int queue_idx) {
+  MGARDX_CONT static void
+  ScanOpInclusiveByKey(SubArray<1, SIZE, CUDA> &key,
+                       SubArray<1, ValueT, CUDA> &v,
+                       SubArray<1, ValueT, CUDA> &result, int queue_idx) {
 
     thrust::equal_to<KeyT> binary_pred;
 
-    struct ThrustBinaryOp : public thrust::binary_function<ValueT, ValueT, ValueT>
-    {
+    struct ThrustBinaryOp
+        : public thrust::binary_function<ValueT, ValueT, ValueT> {
       MGARDX_CONT_EXEC
-      ValueT operator()(ValueT x, ValueT y) { 
+      ValueT operator()(ValueT x, ValueT y) {
         BinaryOpType op;
-        return op(x, y); 
+        return op(x, y);
       }
     };
 
     ThrustBinaryOp binary_op;
 
-    thrust::inclusive_scan_by_key(thrust::device, 
-                                  thrust::device_ptr<KeyT>(key.data()), thrust::device_ptr<KeyT>(key.data() + key.getShape(0)),
-                                  thrust::device_ptr<ValueT>(v.data()), thrust::device_ptr<ValueT>(result.data()), binary_pred,
-                                  binary_op);
+    thrust::inclusive_scan_by_key(
+        thrust::device, thrust::device_ptr<KeyT>(key.data()),
+        thrust::device_ptr<KeyT>(key.data() + key.getShape(0)),
+        thrust::device_ptr<ValueT>(v.data()),
+        thrust::device_ptr<ValueT>(result.data()), binary_pred, binary_op);
   }
 };
 

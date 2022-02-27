@@ -33,8 +33,8 @@ BitcompCompress(SubArray<1, C, DeviceType> &input_data, int algorithm_type) {
   Array<1, Byte, DeviceType> output_data({(SIZE)*output_bytes});
 
   compressor.compress_async(input_data.data(), input_count * sizeof(C),
-                            temp_space.data(), *temp_bytes,
-                            output_data.data(), output_bytes,
+                            temp_space.data(), *temp_bytes, output_data.data(),
+                            output_bytes,
                             DeviceRuntime<DeviceType>::GetQueue(0));
   DeviceRuntime<DeviceType>::SyncQueue(0);
   output_data.shape()[0] = *output_bytes;
