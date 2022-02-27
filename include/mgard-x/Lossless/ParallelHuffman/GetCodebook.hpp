@@ -53,7 +53,7 @@ void GetCodebook(int dict_size,
   unsigned int *d_first_nonzero_index;
   unsigned int first_nonzero_index;
   Array<1, unsigned int, DeviceType> first_nonzero_index_array({1});
-  first_nonzero_index_array.loadData((unsigned int *)&dict_size);
+  first_nonzero_index_array.load((unsigned int *)&dict_size);
 
   SubArray<1, unsigned int, DeviceType> d_first_nonzero_index_subarray(
       {1}, d_first_nonzero_index);
@@ -198,7 +198,7 @@ void GetCodebook(int dict_size,
 
   Array<1, H, DeviceType> _d_codebook_array_org(
       {_d_codebook_subarray.getShape(0)});
-  _d_codebook_array_org.loadData(_d_codebook_subarray.data());
+  _d_codebook_array_org.load(_d_codebook_subarray.data());
   SubArray _d_codebook_subarray_org(_d_codebook_array_org);
   ReorderByIndex<H, Q, DeviceType>().Execute(_d_codebook_subarray_org,
                                              _d_codebook_subarray,

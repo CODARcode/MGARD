@@ -257,7 +257,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     }
 
     Array<1, SIZE, DeviceType> shape_array({D_padded});
-    shape_array.loadData(curr_shape_h);
+    shape_array.load(curr_shape_h);
     shapes.push_back(shape_array);
     delete[] curr_shape_h;
   }
@@ -271,7 +271,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     }
   }
   ranges = Array<1, SIZE, DeviceType>({D * (l_target + 2)});
-  ranges.loadData(ranges_h);
+  ranges.load(ranges_h);
   delete[] ranges_h;
 
   {
@@ -283,7 +283,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       // processed_dims_h[d] = new DIM[processed_n[d]];
 
       processed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
-      processed_dims[d].loadData(tmp.data());
+      processed_dims[d].load(tmp.data());
       tmp.push_back(d);
     }
   }
@@ -298,7 +298,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     for (int d = 0; d < (int)D - 3 + 1; d++) {
       unprocessed_n[d] = tmp.size();
       unprocessed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
-      unprocessed_dims[d].loadData(tmp.data());
+      unprocessed_dims[d].load(tmp.data());
       tmp.pop_back();
     }
   }
@@ -307,7 +307,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   this->coords_h = coords;
   for (int i = 0; i < shape.size(); i++) {
     Array<1, T, DeviceType> coord({shape[i]});
-    coord.loadData(coords[i]);
+    coord.load(coords[i]);
     this->coords.push_back(coord);
   }
 

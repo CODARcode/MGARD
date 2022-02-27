@@ -25,7 +25,7 @@ public:
   Array &operator=(Array &&array);
   Array(Array &&array);
   ~Array();
-  void loadData(const T *data, SIZE ld = 0);
+  void load(const T *data, SIZE ld = 0);
   T *getDataHost();
   T *getDataDevice(SIZE &ld);
   std::vector<SIZE> &getShape();
