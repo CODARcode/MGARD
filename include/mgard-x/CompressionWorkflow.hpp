@@ -179,7 +179,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   calc_quantizers<D, T>(dof, quantizers, type, tol, s, norm, hierarchy.l_target,
                         config.decomposition, false);
   Array<1, T, DeviceType> quantizers_array({hierarchy.l_target + 1});
-  quantizers_array.loadData(quantizers);
+  quantizers_array.load(quantizers);
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
   delete[] quantizers;
 
@@ -563,7 +563,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   calc_quantizers<D, T>(dof, quantizers, type, tol, s, norm, hierarchy.l_target,
                         config.decomposition, false);
   Array<1, T, DeviceType> quantizers_array({hierarchy.l_target + 1});
-  quantizers_array.loadData(quantizers);
+  quantizers_array.load(quantizers);
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
   delete[] quantizers;
 
