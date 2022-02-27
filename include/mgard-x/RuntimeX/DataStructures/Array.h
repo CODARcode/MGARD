@@ -26,7 +26,7 @@ public:
   Array(Array &&array);
   ~Array();
   void load(const T *data, SIZE ld = 0);
-  T *getDataHost();
+  T *hostCopy();
   T *getDataDevice(SIZE &ld);
   std::vector<SIZE> &getShape();
   T *get_dv();

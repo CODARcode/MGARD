@@ -243,12 +243,12 @@ T calc_norm_decomposed(std::vector<T *> decomposed_data, T s,
       DeviceCollective<DeviceType>::AbsMax(elem_per_chunk, chunck_in_subarray,
                                            norm_subarray, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm = std::max(norm, norm_array.getDataHost()[0]);
+      norm = std::max(norm, norm_array.hostCopy()[0]);
     } else {
       DeviceCollective<DeviceType>::SquareSum(
           elem_per_chunk, chunck_in_subarray, norm_subarray, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm += norm_array.getDataHost()[0];
+      norm += norm_array.hostCopy()[0];
     }
   }
   SIZE leftover_dim_size =
@@ -267,12 +267,12 @@ T calc_norm_decomposed(std::vector<T *> decomposed_data, T s,
       DeviceCollective<DeviceType>::AbsMax(elem_leftover, leftover_subarray,
                                            norm_subarray, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm = std::max(norm, norm_array.getDataHost()[0]);
+      norm = std::max(norm, norm_array.hostCopy()[0]);
     } else {
       DeviceCollective<DeviceType>::SquareSum(elem_leftover, leftover_subarray,
                                               norm_subarray, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm += norm_array.getDataHost()[0];
+      norm += norm_array.hostCopy()[0];
     }
   }
 
@@ -398,7 +398,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       if (!output_pre_allocated) {
         compressed_data = (unsigned char *)malloc(compressed_size);
       }
-      memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
+      memcpy(compressed_data, compressed_array.hostCopy(), compressed_size);
     }
   } else { // chunck by chunck
     if (config.timing) {
@@ -633,7 +633,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       if (!output_pre_allocated) {
         compressed_data = (unsigned char *)malloc(compressed_size);
       }
-      memcpy(compressed_data, compressed_array.getDataHost(), compressed_size);
+      memcpy(compressed_data, compressed_array.hostCopy(), compressed_size);
     }
   } else { // chunck by chunck
     if (config.timing) {
@@ -845,7 +845,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       if (!output_pre_allocated) {
         decompressed_data = (T *)malloc(original_size * sizeof(T));
       }
-      memcpy(decompressed_data, out_array.getDataHost(),
+      memcpy(decompressed_data, out_array.hostCopy(),
              original_size * sizeof(T));
     }
   } else { // domain decomposition
@@ -1082,7 +1082,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       if (!output_pre_allocated) {
         decompressed_data = (T *)malloc(original_size * sizeof(T));
       }
-      memcpy(decompressed_data, out_array.getDataHost(),
+      memcpy(decompressed_data, out_array.hostCopy(),
              original_size * sizeof(T));
     }
   } else { // domain decomposed
