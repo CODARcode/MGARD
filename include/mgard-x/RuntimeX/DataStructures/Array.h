@@ -27,9 +27,9 @@ public:
   ~Array();
   void load(const T *data, SIZE ld = 0);
   T *hostCopy();
-  T *getDataDevice(SIZE &ld);
+  T *data(SIZE &ld);
   std::vector<SIZE> &getShape();
-  T *get_dv();
+  T *data();
   std::vector<SIZE> get_ldvs_h();
   // SIZE *get_ldvs_d();
   bool is_pitched();

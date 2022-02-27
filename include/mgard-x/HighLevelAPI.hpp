@@ -369,7 +369,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
         {(SIZE)compressed_size});
     SubArray compressed_subarray(compressed_array);
 
-    SERIALIZED_TYPE *buffer = compressed_array.get_dv();
+    SERIALIZED_TYPE *buffer = compressed_array.data();
     void *buffer_p = (void *)buffer;
     byte_offset = 0;
 
@@ -391,7 +391,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
                                             0);
       }
       MemoryManager<DeviceType>::Copy1D(compressed_data,
-                                        (void *)compressed_array.get_dv(),
+                                        (void *)compressed_array.data(),
                                         compressed_size, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
     } else {
@@ -455,13 +455,13 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       MemoryManager<DeviceType>::MallocHost(
           temp, lossless_compressed_array.getShape()[0], 0);
       // std::cout << "temp: " << temp
-      // << "lossless_compressed_array.get_dv(): " <<
-      // lossless_compressed_array.get_dv() ;
+      // << "lossless_compressed_array.data(): " <<
+      // lossless_compressed_array.data() ;
       // << "lossless_compressed_array.getShape()[0]: " <<
       // lossless_compressed_array.getShape()[0] << "\n" << std::flush;
       // temp = new Byte[lossless_compressed_array.getShape()[0]];
       MemoryManager<DeviceType>::Copy1D(
-          temp, lossless_compressed_array.get_dv(),
+          temp, lossless_compressed_array.data(),
           lossless_compressed_array.getShape()[0], 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       lossless_compressed_data.push_back(temp);
@@ -604,7 +604,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
         {(SIZE)compressed_size});
     SubArray compressed_subarray(compressed_array);
 
-    SERIALIZED_TYPE *buffer = compressed_array.get_dv();
+    SERIALIZED_TYPE *buffer = compressed_array.data();
     void *buffer_p = (void *)buffer;
     byte_offset = 0;
 
@@ -626,7 +626,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
                                             0);
       }
       MemoryManager<DeviceType>::Copy1D(compressed_data,
-                                        (void *)compressed_array.get_dv(),
+                                        (void *)compressed_array.data(),
                                         compressed_size, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
     } else {
@@ -689,7 +689,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       MemoryManager<DeviceType>::MallocHost(
           temp, lossless_compressed_array.getShape()[0], 0);
       MemoryManager<DeviceType>::Copy1D(
-          temp, lossless_compressed_array.get_dv(),
+          temp, lossless_compressed_array.data(),
           lossless_compressed_array.getShape()[0], 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       lossless_compressed_data.push_back(temp);
@@ -838,7 +838,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
                                             original_size * sizeof(T), 0);
       }
       MemoryManager<DeviceType>::Copy1D(decompressed_data,
-                                        (void *)out_array.get_dv(),
+                                        (void *)out_array.data(),
                                         original_size * sizeof(T), 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
     } else {
@@ -956,7 +956,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
           decompressed_data_chunck, out_array.getShape()[0] * linearized_width,
           0);
       MemoryManager<DeviceType>::CopyND(
-          decompressed_data_chunck, out_array.getShape()[0], out_array.get_dv(),
+          decompressed_data_chunck, out_array.getShape()[0], out_array.data(),
           out_array.get_ldvs_h()[0], out_array.getShape()[0], linearized_width,
           0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -1074,7 +1074,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
                                             original_size * sizeof(T), 0);
       }
       MemoryManager<DeviceType>::Copy1D(decompressed_data,
-                                        (void *)out_array.get_dv(),
+                                        (void *)out_array.data(),
                                         original_size * sizeof(T), 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
 
@@ -1190,7 +1190,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
           decompressed_data_chunck, out_array.getShape()[0] * linearized_width,
           0);
       MemoryManager<DeviceType>::CopyND(
-          decompressed_data_chunck, out_array.getShape()[0], out_array.get_dv(),
+          decompressed_data_chunck, out_array.getShape()[0], out_array.data(),
           out_array.get_ldvs_h()[0], out_array.getShape()[0], linearized_width,
           0);
       DeviceRuntime<DeviceType>::SyncQueue(0);

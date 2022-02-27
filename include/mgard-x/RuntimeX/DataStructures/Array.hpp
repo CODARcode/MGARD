@@ -236,7 +236,7 @@ T *Array<D, T, DeviceType>::hostCopy() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-T *Array<D, T, DeviceType>::getDataDevice(SIZE &ld) {
+T *Array<D, T, DeviceType>::data(SIZE &ld) {
   ld = _ldvs[0];
   return dv;
 }
@@ -247,7 +247,7 @@ std::vector<SIZE> &Array<D, T, DeviceType>::getShape() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-T *Array<D, T, DeviceType>::get_dv() {
+T *Array<D, T, DeviceType>::data() {
   return dv;
 }
 

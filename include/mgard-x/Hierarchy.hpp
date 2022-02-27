@@ -321,10 +321,10 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     curr_ddist_array_l.push_back(curr_ddist0_array);
     curr_dratio_array_l.push_back(curr_dratio0_array);
 
-    coord_to_dist(dofs[i][0], this->coords[i].get_dv(),
-                  curr_ddist_array_l[0].get_dv());
-    dist_to_ratio(dofs[i][0], curr_ddist_array_l[0].get_dv(),
-                  curr_dratio_array_l[0].get_dv());
+    coord_to_dist(dofs[i][0], this->coords[i].data(),
+                  curr_ddist_array_l[0].data());
+    dist_to_ratio(dofs[i][0], curr_ddist_array_l[0].data(),
+                  curr_dratio_array_l[0].data());
 
     // for l = 1 ... l_target
     for (int l = 1; l < l_target + 1; l++) {
@@ -332,10 +332,10 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       Array<1, T, DeviceType> curr_dratio_array({dofs[i][l]});
       curr_ddist_array_l.push_back(curr_ddist_array);
       curr_dratio_array_l.push_back(curr_dratio_array);
-      reduce_dist(dofs[i][l - 1], curr_ddist_array_l[l - 1].get_dv(),
-                  curr_ddist_array_l[l].get_dv());
-      dist_to_ratio(dofs[i][l], curr_ddist_array_l[l].get_dv(),
-                    curr_dratio_array_l[l].get_dv());
+      reduce_dist(dofs[i][l - 1], curr_ddist_array_l[l - 1].data(),
+                  curr_ddist_array_l[l].data());
+      dist_to_ratio(dofs[i][l], curr_ddist_array_l[l].data(),
+                    curr_dratio_array_l[l].data());
     }
     this->dist_array.push_back(curr_ddist_array_l);
     this->ratio_array.push_back(curr_dratio_array_l);
@@ -351,7 +351,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   SubArray<2, T, DeviceType> volumes_subarray(volumes_array);
   for (int d = 0; d < D; d++) {
     for (int l = 0; l < l_target + 1; l++) {
-      calc_volume(dofs[d][l], dist_array[d][l].get_dv(),
+      calc_volume(dofs[d][l], dist_array[d][l].data(),
                   volumes_subarray((d * (l_target + 1) + (l_target - l)), 0));
     }
   }
@@ -368,8 +368,8 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       curr_am_l_array.push_back(curr_am_array);
       curr_bm_l_array.push_back(curr_bm_array);
 
-      calc_am_bm(dofs[i][l], dist_array[i][l].get_dv(),
-                 curr_am_l_array[l].get_dv(), curr_bm_l_array[l].get_dv());
+      calc_am_bm(dofs[i][l], dist_array[i][l].data(),
+                 curr_am_l_array[l].data(), curr_bm_l_array[l].data());
     }
 
     am_array.push_back(curr_am_l_array);

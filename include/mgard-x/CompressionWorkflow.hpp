@@ -86,14 +86,14 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     SubArray<1, T, DeviceType> norm_subarray(norm_array);
     if (MemoryManager<DeviceType>::ReduceMemoryFootprint) { // zero copy
       temp_subarray =
-          SubArray<1, T, DeviceType>({total_elems}, in_array.get_dv());
+          SubArray<1, T, DeviceType>({total_elems}, in_array.data());
     } else { // need to linearized
       temp_array = Array<1, T, DeviceType>(
           {(SIZE)(hierarchy.dofs[0][0] * hierarchy.dofs[1][0] *
                   hierarchy.linearized_depth)},
           false);
       MemoryManager<DeviceType>().CopyND(
-          temp_array.get_dv(), hierarchy.dofs[0][0], in_array.get_dv(),
+          temp_array.data(), hierarchy.dofs[0][0], in_array.data(),
           in_array.get_ldvs_h()[0], hierarchy.dofs[0][0],
           (SIZE)(hierarchy.dofs[1][0] * hierarchy.linearized_depth), 0);
       temp_subarray = SubArray<1, T, DeviceType>(temp_array);
@@ -158,10 +158,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       {(SIZE)estimate_outlier_count});
   Array<1, QUANTIZED_INT, DeviceType> outliers_array(
       {(SIZE)estimate_outlier_count});
-  MemoryManager<DeviceType>::Copy1D(outlier_count_array.get_dv(), &zero, 1, 0);
-  MemoryManager<DeviceType>::Memset1D(outlier_idx_array.get_dv(),
+  MemoryManager<DeviceType>::Copy1D(outlier_count_array.data(), &zero, 1, 0);
+  MemoryManager<DeviceType>::Memset1D(outlier_idx_array.data(),
                                       estimate_outlier_count, 0, 0);
-  MemoryManager<DeviceType>::Memset1D(outliers_array.get_dv(),
+  MemoryManager<DeviceType>::Memset1D(outliers_array.data(),
                                       estimate_outlier_count, 0, 0);
 
 #ifndef MGARDX_COMPILE_CUDA
@@ -195,7 +195,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<1, LENGTH, DeviceType>(outlier_count_array),
       outlier_idx_subarray, outliers_subarray, 0);
   MemoryManager<DeviceType>::Copy1D(&outlier_count,
-                                    outlier_count_array.get_dv(), 1, 0);
+                                    outlier_count_array.data(), 1, 0);
   DeviceRuntime<DeviceType>::SyncDevice();
   // m.huff_outlier_count = outlier_count;
   if (config.timing) {
@@ -253,16 +253,16 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     unsigned_quantized_linearized_subarray =
         SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
             {total_elems},
-            (QUANTIZED_UNSIGNED_INT *)quantized_linearized_array.get_dv());
+            (QUANTIZED_UNSIGNED_INT *)quantized_linearized_array.data());
     quantized_linearized_subarray = SubArray<1, QUANTIZED_INT, DeviceType>(
-        {total_elems}, (QUANTIZED_INT *)quantized_linearized_array.get_dv());
+        {total_elems}, (QUANTIZED_INT *)quantized_linearized_array.data());
   } else {
     // Cast to QUANTIZED_UNSIGNED_INT
     unsigned_quantized_linearized_subarray =
         SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
-            {total_elems}, (QUANTIZED_UNSIGNED_INT *)quanzited_array.get_dv());
+            {total_elems}, (QUANTIZED_UNSIGNED_INT *)quanzited_array.data());
     quantized_linearized_subarray = SubArray<1, QUANTIZED_INT, DeviceType>(
-        {total_elems}, (QUANTIZED_INT *)quanzited_array.get_dv());
+        {total_elems}, (QUANTIZED_INT *)quanzited_array.data());
   }
 
   if (config.lossless != lossless_type::CPU_Lossless) {
@@ -463,14 +463,14 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
             shape, hierarchy.l_target, ranges, SubArray(quantized_array),
             SubArray<1, QUANTIZED_INT, DeviceType>(
                 {total_elems},
-                (QUANTIZED_INT *)unsigned_quantized_linearized_array.get_dv()),
+                (QUANTIZED_INT *)unsigned_quantized_linearized_array.data()),
             0);
       } else if (config.reorder == 2) {
         LevelLinearizer2<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
             shape, hierarchy.l_target, ranges, SubArray(quantized_array),
             SubArray<1, QUANTIZED_INT, DeviceType>(
                 {total_elems},
-                (QUANTIZED_INT *)unsigned_quantized_linearized_array.get_dv()),
+                (QUANTIZED_INT *)unsigned_quantized_linearized_array.data()),
             0);
       } else {
         std::cout << log::log_err << "wrong reodering option.\n";
@@ -484,8 +484,8 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       }
     } else {
       MemoryManager<DeviceType>::Copy1D(
-          quantized_array.get_dv(),
-          (QUANTIZED_INT *)unsigned_quantized_linearized_array.get_dv(),
+          quantized_array.data(),
+          (QUANTIZED_INT *)unsigned_quantized_linearized_array.data(),
           total_elems, 0);
     }
 
@@ -530,8 +530,8 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       // PrintSubarray("quantized_linearized_array",
       // SubArray(quantized_linearized_array));
       MemoryManager<DeviceType>::Copy1D(
-          quantized_array.get_dv(),
-          (QUANTIZED_INT *)quantized_linearized_array.get_dv(), total_elems, 0);
+          quantized_array.data(),
+          (QUANTIZED_INT *)quantized_linearized_array.data(), total_elems, 0);
     }
     if (config.timing) {
       timer_each.end();

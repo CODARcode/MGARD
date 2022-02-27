@@ -225,7 +225,7 @@ template <DIM D, typename T, typename DeviceType>
 MGARDX_CONT SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array,
                                                  bool get_host_pointer) {
   // this->shape  = array.getShape();
-  this->dv = array.get_dv();
+  this->dv = array.data();
   // this->ldvs_h = array.get_ldvs_h();
   // this->ldvs_d = array.get_ldvs_d();
 

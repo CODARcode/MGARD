@@ -66,8 +66,8 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   Array<1, uint8_t, DeviceType> decodebook_array({(SIZE)decodebook_size});
   decodebook_array.memset(0xff);
 
-  H *codebook = codebook_array.get_dv();
-  uint8_t *decodebook = decodebook_array.get_dv();
+  H *codebook = codebook_array.data();
+  uint8_t *decodebook = decodebook_array.data();
 
   SubArray<1, H, DeviceType> codebook_subarray(codebook_array);
   SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
@@ -83,7 +83,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
 
   Array<1, H, DeviceType> huff_array({(SIZE)primary_count});
   huff_array.memset(0);
-  H *huff = huff_array.get_dv();
+  H *huff = huff_array.data();
 
   // gpuErrchk(DeviceTypeDeviceSynchronize());
   DeviceRuntime<DeviceType>::SyncDevice();
@@ -100,7 +100,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   auto nchunk = (primary_count - 1) / chunk_size + 1;
   Array<1, size_t, DeviceType> huff_bitwidths_array({(SIZE)nchunk});
   huff_bitwidths_array.memset(0);
-  size_t *huff_bitwidths = huff_bitwidths_array.get_dv();
+  size_t *huff_bitwidths = huff_bitwidths_array.data();
 
   SubArray<1, size_t, DeviceType> huff_bitwidths_subarray({(SIZE)nchunk},
                                                           huff_bitwidths);
@@ -331,8 +331,8 @@ Array<1, Byte, DeviceType> HuffmanCompress(Array<1, Q, DeviceType> &qv,
   Array<1, uint8_t, DeviceType> decodebook_array({(SIZE)decodebook_size});
   codebook_array.memset(0xff);
 
-  H *codebook = codebook_array.get_dv();
-  uint8_t *decodebook = decodebook_array.get_dv();
+  H *codebook = codebook_array.data();
+  uint8_t *decodebook = decodebook_array.data();
 
   SubArray codebook_subarray(codebook_array);
   SubArray decodebook_subarray(decodebook_array);
@@ -345,7 +345,7 @@ Array<1, Byte, DeviceType> HuffmanCompress(Array<1, Q, DeviceType> &qv,
   // Non-deflated output
   Array<1, H, DeviceType> huff_array({(SIZE)primary_count});
   huff_array.memset(0);
-  H *huff = huff_array.get_dv();
+  H *huff = huff_array.data();
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
@@ -370,7 +370,7 @@ Array<1, Byte, DeviceType> HuffmanCompress(Array<1, Q, DeviceType> &qv,
   size_t *dH_bit_meta = h_meta + nchunk;
   size_t *dH_uInt_entry = h_meta + nchunk * 2;
   // copy back densely Huffman code (dHcode)
-  Mem::Copy1D(dH_bit_meta, huff_bitwidths_array.get_dv(), nchunk, 0);
+  Mem::Copy1D(dH_bit_meta, huff_bitwidths_array.data(), nchunk, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   // transform in uInt
   memcpy(dH_uInt_meta, dH_bit_meta, nchunk * sizeof(size_t));
@@ -430,7 +430,7 @@ Array<1, Byte, DeviceType> HuffmanCompress(Array<1, Q, DeviceType> &qv,
                          huffmeta_size, byte_offset);
   SerializeArray<size_t>(compressed_data_subarray, &decodebook_size, 1,
                          byte_offset);
-  SerializeArray<Byte>(compressed_data_subarray, decodebook_array.get_dv(),
+  SerializeArray<Byte>(compressed_data_subarray, decodebook_array.data(),
                        decodebook_size, byte_offset);
   SerializeArray<size_t>(compressed_data_subarray, &total_uInts, 1,
                          byte_offset);
@@ -612,7 +612,7 @@ HuffmanDecompress(Array<1, Byte, DeviceType> &compressed_data) {
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
   // PrintSubarray("after huffman", SubArray<1, Q, DeviceType>({10},
-  // primary.get_dv()));
+  // primary.data()));
 
   return primary;
 }
