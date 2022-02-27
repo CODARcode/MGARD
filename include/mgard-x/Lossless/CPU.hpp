@@ -201,7 +201,7 @@ Array<1, Byte, DeviceType> CPUCompress(SubArray<1, C, DeviceType> &input_data) {
 
   Array<1, Byte, DeviceType> output_data(
       {(SIZE)(actual_out_size + sizeof(size_t))});
-  output_data.loadData(out_data);
+  output_data.load(out_data);
 
   MemoryManager<DeviceType>::FreeHost(out_data);
   MemoryManager<DeviceType>::FreeHost(in_data);
@@ -240,7 +240,7 @@ CPUDecompress(SubArray<1, Byte, DeviceType> &input_data) {
   }
 
   Array<1, C, DeviceType> output_data({(SIZE)actual_out_count});
-  output_data.loadData(out_data);
+  output_data.load(out_data);
 
   MemoryManager<DeviceType>::FreeHost(out_data);
   MemoryManager<DeviceType>::FreeHost(in_data);

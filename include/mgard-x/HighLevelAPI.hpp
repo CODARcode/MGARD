@@ -29,7 +29,7 @@ void domain_decompose(T *data, std::vector<T *> &decomposed_data,
                       SIZE domain_decomposed_size) {
   // {
   //   Array<D, T, DeviceType> data_array({shape});
-  //   data_array.loadData(data);
+  //   data_array.load(data);
   //   PrintSubarray("Input", SubArray(data_array));
   // }
 
@@ -85,7 +85,7 @@ void domain_decompose(T *data, std::vector<T *> &decomposed_data,
     decomposed_data.push_back(chunck_data);
     // {
     //   Array<D, T, DeviceType> data_array({chunck_shape});
-    //   data_array.loadData(chunck_data);
+    //   data_array.load(chunck_data);
     //   PrintSubarray("chunck_data", SubArray(data_array));
     // }
   }
@@ -176,7 +176,7 @@ void domain_recompose(std::vector<T *> decomposed_data, T *data,
 
     // {
     //   Array<D, T, DeviceType> data_array({chunck_shape});
-    //   data_array.loadData(chunck_data);
+    //   data_array.load(chunck_data);
     //   PrintSubarray("chunck_data", SubArray(data_array));
     // }
   }
@@ -216,7 +216,7 @@ void domain_recompose(std::vector<T *> decomposed_data, T *data,
 
   // {
   //   Array<D, T, DeviceType> data_array({shape});
-  //   data_array.loadData(data);
+  //   data_array.load(data);
   //   PrintSubarray("Output", SubArray(data_array));
   // }
 }
@@ -237,7 +237,7 @@ T calc_norm_decomposed(std::vector<T *> decomposed_data, T s,
   for (SIZE i = 0; i < shape[domain_decomposed_dim];
        i += domain_decomposed_size) {
     Array<1, T, DeviceType> chunck_in_array({elem_per_chunk});
-    chunck_in_array.loadData(decomposed_data[i / domain_decomposed_size]);
+    chunck_in_array.load(decomposed_data[i / domain_decomposed_size]);
     SubArray chunck_in_subarray(chunck_in_array);
     if (s == std::numeric_limits<T>::infinity()) {
       DeviceCollective<DeviceType>::AbsMax(elem_per_chunk, chunck_in_subarray,
@@ -261,7 +261,7 @@ T calc_norm_decomposed(std::vector<T *> decomposed_data, T s,
       elem_leftover *= leftover_shape[d];
     }
     Array<1, T, DeviceType> leftover_array({elem_leftover});
-    leftover_array.loadData(decomposed_data[decomposed_data.size() - 1]);
+    leftover_array.load(decomposed_data[decomposed_data.size() - 1]);
     SubArray leftover_subarray(leftover_array);
     if (s == std::numeric_limits<T>::infinity()) {
       DeviceCollective<DeviceType>::AbsMax(elem_leftover, leftover_subarray,
@@ -335,7 +335,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
 
   if (!hierarchy.domain_decomposed) {
     mgard_x::Array<D, T, DeviceType> in_array(shape);
-    in_array.loadData((const T *)original_data);
+    in_array.load((const T *)original_data);
     T norm = 1;
     // PrintSubarray("in_array", SubArray(in_array));
     Array<1, Byte, DeviceType> lossless_compressed_array =
@@ -443,7 +443,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       }
       Array<D, T, DeviceType> chunck_in_array(
           hierarchy.hierarchy_chunck[i].shape_org);
-      chunck_in_array.loadData((const T *)decomposed_data[i]);
+      chunck_in_array.load((const T *)decomposed_data[i]);
       // PrintSubarray("chunck_in_array", SubArray(chunck_in_array));
       Array<1, Byte, DeviceType> lossless_compressed_array =
           compress<D, T, DeviceType>(hierarchy.hierarchy_chunck[i],
@@ -571,7 +571,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
 
   if (!hierarchy.domain_decomposed) {
     mgard_x::Array<D, T, DeviceType> in_array(shape);
-    in_array.loadData((const T *)original_data);
+    in_array.load((const T *)original_data);
     T norm = 1;
     Array<1, Byte, DeviceType> lossless_compressed_array =
         compress<D, T, DeviceType>(hierarchy, in_array, type, tol, s, norm,
@@ -678,7 +678,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       }
       Array<D, T, DeviceType> chunck_in_array(
           hierarchy.hierarchy_chunck[i].shape_org);
-      chunck_in_array.loadData((const T *)decomposed_data[i]);
+      chunck_in_array.load((const T *)decomposed_data[i]);
       Array<1, Byte, DeviceType> lossless_compressed_array =
           compress<D, T, DeviceType>(hierarchy.hierarchy_chunck[i],
                                      chunck_in_array, type, tol, s, norm,
@@ -756,7 +756,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     std::vector<SIZE> compressed_shape(1);
     compressed_shape[0] = compressed_size;
     Array<1, unsigned char, DeviceType> compressed_array(compressed_shape);
-    compressed_array.loadData((const unsigned char *)compressed_data);
+    compressed_array.load((const unsigned char *)compressed_data);
 
     // Deserialize
     SubArray compressed_subarray(compressed_array);
@@ -820,7 +820,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
     Array<1, unsigned char, DeviceType> lossless_compressed_array(
         {lossless_size});
-    lossless_compressed_array.loadData((const unsigned char *)lossless_data);
+    lossless_compressed_array.load((const unsigned char *)lossless_data);
     // SubArray<1, Byte, DeviceType> lossless_compressed_subarray({(SIZE)
     // lossless_size}, lossless_data);
 
@@ -943,7 +943,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       }
       Array<1, Byte, DeviceType> lossless_compressed_array(
           {lossless_compressed_size[i]});
-      lossless_compressed_array.loadData(lossless_compressed_data[i]);
+      lossless_compressed_array.load(lossless_compressed_data[i]);
       Array<D, T, DeviceType> out_array = decompress<D, T, DeviceType>(
           hierarchy.hierarchy_chunck[i], lossless_compressed_array, m.ebtype,
           m.tol, m.s, m.norm, config);
@@ -964,7 +964,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
       // {
       //   Array<D, T, DeviceType> data_array({5, 5, 5});
-      //   data_array.loadData(decompressed_data_chunck);
+      //   data_array.load(decompressed_data_chunck);
       //   PrintSubarray("decompressed_data_chunck", SubArray(data_array));
       // }
     }
@@ -1001,7 +1001,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     std::vector<SIZE> compressed_shape(1);
     compressed_shape[0] = compressed_size;
     Array<1, unsigned char, DeviceType> compressed_array(compressed_shape);
-    compressed_array.loadData((const unsigned char *)compressed_data);
+    compressed_array.load((const unsigned char *)compressed_data);
 
     // Deserialize
     SubArray compressed_subarray(compressed_array);
@@ -1178,7 +1178,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       }
       Array<1, Byte, DeviceType> lossless_compressed_array(
           {lossless_compressed_size[i]});
-      lossless_compressed_array.loadData(lossless_compressed_data[i]);
+      lossless_compressed_array.load(lossless_compressed_data[i]);
       Array<D, T, DeviceType> out_array = decompress<D, T, DeviceType>(
           hierarchy.hierarchy_chunck[i], lossless_compressed_array, m.ebtype,
           m.tol, m.s, m.norm, config);

@@ -208,7 +208,7 @@ Array<D, T, DeviceType>::~Array() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-void Array<D, T, DeviceType>::loadData(const T *data, SIZE ld) {
+void Array<D, T, DeviceType>::load(const T *data, SIZE ld) {
   if (ld == 0) {
     ld = _shape[0];
   }

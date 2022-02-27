@@ -116,9 +116,9 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       }
 
       Array<1, SIZE, DeviceType> fine_shape_array({(SIZE)D});
-      fine_shape_array.loadData(fine_shape.data());
+      fine_shape_array.load(fine_shape.data());
       Array<1, SIZE, DeviceType> coarse_shape_array({(SIZE)D});
-      coarse_shape_array.loadData(coarse_shape.data());
+      coarse_shape_array.load(coarse_shape.data());
       // PrintSubarray("v_shape_array", SubArray<1, SIZE, DeviceType>(v_shape_array));
       SubArray<D, T, DeviceType> v_fine = v; 
       v_fine.resize(fine_shape);
@@ -208,9 +208,9 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       }
 
       Array<1, SIZE, DeviceType> fine_shape_array({(SIZE)D});
-      fine_shape_array.loadData(fine_shape.data());
+      fine_shape_array.load(fine_shape.data());
       Array<1, SIZE, DeviceType> coarse_shape_array({(SIZE)D});
-      coarse_shape_array.loadData(coarse_shape.data());
+      coarse_shape_array.load(coarse_shape.data());
 
       SubArray<D, T, DeviceType> v_fine = v; 
       v_fine.resize(fine_shape);
