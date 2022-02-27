@@ -1758,17 +1758,17 @@ public:
     Array<1, ValueT, HIP> out_values({n});
 
     hipcub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                       keys.data(), out_keys.get_dv(),
-                                       values.data(), out_values.get_dv(), n, 0,
+                                       keys.data(), out_keys.data(),
+                                       values.data(), out_values.data(), n, 0,
                                        sizeof(KeyT) * 8, stream, debug);
     MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes,
                                   queue_idx);
     hipcub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                       keys.data(), out_keys.get_dv(),
-                                       values.data(), out_values.get_dv(), n, 0,
+                                       keys.data(), out_keys.data(),
+                                       values.data(), out_values.data(), n, 0,
                                        sizeof(KeyT) * 8, stream, debug);
-    MemoryManager<HIP>().Copy1D(keys.data(), out_keys.get_dv(), n, queue_idx);
-    MemoryManager<HIP>().Copy1D(values.data(), out_values.get_dv(), n,
+    MemoryManager<HIP>().Copy1D(keys.data(), out_keys.data(), n, queue_idx);
+    MemoryManager<HIP>().Copy1D(values.data(), out_values.data(), n,
                                 queue_idx);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
     MemoryManager<HIP>().Free(d_temp_storage);
