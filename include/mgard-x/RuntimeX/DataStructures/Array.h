@@ -28,7 +28,7 @@ public:
   void load(const T *data, SIZE ld = 0);
   T *hostCopy();
   T *data(SIZE &ld);
-  std::vector<SIZE> &getShape();
+  std::vector<SIZE> &shape();
   T *data();
   std::vector<SIZE> get_ldvs_h();
   // SIZE *get_ldvs_d();

@@ -242,7 +242,7 @@ T *Array<D, T, DeviceType>::data(SIZE &ld) {
 }
 
 template <DIM D, typename T, typename DeviceType>
-std::vector<SIZE> &Array<D, T, DeviceType>::getShape() {
+std::vector<SIZE> &Array<D, T, DeviceType>::shape() {
   return _shape;
 }
 

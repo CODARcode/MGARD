@@ -230,7 +230,7 @@ MGARDX_CONT SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array,
   // this->ldvs_d = array.get_ldvs_d();
 
   for (DIM d = 0; d < D; d++) {
-    this->_shape[d] = array.getShape()[d];
+    this->_shape[d] = array.shape()[d];
     this->_ldvs[d] = array.get_ldvs_h()[d];
   }
   this->lddv1 = this->_ldvs[0];

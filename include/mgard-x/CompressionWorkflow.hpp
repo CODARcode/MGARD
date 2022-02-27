@@ -57,7 +57,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
   Timer timer_total, timer_each;
   for (DIM i = 0; i < D; i++) {
-    if (hierarchy.shape[i] != in_array.getShape()[i]) {
+    if (hierarchy.shape[i] != in_array.shape()[i]) {
       std::cout << log::log_err
                 << "The shape of input array does not match the shape "
                    "initilized in hierarchy!\n";

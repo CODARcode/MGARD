@@ -33,7 +33,7 @@ CascadedCompress(SubArray<1, C, DeviceType> &input_data, int n_rle, int n_de,
   Array<1, Byte, DeviceType> output_data(
       {(SIZE)comp_config.max_compressed_buffer_size});
   nvcomp_manager.compress(input_data.data(), output_data.data(), comp_config);
-  output_data.getShape()[0] =
+  output_data.shape()[0] =
       nvcomp_manager.get_compressed_output_size(output_data.data());
   DeviceRuntime<DeviceType>::SyncQueue(0);
   return output_data;
@@ -50,7 +50,7 @@ CascadedDecompress(SubArray<1, Byte, DeviceType> &input_data) {
   Array<1, C, DeviceType> output_data({(SIZE)decomp_config.decomp_data_size});
   decomp_nvcomp_manager->decompress(output_data.data(), input_data.data(),
                                     decomp_config);
-  output_data.getShape()[0] = decomp_config.decomp_data_size / sizeof(C);
+  output_data.shape()[0] = decomp_config.decomp_data_size / sizeof(C);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   return output_data;
 }
