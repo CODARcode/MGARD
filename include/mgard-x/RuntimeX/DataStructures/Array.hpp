@@ -219,7 +219,7 @@ void Array<D, T, DeviceType>::load(const T *data, SIZE ld) {
 }
 
 template <DIM D, typename T, typename DeviceType>
-T *Array<D, T, DeviceType>::getDataHost() {
+T *Array<D, T, DeviceType>::hostCopy() {
   if (!device_allocated) {
     std::cout << log::log_err << "device buffer not initialized.\n";
     exit(-1);

@@ -236,7 +236,7 @@ MGARDX_CONT SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array,
   this->lddv1 = this->_ldvs[0];
   this->lddv2 = this->_ldvs[1];
   if (get_host_pointer) {
-    this->v = array.getDataHost();
+    this->v = array.hostCopy();
     this->has_host_pointer = true;
   }
   this->pitched = array.is_pitched();
