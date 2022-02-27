@@ -1740,17 +1740,17 @@ public:
     Array<1, ValueT, CUDA> out_values({n});
 
     cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                    keys.data(), out_keys.get_dv(),
-                                    values.data(), out_values.get_dv(), n, 0,
+                                    keys.data(), out_keys.data(),
+                                    values.data(), out_values.data(), n, 0,
                                     sizeof(KeyT) * 8, stream, debug);
     MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
                                    queue_idx);
     cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                    keys.data(), out_keys.get_dv(),
-                                    values.data(), out_values.get_dv(), n, 0,
+                                    keys.data(), out_keys.data(),
+                                    values.data(), out_values.data(), n, 0,
                                     sizeof(KeyT) * 8, stream, debug);
-    MemoryManager<CUDA>().Copy1D(keys.data(), out_keys.get_dv(), n, queue_idx);
-    MemoryManager<CUDA>().Copy1D(values.data(), out_values.get_dv(), n,
+    MemoryManager<CUDA>().Copy1D(keys.data(), out_keys.data(), n, queue_idx);
+    MemoryManager<CUDA>().Copy1D(values.data(), out_values.data(), n,
                                  queue_idx);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     MemoryManager<CUDA>().Free(d_temp_storage);
