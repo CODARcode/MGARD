@@ -957,7 +957,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
           0);
       MemoryManager<DeviceType>::CopyND(
           decompressed_data_chunck, out_array.shape()[0], out_array.data(),
-          out_array.get_ldvs_h()[0], out_array.shape()[0], linearized_width,
+          out_array.ld()[0], out_array.shape()[0], linearized_width,
           0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       decomposed_data.push_back(decompressed_data_chunck);
@@ -1191,7 +1191,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
           0);
       MemoryManager<DeviceType>::CopyND(
           decompressed_data_chunck, out_array.shape()[0], out_array.data(),
-          out_array.get_ldvs_h()[0], out_array.shape()[0], linearized_width,
+          out_array.ld()[0], out_array.shape()[0], linearized_width,
           0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       decomposed_data.push_back(decompressed_data_chunck);
