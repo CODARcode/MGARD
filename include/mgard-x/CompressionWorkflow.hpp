@@ -129,9 +129,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.decomposition == decomposition_type::MultiDim) {
     decompose<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target, 0);
   } else if (config.decomposition == decomposition_type::SingleDim) {
-    decompose_single<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target, 0);
+    decompose_single<D, T, DeviceType>(hierarchy, in_subarray,
+                                       hierarchy.l_target, 0);
   }
-
 
   if (config.timing) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -194,8 +194,8 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<1, SIZE, DeviceType>(hierarchy.shapes[0], true),
       SubArray<1, LENGTH, DeviceType>(outlier_count_array),
       outlier_idx_subarray, outliers_subarray, 0);
-  MemoryManager<DeviceType>::Copy1D(&outlier_count,
-                                    outlier_count_array.data(), 1, 0);
+  MemoryManager<DeviceType>::Copy1D(&outlier_count, outlier_count_array.data(),
+                                    1, 0);
   DeviceRuntime<DeviceType>::SyncDevice();
   // m.huff_outlier_count = outlier_count;
   if (config.timing) {
@@ -596,7 +596,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
                                 hierarchy.l_target, 0);
   } else if (config.decomposition == decomposition_type::SingleDim) {
     recompose_single<D, T, DeviceType>(hierarchy, decompressed_subarray,
-                                hierarchy.l_target, 0);
+                                       hierarchy.l_target, 0);
   }
   // hierarchy.sync_all();
   if (config.timing) {

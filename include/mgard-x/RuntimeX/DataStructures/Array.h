@@ -31,7 +31,6 @@ public:
   std::vector<SIZE> &shape();
   T *data();
   std::vector<SIZE> ld();
-  // SIZE *get_ldvs_d();
   bool is_pitched();
 
 private:
@@ -43,7 +42,6 @@ private:
   bool device_allocated = false;
   bool host_allocated = false;
   std::vector<SIZE> _ldvs;
-  // SIZE *ldvs_d = NULL;
   std::vector<SIZE> _shape;
   SIZE linearized_depth;
 };

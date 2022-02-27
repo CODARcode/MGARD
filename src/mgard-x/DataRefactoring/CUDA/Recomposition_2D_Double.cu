@@ -17,8 +17,9 @@ namespace mgard_x {
 template void recompose<2, double, CUDA>(Hierarchy<2, double, CUDA> &hierarchy,
                                          SubArray<2, double, CUDA> &v,
                                          SIZE l_target, int queue_idx);
-template void recompose_single<2, double, CUDA>(Hierarchy<2, double, CUDA> &hierarchy,
-                                         SubArray<2, double, CUDA> &v,
-                                         SIZE l_target, int queue_idx);
+template void
+    recompose_single<2, double, CUDA>(Hierarchy<2, double, CUDA> &hierarchy,
+                                      SubArray<2, double, CUDA> &v,
+                                      SIZE l_target, int queue_idx);
 } // namespace mgard_x
 #undef MGARDX_COMPILE_CUDA
