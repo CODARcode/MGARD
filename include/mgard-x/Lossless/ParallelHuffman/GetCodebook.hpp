@@ -61,7 +61,7 @@ void GetCodebook(int dict_size,
       _d_freq_subarray, first_nonzero_index_array, dict_size, 0);
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  first_nonzero_index = first_nonzero_index_array.getDataHost()[0];
+  first_nonzero_index = first_nonzero_index_array.hostCopy()[0];
 
   if (debug_print_huffman) {
     PrintSubarray("SortByKey::_d_freq_subarray", _d_freq_subarray);

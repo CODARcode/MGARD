@@ -103,12 +103,12 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       DeviceCollective<DeviceType>::AbsMax(total_elems, temp_subarray,
                                            norm_subarray, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm = norm_array.getDataHost()[0];
+      norm = norm_array.hostCopy()[0];
     } else {
       DeviceCollective<DeviceType>::SquareSum(total_elems, temp_subarray,
                                               norm_subarray, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm = norm_array.getDataHost()[0];
+      norm = norm_array.hostCopy()[0];
       norm = std::sqrt(norm);
     }
     if (config.timing) {
