@@ -368,8 +368,8 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       curr_am_l_array.push_back(curr_am_array);
       curr_bm_l_array.push_back(curr_bm_array);
 
-      calc_am_bm(dofs[i][l], dist_array[i][l].data(),
-                 curr_am_l_array[l].data(), curr_bm_l_array[l].data());
+      calc_am_bm(dofs[i][l], dist_array[i][l].data(), curr_am_l_array[l].data(),
+                 curr_bm_l_array[l].data());
     }
 
     am_array.push_back(curr_am_l_array);
@@ -441,7 +441,8 @@ Hierarchy<D, T, DeviceType>::create_uniform_coords(std::vector<SIZE> shape,
         // 0...1
         curr_coords[i] = (T)i / (shape[d] - 1);
       } else {
-        std::cout << log::log_err << "wrong uniform coordinates mode(" << uniform_coord_mode <<") !\n";
+        std::cout << log::log_err << "wrong uniform coordinates mode("
+                  << uniform_coord_mode << ") !\n";
         exit(-1);
       }
     }

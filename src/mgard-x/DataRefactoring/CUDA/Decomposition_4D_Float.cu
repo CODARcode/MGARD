@@ -17,8 +17,9 @@ namespace mgard_x {
 template void decompose<4, float, CUDA>(Hierarchy<4, float, CUDA> &hierarchy,
                                         SubArray<4, float, CUDA> &v,
                                         SIZE l_target, int queue_idx);
-template void decompose_single<4, float, CUDA>(Hierarchy<4, float, CUDA> &hierarchy,
-                                        SubArray<4, float, CUDA> &v,
-                                        SIZE l_target, int queue_idx);
+template void
+    decompose_single<4, float, CUDA>(Hierarchy<4, float, CUDA> &hierarchy,
+                                     SubArray<4, float, CUDA> &v, SIZE l_target,
+                                     int queue_idx);
 } // namespace mgard_x
 #undef MGARDX_COMPILE_CUDA

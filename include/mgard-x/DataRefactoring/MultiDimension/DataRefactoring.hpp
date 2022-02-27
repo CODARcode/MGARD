@@ -1585,7 +1585,8 @@ void calc_correction_nd(Hierarchy<D, T, DeviceType> &hierarchy,
   //     hierarchy.auto_tuning_ts1[hierarchy.arch][hierarchy.precision][range_lp1]);
 
   // gpuErrchk(cudaDeviceSynchronize());
-  Ipk1Reo<D, T, DeviceType>().Execute(curr_dim_r, curr_dim_c, curr_dim_f,
+  Ipk1Reo<D, T, DeviceType>().Execute(
+      curr_dim_r, curr_dim_c, curr_dim_f,
       SubArray(hierarchy.am_array[curr_dim_f][l + 1]),
       SubArray(hierarchy.bm_array[curr_dim_f][l + 1]), dw_out, 0);
   // gpuErrchk(cudaDeviceSynchronize());
@@ -1613,7 +1614,8 @@ void calc_correction_nd(Hierarchy<D, T, DeviceType> &hierarchy,
   //     hierarchy.auto_tuning_ts1[hierarchy.arch][hierarchy.precision][range_lp1]);
 
   // gpuErrchk(cudaDeviceSynchronize());
-  Ipk2Reo<D, T, DeviceType>().Execute(curr_dim_r, curr_dim_c, curr_dim_f,
+  Ipk2Reo<D, T, DeviceType>().Execute(
+      curr_dim_r, curr_dim_c, curr_dim_f,
       SubArray(hierarchy.am_array[curr_dim_c][l + 1]),
       SubArray(hierarchy.bm_array[curr_dim_c][l + 1]),
       // SubArray(hierarchy.dist_array[curr_dim_f][l+1]),
@@ -1642,7 +1644,8 @@ void calc_correction_nd(Hierarchy<D, T, DeviceType> &hierarchy,
   //     hierarchy.auto_tuning_ts1[hierarchy.arch][hierarchy.precision][range_lp1]);
 
   // gpuErrchk(cudaDeviceSynchronize());
-  Ipk3Reo<D, T, DeviceType>().Execute(curr_dim_r, curr_dim_c, curr_dim_f,
+  Ipk3Reo<D, T, DeviceType>().Execute(
+      curr_dim_r, curr_dim_c, curr_dim_f,
       SubArray(hierarchy.am_array[curr_dim_r][l + 1]),
       SubArray(hierarchy.bm_array[curr_dim_r][l + 1]),
       // SubArray(hierarchy.dist_array[curr_dim_f][l+1]),
@@ -1672,7 +1675,8 @@ void calc_correction_nd(Hierarchy<D, T, DeviceType> &hierarchy,
     //     hierarchy.auto_tuning_ts1[hierarchy.arch][hierarchy.precision][range_lp1]);
 
     // gpuErrchk(cudaDeviceSynchronize());
-    Ipk3Reo<D, T, DeviceType>().Execute(curr_dim_r, curr_dim_c, curr_dim_f,
+    Ipk3Reo<D, T, DeviceType>().Execute(
+        curr_dim_r, curr_dim_c, curr_dim_f,
         SubArray(hierarchy.am_array[curr_dim_r][l + 1]),
         SubArray(hierarchy.bm_array[curr_dim_r][l + 1]),
         // SubArray(hierarchy.dist_array[curr_dim_f][l+1]),

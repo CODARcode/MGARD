@@ -269,7 +269,8 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode,
             << "PSNR: " << mgard_x::PSNR(n, original_data, decompressed_data)
             << "\n";
 
-  if (actual_error > tol) exit(-1);
+  if (actual_error > tol)
+    exit(-1);
 }
 
 template <typename T>

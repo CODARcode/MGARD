@@ -16,7 +16,8 @@ namespace mgard_x {
 
 template <DIM D, typename T>
 void calc_quantizers(size_t dof, T *quantizers, enum error_bound_type type,
-                     T tol, T s, T norm, SIZE l_target, enum decomposition_type decomposition, bool reciprocal) {
+                     T tol, T s, T norm, SIZE l_target,
+                     enum decomposition_type decomposition, bool reciprocal) {
 
   double abs_tol = tol;
   if (type == error_bound_type::REL) {
@@ -71,7 +72,8 @@ void calc_quantizers(size_t dof, T *quantizers, enum error_bound_type type,
         // ben
         quantizers[l] = (abs_tol) / ((l_target + 1) * (1 + std::pow(3, D)));
         // xin
-        // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) / 4));
+        // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) /
+        // 4));
       } else if (decomposition == decomposition_type::SingleDim) {
         // ken
         quantizers[l] = (abs_tol) / ((l_target + 1) * D * (1 + std::pow(3, 1)));

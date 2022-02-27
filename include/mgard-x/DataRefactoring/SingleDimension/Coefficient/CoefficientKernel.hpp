@@ -17,15 +17,17 @@
 
 namespace mgard_x {
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP, typename DeviceType>
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP,
+          typename DeviceType>
 class SingleDimensionCoefficientFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT SingleDimensionCoefficientFunctor() {}
-  MGARDX_CONT SingleDimensionCoefficientFunctor(DIM current_dim,
-      SubArray<1, T, DeviceType> ratio, SubArray<D, T, DeviceType> v,
-      SubArray<D, T, DeviceType> coarse, SubArray<D, T, DeviceType> coeff)
-      : current_dim(current_dim),
-        ratio(ratio), v(v), coarse(coarse), coeff(coeff) {
+  MGARDX_CONT SingleDimensionCoefficientFunctor(
+      DIM current_dim, SubArray<1, T, DeviceType> ratio,
+      SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
+      SubArray<D, T, DeviceType> coeff)
+      : current_dim(current_dim), ratio(ratio), v(v), coarse(coarse),
+        coeff(coeff) {
     Functor<DeviceType>();
   }
 
@@ -66,23 +68,26 @@ public:
     if (in_range) {
       for (DIM d = 0; d < D; d++) {
         if (d != current_dim) {
-          v_left_idx[d]   = coeff_idx[d];
+          v_left_idx[d] = coeff_idx[d];
           v_middle_idx[d] = coeff_idx[d];
-          v_right_idx[d]  = coeff_idx[d];
-          corase_idx[d]   = coeff_idx[d];
+          v_right_idx[d] = coeff_idx[d];
+          corase_idx[d] = coeff_idx[d];
         } else {
-          v_left_idx[d]   = coeff_idx[d] * 2;
+          v_left_idx[d] = coeff_idx[d] * 2;
           v_middle_idx[d] = coeff_idx[d] * 2 + 1;
-          v_right_idx[d]  = coeff_idx[d] * 2 + 2;
-          corase_idx[d]   = coeff_idx[d];
+          v_right_idx[d] = coeff_idx[d] * 2 + 2;
+          corase_idx[d] = coeff_idx[d];
         }
       }
 
       if (OP == DECOMPOSE) {
-        *coeff(coeff_idx) = *v(v_middle_idx) - lerp(*v(v_left_idx), *v(v_right_idx), *ratio(v_left_idx[current_dim]));
+        *coeff(coeff_idx) =
+            *v(v_middle_idx) - lerp(*v(v_left_idx), *v(v_right_idx),
+                                    *ratio(v_left_idx[current_dim]));
         // if (coeff_idx[current_dim] == 1) {
         //   printf("left: %f, right: %f, middle: %f, ratio: %f, coeff: %f\n",
-        //         *v(v_left_idx), *v(v_right_idx), *v(v_middle_idx), *ratio(v_left_idx[current_dim]), *coeff(coeff_idx));
+        //         *v(v_left_idx), *v(v_right_idx), *v(v_middle_idx),
+        //         *ratio(v_left_idx[current_dim]), *coeff(coeff_idx));
         // }
         *coarse(corase_idx) = *v(v_left_idx);
         if (coeff_idx[current_dim] == coeff.getShape(current_dim) - 1) {
@@ -114,15 +119,16 @@ public:
           corase_idx[current_dim]--;
         }
 
-
-         *v(v_middle_idx) =  *coeff(coeff_idx) + lerp(left, right, *ratio(v_left_idx[current_dim]));
+        *v(v_middle_idx) = *coeff(coeff_idx) +
+                           lerp(left, right, *ratio(v_left_idx[current_dim]));
         // if (coeff_idx[current_dim] == 1) {
-          // printf("left: %f, right: %f, middle: %f (%f), ratio: %f, coeff: %f\n",
-          //       *v(v_left_idx), *v(v_right_idx), *v(v_middle_idx), 
-          //       *coeff(coeff_idx) + lerp(*v(v_left_idx), *v(v_right_idx), *ratio(v_left_idx[current_dim])),
-          //       *ratio(v_left_idx[current_dim]), *coeff(coeff_idx));
+        // printf("left: %f, right: %f, middle: %f (%f), ratio: %f, coeff:
+        // %f\n",
+        //       *v(v_left_idx), *v(v_right_idx), *v(v_middle_idx),
+        //       *coeff(coeff_idx) + lerp(*v(v_left_idx), *v(v_right_idx),
+        //       *ratio(v_left_idx[current_dim])),
+        //       *ratio(v_left_idx[current_dim]), *coeff(coeff_idx));
         // }
-
       }
     }
   }
@@ -138,7 +144,6 @@ private:
   SubArray<D, T, DeviceType> coeff;
 };
 
-
 template <DIM D, typename T, OPTION OP, typename DeviceType>
 class SingleDimensionCoefficient : public AutoTuner<DeviceType> {
 public:
@@ -146,19 +151,21 @@ public:
   SingleDimensionCoefficient() : AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>>
-  GenTask(DIM current_dim,
-          SubArray<1, T, DeviceType> ratio, SubArray<D, T, DeviceType> v,
-          SubArray<D, T, DeviceType> coarse, SubArray<D, T, DeviceType> coeff, 
-          int queue_idx) {
+  MGARDX_CONT
+      Task<SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>>
+      GenTask(DIM current_dim, SubArray<1, T, DeviceType> ratio,
+              SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
+              SubArray<D, T, DeviceType> coeff, int queue_idx) {
 
     using FunctorType =
         SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>;
     FunctorType functor(current_dim, ratio, v, coarse, coeff);
 
     SIZE nr = 1, nc = 1, nf = 1;
-    if (D >= 3) nr = coeff.getShape(2);
-    if (D >= 2) nc = coeff.getShape(1);
+    if (D >= 3)
+      nr = coeff.getShape(2);
+    if (D >= 2)
+      nc = coeff.getShape(1);
     nf = coeff.getShape(0);
 
     SIZE total_thread_z = nr;
@@ -176,7 +183,7 @@ public:
     gridx = ceil((float)total_thread_x / tbx);
 
     for (DIM d = 3; d < D; d++) {
-        gridx *= coeff.getShape(d);
+      gridx *= coeff.getShape(d);
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
@@ -184,10 +191,9 @@ public:
   }
 
   MGARDX_CONT
-  void Execute(DIM current_dim,
-               SubArray<1, T, DeviceType> ratio, SubArray<D, T, DeviceType> v,
-               SubArray<D, T, DeviceType> coarse, SubArray<D, T, DeviceType> coeff, 
-               int queue_idx) {
+  void Execute(DIM current_dim, SubArray<1, T, DeviceType> ratio,
+               SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
+               SubArray<D, T, DeviceType> coeff, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(coeff.getShape(0)) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
@@ -199,13 +205,14 @@ public:
 
 #define GPK(CONFIG)                                                            \
   if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = GPK_CONFIG[D - 1][CONFIG][0];                          \
-    const int C = GPK_CONFIG[D - 1][CONFIG][1];                          \
-    const int F = GPK_CONFIG[D - 1][CONFIG][2];                          \
+    const int R = GPK_CONFIG[D - 1][CONFIG][0];                                \
+    const int C = GPK_CONFIG[D - 1][CONFIG][1];                                \
+    const int F = GPK_CONFIG[D - 1][CONFIG][2];                                \
     using FunctorType =                                                        \
-        SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>;          \
+        SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>;      \
     using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(current_dim, ratio, v, coarse, coeff, queue_idx);  \
+    TaskType task =                                                            \
+        GenTask<R, C, F>(current_dim, ratio, v, coarse, coeff, queue_idx);     \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
     ExecutionReturn ret = adapter.Execute(task);                               \
     if (AutoTuner<DeviceType>::ProfileKernels) {                               \
@@ -226,7 +233,8 @@ public:
 #undef GPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("SingleDimensionCoefficient", prec, range_l, min_config);
+      FillAutoTunerTable<DeviceType>("SingleDimensionCoefficient", prec,
+                                     range_l, min_config);
     }
   }
 };
