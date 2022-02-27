@@ -37,7 +37,7 @@ BitcompCompress(SubArray<1, C, DeviceType> &input_data, int algorithm_type) {
                             output_data.data(), output_bytes,
                             DeviceRuntime<DeviceType>::GetQueue(0));
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  output_data.getShape()[0] = *output_bytes;
+  output_data.shape()[0] = *output_bytes;
   Mem::FreeHost(temp_bytes);
   Mem::FreeHost(output_bytes);
   return output_data;
@@ -65,7 +65,7 @@ BitcompDecompress(SubArray<1, Byte, DeviceType> &input_data) {
                                 output_data.data(), *output_bytes,
                                 DeviceRuntime<DeviceType>::GetQueue(0));
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  output_data.getShape()[0] = (*output_bytes) / sizeof(C);
+  output_data.shape()[0] = (*output_bytes) / sizeof(C);
   Mem::FreeHost(temp_bytes);
   Mem::FreeHost(output_bytes);
   return output_data;
