@@ -23,7 +23,7 @@ num_build_procs=8
 install_dir=./install-hip-spock
 
 #build ZSTD
-zstd_dir=${external_dir}/zstd
+zstd_dir=${build_dir}/zstd
 zstd_src_dir=${zstd_dir}/src
 zstd_build_dir=${zstd_dir}/build
 zstd_install_dir=${install_dir}
@@ -42,7 +42,7 @@ cmake --install ${zstd_build_dir}
 
 
 #build Protobuf
-protobuf_dir=${external_dir}/protobuf
+protobuf_dir=${build_dir}/protobuf
 protobuf_src_dir=${protobuf_dir}/src
 protobuf_build_dir=${protobuf_dir}/build
 protobuf_install_dir=${install_dir}
@@ -61,7 +61,7 @@ cmake --install ${protobuf_build_dir}
 
 #build MGARD
 mgard_x_src_dir=${home_dir}
-mgard_x_build_dir=${home_dir}/build-hip-spock
+mgard_x_build_dir=${build_dir}/mgard
 mgard_x_install_dir=${install_dir}
 mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
