@@ -1007,7 +1007,8 @@ template <DIM D, typename T> Handle<D, T>::Handle(std::vector<SIZE> shape) {
                  "initialized!\n";
   }
   dstype = data_structure_type::Cartesian_Grid_Uniform;
-  std::vector<T *> coords = create_uniform_coords(shape, 0);
+  std::vector<T *> coords =
+      create_uniform_coords(shape, config.uniform_coord_mode);
   padding_dimensions(shape, coords);
   create_queues();
   init_auto_tuning_table();

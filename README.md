@@ -23,11 +23,16 @@ $ cmake --install build
 [cmake]: https://cmake.org/
 [protobuf]: https://opensource.google/projects/protobuf
 
-### GPU Acceleration
+### MGARD-X Portable version
 
-Detailed instructions for using MGARD with GPU acceleration can be found [here][gpu instructions].
+Detailed instructions for using MGARD-X portable version for both GPUs and CPUs can be found in [here][mgard_x instructions].
+
+### MGARD-GPU [***Deprecated***]
+
+Detailed instructions for using MGARD-GPU with NVIDIA GPU acceleration can be found in [here][gpu instructions].
 
 [gpu instructions]: doc/MGARD-GPU.md
+[mgard_x instructions]: doc/MGARD-X.md
 
 ### Documentation
 
