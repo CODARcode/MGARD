@@ -19,6 +19,7 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 |ARM CPUs|To be tested||
 |Intel GPUs|Under development||
 |Integrated GPUs|Under development||
+
 *LZ4 lossless compressor is only avaialble to choose on NVIDIA GPUs. Portable version is under development.
 
 ^Serial execution is only avaialble for now. Multi-threaded version is under development.
@@ -88,19 +89,19 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 	
 ## For using both the high-level APIs and low-level API
 * **Include the header file.** MGARD-X APIs are included in both ```mgard/compress.hpp``` and ```mgard/compress_x.hpp```.
-     + Use ```mgard/compress.hpp``` if the user programs are to be compiled with ***non-CUDA*** compilers.
-     + Use ```mgard/compress_cuda.hpp``` if the user programs are to be compiled with ***CUDA*** compilers.
+     + Use ```mgard/compress.hpp``` or ```mgard/compress_x.hpp``` if the user programs are to be compiled with ***non-CUDA*** compilers.
+     + Use ```mgard/compress_x.hpp``` if the user programs are to be compiled with ***CUDA*** compilers.
 * **Configure using ```mgard_x::Config```** Both high-level APIs and low-level APIs have an optional parameter for users to configure the compression/decomrpession process via ```mgard_x::Config``` class. To configure, create a ```mgard_x::Config``` object and configure its fields:
   + ```Config.dev_type```: sepcifying the processor for compression/decompression:
-  		+ ```mgard_x::device_type::Auto```: Auto detect the best processor (***Default***)
-  		+ ```mgard_x::device_type::CUDA```: Use NVIDIA GPUs
-  		+ ```mgard_x::device_type::HIP ```: Use AMD GPUs
-  		+ ```mgard_x::device_type::Serial```: Use CPUs
-  + ```Config.dev_id```: sepcifying a specific GPU to use in multi-GPU systems (***Defualt: 0***)
-  + ```Config.timing```: (true/false) timing each steps of compression and printing them out (***Defualt: false***).
+    + ```mgard_x::device_type::Auto```: Auto detect the best processor (***Default***)
+    + ```mgard_x::device_type::CUDA```: Use NVIDIA GPUs
+    + ```mgard_x::device_type::HIP ```: Use AMD GPUs
+    + ```mgard_x::device_type::Serial```: Use CPUs
+  + ```Config.dev_id```: sepcifying a specific GPU to use in multi-GPU systems (***Default: 0***)
+  + ```Config.timing```: (true/false) timing each steps of compression and printing them out (***Default: false***).
   + ```Config.lossless```: control the lossless compression used: 
      + ```mgard_x::lossless_type::Huffman```: Huffman compression
-     + ```mgard_x::lossless_type::Huffman_LZ4```: Huffman and LZ4 compression (***Defualt***)
+     + ```mgard_x::lossless_type::Huffman_LZ4```: Huffman and LZ4 compression (***Default***)
      + ```mgard_x::lossless_type::Huffman_Zstd```: Huffman and ZSTD compression
      + *Note:* there will be no effect configuring the lossless comrpessor for decompression as MGARD has to use the same lossless compressor that was used for compression.
     
@@ -147,7 +148,7 @@ An object ```mgard_x::Hierarchy``` needs to be created and initialized. This ini
   	+ For ***compression***: ```
 			mgard_x::Array<1, unsigned char, Device_type> mgard_x::compress(mgard_x::Hierarchy <N_dims, D_type, Device_type> &hierarchy, mgard_x::Array<N_dims, D_type, Device_type> in_array, mgard_x::error_bound_type type, D_type tol, D_type s)```
      	- ```[In] in_array ```: Input data to be compressed (its value will be altered during compression).
-     	- ```[In] type ```: Error bound type. ```mgard_x::REL``` for relative error bound or ```mgard_x::ABS``` for absolute error bound. 
+     	- ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound. 
 	  	- ```[In] tol```: Error bound.
 	  	- ```[In] s```: Smoothness parameter.
 	  	- ```[Return]```: Compressed data.
