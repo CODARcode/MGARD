@@ -68,7 +68,7 @@ cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DMGARD_ENABLE_SERIAL=ON\
     -DMGARD_ENABLE_HIP=ON\
     -DCMAKE_CXX_COMPILER=hipcc\
-    -DCMAKE_CXX_FLAGS="--amdgpu-target=gfx90a"\
+    -DCMAKE_HIP_ARCHITECTURES="gfx90a"\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
 cmake --build ${mgard_x_build_dir} -j ${num_build_procs}
