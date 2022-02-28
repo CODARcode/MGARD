@@ -510,6 +510,7 @@ set(
 set(
   MGARD_DOC_PAGES
   README.md
+  doc/MGARD-X.md
   doc/MGARD-GPU.md
   examples/README.md
   examples/linking/README.md
