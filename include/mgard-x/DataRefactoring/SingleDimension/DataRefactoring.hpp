@@ -133,8 +133,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<D, T, DeviceType> correction = w;
       correction.resize(coarse_shape);
 
-      LwpkReo<D, T, COPY, DeviceType>().Execute(
-          SubArray<1, SIZE, DeviceType>(fine_shape_array, true), v_fine, w_fine,
+      LwpkReo<D, T, COPY, DeviceType>().Execute(v_fine, w_fine,
           queue_idx);
 
       if (debug_print) {
@@ -154,8 +153,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       calc_correction_single(hierarchy, coeff, correction, curr_dim, l,
                              queue_idx);
 
-      LwpkReo<D, T, ADD, DeviceType>().Execute(
-          SubArray<1, SIZE, DeviceType>(coarse_shape_array, true), correction,
+      LwpkReo<D, T, ADD, DeviceType>().Execute(correction,
           coarse, queue_idx);
 
       if (debug_print) {
@@ -227,8 +225,7 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       calc_correction_single(hierarchy, coeff, correction, curr_dim, l,
                              queue_idx);
 
-      LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(
-          SubArray<1, SIZE, DeviceType>(coarse_shape_array, true), correction,
+      LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(correction,
           coarse, queue_idx);
 
       if (debug_print) {
@@ -245,8 +242,7 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
         PrintSubarray("SingleDimensionCoefficient - coeff", coeff);
       }
 
-      LwpkReo<D, T, COPY, DeviceType>().Execute(
-          SubArray<1, SIZE, DeviceType>(fine_shape_array, true), w_fine, v_fine,
+      LwpkReo<D, T, COPY, DeviceType>().Execute(w_fine, v_fine,
           queue_idx);
 
       if (debug_print) {

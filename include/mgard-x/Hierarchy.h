@@ -76,6 +76,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   std::vector<SIZE> shape;
   std::vector<std::vector<SIZE>> dofs;
   std::vector<Array<1, SIZE, DeviceType>> shapes;
+  std::vector<std::vector<SIZE>> shapes2;
   Array<1, SIZE, DeviceType> ranges;
   std::vector<T *> coords_h; // do not copy this
   // std::vector<T *> coords_d;

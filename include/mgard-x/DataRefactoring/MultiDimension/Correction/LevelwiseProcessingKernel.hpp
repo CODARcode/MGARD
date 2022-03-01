@@ -17,10 +17,9 @@ template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP,
 class LwpkReoFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT LwpkReoFunctor() {}
-  MGARDX_CONT LwpkReoFunctor(SubArray<1, SIZE, DeviceType> shape,
-                             SubArray<D, T, DeviceType> v,
+  MGARDX_CONT LwpkReoFunctor(SubArray<D, T, DeviceType> v,
                              SubArray<D, T, DeviceType> work)
-      : shape(shape), v(v), work(work) {
+      : v(v), work(work) {
     Functor<DeviceType>();
   }
 
@@ -32,17 +31,8 @@ public:
                 FunctorBase<DeviceType>::GetBlockDimX()) +
                FunctorBase<DeviceType>::GetThreadIdX();
 
-    SIZE *sm = (SIZE *)FunctorBase<DeviceType>::GetSharedMemory();
-    shape_sm = sm;
-
-    if (threadId < D) {
-      shape_sm[threadId] = *shape(threadId);
-    }
-  }
-
-  MGARDX_EXEC void Operation2() {
     SIZE idx[D];
-    SIZE firstD = div_roundup(shape_sm[0], F);
+    SIZE firstD = div_roundup(v.getShape(0), F);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
@@ -60,15 +50,15 @@ public:
                FunctorBase<DeviceType>::GetThreadIdZ();
 
     for (DIM d = 3; d < D; d++) {
-      idx[d] = bidx % shape_sm[d];
-      bidx /= shape_sm[d];
+      idx[d] = bidx % v.getShape(d);
+      bidx /= v.getShape(d);
     }
     // int z = blockIdx.z * blockDim.z + threadIdx.z;
     // int y = blockIdx.y * blockDim.y + threadIdx.y;
     // int x = blockIdx.z * blockDim.z + threadIdx.z;
     bool in_range = true;
     for (DIM d = 0; d < D; d++) {
-      if (idx[d] >= shape_sm[d])
+      if (idx[d] >= v.getShape(d))
         in_range = false;
     }
     if (in_range) {
@@ -82,24 +72,15 @@ public:
     }
   }
 
-  MGARDX_EXEC void Operation3() {}
-
-  MGARDX_EXEC void Operation4() {}
-
-  MGARDX_EXEC void Operation5() {}
 
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
-    size = D * sizeof(SIZE);
     return size;
   }
 
 private:
-  SubArray<1, SIZE, DeviceType> shape;
   SubArray<D, T, DeviceType> v, work;
-
   IDX threadId;
-  SIZE *shape_sm;
 };
 
 template <DIM D, typename T, OPTION OP, typename DeviceType>
@@ -110,19 +91,19 @@ public:
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>>
-  GenTask(SubArray<1, SIZE, DeviceType> shape, SubArray<D, T, DeviceType> v,
+  GenTask(SubArray<D, T, DeviceType> v,
           SubArray<D, T, DeviceType> work, int queue_idx) {
     using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;
-    FunctorType functor(shape, v, work);
+    FunctorType functor(v, work);
 
     SIZE total_thread_z = 1;
     SIZE total_thread_y = 1;
     SIZE total_thread_x = 1;
     if (D >= 3)
-      total_thread_z = shape.dataHost()[2];
+      total_thread_z = v.getShape(2);
     if (D >= 2)
-      total_thread_y = shape.dataHost()[1];
-    total_thread_x = shape.dataHost()[0];
+      total_thread_y = v.getShape(1);
+    total_thread_x = v.getShape(0);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -133,7 +114,7 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
     for (DIM d = 3; d < D; d++) {
-      gridx *= shape.dataHost()[d];
+      gridx *= v.getShape(d);
     }
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
@@ -142,11 +123,10 @@ public:
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape,
-               SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
+  void Execute(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
                int queue_idx) {
 
-    int range_l = std::min(6, (int)std::log2(shape.dataHost()[0]) - 1);
+    int range_l = std::min(6, (int)std::log2(v.getShape(0)) - 1);
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
 
@@ -163,7 +143,7 @@ public:
     const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
     using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;         \
     using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(shape, v, work, queue_idx);               \
+    TaskType task = GenTask<R, C, F>(v, work, queue_idx);               \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
     ExecutionReturn ret = adapter.Execute(task);                               \
     if (AutoTuner<DeviceType>::ProfileKernels) {                               \
