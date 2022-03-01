@@ -9,6 +9,9 @@
 set -e
 set -x
 
+module load cuda/11.4
+module load cmake
+
 ######## User Configurations ########
 # Source directory
 mgard_x_src_dir=.
