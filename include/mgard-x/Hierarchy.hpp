@@ -251,14 +251,17 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
 
   // shapes
   for (int l = 0; l < l_target + 1; l++) {
+    std::vector<SIZE> curr_shape(D_padded);
     SIZE *curr_shape_h = new SIZE[D_padded];
     for (int d = 0; d < D_padded; d++) {
+      curr_shape[d] = dofs[d][l];
       curr_shape_h[d] = dofs[d][l];
     }
 
     Array<1, SIZE, DeviceType> shape_array({D_padded});
     shape_array.load(curr_shape_h);
     shapes.push_back(shape_array);
+    shapes2.push_back(curr_shape);
     delete[] curr_shape_h;
   }
 
@@ -772,6 +775,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   dofs = hierarchy.dofs;
 
   shapes = hierarchy.shapes;
+  shapes2 = hierarchy.shapes2;
   ranges = hierarchy.ranges;
   coords = hierarchy.coords;
 
