@@ -2,16 +2,15 @@
 #define _MDR_BLOCKED_INTERLEAVER_HPP
 
 #include "InterleaverInterface.hpp"
-namespace mgard_x {
 namespace MDR {
 // direct interleaver with in-order recording
-template <DIM D, typename T>
-class BlockedInterleaver : public concepts::InterleaverInterface<D, T> {
+template <typename T>
+class BlockedInterleaver : public concepts::InterleaverInterface<T> {
 public:
-  BlockedInterleaver(Handle<D, T> &handle) : _handle(handle) {}
-  void interleave(T const *data, const std::vector<SIZE> &dims,
-                  const std::vector<SIZE> &dims_fine,
-                  const std::vector<SIZE> &dims_coasre, T *buffer) const {
+  BlockedInterleaver() {}
+  void interleave(T const *data, const std::vector<uint32_t> &dims,
+                  const std::vector<uint32_t> &dims_fine,
+                  const std::vector<uint32_t> &dims_coasre, T *buffer) const {
     size_t n1_nodal = dims_coasre[0];
     size_t n2_nodal = dims_coasre[1];
     size_t n3_nodal = dims_coasre[2];
@@ -57,9 +56,9 @@ public:
           dim1_offset, block_size, buffer_pos);
     }
   }
-  void reposition(T const *buffer, const std::vector<SIZE> &dims,
-                  const std::vector<SIZE> &dims_fine,
-                  const std::vector<SIZE> &dims_coasre, T *data) const {
+  void reposition(T const *buffer, const std::vector<uint32_t> &dims,
+                  const std::vector<uint32_t> &dims_fine,
+                  const std::vector<uint32_t> &dims_coasre, T *data) const {
     size_t n1_nodal = dims_coasre[0];
     size_t n2_nodal = dims_coasre[1];
     size_t n3_nodal = dims_coasre[2];
@@ -107,14 +106,14 @@ public:
   void print() const { std::cout << "Blocked interleaver" << std::endl; }
 
 private:
-  SIZE collect_data_3d_blocked(const T *data, const SIZE n1, const SIZE n2,
-                               const SIZE n3, const SIZE dim0_offset,
-                               const SIZE dim1_offset, const int block_size,
+  uint32_t collect_data_3d_blocked(const T *data, const uint32_t n1, const uint32_t n2,
+                               const uint32_t n3, const uint32_t dim0_offset,
+                               const uint32_t dim1_offset, const int block_size,
                                T *buffer) const {
-    SIZE num_block_1 = (n1 - 1) / block_size + 1;
-    SIZE num_block_2 = (n2 - 1) / block_size + 1;
-    SIZE num_block_3 = (n3 - 1) / block_size + 1;
-    SIZE index = 0;
+    uint32_t num_block_1 = (n1 - 1) / block_size + 1;
+    uint32_t num_block_2 = (n2 - 1) / block_size + 1;
+    uint32_t num_block_3 = (n3 - 1) / block_size + 1;
+    uint32_t index = 0;
     const T *data_x_pos = data;
     for (int i = 0; i < num_block_1; i++) {
       int size_1 = (i == num_block_1 - 1) ? n1 - i * block_size : block_size;
@@ -144,14 +143,14 @@ private:
     }
     return index;
   }
-  SIZE reposition_data_3d_blocked(const T *buffer, const SIZE n1, const SIZE n2,
-                                  const SIZE n3, const SIZE dim0_offset,
-                                  const SIZE dim1_offset, const int block_size,
+  uint32_t reposition_data_3d_blocked(const T *buffer, const uint32_t n1, const uint32_t n2,
+                                  const uint32_t n3, const uint32_t dim0_offset,
+                                  const uint32_t dim1_offset, const int block_size,
                                   T *data) const {
-    SIZE num_block_1 = (n1 - 1) / block_size + 1;
-    SIZE num_block_2 = (n2 - 1) / block_size + 1;
-    SIZE num_block_3 = (n3 - 1) / block_size + 1;
-    SIZE index = 0;
+    uint32_t num_block_1 = (n1 - 1) / block_size + 1;
+    uint32_t num_block_2 = (n2 - 1) / block_size + 1;
+    uint32_t num_block_3 = (n3 - 1) / block_size + 1;
+    uint32_t index = 0;
     T *data_x_pos = data;
     for (int i = 0; i < num_block_1; i++) {
       int size_1 = (i == num_block_1 - 1) ? n1 - i * block_size : block_size;
@@ -182,8 +181,6 @@ private:
     return index;
   }
 
-  Handle<D, T> &_handle;
 };
 } // namespace MDR
-} // namespace mgard_x
 #endif

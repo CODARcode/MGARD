@@ -3,7 +3,6 @@
 
 #include "LevelCompressorInterface.hpp"
 #include "LosslessCompressor.hpp"
-namespace mgard_x {
 namespace MDR {
 #define CR_THRESHOLD 1.05
 // compress all layers
@@ -11,7 +10,7 @@ class AdaptiveLevelCompressor : public concepts::LevelCompressorInterface {
 public:
   AdaptiveLevelCompressor(int l = 26) : latter_index(l) {}
   uint8_t compress_level(std::vector<uint8_t *> &streams,
-                         std::vector<SIZE> &stream_sizes) const {
+                         std::vector<uint32_t> &stream_sizes) const {
     int stopping_index = stream_sizes.size();
     for (int i = 0; i < streams.size(); i++) {
       uint8_t *compressed = NULL;
@@ -41,7 +40,7 @@ public:
     return stopping_index;
   }
   void decompress_level(std::vector<const uint8_t *> &streams,
-                        const std::vector<SIZE> &stream_sizes,
+                        const std::vector<uint32_t> &stream_sizes,
                         uint8_t starting_bitplane, uint8_t num_bitplanes,
                         uint8_t stopping_index) {
     for (int i = 0; i < num_bitplanes; i++) {
@@ -73,5 +72,4 @@ private:
   std::vector<uint8_t *> buffer;
 };
 } // namespace MDR
-} // namespace mgard_x
 #endif

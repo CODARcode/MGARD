@@ -359,24 +359,21 @@ public:
       adapter.Execute(task);
     }
 
-    // this->handle.sync_all();
     // PrintSubarray("level_errors_workspace", level_errors_workspace);
     // get level error
     using T_reduce = double;
     SIZE reduce_size = (n - 1) / B + 1;
-    DeviceCollective<DeviceType> deviceReduce(this->handle);
+    
     for (int i = 0; i < num_bitplanes + 1; i++) {
       SubArray<1, T_reduce, DeviceType> curr_errors(
           {reduce_size}, level_errors_workspace(i, 0));
       SubArray<1, T_reduce, DeviceType> sum_error({1}, level_errors(i));
-      deviceReduce.Sum(reduce_size, curr_errors, sum_error, queue_idx);
+      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, queue_idx);
     }
 
-    // this->handle.sync_all();
     // PrintSubarray("level_errors", level_errors);
 
     T_reduce *level_errors_temp = new T_reduce[num_bitplanes + 1];
-    // cudaMemcpyAsyncHelper(this->handle, level_errors_temp,
     // level_errors.data(), (num_bitplanes+1)* sizeof(T_reduce), AUTO,
     // queue_idx);
     MemoryManager<DeviceType>().Copy1D(level_errors_temp, level_errors.data(),
@@ -390,13 +387,11 @@ public:
       level_errors_temp[i] =
           ldexp(level_errors_temp[i], 2 * (-(int)num_bitplanes + exp));
     }
-    // cudaMemcpyAsyncHelper(this->handle, level_errors.data(),
     // level_errors_temp, (num_bitplanes+1)* sizeof(T_reduce), AUTO, queue_idx);
     MemoryManager<DeviceType>().Copy1D(level_errors.data(), level_errors_temp,
                                        num_bitplanes + 1, queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    // this->handle.sync_all();
     // PrintSubarray("level_errors", level_errors);
 
     delete[] level_errors_temp;
@@ -679,7 +674,6 @@ public:
       adapter.Execute(task);
     }
 
-    // this->handle.sync_all();
     // PrintSubarray("v", v);
   }
 };
@@ -747,11 +741,11 @@ private:
 
 #define PER_BIT_BLOCK_SIZE 1
 // per bit bitplane encoder that encodes data by bit using T_stream type buffer
-template <DIM D, typename T_data, typename T_stream>
+template <typename T_data, typename T_stream>
 class PerBitBPEncoderGPU
-    : public concepts::BitplaneEncoderInterface<D, T_data> {
+    : public concepts::BitplaneEncoderInterface<T_data> {
 public:
-  PerBitBPEncoderGPU(Handle<D, T_data, CUDA> &handle) : _handle(handle) {
+  PerBitBPEncoderGPU(){
     std::cout << "PerBitBPEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "PerBitBPEncoderGPU: input data must be floating points.");
@@ -853,7 +847,7 @@ public:
     stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
 
     Array<1, T_data, CUDA> v_array({(SIZE)n});
-    v_array.loadData(data);
+    v_array.load(data);
     SubArray<1, T_data, CUDA> v(v_array);
 
     Array<1, double, CUDA> level_errors_array({(SIZE)num_bitplanes + 1});
@@ -881,18 +875,14 @@ public:
         n, num_bitplanes, exp, v, encoded_bitplanes_subarray,
         level_errors_subarray, level_errors_work_subarray, 0);
 
-    // cudaMemcpyAsyncHelper(_handle, level_errors.data(),
-    // level_errors_subarray.data(), (num_bitplanes+1)* sizeof(double), AUTO,
-    // 0);
     MemoryManager<CUDA>::Copy1D(level_errors.data(),
                                 level_errors_subarray.data(), num_bitplanes + 1,
                                 0);
     DeviceRuntime<CUDA>::SyncQueue(0);
-    // _handle.sync_all();
 
     // PrintSubarray("encoded_bitplanes_subarray", encoded_bitplanes_subarray);
 
-    uint8_t *encoded_bitplanes = encoded_bitplanes_array.getDataHost();
+    uint8_t *encoded_bitplanes = encoded_bitplanes_array.hostCopy();
 
     std::vector<uint8_t *> streams2;
     for (int i = 0; i < num_bitplanes; i++) {
@@ -1110,7 +1100,7 @@ public:
     }
     Array<2, uint8_t, CUDA> encoded_bitplanes_array(
         {(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
-    encoded_bitplanes_array.loadData(encoded_bitplanes);
+    encoded_bitplanes_array.load(encoded_bitplanes);
     SubArray<2, uint8_t, CUDA> encoded_bitplanes_subarray(
         encoded_bitplanes_array);
 
@@ -1126,11 +1116,11 @@ public:
     }
 
     Array<1, bool, CUDA> flags_array({(SIZE)n});
-    flags_array.loadData(new_flags);
+    flags_array.load(new_flags);
     SubArray<1, bool, CUDA> flags_subarray(flags_array);
 
     Array<1, bool, CUDA> signs_array({(SIZE)n});
-    signs_array.loadData(new_signs);
+    signs_array.load(new_signs);
     SubArray<1, bool, CUDA> signs_subarray(signs_array);
 
     delete[] new_flags;
@@ -1140,15 +1130,15 @@ public:
                                           exp, encoded_bitplanes_subarray,
                                           flags_subarray, signs_subarray, v, 0);
 
-    new_flags = flags_array.getDataHost();
-    new_signs = signs_array.getDataHost();
+    new_flags = flags_array.hostCopy();
+    new_signs = signs_array.hostCopy();
 
     for (int i = 0; i < n; i++) {
       flags[i] = new_flags[i];
       signs[i] = new_signs[i];
     }
 
-    T_data *temp_data = v_array.getDataHost();
+    T_data *temp_data = v_array.hostCopy();
     memcpy(data, temp_data, n * sizeof(T_data));
     return data;
 
@@ -1252,7 +1242,6 @@ private:
     }
     level_errors[0] += data * data;
   }
-  Handle<D, T_data, CUDA> &_handle;
   std::vector<std::vector<bool>> level_signs;
   std::vector<std::vector<bool>> sign_flags;
 };

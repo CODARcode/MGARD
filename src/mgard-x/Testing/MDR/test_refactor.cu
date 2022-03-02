@@ -1,3 +1,5 @@
+#define MGARDX_COMPILE_CUDA
+
 #include <bitset>
 #include <cmath>
 #include <cstdlib>
@@ -5,8 +7,12 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+
+#include "mgard-x/Hierarchy.h"
+#include "mgard-x/RuntimeX/RuntimeX.h"
+
 // #include "utils.hpp"
-#include "cuda/MDR/Refactor/Refactor.hpp"
+#include "mgard-x/MDR/Refactor/Refactor.hpp"
 
 using namespace std;
 
@@ -26,43 +32,43 @@ void evaluate(const vector<T> &data, const vector<mgard_x::SIZE> &dims,
        << "s" << endl;
 }
 
-template <class T, class Decomposer, class Interleaver, class Encoder,
-          class Compressor, class ErrorCollector, class Writer>
-void test(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
-          int num_bitplanes, Decomposer decomposer, Interleaver interleaver,
-          Encoder encoder, Compressor compressor, ErrorCollector collector,
-          Writer writer) {
-  auto refactor =
-      mgard_x::MDR::ComposedRefactor<T, Decomposer, Interleaver, Encoder,
-                                     Compressor, ErrorCollector, Writer>(
-          decomposer, interleaver, encoder, compressor, collector, writer);
-  size_t num_elements = 1;
+// template <class T, class Decomposer, class Interleaver, class Encoder,
+//           class Compressor, class ErrorCollector, class Writer>
+// void test(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
+//           int num_bitplanes, Decomposer decomposer, Interleaver interleaver,
+//           Encoder encoder, Compressor compressor, ErrorCollector collector,
+//           Writer writer) {
+//   auto refactor =
+//       MDR::ComposedRefactor<T, Decomposer, Interleaver, Encoder,
+//                                      Compressor, ErrorCollector, Writer>(
+//           decomposer, interleaver, encoder, compressor, collector, writer);
+//   size_t num_elements = 1;
 
-  FILE *pFile;
-  pFile = fopen(filename.c_str(), "rb");
-  for (int d = 0; d < dims.size(); d++)
-    num_elements *= dims[d];
-  vector<T> data(
-      num_elements); // MGARD::readfile<T>(filename.c_str(), num_elements);
-  fread(data.data(), 1, num_elements * sizeof(T), pFile);
-  fclose(pFile);
-  evaluate(data, dims, target_level, num_bitplanes, refactor);
-}
+//   FILE *pFile;
+//   pFile = fopen(filename.c_str(), "rb");
+//   for (int d = 0; d < dims.size(); d++)
+//     num_elements *= dims[d];
+//   vector<T> data(
+//       num_elements); // MGARD::readfile<T>(filename.c_str(), num_elements);
+//   fread(data.data(), 1, num_elements * sizeof(T), pFile);
+//   fclose(pFile);
+//   evaluate(data, dims, target_level, num_bitplanes, refactor);
+// }
 
-template <typename HandleType, mgard_x::DIM D, class T_data, class T_bitplane,
+template <mgard_x::DIM D, class T_data, class T_bitplane,
           class Decomposer, class Interleaver, class Encoder, class Compressor,
           class ErrorCollector, class Writer>
 void test2(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
-           int num_bitplanes, HandleType &handle, Decomposer decomposer,
+           int num_bitplanes, mgard_x::Hierarchy<D, T_data, mgard_x::CUDA> &hierarchy, Decomposer decomposer,
            Interleaver interleaver, Encoder encoder, Compressor compressor,
            ErrorCollector collector, Writer writer) {
   printf("test2\n");
 
   auto refactor =
-      mgard_m::MDR::ComposedRefactor<HandleType, D, T_data, T_bitplane,
+      mgard_x::MDR::ComposedRefactor<D, T_data, T_bitplane,
                                      Decomposer, Interleaver, Encoder,
                                      Compressor, ErrorCollector, Writer>(
-          handle, decomposer, interleaver, encoder, compressor, collector,
+          hierarchy, decomposer, interleaver, encoder, compressor, collector,
           writer);
   size_t num_elements = 1;
 
@@ -113,32 +119,25 @@ int main(int argc, char **argv) {
               << std::endl;
   }
   const mgard_x::DIM D = 3;
-  using HandleType = mgard_x::Handle<D, T>;
   printf("dims: %u %u %u\n", dims[2], dims[1], dims[0]);
 
-  mgard_x::Config config;
-  config.l_target = target_level;
-  HandleType handle(dims, config);
-  printf("Handle initialized\n");
-  printf("handle.shape: %u %u %u\n", handle.shape[2], handle.shape[1],
-         handle.shape[0]);
+  mgard_x::Hierarchy<D, T, mgard_x::CUDA> hierarchy(dims);
 
-  if (false) {
-    auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T>(handle);
-    // auto decomposer = mgard_x::MDR::MGARDHierarchicalDecomposer<T>();
+  // if (false) {
+    auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T>(hierarchy);
 
-    auto interleaver = mgard_x::MDR::DirectInterleaver<D, T>(handle);
+    auto interleaver = mgard_x::MDR::DirectInterleaver<D, T>(hierarchy);
     // auto interleaver = mgard_x::MDR::SFCInterleaver<T>();
     // auto interleaver = mgard_x::MDR::BlockedInterleaver<T>();
 
-    auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T, T_stream>(handle);
+    auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error>();
     // auto encoder = mgard_x::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
     // auto encoder = mgard_x::MDR::NegaBinaryBPEncoder<D, T, T_stream>(handle);
     // auto encoder = mgard_x::MDR::PerBitBPEncoder<D, T, T_stream>(handle);
     // auto encoder = mgard_x::MDR::PerBitBPEncoderGPU<D, T, T_stream>(handle);
     // auto encoder = mgard_x::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
 
-    auto compressor = mgard_x::MDR::DefaultLevelCompressor();
+    auto compressor = mgard_x::MDR::DefaultLevelCompressor<T_stream>();
     // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
     // auto compressor = mgard_x::MDR::NullLevelCompressor();
 
@@ -148,30 +147,32 @@ int main(int argc, char **argv) {
     // auto writer = mgard_x::MDR::HPSSFileWriter(metadata_file, files, 2048,
     // 512 * 1024 * 1024);
 
-    test<T>(filename, dims, target_level, num_bitplanes, decomposer,
-            interleaver, encoder, compressor, collector, writer);
-  }
-
-  if (true) {
-    std::vector<mgard_x::Array<1, bool, mgard_x::CUDA>> level_signs;
-
-    auto decomposer =
-        mgard_m::MDR::MGARDOrthoganalDecomposer<HandleType, D, T>(handle);
-    auto interleaver =
-        mgard_m::MDR::DirectInterleaver<HandleType, D, T>(handle);
-    // auto encoder = mgard_m::MDR::GroupedBPEncoder<HandleType, D, T, T_stream,
-    // T_error>(handle);
-    auto encoder =
-        mgard_m::MDR::GroupedWarpBPEncoder<HandleType, D, T, T_stream, T_error>(
-            handle);
-    auto compressor =
-        mgard_m::MDR::DefaultLevelCompressor<HandleType, D, T_stream>(handle);
-    auto collector = mgard_x::MDR::SquaredErrorCollector<T>();
-    auto writer = mgard_x::MDR::ConcatLevelFileWriter(metadata_file, files);
-    test2<mgard_x::Handle<D, T>, D, T, T_stream>(
-        filename, dims, target_level, num_bitplanes, handle, decomposer,
+    test2<D, T, T_stream>(
+        filename, dims, target_level, num_bitplanes, hierarchy, decomposer,
         interleaver, encoder, compressor, collector, writer);
-  }
+
+    // test2<T>(filename, dims, target_level, num_bitplanes, decomposer,
+    //         interleaver, encoder, compressor, collector, writer);
+  // }
+
+  // if (true) {
+  //   std::vector<mgard_x::Array<1, bool, mgard_x::CUDA>> level_signs;
+
+    // auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T>(hierarchy);
+    // auto interleaver = mgard_x::MDR::DirectInterleaver<D, T>(hierarchy);
+    // auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error>();
+  //   auto encoder =
+  //       mgard_m::MDR::GroupedWarpBPEncoder<D, T, T_stream, T_error>();
+  //   auto compressor =
+  //       mgard_m::MDR::DefaultLevelCompressor<D, T_stream>();
+  //   auto collector = mgard_x::MDR::SquaredErrorCollector<T>();
+  //   auto writer = mgard_x::MDR::ConcatLevelFileWriter(metadata_file, files);
+  //   test2<D, T, T_stream>(
+  //       filename, dims, target_level, num_bitplanes, hierarchy, decomposer,
+  //       interleaver, encoder, compressor, collector, writer);
+  // }
 
   return 0;
 }
+
+#undef MGARDX_COMPILE_CUDA

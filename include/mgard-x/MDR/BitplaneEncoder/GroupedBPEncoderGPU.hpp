@@ -700,570 +700,13 @@ public:
 
 // general bitplane encoder that encodes data by block using T_stream type
 // buffer
-template <DIM D, typename T_data, typename T_stream>
-class GroupedBPEncoderGPU
-    : public concepts::BitplaneEncoderInterface<D, T_data> {
-public:
-  GroupedBPEncoderGPU(Handle<D, T_data> &handle) : _handle(handle) {
-    std::cout << "GroupedBPEncoder\n";
-    static_assert(std::is_floating_point<T_data>::value,
-                  "GeneralBPEncoder: input data must be floating points.");
-    static_assert(!std::is_same<T_data, long double>::value,
-                  "GeneralBPEncoder: long double is not supported.");
-    static_assert(std::is_unsigned<T_stream>::value,
-                  "GroupedBPBlockEncoder: streams must be unsigned integers.");
-    static_assert(std::is_integral<T_stream>::value,
-                  "GroupedBPBlockEncoder: streams must be unsigned integers.");
-  }
-
-  std::vector<uint8_t *> encode(T_data const *data, SIZE n, int32_t exp,
-                                uint8_t num_bitplanes,
-                                std::vector<SIZE> &stream_sizes) const {
-
-    assert(num_bitplanes > 0);
-    // determine block size based on bitplane integer type
-    SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
-    std::vector<uint8_t> starting_bitplanes =
-        std::vector<uint8_t>((n - 1) / block_size + 1, 0);
-    stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
-    // define fixed point type
-    using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
-                                           uint64_t, uint32_t>::type;
-    std::vector<uint8_t *> streams;
-    for (int i = 0; i < num_bitplanes; i++) {
-      streams.push_back(
-          (uint8_t *)malloc(2 * n / UINT8_BITS + sizeof(T_stream)));
-    }
-    std::vector<T_fp> int_data_buffer(block_size, 0);
-    std::vector<T_stream *> streams_pos(streams.size());
-    for (int i = 0; i < streams.size(); i++) {
-      streams_pos[i] = reinterpret_cast<T_stream *>(streams[i]);
-    }
-    T_data const *data_pos = data;
-    int block_id = 0;
-    for (int i = 0; i < n - block_size; i += block_size) {
-      T_stream sign_bitplane = 0;
-      for (int j = 0; j < block_size; j++) {
-        T_data cur_data = *(data_pos++);
-        T_data shifted_data = ldexp(cur_data, num_bitplanes - exp);
-        int64_t fix_point = (int64_t)shifted_data;
-        T_stream sign = cur_data < 0;
-        int_data_buffer[j] = sign ? -fix_point : +fix_point;
-        sign_bitplane += sign << j;
-      }
-      starting_bitplanes[block_id++] =
-          encode_block(int_data_buffer.data(), block_size, num_bitplanes,
-                       sign_bitplane, streams_pos);
-    }
-    // leftover
-    {
-      int rest_size = n - block_size * block_id;
-      T_stream sign_bitplane = 0;
-      for (int j = 0; j < rest_size; j++) {
-        T_data cur_data = *(data_pos++);
-        T_data shifted_data = ldexp(cur_data, num_bitplanes - exp);
-        int64_t fix_point = (int64_t)shifted_data;
-        T_stream sign = cur_data < 0;
-        int_data_buffer[j] = sign ? -fix_point : +fix_point;
-        sign_bitplane += sign << j;
-      }
-      starting_bitplanes[block_id++] =
-          encode_block(int_data_buffer.data(), rest_size, num_bitplanes,
-                       sign_bitplane, streams_pos);
-    }
-    for (int i = 0; i < num_bitplanes; i++) {
-      stream_sizes[i] =
-          reinterpret_cast<uint8_t *>(streams_pos[i]) - streams[i];
-    }
-    // merge starting_bitplane with the first bitplane
-    SIZE merged_size = 0;
-    uint8_t *merged = merge_arrays(
-        reinterpret_cast<uint8_t const *>(starting_bitplanes.data()),
-        starting_bitplanes.size() * sizeof(uint8_t),
-        reinterpret_cast<uint8_t *>(streams[0]), stream_sizes[0], merged_size);
-    free(streams[0]);
-    streams[0] = merged;
-    stream_sizes[0] = merged_size;
-    return streams;
-  }
-
-  // only differs in error collection
-  std::vector<uint8_t *> encode(T_data const *data, SIZE n, int32_t exp,
-                                uint8_t num_bitplanes,
-                                std::vector<SIZE> &stream_sizes,
-                                std::vector<double> &level_errors) const {
-    assert(num_bitplanes > 0);
-    // init level errors
-    level_errors.clear();
-    level_errors.resize(num_bitplanes + 1);
-    for (int i = 0; i < level_errors.size(); i++) {
-      level_errors[i] = 0;
-    }
-    stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
-
-    Array<1, T_data, CUDA> v_array({(SIZE)n});
-    v_array.loadData(data);
-    SubArray<1, T_data, CUDA> v(v_array);
-
-    Array<1, double, CUDA> level_errors_array({(SIZE)num_bitplanes + 1});
-    SubArray<1, double, CUDA> level_errors_subarray(level_errors_array);
-
-    SIZE num_batches_per_TB = 2;
-    using T_bitplane = uint32_t;
-    const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
-
-    Array<2, double, CUDA> level_errors_work_array(
-        {(SIZE)num_bitplanes + 1, num_blocks});
-    SubArray<2, double, CUDA> level_errors_work_subarray(
-        level_errors_work_array);
-
-    Array<2, T_bitplane, CUDA> encoded_bitplanes_array(
-        {(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
-    SubArray<2, T_bitplane, CUDA> encoded_bitplanes_subarray(
-        encoded_bitplanes_array);
-
-    GroupedEncoder<T_data, T_bitplane, double, BINARY_TYPE,
-                   DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM, CUDA>()
-        .Execute(n, num_batches_per_TB, num_bitplanes, exp, v,
-                 encoded_bitplanes_subarray, level_errors_subarray,
-                 level_errors_work_subarray, 0);
-
-    // cudaMemcpyAsyncHelper(_handle, level_errors.data(),
-    // level_errors_subarray.data(), (num_bitplanes+1)* sizeof(double), AUTO,
-    // 0);
-    MemoryManager<CUDA>::Copy1D(level_errors.data(),
-                                level_errors_subarray.data(),
-                                (num_bitplanes + 1), 0);
-    DeviceRuntime<CUDA>::SyncQueue(0);
-    // _handle.sync_all();
-
-    T_bitplane *encoded_bitplanes = encoded_bitplanes_array.getDataHost();
-
-    std::vector<uint8_t *> streams2;
-    for (int i = 0; i < num_bitplanes; i++) {
-      stream_sizes[i] = bitplane_max_length_total * sizeof(T_bitplane);
-      streams2.push_back(
-          (uint8_t *)malloc(bitplane_max_length_total * sizeof(T_bitplane)));
-      memcpy(streams2[i], encoded_bitplanes + i * bitplane_max_length_total,
-             bitplane_max_length_total * sizeof(T_bitplane));
-    }
-    return streams2;
-
-    for (int i = 0; i < level_errors.size(); i++) {
-      level_errors[i] = 0;
-    }
-    // determine block size based on bitplane integer type
-    SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
-    std::vector<uint8_t> starting_bitplanes =
-        std::vector<uint8_t>((n - 1) / block_size + 1, 0);
-
-    // define fixed point type
-    using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
-                                           uint64_t, uint32_t>::type;
-    std::vector<uint8_t *> streams;
-    for (int i = 0; i < num_bitplanes; i++) {
-      streams.push_back(
-          (uint8_t *)malloc(2 * n / UINT8_BITS + sizeof(T_stream)));
-    }
-    std::vector<T_fp> int_data_buffer(block_size, 0);
-    std::vector<T_stream *> streams_pos(streams.size());
-    for (int i = 0; i < streams.size(); i++) {
-      streams_pos[i] = reinterpret_cast<T_stream *>(streams[i]);
-    }
-
-    T_data const *data_pos = data;
-    int block_id = 0;
-
-    for (int i = 0; i < (int)n - (int)block_size; i += block_size) {
-      T_stream sign_bitplane = 0;
-      for (int j = 0; j < block_size; j++) {
-        T_data cur_data = *(data_pos++);
-        T_data shifted_data = ldexp(cur_data, num_bitplanes - exp);
-        // compute level errors
-        collect_level_errors(level_errors, fabs(shifted_data), num_bitplanes);
-        int64_t fix_point = (int64_t)shifted_data;
-        T_stream sign = cur_data < 0;
-        int_data_buffer[j] = sign ? -fix_point : +fix_point;
-        sign_bitplane += sign << j;
-      }
-      starting_bitplanes[block_id++] =
-          encode_block(int_data_buffer.data(), block_size, num_bitplanes,
-                       sign_bitplane, streams_pos);
-    }
-    // leftover
-
-    {
-      int rest_size = n - block_size * block_id;
-      T_stream sign_bitplane = 0;
-      for (int j = 0; j < rest_size; j++) {
-        T_data cur_data = *(data_pos++);
-        T_data shifted_data = ldexp(cur_data, num_bitplanes - exp);
-        // compute level errors
-        collect_level_errors(level_errors, fabs(shifted_data), num_bitplanes);
-        int64_t fix_point = (int64_t)shifted_data;
-        T_stream sign = cur_data < 0;
-        int_data_buffer[j] = sign ? -fix_point : +fix_point;
-        sign_bitplane += sign << j;
-      }
-      starting_bitplanes[block_id++] =
-          encode_block(int_data_buffer.data(), rest_size, num_bitplanes,
-                       sign_bitplane, streams_pos);
-    }
-
-    for (int i = 0; i < num_bitplanes; i++) {
-      stream_sizes[i] =
-          reinterpret_cast<uint8_t *>(streams_pos[i]) - streams[i];
-    }
-    // merge starting_bitplane with the first bitplane
-    SIZE merged_size = 0;
-    uint8_t *merged = merge_arrays(
-        reinterpret_cast<uint8_t const *>(starting_bitplanes.data()),
-        starting_bitplanes.size() * sizeof(uint8_t),
-        reinterpret_cast<uint8_t *>(streams[0]), stream_sizes[0], merged_size);
-    free(streams[0]);
-    streams[0] = merged;
-    stream_sizes[0] = merged_size;
-    // translate level errors
-    printf("error: ");
-    for (int i = 0; i < level_errors.size(); i++) {
-      level_errors[i] = ldexp(level_errors[i], 2 * (-num_bitplanes + exp));
-      printf("%f ", level_errors[i]);
-    }
-    printf("\n");
-
-    return streams;
-  }
-
-  T_data *decode(const std::vector<uint8_t const *> &streams, SIZE n, int exp,
-                 uint8_t num_bitplanes) {
-    SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
-    // define fixed point type
-    using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
-                                           uint64_t, uint32_t>::type;
-    T_data *data = (T_data *)malloc(n * sizeof(T_data));
-    if (num_bitplanes == 0) {
-      memset(data, 0, n * sizeof(T_data));
-      return data;
-    }
-    std::vector<T_stream const *> streams_pos(streams.size());
-    for (int i = 0; i < streams.size(); i++) {
-      streams_pos[i] = reinterpret_cast<T_stream const *>(streams[i]);
-    }
-    // deinterleave the first bitplane
-    SIZE recording_bitplane_size =
-        *reinterpret_cast<int32_t const *>(streams_pos[0]);
-    uint8_t const *recording_bitplanes =
-        reinterpret_cast<uint8_t const *>(streams_pos[0]) + sizeof(SIZE);
-    streams_pos[0] = reinterpret_cast<T_stream const *>(
-        recording_bitplanes + recording_bitplane_size);
-
-    std::vector<T_fp> int_data_buffer(block_size, 0);
-    // decode
-    T_data *data_pos = data;
-    int block_id = 0;
-    for (int i = 0; i < n - block_size; i += block_size) {
-      uint8_t recording_bitplane = recording_bitplanes[block_id++];
-      if (recording_bitplane < num_bitplanes) {
-        memset(int_data_buffer.data(), 0, block_size * sizeof(T_fp));
-        T_stream sign_bitplane = *(streams_pos[recording_bitplane]++);
-        decode_block(streams_pos, block_size, recording_bitplane,
-                     num_bitplanes - recording_bitplane,
-                     int_data_buffer.data());
-        for (int j = 0; j < block_size; j++, sign_bitplane >>= 1) {
-          T_data cur_data =
-              ldexp((T_data)int_data_buffer[j], -num_bitplanes + exp);
-          *(data_pos++) = (sign_bitplane & 1u) ? -cur_data : cur_data;
-        }
-      } else {
-        for (int j = 0; j < block_size; j++) {
-          *(data_pos++) = 0;
-        }
-      }
-    }
-    // leftover
-    {
-      int rest_size = n - block_size * block_id;
-      int recording_bitplane = recording_bitplanes[block_id];
-      T_stream sign_bitplane = 0;
-      if (recording_bitplane < num_bitplanes) {
-        memset(int_data_buffer.data(), 0, block_size * sizeof(T_fp));
-        sign_bitplane = *(streams_pos[recording_bitplane]++);
-        decode_block(streams_pos, block_size, recording_bitplane,
-                     num_bitplanes - recording_bitplane,
-                     int_data_buffer.data());
-        for (int j = 0; j < rest_size; j++, sign_bitplane >>= 1) {
-          T_data cur_data =
-              ldexp((T_data)int_data_buffer[j], -num_bitplanes + exp);
-          *(data_pos++) = (sign_bitplane & 1u) ? -cur_data : cur_data;
-        }
-      } else {
-        for (int j = 0; j < block_size; j++) {
-          *(data_pos++) = 0;
-        }
-      }
-    }
-    return data;
-  }
-
-  // decode the data and record necessary information for progressiveness
-  T_data *progressive_decode(const std::vector<uint8_t const *> &streams,
-                             SIZE n, int exp, uint8_t starting_bitplane,
-                             uint8_t num_bitplanes, int level) {
-    T_data *data = (T_data *)malloc(n * sizeof(T_data));
-    if (num_bitplanes == 0) {
-      memset(data, 0, n * sizeof(T_data));
-      return data;
-    }
-
-    if (level_signs.size() == level) {
-      level_signs.push_back(std::vector<bool>(n, false));
-    }
-    std::vector<bool> &signs = level_signs[level];
-    bool *new_signs = new bool[n];
-    for (int i = 0; i < n; i++) {
-      new_signs[i] = signs[i];
-    }
-
-    SIZE num_batches_per_TB = 2;
-    using T_bitplane = uint32_t;
-    const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
-
-    T_bitplane *encoded_bitplanes =
-        new T_bitplane[bitplane_max_length_total * num_bitplanes];
-    for (int i = 0; i < num_bitplanes; i++) {
-      memcpy(encoded_bitplanes + i * bitplane_max_length_total, streams[i],
-             bitplane_max_length_total * sizeof(T_bitplane));
-    }
-    Array<2, T_bitplane, CUDA> encoded_bitplanes_array(
-        {(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
-    encoded_bitplanes_array.loadData(encoded_bitplanes);
-    SubArray<2, T_bitplane, CUDA> encoded_bitplanes_subarray(
-        encoded_bitplanes_array);
-
-    Array<1, bool, CUDA> signs_array({(SIZE)n});
-    signs_array.loadData(new_signs);
-    SubArray<1, bool, CUDA> signs_subarray(signs_array);
-
-    delete[] new_signs;
-
-    Array<1, T_data, CUDA> v_array({(SIZE)n});
-    SubArray<1, T_data, CUDA> v(v_array);
-
-    GroupedDecoder<T_data, T_bitplane, BINARY_TYPE, DATA_DECODING_ALGORITHM,
-                   CUDA>()
-        .Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp,
-                 encoded_bitplanes_subarray, signs_subarray, v, 0);
-
-    new_signs = signs_array.getDataHost();
-
-    for (int i = 0; i < n; i++) {
-      signs[i] = new_signs[i];
-    }
-
-    T_data *temp_data = v_array.getDataHost();
-    memcpy(data, temp_data, n * sizeof(T_data));
-    return data;
-
-    SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
-    // define fixed point type
-    using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
-                                           uint64_t, uint32_t>::type;
-
-    std::vector<T_stream const *> streams_pos(streams.size());
-    for (int i = 0; i < streams.size(); i++) {
-      streams_pos[i] = reinterpret_cast<T_stream const *>(streams[i]);
-    }
-    if (level_recording_bitplanes.size() == level) {
-      // deinterleave the first bitplane
-      SIZE recording_bitplane_size =
-          *reinterpret_cast<int32_t const *>(streams_pos[0]);
-      uint8_t const *recording_bitplanes_pos =
-          reinterpret_cast<uint8_t const *>(streams_pos[0]) + sizeof(SIZE);
-      auto recording_bitplanes = std::vector<uint8_t>(
-          recording_bitplanes_pos,
-          recording_bitplanes_pos + recording_bitplane_size);
-      level_recording_bitplanes.push_back(recording_bitplanes);
-      streams_pos[0] = reinterpret_cast<T_stream const *>(
-          recording_bitplanes_pos + recording_bitplane_size);
-    }
-
-    std::vector<T_fp> int_data_buffer(block_size, 0);
-
-    const std::vector<uint8_t> &recording_bitplanes =
-        level_recording_bitplanes[level];
-    const uint8_t ending_bitplane = starting_bitplane + num_bitplanes;
-    // decode
-    T_data *data_pos = data;
-    int block_id = 0;
-    for (int i = 0; i < n - block_size; i += block_size) {
-      uint8_t recording_bitplane = recording_bitplanes[block_id++];
-      if (recording_bitplane < ending_bitplane) {
-        memset(int_data_buffer.data(), 0, block_size * sizeof(T_fp));
-        if (recording_bitplane >= starting_bitplane) {
-          // have not recorded signs for this block
-          T_stream sign_bitplane =
-              *(streams_pos[recording_bitplane - starting_bitplane]++);
-          for (int j = 0; j < block_size; j++, sign_bitplane >>= 1) {
-            signs[i + j] = sign_bitplane & 1u;
-          }
-          decode_block(
-              streams_pos, block_size, recording_bitplane - starting_bitplane,
-              ending_bitplane - recording_bitplane, int_data_buffer.data());
-        } else {
-          decode_block(streams_pos, block_size, 0, num_bitplanes,
-                       int_data_buffer.data());
-        }
-        for (int j = 0; j < block_size; j++) {
-          T_data cur_data =
-              ldexp((T_data)int_data_buffer[j], -ending_bitplane + exp);
-          *(data_pos++) = signs[i + j] ? -cur_data : cur_data;
-        }
-      } else {
-        for (int j = 0; j < block_size; j++) {
-          *(data_pos++) = 0;
-        }
-      }
-    }
-    // leftover
-    {
-      int rest_size = n - block_size * block_id;
-      uint8_t recording_bitplane = recording_bitplanes[block_id];
-      if (recording_bitplane < ending_bitplane) {
-        memset(int_data_buffer.data(), 0, block_size * sizeof(T_fp));
-        if (recording_bitplane >= starting_bitplane) {
-          // have not recorded signs for this block
-          T_stream sign_bitplane =
-              *(streams_pos[recording_bitplane - starting_bitplane]++);
-          for (int j = 0; j < rest_size; j++, sign_bitplane >>= 1) {
-            signs[block_size * block_id + j] = sign_bitplane & 1u;
-          }
-          decode_block(
-              streams_pos, rest_size, recording_bitplane - starting_bitplane,
-              ending_bitplane - recording_bitplane, int_data_buffer.data());
-        } else {
-          decode_block(streams_pos, rest_size, 0, num_bitplanes,
-                       int_data_buffer.data());
-        }
-        for (int j = 0; j < rest_size; j++) {
-          T_data cur_data =
-              ldexp((T_data)int_data_buffer[j], -ending_bitplane + exp);
-          *(data_pos++) =
-              signs[block_size * block_id + j] ? -cur_data : cur_data;
-        }
-      } else {
-        for (int j = 0; j < rest_size; j++) {
-          *(data_pos++) = 0;
-        }
-      }
-    }
-    return data;
-  }
-
-  void print() const { std::cout << "Grouped bitplane encoder" << std::endl; }
-
-private:
-  template <class T> SIZE block_size_based_on_bitplane_int_type() const {
-    SIZE block_size = 0;
-    if (std::is_same<T, uint64_t>::value) {
-      block_size = 64;
-    } else if (std::is_same<T, uint32_t>::value) {
-      block_size = 32;
-    } else if (std::is_same<T, uint16_t>::value) {
-      block_size = 16;
-    } else if (std::is_same<T, uint8_t>::value) {
-      block_size = 8;
-    } else {
-      std::cerr << "Integer type not supported." << std::endl;
-      exit(0);
-    }
-    return block_size;
-  }
-  inline void collect_level_errors(std::vector<double> &level_errors,
-                                   float data, int num_bitplanes) const {
-    uint32_t fp_data = (uint32_t)data;
-    double mantissa = data - (uint32_t)data;
-    level_errors[num_bitplanes] += mantissa * mantissa;
-    for (int k = 1; k < num_bitplanes; k++) {
-      uint32_t mask = (1 << k) - 1;
-      double diff = (double)(fp_data & mask) + mantissa;
-      level_errors[num_bitplanes - k] += diff * diff;
-    }
-    double diff = fp_data + mantissa;
-    level_errors[0] += data * data;
-  }
-
-  template <class T_int>
-  inline uint8_t encode_block(T_int const *data, SIZE n, uint8_t num_bitplanes,
-                              T_stream sign,
-                              std::vector<T_stream *> &streams_pos) const {
-    bool recorded = false;
-    uint8_t recording_bitplane = num_bitplanes;
-    for (int k = num_bitplanes - 1; k >= 0; k--) {
-      T_stream bitplane_value = 0;
-      T_stream bitplane_index = num_bitplanes - 1 - k;
-      for (int i = 0; i < n; i++) {
-        bitplane_value += (T_stream)((data[i] >> k) & 1u) << i;
-      }
-      if (bitplane_value || recorded) {
-        if (!recorded) {
-          recorded = true;
-          recording_bitplane = bitplane_index;
-          *(streams_pos[bitplane_index]++) = sign;
-        }
-        *(streams_pos[bitplane_index]++) = bitplane_value;
-      }
-    }
-    return recording_bitplane;
-  }
-
-  template <class T_int>
-  inline void decode_block(std::vector<T_stream const *> &streams_pos, SIZE n,
-                           uint8_t recording_bitplane, uint8_t num_bitplanes,
-                           T_int *data) const {
-    for (int k = num_bitplanes - 1; k >= 0; k--) {
-      T_stream bitplane_index = recording_bitplane + num_bitplanes - 1 - k;
-      T_stream bitplane_value = *(streams_pos[bitplane_index]++);
-      for (int i = 0; i < n; i++) {
-        data[i] += ((bitplane_value >> i) & 1u) << k;
-      }
-    }
-  }
-
-  uint8_t *merge_arrays(uint8_t const *array1, SIZE size1,
-                        uint8_t const *array2, SIZE size2,
-                        SIZE &merged_size) const {
-    merged_size = sizeof(SIZE) + size1 + size2;
-    uint8_t *merged_array = (uint8_t *)malloc(merged_size);
-    *reinterpret_cast<SIZE *>(merged_array) = size1;
-    memcpy(merged_array + sizeof(SIZE), array1, size1);
-    memcpy(merged_array + sizeof(SIZE) + size1, array2, size2);
-    return merged_array;
-  }
-
-  Handle<D, T_data> &_handle;
-  std::vector<std::vector<bool>> level_signs;
-  std::vector<std::vector<uint8_t>> level_recording_bitplanes;
-};
-} // namespace MDR
-} // namespace mgard_x
-
-namespace mgard_m {
-namespace MDR {
-// general bitplane encoder that encodes data by block using T_stream type
-// buffer
-template <typename HandleType, mgard_x::DIM D, typename T_data,
+template <typename T_data,
           typename T_bitplane, typename T_error>
 class GroupedBPEncoder
-    : public concepts::BitplaneEncoderInterface<HandleType, D, T_data,
+    : public concepts::BitplaneEncoderInterface<T_data,
                                                 T_bitplane, T_error> {
 public:
-  GroupedBPEncoder(HandleType &handle) : handle(handle) {
+  GroupedBPEncoder(){
     std::cout << "GroupedBPEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
@@ -1275,34 +718,34 @@ public:
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
   }
 
-  mgard_x::Array<2, T_bitplane, mgard_x::CUDA>
-  encode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp,
-         mgard_x::SubArray<1, T_data, mgard_x::CUDA> v,
-         mgard_x::SubArray<1, T_error, mgard_x::CUDA> level_errors,
-         std::vector<mgard_x::SIZE> &streams_sizes, int queue_idx) const {
+  Array<2, T_bitplane, CUDA>
+  encode(SIZE n, SIZE num_bitplanes, int32_t exp,
+         SubArray<1, T_data, CUDA> v,
+         SubArray<1, T_error, CUDA> level_errors,
+         std::vector<SIZE> &streams_sizes, int queue_idx) const {
 
-    mgard_x::SIZE num_batches_per_TB = 2;
-    const mgard_x::SIZE num_elems_per_TB =
+    SIZE num_batches_per_TB = 2;
+    const SIZE num_elems_per_TB =
         sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const mgard_x::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    mgard_x::SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    mgard_x::SIZE bitplane_max_length_total =
+    const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+    SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
+    SIZE bitplane_max_length_total =
         bitplane_max_length_per_TB * num_blocks;
 
-    mgard_x::Array<2, T_error, mgard_x::CUDA> level_errors_work_array(
-        {(mgard_x::SIZE)num_bitplanes + 1, num_blocks});
-    mgard_x::SubArray<2, T_error, mgard_x::CUDA> level_errors_work(
+    Array<2, T_error, CUDA> level_errors_work_array(
+        {(SIZE)num_bitplanes + 1, num_blocks});
+    SubArray<2, T_error, CUDA> level_errors_work(
         level_errors_work_array);
 
-    mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_array(
-        {(mgard_x::SIZE)num_bitplanes,
-         (mgard_x::SIZE)bitplane_max_length_total});
-    mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes_subarray(
+    Array<2, T_bitplane, CUDA> encoded_bitplanes_array(
+        {(SIZE)num_bitplanes,
+         (SIZE)bitplane_max_length_total});
+    SubArray<2, T_bitplane, CUDA> encoded_bitplanes_subarray(
         encoded_bitplanes_array);
 
-    mgard_x::MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY_TYPE,
+    MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY_TYPE,
                                  DATA_ENCODING_ALGORITHM,
-                                 ERROR_COLLECTING_ALGORITHM, mgard_x::CUDA>()
+                                 ERROR_COLLECTING_ALGORITHM, CUDA>()
         .Execute(n, num_batches_per_TB, num_bitplanes, exp, v,
                  encoded_bitplanes_subarray, level_errors, level_errors_work,
                  queue_idx);
@@ -1314,28 +757,28 @@ public:
     return encoded_bitplanes_array;
   }
 
-  mgard_x::Array<1, T_data, mgard_x::CUDA>
-  decode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp,
-         mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes,
+  Array<1, T_data, CUDA>
+  decode(SIZE n, SIZE num_bitplanes, int32_t exp,
+         SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
          int level, int queue_idx) {}
 
   // decode the data and record necessary information for progressiveness
-  mgard_x::Array<1, T_data, mgard_x::CUDA> progressive_decode(
-      mgard_x::SIZE n, mgard_x::SIZE starting_bitplane,
-      mgard_x::SIZE num_bitplanes, int32_t exp,
-      mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes,
+  Array<1, T_data, CUDA> progressive_decode(
+      SIZE n, SIZE starting_bitplane,
+      SIZE num_bitplanes, int32_t exp,
+      SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
       int level, int queue_idx) {
 
-    mgard_x::SIZE num_batches_per_TB = 2;
-    const mgard_x::SIZE num_elems_per_TB =
+    SIZE num_batches_per_TB = 2;
+    const SIZE num_elems_per_TB =
         sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const mgard_x::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    mgard_x::SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    mgard_x::SIZE bitplane_max_length_total =
+    const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+    SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
+    SIZE bitplane_max_length_total =
         bitplane_max_length_per_TB * num_blocks;
 
     if (level_signs.size() == level) {
-      level_signs.push_back(mgard_x::Array<1, bool, mgard_x::CUDA>({n}));
+      level_signs.push_back(Array<1, bool, CUDA>({n}));
     }
 
     // uint8_t * encoded_bitplanes = new uint8_t[bitplane_max_length_total *
@@ -1345,46 +788,46 @@ public:
     // }
     // Array<2, uint8_t> encoded_bitplanes_array({(SIZE)num_bitplanes,
     // (SIZE)bitplane_max_length_total});
-    // encoded_bitplanes_array.loadData(encoded_bitplanes);
+    // encoded_bitplanes_array.load(encoded_bitplanes);
     // SubArray<2, uint8_t> encoded_bitplanes_subarray(encoded_bitplanes_array);
 
     // Array<1, bool> signs_array({(SIZE)n});
-    // signs_array.loadData(new_signs);
-    mgard_x::SubArray<1, bool, mgard_x::CUDA> signs_subarray(
+    // signs_array.load(new_signs);
+    SubArray<1, bool, CUDA> signs_subarray(
         level_signs[level]);
 
-    mgard_x::Array<1, T_data, mgard_x::CUDA> v_array({(mgard_x::SIZE)n});
-    mgard_x::SubArray<1, T_data, mgard_x::CUDA> v(v_array);
+    Array<1, T_data, CUDA> v_array({(SIZE)n});
+    SubArray<1, T_data, CUDA> v(v_array);
 
     // delete [] new_signs;
 
     // Array<1, T_data> v_array({(SIZE)n});
     // SubArray<1, T_data> v(v_array);
 
-    mgard_x::MDR::GroupedDecoder<T_data, T_bitplane, BINARY_TYPE,
-                                 DATA_DECODING_ALGORITHM, mgard_x::CUDA>()
+    MDR::GroupedDecoder<T_data, T_bitplane, BINARY_TYPE,
+                                 DATA_DECODING_ALGORITHM, CUDA>()
         .Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp,
                  encoded_bitplanes, signs_subarray, v, queue_idx);
 
-    // new_signs = signs_array.getDataHost();
+    // new_signs = signs_array.hostCopy();
 
     // for (int i = 0; i < n; i++) {
     //   signs[i] = new_signs[i];
     // }
 
-    // T_data * temp_data = v_array.getDataHost();
+    // T_data * temp_data = v_array.hostCopy();
     // memcpy(data, temp_data, n * sizeof(T_data));
     // return data;
     return v_array;
   }
 
-  mgard_x::SIZE buffer_size(mgard_x::SIZE n) const {
-    mgard_x::SIZE num_batches_per_TB = 2;
-    const mgard_x::SIZE num_elems_per_TB =
+  SIZE buffer_size(SIZE n) const {
+    SIZE num_batches_per_TB = 2;
+    const SIZE num_elems_per_TB =
         sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const mgard_x::SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    mgard_x::SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    mgard_x::SIZE bitplane_max_length_total =
+    const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+    SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
+    SIZE bitplane_max_length_total =
         bitplane_max_length_per_TB * num_blocks;
     return bitplane_max_length_total;
   }
@@ -1392,10 +835,9 @@ public:
   void print() const { std::cout << "Grouped bitplane encoder" << std::endl; }
 
 private:
-  HandleType &handle;
-  std::vector<mgard_x::Array<1, bool, mgard_x::CUDA>> level_signs;
+  std::vector<Array<1, bool, CUDA>> level_signs;
   std::vector<std::vector<uint8_t>> level_recording_bitplanes;
 };
 } // namespace MDR
-} // namespace mgard_m
+} // namespace mgard_x
 #endif

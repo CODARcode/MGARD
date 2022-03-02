@@ -3,7 +3,7 @@
 
 #include "../../RuntimeX/RuntimeX.h"
 
-#include "../../LevelwiseProcessingKernel.hpp"
+#include "../../DataRefactoring/MultiDimension/Correction/LevelwiseProcessingKernel.hpp"
 #include "../BitplaneEncoder/BitplaneEncoder.hpp"
 #include "../Decomposer/Decomposer.hpp"
 #include "../ErrorCollector/ErrorCollector.hpp"
@@ -14,7 +14,6 @@
 #include "../Retriever/Retriever.hpp"
 #include "../SizeInterpreter/SizeInterpreter.hpp"
 #include "ReconstructorInterface.hpp"
-namespace mgard_x {
 namespace MDR {
 // a decomposition-based scientific data reconstructor: inverse operator of
 // composed refactor
@@ -37,18 +36,18 @@ public:
     std::vector<std::vector<double>> level_abs_errors;
     uint8_t target_level = level_error_bounds.size() - 1;
     std::vector<std::vector<double>> &level_errors = level_squared_errors;
-    if (std::is_base_of<MaxErrorEstimator<T>, ErrorEstimator>::value) {
+    if (std::is_base_of<mgard_x::MDR::MaxErrorEstimator<T>, ErrorEstimator>::value) {
       std::cout << "ErrorEstimator is base of MaxErrorEstimator, computing "
                    "absolute error"
                 << std::endl;
-      MaxErrorCollector<T> collector = MaxErrorCollector<T>();
+      mgard_x::MDR::MaxErrorCollector<T> collector = mgard_x::MDR::MaxErrorCollector<T>();
       for (int i = 0; i <= target_level; i++) {
         auto collected_error = collector.collect_level_error(
             NULL, 0, level_squared_errors[i].size(), level_error_bounds[i]);
         level_abs_errors.push_back(collected_error);
       }
       level_errors = level_abs_errors;
-    } else if (std::is_base_of<SquaredErrorEstimator<T>,
+    } else if (std::is_base_of<mgard_x::MDR::SquaredErrorEstimator<T>,
                                ErrorEstimator>::value) {
       std::cout << "ErrorEstimator is base of SquaredErrorEstimator, using "
                    "level squared error directly"
@@ -125,7 +124,7 @@ public:
     free(metadata);
   }
 
-  const std::vector<SIZE> &get_dimensions() { return dimensions; }
+  const std::vector<uint32_t> &get_dimensions() { return dimensions; }
 
   ~ComposedReconstructor() {}
 
@@ -152,7 +151,7 @@ private:
     timer.start();
     auto level_dims = compute_level_dims(dimensions, target_level);
     auto reconstruct_dimensions = level_dims[target_level];
-    SIZE num_elements = 1;
+    uint32_t num_elements = 1;
     for (const auto &dim : reconstruct_dimensions) {
       num_elements *= dim;
     }
@@ -162,7 +161,7 @@ private:
     timer.print("Reconstruct Preprocessing");
 
     auto level_elements = compute_level_elements(level_dims, target_level);
-    std::vector<SIZE> dims_dummy(reconstruct_dimensions.size(), 0);
+    std::vector<uint32_t> dims_dummy(reconstruct_dimensions.size(), 0);
     for (int i = 0; i <= target_level; i++) {
       timer.start();
       compressor.decompress_level(
@@ -183,7 +182,7 @@ private:
       timer.print("Decoding");
 
       timer.start();
-      const std::vector<SIZE> &prev_dims =
+      const std::vector<uint32_t> &prev_dims =
           (i == 0) ? dims_dummy : level_dims[i - 1];
       interleaver.reposition(level_decoded_data, reconstruct_dimensions,
                              level_dims[i], prev_dims, data.data());
@@ -205,61 +204,60 @@ private:
   Retriever retriever;
   Compressor compressor;
   std::vector<T> data;
-  std::vector<SIZE> dimensions;
+  std::vector<uint32_t> dimensions;
   std::vector<T> level_error_bounds;
   std::vector<uint8_t> level_num_bitplanes;
   std::vector<uint8_t> stopping_indices;
   std::vector<std::vector<const uint8_t *>> level_components;
-  std::vector<std::vector<SIZE>> level_sizes;
-  std::vector<SIZE> level_num;
+  std::vector<std::vector<uint32_t>> level_sizes;
+  std::vector<uint32_t> level_num;
   std::vector<std::vector<double>> level_squared_errors;
 };
 } // namespace MDR
-} // namespace mgard_x
 
-namespace mgard_m {
+namespace mgard_x {
 namespace MDR {
 // a decomposition-based scientific data reconstructor: inverse operator of
 // composed refactor
-template <typename HandleType, mgard_x::DIM D, typename T_data,
+template <DIM D, typename T_data,
           typename T_bitplane, class Decomposer, class Interleaver,
           class Encoder, class Compressor, class SizeInterpreter,
           class ErrorEstimator, class Retriever>
 class ComposedReconstructor
-    : public concepts::ReconstructorInterface<HandleType, D, T_data,
+    : public concepts::ReconstructorInterface<D, T_data,
                                               T_bitplane> {
 public:
-  ComposedReconstructor(HandleType &handle, Decomposer decomposer,
+  ComposedReconstructor(Hierarchy<D, T_data, CUDA> &hierarchy, Decomposer decomposer,
                         Interleaver interleaver, Encoder encoder,
                         Compressor compressor, SizeInterpreter interpreter,
                         Retriever retriever)
-      : handle(handle), decomposer(decomposer), interleaver(interleaver),
+      : hierarchy(hierarchy), decomposer(decomposer), interleaver(interleaver),
         encoder(encoder), compressor(compressor), interpreter(interpreter),
         retriever(retriever) {
-    data_array = mgard_x::Array<D, T_data, mgard_x::CUDA>(handle.shape);
+    data_array = Array<D, T_data, CUDA>(hierarchy.shape_org);
   }
 
   // reconstruct data from encoded streams
   T_data *reconstruct(double tolerance) {
-    mgard_x::MDR::Timer timer;
+    MDR::Timer timer;
     timer.start();
     std::vector<std::vector<double>> level_abs_errors;
     uint8_t target_level = level_error_bounds.size() - 1;
     std::vector<std::vector<double>> &level_errors = level_squared_errors;
-    if (std::is_base_of<mgard_x::MDR::MaxErrorEstimator<T_data>,
+    if (std::is_base_of<MDR::MaxErrorEstimator<T_data>,
                         ErrorEstimator>::value) {
       std::cout << "ErrorEstimator is base of MaxErrorEstimator, computing "
                    "absolute error"
                 << std::endl;
-      mgard_x::MDR::MaxErrorCollector<T_data> collector =
-          mgard_x::MDR::MaxErrorCollector<T_data>();
+      MDR::MaxErrorCollector<T_data> collector =
+          MDR::MaxErrorCollector<T_data>();
       for (int i = 0; i <= target_level; i++) {
         auto collected_error = collector.collect_level_error(
             NULL, 0, level_squared_errors[i].size(), level_error_bounds[i]);
         level_abs_errors.push_back(collected_error);
       }
       level_errors = level_abs_errors;
-    } else if (std::is_base_of<mgard_x::MDR::SquaredErrorEstimator<T_data>,
+    } else if (std::is_base_of<MDR::SquaredErrorEstimator<T_data>,
                                ErrorEstimator>::value) {
       std::cout << "ErrorEstimator is base of SquaredErrorEstimator, using "
                    "level squared error directly"
@@ -307,16 +305,19 @@ public:
 
     printf("start progressive_reconstruct\n");
 
-    mgard_x::Array<D, T_data, mgard_x::CUDA> curr_data_array(data_array);
+    Array<D, T_data, CUDA> curr_data_array(data_array);
     // std::vector<T_data> cur_data(data);
 
     reconstruct(tolerance);
 
-    mgard_x::LevelwiseCalcNDKernel<D, T_data, ADD, mgard_x::CUDA>().Execute(
-        handle.shapes_h[0], handle.shapes_d[0],
-        mgard_x::SubArray<D, T_data, mgard_x::CUDA>(curr_data_array),
-        mgard_x::SubArray<D, T_data, mgard_x::CUDA>(data_array), 0);
-    return data_array.getDataHost();
+    // LevelwiseCalcNDKernel<D, T_data, ADD, CUDA>().Execute(
+    //     hierarchy.shapes_h[0], hierarchy.shapes_d[0],
+    //     SubArray<D, T_data, CUDA>(curr_data_array),
+    //     SubArray<D, T_data, CUDA>(data_array), 0);
+
+    LwpkReo<D, T_data, ADD, CUDA>().Execute(SubArray<D, T_data, CUDA>(curr_data_array),
+                                       SubArray<D, T_data, CUDA>(data_array), 0);
+    return data_array.hostCopy(true);
 
     // TODO: add resolution changes
     // if(cur_data.size() == data.size()){
@@ -337,18 +338,18 @@ public:
     uint8_t *metadata = retriever.load_metadata();
     uint8_t const *metadata_pos = metadata;
     uint8_t num_dims = *(metadata_pos++);
-    mgard_x::MDR::deserialize(metadata_pos, num_dims, dimensions);
+    MDR::deserialize(metadata_pos, num_dims, dimensions);
     uint8_t num_levels = *(metadata_pos++);
-    mgard_x::MDR::deserialize(metadata_pos, num_levels, level_error_bounds);
-    mgard_x::MDR::deserialize(metadata_pos, num_levels, level_squared_errors);
-    mgard_x::MDR::deserialize(metadata_pos, num_levels, level_sizes);
-    mgard_x::MDR::deserialize(metadata_pos, num_levels, stopping_indices);
-    mgard_x::MDR::deserialize(metadata_pos, num_levels, level_num);
+    MDR::deserialize(metadata_pos, num_levels, level_error_bounds);
+    MDR::deserialize(metadata_pos, num_levels, level_squared_errors);
+    MDR::deserialize(metadata_pos, num_levels, level_sizes);
+    MDR::deserialize(metadata_pos, num_levels, stopping_indices);
+    MDR::deserialize(metadata_pos, num_levels, level_num);
     level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
     free(metadata);
   }
 
-  const std::vector<mgard_x::SIZE> &get_dimensions() { return dimensions; }
+  const std::vector<SIZE> &get_dimensions() { return dimensions; }
 
   ~ComposedReconstructor() {}
 
@@ -371,7 +372,7 @@ private:
   bool reconstruct(uint8_t target_level,
                    const std::vector<uint8_t> &prev_level_num_bitplanes,
                    int queue_idx, bool progressive = true) {
-    mgard_x::MDR::Timer timer;
+    MDR::Timer timer;
     timer.start();
     // auto level_dims = compute_level_dims(dimensions, target_level);
     // auto reconstruct_dimensions = level_dims[target_level];
@@ -382,22 +383,22 @@ private:
     // data.clear();
     // data = std::vector<T_data>(num_elements, 0);
 
-    std::vector<std::vector<mgard_x::Array<1, mgard_x::Byte, mgard_x::CUDA>>>
+    std::vector<std::vector<Array<1, Byte, CUDA>>>
         compressed_bitplanes;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       compressed_bitplanes.push_back(
-          std::vector<mgard_x::Array<1, mgard_x::Byte, mgard_x::CUDA>>());
+          std::vector<Array<1, Byte, CUDA>>());
       int num_bitplanes =
           level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
       for (int bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
-        mgard_x::SIZE size =
+        SIZE size =
             level_sizes[level_idx]
                        [prev_level_num_bitplanes[level_idx] + bitplane_idx];
         // printf("level: %d, bitplane_idx: %d, size: %u\n", level_idx,
         // bitplane_idx, size);
         compressed_bitplanes[level_idx].push_back(
-            mgard_x::Array<1, mgard_x::Byte, mgard_x::CUDA>({size}));
-        compressed_bitplanes[level_idx][bitplane_idx].loadData(
+            Array<1, Byte, CUDA>({size}));
+        compressed_bitplanes[level_idx][bitplane_idx].load(
             level_components[level_idx][bitplane_idx]);
       }
     }
@@ -406,24 +407,24 @@ private:
     //   int num_bitplanes = level_num_bitplanes[level_idx] -
     //   prev_level_num_bitplanes[level_idx]; for (int bitplane_idx = 0;
     //   bitplane_idx < num_bitplanes; bitplane_idx++) {
-    //     mgard_x::SIZE size = level_sizes[level_idx][bitplane_idx];
+    //     SIZE size = level_sizes[level_idx][bitplane_idx];
     //     // printf("level: %d, bitplane_idx: %d, size: %u\n", level_idx,
     //     bitplane_idx, size);
-    //     // compressed_bitplanes[level_idx].push_back(mgard_x::Array<1,
-    //     mgard_x::Byte>({size}));
-    //     compressed_bitplanes[level_idx][bitplane_idx].loadData(level_components[level_idx][bitplane_idx]);
+    //     // compressed_bitplanes[level_idx].push_back(Array<1,
+    //     Byte>({size}));
+    //     compressed_bitplanes[level_idx][bitplane_idx].load(level_components[level_idx][bitplane_idx]);
     //   }
     // }
 
     // exit(0);
 
     printf("level_num_elems: ");
-    std::vector<mgard_x::SIZE> level_num_elems(target_level + 1);
-    mgard_x::SIZE prev_num_elems = 0;
+    std::vector<SIZE> level_num_elems(target_level + 1);
+    SIZE prev_num_elems = 0;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
-      mgard_x::SIZE curr_num_elems = 1;
-      for (mgard_x::DIM d = 0; d < D; d++) {
-        curr_num_elems *= handle.dofs[d][target_level - level_idx];
+      SIZE curr_num_elems = 1;
+      for (DIM d = 0; d < D; d++) {
+        curr_num_elems *= hierarchy.dofs[d][target_level - level_idx];
       }
       level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
       prev_num_elems = curr_num_elems;
@@ -437,19 +438,19 @@ private:
     // auto level_elements = compute_level_elements(level_dims, target_level);
     // std::vector<uint32_t> dims_dummy(reconstruct_dimensions.size(), 0);
 
-    mgard_x::Array<1, T_data, mgard_x::CUDA> *levels_array =
-        new mgard_x::Array<1, T_data, mgard_x::CUDA>[target_level + 1];
-    mgard_x::SubArray<1, T_data, mgard_x::CUDA> *levels_data =
-        new mgard_x::SubArray<1, T_data, mgard_x::CUDA>[target_level + 1];
+    Array<1, T_data, CUDA> *levels_array =
+        new Array<1, T_data, CUDA>[target_level + 1];
+    SubArray<1, T_data, CUDA> *levels_data =
+        new SubArray<1, T_data, CUDA>[target_level + 1];
 
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       timer.start();
       // compressor.decompress_level(level_components[i], level_sizes[i],
       // prev_level_num_bitplanes[i], level_num_bitplanes[i] -
       // prev_level_num_bitplanes[i], stopping_indices[i]);
-      mgard_x::SIZE num_bitplanes =
+      SIZE num_bitplanes =
           level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
-      mgard_x::Array<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes(
+      Array<2, T_bitplane, CUDA> encoded_bitplanes(
           {num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
 
       compressor.decompress_level(
@@ -469,11 +470,11 @@ private:
       levels_array[level_idx] = encoder.progressive_decode(
           level_num_elems[level_idx], prev_level_num_bitplanes[level_idx],
           num_bitplanes, level_exp,
-          mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA>(encoded_bitplanes),
+          SubArray<2, T_bitplane, CUDA>(encoded_bitplanes),
           level_idx, queue_idx);
-      handle.sync(queue_idx);
+      DeviceRuntime<CUDA>::SyncQueue(queue_idx);
       levels_data[level_idx] =
-          mgard_x::SubArray<1, T_data, mgard_x::CUDA>(levels_array[level_idx]);
+          SubArray<1, T_data, CUDA>(levels_array[level_idx]);
       compressor.decompress_release();
       timer.end();
       timer.print("Decoding");
@@ -481,24 +482,24 @@ private:
 
     timer.start();
     interleaver.reposition(
-        levels_data, mgard_x::SubArray<D, T_data, mgard_x::CUDA>(data_array),
+        levels_data, SubArray<D, T_data, CUDA>(data_array),
         queue_idx);
-    handle.sync(queue_idx);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Reposition");
 
     timer.start();
     decomposer.recompose(
-        mgard_x::SubArray<D, T_data, mgard_x::CUDA>(data_array), target_level,
+        SubArray<D, T_data, CUDA>(data_array), target_level,
         queue_idx);
-    handle.sync(queue_idx);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Recomposing");
 
     return true;
   }
 
-  HandleType &handle;
+  Hierarchy<D, T_data, CUDA> &hierarchy;
   Decomposer decomposer;
   Interleaver interleaver;
   Encoder encoder;
@@ -506,23 +507,23 @@ private:
   Retriever retriever;
   Compressor compressor;
 
-  // std::vector<std::vector<mgard_x::Array<1, mgard_x::Byte>>>
+  // std::vector<std::vector<Array<1, Byte>>>
   // compressed_bitplanes;
 
-  std::vector<mgard_x::Array<1, T_data, mgard_x::CUDA>> levels_array;
-  std::vector<mgard_x::SubArray<1, T_data, mgard_x::CUDA>> levels_data;
-  mgard_x::Array<D, T_data, mgard_x::CUDA> data_array;
+  std::vector<Array<1, T_data, CUDA>> levels_array;
+  std::vector<SubArray<1, T_data, CUDA>> levels_data;
+  Array<D, T_data, CUDA> data_array;
 
   std::vector<T_data> data;
-  std::vector<mgard_x::SIZE> dimensions;
+  std::vector<SIZE> dimensions;
   std::vector<T_data> level_error_bounds;
   std::vector<uint8_t> level_num_bitplanes;
   std::vector<uint8_t> stopping_indices;
   std::vector<std::vector<const uint8_t *>> level_components;
-  std::vector<std::vector<mgard_x::SIZE>> level_sizes;
-  std::vector<mgard_x::SIZE> level_num;
+  std::vector<std::vector<SIZE>> level_sizes;
+  std::vector<SIZE> level_num;
   std::vector<std::vector<double>> level_squared_errors;
 };
 } // namespace MDR
-} // namespace mgard_m
+} // namespace mgard_x
 #endif
