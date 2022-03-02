@@ -121,8 +121,21 @@ if (MGARD_ENABLE_SERIAL OR
   target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
   target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+<<<<<<< HEAD
   install(TARGETS mgard-x)
   install(TARGETS mgard-x-autotuner)
+=======
+
+  add_executable(test_refactor ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Testing/MDR/test_refactor.cu)
+  target_link_libraries(test_refactor mgard-library  ${CMAKE_DL_LIBS})
+  target_include_directories(test_refactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+
+  add_executable(test_reconstructor ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Testing/MDR/test_reconstructor.cu)
+  target_link_libraries(test_reconstructor mgard-library  ${CMAKE_DL_LIBS})
+  target_include_directories(test_reconstructor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+>>>>>>> Add MDR tests in CMakeLists
 endif()
 
 #Adding library here so we can set compile definitions for it.
