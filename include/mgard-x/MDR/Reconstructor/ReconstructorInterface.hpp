@@ -3,7 +3,6 @@
 
 #include "../../RuntimeX/RuntimeX.h"
 
-namespace mgard_x {
 namespace MDR {
 namespace concepts {
 
@@ -22,14 +21,13 @@ public:
 };
 } // namespace concepts
 } // namespace MDR
-} // namespace mgard_x
 
-namespace mgard_m {
+namespace mgard_x{
 namespace MDR {
 namespace concepts {
 
 // reconstructor: a general interface for scientific data reconstructor
-template <typename HandleType, mgard_x::DIM D, typename T_data,
+template <DIM D, typename T_data,
           typename T_bitplane>
 class ReconstructorInterface {
 public:
@@ -45,6 +43,6 @@ public:
 };
 } // namespace concepts
 } // namespace MDR
-} // namespace mgard_m
+} // namespace mgard_x
 
 #endif
