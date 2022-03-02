@@ -5,14 +5,13 @@
 
 #include "BitplaneEncoderInterface.hpp"
 #include <string.h>
-namespace mgard_x {
 namespace MDR {
 // general bitplane encoder that encodes data by block using T_stream type
 // buffer
-template <DIM D, typename T_data, typename T_stream>
-class GroupedBPEncoder : public concepts::BitplaneEncoderInterface<D, T_data> {
+template <typename T_data, typename T_stream>
+class GroupedBPEncoder : public concepts::BitplaneEncoderInterface<T_data> {
 public:
-  GroupedBPEncoder(Handle<D, T_data> &handle) : _handle(handle) {
+  GroupedBPEncoder() {
     std::cout << "GroupedBPEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
@@ -24,16 +23,16 @@ public:
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
   }
 
-  std::vector<uint8_t *> encode(T_data const *data, SIZE n, int32_t exp,
+  std::vector<uint8_t *> encode(T_data const *data, uint32_t n, int32_t exp,
                                 uint8_t num_bitplanes,
-                                std::vector<SIZE> &stream_sizes) const {
+                                std::vector<uint32_t> &stream_sizes) const {
 
     assert(num_bitplanes > 0);
     // determine block size based on bitplane integer type
-    SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
+    uint32_t block_size = block_size_based_on_bitplane_int_type<T_stream>();
     std::vector<uint8_t> starting_bitplanes =
         std::vector<uint8_t>((n - 1) / block_size + 1, 0);
-    stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
+    stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -84,7 +83,7 @@ public:
           reinterpret_cast<uint8_t *>(streams_pos[i]) - streams[i];
     }
     // merge starting_bitplane with the first bitplane
-    SIZE merged_size = 0;
+    uint32_t merged_size = 0;
     uint8_t *merged = merge_arrays(
         reinterpret_cast<uint8_t const *>(starting_bitplanes.data()),
         starting_bitplanes.size() * sizeof(uint8_t),
@@ -96,16 +95,16 @@ public:
   }
 
   // only differs in error collection
-  std::vector<uint8_t *> encode(T_data const *data, SIZE n, int32_t exp,
+  std::vector<uint8_t *> encode(T_data const *data, uint32_t n, int32_t exp,
                                 uint8_t num_bitplanes,
-                                std::vector<SIZE> &stream_sizes,
+                                std::vector<uint32_t> &stream_sizes,
                                 std::vector<double> &level_errors) const {
     assert(num_bitplanes > 0);
     // determine block size based on bitplane integer type
-    SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
+    uint32_t block_size = block_size_based_on_bitplane_int_type<T_stream>();
     std::vector<uint8_t> starting_bitplanes =
         std::vector<uint8_t>((n - 1) / block_size + 1, 0);
-    stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
+    stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -166,7 +165,7 @@ public:
           reinterpret_cast<uint8_t *>(streams_pos[i]) - streams[i];
     }
     // merge starting_bitplane with the first bitplane
-    SIZE merged_size = 0;
+    uint32_t merged_size = 0;
     uint8_t *merged = merge_arrays(
         reinterpret_cast<uint8_t const *>(starting_bitplanes.data()),
         starting_bitplanes.size() * sizeof(uint8_t),
@@ -181,9 +180,9 @@ public:
     return streams;
   }
 
-  T_data *decode(const std::vector<uint8_t const *> &streams, SIZE n, int exp,
+  T_data *decode(const std::vector<uint8_t const *> &streams, uint32_t n, int exp,
                  uint8_t num_bitplanes) {
-    SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
+    uint32_t block_size = block_size_based_on_bitplane_int_type<T_stream>();
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -197,7 +196,7 @@ public:
       streams_pos[i] = reinterpret_cast<T_stream const *>(streams[i]);
     }
     // deinterleave the first bitplane
-    SIZE recording_bitplane_size =
+    uint32_t recording_bitplane_size =
         *reinterpret_cast<int32_t const *>(streams_pos[0]);
     uint8_t const *recording_bitplanes =
         reinterpret_cast<uint8_t const *>(streams_pos[0]) + sizeof(uint32_t);
@@ -254,9 +253,9 @@ public:
 
   // decode the data and record necessary information for progressiveness
   T_data *progressive_decode(const std::vector<uint8_t const *> &streams,
-                             SIZE n, int exp, uint8_t starting_bitplane,
+                             uint32_t n, int exp, uint8_t starting_bitplane,
                              uint8_t num_bitplanes, int level) {
-    SIZE block_size = block_size_based_on_bitplane_int_type<T_stream>();
+    uint32_t block_size = block_size_based_on_bitplane_int_type<T_stream>();
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -271,10 +270,10 @@ public:
     }
     if (level_recording_bitplanes.size() == level) {
       // deinterleave the first bitplane
-      SIZE recording_bitplane_size =
-          *reinterpret_cast<SIZE const *>(streams_pos[0]);
+      uint32_t recording_bitplane_size =
+          *reinterpret_cast<uint32_t const *>(streams_pos[0]);
       uint8_t const *recording_bitplanes_pos =
-          reinterpret_cast<uint8_t const *>(streams_pos[0]) + sizeof(SIZE);
+          reinterpret_cast<uint8_t const *>(streams_pos[0]) + sizeof(uint32_t);
       auto recording_bitplanes = std::vector<uint8_t>(
           recording_bitplanes_pos,
           recording_bitplanes_pos + recording_bitplane_size);
@@ -361,8 +360,8 @@ public:
   void print() const { std::cout << "Grouped bitplane encoder" << std::endl; }
 
 private:
-  template <class T> SIZE block_size_based_on_bitplane_int_type() const {
-    SIZE block_size = 0;
+  template <class T> uint32_t block_size_based_on_bitplane_int_type() const {
+    uint32_t block_size = 0;
     if (std::is_same<T, uint64_t>::value) {
       block_size = 64;
     } else if (std::is_same<T, uint32_t>::value) {
@@ -392,7 +391,7 @@ private:
   }
 
   template <class T_int>
-  inline uint8_t encode_block(T_int const *data, SIZE n, uint8_t num_bitplanes,
+  inline uint8_t encode_block(T_int const *data, uint32_t n, uint8_t num_bitplanes,
                               T_stream sign,
                               std::vector<T_stream *> &streams_pos) const {
     bool recorded = false;
@@ -416,7 +415,7 @@ private:
   }
 
   template <class T_int>
-  inline void decode_block(std::vector<T_stream const *> &streams_pos, SIZE n,
+  inline void decode_block(std::vector<T_stream const *> &streams_pos, uint32_t n,
                            uint8_t recording_bitplane, uint8_t num_bitplanes,
                            T_int *data) const {
     for (int k = num_bitplanes - 1; k >= 0; k--) {
@@ -428,21 +427,19 @@ private:
     }
   }
 
-  uint8_t *merge_arrays(uint8_t const *array1, SIZE size1,
-                        uint8_t const *array2, SIZE size2,
-                        SIZE &merged_size) const {
-    merged_size = sizeof(SIZE) + size1 + size2;
+  uint8_t *merge_arrays(uint8_t const *array1, uint32_t size1,
+                        uint8_t const *array2, uint32_t size2,
+                        uint32_t &merged_size) const {
+    merged_size = sizeof(uint32_t) + size1 + size2;
     uint8_t *merged_array = (uint8_t *)malloc(merged_size);
-    *reinterpret_cast<SIZE *>(merged_array) = size1;
-    memcpy(merged_array + sizeof(SIZE), array1, size1);
-    memcpy(merged_array + sizeof(SIZE) + size1, array2, size2);
+    *reinterpret_cast<uint32_t *>(merged_array) = size1;
+    memcpy(merged_array + sizeof(uint32_t), array1, size1);
+    memcpy(merged_array + sizeof(uint32_t) + size1, array2, size2);
     return merged_array;
   }
 
-  Handle<D, T_data> &_handle;
   std::vector<std::vector<bool>> level_signs;
   std::vector<std::vector<uint8_t>> level_recording_bitplanes;
 };
 } // namespace MDR
-} // namespace mgard_x
 #endif

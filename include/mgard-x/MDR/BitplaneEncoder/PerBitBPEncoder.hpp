@@ -3,7 +3,6 @@
 
 #include "BitplaneEncoderInterface.hpp"
 #include <bitset>
-namespace mgard_x {
 namespace MDR {
 class BitEncoder {
 public:
@@ -66,12 +65,12 @@ private:
   uint64_t const *stream_begin = NULL;
 };
 
-#define PER_BIT_BLOCK_SIZE 1
+#define PER_BIT_BLOCK_uint32_t 1
 // per bit bitplane encoder that encodes data by bit using T_stream type buffer
-template <DIM D, typename T_data, typename T_stream>
-class PerBitBPEncoder : public concepts::BitplaneEncoderInterface<D, T_data> {
+template <typename T_data, typename T_stream>
+class PerBitBPEncoder : public concepts::BitplaneEncoderInterface<T_data> {
 public:
-  PerBitBPEncoder(Handle<D, T_data> &handle) : _handle(handle) {
+  PerBitBPEncoder() {
     std::cout << "PerBitBPEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "PerBitBPEncoder: input data must be floating points.");
@@ -83,14 +82,14 @@ public:
                   "PerBitBPEncoder: streams must be unsigned integers.");
   }
 
-  std::vector<uint8_t *> encode(T_data const *data, SIZE n, int32_t exp,
+  std::vector<uint8_t *> encode(T_data const *data, uint32_t n, int32_t exp,
                                 uint8_t num_bitplanes,
-                                std::vector<SIZE> &stream_sizes) const {
+                                std::vector<uint32_t> &stream_sizes) const {
 
     assert(num_bitplanes > 0);
     // determine block size based on bitplane integer type
-    const int32_t block_size = PER_BIT_BLOCK_SIZE;
-    stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
+    const int32_t block_size = PER_BIT_BLOCK_uint32_t;
+    stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -158,14 +157,14 @@ public:
   }
 
   // only differs in error collection
-  std::vector<uint8_t *> encode(T_data const *data, SIZE n, int32_t exp,
+  std::vector<uint8_t *> encode(T_data const *data, uint32_t n, int32_t exp,
                                 uint8_t num_bitplanes,
-                                std::vector<SIZE> &stream_sizes,
+                                std::vector<uint32_t> &stream_sizes,
                                 std::vector<double> &level_errors) const {
     assert(num_bitplanes > 0);
     // determine block size based on bitplane integer type
-    const int32_t block_size = PER_BIT_BLOCK_SIZE;
-    stream_sizes = std::vector<SIZE>(num_bitplanes, 0);
+    const int32_t block_size = PER_BIT_BLOCK_uint32_t;
+    stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -253,9 +252,9 @@ public:
     return streams;
   }
 
-  T_data *decode(const std::vector<uint8_t const *> &streams, SIZE n, int exp,
+  T_data *decode(const std::vector<uint8_t const *> &streams, uint32_t n, int exp,
                  uint8_t num_bitplanes) {
-    const int32_t block_size = PER_BIT_BLOCK_SIZE;
+    const int32_t block_size = PER_BIT_BLOCK_uint32_t;
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -320,9 +319,9 @@ public:
   }
 
   T_data *progressive_decode(const std::vector<uint8_t const *> &streams,
-                             SIZE n, int exp, uint8_t starting_bitplane,
+                             uint32_t n, int exp, uint8_t starting_bitplane,
                              uint8_t num_bitplanes, int level) {
-    const int32_t block_size = PER_BIT_BLOCK_SIZE;
+    const int32_t block_size = PER_BIT_BLOCK_uint32_t;
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -431,10 +430,8 @@ private:
     }
     level_errors[0] += data * data;
   }
-  Handle<D, T_data> &_handle;
   std::vector<std::vector<bool>> level_signs;
   std::vector<std::vector<bool>> sign_flags;
 };
 } // namespace MDR
-} // namespace mgard_x
 #endif

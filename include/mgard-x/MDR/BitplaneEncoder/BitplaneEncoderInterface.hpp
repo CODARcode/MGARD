@@ -2,64 +2,61 @@
 #define _MDR_BITPLANE_ENCODER_INTERFACE_HPP
 
 #include <cassert>
-namespace mgard_x {
 namespace MDR {
 namespace concepts {
 #define UINT8_BITS 8
 // concept of encoder which encodes T type data into bitstreams
-template <DIM D, typename T> class BitplaneEncoderInterface {
+template <typename T> class BitplaneEncoderInterface {
 public:
   virtual ~BitplaneEncoderInterface() = default;
 
   virtual std::vector<uint8_t *>
-  encode(T const *data, SIZE n, int32_t exp, uint8_t num_bitplanes,
-         std::vector<SIZE> &streams_sizes) const = 0;
+  encode(T const *data, uint32_t n, int32_t exp, uint8_t num_bitplanes,
+         std::vector<uint32_t> &streams_sizes) const = 0;
 
-  virtual T *decode(const std::vector<uint8_t const *> &streams, SIZE n,
+  virtual T *decode(const std::vector<uint8_t const *> &streams, uint32_t n,
                     int exp, uint8_t num_bitplanes) = 0;
 
   virtual T *progressive_decode(const std::vector<uint8_t const *> &streams,
-                                SIZE n, int exp, uint8_t starting_bitplane,
+                                uint32_t n, int exp, uint8_t starting_bitplane,
                                 uint8_t num_bitplanes, int level) = 0;
 
   virtual void print() const = 0;
 };
 } // namespace concepts
 } // namespace MDR
-} // namespace mgard_x
 
-namespace mgard_m {
+namespace mgard_x {
 namespace MDR {
 namespace concepts {
 // concept of encoder which encodes T type data into bitstreams
-template <typename HandleType, mgard_x::DIM D, typename T_data,
-          typename T_bitplane, typename T_error>
+template <typename T_data, typename T_bitplane, typename T_error>
 class BitplaneEncoderInterface {
 public:
   virtual ~BitplaneEncoderInterface() = default;
 
-  virtual mgard_x::Array<2, T_bitplane, mgard_x::CUDA>
-  encode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp,
-         mgard_x::SubArray<1, T_data, mgard_x::CUDA> v,
-         mgard_x::SubArray<1, T_error, mgard_x::CUDA> level_errors,
-         std::vector<mgard_x::SIZE> &streams_sizes, int queue_idx) const = 0;
+  virtual Array<2, T_bitplane, CUDA>
+  encode(SIZE n, SIZE num_bitplanes, int32_t exp,
+         SubArray<1, T_data, CUDA> v,
+         SubArray<1, T_error, CUDA> level_errors,
+         std::vector<SIZE> &streams_sizes, int queue_idx) const = 0;
 
-  virtual mgard_x::Array<1, T_data, mgard_x::CUDA>
-  decode(mgard_x::SIZE n, mgard_x::SIZE num_bitplanes, int32_t exp,
-         mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes,
+  virtual Array<1, T_data, CUDA>
+  decode(SIZE n, SIZE num_bitplanes, int32_t exp,
+         SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
          int level, int queue_idx) = 0;
 
-  virtual mgard_x::Array<1, T_data, mgard_x::CUDA> progressive_decode(
-      mgard_x::SIZE n, mgard_x::SIZE starting_bitplanes,
-      mgard_x::SIZE num_bitplanes, int32_t exp,
-      mgard_x::SubArray<2, T_bitplane, mgard_x::CUDA> encoded_bitplanes,
+  virtual Array<1, T_data, CUDA> progressive_decode(
+      SIZE n, SIZE starting_bitplanes,
+      SIZE num_bitplanes, int32_t exp,
+      SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
       int level, int queue_idx) = 0;
 
-  virtual mgard_x::SIZE buffer_size(mgard_x::SIZE n) const = 0;
+  virtual SIZE buffer_size(SIZE n) const = 0;
 
   virtual void print() const = 0;
 };
 } // namespace concepts
 } // namespace MDR
-} // namespace mgard_m
+} // namespace mgard_x
 #endif

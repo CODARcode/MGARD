@@ -2,7 +2,6 @@
 #define _MDR_ZSTD_HPP
 
 #include "zstd.h"
-namespace mgard_x {
 namespace MDR {
 namespace ZSTD {
 #define ZSTD_LEVEL 3 // default setting of level is 3
@@ -32,5 +31,4 @@ uint32_t decompress(const uint8_t *compressBytes, uint32_t cmpSize,
 }
 } // namespace ZSTD
 } // namespace MDR
-} // namespace mgard_x
 #endif
