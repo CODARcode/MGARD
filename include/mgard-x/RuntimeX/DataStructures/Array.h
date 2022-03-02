@@ -26,7 +26,7 @@ public:
   Array(Array &&array);
   ~Array();
   void load(const T *data, SIZE ld = 0);
-  T *hostCopy();
+  T *hostCopy(bool keep = false);
   T *data(SIZE &ld);
   std::vector<SIZE> &shape();
   T *data();
@@ -37,6 +37,7 @@ private:
   DIM D_padded;
   bool pitched;
   bool managed;
+  bool keepHostCopy = false;
   T *dv = NULL;
   T *hv = NULL;
   bool device_allocated = false;

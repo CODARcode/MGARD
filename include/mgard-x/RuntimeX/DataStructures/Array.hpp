@@ -169,7 +169,7 @@ void Array<D, T, DeviceType>::free() {
     MemoryManager<DeviceType>().Free(dv);
     device_allocated = false;
   }
-  if (host_allocated) {
+  if (host_allocated && !keepHostCopy) {
     MemoryManager<DeviceType>().FreeHost(hv);
     host_allocated = false;
   }
@@ -219,7 +219,7 @@ void Array<D, T, DeviceType>::load(const T *data, SIZE ld) {
 }
 
 template <DIM D, typename T, typename DeviceType>
-T *Array<D, T, DeviceType>::hostCopy() {
+T *Array<D, T, DeviceType>::hostCopy(bool keep) {
   if (!device_allocated) {
     std::cout << log::log_err << "device buffer not initialized.\n";
     exit(-1);
@@ -232,6 +232,7 @@ T *Array<D, T, DeviceType>::hostCopy() {
   MemoryManager<DeviceType>().CopyND(hv, _shape[0], dv, _ldvs[0], _shape[0],
                                      _shape[1] * linearized_depth, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
+  keepHostCopy = keep;
   return hv;
 }
 
