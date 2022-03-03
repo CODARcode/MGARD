@@ -215,6 +215,8 @@ public:
     timer.end();
     timer.print("Copy to GPU");
 
+    // PrintSubarray("data_array", SubArray(data_array));
+
     timer.start();
     if (refactor(target_level, num_bitplanes, 0)) {
       timer.end();
@@ -313,20 +315,16 @@ private:
     }
     printf("\n");
 
-    Array<1, T_data, CUDA> *levels_array =
-        new Array<1, T_data, CUDA>[target_level + 1];
-    SubArray<1, T_data, CUDA> *levels_data =
-        new SubArray<1, T_data, CUDA>[target_level + 1];
+    Array<1, T_data, CUDA> *levels_array = new Array<1, T_data, CUDA>[target_level + 1];
+    SubArray<1, T_data, CUDA> *levels_data = new SubArray<1, T_data, CUDA>[target_level + 1];
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
-      levels_array[level_idx] = Array<1, T_data, CUDA>(
-          {level_num_elems[level_idx]});
-      levels_data[level_idx] =
-          SubArray<1, T_data, CUDA>(levels_array[level_idx]);
+      levels_array[level_idx] = Array<1, T_data, CUDA>({level_num_elems[level_idx]});
+      levels_data[level_idx] = SubArray<1, T_data, CUDA>(levels_array[level_idx]);
     }
 
     printf("done create levels_data\n");
 
-    interleaver.interleave(data, levels_data, queue_idx);
+    interleaver.interleave(data, levels_data, target_level + 1, queue_idx);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Interleave");

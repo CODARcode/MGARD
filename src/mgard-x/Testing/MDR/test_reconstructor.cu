@@ -176,64 +176,62 @@ int main(int argc, char **argv) {
   using T_error = double;
 
   const mgard_x::DIM D = 3;
-  mgard_x::Hierarchy<D, T, mgard_x::CUDA> hierarchy(dims);
+  mgard_x::Hierarchy<D, T, mgard_x::CUDA> hierarchy(dims, 0, num_levels - 1);
+  // hierarchy.l_target = num_levels - 1;
 
-  if (false) {
-    auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T>(hierarchy);
-    // auto decomposer = MDR::MGARDHierarchicalDecomposer<T>();
-    auto interleaver = mgard_x::MDR::DirectInterleaver<D, T>(hierarchy);
-    // auto interleaver = MDR::SFCInterleaver<T>();
-    // auto interleaver = MDR::BlockedInterleaver<T>();
+  auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T>(hierarchy);
+  // auto decomposer = MDR::MGARDHierarchicalDecomposer<T>();
+  auto interleaver = mgard_x::MDR::DirectInterleaver<D, T>(hierarchy);
+  // auto interleaver = MDR::SFCInterleaver<T>();
+  // auto interleaver = MDR::BlockedInterleaver<T>();
 
-    auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error>();
-    // auto encoder = mgard_x::MDR::NegaBinaryBPEncoder<D, T, T_stream>(handle);
-    // auto encoder = mgard_x::MDR::PerBitBPEncoder<D, T, T_stream>(handle);
+  auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error>();
+  // auto encoder = mgard_x::MDR::NegaBinaryBPEncoder<D, T, T_stream>(handle);
+  // auto encoder = mgard_x::MDR::PerBitBPEncoder<D, T, T_stream>(handle);
 
-    // auto encoder = mgard_x::MDR::PerBitBPEncoderGPU<D, T, T_stream>(handle);
-    // auto encoder = mgard_x::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
+  // auto encoder = mgard_x::MDR::PerBitBPEncoderGPU<D, T, T_stream>(handle);
+  // auto encoder = mgard_x::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
 
-    auto compressor = mgard_x::MDR::DefaultLevelCompressor<T_stream>();
-    // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
-    // auto compressor = MDR::NullLevelCompressor();
-    auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);
+  auto compressor = mgard_x::MDR::DefaultLevelCompressor<T_stream>();
+  // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
+  // auto compressor = MDR::NullLevelCompressor();
+  auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);
 
-    switch (error_mode) {
-      case 1: {
-        auto estimator = mgard_x::MDR::SNormErrorEstimator<T>(num_dims, num_levels - 1, s);
-        // auto interpreter =
-        // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
-        // auto interpreter =
-        // mgard_x::MDR::NegaBinaryGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
-        auto interpreter = mgard_x::MDR::RoundRobinSizeInterpreter<
-            mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
-        // auto interpreter =
-        // mgard_x::MDR::InorderSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
-        // auto estimator = mgard_x::MDR::L2ErrorEstimator_HB<T>(num_dims,
-        // num_levels - 1); auto interpreter =
-        // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::L2ErrorEstimator_HB<T>>(estimator);
-        test2<D, T, T_stream>(filename, tolerance, hierarchy, decomposer,
-                                          interleaver, encoder, compressor,
-                                          estimator, interpreter, retriever);
-        break;
-      }
-      default: {
-        auto estimator = mgard_x::MDR::MaxErrorEstimatorOB<T>(num_dims);
-        auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<
-            mgard_x::MDR::MaxErrorEstimatorOB<T>>(estimator);
-        // auto interpreter =
-        // MDR::RoundRobinSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
-        // auto interpreter =
-        // MDR::InorderSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
-        // auto estimator = MDR::MaxErrorEstimatorHB<T>();
-        // auto interpreter =
-        // MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorHB<T>>(estimator);
-        test2<D, T, T_stream>(filename, tolerance, hierarchy, decomposer,
-                                          interleaver, encoder, compressor,
-                                          estimator, interpreter, retriever);
-      }
+  switch (error_mode) {
+    case 1: {
+      auto estimator = mgard_x::MDR::SNormErrorEstimator<T>(num_dims, num_levels - 1, s);
+      // auto interpreter =
+      // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+      // auto interpreter =
+      // mgard_x::MDR::NegaBinaryGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+      auto interpreter = mgard_x::MDR::RoundRobinSizeInterpreter<
+          mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+      // auto interpreter =
+      // mgard_x::MDR::InorderSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+      // auto estimator = mgard_x::MDR::L2ErrorEstimator_HB<T>(num_dims,
+      // num_levels - 1); auto interpreter =
+      // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::L2ErrorEstimator_HB<T>>(estimator);
+      test2<D, T, T_stream>(filename, tolerance, hierarchy, decomposer,
+                                        interleaver, encoder, compressor,
+                                        estimator, interpreter, retriever);
+      break;
+    }
+    default: {
+      auto estimator = mgard_x::MDR::MaxErrorEstimatorOB<T>(num_dims);
+      auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::MaxErrorEstimatorOB<T>>(estimator);
+      // auto interpreter =
+      // MDR::RoundRobinSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
+      // auto interpreter =
+      // MDR::InorderSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
+      // auto estimator = MDR::MaxErrorEstimatorHB<T>();
+      // auto interpreter =
+      // MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorHB<T>>(estimator);
+      test2<D, T, T_stream>(filename, tolerance, hierarchy, decomposer,
+                                        interleaver, encoder, compressor,
+                                        estimator, interpreter, retriever);
     }
   }
-
+  
   // if (true) {
   //   auto decomposer =
   //       mgard_m::MDR::MGARDOrthoganalDecomposer<HandleType, D, T>(handle);

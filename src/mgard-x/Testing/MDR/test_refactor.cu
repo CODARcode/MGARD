@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
   const mgard_x::DIM D = 3;
   printf("dims: %u %u %u\n", dims[2], dims[1], dims[0]);
 
-  mgard_x::Hierarchy<D, T, mgard_x::CUDA> hierarchy(dims);
+  mgard_x::Hierarchy<D, T, mgard_x::CUDA> hierarchy(dims, 0, target_level);
 
   // if (false) {
     auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T>(hierarchy);

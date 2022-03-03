@@ -469,12 +469,9 @@ public:
       exp += 2;
     // data
     block_offset = max_length_per_TB * FunctorBase<DeviceType>::GetBlockIdX();
-    for (SIZE bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY();
-         bitplane_idx < num_bitplanes; bitplane_idx += 32) {
-      for (SIZE batch_idx = FunctorBase<DeviceType>::GetThreadIdX();
-           batch_idx < num_batches_per_TB; batch_idx += 32) {
-        sm_bitplanes[batch_idx * num_bitplanes + bitplane_idx] =
-            *encoded_bitplanes(bitplane_idx, block_offset + batch_idx);
+    for (SIZE bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY(); bitplane_idx < num_bitplanes; bitplane_idx += 32) {
+      for (SIZE batch_idx = FunctorBase<DeviceType>::GetThreadIdX(); batch_idx < num_batches_per_TB; batch_idx += 32) {
+        sm_bitplanes[batch_idx * num_bitplanes + bitplane_idx] = *encoded_bitplanes(bitplane_idx, block_offset + batch_idx);
       }
     }
 
@@ -485,8 +482,7 @@ public:
       if (starting_bitplane == 0) {
         if (local_data_idx < num_batches_per_TB) {
           sm_bitplanes[num_batches_per_TB * num_bitplanes + local_data_idx] =
-              *encoded_bitplanes(0, block_offset + num_batches_per_TB +
-                                        local_data_idx);
+              *encoded_bitplanes(0, block_offset + num_batches_per_TB + local_data_idx);
         }
       } else {
         if (local_data_idx < num_elems_per_TB) {
@@ -500,9 +496,7 @@ public:
   // level error reduction (intra block)
   MGARDX_EXEC void Operation2() {
     // data
-    BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT,
-                      DecodingAlgorithm, DeviceType>
-        blockBitTranspose;
+    BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType> blockBitTranspose;
     for (SIZE i = 0; i < num_batches_per_TB; i++) {
       blockBitTranspose.Transpose(sm_bitplanes + i * num_bitplanes,
                                   sm_fix_point + i * num_elems_per_batch,
@@ -804,10 +798,12 @@ public:
     // Array<1, T_data> v_array({(SIZE)n});
     // SubArray<1, T_data> v(v_array);
 
-    MDR::GroupedDecoder<T_data, T_bitplane, BINARY_TYPE,
-                                 DATA_DECODING_ALGORITHM, CUDA>()
-        .Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp,
-                 encoded_bitplanes, signs_subarray, v, queue_idx);
+    if (num_bitplanes > 0) {
+      MDR::GroupedDecoder<T_data, T_bitplane, BINARY_TYPE,
+                                   DATA_DECODING_ALGORITHM, CUDA>()
+          .Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp,
+                   encoded_bitplanes, signs_subarray, v, queue_idx);
+    }
 
     // new_signs = signs_array.hostCopy();
 
