@@ -235,6 +235,7 @@ public:
         encoder(encoder), compressor(compressor), interpreter(interpreter),
         retriever(retriever) {
     data_array = Array<D, T_data, CUDA>(hierarchy.shape_org);
+    data_array.memset(0);
   }
 
   // reconstruct data from encoded streams
@@ -315,8 +316,13 @@ public:
     //     SubArray<D, T_data, CUDA>(curr_data_array),
     //     SubArray<D, T_data, CUDA>(data_array), 0);
 
+    // PrintSubarray("curr_data_array", SubArray(curr_data_array));
+
     LwpkReo<D, T_data, ADD, CUDA>().Execute(SubArray<D, T_data, CUDA>(curr_data_array),
                                        SubArray<D, T_data, CUDA>(data_array), 0);
+
+  
+    // PrintSubarray("data_array", SubArray(data_array));
     return data_array.hostCopy(true);
 
     // TODO: add resolution changes
@@ -383,40 +389,17 @@ private:
     // data.clear();
     // data = std::vector<T_data>(num_elements, 0);
 
-    std::vector<std::vector<Array<1, Byte, CUDA>>>
-        compressed_bitplanes;
+    std::vector<std::vector<Array<1, Byte, CUDA>>> compressed_bitplanes;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
-      compressed_bitplanes.push_back(
-          std::vector<Array<1, Byte, CUDA>>());
-      int num_bitplanes =
-          level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
+      compressed_bitplanes.push_back(std::vector<Array<1, Byte, CUDA>>());
+      int num_bitplanes = level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
       for (int bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
-        SIZE size =
-            level_sizes[level_idx]
-                       [prev_level_num_bitplanes[level_idx] + bitplane_idx];
-        // printf("level: %d, bitplane_idx: %d, size: %u\n", level_idx,
-        // bitplane_idx, size);
-        compressed_bitplanes[level_idx].push_back(
-            Array<1, Byte, CUDA>({size}));
-        compressed_bitplanes[level_idx][bitplane_idx].load(
-            level_components[level_idx][bitplane_idx]);
+        SIZE size = level_sizes[level_idx][prev_level_num_bitplanes[level_idx] + bitplane_idx];
+        // printf("level: %d, bitplane_idx: %d, size: %u\n", level_idx, bitplane_idx, size);
+        compressed_bitplanes[level_idx].push_back(Array<1, Byte, CUDA>({size}));
+        compressed_bitplanes[level_idx][bitplane_idx].load(level_components[level_idx][bitplane_idx]);
       }
     }
-
-    // for (int level_idx = 0; level_idx < target_level + 1; level_idx++){
-    //   int num_bitplanes = level_num_bitplanes[level_idx] -
-    //   prev_level_num_bitplanes[level_idx]; for (int bitplane_idx = 0;
-    //   bitplane_idx < num_bitplanes; bitplane_idx++) {
-    //     SIZE size = level_sizes[level_idx][bitplane_idx];
-    //     // printf("level: %d, bitplane_idx: %d, size: %u\n", level_idx,
-    //     bitplane_idx, size);
-    //     // compressed_bitplanes[level_idx].push_back(Array<1,
-    //     Byte>({size}));
-    //     compressed_bitplanes[level_idx][bitplane_idx].load(level_components[level_idx][bitplane_idx]);
-    //   }
-    // }
-
-    // exit(0);
 
     printf("level_num_elems: ");
     std::vector<SIZE> level_num_elems(target_level + 1);
@@ -438,20 +421,16 @@ private:
     // auto level_elements = compute_level_elements(level_dims, target_level);
     // std::vector<uint32_t> dims_dummy(reconstruct_dimensions.size(), 0);
 
-    Array<1, T_data, CUDA> *levels_array =
-        new Array<1, T_data, CUDA>[target_level + 1];
-    SubArray<1, T_data, CUDA> *levels_data =
-        new SubArray<1, T_data, CUDA>[target_level + 1];
+    Array<1, T_data, CUDA> *levels_array = new Array<1, T_data, CUDA>[target_level + 1];
+    SubArray<1, T_data, CUDA> *levels_data = new SubArray<1, T_data, CUDA>[target_level + 1];
 
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       timer.start();
       // compressor.decompress_level(level_components[i], level_sizes[i],
       // prev_level_num_bitplanes[i], level_num_bitplanes[i] -
       // prev_level_num_bitplanes[i], stopping_indices[i]);
-      SIZE num_bitplanes =
-          level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
-      Array<2, T_bitplane, CUDA> encoded_bitplanes(
-          {num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
+      SIZE num_bitplanes = level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
+      Array<2, T_bitplane, CUDA> encoded_bitplanes({num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
 
       compressor.decompress_level(
           level_sizes[level_idx], compressed_bitplanes[level_idx],
@@ -473,8 +452,7 @@ private:
           SubArray<2, T_bitplane, CUDA>(encoded_bitplanes),
           level_idx, queue_idx);
       DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-      levels_data[level_idx] =
-          SubArray<1, T_data, CUDA>(levels_array[level_idx]);
+      levels_data[level_idx] = SubArray<1, T_data, CUDA>(levels_array[level_idx]);
       compressor.decompress_release();
       timer.end();
       timer.print("Decoding");
@@ -482,7 +460,7 @@ private:
 
     timer.start();
     interleaver.reposition(
-        levels_data, SubArray<D, T_data, CUDA>(data_array),
+        levels_data, SubArray<D, T_data, CUDA>(data_array), target_level + 1,
         queue_idx);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     timer.end();
