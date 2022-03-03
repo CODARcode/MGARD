@@ -51,8 +51,8 @@ struct Config {
 template <DIM D, typename T, typename DeviceType> struct Hierarchy {
 
   /* for general users */
-  Hierarchy(std::vector<SIZE> shape, int uniform_coord_mode = 0);
-  Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords);
+  Hierarchy(std::vector<SIZE> shape, int uniform_coord_mode = 0, SIZE target_level = 0);
+  Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords, SIZE target_level = 0);
 
   /* for Internal use only */
   Hierarchy();
@@ -119,7 +119,7 @@ private:
   void domain_decomposition_strategy(std::vector<SIZE> shape);
   void domain_decompose(std::vector<SIZE> shape, int uniform_coord_mode);
   void domain_decompose(std::vector<SIZE> shape, std::vector<T *> &coords);
-  void init(std::vector<SIZE> shape, std::vector<T *> coords);
+  void init(std::vector<SIZE> shape, std::vector<T *> coords, SIZE target_level = 0);
   void destroy();
   bool uniform_coords_created = false;
   bool initialized = false;

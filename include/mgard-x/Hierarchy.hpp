@@ -204,7 +204,8 @@ void Hierarchy<D, T, DeviceType>::calc_volume(SIZE dof, T *dist, T *volume) {
 
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
-                                       std::vector<T *> coords) {
+                                       std::vector<T *> coords,
+                                       SIZE target_level) {
 
   this->shape = shape;
   // determine dof
@@ -244,10 +245,11 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   for (int i = 1; i < shape.size(); i++) {
     nlevel = std::min(nlevel, (SIZE)dofs[i].size());
   }
+
   l_target = nlevel - 1;
-  // if (config.l_target != -1) {
-  // l_target = std::min(nlevel - 1, config.l_target);
-  // }
+  if (target_level != 0) {
+    l_target = std::min(l_target, target_level);
+  }
 
   // shapes
   for (int l = 0; l < l_target + 1; l++) {
@@ -680,7 +682,8 @@ Hierarchy<D, T, DeviceType>::Hierarchy() {}
 
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
-                                       int uniform_coord_mode) {
+                                       int uniform_coord_mode,
+                                       SIZE target_level) {
   if (!need_domain_decomposition(shape)) {
     // Config config;
     shape_org = shape;
@@ -702,7 +705,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
     dstype = data_structure_type::Cartesian_Grid_Uniform;
     std::vector<T *> coords = create_uniform_coords(shape, uniform_coord_mode);
     padding_dimensions(shape, coords);
-    init(shape, coords);
+    init(shape, coords, target_level);
   } else { // need domain decomposition
     // std::cout << log::log_info << "Need domain decomposition.\n";
     domain_decomposition_strategy(shape);
@@ -712,7 +715,8 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
 
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
-                                       std::vector<T *> coords) {
+                                       std::vector<T *> coords,
+                                       SIZE target_level) {
   if (!need_domain_decomposition(shape)) {
     // Config config;
     shape_org = shape;
@@ -734,7 +738,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
 
     dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
     padding_dimensions(shape, coords);
-    init(shape, coords);
+    init(shape, coords, target_level);
   } else {
     // std::cout << log::log_info << "Need domain decomposition.\n";
     domain_decomposition_strategy(shape);
