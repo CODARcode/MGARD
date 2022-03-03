@@ -64,9 +64,9 @@ public:
   MGARDX_CONT
   DirectInterleaverFunctor(
       SubArray<1, SIZE, DeviceType> ranges,
-      SIZE l_target, SubArray<D, T, DeviceType> v,
+      SIZE l_target, SIZE num_levels, SubArray<D, T, DeviceType> v,
       SubArray<1, T, DeviceType> *level_v)
-      : ranges(ranges), l_target(l_target), v(v), level_v(level_v) {
+      : ranges(ranges), l_target(l_target), num_levels(num_levels), v(v), level_v(level_v) {
     Functor<DeviceType>();
   }
 
@@ -101,10 +101,11 @@ public:
 
     __syncthreads();
     if (debug) {
+      printf("num_levels = %u\n", num_levels);
       printf("l_target = %u\n", l_target);
       for (int d = 0; d < D; d++) {
         printf("ranges_sm[d = %d]: ", d);
-        for (int l = 0; l < l_target + 2; l++) {
+        for (int l = 0; l < num_levels + 1; l++) {
           printf("%u ", ranges_sm[d * (l_target + 2) + l]);
         }
         printf("\n");
@@ -275,6 +276,7 @@ public:
 private:
   SubArray<1, SIZE, DeviceType> ranges;
   SIZE l_target;
+  SIZE num_levels;
   SubArray<D, T, DeviceType> v;
   SubArray<1, T, DeviceType> *level_v;
 
@@ -294,13 +296,13 @@ public:
   MGARDX_CONT Task<
       DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>>
   GenTask(SubArray<1, SIZE, DeviceType> shape,
-          SIZE l_target,
+          SIZE l_target, SIZE num_levels,
           SubArray<1, SIZE, DeviceType> ranges,
           SubArray<D, T, DeviceType> v,
           SubArray<1, T, DeviceType> *level_v, int queue_idx) {
     using FunctorType =
         DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>;
-    FunctorType functor(ranges, l_target, v, level_v);
+    FunctorType functor(ranges, l_target, num_levels, v, level_v);
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
     int total_thread_z = shape.dataHost()[2];
@@ -324,7 +326,7 @@ public:
 
   MGARDX_CONT
   void Execute(SubArray<1, SIZE, DeviceType> shape,
-               SIZE l_target,
+               SIZE l_target, SIZE num_levels,
                SubArray<1, SIZE, DeviceType> ranges,
                SubArray<D, T, DeviceType> v,
                SubArray<1, T, DeviceType> *level_v, int queue_idx) {
@@ -334,7 +336,7 @@ public:
         DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>;        \
     using TaskType = Task<FunctorType>;                               \
     TaskType task =                                                            \
-        GenTask<R, C, F>(shape, l_target, ranges, v, level_v, queue_idx);      \
+        GenTask<R, C, F>(shape, l_target, num_levels, ranges, v, level_v, queue_idx);      \
     DeviceAdapter<TaskType, DeviceType> adapter;                      \
     adapter.Execute(task);                                                     \
   }
@@ -361,20 +363,21 @@ public:
   void
   interleave(SubArray<D, T, CUDA> decomposed_data,
              SubArray<1, T, CUDA> *levels_decomposed_data,
+             SIZE num_levels,
              int queue_idx) const {
     // PrintSubarray("decomposed_data", decomposed_data);
     SubArray<1, T, CUDA> *levels_decomposed_data_device;
 
     MemoryManager<CUDA>::Malloc1D(levels_decomposed_data_device,
-                                  this->hierarchy.l_target + 1, 0);
+                                  num_levels, queue_idx);
     MemoryManager<CUDA>::Copy1D(levels_decomposed_data_device,
                                 levels_decomposed_data,
-                                this->hierarchy.l_target + 1, 0);
-    DeviceRuntime<CUDA>::SyncQueue(0);
+                                num_levels, queue_idx);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
 
     DirectInterleaverKernel<D, T, Interleave, CUDA>().Execute(
         SubArray<1, SIZE, CUDA>(hierarchy.shapes[0], true),
-        hierarchy.l_target,
+        hierarchy.l_target, num_levels,
         SubArray<1, SIZE, CUDA>(hierarchy.ranges),
         decomposed_data, levels_decomposed_data_device, queue_idx);
 
@@ -389,23 +392,26 @@ public:
   void
   reposition(SubArray<1, T, CUDA> *levels_decomposed_data,
              SubArray<D, T, CUDA> decomposed_data,
+             SIZE num_levels,
              int queue_idx) const {
 
     SubArray<1, T, CUDA> *levels_decomposed_data_device;
 
     MemoryManager<CUDA>::Malloc1D(levels_decomposed_data_device,
-                                  this->hierarchy.l_target + 1, 0);
+                                  num_levels, queue_idx);
     MemoryManager<CUDA>::Copy1D(levels_decomposed_data_device,
                                 levels_decomposed_data,
-                                this->hierarchy.l_target + 1, 0);
-    DeviceRuntime<CUDA>::SyncQueue(0);
+                                num_levels, queue_idx);
+    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
 
     DirectInterleaverKernel<D, T, Reposition, CUDA>().Execute(
         SubArray<1, SIZE, CUDA>(hierarchy.shapes[0], true),
-        hierarchy.l_target,
+        hierarchy.l_target, num_levels,
         SubArray<1, SIZE, CUDA>(hierarchy.ranges),
         decomposed_data, levels_decomposed_data_device, queue_idx);
     DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+
+    PrintSubarray("hierarchy.ranges", SubArray(hierarchy.ranges));
   }
   void print() const { std::cout << "Direct interleaver" << std::endl; }
 

@@ -39,12 +39,12 @@ public:
   virtual void
   interleave(SubArray<D, T, CUDA> decomposed_data,
              SubArray<1, T, CUDA> *levels_decomposed_data,
-             int queue_idx) const = 0;
+             SIZE num_levels, int queue_idx) const = 0;
 
   virtual void
-      reposition(SubArray<1, T, CUDA> *levels_decomposed_data,
-                 SubArray<D, T, CUDA> decomposed_data,
-                 int queue_idx) const = 0;
+  reposition(SubArray<1, T, CUDA> *levels_decomposed_data,
+             SubArray<D, T, CUDA> decomposed_data,
+             SIZE num_levels, int queue_idx) const = 0;
 
   virtual void print() const = 0;
 };
