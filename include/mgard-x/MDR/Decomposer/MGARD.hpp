@@ -66,25 +66,25 @@ public:
 namespace mgard_x {
 namespace MDR {
 // MGARD decomposer with orthogonal basis
-template <DIM D, typename T>
+template <DIM D, typename T, typename DeviceType>
 class MGARDOrthoganalDecomposer
-    : public concepts::DecomposerInterface<D, T> {
+    : public concepts::DecomposerInterface<D, T, DeviceType> {
 public:
-  MGARDOrthoganalDecomposer(Hierarchy<D, T, CUDA> &hierarchy) : hierarchy(hierarchy) {}
-  void decompose(SubArray<D, T, CUDA> v,
+  MGARDOrthoganalDecomposer(Hierarchy<D, T, DeviceType> &hierarchy) : hierarchy(hierarchy) {}
+  void decompose(SubArray<D, T, DeviceType> v,
                  SIZE target_level, int queue_idx) const {
-    mgard_x::decompose<D, T, CUDA>(hierarchy, v, target_level, queue_idx);
+    mgard_x::decompose<D, T, DeviceType>(hierarchy, v, target_level, queue_idx);
   }
-  void recompose(SubArray<D, T, CUDA> v,
+  void recompose(SubArray<D, T, DeviceType> v,
                  SIZE target_level, int queue_idx) const {
-    mgard_x::recompose<D, T, CUDA>(hierarchy, v, target_level, queue_idx);
+    mgard_x::recompose<D, T, DeviceType>(hierarchy, v, target_level, queue_idx);
   }
   void print() const {
     std::cout << "MGARD orthogonal decomposer" << std::endl;
   }
 
 private:
-  Hierarchy<D, T, CUDA> &hierarchy;
+  Hierarchy<D, T, DeviceType> &hierarchy;
 };
 
 } // namespace MDR

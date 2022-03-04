@@ -30,26 +30,26 @@ namespace mgard_x {
 namespace MDR {
 namespace concepts {
 // concept of encoder which encodes T type data into bitstreams
-template <typename T_data, typename T_bitplane, typename T_error>
+template <typename T_data, typename T_bitplane, typename T_error, typename DeviceType>
 class BitplaneEncoderInterface {
 public:
   virtual ~BitplaneEncoderInterface() = default;
 
-  virtual Array<2, T_bitplane, CUDA>
+  virtual Array<2, T_bitplane, DeviceType>
   encode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<1, T_data, CUDA> v,
-         SubArray<1, T_error, CUDA> level_errors,
+         SubArray<1, T_data, DeviceType> v,
+         SubArray<1, T_error, DeviceType> level_errors,
          std::vector<SIZE> &streams_sizes, int queue_idx) const = 0;
 
-  virtual Array<1, T_data, CUDA>
+  virtual Array<1, T_data, DeviceType>
   decode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
          int level, int queue_idx) = 0;
 
-  virtual Array<1, T_data, CUDA> progressive_decode(
+  virtual Array<1, T_data, DeviceType> progressive_decode(
       SIZE n, SIZE starting_bitplanes,
       SIZE num_bitplanes, int32_t exp,
-      SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
       int level, int queue_idx) = 0;
 
   virtual SIZE buffer_size(SIZE n) const = 0;

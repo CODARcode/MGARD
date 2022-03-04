@@ -27,8 +27,7 @@ namespace MDR {
 namespace concepts {
 
 // reconstructor: a general interface for scientific data reconstructor
-template <DIM D, typename T_data,
-          typename T_bitplane>
+template <DIM D, typename T_data, typename T_bitplane, typename DeviceType>
 class ReconstructorInterface {
 public:
   virtual ~ReconstructorInterface() = default;

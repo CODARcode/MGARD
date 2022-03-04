@@ -222,19 +222,18 @@ namespace MDR {
 template <DIM D, typename T_data,
           typename T_bitplane, class Decomposer, class Interleaver,
           class Encoder, class Compressor, class SizeInterpreter,
-          class ErrorEstimator, class Retriever>
+          class ErrorEstimator, class Retriever, typename DeviceType>
 class ComposedReconstructor
-    : public concepts::ReconstructorInterface<D, T_data,
-                                              T_bitplane> {
+    : public concepts::ReconstructorInterface<D, T_data, T_bitplane, DeviceType> {
 public:
-  ComposedReconstructor(Hierarchy<D, T_data, CUDA> &hierarchy, Decomposer decomposer,
+  ComposedReconstructor(Hierarchy<D, T_data, DeviceType> &hierarchy, Decomposer decomposer,
                         Interleaver interleaver, Encoder encoder,
                         Compressor compressor, SizeInterpreter interpreter,
                         Retriever retriever)
       : hierarchy(hierarchy), decomposer(decomposer), interleaver(interleaver),
         encoder(encoder), compressor(compressor), interpreter(interpreter),
         retriever(retriever) {
-    data_array = Array<D, T_data, CUDA>(hierarchy.shape_org);
+    data_array = Array<D, T_data, DeviceType>(hierarchy.shape_org);
     data_array.memset(0);
   }
 
@@ -306,20 +305,20 @@ public:
 
     printf("start progressive_reconstruct\n");
 
-    Array<D, T_data, CUDA> curr_data_array(data_array);
+    Array<D, T_data, DeviceType> curr_data_array(data_array);
     // std::vector<T_data> cur_data(data);
 
     reconstruct(tolerance);
 
-    // LevelwiseCalcNDKernel<D, T_data, ADD, CUDA>().Execute(
+    // LevelwiseCalcNDKernel<D, T_data, ADD, DeviceType>().Execute(
     //     hierarchy.shapes_h[0], hierarchy.shapes_d[0],
-    //     SubArray<D, T_data, CUDA>(curr_data_array),
-    //     SubArray<D, T_data, CUDA>(data_array), 0);
+    //     SubArray<D, T_data, DeviceType>(curr_data_array),
+    //     SubArray<D, T_data, DeviceType>(data_array), 0);
 
     // PrintSubarray("curr_data_array", SubArray(curr_data_array));
 
-    LwpkReo<D, T_data, ADD, CUDA>().Execute(SubArray<D, T_data, CUDA>(curr_data_array),
-                                       SubArray<D, T_data, CUDA>(data_array), 0);
+    LwpkReo<D, T_data, ADD, DeviceType>().Execute(SubArray<D, T_data, DeviceType>(curr_data_array),
+                                       SubArray<D, T_data, DeviceType>(data_array), 0);
 
   
     // PrintSubarray("data_array", SubArray(data_array));
@@ -389,14 +388,14 @@ private:
     // data.clear();
     // data = std::vector<T_data>(num_elements, 0);
 
-    std::vector<std::vector<Array<1, Byte, CUDA>>> compressed_bitplanes;
+    std::vector<std::vector<Array<1, Byte, DeviceType>>> compressed_bitplanes;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
-      compressed_bitplanes.push_back(std::vector<Array<1, Byte, CUDA>>());
+      compressed_bitplanes.push_back(std::vector<Array<1, Byte, DeviceType>>());
       int num_bitplanes = level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
       for (int bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
         SIZE size = level_sizes[level_idx][prev_level_num_bitplanes[level_idx] + bitplane_idx];
         // printf("level: %d, bitplane_idx: %d, size: %u\n", level_idx, bitplane_idx, size);
-        compressed_bitplanes[level_idx].push_back(Array<1, Byte, CUDA>({size}));
+        compressed_bitplanes[level_idx].push_back(Array<1, Byte, DeviceType>({size}));
         compressed_bitplanes[level_idx][bitplane_idx].load(level_components[level_idx][bitplane_idx]);
       }
     }
@@ -421,8 +420,8 @@ private:
     // auto level_elements = compute_level_elements(level_dims, target_level);
     // std::vector<uint32_t> dims_dummy(reconstruct_dimensions.size(), 0);
 
-    Array<1, T_data, CUDA> *levels_array = new Array<1, T_data, CUDA>[target_level + 1];
-    SubArray<1, T_data, CUDA> *levels_data = new SubArray<1, T_data, CUDA>[target_level + 1];
+    Array<1, T_data, DeviceType> *levels_array = new Array<1, T_data, DeviceType>[target_level + 1];
+    SubArray<1, T_data, DeviceType> *levels_data = new SubArray<1, T_data, DeviceType>[target_level + 1];
 
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       timer.start();
@@ -430,7 +429,7 @@ private:
       // prev_level_num_bitplanes[i], level_num_bitplanes[i] -
       // prev_level_num_bitplanes[i], stopping_indices[i]);
       SIZE num_bitplanes = level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
-      Array<2, T_bitplane, CUDA> encoded_bitplanes({num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
+      Array<2, T_bitplane, DeviceType> encoded_bitplanes({num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
 
       compressor.decompress_level(
           level_sizes[level_idx], compressed_bitplanes[level_idx],
@@ -449,10 +448,10 @@ private:
       levels_array[level_idx] = encoder.progressive_decode(
           level_num_elems[level_idx], prev_level_num_bitplanes[level_idx],
           num_bitplanes, level_exp,
-          SubArray<2, T_bitplane, CUDA>(encoded_bitplanes),
+          SubArray<2, T_bitplane, DeviceType>(encoded_bitplanes),
           level_idx, queue_idx);
-      DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-      levels_data[level_idx] = SubArray<1, T_data, CUDA>(levels_array[level_idx]);
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+      levels_data[level_idx] = SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
       compressor.decompress_release();
       timer.end();
       timer.print("Decoding");
@@ -460,24 +459,24 @@ private:
 
     timer.start();
     interleaver.reposition(
-        levels_data, SubArray<D, T_data, CUDA>(data_array), target_level + 1,
+        levels_data, SubArray<D, T_data, DeviceType>(data_array), target_level + 1,
         queue_idx);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Reposition");
 
     timer.start();
     decomposer.recompose(
-        SubArray<D, T_data, CUDA>(data_array), target_level,
+        SubArray<D, T_data, DeviceType>(data_array), target_level,
         queue_idx);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Recomposing");
 
     return true;
   }
 
-  Hierarchy<D, T_data, CUDA> &hierarchy;
+  Hierarchy<D, T_data, DeviceType> &hierarchy;
   Decomposer decomposer;
   Interleaver interleaver;
   Encoder encoder;
@@ -488,9 +487,9 @@ private:
   // std::vector<std::vector<Array<1, Byte>>>
   // compressed_bitplanes;
 
-  std::vector<Array<1, T_data, CUDA>> levels_array;
-  std::vector<SubArray<1, T_data, CUDA>> levels_data;
-  Array<D, T_data, CUDA> data_array;
+  std::vector<Array<1, T_data, DeviceType>> levels_array;
+  std::vector<SubArray<1, T_data, DeviceType>> levels_data;
+  Array<D, T_data, DeviceType> data_array;
 
   std::vector<T_data> data;
   std::vector<SIZE> dimensions;

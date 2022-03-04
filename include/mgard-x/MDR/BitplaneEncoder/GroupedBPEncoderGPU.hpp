@@ -695,10 +695,10 @@ public:
 // general bitplane encoder that encodes data by block using T_stream type
 // buffer
 template <typename T_data,
-          typename T_bitplane, typename T_error>
+          typename T_bitplane, typename T_error, typename DeviceType>
 class GroupedBPEncoder
     : public concepts::BitplaneEncoderInterface<T_data,
-                                                T_bitplane, T_error> {
+                                                T_bitplane, T_error, DeviceType> {
 public:
   GroupedBPEncoder(){
     std::cout << "GroupedBPEncoder\n";
@@ -712,10 +712,10 @@ public:
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
   }
 
-  Array<2, T_bitplane, CUDA>
+  Array<2, T_bitplane, DeviceType>
   encode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<1, T_data, CUDA> v,
-         SubArray<1, T_error, CUDA> level_errors,
+         SubArray<1, T_data, DeviceType> v,
+         SubArray<1, T_error, DeviceType> level_errors,
          std::vector<SIZE> &streams_sizes, int queue_idx) const {
 
     SIZE num_batches_per_TB = 2;
@@ -726,20 +726,20 @@ public:
     SIZE bitplane_max_length_total =
         bitplane_max_length_per_TB * num_blocks;
 
-    Array<2, T_error, CUDA> level_errors_work_array(
+    Array<2, T_error, DeviceType> level_errors_work_array(
         {(SIZE)num_bitplanes + 1, num_blocks});
-    SubArray<2, T_error, CUDA> level_errors_work(
+    SubArray<2, T_error, DeviceType> level_errors_work(
         level_errors_work_array);
 
-    Array<2, T_bitplane, CUDA> encoded_bitplanes_array(
+    Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
         {(SIZE)num_bitplanes,
          (SIZE)bitplane_max_length_total});
-    SubArray<2, T_bitplane, CUDA> encoded_bitplanes_subarray(
+    SubArray<2, T_bitplane, DeviceType> encoded_bitplanes_subarray(
         encoded_bitplanes_array);
 
     MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY_TYPE,
                                  DATA_ENCODING_ALGORITHM,
-                                 ERROR_COLLECTING_ALGORITHM, CUDA>()
+                                 ERROR_COLLECTING_ALGORITHM, DeviceType>()
         .Execute(n, num_batches_per_TB, num_bitplanes, exp, v,
                  encoded_bitplanes_subarray, level_errors, level_errors_work,
                  queue_idx);
@@ -751,16 +751,16 @@ public:
     return encoded_bitplanes_array;
   }
 
-  Array<1, T_data, CUDA>
+  Array<1, T_data, DeviceType>
   decode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
          int level, int queue_idx) {}
 
   // decode the data and record necessary information for progressiveness
-  Array<1, T_data, CUDA> progressive_decode(
+  Array<1, T_data, DeviceType> progressive_decode(
       SIZE n, SIZE starting_bitplane,
       SIZE num_bitplanes, int32_t exp,
-      SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
       int level, int queue_idx) {
 
     SIZE num_batches_per_TB = 2;
@@ -772,7 +772,7 @@ public:
         bitplane_max_length_per_TB * num_blocks;
 
     if (level_signs.size() == level) {
-      level_signs.push_back(Array<1, bool, CUDA>({n}));
+      level_signs.push_back(Array<1, bool, DeviceType>({n}));
     }
 
     // uint8_t * encoded_bitplanes = new uint8_t[bitplane_max_length_total *
@@ -787,11 +787,11 @@ public:
 
     // Array<1, bool> signs_array({(SIZE)n});
     // signs_array.load(new_signs);
-    SubArray<1, bool, CUDA> signs_subarray(
+    SubArray<1, bool, DeviceType> signs_subarray(
         level_signs[level]);
 
-    Array<1, T_data, CUDA> v_array({(SIZE)n});
-    SubArray<1, T_data, CUDA> v(v_array);
+    Array<1, T_data, DeviceType> v_array({(SIZE)n});
+    SubArray<1, T_data, DeviceType> v(v_array);
 
     // delete [] new_signs;
 
@@ -800,7 +800,7 @@ public:
 
     if (num_bitplanes > 0) {
       MDR::GroupedDecoder<T_data, T_bitplane, BINARY_TYPE,
-                                   DATA_DECODING_ALGORITHM, CUDA>()
+                                   DATA_DECODING_ALGORITHM, DeviceType>()
           .Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp,
                    encoded_bitplanes, signs_subarray, v, queue_idx);
     }
@@ -831,7 +831,7 @@ public:
   void print() const { std::cout << "Grouped bitplane encoder" << std::endl; }
 
 private:
-  std::vector<Array<1, bool, CUDA>> level_signs;
+  std::vector<Array<1, bool, DeviceType>> level_signs;
   std::vector<std::vector<uint8_t>> level_recording_bitplanes;
 };
 } // namespace MDR
