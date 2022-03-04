@@ -26,14 +26,14 @@ namespace MDR {
 namespace concepts {
 
 // inplace data decomposer: de-correlates and overwrites original data
-template <DIM D, typename T>
+template <DIM D, typename T, typename DeviceType>
 class DecomposerInterface {
 public:
   virtual ~DecomposerInterface() = default;
 
-  virtual void decompose(SubArray<D, T, CUDA> v, SIZE target_level, int queue_idx) const = 0;
+  virtual void decompose(SubArray<D, T, DeviceType> v, SIZE target_level, int queue_idx) const = 0;
 
-  virtual void recompose(SubArray<D, T, CUDA> v, SIZE target_level, int queue_idx) const = 0;
+  virtual void recompose(SubArray<D, T, DeviceType> v, SIZE target_level, int queue_idx) const = 0;
 
   virtual void print() const = 0;
 };

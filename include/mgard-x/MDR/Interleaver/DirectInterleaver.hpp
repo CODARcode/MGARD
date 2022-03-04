@@ -355,33 +355,33 @@ public:
 };
 
 // direct interleaver with in-order recording
-template <DIM D, typename T>
+template <DIM D, typename T, typename DeviceType>
 class DirectInterleaver
-    : public concepts::InterleaverInterface<D, T> {
+    : public concepts::InterleaverInterface<D, T, DeviceType> {
 public:
-  DirectInterleaver(Hierarchy<D, T, CUDA>& hierarchy): hierarchy(hierarchy) {}
+  DirectInterleaver(Hierarchy<D, T, DeviceType>& hierarchy): hierarchy(hierarchy) {}
   void
-  interleave(SubArray<D, T, CUDA> decomposed_data,
-             SubArray<1, T, CUDA> *levels_decomposed_data,
+  interleave(SubArray<D, T, DeviceType> decomposed_data,
+             SubArray<1, T, DeviceType> *levels_decomposed_data,
              SIZE num_levels,
              int queue_idx) const {
     // PrintSubarray("decomposed_data", decomposed_data);
-    SubArray<1, T, CUDA> *levels_decomposed_data_device;
+    SubArray<1, T, DeviceType> *levels_decomposed_data_device;
 
-    MemoryManager<CUDA>::Malloc1D(levels_decomposed_data_device,
+    MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
                                   num_levels, queue_idx);
-    MemoryManager<CUDA>::Copy1D(levels_decomposed_data_device,
+    MemoryManager<DeviceType>::Copy1D(levels_decomposed_data_device,
                                 levels_decomposed_data,
                                 num_levels, queue_idx);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
-    DirectInterleaverKernel<D, T, Interleave, CUDA>().Execute(
-        SubArray<1, SIZE, CUDA>(hierarchy.shapes[0], true),
+    DirectInterleaverKernel<D, T, Interleave, DeviceType>().Execute(
+        SubArray<1, SIZE, DeviceType>(hierarchy.shapes[0], true),
         hierarchy.l_target, num_levels,
-        SubArray<1, SIZE, CUDA>(hierarchy.ranges),
+        SubArray<1, SIZE, DeviceType>(hierarchy.ranges),
         decomposed_data, levels_decomposed_data_device, queue_idx);
 
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     // handle.sync(queue_idx);
     // for (int i = 0; i < this->handle.l_target+1; i++) {
     //   printf("l = %d\n", i);
@@ -390,33 +390,33 @@ public:
     // }
   }
   void
-  reposition(SubArray<1, T, CUDA> *levels_decomposed_data,
-             SubArray<D, T, CUDA> decomposed_data,
+  reposition(SubArray<1, T, DeviceType> *levels_decomposed_data,
+             SubArray<D, T, DeviceType> decomposed_data,
              SIZE num_levels,
              int queue_idx) const {
 
-    SubArray<1, T, CUDA> *levels_decomposed_data_device;
+    SubArray<1, T, DeviceType> *levels_decomposed_data_device;
 
-    MemoryManager<CUDA>::Malloc1D(levels_decomposed_data_device,
+    MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
                                   num_levels, queue_idx);
-    MemoryManager<CUDA>::Copy1D(levels_decomposed_data_device,
+    MemoryManager<DeviceType>::Copy1D(levels_decomposed_data_device,
                                 levels_decomposed_data,
                                 num_levels, queue_idx);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
-    DirectInterleaverKernel<D, T, Reposition, CUDA>().Execute(
-        SubArray<1, SIZE, CUDA>(hierarchy.shapes[0], true),
+    DirectInterleaverKernel<D, T, Reposition, DeviceType>().Execute(
+        SubArray<1, SIZE, DeviceType>(hierarchy.shapes[0], true),
         hierarchy.l_target, num_levels,
-        SubArray<1, SIZE, CUDA>(hierarchy.ranges),
+        SubArray<1, SIZE, DeviceType>(hierarchy.ranges),
         decomposed_data, levels_decomposed_data_device, queue_idx);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
     PrintSubarray("hierarchy.ranges", SubArray(hierarchy.ranges));
   }
   void print() const { std::cout << "Direct interleaver" << std::endl; }
 
 private:
-  Hierarchy<D, T, CUDA>& hierarchy;
+  Hierarchy<D, T, DeviceType>& hierarchy;
 };
 
 } // namespace MDR
