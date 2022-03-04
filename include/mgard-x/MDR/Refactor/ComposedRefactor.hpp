@@ -188,14 +188,14 @@ namespace MDR {
 // decomposer, interleaver, encoder, and error collector
 template <DIM D, typename T_data,
           typename T_bitplane, class Decomposer, class Interleaver,
-          class Encoder, class Compressor, class ErrorCollector, class Writer>
+          class Encoder, class Compressor, class ErrorCollector, class Writer, typename DeviceType>
 class ComposedRefactor
-    : public concepts::RefactorInterface<D, T_data, T_bitplane> {
+    : public concepts::RefactorInterface<D, T_data, T_bitplane, DeviceType> {
 
   using T_error = double;
 
 public:
-  ComposedRefactor(Hierarchy<D, T_data, CUDA> &hierarchy, Decomposer decomposer,
+  ComposedRefactor(Hierarchy<D, T_data, DeviceType> &hierarchy, Decomposer decomposer,
                    Interleaver interleaver, Encoder encoder,
                    Compressor compressor, ErrorCollector collector,
                    Writer writer)
@@ -210,7 +210,7 @@ public:
 
     MDR::Timer timer;
     timer.start();
-    data_array = Array<D, T_data, CUDA>(hierarchy.shape_org);
+    data_array = Array<D, T_data, DeviceType>(hierarchy.shape_org);
     data_array.load(data_);
     timer.end();
     timer.print("Copy to GPU");
@@ -230,7 +230,7 @@ public:
     write_metadata();
     for (int i = 0; i < level_components.size(); i++) {
       for (int j = 0; j < level_components[i].size(); j++) {
-        MemoryManager<CUDA>::FreeHost(level_components[i][j]);
+        MemoryManager<DeviceType>::FreeHost(level_components[i][j]);
       }
     }
   }
@@ -287,7 +287,7 @@ private:
       dimensions.push_back(hierarchy.dofs[d][0]);
     }
 
-    SubArray<D, T_data, CUDA> data(data_array);
+    SubArray<D, T_data, DeviceType> data(data_array);
 
     MDR::Timer timer;
     // // decompose data hierarchically
@@ -295,7 +295,7 @@ private:
     // PrintSubarray("before decomposition", data);
     decomposer.decompose(data, target_level, queue_idx);
     // PrintSubarray("after decomposition", data);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Decompose");
 
@@ -315,29 +315,29 @@ private:
     }
     printf("\n");
 
-    Array<1, T_data, CUDA> *levels_array = new Array<1, T_data, CUDA>[target_level + 1];
-    SubArray<1, T_data, CUDA> *levels_data = new SubArray<1, T_data, CUDA>[target_level + 1];
+    Array<1, T_data, DeviceType> *levels_array = new Array<1, T_data, DeviceType>[target_level + 1];
+    SubArray<1, T_data, DeviceType> *levels_data = new SubArray<1, T_data, DeviceType>[target_level + 1];
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
-      levels_array[level_idx] = Array<1, T_data, CUDA>({level_num_elems[level_idx]});
-      levels_data[level_idx] = SubArray<1, T_data, CUDA>(levels_array[level_idx]);
+      levels_array[level_idx] = Array<1, T_data, DeviceType>({level_num_elems[level_idx]});
+      levels_data[level_idx] = SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
     }
 
     printf("done create levels_data\n");
 
     interleaver.interleave(data, levels_data, target_level + 1, queue_idx);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Interleave");
 
-    DeviceCollective<CUDA> deviceReduce;
+    DeviceCollective<DeviceType> deviceReduce;
 
-    std::vector<std::vector<Array<1, Byte, CUDA>>>
+    std::vector<std::vector<Array<1, Byte, DeviceType>>>
         compressed_bitplanes;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
 
       timer.start();
-      Array<1, T_data, CUDA> result_array({1});
-      SubArray<1, T_data, CUDA> result(result_array);
+      Array<1, T_data, DeviceType> result_array({1});
+      SubArray<1, T_data, DeviceType> result(result_array);
 
       deviceReduce.AbsMax(levels_data[level_idx].getShape(0),
                           levels_data[level_idx], result, queue_idx);
@@ -350,16 +350,16 @@ private:
       timer.print("level_max_error");
 
       timer.start();
-      Array<1, T_error, CUDA> level_errors_array(
+      Array<1, T_error, DeviceType> level_errors_array(
           {num_bitplanes + 1});
-      SubArray<1, T_error, CUDA> level_errors(
+      SubArray<1, T_error, DeviceType> level_errors(
           level_errors_array);
       std::vector<SIZE> bitplane_sizes(num_bitplanes);
-      Array<2, T_bitplane, CUDA> encoded_bitplanes =
+      Array<2, T_bitplane, DeviceType> encoded_bitplanes =
           encoder.encode(level_num_elems[level_idx], num_bitplanes, level_exp,
                          levels_data[level_idx], level_errors, bitplane_sizes,
                          queue_idx);
-      DeviceRuntime<CUDA>::SyncQueue(queue_idx);
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
       // PrintSubarray("level_errors", level_errors);
 
@@ -375,7 +375,7 @@ private:
       timer.print("Encoding");
 
       timer.start();
-      std::vector<Array<1, Byte, CUDA>>
+      std::vector<Array<1, Byte, DeviceType>>
           compressed_encoded_bitplanes;
       compressed_bitplanes.push_back(compressed_encoded_bitplanes);
       uint8_t stopping_index = compressor.compress_level(
@@ -394,8 +394,8 @@ private:
       for (int bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
 
         Byte *bitplane;
-        MemoryManager<CUDA>::MallocHost(bitplane, compressed_bitplanes[level_idx][bitplane_idx].shape()[0], 0);
-        MemoryManager<CUDA>::Copy1D(bitplane, compressed_bitplanes[level_idx][bitplane_idx].data(), 
+        MemoryManager<DeviceType>::MallocHost(bitplane, compressed_bitplanes[level_idx][bitplane_idx].shape()[0], 0);
+        MemoryManager<DeviceType>::Copy1D(bitplane, compressed_bitplanes[level_idx][bitplane_idx].data(), 
                               compressed_bitplanes[level_idx][bitplane_idx].shape()[0], 0);
         level_components[level_idx].push_back(bitplane);
       }
@@ -406,7 +406,7 @@ private:
     return true;
   }
 
-  Hierarchy<D, T_data, CUDA> &hierarchy;
+  Hierarchy<D, T_data, DeviceType> &hierarchy;
   Decomposer decomposer;
   Interleaver interleaver;
   Encoder encoder;
@@ -414,7 +414,7 @@ private:
   ErrorCollector collector;
   Writer writer;
 
-  Array<D, T_data, CUDA> data_array;
+  Array<D, T_data, DeviceType> data_array;
   // std::vector<T> data;
 
   std::vector<SIZE> dimensions;

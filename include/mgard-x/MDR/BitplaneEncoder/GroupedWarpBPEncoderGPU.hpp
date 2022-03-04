@@ -33,368 +33,7 @@
 
 namespace mgard_x {
 
-template <SIZE N, typename T> struct RegisterArray { T v[N]; };
 
-template <typename T_org, typename T_trans, OPTION ALIGN, OPTION METHOD>
-struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, CUDA> {
-
-  typedef cub::WarpReduce<T_trans> WarpReduceType;
-  using WarpReduceStorageType = typename WarpReduceType::TempStorage;
-
-  template <SIZE b, SIZE B>
-  MGARDX_EXEC void Serial_All(T_org *v, SIZE inc_v, T_trans *tv, SIZE inc_tv) {
-    // long long start;
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
-    if (__mylaneid() == 0) {
-      for (SIZE B_idx = 0; B_idx < B; B_idx++) {
-        T_trans buffer = 0;
-        for (SIZE b_idx = 0; b_idx < b; b_idx++) {
-          T_trans bit =
-              (v[b_idx * inc_v] >> (sizeof(T_org) * 8 - 1 - B_idx)) & 1u;
-          // if (blockIdx.x == 0 )printf("bit: %u\n", bit);
-          if (ALIGN == ALIGN_LEFT) {
-            buffer += bit << (sizeof(T_trans) * 8 - 1 - b_idx);
-          } else if (ALIGN == ALIGN_RIGHT) {
-            buffer += bit << (b - 1 - b_idx);
-          } else {
-          }
-        }
-        tv[B_idx * inc_tv] = buffer;
-      }
-    }
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64() - start;
-    // printf("Serial_All time : %llu\n", start); }
-  }
-
-  template <SIZE b, SIZE B>
-  MGARDX_EXEC void Parallel_B_Serial_b(T_org *v, SIZE inc_v, T_trans *tv,
-                                       SIZE inc_tv) {
-    // long long start;
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
-    for (SIZE B_idx = __mylaneid(); B_idx < B; B_idx += MGARDX_WARP_SIZE) {
-      T_trans buffer = 0;
-      for (SIZE b_idx = 0; b_idx < b; b_idx++) {
-        T_trans bit =
-            (v[b_idx * inc_v] >> (sizeof(T_org) * 8 - 1 - B_idx)) & 1u;
-        // if (blockIdx.x == 0 )printf("bit: %u\n", bit);
-        if (ALIGN == ALIGN_LEFT) {
-          buffer += bit << (sizeof(T_trans) * 8 - 1 - b_idx);
-        } else if (ALIGN == ALIGN_RIGHT) {
-          buffer += bit << (b - 1 - b_idx);
-        } else {
-        }
-      }
-      tv[B_idx * inc_tv] = buffer;
-    }
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64() - start;
-    // printf("Parallel_B_Serial_b time : %llu\n", start); }
-  }
-
-  template <SIZE b, SIZE B>
-  MGARDX_EXEC void Serial_B_Atomic_b(T_org *v, SIZE inc_v, T_trans *tv,
-                                     SIZE inc_tv) {
-    // long long start;
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
-    for (SIZE B_idx = __mylaneid(); B_idx < B; B_idx += MGARDX_WARP_SIZE) {
-      tv[B_idx * inc_tv] = 0;
-    }
-    for (SIZE B_idx = 0; B_idx < B; B_idx++) {
-      for (SIZE b_idx = __mylaneid(); b_idx < b; b_idx += MGARDX_WARP_SIZE) {
-        T_trans bit =
-            (v[b_idx * inc_v] >> (sizeof(T_org) * 8 - 1 - B_idx)) & 1u;
-        T_trans shifted_bit = 0;
-        if (ALIGN == ALIGN_LEFT) {
-          shifted_bit = bit << (sizeof(T_trans) * 8 - 1 - b_idx);
-        } else if (ALIGN == ALIGN_RIGHT) {
-          shifted_bit = bit << (b - 1 - b_idx);
-        } else {
-        }
-        T_trans *sum = &(tv[B_idx * inc_tv]);
-        atomicAdd_block(sum, shifted_bit);
-      }
-    }
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64() - start;
-    // printf("Serial_B_Atomic_b time : %llu\n", start); }
-  }
-
-  template <SIZE b, SIZE B>
-  MGARDX_EXEC void Serial_B_Reduce_b(T_org *v, SIZE inc_v, T_trans *tv,
-                                     SIZE inc_tv) {
-    // long long start;
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
-    __shared__ WarpReduceStorageType warp_storage;
-
-    T_trans bit = 0;
-    T_trans shifted_bit = 0;
-    T_trans sum = 0;
-    for (SIZE B_idx = 0; B_idx < B; B_idx++) {
-      sum = 0;
-      for (SIZE b_idx = __mylaneid();
-           b_idx < ((b - 1) / MGARDX_WARP_SIZE + 1) * MGARDX_WARP_SIZE;
-           b_idx += MGARDX_WARP_SIZE) {
-        if (b_idx < b) {
-          bit = (v[b_idx * inc_v] >> (sizeof(T_org) * 8 - 1 - B_idx)) & 1u;
-        }
-        shifted_bit = 0;
-        if (ALIGN == ALIGN_LEFT) {
-          shifted_bit = bit << (sizeof(T_trans) * 8 - 1 - b_idx);
-        } else if (ALIGN == ALIGN_RIGHT) {
-          shifted_bit = bit << (b - 1 - b_idx);
-        } else {
-        }
-        sum += WarpReduceType(warp_storage).Sum(shifted_bit);
-      }
-      if (__mylaneid() == 0) {
-        tv[B_idx * inc_tv] = sum;
-      }
-    }
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64() - start;
-    // printf("Serial_B_Reduce_b time : %llu\n", start); }
-  }
-
-  template <SIZE b, SIZE B>
-  MGARDX_EXEC void Serial_B_Ballot_b(T_org *v, SIZE inc_v, T_trans *tv,
-                                     SIZE inc_tv) {
-    // long long start;
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64(); }
-    T_trans bit = 0;
-    T_trans sum = 0;
-    for (SIZE B_idx = 0; B_idx < B; B_idx++) {
-      sum = 0;
-      SIZE shift = 0;
-      for (SIZE b_idx = __mylaneid();
-           b_idx < ((b - 1) / MGARDX_WARP_SIZE + 1) * MGARDX_WARP_SIZE;
-           b_idx += MGARDX_WARP_SIZE) {
-        bit = 0;
-        if (b_idx < b) {
-          if (ALIGN == ALIGN_LEFT) {
-            bit = (v[(sizeof(T_trans) * 8 - 1 - b_idx) * inc_v] >>
-                   (sizeof(T_org) * 8 - 1 - B_idx)) &
-                  1u;
-          } else if (ALIGN == ALIGN_RIGHT) {
-            bit = (v[(b - 1 - b_idx) * inc_v] >>
-                   (sizeof(T_org) * 8 - 1 - B_idx)) &
-                  1u;
-          } else {
-          }
-        }
-        sum += ((T_trans)__ballot_sync(0xffffffff, bit)) << shift;
-        shift += MGARDX_WARP_SIZE;
-      }
-      if (__mylaneid() == 0) {
-        tv[B_idx * inc_tv] = sum;
-      }
-    }
-    // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64() - start;
-    // printf("Serial_B_Ballot_b time : %llu\n", start); }
-  }
-
-  template <SIZE b, SIZE B>
-  MGARDX_EXEC void Transpose(T_org *v, SIZE inc_v, T_trans *tv, SIZE inc_tv) {
-    if (METHOD == Warp_Bit_Transpose_Serial_All) {
-      Serial_All<b, B>(v, inc_v, tv, inc_tv);
-    } else if (METHOD == Warp_Bit_Transpose_Parallel_B_Serial_b) {
-      Parallel_B_Serial_b<b, B>(v, inc_v, tv, inc_tv);
-    } else if (METHOD == Warp_Bit_Transpose_Serial_B_Atomic_b) {
-      Serial_B_Atomic_b<b, B>(v, inc_v, tv, inc_tv);
-    } else if (METHOD == Warp_Bit_Transpose_Serial_B_Reduce_b) {
-      Serial_B_Reduce_b<b, B>(v, inc_v, tv, inc_tv);
-    } else if (METHOD == Warp_Bit_Transpose_Serial_B_Ballot_b) {
-      Serial_B_Ballot_b<b, B>(v, inc_v, tv, inc_tv);
-    }
-  }
-
-  // MGARDX_EXEC
-  // RegisterArray<W*sizeof(T_org)*8/MGARDX_WARP_SIZE, T_trans>
-  // Transpose(RegisterArray<W*sizeof(T_trans)*8/MGARDX_WARP_SIZE, T_org> v,
-  // SIZE b, SIZE B) {}
-};
-
-template <typename T, typename T_fp, typename T_sfp, typename T_error,
-          OPTION METHOD, OPTION BinaryType>
-struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, CUDA> {
-
-  typedef cub::WarpReduce<T_error> WarpReduceType;
-  using WarpReduceStorageType = typename WarpReduceType::TempStorage;
-
-  template <SIZE num_elems, SIZE num_bitplanes>
-  MGARDX_EXEC void Serial_All(T *v, T_error *errors) {
-    if (__mylaneid() == 0) {
-      for (SIZE elem_idx = 0; elem_idx < num_elems; elem_idx++) {
-        T data = v[elem_idx];
-        T_fp fp_data = (T_fp)fabs(data);
-        T_sfp fps_data = (T_sfp)data;
-        T_fp ngb_data = binary2negabinary(fps_data);
-        T_error mantissa;
-        if (BinaryType == BINARY) {
-          mantissa = fabs(data) - fp_data;
-        } else if (BinaryType == NEGABINARY) {
-          mantissa = data - fps_data;
-        }
-
-        // printf("fp: %u error: \n", fp_data);
-        for (SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes;
-             bitplane_idx++) {
-          uint64_t mask = (1 << bitplane_idx) - 1;
-          T_error diff = 0;
-          if (BinaryType == BINARY) {
-            diff = (T_error)(fp_data & mask) + mantissa;
-          } else if (BinaryType == NEGABINARY) {
-            diff = (T_error)negabinary2binary(ngb_data & mask) + mantissa;
-          }
-          errors[num_bitplanes - bitplane_idx] += diff * diff;
-          // printf("%f ", diff * diff);
-        }
-        errors[0] += data * data;
-        // printf("%f \n", data * data);
-      }
-    }
-  }
-
-  template <SIZE num_elems, SIZE num_bitplanes>
-  MGARDX_EXEC void Parallel_Bitplanes_Serial_Error(T *v, T_error *errors) {
-
-    __shared__ WarpReduceStorageType warp_storage;
-
-    for (SIZE bitplane_idx = __mylaneid(); bitplane_idx < num_bitplanes;
-         bitplane_idx += MGARDX_WARP_SIZE) {
-      for (SIZE elem_idx = 0; elem_idx < num_elems; elem_idx++) {
-        T data = v[elem_idx];
-        T_fp fp_data = (T_fp)fabs(data);
-        T_sfp fps_data = (T_sfp)data;
-        T_fp ngb_data = binary2negabinary(fps_data);
-        T_error mantissa;
-        if (BinaryType == BINARY) {
-          mantissa = fabs(data) - fp_data;
-        } else if (BinaryType == NEGABINARY) {
-          mantissa = data - fps_data;
-        }
-
-        uint64_t mask = (1 << bitplane_idx) - 1;
-        T_error diff = 0;
-        if (BinaryType == BINARY) {
-          diff = (T_error)(fp_data & mask) + mantissa;
-        } else if (BinaryType == NEGABINARY) {
-          diff = (T_error)negabinary2binary(ngb_data & mask) + mantissa;
-        }
-        errors[num_bitplanes - bitplane_idx] += diff * diff;
-      }
-    }
-
-    T data = 0;
-    for (SIZE elem_idx = __mylaneid();
-         elem_idx < ((num_elems - 1) / MGARDX_WARP_SIZE + 1) * MGARDX_WARP_SIZE;
-         elem_idx += MGARDX_WARP_SIZE) {
-      if (elem_idx < num_elems) {
-        data = v[elem_idx];
-      }
-      T_error error_sum = WarpReduceType(warp_storage).Sum(data * data);
-      if (__mylaneid() == 0)
-        errors[0] += error_sum;
-    }
-  }
-
-  template <SIZE num_elems, SIZE num_bitplanes>
-  MGARDX_EXEC void Serial_Bitplanes_Atomic_Error(T *v, T_error *errors) {
-    T data = 0;
-    for (SIZE elem_idx = __mylaneid();
-         elem_idx < ((num_elems - 1) / MGARDX_WARP_SIZE + 1) * MGARDX_WARP_SIZE;
-         elem_idx += MGARDX_WARP_SIZE) {
-      if (elem_idx < num_elems) {
-        data = v[elem_idx];
-      } else {
-        data = 0;
-      }
-
-      T_fp fp_data = (T_fp)fabs(data);
-      T_sfp fps_data = (T_sfp)data;
-      T_fp ngb_data = binary2negabinary(fps_data);
-      T_error mantissa;
-      if (BinaryType == BINARY) {
-        mantissa = fabs(data) - fp_data;
-      } else if (BinaryType == NEGABINARY) {
-        mantissa = data - fps_data;
-      }
-
-      // printf("fp: %u error: \n", fp_data);
-      for (SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes;
-           bitplane_idx++) {
-        uint64_t mask = (1 << bitplane_idx) - 1;
-        T_error diff = 0;
-        if (BinaryType == BINARY) {
-          diff = (T_error)(fp_data & mask) + mantissa;
-        } else if (BinaryType == NEGABINARY) {
-          diff = (T_error)negabinary2binary(ngb_data & mask) + mantissa;
-        }
-        T_error *sum = &(errors[num_bitplanes - bitplane_idx]);
-        atomicAdd_block(sum, diff * diff);
-      }
-      T_error *sum = &(errors[0]);
-      atomicAdd_block(sum, data * data);
-    }
-  }
-
-  template <SIZE num_elems, SIZE num_bitplanes>
-  MGARDX_EXEC void Serial_Bitplanes_Reduce_Error(T *v, T_error *errors) {
-
-    __shared__ WarpReduceStorageType warp_storage;
-
-    T data = 0;
-    for (SIZE elem_idx = __mylaneid();
-         elem_idx < ((num_elems - 1) / MGARDX_WARP_SIZE + 1) * MGARDX_WARP_SIZE;
-         elem_idx += MGARDX_WARP_SIZE) {
-      if (elem_idx < num_elems) {
-        data = v[elem_idx];
-      } else {
-        data = 0;
-      }
-
-      T_fp fp_data = (T_fp)fabs(data);
-      T_sfp fps_data = (T_sfp)data;
-      T_fp ngb_data = binary2negabinary(fps_data);
-      T_error mantissa;
-      if (BinaryType == BINARY) {
-        mantissa = fabs(data) - fp_data;
-      } else if (BinaryType == NEGABINARY) {
-        mantissa = data - fps_data;
-      }
-
-      // printf("fp: %u error: \n", fp_data);
-      for (SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes;
-           bitplane_idx++) {
-        uint64_t mask = (1 << bitplane_idx) - 1;
-        T_error diff = 0;
-        if (BinaryType == BINARY) {
-          diff = (T_error)(fp_data & mask) + mantissa;
-        } else if (BinaryType == NEGABINARY) {
-          diff = (T_error)negabinary2binary(ngb_data & mask) + mantissa;
-        }
-        T_error error_sum = WarpReduceType(warp_storage).Sum(diff * diff);
-        if (__mylaneid() == 0)
-          errors[num_bitplanes - bitplane_idx] += error_sum;
-      }
-      T_error error_sum = WarpReduceType(warp_storage).Sum(data * data);
-      if (__mylaneid() == 0)
-        errors[0] += error_sum;
-    }
-  }
-
-  template <SIZE num_elems, SIZE num_bitplanes>
-  MGARDX_EXEC void Collect(T *v, T_error *errors) {
-    if (METHOD == Warp_Error_Collecting_Serial_All) {
-      Serial_All<num_elems, num_bitplanes>(v, errors);
-    }
-    if (METHOD == Warp_Error_Collecting_Parallel_Bitplanes_Serial_Error) {
-      Parallel_Bitplanes_Serial_Error<num_elems, num_bitplanes>(v, errors);
-    }
-    if (METHOD == Warp_Error_Collecting_Serial_Bitplanes_Atomic_Error) {
-      Serial_Bitplanes_Atomic_Error<num_elems, num_bitplanes>(v, errors);
-    }
-    if (METHOD == Warp_Error_Collecting_Serial_Bitplanes_Reduce_Error) {
-      Serial_Bitplanes_Reduce_Error<num_elems, num_bitplanes>(v, errors);
-    }
-  }
-};
 
 } // namespace mgard_x
 
@@ -905,9 +544,9 @@ public:
     SIZE reduce_size = MGARDX_NUM_SMs;
     DeviceCollective<DeviceType> deviceReduce;
     for (int i = 0; i < num_bitplanes + 1; i++) {
-      SubArray<1, T_error, CUDA> curr_errors({reduce_size},
+      SubArray<1, T_error, DeviceType> curr_errors({reduce_size},
                                              level_errors_workspace(i, 0));
-      SubArray<1, T_error, CUDA> sum_error({1}, level_errors(i));
+      SubArray<1, T_error, DeviceType> sum_error({1}, level_errors(i));
       deviceReduce.Sum(reduce_size, curr_errors, sum_error, queue_idx);
     }
     DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
@@ -1330,18 +969,13 @@ public:
   }
 };
 
-} // namespace MDR
-} // namespace mgard_x
-
-namespace mgard_x {
-namespace MDR {
 // general bitplane encoder that encodes data by block using T_stream type
 // buffer
-template <DIM D, typename T_data,
-          typename T_bitplane, typename T_error>
+template <typename T_data,
+          typename T_bitplane, typename T_error, typename DeviceType>
 class GroupedWarpBPEncoder
-    : public concepts::BitplaneEncoderInterface<D, T_data,
-                                                T_bitplane, T_error> {
+    : public concepts::BitplaneEncoderInterface<T_data,
+                                                T_bitplane, T_error, DeviceType> {
 public:
   GroupedWarpBPEncoder() {
     std::cout << "GroupedWarpEncoder\n";
@@ -1355,26 +989,26 @@ public:
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
   }
 
-  Array<2, T_bitplane, CUDA>
+  Array<2, T_bitplane, DeviceType>
   encode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<1, T_data, CUDA> v,
-         SubArray<1, T_error, CUDA> level_errors,
+         SubArray<1, T_data, DeviceType> v,
+         SubArray<1, T_error, DeviceType> level_errors,
          std::vector<SIZE> &streams_sizes, int queue_idx) const {
 
     MDR::GroupedWarpEncoder<
         T_data, T_bitplane, T_error, NUM_GROUPS_PER_WARP_PER_ITER,
         NUM_WARP_PER_TB, BINARY_TYPE, DATA_ENCODING_ALGORITHM,
-        ERROR_COLLECTING_ALGORITHM, CUDA>
+        ERROR_COLLECTING_ALGORITHM, DeviceType>
         encoder;
 
-    Array<2, T_error, CUDA> level_errors_work_array(
+    Array<2, T_error, DeviceType> level_errors_work_array(
         {num_bitplanes + 1, MGARDX_NUM_SMs});
-    SubArray<2, T_error, CUDA> level_errors_work(
+    SubArray<2, T_error, DeviceType> level_errors_work(
         level_errors_work_array);
 
-    Array<2, T_bitplane, CUDA> encoded_bitplanes_array(
+    Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
         {num_bitplanes, encoder.MaxBitplaneLength(n)});
-    SubArray<2, T_bitplane, CUDA> encoded_bitplanes_subarray(
+    SubArray<2, T_bitplane, DeviceType> encoded_bitplanes_subarray(
         encoded_bitplanes_array);
 
     encoder.Execute(n, num_bitplanes, exp, v, encoded_bitplanes_subarray,
@@ -1387,16 +1021,16 @@ public:
     return encoded_bitplanes_array;
   }
 
-  Array<1, T_data, CUDA>
+  Array<1, T_data, DeviceType>
   decode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
          int level, int queue_idx) {}
 
   // decode the data and record necessary information for progressiveness
-  Array<1, T_data, CUDA> progressive_decode(
+  Array<1, T_data, DeviceType> progressive_decode(
       SIZE n, SIZE starting_bitplane,
       SIZE num_bitplanes, int32_t exp,
-      SubArray<2, T_bitplane, CUDA> encoded_bitplanes,
+      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
       int level, int queue_idx) {
 
     // SIZE num_batches_per_TB = 2;
@@ -1410,19 +1044,19 @@ public:
     // const SIZE NumWarpsPerTB = 16;
     MDR::GroupedWarpDecoder<
         T_data, T_bitplane, NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB,
-        BINARY_TYPE, DATA_DECODING_ALGORITHM, CUDA>
+        BINARY_TYPE, DATA_DECODING_ALGORITHM, DeviceType>
         decoder;
 
     if (level_signs.size() == level) {
       level_signs.push_back(
-          Array<1, bool, CUDA>({(SIZE)n}));
+          Array<1, bool, DeviceType>({(SIZE)n}));
     }
 
-    SubArray<1, bool, CUDA> signs_subarray(
+    SubArray<1, bool, DeviceType> signs_subarray(
         level_signs[level]);
 
-    Array<1, T_data, CUDA> v_array({(SIZE)n});
-    SubArray<1, T_data, CUDA> v(v_array);
+    Array<1, T_data, DeviceType> v_array({(SIZE)n});
+    SubArray<1, T_data, DeviceType> v(v_array);
 
     if (num_bitplanes > 0) {
       // if (num_bitplanes == 1) {
@@ -1438,7 +1072,7 @@ public:
     MDR::GroupedWarpEncoder<
         T_data, T_bitplane, T_error, NUM_GROUPS_PER_WARP_PER_ITER,
         NUM_WARP_PER_TB, BINARY_TYPE, DATA_ENCODING_ALGORITHM,
-        ERROR_COLLECTING_ALGORITHM, CUDA>
+        ERROR_COLLECTING_ALGORITHM, DeviceType>
         encoder;
     return encoder.MaxBitplaneLength(n);
   }
@@ -1446,7 +1080,7 @@ public:
   void print() const { std::cout << "Grouped bitplane encoder" << std::endl; }
 
 private:
-  std::vector<Array<1, bool, CUDA>> level_signs;
+  std::vector<Array<1, bool, DeviceType>> level_signs;
   std::vector<std::vector<uint8_t>> level_recording_bitplanes;
 };
 } // namespace MDR

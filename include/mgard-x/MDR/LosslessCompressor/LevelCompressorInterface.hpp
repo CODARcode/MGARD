@@ -33,7 +33,7 @@ namespace MDR {
 namespace concepts {
 
 // interface for lossless compressor
-template <typename T>
+template <typename T, typename DeviceType>
 class LevelCompressorInterface {
 public:
   virtual ~LevelCompressorInterface() = default;
@@ -41,17 +41,17 @@ public:
   // compress level, overwrite and free original streams; rewrite streams sizes
   virtual uint8_t
   compress_level(std::vector<SIZE> &bitplane_sizes,
-                 Array<2, T, CUDA> &encoded_bitplanes,
-                 std::vector<Array<1, Byte, CUDA>>
+                 Array<2, T, DeviceType> &encoded_bitplanes,
+                 std::vector<Array<1, Byte, DeviceType>>
                      &compressed_bitplanes) = 0;
 
   // decompress level, create new buffer and overwrite original streams; will
   // not change stream sizes
   virtual void
   decompress_level(std::vector<SIZE> &bitplane_sizes,
-                   std::vector<Array<1, Byte, CUDA>>
+                   std::vector<Array<1, Byte, DeviceType>>
                        &compressed_bitplanes,
-                   Array<2, T, CUDA> &encoded_bitplanes,
+                   Array<2, T, DeviceType> &encoded_bitplanes,
                    uint8_t starting_bitplane, uint8_t num_bitplanes,
                    uint8_t stopping_index) = 0;
 

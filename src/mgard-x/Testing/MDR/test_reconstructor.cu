@@ -112,16 +112,16 @@ void evaluate(const vector<T> &data, const vector<double> &tolerance,
 //   evaluate(data, tolerance, reconstructor);
 // }
 
-template <mgard_x::DIM D, class T, class T_stream,
+template <mgard_x::DIM D, class T, class T_stream, typename DeviceType,
           class Decomposer, class Interleaver, class Encoder, class Compressor,
           class ErrorEstimator, class SizeInterpreter, class Retriever>
-void test2(string filename, const vector<double> &tolerance, mgard_x::Hierarchy<D, T, mgard_x::CUDA> &hierarchy,
+void test2(string filename, const vector<double> &tolerance, mgard_x::Hierarchy<D, T, DeviceType> &hierarchy,
            Decomposer decomposer, Interleaver interleaver, Encoder encoder,
            Compressor compressor, ErrorEstimator estimator,
            SizeInterpreter interpreter, Retriever retriever) {
   auto reconstructor = mgard_x::MDR::ComposedReconstructor<
       D, T, T_stream, Decomposer, Interleaver, Encoder, Compressor,
-      SizeInterpreter, ErrorEstimator, Retriever>(
+      SizeInterpreter, ErrorEstimator, Retriever, DeviceType>(
       hierarchy, decomposer, interleaver, encoder, compressor, interpreter,
       retriever);
   cout << "loading metadata" << endl;
@@ -174,25 +174,22 @@ int main(int argc, char **argv) {
   using T = float;
   using T_stream = uint32_t;
   using T_error = double;
+  using DeviceType = mgard_x::CUDA;
 
   const mgard_x::DIM D = 3;
-  mgard_x::Hierarchy<D, T, mgard_x::CUDA> hierarchy(dims, 0, num_levels - 1);
+  mgard_x::Hierarchy<D, T, DeviceType> hierarchy(dims, 0, num_levels - 1);
   // hierarchy.l_target = num_levels - 1;
 
-  auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T>(hierarchy);
+  auto decomposer = mgard_x::MDR::MGARDOrthoganalDecomposer<D, T, DeviceType>(hierarchy);
   // auto decomposer = MDR::MGARDHierarchicalDecomposer<T>();
-  auto interleaver = mgard_x::MDR::DirectInterleaver<D, T>(hierarchy);
+  auto interleaver = mgard_x::MDR::DirectInterleaver<D, T, DeviceType>(hierarchy);
   // auto interleaver = MDR::SFCInterleaver<T>();
   // auto interleaver = MDR::BlockedInterleaver<T>();
 
-  auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error>();
-  // auto encoder = mgard_x::MDR::NegaBinaryBPEncoder<D, T, T_stream>(handle);
-  // auto encoder = mgard_x::MDR::PerBitBPEncoder<D, T, T_stream>(handle);
+  // auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error, DeviceType>();
+  auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<T, T_stream, T_error, DeviceType>();
 
-  // auto encoder = mgard_x::MDR::PerBitBPEncoderGPU<D, T, T_stream>(handle);
-  // auto encoder = mgard_x::MDR::GroupedBPEncoderGPU<D, T, T_stream>(handle);
-
-  auto compressor = mgard_x::MDR::DefaultLevelCompressor<T_stream>();
+  auto compressor = mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();
   // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
   // auto compressor = MDR::NullLevelCompressor();
   auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);
@@ -211,7 +208,7 @@ int main(int argc, char **argv) {
       // auto estimator = mgard_x::MDR::L2ErrorEstimator_HB<T>(num_dims,
       // num_levels - 1); auto interpreter =
       // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::L2ErrorEstimator_HB<T>>(estimator);
-      test2<D, T, T_stream>(filename, tolerance, hierarchy, decomposer,
+      test2<D, T, T_stream, DeviceType>(filename, tolerance, hierarchy, decomposer,
                                         interleaver, encoder, compressor,
                                         estimator, interpreter, retriever);
       break;
@@ -226,7 +223,7 @@ int main(int argc, char **argv) {
       // auto estimator = MDR::MaxErrorEstimatorHB<T>();
       // auto interpreter =
       // MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorHB<T>>(estimator);
-      test2<D, T, T_stream>(filename, tolerance, hierarchy, decomposer,
+      test2<D, T, T_stream, DeviceType>(filename, tolerance, hierarchy, decomposer,
                                         interleaver, encoder, compressor,
                                         estimator, interpreter, retriever);
     }
