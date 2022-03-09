@@ -125,7 +125,7 @@ public:
   MGARDX_CONT
   SubArray<3, T, DeviceType> Slice3D(DIM d1, DIM d2, DIM d3);
 
-  MGARDX_EXEC
+  MGARDX_CONT_EXEC
   T *operator()(SIZE idx[D]) {
     LENGTH curr_stride = 1;
     LENGTH offset = 0;
