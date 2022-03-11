@@ -771,33 +771,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
     m.Deserialize((SERIALIZED_TYPE *)compressed_data);
 
-    if (m.etype != CheckEndianess()) {
-      std::cout << log::log_err
-                << "This data was compressed on a machine with different "
-                   "endianess!\n";
-      exit(-1);
-    }
-
-    if (strcmp(m.magic_word, MAGIC_WORD) != 0) {
-      std::cout << log::log_err
-                << "This data was not compressed with MGARD or corrupted!\n";
-      exit(-1);
-    }
-
-    if (m.ptype == processor_type::GPU_CUDA) {
-      std::cout << log::log_err
-                << "This data was compressed with legacy CUDA compressor!\n";
-      exit(-1);
-    }
-
-    if (m.ptype != processor_type::X_Serial &&
-        m.ptype != processor_type::X_CUDA && m.ptype != processor_type::X_HIP) {
-      std::cout << log::log_err
-                << "This data was not compressed with legacy MGARD-CUDA "
-                   "compressor or MGARD-X compressor!\n";
-      exit(-1);
-    }
-
     config.decomposition = m.decomposition;
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
@@ -859,33 +832,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     // serizalied_meta, metadata_size, byte_offset);
 
     m.Deserialize((SERIALIZED_TYPE *)compressed_data);
-
-    if (m.etype != CheckEndianess()) {
-      std::cout << log::log_err
-                << "This data was compressed on a machine with different "
-                   "endianess!\n";
-      exit(-1);
-    }
-
-    if (strcmp(m.magic_word, MAGIC_WORD) != 0) {
-      std::cout << log::log_err
-                << "This data was not compressed with MGARD or corrupted!\n";
-      exit(-1);
-    }
-
-    if (m.ptype == processor_type::GPU_CUDA) {
-      std::cout << log::log_err
-                << "This data was compressed with legacy CUDA compressor!\n";
-      exit(-1);
-    }
-
-    if (m.ptype != processor_type::X_Serial &&
-        m.ptype != processor_type::X_CUDA && m.ptype != processor_type::X_HIP) {
-      std::cout << log::log_err
-                << "This data was not compressed with legacy MGARD-CUDA "
-                   "compressor or MGARD-X compressor!\n";
-      exit(-1);
-    }
 
     config.decomposition = m.decomposition;
     config.lossless = m.ltype;
@@ -1014,33 +960,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
     m.Deserialize((SERIALIZED_TYPE *)compressed_data);
 
-    if (m.etype != CheckEndianess()) {
-      std::cout << log::log_err
-                << "This data was compressed on a machine with different "
-                   "endianess!\n";
-      exit(-1);
-    }
-
-    if (strcmp(m.magic_word, MAGIC_WORD) != 0) {
-      std::cout << log::log_err
-                << "This data was not compressed with MGARD or corrupted!\n";
-      exit(-1);
-    }
-
-    if (m.ptype == processor_type::GPU_CUDA) {
-      std::cout << log::log_err
-                << "This data was compressed with legacy CUDA compressor!\n";
-      exit(-1);
-    }
-
-    if (m.ptype != processor_type::X_Serial &&
-        m.ptype != processor_type::X_CUDA && m.ptype != processor_type::X_HIP) {
-      std::cout << log::log_err
-                << "This data was not compressed with legacy MGARD-CUDA "
-                   "compressor or MGARD-X compressor!\n";
-      exit(-1);
-    }
-
     config.decomposition = m.decomposition;
     config.lossless = m.ltype;
     config.huff_dict_size = m.huff_dict_size;
@@ -1093,33 +1012,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     // serizalied_meta, metadata_size, byte_offset);
 
     m.Deserialize((SERIALIZED_TYPE *)compressed_data);
-
-    if (m.etype != CheckEndianess()) {
-      std::cout << log::log_err
-                << "This data was compressed on a machine with different "
-                   "endianess!\n";
-      exit(-1);
-    }
-
-    if (strcmp(m.magic_word, MAGIC_WORD) != 0) {
-      std::cout << log::log_err
-                << "This data was not compressed with MGARD or corrupted!\n";
-      exit(-1);
-    }
-
-    if (m.ptype == processor_type::GPU_CUDA) {
-      std::cout << log::log_err
-                << "This data was compressed with legacy CUDA compressor!\n";
-      exit(-1);
-    }
-
-    if (m.ptype != processor_type::X_Serial &&
-        m.ptype != processor_type::X_CUDA && m.ptype != processor_type::X_HIP) {
-      std::cout << log::log_err
-                << "This data was not compressed with legacy MGARD-CUDA "
-                   "compressor or MGARD-X compressor!\n";
-      exit(-1);
-    }
 
     config.decomposition = m.decomposition;
     config.lossless = m.ltype;

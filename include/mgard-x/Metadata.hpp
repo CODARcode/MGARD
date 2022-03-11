@@ -7,20 +7,20 @@
 
 #include "MGARDConfig.hpp"
 #include "Types.h"
+#include <cstring>
 
 #ifndef MGARD_X_METADATA
 #define MGARD_X_METADATA
 
-#include <cstring>
-
-#define MAGIC_WORD "MGARD"
-#define MAGIC_WORD_SIZE 5
+#define SIGNATURE "MGARD"
+#define SIGNATURE_SIZE 5
 
 namespace mgard_x {
 
 struct Metadata {
   // about MGARD software
-  char magic_word[MAGIC_WORD_SIZE + 1] = MAGIC_WORD;
+  char mgard_signature[SIGNATURE_SIZE+1] = SIGNATURE;
+  std::vector<char> signature;
   uint8_t software_version[3];
   uint8_t file_version[3];
   uint32_t metadata_size;
@@ -39,7 +39,6 @@ struct Metadata {
   enum lossless_type ltype;
   uint32_t huff_dict_size;  // optional (for Huffman)
   uint32_t huff_block_size; // optional (for Huffman)
-  // uint64_t huff_outlier_count; // optional (for Huffman)
 
   // about data
   enum data_type dtype;
@@ -56,10 +55,23 @@ struct Metadata {
 
 public:
   SERIALIZED_TYPE *Serialize(uint32_t &total_size) {
+    return SerializeAll(total_size);
+  }
+  void Deserialize(SERIALIZED_TYPE *serialized_data) {
+    DeserializeAll(serialized_data);
+  }
+
+private:
+  SERIALIZED_TYPE *SerializeAll(uint32_t &total_size) {
+        signature = std::vector<char>(SIGNATURE_SIZE);
+    for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
+      signature[i] = mgard_signature[i];
+    }
+
     total_size = 0;
 
     // about MGARD software
-    total_size += sizeof(char) * strlen(magic_word);
+    total_size += SIGNATURE_SIZE;
     total_size += sizeof(software_version);
     total_size += sizeof(file_version);
     total_size += sizeof(metadata_size);
@@ -126,7 +138,8 @@ public:
     SERIALIZED_TYPE *serialized_data =
         (SERIALIZED_TYPE *)std::malloc(total_size);
     SERIALIZED_TYPE *p = serialized_data;
-    Serialize(&magic_word[0], p);
+
+    SerializeSignature(p);
     Serialize(software_version, p);
     Serialize(file_version, p);
     Serialize(metadata_size, p);
@@ -168,14 +181,13 @@ public:
       Serialize(domain_decomposed_dim, p);
       Serialize(domain_decomposed_size, p);
     }
-
-    self_initialized = false;
     return serialized_data;
   }
-  void Deserialize(SERIALIZED_TYPE *serialized_data) {
+
+  void DeserializeAll(SERIALIZED_TYPE *serialized_data) {
     SERIALIZED_TYPE *p = serialized_data;
 
-    Deserialize(&magic_word[0], p);
+    DeserializeSignature(p);
     Deserialize(software_version, p);
     Deserialize(file_version, p);
     Deserialize(metadata_size, p);
@@ -200,7 +212,6 @@ public:
         ltype == lossless_type::Huffman_Zstd) {
       Deserialize(huff_dict_size, p);
       Deserialize(huff_block_size, p);
-      // Deserialize(huff_outlier_count, p);
     }
 
     Deserialize(dtype, p);
@@ -218,32 +229,16 @@ public:
       Deserialize(domain_decomposed_dim, p);
       Deserialize(domain_decomposed_size, p);
     }
-
-    // total_size = p - serialized_data;
-    self_initialized = true;
-  }
-  size_t metadata_size_offset() {
-    size_t offset = 0;
-    offset += strlen(magic_word);
-    offset += sizeof(software_version);
-    offset += sizeof(file_version);
-    return offset;
   }
 
-  uint32_t get_metadata_size(SERIALIZED_TYPE *serizalied_meta) {
-    return *(uint32_t *)(serizalied_meta + metadata_size_offset());
-  }
-
-  ~Metadata() {}
-
-private:
   template <typename T> void Serialize(T &item, SERIALIZED_TYPE *&p) {
     std::memcpy(p, &item, sizeof(item));
     p += sizeof(item);
   }
-  void Serialize(char *item, SERIALIZED_TYPE *&p) {
-    std::memcpy(p, item, strlen(item));
-    p += strlen(item);
+
+  void SerializeSignature(SERIALIZED_TYPE *&p) {
+    std::memcpy(p, signature.data(), SIGNATURE_SIZE);
+    p += SIGNATURE_SIZE;
   }
 
   void SerializeShape(std::vector<uint64_t>& shape, SERIALIZED_TYPE *&p) {
@@ -263,9 +258,11 @@ private:
     std::memcpy(&item, p, sizeof(item));
     p += sizeof(item);
   }
-  void Deserialize(char *item, SERIALIZED_TYPE *&p) {
-    std::memcpy(item, p, strlen(item));
-    p += strlen(item);
+
+  void DeserializeSignature(SERIALIZED_TYPE *&p) {
+    signature = std::vector<char>(SIGNATURE_SIZE);
+    std::memcpy(signature.data(), p, SIGNATURE_SIZE);
+    p += SIGNATURE_SIZE;
   }
 
   void DeserializeShape(std::vector<uint64_t>& shape, SERIALIZED_TYPE *&p) {
@@ -283,8 +280,6 @@ private:
       p += sizeof(double) * shape[d];
     }
   }
-
-  bool self_initialized;
 };
 
 bool verify(const void *compressed_data, size_t compressed_size);

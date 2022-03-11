@@ -19,18 +19,16 @@
 namespace mgard_x {
 
 bool verify(const void *compressed_data, size_t compressed_size) {
-  char magic_word[MAGIC_WORD_SIZE + 1];
-  if (compressed_size < sizeof(magic_word))
+  if (compressed_size < SIGNATURE_SIZE)
     return false;
   Metadata meta;
   meta.Deserialize((SERIALIZED_TYPE *)compressed_data);
-  std::memcpy(magic_word, meta.magic_word, MAGIC_WORD_SIZE);
-  magic_word[MAGIC_WORD_SIZE] = '\0';
-  if (strcmp(magic_word, MAGIC_WORD) == 0) {
-    return true;
-  } else {
-    return false;
+  for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
+    if (meta.signature[i] != meta.mgard_signature[i]) {
+      return false;
+    }
   }
+  return true;
 }
 
 enum data_type infer_data_type(const void *compressed_data,
