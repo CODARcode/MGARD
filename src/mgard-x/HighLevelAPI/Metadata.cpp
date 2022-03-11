@@ -55,7 +55,7 @@ std::vector<SIZE> infer_shape(const void *compressed_data,
   meta.Deserialize((SERIALIZED_TYPE *)compressed_data);
   std::vector<SIZE> shape(meta.total_dims);
   for (DIM d = 0; d < meta.total_dims; d++) {
-    shape[d] = (SIZE)(*(meta.shape + d));
+    shape[d] = (SIZE)meta.shape[d];
   }
   return shape;
 }
@@ -82,7 +82,7 @@ std::vector<T *> infer_coords(const void *compressed_data,
   meta.Deserialize((SERIALIZED_TYPE *)compressed_data);
   std::vector<SIZE> shape(meta.total_dims);
   for (DIM d = 0; d < meta.total_dims; d++) {
-    shape[d] = (SIZE)(*(meta.shape + d));
+    shape[d] = (SIZE)meta.shape[d];
   }
   std::vector<T *> coords(meta.total_dims);
   for (DIM d = 0; d < meta.total_dims; d++) {

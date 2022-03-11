@@ -328,7 +328,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
   m.etype = CheckEndianess();
   m.dstype = data_structure_type::Cartesian_Grid_Uniform;
   m.total_dims = D;
-  m.shape = new uint64_t[D];
+  m.shape = std::vector<uint64_t>(D);
   for (int d = 0; d < D; d++) {
     m.shape[d] = (uint64_t)shape[d];
   }
@@ -352,7 +352,6 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     uint32_t metadata_size;
 
     SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
-    delete[] m.shape;
 
     // SIZE outsize = 0;
     SIZE byte_offset = 0;
@@ -558,7 +557,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
   m.etype = CheckEndianess();
   m.dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
   m.total_dims = D;
-  m.shape = new uint64_t[D];
+  m.shape = std::vector<uint64_t>(D);
   for (int d = 0; d < D; d++) {
     m.shape[d] = (uint64_t)shape[d];
   }
@@ -588,7 +587,6 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     uint32_t metadata_size;
 
     SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
-    delete[] m.shape;
 
     // SIZE outsize = 0;
     SIZE byte_offset = 0;

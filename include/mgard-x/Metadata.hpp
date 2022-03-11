@@ -45,8 +45,8 @@ struct Metadata {
   enum data_type dtype;
   enum endiness_type etype;
   enum data_structure_type dstype;
-  uint8_t total_dims = 0;
-  uint64_t *shape;
+  uint64_t total_dims = 0;
+  std::vector<uint64_t> shape;
   char *nonuniform_coords_file;
   std::vector<std::vector<double>> coords;
   bool domain_decomposed = false;
@@ -151,14 +151,13 @@ public:
         ltype == lossless_type::Huffman_Zstd) {
       Serialize(huff_dict_size, p);
       Serialize(huff_block_size, p);
-      // Serialize(huff_outlier_count, p);
     }
 
     Serialize(dtype, p);
     Serialize(etype, p);
     Serialize(dstype, p);
     Serialize(total_dims, p);
-    Serialize(shape, total_dims, p);
+    SerializeShape(shape, p);
     if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
       SerializeCoords(coords, p);
     }
@@ -208,8 +207,7 @@ public:
     Deserialize(etype, p);
     Deserialize(dstype, p);
     Deserialize(total_dims, p);
-    shape = new uint64_t[total_dims];
-    Deserialize(shape, total_dims, p);
+    DeserializeShape(shape, p);
     if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
       DeserializeCoords(coords, p);
     }
@@ -236,11 +234,7 @@ public:
     return *(uint32_t *)(serizalied_meta + metadata_size_offset());
   }
 
-  ~Metadata() {
-    if (self_initialized) {
-      delete[] shape;
-    }
-  }
+  ~Metadata() {}
 
 private:
   template <typename T> void Serialize(T &item, SERIALIZED_TYPE *&p) {
@@ -251,16 +245,16 @@ private:
     std::memcpy(p, item, strlen(item));
     p += strlen(item);
   }
-  template <typename T, typename N>
-  void Serialize(T *&item, N n, SERIALIZED_TYPE *&p) {
-    std::memcpy(p, item, sizeof(T) * n);
-    p += sizeof(T) * n;
+
+  void SerializeShape(std::vector<uint64_t>& shape, SERIALIZED_TYPE *&p) {
+    std::memcpy(p, shape.data(), sizeof(uint64_t) * total_dims);
+    p += sizeof(uint64_t) * total_dims;
   }
 
   void SerializeCoords(std::vector<std::vector<double>> &coords,
                  SERIALIZED_TYPE *&p) {
     for (size_t d = 0; d < coords.size(); d++) {
-      std::memcpy(coords[d].data(), p, sizeof(double) * shape[d]);
+      std::memcpy(p, coords[d].data(), sizeof(double) * shape[d]);
       p += sizeof(double) * shape[d];
     }
   }
@@ -273,10 +267,11 @@ private:
     std::memcpy(item, p, strlen(item));
     p += strlen(item);
   }
-  template <typename T, typename N>
-  void Deserialize(T *&item, N n, SERIALIZED_TYPE *&p) {
-    std::memcpy(item, p, sizeof(T) * n);
-    p += sizeof(T) * n;
+
+  void DeserializeShape(std::vector<uint64_t>& shape, SERIALIZED_TYPE *&p) {
+    shape = std::vector<uint64_t>(total_dims);
+    std::memcpy(shape.data(), p, sizeof(uint64_t) * total_dims);
+    p += sizeof(uint64_t) * total_dims;
   }
 
   void DeserializeCoords(std::vector<std::vector<double>> &coords, 
@@ -284,7 +279,7 @@ private:
     coords = std::vector<std::vector<double>>(total_dims);
     for (size_t d = 0; d < total_dims; d++) {
       coords[d] = std::vector<double>(shape[d]);
-      std::memcpy(p, coords[d].data(), sizeof(double) * shape[d]);
+      std::memcpy(coords[d].data(), p, sizeof(double) * shape[d]);
       p += sizeof(double) * shape[d];
     }
   }
