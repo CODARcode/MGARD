@@ -87,7 +87,9 @@ std::vector<T *> infer_coords(const void *compressed_data,
   std::vector<T *> coords(meta.total_dims);
   for (DIM d = 0; d < meta.total_dims; d++) {
     coords[d] = (T *)std::malloc(shape[d] * sizeof(T));
-    std::memcpy(coords[d], meta.coords[d], shape[d] * sizeof(T));
+    for (SIZE i = 0; i < shape[d]; i++) {
+      coords[d][i] = (T)meta.coords[d][i];
+    }
   }
   return coords;
 }
