@@ -47,9 +47,8 @@ struct Metadata {
   enum data_structure_type dstype;
   uint8_t total_dims = 0;
   uint64_t *shape;
-  enum coordinate_location cltype;
   char *nonuniform_coords_file;
-  std::vector<Byte *> coords;
+  std::vector<std::vector<double>> coords;
   bool domain_decomposed = false;
   enum domain_decomposition_type ddtype;
   uint8_t domain_decomposed_dim;
@@ -95,20 +94,11 @@ public:
     total_size += sizeof(total_dims);            // total_dims;
     total_size += sizeof(shape[0]) * total_dims; // shape;
     if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-      total_size += sizeof(cltype);
-      if (cltype == coordinate_location::Embedded) {
-        size_t coord_size = 0;
-        for (DIM d = 0; d < total_dims; d++) {
-          if (dtype == data_type::Float) {
-            coord_size += shape[d] * sizeof(float);
-          } else if (dtype == data_type::Double) {
-            coord_size += shape[d] * sizeof(double);
-          }
-        }
-        total_size += coord_size;
-      } else if (cltype == coordinate_location::External) {
-        total_size += sizeof(char) * strlen(nonuniform_coords_file);
+      size_t coord_size = 0;
+      for (DIM d = 0; d < total_dims; d++) {
+        coord_size += shape[d] * sizeof(double);
       }
+      total_size += coord_size;
     }
 
     total_size += sizeof(domain_decomposed);
@@ -170,12 +160,7 @@ public:
     Serialize(total_dims, p);
     Serialize(shape, total_dims, p);
     if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-      Serialize(cltype, p);
-      if (cltype == coordinate_location::Embedded) {
-        Serialize(coords, shape, dtype, p);
-      } else if (cltype == coordinate_location::External) {
-        Serialize(nonuniform_coords_file, p);
-      }
+      SerializeCoords(coords, p);
     }
 
     Serialize(domain_decomposed, p);
@@ -225,16 +210,8 @@ public:
     Deserialize(total_dims, p);
     shape = new uint64_t[total_dims];
     Deserialize(shape, total_dims, p);
-
     if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-      // printf("Deserialize Non_Uniform\n");
-      Deserialize(cltype, p);
-      if (cltype == coordinate_location::Embedded) {
-        coords = std::vector<Byte *>(total_dims);
-        Deserialize(coords, shape, dtype, p);
-      } else if (cltype == coordinate_location::External) {
-        Deserialize(nonuniform_coords_file, p);
-      }
+      DeserializeCoords(coords, p);
     }
 
     Deserialize(domain_decomposed, p);
@@ -262,11 +239,6 @@ public:
   ~Metadata() {
     if (self_initialized) {
       delete[] shape;
-      if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-        for (size_t d = 0; d < total_dims; d++) {
-          delete[] coords[d];
-        }
-      }
     }
   }
 
@@ -285,14 +257,11 @@ private:
     p += sizeof(T) * n;
   }
 
-  void Serialize(std::vector<Byte *> &coords, uint64_t *shape,
-                 enum data_type dtype, SERIALIZED_TYPE *&p) {
-    for (size_t i = 0; i < coords.size(); i++) {
-      if (dtype == data_type::Float) {
-        Serialize(coords[i], shape[i] * sizeof(float), p);
-      } else if (dtype == data_type::Double) {
-        Serialize(coords[i], shape[i] * sizeof(double), p);
-      }
+  void SerializeCoords(std::vector<std::vector<double>> &coords,
+                 SERIALIZED_TYPE *&p) {
+    for (size_t d = 0; d < coords.size(); d++) {
+      std::memcpy(coords[d].data(), p, sizeof(double) * shape[d]);
+      p += sizeof(double) * shape[d];
     }
   }
 
@@ -310,16 +279,13 @@ private:
     p += sizeof(T) * n;
   }
 
-  void Deserialize(std::vector<Byte *> &coords, uint64_t *shape,
-                   enum data_type dtype, SERIALIZED_TYPE *&p) {
-    for (size_t i = 0; i < coords.size(); i++) {
-      if (dtype == data_type::Float) {
-        coords[i] = (Byte *)std::malloc(shape[i] * sizeof(float));
-        Deserialize(coords[i], shape[i] * sizeof(float), p);
-      } else if (dtype == data_type::Double) {
-        coords[i] = (Byte *)std::malloc(shape[i] * sizeof(double));
-        Deserialize(coords[i], shape[i] * sizeof(double), p);
-      }
+  void DeserializeCoords(std::vector<std::vector<double>> &coords, 
+                         SERIALIZED_TYPE *&p) {
+    coords = std::vector<std::vector<double>>(total_dims);
+    for (size_t d = 0; d < total_dims; d++) {
+      coords[d] = std::vector<double>(shape[d]);
+      std::memcpy(p, coords[d].data(), sizeof(double) * shape[d]);
+      p += sizeof(double) * shape[d];
     }
   }
 
