@@ -562,9 +562,12 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
   for (int d = 0; d < D; d++) {
     m.shape[d] = (uint64_t)shape[d];
   }
-  m.cltype = coordinate_location::Embedded;
   for (int d = 0; d < D; d++) {
-    m.coords.push_back((Byte *)coords[d]);
+    std::vector<double> coord(shape[d]);
+    for (SIZE i = 0; i < shape[d]; i++) {
+      coord[i] = (double)coords[d][i];
+    }
+    m.coords.push_back(coord);
   }
 
   if (!hierarchy.domain_decomposed) {
