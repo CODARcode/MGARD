@@ -587,8 +587,8 @@ void check_cartesian_topology(const mgard::pb::Domain &domain,
 }
 
 void check_decomposition_hierarchy(const mgard::pb::Header &header) {
-  REQUIRE(header.decomposition().hierarchy() ==
-          mgard::pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
+  REQUIRE(header.function_decomposition().hierarchy() ==
+          mgard::pb::FunctionDecomposition::POWER_OF_TWO_PLUS_ONE);
 }
 
 } // namespace

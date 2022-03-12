@@ -81,7 +81,7 @@ message DomainDecomposition {
 	uint64 decomposition_size = 3;
 }
 
-message Decomposition {
+message FunctionDecomposition {
 	enum Transform {
 		MULTILEVEL_COEFFICIENTS = 0;
 	}
@@ -163,7 +163,7 @@ message Header {
 	Dataset dataset = 5;
 	ErrorControl error_control = 6;
 	DomainDecomposition domain_decomposition = 7;
-	Decomposition decomposition = 8;
+	FunctionDecomposition function_decomposition = 8;
 	Quantization quantization = 9;
 	Encoding encoding = 10;
 	Device device = 11;

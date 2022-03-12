@@ -107,8 +107,8 @@ void populate_defaults(pb::Header &header) {
   // `TensorMeshHierarchy::populate` sets all of the domain and dataset fields
   // and all of the decomposition fields except for `transform`.
   {
-    pb::Decomposition &d = *header.mutable_decomposition();
-    d.set_transform(pb::Decomposition::MULTILEVEL_COEFFICIENTS);
+    pb::FunctionDecomposition &d = *header.mutable_function_decomposition();
+    d.set_transform(pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
   }
   {
     pb::Quantization &q = *header.mutable_quantization();
@@ -426,19 +426,20 @@ ErrorControlParameters read_error_control(const pb::Header &header) {
 }
 
 void check_decomposition_parameters(const pb::Header &header) {
-  const pb::Decomposition &decomposition = header.decomposition();
+  const pb::FunctionDecomposition &function_decomposition = header.function_decomposition();
 
-  switch (decomposition.transform()) {
-  case pb::Decomposition::MULTILEVEL_COEFFICIENTS:
+  switch (function_decomposition.transform()) {
+  case pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS:
     break;
   default:
     throw std::runtime_error("unrecognized decomposition transform");
   }
 
-  switch (decomposition.hierarchy()) {
-  case pb::Decomposition::POWER_OF_TWO_PLUS_ONE:
+  switch (function_decomposition.hierarchy()) {
+  case pb::FunctionDecomposition::POWER_OF_TWO_PLUS_ONE:
     break;
-  case pb::Decomposition::MULTIDIMENSION_WITH_GHOST_NODES:
+  case pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES:
+  case pb::FunctionDecomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES:
     throw std::runtime_error("ghost nodes not yet supported in CPU version");
   default:
     throw std::runtime_error("unrecognized decomposition hierarchy");
