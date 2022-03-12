@@ -723,54 +723,74 @@ private:
         exit(-1);
       }
     }
-
   }
 
   template <typename T> void Serialize(T &item, SERIALIZED_TYPE *&p) {
-    std::memcpy(p, &item, sizeof(item));
+    if constexpr (std::is_integral<T>::value) {
+      T in = item;
+      for (int i = 0; i < sizeof(T); i++) {
+        *(p + i) = in;
+        in = in >> 8;
+      }
+    } else {
+      std::memcpy(p, &item, sizeof(item)); 
+    }
+    p += sizeof(item);
+  }
+
+  template <typename T> void Deserialize(T &item, SERIALIZED_TYPE *&p) {
+    if constexpr (std::is_integral<T>::value) {
+      T out = 0;
+      for (int i = sizeof(T) - 1; i >= 0; i--) {
+        out = out << 8;
+        out = out + *(p + i);
+      }
+      item = out;
+    } else {
+      std::memcpy(&item, p, sizeof(item));
+    }
     p += sizeof(item);
   }
 
   void SerializeSignature(SERIALIZED_TYPE *&p) {
-    std::memcpy(p, signature.data(), SIGNATURE_SIZE);
-    p += SIGNATURE_SIZE;
-  }
-
-  void SerializeShape(std::vector<uint64_t>& shape, SERIALIZED_TYPE *&p) {
-    std::memcpy(p, shape.data(), sizeof(uint64_t) * total_dims);
-    p += sizeof(uint64_t) * total_dims;
-  }
-
-  void SerializeCoords(std::vector<std::vector<double>> &coords,
-                 SERIALIZED_TYPE *&p) {
-    for (size_t d = 0; d < coords.size(); d++) {
-      std::memcpy(p, coords[d].data(), sizeof(double) * shape[d]);
-      p += sizeof(double) * shape[d];
+    for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
+      Serialize(signature[i], p);
     }
-  }
-
-  template <typename T> void Deserialize(T &item, SERIALIZED_TYPE *&p) {
-    std::memcpy(&item, p, sizeof(item));
-    p += sizeof(item);
   }
 
   void DeserializeSignature(SERIALIZED_TYPE *&p) {
     signature = std::vector<char>(SIGNATURE_SIZE);
-    std::memcpy(signature.data(), p, SIGNATURE_SIZE);
+    for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
+      Deserialize(signature[i], p);
+    }
     for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
       if (signature[i] != mgard_signature[i]) {
         std::cout << log::log_err << "signature mismatch.\n";
         exit(-1);
       }
     }
+  }
 
-    p += SIGNATURE_SIZE;
+  void SerializeShape(std::vector<uint64_t>& shape, SERIALIZED_TYPE *&p) {
+    for (size_t d = 0; d < shape.size(); d++) {
+      Serialize(shape[d], p);
+    }
   }
 
   void DeserializeShape(std::vector<uint64_t>& shape, SERIALIZED_TYPE *&p) {
     shape = std::vector<uint64_t>(total_dims);
-    std::memcpy(shape.data(), p, sizeof(uint64_t) * total_dims);
-    p += sizeof(uint64_t) * total_dims;
+    for (size_t d = 0; d < shape.size(); d++) {
+      Deserialize(shape[d], p);
+    }
+  }
+
+  void SerializeCoords(std::vector<std::vector<double>> &coords,
+                 SERIALIZED_TYPE *&p) {
+    for (size_t d = 0; d < coords.size(); d++) {
+      for (size_t i = 0; i < shape[d]; i++) {
+        Serialize(coords[d][i], p);
+      }
+    }
   }
 
   void DeserializeCoords(std::vector<std::vector<double>> &coords, 
@@ -778,20 +798,23 @@ private:
     coords = std::vector<std::vector<double>>(total_dims);
     for (size_t d = 0; d < total_dims; d++) {
       coords[d] = std::vector<double>(shape[d]);
-      std::memcpy(coords[d].data(), p, sizeof(double) * shape[d]);
-      p += sizeof(double) * shape[d];
+      for (size_t i = 0; i < shape[d]; i++) {
+        Deserialize(coords[d][i], p);
+      }
     }
   }
 
   void SerializeBytes(std::vector<SERIALIZED_TYPE> data, SERIALIZED_TYPE *&p) {
-    std::memcpy(p, data.data(), data.size());
-    p += data.size();
+    for (size_t i = 0; i < data.size(); i++) {
+      Serialize(data[i], p);
+    }
   }
 
   void DeserializeBytes(std::vector<SERIALIZED_TYPE>& data, size_t size, SERIALIZED_TYPE *&p) {
     data = std::vector<SERIALIZED_TYPE>(size);
-    std::memcpy(data.data(), p, size);
-    p += size;
+    for (size_t i = 0; i < data.size(); i++) {
+      Deserialize(data[i], p);
+    }
   }
 
   uint32_t ComputeCRC32(SERIALIZED_TYPE* data, size_t size) {
