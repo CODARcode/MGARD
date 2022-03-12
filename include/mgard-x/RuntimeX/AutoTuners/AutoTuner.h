@@ -284,20 +284,9 @@ public:
 };
 } // namespace mgard_x
 
-// #ifdef MGARDX_COMPILE_SERIAL
 #include "AutoTunerSerial.h"
-// #endif
-
-#ifdef MGARDX_COMPILE_CUDA
 #include "AutoTunerCuda.h"
-#endif
-
-#ifdef MGARDX_COMPILE_HIP
 #include "AutoTunerHip.h"
-#endif
-
-#ifdef MGARDX_COMPILE_KOKKOS
 #include "AutoTunerKokkos.h"
-#endif
 
 #endif

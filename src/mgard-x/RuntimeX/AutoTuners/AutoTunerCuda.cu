@@ -1,7 +1,5 @@
-#define MGARDX_COMPILE_CUDA
-
 #include "mgard-x/RuntimeX/RuntimeX.h"
-
+// clang-format off
 namespace mgard_x {
 
 int AutoTuningTable<CUDA>::gpk_reo_3d[2][9] = {{5, 5, 5, 3, 3, 5, 5, 0, 0},
@@ -56,5 +54,5 @@ int AutoTuningTable<CUDA>::lwpk[2][9] = {{5, 2, 2, 1, 0, 2, 1, 0, 0},
                                          {2, 2, 3, 3, 0, 2, 5, 0, 0}};
 
 } // namespace mgard_x
-
+// clang-format on
 #undef MGARDX_COMPILE_CUDA

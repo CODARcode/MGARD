@@ -1,11 +1,14 @@
 if(MGARD_ENABLE_SERIAL)
   add_subdirectory (Serial)
+  set(MGARD_X_SERIAL_SRC ${MGARD_X_SERIAL_SRC} PARENT_SCOPE)
 endif()
 if(MGARD_ENABLE_CUDA)
   add_subdirectory (CUDA)
+  set(MGARD_X_CUDA_SRC ${MGARD_X_CUDA_SRC} PARENT_SCOPE)
 endif()
 if(MGARD_ENABLE_HIP)
   add_subdirectory (HIP)
+  set(MGARD_X_HIP_SRC ${MGARD_X_HIP_SRC} PARENT_SCOPE)
 endif()
 
 list(APPEND MGARD_X_SRC  
