@@ -5,7 +5,6 @@
  * Date: December 1, 2021
  */
 
-#define MGARDX_COMPILE_CUDA
 #include "mgard-x/HighLevelAPI.hpp"
 
 #include <iostream>
@@ -47,4 +46,3 @@ KERNELS(5, float)
 template void BeginAutoTuning<CUDA>();
 template void EndAutoTuning<CUDA>();
 } // namespace mgard_x
-#undef MGARDX_COMPILE_CUDA

@@ -1,0 +1,35 @@
+/*
+ * Copyright 2021, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ * Author: Jieyang Chen (chenj3@ornl.gov)
+ * Date: December 1, 2021
+ */
+
+#ifndef MGARD_X_CONFIG_H
+#define MGARD_X_CONFIG_H
+
+#if '@MGARD_ENABLE_SERIAL@' == 'ON'
+#define MGARD_ENABLE_SERIAL 1
+#else
+#define MGARD_ENABLE_SERIAL 0   
+#endif
+
+#if '@MGARD_ENABLE_CUDA@' == 'ON'
+#define MGARD_ENABLE_CUDA 1
+#else
+#define MGARD_ENABLE_CUDA 0   
+#endif
+
+#if '@MGARD_ENABLE_HIP@' == 'ON'
+#define MGARD_ENABLE_HIP 1
+#else
+#define MGARD_ENABLE_HIP 0   
+#endif
+
+// #if '@MGARD_ENABLE_SYCL@' == 'ON'
+// #define MGARD_ENABLE_SYCL 1
+// #else
+// #define MGARD_ENABLE_SYCL 0   
+// #endif
+
+#endif
