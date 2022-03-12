@@ -5,7 +5,6 @@
  * Date: December 1, 2021
  */
 
-#define MGARDX_COMPILE_HIP
 #include "mgard-x/HighLevelAPI.hpp"
 
 #include <iostream>
@@ -48,4 +47,3 @@ template void BeginAutoTuning<HIP>();
 template void EndAutoTuning<HIP>();
 
 } // namespace mgard_x
-#undef MGARDX_COMPILE_HIP

@@ -5,7 +5,6 @@
  * Date: December 1, 2021
  */
 
-#define MGARDX_COMPILE_HIP
 #include "mgard-x/RuntimeX/RuntimeX.h"
 
 namespace mgard_x {
@@ -28,4 +27,3 @@ template <> bool deviceAvailable<HIP>() {
 }
 
 } // namespace mgard_x
-#undef MGARDX_COMPILE_HIP

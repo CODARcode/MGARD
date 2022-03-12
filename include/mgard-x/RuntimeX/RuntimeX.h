@@ -5,6 +5,8 @@
  * Date: December 1, 2021
  */
 
+#include "MGARDXConfig.h"
+
 #include "RuntimeXPublic.h"
 
 #include "DataTypes.h"
@@ -12,19 +14,25 @@
 #include "AutoTuners/AutoTuner.h"
 #include "Tasks/Task.h"
 
-// #ifdef MGARDX_COMPILE_SERIAL
+#if MGARD_ENABLE_SERIAL
+#ifdef MGARDX_COMPILE_SERIAL
 #include "DeviceAdapters/DeviceAdapterSerial.h"
-// #endif
+#endif
+#endif
 
+#if MGARD_ENABLE_CUDA
 #ifdef MGARDX_COMPILE_CUDA
 #include "DeviceAdapters/DeviceAdapterCuda.h"
 #endif
+#endif
 
+#if MGARD_ENABLE_SERIAL
 #ifdef MGARDX_COMPILE_HIP
 #include "DeviceAdapters/DeviceAdapterHip.h"
 #endif
+#endif
 
-#ifdef MGARDX_COMPILE_KOKKOS
+#if RUNTIME_X_ENABLE_KOKKOS
 #include "DeviceAdapters/DeviceAdapterKokkos.h"
 #endif
 

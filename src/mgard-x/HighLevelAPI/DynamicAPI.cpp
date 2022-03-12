@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "compress_x.hpp"
+#include "MGARDXConfig.h"
 #include "mgard-x/Hierarchy.h"
 #include "mgard-x/HighLevelAPI.h"
 #include "mgard-x/Metadata.hpp"
@@ -321,15 +322,15 @@ void decompress(const void *compressed_data, size_t compressed_size,
 
 enum device_type auto_detect_device() {
   enum device_type dev_type = device_type::None;
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
   dev_type = device_type::Serial;
 #endif
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
   if (deviceAvailable<CUDA>()) {
     dev_type = device_type::CUDA;
   }
 #endif
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
   if (deviceAvailable<HIP>()) {
     dev_type = device_type::HIP;
   }
@@ -352,7 +353,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
   }
 
   if (dev_type == device_type::Serial) {
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
     compress<Serial>(D, dtype, shape, tol, s, mode, original_data,
                      compressed_data, compressed_size, config,
                      output_pre_allocated);
@@ -361,7 +362,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
     compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
                    compressed_data, compressed_size, config,
                    output_pre_allocated);
@@ -370,7 +371,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, config, output_pre_allocated);
 #else
@@ -390,7 +391,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
   enum device_type dev_type = auto_detect_device();
 
   if (dev_type == device_type::Serial) {
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
     compress<Serial>(D, dtype, shape, tol, s, mode, original_data,
                      compressed_data, compressed_size, output_pre_allocated);
 #else
@@ -398,7 +399,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
     compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
                    compressed_data, compressed_size, output_pre_allocated);
 #else
@@ -406,7 +407,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, output_pre_allocated);
 #else
@@ -430,7 +431,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
   }
 
   if (dev_type == device_type::Serial) {
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
     compress<Serial>(D, dtype, shape, tol, s, mode, original_data,
                      compressed_data, compressed_size, coords, config,
                      output_pre_allocated);
@@ -439,7 +440,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
     compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
                    compressed_data, compressed_size, coords, config,
                    output_pre_allocated);
@@ -448,7 +449,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, coords, config, output_pre_allocated);
 #else
@@ -468,7 +469,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
   enum device_type dev_type = auto_detect_device();
 
   if (dev_type == device_type::Serial) {
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
     compress<Serial>(D, dtype, shape, tol, s, mode, original_data,
                      compressed_data, compressed_size, coords,
                      output_pre_allocated);
@@ -477,7 +478,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
     compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
                    compressed_data, compressed_size, coords,
                    output_pre_allocated);
@@ -486,7 +487,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, coords, output_pre_allocated);
 #else
@@ -508,7 +509,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
   }
 
   if (dev_type == device_type::Serial) {
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
     decompress<Serial>(compressed_data, compressed_size, decompressed_data,
                        config, output_pre_allocated);
 #else
@@ -516,7 +517,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
     decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
                      config, output_pre_allocated);
 #else
@@ -524,7 +525,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
     decompress<HIP>(compressed_data, compressed_size, decompressed_data, config,
                     output_pre_allocated);
 #else
@@ -542,7 +543,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
   enum device_type dev_type = auto_detect_device();
 
   if (dev_type == device_type::Serial) {
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
     decompress<Serial>(compressed_data, compressed_size, decompressed_data,
                        output_pre_allocated);
 #else
@@ -550,7 +551,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
     decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
                      output_pre_allocated);
 #else
@@ -558,7 +559,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
     decompress<HIP>(compressed_data, compressed_size, decompressed_data,
                     output_pre_allocated);
 #else
@@ -577,21 +578,21 @@ void BeginAutoTuning(enum device_type dev_type) {
   }
 
   if (dev_type == device_type::Serial) {
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
     mgard_x::BeginAutoTuning<mgard_x::Serial>();
 #else
     std::cout << log::log_err << "MGARD-X was not built with Serial backend.\n";
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
     mgard_x::BeginAutoTuning<mgard_x::CUDA>();
 #else
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
     mgard_x::BeginAutoTuning<mgard_x::HIP>();
 #else
     std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
@@ -609,21 +610,21 @@ void EndAutoTuning(enum device_type dev_type) {
   }
 
   if (dev_type == device_type::Serial) {
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
     mgard_x::EndAutoTuning<mgard_x::Serial>();
 #else
     std::cout << log::log_err << "MGARD-X was not built with Serial backend.\n";
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
     mgard_x::EndAutoTuning<mgard_x::CUDA>();
 #else
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
     mgard_x::EndAutoTuning<mgard_x::HIP>();
 #else
     std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";

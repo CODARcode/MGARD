@@ -38,7 +38,6 @@ option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction." OFF)
 option(MGARD_ENABLE_SERIAL "Enable SERIAL support" OFF)
 option(MGARD_ENABLE_HIP "Enable HIP support" OFF)
-option(MGARD_ENABLE_KOKKOS "Enable Kokkos support" OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)
 
@@ -89,36 +88,27 @@ endif()
 
 if (MGARD_ENABLE_SERIAL OR 
     MGARD_ENABLE_CUDA   OR
-    MGARD_ENABLE_HIP    OR
-    MGARD_ENABLE_KOKKOS)
+    MGARD_ENABLE_HIP    )
+
   add_subdirectory (src/mgard-x)
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)
   find_package(zstd REQUIRED)
+
   add_executable(mgard-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mgard-x.cpp)
   target_link_libraries(mgard-x mgard-library  ${CMAKE_DL_LIBS})
   target_include_directories(mgard-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+                                            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
   add_executable(mgard-x-autotuner ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mgard-x-autotuner.cpp)
   target_link_libraries(mgard-x-autotuner mgard-library  ${CMAKE_DL_LIBS})
   target_include_directories(mgard-x-autotuner PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+                                                      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
   add_executable(MgardSerialExec ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardSerialExec.cpp)
   target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
   target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-
-  add_executable(test_refactor ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Testing/MDR/test_refactor.cu)
-  target_link_libraries(test_refactor mgard-library  ${CMAKE_DL_LIBS})
-  target_include_directories(test_refactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-
-  add_executable(test_reconstructor ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Testing/MDR/test_reconstructor.cu)
-  target_link_libraries(test_reconstructor mgard-library  ${CMAKE_DL_LIBS})
-  target_include_directories(test_reconstructor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 endif()
 
 #Adding library here so we can set compile definitions for it.
@@ -127,8 +117,13 @@ add_library(mgard-library)
 if(MGARD_ENABLE_SERIAL)
   set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
+<<<<<<< HEAD
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_SERIAL)
   set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
+=======
+  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
+  set_source_files_properties(${MGARD_X_SERIAL_SRC} PROPERTIES LANGUAGE CXX)
+>>>>>>> Add auto device compiler detection for steering compilation
 endif()
 
 if(MGARD_ENABLE_CUDA)
@@ -147,13 +142,24 @@ if(MGARD_ENABLE_CUDA)
   # Legacy CUDA version
   add_subdirectory (src/cuda)
   add_subdirectory (include/cuda)
-  option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction" OFF)
   add_executable(MgardCudaExec ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/MgardCudaExec.cpp)
     target_link_libraries(MgardCudaExec mgard-library  ${CMAKE_DL_LIBS})
     target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+  add_executable(test_refactor ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Testing/MDR/test_refactor.cu)
+  target_link_libraries(test_refactor mgard-library  ${CMAKE_DL_LIBS})
+  target_include_directories(test_refactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
+  add_executable(test_reconstructor ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Testing/MDR/test_reconstructor.cu)
+  target_link_libraries(test_reconstructor mgard-library  ${CMAKE_DL_LIBS})
+  target_include_directories(test_reconstructor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+
+<<<<<<< HEAD
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_CUDA)
+=======
+>>>>>>> Add auto device compiler detection for steering compilation
   set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
   
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
@@ -163,6 +169,7 @@ if(MGARD_ENABLE_CUDA)
     target_compile_definitions(mgard-library PUBLIC MGARD_X_FMA)
     target_compile_definitions(mgard-library PUBLIC MGARD_CUDA_FMA)
   endif()
+  set_source_files_properties(${MGARD_X_CUDA_SRC} PROPERTIES LANGUAGE CUDA)
 endif()
 
 
@@ -171,6 +178,7 @@ if (MGARD_ENABLE_HIP)
   enable_language(HIP)
   set (CMAKE_CXX_STANDARD 14)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
+<<<<<<< HEAD
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_HIP)
   set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
 endif()
@@ -179,6 +187,11 @@ if (MGARD_ENABLE_KOKKOS)
   find_package(Kokkos REQUIRED)
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
          CUDA_SEPARABLE_COMPILATION ON)
+=======
+  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
+  set (CMAKE_HIP_FLAGS  "${CMAKE_HIP_FLAGS} -w")
+  set_source_files_properties(${MGARD_X_HIP_SRC} PROPERTIES LANGUAGE HIP)
+>>>>>>> Add auto device compiler detection for steering compilation
 endif()
 
 find_package(ZLIB REQUIRED)
@@ -271,6 +284,9 @@ target_sources(
   ${MGARD_LIBRARY_CPP}
   ${MGARD_CUDA_SRC}
   ${MGARD_X_SRC}
+  ${MGARD_X_SERIAL_SRC}
+  ${MGARD_X_CUDA_SRC}
+  ${MGARD_X_HIP_SRC}
 )
 
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
@@ -331,10 +347,6 @@ if(MGARD_ENABLE_OPENMP)
   endif()
 endif()
 
-if(MGARD_ENABLE_KOKKOS)
-  target_link_libraries(mgard-library PUBLIC Kokkos::kokkoscore)
-endif()
-
 if(MGARD_ENABLE_TIMING)
 	target_compile_definitions(mgard-library PRIVATE MGARD_TIMING)
 endif()
@@ -351,6 +363,7 @@ set_target_properties(mgard-library PROPERTIES
 install(TARGETS mgard-library EXPORT mgard-targets)
 
 install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
+install(FILES "${PROJECT_BINARY_DIR}/include/MGARDXConfig.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 install(DIRECTORY "include/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 install(FILES "${MGARD_FILE_FORMAT_HPP}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard/${MGARD_FILE_FORMAT_INCLUDESUBDIR_COMPONENT}")
 
@@ -392,6 +405,11 @@ configure_file(
 configure_file(
   "${PROJECT_SOURCE_DIR}/include/MGARDConfig.hpp.in"
   "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp"
+)
+
+configure_file(
+    "${PROJECT_SOURCE_DIR}/include/MGARDXConfig.h.in"
+    "${PROJECT_BINARY_DIR}/include/MGARDXConfig.h"
 )
 
 # Install the mgard-config.cmake and mgard-config-version.cmake
