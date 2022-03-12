@@ -128,6 +128,10 @@ void populate_defaults(pb::Header &header) {
 #endif
     );
   }
+  {
+    pb::Device &device = *header.mutable_device();
+    device.set_backend(pb::Device::CPU);
+  }
 }
 
 BufferWindow::BufferWindow(void const *const data, const std::size_t size)
@@ -434,7 +438,7 @@ void check_decomposition_parameters(const pb::Header &header) {
   switch (decomposition.hierarchy()) {
   case pb::Decomposition::POWER_OF_TWO_PLUS_ONE:
     break;
-  case pb::Decomposition::GHOST_NODES:
+  case pb::Decomposition::MULTIDIMENSION_WITH_GHOST_NODES:
     throw std::runtime_error("ghost nodes not yet supported in CPU version");
   default:
     throw std::runtime_error("unrecognized decomposition hierarchy");
@@ -491,9 +495,10 @@ pb::Encoding::Compressor read_encoding_compressor(const pb::Header &header) {
 
   const pb::Encoding::Compressor compressor = encoding.compressor();
   switch (compressor) {
-  case pb::Encoding::GPU_HUFFMAN:
-  case pb::Encoding::GPU_HUFFMAN_LZ4:
-    throw std::runtime_error("GPU_HUFFMAN and GPU_HUFFMAN_LZ4 compressors not "
+  case pb::Encoding::X_HUFFMAN:
+  case pb::Encoding::X_HUFFMAN_LZ4:
+  case pb::Encoding::X_HUFFMAN_ZSTD:
+    throw std::runtime_error("X_HUFFMAN, X_HUFFMAN_LZ4, and X_HUFFMAN_ZSTD compressors not "
                              "yet supported in CPU version");
   case pb::Encoding::NOOP:
   case pb::Encoding::CPU_HUFFMAN_ZLIB:

@@ -231,11 +231,6 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     SubArray<1, SIZE, DeviceType> shape(hierarchy.shapes[0], true);
     SubArray<1, SIZE, DeviceType> ranges(hierarchy.ranges, true);
     if (config.reorder == 1) {
-      LevelLinearizer<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
-          shape, hierarchy.l_target, ranges, quantized_subarray,
-          SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
-          0);
-    } else if (config.reorder == 2) {
       LevelLinearizer2<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
           shape, hierarchy.l_target, ranges, quantized_subarray,
           SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
@@ -459,13 +454,6 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<1, SIZE, DeviceType> shape(hierarchy.shapes[0], true);
       SubArray<1, SIZE, DeviceType> ranges(hierarchy.ranges, true);
       if (config.reorder == 1) {
-        LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
-            shape, hierarchy.l_target, ranges, SubArray(quantized_array),
-            SubArray<1, QUANTIZED_INT, DeviceType>(
-                {total_elems},
-                (QUANTIZED_INT *)unsigned_quantized_linearized_array.data()),
-            0);
-      } else if (config.reorder == 2) {
         LevelLinearizer2<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
             shape, hierarchy.l_target, ranges, SubArray(quantized_array),
             SubArray<1, QUANTIZED_INT, DeviceType>(
@@ -507,11 +495,6 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<1, SIZE, DeviceType> shape(hierarchy.shapes[0], true);
       SubArray<1, SIZE, DeviceType> ranges(hierarchy.ranges, true);
       if (config.reorder == 1) {
-        LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
-            shape, hierarchy.l_target, ranges, SubArray(quantized_array),
-            SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
-            0);
-      } else if (config.reorder == 2) {
         LevelLinearizer2<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
             shape, hierarchy.l_target, ranges, SubArray(quantized_array),
             SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),

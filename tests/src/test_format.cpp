@@ -319,7 +319,7 @@ TEST_CASE("checking decomposition parameters", "[format]") {
   mgard::pb::Decomposition &d = *header.mutable_decomposition();
   d.set_transform(mgard::pb::Decomposition::MULTILEVEL_COEFFICIENTS);
   {
-    d.set_hierarchy(mgard::pb::Decomposition::GHOST_NODES);
+    d.set_hierarchy(mgard::pb::Decomposition::MULTIDIMENSION_WITH_GHOST_NODES);
     REQUIRE_THROWS(mgard::check_decomposition_parameters(header));
   }
   {
@@ -352,7 +352,7 @@ TEST_CASE("reading encoding compressor", "[format]") {
   mgard::pb::Encoding &e = *header.mutable_encoding();
   e.set_preprocessor(mgard::pb::Encoding::SHUFFLE);
   {
-    e.set_compressor(mgard::pb::Encoding::GPU_HUFFMAN_LZ4);
+    e.set_compressor(mgard::pb::Encoding::X_HUFFMAN_LZ4);
     REQUIRE_THROWS(mgard::read_encoding_compressor(header));
   }
   {
@@ -410,8 +410,8 @@ TEST_CASE("metadata (de)serialization", "[format]") {
     hierarchy.populate(header);
     header.mutable_error_control()->set_mode(mgard::pb::ErrorControl::RELATIVE);
     header.mutable_decomposition()->set_hierarchy(
-        mgard::pb::Decomposition::GHOST_NODES);
-    header.mutable_encoding()->set_compressor(mgard::pb::Encoding::GPU_HUFFMAN);
+        mgard::pb::Decomposition::MULTIDIMENSION_WITH_GHOST_NODES);
+    header.mutable_encoding()->set_compressor(mgard::pb::Encoding::X_HUFFMAN);
     test_serialization_deserialization(header);
   }
 }
