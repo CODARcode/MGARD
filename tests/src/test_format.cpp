@@ -316,14 +316,18 @@ TEST_CASE("reading error control parameters", "[format]") {
 
 TEST_CASE("checking decomposition parameters", "[format]") {
   mgard::pb::Header header;
-  mgard::pb::Decomposition &d = *header.mutable_decomposition();
-  d.set_transform(mgard::pb::Decomposition::MULTILEVEL_COEFFICIENTS);
+  mgard::pb::FunctionDecomposition &d = *header.mutable_function_decomposition();
+  d.set_transform(mgard::pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
   {
-    d.set_hierarchy(mgard::pb::Decomposition::MULTIDIMENSION_WITH_GHOST_NODES);
+    d.set_hierarchy(mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES);
     REQUIRE_THROWS(mgard::check_decomposition_parameters(header));
   }
   {
-    d.set_hierarchy(mgard::pb::Decomposition::POWER_OF_TWO_PLUS_ONE);
+    d.set_hierarchy(mgard::pb::FunctionDecomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES);
+    REQUIRE_THROWS(mgard::check_decomposition_parameters(header));
+  }
+  {
+    d.set_hierarchy(mgard::pb::FunctionDecomposition::POWER_OF_TWO_PLUS_ONE);
     REQUIRE_NOTHROW(mgard::check_decomposition_parameters(header));
   }
 }
@@ -409,8 +413,8 @@ TEST_CASE("metadata (de)serialization", "[format]") {
     const mgard::TensorMeshHierarchy<3, double> hierarchy({12, 5, 19});
     hierarchy.populate(header);
     header.mutable_error_control()->set_mode(mgard::pb::ErrorControl::RELATIVE);
-    header.mutable_decomposition()->set_hierarchy(
-        mgard::pb::Decomposition::MULTIDIMENSION_WITH_GHOST_NODES);
+    header.mutable_function_decomposition()->set_hierarchy(
+        mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES);
     header.mutable_encoding()->set_compressor(mgard::pb::Encoding::X_HUFFMAN);
     test_serialization_deserialization(header);
   }
