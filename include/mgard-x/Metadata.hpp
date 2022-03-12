@@ -443,15 +443,15 @@ private:
       domainDecomposition.set_decomposition_size(domain_decomposed_size);
     }
 
-    { // Decomposition
-      mgard::pb::Decomposition &decomposition_ = *header.mutable_decomposition();
-      decomposition_.set_transform(mgard::pb::Decomposition::MULTILEVEL_COEFFICIENTS);
+    { // Function Decomposition
+      mgard::pb::FunctionDecomposition &function_decomposition = *header.mutable_function_decomposition();
+      function_decomposition.set_transform(mgard::pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
       if (decomposition == decomposition_type::MultiDim) {
-        decomposition_.set_hierarchy(mgard::pb::Decomposition::MULTIDIMENSION_WITH_GHOST_NODES);
+        function_decomposition.set_hierarchy(mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES);
       } else if (decomposition == decomposition_type::SingleDim) {
-        decomposition_.set_hierarchy(mgard::pb::Decomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES);
+        function_decomposition.set_hierarchy(mgard::pb::FunctionDecomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES);
       }
-      decomposition_.set_l_target(l_target);
+      function_decomposition.set_l_target(l_target);
     }
 
     { // Quantization
@@ -608,23 +608,6 @@ private:
       }
     }
 
-    { // Domain Decomposition
-      const mgard::pb::DomainDecomposition domainDecomposition = header.domain_decomposition();
-      if (domainDecomposition.method() != mgard::pb::DomainDecomposition::NOOP) {
-        domain_decomposed = true;
-        if (domainDecomposition.method() == mgard::pb::DomainDecomposition::LARGEST_DIMENSION) {
-          ddtype = domain_decomposition_type::MaxDim;
-        } else if (domainDecomposition.method() == mgard::pb::DomainDecomposition::LINEARIZATION) {
-          ddtype = domain_decomposition_type::Linearize;
-        }
-
-        domain_decomposed_dim = domainDecomposition.decomposition_dimension();
-        domain_decomposed_size = domainDecomposition.decomposition_size();
-      } else {
-        domain_decomposed = false;
-      }
-    }
-
     { // Dataset
       const mgard::pb::Dataset dataset = header.dataset();
       if (dataset.type() == mgard::pb::Dataset::FLOAT) {
@@ -654,18 +637,35 @@ private:
       tol = error.tolerance();
     }
 
-    { // Decomposition
-      const mgard::pb::Decomposition decomposition_ = header.decomposition();
-      assert(decomposition_.transform() == mgard::pb::Decomposition::MULTILEVEL_COEFFICIENTS);
-      if (decomposition_.hierarchy() == mgard::pb::Decomposition::MULTIDIMENSION_WITH_GHOST_NODES) {
+    { // Domain Decomposition
+      const mgard::pb::DomainDecomposition domainDecomposition = header.domain_decomposition();
+      if (domainDecomposition.method() != mgard::pb::DomainDecomposition::NOOP) {
+        domain_decomposed = true;
+        if (domainDecomposition.method() == mgard::pb::DomainDecomposition::LARGEST_DIMENSION) {
+          ddtype = domain_decomposition_type::MaxDim;
+        } else if (domainDecomposition.method() == mgard::pb::DomainDecomposition::LINEARIZATION) {
+          ddtype = domain_decomposition_type::Linearize;
+        }
+
+        domain_decomposed_dim = domainDecomposition.decomposition_dimension();
+        domain_decomposed_size = domainDecomposition.decomposition_size();
+      } else {
+        domain_decomposed = false;
+      }
+    }
+
+    { // Function Decomposition
+      const mgard::pb::FunctionDecomposition function_decomposition = header.function_decomposition();
+      assert(decomposition_.transform() == mgard::pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
+      if (function_decomposition.hierarchy() == mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES) {
         decomposition = decomposition_type::MultiDim;
-      } else if (decomposition_.hierarchy() == mgard::pb::Decomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES) {
+      } else if (function_decomposition.hierarchy() == mgard::pb::FunctionDecomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES) {
         decomposition = decomposition_type::SingleDim;
       } else {
         std::cout << log::log_err << "this decomposition hierarchy mismatch the hierarchy used in MGARD-X.\n";
         exit(-1);
       }
-      l_target = decomposition_.l_target();
+      l_target = function_decomposition.l_target();
     }
 
     { // Quantization
