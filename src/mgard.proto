@@ -69,13 +69,26 @@ message ErrorControl {
 	double tolerance = 5;
 }
 
+message DomainDecomposition {
+    enum Method {
+        NOOP = 0;
+    	LARGEST_DIMENSION = 1;
+    	LINEARIZATION = 2;
+    }
+
+	Method method = 1;
+	uint64 decomposition_dimension = 2;
+	uint64 decomposition_size = 3;
+}
+
 message Decomposition {
 	enum Transform {
 		MULTILEVEL_COEFFICIENTS = 0;
 	}
 	enum Hierarchy {
 		POWER_OF_TWO_PLUS_ONE = 0;
-		GHOST_NODES = 1;
+		MULTIDIMENSION_WITH_GHOST_NODES = 1;
+		ONE_DIM_AT_A_TIME_WITH_GHOST_NODES = 2;
 	}
 
 	Transform transform = 1;
@@ -107,20 +120,35 @@ message Quantization {
 
 message Encoding {
 	enum Preprocessor {
-		SHUFFLE = 0;
+		NO_SHUFFLE = 0;
+		SHUFFLE = 1;
 	}
 	enum Compressor {
 		NOOP = 0;
 		CPU_HUFFMAN_ZLIB = 1;
 		CPU_HUFFMAN_ZSTD = 2;
-		GPU_HUFFMAN = 3;
-		GPU_HUFFMAN_LZ4 = 4;
+		X_HUFFMAN = 3;
+		X_HUFFMAN_LZ4 = 4;
+		X_HUFFMAN_ZSTD = 5;
 	}
 
 	Preprocessor preprocessor = 1;
 	Compressor compressor = 2;
-	// Only relevant when `compressor == GPU_HUFFMAN` or `lossless_compressor == GPU_HUFFMAN_LZ4`.
+	// Only relevant when `compressor == X_HUFFMAN` or `lossless_compressor == X_HUFFMAN_LZ4` or `compressor == X_HUFFMAN_ZSTD`
 	uint64 huffman_dictionary_size = 3;
+	uint64 huffman_block_size = 4;
+}
+
+message Device {
+	enum Backend {
+		CPU = 0;
+		X_SERIAL = 1;
+		X_CUDA = 2;
+		X_HIP = 3;
+		X_SYCL = 4;
+	}
+
+	Backend backend = 1;
 }
 
 message Header {
@@ -134,7 +162,9 @@ message Header {
 	Domain domain = 4;
 	Dataset dataset = 5;
 	ErrorControl error_control = 6;
-	Decomposition decomposition = 7;
-	Quantization quantization = 8;
-	Encoding encoding = 9;
+	DomainDecomposition domain_decomposition = 7;
+	Decomposition decomposition = 8;
+	Quantization quantization = 9;
+	Encoding encoding = 10;
+	Device device = 11;
 }

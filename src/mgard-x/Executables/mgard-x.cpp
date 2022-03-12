@@ -288,7 +288,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.dev_type = dev_type;
   config.zstd_compress_level = 1;
   config.huff_dict_size = 8192;
-  config.reorder = 0;
+  config.reorder = 1;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
