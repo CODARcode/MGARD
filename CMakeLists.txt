@@ -130,8 +130,7 @@ if(MGARD_ENABLE_CUDA)
   enable_language(CUDA)
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-      # Mininum common non-deprecated architecture
-      set(CMAKE_CUDA_ARCHITECTURES 52)
+      set(CMAKE_CUDA_ARCHITECTURES 70)
   endif()
 
   find_package(nvcomp REQUIRED)
@@ -363,7 +362,7 @@ set_target_properties(mgard-library PROPERTIES
 install(TARGETS mgard-library EXPORT mgard-targets)
 
 install(FILES "${PROJECT_BINARY_DIR}/include/MGARDConfig.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
-install(FILES "${PROJECT_BINARY_DIR}/include/MGARDXConfig.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
+install(FILES "${PROJECT_BINARY_DIR}/include/MGARDXConfig.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard/mgard-x/RuntimeX")
 install(DIRECTORY "include/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard")
 install(FILES "${MGARD_FILE_FORMAT_HPP}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mgard/${MGARD_FILE_FORMAT_INCLUDESUBDIR_COMPONENT}")
 
