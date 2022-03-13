@@ -39,67 +39,59 @@ template <typename DeviceType> struct Math {
 
   MGARDX_EXEC static int ffs(unsigned int a);
   MGARDX_EXEC static int ffsll(long long unsigned int a);
+  MGARDX_EXEC static uint64_t binary2negabinary(const int64_t x);
+  MGARDX_EXEC static uint32_t binary2negabinary(const int32_t x);
+  MGARDX_EXEC static int64_t negabinary2binary(const uint64_t x);
+  MGARDX_EXEC static int32_t negabinary2binary(const uint32_t x);
 };
 
 template <typename T, SIZE nblockx, SIZE nblocky, SIZE nblockz,
           typename DeviceType>
 struct BlockReduce {
   MGARDX_EXEC
-  T Sum(T intput);
+  static T Sum(T intput);
   MGARDX_EXEC
-  T Max(T intput);
+  static T Max(T intput);
 };
 
 template <typename T, typename DeviceType> struct BlockBroadcast {
   MGARDX_EXEC
-  T Broadcast(T input, SIZE src_threadx, SIZE src_thready, SIZE src_threadz);
-};
-
-template <typename T, OPTION METHOD, typename DeviceType>
-struct EncodeSignBits {
-  MGARDX_EXEC
-  T Encode(T sign, SIZE b_idx);
-};
-
-template <typename T, OPTION METHOD, typename DeviceType>
-struct DecodeSignBits {
-  MGARDX_EXEC
-  T Decode(T sign_bitplane, SIZE b_idx);
-};
-
-template <typename T_org, typename T_trans, OPTION ALIGN, OPTION METHOD,
-          typename DeviceType>
-struct WarpBitTranspose {
-  MGARDX_EXEC
-  void Transpose(T_org *v, SIZE inc_v, T_trans *tv, SIZE inc_tv, SIZE b,
-                 SIZE B);
-
-  MGARDX_EXEC
-  T_trans Transpose(T_org v, SIZE b, SIZE B);
+  static T Broadcast(T input, SIZE src_threadx, SIZE src_thready, SIZE src_threadz);
 };
 
 template <typename T_org, typename T_trans, SIZE nblockx, SIZE nblocky,
           SIZE nblockz, OPTION ALIGN, OPTION METHOD, typename DeviceType>
 struct BlockBitTranspose {
   MGARDX_EXEC
-  void Transpose(T_org *v, T_trans *tv, SIZE b, SIZE B);
+  static void Transpose(T_org *v, T_trans *tv, SIZE b, SIZE B);
 };
 
-template <typename T, typename T_fp, typename T_sfp, typename T_error,
-          OPTION METHOD, OPTION BinaryType, typename DeviceType>
-struct WarpErrorCollect {
-  MGARDX_EXEC
-  void Collect(T *v, T_error *errors, SIZE num_elems, SIZE num_bitplanes);
+template <typename T_org, typename T_trans, OPTION ALIGN, OPTION METHOD, SIZE b, SIZE B,
+          typename DeviceType>
+struct WarpBitTranspose {
+  MGARDX_EXEC 
+  static void Transpose(T_org *v, SIZE inc_v, T_trans *tv, SIZE inc_tv);
 };
+
+
 
 template <typename T, typename T_fp, typename T_sfp, typename T_error,
           SIZE nblockx, SIZE nblocky, SIZE nblockz, OPTION METHOD,
           OPTION BinaryType, typename DeviceType>
-struct ErrorCollect {
+struct BlockErrorCollect {
   MGARDX_EXEC
-  void Collect(T *v, T_error *temp, T_error *errors, SIZE num_elems,
+  static void Collect(T *v, T_error *temp, T_error *errors, SIZE num_elems,
                SIZE num_bitplanes);
 };
+
+template <typename T, typename T_fp, typename T_sfp, typename T_error,
+          OPTION METHOD, OPTION BinaryType, SIZE num_elems, SIZE num_bitplanes, typename DeviceType>
+struct WarpErrorCollect {
+  MGARDX_EXEC
+  static void Collect(T *v, T_error *errors);
+};
+
+
 
 template <typename DeviceType> class DeviceSpecification {
 public:

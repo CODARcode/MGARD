@@ -86,6 +86,26 @@ template <> struct Math<Serial> {
     // if (pos2 != pos) {printf("mismatch: %d %d", pos2, pos);}
     return pos + 1;
   }
+  MGARDX_EXEC
+  static uint64_t binary2negabinary(const int64_t x) {
+    return (x + (uint64_t)0xaaaaaaaaaaaaaaaaull) ^
+           (uint64_t)0xaaaaaaaaaaaaaaaaull;
+  }
+
+  MGARDX_EXEC
+  static uint32_t binary2negabinary(const int32_t x) {
+    return (x + (uint32_t)0xaaaaaaaau) ^ (uint32_t)0xaaaaaaaau;
+  }
+
+  MGARDX_EXEC
+  static int64_t negabinary2binary(const uint64_t x) {
+    return (x ^ 0xaaaaaaaaaaaaaaaaull) - 0xaaaaaaaaaaaaaaaaull;
+  }
+
+  MGARDX_EXEC
+  static int32_t negabinary2binary(const uint32_t x) {
+    return (x ^ 0xaaaaaaaau) - 0xaaaaaaaau;
+  }
 };
 
 #define ALLOC_BLOCK                                                            \

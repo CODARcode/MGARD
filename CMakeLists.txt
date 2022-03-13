@@ -115,15 +115,11 @@ endif()
 add_library(mgard-library)
 
 if(MGARD_ENABLE_SERIAL)
-  set (CMAKE_CXX_STANDARD 14)
+  set (CMAKE_CXX_STANDARD 17)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
-<<<<<<< HEAD
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_SERIAL)
   set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
-=======
-  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
   set_source_files_properties(${MGARD_X_SERIAL_SRC} PROPERTIES LANGUAGE CXX)
->>>>>>> Add auto device compiler detection for steering compilation
 endif()
 
 if(MGARD_ENABLE_CUDA)
@@ -135,7 +131,7 @@ if(MGARD_ENABLE_CUDA)
 
   find_package(nvcomp REQUIRED)
   find_package(CUDAToolkit REQUIRED)
-  set (CMAKE_CXX_STANDARD 14)
+  set (CMAKE_CXX_STANDARD 17)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
   # Legacy CUDA version
@@ -145,20 +141,8 @@ if(MGARD_ENABLE_CUDA)
     target_link_libraries(MgardCudaExec mgard-library  ${CMAKE_DL_LIBS})
     target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-  add_executable(test_refactor ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Testing/MDR/test_refactor.cu)
-  target_link_libraries(test_refactor mgard-library  ${CMAKE_DL_LIBS})
-  target_include_directories(test_refactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
-  add_executable(test_reconstructor ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Testing/MDR/test_reconstructor.cu)
-  target_link_libraries(test_reconstructor mgard-library  ${CMAKE_DL_LIBS})
-  target_include_directories(test_reconstructor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-
-<<<<<<< HEAD
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_CUDA)
-=======
->>>>>>> Add auto device compiler detection for steering compilation
   set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
   
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
@@ -175,9 +159,8 @@ endif()
 if (MGARD_ENABLE_HIP) 
   find_package(HIP REQUIRED)
   enable_language(HIP)
-  set (CMAKE_CXX_STANDARD 14)
+  set (CMAKE_CXX_STANDARD 17)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
-<<<<<<< HEAD
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_HIP)
   set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
 endif()
@@ -186,11 +169,9 @@ if (MGARD_ENABLE_KOKKOS)
   find_package(Kokkos REQUIRED)
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
          CUDA_SEPARABLE_COMPILATION ON)
-=======
   set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
   set (CMAKE_HIP_FLAGS  "${CMAKE_HIP_FLAGS} -w")
   set_source_files_properties(${MGARD_X_HIP_SRC} PROPERTIES LANGUAGE HIP)
->>>>>>> Add auto device compiler detection for steering compilation
 endif()
 
 find_package(ZLIB REQUIRED)
