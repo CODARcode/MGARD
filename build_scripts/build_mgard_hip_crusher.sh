@@ -18,7 +18,7 @@ mgard_x_src_dir=.
 # Build directory
 build_dir=./build-hip-crusher
 # Number of processors used for building
-num_build_procs=8
+num_build_procs=
 # Installtaion directory
 install_dir=./install-hip-crusher
 

@@ -9,7 +9,7 @@
 #include "mgard-x/RuntimeX/RuntimeX.h"
 #include "mgard-x/RuntimeX/DataStructures/Array.hpp"
 #include "mgard-x/Hierarchy.hpp"
-#include "mgard-x/CompressionWorkflow.h"
+#include "mgard-x/CompressionWorkflow.hpp"
 
 namespace mgard_x {
 //!\file
