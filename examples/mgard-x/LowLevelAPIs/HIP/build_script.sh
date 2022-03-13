@@ -9,13 +9,14 @@
 set -x
 set -e
 
-install_dir=$(pwd)/../../../../install-cuda-turing
+# Setup MGARD installation dir
+install_dir=$(pwd)/../../../../install-hip-crusher
 
 rm -rf build
 mkdir build 
 cmake -S .  -B ./build \
 	    -Dmgard_ROOT=${install_dir}\
-	    -DCMAKE_CXX_COMPILER=amdclang++
+	    -DCMAKE_CXX_COMPILER=amdclang++\
 	    -DCMAKE_HIP_ARCHITECTURES="gfx90a"\
 	    -DCMAKE_PREFIX_PATH="${install_dir}"
 	  

@@ -150,48 +150,6 @@ void decompress(const void *compressed_data, size_t compressed_size,
                 std::vector<mgard_x::SIZE>& shape,
                 bool output_pre_allocated);
 
-//! Enable autotuning
-void BeginAutoTuning(enum device_type dev_type);
-
-//! Disable autotuning
-void EndAutoTuning(enum device_type dev_type);
-
-//!\file
-//!\brief Low level compression and decompression API.
-
-//! Compress a function on an N-D tensor product grid
-//!
-//!\param[in] hierarchy Hierarchy type for storing precomputed variable to
-//! help speed up compression.
-//!\param[in] in_array Dataset to be compressed.
-//!\param[in] type Error bound type: REL or ABS.
-//!\param[in] tol Relative error tolerance.
-//!\param[in] s Smoothness parameter to use in compressing the function.
-//!
-//!\return Compressed dataset.
-template <uint32_t D, typename T, typename DeviceType>
-Array<1, unsigned char, DeviceType>
-compress(Hierarchy<D, T, DeviceType> &hierarchy,
-         Array<D, T, DeviceType> &in_array, enum error_bound_type type, T tol,
-         T s);
-
-//! Decompress a function on an N-D tensor product grid
-//!
-//!\param[in] hierarchy Hierarchy type for storing precomputed variable to
-//! help speed up decompression.
-//!\param[in] compressed_array Compressed dataset.
-//!\return Decompressed dataset.
-template <uint32_t D, typename T, typename DeviceType>
-Array<D, T, DeviceType>
-decompress(Hierarchy<D, T, DeviceType> &hierarchy,
-           Array<1, unsigned char, DeviceType> &compressed_array);
-
-//! Enable autotuning
-template <typename DeviceType> void BeginAutoTuning();
-
-//! Disable autotuning
-template <typename DeviceType> void EndAutoTuning();
-
 } // namespace mgard_x
 
 #endif
