@@ -6,6 +6,7 @@
  */
 
 #include "MGARDConfig.hpp"
+#include "RuntimeX/RuntimeX.h"
 #include "proto/mgard.pb.h"
 #include "Types.h"
 #include <zlib.h>
@@ -19,7 +20,9 @@
 
 namespace mgard_x {
 
+template <typename DeviceType>
 struct Metadata {
+  using Mem = MemoryManager<DeviceType>;
   // about MGARD software
   char mgard_signature[SIGNATURE_SIZE+1] = SIGNATURE;
   std::vector<char> signature;
@@ -246,8 +249,10 @@ private:
     metadata_crc32 = 0;
 
     // start serializing
-    SERIALIZED_TYPE *serialized_data =
-        (SERIALIZED_TYPE *)std::malloc(total_size);
+    SERIALIZED_TYPE *serialized_data;
+    Mem::Malloc1D(serialized_data, total_size, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+        // (SERIALIZED_TYPE *)std::malloc(total_size);
     SERIALIZED_TYPE *p = serialized_data;
 
     SerializeSignature(p);
@@ -518,7 +523,9 @@ private:
     metadata_size = total_size;
     
     // start serializing
-    SERIALIZED_TYPE *serialized_data = (SERIALIZED_TYPE *)std::malloc(total_size);
+    SERIALIZED_TYPE *serialized_data; // = (SERIALIZED_TYPE *)std::malloc(total_size);
+    Mem::Malloc1D(serialized_data, total_size, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
     SERIALIZED_TYPE *p = serialized_data;
 
     SerializeSignature(p);
@@ -729,11 +736,15 @@ private:
     if constexpr (std::is_integral<T>::value) {
       T in = item;
       for (int i = 0; i < sizeof(T); i++) {
-        *(p + i) = in;
+        // *(p + i) = in;
+        Mem::Copy1D(p + i, (SERIALIZED_TYPE*)&in, 1, 0);
+        DeviceRuntime<DeviceType>::SyncQueue(0);
         in = in >> 8;
       }
     } else {
-      std::memcpy(p, &item, sizeof(item)); 
+      // std::memcpy(p, &item, sizeof(item)); 
+      Mem::Copy1D((T*)p, &item, 1, 0);
+      DeviceRuntime<DeviceType>::SyncQueue(0);
     }
     p += sizeof(item);
   }
@@ -743,11 +754,17 @@ private:
       T out = 0;
       for (int i = sizeof(T) - 1; i >= 0; i--) {
         out = out << 8;
-        out = out + *(p + i);
+        // out = out + *(p + i);
+        SERIALIZED_TYPE t;
+        Mem::Copy1D(&t, p + i, 1, 0);
+        DeviceRuntime<DeviceType>::SyncQueue(0);
+        out = out + t;
       }
       item = out;
     } else {
-      std::memcpy(&item, p, sizeof(item));
+      // std::memcpy(&item, p, sizeof(item));
+      Mem::Copy1D(&item, (T*)p, 1, 0);
+      DeviceRuntime<DeviceType>::SyncQueue(0);
     }
     p += sizeof(item);
   }
