@@ -141,12 +141,12 @@ public:
     T_error *sm_warp_local_errors =
         sm_errors + (NumEncodingBitplanes + 1) * __mywarpid();
 
-    WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm,
-                     DeviceType>
-        warpBitTranspose;
-    WarpErrorCollect<T, T_fp, T_sfp, T_error, ErrorColectingAlgorithm,
-                     BinaryType, DeviceType>
-        warpErrorCollector;
+    // WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm,
+    //                  DeviceType>
+    //     warpBitTranspose;
+    // WarpErrorCollect<T, T_fp, T_sfp, T_error, ErrorColectingAlgorithm,
+    //                  BinaryType, DeviceType>
+    //     warpErrorCollector;
 
     for (SIZE i = __mylaneid(); i < NumEncodingBitplanes + 1;
          i += MGARDX_WARP_SIZE) {
@@ -186,7 +186,7 @@ public:
         if (BinaryType == BINARY) {
           fp_data = (T_fp)fabs(shifted_data);
         } else if (BinaryType == NEGABINARY) {
-          fp_data = binary2negabinary((T_sfp)shifted_data);
+          fp_data = Math<DeviceType>::binary2negabinary((T_sfp)shifted_data);
         }
         // save fp_data to shared memory
         sm_warp_local_fix_point[group_data_offset + __mylaneid()] = fp_data;
@@ -198,8 +198,8 @@ public:
 
         long long start;
         // if (debug && Iter == 0 && GroupIdx == 0) start = clock64();
-        warpBitTranspose
-            .Transpose<sizeof(T_bitplane) * 8, NumEncodingBitplanes>(
+        WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm, sizeof(T_bitplane) * 8, NumEncodingBitplanes,
+                     DeviceType>::Transpose(
                 sm_warp_local_fix_point + group_data_offset, 1,
                 sm_warp_local_bitplanes + group_bitplane_offset,
                 ld_sm_bitplanes);
@@ -207,7 +207,8 @@ public:
         // if (debug && Iter == 0 && GroupIdx == 0) { start = clock64() - start;
         // printf(" METHOD: %d, time: %llu\n", EncodingAlgorithm, start); }
         if (BinaryType == BINARY) {
-          warpBitTranspose.Transpose<sizeof(T_bitplane) * 8, 1>(
+          WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm, sizeof(T_bitplane) * 8, 1,
+                     DeviceType>::Transpose(
               sm_warp_local_signs + group_data_offset, 1,
               sm_warp_local_bitplanes_sign + group_bitplane_offset,
               ld_sm_bitplanes_sign);
@@ -218,8 +219,8 @@ public:
           // FunctorBase<DeviceType>::GetBlockIdX(),
           // *(sm_warp_local_bitplanes_sign + group_bitplane_offset));
         }
-        warpErrorCollector
-            .Collect<sizeof(T_bitplane) * 8, NumEncodingBitplanes>(
+        WarpErrorCollect<T, T_fp, T_sfp, T_error, ErrorColectingAlgorithm,
+                     BinaryType, sizeof(T_bitplane) * 8, NumEncodingBitplanes, DeviceType>::Collect(
                 sm_warp_local_shifted + group_data_offset,
                 sm_warp_local_errors);
       }
@@ -249,7 +250,7 @@ public:
     SIZE liearized_idx = FunctorBase<DeviceType>::GetThreadIdY() *
                              FunctorBase<DeviceType>::GetBlockDimX() +
                          FunctorBase<DeviceType>::GetThreadIdX();
-    BlockReduce<T, NumWarpsPerTB, 1, 1, DeviceType> blockReducer;
+    // BlockReduce<T, NumWarpsPerTB, 1, 1, DeviceType> blockReducer;
     for (SIZE bitplane_idx = 0; bitplane_idx < NumEncodingBitplanes + 1;
          bitplane_idx++) {
       T_error error = 0;
@@ -259,7 +260,7 @@ public:
       }
 
       // if (bitplane_idx == 0) printf("error: %f\n", error);
-      T_error error_sum = blockReducer.Sum(error);
+      T_error error_sum = BlockReduce<T, NumWarpsPerTB, 1, 1, DeviceType>::Sum(error);
       if (liearized_idx == 0) {
         error_sum = ldexp(error_sum, 2 * (-(int)NumEncodingBitplanes + exp));
         sm_errors_sum[bitplane_idx] = error_sum;
@@ -651,9 +652,9 @@ public:
     T_bitplane *sm_warp_local_bitplanes_sign =
         sm_bitplanes_sign + warp_bitplane_offset;
 
-    WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm,
-                     DeviceType>
-        warpBitTranspose;
+    // WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm,
+    //                  DeviceType>
+    //     warpBitTranspose;
     if (BinaryType == NEGABINARY)
       exp += 2;
 
@@ -689,8 +690,8 @@ public:
         SIZE global_data_idx = iter_data_offset + TB_data_offset +
                                warp_data_offset + group_data_offset;
 
-        warpBitTranspose
-            .Transpose<NumDecodingBitplanes, sizeof(T_bitplane) * 8>(
+        WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm, NumDecodingBitplanes, sizeof(T_bitplane) * 8,
+                     DeviceType>::Transpose(
                 sm_warp_local_bitplanes + group_bitplane_offset,
                 ld_sm_bitplanes, sm_warp_local_fix_point + group_data_offset,
                 1);
@@ -698,7 +699,8 @@ public:
 
         if (BinaryType == BINARY) {
           if (starting_bitplane == 0) {
-            warpBitTranspose.Transpose<1, sizeof(T_bitplane) * 8>(
+            WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm, 1, sizeof(T_bitplane) * 8,
+                     DeviceType>::Transpose(
                 sm_warp_local_bitplanes_sign + group_bitplane_offset,
                 ld_sm_bitplanes_sign, sm_warp_local_signs + group_data_offset,
                 1);
@@ -738,7 +740,7 @@ public:
 
           } else if (BinaryType == NEGABINARY) {
             T cur_data =
-                ldexp((T)negabinary2binary(fp_data), -ending_bitplane + exp);
+                ldexp((T)Math<DeviceType>::negabinary2binary(fp_data), -ending_bitplane + exp);
             *v(global_data_idx + __mylaneid()) =
                 ending_bitplane % 2 != 0 ? -cur_data : cur_data;
           }

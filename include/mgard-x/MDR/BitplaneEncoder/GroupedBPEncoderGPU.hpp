@@ -137,7 +137,7 @@ public:
       if (BinaryType == BINARY) {
         fp_data = (T_fp)fabs(shifted_data);
       } else if (BinaryType == NEGABINARY) {
-        fp_data = binary2negabinary((T_sfp)shifted_data);
+        fp_data = Math<DeviceType>::binary2negabinary((T_sfp)shifted_data);
         // printf("2^%d %f->%u\n", (int)num_bitplanes - (int)exp, shifted_data,
         // fp_data);
       }
@@ -158,11 +158,12 @@ public:
   // level error reduction (intra block)
   MGARDX_EXEC void Operation2() {
     // data
-    BlockBitTranspose<T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT,
-                      EncodingAlgorithm, DeviceType>
-        blockBitTranspose;
+    // BlockBitTranspose<T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT,
+    //                   EncodingAlgorithm, DeviceType>
+    //     blockBitTranspose;
     for (SIZE batch_idx = 0; batch_idx < num_batches_per_TB; batch_idx++) {
-      blockBitTranspose.Transpose(sm_fix_point +
+      BlockBitTranspose<T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT,
+                      EncodingAlgorithm, DeviceType>::Transpose(sm_fix_point +
                                       batch_idx * num_elems_per_batch,
                                   sm_bitplanes + batch_idx * num_bitplanes,
                                   num_elems_per_batch, num_bitplanes);
@@ -170,16 +171,16 @@ public:
     if (BinaryType == BINARY) {
       // sign
       for (SIZE batch_idx = 0; batch_idx < num_batches_per_TB; batch_idx++) {
-        blockBitTranspose.Transpose(
+        BlockBitTranspose<T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT,
+                      EncodingAlgorithm, DeviceType>::Transpose(
             sm_signs + batch_idx * num_elems_per_batch,
             sm_bitplanes + num_batches_per_TB * num_bitplanes + batch_idx,
             num_elems_per_batch, 1);
       }
     }
     // error
-    ErrorCollect<T, T_fp, T_sfp, T_error, 32, 32, 1, ErrorColectingAlgorithm,
-                 BinaryType, DeviceType>()
-        .Collect(sm_shifted, sm_temp_errors, sm_errors, num_elems_per_TB,
+    BlockErrorCollect<T, T_fp, T_sfp, T_error, 32, 32, 1, ErrorColectingAlgorithm,
+                 BinaryType, DeviceType>::Collect(sm_shifted, sm_temp_errors, sm_errors, num_elems_per_TB,
                  num_bitplanes);
   }
 
@@ -496,9 +497,9 @@ public:
   // level error reduction (intra block)
   MGARDX_EXEC void Operation2() {
     // data
-    BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType> blockBitTranspose;
+    // BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType> blockBitTranspose;
     for (SIZE i = 0; i < num_batches_per_TB; i++) {
-      blockBitTranspose.Transpose(sm_bitplanes + i * num_bitplanes,
+      BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType>::Transpose(sm_bitplanes + i * num_bitplanes,
                                   sm_fix_point + i * num_elems_per_batch,
                                   num_bitplanes, num_elems_per_batch);
     }
@@ -507,7 +508,7 @@ public:
       // sign
       if (starting_bitplane == 0) {
         for (SIZE batch_idx = 0; batch_idx < num_batches_per_TB; batch_idx++) {
-          blockBitTranspose.Transpose(
+          BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType>::Transpose(
               sm_bitplanes + num_batches_per_TB * num_bitplanes + batch_idx,
               sm_signs + batch_idx * num_elems_per_batch, 1,
               num_elems_per_batch);
@@ -556,7 +557,7 @@ public:
         *signs(global_data_idx) = sm_signs[local_data_idx];
       } else if (BinaryType == NEGABINARY) {
         T cur_data =
-            ldexp((T)negabinary2binary(fp_data), -ending_bitplane + exp);
+            ldexp((T)Math<DeviceType>::negabinary2binary(fp_data), -ending_bitplane + exp);
         *v(global_data_idx) = ending_bitplane % 2 != 0 ? -cur_data : cur_data;
       }
     }
