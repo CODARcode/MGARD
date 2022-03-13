@@ -9,6 +9,7 @@
 set -x
 set -e
 
+# Setup MGARD installation dir
 install_dir=$(pwd)/../../../../install-cuda-turing
 
 rm -rf build

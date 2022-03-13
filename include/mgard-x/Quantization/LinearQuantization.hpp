@@ -8,7 +8,6 @@
 #ifndef MGARD_X_LINEAR_QUANTIZATION_TEMPLATE
 #define MGARD_X_LINEAR_QUANTIZATION_TEMPLATE
 
-#include "../Metadata.hpp"
 #include "../RuntimeX/RuntimeX.h"
 // #include "LinearQuantization.h"
 
