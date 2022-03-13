@@ -21,28 +21,51 @@
 
 namespace mgard_x {
 
-template <DIM D, typename T, typename DeviceType>
-void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
-              const void *original_data, void *&compressed_data,
-              size_t &compressed_size, Config config,
+template <typename DeviceType>
+void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size, Config config,
               bool output_pre_allocated);
 
-template <DIM D, typename T, typename DeviceType>
-void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,
-              const void *original_data, void *&compressed_data,
-              size_t &compressed_size, Config config, std::vector<T *> coords,
+template <typename DeviceType>
+void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size,
               bool output_pre_allocated);
 
-template <DIM D, typename T, typename DeviceType>
-void decompress(std::vector<SIZE> shape, const void *compressed_data,
-                size_t compressed_size, void *&decompressed_data,
-                std::vector<T *> coords, Config config,
+template <typename DeviceType>
+void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size,
+              std::vector<const Byte *> coords, Config config,
+              bool output_pre_allocated);
+
+template <typename DeviceType>
+void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size,
+              std::vector<const Byte *> coords, bool output_pre_allocated);
+
+template <typename DeviceType>
+void decompress(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, Config config,
                 bool output_pre_allocated);
 
-template <DIM D, typename T, typename DeviceType>
-void decompress(std::vector<SIZE> shape, const void *compressed_data,
-                size_t compressed_size, void *&decompressed_data, Config config,
+template <typename DeviceType>
+void decompress(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, bool output_pre_allocated);
+
+template <typename DeviceType>
+void decompress(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, data_type& dtype, 
+                std::vector<mgard_x::SIZE>& shape, Config config,
                 bool output_pre_allocated);
+
+template <typename DeviceType>
+void decompress(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, data_type& dtype, 
+                std::vector<mgard_x::SIZE>& shape, bool output_pre_allocated);
+
 
 template <typename DeviceType> void BeginAutoTuning();
 

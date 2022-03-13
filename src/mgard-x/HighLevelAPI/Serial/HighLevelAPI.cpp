@@ -12,36 +12,51 @@
 #include <chrono>
 namespace mgard_x {
 
-#define KERNELS(D, T)                                                          \
-  template void compress<D, T, Serial>(                                        \
-      std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,         \
-      const void *original_data, void *&compressed_data,                       \
-      size_t &compressed_size, Config config, bool output_pre_allocated);      \
-  template void compress<D, T, Serial>(                                        \
-      std::vector<SIZE> shape, T tol, T s, enum error_bound_type mode,         \
-      const void *original_data, void *&compressed_data,                       \
-      size_t &compressed_size, Config config, std::vector<T *> coords,         \
-      bool output_pre_allocated);                                              \
-  template void decompress<D, T, Serial>(                                      \
-      std::vector<SIZE> shape, const void *compressed_data,                    \
-      size_t compressed_size, void *&decompressed_data,                        \
-      std::vector<T *> coords, Config config, bool output_pre_allocated);      \
-  template void decompress<D, T, Serial>(                                      \
-      std::vector<SIZE> shape, const void *compressed_data,                    \
-      size_t compressed_size, void *&decompressed_data, Config config,         \
-      bool output_pre_allocated);
+template
+void compress<Serial>(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size, Config config,
+              bool output_pre_allocated);
 
-KERNELS(1, double)
-KERNELS(1, float)
-KERNELS(2, double)
-KERNELS(2, float)
-KERNELS(3, double)
-KERNELS(3, float)
-KERNELS(4, double)
-KERNELS(4, float)
-KERNELS(5, double)
-KERNELS(5, float)
-#undef KERNELS
+template
+void compress<Serial>(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size,
+              bool output_pre_allocated);
+
+template
+void compress<Serial>(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size,
+              std::vector<const Byte *> coords, Config config,
+              bool output_pre_allocated);
+
+template
+void compress<Serial>(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
+              double s, enum error_bound_type mode, const void *original_data,
+              void *&compressed_data, size_t &compressed_size,
+              std::vector<const Byte *> coords, bool output_pre_allocated);
+
+template
+void decompress<Serial>(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, Config config,
+                bool output_pre_allocated);
+
+template
+void decompress<Serial>(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, bool output_pre_allocated);
+
+template
+void decompress<Serial>(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, data_type& dtype, 
+                std::vector<mgard_x::SIZE>& shape, Config config,
+                bool output_pre_allocated);
+
+template
+void decompress<Serial>(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, data_type& dtype, 
+                std::vector<mgard_x::SIZE>& shape,
+                bool output_pre_allocated);
 
 template void BeginAutoTuning<Serial>();
 template void EndAutoTuning<Serial>();
