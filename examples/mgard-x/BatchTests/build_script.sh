@@ -27,6 +27,6 @@ cmake -S .  -B ./build \
 	    -Dmgard_ROOT=${mgard_src_dir}/install-cuda-turing\
 	    -DCMAKE_PREFIX_PATH="${nvcomp_install_dir};${zstd_install_dir}/lib/cmake/zstd"
 
-cd build && make VERBOSE=1 && cd ..
+cd build && make && cd ..
 
 # cmake --build ./build
