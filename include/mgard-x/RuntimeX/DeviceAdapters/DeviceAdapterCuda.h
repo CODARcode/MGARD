@@ -533,8 +533,6 @@ public:
   GetOccupancyMaxActiveBlocksPerSM(FunctorType functor, int blockSize,
                                    size_t dynamicSMemSize) {
     int numBlocks = 0;
-    Task<FunctorType> task =
-        Task(functor, 1, 1, 1, 1, 1, blockSize, dynamicSMemSize, 0);
 
     if constexpr (std::is_base_of<Functor<CUDA>, FunctorType>::value) {
       gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
@@ -563,8 +561,6 @@ public:
   template <typename FunctorType>
   MGARDX_CONT static void SetMaxDynamicSharedMemorySize(FunctorType functor,
                                                         int maxbytes) {
-    int numBlocks = 0;
-    Task<FunctorType> task = Task(functor, 1, 1, 1, 1, 1, 1, 0, 0);
 
     if constexpr (std::is_base_of<Functor<CUDA>, FunctorType>::value) {
       gpuErrchk(cudaFuncSetAttribute(
