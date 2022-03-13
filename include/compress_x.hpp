@@ -120,29 +120,35 @@ void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data, Config config,
                 bool output_pre_allocated);
 
-//! Verify the compressed data
-bool verify(const void *compressed_data, size_t compressed_size);
+//! Decompress a function on an N-D tensor product grid
+//!
+//!\param[in] compressed_data Compressed data.
+//!\param[in] compressed_size Size of comrpessed data.
+//!\param[out] decompressed_data Decompressed data.
+//!\param[out] dtype Data type of decompressed data.
+//!\param[out] shape Shape of decompressed data.
+//!\param[in] config For configuring the decompression process.
+//!\param[in] output_pre_allocated Indicate whether the output buffer is
+//! pre-allocated or not.
+void decompress(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, data_type& dtype, 
+                std::vector<mgard_x::SIZE>& shape, Config config,
+                bool output_pre_allocated);
 
-//! Query the data type of original data
-enum data_type infer_data_type(const void *compressed_data,
-                               size_t compressed_size);
-
-//! Query the shape of original data
-std::vector<SIZE> infer_shape(const void *compressed_data,
-                              size_t compressed_size);
-
-//! Query the data structure of original data
-enum data_structure_type infer_data_structure(const void *compressed_data,
-                                              size_t compressed_size);
-
-//! Query the file used to store the coordinates data
-std::string infer_nonuniform_coords_file(const void *compressed_data,
-                                         size_t compressed_size);
-
-//! Query the coordinates
-template <typename T>
-std::vector<T *> infer_coords(const void *compressed_data,
-                              size_t compressed_size);
+//! Decompress a function on an N-D tensor product grid
+//!
+//!\param[in] compressed_data Compressed data.
+//!\param[in] compressed_size Size of comrpessed data.
+//!\param[out] decompressed_data Decompressed data.
+//!\param[out] dtype Data type of decompressed data.
+//!\param[out] shape Shape of decompressed data.
+//!\param[in] config For configuring the decompression process.
+//!\param[in] output_pre_allocated Indicate whether the output buffer is
+//! pre-allocated or not.
+void decompress(const void *compressed_data, size_t compressed_size,
+                void *&decompressed_data, data_type& dtype, 
+                std::vector<mgard_x::SIZE>& shape,
+                bool output_pre_allocated);
 
 //! Enable autotuning
 void BeginAutoTuning(enum device_type dev_type);

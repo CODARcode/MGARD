@@ -372,10 +372,8 @@ int launch_decompress(const char *input_file, const char *output_file,
 
   mgard_x::SERIALIZED_TYPE *compressed_data;
   size_t compressed_size = readfile(input_file, compressed_data);
-  std::vector<mgard_x::SIZE> shape =
-      mgard_x::infer_shape(compressed_data, compressed_size);
-  mgard_x::data_type dtype =
-      mgard_x::infer_data_type(compressed_data, compressed_size);
+  std::vector<mgard_x::SIZE> shape;
+  mgard_x::data_type dtype;
 
   size_t original_size = 1;
   for (mgard_x::DIM i = 0; i < shape.size(); i++) {
