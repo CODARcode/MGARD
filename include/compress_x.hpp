@@ -125,14 +125,14 @@ void decompress(const void *compressed_data, size_t compressed_size,
 //!\param[in] compressed_data Compressed data.
 //!\param[in] compressed_size Size of comrpessed data.
 //!\param[out] decompressed_data Decompressed data.
-//!\param[out] dtype Data type of decompressed data.
 //!\param[out] shape Shape of decompressed data.
+//!\param[out] dtype Data type of decompressed data.
 //!\param[in] config For configuring the decompression process.
 //!\param[in] output_pre_allocated Indicate whether the output buffer is
 //! pre-allocated or not.
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type& dtype, 
-                std::vector<mgard_x::SIZE>& shape, Config config,
+                void *&decompressed_data, 
+                std::vector<mgard_x::SIZE>& shape, data_type& dtype, Config config,
                 bool output_pre_allocated);
 
 //! Decompress a function on an N-D tensor product grid
@@ -140,14 +140,14 @@ void decompress(const void *compressed_data, size_t compressed_size,
 //!\param[in] compressed_data Compressed data.
 //!\param[in] compressed_size Size of comrpessed data.
 //!\param[out] decompressed_data Decompressed data.
-//!\param[out] dtype Data type of decompressed data.
 //!\param[out] shape Shape of decompressed data.
+//!\param[out] dtype Data type of decompressed data.
 //!\param[in] config For configuring the decompression process.
 //!\param[in] output_pre_allocated Indicate whether the output buffer is
 //! pre-allocated or not.
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type& dtype, 
-                std::vector<mgard_x::SIZE>& shape,
+                void *&decompressed_data, 
+                std::vector<mgard_x::SIZE>& shape, data_type& dtype, 
                 bool output_pre_allocated);
 
 } // namespace mgard_x
