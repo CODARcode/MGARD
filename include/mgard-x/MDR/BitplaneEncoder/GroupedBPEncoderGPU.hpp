@@ -125,8 +125,10 @@ public:
     if (local_bitplane_idx < num_bitplanes + 1) {
       sm_errors[local_bitplane_idx] = 0;
     }
+  }
 
-    __syncthreads();
+  MGARDX_EXEC void Operation2() {
+    // __syncthreads();
     if (BinaryType == NEGABINARY)
       exp += 2;
     // convert to fixpoint data
@@ -156,7 +158,7 @@ public:
 
   // convert fix point to bit-planes
   // level error reduction (intra block)
-  MGARDX_EXEC void Operation2() {
+  MGARDX_EXEC void Operation3() {
     // data
     // BlockBitTranspose<T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT,
     //                   EncodingAlgorithm, DeviceType>
@@ -166,7 +168,8 @@ public:
                       EncodingAlgorithm, DeviceType>::Transpose(sm_fix_point +
                                       batch_idx * num_elems_per_batch,
                                   sm_bitplanes + batch_idx * num_bitplanes,
-                                  num_elems_per_batch, num_bitplanes);
+                                  num_elems_per_batch, num_bitplanes,
+                                  FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
     }
     if (BinaryType == BINARY) {
       // sign
@@ -175,17 +178,18 @@ public:
                       EncodingAlgorithm, DeviceType>::Transpose(
             sm_signs + batch_idx * num_elems_per_batch,
             sm_bitplanes + num_batches_per_TB * num_bitplanes + batch_idx,
-            num_elems_per_batch, 1);
+            num_elems_per_batch, 1,
+            FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
       }
     }
     // error
     BlockErrorCollect<T, T_fp, T_sfp, T_error, 32, 32, 1, ErrorColectingAlgorithm,
                  BinaryType, DeviceType>::Collect(sm_shifted, sm_temp_errors, sm_errors, num_elems_per_TB,
-                 num_bitplanes);
+                 num_bitplanes, FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
   }
 
   // get max bit-plane length
-  MGARDX_EXEC void Operation3() {
+  MGARDX_EXEC void Operation4() {
     // data
     block_offset = max_length_per_TB * FunctorBase<DeviceType>::GetBlockIdX();
     for (SIZE bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY();
@@ -219,7 +223,7 @@ public:
     }
   }
 
-  MGARDX_EXEC void Operation4() {
+  MGARDX_EXEC void Operation5() {
     if (debug) {
       // for (int i = 0; i < num_elems_per_TB; i++) {
       //   printf("input[%u]\torg\t%f\t2^%d\tfp\t%llu:\t", i,
@@ -274,7 +278,6 @@ public:
     }
   }
 
-  MGARDX_EXEC void Operation5() {}
 
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
@@ -501,7 +504,8 @@ public:
     for (SIZE i = 0; i < num_batches_per_TB; i++) {
       BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType>::Transpose(sm_bitplanes + i * num_bitplanes,
                                   sm_fix_point + i * num_elems_per_batch,
-                                  num_bitplanes, num_elems_per_batch);
+                                  num_bitplanes, num_elems_per_batch,
+                                  FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
     }
 
     if (BinaryType == BINARY) {
@@ -511,7 +515,8 @@ public:
           BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType>::Transpose(
               sm_bitplanes + num_batches_per_TB * num_bitplanes + batch_idx,
               sm_signs + batch_idx * num_elems_per_batch, 1,
-              num_elems_per_batch);
+              num_elems_per_batch,
+              FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
         }
       }
     }

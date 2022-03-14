@@ -49,28 +49,23 @@ template <typename T, SIZE nblockx, SIZE nblocky, SIZE nblockz,
           typename DeviceType>
 struct BlockReduce {
   MGARDX_EXEC
-  static T Sum(T intput);
+  static void Sum(T intput, T& output);
   MGARDX_EXEC
-  static T Max(T intput);
-};
-
-template <typename T, typename DeviceType> struct BlockBroadcast {
-  MGARDX_EXEC
-  static T Broadcast(T input, SIZE src_threadx, SIZE src_thready, SIZE src_threadz);
+  static void Max(T intput, T& output);
 };
 
 template <typename T_org, typename T_trans, SIZE nblockx, SIZE nblocky,
           SIZE nblockz, OPTION ALIGN, OPTION METHOD, typename DeviceType>
 struct BlockBitTranspose {
   MGARDX_EXEC
-  static void Transpose(T_org *v, T_trans *tv, SIZE b, SIZE B);
+  static void Transpose(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX, SIZE IdY);
 };
 
 template <typename T_org, typename T_trans, OPTION ALIGN, OPTION METHOD, SIZE b, SIZE B,
           typename DeviceType>
 struct WarpBitTranspose {
   MGARDX_EXEC 
-  static void Transpose(T_org *v, SIZE inc_v, T_trans *tv, SIZE inc_tv);
+  static void Transpose(T_org *v, SIZE inc_v, T_trans *tv, SIZE inc_tv, SIZE LaneId);
 };
 
 
@@ -81,14 +76,14 @@ template <typename T, typename T_fp, typename T_sfp, typename T_error,
 struct BlockErrorCollect {
   MGARDX_EXEC
   static void Collect(T *v, T_error *temp, T_error *errors, SIZE num_elems,
-               SIZE num_bitplanes);
+               SIZE num_bitplanes, SIZE IdX, SIZE IdY);
 };
 
 template <typename T, typename T_fp, typename T_sfp, typename T_error,
           OPTION METHOD, OPTION BinaryType, SIZE num_elems, SIZE num_bitplanes, typename DeviceType>
 struct WarpErrorCollect {
   MGARDX_EXEC
-  static void Collect(T *v, T_error *errors);
+  static void Collect(T *v, T_error *errors, SIZE LaneId);
 };
 
 
