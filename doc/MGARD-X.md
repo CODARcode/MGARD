@@ -55,13 +55,25 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 * **Option 1:** One-step configure and build scripts are available [here][build_scripts].
 * **Option 2:** Manually confiugre and build with CMake
 
-[build_scripts]:build_script
+[build_scripts]:../build_scripts
 	
 |CMake options|Value|Description|
 |---|---|---|
 |MGARD\_ENABLE\_CUDA|ON/OFF|Enable portable GPU compression/decompression with CUDA on NVIDIA GPUs|
 |MGARD\_ENABLE\_HIP|ON/OFF|Enable portable GPU compression/decompression with HIP on AMD GPUs|
-|MGARD\_ENABLE\_SERIAL|ON/OFF|Enable portable serial compression/decompression on CPUs|			
+|MGARD\_ENABLE\_SERIAL|ON/OFF|Enable portable serial compression/decompression on CPUs|	
+
+## Control Errors
+MGARD can bound errors in various types of norm:
+* To bound ***L<sup>&infin;</sup> norm***, the ```s``` smoothness parameter needs to be set to `infinity`.
+* To bound ***L<sup>2</sup> norm***, the ```s``` smoothness parameter needs to be set to `0`.
+* To bound ***L<sup>s</sup> norm***, the ```s``` smoothness parameter needs to be set to `s`.
+
+MGARD can bound error `tol` in two ways (using L<sup>&infin;</sup> norm as an example, `u` is original data, `u'` is decompressed data):
+* ***Absolute*** error mode can guarantee ***| u - u' |<sub>&infin;</sub> < tol***
+* ***Relative*** error mode can guarantee ***| u - u' |<sub>&infin;</sub> < tol * | u |<sub>&infin;</sub>***
+
+
 ## Using command line interface (CLI)
 * An executable ```MgardXExec``` will be built after building the MGARD-X library.
 * To use the ```MgardXExec``` CLI, here are the options:
@@ -88,9 +100,9 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 
 	
 ## For using both the high-level APIs and low-level API
-* **Include the header file.** MGARD-X APIs are included in both ```mgard/compress.hpp``` and ```mgard/compress_x.hpp```.
-     + Use ```mgard/compress.hpp``` or ```mgard/compress_x.hpp``` if the user programs are to be compiled with ***non-CUDA*** compilers.
-     + Use ```mgard/compress_x.hpp``` if the user programs are to be compiled with ***CUDA*** compilers.
+* **Include the header file.**
+     + Use ```mgard/compress_x.hpp``` for ***high-level*** compression/decompression APIs
+     + Use ```mgard/compress_x_lowlevel.hpp``` for ***low-level*** compression/decompression APIs
 * **Configure using ```mgard_x::Config```** Both high-level APIs and low-level APIs have an optional parameter for users to configure the compression/decomrpession process via ```mgard_x::Config``` class. To configure, create a ```mgard_x::Config``` object and configure its fields:
   + ```Config.dev_type```: sepcifying the processor for compression/decompression:
     + ```mgard_x::device_type::Auto```: Auto detect the best processor (***Default***)
@@ -122,6 +134,8 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
   + ```[In] compressed_data:``` Compressed data.
   + ```[In] compressed_size:``` Size of comrpessed data.
   + ```[Out] decompressed_data:``` Decompressed data.
+  + ```[Out][Optional] shape:``` Shape of the decompressed data.
+  + ```[Out][Optional] data_type:``` Data type of the decompressed data.
   + ```[In][Optional] config:``` For configuring the decompression process (optional).
   + ```[in] output_pre_allocated:``` Indicate whether or not the output buffer is pre-allocated. If not, MGARD will allocate the output buffer.
 
@@ -146,50 +160,26 @@ An object ```mgard_x::Hierarchy``` needs to be created and initialized. This ini
  
 * **Step 3: Invoke compression/decompression.**:
   	+ For ***compression***: ```
-			mgard_x::Array<1, unsigned char, Device_type> mgard_x::compress(mgard_x::Hierarchy <N_dims, D_type, Device_type> &hierarchy, mgard_x::Array<N_dims, D_type, Device_type> in_array, mgard_x::error_bound_type type, D_type tol, D_type s)```
-     	- ```[In] in_array ```: Input data to be compressed (its value will be altered during compression).
-     	- ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound. 
-	  	- ```[In] tol```: Error bound.
-	  	- ```[In] s```: Smoothness parameter.
-	  	- ```[Return]```: Compressed data.
-  	+ For ***decompression***: ```mgard_x::Array<N_dims, D_type, Device_type> mgard_x::decompress(mgard_x::hierarchy <N_dims, D_type, Device_type> &hierarchy, mgard_x::Array<1, unsigned char, Device_type> compressed_data)```    
+			mgard_x::Array<1, unsigned char, DeviceType> mgard_x::compress(mgard_x::Hierarchy <NumDims, Datatype, DeviceType> &hierarchy, mgard_x::Array<NumDims, Datatype, DeviceType> in_array, mgard_x::error_bound_type type, Datatype tol, Datatype s, Datatype &norm, mgard_x::Config config)```
+     		- ```[In] in_array ```: Input data to be compressed (its value will be altered during compression).
+     		- ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound. 
+		- ```[In] tol```: Error bound.
+		- ```[In] s```: Smoothness parameter.
+		- ```[Out] norm```: Norm of the original data.
+		- ```[In] config```: For configuring compression.
+		- ```[Return]```: Compressed data.
+  	+ For ***decompression***: ```mgard_x::Array<NumDims, Datatype, DeviceType> mgard_x::decompress(mgard_x::hierarchy <NumDims, Datatype, DeviceType> &hierarchy, mgard_x::Array<1, unsigned char, DeviceType> compressed_data, enum mgard_x::error_bound_type type, Datatype tol, Datatype s, Datatype norm, mgard_x::Config config)```    
   		- ```[In] compressed_data ```: Compressed data.
-  		- ```[Return]```: Decompressed data.
+  		- ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound. 
+		- ```[In] tol```: Error bound.
+		- ```[In] s```: Smoothness parameter.
+		- ```[Out] norm```: Norm of the original data.
+		- ```[In] config```: For configuring decomrpession.
+		- ```[Return]```: Decompressed data.
 	
+## Example Code
+* High-level APIs example code can be found in [here][high-level-example].
+* Low-level APIs example code can be found in [here][low-level-example].
 
-## A simple example
-The following code shows how to compress/decompress a 3D dataset with the low-level APIs. 
-
-		#include <vector>
-		#include <iostream>
-		#include "mgard/compress_x.hpp"
-		int main() 
-		{
-		  mgard_x::SIZE n1 = 10;
-		  mgard_x::SIZE n2 = 20;
-		  mgard_x::SIZE n3 = 30;
-		
-		  //prepare 
-		  std::cout << "Preparing data...";
-		  double * in_array_cpu;
-		  //... load data into in_array_cpu
-		  std::vector<mgard_x::SIZE> shape{ n1, n2, n3 };
-		  mgard_x::Hierarchy <3, double, mgard_x::CUDA> hierarchy(shape);
-		  mgard_x::Array<3, double, mgard_x::CUDA> in_array(shape);
-		  in_array.load(in_array_cpu);
-		  std::cout << "Done\n";
-		
-		  std::cout << "Compressing with MGARD-X...";
-		  double tol = 0.01, s = 0;
-		  mgard_x::Array<1, unsigned char, mgard_x::CUDA> compressed_array = mgard_x::compress(hierarchy, in_array, mgard_x::error_bound_type::REL, tol, s);
-		  mgard_x::SIZE compressed_size = compressed_array.shape()[0]; //compressed size in number of bytes.          
-		  unsigned char * compressed_array_cpu = compressed_array.hostCopy();
-		  std::cout << "Done\n";
-		
-		  std::cout << "Decompressing with MGARD-X...";
-		  // decompression
-		  mgard_x::Array<3, double, mgard_x::CUDA> decompressed_array = mgard_x::decompress(hierarchy, compressed_array);
-		  double * decompressed_array_cpu = decompressed_array.hostCopy();
-		  std::cout << "Done\n";
-		}
-
+[high-level-example]:../examples/mgard-x/HighLevelAPIs
+[low-level-example]:../examples/mgard-x/LowLevelAPIs
