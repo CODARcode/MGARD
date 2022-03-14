@@ -272,8 +272,8 @@ void decompress(const void *compressed_data, size_t compressed_size,
 }
 
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type& dtype, 
-                std::vector<mgard_x::SIZE>& shape, Config config,
+                void *&decompressed_data, 
+                std::vector<mgard_x::SIZE>& shape, data_type& dtype, Config config,
                 bool output_pre_allocated) {
 
   enum device_type dev_type = config.dev_type;
@@ -311,8 +311,8 @@ void decompress(const void *compressed_data, size_t compressed_size,
 }
 
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type& dtype, 
-                std::vector<mgard_x::SIZE>& shape,
+                void *&decompressed_data, 
+                std::vector<mgard_x::SIZE>& shape, data_type& dtype, 
                 bool output_pre_allocated) {
 
   enum device_type dev_type = auto_detect_device();

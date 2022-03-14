@@ -374,15 +374,9 @@ int launch_decompress(const char *input_file, const char *output_file,
   size_t compressed_size = readfile(input_file, compressed_data);
   std::vector<mgard_x::SIZE> shape;
   mgard_x::data_type dtype;
-
-  size_t original_size = 1;
-  for (mgard_x::DIM i = 0; i < shape.size(); i++) {
-    original_size *= shape[i];
-  }
-
   void *decompressed_data;
 
-  mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
+  mgard_x::decompress(compressed_data, compressed_size, decompressed_data, shape, dtype,
                       config, false);
 
   int elem_size = 0;
@@ -391,6 +385,12 @@ int launch_decompress(const char *input_file, const char *output_file,
   } else if (dtype == mgard_x::data_type::Float) {
     elem_size = 4;
   }
+
+  size_t original_size = 1;
+  for (mgard_x::DIM i = 0; i < shape.size(); i++) {
+    original_size *= shape[i];
+  }
+
   writefile(output_file, original_size * elem_size, decompressed_data);
 
   delete[] compressed_data;

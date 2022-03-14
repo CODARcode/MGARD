@@ -17,29 +17,35 @@ namespace mgard_x {
 
 //! Compress a function on an N-D tensor product grid
 //!
-//!\param[in] hierarchy Hierarchy type for storing precomputed variable to
-//! help speed up compression.
+//!\param[in] hierarchy Hierarchy type for storing pre-computed hierarchy information
 //!\param[in] in_array Dataset to be compressed.
 //!\param[in] type Error bound type: REL or ABS.
-//!\param[in] tol Relative error tolerance.
-//!\param[in] s Smoothness parameter to use in compressing the function.
+//!\param[in] tol Error tolerance.
+//!\param[in] s Smoothness parameter.
+//!\param[out] norm Norm of the original data.
+//!\param[in] config Configuring the compression process
 //!
 //!\return Compressed dataset.
-template <uint32_t D, typename T, typename DeviceType>
+template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType>
 compress(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &in_array, enum error_bound_type type, T tol,
-         T s);
+         T s, T &norm, Config config);
 
 //! Decompress a function on an N-D tensor product grid
 //!
-//!\param[in] hierarchy Hierarchy type for storing precomputed variable to
-//! help speed up decompression.
-//!\param[in] compressed_array Compressed dataset.
+//!\param[in] hierarchy Hierarchy type for storing pre-computed hierarchy information.
+//!\param[in] in_array Compressed dataset.
+//!\param[in] type Error bound type: REL or ABS.
+//!\param[in] tol Error tolerance.
+//!\param[in] s Smoothness parameter.
+//!\param[in] norm Norm of the original data.
+//!\param[in] config Configuring the decompression process
 //!\return Decompressed dataset.
-template <uint32_t D, typename T, typename DeviceType>
+template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType>
 decompress(Hierarchy<D, T, DeviceType> &hierarchy,
-           Array<1, unsigned char, DeviceType> &compressed_array);
+           Array<1, unsigned char, DeviceType> &compressed_array,
+           enum error_bound_type type, T tol, T s, T norm, Config config);
 
 }
