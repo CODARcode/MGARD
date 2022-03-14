@@ -101,8 +101,8 @@ int main(int argc, char **argv) {
     // auto interleaver = mgard_x::MDR::SFCInterleaver<T>();
     // auto interleaver = mgard_x::MDR::BlockedInterleaver<T>();
 
-    // auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error, DeviceType>();
-    auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<T, T_stream, T_error, DeviceType>();
+    auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error, DeviceType>();
+    // auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<T, T_stream, T_error, DeviceType>();
 
     auto compressor = mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();
     // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
