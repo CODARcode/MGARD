@@ -5,17 +5,12 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
-
-// #include "mgard/mgard-x/Hierarchy.h"
-// #include "mgard/mgard-x/RuntimeX/RuntimeX.h"
-// #include "mgard/mgard-x/MDR/Refactor/Refactor.hpp"
-#include "mgard/compress_x_mdr.hpp"
+#include "mgard/mdr_x.hpp"
 using namespace std;
 
 template <class T, class Refactor>
 void evaluate(const vector<T> &data, const vector<mgard_x::SIZE> &dims,
               int target_level, int num_bitplanes, Refactor &refactor) {
-  printf("evaluate\n");
   struct timespec start, end;
   cout << "Start refactoring" << endl;
   clock_gettime(CLOCK_REALTIME, &start);
@@ -108,7 +103,8 @@ int main(int argc, char **argv) {
     // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
     // auto compressor = mgard_x::MDR::NullLevelCompressor();
 
-    auto collector = mgard_x::MDR::SquaredErrorCollector<T>();
+    // auto collector = mgard_x::MDR::SquaredErrorCollector<T>();
+    auto collector = mgard_x::MDR::MaxErrorCollector<T>();
 
     auto writer = mgard_x::MDR::ConcatLevelFileWriter(metadata_file, files);
     // auto writer = mgard_x::MDR::HPSSFileWriter(metadata_file, files, 2048,

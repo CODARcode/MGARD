@@ -61,6 +61,7 @@ template <DIM D, typename T, int R, int C, int F,
           OPTION Direction, typename DeviceType>
 class DirectInterleaverFunctor : public Functor<DeviceType> {
 public:
+  MGARDX_CONT DirectInterleaverFunctor() {}
   MGARDX_CONT
   DirectInterleaverFunctor(
       SubArray<1, SIZE, DeviceType> ranges,
@@ -99,20 +100,20 @@ public:
       ranges_sm[i] = *ranges(i);
     }
 
-    __syncthreads();
-    if (debug) {
-      printf("num_levels = %u\n", num_levels);
-      printf("l_target = %u\n", l_target);
-      for (int d = 0; d < D; d++) {
-        printf("ranges_sm[d = %d]: ", d);
-        for (int l = 0; l < num_levels + 1; l++) {
-          printf("%u ", ranges_sm[d * (l_target + 2) + l]);
-        }
-        printf("\n");
-      }
-    }
+    // __syncthreads();
+    // if (debug) {
+    //   printf("num_levels = %u\n", num_levels);
+    //   printf("l_target = %u\n", l_target);
+    //   for (int d = 0; d < D; d++) {
+    //     printf("ranges_sm[d = %d]: ", d);
+    //     for (int l = 0; l < num_levels + 1; l++) {
+    //       printf("%u ", ranges_sm[d * (l_target + 2) + l]);
+    //     }
+    //     printf("\n");
+    //   }
+    // }
 
-    __syncthreads();
+    // __syncthreads();
   }
 
   MGARDX_EXEC void Operation2() {
@@ -160,13 +161,13 @@ public:
               (idx[d] < ranges_sm[(l_target + 2) * d + l + 1]);
           l_bit[d] += bit << l;
         }
-        level = max((int)level, __ffsll(l_bit[d]));
+        level = Math<DeviceType>::Max((int)level, Math<DeviceType>::ffsll(l_bit[d]));
       }
 
       // distinguish different regions
       SIZE curr_region = 0;
       for (DIM d = 0; d < D; d++) {
-        SIZE bit = !(level == __ffsll(l_bit[d]));
+        SIZE bit = !(level == Math<DeviceType>::ffsll(l_bit[d]));
         curr_region += bit << (D - 1 - d);
       }
 
@@ -269,7 +270,6 @@ public:
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
     size += D * (l_target + 2) * sizeof(SIZE);
-    printf("sm_size: %llu\n", size);
     return size;
   }
 
@@ -315,13 +315,11 @@ public:
     gridz = ceil((float)total_thread_z / tbz);
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
-    printf("DirectInterleaverKernel config: %u %u %u %u %u %u\n", tbx, tby, tbz,
-           gridx, gridy, gridz);
     for (int d = 3; d < D; d++) {
       gridx *= shape.dataHost()[d];
     }
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                         queue_idx);
+                         queue_idx, "DirectInterleaverKernel");
   }
 
   MGARDX_CONT
@@ -410,8 +408,6 @@ public:
         SubArray<1, SIZE, DeviceType>(hierarchy.ranges),
         decomposed_data, levels_decomposed_data_device, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-
-    PrintSubarray("hierarchy.ranges", SubArray(hierarchy.ranges));
   }
   void print() const { std::cout << "Direct interleaver" << std::endl; }
 

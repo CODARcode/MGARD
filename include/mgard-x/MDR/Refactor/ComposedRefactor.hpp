@@ -202,7 +202,6 @@ public:
       : hierarchy(hierarchy), decomposer(decomposer), interleaver(interleaver),
         encoder(encoder), compressor(compressor), collector(collector),
         writer(writer) {
-    printf("ComposedRefactor\n");
   }
 
   void refactor(T_data const *data_, const std::vector<SIZE> &dims,
@@ -213,7 +212,7 @@ public:
     data_array = Array<D, T_data, DeviceType>(hierarchy.shape_org);
     data_array.load(data_);
     timer.end();
-    timer.print("Copy to GPU");
+    // timer.print("Copy to GPU");
 
     // PrintSubarray("data_array", SubArray(data_array));
 
@@ -275,7 +274,7 @@ public:
 private:
   bool refactor(SIZE target_level, SIZE num_bitplanes,
                 int queue_idx) {
-    printf("target_level = %u\n", target_level);
+    // printf("target_level = %u\n", target_level);
     // std::cout << "min: " << log2(*min_element(dimensions.begin(),
     // dimensions.end())) << std::endl; uint8_t max_level =
     // log2(*min_element(dimensions.begin(), dimensions.end())) - 1;
@@ -301,7 +300,7 @@ private:
 
     timer.start();
 
-    printf("level_num_elems: ");
+    // printf("level_num_elems: ");
     std::vector<SIZE> level_num_elems(target_level + 1);
     SIZE prev_num_elems = 0;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
@@ -311,9 +310,9 @@ private:
       }
       level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
       prev_num_elems = curr_num_elems;
-      printf("%u ", level_num_elems[level_idx]);
+      // printf("%u ", level_num_elems[level_idx]);
     }
-    printf("\n");
+    // printf("\n");
 
     Array<1, T_data, DeviceType> *levels_array = new Array<1, T_data, DeviceType>[target_level + 1];
     SubArray<1, T_data, DeviceType> *levels_data = new SubArray<1, T_data, DeviceType>[target_level + 1];
@@ -322,7 +321,7 @@ private:
       levels_data[level_idx] = SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
     }
 
-    printf("done create levels_data\n");
+    // printf("done create levels_data\n");
 
     interleaver.interleave(data, levels_data, target_level + 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -344,7 +343,7 @@ private:
       T_data level_max_error = *(result_array.hostCopy());
       int level_exp = 0;
       frexp(level_max_error, &level_exp);
-      printf("level: %d, level_exp: %d\n", level_idx, level_exp);
+      // printf("level: %d, level_exp: %d\n", level_idx, level_exp);
       level_error_bounds.push_back(level_max_error);
       timer.end();
       timer.print("level_max_error");
@@ -366,7 +365,7 @@ private:
       // level_sqr_errors.push_back(level_errors_array);
 
       std::vector<T_error> squared_error;
-      T_error *level_errors_host = level_errors_array.hostCopy();
+      T_error *level_errors_host = level_errors_array.hostCopy(true);
       for (int i = 0; i < num_bitplanes + 1; i++) {
         squared_error.push_back(level_errors_host[i]);
       }
@@ -401,7 +400,7 @@ private:
       }
     }
     timer.end();
-    timer.print("Copy to CPU");
+    // timer.print("Copy to CPU");
 
     return true;
   }

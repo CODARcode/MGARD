@@ -5,11 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
-
-// #include "mgard/mgard-x/Hierarchy.h"
-// #include "mgard/mgard-x/RuntimeX/RuntimeX.h"
-// #include "mgard/mgard-x/MDR/Refactor/Refactor.hpp"
-#include "mgard/compress_x_mdr.hpp"
+#include "mgard/mdr_x.hpp"
 using namespace std;
 
 template <class T, class Refactor>
@@ -101,8 +97,8 @@ int main(int argc, char **argv) {
     // auto interleaver = mgard_x::MDR::SFCInterleaver<T>();
     // auto interleaver = mgard_x::MDR::BlockedInterleaver<T>();
 
-    // auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error, DeviceType>();
-    auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<T, T_stream, T_error, DeviceType>();
+    auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error, DeviceType>();
+    // auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<T, T_stream, T_error, DeviceType>();
 
     auto compressor = mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();
     // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
