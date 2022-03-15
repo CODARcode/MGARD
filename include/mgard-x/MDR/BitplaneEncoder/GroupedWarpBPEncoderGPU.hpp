@@ -31,11 +31,7 @@
 // ERROR_COLLECTING_ALGORITHM
 // Warp_Error_Collecting_Serial_Bitplanes_Reduce_Error
 
-namespace mgard_x {
-
-
-
-} // namespace mgard_x
+namespace mgard_x {} // namespace mgard_x
 
 namespace mgard_x {
 namespace MDR {
@@ -115,8 +111,7 @@ public:
     // TB and Warp offsets
     SIZE TB_data_offset =
         FunctorBase<DeviceType>::GetBlockIdX() * NumElemPerTBPerIter;
-    SIZE warp_data_offset =
-       warp_id * NumElemPerGroup * NumGroupsPerWarpPerIter;
+    SIZE warp_data_offset = warp_id * NumElemPerGroup * NumGroupsPerWarpPerIter;
     // Warp local shared memory
     T_fp *sm_warp_local_fix_point = sm_fix_point + warp_data_offset;
     T *sm_warp_local_shifted = sm_shifted + warp_data_offset;
@@ -134,7 +129,7 @@ public:
     SIZE TB_bitplane_offset = FunctorBase<DeviceType>::GetBlockIdX() *
                               NumGroupsPerTBPerIter; // MaxLengthPerTBPerIter;
     SIZE warp_bitplane_offset =
-       warp_id *
+        warp_id *
         NumGroupsPerWarpPerIter; // MaxLengthPerWarpPerIter;//NumGroupsPerWarpPerIter;
     T_bitplane *sm_warp_local_bitplanes = sm_bitplanes + warp_bitplane_offset;
     T_bitplane *sm_warp_local_bitplanes_sign =
@@ -142,7 +137,7 @@ public:
 
     // Error collect
     T_error *sm_warp_local_errors =
-        sm_errors + (NumEncodingBitplanes + 1) *warp_id;
+        sm_errors + (NumEncodingBitplanes + 1) * warp_id;
 
     // WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm,
     //                  DeviceType>
@@ -180,8 +175,7 @@ public:
                                warp_data_offset + group_data_offset;
 
         T cur_data = 0;
-        if (global_data_idx + lane_id < n &&
-            lane_id < NumElemPerGroup) {
+        if (global_data_idx + lane_id < n && lane_id < NumElemPerGroup) {
           cur_data = *v(global_data_idx + lane_id);
         }
         T shifted_data = ldexp(cur_data, (int)NumEncodingBitplanes - (int)exp);
@@ -201,20 +195,27 @@ public:
 
         long long start;
         // if (debug && Iter == 0 && GroupIdx == 0) start = clock64();
-        WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm, sizeof(T_bitplane) * 8, NumEncodingBitplanes,
-                     DeviceType>::Transpose(
-                sm_warp_local_fix_point + group_data_offset, 1,
-                sm_warp_local_bitplanes + group_bitplane_offset,
-                ld_sm_bitplanes, lane_id);
+        WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm,
+                         sizeof(T_bitplane) * 8, NumEncodingBitplanes,
+                         DeviceType>::Transpose(sm_warp_local_fix_point +
+                                                    group_data_offset,
+                                                1,
+                                                sm_warp_local_bitplanes +
+                                                    group_bitplane_offset,
+                                                ld_sm_bitplanes, lane_id);
         //                            sizeof(T_bitplane)*8, num_bitplanes);
         // if (debug && Iter == 0 && GroupIdx == 0) { start = clock64() - start;
         // printf(" METHOD: %d, time: %llu\n", EncodingAlgorithm, start); }
         if (BinaryType == BINARY) {
-          WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm, sizeof(T_bitplane) * 8, 1,
-                     DeviceType>::Transpose(
-              sm_warp_local_signs + group_data_offset, 1,
-              sm_warp_local_bitplanes_sign + group_bitplane_offset,
-              ld_sm_bitplanes_sign, lane_id);
+          WarpBitTranspose<T_fp, T_bitplane, ALIGN_LEFT, EncodingAlgorithm,
+                           sizeof(T_bitplane) * 8, 1,
+                           DeviceType>::Transpose(sm_warp_local_signs +
+                                                      group_data_offset,
+                                                  1,
+                                                  sm_warp_local_bitplanes_sign +
+                                                      group_bitplane_offset,
+                                                  ld_sm_bitplanes_sign,
+                                                  lane_id);
           // NumElemPerGroup, 1);
           // printf("NumGroupsPerTBPerIter + group_bitplane_offset = %u\n",
           // NumGroupsPerTBPerIter + group_bitplane_offset); if (__mywarpid() <
@@ -223,9 +224,11 @@ public:
           // *(sm_warp_local_bitplanes_sign + group_bitplane_offset));
         }
         WarpErrorCollect<T, T_fp, T_sfp, T_error, ErrorColectingAlgorithm,
-                     BinaryType, sizeof(T_bitplane) * 8, NumEncodingBitplanes, DeviceType>::Collect(
-                sm_warp_local_shifted + group_data_offset,
-                sm_warp_local_errors, lane_id);
+                         BinaryType, sizeof(T_bitplane) * 8,
+                         NumEncodingBitplanes,
+                         DeviceType>::Collect(sm_warp_local_shifted +
+                                                  group_data_offset,
+                                              sm_warp_local_errors, lane_id);
       }
 
       // store encoded bitplanes to gloabl memory
@@ -264,7 +267,8 @@ public:
 
       // if (bitplane_idx == 0) printf("error: %f\n", error);
       T_error error_sum;
-      BlockReduce<T_error, NumWarpsPerTB, 1, 1, DeviceType>::Sum(error, error_sum);
+      BlockReduce<T_error, NumWarpsPerTB, 1, 1, DeviceType>::Sum(error,
+                                                                 error_sum);
       if (liearized_idx == 0) {
         error_sum = ldexp(error_sum, 2 * (-(int)NumEncodingBitplanes + exp));
         sm_errors_sum[bitplane_idx] = error_sum;
@@ -451,8 +455,8 @@ public:
     gridx = MGARDX_NUM_SMs;
     // printf("GroupedWarpEncoder config(%u %u %u) (%u %u %u), sm_size: %llu\n",
     // tbx, tby, tbz, gridx, gridy, gridz, sm_size);
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "GroupedWarpEncoder");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "GroupedWarpEncoder");
   }
 
   MGARDX_CONT
@@ -550,8 +554,8 @@ public:
     SIZE reduce_size = MGARDX_NUM_SMs;
     DeviceCollective<DeviceType> deviceReduce;
     for (int i = 0; i < num_bitplanes + 1; i++) {
-      SubArray<1, T_error, DeviceType> curr_errors({reduce_size},
-                                             level_errors_workspace(i, 0));
+      SubArray<1, T_error, DeviceType> curr_errors(
+          {reduce_size}, level_errors_workspace(i, 0));
       SubArray<1, T_error, DeviceType> sum_error({1}, level_errors(i));
       deviceReduce.Sum(reduce_size, curr_errors, sum_error, queue_idx);
     }
@@ -636,8 +640,7 @@ public:
     // TB and Warp offsets
     SIZE TB_data_offset =
         FunctorBase<DeviceType>::GetBlockIdX() * NumElemPerTBPerIter;
-    SIZE warp_data_offset =
-       warp_id * NumElemPerGroup * NumGroupsPerWarpPerIter;
+    SIZE warp_data_offset = warp_id * NumElemPerGroup * NumGroupsPerWarpPerIter;
     // Warp local shared memory
     T_fp *sm_warp_local_fix_point = sm_fix_point + warp_data_offset;
     T_bitplane *sm_warp_local_signs;
@@ -654,7 +657,7 @@ public:
     SIZE TB_bitplane_offset = FunctorBase<DeviceType>::GetBlockIdX() *
                               NumGroupsPerTBPerIter; // MaxLengthPerTBPerIter;
     SIZE warp_bitplane_offset =
-       warp_id *
+        warp_id *
         NumGroupsPerWarpPerIter; // MaxLengthPerWarpPerIter;//NumGroupsPerWarpPerIter;
     T_bitplane *sm_warp_local_bitplanes = sm_bitplanes + warp_bitplane_offset;
     T_bitplane *sm_warp_local_bitplanes_sign =
@@ -698,20 +701,23 @@ public:
         SIZE global_data_idx = iter_data_offset + TB_data_offset +
                                warp_data_offset + group_data_offset;
 
-        WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm, NumDecodingBitplanes, sizeof(T_bitplane) * 8,
-                     DeviceType>::Transpose(
-                sm_warp_local_bitplanes + group_bitplane_offset,
-                ld_sm_bitplanes, sm_warp_local_fix_point + group_data_offset,
-                1, lane_id);
+        WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm,
+                         NumDecodingBitplanes, sizeof(T_bitplane) * 8,
+                         DeviceType>::Transpose(sm_warp_local_bitplanes +
+                                                    group_bitplane_offset,
+                                                ld_sm_bitplanes,
+                                                sm_warp_local_fix_point +
+                                                    group_data_offset,
+                                                1, lane_id);
         // num_bitplanes, sizeof(T_bitplane)*8);
 
         if (BinaryType == BINARY) {
           if (starting_bitplane == 0) {
-            WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm, 1, sizeof(T_bitplane) * 8,
-                     DeviceType>::Transpose(
-                sm_warp_local_bitplanes_sign + group_bitplane_offset,
-                ld_sm_bitplanes_sign, sm_warp_local_signs + group_data_offset,
-                1, lane_id);
+            WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm,
+                             1, sizeof(T_bitplane) * 8, DeviceType>::
+                Transpose(sm_warp_local_bitplanes_sign + group_bitplane_offset,
+                          ld_sm_bitplanes_sign,
+                          sm_warp_local_signs + group_data_offset, 1, lane_id);
             // 1, NumElemPerGroup);
             // if (__mywarpid() < 2 && lane_id == 0) printf("blockx: %llu,
             // sign: %u\n", FunctorBase<DeviceType>::GetBlockIdX(),
@@ -727,16 +733,13 @@ public:
           }
         }
 
-        if (global_data_idx + lane_id < n &&
-            lane_id < NumElemPerGroup) {
-          T_fp fp_data =
-              sm_warp_local_fix_point[group_data_offset + lane_id];
+        if (global_data_idx + lane_id < n && lane_id < NumElemPerGroup) {
+          T_fp fp_data = sm_warp_local_fix_point[group_data_offset + lane_id];
           if (BinaryType == BINARY) {
             T cur_data = ldexp((T)fp_data, -ending_bitplane + exp);
             *v(global_data_idx + lane_id) =
-                sm_warp_local_signs[group_data_offset + lane_id]
-                    ? -cur_data
-                    : cur_data;
+                sm_warp_local_signs[group_data_offset + lane_id] ? -cur_data
+                                                                 : cur_data;
             if (starting_bitplane == 0) {
               *signs(global_data_idx + lane_id) =
                   sm_warp_local_signs[group_data_offset + lane_id];
@@ -747,8 +750,8 @@ public:
             // }
 
           } else if (BinaryType == NEGABINARY) {
-            T cur_data =
-                ldexp((T)Math<DeviceType>::negabinary2binary(fp_data), -ending_bitplane + exp);
+            T cur_data = ldexp((T)Math<DeviceType>::negabinary2binary(fp_data),
+                               -ending_bitplane + exp);
             *v(global_data_idx + lane_id) =
                 ending_bitplane % 2 != 0 ? -cur_data : cur_data;
           }
@@ -886,8 +889,8 @@ public:
     gridx = MGARDX_NUM_SMs;
     // printf("GroupedWarpDecoder config(%u %u %u) (%u %u %u), sm_size: %llu\n",
     // tbx, tby, tbz, gridx, gridy, gridz, sm_size);
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "GroupedWarpDecoder");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "GroupedWarpDecoder");
   }
 
   MGARDX_CONT
@@ -983,11 +986,11 @@ public:
 
 // general bitplane encoder that encodes data by block using T_stream type
 // buffer
-template <typename T_data,
-          typename T_bitplane, typename T_error, typename DeviceType>
+template <typename T_data, typename T_bitplane, typename T_error,
+          typename DeviceType>
 class GroupedWarpBPEncoder
-    : public concepts::BitplaneEncoderInterface<T_data,
-                                                T_bitplane, T_error, DeviceType> {
+    : public concepts::BitplaneEncoderInterface<T_data, T_bitplane, T_error,
+                                                DeviceType> {
 public:
   GroupedWarpBPEncoder() {
     static_assert(std::is_floating_point<T_data>::value,
@@ -1006,16 +1009,15 @@ public:
          SubArray<1, T_error, DeviceType> level_errors,
          std::vector<SIZE> &streams_sizes, int queue_idx) const {
 
-    MDR::GroupedWarpEncoder<
-        T_data, T_bitplane, T_error, NUM_GROUPS_PER_WARP_PER_ITER,
-        NUM_WARP_PER_TB, BINARY_TYPE, DATA_ENCODING_ALGORITHM,
-        ERROR_COLLECTING_ALGORITHM, DeviceType>
+    MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error,
+                            NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB,
+                            BINARY_TYPE, DATA_ENCODING_ALGORITHM,
+                            ERROR_COLLECTING_ALGORITHM, DeviceType>
         encoder;
 
     Array<2, T_error, DeviceType> level_errors_work_array(
         {num_bitplanes + 1, MGARDX_NUM_SMs});
-    SubArray<2, T_error, DeviceType> level_errors_work(
-        level_errors_work_array);
+    SubArray<2, T_error, DeviceType> level_errors_work(level_errors_work_array);
 
     Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
         {num_bitplanes, encoder.MaxBitplaneLength(n)});
@@ -1034,15 +1036,15 @@ public:
 
   Array<1, T_data, DeviceType>
   decode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-         int level, int queue_idx) {}
+         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
+         int queue_idx) {}
 
   // decode the data and record necessary information for progressiveness
-  Array<1, T_data, DeviceType> progressive_decode(
-      SIZE n, SIZE starting_bitplane,
-      SIZE num_bitplanes, int32_t exp,
-      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-      int level, int queue_idx) {
+  Array<1, T_data, DeviceType>
+  progressive_decode(SIZE n, SIZE starting_bitplane, SIZE num_bitplanes,
+                     int32_t exp,
+                     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                     int level, int queue_idx) {
 
     // SIZE num_batches_per_TB = 2;
     // const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 *
@@ -1053,18 +1055,16 @@ public:
 
     // const SIZE NumGroupsPerWarpPerIter = 2;
     // const SIZE NumWarpsPerTB = 16;
-    MDR::GroupedWarpDecoder<
-        T_data, T_bitplane, NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB,
-        BINARY_TYPE, DATA_DECODING_ALGORITHM, DeviceType>
+    MDR::GroupedWarpDecoder<T_data, T_bitplane, NUM_GROUPS_PER_WARP_PER_ITER,
+                            NUM_WARP_PER_TB, BINARY_TYPE,
+                            DATA_DECODING_ALGORITHM, DeviceType>
         decoder;
 
     if (level_signs.size() == level) {
-      level_signs.push_back(
-          Array<1, bool, DeviceType>({(SIZE)n}));
+      level_signs.push_back(Array<1, bool, DeviceType>({(SIZE)n}));
     }
 
-    SubArray<1, bool, DeviceType> signs_subarray(
-        level_signs[level]);
+    SubArray<1, bool, DeviceType> signs_subarray(level_signs[level]);
 
     Array<1, T_data, DeviceType> v_array({(SIZE)n});
     SubArray<1, T_data, DeviceType> v(v_array);
@@ -1080,10 +1080,10 @@ public:
   }
 
   SIZE buffer_size(SIZE n) const {
-    MDR::GroupedWarpEncoder<
-        T_data, T_bitplane, T_error, NUM_GROUPS_PER_WARP_PER_ITER,
-        NUM_WARP_PER_TB, BINARY_TYPE, DATA_ENCODING_ALGORITHM,
-        ERROR_COLLECTING_ALGORITHM, DeviceType>
+    MDR::GroupedWarpEncoder<T_data, T_bitplane, T_error,
+                            NUM_GROUPS_PER_WARP_PER_ITER, NUM_WARP_PER_TB,
+                            BINARY_TYPE, DATA_ENCODING_ALGORITHM,
+                            ERROR_COLLECTING_ALGORITHM, DeviceType>
         encoder;
     return encoder.MaxBitplaneLength(n);
   }

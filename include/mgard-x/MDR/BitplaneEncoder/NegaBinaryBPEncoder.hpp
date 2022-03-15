@@ -6,8 +6,7 @@ namespace MDR {
 // general bitplane encoder that encodes data by block using T_stream type
 // buffer
 template <typename T_data, typename T_stream>
-class NegaBinaryBPEncoder
-    : public concepts::BitplaneEncoderInterface<T_data> {
+class NegaBinaryBPEncoder : public concepts::BitplaneEncoderInterface<T_data> {
 public:
   NegaBinaryBPEncoder() {
     std::cout << "NegaBinaryBPEncoder\n";
@@ -297,8 +296,9 @@ private:
     }
   }
   template <class T_int>
-  inline void decode_block(std::vector<T_stream const *> &streams_pos, uint32_t n,
-                           uint8_t num_bitplanes, T_int *data) const {
+  inline void decode_block(std::vector<T_stream const *> &streams_pos,
+                           uint32_t n, uint8_t num_bitplanes,
+                           T_int *data) const {
     for (int k = num_bitplanes - 1; k >= 0; k--) {
       T_stream bitplane_index = num_bitplanes - 1 - k;
       T_stream bitplane_value = *(streams_pos[bitplane_index]++);
@@ -307,7 +307,6 @@ private:
       }
     }
   }
-
 };
 } // namespace MDR
 #endif

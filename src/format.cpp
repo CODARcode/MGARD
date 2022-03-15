@@ -426,7 +426,8 @@ ErrorControlParameters read_error_control(const pb::Header &header) {
 }
 
 void check_decomposition_parameters(const pb::Header &header) {
-  const pb::FunctionDecomposition &function_decomposition = header.function_decomposition();
+  const pb::FunctionDecomposition &function_decomposition =
+      header.function_decomposition();
 
   switch (function_decomposition.transform()) {
   case pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS:
@@ -499,8 +500,9 @@ pb::Encoding::Compressor read_encoding_compressor(const pb::Header &header) {
   case pb::Encoding::X_HUFFMAN:
   case pb::Encoding::X_HUFFMAN_LZ4:
   case pb::Encoding::X_HUFFMAN_ZSTD:
-    throw std::runtime_error("X_HUFFMAN, X_HUFFMAN_LZ4, and X_HUFFMAN_ZSTD compressors not "
-                             "yet supported in CPU version");
+    throw std::runtime_error(
+        "X_HUFFMAN, X_HUFFMAN_LZ4, and X_HUFFMAN_ZSTD compressors not "
+        "yet supported in CPU version");
   case pb::Encoding::NOOP:
   case pb::Encoding::CPU_HUFFMAN_ZLIB:
     break;

@@ -376,8 +376,8 @@ int launch_decompress(const char *input_file, const char *output_file,
   mgard_x::data_type dtype;
   void *decompressed_data;
 
-  mgard_x::decompress(compressed_data, compressed_size, decompressed_data, shape, dtype,
-                      config, false);
+  mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
+                      shape, dtype, config, false);
 
   int elem_size = 0;
   if (dtype == mgard_x::data_type::Double) {

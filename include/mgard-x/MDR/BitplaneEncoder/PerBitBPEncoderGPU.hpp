@@ -363,12 +363,13 @@ public:
     // get level error
     using T_reduce = double;
     SIZE reduce_size = (n - 1) / B + 1;
-    
+
     for (int i = 0; i < num_bitplanes + 1; i++) {
       SubArray<1, T_reduce, DeviceType> curr_errors(
           {reduce_size}, level_errors_workspace(i, 0));
       SubArray<1, T_reduce, DeviceType> sum_error({1}, level_errors(i));
-      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, queue_idx);
+      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error,
+                                        queue_idx);
     }
 
     // PrintSubarray("level_errors", level_errors);
@@ -742,10 +743,9 @@ private:
 #define PER_BIT_BLOCK_SIZE 1
 // per bit bitplane encoder that encodes data by bit using T_stream type buffer
 template <typename T_data, typename T_stream>
-class PerBitBPEncoderGPU
-    : public concepts::BitplaneEncoderInterface<T_data> {
+class PerBitBPEncoderGPU : public concepts::BitplaneEncoderInterface<T_data> {
 public:
-  PerBitBPEncoderGPU(){
+  PerBitBPEncoderGPU() {
     std::cout << "PerBitBPEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "PerBitBPEncoderGPU: input data must be floating points.");

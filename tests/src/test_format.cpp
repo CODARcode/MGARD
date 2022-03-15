@@ -316,14 +316,17 @@ TEST_CASE("reading error control parameters", "[format]") {
 
 TEST_CASE("checking decomposition parameters", "[format]") {
   mgard::pb::Header header;
-  mgard::pb::FunctionDecomposition &d = *header.mutable_function_decomposition();
+  mgard::pb::FunctionDecomposition &d =
+      *header.mutable_function_decomposition();
   d.set_transform(mgard::pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
   {
-    d.set_hierarchy(mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES);
+    d.set_hierarchy(
+        mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES);
     REQUIRE_THROWS(mgard::check_decomposition_parameters(header));
   }
   {
-    d.set_hierarchy(mgard::pb::FunctionDecomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES);
+    d.set_hierarchy(
+        mgard::pb::FunctionDecomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES);
     REQUIRE_THROWS(mgard::check_decomposition_parameters(header));
   }
   {

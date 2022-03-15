@@ -43,8 +43,8 @@ public:
                  uint32_t target_level) const {
     MGARD::Decomposer<T> decomposer;
     std::vector<size_t> dims(dimensions.size());
-    for(int i=0; i<dims.size(); i++){
-        dims[i] = dimensions[i];
+    for (int i = 0; i < dims.size(); i++) {
+      dims[i] = dimensions[i];
     }
     decomposer.decompose(data, dims, target_level, true);
   }
@@ -52,8 +52,8 @@ public:
                  uint32_t target_level) const {
     MGARD::Recomposer<T> recomposer;
     std::vector<size_t> dims(dimensions.size());
-    for(int i=0; i<dims.size(); i++){
-        dims[i] = dimensions[i];
+    for (int i = 0; i < dims.size(); i++) {
+      dims[i] = dimensions[i];
     }
     recomposer.recompose(data, dims, target_level, true);
   }
@@ -70,13 +70,14 @@ template <DIM D, typename T, typename DeviceType>
 class MGARDOrthoganalDecomposer
     : public concepts::DecomposerInterface<D, T, DeviceType> {
 public:
-  MGARDOrthoganalDecomposer(Hierarchy<D, T, DeviceType> &hierarchy) : hierarchy(hierarchy) {}
-  void decompose(SubArray<D, T, DeviceType> v,
-                 SIZE target_level, int queue_idx) const {
+  MGARDOrthoganalDecomposer(Hierarchy<D, T, DeviceType> &hierarchy)
+      : hierarchy(hierarchy) {}
+  void decompose(SubArray<D, T, DeviceType> v, SIZE target_level,
+                 int queue_idx) const {
     mgard_x::decompose<D, T, DeviceType>(hierarchy, v, target_level, queue_idx);
   }
-  void recompose(SubArray<D, T, DeviceType> v,
-                 SIZE target_level, int queue_idx) const {
+  void recompose(SubArray<D, T, DeviceType> v, SIZE target_level,
+                 int queue_idx) const {
     mgard_x::recompose<D, T, DeviceType>(hierarchy, v, target_level, queue_idx);
   }
   void print() const {

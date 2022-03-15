@@ -5,11 +5,10 @@
  * Date: December 1, 2021
  */
 
-
-#include "mgard-x/RuntimeX/RuntimeX.h"
-#include "mgard-x/RuntimeX/DataStructures/Array.hpp"
-#include "mgard-x/Hierarchy.hpp"
 #include "mgard-x/CompressionWorkflow.hpp"
+#include "mgard-x/Hierarchy.hpp"
+#include "mgard-x/RuntimeX/DataStructures/Array.hpp"
+#include "mgard-x/RuntimeX/RuntimeX.h"
 
 namespace mgard_x {
 //!\file
@@ -17,7 +16,8 @@ namespace mgard_x {
 
 //! Compress a function on an N-D tensor product grid
 //!
-//!\param[in] hierarchy Hierarchy type for storing pre-computed hierarchy information
+//!\param[in] hierarchy Hierarchy type for storing pre-computed hierarchy
+//! information
 //!\param[in] in_array Dataset to be compressed.
 //!\param[in] type Error bound type: REL or ABS.
 //!\param[in] tol Error tolerance.
@@ -34,13 +34,15 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
 //! Decompress a function on an N-D tensor product grid
 //!
-//!\param[in] hierarchy Hierarchy type for storing pre-computed hierarchy information.
-//!\param[in] in_array Compressed dataset.
+//!\param[in] hierarchy Hierarchy type for storing pre-computed hierarchy
+//! information.
+//!\param[in] compressed_array Compressed dataset.
 //!\param[in] type Error bound type: REL or ABS.
 //!\param[in] tol Error tolerance.
 //!\param[in] s Smoothness parameter.
 //!\param[in] norm Norm of the original data.
 //!\param[in] config Configuring the decompression process
+//!
 //!\return Decompressed dataset.
 template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType>
@@ -48,4 +50,4 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
            Array<1, unsigned char, DeviceType> &compressed_array,
            enum error_bound_type type, T tol, T s, T norm, Config config);
 
-}
+} // namespace mgard_x

@@ -57,15 +57,14 @@ void decompress(const void *compressed_data, size_t compressed_size,
 
 template <typename DeviceType>
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type& dtype, 
-                std::vector<mgard_x::SIZE>& shape, Config config,
+                void *&decompressed_data, data_type &dtype,
+                std::vector<mgard_x::SIZE> &shape, Config config,
                 bool output_pre_allocated);
 
 template <typename DeviceType>
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type& dtype, 
-                std::vector<mgard_x::SIZE>& shape, bool output_pre_allocated);
-
+                void *&decompressed_data, data_type &dtype,
+                std::vector<mgard_x::SIZE> &shape, bool output_pre_allocated);
 
 template <typename DeviceType> void BeginAutoTuning();
 
