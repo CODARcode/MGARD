@@ -25,26 +25,22 @@ public:
 } // namespace concepts
 } // namespace MDR
 
-
 namespace mgard_x {
 namespace MDR {
 namespace concepts {
 
 // level data interleaver: interleave level coefficients
-template <DIM D, typename T, typename DeviceType>
-class InterleaverInterface {
+template <DIM D, typename T, typename DeviceType> class InterleaverInterface {
 public:
   virtual ~InterleaverInterface() = default;
 
-  virtual void
-  interleave(SubArray<D, T, DeviceType> decomposed_data,
-             SubArray<1, T, DeviceType> *levels_decomposed_data,
-             SIZE num_levels, int queue_idx) const = 0;
+  virtual void interleave(SubArray<D, T, DeviceType> decomposed_data,
+                          SubArray<1, T, DeviceType> *levels_decomposed_data,
+                          SIZE num_levels, int queue_idx) const = 0;
 
-  virtual void
-  reposition(SubArray<1, T, DeviceType> *levels_decomposed_data,
-             SubArray<D, T, DeviceType> decomposed_data,
-             SIZE num_levels, int queue_idx) const = 0;
+  virtual void reposition(SubArray<1, T, DeviceType> *levels_decomposed_data,
+                          SubArray<D, T, DeviceType> decomposed_data,
+                          SIZE num_levels, int queue_idx) const = 0;
 
   virtual void print() const = 0;
 };

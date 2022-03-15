@@ -897,7 +897,6 @@ public:
   static bool ReduceMemoryFootprint;
 };
 
-
 #define ALIGN_LEFT 0  // for encoding
 #define ALIGN_RIGHT 1 // for decoding
 
@@ -944,7 +943,8 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
                          METHOD, Serial> {
 
   MGARDX_EXEC
-  static void Serial_All(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX, SIZE IdY) {
+  static void Serial_All(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX,
+                         SIZE IdY) {
     if (IdX == 0 && IdY == 0) {
       // printf("add-in: %llu %u\n", v, v[0]);
       // for (int i = 0; i < b; i++) {
@@ -978,7 +978,8 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
   }
 
   MGARDX_EXEC
-  static void Transpose(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX, SIZE IdY) {
+  static void Transpose(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX,
+                        SIZE IdY) {
     Serial_All(v, tv, b, B, IdX, IdY);
   }
 };
@@ -986,12 +987,12 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
 template <typename T, typename T_fp, typename T_sfp, typename T_error,
           SIZE nblockx, SIZE nblocky, SIZE nblockz, OPTION METHOD,
           OPTION BinaryType>
-struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, METHOD,
-                    BinaryType, Serial> {
+struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
+                         METHOD, BinaryType, Serial> {
 
   MGARDX_EXEC
   static void Serial_All(T *v, T_error *temp, T_error *errors, SIZE num_elems,
-                  SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
+                         SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
     if (IdX == 0 && IdY == 0) {
       for (SIZE elem_idx = 0; elem_idx < num_elems; elem_idx++) {
         T data = v[elem_idx];
@@ -1011,7 +1012,8 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, MET
           if (BinaryType == BINARY) {
             diff = (T_error)(fp_data & mask) + mantissa;
           } else if (BinaryType == NEGABINARY) {
-            diff = (T_error)Math<Serial>::negabinary2binary(ngb_data & mask) + mantissa;
+            diff = (T_error)Math<Serial>::negabinary2binary(ngb_data & mask) +
+                   mantissa;
           }
           errors[num_bitplanes - bitplane_idx] += diff * diff;
           // if (blockIdx.x == 0 && num_bitplanes-bitplane_idx == 2) {
@@ -1025,7 +1027,7 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, MET
 
   MGARDX_EXEC
   static void Collect(T *v, T_error *temp, T_error *errors, SIZE num_elems,
-               SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
+                      SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
     Serial_All(v, temp, errors, num_elems, num_bitplanes, IdX, IdY);
   }
 };

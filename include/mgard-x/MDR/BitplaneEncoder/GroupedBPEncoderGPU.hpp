@@ -166,28 +166,35 @@ public:
     //                   EncodingAlgorithm, DeviceType>
     //     blockBitTranspose;
     for (SIZE batch_idx = 0; batch_idx < num_batches_per_TB; batch_idx++) {
-      BlockBitTranspose<T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT,
-                      EncodingAlgorithm, DeviceType>::Transpose(sm_fix_point +
-                                      batch_idx * num_elems_per_batch,
-                                  sm_bitplanes + batch_idx * num_bitplanes,
-                                  num_elems_per_batch, num_bitplanes,
-                                  FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
+      BlockBitTranspose<
+          T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT, EncodingAlgorithm,
+          DeviceType>::Transpose(sm_fix_point + batch_idx * num_elems_per_batch,
+                                 sm_bitplanes + batch_idx * num_bitplanes,
+                                 num_elems_per_batch, num_bitplanes,
+                                 FunctorBase<DeviceType>::GetThreadIdX(),
+                                 FunctorBase<DeviceType>::GetThreadIdY());
     }
     if (BinaryType == BINARY) {
       // sign
       for (SIZE batch_idx = 0; batch_idx < num_batches_per_TB; batch_idx++) {
-        BlockBitTranspose<T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT,
-                      EncodingAlgorithm, DeviceType>::Transpose(
-            sm_signs + batch_idx * num_elems_per_batch,
-            sm_bitplanes + num_batches_per_TB * num_bitplanes + batch_idx,
-            num_elems_per_batch, 1,
-            FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
+        BlockBitTranspose<
+            T_fp, T_bitplane, 32, 32, 1, ALIGN_LEFT, EncodingAlgorithm,
+            DeviceType>::Transpose(sm_signs + batch_idx * num_elems_per_batch,
+                                   sm_bitplanes +
+                                       num_batches_per_TB * num_bitplanes +
+                                       batch_idx,
+                                   num_elems_per_batch, 1,
+                                   FunctorBase<DeviceType>::GetThreadIdX(),
+                                   FunctorBase<DeviceType>::GetThreadIdY());
       }
     }
     // error
-    BlockErrorCollect<T, T_fp, T_sfp, T_error, 32, 32, 1, ErrorColectingAlgorithm,
-                 BinaryType, DeviceType>::Collect(sm_shifted, sm_temp_errors, sm_errors, num_elems_per_TB,
-                 num_bitplanes, FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
+    BlockErrorCollect<
+        T, T_fp, T_sfp, T_error, 32, 32, 1, ErrorColectingAlgorithm, BinaryType,
+        DeviceType>::Collect(sm_shifted, sm_temp_errors, sm_errors,
+                             num_elems_per_TB, num_bitplanes,
+                             FunctorBase<DeviceType>::GetThreadIdX(),
+                             FunctorBase<DeviceType>::GetThreadIdY());
   }
 
   // get max bit-plane length
@@ -280,7 +287,6 @@ public:
     }
   }
 
-
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
     size += (num_bitplanes + 1) * num_elems_per_TB * sizeof(T_error);
@@ -357,8 +363,8 @@ public:
     gridz = 1;
     gridy = 1;
     gridx = (n - 1) / num_elems_per_TB + 1;
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "GroupedEncoder");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "GroupedEncoder");
   }
 
   MGARDX_CONT
@@ -475,9 +481,12 @@ public:
       exp += 2;
     // data
     block_offset = max_length_per_TB * FunctorBase<DeviceType>::GetBlockIdX();
-    for (SIZE bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY(); bitplane_idx < num_bitplanes; bitplane_idx += 32) {
-      for (SIZE batch_idx = FunctorBase<DeviceType>::GetThreadIdX(); batch_idx < num_batches_per_TB; batch_idx += 32) {
-        sm_bitplanes[batch_idx * num_bitplanes + bitplane_idx] = *encoded_bitplanes(bitplane_idx, block_offset + batch_idx);
+    for (SIZE bitplane_idx = FunctorBase<DeviceType>::GetThreadIdY();
+         bitplane_idx < num_bitplanes; bitplane_idx += 32) {
+      for (SIZE batch_idx = FunctorBase<DeviceType>::GetThreadIdX();
+           batch_idx < num_batches_per_TB; batch_idx += 32) {
+        sm_bitplanes[batch_idx * num_bitplanes + bitplane_idx] =
+            *encoded_bitplanes(bitplane_idx, block_offset + batch_idx);
       }
     }
 
@@ -488,7 +497,8 @@ public:
       if (starting_bitplane == 0) {
         if (local_data_idx < num_batches_per_TB) {
           sm_bitplanes[num_batches_per_TB * num_bitplanes + local_data_idx] =
-              *encoded_bitplanes(0, block_offset + num_batches_per_TB + local_data_idx);
+              *encoded_bitplanes(0, block_offset + num_batches_per_TB +
+                                        local_data_idx);
         }
       } else {
         if (local_data_idx < num_elems_per_TB) {
@@ -502,23 +512,31 @@ public:
   // level error reduction (intra block)
   MGARDX_EXEC void Operation2() {
     // data
-    // BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType> blockBitTranspose;
+    // BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT,
+    // DecodingAlgorithm, DeviceType> blockBitTranspose;
     for (SIZE i = 0; i < num_batches_per_TB; i++) {
-      BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType>::Transpose(sm_bitplanes + i * num_bitplanes,
-                                  sm_fix_point + i * num_elems_per_batch,
-                                  num_bitplanes, num_elems_per_batch,
-                                  FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
+      BlockBitTranspose<
+          T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm,
+          DeviceType>::Transpose(sm_bitplanes + i * num_bitplanes,
+                                 sm_fix_point + i * num_elems_per_batch,
+                                 num_bitplanes, num_elems_per_batch,
+                                 FunctorBase<DeviceType>::GetThreadIdX(),
+                                 FunctorBase<DeviceType>::GetThreadIdY());
     }
 
     if (BinaryType == BINARY) {
       // sign
       if (starting_bitplane == 0) {
         for (SIZE batch_idx = 0; batch_idx < num_batches_per_TB; batch_idx++) {
-          BlockBitTranspose<T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm, DeviceType>::Transpose(
-              sm_bitplanes + num_batches_per_TB * num_bitplanes + batch_idx,
-              sm_signs + batch_idx * num_elems_per_batch, 1,
-              num_elems_per_batch,
-              FunctorBase<DeviceType>::GetThreadIdX(), FunctorBase<DeviceType>::GetThreadIdY());
+          BlockBitTranspose<
+              T_bitplane, T_fp, 32, 32, 1, ALIGN_RIGHT, DecodingAlgorithm,
+              DeviceType>::Transpose(sm_bitplanes +
+                                         num_batches_per_TB * num_bitplanes +
+                                         batch_idx,
+                                     sm_signs + batch_idx * num_elems_per_batch,
+                                     1, num_elems_per_batch,
+                                     FunctorBase<DeviceType>::GetThreadIdX(),
+                                     FunctorBase<DeviceType>::GetThreadIdY());
         }
       }
     }
@@ -563,8 +581,8 @@ public:
         *v(global_data_idx) = sm_signs[local_data_idx] ? -cur_data : cur_data;
         *signs(global_data_idx) = sm_signs[local_data_idx];
       } else if (BinaryType == NEGABINARY) {
-        T cur_data =
-            ldexp((T)Math<DeviceType>::negabinary2binary(fp_data), -ending_bitplane + exp);
+        T cur_data = ldexp((T)Math<DeviceType>::negabinary2binary(fp_data),
+                           -ending_bitplane + exp);
         *v(global_data_idx) = ending_bitplane % 2 != 0 ? -cur_data : cur_data;
       }
     }
@@ -678,8 +696,8 @@ public:
     gridz = 1;
     gridy = 1;
     gridx = (n - 1) / num_elems_per_TB + 1;
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "GroupedDecoder");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "GroupedDecoder");
   }
 
   MGARDX_CONT
@@ -698,13 +716,13 @@ public:
 
 // general bitplane encoder that encodes data by block using T_stream type
 // buffer
-template <typename T_data,
-          typename T_bitplane, typename T_error, typename DeviceType>
+template <typename T_data, typename T_bitplane, typename T_error,
+          typename DeviceType>
 class GroupedBPEncoder
-    : public concepts::BitplaneEncoderInterface<T_data,
-                                                T_bitplane, T_error, DeviceType> {
+    : public concepts::BitplaneEncoderInterface<T_data, T_bitplane, T_error,
+                                                DeviceType> {
 public:
-  GroupedBPEncoder(){
+  GroupedBPEncoder() {
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
     static_assert(!std::is_same<T_data, long double>::value,
@@ -722,27 +740,23 @@ public:
          std::vector<SIZE> &streams_sizes, int queue_idx) const {
 
     SIZE num_batches_per_TB = 2;
-    const SIZE num_elems_per_TB =
-        sizeof(T_bitplane) * 8 * num_batches_per_TB;
+    const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
     const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
     SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    SIZE bitplane_max_length_total =
-        bitplane_max_length_per_TB * num_blocks;
+    SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
 
     Array<2, T_error, DeviceType> level_errors_work_array(
         {(SIZE)num_bitplanes + 1, num_blocks});
-    SubArray<2, T_error, DeviceType> level_errors_work(
-        level_errors_work_array);
+    SubArray<2, T_error, DeviceType> level_errors_work(level_errors_work_array);
 
     Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
-        {(SIZE)num_bitplanes,
-         (SIZE)bitplane_max_length_total});
+        {(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes_subarray(
         encoded_bitplanes_array);
 
     MDR::GroupedEncoder<T_data, T_bitplane, T_error, BINARY_TYPE,
-                                 DATA_ENCODING_ALGORITHM,
-                                 ERROR_COLLECTING_ALGORITHM, DeviceType>()
+                        DATA_ENCODING_ALGORITHM, ERROR_COLLECTING_ALGORITHM,
+                        DeviceType>()
         .Execute(n, num_batches_per_TB, num_bitplanes, exp, v,
                  encoded_bitplanes_subarray, level_errors, level_errors_work,
                  queue_idx);
@@ -756,23 +770,21 @@ public:
 
   Array<1, T_data, DeviceType>
   decode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-         int level, int queue_idx) {}
+         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
+         int queue_idx) {}
 
   // decode the data and record necessary information for progressiveness
-  Array<1, T_data, DeviceType> progressive_decode(
-      SIZE n, SIZE starting_bitplane,
-      SIZE num_bitplanes, int32_t exp,
-      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-      int level, int queue_idx) {
+  Array<1, T_data, DeviceType>
+  progressive_decode(SIZE n, SIZE starting_bitplane, SIZE num_bitplanes,
+                     int32_t exp,
+                     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                     int level, int queue_idx) {
 
     SIZE num_batches_per_TB = 2;
-    const SIZE num_elems_per_TB =
-        sizeof(T_bitplane) * 8 * num_batches_per_TB;
+    const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
     const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
     SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    SIZE bitplane_max_length_total =
-        bitplane_max_length_per_TB * num_blocks;
+    SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
 
     if (level_signs.size() == level) {
       level_signs.push_back(Array<1, bool, DeviceType>({n}));
@@ -790,8 +802,7 @@ public:
 
     // Array<1, bool> signs_array({(SIZE)n});
     // signs_array.load(new_signs);
-    SubArray<1, bool, DeviceType> signs_subarray(
-        level_signs[level]);
+    SubArray<1, bool, DeviceType> signs_subarray(level_signs[level]);
 
     Array<1, T_data, DeviceType> v_array({(SIZE)n});
     SubArray<1, T_data, DeviceType> v(v_array);
@@ -803,7 +814,7 @@ public:
 
     if (num_bitplanes > 0) {
       MDR::GroupedDecoder<T_data, T_bitplane, BINARY_TYPE,
-                                   DATA_DECODING_ALGORITHM, DeviceType>()
+                          DATA_DECODING_ALGORITHM, DeviceType>()
           .Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp,
                    encoded_bitplanes, signs_subarray, v, queue_idx);
     }
@@ -822,12 +833,10 @@ public:
 
   SIZE buffer_size(SIZE n) const {
     SIZE num_batches_per_TB = 2;
-    const SIZE num_elems_per_TB =
-        sizeof(T_bitplane) * 8 * num_batches_per_TB;
+    const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
     const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
     SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    SIZE bitplane_max_length_total =
-        bitplane_max_length_per_TB * num_blocks;
+    SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
     return bitplane_max_length_total;
   }
 

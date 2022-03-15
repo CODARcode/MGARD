@@ -25,9 +25,7 @@ void BeginAutoTuning(enum device_type dev_type);
 //! Disable autotuning
 void EndAutoTuning(enum device_type dev_type);
 
-}
-
-
+} // namespace mgard_x
 
 template <typename T>
 int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,

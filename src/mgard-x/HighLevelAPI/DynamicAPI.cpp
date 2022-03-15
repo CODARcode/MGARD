@@ -11,8 +11,8 @@
 #include <numeric>
 #include <vector>
 
-#include "compress_x.hpp"
 #include "MGARDXConfig.h"
+#include "compress_x.hpp"
 #include "mgard-x/Hierarchy.h"
 #include "mgard-x/HighLevelAPI.h"
 #include "mgard-x/Metadata.hpp"
@@ -272,9 +272,8 @@ void decompress(const void *compressed_data, size_t compressed_size,
 }
 
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, 
-                std::vector<mgard_x::SIZE>& shape, data_type& dtype, Config config,
-                bool output_pre_allocated) {
+                void *&decompressed_data, std::vector<mgard_x::SIZE> &shape,
+                data_type &dtype, Config config, bool output_pre_allocated) {
 
   enum device_type dev_type = config.dev_type;
   if (dev_type == device_type::Auto) {
@@ -291,16 +290,16 @@ void decompress(const void *compressed_data, size_t compressed_size,
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
-                     dtype, shape, config, output_pre_allocated);
+    decompress<CUDA>(compressed_data, compressed_size, decompressed_data, dtype,
+                     shape, config, output_pre_allocated);
 #else
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    decompress<HIP>(compressed_data, compressed_size, decompressed_data, 
-                    dtype, shape, config, output_pre_allocated);
+    decompress<HIP>(compressed_data, compressed_size, decompressed_data, dtype,
+                    shape, config, output_pre_allocated);
 #else
     std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
     exit(-1);
@@ -311,9 +310,8 @@ void decompress(const void *compressed_data, size_t compressed_size,
 }
 
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, 
-                std::vector<mgard_x::SIZE>& shape, data_type& dtype, 
-                bool output_pre_allocated) {
+                void *&decompressed_data, std::vector<mgard_x::SIZE> &shape,
+                data_type &dtype, bool output_pre_allocated) {
 
   enum device_type dev_type = auto_detect_device();
 
@@ -327,16 +325,16 @@ void decompress(const void *compressed_data, size_t compressed_size,
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
-                     dtype, shape, output_pre_allocated);
+    decompress<CUDA>(compressed_data, compressed_size, decompressed_data, dtype,
+                     shape, output_pre_allocated);
 #else
     std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    decompress<HIP>(compressed_data, compressed_size, decompressed_data, 
-                    dtype, shape, output_pre_allocated);
+    decompress<HIP>(compressed_data, compressed_size, decompressed_data, dtype,
+                    shape, output_pre_allocated);
 #else
     std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
     exit(-1);

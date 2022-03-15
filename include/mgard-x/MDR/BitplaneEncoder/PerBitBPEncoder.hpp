@@ -252,8 +252,8 @@ public:
     return streams;
   }
 
-  T_data *decode(const std::vector<uint8_t const *> &streams, uint32_t n, int exp,
-                 uint8_t num_bitplanes) {
+  T_data *decode(const std::vector<uint8_t const *> &streams, uint32_t n,
+                 int exp, uint8_t num_bitplanes) {
     const int32_t block_size = PER_BIT_BLOCK_uint32_t;
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,

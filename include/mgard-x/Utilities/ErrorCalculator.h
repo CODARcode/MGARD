@@ -95,8 +95,8 @@ T L_inf_error(size_t n, const T *original_data, const T *decompressed_data,
 }
 
 template <typename T>
-T L_2_error(std::vector<SIZE> shape, const T *original_data, const T *decompressed_data,
-            enum error_bound_type mode) {
+T L_2_error(std::vector<SIZE> shape, const T *original_data,
+            const T *decompressed_data, enum error_bound_type mode) {
   SIZE n = 1;
   for (DIM d = 0; d < shape.size(); d++)
     n *= shape[d];
@@ -118,7 +118,8 @@ T L_2_error(std::vector<SIZE> shape, const T *original_data, const T *decompress
   }
 }
 
-template <typename T> T MSE(size_t n, const T *original_data, const T *decompressed_data) {
+template <typename T>
+T MSE(size_t n, const T *original_data, const T *decompressed_data) {
   T mse = 0;
   for (size_t i = 0; i < n; ++i) {
     T temp = fabs(original_data[i] - decompressed_data[i]);
@@ -127,7 +128,8 @@ template <typename T> T MSE(size_t n, const T *original_data, const T *decompres
   return mse / n;
 }
 
-template <typename T> T PSNR(size_t n, const T *original_data, const T *decompressed_data) {
+template <typename T>
+T PSNR(size_t n, const T *original_data, const T *decompressed_data) {
   T mse = MSE(n, original_data, decompressed_data);
   T max = 0, min = std::numeric_limits<T>::max();
   for (size_t i = 0; i < n; ++i) {

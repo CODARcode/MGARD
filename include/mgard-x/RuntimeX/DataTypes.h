@@ -10,7 +10,7 @@
 
 #if defined __CUDACC__
 #define MGARDX_COMPILE_CUDA
-#elif defined __HIPCC__ 
+#elif defined __HIPCC__
 #define MGARDX_COMPILE_HIP
 #else
 #define MGARDX_COMPILE_SERIAL

@@ -18,8 +18,8 @@ namespace MDR {
     @params dims: input dimensions
     @params target_level: the target decomposition level
 */
-std::vector<std::vector<uint32_t>> compute_level_dims(const std::vector<uint32_t> &dims,
-                                                  uint32_t target_level) {
+std::vector<std::vector<uint32_t>>
+compute_level_dims(const std::vector<uint32_t> &dims, uint32_t target_level) {
   std::vector<std::vector<uint32_t>> level_dims;
   for (int i = 0; i <= target_level; i++) {
     level_dims.push_back(std::vector<uint32_t>(dims.size()));

@@ -656,8 +656,7 @@ void calc_coefficients_nd(Hierarchy<D, T, DeviceType> &hierarchy,
 
   for (DIM d = 3; d < D; d += 2) {
     // copy back to input1 for interpolation again
-    LwpkReo<D, T, COPY, DeviceType>().Execute(doutput,
-        dinput1, queue_idx);
+    LwpkReo<D, T, COPY, DeviceType>().Execute(doutput, dinput1, queue_idx);
 
     // printf("interpolate %u-%uD\n", d+1, d+2);
     curr_dims[0] = 0;
@@ -737,8 +736,7 @@ void calc_coefficients_nd(Hierarchy<D, T, DeviceType> &hierarchy,
   for (DIM d = 3; d < D_reduced; d += 2) {
     // copy back to input2 for reordering again
 
-    LwpkReo<D, T, COPY, DeviceType>().Execute(dinput1,
-        dinput2, queue_idx);
+    LwpkReo<D, T, COPY, DeviceType>().Execute(dinput1, dinput2, queue_idx);
 
     unprocessed_idx += 2;
     // printf("reorder %u-%uD\n", d+1, d+2);
@@ -905,8 +903,7 @@ void coefficients_restore_nd(Hierarchy<D, T, DeviceType> &hierarchy,
     //                  dinput1.data(), dinput1.getLdd(), queue_idx);
 
     // gpuErrchk(cudaDeviceSynchronize());
-    LwpkReo<D, T, COPY, DeviceType>().Execute(doutput,
-        dinput1, queue_idx);
+    LwpkReo<D, T, COPY, DeviceType>().Execute(doutput, dinput1, queue_idx);
     // gpuErrchk(cudaDeviceSynchronize());
 
     // printf("interpolate-restore %u-%uD\n", d+1, d+2);
@@ -1126,8 +1123,7 @@ void coefficients_restore_nd(Hierarchy<D, T, DeviceType> &hierarchy,
     //                dinput2.getLdd(), queue_idx);
 
     // gpuErrchk(cudaDeviceSynchronize());
-    LwpkReo<D, T, COPY, DeviceType>().Execute(dinput1,
-        dinput2, queue_idx);
+    LwpkReo<D, T, COPY, DeviceType>().Execute(dinput1, dinput2, queue_idx);
     // gpuErrchk(cudaDeviceSynchronize());
 
     // printf("reorder-restore %u-%uD\n", d+1, d+2);
@@ -1723,8 +1719,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
       // DeviceRuntime<DeviceType>::SyncDevice();
       v_fine.resize(hierarchy.shapes2[l]);
       w_fine.resize(hierarchy.shapes2[l]);
-      LwpkReo<D, T, COPY, DeviceType>().Execute(v_fine, w_fine,
-          queue_idx);
+      LwpkReo<D, T, COPY, DeviceType>().Execute(v_fine, w_fine, queue_idx);
       // DeviceRuntime<DeviceType>::SyncDevice();
       v_coeff.resize(hierarchy.shapes2[l]);
       calc_coefficients_3d(hierarchy, w_fine, v_coeff, l, queue_idx);
@@ -1736,7 +1731,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
       w_correction.resize(hierarchy.shapes2[l + 1]);
       v_coarse.resize(hierarchy.shapes2[l + 1]);
       LwpkReo<D, T, ADD, DeviceType>().Execute(w_correction, v_coarse,
-          queue_idx);
+                                               queue_idx);
       // DeviceRuntime<DeviceType>::SyncDevice();
       if (debug_print) {
         PrintSubarray("after add", v);
@@ -1765,13 +1760,11 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
 
       v_fine.resize(hierarchy.shapes2[l]);
       w_fine.resize(hierarchy.shapes2[l]);
-      LwpkReo<D, T, COPY, DeviceType>().Execute(v_fine, w_fine,
-          queue_idx);
+      LwpkReo<D, T, COPY, DeviceType>().Execute(v_fine, w_fine, queue_idx);
 
       v_fine.resize(hierarchy.shapes2[l]);
       b_fine.resize(hierarchy.shapes2[l]);
-      LwpkReo<D, T, COPY, DeviceType>().Execute(v_fine, b_fine,
-          queue_idx);
+      LwpkReo<D, T, COPY, DeviceType>().Execute(v_fine, b_fine, queue_idx);
       // gpuErrchk(cudaDeviceSynchronize());
       v_coeff.resize(hierarchy.shapes2[l]);
       calc_coefficients_nd(hierarchy, w_fine, b_fine, v_coeff, l, queue_idx);
@@ -1788,7 +1781,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
       w_correction.resize(hierarchy.shapes2[l + 1]);
       v_coarse.resize(hierarchy.shapes2[l + 1]);
       LwpkReo<D, T, ADD, DeviceType>().Execute(w_correction, v_coarse,
-          queue_idx);
+                                               queue_idx);
       // gpuErrchk(cudaDeviceSynchronize());
 
       if (debug_print) { // debug
@@ -1838,15 +1831,14 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
       w_correction.resize(hierarchy.shapes2[l + 1]);
       v_coarse.resize(hierarchy.shapes2[l + 1]);
       LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(w_correction, v_coarse,
-          queue_idx);
+                                                    queue_idx);
 
       v_coeff.resize(hierarchy.shapes2[l]);
       w_fine.resize(hierarchy.shapes2[l]);
       coefficients_restore_3d(hierarchy, v_coeff, w_fine, l, 0);
 
       v_fine.resize(hierarchy.shapes2[l]);
-      LwpkReo<D, T, COPY, DeviceType>().Execute(w_fine, v_fine,
-          queue_idx);
+      LwpkReo<D, T, COPY, DeviceType>().Execute(w_fine, v_fine, queue_idx);
       // gpuErrchk(cudaDeviceSynchronize());
 
       if (debug_print) {
@@ -1886,7 +1878,7 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
       v_coarse.resize(hierarchy.shapes2[l + 1]);
       // gpuErrchk(cudaDeviceSynchronize());
       LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(w_correction, v_coarse,
-          queue_idx);
+                                                    queue_idx);
       // gpuErrchk(cudaDeviceSynchronize());
 
       if (debug_print) { // debug
@@ -1897,10 +1889,8 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
       w_fine.resize(hierarchy.shapes2[l]);
       b_fine.resize(hierarchy.shapes2[l]);
       // gpuErrchk(cudaDeviceSynchronize());
-      LwpkReo<D, T, COPY, DeviceType>().Execute(v_coeff, b_fine,
-          queue_idx);
-      LwpkReo<D, T, COPY, DeviceType>().Execute(v_coeff, w_fine,
-          queue_idx);
+      LwpkReo<D, T, COPY, DeviceType>().Execute(v_coeff, b_fine, queue_idx);
+      LwpkReo<D, T, COPY, DeviceType>().Execute(v_coeff, w_fine, queue_idx);
       // gpuErrchk(cudaDeviceSynchronize());
       v_fine.resize(hierarchy.shapes2[l]);
       coefficients_restore_nd(hierarchy, w_fine, b_fine, v_fine, l, queue_idx);

@@ -5,7 +5,7 @@
  * Date: December 1, 2021
  */
 
-#include "mgard-x/RuntimeX/RuntimeX.h"
 #include "mgard-x/Hierarchy.hpp"
-#include "mgard-x/MDR/Refactor/Refactor.hpp"
 #include "mgard-x/MDR/Reconstructor/Reconstructor.hpp"
+#include "mgard-x/MDR/Refactor/Refactor.hpp"
+#include "mgard-x/RuntimeX/RuntimeX.h"
