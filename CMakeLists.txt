@@ -36,7 +36,8 @@ option(MGARD_ENABLE_DOCS "Build documentation." OFF)
 option(MGARD_ENABLE_OPENMP "Enable OpenMP support." OFF)
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction." OFF)
-option(MGARD_ENABLE_SERIAL "Enable SERIAL support" OFF)
+option(MGARD_ENABLE_SERIAL "Enable SERIAL support" ON)
+>>>>>>> Add Serial support for MDR
 option(MGARD_ENABLE_HIP "Enable HIP support" OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)

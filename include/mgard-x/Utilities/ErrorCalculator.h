@@ -8,14 +8,14 @@
 #ifndef MGARD_X_ERROR_CALCULATOR
 #define MGARD_X_ERROR_CALCULATOR
 
-#include "../../TensorMeshHierarchy.hpp"
-#include "../../TensorNorms.hpp"
-#include "../../shuffle.hpp"
+// #include "../../TensorMeshHierarchy.hpp"
+// #include "../../TensorNorms.hpp"
+// #include "../../shuffle.hpp"
 #include "../Types.h"
 
 namespace mgard_x {
 
-template <typename T> T L_inf_norm(size_t n, T *data) {
+template <typename T> T L_inf_norm(size_t n, const T *data) {
   T L_inf = 0;
   for (size_t i = 0; i < n; ++i) {
     T temp = fabs(data[i]);
@@ -25,7 +25,7 @@ template <typename T> T L_inf_norm(size_t n, T *data) {
   return L_inf;
 }
 
-template <typename T> T L_2_norm(std::vector<SIZE> shape, T *data) {
+template <typename T> T L_2_norm(std::vector<SIZE> shape, const T *data) {
   SIZE n = 1;
   for (DIM d = 0; d < shape.size(); d++)
     n *= shape[d];
@@ -77,7 +77,7 @@ template <typename T> T L_2_norm(std::vector<SIZE> shape, T *data) {
 }
 
 template <typename T>
-T L_inf_error(size_t n, T *original_data, T *decompressed_data,
+T L_inf_error(size_t n, const T *original_data, const T *decompressed_data,
               enum error_bound_type mode) {
   T error_L_inf_norm = 0;
   for (size_t i = 0; i < n; ++i) {
@@ -95,7 +95,7 @@ T L_inf_error(size_t n, T *original_data, T *decompressed_data,
 }
 
 template <typename T>
-T L_2_error(std::vector<SIZE> shape, T *original_data, T *decompressed_data,
+T L_2_error(std::vector<SIZE> shape, const T *original_data, const T *decompressed_data,
             enum error_bound_type mode) {
   SIZE n = 1;
   for (DIM d = 0; d < shape.size(); d++)
@@ -118,7 +118,7 @@ T L_2_error(std::vector<SIZE> shape, T *original_data, T *decompressed_data,
   }
 }
 
-template <typename T> T MSE(size_t n, T *original_data, T *decompressed_data) {
+template <typename T> T MSE(size_t n, const T *original_data, const T *decompressed_data) {
   T mse = 0;
   for (size_t i = 0; i < n; ++i) {
     T temp = fabs(original_data[i] - decompressed_data[i]);
@@ -127,7 +127,7 @@ template <typename T> T MSE(size_t n, T *original_data, T *decompressed_data) {
   return mse / n;
 }
 
-template <typename T> T PSNR(size_t n, T *original_data, T *decompressed_data) {
+template <typename T> T PSNR(size_t n, const T *original_data, const T *decompressed_data) {
   T mse = MSE(n, original_data, decompressed_data);
   T max = 0, min = std::numeric_limits<T>::max();
   for (size_t i = 0; i < n; ++i) {

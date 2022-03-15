@@ -452,7 +452,7 @@ public:
     // printf("GroupedWarpEncoder config(%u %u %u) (%u %u %u), sm_size: %llu\n",
     // tbx, tby, tbz, gridx, gridy, gridz, sm_size);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx);
+                queue_idx, "GroupedWarpEncoder");
   }
 
   MGARDX_CONT
@@ -887,7 +887,7 @@ public:
     // printf("GroupedWarpDecoder config(%u %u %u) (%u %u %u), sm_size: %llu\n",
     // tbx, tby, tbz, gridx, gridy, gridz, sm_size);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx);
+                queue_idx, "GroupedWarpDecoder");
   }
 
   MGARDX_CONT
@@ -990,7 +990,6 @@ class GroupedWarpBPEncoder
                                                 T_bitplane, T_error, DeviceType> {
 public:
   GroupedWarpBPEncoder() {
-    std::cout << "GroupedWarpEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
     static_assert(!std::is_same<T_data, long double>::value,

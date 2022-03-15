@@ -46,6 +46,8 @@ template <typename T, typename T_fp, typename T_sfp, typename T_bitplane,
 class GroupedEncoderFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT
+  GroupedEncoderFunctor() {}
+  MGARDX_CONT
   GroupedEncoderFunctor(SIZE n, SIZE num_batches_per_TB, SIZE num_bitplanes,
                         SIZE exp, SubArray<1, T, DeviceType> v,
                         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
@@ -355,10 +357,8 @@ public:
     gridz = 1;
     gridy = 1;
     gridx = (n - 1) / num_elems_per_TB + 1;
-    // printf("GroupedEncoder config(%u %u %u) (%u %u %u), sm_size: %llu\n",
-    // tbx, tby, tbz, gridx, gridy, gridz, sm_size);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx);
+                queue_idx, "GroupedEncoder");
   }
 
   MGARDX_CONT
@@ -414,6 +414,8 @@ template <typename T, typename T_fp, typename T_sfp, typename T_bitplane,
           OPTION BinaryType, OPTION DecodingAlgorithm, typename DeviceType>
 class GroupedDecoderFunctor : public Functor<DeviceType> {
 public:
+  MGARDX_CONT
+  GroupedDecoderFunctor() {}
   MGARDX_CONT
   GroupedDecoderFunctor(SIZE n, SIZE num_batches_per_TB, SIZE starting_bitplane,
                         SIZE num_bitplanes, SIZE exp,
@@ -663,8 +665,8 @@ public:
           SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
           SubArray<1, bool, DeviceType> signs, SubArray<1, T, DeviceType> v,
           int queue_idx) {
-    // using FunctorType = GroupedDecoderFunctor<T, T_fp, T_sfp, T_bitplane,
-    // BinaryType, DeviceType>;
+
+    printf("GroupedDecoder : GenTask\n");
     FunctorType functor(n, num_batches_per_TB, starting_bitplane, num_bitplanes,
                         exp, encoded_bitplanes, signs, v);
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
@@ -676,10 +678,8 @@ public:
     gridz = 1;
     gridy = 1;
     gridx = (n - 1) / num_elems_per_TB + 1;
-    printf("GroupedDecoder config(%u %u %u) (%u %u %u)\n", tbx, tby, tbz, gridx,
-           gridy, gridz);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx);
+                queue_idx, "GroupedDecoder");
   }
 
   MGARDX_CONT
@@ -693,8 +693,6 @@ public:
         encoded_bitplanes, signs, v, queue_idx);
     DeviceAdapter<TaskType, DeviceType> adapter;
     adapter.Execute(task);
-    // this->handle.sync_all();
-    // PrintSubarray("v", v);
   }
 };
 
@@ -707,7 +705,6 @@ class GroupedBPEncoder
                                                 T_bitplane, T_error, DeviceType> {
 public:
   GroupedBPEncoder(){
-    std::cout << "GroupedBPEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
     static_assert(!std::is_same<T_data, long double>::value,

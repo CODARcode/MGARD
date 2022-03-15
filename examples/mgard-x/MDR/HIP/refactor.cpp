@@ -5,11 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
-
-// #include "mgard/mgard-x/Hierarchy.h"
-// #include "mgard/mgard-x/RuntimeX/RuntimeX.h"
-// #include "mgard/mgard-x/MDR/Refactor/Refactor.hpp"
-#include "mgard/compress_x_mdr.hpp"
+#include "mgard/mdr_x.hpp"
 using namespace std;
 
 template <class T, class Refactor>

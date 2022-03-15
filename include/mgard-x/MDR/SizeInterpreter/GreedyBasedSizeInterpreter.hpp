@@ -93,12 +93,12 @@ public:
   interpret_retrieve_size(const std::vector<std::vector<SIZE>> &level_sizes,
                           const std::vector<std::vector<double>> &level_errors,
                           double tolerance, std::vector<uint8_t> &index) const {
-    for (int i = 0; i < level_errors.size(); i++) {
-      for (int j = 0; j < level_errors[i].size(); j++) {
-        std::cout << level_errors[i][j] << " ";
-      }
-      std::cout << std::endl;
-    }
+    // for (int i = 0; i < level_errors.size(); i++) {
+    //   for (int j = 0; j < level_errors[i].size(); j++) {
+    //     std::cout << level_errors[i][j] << " ";
+    //   }
+    //   std::cout << std::endl;
+    // }
     int num_levels = level_sizes.size();
     std::vector<SIZE> retrieve_sizes(num_levels, 0);
     double accumulated_error = 0;
