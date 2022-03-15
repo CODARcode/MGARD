@@ -27,12 +27,17 @@ $ cmake --install build
 
 Detailed instructions for using MGARD-X portable version for both GPUs and CPUs can be found in [here][mgard_x instructions].
 
+### MDR-X Fine-grain progressive data reconstruction
+
+Detailed instructions for using MDR-X can be found in [here][mdr_x instructions].
+
 ### MGARD-GPU [***Deprecated***]
 
 Detailed instructions for using MGARD-GPU with NVIDIA GPU acceleration can be found in [here][gpu instructions].
 
 [gpu instructions]: doc/MGARD-GPU.md
 [mgard_x instructions]: doc/MGARD-X.md
+[mdr_x instructions]: doc/MDR-X.md
 
 ### Documentation
 
