@@ -1270,7 +1270,8 @@ void decompress(const void *compressed_data, size_t compressed_size,
   meta.Deserialize((SERIALIZED_TYPE *)compressed_data);
 
   std::vector<SIZE> shape(meta.total_dims);
-  for (DIM d = 0; d < shape.size(); d++ ) shape[d] = (SIZE) meta.shape[d];
+  for (DIM d = 0; d < shape.size(); d++)
+    shape[d] = (SIZE)meta.shape[d];
   data_type dtype = meta.dtype;
   data_structure_type dstype = meta.dstype;
 
@@ -1342,7 +1343,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
       }
 
       for (DIM d = 0; d < meta.total_dims; d++) {
-        delete [] coords[d];
+        delete[] coords[d];
       }
     }
   } else if (dtype == data_type::Double) {
@@ -1418,7 +1419,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     }
 
     for (DIM d = 0; d < meta.total_dims; d++) {
-      delete [] coords[d];
+      delete[] coords[d];
     }
   }
 }
@@ -1433,14 +1434,15 @@ void decompress(const void *compressed_data, size_t compressed_size,
 
 template <typename DeviceType>
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type& dtype, 
-                std::vector<mgard_x::SIZE>& shape, Config config,
+                void *&decompressed_data, data_type &dtype,
+                std::vector<mgard_x::SIZE> &shape, Config config,
                 bool output_pre_allocated) {
   Metadata<DeviceType> meta;
   meta.Deserialize((SERIALIZED_TYPE *)compressed_data);
 
-  shape = std::vector<SIZE> (meta.total_dims);
-  for (DIM d = 0; d < shape.size(); d++ ) shape[d] = (SIZE) meta.shape[d];
+  shape = std::vector<SIZE>(meta.total_dims);
+  for (DIM d = 0; d < shape.size(); d++)
+    shape[d] = (SIZE)meta.shape[d];
   dtype = meta.dtype;
   data_structure_type dstype = meta.dstype;
 
@@ -1512,7 +1514,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
       }
 
       for (DIM d = 0; d < meta.total_dims; d++) {
-        delete [] coords[d];
+        delete[] coords[d];
       }
     }
   } else if (dtype == data_type::Double) {
@@ -1588,16 +1590,15 @@ void decompress(const void *compressed_data, size_t compressed_size,
     }
 
     for (DIM d = 0; d < meta.total_dims; d++) {
-      delete [] coords[d];
+      delete[] coords[d];
     }
   }
 }
 
-
 template <typename DeviceType>
 void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type& dtype, 
-                std::vector<mgard_x::SIZE>& shape, bool output_pre_allocated) {
+                void *&decompressed_data, data_type &dtype,
+                std::vector<mgard_x::SIZE> &shape, bool output_pre_allocated) {
   Config config;
   decompress<DeviceType>(compressed_data, compressed_size, decompressed_data,
                          dtype, shape, config, output_pre_allocated);

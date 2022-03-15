@@ -138,10 +138,11 @@ public:
   }
 
 private:
-  uint32_t collect_data_3d_blocked(const T *data, const uint32_t n1, const uint32_t n2,
-                               const uint32_t n3, const uint32_t dim0_offset,
-                               const uint32_t dim1_offset, const int block_size,
-                               T *buffer) const {
+  uint32_t collect_data_3d_blocked(const T *data, const uint32_t n1,
+                                   const uint32_t n2, const uint32_t n3,
+                                   const uint32_t dim0_offset,
+                                   const uint32_t dim1_offset,
+                                   const int block_size, T *buffer) const {
     uint32_t num_block_1 = (n1 - 1) / block_size + 1;
     uint32_t num_block_2 = (n2 - 1) / block_size + 1;
     uint32_t num_block_3 = (n3 - 1) / block_size + 1;
@@ -175,10 +176,11 @@ private:
     }
     return index;
   }
-  uint32_t reposition_data_3d_blocked(const T *buffer, const uint32_t n1, const uint32_t n2,
-                                  const uint32_t n3, const uint32_t dim0_offset,
-                                  const uint32_t dim1_offset, const int block_size,
-                                  T *data) const {
+  uint32_t reposition_data_3d_blocked(const T *buffer, const uint32_t n1,
+                                      const uint32_t n2, const uint32_t n3,
+                                      const uint32_t dim0_offset,
+                                      const uint32_t dim1_offset,
+                                      const int block_size, T *data) const {
     uint32_t num_block_1 = (n1 - 1) / block_size + 1;
     uint32_t num_block_2 = (n2 - 1) / block_size + 1;
     uint32_t num_block_3 = (n3 - 1) / block_size + 1;
@@ -220,8 +222,9 @@ private:
       3d 0-7 => 2-1-3-6-4-5-7
   */
   void skip_one_data_collection(const T *pos[7], T *buffer, uint32_t n1_nodal,
-                                uint32_t n1_coeff, uint32_t n2_nodal, uint32_t n2_coeff,
-                                uint32_t n3_nodal, uint32_t n3_coeff) const {
+                                uint32_t n1_coeff, uint32_t n2_nodal,
+                                uint32_t n2_coeff, uint32_t n3_nodal,
+                                uint32_t n3_coeff) const {
     int index = 0;
     for (int i = 0; i < n1_coeff; i++) {
       for (int j = 0; j < n2_coeff; j++) {
@@ -289,8 +292,9 @@ private:
     }
   }
   void skip_one_data_reposition(const T *buffer, T *pos[7], uint32_t n1_nodal,
-                                uint32_t n1_coeff, uint32_t n2_nodal, uint32_t n2_coeff,
-                                uint32_t n3_nodal, uint32_t n3_coeff) const {
+                                uint32_t n1_coeff, uint32_t n2_nodal,
+                                uint32_t n2_coeff, uint32_t n3_nodal,
+                                uint32_t n3_coeff) const {
     int index = 0;
     for (int i = 0; i < n1_coeff; i++) {
       for (int j = 0; j < n2_coeff; j++) {

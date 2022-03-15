@@ -7,10 +7,10 @@
 
 #include "MGARDConfig.hpp"
 #include "RuntimeX/RuntimeX.h"
-#include "proto/mgard.pb.h"
 #include "Types.h"
-#include <zlib.h>
+#include "proto/mgard.pb.h"
 #include <cstring>
+#include <zlib.h>
 
 #ifndef MGARD_X_METADATA
 #define MGARD_X_METADATA
@@ -20,17 +20,16 @@
 
 namespace mgard_x {
 
-template <typename DeviceType>
-struct Metadata {
+template <typename DeviceType> struct Metadata {
   using Mem = MemoryManager<DeviceType>;
   // about MGARD software
-  char mgard_signature[SIGNATURE_SIZE+1] = SIGNATURE;
+  char mgard_signature[SIGNATURE_SIZE + 1] = SIGNATURE;
   std::vector<char> signature;
   uint8_t software_version[3];
   uint8_t file_version[3];
   uint32_t metadata_size = 0;
   uint32_t metadata_crc32 = 0;
-  
+
   enum endiness_type etype;
 
   // about data
@@ -68,7 +67,6 @@ public:
     // return SerializeAll(total_size);
     // PrintSummary();
     return SerializeAllWithProtobuf(total_size);
-
   }
   void Deserialize(SERIALIZED_TYPE *serialized_data) {
     // DeserializeAll(serialized_data);
@@ -79,14 +77,14 @@ public:
   void PrintSummary() {
     std::cout << "=======Metadata Summary=======\n";
     std::cout << "Signature: ";
-    for (char &c : signature) std::cout << c;
+    for (char &c : signature)
+      std::cout << c;
     std::cout << "\n";
     std::cout << "MGARD version: " << (int)software_version[0] << "."
-                                   << (int)software_version[1] << "."
-                                   << (int)software_version[2] << "\n";
+              << (int)software_version[1] << "." << (int)software_version[2]
+              << "\n";
     std::cout << "File format version: " << (int)file_version[0] << "."
-                                         << (int)file_version[1] << "."
-                                         << (int)file_version[2] << "\n";
+              << (int)file_version[1] << "." << (int)file_version[2] << "\n";
     std::cout << "Metadata size: " << metadata_size << "\n";
     std::cout << "Metadata crc32: " << metadata_crc32 << "\n";
     std::cout << "Endiness: ";
@@ -108,7 +106,8 @@ public:
       std::cout << "Non-uniform Grid\n";
     }
     std::cout << "Shape: ";
-    for (uint64_t &c : shape) std::cout << c << " ";
+    for (uint64_t &c : shape)
+      std::cout << c << " ";
     std::cout << "\n";
     std::cout << "Function Decomposition: ";
     if (decomposition == decomposition_type::MultiDim) {
@@ -160,7 +159,7 @@ public:
       std::cout << "Huffman block size: " << huff_block_size << "\n";
     } else if (ltype == mgard_x::lossless_type::CPU_Lossless) {
       std::cout << "CPU_Lossless\n";
-    } 
+    }
 
     std::cout << "Backend:  ";
     if (ptype == processor_type::X_Serial) {
@@ -252,7 +251,7 @@ private:
     SERIALIZED_TYPE *serialized_data;
     Mem::Malloc1D(serialized_data, total_size, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
-        // (SERIALIZED_TYPE *)std::malloc(total_size);
+    // (SERIALIZED_TYPE *)std::malloc(total_size);
     SERIALIZED_TYPE *p = serialized_data;
 
     SerializeSignature(p);
@@ -361,7 +360,8 @@ private:
       software_version[1] = MGARD_VERSION_MINOR;
       software_version[2] = MGARD_VERSION_PATCH;
 
-      mgard::pb::VersionNumber &mgard_version_number = *header.mutable_mgard_version();
+      mgard::pb::VersionNumber &mgard_version_number =
+          *header.mutable_mgard_version();
       mgard_version_number.set_major_(MGARD_VERSION_MAJOR);
       mgard_version_number.set_minor_(MGARD_VERSION_MINOR);
       mgard_version_number.set_patch_(MGARD_VERSION_PATCH);
@@ -370,7 +370,8 @@ private:
       file_version[1] = MGARD_FILE_VERSION_MINOR;
       file_version[2] = MGARD_FILE_VERSION_PATCH;
 
-      mgard::pb::VersionNumber &format_version_number = *header.mutable_file_format_version();
+      mgard::pb::VersionNumber &format_version_number =
+          *header.mutable_file_format_version();
       mgard_version_number.set_major_(MGARD_FILE_VERSION_MAJOR);
       mgard_version_number.set_minor_(MGARD_FILE_VERSION_MINOR);
       mgard_version_number.set_patch_(MGARD_FILE_VERSION_PATCH);
@@ -379,9 +380,11 @@ private:
     { // Domain
       mgard::pb::Domain &domain = *header.mutable_domain();
       domain.set_topology(mgard::pb::Domain::CARTESIAN_GRID);
-      mgard::pb::CartesianGridTopology &cartesian_grid_topology = *domain.mutable_cartesian_grid_topology();
+      mgard::pb::CartesianGridTopology &cartesian_grid_topology =
+          *domain.mutable_cartesian_grid_topology();
       cartesian_grid_topology.set_dimension(total_dims);
-      google::protobuf::RepeatedField<google::protobuf::uint64> &shape_ = *cartesian_grid_topology.mutable_shape();
+      google::protobuf::RepeatedField<google::protobuf::uint64> &shape_ =
+          *cartesian_grid_topology.mutable_shape();
       shape_.Resize(total_dims, 0);
       std::copy(shape.begin(), shape.end(), shape_.mutable_data());
       mgard::pb::Domain::Geometry geometry;
@@ -389,15 +392,17 @@ private:
         geometry = mgard::pb::Domain::UNIT_CUBE;
       } else {
         geometry = mgard::pb::Domain::EXPLICIT_CUBE;
-        mgard::pb::ExplicitCubeGeometry &explicit_cube_geometry = *domain.mutable_explicit_cube_geometry();
-        google::protobuf::RepeatedField<double> &coordinates_ = *explicit_cube_geometry.mutable_coordinates();
+        mgard::pb::ExplicitCubeGeometry &explicit_cube_geometry =
+            *domain.mutable_explicit_cube_geometry();
+        google::protobuf::RepeatedField<double> &coordinates_ =
+            *explicit_cube_geometry.mutable_coordinates();
 
         uint64_t totel_len = 0;
-        for (DIM d = 0; d < total_dims; d++) totel_len += shape[d];
+        for (DIM d = 0; d < total_dims; d++)
+          totel_len += shape[d];
         coordinates_.Resize(totel_len, 0);
         double *p = coordinates_.mutable_data();
-        for (DIM d = 0; d < total_dims; d++) 
-        {
+        for (DIM d = 0; d < total_dims; d++) {
           std::copy(coords[d].begin(), coords[d].end(), p);
           p += shape[d];
         }
@@ -434,12 +439,15 @@ private:
     }
 
     { // Domain Decomposition
-      mgard::pb::DomainDecomposition &domainDecomposition = *header.mutable_domain_decomposition();
+      mgard::pb::DomainDecomposition &domainDecomposition =
+          *header.mutable_domain_decomposition();
       if (domain_decomposed) {
         if (ddtype == domain_decomposition_type::MaxDim) {
-          domainDecomposition.set_method(mgard::pb::DomainDecomposition::LARGEST_DIMENSION);
-        } else if (ddtype == domain_decomposition_type::Linearize){
-          domainDecomposition.set_method(mgard::pb::DomainDecomposition::LINEARIZATION);
+          domainDecomposition.set_method(
+              mgard::pb::DomainDecomposition::LARGEST_DIMENSION);
+        } else if (ddtype == domain_decomposition_type::Linearize) {
+          domainDecomposition.set_method(
+              mgard::pb::DomainDecomposition::LINEARIZATION);
         }
       } else {
         domainDecomposition.set_method(mgard::pb::DomainDecomposition::NOOP);
@@ -449,12 +457,17 @@ private:
     }
 
     { // Function Decomposition
-      mgard::pb::FunctionDecomposition &function_decomposition = *header.mutable_function_decomposition();
-      function_decomposition.set_transform(mgard::pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
+      mgard::pb::FunctionDecomposition &function_decomposition =
+          *header.mutable_function_decomposition();
+      function_decomposition.set_transform(
+          mgard::pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
       if (decomposition == decomposition_type::MultiDim) {
-        function_decomposition.set_hierarchy(mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES);
+        function_decomposition.set_hierarchy(
+            mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES);
       } else if (decomposition == decomposition_type::SingleDim) {
-        function_decomposition.set_hierarchy(mgard::pb::FunctionDecomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES);
+        function_decomposition.set_hierarchy(
+            mgard::pb::FunctionDecomposition::
+                ONE_DIM_AT_A_TIME_WITH_GHOST_NODES);
       }
       function_decomposition.set_l_target(l_target);
     }
@@ -493,7 +506,7 @@ private:
         encoding.set_huffman_block_size(huff_block_size);
       } else if (ltype == mgard_x::lossless_type::CPU_Lossless) {
         encoding.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
-      } 
+      }
     }
 
     { // Device
@@ -512,18 +525,20 @@ private:
     // Serialize protobuf
     std::vector<SERIALIZED_TYPE> header_bytes = SerializeProtoBuf(header);
     uint64_t header_size = header_bytes.size();
-    uint32_t header_crc32 = ComputeCRC32(header_bytes.data(), header_bytes.size());
+    uint32_t header_crc32 =
+        ComputeCRC32(header_bytes.data(), header_bytes.size());
 
     total_size = 0;
     total_size += SIGNATURE_SIZE;
     total_size += sizeof(uint64_t); // header size
     total_size += sizeof(uint32_t); // crc32 size
-    total_size += header_size; // header size
+    total_size += header_size;      // header size
 
     metadata_size = total_size;
-    
+
     // start serializing
-    SERIALIZED_TYPE *serialized_data; // = (SERIALIZED_TYPE *)std::malloc(total_size);
+    SERIALIZED_TYPE
+    *serialized_data; // = (SERIALIZED_TYPE *)std::malloc(total_size);
     Mem::Malloc1D(serialized_data, total_size, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
     SERIALIZED_TYPE *p = serialized_data;
@@ -553,12 +568,13 @@ private:
     metadata_size += SIGNATURE_SIZE;
     metadata_size += sizeof(uint64_t); // header size
     metadata_size += sizeof(uint32_t); // crc32 size
-    metadata_size += header_size; // header size
+    metadata_size += header_size;      // header size
 
     mgard::pb::Header header = DeserializeProtoBuf(p, header_size);
 
     { // Version Number
-      const mgard::pb::VersionNumber mgard_version_number = header.mgard_version();
+      const mgard::pb::VersionNumber mgard_version_number =
+          header.mgard_version();
       software_version[0] = mgard_version_number.major_();
       software_version[1] = mgard_version_number.minor_();
       software_version[2] = mgard_version_number.patch_();
@@ -567,7 +583,8 @@ private:
         exit(-1);
       }
 
-      const mgard::pb::VersionNumber format_version_number = header.file_format_version();
+      const mgard::pb::VersionNumber format_version_number =
+          header.file_format_version();
       file_version[0] = format_version_number.major_();
       file_version[1] = format_version_number.minor_();
       file_version[2] = format_version_number.patch_();
@@ -579,11 +596,14 @@ private:
 
     { // Domain
       const mgard::pb::Domain &domain = header.domain();
-      const mgard::pb::CartesianGridTopology cartesian_grid_topology = domain.cartesian_grid_topology();
+      const mgard::pb::CartesianGridTopology cartesian_grid_topology =
+          domain.cartesian_grid_topology();
       total_dims = cartesian_grid_topology.dimension();
-      const google::protobuf::RepeatedField<google::protobuf::uint64> shape_ = cartesian_grid_topology.shape();
+      const google::protobuf::RepeatedField<google::protobuf::uint64> shape_ =
+          cartesian_grid_topology.shape();
       if (total_dims != shape_.size()) {
-        std::cout << log::log_err << "grid shape does not match given dimension.\n";
+        std::cout << log::log_err
+                  << "grid shape does not match given dimension.\n";
         exit(-1);
       }
       shape = std::vector<uint64_t>(total_dims);
@@ -592,14 +612,19 @@ private:
       const mgard::pb::Domain::Geometry geometry = domain.geometry();
       if (geometry == mgard::pb::Domain::UNIT_CUBE) {
         dstype = data_structure_type::Cartesian_Grid_Uniform;
-      } else if (geometry == mgard::pb::Domain::EXPLICIT_CUBE){
+      } else if (geometry == mgard::pb::Domain::EXPLICIT_CUBE) {
         dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
-        const mgard::pb::ExplicitCubeGeometry explicit_cube_geometry = domain.explicit_cube_geometry();
-        const google::protobuf::RepeatedField<double> coordinates = explicit_cube_geometry.coordinates();
+        const mgard::pb::ExplicitCubeGeometry explicit_cube_geometry =
+            domain.explicit_cube_geometry();
+        const google::protobuf::RepeatedField<double> coordinates =
+            explicit_cube_geometry.coordinates();
         uint64_t totel_len = 0;
-        for (DIM d = 0; d < total_dims; d++) totel_len += shape[d];
+        for (DIM d = 0; d < total_dims; d++)
+          totel_len += shape[d];
         if (totel_len != coordinates.size()) {
-          std::cout << log::log_err << "mismatch between number of node coordinates and grid shape.\n";
+          std::cout << log::log_err
+                    << "mismatch between number of node coordinates and grid "
+                       "shape.\n";
           exit(-1);
         }
         using It = google::protobuf::RepeatedField<double>::const_iterator;
@@ -645,12 +670,16 @@ private:
     }
 
     { // Domain Decomposition
-      const mgard::pb::DomainDecomposition domainDecomposition = header.domain_decomposition();
-      if (domainDecomposition.method() != mgard::pb::DomainDecomposition::NOOP) {
+      const mgard::pb::DomainDecomposition domainDecomposition =
+          header.domain_decomposition();
+      if (domainDecomposition.method() !=
+          mgard::pb::DomainDecomposition::NOOP) {
         domain_decomposed = true;
-        if (domainDecomposition.method() == mgard::pb::DomainDecomposition::LARGEST_DIMENSION) {
+        if (domainDecomposition.method() ==
+            mgard::pb::DomainDecomposition::LARGEST_DIMENSION) {
           ddtype = domain_decomposition_type::MaxDim;
-        } else if (domainDecomposition.method() == mgard::pb::DomainDecomposition::LINEARIZATION) {
+        } else if (domainDecomposition.method() ==
+                   mgard::pb::DomainDecomposition::LINEARIZATION) {
           ddtype = domain_decomposition_type::Linearize;
         }
 
@@ -662,14 +691,21 @@ private:
     }
 
     { // Function Decomposition
-      const mgard::pb::FunctionDecomposition function_decomposition = header.function_decomposition();
-      assert(decomposition_.transform() == mgard::pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
-      if (function_decomposition.hierarchy() == mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES) {
+      const mgard::pb::FunctionDecomposition function_decomposition =
+          header.function_decomposition();
+      assert(decomposition_.transform() ==
+             mgard::pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
+      if (function_decomposition.hierarchy() ==
+          mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES) {
         decomposition = decomposition_type::MultiDim;
-      } else if (function_decomposition.hierarchy() == mgard::pb::FunctionDecomposition::ONE_DIM_AT_A_TIME_WITH_GHOST_NODES) {
+      } else if (function_decomposition.hierarchy() ==
+                 mgard::pb::FunctionDecomposition::
+                     ONE_DIM_AT_A_TIME_WITH_GHOST_NODES) {
         decomposition = decomposition_type::SingleDim;
       } else {
-        std::cout << log::log_err << "this decomposition hierarchy mismatch the hierarchy used in MGARD-X.\n";
+        std::cout << log::log_err
+                  << "this decomposition hierarchy mismatch the hierarchy used "
+                     "in MGARD-X.\n";
         exit(-1);
       }
       l_target = function_decomposition.l_target();
@@ -677,8 +713,10 @@ private:
 
     { // Quantization
       const mgard::pb::Quantization quantization = header.quantization();
-      assert(quantization.method() == mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
-      assert(quantization.bin_widths() == mgard::pb::Quantization::PER_COEFFICIENT);
+      assert(quantization.method() ==
+             mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
+      assert(quantization.bin_widths() ==
+             mgard::pb::Quantization::PER_COEFFICIENT);
       assert(quantization.type() == mgard::pb::Quantization::INT64_T);
       assert(quantization.big_endian() == big_endian<std::int64_t>());
       if (big_endian<std::int64_t>()) {
@@ -707,14 +745,15 @@ private:
         ltype = mgard_x::lossless_type::Huffman_Zstd;
         huff_dict_size = encoding.huffman_dictionary_size();
         huff_block_size = encoding.huffman_block_size();
-      } else if (encoding.compressor() == mgard::pb::Encoding::CPU_HUFFMAN_ZSTD) {
+      } else if (encoding.compressor() ==
+                 mgard::pb::Encoding::CPU_HUFFMAN_ZSTD) {
         ltype = mgard_x::lossless_type::CPU_Lossless;
       } else {
         std::cout << log::log_err << "unknown lossless compressor type.\n";
         exit(-1);
       }
     }
-    
+
     { // Device
       const mgard::pb::Device device = header.device();
       if (device.backend() == mgard::pb::Device::X_SERIAL) {
@@ -726,7 +765,8 @@ private:
       } else if (device.backend() == mgard::pb::Device::X_SYCL) {
         ptype = processor_type::X_SYCL;
       } else if (device.backend() == mgard::pb::Device::CPU) {
-        std::cout << log::log_err << "this data was not compressed with MGARD-X.\n";
+        std::cout << log::log_err
+                  << "this data was not compressed with MGARD-X.\n";
         exit(-1);
       }
     }
@@ -737,13 +777,13 @@ private:
       T in = item;
       for (int i = 0; i < sizeof(T); i++) {
         // *(p + i) = in;
-        Mem::Copy1D(p + i, (SERIALIZED_TYPE*)&in, 1, 0);
+        Mem::Copy1D(p + i, (SERIALIZED_TYPE *)&in, 1, 0);
         DeviceRuntime<DeviceType>::SyncQueue(0);
         in = in >> 8;
       }
     } else {
-      // std::memcpy(p, &item, sizeof(item)); 
-      Mem::Copy1D((T*)p, &item, 1, 0);
+      // std::memcpy(p, &item, sizeof(item));
+      Mem::Copy1D((T *)p, &item, 1, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
     }
     p += sizeof(item);
@@ -763,7 +803,7 @@ private:
       item = out;
     } else {
       // std::memcpy(&item, p, sizeof(item));
-      Mem::Copy1D(&item, (T*)p, 1, 0);
+      Mem::Copy1D(&item, (T *)p, 1, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
     }
     p += sizeof(item);
@@ -788,13 +828,13 @@ private:
     }
   }
 
-  void SerializeShape(std::vector<uint64_t>& shape, SERIALIZED_TYPE *&p) {
+  void SerializeShape(std::vector<uint64_t> &shape, SERIALIZED_TYPE *&p) {
     for (size_t d = 0; d < shape.size(); d++) {
       Serialize(shape[d], p);
     }
   }
 
-  void DeserializeShape(std::vector<uint64_t>& shape, SERIALIZED_TYPE *&p) {
+  void DeserializeShape(std::vector<uint64_t> &shape, SERIALIZED_TYPE *&p) {
     shape = std::vector<uint64_t>(total_dims);
     for (size_t d = 0; d < shape.size(); d++) {
       Deserialize(shape[d], p);
@@ -802,7 +842,7 @@ private:
   }
 
   void SerializeCoords(std::vector<std::vector<double>> &coords,
-                 SERIALIZED_TYPE *&p) {
+                       SERIALIZED_TYPE *&p) {
     for (size_t d = 0; d < coords.size(); d++) {
       for (size_t i = 0; i < shape[d]; i++) {
         Serialize(coords[d][i], p);
@@ -810,7 +850,7 @@ private:
     }
   }
 
-  void DeserializeCoords(std::vector<std::vector<double>> &coords, 
+  void DeserializeCoords(std::vector<std::vector<double>> &coords,
                          SERIALIZED_TYPE *&p) {
     coords = std::vector<std::vector<double>>(total_dims);
     for (size_t d = 0; d < total_dims; d++) {
@@ -827,41 +867,46 @@ private:
     }
   }
 
-  void DeserializeBytes(std::vector<SERIALIZED_TYPE>& data, size_t size, SERIALIZED_TYPE *&p) {
+  void DeserializeBytes(std::vector<SERIALIZED_TYPE> &data, size_t size,
+                        SERIALIZED_TYPE *&p) {
     data = std::vector<SERIALIZED_TYPE>(size);
     for (size_t i = 0; i < data.size(); i++) {
       Deserialize(data[i], p);
     }
   }
 
-  uint32_t ComputeCRC32(SERIALIZED_TYPE* data, size_t size) {
+  uint32_t ComputeCRC32(SERIALIZED_TYPE *data, size_t size) {
     // `crc32_z` takes a `z_size_t`.
     if (size > std::numeric_limits<z_size_t>::max()) {
-      std::cout << log::log_err << "buffer is too large (size would overflow.\n";
+      std::cout << log::log_err
+                << "buffer is too large (size would overflow.\n";
     }
     uLong crc32_ = crc32_z(0, Z_NULL, 0);
     crc32_ = crc32_z(crc32_, static_cast<const Bytef *>(data), size);
     return crc32_;
   }
 
-  std::vector<SERIALIZED_TYPE> SerializeProtoBuf(mgard::pb::Header& header) {
+  std::vector<SERIALIZED_TYPE> SerializeProtoBuf(mgard::pb::Header &header) {
     size_t header_size = header.ByteSize();
     std::vector<SERIALIZED_TYPE> header_bytes(header_size);
     header.SerializeToArray(header_bytes.data(), header_size);
     return header_bytes;
-
   }
 
-  mgard::pb::Header DeserializeProtoBuf(SERIALIZED_TYPE * header_bytes, uint64_t header_size) {
+  mgard::pb::Header DeserializeProtoBuf(SERIALIZED_TYPE *header_bytes,
+                                        uint64_t header_size) {
     // The `CodedInputStream` constructor takes an `int`.
     if (header_size > std::numeric_limits<int>::max()) {
-      std::cout << log::log_err << "header is too large (size would overflow).\n";
+      std::cout << log::log_err
+                << "header is too large (size would overflow).\n";
     }
     mgard::pb::Header header;
     google::protobuf::io::CodedInputStream stream(
-        static_cast<google::protobuf::uint8 const *>(header_bytes), header_size);
+        static_cast<google::protobuf::uint8 const *>(header_bytes),
+        header_size);
     if (not header.ParseFromCodedStream(&stream)) {
-      throw std::runtime_error("header parsing encountered read or format error");
+      throw std::runtime_error(
+          "header parsing encountered read or format error");
     }
     if (not stream.ConsumedEntireMessage()) {
       throw std::runtime_error("part of header left unparsed");
@@ -875,7 +920,6 @@ private:
     const Int n = 1;
     return not*reinterpret_cast<unsigned char const *>(&n);
   }
-
 };
 
 bool verify(const void *compressed_data, size_t compressed_size);

@@ -106,10 +106,11 @@ public:
   void print() const { std::cout << "Blocked interleaver" << std::endl; }
 
 private:
-  uint32_t collect_data_3d_blocked(const T *data, const uint32_t n1, const uint32_t n2,
-                               const uint32_t n3, const uint32_t dim0_offset,
-                               const uint32_t dim1_offset, const int block_size,
-                               T *buffer) const {
+  uint32_t collect_data_3d_blocked(const T *data, const uint32_t n1,
+                                   const uint32_t n2, const uint32_t n3,
+                                   const uint32_t dim0_offset,
+                                   const uint32_t dim1_offset,
+                                   const int block_size, T *buffer) const {
     uint32_t num_block_1 = (n1 - 1) / block_size + 1;
     uint32_t num_block_2 = (n2 - 1) / block_size + 1;
     uint32_t num_block_3 = (n3 - 1) / block_size + 1;
@@ -143,10 +144,11 @@ private:
     }
     return index;
   }
-  uint32_t reposition_data_3d_blocked(const T *buffer, const uint32_t n1, const uint32_t n2,
-                                  const uint32_t n3, const uint32_t dim0_offset,
-                                  const uint32_t dim1_offset, const int block_size,
-                                  T *data) const {
+  uint32_t reposition_data_3d_blocked(const T *buffer, const uint32_t n1,
+                                      const uint32_t n2, const uint32_t n3,
+                                      const uint32_t dim0_offset,
+                                      const uint32_t dim1_offset,
+                                      const int block_size, T *data) const {
     uint32_t num_block_1 = (n1 - 1) / block_size + 1;
     uint32_t num_block_2 = (n2 - 1) / block_size + 1;
     uint32_t num_block_3 = (n3 - 1) / block_size + 1;
@@ -180,7 +182,6 @@ private:
     }
     return index;
   }
-
 };
 } // namespace MDR
 #endif

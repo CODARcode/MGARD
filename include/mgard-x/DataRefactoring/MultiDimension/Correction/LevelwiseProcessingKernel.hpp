@@ -72,7 +72,6 @@ public:
     }
   }
 
-
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
     return size;
@@ -91,8 +90,8 @@ public:
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>>
-  GenTask(SubArray<D, T, DeviceType> v,
-          SubArray<D, T, DeviceType> work, int queue_idx) {
+  GenTask(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
+          int queue_idx) {
     using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;
     FunctorType functor(v, work);
 
@@ -143,7 +142,7 @@ public:
     const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
     using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;         \
     using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(v, work, queue_idx);               \
+    TaskType task = GenTask<R, C, F>(v, work, queue_idx);                      \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
     ExecutionReturn ret = adapter.Execute(task);                               \
     if (AutoTuner<DeviceType>::ProfileKernels) {                               \

@@ -30,7 +30,8 @@ namespace mgard_x {
 namespace MDR {
 namespace concepts {
 // concept of encoder which encodes T type data into bitstreams
-template <typename T_data, typename T_bitplane, typename T_error, typename DeviceType>
+template <typename T_data, typename T_bitplane, typename T_error,
+          typename DeviceType>
 class BitplaneEncoderInterface {
 public:
   virtual ~BitplaneEncoderInterface() = default;
@@ -43,14 +44,14 @@ public:
 
   virtual Array<1, T_data, DeviceType>
   decode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-         int level, int queue_idx) = 0;
+         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
+         int queue_idx) = 0;
 
-  virtual Array<1, T_data, DeviceType> progressive_decode(
-      SIZE n, SIZE starting_bitplanes,
-      SIZE num_bitplanes, int32_t exp,
-      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-      int level, int queue_idx) = 0;
+  virtual Array<1, T_data, DeviceType>
+  progressive_decode(SIZE n, SIZE starting_bitplanes, SIZE num_bitplanes,
+                     int32_t exp,
+                     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                     int level, int queue_idx) = 0;
 
   virtual SIZE buffer_size(SIZE n) const = 0;
 

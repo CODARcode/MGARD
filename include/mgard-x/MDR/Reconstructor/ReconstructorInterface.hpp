@@ -22,7 +22,7 @@ public:
 } // namespace concepts
 } // namespace MDR
 
-namespace mgard_x{
+namespace mgard_x {
 namespace MDR {
 namespace concepts {
 

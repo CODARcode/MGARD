@@ -36,11 +36,13 @@ public:
     std::vector<std::vector<double>> level_abs_errors;
     uint8_t target_level = level_error_bounds.size() - 1;
     std::vector<std::vector<double>> &level_errors = level_squared_errors;
-    if (std::is_base_of<mgard_x::MDR::MaxErrorEstimator<T>, ErrorEstimator>::value) {
+    if (std::is_base_of<mgard_x::MDR::MaxErrorEstimator<T>,
+                        ErrorEstimator>::value) {
       std::cout << "ErrorEstimator is base of MaxErrorEstimator, computing "
                    "absolute error"
                 << std::endl;
-      mgard_x::MDR::MaxErrorCollector<T> collector = mgard_x::MDR::MaxErrorCollector<T>();
+      mgard_x::MDR::MaxErrorCollector<T> collector =
+          mgard_x::MDR::MaxErrorCollector<T>();
       for (int i = 0; i <= target_level; i++) {
         auto collected_error = collector.collect_level_error(
             NULL, 0, level_squared_errors[i].size(), level_error_bounds[i]);
@@ -219,17 +221,18 @@ namespace mgard_x {
 namespace MDR {
 // a decomposition-based scientific data reconstructor: inverse operator of
 // composed refactor
-template <DIM D, typename T_data,
-          typename T_bitplane, class Decomposer, class Interleaver,
-          class Encoder, class Compressor, class SizeInterpreter,
-          class ErrorEstimator, class Retriever, typename DeviceType>
+template <DIM D, typename T_data, typename T_bitplane, class Decomposer,
+          class Interleaver, class Encoder, class Compressor,
+          class SizeInterpreter, class ErrorEstimator, class Retriever,
+          typename DeviceType>
 class ComposedReconstructor
-    : public concepts::ReconstructorInterface<D, T_data, T_bitplane, DeviceType> {
+    : public concepts::ReconstructorInterface<D, T_data, T_bitplane,
+                                              DeviceType> {
 public:
-  ComposedReconstructor(Hierarchy<D, T_data, DeviceType> &hierarchy, Decomposer decomposer,
-                        Interleaver interleaver, Encoder encoder,
-                        Compressor compressor, SizeInterpreter interpreter,
-                        Retriever retriever)
+  ComposedReconstructor(Hierarchy<D, T_data, DeviceType> &hierarchy,
+                        Decomposer decomposer, Interleaver interleaver,
+                        Encoder encoder, Compressor compressor,
+                        SizeInterpreter interpreter, Retriever retriever)
       : hierarchy(hierarchy), decomposer(decomposer), interleaver(interleaver),
         encoder(encoder), compressor(compressor), interpreter(interpreter),
         retriever(retriever) {
@@ -317,10 +320,10 @@ public:
 
     // PrintSubarray("curr_data_array", SubArray(curr_data_array));
 
-    LwpkReo<D, T_data, ADD, DeviceType>().Execute(SubArray<D, T_data, DeviceType>(curr_data_array),
-                                       SubArray<D, T_data, DeviceType>(data_array), 0);
+    LwpkReo<D, T_data, ADD, DeviceType>().Execute(
+        SubArray<D, T_data, DeviceType>(curr_data_array),
+        SubArray<D, T_data, DeviceType>(data_array), 0);
 
-  
     // PrintSubarray("data_array", SubArray(data_array));
     return data_array.hostCopy(true);
 
@@ -391,12 +394,17 @@ private:
     std::vector<std::vector<Array<1, Byte, DeviceType>>> compressed_bitplanes;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       compressed_bitplanes.push_back(std::vector<Array<1, Byte, DeviceType>>());
-      int num_bitplanes = level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
+      int num_bitplanes =
+          level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
       for (int bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
-        SIZE size = level_sizes[level_idx][prev_level_num_bitplanes[level_idx] + bitplane_idx];
-        // printf("level: %d, bitplane_idx: %d, size: %u\n", level_idx, bitplane_idx, size);
-        compressed_bitplanes[level_idx].push_back(Array<1, Byte, DeviceType>({size}));
-        compressed_bitplanes[level_idx][bitplane_idx].load(level_components[level_idx][bitplane_idx]);
+        SIZE size = level_sizes[level_idx][prev_level_num_bitplanes[level_idx] +
+                                           bitplane_idx];
+        // printf("level: %d, bitplane_idx: %d, size: %u\n", level_idx,
+        // bitplane_idx, size);
+        compressed_bitplanes[level_idx].push_back(
+            Array<1, Byte, DeviceType>({size}));
+        compressed_bitplanes[level_idx][bitplane_idx].load(
+            level_components[level_idx][bitplane_idx]);
       }
     }
 
@@ -420,16 +428,20 @@ private:
     // auto level_elements = compute_level_elements(level_dims, target_level);
     // std::vector<uint32_t> dims_dummy(reconstruct_dimensions.size(), 0);
 
-    Array<1, T_data, DeviceType> *levels_array = new Array<1, T_data, DeviceType>[target_level + 1];
-    SubArray<1, T_data, DeviceType> *levels_data = new SubArray<1, T_data, DeviceType>[target_level + 1];
+    Array<1, T_data, DeviceType> *levels_array =
+        new Array<1, T_data, DeviceType>[target_level + 1];
+    SubArray<1, T_data, DeviceType> *levels_data =
+        new SubArray<1, T_data, DeviceType>[target_level + 1];
 
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       timer.start();
       // compressor.decompress_level(level_components[i], level_sizes[i],
       // prev_level_num_bitplanes[i], level_num_bitplanes[i] -
       // prev_level_num_bitplanes[i], stopping_indices[i]);
-      SIZE num_bitplanes = level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
-      Array<2, T_bitplane, DeviceType> encoded_bitplanes({num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
+      SIZE num_bitplanes =
+          level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
+      Array<2, T_bitplane, DeviceType> encoded_bitplanes(
+          {num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
 
       compressor.decompress_level(
           level_sizes[level_idx], compressed_bitplanes[level_idx],
@@ -448,27 +460,27 @@ private:
       levels_array[level_idx] = encoder.progressive_decode(
           level_num_elems[level_idx], prev_level_num_bitplanes[level_idx],
           num_bitplanes, level_exp,
-          SubArray<2, T_bitplane, DeviceType>(encoded_bitplanes),
-          level_idx, queue_idx);
+          SubArray<2, T_bitplane, DeviceType>(encoded_bitplanes), level_idx,
+          queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-      levels_data[level_idx] = SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
+      levels_data[level_idx] =
+          SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
       compressor.decompress_release();
       timer.end();
       timer.print("Decoding");
     }
 
     timer.start();
-    interleaver.reposition(
-        levels_data, SubArray<D, T_data, DeviceType>(data_array), target_level + 1,
-        queue_idx);
+    interleaver.reposition(levels_data,
+                           SubArray<D, T_data, DeviceType>(data_array),
+                           target_level + 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Reposition");
 
     timer.start();
-    decomposer.recompose(
-        SubArray<D, T_data, DeviceType>(data_array), target_level,
-        queue_idx);
+    decomposer.recompose(SubArray<D, T_data, DeviceType>(data_array),
+                         target_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Recomposing");

@@ -284,9 +284,9 @@ public:
 };
 } // namespace mgard_x
 
-#include "AutoTunerSerial.h"
 #include "AutoTunerCuda.h"
 #include "AutoTunerHip.h"
 #include "AutoTunerKokkos.h"
+#include "AutoTunerSerial.h"
 
 #endif
