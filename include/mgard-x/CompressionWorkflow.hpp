@@ -41,6 +41,9 @@
 // #include "../cuda/DataRefactoring.h"
 // #include "../cuda/SubArray.h"
 
+#ifndef MGARD_X_COMPRESSION_WORKFLOW_HPP
+#define MGARD_X_COMPRESSION_WORKFLOW_HPP
+
 #define BLOCK_SIZE 64
 
 using namespace std::chrono;
@@ -607,3 +610,5 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
 }
 
 } // namespace mgard_x
+
+#endif

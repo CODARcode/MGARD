@@ -12,7 +12,6 @@ template <typename T_data, typename T_stream>
 class GroupedBPEncoder : public concepts::BitplaneEncoderInterface<T_data> {
 public:
   GroupedBPEncoder() {
-    std::cout << "GroupedBPEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
     static_assert(!std::is_same<T_data, long double>::value,

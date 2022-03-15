@@ -897,6 +897,139 @@ public:
   static bool ReduceMemoryFootprint;
 };
 
+
+#define ALIGN_LEFT 0  // for encoding
+#define ALIGN_RIGHT 1 // for decoding
+
+#define Sign_Encoding_Atomic 0
+#define Sign_Encoding_Reduce 1
+#define Sign_Encoding_Ballot 2
+
+#define Sign_Decoding_Parallel 0
+
+#define BINARY 0
+#define NEGABINARY 1
+
+#define Bit_Transpose_Serial_All 0
+#define Bit_Transpose_Parallel_B_Serial_b 1
+#define Bit_Transpose_Parallel_B_Atomic_b 2
+#define Bit_Transpose_Parallel_B_Reduce_b 3
+#define Bit_Transpose_Parallel_B_Ballot_b 4
+#define Bit_Transpose_TCU 5
+
+#define Warp_Bit_Transpose_Serial_All 0
+#define Warp_Bit_Transpose_Parallel_B_Serial_b 1
+#define Warp_Bit_Transpose_Serial_B_Atomic_b 2
+#define Warp_Bit_Transpose_Serial_B_Reduce_b 3
+#define Warp_Bit_Transpose_Serial_B_Ballot_b 4
+#define Warp_Bit_Transpose_TCU 5
+
+#define Error_Collecting_Disable -1
+#define Error_Collecting_Serial_All 0
+#define Error_Collecting_Parallel_Bitplanes_Serial_Error 1
+#define Error_Collecting_Parallel_Bitplanes_Atomic_Error 2
+#define Error_Collecting_Parallel_Bitplanes_Reduce_Error 3
+
+#define Warp_Error_Collecting_Disable -1
+#define Warp_Error_Collecting_Serial_All 0
+#define Warp_Error_Collecting_Parallel_Bitplanes_Serial_Error 1
+#define Warp_Error_Collecting_Serial_Bitplanes_Atomic_Error 2
+#define Warp_Error_Collecting_Serial_Bitplanes_Reduce_Error 3
+
+typedef unsigned long long int uint64_cu;
+
+template <typename T_org, typename T_trans, SIZE nblockx, SIZE nblocky,
+          SIZE nblockz, OPTION ALIGN, OPTION METHOD>
+struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
+                         METHOD, Serial> {
+
+  MGARDX_EXEC
+  static void Serial_All(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX, SIZE IdY) {
+    if (IdX == 0 && IdY == 0) {
+      // printf("add-in: %llu %u\n", v, v[0]);
+      // for (int i = 0; i < b; i++) {
+      //   printf("v: %u\n", v[i]);
+      // }
+      for (SIZE B_idx = 0; B_idx < B; B_idx++) {
+        T_trans buffer = 0;
+        for (SIZE b_idx = 0; b_idx < b; b_idx++) {
+          T_trans bit = (v[b_idx] >> (sizeof(T_org) * 8 - 1 - B_idx)) & 1u;
+          if (ALIGN == ALIGN_LEFT) {
+            buffer += bit << (sizeof(T_trans) * 8 - 1 - b_idx);
+            // if (B_idx == 0) {
+            // printf("%u %u %u\n", B_idx, b_idx, bit);
+            // print_bits(buffer, sizeof(T_trans)*8, false);
+            // printf("\n");
+            // }
+          } else if (ALIGN == ALIGN_RIGHT) {
+            buffer += bit << (b - 1 - b_idx);
+            // if (b_idx == 0) printf("%u %u %u\n", B_idx, b_idx, bit);
+          } else {
+          }
+          // if (j == 0 ) {printf("i %u j %u shift %u bit %u\n", i,j,b-1-j,
+          // bit); }
+        }
+
+        // printf("buffer: %u\n", buffer);
+
+        tv[B_idx] = buffer;
+      }
+    }
+  }
+
+  MGARDX_EXEC
+  static void Transpose(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX, SIZE IdY) {
+    Serial_All(v, tv, b, B, IdX, IdY);
+  }
+};
+
+template <typename T, typename T_fp, typename T_sfp, typename T_error,
+          SIZE nblockx, SIZE nblocky, SIZE nblockz, OPTION METHOD,
+          OPTION BinaryType>
+struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, METHOD,
+                    BinaryType, Serial> {
+
+  MGARDX_EXEC
+  static void Serial_All(T *v, T_error *temp, T_error *errors, SIZE num_elems,
+                  SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
+    if (IdX == 0 && IdY == 0) {
+      for (SIZE elem_idx = 0; elem_idx < num_elems; elem_idx++) {
+        T data = v[elem_idx];
+        T_fp fp_data = (T_fp)fabs(data);
+        T_sfp fps_data = (T_sfp)data;
+        T_fp ngb_data = Math<Serial>::binary2negabinary(fps_data);
+        T_error mantissa;
+        if (BinaryType == BINARY) {
+          mantissa = fabs(data) - fp_data;
+        } else if (BinaryType == NEGABINARY) {
+          mantissa = data - fps_data;
+        }
+        for (SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes;
+             bitplane_idx++) {
+          uint64_t mask = (1 << bitplane_idx) - 1;
+          T_error diff = 0;
+          if (BinaryType == BINARY) {
+            diff = (T_error)(fp_data & mask) + mantissa;
+          } else if (BinaryType == NEGABINARY) {
+            diff = (T_error)Math<Serial>::negabinary2binary(ngb_data & mask) + mantissa;
+          }
+          errors[num_bitplanes - bitplane_idx] += diff * diff;
+          // if (blockIdx.x == 0 && num_bitplanes-bitplane_idx == 2) {
+          //   printf("elem error[%u]: %f\n", elem_idx, diff * diff);
+          // }
+        }
+        errors[0] += data * data;
+      }
+    }
+  }
+
+  MGARDX_EXEC
+  static void Collect(T *v, T_error *temp, T_error *errors, SIZE num_elems,
+               SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
+    Serial_All(v, temp, errors, num_elems, num_bitplanes, IdX, IdY);
+  }
+};
+
 template <typename TaskTypeType> class DeviceAdapter<TaskTypeType, Serial> {
 public:
   MGARDX_CONT
@@ -968,7 +1101,7 @@ public:
   template <typename T>
   MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, Serial> &v,
                               SubArray<1, T, Serial> &result, int queue_idx) {
-    *result((IDX)0) = std::accumulate(v(0), v(n), 0);
+    *result((IDX)0) = std::accumulate(v((IDX)0), v((IDX)n), 0);
   }
 
   template <typename T>

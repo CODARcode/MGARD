@@ -6,10 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
-// #include "utils.hpp"
-// #include "mgard/mgard-x/MDR/Reconstructor/Reconstructor.hpp"
-// #include "evaluate.hpp"
-#include "mgard/compress_x_mdr.hpp"
+#include "mgard/mdr_x.hpp"
 
 using namespace std;
 

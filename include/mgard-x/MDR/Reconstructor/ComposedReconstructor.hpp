@@ -400,7 +400,7 @@ private:
       }
     }
 
-    printf("level_num_elems: ");
+    // printf("level_num_elems: ");
     std::vector<SIZE> level_num_elems(target_level + 1);
     SIZE prev_num_elems = 0;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
@@ -410,9 +410,9 @@ private:
       }
       level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
       prev_num_elems = curr_num_elems;
-      printf("%u ", level_num_elems[level_idx]);
+      // printf("%u ", level_num_elems[level_idx]);
     }
-    printf("\n");
+    // printf("\n");
 
     timer.end();
     timer.print("Reconstruct Preprocessing");

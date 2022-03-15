@@ -1302,7 +1302,7 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, MET
   MGARDX_EXEC
   static void Parallel_Bitplanes_Serial_Error(T *v, T_error *temp, T_error *errors,
                                        SIZE num_elems, SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
-    SIZE bitplane_idx = IdY * blockDim.x + IdX;
+    SIZE bitplane_idx = IdY * nblockx + IdX;
     if (bitplane_idx < num_bitplanes) {
       for (SIZE elem_idx = 0; elem_idx < num_elems; elem_idx++) {
         T data = v[elem_idx];
@@ -1337,9 +1337,9 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, MET
   static void Parallel_Bitplanes_Atomic_Error(T *v, T_error *temp, T_error *errors,
                                        SIZE num_elems, SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
     for (SIZE elem_idx = IdX; elem_idx < num_elems;
-         elem_idx += blockDim.x) {
+         elem_idx += nblockx) {
       for (SIZE bitplane_idx = IdY; bitplane_idx < num_bitplanes;
-           bitplane_idx += blockDim.y) {
+           bitplane_idx += nblocky) {
         T data = v[elem_idx];
         T_fp fp_data = (T_fp)fabs(v[elem_idx]);
         T_sfp fps_data = (T_sfp)data;
@@ -1372,7 +1372,7 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, MET
     //     }
     // }
     for (SIZE bitplane_idx = IdY; bitplane_idx < num_bitplanes + 1;
-         bitplane_idx += blockDim.y) {
+         bitplane_idx += nblocky) {
       for (SIZE elem_idx = IdX;
            elem_idx < ((num_elems - 1) / 32 + 1) * 32; elem_idx += 32) {
         T_error error = 0;
@@ -1389,9 +1389,9 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, MET
   static void Parallel_Bitplanes_Reduce_Error(T *v, T_error *temp, T_error *errors,
                                        SIZE num_elems, SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
     for (SIZE elem_idx = IdX; elem_idx < num_elems;
-         elem_idx += blockDim.x) {
+         elem_idx += nblockx) {
       for (SIZE bitplane_idx = IdY; bitplane_idx < num_bitplanes;
-           bitplane_idx += blockDim.y) {
+           bitplane_idx += nblocky) {
         T data = v[elem_idx];
         T_fp fp_data = (T_fp)fabs(v[elem_idx]);
         T_sfp fps_data = (T_sfp)data;
@@ -1433,7 +1433,7 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz, MET
     __shared__ WarpReduceStorageType warp_storage[nblocky];
 
     for (SIZE bitplane_idx = IdY; bitplane_idx < num_bitplanes + 1;
-         bitplane_idx += blockDim.y) {
+         bitplane_idx += nblocky) {
       T error_sum = 0;
       for (SIZE elem_idx = IdX;
            elem_idx < ((num_elems - 1) / 32 + 1) * 32; elem_idx += 32) {
