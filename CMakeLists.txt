@@ -35,7 +35,6 @@ option(MGARD_ENABLE_DOCS "Build documentation." OFF)
 
 option(MGARD_ENABLE_OPENMP "Enable OpenMP support." OFF)
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
-option(MGARD_ENABLE_CUDA_FMA "Enable CUDA support with fused multiply–add instruction." OFF)
 option(MGARD_ENABLE_SERIAL "Enable SERIAL support" ON)
 option(MGARD_ENABLE_HIP "Enable HIP support" OFF)
 
@@ -90,6 +89,9 @@ if (MGARD_ENABLE_SERIAL OR
     MGARD_ENABLE_CUDA   OR
     MGARD_ENABLE_HIP    )
 
+  set (CMAKE_CXX_STANDARD 17)
+  set (CMAKE_CXX_STANDARD_REQUIRED ON)
+  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
   add_subdirectory (src/mgard-x)
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)
@@ -115,10 +117,7 @@ endif()
 add_library(mgard-library)
 
 if(MGARD_ENABLE_SERIAL)
-  set (CMAKE_CXX_STANDARD 17)
-  set (CMAKE_CXX_STANDARD_REQUIRED ON)
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_SERIAL)
-  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
   set_source_files_properties(${MGARD_X_SERIAL_SRC} PROPERTIES LANGUAGE CXX)
 endif()
 
@@ -131,8 +130,6 @@ if(MGARD_ENABLE_CUDA)
 
   find_package(nvcomp REQUIRED)
   find_package(CUDAToolkit REQUIRED)
-  set (CMAKE_CXX_STANDARD 17)
-  set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
   # Legacy CUDA version
   add_subdirectory (src/cuda)
@@ -148,10 +145,6 @@ if(MGARD_ENABLE_CUDA)
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)
 
-  if(MGARD_ENABLE_CUDA_FMA)
-    target_compile_definitions(mgard-library PUBLIC MGARD_X_FMA)
-    target_compile_definitions(mgard-library PUBLIC MGARD_CUDA_FMA)
-  endif()
   set_source_files_properties(${MGARD_X_CUDA_SRC} PROPERTIES LANGUAGE CUDA)
 endif()
 
@@ -159,17 +152,7 @@ endif()
 if (MGARD_ENABLE_HIP) 
   find_package(HIP REQUIRED)
   enable_language(HIP)
-  set (CMAKE_CXX_STANDARD 17)
-  set (CMAKE_CXX_STANDARD_REQUIRED ON)
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_HIP)
-  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
-endif()
-
-if (MGARD_ENABLE_KOKKOS)
-  find_package(Kokkos REQUIRED)
-  set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
-         CUDA_SEPARABLE_COMPILATION ON)
-  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
   set (CMAKE_HIP_FLAGS  "${CMAKE_HIP_FLAGS} -w")
   set_source_files_properties(${MGARD_X_HIP_SRC} PROPERTIES LANGUAGE HIP)
 endif()
