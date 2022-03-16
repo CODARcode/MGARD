@@ -9,6 +9,9 @@ set(
 	"examples/linking/README.md"
 	"examples/compression/README.md"
 	"examples/decompression/README.md"
+	"examples/mgard-x/HighLevelAPIs/README.md"
+	"examples/mgard-x/LowLevelAPIs/README.md"
+	"examples/mgard-x/MDR/README.md"
 )
 
 find_program(DOXYGEN NAMES "doxygen")

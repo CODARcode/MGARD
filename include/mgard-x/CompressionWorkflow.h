@@ -5,8 +5,8 @@
  * Date: December 1, 2021
  */
 
-#ifndef MGARD_X_COMPRESSION_WORKFLOW
-#define MGARD_X_COMPRESSION_WORKFLOW
+#ifndef MGARD_X_COMPRESSION_WORKFLOW_H
+#define MGARD_X_COMPRESSION_WORKFLOW_H
 
 #include "Hierarchy.h"
 #include "RuntimeX/RuntimeXPublic.h"
