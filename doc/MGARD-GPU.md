@@ -22,25 +22,29 @@ MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which signific
 * CMake 3.19+
 
 ## Software dependencies 
-* [NVCOMP v2.2.0][nvcomp]
+* [NVCOMP v2.2.0][nvcomp] (for NVIDIA GPUs only)
+* [ZSTD v1.5.0][zstd]
+* [Protobuf v3.19.4][protobuf]
 
 [nvcomp]: https://github.com/NVIDIA/nvcomp.git
+[zstd]: https://github.com/facebook/zstd.git
+[protobuf]: https://github.com/protocolbuffers/protobuf.git
+
 ## Configure and build
-* **Option 1:** One-step configure and build MGARD with NVCOMP v2.2.0 script in [here][build_scripts].
-* **Option 2:** Manually confiugre and build
-	+ **Step 1:** configure and build NVCOMP v2.2.0.
-	+ **Step 2:** configure MGARD as follows:
++ **Step 1:** configure and build dependency libraries
++ **Step 2:** configure MGARD as follows:
 
 			cmake -S <MGARD_SRC_DIR> -B <MGARD_BUILD_DIR>
-				  -DMGARD_ENABLE_CUDA=ON
-				  -DCMAKE_PREFIX_PATH=<NVCOMP_INSTALL_DIR> 
+				  -DMGARD_ENABLE_LEGACY_CUDA=ON
+          -DCMAKE_CUDA_ARCHITECTURES=<arch>
+				  -DCMAKE_PREFIX_PATH=<dependency libraries> 
 			
-	+ **Step 3:** build MGARD: ```cmake --build <MGARD_BUILD_DIR> -j8```
++ **Step 3:** build MGARD: ```cmake --build <MGARD_BUILD_DIR> -j8```
 [build_scripts]:[build_scrtips]
 
 ## Using command line interface (CLI)
-* An executable ```MgardCudaExec``` will be built when building the MGARD-GPU library.
-* To use the ```MgardCudaExec``` CLI, here are the options:
+* An executable ```mgard-gpu``` will be built when building the MGARD-GPU library.
+* To use the ```mgard-gpu``` CLI, here are the options:
 
   + ```-z```: compress data
      + ```-i <path>``` path to data file to be compressed
@@ -62,9 +66,7 @@ MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which signific
   + ```-v``` enable verbose (show timing and statistics)
 	
 ## For Using both the high-level APIs and low-level API
-* **Include the header file.** MGARD-GPU APIs are included in both ```mgard/compress.hpp``` and ```mgard/compress_cuda.hpp```.
-     + Use ```mgard/compress.hpp``` if the user programs are to be compiled with ***C/C++*** compilers.
-     + Use ```mgard/compress_cuda.hpp``` if the user programs are to be compiled with ***CUDA*** compilers.
+* **Include the header file.** MGARD-GPU APIs are included in ```mgard/compress_cuda.hpp```.
 * **Configure using ```mgard_cuda::Config```** Both high-level APIs and low-level APIs have an optional parameter for users to configure the compression/decomrpession process via ```mgard_cuda::Config``` class. To configure, create a ```mgard_cuda::Config``` object and configure its fields:
   + ```Config.dev_id```: sepcifying a specific GPU to use in multi-GPU systems.
   + ```Config.timing```: timing each steps of compression and printing them out.
@@ -140,12 +142,6 @@ An object ```mgard_cuda::Handle``` needs to be created and initialized. This ini
   		- ```[Return]```: Decompressed data.
 	
 ## Performance optimization
-
-* **Optimize for specific GPU architectures:** MGARD-GPU is pre-tuned for Volta and Turing GPUs. To enable this optimization, the following additional CMake options need to be enabled when configuring MGARD-GPU.
-	+ For ***Volta*** GPUs: ```-DMGARD_ENABLE_CUDA_OPTIMIZE_VOLTA=ON```
-	+ For ***Turing*** GPUs: ```-DMGARD_ENABLE_CUDA_OPTIMIZE_TURING=ON```
-* **Optimize for GPUs on edge systems:** MGARD-GPU capable of using FMA instructions that can help improve the compression/decompression performance on consumer-class GPUs (GeForce GPUs on edge systems), where they have relative low throughput on some arithmetic operations. To enable this optimization, enable the following option when configuring MGARD-GPU. 
-	+ ```-MGARD_ENABLE_CUDA_FMA=ON```
 * **Optimize for fast CPU-GPU data transfer:** It is recommanded to use pinned memory on CPU for loading data into ```mgard_cuda::Array``` such that it can enable fast CPU-GPU data transfer. 
 	+ To allocate pinned memory on CPU: ```mgard_cuda::cudaMallocHostHelper(void ** data_ptr, size_t size)```.
 	+ To free pinned memory on CPU: ```mgard_cuda::cudaFreeHostHelper(void * data_ptr)```
