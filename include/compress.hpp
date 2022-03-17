@@ -18,7 +18,6 @@
   "compiling with NVCC."
 #endif
 
-#include "compress_cuda.hpp"
 #include "compress_x.hpp"
 
 //! Implementation of the MGARD compression and decompression algorithms.

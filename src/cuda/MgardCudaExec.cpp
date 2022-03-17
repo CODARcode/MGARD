@@ -12,8 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "compress.hpp"
-// #include "compress_cuda.hpp"
+#include "compress_cuda.hpp"
 
 using namespace std::chrono;
 

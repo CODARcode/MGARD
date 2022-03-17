@@ -101,7 +101,7 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol, T s,
     compressed_data = (void *)malloc(compressed_size);
     memcpy(compressed_data, tmp_str.c_str(), compressed_size);
   } else if (dev == CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#ifdef MGARD_ENABLE_LEGACY_CUDA
     mgard_cuda::Config config;
     config.lossless = mgard_cuda::lossless_type::GPU_Huffman_LZ4;
     config.sync_and_check_all_kernels = true;
@@ -180,7 +180,7 @@ void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
     memcpy(decompressed_data, decompressed_data_void,
            original_size * sizeof(T));
   } else if (dev == CUDA) {
-#ifdef MGARD_ENABLE_CUDA
+#ifdef MGARD_ENABLE_LEGACY_CUDA
     mgard_cuda::Config config;
     config.lossless = mgard_cuda::lossless_type::GPU_Huffman;
     config.sync_and_check_all_kernels = true;
