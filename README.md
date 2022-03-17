@@ -23,22 +23,6 @@ $ cmake --install build
 [cmake]: https://cmake.org/
 [protobuf]: https://opensource.google/projects/protobuf
 
-### MGARD-X Portable version
-
-Detailed instructions for using MGARD-X portable version for both GPUs and CPUs can be found in [here][mgard_x instructions].
-
-### MDR-X Fine-grain progressive data reconstruction
-
-Detailed instructions for using MDR-X can be found in [here][mdr_x instructions].
-
-### MGARD-GPU [***Deprecated***]
-
-Detailed instructions for using MGARD-GPU with NVIDIA GPU acceleration can be found in [here][gpu instructions].
-
-[gpu instructions]: doc/MGARD-GPU.md
-[mgard_x instructions]: doc/MGARD-X.md
-[mdr_x instructions]: doc/MDR-X.md
-
 ### Documentation
 
 To build the documentation, run `cmake` with `-D MGARD_ENABLE_DOCS=ON`.
@@ -83,6 +67,22 @@ $ man mgard
 *This executable is an experimental part of the API.*
 
 [tclap]: http://tclap.sourceforge.net/
+
+## Accelerated and portable compression
+MGARD-X is designed for portable compression on NVIDIA GPUs, AMD GPUs, and CPUs. See detail user guide in [here][mgard_x instructions].
+
+[mgard_x instructions]: doc/MGARD-X.md
+
+## CUDA accelerated compression
+MGARD-GPU is designed for accelerating compression specifically using NVIDIA GPUs. See detail user guide in [here][gpu instructions].
+
+[gpu instructions]: doc/MGARD-GPU.md
+
+## Fine-grain progressive data reconstruction
+MDR-X is design for enabling fine-grain data refactoring and progressive data reconstruction. See detail user guide in [here][mdr_x instructions].
+
+[mdr_x instructions]: doc/MDR-X.md
+
 
 ## References
 

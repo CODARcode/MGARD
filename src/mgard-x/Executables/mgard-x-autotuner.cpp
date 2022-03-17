@@ -66,39 +66,58 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   return 0;
 }
 
-void autotuning(enum mgard_x::device_type dev_type) {
+void autotuning(enum mgard_x::device_type dev_type,
+                std::vector<mgard_x::SIZE> shape) {
   if (dev_type == mgard_x::device_type::Serial) {
     std::cout << mgard_x::log::log_info
               << "Start autotuning MGARD-X::Serial.\n";
   } else if (dev_type == mgard_x::device_type::CUDA) {
-    std::cout << mgard_x::log::log_info << "Start autotuning MGARD-X::CUDA.\n";
+    std::cout << mgard_x::log::log_info << "Start auto tuning MGARD-X::CUDA.\n";
   } else if (dev_type == mgard_x::device_type::HIP) {
-    std::cout << mgard_x::log::log_info << "Start autotuning MGARD-X::HIP.\n";
+    std::cout << mgard_x::log::log_info << "Start auto tuning MGARD-X::HIP.\n";
   }
-
   mgard_x::BeginAutoTuning(dev_type);
-
-  std::vector<mgard_x::SIZE> shape = {512, 512, 512};
-  std::cout << mgard_x::log::log_info << "Auto tuning 3D float.\n";
-  launch_compress<float>(3, mgard_x::data_type::Float, shape, dev_type);
-  std::cout << mgard_x::log::log_info << "Auto tuning 3D double.\n";
-  launch_compress<double>(3, mgard_x::data_type::Double, shape, dev_type);
-
-  // std::vector<mgard_x::SIZE> shape4 = {8, 39, 16395, 39};
-  // std::cout << mgard_x::log::log_info << "Auto tuning 4D float.\n";
-  // launch_compress<float>(4, mgard_x::data_type::Float, shape4, dev_type);
-  // std::cout << mgard_x::log::log_info << "Auto tuning 4D double.\n";
-  // launch_compress<double>(4, mgard_x::data_type::Double, shape4, dev_type);
-
-  if (dev_type == mgard_x::device_type::Serial) {
-    std::cout << mgard_x::log::log_info << "Done autotuning MGARD-X::Serial.\n";
-  } else if (dev_type == mgard_x::device_type::CUDA) {
-    std::cout << mgard_x::log::log_info << "Done autotuning MGARD-X::CUDA.\n";
-  } else if (dev_type == mgard_x::device_type::HIP) {
-    std::cout << mgard_x::log::log_info << "Done autotuning MGARD-X::HIP.\n";
-  }
-
+  std::cout << mgard_x::log::log_info
+            << "Tuning for single precision data ... ";
+  launch_compress<float>(shape.size(), mgard_x::data_type::Float, shape,
+                         dev_type);
+  std::cout << "Done.\n";
+  std::cout << mgard_x::log::log_info
+            << "Tuning for double precision data ... ";
+  launch_compress<double>(shape.size(), mgard_x::data_type::Double, shape,
+                          dev_type);
+  std::cout << "Done.\n";
   mgard_x::EndAutoTuning(dev_type);
+  if (dev_type == mgard_x::device_type::Serial) {
+    std::cout << mgard_x::log::log_info
+              << "Done auto tuning MGARD-X::Serial.\n";
+  } else if (dev_type == mgard_x::device_type::CUDA) {
+    std::cout << mgard_x::log::log_info << "Done auto tuning MGARD-X::CUDA.\n";
+  } else if (dev_type == mgard_x::device_type::HIP) {
+    std::cout << mgard_x::log::log_info << "Done auto tuning MGARD-X::HIP.\n";
+  }
+  std::cout << mgard_x::log::log_info
+            << "Please recompile MGARD-X to make the auto tuning effective.\n";
+}
+
+void print_usage_message(std::string error) {
+  if (error.compare("") != 0) {
+    std::cout << mgard_x::log::log_err << error << std::endl;
+  }
+  printf("* Full automatic mode: run 'mgard-x-autotuner' without arguments\n\
+* For a specific backend: run 'mgard-x-autotuner -d <auto|serial|cuda|hip> '\n\
+* For a specific input size on a specific backend: run 'mgard-x-autotuner -d <auto|serial|cuda|hip> -n <ndim> [dim1] [dim2] ... [dimN]'\n");
+  exit(0);
+}
+
+bool require_arg(int argc, char *argv[], std::string option) {
+  for (int i = 0; i < argc; i++) {
+    if (option.compare(std::string(argv[i])) == 0) {
+      return true;
+    }
+  }
+  print_usage_message("missing option: " + option + ".");
+  return false;
 }
 
 std::string get_arg(int argc, char *argv[], std::string option) {
@@ -110,9 +129,61 @@ std::string get_arg(int argc, char *argv[], std::string option) {
   return std::string("");
 }
 
+int get_arg_int(int argc, char *argv[], std::string option) {
+  if (require_arg(argc, argv, option)) {
+    std::string arg;
+    int i;
+    for (i = 0; i < argc; i++) {
+      if (option.compare(std::string(argv[i])) == 0) {
+        arg = std::string(argv[i + 1]);
+      }
+    }
+    try {
+      int d = std::stoi(arg);
+      return d;
+    } catch (std::invalid_argument const &e) {
+      print_usage_message("illegal argument for option " + option + ".");
+      return 0;
+    }
+  }
+  return 0;
+}
+
+std::vector<mgard_x::SIZE> get_arg_dims(int argc, char *argv[],
+                                        std::string option) {
+  std::vector<mgard_x::SIZE> shape;
+  if (require_arg(argc, argv, option)) {
+    std::string arg;
+    int arg_idx = 0, i;
+    for (i = 0; i < argc; i++) {
+      if (option.compare(std::string(argv[i])) == 0) {
+        arg = std::string(argv[i + 1]);
+        arg_idx = i + 1;
+      }
+    }
+    try {
+      int d = std::stoi(arg);
+      for (int i = 0; i < d; i++) {
+        shape.push_back(std::stoi(argv[arg_idx + 1 + i]));
+      }
+      return shape;
+    } catch (std::invalid_argument const &e) {
+      print_usage_message("illegal argument for option " + option + ".");
+      return shape;
+    }
+  }
+  return shape;
+}
+
 int main(int argc, char *argv[]) {
   enum mgard_x::device_type dev_type;
-  if (argc == 3) {
+  if (argc > 3) {
+    mgard_x::DIM D = get_arg_int(argc, argv, "-n");
+    std::vector<mgard_x::SIZE> shape = get_arg_dims(argc, argv, "-n");
+    std::cout << mgard_x::log::log_info << "Auto tuning for shape: ";
+    for (int i = 0; i < D; i++)
+      std::cout << shape[i] << " ";
+    std::cout << "\n";
     std::string dev = get_arg(argc, argv, "-d");
     if (dev.compare("serial") == 0) {
       dev_type = mgard_x::device_type::Serial;
@@ -125,17 +196,37 @@ int main(int argc, char *argv[]) {
       std::cout << mgard_x::log::log_info << "device type: HIP\n";
     } else {
       std::cout << "wrong device type.\n";
+      exit(-1);
     }
-    autotuning(dev_type);
+    autotuning(dev_type, shape);
+  } else if (argc == 3) {
+    std::vector<mgard_x::SIZE> shape({513, 513, 513});
+    std::string dev = get_arg(argc, argv, "-d");
+    if (dev.compare("serial") == 0) {
+      dev_type = mgard_x::device_type::Serial;
+      std::cout << mgard_x::log::log_info << "device type: Serial\n";
+    } else if (dev.compare("cuda") == 0) {
+      dev_type = mgard_x::device_type::CUDA;
+      std::cout << mgard_x::log::log_info << "device type: CUDA\n";
+    } else if (dev.compare("hip") == 0) {
+      dev_type = mgard_x::device_type::HIP;
+      std::cout << mgard_x::log::log_info << "device type: HIP\n";
+    } else {
+      std::cout << "wrong device type.\n";
+      exit(-1);
+    }
+    autotuning(dev_type, shape);
   } else {
+    std::cout << mgard_x::log::log_info << "Full automatic mode\n";
+    std::vector<mgard_x::SIZE> shape({513, 513, 513});
 #ifdef MGARD_ENABLE_SERIAL
-    autotuning(mgard_x::device_type::Serial);
+    autotuning(mgard_x::device_type::Serial, shape);
 #endif
 #ifdef MGARD_ENABLE_CUDA
-    autotuning(mgard_x::device_type::CUDA);
+    autotuning(mgard_x::device_type::CUDA, shape);
 #endif
 #ifdef MGARD_ENABLE_HIP
-    autotuning(mgard_x::device_type::HIP);
+    autotuning(mgard_x::device_type::HIP, shape);
 #endif
   }
   return 0;
