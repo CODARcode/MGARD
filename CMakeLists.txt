@@ -37,6 +37,7 @@ option(MGARD_ENABLE_OPENMP "Enable OpenMP support." OFF)
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 option(MGARD_ENABLE_SERIAL "Enable SERIAL support" ON)
 option(MGARD_ENABLE_HIP "Enable HIP support" OFF)
+option(MGARD_ENABLE_LEGACY_CUDA "Enable legacy CUDA support" OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)
 
@@ -111,6 +112,8 @@ if (MGARD_ENABLE_SERIAL OR
   target_link_libraries(MgardSerialExec mgard-library  ${CMAKE_DL_LIBS})
   target_include_directories(MgardSerialExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+  install(TARGETS mgard-x)
+  install(TARGETS mgard-x-autotuner)
 endif()
 
 #Adding library here so we can set compile definitions for it.
@@ -131,14 +134,6 @@ if(MGARD_ENABLE_CUDA)
   find_package(nvcomp REQUIRED)
   find_package(CUDAToolkit REQUIRED)
 
-  # Legacy CUDA version
-  add_subdirectory (src/cuda)
-  add_subdirectory (include/cuda)
-  add_executable(MgardCudaExec ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/MgardCudaExec.cpp)
-    target_link_libraries(MgardCudaExec mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(MgardCudaExec PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_CUDA)
   set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
   
@@ -148,6 +143,31 @@ if(MGARD_ENABLE_CUDA)
   set_source_files_properties(${MGARD_X_CUDA_SRC} PROPERTIES LANGUAGE CUDA)
 endif()
 
+if (MGARD_ENABLE_LEGACY_CUDA)
+  enable_language(CUDA)
+  set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
+  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+      set(CMAKE_CUDA_ARCHITECTURES 70)
+  endif()
+
+  find_package(nvcomp REQUIRED)
+  find_package(CUDAToolkit REQUIRED)
+
+  add_subdirectory (src/cuda)
+  add_subdirectory (include/cuda)
+  add_executable(mgard-gpu ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/MgardCudaExec.cpp)
+    target_link_libraries(mgard-gpu mgard-library  ${CMAKE_DL_LIBS})
+    target_include_directories(mgard-gpu PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+
+  target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_LEGACY_CUDA)
+  set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
+  
+  set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
+       CUDA_SEPARABLE_COMPILATION ON)
+
+  install(TARGETS mgard-gpu)
+endif()
 
 if (MGARD_ENABLE_HIP) 
   find_package(HIP REQUIRED)
@@ -303,6 +323,10 @@ if(MGARD_ENABLE_CUDA)
   target_link_libraries(mgard-library PUBLIC nvcomp::nvcomp CUDA::cudart)
 endif()
 
+if(MGARD_ENABLE_LEGACY_CUDA)
+  target_link_libraries(mgard-library PUBLIC nvcomp::nvcomp CUDA::cudart)
+endif()
+
 if(MGARD_ENABLE_OPENMP)
   find_package(OpenMP)
   if(OpenMP_FOUND)
@@ -426,6 +450,12 @@ if (MGARD_ENABLE_HIP)
   list(POP_BACK CMAKE_MESSAGE_INDENT)
 endif()
 list(POP_BACK CMAKE_MESSAGE_INDENT)
+message(STATUS "LEGACY CUDA:   ${MGARD_ENABLE_LEGACY_CUDA}")
+if (MGARD_ENABLE_LEGACY_CUDA)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message(STATUS "CUDA Arch: ${CMAKE_CUDA_ARCHITECTURES}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+endif()
 message(STATUS "timing:        ${MGARD_ENABLE_TIMING}")
 message(STATUS "ASan:          ${MGARD_ENABLE_ASAN}")
 message(STATUS "UBSan:         ${MGARD_ENABLE_UBSAN}")
