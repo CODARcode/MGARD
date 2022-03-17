@@ -18,7 +18,6 @@ bool MemoryManager<CUDA>::ReduceMemoryFootprint = true;
 bool DeviceRuntime<CUDA>::TimingAllKernels = false;
 bool DeviceRuntime<CUDA>::PrintKernelConfig = false;
 
-KernelConfigs<CUDA> AutoTuner<CUDA>::kernelConfigs;
 AutoTuningTable<CUDA> AutoTuner<CUDA>::autoTuningTable;
 bool AutoTuner<CUDA>::ProfileKernels = false;
 

@@ -53,6 +53,14 @@ int AutoTuningTable<Serial>::ipk3_nd[2][9] = {{0, 2, 3, 2, 0, 0, 0, 0, 0},
 int AutoTuningTable<Serial>::lwpk[2][9] = {{5, 2, 2, 1, 0, 2, 1, 0, 0},
                                            {2, 2, 3, 3, 0, 2, 5, 0, 0}};
 
+int AutoTuningTable<Serial>::lwqzk[2][9] = {{5, 2, 2, 1, 0, 2, 1, 0, 0},
+                                         {2, 2, 3, 3, 0, 2, 5, 0, 0}};
+
+int AutoTuningTable<Serial>::lwdqzk[2][9] = {{5, 2, 2, 1, 0, 2, 1, 0, 0},
+                                         {2, 2, 3, 3, 0, 2, 5, 0, 0}};  
+
+int AutoTuningTable<Serial>::llk[2][9] = {{5, 2, 2, 1, 0, 2, 1, 0, 0},
+                                         {2, 2, 3, 3, 0, 2, 5, 0, 0}};
 } // namespace mgard_x
 // clang-format on
 #undef MGARDX_COMPILE_SERIAL

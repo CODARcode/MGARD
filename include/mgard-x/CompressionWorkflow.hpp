@@ -22,7 +22,7 @@
 
 #include "Quantization/LinearQuantization.hpp"
 
-#include "Linearization/LevelLinearizer.hpp"
+// #include "Linearization/LevelLinearizer.hpp"
 #include "Linearization/LevelLinearizer2.hpp"
 
 #include "Lossless/ParallelHuffman/Huffman.hpp"

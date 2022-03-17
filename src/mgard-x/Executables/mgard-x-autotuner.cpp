@@ -84,11 +84,11 @@ void autotuning(enum mgard_x::device_type dev_type) {
   std::cout << mgard_x::log::log_info << "Auto tuning 3D double.\n";
   launch_compress<double>(3, mgard_x::data_type::Double, shape, dev_type);
 
-  std::vector<mgard_x::SIZE> shape4 = {8, 39, 16395, 39};
-  std::cout << mgard_x::log::log_info << "Auto tuning 4D float.\n";
-  launch_compress<float>(4, mgard_x::data_type::Float, shape4, dev_type);
-  std::cout << mgard_x::log::log_info << "Auto tuning 4D double.\n";
-  launch_compress<double>(4, mgard_x::data_type::Double, shape4, dev_type);
+  // std::vector<mgard_x::SIZE> shape4 = {8, 39, 16395, 39};
+  // std::cout << mgard_x::log::log_info << "Auto tuning 4D float.\n";
+  // launch_compress<float>(4, mgard_x::data_type::Float, shape4, dev_type);
+  // std::cout << mgard_x::log::log_info << "Auto tuning 4D double.\n";
+  // launch_compress<double>(4, mgard_x::data_type::Double, shape4, dev_type);
 
   if (dev_type == mgard_x::device_type::Serial) {
     std::cout << mgard_x::log::log_info << "Done autotuning MGARD-X::Serial.\n";

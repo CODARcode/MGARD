@@ -325,16 +325,9 @@ public:
                SubArray<1, SIZE, DeviceType> ranges,
                SubArray<D, T, DeviceType> v,
                SubArray<1, T, DeviceType> linearized_v, int queue_idx) {
-    const int R = LWQK_CONFIG[D - 1][0];
-    const int C = LWQK_CONFIG[D - 1][1];
-    const int F = LWQK_CONFIG[D - 1][2];
-    using FunctorType =
-        LevelLinearizer2Functor<D, T, R, C, F, Direction, DeviceType>;
-    using TaskType = Task<FunctorType>;
+   
     SubArray<1, T, DeviceType> *level_v =
         new SubArray<1, T, DeviceType>[l_target + 1];
-
-    // printf("ranges\n");
     SIZE *ranges_h = ranges.dataHost();
     SIZE last_level_size = 0;
     for (SIZE l = 0; l < l_target + 1; l++) {
@@ -344,27 +337,54 @@ public:
       }
       level_v[l] = SubArray<1, T, DeviceType>({level_size - last_level_size},
                                               linearized_v(last_level_size));
-      // printf("level_v[%u]: %u %u\n", l, level_size-last_level_size,
-      // last_level_size);
       last_level_size = level_size;
     }
-    // printf("ranges\n");
 
     SubArray<1, T, DeviceType> *d_level_v;
-
-    // printf("Malloc1D\n");
     MemoryManager<DeviceType>::Malloc1D(d_level_v, l_target + 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncDevice();
-
-    // printf("Copy1D\n");
     MemoryManager<DeviceType>::Copy1D(d_level_v, level_v, l_target + 1,
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncDevice();
 
-    TaskType task =
-        GenTask<R, C, F>(shape, l_target, ranges, v, d_level_v, queue_idx);
-    DeviceAdapter<TaskType, DeviceType> adapter;
-    adapter.Execute(task);
+
+    int range_l = std::min(6, (int)std::log2(v.getShape(0)) - 1);
+    int prec = TypeToIdx<T>();
+
+    int config = AutoTuner<DeviceType>::autoTuningTable.llk[prec][range_l];
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+
+    #define LLK(CONFIG)                                                          \
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+      const int R = LWPK_CONFIG[D - 1][CONFIG][0];                               \
+      const int C = LWPK_CONFIG[D - 1][CONFIG][1];                               \
+      const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
+      using FunctorType =                                                       \
+        LevelLinearizer2Functor<D, T, R, C, F, Direction, DeviceType>;           \
+      using TaskType = Task<FunctorType>;                                          \
+      TaskType task =                                                              \
+        GenTask<R, C, F>(shape, l_target, ranges, v, d_level_v, queue_idx);      \
+      DeviceAdapter<TaskType, DeviceType> adapter;                                 \
+      ExecutionReturn ret = adapter.Execute(task);                               \
+      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+        if (min_time > ret.execution_time) {                                     \
+          min_time = ret.execution_time;                                         \
+          min_config = CONFIG;                                                   \
+        }                                                                        \
+      }                                                                          \
+    }
+    LLK(0)
+    LLK(1)
+    LLK(2)
+    LLK(3)
+    LLK(4)
+    LLK(5)
+    LLK(6)
+#undef LLK
+    if (AutoTuner<DeviceType>::ProfileKernels) {
+      FillAutoTunerTable<DeviceType>("llk", prec, range_l, min_config);
+    }
   }
 };
 
