@@ -91,7 +91,7 @@ MGARD can bound error `tol` in two ways (using L<sup>&infin;</sup> norm as an ex
     + ```-m <abs|rel>``` error bound mode (abs: abolute; rel: relative)
     + ```-e <error>``` error bound
     + ```-s <smoothness>``` smoothness parameter
-    + ```-r <0|1>``` coefficient ordering (0: Higher throughput 1: Higher compression ratio)    
+    + ```-r <0|1>``` internal data layout (0: Higher throughput 1: Higher compression ratio)    
     + ```-l <0|1|2>``` choose lossless compressor (0:Huffman 1:Huffman+LZ4 (NVIDIA GPU only) 2:Huffman@ZSTD)
 + ```-x```: decompress data
     + ```-c <path>``` path to compressed file
