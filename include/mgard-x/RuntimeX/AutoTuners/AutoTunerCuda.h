@@ -10,406 +10,56 @@
 
 namespace mgard_x {
 
-// template <>
-// class KernelConfigs<CUDA> {
-// public:
-//   MGARDX_CONT
-//   KernelConfigs(){};
-// };
-
 template <> class AutoTuningTable<CUDA> {
 public:
-  MGARDX_CONT
-  AutoTuningTable() {
-    this->auto_tuning_cc = new int **[num_arch];
-    this->auto_tuning_mr1 = new int **[num_arch];
-    this->auto_tuning_mr2 = new int **[num_arch];
-    this->auto_tuning_mr3 = new int **[num_arch];
-    this->auto_tuning_ts1 = new int **[num_arch];
-    this->auto_tuning_ts2 = new int **[num_arch];
-    this->auto_tuning_ts3 = new int **[num_arch];
-    for (int i = 0; i < num_arch; i++) {
-      this->auto_tuning_cc[i] = new int *[num_precision];
-      this->auto_tuning_mr1[i] = new int *[num_precision];
-      this->auto_tuning_mr2[i] = new int *[num_precision];
-      this->auto_tuning_mr3[i] = new int *[num_precision];
-      this->auto_tuning_ts1[i] = new int *[num_precision];
-      this->auto_tuning_ts2[i] = new int *[num_precision];
-      this->auto_tuning_ts3[i] = new int *[num_precision];
-      for (int j = 0; j < num_precision; j++) {
-        this->auto_tuning_cc[i][j] = new int[num_range];
-        this->auto_tuning_mr1[i][j] = new int[num_range];
-        this->auto_tuning_mr2[i][j] = new int[num_range];
-        this->auto_tuning_mr3[i][j] = new int[num_range];
-        this->auto_tuning_ts1[i][j] = new int[num_range];
-        this->auto_tuning_ts2[i][j] = new int[num_range];
-        this->auto_tuning_ts3[i][j] = new int[num_range];
-      }
-    }
+  static const int num_precision = 2;
+  static const int num_range = 9;
 
-    // Default
-    for (int i = 0; i < num_arch; i++) {
-      for (int j = 0; j < num_precision; j++) {
-        for (int k = 0; k < num_range; k++) {
-          this->auto_tuning_cc[i][j][k] = 0;
-          this->auto_tuning_mr1[i][j][k] = 0;
-          this->auto_tuning_mr2[i][j][k] = 0;
-          this->auto_tuning_mr3[i][j][k] = 0;
-          this->auto_tuning_ts1[i][j][k] = 0;
-          this->auto_tuning_ts2[i][j][k] = 0;
-          this->auto_tuning_ts3[i][j][k] = 0;
-        }
-      }
-    }
+  static int gpk_reo_3d[num_precision][num_range];
 
-    // Volta-Single
-    this->auto_tuning_cc[1][0][0] = 1;
-    this->auto_tuning_cc[1][0][1] = 1;
-    this->auto_tuning_cc[1][0][2] = 1;
-    this->auto_tuning_cc[1][0][3] = 1;
-    this->auto_tuning_cc[1][0][4] = 1;
-    this->auto_tuning_cc[1][0][5] = 5;
-    this->auto_tuning_cc[1][0][6] = 5;
-    this->auto_tuning_cc[1][0][7] = 5;
-    this->auto_tuning_cc[1][0][8] = 5;
+  static int gpk_rev_3d[num_precision][num_range];
 
-    this->auto_tuning_mr1[1][0][0] = 1;
-    this->auto_tuning_mr2[1][0][0] = 1;
-    this->auto_tuning_mr3[1][0][0] = 1;
-    this->auto_tuning_mr1[1][0][1] = 1;
-    this->auto_tuning_mr2[1][0][1] = 1;
-    this->auto_tuning_mr3[1][0][1] = 1;
-    this->auto_tuning_mr1[1][0][2] = 1;
-    this->auto_tuning_mr2[1][0][2] = 1;
-    this->auto_tuning_mr3[1][0][2] = 1;
-    this->auto_tuning_mr1[1][0][3] = 3;
-    this->auto_tuning_mr2[1][0][3] = 3;
-    this->auto_tuning_mr3[1][0][3] = 3;
-    this->auto_tuning_mr1[1][0][4] = 4;
-    this->auto_tuning_mr2[1][0][4] = 1;
-    this->auto_tuning_mr3[1][0][4] = 3;
-    this->auto_tuning_mr1[1][0][5] = 5;
-    this->auto_tuning_mr2[1][0][5] = 3;
-    this->auto_tuning_mr3[1][0][5] = 3;
-    this->auto_tuning_mr1[1][0][6] = 5;
-    this->auto_tuning_mr2[1][0][6] = 4;
-    this->auto_tuning_mr3[1][0][6] = 4;
-    this->auto_tuning_mr1[1][0][7] = 3;
-    this->auto_tuning_mr2[1][0][7] = 4;
-    this->auto_tuning_mr3[1][0][7] = 4;
-    this->auto_tuning_mr1[1][0][8] = 3;
-    this->auto_tuning_mr2[1][0][8] = 4;
-    this->auto_tuning_mr3[1][0][8] = 4;
+  static int gpk_reo_nd[num_precision][num_range];
 
-    this->auto_tuning_ts1[1][0][0] = 1;
-    this->auto_tuning_ts2[1][0][0] = 1;
-    this->auto_tuning_ts3[1][0][0] = 1;
-    this->auto_tuning_ts1[1][0][1] = 1;
-    this->auto_tuning_ts2[1][0][1] = 1;
-    this->auto_tuning_ts3[1][0][1] = 1;
-    this->auto_tuning_ts1[1][0][2] = 2;
-    this->auto_tuning_ts2[1][0][2] = 2;
-    this->auto_tuning_ts3[1][0][2] = 2;
-    this->auto_tuning_ts1[1][0][3] = 3;
-    this->auto_tuning_ts2[1][0][3] = 2;
-    this->auto_tuning_ts3[1][0][3] = 2;
-    this->auto_tuning_ts1[1][0][4] = 3;
-    this->auto_tuning_ts2[1][0][4] = 2;
-    this->auto_tuning_ts3[1][0][4] = 2;
-    this->auto_tuning_ts1[1][0][5] = 3;
-    this->auto_tuning_ts2[1][0][5] = 2;
-    this->auto_tuning_ts3[1][0][5] = 2;
-    this->auto_tuning_ts1[1][0][6] = 5;
-    this->auto_tuning_ts2[1][0][6] = 3;
-    this->auto_tuning_ts3[1][0][6] = 2;
-    this->auto_tuning_ts1[1][0][7] = 5;
-    this->auto_tuning_ts2[1][0][7] = 6;
-    this->auto_tuning_ts3[1][0][7] = 5;
-    this->auto_tuning_ts1[1][0][8] = 5;
-    this->auto_tuning_ts2[1][0][8] = 6;
-    this->auto_tuning_ts3[1][0][8] = 5;
-    // Volta-Double
+  static int gpk_rev_nd[num_precision][num_range];
 
-    this->auto_tuning_cc[1][1][0] = 1;
-    this->auto_tuning_cc[1][1][1] = 1;
-    this->auto_tuning_cc[1][1][2] = 1;
-    this->auto_tuning_cc[1][1][3] = 1;
-    this->auto_tuning_cc[1][1][4] = 4;
-    this->auto_tuning_cc[1][1][5] = 5;
-    this->auto_tuning_cc[1][1][6] = 6;
-    this->auto_tuning_cc[1][1][7] = 6;
-    this->auto_tuning_cc[1][1][8] = 5;
+  static int lpk1_3d[num_precision][num_range];
 
-    this->auto_tuning_mr1[1][1][0] = 1;
-    this->auto_tuning_mr2[1][1][0] = 1;
-    this->auto_tuning_mr3[1][1][0] = 1;
-    this->auto_tuning_mr1[1][1][1] = 1;
-    this->auto_tuning_mr2[1][1][1] = 1;
-    this->auto_tuning_mr3[1][1][1] = 1;
-    this->auto_tuning_mr1[1][1][2] = 1;
-    this->auto_tuning_mr2[1][1][2] = 1;
-    this->auto_tuning_mr3[1][1][2] = 1;
-    this->auto_tuning_mr1[1][1][3] = 1;
-    this->auto_tuning_mr2[1][1][3] = 3;
-    this->auto_tuning_mr3[1][1][3] = 1;
-    this->auto_tuning_mr1[1][1][4] = 4;
-    this->auto_tuning_mr2[1][1][4] = 3;
-    this->auto_tuning_mr3[1][1][4] = 3;
-    this->auto_tuning_mr1[1][1][5] = 5;
-    this->auto_tuning_mr2[1][1][5] = 5;
-    this->auto_tuning_mr3[1][1][5] = 5;
-    this->auto_tuning_mr1[1][1][6] = 4;
-    this->auto_tuning_mr2[1][1][6] = 6;
-    this->auto_tuning_mr3[1][1][6] = 6;
-    this->auto_tuning_mr1[1][1][7] = 6;
-    this->auto_tuning_mr2[1][1][7] = 6;
-    this->auto_tuning_mr3[1][1][7] = 5;
-    this->auto_tuning_mr1[1][1][8] = 6;
-    this->auto_tuning_mr2[1][1][8] = 6;
-    this->auto_tuning_mr3[1][1][8] = 5;
+  static int lpk2_3d[num_precision][num_range];
 
-    this->auto_tuning_ts1[1][1][0] = 1;
-    this->auto_tuning_ts2[1][1][0] = 1;
-    this->auto_tuning_ts3[1][1][0] = 1;
-    this->auto_tuning_ts1[1][1][1] = 1;
-    this->auto_tuning_ts2[1][1][1] = 1;
-    this->auto_tuning_ts3[1][1][1] = 1;
-    this->auto_tuning_ts1[1][1][2] = 2;
-    this->auto_tuning_ts2[1][1][2] = 2;
-    this->auto_tuning_ts3[1][1][2] = 2;
-    this->auto_tuning_ts1[1][1][3] = 3;
-    this->auto_tuning_ts2[1][1][3] = 2;
-    this->auto_tuning_ts3[1][1][3] = 2;
-    this->auto_tuning_ts1[1][1][4] = 3;
-    this->auto_tuning_ts2[1][1][4] = 2;
-    this->auto_tuning_ts3[1][1][4] = 2;
-    this->auto_tuning_ts1[1][1][5] = 4;
-    this->auto_tuning_ts2[1][1][5] = 2;
-    this->auto_tuning_ts3[1][1][5] = 2;
-    this->auto_tuning_ts1[1][1][6] = 5;
-    this->auto_tuning_ts2[1][1][6] = 5;
-    this->auto_tuning_ts3[1][1][6] = 2;
-    this->auto_tuning_ts1[1][1][7] = 5;
-    this->auto_tuning_ts2[1][1][7] = 6;
-    this->auto_tuning_ts3[1][1][7] = 6;
-    this->auto_tuning_ts1[1][1][8] = 5;
-    this->auto_tuning_ts2[1][1][8] = 6;
-    this->auto_tuning_ts3[1][1][8] = 6;
+  static int lpk3_3d[num_precision][num_range];
 
-    // Turing-Single
-    this->auto_tuning_cc[2][0][0] = 1;
-    this->auto_tuning_cc[2][0][1] = 1;
-    this->auto_tuning_cc[2][0][2] = 1;
-    this->auto_tuning_cc[2][0][3] = 1;
-    this->auto_tuning_cc[2][0][4] = 3;
-    this->auto_tuning_cc[2][0][5] = 5;
-    this->auto_tuning_cc[2][0][6] = 5;
-    this->auto_tuning_cc[2][0][7] = 5;
-    this->auto_tuning_cc[2][0][8] = 4;
+  static int lpk1_nd[num_precision][num_range];
 
-    this->auto_tuning_mr1[2][0][0] = 1;
-    this->auto_tuning_mr2[2][0][0] = 1;
-    this->auto_tuning_mr3[2][0][0] = 1;
-    this->auto_tuning_mr1[2][0][1] = 1;
-    this->auto_tuning_mr2[2][0][1] = 1;
-    this->auto_tuning_mr3[2][0][1] = 1;
-    this->auto_tuning_mr1[2][0][2] = 1;
-    this->auto_tuning_mr2[2][0][2] = 1;
-    this->auto_tuning_mr3[2][0][2] = 1;
-    this->auto_tuning_mr1[2][0][3] = 1;
-    this->auto_tuning_mr2[2][0][3] = 1;
-    this->auto_tuning_mr3[2][0][3] = 3;
-    this->auto_tuning_mr1[2][0][4] = 4;
-    this->auto_tuning_mr2[2][0][4] = 3;
-    this->auto_tuning_mr3[2][0][4] = 4;
-    this->auto_tuning_mr1[2][0][5] = 4;
-    this->auto_tuning_mr2[2][0][5] = 3;
-    this->auto_tuning_mr3[2][0][5] = 3;
-    this->auto_tuning_mr1[2][0][6] = 6;
-    this->auto_tuning_mr2[2][0][6] = 3;
-    this->auto_tuning_mr3[2][0][6] = 3;
-    this->auto_tuning_mr1[2][0][7] = 5;
-    this->auto_tuning_mr2[2][0][7] = 4;
-    this->auto_tuning_mr3[2][0][7] = 4;
-    this->auto_tuning_mr1[2][0][8] = 5;
-    this->auto_tuning_mr2[2][0][8] = 4;
-    this->auto_tuning_mr3[2][0][8] = 4;
+  static int lpk2_nd[num_precision][num_range];
 
-    this->auto_tuning_ts1[2][0][0] = 1;
-    this->auto_tuning_ts2[2][0][0] = 1;
-    this->auto_tuning_ts3[2][0][0] = 1;
-    this->auto_tuning_ts1[2][0][1] = 1;
-    this->auto_tuning_ts2[2][0][1] = 1;
-    this->auto_tuning_ts3[2][0][1] = 1;
-    this->auto_tuning_ts1[2][0][2] = 2;
-    this->auto_tuning_ts2[2][0][2] = 2;
-    this->auto_tuning_ts3[2][0][2] = 2;
-    this->auto_tuning_ts1[2][0][3] = 3;
-    this->auto_tuning_ts2[2][0][3] = 2;
-    this->auto_tuning_ts3[2][0][3] = 2;
-    this->auto_tuning_ts1[2][0][4] = 3;
-    this->auto_tuning_ts2[2][0][4] = 2;
-    this->auto_tuning_ts3[2][0][4] = 2;
-    this->auto_tuning_ts1[2][0][5] = 3;
-    this->auto_tuning_ts2[2][0][5] = 2;
-    this->auto_tuning_ts3[2][0][5] = 2;
-    this->auto_tuning_ts1[2][0][6] = 5;
-    this->auto_tuning_ts2[2][0][6] = 5;
-    this->auto_tuning_ts3[2][0][6] = 2;
-    this->auto_tuning_ts1[2][0][7] = 5;
-    this->auto_tuning_ts2[2][0][7] = 6;
-    this->auto_tuning_ts3[2][0][7] = 6;
-    this->auto_tuning_ts1[2][0][8] = 5;
-    this->auto_tuning_ts2[2][0][8] = 6;
-    this->auto_tuning_ts3[2][0][8] = 6;
-    // Turing-Double
+  static int lpk3_nd[num_precision][num_range];
 
-    this->auto_tuning_cc[2][1][0] = 0;
-    this->auto_tuning_cc[2][1][1] = 0;
-    this->auto_tuning_cc[2][1][2] = 2;
-    this->auto_tuning_cc[2][1][3] = 2;
-    this->auto_tuning_cc[2][1][4] = 3;
-    this->auto_tuning_cc[2][1][5] = 4;
-    this->auto_tuning_cc[2][1][6] = 4;
-    this->auto_tuning_cc[2][1][7] = 6;
-    this->auto_tuning_cc[2][1][8] = 3;
+  static int ipk1_3d[num_precision][num_range];
 
-    this->auto_tuning_mr1[2][1][0] = 1;
-    this->auto_tuning_mr2[2][1][0] = 1;
-    this->auto_tuning_mr3[2][1][0] = 1;
-    this->auto_tuning_mr1[2][1][1] = 1;
-    this->auto_tuning_mr2[2][1][1] = 1;
-    this->auto_tuning_mr3[2][1][1] = 1;
-    this->auto_tuning_mr1[2][1][2] = 1;
-    this->auto_tuning_mr2[2][1][2] = 1;
-    this->auto_tuning_mr3[2][1][2] = 1;
-    this->auto_tuning_mr1[2][1][3] = 1;
-    this->auto_tuning_mr2[2][1][3] = 1;
-    this->auto_tuning_mr3[2][1][3] = 1;
-    this->auto_tuning_mr1[2][1][4] = 4;
-    this->auto_tuning_mr2[2][1][4] = 4;
-    this->auto_tuning_mr3[2][1][4] = 1;
-    this->auto_tuning_mr1[2][1][5] = 1;
-    this->auto_tuning_mr2[2][1][5] = 1;
-    this->auto_tuning_mr3[2][1][5] = 1;
-    this->auto_tuning_mr1[2][1][6] = 1;
-    this->auto_tuning_mr2[2][1][6] = 1;
-    this->auto_tuning_mr3[2][1][6] = 1;
-    this->auto_tuning_mr1[2][1][7] = 1;
-    this->auto_tuning_mr2[2][1][7] = 1;
-    this->auto_tuning_mr3[2][1][7] = 1;
-    this->auto_tuning_mr1[2][1][8] = 1;
-    this->auto_tuning_mr2[2][1][8] = 1;
-    this->auto_tuning_mr3[2][1][8] = 1;
+  static int ipk2_3d[num_precision][num_range];
 
-    this->auto_tuning_ts1[2][1][0] = 1;
-    this->auto_tuning_ts2[2][1][0] = 1;
-    this->auto_tuning_ts3[2][1][0] = 1;
-    this->auto_tuning_ts1[2][1][1] = 1;
-    this->auto_tuning_ts2[2][1][1] = 1;
-    this->auto_tuning_ts3[2][1][1] = 1;
-    this->auto_tuning_ts1[2][1][2] = 2;
-    this->auto_tuning_ts2[2][1][2] = 2;
-    this->auto_tuning_ts3[2][1][2] = 2;
-    this->auto_tuning_ts1[2][1][3] = 3;
-    this->auto_tuning_ts2[2][1][3] = 2;
-    this->auto_tuning_ts3[2][1][3] = 2;
-    this->auto_tuning_ts1[2][1][4] = 2;
-    this->auto_tuning_ts2[2][1][4] = 2;
-    this->auto_tuning_ts3[2][1][4] = 2;
-    this->auto_tuning_ts1[2][1][5] = 2;
-    this->auto_tuning_ts2[2][1][5] = 2;
-    this->auto_tuning_ts3[2][1][5] = 2;
-    this->auto_tuning_ts1[2][1][6] = 3;
-    this->auto_tuning_ts2[2][1][6] = 5;
-    this->auto_tuning_ts3[2][1][6] = 3;
-    this->auto_tuning_ts1[2][1][7] = 3;
-    this->auto_tuning_ts2[2][1][7] = 6;
-    this->auto_tuning_ts3[2][1][7] = 6;
-    this->auto_tuning_ts1[2][1][8] = 3;
-    this->auto_tuning_ts2[2][1][8] = 6;
-    this->auto_tuning_ts3[2][1][8] = 6;
-  }
+  static int ipk3_3d[num_precision][num_range];
 
-  MGARDX_CONT
-  ~AutoTuningTable() {
-    for (int i = 0; i < num_arch; i++) {
-      for (int j = 0; j < num_precision; j++) {
-        delete[] this->auto_tuning_cc[i][j];
-        delete[] this->auto_tuning_mr1[i][j];
-        delete[] this->auto_tuning_mr2[i][j];
-        delete[] this->auto_tuning_mr3[i][j];
-        delete[] this->auto_tuning_ts1[i][j];
-        delete[] this->auto_tuning_ts2[i][j];
-        delete[] this->auto_tuning_ts3[i][j];
-      }
-      delete[] this->auto_tuning_cc[i];
-      delete[] this->auto_tuning_mr1[i];
-      delete[] this->auto_tuning_mr2[i];
-      delete[] this->auto_tuning_mr3[i];
-      delete[] this->auto_tuning_ts1[i];
-      delete[] this->auto_tuning_ts2[i];
-      delete[] this->auto_tuning_ts3[i];
-    }
-    delete[] this->auto_tuning_cc;
-    delete[] this->auto_tuning_mr1;
-    delete[] this->auto_tuning_mr2;
-    delete[] this->auto_tuning_mr3;
-    delete[] this->auto_tuning_ts1;
-    delete[] this->auto_tuning_ts2;
-    delete[] this->auto_tuning_ts3;
-  }
+  static int ipk1_nd[num_precision][num_range];
 
-  int num_arch = 3;
-  int num_precision = 2;
-  int num_range = 9;
-  int ***auto_tuning_cc;
-  int ***auto_tuning_mr1, ***auto_tuning_ts1;
-  int ***auto_tuning_mr2, ***auto_tuning_ts2;
-  int ***auto_tuning_mr3, ***auto_tuning_ts3;
-  int arch, precision;
+  static int ipk2_nd[num_precision][num_range];
 
-  static int gpk_reo_3d[2][9];
+  static int ipk3_nd[num_precision][num_range];
 
-  static int gpk_rev_3d[2][9];
+  static int lwpk[num_precision][num_range];
 
-  static int gpk_reo_nd[2][9];
+  static int lwqzk[num_precision][num_range];
 
-  static int gpk_rev_nd[2][9];
+  static int lwdqzk[num_precision][num_range];
 
-  static int lpk1_3d[2][9];
-
-  static int lpk2_3d[2][9];
-
-  static int lpk3_3d[2][9];
-
-  static int lpk1_nd[2][9];
-
-  static int lpk2_nd[2][9];
-
-  static int lpk3_nd[2][9];
-
-  static int ipk1_3d[2][9];
-
-  static int ipk2_3d[2][9];
-
-  static int ipk3_3d[2][9];
-
-  static int ipk1_nd[2][9];
-
-  static int ipk2_nd[2][9];
-
-  static int ipk3_nd[2][9];
-
-  static int lwpk[2][9];
+  static int llk[num_precision][num_range];
 };
 
 template <> class AutoTuner<CUDA> {
 public:
   MGARDX_CONT
   AutoTuner(){};
-
-  static KernelConfigs<CUDA> kernelConfigs;
   static AutoTuningTable<CUDA> autoTuningTable;
   static bool ProfileKernels;
 };

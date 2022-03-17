@@ -278,7 +278,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     const char *input_file, const char *output_file,
                     std::vector<mgard_x::SIZE> shape, bool non_uniform,
                     const char *coords_file, double tol, double s,
-                    enum mgard_x::error_bound_type mode, int lossless,
+                    enum mgard_x::error_bound_type mode, int reorder, int lossless,
                     enum mgard_x::device_type dev_type, bool verbose) {
 
   mgard_x::Config config;
@@ -288,7 +288,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.dev_type = dev_type;
   config.zstd_compress_level = 1;
   config.huff_dict_size = 8192;
-  config.reorder = 1;
+  config.reorder = reorder;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
@@ -456,6 +456,8 @@ bool try_compression(int argc, char *argv[]) {
   std::cout << std::defaultfloat;
   std::cout << mgard_x::log::log_info << "s: " << s << "\n";
 
+  int reorder = get_arg_int(argc, argv, "-r");
+
   int lossless_level = get_arg_int(argc, argv, "-l");
   if (lossless_level == 0) {
     std::cout << mgard_x::log::log_info << "lossless: Huffman\n";
@@ -489,11 +491,11 @@ bool try_compression(int argc, char *argv[]) {
   if (dtype == mgard_x::data_type::Double) {
     launch_compress<double>(D, dtype, input_file.c_str(), output_file.c_str(),
                             shape, non_uniform, non_uniform_coords_file.c_str(),
-                            tol, s, mode, lossless_level, dev_type, verbose);
+                            tol, s, mode, reorder, lossless_level, dev_type, verbose);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_compress<float>(D, dtype, input_file.c_str(), output_file.c_str(),
                            shape, non_uniform, non_uniform_coords_file.c_str(),
-                           tol, s, mode, lossless_level, dev_type, verbose);
+                           tol, s, mode, reorder, lossless_level, dev_type, verbose);
   }
   return true;
 }

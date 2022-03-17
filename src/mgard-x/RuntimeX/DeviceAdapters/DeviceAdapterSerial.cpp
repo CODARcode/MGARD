@@ -18,7 +18,6 @@ bool MemoryManager<Serial>::ReduceMemoryFootprint = false;
 bool DeviceRuntime<Serial>::TimingAllKernels = false;
 bool DeviceRuntime<Serial>::PrintKernelConfig = false;
 
-KernelConfigs<Serial> AutoTuner<Serial>::kernelConfigs;
 AutoTuningTable<Serial> AutoTuner<Serial>::autoTuningTable;
 bool AutoTuner<Serial>::ProfileKernels = false;
 

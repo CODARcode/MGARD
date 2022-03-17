@@ -18,7 +18,6 @@ bool MemoryManager<HIP>::ReduceMemoryFootprint = false;
 bool DeviceRuntime<HIP>::TimingAllKernels = false;
 bool DeviceRuntime<HIP>::PrintKernelConfig = false;
 
-KernelConfigs<HIP> AutoTuner<HIP>::kernelConfigs;
 AutoTuningTable<HIP> AutoTuner<HIP>::autoTuningTable;
 bool AutoTuner<HIP>::ProfileKernels = false;
 
