@@ -95,7 +95,7 @@ jobs:
                         - name: configure
                           run: cmake -S . -B "${{ env.MGARD_BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.MOAB_INSTALL_PREFIX }};${{ env.CATCH2_INSTALL_PREFIX }};${{ env.TCLAP_INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.MGARD_BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.MGARD_INSTALL_PREFIX }}"
                         - name: build
-                          run: cmake --build "${{ env.MGARD_BUILD_DIR }}" --parallel
+                          run: cmake --build "${{ env.MGARD_BUILD_DIR }}" -j 8
                         - name: test
                           run: "${{ env.MGARD_BUILD_DIR }}/bin/tests"
                         - name: install
