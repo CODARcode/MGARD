@@ -278,8 +278,9 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     const char *input_file, const char *output_file,
                     std::vector<mgard_x::SIZE> shape, bool non_uniform,
                     const char *coords_file, double tol, double s,
-                    enum mgard_x::error_bound_type mode, int reorder, int lossless,
-                    enum mgard_x::device_type dev_type, bool verbose) {
+                    enum mgard_x::error_bound_type mode, int reorder,
+                    int lossless, enum mgard_x::device_type dev_type,
+                    bool verbose) {
 
   mgard_x::Config config;
   config.timing = verbose;
@@ -491,11 +492,13 @@ bool try_compression(int argc, char *argv[]) {
   if (dtype == mgard_x::data_type::Double) {
     launch_compress<double>(D, dtype, input_file.c_str(), output_file.c_str(),
                             shape, non_uniform, non_uniform_coords_file.c_str(),
-                            tol, s, mode, reorder, lossless_level, dev_type, verbose);
+                            tol, s, mode, reorder, lossless_level, dev_type,
+                            verbose);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_compress<float>(D, dtype, input_file.c_str(), output_file.c_str(),
                            shape, non_uniform, non_uniform_coords_file.c_str(),
-                           tol, s, mode, reorder, lossless_level, dev_type, verbose);
+                           tol, s, mode, reorder, lossless_level, dev_type,
+                           verbose);
   }
   return true;
 }
