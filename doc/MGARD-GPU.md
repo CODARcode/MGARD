@@ -22,7 +22,7 @@ MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which signific
 * CMake 3.19+
 
 ## Software dependencies 
-* [NVCOMP v2.2.0][nvcomp] (for NVIDIA GPUs only)
+* [NVCOMP v2.2.0][nvcomp]
 * [ZSTD v1.5.0][zstd]
 * [Protobuf v3.19.4][protobuf]
 
