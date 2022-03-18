@@ -69,17 +69,17 @@ $ man mgard
 [tclap]: http://tclap.sourceforge.net/
 
 ## Accelerated and portable compression
-MGARD-X is designed for portable compression on NVIDIA GPUs, AMD GPUs, and CPUs. See detail user guide in [here][mgard_x instructions].
+MGARD-X is designed for portable compression on NVIDIA GPUs, AMD GPUs, and CPUs. See detailed user guide in [here][mgard_x instructions].
 
 [mgard_x instructions]: doc/MGARD-X.md
 
 ## CUDA accelerated compression
-MGARD-GPU is designed for accelerating compression specifically using NVIDIA GPUs. See detail user guide in [here][gpu instructions].
+MGARD-GPU is designed for accelerating compression specifically using NVIDIA GPUs. See detailed user guide in [here][gpu instructions].
 
 [gpu instructions]: doc/MGARD-GPU.md
 
 ## Fine-grain progressive data reconstruction
-MDR-X is design for enabling fine-grain data refactoring and progressive data reconstruction. See detail user guide in [here][mdr_x instructions].
+MDR-X is design for enabling fine-grain data refactoring and progressive data reconstruction. See detailed user guide in [here][mdr_x instructions].
 
 [mdr_x instructions]: doc/MDR-X.md
 
