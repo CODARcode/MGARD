@@ -555,7 +555,7 @@ Hierarchy<D, T, DeviceType>::estimate_memory_usgae(std::vector<SIZE> shape) {
       estimate_memory_usgae, hierarchy_space + input_space +
                                  quantization_workspace + huffman_workspace);
 
-  double estimated_output_ratio = 0.5;
+  double estimated_output_ratio = 0.7;
 
   return estimate_memory_usgae + (double)input_space * estimated_output_ratio;
 }
