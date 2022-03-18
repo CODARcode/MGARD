@@ -310,7 +310,9 @@ public:
       }
 
       QUANTIZED_INT quantized_data =
-          copysign(0.5 + fabs(t / (quantizers_sm[level] * volume)), t);
+          copysign(0.5 + fabs(t * (quantizers_sm[level]) * (1.0 / volume)), t);
+      // QUANTIZED_INT quantized_data =
+      //     copysign(0.5 + fabs(t / (quantizers_sm[level]/volume)), t);
 
       // printf("%f / %f * %f = %d\n", t, quantizers_sm[level], volume,
       // quantized_data);

@@ -180,7 +180,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   for (int d = 0; d < D; d++)
     dof *= hierarchy.dofs[d][0];
   calc_quantizers<D, T>(dof, quantizers, type, tol, s, norm, hierarchy.l_target,
-                        config.decomposition, false);
+                        config.decomposition, true);
   Array<1, T, DeviceType> quantizers_array({hierarchy.l_target + 1});
   quantizers_array.load(quantizers);
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
