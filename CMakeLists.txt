@@ -37,6 +37,7 @@ option(MGARD_ENABLE_OPENMP "Enable OpenMP support." OFF)
 option(MGARD_ENABLE_CUDA "Enable CUDA support" OFF)
 option(MGARD_ENABLE_SERIAL "Enable SERIAL support" ON)
 option(MGARD_ENABLE_HIP "Enable HIP support" OFF)
+option(MGARD_ENABLE_SYCL "Enable SYCL support" OFF)
 option(MGARD_ENABLE_LEGACY_CUDA "Enable legacy CUDA support" OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)
@@ -88,7 +89,8 @@ endif()
 
 if (MGARD_ENABLE_SERIAL OR 
     MGARD_ENABLE_CUDA   OR
-    MGARD_ENABLE_HIP    )
+    MGARD_ENABLE_HIP    OR
+    MGARD_ENABLE_SYCL)
 
   set (CMAKE_CXX_STANDARD 17)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -176,6 +178,11 @@ if (MGARD_ENABLE_HIP)
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_HIP)
   set (CMAKE_HIP_FLAGS  "${CMAKE_HIP_FLAGS} -w")
   set_source_files_properties(${MGARD_X_HIP_SRC} PROPERTIES LANGUAGE HIP)
+endif()
+
+if (MGARD_ENABLE_SYCL)
+  find_package(IntelDPCPP REQUIRED)
+  set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
 endif()
 
 find_package(ZLIB REQUIRED)
@@ -271,6 +278,7 @@ target_sources(
   ${MGARD_X_SERIAL_SRC}
   ${MGARD_X_CUDA_SRC}
   ${MGARD_X_HIP_SRC}
+  ${MGARD_X_SYCL_SRC}
 )
 
 set_target_properties(mgard-library PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
