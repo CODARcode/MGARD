@@ -41,8 +41,8 @@ struct Config {
     lz4_block_size = 1 << 15;
     zstd_compress_level = 3;
     timing = false;
-    uniform_coord_mode = 0;
-    lossless = lossless_type::Huffman_LZ4;
+    uniform_coord_mode = 1;
+    lossless = lossless_type::Huffman;
     global_norm = 1;
     reorder = 0;
   }
@@ -51,7 +51,7 @@ struct Config {
 template <DIM D, typename T, typename DeviceType> struct Hierarchy {
 
   /* for general users */
-  Hierarchy(std::vector<SIZE> shape, int uniform_coord_mode = 0,
+  Hierarchy(std::vector<SIZE> shape, int uniform_coord_mode = 1,
             SIZE target_level = 0);
   Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords,
             SIZE target_level = 0);
@@ -59,7 +59,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   /* for Internal use only */
   Hierarchy();
   Hierarchy(std::vector<SIZE> shape, DIM domain_decomposed_dim,
-            SIZE domain_decomposed_size, int uniform_coord_mode = 0);
+            SIZE domain_decomposed_size, int uniform_coord_mode = 1);
   Hierarchy(std::vector<SIZE> shape, DIM domain_decomposed_dim,
             SIZE domain_decomposed_size, std::vector<T *> coords);
   Hierarchy(const Hierarchy &hierarchy);

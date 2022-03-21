@@ -60,7 +60,7 @@ void print_statistics(const T *data_ori, const T *data_dec, size_t data_size) {
   cout << "MSE = " << mse << ", PSNR = " << psnr << endl;
   cout << "L2 error = "
        << mgard_x::L_2_error({(mgard_x::SIZE)data_size}, data_ori, data_dec,
-                             mgard_x::error_bound_type::ABS)
+                             mgard_x::error_bound_type::ABS, 0)
        << endl;
   cout << "L_inf error = "
        << mgard_x::L_inf_error(data_size, data_ori, data_dec,

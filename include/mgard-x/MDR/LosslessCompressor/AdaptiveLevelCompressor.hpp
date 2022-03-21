@@ -3,6 +3,7 @@
 
 #include "LevelCompressorInterface.hpp"
 #include "LosslessCompressor.hpp"
+
 namespace MDR {
 #define CR_THRESHOLD 1.05
 // compress all layers

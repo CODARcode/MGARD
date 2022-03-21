@@ -2,9 +2,10 @@
 #define _MDR_BLOCKED_INTERLEAVER_HPP
 
 #include "InterleaverInterface.hpp"
+
 namespace MDR {
 // direct interleaver with in-order recording
-template <typename T>
+template <class T>
 class BlockedInterleaver : public concepts::InterleaverInterface<T> {
 public:
   BlockedInterleaver() {}
@@ -106,15 +107,15 @@ public:
   void print() const { std::cout << "Blocked interleaver" << std::endl; }
 
 private:
-  uint32_t collect_data_3d_blocked(const T *data, const uint32_t n1,
-                                   const uint32_t n2, const uint32_t n3,
-                                   const uint32_t dim0_offset,
-                                   const uint32_t dim1_offset,
-                                   const int block_size, T *buffer) const {
-    uint32_t num_block_1 = (n1 - 1) / block_size + 1;
-    uint32_t num_block_2 = (n2 - 1) / block_size + 1;
-    uint32_t num_block_3 = (n3 - 1) / block_size + 1;
-    uint32_t index = 0;
+  size_t collect_data_3d_blocked(const T *data, const size_t n1,
+                                 const size_t n2, const size_t n3,
+                                 const size_t dim0_offset,
+                                 const size_t dim1_offset, const int block_size,
+                                 T *buffer) const {
+    size_t num_block_1 = (n1 - 1) / block_size + 1;
+    size_t num_block_2 = (n2 - 1) / block_size + 1;
+    size_t num_block_3 = (n3 - 1) / block_size + 1;
+    size_t index = 0;
     const T *data_x_pos = data;
     for (int i = 0; i < num_block_1; i++) {
       int size_1 = (i == num_block_1 - 1) ? n1 - i * block_size : block_size;
@@ -144,15 +145,15 @@ private:
     }
     return index;
   }
-  uint32_t reposition_data_3d_blocked(const T *buffer, const uint32_t n1,
-                                      const uint32_t n2, const uint32_t n3,
-                                      const uint32_t dim0_offset,
-                                      const uint32_t dim1_offset,
-                                      const int block_size, T *data) const {
-    uint32_t num_block_1 = (n1 - 1) / block_size + 1;
-    uint32_t num_block_2 = (n2 - 1) / block_size + 1;
-    uint32_t num_block_3 = (n3 - 1) / block_size + 1;
-    uint32_t index = 0;
+  size_t reposition_data_3d_blocked(const T *buffer, const size_t n1,
+                                    const size_t n2, const size_t n3,
+                                    const size_t dim0_offset,
+                                    const size_t dim1_offset,
+                                    const int block_size, T *data) const {
+    size_t num_block_1 = (n1 - 1) / block_size + 1;
+    size_t num_block_2 = (n2 - 1) / block_size + 1;
+    size_t num_block_3 = (n3 - 1) / block_size + 1;
+    size_t index = 0;
     T *data_x_pos = data;
     for (int i = 0; i < num_block_1; i++) {
       int size_1 = (i == num_block_1 - 1) ? n1 - i * block_size : block_size;

@@ -2,6 +2,7 @@
 #define _MDR_NULL_LEVEL_COMPRESSOR_HPP
 
 #include "LevelCompressorInterface.hpp"
+
 namespace MDR {
 // Null lossless compressor
 class NullLevelCompressor : public concepts::LevelCompressorInterface {

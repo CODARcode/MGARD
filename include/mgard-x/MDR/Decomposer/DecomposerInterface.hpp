@@ -1,12 +1,11 @@
 #ifndef _MDR_DECOMPOSER_INTERFACE_HPP
 #define _MDR_DECOMPOSER_INTERFACE_HPP
-#include "../../RuntimeX/RuntimeX.h"
 
 namespace MDR {
 namespace concepts {
 
 // inplace data decomposer: de-correlates and overwrites original data
-template <typename T> class DecomposerInterface {
+template <class T> class DecomposerInterface {
 public:
   virtual ~DecomposerInterface() = default;
 
@@ -20,26 +19,4 @@ public:
 };
 } // namespace concepts
 } // namespace MDR
-
-namespace mgard_x {
-namespace MDR {
-namespace concepts {
-
-// inplace data decomposer: de-correlates and overwrites original data
-template <DIM D, typename T, typename DeviceType> class DecomposerInterface {
-public:
-  virtual ~DecomposerInterface() = default;
-
-  virtual void decompose(SubArray<D, T, DeviceType> v, SIZE target_level,
-                         int queue_idx) const = 0;
-
-  virtual void recompose(SubArray<D, T, DeviceType> v, SIZE target_level,
-                         int queue_idx) const = 0;
-
-  virtual void print() const = 0;
-};
-} // namespace concepts
-} // namespace MDR
-} // namespace mgard_x
-
 #endif

@@ -2,9 +2,10 @@
 #define _MDR_SFC_INTERLEAVER_HPP
 
 #include "InterleaverInterface.hpp"
+
 namespace MDR {
 // direct interleaver with in-order recording
-template <typename T>
+template <class T>
 class SFCInterleaver : public concepts::InterleaverInterface<T> {
 public:
   SFCInterleaver() {}
@@ -138,15 +139,15 @@ public:
   }
 
 private:
-  uint32_t collect_data_3d_blocked(const T *data, const uint32_t n1,
-                                   const uint32_t n2, const uint32_t n3,
-                                   const uint32_t dim0_offset,
-                                   const uint32_t dim1_offset,
-                                   const int block_size, T *buffer) const {
-    uint32_t num_block_1 = (n1 - 1) / block_size + 1;
-    uint32_t num_block_2 = (n2 - 1) / block_size + 1;
-    uint32_t num_block_3 = (n3 - 1) / block_size + 1;
-    uint32_t index = 0;
+  size_t collect_data_3d_blocked(const T *data, const size_t n1,
+                                 const size_t n2, const size_t n3,
+                                 const size_t dim0_offset,
+                                 const size_t dim1_offset, const int block_size,
+                                 T *buffer) const {
+    size_t num_block_1 = (n1 - 1) / block_size + 1;
+    size_t num_block_2 = (n2 - 1) / block_size + 1;
+    size_t num_block_3 = (n3 - 1) / block_size + 1;
+    size_t index = 0;
     const T *data_x_pos = data;
     for (int i = 0; i < num_block_1; i++) {
       int size_1 = (i == num_block_1 - 1) ? n1 - i * block_size : block_size;
@@ -176,15 +177,15 @@ private:
     }
     return index;
   }
-  uint32_t reposition_data_3d_blocked(const T *buffer, const uint32_t n1,
-                                      const uint32_t n2, const uint32_t n3,
-                                      const uint32_t dim0_offset,
-                                      const uint32_t dim1_offset,
-                                      const int block_size, T *data) const {
-    uint32_t num_block_1 = (n1 - 1) / block_size + 1;
-    uint32_t num_block_2 = (n2 - 1) / block_size + 1;
-    uint32_t num_block_3 = (n3 - 1) / block_size + 1;
-    uint32_t index = 0;
+  size_t reposition_data_3d_blocked(const T *buffer, const size_t n1,
+                                    const size_t n2, const size_t n3,
+                                    const size_t dim0_offset,
+                                    const size_t dim1_offset,
+                                    const int block_size, T *data) const {
+    size_t num_block_1 = (n1 - 1) / block_size + 1;
+    size_t num_block_2 = (n2 - 1) / block_size + 1;
+    size_t num_block_3 = (n3 - 1) / block_size + 1;
+    size_t index = 0;
     T *data_x_pos = data;
     for (int i = 0; i < num_block_1; i++) {
       int size_1 = (i == num_block_1 - 1) ? n1 - i * block_size : block_size;
@@ -221,10 +222,10 @@ private:
 
       3d 0-7 => 2-1-3-6-4-5-7
   */
-  void skip_one_data_collection(const T *pos[7], T *buffer, uint32_t n1_nodal,
-                                uint32_t n1_coeff, uint32_t n2_nodal,
-                                uint32_t n2_coeff, uint32_t n3_nodal,
-                                uint32_t n3_coeff) const {
+  void skip_one_data_collection(const T *pos[7], T *buffer, size_t n1_nodal,
+                                size_t n1_coeff, size_t n2_nodal,
+                                size_t n2_coeff, size_t n3_nodal,
+                                size_t n3_coeff) const {
     int index = 0;
     for (int i = 0; i < n1_coeff; i++) {
       for (int j = 0; j < n2_coeff; j++) {
@@ -291,10 +292,10 @@ private:
       }
     }
   }
-  void skip_one_data_reposition(const T *buffer, T *pos[7], uint32_t n1_nodal,
-                                uint32_t n1_coeff, uint32_t n2_nodal,
-                                uint32_t n2_coeff, uint32_t n3_nodal,
-                                uint32_t n3_coeff) const {
+  void skip_one_data_reposition(const T *buffer, T *pos[7], size_t n1_nodal,
+                                size_t n1_coeff, size_t n2_nodal,
+                                size_t n2_coeff, size_t n3_nodal,
+                                size_t n3_coeff) const {
     int index = 0;
     for (int i = 0; i < n1_coeff; i++) {
       for (int j = 0; j < n2_coeff; j++) {

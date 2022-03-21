@@ -2,7 +2,7 @@
 #define _MDR_BASIC_REORGANIZER_HPP
 
 #include "ReorganizerInterface.hpp"
-namespace mgard_x {
+
 namespace MDR {
 // direct in-order bit-plane placement
 class InOrderReorganizer : public concepts::ReorganizerInterface {
@@ -10,8 +10,8 @@ public:
   InOrderReorganizer() {}
   uint8_t *
   reorganize(const std::vector<std::vector<uint8_t *>> &level_components,
-             const std::vector<std::vector<SIZE>> &level_sizes,
-             std::vector<uint8_t> &order, SIZE &total_size) const {
+             const std::vector<std::vector<uint32_t>> &level_sizes,
+             std::vector<uint8_t> &order, uint32_t &total_size) const {
     const int num_levels = level_sizes.size();
     total_size = 0;
     for (int i = 0; i < num_levels; i++) {
@@ -38,8 +38,8 @@ public:
   RoundRobinReorganizer() {}
   uint8_t *
   reorganize(const std::vector<std::vector<uint8_t *>> &level_components,
-             const std::vector<std::vector<SIZE>> &level_sizes,
-             std::vector<uint8_t> &order, SIZE &total_size) const {
+             const std::vector<std::vector<uint32_t>> &level_sizes,
+             std::vector<uint8_t> &order, uint32_t &total_size) const {
     const int num_levels = level_sizes.size();
     total_size = 0;
     for (int i = 0; i < num_levels; i++) {
@@ -69,5 +69,4 @@ public:
   void print() const { std::cout << "Round-robin reorganizer." << std::endl; }
 };
 } // namespace MDR
-} // namespace mgard_x
 #endif

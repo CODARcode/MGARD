@@ -96,6 +96,7 @@ if (MGARD_ENABLE_SERIAL OR
   add_subdirectory (src/mgard-x)
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)
+  add_subdirectory (include/mgard-x/MDR-X)
   find_package(zstd REQUIRED)
 
   add_executable(mgard-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mgard-x.cpp)
