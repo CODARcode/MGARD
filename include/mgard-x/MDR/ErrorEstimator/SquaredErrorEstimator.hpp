@@ -2,7 +2,7 @@
 #define _MDR_SQUARED_ERROR_ESTIMATOR_HPP
 
 #include "ErrorEstimatorInterface.hpp"
-namespace mgard_x {
+
 namespace MDR {
 template <class T>
 class SquaredErrorEstimator : public concepts::ErrorEstimatorInterface<T> {};
@@ -69,5 +69,4 @@ private:
   std::vector<T> s_table;
 };
 } // namespace MDR
-} // namespace mgard_x
 #endif

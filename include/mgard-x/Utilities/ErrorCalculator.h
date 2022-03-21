@@ -25,7 +25,8 @@ template <typename T> T L_inf_norm(size_t n, const T *data) {
   return L_inf;
 }
 
-template <typename T> T L_2_norm(std::vector<SIZE> shape, const T *data) {
+template <typename T>
+T L_2_norm(std::vector<SIZE> shape, const T *data, int uniform_coord_mode) {
   SIZE n = 1;
   for (DIM d = 0; d < shape.size(); d++)
     n *= shape[d];
@@ -73,7 +74,11 @@ template <typename T> T L_2_norm(std::vector<SIZE> shape, const T *data) {
   // delete [] buffer;
   // return l2_norm;
 
-  return std::sqrt(L_2);
+  if (uniform_coord_mode == 0) {
+    return std::sqrt(L_2);
+  } else {
+    return std::sqrt(L_2 / n);
+  }
 }
 
 template <typename T>
@@ -96,7 +101,8 @@ T L_inf_error(size_t n, const T *original_data, const T *decompressed_data,
 
 template <typename T>
 T L_2_error(std::vector<SIZE> shape, const T *original_data,
-            const T *decompressed_data, enum error_bound_type mode) {
+            const T *decompressed_data, enum error_bound_type mode,
+            int uniform_coord_mode) {
   SIZE n = 1;
   for (DIM d = 0; d < shape.size(); d++)
     n *= shape[d];
@@ -105,8 +111,8 @@ T L_2_error(std::vector<SIZE> shape, const T *original_data,
     T temp = fabs(original_data[i] - decompressed_data[i]);
     error[i] = temp;
   }
-  T org_norm = L_2_norm<T>(shape, original_data);
-  T err_norm = L_2_norm<T>(shape, error);
+  T org_norm = L_2_norm<T>(shape, original_data, uniform_coord_mode);
+  T err_norm = L_2_norm<T>(shape, error, uniform_coord_mode);
   delete[] error;
 
   if (mode == error_bound_type::ABS) {

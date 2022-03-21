@@ -235,12 +235,12 @@ struct Result test(mgard_x::DIM D, T *original_data,
     original_size *= shape[i];
   // T * original_data = (T*)malloc(original_size * sizeof(T));
   // readfile(input_file, original_size * sizeof(T), false, original_data);
-
+  int uniform_coord_mode = 1;
   T norm;
   if (s == std::numeric_limits<T>::infinity()) {
     norm = mgard_x::L_inf_norm(original_size, original_data);
   } else {
-    norm = mgard_x::L_2_norm(shape, original_data);
+    norm = mgard_x::L_2_norm(shape, original_data, uniform_coord_mode);
   }
 
   void *compressed_data = NULL;
@@ -294,7 +294,7 @@ struct Result test(mgard_x::DIM D, T *original_data,
                                  (T *)decompressed_data, ebtype);
   } else {
     error = mgard_x::L_2_error(shape, original_data, (T *)decompressed_data,
-                               ebtype);
+                               ebtype, uniform_coord_mode);
   }
 
   // if (error < tol) {

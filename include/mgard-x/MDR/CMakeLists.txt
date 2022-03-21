@@ -1,4 +1,3 @@
-
 SET(MDR_HEADER
 	${CMAKE_CURRENT_SOURCE_DIR}/RefactorUtils.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Decomposer

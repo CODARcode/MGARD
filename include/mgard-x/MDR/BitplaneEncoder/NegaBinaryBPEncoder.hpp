@@ -2,14 +2,14 @@
 #define _MDR_NEGABINARY_BP_ENCODER_HPP
 
 #include "BitplaneEncoderInterface.hpp"
+
 namespace MDR {
 // general bitplane encoder that encodes data by block using T_stream type
 // buffer
-template <typename T_data, typename T_stream>
+template <class T_data, class T_stream>
 class NegaBinaryBPEncoder : public concepts::BitplaneEncoderInterface<T_data> {
 public:
   NegaBinaryBPEncoder() {
-    std::cout << "NegaBinaryBPEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "NegaBinaryBPEncoder: input data must be floating points.");
     static_assert(!std::is_same<T_data, long double>::value,
@@ -20,10 +20,9 @@ public:
                   "NegaBinaryEncoder: streams must be unsigned integers.");
   }
 
-  std::vector<uint8_t *> encode(T_data const *data, uint32_t n, int32_t exp,
+  std::vector<uint8_t *> encode(T_data const *data, int32_t n, int32_t exp,
                                 uint8_t num_bitplanes,
                                 std::vector<uint32_t> &stream_sizes) const {
-
     assert(num_bitplanes > 0);
     // leave room for negabinary format
     exp += 2;
@@ -47,7 +46,7 @@ public:
       streams_pos[i] = reinterpret_cast<T_stream *>(streams[i]);
     }
     T_data const *data_pos = data;
-    for (int i = 0; i < n - block_size; i += block_size) {
+    for (int i = 0; i < (int)n - (int)block_size; i += block_size) {
       for (int j = 0; j < block_size; j++) {
         T_data cur_data = *(data_pos++);
         T_data shifted_data = ldexp(cur_data, num_bitplanes - exp);
@@ -77,7 +76,7 @@ public:
   }
 
   // only differs in error collection
-  std::vector<uint8_t *> encode(T_data const *data, int32_t n, uint32_t exp,
+  std::vector<uint8_t *> encode(T_data const *data, int32_t n, int32_t exp,
                                 uint8_t num_bitplanes,
                                 std::vector<uint32_t> &stream_sizes,
                                 std::vector<double> &level_errors) const {
@@ -145,13 +144,9 @@ public:
           reinterpret_cast<uint8_t *>(streams_pos[i]) - streams[i];
     }
     // translate level errors
-    printf("error: ");
     for (int i = 0; i < level_errors.size(); i++) {
       level_errors[i] = ldexp(level_errors[i], 2 * (-num_bitplanes + exp));
-      printf("%f ", level_errors[i]);
     }
-    printf("\n");
-
     return streams;
   }
 
@@ -163,7 +158,7 @@ public:
 
   // decode the data and record necessary information for progressiveness
   T_data *progressive_decode(const std::vector<uint8_t const *> &streams,
-                             uint32_t n, int exp, uint8_t starting_bitplane,
+                             int32_t n, int exp, uint8_t starting_bitplane,
                              uint8_t num_bitplanes, int level) {
     uint32_t block_size = block_size_based_on_bitplane_int_type<T_stream>();
     T_data *data = (T_data *)malloc(n * sizeof(T_data));
@@ -188,7 +183,7 @@ public:
     T_data *data_pos = data;
     // std::cout << "ending_bitplane = " << +ending_bitplane << std::endl;
     if (ending_bitplane % 2 == 0) {
-      for (int i = 0; i < n - block_size; i += block_size) {
+      for (int i = 0; i < (int)n - (int)block_size; i += block_size) {
         memset(int_data_buffer.data(), 0, block_size * sizeof(T_fp));
         decode_block(streams_pos, block_size, num_bitplanes,
                      int_data_buffer.data());
@@ -211,7 +206,7 @@ public:
         }
       }
     } else {
-      for (int i = 0; i < n - block_size; i += block_size) {
+      for (int i = 0; i < (int)n - (int)block_size; i += block_size) {
         memset(int_data_buffer.data(), 0, block_size * sizeof(T_fp));
         decode_block(streams_pos, block_size, num_bitplanes,
                      int_data_buffer.data());
@@ -284,7 +279,7 @@ private:
     level_errors[0] += data * data;
   }
   template <class T_int>
-  inline void encode_block(T_int const *data, uint32_t n, uint8_t num_bitplanes,
+  inline void encode_block(T_int const *data, size_t n, uint8_t num_bitplanes,
                            std::vector<T_stream *> &streams_pos) const {
     for (int k = num_bitplanes - 1; k >= 0; k--) {
       T_stream bitplane_value = 0;
@@ -296,9 +291,8 @@ private:
     }
   }
   template <class T_int>
-  inline void decode_block(std::vector<T_stream const *> &streams_pos,
-                           uint32_t n, uint8_t num_bitplanes,
-                           T_int *data) const {
+  inline void decode_block(std::vector<T_stream const *> &streams_pos, size_t n,
+                           uint8_t num_bitplanes, T_int *data) const {
     for (int k = num_bitplanes - 1; k >= 0; k--) {
       T_stream bitplane_index = num_bitplanes - 1 - k;
       T_stream bitplane_value = *(streams_pos[bitplane_index]++);

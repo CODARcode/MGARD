@@ -2,7 +2,7 @@
 #define _MDR_SQUARED_ERROR_COLLECTOR_HPP
 
 #include "ErrorCollectorInterface.hpp"
-namespace mgard_x {
+
 namespace MDR {
 union FloatingInt32 {
   float f;
@@ -13,7 +13,7 @@ union FloatingInt64 {
   uint64_t i;
 };
 // s-norm error collector: collecting sum of squared errors
-template <typename T>
+template <class T>
 class SquaredErrorCollector : public concepts::ErrorCollectorInterface<T> {
 public:
   SquaredErrorCollector() {
@@ -22,7 +22,7 @@ public:
     static_assert(!std::is_same<T, long double>::value,
                   "SquaredErrorCollector: long double is not supported.");
   }
-  std::vector<double> collect_level_error(T const *data, SIZE n,
+  std::vector<double> collect_level_error(T const *data, size_t n,
                                           int num_bitplanes,
                                           T max_level_error) const {
     int level_exp = 0;
@@ -73,5 +73,4 @@ public:
   void print() const { std::cout << "Squared error collector." << std::endl; }
 };
 } // namespace MDR
-} // namespace mgard_x
 #endif

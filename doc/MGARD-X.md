@@ -58,25 +58,26 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 [build_scripts]:../build_scripts
 	
 |CMake options|Value|Default|Description|
-|---|---|---|
+|---|---|---|---|
 |MGARD\_ENABLE\_CUDA|ON/OFF|OFF|Enable portable GPU compression/decompression with CUDA on NVIDIA GPUs|
 |MGARD\_ENABLE\_HIP|ON/OFF|OFF|Enable portable GPU compression/decompression with HIP on AMD GPUs|
 |MGARD\_ENABLE\_SERIAL|ON/OFF|ON|Enable portable serial compression/decompression on CPUs|	
 
 ## Control Errors
 MGARD can bound errors in various types of norm:
+
 * To bound ***L<sup>&infin;</sup> norm***, the ```s``` smoothness parameter needs to be set to `infinity`.
 * To bound ***L<sup>2</sup> norm***, the ```s``` smoothness parameter needs to be set to `0`.
 * To bound ***L<sup>s</sup> norm***, the ```s``` smoothness parameter needs to be set to `s`.
 
 MGARD can bound error `tol` in two ways (using L<sup>&infin;</sup> norm as an example, `u` is original data, `u'` is decompressed data):
+
 * ***Absolute*** error mode can guarantee ***| u - u' |<sub>&infin;</sub> < tol***
 * ***Relative*** error mode can guarantee ***| u - u' |<sub>&infin;</sub> < tol * | u |<sub>&infin;</sub>***
 
 
 ## Using command line interface (CLI)
-* An executable ```mgard-x``` will be built after building the MGARD-X library.
-* To use the ```mgard-x``` CLI, here are the options:
+An executable ```mgard-x``` will be built after building the MGARD-X library. To use the ```mgard-x``` CLI, here are the options:
 
 + ```-z```: enable compression mode
     + ```-i <path>``` path to data file to be compressed
@@ -191,6 +192,7 @@ An object ```mgard_x::Hierarchy``` needs to be created and initialized. This ini
 	
 ## Performance optimization
 For achieving the best performance:
+
 * **Specifiying the suitable GPU architecture(s)**: Use CMake configuration options to specifiying the suitable GPU architecture(s)
     + For NVIDIA GPUs, use ```-DCMAKE_CUDA_ARCHITECTURES=<arch>```
     + For AMD GPUs, use ```-DCMAKE_HIP_ARCHITECTURES=<arch>```
@@ -201,6 +203,7 @@ For achieving the best performance:
     + ***Note:*** MGARD-X needs to be recompiled after auto tuning to make it effective.
 
 ## Example Code
+
 * High-level APIs example code can be found in [here][high-level-example].
 * Low-level APIs example code can be found in [here][low-level-example].
 

@@ -199,7 +199,7 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 template <typename T>
 void print_statistics(double s, enum mgard_x::error_bound_type mode,
                       std::vector<mgard_x::SIZE> shape, T *original_data,
-                      T *decompressed_data) {
+                      T *decompressed_data, int uniform_coord_mode) {
 
   mgard_x::SIZE n = 1;
   for (mgard_x::DIM d = 0; d < shape.size(); d++)
@@ -222,12 +222,12 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode,
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info << "Absoluate L_2 error: "
                 << mgard_x::L_2_error(shape, original_data, decompressed_data,
-                                      mode)
+                                      mode, uniform_coord_mode)
                 << "\n";
     } else if (mode == mgard_x::error_bound_type::REL) {
       std::cout << mgard_x::log::log_info << "Relative L_2 error: "
                 << mgard_x::L_2_error(shape, original_data, decompressed_data,
-                                      mode)
+                                      mode, uniform_coord_mode)
                 << "\n";
     }
   }
@@ -250,6 +250,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   high_resolution_clock::time_point start, end;
   duration<double> time_span;
 
+  int uniform_coord_mode = 1;
   size_t original_size = 1;
   for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
@@ -274,7 +275,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   if (s == std::numeric_limits<T>::infinity()) {
     norm = mgard_x::L_inf_norm(original_size, original_data);
   } else {
-    norm = mgard_x::L_2_norm(shape, original_data);
+    norm = mgard_x::L_2_norm(shape, original_data, uniform_coord_mode);
   }
 
   void *compressed_data = NULL;
@@ -411,7 +412,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     launch_decompress<T>(D, dtype, output_file, temp, shape, tol, s, mode,
                          true);
     readfile(temp, decompressed_data);
-    print_statistics<T>(s, mode, shape, original_data, (T *)decompressed_data);
+    print_statistics<T>(s, mode, shape, original_data, (T *)decompressed_data,
+                        uniform_coord_mode);
     // delete[](T *) decompressed_data;
   }
 

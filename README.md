@@ -79,7 +79,7 @@ MGARD-GPU is designed for accelerating compression specifically using NVIDIA GPU
 [gpu instructions]: doc/MGARD-GPU.md
 
 ## Fine-grain progressive data reconstruction
-MDR-X is design for enabling fine-grain data refactoring and progressive data reconstruction. See detailed user guide in [here][mdr_x instructions].
+MDR and MDR-X are designed for enabling fine-grain data refactoring and progressive data reconstruction. See detailed user guide in [here][mdr_x instructions].
 
 [mdr_x instructions]: doc/MDR-X.md
 
