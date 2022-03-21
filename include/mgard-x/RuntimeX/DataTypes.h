@@ -84,6 +84,7 @@ class Device {};
 class Serial : public Device {};
 class CUDA : public Device {};
 class HIP : public Device {};
+class SYCL : public Device {};
 class None : public Device {};
 
 #if defined MGARDX_COMPILE_KOKKOS
