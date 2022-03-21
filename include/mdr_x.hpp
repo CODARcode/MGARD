@@ -6,6 +6,6 @@
  */
 
 #include "mgard-x/Hierarchy.hpp"
-#include "mgard-x/MDR/Reconstructor/Reconstructor.hpp"
-#include "mgard-x/MDR/Refactor/Refactor.hpp"
+#include "mgard-x/MDR-X/Reconstructor/Reconstructor.hpp"
+#include "mgard-x/MDR-X/Refactor/Refactor.hpp"
 #include "mgard-x/RuntimeX/RuntimeX.h"

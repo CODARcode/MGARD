@@ -1,6 +1,6 @@
 #ifndef _MDR_ERROR_ESTIMATOR_INTERFACE_HPP
 #define _MDR_ERROR_ESTIMATOR_INTERFACE_HPP
-namespace mgard_x {
+
 namespace MDR {
 namespace concepts {
 
@@ -23,5 +23,4 @@ public:
 };
 } // namespace concepts
 } // namespace MDR
-} // namespace mgard_x
 #endif

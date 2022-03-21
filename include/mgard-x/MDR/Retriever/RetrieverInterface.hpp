@@ -2,7 +2,7 @@
 #define _MDR_RETRIEVER_INTERFACE_HPP
 
 #include <cassert>
-namespace mgard_x {
+
 namespace MDR {
 namespace concepts {
 
@@ -12,8 +12,8 @@ public:
   virtual ~RetrieverInterface() = default;
 
   virtual std::vector<std::vector<const uint8_t *>> retrieve_level_components(
-      const std::vector<std::vector<SIZE>> &level_sizes,
-      const std::vector<SIZE> &retrieve_sizes,
+      const std::vector<std::vector<uint32_t>> &level_sizes,
+      const std::vector<uint32_t> &retrieve_sizes,
       const std::vector<uint8_t> &prev_level_num_bitplanes,
       const std::vector<uint8_t> &level_num_bitplanes) = 0;
 
@@ -25,5 +25,4 @@ public:
 };
 } // namespace concepts
 } // namespace MDR
-} // namespace mgard_x
 #endif

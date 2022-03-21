@@ -4,19 +4,19 @@
 #include "SizeInterpreterInterface.hpp"
 
 // inorder and round-robin size interpreter
-namespace mgard_x {
+
 namespace MDR {
 // direct in-order bit-plane retrieval
 template <class ErrorEstimator>
 class InorderSizeInterpreter : public concepts::SizeInterpreterInterface {
 public:
   InorderSizeInterpreter(const ErrorEstimator &e) { error_estimator = e; }
-  std::vector<SIZE>
-  interpret_retrieve_size(const std::vector<std::vector<SIZE>> &level_sizes,
+  std::vector<uint32_t>
+  interpret_retrieve_size(const std::vector<std::vector<uint32_t>> &level_sizes,
                           const std::vector<std::vector<double>> &level_errors,
                           double tolerance, std::vector<uint8_t> &index) const {
     const int num_levels = level_sizes.size();
-    std::vector<SIZE> retrieve_sizes(num_levels, 0);
+    std::vector<uint32_t> retrieve_sizes(num_levels, 0);
     double accumulated_error = 0;
     for (int i = 0; i < num_levels; i++) {
       accumulated_error +=
@@ -53,12 +53,12 @@ template <class ErrorEstimator>
 class RoundRobinSizeInterpreter : public concepts::SizeInterpreterInterface {
 public:
   RoundRobinSizeInterpreter(const ErrorEstimator &e) { error_estimator = e; }
-  std::vector<SIZE>
-  interpret_retrieve_size(const std::vector<std::vector<SIZE>> &level_sizes,
+  std::vector<uint32_t>
+  interpret_retrieve_size(const std::vector<std::vector<uint32_t>> &level_sizes,
                           const std::vector<std::vector<double>> &level_errors,
                           double tolerance, std::vector<uint8_t> &index) const {
     const int num_levels = level_sizes.size();
-    std::vector<SIZE> retrieve_sizes(num_levels, 0);
+    std::vector<uint32_t> retrieve_sizes(num_levels, 0);
     double accumulated_error = 0;
     for (int i = 0; i < num_levels; i++) {
       accumulated_error +=
@@ -125,5 +125,4 @@ private:
   ErrorEstimator error_estimator;
 };
 } // namespace MDR
-} // namespace mgard_x
 #endif

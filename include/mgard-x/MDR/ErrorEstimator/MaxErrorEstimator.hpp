@@ -2,7 +2,7 @@
 #define _MDR_MAX_ERROR_ESTIMATOR_HPP
 
 #include "ErrorEstimatorInterface.hpp"
-namespace mgard_x {
+
 namespace MDR {
 template <class T>
 class MaxErrorEstimator : public concepts::ErrorEstimatorInterface<T> {};
@@ -66,5 +66,4 @@ public:
   }
 };
 } // namespace MDR
-} // namespace mgard_x
 #endif

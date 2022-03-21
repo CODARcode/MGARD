@@ -12,6 +12,7 @@ set(
 	"examples/mgard-x/HighLevelAPIs/README.md"
 	"examples/mgard-x/LowLevelAPIs/README.md"
 	"examples/mgard-x/MDR/README.md"
+	"examples/mgard-x/MDR-X/README.md"
 )
 
 find_program(DOXYGEN NAMES "doxygen")

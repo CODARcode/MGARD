@@ -16,7 +16,6 @@ public:
     buffer += b << position;
     position++;
     if (position == 64) {
-      // printf("encoder buffer full\n");
       *(stream_pos++) = buffer;
       buffer = 0;
       position = 0;
@@ -65,13 +64,12 @@ private:
   uint64_t const *stream_begin = NULL;
 };
 
-#define PER_BIT_BLOCK_uint32_t 1
+#define PER_BIT_BLOCK_SIZE 1
 // per bit bitplane encoder that encodes data by bit using T_stream type buffer
-template <typename T_data, typename T_stream>
+template <class T_data, class T_stream>
 class PerBitBPEncoder : public concepts::BitplaneEncoderInterface<T_data> {
 public:
   PerBitBPEncoder() {
-    std::cout << "PerBitBPEncoder\n";
     static_assert(std::is_floating_point<T_data>::value,
                   "PerBitBPEncoder: input data must be floating points.");
     static_assert(!std::is_same<T_data, long double>::value,
@@ -82,13 +80,12 @@ public:
                   "PerBitBPEncoder: streams must be unsigned integers.");
   }
 
-  std::vector<uint8_t *> encode(T_data const *data, uint32_t n, int32_t exp,
+  std::vector<uint8_t *> encode(T_data const *data, int32_t n, int32_t exp,
                                 uint8_t num_bitplanes,
                                 std::vector<uint32_t> &stream_sizes) const {
-
     assert(num_bitplanes > 0);
     // determine block size based on bitplane integer type
-    const int32_t block_size = PER_BIT_BLOCK_uint32_t;
+    const int32_t block_size = PER_BIT_BLOCK_SIZE;
     stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
@@ -103,8 +100,7 @@ public:
       encoders.push_back(BitEncoder(reinterpret_cast<uint64_t *>(streams[i])));
     }
     T_data const *data_pos = data;
-
-    for (int i = 0; i < n - block_size; i += block_size) {
+    for (int i = 0; i < (int)n - (int)block_size; i += block_size) {
       T_stream sign_bitplane = 0;
       for (int j = 0; j < block_size; j++) {
         T_data cur_data = *(data_pos++);
@@ -157,13 +153,13 @@ public:
   }
 
   // only differs in error collection
-  std::vector<uint8_t *> encode(T_data const *data, uint32_t n, int32_t exp,
+  std::vector<uint8_t *> encode(T_data const *data, int32_t n, int32_t exp,
                                 uint8_t num_bitplanes,
                                 std::vector<uint32_t> &stream_sizes,
                                 std::vector<double> &level_errors) const {
     assert(num_bitplanes > 0);
     // determine block size based on bitplane integer type
-    const int32_t block_size = PER_BIT_BLOCK_uint32_t;
+    const int32_t block_size = PER_BIT_BLOCK_SIZE;
     stream_sizes = std::vector<uint32_t>(num_bitplanes, 0);
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
@@ -184,8 +180,7 @@ public:
       level_errors[i] = 0;
     }
     T_data const *data_pos = data;
-    printf("n = %u\n", n);
-    for (int i = 0; i < n - block_size; i += block_size) {
+    for (int i = 0; i < (int)n - (int)block_size; i += block_size) {
       T_stream sign_bitplane = 0;
       for (int j = 0; j < block_size; j++) {
         T_data cur_data = *(data_pos++);
@@ -200,11 +195,7 @@ public:
           uint8_t index = num_bitplanes - 1 - k;
           uint8_t bit = (fp_data >> k) & 1u;
           encoders[index].encode(bit);
-          // printf("encode bitplane[%u] <- %u from %u\n", index, bit,
-          // data_pos-data);
           if (bit && first_bit) {
-            // printf("encode sign bitplane[%u] <- from %u\n", index,
-            // data_pos-data);
             encoders[index].encode(sign);
             first_bit = false;
           }
@@ -229,11 +220,7 @@ public:
           uint8_t index = num_bitplanes - 1 - k;
           uint8_t bit = (fp_data >> k) & 1u;
           encoders[index].encode(bit);
-          // printf("encode bitplane[%u] <- %u from %u\n", index, bit,
-          // data_pos-data);
           if (bit && first_bit) {
-            // printf("encode sign bitplane[%u] <- from %u\n", index,
-            // data_pos-data);
             encoders[index].encode(sign);
             first_bit = false;
           }
@@ -243,7 +230,6 @@ public:
     for (int i = 0; i < num_bitplanes; i++) {
       encoders[i].flush();
       stream_sizes[i] = encoders[i].size() * sizeof(uint64_t);
-      // printf("stream_sizes[%d]: %llu\n", i, stream_sizes[i]);
     }
     // translate level errors
     for (int i = 0; i < level_errors.size(); i++) {
@@ -252,9 +238,9 @@ public:
     return streams;
   }
 
-  T_data *decode(const std::vector<uint8_t const *> &streams, uint32_t n,
+  T_data *decode(const std::vector<uint8_t const *> &streams, int32_t n,
                  int exp, uint8_t num_bitplanes) {
-    const int32_t block_size = PER_BIT_BLOCK_uint32_t;
+    const int32_t block_size = PER_BIT_BLOCK_SIZE;
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -271,7 +257,7 @@ public:
     }
     // decode
     T_data *data_pos = data;
-    for (int i = 0; i < n - block_size; i += block_size) {
+    for (int i = 0; i < (int)n - (int)block_size; i += block_size) {
       for (int j = 0; j < block_size; j++) {
         T_fp fp_data = 0;
         // decode each bit of the data for each level component
@@ -319,9 +305,9 @@ public:
   }
 
   T_data *progressive_decode(const std::vector<uint8_t const *> &streams,
-                             uint32_t n, int exp, uint8_t starting_bitplane,
+                             int32_t n, int exp, uint8_t starting_bitplane,
                              uint8_t num_bitplanes, int level) {
-    const int32_t block_size = PER_BIT_BLOCK_uint32_t;
+    const int32_t block_size = PER_BIT_BLOCK_SIZE;
     // define fixed point type
     using T_fp = typename std::conditional<std::is_same<T_data, double>::value,
                                            uint64_t, uint32_t>::type;
@@ -345,7 +331,7 @@ public:
     const uint8_t ending_bitplane = starting_bitplane + num_bitplanes;
     // decode
     T_data *data_pos = data;
-    for (int i = 0; i < n - block_size; i += block_size) {
+    for (int i = 0; i < (int)n - (int)block_size; i += block_size) {
       for (int j = 0; j < block_size; j++) {
         T_fp fp_data = 0;
         // decode each bit of the data for each level component
