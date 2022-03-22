@@ -26,7 +26,7 @@
 #endif
 #endif
 
-#if MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_HIP
 #ifdef MGARDX_COMPILE_HIP
 #include "DeviceAdapters/DeviceAdapterHip.h"
 #endif
