@@ -26,6 +26,12 @@
 #define MGARD_ENABLE_HIP 0   
 #endif
 
+#if '@MGARD_ENABLE_SYCL@' == 'ON'
+#define MGARD_ENABLE_SYCL 1
+#else
+#define MGARD_ENABLE_SYCL 0   
+#endif
+
 #if '@MGARD_ENABLE_LEGACY_CUDA@' == 'ON'
 #define MGARD_ENABLE_LEGACY_CUDA 1
 #else

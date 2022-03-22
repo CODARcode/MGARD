@@ -298,6 +298,8 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     m.ptype = processor_type::X_CUDA;
   } else if (std::is_same<DeviceType, HIP>::value) {
     m.ptype = processor_type::X_HIP;
+  } else if (std::is_same<DeviceType, SYCL>::value) {
+    m.ptype = processor_type::X_SYCL;
   }
   m.ebtype = type;
   m.tol = tol;
@@ -527,6 +529,8 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     m.ptype = processor_type::X_CUDA;
   } else if (std::is_same<DeviceType, HIP>::value) {
     m.ptype = processor_type::X_HIP;
+  } else if (std::is_same<DeviceType, SYCL>::value) {
+    m.ptype = processor_type::X_SYCL;
   }
   m.ebtype = type;
   m.tol = tol;

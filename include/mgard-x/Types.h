@@ -25,7 +25,7 @@ enum class processor_type : uint8_t {
   X_SYCL
 };
 
-enum class device_type : uint8_t { Auto, Serial, CUDA, HIP, None };
+enum class device_type : uint8_t { Auto, Serial, CUDA, HIP, SYCL, None };
 
 enum class error_bound_type : uint8_t { REL, ABS };
 enum class norm_type : uint8_t { L_Inf, L_2 };

@@ -32,6 +32,12 @@
 #endif
 #endif
 
+#if MGARD_ENABLE_SYCL
+#ifdef MGARDX_COMPILE_SYCL
+#include "DeviceAdapters/DeviceAdapterSycl.h"
+#endif
+#endif
+
 #if RUNTIME_X_ENABLE_KOKKOS
 #include "DeviceAdapters/DeviceAdapterKokkos.h"
 #endif
@@ -44,3 +50,4 @@
 #include "DataStructures/SubArray.hpp"
 #include "DataStructures/SubArrayCopy.hpp"
 #include "Utilities/SubArrayPrinter.hpp"
+
