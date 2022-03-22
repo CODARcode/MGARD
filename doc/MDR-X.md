@@ -22,14 +22,14 @@ Both MDR and MDR-X are automatically built together with MGARD-X. Please follow 
 [mgard-x-build]: MGARD-X.md
 
 ## Use
-###Header files
+### Header files
 Inculde the follow header files to use MDR or MDR-X:
 
 * MDR: `mgard/mdr.hpp`
 * MDR-X: `mgard/mdr-x.hpp`
 
 
-###APIs
+### APIs
 
 The APIs of MDR and MDR-X are designed in a way such that the refactoring the reconstruction process are highly customizable to satisify users needs. Here lists the key components of MDR and MDR-X.  
 
