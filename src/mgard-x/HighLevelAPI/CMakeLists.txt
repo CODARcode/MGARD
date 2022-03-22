@@ -10,6 +10,10 @@ if(MGARD_ENABLE_HIP)
   add_subdirectory (HIP)
   set(MGARD_X_HIP_SRC ${MGARD_X_HIP_SRC} PARENT_SCOPE)
 endif()
+if(MGARD_ENABLE_SYCL)
+  add_subdirectory (SYCL)
+  set(MGARD_X_SYCL_SRC ${MGARD_X_SYCL_SRC} PARENT_SCOPE)
+endif()
 
 list(APPEND MGARD_X_SRC  
       ${CMAKE_CURRENT_SOURCE_DIR}/DynamicAPI.cpp

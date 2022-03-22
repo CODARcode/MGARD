@@ -288,5 +288,6 @@ public:
 #include "AutoTunerHip.h"
 #include "AutoTunerKokkos.h"
 #include "AutoTunerSerial.h"
+#include "AutoTunerSycl.h"
 
 #endif
