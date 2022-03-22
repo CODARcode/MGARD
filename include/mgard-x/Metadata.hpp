@@ -693,7 +693,7 @@ private:
     { // Function Decomposition
       const mgard::pb::FunctionDecomposition function_decomposition =
           header.function_decomposition();
-      assert(decomposition_.transform() ==
+      assert(function_decomposition.transform() ==
              mgard::pb::FunctionDecomposition::MULTILEVEL_COEFFICIENTS);
       if (function_decomposition.hierarchy() ==
           mgard::pb::FunctionDecomposition::MULTIDIMENSION_WITH_GHOST_NODES) {
