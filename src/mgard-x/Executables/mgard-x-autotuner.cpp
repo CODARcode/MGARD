@@ -75,6 +75,8 @@ void autotuning(enum mgard_x::device_type dev_type,
     std::cout << mgard_x::log::log_info << "Start auto tuning MGARD-X::CUDA.\n";
   } else if (dev_type == mgard_x::device_type::HIP) {
     std::cout << mgard_x::log::log_info << "Start auto tuning MGARD-X::HIP.\n";
+  } else if (dev_type == mgard_x::device_type::SYCL) {
+    std::cout << mgard_x::log::log_info << "Start auto tuning MGARD-X::SYCL.\n";
   }
   mgard_x::BeginAutoTuning(dev_type);
   std::cout << mgard_x::log::log_info
@@ -95,6 +97,8 @@ void autotuning(enum mgard_x::device_type dev_type,
     std::cout << mgard_x::log::log_info << "Done auto tuning MGARD-X::CUDA.\n";
   } else if (dev_type == mgard_x::device_type::HIP) {
     std::cout << mgard_x::log::log_info << "Done auto tuning MGARD-X::HIP.\n";
+  } else if (dev_type == mgard_x::device_type::SYCL) {
+    std::cout << mgard_x::log::log_info << "Done auto tuning MGARD-X::SYCL.\n";
   }
   std::cout << mgard_x::log::log_info
             << "Please recompile MGARD-X to make the auto tuning effective.\n";
@@ -105,7 +109,7 @@ void print_usage_message(std::string error) {
     std::cout << mgard_x::log::log_err << error << std::endl;
   }
   printf("* Full automatic mode: run 'mgard-x-autotuner' without arguments\n\
-* For a specific backend: run 'mgard-x-autotuner -d <auto|serial|cuda|hip> '\n\
+* For a specific backend: run 'mgard-x-autotuner -d <auto|serial|cuda|hip|sycl> '\n\
 * For a specific input size on a specific backend: run 'mgard-x-autotuner -d <auto|serial|cuda|hip> -n <ndim> [dim1] [dim2] ... [dimN]'\n");
   exit(0);
 }
@@ -194,6 +198,9 @@ int main(int argc, char *argv[]) {
     } else if (dev.compare("hip") == 0) {
       dev_type = mgard_x::device_type::HIP;
       std::cout << mgard_x::log::log_info << "device type: HIP\n";
+    } else if (dev.compare("sycl") == 0) {
+      dev_type = mgard_x::device_type::SYCL;
+      std::cout << mgard_x::log::log_info << "device type: SYCL\n";
     } else {
       std::cout << "wrong device type.\n";
       exit(-1);
@@ -211,6 +218,9 @@ int main(int argc, char *argv[]) {
     } else if (dev.compare("hip") == 0) {
       dev_type = mgard_x::device_type::HIP;
       std::cout << mgard_x::log::log_info << "device type: HIP\n";
+    } else if (dev.compare("sycl") == 0) {
+      dev_type = mgard_x::device_type::SYCL;
+      std::cout << mgard_x::log::log_info << "device type: SYCL\n";
     } else {
       std::cout << "wrong device type.\n";
       exit(-1);
@@ -227,6 +237,9 @@ int main(int argc, char *argv[]) {
 #endif
 #ifdef MGARD_ENABLE_HIP
     autotuning(mgard_x::device_type::HIP, shape);
+#endif
+#ifdef MGARD_ENABLE_SYCL
+    autotuning(mgard_x::device_type::SYCL, shape);
 #endif
   }
   return 0;

@@ -482,6 +482,9 @@ bool try_compression(int argc, char *argv[]) {
   } else if (dev.compare("hip") == 0) {
     dev_type = mgard_x::device_type::HIP;
     std::cout << mgard_x::log::log_info << "device type: HIP\n";
+  } else if (dev.compare("sycl") == 0) {
+    dev_type = mgard_x::device_type::SYCL;
+    std::cout << mgard_x::log::log_info << "device type: SYCL\n";
   } else {
     print_usage_message("wrong device type.");
   }
@@ -528,6 +531,9 @@ bool try_decompression(int argc, char *argv[]) {
   } else if (dev.compare("hip") == 0) {
     dev_type = mgard_x::device_type::HIP;
     std::cout << mgard_x::log::log_info << "device type: HIP\n";
+  } else if (dev.compare("sycl") == 0) {
+    dev_type = mgard_x::device_type::HIP;
+    std::cout << mgard_x::log::log_info << "device type: SYCL\n";
   } else {
     print_usage_message("wrong device type.");
   }

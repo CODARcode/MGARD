@@ -12,6 +12,8 @@
 #define MGARDX_COMPILE_CUDA
 #elif defined __HIPCC__
 #define MGARDX_COMPILE_HIP
+#elif defined SYCL_LANGUAGE_VERSION
+#define MGARDX_COMPILE_SYCL
 #else
 #define MGARDX_COMPILE_SERIAL
 #endif
@@ -56,6 +58,14 @@ namespace mgard_x {
 #define MGARDX_EXEC __device__ __inline__
 #define MGARDX_CONT_EXEC __host__ __device__ __inline__
 #define MGARDX_MANAGED __managed__
+#endif
+
+#ifdef MGARDX_COMPILE_SYCL
+#define MGARDX_CONT __inline__
+#define MGARDX_KERL
+#define MGARDX_EXEC __inline__
+#define MGARDX_CONT_EXEC
+#define MGARDX_MANAGED
 #endif
 
 #if defined MGARDX_COMPILE_KOKKOS
