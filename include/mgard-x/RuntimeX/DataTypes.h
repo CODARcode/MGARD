@@ -64,7 +64,7 @@ namespace mgard_x {
 #define MGARDX_CONT __inline__
 #define MGARDX_KERL
 #define MGARDX_EXEC __inline__
-#define MGARDX_CONT_EXEC
+#define MGARDX_CONT_EXEC __inline__
 #define MGARDX_MANAGED
 #endif
 
