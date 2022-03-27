@@ -450,7 +450,8 @@ private:
               mgard::pb::DomainDecomposition::LINEARIZATION);
         }
       } else {
-        domainDecomposition.set_method(mgard::pb::DomainDecomposition::NOOP);
+        domainDecomposition.set_method(
+            mgard::pb::DomainDecomposition::NOOP_METHOD);
       }
       domainDecomposition.set_decomposition_dimension(domain_decomposed_dim);
       domainDecomposition.set_decomposition_size(domain_decomposed_size);
@@ -488,7 +489,7 @@ private:
     { // Encoding
       mgard::pb::Encoding &encoding = *header.mutable_encoding();
       if (reorder == 0) {
-        encoding.set_preprocessor(mgard::pb::Encoding::NO_SHUFFLE);
+        encoding.set_preprocessor(mgard::pb::Encoding::NOOP_PREPROCESSOR);
       } else {
         encoding.set_preprocessor(mgard::pb::Encoding::SHUFFLE);
       }
@@ -673,7 +674,7 @@ private:
       const mgard::pb::DomainDecomposition domainDecomposition =
           header.domain_decomposition();
       if (domainDecomposition.method() !=
-          mgard::pb::DomainDecomposition::NOOP) {
+          mgard::pb::DomainDecomposition::NOOP_METHOD) {
         domain_decomposed = true;
         if (domainDecomposition.method() ==
             mgard::pb::DomainDecomposition::LARGEST_DIMENSION) {
