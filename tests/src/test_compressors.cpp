@@ -155,7 +155,7 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
 
   mgard::pb::Encoding &e = *header.mutable_encoding();
   SECTION("noop") {
-    e.set_compressor(mgard::pb::Encoding::NOOP);
+    e.set_compressor(mgard::pb::Encoding::NOOP_COMPRESSOR);
 
     const std::size_t srcLen = quantizedLen;
     unsigned char *const src = new unsigned char[srcLen];

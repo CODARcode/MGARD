@@ -503,7 +503,7 @@ pb::Encoding::Compressor read_encoding_compressor(const pb::Header &header) {
     throw std::runtime_error(
         "X_HUFFMAN, X_HUFFMAN_LZ4, and X_HUFFMAN_ZSTD compressors not "
         "yet supported in CPU version");
-  case pb::Encoding::NOOP:
+  case pb::Encoding::NOOP_COMPRESSOR:
   case pb::Encoding::CPU_HUFFMAN_ZLIB:
     break;
   case pb::Encoding::CPU_HUFFMAN_ZSTD:

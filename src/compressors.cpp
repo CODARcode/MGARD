@@ -672,7 +672,7 @@ void decompress(const pb::Header &header, void *const src,
                 const std::size_t srcLen, void *const dst,
                 const std::size_t dstLen) {
   switch (read_encoding_compressor(header)) {
-  case pb::Encoding::NOOP:
+  case pb::Encoding::NOOP_COMPRESSOR:
     if (srcLen != dstLen) {
       throw std::invalid_argument(
           "source and destination lengths must be equal");
