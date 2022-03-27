@@ -13,26 +13,12 @@ set -x
 # Source directory
 mgard_x_src_dir=.
 # Build directory
-build_dir=./build-cuda-turing
+build_dir=./build-sycl
 # Number of processors used for building
 num_build_procs=8
 # Installtaion directory
-install_dir=./install-cuda-turing
+install_dir=./install-sycl
 
-
-#build NVCOMP
-nvcomp_dir=${build_dir}/nvcomp
-nvcomp_src_dir=${nvcomp_dir}/src
-nvcomp_build_dir=${nvcomp_dir}/build
-nvcomp_install_dir=${install_dir}
-if [ ! -d "${nvcomp_src_dir}" ]; then
-  git clone -b v2.2.0 https://github.com/NVIDIA/nvcomp.git ${nvcomp_src_dir}
-fi
-mkdir -p ${nvcomp_build_dir}
-cmake -S ${nvcomp_src_dir} -B ${nvcomp_build_dir}\
-    -DCMAKE_INSTALL_PREFIX=${nvcomp_install_dir}
-cmake --build ${nvcomp_build_dir} -j ${num_build_procs}
-cmake --install ${nvcomp_build_dir}
 
 #build ZSTD
 zstd_dir=${build_dir}/zstd
@@ -46,6 +32,8 @@ mkdir -p ${zstd_build_dir}
 cmake -S ${zstd_src_dir}/build/cmake -B ${zstd_build_dir}\
     -DZSTD_MULTITHREAD_SUPPORT=ON\
     -DCMAKE_INSTALL_LIBDIR=lib\
+    -DCMAKE_CXX_COMPILER=icpx\
+    -DCMAKE_C_COMPILER=icx\
     -DCMAKE_INSTALL_PREFIX=${zstd_install_dir}
 cmake --build ${zstd_build_dir} -j ${num_build_procs}
 cmake --install ${zstd_build_dir}
@@ -61,6 +49,8 @@ fi
 mkdir -p ${protobuf_build_dir}
 cmake -S ${protobuf_src_dir}/cmake -B ${protobuf_build_dir}\
     -Dprotobuf_BUILD_SHARED_LIBS=ON\
+    -DCMAKE_CXX_COMPILER=icpx\
+    -DCMAKE_C_COMPILER=icx\
     -DCMAKE_INSTALL_PREFIX=${protobuf_install_dir}
 cmake --build ${protobuf_build_dir} -j ${num_build_procs}
 cmake --install ${protobuf_build_dir}
@@ -71,7 +61,7 @@ mgard_x_build_dir=${build_dir}/mgard
 mgard_x_install_dir=${install_dir}
 mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
-    -DCMAKE_PREFIX_PATH="${nvcomp_install_dir};${zstd_install_dir}/lib/cmake/zstd;${protobuf_install_dir}"\
+    -DCMAKE_PREFIX_PATH="${zstd_install_dir}/lib/cmake/zstd;${protobuf_install_dir}"\
     -DMGARD_ENABLE_SERIAL=OFF\
     -DMGARD_ENABLE_SYCL=ON\
     -DCMAKE_CXX_COMPILER=icpx\
