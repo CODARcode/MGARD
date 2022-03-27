@@ -95,7 +95,7 @@ public:
         FunctorBase<DeviceType>::GetThreadIdX();
     // (*status((IDX)_CDPI)) update
     if (i < size - 1 && *CL((IDX)i + 1) > (*status((IDX)_CCL))) {
-      Atomic<DeviceType>::Min(&(*status((IDX)_newCDPI)), (int)i);
+      Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Min(&(*status((IDX)_newCDPI)), (int)i);
     }
   }
 
@@ -313,6 +313,7 @@ public:
         GenTask(CL, CW, first, entry, dict_size, SubArray(status), queue_idx);
     DeviceAdapter<TaskType, DeviceType> adapter;
     adapter.Execute(task);
+    DeviceRuntime<DeviceType>::SyncAllQueues();
   }
 };
 

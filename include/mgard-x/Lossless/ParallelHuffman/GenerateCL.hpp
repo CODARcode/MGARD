@@ -90,7 +90,6 @@ public:
     // printf("LoopCondition1 %d %u %d\n", (*status((IDX)_lNodesCur)), size,
     // (*status((IDX)_iNodesSize)));
     return (*status((IDX)_lNodesCur)) < size || (*status((IDX)_iNodesSize)) > 1;
-    ;
   }
 
   MGARDX_EXEC void Operation2() {
@@ -239,7 +238,7 @@ public:
       if (*lNodesFreq((IDX)i) <= (*status((IDX)_minFreq))) {
         threadCurLeavesNum = i - (*status((IDX)_lNodesCur)) + 1;
         // Atomic max -- Largest valid index
-        Atomic<DeviceType>::Max(status((IDX)_curLeavesNum), threadCurLeavesNum);
+        Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Max(status((IDX)_curLeavesNum), threadCurLeavesNum);
       }
 
       if (i - (*status((IDX)_lNodesCur)) < (*status((IDX)_curLeavesNum))) {
@@ -725,16 +724,18 @@ public:
                SubArray<1, int, DeviceType> copyIndex,
                SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
                int queue_idx) {
-    Array<1, int, DeviceType> status({(SIZE)16}, false, true);
+    Array<1, int, DeviceType> status_array({(SIZE)16}, false, true);
+    SubArray status(status_array);
     using FunctorType = GenerateCLFunctor<T, DeviceType>;
     using TaskType = Task<FunctorType>;
     TaskType task = GenTask(
         histogram, CL, dict_size, lNodesFreq, lNodesLeader, iNodesFreq,
         iNodesLeader, tempFreq, tempIsLeaf, tempIndex, copyFreq, copyIsLeaf,
-        copyIndex, diagonal_path_intersections, SubArray(status), queue_idx);
+        copyIndex, diagonal_path_intersections, status, queue_idx);
     DeviceAdapter<TaskType, DeviceType> adapter;
 
     adapter.Execute(task);
+    DeviceRuntime<DeviceType>::SyncAllQueues();
   }
 };
 

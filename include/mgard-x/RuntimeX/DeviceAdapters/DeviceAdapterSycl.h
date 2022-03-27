@@ -28,22 +28,165 @@ static auto exception_handler = [](sycl::exception_list e_list) {
   }
 };
 
-template <> struct Atomic<SYCL> {
-  template <typename T> MGARDX_EXEC static T Min(T *result, T value) {
-    using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+template <typename T, OPTION MemoryType, OPTION Scope> 
+struct Atomic<T, MemoryType, Scope, SYCL> {
+  MGARDX_EXEC static T Min(T *result, T value) {
+    if constexpr (MemoryType == AtomicGlobalMemory) {
+      if constexpr (Scope == AtomicSystemScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
           sycl::memory_scope::system, sycl::access::address_space::global_space>;
-    return AtomicRef(result[0]).fetch_min(value);
+        return AtomicRef(result[0]).fetch_min(value);
+      } else if constexpr (Scope == AtomicDeviceScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::device, sycl::access::address_space::global_space>;
+        return AtomicRef(result[0]).fetch_min(value);
+      } else {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::work_group, sycl::access::address_space::global_space>;
+        return AtomicRef(result[0]).fetch_min(value);
+      }
+    } else {
+      if constexpr (Scope == AtomicSystemScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::system, sycl::access::address_space::local_space>;
+        return AtomicRef(result[0]).fetch_min(value);
+      } else if constexpr (Scope == AtomicDeviceScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::device, sycl::access::address_space::local_space>;
+        return AtomicRef(result[0]).fetch_min(value);
+      } else {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::work_group, sycl::access::address_space::local_space>;
+        return AtomicRef(result[0]).fetch_min(value);
+      }
+    }
+  }
+  MGARDX_EXEC static T Max(T *result, T value) {
+    if constexpr (MemoryType == AtomicGlobalMemory) {
+      if constexpr (Scope == AtomicSystemScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::system, sycl::access::address_space::global_space>;
+        return AtomicRef(result[0]).fetch_max(value);
+      } else if constexpr (Scope == AtomicDeviceScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::device, sycl::access::address_space::global_space>;
+        return AtomicRef(result[0]).fetch_max(value);
+      } else {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::work_group, sycl::access::address_space::global_space>;
+        return AtomicRef(result[0]).fetch_max(value);
+      }
+    } else {
+      if constexpr (Scope == AtomicSystemScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::system, sycl::access::address_space::local_space>;
+        return AtomicRef(result[0]).fetch_max(value);
+      } else if constexpr (Scope == AtomicDeviceScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::device, sycl::access::address_space::local_space>;
+        return AtomicRef(result[0]).fetch_max(value);
+      } else {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::work_group, sycl::access::address_space::local_space>;
+        return AtomicRef(result[0]).fetch_max(value);
+      }
+    } 
+  }
+  MGARDX_EXEC static T Add(T *result, T value) {
+    if constexpr (MemoryType == AtomicGlobalMemory) {
+      if constexpr (Scope == AtomicSystemScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::system, sycl::access::address_space::global_space>;
+        T new_value = AtomicRef(result[0]) += value;
+        return new_value - value;
+      } else if constexpr (Scope == AtomicDeviceScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::device, sycl::access::address_space::global_space>;
+        T new_value = AtomicRef(result[0]) += value;
+        return new_value - value;
+      } else {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::work_group, sycl::access::address_space::global_space>;
+        T new_value = AtomicRef(result[0]) += value;
+        return new_value - value;
+      }
+    } else {
+      if constexpr (Scope == AtomicSystemScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::system, sycl::access::address_space::local_space>;
+        T new_value = AtomicRef(result[0]) += value;
+        return new_value - value;
+      } else if constexpr (Scope == AtomicDeviceScope) {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::device, sycl::access::address_space::local_space>;
+        T new_value = AtomicRef(result[0]) += value;
+        return new_value - value;
+      } else {
+        using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
+          sycl::memory_scope::work_group, sycl::access::address_space::local_space>;
+        T new_value = AtomicRef(result[0]) += value;
+        return new_value - value;
+      }
+    }  
+  }
+};
 
+template <> struct Math<SYCL> {
+  template <typename T> MGARDX_EXEC static T Min(T a, T b) { 
+    if constexpr (std::is_integral<T>::value)
+      return sycl::min(a, b); 
+    else {
+      return sycl::fmin(a, b); 
+    }
   }
-  template <typename T> MGARDX_EXEC static T Max(T *result, T value) {
-    using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
-          sycl::memory_scope::system, sycl::access::address_space::global_space>;
-    return AtomicRef(result[0]).fetch_max(value);
+  template <typename T> MGARDX_EXEC static T Max(T a, T b) { 
+    if constexpr (std::is_integral<T>::value)
+      return sycl::max(a, b); 
+    else {
+      return sycl::fmax(a, b); 
+    }
   }
-  template <typename T> MGARDX_EXEC static T Add(T *result, T value) {
-    using AtomicRef = sycl::ext::oneapi::atomic_ref<T, sycl::memory_order::relaxed, 
-          sycl::memory_scope::system, sycl::access::address_space::global_space>;
-    return AtomicRef(result[0]) += (value);
+  MGARDX_EXEC static int ffs(unsigned int a) { 
+    int pos = 0;
+    if (a == 0)
+      return pos;
+    while (!(a & 1))
+    {
+      a >>= 1;
+      ++pos;
+    }
+    return pos + 1;
+  }
+  MGARDX_EXEC static int ffsll(long long unsigned int a) { 
+    int pos = 0;
+    if (a == 0)
+      return pos;
+    while (!(a & 1))
+    {
+      a >>= 1;
+      ++pos;
+    }
+    return pos + 1;
+  }
+  MGARDX_EXEC
+  static uint64_t binary2negabinary(const int64_t x) {
+    return (x + (uint64_t)0xaaaaaaaaaaaaaaaaull) ^
+           (uint64_t)0xaaaaaaaaaaaaaaaaull;
+  }
+
+  MGARDX_EXEC
+  static uint32_t binary2negabinary(const int32_t x) {
+    return (x + (uint32_t)0xaaaaaaaau) ^ (uint32_t)0xaaaaaaaau;
+  }
+
+  MGARDX_EXEC
+  static int64_t negabinary2binary(const uint64_t x) {
+    return (x ^ 0xaaaaaaaaaaaaaaaaull) - 0xaaaaaaaaaaaaaaaaull;
+  }
+
+  MGARDX_EXEC
+  static int32_t negabinary2binary(const uint32_t x) {
+    return (x ^ 0xaaaaaaaau) - 0xaaaaaaaau;
   }
 };
 
@@ -354,139 +497,145 @@ public:
   static bool ReduceMemoryFootprint;
 };
 
-template <typename Task>
+template <typename FunctorType>
 class Kernel {
 public:
-  Kernel(Task task, LocalMemory localAccess): task(task), localAccess(localAccess) {}
+  Kernel(FunctorType functor, LocalMemory localAccess): functor(functor), localAccess(localAccess) {}
   void operator()(sycl::nd_item<3> i) const {
-    Task my_task = task;
-    Byte *shared_memory = localAccess.get_pointer().get();
-    my_task.GetFunctor().Init(i.get_global_range(2)/i.get_group_range(2),
-                           i.get_global_range(1)/i.get_group_range(1),
-                           i.get_global_range(0)/i.get_group_range(0),
-                           i.get_group_range(2), i.get_group_range(1), i.get_group_range(0),
-                           i.get_group().get_id(2),
-                           i.get_group().get_id(1),
-                           i.get_group().get_id(0),
-                           i.get_local_id(2), i.get_local_id(1), i.get_local_id(0),
-                           shared_memory);
+    FunctorType my_functor = functor;
+    sycl::local_ptr<Byte> l_ptr = localAccess.get_pointer();
+    Byte *shared_memory = l_ptr.get();
+    my_functor.Init(i.get_group_range(2),
+                    i.get_group_range(1),
+                    i.get_group_range(0),
+                    i.get_global_range(2)/i.get_group_range(2), 
+                    i.get_global_range(1)/i.get_group_range(1), 
+                    i.get_global_range(0)/i.get_group_range(0),
+                    i.get_group().get_id(2),
+                    i.get_group().get_id(1),
+                    i.get_group().get_id(0),
+                    i.get_local_id(2), i.get_local_id(1), i.get_local_id(0),
+                    shared_memory);
 
-    my_task.GetFunctor().Operation1();
+    my_functor.Operation1();
     i.barrier();
-    my_task.GetFunctor().Operation2();
+    my_functor.Operation2();
     i.barrier();
-    my_task.GetFunctor().Operation3();
+    my_functor.Operation3();
     i.barrier();
-    my_task.GetFunctor().Operation4();
+    my_functor.Operation4();
     i.barrier();
-    my_task.GetFunctor().Operation5();
+    my_functor.Operation5();
     i.barrier();
-    my_task.GetFunctor().Operation6();
+    my_functor.Operation6();
     i.barrier();
-    my_task.GetFunctor().Operation7();
+    my_functor.Operation7();
     i.barrier();
-    my_task.GetFunctor().Operation8();
+    my_functor.Operation8();
     i.barrier();
-    my_task.GetFunctor().Operation9();
+    my_functor.Operation9();
     i.barrier();
-    my_task.GetFunctor().Operation10();
+    my_functor.Operation10();
   }
 private:
-  Task task;
+  FunctorType functor;
   LocalMemory localAccess;
 };
 
 
-template <typename Task>
+template <typename FunctorType>
 class IterKernel {
 public:
-  IterKernel(Task task, LocalMemory localAccess): task(task), localAccess(localAccess) {}
+  IterKernel(FunctorType functor, LocalMemory localAccess): functor(functor), localAccess(localAccess) {}
   void operator()(sycl::nd_item<3> i) const {
+    FunctorType my_functor = functor;
     Byte *shared_memory = localAccess.get_pointer().get();
-    task.GetFunctor().Init(i.get_global_range(2)/i.get_group_range(2),
-                           i.get_global_range(1)/i.get_group_range(1),
-                           i.get_global_range(0)/i.get_group_range(0),
-                           i.get_group_range(2), i.get_group_range(1), i.get_group_range(0),
-                           i.get_group().get_id(2),
-                           i.get_group().get_id(1),
-                           i.get_group().get_id(0),
-                           i.get_local_id(2), i.get_local_id(1), i.get_local_id(0),
-                           shared_memory);
+    my_functor.Init(i.get_group_range(2),
+                    i.get_group_range(1),
+                    i.get_group_range(0),
+                    i.get_global_range(2)/i.get_group_range(2), 
+                    i.get_global_range(1)/i.get_group_range(1), 
+                    i.get_global_range(0)/i.get_group_range(0),
+                    i.get_group().get_id(2),
+                    i.get_group().get_id(1),
+                    i.get_group().get_id(0),
+                    i.get_local_id(2), i.get_local_id(1), i.get_local_id(0),
+                    shared_memory);
 
-    task.GetFunctor().Operation1();
+    my_functor.Operation1();
     i.barrier();
 
-    task.GetFunctor().Operation2();
+    my_functor.Operation2();
     i.barrier();
 
-    while (task.GetFunctor().LoopCondition1()) {
-      task.GetFunctor().Operation3();
+    while (my_functor.LoopCondition1()) {
+      my_functor.Operation3();
       i.barrier();
-      task.GetFunctor().Operation4();
+      my_functor.Operation4();
       i.barrier();
-      task.GetFunctor().Operation5();
+      my_functor.Operation5();
       i.barrier();
-      task.GetFunctor().Operation6();
+      my_functor.Operation6();
       i.barrier();
     }
 
-    task.GetFunctor().Operation7();
+    my_functor.Operation7();
     i.barrier();
-    task.GetFunctor().Operation8();
+    my_functor.Operation8();
     i.barrier();
-    task.GetFunctor().Operation9();
+    my_functor.Operation9();
     i.barrier();
-    task.GetFunctor().Operation10();
+    my_functor.Operation10();
     i.barrier();
 
-    while (task.GetFunctor().LoopCondition2()) {
-      task.GetFunctor().Operation11();
+    while (my_functor.LoopCondition2()) {
+      my_functor.Operation11();
       i.barrier();
-      task.GetFunctor().Operation12();
+      my_functor.Operation12();
       i.barrier();
-      task.GetFunctor().Operation13();
+      my_functor.Operation13();
       i.barrier();
-      task.GetFunctor().Operation14();
+      my_functor.Operation14();
       i.barrier();
     }
 
-    task.GetFunctor().Operation15();
+    my_functor.Operation15();
     i.barrier();
-    task.GetFunctor().Operation16();
+    my_functor.Operation16();
     i.barrier();
-    task.GetFunctor().Operation17();
+    my_functor.Operation17();
     i.barrier();
   }
 private:
-  Task task;
+  FunctorType functor;
   LocalMemory localAccess;
 };
 
 #define SINGLE_KERNEL(OPERATION)                                               \
-  template <typename Task>                                                     \
+  template <typename FunctorType>                                              \
   class Single_##OPERATION##_Kernel {                                          \
   public:                                                                      \
-    Single_##OPERATION##_Kernel(Task task, LocalMemory localAccess):           \
-      task(task), localAccess(localAccess) {}                                  \
+    Single_##OPERATION##_Kernel(FunctorType functor, LocalMemory localAccess): \
+      functor(functor), localAccess(localAccess) {}                            \
     void operator()(sycl::nd_item<3> i) const {                                \
+      FunctorType my_functor = functor;                                        \
       Byte *shared_memory = localAccess.get_pointer().get();                   \
-      task.GetFunctor().Init(i.get_global_range(2)/i.get_group_range(2),       \
-                             i.get_global_range(1)/i.get_group_range(1),       \
-                             i.get_global_range(0)/i.get_group_range(0),       \
-                             i.get_group_range(2),                             \
-                             i.get_group_range(1),                             \
-                             i.get_group_range(0),                             \
-                             i.get_group().get_id(2),                          \
-                             i.get_group().get_id(1),                          \
-                             i.get_group().get_id(0),                          \
-                             i.get_local_id(2),                                \
-                             i.get_local_id(1),                                \
-                             i.get_local_id(0),                                \
-                             shared_memory);                                   \
-      task.GetFunctor().OPERATION();                                           \
+      my_functor.Init(i.get_group_range(2),                                    \
+                    i.get_group_range(1),                                      \
+                    i.get_group_range(0),                                      \
+                    i.get_global_range(2)/i.get_group_range(2),                \
+                    i.get_global_range(1)/i.get_group_range(1),                \
+                    i.get_global_range(0)/i.get_group_range(0),                \
+                    i.get_group().get_id(2),                                   \
+                    i.get_group().get_id(1),                                   \
+                    i.get_group().get_id(0),                                   \
+                    i.get_local_id(2), i.get_local_id(1), i.get_local_id(0),   \
+                    shared_memory);                                            \
+      my_functor.OPERATION();                                                  \
+      i.barrier();                                                             \
   }                                                                            \
   private:                                                                     \
-    Task task;                                                                 \
+    FunctorType functor;                                                       \
     LocalMemory localAccess;                                                   \
   };
 
@@ -507,37 +656,40 @@ SINGLE_KERNEL(Operation14);
 
 #undef SINGLE_KERNEL
 
-template <typename Task>
+template <typename FunctorType>
 class ParallelMergeKernel {
 public:
-  ParallelMergeKernel(Task task, LocalMemory localAccess): 
-                    task(task), localAccess(localAccess) {}
+  ParallelMergeKernel(FunctorType functor, LocalMemory localAccess): 
+                    functor(functor), localAccess(localAccess) {}
   void operator()(sycl::nd_item<3> i) const {
+    FunctorType my_functor = functor;
     Byte *shared_memory = localAccess.get_pointer().get();
-    task.GetFunctor().Init(i.get_global_range(2)/i.get_group_range(2),
-                           i.get_global_range(1)/i.get_group_range(1),
-                           i.get_global_range(0)/i.get_group_range(0),
-                           i.get_group_range(2), i.get_group_range(1), i.get_group_range(0),
-                           i.get_group().get_id(2),
-                           i.get_group().get_id(1),
-                           i.get_group().get_id(0),
-                           i.get_local_id(2), i.get_local_id(1), i.get_local_id(0),
-                           shared_memory);
+    my_functor.Init(i.get_group_range(2),
+                    i.get_group_range(1),
+                    i.get_group_range(0),
+                    i.get_global_range(2)/i.get_group_range(2), 
+                    i.get_global_range(1)/i.get_group_range(1), 
+                    i.get_global_range(0)/i.get_group_range(0),
+                    i.get_group().get_id(2),
+                    i.get_group().get_id(1),
+                    i.get_group().get_id(0),
+                    i.get_local_id(2), i.get_local_id(1), i.get_local_id(0),
+                    shared_memory);
 
-    task.GetFunctor().Operation5();
+    my_functor.Operation5();
     i.barrier();
-    while (task.GetFunctor().LoopCondition2()) {
-      task.GetFunctor().Operation6();
+    while (my_functor.LoopCondition2()) {
+      my_functor.Operation6();
       i.barrier();
-      task.GetFunctor().Operation7();
+      my_functor.Operation7();
       i.barrier();
-      task.GetFunctor().Operation8();
+      my_functor.Operation8();
       i.barrier();
     }
-    task.GetFunctor().Operation9();
+    my_functor.Operation9();
   }
 private:
-  Task task;
+  FunctorType functor;
   LocalMemory localAccess;
 };
 
@@ -552,13 +704,14 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
                             task.GetBlockDimZ());
 
   size_t sm_size = task.GetSharedMemorySize();
+  if (sm_size == 0) sm_size = 1; // avoid -51 (CL_INVALID_ARG_SIZE) error
 
   sycl::queue q = DeviceRuntime<SYCL>::GetQueue(task.GetQueueIdx());
 
   // std::cout << "calling Single_Operation1_Kernel\n";
   q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation1_Kernel kernel(task, localAccess);
+        Single_Operation1_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
   DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -570,7 +723,7 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation2_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation2_Kernel kernel(task, localAccess);
+        Single_Operation2_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -578,7 +731,7 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation3_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation3_Kernel kernel(task, localAccess);
+        Single_Operation3_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -586,7 +739,7 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation4_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation4_Kernel kernel(task, localAccess);
+        Single_Operation4_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -598,7 +751,7 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
       // std::cout << "calling ParallelMergeKernel\n";
       q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        ParallelMergeKernel kernel(task, localAccess);
+        ParallelMergeKernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
       DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -606,7 +759,7 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
       // std::cout << "calling Single_Operation10_Kernel\n";
       q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation10_Kernel kernel(task, localAccess);
+        Single_Operation10_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
       DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -615,7 +768,7 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation11_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation11_Kernel kernel(task, localAccess);
+        Single_Operation11_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -623,7 +776,7 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation12_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation12_Kernel kernel(task, localAccess);
+        Single_Operation12_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -631,14 +784,14 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation13_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation13_Kernel kernel(task, localAccess);
+        Single_Operation13_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
     // std::cout << "calling Single_Operation14_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation14_Kernel kernel(task, localAccess);
+        Single_Operation14_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -656,27 +809,28 @@ template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
                             task.GetBlockDimZ());
 
   size_t sm_size = task.GetSharedMemorySize();
+  if (sm_size == 0) sm_size = 1; // avoid -51 (CL_INVALID_ARG_SIZE) error
 
   sycl::queue q = DeviceRuntime<SYCL>::GetQueue(task.GetQueueIdx());
 
   // std::cout << "calling Single_Operation1_Kernel\n";
   q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation1_Kernel kernel(task, localAccess);
+        Single_Operation1_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
   DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
   // std::cout << "calling Single_Operation2_Kernel\n";
   q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation2_Kernel kernel(task, localAccess);
+        Single_Operation2_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
   DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
   // std::cout << "calling Single_Operation3_Kernel\n";
   q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation3_Kernel kernel(task, localAccess);
+        Single_Operation3_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
   DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -688,7 +842,7 @@ template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation4_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation4_Kernel kernel(task, localAccess);
+        Single_Operation4_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -696,7 +850,7 @@ template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation5_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation5_Kernel kernel(task, localAccess);
+        Single_Operation5_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -704,7 +858,7 @@ template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation6_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation6_Kernel kernel(task, localAccess);
+        Single_Operation6_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -712,7 +866,7 @@ template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation7_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation7_Kernel kernel(task, localAccess);
+        Single_Operation7_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -720,7 +874,7 @@ template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
     // std::cout << "calling Single_Operation8_Kernel\n";
     q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation8_Kernel kernel(task, localAccess);
+        Single_Operation8_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -729,7 +883,7 @@ template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
   // std::cout << "calling Single_Operation9_Kernel\n";
   q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation9_Kernel kernel(task, localAccess);
+        Single_Operation9_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -737,7 +891,7 @@ template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
   // std::cout << "calling Single_Operation10_Kernel\n";
   q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Single_Operation10_Kernel kernel(task, localAccess);
+        Single_Operation10_Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -767,6 +921,7 @@ public:
                               task.GetBlockDimZ());
 
     size_t sm_size = task.GetSharedMemorySize();
+    if (sm_size == 0) sm_size = 1; // avoid -51 (CL_INVALID_ARG_SIZE) error
 
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(task.GetQueueIdx());
 
@@ -789,14 +944,14 @@ public:
                                   typename TaskType::Functor>::value) {
       q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        Kernel kernel(task, localAccess);
+        Kernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     } else if constexpr (std::is_base_of<IterFunctor<SYCL>,
                                          typename TaskType::Functor>::value) {
       q.submit([&](sycl::handler& h) {
         LocalMemory localAccess{sm_size, h};
-        IterKernel kernel(task, localAccess);
+        IterKernel kernel(task.GetFunctor(), localAccess);
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<SYCL>,
@@ -841,6 +996,12 @@ struct SquareOp {
   }
 };
 
+template <typename KeyT, typename ValueT> struct KeyValueComparator {
+  bool operator()(std::pair<KeyT, ValueT> a, std::pair<KeyT, ValueT> b) const {
+    return a.first < b.first;
+  }
+};
+
 template <> class DeviceCollective<SYCL> {
 public:
   MGARDX_CONT
@@ -872,7 +1033,7 @@ public:
       T * res = result.data();
       T * input = v.data();
       sycl::range global{n};
-      sycl::range local{256};
+      sycl::range local{4};
       h.parallel_for(sycl::nd_range{global, local}, sycl::reduction(res, (T)0, AbsMaxOp<T>()), [=](sycl::nd_item<1> it, auto& res) {
         size_t i = it.get_global_id(0);
         res.combine(input[i]);
@@ -891,9 +1052,9 @@ public:
       T * input = v.data();
       sycl::range global{n};
       sycl::range local{256};
-      h.parallel_for(sycl::nd_range{global, local}, sycl::reduction(res, (T)0, SquareOp<T>()), [=](sycl::nd_item<1> it, auto& res) {
+      h.parallel_for(sycl::nd_range{global, local}, sycl::reduction(res, (T)0, sycl::plus<T>()), [=](sycl::nd_item<1> it, auto& res) {
         size_t i = it.get_global_id(0);
-        res.combine(input[i]);
+        res.combine(input[i] * input[i]);
       });
     });
     DeviceRuntime<SYCL>::SyncQueue(queue_idx);
@@ -921,6 +1082,27 @@ public:
   MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, SYCL> &keys,
                                     SubArray<1, ValueT, SYCL> &values,
                                     int queue_idx) {
+    KeyT * keys_array = new KeyT[n];
+    ValueT * values_array = new ValueT[n];
+    MemoryManager<SYCL>::Copy1D(keys_array, keys.data(), n, 0);
+    MemoryManager<SYCL>::Copy1D(values_array, values.data(), n, 0);
+    DeviceRuntime<SYCL>::SyncQueue(0);
+
+    std::vector<std::pair<KeyT, ValueT>> data(n);
+    for (SIZE i = 0; i < n; ++i) {
+      data[i] = std::pair<KeyT, ValueT>(keys_array[i], values_array[i]);
+    }
+    std::stable_sort(data.begin(), data.end(),
+                     KeyValueComparator<KeyT, ValueT>{});
+    for (SIZE i = 0; i < n; ++i) {
+      keys_array[i] = data[i].first;
+      values_array[i] = data[i].second;
+    }
+    MemoryManager<SYCL>::Copy1D(keys.data(), keys_array, n, 0);
+    MemoryManager<SYCL>::Copy1D(values.data(), values_array, n, 0);
+    DeviceRuntime<SYCL>::SyncQueue(0);
+    delete [] keys_array;
+    delete [] values_array;
   }
 
   template <typename KeyT, typename ValueT, typename BinaryOpType>

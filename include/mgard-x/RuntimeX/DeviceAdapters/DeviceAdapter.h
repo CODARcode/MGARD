@@ -27,10 +27,19 @@ template <typename DeviceType> struct SyncGrid {
   MGARDX_EXEC static void Sync();
 };
 
-template <typename DeviceType> struct Atomic {
-  template <typename T> MGARDX_EXEC static T Min(T *result, T value);
-  template <typename T> MGARDX_EXEC static T Max(T *result, T value);
-  template <typename T> MGARDX_EXEC static T Add(T *result, T value);
+
+#define AtomicSystemScope 0
+#define AtomicDeviceScope 1
+#define AtomicBlockScope 2
+
+#define AtomicGlobalMemory 0
+#define AtomicSharedMemory 1
+
+template <typename T, OPTION MemoryType, OPTION Scope, typename DeviceType>
+struct Atomic {
+  MGARDX_EXEC static T Min(T *result, T value);
+  MGARDX_EXEC static T Max(T *result, T value);
+  MGARDX_EXEC static T Add(T *result, T value);
 };
 
 template <typename DeviceType> struct Math {

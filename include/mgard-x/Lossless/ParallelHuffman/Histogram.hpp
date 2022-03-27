@@ -46,15 +46,22 @@ public:
     if (warpid >= warps_block - 1)
       end = N;
 
-    for (unsigned int pos = FunctorBase<DeviceType>::GetThreadIdX();
-         pos < (bins)*R; pos += FunctorBase<DeviceType>::GetBlockDimX())
-      Hs[pos] = 0;
+    if (CACHE_HISTOGRAM) {
+      for (unsigned int pos = FunctorBase<DeviceType>::GetThreadIdX();
+           pos < (bins)*R; pos += FunctorBase<DeviceType>::GetBlockDimX()) {
+        Hs[pos] = 0;
+      }
+    }
   }
 
   MGARDX_EXEC void Operation2() {
     for (unsigned int i = begin; i < end; i += step) {
       int d = *input_data(i);
-      Atomic<DeviceType>::Add(&Hs[off_rep + d], 1);
+      if (CACHE_HISTOGRAM) {
+        Atomic<int, AtomicSharedMemory, AtomicDeviceScope, DeviceType>::Add(&Hs[off_rep + d], 1);
+      } else {
+        Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Add(&Hs[off_rep + d], 1);
+      }
     }
   }
 
@@ -65,7 +72,7 @@ public:
       for (int base = 0; base < (bins)*R; base += bins) {
         sum += Hs[base + pos];
       }
-      Atomic<DeviceType>::Add(output(pos), (Q)sum);
+      Atomic<Q, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Add(output(pos), (Q)sum);
     }
   }
 
@@ -218,13 +225,16 @@ public:
       int threadsPerBlock, numBlocks;
       Config(len, dict_size, RPerBlock, threadsPerBlock, numBlocks);
       Array<1, int, DeviceType> local_histogram_array(
-          {(SIZE)2 * dict_size * numBlocks});
+          {(SIZE)RPerBlock * dict_size * numBlocks}, false, true);
+      local_histogram_array.memset(0);
+      DeviceRuntime<DeviceType>::SyncAllQueues();
       local_histogram = SubArray(local_histogram_array);
       TaskType task =
           GenTask<false>(input_data, local_histogram, output, len, dict_size,
                          RPerBlock, threadsPerBlock, numBlocks, queue_idx);
       DeviceAdapter<TaskType, DeviceType> adapter;
       adapter.Execute(task);
+      DeviceRuntime<DeviceType>::SyncAllQueues();
     }
   }
 };

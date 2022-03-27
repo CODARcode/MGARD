@@ -87,15 +87,34 @@ template <> struct SyncGrid<HIP> {
   MGARDX_EXEC static void Sync() { cg::this_grid().sync(); }
 };
 
-template <> struct Atomic<HIP> {
-  template <typename T> MGARDX_EXEC static T Min(T *result, T value) {
-    return atomicMin(result, value);
+template <typename T, OPTION MemoryType, OPTION Scope> 
+struct Atomic<T, MemoryType, Scope, HIP> {
+  MGARDX_EXEC static T Min(T *result, T value) {
+    if constexpr (Scope == AtomicSystemScope) {
+      return atomicMin_system(result, value);
+    } else if constexpr (Scope == AtomicDeviceScope) {
+      return atomicMin(result, value);
+    } else {
+      return atomicMin_block(result, value);
+    }
   }
-  template <typename T> MGARDX_EXEC static T Max(T *result, T value) {
-    return atomicMax(result, value);
+  MGARDX_EXEC static T Max(T *result, T value) {
+        if constexpr (Scope == AtomicSystemScope) {
+      return atomicMax_system(result, value);
+    } else if constexpr (Scope == AtomicDeviceScope) {
+      return atomicMax(result, value);
+    } else {
+      return atomicMax_block(result, value);
+    }
   }
-  template <typename T> MGARDX_EXEC static T Add(T *result, T value) {
-    return atomicAdd(result, value);
+  MGARDX_EXEC static T Add(T *result, T value) {
+        if constexpr (Scope == AtomicSystemScope) {
+      return atomicAdd_system(result, value);
+    } else if constexpr (Scope == AtomicDeviceScope) {
+      return atomicAdd(result, value);
+    } else {
+      return atomicAdd_block(result, value);
+    }
   }
 };
 
