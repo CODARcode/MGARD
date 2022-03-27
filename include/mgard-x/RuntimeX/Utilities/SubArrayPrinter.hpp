@@ -53,6 +53,7 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
   //                         ncol, subArray.data(), subArray.lddv1 * sizeof(T),
   //                         nfib * sizeof(T), subArray.lddv2, nfib * sizeof(T),
   //                         ncol, nrow, D2H, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   for (SIZE i = 0; i < nrow; i++) {
     MemoryManager<DeviceType>::CopyND(
         v + ncol * nfib * i, nfib,

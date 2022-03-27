@@ -193,6 +193,8 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray<1, LENGTH, DeviceType> outlier_idx_subarray(outlier_idx_array);
   SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray(outliers_array);
 
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+
   LevelwiseLinearQuantizeND<D, T, DeviceType>().Execute(
       SubArray<1, SIZE, DeviceType>(hierarchy.ranges), hierarchy.l_target,
       quantizers_subarray, SubArray<2, T, DeviceType>(hierarchy.volumes_array),
@@ -201,10 +203,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<1, SIZE, DeviceType>(hierarchy.shapes[0], true),
       SubArray<1, LENGTH, DeviceType>(outlier_count_array),
       outlier_idx_subarray, outliers_subarray, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   MemoryManager<DeviceType>::Copy1D(&outlier_count, outlier_count_array.data(),
                                     1, 0);
-  DeviceRuntime<DeviceType>::SyncDevice();
-  // m.huff_outlier_count = outlier_count;
+
   if (config.timing) {
     timer_each.end();
     timer_each.print("Quantization");
@@ -213,15 +215,12 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
               << total_elems << " ("
               << (double)100 * outlier_count / total_elems << "%)\n";
   }
-  if (debug_print) {
-    // PrintSubarray("decomposed", SubArray<D, T, DeviceType>(in_array));
-    // PrintSubarray("signed_quanzited_array", SubArray<D, QUANTIZED_INT,
-    // DeviceType>(signed_quanzited_array)); std::cout << "outlier_count: " <<
-    // outlier_count << std::endl; PrintSubarray("quantized outliers_array",
-    // SubArray<1, QUANTIZED_INT, DeviceType>(outliers_array));
-    // PrintSubarray("quantized outlier_idx_array", SubArray<1, LENGTH,
-    // DeviceType>(outlier_idx_array));
-  }
+  // if (debug_print) {
+    // PrintSubarray("decomposed", SubArray(in_array));
+    // PrintSubarray("quantized_subarray", quantized_subarray); 
+    // PrintSubarray("quantized outliers_array", outliers_subarray);
+    // PrintSubarray("quantized outlier_idx_array", outlier_idx_subarray);
+  // }
 
   Array<1, Byte, DeviceType> lossless_compressed_array;
   SubArray<1, Byte, DeviceType> lossless_compressed_subarray;
@@ -567,7 +566,6 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   DeviceRuntime<DeviceType>::SyncDevice();
 
-  // hierarchy.sync_all();
   if (config.timing) {
     timer_each.end();
     timer_each.print("Dequantization");
@@ -588,14 +586,14 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     recompose_single<D, T, DeviceType>(hierarchy, decompressed_subarray,
                                        hierarchy.l_target, 0);
   }
-  // hierarchy.sync_all();
+  DeviceRuntime<DeviceType>::SyncDevice();
+
   if (config.timing) {
     timer_each.end();
     timer_each.print("Recomposition");
     timer_each.clear();
   }
 
-  // hierarchy.sync_all();
   if (config.timing) {
     timer_total.end();
     timer_total.print("Overall Decompression");

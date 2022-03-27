@@ -13,7 +13,8 @@ int DeviceRuntime<SYCL>::curr_dev_id = 0;
 DeviceQueues<SYCL> DeviceRuntime<SYCL>::queues;
 DeviceSpecification<SYCL> DeviceRuntime<SYCL>::DeviceSpecs;
 
-bool DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors = false;
+// SyncAllKernelsAndCheckErrors needs to be always ON for SYCL
+bool DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors = true;
 bool MemoryManager<SYCL>::ReduceMemoryFootprint = false;
 bool DeviceRuntime<SYCL>::TimingAllKernels = false;
 bool DeviceRuntime<SYCL>::PrintKernelConfig = false;

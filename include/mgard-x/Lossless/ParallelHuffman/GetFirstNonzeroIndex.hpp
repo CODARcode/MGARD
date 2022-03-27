@@ -28,7 +28,7 @@ public:
                            FunctorBase<DeviceType>::GetBlockDimX()) +
                           FunctorBase<DeviceType>::GetThreadIdX();
     if (thread < size && *array(thread) != 0) {
-      Atomic<DeviceType>::Min(result((IDX)0), thread);
+      Atomic<unsigned int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Min(result((IDX)0), thread);
     }
   }
 

@@ -24,18 +24,19 @@ template <> struct SyncGrid<Serial> {
   }
 };
 
-template <> struct Atomic<Serial> {
-  template <typename T> MGARDX_EXEC static T Min(T *result, T value) {
+template <typename T, OPTION MemoryType, OPTION Scope> 
+struct Atomic<T, MemoryType, Scope, Serial> {
+  MGARDX_EXEC static T Min(T *result, T value) {
     T old = *result;
     *result = std::min(*result, value);
     return old;
   }
-  template <typename T> MGARDX_EXEC static T Max(T *result, T value) {
+  MGARDX_EXEC static T Max(T *result, T value) {
     T old = *result;
     *result = std::max(*result, value);
     return old;
   }
-  template <typename T> MGARDX_EXEC static T Add(T *result, T value) {
+  MGARDX_EXEC static T Add(T *result, T value) {
     T old = *result;
     *result += value;
     return old;
