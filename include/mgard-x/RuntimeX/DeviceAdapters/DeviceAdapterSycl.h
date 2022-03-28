@@ -212,8 +212,9 @@ public:
       MaxSharedMemorySize[d] = device.get_info<sycl::info::device::local_mem_size>();
       WarpSize[d] = 32;
       NumSMs[d] = device.get_info<sycl::info::device::max_compute_units>();
-      MaxNumThreadsPerSM[d] = 1024;
-      MaxNumThreadsPerTB[d] = 1024;
+      MaxNumThreadsPerSM[d] = device.get_info<sycl::info::device::max_work_group_size>();;
+      MaxNumThreadsPerTB[d] = device.get_info<sycl::info::device::max_work_group_size>();;
+      AvailableMemory[d] = device.get_info<sycl::info::device::global_mem_size>();
       SupportCooperativeGroups[d] = false;
       d++;
     }
@@ -242,7 +243,6 @@ public:
   }
 
   MGARDX_CONT size_t GetAvailableMemory(int dev_id) {
-    AvailableMemory[dev_id] = 1e9;
     return AvailableMemory[dev_id];
   }
 
