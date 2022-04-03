@@ -99,6 +99,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   ///    accessed on the device.
   /// 2. The level order is reversed.
   /// 3. The levels are padded with a 0 value at the beginning.
+  std::vector<std::vector<SIZE>> shapes_vec;
   Array<1, SIZE, DeviceType> ranges;
   /// An array of coordinates along each dimension. The vector is of size
   /// `D`. Each array should be the size of the associated dimension.

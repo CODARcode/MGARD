@@ -49,7 +49,7 @@ using namespace std::chrono;
 
 namespace mgard_x {
 
-static bool debug_print = true;
+static bool debug_print_compression = true;
 
 template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType>
@@ -220,6 +220,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
               << total_elems << " ("
               << (double)100 * outlier_count / total_elems << "%)\n";
   }
+
   // if (debug_print) {
   // PrintSubarray("decomposed", SubArray(in_array));
   // PrintSubarray("quantized_subarray", quantized_subarray);
@@ -448,7 +449,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   QUANTIZED_UNSIGNED_INT *unsigned_dqv;
 
-  if (debug_print) {
+  if (debug_print_compression) {
     // PrintSubarray("Huffman lossless_compressed_subarray",
     // lossless_compressed_subarray);
   }
@@ -545,7 +546,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
 
-  // if (debug_print) {
+  // if (debug_print_compression) {
   // PrintSubarray("Quantized primary", SubArray(primary));
   // }
 
@@ -619,7 +620,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     timer_total.clear();
   }
 
-  // if (debug_print) {
+  // if (debug_print_compression) {
   //   PrintSubarray2("decompressed_subarray", SubArray<D, T,
   //   DeviceType>(decompressed_subarray));
   // }
