@@ -322,7 +322,8 @@ public:
         if (quantized_data >= 0 && quantized_data < dict_size) {
           // do nothing
         } else {
-          LENGTH i = Atomic<LENGTH, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Add(outlier_count((IDX)0), (LENGTH)1);
+          LENGTH i = Atomic<LENGTH, AtomicGlobalMemory, AtomicDeviceScope,
+                            DeviceType>::Add(outlier_count((IDX)0), (LENGTH)1);
           *outlier_idx(i) = get_idx<D>(shape_sm, idx);
           *outliers(i) = quantized_data;
           quantized_data = 0;

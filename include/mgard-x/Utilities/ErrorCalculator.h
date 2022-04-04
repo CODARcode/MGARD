@@ -11,7 +11,7 @@
 // #include "../../TensorMeshHierarchy.hpp"
 // #include "../../TensorNorms.hpp"
 // #include "../../shuffle.hpp"
-#include "../Types.h"
+#include "Types.h"
 
 namespace mgard_x {
 

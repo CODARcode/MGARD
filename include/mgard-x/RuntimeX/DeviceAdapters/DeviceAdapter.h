@@ -27,7 +27,6 @@ template <typename DeviceType> struct SyncGrid {
   MGARDX_EXEC static void Sync();
 };
 
-
 #define AtomicSystemScope 0
 #define AtomicDeviceScope 1
 #define AtomicBlockScope 2
@@ -134,6 +133,12 @@ public:
   DeviceAdapter(){};
   MGARDX_CONT
   ExecutionReturn Execute(){};
+};
+
+template <typename KeyT, typename ValueT> struct KeyValueComparator {
+  bool operator()(std::pair<KeyT, ValueT> a, std::pair<KeyT, ValueT> b) const {
+    return a.first < b.first;
+  }
 };
 
 template <typename DeviceType> class DeviceCollective {

@@ -92,9 +92,15 @@ if (MGARD_ENABLE_SERIAL OR
     MGARD_ENABLE_HIP    OR
     MGARD_ENABLE_SYCL)
 
+  if(MGARD_ENABLE_SYCL)
+    set(MGARD_ENABLE_SERIAL OFF)
+  endif()
+
   set (CMAKE_CXX_STANDARD 17)
   set (CMAKE_CXX_STANDARD_REQUIRED ON)
   set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
+
+  include(MgardXGenerateSource)
   add_subdirectory (src/mgard-x)
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)

@@ -87,7 +87,7 @@ template <> struct SyncGrid<HIP> {
   MGARDX_EXEC static void Sync() { cg::this_grid().sync(); }
 };
 
-template <typename T, OPTION MemoryType, OPTION Scope> 
+template <typename T, OPTION MemoryType, OPTION Scope>
 struct Atomic<T, MemoryType, Scope, HIP> {
   MGARDX_EXEC static T Min(T *result, T value) {
     if constexpr (Scope == AtomicSystemScope) {
@@ -99,7 +99,7 @@ struct Atomic<T, MemoryType, Scope, HIP> {
     }
   }
   MGARDX_EXEC static T Max(T *result, T value) {
-        if constexpr (Scope == AtomicSystemScope) {
+    if constexpr (Scope == AtomicSystemScope) {
       return atomicMax_system(result, value);
     } else if constexpr (Scope == AtomicDeviceScope) {
       return atomicMax(result, value);
@@ -108,7 +108,7 @@ struct Atomic<T, MemoryType, Scope, HIP> {
     }
   }
   MGARDX_EXEC static T Add(T *result, T value) {
-        if constexpr (Scope == AtomicSystemScope) {
+    if constexpr (Scope == AtomicSystemScope) {
       return atomicAdd_system(result, value);
     } else if constexpr (Scope == AtomicDeviceScope) {
       return atomicAdd(result, value);

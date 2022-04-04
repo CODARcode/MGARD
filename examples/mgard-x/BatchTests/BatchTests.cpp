@@ -146,7 +146,7 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol, T s,
 
     enum mgard_x::device_type dev_type;
     if (dev == X_Serial) {
-      dev_type = mgard_x::device_type::Serial;
+      dev_type = mgard_x::device_type::SERIAL;
     } else if (dev == X_CUDA) {
       dev_type = mgard_x::device_type::CUDA;
     } else if (dev == X_HIP) {
@@ -211,7 +211,7 @@ void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
 
     enum mgard_x::device_type dev_type;
     if (dev == X_Serial) {
-      dev_type = mgard_x::device_type::Serial;
+      dev_type = mgard_x::device_type::SERIAL;
     } else if (dev == X_CUDA) {
       dev_type = mgard_x::device_type::CUDA;
     } else if (dev == X_HIP) {
@@ -349,13 +349,13 @@ int main(int argc, char *argv[]) {
   dev2 = argv[i++];
 
   enum device device_type1, device_type2;
-  enum mgard_x::device_type dev_type = mgard_x::device_type::None;
+  enum mgard_x::device_type dev_type = mgard_x::device_type::NONE;
 
   std::cout << "Device1: ";
   if (strcmp(dev1, "x-serial") == 0) {
-    dev_type = mgard_x::device_type::Serial;
+    dev_type = mgard_x::device_type::SERIAL;
     device_type1 = device::X_Serial;
-    std::cout << "MGARD-X::Serial\n";
+    std::cout << "MGARD-X::SERIAL\n";
   } else if (strcmp(dev1, "x-cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
     device_type1 = device::X_CUDA;
@@ -378,9 +378,9 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Device2: ";
   if (strcmp(dev2, "x-serial") == 0) {
-    dev_type = mgard_x::device_type::Serial;
+    dev_type = mgard_x::device_type::SERIAL;
     device_type2 = device::X_Serial;
-    std::cout << "MGARD-X::Serial\n";
+    std::cout << "MGARD-X::SERIAL\n";
   } else if (strcmp(dev2, "x-cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
     device_type2 = device::X_CUDA;

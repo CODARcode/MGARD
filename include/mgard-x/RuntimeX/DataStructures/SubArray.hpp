@@ -96,7 +96,7 @@ public:
 
   MGARDX_CONT_EXEC
   SIZE getLddv2() const { return this->lddv2; }
-  
+
   void offset(std::vector<SIZE> idx);
 
   MGARDX_CONT

@@ -5,8 +5,8 @@
  * Date: March 17, 2022
  */
 
-#include "mgard-x/CompressionWorkflow.hpp"
-#include "mgard-x/Hierarchy.hpp"
+#include "mgard-x/CompressionLowLevel/CompressionLowLevel.hpp"
+#include "mgard-x/Hierarchy/Hierarchy.hpp"
 #include "mgard-x/RuntimeX/DataStructures/Array.hpp"
 #include "mgard-x/RuntimeX/RuntimeX.h"
 

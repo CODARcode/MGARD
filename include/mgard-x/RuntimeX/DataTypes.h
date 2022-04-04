@@ -91,16 +91,16 @@ namespace mgard_x {
 #define SUBTRACT 2
 
 class Device {};
-class Serial : public Device {};
+class SERIAL : public Device {};
 class CUDA : public Device {};
 class HIP : public Device {};
 class SYCL : public Device {};
-class None : public Device {};
+class NONE : public Device {};
 
 #if defined MGARDX_COMPILE_KOKKOS
 using KOKKOS = Kokkos::DefaultExecutionSpace;
 #else
-using KOKKOS = None;
+using KOKKOS = NONE;
 #endif
 
 class DPCxx : public Device {};

@@ -13,9 +13,9 @@ namespace mgard_x {
 template <typename DeviceType1, typename DeviceType2>
 class CompatibleDeviceType {
   using DeviceType = std::conditional<
-      std::is_same<DeviceType1, Serial>::value &&
-          std::is_same<DeviceType2, Serial>::value,
-      Serial,
+      std::is_same<DeviceType1, SERIAL>::value &&
+          std::is_same<DeviceType2, SERIAL>::value,
+      SERIAL,
       std::conditional<
           std::is_same<DeviceType1, CUDA>::value ||
               std::is_same<DeviceType2, CUDA>::value,
@@ -26,7 +26,7 @@ class CompatibleDeviceType {
               HIP,
               std::conditional<std::is_same<DeviceType1, KOKKOS>::value ||
                                    std::is_same<DeviceType2, KOKKOS>::value,
-                               KOKKOS, None>>>>;
+                               KOKKOS, NONE>>>>;
 };
 
 template <typename SubArrayType1, typename SubArrayType2>

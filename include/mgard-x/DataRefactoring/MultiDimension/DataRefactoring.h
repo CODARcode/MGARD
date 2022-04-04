@@ -9,7 +9,7 @@
 #define MGARD_X_DATA_REFACTORING
 
 // #include "Common.h"
-#include "../../Hierarchy.h"
+#include "../../Hierarchy/Hierarchy.h"
 #include "../../RuntimeX/RuntimeXPublic.h"
 
 namespace mgard_x {

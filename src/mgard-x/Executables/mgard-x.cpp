@@ -471,11 +471,11 @@ bool try_compression(int argc, char *argv[]) {
   enum mgard_x::device_type dev_type;
   std::string dev = get_arg(argc, argv, "-d");
   if (dev.compare("auto") == 0) {
-    dev_type = mgard_x::device_type::Auto;
-    std::cout << mgard_x::log::log_info << "device type: Auto\n";
+    dev_type = mgard_x::device_type::AUTO;
+    std::cout << mgard_x::log::log_info << "device type: AUTO\n";
   } else if (dev.compare("serial") == 0) {
-    dev_type = mgard_x::device_type::Serial;
-    std::cout << mgard_x::log::log_info << "device type: Serial\n";
+    dev_type = mgard_x::device_type::SERIAL;
+    std::cout << mgard_x::log::log_info << "device type: SERIAL\n";
   } else if (dev.compare("cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
     std::cout << mgard_x::log::log_info << "device type: CUDA\n";
@@ -520,11 +520,11 @@ bool try_decompression(int argc, char *argv[]) {
   enum mgard_x::device_type dev_type;
   std::string dev = get_arg(argc, argv, "-d");
   if (dev.compare("auto") == 0) {
-    dev_type = mgard_x::device_type::Auto;
-    std::cout << mgard_x::log::log_info << "device type: Auto\n";
+    dev_type = mgard_x::device_type::AUTO;
+    std::cout << mgard_x::log::log_info << "device type: AUTO\n";
   } else if (dev.compare("serial") == 0) {
-    dev_type = mgard_x::device_type::Serial;
-    std::cout << mgard_x::log::log_info << "device type: Serial\n";
+    dev_type = mgard_x::device_type::SERIAL;
+    std::cout << mgard_x::log::log_info << "device type: SERIAL\n";
   } else if (dev.compare("cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
     std::cout << mgard_x::log::log_info << "device type: CUDA\n";

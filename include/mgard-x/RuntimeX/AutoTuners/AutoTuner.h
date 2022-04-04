@@ -192,7 +192,7 @@ MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int precision_idx,
                                     int range_l, int config) {
 
   std::string device_type_string = "";
-  if (std::is_same<DeviceType, Serial>::value) {
+  if (std::is_same<DeviceType, SERIAL>::value) {
     device_type_string = "Serial";
   } else if (std::is_same<DeviceType, CUDA>::value) {
     device_type_string = "Cuda";
@@ -282,6 +282,15 @@ public:
   static AutoTuningTable<DeviceType> autoTuningTable;
   static bool ProfileKenrles;
 };
+
+template <typename DeviceType> void BeginAutoTuning() {
+  AutoTuner<DeviceType>::ProfileKernels = true;
+}
+
+template <typename DeviceType> void EndAutoTuning() {
+  AutoTuner<DeviceType>::ProfileKernels = false;
+}
+
 } // namespace mgard_x
 
 #include "AutoTunerCuda.h"
