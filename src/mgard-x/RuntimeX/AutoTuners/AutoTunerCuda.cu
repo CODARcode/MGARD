@@ -62,6 +62,9 @@ int AutoTuningTable<CUDA>::lwdqzk[2][9] = {{0, 0, 0, 0, 0, 0, 0, 0, 0},
 int AutoTuningTable<CUDA>::llk[2][9] = {{0, 0, 0, 0, 0, 0, 0, 0, 0},
                                          {0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
+template void BeginAutoTuning<CUDA>();
+template void EndAutoTuning<CUDA>();
+
 } // namespace mgard_x
 // clang-format on
 #undef MGARDX_COMPILE_CUDA

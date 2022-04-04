@@ -58,9 +58,11 @@ public:
     for (unsigned int i = begin; i < end; i += step) {
       int d = *input_data(i);
       if (CACHE_HISTOGRAM) {
-        Atomic<int, AtomicSharedMemory, AtomicDeviceScope, DeviceType>::Add(&Hs[off_rep + d], 1);
+        Atomic<int, AtomicSharedMemory, AtomicDeviceScope, DeviceType>::Add(
+            &Hs[off_rep + d], 1);
       } else {
-        Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Add(&Hs[off_rep + d], 1);
+        Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Add(
+            &Hs[off_rep + d], 1);
       }
     }
   }
@@ -72,7 +74,8 @@ public:
       for (int base = 0; base < (bins)*R; base += bins) {
         sum += Hs[base + pos];
       }
-      Atomic<Q, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Add(output(pos), (Q)sum);
+      Atomic<Q, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Add(
+          output(pos), (Q)sum);
     }
   }
 

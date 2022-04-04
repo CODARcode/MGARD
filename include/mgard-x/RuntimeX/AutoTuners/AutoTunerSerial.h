@@ -10,7 +10,7 @@
 
 namespace mgard_x {
 
-template <> class AutoTuningTable<Serial> {
+template <> class AutoTuningTable<SERIAL> {
 public:
   static const int num_precision = 2;
   static const int num_range = 9;
@@ -56,11 +56,11 @@ public:
   static int llk[num_precision][num_range];
 };
 
-template <> class AutoTuner<Serial> {
+template <> class AutoTuner<SERIAL> {
 public:
   MGARDX_CONT
   AutoTuner(){};
-  static AutoTuningTable<Serial> autoTuningTable;
+  static AutoTuningTable<SERIAL> autoTuningTable;
   static bool ProfileKernels;
 };
 

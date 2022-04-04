@@ -1,0 +1,5 @@
+list(APPEND MGARD_X_HEADER
+    ${CMAKE_CURRENT_SOURCE_DIR}/CompressionLowLevel.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/CompressionLowLevel.hpp
+    )
+set(MGARD_X_HEADER ${MGARD_X_HEADER} PARENT_SCOPE)

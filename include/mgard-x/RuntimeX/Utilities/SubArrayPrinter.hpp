@@ -252,6 +252,48 @@ void CompareSubarray(std::string name, SubArrayType1 subArray1,
   delete[] v2;
 }
 
+template <typename SubArrayType>
+void CompareSubarray4D(SubArrayType subArray1, SubArrayType subArray2) {
+  if (SubArrayType::NumDims != 4) {
+    std::cout << log::log_err
+              << "CompareSubarray4D expects 4D subarray type.\n";
+    exit(-1);
+  }
+  if (subArray1.getShape(3) != subArray2.getShape(3)) {
+    std::cout << log::log_err << "CompareSubarray4D mismatch 4D size.\n";
+    exit(-1);
+  }
+
+  using T = typename SubArrayType::DataType;
+  SIZE idx[4] = {0, 0, 0, 0};
+  for (SIZE i = 0; i < subArray1.getShape(3); i++) {
+    idx[3] = i;
+    SubArrayType temp1 = subArray1;
+    SubArrayType temp2 = subArray2;
+    temp1.offset(3, i);
+    temp2.offset(3, i);
+    CompareSubarray("4D = " + std::to_string(i), temp1.Slice3D(0, 1, 2),
+                    temp2.Slice3D(0, 1, 2));
+  }
+}
+
+template <typename SubArrayType>
+void PrintSubarray4D(std::string name, SubArrayType subArray1) {
+  if (SubArrayType::NumDims != 4) {
+    std::cout << log::log_err << "PrintSubarray4D expects 4D subarray type.\n";
+    exit(-1);
+  }
+  std::cout << name << "\n";
+  using T = typename SubArrayType::DataType;
+  SIZE idx[4] = {0, 0, 0, 0};
+  for (SIZE i = 0; i < subArray1.getShape(3); i++) {
+    idx[3] = i;
+    SubArrayType temp1 = subArray1;
+    temp1.offset(3, i);
+    PrintSubarray("i = " + std::to_string(i), temp1.Slice3D(0, 1, 2));
+  }
+}
+
 // print 3D CPU
 template <typename T>
 void verify_matrix(SIZE nrow, SIZE ncol, SIZE nfib, T *v, SIZE ldv1, SIZE ldv2,

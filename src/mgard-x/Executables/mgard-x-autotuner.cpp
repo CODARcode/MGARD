@@ -68,9 +68,9 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
 void autotuning(enum mgard_x::device_type dev_type,
                 std::vector<mgard_x::SIZE> shape) {
-  if (dev_type == mgard_x::device_type::Serial) {
+  if (dev_type == mgard_x::device_type::SERIAL) {
     std::cout << mgard_x::log::log_info
-              << "Start autotuning MGARD-X::Serial.\n";
+              << "Start autotuning MGARD-X::SERIAL.\n";
   } else if (dev_type == mgard_x::device_type::CUDA) {
     std::cout << mgard_x::log::log_info << "Start auto tuning MGARD-X::CUDA.\n";
   } else if (dev_type == mgard_x::device_type::HIP) {
@@ -90,9 +90,9 @@ void autotuning(enum mgard_x::device_type dev_type,
                           dev_type);
   std::cout << "Done.\n";
   mgard_x::EndAutoTuning(dev_type);
-  if (dev_type == mgard_x::device_type::Serial) {
+  if (dev_type == mgard_x::device_type::SERIAL) {
     std::cout << mgard_x::log::log_info
-              << "Done auto tuning MGARD-X::Serial.\n";
+              << "Done auto tuning MGARD-X::SERIAL.\n";
   } else if (dev_type == mgard_x::device_type::CUDA) {
     std::cout << mgard_x::log::log_info << "Done auto tuning MGARD-X::CUDA.\n";
   } else if (dev_type == mgard_x::device_type::HIP) {
@@ -190,8 +190,8 @@ int main(int argc, char *argv[]) {
     std::cout << "\n";
     std::string dev = get_arg(argc, argv, "-d");
     if (dev.compare("serial") == 0) {
-      dev_type = mgard_x::device_type::Serial;
-      std::cout << mgard_x::log::log_info << "device type: Serial\n";
+      dev_type = mgard_x::device_type::SERIAL;
+      std::cout << mgard_x::log::log_info << "device type: SERIAL\n";
     } else if (dev.compare("cuda") == 0) {
       dev_type = mgard_x::device_type::CUDA;
       std::cout << mgard_x::log::log_info << "device type: CUDA\n";
@@ -210,8 +210,8 @@ int main(int argc, char *argv[]) {
     std::vector<mgard_x::SIZE> shape({513, 513, 513});
     std::string dev = get_arg(argc, argv, "-d");
     if (dev.compare("serial") == 0) {
-      dev_type = mgard_x::device_type::Serial;
-      std::cout << mgard_x::log::log_info << "device type: Serial\n";
+      dev_type = mgard_x::device_type::SERIAL;
+      std::cout << mgard_x::log::log_info << "device type: SERIAL\n";
     } else if (dev.compare("cuda") == 0) {
       dev_type = mgard_x::device_type::CUDA;
       std::cout << mgard_x::log::log_info << "device type: CUDA\n";
@@ -230,7 +230,7 @@ int main(int argc, char *argv[]) {
     std::cout << mgard_x::log::log_info << "Full automatic mode\n";
     std::vector<mgard_x::SIZE> shape({513, 513, 513});
 #ifdef MGARD_ENABLE_SERIAL
-    autotuning(mgard_x::device_type::Serial, shape);
+    autotuning(mgard_x::device_type::SERIAL, shape);
 #endif
 #ifdef MGARD_ENABLE_CUDA
     autotuning(mgard_x::device_type::CUDA, shape);

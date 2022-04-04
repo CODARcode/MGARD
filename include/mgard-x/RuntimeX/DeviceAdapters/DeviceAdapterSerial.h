@@ -12,20 +12,20 @@
 
 namespace mgard_x {
 
-template <> struct SyncBlock<Serial> {
+template <> struct SyncBlock<SERIAL> {
   MGARDX_EXEC static void Sync() {
     // do nothing
   }
 };
 
-template <> struct SyncGrid<Serial> {
+template <> struct SyncGrid<SERIAL> {
   MGARDX_EXEC static void Sync() {
     // do nothing
   }
 };
 
-template <typename T, OPTION MemoryType, OPTION Scope> 
-struct Atomic<T, MemoryType, Scope, Serial> {
+template <typename T, OPTION MemoryType, OPTION Scope>
+struct Atomic<T, MemoryType, Scope, SERIAL> {
   MGARDX_EXEC static T Min(T *result, T value) {
     T old = *result;
     *result = std::min(*result, value);
@@ -63,7 +63,7 @@ static const int MultiplyDeBruijnBitPosition[64] = {
 
     62, 11, 23, 32, 36, 44, 52, 55, 61, 22, 43, 51, 60, 42, 59, 58};
 
-template <> struct Math<Serial> {
+template <> struct Math<SERIAL> {
   template <typename T> MGARDX_EXEC static T Min(T a, T b) {
     return std::min(a, b);
   }
@@ -618,7 +618,7 @@ MGARDX_KERL void SerialHuffmanCWCustomizedKernel(TaskType task) {
   DEALLOC_ACTIVE_GRID(loop1_active);
 }
 
-template <> class DeviceSpecification<Serial> {
+template <> class DeviceSpecification<SERIAL> {
 public:
   MGARDX_CONT
   DeviceSpecification() {
@@ -697,7 +697,7 @@ public:
   bool *SupportCooperativeGroups;
 };
 
-template <> class DeviceQueues<Serial> {
+template <> class DeviceQueues<SERIAL> {
 public:
   MGARDX_CONT
   DeviceQueues() {
@@ -720,7 +720,7 @@ public:
   }
 };
 
-template <> class DeviceRuntime<Serial> {
+template <> class DeviceRuntime<SERIAL> {
 public:
   MGARDX_CONT
   DeviceRuntime() {}
@@ -794,14 +794,14 @@ public:
   ~DeviceRuntime() {}
 
   static int curr_dev_id;
-  static DeviceQueues<Serial> queues;
+  static DeviceQueues<SERIAL> queues;
   static bool SyncAllKernelsAndCheckErrors;
-  static DeviceSpecification<Serial> DeviceSpecs;
+  static DeviceSpecification<SERIAL> DeviceSpecs;
   static bool TimingAllKernels;
   static bool PrintKernelConfig;
 };
 
-template <> class MemoryManager<Serial> {
+template <> class MemoryManager<SERIAL> {
 public:
   MGARDX_CONT
   MemoryManager(){};
@@ -812,7 +812,7 @@ public:
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
     if (ptr == NULL) {
-      std::cout << log::log_err << "MemoryManager<Serial>::Malloc1D error.\n";
+      std::cout << log::log_err << "MemoryManager<SERIAL>::Malloc1D error.\n";
     }
   }
 
@@ -824,7 +824,7 @@ public:
     ptr = (T *)std::malloc(n1 * n2 * sizeof(converted_T));
     ld = n1;
     if (ptr == NULL) {
-      std::cout << log::log_err << "MemoryManager<Serial>::Malloc1D error.\n";
+      std::cout << log::log_err << "MemoryManager<SERIAL>::Malloc1D error.\n";
     }
   }
 
@@ -835,7 +835,7 @@ public:
     ptr = (T *)std::malloc(n * sizeof(converted_T));
     if (ptr == NULL) {
       std::cout << log::log_err
-                << "MemoryManager<Serial>::MallocManaged1D error.\n";
+                << "MemoryManager<SERIAL>::MallocManaged1D error.\n";
     }
   }
 
@@ -867,7 +867,7 @@ public:
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
     if (ptr == NULL) {
-      std::cout << log::log_err << "MemoryManager<Serial>::Malloc1D error.\n";
+      std::cout << log::log_err << "MemoryManager<SERIAL>::Malloc1D error.\n";
     }
   }
 
@@ -941,7 +941,7 @@ typedef unsigned long long int uint64_cu;
 template <typename T_org, typename T_trans, SIZE nblockx, SIZE nblocky,
           SIZE nblockz, OPTION ALIGN, OPTION METHOD>
 struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
-                         METHOD, Serial> {
+                         METHOD, SERIAL> {
 
   MGARDX_EXEC
   static void Serial_All(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX,
@@ -989,7 +989,7 @@ template <typename T, typename T_fp, typename T_sfp, typename T_error,
           SIZE nblockx, SIZE nblocky, SIZE nblockz, OPTION METHOD,
           OPTION BinaryType>
 struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
-                         METHOD, BinaryType, Serial> {
+                         METHOD, BinaryType, SERIAL> {
 
   MGARDX_EXEC
   static void Serial_All(T *v, T_error *temp, T_error *errors, SIZE num_elems,
@@ -999,7 +999,7 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
         T data = v[elem_idx];
         T_fp fp_data = (T_fp)fabs(data);
         T_sfp fps_data = (T_sfp)data;
-        T_fp ngb_data = Math<Serial>::binary2negabinary(fps_data);
+        T_fp ngb_data = Math<SERIAL>::binary2negabinary(fps_data);
         T_error mantissa;
         if (BinaryType == BINARY) {
           mantissa = fabs(data) - fp_data;
@@ -1013,7 +1013,7 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
           if (BinaryType == BINARY) {
             diff = (T_error)(fp_data & mask) + mantissa;
           } else if (BinaryType == NEGABINARY) {
-            diff = (T_error)Math<Serial>::negabinary2binary(ngb_data & mask) +
+            diff = (T_error)Math<SERIAL>::negabinary2binary(ngb_data & mask) +
                    mantissa;
           }
           errors[num_bitplanes - bitplane_idx] += diff * diff;
@@ -1033,7 +1033,7 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
   }
 };
 
-template <typename TaskTypeType> class DeviceAdapter<TaskTypeType, Serial> {
+template <typename TaskTypeType> class DeviceAdapter<TaskTypeType, SERIAL> {
 public:
   MGARDX_CONT
   DeviceAdapter(){};
@@ -1041,7 +1041,7 @@ public:
   MGARDX_CONT
   ExecutionReturn Execute(TaskTypeType &task) {
 
-    if (DeviceRuntime<Serial>::PrintKernelConfig) {
+    if (DeviceRuntime<SERIAL>::PrintKernelConfig) {
       std::cout << log::log_info << task.GetFunctorName() << ": <"
                 << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
                 << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
@@ -1049,25 +1049,25 @@ public:
     }
 
     Timer timer;
-    if (DeviceRuntime<Serial>::TimingAllKernels ||
-        AutoTuner<Serial>::ProfileKernels) {
-      DeviceRuntime<Serial>::SyncDevice();
+    if (DeviceRuntime<SERIAL>::TimingAllKernels ||
+        AutoTuner<SERIAL>::ProfileKernels) {
+      DeviceRuntime<SERIAL>::SyncDevice();
       timer.start();
     }
     // if constexpr evalute at compile time otherwise this does not compile
-    if constexpr (std::is_base_of<Functor<Serial>,
+    if constexpr (std::is_base_of<Functor<SERIAL>,
                                   typename TaskTypeType::Functor>::value) {
       SerialKernel(task);
     } else if constexpr (std::is_base_of<
-                             IterFunctor<Serial>,
+                             IterFunctor<SERIAL>,
                              typename TaskTypeType::Functor>::value) {
       SerialIterKernel(task);
     } else if constexpr (std::is_base_of<
-                             HuffmanCLCustomizedFunctor<Serial>,
+                             HuffmanCLCustomizedFunctor<SERIAL>,
                              typename TaskTypeType::Functor>::value) {
       SerialHuffmanCLCustomizedKernel(task);
     } else if constexpr (std::is_base_of<
-                             HuffmanCWCustomizedFunctor<Serial>,
+                             HuffmanCWCustomizedFunctor<SERIAL>,
                              typename TaskTypeType::Functor>::value) {
       SerialHuffmanCWCustomizedKernel(task);
     }
@@ -1075,14 +1075,14 @@ public:
     // timer.print(task.GetFunctorName());
     // timer.clear();
     ExecutionReturn ret;
-    if (DeviceRuntime<Serial>::TimingAllKernels ||
-        AutoTuner<Serial>::ProfileKernels) {
-      DeviceRuntime<Serial>::SyncDevice();
+    if (DeviceRuntime<SERIAL>::TimingAllKernels ||
+        AutoTuner<SERIAL>::ProfileKernels) {
+      DeviceRuntime<SERIAL>::SyncDevice();
       timer.end();
-      if (DeviceRuntime<Serial>::TimingAllKernels) {
+      if (DeviceRuntime<SERIAL>::TimingAllKernels) {
         timer.print(task.GetFunctorName());
       }
-      if (AutoTuner<Serial>::ProfileKernels) {
+      if (AutoTuner<SERIAL>::ProfileKernels) {
         ret.execution_time = timer.get();
       }
     }
@@ -1090,26 +1090,20 @@ public:
   }
 };
 
-template <typename KeyT, typename ValueT> struct KeyValueComparator {
-  bool operator()(std::pair<KeyT, ValueT> a, std::pair<KeyT, ValueT> b) const {
-    return a.first < b.first;
-  }
-};
-
-template <> class DeviceCollective<Serial> {
+template <> class DeviceCollective<SERIAL> {
 public:
   MGARDX_CONT
   DeviceCollective(){};
 
   template <typename T>
-  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, Serial> &v,
-                              SubArray<1, T, Serial> &result, int queue_idx) {
+  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, SERIAL> &v,
+                              SubArray<1, T, SERIAL> &result, int queue_idx) {
     *result((IDX)0) = std::accumulate(v((IDX)0), v((IDX)n), 0);
   }
 
   template <typename T>
-  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, Serial> &v,
-                                 SubArray<1, T, Serial> &result,
+  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, SERIAL> &v,
+                                 SubArray<1, T, SERIAL> &result,
                                  int queue_idx) {
     T max_result = 0;
     for (SIZE i = 0; i < n; ++i) {
@@ -1119,8 +1113,8 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, Serial> &v,
-                                    SubArray<1, T, Serial> &result,
+  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, SERIAL> &v,
+                                    SubArray<1, T, SERIAL> &result,
                                     int queue_idx) {
     T sum_result = 0;
     for (SIZE i = 0; i < n; ++i) {
@@ -1131,33 +1125,33 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumInclusive(SIZE n, SubArray<1, T, Serial> &v,
-                                           SubArray<1, T, Serial> &result,
+  MGARDX_CONT static void ScanSumInclusive(SIZE n, SubArray<1, T, SERIAL> &v,
+                                           SubArray<1, T, SERIAL> &result,
                                            int queue_idx) {
     // std::inclusive_scan(v(0), v(n), result(0));
-    std::cout << log::log_err << "ScanSumInclusive<Serial> not implemented.\n";
+    std::cout << log::log_err << "ScanSumInclusive<SERIAL> not implemented.\n";
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExclusive(SIZE n, SubArray<1, T, Serial> &v,
-                                           SubArray<1, T, Serial> &result,
+  MGARDX_CONT static void ScanSumExclusive(SIZE n, SubArray<1, T, SERIAL> &v,
+                                           SubArray<1, T, SERIAL> &result,
                                            int queue_idx) {
     // std::exclusive_scan(v(0), v(n), result(0));
-    std::cout << log::log_err << "ScanSumExclusive<Serial> not implemented.\n";
+    std::cout << log::log_err << "ScanSumExclusive<SERIAL> not implemented.\n";
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, Serial> &v,
-                                          SubArray<1, T, Serial> &result,
+  MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, SERIAL> &v,
+                                          SubArray<1, T, SERIAL> &result,
                                           int queue_idx) {
     // std::inclusive_scan(v(0), v(n), result(1));
     // result(0) = 0;
-    std::cout << log::log_err << "ScanSumExtended<Serial> not implemented.\n";
+    std::cout << log::log_err << "ScanSumExtended<SERIAL> not implemented.\n";
   }
 
   template <typename KeyT, typename ValueT>
-  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, Serial> &keys,
-                                    SubArray<1, ValueT, Serial> &values,
+  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, SERIAL> &keys,
+                                    SubArray<1, ValueT, SERIAL> &values,
                                     int queue_idx) {
     std::vector<std::pair<KeyT, ValueT>> data(n);
     for (SIZE i = 0; i < n; ++i) {

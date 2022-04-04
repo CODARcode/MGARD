@@ -8,7 +8,7 @@
 #ifndef MGARD_X_SINGLE_DIMENSION_DATA_REFACTORING
 #define MGARD_X_SINGLE_DIMENSION_DATA_REFACTORING
 
-#include "../../Hierarchy.h"
+#include "../../Hierarchy/Hierarchy.h"
 #include "../../RuntimeX/RuntimeXPublic.h"
 
 namespace mgard_x {
