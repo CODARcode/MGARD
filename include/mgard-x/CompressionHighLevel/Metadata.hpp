@@ -178,6 +178,7 @@ private:
     } else {
       etype = endiness_type::Little_Endian;
     }
+
     total_size = 0;
 
     // about MGARD software
