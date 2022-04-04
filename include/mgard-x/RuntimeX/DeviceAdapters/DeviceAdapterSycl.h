@@ -232,11 +232,9 @@ public:
       NumSMs[d] = device.get_info<sycl::info::device::max_compute_units>();
       MaxNumThreadsPerSM[d] =
           device.get_info<sycl::info::device::max_work_group_size>();
-      ;
       // Larger limit can cause resource insufficient error
       MaxNumThreadsPerTB[d] = std::min(
           1024ul, device.get_info<sycl::info::device::max_work_group_size>());
-      ;
       AvailableMemory[d] =
           device.get_info<sycl::info::device::global_mem_size>();
       SupportCooperativeGroups[d] = false;
