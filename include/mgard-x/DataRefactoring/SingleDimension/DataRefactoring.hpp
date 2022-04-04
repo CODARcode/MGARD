@@ -12,6 +12,10 @@
 
 namespace mgard_x {
 
+static bool store = false;
+static bool verify = false;
+static bool debug_print = false;
+
 template <DIM D, typename T, typename DeviceType>
 void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
                       SubArray<D, T, DeviceType> &v, SIZE l_target,
