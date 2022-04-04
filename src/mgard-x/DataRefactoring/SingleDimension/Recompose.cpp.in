@@ -9,7 +9,8 @@
 
 namespace mgard_x {
 
-template void recompose_single<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
-                                         SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v,
-                                         SIZE l_target, int queue_idx);
+template void recompose_single<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
+    Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target,
+    int queue_idx);
 } // namespace mgard_x

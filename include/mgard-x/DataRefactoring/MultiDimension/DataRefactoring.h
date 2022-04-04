@@ -14,45 +14,59 @@
 
 namespace mgard_x {
 
-// template <DIM D, typename T, typename DeviceType>
-// void calc_coeff_pointers(Hierarchy<D, T> &hierarchy, DIM curr_dims[3], DIM l,
-// SubArray<D, T> doutput,
-//                          SubArray<D, T> &dcoarse,
-//                          SubArray<D, T> &dcoeff_f,
-//                          SubArray<D, T> &dcoeff_c,
-//                          SubArray<D, T> &dcoeff_r,
-//                          SubArray<D, T> &dcoeff_cf,
-//                          SubArray<D, T> &dcoeff_rf,
-//                          SubArray<D, T> &dcoeff_rc,
-//                          SubArray<D, T> &dcoeff_rcf);
+static bool multidim_refactoring_store = false;
+static bool multidim_refactoring_verify = false;
+static bool multidim_refactoring_debug_print = false;
 
-// template <DIM D, typename T, typename DeviceType>
-// void calc_coefficients_3d(Hierarchy<D, T> &hierarchy, SubArray<D, T> dinput,
-//                         SubArray<D, T> &doutput, SIZE l, int queue_idx);
+template <DIM D, typename T, typename DeviceType>
+void CalcCoefficients3D(Hierarchy<D, T, DeviceType> &hierarchy,
+                        SubArray<D, T, DeviceType> dinput,
+                        SubArray<D, T, DeviceType> &doutput, SIZE l,
+                        int queue_idx);
 
-// template <DIM D, typename T, typename DeviceType>
-// void coefficients_restore_3d(Hierarchy<D, T> &hierarchy, SubArray<D, T>
-// dinput,
-//                         SubArray<D, T> &doutput, SIZE l, int queue_idx);
+template <DIM D, typename T, typename DeviceType>
+void CoefficientsRestore3D(Hierarchy<D, T, DeviceType> &hierarchy,
+                           SubArray<D, T, DeviceType> dinput,
+                           SubArray<D, T, DeviceType> &doutput, SIZE l,
+                           int queue_idx);
 
-// template <DIM D, typename T, typename DeviceType>
-// void calc_correction_3d(Hierarchy<D, T> &hierarchy, SubArray<D, T> dcoeff,
-//                         SubArray<D, T> &dcorrection, SIZE l, int queue_idx);
+template <DIM D, typename T, typename DeviceType>
+void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
+                      SubArray<D, T, DeviceType> dcoeff,
+                      SubArray<D, T, DeviceType> &dcorrection, SIZE l,
+                      int queue_idx);
 
-// template <DIM D, typename T, typename DeviceType>
-// void calc_coefficients_nd(Hierarchy<D, T> &hierarchy, SubArray<D, T> dinput1,
-//                           SubArray<D, T> dinput2,
-//                         SubArray<D, T> &doutput, SIZE l, int queue_idx);
+template <DIM D, typename T, typename DeviceType>
+void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
+                        SubArray<D, T, DeviceType> dinput1,
+                        SubArray<D, T, DeviceType> dinput2,
+                        SubArray<D, T, DeviceType> &doutput, SIZE l,
+                        int queue_idx);
 
-// template <DIM D, typename T, typename DeviceType>
-// void coefficients_restore_nd(Hierarchy<D, T> &hierarchy, SubArray<D, T>
-// dinput1,
-//                              SubArray<D, T> dinput2,
-//                              SubArray<D, T> &doutput, SIZE l, int queue_idx);
+template <DIM D, typename T, typename DeviceType>
+void CoefficientsRestoreND(Hierarchy<D, T, DeviceType> &hierarchy,
+                           SubArray<D, T, DeviceType> dinput1,
+                           SubArray<D, T, DeviceType> dinput2,
+                           SubArray<D, T, DeviceType> &doutput, SIZE l,
+                           int queue_idx);
 
-// template <DIM D, typename T, typename DeviceType>
-// void calc_correction_nd(Hierarchy<D, T> &hierarchy, SubArray<D, T> dcoeff,
-//                         SubArray<D, T> &dcorrection, SIZE l, int queue_idx);
+template <DIM D, typename T, typename DeviceType>
+void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
+                      SubArray<D, T, DeviceType> dcoeff,
+                      SubArray<D, T, DeviceType> &dcorrection, SIZE l,
+                      int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void CopyND(SubArray<D, T, DeviceType> dinput,
+            SubArray<D, T, DeviceType> &doutput, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void AddND(SubArray<D, T, DeviceType> dinput,
+           SubArray<D, T, DeviceType> &doutput, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void SubtractND(SubArray<D, T, DeviceType> dinput,
+                SubArray<D, T, DeviceType> &doutput, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
 void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
