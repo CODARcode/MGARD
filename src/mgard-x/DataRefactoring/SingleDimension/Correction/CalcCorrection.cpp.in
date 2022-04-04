@@ -1,0 +1,17 @@
+/*
+ * Copyright 2022, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ * Author: Jieyang Chen (chenj3@ornl.gov)
+ * Date: March 17, 2022
+ */
+
+#include "mgard-x/DataRefactoring/SingleDimension/Correction/CalcCorrection.hpp"
+namespace mgard_x {
+
+template void CalcCorrection<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
+    Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &coeff,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &correction,
+    SIZE curr_dim, SIZE l, int queue_idx);
+
+} // namespace mgard_x

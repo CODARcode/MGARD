@@ -5,11 +5,13 @@
  * Date: March 17, 2022
  */
 
-#include "mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
+#include "mgard-x/DataRefactoring/MultiDimension/Correction/CalcCorrectionND.hpp"
 namespace mgard_x {
 
-template void decompose<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
+template void CalcCorrectionND<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
-    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> dcoeff,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &dcorrection, SIZE l,
     int queue_idx);
+
 } // namespace mgard_x

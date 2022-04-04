@@ -1,0 +1,17 @@
+/*
+ * Copyright 2022, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ * Author: Jieyang Chen (chenj3@ornl.gov)
+ * Date: March 17, 2022
+ */
+
+#include "mgard-x/DataRefactoring/SingleDimension/Coefficient/CalcCoefficients.hpp"
+namespace mgard_x {
+
+template void CalcCoefficients<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
+    DIM current_dim, SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> ratio,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> v,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> coarse,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> coeff, int queue_idx);
+
+} // namespace mgard_x

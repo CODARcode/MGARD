@@ -13,6 +13,40 @@
 
 namespace mgard_x {
 
+static bool singledim_refactoring_store = false;
+static bool singledim_refactoring_verify = false;
+static bool singledim_refactoring_debug_print = false;
+
+template <DIM D, typename T, typename DeviceType>
+void CalcCoefficients(DIM current_dim, SubArray<1, T, DeviceType> ratio,
+                      SubArray<D, T, DeviceType> v,
+                      SubArray<D, T, DeviceType> coarse,
+                      SubArray<D, T, DeviceType> coeff, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void CoefficientsRestore(DIM current_dim, SubArray<1, T, DeviceType> ratio,
+                         SubArray<D, T, DeviceType> v,
+                         SubArray<D, T, DeviceType> coarse,
+                         SubArray<D, T, DeviceType> coeff, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
+                    SubArray<D, T, DeviceType> &coeff,
+                    SubArray<D, T, DeviceType> &correction, SIZE curr_dim,
+                    SIZE l, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void CopyND(SubArray<D, T, DeviceType> dinput,
+            SubArray<D, T, DeviceType> &doutput, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void AddND(SubArray<D, T, DeviceType> dinput,
+           SubArray<D, T, DeviceType> &doutput, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void SubtractND(SubArray<D, T, DeviceType> dinput,
+                SubArray<D, T, DeviceType> &doutput, int queue_idx);
+
 template <DIM D, typename T, typename DeviceType>
 void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
                       SubArray<D, T, DeviceType> &v, SIZE l_target,

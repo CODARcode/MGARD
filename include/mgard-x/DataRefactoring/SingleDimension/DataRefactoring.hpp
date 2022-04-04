@@ -8,75 +8,9 @@
 #include "../../Hierarchy/Hierarchy.hpp"
 #include "../../RuntimeX/RuntimeX.h"
 
-#include "../MultiDimension/Correction/IterativeProcessingKernel.hpp"
-#include "../MultiDimension/Correction/LevelwiseProcessingKernel.hpp"
-#include "Coefficient/CoefficientKernel.hpp"
-#include "Correction/MassTransKernel.hpp"
+#include "DataRefactoring.h"
 
 namespace mgard_x {
-
-static bool store = false;
-static bool verify = false;
-static bool debug_print = false;
-
-template <DIM D, typename T, typename DeviceType>
-void calc_correction_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                            SubArray<D, T, DeviceType> &coeff,
-                            SubArray<D, T, DeviceType> &correction,
-                            SIZE curr_dim, SIZE l, int queue_idx) {
-
-  SingleDimensionMassTrans<D, T, DeviceType>().Execute(
-      curr_dim, SubArray(hierarchy.dist_array[curr_dim][l]),
-      SubArray(hierarchy.ratio_array[curr_dim][l]), coeff, correction,
-      queue_idx);
-
-  if (debug_print) {
-    PrintSubarray("SingleDimensionMassTrans", correction);
-  }
-
-  DIM curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
-  if (curr_dim == 0) {
-    correction.project(curr_dim_f, curr_dim_c, curr_dim_r);
-    Ipk1Reo<D, T, DeviceType>().Execute(
-        curr_dim_r, curr_dim_c, curr_dim_f,
-        SubArray(hierarchy.am_array[curr_dim_f][l + 1]),
-        SubArray(hierarchy.bm_array[curr_dim_f][l + 1]), correction, queue_idx);
-    if (debug_print) {
-      PrintSubarray("Ipk1Reo", correction);
-    }
-
-  } else if (curr_dim == 1) {
-    curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
-    correction.project(curr_dim_f, curr_dim_c, curr_dim_r);
-    Ipk2Reo<D, T, DeviceType>().Execute(
-        curr_dim_r, curr_dim_c, curr_dim_f,
-        SubArray(hierarchy.am_array[curr_dim_c][l + 1]),
-        SubArray(hierarchy.bm_array[curr_dim_c][l + 1]), correction, queue_idx);
-    if (debug_print) {
-      PrintSubarray("Ipk2Reo", correction);
-    }
-  } else if (curr_dim == 2) {
-    curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
-    correction.project(curr_dim_f, curr_dim_c, curr_dim_r);
-    Ipk3Reo<D, T, DeviceType>().Execute(
-        curr_dim_r, curr_dim_c, curr_dim_f,
-        SubArray(hierarchy.am_array[curr_dim_r][l + 1]),
-        SubArray(hierarchy.bm_array[curr_dim_r][l + 1]), correction, queue_idx);
-    if (debug_print) {
-      PrintSubarray("Ipk3Reo", correction);
-    }
-  } else {
-    curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = curr_dim;
-    correction.project(curr_dim_f, curr_dim_c, curr_dim_r);
-    Ipk3Reo<D, T, DeviceType>().Execute(
-        curr_dim_r, curr_dim_c, curr_dim_f,
-        SubArray(hierarchy.am_array[curr_dim_r][l + 1]),
-        SubArray(hierarchy.bm_array[curr_dim_r][l + 1]), correction, queue_idx);
-    if (debug_print) {
-      PrintSubarray("Ipk3Reo", correction);
-    }
-  }
-}
 
 template <DIM D, typename T, typename DeviceType>
 void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
@@ -89,13 +23,13 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
   Array<D, T, DeviceType> workspace(workspace_shape);
   SubArray w(workspace);
 
-  if (debug_print) {
+  if (singledim_refactoring_debug_print) {
     PrintSubarray("Input", v);
   }
 
   for (int l = 0; l < l_target; ++l) {
     for (int curr_dim = 0; curr_dim < D; curr_dim++) {
-      if (debug_print) {
+      if (singledim_refactoring_debug_print) {
         std::cout << "l: " << l << " curr_dim: " << curr_dim << "\n";
       }
       std::vector<SIZE> fine_shape(D);
@@ -137,28 +71,26 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<D, T, DeviceType> correction = w;
       correction.resize(coarse_shape);
 
-      LwpkReo<D, T, COPY, DeviceType>().Execute(v_fine, w_fine, queue_idx);
+      CopyND(v_fine, w_fine, queue_idx);
 
-      if (debug_print) {
+      if (singledim_refactoring_debug_print) {
         PrintSubarray("COPY", w_fine);
       }
 
-      SingleDimensionCoefficient<D, T, DECOMPOSE, DeviceType>().Execute(
-          curr_dim, SubArray(hierarchy.ratio_array[curr_dim][l]), w_fine,
-          coarse, coeff, queue_idx);
+      CalcCoefficients(curr_dim, SubArray(hierarchy.ratio_array[curr_dim][l]),
+                       w_fine, coarse, coeff, queue_idx);
 
-      if (debug_print) {
+      if (singledim_refactoring_debug_print) {
         PrintSubarray("SingleDimensionCoefficient - fine", w_fine);
         PrintSubarray("SingleDimensionCoefficient - corase", coarse);
         PrintSubarray("SingleDimensionCoefficient - coeff", coeff);
       }
 
-      calc_correction_single(hierarchy, coeff, correction, curr_dim, l,
-                             queue_idx);
+      CalcCorrection(hierarchy, coeff, correction, curr_dim, l, queue_idx);
 
-      LwpkReo<D, T, ADD, DeviceType>().Execute(correction, coarse, queue_idx);
+      AddND(correction, coarse, queue_idx);
 
-      if (debug_print) {
+      if (singledim_refactoring_debug_print) {
         PrintSubarray("ADD", coarse);
       }
 
@@ -177,13 +109,13 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
   Array<D, T, DeviceType> workspace(workspace_shape);
   SubArray w(workspace);
 
-  if (debug_print) {
+  if (singledim_refactoring_debug_print) {
     PrintSubarray("Input", v);
   }
 
   for (int l = l_target - 1; l >= 0; --l) {
     for (int curr_dim = D - 1; curr_dim >= 0; curr_dim--) {
-      if (debug_print) {
+      if (singledim_refactoring_debug_print) {
         std::cout << "l: " << l << " curr_dim: " << curr_dim << "\n";
       }
       std::vector<SIZE> fine_shape(D);
@@ -224,29 +156,27 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<D, T, DeviceType> correction = w;
       correction.resize(coarse_shape);
 
-      calc_correction_single(hierarchy, coeff, correction, curr_dim, l,
-                             queue_idx);
+      CalcCorrection(hierarchy, coeff, correction, curr_dim, l, queue_idx);
 
-      LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(correction, coarse,
-                                                    queue_idx);
+      SubtractND(correction, coarse, queue_idx);
 
-      if (debug_print) {
+      if (singledim_refactoring_debug_print) {
         PrintSubarray("SUBTRACT", coarse);
       }
 
-      SingleDimensionCoefficient<D, T, RECOMPOSE, DeviceType>().Execute(
-          curr_dim, SubArray(hierarchy.ratio_array[curr_dim][l]), w_fine,
-          coarse, coeff, queue_idx);
+      CoefficientsRestore(curr_dim,
+                          SubArray(hierarchy.ratio_array[curr_dim][l]), w_fine,
+                          coarse, coeff, queue_idx);
 
-      if (debug_print) {
+      if (singledim_refactoring_debug_print) {
         PrintSubarray("SingleDimensionCoefficient - fine", w_fine);
         PrintSubarray("SingleDimensionCoefficient - corase", coarse);
         PrintSubarray("SingleDimensionCoefficient - coeff", coeff);
       }
 
-      LwpkReo<D, T, COPY, DeviceType>().Execute(w_fine, v_fine, queue_idx);
+      CopyND(w_fine, v_fine, queue_idx);
 
-      if (debug_print) {
+      if (singledim_refactoring_debug_print) {
         PrintSubarray("COPY", v_fine);
       }
 
