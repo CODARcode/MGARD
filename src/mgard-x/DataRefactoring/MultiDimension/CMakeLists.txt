@@ -1,3 +1,6 @@
+add_subdirectory (Coefficient)
+add_subdirectory (Correction)
+add_subdirectory (CopyND)
 MgardXGenerateSourceAllCombinations("Decompose")
 MgardXGenerateSourceAllCombinations("Recompose")
 set(MGARD_X_SERIAL_SRC ${MGARD_X_SERIAL_SRC} PARENT_SCOPE)

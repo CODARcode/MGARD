@@ -10,23 +10,25 @@
 namespace mgard_x {
 
 template void decompress<@DEVICE_TYPE@>(const void *compressed_data,
-                               size_t compressed_size, void *&decompressed_data,
-                               Config config, bool output_pre_allocated);
+                                         size_t compressed_size,
+                                         void *&decompressed_data,
+                                         Config config,
+                                         bool output_pre_allocated);
 
 template void decompress<@DEVICE_TYPE@>(const void *compressed_data,
-                               size_t compressed_size, void *&decompressed_data,
-                               bool output_pre_allocated);
+                                         size_t compressed_size,
+                                         void *&decompressed_data,
+                                         bool output_pre_allocated);
 
-template void decompress<@DEVICE_TYPE@>(const void *compressed_data,
-                               size_t compressed_size, void *&decompressed_data,
-                               data_type &dtype,
-                               std::vector<SIZE> &shape, Config config,
-                               bool output_pre_allocated);
+template void
+decompress<@DEVICE_TYPE@>(const void *compressed_data, size_t compressed_size,
+                           void *&decompressed_data, data_type &dtype,
+                           std::vector<SIZE> &shape, Config config,
+                           bool output_pre_allocated);
 
-template void decompress<@DEVICE_TYPE@>(const void *compressed_data,
-                               size_t compressed_size, void *&decompressed_data,
-                               data_type &dtype,
-                               std::vector<SIZE> &shape,
-                               bool output_pre_allocated);
+template void
+decompress<@DEVICE_TYPE@>(const void *compressed_data, size_t compressed_size,
+                           void *&decompressed_data, data_type &dtype,
+                           std::vector<SIZE> &shape, bool output_pre_allocated);
 
 } // namespace mgard_x
