@@ -95,7 +95,8 @@ public:
         FunctorBase<DeviceType>::GetThreadIdX();
     // (*status((IDX)_CDPI)) update
     if (i < size - 1 && *CL((IDX)i + 1) > (*status((IDX)_CCL))) {
-      Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Min(&(*status((IDX)_newCDPI)), (int)i);
+      Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Min(
+          &(*status((IDX)_newCDPI)), (int)i);
     }
   }
 

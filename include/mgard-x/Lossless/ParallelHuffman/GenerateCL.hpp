@@ -238,7 +238,8 @@ public:
       if (*lNodesFreq((IDX)i) <= (*status((IDX)_minFreq))) {
         threadCurLeavesNum = i - (*status((IDX)_lNodesCur)) + 1;
         // Atomic max -- Largest valid index
-        Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Max(status((IDX)_curLeavesNum), threadCurLeavesNum);
+        Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Max(
+            status((IDX)_curLeavesNum), threadCurLeavesNum);
       }
 
       if (i - (*status((IDX)_lNodesCur)) < (*status((IDX)_curLeavesNum))) {
@@ -728,10 +729,10 @@ public:
     SubArray status(status_array);
     using FunctorType = GenerateCLFunctor<T, DeviceType>;
     using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(
-        histogram, CL, dict_size, lNodesFreq, lNodesLeader, iNodesFreq,
-        iNodesLeader, tempFreq, tempIsLeaf, tempIndex, copyFreq, copyIsLeaf,
-        copyIndex, diagonal_path_intersections, status, queue_idx);
+    TaskType task = GenTask(histogram, CL, dict_size, lNodesFreq, lNodesLeader,
+                            iNodesFreq, iNodesLeader, tempFreq, tempIsLeaf,
+                            tempIndex, copyFreq, copyIsLeaf, copyIndex,
+                            diagonal_path_intersections, status, queue_idx);
     DeviceAdapter<TaskType, DeviceType> adapter;
 
     adapter.Execute(task);

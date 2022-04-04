@@ -1,7 +1,7 @@
 # Compressing with MGARD-X Low-level APIs
 
 First, build and install MGARD-X.
-Then, run the following in `examples/mgard-x/LowLevelAPIs/Serial`, `examples/mgard-x/LowLevelAPIs/CUDA`, `examples/mgard-x/LowLevelAPIs/HIP`. Each folder contains a CMake project dedicated for a different kind of processor.
+Then, run the following in `examples/mgard-x/LowLevelAPIs/SERIAL`, `examples/mgard-x/LowLevelAPIs/CUDA`, `examples/mgard-x/LowLevelAPIs/HIP`. Each folder contains a CMake project dedicated for a different kind of processor.
 
 Build with CMake as follows or use the 'build_scripts.sh'.
 ```console

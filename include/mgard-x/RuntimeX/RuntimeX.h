@@ -14,11 +14,8 @@
 #include "AutoTuners/AutoTuner.h"
 #include "Tasks/Task.h"
 
-#if MGARD_ENABLE_SERIAL
-#ifdef MGARDX_COMPILE_SERIAL
+// Serial backend should be always available
 #include "DeviceAdapters/DeviceAdapterSerial.h"
-#endif
-#endif
 
 #if MGARD_ENABLE_CUDA
 #ifdef MGARDX_COMPILE_CUDA
@@ -50,4 +47,3 @@
 #include "DataStructures/SubArray.hpp"
 #include "DataStructures/SubArrayCopy.hpp"
 #include "Utilities/SubArrayPrinter.hpp"
-

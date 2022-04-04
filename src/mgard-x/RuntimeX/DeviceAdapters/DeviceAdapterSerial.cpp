@@ -9,20 +9,20 @@
 
 namespace mgard_x {
 
-int DeviceRuntime<Serial>::curr_dev_id = 0;
-DeviceQueues<Serial> DeviceRuntime<Serial>::queues;
-DeviceSpecification<Serial> DeviceRuntime<Serial>::DeviceSpecs;
+int DeviceRuntime<SERIAL>::curr_dev_id = 0;
+DeviceQueues<SERIAL> DeviceRuntime<SERIAL>::queues;
+DeviceSpecification<SERIAL> DeviceRuntime<SERIAL>::DeviceSpecs;
 
-bool DeviceRuntime<Serial>::SyncAllKernelsAndCheckErrors = false;
-bool MemoryManager<Serial>::ReduceMemoryFootprint = false;
-bool DeviceRuntime<Serial>::TimingAllKernels = false;
-bool DeviceRuntime<Serial>::PrintKernelConfig = false;
+bool DeviceRuntime<SERIAL>::SyncAllKernelsAndCheckErrors = false;
+bool MemoryManager<SERIAL>::ReduceMemoryFootprint = false;
+bool DeviceRuntime<SERIAL>::TimingAllKernels = false;
+bool DeviceRuntime<SERIAL>::PrintKernelConfig = false;
 
-AutoTuningTable<Serial> AutoTuner<Serial>::autoTuningTable;
-bool AutoTuner<Serial>::ProfileKernels = false;
+AutoTuningTable<SERIAL> AutoTuner<SERIAL>::autoTuningTable;
+bool AutoTuner<SERIAL>::ProfileKernels = false;
 
-template <> bool deviceAvailable<Serial>() {
-  return DeviceRuntime<Serial>::GetDeviceCount() > 0;
+template <> bool deviceAvailable<SERIAL>() {
+  return DeviceRuntime<SERIAL>::GetDeviceCount() > 0;
 }
 
 } // namespace mgard_x

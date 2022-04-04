@@ -61,6 +61,10 @@ int AutoTuningTable<HIP>::lwdqzk[2][9] = {{5, 2, 2, 1, 0, 2, 1, 0, 0},
 
 int AutoTuningTable<HIP>::llk[2][9] = {{5, 2, 2, 1, 0, 2, 1, 0, 0},
                                          {2, 2, 3, 3, 0, 2, 5, 0, 0}};
+
+template void BeginAutoTuning<HIP>();
+template void EndAutoTuning<HIP>();
+
 } // namespace mgard_x
 // clang-format on
 #undef MGARDX_COMPILE_HIP

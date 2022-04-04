@@ -5,7 +5,7 @@
  * Date: March 17, 2022
  */
 
-#include "../../Hierarchy.hpp"
+#include "../../Hierarchy/Hierarchy.hpp"
 #include "../../RuntimeX/RuntimeX.h"
 
 #include "../MultiDimension/Correction/IterativeProcessingKernel.hpp"
@@ -14,6 +14,10 @@
 #include "Correction/MassTransKernel.hpp"
 
 namespace mgard_x {
+
+static bool store = false;
+static bool verify = false;
+static bool debug_print = false;
 
 template <DIM D, typename T, typename DeviceType>
 void calc_correction_single(Hierarchy<D, T, DeviceType> &hierarchy,

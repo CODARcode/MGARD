@@ -29,10 +29,10 @@ int main() {
   std::cout << "Done\n";
 
   std::cout
-      << "Decompressing with MGARD-X High level API with Serial backend...";
+      << "Decompressing with MGARD-X High level API with SERIAL backend...";
   // decompression
   void *decompressed_array_cpu = NULL;
-  config.dev_type = mgard_x::device_type::Serial;
+  config.dev_type = mgard_x::device_type::SERIAL;
   mgard_x::decompress(compressed_array_cpu, compressed_size,
                       decompressed_array_cpu, config, false);
 

@@ -5,9 +5,8 @@
  * Date: March 17, 2022
  */
 
-#include "mgard-x/CompressionWorkflow.h"
 #include "mgard-x/RuntimeX/RuntimeXPublic.h"
-#include "mgard-x/Types.h"
+#include "mgard-x/Utilities/Types.h"
 #include <cstdint>
 
 #ifndef MGARD_X_API_H

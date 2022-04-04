@@ -1,7 +1,7 @@
 # Refactor and progressively reconstruct data with MDR-X
 
 First, build and install MGARD-X.
-Then, run the following in `examples/mgard-x/MDR-X/Serial`, `examples/mgard-x/MDR-X/CUDA`, `examples/mgard-x/MDR-X/HIP`. Each folder contains a CMake project dedicated for a different kind of processor.
+Then, run the following in `examples/mgard-x/MDR-X/SERIAL`, `examples/mgard-x/MDR-X/CUDA`, `examples/mgard-x/MDR-X/HIP`. Each folder contains a CMake project dedicated for a different kind of processor.
 
 Build with CMake as follows or use the 'build_scripts.sh'.
 ```console
