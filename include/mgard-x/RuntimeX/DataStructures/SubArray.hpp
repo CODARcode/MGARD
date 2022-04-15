@@ -251,16 +251,14 @@ MGARDX_CONT SubArray<1, T, DeviceType> SubArray<D, T, DeviceType>::Linearize() {
     SIZE linearized_shape = 1;
     for (DIM d = 0; d < D; d++)
       linearized_shape *= this->_shape[d];
-    subArray.dv = this->dv;
+    subArray.setdata(this->data());
     subArray.setShape(0, linearized_shape);
     subArray.setLd(0, linearized_shape);
-    subArray.project(0, 1, 2);
 
     if (this->has_host_pointer) {
-      subArray.has_host_pointer = true;
-      subArray.v = this->v;
+      subArray.setDataHost(this->dataHost());
     }
-    subArray.pitched = this->pitched;
+    subArray.setPitched(this->isPitched());
   } else {
     std::cout << log::log_err
               << "Linearized pitched SubArray not implemented!\n";
