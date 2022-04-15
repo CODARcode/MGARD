@@ -10,8 +10,6 @@
 
 #include "DataRefactoring.h"
 
-#include "AdaptiveResolution/AdaptiveResolutionTree.hpp"
-
 #include <iostream>
 
 #ifndef MGARD_X_DATA_REFACTORING_HPP
