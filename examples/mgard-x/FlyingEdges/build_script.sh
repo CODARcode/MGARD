@@ -9,17 +9,16 @@
 set -x
 set -e
 
-mgard_src_dir=$(pwd)/../../../
-nvcomp_build_dir=${mgard_src_dir}/external/nvcomp/build
-vtkm_build_dir=$(pwd)/../../../../vtk-m/build/lib/cmake/vtkm-1.6
-echo $vtkm_build_dir
+# Setup MGARD installation dir
+install_dir=$(pwd)/../../../install-cuda-turing
+vtkm_dir=/home/jieyang/dev/vtkm-release/install/lib/cmake/vtkm-1.7
 
-rm -rf build
-mkdir build 
+# rm -rf build
+# mkdir build 
 cmake -S .  -B ./build \
-	    -DCMAKE_MODULE_PATH=${mgard_src_dir}/cmake\
-	    -Dmgard_ROOT=${mgard_src_dir}/install\
-	    -DCMAKE_PREFIX_PATH="${nvcomp_build_dir};${vtkm_build_dir}"
-	    # -DCMAKE_PREFIX_PATH=${vtkm_build_dir}
+	    -Dmgard_ROOT=${install_dir}\
+	    -DCMAKE_CUDA_ARCHITECTURES=75\
+	    -DCMAKE_PREFIX_PATH="${install_dir}"\
+	    -DVTKm_DIR=${vtkm_dir}
 	  
 cmake --build ./build

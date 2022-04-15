@@ -8,7 +8,7 @@
 #ifndef MGARD_X_FLYING_EDGES_HPP
 #define MGARD_X_FLYING_EDGES_HPP
 
-#include "mgard/cuda/RuntimeX/RuntimeX.h"
+#include "mgard/mgard-x/RuntimeX/RuntimeX.h"
 
 namespace mgard_x {
 
@@ -1222,7 +1222,6 @@ public:
                T iso_value, Array<1, SIZE, DeviceType> &Triangles,
                Array<1, T, DeviceType> &Points, int queue_idx) {
 
-    DeviceCollective<SIZE, DeviceType> deviceScan;
     Timer t;
 
     const bool pitched = false;
@@ -1286,7 +1285,7 @@ public:
     SubArray<1, SIZE, DeviceType> cell_tri_count_liearized =
         cell_tri_count.Linearize();
 
-    deviceScan.ScanSumExtended((nr - 1) * (nf - 1), cell_tri_count_liearized,
+    DeviceCollective<DeviceType>::ScanSumExtended((nr - 1) * (nf - 1), cell_tri_count_liearized,
                                cell_tri_count_scan, queue_idx);
 
     SIZE numTris = 0;
@@ -1299,12 +1298,12 @@ public:
     Array<1, SIZE, DeviceType> newPointSize_array({1});
     SubArray<1, SIZE, DeviceType> newPointSize_subarray(newPointSize_array);
 
-    deviceScan.Sum(nr * nf * 3, axis_sum_liearized, newPointSize_subarray,
+    DeviceCollective<DeviceType>::Sum(nr * nf * 3, axis_sum_liearized, newPointSize_subarray,
                    queue_idx);
 
-    SIZE newPointSize = *(newPointSize_array.getDataHost());
+    SIZE newPointSize = *(newPointSize_array.hostCopy());
 
-    deviceScan.ScanSumExclusive(nr * nf * 3, axis_sum_liearized,
+    DeviceCollective<DeviceType>::ScanSumExclusive(nr * nf * 3, axis_sum_liearized,
                                 axis_sum_liearized, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 

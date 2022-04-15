@@ -15,11 +15,11 @@
 #include <vtkm/io/reader/VTKDataSetReader.h>
 #include <vtkm/io/writer/VTKDataSetWriter.h>
 
-#include <vtkm/worklet/SurfaceNormals.h>
-#include <vtkm/worklet/contour/CommonState.h>
-#include <vtkm/worklet/contour/FieldPropagation.h>
-#include <vtkm/worklet/contour/FlyingEdges.h>
-#include <vtkm/worklet/contour/MarchingCells.h>
+// #include <vtkm/worklet/SurfaceNormals.h>
+// #include <vtkm/worklet/contour/CommonState.h>
+// #include <vtkm/worklet/contour/FieldPropagation.h>
+// #include <vtkm/worklet/contour/FlyingEdges.h>
+// #include <vtkm/worklet/contour/MarchingCells.h>
 
 #include <vtkm/filter/Contour.h>
 #include <vtkm/filter/FieldMetadata.h>
@@ -221,7 +221,7 @@ void test_mine(std::vector<mgard_x::SIZE> shape, T *original_data, T iso_value,
                mgard_x::SIZE &numTriangles, mgard_x::SIZE *&Triangles,
                mgard_x::SIZE &numPoints, T *&Points) {
   mgard_x::Array<3, T, mgard_x::CUDA> v({shape[2], shape[1], shape[0]});
-  v.loadData(original_data);
+  v.load(original_data);
 
   mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
   mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
@@ -230,20 +230,20 @@ void test_mine(std::vector<mgard_x::SIZE> shape, T *original_data, T iso_value,
       shape[2], shape[1], shape[0], mgard_x::SubArray<3, T, mgard_x::CUDA>(v),
       iso_value, TrianglesArray, PointsArray, 0);
 
-  numTriangles = TrianglesArray.getShape()[0] / 3;
-  numPoints = PointsArray.getShape()[0] / 3;
+  numTriangles = TrianglesArray.shape()[0] / 3;
+  numPoints = PointsArray.shape()[0] / 3;
 
   if (numTriangles == 0 || numPoints == 0) {
     printf("returing %u %u from test_mine\n", numTriangles, numPoints);
     return;
   }
 
-  Triangles = new mgard_x::SIZE[TrianglesArray.getShape()[0]];
-  Points = new T[PointsArray.getShape()[0]];
+  Triangles = new mgard_x::SIZE[TrianglesArray.shape()[0]];
+  Points = new T[PointsArray.shape()[0]];
 
-  memcpy(Triangles, TrianglesArray.getDataHost(),
+  memcpy(Triangles, TrianglesArray.hostCopy(),
          numTriangles * 3 * sizeof(mgard_x::SIZE));
-  memcpy(Points, PointsArray.getDataHost(), numPoints * 3 * sizeof(T));
+  memcpy(Points, PointsArray.hostCopy(), numPoints * 3 * sizeof(T));
 
   // mgard_x::PrintSubarray("Triangles", mgard_x::SubArray(TrianglesArray));
   // mgard_x::PrintSubarray("Points", mgard_x::SubArray(PointsArray));
