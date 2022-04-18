@@ -187,7 +187,8 @@ if (MGARD_ENABLE_HIP)
 endif()
 
 if (MGARD_ENABLE_SYCL)
-  find_package(IntelDPCPP REQUIRED)
+  # No need to link with sycl libraries for now
+  # find_package(IntelDPCPP REQUIRED)
   set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -w")
 endif()
 
