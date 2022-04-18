@@ -372,6 +372,7 @@ public:
     MaxNumThreadsPerTB = new int[NumDevices];
     AvailableMemory = new size_t[NumDevices];
     SupportCooperativeGroups = new bool[NumDevices];
+    DeviceNames = new std::string[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(cudaSetDevice(d));
@@ -396,6 +397,7 @@ public:
       } else if (prop.major == 7 && (prop.minor == 2 || prop.minor == 5)) {
         ArchitectureGeneration[d] = 2;
       }
+      DeviceNames[d] = std::string(prop.name);
     }
   }
 
@@ -434,6 +436,8 @@ public:
     return SupportCooperativeGroups[dev_id];
   }
 
+  MGARDX_CONT std::string GetDeviceName(int dev_id) { return DeviceNames[dev_id]; }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete[] MaxSharedMemorySize;
@@ -444,6 +448,7 @@ public:
     delete[] MaxNumThreadsPerTB;
     delete[] AvailableMemory;
     delete[] SupportCooperativeGroups;
+    delete[] DeviceNames;
   }
 
   int NumDevices;
@@ -455,6 +460,7 @@ public:
   int *MaxNumThreadsPerTB;
   size_t *AvailableMemory;
   bool *SupportCooperativeGroups;
+  std::string *DeviceNames;
 };
 
 template <> class DeviceQueues<CUDA> {
@@ -534,6 +540,10 @@ public:
     gpuErrchk(cudaSetDevice(curr_dev_id));
     gpuErrchk(cudaDeviceSynchronize());
   }
+
+  MGARDX_CONT static std::string GetDeviceName() {
+    return DeviceSpecs.GetDeviceName(curr_dev_id);
+  } 
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
     return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
