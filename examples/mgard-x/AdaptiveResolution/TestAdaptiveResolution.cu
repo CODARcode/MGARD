@@ -102,45 +102,49 @@ void test(T * data, std::vector<SIZE> shape, T tol, T iso_value) {
   for (int i = 0; i < shape.size(); i++) n *= shape[i];
   enum error_bound_type mode = error_bound_type::ABS;
   std::cout << "L_inf_error: " << L_inf_error(n, org_array.hostCopy(), out_array.hostCopy(), mode) << "\n";
-
-  
-
-
 }
 
 }
 
 
-VTKM_CONT bool DoMapField(vtkm::cont::DataSet& result,
-                          const vtkm::cont::Field& field,
-                          vtkm::worklet::Contour& worklet)
-{
-  if (field.IsFieldPoint())
-  {
-    auto functor = [&](const auto& concrete) {
-      auto fieldArray = worklet.ProcessPointField(concrete);
-      result.AddPointField(field.GetName(), fieldArray);
-    };
-    field.GetData()
-      .CastAndCallForTypesWithFloatFallback<vtkm::TypeListField, VTKM_DEFAULT_STORAGE_LIST>(
-        functor);
-    return true;
-  }
-  else if (field.IsFieldCell())
-  {
-    // Use the precompiled field permutation function.
-    vtkm::cont::ArrayHandle<vtkm::Id> permutation = worklet.GetCellIdMap();
-    return vtkm::filter::MapFieldPermutation(field, permutation, result);
-  }
-  else if (field.IsFieldGlobal())
-  {
-    result.AddField(field);
-    return true;
-  }
-  else
-  {
-    return false;
-  }
+
+void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape, std::string field_name, std::string output) {
+  using Mapper = vtkm::rendering::MapperRayTracer;
+  using Canvas = vtkm::rendering::CanvasRayTracer;
+
+  vtkm::rendering::Scene scene;
+  vtkm::cont::ColorTable colorTable("inferno");
+  scene.AddActor(vtkm::rendering::Actor(dataSet.GetCellSet(),
+                                      dataSet.GetCoordinateSystem(),
+                                      dataSet.GetField(field_name),
+                                      colorTable));
+
+  Mapper mapper;
+  Canvas canvas(1024, 1024);
+
+  vtkm::rendering::Color bg(0.2f, 0.2f, 0.2f, 1.0f);
+
+  const vtkm::cont::CoordinateSystem coords = dataSet.GetCoordinateSystem();
+  vtkm::Bounds coordsBounds = coords.GetBounds();
+  vtkm::rendering::Camera camera = vtkm::rendering::Camera();
+  // camera.SetViewUp(vtkm::make_Vec(0.f, 0.f, 1.f));
+  camera.ResetToBounds(coordsBounds);
+
+  vtkm::Vec<vtkm::Float32, 3> totalExtent;
+  totalExtent[0] = vtkm::Float32(shape[2]);
+  totalExtent[1] = vtkm::Float32(shape[1]);
+  totalExtent[2] = vtkm::Float32(shape[0]);
+  vtkm::Float32 mag = vtkm::Magnitude(totalExtent);
+  vtkm::Normalize(totalExtent);
+  camera.SetLookAt(totalExtent * (mag * .5f));
+  camera.SetViewUp(vtkm::make_Vec(0.f, 0.f, 1.f));
+  // camera.SetClippingRange(1.f, 1000.f);
+  camera.SetFieldOfView(60.f);
+  camera.SetPosition(totalExtent * (mag * 2.f));
+  vtkm::rendering::View3D view(scene, mapper, canvas, camera, bg);
+  view.Initialize();
+  view.Paint();
+  view.SaveAs(output + " .pnm"); 
 }
 
 template <mgard_x::DIM D, typename T>
@@ -170,8 +174,6 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   contour_filter.SetFieldsToPass({ field_name });
   vtkm::cont::DataSet outputData = contour_filter.Execute(dataSet);
 
-  
-
   vtkm::cont::DataSet outputData2;
   vtkm::cont::Field field = dataSet.GetField(0);
   // outputData2.AddField(field);
@@ -197,7 +199,25 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
                 connectivity);
 
   outputData2.SetCellSet(cellset2);
-  outputData2.AddCoordinateSystem(outputData.GetCoordinateSystem());
+
+
+  vtkm::cont::ArrayHandle<vtkm::Vec3f> points2;
+  points2.Allocate(outputData.GetCoordinateSystem().GetNumberOfPoints());
+  std::cout << "points2.GetNumberOfValues() = " << points2.GetNumberOfValues() << "\n";
+  
+  vtkm::cont::ArrayHandle<vtkm::Vec3f> points =
+    outputData.GetCoordinateSystem().GetData().template AsArrayHandle<vtkm::cont::ArrayHandle<vtkm::Vec3f>>();
+  std::cout << "points.GetNumberOfValues() = " << points.GetNumberOfValues() << "\n";
+
+
+  for (vtkm::Id pointId = 0; pointId < outputData.GetCoordinateSystem().GetNumberOfPoints(); pointId++) {
+    points2.WritePortal().Set(pointId, points.ReadPortal().Get(pointId));
+  }
+
+
+  vtkm::cont::CoordinateSystem coordinate_system2("cs", points2);
+
+  outputData2.AddCoordinateSystem(coordinate_system2);
 
   vtkm::io::VTKDataSetWriter writer_output("contour_output.vtk");
   writer_output.WriteDataSet(outputData);
@@ -208,50 +228,45 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   std::cout << "outputData.GetNumberOfCells() = " << outputData.GetNumberOfCells() << "\n";
   std::cout << "outputData.GetNumberOfPoints() = " << outputData.GetNumberOfPoints() << "\n";
  
+  vtkm_render(outputData, shape, field_name, "vtkm_render_output");
   // using Mapper = vtkm::rendering::MapperWireframer;
-  using Mapper = vtkm::rendering::MapperRayTracer;
-  using Canvas = vtkm::rendering::CanvasRayTracer;
+  // using Mapper = vtkm::rendering::MapperRayTracer;
+  // using Canvas = vtkm::rendering::CanvasRayTracer;
 
-  vtkm::rendering::Scene scene;
-  vtkm::cont::ColorTable colorTable("inferno");
-  vtkm::cont::ColorTable colorTable2("inferno");
-  scene.AddActor(vtkm::rendering::Actor(outputData2.GetCellSet(),
-                                      outputData2.GetCoordinateSystem(),
-                                      outputData2.GetField(field_name),
-                                      colorTable));
-
-  // scene.AddActor(vtkm::rendering::Actor(outputData.GetCellSet(),
-  //                                     outputData.GetCoordinateSystem(),
-  //                                     outputData.GetField(field_name),
+  // vtkm::rendering::Scene scene;
+  // vtkm::cont::ColorTable colorTable("inferno");
+  // vtkm::cont::ColorTable colorTable2("inferno");
+  // scene.AddActor(vtkm::rendering::Actor(outputData2.GetCellSet(),
+  //                                     outputData2.GetCoordinateSystem(),
+  //                                     outputData2.GetField(field_name),
   //                                     colorTable));
 
-  Mapper mapper;
-  Canvas canvas(1024, 1024);
+  // Mapper mapper;
+  // Canvas canvas(1024, 1024);
 
-  vtkm::rendering::Color bg(0.2f, 0.2f, 0.2f, 1.0f);
+  // vtkm::rendering::Color bg(0.2f, 0.2f, 0.2f, 1.0f);
 
-  const vtkm::cont::CoordinateSystem coords = outputData2.GetCoordinateSystem();
-  vtkm::Bounds coordsBounds = coords.GetBounds();
-  vtkm::rendering::Camera camera = vtkm::rendering::Camera();
+  // const vtkm::cont::CoordinateSystem coords = outputData2.GetCoordinateSystem();
+  // vtkm::Bounds coordsBounds = coords.GetBounds();
+  // vtkm::rendering::Camera camera = vtkm::rendering::Camera();
+  // camera.ResetToBounds(coordsBounds);
+
+  // vtkm::Vec<vtkm::Float32, 3> totalExtent;
+  // totalExtent[0] = vtkm::Float32(shape[2]);
+  // totalExtent[1] = vtkm::Float32(shape[1]);
+  // totalExtent[2] = vtkm::Float32(shape[0]);
+  // vtkm::Float32 mag = vtkm::Magnitude(totalExtent);
+  // vtkm::Normalize(totalExtent);
+  // camera.SetLookAt(totalExtent * (mag * .5f));
   // camera.SetViewUp(vtkm::make_Vec(0.f, 0.f, 1.f));
-  camera.ResetToBounds(coordsBounds);
-
-  vtkm::Vec<vtkm::Float32, 3> totalExtent;
-  totalExtent[0] = vtkm::Float32(shape[2]);
-  totalExtent[1] = vtkm::Float32(shape[1]);
-  totalExtent[2] = vtkm::Float32(shape[0]);
-  vtkm::Float32 mag = vtkm::Magnitude(totalExtent);
-  vtkm::Normalize(totalExtent);
-  camera.SetLookAt(totalExtent * (mag * .5f));
-  camera.SetViewUp(vtkm::make_Vec(0.f, 0.f, 1.f));
-  // camera.SetClippingRange(1.f, 1000.f);
-  camera.SetFieldOfView(60.f);
-  camera.SetPosition(totalExtent * (mag * 2.f));
-  vtkm::rendering::View3D view(scene, mapper, canvas, camera, bg);
-  view.Initialize();
-  view.Paint();
-  string outputfile = "output";
-  view.SaveAs(outputfile + " .pnm"); 
+  // // camera.SetClippingRange(1.f, 1000.f);
+  // camera.SetFieldOfView(60.f);
+  // camera.SetPosition(totalExtent * (mag * 2.f));
+  // vtkm::rendering::View3D view(scene, mapper, canvas, camera, bg);
+  // view.Initialize();
+  // view.Paint();
+  // string outputfile = "output";
+  // view.SaveAs(outputfile + " .pnm"); 
 }
 
 

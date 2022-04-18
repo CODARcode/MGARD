@@ -21,4 +21,4 @@ cmake -S .  -B ./build \
 	    -DCMAKE_PREFIX_PATH="${install_dir}"\
 	    -DVTKm_DIR=${vtkm_dir}
 	  
-cmake --build ./build
+cmake --build ./build --parallel 
