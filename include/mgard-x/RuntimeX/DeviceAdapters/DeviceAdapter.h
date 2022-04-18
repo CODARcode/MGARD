@@ -107,6 +107,7 @@ public:
   int *MaxNumThreadsPerSM;
   int *MaxNumThreadsPerTB;
   size_t *AvailableMemory;
+  std::string *DeviceNames;
 };
 
 template <typename DeviceType> class DeviceQueues {
@@ -228,6 +229,8 @@ public:
   MGARDX_CONT static void SyncAllQueues() {}
 
   MGARDX_CONT static void SyncDevice() {}
+
+  MGARDX_CONT static std::string GetDeviceName() { return ""; } 
 
   MGARDX_CONT
   ~DeviceRuntime() {}

@@ -57,6 +57,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &in_array, enum error_bound_type type, T tol,
          T s, T &norm, Config config) {
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
+  if (config.timing) {
+    std::cout << log::log_info << "Select device: "
+              << DeviceRuntime<DeviceType>::GetDeviceName() << "\n";
+  }
   Timer timer_total, timer_each;
   for (DIM i = 0; i < D; i++) {
     if (hierarchy.shape[i] != in_array.shape()[i]) {
@@ -374,6 +378,10 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
            Array<1, unsigned char, DeviceType> &compressed_array,
            enum error_bound_type type, T tol, T s, T norm, Config config) {
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
+  if (config.timing) {
+    std::cout << log::log_info << "Select device: "
+              << DeviceRuntime<DeviceType>::GetDeviceName() << "\n";
+  }
   Timer timer_total, timer_each;
 
   SIZE total_elems =

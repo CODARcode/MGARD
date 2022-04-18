@@ -367,6 +367,7 @@ public:
     MaxNumThreadsPerTB = new int[NumDevices];
     AvailableMemory = new size_t[NumDevices];
     SupportCooperativeGroups = new bool[NumDevices];
+    DeviceNames = new std::string[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       gpuErrchk(hipSetDevice(d));
@@ -392,6 +393,8 @@ public:
       }
       MaxNumThreadsPerTB[d] = 32; // Due to a bug in Cooperative Groups in HIP
       WarpSize[d] = 32;
+      // DeviceNames[d] = std::string(prop.name); // Not working in HIP
+      DeviceNames[d] = std::string("AMD GPU");
     }
   }
 
@@ -429,6 +432,8 @@ public:
     return SupportCooperativeGroups[dev_id];
   }
 
+  MGARDX_CONT std::string GetDeviceName(int dev_id) { return DeviceNames[dev_id]; }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete[] MaxSharedMemorySize;
@@ -439,6 +444,7 @@ public:
     delete[] MaxNumThreadsPerTB;
     delete[] AvailableMemory;
     delete[] SupportCooperativeGroups;
+    delete[] DeviceNames;
   }
 
   int NumDevices;
@@ -450,6 +456,7 @@ public:
   int *MaxNumThreadsPerTB;
   size_t *AvailableMemory;
   bool *SupportCooperativeGroups;
+  std::string *DeviceNames;
 };
 
 template <> class DeviceQueues<HIP> {
@@ -529,6 +536,10 @@ public:
     gpuErrchk(hipSetDevice(curr_dev_id));
     gpuErrchk(hipDeviceSynchronize());
   }
+
+  MGARDX_CONT static std::string GetDeviceName() {
+    return DeviceSpecs.GetDeviceName(curr_dev_id);
+  } 
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
     return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
