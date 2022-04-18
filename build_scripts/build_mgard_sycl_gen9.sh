@@ -13,11 +13,11 @@ set -x
 # Source directory
 mgard_x_src_dir=.
 # Build directory
-build_dir=./build-sycl
+build_dir=./build-sycl-gen9
 # Number of processors used for building
 num_build_procs=8
 # Installtaion directory
-install_dir=./install-sycl
+install_dir=./install-sycl-gen9
 
 
 #build ZSTD
@@ -66,6 +66,7 @@ cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DMGARD_ENABLE_SYCL=ON\
     -DCMAKE_CXX_COMPILER=icpx\
     -DCMAKE_C_COMPILER=icx\
+    -DCMAKE_CXX_FLAGS="-fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend \"-device gen9\""\
     -DMGARD_ENABLE_DOCS=OFF\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
