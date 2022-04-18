@@ -66,7 +66,7 @@ cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DMGARD_ENABLE_SYCL=ON\
     -DCMAKE_CXX_COMPILER=icpx\
     -DCMAKE_C_COMPILER=icx\
-    -DCMAKE_CXX_FLAGS="-fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend \"-device xehp\""\
+    -DCMAKE_CXX_FLAGS="-O2 -fsycl -fsycl-targets=spir64_gen -Xsycl-target-backend \"-device xehp\""\
     -DMGARD_ENABLE_DOCS=OFF\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}

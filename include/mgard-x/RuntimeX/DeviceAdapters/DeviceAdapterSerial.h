@@ -631,6 +631,7 @@ public:
     MaxNumThreadsPerTB = new int[NumDevices];
     AvailableMemory = new size_t[NumDevices];
     SupportCooperativeGroups = new bool[NumDevices];
+    DeviceNames = new std::string[NumDevices];
 
     for (int d = 0; d < NumDevices; d++) {
       MaxSharedMemorySize[d] = 1e6;
@@ -640,6 +641,7 @@ public:
       MaxNumThreadsPerTB[d] = 1024;
       ArchitectureGeneration[d] = 1;
       SupportCooperativeGroups[d] = true;
+      DeviceNames[d] = "CPU";
     }
   }
 
@@ -674,6 +676,8 @@ public:
     return SupportCooperativeGroups[dev_id];
   }
 
+  MGARDX_CONT std::string GetDeviceName(int dev_id) { return DeviceNames[dev_id]; }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete[] MaxSharedMemorySize;
@@ -684,6 +688,7 @@ public:
     delete[] MaxNumThreadsPerTB;
     delete[] AvailableMemory;
     delete[] SupportCooperativeGroups;
+    delete[] DeviceNames;
   }
 
   int NumDevices;
@@ -695,6 +700,7 @@ public:
   int *MaxNumThreadsPerTB;
   size_t *AvailableMemory;
   bool *SupportCooperativeGroups;
+  std::string *DeviceNames;
 };
 
 template <> class DeviceQueues<SERIAL> {
@@ -744,6 +750,10 @@ public:
   MGARDX_CONT static void SyncDevice() {
     // do nothing
   }
+
+  MGARDX_CONT static std::string GetDeviceName() {
+    return DeviceSpecs.GetDeviceName(curr_dev_id);
+  } 
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
     return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);

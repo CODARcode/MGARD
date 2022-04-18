@@ -222,6 +222,7 @@ public:
     MaxNumThreadsPerTB = new int[NumDevices];
     AvailableMemory = new size_t[NumDevices];
     SupportCooperativeGroups = new bool[NumDevices];
+    DeviceNames = new std::string[NumDevices];
 
     int d = 0;
     for (auto &device : d_devices) {
@@ -238,6 +239,7 @@ public:
       AvailableMemory[d] =
           device.get_info<sycl::info::device::global_mem_size>();
       SupportCooperativeGroups[d] = false;
+      DeviceNames[d] = std::string(device.get_info<sycl::info::device::name>());
       d++;
     }
   }
@@ -272,6 +274,8 @@ public:
     return SupportCooperativeGroups[dev_id];
   }
 
+  MGARDX_CONT std::string GetDeviceName(int dev_id) { return DeviceNames[dev_id]; }
+
   MGARDX_CONT
   ~DeviceSpecification() {
     delete[] MaxSharedMemorySize;
@@ -282,6 +286,7 @@ public:
     delete[] MaxNumThreadsPerTB;
     delete[] AvailableMemory;
     delete[] SupportCooperativeGroups;
+    delete[] DeviceNames;
   }
 
   int NumDevices;
@@ -293,6 +298,7 @@ public:
   int *MaxNumThreadsPerTB;
   size_t *AvailableMemory;
   bool *SupportCooperativeGroups;
+  std::string *DeviceNames;
 };
 
 template <> class DeviceQueues<SYCL> {
@@ -307,7 +313,7 @@ public:
     for (SIZE d = 0; d < NumDevices; d++) {
       queues[d] = new sycl::queue[MGARDX_NUM_QUEUES];
       for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
-        queues[d][i] = sycl::queue(d_selector, exception_handler);
+        queues[d][i] = sycl::queue(d_devices[d], exception_handler);
       }
     }
   }
@@ -359,6 +365,10 @@ public:
   MGARDX_CONT static void SyncAllQueues() { queues.SyncAllQueues(curr_dev_id); }
 
   MGARDX_CONT static void SyncDevice() { queues.SyncAllQueues(curr_dev_id); }
+
+  MGARDX_CONT static std::string GetDeviceName() {
+    return DeviceSpecs.GetDeviceName(curr_dev_id);
+  } 
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
     return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
@@ -1016,7 +1026,7 @@ public:
                        res.combine(input[i]);
                      });
     });
-    DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    DeviceRuntime<SYCL>::SyncDevice();
   }
 
   template <typename T>
@@ -1035,7 +1045,7 @@ public:
                        res.combine(input[i]);
                      });
     });
-    DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    DeviceRuntime<SYCL>::SyncDevice();
   }
 
   template <typename T>
@@ -1055,7 +1065,7 @@ public:
                        res.combine(input[i] * input[i]);
                      });
     });
-    DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    DeviceRuntime<SYCL>::SyncDevice();
   }
 
   template <typename T>
@@ -1095,7 +1105,7 @@ public:
     }
     MemoryManager<SYCL>::Copy1D(keys.data(), keys_array, n, 0);
     MemoryManager<SYCL>::Copy1D(values.data(), values_array, n, 0);
-    DeviceRuntime<SYCL>::SyncQueue(0);
+    DeviceRuntime<SYCL>::SyncDevice();
     delete[] keys_array;
     delete[] values_array;
   }
