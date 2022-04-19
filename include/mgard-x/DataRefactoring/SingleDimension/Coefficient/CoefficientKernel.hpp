@@ -195,10 +195,19 @@ public:
                SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
                SubArray<D, T, DeviceType> coeff, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(coeff.getShape(0)) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
     int config =
         AutoTuner<DeviceType>::autoTuningTable.gpk_reo_nd[prec][range_l];
+
+    while (GPK_CONFIG[D - 1][config][0] *
+           GPK_CONFIG[D - 1][config][1] *
+           GPK_CONFIG[D - 1][config][2] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for SingleDimensionCoefficient.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;

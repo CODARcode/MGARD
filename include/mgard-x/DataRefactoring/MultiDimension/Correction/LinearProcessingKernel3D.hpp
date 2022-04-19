@@ -435,11 +435,18 @@ public:
                SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
                SubArray<D, T, DeviceType> dw, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config =
-    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_mr1[arch][prec][range_l];
     int config = AutoTuner<DeviceType>::autoTuningTable.lpk1_3d[prec][range_l];
+
+    while (LPK_CONFIG[D - 1][config][0] *
+           LPK_CONFIG[D - 1][config][1] *
+           LPK_CONFIG[D - 1][config][2] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for Lpk1Reo3D.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
@@ -787,11 +794,18 @@ public:
                SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
                SubArray<D, T, DeviceType> dw, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf_c) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config =
-    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_mr2[arch][prec][range_l];
     int config = AutoTuner<DeviceType>::autoTuningTable.lpk2_3d[prec][range_l];
+
+    while (LPK_CONFIG[D - 1][config][0] *
+           LPK_CONFIG[D - 1][config][1] *
+           LPK_CONFIG[D - 1][config][2] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for Lpk2Reo3D.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
@@ -1156,11 +1170,18 @@ public:
                SubArray<D, T, DeviceType> dv1, SubArray<D, T, DeviceType> dv2,
                SubArray<D, T, DeviceType> dw, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf_c) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config =
-    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_mr3[arch][prec][range_l];
     int config = AutoTuner<DeviceType>::autoTuningTable.lpk3_3d[prec][range_l];
+
+    while (LPK_CONFIG[D - 1][config][0] *
+           LPK_CONFIG[D - 1][config][1] *
+           LPK_CONFIG[D - 1][config][2] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for Lpk3Reo3D.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
