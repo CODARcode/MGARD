@@ -130,9 +130,9 @@ public:
 
     threadsPerBlock =
         ((((numValues / (numBlocks * itemsPerThread)) + 1) / 64) + 1) * 64;
-    while (threadsPerBlock > 1024) {
+    while (threadsPerBlock > DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
       if (RPerBlock <= 1) {
-        threadsPerBlock = 1024;
+        threadsPerBlock = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB();
       } else {
         RPerBlock /= 2;
         numBlocks *= 2;

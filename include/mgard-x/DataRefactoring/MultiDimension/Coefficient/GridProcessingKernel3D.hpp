@@ -1227,12 +1227,19 @@ public:
                SubArray<D, T, DeviceType> wrc, SubArray<D, T, DeviceType> wrcf,
                int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config =
-    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_cc[arch][prec][range_l];
     int config =
         AutoTuner<DeviceType>::autoTuningTable.gpk_reo_3d[prec][range_l];
+
+    while (GPK_CONFIG[D - 1][config][0] *
+           GPK_CONFIG[D - 1][config][1] *
+           GPK_CONFIG[D - 1][config][2] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for GpkReo3D.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
@@ -2444,12 +2451,19 @@ public:
                SIZE svr, SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf,
                int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config =
-    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_cc[arch][prec][range_l];
     int config =
         AutoTuner<DeviceType>::autoTuningTable.gpk_rev_3d[prec][range_l];
+
+    while (GPK_CONFIG[D - 1][config][0] *
+           GPK_CONFIG[D - 1][config][1] *
+           GPK_CONFIG[D - 1][config][2] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for GpkRev3D.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
