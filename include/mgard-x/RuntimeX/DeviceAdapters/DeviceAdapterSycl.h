@@ -944,6 +944,31 @@ public:
                 << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
     }
 
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() > 
+        DeviceRuntime<SYCL>::GetMaxNumThreadsPerTB()) {
+      if (AutoTuner<SYCL>::ProfileKernels) {
+        ExecutionReturn ret;
+        ret.execution_time = std::numeric_limits<double>::max();
+        return ret;
+      } else {
+        std::cout << log::log_err << "block size too large when trying to execute "
+                  << task.GetFunctorName() << ".\n";
+        exit(-1);
+      }
+    }
+
+    if (sm_size > DeviceRuntime<SYCL>::GetMaxSharedMemorySize()) {
+      if (AutoTuner<SYCL>::ProfileKernels) {
+        ExecutionReturn ret;
+        ret.execution_time = std::numeric_limits<double>::max();
+        return ret;
+      } else {
+        std::cout << log::log_err << "shared memory too large when trying to execute "
+                  << task.GetFunctorName() << ".\n";
+        exit(-1);
+      }
+    }
+
     Timer timer;
     if (DeviceRuntime<SYCL>::TimingAllKernels ||
         AutoTuner<SYCL>::ProfileKernels) {

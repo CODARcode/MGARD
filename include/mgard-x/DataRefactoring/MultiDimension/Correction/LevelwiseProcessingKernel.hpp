@@ -126,14 +126,21 @@ public:
                int queue_idx) {
 
     int range_l = std::min(6, (int)std::log2(v.getShape(0)) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
+    int config = AutoTuner<DeviceType>::autoTuningTable.lwpk[prec][range_l];
+
+    while (LWPK_CONFIG[D - 1][config][0] *
+           LWPK_CONFIG[D - 1][config][1] *
+           LWPK_CONFIG[D - 1][config][2] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for LwpkReo.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
-
-    // int config = 0;
-    int config = AutoTuner<DeviceType>::autoTuningTable.lwpk[prec][range_l];
 
 #define LWPK(CONFIG)                                                           \
   if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \

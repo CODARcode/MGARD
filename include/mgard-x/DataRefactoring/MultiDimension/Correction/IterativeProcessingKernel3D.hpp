@@ -401,11 +401,17 @@ public:
                SubArray<1, T, DeviceType> bm, SubArray<1, T, DeviceType> dist_f,
                SubArray<D, T, DeviceType> v, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config =
-    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts1[arch][prec][range_l];
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk1_3d[prec][range_l];
+
+    while (IPK_CONFIG[D - 1][config][0] *
+           IPK_CONFIG[D - 1][config][1] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for Ipk1Reo3D.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
@@ -810,11 +816,17 @@ public:
                SubArray<1, T, DeviceType> bm, SubArray<1, T, DeviceType> dist_c,
                SubArray<D, T, DeviceType> v, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config =
-    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts2[arch][prec][range_l];
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk2_3d[prec][range_l];
+
+    while (IPK_CONFIG[D - 1][config][0] *
+           IPK_CONFIG[D - 1][config][2] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for Ipk2Reo3D.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
@@ -1219,11 +1231,17 @@ public:
                SubArray<1, T, DeviceType> bm, SubArray<1, T, DeviceType> dist_r,
                SubArray<D, T, DeviceType> v, int queue_idx) {
     int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
-    // int config =
-    // AutoTuner<DeviceType>::autoTuningTable.auto_tuning_ts3[arch][prec][range_l];
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk3_3d[prec][range_l];
+
+    while (IPK_CONFIG[D - 1][config][1] *
+           IPK_CONFIG[D - 1][config][2] > 
+           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
+      config--;
+      if (config < 0) {
+        std::cout << log::log_err << "Cannot find suitble config for Ipk3Reo3D.\n";
+      }
+    }
 
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
