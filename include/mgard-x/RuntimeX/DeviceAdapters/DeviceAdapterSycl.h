@@ -233,8 +233,9 @@ public:
       MaxNumThreadsPerSM[d] =
           device.get_info<sycl::info::device::max_work_group_size>();
       ;
+      // Larger limit can cause resource insufficient error
       MaxNumThreadsPerTB[d] =
-          device.get_info<sycl::info::device::max_work_group_size>();
+          std::min(1024ul, device.get_info<sycl::info::device::max_work_group_size>());
       ;
       AvailableMemory[d] =
           device.get_info<sycl::info::device::global_mem_size>();
@@ -922,6 +923,18 @@ public:
   DeviceAdapter(){};
 
   MGARDX_CONT
+  int IsResourceEnough(TaskType &task) { 
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() > 
+        DeviceRuntime<SYCL>::GetMaxNumThreadsPerTB()) {
+      return THREADBLOCK_TOO_LARGE;
+    }
+    if (task.GetSharedMemorySize() > DeviceRuntime<SYCL>::GetMaxSharedMemorySize()) {
+      return SHARED_MEMORY_TOO_LARGE;
+    }
+    return RESOURCE_ENOUGH;
+  }
+
+  MGARDX_CONT
   ExecutionReturn Execute(TaskType &task) {
 
     sycl::range global_threads(task.GetBlockDimX() * task.GetGridDimX(),
@@ -944,29 +957,19 @@ public:
                 << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
     }
 
-    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() > 
-        DeviceRuntime<SYCL>::GetMaxNumThreadsPerTB()) {
-      if (AutoTuner<SYCL>::ProfileKernels) {
-        ExecutionReturn ret;
-        ret.execution_time = std::numeric_limits<double>::max();
-        return ret;
-      } else {
-        std::cout << log::log_err << "block size too large when trying to execute "
-                  << task.GetFunctorName() << ".\n";
-        exit(-1);
+    ExecutionReturn ret;
+    if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
+      if (DeviceRuntime<SYCL>::PrintKernelConfig) {
+        if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
+          std::cout << log::log_info << "threadblock too large.\n";
+        }
+        if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
+          std::cout << log::log_info << "shared memory too large.\n";
+        }
       }
-    }
-
-    if (sm_size > DeviceRuntime<SYCL>::GetMaxSharedMemorySize()) {
-      if (AutoTuner<SYCL>::ProfileKernels) {
-        ExecutionReturn ret;
-        ret.execution_time = std::numeric_limits<double>::max();
-        return ret;
-      } else {
-        std::cout << log::log_err << "shared memory too large when trying to execute "
-                  << task.GetFunctorName() << ".\n";
-        exit(-1);
-      }
+      ret.success = false;
+      ret.execution_time = std::numeric_limits<double>::max();
+      return ret;
     }
 
     Timer timer;
@@ -1002,8 +1005,6 @@ public:
       DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
     }
 
-    ExecutionReturn ret;
-
     if (DeviceRuntime<SYCL>::TimingAllKernels ||
         AutoTuner<SYCL>::ProfileKernels) {
       DeviceRuntime<SYCL>::SyncDevice();
@@ -1012,6 +1013,7 @@ public:
         timer.print(task.GetFunctorName());
       }
       if (AutoTuner<SYCL>::ProfileKernels) {
+        ret.success = true;
         ret.execution_time = timer.get();
       }
     }

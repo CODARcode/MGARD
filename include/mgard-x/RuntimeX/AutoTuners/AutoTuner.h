@@ -198,6 +198,11 @@ MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int precision_idx,
     device_type_string = "Cuda";
   } else if (std::is_same<DeviceType, HIP>::value) {
     device_type_string = "Hip";
+  } else if (std::is_same<DeviceType, SYCL>::value) {
+    device_type_string = "Sycl";
+  } else {
+    std::cout << log::log_err << "invalid device_type in FillAutoTunerTable.\n";
+    exit(-1);
   }
 
   string curr_file_path = __FILE__;

@@ -16,7 +16,8 @@
 namespace mgard_x {
 
 struct ExecutionReturn {
-  double execution_time = 0.0;
+  bool success = true;
+  double execution_time = std::numeric_limits<double>::max();
 };
 
 template <typename DeviceType> struct SyncBlock {
@@ -33,6 +34,10 @@ template <typename DeviceType> struct SyncGrid {
 
 #define AtomicGlobalMemory 0
 #define AtomicSharedMemory 1
+
+#define RESOURCE_ENOUGH 0
+#define THREADBLOCK_TOO_LARGE 1
+#define SHARED_MEMORY_TOO_LARGE 2
 
 template <typename T, OPTION MemoryType, OPTION Scope, typename DeviceType>
 struct Atomic {
@@ -132,6 +137,8 @@ template <typename TaskType, typename DeviceType> class DeviceAdapter {
 public:
   MGARDX_CONT
   DeviceAdapter(){};
+  MGARDX_CONT
+  int IsResourceEnough() { return false; }
   MGARDX_CONT
   ExecutionReturn Execute(){};
 };

@@ -1802,6 +1802,18 @@ public:
   DeviceAdapter(){};
 
   MGARDX_CONT
+  int IsResourceEnough(TaskType &task) { 
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() > 
+        DeviceRuntime<HIP>::GetMaxNumThreadsPerTB()) {
+      return THREADBLOCK_TOO_LARGE;
+    }
+    if (task.GetSharedMemorySize() > DeviceRuntime<HIP>::GetMaxSharedMemorySize()) {
+      return SHARED_MEMORY_TOO_LARGE;
+    }
+    return RESOURCE_ENOUGH;
+  }
+
+  MGARDX_CONT
   ExecutionReturn Execute(TaskType &task) {
     dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
                          task.GetBlockDimZ());
@@ -1818,6 +1830,21 @@ public:
                 << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
                 << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
                 << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
+    }
+
+    ExecutionReturn ret;
+    if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
+      if (DeviceRuntime<HIP>::PrintKernelConfig) {
+        if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
+          std::cout << log::log_info << "threadblock too large.\n";
+        }
+        if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
+          std::cout << log::log_info << "shared memory too large.\n";
+        }
+      }
+      ret.success = false;
+      ret.execution_time = std::numeric_limits<double>::max();
+      return ret;
     }
 
     Timer timer;
@@ -1861,7 +1888,6 @@ public:
       ErrorSyncCheck(hipDeviceSynchronize(), task);
     }
 
-    ExecutionReturn ret;
     if (DeviceRuntime<HIP>::TimingAllKernels ||
         AutoTuner<HIP>::ProfileKernels) {
       DeviceRuntime<HIP>::SyncDevice();
@@ -1870,6 +1896,7 @@ public:
         timer.print(task.GetFunctorName());
       }
       if (AutoTuner<HIP>::ProfileKernels) {
+        ret.success = true;
         ret.execution_time = timer.get();
       }
     }
