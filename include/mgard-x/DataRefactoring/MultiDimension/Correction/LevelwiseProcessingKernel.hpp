@@ -135,7 +135,7 @@ public:
            DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
       config--;
       if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitble config for LwpkReo.\n";
+        std::cout << log::log_err << "Cannot find suitable config for LwpkReo.\n";
       }
     }
 

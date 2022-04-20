@@ -11,7 +11,6 @@
 #include <numeric>
 #include <vector>
 
-#include "MGARDXConfig.h"
 #include "compress_x.hpp"
 #include "mgard-x/CompressionHighLevel/CompressionHighLevel.h"
 #include "mgard-x/CompressionHighLevel/Metadata.hpp"

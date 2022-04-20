@@ -620,46 +620,41 @@ public:
     int range_l = std::min(6, (int)std::log2(v.getShape(curr_dim_f)) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk1_nd[prec][range_l];
-
-    while (IPK_CONFIG[D - 1][config][0] *
-           IPK_CONFIG[D - 1][config][1] > 
-           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
-      config--;
-      if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitble config for Ipk1Reo.\n";
-      }
-    }
-
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
+    ExecutionReturn ret;
 
 #define IPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
-    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
-    using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
-                                        am, bm, v, queue_idx);                 \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ExecutionReturn ret = adapter.Execute(task);                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (min_time > ret.execution_time) {                                     \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+      const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
+      const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
+      const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
+      const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
+      using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
+      using TaskType = Task<FunctorType>;                                        \
+      TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
+                                          am, bm, v, queue_idx);                 \
+      DeviceAdapter<TaskType, DeviceType> adapter;                               \
+      ret = adapter.Execute(task);                                               \
+      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+        if (ret.success && min_time > ret.execution_time) {                      \
+          min_time = ret.execution_time;                                         \
+          min_config = CONFIG;                                                   \
+        }                                                                        \
+      }                                                                          \
+    }
 
-    IPK(0)
-    IPK(1)
-    IPK(2)
-    IPK(3)
-    IPK(4)
-    IPK(5)
-    IPK(6)
+    IPK(6) if (!ret.success) config--;
+    IPK(5) if (!ret.success) config--;
+    IPK(4) if (!ret.success) config--;
+    IPK(3) if (!ret.success) config--;
+    IPK(2) if (!ret.success) config--;
+    IPK(1) if (!ret.success) config--;
+    IPK(0) if (!ret.success) config--;
+    if (config < 0 && !ret.success) {
+      std::cout << log::log_err << "no suitable config for Ipk1Reo.\n";
+      exit(-1);
+    }
 #undef IPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
@@ -1328,46 +1323,41 @@ public:
     int range_l = std::min(6, (int)std::log2(v.getShape(curr_dim_f)) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk2_nd[prec][range_l];
-
-    while (IPK_CONFIG[D - 1][config][0] *
-           IPK_CONFIG[D - 1][config][2] > 
-           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
-      config--;
-      if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitble config for Ipk2Reo.\n";
-      }
-    }
-
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
+    ExecutionReturn ret;
 
 #define IPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
-    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
-    using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
-                                        am, bm, v, queue_idx);                 \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ExecutionReturn ret = adapter.Execute(task);                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (min_time > ret.execution_time) {                                     \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+      const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
+      const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
+      const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
+      const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
+      using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
+      using TaskType = Task<FunctorType>;                                        \
+      TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
+                                          am, bm, v, queue_idx);                 \
+      DeviceAdapter<TaskType, DeviceType> adapter;                               \
+      ret = adapter.Execute(task);                                               \
+      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+        if (ret.success && min_time > ret.execution_time) {                      \
+          min_time = ret.execution_time;                                         \
+          min_config = CONFIG;                                                   \
+        }                                                                        \
+      }                                                                          \
+    }
 
-    IPK(0)
-    IPK(1)
-    IPK(2)
-    IPK(3)
-    IPK(4)
-    IPK(5)
-    IPK(6)
+    IPK(6) if (!ret.success) config--;
+    IPK(5) if (!ret.success) config--;
+    IPK(4) if (!ret.success) config--;
+    IPK(3) if (!ret.success) config--;
+    IPK(2) if (!ret.success) config--;
+    IPK(1) if (!ret.success) config--;
+    IPK(0) if (!ret.success) config--;
+    if (config < 0 && !ret.success) {
+      std::cout << log::log_err << "no suitable config for Ipk2Reo.\n";
+      exit(-1);
+    }
 #undef IPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
@@ -2061,46 +2051,42 @@ public:
     int range_l = std::min(6, (int)std::log2(v.getShape(curr_dim_f)) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk3_nd[prec][range_l];
-
-    while (IPK_CONFIG[D - 1][config][1] *
-           IPK_CONFIG[D - 1][config][2] > 
-           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
-      config--;
-      if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitble config for Ipk3Reo.\n";
-      }
-    }
-
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
+    ExecutionReturn ret;
+
 
 #define IPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
-    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
-    using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
-                                        am, bm, v, queue_idx);                 \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ExecutionReturn ret = adapter.Execute(task);                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (min_time > ret.execution_time) {                                     \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+      const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
+      const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
+      const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
+      const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
+      using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
+      using TaskType = Task<FunctorType>;                                        \
+      TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
+                                          am, bm, v, queue_idx);                 \
+      DeviceAdapter<TaskType, DeviceType> adapter;                               \
+      ret = adapter.Execute(task);                                               \
+      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+        if (ret.success && min_time > ret.execution_time) {                      \
+          min_time = ret.execution_time;                                         \
+          min_config = CONFIG;                                                   \
+        }                                                                        \
+      }                                                                          \
+    }
 
-    IPK(0)
-    IPK(1)
-    IPK(2)
-    IPK(3)
-    IPK(4)
-    IPK(5)
-    IPK(6)
+    IPK(6) if (!ret.success) config--;
+    IPK(5) if (!ret.success) config--;
+    IPK(4) if (!ret.success) config--;
+    IPK(3) if (!ret.success) config--;
+    IPK(2) if (!ret.success) config--;
+    IPK(1) if (!ret.success) config--;
+    IPK(0) if (!ret.success) config--;
+    if (config < 0 && !ret.success) {
+      std::cout << log::log_err << "no suitable config for Ipk3Reo.\n";
+      exit(-1);
+    }
 #undef IPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {

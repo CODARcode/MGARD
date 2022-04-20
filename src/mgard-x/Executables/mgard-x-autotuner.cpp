@@ -229,16 +229,16 @@ int main(int argc, char *argv[]) {
   } else {
     std::cout << mgard_x::log::log_info << "Full automatic mode\n";
     std::vector<mgard_x::SIZE> shape({513, 513, 513});
-#ifdef MGARD_ENABLE_SERIAL
+#if MGARD_ENABLE_SERIAL
     autotuning(mgard_x::device_type::SERIAL, shape);
 #endif
-#ifdef MGARD_ENABLE_CUDA
+#if MGARD_ENABLE_CUDA
     autotuning(mgard_x::device_type::CUDA, shape);
 #endif
-#ifdef MGARD_ENABLE_HIP
+#if MGARD_ENABLE_HIP
     autotuning(mgard_x::device_type::HIP, shape);
 #endif
-#ifdef MGARD_ENABLE_SYCL
+#if MGARD_ENABLE_SYCL
     autotuning(mgard_x::device_type::SYCL, shape);
 #endif
   }
