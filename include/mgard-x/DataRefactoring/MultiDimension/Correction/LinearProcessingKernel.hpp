@@ -554,47 +554,41 @@ public:
     int range_l = std::min(6, (int)std::log2(shape.dataHost()[curr_dim_f]) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.lpk1_nd[prec][range_l];
-
-    while (LPK_CONFIG[D - 1][config][0] *
-           LPK_CONFIG[D - 1][config][1] *
-           LPK_CONFIG[D - 1][config][2] > 
-           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
-      config--;
-      if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitble config for Lpk1Reo.\n";
-      }
-    }
-
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
+    ExecutionReturn ret;
 
 #define LPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = LPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = LPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = LPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType = Lpk1ReoFunctor<D, T, R, C, F, DeviceType>;             \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(                                          \
-        shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
-        curr_dim_f, dist_f, ratio_f, v1, v2, w, queue_idx);                    \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ExecutionReturn ret = adapter.Execute(task);                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (min_time > ret.execution_time) {                                     \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+      const int R = LPK_CONFIG[D - 1][CONFIG][0];                                \
+      const int C = LPK_CONFIG[D - 1][CONFIG][1];                                \
+      const int F = LPK_CONFIG[D - 1][CONFIG][2];                                \
+      using FunctorType = Lpk1ReoFunctor<D, T, R, C, F, DeviceType>;             \
+      using TaskType = Task<FunctorType>;                                        \
+      TaskType task = GenTask<R, C, F>(                                          \
+          shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
+          curr_dim_f, dist_f, ratio_f, v1, v2, w, queue_idx);                    \
+      DeviceAdapter<TaskType, DeviceType> adapter;                               \
+      ret = adapter.Execute(task);                                               \
+      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+        if (ret.success && min_time > ret.execution_time) {                      \
+          min_time = ret.execution_time;                                         \
+          min_config = CONFIG;                                                   \
+        }                                                                        \
+      }                                                                          \
+    }
 
-    LPK(0)
-    LPK(1)
-    LPK(2)
-    LPK(3)
-    LPK(4)
-    LPK(5)
-    LPK(6)
+    LPK(6) if (!ret.success) config--;
+    LPK(5) if (!ret.success) config--;
+    LPK(4) if (!ret.success) config--;
+    LPK(3) if (!ret.success) config--;
+    LPK(2) if (!ret.success) config--;
+    LPK(1) if (!ret.success) config--;
+    LPK(0) if (!ret.success) config--;
+    if (config < 0 && !ret.success) {
+      std::cout << log::log_err << "no suitable config for Lpk1Reo.\n";
+      exit(-1);
+    }
 #undef LPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
@@ -1052,47 +1046,41 @@ public:
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.lpk2_nd[prec][range_l];
-
-    while (LPK_CONFIG[D - 1][config][0] *
-           LPK_CONFIG[D - 1][config][1] *
-           LPK_CONFIG[D - 1][config][2] > 
-           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
-      config--;
-      if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitble config for Lpk2Reo.\n";
-      }
-    }
-
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
+    ExecutionReturn ret;
 
 #define LPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = LPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = LPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = LPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType = Lpk2ReoFunctor<D, T, R, C, F, DeviceType>;             \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(                                          \
-        shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
-        curr_dim_f, dist_c, ratio_c, v1, v2, w, queue_idx);                    \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ExecutionReturn ret = adapter.Execute(task);                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (min_time > ret.execution_time) {                                     \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+      const int R = LPK_CONFIG[D - 1][CONFIG][0];                                \
+      const int C = LPK_CONFIG[D - 1][CONFIG][1];                                \
+      const int F = LPK_CONFIG[D - 1][CONFIG][2];                                \
+      using FunctorType = Lpk2ReoFunctor<D, T, R, C, F, DeviceType>;             \
+      using TaskType = Task<FunctorType>;                                        \
+      TaskType task = GenTask<R, C, F>(                                          \
+          shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
+          curr_dim_f, dist_c, ratio_c, v1, v2, w, queue_idx);                    \
+      DeviceAdapter<TaskType, DeviceType> adapter;                               \
+      ret = adapter.Execute(task);                                               \
+      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+        if (ret.success && min_time > ret.execution_time) {                      \
+          min_time = ret.execution_time;                                         \
+          min_config = CONFIG;                                                   \
+        }                                                                        \
+      }                                                                          \
+    }
 
-    LPK(0)
-    LPK(1)
-    LPK(2)
-    LPK(3)
-    LPK(4)
-    LPK(5)
-    LPK(6)
+    LPK(6) if (!ret.success) config--;
+    LPK(5) if (!ret.success) config--;
+    LPK(4) if (!ret.success) config--;
+    LPK(3) if (!ret.success) config--;
+    LPK(2) if (!ret.success) config--;
+    LPK(1) if (!ret.success) config--;
+    LPK(0) if (!ret.success) config--;
+    if (config < 0 && !ret.success) {
+      std::cout << log::log_err << "no suitable config for Lpk2Reo.\n";
+      exit(-1);
+    }
 #undef LPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
@@ -1563,47 +1551,41 @@ public:
     int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.lpk3_nd[prec][range_l];
-
-    while (LPK_CONFIG[D - 1][config][0] *
-           LPK_CONFIG[D - 1][config][1] *
-           LPK_CONFIG[D - 1][config][2] > 
-           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
-      config--;
-      if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitble config for Lpk3Reo.\n";
-      }
-    }
-
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
+    ExecutionReturn ret;
 
 #define LPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = LPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = LPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = LPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType = Lpk3ReoFunctor<D, T, R, C, F, DeviceType>;             \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(                                          \
-        shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
-        curr_dim_f, dist_r, ratio_r, v1, v2, w, queue_idx);                    \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ExecutionReturn ret = adapter.Execute(task);                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (min_time > ret.execution_time) {                                     \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+      const int R = LPK_CONFIG[D - 1][CONFIG][0];                                \
+      const int C = LPK_CONFIG[D - 1][CONFIG][1];                                \
+      const int F = LPK_CONFIG[D - 1][CONFIG][2];                                \
+      using FunctorType = Lpk3ReoFunctor<D, T, R, C, F, DeviceType>;             \
+      using TaskType = Task<FunctorType>;                                        \
+      TaskType task = GenTask<R, C, F>(                                          \
+          shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
+          curr_dim_f, dist_r, ratio_r, v1, v2, w, queue_idx);                    \
+      DeviceAdapter<TaskType, DeviceType> adapter;                               \
+      ret = adapter.Execute(task);                                               \
+      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+        if (ret.success && min_time > ret.execution_time) {                      \
+          min_time = ret.execution_time;                                         \
+          min_config = CONFIG;                                                   \
+        }                                                                        \
+      }                                                                          \
+    }
 
-    LPK(0)
-    LPK(1)
-    LPK(2)
-    LPK(3)
-    LPK(4)
-    LPK(5)
-    LPK(6)
+    LPK(6) if (!ret.success) config--;
+    LPK(5) if (!ret.success) config--;
+    LPK(4) if (!ret.success) config--;
+    LPK(3) if (!ret.success) config--;
+    LPK(2) if (!ret.success) config--;
+    LPK(1) if (!ret.success) config--;
+    LPK(0) if (!ret.success) config--;
+    if (config < 0 && !ret.success) {
+      std::cout << log::log_err << "no suitable config for Lpk3Reo.\n";
+      exit(-1);
+    }
 #undef LPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {

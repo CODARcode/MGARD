@@ -2270,50 +2270,44 @@ public:
     int prec = TypeToIdx<T>();
     int config =
         AutoTuner<DeviceType>::autoTuningTable.gpk_reo_nd[prec][range_l];
-
-    while (GPK_CONFIG[D_LOCAL - 1][config][0] *
-           GPK_CONFIG[D_LOCAL - 1][config][1] *
-           GPK_CONFIG[D_LOCAL - 1][config][2] > 
-           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
-      config--;
-      if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitble config for GpkReo.\n";
-      }
-    }
-
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
+    ExecutionReturn ret;
 
-#define GPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = GPK_CONFIG[D_LOCAL - 1][CONFIG][0];                          \
-    const int C = GPK_CONFIG[D_LOCAL - 1][CONFIG][1];                          \
-    const int F = GPK_CONFIG[D_LOCAL - 1][CONFIG][2];                          \
-    using FunctorType =                                                        \
-        GpkReoFunctor<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,            \
-                      CALC_COEFF, TYPE, DeviceType>;                           \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(                                          \
-        shape, shape_c, unprocessed_n, unprocessed_dims, curr_dim_r,           \
-        curr_dim_c, curr_dim_f, ratio_r, ratio_c, ratio_f, v, w, wf, wc, wr,   \
-        wcf, wrf, wrc, wrcf, queue_idx);                                       \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ExecutionReturn ret = adapter.Execute(task);                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (min_time > ret.execution_time) {                                     \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
+#define GPK(CONFIG)                                                              \
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+      const int R = GPK_CONFIG[D_LOCAL - 1][CONFIG][0];                          \
+      const int C = GPK_CONFIG[D_LOCAL - 1][CONFIG][1];                          \
+      const int F = GPK_CONFIG[D_LOCAL - 1][CONFIG][2];                          \
+      using FunctorType =                                                        \
+          GpkReoFunctor<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,            \
+                        CALC_COEFF, TYPE, DeviceType>;                           \
+      using TaskType = Task<FunctorType>;                                        \
+      TaskType task = GenTask<R, C, F>(                                          \
+          shape, shape_c, unprocessed_n, unprocessed_dims, curr_dim_r,           \
+          curr_dim_c, curr_dim_f, ratio_r, ratio_c, ratio_f, v, w, wf, wc, wr,   \
+          wcf, wrf, wrc, wrcf, queue_idx);                                       \
+      DeviceAdapter<TaskType, DeviceType> adapter;                               \
+      ret = adapter.Execute(task);                                               \
+      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+        if (ret.success && min_time > ret.execution_time) {                      \
+          min_time = ret.execution_time;                                         \
+          min_config = CONFIG;                                                   \
+        }                                                                        \
+      }                                                                          \
+    }
 
-    GPK(0)
-    GPK(1)
-    GPK(2)
-    GPK(3)
-    GPK(4)
-    GPK(5)
-    GPK(6)
+    GPK(6) if (!ret.success) config--;
+    GPK(5) if (!ret.success) config--;
+    GPK(4) if (!ret.success) config--;
+    GPK(3) if (!ret.success) config--;
+    GPK(2) if (!ret.success) config--;
+    GPK(1) if (!ret.success) config--;
+    GPK(0) if (!ret.success) config--;
+    if (config < 0 && !ret.success) {
+      std::cout << log::log_err << "no suitable config for GpkReo.\n";
+      exit(-1);
+    }
 #undef GPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
@@ -4696,50 +4690,44 @@ public:
     int prec = TypeToIdx<T>();
     int config =
         AutoTuner<DeviceType>::autoTuningTable.gpk_rev_nd[prec][range_l];
-
-    while (GPK_CONFIG[D_LOCAL - 1][config][0] *
-           GPK_CONFIG[D_LOCAL - 1][config][1] *
-           GPK_CONFIG[D_LOCAL - 1][config][2] > 
-           DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
-      config--;
-      if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitble config for GpkRev.\n";
-      }
-    }
-
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
+    ExecutionReturn ret;
 
 #define GPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = GPK_CONFIG[D_LOCAL - 1][CONFIG][0];                          \
-    const int C = GPK_CONFIG[D_LOCAL - 1][CONFIG][1];                          \
-    const int F = GPK_CONFIG[D_LOCAL - 1][CONFIG][2];                          \
-    using FunctorType =                                                        \
-        GpkRevFunctor<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,            \
-                      CALC_COEFF, TYPE, DeviceType>;                           \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(                                          \
-        shape, shape_c, unprocessed_n, unprocessed_dims, curr_dim_r,           \
-        curr_dim_c, curr_dim_f, ratio_r, ratio_c, ratio_f, v, w, wf, wc, wr,   \
-        wcf, wrf, wrc, wrcf, svr, svc, svf, nvr, nvc, nvf, queue_idx);         \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ExecutionReturn ret = adapter.Execute(task);                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (min_time > ret.execution_time) {                                     \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
+    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+      const int R = GPK_CONFIG[D_LOCAL - 1][CONFIG][0];                          \
+      const int C = GPK_CONFIG[D_LOCAL - 1][CONFIG][1];                          \
+      const int F = GPK_CONFIG[D_LOCAL - 1][CONFIG][2];                          \
+      using FunctorType =                                                        \
+          GpkRevFunctor<D_GLOBAL, D_LOCAL, T, R, C, F, INTERPOLATION,            \
+                        CALC_COEFF, TYPE, DeviceType>;                           \
+      using TaskType = Task<FunctorType>;                                        \
+      TaskType task = GenTask<R, C, F>(                                          \
+          shape, shape_c, unprocessed_n, unprocessed_dims, curr_dim_r,           \
+          curr_dim_c, curr_dim_f, ratio_r, ratio_c, ratio_f, v, w, wf, wc, wr,   \
+          wcf, wrf, wrc, wrcf, svr, svc, svf, nvr, nvc, nvf, queue_idx);         \
+      DeviceAdapter<TaskType, DeviceType> adapter;                               \
+      ret = adapter.Execute(task);                                               \
+      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+        if (ret.success && min_time > ret.execution_time) {                      \
+          min_time = ret.execution_time;                                         \
+          min_config = CONFIG;                                                   \
+        }                                                                        \
+      }                                                                          \
+    }
 
-    GPK(0)
-    GPK(1)
-    GPK(2)
-    GPK(3)
-    GPK(4)
-    GPK(5)
-    GPK(6)
+    GPK(6) if (!ret.success) config--;
+    GPK(5) if (!ret.success) config--;
+    GPK(4) if (!ret.success) config--;
+    GPK(3) if (!ret.success) config--;
+    GPK(2) if (!ret.success) config--;
+    GPK(1) if (!ret.success) config--;
+    GPK(0) if (!ret.success) config--;
+    if (config < 0 && !ret.success) {
+      std::cout << log::log_err << "no suitable config for GpkRev.\n";
+      exit(-1);
+    }
 #undef GPK
 
     if (AutoTuner<DeviceType>::ProfileKernels) {
