@@ -35,9 +35,9 @@ ax.set_xticks(x_idx)
 ax.set_yticks(y_idx)
 
 
-cmap = plt.get_cmap('summer', 10)
+cmap = plt.get_cmap('Greens', 10)
 # norm = matplotlib.colors.Normalize(vmin=0, vmax=1, clip=True)
-norm = matplotlib.colors.Normalize(vmin=60, vmax=60*2)
+norm = matplotlib.colors.Normalize(vmin=0, vmax=60*2)
 mapper = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
 mapper.set_array([])
 
@@ -50,16 +50,29 @@ for row in reader:
     error = float(row[4])
     feature = int(row[5])
     # print("error: ", error)
+    # if (feature == 1):
+    #     ax.add_patch(Rectangle((start, end), width, height,
+    #                  edgecolor = 'black',
+    #                  facecolor = mapper.to_rgba(error),
+    #                  fill=True,
+    #                  lw=1))
+    # else:
+    #     ax.add_patch(Rectangle((start, end), width, height,
+    #                  edgecolor = 'none',
+    #                  facecolor = mapper.to_rgba(error),
+    #                  fill=False,
+    #                  lw=1))
+
     if (feature == 1):
         ax.add_patch(Rectangle((start, end), width, height,
                      edgecolor = 'black',
-                     facecolor = mapper.to_rgba(error),
-                     fill=True,
+                     facecolor = 'orange',
+                     fill=False,
                      lw=1))
     else:
         ax.add_patch(Rectangle((start, end), width, height,
-                     edgecolor = 'none',
-                     facecolor = mapper.to_rgba(error),
+                     edgecolor = 'black',
+                     facecolor = 'orange',
                      fill=False,
                      lw=1))
 
