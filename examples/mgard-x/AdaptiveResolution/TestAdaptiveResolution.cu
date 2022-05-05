@@ -21,91 +21,12 @@
 #include "mgard/mgard-x/DataRefactoring/MultiDimension/DataRefactoringAdaptiveResolution.hpp"
 #include "mgard/mgard-x/Utilities/ErrorCalculator.h"
 
+#include "SparseFlyingEdges.hpp"
+
 #include <iostream>
 #include <vector>
 
 // using namespace mgard_x;
-
-namespace mgard_x {
-
-template <DIM D, typename T, typename DeviceType>
-struct SurfaceDetect {
-  T iso_value;
-
-  SurfaceDetect(T iso_value): iso_value(iso_value) {}
-  bool operator()(AdaptiveResolutionTreeNode<D, T, DeviceType> * node, 
-                  typename AdaptiveResolutionTreeNode<D, T, DeviceType>::T_error error, 
-                  SubArray<D, T, DeviceType> v){
-    SIZE data_index[D];
-    T max_data = std::numeric_limits<T>::min();
-    T min_data = std::numeric_limits<T>::max();
-    for (int i = 0; i < std::pow(2, D); i++) {
-      for (int d = 0; d < D; d++) {
-        int linearized_index = i;
-        if (linearized_index % 2 == 0) {
-          data_index[d] = node->index_start_reordered[d];
-        } else {
-          data_index[d] = node->index_end_reordered[d];
-        }
-        linearized_index /= 2;
-      }
-      T data = 0;
-      MemoryManager<DeviceType>::Copy1D(&data, v(data_index), 1, 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      max_data = std::max(max_data, data);
-      min_data = std::min(min_data, data);
-    }
-
-    std::cout << "max_data: " << max_data << " "
-              << "min_data: " << min_data << " "
-              << "error: " << error << "\n";
-    if (max_data + error >= iso_value &&
-        min_data - error <= iso_value) {
-      return true;
-    } else {
-      return false;
-    }
-
-  }
-};
-
-template <DIM D, typename T>
-void test(T * data, std::vector<SIZE> shape, T tol, T iso_value) {
-  std::cout << "Preparing data...";
-  //... load data into in_array_cpu
-  Hierarchy<D, T, CUDA> hierarchy(shape);
-  Array<D, T, CUDA> in_array(shape);
-  in_array.load(data);
-  SubArray in_subarray(in_array);
-
-  Array<D, T, CUDA> org_array = in_array;
-  std::cout << "Done\n";
-
-  // PrintSubarray("Input data", SubArray(org_array));
-
-  std::cout << "Decomposing with MGARD-X CUDA backend...\n";
-  decompose(hierarchy, in_subarray, hierarchy.l_target, 0);
-
-  // PrintSubarray("Decomposed data", in_subarray);
-
-  std::cout << "Done\n";
-
-  std::cout << "Recomposing with MGARD-X CUDA backend...\n";
-  bool interpolate_full_resolution = true;
-  SurfaceDetect<D, T, CUDA> surface_detector(iso_value);
-  Array<D, T, CUDA> out_array = recompose_adaptive_resolution(hierarchy, in_subarray, tol, interpolate_full_resolution, surface_detector, 0); 
-  std::cout << "Done\n";
-
-  DeviceRuntime<CUDA>::SyncQueue(0);
-
-  size_t n = 1;
-  for (int i = 0; i < shape.size(); i++) n *= shape[i];
-  enum error_bound_type mode = error_bound_type::ABS;
-  std::cout << "L_inf_error: " << L_inf_error(n, org_array.hostCopy(), out_array.hostCopy(), mode) << "\n";
-}
-
-}
-
 
 
 void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape, std::string field_name, std::string output) {
@@ -147,6 +68,60 @@ void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape, 
   view.SaveAs(output + " .pnm"); 
 }
 
+template <typename T>
+vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value,
+                                  mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray,
+                                  mgard_x::Array<1, T, mgard_x::CUDA> PointsArray,
+                                  std::string field_name) {
+  mgard_x::SIZE * Triangles = new mgard_x::SIZE[TrianglesArray.shape()[0]];
+  T * Points = new T[PointsArray.shape()[0]];
+
+  mgard_x::SIZE numTriangles = TrianglesArray.shape()[0] / 3;
+  mgard_x::SIZE numPoints = PointsArray.shape()[0] / 3;
+
+  memcpy(Triangles, TrianglesArray.hostCopy(),
+         numTriangles * 3 * sizeof(mgard_x::SIZE));
+  memcpy(Points, PointsArray.hostCopy(), numPoints * 3 * sizeof(T));
+
+  // mgard_x::PrintSubarray("Triangles", mgard_x::SubArray(TrianglesArray));
+  // mgard_x::PrintSubarray("Points", mgard_x::SubArray(PointsArray));
+
+  vtkm::cont::DataSet ds_from_mc;
+  std::vector<T> iso_data_vec(shape[0]*shape[1]*shape[2], iso_value);
+  ds_from_mc.AddPointField(field_name, iso_data_vec);
+  vtkm::cont::CellSetSingleType<> cellset;
+  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG> connectivity;
+  connectivity.Allocate(TrianglesArray.shape()[0]);
+
+  // std::cout << "connectivity.GetNumberOfValues() = " << connectivity.GetNumberOfValues() << "\n";
+
+  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>::WritePortalType writePortal = connectivity.WritePortal();
+  for (vtkm::Id i = 0; i < numTriangles; i++) {
+    writePortal.Set(i*3, Triangles[i*3]);
+    writePortal.Set(i*3+1, Triangles[i*3+1]);
+    writePortal.Set(i*3+2, Triangles[i*3+2]);
+  }
+
+  cellset.Fill(numPoints,
+                vtkm::CELL_SHAPE_TRIANGLE, 3,
+                connectivity);
+  ds_from_mc.SetCellSet(cellset);
+
+  vtkm::cont::ArrayHandle<vtkm::Vec3f> coordinate_points;
+  coordinate_points.Allocate(numPoints);
+  for (vtkm::Id pointId = 0; pointId < numPoints; pointId++) {
+    vtkm::Vec3f point;
+    point[0] = Points[pointId*3];
+    point[1] = Points[pointId*3+1];
+    point[2] = Points[pointId*3+2];
+    coordinate_points.WritePortal().Set(pointId, point);
+  }
+  vtkm::cont::CoordinateSystem coordinate_system("cs", coordinate_points);
+  ds_from_mc.AddCoordinateSystem(coordinate_system);
+
+  return ds_from_mc;
+}
+
 template <mgard_x::DIM D, typename T>
 void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shape, T tol, T iso_value) {
   vtkm::cont::Initialize(argc, argv);
@@ -174,103 +149,193 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   contour_filter.SetFieldsToPass({ field_name });
   vtkm::cont::DataSet outputData = contour_filter.Execute(dataSet);
 
-  vtkm::cont::DataSet outputData2;
-  vtkm::cont::Field field = dataSet.GetField(0);
-  // outputData2.AddField(field);
-  std::vector<T> iso_data_vec(shape[0]*shape[1]*shape[2], iso_value);
-  outputData2.AddPointField(field_name, iso_data_vec);
+  // std::cout << "outputData.GetNumberOfCells() = " << outputData.GetNumberOfCells() << "\n";
+  // std::cout << "outputData.GetNumberOfPoints() = " << outputData.GetNumberOfPoints() << "\n";
 
-  vtkm::cont::CellSetSingleType<> cellset = outputData.GetCellSet().AsCellSet<vtkm::cont::CellSetSingleType<>>();
-
-  vtkm::cont::CellSetSingleType<> cellset2;
-  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG> connectivity;
-  connectivity.Allocate(cellset.GetNumberOfCells()*3);
-  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>::WritePortalType writePortal = connectivity.WritePortal();
-  for (vtkm::Id i = 0; i < cellset.GetNumberOfCells(); i++) {
-    vtkm::Vec<vtkm::Id, 3> ids;
-    cellset.GetIndices(i, ids);
-    writePortal.Set(i*3, ids[0]);
-    writePortal.Set(i*3+1, ids[1]);
-    writePortal.Set(i*3+2, ids[2]);
-  }
-
-  cellset2.Fill(cellset.GetNumberOfPoints(),
-                vtkm::CELL_SHAPE_TRIANGLE, 3,
-                connectivity);
-
-  outputData2.SetCellSet(cellset2);
-
-
-  vtkm::cont::ArrayHandle<vtkm::Vec3f> points2;
-  points2.Allocate(outputData.GetCoordinateSystem().GetNumberOfPoints());
-  std::cout << "points2.GetNumberOfValues() = " << points2.GetNumberOfValues() << "\n";
-  
-  vtkm::cont::ArrayHandle<vtkm::Vec3f> points =
-    outputData.GetCoordinateSystem().GetData().template AsArrayHandle<vtkm::cont::ArrayHandle<vtkm::Vec3f>>();
-  std::cout << "points.GetNumberOfValues() = " << points.GetNumberOfValues() << "\n";
-
-
-  for (vtkm::Id pointId = 0; pointId < outputData.GetCoordinateSystem().GetNumberOfPoints(); pointId++) {
-    points2.WritePortal().Set(pointId, points.ReadPortal().Get(pointId));
-  }
-
-
-  vtkm::cont::CoordinateSystem coordinate_system2("cs", points2);
-
-  outputData2.AddCoordinateSystem(coordinate_system2);
-
-  vtkm::io::VTKDataSetWriter writer_output("contour_output.vtk");
-  writer_output.WriteDataSet(outputData);
-
-  vtkm::io::VTKDataSetWriter writer_input("input.vtk");
-  writer_input.WriteDataSet(dataSet);
-
-  std::cout << "outputData.GetNumberOfCells() = " << outputData.GetNumberOfCells() << "\n";
-  std::cout << "outputData.GetNumberOfPoints() = " << outputData.GetNumberOfPoints() << "\n";
+  std::cout << "vtkm::FlyingEdges::numPoints: " << outputData.GetNumberOfPoints() << "\n";
+  std::cout << "vtkm::FlyingEdges::numTris: " << outputData.GetNumberOfCells() << "\n";
  
   vtkm_render(outputData, shape, field_name, "vtkm_render_output");
-  // using Mapper = vtkm::rendering::MapperWireframer;
-  // using Mapper = vtkm::rendering::MapperRayTracer;
-  // using Canvas = vtkm::rendering::CanvasRayTracer;
+}
 
-  // vtkm::rendering::Scene scene;
-  // vtkm::cont::ColorTable colorTable("inferno");
-  // vtkm::cont::ColorTable colorTable2("inferno");
-  // scene.AddActor(vtkm::rendering::Actor(outputData2.GetCellSet(),
-  //                                     outputData2.GetCoordinateSystem(),
-  //                                     outputData2.GetField(field_name),
-  //                                     colorTable));
+template <mgard_x::DIM D, typename T>
+void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) {
 
-  // Mapper mapper;
-  // Canvas canvas(1024, 1024);
+  mgard_x::SIZE numTriangles;
+  mgard_x::SIZE *Triangles;
+  mgard_x::SIZE numPoints;
+  T *Points;
 
-  // vtkm::rendering::Color bg(0.2f, 0.2f, 0.2f, 1.0f);
+  mgard_x::Array<3, T, mgard_x::CUDA> v(shape);
+  v.load(original_data);
 
-  // const vtkm::cont::CoordinateSystem coords = outputData2.GetCoordinateSystem();
-  // vtkm::Bounds coordsBounds = coords.GetBounds();
-  // vtkm::rendering::Camera camera = vtkm::rendering::Camera();
-  // camera.ResetToBounds(coordsBounds);
+  mgard_x::PrintSubarray("input", mgard_x::SubArray<3, T, mgard_x::CUDA>(v));
 
-  // vtkm::Vec<vtkm::Float32, 3> totalExtent;
-  // totalExtent[0] = vtkm::Float32(shape[2]);
-  // totalExtent[1] = vtkm::Float32(shape[1]);
-  // totalExtent[2] = vtkm::Float32(shape[0]);
-  // vtkm::Float32 mag = vtkm::Magnitude(totalExtent);
-  // vtkm::Normalize(totalExtent);
-  // camera.SetLookAt(totalExtent * (mag * .5f));
-  // camera.SetViewUp(vtkm::make_Vec(0.f, 0.f, 1.f));
-  // // camera.SetClippingRange(1.f, 1000.f);
-  // camera.SetFieldOfView(60.f);
-  // camera.SetPosition(totalExtent * (mag * 2.f));
-  // vtkm::rendering::View3D view(scene, mapper, canvas, camera, bg);
-  // view.Initialize();
-  // view.Paint();
-  // string outputfile = "output";
-  // view.SaveAs(outputfile + " .pnm"); 
+  mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
+  mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
+
+  mgard_x::FlyingEdges<T, mgard_x::CUDA>().Execute(
+      shape[0], shape[1], shape[2], mgard_x::SubArray<3, T, mgard_x::CUDA>(v),
+      iso_value, TrianglesArray, PointsArray, 0);
+
+  // numTriangles = TrianglesArray.shape()[0] / 3;
+  // numPoints = PointsArray.shape()[0] / 3;
+
+  // if (numTriangles == 0 || numPoints == 0) {
+  //   printf("returing %u %u from test_mine\n", numTriangles, numPoints);
+  //   return;
+  // }
+
+  // Triangles = new mgard_x::SIZE[TrianglesArray.shape()[0]];
+  // Points = new T[PointsArray.shape()[0]];
+
+  // memcpy(Triangles, TrianglesArray.hostCopy(),
+  //        numTriangles * 3 * sizeof(mgard_x::SIZE));
+  // memcpy(Points, PointsArray.hostCopy(), numPoints * 3 * sizeof(T));
+
+  // // mgard_x::PrintSubarray("Triangles", mgard_x::SubArray(TrianglesArray));
+  // // mgard_x::PrintSubarray("Points", mgard_x::SubArray(PointsArray));
+
+  // std::string field_name = "test_field";
+  // vtkm::cont::DataSet ds_from_mc;
+  // std::vector<T> iso_data_vec(shape[0]*shape[1]*shape[2], iso_value);
+  // ds_from_mc.AddPointField(field_name, iso_data_vec);
+  // vtkm::cont::CellSetSingleType<> cellset;
+  // vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG> connectivity;
+  // connectivity.Allocate(TrianglesArray.shape()[0]);
+
+  // // std::cout << "connectivity.GetNumberOfValues() = " << connectivity.GetNumberOfValues() << "\n";
+
+  // vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>::WritePortalType writePortal = connectivity.WritePortal();
+  // for (vtkm::Id i = 0; i < numTriangles; i++) {
+  //   writePortal.Set(i*3, Triangles[i*3]);
+  //   writePortal.Set(i*3+1, Triangles[i*3+1]);
+  //   writePortal.Set(i*3+2, Triangles[i*3+2]);
+  // }
+
+  // cellset.Fill(numPoints,
+  //               vtkm::CELL_SHAPE_TRIANGLE, 3,
+  //               connectivity);
+  // ds_from_mc.SetCellSet(cellset);
+
+  // vtkm::cont::ArrayHandle<vtkm::Vec3f> coordinate_points;
+  // coordinate_points.Allocate(numPoints);
+  // for (vtkm::Id pointId = 0; pointId < numPoints; pointId++) {
+  //   vtkm::Vec3f point;
+  //   point[0] = Points[pointId*3];
+  //   point[1] = Points[pointId*3+1];
+  //   point[2] = Points[pointId*3+2];
+  //   coordinate_points.WritePortal().Set(pointId, point);
+  // }
+  // vtkm::cont::CoordinateSystem coordinate_system("cs", coordinate_points);
+  // ds_from_mc.AddCoordinateSystem(coordinate_system);
+  std::string field_name = "test_field";
+  vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
+  vtkm_render(dataset, shape, field_name, "my_flying_edges");
+
 }
 
 
 
+
+namespace mgard_x {
+
+template <DIM D, typename T, typename DeviceType>
+struct SurfaceDetect {
+  T iso_value;
+
+  SurfaceDetect(T iso_value): iso_value(iso_value) {}
+  bool operator()(AdaptiveResolutionTreeNode<D, T, DeviceType> * node, 
+                  typename AdaptiveResolutionTreeNode<D, T, DeviceType>::T_error error, 
+                  SubArray<D, T, DeviceType> v){
+    SIZE data_index[D];
+    T max_data = std::numeric_limits<T>::min();
+    T min_data = std::numeric_limits<T>::max();
+    // std::cout << "cell: ";
+    for (int i = 0; i < std::pow(2, D); i++) {
+      int linearized_index = i;
+      for (int d = 0; d < D; d++) {
+        if (linearized_index % 2 == 0) {
+          data_index[d] = node->index_start_reordered[d];
+        } else {
+          data_index[d] = node->index_end_reordered[d];
+        }
+        linearized_index /= 2;
+      }
+      T data = 0;
+      MemoryManager<DeviceType>::Copy1D(&data, v(data_index), 1, 0);
+      DeviceRuntime<DeviceType>::SyncQueue(0);
+      max_data = std::max(max_data, data);
+      min_data = std::min(min_data, data);
+      // std::cout << data << ", ";
+    }
+
+    // std::cout << "("<<node->index_start[2] << ", " << node->index_start[1] << ", " << node->index_start[0] << "), ";
+    // std::cout << "("<<node->index_end[2] << ", " << node->index_end[1] << ", " << node->index_end[0] << ")";
+   
+    // return true;
+    if (max_data + error >= iso_value &&
+        min_data - error <= iso_value) {
+       // std::cout << "max_data: " << max_data << " "
+       //        << "min_data: " << min_data << " "
+       //        << "error: " << error << "\n";
+      // std::cout << "Keep\n";
+      return true;
+    } else {
+      // std::cout << "Discard\n";
+      return false;
+    }
+
+  }
+};
+
+template <DIM D, typename T>
+void test(T * data, std::vector<SIZE> shape, T tol, T iso_value) {
+  std::cout << "Preparing data...";
+  //... load data into in_array_cpu
+  Hierarchy<D, T, CUDA> hierarchy(shape);
+  Array<D, T, CUDA> in_array(shape);
+  in_array.load(data);
+  SubArray in_subarray(in_array);
+
+  Array<D, T, CUDA> org_array = in_array;
+  std::cout << "Done\n";
+
+  // PrintSubarray("Input data", SubArray(org_array));
+
+  std::cout << "Decomposing with MGARD-X CUDA backend...\n";
+  decompose(hierarchy, in_subarray, hierarchy.l_target, 0);
+
+  // PrintSubarray("Decomposed data", in_subarray);
+
+  std::cout << "Done\n";
+
+  std::cout << "Recomposing with MGARD-X CUDA backend...\n";
+  bool interpolate_full_resolution = true;
+  SurfaceDetect<D, T, CUDA> surface_detector(iso_value);
+  std::vector<CompressedSparseEdge<D, T, CUDA>> cse_list;
+  Array<D, T, CUDA> out_array = recompose_adaptive_resolution(hierarchy, in_subarray, tol, interpolate_full_resolution, surface_detector, cse_list, 0); 
+  std::cout << "Done\n";
+
+  DeviceRuntime<CUDA>::SyncQueue(0);
+  size_t n = 1;
+  for (int i = 0; i < shape.size(); i++) n *= shape[i];
+  enum error_bound_type mode = error_bound_type::ABS;
+  std::cout << "L_inf_error: " << L_inf_error(n, org_array.hostCopy(), out_array.hostCopy(), mode) << "\n";
+
+  for (int i = 0; i < cse_list.size(); i++) {
+    if(!cse_list[i].empty) {
+      mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
+      mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
+      SparseFlyingEdges<D, T, CUDA>().Execute(cse_list[i], iso_value, TrianglesArray, PointsArray, 0);
+      std::string field_name = "test_field";
+      vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
+      vtkm_render(dataset, shape, field_name, "my_render_output");
+    }
+  }
+}
+
+}
 
 
 bool require_arg(int argc, char *argv[], std::string option) {
@@ -370,10 +435,12 @@ int main(int argc, char *argv[]) {
     readfile(input_file.c_str(), data);
     if (shape.size() == 2) {
       test_vtkm<2, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
-      // mgard_x::test<2, float>(data, shape, (float)tol, (float)iso_value);
+      test_mine<2, float>(data, shape, (float)iso_value);
+      mgard_x::test<2, float>(data, shape, (float)tol, (float)iso_value);
     } else if (shape.size() == 3) {
       test_vtkm<3, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
-      // mgard_x::test<3, float>(data, shape, (float)tol, (float)iso_value);
+      test_mine<3, float>(data, shape, (float)iso_value);
+      mgard_x::test<3, float>(data, shape, (float)tol, (float)iso_value);
     } else {
       std::cout << "wrong num of dim.\n";
     }
@@ -382,43 +449,16 @@ int main(int argc, char *argv[]) {
     readfile(input_file.c_str(), data);
     if (shape.size() == 2) {
       test_vtkm<2, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
-      // mgard_x::test<2, double>(data, shape, (double)tol, (float)iso_value);
+      test_mine<2, double>(data, shape, (float)iso_value);
+      mgard_x::test<2, double>(data, shape, (double)tol, (float)iso_value);
     } else if (shape.size() == 3) {
       test_vtkm<3, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
-      // mgard_x::test<3, double>(data, shape, (double)tol, (float)iso_value);
+      test_mine<3, double>(data, shape, (float)iso_value);
+      mgard_x::test<3, double>(data, shape, (double)tol, (float)iso_value);
     } else {
       std::cout << "wrong num of dim.\n";
     }
   } else {
     std::cout << "wrong data type.\n";
   }
-  
-  
-  // prepare
-  // std::cout << "Preparing data...";
-  // double *in_array_cpu = new double[n1 * n2 * n3];
-  // //... load data into in_array_cpu
-  // std::vector<SIZE> shape{n1, n2, n3};
-  // Hierarchy<3, double, CUDA> hierarchy(shape);
-  // Array<3, double, CUDA> in_array(shape);
-  // in_array.load(in_array_cpu);
-  // SubArray in_subarray(in_array);
-
-  // std::cout << "Done\n";
-
-  // std::cout << "Decomposing with MGARD-X CUDA backend...";
-  // decompose(hierarchy, in_subarray, hierarchy.l_target, 0);
-  // Get compressed size in number of bytes.
-  // size_t compressed_size = compressed_array.shape()[0];
-  // unsigned char *compressed_array_cpu = compressed_array.hostCopy();
-  // std::cout << "Done\n";
-
-  // std::cout << "Decompressing with MGARD-X CUDA backend...";
-  // // decompression
-  // Array<3, double, CUDA> decompressed_array =
-  //     decompress(hierarchy, compressed_array,
-  //                         error_bound_type::REL, tol, s, norm, config);
-  // delete[] in_array_cpu;
-  // double *decompressed_array_cpu = decompressed_array.hostCopy();
-  // std::cout << "Done\n";
 }

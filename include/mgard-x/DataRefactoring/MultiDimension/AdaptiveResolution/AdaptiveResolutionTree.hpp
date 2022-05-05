@@ -14,6 +14,9 @@
 
 #include "../../../MDR-X/BitplaneEncoder/GroupedBPEncoderGPU.hpp"
 
+#include "Edge.hpp"
+#include "CompressedSparseEdge.hpp"
+
 #include <fstream> //for dumping files
 
 #ifndef MGARD_X_ADAPTIVE_RESOLUTION_TREE
@@ -605,18 +608,22 @@ void refine_level(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w, SI
 }
 
 template <typename FeatureDetectorType>
-Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolution, FeatureDetectorType feature_detector, int queue_idx) {
+Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolution, FeatureDetectorType feature_detector, 
+                                      std::vector<CompressedSparseEdge<D, T, DeviceType>>& cse_list, int queue_idx) {
   using Mem = MemoryManager<DeviceType>;
   std::queue<NodeType*> to_be_refined_node;
   Array<D, T, DeviceType> reconstructed_data(hierarchy.shape_org);
   reconstructed_data.memset(0);
   SubArray v(reconstructed_data);
 
+  HierarchicalIndexType hierarchical_index = buildHierarchicalIndex();
+
   Array<D, T, DeviceType> workspace(hierarchy.shape_org);
   SubArray w(workspace);
 
+  std::vector<Edge<D, T, DeviceType>> edge_list;
 
-  // Node in 'to_be_refined_node' are nodes already created and to be future fined.
+  // Node in 'to_be_refined_node' are nodes already created and to be further fined.
   // So root node is first inserted and the level 0 is reconstructed first
   to_be_refined_node.push(&root);
   
@@ -643,7 +650,7 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
   while (to_be_refined_node.size() > 0) {
     NodeType* node = to_be_refined_node.front();
     to_be_refined_node.pop();    
-    std::cout << "Level: " << node->level << " ";
+    std::cout << "Level: " << node->level << "\n";
 
     T combined_error_discard_all = error_estimate(combine_error_impact(curr_error_impact, node->all_children_error_impact));
     bool discard_all_children = combined_error_discard_all < target_tol;
@@ -667,16 +674,68 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
     if (discard_all_children) reconstructed_cells ++;
 
 
-    std::cout << node->index_start[0] << "," << node->index_start[1] << "," 
+    // std::cout << node->index_start[0] << "," << node->index_start[1] << "," 
+    //      << node->index_end[0] << "," << node->index_end[1] << ","
+    //      << combined_error_discard_all << "," << contain_feature <<"," << node->potential_contain_feature <<"\n";
+
+    if (final_cells) {
+      std::cout << "final cell: " <<node->index_start[0] << "," << node->index_start[1] << "," 
          << node->index_end[0] << "," << node->index_end[1] << ","
          << combined_error_discard_all << "," << contain_feature <<"," << node->potential_contain_feature <<"\n";
 
+
+      SIZE index_mapping[D-1];
+      if (D == 2) index_mapping[0] = 0;
+      if (D == 3) {
+        index_mapping[0] = 0;
+        index_mapping[1] = 2;
+      }
+
+      for (SIZE i = 0; i < std::pow(2, D-1); i++) {
+        Edge<D, T, DeviceType> edge;
+        SIZE linearized_index = i;
+        SIZE start_value_index[D];
+        SIZE end_value_index[D];
+        for (DIM d = 0; d < D - 1; d++) {  
+          if (linearized_index % 2 == 0) {
+            edge.start_index[index_mapping[d]] = node->index_start[index_mapping[d]];
+            edge.end_index[index_mapping[d]] = node->index_start[index_mapping[d]];
+            start_value_index[index_mapping[d]] = node->index_start_reordered[index_mapping[d]];
+            end_value_index[index_mapping[d]] = node->index_start_reordered[index_mapping[d]];
+          } else {
+            edge.start_index[index_mapping[d]] = node->index_end[index_mapping[d]];
+            edge.end_index[index_mapping[d]] = node->index_end[index_mapping[d]];
+            start_value_index[index_mapping[d]] = node->index_end_reordered[index_mapping[d]];
+            end_value_index[index_mapping[d]] = node->index_end_reordered[index_mapping[d]];
+          }
+          linearized_index /= 2;
+        }
+        edge.start_index[1] = node->index_start[1];
+        edge.end_index[1] = node->index_end[1];
+        start_value_index[1] = node->index_start_reordered[1];
+        end_value_index[1] = node->index_end_reordered[1];
+        Mem::Copy1D(&(edge.start_value), v(start_value_index), 1, 0);
+        Mem::Copy1D(&(edge.end_value), v(end_value_index), 1, 0);
+        DeviceRuntime<DeviceType>::SyncQueue(0);
+        if (i == 0) {
+          edge.role = LEAD;
+        } else {
+          edge.role = REGULAR;
+        }
+        edge_list.push_back(edge);
+      }
+
+      // std::cout << "new edge lists: ";
+      // for (int i = 0; i < edge_list.size(); i++) {
+      //   edge_list[i].Print();
+      // }
+    }
 
     //for debug
     // if (feature_detector(node, combined_error_discard_all, v) == true && node->potential_contain_feature == false) {
     //   std::cout << "Error: feature detection mismatch\n";
     //   exit(-1);
-    // }    
+    // }
     
     if (discard_all_children) {
       // Discard all children
@@ -684,12 +743,14 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
       curr_error_impact = combine_error_impact(curr_error_impact, node->all_children_error_impact);
     } else {
       // Create all children
-      std::cout << "Create all "<< node->num_children <<" children ";
-      int children_num_bitplanes = 0;
+      
       int min_bitplanes = 0;
       if (curr_level < hierarchy.l_target - 1) {
         min_bitplanes = node->num_bitplanes;
       } 
+
+      int children_num_bitplanes = min_bitplanes;
+
       for (int b = min_bitplanes; b <= node->num_bitplanes; b++) {
         typename NodeType::T_error all_children_max_error = 0;
         for (int c = 0; c < node->num_children; c++) {
@@ -699,12 +760,16 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
         // std::cout << all_children_max_error << " ";
         // Get max error for all children of all node of this level
         temp_error_impact[curr_level + 1] = std::max(all_children_max_error, temp_error_impact[curr_level + 1]);
+        std::cout << "trying " << b << " bitplanes and get error: " << error_estimate(temp_error_impact) << "\n";
         if (error_estimate(temp_error_impact) < target_tol) {
           children_num_bitplanes = b;
           curr_error_impact = temp_error_impact;
+          std::cout << "finalize on " << children_num_bitplanes << " bitplanes\n";
           break;
         }
       }
+
+      std::cout << "Create all "<< node->num_children <<" children ";
       std::cout << "by retrieving " << children_num_bitplanes << " bitplanes\n";
     
       for (int c = 0; c < node->num_children; c++) {
@@ -737,13 +802,31 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
         to_be_refined_node.size() == 0 && curr_level < hierarchy.l_target) {
 
       std::cout << "current error: " << error_estimate(curr_error_impact) << "\n";
+      std::vector<std::vector<SIZE>> index;
+      for (DIM d = 0; d < D; d++) index.push_back(hierarchical_index[d][curr_level]);
+
+      CompressedSparseEdge<D, T, DeviceType> cse(hierarchy.shapes_vec[hierarchy.l_target - curr_level], edge_list, index);
+      edge_list.resize(0);
+      cse_list.push_back(cse);
+
       std::cout << "Refining level " << curr_level << "\n";
       refine_level(v, w, curr_level, queue_idx);
+
+
       curr_level += 1;
       // PrintSubarray("v", v);
     }
+
     
   }
+
+  // Last level
+  std::vector<std::vector<SIZE>> index;
+  for (DIM d = 0; d < D; d++) index.push_back(hierarchical_index[d][hierarchy.l_target]);
+  CompressedSparseEdge<D, T, DeviceType> cse(hierarchy.shapes_vec[0], edge_list, index);
+  edge_list.resize(0);
+  cse_list.push_back(cse);
+
 
   if (interpolate_full_resolution) {
     for (; curr_level < hierarchy.l_target; curr_level++) {

@@ -21,10 +21,11 @@ namespace mgard_x {
 
 template <DIM D, typename T, typename FeatureDetectorType, typename DeviceType>
 Array<D, T, DeviceType> recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, T tol, bool interpolate_full_resolution, FeatureDetectorType feature_detector, int queue_idx) {
+               SubArray<D, T, DeviceType> &v, T tol, bool interpolate_full_resolution, FeatureDetectorType feature_detector, 
+               std::vector<CompressedSparseEdge<D, T, DeviceType>>& cse_list, int queue_idx) {
   AdaptiveResolutionTree tree(hierarchy);
   tree.buildTree(v);
-  return tree.constructData(tol, interpolate_full_resolution, feature_detector, queue_idx);
+  return tree.constructData(tol, interpolate_full_resolution, feature_detector, cse_list, queue_idx);
 }
 
 }

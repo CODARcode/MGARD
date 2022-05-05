@@ -91,6 +91,8 @@ MGARDX_EXEC SIZE getEdgeCase(SIZE r, SIZE c, SIZE f,
   SIZE e2 = *edges(r + 1, c, f);
   SIZE e3 = *edges(r + 1, c, f + 1);
   SIZE edgeCase = (e0 | (e1 << 2) | (e2 << 4) | (e3 << 6));
+  // printf("rcf: %u %u %u edge case: %u %u %u %u, cell_case: %u\n",
+  //             r, c, f, e0, e1, e2, e3, edgeCase);
   return edgeCase;
 }
 
@@ -707,6 +709,10 @@ generate_tris(SIZE edgeCase, SIZE numTris, SIZE *edgeIds, SIZE &cell_tri_offset,
     //   printf("edgeIndex: %u %u %u\n", edgeIndex, edgeIndex+2, edgeIndex+1);
     // }
     // index = 0;
+    // printf("edgeIds[%u]: %u, edgeIds[%u]: %u, edgeIds[%u]: %u\n", 
+    //         edges[edgeIndex], edgeIds[edges[edgeIndex]],
+    //         edges[edgeIndex + 2], edgeIds[edges[edgeIndex + 2]],
+    //         edges[edgeIndex + 1], edgeIds[edges[edgeIndex + 1]]);
     *triangle_topology(index) = edgeIds[edges[edgeIndex]];
     *triangle_topology(index + 1) = edgeIds[edges[edgeIndex + 2]];
     *triangle_topology(index + 2) = edgeIds[edges[edgeIndex + 1]];
@@ -936,9 +942,13 @@ public:
     }
 
     // compute trim blounds
+    // Max right should be nc - 1
     SIZE left, right;
     bool hasWork =
-        computeTrimBounds(r, f, nc, edges, axis_min, axis_max, left, right);
+        computeTrimBounds(r, f, nc - 1, edges, axis_min, axis_max, left, right);
+
+    // printf("computeTrimBounds: rf: %u %u, left: %u, right: %u\n",
+            // r, f, left, right);
     if (!hasWork) {
       return;
     }
@@ -966,6 +976,7 @@ public:
 
     for (SIZE c = left; c < right; c++) {
       SIZE edgeCase = getEdgeCase(r, c, f, edges);
+      printf("cell case: %u\n", edgeCase);
       SIZE numTris = GetNumberOfPrimitives(edgeCase);
       if (numTris > 0) {
         _cell_tri_count += numTris;
@@ -1312,9 +1323,10 @@ public:
     t.clear();
 
     // printf("After pass3\n");
-    std::cout << "numTris: " << numTris << "\n";
+    
     // PrintSubarray("cell_tri_count_scan", SubArray(cell_tri_count_scan));
-    // std::cout << "newPointSize: " << newPointSize << "\n";
+    std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
+    std::cout << "mgard_x::FlyingEdges::numTris: " << numTris << "\n";
     // PrintSubarray("axis_sum_liearized", axis_sum_liearized);
 
     Triangles = Array<1, SIZE, DeviceType>({numTris * 3}, pitched);
@@ -1346,7 +1358,7 @@ public:
 
     // printf("After pass4\n");
     // PrintSubarray("triangle_topology", triangle_topology);
-    // PrintSubarray("points", points);
+    PrintSubarray("points", points);
   }
 };
 
