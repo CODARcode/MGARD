@@ -5,837 +5,445 @@
  * Date: March 17, 2022
  */
 
-#ifndef MGARD_X_FLYING_EDGES_HPP
-#define MGARD_X_FLYING_EDGES_HPP
+#ifndef MGARD_X_SPARSE_FLYING_EDGES_HPP
+#define MGARD_X_SPARSE_FLYING_EDGES_HPP
 
 #include "mgard/mgard-x/RuntimeX/RuntimeX.h"
 
+// avoid copying device functions
+#include "FlyingEdges.hpp"
+
 namespace mgard_x {
 
-#define MGARD_Below 0
-#define MGARD_LeftAbove 1
-#define MGARD_RightAbove 2
 
-#define MGARD_Interior 0
-#define MGARD_MinBoundary 1
-#define MGARD_MaxBoundary 2
-
-template <typename DeviceType>
-MGARDX_EXEC bool computeTrimBounds(SIZE r, SIZE f, SIZE rightMax,
-                                   SubArray<3, SIZE, DeviceType> &edges,
-                                   SubArray<2, SIZE, DeviceType> &axis_min,
-                                   SubArray<2, SIZE, DeviceType> &axis_max,
-                                   SIZE &left, SIZE &right) {
-  SIZE axis_mins[4] = {*axis_min(r, f), *axis_min(r, f + 1),
-                       *axis_min(r + 1, f + 1), *axis_min(r + 1, f)};
-  SIZE axis_maxs[4] = {*axis_max(r, f), *axis_max(r, f + 1),
-                       *axis_max(r + 1, f + 1), *axis_max(r + 1, f)};
-
-  left = min(axis_mins[0], axis_mins[1]);
-  left = min(left, axis_mins[2]);
-  left = min(left, axis_mins[3]);
-
-  right = max(axis_maxs[0], axis_maxs[1]);
-  right = max(right, axis_maxs[2]);
-  right = max(right, axis_maxs[3]);
-
-  if (left > rightMax && right == 0) {
-    // verify that we have nothing to generate and early terminate.
-    bool mins_same =
-        (axis_mins[0] == axis_mins[1] && axis_mins[0] == axis_mins[2] &&
-         axis_mins[0] == axis_mins[3]);
-    bool maxs_same =
-        (axis_maxs[0] == axis_maxs[1] && axis_maxs[0] == axis_maxs[2] &&
-         axis_maxs[0] == axis_maxs[3]);
-
-    left = 0;
-    right = rightMax;
-    if (mins_same && maxs_same) {
-      SIZE e0 = *edges(r, 0, f);
-      SIZE e1 = *edges(r, 0, f + 1);
-      SIZE e2 = *edges(r + 1, 0, f + 1);
-      SIZE e3 = *edges(r + 1, 0, f);
-      if (e0 == e1 && e1 == e2 && e2 == e3) {
-        // We have nothing to process in this row
-        return false;
-      }
-    }
-  } else {
-
-    SIZE e0 = *edges(r, left, f);
-    SIZE e1 = *edges(r, left, f + 1);
-    SIZE e2 = *edges(r + 1, left, f + 1);
-    SIZE e3 = *edges(r + 1, left, f);
-    if ((e0 & 0x1) != (e1 & 0x1) || (e1 & 0x1) != (e2 & 0x1) ||
-        (e2 & 0x1) != (e3 & 0x1)) {
-      left = 0;
-    }
-
-    e0 = *edges(r, right, f);
-    e1 = *edges(r, right, f + 1);
-    e2 = *edges(r + 1, right, f + 1);
-    e3 = *edges(r + 1, right, f);
-    if ((e0 & 0x2) != (e1 & 0x2) || (e1 & 0x2) != (e2 & 0x2) ||
-        (e2 & 0x2) != (e3 & 0x2)) {
-      right = rightMax;
-    }
+template <typename T, typename DeviceType>
+class SFE_Pass1Functor : public Functor<DeviceType> {
+public:
+  MGARDX_CONT SFE_Pass1Functor(SIZE nr, SIZE nc, SIZE nf,
+                           SubArray<1, T, DeviceType> * start_value,
+                           SubArray<1, T, DeviceType> * end_value,
+                           T iso_value,
+                           SubArray<1, SIZE, DeviceType> * edge_cases)
+      : nr(nr), nc(nc), nf(nf), start_value(start_value), end_value(end_value), 
+        iso_value(iso_value), edge_cases(edge_cases){
+    Functor<DeviceType>();
   }
-  return true;
-}
 
-template <typename DeviceType>
-MGARDX_EXEC SIZE getEdgeCase(SIZE r, SIZE c, SIZE f,
-                             SubArray<3, SIZE, DeviceType> &edges) {
-  SIZE e0 = *edges(r, c, f);
-  SIZE e1 = *edges(r, c, f + 1);
-  SIZE e2 = *edges(r + 1, c, f);
-  SIZE e3 = *edges(r + 1, c, f + 1);
-  SIZE edgeCase = (e0 | (e1 << 2) | (e2 << 4) | (e3 << 6));
-  return edgeCase;
-}
-
-MGARDX_EXEC SIZE GetNumberOfPrimitives(SIZE edgeCase) {
-  // if (edgeCase >= 256) { printf("GetNumberOfPrimitives out of range\n");
-  // edgeCase = 0; }
-  static constexpr SIZE numTris[256] = {
-      0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 2, 1, 2, 2, 3, 2, 3, 3, 4,
-      2, 3, 3, 4, 3, 4, 4, 3, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 3,
-      2, 3, 3, 2, 3, 4, 4, 3, 3, 4, 4, 3, 4, 5, 5, 2, 1, 2, 2, 3, 2, 3, 3, 4,
-      2, 3, 3, 4, 3, 4, 4, 3, 2, 3, 3, 4, 3, 2, 4, 3, 3, 4, 4, 5, 4, 3, 5, 2,
-      2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 4, 3, 4, 4, 3, 4, 3, 5, 2,
-      4, 5, 5, 4, 5, 4, 2, 1, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 3,
-      2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 4, 2, 3, 3, 4, 3, 4, 4, 5,
-      3, 4, 2, 3, 4, 5, 3, 2, 3, 4, 4, 3, 4, 5, 5, 4, 4, 5, 3, 2, 5, 2, 4, 1,
-      2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 2, 3, 3, 2, 3, 4, 4, 5, 4, 3, 5, 4,
-      4, 5, 5, 2, 3, 2, 4, 1, 3, 4, 4, 5, 4, 5, 5, 2, 4, 5, 3, 4, 3, 4, 2, 1,
-      2, 3, 3, 2, 3, 2, 4, 1, 3, 4, 2, 1, 2, 1, 1, 0};
-
-  return numTris[edgeCase];
-}
-
-MGARDX_EXEC SIZE const *GetEdgeUses(SIZE edgeCase) {
-
-  // if (edgeCase >= 256) { printf("GetEdgeUses out of range\n"); edgeCase = 0;
-  // }
-  static constexpr SIZE edgeUses[128][12] = {
-      // This is [128][12] as idx 0 == idx 254, idx 1 == 253...
-      //
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0},
-      {1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0},
-      {0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0},
-      {0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
-      {1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0},
-      {1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0},
-      {0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0},
-      {0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1},
-      {1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1},
-      {1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1},
-      {0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1},
-      {0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1},
-      {1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1},
-      {1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1},
-      {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1},
-      {0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0},
-      {1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0},
-      {1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0},
-      {0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0},
-      {0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0},
-      {1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0},
-      {1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0},
-      {0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0},
-      {0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1},
-      {1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1},
-      {1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1},
-      {0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1},
-      {0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1},
-      {1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1},
-      {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1},
-      {0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1},
-      {0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0},
-      {1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0},
-      {1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0},
-      {0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0},
-      {0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0},
-      {1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0},
-      {1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0},
-      {0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0},
-      {0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1},
-      {1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1},
-      {1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-      {0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1},
-      {0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1},
-      {1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1},
-      {1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1},
-      {0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1},
-      {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0},
-      {1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0},
-      {1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0},
-      {0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0},
-      {0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0},
-      {1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0},
-      {1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0},
-      {0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0},
-      {0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1},
-      {1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1},
-      {1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1},
-      {0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1},
-      {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},
-      {1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1},
-      {1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1},
-      {0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1},
-      {0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0},
-      {1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0},
-      {1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0},
-      {0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0},
-      {0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0},
-      {1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0},
-      {1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0},
-      {0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0},
-      {0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1},
-      {1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1},
-      {1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1},
-      {0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1},
-      {0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1},
-      {1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1},
-      {1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1},
-      {0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1},
-      {0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0},
-      {1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0},
-      {1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0},
-      {0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0},
-      {0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0},
-      {1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0},
-      {0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0},
-      {0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1},
-      {1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1},
-      {1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1},
-      {0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1},
-      {0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1},
-      {1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1},
-      {1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1},
-      {0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1},
-      {0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0},
-      {1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0},
-      {1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0},
-      {0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0},
-      {0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0},
-      {1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0},
-      {1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
-      {0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0},
-      {0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1},
-      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-      {1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1},
-      {0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1},
-      {0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1},
-      {1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1},
-      {1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1},
-      {0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1},
-      {0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0},
-      {1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0},
-      {1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0},
-      {0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0},
-      {0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0},
-      {1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0},
-      {1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0},
-      {0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0},
-      {0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1},
-      {1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1},
-      {1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1},
-      {0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1},
-      {0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
-      {1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1},
-      {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1},
-      {0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1},
-  };
-  return edgeCase < 128 ? edgeUses[edgeCase] : edgeUses[127 - (edgeCase - 128)];
-}
-
-MGARDX_EXEC void CountBoundaryEdgeUses(bool *onBoundary, SIZE const *edgeUses,
-                                       SIZE *_axis_sum, SIZE *adj_row_sum,
-                                       SIZE *adj_col_sum) {
-  if (onBoundary[1]) //+x boundary
-  {
-    _axis_sum[0] += edgeUses[5];
-    _axis_sum[2] += edgeUses[9];
-    if (onBoundary[0]) //+x +y
-    {
-      adj_row_sum[2] += edgeUses[11];
+  MGARDX_EXEC void Operation1() {
+    SIZE f = FunctorBase<DeviceType>::GetBlockIdX() *
+                 FunctorBase<DeviceType>::GetBlockDimX() +
+             FunctorBase<DeviceType>::GetThreadIdX();
+    SIZE c = FunctorBase<DeviceType>::GetBlockIdY() *
+                 FunctorBase<DeviceType>::GetBlockDimY() +
+             FunctorBase<DeviceType>::GetThreadIdY();
+    SIZE r = FunctorBase<DeviceType>::GetBlockIdZ() *
+                 FunctorBase<DeviceType>::GetBlockDimZ() +
+             FunctorBase<DeviceType>::GetThreadIdZ();
+ 
+    if (c >= nc || r >= nr || 
+        f >= start_value[r * nc + c].getShape(0)) {
+      return;
     }
-    if (onBoundary[2]) //+x +z
-    {
-      adj_col_sum[0] += edgeUses[7];
-    }
+    T start = *start_value[r * nc + c](f);
+    T end = *end_value[r * nc + c](f);
+    SIZE edge_case = MGARD_Below;
+    if (start >= iso_value) edge_case = MGARD_LeftAbove;
+    if (end >= iso_value) edge_case |= MGARD_RightAbove;
+    *edge_cases[r * nc + c](f) = edge_case;
+
+    // printf("start: %f, end: %f, edge_case: %u\n",
+    //         start, end, edge_case);
   }
-  if (onBoundary[0]) //+y boundary
-  {
-    adj_row_sum[2] += edgeUses[10];
+
+  MGARDX_CONT size_t shared_memory_size() {
+    size_t size = 0;
+    return size;
   }
-  if (onBoundary[2]) //+z boundary
-  {
-    adj_col_sum[0] += edgeUses[6];
-  }
-}
 
-MGARDX_EXEC SIZE const *GetTriEdgeCases(SIZE edgecase) {
-
-  // if (edgecase >= 256) { printf("GetTriEdgeCases out of range\n"); edgecase =
-  // 0; }
-
-  static constexpr SIZE edgeCases[256][16] = {
-      // I expect we have some form on symmetry in this table
-      // that we can exploit to make it smaller
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 0, 4, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 0, 9, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 5, 4, 8, 9, 5, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 4, 1, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 0, 1, 10, 8, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 5, 0, 9, 1, 10, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 5, 1, 10, 5, 10, 9, 9, 10, 8, 0, 0, 0, 0, 0, 0},
-      {1, 5, 11, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 0, 4, 8, 5, 11, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 9, 11, 1, 0, 9, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 1, 4, 8, 1, 8, 11, 11, 8, 9, 0, 0, 0, 0, 0, 0},
-      {2, 4, 5, 11, 10, 4, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 0, 5, 11, 0, 11, 8, 8, 11, 10, 0, 0, 0, 0, 0, 0},
-      {3, 4, 0, 9, 4, 9, 10, 10, 9, 11, 0, 0, 0, 0, 0, 0},
-      {2, 9, 11, 8, 11, 10, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 2, 8, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 2, 0, 4, 6, 2, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 0, 9, 5, 8, 6, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 2, 9, 5, 2, 5, 6, 6, 5, 4, 0, 0, 0, 0, 0, 0},
-      {2, 8, 6, 2, 4, 1, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 10, 6, 2, 10, 2, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0},
-      {3, 9, 5, 0, 8, 6, 2, 1, 10, 4, 0, 0, 0, 0, 0, 0},
-      {4, 2, 10, 6, 9, 10, 2, 9, 1, 10, 9, 5, 1, 0, 0, 0},
-      {2, 5, 11, 1, 8, 6, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 4, 6, 2, 4, 2, 0, 5, 11, 1, 0, 0, 0, 0, 0, 0},
-      {3, 9, 11, 1, 9, 1, 0, 8, 6, 2, 0, 0, 0, 0, 0, 0},
-      {4, 1, 9, 11, 1, 6, 9, 1, 4, 6, 6, 2, 9, 0, 0, 0},
-      {3, 4, 5, 11, 4, 11, 10, 6, 2, 8, 0, 0, 0, 0, 0, 0},
-      {4, 5, 11, 10, 5, 10, 2, 5, 2, 0, 6, 2, 10, 0, 0, 0},
-      {4, 2, 8, 6, 9, 10, 0, 9, 11, 10, 10, 4, 0, 0, 0, 0},
-      {3, 2, 10, 6, 2, 9, 10, 9, 11, 10, 0, 0, 0, 0, 0, 0},
-      {1, 9, 2, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 9, 2, 7, 0, 4, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 0, 2, 7, 5, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 8, 2, 7, 8, 7, 4, 4, 7, 5, 0, 0, 0, 0, 0, 0},
-      {2, 9, 2, 7, 1, 10, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 0, 1, 10, 0, 10, 8, 2, 7, 9, 0, 0, 0, 0, 0, 0},
-      {3, 0, 2, 7, 0, 7, 5, 1, 10, 4, 0, 0, 0, 0, 0, 0},
-      {4, 1, 7, 5, 1, 8, 7, 1, 10, 8, 2, 7, 8, 0, 0, 0},
-      {2, 5, 11, 1, 9, 2, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 4, 8, 0, 5, 11, 1, 2, 7, 9, 0, 0, 0, 0, 0, 0},
-      {3, 7, 11, 1, 7, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0},
-      {4, 1, 7, 11, 4, 7, 1, 4, 2, 7, 4, 8, 2, 0, 0, 0},
-      {3, 11, 10, 4, 11, 4, 5, 9, 2, 7, 0, 0, 0, 0, 0, 0},
-      {4, 2, 7, 9, 0, 5, 8, 8, 5, 11, 8, 11, 10, 0, 0, 0},
-      {4, 7, 0, 2, 7, 10, 0, 7, 11, 10, 10, 4, 0, 0, 0, 0},
-      {3, 7, 8, 2, 7, 11, 8, 11, 10, 8, 0, 0, 0, 0, 0, 0},
-      {2, 9, 8, 6, 7, 9, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 9, 0, 4, 9, 4, 7, 7, 4, 6, 0, 0, 0, 0, 0, 0},
-      {3, 0, 8, 6, 0, 6, 5, 5, 6, 7, 0, 0, 0, 0, 0, 0},
-      {2, 5, 4, 7, 4, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 6, 7, 9, 6, 9, 8, 4, 1, 10, 0, 0, 0, 0, 0, 0},
-      {4, 9, 6, 7, 9, 1, 6, 9, 0, 1, 1, 10, 6, 0, 0, 0},
-      {4, 1, 10, 4, 0, 8, 5, 5, 8, 6, 5, 6, 7, 0, 0, 0},
-      {3, 10, 5, 1, 10, 6, 5, 6, 7, 5, 0, 0, 0, 0, 0, 0},
-      {3, 9, 8, 6, 9, 6, 7, 11, 1, 5, 0, 0, 0, 0, 0, 0},
-      {4, 11, 1, 5, 9, 0, 7, 7, 0, 4, 7, 4, 6, 0, 0, 0},
-      {4, 8, 1, 0, 8, 7, 1, 8, 6, 7, 11, 1, 7, 0, 0, 0},
-      {3, 1, 7, 11, 1, 4, 7, 4, 6, 7, 0, 0, 0, 0, 0, 0},
-      {4, 9, 8, 7, 8, 6, 7, 11, 4, 5, 11, 10, 4, 0, 0, 0},
-      {5, 7, 0, 6, 7, 9, 0, 6, 0, 10, 5, 11, 0, 10, 0, 11},
-      {5, 10, 0, 11, 10, 4, 0, 11, 0, 7, 8, 6, 0, 7, 0, 6},
-      {2, 10, 7, 11, 6, 7, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 6, 10, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 4, 8, 0, 10, 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 0, 9, 5, 10, 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 8, 9, 5, 8, 5, 4, 10, 3, 6, 0, 0, 0, 0, 0, 0},
-      {2, 6, 4, 1, 3, 6, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 6, 8, 0, 6, 0, 3, 3, 0, 1, 0, 0, 0, 0, 0, 0},
-      {3, 1, 3, 6, 1, 6, 4, 0, 9, 5, 0, 0, 0, 0, 0, 0},
-      {4, 5, 1, 3, 5, 3, 8, 5, 8, 9, 8, 3, 6, 0, 0, 0},
-      {2, 11, 1, 5, 3, 6, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 5, 11, 1, 4, 8, 0, 3, 6, 10, 0, 0, 0, 0, 0, 0},
-      {3, 1, 0, 9, 1, 9, 11, 3, 6, 10, 0, 0, 0, 0, 0, 0},
-      {4, 3, 6, 10, 1, 4, 11, 11, 4, 8, 11, 8, 9, 0, 0, 0},
-      {3, 11, 3, 6, 11, 6, 5, 5, 6, 4, 0, 0, 0, 0, 0, 0},
-      {4, 11, 3, 6, 5, 11, 6, 5, 6, 8, 5, 8, 0, 0, 0, 0},
-      {4, 0, 6, 4, 0, 11, 6, 0, 9, 11, 3, 6, 11, 0, 0, 0},
-      {3, 6, 11, 3, 6, 8, 11, 8, 9, 11, 0, 0, 0, 0, 0, 0},
-      {2, 3, 2, 8, 10, 3, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 4, 10, 3, 4, 3, 0, 0, 3, 2, 0, 0, 0, 0, 0, 0},
-      {3, 8, 10, 3, 8, 3, 2, 9, 5, 0, 0, 0, 0, 0, 0, 0},
-      {4, 9, 3, 2, 9, 4, 3, 9, 5, 4, 10, 3, 4, 0, 0, 0},
-      {3, 8, 4, 1, 8, 1, 2, 2, 1, 3, 0, 0, 0, 0, 0, 0},
-      {2, 0, 1, 2, 2, 1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {4, 5, 0, 9, 1, 2, 4, 1, 3, 2, 2, 8, 4, 0, 0, 0},
-      {3, 5, 2, 9, 5, 1, 2, 1, 3, 2, 0, 0, 0, 0, 0, 0},
-      {3, 3, 2, 8, 3, 8, 10, 1, 5, 11, 0, 0, 0, 0, 0, 0},
-      {4, 5, 11, 1, 4, 10, 0, 0, 10, 3, 0, 3, 2, 0, 0, 0},
-      {4, 2, 8, 10, 2, 10, 3, 0, 9, 1, 1, 9, 11, 0, 0, 0},
-      {5, 11, 4, 9, 11, 1, 4, 9, 4, 2, 10, 3, 4, 2, 4, 3},
-      {4, 8, 4, 5, 8, 5, 3, 8, 3, 2, 3, 5, 11, 0, 0, 0},
-      {3, 11, 0, 5, 11, 3, 0, 3, 2, 0, 0, 0, 0, 0, 0, 0},
-      {5, 2, 4, 3, 2, 8, 4, 3, 4, 11, 0, 9, 4, 11, 4, 9},
-      {2, 11, 2, 9, 3, 2, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 2, 7, 9, 6, 10, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 0, 4, 8, 2, 7, 9, 10, 3, 6, 0, 0, 0, 0, 0, 0},
-      {3, 7, 5, 0, 7, 0, 2, 6, 10, 3, 0, 0, 0, 0, 0, 0},
-      {4, 10, 3, 6, 8, 2, 4, 4, 2, 7, 4, 7, 5, 0, 0, 0},
-      {3, 6, 4, 1, 6, 1, 3, 7, 9, 2, 0, 0, 0, 0, 0, 0},
-      {4, 9, 2, 7, 0, 3, 8, 0, 1, 3, 3, 6, 8, 0, 0, 0},
-      {4, 4, 1, 3, 4, 3, 6, 5, 0, 7, 7, 0, 2, 0, 0, 0},
-      {5, 3, 8, 1, 3, 6, 8, 1, 8, 5, 2, 7, 8, 5, 8, 7},
-      {3, 9, 2, 7, 11, 1, 5, 6, 10, 3, 0, 0, 0, 0, 0, 0},
-      {4, 3, 6, 10, 5, 11, 1, 0, 4, 8, 2, 7, 9, 0, 0, 0},
-      {4, 6, 10, 3, 7, 11, 2, 2, 11, 1, 2, 1, 0, 0, 0, 0},
-      {5, 4, 8, 2, 4, 2, 7, 4, 7, 1, 11, 1, 7, 10, 3, 6},
-      {4, 9, 2, 7, 11, 3, 5, 5, 3, 6, 5, 6, 4, 0, 0, 0},
-      {5, 5, 11, 3, 5, 3, 6, 5, 6, 0, 8, 0, 6, 9, 2, 7},
-      {5, 2, 11, 0, 2, 7, 11, 0, 11, 4, 3, 6, 11, 4, 11, 6},
-      {4, 6, 11, 3, 6, 8, 11, 7, 11, 2, 2, 11, 8, 0, 0, 0},
-      {3, 3, 7, 9, 3, 9, 10, 10, 9, 8, 0, 0, 0, 0, 0, 0},
-      {4, 4, 10, 3, 0, 4, 3, 0, 3, 7, 0, 7, 9, 0, 0, 0},
-      {4, 0, 8, 10, 0, 10, 7, 0, 7, 5, 7, 10, 3, 0, 0, 0},
-      {3, 3, 4, 10, 3, 7, 4, 7, 5, 4, 0, 0, 0, 0, 0, 0},
-      {4, 7, 9, 8, 7, 8, 1, 7, 1, 3, 4, 1, 8, 0, 0, 0},
-      {3, 9, 3, 7, 9, 0, 3, 0, 1, 3, 0, 0, 0, 0, 0, 0},
-      {5, 5, 8, 7, 5, 0, 8, 7, 8, 3, 4, 1, 8, 3, 8, 1},
-      {2, 5, 3, 7, 1, 3, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {4, 5, 11, 1, 9, 10, 7, 9, 8, 10, 10, 3, 7, 0, 0, 0},
-      {5, 0, 4, 10, 0, 10, 3, 0, 3, 9, 7, 9, 3, 5, 11, 1},
-      {5, 10, 7, 8, 10, 3, 7, 8, 7, 0, 11, 1, 7, 0, 7, 1},
-      {4, 3, 4, 10, 3, 7, 4, 1, 4, 11, 11, 4, 7, 0, 0, 0},
-      {5, 5, 3, 4, 5, 11, 3, 4, 3, 8, 7, 9, 3, 8, 3, 9},
-      {4, 11, 0, 5, 11, 3, 0, 9, 0, 7, 7, 0, 3, 0, 0, 0},
-      {2, 0, 8, 4, 7, 11, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 11, 3, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 11, 7, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 0, 4, 8, 7, 3, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 9, 5, 0, 7, 3, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 5, 4, 8, 5, 8, 9, 7, 3, 11, 0, 0, 0, 0, 0, 0},
-      {2, 1, 10, 4, 11, 7, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 10, 8, 0, 10, 0, 1, 11, 7, 3, 0, 0, 0, 0, 0, 0},
-      {3, 0, 9, 5, 1, 10, 4, 7, 3, 11, 0, 0, 0, 0, 0, 0},
-      {4, 7, 3, 11, 5, 1, 9, 9, 1, 10, 9, 10, 8, 0, 0, 0},
-      {2, 5, 7, 3, 1, 5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 5, 7, 3, 5, 3, 1, 4, 8, 0, 0, 0, 0, 0, 0, 0},
-      {3, 9, 7, 3, 9, 3, 0, 0, 3, 1, 0, 0, 0, 0, 0, 0},
-      {4, 7, 8, 9, 7, 1, 8, 7, 3, 1, 4, 8, 1, 0, 0, 0},
-      {3, 3, 10, 4, 3, 4, 7, 7, 4, 5, 0, 0, 0, 0, 0, 0},
-      {4, 0, 10, 8, 0, 7, 10, 0, 5, 7, 7, 3, 10, 0, 0, 0},
-      {4, 4, 3, 10, 0, 3, 4, 0, 7, 3, 0, 9, 7, 0, 0, 0},
-      {3, 3, 9, 7, 3, 10, 9, 10, 8, 9, 0, 0, 0, 0, 0, 0},
-      {2, 7, 3, 11, 2, 8, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 2, 0, 4, 2, 4, 6, 3, 11, 7, 0, 0, 0, 0, 0, 0},
-      {3, 5, 0, 9, 7, 3, 11, 8, 6, 2, 0, 0, 0, 0, 0, 0},
-      {4, 11, 7, 3, 5, 6, 9, 5, 4, 6, 6, 2, 9, 0, 0, 0},
-      {3, 4, 1, 10, 6, 2, 8, 11, 7, 3, 0, 0, 0, 0, 0, 0},
-      {4, 7, 3, 11, 2, 1, 6, 2, 0, 1, 1, 10, 6, 0, 0, 0},
-      {4, 0, 9, 5, 2, 8, 6, 1, 10, 4, 7, 3, 11, 0, 0, 0},
-      {5, 9, 5, 1, 9, 1, 10, 9, 10, 2, 6, 2, 10, 7, 3, 11},
-      {3, 3, 1, 5, 3, 5, 7, 2, 8, 6, 0, 0, 0, 0, 0, 0},
-      {4, 5, 7, 1, 7, 3, 1, 4, 2, 0, 4, 6, 2, 0, 0, 0},
-      {4, 8, 6, 2, 9, 7, 0, 0, 7, 3, 0, 3, 1, 0, 0, 0},
-      {5, 6, 9, 4, 6, 2, 9, 4, 9, 1, 7, 3, 9, 1, 9, 3},
-      {4, 8, 6, 2, 4, 7, 10, 4, 5, 7, 7, 3, 10, 0, 0, 0},
-      {5, 7, 10, 5, 7, 3, 10, 5, 10, 0, 6, 2, 10, 0, 10, 2},
-      {5, 0, 9, 7, 0, 7, 3, 0, 3, 4, 10, 4, 3, 8, 6, 2},
-      {4, 3, 9, 7, 3, 10, 9, 2, 9, 6, 6, 9, 10, 0, 0, 0},
-      {2, 11, 9, 2, 3, 11, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 2, 3, 11, 2, 11, 9, 0, 4, 8, 0, 0, 0, 0, 0, 0},
-      {3, 11, 5, 0, 11, 0, 3, 3, 0, 2, 0, 0, 0, 0, 0, 0},
-      {4, 8, 5, 4, 8, 3, 5, 8, 2, 3, 3, 11, 5, 0, 0, 0},
-      {3, 11, 9, 2, 11, 2, 3, 10, 4, 1, 0, 0, 0, 0, 0, 0},
-      {4, 0, 1, 8, 1, 10, 8, 2, 11, 9, 2, 3, 11, 0, 0, 0},
-      {4, 4, 1, 10, 0, 3, 5, 0, 2, 3, 3, 11, 5, 0, 0, 0},
-      {5, 3, 5, 2, 3, 11, 5, 2, 5, 8, 1, 10, 5, 8, 5, 10},
-      {3, 5, 9, 2, 5, 2, 1, 1, 2, 3, 0, 0, 0, 0, 0, 0},
-      {4, 4, 8, 0, 5, 9, 1, 1, 9, 2, 1, 2, 3, 0, 0, 0},
-      {2, 0, 2, 1, 2, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 8, 1, 4, 8, 2, 1, 2, 3, 1, 0, 0, 0, 0, 0, 0},
-      {4, 9, 2, 3, 9, 3, 4, 9, 4, 5, 10, 4, 3, 0, 0, 0},
-      {5, 8, 5, 10, 8, 0, 5, 10, 5, 3, 9, 2, 5, 3, 5, 2},
-      {3, 4, 3, 10, 4, 0, 3, 0, 2, 3, 0, 0, 0, 0, 0, 0},
-      {2, 3, 8, 2, 10, 8, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 6, 3, 11, 6, 11, 8, 8, 11, 9, 0, 0, 0, 0, 0, 0},
-      {4, 0, 4, 6, 0, 6, 11, 0, 11, 9, 3, 11, 6, 0, 0, 0},
-      {4, 11, 6, 3, 5, 6, 11, 5, 8, 6, 5, 0, 8, 0, 0, 0},
-      {3, 11, 6, 3, 11, 5, 6, 5, 4, 6, 0, 0, 0, 0, 0, 0},
-      {4, 1, 10, 4, 11, 8, 3, 11, 9, 8, 8, 6, 3, 0, 0, 0},
-      {5, 1, 6, 0, 1, 10, 6, 0, 6, 9, 3, 11, 6, 9, 6, 11},
-      {5, 5, 0, 8, 5, 8, 6, 5, 6, 11, 3, 11, 6, 1, 10, 4},
-      {4, 10, 5, 1, 10, 6, 5, 11, 5, 3, 3, 5, 6, 0, 0, 0},
-      {4, 5, 3, 1, 5, 8, 3, 5, 9, 8, 8, 6, 3, 0, 0, 0},
-      {5, 1, 9, 3, 1, 5, 9, 3, 9, 6, 0, 4, 9, 6, 9, 4},
-      {3, 6, 0, 8, 6, 3, 0, 3, 1, 0, 0, 0, 0, 0, 0, 0},
-      {2, 6, 1, 4, 3, 1, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {5, 8, 3, 9, 8, 6, 3, 9, 3, 5, 10, 4, 3, 5, 3, 4},
-      {2, 0, 5, 9, 10, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {4, 6, 0, 8, 6, 3, 0, 4, 0, 10, 10, 0, 3, 0, 0, 0},
-      {1, 6, 3, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 10, 11, 7, 6, 10, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 10, 11, 7, 10, 7, 6, 8, 0, 4, 0, 0, 0, 0, 0, 0},
-      {3, 7, 6, 10, 7, 10, 11, 5, 0, 9, 0, 0, 0, 0, 0, 0},
-      {4, 11, 7, 6, 11, 6, 10, 9, 5, 8, 8, 5, 4, 0, 0, 0},
-      {3, 1, 11, 7, 1, 7, 4, 4, 7, 6, 0, 0, 0, 0, 0, 0},
-      {4, 8, 0, 1, 8, 1, 7, 8, 7, 6, 11, 7, 1, 0, 0, 0},
-      {4, 9, 5, 0, 7, 4, 11, 7, 6, 4, 4, 1, 11, 0, 0, 0},
-      {5, 9, 1, 8, 9, 5, 1, 8, 1, 6, 11, 7, 1, 6, 1, 7},
-      {3, 10, 1, 5, 10, 5, 6, 6, 5, 7, 0, 0, 0, 0, 0, 0},
-      {4, 0, 4, 8, 5, 6, 1, 5, 7, 6, 6, 10, 1, 0, 0, 0},
-      {4, 9, 7, 6, 9, 6, 1, 9, 1, 0, 1, 6, 10, 0, 0, 0},
-      {5, 6, 1, 7, 6, 10, 1, 7, 1, 9, 4, 8, 1, 9, 1, 8},
-      {2, 5, 7, 4, 4, 7, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 0, 6, 8, 0, 5, 6, 5, 7, 6, 0, 0, 0, 0, 0, 0},
-      {3, 9, 4, 0, 9, 7, 4, 7, 6, 4, 0, 0, 0, 0, 0, 0},
-      {2, 9, 6, 8, 7, 6, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 7, 2, 8, 7, 8, 11, 11, 8, 10, 0, 0, 0, 0, 0, 0},
-      {4, 7, 2, 0, 7, 0, 10, 7, 10, 11, 10, 0, 4, 0, 0, 0},
-      {4, 0, 9, 5, 8, 11, 2, 8, 10, 11, 11, 7, 2, 0, 0, 0},
-      {5, 11, 2, 10, 11, 7, 2, 10, 2, 4, 9, 5, 2, 4, 2, 5},
-      {4, 1, 11, 7, 4, 1, 7, 4, 7, 2, 4, 2, 8, 0, 0, 0},
-      {3, 7, 1, 11, 7, 2, 1, 2, 0, 1, 0, 0, 0, 0, 0, 0},
-      {5, 4, 1, 11, 4, 11, 7, 4, 7, 8, 2, 8, 7, 0, 9, 5},
-      {4, 7, 1, 11, 7, 2, 1, 5, 1, 9, 9, 1, 2, 0, 0, 0},
-      {4, 1, 5, 7, 1, 7, 8, 1, 8, 10, 2, 8, 7, 0, 0, 0},
-      {5, 0, 10, 2, 0, 4, 10, 2, 10, 7, 1, 5, 10, 7, 10, 5},
-      {5, 0, 7, 1, 0, 9, 7, 1, 7, 10, 2, 8, 7, 10, 7, 8},
-      {2, 9, 7, 2, 1, 4, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 8, 7, 2, 8, 4, 7, 4, 5, 7, 0, 0, 0, 0, 0, 0},
-      {2, 0, 7, 2, 5, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {4, 8, 7, 2, 8, 4, 7, 9, 7, 0, 0, 7, 4, 0, 0, 0},
-      {1, 9, 7, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 2, 6, 10, 2, 10, 9, 9, 10, 11, 0, 0, 0, 0, 0, 0},
-      {4, 0, 4, 8, 2, 6, 9, 9, 6, 10, 9, 10, 11, 0, 0, 0},
-      {4, 5, 10, 11, 5, 2, 10, 5, 0, 2, 6, 10, 2, 0, 0, 0},
-      {5, 4, 2, 5, 4, 8, 2, 5, 2, 11, 6, 10, 2, 11, 2, 10},
-      {4, 1, 11, 9, 1, 9, 6, 1, 6, 4, 6, 9, 2, 0, 0, 0},
-      {5, 9, 6, 11, 9, 2, 6, 11, 6, 1, 8, 0, 6, 1, 6, 0},
-      {5, 4, 11, 6, 4, 1, 11, 6, 11, 2, 5, 0, 11, 2, 11, 0},
-      {2, 5, 1, 11, 8, 2, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {4, 2, 6, 10, 9, 2, 10, 9, 10, 1, 9, 1, 5, 0, 0, 0},
-      {5, 9, 2, 6, 9, 6, 10, 9, 10, 5, 1, 5, 10, 0, 4, 8},
-      {3, 10, 2, 6, 10, 1, 2, 1, 0, 2, 0, 0, 0, 0, 0, 0},
-      {4, 10, 2, 6, 10, 1, 2, 8, 2, 4, 4, 2, 1, 0, 0, 0},
-      {3, 2, 5, 9, 2, 6, 5, 6, 4, 5, 0, 0, 0, 0, 0, 0},
-      {4, 2, 5, 9, 2, 6, 5, 0, 5, 8, 8, 5, 6, 0, 0, 0},
-      {2, 2, 4, 0, 6, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 2, 6, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 9, 8, 11, 11, 8, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 4, 9, 0, 4, 10, 9, 10, 11, 9, 0, 0, 0, 0, 0, 0},
-      {3, 0, 11, 5, 0, 8, 11, 8, 10, 11, 0, 0, 0, 0, 0, 0},
-      {2, 4, 11, 5, 10, 11, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 1, 8, 4, 1, 11, 8, 11, 9, 8, 0, 0, 0, 0, 0, 0},
-      {2, 9, 1, 11, 0, 1, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {4, 1, 8, 4, 1, 11, 8, 0, 8, 5, 5, 8, 11, 0, 0, 0},
-      {1, 5, 1, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {3, 5, 10, 1, 5, 9, 10, 9, 8, 10, 0, 0, 0, 0, 0, 0},
-      {4, 4, 9, 0, 4, 10, 9, 5, 9, 1, 1, 9, 10, 0, 0, 0},
-      {2, 0, 10, 1, 8, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 4, 10, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {2, 5, 8, 4, 9, 8, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 0, 5, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {1, 0, 8, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  };
-  return edgeCases[edgecase];
-}
-
-template <typename DeviceType> struct Pass4TrimState {
-  SIZE left, right;
-  SIZE r, c, f;
+private:
   SIZE nr, nc, nf;
-  // vtkm::Id3 ijk;
-  // vtkm::Id4 startPos;
-  // SIZE cellId;
-  // vtkm::Id axis_inc;
-  SIZE boundaryStatus[3];
-  bool hasWork = true;
+  SubArray<1, T, DeviceType> * start_value;
+  SubArray<1, T, DeviceType> * end_value;
+  SubArray<1, SIZE, DeviceType> * edge_cases;
+  T iso_value;
+};
 
-  MGARDX_EXEC
-  Pass4TrimState(SIZE r, SIZE f, SIZE nf, SIZE nc, SIZE nr,
-                 SubArray<2, SIZE, DeviceType> &axis_min,
-                 SubArray<2, SIZE, DeviceType> &axis_max,
-                 SubArray<3, SIZE, DeviceType> &edges)
-      : r(r), f(f), nf(nf), nc(nc), nr(nr) {
-    // ijk = compute_ijk(AxisToSum{}, threadIndices.GetInputIndex3D());
+template <typename T, typename DeviceType>
+class SFE_Pass2Functor : public Functor<DeviceType> {
+public:
+  MGARDX_CONT SFE_Pass2Functor(SIZE nr, SIZE nc, SIZE nf,
+                               SubArray<1, SIZE, DeviceType> * role,
+                               SubArray<1, SIZE, DeviceType> * pZ_index,
+                               SubArray<1, SIZE, DeviceType> * neighbor,
+                              SubArray<1, SIZE, DeviceType> * edge_cases,
+                              SubArray<1, SIZE, DeviceType> * cell_ids,
+                              SubArray<1, SIZE, DeviceType> cell_cases,
+                              SubArray<1, SIZE, DeviceType> point_count,
+                              SubArray<1, SIZE, DeviceType> tri_count)
+      : nr(nr), nc(nc), nf(nf), role(role), pZ_index(pZ_index), neighbor(neighbor), edge_cases(edge_cases), 
+      cell_ids(cell_ids), cell_cases(cell_cases), point_count(point_count), tri_count(tri_count) {
+    Functor<DeviceType>();
+  }
 
-    // startPos = compute_neighbor_starts(AxisToSum{}, ijk, pdims);
-    // axis_inc = compute_inc(AxisToSum{}, pdims);
-
-    // Compute the subset (start and end) of the row that we need
-    // to iterate to generate triangles for the iso-surface
-    hasWork =
-        computeTrimBounds(r, f, nc, edges, axis_min, axis_max, left, right);
-    hasWork = hasWork && left != right;
-    if (!hasWork) {
+  MGARDX_EXEC void Operation1() {
+    SIZE f = FunctorBase<DeviceType>::GetBlockIdX() *
+                 FunctorBase<DeviceType>::GetBlockDimX() +
+             FunctorBase<DeviceType>::GetThreadIdX();
+    SIZE c = FunctorBase<DeviceType>::GetBlockIdY() *
+                 FunctorBase<DeviceType>::GetBlockDimY() +
+             FunctorBase<DeviceType>::GetThreadIdY();
+    SIZE r = FunctorBase<DeviceType>::GetBlockIdZ() *
+                 FunctorBase<DeviceType>::GetBlockDimZ() +
+             FunctorBase<DeviceType>::GetThreadIdZ();
+ 
+    if (c >= nc || r >= nr || 
+        f >= role[r * nc + c].getShape(0)) {
       return;
     }
 
-    // cellId = compute_start(AxisToSum{}, ijk, pdims - vtkm::Id3{ 1, 1, 1 });
+    // local cell
+    if (*role[r * nc + c](f) == LEAD) {
+      SIZE local_cell_id = *cell_ids[r * nc + c](f);
+      SIZE local_pZ_index = *pZ_index[r * nc + c](f);
 
-    // update our ijk
+      SIZE e0 = *edge_cases[r * nc + c](f);
+      SIZE e1 = *edge_cases[r * nc + c](f+1);
+      SIZE e2 = *edge_cases[(r+1) * nc + c](local_pZ_index);
+      SIZE e3 = *edge_cases[(r+1) * nc + c](local_pZ_index+1);
 
-    c = left;
+      SIZE local_cell_case = (e0 | (e1 << 2) | (e2 << 4) | (e3 << 6));
+      // printf("edge case: %u %u %u %u, cell_case: %u\n",
+      //         e0, e1, e2, e3, local_cell_case);
 
-    boundaryStatus[0] = MGARD_Interior;
-    boundaryStatus[1] = MGARD_Interior;
-    boundaryStatus[2] = MGARD_Interior;
+      printf("cell_cases(%u %u %u): %u\n", r, c, f, local_cell_case);
+      *cell_cases(local_cell_id) = local_cell_case;
+      SIZE local_tri_count = GetNumberOfPrimitives(local_cell_case);
+      *tri_count(local_cell_id) = local_tri_count;
 
-    if (c < 1) {
-      boundaryStatus[1] += MGARD_MinBoundary;
-    }
-    if (c >= (nc - 2)) {
-      boundaryStatus[1] += MGARD_MaxBoundary;
-    }
-    if (f < 1) {
-      boundaryStatus[0] += MGARD_MinBoundary;
-    }
-    if (f >= (nf - 2)) {
-      boundaryStatus[0] += MGARD_MaxBoundary;
-    }
-    if (r < 1) {
-      boundaryStatus[2] += MGARD_MinBoundary;
-    }
-    if (r >= (nr - 2)) {
-      boundaryStatus[2] += MGARD_MaxBoundary;
+      if (local_tri_count > 0) {
+        SIZE const *edgeUses = GetEdgeUses(local_cell_case);
+        SIZE local_neighbor = *neighbor[r * nc + c](f);
+        SIZE local_edge_count = 0;
+
+        // 1st priority
+        local_edge_count += edgeUses[0];
+        local_edge_count += edgeUses[8];
+        local_edge_count += edgeUses[4];
+
+        // 2nd priority
+        if (!(local_neighbor & pX)) {
+          local_edge_count += edgeUses[1];
+        }
+        if (!(local_neighbor & pY)) {
+          local_edge_count += edgeUses[5];
+        }
+        if (!(local_neighbor & pY)) {
+          local_edge_count += edgeUses[9];
+        }
+
+        // 3rd priority
+        if (!(local_neighbor & pZ) && !(local_neighbor & nXpZ)) {
+          local_edge_count += edgeUses[2];
+        }
+        if (!(local_neighbor & pZ) && !(local_neighbor & nYpZ)) {
+          local_edge_count += edgeUses[6];
+        }
+        if (!(local_neighbor & pX) && !(local_neighbor & pXnY)) {
+          local_edge_count += edgeUses[10];
+        }
+
+        // 4th priority
+        if (!(local_neighbor & pXpZ) && !(local_neighbor & pZ) && !(local_neighbor & pX)) {
+          local_edge_count += edgeUses[3];
+        }
+        if (!(local_neighbor & pYpZ) && !(local_neighbor & pZ) && !(local_neighbor & pY)) {
+          local_edge_count += edgeUses[7];
+        }
+        if (!(local_neighbor & pXpY) && !(local_neighbor & pX) && !(local_neighbor & pY)) {
+          local_edge_count += edgeUses[11];
+        }
+
+        *point_count(local_cell_id) = local_edge_count;
+        // printf("local_cell_id: %u local_edge_count: %u\n", local_cell_id, local_edge_count);
+      } else {
+        *point_count(local_cell_id) = 0;
+      }
     }
   }
 
-  MGARDX_EXEC void increment() {
-    // compute what the current cellId is
-    // cellId = increment_cellId(AxisToSum{}, cellId, axis_inc);
-
-    // compute what the current ijk is
-    c++;
-
-    // compute what the current boundary state is
-    // can never be on the MGARD_MinBoundary after we increment
-    if (c >= (nc - 2)) {
-      boundaryStatus[1] = MGARD_MaxBoundary;
-    } else {
-      boundaryStatus[1] = MGARD_Interior;
-    }
+  MGARDX_CONT size_t shared_memory_size() {
+    size_t size = 0;
+    return size;
   }
+
+private:
+  SIZE nr, nc, nf;
+  SubArray<1, SIZE, DeviceType> * role;
+  SubArray<1, SIZE, DeviceType> * pZ_index;
+  SubArray<1, SIZE, DeviceType> * neighbor;
+  SubArray<1, SIZE, DeviceType> * edge_cases;
+  SubArray<1, SIZE, DeviceType> * cell_ids;
+  SubArray<1, SIZE, DeviceType> cell_cases;
+  SubArray<1, SIZE, DeviceType> point_count;
+  SubArray<1, SIZE, DeviceType> tri_count;
 };
 
-template <typename DeviceType>
-MGARDX_EXEC void init_voxelIds(SIZE r, SIZE f, SIZE edgeCase,
-                               SubArray<3, SIZE, DeviceType> &axis_sum,
-                               SIZE *edgeIds) {
-  SIZE const *edgeUses = GetEdgeUses(edgeCase);
-  edgeIds[0] = *axis_sum(r, f, 1); // x-edges
-  edgeIds[1] = *axis_sum(r, f + 1, 1);
-  edgeIds[2] = *axis_sum(r + 1, f, 1);
-  edgeIds[3] = *axis_sum(r + 1, f + 1, 1);
-
-  edgeIds[4] = *axis_sum(r, f, 0); // y-edges
-  edgeIds[5] = edgeIds[4] + edgeUses[4];
-  edgeIds[6] = *axis_sum(r + 1, f, 0);
-  edgeIds[7] = edgeIds[6] + edgeUses[6];
-
-  edgeIds[8] = *axis_sum(r, f, 2); // z-edges
-  edgeIds[9] = edgeIds[8] + edgeUses[8];
-  edgeIds[10] = *axis_sum(r, f + 1, 2);
-  edgeIds[11] = edgeIds[10] + edgeUses[10];
-}
-
-MGARDX_EXEC void advance_voxelIds(SIZE const *edgeUses, SIZE *edgeIds) {
-  edgeIds[0] += edgeUses[0]; // x-edges
-  edgeIds[1] += edgeUses[1];
-  edgeIds[2] += edgeUses[2];
-  edgeIds[3] += edgeUses[3];
-  edgeIds[4] += edgeUses[4]; // y-edges
-  edgeIds[5] = edgeIds[4] + edgeUses[5];
-  edgeIds[6] += edgeUses[6];
-  edgeIds[7] = edgeIds[6] + edgeUses[7];
-  edgeIds[8] += edgeUses[8]; // z-edges
-  edgeIds[9] = edgeIds[8] + edgeUses[9];
-  edgeIds[10] += edgeUses[10];
-  edgeIds[11] = edgeIds[10] + edgeUses[11];
-}
-
-template <typename DeviceType>
-MGARDX_EXEC void
-generate_tris(SIZE edgeCase, SIZE numTris, SIZE *edgeIds, SIZE &cell_tri_offset,
-              SubArray<1, SIZE, DeviceType> &triangle_topology) {
-
-  // printf("edgeCase: %u\n", edgeCase);
-  SIZE const *edges = GetTriEdgeCases(edgeCase);
-  SIZE edgeIndex = 1;
-  SIZE index = cell_tri_offset * 3;
-  // printf("generate_tris: (%u %u %u) \n",
-  //     index, index+1, index+2);
-  for (SIZE i = 0; i < numTris; ++i) {
-    // This keeps the same winding for the triangles that marching cells
-    // produced. By keeping the winding the same we make sure
-    // that 'fast' normals are consistent with the marching
-    // cells version
-
-    // printf("generate_tris: (%u %u %u) <- (%u %u %u)\n",
-    //   index, index+1, index+2,
-    //   edgeIndex,
-    //   edgeIndex + 2,
-    //   edgeIndex + 1);
-
-    // if (cell_tri_offset == 6) {
-    //   printf("edgeIds: %u %u %u %u %u %u %u %u %u %u %u %u\n",
-    //           edgeIds[0], edgeIds[1], edgeIds[2], edgeIds[3], edgeIds[4],
-    //           edgeIds[5], edgeIds[6], edgeIds[7], edgeIds[8], edgeIds[9],
-    //           edgeIds[10], edgeIds[11]);
-    //   printf("edgeCase: %u, tri (%u)%u (%u)%u (%u)%u\n", edgeCase,
-    //   edges[edgeIndex], edgeIds[edges[edgeIndex]],
-    //                           edges[edgeIndex + 2], edgeIds[edges[edgeIndex +
-    //                           2]], edges[edgeIndex + 1],
-    //                           edgeIds[edges[edgeIndex + 1]]);
-    // }
-
-    // if (edgeCase >= 256 || index + 2 >= 3187914*3)
-    //   printf("edgeCase: %u, index: %u %u %u\n", edgeCase, index, index + 1,
-    //   index + 2);
-    // if (edges[edgeIndex]>=12 || edges[edgeIndex + 2] >= 12 || edges[edgeIndex
-    // + 1] >= 12) {
-    //   printf("edges: %u %u %u\n", edges[edgeIndex], edges[edgeIndex+2],
-    //   edges[edgeIndex+1]);
-    // }
-    // if (edgeIndex+2 >= 16) {
-    //   printf("edgeIndex: %u %u %u\n", edgeIndex, edgeIndex+2, edgeIndex+1);
-    // }
-    // index = 0;
-    *triangle_topology(index) = edgeIds[edges[edgeIndex]];
-    *triangle_topology(index + 1) = edgeIds[edges[edgeIndex + 2]];
-    *triangle_topology(index + 2) = edgeIds[edges[edgeIndex + 1]];
-    index += 3;
-    edgeIndex += 3;
-  }
-  cell_tri_offset += numTris;
-}
-
-MGARDX_EXEC bool fully_interior(const SIZE *boundaryStatus) {
-  return boundaryStatus[0] == MGARD_Interior &&
-         boundaryStatus[1] == MGARD_Interior &&
-         boundaryStatus[2] == MGARD_Interior;
-}
-
-MGARDX_EXEC bool case_includes_axes(const SIZE *const edgeUses) {
-
-  return (edgeUses[0] != 0 || edgeUses[4] != 0 || edgeUses[8] != 0);
-}
-
-MGARDX_EXEC SIZE const *GetVertMap(SIZE index) {
-  static constexpr SIZE vertMap[12][2] = {
-      {0, 1}, {2, 3}, {4, 5}, {6, 7}, {0, 2}, {1, 3},
-      {4, 6}, {5, 7}, {0, 4}, {1, 5}, {2, 6}, {3, 7},
-  };
-  return vertMap[index];
-}
-
-MGARDX_EXEC SIZE const *GetVertOffsets(SIZE Vert) {
-  static constexpr SIZE vertMap[8][3] = {
-      {0, 0, 0}, {0, 1, 0}, {1, 0, 0}, {1, 1, 0},
-      {0, 0, 1}, {0, 1, 1}, {1, 0, 1}, {1, 1, 1},
-  };
-  return vertMap[Vert];
-}
 
 template <typename T, typename DeviceType>
-MGARDX_EXEC void InterpolateEdge(SIZE edgeNum, SIZE f, SIZE c, SIZE r,
+class SFE_Pass3Functor : public Functor<DeviceType> {
+public:
+  MGARDX_CONT SFE_Pass3Functor(SIZE nr, SIZE nc, SIZE nf,
+                               SubArray<1, SIZE, DeviceType> * role,
+                               SubArray<1, SIZE, DeviceType> * pY_index,
+                               SubArray<1, SIZE, DeviceType> * pZ_index,
+                               SubArray<1, SIZE, DeviceType> * neighbor,
+                              SubArray<1, SIZE, DeviceType> * cell_ids,
+                              SubArray<1, SIZE, DeviceType> cell_cases,
+                              SubArray<1, SIZE, DeviceType> point_count_scan,
+                              SubArray<1, SIZE, DeviceType> tri_count_scan,
+                              SubArray<1, SIZE, DeviceType> * edgeX_ids,
+                              SubArray<1, SIZE, DeviceType> * edgeY_ids,
+                              SubArray<1, SIZE, DeviceType> * edgeZ_ids)
+      : nr(nr), nc(nc), nf(nf), role(role), pY_index(pY_index), pZ_index(pZ_index), neighbor(neighbor), cell_ids(cell_ids), cell_cases(cell_cases), 
+        point_count_scan(point_count_scan), tri_count_scan(tri_count_scan), 
+        edgeX_ids(edgeX_ids), edgeY_ids(edgeY_ids), edgeZ_ids(edgeZ_ids) {
+    Functor<DeviceType>();
+  }
+
+  MGARDX_EXEC void Operation1() {
+    SIZE f = FunctorBase<DeviceType>::GetBlockIdX() *
+                 FunctorBase<DeviceType>::GetBlockDimX() +
+             FunctorBase<DeviceType>::GetThreadIdX();
+    SIZE c = FunctorBase<DeviceType>::GetBlockIdY() *
+                 FunctorBase<DeviceType>::GetBlockDimY() +
+             FunctorBase<DeviceType>::GetThreadIdY();
+    SIZE r = FunctorBase<DeviceType>::GetBlockIdZ() *
+                 FunctorBase<DeviceType>::GetBlockDimZ() +
+             FunctorBase<DeviceType>::GetThreadIdZ();
+ 
+    if (c >= nc || r >= nr || 
+        f >= role[r * nc + c].getShape(0)) {
+      return;
+    }
+
+    // local cell
+    if (*role[r * nc + c](f) == LEAD) {
+      SIZE local_cell_id = *cell_ids[r * nc + c](f);
+      SIZE local_pZ_index = *pZ_index[r * nc + c](f);
+      SIZE local_pY_index = *pY_index[r * nc + c](f);
+      if (c == nc - 1) {
+        local_pY_index = f;
+      }
+
+      // printf("local_pY_index: %u\n", local_pY_index);
+
+      // printf("rcf: %u %u %u, local_pY_index: %u\n", r, c, f, local_pY_index);
+      SIZE prev_point_count = *point_count_scan(local_cell_id);
+      SIZE local_cell_case = *cell_cases(local_cell_id);
+      SIZE local_tri_count = GetNumberOfPrimitives(local_cell_case);
+
+      if (local_tri_count > 0) {
+        SIZE const *edgeUses = GetEdgeUses(local_cell_case);
+        SIZE local_neighbor = *neighbor[r * nc + c](f);
+
+        // printf("rcf: %u %u %u, edge use: %u %u %u\n",
+        //         r, c, f, edgeUses[0], edgeUses[4], edgeUses[8]);
+
+        // 1st priority
+        if (edgeUses[4]) {
+          // if (1) {
+          //   printf("edgeUses[4]: %u\n", prev_point_count);
+          // }
+          *edgeX_ids[r * (nc+1) + c](f) = prev_point_count; prev_point_count++;
+        }
+        if (edgeUses[0]) {
+          // if (1) {
+          //   printf("edgeUses[0]: %u\n", prev_point_count);
+          // }
+          *edgeY_ids[r * (nc+1) + c](f) = prev_point_count; prev_point_count++;
+        }
+        if (edgeUses[8]) {
+          // if (1) {
+          //   printf("edgeUses[8]: %u\n", prev_point_count);
+          // }
+          *edgeZ_ids[r * (nc+1) + c](f) = prev_point_count; prev_point_count++;
+        }
+
+        // // 2nd priority
+        if (edgeUses[1] && !(local_neighbor & pX)) {
+          // local_edge_count += edgeUses[1];
+          // if (1) {
+          //   printf("edgeUses[1]: %u\n", prev_point_count);
+          // }
+          *edgeY_ids[r * (nc+1) + c](f+1) = prev_point_count; prev_point_count++;
+        }
+        if (edgeUses[5] && !(local_neighbor & pY)) {
+          // local_edge_count += edgeUses[5];
+          // if (1) {
+            // printf("edgeUses[5]: %u\n", prev_point_count);
+            // printf("local_pY_index: %u, local_neighbor: %u\n", local_pY_index, local_neighbor);
+          // }
+          *edgeX_ids[r * (nc+1) + c+1](local_pY_index) = prev_point_count; prev_point_count++;
+        } 
+        if (edgeUses[9] && !(local_neighbor & pY)) {
+          // local_edge_count += edgeUses[9];
+          // if (1) {
+          //   printf("cell: %u rcf: %u %u %u edgeUses[9]: %u\n",local_cell_id, r, c, local_pY_index, prev_point_count);
+          // }
+          *edgeZ_ids[r * (nc+1) + c+1](local_pY_index) = prev_point_count; prev_point_count++;
+        }
+
+        // 3rd priority
+        if (edgeUses[2] && !(local_neighbor & pZ) && !(local_neighbor & nXpZ)) {
+          // local_edge_count += edgeUses[2];
+          // if (1) {
+          //   printf("edgeUses[2]: %u\n", prev_point_count);
+          // }
+          *edgeY_ids[(r+1) * (nc+1) + c](local_pZ_index) = prev_point_count; prev_point_count++;
+        }
+        if (edgeUses[6] && !(local_neighbor & pZ) && !(local_neighbor & nYpZ)) {
+          // local_edge_count += edgeUses[6];
+          // if (1) {
+          //   printf("edgeUses[6]: %u\n", prev_point_count);
+          // }
+          *edgeX_ids[(r+1) * (nc+1) + c](local_pZ_index) = prev_point_count; prev_point_count++;
+        }
+        if (edgeUses[10] && !(local_neighbor & pX) && !(local_neighbor & pXnY)) {
+          // local_edge_count += edgeUses[10];
+          // if (1) {
+          //   printf("edgeUses[10]: %u\n", prev_point_count);
+          // }
+          *edgeZ_ids[r * (nc+1) + c](f+1) = prev_point_count; prev_point_count++;
+        }
+
+        // 4th priority
+        if (edgeUses[3] && !(local_neighbor & pXpZ) && !(local_neighbor & pZ) && !(local_neighbor & pX)) {
+          // local_edge_count += edgeUses[3];
+          // if (1) {
+          //   printf("edgeUses[3]: %u\n", prev_point_count);
+          // }
+          SIZE local_pXpZ_index = local_pZ_index+1;
+          *edgeY_ids[(r+1) * (nc+1) + c](local_pXpZ_index) = prev_point_count; prev_point_count++;
+        }
+        if (edgeUses[7] && !(local_neighbor & pYpZ) && !(local_neighbor & pZ) && !(local_neighbor & pY)) {
+          // local_edge_count += edgeUses[7];
+          // if (1) {
+          //   printf("edgeUses[7]: %u\n", prev_point_count);
+          // }
+          SIZE local_pYpZ_index = *pZ_index[r * nc + c+1](local_pY_index);
+          *edgeX_ids[(r+1) * (nc+1) + (c+1)](local_pYpZ_index) = prev_point_count; prev_point_count++;
+        }
+        if (edgeUses[11] && !(local_neighbor & pXpY) && !(local_neighbor & pX) && !(local_neighbor & pY)) {
+          // local_edge_count += edgeUses[11];
+          // if (1) {
+          //   printf("edgeUses[11]: %u\n", prev_point_count);
+          // }
+          SIZE local_pXpY_index = local_pY_index+1;
+          *edgeZ_ids[r * (nc+1) + (c+1)](local_pXpY_index) = prev_point_count; prev_point_count++;
+        }
+      }
+    }
+  }
+
+  MGARDX_CONT size_t shared_memory_size() {
+    size_t size = 0;
+    return size;
+  }
+
+private:
+  SIZE nr, nc, nf;
+  SubArray<1, SIZE, DeviceType> * role;
+  SubArray<1, SIZE, DeviceType> * pY_index;
+  SubArray<1, SIZE, DeviceType> * pZ_index;
+  SubArray<1, SIZE, DeviceType> * neighbor;
+  SubArray<1, SIZE, DeviceType> * cell_ids;
+  SubArray<1, SIZE, DeviceType> cell_cases;
+  SubArray<1, SIZE, DeviceType> point_count_scan;
+  SubArray<1, SIZE, DeviceType> tri_count_scan;
+  SubArray<1, SIZE, DeviceType> * edgeX_ids;
+  SubArray<1, SIZE, DeviceType> * edgeY_ids;
+  SubArray<1, SIZE, DeviceType> * edgeZ_ids;
+};
+
+
+template <typename T, typename DeviceType>
+MGARDX_EXEC void InterpolateEdge(SIZE edgeNum, SIZE x, SIZE y, SIZE z,
                                  SIZE const *edgeUses, SIZE *edgeIds,
-                                 T iso_value, SubArray<3, T, DeviceType> &v,
+                                 T iso_value, T * v,
                                  SubArray<1, T, DeviceType> &points) {
   if (!edgeUses[edgeNum]) {
     return;
   }
 
   SIZE writeIndex = edgeIds[edgeNum] * 3;
+    // printf("writeIndex: %u\n", writeIndex); 
+
   SIZE const *verts = GetVertMap(edgeNum);
   SIZE const *offsets0 = GetVertOffsets(verts[0]);
   SIZE const *offsets1 = GetVertOffsets(verts[1]);
 
-  SIZE r0 = r + offsets0[2];
-  SIZE c0 = c + offsets0[1];
-  SIZE f0 = f + offsets0[0];
+  SIZE z0 = z + offsets0[2];
+  SIZE y0 = y + offsets0[1];
+  SIZE x0 = x + offsets0[0];
 
-  SIZE r1 = r + offsets1[2];
-  SIZE c1 = c + offsets1[1];
-  SIZE f1 = f + offsets1[0];
+  SIZE z1 = z + offsets1[2];
+  SIZE y1 = y + offsets1[1];
+  SIZE x1 = x + offsets1[0];
 
-  T s0 = *v(r0, c0, f0);
-  T s1 = *v(r1, c1, f1);
+  T s0 = v[verts[0]];
+  T s1 = v[verts[1]];
+
+  // printf("s: %f %f\n", s0, s1);
 
   T w = (iso_value - s0) / (s1 - s0);
 
-  // if (writeIndex == 0) {
-  //   printf("iso_value: %f, s0: %f, s1: %f, %f %f w: %f\n",
-  //             iso_value, s0, s1, (iso_value - s0), (s1 - s0), w);
-  // }
+  // // if (writeIndex == 0) {
+  // // printf("x: %u %u %u\n", x, y, z);
+  // // printf("x0: %u %u %u\n", x0, y0, z0);
+  // // printf("x1: %u %u %u\n", x1, y1, z1);
+  // //   printf("iso_value: %f, s0: %f, s1: %f, %f %f w: %f, writeIndex: %u\n",
+  // //             iso_value, s0, s1, (iso_value - s0), (s1 - s0), w, writeIndex);
+  // //   printf("point: %f %f %f, writeIndex: %u\n",
+  // //            (1 - w) * x0 + w * x1, (1 - w) * y0 + w * y1, (1 - w) * z0 + w * z1, writeIndex);
+  // // }
 
-  *points(writeIndex) = (1 - w) * f0 + w * f1;
-  *points(writeIndex + 1) = (1 - w) * c0 + w * c1;
-  *points(writeIndex + 2) = (1 - w) * r0 + w * r1;
+  // printf("index: %u %u %u, edgeNum: %u, point %f %f %f, writeIndex: %u\n",
+  //         z, y, x, edgeNum, 
+  //         (1 - w) * x0 + w * x1,
+  //         (1 - w) * y0 + w * y1,
+  //         (1 - w) * z0 + w * z1,
+  //         writeIndex);
+
+  *points(writeIndex) = (1 - w) * x0 + w * x1;
+  *points(writeIndex + 1) = (1 - w) * y0 + w * y1;
+  *points(writeIndex + 2) = (1 - w) * z0 + w * z1;
 }
 
 template <typename T, typename DeviceType>
-MGARDX_EXEC void Generate(SIZE f, SIZE c, SIZE r, SIZE *boundaryStatus,
-                          SIZE const *edgeUses, SIZE *edgeIds, T iso_value,
-                          SubArray<3, T, DeviceType> &v,
-                          SubArray<1, T, DeviceType> &points) {
-
-  InterpolateEdge(0, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-  InterpolateEdge(4, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-  InterpolateEdge(8, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-
-  const bool onX = boundaryStatus[1] & MGARD_MaxBoundary;
-  const bool onY = boundaryStatus[0] & MGARD_MaxBoundary;
-  const bool onZ = boundaryStatus[2] & MGARD_MaxBoundary;
-
-  if (onX) //+x boundary
-  {
-    InterpolateEdge(5, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-    InterpolateEdge(9, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-    if (onY) //+y boundary
-    {
-      InterpolateEdge(11, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-    }
-    if (onZ) //+z boundary
-    {
-      InterpolateEdge(7, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-    }
-  }
-
-  if (onY) //+y boundary
-  {
-    InterpolateEdge(1, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-    InterpolateEdge(10, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-    if (onZ) //+z boundary
-    {
-      InterpolateEdge(3, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-    }
-  }
-
-  if (onZ) //+z boundary
-  {
-    InterpolateEdge(2, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-    InterpolateEdge(6, f, c, r, edgeUses, edgeIds, iso_value, v, points);
-  }
-}
-
-template <typename T, typename DeviceType>
-class Pass1Functor : public Functor<DeviceType> {
+class SFE_Pass4Functor : public Functor<DeviceType> {
 public:
-  MGARDX_CONT Pass1Functor(SIZE nr, SIZE nc, SIZE nf,
-                           SubArray<3, T, DeviceType> v, T iso_value,
-                           SubArray<3, SIZE, DeviceType> axis_sum,
-                           SubArray<2, SIZE, DeviceType> axis_min,
-                           SubArray<2, SIZE, DeviceType> axis_max,
-                           SubArray<3, SIZE, DeviceType> edges)
-      : nr(nr), nc(nc), nf(nf), v(v), iso_value(iso_value), axis_sum(axis_sum),
-        axis_min(axis_min), axis_max(axis_max), edges(edges) {
+  MGARDX_CONT SFE_Pass4Functor(SIZE nr, SIZE nc, SIZE nf,
+                           SubArray<1, T, DeviceType> * start_value,
+                           SubArray<1, T, DeviceType> * end_value,
+                           SubArray<1, SIZE, DeviceType> * index,
+                           SubArray<1, SIZE, DeviceType> * role,
+                           SubArray<1, SIZE, DeviceType> * pY_index,
+                           SubArray<1, SIZE, DeviceType> * pZ_index,
+                           SubArray<1, SIZE, DeviceType> * neighbor,
+                           SubArray<1, SIZE, DeviceType> * cell_ids,
+                           SubArray<1, SIZE, DeviceType> * level_index,
+                           T iso_value,
+                           SubArray<1, SIZE, DeviceType> cell_cases,
+                           SubArray<1, SIZE, DeviceType> * edgeX_ids,
+                           SubArray<1, SIZE, DeviceType> * edgeY_ids,
+                           SubArray<1, SIZE, DeviceType> * edgeZ_ids,
+                           SubArray<1, SIZE, DeviceType> tri_count_scan,
+                           SubArray<1, T, DeviceType> points,
+                           SubArray<1, SIZE, DeviceType> triangles)
+      : nr(nr), nc(nc), nf(nf), start_value(start_value), end_value(end_value), index(index),
+        role(role), pY_index(pY_index), pZ_index(pZ_index), neighbor(neighbor), cell_ids(cell_ids), level_index(level_index),
+        iso_value(iso_value), cell_cases(cell_cases), edgeX_ids(edgeX_ids), edgeY_ids(edgeY_ids), edgeZ_ids(edgeZ_ids), 
+        tri_count_scan(tri_count_scan), points(points), triangles(triangles) {
     Functor<DeviceType>();
   }
 
@@ -843,262 +451,131 @@ public:
     SIZE f = FunctorBase<DeviceType>::GetBlockIdX() *
                  FunctorBase<DeviceType>::GetBlockDimX() +
              FunctorBase<DeviceType>::GetThreadIdX();
-    SIZE r = FunctorBase<DeviceType>::GetBlockIdY() *
+    SIZE c = FunctorBase<DeviceType>::GetBlockIdY() *
                  FunctorBase<DeviceType>::GetBlockDimY() +
              FunctorBase<DeviceType>::GetThreadIdY();
+    SIZE r = FunctorBase<DeviceType>::GetBlockIdZ() *
+                 FunctorBase<DeviceType>::GetBlockDimZ() +
+             FunctorBase<DeviceType>::GetThreadIdZ();
+ 
+    if (c >= nc || r >= nr || 
+        f >= role[r * nc + c].getShape(0)) {
+      return;
+    }
 
-    SIZE _axis_sum = 0;
-    SIZE _axis_min = nc;
-    SIZE _axis_max = 0;
+    // local cell
+    if (*role[r * nc + c](f) == LEAD) {
+      SIZE local_cell_id = *cell_ids[r * nc + c](f);
+      SIZE local_pZ_index = *pZ_index[r * nc + c](f);
+      SIZE local_pY_index = *pY_index[r * nc + c](f);
+      if (c == nc - 1) {
+        local_pY_index = f;
+      }
+      SIZE local_pXpZ_index = local_pZ_index+1;
+      SIZE local_pYpZ_index = *pZ_index[r * nc + c+1](local_pY_index);
+      SIZE local_pXpY_index = local_pY_index+1;
+      
+      T v[8];
 
-    T s1 = *v(r, 0, f);
-    T s0 = s1;
+      // printf("local_pY_index: %u %u %u %u %u\n", local_pY_index, local_pZ_index, local_pXpZ_index, local_pYpZ_index, local_pXpY_index);
 
-    if (f < nf && r < nr) {
-      for (SIZE c = 0; c < nc - 1; c++) {
-        SIZE edgeCase = MGARD_Below;
-        s0 = s1;
-        s1 = *v(r, c + 1, f);
-        if (s0 >= iso_value)
-          edgeCase = MGARD_LeftAbove;
-        if (s1 >= iso_value)
-          edgeCase |= MGARD_RightAbove;
+      // Get edge case
+      v[0] = *start_value[r * nc + c](f);
+      v[1] = *end_value[r * nc + c](f);
+      v[2] = *start_value[r * nc + c](f+1);
+      v[3] = *end_value[r * nc + c](f+1);
+      v[4] = *start_value[(r+1) * nc + c](local_pZ_index);
+      v[5] = *end_value[(r+1) * nc + c](local_pZ_index);
+      v[6] = *start_value[(r+1) * nc + c](local_pZ_index+1);
+      v[7] = *end_value[(r+1) * nc + c](local_pZ_index+1);
 
-        *edges(r, c, f) = edgeCase;
+      SIZE x = *level_index[0](*index[r * nc + c](f));
+      SIZE y = *level_index[1](c);
+      SIZE z = *level_index[2](r);
 
-        if (edgeCase == MGARD_LeftAbove || edgeCase == MGARD_RightAbove) {
-          _axis_sum += 1; // increment number of intersections along axis
-          _axis_max = c + 1;
-          if (_axis_min == nc) {
-            _axis_min = c;
-          }
+      SIZE edgeIds[12];
+      edgeIds[0] = *edgeY_ids[r * (nc+1) + c](f);
+      edgeIds[4] = *edgeX_ids[r * (nc+1) + c](f);
+      edgeIds[8] = *edgeZ_ids[r * (nc+1) + c](f);
+      edgeIds[1] = *edgeY_ids[r * (nc+1) + c](f+1);
+      edgeIds[5] = *edgeX_ids[r * (nc+1) + c+1](local_pY_index);
+      edgeIds[9] = *edgeZ_ids[r * (nc+1) + c+1](local_pY_index);
+      edgeIds[2] = *edgeY_ids[(r+1) * (nc+1) + c](local_pZ_index);
+      edgeIds[6] = *edgeX_ids[(r+1) * (nc+1) + c](local_pZ_index);
+      edgeIds[10] = *edgeZ_ids[r * (nc+1) + c](f+1);
+      edgeIds[3] = *edgeY_ids[(r+1) * (nc+1) + c](local_pXpZ_index);
+      edgeIds[7] = *edgeX_ids[(r+1) * (nc+1) + (c+1)](local_pYpZ_index);
+      edgeIds[11] = *edgeZ_ids[r * (nc+1) + (c+1)](local_pXpY_index);
+
+      // for (int i = 0; i < 2; i++)
+      //   printf("edgeIds[%d]: %u\n", i, edgeIds[i]);
+
+      // printf("data: %llu, r: %u x: %u %u %u\n", level_index, r, x, y, z);
+
+      // printf("level_index: %llu, %llu, %llu\n",
+      //     level_index[0].data(), level_index[1].data(), level_index[2].data());
+
+      // printf("level_index: %u, %u, %u\n",
+      //     *level_index[0](1), *level_index[1](1), *level_index[2](1));
+
+      SIZE local_cell_case = *cell_cases(local_cell_id);
+      SIZE local_tri_count = GetNumberOfPrimitives(local_cell_case);
+      SIZE prev_tri_count = *tri_count_scan(local_cell_id);
+
+      // printf("cell id: %u, local_tri_count: %u\n",
+      //         local_cell_id, prev_tri_count);
+
+      if (local_tri_count > 0) {
+        // Sum of points in cells before me
+        SIZE const *edgeUses = GetEdgeUses(local_cell_case);
+        SIZE local_neighbor = *neighbor[r * nc + c](f);
+
+        // printf("index: %u %u %u, neighbor: %u\n", z, y, x, local_neighbor);
+        
+        // printf("rcf: %u %u %u, edge use: %u %u %u\n",
+        //         r, c, f, edgeUses[0], edgeUses[4], edgeUses[8]);
+
+        InterpolateEdge(0, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        InterpolateEdge(4, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        InterpolateEdge(8, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+
+        // // 2nd priority
+        if (!(local_neighbor & pX)) {
+          InterpolateEdge(1, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
-        // if (r == 0 && f == 0) {
-        //   printf("s0: %f, s1: %f\n",
-        //           s0, s1);
-        // }
-      }
-
-      *axis_sum(r, f, 1) = _axis_sum;
-      *axis_min(r, f) = _axis_min;
-      *axis_max(r, f) = _axis_max;
-    }
-  }
-
-  MGARDX_EXEC void Operation2() {}
-
-  MGARDX_EXEC void Operation3() {}
-
-  MGARDX_EXEC void Operation4() {}
-
-  MGARDX_EXEC void Operation5() {}
-
-  MGARDX_CONT size_t shared_memory_size() {
-    size_t size = 0;
-    return size;
-  }
-
-private:
-  SIZE nr, nc, nf;
-  SubArray<3, T, DeviceType> v;
-  T iso_value;
-  SubArray<3, SIZE, DeviceType> axis_sum;
-  SubArray<2, SIZE, DeviceType> axis_min;
-  SubArray<2, SIZE, DeviceType> axis_max;
-  SubArray<3, SIZE, DeviceType> edges;
-};
-
-template <typename T, typename DeviceType>
-class Pass2Functor : public Functor<DeviceType> {
-public:
-  MGARDX_CONT Pass2Functor(SIZE nr, SIZE nc, SIZE nf,
-                           SubArray<3, SIZE, DeviceType> axis_sum,
-                           SubArray<2, SIZE, DeviceType> axis_min,
-                           SubArray<2, SIZE, DeviceType> axis_max,
-                           SubArray<3, SIZE, DeviceType> edges,
-                           SubArray<2, SIZE, DeviceType> cell_tri_count)
-      : nr(nr), nc(nc), nf(nf), v(v), iso_value(iso_value), axis_sum(axis_sum),
-        axis_min(axis_min), axis_max(axis_max), edges(edges),
-        cell_tri_count(cell_tri_count) {
-    Functor<DeviceType>();
-  }
-
-  MGARDX_EXEC void Operation1() {
-    SIZE f = FunctorBase<DeviceType>::GetBlockIdX() *
-                 FunctorBase<DeviceType>::GetBlockDimX() +
-             FunctorBase<DeviceType>::GetThreadIdX();
-    SIZE r = FunctorBase<DeviceType>::GetBlockIdY() *
-                 FunctorBase<DeviceType>::GetBlockDimY() +
-             FunctorBase<DeviceType>::GetThreadIdY();
-
-    if (f >= nf - 1 || r >= nr - 1) {
-      return;
-    }
-
-    // compute trim blounds
-    SIZE left, right;
-    bool hasWork =
-        computeTrimBounds(r, f, nc, edges, axis_min, axis_max, left, right);
-    if (!hasWork) {
-      return;
-    }
-
-    bool onBoundary[3]; // f, c, r
-    onBoundary[0] = f >= nf - 2;
-    onBoundary[2] = r >= nr - 2;
-    SIZE _cell_tri_count = 0;
-
-    SIZE _axis_sum[3];
-    _axis_sum[1] = *axis_sum(r, f, 1); //*axis_sum_c(r, f);
-    _axis_sum[0] = 0;
-    _axis_sum[2] = 0;
-
-    SIZE adj_row_sum[3] = {0, 0, 0};
-    SIZE adj_col_sum[3] = {0, 0, 0};
-
-    if (onBoundary[0]) {
-      adj_row_sum[1] = *axis_sum(r, f + 1, 1); //*axis_sum_c(r, f+1);
-    }
-
-    if (onBoundary[2]) {
-      adj_col_sum[1] = *axis_sum(r + 1, f, 1); //*axis_sum_c(r+1, f);
-    }
-
-    for (SIZE c = left; c < right; c++) {
-      SIZE edgeCase = getEdgeCase(r, c, f, edges);
-      SIZE numTris = GetNumberOfPrimitives(edgeCase);
-      if (numTris > 0) {
-        _cell_tri_count += numTris;
-        SIZE const *edgeUses = GetEdgeUses(edgeCase);
-
-        onBoundary[1] = c >= nc - 2;
-
-        _axis_sum[0] += edgeUses[4];
-        _axis_sum[2] += edgeUses[8];
-
-        CountBoundaryEdgeUses(onBoundary, edgeUses, _axis_sum, adj_row_sum,
-                              adj_col_sum);
-      }
-    }
-
-    *cell_tri_count(r, f) = _cell_tri_count;
-
-    *axis_sum(r, f, 1) = _axis_sum[1];
-    *axis_sum(r, f, 0) = _axis_sum[0];
-    *axis_sum(r, f, 2) = _axis_sum[2];
-
-    if (onBoundary[0]) {
-      *axis_sum(r, f + 1, 1) = adj_row_sum[1];
-      *axis_sum(r, f + 1, 0) = adj_row_sum[0];
-      *axis_sum(r, f + 1, 2) = adj_row_sum[2];
-    }
-
-    if (onBoundary[2]) {
-
-      *axis_sum(r + 1, f, 1) = adj_col_sum[1];
-      *axis_sum(r + 1, f, 0) = adj_col_sum[0];
-      *axis_sum(r + 1, f, 2) = adj_col_sum[2];
-    }
-  }
-
-  MGARDX_EXEC void Operation2() {}
-
-  MGARDX_EXEC void Operation3() {}
-
-  MGARDX_EXEC void Operation4() {}
-
-  MGARDX_EXEC void Operation5() {}
-
-  MGARDX_CONT size_t shared_memory_size() {
-    size_t size = 0;
-    return size;
-  }
-
-private:
-  SIZE nr, nc, nf;
-  SubArray<3, T, DeviceType> v;
-  T iso_value;
-  SubArray<3, SIZE, DeviceType> axis_sum;
-  SubArray<2, SIZE, DeviceType> axis_min;
-  SubArray<2, SIZE, DeviceType> axis_max;
-  SubArray<3, SIZE, DeviceType> edges;
-  SubArray<2, SIZE, DeviceType> cell_tri_count;
-};
-
-template <typename T, typename DeviceType>
-class Pass4Functor : public Functor<DeviceType> {
-public:
-  MGARDX_CONT Pass4Functor(SIZE nr, SIZE nc, SIZE nf,
-                           SubArray<3, T, DeviceType> v, T iso_value,
-                           SubArray<3, SIZE, DeviceType> axis_sum,
-                           SubArray<2, SIZE, DeviceType> axis_min,
-                           SubArray<2, SIZE, DeviceType> axis_max,
-                           SubArray<1, SIZE, DeviceType> cell_tri_count_scan,
-                           SubArray<3, SIZE, DeviceType> edges,
-                           SubArray<1, SIZE, DeviceType> triangle_topology,
-                           SubArray<1, T, DeviceType> points)
-      : nr(nr), nc(nc), nf(nf), v(v), iso_value(iso_value), axis_sum(axis_sum),
-        axis_min(axis_min), axis_max(axis_max),
-        cell_tri_count_scan(cell_tri_count_scan), edges(edges),
-        triangle_topology(triangle_topology), points(points) {
-    Functor<DeviceType>();
-  }
-
-  MGARDX_EXEC void Operation1() {
-    SIZE f = FunctorBase<DeviceType>::GetBlockIdX() *
-                 FunctorBase<DeviceType>::GetBlockDimX() +
-             FunctorBase<DeviceType>::GetThreadIdX();
-    SIZE r = FunctorBase<DeviceType>::GetBlockIdY() *
-                 FunctorBase<DeviceType>::GetBlockDimY() +
-             FunctorBase<DeviceType>::GetThreadIdY();
-
-    if (f >= nf - 1 || r >= nr - 1) {
-      return;
-    }
-
-    // printf("offset: %u\n", r * (nf-1) + f);
-    SIZE cell_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f);
-    SIZE next_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f + 1);
-
-    // printf("cell_tri_offset: %u\n", cell_tri_offset);
-
-    Pass4TrimState state(r, f, nf, nc, nr, axis_min, axis_max, edges);
-    if (!state.hasWork) {
-      return;
-    }
-
-    SIZE edgeIds[12];
-    SIZE edgeCase = getEdgeCase(r, state.left, f, edges);
-
-    init_voxelIds(r, f, edgeCase, axis_sum, edgeIds);
-    for (SIZE i = state.left; i < state.right;
-         ++i) // run along the trimmed voxels
-    {
-      edgeCase = getEdgeCase(r, i, f, edges);
-      SIZE numTris = GetNumberOfPrimitives(edgeCase);
-      if (numTris > 0) {
-        generate_tris(edgeCase, numTris, edgeIds, cell_tri_offset,
-                      triangle_topology);
-
-        SIZE const *edgeUses = GetEdgeUses(edgeCase);
-        if (!fully_interior(state.boundaryStatus) ||
-            case_includes_axes(edgeUses)) {
-          Generate(f, i, r, state.boundaryStatus, edgeUses, edgeIds, iso_value,
-                   v, points);
+        if (!(local_neighbor & pY)) {
+          InterpolateEdge(5, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
-        advance_voxelIds(edgeUses, edgeIds);
+        if (!(local_neighbor & pY)) {
+          InterpolateEdge(9, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        }
+
+        // // 3rd priority
+        if (!(local_neighbor & pZ) && !(local_neighbor & nXpZ)) {
+          InterpolateEdge(2, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        }
+        if (!(local_neighbor & pZ) && !(local_neighbor & nYpZ)) {
+          InterpolateEdge(6, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        }
+        if (!(local_neighbor & pX) && !(local_neighbor & pXnY)) {
+          InterpolateEdge(10, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        }
+
+        // // 4th priority
+        if (!(local_neighbor & pXpZ) && !(local_neighbor & pZ) && !(local_neighbor & pX)) {
+          InterpolateEdge(3, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        }
+        if (!(local_neighbor & pYpZ) && !(local_neighbor & pZ) && !(local_neighbor & pY)) {
+          InterpolateEdge(7, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        }
+        if (!(local_neighbor & pXpY) && !(local_neighbor & pX) && !(local_neighbor & pY)) {
+          InterpolateEdge(11, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        }
+
+        generate_tris(local_cell_case, local_tri_count, edgeIds, prev_tri_count, triangles);
       }
-      state.increment();
     }
   }
-
-  MGARDX_EXEC void Operation2() {}
-
-  MGARDX_EXEC void Operation3() {}
-
-  MGARDX_EXEC void Operation4() {}
-
-  MGARDX_EXEC void Operation5() {}
 
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
@@ -1107,36 +584,45 @@ public:
 
 private:
   SIZE nr, nc, nf;
-  SubArray<3, T, DeviceType> v;
+  SubArray<1, T, DeviceType> * start_value;
+  SubArray<1, T, DeviceType> * end_value;
+  SubArray<1, SIZE, DeviceType> * index;
+  SubArray<1, SIZE, DeviceType> * role;
+  SubArray<1, SIZE, DeviceType> * pY_index;
+  SubArray<1, SIZE, DeviceType> * pZ_index;
+  SubArray<1, SIZE, DeviceType> * neighbor;
+  SubArray<1, SIZE, DeviceType> * cell_ids;
+  SubArray<1, SIZE, DeviceType> * level_index;
   T iso_value;
-  SubArray<3, SIZE, DeviceType> axis_sum;
-  SubArray<2, SIZE, DeviceType> axis_min;
-  SubArray<2, SIZE, DeviceType> axis_max;
-  SubArray<3, SIZE, DeviceType> edges;
-  SubArray<1, SIZE, DeviceType> cell_tri_count_scan;
-  SubArray<1, SIZE, DeviceType> triangle_topology;
+  SubArray<1, SIZE, DeviceType> cell_cases;
+  SubArray<1, SIZE, DeviceType> * edgeX_ids;
+  SubArray<1, SIZE, DeviceType> * edgeY_ids;
+  SubArray<1, SIZE, DeviceType> * edgeZ_ids;
+  SubArray<1, SIZE, DeviceType> tri_count_scan;
   SubArray<1, T, DeviceType> points;
+  SubArray<1, SIZE, DeviceType> triangles;
 };
 
-template <typename T, typename DeviceType>
-class FlyingEdges : public AutoTuner<DeviceType> {
+
+template <DIM D, typename T, typename DeviceType>
+class SparseFlyingEdges : public AutoTuner<DeviceType> {
 public:
   MGARDX_CONT
-  FlyingEdges() : AutoTuner<DeviceType>() {}
+  SparseFlyingEdges() : AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<Pass1Functor<T, DeviceType>>
-  GenTask1(SIZE nr, SIZE nc, SIZE nf, SubArray<3, T, DeviceType> v, T iso_value,
-           SubArray<3, SIZE, DeviceType> axis_sum,
-           SubArray<2, SIZE, DeviceType> axis_min,
-           SubArray<2, SIZE, DeviceType> axis_max,
-           SubArray<3, SIZE, DeviceType> edges, int queue_idx) {
-    using FunctorType = Pass1Functor<T, DeviceType>;
-    FunctorType functor(nr, nc, nf, v, iso_value, axis_sum, axis_min, axis_max,
-                        edges);
+  MGARDX_CONT Task<SFE_Pass1Functor<T, DeviceType>>
+  GenTask1(SIZE nr, SIZE nc, SIZE nf,
+           SubArray<1, T, DeviceType> * start_value,
+           SubArray<1, T, DeviceType> * end_value,
+           T iso_value, 
+           SubArray<1, SIZE, DeviceType> * edge_cases,
+           int queue_idx) {
+    using FunctorType = SFE_Pass1Functor<T, DeviceType>;
+    FunctorType functor(nr, nc, nf, start_value, end_value, iso_value, edge_cases);
 
-    SIZE total_thread_z = 1;
-    SIZE total_thread_y = nr;
+    SIZE total_thread_z = nr;
+    SIZE total_thread_y = nc;
     SIZE total_thread_x = nf;
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
@@ -1148,26 +634,29 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
 
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
-    // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
                 queue_idx);
   }
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<Pass2Functor<T, DeviceType>>
-  GenTask2(SIZE nr, SIZE nc, SIZE nf, SubArray<3, SIZE, DeviceType> axis_sum,
-           SubArray<2, SIZE, DeviceType> axis_min,
-           SubArray<2, SIZE, DeviceType> axis_max,
-           SubArray<3, SIZE, DeviceType> edges,
-           SubArray<2, SIZE, DeviceType> cell_tri_count, int queue_idx) {
-    using FunctorType = Pass2Functor<T, DeviceType>;
-    FunctorType functor(nr, nc, nf, axis_sum, axis_min, axis_max, edges,
-                        cell_tri_count);
+  MGARDX_CONT Task<SFE_Pass2Functor<T, DeviceType>>
+  GenTask2(SIZE nr, SIZE nc, SIZE nf,
+           SubArray<1, SIZE, DeviceType> * role,
+           SubArray<1, SIZE, DeviceType> * pZ_index,
+           SubArray<1, SIZE, DeviceType> * neighbor,
+           SubArray<1, SIZE, DeviceType> * edge_cases,
+           SubArray<1, SIZE, DeviceType> * cell_ids,
+           SubArray<1, SIZE, DeviceType> cell_cases,
+           SubArray<1, SIZE, DeviceType> point_count,
+           SubArray<1, SIZE, DeviceType> tri_count, 
+           int queue_idx) {
+    using FunctorType = SFE_Pass2Functor<T, DeviceType>;
+    FunctorType functor(nr, nc, nf, role, pZ_index, neighbor, 
+                        edge_cases, cell_ids, cell_cases, point_count, tri_count);
 
-    SIZE total_thread_z = 1;
-    SIZE total_thread_y = nr - 1;
-    SIZE total_thread_x = nf - 1;
+    SIZE total_thread_z = nr;
+    SIZE total_thread_y = nc;
+    SIZE total_thread_x = nf;
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -1178,29 +667,33 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
 
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
-    // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
                 queue_idx);
   }
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<Pass4Functor<T, DeviceType>>
-  GenTask4(SIZE nr, SIZE nc, SIZE nf, SubArray<3, T, DeviceType> v, T iso_value,
-           SubArray<3, SIZE, DeviceType> axis_sum,
-           SubArray<2, SIZE, DeviceType> axis_min,
-           SubArray<2, SIZE, DeviceType> axis_max,
-           SubArray<1, SIZE, DeviceType> cell_tri_count_scan,
-           SubArray<3, SIZE, DeviceType> edges,
-           SubArray<1, SIZE, DeviceType> triangle_topology,
-           SubArray<1, T, DeviceType> points, int queue_idx) {
-    using FunctorType = Pass4Functor<T, DeviceType>;
-    FunctorType functor(nr, nc, nf, v, iso_value, axis_sum, axis_min, axis_max,
-                        cell_tri_count_scan, edges, triangle_topology, points);
+  MGARDX_CONT Task<SFE_Pass3Functor<T, DeviceType>>
+  GenTask3(SIZE nr, SIZE nc, SIZE nf,
+           SubArray<1, SIZE, DeviceType> * role,
+           SubArray<1, SIZE, DeviceType> * pY_index,
+           SubArray<1, SIZE, DeviceType> * pZ_index,
+           SubArray<1, SIZE, DeviceType> * neighbor,
+           SubArray<1, SIZE, DeviceType> * cell_ids,
+           SubArray<1, SIZE, DeviceType> cell_cases,
+           SubArray<1, SIZE, DeviceType> point_count_scan,
+           SubArray<1, SIZE, DeviceType> tri_count_scan, 
+           SubArray<1, SIZE, DeviceType> * edgeX_ids,
+           SubArray<1, SIZE, DeviceType> * edgeY_ids,
+           SubArray<1, SIZE, DeviceType> * edgeZ_ids,
+           int queue_idx) {
+    using FunctorType = SFE_Pass3Functor<T, DeviceType>;
+    FunctorType functor(nr, nc, nf, role, pY_index, pZ_index, neighbor, 
+                        cell_ids, cell_cases, point_count_scan, tri_count_scan,
+                        edgeX_ids, edgeY_ids, edgeZ_ids);
 
-    SIZE total_thread_z = 1;
-    SIZE total_thread_y = nr - 1;
-    SIZE total_thread_x = nf - 1;
+    SIZE total_thread_z = nr;
+    SIZE total_thread_y = nc;
+    SIZE total_thread_x = nf;
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -1211,143 +704,285 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
 
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
-    // shape.dataHost()[0]); PrintSubarray("shape", shape);
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
+                queue_idx);
+  }
+
+  template <SIZE R, SIZE C, SIZE F>
+  MGARDX_CONT Task<SFE_Pass4Functor<T, DeviceType>>
+  GenTask4(SIZE nr, SIZE nc, SIZE nf,
+           SubArray<1, T, DeviceType> * start_value,
+           SubArray<1, T, DeviceType> * end_value,
+           SubArray<1, SIZE, DeviceType> * index,
+           SubArray<1, SIZE, DeviceType> * role,
+           SubArray<1, SIZE, DeviceType> * pY_index,
+           SubArray<1, SIZE, DeviceType> * pZ_index,
+           SubArray<1, SIZE, DeviceType> * neighbor,
+           SubArray<1, SIZE, DeviceType> * cell_ids,
+           SubArray<1, SIZE, DeviceType> * level_index,
+           T iso_value,
+           SubArray<1, SIZE, DeviceType> cell_cases,
+           SubArray<1, SIZE, DeviceType> * edgeX_ids,
+           SubArray<1, SIZE, DeviceType> * edgeY_ids,
+           SubArray<1, SIZE, DeviceType> * edgeZ_ids,
+           SubArray<1, SIZE, DeviceType> tri_count_scan,
+           SubArray<1, T, DeviceType> points,
+           SubArray<1, SIZE, DeviceType> triangles,
+           int queue_idx) {
+    using FunctorType = SFE_Pass4Functor<T, DeviceType>;
+    FunctorType functor(nr, nc, nf, start_value, end_value, index, role, pY_index, pZ_index, neighbor, 
+                        cell_ids, level_index, iso_value, cell_cases, edgeX_ids, edgeY_ids, edgeZ_ids, tri_count_scan, points, triangles);
+
+    // PrintSubarray("tri_count_scan", tri_count_scan);
+
+    SIZE total_thread_z = nr;
+    SIZE total_thread_y = nc;
+    SIZE total_thread_x = nf;
+
+    SIZE tbx, tby, tbz, gridx, gridy, gridz;
+    size_t sm_size = functor.shared_memory_size();
+    tbz = R;
+    tby = C;
+    tbx = F;
+    gridz = ceil((float)total_thread_z / tbz);
+    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((float)total_thread_x / tbx);
+
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
                 queue_idx);
   }
 
   MGARDX_CONT
-  void Execute(SIZE nr, SIZE nc, SIZE nf, SubArray<3, T, DeviceType> v,
+  void Execute(CompressedSparseEdge<D, T, DeviceType> &cse,
                T iso_value, Array<1, SIZE, DeviceType> &Triangles,
                Array<1, T, DeviceType> &Points, int queue_idx) {
+    using Mem = MemoryManager<DeviceType>;
 
-    Timer t;
+    SubArray<1, T, DeviceType> * start_value = NULL;
+    SubArray<1, T, DeviceType> * end_value = NULL;
+    SubArray<1, SIZE, DeviceType> * index = NULL;
+    SubArray<1, SIZE, DeviceType> * role = NULL;
+    SubArray<1, SIZE, DeviceType> * pY_index = NULL;
+    SubArray<1, SIZE, DeviceType> * nY_index = NULL;
+    SubArray<1, SIZE, DeviceType> * pZ_index = NULL;
+    SubArray<1, SIZE, DeviceType> * nZ_index = NULL;
+    SubArray<1, SIZE, DeviceType> * neighbor = NULL;
+    SubArray<1, SIZE, DeviceType> * cell_ids = NULL;
+    SubArray<1, SIZE, DeviceType> * level_index = NULL;
+
+    Mem::Malloc1D(start_value, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(end_value, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(role, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(pY_index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(nY_index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(pZ_index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(nZ_index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(neighbor, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(cell_ids, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Malloc1D(level_index, D, queue_idx);
+
+    Mem::Copy1D(start_value, cse.start_value, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(end_value, cse.end_value, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(index, cse.index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(role, cse.role, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(pY_index, cse.pY_index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(nY_index, cse.nY_index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(pZ_index, cse.pZ_index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(nZ_index, cse.nZ_index, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(neighbor, cse.neighbor, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(cell_ids, cse.cell_ids, cse.shape[2]*cse.shape[1], queue_idx);
+    Mem::Copy1D(level_index, cse.level_index, D, queue_idx);
+
+
+    Array<1, SIZE, DeviceType> * edge_cases_array = new Array<1, SIZE, DeviceType> [cse.shape[2]*cse.shape[1]];
+    SubArray<1, SIZE, DeviceType> * edge_cases_h = new SubArray<1, SIZE, DeviceType> [cse.shape[2]*cse.shape[1]];;
+    SubArray<1, SIZE, DeviceType> * edge_cases = NULL;
+    Mem::Malloc1D(edge_cases, cse.shape[2]*cse.shape[1], queue_idx);
+    for (SIZE i = 0; i < cse.shape[2] * cse.shape[1]; i++) {
+      edge_cases_array[i] = Array<1, SIZE, DeviceType>({cse.role[i].getShape()[0]});
+      edge_cases_array[i].memset(0);
+      edge_cases_h[i] = SubArray(edge_cases_array[i]);
+    }
+    Mem::Copy1D(edge_cases, edge_cases_h, cse.shape[2]*cse.shape[1], queue_idx);
+
+    Array<1, SIZE, DeviceType> * edgeX_ids_array = new Array<1, SIZE, DeviceType> [cse.shape[2]*(cse.shape[1]+1)];
+    Array<1, SIZE, DeviceType> * edgeY_ids_array = new Array<1, SIZE, DeviceType> [cse.shape[2]*(cse.shape[1]+1)];
+    Array<1, SIZE, DeviceType> * edgeZ_ids_array = new Array<1, SIZE, DeviceType> [cse.shape[2]*(cse.shape[1]+1)];
+    SubArray<1, SIZE, DeviceType> * edgeX_ids_h = new SubArray<1, SIZE, DeviceType> [cse.shape[2]*(cse.shape[1]+1)];
+    SubArray<1, SIZE, DeviceType> * edgeY_ids_h = new SubArray<1, SIZE, DeviceType> [cse.shape[2]*(cse.shape[1]+1)];
+    SubArray<1, SIZE, DeviceType> * edgeZ_ids_h = new SubArray<1, SIZE, DeviceType> [cse.shape[2]*(cse.shape[1]+1)];
+    SubArray<1, SIZE, DeviceType> * edgeX_ids = NULL;
+    SubArray<1, SIZE, DeviceType> * edgeY_ids = NULL;
+    SubArray<1, SIZE, DeviceType> * edgeZ_ids = NULL;
+    Mem::Malloc1D(edgeX_ids, cse.shape[2]*(cse.shape[1]+1), queue_idx);
+    Mem::Malloc1D(edgeY_ids, cse.shape[2]*(cse.shape[1]+1), queue_idx);
+    Mem::Malloc1D(edgeZ_ids, cse.shape[2]*(cse.shape[1]+1), queue_idx);
+    for (SIZE i = 0; i < cse.shape[2]; i++) {
+      for (SIZE j = 0; j < cse.shape[1]+1; j++) {
+        SIZE ij_vertex = i * (cse.shape[1]+1) + j;
+        // initialize last row since this is for per vertex
+        SIZE ij_edge = i * (cse.shape[1]) + j;
+        SIZE ij_edge_last_row = i * (cse.shape[1]) + j - 1;
+        SIZE size = 0, size_last_row = 0;
+        if (j < cse.shape[1]) { 
+          size = cse.role[ij_edge].getShape()[0];
+        }
+        if (j > 0) {
+          size_last_row = cse.role[ij_edge_last_row].getShape()[0];
+        }
+        if (j == cse.shape[1] || size == 0 && size_last_row != 0) {
+          size = size_last_row;
+        }
+        // printf("i %u j %u: size: %u\n", i, j, size);
+        // std::cout << write_ij << " "  << read_ij << " Array size: " << cse.role[read_ij].getShape()[0] << "\n";
+        edgeX_ids_array[ij_vertex] = Array<1, SIZE, DeviceType>({size});
+        edgeY_ids_array[ij_vertex] = Array<1, SIZE, DeviceType>({size});
+        edgeZ_ids_array[ij_vertex] = Array<1, SIZE, DeviceType>({size});
+        edgeX_ids_array[ij_vertex].memset(9999999);
+        edgeY_ids_array[ij_vertex].memset(9999999);
+        edgeZ_ids_array[ij_vertex].memset(9999999);
+        edgeX_ids_h[ij_vertex] = SubArray(edgeX_ids_array[ij_vertex]);
+        edgeY_ids_h[ij_vertex] = SubArray(edgeY_ids_array[ij_vertex]);
+        edgeZ_ids_h[ij_vertex] = SubArray(edgeZ_ids_array[ij_vertex]);
+        
+      }
+    }
+    Mem::Copy1D(edgeX_ids, edgeX_ids_h, cse.shape[2]*(cse.shape[1]+1), queue_idx);
+    Mem::Copy1D(edgeY_ids, edgeY_ids_h, cse.shape[2]*(cse.shape[1]+1), queue_idx);
+    Mem::Copy1D(edgeZ_ids, edgeZ_ids_h, cse.shape[2]*(cse.shape[1]+1), queue_idx);
+
+    std::cout << "Done allocation\n";
+
+    // PrintSubarray("cell_ids", cse.cell_ids[0]);
+    // PrintSubarray("neighbor", cse.neighbor[0]);
+    // for (int i = 0; i < 25; i++) printf("y_neighbor[%d].data = %llu\n", i, cse.y_neighbor[i].data());
+
+    // PrintSubarray("cse.level_index[0]", cse.level_index[0]);
+    // PrintSubarray("cse.level_index[1]", cse.level_index[1]);
+    // PrintSubarray("cse.level_index[2]", cse.level_index[2]);
 
     const bool pitched = false;
+    Array<1, SIZE, DeviceType> cell_cases_array( {cse.cell_count}, pitched);
+    Array<1, SIZE, DeviceType> tri_count_array({cse.cell_count}, pitched);
+    Array<1, SIZE, DeviceType> point_count_array({cse.cell_count}, pitched);
+    Array<1, SIZE, DeviceType> tri_count_scan_array( {cse.cell_count + 1}, pitched);
+    Array<1, SIZE, DeviceType> point_count_scan_array( {cse.cell_count + 1}, pitched);
+    // Array<1, SIZE, DeviceType> edge_cases_array( {cse.cell_count});
+    Array<1, SIZE, DeviceType> num_point_array({1}, pitched);
+    
+    SubArray cell_cases(cell_cases_array);
+    SubArray tri_count(tri_count_array);
+    SubArray point_count(point_count_array);
+    SubArray tri_count_scan(tri_count_scan_array);
+    SubArray point_count_scan(point_count_scan_array);
+    // SubArray edge_cases(edge_cases_array);
+    SubArray num_point(num_point_array);
 
-    Array<3, SIZE, DeviceType> axis_sum_array({nr, nf, 3}, pitched);
-    Array<2, SIZE, DeviceType> axis_min_array({nr, nf}, pitched);
-    Array<2, SIZE, DeviceType> axis_max_array({nr, nf}, pitched);
-    Array<3, SIZE, DeviceType> edges_array({nr, nc, nf}, pitched);
-    Array<2, SIZE, DeviceType> cell_tri_count_array({nr - 1, nf - 1}, pitched);
-    Array<1, SIZE, DeviceType> cell_tri_count_array_scan(
-        {(nr - 1) * (nf - 1) + 1}, pitched);
-
-    SubArray axis_sum(axis_sum_array);
-    SubArray axis_min(axis_min_array);
-    SubArray axis_max(axis_max_array);
-    SubArray edges(edges_array);
-    SubArray cell_tri_count(cell_tri_count_array);
-    SubArray cell_tri_count_scan(cell_tri_count_array_scan);
-
-    using FunctorType1 = Pass1Functor<T, DeviceType>;
+    using FunctorType1 = SFE_Pass1Functor<T, DeviceType>;
     using TaskType1 = Task<FunctorType1>;
-    TaskType1 task1 = GenTask1<1, 8, 8>(nr, nc, nf, v, iso_value, axis_sum,
-                                        axis_min, axis_max, edges, queue_idx);
 
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.start();
+    // printf("cse.cell_count: %u\n", cse.cell_count);
+    // printf("edge_cases_array: %llu\n", edge_cases_array.data());
+    // TaskType1 task1 = GenTask1<4, 8, 8>(cse.shape[2], cse.shape[1], cse.shape[0], start_value, end_value, index, role, y_neighbor, z_neighbor, neighbor, 
+    //                                     cell_ids, level_index, iso_value, edge_cases, tri_count, point_count, queue_idx);
+    
+    std::cout << "Pass1 start\n";
+    TaskType1 task1 = GenTask1<4, 8, 8>(cse.shape[2], cse.shape[1], cse.shape[0], start_value, end_value, iso_value, edge_cases, queue_idx);
     DeviceAdapter<TaskType1, DeviceType>().Execute(task1);
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.end();
-    t.print("Pass 1");
-    t.clear();
+    DeviceRuntime<DeviceType>::SyncDevice();
+    std::cout << "Pass1 done\n";
 
-    // printf("After pass1\n");
-    // PrintSubarray("v", SubArray(v));
-    // PrintSubarray("axis_sum", SubArray(axis_sum).Linearize());
-    // PrintSubarray("axis_min", SubArray(axis_min));
-    // PrintSubarray("axis_max", SubArray(axis_max));
-    // PrintSubarray("edges", SubArray(edges));
-
-    using FunctorType2 = Pass2Functor<T, DeviceType>;
-    using TaskType2 = Task<FunctorType2>;
-    TaskType2 task2 =
-        GenTask2<1, 8, 8>(nr, nc, nf, axis_sum, axis_min, axis_max, edges,
-                          cell_tri_count, queue_idx);
-
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.start();
-    DeviceAdapter<TaskType2, DeviceType>().Execute(task2);
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.end();
-    t.print("Pass 2");
-    t.clear();
-
-    // printf("After pass2\n");
-    // PrintSubarray("axis_sum", SubArray(axis_sum).Linearize());
-    // PrintSubarray("cell_tri_count", SubArray(cell_tri_count));
-
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.start();
-
-    SubArray<1, SIZE, DeviceType> cell_tri_count_liearized =
-        cell_tri_count.Linearize();
-
-    DeviceCollective<DeviceType>::ScanSumExtended((nr - 1) * (nf - 1), cell_tri_count_liearized,
-                               cell_tri_count_scan, queue_idx);
-
-    SIZE numTris = 0;
-    MemoryManager<DeviceType>().Copy1D(
-        &numTris, cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-
-    SubArray<1, SIZE, DeviceType> axis_sum_liearized = axis_sum.Linearize();
-
-    Array<1, SIZE, DeviceType> newPointSize_array({1});
-    SubArray<1, SIZE, DeviceType> newPointSize_subarray(newPointSize_array);
-
-    DeviceCollective<DeviceType>::Sum(nr * nf * 3, axis_sum_liearized, newPointSize_subarray,
-                   queue_idx);
-
-    SIZE newPointSize = *(newPointSize_array.hostCopy());
-
-    DeviceCollective<DeviceType>::ScanSumExclusive(nr * nf * 3, axis_sum_liearized,
-                                axis_sum_liearized, queue_idx);
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-
-    t.end();
-    t.print("Pass 3");
-    t.clear();
-
-    // printf("After pass3\n");
-    std::cout << "numTris: " << numTris << "\n";
-    // PrintSubarray("cell_tri_count_scan", SubArray(cell_tri_count_scan));
-    // std::cout << "newPointSize: " << newPointSize << "\n";
-    // PrintSubarray("axis_sum_liearized", axis_sum_liearized);
-
-    Triangles = Array<1, SIZE, DeviceType>({numTris * 3}, pitched);
-    Points = Array<1, T, DeviceType>({newPointSize * 3}, pitched);
-
-    if (numTris == 0 || newPointSize == 0) {
-      printf("returing 0 from FlyingEdges\n");
-      return;
+    for (SIZE i = 0; i < cse.shape[2] * cse.shape[1]; i++) {
+      std::cout << "edge_cases " << i << "\n";
+      PrintSubarray("edge_cases_h", edge_cases_h[i]);
     }
 
-    SubArray<1, SIZE, DeviceType> triangle_topology(Triangles);
-    SubArray<1, T, DeviceType> points(Points);
+    using FunctorType2 = SFE_Pass2Functor<T, DeviceType>;
+    using TaskType2 = Task<FunctorType2>;
 
-    using FunctorType4 = Pass4Functor<T, DeviceType>;
+    std::cout << "Pass2 start\n";
+    TaskType2 task2 = GenTask2<4, 8, 8>(cse.shape[2], cse.shape[1], cse.shape[0], role, pZ_index, neighbor, 
+                                        edge_cases, cell_ids, cell_cases, point_count, tri_count, queue_idx);
+    DeviceAdapter<TaskType2, DeviceType>().Execute(task2);
+    DeviceRuntime<DeviceType>::SyncDevice();
+    std::cout << "Pass2 done\n";
+
+    PrintSubarray("cell_cases", cell_cases);
+    PrintSubarray("point_count", point_count);
+    PrintSubarray("tri_count", tri_count);
+
+    SubArray<1, SIZE, DeviceType> tri_count_liearized = tri_count.Linearize();
+    SubArray<1, SIZE, DeviceType> point_count_liearized = point_count.Linearize();
+
+    DeviceCollective<DeviceType>::ScanSumExtended(cse.cell_count, tri_count_liearized, tri_count_scan, queue_idx);
+    DeviceCollective<DeviceType>::ScanSumExtended(cse.cell_count, point_count_liearized, point_count_scan, queue_idx);
+
+    SIZE numTris = 0;
+    MemoryManager<DeviceType>().Copy1D(&numTris, tri_count_scan(cse.cell_count), 1, queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+
+    SIZE numPoints = 0;
+    MemoryManager<DeviceType>().Copy1D(&numPoints, point_count_scan(cse.cell_count), 1, queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+
+    PrintSubarray("point_count_scan", point_count_scan);
+    PrintSubarray("tri_count_scan", tri_count_scan);
+
+    
+    std::cout << "numPoints: " << numPoints << "\n";
+    std::cout << "numTris: " << numTris << "\n";
+
+    using FunctorType3 = SFE_Pass3Functor<T, DeviceType>;
+    using TaskType3 = Task<FunctorType3>;
+
+    std::cout << "Pass3 start\n";
+    TaskType3 task3 = GenTask3<4, 8, 8>(cse.shape[2], cse.shape[1], cse.shape[0], role, pY_index, pZ_index, neighbor, 
+                                        cell_ids, cell_cases, point_count_scan, tri_count_scan, edgeX_ids, edgeY_ids, edgeZ_ids, queue_idx);
+    DeviceAdapter<TaskType3, DeviceType>().Execute(task3);
+    DeviceRuntime<DeviceType>::SyncDevice();
+    std::cout << "Pass3 done\n";
+
+    // for (SIZE i = 0; i < cse.shape[2]; i++) {
+    //   for (SIZE j = 0; j < cse.shape[1]+1; j++) {
+    //     SIZE ij_vertex = i * (cse.shape[1]+1) + j;
+
+    //     std::cout << "edge_ids " << i << ", " << j <<"\n";
+    //     PrintSubarray("edgeX_ids_h", edgeX_ids_h[ij_vertex]);
+        // PrintSubarray("edgeY_ids_h", edgeY_ids_h[i]);
+        // PrintSubarray("edgeZ_ids_h", edgeZ_ids_h[i]);
+    //   }
+    // }
+
+
+
+    Triangles = Array<1, SIZE, DeviceType>({numTris * 3});
+    Points = Array<1, T, DeviceType>({numPoints * 3});
+    SubArray triangles(Triangles);
+    SubArray points(Points);
+
+    // printf("level_index: %llu, %llu, %llu\n",
+    //         cse.level_index[0].data(), cse.level_index[1].data(), cse.level_index[2].data());
+
+    using FunctorType4 = SFE_Pass4Functor<T, DeviceType>;
     using TaskType4 = Task<FunctorType4>;
-    TaskType4 task4 = GenTask4<1, 16, 16>(
-        nr, nc, nf, v, iso_value, axis_sum, axis_min, axis_max,
-        cell_tri_count_scan, edges, triangle_topology, points, queue_idx);
 
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.start();
+    std::cout << "Pass4 start\n";
+    TaskType4 task4 = GenTask4<4, 8, 8>(cse.shape[2], cse.shape[1], cse.shape[0], start_value, end_value, index, role, pY_index, pZ_index, neighbor, 
+                        cell_ids, level_index, iso_value, cell_cases, edgeX_ids, edgeY_ids, edgeZ_ids, tri_count_scan, points, triangles, queue_idx);
     DeviceAdapter<TaskType4, DeviceType>().Execute(task4);
+    DeviceRuntime<DeviceType>::SyncDevice();
+    std::cout << "Pass4 done\n";
 
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+    PrintSubarray("points", points);
+    PrintSubarray("triangles", triangles);
 
-    t.end();
-    t.print("Pass 4");
-    t.clear();
 
-    // printf("After pass4\n");
-    // PrintSubarray("triangle_topology", triangle_topology);
-    // PrintSubarray("points", points);
+    DeviceRuntime<DeviceType>::SyncDevice();
   }
+
+
+
 };
 
 } // namespace mgard_x

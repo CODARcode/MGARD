@@ -684,7 +684,6 @@ public:
           SubArray<1, bool, DeviceType> signs, SubArray<1, T, DeviceType> v,
           int queue_idx) {
 
-    printf("GroupedDecoder : GenTask\n");
     FunctorType functor(n, num_batches_per_TB, starting_bitplane, num_bitplanes,
                         exp, encoded_bitplanes, signs, v);
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
