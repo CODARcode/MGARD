@@ -26,8 +26,6 @@ struct huffman_codec {
   size_t len;
 };
 
-bool myfunction(htree_node i, htree_node j) { return (i.cnt < j.cnt); }
-
 htree_node *new_htree_node(int q, size_t cnt) {
   htree_node *new_node = new htree_node;
   new_node->q = q;
