@@ -122,8 +122,9 @@ void free_tree(my_priority_queue<htree_node> *phtree) {
 // Note this function will change the quantized data.
 std::size_t *build_ft(long int *quantized_data, const std::size_t n,
                       std::size_t &num_outliers) {
-  std::size_t *cnt = (std::size_t *)malloc(nql * sizeof(std::size_t));
-  std::memset(cnt, 0, nql * sizeof(std::size_t));
+  // The elements of the array are value-initialized (which, because they have
+  // scalar type, is zero-initialized).
+  std::size_t *const cnt = new std::size_t[nql]();
 
   for (std::size_t i = 0; i < n; i++) {
     // Convert quantization level to positive so that counting freq can be
@@ -151,8 +152,10 @@ huffman_codec *build_huffman_codec(long int *quantized_data, std::size_t **ft,
 
   my_priority_queue<htree_node> *phtree = build_tree(cnt);
 
-  huffman_codec *codec = (huffman_codec *)malloc(sizeof(huffman_codec) * nql);
-  std::memset(codec, 0, sizeof(huffman_codec) * nql);
+  // Each element of the array is value-initialized. Since `huffman_codec` has
+  // an implicitly-defined default constructor, value-initialization is zero-
+  // initialization. I am, of course, not sure about this.
+  huffman_codec *const codec = new huffman_codec[nql]();
 
   build_codec(phtree->top(), 0, 0, codec);
 
@@ -171,29 +174,30 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
   std::size_t num_miss = 0;
   std::size_t *ft = 0;
 
-  huffman_codec *codec = build_huffman_codec(quantized_data, &ft, n, num_miss);
+  huffman_codec *const codec =
+      build_huffman_codec(quantized_data, &ft, n, num_miss);
 
   assert(n >= num_miss);
 
   /* For those miss points, we still need to maintain a flag (q = 0),
    * and therefore we need to allocate space for n numbers.
    */
-  unsigned char *p_hit = (unsigned char *)malloc(n * sizeof(int));
-  std::memset(p_hit, 0, n * sizeof(int));
+  // The elements of the array are value-initialized (here, zero-initialized).
+  unsigned int *const p_hit = new unsigned int[n]();
 
   int *p_miss = 0;
   if (num_miss > 0) {
-    p_miss = (int *)malloc(num_miss * sizeof(int));
-    std::memset(p_miss, 0, num_miss * sizeof(int));
+    // The elements of the array are value-initialized (here, zero-initialized).
+    p_miss = new int[num_miss]();
   }
 
-  *out_data_hit = p_hit;
+  *out_data_hit = reinterpret_cast<unsigned char *>(p_hit);
   *out_data_miss = (unsigned char *)p_miss;
   *out_data_hit_size = 0;
   *out_data_miss_size = 0;
 
   std::size_t start_bit = 0;
-  unsigned int *cur = (unsigned int *)p_hit;
+  unsigned int *cur = p_hit;
   std::size_t cnt_missed = 0;
   for (std::size_t i = 0; i < n; i++) {
     int q = quantized_data[i];
@@ -250,7 +254,7 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
     }
   }
 
-  std::size_t *cft = (std::size_t *)malloc(2 * nonZeros * sizeof(std::size_t));
+  std::size_t *const cft = new std::size_t[2 * nonZeros];
   int off = 0;
   for (int i = 0; i < nql; i++) {
     if (ft[i] > 0) {
@@ -262,11 +266,10 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
 
   *out_tree = (unsigned char *)cft;
   *out_tree_size = 2 * nonZeros * sizeof(std::size_t);
-  free(ft);
+  delete[] ft;
   ft = 0;
 
-  free(codec);
-  codec = 0;
+  delete[] codec;
 }
 
 void huffman_decoding(long int *quantized_data,
@@ -278,9 +281,8 @@ void huffman_decoding(long int *quantized_data,
                       std::size_t out_tree_size) {
   std::size_t *cft = (std::size_t *)out_tree;
   int nonZeros = out_tree_size / (2 * sizeof(std::size_t));
-  std::size_t *ft = (std::size_t *)malloc(nql * sizeof(std::size_t));
-
-  std::memset(ft, 0, nql * sizeof(std::size_t));
+  // The elements of the array are value-initialized (here, zero-initialized).
+  std::size_t *const ft = new std::size_t[nql]();
 
   for (int j = 0; j < nonZeros; j++) {
     ft[cft[2 * j]] = cft[2 * j + 1];
@@ -292,12 +294,13 @@ void huffman_decoding(long int *quantized_data,
 
   // The out_data_miss may not be aligned. Therefore, the code
   // here makes a new buffer.
-  int *miss_buf = (int *)malloc(out_data_miss_size);
+  assert(not(out_data_miss_size % sizeof(int)));
+  int *miss_buf = new int[out_data_miss_size / sizeof(int)];
   if (out_data_miss_size) {
     std::memcpy(miss_buf, out_data_miss, out_data_miss_size);
   }
 
-  int *miss_bufp = miss_buf;
+  int *const miss_bufp = miss_buf;
 
   std::size_t start_bit = 0;
   unsigned int mask = 0x80000000;
@@ -354,12 +357,10 @@ void huffman_decoding(long int *quantized_data,
   // is OK and expected.
   (void)out_data_hit_size;
 
-  free(miss_bufp);
-  miss_bufp = 0;
+  delete[] miss_bufp;
   free_tree(phtree);
   phtree = 0;
-  free(ft);
-  ft = 0;
+  delete[] ft;
 }
 
 } // namespace mgard
