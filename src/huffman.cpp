@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include <queue>
+#include <vector>
 
 #include "huffman.hpp"
 
@@ -41,9 +42,8 @@ template <class T>
 using my_priority_queue =
     std::priority_queue<T *, std::vector<T *>, LessThanByCnt>;
 
-void build_codec(htree_node *const root, const unsigned int code,
-                 const std::size_t len, huffman_codec *const codec) {
-
+void initialize_codec(std::vector<huffman_codec> &codec, htree_node *const root,
+                      const unsigned int code, const std::size_t len) {
   root->len = len;
   root->code = code;
 
@@ -54,11 +54,11 @@ void build_codec(htree_node *const root, const unsigned int code,
   }
 
   if (root->left) {
-    build_codec(root->left, code << 1, len + 1, codec);
+    initialize_codec(codec, root->left, code << 1, len + 1);
   }
 
   if (root->right) {
-    build_codec(root->right, code << 1 | 0x1, len + 1, codec);
+    initialize_codec(codec, root->right, code << 1 | 0x1, len + 1);
   }
 }
 
@@ -136,20 +136,20 @@ std::size_t *build_ft(long int *const quantized_data, const std::size_t n,
   return cnt;
 }
 
-huffman_codec *build_huffman_codec(long int *const quantized_data,
-                                   std::size_t *&ft, const std::size_t n,
-                                   std::size_t &num_outliers) {
+std::vector<huffman_codec> build_huffman_codec(long int *const quantized_data,
+                                               std::size_t *&ft,
+                                               const std::size_t n,
+                                               std::size_t &num_outliers) {
   std::size_t *const cnt = build_ft(quantized_data, n, num_outliers);
   ft = cnt;
 
   my_priority_queue<htree_node> *const phtree = build_tree(cnt);
 
-  // Each element of the array is value-initialized. Since `huffman_codec` has
+  // Each element of the vector is value-initialized. Since `huffman_codec` has
   // an implicitly-defined default constructor, value-initialization is zero-
-  // initialization. I am, of course, not sure about this.
-  huffman_codec *const codec = new huffman_codec[nql]();
-
-  build_codec(phtree->top(), 0, 0, codec);
+  // initialization.
+  std::vector<huffman_codec> codec(nql);
+  initialize_codec(codec, phtree->top(), 0, 0);
 
   free_tree(phtree);
 
@@ -165,7 +165,7 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
   std::size_t num_miss = 0;
   std::size_t *ft = nullptr;
 
-  huffman_codec *const codec =
+  const std::vector<huffman_codec> codec =
       build_huffman_codec(quantized_data, ft, n, num_miss);
 
   assert(n >= num_miss);
@@ -259,8 +259,6 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
   out_tree_size = 2 * nonZeros * sizeof(std::size_t);
   delete[] ft;
   ft = nullptr;
-
-  delete[] codec;
 }
 
 void huffman_decoding(long int *const quantized_data,
