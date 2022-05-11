@@ -3,6 +3,11 @@
 #include <cstdlib>
 #include <cstring>
 
+#ifndef NDEBUG
+#include <algorithm>
+#endif
+
+#include <array>
 #include <queue>
 #include <vector>
 
@@ -31,6 +36,13 @@ struct huffman_codec {
   std::size_t len;
 };
 
+template <std::size_t NQL> struct HuffmanCodec {
+  // The arrays are value-initialized, which leads to each of their elements
+  // being value-initialized (ultimately zero-initialized).
+  std::array<huffman_codec, NQL> codec{};
+  std::array<std::size_t, NQL> frequency_table{};
+};
+
 struct LessThanByCnt {
   bool operator()(htree_node const *const lhs,
                   htree_node const *const rhs) const {
@@ -42,15 +54,16 @@ template <class T>
 using my_priority_queue =
     std::priority_queue<T *, std::vector<T *>, LessThanByCnt>;
 
-void initialize_codec(std::vector<huffman_codec> &codec, htree_node *const root,
+template <std::size_t NQL>
+void initialize_codec(HuffmanCodec<NQL> &codec, htree_node *const root,
                       const unsigned int code, const std::size_t len) {
   root->len = len;
   root->code = code;
 
   if (!root->left && !root->right) {
-    codec[root->q].q = root->q;
-    codec[root->q].code = code;
-    codec[root->q].len = len;
+    codec.codec[root->q].q = root->q;
+    codec.codec[root->q].code = code;
+    codec.codec[root->q].len = len;
   }
 
   if (root->left) {
@@ -113,42 +126,35 @@ void free_tree(my_priority_queue<htree_node> *const phtree) {
   }
 }
 
-// Note this function will change the quantized data.
-std::size_t *build_ft(long int *const quantized_data, const std::size_t n,
-                      std::size_t &num_outliers) {
-  // The elements of the array are value-initialized (which, because they have
-  // scalar type, is zero-initialized).
-  std::size_t *const cnt = new std::size_t[nql]();
+// Note: this function will change the quantized data.
+template <std::size_t NQL>
+void initialize_frequency_table(HuffmanCodec<NQL> &codec,
+                                long int *const quantized_data,
+                                const std::size_t n) {
+  assert(*std::max_element(codec.frequency_table.begin(),
+                           code.frequency_table.end()) == 0);
 
   for (std::size_t i = 0; i < n; i++) {
     // Convert quantization level to positive so that counting freq can be
     // easily done. Level 0 is reserved a out-of-range flag.
-    quantized_data[i] = quantized_data[i] + nql / 2;
-    if (quantized_data[i] > 0 && quantized_data[i] < nql) {
-      cnt[quantized_data[i]]++;
-    } else {
-      cnt[0]++;
-    }
+    quantized_data[i] = quantized_data[i] + NQL / 2;
+    ++codec.frequency_table[quantized_data[i] > 0 &&
+                                    quantized_data[i] <
+                                        static_cast<long int>(NQL)
+                                ? quantized_data[i]
+                                : 0];
   }
-
-  num_outliers = cnt[0];
-
-  return cnt;
 }
 
-std::vector<huffman_codec> build_huffman_codec(long int *const quantized_data,
-                                               std::size_t *&ft,
-                                               const std::size_t n,
-                                               std::size_t &num_outliers) {
-  std::size_t *const cnt = build_ft(quantized_data, n, num_outliers);
-  ft = cnt;
+template <std::size_t N>
+HuffmanCodec<N> build_huffman_codec(long int *const quantized_data,
+                                    const std::size_t n) {
+  HuffmanCodec<N> codec;
+  initialize_frequency_table(codec, quantized_data, n);
 
-  my_priority_queue<htree_node> *const phtree = build_tree(cnt);
+  my_priority_queue<htree_node> *const phtree =
+      build_tree(codec.frequency_table.data());
 
-  // Each element of the vector is value-initialized. Since `huffman_codec` has
-  // an implicitly-defined default constructor, value-initialization is zero-
-  // initialization.
-  std::vector<huffman_codec> codec(nql);
   initialize_codec(codec, phtree->top(), 0, 0);
 
   free_tree(phtree);
@@ -162,11 +168,8 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
                       unsigned char *&out_data_miss,
                       std::size_t &out_data_miss_size, unsigned char *&out_tree,
                       std::size_t &out_tree_size) {
-  std::size_t num_miss = 0;
-  std::size_t *ft = nullptr;
-
-  const std::vector<huffman_codec> codec =
-      build_huffman_codec(quantized_data, ft, n, num_miss);
+  const HuffmanCodec<nql> codec = build_huffman_codec<nql>(quantized_data, n);
+  const std::size_t num_miss = codec.frequency_table[0];
 
   assert(n >= num_miss);
 
@@ -197,12 +200,12 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
 
     if (q > 0 && q < nql) {
       // for those that are within the range
-      code = codec[q].code;
-      len = codec[q].len;
+      code = codec.codec[q].code;
+      len = codec.codec[q].len;
     } else {
       // for those that are out of the range, q is set to 0
-      code = codec[0].code;
-      len = codec[0].len;
+      code = codec.codec[0].code;
+      len = codec.codec[0].len;
 
       *p_miss = q;
       p_miss++;
@@ -218,8 +221,8 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
       // current unsigned int cannot hold the code
       // copy 32 - start_bit % 32 bits to the current int
       // and copy  the rest len - (32 - start_bit % 32) to the next int
-      std::size_t rshift = len - (32 - start_bit % 32);
-      std::size_t lshift = 32 - rshift;
+      const std::size_t rshift = len - (32 - start_bit % 32);
+      const std::size_t lshift = 32 - rshift;
       *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | (code >> rshift);
       *(cur + start_bit / 32 + 1) =
           (*(cur + start_bit / 32 + 1)) | (code << lshift);
@@ -240,7 +243,7 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
   // write frequency table to buffer
   int nonZeros = 0;
   for (int i = 0; i < nql; i++) {
-    if (ft[i] > 0) {
+    if (codec.frequency_table[i] > 0) {
       nonZeros++;
     }
   }
@@ -248,17 +251,15 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
   std::size_t *const cft = new std::size_t[2 * nonZeros];
   int off = 0;
   for (int i = 0; i < nql; i++) {
-    if (ft[i] > 0) {
+    if (codec.frequency_table[i] > 0) {
       cft[2 * off] = i;
-      cft[2 * off + 1] = ft[i];
+      cft[2 * off + 1] = codec.frequency_table[i];
       off++;
     }
   }
 
   out_tree = (unsigned char *)cft;
   out_tree_size = 2 * nonZeros * sizeof(std::size_t);
-  delete[] ft;
-  ft = nullptr;
 }
 
 void huffman_decoding(long int *const quantized_data,
@@ -279,6 +280,7 @@ void huffman_decoding(long int *const quantized_data,
   }
 
   my_priority_queue<htree_node> *const phtree = build_tree(ft);
+  delete[] ft;
 
   unsigned int const *const buf = (unsigned int const *)out_data_hit;
 
@@ -349,7 +351,6 @@ void huffman_decoding(long int *const quantized_data,
 
   delete[] miss_buf;
   free_tree(phtree);
-  delete[] ft;
 }
 
 } // namespace mgard
