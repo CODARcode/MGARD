@@ -79,9 +79,8 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
 #ifdef MGARD_TIMING
   auto huff_time1 = std::chrono::high_resolution_clock::now();
 #endif
-  huffman_encoding(src, srcLen, &out_data_hit, &out_data_hit_size,
-                   &out_data_miss, &out_data_miss_size, &out_tree,
-                   &out_tree_size);
+  huffman_encoding(src, srcLen, out_data_hit, out_data_hit_size, out_data_miss,
+                   out_data_miss_size, out_tree, out_tree_size);
 #ifdef MGARD_TIMING
   auto huff_time2 = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(

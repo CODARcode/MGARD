@@ -137,10 +137,10 @@ std::size_t *build_ft(long int *const quantized_data, const std::size_t n,
 }
 
 huffman_codec *build_huffman_codec(long int *const quantized_data,
-                                   std::size_t **ft, const std::size_t n,
+                                   std::size_t *&ft, const std::size_t n,
                                    std::size_t &num_outliers) {
   std::size_t *const cnt = build_ft(quantized_data, n, num_outliers);
-  *ft = cnt;
+  ft = cnt;
 
   my_priority_queue<htree_node> *const phtree = build_tree(cnt);
 
@@ -157,16 +157,16 @@ huffman_codec *build_huffman_codec(long int *const quantized_data,
 }
 
 void huffman_encoding(long int *const quantized_data, const std::size_t n,
-                      unsigned char **out_data_hit,
-                      std::size_t *out_data_hit_size,
-                      unsigned char **out_data_miss,
-                      std::size_t *out_data_miss_size, unsigned char **out_tree,
-                      std::size_t *out_tree_size) {
+                      unsigned char *&out_data_hit,
+                      std::size_t &out_data_hit_size,
+                      unsigned char *&out_data_miss,
+                      std::size_t &out_data_miss_size, unsigned char *&out_tree,
+                      std::size_t &out_tree_size) {
   std::size_t num_miss = 0;
   std::size_t *ft = nullptr;
 
   huffman_codec *const codec =
-      build_huffman_codec(quantized_data, &ft, n, num_miss);
+      build_huffman_codec(quantized_data, ft, n, num_miss);
 
   assert(n >= num_miss);
 
@@ -182,10 +182,10 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
     p_miss = new int[num_miss]();
   }
 
-  *out_data_hit = reinterpret_cast<unsigned char *>(p_hit);
-  *out_data_miss = (unsigned char *)p_miss;
-  *out_data_hit_size = 0;
-  *out_data_miss_size = 0;
+  out_data_hit = reinterpret_cast<unsigned char *>(p_hit);
+  out_data_miss = (unsigned char *)p_miss;
+  out_data_hit_size = 0;
+  out_data_miss_size = 0;
 
   std::size_t start_bit = 0;
   unsigned int *cur = p_hit;
@@ -234,8 +234,8 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
   }
 
   // Note: hit size is in bits, while miss size is in bytes.
-  *out_data_hit_size = start_bit;
-  *out_data_miss_size = num_miss * sizeof(int);
+  out_data_hit_size = start_bit;
+  out_data_miss_size = num_miss * sizeof(int);
 
   // write frequency table to buffer
   int nonZeros = 0;
@@ -255,8 +255,8 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
     }
   }
 
-  *out_tree = (unsigned char *)cft;
-  *out_tree_size = 2 * nonZeros * sizeof(std::size_t);
+  out_tree = (unsigned char *)cft;
+  out_tree_size = 2 * nonZeros * sizeof(std::size_t);
   delete[] ft;
   ft = nullptr;
 
