@@ -12,6 +12,10 @@ namespace mgard {
 const int nql = 32768 * 4;
 
 struct htree_node {
+  //! Constructor.
+  htree_node(const int q, const std::size_t cnt)
+      : q(q), cnt(cnt), code(0), len(0), left(nullptr), right(nullptr) {}
+
   int q;
   std::size_t cnt;
   unsigned int code;
@@ -25,18 +29,6 @@ struct huffman_codec {
   unsigned int code;
   std::size_t len;
 };
-
-htree_node *new_htree_node(int q, std::size_t cnt) {
-  htree_node *new_node = new htree_node;
-  new_node->q = q;
-  new_node->cnt = cnt;
-  new_node->code = 0;
-  new_node->len = 0;
-  new_node->left = 0;
-  new_node->right = 0;
-
-  return new_node;
-}
 
 struct LessThanByCnt {
   bool operator()(const htree_node *lhs, const htree_node *rhs) const {
@@ -75,7 +67,7 @@ my_priority_queue<htree_node> *build_tree(std::size_t *cnt) {
 #if 1
   for (int i = 0; i < nql; i++) {
     if (cnt[i] != 0) {
-      htree_node *new_node = new_htree_node(i, cnt[i]);
+      htree_node *const new_node = new htree_node(i, cnt[i]);
       phtree->push(new_node);
     }
   }
@@ -86,7 +78,8 @@ my_priority_queue<htree_node> *build_tree(std::size_t *cnt) {
     htree_node *top_node2 = phtree->top();
     phtree->pop();
 
-    htree_node *new_node = new_htree_node(-1, top_node1->cnt + top_node2->cnt);
+    htree_node *const new_node =
+        new htree_node(-1, top_node1->cnt + top_node2->cnt);
     new_node->left = top_node1;
     new_node->right = top_node2;
     phtree->push(new_node);
