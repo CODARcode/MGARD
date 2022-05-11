@@ -92,12 +92,12 @@ my_priority_queue<htree_node> *build_tree(std::size_t const *const cnt) {
 void free_htree_node(htree_node *const node) {
   if (node->left) {
     free_htree_node(node->left);
-    node->left = 0;
+    node->left = nullptr;
   }
 
   if (node->right) {
     free_htree_node(node->right);
-    node->right = 0;
+    node->right = nullptr;
   }
 
   delete node;
@@ -163,7 +163,7 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
                       std::size_t *out_data_miss_size, unsigned char **out_tree,
                       std::size_t *out_tree_size) {
   std::size_t num_miss = 0;
-  std::size_t *ft = 0;
+  std::size_t *ft = nullptr;
 
   huffman_codec *const codec =
       build_huffman_codec(quantized_data, &ft, n, num_miss);
@@ -176,7 +176,7 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
   // The elements of the array are value-initialized (here, zero-initialized).
   unsigned int *const p_hit = new unsigned int[n]();
 
-  int *p_miss = 0;
+  int *p_miss = nullptr;
   if (num_miss > 0) {
     // The elements of the array are value-initialized (here, zero-initialized).
     p_miss = new int[num_miss]();
@@ -258,7 +258,7 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
   *out_tree = (unsigned char *)cft;
   *out_tree_size = 2 * nonZeros * sizeof(std::size_t);
   delete[] ft;
-  ft = 0;
+  ft = nullptr;
 
   delete[] codec;
 }
