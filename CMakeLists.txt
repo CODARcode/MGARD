@@ -201,6 +201,7 @@ set(
   MGARD_LIBRARY_CPP
         src/compress.cpp
         src/compress_internal.cpp
+  src/utilities.cpp
   src/huffman.cpp
   src/compressors.cpp
   src/format.cpp

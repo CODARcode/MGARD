@@ -449,6 +449,89 @@ template <typename T> struct MemoryBuffer {
   std::size_t size;
 };
 
+//! Range allowing iteration over the bits in an array.
+//!
+//! Iterating over this object yields each byte's bits from most to least
+//! significant.
+class Bits {
+public:
+  //! Constructor.
+  //!
+  //!\param begin Pointer to the beginning of the array to be iterated over.
+  //!\param end Pointer to the end of the array to be iterated over.
+  Bits(unsigned char const *const begin, unsigned char const *const end);
+
+  //! Equality comparison.
+  bool operator==(const Bits &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const Bits &other) const;
+
+  // Forward declaration.
+  class iterator;
+
+  //! Return an iterator to the beginning of the bit range.
+  iterator begin() const;
+
+  //! Return an iterator to the end of the bit range.
+  iterator end() const;
+
+private:
+  //! Pointer to the beginning of the array to be iterated over.
+  unsigned char const *begin_;
+
+  //! Pointer to the beginning of the array to be iterated over.
+  unsigned char const *end_;
+};
+
+//! Iterator over a bit range.
+class Bits::iterator {
+public:
+  //! Category of the iterator.
+  using iterator_category = std::forward_iterator_tag;
+  //! Type iterated over.
+  using value_type = bool;
+  //! Type for distance between iterators.
+  using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
+  using pointer = value_type *;
+  //! Type returned by the dereference operator.
+  using reference = value_type;
+
+  //! Constructor.
+  //!
+  //!\param bits Associated bit range.
+  //!\param p Position in the array being iterated over.
+  //!\param offset Offset within the current byte.
+  iterator(const Bits &bits, unsigned char const *const p,
+           const unsigned char offset);
+
+  //! Equality comparison.
+  bool operator==(const iterator &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const iterator &other) const;
+
+  //! Preincrement.
+  iterator &operator++();
+
+  //! Postincrement.
+  iterator operator++(int);
+
+  //! Dereference.
+  reference operator*() const;
+
+private:
+  //! Associated bit range.
+  const Bits &iterable;
+
+  //! Position in the array being iterated over.
+  unsigned char const *p;
+
+  //! Offset within the current byte.
+  unsigned char offset;
+};
+
 } // namespace mgard
 
 #include "utilities.tpp"

@@ -171,3 +171,61 @@ TEST_CASE("CartesianProduct predecessors and successors", "[utilities]") {
 
   REQUIRE(tracker);
 }
+
+namespace {
+
+void test_bit_equality(const mgard::Bits &bits,
+                       const std::vector<bool> &expected) {
+  TrialTracker tracker;
+  std::vector<bool>::const_iterator p = expected.begin();
+  for (const bool b : bits) {
+    tracker += b == *p++;
+  }
+  REQUIRE(tracker);
+}
+
+} // namespace
+
+TEST_CASE("Bits iteration", "[utilities]") {
+  SECTION("zero end offsets") {
+    {
+      unsigned char const a[1]{0x3d};
+      const mgard::Bits bits(a, a + 1);
+      const std::vector<bool> expected{// `3`.
+                                       false, false, true, true,
+                                       // `d`.
+                                       true, true, false, true};
+      test_bit_equality(bits, expected);
+    }
+    {
+      unsigned char const a[2]{0xe6, 0x0a};
+      const mgard::Bits bits(a, a + 2);
+      const std::vector<bool> expected{// `e`.
+                                       true, true, true, false,
+                                       // `6`.
+                                       false, true, true, false,
+                                       // `0`.
+                                       false, false, false, false,
+                                       // `a`.
+                                       true, false, true, false};
+      test_bit_equality(bits, expected);
+    }
+    {
+      unsigned char const a[3]{0x12, 0x0c, 0xff};
+      const mgard::Bits bits(a, a + 3);
+      const std::vector<bool> expected{// `1`.
+                                       false, false, false, true,
+                                       // `2`.
+                                       false, false, true, false,
+                                       // `0`.
+                                       false, false, false, false,
+                                       // `c`.
+                                       true, true, false, false,
+                                       // `f`.
+                                       true, true, true, true,
+                                       // `f`.
+                                       true, true, true, true};
+      test_bit_equality(bits, expected);
+    }
+  }
+}
