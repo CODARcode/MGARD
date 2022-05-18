@@ -6,18 +6,28 @@
 
 namespace mgard {
 
+Bits::Bits(unsigned char const *const begin, unsigned char const *const end,
+           const unsigned char offset_end)
+    : begin_(begin), end_(end), offset_end(offset_end) {
+  if (offset_end >= CHAR_BIT) {
+    throw std::invalid_argument(
+        "offset must be smaller than number of bits in byte");
+  }
+}
+
 Bits::Bits(unsigned char const *const begin, unsigned char const *const end)
-    : begin_(begin), end_(end) {}
+    : Bits(begin, end, 0) {}
 
 bool Bits::operator==(const Bits &other) const {
-  return begin_ == other.begin_ and end_ == other.end_;
+  return begin_ == other.begin_ and end_ == other.end_ and
+         offset_end == other.offset_end;
 }
 
 bool Bits::operator!=(const Bits &other) const { return !operator==(other); }
 
 Bits::iterator Bits::begin() const { return {*this, begin_, 0}; }
 
-Bits::iterator Bits::end() const { return {*this, end_, 0}; }
+Bits::iterator Bits::end() const { return {*this, end_, offset_end}; }
 
 Bits::iterator::iterator(const Bits &iterable, unsigned char const *const p,
                          const unsigned char offset)

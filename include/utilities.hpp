@@ -461,6 +461,16 @@ public:
   //!\param end Pointer to the end of the array to be iterated over.
   Bits(unsigned char const *const begin, unsigned char const *const end);
 
+  //! Constructor.
+  //!
+  //!\overload
+  //!
+  //!\param begin Pointer to the beginning of the array to be iterated over.
+  //!\param end Pointer to the end of the array to be iterated over.
+  //!\param offset_end Offset for end iterator.
+  Bits(unsigned char const *const begin, unsigned char const *const end,
+       const unsigned char offset_end);
+
   //! Equality comparison.
   bool operator==(const Bits &other) const;
 
@@ -482,6 +492,9 @@ private:
 
   //! Pointer to the beginning of the array to be iterated over.
   unsigned char const *end_;
+
+  //! Offset for end iterator.
+  unsigned char offset_end;
 };
 
 //! Iterator over a bit range.

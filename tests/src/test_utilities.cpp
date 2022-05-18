@@ -228,4 +228,28 @@ TEST_CASE("Bits iteration", "[utilities]") {
       test_bit_equality(bits, expected);
     }
   }
+  SECTION("nonzero end offsets") {
+    {
+      unsigned char const a[1]{0xff};
+      const mgard::Bits bits(a, a, 7);
+      const std::vector<bool> expected(7, true);
+      test_bit_equality(bits, expected);
+    }
+    {
+      unsigned char const a[2]{0xa9, 0x33};
+      const mgard::Bits bits(a, a + 1, 2);
+      const std::vector<bool> expected{true,  false, true, false, true,
+                                       false, false, true, false, false};
+      test_bit_equality(bits, expected);
+    }
+    {
+      unsigned char const a[3]{0x1e, 0x0f, 0x77};
+      const mgard::Bits bits(a, a + 2, 6);
+      const std::vector<bool> expected{false, false, false, true,  true,  true,
+                                       true,  false, false, false, false, false,
+                                       true,  true,  true,  true,  false, true,
+                                       true,  true,  false, true};
+      test_bit_equality(bits, expected);
+    }
+  }
 }
