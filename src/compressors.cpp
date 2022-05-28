@@ -5,7 +5,6 @@
 #include <cstring>
 
 #include <algorithm>
-#include <bitset>
 #include <numeric>
 #include <stdexcept>
 #include <vector>
@@ -14,6 +13,7 @@
 
 #include "format.hpp"
 #include "huffman.hpp"
+#include "utilities.hpp"
 
 #ifdef MGARD_TIMING
 #include <chrono>

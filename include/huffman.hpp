@@ -3,8 +3,22 @@
 //!\file
 //!\brief Huffman trees for quantized multilevel coefficients.
 
+#include <cstddef>
+
 namespace mgard {
 
+//! Encode quantized coefficients using a Huffman code.
+//!
+//!\param[in, out] quantized_data Input buffer (quantized coefficients). This
+//! buffer will be changed by the encoding process.
+//\param[in] n Number of symbols (`long int` quantized coefficients) in the
+//! input buffer.
+//!\param[out] out_data_hit Pointer to compressed buffer.
+//!\param[out] Size *in bits* of compressed buffer.
+//!\param[out] Pointer to 'missed' buffer (input symbols not assigned codes).
+//!\param[out] Size *in bytes* of 'missed' buffer.
+//!\param[out] Frequency table for input buffer.
+//!\param[out] Size *in bytes* of the frequency table.
 void huffman_encoding(long int *const quantized_data, const std::size_t n,
                       unsigned char *&out_data_hit, size_t &out_data_hit_size,
                       unsigned char *&out_data_miss, size_t &out_data_miss_size,

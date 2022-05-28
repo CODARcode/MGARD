@@ -20,6 +20,7 @@ set(
 	"src/test_quantize.cpp"
 	"src/test_compressors.cpp"
 	"src/test_CompressedDataset.cpp"
+	"src/test_huffman.cpp"
 )
 
 if(MGARD_ENABLE_UNSTRUCTURED AND MOAB_FOUND)
