@@ -8,7 +8,33 @@
 #include <memory>
 #include <vector>
 
+#include "utilities.hpp"
+
 namespace mgard {
+
+//! A stream compressed using a Huffman code.
+struct HuffmanEncodedStream {
+  //! Constructor.
+  //!
+  //!\param nbits Length in bits of the compressed stream.
+  //!\param ncompressed Length in bytes of the compressed stream.
+  //!\param nmissed Length in bytes of the missed array.
+  //!\param ntable Length in bytes of the frequency table.
+  HuffmanEncodedStream(const std::size_t nbits, const std::size_t ncompressed,
+                       const std::size_t nmissed, const std::size_t ntable);
+
+  //! Length in bits of the compressed stream.
+  std::size_t nbits;
+
+  //! Compressed stream.
+  MemoryBuffer<unsigned char> hit;
+
+  //! Missed array.
+  MemoryBuffer<unsigned char> missed;
+
+  //! Frequency table.
+  MemoryBuffer<unsigned char> frequencies;
+};
 
 //! Encode quantized coefficients using a Huffman code.
 //!
@@ -31,23 +57,12 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
 
 //! Encode quantized coefficients using a Huffman code.
 //!
-//!\param[in, out] quantized_data Input buffer (quantized coefficients). This
-//! buffer will be changed by the encoding process.
+//!\param[in] quantized_data Input buffer (quantized coefficients).
 //!\param[in] n Number of symbols (`long int` quantized coefficients) in the
 //! input buffer.
-//!\param[out] out_data_hit Pointer to compressed buffer.
-//!\param[out] out_data_hit_size Size *in bits* of compressed buffer.
-//!\param[out] out_data_miss Pointer to 'missed' buffer (input symbols not
-//! assigned codes).
-//!\param[out] out_data_miss_size Size *in bytes* of 'missed'
-//! buffer.
-//!\param[out] out_tree Frequency table for input buffer.
-//!\param[out] out_tree_size Size *in bytes* of the frequency table.
-void huffman_encoding_rewritten(
-    long int const *const quantized_data, const std::size_t n,
-    unsigned char *&out_data_hit, std::size_t &out_data_hit_size,
-    unsigned char *&out_data_miss, std::size_t &out_data_miss_size,
-    unsigned char *&out_tree, std::size_t &out_tree_size);
+HuffmanEncodedStream
+huffman_encoding_rewritten(long int const *const quantized_data,
+                           const std::size_t n);
 
 //! Decode a stream encoded using a Huffman code.
 //!

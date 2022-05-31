@@ -24,26 +24,19 @@ void test_encoding_regression(long int *const quantized, const std::size_t N) {
   mgard::huffman_encoding(quantized, N, hit, bits_hit, missed, bytes_missed,
                           frequencies, bytes_frequencies);
 
-  unsigned char *hit_new;
-  unsigned char *missed_new;
-  unsigned char *frequencies_new;
-  std::size_t bits_hit_new;
-  std::size_t bytes_missed_new;
-  std::size_t bytes_frequencies_new;
-  mgard::huffman_encoding_rewritten(quantized_new, N, hit_new, bits_hit_new,
-                                    missed_new, bytes_missed_new,
-                                    frequencies_new, bytes_frequencies_new);
+  const mgard::HuffmanEncodedStream out_new =
+      mgard::huffman_encoding_rewritten(quantized_new, N);
 
-  REQUIRE(bits_hit_new == bits_hit);
+  REQUIRE(out_new.nbits == bits_hit);
   const std::size_t bytes_hit = (bits_hit + CHAR_BIT - 1) / CHAR_BIT;
-  REQUIRE(std::equal(hit, hit + bytes_hit, hit_new));
+  REQUIRE(std::equal(hit, hit + bytes_hit, out_new.hit.data.get()));
 
-  REQUIRE(bytes_missed_new == bytes_missed);
-  REQUIRE(std::equal(missed, missed + bytes_missed, missed_new));
+  REQUIRE(out_new.missed.size == bytes_missed);
+  REQUIRE(std::equal(missed, missed + bytes_missed, out_new.missed.data.get()));
 
-  REQUIRE(bytes_frequencies_new == bytes_frequencies);
+  REQUIRE(out_new.frequencies.size == bytes_frequencies);
   REQUIRE(std::equal(frequencies, frequencies + bytes_frequencies,
-                     frequencies_new));
+                     out_new.frequencies.data.get()));
 
   delete[] quantized_new;
 }

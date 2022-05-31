@@ -13,34 +13,9 @@
 
 #include "huffman.hpp"
 
-#include "utilities.hpp"
-
 namespace mgard {
 
 const int nql = 32768 * 4;
-
-struct HuffmanEncodedStream {
-  //! Constructor.
-  //!
-  //!\param nbits Length in bits of the compressed stream.
-  //!\param ncompressed Length in bits of the compressed stream.
-  //!\param nmissed Length in bytes of the missed array.
-  //!\param ntable Length in bytes of the frequency table.
-  HuffmanEncodedStream(const std::size_t nbits, const std::size_t ncompressed,
-                       const std::size_t nmissed, const std::size_t ntable);
-
-  //! Length in bits of the compressed stream.
-  std::size_t nbits;
-
-  //! Compressed stream.
-  MemoryBuffer<unsigned char> hit;
-
-  //! Missed array.
-  MemoryBuffer<unsigned char> missed;
-
-  //! Frequency table.
-  MemoryBuffer<unsigned char> frequencies;
-};
 
 HuffmanEncodedStream::HuffmanEncodedStream(const std::size_t nbits,
                                            const std::size_t ncompressed,
@@ -363,11 +338,9 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
   out_tree_size = 2 * nonZeros * sizeof(std::size_t);
 }
 
-void huffman_encoding_rewritten(
-    long int const *const quantized_data, const std::size_t n,
-    unsigned char *&out_data_hit, std::size_t &out_data_hit_size,
-    unsigned char *&out_data_miss, std::size_t &out_data_miss_size,
-    unsigned char *&out_tree, std::size_t &out_tree_size) {
+HuffmanEncodedStream
+huffman_encoding_rewritten(long int const *const quantized_data,
+                           const std::size_t n) {
   const std::size_t ncodewords = nql - 1;
   const HuffmanCode<long int> code(ncodewords, quantized_data,
                                    quantized_data + n);
@@ -461,13 +434,7 @@ void huffman_encoding_rewritten(
     }
   }
 
-  out_data_hit_size = out.nbits;
-  out_data_miss_size = out.missed.size;
-  out_tree_size = out.frequencies.size;
-
-  out_data_hit = out.hit.data.release();
-  out_data_miss = out.missed.data.release();
-  out_tree = out.frequencies.data.release();
+  return out;
 }
 
 void huffman_decoding(long int *const quantized_data,
