@@ -1,4 +1,5 @@
 #include <cassert>
+#include <climits>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -6,14 +7,77 @@
 #include <algorithm>
 
 #include <array>
+#include <numeric>
 #include <queue>
 #include <vector>
 
 #include "huffman.hpp"
 
+#include "utilities.hpp"
+
 namespace mgard {
 
 const int nql = 32768 * 4;
+
+struct HuffmanEncodedStream {
+  //! Constructor.
+  //!
+  //!\param nbits Length in bits of the compressed stream.
+  //!\param ncompressed Length in bits of the compressed stream.
+  //!\param nmissed Length in bytes of the missed array.
+  //!\param ntable Length in bytes of the frequency table.
+  HuffmanEncodedStream(const std::size_t nbits, const std::size_t ncompressed,
+                       const std::size_t nmissed, const std::size_t ntable);
+
+  //! Length in bits of the compressed stream.
+  std::size_t nbits;
+
+  //! Compressed stream.
+  MemoryBuffer<unsigned char> hit;
+
+  //! Missed array.
+  MemoryBuffer<unsigned char> missed;
+
+  //! Frequency table.
+  MemoryBuffer<unsigned char> frequencies;
+};
+
+HuffmanEncodedStream::HuffmanEncodedStream(const std::size_t nbits,
+                                           const std::size_t ncompressed,
+                                           const std::size_t nmissed,
+                                           const std::size_t nfrequencies)
+    : nbits(nbits), hit(ncompressed), missed(nmissed),
+      frequencies(nfrequencies) {}
+
+void HuffmanCodeword::push_back(const bool bit) {
+  const unsigned char offset = length % CHAR_BIT;
+  if (not offset) {
+    bytes.push_back(0);
+  }
+  bytes.back() |= static_cast<unsigned char>(bit) << (CHAR_BIT - 1 - offset);
+  ++length;
+}
+
+HuffmanCodeword HuffmanCodeword::left() const {
+  HuffmanCodeword tmp = *this;
+  tmp.push_back(false);
+  return tmp;
+}
+
+HuffmanCodeword HuffmanCodeword::right() const {
+  HuffmanCodeword tmp = *this;
+  tmp.push_back(true);
+  return tmp;
+}
+
+CodeCreationTreeNode::CodeCreationTreeNode(HuffmanCodeword *const codeword,
+                                           const std::size_t count)
+    : codeword(codeword), count(count) {}
+
+CodeCreationTreeNode::CodeCreationTreeNode(
+    const std::shared_ptr<CodeCreationTreeNode> &left,
+    const std::shared_ptr<CodeCreationTreeNode> &right)
+    : count(left->count + right->count), left(left), right(right) {}
 
 //! Node in the Huffman code creation tree.
 struct htree_node {
@@ -165,7 +229,7 @@ void initialize_frequency_table(HuffmanCodec<nql> &codec,
                                 long int *const quantized_data,
                                 const std::size_t n) {
   assert(*std::max_element(codec.frequency_table.begin(),
-                           code.frequency_table.end()) == 0);
+                           codec.frequency_table.end()) == 0);
 
   for (std::size_t i = 0; i < n; i++) {
     // Convert quantization level to positive so that counting freq can be
@@ -297,6 +361,113 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
 
   out_tree = (unsigned char *)cft;
   out_tree_size = 2 * nonZeros * sizeof(std::size_t);
+}
+
+void huffman_encoding_rewritten(
+    long int const *const quantized_data, const std::size_t n,
+    unsigned char *&out_data_hit, std::size_t &out_data_hit_size,
+    unsigned char *&out_data_miss, std::size_t &out_data_miss_size,
+    unsigned char *&out_tree, std::size_t &out_tree_size) {
+  const std::size_t ncodewords = nql - 1;
+  const HuffmanCode<long int> code(ncodewords, quantized_data,
+                                   quantized_data + n);
+
+  std::vector<std::size_t> lengths;
+  for (const HuffmanCodeword &codeword : code.codewords) {
+    lengths.push_back(codeword.length);
+  }
+  const std::size_t nbits =
+      std::inner_product(code.frequencies.begin(), code.frequencies.end(),
+                         lengths.begin(), static_cast<std::size_t>(0));
+  const std::size_t nbytes =
+      sizeof(unsigned int) * ((nbits + CHAR_BIT * sizeof(unsigned int) - 1) /
+                              (CHAR_BIT * sizeof(unsigned int)));
+  if (nbytes % sizeof(unsigned int)) {
+    throw std::runtime_error(
+        "`nbytes` not bumped up to nearest multiple of `unsigned int` size");
+  }
+
+  const std::size_t nnz = ncodewords - std::count(code.frequencies.begin(),
+                                                  code.frequencies.end(), 0);
+
+  HuffmanEncodedStream out(nbits, nbytes, code.nmissed() * sizeof(int),
+                           2 * nnz * sizeof(std::size_t));
+
+  // Write frequency table.
+  {
+    std::size_t *p =
+        reinterpret_cast<std::size_t *>(out.frequencies.data.get());
+    const std::vector<std::size_t> &frequencies = code.frequencies;
+    for (std::size_t i = 0; i < ncodewords; ++i) {
+      const std::size_t frequency = frequencies.at(i);
+      if (frequency) {
+        *p++ = i;
+        *p++ = frequency;
+      }
+    }
+  }
+
+  unsigned char *const buffer = out.hit.data.get();
+  {
+    unsigned char *const p = out.hit.data.get();
+    std::fill(p, p + out.hit.size, 0);
+  }
+  unsigned char *hit = buffer;
+
+  int *missed = reinterpret_cast<int *>(out.missed.data.get());
+
+  unsigned char offset = 0;
+  for (const long int q : PseudoArray(quantized_data, n)) {
+    if (code.out_of_range(q)) {
+      // Remember that `missed` is an `int` rather than a `long int`.
+      *missed++ = q + nql / 2;
+    }
+
+    const HuffmanCodeword codeword = code.codewords.at(code.index(q));
+    std::size_t NREMAINING = codeword.length;
+    for (unsigned char byte : codeword.bytes) {
+      // Number of bits of `byte` left to write.
+      unsigned char nremaining =
+          std::min(static_cast<std::size_t>(CHAR_BIT), NREMAINING);
+      // Premature, but this will hold when we're done with `byte`.
+      NREMAINING -= nremaining;
+
+      while (nremaining) {
+        *hit |= byte >> offset;
+        // Number of bits of `byte` just written (not cumulative).
+        const unsigned char nwritten = std::min(
+            nremaining, static_cast<unsigned char>(
+                            static_cast<unsigned char>(CHAR_BIT) - offset));
+        offset += nwritten;
+        hit += offset / CHAR_BIT;
+        offset %= CHAR_BIT;
+        nremaining -= nwritten;
+        byte <<= nwritten;
+      }
+    }
+  }
+
+  {
+    const unsigned int one{1};
+    const bool little_endian = *reinterpret_cast<unsigned char const *>(&one);
+    if (little_endian) {
+      for (std::size_t i = 0; i < nbytes; i += sizeof(unsigned int)) {
+        unsigned char *a = buffer + i;
+        unsigned char *b = a + sizeof(unsigned int) - 1;
+        for (std::size_t j = 0; j < sizeof(unsigned int) / 2; ++j) {
+          std::swap(*a++, *b--);
+        }
+      }
+    }
+  }
+
+  out_data_hit_size = out.nbits;
+  out_data_miss_size = out.missed.size;
+  out_tree_size = out.frequencies.size;
+
+  out_data_hit = out.hit.data.release();
+  out_data_miss = out.missed.data.release();
+  out_tree = out.frequencies.data.release();
 }
 
 void huffman_decoding(long int *const quantized_data,

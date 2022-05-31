@@ -30,9 +30,9 @@ void test_encoding_regression(long int *const quantized, const std::size_t N) {
   std::size_t bits_hit_new;
   std::size_t bytes_missed_new;
   std::size_t bytes_frequencies_new;
-  mgard::huffman_encoding(quantized_new, N, hit_new, bits_hit_new, missed_new,
-                          bytes_missed_new, frequencies_new,
-                          bytes_frequencies_new);
+  mgard::huffman_encoding_rewritten(quantized_new, N, hit_new, bits_hit_new,
+                                    missed_new, bytes_missed_new,
+                                    frequencies_new, bytes_frequencies_new);
 
   REQUIRE(bits_hit_new == bits_hit);
   const std::size_t bytes_hit = (bits_hit + CHAR_BIT - 1) / CHAR_BIT;
