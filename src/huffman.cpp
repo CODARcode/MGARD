@@ -240,12 +240,8 @@ HuffmanCodec<N> build_huffman_codec(long int *const quantized_data,
   return codec;
 }
 
-void huffman_encoding(long int *const quantized_data, const std::size_t n,
-                      unsigned char *&out_data_hit,
-                      std::size_t &out_data_hit_size,
-                      unsigned char *&out_data_miss,
-                      std::size_t &out_data_miss_size, unsigned char *&out_tree,
-                      std::size_t &out_tree_size) {
+HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
+                                      const std::size_t n) {
   const HuffmanCodec<nql> codec = build_huffman_codec<nql>(quantized_data, n);
   const std::size_t num_miss = codec.frequency_table[0];
 
@@ -263,10 +259,12 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
     p_miss = new int[num_miss]();
   }
 
-  out_data_hit = reinterpret_cast<unsigned char *>(p_hit);
-  out_data_miss = reinterpret_cast<unsigned char *>(p_miss);
-  out_data_hit_size = 0;
-  out_data_miss_size = 0;
+  unsigned char const *const out_data_hit =
+      reinterpret_cast<unsigned char *>(p_hit);
+  unsigned char const *const out_data_miss =
+      reinterpret_cast<unsigned char *>(p_miss);
+  std::size_t out_data_hit_size = 0;
+  std::size_t out_data_miss_size = 0;
 
   std::size_t start_bit = 0;
   unsigned int *cur = p_hit;
@@ -334,8 +332,20 @@ void huffman_encoding(long int *const quantized_data, const std::size_t n,
     }
   }
 
-  out_tree = (unsigned char *)cft;
-  out_tree_size = 2 * nonZeros * sizeof(std::size_t);
+  unsigned char const *const out_tree = (unsigned char *)cft;
+  const std::size_t out_tree_size = 2 * nonZeros * sizeof(std::size_t);
+
+  const std::size_t nbytes =
+      sizeof(unsigned int) *
+      ((out_data_hit_size + CHAR_BIT * sizeof(unsigned int) - 1) /
+       (CHAR_BIT * sizeof(unsigned int)));
+  HuffmanEncodedStream out(out_data_hit_size, nbytes, out_data_miss_size,
+                           out_tree_size);
+  std::copy(out_data_hit, out_data_hit + nbytes, out.hit.data.get());
+  std::copy(out_data_miss, out_data_miss + out_data_miss_size,
+            out.missed.data.get());
+  std::copy(out_tree, out_tree + out_tree_size, out.frequencies.data.get());
+  return out;
 }
 
 HuffmanEncodedStream

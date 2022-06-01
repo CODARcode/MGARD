@@ -70,17 +70,17 @@ void decompress_memory_huffman(unsigned char *const src,
 
 MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
                                                     const std::size_t srcLen) {
-  unsigned char *out_data_hit = 0;
-  size_t out_data_hit_size;
-  unsigned char *out_data_miss = 0;
-  size_t out_data_miss_size;
-  unsigned char *out_tree = 0;
-  size_t out_tree_size;
 #ifdef MGARD_TIMING
   auto huff_time1 = std::chrono::high_resolution_clock::now();
 #endif
-  huffman_encoding(src, srcLen, out_data_hit, out_data_hit_size, out_data_miss,
-                   out_data_miss_size, out_tree, out_tree_size);
+  HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
+  const std::size_t out_data_hit_size = encoded.nbits;
+  const std::size_t out_data_miss_size = encoded.missed.size;
+  const std::size_t out_tree_size = encoded.frequencies.size;
+  unsigned char const *const out_data_hit = encoded.hit.data.release();
+  unsigned char const *const out_data_miss = encoded.missed.data.release();
+  unsigned char const *const out_tree = encoded.frequencies.data.release();
+
 #ifdef MGARD_TIMING
   auto huff_time2 = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -106,9 +106,9 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
     bufp += out_data_miss_size;
   }
 
-  free(out_tree);
-  free(out_data_hit);
-  free(out_data_miss);
+  delete[] out_data_hit;
+  delete[] out_data_miss;
+  delete[] out_tree;
 
 #ifndef MGARD_ZSTD
 #ifdef MGARD_TIMING
