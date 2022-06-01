@@ -247,27 +247,40 @@ HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
 
   assert(n >= num_miss);
 
-  /* For those miss points, we still need to maintain a flag (q = 0),
-   * and therefore we need to allocate space for n numbers.
-   */
-  // The elements of the array are value-initialized (here, zero-initialized).
-  unsigned int *const p_hit = new unsigned int[n]();
-
-  int *p_miss = nullptr;
-  if (num_miss > 0) {
-    // The elements of the array are value-initialized (here, zero-initialized).
-    p_miss = new int[num_miss]();
+  std::size_t nnz = 0;
+  std::size_t nbits = 0;
+  for (std::size_t i = 0; i < nql; ++i) {
+    const huffman_codec &codec_ = codec.codec.at(i);
+    const std::size_t frequency = codec.frequency_table.at(i);
+    nbits += frequency * codec_.len;
+    nnz += frequency ? 1 : 0;
   }
 
-  unsigned char const *const out_data_hit =
-      reinterpret_cast<unsigned char *>(p_hit);
-  unsigned char const *const out_data_miss =
-      reinterpret_cast<unsigned char *>(p_miss);
-  std::size_t out_data_hit_size = 0;
-  std::size_t out_data_miss_size = 0;
+  const std::size_t nbytes =
+      sizeof(unsigned int) * ((nbits + CHAR_BIT * sizeof(unsigned int) - 1) /
+                              (CHAR_BIT * sizeof(unsigned int)));
+  HuffmanEncodedStream out(nbits, nbytes, num_miss * sizeof(int),
+                           2 * nnz * sizeof(std::size_t));
+
+  unsigned int *const hit =
+      reinterpret_cast<unsigned int *>(out.hit.data.get());
+  std::fill(hit, hit + nbytes / sizeof(unsigned int), 0u);
+
+  int *missed = reinterpret_cast<int *>(out.missed.data.get());
+
+  // write frequency table to buffer
+  std::size_t *const cft =
+      reinterpret_cast<std::size_t *>(out.frequencies.data.get());
+  std::size_t off = 0;
+  for (std::size_t i = 0; i < nql; ++i) {
+    if (codec.frequency_table[i] > 0) {
+      cft[2 * off] = i;
+      cft[2 * off + 1] = codec.frequency_table[i];
+      off++;
+    }
+  }
 
   std::size_t start_bit = 0;
-  unsigned int *cur = p_hit;
   for (std::size_t i = 0; i < n; i++) {
     const int q = quantized_data[i];
     unsigned int code;
@@ -282,8 +295,7 @@ HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
       code = codec.codec[0].code;
       len = codec.codec[0].len;
 
-      *p_miss = q;
-      p_miss++;
+      *missed++ = q;
     }
 
     // Note that if len == 0, then that means that either the data is all the
@@ -297,54 +309,17 @@ HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
       // and copy  the rest len - (32 - start_bit % 32) to the next int
       const std::size_t rshift = len - (32 - start_bit % 32);
       const std::size_t lshift = 32 - rshift;
-      *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | (code >> rshift);
-      *(cur + start_bit / 32 + 1) =
-          (*(cur + start_bit / 32 + 1)) | (code << lshift);
-      start_bit += len;
-    } else if (len > 0) {
+      *(hit + start_bit / 32) = (*(hit + start_bit / 32)) | (code >> rshift);
+      *(hit + start_bit / 32 + 1) =
+          (*(hit + start_bit / 32 + 1)) | (code << lshift);
+    } else if (len) {
       code = code << (32 - start_bit % 32 - len);
-      *(cur + start_bit / 32) = (*(cur + start_bit / 32)) | code;
-      start_bit += len;
-    } else {
-      // Sequence is empty (everything must be the same). Do nothing.
+      *(hit + start_bit / 32) = (*(hit + start_bit / 32)) | code;
     }
+    // No effect if `len == 0`.
+    start_bit += len;
   }
 
-  // Note: hit size is in bits, while miss size is in bytes.
-  out_data_hit_size = start_bit;
-  out_data_miss_size = num_miss * sizeof(int);
-
-  // write frequency table to buffer
-  int nonZeros = 0;
-  for (int i = 0; i < nql; i++) {
-    if (codec.frequency_table[i] > 0) {
-      nonZeros++;
-    }
-  }
-
-  std::size_t *const cft = new std::size_t[2 * nonZeros];
-  int off = 0;
-  for (int i = 0; i < nql; i++) {
-    if (codec.frequency_table[i] > 0) {
-      cft[2 * off] = i;
-      cft[2 * off + 1] = codec.frequency_table[i];
-      off++;
-    }
-  }
-
-  unsigned char const *const out_tree = (unsigned char *)cft;
-  const std::size_t out_tree_size = 2 * nonZeros * sizeof(std::size_t);
-
-  const std::size_t nbytes =
-      sizeof(unsigned int) *
-      ((out_data_hit_size + CHAR_BIT * sizeof(unsigned int) - 1) /
-       (CHAR_BIT * sizeof(unsigned int)));
-  HuffmanEncodedStream out(out_data_hit_size, nbytes, out_data_miss_size,
-                           out_tree_size);
-  std::copy(out_data_hit, out_data_hit + nbytes, out.hit.data.get());
-  std::copy(out_data_miss, out_data_miss + out_data_miss_size,
-            out.missed.data.get());
-  std::copy(out_tree, out_tree + out_tree_size, out.frequencies.data.get());
   return out;
 }
 
