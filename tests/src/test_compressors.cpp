@@ -38,7 +38,7 @@ void test_huffman_compression_regression(long int *const src,
   const mgard::MemoryBuffer<unsigned char> out =
       mgard::compress_memory_huffman(src, srcLen);
   const mgard::MemoryBuffer<unsigned char> out_ =
-      mgard::compress_memory_huffman(src_, srcLen);
+      mgard::compress_memory_huffman_rewritten(src_, srcLen);
 
   REQUIRE(out.size == out_.size);
   unsigned char const *const p = out.data.get();

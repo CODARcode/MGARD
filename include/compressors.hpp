@@ -23,6 +23,14 @@ namespace mgard {
 MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
                                                     const std::size_t srcLen);
 
+//! Compress an array using a Huffman tree.
+//!
+//!\param[in] src Array to be compressed.
+//!\param[in] srcLen Size of array (number of elements) to be compressed.
+MemoryBuffer<unsigned char>
+compress_memory_huffman_rewritten(long int *const src,
+                                  const std::size_t srcLen);
+
 //! Decompress an array compressed with `compress_memory_huffman`.
 //!
 //!\param[in] src Compressed array.
