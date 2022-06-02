@@ -46,8 +46,8 @@ void decompress_memory_huffman(unsigned char *const src,
 
   out_data_miss_size = *(size_t *)buf;
   buf += sizeof(size_t);
-  size_t total_huffman_size =
-      out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
+  size_t total_huffman_size = out_tree_size + out_data_hit_size / CHAR_BIT +
+                              sizeof(unsigned int) + out_data_miss_size;
   unsigned char *huffman_encoding_p =
       (unsigned char *)malloc(total_huffman_size);
 #ifndef MGARD_ZSTD
@@ -59,8 +59,8 @@ void decompress_memory_huffman(unsigned char *const src,
 #endif
   out_tree = huffman_encoding_p;
   out_data_hit = huffman_encoding_p + out_tree_size;
-  out_data_miss =
-      huffman_encoding_p + out_tree_size + out_data_hit_size / 8 + 4;
+  out_data_miss = huffman_encoding_p + out_tree_size +
+                  out_data_hit_size / CHAR_BIT + sizeof(unsigned int);
 
   huffman_decoding(dst, dstLen, out_data_hit, out_data_hit_size, out_data_miss,
                    out_data_miss_size, out_tree, out_tree_size);
@@ -74,12 +74,8 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
   auto huff_time1 = std::chrono::high_resolution_clock::now();
 #endif
   HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
-  const std::size_t out_data_hit_size = encoded.nbits;
-  const std::size_t out_data_miss_size = encoded.missed.size;
-  const std::size_t out_tree_size = encoded.frequencies.size;
-  unsigned char const *const out_data_hit = encoded.hit.data.release();
-  unsigned char const *const out_data_miss = encoded.missed.data.release();
-  unsigned char const *const out_tree = encoded.frequencies.data.release();
+
+  assert(not(encoded.hit.size % sizeof(unsigned int)));
 
 #ifdef MGARD_TIMING
   auto huff_time2 = std::chrono::high_resolution_clock::now();
@@ -88,34 +84,44 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
   std::cout << "Huffman tree time = " << (double)duration.count() / 1000000
             << "\n";
 #endif
-  const size_t total_size =
-      out_data_hit_size / 8 + 4 + out_data_miss_size + out_tree_size;
-  unsigned char *payload = (unsigned char *)malloc(total_size);
+  static_assert(CHAR_BIT == 8, "code written assuming `CHAR_BIT == 8`");
+  static_assert(sizeof(unsigned int) == 4,
+                "code written assuming `sizeof(unsigned int) == 4`");
+  const std::size_t offset = encoded.nbits % (CHAR_BIT * sizeof(unsigned int));
+  // Number of hit buffer padding bytes.
+  const std::size_t nhpb = offset ? offset / CHAR_BIT : sizeof(unsigned int);
+
+  assert(encoded.hit.size + nhpb ==
+         encoded.nbits / CHAR_BIT + sizeof(unsigned int));
+
+  const size_t npayload =
+      encoded.hit.size + nhpb + encoded.missed.size + encoded.frequencies.size;
+  unsigned char *const payload = new unsigned char[npayload];
   unsigned char *bufp = payload;
 
-  if (out_tree_size) {
-    std::memcpy(bufp, out_tree, out_tree_size);
-    bufp += out_tree_size;
+  std::memcpy(bufp, encoded.frequencies.data.get(), encoded.frequencies.size);
+  bufp += encoded.frequencies.size;
+
+  std::memcpy(bufp, encoded.hit.data.get(), encoded.hit.size);
+  bufp += encoded.hit.size;
+
+  {
+    const unsigned char zero{0};
+    for (std::size_t i = 0; i < nhpb; ++i) {
+      std::memcpy(bufp, &zero, 1);
+      bufp += 1;
+    }
   }
 
-  std::memcpy(bufp, out_data_hit, out_data_hit_size / 8 + 4);
-  bufp += out_data_hit_size / 8 + 4;
-
-  if (out_data_miss_size) {
-    std::memcpy(bufp, out_data_miss, out_data_miss_size);
-    bufp += out_data_miss_size;
-  }
-
-  delete[] out_data_hit;
-  delete[] out_data_miss;
-  delete[] out_tree;
+  std::memcpy(bufp, encoded.missed.data.get(), encoded.missed.size);
+  bufp += encoded.missed.size;
 
 #ifndef MGARD_ZSTD
 #ifdef MGARD_TIMING
   auto z_time1 = std::chrono::high_resolution_clock::now();
 #endif
   const MemoryBuffer<unsigned char> out_data =
-      compress_memory_z(payload, total_size);
+      compress_memory_z(payload, npayload);
 #ifdef MGARD_TIMING
   auto z_time2 = std::chrono::high_resolution_clock::now();
   auto z_duration =
@@ -128,7 +134,7 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
   auto zstd_time1 = std::chrono::high_resolution_clock::now();
 #endif
   const MemoryBuffer<unsigned char> out_data =
-      compress_memory_zstd(payload, total_size);
+      compress_memory_zstd(payload, npayload);
 #ifdef MGARD_TIMING
   auto zstd_time2 = std::chrono::high_resolution_clock::now();
   auto zstd_duration = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -137,20 +143,20 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
             << (double)zstd_duration.count() / 1000000 << "\n";
 #endif
 #endif
-  free(payload);
-  payload = 0;
+  delete[] payload;
+  bufp = nullptr;
 
   const std::size_t bufferLen = 3 * sizeof(size_t) + out_data.size;
   unsigned char *const buffer = new unsigned char[bufferLen];
 
   bufp = buffer;
-  *(size_t *)bufp = out_tree_size;
+  *(size_t *)bufp = encoded.frequencies.size;
   bufp += sizeof(size_t);
 
-  *(size_t *)bufp = out_data_hit_size;
+  *(size_t *)bufp = encoded.nbits;
   bufp += sizeof(size_t);
 
-  *(size_t *)bufp = out_data_miss_size;
+  *(size_t *)bufp = encoded.missed.size;
   bufp += sizeof(size_t);
 
   {
