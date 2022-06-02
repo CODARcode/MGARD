@@ -61,5 +61,26 @@ mgard::TensorMeshHierarchy<M, Real>
 make_flat_hierarchy(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
                     const std::array<std::size_t, M> shape);
 
+//! Function object to generate periodic data.
+struct PeriodicGenerator {
+  //! Constructor.
+  //!
+  //!\param value Starting value.
+  //!\param period Generator period.
+  PeriodicGenerator(const std::size_t period, const long int value);
+
+  //! Generator period.
+  std::size_t period;
+
+  //! Starting value.
+  long int value;
+
+  //! Number of times `operator()` has been called.
+  std::size_t ncalls;
+
+  //! Generate next value in periodic sequence.
+  long int operator()();
+};
+
 #include "testing_utilities.tpp"
 #endif

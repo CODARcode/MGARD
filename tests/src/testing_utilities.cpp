@@ -20,3 +20,11 @@ std::ostream &operator<<(std::ostream &os, const TrialTracker &tracker) {
   return os << tracker.nsuccesses << " successes and " << tracker.nfailures
             << " failures out of " << tracker.ntrials << " trials";
 }
+
+PeriodicGenerator::PeriodicGenerator(const std::size_t period,
+                                     const long int value)
+    : period(period), value(value), ncalls(0) {}
+
+long int PeriodicGenerator::operator()() {
+  return value + static_cast<long int>(ncalls++ % period);
+}

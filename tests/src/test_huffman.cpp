@@ -45,29 +45,6 @@ void test_encoding_regression_constant(const std::size_t N, const long int q) {
   delete[] quantized;
 }
 
-//! Function object to generate periodict data.
-struct PeriodicGenerator {
-  //! Constructor.
-  //!
-  //!\param value Starting value.
-  //!\param period Generator period.
-  PeriodicGenerator(const std::size_t period, const long int value)
-      : period(period), value(value), ncalls(0) {}
-
-  //! Generator period.
-  std::size_t period;
-
-  //! Starting value.
-  long int value;
-
-  //! Number of times `operator()` has been called.
-  std::size_t ncalls;
-
-  long int operator()() {
-    return value + static_cast<long int>(ncalls++ % period);
-  }
-};
-
 void test_encoding_regression_periodic(const std::size_t N, const long int q,
                                        const std::size_t period) {
   long int *const quantized = new long int[N];
