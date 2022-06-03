@@ -22,46 +22,65 @@
 
 namespace mgard {
 
+namespace {
+
+std::size_t hit_buffer_size(const std::size_t nbits) {
+  return nbits / CHAR_BIT + sizeof(unsigned int);
+}
+
+} // namespace
+
 void decompress_memory_huffman(unsigned char *const src,
                                const std::size_t srcLen, long int *const dst,
                                const std::size_t dstLen) {
-  unsigned char *out_data_hit = 0;
-  size_t out_data_hit_size;
-  unsigned char *out_data_miss = 0;
-  size_t out_data_miss_size;
-  unsigned char *out_tree = 0;
-  size_t out_tree_size;
+  std::size_t const *const sizes = reinterpret_cast<std::size_t const *>(src);
+  const std::size_t nfrequencies = sizes[0];
+  const std::size_t nbits = sizes[1];
+  const std::size_t nmissed = sizes[2];
+  const std::size_t nhit = hit_buffer_size(nbits);
 
-  unsigned char *buf = src;
+  MemoryBuffer<unsigned char> buffer(nfrequencies + nhit + nmissed);
+  {
+    const std::size_t offset = 3 * sizeof(std::size_t);
+    unsigned char const *const src_ = src + offset;
+    const std::size_t srcLen_ = srcLen - offset;
+    unsigned char *const dst_ = buffer.data.get();
+    const std::size_t dstLen_ = buffer.size;
 
-  out_tree_size = *(size_t *)buf;
-  buf += sizeof(size_t);
-
-  out_data_hit_size = *(size_t *)buf;
-  buf += sizeof(size_t);
-
-  out_data_miss_size = *(size_t *)buf;
-  buf += sizeof(size_t);
-  size_t total_huffman_size = out_tree_size + out_data_hit_size / CHAR_BIT +
-                              sizeof(unsigned int) + out_data_miss_size;
-  unsigned char *huffman_encoding_p =
-      (unsigned char *)malloc(total_huffman_size);
 #ifndef MGARD_ZSTD
-  decompress_memory_z(buf, srcLen - 3 * sizeof(size_t), huffman_encoding_p,
-                      total_huffman_size);
+    decompress_memory_z(src_, srcLen_, dst_, dstLen_);
 #else
-  decompress_memory_zstd(buf, srcLen - 3 * sizeof(size_t), huffman_encoding_p,
-                         total_huffman_size);
+    decompress_memory_zstd(src_, srcLen_, dst_, dstLen_);
 #endif
-  out_tree = huffman_encoding_p;
-  out_data_hit = huffman_encoding_p + out_tree_size;
-  out_data_miss = huffman_encoding_p + out_tree_size +
-                  out_data_hit_size / CHAR_BIT + sizeof(unsigned int);
+  }
 
-  huffman_decoding(dst, dstLen, out_data_hit, out_data_hit_size, out_data_miss,
-                   out_data_miss_size, out_tree, out_tree_size);
+  HuffmanEncodedStream encoded(nbits, nhit, nmissed, nfrequencies);
+  {
+    unsigned char const *begin;
+    unsigned char const *end;
 
-  free(huffman_encoding_p);
+    begin = buffer.data.get();
+    end = begin + nfrequencies;
+    std::copy(begin, end, encoded.frequencies.data.get());
+
+    begin = end;
+    end = begin + nhit;
+    std::copy(begin, end, encoded.hit.data.get());
+
+    begin = end;
+    end = begin + nmissed;
+    std::copy(begin, end, encoded.missed.data.get());
+  }
+
+  const MemoryBuffer<long int> decoded = huffman_decoding(encoded);
+  {
+    long int const *const p = decoded.data.get();
+    if (decoded.size * sizeof(*p) != dstLen) {
+      throw std::runtime_error(
+          "mismatch between expected and obtained decompressed buffer sizes");
+    }
+    std::copy(p, p + decoded.size, dst);
+  }
 }
 
 namespace {
@@ -98,8 +117,7 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
   // Number of hit buffer padding bytes.
   const std::size_t nhbpb = offset ? offset / CHAR_BIT : sizeof(unsigned int);
 
-  assert(encoded.hit.size + nhbpb ==
-         encoded.nbits / CHAR_BIT + sizeof(unsigned int));
+  assert(encoded.hit.size + nhbpb == hit_buffer_size(encoded.nbits));
 
   const size_t npayload =
       encoded.hit.size + nhbpb + encoded.missed.size + encoded.frequencies.size;
@@ -156,7 +174,7 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
 MemoryBuffer<unsigned char>
 compress_memory_huffman_rewritten(long int *const src,
                                   const std::size_t srcLen) {
-  HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
+  const HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
 
   assert(not(encoded.hit.size % sizeof(unsigned int)));
 
@@ -167,8 +185,7 @@ compress_memory_huffman_rewritten(long int *const src,
   // Number of hit buffer padding bytes.
   const std::size_t nhbpb = offset ? offset / CHAR_BIT : sizeof(unsigned int);
 
-  assert(encoded.hit.size + nhbpb ==
-         encoded.nbits / CHAR_BIT + sizeof(unsigned int));
+  assert(encoded.hit.size + nhbpb == hit_buffer_size(encoded.nbits));
 
   unsigned char const *hbpb = new unsigned char[nhbpb]();
   MemoryBuffer<unsigned char> payload = gather_constituents({

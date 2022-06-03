@@ -65,7 +65,7 @@ void test_encoding_regression_random(const std::size_t N, const long int a,
 
 } // namespace
 
-TEST_CASE("encoding regression", "[huffman]") {
+TEST_CASE("encoding regression", "[huffman] [regression]") {
   SECTION("constant data") {
     test_encoding_regression_constant(10, 0);
     test_encoding_regression_constant(100, 732);

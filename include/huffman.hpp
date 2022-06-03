@@ -56,19 +56,8 @@ huffman_encoding_rewritten(long int const *const quantized_data,
 
 //! Decode a stream encoded using a Huffman code.
 //!
-//!\param[out] quantized_data Output buffer (quantized coefficients).
-//!\param[in] quantized_data_size Size *in bytes* of output buffer.
-//!\param[in] out_data_hit Compressed buffer.
-//!\param[in] out_data_hit_size Size *in bits* of compressed buffer.
-//!\param[in] out_data_miss 'Missed' buffer (input symbols not assigned codes).
-//!\param[in] out_data_miss_size Size *in bytes* of 'missed' buffer.
-//!\param[in] out_tree Frequency table for input buffer.
-//!\param[in] out_tree_size Size *in bytes* of the frequency table.
-void huffman_decoding(
-    long int *const quantized_data, const std::size_t quantized_data_size,
-    unsigned char const *const out_data_hit, const size_t out_data_hit_size,
-    unsigned char const *const out_data_miss, const size_t out_data_miss_size,
-    unsigned char const *const out_tree, const size_t out_tree_size);
+//!\param[in] encoded Input buffer (Huffman-encoded stream).
+MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded);
 
 //! Codeword (in progress) associated to a node in a Huffman code creation tree.
 struct HuffmanCodeword {

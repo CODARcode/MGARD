@@ -422,22 +422,27 @@ huffman_encoding_rewritten(long int const *const quantized_data,
   return out;
 }
 
-void huffman_decoding(long int *const quantized_data,
-                      const std::size_t quantized_data_size,
-                      unsigned char const *const out_data_hit,
-                      const std::size_t out_data_hit_size,
-                      unsigned char const *const out_data_miss,
-                      const std::size_t out_data_miss_size,
-                      unsigned char const *const out_tree,
-                      const std::size_t out_tree_size) {
+MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
+  const std::size_t out_data_miss_size = encoded.missed.size;
+  const std::size_t out_tree_size = encoded.frequencies.size;
+  unsigned char const *const out_data_hit = encoded.hit.data.get();
+  unsigned char const *const out_data_miss = encoded.missed.data.get();
+  unsigned char const *const out_tree = encoded.frequencies.data.get();
+
   std::size_t const *const cft = (std::size_t const *)out_tree;
-  const int nonZeros = out_tree_size / (2 * sizeof(std::size_t));
+  const std::size_t nnz = out_tree_size / (2 * sizeof(std::size_t));
   // The elements of the array are value-initialized (here, zero-initialized).
   std::size_t *const ft = new std::size_t[nql]();
 
-  for (int j = 0; j < nonZeros; j++) {
-    ft[cft[2 * j]] = cft[2 * j + 1];
+  std::size_t nquantized = 0;
+  for (std::size_t j = 0; j < nnz; ++j) {
+    const std::size_t frequency = cft[2 * j + 1];
+    nquantized += frequency;
+    ft[cft[2 * j]] = frequency;
   }
+
+  MemoryBuffer<long int> out(nquantized);
+  long int *const quantized_data = out.data.get();
 
   my_priority_queue<htree_node> *const phtree = build_tree(ft);
   delete[] ft;
@@ -460,7 +465,7 @@ void huffman_decoding(long int *const quantized_data,
   long int *q = quantized_data;
   std::size_t i = 0;
   std::size_t num_missed = 0;
-  while (q < (quantized_data + (quantized_data_size / sizeof(*q)))) {
+  while (q < quantized_data + nquantized) {
     htree_node const *root = phtree->top();
     assert(root);
 
@@ -504,13 +509,10 @@ void huffman_decoding(long int *const quantized_data,
   assert(start_bit == out_data_hit_size);
   assert(sizeof(int) * num_missed == out_data_miss_size);
 
-  // Avoid unused argument warning. If NDEBUG is defined, then the assert
-  // becomes empty and out_data_hit_size is unused. Tell the compiler that
-  // is OK and expected.
-  (void)out_data_hit_size;
-
   delete[] miss_buf;
   free_tree(phtree);
+
+  return out;
 }
 
 } // namespace mgard
