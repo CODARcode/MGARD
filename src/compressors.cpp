@@ -16,11 +16,6 @@
 #include "huffman.hpp"
 #include "utilities.hpp"
 
-#ifdef MGARD_TIMING
-#include <chrono>
-#include <iostream>
-#endif
-
 #ifdef MGARD_ZSTD
 #include <zstd.h>
 #endif
@@ -92,20 +87,10 @@ gather_constituents(const std::vector<Constituent> &constituents) {
 
 MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
                                                     const std::size_t srcLen) {
-#ifdef MGARD_TIMING
-  auto huff_time1 = std::chrono::high_resolution_clock::now();
-#endif
   HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
 
   assert(not(encoded.hit.size % sizeof(unsigned int)));
 
-#ifdef MGARD_TIMING
-  auto huff_time2 = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      huff_time2 - huff_time1);
-  std::cout << "Huffman tree time = " << (double)duration.count() / 1000000
-            << "\n";
-#endif
   static_assert(CHAR_BIT == 8, "code written assuming `CHAR_BIT == 8`");
   static_assert(sizeof(unsigned int) == 4,
                 "code written assuming `sizeof(unsigned int) == 4`");
@@ -139,31 +124,11 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
   bufp += encoded.missed.size;
 
 #ifndef MGARD_ZSTD
-#ifdef MGARD_TIMING
-  auto z_time1 = std::chrono::high_resolution_clock::now();
-#endif
   const MemoryBuffer<unsigned char> out_data =
       compress_memory_z(payload, npayload);
-#ifdef MGARD_TIMING
-  auto z_time2 = std::chrono::high_resolution_clock::now();
-  auto z_duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(z_time2 - z_time1);
-  std::cout << "ZLIB compression time = "
-            << (double)z_duration.count() / 1000000 << "\n";
-#endif
 #else
-#ifdef MGARD_TIMING
-  auto zstd_time1 = std::chrono::high_resolution_clock::now();
-#endif
   const MemoryBuffer<unsigned char> out_data =
       compress_memory_zstd(payload, npayload);
-#ifdef MGARD_TIMING
-  auto zstd_time2 = std::chrono::high_resolution_clock::now();
-  auto zstd_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      zstd_time2 - zstd_time1);
-  std::cout << "ZSTD compression time = "
-            << (double)zstd_duration.count() / 1000000 << "\n";
-#endif
 #endif
   delete[] payload;
   bufp = nullptr;
@@ -191,20 +156,10 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
 MemoryBuffer<unsigned char>
 compress_memory_huffman_rewritten(long int *const src,
                                   const std::size_t srcLen) {
-#ifdef MGARD_TIMING
-  auto huff_time1 = std::chrono::high_resolution_clock::now();
-#endif
   HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
 
   assert(not(encoded.hit.size % sizeof(unsigned int)));
 
-#ifdef MGARD_TIMING
-  auto huff_time2 = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      huff_time2 - huff_time1);
-  std::cout << "Huffman tree time = " << (double)duration.count() / 1000000
-            << "\n";
-#endif
   static_assert(CHAR_BIT == 8, "code written assuming `CHAR_BIT == 8`");
   static_assert(sizeof(unsigned int) == 4,
                 "code written assuming `sizeof(unsigned int) == 4`");
@@ -225,31 +180,11 @@ compress_memory_huffman_rewritten(long int *const src,
   delete[] hbpb;
 
 #ifndef MGARD_ZSTD
-#ifdef MGARD_TIMING
-  auto z_time1 = std::chrono::high_resolution_clock::now();
-#endif
   const MemoryBuffer<unsigned char> out_data =
       compress_memory_z(payload.data.get(), payload.size);
-#ifdef MGARD_TIMING
-  auto z_time2 = std::chrono::high_resolution_clock::now();
-  auto z_duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(z_time2 - z_time1);
-  std::cout << "ZLIB compression time = "
-            << (double)z_duration.count() / 1000000 << "\n";
-#endif
 #else
-#ifdef MGARD_TIMING
-  auto zstd_time1 = std::chrono::high_resolution_clock::now();
-#endif
   const MemoryBuffer<unsigned char> out_data =
       compress_memory_zstd(payload.data.get(), payload.size);
-#ifdef MGARD_TIMING
-  auto zstd_time2 = std::chrono::high_resolution_clock::now();
-  auto zstd_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      zstd_time2 - zstd_time1);
-  std::cout << "ZSTD compression time = "
-            << (double)zstd_duration.count() / 1000000 << "\n";
-#endif
 #endif
 
   return gather_constituents(
