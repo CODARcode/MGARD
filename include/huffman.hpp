@@ -6,6 +6,8 @@
 #include <cstddef>
 
 #include <memory>
+#include <queue>
+#include <type_traits>
 #include <vector>
 
 #include "utilities.hpp"
@@ -118,8 +120,17 @@ struct CodeCreationTreeNode {
 };
 
 //! Huffman code generated from/for an input stream.
+//!
+//!\note The construction of this class is a little convoluted.
 template <typename Symbol> class HuffmanCode {
 public:
+  static_assert(std::is_integral<Symbol>::value and
+                    std::is_signed<Symbol>::value,
+                "symbol type must be signed and integral");
+
+  //! Shared pointer to node in Huffman code creation tree.
+  using Node = std::shared_ptr<CodeCreationTreeNode>;
+
   //! Constructor.
   //!
   //!\param ncodewords Number of symbols that will be assigned codewords.
@@ -127,6 +138,13 @@ public:
   //!\param end End of output stream.
   HuffmanCode(const std::size_t ncodewords, Symbol const *const begin,
               Symbol const *const end);
+
+  //! Constructor.
+  //!
+  //!\param ncodewords Number of symbols that will be assigned codewords.
+  //!\param pairs Index–frequency pairs for frequency table.
+  HuffmanCode(const std::size_t ncodewords,
+              const std::vector<std::pair<std::size_t, std::size_t>> &pairs);
 
   //! Number of symbols that will be assigned codewords.
   std::size_t ncodewords;
@@ -137,7 +155,8 @@ public:
   //! Codewords associated to the symbols.
   std::vector<HuffmanCodeword> codewords;
 
-  //! Report the number of out-of-range symbols encountered in the stream.
+  //! Report the number of out-of-range symbols encountered in the stream or
+  //! given in the frequency table pairs.
   std::size_t nmissed() const;
 
   //! Check whether a symbol is eligible for a codeword.
@@ -147,11 +166,58 @@ public:
   std::size_t index(const Symbol symbol) const;
 
 private:
-  //! Smallest symbol (inclusive) to receive a codeword.
-  Symbol min_symbol;
+  //! Function object used to compare code creation tree nodes.
+  struct HeldCountGreater {
+    bool operator()(const Node &a, const Node &b) const;
+  };
 
-  //! Largest symbol (inclusive) to receive a codeword.
-  Symbol max_symbol;
+public:
+  //! Huffman code creation tree.
+  std::priority_queue<Node, std::vector<Node>, HeldCountGreater> queue;
+
+  //! Decode a codeword (identified by associated leaf) to a symbol.
+  //!
+  //!\pre `leaf` must be a leaf (rather than an interior node) of the code
+  //! creation tree.
+  //!
+  //!\param leaf Leaf (associated to a codeword) to decode.
+  //!\param missed Pointer to next out-of-range symbol. If `leaf` is associated
+  //! to the out-of-range codeword, this pointer will be dereferenced and
+  //! incremented.
+  Symbol decode(const Node &leaf, Symbol const *&missed) const;
+
+private:
+  //! Smallest and largest symbols (inclusive) to receive codewords.
+  std::pair<Symbol, Symbol> endpoints;
+
+  //! Set the range of symbols that will be assigned codewords.
+  //!
+  //!\note This function depends on `ncodewords`.
+  void set_endpoints();
+
+  //! Populate the frequency table using a stream of symbols.
+  //!
+  //!\pre `frequencies` should have length `ncodewords` and all entries should
+  //! be zero.
+  //!
+  //!\param begin Beginning of stream of symbols.
+  //!\param end End of stream of symbols.
+  void populate_frequencies(Symbol const *const begin, Symbol const *const end);
+
+  //! Populate the frequency table from a collection of index–frequency pairs.
+  //!
+  //!\pre `frequencies` should have length `ncodewords` and all entries should
+  //! be zero.
+  //!
+  //!\param pairs Beginning of stream of symbols.
+  //!\param end End of stream of symbols.
+  void populate_frequencies(
+      const std::vector<std::pair<std::size_t, std::size_t>> &pairs);
+
+  //! Create the Huffman code creation tree.
+  //!
+  //!\note This function depends on `frequencies`.
+  void create_code_creation_tree();
 
   // TODO: Check that frequency count ties aren't going to hurt us here. Stable
   // sorting algorithm in `priority_queue`?

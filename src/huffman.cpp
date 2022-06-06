@@ -5,11 +5,12 @@
 #include <cstring>
 
 #include <algorithm>
-
 #include <array>
 #include <numeric>
 #include <queue>
 #include <vector>
+
+#include <iostream>
 
 #include "huffman.hpp"
 
@@ -524,34 +525,55 @@ MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
   return out;
 }
 
+namespace {
+
+long int decode(const HuffmanCode<long int> &code,
+                const typename HuffmanCode<long int>::Node &leaf,
+                long int const *&missed) {
+  long int const *const start = missed;
+  long int decoded = code.decode(leaf, missed);
+  if (missed != start) {
+    decoded -= nql / 2;
+  }
+  return decoded;
+}
+
+} // namespace
+
 MemoryBuffer<long int>
 huffman_decoding_rewritten(const HuffmanEncodedStream &encoded) {
-  std::size_t const *const cft =
-      reinterpret_cast<std::size_t const *>(encoded.frequencies.data.get());
-  const std::size_t nnz = encoded.frequencies.size / (2 * sizeof(std::size_t));
-  // The elements of the array are value-initialized (here, zero-initialized).
-  std::size_t *const ft = new std::size_t[nql]();
+  using Symbol = long int;
+  using MissedSymbol = int;
 
+  const std::size_t nnz = encoded.frequencies.size / (2 * sizeof(std::size_t));
+  std::vector<std::pair<std::size_t, std::size_t>> pairs(nnz);
   std::size_t nquantized = 0;
-  for (std::size_t j = 0; j < nnz; ++j) {
-    const std::size_t frequency = cft[2 * j + 1];
-    nquantized += frequency;
-    ft[cft[2 * j]] = frequency;
+  {
+    std::size_t const *p =
+        reinterpret_cast<std::size_t const *>(encoded.frequencies.data.get());
+    for (std::pair<std::size_t, std::size_t> &pair : pairs) {
+      const std::size_t index = *p++;
+      const std::size_t frequency = *p++;
+      pair = {index, frequency};
+      nquantized += frequency;
+    }
   }
 
-  MemoryBuffer<long int> out(nquantized);
-  long int *q = out.data.get();
+  const std::size_t ncodewords = nql - 1;
+  HuffmanCode<Symbol> code(ncodewords, pairs);
 
-  my_priority_queue<htree_node> *const phtree = build_tree(ft);
-  delete[] ft;
+  MemoryBuffer<Symbol> out(nquantized);
+  Symbol *q = out.data.get();
 
-  // The encoded.missed.data.get() may not be aligned. Therefore, the code
-  // here makes a new buffer.
-  assert(not(encoded.missed.size % sizeof(int)));
-  int *const missed = new int[encoded.missed.size / sizeof(int)];
-  std::memcpy(missed, encoded.missed.data.get(), encoded.missed.size);
-
-  int const *p_missed = missed;
+  assert(not(encoded.missed.size % sizeof(MissedSymbol)));
+  const std::size_t nmissed = encoded.missed.size / sizeof(MissedSymbol);
+  Symbol *const missed = new Symbol[nmissed];
+  {
+    MissedSymbol const *const p =
+        reinterpret_cast<MissedSymbol const *>(encoded.missed.data.get());
+    std::copy(p, p + nmissed, missed);
+  }
+  Symbol const *p_missed = missed;
 
   const std::size_t nbytes = encoded.hit.size;
   unsigned char *const buffer = new unsigned char[nbytes];
@@ -564,38 +586,20 @@ huffman_decoding_rewritten(const HuffmanEncodedStream &encoded) {
                   encoded.nbits % CHAR_BIT);
 
   std::size_t nbits = 0;
-  std::size_t nmissed = 0;
-  htree_node const *const root = phtree->top();
+  const HuffmanCode<Symbol>::Node root = code.queue.top();
   assert(root);
-  Bits::iterator p_ = bits.begin();
+  Bits::iterator b = bits.begin();
   for (std::size_t i = 0; i < nquantized; ++i) {
-    htree_node const *node = root;
-
-    std::size_t len = 0;
-    while (node->left) {
-      node = *p_++ ? node->right : node->left;
-      ++len;
-    }
-
-    if (node->q) {
-      *q = node->q - nql / 2;
-    } else {
-      *q = *p_missed - nql / 2;
-
-      ++p_missed;
-      ++nmissed;
-    }
-
-    ++q;
-    nbits += len;
+    HuffmanCode<Symbol>::Node node;
+    for (node = root; node->left;
+         node = *b++ ? node->right : node->left, ++nbits)
+      ;
+    *q++ = decode(code, node, p_missed);
   }
-
   assert(nbits == encoded.nbits);
-  assert(sizeof(int) * nmissed == encoded.missed.size);
+  assert(sizeof(MissedSymbol) * (p_missed - missed) == encoded.missed.size);
 
   delete[] missed;
-  free_tree(phtree);
-
   delete[] buffer;
 
   return out;
