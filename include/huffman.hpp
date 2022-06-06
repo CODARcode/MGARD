@@ -59,6 +59,12 @@ huffman_encoding_rewritten(long int const *const quantized_data,
 //!\param[in] encoded Input buffer (Huffman-encoded stream).
 MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded);
 
+//! Decode a stream encoded using a Huffman code.
+//!
+//!\param[in] encoded Input buffer (Huffman-encoded stream).
+MemoryBuffer<long int>
+huffman_decoding_rewritten(const HuffmanEncodedStream &encoded);
+
 //! Codeword (in progress) associated to a node in a Huffman code creation tree.
 struct HuffmanCodeword {
   //! Bytes containing the bits of the codeword.

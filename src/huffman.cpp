@@ -240,6 +240,28 @@ HuffmanCodec<N> build_huffman_codec(long int *const quantized_data,
   return codec;
 }
 
+namespace {
+
+void endianness_shuffle(unsigned char *const buffer, const std::size_t nbytes) {
+  if (nbytes % sizeof(unsigned int)) {
+    throw std::runtime_error(
+        "buffer size not a multiple of `sizeof(unsigned int)`");
+  }
+  const unsigned int one{1};
+  const bool little_endian = *reinterpret_cast<unsigned char const *>(&one);
+  if (little_endian) {
+    for (std::size_t i = 0; i < nbytes; i += sizeof(unsigned int)) {
+      unsigned char *a = buffer + i;
+      unsigned char *b = a + sizeof(unsigned int) - 1;
+      for (std::size_t j = 0; j < sizeof(unsigned int) / 2; ++j) {
+        std::swap(*a++, *b--);
+      }
+    }
+  }
+}
+
+} // namespace
+
 HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
                                       const std::size_t n) {
   const HuffmanCodec<nql> codec = build_huffman_codec<nql>(quantized_data, n);
@@ -405,20 +427,7 @@ huffman_encoding_rewritten(long int const *const quantized_data,
     }
   }
 
-  {
-    const unsigned int one{1};
-    const bool little_endian = *reinterpret_cast<unsigned char const *>(&one);
-    if (little_endian) {
-      for (std::size_t i = 0; i < nbytes; i += sizeof(unsigned int)) {
-        unsigned char *a = buffer + i;
-        unsigned char *b = a + sizeof(unsigned int) - 1;
-        for (std::size_t j = 0; j < sizeof(unsigned int) / 2; ++j) {
-          std::swap(*a++, *b--);
-        }
-      }
-    }
-  }
-
+  endianness_shuffle(buffer, nbytes);
   return out;
 }
 
@@ -511,6 +520,83 @@ MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
 
   delete[] miss_buf;
   free_tree(phtree);
+
+  return out;
+}
+
+MemoryBuffer<long int>
+huffman_decoding_rewritten(const HuffmanEncodedStream &encoded) {
+  std::size_t const *const cft =
+      reinterpret_cast<std::size_t const *>(encoded.frequencies.data.get());
+  const std::size_t nnz = encoded.frequencies.size / (2 * sizeof(std::size_t));
+  // The elements of the array are value-initialized (here, zero-initialized).
+  std::size_t *const ft = new std::size_t[nql]();
+
+  std::size_t nquantized = 0;
+  for (std::size_t j = 0; j < nnz; ++j) {
+    const std::size_t frequency = cft[2 * j + 1];
+    nquantized += frequency;
+    ft[cft[2 * j]] = frequency;
+  }
+
+  MemoryBuffer<long int> out(nquantized);
+  long int *q = out.data.get();
+
+  my_priority_queue<htree_node> *const phtree = build_tree(ft);
+  delete[] ft;
+
+  // The encoded.missed.data.get() may not be aligned. Therefore, the code
+  // here makes a new buffer.
+  assert(not(encoded.missed.size % sizeof(int)));
+  int *const missed = new int[encoded.missed.size / sizeof(int)];
+  std::memcpy(missed, encoded.missed.data.get(), encoded.missed.size);
+
+  int const *p_missed = missed;
+
+  const std::size_t nbytes = encoded.hit.size;
+  unsigned char *const buffer = new unsigned char[nbytes];
+  {
+    unsigned char const *const p = encoded.hit.data.get();
+    std::copy(p, p + nbytes, buffer);
+  }
+  endianness_shuffle(buffer, nbytes);
+  const Bits bits(buffer, buffer + encoded.nbits / CHAR_BIT,
+                  encoded.nbits % CHAR_BIT);
+
+  std::size_t nbits = 0;
+  std::size_t nmissed = 0;
+  htree_node const *const root = phtree->top();
+  assert(root);
+  Bits::iterator p_ = bits.begin();
+  for (std::size_t i = 0; i < nquantized; ++i) {
+    htree_node const *node = root;
+
+    std::size_t len = 0;
+    while (node->left) {
+      node = *p_++ ? node->right : node->left;
+      ++len;
+    }
+
+    if (node->q) {
+      *q = node->q - nql / 2;
+    } else {
+      *q = *p_missed - nql / 2;
+
+      ++p_missed;
+      ++nmissed;
+    }
+
+    ++q;
+    nbits += len;
+  }
+
+  assert(nbits == encoded.nbits);
+  assert(sizeof(int) * nmissed == encoded.missed.size);
+
+  delete[] missed;
+  free_tree(phtree);
+
+  delete[] buffer;
 
   return out;
 }

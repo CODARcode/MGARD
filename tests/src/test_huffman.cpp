@@ -51,7 +51,7 @@ void test_decoding_regression(long int *const quantized, const std::size_t N) {
 
   const mgard::MemoryBuffer<long int> out = mgard::huffman_decoding(encoded);
   const mgard::MemoryBuffer<long int> out_new =
-      mgard::huffman_decoding(encoded);
+      mgard::huffman_decoding_rewritten(encoded);
 
   REQUIRE(out.size == out_new.size);
   long int const *const p = out.data.get();
