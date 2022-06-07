@@ -41,12 +41,12 @@ void test_huffman_compression_regression(long int *const src,
   const mgard::MemoryBuffer<unsigned char> out_ =
       mgard::compress_memory_huffman_rewritten(src_, srcLen);
 
+  delete[] src_;
+
   REQUIRE(out.size == out_.size);
   unsigned char const *const p = out.data.get();
   unsigned char const *const p_ = out_.data.get();
   REQUIRE(std::equal(p, p + out.size, p_));
-
-  delete[] src_;
 }
 
 void test_huffman_decompression_regression(long int *const src,
@@ -71,8 +71,8 @@ void test_huffman_decompression_regression(long int *const src,
 
   mgard::decompress_memory_huffman(q, compressed.size, p,
                                    out.size * sizeof(long int));
-  mgard::decompress_memory_huffman(q_, compressed_.size, p_,
-                                   out_.size * sizeof(long int));
+  mgard::decompress_memory_huffman_rewritten(q_, compressed_.size, p_,
+                                             out_.size * sizeof(long int));
 
   REQUIRE(std::equal(p, p + srcLen, p_));
 }

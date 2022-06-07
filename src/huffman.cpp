@@ -535,7 +535,7 @@ MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
     start_bit += len;
   }
 
-  assert(start_bit == out_data_hit_size);
+  assert(start_bit == encoded.nbits);
   assert(sizeof(int) * num_missed == out_data_miss_size);
 
   delete[] miss_buf;

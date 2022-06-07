@@ -28,13 +28,16 @@ compress_memory_huffman_rewritten(long int *const src,
 
 //! Decompress an array compressed with `compress_memory_huffman`.
 //!
+//!\deprecated
+//!
 //!\param[in] src Compressed array.
 //!\param[in] srcLen Size in bytes of the compressed array.
 //!\param[out] dst Decompressed array.
 //!\param[in] dstLen Size in bytes of the decompressed array.
-void decompress_memory_huffman(unsigned char *const src,
-                               const std::size_t srcLen, long int *const dst,
-                               const std::size_t dstLen);
+void decompress_memory_huffman_rewritten(unsigned char *const src,
+                                         const std::size_t srcLen,
+                                         long int *const dst,
+                                         const std::size_t dstLen);
 
 #ifdef MGARD_ZSTD
 //! Compress an array using `zstd`.

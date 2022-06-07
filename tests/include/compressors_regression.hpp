@@ -16,6 +16,16 @@ namespace mgard {
 MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
                                                     const std::size_t srcLen);
 
+//! Decompress an array compressed with `compress_memory_huffman`.
+//!
+//!\param[in] src Compressed array.
+//!\param[in] srcLen Size in bytes of the compressed array.
+//!\param[out] dst Decompressed array.
+//!\param[in] dstLen Size in bytes of the decompressed array.
+void decompress_memory_huffman(unsigned char *const src,
+                               const std::size_t srcLen, long int *const dst,
+                               const std::size_t dstLen);
+
 } // namespace mgard
 
 #endif

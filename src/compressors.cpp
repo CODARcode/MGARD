@@ -30,9 +30,10 @@ std::size_t hit_buffer_size(const std::size_t nbits) {
 
 } // namespace
 
-void decompress_memory_huffman(unsigned char *const src,
-                               const std::size_t srcLen, long int *const dst,
-                               const std::size_t dstLen) {
+void decompress_memory_huffman_rewritten(unsigned char *const src,
+                                         const std::size_t srcLen,
+                                         long int *const dst,
+                                         const std::size_t dstLen) {
   std::size_t const *const sizes = reinterpret_cast<std::size_t const *>(src);
   const std::size_t nfrequencies = sizes[0];
   const std::size_t nbits = sizes[1];
@@ -54,7 +55,12 @@ void decompress_memory_huffman(unsigned char *const src,
 #endif
   }
 
-  HuffmanEncodedStream encoded(nbits, nhit, nmissed, nfrequencies);
+  // `huffman_decoding_rewritten` expects the size of the hit buffer to be a
+  // multiple of `sizeof(unsigned int)`. We'll zero out any extra bytes below.
+  const std::size_t nbytes =
+      sizeof(unsigned int) *
+      ((nhit + sizeof(unsigned int) - 1) / sizeof(unsigned int));
+  HuffmanEncodedStream encoded(nbits, nbytes, nmissed, nfrequencies);
   {
     unsigned char const *begin;
     unsigned char const *end;
@@ -67,12 +73,17 @@ void decompress_memory_huffman(unsigned char *const src,
     end = begin + nhit;
     std::copy(begin, end, encoded.hit.data.get());
 
+    {
+      unsigned char *const p = encoded.hit.data.get();
+      std::fill(p + nhit, p + nbytes, 0);
+    }
+
     begin = end;
     end = begin + nmissed;
     std::copy(begin, end, encoded.missed.data.get());
   }
 
-  const MemoryBuffer<long int> decoded = huffman_decoding(encoded);
+  const MemoryBuffer<long int> decoded = huffman_decoding_rewritten(encoded);
   {
     long int const *const p = decoded.data.get();
     if (decoded.size * sizeof(*p) != dstLen) {
@@ -325,8 +336,9 @@ void decompress(const pb::Header &header, void *const src,
     break;
   case pb::Encoding::CPU_HUFFMAN_ZSTD:
 #ifdef MGARD_ZSTD
-    decompress_memory_huffman(static_cast<unsigned char *>(src), srcLen,
-                              static_cast<long int *>(dst), dstLen);
+    decompress_memory_huffman_rewritten(static_cast<unsigned char *>(src),
+                                        srcLen, static_cast<long int *>(dst),
+                                        dstLen);
     break;
 #else
     throw std::runtime_error("MGARD compiled without ZSTD support");

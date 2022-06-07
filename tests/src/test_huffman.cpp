@@ -12,51 +12,52 @@
 namespace {
 
 void test_encoding_regression(long int *const quantized, const std::size_t N) {
-  long int *const quantized_new = new long int[N];
-  std::copy(quantized, quantized + N, quantized_new);
+  long int *const quantized_ = new long int[N];
+  std::copy(quantized, quantized + N, quantized_);
 
   const mgard::HuffmanEncodedStream out = mgard::huffman_encoding(quantized, N);
-  const mgard::HuffmanEncodedStream out_new =
-      mgard::huffman_encoding_rewritten(quantized_new, N);
+  const mgard::HuffmanEncodedStream out_ =
+      mgard::huffman_encoding_rewritten(quantized_, N);
 
   unsigned char const *const hit = out.hit.data.get();
-  REQUIRE(out_new.nbits == out.nbits);
+  REQUIRE(out_.nbits == out.nbits);
   const std::size_t nbytes = (out.nbits + CHAR_BIT - 1) / CHAR_BIT;
-  REQUIRE(std::equal(hit, hit + nbytes, out_new.hit.data.get()));
+  REQUIRE(std::equal(hit, hit + nbytes, out_.hit.data.get()));
 
   unsigned char const *const missed = out.missed.data.get();
   const std::size_t nmissed = out.missed.size;
-  REQUIRE(out_new.missed.size == nmissed);
-  REQUIRE(std::equal(missed, missed + nmissed, out_new.missed.data.get()));
+  REQUIRE(out_.missed.size == nmissed);
+  REQUIRE(std::equal(missed, missed + nmissed, out_.missed.data.get()));
 
   unsigned char const *const frequencies = out.frequencies.data.get();
   const std::size_t nfrequencies = out.frequencies.size;
-  REQUIRE(out_new.frequencies.size == nfrequencies);
+  REQUIRE(out_.frequencies.size == nfrequencies);
   REQUIRE(std::equal(frequencies, frequencies + nfrequencies,
-                     out_new.frequencies.data.get()));
+                     out_.frequencies.data.get()));
 
-  delete[] quantized_new;
+  delete[] quantized_;
 }
 
 void test_decoding_regression(long int *const quantized, const std::size_t N) {
-  long int *const quantized_new = new long int[N];
-  std::copy(quantized, quantized + N, quantized_new);
+  long int *const quantized_ = new long int[N];
+  std::copy(quantized, quantized + N, quantized_);
 
   const mgard::HuffmanEncodedStream encoded =
       mgard::huffman_encoding(quantized, N);
-  const mgard::HuffmanEncodedStream encoded_new =
-      mgard::huffman_encoding(quantized_new, N);
+  const mgard::HuffmanEncodedStream encoded_ =
+      mgard::huffman_encoding(quantized_, N);
 
-  delete[] quantized_new;
+  delete[] quantized_;
 
   const mgard::MemoryBuffer<long int> out = mgard::huffman_decoding(encoded);
-  const mgard::MemoryBuffer<long int> out_new =
-      mgard::huffman_decoding_rewritten(encoded);
+  const mgard::MemoryBuffer<long int> out_ =
+      mgard::huffman_decoding_rewritten(encoded_);
 
-  REQUIRE(out.size == out_new.size);
+  REQUIRE(out.size == out_.size);
+  REQUIRE(out.size == N);
   long int const *const p = out.data.get();
-  long int const *const p_new = out_new.data.get();
-  REQUIRE(std::equal(p, p + out.size, p_new));
+  long int const *const p_ = out_.data.get();
+  REQUIRE(std::equal(p, p + out.size, p_));
 }
 
 void test_encoding_regression_constant(const std::size_t N, const long int q) {
