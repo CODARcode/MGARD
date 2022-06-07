@@ -7,6 +7,7 @@
 #include <random>
 
 #include "compressors.hpp"
+#include "compressors_regression.hpp"
 #include "format.hpp"
 
 #include "testing_utilities.hpp"

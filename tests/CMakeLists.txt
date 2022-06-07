@@ -18,6 +18,7 @@ set(
 	"src/test_decompose.cpp"
 	"src/test_format.cpp"
 	"src/test_quantize.cpp"
+	"src/compressors_regression.cpp"
 	"src/test_compressors.cpp"
 	"src/test_CompressedDataset.cpp"
 	"src/test_huffman.cpp"
