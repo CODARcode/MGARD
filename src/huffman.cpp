@@ -346,9 +346,28 @@ HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
   return out;
 }
 
+namespace {
+
+void check_type_sizes() {
+  static_assert(CHAR_BIT == 8,
+                "code written with assumption that `CHAR_BIT == 8`");
+  static_assert(
+      sizeof(unsigned int) == 4,
+      "code written with assumption that `sizeof(unsigned int) == 4`");
+  static_assert(sizeof(int) == 4,
+                "code written with assumption that `sizeof(int) == 4`");
+  static_assert(
+      sizeof(std::size_t) == 8,
+      "code written with assumption that `sizeof(unsigned int) == 8`");
+}
+
+} // namespace
+
 HuffmanEncodedStream
 huffman_encoding_rewritten(long int const *const quantized_data,
                            const std::size_t n) {
+  check_type_sizes();
+
   const std::size_t ncodewords = nql - 1;
   const HuffmanCode<long int> code(ncodewords, quantized_data,
                                    quantized_data + n);
@@ -542,6 +561,8 @@ long int decode(const HuffmanCode<long int> &code,
 
 MemoryBuffer<long int>
 huffman_decoding_rewritten(const HuffmanEncodedStream &encoded) {
+  check_type_sizes();
+
   using Symbol = long int;
   using MissedSymbol = int;
 
