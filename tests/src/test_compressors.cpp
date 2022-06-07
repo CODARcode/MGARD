@@ -49,6 +49,34 @@ void test_huffman_compression_regression(long int *const src,
   delete[] src_;
 }
 
+void test_huffman_decompression_regression(long int *const src,
+                                           const std::size_t srcLen) {
+  long int *const src_ = new long int[srcLen];
+  std::copy(src, src + srcLen, src_);
+
+  const mgard::MemoryBuffer<unsigned char> compressed =
+      mgard::compress_memory_huffman(src, srcLen);
+  const mgard::MemoryBuffer<unsigned char> compressed_ =
+      mgard::compress_memory_huffman(src_, srcLen);
+
+  delete[] src_;
+
+  mgard::MemoryBuffer<long int> out(srcLen);
+  mgard::MemoryBuffer<long int> out_(srcLen);
+
+  unsigned char *const q = compressed.data.get();
+  unsigned char *const q_ = compressed_.data.get();
+  long int *const p = out.data.get();
+  long int *const p_ = out_.data.get();
+
+  mgard::decompress_memory_huffman(q, compressed.size, p,
+                                   out.size * sizeof(long int));
+  mgard::decompress_memory_huffman(q_, compressed_.size, p_,
+                                   out_.size * sizeof(long int));
+
+  REQUIRE(std::equal(p, p + srcLen, p_));
+}
+
 void test_hcr_constant(const std::size_t srcLen, const long int q) {
   long int *const src = new long int[srcLen];
   std::fill(src, src + srcLen, q);
@@ -70,6 +98,30 @@ void test_hcr_random(const std::size_t srcLen, const long int a,
   long int *const src = new long int[srcLen];
   std::generate(src, src + srcLen, [&] { return dis(gen); });
   test_huffman_compression_regression(src, srcLen);
+  delete[] src;
+}
+
+void test_hdr_constant(const std::size_t srcLen, const long int q) {
+  long int *const src = new long int[srcLen];
+  std::fill(src, src + srcLen, q);
+  test_huffman_decompression_regression(src, srcLen);
+  delete[] src;
+}
+
+void test_hdr_periodic(const std::size_t srcLen, const long int initial,
+                       const std::size_t period) {
+  long int *const src = new long int[srcLen];
+  std::generate(src, src + srcLen, PeriodicGenerator(period, initial));
+  test_huffman_decompression_regression(src, srcLen);
+  delete[] src;
+}
+
+void test_hdr_random(const std::size_t srcLen, const long int a,
+                     const long int b, std::default_random_engine &gen) {
+  std::uniform_int_distribution<long int> dis(a, b);
+  long int *const src = new long int[srcLen];
+  std::generate(src, src + srcLen, [&] { return dis(gen); });
+  test_huffman_decompression_regression(src, srcLen);
   delete[] src;
 }
 
@@ -95,6 +147,29 @@ TEST_CASE("Huffman compression regression", "[compressors] [regression]") {
     test_hcr_random(625, std::numeric_limits<int>::min(),
                     std::numeric_limits<int>::max(), gen);
     test_hcr_random(3125, -100, 100, gen);
+  }
+}
+
+TEST_CASE("Huffman decompression regression", "[compressors] [regression]") {
+  SECTION("constant data") {
+    test_hdr_constant(4, -143485);
+    test_hdr_constant(64, 0);
+    test_hdr_constant(256, 67486);
+  }
+
+  SECTION("periodic data") {
+    test_hdr_periodic(10, 0, 3);
+    test_hdr_periodic(100, -570, 10);
+    test_hdr_periodic(1000, 394, 19);
+  }
+
+  SECTION("random data") {
+    std::default_random_engine gen(566222);
+    test_hdr_random(100, 1, 2, gen);
+    test_hdr_random(30, -7, 7, gen);
+    test_hdr_random(900, std::numeric_limits<int>::min(),
+                    std::numeric_limits<int>::max(), gen);
+    test_hdr_random(2700, -60, 40, gen);
   }
 }
 
