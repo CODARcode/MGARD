@@ -18,7 +18,7 @@ namespace mgard {
 //! Huffman encoding and decoding functions.
 //!
 //!\deprecated
-inline constexpr std::size_t nql = 32768 * 4;
+inline constexpr std::size_t nql = 1 << 17;
 
 //! A stream compressed using a Huffman code.
 struct HuffmanEncodedStream {
@@ -110,18 +110,23 @@ public:
 
   //! Constructor.
   //!
-  //!\param ncodewords Number of symbols that will be assigned codewords.
+  //!\param endpoints Smallest and largest symbols (inclusive) to receive
+  //! codewords.
   //!\param begin Beginning of input stream.
   //!\param end End of output stream.
-  HuffmanCode(const std::size_t ncodewords, Symbol const *const begin,
-              Symbol const *const end);
+  HuffmanCode(const std::pair<Symbol, Symbol> &endpoints,
+              Symbol const *const begin, Symbol const *const end);
 
   //! Constructor.
   //!
-  //!\param ncodewords Number of symbols that will be assigned codewords.
+  //!\param endpoints Smallest and largest symbols (inclusive) to receive
+  //! codewords.
   //!\param pairs Index–frequency pairs for frequency table.
-  HuffmanCode(const std::size_t ncodewords,
+  HuffmanCode(const std::pair<Symbol, Symbol> &endpoints,
               const std::vector<std::pair<std::size_t, std::size_t>> &pairs);
+
+  //! Smallest and largest symbols (inclusive) to receive codewords.
+  std::pair<Symbol, Symbol> endpoints;
 
   //! Number of symbols that will be assigned codewords.
   std::size_t ncodewords;
@@ -164,9 +169,6 @@ public:
   Symbol decode(const Node &leaf, Symbol const *&missed) const;
 
 private:
-  //! Smallest and largest symbols (inclusive) to receive codewords.
-  std::pair<Symbol, Symbol> endpoints;
-
   //! Set the range of symbols that will be assigned codewords.
   //!
   //!\note This function depends on `ncodewords`.

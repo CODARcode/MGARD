@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstddef>
 
-#include <limits>
 #include <stdexcept>
 
 namespace mgard {
@@ -13,45 +12,6 @@ bool HuffmanCode<Symbol>::HeldCountGreater::
 operator()(const typename HuffmanCode<Symbol>::Node &a,
            const typename HuffmanCode<Symbol>::Node &b) const {
   return a->count > b->count;
-}
-
-template <typename Symbol> void HuffmanCode<Symbol>::set_endpoints() {
-  // Haven't carefully checked what the minimum acceptable value is.
-  if (not ncodewords) {
-    throw std::invalid_argument("`ncodewords` must be positive.");
-  }
-  const Symbol SYMBOL_MAX = std::numeric_limits<Symbol>::max();
-  const Symbol SYMBOL_MIN = std::numeric_limits<Symbol>::min();
-
-  const std::size_t max_symbol_ = (ncodewords + 1) / 2 - 1;
-  const std::size_t opp_min_symbol_ = ncodewords / 2;
-
-  // There is surely a better way of doing this. Lots of potential issues with
-  // directly comparing `opp_min_symbol_` and `-SYMBOL_MIN`. `-SYMBOL_MIN`
-  // can't necessarily be represented as a `Symbol`, for example. Trying to
-  // avoid overflows.
-  std::size_t a = opp_min_symbol_;
-  Symbol b = SYMBOL_MIN;
-  while (a) {
-    a /= 2;
-    b /= 2;
-  }
-  if (not b) {
-    // Only a "risk" because we haven't actually established that
-    // `opp_min_symbol_` is greater in magnitude than `SYMBOL_MIN`.
-    throw std::overflow_error(
-        "risk that minimum symbol cannot be represented in symbol type");
-  } else if (opp_min_symbol_ > SYMBOL_MAX) {
-    throw std::overflow_error(
-        "opposite of minimum symbol canont be represented in symbol type");
-  } else {
-    endpoints.first = -static_cast<Symbol>(opp_min_symbol_);
-  }
-
-  // `opp_min_symbol_` is either equal to or one greater than `max_symbol_`,
-  // and we checked above that `opp_min_symbol <= SYMBOL_MAX`. So, we know
-  // that `max_symbol_ <= SYMBOL_MAX` here.
-  endpoints.second = max_symbol_;
 }
 
 template <typename Symbol>
@@ -106,12 +66,33 @@ void HuffmanCode<Symbol>::populate_frequencies(
   }
 }
 
+namespace {
+
 template <typename Symbol>
-HuffmanCode<Symbol>::HuffmanCode(const std::size_t ncodewords,
+std::size_t
+ncodewords_from_endpoints(const std::pair<Symbol, Symbol> &endpoints) {
+  if (endpoints.first > endpoints.second) {
+    throw std::invalid_argument(
+        "maximum symbol must be greater than or equal to minimum symbol");
+  }
+  // The endpoints are inclusive.
+  // Overflow possible in the subtraction.
+  const std::size_t ncodewords = endpoints.second - endpoints.first + 1;
+  // Haven't carefully checked what the minimum acceptable value is.
+  if (not ncodewords) {
+    throw std::invalid_argument("`ncodewords` must be positive.");
+  }
+  return ncodewords;
+}
+
+} // namespace
+
+template <typename Symbol>
+HuffmanCode<Symbol>::HuffmanCode(const std::pair<Symbol, Symbol> &endpoints,
                                  Symbol const *const begin,
                                  Symbol const *const end)
-    : ncodewords(ncodewords), frequencies(ncodewords), codewords(ncodewords) {
-  set_endpoints();
+    : endpoints(endpoints), ncodewords(ncodewords_from_endpoints(endpoints)),
+      frequencies(ncodewords), codewords(ncodewords) {
   populate_frequencies(begin, end);
   create_code_creation_tree();
   recursively_set_codewords(queue.top(), {});
@@ -119,10 +100,10 @@ HuffmanCode<Symbol>::HuffmanCode(const std::size_t ncodewords,
 
 template <typename Symbol>
 HuffmanCode<Symbol>::HuffmanCode(
-    const std::size_t ncodewords,
+    const std::pair<Symbol, Symbol> &endpoints,
     const std::vector<std::pair<std::size_t, std::size_t>> &pairs)
-    : ncodewords(ncodewords), frequencies(ncodewords), codewords(ncodewords) {
-  set_endpoints();
+    : endpoints(endpoints), ncodewords(ncodewords_from_endpoints(endpoints)),
+      frequencies(ncodewords), codewords(ncodewords) {
   populate_frequencies(pairs);
   create_code_creation_tree();
   recursively_set_codewords(queue.top(), {});

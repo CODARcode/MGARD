@@ -91,13 +91,21 @@ void check_type_sizes() {
 
 } // namespace
 
+namespace {
+
+const std::pair<long int, long int> nql_endpoints{
+    -static_cast<long int>((nql - 1) / 2), nql / 2 - 1};
+}
+
 HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
                                       const std::size_t n) {
   check_type_sizes();
 
-  const std::size_t ncodewords = nql - 1;
-  const HuffmanCode<long int> code(ncodewords, quantized_data,
-                                   quantized_data + n);
+  using Symbol = long int;
+  using MissedSymbol = int;
+
+  const HuffmanCode<Symbol> code(nql_endpoints, quantized_data,
+                                 quantized_data + n);
 
   std::vector<std::size_t> lengths;
   for (const HuffmanCodeword &codeword : code.codewords) {
@@ -114,10 +122,11 @@ HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
         "`nbytes` not bumped up to nearest multiple of `unsigned int` size");
   }
 
-  const std::size_t nnz = ncodewords - std::count(code.frequencies.begin(),
-                                                  code.frequencies.end(), 0);
+  const std::size_t nnz =
+      code.ncodewords -
+      std::count(code.frequencies.begin(), code.frequencies.end(), 0);
 
-  HuffmanEncodedStream out(nbits, nbytes, code.nmissed() * sizeof(int),
+  HuffmanEncodedStream out(nbits, nbytes, code.nmissed() * sizeof(MissedSymbol),
                            2 * nnz * sizeof(std::size_t));
 
   // Write frequency table.
@@ -125,7 +134,7 @@ HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
     std::size_t *p =
         reinterpret_cast<std::size_t *>(out.frequencies.data.get());
     const std::vector<std::size_t> &frequencies = code.frequencies;
-    for (std::size_t i = 0; i < ncodewords; ++i) {
+    for (std::size_t i = 0; i < code.ncodewords; ++i) {
       const std::size_t frequency = frequencies.at(i);
       if (frequency) {
         *p++ = i;
@@ -141,10 +150,11 @@ HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
   }
   unsigned char *hit = buffer;
 
-  int *missed = reinterpret_cast<int *>(out.missed.data.get());
+  MissedSymbol *missed =
+      reinterpret_cast<MissedSymbol *>(out.missed.data.get());
 
   unsigned char offset = 0;
-  for (const long int q : PseudoArray(quantized_data, n)) {
+  for (const Symbol q : PseudoArray(quantized_data, n)) {
     if (code.out_of_range(q)) {
       // Remember that `missed` is an `int` rather than a `long int`.
       *missed++ = q + nql / 2;
@@ -213,8 +223,7 @@ MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
     }
   }
 
-  const std::size_t ncodewords = nql - 1;
-  HuffmanCode<Symbol> code(ncodewords, pairs);
+  HuffmanCode<Symbol> code(nql_endpoints, pairs);
 
   MemoryBuffer<Symbol> out(nquantized);
   Symbol *q = out.data.get();
