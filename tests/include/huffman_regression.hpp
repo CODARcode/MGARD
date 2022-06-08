@@ -13,11 +13,13 @@ namespace regression {
 
 //! Encode quantized coefficients using a Huffman code.
 //!
+//! The algorithm modifies the quantized data, so the input buffer is copied.
+//!
 //!\param[in, out] quantized_data Input buffer (quantized coefficients). This
 //! buffer will be changed by the encoding process.
 //!\param[in] n Number of symbols (`long int` quantized coefficients) in the
 //! input buffer.
-HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
+HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
                                       const std::size_t n);
 
 //! Decode a stream encoded using a Huffman code.

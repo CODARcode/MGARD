@@ -30,7 +30,7 @@ std::size_t hit_buffer_size(const std::size_t nbits) {
 
 // This code also makes endianness assumptions.
 
-MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
+MemoryBuffer<unsigned char> compress_memory_huffman(long int const *const src,
                                                     const std::size_t srcLen) {
   HuffmanEncodedStream encoded =
       mgard::regression::huffman_encoding(src, srcLen);
@@ -95,7 +95,7 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
   return MemoryBuffer<unsigned char>(buffer, bufferLen);
 }
 
-void decompress_memory_huffman(unsigned char *const src,
+void decompress_memory_huffman(unsigned char const *const src,
                                const std::size_t srcLen, long int *const dst,
                                const std::size_t dstLen) {
   std::size_t const *const sizes = reinterpret_cast<std::size_t const *>(src);

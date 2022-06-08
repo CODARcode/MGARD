@@ -196,9 +196,12 @@ HuffmanCodec<N> build_huffman_codec(long int *const quantized_data,
   return codec;
 }
 
-HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
+HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
                                       const std::size_t n) {
-  const HuffmanCodec<nql> codec = build_huffman_codec<nql>(quantized_data, n);
+  long int *const quantized_data_ = new long int[n];
+  std::copy(quantized_data, quantized_data + n, quantized_data_);
+
+  const HuffmanCodec<nql> codec = build_huffman_codec<nql>(quantized_data_, n);
   const std::size_t num_miss = codec.frequency_table[0];
 
   assert(n >= num_miss);
@@ -238,7 +241,7 @@ HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
 
   std::size_t start_bit = 0;
   for (std::size_t i = 0; i < n; i++) {
-    const int q = quantized_data[i];
+    const int q = quantized_data_[i];
     unsigned int code;
     std::size_t len;
 
@@ -275,6 +278,8 @@ HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
     // No effect if `len == 0`.
     start_bit += len;
   }
+
+  delete[] quantized_data_;
 
   return out;
 }

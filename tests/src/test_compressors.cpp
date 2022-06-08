@@ -31,17 +31,12 @@ void test_huffman_identity(std::default_random_engine &gen,
   delete[] decompressed;
 }
 
-void test_huffman_compression_regression(long int *const src,
+void test_huffman_compression_regression(long int const *const src,
                                          const std::size_t srcLen) {
-  long int *const src_ = new long int[srcLen];
-  std::copy(src, src + srcLen, src_);
-
   const mgard::MemoryBuffer<unsigned char> out =
       mgard::regression::compress_memory_huffman(src, srcLen);
   const mgard::MemoryBuffer<unsigned char> out_ =
-      mgard::compress_memory_huffman(src_, srcLen);
-
-  delete[] src_;
+      mgard::compress_memory_huffman(src, srcLen);
 
   REQUIRE(out.size == out_.size);
   unsigned char const *const p = out.data.get();
@@ -49,17 +44,12 @@ void test_huffman_compression_regression(long int *const src,
   REQUIRE(std::equal(p, p + out.size, p_));
 }
 
-void test_huffman_decompression_regression(long int *const src,
+void test_huffman_decompression_regression(long int const *const src,
                                            const std::size_t srcLen) {
-  long int *const src_ = new long int[srcLen];
-  std::copy(src, src + srcLen, src_);
-
   const mgard::MemoryBuffer<unsigned char> compressed =
       mgard::regression::compress_memory_huffman(src, srcLen);
   const mgard::MemoryBuffer<unsigned char> compressed_ =
-      mgard::regression::compress_memory_huffman(src_, srcLen);
-
-  delete[] src_;
+      mgard::regression::compress_memory_huffman(src, srcLen);
 
   mgard::MemoryBuffer<long int> out(srcLen);
   mgard::MemoryBuffer<long int> out_(srcLen);
