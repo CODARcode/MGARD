@@ -14,6 +14,12 @@
 
 namespace mgard {
 
+//! One more than the number of symbols assigned codewords in the deprecated
+//! Huffman encoding and decoding functions.
+//!
+//!\deprecated
+inline constexpr std::size_t nql = 32768 * 4;
+
 //! A stream compressed using a Huffman code.
 struct HuffmanEncodedStream {
   //! Constructor.
@@ -37,35 +43,6 @@ struct HuffmanEncodedStream {
   //! Frequency table.
   MemoryBuffer<unsigned char> frequencies;
 };
-
-//! Encode quantized coefficients using a Huffman code.
-//!
-//!\param[in, out] quantized_data Input buffer (quantized coefficients). This
-//! buffer will be changed by the encoding process.
-//!\param[in] n Number of symbols (`long int` quantized coefficients) in the
-//! input buffer.
-HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
-                                      const std::size_t n);
-
-//! Encode quantized coefficients using a Huffman code.
-//!
-//!\param[in] quantized_data Input buffer (quantized coefficients).
-//!\param[in] n Number of symbols (`long int` quantized coefficients) in the
-//! input buffer.
-HuffmanEncodedStream
-huffman_encoding_rewritten(long int const *const quantized_data,
-                           const std::size_t n);
-
-//! Decode a stream encoded using a Huffman code.
-//!
-//!\param[in] encoded Input buffer (Huffman-encoded stream).
-MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded);
-
-//! Decode a stream encoded using a Huffman code.
-//!
-//!\param[in] encoded Input buffer (Huffman-encoded stream).
-MemoryBuffer<long int>
-huffman_decoding_rewritten(const HuffmanEncodedStream &encoded);
 
 //! Codeword (in progress) associated to a node in a Huffman code creation tree.
 struct HuffmanCodeword {
@@ -227,6 +204,25 @@ private:
   recursively_set_codewords(const std::shared_ptr<CodeCreationTreeNode> &node,
                             const HuffmanCodeword codeword);
 };
+
+//! Encode quantized coefficients using a Huffman code.
+//!
+//!\deprecated
+//!
+//!\param[in] quantized_data Input buffer (quantized coefficients).
+//!\param[in] n Number of symbols (`long int` quantized coefficients) in the
+//! input buffer.
+HuffmanEncodedStream
+huffman_encoding_rewritten(long int const *const quantized_data,
+                           const std::size_t n);
+
+//! Decode a stream encoded using a Huffman code.
+//!
+//!\deprecated
+//!
+//!\param[in] encoded Input buffer (Huffman-encoded stream).
+MemoryBuffer<long int>
+huffman_decoding_rewritten(const HuffmanEncodedStream &encoded);
 
 } // namespace mgard
 

@@ -4,7 +4,9 @@
 #include <cstring>
 
 #include "compressors.hpp"
+#include "compressors_regression.hpp"
 #include "huffman.hpp"
+#include "huffman_regression.hpp"
 
 namespace mgard {
 

@@ -8,6 +8,7 @@
 #include "testing_utilities.hpp"
 
 #include "huffman.hpp"
+#include "huffman_regression.hpp"
 
 namespace {
 

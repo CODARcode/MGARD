@@ -21,6 +21,7 @@ set(
 	"src/compressors_regression.cpp"
 	"src/test_compressors.cpp"
 	"src/test_CompressedDataset.cpp"
+	"src/huffman_regression.cpp"
 	"src/test_huffman.cpp"
 )
 
