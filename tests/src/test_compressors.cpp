@@ -37,9 +37,9 @@ void test_huffman_compression_regression(long int *const src,
   std::copy(src, src + srcLen, src_);
 
   const mgard::MemoryBuffer<unsigned char> out =
-      mgard::compress_memory_huffman(src, srcLen);
+      mgard::regression::compress_memory_huffman(src, srcLen);
   const mgard::MemoryBuffer<unsigned char> out_ =
-      mgard::compress_memory_huffman_rewritten(src_, srcLen);
+      mgard::compress_memory_huffman(src_, srcLen);
 
   delete[] src_;
 
@@ -55,9 +55,9 @@ void test_huffman_decompression_regression(long int *const src,
   std::copy(src, src + srcLen, src_);
 
   const mgard::MemoryBuffer<unsigned char> compressed =
-      mgard::compress_memory_huffman(src, srcLen);
+      mgard::regression::compress_memory_huffman(src, srcLen);
   const mgard::MemoryBuffer<unsigned char> compressed_ =
-      mgard::compress_memory_huffman(src_, srcLen);
+      mgard::regression::compress_memory_huffman(src_, srcLen);
 
   delete[] src_;
 
@@ -69,10 +69,10 @@ void test_huffman_decompression_regression(long int *const src,
   long int *const p = out.data.get();
   long int *const p_ = out_.data.get();
 
-  mgard::decompress_memory_huffman(q, compressed.size, p,
-                                   out.size * sizeof(long int));
-  mgard::decompress_memory_huffman_rewritten(q_, compressed_.size, p_,
-                                             out_.size * sizeof(long int));
+  mgard::regression::decompress_memory_huffman(q, compressed.size, p,
+                                               out.size * sizeof(long int));
+  mgard::decompress_memory_huffman(q_, compressed_.size, p_,
+                                   out_.size * sizeof(long int));
 
   REQUIRE(std::equal(p, p + srcLen, p_));
 }
@@ -268,8 +268,8 @@ TEST_CASE("compression with header configuration", "[compressors]") {
   REQUIRE(e.preprocessor() == mgard::pb::Encoding::SHUFFLE);
 #ifdef MGARD_ZSTD
   REQUIRE(e.compressor() == mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
-  mgard::decompress_memory_huffman(compressed.data.get(), compressed.size, dst,
-                                   quantizedLen);
+  mgard::regression::decompress_memory_huffman(
+      compressed.data.get(), compressed.size, dst, quantizedLen);
 #else
   REQUIRE(e.compressor() == mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
   mgard::decompress_memory_z(compressed.data.get(), compressed.size, dst,
@@ -339,7 +339,7 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
     std::int64_t *const quantized_ = new std::int64_t[ndof];
     std::copy(quantized, quantized + ndof, quantized_);
     const mgard::MemoryBuffer<unsigned char> out =
-        mgard::compress_memory_huffman(quantized_, ndof);
+        mgard::regression::compress_memory_huffman(quantized_, ndof);
     delete[] quantized_;
 
     const std::size_t srcLen = out.size;

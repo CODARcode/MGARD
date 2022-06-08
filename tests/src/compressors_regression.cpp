@@ -10,6 +10,8 @@
 
 namespace mgard {
 
+namespace regression {
+
 static_assert(CHAR_BIT == 8, "code written assuming `CHAR_BIT == 8`");
 
 static_assert(sizeof(unsigned int) == 4,
@@ -30,7 +32,8 @@ std::size_t hit_buffer_size(const std::size_t nbits) {
 
 MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
                                                     const std::size_t srcLen) {
-  HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
+  HuffmanEncodedStream encoded =
+      mgard::regression::huffman_encoding(src, srcLen);
 
   assert(not(encoded.hit.size % sizeof(unsigned int)));
 
@@ -134,7 +137,8 @@ void decompress_memory_huffman(unsigned char *const src,
     std::copy(begin, end, encoded.missed.data.get());
   }
 
-  const MemoryBuffer<long int> decoded = huffman_decoding(encoded);
+  const MemoryBuffer<long int> decoded =
+      mgard::regression::huffman_decoding(encoded);
   {
     long int const *const p = decoded.data.get();
     if (decoded.size * sizeof(*p) != dstLen) {
@@ -144,5 +148,7 @@ void decompress_memory_huffman(unsigned char *const src,
     std::copy(p, p + decoded.size, dst);
   }
 }
+
+} // namespace regression
 
 } // namespace mgard

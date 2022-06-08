@@ -91,9 +91,8 @@ void check_type_sizes() {
 
 } // namespace
 
-HuffmanEncodedStream
-huffman_encoding_rewritten(long int const *const quantized_data,
-                           const std::size_t n) {
+HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
+                                      const std::size_t n) {
   check_type_sizes();
 
   const std::size_t ncodewords = nql - 1;
@@ -194,8 +193,7 @@ long int decode(const HuffmanCode<long int> &code,
 
 } // namespace
 
-MemoryBuffer<long int>
-huffman_decoding_rewritten(const HuffmanEncodedStream &encoded) {
+MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
   check_type_sizes();
 
   using Symbol = long int;

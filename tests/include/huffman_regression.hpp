@@ -9,6 +9,8 @@
 
 namespace mgard {
 
+namespace regression {
+
 //! Encode quantized coefficients using a Huffman code.
 //!
 //!\param[in, out] quantized_data Input buffer (quantized coefficients). This
@@ -22,6 +24,8 @@ HuffmanEncodedStream huffman_encoding(long int *const quantized_data,
 //!
 //!\param[in] encoded Input buffer (Huffman-encoded stream).
 MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded);
+
+} // namespace regression
 
 } // namespace mgard
 

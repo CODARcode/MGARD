@@ -212,17 +212,15 @@ private:
 //!\param[in] quantized_data Input buffer (quantized coefficients).
 //!\param[in] n Number of symbols (`long int` quantized coefficients) in the
 //! input buffer.
-HuffmanEncodedStream
-huffman_encoding_rewritten(long int const *const quantized_data,
-                           const std::size_t n);
+HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
+                                      const std::size_t n);
 
 //! Decode a stream encoded using a Huffman code.
 //!
 //!\deprecated
 //!
 //!\param[in] encoded Input buffer (Huffman-encoded stream).
-MemoryBuffer<long int>
-huffman_decoding_rewritten(const HuffmanEncodedStream &encoded);
+MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded);
 
 } // namespace mgard
 

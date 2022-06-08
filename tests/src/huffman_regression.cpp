@@ -8,6 +8,8 @@
 
 namespace mgard {
 
+namespace regression {
+
 //! Node in the Huffman code creation tree.
 struct htree_node {
   //! Constructor.
@@ -369,5 +371,7 @@ MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
 
   return out;
 }
+
+} // namespace regression
 
 } // namespace mgard

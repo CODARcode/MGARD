@@ -9,6 +9,8 @@
 
 namespace mgard {
 
+namespace regression {
+
 //! Compress an array using a Huffman tree.
 //!
 //!\param[in] src Array to be compressed.
@@ -25,6 +27,8 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
 void decompress_memory_huffman(unsigned char *const src,
                                const std::size_t srcLen, long int *const dst,
                                const std::size_t dstLen);
+
+} // namespace regression
 
 } // namespace mgard
 

@@ -30,10 +30,9 @@ std::size_t hit_buffer_size(const std::size_t nbits) {
 
 } // namespace
 
-void decompress_memory_huffman_rewritten(unsigned char *const src,
-                                         const std::size_t srcLen,
-                                         long int *const dst,
-                                         const std::size_t dstLen) {
+void decompress_memory_huffman(unsigned char *const src,
+                               const std::size_t srcLen, long int *const dst,
+                               const std::size_t dstLen) {
   std::size_t const *const sizes = reinterpret_cast<std::size_t const *>(src);
   const std::size_t nfrequencies = sizes[0];
   const std::size_t nbits = sizes[1];
@@ -55,8 +54,8 @@ void decompress_memory_huffman_rewritten(unsigned char *const src,
 #endif
   }
 
-  // `huffman_decoding_rewritten` expects the size of the hit buffer to be a
-  // multiple of `sizeof(unsigned int)`. We'll zero out any extra bytes below.
+  // `huffman_decoding` expects the size of the hit buffer to be a multiple of
+  // `sizeof(unsigned int)`. We'll zero out any extra bytes below.
   const std::size_t nbytes =
       sizeof(unsigned int) *
       ((nhit + sizeof(unsigned int) - 1) / sizeof(unsigned int));
@@ -83,7 +82,7 @@ void decompress_memory_huffman_rewritten(unsigned char *const src,
     std::copy(begin, end, encoded.missed.data.get());
   }
 
-  const MemoryBuffer<long int> decoded = huffman_decoding_rewritten(encoded);
+  const MemoryBuffer<long int> decoded = huffman_decoding(encoded);
   {
     long int const *const p = decoded.data.get();
     if (decoded.size * sizeof(*p) != dstLen) {
@@ -115,10 +114,9 @@ gather_constituents(const std::vector<Constituent> &constituents) {
 
 } // namespace
 
-MemoryBuffer<unsigned char>
-compress_memory_huffman_rewritten(long int *const src,
-                                  const std::size_t srcLen) {
-  const HuffmanEncodedStream encoded = huffman_encoding_rewritten(src, srcLen);
+MemoryBuffer<unsigned char> compress_memory_huffman(long int *const src,
+                                                    const std::size_t srcLen) {
+  const HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
 
   assert(not(encoded.hit.size % sizeof(unsigned int)));
 
@@ -302,8 +300,8 @@ MemoryBuffer<unsigned char> compress(const pb::Header &header, void *const src,
     if (srcLen % qts) {
       throw std::runtime_error("incorrect quantization buffer size");
     }
-    return compress_memory_huffman_rewritten(reinterpret_cast<long int *>(src),
-                                             srcLen / qts);
+    return compress_memory_huffman(reinterpret_cast<long int *>(src),
+                                   srcLen / qts);
   }
 #else
     throw std::runtime_error("MGARD compiled without ZSTD support");
@@ -336,9 +334,8 @@ void decompress(const pb::Header &header, void *const src,
     break;
   case pb::Encoding::CPU_HUFFMAN_ZSTD:
 #ifdef MGARD_ZSTD
-    decompress_memory_huffman_rewritten(static_cast<unsigned char *>(src),
-                                        srcLen, static_cast<long int *>(dst),
-                                        dstLen);
+    decompress_memory_huffman(static_cast<unsigned char *>(src), srcLen,
+                              static_cast<long int *>(dst), dstLen);
     break;
 #else
     throw std::runtime_error("MGARD compiled without ZSTD support");
