@@ -128,7 +128,8 @@ public:
   //! Smallest and largest symbols (inclusive) to receive codewords.
   std::pair<Symbol, Symbol> endpoints;
 
-  //! Number of symbols that will be assigned codewords.
+  //! Number of symbols that will be assigned codewords (including one for the
+  //! 'missed' symbol).
   std::size_t ncodewords;
 
   //! Frequencies of the symbols in the input stream.

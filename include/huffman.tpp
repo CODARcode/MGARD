@@ -75,13 +75,14 @@ ncodewords_from_endpoints(const std::pair<Symbol, Symbol> &endpoints) {
     throw std::invalid_argument(
         "maximum symbol must be greater than or equal to minimum symbol");
   }
-  // The endpoints are inclusive.
-  // Overflow possible in the subtraction.
-  const std::size_t ncodewords = endpoints.second - endpoints.first + 1;
-  // Haven't carefully checked what the minimum acceptable value is.
-  if (not ncodewords) {
-    throw std::invalid_argument("`ncodewords` must be positive.");
-  }
+  // One for the 'missed' symbol, and the endpoints are inclusive.
+  // Overflow is possible in the subtraction `endpoints.second -
+  // endpoints.first` (suppose `Symbol` is `char` and `endpoints` is `{CHAR_MIN,
+  // CHAR_MAX}`. Casting to `std::int64_t` should avoid the problem in all
+  // practical cases.
+  const std::size_t ncodewords = 1 +
+                                 static_cast<std::int64_t>(endpoints.second) -
+                                 static_cast<std::int64_t>(endpoints.first) + 1;
   return ncodewords;
 }
 
