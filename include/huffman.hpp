@@ -158,16 +158,18 @@ public:
   //! Huffman code creation tree.
   std::priority_queue<Node, std::vector<Node>, HeldCountGreater> queue;
 
+  // TODO: Just indicate in return value whether symbol was missed.
+
   //! Decode a codeword (identified by associated leaf) to a symbol.
   //!
   //!\pre `leaf` must be a leaf (rather than an interior node) of the code
-  //! creation tree.
+  //! creation tree. `It::value_type` must be convertible to `Symbol`.
   //!
   //!\param leaf Leaf (associated to a codeword) to decode.
   //!\param missed Pointer to next out-of-range symbol. If `leaf` is associated
   //! to the out-of-range codeword, this pointer will be dereferenced and
   //! incremented.
-  Symbol decode(const Node &leaf, Symbol const *&missed) const;
+  template <typename It> Symbol decode(const Node &leaf, It &missed) const;
 
 private:
   //! Set the range of symbols that will be assigned codewords.
@@ -224,6 +226,20 @@ HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
 //!
 //!\param[in] encoded Input buffer (Huffman-encoded stream).
 MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded);
+
+//! Encode quantized coefficients using a Huffman code.
+//!
+//!\param begin Input buffer (quantized coefficients).
+//!\param n Number of symbols in the input buffer.
+template <typename Symbol>
+MemoryBuffer<unsigned char> huffman_encode(Symbol const *const begin,
+                                           const std::size_t n);
+
+//! Decode a stream encoded using a Huffman code.
+//!
+//!\param encoded Input buffer (Huffman-encoded stream).
+template <typename Symbol>
+MemoryBuffer<Symbol> huffman_decode(const MemoryBuffer<unsigned char> &buffer);
 
 } // namespace mgard
 

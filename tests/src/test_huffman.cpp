@@ -1,6 +1,8 @@
+#include "catch2/catch_template_test_macros.hpp"
 #include "catch2/catch_test_macros.hpp"
 
 #include <climits>
+#include <cstdint>
 
 #include <algorithm>
 #include <random>
@@ -54,6 +56,15 @@ void test_decoding_regression(long int const *const quantized,
   REQUIRE(std::equal(p, p + out.size, p_));
 }
 
+template <typename T> void test_inversion(T const *const q, std::size_t N) {
+  const mgard::MemoryBuffer<unsigned char> compressed =
+      mgard::huffman_encode<T>(q, N);
+  const mgard::MemoryBuffer<T> decompressed =
+      mgard::huffman_decode<T>(compressed);
+  REQUIRE(N == decompressed.size);
+  REQUIRE(std::equal(q, q + N, decompressed.data.get()));
+}
+
 void test_encoding_regression_constant(const std::size_t N, const long int q) {
   long int *const quantized = new long int[N];
   std::fill(quantized, quantized + N, q);
@@ -104,6 +115,33 @@ void test_decoding_regression_random(const std::size_t N, const long int a,
   delete[] quantized;
 }
 
+template <typename T>
+void test_inversion_constant(const std::size_t N, const T q) {
+  T *const quantized = new T[N];
+  std::fill(quantized, quantized + N, q);
+  test_inversion(quantized, N);
+  delete[] quantized;
+}
+
+template <typename T>
+void test_inversion_periodic(const std::size_t N, const T q,
+                             const std::size_t period) {
+  T *const quantized = new T[N];
+  std::generate(quantized, quantized + N, PeriodicGenerator(period, q));
+  test_inversion(quantized, N);
+  delete[] quantized;
+}
+
+template <typename T>
+void test_inversion_random(const std::size_t N, const T a, const T b,
+                           std::default_random_engine &gen) {
+  std::uniform_int_distribution<T> dis(a, b);
+  T *const quantized = new T[N];
+  std::generate(quantized, quantized + N, [&] { return dis(gen); });
+  test_inversion(quantized, N);
+  delete[] quantized;
+}
+
 } // namespace
 
 TEST_CASE("encoding regression", "[huffman] [regression]") {
@@ -120,7 +158,7 @@ TEST_CASE("encoding regression", "[huffman] [regression]") {
   }
 
   SECTION("random data") {
-    std::default_random_engine gen(131051);
+    std::default_random_engine gen(726847);
     test_encoding_regression_random(10, 0, 1, gen);
     test_encoding_regression_random(100, -15, -5, gen);
     test_encoding_regression_random(1000, std::numeric_limits<int>::min(),
@@ -149,5 +187,31 @@ TEST_CASE("decoding regression", "[huffman] [regression]") {
     test_decoding_regression_random(1000, std::numeric_limits<int>::min(),
                                     std::numeric_limits<int>::max(), gen);
     test_decoding_regression_random(10000, -100, 100, gen);
+  }
+}
+
+TEMPLATE_TEST_CASE("Huffman inversion", "[huffman]", std::int8_t, std::int16_t,
+                   std::int32_t, std::int64_t) {
+  std::default_random_engine gen_(454114);
+  std::uniform_int_distribution<TestType> dis;
+  SECTION("constant data") {
+    test_inversion_constant<TestType>(10, dis(gen_));
+    test_inversion_constant<TestType>(100, -dis(gen_));
+    test_inversion_constant<TestType>(1000, dis(gen_));
+  }
+
+  SECTION("periodic data") {
+    test_inversion_periodic<TestType>(10, -dis(gen_), 11);
+    test_inversion_periodic<TestType>(100, dis(gen_), 10);
+    test_inversion_periodic<TestType>(1000, -dis(gen_), 9);
+  }
+
+  SECTION("random data") {
+    std::default_random_engine gen(950142);
+    test_inversion_random<TestType>(10, 0, 1, gen);
+    test_inversion_random<TestType>(100, -12, 11, gen);
+    test_inversion_random<TestType>(1000, std::numeric_limits<TestType>::min(),
+                                    std::numeric_limits<TestType>::max(), gen);
+    test_inversion_random<TestType>(10000, -100, 100, gen);
   }
 }

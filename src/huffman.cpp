@@ -190,9 +190,21 @@ HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
 
 namespace {
 
-long int decode(const HuffmanCode<long int> &code,
-                const typename HuffmanCode<long int>::Node &leaf,
-                long int const *&missed) {
+//! Decode a codeword (identified by associated leaf) to a symbol and shift.
+//!
+//!\pre `leaf` must be a leaf (rather than an interior node) of the code
+//! creation tree.
+//!
+//!\deprecated
+//!
+//!\param code Code containing the code creation tree.
+//!\param leaf Leaf (associated to a codeword) to decode.
+//!\param missed Pointer to next out-of-range symbol. If `leaf` is associated
+//! to the out-of-range codeword, this pointer will be dereferenced and
+//! incremented.
+long int decode_and_shift(const HuffmanCode<long int> &code,
+                          const typename HuffmanCode<long int>::Node &leaf,
+                          long int const *&missed) {
   long int const *const start = missed;
   long int decoded = code.decode(leaf, missed);
   if (missed != start) {
@@ -257,7 +269,7 @@ MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
     for (node = root; node->left;
          node = *b++ ? node->right : node->left, ++nbits)
       ;
-    *q++ = decode(code, node, p_missed);
+    *q++ = decode_and_shift(code, node, p_missed);
   }
   assert(nbits == encoded.nbits);
   assert(sizeof(MissedSymbol) * (p_missed - missed) == encoded.missed.size);
