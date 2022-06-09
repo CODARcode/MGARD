@@ -204,7 +204,7 @@ pb::Header read_metadata(BufferWindow &window) {
   const uint_least64_t header_size = read_header_size(window);
   const uint_least32_t header_crc32 = read_header_crc32(window);
   check_header_crc32(window, header_size, header_crc32);
-  return read_header(window, header_size);
+  return read_message<pb::Header>(window, header_size);
 }
 
 namespace {
@@ -230,28 +230,6 @@ void write_metadata(std::ostream &ostream, const pb::Header &header) {
 
   ostream.write(reinterpret_cast<char const *>(header_bytes), header_size);
   delete[] header_bytes;
-}
-
-pb::Header read_header(BufferWindow &window,
-                       const std::uint_least64_t header_size) {
-  // The `CodedInputStream` constructor takes an `int`.
-  if (header_size > std::numeric_limits<int>::max()) {
-    throw std::runtime_error("header is too large (size would overflow)");
-  }
-  // Check that the read will stay in the buffer.
-  unsigned char const *const next = window.next(header_size);
-  mgard::pb::Header header;
-  google::protobuf::io::CodedInputStream stream(
-      static_cast<google::protobuf::uint8 const *>(window.current),
-      header_size);
-  if (not header.ParseFromCodedStream(&stream)) {
-    throw std::runtime_error("header parsing encountered read or format error");
-  }
-  if (not stream.ConsumedEntireMessage()) {
-    throw std::runtime_error("part of header left unparsed");
-  }
-  window.current = next;
-  return header;
 }
 
 void check_mgard_version(const pb::Header &header) {

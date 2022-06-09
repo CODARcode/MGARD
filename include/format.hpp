@@ -165,16 +165,19 @@ pb::Header read_metadata(BufferWindow &window);
 //!\param header Header of the self-describing buffer.
 void write_metadata(std::ostream &ostream, const pb::Header &header);
 
-//! Parse the header of a self-describing buffer.
+template <typename T>
+//! Parse a message from a buffer window.
 //!
 //! The buffer pointer will be advanced past the header.
 //!
-//!\param window Window into the self-describing buffer. The current position
-//! should be the start of the header.
-//!\param header_size Size in bytes of the header.
-//!\return Header of the self-describing buffer.
-pb::Header read_header(BufferWindow &window,
-                       const std::uint_least64_t header_size);
+//! This function was originally written to parse the header from a
+//! self-describing buffer.
+//
+//!\param window Buffer window containing the serialized message. The current
+//! position should be the start of the message.
+//!\param nmessage Size in bytes of the message.
+//!\return Parsed message.
+T read_message(BufferWindow &window, const std::uint_least64_t nmessage);
 
 //! Check that a dataset was compressed with a compatible version of MGARD.
 //!
