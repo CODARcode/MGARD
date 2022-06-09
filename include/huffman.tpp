@@ -82,14 +82,13 @@ void HuffmanCode<Symbol>::populate_frequencies(Symbol const *const begin,
 }
 
 template <typename Symbol>
-template <typename It>
-Symbol
-HuffmanCode<Symbol>::decode(const typename HuffmanCode<Symbol>::Node &leaf,
-                            It &missed) const {
+std::pair<bool, Symbol> HuffmanCode<Symbol>::decode(
+    const typename HuffmanCode<Symbol>::Node &leaf) const {
   const std::ptrdiff_t offset = leaf->codeword - codewords.data();
   // If `offset == 0`, this is the leaf corresponding to out-of-range symbols.
   assert(offset >= 0);
-  return offset ? endpoints.first + (offset - 1) : *missed++;
+  return offset ? std::pair<bool, Symbol>(true, endpoints.first + (offset - 1))
+                : std::pair<bool, Symbol>(false, {});
 }
 
 template <typename Symbol>
@@ -333,11 +332,8 @@ MemoryBuffer<Symbol> huffman_decode(const MemoryBuffer<unsigned char> &buffer) {
     for (node = root; node->left;
          node = *b++ ? node->right : node->left, ++nbits_read)
       ;
-    // TODO: Make sure `HuffmanCode::decode` can properly take `missed` (not
-    // relying on `google::protobuf::uint64` being the same as `std::size_t` or
-    // anything).
-    const Symbol decoded = code.decode(node, missed);
-    *q++ = decoded;
+    const std::pair<bool, Symbol> decoded = code.decode(node);
+    *q++ = decoded.first ? decoded.second : *missed++;
   }
   assert(nbits_read == nbits);
   assert(missed == missed_.cend());

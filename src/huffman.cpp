@@ -205,12 +205,8 @@ namespace {
 long int decode_and_shift(const HuffmanCode<long int> &code,
                           const typename HuffmanCode<long int>::Node &leaf,
                           long int const *&missed) {
-  long int const *const start = missed;
-  long int decoded = code.decode(leaf, missed);
-  if (missed != start) {
-    decoded -= nql / 2;
-  }
-  return decoded;
+  const std::pair<bool, long int> pair = code.decode(leaf);
+  return pair.first ? pair.second : *missed++ - nql / 2;
 }
 
 } // namespace

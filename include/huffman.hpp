@@ -166,18 +166,15 @@ public:
   //! Huffman code creation tree.
   std::priority_queue<Node, std::vector<Node>, HeldCountGreater> queue;
 
-  // TODO: Just indicate in return value whether symbol was missed.
-
   //! Decode a codeword (identified by associated leaf) to a symbol.
   //!
   //!\pre `leaf` must be a leaf (rather than an interior node) of the code
-  //! creation tree. `It::value_type` must be convertible to `Symbol`.
+  //! creation tree.
   //!
   //!\param leaf Leaf (associated to a codeword) to decode.
-  //!\param missed Pointer to next out-of-range symbol. If `leaf` is associated
-  //! to the out-of-range codeword, this pointer will be dereferenced and
-  //! incremented.
-  template <typename It> Symbol decode(const Node &leaf, It &missed) const;
+  //!\return A boolean indicating whether the original symbol was 'hit' and the
+  //! symbol itself (junk if the original symbol was 'missed').
+  std::pair<bool, Symbol> decode(const Node &leaf) const;
 
 private:
   //! Default symbol range.
