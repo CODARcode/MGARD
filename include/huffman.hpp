@@ -119,6 +119,14 @@ public:
 
   //! Constructor.
   //!
+  //! The endpoints will be set to `default_endpoints`.
+  //!
+  //!\param begin Beginning of input stream.
+  //!\param end End of output stream.
+  HuffmanCode(Symbol const *const begin, Symbol const *const end);
+
+  //! Constructor.
+  //!
   //!\param endpoints Smallest and largest symbols (inclusive) to receive
   //! codewords.
   //!\param pairs Index–frequency pairs for frequency table.
@@ -172,10 +180,8 @@ public:
   template <typename It> Symbol decode(const Node &leaf, It &missed) const;
 
 private:
-  //! Set the range of symbols that will be assigned codewords.
-  //!
-  //!\note This function depends on `ncodewords`.
-  void set_endpoints();
+  //! Default symbol range.
+  const static std::pair<Symbol, Symbol> default_endpoints;
 
   //! Populate the frequency table using a stream of symbols.
   //!

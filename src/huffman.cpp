@@ -280,4 +280,16 @@ MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
   return out;
 }
 
+template <>
+const std::pair<std::int32_t, std::int32_t>
+    HuffmanCode<std::int32_t>::default_endpoints = {
+        -static_cast<std::int32_t>(1 << 17),
+        static_cast<std::int32_t>(1 << 17) - 1};
+
+template <>
+const std::pair<std::int64_t, std::int64_t>
+    HuffmanCode<std::int64_t>::default_endpoints = {
+        -static_cast<std::int64_t>(1 << 17),
+        static_cast<std::int64_t>(1 << 17) - 1};
+
 } // namespace mgard

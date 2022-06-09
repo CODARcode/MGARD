@@ -57,6 +57,21 @@ void HuffmanCode<Symbol>::create_code_creation_tree() {
   }
 }
 
+// This default will be used for `std::int{8,16}_t` We'll specialize the default
+// for `std::int{32,64}_t` in the implementation file.
+template <typename Symbol>
+const std::pair<Symbol, Symbol> HuffmanCode<Symbol>::default_endpoints = {
+    std::numeric_limits<Symbol>::min(), std::numeric_limits<Symbol>::max()};
+
+// I believe these are called 'template specialization declarations.'
+template <>
+const std::pair<std::int32_t, std::int32_t>
+    HuffmanCode<std::int32_t>::default_endpoints;
+
+template <>
+const std::pair<std::int64_t, std::int64_t>
+    HuffmanCode<std::int64_t>::default_endpoints;
+
 template <typename Symbol>
 void HuffmanCode<Symbol>::populate_frequencies(Symbol const *const begin,
                                                Symbol const *const end) {
@@ -119,6 +134,11 @@ HuffmanCode<Symbol>::HuffmanCode(const std::pair<Symbol, Symbol> &endpoints,
 }
 
 template <typename Symbol>
+HuffmanCode<Symbol>::HuffmanCode(Symbol const *const begin,
+                                 Symbol const *const end)
+    : HuffmanCode(default_endpoints, begin, end) {}
+
+template <typename Symbol>
 HuffmanCode<Symbol>::HuffmanCode(
     const std::pair<Symbol, Symbol> &endpoints,
     const std::vector<std::pair<std::size_t, std::size_t>> &pairs)
@@ -157,42 +177,10 @@ void HuffmanCode<Symbol>::recursively_set_codewords(
   }
 }
 
-namespace {
-
-//! Generate the default symbol endpoints for a Huffman encoder.
-template <typename Symbol> std::pair<Symbol, Symbol> endpoints();
-
-template <typename Symbol> std::pair<Symbol, Symbol> extreme_endpoints() {
-  return {std::numeric_limits<Symbol>::min(),
-          std::numeric_limits<Symbol>::max()};
-}
-
-template <typename Symbol> std::pair<Symbol, Symbol> capped_endpoints() {
-  return {-static_cast<Symbol>(1 << 17), static_cast<Symbol>(1 << 17) - 1};
-}
-
-template <> std::pair<std::int8_t, std::int8_t> endpoints() {
-  return extreme_endpoints<std::int8_t>();
-}
-
-template <> std::pair<std::int16_t, std::int16_t> endpoints() {
-  return extreme_endpoints<std::int16_t>();
-}
-
-template <> std::pair<std::int32_t, std::int32_t> endpoints() {
-  return capped_endpoints<std::int32_t>();
-}
-
-template <> std::pair<std::int64_t, std::int64_t> endpoints() {
-  return capped_endpoints<std::int64_t>();
-}
-
-} // namespace
-
 template <typename Symbol>
 MemoryBuffer<unsigned char> huffman_encode(Symbol const *const begin,
                                            const std::size_t n) {
-  const HuffmanCode<Symbol> code(endpoints<Symbol>(), begin, begin + n);
+  const HuffmanCode<Symbol> code(begin, begin + n);
 
   std::vector<std::size_t> lengths;
   for (const HuffmanCodeword &codeword : code.codewords) {
