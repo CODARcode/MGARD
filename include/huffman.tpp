@@ -92,9 +92,9 @@ std::pair<bool, Symbol> HuffmanCode<Symbol>::decode(
 }
 
 template <typename Symbol>
-void HuffmanCode<Symbol>::populate_frequencies(
-    const std::vector<std::pair<std::size_t, std::size_t>> &pairs) {
-  for (auto [index, frequency] : pairs) {
+template <typename It>
+void HuffmanCode<Symbol>::populate_frequencies(const It begin, const It end) {
+  for (auto [index, frequency] : RangeSlice<It>{.begin_ = begin, .end_ = end}) {
     frequencies.at(index) = frequency;
   }
 }
@@ -138,12 +138,12 @@ HuffmanCode<Symbol>::HuffmanCode(Symbol const *const begin,
     : HuffmanCode(default_endpoints, begin, end) {}
 
 template <typename Symbol>
-HuffmanCode<Symbol>::HuffmanCode(
-    const std::pair<Symbol, Symbol> &endpoints,
-    const std::vector<std::pair<std::size_t, std::size_t>> &pairs)
+template <typename It>
+HuffmanCode<Symbol>::HuffmanCode(const std::pair<Symbol, Symbol> &endpoints,
+                                 const It begin, const It end)
     : endpoints(endpoints), ncodewords(ncodewords_from_endpoints(endpoints)),
       frequencies(ncodewords), codewords(ncodewords) {
-  populate_frequencies(pairs);
+  populate_frequencies(begin, end);
   create_code_creation_tree();
   recursively_set_codewords(queue.top(), {});
 }
@@ -290,11 +290,6 @@ MemoryBuffer<Symbol> huffman_decode(const MemoryBuffer<unsigned char> &buffer) {
     throw std::runtime_error("unrecognized Huffman codeword mapping");
   }
   const Frequencies &frequencies_ = header.frequencies();
-  // TODO: Change `HuffmanCode` constructor so it can take a pair of iterators
-  // dereferencing to (something convertible to)
-  // `std::pair<std::size_t, std::size_t>`s directly.
-  const std::vector<std::pair<std::size_t, std::size_t>> pairs(
-      frequencies_.begin(), frequencies_.end());
 
   if (header.missed_encoding() != pb::HuffmanHeader::LITERAL) {
     throw std::runtime_error("unrecognized Huffman missed buffer encoding");
@@ -313,7 +308,8 @@ MemoryBuffer<Symbol> huffman_decode(const MemoryBuffer<unsigned char> &buffer) {
                              "number of bytes in hit buffer");
   }
 
-  const HuffmanCode<Symbol> code(endpoints, pairs);
+  const HuffmanCode<Symbol> code(endpoints, frequencies_.begin(),
+                                 frequencies_.end());
   // TODO: Maybe add a member function for this.
   const std::size_t nout =
       std::accumulate(code.frequencies.begin(), code.frequencies.end(),

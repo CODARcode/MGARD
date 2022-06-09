@@ -231,7 +231,7 @@ MemoryBuffer<long int> huffman_decoding(const HuffmanEncodedStream &encoded) {
     }
   }
 
-  HuffmanCode<Symbol> code(nql_endpoints, pairs);
+  HuffmanCode<Symbol> code(nql_endpoints, pairs.begin(), pairs.end());
 
   MemoryBuffer<Symbol> out(nquantized);
   Symbol *q = out.data.get();

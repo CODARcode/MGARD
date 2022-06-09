@@ -127,11 +127,16 @@ public:
 
   //! Constructor.
   //!
+  //! `It::value_type` should be (convertible to)
+  //! `std::pair<std::size_t, std::size_t>`.
+  //!
   //!\param endpoints Smallest and largest symbols (inclusive) to receive
   //! codewords.
-  //!\param pairs Index–frequency pairs for frequency table.
-  HuffmanCode(const std::pair<Symbol, Symbol> &endpoints,
-              const std::vector<std::pair<std::size_t, std::size_t>> &pairs);
+  //!\param begin Beginning of index–frequency pair range for frequency table.
+  //!\param end Beginning of index–frequency pair range for frequency table.
+  template <typename It>
+  HuffmanCode(const std::pair<Symbol, Symbol> &endpoints, const It begin,
+              const It end);
 
   //! Smallest and largest symbols (inclusive) to receive codewords.
   std::pair<Symbol, Symbol> endpoints;
@@ -191,13 +196,10 @@ private:
 
   //! Populate the frequency table from a collection of index–frequency pairs.
   //!
-  //!\pre `frequencies` should have length `ncodewords` and all entries should
-  //! be zero.
-  //!
-  //!\param pairs Beginning of stream of symbols.
-  //!\param end End of stream of symbols.
-  void populate_frequencies(
-      const std::vector<std::pair<std::size_t, std::size_t>> &pairs);
+  //!\param begin Beginning of index–frequency pair range.
+  //!\param end End of index–frequency pair range.
+  template <typename It>
+  void populate_frequencies(const It begin, const It end);
 
   //! Create the Huffman code creation tree.
   //!
@@ -240,7 +242,7 @@ MemoryBuffer<unsigned char> huffman_encode(Symbol const *const begin,
 
 //! Decode a stream encoded using a Huffman code.
 //!
-//!\param encoded Input buffer (Huffman-encoded stream).
+//!\param buffer Input buffer (Huffman-encoded stream).
 template <typename Symbol>
 MemoryBuffer<Symbol> huffman_decode(const MemoryBuffer<unsigned char> &buffer);
 
