@@ -180,41 +180,29 @@ TEST_CASE("dataset types", "[format]") {
   REQUIRE(mgard::type_to_dataset_type<double>() == mgard::pb::Dataset::DOUBLE);
 }
 
-TEST_CASE("quantization type sizes", "[format]") {
+namespace {
+
+void test_quantization_buffer(const mgard::pb::Quantization::Type type,
+                              const std::size_t size) {
   mgard::pb::Header header;
-  mgard::pb::Quantization &quantization = *header.mutable_quantization();
-  const std::size_t ndof = 1;
+  header.mutable_quantization()->set_type(type);
+  const mgard::MemoryBuffer<unsigned char> buffer =
+      mgard::quantization_buffer(header, 1);
+  REQUIRE_NOTHROW(
+      mgard::check_quantization_buffer(header, buffer.data.get(), buffer.size));
+  REQUIRE(buffer.size == size);
+}
 
-  quantization.set_type(mgard::pb::Quantization::INT8_T);
-  {
-    const mgard::MemoryBuffer<unsigned char> buffer =
-        mgard::quantization_buffer(header, ndof);
-    REQUIRE_NOTHROW(mgard::check_alignment<std::int8_t>(buffer.data.get()));
-    REQUIRE(buffer.size == 1);
-  }
+} // namespace
 
-  quantization.set_type(mgard::pb::Quantization::INT16_T);
-  {
-    const mgard::MemoryBuffer<unsigned char> buffer =
-        mgard::quantization_buffer(header, ndof);
-    REQUIRE_NOTHROW(mgard::check_alignment<std::int16_t>(buffer.data.get()));
-    REQUIRE(buffer.size == 2);
-  }
-
-  quantization.set_type(mgard::pb::Quantization::INT32_T);
-  {
-    const mgard::MemoryBuffer<unsigned char> buffer =
-        mgard::quantization_buffer(header, ndof);
-    REQUIRE_NOTHROW(mgard::check_alignment<std::int32_t>(buffer.data.get()));
-    REQUIRE(buffer.size == 4);
-  }
-
-  quantization.set_type(mgard::pb::Quantization::INT64_T);
-  {
-    const mgard::MemoryBuffer<unsigned char> buffer =
-        mgard::quantization_buffer(header, ndof);
-    REQUIRE_NOTHROW(mgard::check_alignment<std::int64_t>(buffer.data.get()));
-    REQUIRE(buffer.size == 8);
+TEST_CASE("quantization buffers", "[format]") {
+  const std::vector<std::pair<mgard::pb::Quantization::Type, std::size_t>>
+      pairs{{mgard::pb::Quantization::INT8_T, 1},
+            {mgard::pb::Quantization::INT16_T, 2},
+            {mgard::pb::Quantization::INT32_T, 4},
+            {mgard::pb::Quantization::INT64_T, 8}};
+  for (const auto [type, size] : pairs) {
+    test_quantization_buffer(type, size);
   }
 }
 

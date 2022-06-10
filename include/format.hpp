@@ -66,6 +66,14 @@ serialize_header_crc32(std::uint_least64_t crc32);
 //!\param p Pointer whose alignment will be checked.
 template <typename T> void check_alignment(void const *const p);
 
+//! Check that a quantization buffer has the right alignment and a valid size.
+//!
+//!\param header Self-describing dataset header.
+//!\param p Quantization buffer.
+//!\param n Size in bytes of quantization buffer.
+void check_quantization_buffer(const pb::Header &header, void const *const p,
+                               const std::size_t n);
+
 //! Determine whether an integral type is big endian.
 template <typename Int> bool big_endian();
 

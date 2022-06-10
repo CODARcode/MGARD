@@ -45,6 +45,35 @@ serialize_header_crc32(std::uint_least64_t crc32) {
   return serialize<std::uint_least32_t, HEADER_CRC32_SIZE>(crc32);
 }
 
+namespace {
+
+template <typename Int>
+void check_quantization_buffer_(void const *const p, const std::size_t n) {
+  if (n % sizeof(Int)) {
+    throw std::runtime_error(
+        "quantization buffer size not a multiple of quantization type size");
+  }
+  check_alignment<Int>(p);
+}
+
+} // namespace
+
+void check_quantization_buffer(const pb::Header &header, void const *const p,
+                               const std::size_t n) {
+  switch (header.quantization().type()) {
+  case pb::Quantization::INT8_T:
+    return check_quantization_buffer_<std::int8_t>(p, n);
+  case pb::Quantization::INT16_T:
+    return check_quantization_buffer_<std::int16_t>(p, n);
+  case pb::Quantization::INT32_T:
+    return check_quantization_buffer_<std::int32_t>(p, n);
+  case pb::Quantization::INT64_T:
+    return check_quantization_buffer_<std::int64_t>(p, n);
+  default:
+    throw std::runtime_error("unrecognized quantization type");
+  }
+}
+
 template <> pb::Dataset::Type type_to_dataset_type<float>() {
   return pb::Dataset::FLOAT;
 }
