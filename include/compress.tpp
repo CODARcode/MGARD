@@ -28,8 +28,6 @@
 
 namespace mgard {
 
-using DEFAULT_INT_T = std::int64_t;
-
 template <std::size_t N, typename Real>
 CompressedDataset<N, Real>
 compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,

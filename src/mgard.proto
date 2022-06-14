@@ -125,7 +125,11 @@ message Encoding {
   }
   enum Compressor {
     NOOP_COMPRESSOR = 0;
-    CPU_HUFFMAN_ZLIB = 1;
+    // Explanation for the wonky numbering: this first case was originally called `CPU_HUFFMAN_ZLIB`,
+    // but the relevant code didn't actually call the Huffman encoder.
+    CPU_ZLIB = 1;
+    CPU_ZSTD = 7;
+    CPU_HUFFMAN_ZLIB = 6;
     CPU_HUFFMAN_ZSTD = 2;
     X_HUFFMAN = 3;
     X_HUFFMAN_LZ4 = 4;

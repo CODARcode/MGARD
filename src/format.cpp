@@ -161,6 +161,7 @@ void populate_defaults(pb::Header &header) {
         pb::Encoding::CPU_HUFFMAN_ZLIB
 #endif
     );
+    e.set_serialization(pb::Encoding::RFMH);
   }
   {
     pb::Device &device = *header.mutable_device();

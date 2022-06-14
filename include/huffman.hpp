@@ -22,6 +22,8 @@ namespace mgard {
 inline constexpr std::size_t nql = 1 << 17;
 
 //! A stream compressed using a Huffman code.
+//!
+//!\deprecated
 struct HuffmanEncodedStream {
   //! Constructor.
   //!
