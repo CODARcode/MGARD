@@ -25,7 +25,17 @@ namespace mgard {
 void decompress_memory_huffman(unsigned char const *const src,
                                const std::size_t srcLen, long int *const dst,
                                const std::size_t dstLen) {
-  const HuffmanEncodedStream encoded = decompress_deserialize(src, srcLen);
+  // Dummy header until we change the signature of `decompress_memory_huffman`.
+  pb::Header header;
+  header.mutable_encoding()->set_compressor(
+#ifdef MGARD_ZSTD
+      pb::Encoding::CPU_HUFFMAN_ZSTD
+#else
+      pb::Encoding::CPU_HUFFMAN_ZLIB
+#endif
+  );
+  const HuffmanEncodedStream encoded =
+      decompress_deserialize(header, src, srcLen);
   const MemoryBuffer<long int> decoded = huffman_decoding(encoded);
   {
     long int const *const p = decoded.data.get();
@@ -40,7 +50,16 @@ void decompress_memory_huffman(unsigned char const *const src,
 MemoryBuffer<unsigned char> compress_memory_huffman(long int const *const src,
                                                     const std::size_t srcLen) {
   const HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
-  return serialize_compress(encoded);
+  // Dummy header until we change the signature of `compress_memory_huffman`.
+  pb::Header header;
+  header.mutable_encoding()->set_compressor(
+#ifdef MGARD_ZSTD
+      pb::Encoding::CPU_HUFFMAN_ZSTD
+#else
+      pb::Encoding::CPU_HUFFMAN_ZLIB
+#endif
+  );
+  return serialize_compress(header, encoded);
 }
 
 #ifdef MGARD_ZSTD

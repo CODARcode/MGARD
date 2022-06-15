@@ -11,8 +11,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include <iostream>
-
 #include "compressors.hpp"
 #include "huffman.hpp"
 
@@ -63,13 +61,35 @@ gather(const std::vector<Constituent> &constituents) {
   return buffer;
 }
 
+MemoryBuffer<unsigned char>
+compress_serialized_huffman(const pb::Header &header,
+                            const MemoryBuffer<unsigned char> &payload) {
+  switch (header.encoding().compressor()) {
+  case pb::Encoding::CPU_HUFFMAN_ZLIB:
+    return compress_memory_z(
+        const_cast<unsigned char z_const *>(payload.data.get()), payload.size);
+  case pb::Encoding::CPU_HUFFMAN_ZSTD:
+#ifdef MGARD_ZSTD
+    return compress_memory_zstd(payload.data.get(), payload.size);
+#else
+    throw std::runtime_error("MGARD compiled without ZSTD support");
+#endif
+  default:
+    throw std::runtime_error("unrecognized lossless compressor");
+  }
+}
+
 } // namespace
 
 MemoryBuffer<unsigned char>
-serialize_compress(const HuffmanEncodedStream &encoded) {
+serialize_compress(const pb::Header &header,
+                   const HuffmanEncodedStream &encoded) {
   check_type_sizes();
 
-  assert(not(encoded.hit.size % sizeof(unsigned int)));
+  if (header.encoding().serialization() != pb::Encoding::DEPRECATED) {
+    throw std::runtime_error(
+        "Huffman tree not to be serialized with deprecated method");
+  }
 
   const std::size_t offset = encoded.nbits % (CHAR_BIT * sizeof(unsigned int));
   // Number of hit buffer padding bytes.
@@ -89,14 +109,8 @@ serialize_compress(const HuffmanEncodedStream &encoded) {
   });
   delete[] hbpb;
 
-#ifndef MGARD_ZSTD
-  const MemoryBuffer<unsigned char> out_data = compress_memory_z(
-      const_cast<unsigned char z_const *>(payload.data.get()), payload.size);
-#else
-  const MemoryBuffer<unsigned char> out_data =
-      compress_memory_zstd(payload.data.get(), payload.size);
-#endif
-
+  const MemoryBuffer<unsigned char> compressed =
+      compress_serialized_huffman(header, payload);
   return gather(
       {{reinterpret_cast<unsigned char const *>(&encoded.frequencies.size),
         sizeof(encoded.frequencies.size)},
@@ -104,11 +118,17 @@ serialize_compress(const HuffmanEncodedStream &encoded) {
         sizeof(encoded.nbits)},
        {reinterpret_cast<unsigned char const *>(&encoded.missed.size),
         sizeof(encoded.missed.size)},
-       {out_data.data.get(), out_data.size}});
+       {compressed.data.get(), compressed.size}});
 }
 
-HuffmanEncodedStream decompress_deserialize(unsigned char const *const src,
+HuffmanEncodedStream decompress_deserialize(const pb::Header &header,
+                                            unsigned char const *const src,
                                             const std::size_t srcLen) {
+  if (header.encoding().serialization() != pb::Encoding::DEPRECATED) {
+    throw std::runtime_error(
+        "Huffman tree not serialized with deprecated method");
+  }
+
   std::size_t const *const sizes = reinterpret_cast<std::size_t const *>(src);
   const std::size_t nfrequencies = sizes[0];
   const std::size_t nbits = sizes[1];
@@ -125,12 +145,21 @@ HuffmanEncodedStream decompress_deserialize(unsigned char const *const src,
     unsigned char *const dst_ = buffer.data.get();
     const std::size_t dstLen_ = buffer.size;
 
-#ifndef MGARD_ZSTD
-    decompress_memory_z(const_cast<unsigned char z_const *>(src_), srcLen_,
-                        dst_, dstLen_);
+    switch (header.encoding().compressor()) {
+    case pb::Encoding::CPU_HUFFMAN_ZLIB:
+      decompress_memory_z(const_cast<unsigned char z_const *>(src_), srcLen_,
+                          dst_, dstLen_);
+      break;
+    case pb::Encoding::CPU_HUFFMAN_ZSTD:
+#ifdef MGARD_ZSTD
+      decompress_memory_zstd(src_, srcLen_, dst_, dstLen_);
+      break;
 #else
-    decompress_memory_zstd(src_, srcLen_, dst_, dstLen_);
+      throw std::runtime_error("MGARD compiled without ZSTD support");
 #endif
+    default:
+      throw std::runtime_error("unrecognized lossless compressor");
+    }
   }
 
   HuffmanEncodedStream encoded(nbits, nmissed, nfrequencies);

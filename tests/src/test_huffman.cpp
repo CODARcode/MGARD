@@ -10,6 +10,7 @@
 
 #include "testing_utilities.hpp"
 
+#include "format.hpp"
 #include "huffman.hpp"
 #include "huffman_regression.hpp"
 
@@ -217,7 +218,15 @@ TEMPLATE_TEST_CASE("Huffman inversion", "[huffman]", std::int8_t, std::int16_t,
   }
 }
 
-TEST_CASE("`HuffmanEncodedStream` serialization inversion", "[huffman]") {
+namespace {
+
+void test_hes_serialization_inversion(
+    const mgard::pb::Encoding::Compressor compressor) {
+  mgard::pb::Header header;
+  mgard::pb::Encoding &encoding = *header.mutable_encoding();
+  encoding.set_compressor(compressor);
+  encoding.set_serialization(mgard::pb::Encoding::DEPRECATED);
+
   // This is not intended to be a valid `HuffmanEncodedStream`.
   const std::size_t nbits = 2718;
   const std::size_t nmissed = 896 * sizeof(int);
@@ -237,9 +246,10 @@ TEST_CASE("`HuffmanEncodedStream` serialization inversion", "[huffman]") {
   }
 
   const mgard::MemoryBuffer<unsigned char> serialized =
-      mgard::serialize_compress(original);
+      mgard::serialize_compress(header, original);
   const mgard::HuffmanEncodedStream deserialized =
-      mgard::decompress_deserialize(serialized.data.get(), serialized.size);
+      mgard::decompress_deserialize(header, serialized.data.get(),
+                                    serialized.size);
 
   REQUIRE(original.nbits == deserialized.nbits);
   REQUIRE(original.hit.size == deserialized.hit.size);
@@ -261,4 +271,13 @@ TEST_CASE("`HuffmanEncodedStream` serialization inversion", "[huffman]") {
     unsigned char const *const q = deserialized.frequencies.data.get();
     REQUIRE(std::equal(p, p + ntable, q));
   }
+}
+
+} // namespace
+
+TEST_CASE("`HuffmanEncodedStream` serialization inversion", "[huffman]") {
+  test_hes_serialization_inversion(mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
+#ifdef MGARD_ZSTD
+  test_hes_serialization_inversion(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
+#endif
 }

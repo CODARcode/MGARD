@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "format.hpp"
 #include "utilities.hpp"
 
 namespace mgard {
@@ -47,24 +48,26 @@ struct HuffmanEncodedStream {
 //!
 //!\deprecated
 //!
-//! The serialized stream will be compressed with ZSTD if `MGARD_ZSTD` is
-//! defined and with `zlib` otherwise.
+//! The header will determine which compressor is used.
 //!
+//!\param header Header for the self-describing buffer.
 //!\param encoded Huffman-encoded stream to serialize and compress.
 MemoryBuffer<unsigned char>
-serialize_compress(const HuffmanEncodedStream &encoded);
+serialize_compress(const pb::Header &header,
+                   const HuffmanEncodedStream &encoded);
 
 //! Decompress and then deserialize a Huffman-encoded stream.
 //!
 //!\deprecated
 //!
-//! The buffer will be decompressed with ZSTD if `MGARD_ZSTD` if defined and
-//! with `zlib` otherwise.
+//! The header will determine which decompressor is used.
 //!
+//!\param header Header of the self-describing buffer.
 //!\param src Buffer containing serialized and compressed Huffman-encoded
 //! stream.
 //!\param srcLen Size in bytes of the buffer.
-HuffmanEncodedStream decompress_deserialize(unsigned char const *const src,
+HuffmanEncodedStream decompress_deserialize(const pb::Header &header,
+                                            unsigned char const *const src,
                                             const std::size_t srcLen);
 
 //! Codeword (in progress) associated to a node in a Huffman code creation tree.
