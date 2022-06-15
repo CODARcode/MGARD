@@ -10,18 +10,21 @@
 #include <queue>
 #include <vector>
 
-#include <iostream>
-
 #include "huffman.hpp"
 
 namespace mgard {
 
 HuffmanEncodedStream::HuffmanEncodedStream(const std::size_t nbits,
-                                           const std::size_t ncompressed,
                                            const std::size_t nmissed,
-                                           const std::size_t nfrequencies)
-    : nbits(nbits), hit(ncompressed), missed(nmissed),
-      frequencies(nfrequencies) {}
+                                           const std::size_t ntable)
+    : nbits(nbits), hit(sizeof(unsigned int) *
+                        ((nbits + CHAR_BIT * sizeof(unsigned int) - 1) /
+                         (CHAR_BIT * sizeof(unsigned int)))),
+      missed(nmissed), frequencies(ntable) {
+  unsigned char *const p = hit.data.get();
+  // Zero out the bits/bytes we won't write to.
+  std::fill(p + (nbits + CHAR_BIT - 1) / CHAR_BIT, p + hit.size, 0);
+}
 
 void HuffmanCodeword::push_back(const bool bit) {
   const unsigned char offset = length % CHAR_BIT;
@@ -114,19 +117,11 @@ HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
   const std::size_t nbits =
       std::inner_product(code.frequencies.begin(), code.frequencies.end(),
                          lengths.begin(), static_cast<std::size_t>(0));
-  const std::size_t nbytes =
-      sizeof(unsigned int) * ((nbits + CHAR_BIT * sizeof(unsigned int) - 1) /
-                              (CHAR_BIT * sizeof(unsigned int)));
-  if (nbytes % sizeof(unsigned int)) {
-    throw std::runtime_error(
-        "`nbytes` not bumped up to nearest multiple of `unsigned int` size");
-  }
-
   const std::size_t nnz =
       code.ncodewords -
       std::count(code.frequencies.begin(), code.frequencies.end(), 0);
 
-  HuffmanEncodedStream out(nbits, nbytes, code.nmissed() * sizeof(MissedSymbol),
+  HuffmanEncodedStream out(nbits, code.nmissed() * sizeof(MissedSymbol),
                            2 * nnz * sizeof(std::size_t));
 
   // Write frequency table.
@@ -184,7 +179,7 @@ HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
     }
   }
 
-  endianness_shuffle(buffer, nbytes);
+  endianness_shuffle(buffer, out.hit.size);
   return out;
 }
 

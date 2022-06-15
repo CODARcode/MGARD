@@ -25,11 +25,10 @@ struct HuffmanEncodedStream {
   //! Constructor.
   //!
   //!\param nbits Length in bits of the compressed stream.
-  //!\param ncompressed Length in bytes of the compressed stream.
   //!\param nmissed Length in bytes of the missed array.
   //!\param ntable Length in bytes of the frequency table.
-  HuffmanEncodedStream(const std::size_t nbits, const std::size_t ncompressed,
-                       const std::size_t nmissed, const std::size_t ntable);
+  HuffmanEncodedStream(const std::size_t nbits, const std::size_t nmissed,
+                       const std::size_t ntable);
 
   //! Length in bits of the compressed stream.
   std::size_t nbits;

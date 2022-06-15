@@ -215,15 +215,12 @@ HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
     nnz += frequency ? 1 : 0;
   }
 
-  const std::size_t nbytes =
-      sizeof(unsigned int) * ((nbits + CHAR_BIT * sizeof(unsigned int) - 1) /
-                              (CHAR_BIT * sizeof(unsigned int)));
-  HuffmanEncodedStream out(nbits, nbytes, num_miss * sizeof(int),
+  HuffmanEncodedStream out(nbits, num_miss * sizeof(int),
                            2 * nnz * sizeof(std::size_t));
 
   unsigned int *const hit =
       reinterpret_cast<unsigned int *>(out.hit.data.get());
-  std::fill(hit, hit + nbytes / sizeof(unsigned int), 0u);
+  std::fill(hit, hit + out.hit.size / sizeof(unsigned int), 0u);
 
   int *missed = reinterpret_cast<int *>(out.missed.data.get());
 

@@ -54,12 +54,7 @@ void decompress_memory_huffman(unsigned char const *const src,
 #endif
   }
 
-  // `huffman_decoding` expects the size of the hit buffer to be a multiple of
-  // `sizeof(unsigned int)`. We'll zero out any extra bytes below.
-  const std::size_t nbytes =
-      sizeof(unsigned int) *
-      ((nhit + sizeof(unsigned int) - 1) / sizeof(unsigned int));
-  HuffmanEncodedStream encoded(nbits, nbytes, nmissed, nfrequencies);
+  HuffmanEncodedStream encoded(nbits, nmissed, nfrequencies);
   {
     unsigned char const *begin;
     unsigned char const *end;
@@ -69,15 +64,12 @@ void decompress_memory_huffman(unsigned char const *const src,
     std::copy(begin, end, encoded.frequencies.data.get());
 
     begin = end;
-    end = begin + nhit;
+    assert(encoded.hit.size <= nhit);
+    end = begin + encoded.hit.size;
     std::copy(begin, end, encoded.hit.data.get());
 
-    {
-      unsigned char *const p = encoded.hit.data.get();
-      std::fill(p + nhit, p + nbytes, 0);
-    }
-
-    begin = end;
+    // Skip any bytes between `begin + encoded.hit.size` and `begin + nhit`.
+    begin = end + nhit - encoded.hit.size;
     end = begin + nmissed;
     std::copy(begin, end, encoded.missed.data.get());
   }
