@@ -8,8 +8,12 @@
 #include <array>
 #include <numeric>
 #include <queue>
+#include <stdexcept>
 #include <vector>
 
+#include <iostream>
+
+#include "compressors.hpp"
 #include "huffman.hpp"
 
 namespace mgard {
@@ -22,8 +26,134 @@ HuffmanEncodedStream::HuffmanEncodedStream(const std::size_t nbits,
                          (CHAR_BIT * sizeof(unsigned int)))),
       missed(nmissed), frequencies(ntable) {
   unsigned char *const p = hit.data.get();
-  // Zero out the bits/bytes we won't write to.
+  // Zero out the bytes we won't write to. If `nbits % CHAR_BIT`, there will
+  // still be bits in the final byte that aren't zeroed out.
   std::fill(p + (nbits + CHAR_BIT - 1) / CHAR_BIT, p + hit.size, 0);
+}
+
+namespace {
+
+void check_type_sizes() {
+  static_assert(CHAR_BIT == 8,
+                "code written with assumption that `CHAR_BIT == 8`");
+  static_assert(
+      sizeof(unsigned int) == 4,
+      "code written with assumption that `sizeof(unsigned int) == 4`");
+  static_assert(sizeof(int) == 4,
+                "code written with assumption that `sizeof(int) == 4`");
+  static_assert(
+      sizeof(std::size_t) == 8,
+      "code written with assumption that `sizeof(unsigned int) == 8`");
+}
+
+using Constituent = std::pair<unsigned char const *, std::size_t>;
+
+MemoryBuffer<unsigned char>
+gather(const std::vector<Constituent> &constituents) {
+  std::size_t nbuffer = 0;
+  for (const Constituent &constituent : constituents) {
+    nbuffer += constituent.second;
+  }
+  MemoryBuffer<unsigned char> buffer(nbuffer);
+  unsigned char *p = buffer.data.get();
+  for (const Constituent &constituent : constituents) {
+    std::memcpy(p, constituent.first, constituent.second);
+    p += constituent.second;
+  }
+  return buffer;
+}
+
+} // namespace
+
+MemoryBuffer<unsigned char>
+serialize_compress(const HuffmanEncodedStream &encoded) {
+  check_type_sizes();
+
+  assert(not(encoded.hit.size % sizeof(unsigned int)));
+
+  const std::size_t offset = encoded.nbits % (CHAR_BIT * sizeof(unsigned int));
+  // Number of hit buffer padding bytes.
+  const std::size_t nhbpb = offset ? offset / CHAR_BIT : sizeof(unsigned int);
+
+  // The righthand side is how the size in bytes of the padded hit buffer was
+  // originally calculated.
+  assert(encoded.hit.size + nhbpb ==
+         encoded.nbits / CHAR_BIT + sizeof(unsigned int));
+
+  unsigned char const *hbpb = new unsigned char[nhbpb]();
+  MemoryBuffer<unsigned char> payload = gather({
+      {encoded.frequencies.data.get(), encoded.frequencies.size},
+      {encoded.hit.data.get(), encoded.hit.size},
+      {hbpb, nhbpb},
+      {encoded.missed.data.get(), encoded.missed.size},
+  });
+  delete[] hbpb;
+
+#ifndef MGARD_ZSTD
+  const MemoryBuffer<unsigned char> out_data = compress_memory_z(
+      const_cast<unsigned char z_const *>(payload.data.get()), payload.size);
+#else
+  const MemoryBuffer<unsigned char> out_data =
+      compress_memory_zstd(payload.data.get(), payload.size);
+#endif
+
+  return gather(
+      {{reinterpret_cast<unsigned char const *>(&encoded.frequencies.size),
+        sizeof(encoded.frequencies.size)},
+       {reinterpret_cast<unsigned char const *>(&encoded.nbits),
+        sizeof(encoded.nbits)},
+       {reinterpret_cast<unsigned char const *>(&encoded.missed.size),
+        sizeof(encoded.missed.size)},
+       {out_data.data.get(), out_data.size}});
+}
+
+HuffmanEncodedStream decompress_deserialize(unsigned char const *const src,
+                                            const std::size_t srcLen) {
+  std::size_t const *const sizes = reinterpret_cast<std::size_t const *>(src);
+  const std::size_t nfrequencies = sizes[0];
+  const std::size_t nbits = sizes[1];
+  const std::size_t nmissed = sizes[2];
+  // This is how the size in bytes of the padded hit buffer was calculated
+  // in `decompress_memory_huffman` before this function was introduced.
+  const std::size_t nhit = nbits / CHAR_BIT + sizeof(unsigned int);
+
+  MemoryBuffer<unsigned char> buffer(nfrequencies + nhit + nmissed);
+  {
+    const std::size_t offset = 3 * sizeof(std::size_t);
+    unsigned char const *const src_ = src + offset;
+    const std::size_t srcLen_ = srcLen - offset;
+    unsigned char *const dst_ = buffer.data.get();
+    const std::size_t dstLen_ = buffer.size;
+
+#ifndef MGARD_ZSTD
+    decompress_memory_z(const_cast<unsigned char z_const *>(src_), srcLen_,
+                        dst_, dstLen_);
+#else
+    decompress_memory_zstd(src_, srcLen_, dst_, dstLen_);
+#endif
+  }
+
+  HuffmanEncodedStream encoded(nbits, nmissed, nfrequencies);
+  {
+    unsigned char const *begin;
+    unsigned char const *end;
+
+    begin = buffer.data.get();
+    end = begin + nfrequencies;
+    std::copy(begin, end, encoded.frequencies.data.get());
+
+    begin = end;
+    assert(encoded.hit.size <= nhit);
+    end = begin + encoded.hit.size;
+    std::copy(begin, end, encoded.hit.data.get());
+
+    // Skip any bytes between `begin + encoded.hit.size` and `begin + nhit`.
+    begin = end + nhit - encoded.hit.size;
+    end = begin + nmissed;
+    std::copy(begin, end, encoded.missed.data.get());
+  }
+
+  return encoded;
 }
 
 void HuffmanCodeword::push_back(const bool bit) {
@@ -76,29 +206,10 @@ void endianness_shuffle(unsigned char *const buffer, const std::size_t nbytes) {
   }
 }
 
-} // namespace
-namespace {
-
-void check_type_sizes() {
-  static_assert(CHAR_BIT == 8,
-                "code written with assumption that `CHAR_BIT == 8`");
-  static_assert(
-      sizeof(unsigned int) == 4,
-      "code written with assumption that `sizeof(unsigned int) == 4`");
-  static_assert(sizeof(int) == 4,
-                "code written with assumption that `sizeof(int) == 4`");
-  static_assert(
-      sizeof(std::size_t) == 8,
-      "code written with assumption that `sizeof(unsigned int) == 8`");
-}
-
-} // namespace
-
-namespace {
-
 const std::pair<long int, long int> nql_endpoints{
     -static_cast<long int>((nql - 1) / 2), nql / 2 - 1};
-}
+
+} // namespace
 
 HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
                                       const std::size_t n) {

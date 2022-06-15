@@ -22,58 +22,10 @@
 
 namespace mgard {
 
-namespace {
-
-std::size_t hit_buffer_size(const std::size_t nbits) {
-  return nbits / CHAR_BIT + sizeof(unsigned int);
-}
-
-} // namespace
-
 void decompress_memory_huffman(unsigned char const *const src,
                                const std::size_t srcLen, long int *const dst,
                                const std::size_t dstLen) {
-  std::size_t const *const sizes = reinterpret_cast<std::size_t const *>(src);
-  const std::size_t nfrequencies = sizes[0];
-  const std::size_t nbits = sizes[1];
-  const std::size_t nmissed = sizes[2];
-  const std::size_t nhit = hit_buffer_size(nbits);
-
-  MemoryBuffer<unsigned char> buffer(nfrequencies + nhit + nmissed);
-  {
-    const std::size_t offset = 3 * sizeof(std::size_t);
-    unsigned char const *const src_ = src + offset;
-    const std::size_t srcLen_ = srcLen - offset;
-    unsigned char *const dst_ = buffer.data.get();
-    const std::size_t dstLen_ = buffer.size;
-
-#ifndef MGARD_ZSTD
-    decompress_memory_z(src_, srcLen_, dst_, dstLen_);
-#else
-    decompress_memory_zstd(src_, srcLen_, dst_, dstLen_);
-#endif
-  }
-
-  HuffmanEncodedStream encoded(nbits, nmissed, nfrequencies);
-  {
-    unsigned char const *begin;
-    unsigned char const *end;
-
-    begin = buffer.data.get();
-    end = begin + nfrequencies;
-    std::copy(begin, end, encoded.frequencies.data.get());
-
-    begin = end;
-    assert(encoded.hit.size <= nhit);
-    end = begin + encoded.hit.size;
-    std::copy(begin, end, encoded.hit.data.get());
-
-    // Skip any bytes between `begin + encoded.hit.size` and `begin + nhit`.
-    begin = end + nhit - encoded.hit.size;
-    end = begin + nmissed;
-    std::copy(begin, end, encoded.missed.data.get());
-  }
-
+  const HuffmanEncodedStream encoded = decompress_deserialize(src, srcLen);
   const MemoryBuffer<long int> decoded = huffman_decoding(encoded);
   {
     long int const *const p = decoded.data.get();
@@ -85,67 +37,10 @@ void decompress_memory_huffman(unsigned char const *const src,
   }
 }
 
-namespace {
-
-using Constituent = std::pair<unsigned char const *, std::size_t>;
-
-MemoryBuffer<unsigned char>
-gather_constituents(const std::vector<Constituent> &constituents) {
-  std::size_t nbuffer = 0;
-  for (const Constituent &constituent : constituents) {
-    nbuffer += constituent.second;
-  }
-  MemoryBuffer<unsigned char> buffer(nbuffer);
-  unsigned char *p = buffer.data.get();
-  for (const Constituent &constituent : constituents) {
-    std::memcpy(p, constituent.first, constituent.second);
-    p += constituent.second;
-  }
-  return buffer;
-}
-
-} // namespace
-
 MemoryBuffer<unsigned char> compress_memory_huffman(long int const *const src,
                                                     const std::size_t srcLen) {
   const HuffmanEncodedStream encoded = huffman_encoding(src, srcLen);
-
-  assert(not(encoded.hit.size % sizeof(unsigned int)));
-
-  static_assert(CHAR_BIT == 8, "code written assuming `CHAR_BIT == 8`");
-  static_assert(sizeof(unsigned int) == 4,
-                "code written assuming `sizeof(unsigned int) == 4`");
-  const std::size_t offset = encoded.nbits % (CHAR_BIT * sizeof(unsigned int));
-  // Number of hit buffer padding bytes.
-  const std::size_t nhbpb = offset ? offset / CHAR_BIT : sizeof(unsigned int);
-
-  assert(encoded.hit.size + nhbpb == hit_buffer_size(encoded.nbits));
-
-  unsigned char const *hbpb = new unsigned char[nhbpb]();
-  MemoryBuffer<unsigned char> payload = gather_constituents({
-      {encoded.frequencies.data.get(), encoded.frequencies.size},
-      {encoded.hit.data.get(), encoded.hit.size},
-      {hbpb, nhbpb},
-      {encoded.missed.data.get(), encoded.missed.size},
-  });
-  delete[] hbpb;
-
-#ifndef MGARD_ZSTD
-  const MemoryBuffer<unsigned char> out_data =
-      compress_memory_z(payload.data.get(), payload.size);
-#else
-  const MemoryBuffer<unsigned char> out_data =
-      compress_memory_zstd(payload.data.get(), payload.size);
-#endif
-
-  return gather_constituents(
-      {{reinterpret_cast<unsigned char const *>(&encoded.frequencies.size),
-        sizeof(encoded.frequencies.size)},
-       {reinterpret_cast<unsigned char const *>(&encoded.nbits),
-        sizeof(encoded.nbits)},
-       {reinterpret_cast<unsigned char const *>(&encoded.missed.size),
-        sizeof(encoded.missed.size)},
-       {out_data.data.get(), out_data.size}});
+  return serialize_compress(encoded);
 }
 
 #ifdef MGARD_ZSTD

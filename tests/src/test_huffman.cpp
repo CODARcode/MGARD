@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include <algorithm>
+#include <numeric>
 #include <random>
 
 #include "testing_utilities.hpp"
@@ -213,5 +214,51 @@ TEMPLATE_TEST_CASE("Huffman inversion", "[huffman]", std::int8_t, std::int16_t,
     test_inversion_random<TestType>(1000, std::numeric_limits<TestType>::min(),
                                     std::numeric_limits<TestType>::max(), gen);
     test_inversion_random<TestType>(10000, -100, 100, gen);
+  }
+}
+
+TEST_CASE("`HuffmanEncodedStream` serialization inversion", "[huffman]") {
+  // This is not intended to be a valid `HuffmanEncodedStream`.
+  const std::size_t nbits = 2718;
+  const std::size_t nmissed = 896 * sizeof(int);
+  const std::size_t ntable = 681 * 2 * sizeof(std::size_t);
+  const mgard::HuffmanEncodedStream original(nbits, nmissed, ntable);
+  {
+    unsigned char *const p = original.hit.data.get();
+    std::iota(p, p + original.hit.size, 1u);
+  }
+  {
+    unsigned char *const p = original.missed.data.get();
+    std::iota(p, p + nmissed, 90u);
+  }
+  {
+    unsigned char *const p = original.frequencies.data.get();
+    std::iota(p, p + ntable, 51u);
+  }
+
+  const mgard::MemoryBuffer<unsigned char> serialized =
+      mgard::serialize_compress(original);
+  const mgard::HuffmanEncodedStream deserialized =
+      mgard::decompress_deserialize(serialized.data.get(), serialized.size);
+
+  REQUIRE(original.nbits == deserialized.nbits);
+  REQUIRE(original.hit.size == deserialized.hit.size);
+  REQUIRE(original.missed.size == deserialized.missed.size);
+  REQUIRE(original.frequencies.size == deserialized.frequencies.size);
+
+  {
+    unsigned char const *const p = original.hit.data.get();
+    unsigned char const *const q = deserialized.hit.data.get();
+    REQUIRE(std::equal(p, p + original.hit.size, q));
+  }
+  {
+    unsigned char const *const p = original.missed.data.get();
+    unsigned char const *const q = deserialized.missed.data.get();
+    REQUIRE(std::equal(p, p + nmissed, q));
+  }
+  {
+    unsigned char const *const p = original.frequencies.data.get();
+    unsigned char const *const q = deserialized.frequencies.data.get();
+    REQUIRE(std::equal(p, p + ntable, q));
   }
 }

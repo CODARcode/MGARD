@@ -113,7 +113,8 @@ void decompress_memory_huffman(unsigned char const *const src,
     const std::size_t dstLen_ = buffer.size;
 
 #ifndef MGARD_ZSTD
-    decompress_memory_z(src_, srcLen_, dst_, dstLen_);
+    decompress_memory_z(const_cast<unsigned char z_const *>(src_), srcLen_,
+                        dst_, dstLen_);
 #else
     decompress_memory_zstd(src_, srcLen_, dst_, dstLen_);
 #endif

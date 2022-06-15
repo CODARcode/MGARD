@@ -350,11 +350,13 @@ TEST_CASE("reading encoding compressor", "[format]") {
     e.set_compressor(mgard::pb::Encoding::X_HUFFMAN_LZ4);
     REQUIRE_THROWS(mgard::read_encoding_compressor(header));
   }
+#ifdef MGARD_ZSTD
   {
     e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
     REQUIRE(mgard::read_encoding_compressor(header) ==
             mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
   }
+#endif
 }
 
 namespace {

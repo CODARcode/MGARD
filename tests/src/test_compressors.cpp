@@ -172,6 +172,7 @@ TEST_CASE("Huffman compression", "[compressors] [!mayfail]") {
   SECTION("long integers") { test_huffman_identity<long int>(gen, n); }
 }
 
+#ifdef MGARD_ZSTD
 namespace {
 
 void test_zstd_identity(std::uniform_int_distribution<unsigned char> &dis,
@@ -192,7 +193,6 @@ void test_zstd_identity(std::uniform_int_distribution<unsigned char> &dis,
 
 } // namespace
 
-#ifdef MGARD_ZSTD
 TEST_CASE("zstd compression", "[compressors]") {
   std::uniform_int_distribution<unsigned char> dis;
   std::default_random_engine gen(158648);
@@ -262,7 +262,8 @@ TEST_CASE("compression with header configuration", "[compressors]") {
       compressed.data.get(), compressed.size, dst, quantizedLen);
 #else
   REQUIRE(e.compressor() == mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
-  mgard::decompress_memory_z(compressed.data.get(), compressed.size, dst,
+  mgard::decompress_memory_z(compressed.data.get(), compressed.size,
+                             reinterpret_cast<unsigned char *>(dst),
                              quantizedLen);
 #endif
   REQUIRE(std::equal(quantized, quantized + ndof, dst));
