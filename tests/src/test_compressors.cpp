@@ -1,3 +1,4 @@
+#include "catch2/catch_template_test_macros.hpp"
 #include "catch2/catch_test_macros.hpp"
 
 #include <cstdint>
@@ -14,57 +15,72 @@
 
 namespace {
 
-template <typename T>
-void test_huffman_identity(std::default_random_engine &gen,
-                           const std::size_t n) {
-  std::uniform_int_distribution<T> dis(std::numeric_limits<T>::min());
-  const auto f = [&]() -> T { return dis(gen); };
-  std::vector<long int> src(n);
-  std::generate(src.begin(), src.end(), f);
-  std::vector<long int> src_(src);
-  mgard::MemoryBuffer<unsigned char> compressed =
-      mgard::compress_memory_huffman(src_.data(), n);
-  long int *const decompressed = new long int[n];
-  mgard::decompress_memory_huffman(compressed.data.get(), compressed.size,
-                                   decompressed, n * sizeof(long int));
-  REQUIRE(std::equal(src.begin(), src.end(), decompressed));
-  delete[] decompressed;
+// Generate a header for use with the deprecated Huffman serialization method.
+mgard::pb::Header
+deprecated_header(const mgard::pb::Encoding::Compressor compressor) {
+  mgard::pb::Header header;
+  header.mutable_quantization()->set_type(mgard::pb::Quantization::INT64_T);
+  header.mutable_encoding()->set_preprocessor(mgard::pb::Encoding::SHUFFLE);
+  header.mutable_encoding()->set_compressor(compressor);
+  header.mutable_encoding()->set_serialization(mgard::pb::Encoding::DEPRECATED);
+  return header;
 }
 
 void test_huffman_compression_regression(long int const *const src,
                                          const std::size_t srcLen) {
-  const mgard::MemoryBuffer<unsigned char> out =
-      mgard::regression::compress_memory_huffman(src, srcLen);
-  const mgard::MemoryBuffer<unsigned char> out_ =
-      mgard::compress_memory_huffman(src, srcLen);
+  std::vector<mgard::pb::Encoding::Compressor> compressors;
+  compressors.push_back(mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
+#ifdef MGARD_ZSTD
+  compressors.push_back(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
+#endif
 
-  REQUIRE(out.size == out_.size);
-  unsigned char const *const p = out.data.get();
-  unsigned char const *const p_ = out_.data.get();
-  REQUIRE(std::equal(p, p + out.size, p_));
+  for (mgard::pb::Encoding::Compressor compressor : compressors) {
+    const mgard::pb::Header header = deprecated_header(compressor);
+    const mgard::MemoryBuffer<unsigned char> out =
+        mgard::regression::compress_memory_huffman(header, src, srcLen);
+    unsigned char const *const p = out.data.get();
+
+    const mgard::MemoryBuffer<unsigned char> out_ = mgard::compress(
+        header, const_cast<long int *>(src), srcLen * sizeof(long int));
+    unsigned char const *const p_ = out_.data.get();
+
+    REQUIRE(out.size == out_.size);
+    REQUIRE(std::equal(p, p + out.size, p_));
+  }
 }
 
 void test_huffman_decompression_regression(long int const *const src,
                                            const std::size_t srcLen) {
-  const mgard::MemoryBuffer<unsigned char> compressed =
-      mgard::regression::compress_memory_huffman(src, srcLen);
-  const mgard::MemoryBuffer<unsigned char> compressed_ =
-      mgard::regression::compress_memory_huffman(src, srcLen);
+  std::vector<mgard::pb::Encoding::Compressor> compressors;
+  compressors.push_back(mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
+#ifdef MGARD_ZSTD
+  compressors.push_back(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
+#endif
 
-  mgard::MemoryBuffer<long int> out(srcLen);
-  mgard::MemoryBuffer<long int> out_(srcLen);
+  for (const mgard::pb::Encoding::Compressor compressor : compressors) {
+    const mgard::pb::Header header = deprecated_header(compressor);
 
-  unsigned char *const q = compressed.data.get();
-  unsigned char *const q_ = compressed_.data.get();
-  long int *const p = out.data.get();
-  long int *const p_ = out_.data.get();
+    const mgard::MemoryBuffer<unsigned char> compressed =
+        mgard::regression::compress_memory_huffman(header, src, srcLen);
+    const mgard::MemoryBuffer<unsigned char> compressed_(compressed.size);
 
-  mgard::regression::decompress_memory_huffman(q, compressed.size, p,
-                                               out.size * sizeof(long int));
-  mgard::decompress_memory_huffman(q_, compressed_.size, p_,
-                                   out_.size * sizeof(long int));
+    unsigned char *const q = compressed.data.get();
+    unsigned char *const q_ = compressed_.data.get();
+    std::copy(q, q + compressed.size, q_);
 
-  REQUIRE(std::equal(p, p + srcLen, p_));
+    mgard::MemoryBuffer<long int> out(srcLen);
+    mgard::MemoryBuffer<long int> out_(srcLen);
+
+    long int *const p = out.data.get();
+    long int *const p_ = out_.data.get();
+
+    mgard::regression::decompress_memory_huffman(header, q, compressed.size, p,
+                                                 out.size * sizeof(long int));
+
+    mgard::decompress(header, q_, compressed_.size, out_.data.get(),
+                      out_.size * sizeof(long int));
+    REQUIRE(std::equal(p, p + srcLen, p_));
+  }
 }
 
 void test_hcr_constant(const std::size_t srcLen, const long int q) {
@@ -163,15 +179,6 @@ TEST_CASE("Huffman decompression regression", "[compressors] [regression]") {
   }
 }
 
-TEST_CASE("Huffman compression", "[compressors] [!mayfail]") {
-  std::default_random_engine gen(257100);
-  const std::size_t n = 5000;
-  SECTION("signed characters") { test_huffman_identity<signed char>(gen, n); }
-  SECTION("short integers") { test_huffman_identity<short int>(gen, n); }
-  SECTION("integers") { test_huffman_identity<int>(gen, n); }
-  SECTION("long integers") { test_huffman_identity<long int>(gen, n); }
-}
-
 #ifdef MGARD_ZSTD
 namespace {
 
@@ -232,150 +239,203 @@ TEST_CASE("zlib compression", "[compressors]") {
   }
 }
 
-TEST_CASE("compression with header configuration", "[compressors]") {
-  mgard::pb::Header header;
-  // TODO: Once Huffman trees can be built for types other than `long int`, use
-  // something other than `std::int64_t` here.
-  mgard::populate_defaults(header);
+namespace {
 
-  const std::size_t ndof = 10000;
-  std::int64_t *const quantized = new std::int64_t[ndof];
-  std::uniform_int_distribution<std::int64_t> dis(-250, 250);
-  std::default_random_engine gen(419643);
-  const auto f = [&]() -> std::int64_t { return dis(gen); };
-  std::generate(quantized, quantized + ndof, f);
-  const std::size_t quantizedLen = ndof * sizeof(*quantized);
-  // `dst` must have the correct alignment for the quantization type.
-  std::int64_t *const dst = new std::int64_t[ndof];
+template <typename Int>
+void test_cd_inversion(const mgard::pb::Header &header,
+                       Int const *const quantized, const std::size_t n) {
+  const std::size_t nbytes = sizeof(Int) * n;
 
-  std::int64_t *const quantized_ = new std::int64_t[ndof];
-  std::copy(quantized, quantized + ndof, quantized_);
+  Int *const quantized_ = new Int[n];
+  std::copy(quantized, quantized + n, quantized_);
   const mgard::MemoryBuffer<unsigned char> compressed =
-      mgard::compress(header, quantized_, quantizedLen);
+      mgard::compress(header, quantized_, nbytes);
   delete[] quantized_;
 
-  const mgard::pb::Encoding &e = header.encoding();
-  REQUIRE(e.preprocessor() == mgard::pb::Encoding::SHUFFLE);
-#ifdef MGARD_ZSTD
-  REQUIRE(e.compressor() == mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
-  mgard::regression::decompress_memory_huffman(
-      compressed.data.get(), compressed.size, dst, quantizedLen);
-#else
-  REQUIRE(e.compressor() == mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
-  mgard::decompress_memory_z(compressed.data.get(), compressed.size,
-                             reinterpret_cast<unsigned char *>(dst),
-                             quantizedLen);
-#endif
-  REQUIRE(std::equal(quantized, quantized + ndof, dst));
-  delete[] dst;
+  Int *const decompressed = new Int[n];
+  mgard::decompress(header, compressed.data.get(), compressed.size,
+                    decompressed, nbytes);
+  REQUIRE(std::equal(quantized, quantized + n, decompressed));
+  delete[] decompressed;
+}
+
+template <typename Int>
+void test_cd_inversion_constant(const mgard::pb::Header &header,
+                                const std::size_t N, const Int q) {
+  Int *const quantized = new Int[N];
+  std::fill(quantized, quantized + N, q);
+  test_cd_inversion(header, quantized, N);
   delete[] quantized;
 }
 
-TEST_CASE("decompression with header configuration", "[compressors]") {
+template <typename Int>
+void test_cd_inversion_periodic(const mgard::pb::Header &header,
+                                const std::size_t N, const Int q,
+                                const std::size_t period) {
+  Int *const quantized = new Int[N];
+  std::generate(quantized, quantized + N, PeriodicGenerator(period, q));
+  test_cd_inversion(header, quantized, N);
+  delete[] quantized;
+}
+
+template <typename Int>
+void test_cd_inversion_random(const mgard::pb::Header &header,
+                              const std::size_t N, const Int a, const Int b,
+                              std::default_random_engine &gen) {
+  std::uniform_int_distribution<Int> dis(a, b);
+  Int *const quantized = new Int[N];
+  std::generate(quantized, quantized + N, [&] { return dis(gen); });
+  test_cd_inversion(header, quantized, N);
+  delete[] quantized;
+}
+
+template <typename Int>
+mgard::pb::Quantization::Type type_to_quantization_type();
+
+template <>
+mgard::pb::Quantization::Type type_to_quantization_type<std::int8_t>() {
+  return mgard::pb::Quantization::INT8_T;
+}
+
+template <>
+mgard::pb::Quantization::Type type_to_quantization_type<std::int16_t>() {
+  return mgard::pb::Quantization::INT16_T;
+}
+
+template <>
+mgard::pb::Quantization::Type type_to_quantization_type<std::int32_t>() {
+  return mgard::pb::Quantization::INT32_T;
+}
+
+template <>
+mgard::pb::Quantization::Type type_to_quantization_type<std::int64_t>() {
+  return mgard::pb::Quantization::INT64_T;
+}
+
+template <typename Int>
+void test_cd_inversion_constant(const mgard::pb::Header &header) {
+  test_cd_inversion_constant<Int>(header, 100, 98);
+  test_cd_inversion_constant<Int>(header, 1000, 0);
+  test_cd_inversion_constant<Int>(header, 10000, -62);
+}
+
+template <typename Int>
+void test_cd_inversion_periodic(const mgard::pb::Header &header) {
+  test_cd_inversion_periodic<Int>(header, 100, -5, 3);
+  test_cd_inversion_periodic<Int>(header, 1000, 86, 60);
+  test_cd_inversion_periodic<Int>(header, 10000, 7, 62);
+}
+
+template <typename Int>
+void test_cd_inversion_random(const mgard::pb::Header &header) {
+  std::default_random_engine gen(894584);
+  test_cd_inversion_random<Int>(header, 100, 0, 3, gen);
+  test_cd_inversion_random<Int>(header, 1000, std::numeric_limits<Int>::min(),
+                                std::numeric_limits<Int>::max(), gen);
+  test_cd_inversion_random<Int>(header, 10000, -110, 110, gen);
+}
+
+template <>
+void test_cd_inversion_random<std::int64_t>(const mgard::pb::Header &header) {
+  std::default_random_engine gen(952426);
+  test_cd_inversion_random<std::int64_t>(header, 100, -1, 1, gen);
+  // In the deprecated Huffman encoding function, the missed symbols are cast
+  // from `long int` to `int`.
+  test_cd_inversion_random<std::int64_t>(header, 1000,
+                                         std::numeric_limits<int>::min(),
+                                         std::numeric_limits<int>::max(), gen);
+  test_cd_inversion_random<std::int64_t>(header, 10000, 0, 250, gen);
+}
+
+template <typename Int>
+void test_cd_inversion(const mgard::pb::Header &header) {
+  SECTION("constant data") { test_cd_inversion_constant<Int>(header); }
+  SECTION("periodic data") { test_cd_inversion_periodic<Int>(header); }
+  SECTION("random data") { test_cd_inversion_random<Int>(header); }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("`compress`/`decompress` inversion", "[compressors]",
+                   std::int8_t, std::int16_t, std::int32_t, std::int64_t) {
   mgard::pb::Header header;
-  // TODO: Once Huffman trees can be built for types other than `long int`, use
-  // something other than `std::int64_t` here.
   mgard::populate_defaults(header);
-
-  const std::size_t ndof = 5000;
-  std::int64_t *const quantized = new std::int64_t[ndof];
-  std::uniform_int_distribution<std::int64_t> dis(-500, 500);
-  std::default_random_engine gen(489063);
-  const auto f = [&]() -> std::int64_t { return dis(gen); };
-  std::generate(quantized, quantized + ndof, f);
-  const std::size_t quantizedLen = ndof * sizeof(*quantized);
-  // `dst` must have the correct alignment for the quantization type.
-  std::int64_t *const dst = new std::int64_t[ndof];
-
+  mgard::pb::Quantization &q = *header.mutable_quantization();
   mgard::pb::Encoding &e = *header.mutable_encoding();
-  SECTION("noop") {
-    e.set_compressor(mgard::pb::Encoding::NOOP_COMPRESSOR);
 
-    const std::size_t srcLen = quantizedLen;
-    unsigned char *const src = new unsigned char[srcLen];
-    {
-      unsigned char const *const p =
-          reinterpret_cast<unsigned char const *>(quantized);
-      std::copy(p, p + quantizedLen, src);
-    }
+  const mgard::pb::Quantization::Type qtype =
+      type_to_quantization_type<TestType>();
+  q.set_type(qtype);
 
-    mgard::decompress(header, src, srcLen,
-                      reinterpret_cast<unsigned char *>(dst), quantizedLen);
-    delete[] src;
-    REQUIRE(std::equal(quantized, quantized + ndof, dst));
-  }
-
-  SECTION("zlib") {
-    e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
-
-    const mgard::MemoryBuffer<unsigned char> out =
-        mgard::compress_memory_z(quantized, quantizedLen);
-
-    const std::size_t srcLen = out.size * sizeof(*out.data.get());
-    unsigned char *const src = new unsigned char[srcLen];
-    {
-      unsigned char const *const p = out.data.get();
-      std::copy(p, p + srcLen, src);
-    }
-    mgard::decompress(header, src, srcLen,
-                      reinterpret_cast<unsigned char *>(dst), quantizedLen);
-    delete[] src;
-    REQUIRE(std::equal(quantized, quantized + ndof, dst));
+  SECTION("`CPU_ZLIB`") {
+    e.set_compressor(mgard::pb::Encoding::CPU_ZLIB);
+    test_cd_inversion<TestType>(header);
   }
 
 #ifdef MGARD_ZSTD
-  SECTION("zstd") {
-    e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
-
-    std::int64_t *const quantized_ = new std::int64_t[ndof];
-    std::copy(quantized, quantized + ndof, quantized_);
-    const mgard::MemoryBuffer<unsigned char> out =
-        mgard::regression::compress_memory_huffman(quantized_, ndof);
-    delete[] quantized_;
-
-    const std::size_t srcLen = out.size;
-    unsigned char *const src = new unsigned char[srcLen];
-    {
-      unsigned char const *const p = out.data.get();
-      std::copy(p, p + srcLen, src);
-    }
-    mgard::decompress(header, src, srcLen,
-                      reinterpret_cast<unsigned char *>(dst), quantizedLen);
-    delete[] src;
-    REQUIRE(std::equal(quantized, quantized + ndof, dst));
+  SECTION("`CPU_ZSTD`") {
+    e.set_compressor(mgard::pb::Encoding::CPU_ZSTD);
+    test_cd_inversion<TestType>(header);
   }
 #endif
 
-  delete[] dst;
-  delete[] quantized;
+  // The deprecated Huffman serialization method requires the quantization type
+  // to be `std::int64_t`.
+  if (qtype == mgard::pb::Quantization::INT64_T) {
+    SECTION("`CPU_HUFFMAN_ZLIB` with `DEPRECATED`") {
+      e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
+      e.set_serialization(mgard::pb::Encoding::DEPRECATED);
+      test_cd_inversion<TestType>(header);
+    }
+
+#ifdef MGARD_ZSTD
+    SECTION("`CPU_HUFFMAN_ZSTD` with `DEPRECATED`") {
+      e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
+      e.set_serialization(mgard::pb::Encoding::DEPRECATED);
+      test_cd_inversion<TestType>(header);
+    }
+#endif
+  }
+
+  SECTION("`CPU_HUFFMAN_ZLIB` with `RFMH`") {
+    e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZLIB);
+    e.set_serialization(mgard::pb::Encoding::RFMH);
+    test_cd_inversion<TestType>(header);
+  }
+
+#ifdef MGARD_ZSTD
+  SECTION("`CPU_HUFFMAN_ZSTD` with `RFMH`") {
+    e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
+    e.set_serialization(mgard::pb::Encoding::RFMH);
+    test_cd_inversion<TestType>(header);
+  }
+#endif
 }
 
-TEST_CASE("compression and decompression with header", "[compressors]") {
-  mgard::pb::Header header;
-  // TODO: Once Huffman trees can be built for types other than `long int`, use
-  // something other than `std::int64_t` here.
-  mgard::populate_defaults(header);
+// In the deprecated Huffman encoding function, the missed symbols are cast from
+// `long int` to `int`.
+TEST_CASE("deprecated Huffman inversion", "[compressors] [!shouldfail]") {
+  std::default_random_engine gen(257100);
+  const std::int64_t a =
+      2 * static_cast<std::int64_t>(std::numeric_limits<int>::min());
+  const std::int64_t b =
+      2 * static_cast<std::int64_t>(std::numeric_limits<int>::max());
 
-  const std::size_t ndof = 2500;
-  std::int64_t *const quantized = new std::int64_t[ndof];
-  std::uniform_int_distribution<std::int64_t> dis(-1000, 1000);
-  std::default_random_engine gen(995719);
-  const auto f = [&]() -> std::int64_t { return dis(gen); };
-  std::generate(quantized, quantized + ndof, f);
-  const std::size_t quantizedLen = ndof * sizeof(*quantized);
-  // `dst` must have the correct alignment for the quantization type.
-  std::int64_t *const dst = new std::int64_t[ndof];
+  SECTION("`CPU_HUFFMAN_ZLIB` with `DEPRECATED`") {
+    // Conceivably this could pass if all the generated `std::int64_t`s are
+    // representable as `int`s.
+    test_cd_inversion_random<std::int64_t>(
+        deprecated_header(mgard::pb::Encoding::CPU_HUFFMAN_ZLIB), 5000, a, b,
+        gen);
+  }
 
-  std::int64_t *const quantized_ = new std::int64_t[ndof];
-  std::copy(quantized, quantized + ndof, quantized_);
-  const mgard::MemoryBuffer<unsigned char> compressed =
-      mgard::compress(header, quantized_, quantizedLen);
-  delete[] quantized_;
-
-  mgard::decompress(header, compressed.data.get(), compressed.size, dst,
-                    quantizedLen);
-
-  REQUIRE(std::equal(quantized, quantized + ndof, dst));
-  delete[] dst;
-  delete[] quantized;
+#ifdef MGARD_ZSTD
+  SECTION("`CPU_HUFFMAN_ZSTD` with `DEPRECATED`") {
+    // Conceivably this could pass if all the generated `std::int64_t`s are
+    // representable as `int`s.
+    test_cd_inversion_random<std::int64_t>(
+        deprecated_header(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD), 5000, a, b,
+        gen);
+  }
+#endif
 }

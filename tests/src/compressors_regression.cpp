@@ -26,11 +26,31 @@ std::size_t hit_buffer_size(const std::size_t nbits) {
   return nbits / CHAR_BIT + sizeof(unsigned int);
 }
 
+MemoryBuffer<unsigned char> compress_serialized(const pb::Header &header,
+                                                unsigned char const *const p,
+                                                const std::size_t n) {
+  assert(header.encoding().serialization() == pb::Encoding::DEPRECATED);
+
+  switch (header.encoding().compressor()) {
+  case pb::Encoding::CPU_HUFFMAN_ZLIB:
+    return compress_memory_z(const_cast<unsigned char z_const *>(p), n);
+  case pb::Encoding::CPU_HUFFMAN_ZSTD:
+#ifdef MGARD_ZSTD
+    return compress_memory_zstd(p, n);
+#else
+    throw std::runtime_error("MGARD compiled without ZSTD support");
+#endif
+  default:
+    throw std::runtime_error("unrecognized lossless compressor");
+  }
+}
+
 } // namespace
 
 // This code also makes endianness assumptions.
 
-MemoryBuffer<unsigned char> compress_memory_huffman(long int const *const src,
+MemoryBuffer<unsigned char> compress_memory_huffman(const pb::Header &header,
+                                                    long int const *const src,
                                                     const std::size_t srcLen) {
   HuffmanEncodedStream encoded =
       mgard::regression::huffman_encoding(src, srcLen);
@@ -65,13 +85,9 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int const *const src,
   std::memcpy(bufp, encoded.missed.data.get(), encoded.missed.size);
   bufp += encoded.missed.size;
 
-#ifndef MGARD_ZSTD
   const MemoryBuffer<unsigned char> out_data =
-      compress_memory_z(payload, npayload);
-#else
-  const MemoryBuffer<unsigned char> out_data =
-      compress_memory_zstd(payload, npayload);
-#endif
+      compress_serialized(header, payload, npayload);
+
   delete[] payload;
   bufp = nullptr;
 
@@ -95,9 +111,12 @@ MemoryBuffer<unsigned char> compress_memory_huffman(long int const *const src,
   return MemoryBuffer<unsigned char>(buffer, bufferLen);
 }
 
-void decompress_memory_huffman(unsigned char const *const src,
+void decompress_memory_huffman(const pb::Header &header,
+                               unsigned char const *const src,
                                const std::size_t srcLen, long int *const dst,
                                const std::size_t dstLen) {
+  assert(header.encoding().serialization() == pb::Encoding::DEPRECATED);
+
   std::size_t const *const sizes = reinterpret_cast<std::size_t const *>(src);
   const std::size_t nfrequencies = sizes[0];
   const std::size_t nbits = sizes[1];
@@ -112,12 +131,21 @@ void decompress_memory_huffman(unsigned char const *const src,
     unsigned char *const dst_ = buffer.data.get();
     const std::size_t dstLen_ = buffer.size;
 
-#ifndef MGARD_ZSTD
-    decompress_memory_z(const_cast<unsigned char z_const *>(src_), srcLen_,
-                        dst_, dstLen_);
+    switch (header.encoding().compressor()) {
+    case pb::Encoding::CPU_HUFFMAN_ZLIB:
+      decompress_memory_z(const_cast<unsigned char z_const *>(src_), srcLen_,
+                          dst_, dstLen_);
+      break;
+    case pb::Encoding::CPU_HUFFMAN_ZSTD:
+#ifdef MGARD_ZSTD
+      decompress_memory_zstd(src_, srcLen_, dst_, dstLen_);
+      break;
 #else
-    decompress_memory_zstd(src_, srcLen_, dst_, dstLen_);
+      throw std::runtime_error("MGARD compiled without ZSTD support");
 #endif
+    default:
+      throw std::runtime_error("unrecognized lossless compressor");
+    }
   }
 
   HuffmanEncodedStream encoded(nbits, nmissed, nfrequencies);
