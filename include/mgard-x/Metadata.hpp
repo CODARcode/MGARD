@@ -8,6 +8,7 @@
 #include "MGARDConfig.hpp"
 #include "RuntimeX/RuntimeX.h"
 #include "Types.h"
+#include "format.hpp"
 #include "proto/mgard.pb.h"
 #include <cstring>
 #include <zlib.h>
@@ -17,16 +18,11 @@
 #ifndef MGARD_X_METADATA
 #define MGARD_X_METADATA
 
-#define SIGNATURE "MGARD"
-#define SIGNATURE_SIZE 5
-
 namespace mgard_x {
 
 template <typename DeviceType> struct Metadata {
   using Mem = MemoryManager<DeviceType>;
   // about MGARD software
-  char mgard_signature[SIGNATURE_SIZE + 1] = SIGNATURE;
-  std::vector<char> signature;
   uint8_t software_version[3];
   uint8_t file_version[3];
   uint32_t metadata_size = 0;
@@ -79,7 +75,7 @@ public:
   void PrintSummary() {
     std::cout << "=======Metadata Summary=======\n";
     std::cout << "Signature: ";
-    for (char &c : signature)
+    for (const char c : mgard::SIGNATURE)
       std::cout << c;
     std::cout << "\n";
     std::cout << "MGARD version: " << (int)software_version[0] << "."
@@ -178,15 +174,10 @@ public:
 private:
   SERIALIZED_TYPE *SerializeAll(uint32_t &total_size) {
 
-    signature = std::vector<char>(SIGNATURE_SIZE);
-    for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
-      signature[i] = mgard_signature[i];
-    }
-
     total_size = 0;
 
     // about MGARD software
-    total_size += SIGNATURE_SIZE;
+    total_size += mgard::SIGNATURE.size();
     total_size += sizeof(software_version);
     total_size += sizeof(file_version);
     total_size += sizeof(metadata_size);
@@ -349,11 +340,6 @@ private:
   }
 
   SERIALIZED_TYPE *SerializeAllWithProtobuf(uint32_t &total_size) {
-
-    signature = std::vector<char>(SIGNATURE_SIZE);
-    for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
-      signature[i] = mgard_signature[i];
-    }
 
     mgard::pb::Header header;
 
@@ -532,7 +518,7 @@ private:
         ComputeCRC32(header_bytes.data(), header_bytes.size());
 
     total_size = 0;
-    total_size += SIGNATURE_SIZE;
+    total_size += mgard::SIGNATURE.size();
     total_size += sizeof(uint64_t); // header size
     total_size += sizeof(uint32_t); // crc32 size
     total_size += header_size;      // header size
@@ -568,7 +554,7 @@ private:
     }
 
     metadata_size = 0;
-    metadata_size += SIGNATURE_SIZE;
+    metadata_size += mgard::SIGNATURE.size();
     metadata_size += sizeof(uint64_t); // header size
     metadata_size += sizeof(uint32_t); // crc32 size
     metadata_size += header_size;      // header size
@@ -813,18 +799,18 @@ private:
   }
 
   void SerializeSignature(SERIALIZED_TYPE *&p) {
-    for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
-      Serialize(signature[i], p);
+    for (char c : mgard::SIGNATURE) {
+      Serialize(c, p);
     }
   }
 
+  // This function does not assign to a signature data member. Instead, it just
+  // checks that the deserialized signature matches `mgard::SIGNATURE`.
   void DeserializeSignature(SERIALIZED_TYPE *&p) {
-    signature = std::vector<char>(SIGNATURE_SIZE);
-    for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
-      Deserialize(signature[i], p);
-    }
-    for (size_t i = 0; i < SIGNATURE_SIZE; i++) {
-      if (signature[i] != mgard_signature[i]) {
+    for (const char c : mgard::SIGNATURE) {
+      char c_;
+      Deserialize(c_, p);
+      if (c_ != c) {
         std::cout << log::log_err << "signature mismatch.\n";
         exit(-1);
       }
