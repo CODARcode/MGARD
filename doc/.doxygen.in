@@ -6,7 +6,7 @@ PROJECT_NAME           = "MGARD"
 PROJECT_NUMBER         = @MGARD_VERSION@
 PROJECT_BRIEF          = "MultiGrid Adaptive Reduction of Data"
 PROJECT_LOGO           =
-OUTPUT_DIRECTORY       = "@PROJECT_BINARY_DIR@/doxygen"
+OUTPUT_DIRECTORY       = "@CMAKE_CURRENT_BINARY_DIR@/doxygen"
 
 #---------------------------------------------------------------------------
 # Build related configuration options
