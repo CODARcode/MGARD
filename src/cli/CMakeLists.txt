@@ -39,7 +39,7 @@ else()
 	set_target_properties(mgard-cli PROPERTIES OUTPUT_NAME mgard)
 
 	install(TARGETS mgard-cli RUNTIME)
-	install(FILES man/man1/mgard.1 DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
+	install(FILES "${PROJECT_SOURCE_DIR}/man/man1/mgard.1" DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
 endif()
 
 set(TCLAP_FOUND "${TCLAP_FOUND}" PARENT_SCOPE)
