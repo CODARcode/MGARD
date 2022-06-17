@@ -12,6 +12,8 @@
 #include <cstring>
 #include <zlib.h>
 
+#include <google/protobuf/io/coded_stream.h>
+
 #ifndef MGARD_X_METADATA
 #define MGARD_X_METADATA
 
