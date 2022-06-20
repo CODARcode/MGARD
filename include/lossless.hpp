@@ -1,5 +1,5 @@
-#ifndef COMPRESSORS_HPP
-#define COMPRESSORS_HPP
+#ifndef LOSSLESS_HPP
+#define LOSSLESS_HPP
 //!\file
 //!\brief Lossless compressors for quantized multilevel coefficients.
 

@@ -20,9 +20,9 @@
 #include "MGARDConfig.hpp"
 #include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorNorms.hpp"
-#include "compressors.hpp"
 #include "decompose.hpp"
 #include "format.hpp"
+#include "lossless.hpp"
 #include "quantize.hpp"
 #include "shuffle.hpp"
 

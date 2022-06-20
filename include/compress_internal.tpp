@@ -1,8 +1,8 @@
 #include <cstdlib>
 
 #include "compress.hpp"
-#include "compressors.hpp"
 #include "decompose.hpp"
+#include "lossless.hpp"
 #include "quantize.hpp"
 #include "shuffle.hpp"
 

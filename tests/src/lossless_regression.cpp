@@ -1,12 +1,11 @@
-#include "compressors_regression.hpp"
+#include "lossless_regression.hpp"
 
 #include <climits>
 #include <cstring>
 
-#include "compressors.hpp"
-#include "compressors_regression.hpp"
 #include "huffman.hpp"
 #include "huffman_regression.hpp"
+#include "lossless.hpp"
 
 namespace mgard {
 

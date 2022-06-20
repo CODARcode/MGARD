@@ -11,8 +11,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include "compressors.hpp"
 #include "huffman.hpp"
+#include "lossless.hpp"
 
 namespace mgard {
 

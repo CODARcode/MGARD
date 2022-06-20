@@ -7,9 +7,9 @@
 #include <limits>
 #include <random>
 
-#include "compressors.hpp"
-#include "compressors_regression.hpp"
 #include "format.hpp"
+#include "lossless.hpp"
+#include "lossless_regression.hpp"
 
 #include "testing_utilities.hpp"
 

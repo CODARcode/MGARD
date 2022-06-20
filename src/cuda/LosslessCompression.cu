@@ -5,7 +5,7 @@
  * Date: September 27, 2021
  */
 
-// #include "compressors.hpp"
+// #include "lossless.hpp"
 #include "cuda/Common.h"
 #include "cuda/CommonInternal.h"
 #include "cuda/LosslessCompression.h"

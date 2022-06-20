@@ -203,7 +203,7 @@ set(
         src/compress_internal.cpp
   src/utilities.cpp
   src/huffman.cpp
-  src/compressors.cpp
+  src/lossless.cpp
   src/format.cpp
 )
 

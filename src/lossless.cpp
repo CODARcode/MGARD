@@ -1,4 +1,4 @@
-#include "compressors.hpp"
+#include "lossless.hpp"
 
 #include <cassert>
 #include <cmath>
