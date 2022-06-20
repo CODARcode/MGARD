@@ -90,8 +90,8 @@ void test_hcr_constant(const std::size_t srcLen, const long int q) {
   delete[] src;
 }
 
-void test_hcr_periodic(const std::size_t srcLen, const long int initial,
-                       const std::size_t period) {
+void test_hcr_periodic(const std::size_t srcLen, const std::size_t period,
+                       const long int initial) {
   long int *const src = new long int[srcLen];
   std::generate(src, src + srcLen, PeriodicGenerator(period, initial));
   test_huffman_compression_regression(src, srcLen);
@@ -114,8 +114,8 @@ void test_hdr_constant(const std::size_t srcLen, const long int q) {
   delete[] src;
 }
 
-void test_hdr_periodic(const std::size_t srcLen, const long int initial,
-                       const std::size_t period) {
+void test_hdr_periodic(const std::size_t srcLen, const std::size_t period,
+                       const long int initial) {
   long int *const src = new long int[srcLen];
   std::generate(src, src + srcLen, PeriodicGenerator(period, initial));
   test_huffman_decompression_regression(src, srcLen);
@@ -141,9 +141,9 @@ TEST_CASE("Huffman compression regression", "[compressors] [regression]") {
   }
 
   SECTION("periodic data") {
-    test_hcr_periodic(5, 0, 5);
-    test_hcr_periodic(25, -4, 6);
-    test_hcr_periodic(625, 22, 20);
+    test_hcr_periodic(5, 5, 0);
+    test_hcr_periodic(25, 6, -4);
+    test_hcr_periodic(625, 20, 22);
   }
 
   SECTION("random data") {
@@ -164,9 +164,9 @@ TEST_CASE("Huffman decompression regression", "[compressors] [regression]") {
   }
 
   SECTION("periodic data") {
-    test_hdr_periodic(10, 0, 3);
-    test_hdr_periodic(100, -570, 10);
-    test_hdr_periodic(1000, 394, 19);
+    test_hdr_periodic(10, 3, 0);
+    test_hdr_periodic(100, 10, -570);
+    test_hdr_periodic(1000, 19, 394);
   }
 
   SECTION("random data") {
@@ -270,8 +270,8 @@ void test_cd_inversion_constant(const mgard::pb::Header &header,
 
 template <typename Int>
 void test_cd_inversion_periodic(const mgard::pb::Header &header,
-                                const std::size_t N, const Int q,
-                                const std::size_t period) {
+                                const std::size_t N, const std::size_t period,
+                                const Int q) {
   Int *const quantized = new Int[N];
   std::generate(quantized, quantized + N, PeriodicGenerator(period, q));
   test_cd_inversion(header, quantized, N);
@@ -321,9 +321,9 @@ void test_cd_inversion_constant(const mgard::pb::Header &header) {
 
 template <typename Int>
 void test_cd_inversion_periodic(const mgard::pb::Header &header) {
-  test_cd_inversion_periodic<Int>(header, 100, -5, 3);
-  test_cd_inversion_periodic<Int>(header, 1000, 86, 60);
-  test_cd_inversion_periodic<Int>(header, 10000, 7, 62);
+  test_cd_inversion_periodic<Int>(header, 100, 3, -5);
+  test_cd_inversion_periodic<Int>(header, 1000, 60, 86);
+  test_cd_inversion_periodic<Int>(header, 10000, 62, 7);
 }
 
 template <typename Int>

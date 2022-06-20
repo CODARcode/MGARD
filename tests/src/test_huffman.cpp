@@ -74,8 +74,9 @@ void test_encoding_regression_constant(const std::size_t N, const long int q) {
   delete[] quantized;
 }
 
-void test_encoding_regression_periodic(const std::size_t N, const long int q,
-                                       const std::size_t period) {
+void test_encoding_regression_periodic(const std::size_t N,
+                                       const std::size_t period,
+                                       const long int q) {
   long int *const quantized = new long int[N];
   std::generate(quantized, quantized + N, PeriodicGenerator(period, q));
   test_encoding_regression(quantized, N);
@@ -99,8 +100,9 @@ void test_decoding_regression_constant(const std::size_t N, const long int q) {
   delete[] quantized;
 }
 
-void test_decoding_regression_periodic(const std::size_t N, const long int q,
-                                       const std::size_t period) {
+void test_decoding_regression_periodic(const std::size_t N,
+                                       const std::size_t period,
+                                       const long int q) {
   long int *const quantized = new long int[N];
   std::generate(quantized, quantized + N, PeriodicGenerator(period, q));
   test_decoding_regression(quantized, N);
@@ -126,8 +128,8 @@ void test_inversion_constant(const std::size_t N, const T q) {
 }
 
 template <typename T>
-void test_inversion_periodic(const std::size_t N, const T q,
-                             const std::size_t period) {
+void test_inversion_periodic(const std::size_t N, const std::size_t period,
+                             const T q) {
   T *const quantized = new T[N];
   std::generate(quantized, quantized + N, PeriodicGenerator(period, q));
   test_inversion(quantized, N);
@@ -154,9 +156,9 @@ TEST_CASE("encoding regression", "[huffman] [regression]") {
   }
 
   SECTION("periodic data") {
-    test_encoding_regression_periodic(10, -3, 3);
-    test_encoding_regression_periodic(100, 0, 10);
-    test_encoding_regression_periodic(1000, 51, 17);
+    test_encoding_regression_periodic(10, 3, -3);
+    test_encoding_regression_periodic(100, 10, 0);
+    test_encoding_regression_periodic(1000, 17, 51);
   }
 
   SECTION("random data") {
@@ -177,9 +179,9 @@ TEST_CASE("decoding regression", "[huffman] [regression]") {
   }
 
   SECTION("periodic data") {
-    test_decoding_regression_periodic(10, 12, 4);
-    test_decoding_regression_periodic(100, -71, 9);
-    test_decoding_regression_periodic(1000, 3280, 23);
+    test_decoding_regression_periodic(10, 4, 12);
+    test_decoding_regression_periodic(100, 9, -71);
+    test_decoding_regression_periodic(1000, 23, 3280);
   }
 
   SECTION("random data") {
@@ -203,9 +205,9 @@ TEMPLATE_TEST_CASE("Huffman inversion", "[huffman]", std::int8_t, std::int16_t,
   }
 
   SECTION("periodic data") {
-    test_inversion_periodic<TestType>(10, -dis(gen_), 11);
-    test_inversion_periodic<TestType>(100, dis(gen_), 10);
-    test_inversion_periodic<TestType>(1000, -dis(gen_), 9);
+    test_inversion_periodic<TestType>(10, 3, -dis(gen_));
+    test_inversion_periodic<TestType>(100, 10, dis(gen_));
+    test_inversion_periodic<TestType>(1000, 9, -dis(gen_));
   }
 
   SECTION("random data") {
