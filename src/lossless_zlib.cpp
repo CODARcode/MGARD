@@ -8,8 +8,8 @@
 
 namespace mgard {
 
-MemoryBuffer<unsigned char> compress_memory_z(void const *const src,
-                                              const std::size_t srcLen) {
+MemoryBuffer<unsigned char> compress_zlib(void const *const src,
+                                          const std::size_t srcLen) {
   const std::size_t BUFSIZE = 2048 * 1024;
   std::vector<Bytef *> buffers;
   std::vector<std::size_t> bufferLengths;
@@ -64,8 +64,8 @@ MemoryBuffer<unsigned char> compress_memory_z(void const *const src,
   return MemoryBuffer<unsigned char>(buffer, bufferLen);
 }
 
-void decompress_memory_z(void const *const src, const std::size_t srcLen,
-                         unsigned char *const dst, const std::size_t dstLen) {
+void decompress_zlib(void const *const src, const std::size_t srcLen,
+                     unsigned char *const dst, const std::size_t dstLen) {
   z_stream strm = {};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;

@@ -189,10 +189,10 @@ void test_zstd_identity(std::uniform_int_distribution<unsigned char> &dis,
   std::generate(src, src + n, f);
   unsigned char *const src_ = new unsigned char[n];
   std::copy(src, src + n, src_);
-  mgard::MemoryBuffer<unsigned char> dst = mgard::compress_memory_zstd(src_, n);
+  mgard::MemoryBuffer<unsigned char> dst = mgard::compress_zstd(src_, n);
   delete[] src_;
   unsigned char *const decompressed = new unsigned char[n];
-  mgard::decompress_memory_zstd(dst.data.get(), dst.size, decompressed, n);
+  mgard::decompress_zstd(dst.data.get(), dst.size, decompressed, n);
   REQUIRE(std::equal(src, src + n, decompressed));
   delete[] decompressed;
   delete[] src;
@@ -219,10 +219,10 @@ void test_zlib_identity(std::uniform_int_distribution<unsigned char> &dis,
   std::generate(src, src + n, f);
   unsigned char *const src_ = new unsigned char[n];
   std::copy(src, src + n, src_);
-  mgard::MemoryBuffer<unsigned char> dst = mgard::compress_memory_z(src_, n);
+  mgard::MemoryBuffer<unsigned char> dst = mgard::compress_zlib(src_, n);
   delete[] src_;
   unsigned char *const decompressed = new unsigned char[n];
-  mgard::decompress_memory_z(dst.data.get(), dst.size, decompressed, n);
+  mgard::decompress_zlib(dst.data.get(), dst.size, decompressed, n);
   REQUIRE(std::equal(src, src + n, decompressed));
   delete[] decompressed;
   delete[] src;

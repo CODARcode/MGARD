@@ -35,8 +35,8 @@ namespace mgard {
     CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err));                   \
   } while (0)
 
-MemoryBuffer<unsigned char> compress_memory_zstd(void const *const src,
-                                                 const std::size_t srcLen) {
+MemoryBuffer<unsigned char> compress_zstd(void const *const src,
+                                          const std::size_t srcLen) {
   const std::size_t cBuffSize = ZSTD_compressBound(srcLen);
   unsigned char *const buffer = new unsigned char[cBuffSize];
   const std::size_t cSize = ZSTD_compress(buffer, cBuffSize, src, srcLen, 1);
@@ -44,9 +44,8 @@ MemoryBuffer<unsigned char> compress_memory_zstd(void const *const src,
   return MemoryBuffer<unsigned char>(buffer, cSize);
 }
 
-void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
-                            unsigned char *const dst,
-                            const std::size_t dstLen) {
+void decompress_zstd(void const *const src, const std::size_t srcLen,
+                     unsigned char *const dst, const std::size_t dstLen) {
   std::size_t const dSize = ZSTD_decompress(dst, dstLen, src, srcLen);
   CHECK_ZSTD(dSize);
 

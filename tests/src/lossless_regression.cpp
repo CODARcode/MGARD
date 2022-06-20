@@ -32,10 +32,10 @@ MemoryBuffer<unsigned char> compress_serialized(const pb::Header &header,
 
   switch (header.encoding().compressor()) {
   case pb::Encoding::CPU_HUFFMAN_ZLIB:
-    return compress_memory_z(p, n);
+    return compress_zlib(p, n);
   case pb::Encoding::CPU_HUFFMAN_ZSTD:
 #ifdef MGARD_ZSTD
-    return compress_memory_zstd(p, n);
+    return compress_zstd(p, n);
 #else
     throw std::runtime_error("MGARD compiled without ZSTD support");
 #endif
@@ -132,11 +132,11 @@ void decompress_memory_huffman(const pb::Header &header,
 
     switch (header.encoding().compressor()) {
     case pb::Encoding::CPU_HUFFMAN_ZLIB:
-      decompress_memory_z(src_, srcLen_, dst_, dstLen_);
+      decompress_zlib(src_, srcLen_, dst_, dstLen_);
       break;
     case pb::Encoding::CPU_HUFFMAN_ZSTD:
 #ifdef MGARD_ZSTD
-      decompress_memory_zstd(src_, srcLen_, dst_, dstLen_);
+      decompress_zstd(src_, srcLen_, dst_, dstLen_);
       break;
 #else
       throw std::runtime_error("MGARD compiled without ZSTD support");

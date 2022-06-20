@@ -16,34 +16,34 @@ namespace mgard {
 //!
 //!\param[in] src Array to be compressed.
 //!\param[in] srcLen Size in bytes of the array to be compressed.
-MemoryBuffer<unsigned char> compress_memory_zstd(void const *const src,
-                                                 const std::size_t srcLen);
+MemoryBuffer<unsigned char> compress_zstd(void const *const src,
+                                          const std::size_t srcLen);
 
-//! Decompress an array compressed with `compress_memory_zstd`.
+//! Decompress an array compressed with `compress_zstd`.
 //!
 //!\param[in] src Compressed array.
 //!\param[in] srcLen Size in bytes of the compressed array.
 //!\param[out] dst Decompressed array.
 //!\param[in] dstLen Size in bytes of the decompressed array.
-void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
-                            unsigned char *const dst, const std::size_t dstLen);
+void decompress_zstd(void const *const src, const std::size_t srcLen,
+                     unsigned char *const dst, const std::size_t dstLen);
 #endif
 
 //! Compress an array using `zlib`.
 //!
 //!\param src Array to be compressed.
 //!\param srcLen Size in bytes of the array to be compressed.
-MemoryBuffer<unsigned char> compress_memory_z(void const *const src,
-                                              const std::size_t srcLen);
+MemoryBuffer<unsigned char> compress_zlib(void const *const src,
+                                          const std::size_t srcLen);
 
-//! Decompress an array with `compress_memory_z`.
+//! Decompress an array with `compress_zlib`.
 //!
 //!\param src Compressed array.
 //!\param srcLen Size in bytes of the compressed array data
 //!\param dst Decompressed array.
 //!\param dstLen Size in bytes of the decompressed array.
-void decompress_memory_z(void const *const src, const std::size_t srcLen,
-                         unsigned char *const dst, const std::size_t dstLen);
+void decompress_zlib(void const *const src, const std::size_t srcLen,
+                     unsigned char *const dst, const std::size_t dstLen);
 
 //! Compress an array of quantized multilevel coefficients.
 //!

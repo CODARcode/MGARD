@@ -93,8 +93,8 @@ MemoryBuffer<unsigned char> compress_huffman_zstd_deprecated(
 
 namespace {
 
-// `decompress_memory_z` and `decompress_memory_zstd` need to know the size of
-// the decompressed buffer before they can decompress. So, in addition to the
+// `decompress_zlib` and `decompress_zstd` need to know the size of the
+// decompressed buffer before they can decompress. So, in addition to the
 // compressed serialized Huffman tree (`compressed`), we need to store the size
 // in bytes of the serialized Huffman tree (`nhuffman`).
 MemoryBuffer<unsigned char> concatenate_nhuffman_and_compressed(
@@ -124,7 +124,7 @@ compress_huffman_zlib_rfmh(const pb::Header &header, void const *const src,
   const MemoryBuffer<unsigned char> encoded =
       compress_huffman_C_rfmh(header, src, srcLen);
   const MemoryBuffer<unsigned char> compressed =
-      compress_memory_z(encoded.data.get(), encoded.size);
+      compress_zlib(encoded.data.get(), encoded.size);
   return concatenate_nhuffman_and_compressed(encoded.size, compressed);
 }
 
@@ -138,7 +138,7 @@ compress_huffman_zstd_rfmh(const pb::Header &header, void const *const src,
   const MemoryBuffer<unsigned char> encoded =
       compress_huffman_C_rfmh(header, src, srcLen);
   return concatenate_nhuffman_and_compressed(
-      encoded.size, compress_memory_zstd(encoded.data.get(), encoded.size));
+      encoded.size, compress_zstd(encoded.data.get(), encoded.size));
 }
 #endif
 
@@ -181,10 +181,10 @@ MemoryBuffer<unsigned char> compress(const pb::Header &header,
                                      const std::size_t srcLen) {
   switch (header.encoding().compressor()) {
   case pb::Encoding::CPU_ZLIB:
-    return compress_memory_z(src, srcLen);
+    return compress_zlib(src, srcLen);
   case pb::Encoding::CPU_ZSTD:
 #ifdef MGARD_ZSTD
-    return compress_memory_zstd(src, srcLen);
+    return compress_zstd(src, srcLen);
 #else
     throw std::runtime_error("MGARD compiled without ZSTD support");
 #endif
@@ -322,8 +322,8 @@ void decompress_huffman_zlib_rfmh(const pb::Header &header,
   BufferWindow window(src, srcLen);
   // Read theSsze in bytes of the serialized Huffman tree.
   MemoryBuffer<unsigned char> encoded(read_header_size(window));
-  decompress_memory_z(window.current, window.end - window.current,
-                      encoded.data.get(), encoded.size);
+  decompress_zlib(window.current, window.end - window.current,
+                  encoded.data.get(), encoded.size);
 
   return decompress_huffman_C_rfmh(header, encoded, dst, dstLen);
 }
@@ -339,8 +339,8 @@ void decompress_huffman_zstd_rfmh(const pb::Header &header,
   BufferWindow window(src, srcLen);
   // Read the size in bytes of the serialized Huffman tree.
   MemoryBuffer<unsigned char> encoded(read_header_size(window));
-  decompress_memory_zstd(window.current, window.end - window.current,
-                         encoded.data.get(), encoded.size);
+  decompress_zstd(window.current, window.end - window.current,
+                  encoded.data.get(), encoded.size);
 
   return decompress_huffman_C_rfmh(header, encoded, dst, dstLen);
 }
@@ -385,12 +385,12 @@ void decompress(const pb::Header &header, void const *const src,
                 const std::size_t dstLen) {
   switch (header.encoding().compressor()) {
   case pb::Encoding::CPU_ZLIB:
-    return decompress_memory_z(src, srcLen, static_cast<unsigned char *>(dst),
-                               dstLen);
+    return decompress_zlib(src, srcLen, static_cast<unsigned char *>(dst),
+                           dstLen);
   case pb::Encoding::CPU_ZSTD:
 #ifdef MGARD_ZSTD
-    return decompress_memory_zstd(
-        src, srcLen, reinterpret_cast<unsigned char *>(dst), dstLen);
+    return decompress_zstd(src, srcLen, reinterpret_cast<unsigned char *>(dst),
+                           dstLen);
 #else
     throw std::runtime_error("MGARD compiled without ZSTD support");
 #endif
