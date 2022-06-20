@@ -124,6 +124,8 @@ message Encoding {
     SHUFFLE = 1;
   }
   enum Compressor {
+    // Not yet implemented. We'll want to add a message for quantized coefficients stored 'verbatim'
+    // (probably still somewhat compressed because of the varint encoding used for `int64`s).
     NOOP_COMPRESSOR = 0;
     // Explanation for the wonky numbering: this first case was originally called `CPU_HUFFMAN_ZLIB`,
     // but the relevant code didn't actually call the Huffman encoder.

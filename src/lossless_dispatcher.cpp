@@ -201,18 +201,6 @@ MemoryBuffer<unsigned char> compress(const pb::Header &header,
   }
 }
 
-void decompress_noop(void const *const src, const std::size_t srcLen,
-                     void *const dst, const std::size_t dstLen) {
-  if (srcLen != dstLen) {
-    throw std::invalid_argument("source and destination lengths must be equal");
-  }
-  {
-    unsigned char const *const p = static_cast<unsigned char const *>(src);
-    unsigned char *const q = static_cast<unsigned char *>(dst);
-    std::copy(p, p + srcLen, q);
-  }
-}
-
 namespace {
 
 template <typename Int>
