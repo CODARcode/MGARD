@@ -32,7 +32,7 @@ MemoryBuffer<unsigned char> compress_serialized(const pb::Header &header,
 
   switch (header.encoding().compressor()) {
   case pb::Encoding::CPU_HUFFMAN_ZLIB:
-    return compress_memory_z(const_cast<unsigned char z_const *>(p), n);
+    return compress_memory_z(p, n);
   case pb::Encoding::CPU_HUFFMAN_ZSTD:
 #ifdef MGARD_ZSTD
     return compress_memory_zstd(p, n);
@@ -132,8 +132,7 @@ void decompress_memory_huffman(const pb::Header &header,
 
     switch (header.encoding().compressor()) {
     case pb::Encoding::CPU_HUFFMAN_ZLIB:
-      decompress_memory_z(const_cast<unsigned char z_const *>(src_), srcLen_,
-                          dst_, dstLen_);
+      decompress_memory_z(src_, srcLen_, dst_, dstLen_);
       break;
     case pb::Encoding::CPU_HUFFMAN_ZSTD:
 #ifdef MGARD_ZSTD

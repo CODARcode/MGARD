@@ -5,11 +5,6 @@
 
 #include <cstddef>
 
-// For `z_const`.
-#include <zlib.h>
-
-#include <memory>
-
 #include "proto/mgard.pb.h"
 
 #include "utilities.hpp"
@@ -38,7 +33,7 @@ void decompress_memory_zstd(void const *const src, const std::size_t srcLen,
 //!
 //!\param src Array to be compressed.
 //!\param srcLen Size in bytes of the array to be compressed.
-MemoryBuffer<unsigned char> compress_memory_z(void z_const *const src,
+MemoryBuffer<unsigned char> compress_memory_z(void const *const src,
                                               const std::size_t srcLen);
 
 //! Decompress an array with `compress_memory_z`.
@@ -47,7 +42,7 @@ MemoryBuffer<unsigned char> compress_memory_z(void z_const *const src,
 //!\param srcLen Size in bytes of the compressed array data
 //!\param dst Decompressed array.
 //!\param dstLen Size in bytes of the decompressed array.
-void decompress_memory_z(void z_const *const src, const std::size_t srcLen,
+void decompress_memory_z(void const *const src, const std::size_t srcLen,
                          unsigned char *const dst, const std::size_t dstLen);
 
 //! Compress an array of quantized multilevel coefficients.
@@ -57,7 +52,8 @@ void decompress_memory_z(void z_const *const src, const std::size_t srcLen,
 //!\param[in] header Header for the self-describing buffer.
 //!\param[in] src Array of quantized multilevel coefficients.
 //!\param[in] srcLen Size in bytes of the input array.
-MemoryBuffer<unsigned char> compress(const pb::Header &header, void *const src,
+MemoryBuffer<unsigned char> compress(const pb::Header &header,
+                                     void const *const src,
                                      const std::size_t srcLen);
 
 //! Decompress an array of quantized multilevel coefficients.
@@ -69,7 +65,7 @@ MemoryBuffer<unsigned char> compress(const pb::Header &header, void *const src,
 //!\param[in] srcLen Size in bytes of the compressed array.
 //!\param[out] dst Decompressed array.
 //!\param[in] dstLen Size in bytes of the decompressed array.
-void decompress(const pb::Header &header, void *const src,
+void decompress(const pb::Header &header, void const *const src,
                 const std::size_t srcLen, void *const dst,
                 const std::size_t dstLen);
 

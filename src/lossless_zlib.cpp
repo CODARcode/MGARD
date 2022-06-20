@@ -4,9 +4,11 @@
 #include <numeric>
 #include <vector>
 
+#include <zlib.h>
+
 namespace mgard {
 
-MemoryBuffer<unsigned char> compress_memory_z(void z_const *const src,
+MemoryBuffer<unsigned char> compress_memory_z(void const *const src,
                                               const std::size_t srcLen) {
   const std::size_t BUFSIZE = 2048 * 1024;
   std::vector<Bytef *> buffers;
@@ -15,7 +17,7 @@ MemoryBuffer<unsigned char> compress_memory_z(void z_const *const src,
   z_stream strm;
   strm.zalloc = Z_NULL;
   strm.zfree = Z_NULL;
-  strm.next_in = static_cast<Bytef z_const *>(src);
+  strm.next_in = static_cast<Bytef z_const *>(const_cast<void z_const *>(src));
   strm.avail_in = srcLen;
   buffers.push_back(strm.next_out = new Bytef[BUFSIZE]);
   bufferLengths.push_back(strm.avail_out = BUFSIZE);
@@ -62,12 +64,12 @@ MemoryBuffer<unsigned char> compress_memory_z(void z_const *const src,
   return MemoryBuffer<unsigned char>(buffer, bufferLen);
 }
 
-void decompress_memory_z(void z_const *const src, const std::size_t srcLen,
+void decompress_memory_z(void const *const src, const std::size_t srcLen,
                          unsigned char *const dst, const std::size_t dstLen) {
   z_stream strm = {};
   strm.total_in = strm.avail_in = srcLen;
   strm.total_out = strm.avail_out = dstLen;
-  strm.next_in = static_cast<Bytef z_const *>(src);
+  strm.next_in = static_cast<Bytef z_const *>(const_cast<void z_const *>(src));
   strm.next_out = reinterpret_cast<Bytef *>(dst);
 
   strm.zalloc = Z_NULL;

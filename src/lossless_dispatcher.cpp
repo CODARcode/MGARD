@@ -32,7 +32,7 @@ MemoryBuffer<unsigned char> compress_huffman_C_rfmh_(const pb::Header &header,
 
 // `C` being either ZSTD or `zlib`.
 MemoryBuffer<unsigned char> compress_huffman_C_rfmh(const pb::Header &header,
-                                                    void *const src,
+                                                    void const *const src,
                                                     const std::size_t srcLen) {
   assert(header.encoding().serialization() == pb::Encoding::RFMH);
 
@@ -51,7 +51,7 @@ MemoryBuffer<unsigned char> compress_huffman_C_rfmh(const pb::Header &header,
 }
 
 MemoryBuffer<unsigned char>
-compress_huffman_C_deprecated(const pb::Header &header, void *const src,
+compress_huffman_C_deprecated(const pb::Header &header, void const *const src,
                               const std::size_t srcLen) {
   check_quantization_buffer(header, src, srcLen);
 
@@ -75,18 +75,16 @@ compress_huffman_C_deprecated(const pb::Header &header, void *const src,
                                srcLen / sizeof(long int)));
 }
 
-MemoryBuffer<unsigned char>
-compress_huffman_zlib_deprecated(const pb::Header &header, void *const src,
-                                 const std::size_t srcLen) {
+MemoryBuffer<unsigned char> compress_huffman_zlib_deprecated(
+    const pb::Header &header, void const *const src, const std::size_t srcLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZLIB);
 
   return compress_huffman_C_deprecated(header, src, srcLen);
 }
 
 #ifdef MGARD_ZSTD
-MemoryBuffer<unsigned char>
-compress_huffman_zstd_deprecated(const pb::Header &header, void *const src,
-                                 const std::size_t srcLen) {
+MemoryBuffer<unsigned char> compress_huffman_zstd_deprecated(
+    const pb::Header &header, void const *const src, const std::size_t srcLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZSTD);
 
   return compress_huffman_C_deprecated(header, src, srcLen);
@@ -118,7 +116,7 @@ MemoryBuffer<unsigned char> concatenate_nhuffman_and_compressed(
 } // namespace
 
 MemoryBuffer<unsigned char>
-compress_huffman_zlib_rfmh(const pb::Header &header, void *const src,
+compress_huffman_zlib_rfmh(const pb::Header &header, void const *const src,
                            const std::size_t srcLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZLIB);
   assert(header.encoding().serialization() == pb::Encoding::RFMH);
@@ -132,7 +130,7 @@ compress_huffman_zlib_rfmh(const pb::Header &header, void *const src,
 
 #ifdef MGARD_ZSTD
 MemoryBuffer<unsigned char>
-compress_huffman_zstd_rfmh(const pb::Header &header, void *const src,
+compress_huffman_zstd_rfmh(const pb::Header &header, void const *const src,
                            const std::size_t srcLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZSTD);
   assert(header.encoding().serialization() == pb::Encoding::RFMH);
@@ -145,7 +143,7 @@ compress_huffman_zstd_rfmh(const pb::Header &header, void *const src,
 #endif
 
 MemoryBuffer<unsigned char> compress_huffman_zlib(const pb::Header &header,
-                                                  void *const src,
+                                                  void const *const src,
                                                   const std::size_t srcLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZLIB);
 
@@ -161,7 +159,7 @@ MemoryBuffer<unsigned char> compress_huffman_zlib(const pb::Header &header,
 
 #ifdef MGARD_ZSTD
 MemoryBuffer<unsigned char> compress_huffman_zstd(const pb::Header &header,
-                                                  void *const src,
+                                                  void const *const src,
                                                   const std::size_t srcLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZSTD);
 
@@ -178,7 +176,8 @@ MemoryBuffer<unsigned char> compress_huffman_zstd(const pb::Header &header,
 
 } // namespace
 
-MemoryBuffer<unsigned char> compress(const pb::Header &header, void *const src,
+MemoryBuffer<unsigned char> compress(const pb::Header &header,
+                                     void const *const src,
                                      const std::size_t srcLen) {
   switch (header.encoding().compressor()) {
   case pb::Encoding::CPU_ZLIB:
@@ -202,8 +201,8 @@ MemoryBuffer<unsigned char> compress(const pb::Header &header, void *const src,
   }
 }
 
-void decompress_noop(void *const src, const std::size_t srcLen, void *const dst,
-                     const std::size_t dstLen) {
+void decompress_noop(void const *const src, const std::size_t srcLen,
+                     void *const dst, const std::size_t dstLen) {
   if (srcLen != dstLen) {
     throw std::invalid_argument("source and destination lengths must be equal");
   }
@@ -257,7 +256,8 @@ void decompress_huffman_C_rfmh(const pb::Header &header,
   }
 }
 
-void decompress_huffman_C_deprecated(const pb::Header &header, void *const src,
+void decompress_huffman_C_deprecated(const pb::Header &header,
+                                     void const *const src,
                                      const std::size_t srcLen, void *const dst,
                                      const std::size_t dstLen) {
   check_quantization_buffer(header, dst, dstLen);
@@ -291,7 +291,7 @@ void decompress_huffman_C_deprecated(const pb::Header &header, void *const src,
 }
 
 void decompress_huffman_zlib_deprecated(const pb::Header &header,
-                                        void *const src,
+                                        void const *const src,
                                         const std::size_t srcLen,
                                         void *const dst,
                                         const std::size_t dstLen) {
@@ -302,7 +302,7 @@ void decompress_huffman_zlib_deprecated(const pb::Header &header,
 
 #ifdef MGARD_ZSTD
 void decompress_huffman_zstd_deprecated(const pb::Header &header,
-                                        void *const src,
+                                        void const *const src,
                                         const std::size_t srcLen,
                                         void *const dst,
                                         const std::size_t dstLen) {
@@ -312,7 +312,8 @@ void decompress_huffman_zstd_deprecated(const pb::Header &header,
 }
 #endif
 
-void decompress_huffman_zlib_rfmh(const pb::Header &header, void *const src,
+void decompress_huffman_zlib_rfmh(const pb::Header &header,
+                                  void const *const src,
                                   const std::size_t srcLen, void *const dst,
                                   const std::size_t dstLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZLIB);
@@ -321,15 +322,15 @@ void decompress_huffman_zlib_rfmh(const pb::Header &header, void *const src,
   BufferWindow window(src, srcLen);
   // Read theSsze in bytes of the serialized Huffman tree.
   MemoryBuffer<unsigned char> encoded(read_header_size(window));
-  decompress_memory_z(const_cast<unsigned char z_const *>(window.current),
-                      window.end - window.current, encoded.data.get(),
-                      encoded.size);
+  decompress_memory_z(window.current, window.end - window.current,
+                      encoded.data.get(), encoded.size);
 
   return decompress_huffman_C_rfmh(header, encoded, dst, dstLen);
 }
 
 #ifdef MGARD_ZSTD
-void decompress_huffman_zstd_rfmh(const pb::Header &header, void *const src,
+void decompress_huffman_zstd_rfmh(const pb::Header &header,
+                                  void const *const src,
                                   const std::size_t srcLen, void *const dst,
                                   const std::size_t dstLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZSTD);
@@ -338,15 +339,14 @@ void decompress_huffman_zstd_rfmh(const pb::Header &header, void *const src,
   BufferWindow window(src, srcLen);
   // Read the size in bytes of the serialized Huffman tree.
   MemoryBuffer<unsigned char> encoded(read_header_size(window));
-  decompress_memory_zstd(const_cast<unsigned char z_const *>(window.current),
-                         window.end - window.current, encoded.data.get(),
-                         encoded.size);
+  decompress_memory_zstd(window.current, window.end - window.current,
+                         encoded.data.get(), encoded.size);
 
   return decompress_huffman_C_rfmh(header, encoded, dst, dstLen);
 }
 #endif
 
-void decompress_huffman_zlib(const pb::Header &header, void *const src,
+void decompress_huffman_zlib(const pb::Header &header, void const *const src,
                              const std::size_t srcLen, void *const dst,
                              const std::size_t dstLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZLIB);
@@ -362,7 +362,7 @@ void decompress_huffman_zlib(const pb::Header &header, void *const src,
 }
 
 #ifdef MGARD_ZSTD
-void decompress_huffman_zstd(const pb::Header &header, void *const src,
+void decompress_huffman_zstd(const pb::Header &header, void const *const src,
                              const std::size_t srcLen, void *const dst,
                              const std::size_t dstLen) {
   assert(header.encoding().compressor() == pb::Encoding::CPU_HUFFMAN_ZSTD);
@@ -380,13 +380,13 @@ void decompress_huffman_zstd(const pb::Header &header, void *const src,
 
 } // namespace
 
-void decompress(const pb::Header &header, void *const src,
+void decompress(const pb::Header &header, void const *const src,
                 const std::size_t srcLen, void *const dst,
                 const std::size_t dstLen) {
   switch (header.encoding().compressor()) {
   case pb::Encoding::CPU_ZLIB:
-    return decompress_memory_z(const_cast<void z_const *>(src), srcLen,
-                               static_cast<unsigned char *>(dst), dstLen);
+    return decompress_memory_z(src, srcLen, static_cast<unsigned char *>(dst),
+                               dstLen);
   case pb::Encoding::CPU_ZSTD:
 #ifdef MGARD_ZSTD
     return decompress_memory_zstd(
