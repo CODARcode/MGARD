@@ -203,9 +203,13 @@ set(
         src/compress_internal.cpp
   src/utilities.cpp
   src/huffman.cpp
-  src/lossless.cpp
+  src/lossless_zlib.cpp
+  src/lossless_dispatcher.cpp
   src/format.cpp
 )
+if(zstd_FOUND)
+	list(APPEND MGARD_LIBRARY_CPP src/lossless_zstd.cpp)
+endif()
 
 set(MAXIMUM_DIMENSION 4 CACHE STRING "Maximum supported dimension for self-describing decompression.")
 
