@@ -9,6 +9,7 @@
 #include <iterator>
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace mgard {
 
@@ -543,6 +544,92 @@ private:
 
   //! Offset within the current byte.
   unsigned char offset;
+};
+
+//! Concatenated iterator ranges.
+//!
+//! Approximate Python's `itertools.chain` generator.
+template <typename It> class Chain {
+public:
+  //! Constructor.
+  //!
+  //!\param segments Beginnings and lengths of iterator ranges.
+  Chain(const std::vector<std::pair<It, std::size_t>> &segments);
+
+  // Forward declaration.
+  class iterator;
+
+  //! Return an iterator to the beginning of the enumeration.
+  iterator begin() const;
+
+  //! Return an iterator to the end of the enumeration.
+  iterator end() const;
+
+  //! Beginnings and lengths of iterator ranges.
+  std::vector<std::pair<It, std::size_t>> segments;
+};
+
+//! Equality comparison.
+template <typename It> bool operator==(const Chain<It> &a, const Chain<It> &b);
+
+//! Inequality comparison.
+template <typename It> bool operator!=(const Chain<It> &a, const Chain<It> &b);
+
+//! Iterator over concatenated iterator ranges.
+template <typename It> class Chain<It>::iterator {
+public:
+  //! Category of the iterator.
+  using iterator_category = std::forward_iterator_tag;
+  //! Type iterated over.
+  using value_type = typename std::iterator_traits<It>::value_type;
+  //! Type for distance between iterators.
+  using difference_type = typename std::iterator_traits<It>::difference_type;
+  //! Pointer to `value_type`.
+  using pointer = typename std::iterator_traits<It>::pointer;
+  //! Type returned by the dereference operator.
+  using reference = typename std::iterator_traits<It>::reference;
+
+  //! Constructor.
+  //!
+  //!\param iterable Associated chain.
+  //!\param q Iterator to current segment.
+  iterator(
+      const Chain &iterable,
+      const typename std::vector<std::pair<It, std::size_t>>::const_iterator q);
+
+  //! Equality comparison.
+  bool operator==(const iterator &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const iterator &other) const;
+
+  //! Preincrement.
+  iterator &operator++();
+
+  //! Postincrement.
+  iterator operator++(int);
+
+  //! Dereference.
+  reference operator*() const;
+
+private:
+  //! Associated bit range.
+  const Chain &iterable;
+
+  //! Iterator to current segment.
+  typename std::vector<std::pair<It, std::size_t>>::const_iterator q;
+
+  //! Position in the current segment.
+  It p;
+
+  //! Distance from the beginning of the current segment.
+  std::size_t i;
+
+  //! Length of the current segment.
+  std::size_t n;
+
+  //! Zero `i`; populate `p` and `n` from `q` if not at end.
+  void conditionally_start_segment();
 };
 
 } // namespace mgard
