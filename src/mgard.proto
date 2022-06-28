@@ -189,12 +189,24 @@ message HuffmanHeader {
 
   // Minimum and maximum symbols eligible for codewords.
   repeated sint64 endpoints = 5;
+  // Sizes in bytes of serialized `FrequencySubtable`s to followw.
+  repeated uint64 nbytes_frequency_subtables = 6;
+  // Sizes in bytes of serialized `MissedSubtable`s to follow.
+  repeated uint64 nbytes_missed_subtables = 7;
+  // Size in bits of the hit buffer to follow.
+  uint64 nbits = 8;
+}
+
+// One or more of these will follow a `HuffmanHeader`.
+message FrequencySubtable {
   // Index–frequency pairs for frequency table.
   map<uint64, uint64> frequencies = 6;
+}
+
+// One or more of these will follow the `FrequencySubtable`s after a `HuffmanHeader`.
+message MissedSubtable {
   // Encountered symbols that were not assigned codewords.
   repeated sint64 missed = 7;
-  // Size of the hit buffer in bits.
-  uint64 nbits = 8;
 }
 
 message Device {
