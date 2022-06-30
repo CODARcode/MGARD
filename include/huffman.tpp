@@ -237,6 +237,8 @@ template <typename Message, typename It> struct Supertable {
   //! Calculate and store the sizes in bytes of the subtables.
   //!
   //! This function should be called once the subtables are populated.
+  //! `nbytes_subtables` (a field in some `pb::HuffmanHeader`) will be modified.
+  //! Subsequent changes to the subtables will invalidate the sizes.
   void calculate_nbytes_subtables() {
     for (std::size_t i = 0; i < nsubtables; ++i) {
       nbytes_subtables.Set(i, subtables.at(i).ByteSize());
@@ -252,6 +254,10 @@ template <typename Message, typename It> struct Supertable {
                            static_cast<std::size_t>(0));
   }
 
+  //! Write the subtables out to a buffer.
+  //!
+  //!\param p Buffer to which to serialize the subtables.
+  //!\param n Expected number of bytes that will be written.
   void SerializeToArray(void *const p, const std::size_t n) const {
     unsigned char *const p_ = reinterpret_cast<unsigned char *>(p);
     std::size_t total = 0;
@@ -416,11 +422,28 @@ MemoryBuffer<unsigned char> huffman_encode(Symbol const *const begin,
   header.add_endpoints(code.endpoints.second);
   header.set_nbits(nbits);
 
+  // Originally, `pb::HuffmanHeader` had a field each for the frequency and
+  // 'missed' tables. Unfortunately, these tables can get very big. In
+  // particular, if the error tolerance is very low, the quantized coefficients
+  // will be very large, and many of them will be missed. This could result in
+  // the size of the 'missed' table exceeding the (default) limit imposed by
+  // `google::protobuf::CodedInputStream`. See <https://developers.google.com/
+  // protocol-buffers/docs/reference/csharp/class/google/protobuf/
+  // coded-input-stream#sizelimit>. As a workaround, we are splitting the
+  // 'missed' table (and, for good measure, the frequency table, too) into a
+  // sequence of subtables of moderate size.
+
+  // This `FrequencySupertable` creates and populates the frequency subtables.
   FrequencySupertable frequency_supertable(
       code.frequencies, *header.mutable_nbytes_frequency_subtables());
+  // This `MissedSupertable` creates but does not populate the 'missed'
+  // subtables. We'll populate the subtables below, as we encode the stream.
   MissedSupertable missed_supertable(code.nmissed(),
                                      *header.mutable_nbytes_missed_subtables());
 
+  // This `Chain` lets us treat the 'missed' subtables as a single logical
+  // table. It frees us from manually keeping track of when we need to advance
+  // from one subtable to the next.
   Chain<Missed::iterator> chained_missed_supertable(missed_supertable.segments);
   Chain<Missed::iterator>::iterator missed = chained_missed_supertable.begin();
   // Now we're ready to populate the 'missed' subtables in the course of
@@ -516,6 +539,8 @@ MemoryBuffer<Symbol> huffman_decode(const MemoryBuffer<unsigned char> &buffer) {
   if (header.codeword_mapping() != pb::HuffmanHeader::INDEX_FREQUENCY_PAIRS) {
     throw std::runtime_error("unrecognized Huffman codeword mapping");
   }
+  // See the comments in `huffman_encode` for an explanation of why we use these
+  // `Supertable`s and `Chain`s.
   FrequencySupertable frequency_supertable(
       *header.mutable_nbytes_frequency_subtables(), window);
   Chain<Frequencies::iterator> chained_frequency_supertable(
