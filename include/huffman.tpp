@@ -149,8 +149,21 @@ HuffmanCode<Symbol>::HuffmanCode(const std::pair<Symbol, Symbol> &endpoints,
   recursively_set_codewords(queue.top(), {});
 }
 
+template <typename Symbol> std::size_t HuffmanCode<Symbol>::nsymbols() const {
+  return std::accumulate(frequencies.begin(), frequencies.end(),
+                         static_cast<std::size_t>(0));
+}
+
 template <typename Symbol> std::size_t HuffmanCode<Symbol>::nmissed() const {
   return frequencies.at(0);
+}
+
+template <typename Symbol> std::size_t HuffmanCode<Symbol>::nbits_hit() const {
+  std::size_t nbits = 0;
+  for (std::size_t i = 0; i < ncodewords; ++i) {
+    nbits += frequencies.at(i) * codewords.at(i).length;
+  }
+  return nbits;
 }
 
 template <typename Symbol>
@@ -403,13 +416,7 @@ MemoryBuffer<unsigned char> huffman_encode(Symbol const *const begin,
                                            const std::size_t n) {
   const HuffmanCode<Symbol> code(begin, begin + n);
 
-  std::vector<std::size_t> lengths;
-  for (const HuffmanCodeword &codeword : code.codewords) {
-    lengths.push_back(codeword.length);
-  }
-  const std::size_t nbits =
-      std::inner_product(code.frequencies.begin(), code.frequencies.end(),
-                         lengths.begin(), static_cast<std::size_t>(0));
+  const std::size_t nbits = code.nbits_hit();
   const std::size_t nbytes_hit = (nbits + CHAR_BIT - 1) / CHAR_BIT;
 
   pb::HuffmanHeader header;
@@ -568,11 +575,8 @@ MemoryBuffer<Symbol> huffman_decode(const MemoryBuffer<unsigned char> &buffer) {
   const HuffmanCode<Symbol> code(endpoints,
                                  chained_frequency_supertable.begin(),
                                  chained_frequency_supertable.end());
-  // TODO: Maybe add a member function for this.
-  const std::size_t nout =
-      std::accumulate(code.frequencies.begin(), code.frequencies.end(),
-                      static_cast<std::size_t>(0));
-  MemoryBuffer<Symbol> out(nout);
+  const std::size_t nsymbols = code.nsymbols();
+  MemoryBuffer<Symbol> out(nsymbols);
   Symbol *q = out.data.get();
 
   const Bits bits(window.current, window.current + nbits / CHAR_BIT,
@@ -581,7 +585,7 @@ MemoryBuffer<Symbol> huffman_decode(const MemoryBuffer<unsigned char> &buffer) {
   const typename HuffmanCode<Symbol>::Node root = code.queue.top();
   assert(root);
   Bits::iterator b = bits.begin();
-  for (std::size_t i = 0; i < nout; ++i) {
+  for (std::size_t i = 0; i < nsymbols; ++i) {
     typename HuffmanCode<Symbol>::Node node;
     for (node = root; node->left;
          node = *b++ ? node->right : node->left, ++nbits_read)

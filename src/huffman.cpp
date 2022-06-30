@@ -248,13 +248,7 @@ HuffmanEncodedStream huffman_encoding(long int const *const quantized_data,
   const HuffmanCode<Symbol> code(nql_endpoints, quantized_data,
                                  quantized_data + n);
 
-  std::vector<std::size_t> lengths;
-  for (const HuffmanCodeword &codeword : code.codewords) {
-    lengths.push_back(codeword.length);
-  }
-  const std::size_t nbits =
-      std::inner_product(code.frequencies.begin(), code.frequencies.end(),
-                         lengths.begin(), static_cast<std::size_t>(0));
+  const std::size_t nbits = code.nbits_hit();
   const std::size_t nnz =
       code.ncodewords -
       std::count(code.frequencies.begin(), code.frequencies.end(), 0);

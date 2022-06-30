@@ -166,11 +166,11 @@ public:
   HuffmanCode(const std::pair<Symbol, Symbol> &endpoints, const It begin,
               const It end);
 
-  //! Smallest and largest symbols (inclusive) to receive codewords.
+  //! Smallest and largest symbols (inclusive) eligible for codewords.
   std::pair<Symbol, Symbol> endpoints;
 
-  //! Number of symbols that will be assigned codewords (including one for the
-  //! 'missed' symbol).
+  //! Number of symbols eligible for codewords (including one for the 'missed'
+  //! symbol).
   std::size_t ncodewords;
 
   //! Frequencies of the symbols in the input stream.
@@ -179,9 +179,15 @@ public:
   //! Codewords associated to the symbols.
   std::vector<HuffmanCodeword> codewords;
 
+  //! Report the number of symbols in the stream.
+  std::size_t nsymbols() const;
+
   //! Report the number of out-of-range symbols encountered in the stream or
   //! given in the frequency table pairs.
   std::size_t nmissed() const;
+
+  //! Report the size in bits of the encoded stream.
+  std::size_t nbits_hit() const;
 
   //! Check whether a symbol is eligible for a codeword.
   bool out_of_range(const Symbol symbol) const;
