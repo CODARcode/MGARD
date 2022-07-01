@@ -11,5 +11,6 @@ namespace mgard_x {
 template Array<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> recompose_adaptive_resolution<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, @DATA_TYPE@ tol, bool interpolate_full_resolution, 
-    FeatureDetectorType feature_detector, std::vector<CompressedSparseEdge<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>>& cse_list, int queue_idx);
+    FeatureDetectorType feature_detector, std::vector<CompressedSparseEdge<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>>& cse_list, ,
+    CompressedSparseCell<@DATA_TYPE@, @DEVICE_TYPE@>& csc, int queue_idx);
 } // namespace mgard_x

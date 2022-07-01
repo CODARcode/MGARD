@@ -19,9 +19,11 @@
 
 #include "mgard/mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
 #include "mgard/mgard-x/DataRefactoring/MultiDimension/DataRefactoringAdaptiveResolution.hpp"
+#include "mgard/mgard-x/DataRefactoring/MultiDimension/Coefficient/DenseToCompressedSparseCell.hpp"
 #include "mgard/mgard-x/Utilities/ErrorCalculator.h"
 
 #include "SparseFlyingEdges.hpp"
+#include "SparseFlyingCells.hpp"
 
 #include <iostream>
 #include <vector>
@@ -65,7 +67,7 @@ void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape, 
   vtkm::rendering::View3D view(scene, mapper, canvas, camera, bg);
   view.Initialize();
   view.Paint();
-  view.SaveAs(output + " .pnm"); 
+  view.SaveAs(output + ".pnm"); 
 }
 
 template <typename T>
@@ -147,8 +149,14 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   // contour_filter.SetIsoValue(1, iso_value+10);
   contour_filter.SetActiveField(field_name);
   contour_filter.SetFieldsToPass({ field_name });
+  mgard_x::Timer t;
+  mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncDevice();
   vtkm::cont::DataSet outputData = contour_filter.Execute(dataSet);
-
+  mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncDevice();
+  t.start();
+  t.end();
+  t.print("VTKM");
+  t.clear();
   // std::cout << "outputData.GetNumberOfCells() = " << outputData.GetNumberOfCells() << "\n";
   // std::cout << "outputData.GetNumberOfPoints() = " << outputData.GetNumberOfPoints() << "\n";
 
@@ -169,7 +177,7 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
   mgard_x::Array<3, T, mgard_x::CUDA> v(shape);
   v.load(original_data);
 
-  mgard_x::PrintSubarray("input", mgard_x::SubArray<3, T, mgard_x::CUDA>(v));
+  // mgard_x::PrintSubarray("input", mgard_x::SubArray<3, T, mgard_x::CUDA>(v));
 
   mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
   mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
@@ -177,6 +185,8 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
   mgard_x::FlyingEdges<T, mgard_x::CUDA>().Execute(
       shape[0], shape[1], shape[2], mgard_x::SubArray<3, T, mgard_x::CUDA>(v),
       iso_value, TrianglesArray, PointsArray, 0);
+  mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncQueue(0);
+  std::cout << "done mine\n";
 
   // numTriangles = TrianglesArray.shape()[0] / 3;
   // numPoints = PointsArray.shape()[0] / 3;
@@ -291,6 +301,19 @@ struct SurfaceDetect {
 
 template <DIM D, typename T>
 void test(T * data, std::vector<SIZE> shape, T tol, T iso_value) {
+  T max_data = std::numeric_limits<T>::min();
+  T min_data = std::numeric_limits<T>::max();
+  for (int i = 0; i < shape[2]; i++) {
+    for (int j = 0; j < shape[1]; j++) {
+      for (int k = 0; k < shape[0]; k++) {
+        max_data = std::max(max_data, data[i*shape[1]*shape[0]+j*shape[0]+k]);
+        min_data = std::min(min_data, data[i*shape[1]*shape[0]+j*shape[0]+k]);
+      }
+    }
+  }
+
+  printf("max_data: %.10f, min_data: %.10f\n", max_data, min_data);
+
   std::cout << "Preparing data...";
   //... load data into in_array_cpu
   Hierarchy<D, T, CUDA> hierarchy(shape);
@@ -299,40 +322,147 @@ void test(T * data, std::vector<SIZE> shape, T tol, T iso_value) {
   SubArray in_subarray(in_array);
 
   Array<D, T, CUDA> org_array = in_array;
+
+  Array<D+1, T, CUDA> * max_abs_coefficient = new Array<D+1, T, CUDA>[hierarchy.l_target];
+  SubArray<D+1, T, CUDA> * max_abs_coefficient_subarray = new SubArray<D+1, T, CUDA>[hierarchy.l_target];
+  for (int l = 0; l < hierarchy.l_target; l++) {
+    std::vector<SIZE> max_abs_coefficient_shape(D+1);
+    for (int d = 1; d < D+1; d++) {
+      max_abs_coefficient_shape[d] = hierarchy.shapes_vec[l+1][D-d]-1;
+    }
+    max_abs_coefficient_shape[0] = l+1;
+    max_abs_coefficient[l] = Array<D+1, T, CUDA>(max_abs_coefficient_shape);
+    max_abs_coefficient[l].memset(0);
+    max_abs_coefficient_subarray[l] = SubArray(max_abs_coefficient[l]);
+  }
+
+  Array<D, SIZE, CUDA> * refinement_flag = new Array<D, SIZE, CUDA>[hierarchy.l_target+1];
+  SubArray<D, SIZE, CUDA> * refinement_flag_subarray = new SubArray<D, SIZE, CUDA>[hierarchy.l_target+1];
+  for (int l = 0; l < hierarchy.l_target+1; l++) {
+    std::vector<SIZE> refinement_flag_shape(D);
+    for (int d = 0; d < D; d++) {
+      refinement_flag_shape[d] = hierarchy.shapes_vec[l][D-1-d]-1;
+    }
+    refinement_flag[l] = Array<D, SIZE, CUDA>(refinement_flag_shape, false);
+    refinement_flag[l].memset(0);
+    refinement_flag_subarray[l] = SubArray(refinement_flag[l]);
+    // if (l == hierarchy.l_target) {
+    //   SIZE one = 1;
+    //   for (int i = 0; i < refinement_flag_subarray[l].getShape(2); i++) {
+    //     for (int j = 0; j < refinement_flag_subarray[l].getShape(1); j++) {
+    //       for (int k = 0; k < refinement_flag_subarray[l].getShape(0); k++) {
+    //         MemoryManager<CUDA>::Copy1D(refinement_flag_subarray[l](i, j, k), &one, 1, 0);
+    //       }
+    //     }
+    //   }
+    //   DeviceRuntime<CUDA>::SyncQueue(0);
+    // }
+  }
+
+
+
+  
+
+  Array<1, T, CUDA> level_max({hierarchy.l_target+1});
+  SubArray<1, T, CUDA> level_max_subarray(level_max);
+
   std::cout << "Done\n";
 
   // PrintSubarray("Input data", SubArray(org_array));
 
   std::cout << "Decomposing with MGARD-X CUDA backend...\n";
-  decompose(hierarchy, in_subarray, hierarchy.l_target, 0);
+  decompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target, 
+                             level_max_subarray,
+                             max_abs_coefficient_subarray, 0);
+
+  DeviceRuntime<CUDA>::SyncQueue(0);
 
   // PrintSubarray("Decomposed data", in_subarray);
+  PrintSubarray("level_max", level_max_subarray);
+  // for (int l = 0; l < hierarchy.l_target; l++) {
+  //   PrintSubarray4D("max_abs_coefficient_subarray level = " + std::to_string(l), max_abs_coefficient_subarray[l]);
+  // }
 
   std::cout << "Done\n";
 
   std::cout << "Recomposing with MGARD-X CUDA backend...\n";
-  bool interpolate_full_resolution = true;
-  SurfaceDetect<D, T, CUDA> surface_detector(iso_value);
-  std::vector<CompressedSparseEdge<D, T, CUDA>> cse_list;
-  Array<D, T, CUDA> out_array = recompose_adaptive_resolution(hierarchy, in_subarray, tol, interpolate_full_resolution, surface_detector, cse_list, 0); 
-  std::cout << "Done\n";
 
-  DeviceRuntime<CUDA>::SyncQueue(0);
-  size_t n = 1;
-  for (int i = 0; i < shape.size(); i++) n *= shape[i];
-  enum error_bound_type mode = error_bound_type::ABS;
-  std::cout << "L_inf_error: " << L_inf_error(n, org_array.hostCopy(), out_array.hostCopy(), mode) << "\n";
+  recompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target, 
+               iso_value, tol, level_max_subarray, max_abs_coefficient_subarray,
+               refinement_flag_subarray, 0);
 
-  for (int i = 0; i < cse_list.size(); i++) {
-    if(!cse_list[i].empty) {
-      mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
-      mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
-      SparseFlyingEdges<D, T, CUDA>().Execute(cse_list[i], iso_value, TrianglesArray, PointsArray, 0);
-      std::string field_name = "test_field";
-      vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
-      vtkm_render(dataset, shape, field_name, "my_render_output");
-    }
+  SubArray<1, SIZE, CUDA> * refinement_flag_linearized_subarray = new SubArray<1, SIZE, CUDA>[hierarchy.l_target+1];
+  SIZE num_cell = 0;
+  for (int l = hierarchy.l_target; l >=0 ; l--) {
+    Array<1, SIZE, CUDA> result({1});
+    SubArray result_subarray(result);
+    refinement_flag_linearized_subarray[l] = refinement_flag_subarray[l].Linearize();
+    DeviceCollective<CUDA>::Sum(refinement_flag_linearized_subarray[l].getShape(0), refinement_flag_linearized_subarray[l],
+                                   result_subarray, 0);
+    DeviceRuntime<CUDA>::SyncQueue(0);
+    std::cout << "feature cells[" << l << "]: " << *result.hostCopy() << "/" << refinement_flag_linearized_subarray[l].getShape(0) << "\n";
+    if (l == 0) num_cell = *result.hostCopy();
   }
+
+  std::vector<SIZE> write_index_shape(D);
+  for (int d = 0; d < D; d++) {
+    write_index_shape[d] = hierarchy.shapes_vec[0][D-1-d]-1;
+  }
+  Array<D, SIZE, CUDA> write_index_array(write_index_shape, false);
+  write_index_array.memset(0);
+  SubArray<D, SIZE, CUDA> write_index(write_index_array);
+  SubArray<1, SIZE, CUDA> write_index_linearized = write_index.Linearize();
+  SubArray<1, SIZE, CUDA> refinement_flag_linearized = refinement_flag_subarray[0].Linearize();
+  DeviceCollective<CUDA>::ScanSumExclusive(write_index_linearized.getShape(0), refinement_flag_linearized,
+                                           write_index_linearized, 0);
+  DeviceRuntime<CUDA>::SyncQueue(0);
+
+  // PrintSubarray("refinement_flag_subarray[0]", refinement_flag_subarray[0]);
+  // PrintSubarray("write_index_linearized", write_index_linearized);
+
+  CompressedSparseCell<T, CUDA> csc(num_cell);
+
+  DenseToCompressedSparseCell(in_subarray, refinement_flag_subarray[0],
+                              write_index, csc, 0);
+  DeviceRuntime<CUDA>::SyncQueue(0);
+  // csc.Print();
+
+  mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
+  mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
+  SparseFlyingCells<D, T, CUDA>().Execute(csc, iso_value, TrianglesArray, PointsArray, 0);
+
+
+  // bool interpolate_full_resolution = true;
+  // SurfaceDetect<D, T, CUDA> surface_detector(iso_value);
+  // std::vector<CompressedSparseEdge<D, T, CUDA>> cse_list;
+  // CompressedSparseCell<T, CUDA> csc;
+  // Array<D, T, CUDA> out_array = recompose_adaptive_resolution(hierarchy, in_subarray, tol, interpolate_full_resolution, surface_detector, cse_list, csc, 0); 
+  // std::cout << "Done\n";
+
+  // DeviceRuntime<CUDA>::SyncQueue(0);
+  // size_t n = 1;
+  // for (int i = 0; i < shape.size(); i++) n *= shape[i];
+  // enum error_bound_type mode = error_bound_type::ABS;
+  // std::cout << "L_inf_error: " << L_inf_error(n, org_array.hostCopy(), out_array.hostCopy(), mode) << "\n";
+
+  // mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
+  // mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
+  // SparseFlyingCells<D, T, CUDA>().Execute(csc, iso_value, TrianglesArray, PointsArray, 0);
+  std::string field_name = "test_field";
+  vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
+  vtkm_render(dataset, shape, field_name, "my_csc_render_output");
+
+
+  // for (int i = 0; i < cse_list.size(); i++) {
+  //   if(!cse_list[i].empty) {
+  //     mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
+  //     mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
+  //     SparseFlyingEdges<D, T, CUDA>().Execute(cse_list[i], iso_value, TrianglesArray, PointsArray, 0);
+  //     std::string field_name = "test_field";
+  //     vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
+  //     vtkm_render(dataset, shape, field_name, "my_render_output");
+  //   }
+  // }
 }
 
 }
@@ -406,7 +536,6 @@ double get_arg_double(int argc, char *argv[], std::string option) {
 
 template <typename T> size_t readfile(const char *input_file, T *&in_buff) {
   std::cout << "Loading file: " << input_file << "\n";
-
   FILE *pFile;
   pFile = fopen(input_file, "rb");
   if (pFile == NULL) {
@@ -429,35 +558,38 @@ int main(int argc, char *argv[]) {
   std::vector<mgard_x::SIZE> shape = get_arg_dims(argc, argv, "-n");
   double tol = get_arg_double(argc, argv, "-e");
   double iso_value = get_arg_double(argc, argv, "-v");
+  size_t original_size = 1;
+  for (mgard_x::DIM i = 0; i < shape.size(); i++)
+    original_size *= shape[i];
 
   if (dt.compare("s") == 0) {
     float * data = NULL;
-    readfile(input_file.c_str(), data);
-    if (shape.size() == 2) {
-      test_vtkm<2, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
-      test_mine<2, float>(data, shape, (float)iso_value);
-      mgard_x::test<2, float>(data, shape, (float)tol, (float)iso_value);
-    } else if (shape.size() == 3) {
-      test_vtkm<3, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
-      test_mine<3, float>(data, shape, (float)iso_value);
-      mgard_x::test<3, float>(data, shape, (float)tol, (float)iso_value);
+    if (std::string(input_file).compare("random") == 0) {
+      data = new float[original_size];
+      srand(7117);
+      for (size_t i = 0; i < original_size; i++) {
+        data[i] = (float)rand() / RAND_MAX;
+      }
     } else {
-      std::cout << "wrong num of dim.\n";
+      readfile(input_file.c_str(), data);
     }
+    test_vtkm<3, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
+    // test_mine<3, float>(data, shape, (float)iso_value);
+    mgard_x::test<3, float>(data, shape, (float)tol, (float)iso_value);
   } else if (dt.compare("d") == 0) {
     double * data = NULL;
-    readfile(input_file.c_str(), data);
-    if (shape.size() == 2) {
-      test_vtkm<2, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
-      test_mine<2, double>(data, shape, (float)iso_value);
-      mgard_x::test<2, double>(data, shape, (double)tol, (float)iso_value);
-    } else if (shape.size() == 3) {
-      test_vtkm<3, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
-      test_mine<3, double>(data, shape, (float)iso_value);
-      mgard_x::test<3, double>(data, shape, (double)tol, (float)iso_value);
+    if (std::string(input_file).compare("random") == 0) {
+      data = new double[original_size];
+      srand(7117);
+      for (size_t i = 0; i < original_size; i++) {
+        data[i] = (double)rand() / RAND_MAX;
+      }
     } else {
-      std::cout << "wrong num of dim.\n";
+      readfile(input_file.c_str(), data);
     }
+    test_vtkm<3, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
+    // test_mine<3, double>(data, shape, (float)iso_value);
+    mgard_x::test<3, double>(data, shape, (double)tol, (float)iso_value);
   } else {
     std::cout << "wrong data type.\n";
   }

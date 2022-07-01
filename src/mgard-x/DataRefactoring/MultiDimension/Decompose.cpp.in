@@ -13,5 +13,10 @@ template void decompose<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target,
     int queue_idx);
-} // namespace mgard_x
-// clang-format on
+
+template void decompose_adaptive_resolution<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
+                Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
+               SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target, 
+               SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> level_max, 
+               SubArray<@NUM_DIM@+1, @DATA_TYPE@, @DEVICE_TYPE@> * max_coefficient, int queue_idx);
+} // namespace mgard_x// clang-format on

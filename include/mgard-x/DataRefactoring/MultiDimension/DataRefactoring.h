@@ -25,6 +25,14 @@ void CalcCoefficients3D(Hierarchy<D, T, DeviceType> &hierarchy,
                         int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
+void CalcCoefficients3DWithErrorCollection(Hierarchy<D, T, DeviceType> &hierarchy,
+                        SubArray<D, T, DeviceType> dinput,
+                        SubArray<D, T, DeviceType> &doutput, SIZE l,
+                        SubArray<D+1, T, DeviceType> max_coeffcient,
+                        SubArray<D+1, T, DeviceType> max_coeffcient_finer,
+                        int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
 void CoefficientsRestore3D(Hierarchy<D, T, DeviceType> &hierarchy,
                            SubArray<D, T, DeviceType> dinput,
                            SubArray<D, T, DeviceType> &doutput, SIZE l,
@@ -75,6 +83,48 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
 template <DIM D, typename T, typename DeviceType>
 void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
                SubArray<D, T, DeviceType> &v, SIZE l_target, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void decompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
+               SubArray<D, T, DeviceType> &v, SIZE l_target, 
+               SubArray<1, T, DeviceType> level_max, 
+               SubArray<D+1, T, DeviceType> * max_coefficient, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
+               SubArray<D, T, DeviceType> &v, SIZE l_target, 
+               T iso_value, T error_target,
+               SubArray<1, T, DeviceType> level_max, 
+               SubArray<D+1, T, DeviceType> * max_abs_coefficient,
+               SubArray<D, SIZE, DeviceType> * refinement_flag,
+               int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void LevelMax(SIZE l_target,
+               SubArray<1, SIZE, DeviceType> ranges,
+               SubArray<D, T, DeviceType> v,
+               SubArray<1, T, DeviceType> level_max, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void EarlyFeatureDetector(SubArray<D, T, DeviceType> v, T current_error, T iso_value,
+                          SubArray<D, SIZE, DeviceType> feature_flag_coarser,
+                          SubArray<D, SIZE, DeviceType> feature_flag, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void AccuracyGuard(SIZE total_level, SIZE current_level, 
+                   SubArray<1, T, DeviceType> error_impact_budget,
+                   SubArray<1, T, DeviceType> previous_error_impact,
+                   SubArray<1, T, DeviceType> current_error_impact,
+                   SubArray<D+1, T, DeviceType> max_abs_coefficient,
+                   SubArray<D, SIZE, DeviceType> refinement_flag,
+                   int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void CoefficientRetriever(Hierarchy<D, T, DeviceType> &hierarchy,
+                           SubArray<D, T, DeviceType> dinput,
+                           SubArray<D, SIZE, DeviceType> refinement_flag,
+                           SubArray<D, T, DeviceType> &doutput, SIZE l,
+                           int queue_idx);
 
 } // namespace mgard_x
 
