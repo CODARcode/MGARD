@@ -115,7 +115,7 @@ public:
       // printf("edge case: %u %u %u %u, cell_case: %u\n",
       //         e0, e1, e2, e3, local_cell_case);
 
-      printf("cell_cases(%u %u %u): %u\n", r, c, f, local_cell_case);
+      // printf("cell_cases(%u %u %u): %u\n", r, c, f, local_cell_case);
       *cell_cases(local_cell_id) = local_cell_case;
       SIZE local_tri_count = GetNumberOfPrimitives(local_cell_case);
       *tri_count(local_cell_id) = local_tri_count;
@@ -283,6 +283,10 @@ public:
             // printf("edgeUses[5]: %u\n", prev_point_count);
             // printf("local_pY_index: %u, local_neighbor: %u\n", local_pY_index, local_neighbor);
           // }
+          if (r == 1 & c == 6 && f == 2) {
+            printf("handle 5: prev_point_count = %u\n", prev_point_count);
+          }
+
           *edgeX_ids[r * (nc+1) + c+1](local_pY_index) = prev_point_count; prev_point_count++;
         } 
         if (edgeUses[9] && !(local_neighbor & pY)) {
@@ -375,6 +379,7 @@ MGARDX_EXEC void InterpolateEdge(SIZE edgeNum, SIZE x, SIZE y, SIZE z,
     return;
   }
 
+  // printf("writeIndex: %u\n", writeIndex); 
   SIZE writeIndex = edgeIds[edgeNum] * 3;
     // printf("writeIndex: %u\n", writeIndex); 
 
@@ -397,15 +402,15 @@ MGARDX_EXEC void InterpolateEdge(SIZE edgeNum, SIZE x, SIZE y, SIZE z,
 
   T w = (iso_value - s0) / (s1 - s0);
 
-  // // if (writeIndex == 0) {
-  // // printf("x: %u %u %u\n", x, y, z);
-  // // printf("x0: %u %u %u\n", x0, y0, z0);
-  // // printf("x1: %u %u %u\n", x1, y1, z1);
-  // //   printf("iso_value: %f, s0: %f, s1: %f, %f %f w: %f, writeIndex: %u\n",
-  // //             iso_value, s0, s1, (iso_value - s0), (s1 - s0), w, writeIndex);
-  // //   printf("point: %f %f %f, writeIndex: %u\n",
-  // //            (1 - w) * x0 + w * x1, (1 - w) * y0 + w * y1, (1 - w) * z0 + w * z1, writeIndex);
-  // // }
+  // if (writeIndex == 0) {
+  // printf("x: %u %u %u\n", x, y, z);
+  // printf("x0: %u %u %u\n", x0, y0, z0);
+  // printf("x1: %u %u %u\n", x1, y1, z1);
+  //   printf("iso_value: %f, s0: %f, s1: %f, %f %f w: %f, writeIndex: %u\n",
+  //             iso_value, s0, s1, (iso_value - s0), (s1 - s0), w, writeIndex);
+  //   printf("point: %f %f %f, writeIndex: %u\n",
+  //            (1 - w) * x0 + w * x1, (1 - w) * y0 + w * y1, (1 - w) * z0 + w * z1, writeIndex);
+  // }
 
   // printf("index: %u %u %u, edgeNum: %u, point %f %f %f, writeIndex: %u\n",
   //         z, y, x, edgeNum, 
@@ -467,27 +472,41 @@ public:
     if (*role[r * nc + c](f) == LEAD) {
       SIZE local_cell_id = *cell_ids[r * nc + c](f);
       SIZE local_pZ_index = *pZ_index[r * nc + c](f);
-      SIZE local_pY_index = *pY_index[r * nc + c](f);
-      if (c == nc - 1) {
+      SIZE local_pY_index = 0;
+      if (c < nc - 1) {
+        local_pY_index = *pY_index[r * nc + c](f);
+      } else {
         local_pY_index = f;
       }
+
+      // if (c < nc - 1) {
+      //   printf("r * nc + c+1: %u local_pY_index: %u, shape: %u\n", r * nc + c+1, local_pY_index, pZ_index[r * nc + c+1].getShape()[0]);
+      // }
+
       SIZE local_pXpZ_index = local_pZ_index+1;
-      SIZE local_pYpZ_index = *pZ_index[r * nc + c+1](local_pY_index);
+      SIZE local_pYpZ_index = 0;
+      if (c < nc - 1 && local_pY_index < pZ_index[r * nc + c+1].getShape()[0]) {
+        local_pYpZ_index = *pZ_index[r * nc + c+1](local_pY_index);
+      } else {
+        local_pYpZ_index = f;
+      }
       SIZE local_pXpY_index = local_pY_index+1;
       
+      // printf("local_pYpZ_index: %u\n", local_pYpZ_index);
+
       T v[8];
 
       // printf("local_pY_index: %u %u %u %u %u\n", local_pY_index, local_pZ_index, local_pXpZ_index, local_pYpZ_index, local_pXpY_index);
 
       // Get edge case
-      v[0] = *start_value[r * nc + c](f);
-      v[1] = *end_value[r * nc + c](f);
-      v[2] = *start_value[r * nc + c](f+1);
-      v[3] = *end_value[r * nc + c](f+1);
+      v[0] = *start_value[r     * nc + c](f);
+      v[1] = *end_value  [r     * nc + c](f);
+      v[2] = *start_value[r     * nc + c](f+1);
+      v[3] = *end_value  [r     * nc + c](f+1);
       v[4] = *start_value[(r+1) * nc + c](local_pZ_index);
-      v[5] = *end_value[(r+1) * nc + c](local_pZ_index);
+      v[5] = *end_value  [(r+1) * nc + c](local_pZ_index);
       v[6] = *start_value[(r+1) * nc + c](local_pZ_index+1);
-      v[7] = *end_value[(r+1) * nc + c](local_pZ_index+1);
+      v[7] = *end_value  [(r+1) * nc + c](local_pZ_index+1);
 
       SIZE x = *level_index[0](*index[r * nc + c](f));
       SIZE y = *level_index[1](c);
@@ -507,7 +526,9 @@ public:
       edgeIds[7] = *edgeX_ids[(r+1) * (nc+1) + (c+1)](local_pYpZ_index);
       edgeIds[11] = *edgeZ_ids[r * (nc+1) + (c+1)](local_pXpY_index);
 
-      // for (int i = 0; i < 2; i++)
+      
+
+      // for (int i = 7; i < 8; i++)
       //   printf("edgeIds[%d]: %u\n", i, edgeIds[i]);
 
       // printf("data: %llu, r: %u x: %u %u %u\n", level_index, r, x, y, z);
@@ -535,22 +556,37 @@ public:
         // printf("rcf: %u %u %u, edge use: %u %u %u\n",
         //         r, c, f, edgeUses[0], edgeUses[4], edgeUses[8]);
 
+        // if (r == 2 && c == 2 && f == 1) {
+        //   printf("[neighbor]rcf: %u %u %u, edge use: %u\n", r, c, f, edgeUses[4]);
+        // }
+
+        // printf("rcf: %u %u %u, edge use: %u\n",
+        //         r, c, f, edgeUses[5]);
+
         InterpolateEdge(0, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         InterpolateEdge(4, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         InterpolateEdge(8, x, y, z, edgeUses, edgeIds, iso_value, v, points);
 
-        // // 2nd priority
+        // 2nd priority
         if (!(local_neighbor & pX)) {
           InterpolateEdge(1, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
+
+        if (r == 2 & c == 1 && f == 4) {
+            printf("neighbor: %u \n", !(local_neighbor & pY));
+          }
+
         if (!(local_neighbor & pY)) {
+          // if (r == 1 & c == 6 && f == 2) {
+          //   printf("handle 5\n");
+          // }
           InterpolateEdge(5, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
         if (!(local_neighbor & pY)) {
           InterpolateEdge(9, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
 
-        // // 3rd priority
+        // 3rd priority
         if (!(local_neighbor & pZ) && !(local_neighbor & nXpZ)) {
           InterpolateEdge(2, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
@@ -561,15 +597,48 @@ public:
           InterpolateEdge(10, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
 
-        // // 4th priority
+        // 4th priority
         if (!(local_neighbor & pXpZ) && !(local_neighbor & pZ) && !(local_neighbor & pX)) {
           InterpolateEdge(3, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
+
+        // if (r == 0 & c == 6 && f == 2) {
+        //     printf("neighbor: %u %u %u\n", !(local_neighbor & pYpZ), !(local_neighbor & pZ), !(local_neighbor & pY));
+        //   }
+
         if (!(local_neighbor & pYpZ) && !(local_neighbor & pZ) && !(local_neighbor & pY)) {
           InterpolateEdge(7, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
         if (!(local_neighbor & pXpY) && !(local_neighbor & pX) && !(local_neighbor & pY)) {
           InterpolateEdge(11, x, y, z, edgeUses, edgeIds, iso_value, v, points);
+        }
+
+        SIZE const *edges = GetTriEdgeCases(local_cell_case);
+        SIZE edgeIndex = 1;
+        for (SIZE i = 0; i < local_tri_count; ++i) {
+          if (edgeIds[edges[edgeIndex]] == 2139062143) {
+            printf("edgeIndex too large\n");
+          }
+          if (edgeIds[edges[edgeIndex+1]] == 2139062143) {
+            SIZE local_cell_id2 = *cell_ids[r * nc + c+1](local_pY_index);
+            SIZE local_cell_case2 = *cell_cases(local_cell_id2);
+            SIZE const *edgeUses2 = GetEdgeUses(local_cell_case2);
+            printf("edgeIndex+1 too large, edges[edgeIndex+1]: %u, edgeIds[5]: %u, local_pY_index: %u, !(local_neighbor & pY): %u\n", edges[edgeIndex+1], edgeIds[5], local_pY_index, !(local_neighbor & pY));
+            printf("rcf: %u %u %u, edge use: %u - %u, local_cell_id: %u, local_cell_id2: %u \n", r, c, f, edgeUses[5], edgeUses2[4], local_cell_id, local_cell_id2);
+            
+
+
+          }
+          if (edgeIds[edges[edgeIndex+2]] == 2139062143) {
+            printf("rcf: %u %u %u edgeIndex+2 too large, edges[edgeIndex+2]: %u, local_cell_id: %u\n", r, c, f, edges[edgeIndex+2], local_cell_id);       
+            SIZE local_cell_id2 = *cell_ids[(r+1) * nc + c+1](local_pYpZ_index);
+            SIZE local_cell_case2 = *cell_cases(local_cell_id2);
+            SIZE const *edgeUses2 = GetEdgeUses(local_cell_case2);
+            printf("neighbor local_pYpZ_index: %u, local_cell_id2: %u\n", local_pYpZ_index, local_cell_id2);
+            // printf("edgeIndex+1 too large, edges[edgeIndex+1]: %u, edgeIds[5]: %u, local_pY_index: %u, !(local_neighbor & pY): %u\n", edges[edgeIndex+1], edgeIds[5], local_pY_index, !(local_neighbor & pY));
+            printf("rcf: %u %u %u, nc: %u, neighbor: %u, edge use: %u - %u\n", r, c, f, nc, local_neighbor, edgeUses[7], edgeUses2[4]);     
+          }
+          edgeIndex += 3;
         }
 
         generate_tris(local_cell_case, local_tri_count, edgeIds, prev_tri_count, triangles);
@@ -782,6 +851,8 @@ public:
     Mem::Malloc1D(cell_ids, cse.shape[2]*cse.shape[1], queue_idx);
     Mem::Malloc1D(level_index, D, queue_idx);
 
+    printf("cse.shape[2]*cse.shape[1]: %u\n", cse.shape[2]*cse.shape[1]);
+
     Mem::Copy1D(start_value, cse.start_value, cse.shape[2]*cse.shape[1], queue_idx);
     Mem::Copy1D(end_value, cse.end_value, cse.shape[2]*cse.shape[1], queue_idx);
     Mem::Copy1D(index, cse.index, cse.shape[2]*cse.shape[1], queue_idx);
@@ -793,6 +864,17 @@ public:
     Mem::Copy1D(neighbor, cse.neighbor, cse.shape[2]*cse.shape[1], queue_idx);
     Mem::Copy1D(cell_ids, cse.cell_ids, cse.shape[2]*cse.shape[1], queue_idx);
     Mem::Copy1D(level_index, cse.level_index, D, queue_idx);
+
+    PrintSubarray("cse.role[2][1]", cse.role[2*cse.shape[1]+1]);
+    PrintSubarray("cse.cell_ids[2][1]", cse.cell_ids[2*cse.shape[1]+1]);
+    PrintSubarray("cse.neighbor[2][1]", cse.neighbor[2*cse.shape[1]+1]);
+    PrintSubarray("cse.pY_index[2][1]", cse.pY_index[2*cse.shape[1]+1]);
+    PrintSubarray("cse.role[2][2]", cse.role[2*cse.shape[1]+2]);
+    PrintSubarray("cse.cell_ids[2][2]", cse.cell_ids[2*cse.shape[1]+2]);
+    // PrintSubarray("cse.role[1][6]", cse.role[1*cse.shape[1]+6]);
+    // PrintSubarray("cse.cell_ids[1][6]", cse.cell_ids[1*cse.shape[1]+6]);
+    // PrintSubarray("cse.role[1][7]", cse.role[1*cse.shape[1]+7]);
+    // PrintSubarray("cse.cell_ids[1][7]", cse.cell_ids[1*cse.shape[1]+7]);
 
 
     Array<1, SIZE, DeviceType> * edge_cases_array = new Array<1, SIZE, DeviceType> [cse.shape[2]*cse.shape[1]];
@@ -893,10 +975,10 @@ public:
     DeviceRuntime<DeviceType>::SyncDevice();
     std::cout << "Pass1 done\n";
 
-    for (SIZE i = 0; i < cse.shape[2] * cse.shape[1]; i++) {
-      std::cout << "edge_cases " << i << "\n";
-      PrintSubarray("edge_cases_h", edge_cases_h[i]);
-    }
+    // for (SIZE i = 0; i < cse.shape[2] * cse.shape[1]; i++) {
+    //   std::cout << "edge_cases " << i << "\n";
+    //   PrintSubarray("edge_cases_h", edge_cases_h[i]);
+    // }
 
     using FunctorType2 = SFE_Pass2Functor<T, DeviceType>;
     using TaskType2 = Task<FunctorType2>;
@@ -908,9 +990,9 @@ public:
     DeviceRuntime<DeviceType>::SyncDevice();
     std::cout << "Pass2 done\n";
 
-    PrintSubarray("cell_cases", cell_cases);
-    PrintSubarray("point_count", point_count);
-    PrintSubarray("tri_count", tri_count);
+    // PrintSubarray("cell_cases", cell_cases);
+    // PrintSubarray("point_count", point_count);
+    // PrintSubarray("tri_count", tri_count);
 
     SubArray<1, SIZE, DeviceType> tri_count_liearized = tri_count.Linearize();
     SubArray<1, SIZE, DeviceType> point_count_liearized = point_count.Linearize();
@@ -926,8 +1008,8 @@ public:
     MemoryManager<DeviceType>().Copy1D(&numPoints, point_count_scan(cse.cell_count), 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
-    PrintSubarray("point_count_scan", point_count_scan);
-    PrintSubarray("tri_count_scan", tri_count_scan);
+    // PrintSubarray("point_count_scan", point_count_scan);
+    // PrintSubarray("tri_count_scan", tri_count_scan);
 
     
     std::cout << "numPoints: " << numPoints << "\n";
@@ -943,16 +1025,16 @@ public:
     DeviceRuntime<DeviceType>::SyncDevice();
     std::cout << "Pass3 done\n";
 
-    // for (SIZE i = 0; i < cse.shape[2]; i++) {
-    //   for (SIZE j = 0; j < cse.shape[1]+1; j++) {
-    //     SIZE ij_vertex = i * (cse.shape[1]+1) + j;
+    for (SIZE i = 0; i < cse.shape[2]; i++) {
+      for (SIZE j = 0; j < cse.shape[1]+1; j++) {
+        SIZE ij_vertex = i * (cse.shape[1]+1) + j;
 
-    //     std::cout << "edge_ids " << i << ", " << j <<"\n";
-    //     PrintSubarray("edgeX_ids_h", edgeX_ids_h[ij_vertex]);
-        // PrintSubarray("edgeY_ids_h", edgeY_ids_h[i]);
-        // PrintSubarray("edgeZ_ids_h", edgeZ_ids_h[i]);
-    //   }
-    // }
+        std::cout << "edge_ids " << i << ", " << j <<"\n";
+        PrintSubarray("edgeX_ids_h", edgeX_ids_h[ij_vertex]);
+        // PrintSubarray("edgeY_ids_h", edgeY_ids_h[ij_vertex]);
+        // PrintSubarray("edgeZ_ids_h", edgeZ_ids_h[ij_vertex]);
+      }
+    }
 
 
 

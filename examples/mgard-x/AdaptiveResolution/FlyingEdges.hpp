@@ -976,7 +976,7 @@ public:
 
     for (SIZE c = left; c < right; c++) {
       SIZE edgeCase = getEdgeCase(r, c, f, edges);
-      printf("cell case: %u\n", edgeCase);
+      // printf("cell case: %u\n", edgeCase);
       SIZE numTris = GetNumberOfPrimitives(edgeCase);
       if (numTris > 0) {
         _cell_tri_count += numTris;
@@ -1322,8 +1322,7 @@ public:
     t.print("Pass 3");
     t.clear();
 
-    // printf("After pass3\n");
-    
+    // printf("After pass3\n");    
     // PrintSubarray("cell_tri_count_scan", SubArray(cell_tri_count_scan));
     std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
     std::cout << "mgard_x::FlyingEdges::numTris: " << numTris << "\n";
@@ -1356,9 +1355,15 @@ public:
     t.print("Pass 4");
     t.clear();
 
+    // axis_sum_array.~Array();
+    // axis_min_array.~Array();
+    // axis_max_array.~Array();
+    // edges_array.~Array();
+    // cell_tri_count_array.~Array();
+    // cell_tri_count_array_scan.~Array();
     // printf("After pass4\n");
     // PrintSubarray("triangle_topology", triangle_topology);
-    PrintSubarray("points", points);
+    // PrintSubarray("points", points);
   }
 };
 

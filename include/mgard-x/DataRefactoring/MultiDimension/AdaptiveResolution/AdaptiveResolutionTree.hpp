@@ -17,6 +17,9 @@
 #include "Edge.hpp"
 #include "CompressedSparseEdge.hpp"
 
+#include "Cell.hpp"
+#include "CompressedSparseCell.hpp"
+
 #include <fstream> //for dumping files
 
 #ifndef MGARD_X_ADAPTIVE_RESOLUTION_TREE
@@ -45,11 +48,9 @@ public:
   AdaptiveResolutionTreeNode() {}
   AdaptiveResolutionTreeNode(Hierarchy<D, T, DeviceType> *hierarchy, std::vector<SIZE> index_start,
                              std::vector<SIZE> index_end, SIZE level, SubArray<D, T, SERIAL> coeff,
-                             BoundingIntervalHierarchyType bounding_interval_hierarchy,
                              HierarchicalIndexType hierarchical_index, T max_coefficient)
                             : hierarchy(hierarchy), index_start(index_start), index_end(index_end),
-                              level(level), coeff(coeff),
-                              bounding_interval_hierarchy(bounding_interval_hierarchy), hierarchical_index(hierarchical_index){
+                              level(level), coeff(coeff), hierarchical_index(hierarchical_index){
     
     if constexpr (std::is_same<T, float>::value) {  
       num_bitplanes = 32;      
@@ -101,7 +102,6 @@ public:
   bool contain_ghost_cell[D];
   AdaptiveResolutionTreeNode<D, T, DeviceType> *child = NULL;
   SIZE num_children = 0;
-  BoundingIntervalHierarchyType bounding_interval_hierarchy;
   HierarchicalIndexType hierarchical_index;
   SIZE num_bitplanes = 0;
   bool potential_contain_feature = true;
@@ -350,7 +350,7 @@ public:
 
       child[r] = AdaptiveResolutionTreeNode<D, T, DeviceType>(
           hierarchy, child_index_start, child_index_end, next_level,
-          coeff, bounding_interval_hierarchy, hierarchical_index, child_max_coefficient);
+          coeff, hierarchical_index, child_max_coefficient);
 
       all_children_max_coefficient = std::max(all_children_max_coefficient, child_max_coefficient);
 
@@ -431,44 +431,6 @@ public:
     return res;
   }
 
-  BoundingIntervalHierarchyType buildBoundingIntervalHierarchy() {
-    BoundingIntervalHierarchyType bounding_interval_hierarchy(D);
-    for (DIM d = 0; d < D; d++) {
-      std::vector<std::vector<std::pair<SIZE, SIZE>>> curr_dim(hierarchy.l_target + 1);
-      SIZE dof = hierarchy.dofs[d][0];
-      std::vector<std::pair<SIZE, SIZE>> l_bottom(dof - 1);
-      // l == hierarchy.l_target
-      std::vector<std::pair<SIZE, SIZE>> curr_interval;
-      // std::cout << "l_bottom " << d << ": ";
-      for (SIZE i = 0; i < dof - 1; i++) {
-        l_bottom[i] = std::pair<SIZE, SIZE>(i, i + 1);
-        // std::cout << "(" << l_bottom[i].first << ", " << l_bottom[i].second << ") ";
-      }
-      // std::cout << "\n";
-
-      curr_dim[hierarchy.l_target] = l_bottom;
-      for (int l = hierarchy.l_target - 1; l >= 0; l--) {
-        // std::cout << "d: " << d << "l: " << l << ":";
-        SIZE n_intervals = curr_dim[l + 1].size() / 2;
-        std::vector<std::pair<SIZE, SIZE>> curr_level;
-        for (SIZE i = 0; i < n_intervals; i++) {
-          curr_level.push_back(merge_intervals(curr_dim[l + 1][i * 2], curr_dim[l + 1][i * 2 + 1]));
-          // std::cout << "(" << curr_level[i].first << ", " << curr_level[i].second << ") ";
-        }
-        if (curr_dim[l + 1].size() % 2 != 0) {
-          curr_level.push_back(curr_dim[l + 1][curr_dim[l + 1].size() - 1]);
-          // std::cout << "(" << curr_level[n_intervals].first << ", " << curr_level[n_intervals].second << ") ";
-        }
-
-        // std::cout << "\n";
-        curr_dim[l] = curr_level;
-      }
-      bounding_interval_hierarchy[d] = curr_dim;
-    }
-    return bounding_interval_hierarchy;
-  }
-
-
   HierarchicalIndexType buildHierarchicalIndex() {
     HierarchicalIndexType hierarchical_index(D);
     for (DIM d = 0; d < D; d++) {
@@ -508,8 +470,13 @@ public:
   }
 
   void buildTree(SubArray<D, T, DeviceType> &coeff) {
+    std::cout << "start build tree\n";
+    Timer t;
+    t.start();
+
     this->coeff = coeff;
-    bounding_interval_hierarchy = buildBoundingIntervalHierarchy();
+
+    std::cout << "start buildHierarchicalIndex\n";
     HierarchicalIndexType hierarchical_index = buildHierarchicalIndex();
 
     std::vector<SIZE> root_start(D, 0);
@@ -545,7 +512,9 @@ public:
 
     root = NodeType(
         &hierarchy, root_start, root_end, 0, coeff_host_subarray,
-        bounding_interval_hierarchy, hierarchical_index, root_max_coeff);
+        hierarchical_index, root_max_coeff);
+
+    std::cout << "start initialize\n";
 
     typename NodeType::ErrorImpactType all_children_error_impact = root.initialize();
     all_children_error_impact[0] = root_max_coeff;
@@ -555,6 +524,9 @@ public:
     //   std::cout << all_children_error_impact[i] << " ";
     // }
     // std::cout << "\n";
+    t.end();
+    t.print("Build tree");
+    t.clear();
   } 
 
 typename NodeType::T_error error_estimate(typename NodeType::ErrorImpactType error_impact) {
@@ -609,7 +581,11 @@ void refine_level(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w, SI
 
 template <typename FeatureDetectorType>
 Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolution, FeatureDetectorType feature_detector, 
-                                      std::vector<CompressedSparseEdge<D, T, DeviceType>>& cse_list, int queue_idx) {
+                                      std::vector<CompressedSparseEdge<D, T, DeviceType>>& cse_list, 
+                                      CompressedSparseCell<T, DeviceType>& csc, int queue_idx) {
+  Timer t;
+  t.start();
+
   using Mem = MemoryManager<DeviceType>;
   std::queue<NodeType*> to_be_refined_node;
   Array<D, T, DeviceType> reconstructed_data(hierarchy.shape_org);
@@ -622,6 +598,7 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
   SubArray w(workspace);
 
   std::vector<Edge<D, T, DeviceType>> edge_list;
+  std::vector<Cell<T, DeviceType>> cell_list;
 
   // Node in 'to_be_refined_node' are nodes already created and to be further fined.
   // So root node is first inserted and the level 0 is reconstructed first
@@ -644,13 +621,15 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
 
 
   std::vector<NodeType *> final_output_cells;
+
   int reconstructed_cells = 0;
   int curr_level = 0;
+  int num_final_cell_prev_levels = 0;
   typename NodeType::ErrorImpactType curr_error_impact(hierarchy.l_target+1, 0);
   while (to_be_refined_node.size() > 0) {
     NodeType* node = to_be_refined_node.front();
     to_be_refined_node.pop();    
-    std::cout << "Level: " << node->level << "\n";
+    // std::cout << "Level: " << node->level << "\n";
 
     T combined_error_discard_all = error_estimate(combine_error_impact(curr_error_impact, node->all_children_error_impact));
     bool discard_all_children = combined_error_discard_all < target_tol;
@@ -679,9 +658,9 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
     //      << combined_error_discard_all << "," << contain_feature <<"," << node->potential_contain_feature <<"\n";
 
     if (final_cells) {
-      std::cout << "final cell: " <<node->index_start[0] << "," << node->index_start[1] << "," 
-         << node->index_end[0] << "," << node->index_end[1] << ","
-         << combined_error_discard_all << "," << contain_feature <<"," << node->potential_contain_feature <<"\n";
+      // std::cout << "final cell: " <<node->index_start[0] << "," << node->index_start[1] << "," 
+      //    << node->index_end[0] << "," << node->index_end[1] << ","
+      //    << combined_error_discard_all << "," << contain_feature <<"," << node->potential_contain_feature <<"\n";
 
 
       SIZE index_mapping[D-1];
@@ -724,11 +703,34 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
         }
         edge_list.push_back(edge);
       }
-
       // std::cout << "new edge lists: ";
       // for (int i = 0; i < edge_list.size(); i++) {
       //   edge_list[i].Print();
       // }
+
+      SIZE index_map[D];
+      index_map[0] = 1;
+      index_map[1] = 0;
+      index_map[2] = 2;
+      Cell<T, DeviceType> cell;
+      for (int i = 0; i < 3; i++) {
+        cell.index[i] = node->index_start[i];
+        cell.size[i] = node->index_end[i] - node->index_start[i];
+      }
+      for (SIZE i = 0; i < 8; i++) {
+        SIZE linearized_index = i;
+        SIZE value_index[D];
+        for (DIM d = 0; d < D; d++) {  
+          if (linearized_index % 2 == 0) {
+            value_index[index_map[d]] = node->index_start_reordered[index_map[d]];
+          } else {
+            value_index[index_map[d]] = node->index_end_reordered[index_map[d]];
+          }
+          linearized_index /= 2;
+        }
+        Mem::Copy1D(&(cell.value[i]), v(value_index), 1, 0);
+      }
+      cell_list.push_back(cell);
     }
 
     //for debug
@@ -739,7 +741,7 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
     
     if (discard_all_children) {
       // Discard all children
-      std::cout << "Discard all chilren\n";
+      // if (curr_level == hierarchy.l_target - 1) std::cout << "Discard all chilren\n";
       curr_error_impact = combine_error_impact(curr_error_impact, node->all_children_error_impact);
     } else {
       // Create all children
@@ -760,17 +762,17 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
         // std::cout << all_children_max_error << " ";
         // Get max error for all children of all node of this level
         temp_error_impact[curr_level + 1] = std::max(all_children_max_error, temp_error_impact[curr_level + 1]);
-        std::cout << "trying " << b << " bitplanes and get error: " << error_estimate(temp_error_impact) << "\n";
+        // std::cout << "trying " << b << " bitplanes and get error: " << error_estimate(temp_error_impact) << "\n";
         if (error_estimate(temp_error_impact) < target_tol) {
           children_num_bitplanes = b;
           curr_error_impact = temp_error_impact;
-          std::cout << "finalize on " << children_num_bitplanes << " bitplanes\n";
+          // std::cout << "finalize on " << children_num_bitplanes << " bitplanes\n";
           break;
         }
       }
 
-      std::cout << "Create all "<< node->num_children <<" children ";
-      std::cout << "by retrieving " << children_num_bitplanes << " bitplanes\n";
+      // std::cout << "Create all "<< node->num_children <<" children ";
+      // std::cout << "by retrieving " << children_num_bitplanes << " bitplanes\n";
     
       for (int c = 0; c < node->num_children; c++) {
         if (node->child_coefficient_index_reordered[c].size() > 0) {
@@ -789,10 +791,7 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
         }
 
         NodeType * child = &(node->child[c]);
-        // if (child->num_children > 0) {
-          // std::cout << "push a child with " << child->num_children << " children at level "<< child->level <<"\n";
-          to_be_refined_node.push(&(node->child[c]));
-        // }
+        to_be_refined_node.push(&(node->child[c]));
       }
     }
 
@@ -801,40 +800,50 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
     if (to_be_refined_node.size() > 0 && to_be_refined_node.front()->level > curr_level ||
         to_be_refined_node.size() == 0 && curr_level < hierarchy.l_target) {
 
-      std::cout << "current error: " << error_estimate(curr_error_impact) << "\n";
-      std::vector<std::vector<SIZE>> index;
-      for (DIM d = 0; d < D; d++) index.push_back(hierarchical_index[d][curr_level]);
+      std::cout << "Level " << curr_level << " num final cells: " << final_output_cells.size() - num_final_cell_prev_levels << " "
+                << "current error: " << error_estimate(curr_error_impact) << "\n";
+      num_final_cell_prev_levels = final_output_cells.size();
 
-      CompressedSparseEdge<D, T, DeviceType> cse(hierarchy.shapes_vec[hierarchy.l_target - curr_level], edge_list, index);
-      edge_list.resize(0);
-      cse_list.push_back(cse);
+      // debug: comment out CSE
+      // std::vector<std::vector<SIZE>> index;
+      // for (DIM d = 0; d < D; d++) index.push_back(hierarchical_index[d][curr_level]);
+      // CompressedSparseEdge<D, T, DeviceType> cse(hierarchy.shapes_vec[hierarchy.l_target - curr_level], edge_list, index);
+      // edge_list.resize(0);
+      // cse_list.push_back(cse);
 
-      std::cout << "Refining level " << curr_level << "\n";
+      // std::cout << "Refining level " << curr_level << "\n";
       refine_level(v, w, curr_level, queue_idx);
 
 
       curr_level += 1;
       // PrintSubarray("v", v);
     }
-
-    
   }
 
-  // Last level
-  std::vector<std::vector<SIZE>> index;
-  for (DIM d = 0; d < D; d++) index.push_back(hierarchical_index[d][hierarchy.l_target]);
-  CompressedSparseEdge<D, T, DeviceType> cse(hierarchy.shapes_vec[0], edge_list, index);
-  edge_list.resize(0);
-  cse_list.push_back(cse);
 
+  std::cout << "Level " << curr_level << " num final cells: " << final_output_cells.size() - num_final_cell_prev_levels << " "
+                << "current error: " << error_estimate(curr_error_impact) << "\n";
+
+  // debug: comment out CSE
+  // Last level
+  // std::vector<std::vector<SIZE>> index;
+  // for (DIM d = 0; d < D; d++) index.push_back(hierarchical_index[d][hierarchy.l_target]);
+  // CompressedSparseEdge<D, T, DeviceType> cse(hierarchy.shapes_vec[0], edge_list, index);
+  // edge_list.resize(0);
+  // cse_list.push_back(cse);
+
+
+  CompressedSparseCell<T, DeviceType> curr_csc(cell_list);
+  csc = curr_csc;
 
   if (interpolate_full_resolution) {
     for (; curr_level < hierarchy.l_target; curr_level++) {
-      std::cout << "Interpolate level " << curr_level << "\n";
+      // std::cout << "Interpolate level " << curr_level << "\n";
       refine_level(v, w, curr_level, queue_idx);
       // PrintSubarray("v", v);
     }
   }
+
 
   myfile.close();
 
@@ -847,6 +856,10 @@ Array<D, T, DeviceType> constructData(T target_tol, bool interpolate_full_resolu
   std::cout << " Redueced cells: " << reconstructed_cells << " Ratio: " << (float)org_cells/reconstructed_cells << "\n";
   std::cout << " Feature cells: " << reduced_cells << " Ratio: " << (float)org_cells/reduced_cells << "\n";
 
+  t.end();
+  t.print("Construct data");
+  t.clear();
+
   return reconstructed_data;
 }
 
@@ -856,7 +869,6 @@ private:
   NodeType root;
   SIZE total_level;
   Hierarchy<D, T, DeviceType> &hierarchy;
-  BoundingIntervalHierarchyType bounding_interval_hierarchy;
   Array<D, T, SERIAL> coeff_host_array;
   SubArray<D, T, DeviceType> coeff;
 };

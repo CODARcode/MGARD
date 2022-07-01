@@ -1,0 +1,16 @@
+/*
+ * Copyright 2022, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ * Author: Jieyang Chen (chenj3@ornl.gov)
+ * Date: March 17, 2022
+ */
+
+#include "mgard-x/DataRefactoring/MultiDimension/Coefficient/LevelMax.hpp"
+namespace mgard_x {
+
+template void LevelMax<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(SIZE l_target,
+               SubArray<1, SIZE, @DEVICE_TYPE@> ranges,
+               SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> v,
+               SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> level_max, int queue_idx);
+
+} // namespace mgard_x
