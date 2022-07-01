@@ -129,6 +129,10 @@ public:
   }
 
   MGARDX_CONT_EXEC
+  T *operator()(IDX l, IDX z, IDX y, IDX x) {
+    return this->dv + this->_ldvs[2] * this->_ldvs[1] * this->_ldvs[0] * l + this->_ldvs[1] * this->_ldvs[0] * z + this->_ldvs[0] * y + x;
+  }
+  MGARDX_CONT_EXEC
   T *operator()(IDX z, IDX y, IDX x) {
     return this->dv + this->lddv2 * this->lddv1 * z + this->lddv1 * y + x;
   }
@@ -171,8 +175,8 @@ public:
   static const DIM NumDims = D;
 
 private:
-  T *dv; // device pointer
-  T *v;  // host pointer
+  T *dv = NULL; // device pointer
+  T *v = NULL;  // host pointer
   bool has_host_pointer = false;
 
   SIZE _ldvs[D];
@@ -247,16 +251,9 @@ MGARDX_CONT SubArray<1, T, DeviceType> SubArray<D, T, DeviceType>::Linearize() {
     for (DIM d = 0; d < D; d++)
       linearized_shape *= this->_shape[d];
     subArray.dv = this->dv;
-
-    this->_shape[0] = linearized_shape;
-    this->_ldvs[0] = linearized_shape;
-
-    subArray.lddv1 = linearized_shape;
-    subArray.lddv2 = 1;
-
-    subArray.projected_dim0 = this->projected_dim0;
-    subArray.projected_dim1 = this->projected_dim1;
-    subArray.projected_dim2 = this->projected_dim2;
+    subArray.setShape(0, linearized_shape);
+    subArray.setLd(0, linearized_shape);
+    subArray.project(0, 1, 2);
 
     if (this->has_host_pointer) {
       subArray.has_host_pointer = true;
