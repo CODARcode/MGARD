@@ -1,0 +1,19 @@
+/*
+ * Copyright 2022, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ * Author: Jieyang Chen (chenj3@ornl.gov)
+ * Date: March 17, 2022
+ */
+
+#include "mgard-x/DataRefactoring/MultiDimension/Coefficient/AccuracyGuard.hpp"
+namespace mgard_x {
+
+template void AccuracyGuard<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(SIZE total_level, SIZE current_level, 
+                   SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> error_impact_budget,
+                   SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> previous_error_impact,
+                   SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> current_error_impact,
+                   SubArray<@NUM_DIM@+1, @DATA_TYPE@, @DEVICE_TYPE@> max_abs_coefficient,
+                   SubArray<@NUM_DIM@, SIZE, @DEVICE_TYPE@> refinement_flag,
+                   int queue_idx);
+
+} // namespace mgard_x
