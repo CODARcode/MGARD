@@ -254,6 +254,7 @@ MGARDX_CONT SubArray<1, T, DeviceType> SubArray<D, T, DeviceType>::Linearize() {
     subArray.setdata(this->data());
     subArray.setShape(0, linearized_shape);
     subArray.setLd(0, linearized_shape);
+    subArray.project(0, 1, 2);
 
     if (this->has_host_pointer) {
       subArray.setDataHost(this->dataHost());
