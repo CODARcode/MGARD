@@ -11,7 +11,16 @@
 
 #include "proto/mgard.pb.h"
 
+#ifdef __NVCC__
+// NVCC breaks on `utilities.hpp`. See (we think) <https://github.com/CODARcode/
+// MGARD/issues/126> and <https://forums.developer.nvidia.com/t/
+// nvcc-preprocessor-bug-causes-compilation-failure/65962>.
+
+//! Forward declaration.
+template <typename T> struct MemoryBuffer;
+#else
 #include "utilities.hpp"
+#endif
 
 namespace mgard {
 

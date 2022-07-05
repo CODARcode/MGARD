@@ -14,6 +14,11 @@
 
 #include "MGARDConfig.hpp"
 
+#ifdef __NVCC__
+// `utilities.hpp` wasn't included in the header.
+#include "utilities.hpp"
+#endif
+
 namespace mgard {
 
 std::uint_least64_t deserialize_header_size(
