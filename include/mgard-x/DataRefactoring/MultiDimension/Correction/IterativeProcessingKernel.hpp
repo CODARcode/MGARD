@@ -625,24 +625,24 @@ public:
     ExecutionReturn ret;
 
 #define IPK(CONFIG)                                                            \
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-      const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
-      const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
-      const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
-      const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
-      using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
-      using TaskType = Task<FunctorType>;                                        \
-      TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
-                                          am, bm, v, queue_idx);                 \
-      DeviceAdapter<TaskType, DeviceType> adapter;                               \
-      ret = adapter.Execute(task);                                               \
-      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-        if (ret.success && min_time > ret.execution_time) {                      \
-          min_time = ret.execution_time;                                         \
-          min_config = CONFIG;                                                   \
-        }                                                                        \
-      }                                                                          \
-    }
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
+    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
+    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
+    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
+    using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
+                                        am, bm, v, queue_idx);                 \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ret = adapter.Execute(task);                                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (ret.success && min_time > ret.execution_time) {                      \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
 
     IPK(6) if (!ret.success) config--;
     IPK(5) if (!ret.success) config--;
@@ -1328,24 +1328,24 @@ public:
     ExecutionReturn ret;
 
 #define IPK(CONFIG)                                                            \
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-      const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
-      const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
-      const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
-      const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
-      using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
-      using TaskType = Task<FunctorType>;                                        \
-      TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
-                                          am, bm, v, queue_idx);                 \
-      DeviceAdapter<TaskType, DeviceType> adapter;                               \
-      ret = adapter.Execute(task);                                               \
-      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-        if (ret.success && min_time > ret.execution_time) {                      \
-          min_time = ret.execution_time;                                         \
-          min_config = CONFIG;                                                   \
-        }                                                                        \
-      }                                                                          \
-    }
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
+    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
+    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
+    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
+    using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
+                                        am, bm, v, queue_idx);                 \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ret = adapter.Execute(task);                                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (ret.success && min_time > ret.execution_time) {                      \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
 
     IPK(6) if (!ret.success) config--;
     IPK(5) if (!ret.success) config--;
@@ -2055,26 +2055,25 @@ public:
     int min_config = 0;
     ExecutionReturn ret;
 
-
 #define IPK(CONFIG)                                                            \
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-      const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
-      const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
-      const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
-      const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
-      using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
-      using TaskType = Task<FunctorType>;                                        \
-      TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
-                                          am, bm, v, queue_idx);                 \
-      DeviceAdapter<TaskType, DeviceType> adapter;                               \
-      ret = adapter.Execute(task);                                               \
-      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-        if (ret.success && min_time > ret.execution_time) {                      \
-          min_time = ret.execution_time;                                         \
-          min_config = CONFIG;                                                   \
-        }                                                                        \
-      }                                                                          \
-    }
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
+    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
+    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
+    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
+    using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
+                                        am, bm, v, queue_idx);                 \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ret = adapter.Execute(task);                                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (ret.success && min_time > ret.execution_time) {                      \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
 
     IPK(6) if (!ret.success) config--;
     IPK(5) if (!ret.success) config--;

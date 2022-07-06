@@ -237,7 +237,7 @@ public:
 
   MGARDX_CONT static void SyncDevice() {}
 
-  MGARDX_CONT static std::string GetDeviceName() { return ""; } 
+  MGARDX_CONT static std::string GetDeviceName() { return ""; }
 
   MGARDX_CONT
   ~DeviceRuntime() {}

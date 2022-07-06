@@ -676,7 +676,9 @@ public:
     return SupportCooperativeGroups[dev_id];
   }
 
-  MGARDX_CONT std::string GetDeviceName(int dev_id) { return DeviceNames[dev_id]; }
+  MGARDX_CONT std::string GetDeviceName(int dev_id) {
+    return DeviceNames[dev_id];
+  }
 
   MGARDX_CONT
   ~DeviceSpecification() {
@@ -753,7 +755,7 @@ public:
 
   MGARDX_CONT static std::string GetDeviceName() {
     return DeviceSpecs.GetDeviceName(curr_dev_id);
-  } 
+  }
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
     return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
@@ -1049,12 +1051,13 @@ public:
   DeviceAdapter(){};
 
   MGARDX_CONT
-  int IsResourceEnough(TaskType &task) { 
-    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() > 
+  int IsResourceEnough(TaskType &task) {
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
         DeviceRuntime<SERIAL>::GetMaxNumThreadsPerTB()) {
       return THREADBLOCK_TOO_LARGE;
     }
-    if (task.GetSharedMemorySize() > DeviceRuntime<SERIAL>::GetMaxSharedMemorySize()) {
+    if (task.GetSharedMemorySize() >
+        DeviceRuntime<SERIAL>::GetMaxSharedMemorySize()) {
       return SHARED_MEMORY_TOO_LARGE;
     }
     return RESOURCE_ENOUGH;
@@ -1095,17 +1098,14 @@ public:
     if constexpr (std::is_base_of<Functor<SERIAL>,
                                   typename TaskType::Functor>::value) {
       SerialKernel(task);
-    } else if constexpr (std::is_base_of<
-                             IterFunctor<SERIAL>,
-                             typename TaskType::Functor>::value) {
+    } else if constexpr (std::is_base_of<IterFunctor<SERIAL>,
+                                         typename TaskType::Functor>::value) {
       SerialIterKernel(task);
-    } else if constexpr (std::is_base_of<
-                             HuffmanCLCustomizedFunctor<SERIAL>,
-                             typename TaskType::Functor>::value) {
+    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<SERIAL>,
+                                         typename TaskType::Functor>::value) {
       SerialHuffmanCLCustomizedKernel(task);
-    } else if constexpr (std::is_base_of<
-                             HuffmanCWCustomizedFunctor<SERIAL>,
-                             typename TaskType::Functor>::value) {
+    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<SERIAL>,
+                                         typename TaskType::Functor>::value) {
       SerialHuffmanCWCustomizedKernel(task);
     }
     // timer.end();

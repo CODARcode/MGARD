@@ -47,28 +47,26 @@ static __device__ __inline__ uint32_t __mylaneid() {
   return laneid;
 }
 
-MGARDX_EXEC static float atomicMax(float* address, float val)
-{
-    int* address_as_i = (int*) address;
-    int old = *address_as_i, assumed;
-    do {
-        assumed = old;
-        old = ::atomicCAS(address_as_i, assumed,
-            __float_as_int(::fmaxf(val, __int_as_float(assumed))));
-    } while (assumed != old);
-    return __int_as_float(old);
+MGARDX_EXEC static float atomicMax(float *address, float val) {
+  int *address_as_i = (int *)address;
+  int old = *address_as_i, assumed;
+  do {
+    assumed = old;
+    old = ::atomicCAS(address_as_i, assumed,
+                      __float_as_int(::fmaxf(val, __int_as_float(assumed))));
+  } while (assumed != old);
+  return __int_as_float(old);
 }
 
-MGARDX_EXEC static double atomicMax(double* address, double val)
-{
-    unsigned long long int* address_as_i = (unsigned long long int*) address;
-    unsigned long long int old = *address_as_i, assumed;
-    do {
-        assumed = old;
-        old = ::atomicCAS(address_as_i, assumed,
-            (unsigned long long int)::fmax(val, (double)assumed));
-    } while (assumed != old);
-    return (double)old;
+MGARDX_EXEC static double atomicMax(double *address, double val) {
+  unsigned long long int *address_as_i = (unsigned long long int *)address;
+  unsigned long long int old = *address_as_i, assumed;
+  do {
+    assumed = old;
+    old = ::atomicCAS(address_as_i, assumed,
+                      (unsigned long long int)::fmax(val, (double)assumed));
+  } while (assumed != old);
+  return (double)old;
 }
 
 namespace mgard_x {
@@ -460,7 +458,9 @@ public:
     return SupportCooperativeGroups[dev_id];
   }
 
-  MGARDX_CONT std::string GetDeviceName(int dev_id) { return DeviceNames[dev_id]; }
+  MGARDX_CONT std::string GetDeviceName(int dev_id) {
+    return DeviceNames[dev_id];
+  }
 
   MGARDX_CONT
   ~DeviceSpecification() {
@@ -567,7 +567,7 @@ public:
 
   MGARDX_CONT static std::string GetDeviceName() {
     return DeviceSpecs.GetDeviceName(curr_dev_id);
-  } 
+  }
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
     return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
@@ -1870,12 +1870,13 @@ public:
   DeviceAdapter(){};
 
   MGARDX_CONT
-  int IsResourceEnough(TaskType &task) { 
-    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() > 
+  int IsResourceEnough(TaskType &task) {
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
         DeviceRuntime<CUDA>::GetMaxNumThreadsPerTB()) {
       return THREADBLOCK_TOO_LARGE;
     }
-    if (task.GetSharedMemorySize() > DeviceRuntime<CUDA>::GetMaxSharedMemorySize()) {
+    if (task.GetSharedMemorySize() >
+        DeviceRuntime<CUDA>::GetMaxSharedMemorySize()) {
       return SHARED_MEMORY_TOO_LARGE;
     }
     return RESOURCE_ENOUGH;

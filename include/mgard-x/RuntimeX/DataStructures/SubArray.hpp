@@ -130,7 +130,8 @@ public:
 
   MGARDX_CONT_EXEC
   T *operator()(IDX l, IDX z, IDX y, IDX x) {
-    return this->dv + this->_ldvs[2] * this->_ldvs[1] * this->_ldvs[0] * l + this->_ldvs[1] * this->_ldvs[0] * z + this->_ldvs[0] * y + x;
+    return this->dv + this->_ldvs[2] * this->_ldvs[1] * this->_ldvs[0] * l +
+           this->_ldvs[1] * this->_ldvs[0] * z + this->_ldvs[0] * y + x;
   }
   MGARDX_CONT_EXEC
   T *operator()(IDX z, IDX y, IDX x) {
