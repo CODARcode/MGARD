@@ -6,6 +6,7 @@
  */
 
 #include "mgard-x/DataRefactoring/MultiDimension/Coefficient/DenseToCompressedSparseCell.hpp"
+// clang-format off
 namespace mgard_x {
 
 template void DenseToCompressedSparseCell<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
@@ -13,3 +14,4 @@ template void DenseToCompressedSparseCell<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>
                     SubArray<@NUM_DIM@, SIZE, @DEVICE_TYPE@> write_index, CompressedSparseCell<@DATA_TYPE@, @DEVICE_TYPE@>& csc, int queue_idx);
 
 } // namespace mgard_x
+// clang-format on

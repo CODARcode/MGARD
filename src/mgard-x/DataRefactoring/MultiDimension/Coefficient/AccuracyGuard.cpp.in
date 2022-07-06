@@ -6,6 +6,7 @@
  */
 
 #include "mgard-x/DataRefactoring/MultiDimension/Coefficient/AccuracyGuard.hpp"
+// clang-format off
 namespace mgard_x {
 
 template void AccuracyGuard<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(SIZE total_level, SIZE current_level, 
@@ -17,3 +18,4 @@ template void AccuracyGuard<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(SIZE total_le
                    int queue_idx);
 
 } // namespace mgard_x
+// clang-format on
