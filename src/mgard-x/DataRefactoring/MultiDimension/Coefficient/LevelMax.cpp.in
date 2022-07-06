@@ -6,6 +6,7 @@
  */
 
 #include "mgard-x/DataRefactoring/MultiDimension/Coefficient/LevelMax.hpp"
+// clang-format off
 namespace mgard_x {
 
 template void LevelMax<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(SIZE l_target,
@@ -14,3 +15,4 @@ template void LevelMax<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(SIZE l_target,
                SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> level_max, int queue_idx);
 
 } // namespace mgard_x
+// clang-format on
