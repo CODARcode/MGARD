@@ -432,7 +432,9 @@ public:
     return SupportCooperativeGroups[dev_id];
   }
 
-  MGARDX_CONT std::string GetDeviceName(int dev_id) { return DeviceNames[dev_id]; }
+  MGARDX_CONT std::string GetDeviceName(int dev_id) {
+    return DeviceNames[dev_id];
+  }
 
   MGARDX_CONT
   ~DeviceSpecification() {
@@ -539,7 +541,7 @@ public:
 
   MGARDX_CONT static std::string GetDeviceName() {
     return DeviceSpecs.GetDeviceName(curr_dev_id);
-  } 
+  }
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
     return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
@@ -1802,12 +1804,13 @@ public:
   DeviceAdapter(){};
 
   MGARDX_CONT
-  int IsResourceEnough(TaskType &task) { 
-    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() > 
+  int IsResourceEnough(TaskType &task) {
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
         DeviceRuntime<HIP>::GetMaxNumThreadsPerTB()) {
       return THREADBLOCK_TOO_LARGE;
     }
-    if (task.GetSharedMemorySize() > DeviceRuntime<HIP>::GetMaxSharedMemorySize()) {
+    if (task.GetSharedMemorySize() >
+        DeviceRuntime<HIP>::GetMaxSharedMemorySize()) {
       return SHARED_MEMORY_TOO_LARGE;
     }
     return RESOURCE_ENOUGH;

@@ -6,6 +6,7 @@
  */
 
 #include "mgard-x/DataRefactoring/MultiDimension/Correction/CalcCorrection3D.hpp"
+// clang-format off
 namespace mgard_x {
 
 template void CalcCorrection3D<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
@@ -15,3 +16,4 @@ template void CalcCorrection3D<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     int queue_idx);
 
 } // namespace mgard_x
+// clang-format on

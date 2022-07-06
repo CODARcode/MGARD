@@ -234,8 +234,8 @@ public:
           device.get_info<sycl::info::device::max_work_group_size>();
       ;
       // Larger limit can cause resource insufficient error
-      MaxNumThreadsPerTB[d] =
-          std::min(1024ul, device.get_info<sycl::info::device::max_work_group_size>());
+      MaxNumThreadsPerTB[d] = std::min(
+          1024ul, device.get_info<sycl::info::device::max_work_group_size>());
       ;
       AvailableMemory[d] =
           device.get_info<sycl::info::device::global_mem_size>();
@@ -275,7 +275,9 @@ public:
     return SupportCooperativeGroups[dev_id];
   }
 
-  MGARDX_CONT std::string GetDeviceName(int dev_id) { return DeviceNames[dev_id]; }
+  MGARDX_CONT std::string GetDeviceName(int dev_id) {
+    return DeviceNames[dev_id];
+  }
 
   MGARDX_CONT
   ~DeviceSpecification() {
@@ -369,7 +371,7 @@ public:
 
   MGARDX_CONT static std::string GetDeviceName() {
     return DeviceSpecs.GetDeviceName(curr_dev_id);
-  } 
+  }
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
     return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
@@ -923,12 +925,13 @@ public:
   DeviceAdapter(){};
 
   MGARDX_CONT
-  int IsResourceEnough(TaskType &task) { 
-    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() > 
+  int IsResourceEnough(TaskType &task) {
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
         DeviceRuntime<SYCL>::GetMaxNumThreadsPerTB()) {
       return THREADBLOCK_TOO_LARGE;
     }
-    if (task.GetSharedMemorySize() > DeviceRuntime<SYCL>::GetMaxSharedMemorySize()) {
+    if (task.GetSharedMemorySize() >
+        DeviceRuntime<SYCL>::GetMaxSharedMemorySize()) {
       return SHARED_MEMORY_TOO_LARGE;
     }
     return RESOURCE_ENOUGH;

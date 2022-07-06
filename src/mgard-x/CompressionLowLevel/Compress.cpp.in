@@ -6,7 +6,7 @@
  */
 
 #include "mgard-x/CompressionLowLevel/CompressionLowLevel.hpp"
-
+// clang-format off
 namespace mgard_x {
 
 template Array<1, unsigned char, @DEVICE_TYPE@>
@@ -17,3 +17,4 @@ compress<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     @DATA_TYPE@ &norm, Config config);
 
 } // namespace mgard_x
+// clang-format on

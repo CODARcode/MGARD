@@ -58,8 +58,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
          T s, T &norm, Config config) {
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
   if (config.timing) {
-    std::cout << log::log_info << "Select device: "
-              << DeviceRuntime<DeviceType>::GetDeviceName() << "\n";
+    std::cout << log::log_info
+              << "Select device: " << DeviceRuntime<DeviceType>::GetDeviceName()
+              << "\n";
   }
   Timer timer_total, timer_each;
   for (DIM i = 0; i < D; i++) {
@@ -206,7 +207,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<1, SIZE, DeviceType>(hierarchy.shapes[0], true),
       SubArray<1, LENGTH, DeviceType>(outlier_count_array),
       outlier_idx_subarray, outliers_subarray, 0);
-  
+
   MemoryManager<DeviceType>::Copy1D(&outlier_count, outlier_count_array.data(),
                                     1, 0);
 
@@ -385,8 +386,9 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
            enum error_bound_type type, T tol, T s, T norm, Config config) {
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
   if (config.timing) {
-    std::cout << log::log_info << "Select device: "
-              << DeviceRuntime<DeviceType>::GetDeviceName() << "\n";
+    std::cout << log::log_info
+              << "Select device: " << DeviceRuntime<DeviceType>::GetDeviceName()
+              << "\n";
   }
   Timer timer_total, timer_each;
 

@@ -449,25 +449,25 @@ public:
     ExecutionReturn ret;
 
 #define LWQZK(CONFIG)                                                          \
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-      const int R = LWPK_CONFIG[D - 1][CONFIG][0];                               \
-      const int C = LWPK_CONFIG[D - 1][CONFIG][1];                               \
-      const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
-      using FunctorType =                                                        \
-          LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;           \
-      using TaskType = Task<FunctorType>;                                        \
-      TaskType task = GenTask<R, C, F>(                                          \
-          ranges, l_target, quantizers, volumes, s, huff_dict_size, v, work,     \
-          prep_huffman, shape, outlier_count, outlier_idx, outliers, queue_idx); \
-      DeviceAdapter<TaskType, DeviceType> adapter;                               \
-      ret = adapter.Execute(task);                                               \
-      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-        if (ret.success && min_time > ret.execution_time) {                      \
-          min_time = ret.execution_time;                                         \
-          min_config = CONFIG;                                                   \
-        }                                                                        \
-      }                                                                          \
-    }
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = LWPK_CONFIG[D - 1][CONFIG][0];                               \
+    const int C = LWPK_CONFIG[D - 1][CONFIG][1];                               \
+    const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
+    using FunctorType =                                                        \
+        LevelwiseLinearQuantizeNDFunctor<D, T, R, C, F, DeviceType>;           \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task = GenTask<R, C, F>(                                          \
+        ranges, l_target, quantizers, volumes, s, huff_dict_size, v, work,     \
+        prep_huffman, shape, outlier_count, outlier_idx, outliers, queue_idx); \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ret = adapter.Execute(task);                                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (ret.success && min_time > ret.execution_time) {                      \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
     LWQZK(6) if (!ret.success) config--;
     LWQZK(5) if (!ret.success) config--;
     LWQZK(4) if (!ret.success) config--;
@@ -476,7 +476,8 @@ public:
     LWQZK(1) if (!ret.success) config--;
     LWQZK(0) if (!ret.success) config--;
     if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for LevelwiseLinearQuantizeND.\n";
+      std::cout << log::log_err
+                << "no suitable config for LevelwiseLinearQuantizeND.\n";
       exit(-1);
     }
 #undef LWQZK
@@ -975,25 +976,25 @@ public:
     ExecutionReturn ret;
 
 #define LWDQZK(CONFIG)                                                         \
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-      const int R = LWPK_CONFIG[D - 1][CONFIG][0];                               \
-      const int C = LWPK_CONFIG[D - 1][CONFIG][1];                               \
-      const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
-      using FunctorType =                                                        \
-          LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType>;         \
-      using TaskType = Task<FunctorType>;                                        \
-      TaskType task = GenTask2<R, C, F>(                                         \
-          ranges, l_target, quantizers, volumes, s, huff_dict_size, v, work,     \
-          prep_huffman, shape, outlier_count, outlier_idx, outliers, queue_idx); \
-      DeviceAdapter<TaskType, DeviceType> adapter;                               \
-      ret = adapter.Execute(task);                                               \
-      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-        if (ret.success && min_time > ret.execution_time) {                      \
-          min_time = ret.execution_time;                                         \
-          min_config = CONFIG;                                                   \
-        }                                                                        \
-      }                                                                          \
-    }
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = LWPK_CONFIG[D - 1][CONFIG][0];                               \
+    const int C = LWPK_CONFIG[D - 1][CONFIG][1];                               \
+    const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
+    using FunctorType =                                                        \
+        LevelwiseLinearDequantizeNDFunctor<D, T, R, C, F, DeviceType>;         \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task = GenTask2<R, C, F>(                                         \
+        ranges, l_target, quantizers, volumes, s, huff_dict_size, v, work,     \
+        prep_huffman, shape, outlier_count, outlier_idx, outliers, queue_idx); \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ret = adapter.Execute(task);                                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (ret.success && min_time > ret.execution_time) {                      \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
 
     LWDQZK(6) if (!ret.success) config--;
     LWDQZK(5) if (!ret.success) config--;
@@ -1003,7 +1004,8 @@ public:
     LWDQZK(1) if (!ret.success) config--;
     LWDQZK(0) if (!ret.success) config--;
     if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for LevelwiseLinearDequantizeND.\n";
+      std::cout << log::log_err
+                << "no suitable config for LevelwiseLinearDequantizeND.\n";
       exit(-1);
     }
 #undef LWDQZK
