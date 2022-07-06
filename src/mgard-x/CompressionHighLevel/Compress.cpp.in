@@ -6,7 +6,7 @@
  */
 
 #include "mgard-x/CompressionHighLevel/CompressionHighLevel.hpp"
-
+// clang-format off
 namespace mgard_x {
 
 template void compress<@DEVICE_TYPE@>(DIM D, data_type dtype,
@@ -35,3 +35,4 @@ template void compress<@DEVICE_TYPE@>(
     void *&compressed_data, size_t &compressed_size,
     std::vector<const Byte *> coords, bool output_pre_allocated);
 } // namespace mgard_x
+// clang-format on

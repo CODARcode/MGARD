@@ -6,7 +6,7 @@
  */
 
 #include "mgard-x/DataRefactoring/SingleDimension/DataRefactoring.hpp"
-
+// clang-format off
 namespace mgard_x {
 
 template void decompose_single<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
@@ -14,3 +14,4 @@ template void decompose_single<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target,
     int queue_idx);
 } // namespace mgard_x
+// clang-format on

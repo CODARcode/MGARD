@@ -6,6 +6,7 @@
  */
 
 #include "mgard-x/DataRefactoring/MultiDimension/Coefficient/CalcCoefficients3D.hpp"
+// clang-format off
 namespace mgard_x {
 
 template void CalcCoefficients3D<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
@@ -15,3 +16,4 @@ template void CalcCoefficients3D<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     int queue_idx);
 
 } // namespace mgard_x
+// clang-format on

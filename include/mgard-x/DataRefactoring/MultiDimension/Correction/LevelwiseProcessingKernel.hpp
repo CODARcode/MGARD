@@ -129,13 +129,13 @@ public:
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.lwpk[prec][range_l];
 
-    while (LWPK_CONFIG[D - 1][config][0] *
-           LWPK_CONFIG[D - 1][config][1] *
-           LWPK_CONFIG[D - 1][config][2] > 
+    while (LWPK_CONFIG[D - 1][config][0] * LWPK_CONFIG[D - 1][config][1] *
+               LWPK_CONFIG[D - 1][config][2] >
            DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB()) {
       config--;
       if (config < 0) {
-        std::cout << log::log_err << "Cannot find suitable config for LwpkReo.\n";
+        std::cout << log::log_err
+                  << "Cannot find suitable config for LwpkReo.\n";
       }
     }
 

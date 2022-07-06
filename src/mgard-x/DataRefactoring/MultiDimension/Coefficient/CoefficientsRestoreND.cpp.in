@@ -6,6 +6,7 @@
  */
 
 #include "mgard-x/DataRefactoring/MultiDimension/Coefficient/CoefficientsRestoreND.hpp"
+// clang-format off
 namespace mgard_x {
 
 template void CoefficientsRestoreND<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
@@ -16,3 +17,4 @@ template void CoefficientsRestoreND<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     int queue_idx);
 
 } // namespace mgard_x
+// clang-format on

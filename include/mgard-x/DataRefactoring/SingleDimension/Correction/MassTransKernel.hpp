@@ -175,24 +175,24 @@ public:
     ExecutionReturn ret;
 
 #define GPK(CONFIG)                                                            \
-    if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-      const int R = GPK_CONFIG[D - 1][CONFIG][0];                                \
-      const int C = GPK_CONFIG[D - 1][CONFIG][1];                                \
-      const int F = GPK_CONFIG[D - 1][CONFIG][2];                                \
-      using FunctorType =                                                        \
-          SingleDimensionMassTransFunctor<D, T, R, C, F, DeviceType>;            \
-      using TaskType = Task<FunctorType>;                                        \
-      TaskType task =                                                            \
-          GenTask<R, C, F>(current_dim, dist, ratio, coeff, v, queue_idx);       \
-      DeviceAdapter<TaskType, DeviceType> adapter;                               \
-      ret = adapter.Execute(task);                                               \
-      if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-        if (ret.success && min_time > ret.execution_time) {                      \
-          min_time = ret.execution_time;                                         \
-          min_config = CONFIG;                                                   \
-        }                                                                        \
-      }                                                                          \
-    }
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = GPK_CONFIG[D - 1][CONFIG][0];                                \
+    const int C = GPK_CONFIG[D - 1][CONFIG][1];                                \
+    const int F = GPK_CONFIG[D - 1][CONFIG][2];                                \
+    using FunctorType =                                                        \
+        SingleDimensionMassTransFunctor<D, T, R, C, F, DeviceType>;            \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task =                                                            \
+        GenTask<R, C, F>(current_dim, dist, ratio, coeff, v, queue_idx);       \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ret = adapter.Execute(task);                                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (ret.success && min_time > ret.execution_time) {                      \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
 
     GPK(6) if (!ret.success) config--;
     GPK(5) if (!ret.success) config--;
@@ -202,7 +202,8 @@ public:
     GPK(1) if (!ret.success) config--;
     GPK(0) if (!ret.success) config--;
     if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for SingleDimensionMassTrans.\n";
+      std::cout << log::log_err
+                << "no suitable config for SingleDimensionMassTrans.\n";
       exit(-1);
     }
 #undef GPK
