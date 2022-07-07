@@ -39,7 +39,7 @@ MGARDX_EXEC bool computeTrimBounds(SIZE r, SIZE f, SIZE rightMax,
   right = max(right, axis_maxs[2]);
   right = max(right, axis_maxs[3]);
 
-  if (left > rightMax && right == 0) {
+  if (left >= rightMax && right == 0) {
     // verify that we have nothing to generate and early terminate.
     bool mins_same =
         (axis_mins[0] == axis_mins[1] && axis_mins[0] == axis_mins[2] &&
@@ -1071,7 +1071,6 @@ public:
     SIZE cell_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f);
     SIZE next_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f + 1);
 
-    // printf("cell_tri_offset: %u\n", cell_tri_offset);
 
     Pass4TrimState state(r, f, nf, nc, nr, axis_min, axis_max, edges);
     if (!state.hasWork) {
@@ -1082,9 +1081,8 @@ public:
     SIZE edgeCase = getEdgeCase(r, state.left, f, edges);
 
     init_voxelIds(r, f, edgeCase, axis_sum, edgeIds);
-    for (SIZE i = state.left; i < state.right;
-         ++i) // run along the trimmed voxels
-    {
+    // run along the trimmed voxels
+    for (SIZE i = state.left; i < state.right; ++i) {
       edgeCase = getEdgeCase(r, i, f, edges);
       SIZE numTris = GetNumberOfPrimitives(edgeCase);
       if (numTris > 0) {
@@ -1162,7 +1160,7 @@ public:
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx);
+                queue_idx, "FlyingEdges::Pass1");
   }
 
   template <SIZE R, SIZE C, SIZE F>
@@ -1192,7 +1190,7 @@ public:
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx);
+                queue_idx, "FlyingEdges::Pass2");
   }
 
   template <SIZE R, SIZE C, SIZE F>
@@ -1225,7 +1223,7 @@ public:
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx);
+                queue_idx, "FlyingEdges::Pass4");
   }
 
   MGARDX_CONT
@@ -1338,6 +1336,7 @@ public:
 
     SubArray<1, SIZE, DeviceType> triangle_topology(Triangles);
     SubArray<1, T, DeviceType> points(Points);
+    DeviceRuntime<DeviceType>::SyncDevice();
 
     using FunctorType4 = Pass4Functor<T, DeviceType>;
     using TaskType4 = Task<FunctorType4>;
@@ -1355,12 +1354,6 @@ public:
     t.print("Pass 4");
     t.clear();
 
-    // axis_sum_array.~Array();
-    // axis_min_array.~Array();
-    // axis_max_array.~Array();
-    // edges_array.~Array();
-    // cell_tri_count_array.~Array();
-    // cell_tri_count_array_scan.~Array();
     // printf("After pass4\n");
     // PrintSubarray("triangle_topology", triangle_topology);
     // PrintSubarray("points", points);

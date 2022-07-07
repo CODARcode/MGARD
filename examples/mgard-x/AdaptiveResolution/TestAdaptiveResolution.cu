@@ -186,59 +186,8 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
       shape[0], shape[1], shape[2], mgard_x::SubArray<3, T, mgard_x::CUDA>(v),
       iso_value, TrianglesArray, PointsArray, 0);
   mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncQueue(0);
-  std::cout << "done mine\n";
+  // std::cout << "done mine\n";
 
-  // numTriangles = TrianglesArray.shape()[0] / 3;
-  // numPoints = PointsArray.shape()[0] / 3;
-
-  // if (numTriangles == 0 || numPoints == 0) {
-  //   printf("returing %u %u from test_mine\n", numTriangles, numPoints);
-  //   return;
-  // }
-
-  // Triangles = new mgard_x::SIZE[TrianglesArray.shape()[0]];
-  // Points = new T[PointsArray.shape()[0]];
-
-  // memcpy(Triangles, TrianglesArray.hostCopy(),
-  //        numTriangles * 3 * sizeof(mgard_x::SIZE));
-  // memcpy(Points, PointsArray.hostCopy(), numPoints * 3 * sizeof(T));
-
-  // // mgard_x::PrintSubarray("Triangles", mgard_x::SubArray(TrianglesArray));
-  // // mgard_x::PrintSubarray("Points", mgard_x::SubArray(PointsArray));
-
-  // std::string field_name = "test_field";
-  // vtkm::cont::DataSet ds_from_mc;
-  // std::vector<T> iso_data_vec(shape[0]*shape[1]*shape[2], iso_value);
-  // ds_from_mc.AddPointField(field_name, iso_data_vec);
-  // vtkm::cont::CellSetSingleType<> cellset;
-  // vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG> connectivity;
-  // connectivity.Allocate(TrianglesArray.shape()[0]);
-
-  // // std::cout << "connectivity.GetNumberOfValues() = " << connectivity.GetNumberOfValues() << "\n";
-
-  // vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>::WritePortalType writePortal = connectivity.WritePortal();
-  // for (vtkm::Id i = 0; i < numTriangles; i++) {
-  //   writePortal.Set(i*3, Triangles[i*3]);
-  //   writePortal.Set(i*3+1, Triangles[i*3+1]);
-  //   writePortal.Set(i*3+2, Triangles[i*3+2]);
-  // }
-
-  // cellset.Fill(numPoints,
-  //               vtkm::CELL_SHAPE_TRIANGLE, 3,
-  //               connectivity);
-  // ds_from_mc.SetCellSet(cellset);
-
-  // vtkm::cont::ArrayHandle<vtkm::Vec3f> coordinate_points;
-  // coordinate_points.Allocate(numPoints);
-  // for (vtkm::Id pointId = 0; pointId < numPoints; pointId++) {
-  //   vtkm::Vec3f point;
-  //   point[0] = Points[pointId*3];
-  //   point[1] = Points[pointId*3+1];
-  //   point[2] = Points[pointId*3+2];
-  //   coordinate_points.WritePortal().Set(pointId, point);
-  // }
-  // vtkm::cont::CoordinateSystem coordinate_system("cs", coordinate_points);
-  // ds_from_mc.AddCoordinateSystem(coordinate_system);
   std::string field_name = "test_field";
   vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
   vtkm_render(dataset, shape, field_name, "my_flying_edges");
@@ -574,8 +523,8 @@ int main(int argc, char *argv[]) {
       readfile(input_file.c_str(), data);
     }
     test_vtkm<3, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
-    // test_mine<3, float>(data, shape, (float)iso_value);
-    mgard_x::test<3, float>(data, shape, (float)tol, (float)iso_value);
+    test_mine<3, float>(data, shape, (float)iso_value);
+    // mgard_x::test<3, float>(data, shape, (float)tol, (float)iso_value);
   } else if (dt.compare("d") == 0) {
     double * data = NULL;
     if (std::string(input_file).compare("random") == 0) {
@@ -588,8 +537,8 @@ int main(int argc, char *argv[]) {
       readfile(input_file.c_str(), data);
     }
     test_vtkm<3, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
-    // test_mine<3, double>(data, shape, (float)iso_value);
-    mgard_x::test<3, double>(data, shape, (double)tol, (float)iso_value);
+    test_mine<3, double>(data, shape, (float)iso_value);
+    // mgard_x::test<3, double>(data, shape, (double)tol, (float)iso_value);
   } else {
     std::cout << "wrong data type.\n";
   }
