@@ -1081,8 +1081,10 @@ public:
     SIZE edgeCase = getEdgeCase(r, state.left, f, edges);
 
     init_voxelIds(r, f, edgeCase, axis_sum, edgeIds);
+
     // run along the trimmed voxels
-    for (SIZE i = state.left; i < state.right; ++i) {
+    // need state.right-1 since we are iterating through cells
+    for (SIZE i = state.left; i < state.right-1; ++i) {
       edgeCase = getEdgeCase(r, i, f, edges);
       SIZE numTris = GetNumberOfPrimitives(edgeCase);
       if (numTris > 0) {
@@ -1229,9 +1231,10 @@ public:
   MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, SubArray<3, T, DeviceType> v,
                T iso_value, Array<1, SIZE, DeviceType> &Triangles,
-               Array<1, T, DeviceType> &Points, int queue_idx) {
+               Array<1, T, DeviceType> &Points, double &time, int queue_idx) {
 
-    Timer t;
+    Timer t1, t2, t3, t4;
+    time = 0;
 
     const bool pitched = false;
 
@@ -1242,6 +1245,8 @@ public:
     Array<2, SIZE, DeviceType> cell_tri_count_array({nr - 1, nf - 1}, pitched);
     Array<1, SIZE, DeviceType> cell_tri_count_array_scan(
         {(nr - 1) * (nf - 1) + 1}, pitched);
+    axis_sum_array.memset(0);
+    cell_tri_count_array.memset(0);
 
     SubArray axis_sum(axis_sum_array);
     SubArray axis_min(axis_min_array);
@@ -1256,12 +1261,13 @@ public:
                                         axis_min, axis_max, edges, queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.start();
+    t1.start();
     DeviceAdapter<TaskType1, DeviceType>().Execute(task1);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.end();
-    t.print("Pass 1");
-    t.clear();
+    t1.end();
+    // t1.print("Pass 1");
+    time += t1.get();
+    t1.clear();
 
     // printf("After pass1\n");
     // PrintSubarray("v", SubArray(v));
@@ -1277,62 +1283,82 @@ public:
                           cell_tri_count, queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.start();
+    t2.start();
     DeviceAdapter<TaskType2, DeviceType>().Execute(task2);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.end();
-    t.print("Pass 2");
-    t.clear();
+    t2.end();
+    // t2.print("Pass 2");
+    time += t2.get();
+    t2.clear();
 
     // printf("After pass2\n");
     // PrintSubarray("axis_sum", SubArray(axis_sum).Linearize());
     // PrintSubarray("cell_tri_count", SubArray(cell_tri_count));
 
+    // t3.start();
+
+    SubArray<1, SIZE, DeviceType> cell_tri_count_liearized = cell_tri_count.Linearize();
+
+    // t3.end();
+    // t3.print("Pass 3-1");
+    // time += t3.get();
+    // t3.clear();
+    t3.start();
+    DeviceCollective<DeviceType>::ScanSumExtended((nr - 1) * (nf - 1), cell_tri_count_liearized, cell_tri_count_scan, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.start();
-
-    SubArray<1, SIZE, DeviceType> cell_tri_count_liearized =
-        cell_tri_count.Linearize();
-
-    DeviceCollective<DeviceType>::ScanSumExtended((nr - 1) * (nf - 1), cell_tri_count_liearized,
-                               cell_tri_count_scan, queue_idx);
+    t3.end();
+    // t3.print("Pass 3-2");
+    time += t3.get();
+    t3.clear();
+    // t3.start();
 
     SIZE numTris = 0;
-    MemoryManager<DeviceType>().Copy1D(
-        &numTris, cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
+    MemoryManager<DeviceType>().Copy1D(&numTris, cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+
+    // t3.end();
+    // t3.print("Pass 3-3");
+    // time += t3.get();
+    // t3.clear();
+    // t3.start();
 
     SubArray<1, SIZE, DeviceType> axis_sum_liearized = axis_sum.Linearize();
 
     Array<1, SIZE, DeviceType> newPointSize_array({1});
     SubArray<1, SIZE, DeviceType> newPointSize_subarray(newPointSize_array);
 
-    DeviceCollective<DeviceType>::Sum(nr * nf * 3, axis_sum_liearized, newPointSize_subarray,
-                   queue_idx);
+    // t3.end();
+    // t3.print("Pass 3-4");
+    // time += t3.get();
+    // t3.clear();
+    t3.start();
+    DeviceCollective<DeviceType>::Sum(nr * nf * 3, axis_sum_liearized, newPointSize_subarray, queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+    t3.end();
+    // t3.print("Pass 3-5");
+    time += t3.get();
+    t3.clear();
+    // t3.start();
 
     SIZE newPointSize = *(newPointSize_array.hostCopy());
 
-    DeviceCollective<DeviceType>::ScanSumExclusive(nr * nf * 3, axis_sum_liearized,
-                                axis_sum_liearized, queue_idx);
+    
+    t3.start();
+    DeviceCollective<DeviceType>::ScanSumExclusive(nr * nf * 3, axis_sum_liearized, axis_sum_liearized, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-
-    t.end();
-    t.print("Pass 3");
-    t.clear();
+    t3.end();
+    // t3.print("Pass 3-6");
+    time += t3.get();
+    t3.clear();
 
     // printf("After pass3\n");    
     // PrintSubarray("cell_tri_count_scan", SubArray(cell_tri_count_scan));
-    std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
-    std::cout << "mgard_x::FlyingEdges::numTris: " << numTris << "\n";
+    // std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
+    // std::cout << "mgard_x::FlyingEdges::numTris: " << numTris << "\n";
     // PrintSubarray("axis_sum_liearized", axis_sum_liearized);
 
     Triangles = Array<1, SIZE, DeviceType>({numTris * 3}, pitched);
     Points = Array<1, T, DeviceType>({newPointSize * 3}, pitched);
-
-    if (numTris == 0 || newPointSize == 0) {
-      printf("returing 0 from FlyingEdges\n");
-      return;
-    }
 
     SubArray<1, SIZE, DeviceType> triangle_topology(Triangles);
     SubArray<1, T, DeviceType> points(Points);
@@ -1345,14 +1371,17 @@ public:
         cell_tri_count_scan, edges, triangle_topology, points, queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t.start();
-    DeviceAdapter<TaskType4, DeviceType>().Execute(task4);
+    t4.start();
+    if (numTris != 0 && newPointSize != 0) {
+      DeviceAdapter<TaskType4, DeviceType>().Execute(task4);
+    }
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
-    t.end();
-    t.print("Pass 4");
-    t.clear();
+    t4.end();
+    // t4.print("Pass 4");
+    time += t4.get();
+    t4.clear();
 
     // printf("After pass4\n");
     // PrintSubarray("triangle_topology", triangle_topology);

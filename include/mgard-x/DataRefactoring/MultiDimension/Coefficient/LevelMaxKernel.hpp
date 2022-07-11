@@ -383,7 +383,6 @@ public:
     }
 
     DeviceRuntime<DeviceType>::SyncDevice();
-    std::cout << "After interleave\n";
 
     Array<1, T, DeviceType> result_array({1});
     SubArray result(result_array);

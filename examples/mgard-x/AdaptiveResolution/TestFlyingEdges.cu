@@ -266,10 +266,10 @@ void test_mine(std::vector<mgard_x::SIZE> shape, T *original_data, T iso_value,
 
   mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
   mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
-
+  double time;
   mgard_x::FlyingEdges<T, mgard_x::CUDA>().Execute(
       shape[0], shape[1], shape[2], mgard_x::SubArray<3, T, mgard_x::CUDA>(v),
-      iso_value, TrianglesArray, PointsArray, 0);
+      iso_value, TrianglesArray, PointsArray, time, 0);
 
   numTriangles = TrianglesArray.shape()[0] / 3;
   numPoints = PointsArray.shape()[0] / 3;
