@@ -150,10 +150,10 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   contour_filter.SetActiveField(field_name);
   contour_filter.SetFieldsToPass({ field_name });
   mgard_x::Timer t;
+  t.start();
   mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncDevice();
   vtkm::cont::DataSet outputData = contour_filter.Execute(dataSet);
   mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncDevice();
-  t.start();
   t.end();
   t.print("VTKM");
   t.clear();
@@ -181,12 +181,12 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
 
   mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
   mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
-
+  double time;
   mgard_x::FlyingEdges<T, mgard_x::CUDA>().Execute(
       shape[0], shape[1], shape[2], mgard_x::SubArray<3, T, mgard_x::CUDA>(v),
-      iso_value, TrianglesArray, PointsArray, 0);
+      iso_value, TrianglesArray, PointsArray, time, 0);
   mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncQueue(0);
-  // std::cout << "done mine\n";
+  printf("mgard_x::FlyingEdges: %f\n", time);
 
   std::string field_name = "test_field";
   vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
@@ -249,25 +249,26 @@ struct SurfaceDetect {
 };
 
 template <DIM D, typename T>
-void test(T * data, std::vector<SIZE> shape, T tol, T iso_value) {
+double test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T tol, T iso_value, bool debug) {
   T max_data = std::numeric_limits<T>::min();
   T min_data = std::numeric_limits<T>::max();
-  for (int i = 0; i < shape[2]; i++) {
+  T * data = in_array.hostCopy();
+  for (int i = 0; i < shape[0]; i++) {
     for (int j = 0; j < shape[1]; j++) {
-      for (int k = 0; k < shape[0]; k++) {
+      for (int k = 0; k < shape[2]; k++) {
         max_data = std::max(max_data, data[i*shape[1]*shape[0]+j*shape[0]+k]);
         min_data = std::min(min_data, data[i*shape[1]*shape[0]+j*shape[0]+k]);
       }
     }
   }
 
-  printf("max_data: %.10f, min_data: %.10f\n", max_data, min_data);
+  // printf("max_data: %.10f, min_data: %.10f\n", max_data, min_data);
 
-  std::cout << "Preparing data...";
+  // std::cout << "Preparing data...";
   //... load data into in_array_cpu
   Hierarchy<D, T, CUDA> hierarchy(shape);
-  Array<D, T, CUDA> in_array(shape);
-  in_array.load(data);
+  // Array<D, T, CUDA> in_array(shape);
+  // in_array.load(data);
   SubArray in_subarray(in_array);
 
   Array<D, T, CUDA> org_array = in_array;
@@ -308,18 +309,15 @@ void test(T * data, std::vector<SIZE> shape, T tol, T iso_value) {
     // }
   }
 
-
-
-  
-
   Array<1, T, CUDA> level_max({hierarchy.l_target+1});
   SubArray<1, T, CUDA> level_max_subarray(level_max);
 
-  std::cout << "Done\n";
+  // std::cout << "Done\n";
 
   // PrintSubarray("Input data", SubArray(org_array));
 
-  std::cout << "Decomposing with MGARD-X CUDA backend...\n";
+  // std::cout << "Decomposing with MGARD-X CUDA backend...\n";
+  multidim_refactoring_debug_print = debug;
   decompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target, 
                              level_max_subarray,
                              max_abs_coefficient_subarray, 0);
@@ -327,19 +325,38 @@ void test(T * data, std::vector<SIZE> shape, T tol, T iso_value) {
   DeviceRuntime<CUDA>::SyncQueue(0);
 
   // PrintSubarray("Decomposed data", in_subarray);
-  PrintSubarray("level_max", level_max_subarray);
+  // PrintSubarray("level_max", level_max_subarray);
   // for (int l = 0; l < hierarchy.l_target; l++) {
   //   PrintSubarray4D("max_abs_coefficient_subarray level = " + std::to_string(l), max_abs_coefficient_subarray[l]);
   // }
 
-  std::cout << "Done\n";
+  // std::cout << "Done\n";
 
-  std::cout << "Recomposing with MGARD-X CUDA backend...\n";
+  // std::cout << "Recomposing with MGARD-X CUDA backend...\n";
 
-  recompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target, 
+  multidim_refactoring_debug_print = debug;
+  Array<D, T, CUDA> result_data = recompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target, 
                iso_value, tol, level_max_subarray, max_abs_coefficient_subarray,
                refinement_flag_subarray, 0);
 
+  // printf("shape: %u %u %u\n", result_data.shape()[0], result_data.shape()[1], result_data.shape()[2]);
+  if (debug) {
+    PrintSubarray("result_data", SubArray(result_data));
+  }
+
+  {
+    // Run dense FlyingEdges
+    Array<1, SIZE, CUDA> TrianglesArray;
+    Array<1, T, CUDA> PointsArray;
+    double time;
+    FlyingEdges<T, CUDA>().Execute(
+        result_data.shape()[0], result_data.shape()[1], result_data.shape()[2], SubArray<D, T, CUDA>(result_data),
+        iso_value, TrianglesArray, PointsArray, time, 0);
+    DeviceRuntime<CUDA>::SyncQueue(0);
+    return time;
+  }
+
+  /*
   SubArray<1, SIZE, CUDA> * refinement_flag_linearized_subarray = new SubArray<1, SIZE, CUDA>[hierarchy.l_target+1];
   SIZE num_cell = 0;
   for (int l = hierarchy.l_target; l >=0 ; l--) {
@@ -412,9 +429,60 @@ void test(T * data, std::vector<SIZE> shape, T tol, T iso_value) {
   //     vtkm_render(dataset, shape, field_name, "my_render_output");
   //   }
   // }
+  */
 }
 
+template <DIM D, typename T>
+void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size, T tol, T iso_value) {
+
+  Array<D, T, CUDA> data_array(shape);
+  data_array.load(data);
+  SubArray data_subarray(data_array);
+
+  // PrintSubarray("data", data_subarray);
+  SIZE num_block_r = (shape[0]-1)/block_size+1;
+  SIZE num_block_c = (shape[1]-1)/block_size+1;
+  SIZE num_block_f = (shape[2]-1)/block_size+1;
+
+  Array<D, T, CUDA> * data_block = new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
+  double total_time = 0;
+  for (SIZE r = 0; r < num_block_r; r++) {
+    for (SIZE c = 0; c < num_block_c; c++) {
+      for (SIZE f = 0; f < num_block_f; f++) {
+        SIZE start_r = r * block_size;
+        SIZE block_size_r = std::min(block_size, shape[0]-start_r);
+        SIZE start_c = c * block_size;
+        SIZE block_size_c = std::min(block_size, shape[1]-start_c);
+        SIZE start_f = f * block_size;
+        SIZE block_size_f = std::min(block_size, shape[2]-start_f);
+        SIZE linearized_index = r * num_block_c * num_block_f + c * num_block_f + f;
+        std::vector<SIZE> block_shape{block_size_r, block_size_c, block_size_f};
+        data_block[linearized_index] = Array<D, T, CUDA>(block_shape);
+        SubArray data_block_src = data_subarray;
+        data_block_src.offset({start_f, start_c, start_r});
+        data_block_src.resize({block_size_f, block_size_c, block_size_r});
+        SubArray data_block_des(data_block[linearized_index]);
+        CopyND(data_block_src, data_block_des, 0);
+        DeviceRuntime<CUDA>::SyncQueue(0);
+
+
+        bool debug = false;
+        // printf("block %u ", linearized_index);
+        // PrintSubarray("data_block_src", data_block_src);
+        if (linearized_index == 0) {
+          debug = false;
+        } 
+        total_time += test(data_block[linearized_index], {block_size_r, block_size_c, block_size_f}, tol, iso_value, debug);
+      }
+    }
+  }
+  printf("mgard_x::FlyingEdges adapt res: %f\n", total_time);
 }
+
+} // end of namespace mgard_x
+
+
+
 
 
 bool require_arg(int argc, char *argv[], std::string option) {
@@ -483,6 +551,25 @@ double get_arg_double(int argc, char *argv[], std::string option) {
   return 0;
 }
 
+mgard_x::SIZE get_arg_int(int argc, char *argv[], std::string option) {
+  if (require_arg(argc, argv, option)) {
+    std::string arg;
+    int i;
+    for (i = 0; i < argc; i++) {
+      if (option.compare(std::string(argv[i])) == 0) {
+        arg = std::string(argv[i + 1]);
+      }
+    }
+    try {
+      mgard_x::SIZE d = std::stoi(arg);
+      return d;
+    } catch (std::invalid_argument const &e) {
+      std::cout << "illegal argument for option " + option + "\n";
+    }
+  }
+  return 0;
+}
+
 template <typename T> size_t readfile(const char *input_file, T *&in_buff) {
   std::cout << "Loading file: " << input_file << "\n";
   FILE *pFile;
@@ -501,10 +588,28 @@ template <typename T> size_t readfile(const char *input_file, T *&in_buff) {
   return lSize;
 }
 
+template <typename T>
+T * get_data(std::string input_file, size_t original_size) {
+  T * data = NULL;
+  if (std::string(input_file).compare("random") == 0) {
+    data = new T[original_size];
+    srand(7117);
+    for (size_t i = 0; i < original_size; i++) {
+      //data[i] = (T)rand() / RAND_MAX;
+      if (i < 2) data[i] = 1;
+      else data[i] = 0;
+    }
+  } else {
+    readfile(input_file.c_str(), data);
+  }
+  return data;
+}
+
 int main(int argc, char *argv[]) {
   std::string input_file = get_arg(argc, argv, "-i");
   std::string dt = get_arg(argc, argv, "-t");
   std::vector<mgard_x::SIZE> shape = get_arg_dims(argc, argv, "-n");
+  mgard_x::SIZE block_size = get_arg_int(argc, argv, "-b");
   double tol = get_arg_double(argc, argv, "-e");
   double iso_value = get_arg_double(argc, argv, "-v");
   size_t original_size = 1;
@@ -512,33 +617,16 @@ int main(int argc, char *argv[]) {
     original_size *= shape[i];
 
   if (dt.compare("s") == 0) {
-    float * data = NULL;
-    if (std::string(input_file).compare("random") == 0) {
-      data = new float[original_size];
-      srand(7117);
-      for (size_t i = 0; i < original_size; i++) {
-        data[i] = (float)rand() / RAND_MAX;
-      }
-    } else {
-      readfile(input_file.c_str(), data);
-    }
+    float * data = get_data<float>(input_file, original_size);
     test_vtkm<3, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, float>(data, shape, (float)iso_value);
-    // mgard_x::test<3, float>(data, shape, (float)tol, (float)iso_value);
+    mgard_x::test_adaptive_resolution<3, float>(data, shape, block_size, (float)tol, (float)iso_value);
   } else if (dt.compare("d") == 0) {
-    double * data = NULL;
-    if (std::string(input_file).compare("random") == 0) {
-      data = new double[original_size];
-      srand(7117);
-      for (size_t i = 0; i < original_size; i++) {
-        data[i] = (double)rand() / RAND_MAX;
-      }
-    } else {
-      readfile(input_file.c_str(), data);
-    }
+    double * data = get_data<double>(input_file, original_size);
     test_vtkm<3, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, double>(data, shape, (float)iso_value);
-    // mgard_x::test<3, double>(data, shape, (double)tol, (float)iso_value);
+    mgard_x::test_adaptive_resolution<3, double>(data, shape, block_size, (double)tol, (double)iso_value);
+
   } else {
     std::cout << "wrong data type.\n";
   }
