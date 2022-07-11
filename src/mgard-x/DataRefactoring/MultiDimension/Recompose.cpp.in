@@ -14,7 +14,7 @@ template void recompose<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target,
     int queue_idx);
 
-template void recompose_adaptive_resolution<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
+template Array<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> recompose_adaptive_resolution<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
                Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
                SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target, 
                @DATA_TYPE@ iso_value, @DATA_TYPE@ error_target,

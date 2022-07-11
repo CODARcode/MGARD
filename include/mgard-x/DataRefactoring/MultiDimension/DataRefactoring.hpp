@@ -309,7 +309,7 @@ T error_impact_to_error(SubArray<D, T, DeviceType> error_impact) {
 }
 
 template <DIM D, typename T, typename DeviceType>
-void recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
+Array<D, T, DeviceType> recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
                SubArray<D, T, DeviceType> &v, SIZE l_target, 
                T iso_value, T error_target,
                SubArray<1, T, DeviceType> level_max, 
@@ -341,9 +341,10 @@ void recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
 
   initialize_error_impact_budget(error_target, error_impact_budget);
 
-  PrintSubarray("error_impact_budget", error_impact_budget);
+  // PrintSubarray("error_impact_budget", error_impact_budget);
 
   // Corasest level is not copied since we always assume it is recomposed
+  // So we only copy 'l_target' instead of 'l_target+1' elements here.
   MemoryManager<DeviceType>::Copy1D(partial_recompose_error_impact.data(), level_max.data(),
                                     l_target, queue_idx);
   
@@ -358,6 +359,8 @@ void recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray<D, T, DeviceType> w_correction = w;
   SubArray<D, T, DeviceType> v_coarse = v;
 
+  T partial_recompose_error = 0;
+
   if constexpr (D <= 3) {
     if (multidim_refactoring_debug_print) {
       PrintSubarray("input of recomposition", v);
@@ -371,18 +374,39 @@ void recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
       prefix += std::to_string(hierarchy.shape[d]) + "_";
     // std::cout << prefix << std::endl;
 
-    for (int l = l_target - 1; l >= 0; l--) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      PrintSubarray("partial_recompose_error_impact", partial_recompose_error_impact);
-      T partial_recompose_error = error_impact_to_error(partial_recompose_error_impact);
-      std::cout << "level " << l+1 << " partial_recompose_error: " << partial_recompose_error << "\n";
+    if (multidim_refactoring_debug_print) {
+      PrintSubarray("v_fine before resize", v_fine);
+    }
 
+    v_fine.resize(hierarchy.shapes_vec[l_target]);
+
+    // if the partial recomposed data is already accurate enough, we do early return
+    partial_recompose_error = error_impact_to_error(partial_recompose_error_impact);
+    if (partial_recompose_error < error_target) {
+      std::vector<SIZE> result_data_shape = hierarchy.shapes_vec[l_target];
+      std::reverse(result_data_shape.begin(), result_data_shape.end());
+      Array<D, T, DeviceType> result_data_array(result_data_shape);
+      SubArray result_data(result_data_array);
+      CopyND(v_fine, result_data, queue_idx);
+      return result_data_array;
+    }
+    
+    for (int l = l_target - 1; l >= 0; l--) {
+      v_fine.resize(hierarchy.shapes_vec[l]);
       v_coarse.resize(hierarchy.shapes_vec[l + 1]);
+      if (multidim_refactoring_debug_print) {
+        PrintSubarray("input of recomposition", v);
+      }
+      DeviceRuntime<DeviceType>::SyncDevice();
+      // PrintSubarray("partial_recompose_error_impact", partial_recompose_error_impact);
+      partial_recompose_error = error_impact_to_error(partial_recompose_error_impact);
+      // std::cout << "level " << l+1 << " partial_recompose_error: " << partial_recompose_error << "\n";
+
       // Feature detection on coarse representation
 
-      SubArray<D, SIZE, DeviceType> refinement_flag_coarser = l+2 < l_target+1 ? refinement_flag[l+2] : SubArray<D, SIZE, DeviceType>();
-      EarlyFeatureDetector(v_coarse, partial_recompose_error, iso_value,
-                          refinement_flag_coarser, refinement_flag[l+1], queue_idx);
+      // SubArray<D, SIZE, DeviceType> refinement_flag_coarser = l+2 < l_target+1 ? refinement_flag[l+2] : SubArray<D, SIZE, DeviceType>();
+      // EarlyFeatureDetector(v_coarse, partial_recompose_error, iso_value,
+      //                     refinement_flag_coarser, refinement_flag[l+1], queue_idx);
 
       DeviceRuntime<DeviceType>::SyncDevice();
 
@@ -408,7 +432,9 @@ void recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
       //                      refinement_flag[l+1],
       //                      retrieved_coefficient, l, queue_idx);
 
+      // Retrieve all coefficients
       retrieved_coefficient = v_coeff;
+
       T zero = 0;
       MemoryManager<DeviceType>::Copy1D(partial_recompose_error_impact(l),
                                         &zero, 1, queue_idx);
@@ -427,22 +453,43 @@ void recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
 
       v_fine.resize(hierarchy.shapes_vec[l]);
       CopyND(w_fine, v_fine, queue_idx);
+
+      // if the partial recomposed data is already accurate enough, we do early return
+      if (partial_recompose_error < error_target) {
+        std::vector<SIZE> result_data_shape = hierarchy.shapes_vec[l_target];
+        std::reverse(result_data_shape.begin(), result_data_shape.end());
+        Array<D, T, DeviceType> result_data_array(result_data_shape);
+        SubArray result_data(result_data_array);
+        CopyND(v_fine, result_data, queue_idx);
+        return result_data_array;
+      }
+
       if (multidim_refactoring_debug_print) {
         PrintSubarray("output of recomposition", v);
       }
-    }
+    } // end of loop
 
-    PrintSubarray("partial_recompose_error_impact", partial_recompose_error_impact);
-    T partial_recompose_error = error_impact_to_error(partial_recompose_error_impact);
-    std::cout << "level " << 0 << " partial_recompose_error: " << partial_recompose_error << "\n";
-    EarlyFeatureDetector(v, partial_recompose_error, iso_value,
-                         refinement_flag[1], refinement_flag[0], queue_idx);
+    // printf("v_fine shape: %u %u %u\n", v_fine.getShape(0), v_fine.getShape(1), v_fine.getShape(2));   
+
+    // PrintSubarray("partial_recompose_error_impact", partial_recompose_error_impact);
+    partial_recompose_error = error_impact_to_error(partial_recompose_error_impact);
+    // std::cout << "level " << 0 << " partial_recompose_error: " << partial_recompose_error << "\n";
+    // EarlyFeatureDetector(v, partial_recompose_error, iso_value,
+    //                      refinement_flag[1], refinement_flag[0], queue_idx);
     DeviceRuntime<DeviceType>::SyncDevice();
     // PrintSubarray("v", v);
     // PrintSubarray("refinement_flag[0]", refinement_flag[0]);
+
+    // If there did not do early return, we need to return the full resolution data.
+    std::vector<SIZE> result_data_shape = hierarchy.shapes_vec[0];
+    std::reverse(result_data_shape.begin(), result_data_shape.end());
+    Array<D, T, DeviceType> result_data(result_data_shape);
+    result_data.load(v_fine.data());
+    return result_data;
   }
   if constexpr (D > 3) {
     std::cout << log::log_err << "recompose_adaptive_resolution does not support higher than 3D\n";
+    return Array<D, T, DeviceType>();
   }
   DeviceRuntime<DeviceType>::SyncDevice();
 }

@@ -91,7 +91,7 @@ void decompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
                SubArray<D+1, T, DeviceType> * max_coefficient, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
-void recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
+Array<D, T, DeviceType> recompose_adaptive_resolution(Hierarchy<D, T, DeviceType> &hierarchy,
                SubArray<D, T, DeviceType> &v, SIZE l_target, 
                T iso_value, T error_target,
                SubArray<1, T, DeviceType> level_max, 
