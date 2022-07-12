@@ -83,7 +83,10 @@ namespace mgard_x {
 #define MGARDX_MAX_NUM_WARPS_PER_TB 32
 #define MGARDX_NUM_SMs 68
 
-#define MGARDX_NUM_QUEUES 16
+// 16 Async queues + 1 Sync queue
+#define MGARDX_NUM_QUEUES 17
+#define MGARDX_NUM_ASYNC_QUEUES 16
+#define MGARDX_SYNCHRONIZED_QUEUE 16
 #define SIZE_MAX_VALUE 4294967295
 
 #define COPY 0

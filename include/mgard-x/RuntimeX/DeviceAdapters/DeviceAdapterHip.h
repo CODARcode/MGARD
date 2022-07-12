@@ -650,18 +650,25 @@ public:
   MemoryManager(){};
 
   template <typename T>
-  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n, int queue_idx) {
+  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     gpuErrchk(hipMalloc(&ptr, n * sizeof(converted_T)));
-    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
   }
 
   template <typename T>
   MGARDX_CONT static void MallocND(T *&ptr, SIZE n1, SIZE n2, SIZE &ld,
-                                   int queue_idx) {
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     if (ReduceMemoryFootprint) {
@@ -673,45 +680,60 @@ public:
                                (size_t)n2));
       ld = pitch / sizeof(converted_T);
     }
-    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
   }
 
   template <typename T>
-  MGARDX_CONT static void MallocManaged1D(T *&ptr, SIZE n, int queue_idx) {
+  MGARDX_CONT static void MallocManaged1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     gpuErrchk(hipMallocManaged(&ptr, n * sizeof(T)));
-    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
   }
 
-  template <typename T> MGARDX_CONT static void Free(T *ptr) {
-    // printf("MemoryManager.Free(%llu)\n", ptr);
+  template <typename T> MGARDX_CONT static void Free(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     if (ptr == NULL)
       return;
     gpuErrchk(hipFree(ptr));
-    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
   }
 
   template <typename T>
   MGARDX_CONT static void Copy1D(T *dst_ptr, const T *src_ptr, SIZE n,
-                                 int queue_idx) {
+                                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     gpuErrchk(hipMemcpyAsync(dst_ptr, src_ptr, n * sizeof(converted_T),
                              hipMemcpyDefault, stream));
-    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
   }
 
   template <typename T>
   MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
-                                 SIZE src_ld, SIZE n1, SIZE n2, int queue_idx) {
+                                 SIZE src_ld, SIZE n1, SIZE n2, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
@@ -727,47 +749,70 @@ public:
                                  src_ld * sizeof(converted_T),
                                  n1 * sizeof(converted_T), n2, hipMemcpyDefault,
                                  stream));
-      if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
-        gpuErrchk(hipDeviceSynchronize());
-      }
+    }
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(hipDeviceSynchronize());
     }
   }
 
   template <typename T>
-  MGARDX_CONT static void MallocHost(T *&ptr, SIZE n, int queue_idx) {
+  MGARDX_CONT static void MallocHost(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     gpuErrchk(hipMallocHost((void **)&ptr, n * sizeof(converted_T)));
-    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
   }
 
-  template <typename T> MGARDX_CONT static void FreeHost(T *ptr) {
+  template <typename T> MGARDX_CONT static void FreeHost(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     if (ptr == NULL)
       return;
     gpuErrchk(hipFreeHost(ptr));
-    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(hipDeviceSynchronize());
     }
   }
 
   template <typename T>
-  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value, int queue_idx) {
+  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     gpuErrchk(hipMemsetAsync(ptr, value, n * sizeof(converted_T), stream));
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
   }
 
   template <typename T>
   MGARDX_CONT static void MemsetND(T *ptr, SIZE ld, SIZE n1, SIZE n2, int value,
-                                   int queue_idx) {
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     gpuErrchk(hipMemset2DAsync(ptr, ld * sizeof(converted_T), value,
                                n1 * sizeof(converted_T), n2, stream));
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE || 
+      DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(hipDeviceSynchronize());
+    }
   }
 
   template <typename T> MGARDX_CONT static bool IsDevicePointer(T *ptr) {
@@ -1851,7 +1896,8 @@ public:
     }
 
     Timer timer;
-    if (DeviceRuntime<HIP>::TimingAllKernels ||
+    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+        DeviceRuntime<HIP>::TimingAllKernels ||
         AutoTuner<HIP>::ProfileKernels) {
       DeviceRuntime<HIP>::SyncDevice();
       timer.start();
@@ -1891,7 +1937,8 @@ public:
       ErrorSyncCheck(hipDeviceSynchronize(), task);
     }
 
-    if (DeviceRuntime<HIP>::TimingAllKernels ||
+    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+        DeviceRuntime<HIP>::TimingAllKernels ||
         AutoTuner<HIP>::ProfileKernels) {
       DeviceRuntime<HIP>::SyncDevice();
       timer.end();
@@ -1935,12 +1982,12 @@ public:
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
                               result.data(), n, stream, debug);
-    MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes,
+    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes,
                                   queue_idx);
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
                               result.data(), n, stream, debug);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>().Free(d_temp_storage);
+    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -1953,12 +2000,12 @@ public:
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
                                  result.data(), n, absMaxOp, 0, stream, debug);
-    MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes,
+    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes,
                                   queue_idx);
     hipcub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
                                  result.data(), n, absMaxOp, 0, stream, debug);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>().Free(d_temp_storage);
+    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -1975,13 +2022,13 @@ public:
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
                               transformed_input_iter, result.data(), n, stream,
                               debug);
-    MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes,
+    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes,
                                   queue_idx);
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
                               transformed_input_iter, result.data(), n, stream,
                               debug);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>().Free(d_temp_storage);
+    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -1993,13 +2040,13 @@ public:
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data(), n);
-    MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes,
+                                     v.data(), result.data(), n, stream, debug);
+    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes,
                                   queue_idx);
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data(), n);
+                                     v.data(), result.data(), n, stream, debug);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>().Free(d_temp_storage);
+    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -2011,13 +2058,13 @@ public:
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data(), n);
-    MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes,
+                                     v.data(), result.data(), n, stream, debug);
+    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes,
                                   queue_idx);
     hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data(), n);
+                                     v.data(), result.data(), n, stream, debug);
     DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>().Free(d_temp_storage);
+    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -2029,15 +2076,14 @@ public:
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data() + 1, n);
-    MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes,
+                                     v.data(), result.data() + 1, n, stream, debug);
+    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes,
                                   queue_idx);
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data() + 1, n);
+                                     v.data(), result.data() + 1, n, stream, debug);
     T zero = 0;
-    MemoryManager<HIP>().Copy1D(result.data(), &zero, 1, queue_idx);
-    DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>().Free(d_temp_storage);
+    MemoryManager<HIP>::Copy1D(result.data(), &zero, 1, queue_idx);
+    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename KeyT, typename ValueT>
@@ -2055,16 +2101,15 @@ public:
                                        keys.data(), out_keys.data(),
                                        values.data(), out_values.data(), n, 0,
                                        sizeof(KeyT) * 8, stream, debug);
-    MemoryManager<HIP>().Malloc1D(d_temp_storage, temp_storage_bytes,
+    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes,
                                   queue_idx);
     hipcub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
                                        keys.data(), out_keys.data(),
                                        values.data(), out_values.data(), n, 0,
                                        sizeof(KeyT) * 8, stream, debug);
-    MemoryManager<HIP>().Copy1D(keys.data(), out_keys.data(), n, queue_idx);
-    MemoryManager<HIP>().Copy1D(values.data(), out_values.data(), n, queue_idx);
-    DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>().Free(d_temp_storage);
+    MemoryManager<HIP>::Copy1D(keys.data(), out_keys.data(), n, queue_idx);
+    MemoryManager<HIP>::Copy1D(values.data(), out_values.data(), n, queue_idx);
+    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 };
 
