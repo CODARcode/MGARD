@@ -676,16 +676,23 @@ public:
   MemoryManager(){};
 
   template <typename T>
-  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n, int queue_idx) {
+  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     gpuErrchk(cudaMalloc(&ptr, n * sizeof(T)));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
   MGARDX_CONT static void MallocND(T *&ptr, SIZE n1, SIZE n2, SIZE &ld,
-                                   int queue_idx) {
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     if (ReduceMemoryFootprint) {
       gpuErrchk(cudaMalloc(&ptr, n1 * n2 * sizeof(T)));
       ld = n1;
@@ -694,81 +701,119 @@ public:
       gpuErrchk(cudaMallocPitch(&ptr, &pitch, n1 * sizeof(T), (size_t)n2));
       ld = pitch / sizeof(T);
     }
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
-  MGARDX_CONT static void MallocManaged1D(T *&ptr, SIZE n, int queue_idx) {
+  MGARDX_CONT static void MallocManaged1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     gpuErrchk(cudaMallocManaged(&ptr, n * sizeof(T)));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
-  template <typename T> MGARDX_CONT static void Free(T *ptr) {
-    // printf("MemoryManager.Free(%llu)\n", ptr);
+  template <typename T> MGARDX_CONT static void Free(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     if (ptr == NULL)
       return;
     gpuErrchk(cudaFree(ptr));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
   MGARDX_CONT static void Copy1D(T *dst_ptr, const T *src_ptr, SIZE n,
-                                 int queue_idx) {
+                                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     gpuErrchk(cudaMemcpyAsync(dst_ptr, src_ptr, n * sizeof(T),
                               cudaMemcpyDefault, stream));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
   MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
-                                 SIZE src_ld, SIZE n1, SIZE n2, int queue_idx) {
+                                 SIZE src_ld, SIZE n1, SIZE n2, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     gpuErrchk(cudaMemcpy2DAsync(dst_ptr, dst_ld * sizeof(T), src_ptr,
                                 src_ld * sizeof(T), n1 * sizeof(T), n2,
                                 cudaMemcpyDefault, stream));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
-  MGARDX_CONT static void MallocHost(T *&ptr, SIZE n, int queue_idx) {
+  MGARDX_CONT static void MallocHost(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     gpuErrchk(cudaMallocHost(&ptr, n * sizeof(T)));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
-  template <typename T> MGARDX_CONT static void FreeHost(T *ptr) {
+  template <typename T> MGARDX_CONT static void FreeHost(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     if (ptr == NULL)
       return;
     gpuErrchk(cudaFreeHost(ptr));
-    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
-  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value, int queue_idx) {
+  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     gpuErrchk(cudaMemsetAsync(ptr, value, n * sizeof(T), stream));
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
   }
 
   template <typename T>
   MGARDX_CONT static void MemsetND(T *ptr, SIZE ld, SIZE n1, SIZE n2, int value,
-                                   int queue_idx) {
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     gpuErrchk(cudaMemset2DAsync(ptr, ld * sizeof(T), value, n1 * sizeof(T), n2,
                                 stream));
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
+      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      gpuErrchk(cudaDeviceSynchronize());
+    }
   }
 
   template <typename T> MGARDX_CONT static bool IsDevicePointer(T *ptr) {
@@ -1916,7 +1961,8 @@ public:
     }
 
     Timer timer;
-    if (DeviceRuntime<CUDA>::TimingAllKernels ||
+    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+        DeviceRuntime<CUDA>::TimingAllKernels ||
         AutoTuner<CUDA>::ProfileKernels) {
       DeviceRuntime<CUDA>::SyncDevice();
       timer.start();
@@ -1956,7 +2002,8 @@ public:
       ErrorSyncCheck(cudaDeviceSynchronize(), task);
     }
 
-    if (DeviceRuntime<CUDA>::TimingAllKernels ||
+    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+        DeviceRuntime<CUDA>::TimingAllKernels ||
         AutoTuner<CUDA>::ProfileKernels) {
       DeviceRuntime<CUDA>::SyncDevice();
       timer.end();
@@ -2004,8 +2051,9 @@ public:
                                    queue_idx);
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
                            result.data(), n, stream, debug);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    MemoryManager<CUDA>().Free(d_temp_storage);
+    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
+    // once FreeAsync is available
+    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -2022,8 +2070,9 @@ public:
                                    queue_idx);
     cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
                               result.data(), n, absMaxOp, 0, stream, debug);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    MemoryManager<CUDA>().Free(d_temp_storage);
+    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
+    // once FreeAsync is available
+    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -2045,8 +2094,9 @@ public:
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
                            transformed_input_iter, result.data(), n, stream,
                            debug);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    MemoryManager<CUDA>().Free(d_temp_storage);
+    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
+    // once FreeAsync is available
+    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -2058,13 +2108,14 @@ public:
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data(), n);
+                                  result.data(), n, stream, debug);
     MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
                                    queue_idx);
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data(), n);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    MemoryManager<CUDA>().Free(d_temp_storage);
+                                  result.data(), n, stream, debug);
+    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
+    // once FreeAsync is available
+    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -2076,13 +2127,14 @@ public:
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data(), n);
+                                  result.data(), n, stream, debug);
     MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
                                    queue_idx);
     cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data(), n);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    MemoryManager<CUDA>().Free(d_temp_storage);
+                                  result.data(), n, stream, debug);
+    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
+    // once FreeAsync is available
+    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename T>
@@ -2094,15 +2146,16 @@ public:
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data() + 1, n);
+                                  result.data() + 1, n, stream, debug);
     MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
                                    queue_idx);
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data() + 1, n);
+                                  result.data() + 1, n, stream, debug);
     T zero = 0;
     MemoryManager<CUDA>().Copy1D(result.data(), &zero, 1, queue_idx);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    MemoryManager<CUDA>().Free(d_temp_storage);
+    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
+    // once FreeAsync is available
+    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename KeyT, typename ValueT>
@@ -2129,8 +2182,9 @@ public:
     MemoryManager<CUDA>().Copy1D(keys.data(), out_keys.data(), n, queue_idx);
     MemoryManager<CUDA>().Copy1D(values.data(), out_values.data(), n,
                                  queue_idx);
-    DeviceRuntime<CUDA>::SyncQueue(queue_idx);
-    MemoryManager<CUDA>().Free(d_temp_storage);
+    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
+    // once FreeAsync is available
+    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
   }
 
   template <typename KeyT, typename ValueT, typename BinaryOpType>

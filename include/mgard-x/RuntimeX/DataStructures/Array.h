@@ -15,18 +15,18 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType> class Array {
 public:
   Array();
-  Array(std::vector<SIZE> shape, bool pitched = true, bool managed = false);
-  void copy(const Array &array);
+  Array(std::vector<SIZE> shape, bool pitched = true, bool managed = false, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
+  void copy(const Array &array, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   void move(Array &&array);
-  void memset(int value);
-  void free();
+  void memset(int value, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
+  void free(int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   Array(const Array &array);
   Array &operator=(const Array &array);
   Array &operator=(Array &&array);
   Array(Array &&array);
   ~Array();
-  void load(const T *data, SIZE ld = 0);
-  T *hostCopy(bool keep = false);
+  void load(const T *data, SIZE ld = 0, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
+  T *hostCopy(bool keep = false, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   T *data(SIZE &ld);
   std::vector<SIZE> &shape();
   T *data();
