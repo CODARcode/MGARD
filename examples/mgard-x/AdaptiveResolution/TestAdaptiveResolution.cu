@@ -157,8 +157,6 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   t.end();
   t.print("VTKM");
   t.clear();
-  // std::cout << "outputData.GetNumberOfCells() = " << outputData.GetNumberOfCells() << "\n";
-  // std::cout << "outputData.GetNumberOfPoints() = " << outputData.GetNumberOfPoints() << "\n";
 
   std::cout << "vtkm::FlyingEdges::numPoints: " << outputData.GetNumberOfPoints() << "\n";
   std::cout << "vtkm::FlyingEdges::numTris: " << outputData.GetNumberOfCells() << "\n";
@@ -187,6 +185,8 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
       iso_value, TrianglesArray, PointsArray, time, 0);
   mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncQueue(0);
   printf("mgard_x::FlyingEdges: %f\n", time);
+  std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape()[0]/3 << "\n";
+  std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape()[0]/3 << "\n";
 
   std::string field_name = "test_field";
   vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
@@ -620,12 +620,12 @@ int main(int argc, char *argv[]) {
     float * data = get_data<float>(input_file, original_size);
     test_vtkm<3, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, float>(data, shape, (float)iso_value);
-    mgard_x::test_adaptive_resolution<3, float>(data, shape, block_size, (float)tol, (float)iso_value);
+    // mgard_x::test_adaptive_resolution<3, float>(data, shape, block_size, (float)tol, (float)iso_value);
   } else if (dt.compare("d") == 0) {
     double * data = get_data<double>(input_file, original_size);
     test_vtkm<3, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, double>(data, shape, (float)iso_value);
-    mgard_x::test_adaptive_resolution<3, double>(data, shape, block_size, (double)tol, (double)iso_value);
+    // mgard_x::test_adaptive_resolution<3, double>(data, shape, block_size, (double)tol, (double)iso_value);
 
   } else {
     std::cout << "wrong data type.\n";
