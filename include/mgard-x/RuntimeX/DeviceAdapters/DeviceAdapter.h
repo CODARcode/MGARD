@@ -190,33 +190,33 @@ public:
   MemoryManager(){};
 
   template <typename T>
-  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n, int queue_idx);
+  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
   template <typename T>
   MGARDX_CONT static void MallocND(T *&ptr, SIZE n1, SIZE n2, SIZE &ld,
-                                   int queue_idx);
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
-  template <typename T> MGARDX_CONT static void Free(T *ptr);
+  template <typename T> MGARDX_CONT static void Free(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
   template <typename T>
   MGARDX_CONT static void Copy1D(T *dst_ptr, const T *src_ptr, SIZE n,
-                                 int queue_idx);
+                                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
   template <typename T>
   MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
-                                 SIZE src_ld, SIZE n1, SIZE n2, int queue_idx);
+                                 SIZE src_ld, SIZE n1, SIZE n2, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
   template <typename T>
-  MGARDX_CONT static void MallocHost(T *&ptr, SIZE n, int queue_idx);
+  MGARDX_CONT static void MallocHost(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
-  template <typename T> MGARDX_CONT static void FreeHost(T *ptr);
+  template <typename T> MGARDX_CONT static void FreeHost(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
   template <typename T>
-  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value, int queue_idx);
+  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
   template <typename T>
   MGARDX_CONT static void MemsetND(T *ptr, SIZE ld, SIZE n1, SIZE n2, int value,
-                                   int queue_idx);
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
   template <typename T> MGARDX_CONT static bool IsDevicePointer(T *ptr);
 
