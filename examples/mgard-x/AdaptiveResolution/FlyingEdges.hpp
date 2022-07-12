@@ -627,23 +627,25 @@ template <typename DeviceType> struct Pass4TrimState {
 };
 
 template <typename DeviceType>
-MGARDX_EXEC void init_voxelIds(SIZE r, SIZE f, SIZE edgeCase,
-                               SubArray<3, SIZE, DeviceType> &axis_sum,
+MGARDX_EXEC void init_voxelIds(SIZE nr, SIZE nf, SIZE r, SIZE f, SIZE edgeCase,
+                               SubArray<1, SIZE, DeviceType> &axis_sum_scan,
                                SIZE *edgeIds) {
+  SIZE ld1 = 3;
+  SIZE ld2 = nf * 3;
   SIZE const *edgeUses = GetEdgeUses(edgeCase);
-  edgeIds[0] = *axis_sum(r, f, 1); // x-edges
-  edgeIds[1] = *axis_sum(r, f + 1, 1);
-  edgeIds[2] = *axis_sum(r + 1, f, 1);
-  edgeIds[3] = *axis_sum(r + 1, f + 1, 1);
+  edgeIds[0] = *axis_sum_scan(r       * ld2 + f       * ld1 + 1); // x-edges
+  edgeIds[1] = *axis_sum_scan(r       * ld2 + (f + 1) * ld1 + 1);
+  edgeIds[2] = *axis_sum_scan((r + 1) * ld2 + f       * ld1 + 1);
+  edgeIds[3] = *axis_sum_scan((r + 1) * ld2 + (f + 1) * ld1 + 1);
 
-  edgeIds[4] = *axis_sum(r, f, 0); // y-edges
+  edgeIds[4] = *axis_sum_scan(r       * ld2 + f       * ld1 + 0); // y-edges
   edgeIds[5] = edgeIds[4] + edgeUses[4];
-  edgeIds[6] = *axis_sum(r + 1, f, 0);
+  edgeIds[6] = *axis_sum_scan((r + 1) * ld2 + f       * ld1 + 0);
   edgeIds[7] = edgeIds[6] + edgeUses[6];
 
-  edgeIds[8] = *axis_sum(r, f, 2); // z-edges
+  edgeIds[8] = *axis_sum_scan(r       * ld2 + f       * ld1 + 2); // z-edges
   edgeIds[9] = edgeIds[8] + edgeUses[8];
-  edgeIds[10] = *axis_sum(r, f + 1, 2);
+  edgeIds[10] = *axis_sum_scan(r      * ld2 + (f + 1) * ld1 + 2);
   edgeIds[11] = edgeIds[10] + edgeUses[10];
 }
 
@@ -834,6 +836,7 @@ MGARDX_EXEC void Generate(SIZE f, SIZE c, SIZE r, SIZE *boundaryStatus,
 template <typename T, typename DeviceType>
 class Pass1Functor : public Functor<DeviceType> {
 public:
+  MGARDX_CONT Pass1Functor() {}
   MGARDX_CONT Pass1Functor(SIZE nr, SIZE nc, SIZE nf,
                            SubArray<3, T, DeviceType> v, T iso_value,
                            SubArray<3, SIZE, DeviceType> axis_sum,
@@ -917,6 +920,7 @@ private:
 template <typename T, typename DeviceType>
 class Pass2Functor : public Functor<DeviceType> {
 public:
+  MGARDX_CONT Pass2Functor() {}
   MGARDX_CONT Pass2Functor(SIZE nr, SIZE nc, SIZE nf,
                            SubArray<3, SIZE, DeviceType> axis_sum,
                            SubArray<2, SIZE, DeviceType> axis_min,
@@ -1039,16 +1043,17 @@ private:
 template <typename T, typename DeviceType>
 class Pass4Functor : public Functor<DeviceType> {
 public:
+  MGARDX_CONT Pass4Functor() {}
   MGARDX_CONT Pass4Functor(SIZE nr, SIZE nc, SIZE nf,
                            SubArray<3, T, DeviceType> v, T iso_value,
-                           SubArray<3, SIZE, DeviceType> axis_sum,
+                           SubArray<1, SIZE, DeviceType> axis_sum_scan,
                            SubArray<2, SIZE, DeviceType> axis_min,
                            SubArray<2, SIZE, DeviceType> axis_max,
                            SubArray<1, SIZE, DeviceType> cell_tri_count_scan,
                            SubArray<3, SIZE, DeviceType> edges,
                            SubArray<1, SIZE, DeviceType> triangle_topology,
                            SubArray<1, T, DeviceType> points)
-      : nr(nr), nc(nc), nf(nf), v(v), iso_value(iso_value), axis_sum(axis_sum),
+      : nr(nr), nc(nc), nf(nf), v(v), iso_value(iso_value), axis_sum_scan(axis_sum_scan),
         axis_min(axis_min), axis_max(axis_max),
         cell_tri_count_scan(cell_tri_count_scan), edges(edges),
         triangle_topology(triangle_topology), points(points) {
@@ -1080,7 +1085,7 @@ public:
     SIZE edgeIds[12];
     SIZE edgeCase = getEdgeCase(r, state.left, f, edges);
 
-    init_voxelIds(r, f, edgeCase, axis_sum, edgeIds);
+    init_voxelIds(nr, nf, r, f, edgeCase, axis_sum_scan, edgeIds);
 
     // run along the trimmed voxels
     // need state.right-1 since we are iterating through cells
@@ -1120,7 +1125,7 @@ private:
   SIZE nr, nc, nf;
   SubArray<3, T, DeviceType> v;
   T iso_value;
-  SubArray<3, SIZE, DeviceType> axis_sum;
+  SubArray<1, SIZE, DeviceType> axis_sum_scan;
   SubArray<2, SIZE, DeviceType> axis_min;
   SubArray<2, SIZE, DeviceType> axis_max;
   SubArray<3, SIZE, DeviceType> edges;
@@ -1198,7 +1203,7 @@ public:
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<Pass4Functor<T, DeviceType>>
   GenTask4(SIZE nr, SIZE nc, SIZE nf, SubArray<3, T, DeviceType> v, T iso_value,
-           SubArray<3, SIZE, DeviceType> axis_sum,
+           SubArray<1, SIZE, DeviceType> axis_sum_scan,
            SubArray<2, SIZE, DeviceType> axis_min,
            SubArray<2, SIZE, DeviceType> axis_max,
            SubArray<1, SIZE, DeviceType> cell_tri_count_scan,
@@ -1206,7 +1211,7 @@ public:
            SubArray<1, SIZE, DeviceType> triangle_topology,
            SubArray<1, T, DeviceType> points, int queue_idx) {
     using FunctorType = Pass4Functor<T, DeviceType>;
-    FunctorType functor(nr, nc, nf, v, iso_value, axis_sum, axis_min, axis_max,
+    FunctorType functor(nr, nc, nf, v, iso_value, axis_sum_scan, axis_min, axis_max,
                         cell_tri_count_scan, edges, triangle_topology, points);
 
     SIZE total_thread_z = 1;
@@ -1239,6 +1244,7 @@ public:
     const bool pitched = false;
 
     Array<3, SIZE, DeviceType> axis_sum_array({nr, nf, 3}, pitched);
+    Array<1, SIZE, DeviceType> axis_sum_array_scan({nr * nf * 3 + 1}, pitched);
     Array<2, SIZE, DeviceType> axis_min_array({nr, nf}, pitched);
     Array<2, SIZE, DeviceType> axis_max_array({nr, nf}, pitched);
     Array<3, SIZE, DeviceType> edges_array({nr, nc, nf}, pitched);
@@ -1249,6 +1255,7 @@ public:
     cell_tri_count_array.memset(0);
 
     SubArray axis_sum(axis_sum_array);
+    SubArray axis_sum_scan(axis_sum_array_scan);
     SubArray axis_min(axis_min_array);
     SubArray axis_max(axis_max_array);
     SubArray edges(edges_array);
@@ -1297,13 +1304,18 @@ public:
 
     // t3.start();
 
+    SubArray<1, SIZE, DeviceType> axis_sum_liearized = axis_sum.Linearize();
     SubArray<1, SIZE, DeviceType> cell_tri_count_liearized = cell_tri_count.Linearize();
-
+    Array<1, SIZE, DeviceType> newPointSize_array({1});
+    SubArray<1, SIZE, DeviceType> newPointSize_subarray(newPointSize_array);
+    SIZE numTris = 0;
+    SIZE newPointSize = 0;
     // t3.end();
     // t3.print("Pass 3-1");
     // time += t3.get();
     // t3.clear();
     t3.start();
+    DeviceCollective<DeviceType>::ScanSumExtended(nr * nf * 3, axis_sum_liearized, axis_sum_scan, queue_idx);
     DeviceCollective<DeviceType>::ScanSumExtended((nr - 1) * (nf - 1), cell_tri_count_liearized, cell_tri_count_scan, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     t3.end();
@@ -1312,45 +1324,9 @@ public:
     t3.clear();
     // t3.start();
 
-    SIZE numTris = 0;
+    MemoryManager<DeviceType>().Copy1D(&newPointSize, axis_sum_scan(nr * nf * 3), 1, queue_idx);
     MemoryManager<DeviceType>().Copy1D(&numTris, cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-
-    // t3.end();
-    // t3.print("Pass 3-3");
-    // time += t3.get();
-    // t3.clear();
-    // t3.start();
-
-    SubArray<1, SIZE, DeviceType> axis_sum_liearized = axis_sum.Linearize();
-
-    Array<1, SIZE, DeviceType> newPointSize_array({1});
-    SubArray<1, SIZE, DeviceType> newPointSize_subarray(newPointSize_array);
-
-    // t3.end();
-    // t3.print("Pass 3-4");
-    // time += t3.get();
-    // t3.clear();
-    t3.start();
-    DeviceCollective<DeviceType>::Sum(nr * nf * 3, axis_sum_liearized, newPointSize_subarray, queue_idx);
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t3.end();
-    // t3.print("Pass 3-5");
-    time += t3.get();
-    t3.clear();
-    // t3.start();
-
-    SIZE newPointSize = *(newPointSize_array.hostCopy());
-
-    
-    t3.start();
-    DeviceCollective<DeviceType>::ScanSumExclusive(nr * nf * 3, axis_sum_liearized, axis_sum_liearized, queue_idx);
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    t3.end();
-    // t3.print("Pass 3-6");
-    time += t3.get();
-    t3.clear();
-
     // printf("After pass3\n");    
     // PrintSubarray("cell_tri_count_scan", SubArray(cell_tri_count_scan));
     // std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
@@ -1367,7 +1343,7 @@ public:
     using FunctorType4 = Pass4Functor<T, DeviceType>;
     using TaskType4 = Task<FunctorType4>;
     TaskType4 task4 = GenTask4<1, 16, 16>(
-        nr, nc, nf, v, iso_value, axis_sum, axis_min, axis_max,
+        nr, nc, nf, v, iso_value, axis_sum_scan, axis_min, axis_max,
         cell_tri_count_scan, edges, triangle_topology, points, queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
