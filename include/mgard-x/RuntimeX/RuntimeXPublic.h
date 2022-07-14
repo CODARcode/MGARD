@@ -4,6 +4,8 @@
  * Author: Jieyang Chen (chenj3@ornl.gov)
  * Date: March 17, 2022
  */
+#include "MGARDXConfig.h"
+
 #include "DataTypes.h"
 
 #include "DataStructures/Array.h"

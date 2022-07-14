@@ -5,8 +5,6 @@
  * Date: March 17, 2022
  */
 
-#include "MGARDXConfig.h"
-
 #include "RuntimeXPublic.h"
 
 #include "DataTypes.h"

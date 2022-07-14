@@ -5,7 +5,6 @@
  * Date: March 17, 2022
  */
 
-#include "MGARDXConfig.h"
 #include "mgard-x/RuntimeX/RuntimeXPublic.h"
 #include "mgard-x/Utilities/Types.h"
 #include <cstdint>
