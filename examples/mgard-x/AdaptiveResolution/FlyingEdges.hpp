@@ -31,13 +31,13 @@ MGARDX_EXEC bool computeTrimBounds(SIZE r, SIZE f, SIZE rightMax,
   SIZE axis_maxs[4] = {*axis_max(r, f), *axis_max(r, f + 1),
                        *axis_max(r + 1, f + 1), *axis_max(r + 1, f)};
 
-  left = min(axis_mins[0], axis_mins[1]);
-  left = min(left, axis_mins[2]);
-  left = min(left, axis_mins[3]);
+  left = Math<DeviceType>::Min(axis_mins[0], axis_mins[1]);
+  left = Math<DeviceType>::Min(left, axis_mins[2]);
+  left = Math<DeviceType>::Min(left, axis_mins[3]);
 
-  right = max(axis_maxs[0], axis_maxs[1]);
-  right = max(right, axis_maxs[2]);
-  right = max(right, axis_maxs[3]);
+  right = Math<DeviceType>::Max(axis_maxs[0], axis_maxs[1]);
+  right = Math<DeviceType>::Max(right, axis_maxs[2]);
+  right = Math<DeviceType>::Max(right, axis_maxs[3]);
 
   if (left >= rightMax && right == 0) {
     // verify that we have nothing to generate and early terminate.
