@@ -130,7 +130,6 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   vtkm::cont::ScopedRuntimeDeviceTracker(vtkm::cont::DeviceAdapterTagCuda{});
   vtkm::cont::DataSet dataSet;
   vtkm::cont::DataSetBuilderUniform dataSetBuilder;
-  vtkm::cont::DataSetFieldAdd dsf;
   if (D == 2) shape.push_back(1);
   vtkm::Id3 dims(shape[2], shape[1], shape[0]);
   vtkm::Id3 org(0,0,0);
@@ -141,8 +140,8 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
     data_vec[i] = data[i];
   }
   std::string field_name = "test_field";
-  dsf.AddPointField(dataSet, field_name, data_vec);
-  vtkm::filter::Contour contour_filter;
+  dataSet.AddPointField(field_name, data_vec);
+  vtkm::filter::contour::Contour contour_filter;
   contour_filter.SetGenerateNormals(true);
   contour_filter.SetMergeDuplicatePoints(false);
   contour_filter.SetIsoValue(0, iso_value);
