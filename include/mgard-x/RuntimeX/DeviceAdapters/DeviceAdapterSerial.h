@@ -1165,25 +1165,37 @@ public:
   MGARDX_CONT static void ScanSumInclusive(SIZE n, SubArray<1, T, SERIAL> &v,
                                            SubArray<1, T, SERIAL> &result,
                                            int queue_idx) {
-    // std::inclusive_scan(v(0), v(n), result(0));
-    std::cout << log::log_err << "ScanSumInclusive<SERIAL> not implemented.\n";
+    // Need gcc 9 and c++17
+#if (__GNUC__ >= 9) 
+    std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
+#else
+    std::cout << log::log_err << "Please recompile with GCC 9+ to use ScanSumInclusive<SERIAL>.\n";
+#endif
   }
 
   template <typename T>
   MGARDX_CONT static void ScanSumExclusive(SIZE n, SubArray<1, T, SERIAL> &v,
                                            SubArray<1, T, SERIAL> &result,
                                            int queue_idx) {
-    // std::exclusive_scan(v(0), v(n), result(0));
-    std::cout << log::log_err << "ScanSumExclusive<SERIAL> not implemented.\n";
+    // Need gcc 9 and c++17
+#if (__GNUC__ >= 9) 
+    std::exclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
+#else
+    std::cout << log::log_err << "Please recompile with GCC 9+ to use ScanSumExclusive<SERIAL>.\n";
+#endif
   }
 
   template <typename T>
   MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, SERIAL> &v,
                                           SubArray<1, T, SERIAL> &result,
                                           int queue_idx) {
-    // std::inclusive_scan(v(0), v(n), result(1));
-    // result(0) = 0;
-    std::cout << log::log_err << "ScanSumExtended<SERIAL> not implemented.\n";
+    // Need gcc 9 and c++17
+#if (__GNUC__ >= 9) 
+    std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)1));
+    *result((IDX)0) = 0;
+#else
+    std::cout << log::log_err << "Please recompile with GCC 9+ to use ScanSumExtended<SERIAL>.\n";
+#endif
   }
 
   template <typename KeyT, typename ValueT>
