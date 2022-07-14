@@ -201,6 +201,8 @@ bool operator!=(const RangeSlice<It> &a, const RangeSlice<It> &b) {
   return !operator==(a, b);
 }
 
+#ifndef __NVCC__
+
 template <typename T, std::size_t N>
 CartesianProduct<T, N>::CartesianProduct(const std::array<T, N> factors)
     : factors(factors) {
@@ -324,6 +326,8 @@ typename CartesianProduct<T, N>::iterator::reference
   }
   return value;
 }
+
+#endif
 
 template <std::size_t N>
 void check_dimension_index_bounds(const std::size_t dimension) {

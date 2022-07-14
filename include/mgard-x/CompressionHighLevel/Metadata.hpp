@@ -469,7 +469,15 @@ private:
       mgard::pb::Quantization &quantization = *header.mutable_quantization();
       quantization.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
       quantization.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
-      quantization.set_type(mgard::pb::Quantization::INT64_T);
+      if (std::is_same<QUANTIZED_INT, std::int8_t>::value) {
+        quantization.set_type(mgard::pb::Quantization::INT8_T);
+      } else if (std::is_same<QUANTIZED_INT, std::int16_t>::value) {
+        quantization.set_type(mgard::pb::Quantization::INT16_T);
+      } else if (std::is_same<QUANTIZED_INT, std::int32_t>::value) {
+        quantization.set_type(mgard::pb::Quantization::INT32_T);
+      } else if (std::is_same<QUANTIZED_INT, std::int64_t>::value) {
+        quantization.set_type(mgard::pb::Quantization::INT64_T);
+      }
       quantization.set_big_endian(big_endian<std::int64_t>());
       if (big_endian<std::int64_t>()) {
         etype = endiness_type::Big_Endian;
@@ -710,7 +718,15 @@ private:
              mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
       assert(quantization.bin_widths() ==
              mgard::pb::Quantization::PER_COEFFICIENT);
-      assert(quantization.type() == mgard::pb::Quantization::INT64_T);
+      if (std::is_same<QUANTIZED_INT, std::int8_t>::value) {
+        assert(quantization.type() == mgard::pb::Quantization::INT8_T);
+      } else if (std::is_same<QUANTIZED_INT, std::int16_t>::value) {
+        assert(quantization.type() == mgard::pb::Quantization::INT16_T);
+      } else if (std::is_same<QUANTIZED_INT, std::int32_t>::value) {
+        assert(quantization.type() == mgard::pb::Quantization::INT32_T);
+      } else if (std::is_same<QUANTIZED_INT, std::int64_t>::value) {
+        assert(quantization.type() == mgard::pb::Quantization::INT64_T);
+      }
       assert(quantization.big_endian() == big_endian<std::int64_t>());
       if (big_endian<std::int64_t>()) {
         etype = endiness_type::Big_Endian;
