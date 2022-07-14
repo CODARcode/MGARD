@@ -13,12 +13,16 @@ set -e
 install_dir=$(pwd)/../../../install-cuda-turing
 vtkm_dir=/home/jieyang/dev/vtkm-release/install/lib/cmake/vtkm-1.7
 
-# rm -rf build
-# mkdir build 
+rm -rf build
+mkdir build 
 cmake -S .  -B ./build \
-	    -Dmgard_ROOT=${install_dir}\
-	    -DCMAKE_CUDA_ARCHITECTURES=75\
-	    -DCMAKE_PREFIX_PATH="${install_dir}"\
-	    -DVTKm_DIR=${vtkm_dir}
-	  
+      -Dmgard_ROOT=${install_dir}\
+      -DCMAKE_CUDA_ARCHITECTURES=75\
+      -DCMAKE_PREFIX_PATH="${install_dir}"\
+      -DCMAKE_C_COMPILER=gcc-9\
+      -DCMAKE_CXX_COMPILER=g++-9\
+      -DCMAKE_CUDA_COMPILER=nvcc\
+      -DCMAKE_CUDA_HOST_COMPILER=g++-9\
+      -DVTKm_DIR=${vtkm_dir}
+    
 cmake --build ./build --parallel 
