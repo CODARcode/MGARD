@@ -297,14 +297,16 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     for (int i = 3; i < D; i++) {
       tmp.push_back(i);
     }
+    // Extra padding needed in for loop below.
+    tmp.push_back(0);
     unprocessed_n = new DIM[tmp.size()];
 
     //+1 is used for storing empty status
     for (int d = 0; d < (int)D - 3 + 1; d++) {
+      tmp.pop_back();
       unprocessed_n[d] = tmp.size();
       unprocessed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
       unprocessed_dims[d].load(tmp.data());
-      tmp.pop_back();
     }
   }
 
