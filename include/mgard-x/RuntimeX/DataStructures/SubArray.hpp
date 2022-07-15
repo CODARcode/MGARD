@@ -222,7 +222,7 @@ MGARDX_CONT SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array,
     this->_ldvs[d] = array.ld()[d];
   }
   this->lddv1 = this->_ldvs[0];
-  this->lddv2 = this->_ldvs[1];
+  this->lddv2 = (D > 1) ? this->_ldvs[1] : 1;
   if (get_host_pointer) {
     this->v = array.hostCopy();
     this->has_host_pointer = true;
@@ -241,7 +241,7 @@ MGARDX_CONT SubArray<D, T, DeviceType>::SubArray(std::vector<SIZE> shape,
   }
 
   this->lddv1 = this->_ldvs[0];
-  this->lddv2 = this->_ldvs[1];
+  this->lddv2 = (D > 1) ? this->_ldvs[1] : 1;
 }
 
 template <DIM D, typename T, typename DeviceType>
