@@ -194,7 +194,7 @@ public:
   void Execute(DIM current_dim, SubArray<1, T, DeviceType> ratio,
                SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
                SubArray<D, T, DeviceType> coeff, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(coeff.getShape(0)) - 1);
+    int range_l = std::min(6, (int)std::log2(coeff.getShape(0)));
     int prec = TypeToIdx<T>();
     int config =
         AutoTuner<DeviceType>::autoTuningTable.gpk_reo_nd[prec][range_l];
