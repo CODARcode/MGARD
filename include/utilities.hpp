@@ -293,6 +293,8 @@ bool operator==(const RangeSlice<It> &a, const RangeSlice<It> &b);
 template <typename It>
 bool operator!=(const RangeSlice<It> &a, const RangeSlice<It> &b);
 
+#ifndef __NVCC__
+
 //! Mimic Python's `itertools.product`. Allow iteration over the Cartesian
 //! product of a collection of ranges.
 //!
@@ -410,6 +412,8 @@ private:
   //! Position in the Cartesian product.
   std::array<T_iterator, N> inner;
 };
+
+#endif
 
 //! Check that a dimension index is in bounds.
 //!
