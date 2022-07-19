@@ -82,6 +82,11 @@ template <typename Int> bool big_endian();
 //!\return `Dataset::Type` corresponding to `Real`.
 template <typename Real> pb::Dataset::Type type_to_dataset_type();
 
+//! Return the `Quantization::Type` value corrresponding to an integral type.
+//!
+//!\return `Quantization::Type` corresponding to `Int`.
+template <typename Int> pb::Quantization::Type type_to_quantization_type();
+
 //! Allocate a quantization buffer of the proper alignment and size.
 //!
 //!\param header Self-describing dataset header.

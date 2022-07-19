@@ -180,6 +180,17 @@ TEST_CASE("dataset types", "[format]") {
   REQUIRE(mgard::type_to_dataset_type<double>() == mgard::pb::Dataset::DOUBLE);
 }
 
+TEST_CASE("quantization types", "[format]") {
+  REQUIRE(mgard::type_to_quantization_type<std::int8_t>() ==
+          mgard::pb::Quantization::INT8_T);
+  REQUIRE(mgard::type_to_quantization_type<std::int16_t>() ==
+          mgard::pb::Quantization::INT16_T);
+  REQUIRE(mgard::type_to_quantization_type<std::int32_t>() ==
+          mgard::pb::Quantization::INT32_T);
+  REQUIRE(mgard::type_to_quantization_type<std::int64_t>() ==
+          mgard::pb::Quantization::INT64_T);
+}
+
 namespace {
 
 void test_quantization_buffer(const mgard::pb::Quantization::Type type,

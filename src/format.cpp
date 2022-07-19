@@ -82,6 +82,22 @@ template <> pb::Dataset::Type type_to_dataset_type<double>() {
   return pb::Dataset::DOUBLE;
 }
 
+template <> pb::Quantization::Type type_to_quantization_type<std::int8_t>() {
+  return pb::Quantization::INT8_T;
+}
+
+template <> pb::Quantization::Type type_to_quantization_type<std::int16_t>() {
+  return pb::Quantization::INT16_T;
+}
+
+template <> pb::Quantization::Type type_to_quantization_type<std::int32_t>() {
+  return pb::Quantization::INT32_T;
+}
+
+template <> pb::Quantization::Type type_to_quantization_type<std::int64_t>() {
+  return pb::Quantization::INT64_T;
+}
+
 MemoryBuffer<unsigned char> quantization_buffer(const pb::Header &header,
                                                 const std::size_t ndof) {
   static_assert(CHAR_BIT == 8, "unexpected number of bits in a byte");
