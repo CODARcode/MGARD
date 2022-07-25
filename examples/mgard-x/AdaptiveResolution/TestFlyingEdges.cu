@@ -179,12 +179,12 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
 
   mgard_x::Array<1, mgard_x::SIZE, DeviceType> TrianglesArray;
   mgard_x::Array<1, T, DeviceType> PointsArray;
-  double time;
-  mgard_x::FlyingEdges<T, DeviceType>().Execute(
+  double pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0;
+  mgard_x::flying_edges::FlyingEdges<T, DeviceType>().Execute(
       shape[0], shape[1], shape[2], mgard_x::SubArray<3, T, DeviceType>(v),
-      iso_value, TrianglesArray, PointsArray, time, 0);
+      iso_value, TrianglesArray, PointsArray, pass1_time, pass2_time, pass3_time, pass4_time, 0);
   mgard_x::DeviceRuntime<DeviceType>::SyncQueue(0);
-  printf("mgard_x::FlyingEdges: %f\n", time);
+  printf("mgard_x::FlyingEdges: %f\n", pass1_time + pass2_time + pass3_time + pass4_time);
   std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape()[0]/3 << "\n";
   std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape()[0]/3 << "\n";
 

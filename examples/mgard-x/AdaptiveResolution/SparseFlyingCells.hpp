@@ -31,9 +31,9 @@ MGARDX_EXEC void InterpolateEdge(SIZE edgeNum,
   SIZE writeIndex = edgeIds[edgeNum] * 3;
     // printf("writeIndex: %u\n", writeIndex); 
 
-  SIZE const *verts = GetVertMap(edgeNum);
-  SIZE const *offsets0 = GetVertOffsets(verts[0]);
-  SIZE const *offsets1 = GetVertOffsets(verts[1]);
+  SIZE const *verts = flying_edges::GetVertMap(edgeNum);
+  SIZE const *offsets0 = flying_edges::GetVertOffsets(verts[0]);
+  SIZE const *offsets1 = flying_edges::GetVertOffsets(verts[1]);
 
   SIZE z0 = index_z + offsets0[2] * size_z;
   SIZE y0 = index_y + offsets0[1] * size_y;
@@ -99,11 +99,11 @@ public:
     if (v[7] >= iso_value) edge_case_3 |= MGARD_RightAbove;
 
     SIZE local_cell_case = (edge_case_0 | (edge_case_1 << 2) | (edge_case_2 << 4) | (edge_case_3 << 6));
-    SIZE local_tri_count = GetNumberOfPrimitives(local_cell_case);
+    SIZE local_tri_count = flying_edges::GetNumberOfPrimitives(local_cell_case);
     if (local_tri_count == 0) {
       // printf("idx: %u v: %f %f %f %f %f %f %f %f\n", idx, v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
     }
-    SIZE const *edgeUses = GetEdgeUses(local_cell_case);
+    SIZE const *edgeUses = flying_edges::GetEdgeUses(local_cell_case);
     SIZE local_point_count = 0;
     for (int i = 0; i < 12; i++) {
       local_point_count += edgeUses[i];
@@ -171,8 +171,8 @@ public:
     if (v[7] >= iso_value) edge_case_3 |= MGARD_RightAbove;
 
     SIZE local_cell_case = (edge_case_0 | (edge_case_1 << 2) | (edge_case_2 << 4) | (edge_case_3 << 6));
-    SIZE local_tri_count = GetNumberOfPrimitives(local_cell_case);
-    SIZE const *edgeUses = GetEdgeUses(local_cell_case);
+    SIZE local_tri_count = flying_edges::GetNumberOfPrimitives(local_cell_case);
+    SIZE const *edgeUses = flying_edges::GetEdgeUses(local_cell_case);
 
     SIZE prev_tri_count = *tri_count_scan(idx);
     SIZE prev_point_count = *point_count_scan(idx);
