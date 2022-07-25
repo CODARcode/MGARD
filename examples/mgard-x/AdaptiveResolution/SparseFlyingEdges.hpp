@@ -117,11 +117,11 @@ public:
 
       // printf("cell_cases(%u %u %u): %u\n", r, c, f, local_cell_case);
       *cell_cases(local_cell_id) = local_cell_case;
-      SIZE local_tri_count = GetNumberOfPrimitives(local_cell_case);
+      SIZE local_tri_count = flying_edges::GetNumberOfPrimitives(local_cell_case);
       *tri_count(local_cell_id) = local_tri_count;
 
       if (local_tri_count > 0) {
-        SIZE const *edgeUses = GetEdgeUses(local_cell_case);
+        SIZE const *edgeUses = flying_edges::GetEdgeUses(local_cell_case);
         SIZE local_neighbor = *neighbor[r * nc + c](f);
         SIZE local_edge_count = 0;
 
@@ -240,10 +240,10 @@ public:
       // printf("rcf: %u %u %u, local_pY_index: %u\n", r, c, f, local_pY_index);
       SIZE prev_point_count = *point_count_scan(local_cell_id);
       SIZE local_cell_case = *cell_cases(local_cell_id);
-      SIZE local_tri_count = GetNumberOfPrimitives(local_cell_case);
+      SIZE local_tri_count = flying_edges::GetNumberOfPrimitives(local_cell_case);
 
       if (local_tri_count > 0) {
-        SIZE const *edgeUses = GetEdgeUses(local_cell_case);
+        SIZE const *edgeUses = flying_edges::GetEdgeUses(local_cell_case);
         SIZE local_neighbor = *neighbor[r * nc + c](f);
 
         // printf("rcf: %u %u %u, edge use: %u %u %u\n",
@@ -383,9 +383,9 @@ MGARDX_EXEC void InterpolateEdge(SIZE edgeNum, SIZE x, SIZE y, SIZE z,
   SIZE writeIndex = edgeIds[edgeNum] * 3;
     // printf("writeIndex: %u\n", writeIndex); 
 
-  SIZE const *verts = GetVertMap(edgeNum);
-  SIZE const *offsets0 = GetVertOffsets(verts[0]);
-  SIZE const *offsets1 = GetVertOffsets(verts[1]);
+  SIZE const *verts = flying_edges::GetVertMap(edgeNum);
+  SIZE const *offsets0 = flying_edges::GetVertOffsets(verts[0]);
+  SIZE const *offsets1 = flying_edges::GetVertOffsets(verts[1]);
 
   SIZE z0 = z + offsets0[2];
   SIZE y0 = y + offsets0[1];
@@ -540,7 +540,7 @@ public:
       //     *level_index[0](1), *level_index[1](1), *level_index[2](1));
 
       SIZE local_cell_case = *cell_cases(local_cell_id);
-      SIZE local_tri_count = GetNumberOfPrimitives(local_cell_case);
+      SIZE local_tri_count = flying_edges::GetNumberOfPrimitives(local_cell_case);
       SIZE prev_tri_count = *tri_count_scan(local_cell_id);
 
       // printf("cell id: %u, local_tri_count: %u\n",
@@ -548,7 +548,7 @@ public:
 
       if (local_tri_count > 0) {
         // Sum of points in cells before me
-        SIZE const *edgeUses = GetEdgeUses(local_cell_case);
+        SIZE const *edgeUses = flying_edges::GetEdgeUses(local_cell_case);
         SIZE local_neighbor = *neighbor[r * nc + c](f);
 
         // printf("index: %u %u %u, neighbor: %u\n", z, y, x, local_neighbor);
@@ -613,7 +613,7 @@ public:
           InterpolateEdge(11, x, y, z, edgeUses, edgeIds, iso_value, v, points);
         }
 
-        SIZE const *edges = GetTriEdgeCases(local_cell_case);
+        SIZE const *edges = flying_edges::GetTriEdgeCases(local_cell_case);
         SIZE edgeIndex = 1;
         for (SIZE i = 0; i < local_tri_count; ++i) {
           if (edgeIds[edges[edgeIndex]] == 2139062143) {
@@ -622,7 +622,7 @@ public:
           if (edgeIds[edges[edgeIndex+1]] == 2139062143) {
             SIZE local_cell_id2 = *cell_ids[r * nc + c+1](local_pY_index);
             SIZE local_cell_case2 = *cell_cases(local_cell_id2);
-            SIZE const *edgeUses2 = GetEdgeUses(local_cell_case2);
+            SIZE const *edgeUses2 = flying_edges::GetEdgeUses(local_cell_case2);
             printf("edgeIndex+1 too large, edges[edgeIndex+1]: %u, edgeIds[5]: %u, local_pY_index: %u, !(local_neighbor & pY): %u\n", edges[edgeIndex+1], edgeIds[5], local_pY_index, !(local_neighbor & pY));
             printf("rcf: %u %u %u, edge use: %u - %u, local_cell_id: %u, local_cell_id2: %u \n", r, c, f, edgeUses[5], edgeUses2[4], local_cell_id, local_cell_id2);
             
@@ -633,7 +633,7 @@ public:
             printf("rcf: %u %u %u edgeIndex+2 too large, edges[edgeIndex+2]: %u, local_cell_id: %u\n", r, c, f, edges[edgeIndex+2], local_cell_id);       
             SIZE local_cell_id2 = *cell_ids[(r+1) * nc + c+1](local_pYpZ_index);
             SIZE local_cell_case2 = *cell_cases(local_cell_id2);
-            SIZE const *edgeUses2 = GetEdgeUses(local_cell_case2);
+            SIZE const *edgeUses2 = flying_edges::GetEdgeUses(local_cell_case2);
             printf("neighbor local_pYpZ_index: %u, local_cell_id2: %u\n", local_pYpZ_index, local_cell_id2);
             // printf("edgeIndex+1 too large, edges[edgeIndex+1]: %u, edgeIds[5]: %u, local_pY_index: %u, !(local_neighbor & pY): %u\n", edges[edgeIndex+1], edgeIds[5], local_pY_index, !(local_neighbor & pY));
             printf("rcf: %u %u %u, nc: %u, neighbor: %u, edge use: %u - %u\n", r, c, f, nc, local_neighbor, edgeUses[7], edgeUses2[4]);     

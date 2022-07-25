@@ -25,8 +25,11 @@
 #include "SparseFlyingEdges.hpp"
 #include "SparseFlyingCells.hpp"
 
+#include "FlyingEdgesBatched.hpp"
+
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 
 // using namespace mgard_x;
 
@@ -178,12 +181,19 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
 
   mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
   mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
-  double time;
-  mgard_x::FlyingEdges<T, mgard_x::CUDA>().Execute(
+  double pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0;
+  mgard_x::flying_edges::FlyingEdges<T, mgard_x::CUDA>().Execute(
       shape[0], shape[1], shape[2], mgard_x::SubArray<3, T, mgard_x::CUDA>(v),
-      iso_value, TrianglesArray, PointsArray, time, 0);
+      iso_value, TrianglesArray, PointsArray, pass1_time, pass2_time, pass3_time, pass4_time, 0);
   mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncQueue(0);
-  printf("mgard_x::FlyingEdges: %f\n", time);
+  // printf("mgard_x::FlyingEdges: %f\n", pass1_time + pass2_time + pass3_time + pass4_time);
+  double total_time = pass1_time + pass2_time + pass3_time + pass4_time;
+  printf("Full res: \n");
+  printf("Pass1 time: %f s\n", pass1_time);
+  printf("Pass2 time: %f s\n", pass2_time);
+  printf("Pass3 time: %f s\n", pass3_time);
+  printf("Pass4 time: %f s\n", pass4_time);
+  printf("Total time: %f s\n", total_time);
   std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape()[0]/3 << "\n";
   std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape()[0]/3 << "\n";
 
@@ -247,8 +257,13 @@ struct SurfaceDetect {
   }
 };
 
+struct RecomposedData {
+
+
+};
+
 template <DIM D, typename T>
-double test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T tol, T iso_value, bool debug) {
+Array<D, T, CUDA> test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T tol, T iso_value, bool debug) {
   T max_data = std::numeric_limits<T>::min();
   T min_data = std::numeric_limits<T>::max();
   T * data = in_array.hostCopy();
@@ -343,17 +358,8 @@ double test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T tol, T iso_va
     PrintSubarray("result_data", SubArray(result_data));
   }
 
-  {
-    // Run dense FlyingEdges
-    Array<1, SIZE, CUDA> TrianglesArray;
-    Array<1, T, CUDA> PointsArray;
-    double time;
-    FlyingEdges<T, CUDA>().Execute(
-        result_data.shape()[0], result_data.shape()[1], result_data.shape()[2], SubArray<D, T, CUDA>(result_data),
-        iso_value, TrianglesArray, PointsArray, time, 0);
-    DeviceRuntime<CUDA>::SyncQueue(0);
-    return time;
-  }
+  return result_data;
+
 
   /*
   SubArray<1, SIZE, CUDA> * refinement_flag_linearized_subarray = new SubArray<1, SIZE, CUDA>[hierarchy.l_target+1];
@@ -431,12 +437,20 @@ double test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T tol, T iso_va
   */
 }
 
+template <typename T, typename DeviceType>
+std::string hash_key(SubArray<3, T, DeviceType> subArray) {
+  return std::to_string(subArray.getShape(0)) + "-" +
+         std::to_string(subArray.getShape(1)) + "-" +
+         std::to_string(subArray.getShape(2)); 
+}
+
 template <DIM D, typename T>
 void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size, T tol, T iso_value) {
 
   Array<D, T, CUDA> data_array(shape);
   data_array.load(data);
   SubArray data_subarray(data_array);
+  std::unordered_map<std::string, std::vector<SubArray<D, T, CUDA>>> umap;
 
   // PrintSubarray("data", data_subarray);
   SIZE num_block_r = (shape[0]-1)/block_size+1;
@@ -444,7 +458,8 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
   SIZE num_block_f = (shape[2]-1)/block_size+1;
 
   Array<D, T, CUDA> * data_block = new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
-  double total_time = 0;
+  Array<D, T, CUDA> * recomposed_data_blocks = new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
+  double pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0, total_time = 0;
   for (SIZE r = 0; r < num_block_r; r++) {
     for (SIZE c = 0; c < num_block_c; c++) {
       for (SIZE f = 0; f < num_block_f; f++) {
@@ -470,12 +485,74 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
         // PrintSubarray("data_block_src", data_block_src);
         if (linearized_index == 0) {
           debug = false;
-        } 
-        total_time += test(data_block[linearized_index], {block_size_r, block_size_c, block_size_f}, tol, iso_value, debug);
+        }
+        recomposed_data_blocks[linearized_index] = test(data_block[linearized_index], {block_size_r, block_size_c, block_size_f}, tol, iso_value, debug);
+        SubArray recomposed_data_block(recomposed_data_blocks[linearized_index]);
+        // Run dense FlyingEdges
+        Array<1, SIZE, CUDA> TrianglesArray;
+        Array<1, T, CUDA> PointsArray;
+        double pass1_time_block = 0, pass2_time_block = 0, pass3_time_block = 0, pass4_time_block = 0, total_time_block = 0;
+        flying_edges::FlyingEdges<T, CUDA>().Execute(
+            recomposed_data_block.getShape(2), recomposed_data_block.getShape(1), recomposed_data_block.getShape(0), recomposed_data_block,
+            iso_value, TrianglesArray, PointsArray, pass1_time_block, pass2_time_block, pass3_time_block, pass4_time_block, 0);
+        DeviceRuntime<CUDA>::SyncQueue(0);
+        pass1_time += pass1_time_block;
+        pass2_time += pass2_time_block;
+        pass3_time += pass3_time_block;
+        pass4_time += pass4_time_block;
       }
     }
   }
-  printf("mgard_x::FlyingEdges adapt res: %f\n", total_time);
+  total_time = pass1_time + pass2_time + pass3_time + pass4_time;
+
+  printf("Non-batched: \n");
+  printf("Pass1 time: %f s\n", pass1_time);
+  printf("Pass2 time: %f s\n", pass2_time);
+  printf("Pass3 time: %f s\n", pass3_time);
+  printf("Pass4 time: %f s\n", pass4_time);
+  printf("Total time: %f s\n", total_time);
+
+  pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0, total_time = 0;
+
+  for (SIZE i = 0; i < num_block_r * num_block_c * num_block_f; i++) {
+    SubArray recomposed_data_block(recomposed_data_blocks[i]);
+    std::string key = hash_key(recomposed_data_block);
+    umap[key].push_back(recomposed_data_block);
+  }
+
+  for (auto x : umap) {
+    std::cout << x.first << " " << x.second.size() << std::endl;
+    std::vector<SubArray<D, T, CUDA>> recomposed_data_blocks_vec = x.second;
+    SIZE num_batches = (SIZE)recomposed_data_blocks_vec.size();
+    const bool pitched = false;
+    const bool managed = true;
+    Array<1, SubArray<D, T, CUDA>, CUDA> recomposed_data_blocks_subarray({num_batches}, pitched, managed);
+    SubArray subarray_of_subarray(recomposed_data_blocks_subarray);
+    for (int i = 0; i < num_batches; i++) {
+      *subarray_of_subarray(i) = recomposed_data_blocks_vec[i];
+    }
+    SIZE nr = recomposed_data_blocks_vec[0].getShape(2);
+    SIZE nc = recomposed_data_blocks_vec[0].getShape(1);
+    SIZE nf = recomposed_data_blocks_vec[0].getShape(0);
+    Array<1, Array<1, SIZE, CUDA>, CUDA> Triangles;
+    Array<1, Array<1, T, CUDA>, CUDA> Points;
+    double time = 0;
+    flying_edges_batched::FlyingEdgesBatched<T, CUDA>().Execute(
+        nr, nc, nf, subarray_of_subarray,
+        iso_value, Triangles, Points, pass1_time, pass2_time, pass3_time, pass4_time, 0);
+
+  total_time = pass1_time + pass2_time + pass3_time + pass4_time;
+  printf("Batched: \n");
+  printf("Pass1 time: %f s\n", pass1_time);
+  printf("Pass2 time: %f s\n", pass2_time);
+  printf("Pass3 time: %f s\n", pass3_time);
+  printf("Pass4 time: %f s\n", pass4_time);
+  printf("Total time: %f s\n", total_time);
+  }   
+
+
+
+  // printf("mgard_x::FlyingEdges adapt res: %f\n", total_time);
 }
 
 } // end of namespace mgard_x
@@ -619,12 +696,12 @@ int main(int argc, char *argv[]) {
     float * data = get_data<float>(input_file, original_size);
     test_vtkm<3, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, float>(data, shape, (float)iso_value);
-    // mgard_x::test_adaptive_resolution<3, float>(data, shape, block_size, (float)tol, (float)iso_value);
+    mgard_x::test_adaptive_resolution<3, float>(data, shape, block_size, (float)tol, (float)iso_value);
   } else if (dt.compare("d") == 0) {
     double * data = get_data<double>(input_file, original_size);
     test_vtkm<3, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, double>(data, shape, (float)iso_value);
-    // mgard_x::test_adaptive_resolution<3, double>(data, shape, block_size, (double)tol, (double)iso_value);
+    mgard_x::test_adaptive_resolution<3, double>(data, shape, block_size, (double)tol, (double)iso_value);
 
   } else {
     std::cout << "wrong data type.\n";
