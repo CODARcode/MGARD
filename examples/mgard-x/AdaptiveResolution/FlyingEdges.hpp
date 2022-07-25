@@ -12,6 +12,8 @@
 
 namespace mgard_x {
 
+namespace flying_edges {
+
 #define MGARD_Below 0
 #define MGARD_LeftAbove 1
 #define MGARD_RightAbove 2
@@ -629,23 +631,23 @@ template <typename DeviceType> struct Pass4TrimState {
 template <typename DeviceType>
 MGARDX_EXEC void init_voxelIds(SIZE nr, SIZE nf, SIZE r, SIZE f, SIZE edgeCase,
                                SubArray<1, SIZE, DeviceType> &axis_sum_scan,
-                               SIZE *edgeIds) {
+                               SIZE *edgeIds, SIZE offset = 0) {
   SIZE ld1 = 3;
   SIZE ld2 = nf * 3;
   SIZE const *edgeUses = GetEdgeUses(edgeCase);
-  edgeIds[0] = *axis_sum_scan(r       * ld2 + f       * ld1 + 1); // x-edges
-  edgeIds[1] = *axis_sum_scan(r       * ld2 + (f + 1) * ld1 + 1);
-  edgeIds[2] = *axis_sum_scan((r + 1) * ld2 + f       * ld1 + 1);
-  edgeIds[3] = *axis_sum_scan((r + 1) * ld2 + (f + 1) * ld1 + 1);
+  edgeIds[0] = *axis_sum_scan(r       * ld2 + f       * ld1 + 1) - offset; // x-edges
+  edgeIds[1] = *axis_sum_scan(r       * ld2 + (f + 1) * ld1 + 1) - offset;
+  edgeIds[2] = *axis_sum_scan((r + 1) * ld2 + f       * ld1 + 1) - offset;
+  edgeIds[3] = *axis_sum_scan((r + 1) * ld2 + (f + 1) * ld1 + 1) - offset;
 
-  edgeIds[4] = *axis_sum_scan(r       * ld2 + f       * ld1 + 0); // y-edges
+  edgeIds[4] = *axis_sum_scan(r       * ld2 + f       * ld1 + 0) - offset; // y-edges
   edgeIds[5] = edgeIds[4] + edgeUses[4];
-  edgeIds[6] = *axis_sum_scan((r + 1) * ld2 + f       * ld1 + 0);
+  edgeIds[6] = *axis_sum_scan((r + 1) * ld2 + f       * ld1 + 0) - offset;
   edgeIds[7] = edgeIds[6] + edgeUses[6];
 
-  edgeIds[8] = *axis_sum_scan(r       * ld2 + f       * ld1 + 2); // z-edges
+  edgeIds[8] = *axis_sum_scan(r       * ld2 + f       * ld1 + 2) - offset; // z-edges
   edgeIds[9] = edgeIds[8] + edgeUses[8];
-  edgeIds[10] = *axis_sum_scan(r      * ld2 + (f + 1) * ld1 + 2);
+  edgeIds[10] = *axis_sum_scan(r      * ld2 + (f + 1) * ld1 + 2) - offset;
   edgeIds[11] = edgeIds[10] + edgeUses[10];
 }
 
@@ -1236,10 +1238,10 @@ public:
   MGARDX_CONT
   void Execute(SIZE nr, SIZE nc, SIZE nf, SubArray<3, T, DeviceType> v,
                T iso_value, Array<1, SIZE, DeviceType> &Triangles,
-               Array<1, T, DeviceType> &Points, double &time, int queue_idx) {
+               Array<1, T, DeviceType> &Points, double &pass1_time, double &pass2_time, 
+              double &pass3_time, double &pass4_time, int queue_idx) {
 
     Timer t1, t2, t3, t4;
-    time = 0;
 
     const bool pitched = false;
 
@@ -1272,8 +1274,7 @@ public:
     DeviceAdapter<TaskType1, DeviceType>().Execute(task1);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     t1.end();
-    // t1.print("Pass 1");
-    time += t1.get();
+    pass1_time = t1.get();
     t1.clear();
 
     // printf("After pass1\n");
@@ -1294,8 +1295,7 @@ public:
     DeviceAdapter<TaskType2, DeviceType>().Execute(task2);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     t2.end();
-    // t2.print("Pass 2");
-    time += t2.get();
+    pass2_time = t2.get();
     t2.clear();
 
     // printf("After pass2\n");
@@ -1309,32 +1309,27 @@ public:
     Array<1, SIZE, DeviceType> newPointSize_array({1});
     SubArray<1, SIZE, DeviceType> newPointSize_subarray(newPointSize_array);
     SIZE numTris = 0;
-    SIZE newPointSize = 0;
-    // t3.end();
-    // t3.print("Pass 3-1");
-    // time += t3.get();
-    // t3.clear();
+    SIZE numPts = 0;
+
     t3.start();
     DeviceCollective<DeviceType>::ScanSumExtended(nr * nf * 3, axis_sum_liearized, axis_sum_scan, queue_idx);
     DeviceCollective<DeviceType>::ScanSumExtended((nr - 1) * (nf - 1), cell_tri_count_liearized, cell_tri_count_scan, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     t3.end();
-    // t3.print("Pass 3-2");
-    time += t3.get();
+    pass3_time = t3.get();
     t3.clear();
-    // t3.start();
 
-    MemoryManager<DeviceType>().Copy1D(&newPointSize, axis_sum_scan(nr * nf * 3), 1, queue_idx);
+    MemoryManager<DeviceType>().Copy1D(&numPts, axis_sum_scan(nr * nf * 3), 1, queue_idx);
     MemoryManager<DeviceType>().Copy1D(&numTris, cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     // printf("After pass3\n");    
     // PrintSubarray("cell_tri_count_scan", SubArray(cell_tri_count_scan));
-    // std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
+    // std::cout << "mgard_x::FlyingEdges::numPoints: " << numPts << "\n";
     // std::cout << "mgard_x::FlyingEdges::numTris: " << numTris << "\n";
     // PrintSubarray("axis_sum_liearized", axis_sum_liearized);
 
     Triangles = Array<1, SIZE, DeviceType>({numTris * 3}, pitched);
-    Points = Array<1, T, DeviceType>({newPointSize * 3}, pitched);
+    Points = Array<1, T, DeviceType>({numPts * 3}, pitched);
 
     SubArray<1, SIZE, DeviceType> triangle_topology(Triangles);
     SubArray<1, T, DeviceType> points(Points);
@@ -1348,15 +1343,14 @@ public:
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     t4.start();
-    if (numTris != 0 && newPointSize != 0) {
+    if (numTris != 0 && numPts != 0) {
       DeviceAdapter<TaskType4, DeviceType>().Execute(task4);
     }
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
     t4.end();
-    // t4.print("Pass 4");
-    time += t4.get();
+    pass4_time = t4.get();
     t4.clear();
 
     // printf("After pass4\n");
@@ -1365,6 +1359,7 @@ public:
   }
 };
 
+} // namespace flying_edges
 } // namespace mgard_x
 
 #endif
