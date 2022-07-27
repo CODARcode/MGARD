@@ -333,6 +333,12 @@ public:
         SIZE const *edgeUses = flying_edges::GetEdgeUses(edgeCase);
         if (!flying_edges::fully_interior(state.boundaryStatus) ||
             flying_edges::case_includes_axes(edgeUses)) {
+          // if (edgeIds[4] > 10000) {
+          //   printf("edgeIds: %u %u %u %u %u %u %u %u %u %u %u %u\n",
+          //       edgeIds[0], edgeIds[1], edgeIds[2], edgeIds[3], edgeIds[4],
+          //       edgeIds[5], edgeIds[6], edgeIds[7], edgeIds[8], edgeIds[9],
+          //       edgeIds[10], edgeIds[11]);
+          // }
           flying_edges::Generate(f, i, r, state.boundaryStatus, edgeUses, edgeIds, iso_value,
                    v, points);
         }
@@ -682,21 +688,31 @@ public:
     DeviceRuntime<DeviceType>::SyncDevice();
     DeviceCollective<DeviceType>::ScanSumInclusive(nr * nf * 3 * num_batches, axis_sum_liearized_concat, axis_sum_liearized_concat, queue_idx);
     DeviceCollective<DeviceType>::ScanSumInclusive((nr - 1) * (nf - 1) * num_batches, cell_tri_count_liearized_concat, cell_tri_count_liearized_concat, queue_idx);
-
+    DeviceRuntime<DeviceType>::SyncDevice();
     for (SIZE i = 0; i < num_batches; i++) {
       SIZE offset = i * nr * nf * 3;
       // +1 is for making the first element 0
-      MemoryManager<DeviceType>::Copy1D(axis_sum_scan(i)->data()+1, 
-                                        axis_sum_liearized_concat.data() + offset, nr * nf * 3, i%MGARDX_NUM_ASYNC_QUEUES);
+      if (i == 0) {
+        MemoryManager<DeviceType>::Copy1D(axis_sum_scan(i)->data()+1, 
+                                          axis_sum_liearized_concat.data() + offset, nr * nf * 3, i%MGARDX_NUM_ASYNC_QUEUES);
+      } else {
+        MemoryManager<DeviceType>::Copy1D(axis_sum_scan(i)->data(), 
+                                          axis_sum_liearized_concat.data() + offset - 1, nr * nf * 3 + 1, i%MGARDX_NUM_ASYNC_QUEUES);
+      }
+
       // last element in the current batch is the 'scan offset' of the next betch
       MemoryManager<DeviceType>::Copy1D(axis_sum_scan_offset.data()+i, 
                                           axis_sum_liearized_concat.data() + offset + nr * nf * 3 - 1, 1, i%MGARDX_NUM_ASYNC_QUEUES);
     }
     for (SIZE i = 0; i < num_batches; i++) {
       SIZE offset = i * (nr - 1) * (nf - 1);
-      // +1 is for making the first element 0
-      MemoryManager<DeviceType>::Copy1D(cell_tri_count_scan(i)->data()+1, 
-                                        cell_tri_count_liearized_concat.data() + offset, (nr - 1) * (nf - 1), i%MGARDX_NUM_ASYNC_QUEUES);
+      if (i == 0) {
+        MemoryManager<DeviceType>::Copy1D(cell_tri_count_scan(i)->data()+1, 
+                                          cell_tri_count_liearized_concat.data() + offset, (nr - 1) * (nf - 1), i%MGARDX_NUM_ASYNC_QUEUES);
+      } else {
+        MemoryManager<DeviceType>::Copy1D(cell_tri_count_scan(i)->data(), 
+                                          cell_tri_count_liearized_concat.data() + offset - 1, (nr - 1) * (nf - 1) + 1, i%MGARDX_NUM_ASYNC_QUEUES);
+      }
       // last element in the current batch is the 'scan offset' of the next betch
       MemoryManager<DeviceType>::Copy1D(cell_tri_count_scan_offset.data()+i, 
                                           cell_tri_count_liearized_concat.data() + offset + (nr - 1) * (nf - 1) - 1, 1, i%MGARDX_NUM_ASYNC_QUEUES);
@@ -706,6 +722,13 @@ public:
     t3.end();
     pass3_time = t3.get();
     t3.clear();
+
+    // printf("After pass3\n");    
+    // PrintSubarray("cell_tri_count_scan_offset", cell_tri_count_scan_offset);
+    // PrintSubarray("cell_tri_count_liearized(0)", *cell_tri_count_liearized((IDX)0));
+    // std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
+    // std::cout << "mgard_x::FlyingEdges::numTris: " << numTris << "\n";
+    // PrintSubarray("axis_sum_liearized", axis_sum_liearized);
 
     // MemoryManager<DeviceType>().Copy1D(&newPointSize, axis_sum_scan(nr * nf * 3), 1, queue_idx);
     // MemoryManager<DeviceType>().Copy1D(&numTris, cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
@@ -720,23 +743,24 @@ public:
     }
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    // printf("After pass3\n");    
-    // PrintSubarray("cell_tri_count_scan", SubArray(cell_tri_count_scan));
-    // std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
-    // std::cout << "mgard_x::FlyingEdges::numTris: " << numTris << "\n";
-    // PrintSubarray("axis_sum_liearized", axis_sum_liearized);
+    
 
     // Triangles = Array<1, SIZE, DeviceType>({numTris * 3}, pitched);
     // Points = Array<1, T, DeviceType>({newPointSize * 3}, pitched);
 
     for (SIZE i = 0; i < num_batches; i++) {
+      // std::cout << "numTris: " << numTris[i] << "\n";
       SubArray subarray_of_array(Triangles);
       SubArray subarray_of_subarray(Triangles_subarray);
       *subarray_of_array(i) = Array<1, SIZE, DeviceType>({numTris[i] * 3}, pitched);
       *subarray_of_subarray(i) = SubArray(*subarray_of_array(i));
+      // if (numTris[i] > 0) {
+      //   PrintSubarray("cell_tri_count_scan", *cell_tri_count_scan(i));
+      // }
     }
 
     for (SIZE i = 0; i < num_batches; i++) {
+      // std::cout << "numPts: " << numPts[i] << "\n";
       SubArray subarray_of_array(Points);
       SubArray subarray_of_subarray(Points_subarray);
       *subarray_of_array(i) = Array<1, T, DeviceType>({numPts[i] * 3}, pitched);
