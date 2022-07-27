@@ -816,6 +816,9 @@ public:
                           DATA_DECODING_ALGORITHM, DeviceType>()
           .Execute(n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp,
                    encoded_bitplanes, signs_subarray, v, queue_idx);
+    } else {
+      // should be set to zero when not decoding any bitplanes
+      v_array.memset(0);
     }
 
     // new_signs = signs_array.hostCopy();

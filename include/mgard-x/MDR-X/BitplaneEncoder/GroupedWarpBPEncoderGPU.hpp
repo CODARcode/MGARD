@@ -115,7 +115,7 @@ public:
     // Warp local shared memory
     T_fp *sm_warp_local_fix_point = sm_fix_point + warp_data_offset;
     T *sm_warp_local_shifted = sm_shifted + warp_data_offset;
-    T_bitplane *sm_warp_local_signs;
+    T_fp *sm_warp_local_signs;
     if (BinaryType == BINARY) {
       sm_warp_local_signs = sm_signs + warp_data_offset;
     }
@@ -643,7 +643,7 @@ public:
     SIZE warp_data_offset = warp_id * NumElemPerGroup * NumGroupsPerWarpPerIter;
     // Warp local shared memory
     T_fp *sm_warp_local_fix_point = sm_fix_point + warp_data_offset;
-    T_bitplane *sm_warp_local_signs;
+    T_fp *sm_warp_local_signs;
     if (BinaryType == BINARY) {
       sm_warp_local_signs = sm_signs + warp_data_offset;
     }
@@ -701,7 +701,7 @@ public:
         SIZE global_data_idx = iter_data_offset + TB_data_offset +
                                warp_data_offset + group_data_offset;
 
-        WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm,
+        WarpBitTranspose<T_bitplane, T_fp, ALIGN_RIGHT, DecodingAlgorithm,
                          NumDecodingBitplanes, sizeof(T_bitplane) * 8,
                          DeviceType>::Transpose(sm_warp_local_bitplanes +
                                                     group_bitplane_offset,
@@ -713,7 +713,7 @@ public:
 
         if (BinaryType == BINARY) {
           if (starting_bitplane == 0) {
-            WarpBitTranspose<T_fp, T_bitplane, ALIGN_RIGHT, DecodingAlgorithm,
+            WarpBitTranspose<T_bitplane, T_fp, ALIGN_RIGHT, DecodingAlgorithm,
                              1, sizeof(T_bitplane) * 8, DeviceType>::
                 Transpose(sm_warp_local_bitplanes_sign + group_bitplane_offset,
                           ld_sm_bitplanes_sign,
