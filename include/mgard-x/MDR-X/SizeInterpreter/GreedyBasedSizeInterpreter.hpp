@@ -122,7 +122,7 @@ public:
         accumulated_error +=
             error_estimator.estimate_error(level_errors[i][index[i] + 1], i);
         index[i]++;
-        std::cout << i;
+        // std::cout << i;
       }
       // push the next one
       if (index[i] != level_sizes[i].size()) {
@@ -159,11 +159,11 @@ public:
             level_errors[i][index[i] + 1], i);
         heap.push(UnitErrorGain(error_gain / level_sizes[i][index[i]], i));
       }
-      std::cout << i;
+      // std::cout << i;
     }
-    std::cout << std::endl;
-    std::cout << "Requested tolerance = " << tolerance
-              << ", estimated error = " << accumulated_error << std::endl;
+    // std::cout << std::endl;
+    // std::cout << "Requested tolerance = " << tolerance
+    //           << ", estimated error = " << accumulated_error << std::endl;
     return retrieve_sizes;
   }
   void print() const {

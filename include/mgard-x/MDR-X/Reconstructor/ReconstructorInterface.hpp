@@ -32,9 +32,9 @@ class ReconstructorInterface {
 public:
   virtual ~ReconstructorInterface() = default;
 
-  virtual T_data *reconstruct(double tolerance) = 0;
+  virtual void reconstruct(double tolerance) = 0;
 
-  virtual T_data *progressive_reconstruct(double tolerance) = 0;
+  virtual Array<D, T_data, DeviceType> progressive_reconstruct(double tolerance) = 0;
 
   virtual void load_metadata() = 0;
 
