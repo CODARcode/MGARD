@@ -69,6 +69,17 @@ MGARDX_EXEC static double atomicMax(double *address, double val) {
   return (double)old;
 }
 
+MGARDX_EXEC static uint64_t atomicAdd(uint64_t *address, uint64_t val) {
+  unsigned long long int *address_as_i = (unsigned long long int *)address;
+  unsigned long long int old = *address_as_i, assumed;
+  do {
+    assumed = old;
+    old = ::atomicCAS(address_as_i, assumed,
+                      (unsigned long long int)(val + (uint64_t)assumed));
+  } while (assumed != old);
+  return (uint64_t)old;
+}
+
 namespace mgard_x {
 
 template <typename TaskType>
@@ -972,7 +983,9 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
           } else {
           }
           T_trans *sum = &(tv[B_idx]);
+          // atomicAdd_block not available in CUDA
           // atomicAdd_block(sum, shifted_bit);
+          atomicAdd(sum, shifted_bit);
         }
       }
     }
@@ -1263,7 +1276,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, b, B, CUDA> {
         } else {
         }
         T_trans *sum = &(tv[B_idx * inc_tv]);
-        atomicAdd_block(sum, shifted_bit);
+        // atomicAdd_block(sum, shifted_bit);
       }
     }
     // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64() - start;
