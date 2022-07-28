@@ -23,9 +23,9 @@ public:
     release();
     SIZE total_retrieve_size = 0;
     for (int i = 0; i < level_files.size(); i++) {
-      std::cout << "Retrieve " << +level_num_bitplanes[i] << " ("
-                << +(level_num_bitplanes[i] - prev_level_num_bitplanes[i])
-                << " more) bitplanes from level " << i << std::endl;
+      // std::cout << "Retrieve " << +level_num_bitplanes[i] << " ("
+      //           << +(level_num_bitplanes[i] - prev_level_num_bitplanes[i])
+      //           << " more) bitplanes from level " << i << std::endl;
       FILE *file = fopen(level_files[i].c_str(), "r");
       if (fseek(file, offsets[i], SEEK_SET)) {
         std::cerr << "Errors in fseek while retrieving from file" << std::endl;
@@ -37,7 +37,7 @@ public:
       offsets[i] += retrieve_sizes[i];
       total_retrieve_size += offsets[i];
     }
-    std::cout << "Total retrieve size = " << total_retrieve_size << std::endl;
+    // std::cout << "Total retrieve size = " << total_retrieve_size << std::endl;
     return interleave_level_components(level_sizes, prev_level_num_bitplanes,
                                        level_num_bitplanes);
   }
