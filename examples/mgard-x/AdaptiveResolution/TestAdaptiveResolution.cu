@@ -31,6 +31,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include "mgard/mdr_x.hpp"
+
 // using namespace mgard_x;
 
 
@@ -257,13 +259,8 @@ struct SurfaceDetect {
   }
 };
 
-struct RecomposedData {
-
-
-};
-
-template <DIM D, typename T>
-Array<D, T, CUDA> test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T tol, T iso_value, bool debug) {
+template <DIM D, typename T, typename DeviceType>
+Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, DeviceType> in_array, std::vector<SIZE> shape, T tol, T iso_value, bool debug) {
   T max_data = std::numeric_limits<T>::min();
   T min_data = std::numeric_limits<T>::max();
   T * data = in_array.hostCopy();
@@ -280,34 +277,34 @@ Array<D, T, CUDA> test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T to
 
   // std::cout << "Preparing data...";
   //... load data into in_array_cpu
-  Hierarchy<D, T, CUDA> hierarchy(shape);
-  // Array<D, T, CUDA> in_array(shape);
+  Hierarchy<D, T, DeviceType> hierarchy(shape);
+  // Array<D, T, DeviceType> in_array(shape);
   // in_array.load(data);
   SubArray in_subarray(in_array);
 
-  Array<D, T, CUDA> org_array = in_array;
+  Array<D, T, DeviceType> org_array = in_array;
 
-  Array<D+1, T, CUDA> * max_abs_coefficient = new Array<D+1, T, CUDA>[hierarchy.l_target];
-  SubArray<D+1, T, CUDA> * max_abs_coefficient_subarray = new SubArray<D+1, T, CUDA>[hierarchy.l_target];
+  Array<D+1, T, DeviceType> * max_abs_coefficient = new Array<D+1, T, DeviceType>[hierarchy.l_target];
+  SubArray<D+1, T, DeviceType> * max_abs_coefficient_subarray = new SubArray<D+1, T, DeviceType>[hierarchy.l_target];
   for (int l = 0; l < hierarchy.l_target; l++) {
     std::vector<SIZE> max_abs_coefficient_shape(D+1);
     for (int d = 1; d < D+1; d++) {
       max_abs_coefficient_shape[d] = hierarchy.shapes_vec[l+1][D-d]-1;
     }
     max_abs_coefficient_shape[0] = l+1;
-    max_abs_coefficient[l] = Array<D+1, T, CUDA>(max_abs_coefficient_shape);
+    max_abs_coefficient[l] = Array<D+1, T, DeviceType>(max_abs_coefficient_shape);
     max_abs_coefficient[l].memset(0);
     max_abs_coefficient_subarray[l] = SubArray(max_abs_coefficient[l]);
   }
 
-  Array<D, SIZE, CUDA> * refinement_flag = new Array<D, SIZE, CUDA>[hierarchy.l_target+1];
-  SubArray<D, SIZE, CUDA> * refinement_flag_subarray = new SubArray<D, SIZE, CUDA>[hierarchy.l_target+1];
+  Array<D, SIZE, DeviceType> * refinement_flag = new Array<D, SIZE, DeviceType>[hierarchy.l_target+1];
+  SubArray<D, SIZE, DeviceType> * refinement_flag_subarray = new SubArray<D, SIZE, DeviceType>[hierarchy.l_target+1];
   for (int l = 0; l < hierarchy.l_target+1; l++) {
     std::vector<SIZE> refinement_flag_shape(D);
     for (int d = 0; d < D; d++) {
       refinement_flag_shape[d] = hierarchy.shapes_vec[l][D-1-d]-1;
     }
-    refinement_flag[l] = Array<D, SIZE, CUDA>(refinement_flag_shape, false);
+    refinement_flag[l] = Array<D, SIZE, DeviceType>(refinement_flag_shape, false);
     refinement_flag[l].memset(0);
     refinement_flag_subarray[l] = SubArray(refinement_flag[l]);
     // if (l == hierarchy.l_target) {
@@ -315,16 +312,16 @@ Array<D, T, CUDA> test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T to
     //   for (int i = 0; i < refinement_flag_subarray[l].getShape(2); i++) {
     //     for (int j = 0; j < refinement_flag_subarray[l].getShape(1); j++) {
     //       for (int k = 0; k < refinement_flag_subarray[l].getShape(0); k++) {
-    //         MemoryManager<CUDA>::Copy1D(refinement_flag_subarray[l](i, j, k), &one, 1, 0);
+    //         MemoryManager<DeviceType>::Copy1D(refinement_flag_subarray[l](i, j, k), &one, 1, 0);
     //       }
     //     }
     //   }
-    //   DeviceRuntime<CUDA>::SyncQueue(0);
+    //   DeviceRuntime<DeviceType>::SyncQueue(0);
     // }
   }
 
-  Array<1, T, CUDA> level_max({hierarchy.l_target+1});
-  SubArray<1, T, CUDA> level_max_subarray(level_max);
+  Array<1, T, DeviceType> level_max({hierarchy.l_target+1});
+  SubArray<1, T, DeviceType> level_max_subarray(level_max);
 
   // std::cout << "Done\n";
 
@@ -336,7 +333,7 @@ Array<D, T, CUDA> test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T to
                              level_max_subarray,
                              max_abs_coefficient_subarray, 0);
 
-  DeviceRuntime<CUDA>::SyncQueue(0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
 
   // PrintSubarray("Decomposed data", in_subarray);
   // PrintSubarray("level_max", level_max_subarray);
@@ -349,7 +346,7 @@ Array<D, T, CUDA> test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T to
   // std::cout << "Recomposing with MGARD-X CUDA backend...\n";
 
   multidim_refactoring_debug_print = debug;
-  Array<D, T, CUDA> result_data = recompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target, 
+  Array<D, T, DeviceType> result_data = recompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target, 
                iso_value, tol, level_max_subarray, max_abs_coefficient_subarray,
                refinement_flag_subarray, 0);
 
@@ -437,6 +434,77 @@ Array<D, T, CUDA> test(Array<D, T, CUDA> in_array, std::vector<SIZE> shape, T to
   */
 }
 
+template <DIM D, class T_data, class T_bitplane, class T_error, typename DeviceType,
+          class Decomposer, class Interleaver, class Encoder, class Compressor,
+          class ErrorCollector, class Writer>
+void refactor(Array<D, T_data, DeviceType> data, std::vector<SIZE> shape, int target_level,
+           int num_bitplanes,
+           Hierarchy<D, T_data, DeviceType> &hierarchy,
+           Decomposer decomposer, Interleaver interleaver, Encoder encoder,
+           Compressor compressor, ErrorCollector collector, Writer writer) {
+
+  auto refactor =
+      MDR::ComposedRefactor<D, T_data, T_bitplane, T_error, Decomposer,
+                                     Interleaver, Encoder, Compressor,
+                                     ErrorCollector, Writer, DeviceType>(
+          hierarchy, decomposer, interleaver, encoder, compressor, collector,
+          writer);
+  refactor.refactor(data, shape, target_level, num_bitplanes);
+}
+
+template <DIM D, class T_data, class T_stream, class T_error, typename DeviceType,
+          class Decomposer, class Interleaver, class Encoder, class Compressor,
+          class ErrorEstimator, class SizeInterpreter, class Retriever>
+Array<D, T_data, DeviceType> reconstructor(T_error tol,
+          Hierarchy<D, T_data, DeviceType> &hierarchy,
+          Decomposer decomposer, Interleaver interleaver, Encoder encoder,
+          Compressor compressor, ErrorEstimator estimator,
+          SizeInterpreter interpreter, Retriever retriever) {
+  auto reconstructor = MDR::ComposedReconstructor<
+      D, T_data, T_stream, Decomposer, Interleaver, Encoder, Compressor,
+      SizeInterpreter, ErrorEstimator, Retriever, DeviceType>(
+      hierarchy, decomposer, interleaver, encoder, compressor, interpreter,
+      retriever);
+  reconstructor.load_metadata();
+  std::vector<T_error> tolerance = {tol};
+  return reconstructor.progressive_reconstruct(tolerance[0]);
+}
+
+template <DIM D, typename T_data, typename DeviceType>
+Array<D, T_data, DeviceType> refactor_and_recompose_data_bitplanwise(Array<D, T_data, DeviceType> in_array, std::vector<SIZE> shape, SIZE block_id, double tol, double iso_value, bool debug) {
+  using T_stream = uint32_t;
+  using T_error = double;
+  int num_bitplanes = 64;
+  int uniform_coord_mode = 0; // is this necessary?
+  Hierarchy<D, T_data, DeviceType> hierarchy(shape, uniform_coord_mode);
+  SIZE target_level = hierarchy.l_target;
+  std::string metadata_file = "refactored_data/block_" +std::to_string(block_id) +"_metadata.bin";
+  std::vector<std::string> files;
+  for (int i = 0; i <= target_level; i++) {
+    std::string filename = "refactored_data/block_" + std::to_string(block_id) +"_level_" + std::to_string(i) + ".bin";
+    files.push_back(filename);
+  }
+  auto decomposer = MDR::MGARDOrthoganalDecomposer<D, T_data, DeviceType>(hierarchy);
+  auto interleaver = MDR::DirectInterleaver<D, T_data, DeviceType>(hierarchy);
+  auto encoder = MDR::GroupedBPEncoder<T_data, T_stream, T_error, DeviceType>();
+  auto compressor = MDR::DefaultLevelCompressor<T_stream, DeviceType>();
+  auto collector = MDR::MaxErrorCollector<T_data>();
+  auto writer = MDR::ConcatLevelFileWriter(metadata_file, files);
+  refactor<D, T_data, T_stream, T_error, DeviceType>(in_array, shape, target_level, num_bitplanes,
+                                    hierarchy, decomposer, interleaver, encoder,
+                                    compressor, collector, writer);
+
+  auto retriever = MDR::ConcatLevelFileRetriever(metadata_file, files);
+  auto estimator = MDR::MaxErrorEstimatorOB<T_data>(D);
+  auto interpreter = MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorOB<T_data>>(estimator);
+  // auto reconstructor = MDR::ComposedReconstructor(hierarchy, decomposer, interleaver, encoder, compressor, interpreter, retriever);
+  // reconstructor.load_metadata();
+  // auto reconstructed_data = reconstructor.progressive_reconstruct(tolerance[0]);
+  return reconstructor<D, T_data, T_stream, T_error, DeviceType>(tol, hierarchy, decomposer,
+                                     interleaver, encoder, compressor,
+                                     estimator, interpreter, retriever);
+}
+
 template <typename T, typename DeviceType>
 std::string hash_key(SubArray<3, T, DeviceType> subArray) {
   return std::to_string(subArray.getShape(0)) + "-" +
@@ -459,6 +527,7 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
 
   Array<D, T, CUDA> * data_block = new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
   Array<D, T, CUDA> * recomposed_data_blocks = new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
+  Array<D, T, CUDA> * recomposed_data_blocks2 = new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
   double pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0, total_time = 0;
   for (SIZE r = 0; r < num_block_r; r++) {
     for (SIZE c = 0; c < num_block_c; c++) {
@@ -486,8 +555,22 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
         if (linearized_index == 0) {
           debug = false;
         }
-        recomposed_data_blocks[linearized_index] = test(data_block[linearized_index], {block_size_r, block_size_c, block_size_f}, tol, iso_value, debug);
+        // recomposed_data_blocks[linearized_index] = refactor_and_recompose_data_levelwise(data_block[linearized_index], {block_size_r, block_size_c, block_size_f}, tol, iso_value, debug);
+        recomposed_data_blocks[linearized_index] = refactor_and_recompose_data_bitplanwise(data_block[linearized_index], {block_size_r, block_size_c, block_size_f}, linearized_index, tol, iso_value, debug);
         SubArray recomposed_data_block(recomposed_data_blocks[linearized_index]);
+        
+        // { // debug
+        //   if (linearized_index == 300) {
+        //     SubArray org(data_block[linearized_index]);
+        //     org.resize({5,5,5});
+        //     SubArray rep(recomposed_data_blocks[linearized_index]);
+        //     rep.resize({5,5,5});
+        //     PrintSubarray("org", org);
+        //     PrintSubarray("rep", rep);
+        //   }
+        // }
+
+        
         // Run dense FlyingEdges
         Array<1, SIZE, CUDA> TrianglesArray;
         Array<1, T, CUDA> PointsArray;
@@ -496,10 +579,13 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
             recomposed_data_block.getShape(2), recomposed_data_block.getShape(1), recomposed_data_block.getShape(0), recomposed_data_block,
             iso_value, TrianglesArray, PointsArray, pass1_time_block, pass2_time_block, pass3_time_block, pass4_time_block, 0);
         DeviceRuntime<CUDA>::SyncQueue(0);
+        // std::cout << "block " << linearized_index << " mgard_x::FlyingEdges::numPoints: " << PointsArray.shape()[0]/3 << "\n";
+        // std::cout << "block " << linearized_index << " mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape()[0]/3 << "\n";
         pass1_time += pass1_time_block;
         pass2_time += pass2_time_block;
         pass3_time += pass3_time_block;
         pass4_time += pass4_time_block;
+        
       }
     }
   }

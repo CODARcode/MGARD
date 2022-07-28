@@ -13,8 +13,8 @@ set -e
 install_dir=$(pwd)/../../../install-cuda-turing
 vtkm_dir=/home/jieyang/dev/vtkm-release/install/lib/cmake/vtkm-1.7
 
-rm -rf build
-mkdir build 
+# rm -rf build
+# mkdir build 
 cmake -S .  -B ./build \
       -Dmgard_ROOT=${install_dir}\
       -DCMAKE_CUDA_ARCHITECTURES=75\
