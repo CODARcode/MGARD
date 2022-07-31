@@ -16,6 +16,8 @@ template <DIM D, typename T, typename DeviceType> class Array {
 public:
   Array();
   Array(std::vector<SIZE> shape, bool pitched = true, bool managed = false, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
+  void initialize(std::vector<SIZE> shape);
+  void allocate(bool pitched, bool managed, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   void copy(const Array &array, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   void move(Array &&array);
   void memset(int value, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
@@ -29,9 +31,12 @@ public:
   T *hostCopy(bool keep = false, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   T *data(SIZE &ld);
   std::vector<SIZE> &shape();
+  SIZE shape(DIM d);
   T *data();
   std::vector<SIZE> ld();
-  bool is_pitched();
+  SIZE ld(DIM d);
+  bool isPitched();
+  bool isManaged();
 
 private:
   DIM D_padded;
@@ -45,6 +50,11 @@ private:
   std::vector<SIZE> _ldvs;
   std::vector<SIZE> _shape;
   SIZE linearized_depth;
+  std::vector<SIZE> shape_org;
+  DIM D_pad;
+  std::vector<SIZE> __ldvs;
+  std::vector<SIZE> __shape;
+  SIZE linearized_width;
 };
 
 } // namespace mgard_x
