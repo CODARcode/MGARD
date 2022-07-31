@@ -109,6 +109,20 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   /// `D`. Each array should be the size of the associated dimension.
   std::vector<Array<1, T, DeviceType>> coords;
 
+  DIM D_pad;
+  std::vector<SIZE> shape_org_padded;
+  std::vector<std::vector<SIZE>> level_shape;
+  std::vector<Array<1, SIZE, DeviceType>> level_shape_array;
+  Array<1, SIZE, DeviceType> ranges_org;
+  std::vector<T *> coords_h_org;
+  std::vector<Array<1, T, DeviceType>> coords_org;
+  std::vector<std::vector<Array<1, T, DeviceType>>> dist_org_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> ratio_org_array;
+  Array<2, T, DeviceType> volumes_org_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> am_org_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> bm_org_array;
+
+
   std::vector<std::vector<Array<1, T, DeviceType>>> dist_array;
   std::vector<std::vector<Array<1, T, DeviceType>>> ratio_array;
 
