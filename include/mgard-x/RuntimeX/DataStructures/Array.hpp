@@ -21,124 +21,104 @@ namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType>::Array() {
-  this->host_allocated = false;
-  this->device_allocated = false;
+  initialize(std::vector<SIZE>(D, 1));
 }
 
 template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType>::Array(std::vector<SIZE> _shape, bool pitched,
                                bool managed, int queue_idx) {
-  this->host_allocated = false;
-  this->device_allocated = false;
-  this->pitched = pitched;
-  this->managed = managed;
-  std::reverse(_shape.begin(), _shape.end());
-  this->_shape = _shape;
-  int ret = check_shape<D>(_shape);
-  if (ret == -1) {
-    std::cerr << log::log_err << "Number of dimensions mismatch (" << D
-              << " != " << _shape.size()
-              << "). mgard_x::Array not "
-                 "initialized!\n";
-    return;
-  }
+  initialize(_shape);
+  allocate(pitched, managed, queue_idx);
+}
 
-  this->D_padded = D;
+template <DIM D, typename T, typename DeviceType>
+void Array<D, T, DeviceType>::initialize(std::vector<SIZE> shape) {
+  if (shape.size() != D) {
+    std::cerr << log::log_err << "Number of dimensions mismatch ("
+              << shape.size() << "!=" << D
+              << "). mgard_x::Array not initialized!\n";
+    exit(-1);
+  }
+  shape_org = shape;
+  __shape = shape;
+  free();
+  D_padded = D;
   if (D < 3) {
-    this->D_padded = 3;
+    D_padded = 3;
   }
   if (D % 2 == 0) {
-    this->D_padded = D + 1;
+    D_padded = D + 1;
   }
+  D_pad = D_padded - D;
   // padding dimensions
-  for (int d = this->_shape.size(); d < D_padded; d++) {
-    this->_shape.push_back(1);
+  for (DIM d = 0; d < D_pad; d++) {
+    __shape.insert(__shape.begin(), 1);
   }
-  this->linearized_depth = 1;
-  for (int i = 2; i < D_padded; i++) {
-    this->linearized_depth *= this->_shape[i];
-  }
+  __ldvs = __shape;
 
+  _shape = __shape;
+  _ldvs = __shape;
+  std::reverse(_shape.begin(), _shape.end());
+  std::reverse(_ldvs.begin(), _ldvs.end());
+  linearized_depth = 1;
+  for (DIM d = 2; d < D_padded; d++) {
+    linearized_depth *= _shape[d];
+  }
+  linearized_width = 1;
+  for (DIM d = 0; d < D_padded-1; d++) {
+    linearized_width *= __shape[d];
+  }
+  host_allocated = false;
+  device_allocated = false;
+  pitched = false;
+  managed = false;
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Array<D, T, DeviceType>::allocate(bool pitched, bool managed, int queue_idx) {
+  this->pitched = pitched;
+  this->managed = managed;
   if (this->pitched) {
     if (!this->managed) {
       SIZE ld = 0;
-      MemoryManager<DeviceType>().MallocND(
-          this->dv, this->_shape[0], this->_shape[1] * this->linearized_depth,
-          ld, queue_idx);
-      this->_ldvs.push_back(ld);
-      for (int i = 1; i < D_padded; i++) {
-        this->_ldvs.push_back(this->_shape[i]);
-      }
+      MemoryManager<DeviceType>::MallocND(
+          dv, __shape[D_padded-1], linearized_width, ld, queue_idx);
+      _ldvs[0] = ld;
+      __ldvs[D_padded-1] = ld;
     } else {
       std::cerr << log::log_err
                 << "Does not support managed memory in pitched mode.\n";
     }
   } else {
     if (!this->managed) {
-      MemoryManager<DeviceType>().Malloc1D(
-          this->dv, this->_shape[0] * this->_shape[1] * this->linearized_depth,
-          queue_idx);
-      for (int i = 0; i < D_padded; i++) {
-        this->_ldvs.push_back(this->_shape[i]);
-      }
+      MemoryManager<DeviceType>::Malloc1D(
+          dv, __shape[D_padded-1] * linearized_width, queue_idx);
     } else {
-      MemoryManager<DeviceType>().MallocManaged1D(
-          this->dv, this->_shape[0] * this->_shape[1] * this->linearized_depth,
-          queue_idx);
-      for (int i = 0; i < D_padded; i++) {
-        this->_ldvs.push_back(this->_shape[i]);
-      }
+      MemoryManager<DeviceType>::MallocManaged1D(
+          dv, __shape[D_padded-1] * linearized_width, queue_idx);
     }
   }
-
-  this->device_allocated = true;
+  device_allocated = true;
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::copy(const Array<D, T, DeviceType> &array, int queue_idx) {
-  this->free();
-  this->_shape = array._shape;
-  this->pitched = array.pitched;
-  this->D_padded = array.D_padded;
-  this->linearized_depth = array.linearized_depth;
-  this->_ldvs.resize(D_padded);
-
-  if (this->pitched) {
-    SIZE ld = 0;
-    MemoryManager<DeviceType>().MallocND(
-        this->dv, this->_shape[0], this->_shape[1] * this->linearized_depth, ld,
-        queue_idx);
-    this->_ldvs[0] = ld;
-    for (int i = 1; i < D_padded; i++) {
-      this->_ldvs[i] = this->_shape[i];
-    }
-  } else {
-    MemoryManager<DeviceType>().Malloc1D(
-        this->dv, this->_shape[0] * this->_shape[1] * this->linearized_depth,
-        queue_idx);
-    for (int i = 0; i < D_padded; i++) {
-      this->_ldvs[i] = this->_shape[i];
-    }
-  }
-
-  MemoryManager<DeviceType>().CopyND(
-      this->dv, this->_ldvs[0], array.dv, array._ldvs[0], array._shape[0],
-      array._shape[1] * this->linearized_depth, queue_idx);
-  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-  this->device_allocated = true;
+  initialize(array.shape_org);
+  allocate(array.pitched, array.managed, queue_idx);
+  MemoryManager<DeviceType>::CopyND(
+      dv, __ldvs[D_padded-1], array.dv, array.__ldvs[array.D_padded-1], array.__shape[D_padded-1],
+      array.linearized_width, queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
-  this->free();
-  this->_shape = array._shape;
+  initialize(array.shape_org);
   this->pitched = array.pitched;
-  this->D_padded = array.D_padded;
-  this->linearized_depth = array.linearized_depth;
-
+  this->managed = array.managed;
   if (array.device_allocated) {
     this->dv = array.dv;
     this->_ldvs = array._ldvs;
+    this->__ldvs = array.__ldvs;
     this->device_allocated = true;
     array.device_allocated = false;
     array.dv = NULL;
@@ -148,26 +128,26 @@ void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::memset(int value, int queue_idx) {
   if (this->pitched) {
-    MemoryManager<DeviceType>().MemsetND(
-        this->dv, this->_ldvs[0], this->_shape[0],
-        this->_shape[1] * this->linearized_depth, value, queue_idx);
+    MemoryManager<DeviceType>::MemsetND(
+        dv, __ldvs[D_padded-1], __shape[D_padded-1],
+        linearized_width, value, queue_idx);
   } else {
-    MemoryManager<DeviceType>().Memset1D(
-        this->dv, this->_shape[0] * this->_shape[1] * this->linearized_depth,
+    MemoryManager<DeviceType>::Memset1D(
+        dv, __ldvs[D_padded-1] * linearized_width,
         value, queue_idx);
   }
-  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+  // DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::free(int queue_idx) {
   if (device_allocated) {
-    MemoryManager<DeviceType>().Free(dv, queue_idx);
+    MemoryManager<DeviceType>::Free(dv, queue_idx);
     device_allocated = false;
     dv = NULL;
   }
   if (host_allocated && !keepHostCopy) {
-    MemoryManager<DeviceType>().FreeHost(hv, queue_idx);
+    MemoryManager<DeviceType>::FreeHost(hv, queue_idx);
     host_allocated = false;
     hv = NULL;
   }
@@ -210,8 +190,8 @@ void Array<D, T, DeviceType>::load(const T *data, SIZE ld, int queue_idx) {
   if (ld == 0) {
     ld = _shape[0];
   }
-  MemoryManager<DeviceType>().CopyND(dv, _ldvs[0], data, ld, _shape[0],
-                                     _shape[1] * linearized_depth, queue_idx);
+  MemoryManager<DeviceType>::CopyND(dv, __ldvs[D_padded-1], data, ld, __shape[D_padded-1],
+                                    linearized_width, queue_idx);
 
   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 }
@@ -223,12 +203,12 @@ T *Array<D, T, DeviceType>::hostCopy(bool keep, int queue_idx) {
     exit(-1);
   }
   if (!host_allocated) {
-    MemoryManager<DeviceType>().MallocHost(
-        hv, _shape[0] * _shape[1] * linearized_depth, queue_idx);
+    MemoryManager<DeviceType>::MallocHost(
+        hv, __shape[D_padded-1] * linearized_width, queue_idx);
     host_allocated = true;
   }
-  MemoryManager<DeviceType>().CopyND(hv, _shape[0], dv, _ldvs[0], _shape[0],
-                                     _shape[1] * linearized_depth, queue_idx);
+  MemoryManager<DeviceType>::CopyND(hv, __shape[D_padded-1], dv, __ldvs[D_padded-1], __shape[D_padded-1],
+                                     linearized_width, queue_idx);
   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   keepHostCopy = keep;
   return hv;
@@ -246,6 +226,12 @@ std::vector<SIZE> &Array<D, T, DeviceType>::shape() {
 }
 
 template <DIM D, typename T, typename DeviceType>
+SIZE Array<D, T, DeviceType>::shape(DIM d) {
+  return __shape[d + D_pad];
+}
+
+
+template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::data() {
   return dv;
 }
@@ -256,9 +242,20 @@ std::vector<SIZE> Array<D, T, DeviceType>::ld() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-bool Array<D, T, DeviceType>::is_pitched() {
+SIZE Array<D, T, DeviceType>::ld(DIM d) {
+  return __ldvs[d + D_pad];
+}
+
+template <DIM D, typename T, typename DeviceType>
+bool Array<D, T, DeviceType>::isPitched() {
   return pitched;
 }
+
+template <DIM D, typename T, typename DeviceType>
+bool Array<D, T, DeviceType>::isManaged() {
+  return managed;
+}
+
 } // namespace mgard_x
 
 #endif
