@@ -50,7 +50,8 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   shape_c = SubArray<1, SIZE, DeviceType>(hierarchy.shapes[l + 1], true);
 
   int unprocessed_idx = 0;
-  unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+  // unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+  unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
   unprocessed_dims = SubArray(hierarchy.unprocessed_dims[unprocessed_idx]);
 
   curr_dims[0] = 0;
@@ -120,7 +121,8 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
 
     if (D - d == 1) {
       unprocessed_idx += 1;
-      unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+      // unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+      unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
       unprocessed_dims = SubArray(hierarchy.unprocessed_dims[unprocessed_idx]);
       GpkReo<D, 2, T, true, false, 2, DeviceType>().Execute(shape, shape_c,
           unprocessed_n, unprocessed_dims,
@@ -131,7 +133,8 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
 
     } else { // D - d >= 2
       unprocessed_idx += 2;
-      unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+      // unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+      unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
       unprocessed_dims = SubArray(hierarchy.unprocessed_dims[unprocessed_idx]);
       GpkReo<D, 3, T, true, false, 2, DeviceType>().Execute(shape, shape_c,
           unprocessed_n, unprocessed_dims,
@@ -147,7 +150,8 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   } // debug
 
   unprocessed_idx = 0;
-  unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+  // unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+  unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
   unprocessed_dims = SubArray(hierarchy.unprocessed_dims[unprocessed_idx]);
   // printf("reorder 1-3D\n");
   curr_dims[0] = 0;
@@ -195,7 +199,8 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
     CopyND(dinput1, dinput2, queue_idx);
 
     unprocessed_idx += 2;
-    unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+    // unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+    unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
     unprocessed_dims = SubArray(hierarchy.unprocessed_dims[unprocessed_idx]);
     // printf("reorder %u-%uD\n", d+1, d+2);
     curr_dims[0] = 0;
@@ -270,7 +275,8 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (D - D_reduced == 1) {
     unprocessed_idx += 1;
-    unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+    // unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+    unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
     unprocessed_dims = SubArray(hierarchy.unprocessed_dims[unprocessed_idx]);
     GpkReo<D, 2, T, false, true, 2, DeviceType>().Execute(shape, shape_c,
         unprocessed_n, unprocessed_dims, 
@@ -281,7 +287,8 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
 
   } else { // D-D_reduced == 2
     unprocessed_idx += 2;
-    unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+    // unprocessed_n = hierarchy.unprocessed_n[unprocessed_idx];
+    unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
     unprocessed_dims = SubArray(hierarchy.unprocessed_dims[unprocessed_idx]);
     GpkReo<D, 3, T, false, true, 2, DeviceType>().Execute(shape, shape_c,
         unprocessed_n, unprocessed_dims, 
