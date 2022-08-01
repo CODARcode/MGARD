@@ -330,32 +330,36 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     delete[] curr_shape_h;
   }
 
-  SIZE *curr_level_shape_h = new SIZE[D_padded];
+  SIZE *curr_level_shape_h = new SIZE[D];
   for (int l = 0; l < l_target + 1; l++) {
-    std::vector<SIZE> curr_level_shape(D_padded);
-    Array<1, SIZE, DeviceType> curr_level_shape_array({D_padded});
+    std::vector<SIZE> curr_level_shape(D);
+    Array<1, SIZE, DeviceType> curr_level_shape_array({D});
     assert(shape_level.size() == D_padded);
     // printf("curr_level_shape.size(): %u\n", curr_level_shape.size());
     // printf("shape_level.size(): %u\n", shape_level.size());
-    for (int d = 0; d < D_padded; d++) {
+    for (int d = 0; d < D; d++) {
       // printf("l_target - l: %u, ", l_target - l);
       // printf("shape_level[%u].size(): %u\n", d, shape_level[d].size());
-      curr_level_shape[d] = shape_level[d][l_target - l];
-      curr_level_shape_h[d] = shape_level[d][l_target - l];
+      curr_level_shape[d] = shape_level[d + D_pad][l_target - l];
+      curr_level_shape_h[d] = shape_level[d + D_pad][l_target - l];
     }
     curr_level_shape_array.load(curr_level_shape_h);
-    level_shape.push_back(curr_level_shape);
-    level_shape_array.push_back(curr_level_shape_array);
+    _level_shape.push_back(curr_level_shape);
+    _level_shape_array.push_back(curr_level_shape_array);
   }
   delete[] curr_level_shape_h;
 
-  { // check
-    for (int l = 0; l < l_target + 1; l++) {
-      for (int d = 0; d < D_padded; d++) {
-        assert(level_shape[l][d] == shapes_vec[l_target - l][D_padded - 1 - d]);
-      }
-    }
-  }
+  // { // check
+  //   for (int l = 0; l < l_target + 1; l++) {
+  //     printf("_level_shape[%u]:", l);
+  //     for (int d = 0; d < D; d++) {
+  //       printf("%u ", _level_shape[l][d]);
+  //       // assert(_level_shape[l][d] == shapes_vec[l_target - l][D_padded - 1 - d]);
+
+  //     }
+  //     printf("\n");
+  //   }
+  // }
 
   // ranges
   SIZE *ranges_h = new SIZE[D * (l_target + 2)];
@@ -376,11 +380,11 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       ranges_h_org[d * (l_target + 2)] = 0;
       for (int l = 0; l < l_target + 1; l++) {
         // Use l+1 bacause the first is reserved for 0 (beginning of the range)
-        ranges_h_org[d * (l_target + 2) + l+1] = level_shape[l][D_pad + d];
+        ranges_h_org[d * (l_target + 2) + l+1] = _level_shape[l][d];
       }
     }
-    ranges_org = Array<1, SIZE, DeviceType>({D * (l_target + 2)});
-    ranges_org.load(ranges_h_org);
+    _ranges_org = Array<1, SIZE, DeviceType>({D * (l_target + 2)});
+    _ranges_org.load(ranges_h_org);
     // printf("ranges_h: ");
     // for (int i = 0; i < D * (l_target + 2); i++) {
     //   printf("%u ", ranges_h[i]);
@@ -441,10 +445,10 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
 
   { // Coords
     // printf("start coord\n");
-    for (int d = 0; d < D_padded; d++) {
-      Array<1, T, DeviceType> coord({shape_org_padded[d]});
-      coord.load(coords_h_org[d]);
-      this->coords_org.push_back(coord);
+    for (int d = 0; d < D; d++) {
+      Array<1, T, DeviceType> coord({shape_org[d]});
+      coord.load(_coords_h_org[d]);
+      _coords_org.push_back(coord);
     }
     // printf("done coord\n");
   }
@@ -517,34 +521,34 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
    // calculate dist and ratio
   { // new
     // printf("start dist and ratio\n"); 
-    dist_org_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
-    ratio_org_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
+    _dist_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
+    _ratio_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
     for (SIZE l = 0; l < l_target+1; l++) {
-      dist_org_array[l] = std::vector<Array<1, T, DeviceType>>(D_padded);
-      ratio_org_array[l] = std::vector<Array<1, T, DeviceType>>(D_padded);
+      _dist_array[l] = std::vector<Array<1, T, DeviceType>>(D);
+      _ratio_array[l] = std::vector<Array<1, T, DeviceType>>(D);
     }
     // printf("dist and ratio: l_target\n"); 
     // For the finest level: l = l_target;
-    for (DIM d = 0; d < D_padded; d++) {
-      dist_org_array[l_target][d] = Array<1, T, DeviceType>({level_shape[l_target][d]});
-      ratio_org_array[l_target][d] = Array<1, T, DeviceType>({level_shape[l_target][d]});
-      coord_to_dist(level_shape[l_target][d], this->coords_org[d].data(),
-                    dist_org_array[l_target][d].data());
-      dist_to_ratio(level_shape[l_target][d], dist_org_array[l_target][d].data(),
-                    ratio_org_array[l_target][d].data());
+    for (DIM d = 0; d < D; d++) {
+      _dist_array[l_target][d] = Array<1, T, DeviceType>({_level_shape[l_target][d]});
+      _ratio_array[l_target][d] = Array<1, T, DeviceType>({_level_shape[l_target][d]});
+      coord_to_dist(_level_shape[l_target][d], this->_coords_org[d].data(),
+                    _dist_array[l_target][d].data());
+      dist_to_ratio(_level_shape[l_target][d], _dist_array[l_target][d].data(),
+                    _ratio_array[l_target][d].data());
     }
 
     // for l = 1 ... l_target
     for (int l = l_target-1; l >= 0; l--) {
       // printf("dist and ratio: %u\n", l); 
-      for (DIM d = 0; d < D_padded; d++) {
-        dist_org_array[l][d] = Array<1, T, DeviceType>({level_shape[l][d]});
-        ratio_org_array[l][d] = Array<1, T, DeviceType>({level_shape[l][d]});
+      for (DIM d = 0; d < D; d++) {
+        _dist_array[l][d] = Array<1, T, DeviceType>({_level_shape[l][d]});
+        _ratio_array[l][d] = Array<1, T, DeviceType>({_level_shape[l][d]});
         
-        reduce_dist(level_shape[l+1][d], dist_org_array[l+1][d].data(),
-                    dist_org_array[l][d].data());
-        dist_to_ratio(level_shape[l][d], dist_org_array[l][d].data(),
-                      ratio_org_array[l][d].data());
+        reduce_dist(_level_shape[l+1][d], _dist_array[l+1][d].data(),
+                    _dist_array[l][d].data());
+        dist_to_ratio(_level_shape[l][d], _dist_array[l][d].data(),
+                      _ratio_array[l][d].data());
       }
     }
   }
@@ -553,15 +557,15 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     // printf("start volume\n");
     // volume for quantization
     SIZE volumes_width = 0;
-    for (DIM d = 0; d < D_padded; d++) {
-      volumes_width = std::max(volumes_width, level_shape[l_target][d]);
+    for (DIM d = 0; d < D; d++) {
+      volumes_width = std::max(volumes_width, _level_shape[l_target][d]);
     }
 
-    volumes_org_array = Array<2, T, DeviceType>({D * (l_target + 1), volumes_width});
-    SubArray<2, T, DeviceType> volumes_subarray(volumes_org_array);
+    _volumes_array = Array<2, T, DeviceType>({D * (l_target + 1), volumes_width});
+    SubArray<2, T, DeviceType> volumes_subarray(_volumes_array);
     for (DIM d = 0; d < D; d++) {
       for (SIZE l = 0; l < l_target + 1; l++) {
-        calc_volume(level_shape[l][D_pad + d], dist_org_array[l][D_pad + d].data(),
+        calc_volume(_level_shape[l][d], _dist_array[l][d].data(),
                     volumes_subarray((d * (l_target + 1) + l), 0));
       }
     }
@@ -570,24 +574,25 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   { 
     // printf("start am/bm\n");
     // am and bm
-    am_org_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
-    bm_org_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
+    _am_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
+    _bm_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
     for (SIZE l = 0; l < l_target+1; l++) {
-      am_org_array[l] = std::vector<Array<1, T, DeviceType>>(D);
-      bm_org_array[l] = std::vector<Array<1, T, DeviceType>>(D);
+      _am_array[l] = std::vector<Array<1, T, DeviceType>>(D);
+      _bm_array[l] = std::vector<Array<1, T, DeviceType>>(D);
     }
     for (SIZE l = 0; l < l_target + 1; l++) {
       for (DIM d = 0; d < D; d++) {
-        am_org_array[l][d] = Array<1, T, DeviceType>({level_shape[l][D_pad + d] + 1});
-        bm_org_array[l][d] = Array<1, T, DeviceType>({level_shape[l][D_pad + d] + 1});
-        am_org_array[l][d].memset(0);
-        bm_org_array[l][d].memset(0);
-        calc_am_bm(level_shape[l][D_pad + d], dist_org_array[l][D_pad + d].data(), am_org_array[l][d].data(),
-                   bm_org_array[l][d].data());
+        _am_array[l][d] = Array<1, T, DeviceType>({_level_shape[l][d] + 1});
+        _bm_array[l][d] = Array<1, T, DeviceType>({_level_shape[l][d] + 1});
+        _am_array[l][d].memset(0);
+        _bm_array[l][d].memset(0);
+        calc_am_bm(_level_shape[l][d], _dist_array[l][d].data(), _am_array[l][d].data(),
+                   _bm_array[l][d].data());
       }
     }
   }
 
+  dummy_array = Array<1, T, DeviceType>({1});
   // dev_type = config.dev_type;
   // dev_id = config.dev_id;
   // lossless = config.lossless;
@@ -601,6 +606,66 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   // timing = config.timing;
   initialized = true;
 }
+
+template <DIM D, typename T, typename DeviceType>
+std::vector<SIZE> Hierarchy<D, T, DeviceType>::level_shape(SIZE level) {
+  if (level > l_target + 1) {
+    std::cerr << log::log_err << "Hierarchy::level_shape level out of bound.\n";
+    exit(-1);
+  }
+  return _level_shape[level];
+}
+
+template <DIM D, typename T, typename DeviceType>
+SIZE Hierarchy<D, T, DeviceType>::level_shape(SIZE level, DIM dim) {
+  if (level > l_target + 1) {
+    std::cerr << log::log_err << "Hierarchy::level_shape level out of bound.\n";
+    exit(-1);
+  }
+  if (dim >= D) return 1;
+  return _level_shape[level][dim];
+}
+
+template <DIM D, typename T, typename DeviceType>
+Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::dist(SIZE level, DIM dim) {
+  if (level > l_target + 1) {
+    std::cerr << log::log_err << "Hierarchy::dist level out of bound.\n";
+    exit(-1);
+  }
+  if (dim >= D) return dummy_array;
+  return _dist_array[level][dim];
+}
+
+template <DIM D, typename T, typename DeviceType>
+Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::ratio(SIZE level, DIM dim) {
+  if (level > l_target + 1) {
+    std::cerr << log::log_err << "Hierarchy::ratio level out of bound.\n";
+    exit(-1);
+  }
+  if (dim >= D) return dummy_array;
+  return _ratio_array[level][dim];
+}
+
+template <DIM D, typename T, typename DeviceType>
+Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::am(SIZE level, DIM dim) {
+  if (level > l_target + 1) {
+    std::cerr << log::log_err << "Hierarchy::am level out of bound.\n";
+    exit(-1);
+  }
+  if (dim >= D) return dummy_array;
+  return _am_array[level][dim];
+}
+
+template <DIM D, typename T, typename DeviceType>
+Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::bm(SIZE level, DIM dim) {
+  if (level > l_target + 1) {
+    std::cerr << log::log_err << "Hierarchy::bm level out of bound.\n";
+    exit(-1);
+  }
+  if (dim >= D) return dummy_array;
+  return _bm_array[level][dim];
+}
+
 
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::destroy() {
@@ -640,16 +705,16 @@ void Hierarchy<D, T, DeviceType>::padding_dimensions(std::vector<SIZE> &shape,
 
   assert(shape_org_padded.size() == D);
   // assert(coords_h_org.size() == D);
-  for (DIM d = 0; d < D_padded-D; d++) {
+  for (DIM d = 0; d < D_pad; d++) {
     shape_org_padded.insert(shape_org_padded.begin(), 1);
-    T *curr_coords = new T[shape_org_padded[d]];
-    for (SIZE i = 0; i < shape_org_padded[d]; i++) {
-      curr_coords[i] = (T)i;
-    }
-    coords_h_org.insert(coords_h_org.begin(), curr_coords);
+    // T *curr_coords = new T[shape_org_padded[d]];
+    // for (SIZE i = 0; i < shape_org_padded[d]; i++) {
+      // curr_coords[i] = (T)i;
+    // }
+    // coords_h_org.insert(coords_h_org.begin(), curr_coords);
   }
   assert(shape_org_padded.size() == D_padded);
-  assert(coords_h_org.size() == D_padded);
+  // assert(coords_h_org.size() == D_padded);
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -927,7 +992,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
     }
     dstype = data_structure_type::Cartesian_Grid_Uniform;
     std::vector<T *> coords = create_uniform_coords(shape, uniform_coord_mode);
-    coords_h_org = create_uniform_coords(shape_org, uniform_coord_mode);
+    _coords_h_org = create_uniform_coords(shape_org, uniform_coord_mode);
     padding_dimensions(shape, coords);
     init(shape, coords, target_level);
   } else { // need domain decomposition
@@ -945,7 +1010,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
     // Config config;
     shape_org = shape;
     shape_org_padded = shape;
-    coords_h_org = coords;
+    _coords_h_org = coords;
     std::reverse(shape.begin(), shape.end());
     std::reverse(coords.begin(), coords.end());
     int ret = check_shape<D>(shape);
@@ -1010,16 +1075,16 @@ Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   shapes_vec = hierarchy.shapes_vec;
   ranges = hierarchy.ranges;
   coords = hierarchy.coords;
-  coords_org = hierarchy.coords_org;
-  dist_org_array = hierarchy.dist_org_array;
-  ratio_org_array = hierarchy.ratio_org_array;
-  volumes_org_array = hierarchy.volumes_org_array;
-  am_org_array = hierarchy.am_org_array;
-  bm_org_array = hierarchy.bm_org_array;
+  _coords_org = hierarchy._coords_org;
+  _dist_array = hierarchy._dist_array;
+  _ratio_array = hierarchy._ratio_array;
+  _volumes_array = hierarchy._volumes_array;
+  _am_array = hierarchy._am_array;
+  _bm_array = hierarchy._bm_array;
 
-  level_shape = hierarchy.level_shape;
-  level_shape_array = hierarchy.level_shape_array;
-  ranges_org = hierarchy.ranges_org;
+  _level_shape = hierarchy._level_shape;
+  _level_shape_array = hierarchy._level_shape_array;
+  _ranges_org = hierarchy._ranges_org;
 
   dist_array = hierarchy.dist_array;
   ratio_array = hierarchy.ratio_array;
