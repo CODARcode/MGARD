@@ -701,6 +701,26 @@ Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::bm(SIZE level, DIM dim) {
   return _bm_array[level][dim];
 }
 
+template <DIM D, typename T, typename DeviceType>
+Array<1, DIM, DeviceType> &Hierarchy<D, T, DeviceType>::processed(SIZE idx, DIM &processed_n) {
+  if (idx >= D) {
+    std::cerr << log::log_err << "Hierarchy::processed idx out of bound.\n";
+    exit(-1);
+  }
+  processed_n = _processed_n[idx];
+  return _processed_dims[idx];
+}
+
+template <DIM D, typename T, typename DeviceType>
+Array<1, DIM, DeviceType> &Hierarchy<D, T, DeviceType>::unprocessed(SIZE idx, DIM &processed_n) {
+  if (idx >= D) {
+    std::cerr << log::log_err << "Hierarchy::unprocessed idx out of bound.\n";
+    exit(-1);
+  }
+  processed_n = _unprocessed_n[idx];
+  return _unprocessed_dims[idx];
+}
+
 
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::destroy() {
