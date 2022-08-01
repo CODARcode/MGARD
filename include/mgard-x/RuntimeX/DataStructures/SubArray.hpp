@@ -75,10 +75,16 @@ public:
   }
 
   MGARDX_CONT_EXEC
-  SIZE shape(DIM d) const { return __shape[d]; }
+  SIZE shape(DIM d) const {
+    if (d >= D) return 1;
+    return __shape[d]; 
+  }
 
   MGARDX_CONT_EXEC
-  SIZE ld(DIM d) const { return __ldvs[d]; }
+  SIZE ld(DIM d) const {
+    if (d >= D) return 1;
+    return __ldvs[d]; 
+  }
 
   MGARDX_CONT_EXEC
   SIZE getLd(DIM d) const { return this->_ldvs[d]; }
