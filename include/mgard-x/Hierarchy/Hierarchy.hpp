@@ -330,10 +330,10 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     delete[] curr_shape_h;
   }
 
-  SIZE *curr_level_shape_h = new SIZE[D_padded];
+  SIZE *curr_level_shape_h = new SIZE[D];
   for (int l = 0; l < l_target + 1; l++) {
     std::vector<SIZE> curr_level_shape(D);
-    Array<1, SIZE, DeviceType> curr_level_shape_array({D_padded});
+    Array<1, SIZE, DeviceType> curr_level_shape_array({D});
     assert(shape_level.size() == D_padded);
     // printf("curr_level_shape.size(): %u\n", curr_level_shape.size());
     // printf("shape_level.size(): %u\n", shape_level.size());
@@ -341,11 +341,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       // printf("l_target - l: %u, ", l_target - l);
       // printf("shape_level[%u].size(): %u\n", d, shape_level[d].size());
       curr_level_shape[d] = shape_level[d + D_pad][l_target - l];
-      curr_level_shape_h[d + D_pad] = shape_level[d + D_pad][l_target - l];
-    }
-    // _level_shape_array needs padding
-    for (int d = 0; d < D_pad; d++) {
-      curr_level_shape_h[d] = 1;
+      curr_level_shape_h[d] = shape_level[d + D_pad][l_target - l];
     }
     curr_level_shape_array.load(curr_level_shape_h);
     _level_shape.push_back(curr_level_shape);
