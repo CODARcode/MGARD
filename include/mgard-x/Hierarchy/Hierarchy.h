@@ -67,6 +67,13 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   // 0); Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords, Config
   // config);
 
+  std::vector<SIZE> level_shape(SIZE level);
+  SIZE level_shape(SIZE level, DIM dim);
+  Array<1, T, DeviceType> &dist(SIZE level, DIM dim);
+  Array<1, T, DeviceType> &ratio(SIZE level, DIM dim);
+  Array<1, T, DeviceType> &am(SIZE level, DIM dim);
+  Array<1, T, DeviceType> &bm(SIZE level, DIM dim);
+
   ~Hierarchy();
 
   /* Refactoring env */
@@ -111,17 +118,6 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
 
   DIM D_pad;
   std::vector<SIZE> shape_org_padded;
-  std::vector<std::vector<SIZE>> level_shape;
-  std::vector<Array<1, SIZE, DeviceType>> level_shape_array;
-  Array<1, SIZE, DeviceType> ranges_org;
-  std::vector<T *> coords_h_org;
-  std::vector<Array<1, T, DeviceType>> coords_org;
-  std::vector<std::vector<Array<1, T, DeviceType>>> dist_org_array;
-  std::vector<std::vector<Array<1, T, DeviceType>>> ratio_org_array;
-  Array<2, T, DeviceType> volumes_org_array;
-  std::vector<std::vector<Array<1, T, DeviceType>>> am_org_array;
-  std::vector<std::vector<Array<1, T, DeviceType>>> bm_org_array;
-
 
   std::vector<std::vector<Array<1, T, DeviceType>>> dist_array;
   std::vector<std::vector<Array<1, T, DeviceType>>> ratio_array;
@@ -148,6 +144,19 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   std::vector<Hierarchy<D, T, DeviceType>> hierarchy_chunck;
 
 private:
+  // For out-of-bound returns
+  Array<1, T, DeviceType> dummy_array;
+  std::vector<std::vector<SIZE>> _level_shape;
+  std::vector<Array<1, SIZE, DeviceType>> _level_shape_array;
+  Array<1, SIZE, DeviceType> _ranges_org;
+  std::vector<T *> _coords_h_org;
+  std::vector<Array<1, T, DeviceType>> _coords_org;
+  std::vector<std::vector<Array<1, T, DeviceType>>> _dist_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> _ratio_array;
+  Array<2, T, DeviceType> _volumes_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> _am_array;
+  std::vector<std::vector<Array<1, T, DeviceType>>> _bm_array;
+
   void padding_dimensions(std::vector<SIZE> &shape, std::vector<T *> &coords);
   std::vector<T *> create_uniform_coords(std::vector<SIZE> shape, int mode);
   void coord_to_dist(SIZE dof, T *coord, T *dist);
