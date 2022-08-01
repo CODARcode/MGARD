@@ -83,6 +83,76 @@ void CalcCoefficientsPointers(
   dcoeff_rcf.resize(curr_dims[2], n[2] - nn[2]);
 }
 
+template <DIM D, typename T, typename DeviceType>
+void CalcCoefficientsPointers2(
+    Hierarchy<D, T, DeviceType> &hierarchy, DIM curr_dims[3], DIM l,
+    SubArray<D, T, DeviceType> doutput, SubArray<D, T, DeviceType> &dcoarse,
+    SubArray<D, T, DeviceType> &dcoeff_f, SubArray<D, T, DeviceType> &dcoeff_c,
+    SubArray<D, T, DeviceType> &dcoeff_r, SubArray<D, T, DeviceType> &dcoeff_cf,
+    SubArray<D, T, DeviceType> &dcoeff_rf,
+    SubArray<D, T, DeviceType> &dcoeff_rc,
+    SubArray<D, T, DeviceType> &dcoeff_rcf) {
+
+  SIZE n[3];
+  SIZE nn[3];
+  for (DIM d = 0; d < 3; d++) {
+    n[d] = hierarchy.level_shape(l, curr_dims[d]);
+    nn[d] = hierarchy.level_shape(l-1, curr_dims[d]);
+  }
+
+  dcoarse = doutput;
+  dcoarse.resize2(curr_dims[0], nn[0]);
+  dcoarse.resize2(curr_dims[1], nn[1]);
+  dcoarse.resize2(curr_dims[2], nn[2]);
+
+  dcoeff_r = doutput;
+  dcoeff_r.offset2(curr_dims[0], nn[0]);
+  dcoeff_r.resize2(curr_dims[0], n[0] - nn[0]);
+  dcoeff_r.resize2(curr_dims[1], nn[1]);
+  dcoeff_r.resize2(curr_dims[2], nn[2]);
+
+  dcoeff_c = doutput;
+  dcoeff_c.offset2(curr_dims[1], nn[1]);
+  dcoeff_c.resize2(curr_dims[0], nn[0]);
+  dcoeff_c.resize2(curr_dims[1], n[1] - nn[1]);
+  dcoeff_c.resize2(curr_dims[2], nn[2]);
+
+  dcoeff_f = doutput;
+  dcoeff_f.offset2(curr_dims[2], nn[2]);
+  dcoeff_f.resize2(curr_dims[0], nn[0]);
+  dcoeff_f.resize2(curr_dims[1], nn[1]);
+  dcoeff_f.resize2(curr_dims[2], n[2] - nn[2]);
+
+  dcoeff_rc = doutput;
+  dcoeff_rc.offset2(curr_dims[0], nn[0]);
+  dcoeff_rc.offset2(curr_dims[1], nn[1]);
+  dcoeff_rc.resize2(curr_dims[0], n[0] - nn[0]);
+  dcoeff_rc.resize2(curr_dims[1], n[1] - nn[1]);
+  dcoeff_rc.resize2(curr_dims[2], nn[2]);
+
+  dcoeff_rf = doutput;
+  dcoeff_rf.offset2(curr_dims[0], nn[0]);
+  dcoeff_rf.offset2(curr_dims[2], nn[2]);
+  dcoeff_rf.resize2(curr_dims[0], n[0] - nn[0]);
+  dcoeff_rf.resize2(curr_dims[1], nn[1]);
+  dcoeff_rf.resize2(curr_dims[2], n[2] - nn[2]);
+
+  dcoeff_cf = doutput;
+  dcoeff_cf.offset2(curr_dims[1], nn[1]);
+  dcoeff_cf.offset2(curr_dims[2], nn[2]);
+  dcoeff_cf.resize2(curr_dims[0], nn[0]);
+  dcoeff_cf.resize2(curr_dims[1], n[1] - nn[1]);
+  dcoeff_cf.resize2(curr_dims[2], n[2] - nn[2]);
+
+  dcoeff_rcf = doutput;
+  dcoeff_rcf.offset2(curr_dims[0], nn[0]);
+  dcoeff_rcf.offset2(curr_dims[1], nn[1]);
+  dcoeff_rcf.offset2(curr_dims[2], nn[2]);
+  dcoeff_rcf.resize2(curr_dims[0], n[0] - nn[0]);
+  dcoeff_rcf.resize2(curr_dims[1], n[1] - nn[1]);
+  dcoeff_rcf.resize2(curr_dims[2], n[2] - nn[2]);
+}
+
 } // namespace mgard_x
 
 #endif
