@@ -330,10 +330,10 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     delete[] curr_shape_h;
   }
 
-  SIZE *curr_level_shape_h = new SIZE[D];
+  SIZE *curr_level_shape_h = new SIZE[D_padded];
   for (int l = 0; l < l_target + 1; l++) {
     std::vector<SIZE> curr_level_shape(D);
-    Array<1, SIZE, DeviceType> curr_level_shape_array({D});
+    Array<1, SIZE, DeviceType> curr_level_shape_array({D_padded});
     assert(shape_level.size() == D_padded);
     // printf("curr_level_shape.size(): %u\n", curr_level_shape.size());
     // printf("shape_level.size(): %u\n", shape_level.size());
@@ -341,7 +341,11 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       // printf("l_target - l: %u, ", l_target - l);
       // printf("shape_level[%u].size(): %u\n", d, shape_level[d].size());
       curr_level_shape[d] = shape_level[d + D_pad][l_target - l];
-      curr_level_shape_h[d] = shape_level[d + D_pad][l_target - l];
+      curr_level_shape_h[d + D_pad] = shape_level[d + D_pad][l_target - l];
+    }
+    // _level_shape_array needs padding
+    for (int d = 0; d < D_pad; d++) {
+      curr_level_shape_h[d] = 1;
     }
     curr_level_shape_array.load(curr_level_shape_h);
     _level_shape.push_back(curr_level_shape);
@@ -404,28 +408,23 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     delete[] ranges_h_org;
   }
 
-  {
-    processed_n = new DIM[D];
-
+  if (D >= 4) {
     std::vector<DIM> tmp(0);
     for (int d = 0; d < D; d++) {
       processed_n[d] = tmp.size();
       // processed_dims_h[d] = new DIM[processed_n[d]];
-
       processed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
       processed_dims[d].load(tmp.data());
       tmp.push_back(d);
     }
   }
-  {
+  if (D >= 4) {
     std::vector<DIM> tmp(0);
-    for (int i = 3; i < D; i++) {
+    for (int i = D-1; i >= 3; i--) {
       tmp.push_back(i);
     }
     // Extra padding needed in for loop below.
     tmp.push_back(0);
-    unprocessed_n = new DIM[tmp.size()];
-
     //+1 is used for storing empty status
     for (int d = 0; d < (int)D - 3 + 1; d++) {
       tmp.pop_back();
@@ -592,6 +591,33 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     }
   }
 
+  if (D >= 4) {
+    std::vector<DIM> tmp(0);
+    for (int d = D-1; d >= 0; d--) {
+      _processed_n[d] = tmp.size();
+      _processed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
+      _processed_dims[d].load(tmp.data());
+      tmp.push_back(d);
+    }
+  }
+
+  if (D >= 4) {
+    std::vector<DIM> tmp(0);
+    for (int d = 0; d < D - 3; d++) {
+      tmp.push_back(d);
+    }
+    // Extra padding needed in for loop below.
+    tmp.push_back(0);
+
+    //+1 is used for storing empty status
+    for (int d = 0; d < (int)D - 3 + 1; d++) {
+      tmp.pop_back();
+      _unprocessed_n[d] = tmp.size();
+      _unprocessed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
+      _unprocessed_dims[d].load(tmp.data());
+    }
+  }
+
   dummy_array = Array<1, T, DeviceType>({1});
   // dev_type = config.dev_type;
   // dev_id = config.dev_id;
@@ -624,6 +650,15 @@ SIZE Hierarchy<D, T, DeviceType>::level_shape(SIZE level, DIM dim) {
   }
   if (dim >= D) return 1;
   return _level_shape[level][dim];
+}
+
+template <DIM D, typename T, typename DeviceType>
+Array<1, SIZE, DeviceType> &Hierarchy<D, T, DeviceType>::level_shape_array(SIZE level) {
+  if (level > l_target + 1) {
+    std::cerr << log::log_err << "Hierarchy::level_shape_array level out of bound.\n";
+    exit(-1);
+  }
+  return _level_shape_array[level];
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -669,10 +704,6 @@ Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::bm(SIZE level, DIM dim) {
 
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::destroy() {
-
-  delete[] processed_n;
-  delete[] unprocessed_n;
-
   if (uniform_coords_created) {
     for (int d = 0; d < D; d++) {
       delete[] this->coords_h[d];
@@ -1095,15 +1126,13 @@ Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   linearized_depth = hierarchy.linearized_depth;
   dstype = hierarchy.dstype;
 
-  processed_n = new DIM[D];
-  unprocessed_n = new DIM[D];
-  for (DIM d = 0; d < D; d++) {
-    processed_n[d] = hierarchy.processed_n[d];
-    unprocessed_n[d] = hierarchy.unprocessed_n[d];
-  }
-
-  for (int d = 0; d < (int)D - 3 + 1; d++) {
-    unprocessed_dims[d] = hierarchy.unprocessed_dims[d];
+  if (D >= 4) {
+    for (DIM d = 0; d < D; d++) {
+      processed_n[d] = hierarchy.processed_n[d];
+      unprocessed_n[d] = hierarchy.unprocessed_n[d];
+      processed_dims[d] = hierarchy.processed_dims[d];
+      unprocessed_dims[d] = hierarchy.unprocessed_dims[d];
+    }
   }
   domain_decomposed = hierarchy.domain_decomposed;
   domain_decomposed_dim = hierarchy.domain_decomposed_dim;

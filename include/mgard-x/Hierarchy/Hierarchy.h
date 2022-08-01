@@ -69,6 +69,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
 
   std::vector<SIZE> level_shape(SIZE level);
   SIZE level_shape(SIZE level, DIM dim);
+  Array<1, SIZE, DeviceType> &level_shape_array(SIZE level);
   Array<1, T, DeviceType> &dist(SIZE level, DIM dim);
   Array<1, T, DeviceType> &ratio(SIZE level, DIM dim);
   Array<1, T, DeviceType> &am(SIZE level, DIM dim);
@@ -132,8 +133,8 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
 
   enum data_structure_type dstype;
 
-  DIM *processed_n;
-  DIM *unprocessed_n;
+  DIM processed_n[D];
+  DIM unprocessed_n[D];
 
   Array<1, DIM, DeviceType> processed_dims[D];
   Array<1, DIM, DeviceType> unprocessed_dims[D];
@@ -156,6 +157,12 @@ private:
   Array<2, T, DeviceType> _volumes_array;
   std::vector<std::vector<Array<1, T, DeviceType>>> _am_array;
   std::vector<std::vector<Array<1, T, DeviceType>>> _bm_array;
+
+  DIM _processed_n[D];
+  DIM _unprocessed_n[D];
+
+  Array<1, DIM, DeviceType> _processed_dims[D];
+  Array<1, DIM, DeviceType> _unprocessed_dims[D];
 
   void padding_dimensions(std::vector<SIZE> &shape, std::vector<T *> &coords);
   std::vector<T *> create_uniform_coords(std::vector<SIZE> shape, int mode);
