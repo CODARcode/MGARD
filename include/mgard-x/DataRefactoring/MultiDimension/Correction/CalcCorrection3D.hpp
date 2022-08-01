@@ -32,31 +32,57 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
   for (int d = 0; d < D; d++)
     prefix += std::to_string(hierarchy.shape[d]) + "_";
 
+  SIZE f = hierarchy.level_shape(hierarchy.l_target-l, D-1);
+  SIZE c = hierarchy.level_shape(hierarchy.l_target-l, D-2);
+  SIZE r = hierarchy.level_shape(hierarchy.l_target-l, D-3);
+  SIZE ff = hierarchy.level_shape(hierarchy.l_target-l-1, D-1);
+  SIZE cc = hierarchy.level_shape(hierarchy.l_target-l-1, D-2);
+  SIZE rr = hierarchy.level_shape(hierarchy.l_target-l-1, D-3);
+
+  SubArray dist_f(hierarchy.dist(hierarchy.l_target-l, D-1));
+  SubArray dist_c(hierarchy.dist(hierarchy.l_target-l, D-2));
+  SubArray dist_r(hierarchy.dist(hierarchy.l_target-l, D-3));
+
+  SubArray dist_ff(hierarchy.dist(hierarchy.l_target-l-1, D-1));
+  SubArray dist_cc(hierarchy.dist(hierarchy.l_target-l-1, D-2));
+  SubArray dist_rr(hierarchy.dist(hierarchy.l_target-l-1, D-3));
+
+  SubArray ratio_f(hierarchy.ratio(hierarchy.l_target-l, D-1));
+  SubArray ratio_c(hierarchy.ratio(hierarchy.l_target-l, D-2));
+  SubArray ratio_r(hierarchy.ratio(hierarchy.l_target-l, D-3));
+
+  SubArray am_ff(hierarchy.am(hierarchy.l_target-l-1, D-1));
+  SubArray am_cc(hierarchy.am(hierarchy.l_target-l-1, D-2));
+  SubArray am_rr(hierarchy.am(hierarchy.l_target-l-1, D-3));
+
+  SubArray bm_ff(hierarchy.bm(hierarchy.l_target-l-1, D-1));
+  SubArray bm_cc(hierarchy.bm(hierarchy.l_target-l-1, D-2));
+  SubArray bm_rr(hierarchy.bm(hierarchy.l_target-l-1, D-3));
+
   SubArray<D, T, DeviceType> dw_in1, dw_in2, dw_out;
 
   if (D >= 1) {
     dw_in1 = dcoeff;
-    dw_in1.resize(
-        {hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l], hierarchy.dofs[2][l]});
+    // dw_in1.resize(
+        // {hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l], hierarchy.dofs[2][l]});
+    dw_in1.resize2({r, c, ff});
     dw_in2 = dcoeff;
-    dw_in2.offset({hierarchy.dofs[0][l + 1], 0, 0});
-    dw_in2.resize({hierarchy.dofs[0][l] - hierarchy.dofs[0][l + 1],
-                   hierarchy.dofs[1][l], hierarchy.dofs[2][l]});
+    // dw_in2.offset({hierarchy.dofs[0][l + 1], 0, 0});
+    dw_in2.offset2({0, 0, ff});
+    // dw_in2.resize({hierarchy.dofs[0][l] - hierarchy.dofs[0][l + 1],
+                   // hierarchy.dofs[1][l], hierarchy.dofs[2][l]});
+    dw_in2.resize2({r, c, f-ff});
     dw_out = dcorrection;
-    dw_out.resize(
-        {hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l], hierarchy.dofs[2][l]});
+    // dw_out.resize(
+        // {hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l], hierarchy.dofs[2][l]});
+    dw_out.resize2({r, c, ff});
 
     Lpk1Reo3D<D, T, DeviceType>().Execute(
-        hierarchy.dofs[2][l], hierarchy.dofs[1][l], hierarchy.dofs[0][l],
-        hierarchy.dofs[0][l + 1], hierarchy.dofs[2][l + 1],
-        hierarchy.dofs[1][l + 1], hierarchy.dofs[0][l + 1],
-        SubArray(hierarchy.dist_array[0][l]),
-        SubArray(hierarchy.ratio_array[0][l]), dw_in1, dw_in2, dw_out,
+        r, c, f, ff, rr, cc, ff, dist_f, ratio_f, dw_in1, dw_in2, dw_out,
         queue_idx);
 
-    verify_matrix_cuda(hierarchy.dofs[2][l], hierarchy.dofs[1][l],
-                       hierarchy.dofs[0][l + 1], dw_out.data(), dw_out.getLd(0),
-                       dw_out.getLd(1), dw_out.getLd(0),
+    verify_matrix_cuda(r, c, ff, dw_out.data(), dw_out.ld(D-1),
+                       dw_out.ld(D-2), dw_out.ld(D-1),
                        prefix + "lpk_reo_1_3d" + "_level_" + std::to_string(l),
                        multidim_refactoring_store, multidim_refactoring_verify);
 
@@ -67,26 +93,28 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (D >= 2) {
     dw_in1 = dw_out;
-    dw_in1.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   hierarchy.dofs[2][l]});
+    // dw_in1.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
+                   // hierarchy.dofs[2][l]});
+    dw_in1.resize2({r, cc, ff});
     dw_in2 = dw_out;
-    dw_in2.offset({0, hierarchy.dofs[1][l + 1], 0});
-    dw_in2.resize({hierarchy.dofs[0][l + 1],
-                   hierarchy.dofs[1][l] - hierarchy.dofs[1][l + 1],
-                   hierarchy.dofs[2][l]});
-    dw_out.offset({hierarchy.dofs[0][l + 1], 0, 0});
-    dw_out.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   hierarchy.dofs[2][l]});
+    // dw_in2.offset({0, hierarchy.dofs[1][l + 1], 0});
+    dw_in2.offset2({0, cc, 0});
+    // dw_in2.resize({hierarchy.dofs[0][l + 1],
+                   // hierarchy.dofs[1][l] - hierarchy.dofs[1][l + 1],
+                   // hierarchy.dofs[2][l]});
+    dw_in2.resize2({r, c-cc, ff});
+    // dw_out.offset({hierarchy.dofs[0][l + 1], 0, 0});
+    dw_out.offset2({0, 0, ff});
+    // dw_out.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
+                   // hierarchy.dofs[2][l]});
+    dw_out.resize2({r, cc, ff});
 
     Lpk2Reo3D<D, T, DeviceType>().Execute(
-        hierarchy.dofs[2][l], hierarchy.dofs[1][l], hierarchy.dofs[0][l + 1],
-        hierarchy.dofs[1][l + 1], SubArray(hierarchy.dist_array[1][l]),
-        SubArray(hierarchy.ratio_array[1][l]), dw_in1, dw_in2, dw_out,
+        r, c, ff, cc, dist_c, ratio_c, dw_in1, dw_in2, dw_out,
         queue_idx);
 
-    verify_matrix_cuda(hierarchy.dofs[2][l], hierarchy.dofs[1][l + 1],
-                       hierarchy.dofs[0][l + 1], dw_out.data(), dw_out.getLd(0),
-                       dw_out.getLd(1), dw_out.getLd(0),
+    verify_matrix_cuda(r, cc, ff, dw_out.data(), dw_out.ld(D-1),
+                       dw_out.ld(D-2), dw_out.ld(D-1),
                        prefix + "lpk_reo_2_3d" + "_level_" + std::to_string(l),
                        multidim_refactoring_store, multidim_refactoring_verify);
 
@@ -97,26 +125,27 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (D == 3) {
     dw_in1 = dw_out;
-    dw_in1.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   hierarchy.dofs[2][l + 1]});
+    // dw_in1.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
+                   // hierarchy.dofs[2][l + 1]});
+    dw_in1.resize2({rr, cc, ff});
     dw_in2 = dw_out;
-    dw_in2.offset({0, 0, hierarchy.dofs[2][l + 1]});
-    dw_in2.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   hierarchy.dofs[2][l] - hierarchy.dofs[2][l + 1]});
-    dw_out.offset({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1], 0});
-    dw_out.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   hierarchy.dofs[2][l + 1]});
+    // dw_in2.offset({0, 0, hierarchy.dofs[2][l + 1]});
+    dw_in2.offset2({rr, 0, 0});
+    // dw_in2.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
+                   // hierarchy.dofs[2][l] - hierarchy.dofs[2][l + 1]});
+    dw_in2.resize2({r-rr, cc, r-ff});
+    // dw_out.offset({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1], 0});
+    dw_out.offset2({0, cc, ff});
+    // dw_out.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
+                   // hierarchy.dofs[2][l + 1]});
+    dw_out.resize2({rr, cc, ff});
 
     Lpk3Reo3D<D, T, DeviceType>().Execute(
-        hierarchy.dofs[2][l], hierarchy.dofs[1][l + 1],
-        hierarchy.dofs[0][l + 1], hierarchy.dofs[2][l + 1],
-        SubArray(hierarchy.dist_array[2][l]),
-        SubArray(hierarchy.ratio_array[2][l]), dw_in1, dw_in2, dw_out,
+        r, cc, ff, rr, dist_r, ratio_r, dw_in1, dw_in2, dw_out,
         queue_idx);
 
-    verify_matrix_cuda(hierarchy.dofs[2][l + 1], hierarchy.dofs[1][l + 1],
-                       hierarchy.dofs[0][l + 1], dw_out.data(), dw_out.getLd(0),
-                       dw_out.getLd(1), dw_out.getLd(0),
+    verify_matrix_cuda(rr, cc, ff, dw_out.data(), dw_out.ld(D-1),
+                       dw_out.ld(D-2), dw_out.ld(D-1),
                        prefix + "lpk_reo_3_3d" + "_level_" + std::to_string(l),
                        multidim_refactoring_store, multidim_refactoring_verify);
 
@@ -127,13 +156,9 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (D >= 1) {
     Ipk1Reo3D<D, T, DeviceType>().Execute(
-        hierarchy.dofs[2][l + 1], hierarchy.dofs[1][l + 1],
-        hierarchy.dofs[0][l + 1], SubArray(hierarchy.am_array[0][l + 1]),
-        SubArray(hierarchy.bm_array[0][l + 1]),
-        SubArray(hierarchy.dist_array[0][l + 1]), dw_out, queue_idx);
-    verify_matrix_cuda(hierarchy.dofs[2][l + 1], hierarchy.dofs[1][l + 1],
-                       hierarchy.dofs[0][l + 1], dw_out.data(), dw_out.getLd(0),
-                       dw_out.getLd(1), dw_out.getLd(0),
+        rr, cc, ff, am_ff, bm_ff, dist_ff, dw_out, queue_idx);
+    verify_matrix_cuda(rr, cc, ff, dw_out.data(), dw_out.ld(D-1),
+                       dw_out.ld(D-2), dw_out.ld(D-1),
                        prefix + "ipk_1_3d" + "_level_" + std::to_string(l),
                        multidim_refactoring_store, multidim_refactoring_verify);
 
@@ -143,14 +168,10 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
   }
   if (D >= 2) {
     Ipk2Reo3D<D, T, DeviceType>().Execute(
-        hierarchy.dofs[2][l + 1], hierarchy.dofs[1][l + 1],
-        hierarchy.dofs[0][l + 1], SubArray(hierarchy.am_array[1][l + 1]),
-        SubArray(hierarchy.bm_array[1][l + 1]),
-        SubArray(hierarchy.dist_array[1][l + 1]), dw_out, queue_idx);
+        rr, cc, ff, am_cc, bm_cc, dist_cc, dw_out, queue_idx);
 
-    verify_matrix_cuda(hierarchy.dofs[2][l + 1], hierarchy.dofs[1][l + 1],
-                       hierarchy.dofs[0][l + 1], dw_out.data(), dw_out.getLd(0),
-                       dw_out.getLd(1), dw_out.getLd(0),
+    verify_matrix_cuda(rr, cc, ff, dw_out.data(), dw_out.ld(D-1),
+                       dw_out.ld(D-2), dw_out.ld(D-1),
                        prefix + "ipk_2_3d" + "_level_" + std::to_string(l),
                        multidim_refactoring_store, multidim_refactoring_verify);
 
@@ -160,14 +181,10 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
   }
   if (D == 3) {
     Ipk3Reo3D<D, T, DeviceType>().Execute(
-        hierarchy.dofs[2][l + 1], hierarchy.dofs[1][l + 1],
-        hierarchy.dofs[0][l + 1], SubArray(hierarchy.am_array[2][l + 1]),
-        SubArray(hierarchy.bm_array[2][l + 1]),
-        SubArray(hierarchy.dist_array[2][l + 1]), dw_out, queue_idx);
+        rr, cc, ff, am_rr, bm_rr, dist_rr, dw_out, queue_idx);
 
-    verify_matrix_cuda(hierarchy.dofs[2][l + 1], hierarchy.dofs[1][l + 1],
-                       hierarchy.dofs[0][l + 1], dw_out.data(), dw_out.getLd(0),
-                       dw_out.getLd(1), dw_out.getLd(0),
+    verify_matrix_cuda(rr, cc, ff, dw_out.data(), dw_out.ld(D-1),
+                       dw_out.ld(D-2), dw_out.ld(D-1),
                        prefix + "ipk_3_3d" + "_level_" + std::to_string(l),
                        multidim_refactoring_store, multidim_refactoring_verify);
 
