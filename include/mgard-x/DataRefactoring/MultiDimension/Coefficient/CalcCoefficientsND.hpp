@@ -43,12 +43,25 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   curr_dims[0] = 0;
   curr_dims[1] = 1;
   curr_dims[2] = 2;
-  dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
-  doutput.project(curr_dims[0], curr_dims[1], curr_dims[2]);
+  // dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
+  // doutput.project(curr_dims[0], curr_dims[1], curr_dims[2]);
+  curr_dims[0] = D-3;
+  curr_dims[1] = D-2;
+  curr_dims[2] = D-1;
 
-  CalcCoefficientsPointers(hierarchy, curr_dims, l, doutput, dcoarse, dcoeff_f,
+  dinput1.project2(curr_dims[0], curr_dims[1], curr_dims[2]);
+  doutput.project2(curr_dims[0], curr_dims[1], curr_dims[2]);
+
+  // CalcCoefficientsPointers(hierarchy, curr_dims, l, doutput, dcoarse, dcoeff_f,
+  //                          dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
+  //                          dcoeff_rcf);
+  CalcCoefficientsPointers2(hierarchy, curr_dims, hierarchy.l_target-l, doutput, dcoarse, dcoeff_f,
                            dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
                            dcoeff_rcf);
+
+  curr_dims[0] = 0;
+  curr_dims[1] = 1;
+  curr_dims[2] = 2;
 
   GpkReo<D, 3, T, true, false, 1, DeviceType>().Execute(
       SubArray<1, SIZE, DeviceType>(hierarchy.shapes[l], true),
@@ -71,11 +84,25 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
     curr_dims[0] = 0;
     curr_dims[1] = d;
     curr_dims[2] = d + 1;
-    dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
-    doutput.project(curr_dims[0], curr_dims[1], curr_dims[2]);
-    CalcCoefficientsPointers(hierarchy, curr_dims, l, doutput, dcoarse,
+
+    curr_dims[0] = D-d;
+    curr_dims[1] = D-1-d;
+    curr_dims[2] = D-1;
+
+    // dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
+    // doutput.project(curr_dims[0], curr_dims[1], curr_dims[2]);
+    dinput1.project2(curr_dims[0], curr_dims[1], D-1);
+    doutput.project2(curr_dims[0], curr_dims[1], D-1);
+    // CalcCoefficientsPointers(hierarchy, curr_dims, l, doutput, dcoarse,
+    //                          dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+    //                          dcoeff_rc, dcoeff_rcf);
+    CalcCoefficientsPointers2(hierarchy, curr_dims, hierarchy.l_target-l, doutput, dcoarse,
                              dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
                              dcoeff_rc, dcoeff_rcf);
+    curr_dims[0] = 0;
+    curr_dims[1] = d;
+    curr_dims[2] = d + 1;
+
 
     if (D - d == 1) {
       unprocessed_idx += 1;
@@ -119,13 +146,30 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   curr_dims[0] = 0;
   curr_dims[1] = 1;
   curr_dims[2] = 2;
-  dinput2.project(curr_dims[0], curr_dims[1], curr_dims[2]);
-  dinput1.project(curr_dims[0], curr_dims[1],
+
+  curr_dims[0] = D-3;
+  curr_dims[1] = D-2;
+  curr_dims[2] = D-1;
+
+  // dinput2.project(curr_dims[0], curr_dims[1], curr_dims[2]);
+  // dinput1.project(curr_dims[0], curr_dims[1],
+  //                 curr_dims[2]); // reuse input1 as temp output
+
+  dinput2.project2(curr_dims[0], curr_dims[1], curr_dims[2]);
+  dinput1.project2(curr_dims[0], curr_dims[1],
                   curr_dims[2]); // reuse input1 as temp output
 
-  CalcCoefficientsPointers(hierarchy, curr_dims, l, dinput1, dcoarse, dcoeff_f,
+  // CalcCoefficientsPointers(hierarchy, curr_dims, l, dinput1, dcoarse, dcoeff_f,
+  //                          dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
+  //                          dcoeff_rcf);
+
+  CalcCoefficientsPointers2(hierarchy, curr_dims, hierarchy.l_target-l, dinput1, dcoarse, dcoeff_f,
                            dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
                            dcoeff_rcf);
+
+  curr_dims[0] = 0;
+  curr_dims[1] = 1;
+  curr_dims[2] = 2;
 
   GpkReo<D, 3, T, false, false, 1, DeviceType>().Execute(
       SubArray<1, SIZE, DeviceType>(hierarchy.shapes[l], true),
@@ -151,13 +195,30 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
     curr_dims[0] = 0;
     curr_dims[1] = d;
     curr_dims[2] = d + 1;
-    dinput2.project(curr_dims[0], curr_dims[1], curr_dims[2]);
-    dinput1.project(curr_dims[0], curr_dims[1],
+
+    curr_dims[0] = D-d;
+    curr_dims[1] = D-1-d;
+    curr_dims[2] = D-1;
+
+    // dinput2.project(curr_dims[0], curr_dims[1], curr_dims[2]);
+    // dinput1.project(curr_dims[0], curr_dims[1],
+    //                 curr_dims[2]); // reuse input1 as temp output
+
+    dinput2.project2(curr_dims[0], curr_dims[1], curr_dims[2]);
+    dinput1.project2(curr_dims[0], curr_dims[1],
                     curr_dims[2]); // reuse input1 as temp output
 
-    CalcCoefficientsPointers(hierarchy, curr_dims, l, dinput1, dcoarse,
+    // CalcCoefficientsPointers(hierarchy, curr_dims, l, dinput1, dcoarse,
+    //                          dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+    //                          dcoeff_rc, dcoeff_rcf);
+
+    CalcCoefficientsPointers2(hierarchy, curr_dims, hierarchy.l_target-l, dinput1, dcoarse,
                              dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
                              dcoeff_rc, dcoeff_rcf);
+
+    curr_dims[0] = 0;
+    curr_dims[1] = d;
+    curr_dims[2] = d + 1;
 
     GpkReo<D, 3, T, false, false, 2, DeviceType>().Execute(
         SubArray<1, SIZE, DeviceType>(hierarchy.shapes[l], true),
@@ -176,12 +237,29 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   curr_dims[0] = 0;
   curr_dims[1] = D_reduced;
   curr_dims[2] = D_reduced + 1;
-  dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
-  doutput.project(curr_dims[0], curr_dims[1],
+
+  curr_dims[0] = D-D_reduced;
+  curr_dims[1] = D-1-D_reduced;
+  curr_dims[2] = D-1;
+
+  // dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
+  // doutput.project(curr_dims[0], curr_dims[1],
+  //                 curr_dims[2]); // reuse input1 as temp output
+
+  dinput1.project2(curr_dims[0], curr_dims[1], curr_dims[2]);
+  doutput.project2(curr_dims[0], curr_dims[1],
                   curr_dims[2]); // reuse input1 as temp output
-  CalcCoefficientsPointers(hierarchy, curr_dims, l, doutput, dcoarse, dcoeff_f,
+  // CalcCoefficientsPointers(hierarchy, curr_dims, l, doutput, dcoarse, dcoeff_f,
+  //                          dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
+  //                          dcoeff_rcf);
+
+  CalcCoefficientsPointers2(hierarchy, curr_dims, hierarchy.l_target-l, doutput, dcoarse, dcoeff_f,
                            dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
                            dcoeff_rcf);
+  curr_dims[0] = 0;
+  curr_dims[1] = D_reduced;
+  curr_dims[2] = D_reduced + 1;
+
   if (D - D_reduced == 1) {
     unprocessed_idx += 1;
     GpkReo<D, 2, T, false, true, 2, DeviceType>().Execute(
