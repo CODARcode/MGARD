@@ -74,6 +74,8 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Array<1, T, DeviceType> &ratio(SIZE level, DIM dim);
   Array<1, T, DeviceType> &am(SIZE level, DIM dim);
   Array<1, T, DeviceType> &bm(SIZE level, DIM dim);
+  Array<1, DIM, DeviceType> &processed(SIZE idx, DIM &processed_n);
+  Array<1, DIM, DeviceType> &unprocessed(SIZE idx, DIM &processed_n);
 
   ~Hierarchy();
 
