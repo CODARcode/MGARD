@@ -75,6 +75,12 @@ public:
   }
 
   MGARDX_CONT_EXEC
+  SIZE shape(DIM d) const { return __shape[d]; }
+
+  MGARDX_CONT_EXEC
+  SIZE ld(DIM d) const { return __ldvs[d]; }
+
+  MGARDX_CONT_EXEC
   SIZE getLd(DIM d) const { return this->_ldvs[d]; }
 
   MGARDX_CONT_EXEC
@@ -146,6 +152,17 @@ public:
       curr_stride *= this->_ldvs[i];
     }
     return this->dv + offset;
+  }
+
+  MGARDX_CONT_EXEC
+  T &operator[](SIZE idx[D]) {
+    LENGTH curr_stride = 1;
+    LENGTH offset = 0;
+    for (int d = D-1; d >= 0; d--) {
+      offset += idx[d] * curr_stride;
+      curr_stride *= __ldvs[d];
+    }
+    return dv[offset];
   }
 
   MGARDX_CONT_EXEC
@@ -395,23 +412,34 @@ MGARDX_CONT void SubArray<D, T, DeviceType>::resize(DIM dim, SIZE new_size) {
 
 template <DIM D, typename T, typename DeviceType>
 MGARDX_CONT void SubArray<D, T, DeviceType>::offset2(std::vector<SIZE> idx) {
+  if (idx.size() < D) {
+    std::cerr << log::log_err << "SubArray::resize insufficient idx length.\n"; 
+  }
+  // In case shape.size > D;
+  DIM skip_dim = idx.size() - D;
   SIZE _idx[D];
   for (DIM d = 0; d < D; d++)
-    _idx[d] = idx[d];
+    _idx[d] = idx[skip_dim + d];
   dv += calc_offset2(_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
 MGARDX_CONT void SubArray<D, T, DeviceType>::resize2(std::vector<SIZE> shape) {
+  if (shape.size() < D) {
+    std::cerr << log::log_err << "SubArray::resize insufficient shape length.\n"; 
+  }
+  // In case shape.size > D;
+  DIM skip_dim = shape.size() - D;
   for (DIM d = 0; d < D; d++) {
-    _shape[D-1-d] = shape[d];
-    __shape[d] = shape[d];
+    _shape[D-1-d] = shape[skip_dim + d];
+    __shape[d] = shape[skip_dim + d];
   }
 }
 
 template <DIM D, typename T, typename DeviceType>
 MGARDX_CONT void SubArray<D, T, DeviceType>::offset2(DIM dim,
                                                     SIZE offset_value) {
+  if (dim >= D) return;
   SIZE idx[D];
   for (DIM d = 0; d < D; d++) {
     idx[d] = 0;
@@ -422,6 +450,7 @@ MGARDX_CONT void SubArray<D, T, DeviceType>::offset2(DIM dim,
 
 template <DIM D, typename T, typename DeviceType>
 MGARDX_CONT void SubArray<D, T, DeviceType>::resize2(DIM dim, SIZE new_size) {
+  if (dim >= D) return;
   _shape[D-1-dim] = new_size;
   __shape[dim] = new_size;
 }
@@ -447,11 +476,13 @@ MGARDX_CONT void SubArray<D, T, DeviceType>::project2(DIM dim_slowest, DIM dim_m
   projected_dim_slowest = dim_slowest;
   projected_dim_medium = dim_medium;
   projected_dim_fastest = dim_fastest;
+  if (projected_dim_slowest >= D) projected_dim_slowest = 0;
+  if (projected_dim_medium >= D) projected_dim_medium = 0;
   lddv1 = 1, lddv2 = 1;
-  for (int d = projected_dim_fastest; d >= projected_dim_medium; d--) {
+  for (int d = projected_dim_fastest; d > projected_dim_medium; d--) {
     lddv1 *= __ldvs[d];
   }
-  for (int d = projected_dim_medium; d >= projected_dim_slowest; d--) {
+  for (int d = projected_dim_medium; d > projected_dim_slowest; d--) {
     lddv2 *= __ldvs[d];
   }
 }
