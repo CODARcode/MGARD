@@ -2412,13 +2412,13 @@ public:
     for (DIM d = 0; d < D_GLOBAL; d++)
       idx[d] = 0;
 
-    nr = shape_sm[curr_dim_r];
-    nc = shape_sm[curr_dim_c];
-    nf = shape_sm[curr_dim_f];
+    nr = curr_dim_r < D_GLOBAL ? shape_sm[curr_dim_r] : 1;
+    nc = curr_dim_c < D_GLOBAL ? shape_sm[curr_dim_c] : 1;
+    nf = curr_dim_f < D_GLOBAL ? shape_sm[curr_dim_f] : 1;
 
-    nr_c = shape_c_sm[curr_dim_r];
-    nc_c = shape_c_sm[curr_dim_c];
-    nf_c = shape_c_sm[curr_dim_f];
+    nr_c = curr_dim_r < D_GLOBAL ? shape_c_sm[curr_dim_r] : 1;
+    nc_c = curr_dim_c < D_GLOBAL ? shape_c_sm[curr_dim_c] : 1;
+    nf_c = curr_dim_f < D_GLOBAL ? shape_c_sm[curr_dim_f] : 1;
 
     if (D_LOCAL < 3) {
       nr = 1;
@@ -2435,7 +2435,7 @@ public:
         FunctorBase<DeviceType>::GetBlockDimY();
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     SIZE firstD =
-        div_roundup(shape_sm[0] - 1, FunctorBase<DeviceType>::GetBlockDimX());
+        div_roundup(shape_sm[D_GLOBAL-1] - 1, FunctorBase<DeviceType>::GetBlockDimX());
     f = (bidx % firstD) * FunctorBase<DeviceType>::GetBlockDimX();
 
     bidx /= firstD;
@@ -2519,15 +2519,15 @@ public:
     // dwcf = dwcf + other_offset_w;
     // dwrcf = dwrcf + other_offset_w;
 
-    v.offset(idx);
-    w.offset(idx);
-    wf.offset(idx);
-    wc.offset(idx);
-    wr.offset(idx);
-    wcf.offset(idx);
-    wrf.offset(idx);
-    wrc.offset(idx);
-    wrcf.offset(idx);
+    v.offset2(idx);
+    w.offset2(idx);
+    wf.offset2(idx);
+    wc.offset2(idx);
+    wr.offset2(idx);
+    wcf.offset2(idx);
+    wrf.offset2(idx);
+    wrc.offset2(idx);
+    wrcf.offset2(idx);
 
     if (TYPE == 2) {
       wf = w;
@@ -4634,9 +4634,9 @@ public:
                         ratio_f, v, w, wf, wc, wr, wcf, wrf, wrc, wrcf, svr,
                         svc, svf, nvr, nvc, nvf);
 
-    SIZE nr = shape.dataHost()[curr_dim_r];
-    SIZE nc = shape.dataHost()[curr_dim_c];
-    SIZE nf = shape.dataHost()[curr_dim_f];
+    SIZE nr = curr_dim_r < D_GLOBAL ? shape.dataHost()[curr_dim_r] : 1;
+    SIZE nc = curr_dim_c < D_GLOBAL ? shape.dataHost()[curr_dim_c] : 1;
+    SIZE nf = curr_dim_f < D_GLOBAL ? shape.dataHost()[curr_dim_f] : 1;
     if (D_LOCAL == 2) {
       nr = 1;
     }
