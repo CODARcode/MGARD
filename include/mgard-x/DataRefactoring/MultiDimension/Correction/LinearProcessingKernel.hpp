@@ -122,9 +122,9 @@ public:
       zero_c = 1;
     }
 
-    v1.offset(idx);
-    v2.offset(idx);
-    w.offset(idx);
+    v1.offset2(idx);
+    v2.offset2(idx);
+    w.offset2(idx);
 
     // if (debug2) {
     //   printf("idx: %d %d %d %d\n", idx[3], idx[2], idx[1], idx[0]);
@@ -688,9 +688,9 @@ public:
       }
     }
 
-    v1.offset(idx);
-    v2.offset(idx);
-    w.offset(idx);
+    v1.offset2(idx);
+    v2.offset2(idx);
+    w.offset2(idx);
 
     // LENGTH other_offset_v = get_idx<D>(ldvs_sm, idx);
     // LENGTH other_offset_w = get_idx<D>(ldws_sm, idx);
@@ -1176,9 +1176,9 @@ public:
       }
     }
 
-    v1.offset(idx);
-    v2.offset(idx);
-    w.offset(idx);
+    v1.offset2(idx);
+    v2.offset2(idx);
+    w.offset2(idx);
 
     // LENGTH other_offset_v = get_idx<D>(ldvs_sm, idx);
     // LENGTH other_offset_w = get_idx<D>(ldws_sm, idx);

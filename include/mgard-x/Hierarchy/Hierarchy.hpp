@@ -590,9 +590,9 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   if (D >= 4) {
     std::vector<DIM> tmp(0);
     for (int d = D-1; d >= 0; d--) {
-      _processed_n[d] = tmp.size();
-      _processed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
-      _processed_dims[d].load(tmp.data());
+      _processed_n[D-1-d] = tmp.size();
+      _processed_dims[D-1-d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
+      _processed_dims[D-1-d].load(tmp.data());
       tmp.push_back(d);
     }
   }
