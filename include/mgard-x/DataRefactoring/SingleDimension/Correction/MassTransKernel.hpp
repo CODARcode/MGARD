@@ -30,29 +30,29 @@ public:
   MGARDX_EXEC void Operation1() {
     SIZE v_idx[D];
 
-    SIZE firstD = div_roundup(v.getShape(0), F);
+    SIZE firstD = div_roundup(v.shape(D-1), F);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
-    v_idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
+    v_idx[D-1] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
 
     bidx /= firstD;
     if (D >= 2)
-      v_idx[1] = FunctorBase<DeviceType>::GetBlockIdY() *
+      v_idx[D-2] = FunctorBase<DeviceType>::GetBlockIdY() *
                      FunctorBase<DeviceType>::GetBlockDimY() +
                  FunctorBase<DeviceType>::GetThreadIdY();
     if (D >= 3)
-      v_idx[2] = FunctorBase<DeviceType>::GetBlockIdZ() *
+      v_idx[D-3] = FunctorBase<DeviceType>::GetBlockIdZ() *
                      FunctorBase<DeviceType>::GetBlockDimZ() +
                  FunctorBase<DeviceType>::GetThreadIdZ();
 
-    for (DIM d = 3; d < D; d++) {
-      v_idx[d] = bidx % v.getShape(d);
-      bidx /= v.getShape(d);
+    for (int d = D-4; d >= 0; d--) {
+      v_idx[d] = bidx % v.shape(d);
+      bidx /= v.shape(d);
     }
 
     bool in_range = true;
-    for (DIM d = 0; d < D; d++) {
-      if (v_idx[d] >= v.getShape(d))
+    for (int d = D-1; d >= 0; d--) {
+      if (v_idx[d] >= v.shape(d))
         in_range = false;
     }
 
@@ -65,15 +65,15 @@ public:
       T d = 0.0;
 
       if (v_idx[current_dim] > 0 &&
-          v_idx[current_dim] < coeff.getShape(current_dim)) {
+          v_idx[current_dim] < coeff.shape(current_dim)) {
         v_idx[current_dim]--;
-        b = *coeff(v_idx);
+        b = coeff[v_idx];
         v_idx[current_dim]++;
       }
 
-      if (v_idx[current_dim] < coeff.getShape(current_dim)) {
+      if (v_idx[current_dim] < coeff.shape(current_dim)) {
         // v_idx[current_dim] ++;
-        d = *coeff(v_idx);
+        d = coeff[v_idx];
         // v_idx[current_dim] --;
       }
 
@@ -82,14 +82,14 @@ public:
 
       if (v_idx[current_dim] > 0 &&
           v_idx[current_dim] * 2 <
-              coeff.getShape(current_dim) + v.getShape(current_dim) - 1) {
+              coeff.shape(current_dim) + v.shape(current_dim) - 1) {
         h1 = *dist(v_idx[current_dim] * 2 - 2);
         h2 = *dist(v_idx[current_dim] * 2 - 1);
         r1 = *ratio(v_idx[current_dim] * 2 - 2);
         r2 = *ratio(v_idx[current_dim] * 2 - 1);
       }
       if (v_idx[current_dim] * 2 <
-          coeff.getShape(current_dim) + v.getShape(current_dim) - 1) {
+          coeff.shape(current_dim) + v.shape(current_dim) - 1) {
         h3 = *dist(v_idx[current_dim] * 2);
         h4 = *dist(v_idx[current_dim] * 2 + 1);
         r3 = *ratio(v_idx[current_dim] * 2);
@@ -101,7 +101,7 @@ public:
       //   v_idx[1], v_idx[0], a,b,c,d,e, h1,h2,h3,h4, r1,r2,r3,r4,
       //   mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4));
 
-      *v(v_idx) = mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4);
+      v[v_idx] = mass_trans(a, b, c, d, e, h1, h2, h3, h4, r1, r2, r3, r4);
     }
   }
 
@@ -134,10 +134,10 @@ public:
 
     SIZE nr = 1, nc = 1, nf = 1;
     if (D >= 3)
-      nr = v.getShape(2);
+      nr = v.shape(D-3);
     if (D >= 2)
-      nc = v.getShape(1);
-    nf = v.getShape(0);
+      nc = v.shape(D-2);
+    nf = v.shape(D-1);
 
     SIZE total_thread_z = nr;
     SIZE total_thread_y = nc;
@@ -153,8 +153,8 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
 
-    for (DIM d = 3; d < D; d++) {
-      gridx *= coeff.getShape(d);
+    for (int d = D-4; d >= 0; d--) {
+      gridx *= coeff.shape(d);
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
@@ -166,7 +166,7 @@ public:
                SubArray<1, T, DeviceType> ratio,
                SubArray<D, T, DeviceType> coeff, SubArray<D, T, DeviceType> v,
                int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(v.getShape(0)) - 1);
+    int range_l = std::min(6, (int)std::log2(v.shape(D-1)) - 1);
     int prec = TypeToIdx<T>();
     int config =
         AutoTuner<DeviceType>::autoTuningTable.gpk_reo_nd[prec][range_l];
