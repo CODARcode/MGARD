@@ -199,14 +199,13 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
-  LevelwiseLinearQuantizeND<D, T, DeviceType>().Execute(
+  LevelwiseLinearQuantizerND<D, T, MGARDX_QUANTIZE, DeviceType>().Execute(
       SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges()),
       hierarchy.l_target, quantizers_subarray,
       SubArray<3, T, DeviceType>(hierarchy.level_volumes()),
       s, config.huff_dict_size, SubArray<D, T, DeviceType>(in_array),
       quantized_subarray, prep_huffman,
-      // SubArray<1, SIZE, DeviceType>(hierarchy.shapes[0], true),
-      SubArray<1, LENGTH, DeviceType>(outlier_count_array),
+      SubArray(outlier_count_array),
       outlier_idx_subarray, outliers_subarray, 0);
 
   MemoryManager<DeviceType>::Copy1D(&outlier_count, outlier_count_array.data(),
@@ -574,12 +573,15 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
   delete[] quantizers;
 
-  LevelwiseLinearDequantizeND<D, T, DeviceType>().Execute(
-      SubArray<1, SIZE, DeviceType>(hierarchy.ranges), hierarchy.l_target,
-      quantizers_subarray, SubArray<2, T, DeviceType>(hierarchy.volumes_array),
+  Array<1, LENGTH, DeviceType> outlier_count_array({1});
+  outlier_count_array.load(&outlier_count);
+  LevelwiseLinearQuantizerND<D, T, MGARDX_DEQUANTIZE, DeviceType>().Execute(
+      SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges()),
+      hierarchy.l_target, quantizers_subarray,
+      SubArray<3, T, DeviceType>(hierarchy.level_volumes()),
       s, config.huff_dict_size, decompressed_subarray,
       SubArray<D, QUANTIZED_INT, DeviceType>(quantized_array), prep_huffman,
-      SubArray<1, SIZE, DeviceType>(hierarchy.shapes[0], true), outlier_count,
+      SubArray<1, LENGTH, DeviceType>(outlier_count_array),
       outlier_idx_subarray, outliers_subarray, 0);
 
   if (config.timing) {
