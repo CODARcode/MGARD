@@ -200,11 +200,12 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
   LevelwiseLinearQuantizeND<D, T, DeviceType>().Execute(
-      SubArray<1, SIZE, DeviceType>(hierarchy.ranges), hierarchy.l_target,
-      quantizers_subarray, SubArray<2, T, DeviceType>(hierarchy.volumes_array),
+      SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges()),
+      hierarchy.l_target, quantizers_subarray,
+      SubArray<3, T, DeviceType>(hierarchy.level_volumes()),
       s, config.huff_dict_size, SubArray<D, T, DeviceType>(in_array),
       quantized_subarray, prep_huffman,
-      SubArray<1, SIZE, DeviceType>(hierarchy.shapes[0], true),
+      // SubArray<1, SIZE, DeviceType>(hierarchy.shapes[0], true),
       SubArray<1, LENGTH, DeviceType>(outlier_count_array),
       outlier_idx_subarray, outliers_subarray, 0);
 
