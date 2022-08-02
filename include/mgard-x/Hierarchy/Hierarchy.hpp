@@ -375,15 +375,19 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
 
   //new
   { // Ranges
-    SIZE *ranges_h_org = new SIZE[D * (l_target + 2)];
+    SIZE *ranges_h_org = new SIZE[(l_target + 2) * D];
+    // beginning of the range
     for (int d = 0; d < D; d++) {
-      ranges_h_org[d * (l_target + 2)] = 0;
-      for (int l = 0; l < l_target + 1; l++) {
+      ranges_h_org[d] = 0;
+    }
+    for (int l = 0; l < l_target + 1; l++) {
+      for (int d = 0; d < D; d++) {
         // Use l+1 bacause the first is reserved for 0 (beginning of the range)
-        ranges_h_org[d * (l_target + 2) + l+1] = _level_shape[l][d];
+        ranges_h_org[(l+1)*D+d] = _level_shape[l][d];
       }
     }
-    _level_ranges = Array<1, SIZE, DeviceType>({D * (l_target + 2)});
+    bool pitched = false;
+    _level_ranges = Array<2, SIZE, DeviceType>({l_target + 2, D}, pitched);
     _level_ranges.load(ranges_h_org);
     // printf("ranges_h: ");
     // for (int i = 0; i < D * (l_target + 2); i++) {
@@ -398,7 +402,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
 
     for (int d = 0; d < D; d++) {
       for (int l = 0; l < l_target + 2; l++) {
-        assert(ranges_h_org[d * (l_target + 2) + l] == ranges_h[(D-1-d) * (l_target + 2) + l]);
+        assert(ranges_h_org[l*D+d] == ranges_h[(D-1-d) * (l_target + 2) + l]);
       }
     }
     delete[] ranges_h_org;
@@ -556,12 +560,13 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       volumes_width = std::max(volumes_width, _level_shape[l_target][d]);
     }
 
-    _level_volumes = Array<2, T, DeviceType>({D * (l_target + 1), volumes_width});
-    SubArray<2, T, DeviceType> volumes_subarray(_level_volumes);
-    for (DIM d = 0; d < D; d++) {
+    bool pitched = false;
+    _level_volumes = Array<3, T, DeviceType>({l_target + 1, D, volumes_width}, pitched);
+    SubArray<3, T, DeviceType> volumes_subarray(_level_volumes);
       for (SIZE l = 0; l < l_target + 1; l++) {
+        for (DIM d = 0; d < D; d++) {
         calc_volume(_level_shape[l][d], _dist_array[l][d].data(),
-                    volumes_subarray((d * (l_target + 1) + l), 0));
+                    volumes_subarray(l, d, 0));
       }
     }
   }
@@ -718,12 +723,12 @@ Array<1, DIM, DeviceType> &Hierarchy<D, T, DeviceType>::unprocessed(SIZE idx, DI
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<1, SIZE, DeviceType> &Hierarchy<D, T, DeviceType>::level_ranges() {
+Array<2, SIZE, DeviceType> &Hierarchy<D, T, DeviceType>::level_ranges() {
   return _level_ranges;
 } 
 
 template <DIM D, typename T, typename DeviceType>
-Array<2, T, DeviceType> &Hierarchy<D, T, DeviceType>::level_volumes() {
+Array<3, T, DeviceType> &Hierarchy<D, T, DeviceType>::level_volumes() {
   return _level_volumes;
 } 
 
