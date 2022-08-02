@@ -76,6 +76,8 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Array<1, T, DeviceType> &bm(SIZE level, DIM dim);
   Array<1, DIM, DeviceType> &processed(SIZE idx, DIM &processed_n);
   Array<1, DIM, DeviceType> &unprocessed(SIZE idx, DIM &processed_n);
+  Array<1, SIZE, DeviceType> &level_ranges();
+  Array<2, T, DeviceType> &level_volumes();
 
   ~Hierarchy();
 
@@ -151,12 +153,12 @@ private:
   Array<1, T, DeviceType> dummy_array;
   std::vector<std::vector<SIZE>> _level_shape;
   std::vector<Array<1, SIZE, DeviceType>> _level_shape_array;
-  Array<1, SIZE, DeviceType> _ranges_org;
+  Array<1, SIZE, DeviceType> _level_ranges;
   std::vector<T *> _coords_h_org;
   std::vector<Array<1, T, DeviceType>> _coords_org;
   std::vector<std::vector<Array<1, T, DeviceType>>> _dist_array;
   std::vector<std::vector<Array<1, T, DeviceType>>> _ratio_array;
-  Array<2, T, DeviceType> _volumes_array;
+  Array<2, T, DeviceType> _level_volumes;
   std::vector<std::vector<Array<1, T, DeviceType>>> _am_array;
   std::vector<std::vector<Array<1, T, DeviceType>>> _bm_array;
 

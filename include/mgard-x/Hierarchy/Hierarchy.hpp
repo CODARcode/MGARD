@@ -383,8 +383,8 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
         ranges_h_org[d * (l_target + 2) + l+1] = _level_shape[l][d];
       }
     }
-    _ranges_org = Array<1, SIZE, DeviceType>({D * (l_target + 2)});
-    _ranges_org.load(ranges_h_org);
+    _level_ranges = Array<1, SIZE, DeviceType>({D * (l_target + 2)});
+    _level_ranges.load(ranges_h_org);
     // printf("ranges_h: ");
     // for (int i = 0; i < D * (l_target + 2); i++) {
     //   printf("%u ", ranges_h[i]);
@@ -556,8 +556,8 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       volumes_width = std::max(volumes_width, _level_shape[l_target][d]);
     }
 
-    _volumes_array = Array<2, T, DeviceType>({D * (l_target + 1), volumes_width});
-    SubArray<2, T, DeviceType> volumes_subarray(_volumes_array);
+    _level_volumes = Array<2, T, DeviceType>({D * (l_target + 1), volumes_width});
+    SubArray<2, T, DeviceType> volumes_subarray(_level_volumes);
     for (DIM d = 0; d < D; d++) {
       for (SIZE l = 0; l < l_target + 1; l++) {
         calc_volume(_level_shape[l][d], _dist_array[l][d].data(),
@@ -717,6 +717,15 @@ Array<1, DIM, DeviceType> &Hierarchy<D, T, DeviceType>::unprocessed(SIZE idx, DI
   return _unprocessed_dims[idx];
 }
 
+template <DIM D, typename T, typename DeviceType>
+Array<1, SIZE, DeviceType> &Hierarchy<D, T, DeviceType>::level_ranges() {
+  return _level_ranges;
+} 
+
+template <DIM D, typename T, typename DeviceType>
+Array<2, T, DeviceType> &Hierarchy<D, T, DeviceType>::level_volumes() {
+  return _level_volumes;
+} 
 
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::destroy() {
@@ -1125,13 +1134,13 @@ Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   _coords_org = hierarchy._coords_org;
   _dist_array = hierarchy._dist_array;
   _ratio_array = hierarchy._ratio_array;
-  _volumes_array = hierarchy._volumes_array;
+  _level_volumes = hierarchy._level_volumes;
   _am_array = hierarchy._am_array;
   _bm_array = hierarchy._bm_array;
 
   _level_shape = hierarchy._level_shape;
   _level_shape_array = hierarchy._level_shape_array;
-  _ranges_org = hierarchy._ranges_org;
+  _level_ranges = hierarchy._level_ranges;
 
   dist_array = hierarchy.dist_array;
   ratio_array = hierarchy.ratio_array;
