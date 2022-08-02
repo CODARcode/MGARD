@@ -13,6 +13,8 @@
 #include "../Tasks/Task.h"
 #include "../Utilities/Message.h"
 
+#include <limits>
+
 namespace mgard_x {
 
 struct ExecutionReturn {

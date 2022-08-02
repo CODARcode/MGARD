@@ -38,8 +38,8 @@ private:
   bool pitched;
   bool managed;
   bool keepHostCopy = false;
-  T *dv = NULL;
-  T *hv = NULL;
+  T *dv = nullptr;
+  T *hv = nullptr;
   bool device_allocated = false;
   bool host_allocated = false;
   std::vector<SIZE> _ldvs;
