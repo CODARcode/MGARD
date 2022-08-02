@@ -65,9 +65,9 @@ public:
     for (DIM d = 0; d < D; d++)
       idx[d] = 0;
 
-    nr = v.getShape(curr_dim_r);
-    nc = v.getShape(curr_dim_c);
-    nf = v.getShape(curr_dim_f);
+    nr = v.shape(curr_dim_r);
+    nc = v.shape(curr_dim_c);
+    nf = v.shape(curr_dim_f);
 
     if (D < 3)
       nr = 1;
@@ -87,13 +87,13 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
-        SIZE t = v.getShape(d);
+        SIZE t = v.shape(d);
         idx[d] = bidx % t;
         bidx /= t;
       }
     }
 
-    v.offset(idx);
+    v.offset2(idx);
     // size_t other_offset_v = get_idx<D>(ldvs_sm, idx);
     // v = v + other_offset_v;
 
@@ -584,9 +584,9 @@ public:
 
     SIZE nr = 1, nc = 1;
     if (D >= 3)
-      nr = v.getShape(curr_dim_r);
+      nr = v.shape(curr_dim_r);
     if (D >= 2)
-      nc = v.getShape(curr_dim_c);
+      nc = v.shape(curr_dim_c);
 
     SIZE total_thread_x = nc;
     SIZE total_thread_y = nr;
@@ -604,7 +604,7 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
-        SIZE t = v.getShape(d);
+        SIZE t = v.shape(d);
         gridx *= t;
       }
     }
@@ -617,7 +617,7 @@ public:
   void Execute(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
                SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
                SubArray<D, T, DeviceType> v, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(v.getShape(curr_dim_f)) - 1);
+    int range_l = std::min(6, (int)std::log2(v.shape(curr_dim_f)) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk1_nd[prec][range_l];
     double min_time = std::numeric_limits<double>::max();
@@ -702,9 +702,9 @@ public:
     for (DIM d = 0; d < D; d++)
       idx[d] = 0;
 
-    nr = v.getShape(curr_dim_r);
-    nc = v.getShape(curr_dim_c);
-    nf = v.getShape(curr_dim_f);
+    nr = v.shape(curr_dim_r);
+    nc = v.shape(curr_dim_c);
+    nf = v.shape(curr_dim_f);
 
     if (D < 3)
       nr = 1;
@@ -717,13 +717,13 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
-        SIZE t = v.getShape(d);
+        SIZE t = v.shape(d);
         idx[d] = bidx % t;
         bidx /= t;
       }
     }
 
-    v.offset(idx);
+    v.offset2(idx);
     // size_t other_offset_v = get_idx<D>(ldvs_sm, idx);
     // v = v + other_offset_v;
 
@@ -1288,8 +1288,8 @@ public:
 
     SIZE nr = 1, nf = 1;
     if (D >= 3)
-      nr = v.getShape(curr_dim_r);
-    nf = v.getShape(curr_dim_f);
+      nr = v.shape(curr_dim_r);
+    nf = v.shape(curr_dim_f);
 
     SIZE total_thread_x = nf;
     SIZE total_thread_y = nr;
@@ -1307,7 +1307,7 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
-        SIZE t = v.getShape(d);
+        SIZE t = v.shape(d);
         gridx *= t;
       }
     }
@@ -1320,7 +1320,7 @@ public:
   void Execute(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
                SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
                SubArray<D, T, DeviceType> v, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(v.getShape(curr_dim_f)) - 1);
+    int range_l = std::min(6, (int)std::log2(v.shape(curr_dim_f)) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk2_nd[prec][range_l];
     double min_time = std::numeric_limits<double>::max();
@@ -1406,9 +1406,9 @@ public:
     for (DIM d = 0; d < D; d++)
       idx[d] = 0;
 
-    nr = v.getShape(curr_dim_r);
-    nc = v.getShape(curr_dim_c);
-    nf = v.getShape(curr_dim_f);
+    nr = v.shape(curr_dim_r);
+    nc = v.shape(curr_dim_c);
+    nf = v.shape(curr_dim_f);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     SIZE firstD = div_roundup(nf, FunctorBase<DeviceType>::GetBlockDimX());
@@ -1418,13 +1418,13 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_r && d != curr_dim_c && d != curr_dim_f) {
-        SIZE t = v.getShape(d);
+        SIZE t = v.shape(d);
         idx[d] = bidx % t;
         bidx /= t;
       }
     }
 
-    v.offset(idx);
+    v.offset2(idx);
     // size_t other_offset_v = get_idx<D>(ldvs_sm, idx);
     // v = v + other_offset_v;
 
@@ -2016,8 +2016,8 @@ public:
 
     SIZE nc = 1, nf = 1;
     if (D >= 2)
-      nc = v.getShape(curr_dim_c);
-    nf = v.getShape(curr_dim_f);
+      nc = v.shape(curr_dim_c);
+    nf = v.shape(curr_dim_f);
 
     SIZE total_thread_x = nf;
     SIZE total_thread_y = nc;
@@ -2035,7 +2035,7 @@ public:
 
     for (DIM d = 0; d < D; d++) {
       if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
-        SIZE t = v.getShape(d);
+        SIZE t = v.shape(d);
         gridx *= t;
       }
     }
@@ -2048,7 +2048,7 @@ public:
   void Execute(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
                SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
                SubArray<D, T, DeviceType> v, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(v.getShape(curr_dim_f)) - 1);
+    int range_l = std::min(6, (int)std::log2(v.shape(curr_dim_f)) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.ipk3_nd[prec][range_l];
     double min_time = std::numeric_limits<double>::max();
