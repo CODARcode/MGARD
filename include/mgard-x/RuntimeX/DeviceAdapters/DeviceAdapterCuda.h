@@ -2221,7 +2221,7 @@ public:
 
     thrust::inclusive_scan_by_key(
         thrust::device, thrust::device_ptr<KeyT>(key.data()),
-        thrust::device_ptr<KeyT>(key.data() + key.getShape(0)),
+        thrust::device_ptr<KeyT>(key.data() + key.shape(0)),
         thrust::device_ptr<ValueT>(v.data()),
         thrust::device_ptr<ValueT>(result.data()), binary_pred, binary_op);
   }

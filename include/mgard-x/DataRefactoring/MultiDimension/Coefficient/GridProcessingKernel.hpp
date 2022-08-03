@@ -193,15 +193,15 @@ public:
       }
     }
 
-    v.offset2(idx);
-    w.offset2(idx);
-    wf.offset2(idx);
-    wc.offset2(idx);
-    wr.offset2(idx);
-    wcf.offset2(idx);
-    wrf.offset2(idx);
-    wrc.offset2(idx);
-    wrcf.offset2(idx);
+    v.offset(idx);
+    w.offset(idx);
+    wf.offset(idx);
+    wc.offset(idx);
+    wr.offset(idx);
+    wcf.offset(idx);
+    wrf.offset(idx);
+    wrc.offset(idx);
+    wrcf.offset(idx);
 
     if (TYPE == 2) {
       wf = w;
@@ -2519,15 +2519,15 @@ public:
     // dwcf = dwcf + other_offset_w;
     // dwrcf = dwrcf + other_offset_w;
 
-    v.offset2(idx);
-    w.offset2(idx);
-    wf.offset2(idx);
-    wc.offset2(idx);
-    wr.offset2(idx);
-    wcf.offset2(idx);
-    wrf.offset2(idx);
-    wrc.offset2(idx);
-    wrcf.offset2(idx);
+    v.offset(idx);
+    w.offset(idx);
+    wf.offset(idx);
+    wc.offset(idx);
+    wr.offset(idx);
+    wcf.offset(idx);
+    wrf.offset(idx);
+    wrc.offset(idx);
+    wrcf.offset(idx);
 
     if (TYPE == 2) {
       wf = w;

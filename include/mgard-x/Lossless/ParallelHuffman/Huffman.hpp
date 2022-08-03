@@ -32,7 +32,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
 
-  size_t primary_count = dprimary_subarray.getShape(0);
+  size_t primary_count = dprimary_subarray.shape(0);
 
   t1 = high_resolution_clock::now();
 
@@ -305,7 +305,7 @@ Array<1, Byte, DeviceType> HuffmanCompress(Array<1, Q, DeviceType> &qv,
   using Mem = MemoryManager<DeviceType>;
   // high_resolution_clock::time_point t1, t2, start, end;
   // duration<double> time_span;
-  size_t primary_count = qv.getShape()[0];
+  size_t primary_count = qv.shape(0);
 
   // t1 = high_resolution_clock::now();
   // start huffman

@@ -216,7 +216,7 @@ T *Array<D, T, DeviceType>::hostCopy(bool keep, int queue_idx) {
 
 template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::data(SIZE &ld) {
-  ld = _ldvs[0];
+  ld = __ldvs[D_padded-1];
   return dv;
 }
 

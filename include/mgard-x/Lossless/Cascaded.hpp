@@ -27,7 +27,7 @@ CascadedCompress(SubArray<1, C, DeviceType> &input_data, int n_rle, int n_de,
   options.use_bp = bitpack;
   nvcomp::CascadedManager nvcomp_manager{
       options, DeviceRuntime<DeviceType>::GetQueue(0)};
-  size_t input_count = input_data.getShape(0);
+  size_t input_count = input_data.shape(0);
   auto comp_config =
       nvcomp_manager.configure_compression(input_count * sizeof(C));
   Array<1, Byte, DeviceType> output_data(
@@ -44,7 +44,7 @@ Array<1, C, DeviceType>
 CascadedDecompress(SubArray<1, Byte, DeviceType> &input_data) {
   auto decomp_nvcomp_manager = nvcomp::create_manager(
       input_data.data(), DeviceRuntime<DeviceType>::GetQueue(0));
-  size_t input_size = input_data.getShape(0);
+  size_t input_size = input_data.shape(0);
   nvcomp::DecompressionConfig decomp_config =
       decomp_nvcomp_manager->configure_decompression(input_data.data());
   Array<1, C, DeviceType> output_data({(SIZE)decomp_config.decomp_data_size});

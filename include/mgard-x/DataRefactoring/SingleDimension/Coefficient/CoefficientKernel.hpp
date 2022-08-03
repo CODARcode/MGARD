@@ -38,7 +38,7 @@ public:
     SIZE coeff_idx[D];
     SIZE corase_idx[D];
 
-    SIZE firstD = div_roundup(coeff.getShape(0), F);
+    SIZE firstD = div_roundup(coeff.shape(D-1), F);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     coeff_idx[D-1] =
@@ -54,19 +54,19 @@ public:
                          FunctorBase<DeviceType>::GetBlockDimZ() +
                      FunctorBase<DeviceType>::GetThreadIdZ();
 
-    for (DIM d = 3; d < D; d++) {
-      coeff_idx[D-(d+1)] = bidx % coeff.shape(D-(d+1));
-      bidx /= coeff.shape(D-(d+1));
+    for (int d = D-4; d >= 0; d--) {
+      coeff_idx[d] = bidx % coeff.shape(d);
+      bidx /= coeff.shape(d);
     }
 
     bool in_range = true;
-    for (DIM d = 0; d < D; d++) {
-      if (coeff_idx[D-(d+1)] >= coeff.shape(D-(d+1)))
+    for (int d = D-1; d >= 0; d--) {
+      if (coeff_idx[d] >= coeff.shape(d))
         in_range = false;
     }
 
     if (in_range) {
-      for (DIM d = 0; d < D; d++) {
+      for (int d = D-1; d >= 0; d--) {
         if (d != current_dim) {
           v_left_idx[d] = coeff_idx[d];
           v_middle_idx[d] = coeff_idx[d];

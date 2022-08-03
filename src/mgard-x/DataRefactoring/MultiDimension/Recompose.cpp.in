@@ -14,12 +14,12 @@ template void recompose<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target,
     int queue_idx);
 
-template Array<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> recompose_adaptive_resolution<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
-               Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
-               SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target, 
-               @DATA_TYPE@ iso_value, @DATA_TYPE@ error_target,
-               SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> level_max, 
-               SubArray<@NUM_DIM@+1, @DATA_TYPE@, @DEVICE_TYPE@> * max_abs_coefficient,
-               SubArray<@NUM_DIM@, SIZE, @DEVICE_TYPE@> * refinement_flag,
-               int queue_idx);
+// template Array<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> recompose_adaptive_resolution<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
+//                Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
+//                SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target, 
+//                @DATA_TYPE@ iso_value, @DATA_TYPE@ error_target,
+//                SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> level_max, 
+//                SubArray<@NUM_DIM@+1, @DATA_TYPE@, @DEVICE_TYPE@> * max_abs_coefficient,
+//                SubArray<@NUM_DIM@, SIZE, @DEVICE_TYPE@> * refinement_flag,
+//                int queue_idx);
 } // namespace mgard_x// clang-format on
