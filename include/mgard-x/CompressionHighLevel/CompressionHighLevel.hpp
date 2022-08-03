@@ -360,7 +360,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     advance_with_align<SIZE>(byte_offset, 1);
     align_byte_offset<uint64_t>(byte_offset); // for zero copy when deserialize
     advance_with_align<Byte>(byte_offset,
-                             lossless_compressed_subarray.getShape(0));
+                             lossless_compressed_subarray.shape(0));
 
     compressed_size = byte_offset;
     DeviceRuntime<DeviceType>::SyncDevice();
@@ -375,13 +375,13 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
 
     SerializeArray<SERIALIZED_TYPE>(compressed_subarray, serizalied_meta,
                                     metadata_size, byte_offset);
-    SIZE lossless_size = lossless_compressed_subarray.getShape(0);
+    SIZE lossless_size = lossless_compressed_subarray.shape(0);
     SerializeArray<SIZE>(compressed_subarray, &lossless_size, 1, byte_offset);
 
     align_byte_offset<uint64_t>(byte_offset);
     SerializeArray<Byte>(compressed_subarray,
                          lossless_compressed_subarray.data(),
-                         lossless_compressed_subarray.getShape(0), byte_offset);
+                         lossless_compressed_subarray.shape(0), byte_offset);
 
     MemoryManager<DeviceType>::Free(serizalied_meta);
 
@@ -596,7 +596,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     advance_with_align<SIZE>(byte_offset, 1);
     align_byte_offset<uint64_t>(byte_offset); // for zero copy when deserialize
     advance_with_align<Byte>(byte_offset,
-                             lossless_compressed_subarray.getShape(0));
+                             lossless_compressed_subarray.shape(0));
 
     compressed_size = byte_offset;
     DeviceRuntime<DeviceType>::SyncDevice();
@@ -611,13 +611,13 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
 
     SerializeArray<SERIALIZED_TYPE>(compressed_subarray, serizalied_meta,
                                     metadata_size, byte_offset);
-    SIZE lossless_size = lossless_compressed_subarray.getShape(0);
+    SIZE lossless_size = lossless_compressed_subarray.shape(0);
     SerializeArray<SIZE>(compressed_subarray, &lossless_size, 1, byte_offset);
 
     align_byte_offset<uint64_t>(byte_offset);
     SerializeArray<Byte>(compressed_subarray,
                          lossless_compressed_subarray.data(),
-                         lossless_compressed_subarray.getShape(0), byte_offset);
+                         lossless_compressed_subarray.shape(0), byte_offset);
 
     MemoryManager<DeviceType>::Free(serizalied_meta);
 

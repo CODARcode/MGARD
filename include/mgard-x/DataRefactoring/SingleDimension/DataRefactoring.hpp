@@ -56,16 +56,16 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       }
 
       SubArray<D, T, DeviceType> v_fine = v;
-      v_fine.resize2(fine_shape);
+      v_fine.resize(fine_shape);
       SubArray<D, T, DeviceType> w_fine = w;
-      w_fine.resize2(fine_shape);
+      w_fine.resize(fine_shape);
       SubArray<D, T, DeviceType> coarse = v;
-      coarse.resize2(coarse_shape);
+      coarse.resize(coarse_shape);
       SubArray<D, T, DeviceType> coeff = v;
-      coeff.offset2(curr_dim, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim));
-      coeff.resize2(coeff_shape);
+      coeff.offset(curr_dim, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim));
+      coeff.resize(coeff_shape);
       SubArray<D, T, DeviceType> correction = w;
-      correction.resize2(coarse_shape);
+      correction.resize(coarse_shape);
 
       CopyND(v_fine, w_fine, queue_idx);
 
@@ -134,16 +134,16 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       }
 
       SubArray<D, T, DeviceType> v_fine = v;
-      v_fine.resize2(fine_shape);
+      v_fine.resize(fine_shape);
       SubArray<D, T, DeviceType> w_fine = w;
-      w_fine.resize2(fine_shape);
+      w_fine.resize(fine_shape);
       SubArray<D, T, DeviceType> coarse = v;
-      coarse.resize2(coarse_shape);
+      coarse.resize(coarse_shape);
       SubArray<D, T, DeviceType> coeff = v;
-      coeff.offset2(curr_dim, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim));
-      coeff.resize2(coeff_shape);
+      coeff.offset(curr_dim, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim));
+      coeff.resize(coeff_shape);
       SubArray<D, T, DeviceType> correction = w;
-      correction.resize2(coarse_shape);
+      correction.resize(coarse_shape);
 
       CalcCorrection(hierarchy, coeff, correction, curr_dim, l, queue_idx);
 

@@ -46,46 +46,28 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray<1, T, DeviceType> dist, ratio, am, bm;
 
   // start correction calculation
-  int prev_dim_r, prev_dim_c, prev_dim_f;
-  int prev_dim_f2, prev_dim_c2, prev_dim_r2;
-  int curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
-
-  // dw_in1.resize(curr_dim_f, hierarchy.dofs[curr_dim_f][l + 1]);
-  // dw_in2.offset(curr_dim_f, hierarchy.dofs[curr_dim_f][l + 1]);
-  // dw_in2.resize(curr_dim_f, hierarchy.dofs[curr_dim_f][l] -
-  //                               hierarchy.dofs[curr_dim_f][l + 1]);
-  // dw_out.resize(curr_dim_f, hierarchy.dofs[curr_dim_f][l + 1]);
+  int prev_dim_f, prev_dim_c, prev_dim_r;
+  int curr_dim_f, curr_dim_c, curr_dim_r;
 
   curr_dim_f = D-1, curr_dim_c = D-2, curr_dim_r = D-3;
 
-  dw_in1.resize2(curr_dim_f, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_f));
-  dw_in2.offset2(curr_dim_f, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_f));
-  dw_in2.resize2(curr_dim_f, hierarchy.level_shape(hierarchy.l_target-l, curr_dim_f) -
+  dw_in1.resize(curr_dim_f, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_f));
+  dw_in2.offset(curr_dim_f, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_f));
+  dw_in2.resize(curr_dim_f, hierarchy.level_shape(hierarchy.l_target-l, curr_dim_f) -
                                 hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_f));
-  dw_out.resize2(curr_dim_f, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_f));
-  prev_dim_f2 = curr_dim_f;
-  prev_dim_c2 = curr_dim_c;
-  prev_dim_r2= curr_dim_r;
+  dw_out.resize(curr_dim_f, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_f));
+  prev_dim_f = curr_dim_f;
+  prev_dim_c = curr_dim_c;
+  prev_dim_r= curr_dim_r;
 
-  dw_in1.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_in2.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_out.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in1.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in2.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_out.project(curr_dim_r, curr_dim_c, curr_dim_f);
 
   dist = SubArray(hierarchy.dist(hierarchy.l_target-l, curr_dim_f));
   ratio = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dim_f));
 
-  // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
-
-  // for (int d = 0; d < D; d++) {
-  //   processed_dims = hierarchy.processed(d, processed_n);
-
-  //   printf("%u %u\n",processed_n, hierarchy.processed_n[d]);
-  // }
-
   processed_dims = SubArray(hierarchy.processed(0, processed_n), true);
-  // dw_in1.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_in2.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
 
   Lpk1Reo<D, T, DeviceType>().Execute(
       shape, shape_c,
@@ -99,43 +81,28 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 
   // mass trans 2D
+  dw_in1 = dw_out;
+  dw_in2 = dw_out;
+
+  curr_dim_f = D-1, curr_dim_c = D-2, curr_dim_r = D-3;
+  dw_in1.resize(curr_dim_c, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
+  dw_in2.offset(curr_dim_c, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
+  dw_in2.resize(curr_dim_c, hierarchy.level_shape(hierarchy.l_target-l, curr_dim_c) -
+                                hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
+  dw_out.offset(prev_dim_f, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_f));
+  dw_out.resize(curr_dim_c, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
   prev_dim_f = curr_dim_f;
   prev_dim_c = curr_dim_c;
   prev_dim_r = curr_dim_r;
-  curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
 
-  dw_in1 = dw_out;
-  dw_in2 = dw_out;
-  // dw_in1.resize(curr_dim_c, hierarchy.dofs[curr_dim_c][l + 1]);
-  // dw_in2.offset(curr_dim_c, hierarchy.dofs[curr_dim_c][l + 1]);
-  // dw_in2.resize(curr_dim_c, hierarchy.dofs[curr_dim_c][l] -
-  //                               hierarchy.dofs[curr_dim_c][l + 1]);
-  // dw_out.offset(prev_dim_f, hierarchy.dofs[curr_dim_f][l + 1]);
-  // dw_out.resize(curr_dim_c, hierarchy.dofs[curr_dim_c][l + 1]);
-  curr_dim_f = D-1, curr_dim_c = D-2, curr_dim_r = D-3;
-  dw_in1.resize2(curr_dim_c, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
-  dw_in2.offset2(curr_dim_c, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
-  dw_in2.resize2(curr_dim_c, hierarchy.level_shape(hierarchy.l_target-l, curr_dim_c) -
-                                hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
-  dw_out.offset2(prev_dim_f2, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_f));
-  dw_out.resize2(curr_dim_c, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
-  prev_dim_f2 = curr_dim_f;
-  prev_dim_c2 = curr_dim_c;
-  prev_dim_r2 = curr_dim_r;
-
-  dw_in1.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_in2.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_out.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in1.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in2.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_out.project(curr_dim_r, curr_dim_c, curr_dim_f);
 
   dist = SubArray(hierarchy.dist(hierarchy.l_target-l, curr_dim_c));
   ratio = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dim_c));
 
-  // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
-
   processed_dims = SubArray(hierarchy.processed(1, processed_n), true);
-  // dw_in1.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_in2.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
 
   Lpk2Reo<D, T, DeviceType>().Execute(
       shape, shape_c,
@@ -149,45 +116,28 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 
   // mass trans 3D
-
-  prev_dim_f = curr_dim_f;
-  prev_dim_c = curr_dim_c;
-  prev_dim_r = curr_dim_r;
-  curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
-
   dw_in1 = dw_out;
   dw_in2 = dw_out;
-  // dw_in1.resize(curr_dim_r, hierarchy.dofs[curr_dim_r][l + 1]);
-  // dw_in2.offset(curr_dim_r, hierarchy.dofs[curr_dim_r][l + 1]);
-  // dw_in2.resize(curr_dim_r, hierarchy.dofs[curr_dim_r][l] -
-  //                               hierarchy.dofs[curr_dim_r][l + 1]);
-  // dw_out.offset(prev_dim_c, hierarchy.dofs[curr_dim_c][l + 1]);
-  // dw_out.resize(curr_dim_r, hierarchy.dofs[curr_dim_r][l + 1]);
 
   curr_dim_f = D-1, curr_dim_c = D-2, curr_dim_r = D-3;
-  dw_in1.resize2(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
-  dw_in2.offset2(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
-  dw_in2.resize2(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l, curr_dim_r) -
+  dw_in1.resize(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
+  dw_in2.offset(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
+  dw_in2.resize(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l, curr_dim_r) -
                                 hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
-  dw_out.offset2(prev_dim_c2, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
-  dw_out.resize2(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
-  prev_dim_f2 = curr_dim_f;
-  prev_dim_c2 = curr_dim_c;
-  prev_dim_r2= curr_dim_r;
+  dw_out.offset(prev_dim_c, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_c));
+  dw_out.resize(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
+  prev_dim_f = curr_dim_f;
+  prev_dim_c = curr_dim_c;
+  prev_dim_r= curr_dim_r;
 
-  dw_in1.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_in2.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_out.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in1.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in2.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_out.project(curr_dim_r, curr_dim_c, curr_dim_f);
 
   dist = SubArray(hierarchy.dist(hierarchy.l_target-l, curr_dim_r));
   ratio = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dim_r));
 
-  // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
-
   processed_dims = SubArray(hierarchy.processed(2, processed_n), true);
-  // dw_in1.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_in2.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
 
   Lpk3Reo<D, T, DeviceType>().Execute(
       shape, shape_c,
@@ -202,43 +152,29 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
 
   // mass trans 4D+
   for (int i = 3; i < D; i++) {
-    prev_dim_f = curr_dim_f;
-    prev_dim_c = curr_dim_c;
-    prev_dim_r = curr_dim_r;
-    curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = i;
     dw_in1 = dw_out;
     dw_in2 = dw_out;
-    // dw_in1.resize(curr_dim_r, hierarchy.dofs[curr_dim_r][l + 1]);
-    // dw_in2.offset(curr_dim_r, hierarchy.dofs[curr_dim_r][l + 1]);
-    // dw_in2.resize(curr_dim_r, hierarchy.dofs[curr_dim_r][l] -
-    //                               hierarchy.dofs[curr_dim_r][l + 1]);
-    // dw_out.offset(prev_dim_r, hierarchy.dofs[prev_dim_r][l + 1]);
-    // dw_out.resize(curr_dim_r, hierarchy.dofs[curr_dim_r][l + 1]);
 
     curr_dim_f = D-1, curr_dim_c = D-2, curr_dim_r = D-(i+1);
-    dw_in1.resize2(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
-    dw_in2.offset2(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
-    dw_in2.resize2(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l, curr_dim_r) -
+    dw_in1.resize(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
+    dw_in2.offset(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
+    dw_in2.resize(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l, curr_dim_r) -
                                   hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
-    dw_out.offset2(prev_dim_r2, hierarchy.level_shape(hierarchy.l_target-l-1, prev_dim_r2));
-    dw_out.resize2(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
-    prev_dim_f2 = curr_dim_f;
-    prev_dim_c2 = curr_dim_c;
-    prev_dim_r2= curr_dim_r;
+    dw_out.offset(prev_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, prev_dim_r));
+    dw_out.resize(curr_dim_r, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim_r));
+    prev_dim_f = curr_dim_f;
+    prev_dim_c = curr_dim_c;
+    prev_dim_r= curr_dim_r;
 
-    dw_in1.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-    dw_in2.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-    dw_out.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+    dw_in1.project(curr_dim_r, curr_dim_c, curr_dim_f);
+    dw_in2.project(curr_dim_r, curr_dim_c, curr_dim_f);
+    dw_out.project(curr_dim_r, curr_dim_c, curr_dim_f);
 
     dist = SubArray(hierarchy.dist(hierarchy.l_target-l, curr_dim_r));
     ratio = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dim_r));
 
-    // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = i;
-
     processed_dims = SubArray(hierarchy.processed(i, processed_n), true);
-    // dw_in1.project(curr_dim_f, curr_dim_c, curr_dim_r);
-    // dw_in2.project(curr_dim_f, curr_dim_c, curr_dim_r);
-    // dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
+
     Lpk3Reo<D, T, DeviceType>().Execute(
         shape, shape_c,
         processed_n, processed_dims,
@@ -252,18 +188,12 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
 
-  // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
   curr_dim_f = D-1, curr_dim_c = D-2, curr_dim_r = D-3;
-  // dw_in1.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_in2.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
-
-  dw_in1.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_in2.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_out.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in1.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in2.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_out.project(curr_dim_r, curr_dim_c, curr_dim_f);
   am = hierarchy.am(hierarchy.l_target-l-1, curr_dim_f);
   bm = hierarchy.bm(hierarchy.l_target-l-1, curr_dim_f);
-  // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
 
   Ipk1Reo<D, T, DeviceType>().Execute(
       curr_dim_r, curr_dim_c, curr_dim_f,
@@ -273,17 +203,12 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
     PrintSubarray4D(format("decomposition: after TR-1D[{}]", l), dw_out);
   } // debug
 
-  // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
   curr_dim_f = D-1, curr_dim_c = D-2, curr_dim_r = D-3;
-  // dw_in1.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_in2.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  dw_in1.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_in2.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_out.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in1.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in2.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_out.project(curr_dim_r, curr_dim_c, curr_dim_f);
   am = hierarchy.am(hierarchy.l_target-l-1, curr_dim_c);
   bm = hierarchy.bm(hierarchy.l_target-l-1, curr_dim_c);
-  // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
 
   Ipk2Reo<D, T, DeviceType>().Execute(
       curr_dim_r, curr_dim_c, curr_dim_f,
@@ -293,17 +218,12 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
     PrintSubarray4D(format("decomposition: after TR-2D[{}]", l), dw_out);
   } // debug
 
-  // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
   curr_dim_f = D-1, curr_dim_c = D-2, curr_dim_r = D-3;
-  // dw_in1.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_in2.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  // dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
-  dw_in1.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_in2.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-  dw_out.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in1.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_in2.project(curr_dim_r, curr_dim_c, curr_dim_f);
+  dw_out.project(curr_dim_r, curr_dim_c, curr_dim_f);
   am = hierarchy.am(hierarchy.l_target-l-1, curr_dim_r);
   bm = hierarchy.bm(hierarchy.l_target-l-1, curr_dim_r);
-  // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = 2;
 
   Ipk3Reo<D, T, DeviceType>().Execute(
       curr_dim_r, curr_dim_c, curr_dim_f,
@@ -315,18 +235,12 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
 
   // mass trans 4D+
   for (int i = 3; i < D; i++) {
-    // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = i;
     curr_dim_f = D-1, curr_dim_c = D-2, curr_dim_r = D-(i+1);
-    // dw_in1.project(curr_dim_f, curr_dim_c, curr_dim_r);
-    // dw_in2.project(curr_dim_f, curr_dim_c, curr_dim_r);
-    // dw_out.project(curr_dim_f, curr_dim_c, curr_dim_r);
-    dw_in1.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-    dw_in2.project2(curr_dim_r, curr_dim_c, curr_dim_f);
-    dw_out.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+    dw_in1.project(curr_dim_r, curr_dim_c, curr_dim_f);
+    dw_in2.project(curr_dim_r, curr_dim_c, curr_dim_f);
+    dw_out.project(curr_dim_r, curr_dim_c, curr_dim_f);
     am = hierarchy.am(hierarchy.l_target-l-1, curr_dim_r);
     bm = hierarchy.bm(hierarchy.l_target-l-1, curr_dim_r);
-    // curr_dim_f = 0, curr_dim_c = 1, curr_dim_r = i;
-
     Ipk3Reo<D, T, DeviceType>().Execute(
         curr_dim_r, curr_dim_c, curr_dim_f,
         am, bm, dw_out, queue_idx);

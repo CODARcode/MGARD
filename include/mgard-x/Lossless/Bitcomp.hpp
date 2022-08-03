@@ -25,7 +25,7 @@ BitcompCompress(SubArray<1, C, DeviceType> &input_data, int algorithm_type) {
   Mem::MallocHost(output_bytes, 1, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
-  size_t input_count = input_data.getShape(0);
+  size_t input_count = input_data.shape(0);
 
   compressor.configure(input_count * sizeof(C), temp_bytes, output_bytes);
 
