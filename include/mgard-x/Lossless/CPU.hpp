@@ -176,7 +176,7 @@ Array<1, Byte, DeviceType> CPUCompress(SubArray<1, C, DeviceType> &input_data) {
 
   // PrintSubarray("CPUCompress input", input_data);
 
-  size_t input_count = input_data.getShape(0);
+  size_t input_count = input_data.shape(0);
 
   C *in_data = NULL;
   MemoryManager<DeviceType>::MallocHost(in_data, input_count, 0);
@@ -217,7 +217,7 @@ Array<1, C, DeviceType>
 CPUDecompress(SubArray<1, Byte, DeviceType> &input_data) {
 
   // PrintSubarray("CPUDecompress input", input_data);
-  size_t input_count = input_data.getShape(0);
+  size_t input_count = input_data.shape(0);
   Byte *in_data = NULL;
   MemoryManager<DeviceType>::MallocHost(in_data, input_count, 0);
   MemoryManager<DeviceType>::Copy1D(in_data, input_data.data(), input_count, 0);

@@ -25,7 +25,7 @@ template <typename C, typename DeviceType>
 Array<1, Byte, DeviceType> ZstdCompress(SubArray<1, C, DeviceType> &input_data,
                                         int compressionLevel) {
 
-  size_t input_count = input_data.getShape(0);
+  size_t input_count = input_data.shape(0);
 
   size_t const estimated_out_size = ZSTD_compressBound(input_count * sizeof(C));
   uint8_t *out_data = NULL; //(uint8_t *)malloc(cBuffSize);
@@ -64,7 +64,7 @@ template <typename C, typename DeviceType>
 Array<1, C, DeviceType>
 ZstdDecompress(SubArray<1, Byte, DeviceType> &input_data) {
 
-  size_t input_count = input_data.getShape(0);
+  size_t input_count = input_data.shape(0);
   Byte *in_data = NULL;
   MemoryManager<DeviceType>::MallocHost(in_data, input_count, 0);
   MemoryManager<DeviceType>::Copy1D(in_data, input_data.data(), input_count, 0);

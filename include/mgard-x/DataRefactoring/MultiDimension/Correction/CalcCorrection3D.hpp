@@ -63,19 +63,12 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (D >= 1) {
     dw_in1 = dcoeff;
-    // dw_in1.resize(
-        // {hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l], hierarchy.dofs[2][l]});
-    dw_in1.resize2({r, c, ff});
+    dw_in1.resize({r, c, ff});
     dw_in2 = dcoeff;
-    // dw_in2.offset({hierarchy.dofs[0][l + 1], 0, 0});
-    dw_in2.offset2({0, 0, ff});
-    // dw_in2.resize({hierarchy.dofs[0][l] - hierarchy.dofs[0][l + 1],
-                   // hierarchy.dofs[1][l], hierarchy.dofs[2][l]});
-    dw_in2.resize2({r, c, f-ff});
+    dw_in2.offset({0, 0, ff});
+    dw_in2.resize({r, c, f-ff});
     dw_out = dcorrection;
-    // dw_out.resize(
-        // {hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l], hierarchy.dofs[2][l]});
-    dw_out.resize2({r, c, ff});
+    dw_out.resize({r, c, ff});
 
     Lpk1Reo3D<D, T, DeviceType>().Execute(
         r, c, f, ff, rr, cc, ff, dist_f, ratio_f, dw_in1, dw_in2, dw_out,
@@ -93,21 +86,12 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (D >= 2) {
     dw_in1 = dw_out;
-    // dw_in1.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   // hierarchy.dofs[2][l]});
-    dw_in1.resize2({r, cc, ff});
+    dw_in1.resize({r, cc, ff});
     dw_in2 = dw_out;
-    // dw_in2.offset({0, hierarchy.dofs[1][l + 1], 0});
-    dw_in2.offset2({0, cc, 0});
-    // dw_in2.resize({hierarchy.dofs[0][l + 1],
-                   // hierarchy.dofs[1][l] - hierarchy.dofs[1][l + 1],
-                   // hierarchy.dofs[2][l]});
-    dw_in2.resize2({r, c-cc, ff});
-    // dw_out.offset({hierarchy.dofs[0][l + 1], 0, 0});
-    dw_out.offset2({0, 0, ff});
-    // dw_out.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   // hierarchy.dofs[2][l]});
-    dw_out.resize2({r, cc, ff});
+    dw_in2.offset({0, cc, 0});
+    dw_in2.resize({r, c-cc, ff});
+    dw_out.offset({0, 0, ff});
+    dw_out.resize({r, cc, ff});
 
     Lpk2Reo3D<D, T, DeviceType>().Execute(
         r, c, ff, cc, dist_c, ratio_c, dw_in1, dw_in2, dw_out,
@@ -125,20 +109,12 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (D == 3) {
     dw_in1 = dw_out;
-    // dw_in1.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   // hierarchy.dofs[2][l + 1]});
-    dw_in1.resize2({rr, cc, ff});
+    dw_in1.resize({rr, cc, ff});
     dw_in2 = dw_out;
-    // dw_in2.offset({0, 0, hierarchy.dofs[2][l + 1]});
-    dw_in2.offset2({rr, 0, 0});
-    // dw_in2.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   // hierarchy.dofs[2][l] - hierarchy.dofs[2][l + 1]});
-    dw_in2.resize2({r-rr, cc, r-ff});
-    // dw_out.offset({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1], 0});
-    dw_out.offset2({0, cc, ff});
-    // dw_out.resize({hierarchy.dofs[0][l + 1], hierarchy.dofs[1][l + 1],
-                   // hierarchy.dofs[2][l + 1]});
-    dw_out.resize2({rr, cc, ff});
+    dw_in2.offset({rr, 0, 0});
+    dw_in2.resize({r-rr, cc, r-ff});
+    dw_out.offset({0, cc, ff});
+    dw_out.resize({rr, cc, ff});
 
     Lpk3Reo3D<D, T, DeviceType>().Execute(
         r, cc, ff, rr, dist_r, ratio_r, dw_in1, dw_in2, dw_out,

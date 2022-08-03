@@ -93,7 +93,7 @@ public:
       }
     }
 
-    v.offset2(idx);
+    v.offset(idx);
     // size_t other_offset_v = get_idx<D>(ldvs_sm, idx);
     // v = v + other_offset_v;
 
@@ -723,7 +723,7 @@ public:
       }
     }
 
-    v.offset2(idx);
+    v.offset(idx);
     // size_t other_offset_v = get_idx<D>(ldvs_sm, idx);
     // v = v + other_offset_v;
 
@@ -1424,7 +1424,7 @@ public:
       }
     }
 
-    v.offset2(idx);
+    v.offset(idx);
     // size_t other_offset_v = get_idx<D>(ldvs_sm, idx);
     // v = v + other_offset_v;
 

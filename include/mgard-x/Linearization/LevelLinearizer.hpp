@@ -279,7 +279,7 @@ public:
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncDevice();
 
-    int range_l = std::min(6, (int)std::log2(v.getShape(0)) - 1);
+    int range_l = std::min(6, (int)std::log2(v.shape(D-1)) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.llk[prec][range_l];
     double min_time = std::numeric_limits<double>::max();

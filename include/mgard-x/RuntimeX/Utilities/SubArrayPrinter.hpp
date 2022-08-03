@@ -35,11 +35,13 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
   SIZE ncol = 1;
   SIZE nfib = 1;
 
-  nfib = subArray.getShape(0);
+  DIM D = SubArrayType::NumDims;
+
+  nfib = subArray.shape(D-1);
   if (SubArrayType::NumDims >= 2)
-    ncol = subArray.getShape(1);
+    ncol = subArray.shape(D-2);
   if (SubArrayType::NumDims >= 3)
-    nrow = subArray.getShape(2);
+    nrow = subArray.shape(D-3);
 
   using T = typename SubArrayType::DataType;
   using DeviceType = typename SubArrayType::DevType;
@@ -57,8 +59,8 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
   for (SIZE i = 0; i < nrow; i++) {
     MemoryManager<DeviceType>::CopyND(
         v + ncol * nfib * i, nfib,
-        subArray.data() + subArray.getLddv1() * subArray.getLddv2() * i,
-        subArray.getLddv1(), nfib, ncol, 0);
+        subArray.data() + subArray.lddv1() * subArray.lddv2() * i,
+        subArray.lddv1(), nfib, ncol, 0);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   // tmp_handle.sync(0);
@@ -90,19 +92,21 @@ void CompareSubarray(std::string name, SubArrayType subArray1,
                      SubArrayType subArray2) {
   // Handle<1, float> tmp_handle;
 
+  DIM D = SubArrayType::NumDims;
+
   SIZE nrow = 1;
   SIZE ncol = 1;
   SIZE nfib = 1;
 
-  nfib = subArray1.getShape(0);
+  nfib = subArray1.shape(D-1);
   if (SubArrayType::NumDims >= 2)
-    ncol = subArray1.getShape(1);
+    ncol = subArray1.shape(D-2);
   if (SubArrayType::NumDims >= 3)
-    nrow = subArray1.getShape(2);
+    nrow = subArray1.shape(D-3);
 
-  if (subArray1.getShape(0) != subArray2.getShape(0) ||
-      subArray1.getShape(1) != subArray2.getShape(1) ||
-      subArray1.getShape(2) != subArray2.getShape(2)) {
+  if (subArray1.shape(D-1) != subArray2.shape(D-1) ||
+      subArray1.shape(D-2) != subArray2.shape(D-2) ||
+      subArray1.shape(D-3) != subArray2.shape(D-3)) {
     std::cout << log::log_err << "CompareSubarray: shape mismatch!\n";
     exit(-1);
   }
@@ -118,12 +122,12 @@ void CompareSubarray(std::string name, SubArrayType subArray1,
   for (SIZE i = 0; i < nrow; i++) {
     MemoryManager<DeviceType>::CopyND(
         v1 + ncol * nfib * i, nfib,
-        subArray1.data() + subArray1.getLddv1() * subArray1.getLddv2() * i,
-        subArray1.getLddv1(), nfib, ncol, 0);
+        subArray1.data() + subArray1.lddv1() * subArray1.lddv2() * i,
+        subArray1.lddv1(), nfib, ncol, 0);
     MemoryManager<DeviceType>::CopyND(
         v2 + ncol * nfib * i, nfib,
-        subArray2.data() + subArray2.getLddv1() * subArray2.getLddv2() * i,
-        subArray2.getLddv1(), nfib, ncol, 0);
+        subArray2.data() + subArray2.lddv1() * subArray2.lddv2() * i,
+        subArray2.lddv1(), nfib, ncol, 0);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
@@ -168,21 +172,23 @@ void CompareSubarray(std::string name, SubArrayType1 subArray1,
                      double error_thresold) {
   // Handle<1, float> tmp_handle;
 
+  DIM D = SubArrayType1::NumDims;
+
   SIZE nrow = 1;
   SIZE ncol = 1;
   SIZE nfib = 1;
 
-  nfib = subArray1.getShape(0);
+  nfib = subArray1.shape(D-1);
   if (SubArrayType1::NumDims >= 2)
-    ncol = subArray1.getShape(1);
+    ncol = subArray1.shape(D-2);
   if (SubArrayType1::NumDims >= 3)
-    nrow = subArray1.getShape(2);
+    nrow = subArray1.shape(D-3);
 
-  if (subArray1.getShape(0) != subArray2.shape[0] ||
+  if (subArray1.shape(D-1) != subArray2.shape[0] ||
       (SubArrayType1::NumDims >= 2 &&
-       subArray1.getShape(1) != subArray2.shape[1]) ||
+       subArray1.shape(D-2) != subArray2.shape[1]) ||
       (SubArrayType1::NumDims >= 3 &&
-       subArray1.getShape(2) != subArray2.shape[2])) {
+       subArray1.shape(D-3) != subArray2.shape[2])) {
     std::cout << log::log_err << "CompareSubarray: shape mismatch!\n";
     exit(-1);
   }
@@ -198,8 +204,8 @@ void CompareSubarray(std::string name, SubArrayType1 subArray1,
   for (SIZE i = 0; i < nrow; i++) {
     MemoryManager<DeviceType>::CopyND(
         v1 + ncol * nfib * i, nfib,
-        subArray1.data() + subArray1.getLddv1() * subArray1.getLddv2() * i,
-        subArray1.getLddv1(), nfib, ncol, 0);
+        subArray1.data() + subArray1.lddv1() * subArray1.lddv2() * i,
+        subArray1.lddv1(), nfib, ncol, 0);
     MemoryManager<DeviceType>::CopyND(v2 + ncol * nfib * i, nfib,
                                       subArray2.data() +
                                           subArray2.lddv1 * subArray2.lddv2 * i,
@@ -259,21 +265,26 @@ void CompareSubarray4D(SubArrayType subArray1, SubArrayType subArray2) {
               << "CompareSubarray4D expects 4D subarray type.\n";
     exit(-1);
   }
-  if (subArray1.getShape(3) != subArray2.getShape(3)) {
+
+  DIM D = SubArrayType::NumDims;
+
+  if (subArray1.shape(D-4) != subArray2.shape(D-4)) {
     std::cout << log::log_err << "CompareSubarray4D mismatch 4D size.\n";
     exit(-1);
   }
 
   using T = typename SubArrayType::DataType;
   SIZE idx[4] = {0, 0, 0, 0};
-  for (SIZE i = 0; i < subArray1.getShape(3); i++) {
+  for (SIZE i = 0; i < subArray1.shape(0); i++) {
     idx[3] = i;
     SubArrayType temp1 = subArray1;
     SubArrayType temp2 = subArray2;
-    temp1.offset(3, i);
-    temp2.offset(3, i);
-    CompareSubarray("4D = " + std::to_string(i), temp1.Slice3D(0, 1, 2),
-                    temp2.Slice3D(0, 1, 2));
+    // Adding offset to the 4th dim. (slowest)
+    temp1.offset(0, i);
+    temp2.offset(0, i);
+    // Make 3D slice on the other three dims
+    CompareSubarray("4D = " + std::to_string(i), temp1.Slice3D(1, 2, 3),
+                    temp2.Slice3D(1, 2, 3));
   }
 }
 
@@ -283,10 +294,13 @@ void PrintSubarray4D(std::string name, SubArrayType subArray1) {
     std::cout << log::log_err << "PrintSubarray4D expects 4D subarray type.\n";
     exit(-1);
   }
+
+  DIM D = SubArrayType::NumDims;
+
   std::cout << name << "\n";
   using T = typename SubArrayType::DataType;
   SIZE idx[4] = {0, 0, 0, 0};
-  for (SIZE i = 0; i < subArray1.getShape(3); i++) {
+  for (SIZE i = 0; i < subArray1.shape(D-4); i++) {
     idx[3] = i;
     SubArrayType temp1 = subArray1;
     temp1.offset(3, i);
@@ -401,7 +415,7 @@ void CompareSubArrays(SubArray<1, T, DeviceType> array1,
 
 template <typename T, typename DeviceType>
 void DumpSubArray(std::string name, SubArray<1, T, DeviceType> array) {
-  SIZE n = array.getShape(0);
+  SIZE n = array.shape(0);
   using Mem = MemoryManager<DeviceType>;
   T *q = new T[n];
   Mem::Copy1D(q, array.data(), n, 0);
@@ -422,7 +436,8 @@ void DumpSubArray(std::string name, SubArray<1, T, DeviceType> array) {
 
 template <typename T, typename DeviceType>
 void LoadSubArray(std::string name, SubArray<1, T, DeviceType> array) {
-  SIZE n = array.getShape(0);
+
+  SIZE n = array.shape(0);
   using Mem = MemoryManager<DeviceType>;
   T *q = new T[n];
   std::fstream myfile;

@@ -15,7 +15,7 @@ Array<1, Byte, DeviceType> LZ4Compress(SubArray<1, C, DeviceType> &input_data,
   nvcompType_t dtype = NVCOMP_TYPE_UCHAR;
   nvcomp::LZ4Manager nvcomp_manager{chunk_size, dtype,
                                     DeviceRuntime<DeviceType>::GetQueue(0)};
-  size_t input_count = input_data.getShape(0);
+  size_t input_count = input_data.shape(0);
   nvcomp::CompressionConfig comp_config =
       nvcomp_manager.configure_compression(input_count * sizeof(C));
   Array<1, Byte, DeviceType> output_data(
@@ -33,7 +33,7 @@ Array<1, C, DeviceType>
 LZ4Decompress(SubArray<1, Byte, DeviceType> &input_data) {
   auto decomp_nvcomp_manager = nvcomp::create_manager(
       input_data.data(), DeviceRuntime<DeviceType>::GetQueue(0));
-  size_t input_size = input_data.getShape(0);
+  size_t input_size = input_data.shape(0);
   nvcomp::DecompressionConfig decomp_config =
       decomp_nvcomp_manager->configure_decompression(input_data.data());
   Array<1, C, DeviceType> output_data({(SIZE)decomp_config.decomp_data_size});

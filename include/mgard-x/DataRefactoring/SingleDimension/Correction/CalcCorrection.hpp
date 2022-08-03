@@ -38,7 +38,7 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
   DIM curr_dim_r, curr_dim_c, curr_dim_f;
   if (curr_dim == D-1) {
     curr_dim_r = D-3, curr_dim_c = D-2, curr_dim_f = D-1;
-    correction.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+    correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     Ipk1Reo<D, T, DeviceType>().Execute(
         curr_dim_r, curr_dim_c, curr_dim_f,
         SubArray(hierarchy.am(hierarchy.l_target-l-1, D-1)),
@@ -50,7 +50,7 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
 
   } else if (curr_dim == D-2) {
     curr_dim_r = D-3, curr_dim_c = D-2, curr_dim_f = D-1;
-    correction.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+    correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     Ipk2Reo<D, T, DeviceType>().Execute(
         curr_dim_r, curr_dim_c, curr_dim_f,
         SubArray(hierarchy.am(hierarchy.l_target-l-1, D-2)),
@@ -61,7 +61,7 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   } else if (curr_dim == D-3) {
     curr_dim_r = D-3, curr_dim_c = D-2, curr_dim_f = D-1;
-    correction.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+    correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     Ipk3Reo<D, T, DeviceType>().Execute(
         curr_dim_r, curr_dim_c, curr_dim_f,
         SubArray(hierarchy.am(hierarchy.l_target-l-1, D-3)),
@@ -72,7 +72,7 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   } else {
     curr_dim_r = curr_dim, curr_dim_c = D-2, curr_dim_f = D-1;
-    correction.project2(curr_dim_r, curr_dim_c, curr_dim_f);
+    correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     Ipk3Reo<D, T, DeviceType>().Execute(
         curr_dim_r, curr_dim_c, curr_dim_f,
         SubArray(hierarchy.am(hierarchy.l_target-l-1, curr_dim)),

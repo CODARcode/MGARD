@@ -197,7 +197,7 @@ void GetCodebook(int dict_size,
   ReverseArray<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
 
   Array<1, H, DeviceType> _d_codebook_array_org(
-      {_d_codebook_subarray.getShape(0)});
+      {_d_codebook_subarray.shape(0)});
   _d_codebook_array_org.load(_d_codebook_subarray.data());
   SubArray _d_codebook_subarray_org(_d_codebook_array_org);
   ReorderByIndex<H, Q, DeviceType>().Execute(_d_codebook_subarray_org,
