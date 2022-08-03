@@ -25,9 +25,9 @@ Array<D, T, DeviceType>::Array() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType>::Array(std::vector<SIZE> _shape, bool pitched,
+Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched,
                                bool managed, int queue_idx) {
-  initialize(_shape);
+  initialize(shape);
   allocate(pitched, managed, queue_idx);
 }
 
@@ -56,14 +56,14 @@ void Array<D, T, DeviceType>::initialize(std::vector<SIZE> shape) {
   }
   __ldvs = __shape;
 
-  _shape = __shape;
-  _ldvs = __shape;
-  std::reverse(_shape.begin(), _shape.end());
-  std::reverse(_ldvs.begin(), _ldvs.end());
-  linearized_depth = 1;
-  for (DIM d = 2; d < D_padded; d++) {
-    linearized_depth *= _shape[d];
-  }
+  // _shape = __shape;
+  // _ldvs = __shape;
+  // std::reverse(_shape.begin(), _shape.end());
+  // std::reverse(_ldvs.begin(), _ldvs.end());
+  // linearized_depth = 1;
+  // for (DIM d = 2; d < D_padded; d++) {
+  //   linearized_depth *= _shape[d];
+  // }
   linearized_width = 1;
   for (DIM d = 0; d < D_padded-1; d++) {
     linearized_width *= __shape[d];
@@ -83,7 +83,7 @@ void Array<D, T, DeviceType>::allocate(bool pitched, bool managed, int queue_idx
       SIZE ld = 0;
       MemoryManager<DeviceType>::MallocND(
           dv, __shape[D_padded-1], linearized_width, ld, queue_idx);
-      _ldvs[0] = ld;
+      // _ldvs[0] = ld;
       __ldvs[D_padded-1] = ld;
     } else {
       std::cerr << log::log_err
@@ -117,7 +117,7 @@ void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
   this->managed = array.managed;
   if (array.device_allocated) {
     this->dv = array.dv;
-    this->_ldvs = array._ldvs;
+    // this->_ldvs = array._ldvs;
     this->__ldvs = array.__ldvs;
     this->device_allocated = true;
     array.device_allocated = false;
@@ -144,12 +144,12 @@ void Array<D, T, DeviceType>::free(int queue_idx) {
   if (device_allocated) {
     MemoryManager<DeviceType>::Free(dv, queue_idx);
     device_allocated = false;
-    dv = NULL;
+    dv = nullptr;
   }
   if (host_allocated && !keepHostCopy) {
     MemoryManager<DeviceType>::FreeHost(hv, queue_idx);
     host_allocated = false;
-    hv = NULL;
+    hv = nullptr;
   }
 }
 
@@ -188,7 +188,7 @@ Array<D, T, DeviceType>::~Array() {
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::load(const T *data, SIZE ld, int queue_idx) {
   if (ld == 0) {
-    ld = _shape[0];
+    ld = __shape[D_padded-1];
   }
   MemoryManager<DeviceType>::CopyND(dv, __ldvs[D_padded-1], data, ld, __shape[D_padded-1],
                                     linearized_width, queue_idx);
@@ -220,26 +220,25 @@ T *Array<D, T, DeviceType>::data(SIZE &ld) {
   return dv;
 }
 
-template <DIM D, typename T, typename DeviceType>
-std::vector<SIZE> &Array<D, T, DeviceType>::shape() {
-  return _shape;
-}
+// template <DIM D, typename T, typename DeviceType>
+// std::vector<SIZE> &Array<D, T, DeviceType>::shape() {
+//   return _shape;
+// }
 
 template <DIM D, typename T, typename DeviceType>
-SIZE Array<D, T, DeviceType>::shape(DIM d) {
+SIZE &Array<D, T, DeviceType>::shape(DIM d) {
   return __shape[d + D_pad];
 }
-
 
 template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::data() {
   return dv;
 }
 
-template <DIM D, typename T, typename DeviceType>
-std::vector<SIZE> Array<D, T, DeviceType>::ld() {
-  return _ldvs;
-}
+// template <DIM D, typename T, typename DeviceType>
+// std::vector<SIZE> Array<D, T, DeviceType>::ld() {
+//   return _ldvs;
+// }
 
 template <DIM D, typename T, typename DeviceType>
 SIZE Array<D, T, DeviceType>::ld(DIM d) {

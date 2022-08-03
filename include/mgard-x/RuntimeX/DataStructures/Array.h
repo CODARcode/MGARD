@@ -30,10 +30,10 @@ public:
   void load(const T *data, SIZE ld = 0, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   T *hostCopy(bool keep = false, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   T *data(SIZE &ld);
-  std::vector<SIZE> &shape();
-  SIZE shape(DIM d);
+  // std::vector<SIZE> &shape();
+  SIZE &shape(DIM d);
   T *data();
-  std::vector<SIZE> ld();
+  // std::vector<SIZE> ld();
   SIZE ld(DIM d);
   bool isPitched();
   bool isManaged();
@@ -47,9 +47,7 @@ private:
   T *hv = nullptr;
   bool device_allocated = false;
   bool host_allocated = false;
-  std::vector<SIZE> _ldvs;
-  std::vector<SIZE> _shape;
-  SIZE linearized_depth;
+  // SIZE linearized_depth;
   std::vector<SIZE> shape_org;
   DIM D_pad;
   std::vector<SIZE> __ldvs;

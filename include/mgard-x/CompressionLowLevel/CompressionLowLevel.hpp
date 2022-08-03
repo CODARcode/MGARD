@@ -62,8 +62,8 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
               << "\n";
   }
   Timer timer_total, timer_each;
-  for (DIM i = 0; i < D; i++) {
-    if (hierarchy.shape[i] != in_array.shape()[i]) {
+  for (int d = D-1; d >= 0; d--) {
+    if (hierarchy.level_shape(hierarchy.l_target, d) != in_array.shape(d)) {
       std::cout << log::log_err
                 << "The shape of input array does not match the shape "
                    "initilized in hierarchy!\n";
@@ -100,7 +100,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
           false);
       MemoryManager<DeviceType>().CopyND(
           temp_array.data(), hierarchy.dofs[0][0], in_array.data(),
-          in_array.ld()[0], hierarchy.dofs[0][0],
+          in_array.ld(D-1), hierarchy.dofs[0][0],
           (SIZE)(hierarchy.dofs[1][0] * hierarchy.linearized_depth), 0);
       temp_subarray = SubArray<1, T, DeviceType>(temp_array);
     }
