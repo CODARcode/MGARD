@@ -252,7 +252,8 @@ public:
     for (int d = D-1; d >= 0; d--) {
       long long unsigned int l_bit = 0l;
       for (SIZE l = 0; l < l_target + 1; l++) {
-        int bit = (idx[d] >= *level_ranges(l,   d)) &&
+        long long unsigned int bit = 
+                  (idx[d] >= *level_ranges(l,   d)) &&
                   (idx[d] <  *level_ranges(l+1, d));
         l_bit += bit << l;
         // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
