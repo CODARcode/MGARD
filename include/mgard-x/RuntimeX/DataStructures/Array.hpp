@@ -39,33 +39,24 @@ void Array<D, T, DeviceType>::initialize(std::vector<SIZE> shape) {
               << "). mgard_x::Array not initialized!\n";
     exit(-1);
   }
-  shape_org = shape;
+  // shape_org = shape;
   __shape = shape;
   free();
-  D_padded = D;
-  if (D < 3) {
-    D_padded = 3;
-  }
-  if (D % 2 == 0) {
-    D_padded = D + 1;
-  }
-  D_pad = D_padded - D;
-  // padding dimensions
-  for (DIM d = 0; d < D_pad; d++) {
-    __shape.insert(__shape.begin(), 1);
-  }
-  __ldvs = __shape;
-
-  // _shape = __shape;
-  // _ldvs = __shape;
-  // std::reverse(_shape.begin(), _shape.end());
-  // std::reverse(_ldvs.begin(), _ldvs.end());
-  // linearized_depth = 1;
-  // for (DIM d = 2; d < D_padded; d++) {
-  //   linearized_depth *= _shape[d];
+  // D = D;
+  // if (D < 3) {
+  //   D = 3;
   // }
+  // if (D % 2 == 0) {
+  //   D = D + 1;
+  // }
+  // D_pad = D - D;
+  // padding dimensions
+  // for (DIM d = 0; d < D_pad; d++) {
+  //   __shape.insert(__shape.begin(), 1);
+  // }
+  __ldvs = __shape;
   linearized_width = 1;
-  for (DIM d = 0; d < D_padded-1; d++) {
+  for (DIM d = 0; d < D-1; d++) {
     linearized_width *= __shape[d];
   }
   host_allocated = false;
@@ -82,9 +73,8 @@ void Array<D, T, DeviceType>::allocate(bool pitched, bool managed, int queue_idx
     if (!this->managed) {
       SIZE ld = 0;
       MemoryManager<DeviceType>::MallocND(
-          dv, __shape[D_padded-1], linearized_width, ld, queue_idx);
-      // _ldvs[0] = ld;
-      __ldvs[D_padded-1] = ld;
+          dv, __shape[D-1], linearized_width, ld, queue_idx);
+      __ldvs[D-1] = ld;
     } else {
       std::cerr << log::log_err
                 << "Does not support managed memory in pitched mode.\n";
@@ -92,10 +82,10 @@ void Array<D, T, DeviceType>::allocate(bool pitched, bool managed, int queue_idx
   } else {
     if (!this->managed) {
       MemoryManager<DeviceType>::Malloc1D(
-          dv, __shape[D_padded-1] * linearized_width, queue_idx);
+          dv, __shape[D-1] * linearized_width, queue_idx);
     } else {
       MemoryManager<DeviceType>::MallocManaged1D(
-          dv, __shape[D_padded-1] * linearized_width, queue_idx);
+          dv, __shape[D-1] * linearized_width, queue_idx);
     }
   }
   device_allocated = true;
@@ -103,21 +93,20 @@ void Array<D, T, DeviceType>::allocate(bool pitched, bool managed, int queue_idx
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::copy(const Array<D, T, DeviceType> &array, int queue_idx) {
-  initialize(array.shape_org);
+  initialize(array.__shape);
   allocate(array.pitched, array.managed, queue_idx);
   MemoryManager<DeviceType>::CopyND(
-      dv, __ldvs[D_padded-1], array.dv, array.__ldvs[array.D_padded-1], array.__shape[D_padded-1],
+      dv, __ldvs[D-1], array.dv, array.__ldvs[D-1], array.__shape[D-1],
       array.linearized_width, queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
-  initialize(array.shape_org);
+  initialize(array.__shape);
   this->pitched = array.pitched;
   this->managed = array.managed;
   if (array.device_allocated) {
     this->dv = array.dv;
-    // this->_ldvs = array._ldvs;
     this->__ldvs = array.__ldvs;
     this->device_allocated = true;
     array.device_allocated = false;
@@ -129,11 +118,11 @@ template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::memset(int value, int queue_idx) {
   if (this->pitched) {
     MemoryManager<DeviceType>::MemsetND(
-        dv, __ldvs[D_padded-1], __shape[D_padded-1],
+        dv, __ldvs[D-1], __shape[D-1],
         linearized_width, value, queue_idx);
   } else {
     MemoryManager<DeviceType>::Memset1D(
-        dv, __ldvs[D_padded-1] * linearized_width,
+        dv, __ldvs[D-1] * linearized_width,
         value, queue_idx);
   }
   // DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -188,9 +177,9 @@ Array<D, T, DeviceType>::~Array() {
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::load(const T *data, SIZE ld, int queue_idx) {
   if (ld == 0) {
-    ld = __shape[D_padded-1];
+    ld = __shape[D-1];
   }
-  MemoryManager<DeviceType>::CopyND(dv, __ldvs[D_padded-1], data, ld, __shape[D_padded-1],
+  MemoryManager<DeviceType>::CopyND(dv, __ldvs[D-1], data, ld, __shape[D-1],
                                     linearized_width, queue_idx);
 
   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -204,10 +193,10 @@ T *Array<D, T, DeviceType>::hostCopy(bool keep, int queue_idx) {
   }
   if (!host_allocated) {
     MemoryManager<DeviceType>::MallocHost(
-        hv, __shape[D_padded-1] * linearized_width, queue_idx);
+        hv, __shape[D-1] * linearized_width, queue_idx);
     host_allocated = true;
   }
-  MemoryManager<DeviceType>::CopyND(hv, __shape[D_padded-1], dv, __ldvs[D_padded-1], __shape[D_padded-1],
+  MemoryManager<DeviceType>::CopyND(hv, __shape[D-1], dv, __ldvs[D-1], __shape[D-1],
                                      linearized_width, queue_idx);
   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   keepHostCopy = keep;
@@ -216,18 +205,13 @@ T *Array<D, T, DeviceType>::hostCopy(bool keep, int queue_idx) {
 
 template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::data(SIZE &ld) {
-  ld = __ldvs[D_padded-1];
+  ld = __ldvs[D-1];
   return dv;
 }
 
-// template <DIM D, typename T, typename DeviceType>
-// std::vector<SIZE> &Array<D, T, DeviceType>::shape() {
-//   return _shape;
-// }
-
 template <DIM D, typename T, typename DeviceType>
 SIZE &Array<D, T, DeviceType>::shape(DIM d) {
-  return __shape[d + D_pad];
+  return __shape[d];
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -235,14 +219,9 @@ T *Array<D, T, DeviceType>::data() {
   return dv;
 }
 
-// template <DIM D, typename T, typename DeviceType>
-// std::vector<SIZE> Array<D, T, DeviceType>::ld() {
-//   return _ldvs;
-// }
-
 template <DIM D, typename T, typename DeviceType>
 SIZE Array<D, T, DeviceType>::ld(DIM d) {
-  return __ldvs[d + D_pad];
+  return __ldvs[d];
 }
 
 template <DIM D, typename T, typename DeviceType>
