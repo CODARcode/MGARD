@@ -7,7 +7,7 @@
 
 #ifndef MGARD_X_ARRAY
 #define MGARD_X_ARRAY
-// #include "Common.h"
+
 #include <vector>
 
 namespace mgard_x {
@@ -39,7 +39,7 @@ public:
   bool isManaged();
 
 private:
-  DIM D_padded;
+  // DIM D_padded;
   bool pitched;
   bool managed;
   bool keepHostCopy = false;
@@ -48,8 +48,8 @@ private:
   bool device_allocated = false;
   bool host_allocated = false;
   // SIZE linearized_depth;
-  std::vector<SIZE> shape_org;
-  DIM D_pad;
+  // std::vector<SIZE> shape_org;
+  // DIM D_pad;
   std::vector<SIZE> __ldvs;
   std::vector<SIZE> __shape;
   SIZE linearized_width;
