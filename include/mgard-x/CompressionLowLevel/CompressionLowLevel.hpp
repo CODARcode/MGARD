@@ -22,8 +22,7 @@
 
 #include "../Quantization/LinearQuantization.hpp"
 
-// #include "Linearization/LevelLinearizer.hpp"
-#include "../Linearization/LevelLinearizer2.hpp"
+#include "../Linearization/LevelLinearizer.hpp"
 
 #include "../Lossless/ParallelHuffman/Huffman.hpp"
 
@@ -240,11 +239,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.reorder != 0) {
     if (config.timing)
       timer_each.start();
-    SubArray<1, SIZE, DeviceType> shape(hierarchy.shapes[0], true);
-    SubArray<1, SIZE, DeviceType> ranges(hierarchy.ranges, true);
     if (config.reorder == 1) {
-      LevelLinearizer2<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
-          shape, hierarchy.l_target, ranges, quantized_subarray,
+      LevelLinearizer<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
+          SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true), 
+          hierarchy.l_target, quantized_subarray,
           SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
           0);
     } else {
@@ -293,9 +291,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
                 << "Huffman dictionary size: " << config.huff_dict_size << "\n";
       std::cout << log::log_info << "Huffman compress ratio: "
                 << total_elems * sizeof(QUANTIZED_UNSIGNED_INT) << "/"
-                << lossless_compressed_subarray.getShape(0) << " ("
+                << lossless_compressed_subarray.shape(0) << " ("
                 << (double)total_elems * sizeof(QUANTIZED_UNSIGNED_INT) /
-                       lossless_compressed_subarray.getShape(0)
+                       lossless_compressed_subarray.shape(0)
                 << ")\n";
       timer_each.clear();
     }
@@ -313,9 +311,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       timer_each.print("CPU Lossless");
       std::cout << log::log_info << "CPU Lossless compress ratio: "
                 << total_elems * sizeof(QUANTIZED_INT) << "/"
-                << lossless_compressed_subarray.getShape(0) << " ("
+                << lossless_compressed_subarray.shape(0) << " ("
                 << (double)total_elems * sizeof(QUANTIZED_INT) /
-                       lossless_compressed_subarray.getShape(0)
+                       lossless_compressed_subarray.shape(0)
                 << ")\n";
       timer_each.clear();
     }
@@ -329,11 +327,11 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.lossless == lossless_type::Huffman_LZ4) {
     if (config.timing)
       timer_each.start();
-    SIZE lz4_before_size = lossless_compressed_subarray.getShape(0);
+    SIZE lz4_before_size = lossless_compressed_subarray.shape(0);
     lossless_compressed_array =
         LZ4Compress(lossless_compressed_subarray, config.lz4_block_size);
     lossless_compressed_subarray = SubArray(lossless_compressed_array);
-    SIZE lz4_after_size = lossless_compressed_subarray.getShape(0);
+    SIZE lz4_after_size = lossless_compressed_subarray.shape(0);
     if (config.timing) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
@@ -350,11 +348,11 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.lossless == lossless_type::Huffman_Zstd) {
     if (config.timing)
       timer_each.start();
-    SIZE zstd_before_size = lossless_compressed_subarray.getShape(0);
+    SIZE zstd_before_size = lossless_compressed_subarray.shape(0);
     lossless_compressed_array =
         ZstdCompress(lossless_compressed_subarray, config.zstd_compress_level);
     lossless_compressed_subarray = SubArray(lossless_compressed_array);
-    SIZE zstd_after_size = lossless_compressed_subarray.getShape(0);
+    SIZE zstd_after_size = lossless_compressed_subarray.shape(0);
     if (config.timing) {
       timer_each.end();
       timer_each.print("Zstd Compress");
@@ -473,11 +471,10 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     if (config.reorder != 0) {
       if (config.timing)
         timer_each.start();
-      SubArray<1, SIZE, DeviceType> shape(hierarchy.shapes[0], true);
-      SubArray<1, SIZE, DeviceType> ranges(hierarchy.ranges, true);
       if (config.reorder == 1) {
-        LevelLinearizer2<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
-            shape, hierarchy.l_target, ranges, SubArray(quantized_array),
+        LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
+            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true), 
+            hierarchy.l_target, SubArray(quantized_array),
             SubArray<1, QUANTIZED_INT, DeviceType>(
                 {total_elems},
                 (QUANTIZED_INT *)unsigned_quantized_linearized_array.data()),
@@ -514,11 +511,10 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     if (config.reorder != 0) {
       if (config.timing)
         timer_each.start();
-      SubArray<1, SIZE, DeviceType> shape(hierarchy.shapes[0], true);
-      SubArray<1, SIZE, DeviceType> ranges(hierarchy.ranges, true);
       if (config.reorder == 1) {
-        LevelLinearizer2<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
-            shape, hierarchy.l_target, ranges, SubArray(quantized_array),
+        LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
+            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true), 
+            hierarchy.l_target, SubArray(quantized_array),
             SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
             0);
       } else {
