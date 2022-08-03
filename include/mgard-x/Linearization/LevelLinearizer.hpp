@@ -13,87 +13,41 @@ public:
   MGARDX_CONT
   LevelLinearizerFunctor() {}
   MGARDX_CONT
-  LevelLinearizerFunctor(SubArray<1, SIZE, DeviceType> ranges, SIZE l_target,
-                         SubArray<D, T, DeviceType> v,
-                         SubArray<1, T, DeviceType> *level_v)
-      : ranges(ranges), l_target(l_target), v(v), level_v(level_v) {
+  LevelLinearizerFunctor(SubArray<2, SIZE, DeviceType> level_ranges,
+                        SIZE l_target,
+                        SubArray<D, T, DeviceType> v,
+                        SubArray<1, T, DeviceType> *level_v)
+      : level_ranges(level_ranges), l_target(l_target), v(v), level_v(level_v) {
     Functor<DeviceType>();
   }
 
   MGARDX_EXEC void Operation1() {
-
-    debug = false;
-    if (FunctorBase<DeviceType>::GetBlockIdZ() == 0 &&
-        FunctorBase<DeviceType>::GetBlockIdY() == 0 &&
-        FunctorBase<DeviceType>::GetBlockIdX() == 0 &&
-        FunctorBase<DeviceType>::GetThreadIdX() == 0 &&
-        FunctorBase<DeviceType>::GetThreadIdY() == 0 &&
-        FunctorBase<DeviceType>::GetThreadIdZ() == 0)
-      debug = true;
-
-    SIZE threadId = (FunctorBase<DeviceType>::GetThreadIdZ() *
-                     FunctorBase<DeviceType>::GetBlockDimX() *
-                     FunctorBase<DeviceType>::GetBlockDimY()) +
-                    (FunctorBase<DeviceType>::GetThreadIdY() *
-                     FunctorBase<DeviceType>::GetBlockDimX()) +
-                    FunctorBase<DeviceType>::GetThreadIdX();
-
-    int8_t *sm_p = (int8_t *)FunctorBase<DeviceType>::GetSharedMemory();
-    ranges_sm = (SIZE *)sm_p;
-    sm_p += D * (l_target + 2) * sizeof(SIZE);
-
-    for (SIZE i = threadId; i < D * (l_target + 2);
-         i += FunctorBase<DeviceType>::GetBlockDimX() *
-              FunctorBase<DeviceType>::GetBlockDimY() *
-              FunctorBase<DeviceType>::GetBlockDimZ()) {
-      ranges_sm[i] = *ranges(i);
-    }
-
-    // __syncthreads();
-    // if (debug) {
-    //   printf("l_target = %u\n", l_target);
-    //   for (int d = 0; d < D; d++) {
-    //     printf("ranges_sm[d = %d]: ", d);
-    //     for (int l = 0; l < l_target + 2; l++) {
-    //       printf("%u ", ranges_sm[d * (l_target + 2) + l]);
-    //     }
-    //     printf("\n");
-    //   }
-    // }
-
-    // __syncthreads();
-  }
-
-  MGARDX_EXEC void Operation2() {
-
     SIZE idx[D];
 
-    SIZE firstD = div_roundup(ranges_sm[l_target + 1], F);
-    if (debug) {
-      // printf("ranges_sm[l_target + 1]: %u\n", ranges_sm[l_target + 1]);
-    }
+    SIZE firstD = div_roundup(v.shape(D-1), F);
+
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
-    idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
+    idx[D-1] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
     bidx /= firstD;
     if (D >= 2) {
-      idx[1] = FunctorBase<DeviceType>::GetBlockIdY() *
+      idx[D-2] = FunctorBase<DeviceType>::GetBlockIdY() *
                    FunctorBase<DeviceType>::GetBlockDimY() +
                FunctorBase<DeviceType>::GetThreadIdY();
     }
     if (D >= 3) {
-      idx[2] = FunctorBase<DeviceType>::GetBlockIdZ() *
+      idx[D-3] = FunctorBase<DeviceType>::GetBlockIdZ() *
                    FunctorBase<DeviceType>::GetBlockDimZ() +
                FunctorBase<DeviceType>::GetThreadIdZ();
     }
 
-    for (DIM d = 3; d < D; d++) {
-      idx[d] = bidx % ranges_sm[(l_target + 2) * d + l_target + 1];
-      bidx /= ranges_sm[(l_target + 2) * d + l_target + 1];
+    for (int d = D-4; d >= 0; d--) {
+      idx[d] = bidx % v.shape(d);
+      bidx /= v.shape(d);
     }
 
     bool in_range = true;
-    for (DIM d = 0; d < D; d++) {
-      if (idx[d] >= ranges_sm[(l_target + 2) * d + l_target + 1]) {
+    for (int d = D-1; d >= 0; d--) {
+      if (idx[d] >= v.shape(d)) {
         in_range = false;
       }
     }
@@ -101,23 +55,25 @@ public:
     if (in_range) {
       SIZE level = 0;
       long long unsigned int l_bit[D];
-      for (DIM d = 0; d < D; d++) {
+      for (int d = D-1; d >= 0; d--) {
         l_bit[d] = 0l;
         for (SIZE l = 0; l < l_target + 1; l++) {
-          long long unsigned int bit =
-              (idx[d] >= ranges_sm[(l_target + 2) * d + l]) &&
-              (idx[d] < ranges_sm[(l_target + 2) * d + l + 1]);
+          long long unsigned int bit = 
+                  (idx[d] >= *level_ranges(l,   d)) &&
+                  (idx[d] <  *level_ranges(l+1, d));
           l_bit[d] += bit << l;
         }
         level = Math<DeviceType>::Max((int)level,
                                       Math<DeviceType>::ffsll(l_bit[d]));
       }
 
-      // distinguish different regions
+      // Use curr_region to encode region id to distinguish different regions
+      // curr_region of current level is always >=1, 
+      // since curr_region=0 refers to the next coarser level
+      // most significant bit --> fastest dim
+      // least signigiciant bit --> slowest dim
       SIZE curr_region = 0;
-      for (DIM d = 0; d < D; d++) {
-        // SIZE bit = !(level == Math<DeviceType>::ffsll(l_bit[d]));
-        // curr_region += bit << (D - 1 - d);
+      for (int d = D-1; d >= 0; d--) {
         SIZE bit = level == Math<DeviceType>::ffsll(l_bit[d]);
         curr_region += bit << d;
       }
@@ -128,24 +84,20 @@ public:
       // region size
       SIZE coarse_level_size[D];
       SIZE diff_level_size[D];
-      SIZE curr_region_dims[D];
-      for (DIM d = 0; d < D; d++) {
-        coarse_level_size[d] = ranges_sm[(l_target + 2) * d + level];
-        diff_level_size[d] = ranges_sm[(l_target + 2) * d + level + 1] -
-                             ranges_sm[(l_target + 2) * d + level];
+      for (int d = D-1; d >= 0; d--) {
+        coarse_level_size[d] = *level_ranges(level, d);
+        diff_level_size[d] = *level_ranges(level+1, d) - *level_ranges(level, d);
       }
 
-      for (DIM d = 0; d < D; d++) {
-        // SIZE bit = (curr_region >> (D - 1 - d)) & 1u;
-        // curr_region_dims[d] = bit ? coarse_level_size[d] :
-        // diff_level_size[d];
-
+      SIZE curr_region_dims[D];
+      for (int d = D-1; d >= 0; d--) {
+        // Use region id to decode dimension of this region
         SIZE bit = (curr_region >> d) & 1u;
         curr_region_dims[d] = bit ? diff_level_size[d] : coarse_level_size[d];
       }
 
       SIZE curr_region_size = 1;
-      for (DIM d = 0; d < D; d++) {
+      for (int d = D-1; d >= 0; d--) {
         curr_region_size *= curr_region_dims[d];
       }
 
@@ -165,85 +117,105 @@ public:
 
       // region offset
       SIZE curr_region_offset = 0;
-      // for (SIZE prev_region = 0; prev_region < curr_region; prev_region++) {
+      // prev_region start with 1 since that is the region id of the first region of current level
       for (SIZE prev_region = 1; prev_region < curr_region; prev_region++) {
         SIZE prev_region_size = 1;
-        for (DIM d = 0; d < D; d++) {
-          // SIZE bit = (prev_region >> (D - 1 - d)) & 1u;
-          // prev_region_size *= bit ? coarse_level_size[d] :
-          // diff_level_size[d];
+        for (int d = D-1; d >= 0; d--) {
+          // Use region id to decode dimension of a previous region
           SIZE bit = (prev_region >> d) & 1u;
+          // Calculate the num of elements of the previous region
           prev_region_size *= bit ? diff_level_size[d] : coarse_level_size[d];
         }
         curr_region_offset += prev_region_size;
       }
 
-      // printf("(%u %u %u): level: %u, curr_region_offset: %u\n", idx[0],
-      // idx[1], idx[2],
-      //                                           level, curr_region_offset);
+      // printf("(%u %u): level: %u, curr_region: %u, curr_region_offset: %u\n",
+      // idx[0], idx[1], level, curr_region, curr_region_offset);
 
       // thread offset
       SIZE curr_region_thread_idx[D];
       SIZE curr_thread_offset = 0;
-      for (SIZE d = 0; d < D; d++) {
-        // SIZE bit = (curr_region >> D - 1 - d) & 1u;
-        // curr_region_thread_idx[d] = bit ? idx[d] : idx[d] -
-        // coarse_level_size[d];
+      SIZE coarse_level_offset = 0;
+      for (int d = D-1; d >= 0; d--) {
         SIZE bit = (curr_region >> d) & 1u;
         curr_region_thread_idx[d] =
             bit ? idx[d] - coarse_level_size[d] : idx[d];
       }
 
-      SIZE stride = 1;
-      for (SIZE d = 0; d < D; d++) {
-        curr_thread_offset += curr_region_thread_idx[d] * stride;
-        stride *= curr_region_dims[d];
+      SIZE global_data_idx[D];
+      for (int d = D-1; d >= 0; d--) {
+        SIZE bit = (curr_region >> d) & 1u;
+        if (level == 0) {
+          global_data_idx[d] = curr_region_thread_idx[d];
+        } else if (*level_ranges(level+1, d) % 2 == 0 &&
+                   curr_region_thread_idx[d] == *level_ranges(level+1, d) / 2) {
+          global_data_idx[d] = *level_ranges(level+1, d) - 1;
+        } else {
+          global_data_idx[d] = curr_region_thread_idx[d] * 2 + bit;
+        }
       }
 
-      SIZE level_offset = curr_region_offset + curr_thread_offset;
+      SIZE stride = 1;
+      for (int d = D-1; d >= 0; d--) {
+        curr_thread_offset += global_data_idx[d] * stride;
+        stride *= *level_ranges(level+1, d);
+      }
 
-      // printf("(%u %u %u): level: %u, region: %u, size: %u, region_offset: %u,
-      // thread_offset: %u, level_offset: %u, l_bit %llu %llu %llu\n",
-      //                                           idx[0], idx[1], idx[2],
+      stride = 1;
+      for (int d = D-1; d >= 0; d--) {
+        if (global_data_idx[d] % 2 != 0 &&
+            global_data_idx[d] != *level_ranges(level+1, d) - 1) {
+          coarse_level_offset = 0;
+        }
+        if (global_data_idx[d]) {
+          coarse_level_offset += ((global_data_idx[d] - 1) / 2 + 1) * stride;
+        }
+        stride *= (*level_ranges(level+1, d)) / 2 + 1;
+      }
+
+      if (level == 0)
+        coarse_level_offset = 0;
+
+      SIZE level_offset = curr_thread_offset - coarse_level_offset;
+
+      // if (level == 3)
+      // printf("(%u %u): level: %u, curr_region: %u, (%u %u)(%u %u), (%u %u)\
+      // curr_thread_offset: %u, coarse_level_offset: %u, level_offset: %u\n",
+      //                                           idx[0], idx[1],
       //                                           level, curr_region,
-      //                                           curr_region_size,
-      //                                           curr_region_offset,
+      //                                           curr_region_thread_idx[0],
+      //                                           curr_region_thread_idx[1],
+      //                                           global_data_idx[0],
+      //                                           global_data_idx[1],
+      //                                           ranges_sm[(l_target + 2) * 0
+      //                                           + level + 1],
+      //                                           ranges_sm[(l_target + 2) * 1
+      //                                           + level + 1],
       //                                           curr_thread_offset,
-      //                                           level_offset, l_bit[0],
-      //                                           l_bit[1], l_bit[2]);
+      //                                           coarse_level_offset,
+      //                                           level_offset);
 
       if (Direction == Interleave) {
         // printf("%u %u %u (%f) --> %u\n", idx[0], idx[1], idx[2], *v(idx),
         // level_offset);
-        *(level_v[level]((IDX)level_offset)) = *v(idx);
+        *(level_v[level]((IDX)level_offset)) = v[idx];
       } else if (Direction == Reposition) {
-        *v(idx) = *(level_v[level]((IDX)level_offset));
+        v[idx] = *(level_v[level]((IDX)level_offset));
       }
     }
   }
 
-  MGARDX_EXEC void Operation3() {}
-
-  MGARDX_EXEC void Operation4() {}
-
-  MGARDX_EXEC void Operation5() {}
 
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
-    size += D * (l_target + 2) * sizeof(SIZE);
-    // printf("sm_size: %llu\n", size);
     return size;
   }
 
 private:
-  SubArray<1, SIZE, DeviceType> ranges;
+  SubArray<2, SIZE, DeviceType> level_ranges;
   SIZE l_target;
   SubArray<D, T, DeviceType> v;
   SubArray<1, T, DeviceType> *level_v;
-
-  // thread private variables
-  bool debug;
-  SIZE *ranges_sm;
 };
 
 template <DIM D, typename T, OPTION Direction, typename DeviceType>
@@ -253,79 +225,101 @@ public:
   LevelLinearizer() : AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>>
-  GenTask(SubArray<1, SIZE, DeviceType> shape, SIZE l_target,
-          SubArray<1, SIZE, DeviceType> ranges, SubArray<D, T, DeviceType> v,
-          SubArray<1, T, DeviceType> *level_v, int queue_idx) {
+  MGARDX_CONT
+      Task<LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>>
+      GenTask(SubArray<2, SIZE, DeviceType> level_ranges,
+              SIZE l_target,
+              SubArray<D, T, DeviceType> v, SubArray<1, T, DeviceType> *level_v,
+              int queue_idx) {
     using FunctorType =
         LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;
-    FunctorType functor(ranges, l_target, v, level_v);
+    FunctorType functor(level_ranges, l_target, v, level_v);
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
-    int total_thread_z = shape.dataHost()[2];
-    int total_thread_y = shape.dataHost()[1];
-    int total_thread_x = shape.dataHost()[0];
-    // linearize other dimensions
+    int total_thread_z = v.shape(D-3);
+    int total_thread_y = v.shape(D-2);
+    int total_thread_x = v.shape(D-1);
     tbz = R;
     tby = C;
     tbx = F;
     gridz = ceil((float)total_thread_z / tbz);
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
-    // printf("LevelLinearizer config: %u %u %u %u %u %u\n", tbx, tby, tbz,
-    // gridx, gridy, gridz);
-    for (int d = 3; d < D; d++) {
-      gridx *= shape.dataHost()[d];
+    for (int d = D-4; d >= 0; d--) {
+      gridx *= v.shape(d);
     }
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx);
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "LevelLinearizer");
   }
 
   MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape, SIZE l_target,
-               SubArray<1, SIZE, DeviceType> ranges,
+  void Execute(SubArray<2, SIZE, DeviceType> level_ranges,
+               SIZE l_target,
                SubArray<D, T, DeviceType> v,
                SubArray<1, T, DeviceType> linearized_v, int queue_idx) {
-    const int R = LWQK_CONFIG[D - 1][0];
-    const int C = LWQK_CONFIG[D - 1][1];
-    const int F = LWQK_CONFIG[D - 1][2];
-    using FunctorType =
-        LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;
-    using TaskType = Task<FunctorType>;
+
     SubArray<1, T, DeviceType> *level_v =
         new SubArray<1, T, DeviceType>[l_target + 1];
-
-    // printf("ranges\n");
-    SIZE *ranges_h = ranges.dataHost();
+    SIZE *ranges_h = level_ranges.dataHost();
     SIZE last_level_size = 0;
     for (SIZE l = 0; l < l_target + 1; l++) {
       SIZE level_size = 1;
       for (DIM d = 0; d < D; d++) {
-        level_size *= ranges_h[d * (l_target + 2) + l + 1];
+        level_size *= ranges_h[(l+1)*D + d];
       }
       level_v[l] = SubArray<1, T, DeviceType>({level_size - last_level_size},
                                               linearized_v(last_level_size));
-      // printf("level_v[%u]: %u %u\n", l, level_size-last_level_size,
-      // last_level_size);
       last_level_size = level_size;
     }
-    // printf("ranges\n");
 
     SubArray<1, T, DeviceType> *d_level_v;
-
-    // printf("Malloc1D\n");
     MemoryManager<DeviceType>::Malloc1D(d_level_v, l_target + 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncDevice();
-
-    // printf("Copy1D\n");
     MemoryManager<DeviceType>::Copy1D(d_level_v, level_v, l_target + 1,
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncDevice();
 
-    TaskType task =
-        GenTask<R, C, F>(shape, l_target, ranges, v, d_level_v, queue_idx);
-    DeviceAdapter<TaskType, DeviceType> adapter;
-    adapter.Execute(task);
+    int range_l = std::min(6, (int)std::log2(v.getShape(0)) - 1);
+    int prec = TypeToIdx<T>();
+    int config = AutoTuner<DeviceType>::autoTuningTable.llk[prec][range_l];
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+    ExecutionReturn ret;
+
+#define LLK(CONFIG)                                                            \
+  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
+    const int R = LWPK_CONFIG[D - 1][CONFIG][0];                               \
+    const int C = LWPK_CONFIG[D - 1][CONFIG][1];                               \
+    const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
+    using FunctorType =                                                        \
+        LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;         \
+    using TaskType = Task<FunctorType>;                                        \
+    TaskType task =                                                            \
+        GenTask<R, C, F>(level_ranges, l_target, v, d_level_v, queue_idx);    \
+    DeviceAdapter<TaskType, DeviceType> adapter;                               \
+    ret = adapter.Execute(task);                                               \
+    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
+      if (ret.success && min_time > ret.execution_time) {                      \
+        min_time = ret.execution_time;                                         \
+        min_config = CONFIG;                                                   \
+      }                                                                        \
+    }                                                                          \
+  }
+    LLK(6) if (!ret.success) config--;
+    LLK(5) if (!ret.success) config--;
+    LLK(4) if (!ret.success) config--;
+    LLK(3) if (!ret.success) config--;
+    LLK(2) if (!ret.success) config--;
+    LLK(1) if (!ret.success) config--;
+    LLK(0) if (!ret.success) config--;
+    if (config < 0 && !ret.success) {
+      std::cout << log::log_err << "no suitable config for LevelLinearizer.\n";
+      exit(-1);
+    }
+#undef LLK
+    if (AutoTuner<DeviceType>::ProfileKernels) {
+      FillAutoTunerTable<DeviceType>("llk", prec, range_l, min_config);
+    }
   }
 };
 
