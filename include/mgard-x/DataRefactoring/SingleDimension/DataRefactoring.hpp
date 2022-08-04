@@ -18,7 +18,7 @@ static bool debug_print = false;
 
 template <DIM D, typename T, typename DeviceType>
 void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v, SIZE l_target,
+                      SubArray<D, T, DeviceType> &v,
                       int queue_idx) {
   std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());
   for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
@@ -96,7 +96,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
 
 template <DIM D, typename T, typename DeviceType>
 void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v, SIZE l_target,
+                      SubArray<D, T, DeviceType> &v,
                       int queue_idx) {
   std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());
   for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;

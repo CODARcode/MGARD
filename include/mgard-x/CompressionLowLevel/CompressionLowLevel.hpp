@@ -134,10 +134,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.timing)
     timer_each.start();
   if (config.decomposition == decomposition_type::MultiDim) {
-    decompose<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target(), 0);
+    decompose<D, T, DeviceType>(hierarchy, in_subarray, 0);
   } else if (config.decomposition == decomposition_type::SingleDim) {
-    decompose_single<D, T, DeviceType>(hierarchy, in_subarray,
-                                       hierarchy.l_target(), 0);
+    decompose_single<D, T, DeviceType>(hierarchy, in_subarray, 0);
   }
 
   if (config.timing) {
@@ -588,11 +587,9 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.timing)
     timer_each.start();
   if (config.decomposition == decomposition_type::MultiDim) {
-    recompose<D, T, DeviceType>(hierarchy, decompressed_subarray,
-                                hierarchy.l_target(), 0);
+    recompose<D, T, DeviceType>(hierarchy, decompressed_subarray, 0);
   } else if (config.decomposition == decomposition_type::SingleDim) {
-    recompose_single<D, T, DeviceType>(hierarchy, decompressed_subarray,
-                                       hierarchy.l_target(), 0);
+    recompose_single<D, T, DeviceType>(hierarchy, decompressed_subarray, 0);
   }
 
   if (config.timing) {
