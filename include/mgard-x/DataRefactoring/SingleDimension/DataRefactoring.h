@@ -49,12 +49,12 @@ void SubtractND(SubArray<D, T, DeviceType> dinput,
 
 template <DIM D, typename T, typename DeviceType>
 void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v,
+                      SubArray<D, T, DeviceType> &v, int stop_level, 
                       int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
 void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v,
+                      SubArray<D, T, DeviceType> &v, int stop_level, 
                       int queue_idx);
 
 } // namespace mgard_x
