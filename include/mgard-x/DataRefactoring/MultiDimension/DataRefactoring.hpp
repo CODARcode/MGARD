@@ -19,7 +19,13 @@ namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
 void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, int queue_idx) {
+               SubArray<D, T, DeviceType> &v, int stop_level, 
+               int queue_idx) {
+
+  if (stop_level < 0 || stop_level > hierarchy.l_target()) {
+    std::cout << log::log_err << "decompose: stop_level out of bound.\n";
+    exit(-1);
+  }
 
   std::string prefix = "decomp_";
   if (sizeof(T) == sizeof(double))
@@ -42,7 +48,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray<D, T, DeviceType> v_coarse = v;
 
   if constexpr (D <= 3) {
-    for (int l = hierarchy.l_target(); l > 0; l--) {
+    for (int l = hierarchy.l_target(); l > stop_level; l--) {
       if (multidim_refactoring_debug_print) {
         PrintSubarray("input v", v);
       }
@@ -74,7 +80,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
     Array<D, T, DeviceType> workspace2(workspace_shape);
     SubArray b(workspace2);
     SubArray<D, T, DeviceType> b_fine = b;
-    for (int l = hierarchy.l_target(); l > 0; l--) {
+    for (int l = hierarchy.l_target(); l > stop_level; l--) {
       if (multidim_refactoring_debug_print) { // debug
         PrintSubarray4D("before coeff", v);
       }
@@ -110,11 +116,14 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
 
 template <DIM D, typename T, typename DeviceType>
 void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, int queue_idx) {
+               SubArray<D, T, DeviceType> &v, int stop_level, int queue_idx) {
 
+  if (stop_level < 0 || stop_level > hierarchy.l_target()) {
+    std::cout << log::log_err << "recompose: stop_level out of bound.\n";
+    exit(-1);
+  }
   std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());
   for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
-  // std::reverse(workspace_shape.begin(), workspace_shape.end());
   Array<D, T, DeviceType> workspace(workspace_shape);
   // workspace.memset(0); // can cause large overhead in HIP
   SubArray w(workspace);
@@ -137,7 +146,7 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
     for (int d = 0; d < D; d++)
       prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target(), d)) + "_";
 
-    for (int l = 1; l <= hierarchy.l_target(); l++) {
+    for (int l = 1; l <= stop_level; l++) {
 
       v_coeff.resize(hierarchy.level_shape(l));
       w_correction.resize(hierarchy.level_shape(l));
@@ -162,7 +171,7 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
     Array<D, T, DeviceType> workspace2(workspace_shape);
     SubArray b(workspace2);
     SubArray<D, T, DeviceType> b_fine = b;
-    for (int l = 1; l <= hierarchy.l_target(); l++) {
+    for (int l = 1; l <= stop_level; l++) {
 
       if (multidim_refactoring_debug_print) { // debug
         PrintSubarray4D(format("before corection[%d]", l), v);
