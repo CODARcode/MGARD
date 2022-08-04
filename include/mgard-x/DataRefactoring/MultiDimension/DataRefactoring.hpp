@@ -19,7 +19,7 @@ namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
 void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, SIZE l_target, int queue_idx) {
+               SubArray<D, T, DeviceType> &v, int queue_idx) {
 
   std::string prefix = "decomp_";
   if (sizeof(T) == sizeof(double))
@@ -54,7 +54,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
       v_coeff.resize(hierarchy.level_shape(l));
       CalcCoefficients3D(hierarchy, w_fine, v_coeff, l, queue_idx);
 
-      w_correction.resize(hierarchy.level_shape(l_target-l));
+      w_correction.resize(hierarchy.level_shape(l));
       CalcCorrection3D(hierarchy, v_coeff, w_correction, l, queue_idx);
 
       w_correction.resize(hierarchy.level_shape(l-1));
@@ -94,7 +94,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
         PrintSubarray4D(format("after coeff[%d]", l), v_coeff);
       } // debug
 
-      w_correction.resize(hierarchy.level_shape(l_target));
+      w_correction.resize(hierarchy.level_shape(l));
       CalcCorrectionND(hierarchy, v_coeff, w_correction, l, queue_idx);
 
       w_correction.resize(hierarchy.level_shape(l-1));
@@ -110,7 +110,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
 
 template <DIM D, typename T, typename DeviceType>
 void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, SIZE l_target, int queue_idx) {
+               SubArray<D, T, DeviceType> &v, int queue_idx) {
 
   std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());
   for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;

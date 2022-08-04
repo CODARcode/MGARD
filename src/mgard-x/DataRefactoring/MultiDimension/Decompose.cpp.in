@@ -11,7 +11,7 @@ namespace mgard_x {
 
 template void decompose<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
-    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, SIZE l_target,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v,
     int queue_idx);
 
 // template void decompose_adaptive_resolution<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
