@@ -66,6 +66,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
  
   SIZE total_num_elems();
   SIZE linearized_width();
+  SIZE l_target();
   std::vector<SIZE> level_shape(SIZE level);
   SIZE level_shape(SIZE level, DIM dim);
   Array<1, SIZE, DeviceType> &level_shape_array(SIZE level);
@@ -81,9 +82,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   ~Hierarchy();
 
   /* Refactoring env */
-  // Target level: number of times of decomposition
-  // Total number of levels = l_target+1
-  SIZE l_target;
+  
   // For domain decomposition
   bool domain_decomposed = false;
   DIM domain_decomposed_dim;
@@ -98,6 +97,9 @@ private:
   SIZE _linearized_width;
   // For out-of-bound returns
   Array<1, T, DeviceType> dummy_array;
+  // Target level: number of times of decomposition
+  // Total number of levels = l_target+1
+  SIZE _l_target;
   // Shape of grid of each level
   std::vector<std::vector<SIZE>> _level_shape;
   std::vector<Array<1, SIZE, DeviceType>> _level_shape_array;
