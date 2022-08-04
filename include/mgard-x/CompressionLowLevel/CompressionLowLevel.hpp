@@ -63,7 +63,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
   Timer timer_total, timer_each;
   for (int d = D-1; d >= 0; d--) {
-    if (hierarchy.level_shape(hierarchy.l_target, d) != in_array.shape(d)) {
+    if (hierarchy.level_shape(hierarchy.l_target(), d) != in_array.shape(d)) {
       std::cout << log::log_err
                 << "The shape of input array does not match the shape "
                    "initilized in hierarchy!\n";
@@ -134,10 +134,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.timing)
     timer_each.start();
   if (config.decomposition == decomposition_type::MultiDim) {
-    decompose<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target, 0);
+    decompose<D, T, DeviceType>(hierarchy, in_subarray, hierarchy.l_target(), 0);
   } else if (config.decomposition == decomposition_type::SingleDim) {
     decompose_single<D, T, DeviceType>(hierarchy, in_subarray,
-                                       hierarchy.l_target, 0);
+                                       hierarchy.l_target(), 0);
   }
 
   if (config.timing) {
@@ -154,7 +154,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.timing)
     timer_each.start();
 
-  Array<D, QUANTIZED_INT, DeviceType> quanzited_array(hierarchy.level_shape(hierarchy.l_target),
+  Array<D, QUANTIZED_INT, DeviceType> quanzited_array(hierarchy.level_shape(hierarchy.l_target()),
                                                       false, false);
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_subarray(quanzited_array);
 
@@ -179,13 +179,13 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 #endif
 
-  T *quantizers = new T[hierarchy.l_target + 1];
+  T *quantizers = new T[hierarchy.l_target() + 1];
   // size_t dof = 1;
   // for (int d = 0; d < D; d++)
   //   dof *= hierarchy.dofs[d][0];
-  calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm, hierarchy.l_target,
+  calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm, hierarchy.l_target(),
                         config.decomposition, true);
-  Array<1, T, DeviceType> quantizers_array({hierarchy.l_target + 1});
+  Array<1, T, DeviceType> quantizers_array({hierarchy.l_target() + 1});
   quantizers_array.load(quantizers);
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
   delete[] quantizers;
@@ -197,7 +197,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   LevelwiseLinearQuantizerND<D, T, MGARDX_QUANTIZE, DeviceType>().Execute(
       SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges()),
-      hierarchy.l_target, quantizers_subarray,
+      hierarchy.l_target(), quantizers_subarray,
       SubArray<3, T, DeviceType>(hierarchy.level_volumes()),
       s, config.huff_dict_size, SubArray<D, T, DeviceType>(in_array),
       quantized_subarray, prep_huffman,
@@ -239,7 +239,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     if (config.reorder == 1) {
       LevelLinearizer<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
           SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true), 
-          hierarchy.l_target, quantized_subarray,
+          hierarchy.l_target(), quantized_subarray,
           SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
           0);
     } else {
@@ -448,7 +448,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     // lossless_compressed_subarray);
   }
 
-  Array<D, QUANTIZED_INT, DeviceType> quantized_array(hierarchy.level_shape(hierarchy.l_target),
+  Array<D, QUANTIZED_INT, DeviceType> quantized_array(hierarchy.level_shape(hierarchy.l_target()),
                                                       false, false);
 
   // PrintSubarray("lossless_compressed_subarray",
@@ -470,7 +470,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       if (config.reorder == 1) {
         LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
             SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true), 
-            hierarchy.l_target, SubArray(quantized_array),
+            hierarchy.l_target(), SubArray(quantized_array),
             SubArray<1, QUANTIZED_INT, DeviceType>(
                 {total_elems},
                 (QUANTIZED_INT *)unsigned_quantized_linearized_array.data()),
@@ -510,7 +510,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       if (config.reorder == 1) {
         LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
             SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true), 
-            hierarchy.l_target, SubArray(quantized_array),
+            hierarchy.l_target(), SubArray(quantized_array),
             SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
             0);
       } else {
@@ -549,15 +549,15 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   // for (int i = 0; i < D; i++)
   //   decompressed_shape[i] = hierarchy.shape[i];
   // std::reverse(decompressed_shape.begin(), decompressed_shape.end());
-  Array<D, T, DeviceType> decompressed_data(hierarchy.level_shape(hierarchy.l_target));
+  Array<D, T, DeviceType> decompressed_data(hierarchy.level_shape(hierarchy.l_target()));
   SubArray<D, T, DeviceType> decompressed_subarray(decompressed_data);
 
   bool prep_huffman = config.lossless != lossless_type::CPU_Lossless;
 
-  T *quantizers = new T[hierarchy.l_target + 1];
-  calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm, hierarchy.l_target,
+  T *quantizers = new T[hierarchy.l_target() + 1];
+  calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm, hierarchy.l_target(),
                         config.decomposition, false);
-  Array<1, T, DeviceType> quantizers_array({hierarchy.l_target + 1});
+  Array<1, T, DeviceType> quantizers_array({hierarchy.l_target() + 1});
   quantizers_array.load(quantizers);
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
   delete[] quantizers;
@@ -566,7 +566,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   outlier_count_array.load(&outlier_count);
   LevelwiseLinearQuantizerND<D, T, MGARDX_DEQUANTIZE, DeviceType>().Execute(
       SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges()),
-      hierarchy.l_target, quantizers_subarray,
+      hierarchy.l_target(), quantizers_subarray,
       SubArray<3, T, DeviceType>(hierarchy.level_volumes()),
       s, config.huff_dict_size, decompressed_subarray,
       SubArray<D, QUANTIZED_INT, DeviceType>(quantized_array), prep_huffman,
@@ -589,10 +589,10 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     timer_each.start();
   if (config.decomposition == decomposition_type::MultiDim) {
     recompose<D, T, DeviceType>(hierarchy, decompressed_subarray,
-                                hierarchy.l_target, 0);
+                                hierarchy.l_target(), 0);
   } else if (config.decomposition == decomposition_type::SingleDim) {
     recompose_single<D, T, DeviceType>(hierarchy, decompressed_subarray,
-                                       hierarchy.l_target, 0);
+                                       hierarchy.l_target(), 0);
   }
 
   if (config.timing) {

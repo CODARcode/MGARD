@@ -31,7 +31,7 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target, d)) + "_";
+    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target(), d)) + "_";
   // printf("interpolate 1-3D\n");
 
   SubArray<D, T, DeviceType> dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf,

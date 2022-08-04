@@ -27,9 +27,9 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target, d)) + "_";
+    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target(), d)) + "_";
 
-  std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target);
+  std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());
   for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
   Array<D, T, DeviceType> workspace(workspace_shape);
   // workspace.memset(0); can cause large overhead in HIP
@@ -42,7 +42,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray<D, T, DeviceType> v_coarse = v;
 
   if constexpr (D <= 3) {
-    for (int l = hierarchy.l_target; l > 0; l--) {
+    for (int l = hierarchy.l_target(); l > 0; l--) {
       if (multidim_refactoring_debug_print) {
         PrintSubarray("input v", v);
       }
@@ -74,7 +74,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
     Array<D, T, DeviceType> workspace2(workspace_shape);
     SubArray b(workspace2);
     SubArray<D, T, DeviceType> b_fine = b;
-    for (int l = hierarchy.l_target; l > 0; l--) {
+    for (int l = hierarchy.l_target(); l > 0; l--) {
       if (multidim_refactoring_debug_print) { // debug
         PrintSubarray4D("before coeff", v);
       }
@@ -112,7 +112,7 @@ template <DIM D, typename T, typename DeviceType>
 void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
                SubArray<D, T, DeviceType> &v, SIZE l_target, int queue_idx) {
 
-  std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target);
+  std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());
   for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
   // std::reverse(workspace_shape.begin(), workspace_shape.end());
   Array<D, T, DeviceType> workspace(workspace_shape);
@@ -135,9 +135,9 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
     if (sizeof(T) == sizeof(float))
       prefix += "f_";
     for (int d = 0; d < D; d++)
-      prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target, d)) + "_";
+      prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target(), d)) + "_";
 
-    for (int l = 1; l <= hierarchy.l_target; l++) {
+    for (int l = 1; l <= hierarchy.l_target(); l++) {
 
       v_coeff.resize(hierarchy.level_shape(l));
       w_correction.resize(hierarchy.level_shape(l));
@@ -162,7 +162,7 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
     Array<D, T, DeviceType> workspace2(workspace_shape);
     SubArray b(workspace2);
     SubArray<D, T, DeviceType> b_fine = b;
-    for (int l = 1; l <= hierarchy.l_target; l++) {
+    for (int l = 1; l <= hierarchy.l_target(); l++) {
 
       if (multidim_refactoring_debug_print) { // debug
         PrintSubarray4D(format("before corection[%d]", l), v);
