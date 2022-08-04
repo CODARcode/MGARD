@@ -32,32 +32,32 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
   for (int d = 0; d < D; d++)
     prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target, d)) + "_";
 
-  SIZE f = hierarchy.level_shape(hierarchy.l_target-l, D-1);
-  SIZE c = hierarchy.level_shape(hierarchy.l_target-l, D-2);
-  SIZE r = hierarchy.level_shape(hierarchy.l_target-l, D-3);
-  SIZE ff = hierarchy.level_shape(hierarchy.l_target-l-1, D-1);
-  SIZE cc = hierarchy.level_shape(hierarchy.l_target-l-1, D-2);
-  SIZE rr = hierarchy.level_shape(hierarchy.l_target-l-1, D-3);
+  SIZE f = hierarchy.level_shape(l, D-1);
+  SIZE c = hierarchy.level_shape(l, D-2);
+  SIZE r = hierarchy.level_shape(l, D-3);
+  SIZE ff = hierarchy.level_shape(l-1, D-1);
+  SIZE cc = hierarchy.level_shape(l-1, D-2);
+  SIZE rr = hierarchy.level_shape(l-1, D-3);
 
-  SubArray dist_f(hierarchy.dist(hierarchy.l_target-l, D-1));
-  SubArray dist_c(hierarchy.dist(hierarchy.l_target-l, D-2));
-  SubArray dist_r(hierarchy.dist(hierarchy.l_target-l, D-3));
+  SubArray dist_f(hierarchy.dist(l, D-1));
+  SubArray dist_c(hierarchy.dist(l, D-2));
+  SubArray dist_r(hierarchy.dist(l, D-3));
 
-  SubArray dist_ff(hierarchy.dist(hierarchy.l_target-l-1, D-1));
-  SubArray dist_cc(hierarchy.dist(hierarchy.l_target-l-1, D-2));
-  SubArray dist_rr(hierarchy.dist(hierarchy.l_target-l-1, D-3));
+  SubArray dist_ff(hierarchy.dist(l-1, D-1));
+  SubArray dist_cc(hierarchy.dist(l-1, D-2));
+  SubArray dist_rr(hierarchy.dist(l-1, D-3));
 
-  SubArray ratio_f(hierarchy.ratio(hierarchy.l_target-l, D-1));
-  SubArray ratio_c(hierarchy.ratio(hierarchy.l_target-l, D-2));
-  SubArray ratio_r(hierarchy.ratio(hierarchy.l_target-l, D-3));
+  SubArray ratio_f(hierarchy.ratio(l, D-1));
+  SubArray ratio_c(hierarchy.ratio(l, D-2));
+  SubArray ratio_r(hierarchy.ratio(l, D-3));
 
-  SubArray am_ff(hierarchy.am(hierarchy.l_target-l-1, D-1));
-  SubArray am_cc(hierarchy.am(hierarchy.l_target-l-1, D-2));
-  SubArray am_rr(hierarchy.am(hierarchy.l_target-l-1, D-3));
+  SubArray am_ff(hierarchy.am(l-1, D-1));
+  SubArray am_cc(hierarchy.am(l-1, D-2));
+  SubArray am_rr(hierarchy.am(l-1, D-3));
 
-  SubArray bm_ff(hierarchy.bm(hierarchy.l_target-l-1, D-1));
-  SubArray bm_cc(hierarchy.bm(hierarchy.l_target-l-1, D-2));
-  SubArray bm_rr(hierarchy.bm(hierarchy.l_target-l-1, D-3));
+  SubArray bm_ff(hierarchy.bm(l-1, D-1));
+  SubArray bm_cc(hierarchy.bm(l-1, D-2));
+  SubArray bm_rr(hierarchy.bm(l-1, D-3));
 
   SubArray<D, T, DeviceType> dw_in1, dw_in2, dw_out;
 
