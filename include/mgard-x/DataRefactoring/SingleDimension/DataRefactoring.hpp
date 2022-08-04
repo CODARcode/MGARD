@@ -18,8 +18,14 @@ static bool debug_print = false;
 
 template <DIM D, typename T, typename DeviceType>
 void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v,
+                      SubArray<D, T, DeviceType> &v, int stop_level,
                       int queue_idx) {
+
+  if (stop_level < 0) {
+    std::cout << log::log_err << "decompose: stop_level out of bound.\n";
+    exit(-1);
+  }
+
   std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());
   for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
   Array<D, T, DeviceType> workspace(workspace_shape);
@@ -29,7 +35,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
     PrintSubarray("Input", v);
   }
 
-  for (int l = hierarchy.l_target(); l > 0; l--) {
+  for (int l = hierarchy.l_target(); l > stop_level; l--) {
     for (int curr_dim = D-1; curr_dim >= 0; curr_dim--) {
       if (singledim_refactoring_debug_print) {
         std::cout << "l: " << l << " curr_dim: " << curr_dim << "\n";
@@ -96,8 +102,14 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
 
 template <DIM D, typename T, typename DeviceType>
 void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v,
+                      SubArray<D, T, DeviceType> &v, int stop_level, 
                       int queue_idx) {
+
+  if (stop_level < 0 || stop_level > hierarchy.l_target()) {
+    std::cout << log::log_err << "recompose: stop_level out of bound.\n";
+    exit(-1);
+  }
+
   std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());
   for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
   Array<D, T, DeviceType> workspace(workspace_shape);
@@ -107,7 +119,7 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
     PrintSubarray("Input", v);
   }
 
-  for (int l = 1; l <= hierarchy.l_target(); l++) {
+  for (int l = 1; l <= stop_level; l++) {
     for (int curr_dim = 0; curr_dim < D; curr_dim++) {
       if (singledim_refactoring_debug_print) {
         std::cout << "l: " << l << " curr_dim: " << curr_dim << "\n";
