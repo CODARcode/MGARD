@@ -63,10 +63,9 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Hierarchy(std::vector<SIZE> shape, DIM domain_decomposed_dim,
             SIZE domain_decomposed_size, std::vector<T *> coords);
   Hierarchy(const Hierarchy &hierarchy);
-  // Hierarchy(std::vector<SIZE> shape, Config config, int uniform_coord_mode =
-  // 0); Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords, Config
-  // config);
-
+ 
+  SIZE total_num_elems();
+  SIZE linearized_width();
   std::vector<SIZE> level_shape(SIZE level);
   SIZE level_shape(SIZE level, DIM dim);
   Array<1, SIZE, DeviceType> &level_shape_array(SIZE level);
@@ -82,91 +81,47 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   ~Hierarchy();
 
   /* Refactoring env */
-  // enum device_type dev_type;
-  // int dev_id;
-  /// Target number of levels in the hierarchy.
+  // Target level: number of times of decomposition
+  // Total number of levels = l_target+1
   SIZE l_target;
-  /// A padded version of the number of dimensions. This will always be as big
-  /// as `D` or larger. It will also always be 3 or larger. If `D` is even,
-  /// one is added to make `D_padded` odd.
-  DIM D_padded;
-  /// The size of each dimension. The length of this array is `D`.
-  std::vector<SIZE> shape_org;
-  /// The size of each dimension in reverse (k,j,i) order. The length of this
-  /// array is `D`. This is the same as `shape_org` except in reverse order.
-  std::vector<SIZE> shape;
-  /// The degrees of freedom (i.e., number of values) along each dimension for
-  /// each level. the length of the outer vector is `D`, and the length of
-  /// each inner vector is `l_target`.
-  std::vector<std::vector<SIZE>> dofs;
-  /// For each level, the shape of the data at that point in the hierarchy.
-  /// The outer vector is of size `l_target + 1`. Each inner array is of
-  /// size `D_padded`.
-  std::vector<Array<1, SIZE, DeviceType>> shapes;
-  /// Same as `shapes` but used on the host instead of the device.
-  std::vector<std::vector<SIZE>> shapes2;
-  /// The degrees of freedom along each dimension for each level. This array
-  /// has the same information as `dofs` with the following exceptions:
-  /// 1. The 2D data is flattened into a single array so that it can be
-  ///    accessed on the device.
-  /// 2. The level order is reversed.
-  /// 3. The levels are padded with a 0 value at the beginning.
-  std::vector<std::vector<SIZE>> shapes_vec;
-  Array<1, SIZE, DeviceType> ranges;
-  /// An array of coordinates along each dimension. The vector is of size
-  /// `D`. Each array should be the size of the associated dimension.
-  std::vector<T *> coords_h; // do not copy this
-  // std::vector<T *> coords_d;
-  /// An array of coordinates along each dimension. The vector is of size
-  /// `D`. Each array should be the size of the associated dimension.
-  std::vector<Array<1, T, DeviceType>> coords;
-
-  DIM D_pad;
-  std::vector<SIZE> shape_org_padded;
-
-  std::vector<std::vector<Array<1, T, DeviceType>>> dist_array;
-  std::vector<std::vector<Array<1, T, DeviceType>>> ratio_array;
-
-  Array<2, T, DeviceType> volumes_array;
-
-  std::vector<std::vector<Array<1, T, DeviceType>>> am_array;
-  std::vector<std::vector<Array<1, T, DeviceType>>> bm_array;
-
-  LENGTH linearized_depth;
-  LENGTH padded_linearized_depth;
-
-  enum data_structure_type dstype;
-
-  DIM processed_n[D];
-  DIM unprocessed_n[D];
-
-  Array<1, DIM, DeviceType> processed_dims[D];
-  Array<1, DIM, DeviceType> unprocessed_dims[D];
-
+  // For domain decomposition
   bool domain_decomposed = false;
   DIM domain_decomposed_dim;
   SIZE domain_decomposed_size;
   std::vector<Hierarchy<D, T, DeviceType>> hierarchy_chunck;
 
 private:
+  // Shape of the finest grid
+  std::vector<SIZE> shape;
+  // Pre-computed varaibles 
+  SIZE _total_num_elems;
+  SIZE _linearized_width;
   // For out-of-bound returns
   Array<1, T, DeviceType> dummy_array;
+  // Shape of grid of each level
   std::vector<std::vector<SIZE>> _level_shape;
   std::vector<Array<1, SIZE, DeviceType>> _level_shape_array;
-  std::vector<T *> _coords_h_org;
+  // Coordinates
   std::vector<Array<1, T, DeviceType>> _coords_org;
+  // Pre-computed cell distance array 
   std::vector<std::vector<Array<1, T, DeviceType>>> _dist_array;
+  // Pre-computed neighbor cell distance ratio array 
   std::vector<std::vector<Array<1, T, DeviceType>>> _ratio_array;
+  // Pre-computed coefficients for solving tri-diag system 
   std::vector<std::vector<Array<1, T, DeviceType>>> _am_array;
   std::vector<std::vector<Array<1, T, DeviceType>>> _bm_array;
+  // Pre-computed markers for processing high dimensional data
   DIM _processed_n[D];
   DIM _unprocessed_n[D];
   Array<1, DIM, DeviceType> _processed_dims[D];
   Array<1, DIM, DeviceType> _unprocessed_dims[D];
+  // Pre-computed range array for fast quantization
   Array<2, SIZE, DeviceType> _level_ranges;
+  // Pre-computed volume array for fast quantization
   Array<3, T, DeviceType> _level_volumes;
+  // Indicating if it is uniform or non-uniform grid
+  enum data_structure_type dstype;
 
-  void padding_dimensions(std::vector<SIZE> &shape, std::vector<T *> &coords);
   std::vector<T *> create_uniform_coords(std::vector<SIZE> shape, int mode);
   void coord_to_dist(SIZE dof, T *coord, T *dist);
   void dist_to_ratio(SIZE dof, T *dist, T *ratio);

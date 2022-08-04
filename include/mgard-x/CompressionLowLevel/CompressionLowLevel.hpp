@@ -75,8 +75,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 
   SubArray in_subarray(in_array);
-  SIZE total_elems =
-      hierarchy.dofs[0][0] * hierarchy.dofs[1][0] * hierarchy.linearized_depth;
+  SIZE total_elems = hierarchy.total_num_elems();
 
   if (config.timing)
     timer_total.start();
@@ -94,14 +93,12 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       temp_subarray =
           SubArray<1, T, DeviceType>({total_elems}, in_array.data());
     } else { // need to linearized
-      temp_array = Array<1, T, DeviceType>(
-          {(SIZE)(hierarchy.dofs[0][0] * hierarchy.dofs[1][0] *
-                  hierarchy.linearized_depth)},
+      temp_array = Array<1, T, DeviceType>({(SIZE)total_elems},
           false);
       MemoryManager<DeviceType>().CopyND(
-          temp_array.data(), hierarchy.dofs[0][0], in_array.data(),
-          in_array.ld(D-1), hierarchy.dofs[0][0],
-          (SIZE)(hierarchy.dofs[1][0] * hierarchy.linearized_depth), 0);
+          temp_array.data(), in_array.shape(D-1), in_array.data(),
+          in_array.ld(D-1), in_array.shape(D-1),
+          (SIZE)hierarchy.linearized_width(), 0);
       temp_subarray = SubArray<1, T, DeviceType>(temp_array);
     }
     DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -157,7 +154,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.timing)
     timer_each.start();
 
-  Array<D, QUANTIZED_INT, DeviceType> quanzited_array(hierarchy.shape_org,
+  Array<D, QUANTIZED_INT, DeviceType> quanzited_array(hierarchy.level_shape(hierarchy.l_target),
                                                       false, false);
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_subarray(quanzited_array);
 
@@ -183,10 +180,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 #endif
 
   T *quantizers = new T[hierarchy.l_target + 1];
-  size_t dof = 1;
-  for (int d = 0; d < D; d++)
-    dof *= hierarchy.dofs[d][0];
-  calc_quantizers<D, T>(dof, quantizers, type, tol, s, norm, hierarchy.l_target,
+  // size_t dof = 1;
+  // for (int d = 0; d < D; d++)
+  //   dof *= hierarchy.dofs[d][0];
+  calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm, hierarchy.l_target,
                         config.decomposition, true);
   Array<1, T, DeviceType> quantizers_array({hierarchy.l_target + 1});
   quantizers_array.load(quantizers);
@@ -391,8 +388,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
   Timer timer_total, timer_each;
 
-  SIZE total_elems =
-      hierarchy.dofs[0][0] * hierarchy.dofs[1][0] * hierarchy.linearized_depth;
+  SIZE total_elems = hierarchy.total_num_elems();
 
   SubArray compressed_subarray(compressed_array);
 
@@ -452,7 +448,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     // lossless_compressed_subarray);
   }
 
-  Array<D, QUANTIZED_INT, DeviceType> quantized_array(hierarchy.shape_org,
+  Array<D, QUANTIZED_INT, DeviceType> quantized_array(hierarchy.level_shape(hierarchy.l_target),
                                                       false, false);
 
   // PrintSubarray("lossless_compressed_subarray",
@@ -549,20 +545,17 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (config.timing)
     timer_each.start();
 
-  std::vector<SIZE> decompressed_shape(D);
-  for (int i = 0; i < D; i++)
-    decompressed_shape[i] = hierarchy.shape[i];
-  std::reverse(decompressed_shape.begin(), decompressed_shape.end());
-  Array<D, T, DeviceType> decompressed_data(decompressed_shape);
+  // std::vector<SIZE> decompressed_shape(D);
+  // for (int i = 0; i < D; i++)
+  //   decompressed_shape[i] = hierarchy.shape[i];
+  // std::reverse(decompressed_shape.begin(), decompressed_shape.end());
+  Array<D, T, DeviceType> decompressed_data(hierarchy.level_shape(hierarchy.l_target));
   SubArray<D, T, DeviceType> decompressed_subarray(decompressed_data);
 
   bool prep_huffman = config.lossless != lossless_type::CPU_Lossless;
 
   T *quantizers = new T[hierarchy.l_target + 1];
-  size_t dof = 1;
-  for (int d = 0; d < D; d++)
-    dof *= hierarchy.dofs[d][0];
-  calc_quantizers<D, T>(dof, quantizers, type, tol, s, norm, hierarchy.l_target,
+  calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm, hierarchy.l_target,
                         config.decomposition, false);
   Array<1, T, DeviceType> quantizers_array({hierarchy.l_target + 1});
   quantizers_array.load(quantizers);

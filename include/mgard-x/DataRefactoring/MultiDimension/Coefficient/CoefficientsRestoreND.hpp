@@ -31,7 +31,7 @@ void CoefficientsRestoreND(Hierarchy<D, T, DeviceType> &hierarchy,
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(hierarchy.shape[d]) + "_";
+    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target, d)) + "_";
 
   SubArray<D, T, DeviceType> dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf,
       dcoeff_rf, dcoeff_rc, dcoeff_rcf;
