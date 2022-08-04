@@ -30,7 +30,7 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target, d)) + "_";
+    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target(), d)) + "_";
 
   SIZE f = hierarchy.level_shape(l, D-1);
   SIZE c = hierarchy.level_shape(l, D-2);
