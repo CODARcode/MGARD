@@ -27,8 +27,8 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
                     SIZE l, int queue_idx) {
 
   SingleDimensionMassTrans<D, T, DeviceType>().Execute(
-      curr_dim, SubArray(hierarchy.dist(hierarchy.l_target-l, curr_dim)),
-      SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dim)), coeff, correction,
+      curr_dim, SubArray(hierarchy.dist(l, curr_dim)),
+      SubArray(hierarchy.ratio(l, curr_dim)), coeff, correction,
       queue_idx);
 
   if (singledim_refactoring_debug_print) {
@@ -41,8 +41,8 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     Ipk1Reo<D, T, DeviceType>().Execute(
         curr_dim_r, curr_dim_c, curr_dim_f,
-        SubArray(hierarchy.am(hierarchy.l_target-l-1, D-1)),
-        SubArray(hierarchy.bm(hierarchy.l_target-l-1, D-1)),
+        SubArray(hierarchy.am(l-1, D-1)),
+        SubArray(hierarchy.bm(l-1, D-1)),
         correction, queue_idx);
     if (singledim_refactoring_debug_print) {
       PrintSubarray("Ipk1Reo", correction);
@@ -53,8 +53,8 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     Ipk2Reo<D, T, DeviceType>().Execute(
         curr_dim_r, curr_dim_c, curr_dim_f,
-        SubArray(hierarchy.am(hierarchy.l_target-l-1, D-2)),
-        SubArray(hierarchy.bm(hierarchy.l_target-l-1, D-2)),
+        SubArray(hierarchy.am(l-1, D-2)),
+        SubArray(hierarchy.bm(l-1, D-2)),
         correction, queue_idx);
     if (singledim_refactoring_debug_print) {
       PrintSubarray("Ipk2Reo", correction);
@@ -64,8 +64,8 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     Ipk3Reo<D, T, DeviceType>().Execute(
         curr_dim_r, curr_dim_c, curr_dim_f,
-        SubArray(hierarchy.am(hierarchy.l_target-l-1, D-3)),
-        SubArray(hierarchy.bm(hierarchy.l_target-l-1, D-3)),
+        SubArray(hierarchy.am(l-1, D-3)),
+        SubArray(hierarchy.bm(l-1, D-3)),
         correction, queue_idx);
     if (singledim_refactoring_debug_print) {
       PrintSubarray("Ipk3Reo", correction);
@@ -75,8 +75,8 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     Ipk3Reo<D, T, DeviceType>().Execute(
         curr_dim_r, curr_dim_c, curr_dim_f,
-        SubArray(hierarchy.am(hierarchy.l_target-l-1, curr_dim)),
-        SubArray(hierarchy.bm(hierarchy.l_target-l-1, curr_dim)),
+        SubArray(hierarchy.am(l-1, curr_dim)),
+        SubArray(hierarchy.bm(l-1, curr_dim)),
         correction, queue_idx);
     if (singledim_refactoring_debug_print) {
       PrintSubarray("Ipk3Reo", correction);

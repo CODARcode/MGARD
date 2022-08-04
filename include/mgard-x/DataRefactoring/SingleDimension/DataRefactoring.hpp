@@ -29,7 +29,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
     PrintSubarray("Input", v);
   }
 
-  for (int l = 0; l < l_target; ++l) {
+  for (int l = hierarchy.l_target; l > 0; l--) {
     for (int curr_dim = D-1; curr_dim >= 0; curr_dim--) {
       if (singledim_refactoring_debug_print) {
         std::cout << "l: " << l << " curr_dim: " << curr_dim << "\n";
@@ -39,16 +39,16 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       std::vector<SIZE> coeff_shape(D);
       for (int d = D-1; d >= 0; d--) {
         if (d > curr_dim) {
-          fine_shape[d] = hierarchy.level_shape(hierarchy.l_target-l-1, d);
+          fine_shape[d] = hierarchy.level_shape(l-1, d);
         } else {
-          fine_shape[d] = hierarchy.level_shape(hierarchy.l_target-l, d);
+          fine_shape[d] = hierarchy.level_shape(l, d);
         }
       }
 
       for (int d = D-1; d >= 0; d--) {
         if (d == curr_dim) {
-          coarse_shape[d] = hierarchy.level_shape(hierarchy.l_target-l-1, d);
-          coeff_shape[d] = fine_shape[d] - hierarchy.level_shape(hierarchy.l_target-l-1, d);
+          coarse_shape[d] = hierarchy.level_shape(l-1, d);
+          coeff_shape[d] = fine_shape[d] - hierarchy.level_shape(l-1, d);
         } else {
           coarse_shape[d] = fine_shape[d];
           coeff_shape[d] = fine_shape[d];
@@ -62,7 +62,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<D, T, DeviceType> coarse = v;
       coarse.resize(coarse_shape);
       SubArray<D, T, DeviceType> coeff = v;
-      coeff.offset(curr_dim, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim));
+      coeff.offset(curr_dim, hierarchy.level_shape(l-1, curr_dim));
       coeff.resize(coeff_shape);
       SubArray<D, T, DeviceType> correction = w;
       correction.resize(coarse_shape);
@@ -73,7 +73,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
         PrintSubarray("COPY", w_fine);
       }
 
-      CalcCoefficients(curr_dim, SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dim)),
+      CalcCoefficients(curr_dim, SubArray(hierarchy.ratio(l, curr_dim)),
                        w_fine, coarse, coeff, queue_idx);
 
       if (singledim_refactoring_debug_print) {
@@ -107,7 +107,7 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
     PrintSubarray("Input", v);
   }
 
-  for (int l = l_target - 1; l >= 0; --l) {
+  for (int l = 1; l <= hierarchy.l_target; l++) {
     for (int curr_dim = 0; curr_dim < D; curr_dim++) {
       if (singledim_refactoring_debug_print) {
         std::cout << "l: " << l << " curr_dim: " << curr_dim << "\n";
@@ -117,16 +117,16 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       std::vector<SIZE> coeff_shape(D);
       for (int d = D-1; d >= 0; d--) {
         if (d > curr_dim) {
-          fine_shape[d] = hierarchy.level_shape(hierarchy.l_target-l-1, d);
+          fine_shape[d] = hierarchy.level_shape(l-1, d);
         } else {
-          fine_shape[d] = hierarchy.level_shape(hierarchy.l_target-l, d);
+          fine_shape[d] = hierarchy.level_shape(l, d);
         }
       }
 
       for (int d = D-1; d >= 0; d--) {
         if (d == curr_dim) {
-          coarse_shape[d] = hierarchy.level_shape(hierarchy.l_target-l-1, d);
-          coeff_shape[d] = fine_shape[d] - hierarchy.level_shape(hierarchy.l_target-l-1, d);
+          coarse_shape[d] = hierarchy.level_shape(l-1, d);
+          coeff_shape[d] = fine_shape[d] - hierarchy.level_shape(l-1, d);
         } else {
           coarse_shape[d] = fine_shape[d];
           coeff_shape[d] = fine_shape[d];
@@ -140,7 +140,7 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<D, T, DeviceType> coarse = v;
       coarse.resize(coarse_shape);
       SubArray<D, T, DeviceType> coeff = v;
-      coeff.offset(curr_dim, hierarchy.level_shape(hierarchy.l_target-l-1, curr_dim));
+      coeff.offset(curr_dim, hierarchy.level_shape(l-1, curr_dim));
       coeff.resize(coeff_shape);
       SubArray<D, T, DeviceType> correction = w;
       correction.resize(coarse_shape);
@@ -154,7 +154,7 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       }
 
       CoefficientsRestore(curr_dim,
-                          SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dim)), w_fine,
+                          SubArray(hierarchy.ratio(l, curr_dim)), w_fine,
                           coarse, coeff, queue_idx);
 
       if (singledim_refactoring_debug_print) {

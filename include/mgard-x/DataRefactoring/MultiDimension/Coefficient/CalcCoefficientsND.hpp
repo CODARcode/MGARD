@@ -46,8 +46,8 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   DIM unprocessed_n;
   SubArray<1, DIM, DeviceType> unprocessed_dims;
 
-  shape = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(hierarchy.l_target-l), true);
-  shape_c = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(hierarchy.l_target-l-1), true);
+  shape = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l), true);
+  shape_c = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l-1), true);
 
   int unprocessed_idx = 0;
   unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
@@ -59,12 +59,12 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
   doutput.project(curr_dims[0], curr_dims[1], curr_dims[2]);
 
-  CalcCoefficientsPointers(hierarchy, curr_dims, hierarchy.l_target-l, doutput, dcoarse, dcoeff_f,
+  CalcCoefficientsPointers(hierarchy, curr_dims, l, doutput, dcoarse, dcoeff_f,
                            dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
                            dcoeff_rcf);
-  ratio_r = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[0]));
-  ratio_c = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[1]));
-  ratio_f = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[2]));
+  ratio_r = SubArray(hierarchy.ratio(l, curr_dims[0]));
+  ratio_c = SubArray(hierarchy.ratio(l, curr_dims[1]));
+  ratio_f = SubArray(hierarchy.ratio(l, curr_dims[2]));
 
   GpkReo<D, 3, T, true, false, 1, DeviceType>().Execute(shape, shape_c,
       unprocessed_n, unprocessed_dims,
@@ -86,12 +86,12 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
     dinput1.project(curr_dims[0], curr_dims[1], curr_dims[2]);
     doutput.project(curr_dims[0], curr_dims[1], curr_dims[2]);
 
-    CalcCoefficientsPointers(hierarchy, curr_dims, hierarchy.l_target-l, doutput, dcoarse,
+    CalcCoefficientsPointers(hierarchy, curr_dims, l, doutput, dcoarse,
                              dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
                              dcoeff_rc, dcoeff_rcf);
-    ratio_r = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[0]));
-    ratio_c = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[1]));
-    ratio_f = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[2]));
+    ratio_r = SubArray(hierarchy.ratio(l, curr_dims[0]));
+    ratio_c = SubArray(hierarchy.ratio(l, curr_dims[1]));
+    ratio_f = SubArray(hierarchy.ratio(l, curr_dims[2]));
 
     if (D - d == 1) {
       unprocessed_idx += 1;
@@ -132,12 +132,12 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   dinput1.project(curr_dims[0], curr_dims[1],
                   curr_dims[2]); // reuse input1 as temp output
 
-  CalcCoefficientsPointers(hierarchy, curr_dims, hierarchy.l_target-l, dinput1, dcoarse, dcoeff_f,
+  CalcCoefficientsPointers(hierarchy, curr_dims, l, dinput1, dcoarse, dcoeff_f,
                            dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
                            dcoeff_rcf);
-  ratio_r = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[0]));
-  ratio_c = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[1]));
-  ratio_f = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[2]));
+  ratio_r = SubArray(hierarchy.ratio(l, curr_dims[0]));
+  ratio_c = SubArray(hierarchy.ratio(l, curr_dims[1]));
+  ratio_f = SubArray(hierarchy.ratio(l, curr_dims[2]));
 
   GpkReo<D, 3, T, false, false, 1, DeviceType>().Execute(shape, shape_c,
       unprocessed_n, unprocessed_dims,
@@ -163,12 +163,12 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
     dinput1.project(curr_dims[0], curr_dims[1],
                     curr_dims[2]); // reuse input1 as temp output
 
-    CalcCoefficientsPointers(hierarchy, curr_dims, hierarchy.l_target-l, dinput1, dcoarse,
+    CalcCoefficientsPointers(hierarchy, curr_dims, l, dinput1, dcoarse,
                              dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
                              dcoeff_rc, dcoeff_rcf);
-    ratio_r = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[0]));
-    ratio_c = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[1]));
-    ratio_f = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[2]));
+    ratio_r = SubArray(hierarchy.ratio(l, curr_dims[0]));
+    ratio_c = SubArray(hierarchy.ratio(l, curr_dims[1]));
+    ratio_f = SubArray(hierarchy.ratio(l, curr_dims[2]));
 
     GpkReo<D, 3, T, false, false, 2, DeviceType>().Execute(shape, shape_c,
         unprocessed_n, unprocessed_dims,
@@ -186,12 +186,12 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   doutput.project(curr_dims[0], curr_dims[1],
                   curr_dims[2]); // reuse input1 as temp output
 
-  CalcCoefficientsPointers(hierarchy, curr_dims, hierarchy.l_target-l, doutput, dcoarse, dcoeff_f,
+  CalcCoefficientsPointers(hierarchy, curr_dims, l, doutput, dcoarse, dcoeff_f,
                            dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
                            dcoeff_rcf);
-  ratio_r = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[0]));
-  ratio_c = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[1]));
-  ratio_f = SubArray(hierarchy.ratio(hierarchy.l_target-l, curr_dims[2]));
+  ratio_r = SubArray(hierarchy.ratio(l, curr_dims[0]));
+  ratio_c = SubArray(hierarchy.ratio(l, curr_dims[1]));
+  ratio_f = SubArray(hierarchy.ratio(l, curr_dims[2]));
 
   if (D - D_reduced == 1) {
     unprocessed_idx += 1;

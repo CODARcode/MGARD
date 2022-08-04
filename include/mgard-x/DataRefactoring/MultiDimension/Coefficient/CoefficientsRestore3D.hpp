@@ -34,12 +34,12 @@ void CoefficientsRestore3D(Hierarchy<D, T, DeviceType> &hierarchy,
   dinput.project(D-3, D-2, D-1);
   doutput.project(D-3, D-2, D-1);
 
-  SIZE f = hierarchy.level_shape(hierarchy.l_target-l, D-1);
-  SIZE c = hierarchy.level_shape(hierarchy.l_target-l, D-2);
-  SIZE r = hierarchy.level_shape(hierarchy.l_target-l, D-3);
-  SIZE ff = hierarchy.level_shape(hierarchy.l_target-l-1, D-1);
-  SIZE cc = hierarchy.level_shape(hierarchy.l_target-l-1, D-2);
-  SIZE rr = hierarchy.level_shape(hierarchy.l_target-l-1, D-3);
+  SIZE f = hierarchy.level_shape(l, D-1);
+  SIZE c = hierarchy.level_shape(l, D-2);
+  SIZE r = hierarchy.level_shape(l, D-3);
+  SIZE ff = hierarchy.level_shape(l-1, D-1);
+  SIZE cc = hierarchy.level_shape(l-1, D-2);
+  SIZE rr = hierarchy.level_shape(l-1, D-3);
 
   SubArray<D, T, DeviceType> dcoarse = dinput;
   dcoarse.resize({rr, cc, ff});
@@ -65,9 +65,9 @@ void CoefficientsRestore3D(Hierarchy<D, T, DeviceType> &hierarchy,
   dcoeff_rcf.offset({rr, cc, ff});
   dcoeff_rcf.resize({r - rr, c - cc, f - ff});
 
-  SubArray ratio_f(hierarchy.ratio(hierarchy.l_target-l, D-1));
-  SubArray ratio_c(hierarchy.ratio(hierarchy.l_target-l, D-2));
-  SubArray ratio_r(hierarchy.ratio(hierarchy.l_target-l, D-3));
+  SubArray ratio_f(hierarchy.ratio(l, D-1));
+  SubArray ratio_c(hierarchy.ratio(l, D-2));
+  SubArray ratio_r(hierarchy.ratio(l, D-3));
 
   GpkRev3D<D, T, DeviceType>().Execute(r, c, f, rr, cc, ff,
       ratio_r, ratio_c, ratio_f, doutput, dcoarse, dcoeff_f,
