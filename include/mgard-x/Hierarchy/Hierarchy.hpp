@@ -209,171 +209,53 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
                                        SIZE target_level) {
 
   this->shape = shape;
-  // determine dof
-  for (DIM i = 0; i < shape.size(); i++) {
-    std::vector<SIZE> curr_dofs;
-    int n = shape[i];
-    while (n > 2) {
-      curr_dofs.push_back(n);
-      n = n / 2 + 1;
-    }
-    if (shape[i] > 1)
-      curr_dofs.push_back(2);
-    dofs.push_back(curr_dofs);
-  }
 
-  linearized_depth = 1;
-  for (int i = 2; i < shape.size(); i++) {
-    linearized_depth *= shape[i];
-  }
-
-  for (SIZE i = 1; i < shape.size(); i++) {
-    if (shape[i] == 1) {
-      for (SIZE l = 0; l < dofs[0].size(); l++) {
-        dofs[i].push_back(1);
-      }
-    }
-  }
-
-  // new
   std::vector<std::vector<SIZE>> shape_level;
-  for (DIM d = 0; d < shape_org_padded.size(); d++) {
+  for (int d = 0; d < D; d++) {
     std::vector<SIZE> curr_shape_level;
-    SIZE n = shape_org_padded[d];
+    SIZE n = shape[d];
     while (n > 2) {
       curr_shape_level.push_back(n);
       n = n / 2 + 1;
     }
-    // if this is not padded dimension 
-    if (shape_org_padded[d] > 1) {
-      curr_shape_level.push_back(2);
-    }
+    curr_shape_level.push_back(2);
     shape_level.push_back(curr_shape_level);
   }
 
-  // For padded dimension we add 1s
-  for (DIM d = 0; d < shape_org_padded.size(); d++) {
-    if (shape_org_padded[d] == 1) {
-      for (SIZE l = 0; l < shape_level[D_padded-1].size(); l++) {
-        shape_level[d].push_back(1);
-      }
-    }
+  SIZE nlevel = shape_level[0].size();
+  for (DIM d = 1; d < D; d++) {
+    nlevel = std::min(nlevel, (SIZE)shape_level[d].size());
   }
 
-  // check
-  {
-    // printf("shape_org_padded: ");
-    // for (DIM d = 0; d < shape_org_padded.size(); d++) {
-    //   printf("%u ", shape_org_padded[d]);
-    // }
-    // printf("\n");
-    // for (DIM d = 0; d < shape_org_padded.size(); d++) {
-    //   printf("shape_level[%u]: ", d);
-    //   for (SIZE l = 0; l < shape_level[d].size(); l++) {
-    //     printf("%u ", shape_level[d][l]);
-    //   }
-    //   printf("\n");
-    // }
-
-    // for (DIM d = 0; d < shape_org_padded.size(); d++) {
-    //   printf("dofs[%u]: ", d);
-    //   for (SIZE l = 0; l < dofs[D_padded-1-d].size(); l++) {
-    //     printf("%u ", dofs[D_padded-1-d][l]);
-    //   }
-    //   printf("\n");
-    // }
-
-
-    assert(shape_org_padded.size() == shape.size());
-    assert(shape_org_padded.size() == D_padded);
-    for (DIM d = 0; d < shape_org_padded.size(); d++) {
-      for (int l = 0; l < shape_level[d].size(); l++) {
-        assert(shape_level[d][l] == dofs[D_padded-1-d][l]);
-      }
-    }
-  }
-
-  // determine l target
-  SIZE nlevel = dofs[0].size();
-  for (int i = 1; i < shape.size(); i++) {
-    nlevel = std::min(nlevel, (SIZE)dofs[i].size());
-  }
-
-  //new
-  SIZE nlevel2 = shape_level[0].size();
-  for (DIM d = 1; d < shape_org.size(); d++) {
-    nlevel2 = std::min(nlevel2, (SIZE)shape_level[d].size());
-  }
-  //check
-  {
-    assert(nlevel2 == nlevel);
-  }
 
   l_target = nlevel - 1;
   if (target_level != 0) {
     l_target = std::min(l_target, target_level);
   }
 
-  // shapes
-  for (int l = 0; l < l_target + 1; l++) {
-    std::vector<SIZE> curr_shape(D_padded);
-    SIZE *curr_shape_h = new SIZE[D_padded];
-    for (int d = 0; d < D_padded; d++) {
-      curr_shape[d] = dofs[d][l];
-      curr_shape_h[d] = dofs[d][l];
-    }
-
-    Array<1, SIZE, DeviceType> shape_array({D_padded});
-    shape_array.load(curr_shape_h);
-    shapes.push_back(shape_array);
-    shapes_vec.push_back(curr_shape);
-    delete[] curr_shape_h;
-  }
-
-  SIZE *curr_level_shape_h = new SIZE[D];
   for (int l = 0; l < l_target + 1; l++) {
     std::vector<SIZE> curr_level_shape(D);
     Array<1, SIZE, DeviceType> curr_level_shape_array({D});
-    assert(shape_level.size() == D_padded);
-    // printf("curr_level_shape.size(): %u\n", curr_level_shape.size());
-    // printf("shape_level.size(): %u\n", shape_level.size());
+    assert(shape_level.size() == D);
     for (int d = 0; d < D; d++) {
-      // printf("l_target - l: %u, ", l_target - l);
-      // printf("shape_level[%u].size(): %u\n", d, shape_level[d].size());
-      curr_level_shape[d] = shape_level[d + D_pad][l_target - l];
-      curr_level_shape_h[d] = shape_level[d + D_pad][l_target - l];
+      curr_level_shape[d] = shape_level[d][l_target - l];
     }
-    curr_level_shape_array.load(curr_level_shape_h);
+    curr_level_shape_array.load(curr_level_shape.data());
     _level_shape.push_back(curr_level_shape);
     _level_shape_array.push_back(curr_level_shape_array);
   }
-  delete[] curr_level_shape_h;
 
-  // { // check
-  //   for (int l = 0; l < l_target + 1; l++) {
-  //     printf("_level_shape[%u]:", l);
-  //     for (int d = 0; d < D; d++) {
-  //       printf("%u ", _level_shape[l][d]);
-  //       // assert(_level_shape[l][d] == shapes_vec[l_target - l][D_padded - 1 - d]);
-
-  //     }
-  //     printf("\n");
-  //   }
-  // }
-
-  // ranges
-  SIZE *ranges_h = new SIZE[D * (l_target + 2)];
-  for (int d = 0; d < D; d++) {
-    ranges_h[d * (l_target + 2)] = 0;
-    for (int l = 1; l < l_target + 2; l++) {
-      ranges_h[d * (l_target + 2) + l] = dofs[d][l_target + 1 - l];
+  {
+    _total_num_elems = 1;
+    for (int d = D-1; d >= 0; d--) {
+      _total_num_elems *= _level_shape[l_target][d];
+    }
+    _linearized_width = 1;
+    for (int d = D-2; d >= 0; d--) {
+      _linearized_width *= _level_shape[l_target][d];
     }
   }
-  ranges = Array<1, SIZE, DeviceType>({D * (l_target + 2)});
-  ranges.load(ranges_h);
-  // delete[] ranges_h;
 
-  //new
   { // Ranges
     SIZE *ranges_h_org = new SIZE[(l_target + 2) * D];
     // beginning of the range
@@ -389,144 +271,25 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     bool pitched = false;
     _level_ranges = Array<2, SIZE, DeviceType>({l_target + 2, D}, pitched);
     _level_ranges.load(ranges_h_org);
-    // printf("ranges_h: ");
-    // for (int i = 0; i < D * (l_target + 2); i++) {
-    //   printf("%u ", ranges_h[i]);
-    // }
-    // printf("\n");
-    // printf("ranges_h_org: ");
-    // for (int i = 0; i < D * (l_target + 2); i++) {
-    //   printf("%u ", ranges_h_org[i]);
-    // }
-    // printf("\n");
-
-    for (int d = 0; d < D; d++) {
-      for (int l = 0; l < l_target + 2; l++) {
-        assert(ranges_h_org[l*D+d] == ranges_h[(D-1-d) * (l_target + 2) + l]);
-      }
-    }
     delete[] ranges_h_org;
   }
 
-  if (D >= 4) {
-    std::vector<DIM> tmp(0);
-    for (int d = 0; d < D; d++) {
-      processed_n[d] = tmp.size();
-      // processed_dims_h[d] = new DIM[processed_n[d]];
-      processed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
-      processed_dims[d].load(tmp.data());
-      tmp.push_back(d);
-    }
-  }
-  if (D >= 4) {
-    std::vector<DIM> tmp(0);
-    for (int i = D-1; i >= 3; i--) {
-      tmp.push_back(i);
-    }
-    // Extra padding needed in for loop below.
-    tmp.push_back(0);
-    //+1 is used for storing empty status
-    for (int d = 0; d < (int)D - 3 + 1; d++) {
-      tmp.pop_back();
-      unprocessed_n[d] = tmp.size();
-      unprocessed_dims[d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
-      unprocessed_dims[d].load(tmp.data());
-    }
-  }
-
-  // handle coords
-  this->coords_h = coords;
-  for (int i = 0; i < shape.size(); i++) {
-    Array<1, T, DeviceType> coord({shape[i]});
-    coord.load(coords[i]);
-    this->coords.push_back(coord);
-  }
-
   { // Coords
-    // printf("start coord\n");
     for (int d = 0; d < D; d++) {
-      Array<1, T, DeviceType> coord({shape_org[d]});
-      coord.load(_coords_h_org[d]);
+      Array<1, T, DeviceType> coord({shape[d]});
+      coord.load(coords[d]);
       _coords_org.push_back(coord);
     }
-    // printf("done coord\n");
   }
 
-  // calculate dist and ratio
-  for (int i = 0; i < shape.size(); i++) {
-    // std::vector<T *> curr_ddist_l, curr_dratio_l;
-    std::vector<Array<1, T, DeviceType>> curr_ddist_array_l,
-        curr_dratio_array_l;
-    Array<1, T, DeviceType> curr_ddist0_array({dofs[i][0]});
-    Array<1, T, DeviceType> curr_dratio0_array({dofs[i][0]});
-    curr_ddist_array_l.push_back(curr_ddist0_array);
-    curr_dratio_array_l.push_back(curr_dratio0_array);
 
-    coord_to_dist(dofs[i][0], this->coords[i].data(),
-                  curr_ddist_array_l[0].data());
-    dist_to_ratio(dofs[i][0], curr_ddist_array_l[0].data(),
-                  curr_dratio_array_l[0].data());
-
-    // for l = 1 ... l_target
-    for (int l = 1; l < l_target + 1; l++) {
-      Array<1, T, DeviceType> curr_ddist_array({dofs[i][l]});
-      Array<1, T, DeviceType> curr_dratio_array({dofs[i][l]});
-      curr_ddist_array_l.push_back(curr_ddist_array);
-      curr_dratio_array_l.push_back(curr_dratio_array);
-      reduce_dist(dofs[i][l - 1], curr_ddist_array_l[l - 1].data(),
-                  curr_ddist_array_l[l].data());
-      dist_to_ratio(dofs[i][l], curr_ddist_array_l[l].data(),
-                    curr_dratio_array_l[l].data());
-    }
-    this->dist_array.push_back(curr_ddist_array_l);
-    this->ratio_array.push_back(curr_dratio_array_l);
-  }
-
-  // volume for quantization
-  SIZE volumes_width = 0;
-  for (int d = 0; d < D; d++) {
-    volumes_width = std::max(volumes_width, dofs[d][0]);
-  }
-
-  volumes_array = Array<2, T, DeviceType>({D * (l_target + 1), volumes_width});
-  SubArray<2, T, DeviceType> volumes_subarray(volumes_array);
-  for (int d = 0; d < D; d++) {
-    for (int l = 0; l < l_target + 1; l++) {
-      calc_volume(dofs[d][l], dist_array[d][l].data(),
-                  volumes_subarray((d * (l_target + 1) + (l_target - l)), 0));
-    }
-  }
-
-  for (DIM i = 0; i < D; i++) {
-    // std::vector<T *> curr_am_l, curr_bm_l;
-    std::vector<Array<1, T, DeviceType>> curr_am_l_array, curr_bm_l_array;
-    for (SIZE l = 0; l < l_target + 1; l++) {
-      Array<1, T, DeviceType> curr_am_array({dofs[i][l] + 1});
-      Array<1, T, DeviceType> curr_bm_array({dofs[i][l] + 1});
-      curr_am_array.memset(0);
-      curr_bm_array.memset(0);
-
-      curr_am_l_array.push_back(curr_am_array);
-      curr_bm_l_array.push_back(curr_bm_array);
-
-      calc_am_bm(dofs[i][l], dist_array[i][l].data(), curr_am_l_array[l].data(),
-                 curr_bm_l_array[l].data());
-    }
-
-    am_array.push_back(curr_am_l_array);
-    bm_array.push_back(curr_bm_l_array);
-  }
-
-   // calculate dist and ratio
-  { // new
-    // printf("start dist and ratio\n"); 
+  { // calculate dist and ratio
     _dist_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
     _ratio_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
     for (SIZE l = 0; l < l_target+1; l++) {
       _dist_array[l] = std::vector<Array<1, T, DeviceType>>(D);
       _ratio_array[l] = std::vector<Array<1, T, DeviceType>>(D);
     }
-    // printf("dist and ratio: l_target\n"); 
     // For the finest level: l = l_target;
     for (DIM d = 0; d < D; d++) {
       _dist_array[l_target][d] = Array<1, T, DeviceType>({_level_shape[l_target][d]});
@@ -539,7 +302,6 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
 
     // for l = 1 ... l_target
     for (int l = l_target-1; l >= 0; l--) {
-      // printf("dist and ratio: %u\n", l); 
       for (DIM d = 0; d < D; d++) {
         _dist_array[l][d] = Array<1, T, DeviceType>({_level_shape[l][d]});
         _ratio_array[l][d] = Array<1, T, DeviceType>({_level_shape[l][d]});
@@ -552,9 +314,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     }
   }
 
-  {
-    // printf("start volume\n");
-    // volume for quantization
+  { // volume for quantization
     SIZE volumes_width = 0;
     for (DIM d = 0; d < D; d++) {
       volumes_width = std::max(volumes_width, _level_shape[l_target][d]);
@@ -571,9 +331,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     }
   }
 
-  { 
-    // printf("start am/bm\n");
-    // am and bm
+  { // am and bm
     _am_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
     _bm_array = std::vector<std::vector<Array<1, T, DeviceType>>>(l_target+1);
     for (SIZE l = 0; l < l_target+1; l++) {
@@ -620,18 +378,18 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   }
 
   dummy_array = Array<1, T, DeviceType>({1});
-  // dev_type = config.dev_type;
-  // dev_id = config.dev_id;
-  // lossless = config.lossless;
-  // huff_dict_size = config.huff_dict_size;
-  // huff_block_size = config.huff_block_size;
-  // lz4_block_size = config.lz4_block_size;
-  // zstd_compress_level = config.zstd_compress_level;
-  // reduce_memory_footprint = config.reduce_memory_footprint;
-  // profile_kernels = config.profile_kernels;
-  // sync_and_check_all_kernels = config.sync_and_check_all_kernels;
-  // timing = config.timing;
+
   initialized = true;
+}
+
+template <DIM D, typename T, typename DeviceType>
+SIZE Hierarchy<D, T, DeviceType>::total_num_elems() {
+  return _total_num_elems;
+}
+
+template <DIM D, typename T, typename DeviceType>
+SIZE Hierarchy<D, T, DeviceType>::linearized_width() {
+  return _linearized_width;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -734,48 +492,7 @@ Array<3, T, DeviceType> &Hierarchy<D, T, DeviceType>::level_volumes() {
 
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::destroy() {
-  if (uniform_coords_created) {
-    for (int d = 0; d < D; d++) {
-      delete[] this->coords_h[d];
-    }
-    uniform_coords_created = false;
-  }
-}
-
-template <DIM D, typename T, typename DeviceType>
-void Hierarchy<D, T, DeviceType>::padding_dimensions(std::vector<SIZE> &shape,
-                                                     std::vector<T *> &coords) {
-  D_padded = D;
-  if (D < 3) {
-    D_padded = 3;
-  }
-  if (D % 2 == 0) {
-    D_padded = D + 1;
-  }
-
-  D_pad = D_padded - D;
-  // padding dimensions
-  for (int d = shape.size(); d < D_padded; d++) {
-    shape.push_back(1);
-    T *curr_coords = new T[shape[d]];
-    for (int i = 0; i < shape[d]; i++) {
-      curr_coords[i] = (T)i;
-    }
-    coords.push_back(curr_coords);
-  }
-
-  assert(shape_org_padded.size() == D);
-  // assert(coords_h_org.size() == D);
-  for (DIM d = 0; d < D_pad; d++) {
-    shape_org_padded.insert(shape_org_padded.begin(), 1);
-    // T *curr_coords = new T[shape_org_padded[d]];
-    // for (SIZE i = 0; i < shape_org_padded[d]; i++) {
-      // curr_coords[i] = (T)i;
-    // }
-    // coords_h_org.insert(coords_h_org.begin(), curr_coords);
-  }
-  assert(shape_org_padded.size() == D_padded);
-  // assert(coords_h_org.size() == D_padded);
+  // Nothing needs to be done here.
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -1033,10 +750,6 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        int uniform_coord_mode,
                                        SIZE target_level) {
   if (!need_domain_decomposition(shape)) {
-    // Config config;
-    shape_org = shape;
-    shape_org_padded = shape;
-    std::reverse(shape.begin(), shape.end());
     int ret = check_shape<D>(shape);
     if (ret == -1) {
       std::cerr << log::log_err
@@ -1053,9 +766,10 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
     }
     dstype = data_structure_type::Cartesian_Grid_Uniform;
     std::vector<T *> coords = create_uniform_coords(shape, uniform_coord_mode);
-    _coords_h_org = create_uniform_coords(shape_org, uniform_coord_mode);
-    padding_dimensions(shape, coords);
     init(shape, coords, target_level);
+    assert(uniform_coords_created);
+    assert(coords.size() == D);
+    for (int d = 0; d < D; d++) delete[] coords[d];
   } else { // need domain decomposition
     // std::cout << log::log_info << "Need domain decomposition.\n";
     domain_decomposition_strategy(shape);
@@ -1068,12 +782,6 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        std::vector<T *> coords,
                                        SIZE target_level) {
   if (!need_domain_decomposition(shape)) {
-    // Config config;
-    shape_org = shape;
-    shape_org_padded = shape;
-    _coords_h_org = coords;
-    std::reverse(shape.begin(), shape.end());
-    std::reverse(coords.begin(), coords.end());
     int ret = check_shape<D>(shape);
     if (ret == -1) {
       std::cerr << log::log_err
@@ -1089,7 +797,6 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
     }
 
     dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
-    padding_dimensions(shape, coords);
     init(shape, coords, target_level);
   } else {
     // std::cout << log::log_info << "Need domain decomposition.\n";
@@ -1125,152 +832,31 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   l_target = hierarchy.l_target;
-  D_padded = hierarchy.D_padded;
-  D_pad = hierarchy.D_pad;
-  shape_org = hierarchy.shape_org;
-  shape_org_padded = hierarchy.shape_org_padded;
   shape = hierarchy.shape;
-  dofs = hierarchy.dofs;
-
-  shapes = hierarchy.shapes;
-  shapes_vec = hierarchy.shapes_vec;
-  ranges = hierarchy.ranges;
-  coords = hierarchy.coords;
+  _total_num_elems = hierarchy._total_num_elems;
+  _linearized_width = hierarchy._linearized_width;
   _coords_org = hierarchy._coords_org;
   _dist_array = hierarchy._dist_array;
   _ratio_array = hierarchy._ratio_array;
   _level_volumes = hierarchy._level_volumes;
   _am_array = hierarchy._am_array;
   _bm_array = hierarchy._bm_array;
-
   _level_shape = hierarchy._level_shape;
   _level_shape_array = hierarchy._level_shape_array;
   _level_ranges = hierarchy._level_ranges;
-
-  dist_array = hierarchy.dist_array;
-  ratio_array = hierarchy.ratio_array;
-  volumes_array = hierarchy.volumes_array;
-
-  am_array = hierarchy.am_array;
-  bm_array = hierarchy.bm_array;
-  linearized_depth = hierarchy.linearized_depth;
   dstype = hierarchy.dstype;
-
   if (D >= 4) {
     for (DIM d = 0; d < D; d++) {
-      processed_n[d] = hierarchy.processed_n[d];
-      unprocessed_n[d] = hierarchy.unprocessed_n[d];
-      processed_dims[d] = hierarchy.processed_dims[d];
-      unprocessed_dims[d] = hierarchy.unprocessed_dims[d];
+      _processed_n[d] = hierarchy._processed_n[d];
+      _unprocessed_n[d] = hierarchy._unprocessed_n[d];
+      _processed_dims[d] = hierarchy._processed_dims[d];
+      _unprocessed_dims[d] = hierarchy._unprocessed_dims[d];
     }
   }
   domain_decomposed = hierarchy.domain_decomposed;
   domain_decomposed_dim = hierarchy.domain_decomposed_dim;
   domain_decomposed_size = hierarchy.domain_decomposed_size;
 }
-
-// template <DIM D, typename T, typename DeviceType>
-// Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape, Config
-// config, int uniform_coord_mode) {
-//   if (!need_domain_decomposition(shape)) {
-//     shape_org = shape;
-//     std::reverse(shape.begin(), shape.end());
-//     std::vector<T *> coords = create_uniform_coords(shape,
-//     uniform_coord_mode); int ret = check_shape<D>(shape); if (ret == -1) {
-//       std::cerr << log::log_err
-//                 << "Number of dimensions mismatch. mgard_x::Hanlde not "
-//                    "initialized!\n";
-//       return;
-//     }
-//     if (ret == -2) {
-//       std::cerr << log::log_err
-//                 << "Size of any dimensions cannot be smaller than 3. "
-//                    "mgard_x::Hanlde not "
-//                    "initialized!\n";
-//     }
-
-//     dstype = data_structure_type::Cartesian_Grid_Uniform;
-//     padding_dimensions(shape, coords);
-//     init(shape, coords, config);
-//   } else {
-//     std::cout << log::log_info << "Need domain decomposition.\n";
-//     domain_decomposed = true;
-//     DIM decompose_dim;
-//     std::vector<SIZE> chunck_shape = domain_decomposition(shape,
-//     decompose_dim); for (SIZE i = 0; i < shape[decompose_dim]; i +=
-//     chunck_shape[decompose_dim]) {
-//       hierarchy_chunck.push_back(Hierarchy<D, T, DeviceType>(chunck_shape));
-//     }
-//     SIZE leftover_dim_size = shape[decompose_dim] %
-//     chunck_shape[decompose_dim]; if (leftover_dim_size != 0) {
-//       std::vector<SIZE> leftover_shape = shape;
-//       leftover_shape[decompose_dim] = leftover_dim_size;
-//       hierarchy_chunck.push_back(Hierarchy<D, T,
-//       DeviceType>(leftover_shape));
-//     }
-//   }
-// }
-
-// template <DIM D, typename T, typename DeviceType>
-// Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape, std::vector<T
-// *> coords,
-//                      Config config) {
-//   if (!need_domain_decomposition(shape)) {
-//     shape_org = shape;
-//     std::reverse(shape.begin(), shape.end());
-//     std::reverse(coords.begin(), coords.end());
-//     int ret = check_shape<D>(shape);
-//     if (ret == -1) {
-//       std::cerr << log::log_err
-//                 << "Number of dimensions mismatch. mgard_x::Hanlde not "
-//                    "initialized!\n";
-//       return;
-//     }
-//     if (ret == -2) {
-//       std::cerr << log::log_err
-//                 << "Size of any dimensions cannot be smaller than 3. "
-//                    "mgard_x::Hanlde not "
-//                    "initialized!\n";
-//     }
-
-//     dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
-//     padding_dimensions(shape, coords);
-//     init(shape, coords, config);
-//   } else {
-//     std::cout << log::log_info << "Need domain decomposition.\n";
-//     domain_decomposed = true;
-//     DIM decompose_dim;
-//     std::vector<SIZE> chunck_shape = domain_decomposition(shape,
-//     decompose_dim); std::vector<T *> chunck_coords = coords; for (SIZE i = 0;
-//     i < shape[decompose_dim]; i += chunck_shape[decompose_dim]) {
-//       T * decompose_dim_coord = new T[chunck_shape[decompose_dim]];
-//       MemoryManager<DeviceType>::Copy1D(decompose_dim_coord,
-//       coords[decompose_dim] + i, chunck_shape[decompose_dim], 0);
-//       DeviceRuntime<DeviceType>::SyncQueue(0);
-//       for (SIZE j = 0; j < chunck_shape[decompose_dim]; j++)
-//       decompose_dim_coord[j] -= decompose_dim_coord[0];
-//       chunck_coords[decompose_dim] = decompose_dim_coord;
-//       hierarchy_chunck.push_back(Hierarchy<D, T, DeviceType>(chunck_shape,
-//       chunck_coords, config)); delete [] decompose_dim_coord;
-//     }
-//     SIZE leftover_dim_size = shape[decompose_dim] %
-//     chunck_shape[decompose_dim]; if (leftover_dim_size != 0) {
-//       std::vector<SIZE> leftover_shape = shape;
-//       leftover_shape[decompose_dim] = leftover_dim_size;
-//       std::vector<T *> leftover_coords = coords;
-//       T * decompose_dim_coord = new T[leftover_dim_size];
-//       MemoryManager<DeviceType>::Copy1D(decompose_dim_coord,
-//       coords[decompose_dim] + (shape[decompose_dim] - leftover_dim_size),
-//                             leftover_dim_size, 0);
-//       DeviceRuntime<DeviceType>::SyncQueue(0);
-//       for (SIZE j = 0; j < leftover_dim_size; j++) decompose_dim_coord[j] -=
-//       decompose_dim_coord[0]; leftover_coords[decompose_dim] =
-//       decompose_dim_coord; hierarchy_chunck.push_back(Hierarchy<D, T,
-//       DeviceType>(leftover_shape, leftover_coords, config)); delete []
-//       decompose_dim_coord;
-//     }
-//   }
-// }
 
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::~Hierarchy() {

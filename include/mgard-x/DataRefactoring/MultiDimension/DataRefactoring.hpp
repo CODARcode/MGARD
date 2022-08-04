@@ -27,7 +27,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(hierarchy.shape[d]) + "_";
+    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target, d)) + "_";
 
   std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target);
   for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
@@ -135,29 +135,22 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
     if (sizeof(T) == sizeof(float))
       prefix += "f_";
     for (int d = 0; d < D; d++)
-      prefix += std::to_string(hierarchy.shape[d]) + "_";
-    // std::cout << prefix << std::endl;
+      prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target, d)) + "_";
 
     for (int l = l_target - 1; l >= 0; l--) {
-      // v_coeff.resize(hierarchy.shapes_vec[l]);
-      // w_correction.resize(hierarchy.shapes_vec[l]);
+
       v_coeff.resize(hierarchy.level_shape(l_target-l));
       w_correction.resize(hierarchy.level_shape(l_target-l));
       CalcCorrection3D(hierarchy, v_coeff, w_correction, l, queue_idx);
 
-      // w_correction.resize(hierarchy.shapes_vec[l + 1]);
-      // v_coarse.resize(hierarchy.shapes_vec[l + 1]);
       w_correction.resize(hierarchy.level_shape(l_target-l-1));
       v_coarse.resize(hierarchy.level_shape(l_target-l-1));
       SubtractND(w_correction, v_coarse, queue_idx);
 
-      // v_coeff.resize(hierarchy.shapes_vec[l]);
-      // w_fine.resize(hierarchy.shapes_vec[l]);
       v_coeff.resize(hierarchy.level_shape(l_target-l));
       w_fine.resize(hierarchy.level_shape(l_target-l));
       CoefficientsRestore3D(hierarchy, v_coeff, w_fine, l, queue_idx);
 
-      // v_fine.resize(hierarchy.shapes_vec[l]);
       v_fine.resize(hierarchy.level_shape(l_target-l));
       CopyND(w_fine, v_fine, queue_idx);
       if (multidim_refactoring_debug_print) {
@@ -184,14 +177,10 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
         PrintSubarray4D(format("before subtract correction[%d]", l), v);
       } // deb
 
-      // v_coeff.resize(hierarchy.shapes_vec[l]);
-      // w_correction.resize(hierarchy.shapes_vec[l]);
       v_coeff.resize(hierarchy.level_shape(l_target-l));
       w_correction.resize(hierarchy.level_shape(l_target-l));
       CalcCorrectionND(hierarchy, v_coeff, w_correction, l, queue_idx);
 
-      // w_correction.resize(hierarchy.shapes_vec[l + 1]);
-      // v_coarse.resize(hierarchy.shapes_vec[l + 1]);
       w_correction.resize(hierarchy.level_shape(l_target-l-1));
       v_coarse.resize(hierarchy.level_shape(l_target-l-1));
       SubtractND(w_correction, v_coarse, queue_idx);
@@ -200,21 +189,17 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
         PrintSubarray4D(format("after subtract correction[%d]", l), v);
       } // deb
 
-      // v_coeff.resize(hierarchy.shapes_vec[l]);
-      // w_fine.resize(hierarchy.shapes_vec[l]);
-      // b_fine.resize(hierarchy.shapes_vec[l]);
       v_coeff.resize(hierarchy.level_shape(l_target-l));
       w_fine.resize(hierarchy.level_shape(l_target-l));
       b_fine.resize(hierarchy.level_shape(l_target-l));
       CopyND(v_coeff, b_fine, queue_idx);
       CopyND(v_coeff, w_fine, queue_idx);
-      // v_fine.resize(hierarchy.shapes_vec[l]);
+
       v_fine.resize(hierarchy.level_shape(l_target-l));
       CoefficientsRestoreND(hierarchy, w_fine, b_fine, v_fine, l, queue_idx);
     } // loop levels
 
     if (multidim_refactoring_debug_print) { // debug
-      std::vector<SIZE> shape(hierarchy.D_padded);
       PrintSubarray4D(format("final output"), v);
     } // deb
   }   // D > 3

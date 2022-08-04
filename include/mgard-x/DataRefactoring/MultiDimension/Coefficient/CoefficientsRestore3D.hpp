@@ -23,16 +23,13 @@ void CoefficientsRestore3D(Hierarchy<D, T, DeviceType> &hierarchy,
                            SubArray<D, T, DeviceType> &doutput, SIZE l,
                            int queue_idx) {
 
-  int range_l = std::min(6, (int)std::log2(hierarchy.dofs[0][l]) - 1);
-  int range_lp1 = std::min(6, (int)std::log2(hierarchy.dofs[0][l + 1]) - 1);
-
   std::string prefix = "decomp_";
   if (sizeof(T) == sizeof(double))
     prefix += "d_";
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(hierarchy.shape[d]) + "_";
+    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target, d)) + "_";
 
   dinput.project(D-3, D-2, D-1);
   doutput.project(D-3, D-2, D-1);
