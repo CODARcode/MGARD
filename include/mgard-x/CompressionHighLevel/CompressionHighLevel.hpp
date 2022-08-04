@@ -437,11 +437,11 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
         std::cout << log::log_info << "Compressing decomposed domain (" << i
                   << ") - ( ";
         for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].shape_org[d] << " ";
+          std::cout << hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target, d) << " ";
         std::cout << ")\n";
       }
       Array<D, T, DeviceType> chunck_in_array(
-          hierarchy.hierarchy_chunck[i].shape_org);
+          hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target));
       chunck_in_array.load((const T *)decomposed_data[i]);
       // PrintSubarray("chunck_in_array", SubArray(chunck_in_array));
       Array<1, Byte, DeviceType> lossless_compressed_array =
@@ -673,11 +673,11 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
         std::cout << log::log_info << "Compressing decomposed domain (" << i
                   << ") - ( ";
         for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].shape_org[d] << " ";
+          std::cout << hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target, d) << " ";
         std::cout << ")\n";
       }
       Array<D, T, DeviceType> chunck_in_array(
-          hierarchy.hierarchy_chunck[i].shape_org);
+          hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target));
       chunck_in_array.load((const T *)decomposed_data[i]);
       Array<1, Byte, DeviceType> lossless_compressed_array =
           compress<D, T, DeviceType>(hierarchy.hierarchy_chunck[i],
@@ -886,7 +886,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
         std::cout << log::log_info << "Decompressing decomposed domain (" << i
                   << ") - ( ";
         for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].shape_org[d] << " ";
+          std::cout << hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target, d) << " ";
         std::cout << ")\n";
       }
       Array<1, Byte, DeviceType> lossless_compressed_array(
@@ -1067,7 +1067,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
         std::cout << log::log_info << "Decompressing decomposed domain (" << i
                   << ") - ( ";
         for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].shape_org[d] << " ";
+          std::cout << hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target, d) << " ";
         std::cout << ")\n";
       }
       Array<1, Byte, DeviceType> lossless_compressed_array(

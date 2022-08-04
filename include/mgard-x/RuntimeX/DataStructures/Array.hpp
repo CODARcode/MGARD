@@ -94,10 +94,12 @@ void Array<D, T, DeviceType>::allocate(bool pitched, bool managed, int queue_idx
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::copy(const Array<D, T, DeviceType> &array, int queue_idx) {
   initialize(array.__shape);
-  allocate(array.pitched, array.managed, queue_idx);
-  MemoryManager<DeviceType>::CopyND(
-      dv, __ldvs[D-1], array.dv, array.__ldvs[D-1], array.__shape[D-1],
-      array.linearized_width, queue_idx);
+  if (array.device_allocated) {
+    allocate(array.pitched, array.managed, queue_idx);
+    MemoryManager<DeviceType>::CopyND(
+        dv, __ldvs[D-1], array.dv, array.__ldvs[D-1], array.__shape[D-1],
+        array.linearized_width, queue_idx);
+  }
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -110,7 +112,7 @@ void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
     this->__ldvs = array.__ldvs;
     this->device_allocated = true;
     array.device_allocated = false;
-    array.dv = NULL;
+    array.dv = nullptr;
   }
 }
 
