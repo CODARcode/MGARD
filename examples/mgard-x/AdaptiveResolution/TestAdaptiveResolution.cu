@@ -80,11 +80,11 @@ vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value
                                   mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray,
                                   mgard_x::Array<1, T, mgard_x::CUDA> PointsArray,
                                   std::string field_name) {
-  mgard_x::SIZE * Triangles = new mgard_x::SIZE[TrianglesArray.shape()[0]];
-  T * Points = new T[PointsArray.shape()[0]];
+  mgard_x::SIZE * Triangles = new mgard_x::SIZE[TrianglesArray.shape(0)];
+  T * Points = new T[PointsArray.shape(0)];
 
-  mgard_x::SIZE numTriangles = TrianglesArray.shape()[0] / 3;
-  mgard_x::SIZE numPoints = PointsArray.shape()[0] / 3;
+  mgard_x::SIZE numTriangles = TrianglesArray.shape(0) / 3;
+  mgard_x::SIZE numPoints = PointsArray.shape(0) / 3;
 
   memcpy(Triangles, TrianglesArray.hostCopy(),
          numTriangles * 3 * sizeof(mgard_x::SIZE));
@@ -98,7 +98,7 @@ vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value
   ds_from_mc.AddPointField(field_name, iso_data_vec);
   vtkm::cont::CellSetSingleType<> cellset;
   vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG> connectivity;
-  connectivity.Allocate(TrianglesArray.shape()[0]);
+  connectivity.Allocate(TrianglesArray.shape(0));
 
   // std::cout << "connectivity.GetNumberOfValues() = " << connectivity.GetNumberOfValues() << "\n";
 
@@ -196,8 +196,8 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
   printf("Pass3 time: %f s\n", pass3_time);
   printf("Pass4 time: %f s\n", pass4_time);
   printf("Total time: %f s\n", total_time);
-  std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape()[0]/3 << "\n";
-  std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape()[0]/3 << "\n";
+  std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape(0)/3 << "\n";
+  std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape(0)/3 << "\n";
 
   std::string field_name = "test_field";
   vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
@@ -284,9 +284,9 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
 
   Array<D, T, DeviceType> org_array = in_array;
 
-  Array<D+1, T, DeviceType> * max_abs_coefficient = new Array<D+1, T, DeviceType>[hierarchy.l_target];
-  SubArray<D+1, T, DeviceType> * max_abs_coefficient_subarray = new SubArray<D+1, T, DeviceType>[hierarchy.l_target];
-  for (int l = 0; l < hierarchy.l_target; l++) {
+  Array<D+1, T, DeviceType> * max_abs_coefficient = new Array<D+1, T, DeviceType>[hierarchy.l_target()];
+  SubArray<D+1, T, DeviceType> * max_abs_coefficient_subarray = new SubArray<D+1, T, DeviceType>[hierarchy.l_target()];
+  for (int l = 0; l < hierarchy.l_target(); l++) {
     std::vector<SIZE> max_abs_coefficient_shape(D+1);
     for (int d = 1; d < D+1; d++) {
       max_abs_coefficient_shape[d] = hierarchy.shapes_vec[l+1][D-d]-1;
@@ -297,9 +297,9 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
     max_abs_coefficient_subarray[l] = SubArray(max_abs_coefficient[l]);
   }
 
-  Array<D, SIZE, DeviceType> * refinement_flag = new Array<D, SIZE, DeviceType>[hierarchy.l_target+1];
-  SubArray<D, SIZE, DeviceType> * refinement_flag_subarray = new SubArray<D, SIZE, DeviceType>[hierarchy.l_target+1];
-  for (int l = 0; l < hierarchy.l_target+1; l++) {
+  Array<D, SIZE, DeviceType> * refinement_flag = new Array<D, SIZE, DeviceType>[hierarchy.l_target()+1];
+  SubArray<D, SIZE, DeviceType> * refinement_flag_subarray = new SubArray<D, SIZE, DeviceType>[hierarchy.l_target()+1];
+  for (int l = 0; l < hierarchy.l_target()+1; l++) {
     std::vector<SIZE> refinement_flag_shape(D);
     for (int d = 0; d < D; d++) {
       refinement_flag_shape[d] = hierarchy.shapes_vec[l][D-1-d]-1;
@@ -309,9 +309,9 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
     refinement_flag_subarray[l] = SubArray(refinement_flag[l]);
     // if (l == hierarchy.l_target) {
     //   SIZE one = 1;
-    //   for (int i = 0; i < refinement_flag_subarray[l].getShape(2); i++) {
-    //     for (int j = 0; j < refinement_flag_subarray[l].getShape(1); j++) {
-    //       for (int k = 0; k < refinement_flag_subarray[l].getShape(0); k++) {
+    //   for (int i = 0; i < refinement_flag_subarray[l].shape(0); i++) {
+    //     for (int j = 0; j < refinement_flag_subarray[l].shape(1); j++) {
+    //       for (int k = 0; k < refinement_flag_subarray[l].shape(2); k++) {
     //         MemoryManager<DeviceType>::Copy1D(refinement_flag_subarray[l](i, j, k), &one, 1, 0);
     //       }
     //     }
@@ -320,7 +320,7 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
     // }
   }
 
-  Array<1, T, DeviceType> level_max({hierarchy.l_target+1});
+  Array<1, T, DeviceType> level_max({hierarchy.l_target()+1});
   SubArray<1, T, DeviceType> level_max_subarray(level_max);
 
   // std::cout << "Done\n";
@@ -329,7 +329,7 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
 
   // std::cout << "Decomposing with MGARD-X CUDA backend...\n";
   multidim_refactoring_debug_print = debug;
-  decompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target, 
+  decompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target(), 
                              level_max_subarray,
                              max_abs_coefficient_subarray, 0);
 
@@ -346,11 +346,11 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
   // std::cout << "Recomposing with MGARD-X CUDA backend...\n";
 
   multidim_refactoring_debug_print = debug;
-  Array<D, T, DeviceType> result_data = recompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target, 
+  Array<D, T, DeviceType> result_data = recompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target(), 
                iso_value, tol, level_max_subarray, max_abs_coefficient_subarray,
                refinement_flag_subarray, 0);
 
-  // printf("shape: %u %u %u\n", result_data.shape()[0], result_data.shape()[1], result_data.shape()[2]);
+  // printf("shape: %u %u %u\n", result_data.shape(0), result_data.shape()[1], result_data.shape()[2]);
   if (debug) {
     PrintSubarray("result_data", SubArray(result_data));
   }
@@ -467,7 +467,7 @@ Array<D, T_data, DeviceType> reconstructor(T_error tol,
       retriever);
   reconstructor.load_metadata();
   std::vector<T_error> tolerance = {tol};
-  return reconstructor.progressive_reconstruct(tolerance[0]);
+  return reconstructor.reconstruct(tolerance[0]);
 }
 
 template <DIM D, typename T_data, typename DeviceType>
@@ -477,7 +477,7 @@ Array<D, T_data, DeviceType> refactor_and_recompose_data_bitplanwise(Array<D, T_
   int num_bitplanes = 64;
   int uniform_coord_mode = 0; // is this necessary?
   Hierarchy<D, T_data, DeviceType> hierarchy(shape, uniform_coord_mode);
-  SIZE target_level = hierarchy.l_target;
+  SIZE target_level = hierarchy.l_target();
   std::string metadata_file = "refactored_data/block_" +std::to_string(block_id) +"_metadata.bin";
   std::vector<std::string> files;
   for (int i = 0; i <= target_level; i++) {
@@ -507,9 +507,9 @@ Array<D, T_data, DeviceType> refactor_and_recompose_data_bitplanwise(Array<D, T_
 
 template <typename T, typename DeviceType>
 std::string hash_key(SubArray<3, T, DeviceType> subArray) {
-  return std::to_string(subArray.getShape(0)) + "-" +
-         std::to_string(subArray.getShape(1)) + "-" +
-         std::to_string(subArray.getShape(2)); 
+  return std::to_string(subArray.shape(0)) + "-" +
+         std::to_string(subArray.shape(1)) + "-" +
+         std::to_string(subArray.shape(2)); 
 }
 
 template <DIM D, typename T>
@@ -559,6 +559,9 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
         recomposed_data_blocks[linearized_index] = refactor_and_recompose_data_bitplanwise(data_block[linearized_index], {block_size_r, block_size_c, block_size_f}, linearized_index, tol, iso_value, debug);
         SubArray recomposed_data_block(recomposed_data_blocks[linearized_index]);
         
+        // if (recomposed_data_blocks[linearized_index].shape(0) == 64) {
+        //   printf("linearized_index: %u\n", linearized_index);
+        // }
         // { // debug
         //   if (linearized_index == 300) {
         //     SubArray org(data_block[linearized_index]);
@@ -576,11 +579,13 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
         Array<1, T, CUDA> PointsArray;
         double pass1_time_block = 0, pass2_time_block = 0, pass3_time_block = 0, pass4_time_block = 0, total_time_block = 0;
         flying_edges::FlyingEdges<T, CUDA>().Execute(
-            recomposed_data_block.getShape(2), recomposed_data_block.getShape(1), recomposed_data_block.getShape(0), recomposed_data_block,
+            recomposed_data_block.shape(0), recomposed_data_block.shape(1), recomposed_data_block.shape(2), recomposed_data_block,
             iso_value, TrianglesArray, PointsArray, pass1_time_block, pass2_time_block, pass3_time_block, pass4_time_block, 0);
         DeviceRuntime<CUDA>::SyncQueue(0);
-        // std::cout << "block " << linearized_index << " mgard_x::FlyingEdges::numPoints: " << PointsArray.shape()[0]/3 << "\n";
-        // std::cout << "block " << linearized_index << " mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape()[0]/3 << "\n";
+        // if (recomposed_data_blocks[linearized_index].shape(0) == 64) {
+        //   std::cout << "block " << linearized_index << " mgard_x::FlyingEdges::numPoints: " << PointsArray.shape(0)/3 << "\n";
+        //   std::cout << "block " << linearized_index << " mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape(0)/3 << "\n";
+        // }
         pass1_time += pass1_time_block;
         pass2_time += pass2_time_block;
         pass3_time += pass3_time_block;
@@ -598,8 +603,7 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
   printf("Pass4 time: %f s\n", pass4_time);
   printf("Total time: %f s\n", total_time);
 
-  pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0, total_time = 0;
-
+  
   for (SIZE i = 0; i < num_block_r * num_block_c * num_block_f; i++) {
     SubArray recomposed_data_block(recomposed_data_blocks[i]);
     std::string key = hash_key(recomposed_data_block);
@@ -607,6 +611,7 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
   }
 
   for (auto x : umap) {
+    pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0, total_time = 0;
     std::cout << x.first << " " << x.second.size() << std::endl;
     std::vector<SubArray<D, T, CUDA>> recomposed_data_blocks_vec = x.second;
     SIZE num_batches = (SIZE)recomposed_data_blocks_vec.size();
@@ -617,23 +622,21 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
     for (int i = 0; i < num_batches; i++) {
       *subarray_of_subarray(i) = recomposed_data_blocks_vec[i];
     }
-    SIZE nr = recomposed_data_blocks_vec[0].getShape(2);
-    SIZE nc = recomposed_data_blocks_vec[0].getShape(1);
-    SIZE nf = recomposed_data_blocks_vec[0].getShape(0);
+    SIZE nr = recomposed_data_blocks_vec[0].shape(0);
+    SIZE nc = recomposed_data_blocks_vec[0].shape(1);
+    SIZE nf = recomposed_data_blocks_vec[0].shape(2);
     Array<1, Array<1, SIZE, CUDA>, CUDA> Triangles;
     Array<1, Array<1, T, CUDA>, CUDA> Points;
-    double time = 0;
     flying_edges_batched::FlyingEdgesBatched<T, CUDA>().Execute(
         nr, nc, nf, subarray_of_subarray,
         iso_value, Triangles, Points, pass1_time, pass2_time, pass3_time, pass4_time, 0);
-
-  total_time = pass1_time + pass2_time + pass3_time + pass4_time;
-  printf("Batched: \n");
-  printf("Pass1 time: %f s\n", pass1_time);
-  printf("Pass2 time: %f s\n", pass2_time);
-  printf("Pass3 time: %f s\n", pass3_time);
-  printf("Pass4 time: %f s\n", pass4_time);
-  printf("Total time: %f s\n", total_time);
+    total_time = pass1_time + pass2_time + pass3_time + pass4_time;
+    printf("Batched: \n");
+    printf("Pass1 time: %f s\n", pass1_time);
+    printf("Pass2 time: %f s\n", pass2_time);
+    printf("Pass3 time: %f s\n", pass3_time);
+    printf("Pass4 time: %f s\n", pass4_time);
+    printf("Total time: %f s\n", total_time);
   }   
 
 

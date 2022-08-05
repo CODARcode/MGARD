@@ -32,7 +32,7 @@ class ReconstructorInterface {
 public:
   virtual ~ReconstructorInterface() = default;
 
-  virtual void reconstruct(double tolerance) = 0;
+  virtual Array<D, T_data, DeviceType> reconstruct(double tolerance) = 0;
 
   virtual Array<D, T_data, DeviceType> progressive_reconstruct(double tolerance) = 0;
 

@@ -75,11 +75,11 @@ vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value
                                   mgard_x::Array<1, mgard_x::SIZE, DeviceType> TrianglesArray,
                                   mgard_x::Array<1, T, DeviceType> PointsArray,
                                   std::string field_name) {
-  mgard_x::SIZE * Triangles = new mgard_x::SIZE[TrianglesArray.shape()[0]];
-  T * Points = new T[PointsArray.shape()[0]];
+  mgard_x::SIZE * Triangles = new mgard_x::SIZE[TrianglesArray.shape(0)];
+  T * Points = new T[PointsArray.shape(0)];
 
-  mgard_x::SIZE numTriangles = TrianglesArray.shape()[0] / 3;
-  mgard_x::SIZE numPoints = PointsArray.shape()[0] / 3;
+  mgard_x::SIZE numTriangles = TrianglesArray.shape(0) / 3;
+  mgard_x::SIZE numPoints = PointsArray.shape(0) / 3;
 
   memcpy(Triangles, TrianglesArray.hostCopy(),
          numTriangles * 3 * sizeof(mgard_x::SIZE));
@@ -93,7 +93,7 @@ vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value
   ds_from_mc.AddPointField(field_name, iso_data_vec);
   vtkm::cont::CellSetSingleType<> cellset;
   vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG> connectivity;
-  connectivity.Allocate(TrianglesArray.shape()[0]);
+  connectivity.Allocate(TrianglesArray.shape(0));
 
   // std::cout << "connectivity.GetNumberOfValues() = " << connectivity.GetNumberOfValues() << "\n";
 
@@ -185,8 +185,8 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
       iso_value, TrianglesArray, PointsArray, pass1_time, pass2_time, pass3_time, pass4_time, 0);
   mgard_x::DeviceRuntime<DeviceType>::SyncQueue(0);
   printf("mgard_x::FlyingEdges: %f\n", pass1_time + pass2_time + pass3_time + pass4_time);
-  std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape()[0]/3 << "\n";
-  std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape()[0]/3 << "\n";
+  std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape(0)/3 << "\n";
+  std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape(0)/3 << "\n";
 
   std::string field_name = "test_field";
   vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);

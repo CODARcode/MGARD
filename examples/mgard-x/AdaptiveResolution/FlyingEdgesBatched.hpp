@@ -333,12 +333,6 @@ public:
         SIZE const *edgeUses = flying_edges::GetEdgeUses(edgeCase);
         if (!flying_edges::fully_interior(state.boundaryStatus) ||
             flying_edges::case_includes_axes(edgeUses)) {
-          // if (edgeIds[4] > 10000) {
-          //   printf("edgeIds: %u %u %u %u %u %u %u %u %u %u %u %u\n",
-          //       edgeIds[0], edgeIds[1], edgeIds[2], edgeIds[3], edgeIds[4],
-          //       edgeIds[5], edgeIds[6], edgeIds[7], edgeIds[8], edgeIds[9],
-          //       edgeIds[10], edgeIds[11]);
-          // }
           flying_edges::Generate(f, i, r, state.boundaryStatus, edgeUses, edgeIds, iso_value,
                    v, points);
         }
@@ -406,7 +400,7 @@ public:
     FunctorType functor(nr, nc, nf, v, iso_value, axis_sum, axis_min, axis_max,
                         edges);
 
-    SIZE num_batches = v.getShape(0);
+    SIZE num_batches = v.shape(0);
     SIZE total_thread_z = num_batches;
     SIZE total_thread_y = nr;
     SIZE total_thread_x = nf;
@@ -437,7 +431,7 @@ public:
     FunctorType functor(nr, nc, nf, axis_sum, axis_min, axis_max, edges,
                         cell_tri_count);
 
-    SIZE num_batches = axis_sum.getShape(0);
+    SIZE num_batches = axis_sum.shape(0);
     SIZE total_thread_z = num_batches;
     SIZE total_thread_y = nr - 1;
     SIZE total_thread_x = nf - 1;
@@ -473,7 +467,7 @@ public:
     FunctorType functor(nr, nc, nf, v, iso_value, axis_sum_scan, axis_sum_scan_offset, axis_min, axis_max,
                         cell_tri_count_scan, cell_tri_count_scan_offset, edges, triangle_topology, points);
 
-    SIZE num_batches = v.getShape(0);
+    SIZE num_batches = v.shape(0);
     SIZE total_thread_z = num_batches;
     SIZE total_thread_y = nr - 1;
     SIZE total_thread_x = nf - 1;
@@ -504,7 +498,7 @@ public:
     const bool pitched = false;
     const bool managed = true;
 
-    SIZE num_batches = v.getShape(0);
+    SIZE num_batches = v.shape(0);
 
     
     Array<1, Array<3, SIZE, DeviceType>, DeviceType> axis_sum_array({num_batches}, pitched, managed);
@@ -537,6 +531,7 @@ public:
       SubArray subarray_of_subarray(axis_min_subarray);
       *subarray_of_array(i) = Array<2, SIZE, DeviceType>({nr, nf}, pitched);
       *subarray_of_subarray(i) = SubArray(*subarray_of_array(i));
+      subarray_of_array(i)->memset(0);
     }
 
     Array<1, Array<2, SIZE, DeviceType>, DeviceType> axis_max_array({num_batches}, pitched, managed);
@@ -546,6 +541,7 @@ public:
       SubArray subarray_of_subarray(axis_max_subarray);
       *subarray_of_array(i) = Array<2, SIZE, DeviceType>({nr, nf}, pitched);
       *subarray_of_subarray(i) = SubArray(*subarray_of_array(i));
+      subarray_of_array(i)->memset(0);
     }
 
     Array<1, Array<3, SIZE, DeviceType>, DeviceType> edges_array({num_batches}, pitched, managed);
@@ -555,6 +551,7 @@ public:
       SubArray subarray_of_subarray(edges_subarray);
       *subarray_of_array(i) = Array<3, SIZE, DeviceType>({nr, nc, nf}, pitched);
       *subarray_of_subarray(i) = SubArray(*subarray_of_array(i));
+      subarray_of_array(i)->memset(0);
     }
 
     Array<1, Array<2, SIZE, DeviceType>, DeviceType> cell_tri_count_array({num_batches}, pitched, managed);
@@ -564,6 +561,7 @@ public:
       SubArray subarray_of_subarray(cell_tri_count_subarray);
       *subarray_of_array(i) = Array<2, SIZE, DeviceType>({nr - 1, nf - 1}, pitched);
       *subarray_of_subarray(i) = SubArray(*subarray_of_array(i));
+      subarray_of_array(i)->memset(0);
     }
 
     Array<1, Array<1, SIZE, DeviceType>, DeviceType> cell_tri_count_scan_array({num_batches}, pitched, managed);
@@ -726,8 +724,6 @@ public:
     // printf("After pass3\n");    
     // PrintSubarray("cell_tri_count_scan_offset", cell_tri_count_scan_offset);
     // PrintSubarray("cell_tri_count_liearized(0)", *cell_tri_count_liearized((IDX)0));
-    // std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
-    // std::cout << "mgard_x::FlyingEdges::numTris: " << numTris << "\n";
     // PrintSubarray("axis_sum_liearized", axis_sum_liearized);
 
     // MemoryManager<DeviceType>().Copy1D(&newPointSize, axis_sum_scan(nr * nf * 3), 1, queue_idx);

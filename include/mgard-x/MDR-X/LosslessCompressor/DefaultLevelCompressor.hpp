@@ -68,7 +68,7 @@ public:
 
     SubArray<2, T, DeviceType> encoded_bitplanes_subarray(encoded_bitplanes);
     for (SIZE bitplane_idx = 0;
-         bitplane_idx < encoded_bitplanes_subarray.getShape(1);
+         bitplane_idx < encoded_bitplanes_subarray.shape(0);
          bitplane_idx++) {
       T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
       T *bitplane_host = new T[bitplane_sizes[bitplane_idx]];
