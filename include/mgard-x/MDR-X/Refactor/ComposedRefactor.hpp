@@ -107,7 +107,7 @@ private:
     //     std::endl; return false;
     // }
     for (DIM d = 0; d < D; d++) {
-      dimensions.push_back(hierarchy.dofs[d][0]);
+      dimensions.push_back(hierarchy.level_shape(target_level, d));
     }
 
     SubArray<D, T_data, DeviceType> data(data_array);
@@ -129,7 +129,7 @@ private:
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       SIZE curr_num_elems = 1;
       for (DIM d = 0; d < D; d++) {
-        curr_num_elems *= hierarchy.dofs[d][target_level - level_idx];
+        curr_num_elems *= hierarchy.level_shape(level_idx, d);
       }
       level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
       prev_num_elems = curr_num_elems;
@@ -164,7 +164,7 @@ private:
       Array<1, T_data, DeviceType> result_array({1});
       SubArray<1, T_data, DeviceType> result(result_array);
 
-      deviceReduce.AbsMax(levels_data[level_idx].getShape(0),
+      deviceReduce.AbsMax(levels_data[level_idx].shape(0),
                           levels_data[level_idx], result, queue_idx);
       T_data level_max_error = *(result_array.hostCopy());
       int level_exp = 0;
@@ -220,11 +220,11 @@ private:
 
         Byte *bitplane;
         MemoryManager<DeviceType>::MallocHost(
-            bitplane, compressed_bitplanes[level_idx][bitplane_idx].shape()[0],
+            bitplane, compressed_bitplanes[level_idx][bitplane_idx].shape(0),
             queue_idx);
         MemoryManager<DeviceType>::Copy1D(
             bitplane, compressed_bitplanes[level_idx][bitplane_idx].data(),
-            compressed_bitplanes[level_idx][bitplane_idx].shape()[0], queue_idx);
+            compressed_bitplanes[level_idx][bitplane_idx].shape(0), queue_idx);
         level_components[level_idx].push_back(bitplane);
       }
     }

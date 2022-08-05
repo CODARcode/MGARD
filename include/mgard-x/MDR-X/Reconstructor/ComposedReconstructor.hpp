@@ -33,12 +33,11 @@ public:
       : hierarchy(hierarchy), decomposer(decomposer), interleaver(interleaver),
         encoder(encoder), compressor(compressor), interpreter(interpreter),
         retriever(retriever) {
-    data_array = Array<D, T_data, DeviceType>(hierarchy.shape_org);
-    data_array.memset(0);
+    prev_reconstructed = false;
   }
 
   // reconstruct data from encoded streams
-  void reconstruct(double tolerance) {
+  Array<D, T_data, DeviceType> reconstruct(double tolerance) {
     MDR::Timer timer;
     timer.start();
     std::vector<std::vector<double>> level_abs_errors;
@@ -86,45 +85,41 @@ public:
       }
     }
     // TODO: uncomment skip level to reconstruct low resolution data
-    // target_level -= skipped_level;
+    target_level -= skipped_level;
+    // printf("target_level: %u\n", target_level);
     timer.end();
     // timer.print("Interpret and retrieval");
 
-    bool success = reconstruct(target_level, prev_level_num_bitplanes, 0);
-    retriever.release();
-    if (success)
-      return;
-    else {
-      std::cerr << "Reconstruct unsuccessful, return NULL pointer" << std::endl;
-      return;
-    }
+    return reconstruct(target_level, prev_level_num_bitplanes, 0);
+    // retriever.release();
+    // if (success)
+    //   return;
+    // else {
+    //   std::cerr << "Reconstruct unsuccessful, return NULL pointer" << std::endl;
+    //   return;
+    // }
   }
 
   // reconstruct progressively based on available data
   Array<D, T_data, DeviceType> progressive_reconstruct(double tolerance) {
 
     //printf("start progressive_reconstruct\n");
-
-    Array<D, T_data, DeviceType> curr_data_array(data_array);
-    // std::vector<T_data> cur_data(data);
-    // PrintSubarray("progressive_reconstruct::curr_data_array", SubArray(curr_data_array));
-
-    reconstruct(tolerance);
-
-    // LevelwiseCalcNDKernel<D, T_data, ADD, DeviceType>().Execute(
-    //     hierarchy.shapes_h[0], hierarchy.shapes_d[0],
-    //     SubArray<D, T_data, DeviceType>(curr_data_array),
-    //     SubArray<D, T_data, DeviceType>(data_array), 0);
-
-    // PrintSubarray("curr_data_array", SubArray(curr_data_array));
-
-    LwpkReo<D, T_data, ADD, DeviceType>().Execute(
-        SubArray<D, T_data, DeviceType>(curr_data_array),
-        SubArray<D, T_data, DeviceType>(data_array), 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-
-    // PrintSubarray("progressive_reconstruct::data_array", SubArray(data_array));
-    return data_array;
+    if (!prev_reconstructed) { // First time reconstruction
+      data_array = reconstruct(tolerance);
+      prev_reconstructed = true;
+      return data_array;
+    } else {
+      Array<D, T_data, DeviceType> curr_data_array(data_array);
+      // Reconstruct based on newly retrieved bitplanes
+      data_array = reconstruct(tolerance);
+      // TODO: if we change resolusion here, we need to do something
+      // Combine previously recomposed data with newly recomposed data
+      LwpkReo<D, T_data, ADD, DeviceType>().Execute(
+          SubArray<D, T_data, DeviceType>(curr_data_array),
+          SubArray<D, T_data, DeviceType>(data_array), 0);
+      DeviceRuntime<DeviceType>::SyncQueue(0);
+      return data_array;
+    }
     // return data_array.hostCopy(true);
 
     // TODO: add resolution changes
@@ -177,20 +172,31 @@ public:
   }
 
 private:
-  bool reconstruct(uint8_t target_level,
+  Array<D, T_data, DeviceType> reconstruct(uint8_t target_level,
                    const std::vector<uint8_t> &prev_level_num_bitplanes,
                    int queue_idx, bool progressive = true) {
+
+    // printf("level_num_elems: ");
+    // Calculating number of elements/coefficient in each level
+    std::vector<SIZE> level_num_elems(target_level + 1);
+    SIZE prev_num_elems = 0;
+    for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
+      SIZE curr_num_elems = 1;
+      for (DIM d = 0; d < D; d++) {
+        curr_num_elems *= hierarchy.level_shape(level_idx, d);
+      }
+      level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
+      prev_num_elems = curr_num_elems;
+      // printf("%u ", level_num_elems[level_idx]);
+    }
+    // printf("\n");
+
+    // Prepare output data buffer
+    Array<D, T_data, DeviceType> output_data(hierarchy.level_shape(target_level));
+
     MDR::Timer timer;
     timer.start();
-    // auto level_dims = compute_level_dims(dimensions, target_level);
-    // auto reconstruct_dimensions = level_dims[target_level];
-    // uint32_t num_elements = 1;
-    // for(const auto& dim:reconstruct_dimensions){
-    // num_elements *= dim;
-    // }
-    // data.clear();
-    // data = std::vector<T_data>(num_elements, 0);
-
+    // Retrieve bitplanes of each level
     std::vector<std::vector<Array<1, Byte, DeviceType>>> compressed_bitplanes;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       compressed_bitplanes.push_back(std::vector<Array<1, Byte, DeviceType>>());
@@ -201,48 +207,34 @@ private:
                                            bitplane_idx];
         // printf("level: %d, bitplane_idx: %d, size: %u\n", level_idx,
         // bitplane_idx, size);
+        // Allocate space to hold compressed bitplanes
         compressed_bitplanes[level_idx].push_back(
             Array<1, Byte, DeviceType>({size}));
+        // Copy compressed bitplanes to Array
         compressed_bitplanes[level_idx][bitplane_idx].load(
             level_components[level_idx][bitplane_idx]);
       }
     }
 
-    // printf("level_num_elems: ");
-    std::vector<SIZE> level_num_elems(target_level + 1);
-    SIZE prev_num_elems = 0;
-    for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
-      SIZE curr_num_elems = 1;
-      for (DIM d = 0; d < D; d++) {
-        curr_num_elems *= hierarchy.dofs[d][target_level - level_idx];
-      }
-      level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
-      prev_num_elems = curr_num_elems;
-      // printf("%u ", level_num_elems[level_idx]);
-    }
-    // printf("\n");
-
     timer.end();
     // timer.print("Reconstruct Preprocessing");
-
-    // auto level_elements = compute_level_elements(level_dims, target_level);
-    // std::vector<uint32_t> dims_dummy(reconstruct_dimensions.size(), 0);
 
     Array<1, T_data, DeviceType> *levels_array =
         new Array<1, T_data, DeviceType>[target_level + 1];
     SubArray<1, T_data, DeviceType> *levels_data =
         new SubArray<1, T_data, DeviceType>[target_level + 1];
 
-    for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
+    // Decompress and decode bitplanes of each level
+    for (int level_idx = 0; level_idx <= target_level; level_idx++) {
       timer.start();
-      // compressor.decompress_level(level_components[i], level_sizes[i],
-      // prev_level_num_bitplanes[i], level_num_bitplanes[i] -
-      // prev_level_num_bitplanes[i], stopping_indices[i]);
+      // Number of bitplanes need to be retrieved in addition to previously already retrieved bitplanes
       SIZE num_bitplanes =
           level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
+      // Allocate space for the bitplanes to be retrieved
       Array<2, T_bitplane, DeviceType> encoded_bitplanes(
           {num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
 
+      // Decompress bitplanes: compressed_bitplanes[level_idx] --> encoded_bitplanes
       compressor.decompress_level(
           level_sizes[level_idx], compressed_bitplanes[level_idx],
           encoded_bitplanes, prev_level_num_bitplanes[level_idx],
@@ -251,12 +243,11 @@ private:
       timer.end();
       // timer.print("Lossless");
       timer.start();
+
+      // Compute the exponent of max abs value of the current level needed for decoding
       int level_exp = 0;
       frexp(level_error_bounds[level_idx], &level_exp);
-      // auto level_decoded_data =
-      // encoder.progressive_decode(level_components[i], level_elements[i],
-      // level_exp, prev_level_num_bitplanes[i], level_num_bitplanes[i] -
-      // prev_level_num_bitplanes[i], i);
+      // Decode bitplanes: encoded_bitplanes --> levels_array[level_idx]
       levels_array[level_idx] = encoder.progressive_decode(
           level_num_elems[level_idx], prev_level_num_bitplanes[level_idx],
           num_bitplanes, level_exp,
@@ -278,23 +269,25 @@ private:
     }
 
     timer.start();
+    // Put decoded coefficients back to reordered layout
     interleaver.reposition(levels_data,
-                           SubArray<D, T_data, DeviceType>(data_array),
-                           target_level + 1, queue_idx);
+                           SubArray<D, T_data, DeviceType>(output_data),
+                           target_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     // timer.print("Reposition");
 
     timer.start();
     // PrintSubarray("before recompose", SubArray(data_array));
-    decomposer.recompose(SubArray<D, T_data, DeviceType>(data_array),
+    // Recompose data
+    decomposer.recompose(SubArray<D, T_data, DeviceType>(output_data),
                          target_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     // PrintSubarray("after recompose", SubArray(data_array));
     timer.end();
     // timer.print("Recomposing");
 
-    return true;
+    return output_data;
   }
 
   Hierarchy<D, T_data, DeviceType> &hierarchy;
@@ -311,6 +304,7 @@ private:
   std::vector<Array<1, T_data, DeviceType>> levels_array;
   std::vector<SubArray<1, T_data, DeviceType>> levels_data;
   Array<D, T_data, DeviceType> data_array;
+  bool prev_reconstructed;
 
   std::vector<T_data> data;
   std::vector<SIZE> dimensions;
