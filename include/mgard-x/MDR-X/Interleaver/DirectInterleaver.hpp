@@ -7,50 +7,6 @@
 
 #include "InterleaverInterface.hpp"
 
-namespace MDR {
-// direct interleaver with in-order recording
-template <typename T>
-class DirectInterleaver : public concepts::InterleaverInterface<T> {
-public:
-  DirectInterleaver() {}
-  void interleave(T const *data, const std::vector<uint32_t> &dims,
-                  const std::vector<uint32_t> &dims_fine,
-                  const std::vector<uint32_t> &dims_coasre, T *buffer) const {
-    uint32_t dim0_offset = dims[1] * dims[2];
-    uint32_t dim1_offset = dims[2];
-    uint32_t count = 0;
-    for (int i = 0; i < dims_fine[0]; i++) {
-      for (int j = 0; j < dims_fine[1]; j++) {
-        for (int k = 0; k < dims_fine[2]; k++) {
-          if ((i < dims_coasre[0]) && (j < dims_coasre[1]) &&
-              (k < dims_coasre[2]))
-            continue;
-          buffer[count++] = data[i * dim0_offset + j * dim1_offset + k];
-        }
-      }
-    }
-  }
-  void reposition(T const *buffer, const std::vector<uint32_t> &dims,
-                  const std::vector<uint32_t> &dims_fine,
-                  const std::vector<uint32_t> &dims_coasre, T *data) const {
-    uint32_t dim0_offset = dims[1] * dims[2];
-    uint32_t dim1_offset = dims[2];
-    uint32_t count = 0;
-    for (int i = 0; i < dims_fine[0]; i++) {
-      for (int j = 0; j < dims_fine[1]; j++) {
-        for (int k = 0; k < dims_fine[2]; k++) {
-          if ((i < dims_coasre[0]) && (j < dims_coasre[1]) &&
-              (k < dims_coasre[2]))
-            continue;
-          data[i * dim0_offset + j * dim1_offset + k] = buffer[count++];
-        }
-      }
-    }
-  }
-  void print() const { std::cout << "Direct interleaver" << std::endl; }
-};
-} // namespace MDR
-
 namespace mgard_x {
 namespace MDR {
 
@@ -96,7 +52,7 @@ public:
 #define KERNEL(R, C, F)                                                        \
   {                                                                            \
     using FunctorType =                                                        \
-        DirectInterleaverFunctor<D, T, R, C, F, Direction, DeviceType>;        \
+        LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;        \
     using TaskType = Task<FunctorType>;                                        \
     TaskType task = GenTask<R, C, F>(level_ranges, l_target, v, level_v, queue_idx);\
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
@@ -125,21 +81,20 @@ public:
       : hierarchy(hierarchy) {}
   void interleave(SubArray<D, T, DeviceType> decomposed_data,
                   SubArray<1, T, DeviceType> *levels_decomposed_data,
-                  SIZE num_levels, int queue_idx) const {
+                  SIZE target_level, int queue_idx) const {
     // PrintSubarray("decomposed_data", decomposed_data);
-    assert(hierarchy.l_target+1 == num_levels);
     SubArray<1, T, DeviceType> *levels_decomposed_data_device;
 
     MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
-                                        num_levels, queue_idx);
+                                        target_level+1, queue_idx);
     MemoryManager<DeviceType>::Copy1D(levels_decomposed_data_device,
-                                      levels_decomposed_data, num_levels,
+                                      levels_decomposed_data, target_level+1,
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
     DirectInterleaverKernel<D, T, Interleave, DeviceType>().Execute(
         SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
-        hierarchy.l_target, decomposed_data,
+        target_level, decomposed_data,
         levels_decomposed_data_device, queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -151,21 +106,20 @@ public:
     // }
   }
   void reposition(SubArray<1, T, DeviceType> *levels_decomposed_data,
-                  SubArray<D, T, DeviceType> decomposed_data, SIZE num_levels,
+                  SubArray<D, T, DeviceType> decomposed_data, SIZE target_level,
                   int queue_idx) const {
-    assert(hierarchy.l_target+1 == num_levels);
     SubArray<1, T, DeviceType> *levels_decomposed_data_device;
 
     MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
-                                        num_levels, queue_idx);
+                                        target_level+1, queue_idx);
     MemoryManager<DeviceType>::Copy1D(levels_decomposed_data_device,
-                                      levels_decomposed_data, num_levels,
+                                      levels_decomposed_data, target_level+1,
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
     DirectInterleaverKernel<D, T, Reposition, DeviceType>().Execute(
         SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
-        hierarchy.l_target, decomposed_data,
+        target_level, decomposed_data,
         levels_decomposed_data_device, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   }
