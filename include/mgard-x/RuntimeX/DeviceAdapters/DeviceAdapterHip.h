@@ -385,14 +385,8 @@ public:
       SupportCooperativeGroups[d] = false;
       hipDeviceProp_t prop;
       hipGetDeviceProperties(&prop, d);
-      ArchitectureGeneration[d] = 1; // default optimized for Volta
-      if (prop.major == 7 && prop.minor == 0) {
-        ArchitectureGeneration[d] = 1;
-      } else if (prop.major == 7 && (prop.minor == 2 || prop.minor == 5)) {
-        ArchitectureGeneration[d] = 2;
-      }
-      MaxNumThreadsPerTB[d] = 32; // Due to a bug in Cooperative Groups in HIP
-      WarpSize[d] = 32;
+      // Setting WarpSize[d] to true value (64) can trigger a bug
+      WarpSize[d] = MGARDX_WARP_SIZE; // equal to 32
       // DeviceNames[d] = std::string(prop.name); // Not working in HIP
       DeviceNames[d] = std::string("AMD GPU");
     }
