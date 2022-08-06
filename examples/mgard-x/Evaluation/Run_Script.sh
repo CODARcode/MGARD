@@ -1,5 +1,5 @@
-MgardSerialExec="../../../build-$1-$2/bin/MgardSerialExec"
-MgardXExec="../../../build-$1-$2/bin/mgard-x"
+MgardSerialExec="../../../build-$1-$2/mgard/bin/MgardSerialExec"
+MgardXExec="../../../build-$1-$2/mgard/bin/mgard-x"
 
 DATA_DIR=$HOME/dev/data
 NYX_DATA=$DATA_DIR/512x512x512/velocity_x.dat
