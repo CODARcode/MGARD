@@ -414,8 +414,8 @@ public:
 
   MGARDX_EXEC void Operation8() {
     // Adjust the search window on the diagonal
-    if (FunctorBase<DeviceType>::GetThreadIdX() == 16) {
-      if (oneorzero[31] != 0) {
+    if (FunctorBase<DeviceType>::GetThreadIdX() == MGARDX_WARP_SIZE/2) {
+      if (oneorzero[MGARDX_WARP_SIZE-1] != 0) {
         *x_bottom = current_x;
         *y_bottom = current_y;
       } else {
@@ -604,7 +604,7 @@ public:
   MGARDX_CONT size_t shared_memory_size() {
     size_t sm_size = 0;
     sm_size += 5 * sizeof(int32_t);
-    sm_size += 32 * sizeof(int32_t);
+    sm_size += DeviceRuntime<DeviceType>::GetWarpSize() * sizeof(int32_t);
     return sm_size;
   }
 

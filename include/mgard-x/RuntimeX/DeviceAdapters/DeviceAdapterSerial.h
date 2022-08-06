@@ -635,7 +635,7 @@ public:
 
     for (int d = 0; d < NumDevices; d++) {
       MaxSharedMemorySize[d] = 1e6;
-      WarpSize[d] = 32;
+      WarpSize[d] = MGARDX_WARP_SIZE;
       NumSMs[d] = 80;
       MaxNumThreadsPerSM[d] = 1024;
       MaxNumThreadsPerTB[d] = 1024;

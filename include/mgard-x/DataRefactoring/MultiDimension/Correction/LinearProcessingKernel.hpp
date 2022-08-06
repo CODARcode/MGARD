@@ -1043,7 +1043,6 @@ public:
                SubArray<D, T, DeviceType> w, int queue_idx) {
     int range_l =
         std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.lpk2_nd[prec][range_l];
     double min_time = std::numeric_limits<double>::max();
