@@ -228,7 +228,7 @@ public:
     for (auto &device : d_devices) {
       MaxSharedMemorySize[d] =
           device.get_info<sycl::info::device::local_mem_size>();
-      WarpSize[d] = 32;
+      WarpSize[d] = MGARDX_WARP_SIZE;
       NumSMs[d] = device.get_info<sycl::info::device::max_compute_units>();
       MaxNumThreadsPerSM[d] =
           device.get_info<sycl::info::device::max_work_group_size>();

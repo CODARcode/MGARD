@@ -424,12 +424,6 @@ public:
       SupportCooperativeGroups[d] = true;
       cudaDeviceProp prop;
       cudaGetDeviceProperties(&prop, d);
-      ArchitectureGeneration[d] = 1; // default optimized for Volta
-      if (prop.major == 7 && prop.minor == 0) {
-        ArchitectureGeneration[d] = 1;
-      } else if (prop.major == 7 && (prop.minor == 2 || prop.minor == 5)) {
-        ArchitectureGeneration[d] = 2;
-      }
       DeviceNames[d] = std::string(prop.name);
     }
   }
