@@ -229,7 +229,7 @@ MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int precision_idx,
   // std::cout << "********************intput_file: " + input_file << "\n";
 
   std::string regex1_string = "(int AutoTuningTable<.*>::" + kernel_name +
-                              ".*\\{\n)((.*\\{.*\\}.*\n){" +
+                              ".*\\{)((.*\\{.*\\}.*\n){" +
                               std::to_string(precision_idx) + "})(.*\\{(., ){" +
                               std::to_string(range_l) + "})(.)";
 
