@@ -45,12 +45,57 @@ serialize_header_crc32(std::uint_least64_t crc32) {
   return serialize<std::uint_least32_t, HEADER_CRC32_SIZE>(crc32);
 }
 
+namespace {
+
+template <typename Int>
+void check_quantization_buffer_(void const *const p, const std::size_t n) {
+  if (n % sizeof(Int)) {
+    throw std::runtime_error(
+        "quantization buffer size not a multiple of quantization type size");
+  }
+  check_alignment<Int>(p);
+}
+
+} // namespace
+
+void check_quantization_buffer(const pb::Header &header, void const *const p,
+                               const std::size_t n) {
+  switch (header.quantization().type()) {
+  case pb::Quantization::INT8_T:
+    return check_quantization_buffer_<std::int8_t>(p, n);
+  case pb::Quantization::INT16_T:
+    return check_quantization_buffer_<std::int16_t>(p, n);
+  case pb::Quantization::INT32_T:
+    return check_quantization_buffer_<std::int32_t>(p, n);
+  case pb::Quantization::INT64_T:
+    return check_quantization_buffer_<std::int64_t>(p, n);
+  default:
+    throw std::runtime_error("unrecognized quantization type");
+  }
+}
+
 template <> pb::Dataset::Type type_to_dataset_type<float>() {
   return pb::Dataset::FLOAT;
 }
 
 template <> pb::Dataset::Type type_to_dataset_type<double>() {
   return pb::Dataset::DOUBLE;
+}
+
+template <> pb::Quantization::Type type_to_quantization_type<std::int8_t>() {
+  return pb::Quantization::INT8_T;
+}
+
+template <> pb::Quantization::Type type_to_quantization_type<std::int16_t>() {
+  return pb::Quantization::INT16_T;
+}
+
+template <> pb::Quantization::Type type_to_quantization_type<std::int32_t>() {
+  return pb::Quantization::INT32_T;
+}
+
+template <> pb::Quantization::Type type_to_quantization_type<std::int64_t>() {
+  return pb::Quantization::INT64_T;
 }
 
 MemoryBuffer<unsigned char> quantization_buffer(const pb::Header &header,
@@ -132,6 +177,7 @@ void populate_defaults(pb::Header &header) {
         pb::Encoding::CPU_HUFFMAN_ZLIB
 #endif
     );
+    e.set_serialization(pb::Encoding::RFMH);
   }
   {
     pb::Device &device = *header.mutable_device();
@@ -204,7 +250,7 @@ pb::Header read_metadata(BufferWindow &window) {
   const uint_least64_t header_size = read_header_size(window);
   const uint_least32_t header_crc32 = read_header_crc32(window);
   check_header_crc32(window, header_size, header_crc32);
-  return read_header(window, header_size);
+  return read_message<pb::Header>(window, header_size);
 }
 
 namespace {
@@ -230,28 +276,6 @@ void write_metadata(std::ostream &ostream, const pb::Header &header) {
 
   ostream.write(reinterpret_cast<char const *>(header_bytes), header_size);
   delete[] header_bytes;
-}
-
-pb::Header read_header(BufferWindow &window,
-                       const std::uint_least64_t header_size) {
-  // The `CodedInputStream` constructor takes an `int`.
-  if (header_size > std::numeric_limits<int>::max()) {
-    throw std::runtime_error("header is too large (size would overflow)");
-  }
-  // Check that the read will stay in the buffer.
-  unsigned char const *const next = window.next(header_size);
-  mgard::pb::Header header;
-  google::protobuf::io::CodedInputStream stream(
-      static_cast<google::protobuf::uint8 const *>(window.current),
-      header_size);
-  if (not header.ParseFromCodedStream(&stream)) {
-    throw std::runtime_error("header parsing encountered read or format error");
-  }
-  if (not stream.ConsumedEntireMessage()) {
-    throw std::runtime_error("part of header left unparsed");
-  }
-  window.current = next;
-  return header;
 }
 
 void check_mgard_version(const pb::Header &header) {

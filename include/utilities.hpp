@@ -9,6 +9,7 @@
 #include <iterator>
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace mgard {
 
@@ -292,6 +293,8 @@ bool operator==(const RangeSlice<It> &a, const RangeSlice<It> &b);
 template <typename It>
 bool operator!=(const RangeSlice<It> &a, const RangeSlice<It> &b);
 
+#ifndef __NVCC__
+
 //! Mimic Python's `itertools.product`. Allow iteration over the Cartesian
 //! product of a collection of ranges.
 //!
@@ -410,6 +413,8 @@ private:
   std::array<T_iterator, N> inner;
 };
 
+#endif
+
 //! Check that a dimension index is in bounds.
 //!
 //!\param dimension Dimension index.
@@ -447,6 +452,188 @@ template <typename T> struct MemoryBuffer {
 
   //! Number of elements in the buffer.
   std::size_t size;
+};
+
+//! Range allowing iteration over the bits in an array.
+//!
+//! Iterating over this object yields each byte's bits from most to least
+//! significant.
+class Bits {
+public:
+  //! Constructor.
+  //!
+  //!\param begin Pointer to the beginning of the array to be iterated over.
+  //!\param end Pointer to the end of the array to be iterated over.
+  Bits(unsigned char const *const begin, unsigned char const *const end);
+
+  //! Constructor.
+  //!
+  //!\overload
+  //!
+  //!\param begin Pointer to the beginning of the array to be iterated over.
+  //!\param end Pointer to the end of the array to be iterated over.
+  //!\param offset_end Offset for end iterator.
+  Bits(unsigned char const *const begin, unsigned char const *const end,
+       const unsigned char offset_end);
+
+  //! Equality comparison.
+  bool operator==(const Bits &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const Bits &other) const;
+
+  // Forward declaration.
+  class iterator;
+
+  //! Return an iterator to the beginning of the bit range.
+  iterator begin() const;
+
+  //! Return an iterator to the end of the bit range.
+  iterator end() const;
+
+private:
+  //! Pointer to the beginning of the array to be iterated over.
+  unsigned char const *begin_;
+
+  //! Pointer to the beginning of the array to be iterated over.
+  unsigned char const *end_;
+
+  //! Offset for end iterator.
+  unsigned char offset_end;
+};
+
+//! Iterator over a bit range.
+class Bits::iterator {
+public:
+  //! Category of the iterator.
+  using iterator_category = std::forward_iterator_tag;
+  //! Type iterated over.
+  using value_type = bool;
+  //! Type for distance between iterators.
+  using difference_type = std::ptrdiff_t;
+  //! Pointer to `value_type`.
+  using pointer = value_type *;
+  //! Type returned by the dereference operator.
+  using reference = value_type;
+
+  //! Constructor.
+  //!
+  //!\param bits Associated bit range.
+  //!\param p Position in the array being iterated over.
+  //!\param offset Offset within the current byte.
+  iterator(const Bits &bits, unsigned char const *const p,
+           const unsigned char offset);
+
+  //! Equality comparison.
+  bool operator==(const iterator &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const iterator &other) const;
+
+  //! Preincrement.
+  iterator &operator++();
+
+  //! Postincrement.
+  iterator operator++(int);
+
+  //! Dereference.
+  reference operator*() const;
+
+private:
+  //! Associated bit range.
+  const Bits &iterable;
+
+  //! Position in the array being iterated over.
+  unsigned char const *p;
+
+  //! Offset within the current byte.
+  unsigned char offset;
+};
+
+//! Concatenated iterator ranges.
+//!
+//! Approximate Python's `itertools.chain` generator.
+template <typename It> class Chain {
+public:
+  //! Constructor.
+  //!
+  //!\param segments Beginnings and lengths of iterator ranges.
+  Chain(const std::vector<std::pair<It, std::size_t>> &segments);
+
+  // Forward declaration.
+  class iterator;
+
+  //! Return an iterator to the beginning of the enumeration.
+  iterator begin() const;
+
+  //! Return an iterator to the end of the enumeration.
+  iterator end() const;
+
+  //! Beginnings and lengths of iterator ranges.
+  std::vector<std::pair<It, std::size_t>> segments;
+};
+
+//! Equality comparison.
+template <typename It> bool operator==(const Chain<It> &a, const Chain<It> &b);
+
+//! Inequality comparison.
+template <typename It> bool operator!=(const Chain<It> &a, const Chain<It> &b);
+
+//! Iterator over concatenated iterator ranges.
+template <typename It> class Chain<It>::iterator {
+public:
+  //! Category of the iterator.
+  using iterator_category = std::forward_iterator_tag;
+  //! Type iterated over.
+  using value_type = typename std::iterator_traits<It>::value_type;
+  //! Type for distance between iterators.
+  using difference_type = typename std::iterator_traits<It>::difference_type;
+  //! Pointer to `value_type`.
+  using pointer = typename std::iterator_traits<It>::pointer;
+  //! Type returned by the dereference operator.
+  using reference = typename std::iterator_traits<It>::reference;
+
+  //! Constructor.
+  //!
+  //!\param iterable Associated chain.
+  //!\param q Iterator to current segment.
+  iterator(
+      const Chain &iterable,
+      const typename std::vector<std::pair<It, std::size_t>>::const_iterator q);
+
+  //! Equality comparison.
+  bool operator==(const iterator &other) const;
+
+  //! Inequality comparison.
+  bool operator!=(const iterator &other) const;
+
+  //! Preincrement.
+  iterator &operator++();
+
+  //! Postincrement.
+  iterator operator++(int);
+
+  //! Dereference.
+  reference operator*() const;
+
+private:
+  //! Associated bit range.
+  const Chain &iterable;
+
+  //! Iterator to current segment.
+  typename std::vector<std::pair<It, std::size_t>>::const_iterator q;
+
+  //! Position in the current segment.
+  It p;
+
+  //! Distance from the beginning of the current segment.
+  std::size_t i;
+
+  //! Length of the current segment.
+  std::size_t n;
+
+  //! Zero `i`; populate `p` and `n` from `q` if not at end.
+  void conditionally_start_segment();
 };
 
 } // namespace mgard

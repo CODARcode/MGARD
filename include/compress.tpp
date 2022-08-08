@@ -20,15 +20,13 @@
 #include "MGARDConfig.hpp"
 #include "TensorMultilevelCoefficientQuantizer.hpp"
 #include "TensorNorms.hpp"
-#include "compressors.hpp"
 #include "decompose.hpp"
 #include "format.hpp"
+#include "lossless.hpp"
 #include "quantize.hpp"
 #include "shuffle.hpp"
 
 namespace mgard {
-
-using DEFAULT_INT_T = std::int64_t;
 
 template <std::size_t N, typename Real>
 CompressedDataset<N, Real>

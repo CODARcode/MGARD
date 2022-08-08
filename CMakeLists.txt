@@ -11,11 +11,11 @@ endif()
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 set(MGARD_VERSION_MAJOR "1")
-set(MGARD_VERSION_MINOR "2")
+set(MGARD_VERSION_MINOR "3")
 set(MGARD_VERSION_PATCH "0")
 
 set(MGARD_FILE_VERSION_MAJOR "1")
-set(MGARD_FILE_VERSION_MINOR "0")
+set(MGARD_FILE_VERSION_MINOR "1")
 set(MGARD_FILE_VERSION_PATCH "0")
 
 project(
@@ -201,9 +201,15 @@ set(
   MGARD_LIBRARY_CPP
         src/compress.cpp
         src/compress_internal.cpp
-  src/compressors.cpp
+  src/utilities.cpp
+  src/huffman.cpp
+  src/lossless_zlib.cpp
+  src/lossless_dispatcher.cpp
   src/format.cpp
 )
+if(zstd_FOUND)
+	list(APPEND MGARD_LIBRARY_CPP src/lossless_zstd.cpp)
+endif()
 
 set(MAXIMUM_DIMENSION 4 CACHE STRING "Maximum supported dimension for self-describing decompression.")
 

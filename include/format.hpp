@@ -66,6 +66,14 @@ serialize_header_crc32(std::uint_least64_t crc32);
 //!\param p Pointer whose alignment will be checked.
 template <typename T> void check_alignment(void const *const p);
 
+//! Check that a quantization buffer has the right alignment and a valid size.
+//!
+//!\param header Self-describing dataset header.
+//!\param p Quantization buffer.
+//!\param n Size in bytes of quantization buffer.
+void check_quantization_buffer(const pb::Header &header, void const *const p,
+                               const std::size_t n);
+
 //! Determine whether an integral type is big endian.
 template <typename Int> bool big_endian();
 
@@ -73,6 +81,11 @@ template <typename Int> bool big_endian();
 //!
 //!\return `Dataset::Type` corresponding to `Real`.
 template <typename Real> pb::Dataset::Type type_to_dataset_type();
+
+//! Return the `Quantization::Type` value corrresponding to an integral type.
+//!
+//!\return `Quantization::Type` corresponding to `Int`.
+template <typename Int> pb::Quantization::Type type_to_quantization_type();
 
 //! Allocate a quantization buffer of the proper alignment and size.
 //!
@@ -165,16 +178,19 @@ pb::Header read_metadata(BufferWindow &window);
 //!\param header Header of the self-describing buffer.
 void write_metadata(std::ostream &ostream, const pb::Header &header);
 
-//! Parse the header of a self-describing buffer.
+template <typename T>
+//! Parse a message from a buffer window.
 //!
 //! The buffer pointer will be advanced past the header.
 //!
-//!\param window Window into the self-describing buffer. The current position
-//! should be the start of the header.
-//!\param header_size Size in bytes of the header.
-//!\return Header of the self-describing buffer.
-pb::Header read_header(BufferWindow &window,
-                       const std::uint_least64_t header_size);
+//! This function was originally written to parse the header from a
+//! self-describing buffer.
+//
+//!\param window Buffer window containing the serialized message. The current
+//! position should be the start of the message.
+//!\param nmessage Size in bytes of the message.
+//!\return Parsed message.
+T read_message(BufferWindow &window, const std::uint_least64_t nmessage);
 
 //! Check that a dataset was compressed with a compatible version of MGARD.
 //!

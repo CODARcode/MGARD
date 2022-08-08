@@ -171,3 +171,140 @@ TEST_CASE("CartesianProduct predecessors and successors", "[utilities]") {
 
   REQUIRE(tracker);
 }
+
+namespace {
+
+void test_bit_equality(const mgard::Bits &bits,
+                       const std::vector<bool> &expected) {
+  TrialTracker tracker;
+  std::vector<bool>::const_iterator p = expected.begin();
+  for (const bool b : bits) {
+    tracker += b == *p++;
+  }
+  REQUIRE(tracker);
+}
+
+} // namespace
+
+TEST_CASE("Bits iteration", "[utilities]") {
+  SECTION("zero end offsets") {
+    {
+      unsigned char const a[1]{0x3d};
+      const mgard::Bits bits(a, a + 1);
+      const std::vector<bool> expected{// `3`.
+                                       false, false, true, true,
+                                       // `d`.
+                                       true, true, false, true};
+      test_bit_equality(bits, expected);
+    }
+    {
+      unsigned char const a[2]{0xe6, 0x0a};
+      const mgard::Bits bits(a, a + 2);
+      const std::vector<bool> expected{// `e`.
+                                       true, true, true, false,
+                                       // `6`.
+                                       false, true, true, false,
+                                       // `0`.
+                                       false, false, false, false,
+                                       // `a`.
+                                       true, false, true, false};
+      test_bit_equality(bits, expected);
+    }
+    {
+      unsigned char const a[3]{0x12, 0x0c, 0xff};
+      const mgard::Bits bits(a, a + 3);
+      const std::vector<bool> expected{// `1`.
+                                       false, false, false, true,
+                                       // `2`.
+                                       false, false, true, false,
+                                       // `0`.
+                                       false, false, false, false,
+                                       // `c`.
+                                       true, true, false, false,
+                                       // `f`.
+                                       true, true, true, true,
+                                       // `f`.
+                                       true, true, true, true};
+      test_bit_equality(bits, expected);
+    }
+  }
+  SECTION("nonzero end offsets") {
+    {
+      unsigned char const a[1]{0xff};
+      const mgard::Bits bits(a, a, 7);
+      const std::vector<bool> expected(7, true);
+      test_bit_equality(bits, expected);
+    }
+    {
+      unsigned char const a[2]{0xa9, 0x33};
+      const mgard::Bits bits(a, a + 1, 2);
+      const std::vector<bool> expected{true,  false, true, false, true,
+                                       false, false, true, false, false};
+      test_bit_equality(bits, expected);
+    }
+    {
+      unsigned char const a[3]{0x1e, 0x0f, 0x77};
+      const mgard::Bits bits(a, a + 2, 6);
+      const std::vector<bool> expected{false, false, false, true,  true,  true,
+                                       true,  false, false, false, false, false,
+                                       true,  true,  true,  true,  false, true,
+                                       true,  true,  false, true};
+      test_bit_equality(bits, expected);
+    }
+  }
+}
+
+TEST_CASE("Chain iteration", "[utilities]") {
+  SECTION("reading") {
+    const std::size_t N = 5;
+    std::array<std::vector<unsigned char>, N> in;
+    in.at(0) = {0};
+    in.at(1) = {1, 2, 3};
+    in.at(2) = {};
+    in.at(3) = {4, 5, 6};
+    in.at(4) = {7, 8, 9, 10};
+    using It = std::vector<unsigned char>::const_iterator;
+    std::vector<std::pair<It, std::size_t>> segments;
+    for (const std::vector<unsigned char> &in_ : in) {
+      segments.push_back({in_.begin(), in_.size()});
+    }
+    unsigned char expected = 0;
+    TrialTracker tracker;
+    for (const unsigned char read : mgard::Chain(segments)) {
+      tracker += read == expected++;
+    }
+    REQUIRE(tracker);
+    REQUIRE(expected == 11);
+  }
+
+  SECTION("writing") {
+    const std::size_t N = 4;
+    std::array<std::vector<unsigned short int>, N> out;
+    const std::array<std::size_t, N> ns{3, 5, 0, 1};
+    using It = std::vector<unsigned short int>::iterator;
+    std::vector<std::pair<It, std::size_t>> segments;
+    segments.reserve(N);
+    for (std::size_t i = 0; i < N; ++i) {
+      std::vector<unsigned short int> &out_ = out.at(i);
+      const std::size_t n = ns.at(i);
+      out_.resize(n);
+      segments.push_back({out_.begin(), n});
+    }
+
+    unsigned short int a = 1;
+    unsigned short int b = 1;
+    for (unsigned short int &c : mgard::Chain(segments)) {
+      c = a;
+      const unsigned short int tmp = a + b;
+      a = b;
+      b = tmp;
+    }
+
+    std::array<std::vector<unsigned short int>, N> expected;
+    expected.at(0) = {1, 1, 2};
+    expected.at(1) = {3, 5, 8, 13, 21};
+    expected.at(2) = {};
+    expected.at(3) = {34};
+    REQUIRE(out == expected);
+  }
+}

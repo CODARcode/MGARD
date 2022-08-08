@@ -201,6 +201,8 @@ bool operator!=(const RangeSlice<It> &a, const RangeSlice<It> &b) {
   return !operator==(a, b);
 }
 
+#ifndef __NVCC__
+
 template <typename T, std::size_t N>
 CartesianProduct<T, N>::CartesianProduct(const std::array<T, N> factors)
     : factors(factors) {
@@ -325,6 +327,8 @@ typename CartesianProduct<T, N>::iterator::reference
   return value;
 }
 
+#endif
+
 template <std::size_t N>
 void check_dimension_index_bounds(const std::size_t dimension) {
   if (dimension >= N) {
@@ -344,5 +348,81 @@ MemoryBuffer<T>::MemoryBuffer(T *const buffer, const std::size_t size)
 template <typename T>
 MemoryBuffer<T>::MemoryBuffer(const std::size_t size)
     : MemoryBuffer(new T[size], size) {}
+
+template <typename It>
+Chain<It>::Chain(const std::vector<std::pair<It, std::size_t>> &segments)
+    : segments(segments) {}
+
+template <typename It> bool operator==(const Chain<It> &a, const Chain<It> &b) {
+  return a.segments == b.segments;
+}
+
+template <typename It> bool operator!=(const Chain<It> &a, const Chain<It> &b) {
+  return !operator==(a, b);
+}
+
+template <typename It> typename Chain<It>::iterator Chain<It>::begin() const {
+  return {*this, segments.begin()};
+}
+
+template <typename It> typename Chain<It>::iterator Chain<It>::end() const {
+  return {*this, segments.end()};
+}
+
+template <typename It>
+Chain<It>::iterator::iterator(
+    const Chain<It> &iterable,
+    const typename std::vector<std::pair<It, std::size_t>>::const_iterator q)
+    : iterable(iterable), q(q) {
+  conditionally_start_segment();
+}
+
+template <typename It> void Chain<It>::iterator::conditionally_start_segment() {
+  i = 0;
+  if (q != iterable.segments.end()) {
+    const std::pair<It, std::size_t> pair = *q;
+    p = pair.first;
+    n = pair.second;
+    if (not n) {
+      ++q;
+      conditionally_start_segment();
+    }
+  }
+}
+
+template <typename It>
+bool Chain<It>::iterator::
+operator==(const typename Chain<It>::iterator &other) const {
+  return i == other.i and q == other.q and iterable == other.iterable;
+}
+
+template <typename It>
+bool Chain<It>::iterator::
+operator!=(const typename Chain<It>::iterator &other) const {
+  return !operator==(other);
+}
+
+template <typename It>
+typename Chain<It>::iterator &Chain<It>::iterator::operator++() {
+  ++p;
+  ++i;
+  if (i == n) {
+    ++q;
+    conditionally_start_segment();
+  }
+  return *this;
+}
+
+template <typename It>
+typename Chain<It>::iterator Chain<It>::iterator::operator++(int) {
+  const iterator tmp = *this;
+  operator++();
+  return tmp;
+}
+
+template <typename It>
+typename Chain<It>::iterator::reference Chain<It>::iterator::operator*() const {
+  return *p;
+}
 
 } // namespace mgard

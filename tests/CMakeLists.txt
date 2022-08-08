@@ -18,8 +18,11 @@ set(
 	"src/test_decompose.cpp"
 	"src/test_format.cpp"
 	"src/test_quantize.cpp"
-	"src/test_compressors.cpp"
+	"src/lossless_regression.cpp"
+	"src/test_lossless.cpp"
 	"src/test_CompressedDataset.cpp"
+	"src/huffman_regression.cpp"
+	"src/test_huffman.cpp"
 )
 
 if(MGARD_ENABLE_UNSTRUCTURED AND MOAB_FOUND)

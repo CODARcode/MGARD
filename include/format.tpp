@@ -61,4 +61,26 @@ template <typename Int> bool big_endian() {
   return not*reinterpret_cast<unsigned char const *>(&n);
 }
 
+template <typename T>
+T read_message(BufferWindow &window, const std::uint_least64_t nmessage) {
+  // The `CodedInputStream` constructor takes an `int`.
+  if (nmessage > std::numeric_limits<int>::max()) {
+    throw std::runtime_error("message is too large (size would overflow)");
+  }
+  // Check that the read will stay in the buffer.
+  unsigned char const *const next = window.next(nmessage);
+  T message;
+  google::protobuf::io::CodedInputStream stream(
+      static_cast<google::protobuf::uint8 const *>(window.current), nmessage);
+  if (not message.ParseFromCodedStream(&stream)) {
+    throw std::runtime_error(
+        "message parsing encountered read or format error");
+  }
+  if (not stream.ConsumedEntireMessage()) {
+    throw std::runtime_error("part of message left unparsed");
+  }
+  window.current = next;
+  return message;
+}
+
 } // namespace mgard

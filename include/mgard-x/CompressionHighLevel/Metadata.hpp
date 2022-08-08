@@ -86,11 +86,8 @@ public:
     std::cout << "Metadata size: " << metadata_size << "\n";
     std::cout << "Metadata crc32: " << metadata_crc32 << "\n";
     std::cout << "Endiness: ";
-    if (etype == endiness_type::Big_Endian) {
-      std::cout << "Big Endian\n";
-    } else {
-      std::cout << "Little Endian\n";
-    }
+    std::cout << (etype == endiness_type::Big_Endian ? "Big Endian\n"
+                                                     : "Little Endian\n");
     std::cout << "Data type: ";
     if (dtype == data_type::Float) {
       std::cout << "Float\n";
@@ -173,11 +170,8 @@ public:
 
 private:
   SERIALIZED_TYPE *SerializeAll(uint32_t &total_size) {
-    if (big_endian<std::int64_t>()) {
-      etype = endiness_type::Big_Endian;
-    } else {
-      etype = endiness_type::Little_Endian;
-    }
+    etype = big_endian<QUANTIZED_INT>() ? endiness_type::Big_Endian
+                                        : endiness_type::Little_Endian;
     total_size = 0;
 
     // about MGARD software
@@ -469,13 +463,10 @@ private:
       mgard::pb::Quantization &quantization = *header.mutable_quantization();
       quantization.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
       quantization.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
-      quantization.set_type(mgard::pb::Quantization::INT64_T);
-      quantization.set_big_endian(big_endian<std::int64_t>());
-      if (big_endian<std::int64_t>()) {
-        etype = endiness_type::Big_Endian;
-      } else {
-        etype = endiness_type::Little_Endian;
-      }
+      quantization.set_type(mgard::type_to_quantization_type<QUANTIZED_INT>());
+      quantization.set_big_endian(big_endian<QUANTIZED_INT>());
+      etype = big_endian<QUANTIZED_INT>() ? endiness_type::Big_Endian
+                                          : endiness_type::Little_Endian;
     }
 
     { // Encoding
@@ -710,13 +701,11 @@ private:
              mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
       assert(quantization.bin_widths() ==
              mgard::pb::Quantization::PER_COEFFICIENT);
-      assert(quantization.type() == mgard::pb::Quantization::INT64_T);
-      assert(quantization.big_endian() == big_endian<std::int64_t>());
-      if (big_endian<std::int64_t>()) {
-        etype = endiness_type::Big_Endian;
-      } else {
-        etype = endiness_type::Little_Endian;
-      }
+      assert(quantization.type() ==
+             mgard::type_to_quantization_type<QUANTIZED_INT>());
+      assert(quantization.big_endian() == big_endian<QUANTIZED_INT>());
+      etype = big_endian<QUANTIZED_INT>() ? endiness_type::Big_Endian
+                                          : endiness_type::Little_Endian;
     }
 
     { // Encoding

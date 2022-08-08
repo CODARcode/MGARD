@@ -5,7 +5,7 @@
  * Date: September 27, 2021
  */
 
-// #include "compressors.hpp"
+// #include "lossless.hpp"
 #include "cuda/Common.h"
 #include "cuda/CommonInternal.h"
 #include "cuda/LosslessCompression.h"
@@ -90,7 +90,7 @@ unsigned char *compress_memory_huffman(long int *const src,
   free(out_data_miss);
 
   // const MemoryBuffer<unsigned char> out_data =
-  //     compress_memory_zstd(payload, total_size);
+  //     compress_zstd(payload, total_size);
 
   const size_t cBuffSize = ZSTD_compressBound(total_size);
   unsigned char *const zstd_buffer = new unsigned char[cBuffSize];
@@ -148,7 +148,7 @@ void decompress_memory_huffman(unsigned char *const src,
       out_tree_size + out_data_hit_size / 8 + 4 + out_data_miss_size;
   unsigned char *huffman_encoding_p =
       (unsigned char *)malloc(total_huffman_size);
-  // decompress_memory_zstd(buf, srcLen - 3 * sizeof(size_t),
+  // decompress_zstd(buf, srcLen - 3 * sizeof(size_t),
   // huffman_encoding_p,
   //                        total_huffman_size);
 

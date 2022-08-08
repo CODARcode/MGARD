@@ -398,7 +398,7 @@ void test_self_describing_decompression(
 
 TEMPLATE_TEST_CASE("decompressing self-describing buffer", "[compress]", float,
                    double) {
-  std::default_random_engine gen(32094);
+  std::default_random_engine gen(361656);
   const std::vector<TestType> smoothness_parameters = {
       -1.5, -0.5, 0.0, 0.5, 1.5, std::numeric_limits<TestType>::infinity()};
   const std::vector<TestType> tolerances = {1, 0.1, 0.01, 0.001};

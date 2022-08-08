@@ -14,10 +14,14 @@ message CartesianGridTopology {
   repeated uint64 shape = 2;
 }
 
-message ExplicitCubeGeometry { repeated double coordinates = 2; }
+message ExplicitCubeGeometry {
+  repeated double coordinates = 2;
+}
 
 message Domain {
-  enum Topology { CARTESIAN_GRID = 0; }
+  enum Topology {
+    CARTESIAN_GRID = 0;
+  }
   enum Geometry {
     UNIT_CUBE = 0;
     EXPLICIT_CUBE = 1;
@@ -78,7 +82,9 @@ message DomainDecomposition {
 }
 
 message FunctionDecomposition {
-  enum Transform { MULTILEVEL_COEFFICIENTS = 0; }
+  enum Transform {
+    MULTILEVEL_COEFFICIENTS = 0;
+  }
   enum Hierarchy {
     POWER_OF_TWO_PLUS_ONE = 0;
     MULTIDIMENSION_WITH_GHOST_NODES = 1;
@@ -92,7 +98,9 @@ message FunctionDecomposition {
 }
 
 message Quantization {
-  enum Method { COEFFICIENTWISE_LINEAR = 0; }
+  enum Method {
+    COEFFICIENTWISE_LINEAR = 0;
+  }
   enum BinWidths {
     PER_COEFFICIENT = 0;
     PER_LEVEL = 1;
@@ -116,20 +124,89 @@ message Encoding {
     SHUFFLE = 1;
   }
   enum Compressor {
+    // Not yet implemented. We'll want to add a message for quantized coefficients stored 'verbatim'
+    // (probably still somewhat compressed because of the varint encoding used for `int64`s).
     NOOP_COMPRESSOR = 0;
-    CPU_HUFFMAN_ZLIB = 1;
+    // Explanation for the wonky numbering: this first case was originally called `CPU_HUFFMAN_ZLIB`,
+    // but the relevant code didn't actually call the Huffman encoder.
+    CPU_ZLIB = 1;
+    CPU_ZSTD = 7;
+    CPU_HUFFMAN_ZLIB = 6;
     CPU_HUFFMAN_ZSTD = 2;
     X_HUFFMAN = 3;
     X_HUFFMAN_LZ4 = 4;
     X_HUFFMAN_ZSTD = 5;
   }
+  enum HuffmanSerialization {
+    // Original method, with 'raw' buffer serialization.
+    DEPRECATED = 0;
+    // Symbol range, frequency table, missed table, and hit buffer.
+    RFMH = 1;
+  }
 
   Preprocessor preprocessor = 1;
   Compressor compressor = 2;
-  // Only relevant when `compressor == X_HUFFMAN` or `lossless_compressor ==
-  // X_HUFFMAN_LZ4` or `compressor == X_HUFFMAN_ZSTD`
+  // Only relevant when `compressor == X_HUFFMAN` or `compressor ==
+  // X_HUFFMAN_LZ4` or `compressor == X_HUFFMAN_ZSTD`.
   uint64 huffman_dictionary_size = 3;
   uint64 huffman_block_size = 4;
+
+  // Only relevant when `compressor == CPU_HUFFMAN_ZLIB` or
+  // `compressor == CPU_HUFFMAN_ZSTD`.
+  HuffmanSerialization serialization = 5;
+
+}
+
+message HuffmanHeader {
+  enum IndexMapping {
+    // Codewords are (potentially) assigned to the symbols `{min, …, max}`.
+    // Index `0` is reserved for missed symbols.  Then `min` is assigned
+    // index `1`, `min + 1` is assigned index `2`, and so on.
+    INCLUSIVE_RANGE = 0;
+  }
+  enum CodewordMapping {
+    // A frequency table is stored as a sequence of index–frequency pairs.
+    // This table is used to construct a Huffman code creation tree.
+    INDEX_FREQUENCY_PAIRS = 0;
+  }
+  enum MissedEncoding {
+    // The missed symbols (rather than their indices, for example) are encoded.
+    LITERAL = 0;
+  }
+  enum HitEncoding {
+    // The codeword bits are run together into a single byte array.
+    RUN_TOGETHER = 0;
+  }
+
+  // How each (eligible) symbol is assigned an index.
+  IndexMapping index_mapping = 1;
+  // How each (encountered) index is assigned a codeword.
+  CodewordMapping codeword_mapping = 2;
+  // How the missed buffer is encoded.
+  MissedEncoding missed_encoding = 3;
+  // How the hit (codeword) buffer is encoded.
+  HitEncoding hit_encoding = 4;
+
+  // Minimum and maximum symbols eligible for codewords.
+  repeated sint64 endpoints = 5;
+  // Sizes in bytes of serialized `FrequencySubtable`s to followw.
+  repeated uint64 nbytes_frequency_subtables = 6;
+  // Sizes in bytes of serialized `MissedSubtable`s to follow.
+  repeated uint64 nbytes_missed_subtables = 7;
+  // Size in bits of the hit buffer to follow.
+  uint64 nbits = 8;
+}
+
+// One or more of these will follow a `HuffmanHeader`.
+message FrequencySubtable {
+  // Index–frequency pairs for frequency table.
+  map<uint64, uint64> frequencies = 6;
+}
+
+// One or more of these will follow the `FrequencySubtable`s after a `HuffmanHeader`.
+message MissedSubtable {
+  // Encountered symbols that were not assigned codewords.
+  repeated sint64 missed = 7;
 }
 
 message Device {
