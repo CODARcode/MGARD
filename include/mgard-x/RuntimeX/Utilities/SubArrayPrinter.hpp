@@ -413,47 +413,72 @@ void CompareSubArrays(SubArray<1, T, DeviceType> array1,
   delete[] q2;
 }
 
-template <typename T, typename DeviceType>
-void DumpSubArray(std::string name, SubArray<1, T, DeviceType> array) {
-  SIZE n = array.shape(0);
-  using Mem = MemoryManager<DeviceType>;
-  T *q = new T[n];
-  Mem::Copy1D(q, array.data(), n, 0);
+template <DIM D, typename T, typename DeviceType>
+void DumpSubArray(std::string name, SubArray<D, T, DeviceType> subArray) {
+  SIZE nrow = 1;
+  SIZE ncol = 1;
+  SIZE nfib = 1;
+
+  nfib = subArray.shape(D-1);
+  if (D >= 2)
+    ncol = subArray.shape(D-2);
+  if (D >= 3)
+    nrow = subArray.shape(D-3);
+
+  T *v = new T[nrow * ncol * nfib];
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  MemoryManager<DeviceType>::CopyND(
+      v, nfib,
+      subArray.data(), subArray.ld(D-1), 
+      nfib, ncol*nrow, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   std::fstream myfile;
   myfile.open(name, std::ios::out | std::ios::binary);
   if (!myfile) {
     printf("Error: cannot open file\n");
     return;
   }
-  myfile.write((char *)q, n * sizeof(T));
+  myfile.write((char *)v, nrow * ncol * nfib * sizeof(T));
   myfile.close();
   if (!myfile.good()) {
     printf("Error occurred at write time!\n");
     return;
   }
-  delete[] q;
+  delete[] v;
 }
 
-template <typename T, typename DeviceType>
-void LoadSubArray(std::string name, SubArray<1, T, DeviceType> array) {
+template <DIM D, typename T, typename DeviceType>
+void LoadSubArray(std::string name, SubArray<D, T, DeviceType> subArray) {
 
-  SIZE n = array.shape(0);
-  using Mem = MemoryManager<DeviceType>;
-  T *q = new T[n];
+  SIZE nrow = 1;
+  SIZE ncol = 1;
+  SIZE nfib = 1;
+
+  nfib = subArray.shape(D-1);
+  if (D >= 2)
+    ncol = subArray.shape(D-2);
+  if (D >= 3)
+    nrow = subArray.shape(D-3);
+
+  T *v = new T[nrow * ncol * nfib];
+
   std::fstream myfile;
   myfile.open(name, std::ios::in | std::ios::binary);
   if (!myfile) {
     printf("Error: cannot open file\n");
     return;
   }
-  myfile.read((char *)q, n * sizeof(T));
+  myfile.read((char *)v, nrow * ncol * nfib * sizeof(T));
   myfile.close();
   if (!myfile.good()) {
     printf("Error occurred at read time!\n");
     return;
   }
-  Mem::Copy1D(array.data(), q, n, 0);
-  delete[] q;
+  MemoryManager<DeviceType>::CopyND(
+      subArray.data(), subArray.ld(D-1),
+      v, nfib, 
+      nfib, ncol*nrow, 0);
+  delete[] v;
 }
 
 } // namespace mgard_x
