@@ -5,8 +5,8 @@
  * Date: March 17, 2022
  */
 
-#ifndef MGARD_X_HANDLE
-#define MGARD_X_HANDLE
+#ifndef MGARD_X_HIERARCHY_H
+#define MGARD_X_HIERARCHY_H
 
 #include "../RuntimeX/RuntimeXPublic.h"
 #include "../Utilities/Types.h"
