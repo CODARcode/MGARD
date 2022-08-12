@@ -132,8 +132,8 @@ public:
     c = FunctorBase<DeviceType>::GetBlockIdY() *
         FunctorBase<DeviceType>::GetBlockDimY();
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
-    SIZE firstD =
-        div_roundup(shape_sm[D_GLOBAL-1] - 1, FunctorBase<DeviceType>::GetBlockDimX());
+    SIZE firstD = div_roundup(shape_sm[D_GLOBAL - 1] - 1,
+                              FunctorBase<DeviceType>::GetBlockDimX());
     f = (bidx % firstD) * FunctorBase<DeviceType>::GetBlockDimX();
 
     bidx /= firstD;
@@ -2434,8 +2434,8 @@ public:
     c = FunctorBase<DeviceType>::GetBlockIdY() *
         FunctorBase<DeviceType>::GetBlockDimY();
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
-    SIZE firstD =
-        div_roundup(shape_sm[D_GLOBAL-1] - 1, FunctorBase<DeviceType>::GetBlockDimX());
+    SIZE firstD = div_roundup(shape_sm[D_GLOBAL - 1] - 1,
+                              FunctorBase<DeviceType>::GetBlockDimX());
     f = (bidx % firstD) * FunctorBase<DeviceType>::GetBlockDimX();
 
     bidx /= firstD;

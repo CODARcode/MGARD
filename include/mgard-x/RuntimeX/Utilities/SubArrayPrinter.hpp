@@ -37,11 +37,11 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
 
   DIM D = SubArrayType::NumDims;
 
-  nfib = subArray.shape(D-1);
+  nfib = subArray.shape(D - 1);
   if (SubArrayType::NumDims >= 2)
-    ncol = subArray.shape(D-2);
+    ncol = subArray.shape(D - 2);
   if (SubArrayType::NumDims >= 3)
-    nrow = subArray.shape(D-3);
+    nrow = subArray.shape(D - 3);
 
   using T = typename SubArrayType::DataType;
   using DeviceType = typename SubArrayType::DevType;
@@ -98,15 +98,15 @@ void CompareSubarray(std::string name, SubArrayType subArray1,
   SIZE ncol = 1;
   SIZE nfib = 1;
 
-  nfib = subArray1.shape(D-1);
+  nfib = subArray1.shape(D - 1);
   if (SubArrayType::NumDims >= 2)
-    ncol = subArray1.shape(D-2);
+    ncol = subArray1.shape(D - 2);
   if (SubArrayType::NumDims >= 3)
-    nrow = subArray1.shape(D-3);
+    nrow = subArray1.shape(D - 3);
 
-  if (subArray1.shape(D-1) != subArray2.shape(D-1) ||
-      subArray1.shape(D-2) != subArray2.shape(D-2) ||
-      subArray1.shape(D-3) != subArray2.shape(D-3)) {
+  if (subArray1.shape(D - 1) != subArray2.shape(D - 1) ||
+      subArray1.shape(D - 2) != subArray2.shape(D - 2) ||
+      subArray1.shape(D - 3) != subArray2.shape(D - 3)) {
     std::cout << log::log_err << "CompareSubarray: shape mismatch!\n";
     exit(-1);
   }
@@ -178,17 +178,17 @@ void CompareSubarray(std::string name, SubArrayType1 subArray1,
   SIZE ncol = 1;
   SIZE nfib = 1;
 
-  nfib = subArray1.shape(D-1);
+  nfib = subArray1.shape(D - 1);
   if (SubArrayType1::NumDims >= 2)
-    ncol = subArray1.shape(D-2);
+    ncol = subArray1.shape(D - 2);
   if (SubArrayType1::NumDims >= 3)
-    nrow = subArray1.shape(D-3);
+    nrow = subArray1.shape(D - 3);
 
-  if (subArray1.shape(D-1) != subArray2.shape[0] ||
+  if (subArray1.shape(D - 1) != subArray2.shape[0] ||
       (SubArrayType1::NumDims >= 2 &&
-       subArray1.shape(D-2) != subArray2.shape[1]) ||
+       subArray1.shape(D - 2) != subArray2.shape[1]) ||
       (SubArrayType1::NumDims >= 3 &&
-       subArray1.shape(D-3) != subArray2.shape[2])) {
+       subArray1.shape(D - 3) != subArray2.shape[2])) {
     std::cout << log::log_err << "CompareSubarray: shape mismatch!\n";
     exit(-1);
   }
@@ -268,7 +268,7 @@ void CompareSubarray4D(SubArrayType subArray1, SubArrayType subArray2) {
 
   DIM D = SubArrayType::NumDims;
 
-  if (subArray1.shape(D-4) != subArray2.shape(D-4)) {
+  if (subArray1.shape(D - 4) != subArray2.shape(D - 4)) {
     std::cout << log::log_err << "CompareSubarray4D mismatch 4D size.\n";
     exit(-1);
   }
@@ -300,7 +300,7 @@ void PrintSubarray4D(std::string name, SubArrayType subArray1) {
   std::cout << name << "\n";
   using T = typename SubArrayType::DataType;
   SIZE idx[4] = {0, 0, 0, 0};
-  for (SIZE i = 0; i < subArray1.shape(D-4); i++) {
+  for (SIZE i = 0; i < subArray1.shape(D - 4); i++) {
     idx[3] = i;
     SubArrayType temp1 = subArray1;
     temp1.offset(3, i);
@@ -419,18 +419,16 @@ void DumpSubArray(std::string name, SubArray<D, T, DeviceType> subArray) {
   SIZE ncol = 1;
   SIZE nfib = 1;
 
-  nfib = subArray.shape(D-1);
+  nfib = subArray.shape(D - 1);
   if (D >= 2)
-    ncol = subArray.shape(D-2);
+    ncol = subArray.shape(D - 2);
   if (D >= 3)
-    nrow = subArray.shape(D-3);
+    nrow = subArray.shape(D - 3);
 
   T *v = new T[nrow * ncol * nfib];
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  MemoryManager<DeviceType>::CopyND(
-      v, nfib,
-      subArray.data(), subArray.ld(D-1), 
-      nfib, ncol*nrow, 0);
+  MemoryManager<DeviceType>::CopyND(v, nfib, subArray.data(),
+                                    subArray.ld(D - 1), nfib, ncol * nrow, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   std::fstream myfile;
   myfile.open(name, std::ios::out | std::ios::binary);
@@ -454,11 +452,11 @@ void LoadSubArray(std::string name, SubArray<D, T, DeviceType> subArray) {
   SIZE ncol = 1;
   SIZE nfib = 1;
 
-  nfib = subArray.shape(D-1);
+  nfib = subArray.shape(D - 1);
   if (D >= 2)
-    ncol = subArray.shape(D-2);
+    ncol = subArray.shape(D - 2);
   if (D >= 3)
-    nrow = subArray.shape(D-3);
+    nrow = subArray.shape(D - 3);
 
   T *v = new T[nrow * ncol * nfib];
 
@@ -474,10 +472,8 @@ void LoadSubArray(std::string name, SubArray<D, T, DeviceType> subArray) {
     printf("Error occurred at read time!\n");
     return;
   }
-  MemoryManager<DeviceType>::CopyND(
-      subArray.data(), subArray.ld(D-1),
-      v, nfib, 
-      nfib, ncol*nrow, 0);
+  MemoryManager<DeviceType>::CopyND(subArray.data(), subArray.ld(D - 1), v,
+                                    nfib, nfib, ncol * nrow, 0);
   delete[] v;
 }
 

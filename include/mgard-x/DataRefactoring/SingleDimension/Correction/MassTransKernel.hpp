@@ -30,28 +30,29 @@ public:
   MGARDX_EXEC void Operation1() {
     SIZE v_idx[D];
 
-    SIZE firstD = div_roundup(v.shape(D-1), F);
+    SIZE firstD = div_roundup(v.shape(D - 1), F);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
-    v_idx[D-1] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
+    v_idx[D - 1] =
+        (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
 
     bidx /= firstD;
     if (D >= 2)
-      v_idx[D-2] = FunctorBase<DeviceType>::GetBlockIdY() *
-                     FunctorBase<DeviceType>::GetBlockDimY() +
-                 FunctorBase<DeviceType>::GetThreadIdY();
+      v_idx[D - 2] = FunctorBase<DeviceType>::GetBlockIdY() *
+                         FunctorBase<DeviceType>::GetBlockDimY() +
+                     FunctorBase<DeviceType>::GetThreadIdY();
     if (D >= 3)
-      v_idx[D-3] = FunctorBase<DeviceType>::GetBlockIdZ() *
-                     FunctorBase<DeviceType>::GetBlockDimZ() +
-                 FunctorBase<DeviceType>::GetThreadIdZ();
+      v_idx[D - 3] = FunctorBase<DeviceType>::GetBlockIdZ() *
+                         FunctorBase<DeviceType>::GetBlockDimZ() +
+                     FunctorBase<DeviceType>::GetThreadIdZ();
 
-    for (int d = D-4; d >= 0; d--) {
+    for (int d = D - 4; d >= 0; d--) {
       v_idx[d] = bidx % v.shape(d);
       bidx /= v.shape(d);
     }
 
     bool in_range = true;
-    for (int d = D-1; d >= 0; d--) {
+    for (int d = D - 1; d >= 0; d--) {
       if (v_idx[d] >= v.shape(d))
         in_range = false;
     }
@@ -134,10 +135,10 @@ public:
 
     SIZE nr = 1, nc = 1, nf = 1;
     if (D >= 3)
-      nr = v.shape(D-3);
+      nr = v.shape(D - 3);
     if (D >= 2)
-      nc = v.shape(D-2);
-    nf = v.shape(D-1);
+      nc = v.shape(D - 2);
+    nf = v.shape(D - 1);
 
     SIZE total_thread_z = nr;
     SIZE total_thread_y = nc;
@@ -153,7 +154,7 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
 
-    for (int d = D-4; d >= 0; d--) {
+    for (int d = D - 4; d >= 0; d--) {
       gridx *= coeff.shape(d);
     }
 
@@ -166,7 +167,7 @@ public:
                SubArray<1, T, DeviceType> ratio,
                SubArray<D, T, DeviceType> coeff, SubArray<D, T, DeviceType> v,
                int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(v.shape(D-1)) - 1);
+    int range_l = std::min(6, (int)std::log2(v.shape(D - 1)) - 1);
     int prec = TypeToIdx<T>();
     int config =
         AutoTuner<DeviceType>::autoTuningTable.gpk_reo_nd[prec][range_l];

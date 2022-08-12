@@ -1,51 +1,50 @@
 
 
-#include <vtkm/cont/Initialize.h>
 #include <vtkm/cont/DataSetBuilderUniform.h>
 #include <vtkm/cont/DataSetFieldAdd.h>
+#include <vtkm/cont/Initialize.h>
 #include <vtkm/filter/MapFieldPermutation.h>
-#include <vtkm/filter/contour/worklet/Contour.h>
 #include <vtkm/filter/contour/Contour.h>
+#include <vtkm/filter/contour/worklet/Contour.h>
 
 #include <vtkm/rendering/Actor.h>
-#include <vtkm/rendering/MapperWireframer.h>
 #include <vtkm/rendering/CanvasRayTracer.h>
 #include <vtkm/rendering/MapperRayTracer.h>
+#include <vtkm/rendering/MapperWireframer.h>
 #include <vtkm/rendering/Scene.h>
 #include <vtkm/rendering/View3D.h>
 
 #include <vtkm/io/VTKDataSetReader.h>
 #include <vtkm/io/VTKDataSetWriter.h>
 
+#include "mgard/mgard-x/DataRefactoring/MultiDimension/Coefficient/DenseToCompressedSparseCell.hpp"
 #include "mgard/mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
 #include "mgard/mgard-x/DataRefactoring/MultiDimension/DataRefactoringAdaptiveResolution.hpp"
-#include "mgard/mgard-x/DataRefactoring/MultiDimension/Coefficient/DenseToCompressedSparseCell.hpp"
 #include "mgard/mgard-x/Utilities/ErrorCalculator.h"
 
-#include "SparseFlyingEdges.hpp"
 #include "SparseFlyingCells.hpp"
+#include "SparseFlyingEdges.hpp"
 
 #include "FlyingEdgesBatched.hpp"
 
 #include <iostream>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "mgard/mdr_x.hpp"
 
 // using namespace mgard_x;
 
-
-void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape, std::string field_name, std::string output) {
+void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape,
+                 std::string field_name, std::string output) {
   using Mapper = vtkm::rendering::MapperRayTracer;
   using Canvas = vtkm::rendering::CanvasRayTracer;
 
   vtkm::rendering::Scene scene;
   vtkm::cont::ColorTable colorTable("inferno");
-  scene.AddActor(vtkm::rendering::Actor(dataSet.GetCellSet(),
-                                      dataSet.GetCoordinateSystem(),
-                                      dataSet.GetField(field_name),
-                                      colorTable));
+  scene.AddActor(vtkm::rendering::Actor(
+      dataSet.GetCellSet(), dataSet.GetCoordinateSystem(),
+      dataSet.GetField(field_name), colorTable));
 
   Mapper mapper;
   Canvas canvas(1024, 1024);
@@ -72,16 +71,17 @@ void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape, 
   vtkm::rendering::View3D view(scene, mapper, canvas, camera, bg);
   view.Initialize();
   view.Paint();
-  view.SaveAs(output + ".pnm"); 
+  view.SaveAs(output + ".pnm");
 }
 
 template <typename T>
-vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value,
-                                  mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray,
-                                  mgard_x::Array<1, T, mgard_x::CUDA> PointsArray,
-                                  std::string field_name) {
-  mgard_x::SIZE * Triangles = new mgard_x::SIZE[TrianglesArray.shape(0)];
-  T * Points = new T[PointsArray.shape(0)];
+vtkm::cont::DataSet
+ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value,
+               mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray,
+               mgard_x::Array<1, T, mgard_x::CUDA> PointsArray,
+               std::string field_name) {
+  mgard_x::SIZE *Triangles = new mgard_x::SIZE[TrianglesArray.shape(0)];
+  T *Points = new T[PointsArray.shape(0)];
 
   mgard_x::SIZE numTriangles = TrianglesArray.shape(0) / 3;
   mgard_x::SIZE numPoints = PointsArray.shape(0) / 3;
@@ -94,33 +94,34 @@ vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value
   // mgard_x::PrintSubarray("Points", mgard_x::SubArray(PointsArray));
 
   vtkm::cont::DataSet ds_from_mc;
-  std::vector<T> iso_data_vec(shape[0]*shape[1]*shape[2], iso_value);
+  std::vector<T> iso_data_vec(shape[0] * shape[1] * shape[2], iso_value);
   ds_from_mc.AddPointField(field_name, iso_data_vec);
   vtkm::cont::CellSetSingleType<> cellset;
-  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG> connectivity;
+  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>
+      connectivity;
   connectivity.Allocate(TrianglesArray.shape(0));
 
-  // std::cout << "connectivity.GetNumberOfValues() = " << connectivity.GetNumberOfValues() << "\n";
+  // std::cout << "connectivity.GetNumberOfValues() = " <<
+  // connectivity.GetNumberOfValues() << "\n";
 
-  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>::WritePortalType writePortal = connectivity.WritePortal();
+  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>::
+      WritePortalType writePortal = connectivity.WritePortal();
   for (vtkm::Id i = 0; i < numTriangles; i++) {
-    writePortal.Set(i*3, Triangles[i*3]);
-    writePortal.Set(i*3+1, Triangles[i*3+1]);
-    writePortal.Set(i*3+2, Triangles[i*3+2]);
+    writePortal.Set(i * 3, Triangles[i * 3]);
+    writePortal.Set(i * 3 + 1, Triangles[i * 3 + 1]);
+    writePortal.Set(i * 3 + 2, Triangles[i * 3 + 2]);
   }
 
-  cellset.Fill(numPoints,
-                vtkm::CELL_SHAPE_TRIANGLE, 3,
-                connectivity);
+  cellset.Fill(numPoints, vtkm::CELL_SHAPE_TRIANGLE, 3, connectivity);
   ds_from_mc.SetCellSet(cellset);
 
   vtkm::cont::ArrayHandle<vtkm::Vec3f> coordinate_points;
   coordinate_points.Allocate(numPoints);
   for (vtkm::Id pointId = 0; pointId < numPoints; pointId++) {
     vtkm::Vec3f point;
-    point[0] = Points[pointId*3];
-    point[1] = Points[pointId*3+1];
-    point[2] = Points[pointId*3+2];
+    point[0] = Points[pointId * 3];
+    point[1] = Points[pointId * 3 + 1];
+    point[2] = Points[pointId * 3 + 2];
     coordinate_points.WritePortal().Set(pointId, point);
   }
   vtkm::cont::CoordinateSystem coordinate_system("cs", coordinate_points);
@@ -130,18 +131,20 @@ vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value
 }
 
 template <mgard_x::DIM D, typename T>
-void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shape, T tol, T iso_value) {
+void test_vtkm(int argc, char *argv[], T *data,
+               std::vector<mgard_x::SIZE> shape, T tol, T iso_value) {
   vtkm::cont::Initialize(argc, argv);
   vtkm::cont::ScopedRuntimeDeviceTracker(vtkm::cont::DeviceAdapterTagCuda{});
   vtkm::cont::DataSet dataSet;
   vtkm::cont::DataSetBuilderUniform dataSetBuilder;
-  if (D == 2) shape.push_back(1);
+  if (D == 2)
+    shape.push_back(1);
   vtkm::Id3 dims(shape[2], shape[1], shape[0]);
-  vtkm::Id3 org(0,0,0);
-  vtkm::Id3 spc(1,1,1);
+  vtkm::Id3 org(0, 0, 0);
+  vtkm::Id3 spc(1, 1, 1);
   dataSet = dataSetBuilder.Create(dims, org, spc);
-  std::vector<T> data_vec(shape[0]*shape[1]*shape[2]);
-  for (int i = 0; i < shape[0]*shape[1]*shape[2]; i++) {
+  std::vector<T> data_vec(shape[0] * shape[1] * shape[2]);
+  for (int i = 0; i < shape[0] * shape[1] * shape[2]; i++) {
     data_vec[i] = data[i];
   }
   std::string field_name = "test_field";
@@ -152,7 +155,7 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   contour_filter.SetIsoValue(0, iso_value);
   // contour_filter.SetIsoValue(1, iso_value+10);
   contour_filter.SetActiveField(field_name);
-  contour_filter.SetFieldsToPass({ field_name });
+  contour_filter.SetFieldsToPass({field_name});
   mgard_x::Timer t;
   t.start();
   mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncDevice();
@@ -162,14 +165,17 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   t.print("VTKM");
   t.clear();
 
-  std::cout << "vtkm::FlyingEdges::numPoints: " << outputData.GetNumberOfPoints() << "\n";
-  std::cout << "vtkm::FlyingEdges::numTris: " << outputData.GetNumberOfCells() << "\n";
- 
+  std::cout << "vtkm::FlyingEdges::numPoints: "
+            << outputData.GetNumberOfPoints() << "\n";
+  std::cout << "vtkm::FlyingEdges::numTris: " << outputData.GetNumberOfCells()
+            << "\n";
+
   vtkm_render(outputData, shape, field_name, "vtkm_render_output");
 }
 
 template <mgard_x::DIM D, typename T>
-void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) {
+void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape,
+               T iso_value) {
 
   mgard_x::SIZE numTriangles;
   mgard_x::SIZE *Triangles;
@@ -186,9 +192,11 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
   double pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0;
   mgard_x::flying_edges::FlyingEdges<T, mgard_x::CUDA>().Execute(
       shape[0], shape[1], shape[2], mgard_x::SubArray<3, T, mgard_x::CUDA>(v),
-      iso_value, TrianglesArray, PointsArray, pass1_time, pass2_time, pass3_time, pass4_time, 0);
+      iso_value, TrianglesArray, PointsArray, pass1_time, pass2_time,
+      pass3_time, pass4_time, 0);
   mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncQueue(0);
-  // printf("mgard_x::FlyingEdges: %f\n", pass1_time + pass2_time + pass3_time + pass4_time);
+  // printf("mgard_x::FlyingEdges: %f\n", pass1_time + pass2_time + pass3_time +
+  // pass4_time);
   double total_time = pass1_time + pass2_time + pass3_time + pass4_time;
   printf("Full res: \n");
   printf("Pass1 time: %f s\n", pass1_time);
@@ -196,28 +204,27 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
   printf("Pass3 time: %f s\n", pass3_time);
   printf("Pass4 time: %f s\n", pass4_time);
   printf("Total time: %f s\n", total_time);
-  std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape(0)/3 << "\n";
-  std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape(0)/3 << "\n";
+  std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape(0) / 3
+            << "\n";
+  std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape(0) / 3
+            << "\n";
 
   std::string field_name = "test_field";
-  vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
+  vtkm::cont::DataSet dataset =
+      ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
   vtkm_render(dataset, shape, field_name, "my_flying_edges");
-
 }
-
-
-
 
 namespace mgard_x {
 
-template <DIM D, typename T, typename DeviceType>
-struct SurfaceDetect {
+template <DIM D, typename T, typename DeviceType> struct SurfaceDetect {
   T iso_value;
 
-  SurfaceDetect(T iso_value): iso_value(iso_value) {}
-  bool operator()(AdaptiveResolutionTreeNode<D, T, DeviceType> * node, 
-                  typename AdaptiveResolutionTreeNode<D, T, DeviceType>::T_error error, 
-                  SubArray<D, T, DeviceType> v){
+  SurfaceDetect(T iso_value) : iso_value(iso_value) {}
+  bool operator()(
+      AdaptiveResolutionTreeNode<D, T, DeviceType> *node,
+      typename AdaptiveResolutionTreeNode<D, T, DeviceType>::T_error error,
+      SubArray<D, T, DeviceType> v) {
     SIZE data_index[D];
     T max_data = std::numeric_limits<T>::min();
     T min_data = std::numeric_limits<T>::max();
@@ -240,35 +247,40 @@ struct SurfaceDetect {
       // std::cout << data << ", ";
     }
 
-    // std::cout << "("<<node->index_start[2] << ", " << node->index_start[1] << ", " << node->index_start[0] << "), ";
-    // std::cout << "("<<node->index_end[2] << ", " << node->index_end[1] << ", " << node->index_end[0] << ")";
-   
+    // std::cout << "("<<node->index_start[2] << ", " << node->index_start[1] <<
+    // ", " << node->index_start[0] << "), "; std::cout <<
+    // "("<<node->index_end[2] << ", " << node->index_end[1] << ", " <<
+    // node->index_end[0] << ")";
+
     // return true;
-    if (max_data + error >= iso_value &&
-        min_data - error <= iso_value) {
-       // std::cout << "max_data: " << max_data << " "
-       //        << "min_data: " << min_data << " "
-       //        << "error: " << error << "\n";
+    if (max_data + error >= iso_value && min_data - error <= iso_value) {
+      // std::cout << "max_data: " << max_data << " "
+      //        << "min_data: " << min_data << " "
+      //        << "error: " << error << "\n";
       // std::cout << "Keep\n";
       return true;
     } else {
       // std::cout << "Discard\n";
       return false;
     }
-
   }
 };
 
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, DeviceType> in_array, std::vector<SIZE> shape, T tol, T iso_value, bool debug) {
+Array<D, T, DeviceType>
+refactor_and_recompose_data_levelwise(Array<D, T, DeviceType> in_array,
+                                      std::vector<SIZE> shape, T tol,
+                                      T iso_value, bool debug) {
   T max_data = std::numeric_limits<T>::min();
   T min_data = std::numeric_limits<T>::max();
-  T * data = in_array.hostCopy();
+  T *data = in_array.hostCopy();
   for (int i = 0; i < shape[0]; i++) {
     for (int j = 0; j < shape[1]; j++) {
       for (int k = 0; k < shape[2]; k++) {
-        max_data = std::max(max_data, data[i*shape[1]*shape[0]+j*shape[0]+k]);
-        min_data = std::min(min_data, data[i*shape[1]*shape[0]+j*shape[0]+k]);
+        max_data = std::max(max_data,
+                            data[i * shape[1] * shape[0] + j * shape[0] + k]);
+        min_data = std::min(min_data,
+                            data[i * shape[1] * shape[0] + j * shape[0] + k]);
       }
     }
   }
@@ -284,27 +296,33 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
 
   Array<D, T, DeviceType> org_array = in_array;
 
-  Array<D+1, T, DeviceType> * max_abs_coefficient = new Array<D+1, T, DeviceType>[hierarchy.l_target()];
-  SubArray<D+1, T, DeviceType> * max_abs_coefficient_subarray = new SubArray<D+1, T, DeviceType>[hierarchy.l_target()];
+  Array<D + 1, T, DeviceType> *max_abs_coefficient =
+      new Array<D + 1, T, DeviceType>[hierarchy.l_target()];
+  SubArray<D + 1, T, DeviceType> *max_abs_coefficient_subarray =
+      new SubArray<D + 1, T, DeviceType>[hierarchy.l_target()];
   for (int l = 0; l < hierarchy.l_target(); l++) {
-    std::vector<SIZE> max_abs_coefficient_shape(D+1);
-    for (int d = 1; d < D+1; d++) {
-      max_abs_coefficient_shape[d] = hierarchy.shapes_vec[l+1][D-d]-1;
+    std::vector<SIZE> max_abs_coefficient_shape(D + 1);
+    for (int d = 1; d < D + 1; d++) {
+      max_abs_coefficient_shape[d] = hierarchy.shapes_vec[l + 1][D - d] - 1;
     }
-    max_abs_coefficient_shape[0] = l+1;
-    max_abs_coefficient[l] = Array<D+1, T, DeviceType>(max_abs_coefficient_shape);
+    max_abs_coefficient_shape[0] = l + 1;
+    max_abs_coefficient[l] =
+        Array<D + 1, T, DeviceType>(max_abs_coefficient_shape);
     max_abs_coefficient[l].memset(0);
     max_abs_coefficient_subarray[l] = SubArray(max_abs_coefficient[l]);
   }
 
-  Array<D, SIZE, DeviceType> * refinement_flag = new Array<D, SIZE, DeviceType>[hierarchy.l_target()+1];
-  SubArray<D, SIZE, DeviceType> * refinement_flag_subarray = new SubArray<D, SIZE, DeviceType>[hierarchy.l_target()+1];
-  for (int l = 0; l < hierarchy.l_target()+1; l++) {
+  Array<D, SIZE, DeviceType> *refinement_flag =
+      new Array<D, SIZE, DeviceType>[hierarchy.l_target() + 1];
+  SubArray<D, SIZE, DeviceType> *refinement_flag_subarray =
+      new SubArray<D, SIZE, DeviceType>[hierarchy.l_target() + 1];
+  for (int l = 0; l < hierarchy.l_target() + 1; l++) {
     std::vector<SIZE> refinement_flag_shape(D);
     for (int d = 0; d < D; d++) {
-      refinement_flag_shape[d] = hierarchy.shapes_vec[l][D-1-d]-1;
+      refinement_flag_shape[d] = hierarchy.shapes_vec[l][D - 1 - d] - 1;
     }
-    refinement_flag[l] = Array<D, SIZE, DeviceType>(refinement_flag_shape, false);
+    refinement_flag[l] =
+        Array<D, SIZE, DeviceType>(refinement_flag_shape, false);
     refinement_flag[l].memset(0);
     refinement_flag_subarray[l] = SubArray(refinement_flag[l]);
     // if (l == hierarchy.l_target) {
@@ -312,7 +330,8 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
     //   for (int i = 0; i < refinement_flag_subarray[l].shape(0); i++) {
     //     for (int j = 0; j < refinement_flag_subarray[l].shape(1); j++) {
     //       for (int k = 0; k < refinement_flag_subarray[l].shape(2); k++) {
-    //         MemoryManager<DeviceType>::Copy1D(refinement_flag_subarray[l](i, j, k), &one, 1, 0);
+    //         MemoryManager<DeviceType>::Copy1D(refinement_flag_subarray[l](i,
+    //         j, k), &one, 1, 0);
     //       }
     //     }
     //   }
@@ -320,7 +339,7 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
     // }
   }
 
-  Array<1, T, DeviceType> level_max({hierarchy.l_target()+1});
+  Array<1, T, DeviceType> level_max({hierarchy.l_target() + 1});
   SubArray<1, T, DeviceType> level_max_subarray(level_max);
 
   // std::cout << "Done\n";
@@ -329,16 +348,17 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
 
   // std::cout << "Decomposing with MGARD-X CUDA backend...\n";
   multidim_refactoring_debug_print = debug;
-  decompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target(), 
-                             level_max_subarray,
-                             max_abs_coefficient_subarray, 0);
+  decompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target(),
+                                level_max_subarray,
+                                max_abs_coefficient_subarray, 0);
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
   // PrintSubarray("Decomposed data", in_subarray);
   // PrintSubarray("level_max", level_max_subarray);
   // for (int l = 0; l < hierarchy.l_target; l++) {
-  //   PrintSubarray4D("max_abs_coefficient_subarray level = " + std::to_string(l), max_abs_coefficient_subarray[l]);
+  //   PrintSubarray4D("max_abs_coefficient_subarray level = " +
+  //   std::to_string(l), max_abs_coefficient_subarray[l]);
   // }
 
   // std::cout << "Done\n";
@@ -346,30 +366,31 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
   // std::cout << "Recomposing with MGARD-X CUDA backend...\n";
 
   multidim_refactoring_debug_print = debug;
-  Array<D, T, DeviceType> result_data = recompose_adaptive_resolution(hierarchy, in_subarray, hierarchy.l_target(), 
-               iso_value, tol, level_max_subarray, max_abs_coefficient_subarray,
-               refinement_flag_subarray, 0);
+  Array<D, T, DeviceType> result_data = recompose_adaptive_resolution(
+      hierarchy, in_subarray, hierarchy.l_target(), iso_value, tol,
+      level_max_subarray, max_abs_coefficient_subarray,
+      refinement_flag_subarray, 0);
 
-  // printf("shape: %u %u %u\n", result_data.shape(0), result_data.shape()[1], result_data.shape()[2]);
+  // printf("shape: %u %u %u\n", result_data.shape(0), result_data.shape()[1],
+  // result_data.shape()[2]);
   if (debug) {
     PrintSubarray("result_data", SubArray(result_data));
   }
 
   return result_data;
 
-
   /*
-  SubArray<1, SIZE, CUDA> * refinement_flag_linearized_subarray = new SubArray<1, SIZE, CUDA>[hierarchy.l_target+1];
-  SIZE num_cell = 0;
-  for (int l = hierarchy.l_target; l >=0 ; l--) {
-    Array<1, SIZE, CUDA> result({1});
-    SubArray result_subarray(result);
-    refinement_flag_linearized_subarray[l] = refinement_flag_subarray[l].Linearize();
-    DeviceCollective<CUDA>::Sum(refinement_flag_linearized_subarray[l].getShape(0), refinement_flag_linearized_subarray[l],
-                                   result_subarray, 0);
+  SubArray<1, SIZE, CUDA> * refinement_flag_linearized_subarray = new
+  SubArray<1, SIZE, CUDA>[hierarchy.l_target+1]; SIZE num_cell = 0; for (int l =
+  hierarchy.l_target; l >=0 ; l--) { Array<1, SIZE, CUDA> result({1}); SubArray
+  result_subarray(result); refinement_flag_linearized_subarray[l] =
+  refinement_flag_subarray[l].Linearize();
+    DeviceCollective<CUDA>::Sum(refinement_flag_linearized_subarray[l].getShape(0),
+  refinement_flag_linearized_subarray[l], result_subarray, 0);
     DeviceRuntime<CUDA>::SyncQueue(0);
-    std::cout << "feature cells[" << l << "]: " << *result.hostCopy() << "/" << refinement_flag_linearized_subarray[l].getShape(0) << "\n";
-    if (l == 0) num_cell = *result.hostCopy();
+    std::cout << "feature cells[" << l << "]: " << *result.hostCopy() << "/" <<
+  refinement_flag_linearized_subarray[l].getShape(0) << "\n"; if (l == 0)
+  num_cell = *result.hostCopy();
   }
 
   std::vector<SIZE> write_index_shape(D);
@@ -380,9 +401,10 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
   write_index_array.memset(0);
   SubArray<D, SIZE, CUDA> write_index(write_index_array);
   SubArray<1, SIZE, CUDA> write_index_linearized = write_index.Linearize();
-  SubArray<1, SIZE, CUDA> refinement_flag_linearized = refinement_flag_subarray[0].Linearize();
-  DeviceCollective<CUDA>::ScanSumExclusive(write_index_linearized.getShape(0), refinement_flag_linearized,
-                                           write_index_linearized, 0);
+  SubArray<1, SIZE, CUDA> refinement_flag_linearized =
+  refinement_flag_subarray[0].Linearize();
+  DeviceCollective<CUDA>::ScanSumExclusive(write_index_linearized.getShape(0),
+  refinement_flag_linearized, write_index_linearized, 0);
   DeviceRuntime<CUDA>::SyncQueue(0);
 
   // PrintSubarray("refinement_flag_subarray[0]", refinement_flag_subarray[0]);
@@ -397,123 +419,140 @@ Array<D, T, DeviceType> refactor_and_recompose_data_levelwise(Array<D, T, Device
 
   mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
   mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
-  SparseFlyingCells<D, T, CUDA>().Execute(csc, iso_value, TrianglesArray, PointsArray, 0);
+  SparseFlyingCells<D, T, CUDA>().Execute(csc, iso_value, TrianglesArray,
+  PointsArray, 0);
 
 
   // bool interpolate_full_resolution = true;
   // SurfaceDetect<D, T, CUDA> surface_detector(iso_value);
   // std::vector<CompressedSparseEdge<D, T, CUDA>> cse_list;
   // CompressedSparseCell<T, CUDA> csc;
-  // Array<D, T, CUDA> out_array = recompose_adaptive_resolution(hierarchy, in_subarray, tol, interpolate_full_resolution, surface_detector, cse_list, csc, 0); 
+  // Array<D, T, CUDA> out_array = recompose_adaptive_resolution(hierarchy,
+  in_subarray, tol, interpolate_full_resolution, surface_detector, cse_list,
+  csc, 0);
   // std::cout << "Done\n";
 
   // DeviceRuntime<CUDA>::SyncQueue(0);
   // size_t n = 1;
   // for (int i = 0; i < shape.size(); i++) n *= shape[i];
   // enum error_bound_type mode = error_bound_type::ABS;
-  // std::cout << "L_inf_error: " << L_inf_error(n, org_array.hostCopy(), out_array.hostCopy(), mode) << "\n";
+  // std::cout << "L_inf_error: " << L_inf_error(n, org_array.hostCopy(),
+  out_array.hostCopy(), mode) << "\n";
 
   // mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
   // mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
-  // SparseFlyingCells<D, T, CUDA>().Execute(csc, iso_value, TrianglesArray, PointsArray, 0);
-  std::string field_name = "test_field";
-  vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
-  vtkm_render(dataset, shape, field_name, "my_csc_render_output");
+  // SparseFlyingCells<D, T, CUDA>().Execute(csc, iso_value, TrianglesArray,
+  PointsArray, 0); std::string field_name = "test_field"; vtkm::cont::DataSet
+  dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray,
+  field_name); vtkm_render(dataset, shape, field_name, "my_csc_render_output");
 
 
   // for (int i = 0; i < cse_list.size(); i++) {
   //   if(!cse_list[i].empty) {
   //     mgard_x::Array<1, mgard_x::SIZE, mgard_x::CUDA> TrianglesArray;
   //     mgard_x::Array<1, T, mgard_x::CUDA> PointsArray;
-  //     SparseFlyingEdges<D, T, CUDA>().Execute(cse_list[i], iso_value, TrianglesArray, PointsArray, 0);
+  //     SparseFlyingEdges<D, T, CUDA>().Execute(cse_list[i], iso_value,
+  TrianglesArray, PointsArray, 0);
   //     std::string field_name = "test_field";
-  //     vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
+  //     vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value,
+  TrianglesArray, PointsArray, field_name);
   //     vtkm_render(dataset, shape, field_name, "my_render_output");
   //   }
   // }
   */
 }
 
-template <DIM D, class T_data, class T_bitplane, class T_error, typename DeviceType,
-          class Decomposer, class Interleaver, class Encoder, class Compressor,
-          class ErrorCollector, class Writer>
-void refactor(Array<D, T_data, DeviceType> data, std::vector<SIZE> shape, int target_level,
-           int num_bitplanes,
-           Hierarchy<D, T_data, DeviceType> &hierarchy,
-           Decomposer decomposer, Interleaver interleaver, Encoder encoder,
-           Compressor compressor, ErrorCollector collector, Writer writer) {
+template <DIM D, class T_data, class T_bitplane, class T_error,
+          typename DeviceType, class Decomposer, class Interleaver,
+          class Encoder, class Compressor, class ErrorCollector, class Writer>
+void refactor(Array<D, T_data, DeviceType> data, std::vector<SIZE> shape,
+              int target_level, int num_bitplanes,
+              Hierarchy<D, T_data, DeviceType> &hierarchy,
+              Decomposer decomposer, Interleaver interleaver, Encoder encoder,
+              Compressor compressor, ErrorCollector collector, Writer writer) {
 
   auto refactor =
       MDR::ComposedRefactor<D, T_data, T_bitplane, T_error, Decomposer,
-                                     Interleaver, Encoder, Compressor,
-                                     ErrorCollector, Writer, DeviceType>(
-          hierarchy, decomposer, interleaver, encoder, compressor, collector,
-          writer);
+                            Interleaver, Encoder, Compressor, ErrorCollector,
+                            Writer, DeviceType>(hierarchy, decomposer,
+                                                interleaver, encoder,
+                                                compressor, collector, writer);
   refactor.refactor(data, shape, target_level, num_bitplanes);
 }
 
-template <DIM D, class T_data, class T_stream, class T_error, typename DeviceType,
-          class Decomposer, class Interleaver, class Encoder, class Compressor,
-          class ErrorEstimator, class SizeInterpreter, class Retriever>
-Array<D, T_data, DeviceType> reconstructor(T_error tol,
-          Hierarchy<D, T_data, DeviceType> &hierarchy,
-          Decomposer decomposer, Interleaver interleaver, Encoder encoder,
-          Compressor compressor, ErrorEstimator estimator,
-          SizeInterpreter interpreter, Retriever retriever) {
-  auto reconstructor = MDR::ComposedReconstructor<
-      D, T_data, T_stream, Decomposer, Interleaver, Encoder, Compressor,
-      SizeInterpreter, ErrorEstimator, Retriever, DeviceType>(
-      hierarchy, decomposer, interleaver, encoder, compressor, interpreter,
-      retriever);
+template <DIM D, class T_data, class T_stream, class T_error,
+          typename DeviceType, class Decomposer, class Interleaver,
+          class Encoder, class Compressor, class ErrorEstimator,
+          class SizeInterpreter, class Retriever>
+Array<D, T_data, DeviceType>
+reconstructor(T_error tol, Hierarchy<D, T_data, DeviceType> &hierarchy,
+              Decomposer decomposer, Interleaver interleaver, Encoder encoder,
+              Compressor compressor, ErrorEstimator estimator,
+              SizeInterpreter interpreter, Retriever retriever) {
+  auto reconstructor =
+      MDR::ComposedReconstructor<D, T_data, T_stream, Decomposer, Interleaver,
+                                 Encoder, Compressor, SizeInterpreter,
+                                 ErrorEstimator, Retriever, DeviceType>(
+          hierarchy, decomposer, interleaver, encoder, compressor, interpreter,
+          retriever);
   reconstructor.load_metadata();
   std::vector<T_error> tolerance = {tol};
   return reconstructor.reconstruct(tolerance[0]);
 }
 
 template <DIM D, typename T_data, typename DeviceType>
-Array<D, T_data, DeviceType> refactor_and_recompose_data_bitplanwise(Array<D, T_data, DeviceType> in_array, std::vector<SIZE> shape, SIZE block_id, double tol, double iso_value, bool debug) {
+Array<D, T_data, DeviceType> refactor_and_recompose_data_bitplanwise(
+    Array<D, T_data, DeviceType> in_array, std::vector<SIZE> shape,
+    SIZE block_id, double tol, double iso_value, bool debug) {
   using T_stream = uint32_t;
   using T_error = double;
   int num_bitplanes = 64;
   int uniform_coord_mode = 0; // is this necessary?
   Hierarchy<D, T_data, DeviceType> hierarchy(shape, uniform_coord_mode);
   SIZE target_level = hierarchy.l_target();
-  std::string metadata_file = "refactored_data/block_" +std::to_string(block_id) +"_metadata.bin";
+  std::string metadata_file =
+      "refactored_data/block_" + std::to_string(block_id) + "_metadata.bin";
   std::vector<std::string> files;
   for (int i = 0; i <= target_level; i++) {
-    std::string filename = "refactored_data/block_" + std::to_string(block_id) +"_level_" + std::to_string(i) + ".bin";
+    std::string filename = "refactored_data/block_" + std::to_string(block_id) +
+                           "_level_" + std::to_string(i) + ".bin";
     files.push_back(filename);
   }
-  auto decomposer = MDR::MGARDOrthoganalDecomposer<D, T_data, DeviceType>(hierarchy);
+  auto decomposer =
+      MDR::MGARDOrthoganalDecomposer<D, T_data, DeviceType>(hierarchy);
   auto interleaver = MDR::DirectInterleaver<D, T_data, DeviceType>(hierarchy);
   auto encoder = MDR::GroupedBPEncoder<T_data, T_stream, T_error, DeviceType>();
   auto compressor = MDR::DefaultLevelCompressor<T_stream, DeviceType>();
   auto collector = MDR::MaxErrorCollector<T_data>();
   auto writer = MDR::ConcatLevelFileWriter(metadata_file, files);
-  refactor<D, T_data, T_stream, T_error, DeviceType>(in_array, shape, target_level, num_bitplanes,
-                                    hierarchy, decomposer, interleaver, encoder,
-                                    compressor, collector, writer);
+  refactor<D, T_data, T_stream, T_error, DeviceType>(
+      in_array, shape, target_level, num_bitplanes, hierarchy, decomposer,
+      interleaver, encoder, compressor, collector, writer);
 
   auto retriever = MDR::ConcatLevelFileRetriever(metadata_file, files);
   auto estimator = MDR::MaxErrorEstimatorOB<T_data>(D);
-  auto interpreter = MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorOB<T_data>>(estimator);
-  // auto reconstructor = MDR::ComposedReconstructor(hierarchy, decomposer, interleaver, encoder, compressor, interpreter, retriever);
+  auto interpreter = MDR::SignExcludeGreedyBasedSizeInterpreter<
+      MDR::MaxErrorEstimatorOB<T_data>>(estimator);
+  // auto reconstructor = MDR::ComposedReconstructor(hierarchy, decomposer,
+  // interleaver, encoder, compressor, interpreter, retriever);
   // reconstructor.load_metadata();
-  // auto reconstructed_data = reconstructor.progressive_reconstruct(tolerance[0]);
-  return reconstructor<D, T_data, T_stream, T_error, DeviceType>(tol, hierarchy, decomposer,
-                                     interleaver, encoder, compressor,
-                                     estimator, interpreter, retriever);
+  // auto reconstructed_data =
+  // reconstructor.progressive_reconstruct(tolerance[0]);
+  return reconstructor<D, T_data, T_stream, T_error, DeviceType>(
+      tol, hierarchy, decomposer, interleaver, encoder, compressor, estimator,
+      interpreter, retriever);
 }
 
 template <typename T, typename DeviceType>
 std::string hash_key(SubArray<3, T, DeviceType> subArray) {
   return std::to_string(subArray.shape(0)) + "-" +
          std::to_string(subArray.shape(1)) + "-" +
-         std::to_string(subArray.shape(2)); 
+         std::to_string(subArray.shape(2));
 }
 
 template <DIM D, typename T>
-void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size, T tol, T iso_value) {
+void test_adaptive_resolution(T *data, std::vector<SIZE> shape, SIZE block_size,
+                              T tol, T iso_value) {
 
   Array<D, T, CUDA> data_array(shape);
   data_array.load(data);
@@ -521,24 +560,29 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
   std::unordered_map<std::string, std::vector<SubArray<D, T, CUDA>>> umap;
 
   // PrintSubarray("data", data_subarray);
-  SIZE num_block_r = (shape[0]-1)/block_size+1;
-  SIZE num_block_c = (shape[1]-1)/block_size+1;
-  SIZE num_block_f = (shape[2]-1)/block_size+1;
+  SIZE num_block_r = (shape[0] - 1) / block_size + 1;
+  SIZE num_block_c = (shape[1] - 1) / block_size + 1;
+  SIZE num_block_f = (shape[2] - 1) / block_size + 1;
 
-  Array<D, T, CUDA> * data_block = new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
-  Array<D, T, CUDA> * recomposed_data_blocks = new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
-  Array<D, T, CUDA> * recomposed_data_blocks2 = new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
-  double pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0, total_time = 0;
+  Array<D, T, CUDA> *data_block =
+      new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
+  Array<D, T, CUDA> *recomposed_data_blocks =
+      new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
+  Array<D, T, CUDA> *recomposed_data_blocks2 =
+      new Array<D, T, CUDA>[num_block_r * num_block_c * num_block_f];
+  double pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0,
+         total_time = 0;
   for (SIZE r = 0; r < num_block_r; r++) {
     for (SIZE c = 0; c < num_block_c; c++) {
       for (SIZE f = 0; f < num_block_f; f++) {
         SIZE start_r = r * block_size;
-        SIZE block_size_r = std::min(block_size, shape[0]-start_r);
+        SIZE block_size_r = std::min(block_size, shape[0] - start_r);
         SIZE start_c = c * block_size;
-        SIZE block_size_c = std::min(block_size, shape[1]-start_c);
+        SIZE block_size_c = std::min(block_size, shape[1] - start_c);
         SIZE start_f = f * block_size;
-        SIZE block_size_f = std::min(block_size, shape[2]-start_f);
-        SIZE linearized_index = r * num_block_c * num_block_f + c * num_block_f + f;
+        SIZE block_size_f = std::min(block_size, shape[2] - start_f);
+        SIZE linearized_index =
+            r * num_block_c * num_block_f + c * num_block_f + f;
         std::vector<SIZE> block_shape{block_size_r, block_size_c, block_size_f};
         data_block[linearized_index] = Array<D, T, CUDA>(block_shape);
         SubArray data_block_src = data_subarray;
@@ -548,17 +592,23 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
         CopyND(data_block_src, data_block_des, 0);
         DeviceRuntime<CUDA>::SyncQueue(0);
 
-
         bool debug = false;
         // printf("block %u ", linearized_index);
         // PrintSubarray("data_block_src", data_block_src);
         if (linearized_index == 0) {
           debug = false;
         }
-        // recomposed_data_blocks[linearized_index] = refactor_and_recompose_data_levelwise(data_block[linearized_index], {block_size_r, block_size_c, block_size_f}, tol, iso_value, debug);
-        recomposed_data_blocks[linearized_index] = refactor_and_recompose_data_bitplanwise(data_block[linearized_index], {block_size_r, block_size_c, block_size_f}, linearized_index, tol, iso_value, debug);
-        SubArray recomposed_data_block(recomposed_data_blocks[linearized_index]);
-        
+        // recomposed_data_blocks[linearized_index] =
+        // refactor_and_recompose_data_levelwise(data_block[linearized_index],
+        // {block_size_r, block_size_c, block_size_f}, tol, iso_value, debug);
+        recomposed_data_blocks[linearized_index] =
+            refactor_and_recompose_data_bitplanwise(
+                data_block[linearized_index],
+                {block_size_r, block_size_c, block_size_f}, linearized_index,
+                tol, iso_value, debug);
+        SubArray recomposed_data_block(
+            recomposed_data_blocks[linearized_index]);
+
         // if (recomposed_data_blocks[linearized_index].shape(0) == 64) {
         //   printf("linearized_index: %u\n", linearized_index);
         // }
@@ -573,24 +623,28 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
         //   }
         // }
 
-        
         // Run dense FlyingEdges
         Array<1, SIZE, CUDA> TrianglesArray;
         Array<1, T, CUDA> PointsArray;
-        double pass1_time_block = 0, pass2_time_block = 0, pass3_time_block = 0, pass4_time_block = 0, total_time_block = 0;
+        double pass1_time_block = 0, pass2_time_block = 0, pass3_time_block = 0,
+               pass4_time_block = 0, total_time_block = 0;
         flying_edges::FlyingEdges<T, CUDA>().Execute(
-            recomposed_data_block.shape(0), recomposed_data_block.shape(1), recomposed_data_block.shape(2), recomposed_data_block,
-            iso_value, TrianglesArray, PointsArray, pass1_time_block, pass2_time_block, pass3_time_block, pass4_time_block, 0);
+            recomposed_data_block.shape(0), recomposed_data_block.shape(1),
+            recomposed_data_block.shape(2), recomposed_data_block, iso_value,
+            TrianglesArray, PointsArray, pass1_time_block, pass2_time_block,
+            pass3_time_block, pass4_time_block, 0);
         DeviceRuntime<CUDA>::SyncQueue(0);
         // if (recomposed_data_blocks[linearized_index].shape(0) == 64) {
-        //   std::cout << "block " << linearized_index << " mgard_x::FlyingEdges::numPoints: " << PointsArray.shape(0)/3 << "\n";
-        //   std::cout << "block " << linearized_index << " mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape(0)/3 << "\n";
+        //   std::cout << "block " << linearized_index << "
+        //   mgard_x::FlyingEdges::numPoints: " << PointsArray.shape(0)/3 <<
+        //   "\n"; std::cout << "block " << linearized_index << "
+        //   mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape(0)/3 <<
+        //   "\n";
         // }
         pass1_time += pass1_time_block;
         pass2_time += pass2_time_block;
         pass3_time += pass3_time_block;
         pass4_time += pass4_time_block;
-        
       }
     }
   }
@@ -603,7 +657,6 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
   printf("Pass4 time: %f s\n", pass4_time);
   printf("Total time: %f s\n", total_time);
 
-  
   for (SIZE i = 0; i < num_block_r * num_block_c * num_block_f; i++) {
     SubArray recomposed_data_block(recomposed_data_blocks[i]);
     std::string key = hash_key(recomposed_data_block);
@@ -611,13 +664,15 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
   }
 
   for (auto x : umap) {
-    pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0, total_time = 0;
+    pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0,
+    total_time = 0;
     std::cout << x.first << " " << x.second.size() << std::endl;
     std::vector<SubArray<D, T, CUDA>> recomposed_data_blocks_vec = x.second;
     SIZE num_batches = (SIZE)recomposed_data_blocks_vec.size();
     const bool pitched = false;
     const bool managed = true;
-    Array<1, SubArray<D, T, CUDA>, CUDA> recomposed_data_blocks_subarray({num_batches}, pitched, managed);
+    Array<1, SubArray<D, T, CUDA>, CUDA> recomposed_data_blocks_subarray(
+        {num_batches}, pitched, managed);
     SubArray subarray_of_subarray(recomposed_data_blocks_subarray);
     for (int i = 0; i < num_batches; i++) {
       *subarray_of_subarray(i) = recomposed_data_blocks_vec[i];
@@ -628,8 +683,8 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
     Array<1, Array<1, SIZE, CUDA>, CUDA> Triangles;
     Array<1, Array<1, T, CUDA>, CUDA> Points;
     flying_edges_batched::FlyingEdgesBatched<T, CUDA>().Execute(
-        nr, nc, nf, subarray_of_subarray,
-        iso_value, Triangles, Points, pass1_time, pass2_time, pass3_time, pass4_time, 0);
+        nr, nc, nf, subarray_of_subarray, iso_value, Triangles, Points,
+        pass1_time, pass2_time, pass3_time, pass4_time, 0);
     total_time = pass1_time + pass2_time + pass3_time + pass4_time;
     printf("Batched: \n");
     printf("Pass1 time: %f s\n", pass1_time);
@@ -637,18 +692,12 @@ void test_adaptive_resolution(T * data, std::vector<SIZE> shape, SIZE block_size
     printf("Pass3 time: %f s\n", pass3_time);
     printf("Pass4 time: %f s\n", pass4_time);
     printf("Total time: %f s\n", total_time);
-  }   
-
-
+  }
 
   // printf("mgard_x::FlyingEdges adapt res: %f\n", total_time);
 }
 
 } // end of namespace mgard_x
-
-
-
-
 
 bool require_arg(int argc, char *argv[], std::string option) {
   for (int i = 0; i < argc; i++) {
@@ -754,15 +803,17 @@ template <typename T> size_t readfile(const char *input_file, T *&in_buff) {
 }
 
 template <typename T>
-T * get_data(std::string input_file, size_t original_size) {
-  T * data = NULL;
+T *get_data(std::string input_file, size_t original_size) {
+  T *data = NULL;
   if (std::string(input_file).compare("random") == 0) {
     data = new T[original_size];
     srand(7117);
     for (size_t i = 0; i < original_size; i++) {
-      //data[i] = (T)rand() / RAND_MAX;
-      if (i < 2) data[i] = 1;
-      else data[i] = 0;
+      // data[i] = (T)rand() / RAND_MAX;
+      if (i < 2)
+        data[i] = 1;
+      else
+        data[i] = 0;
     }
   } else {
     readfile(input_file.c_str(), data);
@@ -782,15 +833,17 @@ int main(int argc, char *argv[]) {
     original_size *= shape[i];
 
   if (dt.compare("s") == 0) {
-    float * data = get_data<float>(input_file, original_size);
+    float *data = get_data<float>(input_file, original_size);
     test_vtkm<3, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, float>(data, shape, (float)iso_value);
-    mgard_x::test_adaptive_resolution<3, float>(data, shape, block_size, (float)tol, (float)iso_value);
+    mgard_x::test_adaptive_resolution<3, float>(data, shape, block_size,
+                                                (float)tol, (float)iso_value);
   } else if (dt.compare("d") == 0) {
-    double * data = get_data<double>(input_file, original_size);
+    double *data = get_data<double>(input_file, original_size);
     test_vtkm<3, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, double>(data, shape, (float)iso_value);
-    mgard_x::test_adaptive_resolution<3, double>(data, shape, block_size, (double)tol, (double)iso_value);
+    mgard_x::test_adaptive_resolution<3, double>(
+        data, shape, block_size, (double)tol, (double)iso_value);
 
   } else {
     std::cout << "wrong data type.\n";

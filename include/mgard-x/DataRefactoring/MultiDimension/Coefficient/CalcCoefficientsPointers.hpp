@@ -27,7 +27,7 @@ void CalcCoefficientsPointers(
   SIZE nn[3];
   for (DIM d = 0; d < 3; d++) {
     n[d] = hierarchy.level_shape(l, curr_dims[d]);
-    nn[d] = hierarchy.level_shape(l-1, curr_dims[d]);
+    nn[d] = hierarchy.level_shape(l - 1, curr_dims[d]);
   }
 
   dcoarse = doutput;

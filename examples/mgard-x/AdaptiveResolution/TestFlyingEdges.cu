@@ -1,46 +1,45 @@
 
 
-#include <vtkm/cont/Initialize.h>
 #include <vtkm/cont/DataSetBuilderUniform.h>
 #include <vtkm/cont/DataSetFieldAdd.h>
+#include <vtkm/cont/Initialize.h>
 #include <vtkm/filter/MapFieldPermutation.h>
-#include <vtkm/filter/contour/worklet/Contour.h>
 #include <vtkm/filter/contour/Contour.h>
+#include <vtkm/filter/contour/worklet/Contour.h>
 
 #include <vtkm/rendering/Actor.h>
-#include <vtkm/rendering/MapperWireframer.h>
 #include <vtkm/rendering/CanvasRayTracer.h>
 #include <vtkm/rendering/MapperRayTracer.h>
+#include <vtkm/rendering/MapperWireframer.h>
 #include <vtkm/rendering/Scene.h>
 #include <vtkm/rendering/View3D.h>
 
 #include <vtkm/io/VTKDataSetReader.h>
 #include <vtkm/io/VTKDataSetWriter.h>
 
+#include "mgard/mgard-x/DataRefactoring/MultiDimension/Coefficient/DenseToCompressedSparseCell.hpp"
 #include "mgard/mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
 #include "mgard/mgard-x/DataRefactoring/MultiDimension/DataRefactoringAdaptiveResolution.hpp"
-#include "mgard/mgard-x/DataRefactoring/MultiDimension/Coefficient/DenseToCompressedSparseCell.hpp"
 #include "mgard/mgard-x/Utilities/ErrorCalculator.h"
 
-#include "SparseFlyingEdges.hpp"
 #include "SparseFlyingCells.hpp"
+#include "SparseFlyingEdges.hpp"
 
 #include <iostream>
 #include <vector>
 
 // using namespace mgard_x;
 
-
-void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape, std::string field_name, std::string output) {
+void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape,
+                 std::string field_name, std::string output) {
   using Mapper = vtkm::rendering::MapperRayTracer;
   using Canvas = vtkm::rendering::CanvasRayTracer;
 
   vtkm::rendering::Scene scene;
   vtkm::cont::ColorTable colorTable("inferno");
-  scene.AddActor(vtkm::rendering::Actor(dataSet.GetCellSet(),
-                                      dataSet.GetCoordinateSystem(),
-                                      dataSet.GetField(field_name),
-                                      colorTable));
+  scene.AddActor(vtkm::rendering::Actor(
+      dataSet.GetCellSet(), dataSet.GetCoordinateSystem(),
+      dataSet.GetField(field_name), colorTable));
 
   Mapper mapper;
   Canvas canvas(1024, 1024);
@@ -67,16 +66,17 @@ void vtkm_render(vtkm::cont::DataSet dataSet, std::vector<mgard_x::SIZE> shape, 
   vtkm::rendering::View3D view(scene, mapper, canvas, camera, bg);
   view.Initialize();
   view.Paint();
-  view.SaveAs(output + ".pnm"); 
+  view.SaveAs(output + ".pnm");
 }
 
 template <typename T, typename DeviceType>
-vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value,
-                                  mgard_x::Array<1, mgard_x::SIZE, DeviceType> TrianglesArray,
-                                  mgard_x::Array<1, T, DeviceType> PointsArray,
-                                  std::string field_name) {
-  mgard_x::SIZE * Triangles = new mgard_x::SIZE[TrianglesArray.shape(0)];
-  T * Points = new T[PointsArray.shape(0)];
+vtkm::cont::DataSet
+ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value,
+               mgard_x::Array<1, mgard_x::SIZE, DeviceType> TrianglesArray,
+               mgard_x::Array<1, T, DeviceType> PointsArray,
+               std::string field_name) {
+  mgard_x::SIZE *Triangles = new mgard_x::SIZE[TrianglesArray.shape(0)];
+  T *Points = new T[PointsArray.shape(0)];
 
   mgard_x::SIZE numTriangles = TrianglesArray.shape(0) / 3;
   mgard_x::SIZE numPoints = PointsArray.shape(0) / 3;
@@ -89,33 +89,34 @@ vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value
   // mgard_x::PrintSubarray("Points", mgard_x::SubArray(PointsArray));
 
   vtkm::cont::DataSet ds_from_mc;
-  std::vector<T> iso_data_vec(shape[0]*shape[1]*shape[2], iso_value);
+  std::vector<T> iso_data_vec(shape[0] * shape[1] * shape[2], iso_value);
   ds_from_mc.AddPointField(field_name, iso_data_vec);
   vtkm::cont::CellSetSingleType<> cellset;
-  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG> connectivity;
+  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>
+      connectivity;
   connectivity.Allocate(TrianglesArray.shape(0));
 
-  // std::cout << "connectivity.GetNumberOfValues() = " << connectivity.GetNumberOfValues() << "\n";
+  // std::cout << "connectivity.GetNumberOfValues() = " <<
+  // connectivity.GetNumberOfValues() << "\n";
 
-  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>::WritePortalType writePortal = connectivity.WritePortal();
+  vtkm::cont::ArrayHandle<vtkm::Id, VTKM_DEFAULT_CONNECTIVITY_STORAGE_TAG>::
+      WritePortalType writePortal = connectivity.WritePortal();
   for (vtkm::Id i = 0; i < numTriangles; i++) {
-    writePortal.Set(i*3, Triangles[i*3]);
-    writePortal.Set(i*3+1, Triangles[i*3+1]);
-    writePortal.Set(i*3+2, Triangles[i*3+2]);
+    writePortal.Set(i * 3, Triangles[i * 3]);
+    writePortal.Set(i * 3 + 1, Triangles[i * 3 + 1]);
+    writePortal.Set(i * 3 + 2, Triangles[i * 3 + 2]);
   }
 
-  cellset.Fill(numPoints,
-                vtkm::CELL_SHAPE_TRIANGLE, 3,
-                connectivity);
+  cellset.Fill(numPoints, vtkm::CELL_SHAPE_TRIANGLE, 3, connectivity);
   ds_from_mc.SetCellSet(cellset);
 
   vtkm::cont::ArrayHandle<vtkm::Vec3f> coordinate_points;
   coordinate_points.Allocate(numPoints);
   for (vtkm::Id pointId = 0; pointId < numPoints; pointId++) {
     vtkm::Vec3f point;
-    point[0] = Points[pointId*3];
-    point[1] = Points[pointId*3+1];
-    point[2] = Points[pointId*3+2];
+    point[0] = Points[pointId * 3];
+    point[1] = Points[pointId * 3 + 1];
+    point[2] = Points[pointId * 3 + 2];
     coordinate_points.WritePortal().Set(pointId, point);
   }
   vtkm::cont::CoordinateSystem coordinate_system("cs", coordinate_points);
@@ -125,19 +126,21 @@ vtkm::cont::DataSet ArrayToDataset(std::vector<mgard_x::SIZE> shape, T iso_value
 }
 
 template <mgard_x::DIM D, typename T>
-void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shape, T tol, T iso_value) {
+void test_vtkm(int argc, char *argv[], T *data,
+               std::vector<mgard_x::SIZE> shape, T tol, T iso_value) {
   vtkm::cont::Initialize(argc, argv);
   vtkm::cont::ScopedRuntimeDeviceTracker(vtkm::cont::DeviceAdapterTagCuda{});
   vtkm::cont::DataSet dataSet;
   vtkm::cont::DataSetBuilderUniform dataSetBuilder;
   vtkm::cont::DataSetFieldAdd dsf;
-  if (D == 2) shape.push_back(1);
+  if (D == 2)
+    shape.push_back(1);
   vtkm::Id3 dims(shape[2], shape[1], shape[0]);
-  vtkm::Id3 org(0,0,0);
-  vtkm::Id3 spc(1,1,1);
+  vtkm::Id3 org(0, 0, 0);
+  vtkm::Id3 spc(1, 1, 1);
   dataSet = dataSetBuilder.Create(dims, org, spc);
-  std::vector<T> data_vec(shape[0]*shape[1]*shape[2]);
-  for (int i = 0; i < shape[0]*shape[1]*shape[2]; i++) {
+  std::vector<T> data_vec(shape[0] * shape[1] * shape[2]);
+  for (int i = 0; i < shape[0] * shape[1] * shape[2]; i++) {
     data_vec[i] = data[i];
   }
   std::string field_name = "test_field";
@@ -148,7 +151,7 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   contour_filter.SetIsoValue(0, iso_value);
   // contour_filter.SetIsoValue(1, iso_value+10);
   contour_filter.SetActiveField(field_name);
-  contour_filter.SetFieldsToPass({ field_name });
+  contour_filter.SetFieldsToPass({field_name});
   mgard_x::Timer t;
   t.start();
   mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncDevice();
@@ -158,14 +161,17 @@ void test_vtkm(int argc, char *argv[], T * data, std::vector<mgard_x::SIZE> shap
   t.print("VTKM");
   t.clear();
 
-  std::cout << "vtkm::FlyingEdges::numPoints: " << outputData.GetNumberOfPoints() << "\n";
-  std::cout << "vtkm::FlyingEdges::numTris: " << outputData.GetNumberOfCells() << "\n";
- 
+  std::cout << "vtkm::FlyingEdges::numPoints: "
+            << outputData.GetNumberOfPoints() << "\n";
+  std::cout << "vtkm::FlyingEdges::numTris: " << outputData.GetNumberOfCells()
+            << "\n";
+
   vtkm_render(outputData, shape, field_name, "vtkm_render_output");
 }
 
 template <mgard_x::DIM D, typename T, typename DeviceType>
-void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) {
+void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape,
+               T iso_value) {
 
   mgard_x::SIZE numTriangles;
   mgard_x::SIZE *Triangles;
@@ -182,18 +188,21 @@ void test_mine(T *original_data, std::vector<mgard_x::SIZE> shape, T iso_value) 
   double pass1_time = 0, pass2_time = 0, pass3_time = 0, pass4_time = 0;
   mgard_x::flying_edges::FlyingEdges<T, DeviceType>().Execute(
       shape[0], shape[1], shape[2], mgard_x::SubArray<3, T, DeviceType>(v),
-      iso_value, TrianglesArray, PointsArray, pass1_time, pass2_time, pass3_time, pass4_time, 0);
+      iso_value, TrianglesArray, PointsArray, pass1_time, pass2_time,
+      pass3_time, pass4_time, 0);
   mgard_x::DeviceRuntime<DeviceType>::SyncQueue(0);
-  printf("mgard_x::FlyingEdges: %f\n", pass1_time + pass2_time + pass3_time + pass4_time);
-  std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape(0)/3 << "\n";
-  std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape(0)/3 << "\n";
+  printf("mgard_x::FlyingEdges: %f\n",
+         pass1_time + pass2_time + pass3_time + pass4_time);
+  std::cout << "mgard_x::FlyingEdges::numPoints: " << PointsArray.shape(0) / 3
+            << "\n";
+  std::cout << "mgard_x::FlyingEdges::numTris: " << TrianglesArray.shape(0) / 3
+            << "\n";
 
   std::string field_name = "test_field";
-  vtkm::cont::DataSet dataset = ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
+  vtkm::cont::DataSet dataset =
+      ArrayToDataset(shape, iso_value, TrianglesArray, PointsArray, field_name);
   vtkm_render(dataset, shape, field_name, "my_flying_edges");
-
 }
-
 
 bool require_arg(int argc, char *argv[], std::string option) {
   for (int i = 0; i < argc; i++) {
@@ -299,15 +308,17 @@ template <typename T> size_t readfile(const char *input_file, T *&in_buff) {
 }
 
 template <typename T>
-T * get_data(std::string input_file, size_t original_size) {
-  T * data = NULL;
+T *get_data(std::string input_file, size_t original_size) {
+  T *data = NULL;
   if (std::string(input_file).compare("random") == 0) {
     data = new T[original_size];
     srand(7117);
     for (size_t i = 0; i < original_size; i++) {
-      //data[i] = (T)rand() / RAND_MAX;
-      if (i < 2) data[i] = 1;
-      else data[i] = 0;
+      // data[i] = (T)rand() / RAND_MAX;
+      if (i < 2)
+        data[i] = 1;
+      else
+        data[i] = 0;
     }
   } else {
     readfile(input_file.c_str(), data);
@@ -326,11 +337,11 @@ int main(int argc, char *argv[]) {
     original_size *= shape[i];
 
   if (dt.compare("s") == 0) {
-    float * data = get_data<float>(input_file, original_size);
+    float *data = get_data<float>(input_file, original_size);
     test_vtkm<3, float>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, float, mgard_x::CUDA>(data, shape, (float)iso_value);
   } else if (dt.compare("d") == 0) {
-    double * data = get_data<double>(input_file, original_size);
+    double *data = get_data<double>(input_file, original_size);
     test_vtkm<3, double>(argc, argv, data, shape, (float)tol, (float)iso_value);
     test_mine<3, double, mgard_x::CUDA>(data, shape, (float)iso_value);
 

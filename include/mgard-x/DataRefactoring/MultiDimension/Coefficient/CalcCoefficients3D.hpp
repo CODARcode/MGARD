@@ -29,18 +29,19 @@ void CalcCoefficients3D(Hierarchy<D, T, DeviceType> &hierarchy,
   if (sizeof(T) == sizeof(float))
     prefix += "f_";
   for (int d = 0; d < D; d++)
-    prefix += std::to_string(hierarchy.level_shape(hierarchy.l_target(), d)) + "_";
+    prefix +=
+        std::to_string(hierarchy.level_shape(hierarchy.l_target(), d)) + "_";
 
-  dinput.project(D-3, D-2, D-1);
-  doutput.project(D-3, D-2, D-1);
+  dinput.project(D - 3, D - 2, D - 1);
+  doutput.project(D - 3, D - 2, D - 1);
   SIZE f, c, r, ff, cc, rr;
 
-  f = hierarchy.level_shape(l, D-1);
-  c = hierarchy.level_shape(l, D-2);
-  r = hierarchy.level_shape(l, D-3);
-  ff = hierarchy.level_shape(l-1, D-1);
-  cc = hierarchy.level_shape(l-1, D-2);
-  rr = hierarchy.level_shape(l-1, D-3);
+  f = hierarchy.level_shape(l, D - 1);
+  c = hierarchy.level_shape(l, D - 2);
+  r = hierarchy.level_shape(l, D - 3);
+  ff = hierarchy.level_shape(l - 1, D - 1);
+  cc = hierarchy.level_shape(l - 1, D - 2);
+  rr = hierarchy.level_shape(l - 1, D - 3);
 
   SubArray<D, T, DeviceType> dcoarse = doutput;
   dcoarse.resize({rr, cc, ff});
@@ -66,17 +67,17 @@ void CalcCoefficients3D(Hierarchy<D, T, DeviceType> &hierarchy,
   dcoeff_rcf.offset({rr, cc, ff});
   dcoeff_rcf.resize({r - rr, c - cc, f - ff});
 
-  SubArray ratio_f(hierarchy.ratio(l, D-1));
-  SubArray ratio_c(hierarchy.ratio(l, D-2));
-  SubArray ratio_r(hierarchy.ratio(l, D-3));
+  SubArray ratio_f(hierarchy.ratio(l, D - 1));
+  SubArray ratio_c(hierarchy.ratio(l, D - 2));
+  SubArray ratio_r(hierarchy.ratio(l, D - 3));
 
-  GpkReo3D<D, T, DeviceType>().Execute(r, c, f, rr, cc, ff,
-      ratio_r, ratio_c, ratio_f, dinput, dcoarse, dcoeff_f,
-      dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf,
-      queue_idx);
+  GpkReo3D<D, T, DeviceType>().Execute(r, c, f, rr, cc, ff, ratio_r, ratio_c,
+                                       ratio_f, dinput, dcoarse, dcoeff_f,
+                                       dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+                                       dcoeff_rc, dcoeff_rcf, queue_idx);
 
-  verify_matrix_cuda(r, c, f, doutput.data(), doutput.ld(D-1),
-                     doutput.ld(D-2), doutput.ld(D-1),
+  verify_matrix_cuda(r, c, f, doutput.data(), doutput.ld(D - 1),
+                     doutput.ld(D - 2), doutput.ld(D - 1),
                      prefix + "gpk_reo_3d" + "_level_" + std::to_string(l),
                      multidim_refactoring_store, multidim_refactoring_verify);
 

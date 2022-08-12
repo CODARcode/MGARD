@@ -414,8 +414,8 @@ public:
 
   MGARDX_EXEC void Operation8() {
     // Adjust the search window on the diagonal
-    if (FunctorBase<DeviceType>::GetThreadIdX() == MGARDX_WARP_SIZE/2) {
-      if (oneorzero[MGARDX_WARP_SIZE-1] != 0) {
+    if (FunctorBase<DeviceType>::GetThreadIdX() == MGARDX_WARP_SIZE / 2) {
+      if (oneorzero[MGARDX_WARP_SIZE - 1] != 0) {
         *x_bottom = current_x;
         *y_bottom = current_y;
       } else {
