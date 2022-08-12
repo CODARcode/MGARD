@@ -14,8 +14,8 @@
 #include <vector>
 #include <assert.h>
 
-#ifndef MGARD_X_HANDLE_HPP
-#define MGARD_X_HANDLE_HPP
+#ifndef MGARD_X_HIERARCHY_HPP
+#define MGARD_X_HIERARCHY_HPP
 
 namespace mgard_x {
 
