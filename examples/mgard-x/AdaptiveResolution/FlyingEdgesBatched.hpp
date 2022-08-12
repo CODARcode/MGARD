@@ -8,8 +8,8 @@
 #ifndef MGARD_X_FLYING_EDGES_BATCHED_HPP
 #define MGARD_X_FLYING_EDGES_BATCHED_HPP
 
-#include "mgard/mgard-x/RuntimeX/RuntimeX.h"
 #include "FlyingEdges.hpp"
+#include "mgard/mgard-x/RuntimeX/RuntimeX.h"
 
 namespace mgard_x {
 
@@ -19,14 +19,16 @@ template <typename T, typename DeviceType>
 class Pass1Functor : public Functor<DeviceType> {
 public:
   MGARDX_CONT Pass1Functor() {}
-  MGARDX_CONT Pass1Functor(SIZE nr, SIZE nc, SIZE nf,
-                           SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v_batch, T iso_value,
-                           SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum_batch,
-                           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_batch,
-                           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max_batch,
-                           SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges_batch)
-      : nr(nr), nc(nc), nf(nf), v_batch(v_batch), iso_value(iso_value), axis_sum_batch(axis_sum_batch),
-        axis_min_batch(axis_min_batch), axis_max_batch(axis_max_batch), edges_batch(edges_batch) {
+  MGARDX_CONT Pass1Functor(
+      SIZE nr, SIZE nc, SIZE nf,
+      SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v_batch, T iso_value,
+      SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum_batch,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_batch,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max_batch,
+      SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges_batch)
+      : nr(nr), nc(nc), nf(nf), v_batch(v_batch), iso_value(iso_value),
+        axis_sum_batch(axis_sum_batch), axis_min_batch(axis_min_batch),
+        axis_max_batch(axis_max_batch), edges_batch(edges_batch) {
     Functor<DeviceType>();
   }
 
@@ -39,11 +41,11 @@ public:
              FunctorBase<DeviceType>::GetThreadIdY();
 
     SIZE batch_id = FunctorBase<DeviceType>::GetBlockIdZ();
-    v        = *v_batch(batch_id);
+    v = *v_batch(batch_id);
     axis_sum = *axis_sum_batch(batch_id);
     axis_min = *axis_min_batch(batch_id);
     axis_max = *axis_max_batch(batch_id);
-    edges    = *edges_batch(batch_id);
+    edges = *edges_batch(batch_id);
 
     SIZE _axis_sum = 0;
     SIZE _axis_min = nc;
@@ -104,7 +106,7 @@ private:
   SubArray<2, SIZE, DeviceType> axis_min;
   SubArray<2, SIZE, DeviceType> axis_max;
   SubArray<3, SIZE, DeviceType> edges;
-  
+
   SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v_batch;
   SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum_batch;
   SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_batch;
@@ -116,15 +118,17 @@ template <typename T, typename DeviceType>
 class Pass2Functor : public Functor<DeviceType> {
 public:
   MGARDX_CONT Pass2Functor() {}
-  MGARDX_CONT Pass2Functor(SIZE nr, SIZE nc, SIZE nf,
-                           SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum_batch,
-                           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_batch,
-                           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max_batch,
-                           SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges_batch,
-                           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> cell_tri_count_batch)
+  MGARDX_CONT Pass2Functor(
+      SIZE nr, SIZE nc, SIZE nf,
+      SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum_batch,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_batch,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max_batch,
+      SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges_batch,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType>
+          cell_tri_count_batch)
       : nr(nr), nc(nc), nf(nf), axis_sum_batch(axis_sum_batch),
-        axis_min_batch(axis_min_batch), axis_max_batch(axis_max_batch), edges_batch(edges_batch),
-        cell_tri_count_batch(cell_tri_count_batch) {
+        axis_min_batch(axis_min_batch), axis_max_batch(axis_max_batch),
+        edges_batch(edges_batch), cell_tri_count_batch(cell_tri_count_batch) {
     Functor<DeviceType>();
   }
 
@@ -137,10 +141,10 @@ public:
              FunctorBase<DeviceType>::GetThreadIdY();
 
     SIZE batch_id = FunctorBase<DeviceType>::GetBlockIdZ();
-    axis_sum       = *axis_sum_batch(batch_id);
-    axis_min       = *axis_min_batch(batch_id);
-    axis_max       = *axis_max_batch(batch_id);
-    edges          = *edges_batch(batch_id);
+    axis_sum = *axis_sum_batch(batch_id);
+    axis_min = *axis_min_batch(batch_id);
+    axis_max = *axis_max_batch(batch_id);
+    edges = *edges_batch(batch_id);
     cell_tri_count = *cell_tri_count_batch(batch_id);
 
     if (f >= nf - 1 || r >= nr - 1) {
@@ -150,11 +154,11 @@ public:
     // compute trim blounds
     // Max right should be nc - 1
     SIZE left, right;
-    bool hasWork =
-        flying_edges::computeTrimBounds(r, f, nc - 1, edges, axis_min, axis_max, left, right);
+    bool hasWork = flying_edges::computeTrimBounds(
+        r, f, nc - 1, edges, axis_min, axis_max, left, right);
 
     // printf("computeTrimBounds: rf: %u %u, left: %u, right: %u\n",
-            // r, f, left, right);
+    // r, f, left, right);
     if (!hasWork) {
       return;
     }
@@ -193,8 +197,8 @@ public:
         _axis_sum[0] += edgeUses[4];
         _axis_sum[2] += edgeUses[8];
 
-        flying_edges::CountBoundaryEdgeUses(onBoundary, edgeUses, _axis_sum, adj_row_sum,
-                              adj_col_sum);
+        flying_edges::CountBoundaryEdgeUses(onBoundary, edgeUses, _axis_sum,
+                                            adj_row_sum, adj_col_sum);
       }
     }
 
@@ -250,24 +254,30 @@ template <typename T, typename DeviceType>
 class Pass4Functor : public Functor<DeviceType> {
 public:
   MGARDX_CONT Pass4Functor() {}
-  MGARDX_CONT Pass4Functor(SIZE nr, SIZE nc, SIZE nf,
-                           SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v_batch, T iso_value,
-                           SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> axis_sum_scan_batch,
-                           SubArray<1, SIZE, DeviceType> axis_sum_scan_offset_batch,
-                           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_batch,
-                           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max_batch,
-                           SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> cell_tri_count_scan_batch,
-                           SubArray<1, SIZE, DeviceType> cell_tri_count_scan_offset_batch,
-                           SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges_batch,
-                           SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> triangle_topology_batch,
-                           SubArray<1, SubArray<1, T, DeviceType>, DeviceType> points_batch)
-      : nr(nr), nc(nc), nf(nf), v_batch(v_batch), iso_value(iso_value), axis_sum_scan_batch(axis_sum_scan_batch),
+  MGARDX_CONT Pass4Functor(
+      SIZE nr, SIZE nc, SIZE nf,
+      SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v_batch, T iso_value,
+      SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+          axis_sum_scan_batch,
+      SubArray<1, SIZE, DeviceType> axis_sum_scan_offset_batch,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_batch,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max_batch,
+      SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+          cell_tri_count_scan_batch,
+      SubArray<1, SIZE, DeviceType> cell_tri_count_scan_offset_batch,
+      SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges_batch,
+      SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+          triangle_topology_batch,
+      SubArray<1, SubArray<1, T, DeviceType>, DeviceType> points_batch)
+      : nr(nr), nc(nc), nf(nf), v_batch(v_batch), iso_value(iso_value),
+        axis_sum_scan_batch(axis_sum_scan_batch),
         axis_sum_scan_offset_batch(axis_sum_scan_offset_batch),
         axis_min_batch(axis_min_batch), axis_max_batch(axis_max_batch),
-        cell_tri_count_scan_batch(cell_tri_count_scan_batch), 
+        cell_tri_count_scan_batch(cell_tri_count_scan_batch),
         cell_tri_count_scan_offset_batch(cell_tri_count_scan_offset_batch),
         edges_batch(edges_batch),
-        triangle_topology_batch(triangle_topology_batch), points_batch(points_batch) {
+        triangle_topology_batch(triangle_topology_batch),
+        points_batch(points_batch) {
     Functor<DeviceType>();
   }
 
@@ -280,18 +290,21 @@ public:
              FunctorBase<DeviceType>::GetThreadIdY();
 
     SIZE batch_id = FunctorBase<DeviceType>::GetBlockIdZ();
-    v                   = *v_batch(batch_id);
-    axis_sum_scan       = *axis_sum_scan_batch(batch_id);
+    v = *v_batch(batch_id);
+    axis_sum_scan = *axis_sum_scan_batch(batch_id);
     axis_sum_scan_curr_offset = *axis_sum_scan_offset_batch(batch_id);
-    axis_sum_scan_prev_offset = batch_id == 0 ? 0 : *axis_sum_scan_offset_batch(batch_id-1);
-    axis_min            = *axis_min_batch(batch_id);
-    axis_max            = *axis_max_batch(batch_id);
+    axis_sum_scan_prev_offset =
+        batch_id == 0 ? 0 : *axis_sum_scan_offset_batch(batch_id - 1);
+    axis_min = *axis_min_batch(batch_id);
+    axis_max = *axis_max_batch(batch_id);
     cell_tri_count_scan = *cell_tri_count_scan_batch(batch_id);
-    cell_tri_count_scan_curr_offset = *cell_tri_count_scan_offset_batch(batch_id);
-    cell_tri_count_scan_prev_offset = batch_id == 0 ? 0 : *cell_tri_count_scan_offset_batch(batch_id-1);
-    edges               = *edges_batch(batch_id);
-    triangle_topology   = *triangle_topology_batch(batch_id);
-    points              = *points_batch(batch_id);
+    cell_tri_count_scan_curr_offset =
+        *cell_tri_count_scan_offset_batch(batch_id);
+    cell_tri_count_scan_prev_offset =
+        batch_id == 0 ? 0 : *cell_tri_count_scan_offset_batch(batch_id - 1);
+    edges = *edges_batch(batch_id);
+    triangle_topology = *triangle_topology_batch(batch_id);
+    points = *points_batch(batch_id);
 
     if (f >= nf - 1 || r >= nr - 1) {
       return;
@@ -299,18 +312,21 @@ public:
 
     // Check if current batch has work to do
     SIZE numPts = axis_sum_scan_curr_offset - axis_sum_scan_prev_offset;
-    SIZE numTris = cell_tri_count_scan_curr_offset - cell_tri_count_scan_prev_offset;
+    SIZE numTris =
+        cell_tri_count_scan_curr_offset - cell_tri_count_scan_prev_offset;
     if (numPts == 0 || numTris == 0) {
       return;
     }
 
     // printf("offset: %u\n", r * (nf-1) + f);
     // Subtracting 'cell_tri_count_scan_prev_offset' to get the current offset
-    SIZE cell_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f) - cell_tri_count_scan_prev_offset;
-    SIZE next_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f + 1) - cell_tri_count_scan_prev_offset;
+    SIZE cell_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f) -
+                           cell_tri_count_scan_prev_offset;
+    SIZE next_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f + 1) -
+                           cell_tri_count_scan_prev_offset;
 
-
-    flying_edges::Pass4TrimState state(r, f, nf, nc, nr, axis_min, axis_max, edges);
+    flying_edges::Pass4TrimState state(r, f, nf, nc, nr, axis_min, axis_max,
+                                       edges);
     if (!state.hasWork) {
       return;
     }
@@ -319,22 +335,23 @@ public:
     SIZE edgeCase = flying_edges::getEdgeCase(r, state.left, f, edges);
 
     // Subtracting 'axis_sum_scan_prev_offset' to get the current offset
-    flying_edges::init_voxelIds(nr, nf, r, f, edgeCase, axis_sum_scan, edgeIds, axis_sum_scan_prev_offset);
+    flying_edges::init_voxelIds(nr, nf, r, f, edgeCase, axis_sum_scan, edgeIds,
+                                axis_sum_scan_prev_offset);
 
     // run along the trimmed voxels
     // need state.right-1 since we are iterating through cells
-    for (SIZE i = state.left; i < state.right-1; ++i) {
+    for (SIZE i = state.left; i < state.right - 1; ++i) {
       edgeCase = flying_edges::getEdgeCase(r, i, f, edges);
       SIZE numTris = flying_edges::GetNumberOfPrimitives(edgeCase);
       if (numTris > 0) {
         flying_edges::generate_tris(edgeCase, numTris, edgeIds, cell_tri_offset,
-                      triangle_topology);
+                                    triangle_topology);
 
         SIZE const *edgeUses = flying_edges::GetEdgeUses(edgeCase);
         if (!flying_edges::fully_interior(state.boundaryStatus) ||
             flying_edges::case_includes_axes(edgeUses)) {
-          flying_edges::Generate(f, i, r, state.boundaryStatus, edgeUses, edgeIds, iso_value,
-                   v, points);
+          flying_edges::Generate(f, i, r, state.boundaryStatus, edgeUses,
+                                 edgeIds, iso_value, v, points);
         }
         flying_edges::advance_voxelIds(edgeUses, edgeIds);
       }
@@ -363,10 +380,12 @@ private:
   SubArray<1, SIZE, DeviceType> axis_sum_scan_offset_batch;
   SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_batch;
   SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max_batch;
-  SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> cell_tri_count_scan_batch;
+  SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+      cell_tri_count_scan_batch;
   SubArray<1, SIZE, DeviceType> cell_tri_count_scan_offset_batch;
   SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges_batch;
-  SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> triangle_topology_batch;
+  SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+      triangle_topology_batch;
   SubArray<1, SubArray<1, T, DeviceType>, DeviceType> points_batch;
 
   SubArray<3, T, DeviceType> v;
@@ -391,11 +410,13 @@ public:
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<Pass1Functor<T, DeviceType>>
-  GenTask1(SIZE nr, SIZE nc, SIZE nf, SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v, T iso_value,
+  GenTask1(SIZE nr, SIZE nc, SIZE nf,
+           SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v, T iso_value,
            SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum,
            SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min,
            SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max,
-           SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges, int queue_idx) {
+           SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges,
+           int queue_idx) {
     using FunctorType = Pass1Functor<T, DeviceType>;
     FunctorType functor(nr, nc, nf, v, iso_value, axis_sum, axis_min, axis_max,
                         edges);
@@ -416,17 +437,19 @@ public:
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "FlyingEdges::Pass1");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "FlyingEdges::Pass1");
   }
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<Pass2Functor<T, DeviceType>>
-  GenTask2(SIZE nr, SIZE nc, SIZE nf, SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum,
-           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min,
-           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max,
-           SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges,
-           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> cell_tri_count, int queue_idx) {
+  MGARDX_CONT Task<Pass2Functor<T, DeviceType>> GenTask2(
+      SIZE nr, SIZE nc, SIZE nf,
+      SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max,
+      SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> cell_tri_count,
+      int queue_idx) {
     using FunctorType = Pass2Functor<T, DeviceType>;
     FunctorType functor(nr, nc, nf, axis_sum, axis_min, axis_max, edges,
                         cell_tri_count);
@@ -447,25 +470,30 @@ public:
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "FlyingEdges::Pass2");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "FlyingEdges::Pass2");
   }
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<Pass4Functor<T, DeviceType>>
-  GenTask4(SIZE nr, SIZE nc, SIZE nf, SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v, T iso_value,
-           SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> axis_sum_scan,
-           SubArray<1, SIZE, DeviceType> axis_sum_scan_offset,
-           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min,
-           SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max,
-           SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> cell_tri_count_scan,
-           SubArray<1, SIZE, DeviceType> cell_tri_count_scan_offset,
-           SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges,
-           SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> triangle_topology,
-           SubArray<1, SubArray<1, T, DeviceType>, DeviceType> points, int queue_idx) {
+  MGARDX_CONT Task<Pass4Functor<T, DeviceType>> GenTask4(
+      SIZE nr, SIZE nc, SIZE nf,
+      SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v, T iso_value,
+      SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> axis_sum_scan,
+      SubArray<1, SIZE, DeviceType> axis_sum_scan_offset,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min,
+      SubArray<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max,
+      SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+          cell_tri_count_scan,
+      SubArray<1, SIZE, DeviceType> cell_tri_count_scan_offset,
+      SubArray<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges,
+      SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> triangle_topology,
+      SubArray<1, SubArray<1, T, DeviceType>, DeviceType> points,
+      int queue_idx) {
     using FunctorType = Pass4Functor<T, DeviceType>;
-    FunctorType functor(nr, nc, nf, v, iso_value, axis_sum_scan, axis_sum_scan_offset, axis_min, axis_max,
-                        cell_tri_count_scan, cell_tri_count_scan_offset, edges, triangle_topology, points);
+    FunctorType functor(nr, nc, nf, v, iso_value, axis_sum_scan,
+                        axis_sum_scan_offset, axis_min, axis_max,
+                        cell_tri_count_scan, cell_tri_count_scan_offset, edges,
+                        triangle_topology, points);
 
     SIZE num_batches = v.shape(0);
     SIZE total_thread_z = num_batches;
@@ -483,15 +511,18 @@ public:
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "FlyingEdges::Pass4");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "FlyingEdges::Pass4");
   }
 
   MGARDX_CONT
-  void Execute(SIZE nr, SIZE nc, SIZE nf, SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v,
-               T iso_value, Array<1, Array<1, SIZE, DeviceType>, DeviceType> &Triangles,
-               Array<1, Array<1, T, DeviceType>, DeviceType> &Points, double &pass1_time, double &pass2_time, 
-              double &pass3_time, double &pass4_time, int queue_idx) {
+  void Execute(SIZE nr, SIZE nc, SIZE nf,
+               SubArray<1, SubArray<3, T, DeviceType>, DeviceType> v,
+               T iso_value,
+               Array<1, Array<1, SIZE, DeviceType>, DeviceType> &Triangles,
+               Array<1, Array<1, T, DeviceType>, DeviceType> &Points,
+               double &pass1_time, double &pass2_time, double &pass3_time,
+               double &pass4_time, int queue_idx) {
 
     Timer t1, t2, t3, t4;
 
@@ -500,9 +531,10 @@ public:
 
     SIZE num_batches = v.shape(0);
 
-    
-    Array<1, Array<3, SIZE, DeviceType>, DeviceType> axis_sum_array({num_batches}, pitched, managed);
-    Array<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum_subarray({num_batches}, pitched, managed);
+    Array<1, Array<3, SIZE, DeviceType>, DeviceType> axis_sum_array(
+        {num_batches}, pitched, managed);
+    Array<1, SubArray<3, SIZE, DeviceType>, DeviceType> axis_sum_subarray(
+        {num_batches}, pitched, managed);
     for (SIZE i = 0; i < num_batches; i++) {
       SubArray subarray_of_array(axis_sum_array);
       SubArray subarray_of_subarray(axis_sum_subarray);
@@ -514,18 +546,23 @@ public:
       subarray_of_array(i)->memset(0);
     }
 
-    Array<1, Array<1, SIZE, DeviceType>, DeviceType> axis_sum_scan_array({num_batches}, pitched, managed);
-    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType> axis_sum_scan_subarray({num_batches}, pitched, managed);
+    Array<1, Array<1, SIZE, DeviceType>, DeviceType> axis_sum_scan_array(
+        {num_batches}, pitched, managed);
+    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType> axis_sum_scan_subarray(
+        {num_batches}, pitched, managed);
     for (SIZE i = 0; i < num_batches; i++) {
       SubArray subarray_of_array(axis_sum_scan_array);
       SubArray subarray_of_subarray(axis_sum_scan_subarray);
-      *subarray_of_array(i) = Array<1, SIZE, DeviceType>({nr * nf * 3 + 1}, pitched);
+      *subarray_of_array(i) =
+          Array<1, SIZE, DeviceType>({nr * nf * 3 + 1}, pitched);
       *subarray_of_subarray(i) = SubArray(*subarray_of_array(i));
       subarray_of_array(i)->memset(0);
     }
 
-    Array<1, Array<2, SIZE, DeviceType>, DeviceType> axis_min_array({num_batches}, pitched, managed);
-    Array<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_subarray({num_batches}, pitched, managed);
+    Array<1, Array<2, SIZE, DeviceType>, DeviceType> axis_min_array(
+        {num_batches}, pitched, managed);
+    Array<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_min_subarray(
+        {num_batches}, pitched, managed);
     for (SIZE i = 0; i < num_batches; i++) {
       SubArray subarray_of_array(axis_min_array);
       SubArray subarray_of_subarray(axis_min_subarray);
@@ -534,8 +571,10 @@ public:
       subarray_of_array(i)->memset(0);
     }
 
-    Array<1, Array<2, SIZE, DeviceType>, DeviceType> axis_max_array({num_batches}, pitched, managed);
-    Array<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max_subarray({num_batches}, pitched, managed);
+    Array<1, Array<2, SIZE, DeviceType>, DeviceType> axis_max_array(
+        {num_batches}, pitched, managed);
+    Array<1, SubArray<2, SIZE, DeviceType>, DeviceType> axis_max_subarray(
+        {num_batches}, pitched, managed);
     for (SIZE i = 0; i < num_batches; i++) {
       SubArray subarray_of_array(axis_max_array);
       SubArray subarray_of_subarray(axis_max_subarray);
@@ -544,8 +583,10 @@ public:
       subarray_of_array(i)->memset(0);
     }
 
-    Array<1, Array<3, SIZE, DeviceType>, DeviceType> edges_array({num_batches}, pitched, managed);
-    Array<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges_subarray({num_batches}, pitched, managed);
+    Array<1, Array<3, SIZE, DeviceType>, DeviceType> edges_array(
+        {num_batches}, pitched, managed);
+    Array<1, SubArray<3, SIZE, DeviceType>, DeviceType> edges_subarray(
+        {num_batches}, pitched, managed);
     for (SIZE i = 0; i < num_batches; i++) {
       SubArray subarray_of_array(edges_array);
       SubArray subarray_of_subarray(edges_subarray);
@@ -554,40 +595,48 @@ public:
       subarray_of_array(i)->memset(0);
     }
 
-    Array<1, Array<2, SIZE, DeviceType>, DeviceType> cell_tri_count_array({num_batches}, pitched, managed);
-    Array<1, SubArray<2, SIZE, DeviceType>, DeviceType> cell_tri_count_subarray({num_batches}, pitched, managed);
+    Array<1, Array<2, SIZE, DeviceType>, DeviceType> cell_tri_count_array(
+        {num_batches}, pitched, managed);
+    Array<1, SubArray<2, SIZE, DeviceType>, DeviceType> cell_tri_count_subarray(
+        {num_batches}, pitched, managed);
     for (SIZE i = 0; i < num_batches; i++) {
       SubArray subarray_of_array(cell_tri_count_array);
       SubArray subarray_of_subarray(cell_tri_count_subarray);
-      *subarray_of_array(i) = Array<2, SIZE, DeviceType>({nr - 1, nf - 1}, pitched);
+      *subarray_of_array(i) =
+          Array<2, SIZE, DeviceType>({nr - 1, nf - 1}, pitched);
       *subarray_of_subarray(i) = SubArray(*subarray_of_array(i));
       subarray_of_array(i)->memset(0);
     }
 
-    Array<1, Array<1, SIZE, DeviceType>, DeviceType> cell_tri_count_scan_array({num_batches}, pitched, managed);
-    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType> cell_tri_count_scan_subarray({num_batches}, pitched, managed);
+    Array<1, Array<1, SIZE, DeviceType>, DeviceType> cell_tri_count_scan_array(
+        {num_batches}, pitched, managed);
+    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+        cell_tri_count_scan_subarray({num_batches}, pitched, managed);
     for (SIZE i = 0; i < num_batches; i++) {
       SubArray subarray_of_array(cell_tri_count_scan_array);
       SubArray subarray_of_subarray(cell_tri_count_scan_subarray);
-      *subarray_of_array(i) = Array<1, SIZE, DeviceType>({(nr - 1) * (nf - 1) + 1}, pitched);
+      *subarray_of_array(i) =
+          Array<1, SIZE, DeviceType>({(nr - 1) * (nf - 1) + 1}, pitched);
       *subarray_of_subarray(i) = SubArray(*subarray_of_array(i));
       subarray_of_array(i)->memset(0);
     }
 
-
-    SIZE* numTris = new SIZE[num_batches];
-    SIZE* numPts = new SIZE[num_batches];
+    SIZE *numTris = new SIZE[num_batches];
+    SIZE *numPts = new SIZE[num_batches];
     for (SIZE i = 0; i < num_batches; i++) {
       numTris[i] = 0;
       numPts[i] = 0;
     }
 
-    Triangles = Array<1, Array<1, SIZE, DeviceType>, DeviceType>({num_batches}, pitched, managed);
-    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType> Triangles_subarray({num_batches}, pitched, managed);
+    Triangles = Array<1, Array<1, SIZE, DeviceType>, DeviceType>(
+        {num_batches}, pitched, managed);
+    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType> Triangles_subarray(
+        {num_batches}, pitched, managed);
 
-    Points = Array<1, Array<1, T, DeviceType>, DeviceType>({num_batches}, pitched, managed);
-    Array<1, SubArray<1, T, DeviceType>, DeviceType> Points_subarray({num_batches}, pitched, managed);
-
+    Points = Array<1, Array<1, T, DeviceType>, DeviceType>({num_batches},
+                                                           pitched, managed);
+    Array<1, SubArray<1, T, DeviceType>, DeviceType> Points_subarray(
+        {num_batches}, pitched, managed);
 
     SubArray axis_sum(axis_sum_subarray);
     SubArray axis_sum_scan(axis_sum_scan_subarray);
@@ -634,86 +683,118 @@ public:
     // printf("After pass2\n");
     // PrintSubarray("axis_sum", SubArray(axis_sum).Linearize());
     // PrintSubarray("cell_tri_count", SubArray(cell_tri_count));
-    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType> axis_sum_liearized_array({num_batches}, pitched, managed);
-    SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> axis_sum_liearized(axis_sum_liearized_array);
+    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+        axis_sum_liearized_array({num_batches}, pitched, managed);
+    SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> axis_sum_liearized(
+        axis_sum_liearized_array);
     for (SIZE i = 0; i < num_batches; i++) {
       *axis_sum_liearized(i) = axis_sum(i)->Linearize();
     }
 
-    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType> cell_tri_count_liearized_array({num_batches}, pitched, managed);
-    SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType> cell_tri_count_liearized(cell_tri_count_liearized_array);
+    Array<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+        cell_tri_count_liearized_array({num_batches}, pitched, managed);
+    SubArray<1, SubArray<1, SIZE, DeviceType>, DeviceType>
+        cell_tri_count_liearized(cell_tri_count_liearized_array);
     for (SIZE i = 0; i < num_batches; i++) {
       *cell_tri_count_liearized(i) = cell_tri_count(i)->Linearize();
     }
 
     // SubArray<1, SIZE, DeviceType> axis_sum_liearized = axis_sum.Linearize();
-    // SubArray<1, SIZE, DeviceType> cell_tri_count_liearized = cell_tri_count.Linearize();
-    // Array<1, SIZE, DeviceType> newPointSize_array({1});
-    // SubArray<1, SIZE, DeviceType> newPointSize_subarray(newPointSize_array);
-
-
+    // SubArray<1, SIZE, DeviceType> cell_tri_count_liearized =
+    // cell_tri_count.Linearize(); Array<1, SIZE, DeviceType>
+    // newPointSize_array({1}); SubArray<1, SIZE, DeviceType>
+    // newPointSize_subarray(newPointSize_array);
 
     t3.start();
     // non-batched
     // for (SIZE i = 0; i < num_batches; i++) {
-    //   DeviceCollective<DeviceType>::ScanSumExtended(nr * nf * 3, *axis_sum_liearized(i), *axis_sum_scan(i), queue_idx);
-    //   DeviceCollective<DeviceType>::ScanSumExtended((nr - 1) * (nf - 1), *cell_tri_count_liearized(i), *cell_tri_count_scan(i), queue_idx);
+    //   DeviceCollective<DeviceType>::ScanSumExtended(nr * nf * 3,
+    //   *axis_sum_liearized(i), *axis_sum_scan(i), queue_idx);
+    //   DeviceCollective<DeviceType>::ScanSumExtended((nr - 1) * (nf - 1),
+    //   *cell_tri_count_liearized(i), *cell_tri_count_scan(i), queue_idx);
     // }
 
     // batched
-    Array<1, SIZE, DeviceType> axis_sum_liearized_concat_array({nr * nf * 3 * num_batches});
-    Array<1, SIZE, DeviceType> cell_tri_count_liearized_concat_array({(nr - 1) * (nf - 1) * num_batches});
-    Array<1, SIZE, DeviceType> axis_sum_scan_offset_array({num_batches}, pitched, managed);
-    Array<1, SIZE, DeviceType> cell_tri_count_scan_offset_array({num_batches}, pitched, managed);
+    Array<1, SIZE, DeviceType> axis_sum_liearized_concat_array(
+        {nr * nf * 3 * num_batches});
+    Array<1, SIZE, DeviceType> cell_tri_count_liearized_concat_array(
+        {(nr - 1) * (nf - 1) * num_batches});
+    Array<1, SIZE, DeviceType> axis_sum_scan_offset_array({num_batches},
+                                                          pitched, managed);
+    Array<1, SIZE, DeviceType> cell_tri_count_scan_offset_array(
+        {num_batches}, pitched, managed);
     axis_sum_scan_offset_array.memset(0);
     cell_tri_count_scan_offset_array.memset(0);
 
     SubArray axis_sum_liearized_concat(axis_sum_liearized_concat_array);
-    SubArray cell_tri_count_liearized_concat(cell_tri_count_liearized_concat_array);
+    SubArray cell_tri_count_liearized_concat(
+        cell_tri_count_liearized_concat_array);
     SubArray axis_sum_scan_offset(axis_sum_scan_offset_array);
     SubArray cell_tri_count_scan_offset(cell_tri_count_scan_offset_array);
 
     for (SIZE i = 0; i < num_batches; i++) {
       SIZE offset = i * nr * nf * 3;
-      MemoryManager<DeviceType>::Copy1D(axis_sum_liearized_concat.data() + offset, 
-                                        axis_sum_liearized(i)->data(), nr * nf * 3, i%MGARDX_NUM_ASYNC_QUEUES);
+      MemoryManager<DeviceType>::Copy1D(
+          axis_sum_liearized_concat.data() + offset,
+          axis_sum_liearized(i)->data(), nr * nf * 3,
+          i % MGARDX_NUM_ASYNC_QUEUES);
     }
     for (SIZE i = 0; i < num_batches; i++) {
       SIZE offset = i * (nr - 1) * (nf - 1);
-      MemoryManager<DeviceType>::Copy1D(cell_tri_count_liearized_concat.data() + offset, 
-                                        cell_tri_count_liearized(i)->data(), (nr - 1) * (nf - 1), i%MGARDX_NUM_ASYNC_QUEUES);
+      MemoryManager<DeviceType>::Copy1D(
+          cell_tri_count_liearized_concat.data() + offset,
+          cell_tri_count_liearized(i)->data(), (nr - 1) * (nf - 1),
+          i % MGARDX_NUM_ASYNC_QUEUES);
     }
     DeviceRuntime<DeviceType>::SyncDevice();
-    DeviceCollective<DeviceType>::ScanSumInclusive(nr * nf * 3 * num_batches, axis_sum_liearized_concat, axis_sum_liearized_concat, queue_idx);
-    DeviceCollective<DeviceType>::ScanSumInclusive((nr - 1) * (nf - 1) * num_batches, cell_tri_count_liearized_concat, cell_tri_count_liearized_concat, queue_idx);
+    DeviceCollective<DeviceType>::ScanSumInclusive(
+        nr * nf * 3 * num_batches, axis_sum_liearized_concat,
+        axis_sum_liearized_concat, queue_idx);
+    DeviceCollective<DeviceType>::ScanSumInclusive(
+        (nr - 1) * (nf - 1) * num_batches, cell_tri_count_liearized_concat,
+        cell_tri_count_liearized_concat, queue_idx);
     DeviceRuntime<DeviceType>::SyncDevice();
     for (SIZE i = 0; i < num_batches; i++) {
       SIZE offset = i * nr * nf * 3;
       // +1 is for making the first element 0
       if (i == 0) {
-        MemoryManager<DeviceType>::Copy1D(axis_sum_scan(i)->data()+1, 
-                                          axis_sum_liearized_concat.data() + offset, nr * nf * 3, i%MGARDX_NUM_ASYNC_QUEUES);
+        MemoryManager<DeviceType>::Copy1D(
+            axis_sum_scan(i)->data() + 1,
+            axis_sum_liearized_concat.data() + offset, nr * nf * 3,
+            i % MGARDX_NUM_ASYNC_QUEUES);
       } else {
-        MemoryManager<DeviceType>::Copy1D(axis_sum_scan(i)->data(), 
-                                          axis_sum_liearized_concat.data() + offset - 1, nr * nf * 3 + 1, i%MGARDX_NUM_ASYNC_QUEUES);
+        MemoryManager<DeviceType>::Copy1D(
+            axis_sum_scan(i)->data(),
+            axis_sum_liearized_concat.data() + offset - 1, nr * nf * 3 + 1,
+            i % MGARDX_NUM_ASYNC_QUEUES);
       }
 
-      // last element in the current batch is the 'scan offset' of the next betch
-      MemoryManager<DeviceType>::Copy1D(axis_sum_scan_offset.data()+i, 
-                                          axis_sum_liearized_concat.data() + offset + nr * nf * 3 - 1, 1, i%MGARDX_NUM_ASYNC_QUEUES);
+      // last element in the current batch is the 'scan offset' of the next
+      // betch
+      MemoryManager<DeviceType>::Copy1D(axis_sum_scan_offset.data() + i,
+                                        axis_sum_liearized_concat.data() +
+                                            offset + nr * nf * 3 - 1,
+                                        1, i % MGARDX_NUM_ASYNC_QUEUES);
     }
     for (SIZE i = 0; i < num_batches; i++) {
       SIZE offset = i * (nr - 1) * (nf - 1);
       if (i == 0) {
-        MemoryManager<DeviceType>::Copy1D(cell_tri_count_scan(i)->data()+1, 
-                                          cell_tri_count_liearized_concat.data() + offset, (nr - 1) * (nf - 1), i%MGARDX_NUM_ASYNC_QUEUES);
+        MemoryManager<DeviceType>::Copy1D(
+            cell_tri_count_scan(i)->data() + 1,
+            cell_tri_count_liearized_concat.data() + offset,
+            (nr - 1) * (nf - 1), i % MGARDX_NUM_ASYNC_QUEUES);
       } else {
-        MemoryManager<DeviceType>::Copy1D(cell_tri_count_scan(i)->data(), 
-                                          cell_tri_count_liearized_concat.data() + offset - 1, (nr - 1) * (nf - 1) + 1, i%MGARDX_NUM_ASYNC_QUEUES);
+        MemoryManager<DeviceType>::Copy1D(
+            cell_tri_count_scan(i)->data(),
+            cell_tri_count_liearized_concat.data() + offset - 1,
+            (nr - 1) * (nf - 1) + 1, i % MGARDX_NUM_ASYNC_QUEUES);
       }
-      // last element in the current batch is the 'scan offset' of the next betch
-      MemoryManager<DeviceType>::Copy1D(cell_tri_count_scan_offset.data()+i, 
-                                          cell_tri_count_liearized_concat.data() + offset + (nr - 1) * (nf - 1) - 1, 1, i%MGARDX_NUM_ASYNC_QUEUES);
+      // last element in the current batch is the 'scan offset' of the next
+      // betch
+      MemoryManager<DeviceType>::Copy1D(cell_tri_count_scan_offset.data() + i,
+                                        cell_tri_count_liearized_concat.data() +
+                                            offset + (nr - 1) * (nf - 1) - 1,
+                                        1, i % MGARDX_NUM_ASYNC_QUEUES);
     }
     DeviceRuntime<DeviceType>::SyncDevice();
 
@@ -721,25 +802,29 @@ public:
     pass3_time = t3.get();
     t3.clear();
 
-    // printf("After pass3\n");    
+    // printf("After pass3\n");
     // PrintSubarray("cell_tri_count_scan_offset", cell_tri_count_scan_offset);
-    // PrintSubarray("cell_tri_count_liearized(0)", *cell_tri_count_liearized((IDX)0));
-    // PrintSubarray("axis_sum_liearized", axis_sum_liearized);
+    // PrintSubarray("cell_tri_count_liearized(0)",
+    // *cell_tri_count_liearized((IDX)0)); PrintSubarray("axis_sum_liearized",
+    // axis_sum_liearized);
 
-    // MemoryManager<DeviceType>().Copy1D(&newPointSize, axis_sum_scan(nr * nf * 3), 1, queue_idx);
-    // MemoryManager<DeviceType>().Copy1D(&numTris, cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
+    // MemoryManager<DeviceType>().Copy1D(&newPointSize, axis_sum_scan(nr * nf *
+    // 3), 1, queue_idx); MemoryManager<DeviceType>().Copy1D(&numTris,
+    // cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
     for (SIZE i = 0; i < num_batches; i++) {
       SIZE axis_sum_scan_curr_offset = *axis_sum_scan_offset(i);
-      SIZE axis_sum_scan_prev_offset = i == 0 ? 0 : *axis_sum_scan_offset(i-1);
+      SIZE axis_sum_scan_prev_offset =
+          i == 0 ? 0 : *axis_sum_scan_offset(i - 1);
       SIZE cell_tri_count_scan_curr_offset = *cell_tri_count_scan_offset(i);
-      SIZE cell_tri_count_scan_prev_offset = i == 0 ? 0 : *cell_tri_count_scan_offset(i-1);
+      SIZE cell_tri_count_scan_prev_offset =
+          i == 0 ? 0 : *cell_tri_count_scan_offset(i - 1);
       // Check if current batch has work to do
       numPts[i] = axis_sum_scan_curr_offset - axis_sum_scan_prev_offset;
-      numTris[i] = cell_tri_count_scan_curr_offset - cell_tri_count_scan_prev_offset;
+      numTris[i] =
+          cell_tri_count_scan_curr_offset - cell_tri_count_scan_prev_offset;
     }
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    
 
     // Triangles = Array<1, SIZE, DeviceType>({numTris * 3}, pitched);
     // Points = Array<1, T, DeviceType>({newPointSize * 3}, pitched);
@@ -748,7 +833,8 @@ public:
       // std::cout << "numTris: " << numTris[i] << "\n";
       SubArray subarray_of_array(Triangles);
       SubArray subarray_of_subarray(Triangles_subarray);
-      *subarray_of_array(i) = Array<1, SIZE, DeviceType>({numTris[i] * 3}, pitched);
+      *subarray_of_array(i) =
+          Array<1, SIZE, DeviceType>({numTris[i] * 3}, pitched);
       *subarray_of_subarray(i) = SubArray(*subarray_of_array(i));
       // if (numTris[i] > 0) {
       //   PrintSubarray("cell_tri_count_scan", *cell_tri_count_scan(i));
@@ -770,8 +856,9 @@ public:
     using FunctorType4 = Pass4Functor<T, DeviceType>;
     using TaskType4 = Task<FunctorType4>;
     TaskType4 task4 = GenTask4<1, 16, 16>(
-        nr, nc, nf, v, iso_value, axis_sum_scan, axis_sum_scan_offset, axis_min, axis_max,
-        cell_tri_count_scan, cell_tri_count_scan_offset, edges, triangle_topology, points, queue_idx);
+        nr, nc, nf, v, iso_value, axis_sum_scan, axis_sum_scan_offset, axis_min,
+        axis_max, cell_tri_count_scan, cell_tri_count_scan_offset, edges,
+        triangle_topology, points, queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     t4.start();
@@ -788,7 +875,6 @@ public:
   }
 };
 
-
-} // flying_edges_batched
-} // mgard_x
+} // namespace flying_edges_batched
+} // namespace mgard_x
 #endif

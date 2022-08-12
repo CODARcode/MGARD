@@ -63,7 +63,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Hierarchy(std::vector<SIZE> shape, DIM domain_decomposed_dim,
             SIZE domain_decomposed_size, std::vector<T *> coords);
   Hierarchy(const Hierarchy &hierarchy);
- 
+
   SIZE total_num_elems();
   SIZE linearized_width();
   SIZE l_target();
@@ -82,7 +82,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   ~Hierarchy();
 
   /* Refactoring env */
-  
+
   // For domain decomposition
   bool domain_decomposed = false;
   DIM domain_decomposed_dim;
@@ -92,7 +92,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
 private:
   // Shape of the finest grid
   std::vector<SIZE> shape;
-  // Pre-computed varaibles 
+  // Pre-computed varaibles
   SIZE _total_num_elems;
   SIZE _linearized_width;
   // For out-of-bound returns
@@ -105,11 +105,11 @@ private:
   std::vector<Array<1, SIZE, DeviceType>> _level_shape_array;
   // Coordinates
   std::vector<Array<1, T, DeviceType>> _coords_org;
-  // Pre-computed cell distance array 
+  // Pre-computed cell distance array
   std::vector<std::vector<Array<1, T, DeviceType>>> _dist_array;
-  // Pre-computed neighbor cell distance ratio array 
+  // Pre-computed neighbor cell distance ratio array
   std::vector<std::vector<Array<1, T, DeviceType>>> _ratio_array;
-  // Pre-computed coefficients for solving tri-diag system 
+  // Pre-computed coefficients for solving tri-diag system
   std::vector<std::vector<Array<1, T, DeviceType>>> _am_array;
   std::vector<std::vector<Array<1, T, DeviceType>>> _bm_array;
   // Pre-computed markers for processing high dimensional data

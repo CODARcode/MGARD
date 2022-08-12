@@ -17,27 +17,25 @@ public:
   DirectInterleaverKernel() : AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT
-      Task<LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>>
-      GenTask(SubArray<2, SIZE, DeviceType> level_ranges,
-              SIZE l_target,
-              SubArray<D, T, DeviceType> v, SubArray<1, T, DeviceType> *level_v,
-              int queue_idx) {
+  MGARDX_CONT Task<LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>>
+  GenTask(SubArray<2, SIZE, DeviceType> level_ranges, SIZE l_target,
+          SubArray<D, T, DeviceType> v, SubArray<1, T, DeviceType> *level_v,
+          int queue_idx) {
     using FunctorType =
         LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;
     FunctorType functor(level_ranges, l_target, v, level_v);
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
-    int total_thread_z = v.shape(D-3);
-    int total_thread_y = v.shape(D-2);
-    int total_thread_x = v.shape(D-1);
+    int total_thread_z = v.shape(D - 3);
+    int total_thread_y = v.shape(D - 2);
+    int total_thread_x = v.shape(D - 1);
     tbz = R;
     tby = C;
     tbx = F;
     gridz = ceil((float)total_thread_z / tbz);
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
-    for (int d = D-4; d >= 0; d--) {
+    for (int d = D - 4; d >= 0; d--) {
       gridx *= v.shape(d);
     }
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
@@ -45,16 +43,16 @@ public:
   }
 
   MGARDX_CONT
-  void Execute(SubArray<2, SIZE, DeviceType> level_ranges,
-              SIZE l_target,
-              SubArray<D, T, DeviceType> v, SubArray<1, T, DeviceType> *level_v,
-              int queue_idx) {
+  void Execute(SubArray<2, SIZE, DeviceType> level_ranges, SIZE l_target,
+               SubArray<D, T, DeviceType> v,
+               SubArray<1, T, DeviceType> *level_v, int queue_idx) {
 #define KERNEL(R, C, F)                                                        \
   {                                                                            \
     using FunctorType =                                                        \
-        LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;        \
+        LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;          \
     using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(level_ranges, l_target, v, level_v, queue_idx);\
+    TaskType task =                                                            \
+        GenTask<R, C, F>(level_ranges, l_target, v, level_v, queue_idx);       \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
     adapter.Execute(task);                                                     \
   }
@@ -86,16 +84,16 @@ public:
     SubArray<1, T, DeviceType> *levels_decomposed_data_device;
 
     MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
-                                        target_level+1, queue_idx);
+                                        target_level + 1, queue_idx);
     MemoryManager<DeviceType>::Copy1D(levels_decomposed_data_device,
-                                      levels_decomposed_data, target_level+1,
+                                      levels_decomposed_data, target_level + 1,
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
     DirectInterleaverKernel<D, T, Interleave, DeviceType>().Execute(
         SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
-        target_level, decomposed_data,
-        levels_decomposed_data_device, queue_idx);
+        target_level, decomposed_data, levels_decomposed_data_device,
+        queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     // handle.sync(queue_idx);
@@ -111,16 +109,16 @@ public:
     SubArray<1, T, DeviceType> *levels_decomposed_data_device;
 
     MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
-                                        target_level+1, queue_idx);
+                                        target_level + 1, queue_idx);
     MemoryManager<DeviceType>::Copy1D(levels_decomposed_data_device,
-                                      levels_decomposed_data, target_level+1,
+                                      levels_decomposed_data, target_level + 1,
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
     DirectInterleaverKernel<D, T, Reposition, DeviceType>().Execute(
         SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
-        target_level, decomposed_data,
-        levels_decomposed_data_device, queue_idx);
+        target_level, decomposed_data, levels_decomposed_data_device,
+        queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   }
   void print() const { std::cout << "Direct interleaver" << std::endl; }

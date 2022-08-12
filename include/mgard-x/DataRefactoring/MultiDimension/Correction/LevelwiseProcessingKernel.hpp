@@ -32,29 +32,29 @@ public:
                FunctorBase<DeviceType>::GetThreadIdX();
 
     SIZE idx[D];
-    SIZE firstD = div_roundup(v.shape(D-1), F);
+    SIZE firstD = div_roundup(v.shape(D - 1), F);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     // idx[0] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
-    idx[D-1] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
+    idx[D - 1] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
 
     // printf("firstD %d idx[0] %d\n", firstD, idx[0]);
 
     bidx /= firstD;
     if (D >= 2)
-      idx[D-2] = FunctorBase<DeviceType>::GetBlockIdY() *
-                   FunctorBase<DeviceType>::GetBlockDimY() +
-               FunctorBase<DeviceType>::GetThreadIdY();
+      idx[D - 2] = FunctorBase<DeviceType>::GetBlockIdY() *
+                       FunctorBase<DeviceType>::GetBlockDimY() +
+                   FunctorBase<DeviceType>::GetThreadIdY();
     if (D >= 3)
-      idx[D-3] = FunctorBase<DeviceType>::GetBlockIdZ() *
-                   FunctorBase<DeviceType>::GetBlockDimZ() +
-               FunctorBase<DeviceType>::GetThreadIdZ();
+      idx[D - 3] = FunctorBase<DeviceType>::GetBlockIdZ() *
+                       FunctorBase<DeviceType>::GetBlockDimZ() +
+                   FunctorBase<DeviceType>::GetThreadIdZ();
 
     // for (DIM d = 3; d < D; d++) {
     //   idx[d] = bidx % v.getShape(d);
     //   bidx /= v.getShape(d);
     // }
-    for (int d = D-4; d >= 0; d--) {
+    for (int d = D - 4; d >= 0; d--) {
       idx[d] = bidx % v.shape(d);
       bidx /= v.shape(d);
     }
@@ -113,10 +113,10 @@ public:
     SIZE total_thread_y = 1;
     SIZE total_thread_x = 1;
     if (D >= 3)
-      total_thread_z = v.shape(D-3);
+      total_thread_z = v.shape(D - 3);
     if (D >= 2)
-      total_thread_y = v.shape(D-2);
-    total_thread_x = v.shape(D-1);
+      total_thread_y = v.shape(D - 2);
+    total_thread_x = v.shape(D - 1);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -126,7 +126,7 @@ public:
     gridz = ceil((float)total_thread_z / tbz);
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
-    for (int d = D-4; d >= 0; d--) {
+    for (int d = D - 4; d >= 0; d--) {
       gridx *= v.shape(d);
     }
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
@@ -139,7 +139,7 @@ public:
   void Execute(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
                int queue_idx) {
 
-    int range_l = std::min(6, (int)std::log2(v.shape(D-1)) - 1);
+    int range_l = std::min(6, (int)std::log2(v.shape(D - 1)) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.lwpk[prec][range_l];
     double min_time = std::numeric_limits<double>::max();

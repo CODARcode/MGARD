@@ -75,7 +75,8 @@ public:
   void decompose(SubArray<D, T, DeviceType> v, SIZE target_level,
                  int queue_idx) const {
     // hierarchy.l_target()-target_level is for reversing the level idx
-    mgard_x::decompose<D, T, DeviceType>(hierarchy, v, hierarchy.l_target()-target_level, queue_idx);
+    mgard_x::decompose<D, T, DeviceType>(
+        hierarchy, v, hierarchy.l_target() - target_level, queue_idx);
   }
   void recompose(SubArray<D, T, DeviceType> v, SIZE target_level,
                  int queue_idx) const {

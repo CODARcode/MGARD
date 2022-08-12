@@ -681,13 +681,14 @@ public:
   MemoryManager(){};
 
   template <typename T>
-  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n,
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       gpuErrchk(cudaDeviceSynchronize());
     }
     gpuErrchk(cudaMalloc(&ptr, n * sizeof(T)));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
@@ -707,24 +708,27 @@ public:
       ld = pitch / sizeof(T);
     }
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
-  MGARDX_CONT static void MallocManaged1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  MGARDX_CONT static void
+  MallocManaged1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       gpuErrchk(cudaDeviceSynchronize());
     }
     gpuErrchk(cudaMallocManaged(&ptr, n * sizeof(T)));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
-  template <typename T> MGARDX_CONT static void Free(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  template <typename T>
+  MGARDX_CONT static void Free(T *ptr,
+                               int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       gpuErrchk(cudaDeviceSynchronize());
     }
@@ -732,7 +736,7 @@ public:
       return;
     gpuErrchk(cudaFree(ptr));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
@@ -747,14 +751,15 @@ public:
     gpuErrchk(cudaMemcpyAsync(dst_ptr, src_ptr, n * sizeof(T),
                               cudaMemcpyDefault, stream));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
   MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
-                                 SIZE src_ld, SIZE n1, SIZE n2, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+                                 SIZE src_ld, SIZE n1, SIZE n2,
+                                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       gpuErrchk(cudaDeviceSynchronize());
     }
@@ -763,24 +768,27 @@ public:
                                 src_ld * sizeof(T), n1 * sizeof(T), n2,
                                 cudaMemcpyDefault, stream));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
-  MGARDX_CONT static void MallocHost(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  MGARDX_CONT static void
+  MallocHost(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       gpuErrchk(cudaDeviceSynchronize());
     }
     gpuErrchk(cudaMallocHost(&ptr, n * sizeof(T)));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
-  template <typename T> MGARDX_CONT static void FreeHost(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  template <typename T>
+  MGARDX_CONT static void FreeHost(T *ptr,
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       gpuErrchk(cudaDeviceSynchronize());
     }
@@ -788,20 +796,21 @@ public:
       return;
     gpuErrchk(cudaFreeHost(ptr));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
 
   template <typename T>
-  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value,
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       gpuErrchk(cudaDeviceSynchronize());
     }
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     gpuErrchk(cudaMemsetAsync(ptr, value, n * sizeof(T), stream));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }
@@ -816,7 +825,7 @@ public:
     gpuErrchk(cudaMemset2DAsync(ptr, ld * sizeof(T), value, n1 * sizeof(T), n2,
                                 stream));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-      DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+        DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
       gpuErrchk(cudaDeviceSynchronize());
     }
   }

@@ -819,7 +819,8 @@ public:
   MemoryManager(){};
 
   template <typename T>
-  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n,
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
@@ -841,7 +842,8 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void MallocManaged1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  MGARDX_CONT static void
+  MallocManaged1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
@@ -851,7 +853,9 @@ public:
     }
   }
 
-  template <typename T> MGARDX_CONT static void Free(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  template <typename T>
+  MGARDX_CONT static void Free(T *ptr,
+                               int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     if (ptr == NULL)
       return;
     std::free(ptr);
@@ -867,14 +871,16 @@ public:
 
   template <typename T>
   MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
-                                 SIZE src_ld, SIZE n1, SIZE n2, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+                                 SIZE src_ld, SIZE n1, SIZE n2,
+                                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     std::memcpy(dst_ptr, src_ptr, sizeof(converted_T) * n1 * n2);
   }
 
   template <typename T>
-  MGARDX_CONT static void MallocHost(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  MGARDX_CONT static void
+  MallocHost(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
@@ -883,14 +889,17 @@ public:
     }
   }
 
-  template <typename T> MGARDX_CONT static void FreeHost(T *ptr, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  template <typename T>
+  MGARDX_CONT static void FreeHost(T *ptr,
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     if (ptr == NULL)
       return;
     std::free(ptr);
   }
 
   template <typename T>
-  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+  MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value,
+                                   int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     memset(ptr, value, n * sizeof(converted_T));
@@ -1166,10 +1175,12 @@ public:
                                            SubArray<1, T, SERIAL> &result,
                                            int queue_idx) {
     // Need gcc 9 and c++17
-#if (__GNUC__ >= 9) 
+#if (__GNUC__ >= 9)
     std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
 #else
-    std::cout << log::log_err << "Please recompile with GCC 9+ to use ScanSumInclusive<SERIAL>.\n";
+    std::cout
+        << log::log_err
+        << "Please recompile with GCC 9+ to use ScanSumInclusive<SERIAL>.\n";
 #endif
   }
 
@@ -1178,10 +1189,12 @@ public:
                                            SubArray<1, T, SERIAL> &result,
                                            int queue_idx) {
     // Need gcc 9 and c++17
-#if (__GNUC__ >= 9) 
+#if (__GNUC__ >= 9)
     std::exclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
 #else
-    std::cout << log::log_err << "Please recompile with GCC 9+ to use ScanSumExclusive<SERIAL>.\n";
+    std::cout
+        << log::log_err
+        << "Please recompile with GCC 9+ to use ScanSumExclusive<SERIAL>.\n";
 #endif
   }
 
@@ -1190,11 +1203,13 @@ public:
                                           SubArray<1, T, SERIAL> &result,
                                           int queue_idx) {
     // Need gcc 9 and c++17
-#if (__GNUC__ >= 9) 
+#if (__GNUC__ >= 9)
     std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)1));
     *result((IDX)0) = 0;
 #else
-    std::cout << log::log_err << "Please recompile with GCC 9+ to use ScanSumExtended<SERIAL>.\n";
+    std::cout
+        << log::log_err
+        << "Please recompile with GCC 9+ to use ScanSumExtended<SERIAL>.\n";
 #endif
   }
 

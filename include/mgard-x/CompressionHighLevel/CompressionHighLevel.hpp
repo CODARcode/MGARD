@@ -437,11 +437,14 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
         std::cout << log::log_info << "Compressing decomposed domain (" << i
                   << ") - ( ";
         for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target(), d) << " ";
+          std::cout << hierarchy.hierarchy_chunck[i].level_shape(
+                           hierarchy.hierarchy_chunck[i].l_target(), d)
+                    << " ";
         std::cout << ")\n";
       }
       Array<D, T, DeviceType> chunck_in_array(
-          hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target()));
+          hierarchy.hierarchy_chunck[i].level_shape(
+              hierarchy.hierarchy_chunck[i].l_target()));
       chunck_in_array.load((const T *)decomposed_data[i]);
       // PrintSubarray("chunck_in_array", SubArray(chunck_in_array));
       Array<1, Byte, DeviceType> lossless_compressed_array =
@@ -459,8 +462,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       // lossless_compressed_array.shape()[0] << "\n" << std::flush;
       // temp = new Byte[lossless_compressed_array.shape()[0]];
       MemoryManager<DeviceType>::Copy1D(temp, lossless_compressed_array.data(),
-                                        lossless_compressed_array.shape(0),
-                                        0);
+                                        lossless_compressed_array.shape(0), 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       lossless_compressed_data.push_back(temp);
     }
@@ -673,11 +675,14 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
         std::cout << log::log_info << "Compressing decomposed domain (" << i
                   << ") - ( ";
         for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target(), d) << " ";
+          std::cout << hierarchy.hierarchy_chunck[i].level_shape(
+                           hierarchy.hierarchy_chunck[i].l_target(), d)
+                    << " ";
         std::cout << ")\n";
       }
       Array<D, T, DeviceType> chunck_in_array(
-          hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target()));
+          hierarchy.hierarchy_chunck[i].level_shape(
+              hierarchy.hierarchy_chunck[i].l_target()));
       chunck_in_array.load((const T *)decomposed_data[i]);
       Array<1, Byte, DeviceType> lossless_compressed_array =
           compress<D, T, DeviceType>(hierarchy.hierarchy_chunck[i],
@@ -688,8 +693,7 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       MemoryManager<DeviceType>::MallocHost(
           temp, lossless_compressed_array.shape(0), 0);
       MemoryManager<DeviceType>::Copy1D(temp, lossless_compressed_array.data(),
-                                        lossless_compressed_array.shape(0),
-                                        0);
+                                        lossless_compressed_array.shape(0), 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       lossless_compressed_data.push_back(temp);
     }
@@ -886,7 +890,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
         std::cout << log::log_info << "Decompressing decomposed domain (" << i
                   << ") - ( ";
         for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target(), d) << " ";
+          std::cout << hierarchy.hierarchy_chunck[i].level_shape(
+                           hierarchy.hierarchy_chunck[i].l_target(), d)
+                    << " ";
         std::cout << ")\n";
       }
       Array<1, Byte, DeviceType> lossless_compressed_array(
@@ -897,14 +903,15 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
           m.tol, m.s, m.norm, config);
 
       SIZE linearized_width = 1;
-      for (int d = D-2; d >= 0; d--)
+      for (int d = D - 2; d >= 0; d--)
         linearized_width *= out_array.shape(d);
       T *decompressed_data_chunck = NULL;
       MemoryManager<DeviceType>::MallocHost(
-          decompressed_data_chunck, out_array.shape(D-1) * linearized_width, 0);
+          decompressed_data_chunck, out_array.shape(D - 1) * linearized_width,
+          0);
       MemoryManager<DeviceType>::CopyND(
-          decompressed_data_chunck, out_array.shape(D-1), out_array.data(),
-          out_array.ld(D-1), out_array.shape(D-1), linearized_width, 0);
+          decompressed_data_chunck, out_array.shape(D - 1), out_array.data(),
+          out_array.ld(D - 1), out_array.shape(D - 1), linearized_width, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       decomposed_data.push_back(decompressed_data_chunck);
 
@@ -1067,7 +1074,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
         std::cout << log::log_info << "Decompressing decomposed domain (" << i
                   << ") - ( ";
         for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].level_shape(hierarchy.hierarchy_chunck[i].l_target(), d) << " ";
+          std::cout << hierarchy.hierarchy_chunck[i].level_shape(
+                           hierarchy.hierarchy_chunck[i].l_target(), d)
+                    << " ";
         std::cout << ")\n";
       }
       Array<1, Byte, DeviceType> lossless_compressed_array(
@@ -1077,14 +1086,15 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
           hierarchy.hierarchy_chunck[i], lossless_compressed_array, m.ebtype,
           m.tol, m.s, m.norm, config);
       SIZE linearized_width = 1;
-      for (int d = D-2; d >= 0; d--)
+      for (int d = D - 2; d >= 0; d--)
         linearized_width *= out_array.shape(d);
       T *decompressed_data_chunck = NULL;
       MemoryManager<DeviceType>::MallocHost(
-          decompressed_data_chunck, out_array.shape(D-1) * linearized_width, 0);
+          decompressed_data_chunck, out_array.shape(D - 1) * linearized_width,
+          0);
       MemoryManager<DeviceType>::CopyND(
-          decompressed_data_chunck, out_array.shape(D-1), out_array.data(),
-          out_array.ld(D-1), out_array.shape(D-1), linearized_width, 0);
+          decompressed_data_chunck, out_array.shape(D - 1), out_array.data(),
+          out_array.ld(D - 1), out_array.shape(D - 1), linearized_width, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       decomposed_data.push_back(decompressed_data_chunck);
     }

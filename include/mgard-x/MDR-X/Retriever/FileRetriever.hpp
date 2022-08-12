@@ -37,7 +37,8 @@ public:
       offsets[i] += retrieve_sizes[i];
       total_retrieve_size += offsets[i];
     }
-    // std::cout << "Total retrieve size = " << total_retrieve_size << std::endl;
+    // std::cout << "Total retrieve size = " << total_retrieve_size <<
+    // std::endl;
     return interleave_level_components(level_sizes, prev_level_num_bitplanes,
                                        level_num_bitplanes);
   }
