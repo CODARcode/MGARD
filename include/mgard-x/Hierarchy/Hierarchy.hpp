@@ -9,10 +9,10 @@
 #include "Hierarchy.h"
 
 #include <algorithm>
+#include <assert.h>
 #include <cmath>
 #include <limits>
 #include <vector>
-#include <assert.h>
 
 #ifndef MGARD_X_HIERARCHY_HPP
 #define MGARD_X_HIERARCHY_HPP
@@ -227,7 +227,6 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     nlevel = std::min(nlevel, (SIZE)shape_level[d].size());
   }
 
-
   _l_target = nlevel - 1;
   if (target_level != 0) {
     _l_target = std::min(_l_target, target_level);
@@ -247,11 +246,11 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
 
   {
     _total_num_elems = 1;
-    for (int d = D-1; d >= 0; d--) {
+    for (int d = D - 1; d >= 0; d--) {
       _total_num_elems *= _level_shape[_l_target][d];
     }
     _linearized_width = 1;
-    for (int d = D-2; d >= 0; d--) {
+    for (int d = D - 2; d >= 0; d--) {
       _linearized_width *= _level_shape[_l_target][d];
     }
   }
@@ -265,7 +264,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     for (int l = 0; l < _l_target + 1; l++) {
       for (int d = 0; d < D; d++) {
         // Use l+1 bacause the first is reserved for 0 (beginning of the range)
-        ranges_h_org[(l+1)*D+d] = _level_shape[l][d];
+        ranges_h_org[(l + 1) * D + d] = _level_shape[l][d];
       }
     }
     bool pitched = false;
@@ -282,31 +281,35 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     }
   }
 
-
   { // calculate dist and ratio
-    _dist_array = std::vector<std::vector<Array<1, T, DeviceType>>>(_l_target+1);
-    _ratio_array = std::vector<std::vector<Array<1, T, DeviceType>>>(_l_target+1);
-    for (SIZE l = 0; l < _l_target+1; l++) {
+    _dist_array =
+        std::vector<std::vector<Array<1, T, DeviceType>>>(_l_target + 1);
+    _ratio_array =
+        std::vector<std::vector<Array<1, T, DeviceType>>>(_l_target + 1);
+    for (SIZE l = 0; l < _l_target + 1; l++) {
       _dist_array[l] = std::vector<Array<1, T, DeviceType>>(D);
       _ratio_array[l] = std::vector<Array<1, T, DeviceType>>(D);
     }
     // For the finest level: l = _l_target;
     for (DIM d = 0; d < D; d++) {
-      _dist_array[_l_target][d] = Array<1, T, DeviceType>({_level_shape[_l_target][d]});
-      _ratio_array[_l_target][d] = Array<1, T, DeviceType>({_level_shape[_l_target][d]});
+      _dist_array[_l_target][d] =
+          Array<1, T, DeviceType>({_level_shape[_l_target][d]});
+      _ratio_array[_l_target][d] =
+          Array<1, T, DeviceType>({_level_shape[_l_target][d]});
       coord_to_dist(_level_shape[_l_target][d], this->_coords_org[d].data(),
                     _dist_array[_l_target][d].data());
-      dist_to_ratio(_level_shape[_l_target][d], _dist_array[_l_target][d].data(),
+      dist_to_ratio(_level_shape[_l_target][d],
+                    _dist_array[_l_target][d].data(),
                     _ratio_array[_l_target][d].data());
     }
 
     // for l = 1 ... _l_target
-    for (int l = _l_target-1; l >= 0; l--) {
+    for (int l = _l_target - 1; l >= 0; l--) {
       for (DIM d = 0; d < D; d++) {
         _dist_array[l][d] = Array<1, T, DeviceType>({_level_shape[l][d]});
         _ratio_array[l][d] = Array<1, T, DeviceType>({_level_shape[l][d]});
-        
-        reduce_dist(_level_shape[l+1][d], _dist_array[l+1][d].data(),
+
+        reduce_dist(_level_shape[l + 1][d], _dist_array[l + 1][d].data(),
                     _dist_array[l][d].data());
         dist_to_ratio(_level_shape[l][d], _dist_array[l][d].data(),
                       _ratio_array[l][d].data());
@@ -321,10 +324,11 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     }
 
     bool pitched = false;
-    _level_volumes = Array<3, T, DeviceType>({_l_target + 1, D, volumes_width}, pitched);
+    _level_volumes =
+        Array<3, T, DeviceType>({_l_target + 1, D, volumes_width}, pitched);
     SubArray<3, T, DeviceType> volumes_subarray(_level_volumes);
-      for (SIZE l = 0; l < _l_target + 1; l++) {
-        for (DIM d = 0; d < D; d++) {
+    for (SIZE l = 0; l < _l_target + 1; l++) {
+      for (DIM d = 0; d < D; d++) {
         calc_volume(_level_shape[l][d], _dist_array[l][d].data(),
                     volumes_subarray(l, d, 0));
       }
@@ -332,9 +336,11 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   }
 
   { // am and bm
-    _am_array = std::vector<std::vector<Array<1, T, DeviceType>>>(_l_target+1);
-    _bm_array = std::vector<std::vector<Array<1, T, DeviceType>>>(_l_target+1);
-    for (SIZE l = 0; l < _l_target+1; l++) {
+    _am_array =
+        std::vector<std::vector<Array<1, T, DeviceType>>>(_l_target + 1);
+    _bm_array =
+        std::vector<std::vector<Array<1, T, DeviceType>>>(_l_target + 1);
+    for (SIZE l = 0; l < _l_target + 1; l++) {
       _am_array[l] = std::vector<Array<1, T, DeviceType>>(D);
       _bm_array[l] = std::vector<Array<1, T, DeviceType>>(D);
     }
@@ -344,18 +350,19 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
         _bm_array[l][d] = Array<1, T, DeviceType>({_level_shape[l][d] + 1});
         _am_array[l][d].memset(0);
         _bm_array[l][d].memset(0);
-        calc_am_bm(_level_shape[l][d], _dist_array[l][d].data(), _am_array[l][d].data(),
-                   _bm_array[l][d].data());
+        calc_am_bm(_level_shape[l][d], _dist_array[l][d].data(),
+                   _am_array[l][d].data(), _bm_array[l][d].data());
       }
     }
   }
 
   if (D >= 4) {
     std::vector<DIM> tmp(0);
-    for (int d = D-1; d >= 0; d--) {
-      _processed_n[D-1-d] = tmp.size();
-      _processed_dims[D-1-d] = Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
-      _processed_dims[D-1-d].load(tmp.data());
+    for (int d = D - 1; d >= 0; d--) {
+      _processed_n[D - 1 - d] = tmp.size();
+      _processed_dims[D - 1 - d] =
+          Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
+      _processed_dims[D - 1 - d].load(tmp.data());
       tmp.push_back(d);
     }
   }
@@ -412,36 +419,43 @@ SIZE Hierarchy<D, T, DeviceType>::level_shape(SIZE level, DIM dim) {
     std::cerr << log::log_err << "Hierarchy::level_shape level out of bound.\n";
     exit(-1);
   }
-  if (dim >= D) return 1;
+  if (dim >= D)
+    return 1;
   return _level_shape[level][dim];
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<1, SIZE, DeviceType> &Hierarchy<D, T, DeviceType>::level_shape_array(SIZE level) {
+Array<1, SIZE, DeviceType> &
+Hierarchy<D, T, DeviceType>::level_shape_array(SIZE level) {
   if (level > _l_target + 1) {
-    std::cerr << log::log_err << "Hierarchy::level_shape_array level out of bound.\n";
+    std::cerr << log::log_err
+              << "Hierarchy::level_shape_array level out of bound.\n";
     exit(-1);
   }
   return _level_shape_array[level];
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::dist(SIZE level, DIM dim) {
+Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::dist(SIZE level,
+                                                           DIM dim) {
   if (level > _l_target + 1) {
     std::cerr << log::log_err << "Hierarchy::dist level out of bound.\n";
     exit(-1);
   }
-  if (dim >= D) return dummy_array;
+  if (dim >= D)
+    return dummy_array;
   return _dist_array[level][dim];
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::ratio(SIZE level, DIM dim) {
+Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::ratio(SIZE level,
+                                                            DIM dim) {
   if (level > _l_target + 1) {
     std::cerr << log::log_err << "Hierarchy::ratio level out of bound.\n";
     exit(-1);
   }
-  if (dim >= D) return dummy_array;
+  if (dim >= D)
+    return dummy_array;
   return _ratio_array[level][dim];
 }
 
@@ -451,7 +465,8 @@ Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::am(SIZE level, DIM dim) {
     std::cerr << log::log_err << "Hierarchy::am level out of bound.\n";
     exit(-1);
   }
-  if (dim >= D) return dummy_array;
+  if (dim >= D)
+    return dummy_array;
   return _am_array[level][dim];
 }
 
@@ -461,12 +476,14 @@ Array<1, T, DeviceType> &Hierarchy<D, T, DeviceType>::bm(SIZE level, DIM dim) {
     std::cerr << log::log_err << "Hierarchy::bm level out of bound.\n";
     exit(-1);
   }
-  if (dim >= D) return dummy_array;
+  if (dim >= D)
+    return dummy_array;
   return _bm_array[level][dim];
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<1, DIM, DeviceType> &Hierarchy<D, T, DeviceType>::processed(SIZE idx, DIM &processed_n) {
+Array<1, DIM, DeviceType> &
+Hierarchy<D, T, DeviceType>::processed(SIZE idx, DIM &processed_n) {
   if (idx >= D) {
     std::cerr << log::log_err << "Hierarchy::processed idx out of bound.\n";
     exit(-1);
@@ -476,7 +493,8 @@ Array<1, DIM, DeviceType> &Hierarchy<D, T, DeviceType>::processed(SIZE idx, DIM 
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<1, DIM, DeviceType> &Hierarchy<D, T, DeviceType>::unprocessed(SIZE idx, DIM &processed_n) {
+Array<1, DIM, DeviceType> &
+Hierarchy<D, T, DeviceType>::unprocessed(SIZE idx, DIM &processed_n) {
   if (idx >= D) {
     std::cerr << log::log_err << "Hierarchy::unprocessed idx out of bound.\n";
     exit(-1);
@@ -488,12 +506,12 @@ Array<1, DIM, DeviceType> &Hierarchy<D, T, DeviceType>::unprocessed(SIZE idx, DI
 template <DIM D, typename T, typename DeviceType>
 Array<2, SIZE, DeviceType> &Hierarchy<D, T, DeviceType>::level_ranges() {
   return _level_ranges;
-} 
+}
 
 template <DIM D, typename T, typename DeviceType>
 Array<3, T, DeviceType> &Hierarchy<D, T, DeviceType>::level_volumes() {
   return _level_volumes;
-} 
+}
 
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::destroy() {
@@ -774,7 +792,8 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
     init(shape, coords, target_level);
     assert(uniform_coords_created);
     assert(coords.size() == D);
-    for (int d = 0; d < D; d++) delete[] coords[d];
+    for (int d = 0; d < D; d++)
+      delete[] coords[d];
   } else { // need domain decomposition
     // std::cout << log::log_info << "Need domain decomposition.\n";
     domain_decomposition_strategy(shape);

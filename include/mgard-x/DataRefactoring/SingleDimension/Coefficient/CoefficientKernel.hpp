@@ -38,35 +38,35 @@ public:
     SIZE coeff_idx[D];
     SIZE corase_idx[D];
 
-    SIZE firstD = div_roundup(coeff.shape(D-1), F);
+    SIZE firstD = div_roundup(coeff.shape(D - 1), F);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
-    coeff_idx[D-1] =
+    coeff_idx[D - 1] =
         (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
 
     bidx /= firstD;
     if (D >= 2)
-      coeff_idx[D-2] = FunctorBase<DeviceType>::GetBlockIdY() *
-                         FunctorBase<DeviceType>::GetBlockDimY() +
-                     FunctorBase<DeviceType>::GetThreadIdY();
+      coeff_idx[D - 2] = FunctorBase<DeviceType>::GetBlockIdY() *
+                             FunctorBase<DeviceType>::GetBlockDimY() +
+                         FunctorBase<DeviceType>::GetThreadIdY();
     if (D >= 3)
-      coeff_idx[D-3] = FunctorBase<DeviceType>::GetBlockIdZ() *
-                         FunctorBase<DeviceType>::GetBlockDimZ() +
-                     FunctorBase<DeviceType>::GetThreadIdZ();
+      coeff_idx[D - 3] = FunctorBase<DeviceType>::GetBlockIdZ() *
+                             FunctorBase<DeviceType>::GetBlockDimZ() +
+                         FunctorBase<DeviceType>::GetThreadIdZ();
 
-    for (int d = D-4; d >= 0; d--) {
+    for (int d = D - 4; d >= 0; d--) {
       coeff_idx[d] = bidx % coeff.shape(d);
       bidx /= coeff.shape(d);
     }
 
     bool in_range = true;
-    for (int d = D-1; d >= 0; d--) {
+    for (int d = D - 1; d >= 0; d--) {
       if (coeff_idx[d] >= coeff.shape(d))
         in_range = false;
     }
 
     if (in_range) {
-      for (int d = D-1; d >= 0; d--) {
+      for (int d = D - 1; d >= 0; d--) {
         if (d != current_dim) {
           v_left_idx[d] = coeff_idx[d];
           v_middle_idx[d] = coeff_idx[d];
@@ -83,7 +83,7 @@ public:
       if (OP == DECOMPOSE) {
         coeff[coeff_idx] =
             v[v_middle_idx] - lerp(v[v_left_idx], v[v_right_idx],
-                                    *ratio(v_left_idx[current_dim]));
+                                   *ratio(v_left_idx[current_dim]));
         // if (coeff_idx[current_dim] == 1) {
         //   printf("left: %f, right: %f, middle: %f, ratio: %f, coeff: %f\n",
         //         *v(v_left_idx), *v(v_right_idx), *v(v_middle_idx),
@@ -120,7 +120,7 @@ public:
         }
 
         v[v_middle_idx] = coeff[coeff_idx] +
-                           lerp(left, right, *ratio(v_left_idx[current_dim]));
+                          lerp(left, right, *ratio(v_left_idx[current_dim]));
         // if (coeff_idx[current_dim] == 1) {
         // printf("left: %f, right: %f, middle: %f (%f), ratio: %f, coeff:
         // %f\n",
@@ -163,10 +163,10 @@ public:
 
     SIZE nr = 1, nc = 1, nf = 1;
     if (D >= 3)
-      nr = coeff.shape(D-3);
+      nr = coeff.shape(D - 3);
     if (D >= 2)
-      nc = coeff.shape(D-2);
-    nf = coeff.shape(D-1);
+      nc = coeff.shape(D - 2);
+    nf = coeff.shape(D - 1);
 
     SIZE total_thread_z = nr;
     SIZE total_thread_y = nc;
@@ -183,7 +183,7 @@ public:
     gridx = ceil((float)total_thread_x / tbx);
 
     for (DIM d = 3; d < D; d++) {
-      gridx *= coeff.shape(D-(d+1));
+      gridx *= coeff.shape(D - (d + 1));
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
@@ -194,7 +194,7 @@ public:
   void Execute(DIM current_dim, SubArray<1, T, DeviceType> ratio,
                SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
                SubArray<D, T, DeviceType> coeff, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(coeff.shape(D-1)));
+    int range_l = std::min(6, (int)std::log2(coeff.shape(D - 1)));
     int prec = TypeToIdx<T>();
     int config =
         AutoTuner<DeviceType>::autoTuningTable.gpk_reo_nd[prec][range_l];

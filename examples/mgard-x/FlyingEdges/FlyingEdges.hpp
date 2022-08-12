@@ -633,19 +633,19 @@ MGARDX_EXEC void init_voxelIds(SIZE nr, SIZE nf, SIZE r, SIZE f, SIZE edgeCase,
   SIZE ld1 = 3;
   SIZE ld2 = nf * 3;
   SIZE const *edgeUses = GetEdgeUses(edgeCase);
-  edgeIds[0] = *axis_sum_scan(r       * ld2 + f       * ld1 + 1); // x-edges
-  edgeIds[1] = *axis_sum_scan(r       * ld2 + (f + 1) * ld1 + 1);
-  edgeIds[2] = *axis_sum_scan((r + 1) * ld2 + f       * ld1 + 1);
+  edgeIds[0] = *axis_sum_scan(r * ld2 + f * ld1 + 1); // x-edges
+  edgeIds[1] = *axis_sum_scan(r * ld2 + (f + 1) * ld1 + 1);
+  edgeIds[2] = *axis_sum_scan((r + 1) * ld2 + f * ld1 + 1);
   edgeIds[3] = *axis_sum_scan((r + 1) * ld2 + (f + 1) * ld1 + 1);
 
-  edgeIds[4] = *axis_sum_scan(r       * ld2 + f       * ld1 + 0); // y-edges
+  edgeIds[4] = *axis_sum_scan(r * ld2 + f * ld1 + 0); // y-edges
   edgeIds[5] = edgeIds[4] + edgeUses[4];
-  edgeIds[6] = *axis_sum_scan((r + 1) * ld2 + f       * ld1 + 0);
+  edgeIds[6] = *axis_sum_scan((r + 1) * ld2 + f * ld1 + 0);
   edgeIds[7] = edgeIds[6] + edgeUses[6];
 
-  edgeIds[8] = *axis_sum_scan(r       * ld2 + f       * ld1 + 2); // z-edges
+  edgeIds[8] = *axis_sum_scan(r * ld2 + f * ld1 + 2); // z-edges
   edgeIds[9] = edgeIds[8] + edgeUses[8];
-  edgeIds[10] = *axis_sum_scan(r      * ld2 + (f + 1) * ld1 + 2);
+  edgeIds[10] = *axis_sum_scan(r * ld2 + (f + 1) * ld1 + 2);
   edgeIds[11] = edgeIds[10] + edgeUses[10];
 }
 
@@ -711,7 +711,7 @@ generate_tris(SIZE edgeCase, SIZE numTris, SIZE *edgeIds, SIZE &cell_tri_offset,
     //   printf("edgeIndex: %u %u %u\n", edgeIndex, edgeIndex+2, edgeIndex+1);
     // }
     // index = 0;
-    // printf("edgeIds[%u]: %u, edgeIds[%u]: %u, edgeIds[%u]: %u\n", 
+    // printf("edgeIds[%u]: %u, edgeIds[%u]: %u, edgeIds[%u]: %u\n",
     //         edges[edgeIndex], edgeIds[edges[edgeIndex]],
     //         edges[edgeIndex + 2], edgeIds[edges[edgeIndex + 2]],
     //         edges[edgeIndex + 1], edgeIds[edges[edgeIndex + 1]]);
@@ -952,7 +952,7 @@ public:
         computeTrimBounds(r, f, nc - 1, edges, axis_min, axis_max, left, right);
 
     // printf("computeTrimBounds: rf: %u %u, left: %u, right: %u\n",
-            // r, f, left, right);
+    // r, f, left, right);
     if (!hasWork) {
       return;
     }
@@ -1053,8 +1053,8 @@ public:
                            SubArray<3, SIZE, DeviceType> edges,
                            SubArray<1, SIZE, DeviceType> triangle_topology,
                            SubArray<1, T, DeviceType> points)
-      : nr(nr), nc(nc), nf(nf), v(v), iso_value(iso_value), axis_sum_scan(axis_sum_scan),
-        axis_min(axis_min), axis_max(axis_max),
+      : nr(nr), nc(nc), nf(nf), v(v), iso_value(iso_value),
+        axis_sum_scan(axis_sum_scan), axis_min(axis_min), axis_max(axis_max),
         cell_tri_count_scan(cell_tri_count_scan), edges(edges),
         triangle_topology(triangle_topology), points(points) {
     Functor<DeviceType>();
@@ -1076,7 +1076,6 @@ public:
     SIZE cell_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f);
     SIZE next_tri_offset = *cell_tri_count_scan(r * (nf - 1) + f + 1);
 
-
     Pass4TrimState state(r, f, nf, nc, nr, axis_min, axis_max, edges);
     if (!state.hasWork) {
       return;
@@ -1089,7 +1088,7 @@ public:
 
     // run along the trimmed voxels
     // need state.right-1 since we are iterating through cells
-    for (SIZE i = state.left; i < state.right-1; ++i) {
+    for (SIZE i = state.left; i < state.right - 1; ++i) {
       edgeCase = getEdgeCase(r, i, f, edges);
       SIZE numTris = GetNumberOfPrimitives(edgeCase);
       if (numTris > 0) {
@@ -1166,8 +1165,8 @@ public:
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "FlyingEdges::Pass1");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "FlyingEdges::Pass1");
   }
 
   template <SIZE R, SIZE C, SIZE F>
@@ -1196,8 +1195,8 @@ public:
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "FlyingEdges::Pass2");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "FlyingEdges::Pass2");
   }
 
   template <SIZE R, SIZE C, SIZE F>
@@ -1211,8 +1210,9 @@ public:
            SubArray<1, SIZE, DeviceType> triangle_topology,
            SubArray<1, T, DeviceType> points, int queue_idx) {
     using FunctorType = Pass4Functor<T, DeviceType>;
-    FunctorType functor(nr, nc, nf, v, iso_value, axis_sum_scan, axis_min, axis_max,
-                        cell_tri_count_scan, edges, triangle_topology, points);
+    FunctorType functor(nr, nc, nf, v, iso_value, axis_sum_scan, axis_min,
+                        axis_max, cell_tri_count_scan, edges, triangle_topology,
+                        points);
 
     SIZE total_thread_z = 1;
     SIZE total_thread_y = nr - 1;
@@ -1229,8 +1229,8 @@ public:
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
-    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size,
-                queue_idx, "FlyingEdges::Pass4");
+    return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
+                "FlyingEdges::Pass4");
   }
 
   MGARDX_CONT
@@ -1305,7 +1305,8 @@ public:
     // t3.start();
 
     SubArray<1, SIZE, DeviceType> axis_sum_liearized = axis_sum.Linearize();
-    SubArray<1, SIZE, DeviceType> cell_tri_count_liearized = cell_tri_count.Linearize();
+    SubArray<1, SIZE, DeviceType> cell_tri_count_liearized =
+        cell_tri_count.Linearize();
     Array<1, SIZE, DeviceType> newPointSize_array({1});
     SubArray<1, SIZE, DeviceType> newPointSize_subarray(newPointSize_array);
     SIZE numTris = 0;
@@ -1315,8 +1316,11 @@ public:
     // time += t3.get();
     // t3.clear();
     t3.start();
-    DeviceCollective<DeviceType>::ScanSumExtended(nr * nf * 3, axis_sum_liearized, axis_sum_scan, queue_idx);
-    DeviceCollective<DeviceType>::ScanSumExtended((nr - 1) * (nf - 1), cell_tri_count_liearized, cell_tri_count_scan, queue_idx);
+    DeviceCollective<DeviceType>::ScanSumExtended(
+        nr * nf * 3, axis_sum_liearized, axis_sum_scan, queue_idx);
+    DeviceCollective<DeviceType>::ScanSumExtended(
+        (nr - 1) * (nf - 1), cell_tri_count_liearized, cell_tri_count_scan,
+        queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     t3.end();
     // t3.print("Pass 3-2");
@@ -1324,10 +1328,12 @@ public:
     t3.clear();
     // t3.start();
 
-    MemoryManager<DeviceType>().Copy1D(&newPointSize, axis_sum_scan(nr * nf * 3), 1, queue_idx);
-    MemoryManager<DeviceType>().Copy1D(&numTris, cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
+    MemoryManager<DeviceType>().Copy1D(
+        &newPointSize, axis_sum_scan(nr * nf * 3), 1, queue_idx);
+    MemoryManager<DeviceType>().Copy1D(
+        &numTris, cell_tri_count_scan((nr - 1) * (nf - 1)), 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    // printf("After pass3\n");    
+    // printf("After pass3\n");
     // PrintSubarray("cell_tri_count_scan", SubArray(cell_tri_count_scan));
     // std::cout << "mgard_x::FlyingEdges::numPoints: " << newPointSize << "\n";
     // std::cout << "mgard_x::FlyingEdges::numTris: " << numTris << "\n";

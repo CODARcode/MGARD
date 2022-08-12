@@ -15,8 +15,8 @@ namespace mgard_x {
 namespace MDR {
 // a decomposition-based scientific data refactor: compose a refactor using
 // decomposer, interleaver, encoder, and error collector
-template <DIM D, typename T_data, typename T_bitplane, typename T_error, class Decomposer,
-          class Interleaver, class Encoder, class Compressor,
+template <DIM D, typename T_data, typename T_bitplane, typename T_error,
+          class Decomposer, class Interleaver, class Encoder, class Compressor,
           class ErrorCollector, class Writer, typename DeviceType>
 class ComposedRefactor
     : public concepts::RefactorInterface<D, T_data, T_bitplane, DeviceType> {
@@ -30,8 +30,9 @@ public:
         encoder(encoder), compressor(compressor), collector(collector),
         writer(writer) {}
 
-  void refactor(Array<D, T_data, DeviceType>& data_array, const std::vector<SIZE> &dims,
-                uint8_t target_level, uint8_t num_bitplanes) {
+  void refactor(Array<D, T_data, DeviceType> &data_array,
+                const std::vector<SIZE> &dims, uint8_t target_level,
+                uint8_t num_bitplanes) {
 
     MDR::Timer timer;
     this->data_array = data_array;
@@ -42,7 +43,6 @@ public:
     //   org.resize({5,5,5});
     //   PrintSubarray("refactor::input", org);
     // }
-
 
     timer.start();
     if (refactor(target_level, num_bitplanes, 0)) {
@@ -169,7 +169,8 @@ private:
       T_data level_max_error = *(result_array.hostCopy());
       int level_exp = 0;
       frexp(level_max_error, &level_exp);
-      // printf("level: %d, level_max_error: %.10f, level_exp: %d\n", level_idx, level_max_error, level_exp);
+      // printf("level: %d, level_max_error: %.10f, level_exp: %d\n", level_idx,
+      // level_max_error, level_exp);
       level_error_bounds.push_back(level_max_error);
       timer.end();
       // timer.print("level_max_error");

@@ -95,15 +95,15 @@ public:
     // if (success)
     //   return;
     // else {
-    //   std::cerr << "Reconstruct unsuccessful, return NULL pointer" << std::endl;
-    //   return;
+    //   std::cerr << "Reconstruct unsuccessful, return NULL pointer" <<
+    //   std::endl; return;
     // }
   }
 
   // reconstruct progressively based on available data
   Array<D, T_data, DeviceType> progressive_reconstruct(double tolerance) {
 
-    //printf("start progressive_reconstruct\n");
+    // printf("start progressive_reconstruct\n");
     if (!prev_reconstructed) { // First time reconstruction
       data_array = reconstruct(tolerance);
       prev_reconstructed = true;
@@ -172,9 +172,10 @@ public:
   }
 
 private:
-  Array<D, T_data, DeviceType> reconstruct(uint8_t target_level,
-                   const std::vector<uint8_t> &prev_level_num_bitplanes,
-                   int queue_idx, bool progressive = true) {
+  Array<D, T_data, DeviceType>
+  reconstruct(uint8_t target_level,
+              const std::vector<uint8_t> &prev_level_num_bitplanes,
+              int queue_idx, bool progressive = true) {
 
     // printf("level_num_elems: ");
     // Calculating number of elements/coefficient in each level
@@ -192,7 +193,8 @@ private:
     // printf("\n");
 
     // Prepare output data buffer
-    Array<D, T_data, DeviceType> output_data(hierarchy.level_shape(target_level));
+    Array<D, T_data, DeviceType> output_data(
+        hierarchy.level_shape(target_level));
 
     MDR::Timer timer;
     timer.start();
@@ -227,14 +229,16 @@ private:
     // Decompress and decode bitplanes of each level
     for (int level_idx = 0; level_idx <= target_level; level_idx++) {
       timer.start();
-      // Number of bitplanes need to be retrieved in addition to previously already retrieved bitplanes
+      // Number of bitplanes need to be retrieved in addition to previously
+      // already retrieved bitplanes
       SIZE num_bitplanes =
           level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx];
       // Allocate space for the bitplanes to be retrieved
       Array<2, T_bitplane, DeviceType> encoded_bitplanes(
           {num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
 
-      // Decompress bitplanes: compressed_bitplanes[level_idx] --> encoded_bitplanes
+      // Decompress bitplanes: compressed_bitplanes[level_idx] -->
+      // encoded_bitplanes
       compressor.decompress_level(
           level_sizes[level_idx], compressed_bitplanes[level_idx],
           encoded_bitplanes, prev_level_num_bitplanes[level_idx],
@@ -244,7 +248,8 @@ private:
       // timer.print("Lossless");
       timer.start();
 
-      // Compute the exponent of max abs value of the current level needed for decoding
+      // Compute the exponent of max abs value of the current level needed for
+      // decoding
       int level_exp = 0;
       frexp(level_error_bounds[level_idx], &level_exp);
       // Decode bitplanes: encoded_bitplanes --> levels_array[level_idx]
@@ -259,7 +264,8 @@ private:
       compressor.decompress_release();
       timer.end();
       // timer.print("Decoding");
-      // std::cout << "recompose: level " << level_idx << " num_bitplanes: " << num_bitplanes << "\n"; 
+      // std::cout << "recompose: level " << level_idx << " num_bitplanes: " <<
+      // num_bitplanes << "\n";
 
       // if (level_idx == 0) {
       //   PrintSubarray("encoded_bitplanes", SubArray(encoded_bitplanes));

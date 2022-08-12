@@ -298,29 +298,30 @@ int main(int argc, char *argv[]) {
   // float iso_value = 2e6;
   std::cout << "test_vtkm\n";
   test_vtkm(argc, argv, shape, original_data, iso_value, numTriangles_vtkm,
-  Triangles_vtkm, numPoints_vtkm, Points_vtkm);
+            Triangles_vtkm, numPoints_vtkm, Points_vtkm);
   std::cout << "test_mine\n";
   test_mine(shape, original_data, iso_value, numTriangles_mine, Triangles_mine,
             numPoints_mine, Points_mine);
 
-  if (numTriangles_vtkm != numTriangles_mine) { 
-    printf("numTriangles mismatch! %u vs. %u\n", numTriangles_vtkm, Triangles_mine);
-  } 
-  bool match = true; 
+  if (numTriangles_vtkm != numTriangles_mine) {
+    printf("numTriangles mismatch! %u vs. %u\n", numTriangles_vtkm,
+           Triangles_mine);
+  }
+  bool match = true;
   for (size_t i = 0; i < numTriangles_vtkm * 3; i++) {
     if (Triangles_vtkm[i] != Triangles_mine[i]) {
       match = false;
-      printf("diff at %u: %u %u\n", i, Triangles_vtkm[i], Triangles_mine[i]); 
+      printf("diff at %u: %u %u\n", i, Triangles_vtkm[i], Triangles_mine[i]);
       break;
     }
   }
 
-  printf("Triangles: %s\n", match ? "pass": "no pass");
+  printf("Triangles: %s\n", match ? "pass" : "no pass");
 
-  if (numPoints_vtkm != numPoints_mine) { 
+  if (numPoints_vtkm != numPoints_mine) {
     printf("numPoints mismatch! %u vs. %u\n", numPoints_vtkm, numPoints_mine);
-  } 
-  match = true; 
+  }
+  match = true;
   for (size_t i = 0; i < numPoints_vtkm * 3; i++) {
     if (std::fabs(Points_vtkm[i] - Points_mine[i]) > 1e-2) {
       match = false;
@@ -329,5 +330,5 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  printf("Points: %s\n", match ? "pass": "no pass");
+  printf("Points: %s\n", match ? "pass" : "no pass");
 }

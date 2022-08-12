@@ -130,23 +130,23 @@ void calc_quantizers(size_t dof, T *quantizers, enum error_bound_type type,
 #define MGARDX_QUANTIZE 1
 #define MGARDX_DEQUANTIZE 2
 
-template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP, typename DeviceType>
+template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP,
+          typename DeviceType>
 class LevelwiseLinearQuantizerNDFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT LevelwiseLinearQuantizerNDFunctor() {}
   MGARDX_CONT LevelwiseLinearQuantizerNDFunctor(
-      SubArray<2, SIZE, DeviceType> level_ranges,
-      SIZE l_target,
+      SubArray<2, SIZE, DeviceType> level_ranges, SIZE l_target,
       SubArray<1, T, DeviceType> quantizers,
-      SubArray<3, T, DeviceType> level_volumes,
-      SubArray<D, T, DeviceType> v, SubArray<D, QUANTIZED_INT, DeviceType> work,
-      bool prep_huffman, bool calc_vol, SIZE dict_size,
+      SubArray<3, T, DeviceType> level_volumes, SubArray<D, T, DeviceType> v,
+      SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
+      bool calc_vol, SIZE dict_size,
       SubArray<1, LENGTH, DeviceType> outlier_count,
       SubArray<1, LENGTH, DeviceType> outlier_idx,
       SubArray<1, QUANTIZED_INT, DeviceType> outliers)
       : level_ranges(level_ranges), l_target(l_target), quantizers(quantizers),
-        level_volumes(level_volumes), v(v), work(work), prep_huffman(prep_huffman),
-        calc_vol(calc_vol), dict_size(dict_size),
+        level_volumes(level_volumes), v(v), work(work),
+        prep_huffman(prep_huffman), calc_vol(calc_vol), dict_size(dict_size),
         outlier_count(outlier_count), outlier_idx(outlier_idx),
         outliers(outliers) {
     Functor<DeviceType>();
@@ -178,29 +178,29 @@ public:
       sm += roundup<SIZE>((D - 3) * (l_target + 1) * sizeof(T));
 
     // determine global idx
-    SIZE firstD = div_roundup(v.shape(D-1), F);
+    SIZE firstD = div_roundup(v.shape(D - 1), F);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
-    idx[D-1] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
-    idx0[D-1] = (bidx % firstD) * F;
+    idx[D - 1] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
+    idx0[D - 1] = (bidx % firstD) * F;
 
     bidx /= firstD;
     if (D >= 2) {
-      idx[D-2] = FunctorBase<DeviceType>::GetBlockIdY() *
-                   FunctorBase<DeviceType>::GetBlockDimY() +
-               FunctorBase<DeviceType>::GetThreadIdY();
-      idx0[D-2] = FunctorBase<DeviceType>::GetBlockIdY() *
-                FunctorBase<DeviceType>::GetBlockDimY();
+      idx[D - 2] = FunctorBase<DeviceType>::GetBlockIdY() *
+                       FunctorBase<DeviceType>::GetBlockDimY() +
+                   FunctorBase<DeviceType>::GetThreadIdY();
+      idx0[D - 2] = FunctorBase<DeviceType>::GetBlockIdY() *
+                    FunctorBase<DeviceType>::GetBlockDimY();
     }
     if (D >= 3) {
-      idx[D-3] = FunctorBase<DeviceType>::GetBlockIdZ() *
-                   FunctorBase<DeviceType>::GetBlockDimZ() +
-               FunctorBase<DeviceType>::GetThreadIdZ();
-      idx0[D-3] = FunctorBase<DeviceType>::GetBlockIdZ() *
-                FunctorBase<DeviceType>::GetBlockDimZ();
+      idx[D - 3] = FunctorBase<DeviceType>::GetBlockIdZ() *
+                       FunctorBase<DeviceType>::GetBlockDimZ() +
+                   FunctorBase<DeviceType>::GetThreadIdZ();
+      idx0[D - 3] = FunctorBase<DeviceType>::GetBlockIdZ() *
+                    FunctorBase<DeviceType>::GetBlockDimZ();
     }
 
-    for (int d = D-4; d >= 0; d--) {
+    for (int d = D - 4; d >= 0; d--) {
       idx[d] = bidx % v.shape(d);
       idx0[d] = idx[d];
       bidx /= v.shape(d);
@@ -211,24 +211,24 @@ public:
       for (int l = 0; l < l_target + 1; l++) {
         // volumes 0
         if (threadId < FunctorBase<DeviceType>::GetBlockDimX() &&
-            idx0[D-1] + threadId < v.shape(D-1)) {
+            idx0[D - 1] + threadId < v.shape(D - 1)) {
           volumes_0[l * FunctorBase<DeviceType>::GetBlockDimX() + threadId] =
-              *level_volumes(l, D-1, idx0[D-1] + threadId);
+              *level_volumes(l, D - 1, idx0[D - 1] + threadId);
         }
         if (D >= 2) {
           // volumes 1
           if (threadId < FunctorBase<DeviceType>::GetBlockDimY() &&
-              idx0[D-2] + threadId < v.shape(D-2)) {
+              idx0[D - 2] + threadId < v.shape(D - 2)) {
             volumes_1[l * FunctorBase<DeviceType>::GetBlockDimY() + threadId] =
-              *level_volumes(l, D-2, idx0[D-2] + threadId);
+                *level_volumes(l, D - 2, idx0[D - 2] + threadId);
           }
         }
         if (D >= 3) {
           // volumes 2
           if (threadId < FunctorBase<DeviceType>::GetBlockDimZ() &&
-              idx0[D-3] + threadId < v.shape(D-3)) {
+              idx0[D - 3] + threadId < v.shape(D - 3)) {
             volumes_2[l * FunctorBase<DeviceType>::GetBlockDimZ() + threadId] =
-              *level_volumes(l, D-3, idx0[D-3] + threadId);
+                *level_volumes(l, D - 3, idx0[D - 3] + threadId);
           }
         }
       }
@@ -236,10 +236,9 @@ public:
       if (D >= 4) {
         if (threadId < 1) {
           // for (int d = 3; d < D; d++) {
-          for (int d = D-4; d >=0; d--) {
+          for (int d = D - 4; d >= 0; d--) {
             for (int l = 0; l < l_target + 1; l++) {
-              volumes_3_plus[l * (D-3) + d] =
-                  *level_volumes(l, d, idx0[d]);
+              volumes_3_plus[l * (D - 3) + d] = *level_volumes(l, d, idx0[d]);
             }
           }
         }
@@ -249,12 +248,11 @@ public:
 
   MGARDX_EXEC void Operation2() {
     int level = 0;
-    for (int d = D-1; d >= 0; d--) {
+    for (int d = D - 1; d >= 0; d--) {
       long long unsigned int l_bit = 0l;
       for (SIZE l = 0; l < l_target + 1; l++) {
-        long long unsigned int bit = 
-                  (idx[d] >= *level_ranges(l,   d)) &&
-                  (idx[d] <  *level_ranges(l+1, d));
+        long long unsigned int bit = (idx[d] >= *level_ranges(l, d)) &&
+                                     (idx[d] < *level_ranges(l + 1, d));
         l_bit += bit << l;
         // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
       }
@@ -263,7 +261,7 @@ public:
     level = level - 1;
 
     bool in_range = true;
-    for (int d = D-1; d >= 0; d--) {
+    for (int d = D - 1; d >= 0; d--) {
       if (idx[d] >= v.shape(d))
         in_range = false;
     }
@@ -283,8 +281,8 @@ public:
                               FunctorBase<DeviceType>::GetThreadIdZ()];
         }
         if (D >= 4) {
-          for (int d = D-4; d >= 0; d--) {
-            volume *= volumes_3_plus[level*(D-3)+d];
+          for (int d = D - 4; d >= 0; d--) {
+            volume *= volumes_3_plus[level * (D - 3) + d];
           }
         }
         if (sizeof(T) == sizeof(double))
@@ -297,18 +295,20 @@ public:
       QUANTIZED_INT quantized_data;
 
       if constexpr (OP == MGARDX_QUANTIZE) {
-        quantized_data = copysign(0.5 + fabs(t * quantizer * (1.0 / volume)), t);
+        quantized_data =
+            copysign(0.5 + fabs(t * quantizer * (1.0 / volume)), t);
         if (prep_huffman) {
           quantized_data += dict_size / 2;
           if (quantized_data >= 0 && quantized_data < dict_size) {
             // do nothing
           } else {
-            LENGTH i = Atomic<LENGTH, AtomicGlobalMemory, AtomicDeviceScope,
-                              DeviceType>::Add(outlier_count((IDX)0), (LENGTH)1);
+            LENGTH i =
+                Atomic<LENGTH, AtomicGlobalMemory, AtomicDeviceScope,
+                       DeviceType>::Add(outlier_count((IDX)0), (LENGTH)1);
             // Get linearized index
             LENGTH curr_stride = 1;
             LENGTH linearized_idx = 0;
-            for (int d = D-1; d >= 0; d--) {
+            for (int d = D - 1; d >= 0; d--) {
               linearized_idx += idx[d] * curr_stride;
               curr_stride *= v.shape(d);
             }
@@ -363,7 +363,6 @@ private:
   SIZE idx0[D]; // block global idx
 };
 
-
 template <DIM D, typename T, typename DeviceType>
 class OutlierRestoreFunctor : public Functor<DeviceType> {
 public:
@@ -413,7 +412,6 @@ private:
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 };
 
-
 template <DIM D, typename T, OPTION OP, typename DeviceType>
 class LevelwiseLinearQuantizerND : public AutoTuner<DeviceType> {
 public:
@@ -421,30 +419,31 @@ public:
   LevelwiseLinearQuantizerND() : AutoTuner<DeviceType>() {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<LevelwiseLinearQuantizerNDFunctor<D, T, R, C, F, OP, DeviceType>>
-  GenTaskQuantizer(SubArray<2, SIZE, DeviceType> level_ranges,
-          SIZE l_target,
-          SubArray<1, T, DeviceType> quantizers,
-          SubArray<3, T, DeviceType> level_volumes,
-          T s, SIZE huff_dict_size,
-          SubArray<D, T, DeviceType> v,
-          SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
-          // SubArray<1, SIZE, DeviceType> shape,
-          SubArray<1, LENGTH, DeviceType> outlier_count,
-          SubArray<1, LENGTH, DeviceType> outlier_idx,
-          SubArray<1, QUANTIZED_INT, DeviceType> outliers, int queue_idx) {
+  MGARDX_CONT
+      Task<LevelwiseLinearQuantizerNDFunctor<D, T, R, C, F, OP, DeviceType>>
+      GenTaskQuantizer(SubArray<2, SIZE, DeviceType> level_ranges,
+                       SIZE l_target, SubArray<1, T, DeviceType> quantizers,
+                       SubArray<3, T, DeviceType> level_volumes, T s,
+                       SIZE huff_dict_size, SubArray<D, T, DeviceType> v,
+                       SubArray<D, QUANTIZED_INT, DeviceType> work,
+                       bool prep_huffman,
+                       // SubArray<1, SIZE, DeviceType> shape,
+                       SubArray<1, LENGTH, DeviceType> outlier_count,
+                       SubArray<1, LENGTH, DeviceType> outlier_idx,
+                       SubArray<1, QUANTIZED_INT, DeviceType> outliers,
+                       int queue_idx) {
     using FunctorType =
         LevelwiseLinearQuantizerNDFunctor<D, T, R, C, F, OP, DeviceType>;
 
     bool calc_vol =
         s != std::numeric_limits<T>::infinity(); // m.ntype == norm_type::L_2;
-    FunctorType functor(level_ranges, l_target, quantizers, level_volumes, v, work,
-                        prep_huffman, calc_vol, huff_dict_size,
+    FunctorType functor(level_ranges, l_target, quantizers, level_volumes, v,
+                        work, prep_huffman, calc_vol, huff_dict_size,
                         outlier_count, outlier_idx, outliers);
 
-    SIZE total_thread_z = v.shape(D-3);
-    SIZE total_thread_y = v.shape(D-2);
-    SIZE total_thread_x = v.shape(D-1);
+    SIZE total_thread_z = v.shape(D - 3);
+    SIZE total_thread_y = v.shape(D - 2);
+    SIZE total_thread_x = v.shape(D - 1);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -455,7 +454,7 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
     for (DIM d = 3; d < D; d++) {
-      gridx *= v.shape(D-(d+1));
+      gridx *= v.shape(D - (d + 1));
     }
 
     // printf("%u %u %u %u %u %u %u %u %u\n", total_thread_x, total_thread_y,
@@ -464,11 +463,11 @@ public:
                 "LevelwiseLinearQuantizerND");
   }
 
-    template <SIZE F>
-  MGARDX_CONT Task<OutlierRestoreFunctor<D, T, DeviceType>>
-  GenTaskOutlier(SubArray<D, QUANTIZED_INT, DeviceType> work, LENGTH outlier_count,
-           SubArray<1, LENGTH, DeviceType> outlier_idx,
-           SubArray<1, QUANTIZED_INT, DeviceType> outliers, int queue_idx) {
+  template <SIZE F>
+  MGARDX_CONT Task<OutlierRestoreFunctor<D, T, DeviceType>> GenTaskOutlier(
+      SubArray<D, QUANTIZED_INT, DeviceType> work, LENGTH outlier_count,
+      SubArray<1, LENGTH, DeviceType> outlier_idx,
+      SubArray<1, QUANTIZED_INT, DeviceType> outliers, int queue_idx) {
     using FunctorType = OutlierRestoreFunctor<D, T, DeviceType>;
     FunctorType functor(work, outlier_count, outlier_idx, outliers);
     SIZE total_thread_z = 1;
@@ -487,12 +486,10 @@ public:
   }
 
   MGARDX_CONT
-  void Execute(SubArray<2, SIZE, DeviceType> level_ranges,
-               SIZE l_target,
+  void Execute(SubArray<2, SIZE, DeviceType> level_ranges, SIZE l_target,
                SubArray<1, T, DeviceType> quantizers,
-               SubArray<3, T, DeviceType> level_volumes,
-               T s, SIZE huff_dict_size,
-               SubArray<D, T, DeviceType> v,
+               SubArray<3, T, DeviceType> level_volumes, T s,
+               SIZE huff_dict_size, SubArray<D, T, DeviceType> v,
                SubArray<D, QUANTIZED_INT, DeviceType> work, bool prep_huffman,
                SubArray<1, LENGTH, DeviceType> outlier_count,
                SubArray<1, LENGTH, DeviceType> outlier_idx,
@@ -501,18 +498,19 @@ public:
     if constexpr (OP == MGARDX_DEQUANTIZE) {
       LENGTH outlier_count_host;
       // Not providing queue_idx makes this Copy1D a synchronized call
-      MemoryManager<DeviceType>::Copy1D(&outlier_count_host, outlier_count.data(), 1);
+      MemoryManager<DeviceType>::Copy1D(&outlier_count_host,
+                                        outlier_count.data(), 1);
       if (prep_huffman && outlier_count_host) {
         using FunctorType = OutlierRestoreFunctor<D, T, DeviceType>;
         using TaskType = Task<FunctorType>;
-        TaskType task =
-            GenTaskOutlier<256>(work, outlier_count_host, outlier_idx, outliers, queue_idx);
+        TaskType task = GenTaskOutlier<256>(work, outlier_count_host,
+                                            outlier_idx, outliers, queue_idx);
         DeviceAdapter<TaskType, DeviceType> adapter;
         adapter.Execute(task);
       }
     }
 
-    int range_l = std::min(6, (int)std::log2(v.shape(D-1)) - 1);
+    int range_l = std::min(6, (int)std::log2(v.shape(D - 1)) - 1);
     int prec = TypeToIdx<T>();
     int config = AutoTuner<DeviceType>::autoTuningTable.lwqzk[prec][range_l];
     double min_time = std::numeric_limits<double>::max();
@@ -525,11 +523,12 @@ public:
     const int C = LWPK_CONFIG[D - 1][CONFIG][1];                               \
     const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
     using FunctorType =                                                        \
-        LevelwiseLinearQuantizerNDFunctor<D, T, R, C, F, OP, DeviceType>;           \
+        LevelwiseLinearQuantizerNDFunctor<D, T, R, C, F, OP, DeviceType>;      \
     using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTaskQuantizer<R, C, F>(                                          \
-        level_ranges, l_target, quantizers, level_volumes, s, huff_dict_size, v, work,     \
-        prep_huffman, outlier_count, outlier_idx, outliers, queue_idx); \
+    TaskType task = GenTaskQuantizer<R, C, F>(                                 \
+        level_ranges, l_target, quantizers, level_volumes, s, huff_dict_size,  \
+        v, work, prep_huffman, outlier_count, outlier_idx, outliers,           \
+        queue_idx);                                                            \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
     ret = adapter.Execute(task);                                               \
     if (AutoTuner<DeviceType>::ProfileKernels) {                               \
