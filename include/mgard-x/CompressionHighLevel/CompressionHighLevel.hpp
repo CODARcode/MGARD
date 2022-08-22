@@ -400,13 +400,8 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       memcpy(compressed_data, compressed_array.hostCopy(), compressed_size);
     }
   } else { // chunck by chunck
-    if (config.timing) {
-      std::cout << log::log_info
-                << "Insufficient device memory for compressing the whole "
-                   "dataset at once. "
-                << "Orignial domain is decomposed into "
-                << hierarchy.hierarchy_chunck.size() << " sub-domains\n";
-    }
+    log::info("Orignial domain is decomposed into " +
+               std::to_string(hierarchy.hierarchy_chunck.size()) + " sub-domains");
     std::vector<T *> decomposed_data;
     domain_decompose<D, T, DeviceType>((T *)original_data, decomposed_data,
                                        shape, hierarchy.domain_decomposed_dim,
@@ -418,30 +413,24 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       norm = calc_norm_decomposed<D, T, DeviceType>(
           decomposed_data, s, shape, hierarchy.domain_decomposed_dim,
           hierarchy.domain_decomposed_size);
-      if (config.timing) {
-        if (s == std::numeric_limits<T>::infinity()) {
-          std::cout << log::log_info << "L_inf norm: " << norm << std::endl;
-        } else {
-          std::cout << log::log_info << "L_2 norm: " << norm << std::endl;
-        }
+      if (s == std::numeric_limits<T>::infinity()) {
+        log::info("L_inf norm: " + std::to_string(norm));
+      } else {
+        log::info("L_2 norm: " + std::to_string(norm));
       }
     }
     if (s != std::numeric_limits<T>::infinity()) {
       tol = std::sqrt((tol * tol) / hierarchy.hierarchy_chunck.size());
-      if (config.timing) {
-        std::cout << log::log_info << "local bound: " << tol << "\n";
-      }
+      log::info("local bound: " + std::to_string(tol));
     }
     for (SIZE i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
-      if (config.timing) {
-        std::cout << log::log_info << "Compressing decomposed domain (" << i
-                  << ") - ( ";
-        for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].level_shape(
-                           hierarchy.hierarchy_chunck[i].l_target(), d)
-                    << " ";
-        std::cout << ")\n";
-      }
+      std::stringstream ss;
+      for (DIM d = 0; d < D; d++)
+        ss << hierarchy.hierarchy_chunck[i].level_shape(
+                         hierarchy.hierarchy_chunck[i].l_target(), d)
+                  << " ";
+      log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
+                 std::to_string(hierarchy.hierarchy_chunck.size()) + " with shape: " + ss.str());
       Array<D, T, DeviceType> chunck_in_array(
           hierarchy.hierarchy_chunck[i].level_shape(
               hierarchy.hierarchy_chunck[i].l_target()));
@@ -638,13 +627,8 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       memcpy(compressed_data, compressed_array.hostCopy(), compressed_size);
     }
   } else { // chunck by chunck
-    if (config.timing) {
-      std::cout << log::log_info
-                << "Insufficient device memory for compressing the whole "
-                   "dataset at once. "
-                << "Orignial domain is decomposed into "
-                << hierarchy.hierarchy_chunck.size() << " sub-domains\n";
-    }
+    log::info("Orignial domain is decomposed into " +
+               std::to_string(hierarchy.hierarchy_chunck.size()) + " sub-domains");
     std::vector<T *> decomposed_data;
     domain_decompose<D, T, DeviceType>((T *)original_data, decomposed_data,
                                        shape, hierarchy.domain_decomposed_dim,
@@ -656,30 +640,24 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       norm = calc_norm_decomposed<D, T, DeviceType>(
           decomposed_data, s, shape, hierarchy.domain_decomposed_dim,
           hierarchy.domain_decomposed_size);
-      if (config.timing) {
-        if (s == std::numeric_limits<T>::infinity()) {
-          std::cout << log::log_info << "L_inf norm: " << norm << std::endl;
-        } else {
-          std::cout << log::log_info << "L_2 norm: " << norm << std::endl;
-        }
+      if (s == std::numeric_limits<T>::infinity()) {
+        log::info("L_inf norm: " + std::to_string(norm));
+      } else {
+        log::info("L_2 norm: " + std::to_string(norm));
       }
     }
     if (s != std::numeric_limits<T>::infinity()) {
       tol = std::sqrt((tol * tol) / hierarchy.hierarchy_chunck.size());
-      if (config.timing) {
-        std::cout << log::log_info << "local bound: " << tol << "\n";
-      }
+      log::info("local bound: " + std::to_string(tol));
     }
     for (SIZE i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
-      if (config.timing) {
-        std::cout << log::log_info << "Compressing decomposed domain (" << i
-                  << ") - ( ";
-        for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].level_shape(
-                           hierarchy.hierarchy_chunck[i].l_target(), d)
-                    << " ";
-        std::cout << ")\n";
-      }
+      std::stringstream ss;
+      for (DIM d = 0; d < D; d++)
+        ss << hierarchy.hierarchy_chunck[i].level_shape(
+                         hierarchy.hierarchy_chunck[i].l_target(), d)
+                  << " ";
+      log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
+                 std::to_string(hierarchy.hierarchy_chunck.size()) + " with shape: " + ss.str());
       Array<D, T, DeviceType> chunck_in_array(
           hierarchy.hierarchy_chunck[i].level_shape(
               hierarchy.hierarchy_chunck[i].l_target()));
@@ -856,11 +834,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
                                           m.domain_decomposed_size,
                                           config.uniform_coord_mode);
 
-    if (config.timing) {
-      std::cout << log::log_info << "The original domain was decomposed into "
-                << hierarchy.hierarchy_chunck.size()
-                << " sub-domains during compression.\n";
-    }
+    log::info("Orignial domain was decomposed into " +
+               std::to_string(hierarchy.hierarchy_chunck.size()) + 
+               " sub-domains during compression");
 
     SIZE byte_offset = m.metadata_size;
     for (uint32_t i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
@@ -879,22 +855,18 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
     if (m.s != std::numeric_limits<T>::infinity()) {
       m.tol = std::sqrt((m.tol * m.tol) / hierarchy.hierarchy_chunck.size());
-      if (config.timing) {
-        std::cout << log::log_info << "local bound: " << m.tol << "\n";
-      }
+      log::info("local bound: " + std::to_string(m.tol));
     }
 
     // decompress
     for (uint32_t i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
-      if (config.timing) {
-        std::cout << log::log_info << "Decompressing decomposed domain (" << i
-                  << ") - ( ";
-        for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].level_shape(
-                           hierarchy.hierarchy_chunck[i].l_target(), d)
-                    << " ";
-        std::cout << ")\n";
-      }
+      std::stringstream ss;
+      for (DIM d = 0; d < D; d++)
+        ss << hierarchy.hierarchy_chunck[i].level_shape(
+                         hierarchy.hierarchy_chunck[i].l_target(), d)
+                  << " ";
+      log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
+                 std::to_string(hierarchy.hierarchy_chunck.size()) + " with shape: " + ss.str());
       Array<1, Byte, DeviceType> lossless_compressed_array(
           {lossless_compressed_size[i]});
       lossless_compressed_array.load(lossless_compressed_data[i]);
@@ -1040,11 +1012,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     Hierarchy<D, T, DeviceType> hierarchy(shape, m.domain_decomposed_dim,
                                           m.domain_decomposed_size, coords);
 
-    if (config.timing) {
-      std::cout << log::log_info << "The original domain was decomposed into "
-                << hierarchy.hierarchy_chunck.size()
-                << " sub-domains during compression.\n";
-    }
+    log::info("Orignial domain was decomposed into " +
+               std::to_string(hierarchy.hierarchy_chunck.size()) + 
+               " sub-domains during compression");
 
     SIZE byte_offset = m.metadata_size;
     for (uint32_t i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
@@ -1063,22 +1033,18 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
     if (m.s != std::numeric_limits<T>::infinity()) {
       m.tol = std::sqrt((m.tol * m.tol) / hierarchy.hierarchy_chunck.size());
-      if (config.timing) {
-        std::cout << log::log_info << "local bound: " << m.tol << "\n";
-      }
+      log::info("local bound: " + std::to_string(m.tol));
     }
 
     // decompress
     for (uint32_t i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
-      if (config.timing) {
-        std::cout << log::log_info << "Decompressing decomposed domain (" << i
-                  << ") - ( ";
-        for (DIM d = 0; d < D; d++)
-          std::cout << hierarchy.hierarchy_chunck[i].level_shape(
-                           hierarchy.hierarchy_chunck[i].l_target(), d)
-                    << " ";
-        std::cout << ")\n";
-      }
+      std::stringstream ss;
+      for (DIM d = 0; d < D; d++)
+        ss << hierarchy.hierarchy_chunck[i].level_shape(
+                         hierarchy.hierarchy_chunck[i].l_target(), d)
+                  << " ";
+      log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
+                 std::to_string(hierarchy.hierarchy_chunck.size()) + " with shape: " + ss.str());
       Array<1, Byte, DeviceType> lossless_compressed_array(
           {lossless_compressed_size[i]});
       lossless_compressed_array.load(lossless_compressed_data[i]);
@@ -1142,8 +1108,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                                      compressed_data, compressed_size, config,
                                      output_pre_allocated);
     } else {
-      std::cout << log::log_err
-                << "do not support higher than five dimentions!\n";
+      log::err("do not support higher than five dimentions");
       exit(-1);
     }
   } else if (dtype == data_type::Double) {
@@ -1168,13 +1133,11 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                                       compressed_data, compressed_size, config,
                                       output_pre_allocated);
     } else {
-      std::cout << log::log_err
-                << "do not support higher than five dimentions!\n";
+      log::err("do not support higher than five dimentions");
       exit(-1);
     }
   } else {
-    std::cout << log::log_err
-              << "do not support types other than double and float!\n";
+    log::err("do not support types other than double and float!");
     exit(-1);
   }
 }
@@ -1223,8 +1186,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                                      compressed_data, compressed_size, config,
                                      float_coords, output_pre_allocated);
     } else {
-      std::cout << log::log_err
-                << "do not support higher than five dimentions!\n";
+      log::err("do not support higher than five dimentions");
       exit(-1);
     }
   } else if (dtype == data_type::Double) {
@@ -1252,13 +1214,11 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                                       compressed_data, compressed_size, config,
                                       double_coords, output_pre_allocated);
     } else {
-      std::cout << log::log_err
-                << "do not support higher than five dimentions!\n";
+      log::err("do not support higher than five dimentions");
       exit(-1);
     }
   } else {
-    std::cout << log::log_err
-              << "do not support types other than double and float!\n";
+    log::err("do not support types other than double and float!");
     exit(-1);
   }
 }
@@ -1310,8 +1270,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
                                          compressed_size, decompressed_data,
                                          config, output_pre_allocated);
       } else {
-        std::cout << log::log_err
-                  << "do not support higher than five dimentions!\n";
+        log::err("do not support higher than five dimentions");
         exit(-1);
       }
     } else if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
@@ -1349,8 +1308,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
                                          compressed_size, decompressed_data,
                                          coords, config, output_pre_allocated);
       } else {
-        std::cout << log::log_err
-                  << "do not support higher than five dimentions!\n";
+        log::err("do not support higher than five dimentions");
         exit(-1);
       }
 
@@ -1381,13 +1339,11 @@ void decompress(const void *compressed_data, size_t compressed_size,
                                           compressed_size, decompressed_data,
                                           config, output_pre_allocated);
       } else {
-        std::cout << log::log_err
-                  << "do not support higher than five dimentions!\n";
+        log::err("do not support higher than five dimentions");
         exit(-1);
       }
     } else {
-      std::cout << log::log_err
-                << "do not support types other than double and float!\n";
+      log::err("do not support types other than double and float!");
       exit(-1);
     }
   } else if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
@@ -1425,8 +1381,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
                                         decompressed_data, coords, config,
                                         output_pre_allocated);
     } else {
-      std::cout << log::log_err
-                << "do not support higher than five dimentions!\n";
+      log::err("do not support higher than five dimentions");
       exit(-1);
     }
 
@@ -1481,8 +1436,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
                                          compressed_size, decompressed_data,
                                          config, output_pre_allocated);
       } else {
-        std::cout << log::log_err
-                  << "do not support higher than five dimentions!\n";
+        log::err("do not support higher than five dimentions");
         exit(-1);
       }
     } else if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
@@ -1520,8 +1474,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
                                          compressed_size, decompressed_data,
                                          coords, config, output_pre_allocated);
       } else {
-        std::cout << log::log_err
-                  << "do not support higher than five dimentions!\n";
+        log::err("do not support higher than five dimentions");
         exit(-1);
       }
 
@@ -1552,13 +1505,11 @@ void decompress(const void *compressed_data, size_t compressed_size,
                                           compressed_size, decompressed_data,
                                           config, output_pre_allocated);
       } else {
-        std::cout << log::log_err
-                  << "do not support higher than five dimentions!\n";
+        log::err("do not support higher than five dimentions");
         exit(-1);
       }
     } else {
-      std::cout << log::log_err
-                << "do not support types other than double and float!\n";
+      log::err("do not support types other than double and float!");
       exit(-1);
     }
   } else if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
@@ -1596,8 +1547,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
                                         decompressed_data, coords, config,
                                         output_pre_allocated);
     } else {
-      std::cout << log::log_err
-                << "do not support higher than five dimentions!\n";
+      log::err("do not support higher than five dimentions");
       exit(-1);
     }
 
