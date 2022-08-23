@@ -61,6 +61,80 @@ template <typename DeviceType> struct Metadata {
   enum processor_type ptype;
 
 public:
+  template <typename T>
+  void Fill(enum error_bound_type ebtype,
+            T tol, T s, T norm,
+            enum decomposition_type decomposition,
+            uint32_t reorder, enum lossless_type ltype,
+            uint32_t huff_dict_size, uint32_t huff_block_size,
+            std::vector<SIZE> shape,
+            bool domain_decomposed,
+            uint8_t domain_decomposed_dim,
+            uint64_t domain_decomposed_size) {
+    if (std::is_same<DeviceType, SERIAL>::value) {
+      this->ptype = processor_type::X_SERIAL;
+    } else if (std::is_same<DeviceType, CUDA>::value) {
+      this->ptype = processor_type::X_CUDA;
+    } else if (std::is_same<DeviceType, HIP>::value) {
+      this->ptype = processor_type::X_HIP;
+    } else if (std::is_same<DeviceType, SYCL>::value) {
+      this->ptype = processor_type::X_SYCL;
+    }
+    this->ebtype = ebtype;
+    this->tol = (double)tol;
+    if (s == std::numeric_limits<T>::infinity()) {
+      this->ntype = norm_type::L_Inf;
+      this->s = (double)s;
+    } else {
+      this->ntype = norm_type::L_2;
+      this->s = (double)s;
+    }
+    this->norm = norm;
+    this->decomposition = decomposition;
+    this->reorder = reorder;
+    this->ltype = ltype;
+    this->huff_dict_size = huff_dict_size;
+    this->huff_block_size = huff_block_size;
+    this->dtype = std::is_same<T, double>::value ? data_type::Double : data_type::Float;
+    this->dstype = data_structure_type::Cartesian_Grid_Uniform;
+    this->total_dims = shape.size();
+    this->shape = std::vector<uint64_t>(this->total_dims);
+    for (int d = 0; d < this->total_dims; d++) {
+      this->shape[d] = (uint64_t)shape[d];
+    }
+    this->domain_decomposed = domain_decomposed;
+    this->ddtype = domain_decomposition_type::MaxDim;
+    this->domain_decomposed_dim = domain_decomposed_dim;
+    this->domain_decomposed_size = domain_decomposed_size;
+  }
+
+  template <typename T>
+  void Fill(enum error_bound_type ebtype,
+            T tol, T s, T norm,
+            enum decomposition_type decomposition,
+            uint32_t reorder, enum lossless_type ltype,
+            uint32_t huff_dict_size, uint32_t huff_block_size,
+            std::vector<SIZE> shape,
+            bool domain_decomposed,
+            uint8_t domain_decomposed_dim,
+            uint64_t domain_decomposed_size,
+            std::vector<T *> coords) {
+    Fill(ebtype, tol, s, norm, decomposition, reorder, ltype,
+         huff_dict_size, huff_block_size,
+         shape, domain_decomposed, domain_decomposed_dim,
+         domain_decomposed_size);
+    for (int d = 0; d < this->total_dims; d++) {
+      std::vector<double> coord(shape[d]);
+      T * coord_h = new T[shape[d]];
+      MemoryManager<DeviceType>::Copy1D(coord_h, coords[d], shape[d]);
+      for (SIZE i = 0; i < shape[d]; i++) {
+        coord[i] = (double)coord_h[i];
+      }
+      this->coords.push_back(coord);
+      delete coord_h;
+    }
+  }
+
   SERIALIZED_TYPE *Serialize(uint32_t &total_size) {
     // return SerializeAll(total_size);
     // PrintSummary();

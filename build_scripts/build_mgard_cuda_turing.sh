@@ -79,6 +79,7 @@ cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DMGARD_ENABLE_SERIAL=ON\
     -DMGARD_ENABLE_CUDA=ON\
     -DCMAKE_CUDA_ARCHITECTURES="75"\
+    -DMGARD_ENABLE_OPENMP=ON\
     -DMGARD_ENABLE_DOCS=OFF\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
