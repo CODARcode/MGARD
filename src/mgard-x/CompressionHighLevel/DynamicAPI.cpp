@@ -15,6 +15,7 @@
 #include "mgard-x/CompressionHighLevel/CompressionHighLevel.h"
 #include "mgard-x/CompressionHighLevel/Metadata.hpp"
 #include "mgard-x/Hierarchy/Hierarchy.h"
+#include "mgard-x/Config/Config.hpp"
 #include "mgard-x/RuntimeX/RuntimeXPublic.h"
 
 namespace mgard_x {

@@ -14,7 +14,12 @@
 #include "../Hierarchy/Hierarchy.hpp"
 #include "../RuntimeX/RuntimeX.h"
 #include "Metadata.hpp"
+#include "../Config/Config.hpp"
 #include "compress_x.hpp"
+
+// #if MGARD_ENABLE_OPENMP
+#include <omp.h>
+// #endif
 
 #include "../CompressionLowLevel/CompressionLowLevel.h"
 
@@ -22,6 +27,128 @@
 #define MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
 
 namespace mgard_x {
+
+template <DIM D, typename T, typename DeviceType>
+size_t estimate_memory_usgae(std::vector<SIZE> shape) {
+  size_t estimate_memory_usgae = 0;
+  size_t total_elem = 1;
+  for (DIM d = 0; d < D; d++) {
+    total_elem *= shape[d];
+  }
+  size_t pitch_size = 1;
+  if (!MemoryManager<DeviceType>::ReduceMemoryFootprint) { // pitch is enable
+    T *dummy;
+    SIZE ld;
+    MemoryManager<DeviceType>::MallocND(dummy, 1, 1, ld, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+    MemoryManager<DeviceType>::Free(dummy);
+    pitch_size = ld * sizeof(T);
+  }
+
+  size_t hierarchy_space = 0;
+  // space need for hiearachy
+  int nlevel = std::numeric_limits<int>::max();
+  for (DIM i = 0; i < shape.size(); i++) {
+    int n = shape[i];
+    int l = 0;
+    while (n > 2) {
+      n = n / 2 + 1;
+      l++;
+    }
+    nlevel = std::min(nlevel, l);
+  }
+  nlevel--;
+  for (DIM d = 0; d < D; d++) {
+    hierarchy_space += shape[d] * 2 * sizeof(T); // dist
+    hierarchy_space += shape[d] * 2 * sizeof(T); // ratio
+  }
+  SIZE max_dim = 0;
+  for (DIM d = 0; d < D; d++) {
+    max_dim = std::max(max_dim, shape[d]);
+  }
+
+  hierarchy_space +=
+      D * (nlevel + 1) * roundup(max_dim * sizeof(T), pitch_size); // volume
+  for (DIM d = 0; d < D; d++) {
+    hierarchy_space += shape[d] * 2 * sizeof(T); // am
+    hierarchy_space += shape[d] * 2 * sizeof(T); // bm
+  }
+
+  size_t input_space = roundup(shape[D - 1] * sizeof(T), pitch_size);
+  for (DIM d = 0; d < D - 1; d++) {
+    input_space *= shape[d];
+  }
+
+  size_t norm_workspace = roundup(shape[D - 1] * sizeof(T), pitch_size);
+  for (DIM d = 0; d < D - 1; d++) {
+    norm_workspace *= shape[d];
+  }
+  estimate_memory_usgae = std::max(
+      estimate_memory_usgae, hierarchy_space + input_space + norm_workspace);
+
+  size_t decomposition_workspace =
+      roundup(shape[D - 1] * sizeof(T), pitch_size);
+  for (DIM d = 0; d < D - 1; d++) {
+    decomposition_workspace *= shape[d];
+  }
+  estimate_memory_usgae =
+      std::max(estimate_memory_usgae,
+               hierarchy_space + input_space + decomposition_workspace);
+
+  size_t quantization_workspace =
+      sizeof(QUANTIZED_INT) * total_elem + // quantized
+      sizeof(LENGTH) * total_elem +        // outlier index
+      sizeof(QUANTIZED_INT) * total_elem;  // outlier
+
+  estimate_memory_usgae =
+      std::max(estimate_memory_usgae,
+               hierarchy_space + input_space + quantization_workspace);
+
+  size_t huffman_workspace =
+      sizeof(QUANTIZED_INT) *
+      total_elem; // fix-length encoding
+                  // space taken by codebook generation is ignored
+
+  estimate_memory_usgae = std::max(
+      estimate_memory_usgae, hierarchy_space + input_space +
+                                 quantization_workspace + huffman_workspace);
+
+  double estimated_output_ratio = 0.7;
+
+  return estimate_memory_usgae + (double)input_space * estimated_output_ratio;
+}
+
+template <DIM D, typename T, typename DeviceType>
+bool need_domain_decomposition(std::vector<SIZE> shape) {
+  return estimate_memory_usgae<D, T, DeviceType>(shape) >=
+         DeviceRuntime<DeviceType>::GetAvailableMemory();
+}
+
+template <DIM D, typename T, typename DeviceType>
+bool generate_domain_decomposition_strategy(std::vector<SIZE> shape, 
+                                            DIM &domain_decomposed_dim, 
+                                            SIZE &domain_decomposed_size) {
+
+  if (!need_domain_decomposition<D, T, DeviceType>(shape)) {
+    return false;
+  }
+  // determine max dimension
+  DIM max_dim = 0;
+  for (DIM d = 0; d < D; d++) {
+    if (shape[d] > max_dim) {
+      max_dim = shape[d];
+      domain_decomposed_dim = d;
+    }
+  }
+
+  // domain decomposition strategy
+  std::vector<SIZE> chunck_shape = shape;
+  while (need_domain_decomposition<D, T, DeviceType>(chunck_shape)) {
+    chunck_shape[domain_decomposed_dim] /= 2;
+  }
+  domain_decomposed_size = chunck_shape[domain_decomposed_dim];
+  return true;
+}
 
 template <DIM D, typename T, typename DeviceType>
 void domain_decompose(T *data, std::vector<T *> &decomposed_data,
@@ -283,56 +410,39 @@ T calc_norm_decomposed(std::vector<T *> decomposed_data, T s,
   return norm;
 }
 
+template <typename DeviceType>
+void load(Config& config, Metadata<DeviceType>& metadata) {
+  config.decomposition = metadata.decomposition;
+  config.lossless = metadata.ltype;
+  config.huff_dict_size = metadata.huff_dict_size;
+  config.huff_block_size = metadata.huff_block_size;
+  config.reorder = metadata.reorder;
+}
+
 template <DIM D, typename T, typename DeviceType>
 void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config,
               bool output_pre_allocated) {
 
-  Hierarchy<D, T, DeviceType> hierarchy(shape, config.uniform_coord_mode);
+  Hierarchy<D, T, DeviceType> hierarchy;
+  DIM domain_decomposed_dim; 
+  SIZE domain_decomposed_size;
 
-  Metadata<DeviceType> m;
-  if (std::is_same<DeviceType, SERIAL>::value) {
-    m.ptype = processor_type::X_SERIAL;
-  } else if (std::is_same<DeviceType, CUDA>::value) {
-    m.ptype = processor_type::X_CUDA;
-  } else if (std::is_same<DeviceType, HIP>::value) {
-    m.ptype = processor_type::X_HIP;
-  } else if (std::is_same<DeviceType, SYCL>::value) {
-    m.ptype = processor_type::X_SYCL;
+  if (!need_domain_decomposition<D, T, DeviceType>(shape)) {
+    hierarchy = Hierarchy<D, T, DeviceType>(shape, config.uniform_coord_mode);
+  } else {   
+    generate_domain_decomposition_strategy<D, T, DeviceType>(shape, 
+                                          domain_decomposed_dim, domain_decomposed_size);
+    hierarchy = Hierarchy<D, T, DeviceType>(shape, domain_decomposed_dim, domain_decomposed_size,
+                                            config.uniform_coord_mode);
   }
-  m.ebtype = type;
-  m.tol = tol;
-  if (s == std::numeric_limits<T>::infinity()) {
-    m.ntype = norm_type::L_Inf;
-    m.s = s;
-  } else {
-    m.ntype = norm_type::L_2;
-    m.s = s;
-  }
-  // m.l_target = hierarchy.l_target();
-  if (s != std::numeric_limits<T>::infinity()) {
-    m.decomposition = decomposition_type::MultiDim;
-  }
-  m.decomposition = config.decomposition;
-  m.reorder = config.reorder;
-  m.ltype = config.lossless;
-  m.huff_dict_size = config.huff_dict_size;
-  m.huff_block_size = config.huff_block_size;
+
 #ifndef MGARDX_COMPILE_CUDA
   if (config.lossless == lossless_type::Huffman_LZ4) {
     config.lossless = lossless_type::Huffman_Zstd;
-    m.ltype = config.lossless; // update matadata
   }
 #endif
-  m.dtype =
-      std::is_same<T, double>::value ? data_type::Double : data_type::Float;
-  m.dstype = data_structure_type::Cartesian_Grid_Uniform;
-  m.total_dims = D;
-  m.shape = std::vector<uint64_t>(D);
-  for (int d = 0; d < D; d++) {
-    m.shape[d] = (uint64_t)shape[d];
-  }
 
   if (!hierarchy.domain_decomposed) {
     mgard_x::Array<D, T, DeviceType> in_array(shape);
@@ -343,18 +453,16 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
         compress<D, T, DeviceType>(hierarchy, in_array, type, tol, s, norm,
                                    config);
     SubArray lossless_compressed_subarray(lossless_compressed_array);
-    // compressed_size = compressed_array.shape()[0];
-
-    if (type == error_bound_type::REL) {
-      m.norm = norm;
-    }
-    m.domain_decomposed = false;
 
     uint32_t metadata_size;
 
+    Metadata<DeviceType> m;
+    m.Fill(type, tol, s, norm, config.decomposition, config.reorder, config.lossless,
+           config.huff_dict_size, config.huff_block_size,
+           shape, hierarchy.domain_decomposed,
+           hierarchy.domain_decomposed_dim, hierarchy.domain_decomposed_size);
     SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
 
-    // SIZE outsize = 0;
     SIZE byte_offset = 0;
     advance_with_align<SERIALIZED_TYPE>(byte_offset, metadata_size);
     advance_with_align<SIZE>(byte_offset, 1);
@@ -423,49 +531,56 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       tol = std::sqrt((tol * tol) / hierarchy.hierarchy_chunck.size());
       log::info("local bound: " + std::to_string(tol));
     }
-    for (SIZE i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
-      std::stringstream ss;
-      for (DIM d = 0; d < D; d++)
-        ss << hierarchy.hierarchy_chunck[i].level_shape(
-                         hierarchy.hierarchy_chunck[i].l_target(), d)
-                  << " ";
-      log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
-                 std::to_string(hierarchy.hierarchy_chunck.size()) + " with shape: " + ss.str());
-      Array<D, T, DeviceType> chunck_in_array(
-          hierarchy.hierarchy_chunck[i].level_shape(
-              hierarchy.hierarchy_chunck[i].l_target()));
-      chunck_in_array.load((const T *)decomposed_data[i]);
-      // PrintSubarray("chunck_in_array", SubArray(chunck_in_array));
-      Array<1, Byte, DeviceType> lossless_compressed_array =
-          compress<D, T, DeviceType>(hierarchy.hierarchy_chunck[i],
-                                     chunck_in_array, type, tol, s, norm,
-                                     config);
-      lossless_compressed_size.push_back(lossless_compressed_array.shape(0));
-      Byte *temp = NULL;
-      MemoryManager<DeviceType>::MallocHost(
-          temp, lossless_compressed_array.shape(0), 0);
-      // std::cout << "temp: " << temp
-      // << "lossless_compressed_array.data(): " <<
-      // lossless_compressed_array.data() ;
-      // << "lossless_compressed_array.shape()[0]: " <<
-      // lossless_compressed_array.shape()[0] << "\n" << std::flush;
-      // temp = new Byte[lossless_compressed_array.shape()[0]];
-      MemoryManager<DeviceType>::Copy1D(temp, lossless_compressed_array.data(),
-                                        lossless_compressed_array.shape(0), 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      lossless_compressed_data.push_back(temp);
-    }
 
-    // Seralize
-    if (type == error_bound_type::REL) {
-      m.norm = norm;
+    // Set the number of threads equal to the number of devices
+    // So that each thread is responsible for one device
+    omp_set_num_threads(DeviceRuntime<DeviceType>::GetDeviceCount());
+    #pragma omp parallel 
+    {
+      #pragma omp for schedule(dynamic)
+      for (SIZE i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
+        std::stringstream ss;
+        for (DIM d = 0; d < D; d++)
+          ss << hierarchy.hierarchy_chunck[i].level_shape(
+                           hierarchy.hierarchy_chunck[i].l_target(), d)
+                    << " ";
+        log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
+                   std::to_string(hierarchy.hierarchy_chunck.size()) + " with shape: " + ss.str() +
+                   "using thread " + std::to_string(omp_get_thread_num()) + "/" +
+                   std::to_string(omp_get_num_threads()));
+        Array<D, T, DeviceType> chunck_in_array(
+            hierarchy.hierarchy_chunck[i].level_shape(
+                hierarchy.hierarchy_chunck[i].l_target()));
+        chunck_in_array.load((const T *)decomposed_data[i]);
+        // PrintSubarray("chunck_in_array", SubArray(chunck_in_array));
+        Array<1, Byte, DeviceType> lossless_compressed_array =
+            compress<D, T, DeviceType>(hierarchy.hierarchy_chunck[i],
+                                       chunck_in_array, type, tol, s, norm,
+                                       config);
+        lossless_compressed_size.push_back(lossless_compressed_array.shape(0));
+        Byte *temp = NULL;
+        MemoryManager<DeviceType>::MallocHost(
+            temp, lossless_compressed_array.shape(0), 0);
+        // std::cout << "temp: " << temp
+        // << "lossless_compressed_array.data(): " <<
+        // lossless_compressed_array.data() ;
+        // << "lossless_compressed_array.shape()[0]: " <<
+        // lossless_compressed_array.shape()[0] << "\n" << std::flush;
+        // temp = new Byte[lossless_compressed_array.shape()[0]];
+        MemoryManager<DeviceType>::Copy1D(temp, lossless_compressed_array.data(),
+                                          lossless_compressed_array.shape(0), 0);
+        DeviceRuntime<DeviceType>::SyncQueue(0);
+        lossless_compressed_data.push_back(temp);
+      }
     }
-    m.domain_decomposed = true;
-    m.ddtype = domain_decomposition_type::MaxDim;
-    m.domain_decomposed_dim = hierarchy.domain_decomposed_dim;
-    m.domain_decomposed_size = hierarchy.domain_decomposed_size;
 
     uint32_t metadata_size;
+
+    Metadata<DeviceType> m;
+    m.Fill(type, tol, s, norm, config.decomposition, config.reorder, config.lossless,
+           config.huff_dict_size, config.huff_block_size,
+           shape, hierarchy.domain_decomposed,
+           hierarchy.domain_decomposed_dim, hierarchy.domain_decomposed_size);
     SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
 
     SIZE byte_offset = 0;
@@ -500,7 +615,6 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     for (SIZE i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
       MemoryManager<DeviceType>::FreeHost(lossless_compressed_data[i]);
       MemoryManager<DeviceType>::FreeHost(decomposed_data[i]);
-      // delete [] lossless_compressed_data[i];
     }
   }
 }
@@ -510,57 +624,24 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config, std::vector<T *> coords,
               bool output_pre_allocated) {
-  Hierarchy<D, T, DeviceType> hierarchy(shape, coords);
+  Hierarchy<D, T, DeviceType> hierarchy;//(shape, coords);
 
-  Metadata<DeviceType> m;
-  if (std::is_same<DeviceType, SERIAL>::value) {
-    m.ptype = processor_type::X_SERIAL;
-  } else if (std::is_same<DeviceType, CUDA>::value) {
-    m.ptype = processor_type::X_CUDA;
-  } else if (std::is_same<DeviceType, HIP>::value) {
-    m.ptype = processor_type::X_HIP;
-  } else if (std::is_same<DeviceType, SYCL>::value) {
-    m.ptype = processor_type::X_SYCL;
-  }
-  m.ebtype = type;
-  m.tol = tol;
-  if (s == std::numeric_limits<T>::infinity()) {
-    m.ntype = norm_type::L_Inf;
-    m.s = s;
+  if (!need_domain_decomposition<D, T, DeviceType>(shape)) {
+    hierarchy = Hierarchy<D, T, DeviceType>(shape, coords);
   } else {
-    m.ntype = norm_type::L_2;
-    m.s = s;
+    DIM domain_decomposed_dim; 
+    SIZE domain_decomposed_size;
+    generate_domain_decomposition_strategy<D, T, DeviceType>(shape, 
+                                          domain_decomposed_dim, domain_decomposed_size);
+    hierarchy = Hierarchy<D, T, DeviceType>(shape, domain_decomposed_dim, domain_decomposed_size,
+                                            coords);
   }
-  // m.l_target = hierarchy.l_target();
-  if (s != std::numeric_limits<T>::infinity()) {
-    m.decomposition = decomposition_type::MultiDim;
-  }
-  m.decomposition = config.decomposition;
-  m.ltype = config.lossless;
-  m.huff_dict_size = config.huff_dict_size;
-  m.huff_block_size = config.huff_block_size;
-  m.reorder = config.reorder;
+
 #ifndef MGARDX_COMPILE_CUDA
   if (config.lossless == lossless_type::Huffman_LZ4) {
     config.lossless = lossless_type::Huffman_Zstd;
-    m.ltype = config.lossless; // update matadata
   }
 #endif
-  m.dtype =
-      std::is_same<T, double>::value ? data_type::Double : data_type::Float;
-  m.dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
-  m.total_dims = D;
-  m.shape = std::vector<uint64_t>(D);
-  for (int d = 0; d < D; d++) {
-    m.shape[d] = (uint64_t)shape[d];
-  }
-  for (int d = 0; d < D; d++) {
-    std::vector<double> coord(shape[d]);
-    for (SIZE i = 0; i < shape[d]; i++) {
-      coord[i] = (double)coords[d][i];
-    }
-    m.coords.push_back(coord);
-  }
 
   if (!hierarchy.domain_decomposed) {
     mgard_x::Array<D, T, DeviceType> in_array(shape);
@@ -572,13 +653,13 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
     SubArray lossless_compressed_subarray(lossless_compressed_array);
     // compressed_size = compressed_array.shape()[0];
 
-    if (type == error_bound_type::REL) {
-      m.norm = norm;
-    }
-    m.domain_decomposed = false;
-
     uint32_t metadata_size;
 
+    Metadata<DeviceType> m;
+    m.Fill(type, tol, s, norm, config.decomposition, config.reorder, config.lossless,
+           config.huff_dict_size, config.huff_block_size,
+           shape, hierarchy.domain_decomposed,
+           hierarchy.domain_decomposed_dim, hierarchy.domain_decomposed_size, coords);
     SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
 
     // SIZE outsize = 0;
@@ -676,16 +757,13 @@ void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type type,
       lossless_compressed_data.push_back(temp);
     }
 
-    // Serialize
-    if (type == error_bound_type::REL) {
-      m.norm = norm;
-    }
-    m.domain_decomposed = true;
-    m.ddtype = domain_decomposition_type::MaxDim;
-    m.domain_decomposed_dim = hierarchy.domain_decomposed_dim;
-    m.domain_decomposed_size = hierarchy.domain_decomposed_size;
-
     uint32_t metadata_size;
+
+    Metadata<DeviceType> m;
+    m.Fill(type, tol, s, norm, config.decomposition, config.reorder, config.lossless,
+           config.huff_dict_size, config.huff_block_size,
+           shape, hierarchy.domain_decomposed,
+           hierarchy.domain_decomposed_dim, hierarchy.domain_decomposed_size, coords);
     SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
 
     SIZE byte_offset = 0;
@@ -734,6 +812,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   Metadata<DeviceType> m;
   m.Deserialize((SERIALIZED_TYPE *)compressed_data);
+  load(config, m);
 
   if (!m.domain_decomposed) {
     Hierarchy<D, T, DeviceType> hierarchy(shape, config.uniform_coord_mode);
@@ -744,27 +823,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
     // Deserialize
     SubArray compressed_subarray(compressed_array);
-    // SIZE byte_offset = 0;
-
-    // Metadata<DeviceType> m;
-    // uint32_t metadata_size;
-    // SERIALIZED_TYPE * metadata_size_prt = (SERIALIZED_TYPE*)&metadata_size;
-    // byte_offset = m.metadata_size_offset();
-    // DeserializeArray<SERIALIZED_TYPE>(compressed_subarray, metadata_size_prt,
-    // sizeof(uint32_t), byte_offset, false); SERIALIZED_TYPE * serizalied_meta
-    // = (SERIALIZED_TYPE *)std::malloc(metadata_size); byte_offset = 0;
-    // DeserializeArray<SERIALIZED_TYPE>(compressed_subarray, serizalied_meta,
-    // metadata_size, byte_offset, false);
-
-    // m.Deserialize((SERIALIZED_TYPE *)compressed_data);
-
-    config.decomposition = m.decomposition;
-    config.lossless = m.ltype;
-    config.huff_dict_size = m.huff_dict_size;
-    config.huff_block_size = m.huff_block_size;
-    config.reorder = m.reorder;
-    // printf("config.reorder: %d\n", config.reorder);
-
     SIZE lossless_size;
     SIZE *lossless_size_ptr = &lossless_size;
     Byte *lossless_data;
@@ -781,7 +839,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     // SubArray<1, Byte, DeviceType> lossless_compressed_subarray({(SIZE)
     // lossless_size}, lossless_data);
 
-    config.lossless = m.ltype;
+    
 
     Array<D, T, DeviceType> out_array =
         decompress<D, T, DeviceType>(hierarchy, lossless_compressed_array,
@@ -806,26 +864,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
              original_size * sizeof(T));
     }
   } else { // domain decomposition
-    // deserialized
-    // Metadata<DeviceType> m;
-    // uint32_t metadata_size = m.get_metadata_size
-    // uint32_t * metadata_size_prt = &metadata_size;
-    // SIZE byte_offset = m.metadata_size_offset();
-    // Deserialize<uint32_t, DeviceType>((Byte*)compressed_data,
-    // metadata_size_prt, 1, byte_offset); printf("decompress metadata_size:
-    // %u\n", metadata_size); SERIALIZED_TYPE * serizalied_meta =
-    // (SERIALIZED_TYPE *)std::malloc(metadata_size); byte_offset = 0;
-    // Deserialize<SERIALIZED_TYPE, DeviceType>((Byte*)compressed_data,
-    // serizalied_meta, metadata_size, byte_offset);
-
-    // m.Deserialize((SERIALIZED_TYPE *)compressed_data);
-
-    config.decomposition = m.decomposition;
-    config.lossless = m.ltype;
-    config.huff_dict_size = m.huff_dict_size;
-    config.huff_block_size = m.huff_block_size;
-    config.reorder = m.reorder;
-
     std::vector<SIZE> lossless_compressed_size;
     std::vector<Byte *> lossless_compressed_data;
     std::vector<T *> decomposed_data;
@@ -886,12 +924,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
           out_array.ld(D - 1), out_array.shape(D - 1), linearized_width, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       decomposed_data.push_back(decompressed_data_chunck);
-
-      // {
-      //   Array<D, T, DeviceType> data_array({5, 5, 5});
-      //   data_array.load(decompressed_data_chunck);
-      //   PrintSubarray("decompressed_data_chunck", SubArray(data_array));
-      // }
     }
 
     if (!output_pre_allocated) {
@@ -921,6 +953,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   }
   Metadata<DeviceType> m;
   m.Deserialize((SERIALIZED_TYPE *)compressed_data);
+  load(config, m);
 
   if (!m.domain_decomposed) {
 
@@ -932,25 +965,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
     // Deserialize
     SubArray compressed_subarray(compressed_array);
-    // SIZE byte_offset = 0;
-
-    // Metadata<DeviceType> m;
-    // uint32_t metadata_size;
-    // SERIALIZED_TYPE * metadata_size_prt = (SERIALIZED_TYPE*)&metadata_size;
-    // byte_offset = m.metadata_size_offset();
-    // DeserializeArray<SERIALIZED_TYPE>(compressed_subarray, metadata_size_prt,
-    // sizeof(uint32_t), byte_offset, false); SERIALIZED_TYPE * serizalied_meta
-    // = (SERIALIZED_TYPE *)std::malloc(metadata_size); byte_offset = 0;
-    // DeserializeArray<SERIALIZED_TYPE>(compressed_subarray, serizalied_meta,
-    // metadata_size, byte_offset, false);
-
-    // m.Deserialize((SERIALIZED_TYPE *)compressed_data);
-
-    config.decomposition = m.decomposition;
-    config.lossless = m.ltype;
-    config.huff_dict_size = m.huff_dict_size;
-    config.huff_block_size = m.huff_block_size;
-    config.reorder = m.reorder;
 
     SIZE lossless_size;
     SIZE *lossless_size_ptr = &lossless_size;
@@ -986,25 +1000,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
              original_size * sizeof(T));
     }
   } else { // domain decomposed
-    // deserialized
-    // Metadata<DeviceType> m;
-    // uint32_t metadata_size;
-    // uint32_t * metadata_size_prt = &metadata_size;
-    // SIZE byte_offset = m.metadata_size_offset();
-    // Deserialize<uint32_t, DeviceType>((Byte*)compressed_data,
-    // metadata_size_prt, 1, byte_offset); SERIALIZED_TYPE * serizalied_meta =
-    // (SERIALIZED_TYPE *)std::malloc(metadata_size); byte_offset = 0;
-    // Deserialize<SERIALIZED_TYPE, DeviceType>((Byte*)compressed_data,
-    // serizalied_meta, metadata_size, byte_offset);
-
-    // m.Deserialize((SERIALIZED_TYPE *)compressed_data);
-
-    config.decomposition = m.decomposition;
-    config.lossless = m.ltype;
-    config.huff_dict_size = m.huff_dict_size;
-    config.huff_block_size = m.huff_block_size;
-    config.reorder = m.reorder;
-
     std::vector<SIZE> lossless_compressed_size;
     std::vector<Byte *> lossless_compressed_data;
     std::vector<T *> decomposed_data;

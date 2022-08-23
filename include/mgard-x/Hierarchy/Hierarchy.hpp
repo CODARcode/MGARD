@@ -558,129 +558,6 @@ template <typename T> void printShape(std::string name, std::vector<T> shape) {
 }
 
 template <DIM D, typename T, typename DeviceType>
-size_t
-Hierarchy<D, T, DeviceType>::estimate_memory_usgae(std::vector<SIZE> shape) {
-  size_t estimate_memory_usgae = 0;
-  size_t total_elem = 1;
-  for (DIM d = 0; d < D; d++) {
-    total_elem *= shape[d];
-  }
-  size_t pitch_size = 1;
-  if (!MemoryManager<DeviceType>::ReduceMemoryFootprint) { // pitch is enable
-    T *dummy;
-    SIZE ld;
-    MemoryManager<DeviceType>::MallocND(dummy, 1, 1, ld, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-    MemoryManager<DeviceType>::Free(dummy);
-    pitch_size = ld * sizeof(T);
-  }
-
-  size_t hierarchy_space = 0;
-  // space need for hiearachy
-  int nlevel = std::numeric_limits<int>::max();
-  for (DIM i = 0; i < shape.size(); i++) {
-    int n = shape[i];
-    int l = 0;
-    while (n > 2) {
-      n = n / 2 + 1;
-      l++;
-    }
-    nlevel = std::min(nlevel, l);
-  }
-  nlevel--;
-  for (DIM d = 0; d < D; d++) {
-    hierarchy_space += shape[d] * 2 * sizeof(T); // dist
-    hierarchy_space += shape[d] * 2 * sizeof(T); // ratio
-  }
-  SIZE max_dim = 0;
-  for (DIM d = 0; d < D; d++) {
-    max_dim = std::max(max_dim, shape[d]);
-  }
-
-  hierarchy_space +=
-      D * (nlevel + 1) * roundup(max_dim * sizeof(T), pitch_size); // volume
-  for (DIM d = 0; d < D; d++) {
-    hierarchy_space += shape[d] * 2 * sizeof(T); // am
-    hierarchy_space += shape[d] * 2 * sizeof(T); // bm
-  }
-
-  size_t input_space = roundup(shape[D - 1] * sizeof(T), pitch_size);
-  for (DIM d = 0; d < D - 1; d++) {
-    input_space *= shape[d];
-  }
-
-  size_t norm_workspace = roundup(shape[D - 1] * sizeof(T), pitch_size);
-  for (DIM d = 0; d < D - 1; d++) {
-    norm_workspace *= shape[d];
-  }
-  estimate_memory_usgae = std::max(
-      estimate_memory_usgae, hierarchy_space + input_space + norm_workspace);
-
-  size_t decomposition_workspace =
-      roundup(shape[D - 1] * sizeof(T), pitch_size);
-  for (DIM d = 0; d < D - 1; d++) {
-    decomposition_workspace *= shape[d];
-  }
-  estimate_memory_usgae =
-      std::max(estimate_memory_usgae,
-               hierarchy_space + input_space + decomposition_workspace);
-
-  size_t quantization_workspace =
-      sizeof(QUANTIZED_INT) * total_elem + // quantized
-      sizeof(LENGTH) * total_elem +        // outlier index
-      sizeof(QUANTIZED_INT) * total_elem;  // outlier
-
-  estimate_memory_usgae =
-      std::max(estimate_memory_usgae,
-               hierarchy_space + input_space + quantization_workspace);
-
-  size_t huffman_workspace =
-      sizeof(QUANTIZED_INT) *
-      total_elem; // fix-length encoding
-                  // space taken by codebook generation is ignored
-
-  estimate_memory_usgae = std::max(
-      estimate_memory_usgae, hierarchy_space + input_space +
-                                 quantization_workspace + huffman_workspace);
-
-  double estimated_output_ratio = 0.7;
-
-  return estimate_memory_usgae + (double)input_space * estimated_output_ratio;
-}
-
-template <DIM D, typename T, typename DeviceType>
-bool Hierarchy<D, T, DeviceType>::need_domain_decomposition(
-    std::vector<SIZE> shape) {
-  // std::cout << log::log_info << "Estimated device memory usage/available "
-  //                            << (double)estimate_memory_usgae(shape)/1e9
-  //                            << "GB/" <<
-  //                            DeviceRuntime<DeviceType>::GetAvailableMemory()/1e9
-  //                            << "GB.\n";
-  return estimate_memory_usgae(shape) >=
-         DeviceRuntime<DeviceType>::GetAvailableMemory();
-}
-
-template <DIM D, typename T, typename DeviceType>
-void Hierarchy<D, T, DeviceType>::domain_decomposition_strategy(
-    std::vector<SIZE> shape) {
-  // determine max dimension
-  DIM max_dim = 0;
-  for (DIM d = 0; d < D; d++) {
-    if (shape[d] > max_dim) {
-      max_dim = shape[d];
-      domain_decomposed_dim = d;
-    }
-  }
-
-  // domain decomposition strategy
-  std::vector<SIZE> chunck_shape = shape;
-  while (need_domain_decomposition(chunck_shape)) {
-    chunck_shape[domain_decomposed_dim] /= 2;
-  }
-  domain_decomposed_size = chunck_shape[domain_decomposed_dim];
-}
-
-template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
                                                    int uniform_coord_mode) {
   if (domain_decomposed_size < 3) {
@@ -772,61 +649,49 @@ template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        int uniform_coord_mode,
                                        SIZE target_level) {
-  if (!need_domain_decomposition(shape)) {
-    int ret = check_shape<D>(shape);
-    if (ret == -1) {
-      std::cerr << log::log_err
-                << "Number of dimensions mismatch. mgard_x::Hierarchy not "
-                   "initialized!\n";
-      exit(-1);
-    }
-    if (ret == -2) {
-      std::cerr << log::log_err
-                << "Size of any dimension cannot be smaller than 3. "
-                   "mgard_x::Hierarchy not "
-                   "initialized!\n";
-      exit(-1);
-    }
-    dstype = data_structure_type::Cartesian_Grid_Uniform;
-    std::vector<T *> coords = create_uniform_coords(shape, uniform_coord_mode);
-    init(shape, coords, target_level);
-    assert(uniform_coords_created);
-    assert(coords.size() == D);
-    for (int d = 0; d < D; d++)
-      delete[] coords[d];
-  } else { // need domain decomposition
-    // std::cout << log::log_info << "Need domain decomposition.\n";
-    domain_decomposition_strategy(shape);
-    domain_decompose(shape, uniform_coord_mode);
+  int ret = check_shape<D>(shape);
+  if (ret == -1) {
+    std::cerr << log::log_err
+              << "Number of dimensions mismatch. mgard_x::Hierarchy not "
+                 "initialized!\n";
+    exit(-1);
   }
+  if (ret == -2) {
+    std::cerr << log::log_err
+              << "Size of any dimension cannot be smaller than 3. "
+                 "mgard_x::Hierarchy not "
+                 "initialized!\n";
+    exit(-1);
+  }
+  dstype = data_structure_type::Cartesian_Grid_Uniform;
+  std::vector<T *> coords = create_uniform_coords(shape, uniform_coord_mode);
+  init(shape, coords, target_level);
+  assert(uniform_coords_created);
+  assert(coords.size() == D);
+  for (int d = 0; d < D; d++)
+    delete[] coords[d];
 }
 
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        std::vector<T *> coords,
                                        SIZE target_level) {
-  if (!need_domain_decomposition(shape)) {
-    int ret = check_shape<D>(shape);
-    if (ret == -1) {
-      std::cerr << log::log_err
-                << "Number of dimensions mismatch. mgard_x::Hanlde not "
-                   "initialized!\n";
-      return;
-    }
-    if (ret == -2) {
-      std::cerr << log::log_err
-                << "Size of any dimensions cannot be smaller than 3. "
-                   "mgard_x::Hanlde not "
-                   "initialized!\n";
-    }
-
-    dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
-    init(shape, coords, target_level);
-  } else {
-    // std::cout << log::log_info << "Need domain decomposition.\n";
-    domain_decomposition_strategy(shape);
-    domain_decompose(shape, coords);
+  int ret = check_shape<D>(shape);
+  if (ret == -1) {
+    std::cerr << log::log_err
+              << "Number of dimensions mismatch. mgard_x::Hanlde not "
+                 "initialized!\n";
+    return;
   }
+  if (ret == -2) {
+    std::cerr << log::log_err
+              << "Size of any dimensions cannot be smaller than 3. "
+                 "mgard_x::Hanlde not "
+                 "initialized!\n";
+  }
+
+  dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
+  init(shape, coords, target_level);
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -834,8 +699,6 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        DIM domain_decomposed_dim,
                                        SIZE domain_decomposed_size,
                                        int uniform_coord_mode) {
-  // std::cout << log::log_info << "Domain decomposition was used during
-  // compression\n";
   this->domain_decomposed_dim = domain_decomposed_dim;
   this->domain_decomposed_size = domain_decomposed_size;
   domain_decompose(shape, uniform_coord_mode);
@@ -846,8 +709,6 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        DIM domain_decomposed_dim,
                                        SIZE domain_decomposed_size,
                                        std::vector<T *> coords) {
-  // std::cout << log::log_info << "Domain decomposition was used during
-  // compression\n";
   this->domain_decomposed_dim = domain_decomposed_dim;
   this->domain_decomposed_size = domain_decomposed_size;
   domain_decompose(shape, coords);
