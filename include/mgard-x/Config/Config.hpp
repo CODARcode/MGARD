@@ -1,6 +1,8 @@
 #ifndef MGARD_X_CONFIG_HPP
 #define MGARD_X_CONFIG_HPP
 
+#include "../RuntimeX/Utilities/Message.h"
+
 namespace mgard_x {
 
 struct Config {
@@ -20,6 +22,7 @@ struct Config {
   enum lossless_type lossless;
   double global_norm;
   int reorder;
+  int log_level;
 
   Config() {
     dev_type = device_type::AUTO;
@@ -35,6 +38,8 @@ struct Config {
     lossless = lossless_type::Huffman;
     global_norm = 1;
     reorder = 0;
+    log_level = log::ERR;
+    log::log_level = log_level;
   }
 };
 

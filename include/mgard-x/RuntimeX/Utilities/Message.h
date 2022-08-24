@@ -10,11 +10,13 @@ using std::string;
 namespace mgard_x {
 namespace log {
 
-extern bool enable_log_info;
-extern bool enable_log_time;
-extern bool enable_log_dbg;
-extern bool enable_log_warn;
-extern bool enable_log_err;
+extern int INFO;
+extern int TIME;
+extern int DBG;
+extern int WARN;
+extern int ERR;
+
+extern int log_level;
 
 extern const string log_null;
 extern const string log_info;
