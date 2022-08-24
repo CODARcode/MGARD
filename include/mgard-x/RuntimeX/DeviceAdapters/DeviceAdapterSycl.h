@@ -603,9 +603,34 @@ public:
   }
 
   template <typename T> MGARDX_CONT static bool IsDevicePointer(T *ptr) {
-    sycl::queue q = DeviceRuntime<SYCL>::GetQueue(0);
-    return sycl::get_pointer_type(ptr, q.get_context()) ==
-           sycl::usm::alloc::device;
+    for (int i = 0; i < DeviceRuntime<SYCL>::GetDeviceCount()) {
+      DeviceRuntime<SYCL>::SelectDevice(i);
+      for (int j = 0; j < MGARDX_NUM_QUEUES; j++) {
+        sycl::queue q = DeviceRuntime<SYCL>::GetQueue(j);
+        if (sycl::get_pointer_type(ptr, q.get_context()) ==
+               sycl::usm::alloc::device) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  template <typename T> MGARDX_CONT static int GetPointerDevice(T *ptr) {
+    sycl::default_selector d_selector;
+    sycl::platform d_platform(d_selector);
+    std::vector<sycl::device> d_devices = d_platform.get_devices();
+    for (int i = 0; i < DeviceRuntime<SYCL>::GetDeviceCount()) {
+      DeviceRuntime<SYCL>::SelectDevice(i);
+      for (int j = 0; j < MGARDX_NUM_QUEUES; j++) {
+        sycl::queue q = DeviceRuntime<SYCL>::GetQueue(j);
+        sycl::device ptr_device = sycl::get_pointer_device(ptr, q.get_context());
+        if (d_devices[i] == ptr_device) {
+          return i;
+        }
+      }
+    }
+    return 0;
   }
 
   static bool ReduceMemoryFootprint;

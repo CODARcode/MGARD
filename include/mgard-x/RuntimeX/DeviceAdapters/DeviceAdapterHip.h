@@ -828,6 +828,12 @@ public:
     return attr.memoryType == hipMemoryTypeDevice;
   }
 
+  template <typename T> MGARDX_CONT static int GetPointerDevice(T *ptr) {
+    hipPointerAttributes_t attr;
+    hipPointerGetAttributes(&attr, ptr);
+    return attr.device;
+  }
+
   static bool ReduceMemoryFootprint;
 };
 
