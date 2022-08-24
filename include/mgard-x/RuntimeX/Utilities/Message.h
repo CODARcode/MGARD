@@ -16,7 +16,7 @@ extern int DBG;
 extern int WARN;
 extern int ERR;
 
-extern int log_level;
+extern int level;
 
 extern const string log_null;
 extern const string log_info;
