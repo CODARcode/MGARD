@@ -672,7 +672,6 @@ public:
   MGARDX_CONT
   ~DeviceRuntime() {}
 
-  static int curr_dev_id;
   static DeviceQueues<CUDA> queues;
   static bool SyncAllKernelsAndCheckErrors;
   static DeviceSpecification<CUDA> DeviceSpecs;
