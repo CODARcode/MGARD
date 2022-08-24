@@ -254,11 +254,12 @@ public:
   MGARDX_CONT
   ~DeviceRuntime() {}
 
-  static int curr_dev_id;
   static DeviceQueues<DeviceType> queues;
   static bool SyncAllKernelsAndCheckErrors;
   static DeviceSpecification<DeviceType> DeviceSpecs;
 };
+
+extern int curr_dev_id;
 
 } // namespace mgard_x
 

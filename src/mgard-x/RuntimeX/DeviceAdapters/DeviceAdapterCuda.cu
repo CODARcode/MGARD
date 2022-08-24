@@ -9,7 +9,6 @@
 
 namespace mgard_x {
 
-int DeviceRuntime<CUDA>::curr_dev_id = 0;
 DeviceQueues<CUDA> DeviceRuntime<CUDA>::queues;
 DeviceSpecification<CUDA> DeviceRuntime<CUDA>::DeviceSpecs;
 
