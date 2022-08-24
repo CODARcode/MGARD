@@ -165,7 +165,7 @@ void domain_decompose(T *data, std::vector<Array<D, T, DeviceType>> &decomposed_
 
   for (SIZE i = 0; i < shape[domain_decomposed_dim];
        i += domain_decomposed_size) {
-
+    DeviceRuntime<DeviceType>::SelectDevice((i / domain_decomposed_size) % DeviceRuntime<DeviceType>::GetDeviceCount());
     Array<D, T, DeviceType> subdomain_array({chunck_shape}, pitched);
     SIZE dst_ld = subdomain_array.ld(D-1);//domain_decomposed_size;
     if (domain_decomposed_dim <= D-2) {
@@ -340,9 +340,20 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
               const void *original_data, void *&compressed_data,
               size_t &compressed_size, Config config, bool uniform, std::vector<T *> coords,
               bool output_pre_allocated) {
+
+  size_t original_size = 1;
+  for (int i = 0; i < D; i++)
+    original_size *= shape[i];
+
   Hierarchy<D, T, DeviceType> hierarchy;
   DIM domain_decomposed_dim; 
   SIZE domain_decomposed_size;
+
+  config.apply();
+
+  Timer timer_total, timer_each;
+  if (log::level & log::TIME) timer_total.start();
+  if (log::level & log::TIME) timer_each.start();
 
   if (!need_domain_decomposition<D, T, DeviceType>(shape)) {
     if (uniform) {
@@ -362,6 +373,12 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     }
   }
 
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Building Hierarchy");
+    timer_each.clear();
+  }
+
 #ifndef MGARDX_COMPILE_CUDA
   if (config.lossless == lossless_type::Huffman_LZ4) {
     config.lossless = lossless_type::Huffman_Zstd;
@@ -375,17 +392,31 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
   T local_tol = tol;
 
   if (!hierarchy.domain_decomposed) {
+    if (log::level & log::TIME) timer_each.start();
     Array<D, T, DeviceType> in_array({shape});
     in_array.load((T*)original_data);
     subdomain_data.push_back(in_array);
     subdomain_hierarchy.push_back(hierarchy);
     local_tol = tol;
+    if (log::level & log::TIME) {
+      timer_each.end();
+      timer_each.print("Load data");
+      timer_each.clear();
+    }
   } else {
     log::info("Orignial domain is decomposed into " +
                std::to_string(hierarchy.hierarchy_chunck.size()) + " sub-domains");
+    if (log::level & log::TIME) timer_each.start();
     domain_decompose<D, T, DeviceType>((T *)original_data, subdomain_data,
                                        shape, hierarchy.domain_decomposed_dim,
                                        hierarchy.domain_decomposed_size);
+    if (log::level & log::TIME) {
+      timer_each.end();
+      timer_each.print("Domain decomposition");
+      timer_each.clear();
+    }
+
+    if (log::level & log::TIME) timer_each.start();
     subdomain_hierarchy = hierarchy.hierarchy_chunck;
     if (type == error_bound_type::REL) {
       norm = calc_norm_decomposed(subdomain_data, s);
@@ -399,32 +430,53 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
       local_tol = std::sqrt((tol * tol) / subdomain_data.size());
       log::info("local bound: " + std::to_string(local_tol));
     }
+    if (log::level & log::TIME) {
+      timer_each.end();
+      timer_each.print("Calculate norm of decomposed domain");
+      timer_each.clear();
+    }
   }
   
+  if (log::level & log::TIME) timer_each.start();
+
   // Set the number of threads equal to the number of devices
   // So that each thread is responsible for one device
   omp_set_num_threads(DeviceRuntime<DeviceType>::GetDeviceCount());
-  #pragma omp parallel 
-  {
-    #pragma omp for schedule(dynamic)
-    for (SIZE i = 0; i < subdomain_data.size(); i++) {
-      std::stringstream ss;
-      for (DIM d = 0; d < D; d++)
-        ss << subdomain_hierarchy[i].level_shape(
-                         subdomain_hierarchy[i].l_target(), d)
-                  << " ";
-      log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
-                 std::to_string(subdomain_data.size()) + " with shape: " + ss.str() +
-                 "using thread " + std::to_string(omp_get_thread_num()) + "/" +
-                 std::to_string(omp_get_num_threads()));
-      Array<1, Byte, DeviceType> compressed_array =
-          compress<D, T, DeviceType>(subdomain_hierarchy[i],
-                                     subdomain_data[i], type, local_tol, s, norm,
-                                     config);
-      compressed_subdomain_data.push_back(compressed_array);
-    }
+  #pragma omp parallel for schedule(dynamic) private(curr_dev_id)
+  for (SIZE i = 0; i < subdomain_data.size(); i++) {
+    // Select device based on where is input data is
+    DeviceRuntime<DeviceType>::SelectDevice(subdomain_data[i].resideDevice());
+    config.dev_id = subdomain_data[i].resideDevice();
+
+    // Trigger the copy constructor to copy hierarchy to corresponding device
+    Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchy[i];
+
+    std::stringstream ss;
+    for (DIM d = 0; d < D; d++)
+      ss << subdomain_hierarchy[i].level_shape(
+                       subdomain_hierarchy[i].l_target(), d)
+                << " ";
+    log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
+               std::to_string(subdomain_data.size()) + " with shape: " + ss.str() +
+               "using thread " + std::to_string(omp_get_thread_num()) + "/" +
+               std::to_string(omp_get_num_threads()) + "on device " + std::to_string(subdomain_data[i].resideDevice()));
+    Array<1, Byte, DeviceType> compressed_array =
+        compress<D, T, DeviceType>(hierarchy,
+                                   subdomain_data[i], type, local_tol, s, norm,
+                                   config);
+    compressed_subdomain_data.push_back(compressed_array);
   }
 
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Aggregated low-level compression");
+    log::time("Aggregated low-level compression throughput: "
+              + std::to_string((double)(original_size * sizeof(T)) / timer_each.get() / 1e9)
+              + " GB/s");
+    timer_each.clear();
+  }
+
+  if (log::level & log::TIME) timer_each.start();
   // Initialize metadata
   Metadata<DeviceType> m;
   if (uniform) {
@@ -478,6 +530,18 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
                                 subdomain_compressed_size, byte_offset);
   }
   MemoryManager<DeviceType>::Free(serizalied_meta);
+
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Serialization");
+    timer_each.clear();
+    timer_total.end();
+    timer_total.print("High-level compression");
+    log::time("High-level compression throughput: "
+              + std::to_string((double)(original_size * sizeof(T)) / timer_total.get() / 1e9)
+              + " GB/s");
+    timer_total.clear();
+  }
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -507,6 +571,12 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   for (int i = 0; i < D; i++)
     original_size *= shape[i];
 
+  config.apply();
+
+  Timer timer_total, timer_each;
+  if (log::level & log::TIME) timer_total.start();
+  if (log::level & log::TIME) timer_each.start();
+
   Metadata<DeviceType> m;
   m.Deserialize((SERIALIZED_TYPE *)compressed_data);
   load(config, m);
@@ -520,6 +590,14 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       }
     }
   }
+
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Deserialize metadata");
+    timer_each.clear();
+  }
+
+  if (log::level & log::TIME) timer_each.start();
 
   Hierarchy<D, T, DeviceType> hierarchy;
 
@@ -545,9 +623,17 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     for (DIM d = 0; d < D; d++) delete[] coords[d];
   }
 
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Building Hierarchy");
+    timer_each.clear();
+  }
+
   std::vector<Array<D, T, DeviceType>> subdomain_data;
   std::vector<Array<1, Byte, DeviceType>> compressed_subdomain_data;
   std::vector<Hierarchy<D, T, DeviceType>> subdomain_hierarchy;
+
+  if (log::level & log::TIME) timer_each.start();
 
   if (!m.domain_decomposed) {
     subdomain_hierarchy.push_back(hierarchy);
@@ -564,6 +650,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   SIZE byte_offset = m.metadata_size;
   for (uint32_t i = 0; i < subdomain_hierarchy.size(); i++) {
+    DeviceRuntime<DeviceType>::SelectDevice(i % DeviceRuntime<DeviceType>::GetDeviceCount());
     SIZE temp_size;
     Byte *temp_data;
     Deserialize<SIZE, DeviceType>((Byte *)compressed_data, &temp_size, 1,
@@ -579,42 +666,99 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     MemoryManager<DeviceType>::FreeHost(temp_data);
   }
 
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Deserialize data");
+    timer_each.clear();
+  }
+
+  if (log::level & log::TIME) timer_each.start();
   // decompress
+  // Set the number of threads equal to the number of devices
+  // So that each thread is responsible for one device
+  omp_set_num_threads(DeviceRuntime<DeviceType>::GetDeviceCount());
+  #pragma omp parallel for schedule(dynamic) private(curr_dev_id)
   for (uint32_t i = 0; i < subdomain_hierarchy.size(); i++) {
+
+    // Select device based on where is input data is
+    DeviceRuntime<DeviceType>::SelectDevice(compressed_subdomain_data[i].resideDevice());
+    config.dev_id = compressed_subdomain_data[i].resideDevice();
+
+    // Trigger the copy constructor to copy hierarchy to corresponding device
+    Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchy[i];
+
     std::stringstream ss;
     for (DIM d = 0; d < D; d++)
       ss << subdomain_hierarchy[i].level_shape(
                        subdomain_hierarchy[i].l_target(), d)
                 << " ";
-    log::info("Decompressing decomposed domain " + std::to_string(i) + "/" +
-               std::to_string(subdomain_hierarchy.size()) + " with shape: " + ss.str());
+    log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
+               std::to_string(subdomain_data.size()) + " with shape: " + ss.str() +
+               "using thread " + std::to_string(omp_get_thread_num()) + "/" +
+               std::to_string(omp_get_num_threads()) + "on device " + std::to_string(compressed_subdomain_data[i].resideDevice()));
 
     // PrintSubarray("input of decompress", SubArray(compressed_subdomain_data[i]));
     Array<D, T, DeviceType> out_array = decompress<D, T, DeviceType>(
-        subdomain_hierarchy[i], compressed_subdomain_data[i], m.ebtype,
+        hierarchy, compressed_subdomain_data[i], m.ebtype,
         m.tol, m.s, m.norm, config);
     subdomain_data.push_back(out_array);
   }
 
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Aggregated low-level decompression");
+    log::time("Aggregated high-level decompression throughput: "
+              + std::to_string((double)(original_size * sizeof(T)) / timer_each.get() / 1e9)
+              + " GB/s");
+    timer_each.clear();
+  }
+
   // Use consistance memory space between input and output data
   if (!output_pre_allocated) {
+    if (log::level & log::TIME) timer_each.start();
     if (MemoryManager<DeviceType>::IsDevicePointer(compressed_data)) {
       MemoryManager<DeviceType>::Malloc1D(decompressed_data, original_size);
     } else {
       decompressed_data = (T *)malloc(original_size * sizeof(T));
     }
+    if (log::level & log::TIME) {
+      timer_each.end();
+      timer_each.print("Prepare output buffer");
+      timer_each.clear();
+    }
   }
 
   if (!hierarchy.domain_decomposed) {
+    if (log::level & log::TIME) timer_each.start();
     MemoryManager<DeviceType>::Copy1D(decompressed_data,
                                       (void *)subdomain_data[0].data(),
                                       original_size * sizeof(T), 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
+    if (log::level & log::TIME) {
+      timer_each.end();
+      timer_each.print("Copy output");
+      timer_each.clear();
+    }
   } else {
+    if (log::level & log::TIME) timer_each.start();
     // domain recomposition
     domain_recompose<D, T, DeviceType>(subdomain_data, (T *)decompressed_data,
                                        shape, hierarchy.domain_decomposed_dim,
                                        hierarchy.domain_decomposed_size);
+    if (log::level & log::TIME) {
+      timer_each.end();
+      timer_each.print("Domain recomposition");
+      timer_each.clear();
+    }
+  }
+
+  if (log::level & log::TIME) {
+    timer_total.end();
+    timer_total.print("High-level decompression");
+    log::time("High-level decompression throughput: "
+              + std::to_string((double)(original_size * sizeof(T)) / timer_total.get() / 1e9)
+              + " GB/s");
+    timer_total.clear();
   }
 }
 

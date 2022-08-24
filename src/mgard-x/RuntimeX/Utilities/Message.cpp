@@ -16,7 +16,7 @@ int DBG  = 4;
 int WARN = 8;
 int ERR = 16;
 
-int log_level = ERR;
+int level = ERR;
 
 const string log_null = "       ";
 const string log_info = "\e[32m[info]\e[0m ";
@@ -26,31 +26,31 @@ const string log_warn = "\e[31m[WARN]\e[0m ";
 const string log_err = "\e[31m[ERR]\e[0m  ";
 
 void info(std::string msg) {
-  if (log_level & INFO) {
+  if (level & INFO) {
     std::cout << log_info << msg << std::endl;
   }
 }
 
 void time(std::string msg) {
-  if (log_level & TIME) {
+  if (level & TIME) {
     std::cout << log_time << msg << std::endl;
   }
 }
 
 void dbg(std::string msg) {
-  if (log_level & DBG) {
+  if (level & DBG) {
     std::cout << log_dbg << msg << std::endl;
   }
 }
 
 void warn(std::string msg) {
-  if (log_level & WARN) {
+  if (level & WARN) {
     std::cout << log_warn << msg << std::endl;
   }
 }
 
 void err(std::string msg) {
-  if (log_level & ERR) {
+  if (level & ERR) {
     std::cout << log_err << msg << std::endl;
   }
 }
