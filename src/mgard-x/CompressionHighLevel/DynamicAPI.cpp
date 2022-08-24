@@ -41,7 +41,7 @@ enum device_type auto_detect_device() {
   }
 #endif
   if (dev_type == device_type::NONE) {
-    std::cout << log::log_err << "MGARD-X was not built with any backend.\n";
+    log::err("MGARD-X was not built with any backend.");
     exit(-1);
   }
   return dev_type;
@@ -63,7 +63,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      compressed_data, compressed_size, config,
                      output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -72,7 +72,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, config,
                    output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
@@ -80,7 +80,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, config, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
@@ -89,11 +89,11 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, config,
                    output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
@@ -109,7 +109,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
                      compressed_data, compressed_size, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -117,7 +117,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
                    compressed_data, compressed_size, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
@@ -125,7 +125,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
@@ -133,11 +133,11 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
                    compressed_data, compressed_size, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
@@ -158,7 +158,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      compressed_data, compressed_size, coords, config,
                      output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -167,7 +167,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, coords, config,
                    output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
@@ -175,7 +175,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, coords, config, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
@@ -184,11 +184,11 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, coords, config,
                    output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
@@ -205,7 +205,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      compressed_data, compressed_size, coords,
                      output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -214,7 +214,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, coords,
                    output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
@@ -222,7 +222,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, coords, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
@@ -231,11 +231,11 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, coords,
                    output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
@@ -253,7 +253,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<SERIAL>(compressed_data, compressed_size, decompressed_data,
                        config, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -261,7 +261,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
                      config, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
@@ -269,7 +269,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<HIP>(compressed_data, compressed_size, decompressed_data, config,
                     output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
@@ -277,11 +277,11 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<SYCL>(compressed_data, compressed_size, decompressed_data,
                      config, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
@@ -295,7 +295,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<SERIAL>(compressed_data, compressed_size, decompressed_data,
                        output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -303,7 +303,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
                      output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
@@ -311,7 +311,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<HIP>(compressed_data, compressed_size, decompressed_data,
                     output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
@@ -319,11 +319,11 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<SYCL>(compressed_data, compressed_size, decompressed_data,
                      output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
@@ -341,7 +341,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<SERIAL>(compressed_data, compressed_size, decompressed_data,
                        dtype, shape, config, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -349,7 +349,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<CUDA>(compressed_data, compressed_size, decompressed_data, dtype,
                      shape, config, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
@@ -357,7 +357,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<HIP>(compressed_data, compressed_size, decompressed_data, dtype,
                     shape, config, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
@@ -365,11 +365,11 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<SYCL>(compressed_data, compressed_size, decompressed_data, dtype,
                      shape, config, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
@@ -384,7 +384,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<SERIAL>(compressed_data, compressed_size, decompressed_data,
                        dtype, shape, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -392,7 +392,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<CUDA>(compressed_data, compressed_size, decompressed_data, dtype,
                      shape, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
@@ -400,7 +400,7 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<HIP>(compressed_data, compressed_size, decompressed_data, dtype,
                     shape, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
@@ -408,11 +408,11 @@ void decompress(const void *compressed_data, size_t compressed_size,
     decompress<SYCL>(compressed_data, compressed_size, decompressed_data, dtype,
                      shape, output_pre_allocated);
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
@@ -426,32 +426,32 @@ void BeginAutoTuning(enum device_type dev_type) {
 #if MGARD_ENABLE_SERIAL
     mgard_x::BeginAutoTuning<mgard_x::SERIAL>();
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
     mgard_x::BeginAutoTuning<mgard_x::CUDA>();
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
     mgard_x::BeginAutoTuning<mgard_x::HIP>();
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
     mgard_x::BeginAutoTuning<mgard_x::SYCL>();
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
@@ -465,32 +465,32 @@ void EndAutoTuning(enum device_type dev_type) {
 #if MGARD_ENABLE_SERIAL
     mgard_x::EndAutoTuning<mgard_x::SERIAL>();
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SERIAL backend.\n";
+    log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
     mgard_x::EndAutoTuning<mgard_x::CUDA>();
 #else
-    std::cout << log::log_err << "MGARD-X was not built with CUDA backend.\n";
+    log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
     mgard_x::EndAutoTuning<mgard_x::HIP>();
 #else
-    std::cout << log::log_err << "MGARD-X was not built with HIP backend.\n";
+    log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
     mgard_x::EndAutoTuning<mgard_x::SYCL>();
 #else
-    std::cout << log::log_err << "MGARD-X was not built with SYCL backend.\n";
+    log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
 #endif
   } else {
-    std::cout << log::log_err << "Unsupported backend.\n";
+    log::err("Unsupported backend.");
   }
 }
 
