@@ -86,8 +86,8 @@ template <typename TaskType>
 inline void ErrorAsyncCheck(cudaError_t code, TaskType &task,
                             bool abort = true) {
   if (code != cudaSuccess) {
-    std::cout << log::log_err << cudaGetErrorString(code) << " while executing "
-              << task.GetFunctorName().c_str() << " with CUDA (Async-check)\n";
+    log::err(std::string(cudaGetErrorString(code)) + " while executing "
+              + task.GetFunctorName().c_str() + " with CUDA (Async-check)");
     if (abort)
       exit(code);
   }
@@ -97,8 +97,8 @@ template <typename TaskType>
 inline void ErrorSyncCheck(cudaError_t code, TaskType &task,
                            bool abort = true) {
   if (code != cudaSuccess) {
-    std::cout << log::log_err << cudaGetErrorString(code) << " while executing "
-              << task.GetFunctorName().c_str() << " with CUDA (Sync-check)\n";
+    log::err(std::string(cudaGetErrorString(code)) + " while executing "
+              + task.GetFunctorName().c_str() + " with CUDA (Sync-check)");
     if (abort)
       exit(code);
   }
@@ -631,7 +631,7 @@ public:
           &numBlocks, HuffmanCWCustomizedKernel<Task<FunctorType>>, blockSize,
           dynamicSMemSize));
     } else {
-      std::cout << log::log_err << "GetOccupancyMaxActiveBlocksPerSM Error!\n";
+      log::err("GetOccupancyMaxActiveBlocksPerSM Error!");
     }
     return numBlocks;
   }
@@ -660,7 +660,7 @@ public:
           HuffmanCWCustomizedKernel<Task<FunctorType>>,
           cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes));
     } else {
-      std::cout << log::log_err << "SetPreferredSharedMemoryCarveout Error!\n";
+      log::err("SetPreferredSharedMemoryCarveout Error!");
     }
   }
 
@@ -1965,10 +1965,10 @@ public:
     if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
       if (DeviceRuntime<CUDA>::PrintKernelConfig) {
         if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
-          std::cout << log::log_info << "threadblock too large.\n";
+          log::info("threadblock too large.");
         }
         if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
-          std::cout << log::log_info << "shared memory too large.\n";
+          log::info("shared memory too large.");
         }
       }
       ret.success = false;

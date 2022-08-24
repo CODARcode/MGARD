@@ -10,11 +10,13 @@ namespace mgard_x {
 
 namespace log {
 
-bool enable_log_info = true;
-bool enable_log_time = false;
-bool enable_log_dbg = false;
-bool enable_log_warn = false;
-bool enable_log_err = false;
+int INFO = 1;
+int TIME = 2;
+int DBG  = 4;
+int WARN = 8;
+int ERR = 16;
+
+int log_level = ERR;
 
 const string log_null = "       ";
 const string log_info = "\e[32m[info]\e[0m ";
@@ -24,31 +26,31 @@ const string log_warn = "\e[31m[WARN]\e[0m ";
 const string log_err = "\e[31m[ERR]\e[0m  ";
 
 void info(std::string msg) {
-  if (enable_log_info) {
+  if (log_level & INFO) {
     std::cout << log_info << msg << std::endl;
   }
 }
 
 void time(std::string msg) {
-  if (enable_log_time) {
+  if (log_level & TIME) {
     std::cout << log_time << msg << std::endl;
   }
 }
 
 void dbg(std::string msg) {
-  if (enable_log_dbg) {
+  if (log_level & DBG) {
     std::cout << log_dbg << msg << std::endl;
   }
 }
 
 void warn(std::string msg) {
-  if (enable_log_warn) {
+  if (log_level & WARN) {
     std::cout << log_warn << msg << std::endl;
   }
 }
 
 void err(std::string msg) {
-  if (enable_log_err) {
+  if (log_level & ERR) {
     std::cout << log_err << msg << std::endl;
   }
 }

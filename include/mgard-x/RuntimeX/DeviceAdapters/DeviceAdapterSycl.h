@@ -1353,10 +1353,10 @@ public:
     if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
       if (DeviceRuntime<SYCL>::PrintKernelConfig) {
         if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
-          std::cout << log::log_info << "threadblock too large.\n";
+          log::info("threadblock too large.");
         }
         if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
-          std::cout << log::log_info << "shared memory too large.\n";
+          log::info("shared memory too large.");
         }
       }
       ret.success = false;

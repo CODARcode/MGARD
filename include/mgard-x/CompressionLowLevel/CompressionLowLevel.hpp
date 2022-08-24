@@ -58,16 +58,12 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
          T s, T &norm, Config config) {
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
   if (config.timing) {
-    std::cout << log::log_info
-              << "Select device: " << DeviceRuntime<DeviceType>::GetDeviceName()
-              << "\n";
+    log::info("Select device: " + DeviceRuntime<DeviceType>::GetDeviceName());
   }
   Timer timer_total, timer_each;
   for (int d = D - 1; d >= 0; d--) {
     if (hierarchy.level_shape(hierarchy.l_target(), d) != in_array.shape(d)) {
-      std::cout << log::log_err
-                << "The shape of input array does not match the shape "
-                   "initilized in hierarchy!\n";
+      log::err("The shape of input array does not match the shape initilized in hierarchy!");
       std::vector<SIZE> empty_shape;
       empty_shape.push_back(1);
       Array<1, unsigned char, DeviceType> empty(empty_shape);
@@ -123,9 +119,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       timer_each.print("Calculating norm");
       timer_each.clear();
       if (s == std::numeric_limits<T>::infinity()) {
-        std::cout << log::log_info << "L_inf norm: " << norm << std::endl;
+        log::info("L_inf norm: " +  std::to_string(norm));
       } else {
-        std::cout << log::log_info << "L_2 norm: " << norm << std::endl;
+        log::info("L_2 norm: " +  std::to_string(norm));
       }
     }
   }
@@ -172,8 +168,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
 #ifndef MGARDX_COMPILE_CUDA
   if (config.lossless == lossless_type::Huffman_LZ4) {
-    std::cout << log::log_warn
-              << "LZ4 only available in CUDA. Switched to Zstd.\n";
+    log::warn("LZ4 is only available in CUDA. Switched to Zstd");
     config.lossless = lossless_type::Huffman_Zstd;
   }
 #endif
@@ -210,9 +205,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     timer_each.end();
     timer_each.print("Quantization");
     timer_each.clear();
-    std::cout << log::log_info << "Outlier ratio: " << outlier_count << "/"
-              << total_elems << " ("
-              << (double)100 * outlier_count / total_elems << "%)\n";
+    log::info("Outlier ratio: " + std::to_string(outlier_count) + "/"
+              + std::to_string(total_elems) + " ("
+              + std::to_string((double)100 * outlier_count / total_elems) + "%)");
   }
 
   // if (debug_print) {
@@ -241,7 +236,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
           SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
           0);
     } else {
-      std::cout << log::log_err << "wrong reodering type.\n";
+      log::err("wrong reodering type");
     }
     DeviceRuntime<DeviceType>::SyncDevice();
     if (config.timing) {
@@ -280,16 +275,13 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
       timer_each.print("Huffman Compress");
-      std::cout << log::log_info
-                << "Huffman block size: " << config.huff_block_size << "\n";
-      std::cout << log::log_info
-                << "Huffman dictionary size: " << config.huff_dict_size << "\n";
-      std::cout << log::log_info << "Huffman compress ratio: "
-                << total_elems * sizeof(QUANTIZED_UNSIGNED_INT) << "/"
-                << lossless_compressed_subarray.shape(0) << " ("
-                << (double)total_elems * sizeof(QUANTIZED_UNSIGNED_INT) /
-                       lossless_compressed_subarray.shape(0)
-                << ")\n";
+      log::info("Huffman block size: " + std::to_string(config.huff_block_size));
+      log::info("Huffman dictionary size: " + std::to_string(config.huff_dict_size));
+      log::info("Huffman compress ratio: "
+                 + std::to_string(total_elems * sizeof(QUANTIZED_UNSIGNED_INT)) + "/"
+                 + std::to_string(lossless_compressed_subarray.shape(0)) + " ("
+                 + std::to_string((double)total_elems * sizeof(QUANTIZED_UNSIGNED_INT) /
+                       lossless_compressed_subarray.shape(0)) + ")");
       timer_each.clear();
     }
   } else {
@@ -304,12 +296,11 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
       timer_each.print("CPU Lossless");
-      std::cout << log::log_info << "CPU Lossless compress ratio: "
-                << total_elems * sizeof(QUANTIZED_INT) << "/"
-                << lossless_compressed_subarray.shape(0) << " ("
-                << (double)total_elems * sizeof(QUANTIZED_INT) /
-                       lossless_compressed_subarray.shape(0)
-                << ")\n";
+      log::info("CPU Lossless compress ratio: "
+                + std::to_string(total_elems * sizeof(QUANTIZED_INT)) + "/"
+                + std::to_string(lossless_compressed_subarray.shape(0)) + " ("
+                + std::to_string((double)total_elems * sizeof(QUANTIZED_INT) /
+                       lossless_compressed_subarray.shape(0)) + ")");
       timer_each.clear();
     }
   }
@@ -331,10 +322,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
       timer_each.print("LZ4 Compress");
-      std::cout << log::log_info << "LZ4 block size: " << config.lz4_block_size
-                << "\n";
-      std::cout << log::log_info << "LZ4 compress ratio: "
-                << (double)lz4_before_size / lz4_after_size << "\n";
+      log::info("LZ4 block size: " + std::to_string(config.lz4_block_size));
+      log::info("LZ4 compress ratio: "
+                + std::to_string((double)lz4_before_size / lz4_after_size));
       timer_each.clear();
     }
   }
@@ -351,11 +341,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     if (config.timing) {
       timer_each.end();
       timer_each.print("Zstd Compress");
-      std::cout << log::log_info
-                << "Zstd compression level: " << config.zstd_compress_level
-                << "\n";
-      std::cout << log::log_info << "Zstd compress ratio: "
-                << (double)zstd_before_size / zstd_after_size << "\n";
+      log::info("Zstd compression level: " + std::to_string(config.zstd_compress_level));
+      log::info("Zstd compress ratio: "
+                + std::to_string((double)zstd_before_size / zstd_after_size));
       timer_each.clear();
     }
   }
@@ -364,9 +352,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_total.end();
     timer_total.print("Overall Compress");
-    std::cout << log::log_time << "Compression Throughput: "
-              << (double)(total_elems * sizeof(T)) / timer_total.get() / 1e9
-              << " GB/s\n";
+    log::time("Compression Throughput: "
+              + std::to_string((double)(total_elems * sizeof(T)) / timer_total.get() / 1e9)
+              + " GB/s");
     timer_total.clear();
   }
 
@@ -380,9 +368,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
            enum error_bound_type type, T tol, T s, T norm, Config config) {
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
   if (config.timing) {
-    std::cout << log::log_info
-              << "Select device: " << DeviceRuntime<DeviceType>::GetDeviceName()
-              << "\n";
+    log::info("Select device: " + DeviceRuntime<DeviceType>::GetDeviceName());
   }
   Timer timer_total, timer_each;
 
@@ -418,9 +404,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       timer_each.clear();
     }
 #else
-    std::cout << log::log_err
-              << "LZ4 only available in CUDA. Portable LZ4 is in development. "
-                 "Please use the CUDA backend to decompress for now.\n";
+    log::err("LZ4 is only available in CUDA. Portable LZ4 is in development. Please use the CUDA backend to decompress for now.");
     exit(-1);
 #endif
   }
@@ -474,7 +458,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
                 (QUANTIZED_INT *)unsigned_quantized_linearized_array.data()),
             0);
       } else {
-        std::cout << log::log_err << "wrong reodering option.\n";
+        log::err("wrong reodering option.");
       }
       if (config.timing) {
         DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -512,7 +496,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
             SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
             0);
       } else {
-        std::cout << log::log_err << "wrong reodering type.\n";
+        log::err("wrong reodering type.");
       }
       if (config.timing) {
         DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -605,9 +589,9 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_total.end();
     timer_total.print("Overall Decompression");
-    std::cout << log::log_time << "Decompression Throughput: "
-              << (double)(total_elems * sizeof(T)) / timer_total.get() / 1e9
-              << " GB/s\n";
+    log::time("Decompression Throughput: "
+              + std::to_string((double)(total_elems * sizeof(T)) / timer_total.get() / 1e9)
+              + " GB/s");
     timer_total.clear();
   }
 
@@ -618,7 +602,6 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   return decompressed_data;
 }
-
 } // namespace mgard_x
 
 #endif

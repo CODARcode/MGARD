@@ -825,7 +825,7 @@ public:
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
     if (ptr == NULL) {
-      std::cout << log::log_err << "MemoryManager<SERIAL>::Malloc1D error.\n";
+      log::err("MemoryManager<SERIAL>::Malloc1D error.");
     }
   }
 
@@ -837,7 +837,7 @@ public:
     ptr = (T *)std::malloc(n1 * n2 * sizeof(converted_T));
     ld = n1;
     if (ptr == NULL) {
-      std::cout << log::log_err << "MemoryManager<SERIAL>::Malloc1D error.\n";
+      log::err("MemoryManager<SERIAL>::MallocND error.");
     }
   }
 
@@ -848,8 +848,7 @@ public:
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
     if (ptr == NULL) {
-      std::cout << log::log_err
-                << "MemoryManager<SERIAL>::MallocManaged1D error.\n";
+      log::err("MemoryManager<SERIAL>::MallocManaged1D error.");
     }
   }
 
@@ -894,7 +893,7 @@ public:
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
     if (ptr == NULL) {
-      std::cout << log::log_err << "MemoryManager<SERIAL>::Malloc1D error.\n";
+      log::err("MemoryManager<SERIAL>::MallocHost error.");
     }
   }
 
@@ -1095,10 +1094,10 @@ public:
     if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
       if (DeviceRuntime<SERIAL>::PrintKernelConfig) {
         if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
-          std::cout << log::log_info << "threadblock too large.\n";
+          log::info("threadblock too large.");
         }
         if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
-          std::cout << log::log_info << "shared memory too large.\n";
+          log::info("shared memory too large.");
         }
       }
       ret.success = false;
@@ -1187,9 +1186,7 @@ public:
 #if (__GNUC__ >= 9)
     std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
 #else
-    std::cout
-        << log::log_err
-        << "Please recompile with GCC 9+ to use ScanSumInclusive<SERIAL>.\n";
+    log::err("Please recompile with GCC 9+ to use ScanSumInclusive<SERIAL>.");
 #endif
   }
 
@@ -1201,9 +1198,7 @@ public:
 #if (__GNUC__ >= 9)
     std::exclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
 #else
-    std::cout
-        << log::log_err
-        << "Please recompile with GCC 9+ to use ScanSumExclusive<SERIAL>.\n";
+    log::err("Please recompile with GCC 9+ to use ScanSumExclusive<SERIAL>.");
 #endif
   }
 
@@ -1216,9 +1211,7 @@ public:
     std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)1));
     *result((IDX)0) = 0;
 #else
-    std::cout
-        << log::log_err
-        << "Please recompile with GCC 9+ to use ScanSumExtended<SERIAL>.\n";
+    log::err("Please recompile with GCC 9+ to use ScanSumExtended<SERIAL>.");
 #endif
   }
 
