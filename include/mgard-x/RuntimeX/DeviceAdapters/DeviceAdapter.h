@@ -228,6 +228,8 @@ public:
 
   template <typename T> MGARDX_CONT static bool IsDevicePointer(T *ptr);
 
+  template <typename T> MGARDX_CONT static int GetPointerDevice(T *ptr);
+
   static bool ReduceMemoryFootprint;
 };
 
