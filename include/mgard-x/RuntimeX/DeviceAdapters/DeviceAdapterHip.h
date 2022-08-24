@@ -513,6 +513,11 @@ public:
     curr_dev_id = dev_id;
   }
 
+  MGARDX_CONT static int GetDevice() {
+    gpuErrchk(hipGetDevice(&curr_dev_id));
+    return curr_dev_id;
+  }
+
   MGARDX_CONT static hipStream_t GetQueue(SIZE queue_id) {
     gpuErrchk(hipSetDevice(curr_dev_id));
     return queues.GetQueue(curr_dev_id, queue_id);

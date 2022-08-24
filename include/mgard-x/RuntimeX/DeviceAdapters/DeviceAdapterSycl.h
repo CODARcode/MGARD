@@ -358,6 +358,10 @@ public:
 
   MGARDX_CONT static void SelectDevice(SIZE dev_id) { curr_dev_id = dev_id; }
 
+  MGARDX_CONT static int GetDevice() {
+    return curr_dev_id;
+  }
+
   MGARDX_CONT static sycl::queue GetQueue(SIZE queue_id) {
     return queues.GetQueue(curr_dev_id, queue_id);
   }
