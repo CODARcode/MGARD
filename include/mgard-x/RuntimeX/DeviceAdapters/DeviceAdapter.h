@@ -238,6 +238,8 @@ public:
 
   MGARDX_CONT static void SelectDevice(SIZE dev_id) {}
 
+  MGARDX_CONT static int GetDevice() {}
+
   template <typename QueueType>
   MGARDX_CONT static QueueType GetQueue(SIZE queue_id) {}
 

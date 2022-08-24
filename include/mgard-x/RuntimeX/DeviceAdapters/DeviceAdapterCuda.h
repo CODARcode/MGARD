@@ -550,6 +550,11 @@ public:
     curr_dev_id = dev_id;
   }
 
+  MGARDX_CONT static int GetDevice() {
+    gpuErrchk(cudaGetDevice(&curr_dev_id));
+    return curr_dev_id;
+  }
+
   MGARDX_CONT static cudaStream_t GetQueue(SIZE queue_id) {
     gpuErrchk(cudaSetDevice(curr_dev_id));
     return queues.GetQueue(curr_dev_id, queue_id);

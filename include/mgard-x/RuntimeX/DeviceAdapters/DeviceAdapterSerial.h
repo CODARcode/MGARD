@@ -739,6 +739,10 @@ public:
     // do nothing
   }
 
+  MGARDX_CONT static int GetDevice() {
+    return curr_dev_id;
+  }
+
   MGARDX_CONT static int GetQueue(SIZE queue_id) { return 0; }
 
   MGARDX_CONT static void SyncQueue(SIZE queue_id) {
