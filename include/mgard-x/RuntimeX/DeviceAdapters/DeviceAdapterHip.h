@@ -635,7 +635,6 @@ public:
   MGARDX_CONT
   ~DeviceRuntime() {}
 
-  static int curr_dev_id;
   static DeviceQueues<HIP> queues;
   static bool SyncAllKernelsAndCheckErrors;
   static DeviceSpecification<HIP> DeviceSpecs;

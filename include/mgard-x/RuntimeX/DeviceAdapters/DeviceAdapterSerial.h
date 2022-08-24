@@ -809,7 +809,6 @@ public:
   MGARDX_CONT
   ~DeviceRuntime() {}
 
-  static int curr_dev_id;
   static DeviceQueues<SERIAL> queues;
   static bool SyncAllKernelsAndCheckErrors;
   static DeviceSpecification<SERIAL> DeviceSpecs;
