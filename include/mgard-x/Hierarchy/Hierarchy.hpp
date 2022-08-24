@@ -741,6 +741,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   domain_decomposed = hierarchy.domain_decomposed;
   domain_decomposed_dim = hierarchy.domain_decomposed_dim;
   domain_decomposed_size = hierarchy.domain_decomposed_size;
+  dummy_array = hierarchy.dummy_array;
 }
 
 template <DIM D, typename T, typename DeviceType>
