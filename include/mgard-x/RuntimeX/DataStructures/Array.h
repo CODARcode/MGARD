@@ -33,16 +33,15 @@ public:
             int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   T *hostCopy(bool keep = false, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
   T *data(SIZE &ld);
-  // std::vector<SIZE> &shape();
   SIZE &shape(DIM d);
   T *data();
-  // std::vector<SIZE> ld();
   SIZE ld(DIM d);
   bool isPitched();
   bool isManaged();
+  int resideDevice();
 
 private:
-  // DIM D_padded;
+  int dev_id;
   bool pitched;
   bool managed;
   bool keepHostCopy = false;
@@ -50,9 +49,6 @@ private:
   T *hv = nullptr;
   bool device_allocated = false;
   bool host_allocated = false;
-  // SIZE linearized_depth;
-  // std::vector<SIZE> shape_org;
-  // DIM D_pad;
   std::vector<SIZE> __ldvs;
   std::vector<SIZE> __shape;
   SIZE linearized_width;

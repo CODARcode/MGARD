@@ -39,21 +39,9 @@ void Array<D, T, DeviceType>::initialize(std::vector<SIZE> shape) {
               << "). mgard_x::Array not initialized!\n";
     exit(-1);
   }
-  // shape_org = shape;
+  dev_id = DeviceRuntime<DeviceType>::GetDevice();
   __shape = shape;
   free();
-  // D = D;
-  // if (D < 3) {
-  //   D = 3;
-  // }
-  // if (D % 2 == 0) {
-  //   D = D + 1;
-  // }
-  // D_pad = D - D;
-  // padding dimensions
-  // for (DIM d = 0; d < D_pad; d++) {
-  //   __shape.insert(__shape.begin(), 1);
-  // }
   __ldvs = __shape;
   linearized_width = 1;
   for (DIM d = 0; d < D - 1; d++) {
@@ -107,6 +95,7 @@ void Array<D, T, DeviceType>::copy(const Array<D, T, DeviceType> &array,
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
   initialize(array.__shape);
+  this->dev_id = array.dev_id;
   this->pitched = array.pitched;
   this->managed = array.managed;
   if (array.device_allocated) {
@@ -120,6 +109,7 @@ void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::memset(int value, int queue_idx) {
+  DeviceRuntime<DeviceType>::SelectDevice(dev_id);
   if (this->pitched) {
     MemoryManager<DeviceType>::MemsetND(dv, __ldvs[D - 1], __shape[D - 1],
                                         linearized_width, value, queue_idx);
@@ -127,11 +117,11 @@ void Array<D, T, DeviceType>::memset(int value, int queue_idx) {
     MemoryManager<DeviceType>::Memset1D(dv, __ldvs[D - 1] * linearized_width,
                                         value, queue_idx);
   }
-  // DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::free(int queue_idx) {
+  DeviceRuntime<DeviceType>::SelectDevice(dev_id);
   if (device_allocated) {
     MemoryManager<DeviceType>::Free(dv, queue_idx);
     device_allocated = false;
@@ -178,6 +168,7 @@ Array<D, T, DeviceType>::~Array() {
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::load(const T *data, SIZE ld, int queue_idx) {
+  DeviceRuntime<DeviceType>::SelectDevice(dev_id);
   if (ld == 0) {
     ld = __shape[D - 1];
   }
@@ -189,6 +180,7 @@ void Array<D, T, DeviceType>::load(const T *data, SIZE ld, int queue_idx) {
 
 template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::hostCopy(bool keep, int queue_idx) {
+  DeviceRuntime<DeviceType>::SelectDevice(dev_id);
   if (!device_allocated) {
     std::cout << log::log_err << "device buffer not initialized.\n";
     exit(-1);
@@ -235,6 +227,11 @@ bool Array<D, T, DeviceType>::isPitched() {
 template <DIM D, typename T, typename DeviceType>
 bool Array<D, T, DeviceType>::isManaged() {
   return managed;
+}
+
+template <DIM D, typename T, typename DeviceType>
+int Array<D, T, DeviceType>::resideDevice() {
+  return dev_id;
 }
 
 } // namespace mgard_x
