@@ -840,6 +840,12 @@ public:
     return attr.type == cudaMemoryTypeDevice;
   }
 
+  template <typename T> MGARDX_CONT static int GetPointerDevice(T *ptr) {
+    cudaPointerAttributes attr;
+    cudaPointerGetAttributes(&attr, ptr);
+    return attr.device;
+  }
+
   static bool ReduceMemoryFootprint;
 };
 
