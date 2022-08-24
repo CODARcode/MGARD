@@ -462,9 +462,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     domain_decompose<D, T, DeviceType>((T *)original_data, subdomain_data,
                                        shape, hierarchy.domain_decomposed_dim,
                                        hierarchy.domain_decomposed_size);
-    DeviceRuntime<DeviceType>::SyncDevice();
     subdomain_hierarchy = hierarchy.hierarchy_chunck;
-    DeviceRuntime<DeviceType>::SyncDevice();
     if (type == error_bound_type::REL) {
       norm = calc_norm_decomposed(subdomain_data, s);
       if (s == std::numeric_limits<T>::infinity()) {
@@ -499,9 +497,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
           compress<D, T, DeviceType>(subdomain_hierarchy[i],
                                      subdomain_data[i], type, local_tol, s, norm,
                                      config);
-      DeviceRuntime<DeviceType>::SyncDevice();
       compressed_subdomain_data.push_back(compressed_array);
-      DeviceRuntime<DeviceType>::SyncDevice();
     }
   }
 
@@ -698,140 +694,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   }
 }
 
-template <DIM D, typename T, typename DeviceType>
-void decompress(std::vector<SIZE> shape, const void *compressed_data,
-                size_t compressed_size, void *&decompressed_data,
-                std::vector<T *> coords, Config config,
-                bool output_pre_allocated) {
-  size_t original_size = 1;
-  for (int i = 0; i < D; i++) {
-    original_size *= shape[i];
-  }
-  Metadata<DeviceType> m;
-  m.Deserialize((SERIALIZED_TYPE *)compressed_data);
-  load(config, m);
-
-  if (!m.domain_decomposed) {
-
-    Hierarchy<D, T, DeviceType> hierarchy(shape, coords);
-    std::vector<SIZE> compressed_shape(1);
-    compressed_shape[0] = compressed_size;
-    Array<1, unsigned char, DeviceType> compressed_array(compressed_shape);
-    compressed_array.load((const unsigned char *)compressed_data);
-
-    // Deserialize
-    SubArray compressed_subarray(compressed_array);
-
-    SIZE lossless_size;
-    SIZE *lossless_size_ptr = &lossless_size;
-    Byte *lossless_data;
-    SIZE byte_offset = m.metadata_size;
-    DeserializeArray<SIZE>(compressed_subarray, lossless_size_ptr, 1,
-                           byte_offset, false);
-    align_byte_offset<uint64_t>(byte_offset);
-    DeserializeArray<Byte>(compressed_subarray, lossless_data, lossless_size,
-                           byte_offset, true);
-
-    SubArray<1, Byte, DeviceType> lossless_compressed_subarray(
-        {(SIZE)lossless_size}, lossless_data);
-
-    Array<D, T, DeviceType> out_array = decompress<D, T, DeviceType>(
-        hierarchy, compressed_array, m.ebtype, m.tol, m.s, m.norm, config);
-
-    if (MemoryManager<DeviceType>::IsDevicePointer(compressed_data)) {
-      if (!output_pre_allocated) {
-        MemoryManager<DeviceType>::Malloc1D(decompressed_data,
-                                            original_size * sizeof(T), 0);
-      }
-      MemoryManager<DeviceType>::Copy1D(decompressed_data,
-                                        (void *)out_array.data(),
-                                        original_size * sizeof(T), 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-
-    } else {
-      if (!output_pre_allocated) {
-        decompressed_data = (T *)malloc(original_size * sizeof(T));
-      }
-      memcpy(decompressed_data, out_array.hostCopy(),
-             original_size * sizeof(T));
-    }
-  } else { // domain decomposed
-    std::vector<SIZE> lossless_compressed_size;
-    std::vector<Byte *> lossless_compressed_data;
-    std::vector<T *> decomposed_data;
-
-    Hierarchy<D, T, DeviceType> hierarchy(shape, m.domain_decomposed_dim,
-                                          m.domain_decomposed_size, coords);
-
-    log::info("Orignial domain was decomposed into " +
-               std::to_string(hierarchy.hierarchy_chunck.size()) + 
-               " sub-domains during compression");
-
-    SIZE byte_offset = m.metadata_size;
-    for (uint32_t i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
-      SIZE temp_size;
-      Byte *temp_data;
-      Deserialize<SIZE, DeviceType>((Byte *)compressed_data, &temp_size, 1,
-                                    byte_offset);
-      MemoryManager<DeviceType>::MallocHost(temp_data, temp_size, 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      align_byte_offset<uint64_t>(byte_offset);
-      Deserialize<Byte, DeviceType>((Byte *)compressed_data, temp_data,
-                                    temp_size, byte_offset);
-      lossless_compressed_size.push_back(temp_size);
-      lossless_compressed_data.push_back(temp_data);
-    }
-
-    if (m.s != std::numeric_limits<T>::infinity()) {
-      m.tol = std::sqrt((m.tol * m.tol) / hierarchy.hierarchy_chunck.size());
-      log::info("local bound: " + std::to_string(m.tol));
-    }
-
-    // decompress
-    for (uint32_t i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
-      std::stringstream ss;
-      for (DIM d = 0; d < D; d++)
-        ss << hierarchy.hierarchy_chunck[i].level_shape(
-                         hierarchy.hierarchy_chunck[i].l_target(), d)
-                  << " ";
-      log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
-                 std::to_string(hierarchy.hierarchy_chunck.size()) + " with shape: " + ss.str());
-      Array<1, Byte, DeviceType> lossless_compressed_array(
-          {lossless_compressed_size[i]});
-      lossless_compressed_array.load(lossless_compressed_data[i]);
-      Array<D, T, DeviceType> out_array = decompress<D, T, DeviceType>(
-          hierarchy.hierarchy_chunck[i], lossless_compressed_array, m.ebtype,
-          m.tol, m.s, m.norm, config);
-      SIZE linearized_width = 1;
-      for (int d = D - 2; d >= 0; d--)
-        linearized_width *= out_array.shape(d);
-      T *decompressed_data_chunck = NULL;
-      MemoryManager<DeviceType>::MallocHost(
-          decompressed_data_chunck, out_array.shape(D - 1) * linearized_width,
-          0);
-      MemoryManager<DeviceType>::CopyND(
-          decompressed_data_chunck, out_array.shape(D - 1), out_array.data(),
-          out_array.ld(D - 1), out_array.shape(D - 1), linearized_width, 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      decomposed_data.push_back(decompressed_data_chunck);
-    }
-
-    if (!output_pre_allocated) {
-      decompressed_data = (T *)malloc(original_size * sizeof(T));
-    }
-
-    // domain recomposition
-    domain_recompose<D, T, DeviceType>(decomposed_data, (T *)decompressed_data,
-                                       shape, hierarchy.domain_decomposed_dim,
-                                       hierarchy.domain_decomposed_size);
-
-    for (SIZE i = 0; i < hierarchy.hierarchy_chunck.size(); i++) {
-      MemoryManager<DeviceType>::FreeHost(lossless_compressed_data[i]);
-      MemoryManager<DeviceType>::FreeHost(decomposed_data[i]);
-    }
-  }
-}
-
 template <typename DeviceType>
 void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
               double s, enum error_bound_type mode, const void *original_data,
@@ -996,149 +858,59 @@ void decompress(const void *compressed_data, size_t compressed_size,
   for (DIM d = 0; d < shape.size(); d++)
     shape[d] = (SIZE)meta.shape[d];
   data_type dtype = meta.dtype;
-  data_structure_type dstype = meta.dstype;
-
   if (dtype == data_type::Float) {
-    if (dstype == data_structure_type::Cartesian_Grid_Uniform) {
-      if (shape.size() == 1) {
-        decompress<1, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else if (shape.size() == 2) {
-        decompress<2, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else if (shape.size() == 3) {
-        decompress<3, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else if (shape.size() == 4) {
-        decompress<4, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else if (shape.size() == 5) {
-        decompress<5, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else {
-        log::err("do not support higher than five dimentions");
-        exit(-1);
-      }
-    } else if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-
-      std::vector<SIZE> shape(meta.total_dims);
-      for (DIM d = 0; d < meta.total_dims; d++) {
-        shape[d] = (SIZE)meta.shape[d];
-      }
-      std::vector<float *> coords(meta.total_dims);
-      for (DIM d = 0; d < meta.total_dims; d++) {
-        coords[d] = (float *)std::malloc(shape[d] * sizeof(float));
-        for (SIZE i = 0; i < shape[d]; i++) {
-          coords[d][i] = (float)meta.coords[d][i];
-        }
-      }
-
-      if (shape.size() == 1) {
-        decompress<1, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else if (shape.size() == 2) {
-        decompress<2, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else if (shape.size() == 3) {
-        decompress<3, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else if (shape.size() == 4) {
-        decompress<4, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else if (shape.size() == 5) {
-        decompress<5, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else {
-        log::err("do not support higher than five dimentions");
-        exit(-1);
-      }
-
-      for (DIM d = 0; d < meta.total_dims; d++) {
-        delete[] coords[d];
-      }
-    }
-  } else if (dtype == data_type::Double) {
-    if (dstype == data_structure_type::Cartesian_Grid_Uniform) {
-      if (shape.size() == 1) {
-        decompress<1, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else if (shape.size() == 2) {
-        decompress<2, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else if (shape.size() == 3) {
-        decompress<3, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else if (shape.size() == 4) {
-        decompress<4, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else if (shape.size() == 5) {
-        decompress<5, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else {
-        log::err("do not support higher than five dimentions");
-        exit(-1);
-      }
-    } else {
-      log::err("do not support types other than double and float!");
-      exit(-1);
-    }
-  } else if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-
-    std::vector<SIZE> shape(meta.total_dims);
-    for (DIM d = 0; d < meta.total_dims; d++) {
-      shape[d] = (SIZE)meta.shape[d];
-    }
-    std::vector<double *> coords(meta.total_dims);
-    for (DIM d = 0; d < meta.total_dims; d++) {
-      coords[d] = (double *)std::malloc(shape[d] * sizeof(double));
-      for (SIZE i = 0; i < shape[d]; i++) {
-        coords[d][i] = (double)meta.coords[d][i];
-      }
-    }
-
     if (shape.size() == 1) {
-      decompress<1, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<1, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else if (shape.size() == 2) {
-      decompress<2, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<2, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else if (shape.size() == 3) {
-      decompress<3, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<3, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else if (shape.size() == 4) {
-      decompress<4, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<4, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else if (shape.size() == 5) {
-      decompress<5, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<5, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
     }
-
-    for (DIM d = 0; d < meta.total_dims; d++) {
-      delete[] coords[d];
+  } else if (dtype == data_type::Double) {
+    if (shape.size() == 1) {
+      decompress<1, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else if (shape.size() == 2) {
+      decompress<2, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else if (shape.size() == 3) {
+      decompress<3, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else if (shape.size() == 4) {
+      decompress<4, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else if (shape.size() == 5) {
+      decompress<5, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else {
+      log::err("do not support higher than five dimentions");
+      exit(-1);
     }
+  } else {
+    log::err("do not support types other than double and float!");
+    exit(-1);
   }
 }
 
@@ -1162,149 +934,60 @@ void decompress(const void *compressed_data, size_t compressed_size,
   for (DIM d = 0; d < shape.size(); d++)
     shape[d] = (SIZE)meta.shape[d];
   dtype = meta.dtype;
-  data_structure_type dstype = meta.dstype;
 
   if (dtype == data_type::Float) {
-    if (dstype == data_structure_type::Cartesian_Grid_Uniform) {
-      if (shape.size() == 1) {
-        decompress<1, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else if (shape.size() == 2) {
-        decompress<2, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else if (shape.size() == 3) {
-        decompress<3, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else if (shape.size() == 4) {
-        decompress<4, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else if (shape.size() == 5) {
-        decompress<5, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         config, output_pre_allocated);
-      } else {
-        log::err("do not support higher than five dimentions");
-        exit(-1);
-      }
-    } else if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-
-      std::vector<SIZE> shape(meta.total_dims);
-      for (DIM d = 0; d < meta.total_dims; d++) {
-        shape[d] = (SIZE)meta.shape[d];
-      }
-      std::vector<float *> coords(meta.total_dims);
-      for (DIM d = 0; d < meta.total_dims; d++) {
-        coords[d] = (float *)std::malloc(shape[d] * sizeof(float));
-        for (SIZE i = 0; i < shape[d]; i++) {
-          coords[d][i] = (float)meta.coords[d][i];
-        }
-      }
-
-      if (shape.size() == 1) {
-        decompress<1, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else if (shape.size() == 2) {
-        decompress<2, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else if (shape.size() == 3) {
-        decompress<3, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else if (shape.size() == 4) {
-        decompress<4, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else if (shape.size() == 5) {
-        decompress<5, float, DeviceType>(shape, compressed_data,
-                                         compressed_size, decompressed_data,
-                                         coords, config, output_pre_allocated);
-      } else {
-        log::err("do not support higher than five dimentions");
-        exit(-1);
-      }
-
-      for (DIM d = 0; d < meta.total_dims; d++) {
-        delete[] coords[d];
-      }
-    }
-  } else if (dtype == data_type::Double) {
-    if (dstype == data_structure_type::Cartesian_Grid_Uniform) {
-      if (shape.size() == 1) {
-        decompress<1, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else if (shape.size() == 2) {
-        decompress<2, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else if (shape.size() == 3) {
-        decompress<3, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else if (shape.size() == 4) {
-        decompress<4, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else if (shape.size() == 5) {
-        decompress<5, double, DeviceType>(shape, compressed_data,
-                                          compressed_size, decompressed_data,
-                                          config, output_pre_allocated);
-      } else {
-        log::err("do not support higher than five dimentions");
-        exit(-1);
-      }
-    } else {
-      log::err("do not support types other than double and float!");
-      exit(-1);
-    }
-  } else if (dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-
-    std::vector<SIZE> shape(meta.total_dims);
-    for (DIM d = 0; d < meta.total_dims; d++) {
-      shape[d] = (SIZE)meta.shape[d];
-    }
-    std::vector<double *> coords(meta.total_dims);
-    for (DIM d = 0; d < meta.total_dims; d++) {
-      coords[d] = (double *)std::malloc(shape[d] * sizeof(double));
-      for (SIZE i = 0; i < shape[d]; i++) {
-        coords[d][i] = (double)meta.coords[d][i];
-      }
-    }
-
     if (shape.size() == 1) {
-      decompress<1, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<1, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else if (shape.size() == 2) {
-      decompress<2, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<2, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else if (shape.size() == 3) {
-      decompress<3, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<3, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else if (shape.size() == 4) {
-      decompress<4, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<4, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else if (shape.size() == 5) {
-      decompress<5, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, coords, config,
-                                        output_pre_allocated);
+      decompress<5, float, DeviceType>(shape, compressed_data,
+                                       compressed_size, decompressed_data,
+                                       config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
     }
-
-    for (DIM d = 0; d < meta.total_dims; d++) {
-      delete[] coords[d];
+  } else if (dtype == data_type::Double) {
+    if (shape.size() == 1) {
+      decompress<1, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else if (shape.size() == 2) {
+      decompress<2, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else if (shape.size() == 3) {
+      decompress<3, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else if (shape.size() == 4) {
+      decompress<4, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else if (shape.size() == 5) {
+      decompress<5, double, DeviceType>(shape, compressed_data,
+                                        compressed_size, decompressed_data,
+                                        config, output_pre_allocated);
+    } else {
+      log::err("do not support higher than five dimentions");
+      exit(-1);
     }
+  } else {
+    log::err("do not support types other than double and float!");
+    exit(-1);
   }
 }
 
