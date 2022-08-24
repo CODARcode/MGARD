@@ -27,8 +27,7 @@ public:
   }
   void clear() { total_time = 0; }
   void print(std::string s) {
-    std::cout << log::log_time << s << " time: " << total_time << "s"
-              << std::endl;
+    log::time(s + " time: " + std::to_string(total_time) + "s");
     clear();
   }
 

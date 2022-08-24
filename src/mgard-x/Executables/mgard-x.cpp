@@ -273,6 +273,18 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode,
     exit(-1);
 }
 
+int verbose_to_log_level(int verbose) {
+  if (verbose == 0) {
+    return mgard_x::log::ERR;
+  } else if (verbose == 1) {
+    return mgard_x::log::ERR | mgard_x::log::INFO;
+  } else if (verbose == 2) {
+    return mgard_x::log::ERR | mgard_x::log::TIME;
+  } else if (verbose == 3) {
+    return mgard_x::log::ERR | mgard_x::log::INFO | mgard_x::log::TIME;
+  }
+}
+
 template <typename T>
 int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     const char *input_file, const char *output_file,
@@ -280,10 +292,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     const char *coords_file, double tol, double s,
                     enum mgard_x::error_bound_type mode, int reorder,
                     int lossless, enum mgard_x::device_type dev_type,
-                    bool verbose) {
+                    int verbose) {
 
   mgard_x::Config config;
-  config.timing = verbose;
+  config.log_level = verbose_to_log_level(verbose);
   config.decomposition = mgard_x::decomposition_type::MultiDim;
   config.uniform_coord_mode = 1;
   config.dev_type = dev_type;
@@ -351,7 +363,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   //        (double)original_size * sizeof(T) / compressed_size);
 
   if (verbose) {
-    config.timing = verbose;
+    config.log_level = verbose_to_log_level(verbose);
 
     mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
                         config, false);
@@ -365,10 +377,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 }
 
 int launch_decompress(const char *input_file, const char *output_file,
-                      enum mgard_x::device_type dev_type, bool verbose) {
+                      enum mgard_x::device_type dev_type, int verbose) {
 
   mgard_x::Config config;
-  config.timing = verbose;
+  config.log_level = verbose_to_log_level(verbose);
   config.dev_type = dev_type;
 
   mgard_x::SERIALIZED_TYPE *compressed_data;
@@ -457,7 +469,10 @@ bool try_compression(int argc, char *argv[]) {
   std::cout << std::defaultfloat;
   std::cout << mgard_x::log::log_info << "s: " << s << "\n";
 
-  int reorder = get_arg_int(argc, argv, "-r");
+  int reorder = 0;
+  if (has_arg(argc, argv, "-r")) {
+    reorder = get_arg_int(argc, argv, "-r");
+  }
 
   int lossless_level = get_arg_int(argc, argv, "-l");
   if (lossless_level == 0) {
@@ -489,7 +504,11 @@ bool try_compression(int argc, char *argv[]) {
     print_usage_message("wrong device type.");
   }
 
-  bool verbose = has_arg(argc, argv, "-v");
+  int verbose = 0;
+  if (has_arg(argc, argv, "-v")) {
+    verbose = get_arg_int(argc, argv, "-v");
+  }
+
   if (verbose)
     std::cout << mgard_x::log::log_info << "Verbose: enabled\n";
   if (dtype == mgard_x::data_type::Double) {
@@ -538,7 +557,11 @@ bool try_decompression(int argc, char *argv[]) {
     print_usage_message("wrong device type.");
   }
 
-  bool verbose = has_arg(argc, argv, "-v");
+  int verbose = 0;
+  if (has_arg(argc, argv, "-v")) {
+    verbose = get_arg_int(argc, argv, "-v");
+  }
+
   if (verbose)
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
   launch_decompress(input_file.c_str(), output_file.c_str(), dev_type, verbose);

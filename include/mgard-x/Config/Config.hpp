@@ -17,7 +17,6 @@ struct Config {
   bool reduce_memory_footprint;
   bool profile_kernels;
   bool sync_and_check_all_kernels;
-  bool timing;
   int uniform_coord_mode;
   enum lossless_type lossless;
   double global_norm;
@@ -33,13 +32,15 @@ struct Config {
     huff_block_size = 1024 * 20;
     lz4_block_size = 1 << 15;
     zstd_compress_level = 3;
-    timing = false;
     uniform_coord_mode = 1;
     lossless = lossless_type::Huffman;
     global_norm = 1;
     reorder = 0;
     log_level = log::ERR;
-    log::log_level = log_level;
+  }
+
+  void apply() {
+    log::level = log_level;
   }
 };
 

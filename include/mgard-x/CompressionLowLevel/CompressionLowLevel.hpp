@@ -56,8 +56,11 @@ Array<1, unsigned char, DeviceType>
 compress(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &in_array, enum error_bound_type type, T tol,
          T s, T &norm, Config config) {
+
+  config.apply();
+
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
-  if (config.timing) {
+  if (log::level & log::TIME) {
     log::info("Select device: " + DeviceRuntime<DeviceType>::GetDeviceName());
   }
   Timer timer_total, timer_each;
@@ -74,12 +77,12 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray in_subarray(in_array);
   SIZE total_elems = hierarchy.total_num_elems();
 
-  if (config.timing)
+  if (log::level & log::TIME)
     timer_total.start();
   // norm = (T)1.0;
 
   if (type == error_bound_type::REL && norm == 1.0) {
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
 
     Array<1, T, DeviceType> temp_array;
@@ -114,9 +117,9 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
         norm = std::sqrt(norm / total_elems);
       }
     }
-    if (config.timing) {
+    if (log::level & log::TIME) {
       timer_each.end();
-      timer_each.print("Calculating norm");
+      timer_each.print("Calculate norm");
       timer_each.clear();
       if (s == std::numeric_limits<T>::infinity()) {
         log::info("L_inf norm: " +  std::to_string(norm));
@@ -127,7 +130,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 
   // Decomposition
-  if (config.timing)
+  if (log::level & log::TIME)
     timer_each.start();
   if (config.decomposition == decomposition_type::MultiDim) {
     decompose<D, T, DeviceType>(hierarchy, in_subarray, 0, 0);
@@ -135,7 +138,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     decompose_single<D, T, DeviceType>(hierarchy, in_subarray, 0, 0);
   }
 
-  if (config.timing) {
+  if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_each.end();
     timer_each.print("Decomposition");
@@ -146,7 +149,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   bool prep_huffman =
       config.lossless != lossless_type::CPU_Lossless; // always do Huffman
 
-  if (config.timing)
+  if (log::level & log::TIME)
     timer_each.start();
 
   Array<D, QUANTIZED_INT, DeviceType> quanzited_array(
@@ -200,7 +203,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   MemoryManager<DeviceType>::Copy1D(&outlier_count, outlier_count_array.data(),
                                     1, 0);
 
-  if (config.timing) {
+  if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_each.end();
     timer_each.print("Quantization");
@@ -227,7 +230,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   Array<1, QUANTIZED_INT, DeviceType> quantized_linearized_array({total_elems});
 
   if (config.reorder != 0) {
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
     if (config.reorder == 1) {
       LevelLinearizer<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
@@ -239,10 +242,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       log::err("wrong reodering type");
     }
     DeviceRuntime<DeviceType>::SyncDevice();
-    if (config.timing) {
+    if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
-      timer_each.print("Level Linearizer type: " +
+      timer_each.print("Level linearizer type: " +
                        std::to_string(config.reorder));
       timer_each.clear();
     }
@@ -263,7 +266,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (config.lossless != lossless_type::CPU_Lossless) {
     // Huffman compression
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
     lossless_compressed_array =
         HuffmanCompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(
@@ -271,10 +274,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
             config.huff_dict_size, outlier_count, outlier_idx_subarray,
             outliers_subarray);
     lossless_compressed_subarray = SubArray(lossless_compressed_array);
-    if (config.timing) {
+    if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
-      timer_each.print("Huffman Compress");
+      timer_each.print("Huffman compress");
       log::info("Huffman block size: " + std::to_string(config.huff_block_size));
       log::info("Huffman dictionary size: " + std::to_string(config.huff_dict_size));
       log::info("Huffman compress ratio: "
@@ -285,18 +288,18 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
       timer_each.clear();
     }
   } else {
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
     // PrintSubarray("quantized_linearized_subarray",
     // quantized_linearized_subarray);
     lossless_compressed_array =
         CPUCompress<QUANTIZED_INT, DeviceType>(quantized_linearized_subarray);
     lossless_compressed_subarray = SubArray(lossless_compressed_array);
-    if (config.timing) {
+    if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
-      timer_each.print("CPU Lossless");
-      log::info("CPU Lossless compress ratio: "
+      timer_each.print("CPU lossless");
+      log::info("CPU lossless compress ratio: "
                 + std::to_string(total_elems * sizeof(QUANTIZED_INT)) + "/"
                 + std::to_string(lossless_compressed_subarray.shape(0)) + " ("
                 + std::to_string((double)total_elems * sizeof(QUANTIZED_INT) /
@@ -311,17 +314,17 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 #ifdef MGARDX_COMPILE_CUDA
   // LZ4 compression
   if (config.lossless == lossless_type::Huffman_LZ4) {
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
     SIZE lz4_before_size = lossless_compressed_subarray.shape(0);
     lossless_compressed_array =
         LZ4Compress(lossless_compressed_subarray, config.lz4_block_size);
     lossless_compressed_subarray = SubArray(lossless_compressed_array);
     SIZE lz4_after_size = lossless_compressed_subarray.shape(0);
-    if (config.timing) {
+    if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
-      timer_each.print("LZ4 Compress");
+      timer_each.print("LZ4 compress");
       log::info("LZ4 block size: " + std::to_string(config.lz4_block_size));
       log::info("LZ4 compress ratio: "
                 + std::to_string((double)lz4_before_size / lz4_after_size));
@@ -331,14 +334,14 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 #endif
 
   if (config.lossless == lossless_type::Huffman_Zstd) {
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
     SIZE zstd_before_size = lossless_compressed_subarray.shape(0);
     lossless_compressed_array =
         ZstdCompress(lossless_compressed_subarray, config.zstd_compress_level);
     lossless_compressed_subarray = SubArray(lossless_compressed_array);
     SIZE zstd_after_size = lossless_compressed_subarray.shape(0);
-    if (config.timing) {
+    if (log::level & log::TIME) {
       timer_each.end();
       timer_each.print("Zstd Compress");
       log::info("Zstd compression level: " + std::to_string(config.zstd_compress_level));
@@ -348,11 +351,11 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
 
-  if (config.timing) {
+  if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_total.end();
-    timer_total.print("Overall Compress");
-    log::time("Compression Throughput: "
+    timer_total.print("Low-level compression");
+    log::time("Low-level compression throughput: "
               + std::to_string((double)(total_elems * sizeof(T)) / timer_total.get() / 1e9)
               + " GB/s");
     timer_total.clear();
@@ -366,8 +369,11 @@ Array<D, T, DeviceType>
 decompress(Hierarchy<D, T, DeviceType> &hierarchy,
            Array<1, unsigned char, DeviceType> &compressed_array,
            enum error_bound_type type, T tol, T s, T norm, Config config) {
+
+  config.apply();
+
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
-  if (config.timing) {
+  if (log::level & log::TIME) {
     log::info("Select device: " + DeviceRuntime<DeviceType>::GetDeviceName());
   }
   Timer timer_total, timer_each;
@@ -387,20 +393,20 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   Array<1, Byte, DeviceType> lossless_compressed_array;
   Array<1, Byte, DeviceType> huffman_array;
 
-  if (config.timing)
+  if (log::level & log::TIME)
     timer_total.start();
 
   if (config.lossless == lossless_type::Huffman_LZ4) {
 #ifdef MGARDX_COMPILE_CUDA
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
     lossless_compressed_array =
         LZ4Decompress<Byte, DeviceType>(lossless_compressed_subarray);
     lossless_compressed_subarray = SubArray(lossless_compressed_array);
-    if (config.timing) {
+    if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
-      timer_each.print("LZ4 Decompress");
+      timer_each.print("LZ4 decompress");
       timer_each.clear();
     }
 #else
@@ -410,15 +416,15 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 
   if (config.lossless == lossless_type::Huffman_Zstd) {
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
     lossless_compressed_array =
         ZstdDecompress<Byte, DeviceType>(lossless_compressed_subarray);
     lossless_compressed_subarray = SubArray(lossless_compressed_array);
-    if (config.timing) {
+    if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
-      timer_each.print("Zstd Decompress");
+      timer_each.print("Zstd decompress");
       timer_each.clear();
     }
   }
@@ -438,7 +444,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (config.lossless != lossless_type::CPU_Lossless) {
     // Huffman compression
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
     Array<1, QUANTIZED_UNSIGNED_INT, DeviceType>
         unsigned_quantized_linearized_array =
@@ -447,7 +453,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
                 outlier_idx_subarray, outliers_subarray);
 
     if (config.reorder != 0) {
-      if (config.timing)
+      if (log::level & log::TIME)
         timer_each.start();
       if (config.reorder == 1) {
         LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
@@ -460,10 +466,10 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       } else {
         log::err("wrong reodering option.");
       }
-      if (config.timing) {
+      if (log::level & log::TIME) {
         DeviceRuntime<DeviceType>::SyncQueue(0);
         timer_each.end();
-        timer_each.print("Level Linearizer type: " +
+        timer_each.print("Level linearizer type: " +
                          std::to_string(config.reorder));
         timer_each.clear();
       }
@@ -474,20 +480,20 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
           total_elems, 0);
     }
 
-    if (config.timing) {
+    if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
-      timer_each.print("Huffman Decompress");
+      timer_each.print("Huffman decompress");
       timer_each.clear();
     }
   } else {
-    if (config.timing)
+    if (log::level & log::TIME)
       timer_each.start();
     Array<1, QUANTIZED_INT, DeviceType> quantized_linearized_array =
         CPUDecompress<QUANTIZED_INT, DeviceType>(lossless_compressed_subarray);
 
     if (config.reorder != 0) {
-      if (config.timing)
+      if (log::level & log::TIME)
         timer_each.start();
       if (config.reorder == 1) {
         LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
@@ -498,10 +504,10 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       } else {
         log::err("wrong reodering type.");
       }
-      if (config.timing) {
+      if (log::level & log::TIME) {
         DeviceRuntime<DeviceType>::SyncQueue(0);
         timer_each.end();
-        timer_each.print("Level Linearizer type: " +
+        timer_each.print("Level linearizer type: " +
                          std::to_string(config.reorder));
         timer_each.clear();
       }
@@ -512,10 +518,10 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
           quantized_array.data(),
           (QUANTIZED_INT *)quantized_linearized_array.data(), total_elems, 0);
     }
-    if (config.timing) {
+    if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
-      timer_each.print("CPU Lossless");
+      timer_each.print("CPU lossless");
       timer_each.clear();
     }
   }
@@ -524,7 +530,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   // PrintSubarray("Quantized primary", SubArray(primary));
   // }
 
-  if (config.timing)
+  if (log::level & log::TIME)
     timer_each.start();
 
   // std::vector<SIZE> decompressed_shape(D);
@@ -556,7 +562,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<1, LENGTH, DeviceType>(outlier_count_array),
       outlier_idx_subarray, outliers_subarray, 0);
 
-  if (config.timing) {
+  if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_each.end();
     timer_each.print("Dequantization");
@@ -568,7 +574,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   // PrintSubarray("decompressed_subarray", decompressed_subarray);
   // }
 
-  if (config.timing)
+  if (log::level & log::TIME)
     timer_each.start();
   if (config.decomposition == decomposition_type::MultiDim) {
     recompose<D, T, DeviceType>(hierarchy, decompressed_subarray,
@@ -578,18 +584,18 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
                                        hierarchy.l_target(), 0);
   }
 
-  if (config.timing) {
+  if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_each.end();
     timer_each.print("Recomposition");
     timer_each.clear();
   }
 
-  if (config.timing) {
+  if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_total.end();
-    timer_total.print("Overall Decompression");
-    log::time("Decompression Throughput: "
+    timer_total.print("Low-level decompression");
+    log::time("Low-level decompression throughput: "
               + std::to_string((double)(total_elems * sizeof(T)) / timer_total.get() / 1e9)
               + " GB/s");
     timer_total.clear();
