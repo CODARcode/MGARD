@@ -292,13 +292,14 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     const char *coords_file, double tol, double s,
                     enum mgard_x::error_bound_type mode, int reorder,
                     int lossless, enum mgard_x::device_type dev_type,
-                    int verbose) {
+                    int num_dev, int verbose) {
 
   mgard_x::Config config;
   config.log_level = verbose_to_log_level(verbose);
   config.decomposition = mgard_x::decomposition_type::MultiDim;
   config.uniform_coord_mode = 1;
   config.dev_type = dev_type;
+  config.num_dev = num_dev;
   config.zstd_compress_level = 1;
   config.huff_dict_size = 8192;
   config.reorder = reorder;
@@ -377,11 +378,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 }
 
 int launch_decompress(const char *input_file, const char *output_file,
-                      enum mgard_x::device_type dev_type, int verbose) {
+                      enum mgard_x::device_type dev_type, int num_dev, int verbose) {
 
   mgard_x::Config config;
   config.log_level = verbose_to_log_level(verbose);
   config.dev_type = dev_type;
+  config.num_dev;
 
   mgard_x::SERIALIZED_TYPE *compressed_data;
   size_t compressed_size = readfile(input_file, compressed_data);
@@ -509,18 +511,23 @@ bool try_compression(int argc, char *argv[]) {
     verbose = get_arg_int(argc, argv, "-v");
   }
 
+  int num_dev = 1;
+  if (has_arg(argc, argv, "-g")) {
+    num_dev = get_arg_int(argc, argv, "-g");
+  }
+
   if (verbose)
     std::cout << mgard_x::log::log_info << "Verbose: enabled\n";
   if (dtype == mgard_x::data_type::Double) {
     launch_compress<double>(D, dtype, input_file.c_str(), output_file.c_str(),
                             shape, non_uniform, non_uniform_coords_file.c_str(),
                             tol, s, mode, reorder, lossless_level, dev_type,
-                            verbose);
+                            num_dev, verbose);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_compress<float>(D, dtype, input_file.c_str(), output_file.c_str(),
                            shape, non_uniform, non_uniform_coords_file.c_str(),
                            tol, s, mode, reorder, lossless_level, dev_type,
-                           verbose);
+                           num_dev, verbose);
   }
   return true;
 }
@@ -562,9 +569,14 @@ bool try_decompression(int argc, char *argv[]) {
     verbose = get_arg_int(argc, argv, "-v");
   }
 
+  int num_dev = 1;
+  if (has_arg(argc, argv, "-g")) {
+    num_dev = get_arg_int(argc, argv, "-g");
+  }
+
   if (verbose)
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
-  launch_decompress(input_file.c_str(), output_file.c_str(), dev_type, verbose);
+  launch_decompress(input_file.c_str(), output_file.c_str(), dev_type, num_dev, verbose);
   return true;
 }
 
