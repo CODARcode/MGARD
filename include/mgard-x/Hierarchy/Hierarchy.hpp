@@ -567,8 +567,7 @@ void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
 
   std::vector<SIZE> chunck_shape = shape;
   chunck_shape[domain_decomposed_dim] = domain_decomposed_size;
-  for (SIZE i = 0; i < shape[domain_decomposed_dim];
-       i += chunck_shape[domain_decomposed_dim]) {
+  for (SIZE i = 0; i < shape[domain_decomposed_dim]/chunck_shape[domain_decomposed_dim]; i++) {
     // printShape("Decomposed domain " +
     // std::to_string(hierarchy_chunck.size()), chunck_shape);
     hierarchy_chunck.push_back(
@@ -598,8 +597,7 @@ void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
   std::vector<SIZE> chunck_shape = shape;
   chunck_shape[domain_decomposed_dim] = domain_decomposed_size;
   std::vector<T *> chunck_coords = coords;
-  for (SIZE i = 0; i < shape[domain_decomposed_dim];
-       i += chunck_shape[domain_decomposed_dim]) {
+  for (SIZE i = 0; i < shape[domain_decomposed_dim]/chunck_shape[domain_decomposed_dim]; i++) {
     T *decompose_dim_coord = new T[chunck_shape[domain_decomposed_dim]];
     MemoryManager<DeviceType>::Copy1D(decompose_dim_coord,
                                       coords[domain_decomposed_dim] + i,
