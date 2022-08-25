@@ -653,7 +653,9 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
 
   // Set the number of threads equal to the number of devices
   // So that each thread is responsible for one device
+#if MGARD_ENABLE_OPENMP
   omp_set_num_threads(adjusted_num_dev);
+#endif
   #pragma omp parallel for schedule(dynamic) private(curr_dev_id)
   for (SIZE i = 0; i < subdomain_data.size(); i++) {
     // Select device based on where is input data is
@@ -668,10 +670,16 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
       ss << subdomain_hierarchy[i].level_shape(
                        subdomain_hierarchy[i].l_target(), d)
                 << " ";
+#if MGARD_ENABLE_OPENMP
     log::info("Compressing subdomain " + std::to_string(i+1) + "/" +
                std::to_string(subdomain_data.size()) + " with shape: " + ss.str() +
                "on thread " + std::to_string(omp_get_thread_num()+1) + "/" +
                std::to_string(omp_get_num_threads()) + " device " + std::to_string(subdomain_data[i].resideDevice()));
+#else
+    log::info("Compressing subdomain " + std::to_string(i+1) + "/" +
+               std::to_string(subdomain_data.size()) + " with shape: " + ss.str());
+#endif
+
     Array<1, Byte, DeviceType> compressed_array =
         compress<D, T, DeviceType>(hierarchy,
                                    subdomain_data[i], local_ebtype, local_tol, s, norm,
@@ -904,7 +912,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   // decompress
   // Set the number of threads equal to the number of devices
   // So that each thread is responsible for one device
+#if MGARD_ENABLE_OPENMP
   omp_set_num_threads(adjusted_num_dev);
+#endif
   #pragma omp parallel for schedule(dynamic) private(curr_dev_id)
   for (uint32_t i = 0; i < subdomain_hierarchy.size(); i++) {
 
@@ -920,11 +930,16 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       ss << subdomain_hierarchy[i].level_shape(
                        subdomain_hierarchy[i].l_target(), d)
                 << " ";
+#if MGARD_ENABLE_OPENMP
     log::info("Decompressing subdomain " + std::to_string(i+1) + "/" +
                std::to_string(compressed_subdomain_data.size()) + " with shape: " + ss.str() +
                "on thread " + std::to_string(omp_get_thread_num()+1) + "/" +
                std::to_string(omp_get_num_threads()) + " device " + 
                std::to_string(compressed_subdomain_data[i].resideDevice()));
+#else
+    log::info("Decompressing subdomain " + std::to_string(i+1) + "/" +
+               std::to_string(compressed_subdomain_data.size()) + " with shape: " + ss.str());
+#endif
 
     // PrintSubarray("input of decompress", SubArray(compressed_subdomain_data[i]));
     Array<D, T, DeviceType> out_array = decompress<D, T, DeviceType>(
