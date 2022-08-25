@@ -729,6 +729,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
   // Use consistance memory space between input and output data
   if (!output_pre_allocated) {
     if (MemoryManager<DeviceType>::IsDevicePointer(original_data)) {
+      DeviceRuntime<DeviceType>::SelectDevice(MemoryManager<DeviceType>::GetPointerDevice(original_data));
       MemoryManager<DeviceType>::Malloc1D(compressed_data, compressed_size);
     } else {
       compressed_data = (unsigned char *)malloc(compressed_size);
@@ -953,6 +954,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   if (!output_pre_allocated) {
     if (log::level & log::TIME) timer_each.start();
     if (MemoryManager<DeviceType>::IsDevicePointer(compressed_data)) {
+      DeviceRuntime<DeviceType>::SelectDevice(MemoryManager<DeviceType>::GetPointerDevice(compressed_data));
       MemoryManager<DeviceType>::Malloc1D(decompressed_data, total_num_elem);
     } else {
       decompressed_data = (T *)malloc(total_num_elem * sizeof(T));
