@@ -21,8 +21,6 @@
 #include <omp.h>
 #endif
 
-#define MGARD_X_ENFORCE_ONE_TASK_PER_DEVICE 0
-
 #include "../CompressionLowLevel/CompressionLowLevel.h"
 
 #ifndef MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
@@ -564,17 +562,11 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     log::info("Using " + std::to_string(adjusted_num_dev) + " devices.");
   }
 
-#if MGARD_X_ENFORCE_ONE_TASK_PER_DEVICE
-  int desired_num_subdomain = adjusted_num_dev;
-#else
-  int desired_num_subdomain = config.num_dev;
-#endif
-
   Timer timer_total, timer_each;
   if (log::level & log::TIME) timer_total.start();
   if (log::level & log::TIME) timer_each.start();
 
-  if (!need_domain_decomposition<D, T, DeviceType>(shape) && desired_num_subdomain == 1) {
+  if (!need_domain_decomposition<D, T, DeviceType>(shape) && adjusted_num_dev == 1) {
     if (uniform) {
       hierarchy = Hierarchy<D, T, DeviceType>(shape, config.uniform_coord_mode);
     } else {
@@ -583,7 +575,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
   } else {   
     generate_domain_decomposition_strategy<D, T, DeviceType>(shape, 
                                           domain_decomposed_dim, domain_decomposed_size,
-                                          desired_num_subdomain);
+                                          adjusted_num_dev);
     if (uniform) {
       hierarchy = Hierarchy<D, T, DeviceType>(shape, domain_decomposed_dim, domain_decomposed_size,
                                               config.uniform_coord_mode);
@@ -676,10 +668,10 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
       ss << subdomain_hierarchy[i].level_shape(
                        subdomain_hierarchy[i].l_target(), d)
                 << " ";
-    log::info("Compressing decomposed domain " + std::to_string(i) + "/" +
+    log::info("Compressing subdomain " + std::to_string(i+1) + "/" +
                std::to_string(subdomain_data.size()) + " with shape: " + ss.str() +
-               "using thread " + std::to_string(omp_get_thread_num()) + "/" +
-               std::to_string(omp_get_num_threads()) + " on device " + std::to_string(subdomain_data[i].resideDevice()));
+               "on thread " + std::to_string(omp_get_thread_num()+1) + "/" +
+               std::to_string(omp_get_num_threads()) + " device " + std::to_string(subdomain_data[i].resideDevice()));
     Array<1, Byte, DeviceType> compressed_array =
         compress<D, T, DeviceType>(hierarchy,
                                    subdomain_data[i], local_ebtype, local_tol, s, norm,
@@ -878,7 +870,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     subdomain_hierarchy = hierarchy.hierarchy_chunck;
     log::info("Orignial domain was decomposed into " +
                std::to_string(subdomain_hierarchy.size()) + 
-               " sub-domains during compression");
+               " subdomains during compression");
     local_tol = calc_local_abs_tol(m.ebtype, m.norm, m.tol, m.s, subdomain_hierarchy.size());
     // Force to use ABS mode when do domain decomposition
     local_ebtype = error_bound_type::ABS;
@@ -928,10 +920,10 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       ss << subdomain_hierarchy[i].level_shape(
                        subdomain_hierarchy[i].l_target(), d)
                 << " ";
-    log::info("Decompressing decomposed domain " + std::to_string(i) + "/" +
+    log::info("Decompressing subdomain " + std::to_string(i+1) + "/" +
                std::to_string(compressed_subdomain_data.size()) + " with shape: " + ss.str() +
-               "using thread " + std::to_string(omp_get_thread_num()) + "/" +
-               std::to_string(omp_get_num_threads()) + " on device " + 
+               "on thread " + std::to_string(omp_get_thread_num()+1) + "/" +
+               std::to_string(omp_get_num_threads()) + " device " + 
                std::to_string(compressed_subdomain_data[i].resideDevice()));
 
     // PrintSubarray("input of decompress", SubArray(compressed_subdomain_data[i]));
