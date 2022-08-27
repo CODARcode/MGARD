@@ -212,7 +212,8 @@ void domain_decompose(T *data, std::vector<Array<D, T, DeviceType>> &decomposed_
   }
   bool pitched = false;
 
-  for (SIZE i = 0; i < shape[domain_decomposed_dim]/domain_decomposed_size; i++) {
+  SIZE i = 0;
+  for (; i < shape[domain_decomposed_dim]/domain_decomposed_size; i++) {
     // printf("test\n");
     // for (DIM d = 0; d < chunck_shape.size(); d++) {
     //   std::cout << chunck_shape[d] << " ";
@@ -220,16 +221,16 @@ void domain_decompose(T *data, std::vector<Array<D, T, DeviceType>> &decomposed_
     // std::cout << "\n";
 
     DeviceRuntime<DeviceType>::SelectDevice(i % num_dev);
-    Array<D, T, DeviceType> subdomain_array({chunck_shape}, pitched);
+    decomposed_data[i] = Array<D, T, DeviceType>({chunck_shape}, pitched);
     
     SIZE dst_ld, src_ld, n1, n2;
     calc_domain_decompose_parameter<D>(shape, domain_decomposed_dim, domain_decomposed_size,
                                        dst_ld, src_ld, n1, n2);
 
-    MemoryManager<DeviceType>::CopyND(subdomain_array.data(), dst_ld, data, src_ld, n1,
+    MemoryManager<DeviceType>::CopyND(decomposed_data[i].data(), dst_ld, data, src_ld, n1,
                                       n2, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
-    decomposed_data.push_back(subdomain_array);
+    // decomposed_data.push_back(subdomain_array);
     data += n1;
   }
   SIZE leftover_dim_size =
@@ -242,7 +243,7 @@ void domain_decompose(T *data, std::vector<Array<D, T, DeviceType>> &decomposed_
       elem_leftover *= leftover_shape[d];
     }
 
-    Array<D, T, DeviceType> subdomain_array({leftover_shape}, pitched);
+    decomposed_data[i] = Array<D, T, DeviceType>({leftover_shape}, pitched);
 
     SIZE dst_ld, src_ld, n1, n2;
     calc_domain_decompose_parameter<D>(shape, domain_decomposed_dim, leftover_dim_size,
@@ -251,10 +252,10 @@ void domain_decompose(T *data, std::vector<Array<D, T, DeviceType>> &decomposed_
     // std::cout << "n1 * (shape[domain_decomposed_dim]/domain_decomposed_size): " << n1 * (shape[domain_decomposed_dim]/domain_decomposed_size) << "\n";
     // T *src_ptr = data + n1 * (shape[domain_decomposed_dim]/domain_decomposed_size);
 
-    MemoryManager<DeviceType>::CopyND(subdomain_array.data(), dst_ld, data, src_ld,
+    MemoryManager<DeviceType>::CopyND(decomposed_data[i].data(), dst_ld, data, src_ld,
                                       n1, n2, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
-    decomposed_data.push_back(subdomain_array);
+    // decomposed_data.push_back(subdomain_array);
   }
 }
 
@@ -548,6 +549,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
   Hierarchy<D, T, DeviceType> hierarchy;
   DIM domain_decomposed_dim; 
   SIZE domain_decomposed_size;
+  SIZE num_subdomains;
 
   config.apply();
 
@@ -572,6 +574,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     } else {
       hierarchy = Hierarchy<D, T, DeviceType>(shape, coords);
     }
+    num_subdomains = 1;
   } else {   
     generate_domain_decomposition_strategy<D, T, DeviceType>(shape, 
                                           domain_decomposed_dim, domain_decomposed_size,
@@ -583,6 +586,8 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
       hierarchy = Hierarchy<D, T, DeviceType>(shape, domain_decomposed_dim, domain_decomposed_size,
                                               coords);
     }
+    num_subdomains = (shape[domain_decomposed_dim]-1)/domain_decomposed_size+1;
+    assert(num_subdomains == hierarchy.hierarchy_chunck.size());
   }
 
   if (log::level & log::TIME) {
@@ -597,8 +602,8 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
   }
 #endif
 
-  std::vector<Array<D, T, DeviceType>> subdomain_data;
-  std::vector<Array<1, Byte, DeviceType>> compressed_subdomain_data;
+  std::vector<Array<D, T, DeviceType>> subdomain_data(num_subdomains);
+  std::vector<Array<1, Byte, DeviceType>> compressed_subdomain_data(num_subdomains);
   std::vector<Hierarchy<D, T, DeviceType>> subdomain_hierarchy;
   T norm = 1;
   T local_tol = tol;
@@ -606,9 +611,8 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
 
   if (!hierarchy.domain_decomposed) {
     if (log::level & log::TIME) timer_each.start();
-    Array<D, T, DeviceType> in_array({shape});
-    in_array.load((T*)original_data);
-    subdomain_data.push_back(in_array);
+    subdomain_data[0] = Array<D, T, DeviceType>({shape});
+    subdomain_data[0].load((T*)original_data);
     subdomain_hierarchy.push_back(hierarchy);
     local_tol = tol;
     local_ebtype = type;
@@ -680,11 +684,10 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
                std::to_string(subdomain_data.size()) + " with shape: " + ss.str());
 #endif
 
-    Array<1, Byte, DeviceType> compressed_array =
+    compressed_subdomain_data[i] =
         compress<D, T, DeviceType>(hierarchy,
                                    subdomain_data[i], local_ebtype, local_tol, s, norm,
                                    config);
-    compressed_subdomain_data.push_back(compressed_array);
   }
 
   if (log::level & log::TIME) {
@@ -833,6 +836,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   if (log::level & log::TIME) timer_each.start();
 
   Hierarchy<D, T, DeviceType> hierarchy;
+  SIZE num_subdomains;
 
   if (!m.domain_decomposed) {
     if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
@@ -840,6 +844,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     } else {
       hierarchy = Hierarchy<D, T, DeviceType> (shape, coords);
     }
+    num_subdomains = 1;
   } else {
     if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
       hierarchy = Hierarchy<D, T, DeviceType>(shape, m.domain_decomposed_dim,
@@ -850,6 +855,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
                                             m.domain_decomposed_size,
                                             coords);
     }
+    num_subdomains = (shape[m.domain_decomposed_dim]-1)/m.domain_decomposed_size+1;
   }
 
   if (m.dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
@@ -862,8 +868,8 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     timer_each.clear();
   }
 
-  std::vector<Array<D, T, DeviceType>> subdomain_data;
-  std::vector<Array<1, Byte, DeviceType>> compressed_subdomain_data;
+  std::vector<Array<D, T, DeviceType>> subdomain_data(num_subdomains);
+  std::vector<Array<1, Byte, DeviceType>> compressed_subdomain_data(num_subdomains);
   std::vector<Hierarchy<D, T, DeviceType>> subdomain_hierarchy;
   T local_tol;
   enum error_bound_type local_ebtype;
@@ -896,9 +902,8 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     align_byte_offset<uint64_t>(byte_offset);
     Deserialize<Byte, DeviceType>((Byte *)compressed_data, temp_data,
                                   temp_size, byte_offset);
-    Array<1, Byte, DeviceType> compressed_array({temp_size});
-    compressed_array.load(temp_data);
-    compressed_subdomain_data.push_back(compressed_array);
+    compressed_subdomain_data[i] = Array<1, Byte, DeviceType>({temp_size});
+    compressed_subdomain_data[i].load(temp_data);
     MemoryManager<DeviceType>::FreeHost(temp_data);
   }
 
@@ -942,10 +947,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 #endif
 
     // PrintSubarray("input of decompress", SubArray(compressed_subdomain_data[i]));
-    Array<D, T, DeviceType> out_array = decompress<D, T, DeviceType>(
+    subdomain_data[i] = decompress<D, T, DeviceType>(
         hierarchy, compressed_subdomain_data[i], local_ebtype,
         local_tol, m.s, m.norm, config);
-    subdomain_data.push_back(out_array);
   }
 
   if (log::level & log::TIME) {
