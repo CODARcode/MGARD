@@ -170,6 +170,8 @@ template <typename T> MGARDX_CONT int TypeToIdx() {
     return 0;
   } else if (std::is_same<T, double>::value) {
     return 1;
+  } else {
+    return 0;
   }
 }
 
