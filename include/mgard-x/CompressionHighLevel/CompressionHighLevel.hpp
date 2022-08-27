@@ -962,9 +962,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     if (log::level & log::TIME) timer_each.start();
     if (MemoryManager<DeviceType>::IsDevicePointer(compressed_data)) {
       DeviceRuntime<DeviceType>::SelectDevice(MemoryManager<DeviceType>::GetPointerDevice(compressed_data));
-      MemoryManager<DeviceType>::Malloc1D(decompressed_data, total_num_elem);
+      MemoryManager<DeviceType>::Malloc1D(decompressed_data, total_num_elem * sizeof(T));
     } else {
-      decompressed_data = (T *)malloc(total_num_elem * sizeof(T));
+      decompressed_data = malloc(total_num_elem * sizeof(T));
     }
     if (log::level & log::TIME) {
       timer_each.end();
