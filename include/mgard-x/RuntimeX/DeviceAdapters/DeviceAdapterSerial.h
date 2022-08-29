@@ -824,6 +824,7 @@ public:
   template <typename T>
   MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::Malloc1D");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
@@ -835,6 +836,7 @@ public:
   template <typename T>
   MGARDX_CONT static void MallocND(T *&ptr, SIZE n1, SIZE n2, SIZE &ld,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::MallocND");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n1 * n2 * sizeof(converted_T));
@@ -847,6 +849,7 @@ public:
   template <typename T>
   MGARDX_CONT static void
   MallocManaged1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::MallocManaged1D");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
@@ -858,6 +861,7 @@ public:
   template <typename T>
   MGARDX_CONT static void Free(T *ptr,
                                int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::Free");
     if (ptr == NULL)
       return;
     std::free(ptr);
@@ -866,6 +870,7 @@ public:
   template <typename T>
   MGARDX_CONT static void Copy1D(T *dst_ptr, const T *src_ptr, SIZE n,
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::Copy1D");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     std::memcpy(dst_ptr, src_ptr, sizeof(converted_T) * n);
@@ -875,6 +880,7 @@ public:
   MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
                                  SIZE src_ld, SIZE n1, SIZE n2,
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::CopyND");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     if ((dst_ld == n1) && (src_ld == n1)) {
@@ -892,6 +898,7 @@ public:
   template <typename T>
   MGARDX_CONT static void
   MallocHost(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::MallocHost");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
@@ -903,6 +910,7 @@ public:
   template <typename T>
   MGARDX_CONT static void FreeHost(T *ptr,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::FreeHost");
     if (ptr == NULL)
       return;
     std::free(ptr);
@@ -911,6 +919,7 @@ public:
   template <typename T>
   MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::Memset1D");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     memset(ptr, value, n * sizeof(converted_T));
@@ -919,16 +928,19 @@ public:
   template <typename T>
   MGARDX_CONT static void MemsetND(T *ptr, SIZE ld, SIZE n1, SIZE n2, int value,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SERIAL>::MemsetND");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     memset(ptr, value, n1 * n2 * sizeof(converted_T));
   }
 
   template <typename T> MGARDX_CONT static bool IsDevicePointer(T *ptr) {
+    log::dbg("Calling MemoryManager<SERIAL>::IsDevicePointer");
     return true;
   }
 
   template <typename T> MGARDX_CONT static int GetPointerDevice(T *ptr) {
+    log::dbg("Calling MemoryManager<SERIAL>::GetPointerDevice");
     return 0;
   }
 
