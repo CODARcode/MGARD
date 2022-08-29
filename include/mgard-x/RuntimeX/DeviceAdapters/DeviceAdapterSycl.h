@@ -441,15 +441,18 @@ public:
   template <typename T>
   MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::Malloc1D");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = malloc_device<converted_T>(n, q);
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
@@ -457,16 +460,19 @@ public:
   template <typename T>
   MGARDX_CONT static void MallocND(T *&ptr, SIZE n1, SIZE n2, SIZE &ld,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::MallocND");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = malloc_device<converted_T>(n1 * n2, q);
     ld = n1;
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
@@ -474,15 +480,18 @@ public:
   template <typename T>
   MGARDX_CONT static void
   MallocManaged1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::MallocManaged1D");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = malloc_shared<converted_T>(n, q);
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
@@ -490,15 +499,18 @@ public:
   template <typename T>
   MGARDX_CONT static void Free(T *ptr,
                                int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::Free");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     if (ptr == NULL)
       return;
     sycl::free(ptr, q);
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
@@ -506,16 +518,19 @@ public:
   template <typename T>
   MGARDX_CONT static void Copy1D(T *dst_ptr, const T *src_ptr, SIZE n,
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::Copy1D");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     q.memcpy((converted_T *)dst_ptr, (converted_T *)src_ptr,
              n * sizeof(converted_T));
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
@@ -524,16 +539,19 @@ public:
   MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
                                  SIZE src_ld, SIZE n1, SIZE n2,
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::CopyND");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     q.memcpy((converted_T *)dst_ptr, (converted_T *)src_ptr,
              n1 * n2 * sizeof(converted_T));
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
@@ -541,15 +559,18 @@ public:
   template <typename T>
   MGARDX_CONT static void
   MallocHost(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::MallocHost");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = malloc_host<converted_T>(n, q);
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
@@ -557,15 +578,18 @@ public:
   template <typename T>
   MGARDX_CONT static void FreeHost(T *ptr,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::FreeHost");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     if (ptr == NULL)
       return;
     sycl::free(ptr, q);
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
@@ -573,15 +597,18 @@ public:
   template <typename T>
   MGARDX_CONT static void Memset1D(T *ptr, SIZE n, int value,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::Memset1D");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     q.memset((converted_T *)ptr, value, n * sizeof(converted_T));
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
@@ -589,20 +616,24 @@ public:
   template <typename T>
   MGARDX_CONT static void MemsetND(T *ptr, SIZE ld, SIZE n1, SIZE n2, int value,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::MemsetND");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
-      DeviceRuntime<SYCL>::SyncDevice();
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     q.memset((converted_T *)ptr, value, n1 * n2 * sizeof(converted_T));
-    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<SYCL>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
     }
   }
 
   template <typename T> MGARDX_CONT static bool IsDevicePointer(T *ptr) {
+    log::dbg("Calling MemoryManager<SYCL>::IsDevicePointer");
     for (int i = 0; i < DeviceRuntime<SYCL>::GetDeviceCount()) {
       DeviceRuntime<SYCL>::SelectDevice(i);
       for (int j = 0; j < MGARDX_NUM_QUEUES; j++) {
@@ -617,6 +648,7 @@ public:
   }
 
   template <typename T> MGARDX_CONT static int GetPointerDevice(T *ptr) {
+    log::dbg("Calling MemoryManager<SYCL>::GetPointerDevice");
     sycl::default_selector d_selector;
     sycl::platform d_platform(d_selector);
     std::vector<sycl::device> d_devices = d_platform.get_devices();
