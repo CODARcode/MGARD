@@ -648,7 +648,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
 #if MGARD_ENABLE_OPENMP
   omp_set_num_threads(adjusted_num_dev);
 #endif
-  #pragma omp parallel firstprivate(curr_dev_id, config)
+  #pragma omp parallel for firstprivate(curr_dev_id, config)
   for (SIZE i = 0; i < subdomain_data.size(); i++) {
     // Select device based on where is input data is
     DeviceRuntime<DeviceType>::SelectDevice(subdomain_data[i].resideDevice());
