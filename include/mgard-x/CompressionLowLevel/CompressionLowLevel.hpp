@@ -94,7 +94,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
           SubArray<1, T, DeviceType>({total_elems}, in_array.data());
     } else { // need to linearized
       temp_array = Array<1, T, DeviceType>({(SIZE)total_elems}, false);
-      MemoryManager<DeviceType>().CopyND(
+      MemoryManager<DeviceType>::CopyND(
           temp_array.data(), in_array.shape(D - 1), in_array.data(),
           in_array.ld(D - 1), in_array.shape(D - 1),
           (SIZE)hierarchy.linearized_width(), 0);
