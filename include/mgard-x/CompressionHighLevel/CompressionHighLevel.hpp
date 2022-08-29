@@ -485,9 +485,11 @@ template <DIM D, typename T, typename DeviceType>
 T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &decomposed_data, T s, int uniform_coord_mode,
                        SIZE total_num_elem) {
   T norm = 0;
-  Array<1, T, DeviceType> norm_array({1});
-  SubArray<1, T, DeviceType> norm_subarray(norm_array);
+  
   for (int i = 0; i < decomposed_data.size(); i++) {
+    DeviceRuntime<DeviceType>::SelectDevice(decomposed_data[i].resideDevice());
+    Array<1, T, DeviceType> norm_array({1});
+    SubArray<1, T, DeviceType> norm_subarray(norm_array);
     SubArray chunck_in_subarray = SubArray(decomposed_data[i]).Linearize();
     if (s == std::numeric_limits<T>::infinity()) {
       DeviceCollective<DeviceType>::AbsMax(chunck_in_subarray.shape(0), chunck_in_subarray,
