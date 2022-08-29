@@ -109,7 +109,6 @@ void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::memset(int value, int queue_idx) {
-  DeviceRuntime<DeviceType>::SelectDevice(dev_id);
   if (this->pitched) {
     MemoryManager<DeviceType>::MemsetND(dv, __ldvs[D - 1], __shape[D - 1],
                                         linearized_width, value, queue_idx);
@@ -121,7 +120,6 @@ void Array<D, T, DeviceType>::memset(int value, int queue_idx) {
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::free(int queue_idx) {
-  DeviceRuntime<DeviceType>::SelectDevice(dev_id);
   if (device_allocated) {
     MemoryManager<DeviceType>::Free(dv, queue_idx);
     device_allocated = false;
@@ -168,19 +166,18 @@ Array<D, T, DeviceType>::~Array() {
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::load(const T *data, SIZE ld, int queue_idx) {
-  DeviceRuntime<DeviceType>::SelectDevice(dev_id);
+  log::dbg("Calling Array::load");
   if (ld == 0) {
     ld = __shape[D - 1];
   }
   MemoryManager<DeviceType>::CopyND(dv, __ldvs[D - 1], data, ld, __shape[D - 1],
                                     linearized_width, queue_idx);
 
-  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::hostCopy(bool keep, int queue_idx) {
-  DeviceRuntime<DeviceType>::SelectDevice(dev_id);
+  log::dbg("Calling Array::hostCopy");
   if (!device_allocated) {
     std::cout << log::log_err << "device buffer not initialized.\n";
     exit(-1);
@@ -193,7 +190,6 @@ T *Array<D, T, DeviceType>::hostCopy(bool keep, int queue_idx) {
   MemoryManager<DeviceType>::CopyND(hv, __shape[D - 1], dv, __ldvs[D - 1],
                                     __shape[D - 1], linearized_width,
                                     queue_idx);
-  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   keepHostCopy = keep;
   return hv;
 }
