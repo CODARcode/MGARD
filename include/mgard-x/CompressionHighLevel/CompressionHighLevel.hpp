@@ -308,12 +308,6 @@ template <DIM D, typename T, typename DeviceType>
 void domain_decompose2(T *data, std::vector<Array<D, T, DeviceType>> &decomposed_data,
                       std::vector<SIZE> shape, DIM domain_decomposed_dim,
                       SIZE domain_decomposed_size, int num_dev) {
-  // {
-  //   Array<D, T, DeviceType> data_array({shape});
-  //   data_array.load(data);
-  //   PrintSubarray("Input", SubArray(data_array));
-  // }
-
   std::vector<SIZE> chunck_shape = shape;
   chunck_shape[domain_decomposed_dim] = domain_decomposed_size;
   std::vector<SIZE> rev_shape = shape;
@@ -367,12 +361,6 @@ void domain_decompose2(T *data, std::vector<Array<D, T, DeviceType>> &decomposed
     DeviceRuntime<DeviceType>::SyncQueue(0);
     // decomposed_data.push_back(chunck_data);
     decomposed_data.push_back(subdomain_array);
-
-    // {
-    //   Array<D, T, DeviceType> data_array({chunck_shape});
-    //   data_array.load(chunck_data);
-    //   PrintSubarray("chunck_data", SubArray(data_array));
-    // }
   }
   SIZE leftover_dim_size =
       shape[domain_decomposed_dim] % domain_decomposed_size;
@@ -660,7 +648,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
 #if MGARD_ENABLE_OPENMP
   omp_set_num_threads(adjusted_num_dev);
 #endif
-  #pragma omp parallel private(curr_dev_id, config)
+  #pragma omp parallel firstprivate(curr_dev_id, config)
   for (SIZE i = 0; i < subdomain_data.size(); i++) {
     // Select device based on where is input data is
     DeviceRuntime<DeviceType>::SelectDevice(subdomain_data[i].resideDevice());
@@ -897,8 +885,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     Byte *temp_data;
     Deserialize<SIZE, DeviceType>((Byte *)compressed_data, &temp_size, 1,
                                   byte_offset);
-    MemoryManager<DeviceType>::MallocHost(temp_data, temp_size, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
+    MemoryManager<DeviceType>::MallocHost(temp_data, temp_size);
     align_byte_offset<uint64_t>(byte_offset);
     Deserialize<Byte, DeviceType>((Byte *)compressed_data, temp_data,
                                   temp_size, byte_offset);
@@ -920,7 +907,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 #if MGARD_ENABLE_OPENMP
   omp_set_num_threads(adjusted_num_dev);
 #endif
-  #pragma omp parallel for private(curr_dev_id, config)
+  #pragma omp parallel for firstprivate(curr_dev_id, config)
   for (uint32_t i = 0; i < subdomain_hierarchy.size(); i++) {
 
     // Select device based on where is input data is
