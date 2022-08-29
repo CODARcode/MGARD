@@ -17,10 +17,6 @@
 #include "../Config/Config.hpp"
 #include "compress_x.hpp"
 
-#if MGARD_ENABLE_OPENMP
-#include <omp.h>
-#endif
-
 #include "../CompressionLowLevel/CompressionLowLevel.h"
 
 #ifndef MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
