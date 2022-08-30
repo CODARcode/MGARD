@@ -262,6 +262,7 @@ public:
 };
 
 extern int curr_dev_id;
+#pragma omp threadprivate(curr_dev_id)
 
 } // namespace mgard_x
 
