@@ -655,6 +655,8 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     // Trigger the copy constructor to copy hierarchy to corresponding device
     Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchy[i];
 
+    CompressionLowLevelWorkspace workspace(hierarchy, config, 1.0);
+
     std::stringstream ss;
     for (DIM d = 0; d < D; d++)
       ss << subdomain_hierarchy[i].level_shape(
@@ -673,7 +675,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     compressed_subdomain_data[i] =
         compress<D, T, DeviceType>(hierarchy,
                                    subdomain_data[i], local_ebtype, local_tol, s, norm,
-                                   config);
+                                   config, workspace);
   }
 
   if (log::level & log::TIME) {
@@ -915,6 +917,8 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     // Trigger the copy constructor to copy hierarchy to corresponding device
     Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchy[i];
 
+    CompressionLowLevelWorkspace workspace(hierarchy, config, 0.0);
+
     std::stringstream ss;
     for (DIM d = 0; d < D; d++)
       ss << subdomain_hierarchy[i].level_shape(
@@ -934,7 +938,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     // PrintSubarray("input of decompress", SubArray(compressed_subdomain_data[i]));
     subdomain_data[i] = decompress<D, T, DeviceType>(
         hierarchy, compressed_subdomain_data[i], local_ebtype,
-        local_tol, m.s, m.norm, config);
+        local_tol, m.s, m.norm, config, workspace);
   }
 
   if (log::level & log::TIME) {

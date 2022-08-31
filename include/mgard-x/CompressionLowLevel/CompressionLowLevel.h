@@ -10,6 +10,7 @@
 
 #include "../Hierarchy/Hierarchy.hpp"
 #include "../RuntimeX/RuntimeXPublic.h"
+#include "CompressionLowLevelWorkspace.hpp"
 
 namespace mgard_x {
 
@@ -17,13 +18,15 @@ template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType>
 compress(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &in_array, enum error_bound_type type, T tol,
-         T s, T &norm, Config config);
+         T s, T &norm, Config config, 
+         CompressionLowLevelWorkspace<D, T, DeviceType>& workspace);
 
 template <DIM D, typename T, typename DeviceType>
 Array<D, T, DeviceType>
 decompress(Hierarchy<D, T, DeviceType> &hierarchy,
            Array<1, unsigned char, DeviceType> &compressed_array,
-           enum error_bound_type type, T tol, T s, T norm, Config config);
+           enum error_bound_type type, T tol, T s, T norm, Config config,
+           CompressionLowLevelWorkspace<D, T, DeviceType>& workspace);
 
 } // namespace mgard_x
 
