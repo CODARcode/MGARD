@@ -20,14 +20,7 @@ public:
     // By defualt it is not pre-allocated
     pre_allocated = false;
   }
-
-  SIZE estimate_space(Hierarchy<D, T, DeviceType>& hierarchy, Config &config) {
-    SIZE size = 0;
-    size += (hierarchy.l_target() + 1) * sizeof(T);
-    // size += 
-    return size;
-  }
-
+  
   void allocate(Hierarchy<D, T, DeviceType>& hierarchy, Config &config, double estimated_outlier_ratio) {
     // Do pre-allocation
     quantizers_array = Array<1, T, DeviceType>({hierarchy.l_target() + 1});
