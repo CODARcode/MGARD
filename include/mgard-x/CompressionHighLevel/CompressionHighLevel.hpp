@@ -655,7 +655,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     // Trigger the copy constructor to copy hierarchy to corresponding device
     Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchy[i];
 
-    CompressionLowLevelWorkspace workspace(hierarchy, config, 1.0);
+    CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
 
     std::stringstream ss;
     for (DIM d = 0; d < D; d++)

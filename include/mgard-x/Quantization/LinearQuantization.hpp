@@ -312,8 +312,13 @@ public:
               linearized_idx += idx[d] * curr_stride;
               curr_stride *= v.shape(d);
             }
-            *outlier_idx(i) = linearized_idx;
-            *outliers(i) = quantized_data;
+            // Avoid out of range error
+            // If we have too much outlier than our allocation 
+            // we return the true outlier_count and do quanziation again
+            if (i < outlier_idx.shape(0)) {
+              *outlier_idx(i) = linearized_idx;
+              *outliers(i) = quantized_data;
+            }
             quantized_data = 0;
           }
         }
