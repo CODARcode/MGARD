@@ -14,7 +14,8 @@ compress<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
     Array<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &in_array,
     enum error_bound_type type, @DATA_TYPE@ tol, @DATA_TYPE@ s,
-    @DATA_TYPE@ &norm, Config config);
+    @DATA_TYPE@ &norm, Config config, 
+    CompressionLowLevelWorkspace<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>& workspace);
 
 } // namespace mgard_x
 // clang-format on
