@@ -98,7 +98,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (log::level & log::TIME)
     timer_total.start();
 
-  if (type == error_bound_type::REL && norm == 1.0) {
+  if (type == error_bound_type::REL) {
     if (log::level & log::TIME)
       timer_each.start();
 
