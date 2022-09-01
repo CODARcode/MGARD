@@ -856,7 +856,7 @@ public:
 
   template <typename T> MGARDX_CONT static int GetPointerDevice(T *ptr) {
     log::dbg("Calling MemoryManager<HIP>::GetPointerDevice");
-    hipPointerAttributes_t attr;
+    hipPointerAttribute_t attr;
     hipPointerGetAttributes(&attr, ptr);
     return attr.device;
   }
