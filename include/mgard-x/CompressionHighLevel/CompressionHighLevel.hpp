@@ -31,15 +31,11 @@ size_t estimate_memory_usgae(std::vector<SIZE> shape) {
   for (DIM d = 0; d < D; d++) {
     total_elem *= shape[d];
   }
-  size_t pitch_size = 1;
-  if (!MemoryManager<DeviceType>::ReduceMemoryFootprint) { // pitch is enable
-    T *dummy;
-    SIZE ld;
-    MemoryManager<DeviceType>::MallocND(dummy, 1, 1, ld, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-    MemoryManager<DeviceType>::Free(dummy);
-    pitch_size = ld * sizeof(T);
-  }
+
+  Array<1, T, DeviceType> array_with_pitch({1});
+  size_t pitch_size = array_with_pitch.ld(0) * sizeof(T);
+
+  // log::info("pitch_size: " + std::to_string(pitch_size));
 
   size_t hierarchy_space = 0;
   // space need for hiearachy
@@ -70,54 +66,81 @@ size_t estimate_memory_usgae(std::vector<SIZE> shape) {
     hierarchy_space += shape[d] * 2 * sizeof(T); // bm
   }
 
+  // log::info("hierarchy_space: " + std::to_string((double)hierarchy_space/1e9));
+
   size_t input_space = roundup(shape[D - 1] * sizeof(T), pitch_size);
   for (DIM d = 0; d < D - 1; d++) {
     input_space *= shape[d];
   }
 
+  // log::info("input_space: " + std::to_string((double)input_space/1e9));
+
   size_t norm_workspace = roundup(shape[D - 1] * sizeof(T), pitch_size);
   for (DIM d = 0; d < D - 1; d++) {
     norm_workspace *= shape[d];
   }
+
+  // log::info("norm_workspace: " + std::to_string((double)norm_workspace/1e9));
+
   estimate_memory_usgae = std::max(
       estimate_memory_usgae, hierarchy_space + input_space + norm_workspace);
+
+  // log::info("estimate_memory_usgae: " + std::to_string((double)estimate_memory_usgae/1e9));
 
   size_t decomposition_workspace =
       roundup(shape[D - 1] * sizeof(T), pitch_size);
   for (DIM d = 0; d < D - 1; d++) {
     decomposition_workspace *= shape[d];
   }
+
+  // log::info("decomposition_workspace: " + std::to_string((double)decomposition_workspace/1e9));
+
   estimate_memory_usgae =
       std::max(estimate_memory_usgae,
                hierarchy_space + input_space + decomposition_workspace);
+
+  // log::info("estimate_memory_usgae: " + std::to_string((double)estimate_memory_usgae/1e9));
 
   size_t quantization_workspace =
       sizeof(QUANTIZED_INT) * total_elem + // quantized
       sizeof(LENGTH) * total_elem +        // outlier index
       sizeof(QUANTIZED_INT) * total_elem;  // outlier
 
+  // log::info("quantization_workspace: " + std::to_string((double)quantization_workspace/1e9));
+
   estimate_memory_usgae =
       std::max(estimate_memory_usgae,
                hierarchy_space + input_space + quantization_workspace);
+
+  // log::info("estimate_memory_usgae: " + std::to_string((double)estimate_memory_usgae/1e9));
 
   size_t huffman_workspace =
       sizeof(QUANTIZED_INT) *
       total_elem; // fix-length encoding
                   // space taken by codebook generation is ignored
 
+  // log::info("huffman_workspace: " + std::to_string((double)huffman_workspace/1e9));
+
   estimate_memory_usgae = std::max(
       estimate_memory_usgae, hierarchy_space + input_space +
                                  quantization_workspace + huffman_workspace);
 
+  // log::info("estimate_memory_usgae: " + std::to_string((double)estimate_memory_usgae/1e9));
+
   double estimated_output_ratio = 0.7;
 
   return estimate_memory_usgae + (double)input_space * estimated_output_ratio;
+
+  // log::info("estimate_memory_usgae: " + std::to_string((double)estimate_memory_usgae/1e9));
 }
 
 template <DIM D, typename T, typename DeviceType>
 bool need_domain_decomposition(std::vector<SIZE> shape) {
-  return estimate_memory_usgae<D, T, DeviceType>(shape) >=
-         DeviceRuntime<DeviceType>::GetAvailableMemory();
+  size_t estm = estimate_memory_usgae<D, T, DeviceType>(shape);
+  size_t aval = DeviceRuntime<DeviceType>::GetAvailableMemory();
+  log::info("Estimated memory usage: " + std::to_string((double)estm/1e9) + 
+            "GB, Available: " + std::to_string((double)aval/1e9) + "GB");
+  return estm >= aval;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -142,9 +165,11 @@ bool generate_domain_decomposition_strategy(std::vector<SIZE> shape,
 
   // Then check if each chunk can fit into device memory
   while (need_domain_decomposition<D, T, DeviceType>(chunck_shape)) {
-    chunck_shape[domain_decomposed_dim] /= 2;
+    // Divide by 2 and round up
+    chunck_shape[domain_decomposed_dim] = (chunck_shape[domain_decomposed_dim]-1)/2+1;
   }
   domain_decomposed_size = chunck_shape[domain_decomposed_dim];
+  log::info("domain_decomposed_dim: " + std::to_string(domain_decomposed_dim) + ", domain_decomposed_size: " + std::to_string(domain_decomposed_size));
   return true;
 }
 
@@ -173,33 +198,13 @@ void calc_domain_decompose_parameter(std::vector<SIZE> shape, DIM domain_decompo
   // std::cout << "n2: " << n2 << "\n";
 }
 
-template <typename T>
-T calc_local_abs_tol(enum error_bound_type ebtype, T norm, T tol, T s, SIZE num_subdomain) {
-  T local_abs_tol;
-  if (ebtype == error_bound_type::REL) {
-    if (s == std::numeric_limits<T>::infinity()) {
-      log::info("L_inf norm: " + std::to_string(norm));
-      local_abs_tol = tol * norm;
-    } else {
-      log::info("L_2 norm: " + std::to_string(norm));
-      local_abs_tol = std::sqrt((tol * norm) * (tol * norm) / num_subdomain);
-    }
-  } else {
-    if (s == std::numeric_limits<T>::infinity()) {
-      local_abs_tol = tol;
-    } else {
-      local_abs_tol = std::sqrt((tol * tol) / num_subdomain);
-    }
-  }
-  log::info("local abs tol: " + std::to_string(local_abs_tol));
-  return local_abs_tol;
-}
 
 template <DIM D, typename T, typename DeviceType>
 void domain_decompose(T *data, std::vector<Array<D, T, DeviceType>> &decomposed_data,
                       std::vector<SIZE> shape, DIM domain_decomposed_dim,
                       SIZE domain_decomposed_size, int num_dev) {
-
+  // Pitched memory allocation has to be disable for the correctness of the following copies
+  assert(MemoryManager<DeviceType>::ReduceMemoryFootprint == true);
   std::vector<SIZE> chunck_shape = shape;
   chunck_shape[domain_decomposed_dim] = domain_decomposed_size;
   SIZE elem_per_chunk = 1;
@@ -259,6 +264,8 @@ template <DIM D, typename T, typename DeviceType>
 void domain_recompose(std::vector<Array<D, T, DeviceType>>& decomposed_data, T *data,
                       std::vector<SIZE> shape, DIM domain_decomposed_dim,
                       SIZE domain_decomposed_size) {
+  // Pitched memory allocation has to be disable for the correctness of the following copies
+  assert(MemoryManager<DeviceType>::ReduceMemoryFootprint == true);
   std::vector<SIZE> chunck_shape = shape;
   chunck_shape[domain_decomposed_dim] = domain_decomposed_size;
   SIZE elem_per_chunk = 1;
@@ -301,187 +308,6 @@ void domain_recompose(std::vector<Array<D, T, DeviceType>>& decomposed_data, T *
 }
 
 template <DIM D, typename T, typename DeviceType>
-void domain_decompose2(T *data, std::vector<Array<D, T, DeviceType>> &decomposed_data,
-                      std::vector<SIZE> shape, DIM domain_decomposed_dim,
-                      SIZE domain_decomposed_size, int num_dev) {
-  std::vector<SIZE> chunck_shape = shape;
-  chunck_shape[domain_decomposed_dim] = domain_decomposed_size;
-  std::vector<SIZE> rev_shape = shape;
-  std::reverse(rev_shape.begin(), rev_shape.end());
-  DIM rev_domain_decomposed_dim = D - 1 - domain_decomposed_dim;
-  SIZE elem_per_chunk = 1;
-  for (DIM d = 0; d < chunck_shape.size(); d++) {
-    elem_per_chunk *= chunck_shape[d];
-  }
-  bool pitched = false;
-  // printf("domain_decomposed_dim: %u\n", domain_decomposed_dim);
-  // printf("domain_decomposed_size: %u\n", domain_decomposed_size);
-  // printf("rev_domain_decomposed_dim: %u\n", rev_domain_decomposed_dim);
-  // printShape("rev_shape", rev_shape);
-  // printf("elem_per_chunk: %u\n", elem_per_chunk);
-  for (SIZE i = 0; i < shape[domain_decomposed_dim]/domain_decomposed_size; i++) {
-    // T *chunck_data;
-    // MemoryManager<DeviceType>::MallocHost(chunck_data, elem_per_chunk, 0);
-    // DeviceRuntime<DeviceType>::SyncQueue(0);
-    DeviceRuntime<DeviceType>::SelectDevice((i) % num_dev);
-    Array<D, T, DeviceType> subdomain_array({chunck_shape}, pitched);
-
-    SIZE dst_ld = domain_decomposed_size;
-    if (rev_domain_decomposed_dim >= 1) {
-      for (DIM d = 0; d < rev_domain_decomposed_dim; d++) {
-        dst_ld *= rev_shape[d];
-      }
-    }
-
-    SIZE src_ld = 1;
-    for (DIM d = 0; d < rev_domain_decomposed_dim + 1; d++) {
-      src_ld *= rev_shape[d];
-    }
-    SIZE n1 = dst_ld;
-    SIZE n2 = 1;
-    for (DIM d = rev_domain_decomposed_dim + 1; d < D; d++) {
-      n2 *= rev_shape[d];
-    }
-
-    T *src_ptr = data + n1 * (i);
-
-    // std::cout << "src_ptr:" << src_ptr << " "
-    //           << "src_ld:" << src_ld << " "
-    //           << "chunck_data:" << chunck_data << " "
-    //           << "dst_ld:" << dst_ld << " "
-    //           << "n1:" << n1 << " "
-    //           << "n2:" << n2 << "\n";
-
-    MemoryManager<DeviceType>::CopyND(subdomain_array.data(), dst_ld, src_ptr, src_ld, n1,
-                                      n2, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-    // decomposed_data.push_back(chunck_data);
-    decomposed_data.push_back(subdomain_array);
-  }
-  SIZE leftover_dim_size =
-      shape[domain_decomposed_dim] % domain_decomposed_size;
-  if (leftover_dim_size != 0) {
-    std::vector<SIZE> leftover_shape = shape;
-    leftover_shape[domain_decomposed_dim] = leftover_dim_size;
-    SIZE elem_leftover = 1;
-    for (DIM d = 0; d < leftover_shape.size(); d++) {
-      elem_leftover *= leftover_shape[d];
-    }
-    // T *leftover_data;
-    // MemoryManager<DeviceType>::MallocHost(leftover_data, elem_leftover, 0);
-    // DeviceRuntime<DeviceType>::SyncQueue(0);
-    Array<D, T, DeviceType> subdomain_array({leftover_shape}, pitched);
-
-    SIZE dst_ld = leftover_dim_size;
-    if (rev_domain_decomposed_dim >= 1) {
-      for (DIM d = 0; d < rev_domain_decomposed_dim; d++) {
-        dst_ld *= rev_shape[d];
-      }
-    }
-    SIZE src_ld = 1;
-    for (DIM d = 0; d < rev_domain_decomposed_dim + 1; d++) {
-      src_ld *= rev_shape[d];
-    }
-    SIZE n1 = dst_ld;
-    SIZE n2 = 1;
-    for (DIM d = rev_domain_decomposed_dim + 1; d < D; d++) {
-      n2 *= rev_shape[d];
-    }
-
-    T *src_ptr = data + n1 * decomposed_data.size();
-
-    MemoryManager<DeviceType>::CopyND(subdomain_array.data(), dst_ld, src_ptr, src_ld,
-                                      n1, n2, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-    // decomposed_data.push_back(leftover_data);
-    decomposed_data.push_back(subdomain_array);
-  }
-}
-
-template <DIM D, typename T, typename DeviceType>
-void domain_recompose2(std::vector<Array<D, T, DeviceType>>& decomposed_data, T *data,
-                      std::vector<SIZE> shape, DIM domain_decomposed_dim,
-                      SIZE domain_decomposed_size) {
-  std::vector<SIZE> chunck_shape = shape;
-  chunck_shape[domain_decomposed_dim] = domain_decomposed_size;
-  std::vector<SIZE> rev_shape = shape;
-  std::reverse(rev_shape.begin(), rev_shape.end());
-  DIM rev_domain_decomposed_dim = D - 1 - domain_decomposed_dim;
-  SIZE elem_per_chunk = 1;
-  for (DIM d = 0; d < chunck_shape.size(); d++) {
-    elem_per_chunk *= chunck_shape[d];
-  }
-  for (SIZE i = 0; i < shape[domain_decomposed_dim]/domain_decomposed_size; i++) {
-    // T *chunck_data = decomposed_data[i / domain_decomposed_size];
-    Array<D, T, DeviceType> &chunck_data = decomposed_data[i];
-
-    SIZE dst_ld = domain_decomposed_size;
-    if (rev_domain_decomposed_dim >= 1) {
-      for (DIM d = 0; d < rev_domain_decomposed_dim; d++) {
-        dst_ld *= rev_shape[d];
-      }
-    }
-
-    SIZE src_ld = 1;
-    for (DIM d = 0; d < rev_domain_decomposed_dim + 1; d++) {
-      src_ld *= rev_shape[d];
-    }
-    SIZE n1 = dst_ld;
-    SIZE n2 = 1;
-    for (DIM d = rev_domain_decomposed_dim + 1; d < D; d++) {
-      // printf("d: %u\n", d);
-      n2 *= rev_shape[d];
-    }
-
-    T *src_ptr = data + n1 * (i);
-
-    // std::cout << "src_ptr:" << src_ptr << " "
-    //           << "src_ld:" << src_ld << " "
-    //           << "chunck_data:" << chunck_data << " "
-    //           << "dst_ld:" << dst_ld << " "
-    //           << "n1:" << n1 << " "
-    //           << "n2:" << n2 << "\n";
-    MemoryManager<DeviceType>::CopyND(src_ptr, src_ld, chunck_data.data(), dst_ld, n1,
-                                      n2, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-  }
-  SIZE leftover_dim_size =
-      shape[domain_decomposed_dim] % domain_decomposed_size;
-  if (leftover_dim_size != 0) {
-    std::vector<SIZE> leftover_shape = shape;
-    leftover_shape[domain_decomposed_dim] = leftover_dim_size;
-    SIZE elem_leftover = 1;
-    for (DIM d = 0; d < leftover_shape.size(); d++) {
-      elem_leftover *= leftover_shape[d];
-    }
-    // T *leftover_data = decomposed_data[decomposed_data.size() - 1];
-    Array<D, T, DeviceType> &leftover_data = decomposed_data[decomposed_data.size() - 1];
-
-    SIZE dst_ld = leftover_dim_size;
-    if (rev_domain_decomposed_dim >= 1) {
-      for (DIM d = 0; d < rev_domain_decomposed_dim; d++) {
-        dst_ld *= rev_shape[d];
-      }
-    }
-    SIZE src_ld = 1;
-    for (DIM d = 0; d < rev_domain_decomposed_dim + 1; d++) {
-      src_ld *= rev_shape[d];
-    }
-    SIZE n1 = dst_ld;
-    SIZE n2 = 1;
-    for (DIM d = rev_domain_decomposed_dim + 1; d < D; d++) {
-      n2 *= rev_shape[d];
-    }
-
-    T *src_ptr = data + n1 * decomposed_data.size();
-
-    MemoryManager<DeviceType>::CopyND(src_ptr, src_ld, leftover_data.data(), dst_ld,
-                                      n1, n2, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-  }
-}
-
-template <DIM D, typename T, typename DeviceType>
 T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &decomposed_data, T s, int uniform_coord_mode,
                        SIZE total_num_elem) {
   T norm = 0;
@@ -513,6 +339,29 @@ T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &decomposed_data, T 
   return norm;
 }
 
+template <typename T>
+T calc_local_abs_tol(enum error_bound_type ebtype, T norm, T tol, T s, SIZE num_subdomain) {
+  T local_abs_tol;
+  if (ebtype == error_bound_type::REL) {
+    if (s == std::numeric_limits<T>::infinity()) {
+      log::info("L_inf norm: " + std::to_string(norm));
+      local_abs_tol = tol * norm;
+    } else {
+      log::info("L_2 norm: " + std::to_string(norm));
+      local_abs_tol = std::sqrt((tol * norm) * (tol * norm) / num_subdomain);
+    }
+  } else {
+    if (s == std::numeric_limits<T>::infinity()) {
+      local_abs_tol = tol;
+    } else {
+      local_abs_tol = std::sqrt((tol * tol) / num_subdomain);
+    }
+  }
+  log::info("local abs tol: " + std::to_string(local_abs_tol));
+  return local_abs_tol;
+}
+
+
 template <typename DeviceType>
 void load(Config& config, Metadata<DeviceType>& metadata) {
   config.decomposition = metadata.decomposition;
@@ -540,7 +389,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
   config.apply();
 
   if (config.num_dev <= 0) {
-    log::err("Number of device needs to he greater than 0.");
+    log::err("Number of device needs to be greater than 0.");
     exit(-1);
   }
   int adjusted_num_dev = std::min(DeviceRuntime<DeviceType>::GetDeviceCount(), config.num_dev);
@@ -631,6 +480,8 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     local_tol = calc_local_abs_tol(type, norm, tol, s, subdomain_data.size());
     // Force to use ABS mode when do domain decomposition
     local_ebtype = error_bound_type::ABS;
+    // Fast copy for domain decomposition need we disable pitched memory allocation
+    MemoryManager<CUDA>::ReduceMemoryFootprint = true;
 
     if (log::level & log::TIME) {
       timer_each.end();
@@ -784,7 +635,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     total_num_elem *= shape[i];
 
   if (config.num_dev <= 0) {
-    log::err("Number of device needs to he greater than 0.");
+    log::err("Number of device needs to be greater than 0.");
     exit(-1);
   }
 
@@ -876,6 +727,8 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     local_tol = calc_local_abs_tol(m.ebtype, m.norm, m.tol, m.s, subdomain_hierarchy.size());
     // Force to use ABS mode when do domain decomposition
     local_ebtype = error_bound_type::ABS;
+    // Fast copy for domain decomposition need we disable pitched memory allocation
+    MemoryManager<CUDA>::ReduceMemoryFootprint = true;
   }
 
   SIZE byte_offset = m.metadata_size;
@@ -968,9 +821,14 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   if (!hierarchy.domain_decomposed) {
     if (log::level & log::TIME) timer_each.start();
-    MemoryManager<DeviceType>::Copy1D(decompressed_data,
-                                      (void *)subdomain_data[0].data(),
-                                      total_num_elem * sizeof(T), 0);
+    // MemoryManager<DeviceType>::Copy1D(decompressed_data,
+    //                                   (void *)subdomain_data[0].data(),
+    //                                   total_num_elem * sizeof(T), 0);
+    MemoryManager<DeviceType>::CopyND(
+          decompressed_data, subdomain_data[0].shape(D - 1) * sizeof(T), (void *)subdomain_data[0].data(),
+          subdomain_data[0].ld(D - 1) * sizeof(T), subdomain_data[0].shape(D - 1) * sizeof(T),
+          (SIZE)hierarchy.linearized_width(), 0);
+
     DeviceRuntime<DeviceType>::SyncQueue(0);
     if (log::level & log::TIME) {
       timer_each.end();
@@ -1000,6 +858,8 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
               + " GB/s");
     timer_total.clear();
   }
+
+  
 }
 
 template <typename DeviceType>

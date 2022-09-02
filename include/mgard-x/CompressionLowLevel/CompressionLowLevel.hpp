@@ -106,10 +106,12 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     SubArray<1, T, DeviceType> temp_subarray;
     Array<1, T, DeviceType> norm_array({1});
     SubArray<1, T, DeviceType> norm_subarray(norm_array);
-    if (MemoryManager<DeviceType>::ReduceMemoryFootprint) { // zero copy
+    if (!in_array.isPitched()) { // zero copy
+      log::info("Use zero copy when calculating norm\n");
       temp_subarray =
           SubArray<1, T, DeviceType>({total_elems}, in_array.data());
     } else { // need to linearized
+      log::info("Explicit copy used when calculating norm\n");
       temp_array = Array<1, T, DeviceType>({(SIZE)total_elems}, false);
       MemoryManager<DeviceType>::CopyND(
           temp_array.data(), in_array.shape(D - 1), in_array.data(),
@@ -578,7 +580,6 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
   delete[] quantizers;
 
-  
   LevelwiseLinearQuantizerND<D, T, MGARDX_DEQUANTIZE, DeviceType>().Execute(
       level_ranges_subarray,
       hierarchy.l_target(), quantizers_subarray,
