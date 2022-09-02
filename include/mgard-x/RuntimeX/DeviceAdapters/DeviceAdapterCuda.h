@@ -538,6 +538,9 @@ public:
   cudaStream_t **streams = NULL;
 };
 
+extern int cuda_dev_id;
+#pragma omp threadprivate(cuda_dev_id)
+
 template <> class DeviceRuntime<CUDA> {
 public:
   MGARDX_CONT
@@ -547,24 +550,24 @@ public:
 
   MGARDX_CONT static void SelectDevice(SIZE dev_id) {
     gpuErrchk(cudaSetDevice(dev_id));
-    curr_dev_id = dev_id;
+    cuda_dev_id = dev_id;
   }
 
   MGARDX_CONT static int GetDevice() {
-    gpuErrchk(cudaGetDevice(&curr_dev_id));
-    return curr_dev_id;
+    gpuErrchk(cudaGetDevice(&cuda_dev_id));
+    return cuda_dev_id;
   }
 
   MGARDX_CONT static cudaStream_t GetQueue(SIZE queue_id) {
-    return queues.GetQueue(curr_dev_id, queue_id);
+    return queues.GetQueue(cuda_dev_id, queue_id);
   }
 
   MGARDX_CONT static void SyncQueue(SIZE queue_id) {
-    queues.SyncQueue(curr_dev_id, queue_id);
+    queues.SyncQueue(cuda_dev_id, queue_id);
   }
 
   MGARDX_CONT static void SyncAllQueues() {
-    queues.SyncAllQueues(curr_dev_id);
+    queues.SyncAllQueues(cuda_dev_id);
   }
 
   MGARDX_CONT static void SyncDevice() {
@@ -572,39 +575,39 @@ public:
   }
 
   MGARDX_CONT static std::string GetDeviceName() {
-    return DeviceSpecs.GetDeviceName(curr_dev_id);
+    return DeviceSpecs.GetDeviceName(cuda_dev_id);
   }
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
-    return DeviceSpecs.GetMaxSharedMemorySize(curr_dev_id);
+    return DeviceSpecs.GetMaxSharedMemorySize(cuda_dev_id);
   }
 
   MGARDX_CONT static int GetWarpSize() {
-    return DeviceSpecs.GetWarpSize(curr_dev_id);
+    return DeviceSpecs.GetWarpSize(cuda_dev_id);
   }
 
   MGARDX_CONT static int GetNumSMs() {
-    return DeviceSpecs.GetNumSMs(curr_dev_id);
+    return DeviceSpecs.GetNumSMs(cuda_dev_id);
   }
 
   MGARDX_CONT static int GetArchitectureGeneration() {
-    return DeviceSpecs.GetArchitectureGeneration(curr_dev_id);
+    return DeviceSpecs.GetArchitectureGeneration(cuda_dev_id);
   }
 
   MGARDX_CONT static int GetMaxNumThreadsPerSM() {
-    return DeviceSpecs.GetMaxNumThreadsPerSM(curr_dev_id);
+    return DeviceSpecs.GetMaxNumThreadsPerSM(cuda_dev_id);
   }
 
   MGARDX_CONT static int GetMaxNumThreadsPerTB() {
-    return DeviceSpecs.GetMaxNumThreadsPerTB(curr_dev_id);
+    return DeviceSpecs.GetMaxNumThreadsPerTB(cuda_dev_id);
   }
 
   MGARDX_CONT static size_t GetAvailableMemory() {
-    return DeviceSpecs.GetAvailableMemory(curr_dev_id);
+    return DeviceSpecs.GetAvailableMemory(cuda_dev_id);
   }
 
   MGARDX_CONT static bool SupportCG() {
-    return DeviceSpecs.SupportCG(curr_dev_id);
+    return DeviceSpecs.SupportCG(cuda_dev_id);
   }
 
   template <typename FunctorType>

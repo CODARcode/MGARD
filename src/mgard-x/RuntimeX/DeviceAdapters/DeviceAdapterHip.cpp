@@ -9,6 +9,7 @@
 
 namespace mgard_x {
 
+int hip_dev_id = 0;
 DeviceQueues<HIP> DeviceRuntime<HIP>::queues;
 DeviceSpecification<HIP> DeviceRuntime<HIP>::DeviceSpecs;
 
