@@ -9,6 +9,7 @@
 
 namespace mgard_x {
 
+int sycl_dev_id = 0;
 DeviceQueues<SYCL> DeviceRuntime<SYCL>::queues;
 DeviceSpecification<SYCL> DeviceRuntime<SYCL>::DeviceSpecs;
 
