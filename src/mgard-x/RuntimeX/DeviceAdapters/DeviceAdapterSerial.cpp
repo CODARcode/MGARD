@@ -9,6 +9,7 @@
 
 namespace mgard_x {
 
+int serial_dev_id = 0;
 DeviceQueues<SERIAL> DeviceRuntime<SERIAL>::queues;
 DeviceSpecification<SERIAL> DeviceRuntime<SERIAL>::DeviceSpecs;
 

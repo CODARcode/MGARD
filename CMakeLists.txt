@@ -348,14 +348,13 @@ if(MGARD_ENABLE_OPENMP)
   find_package(OpenMP)
   if(OpenMP_FOUND)
     target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
-    if (MGARD_ENABLE_CUDA)
-      # A bug in CMake causing the '-fopenmp' flag missing when compiling device units during separate compilation
-      # Reference: github.com/pkestene/cuda-proj-tmpl/blob/master/src/CMakeLists.txt
-      target_compile_options(mgard-library PUBLIC
-        $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>
-        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler ${OpenMP_CXX_FLAGS}>
-      )
-    endif()
+    # A bug in CMake causing the '-fopenmp' flag missing when compiling device units during separate compilation
+    # Reference: github.com/pkestene/cuda-proj-tmpl/blob/master/src/CMakeLists.txt
+    target_compile_options(mgard-library PUBLIC
+      $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>
+      $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler ${OpenMP_CXX_FLAGS}>
+      $<$<COMPILE_LANGUAGE:HIP>:${OpenMP_CXX_FLAGS}>
+    )
   endif()
 endif()
 
