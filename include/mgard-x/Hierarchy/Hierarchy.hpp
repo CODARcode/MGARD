@@ -647,6 +647,9 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
   }
   if (ret == -2) {
     log::err("Size of any dimension cannot be smaller than 3. mgard_x::Hierarchy not initialized!");
+    std::stringstream ss;
+    for (DIM d = 0; d < D; d++) ss << shape[d] << " ";
+    log::err("Input shape: " + ss.str());
     exit(-1);
   }
   dstype = data_structure_type::Cartesian_Grid_Uniform;
