@@ -875,7 +875,16 @@ public:
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
-    std::memcpy(dst_ptr, src_ptr, sizeof(converted_T) * n1 * n2);
+    if ((dst_ld == n1) && (src_ld == n1)) {
+      // Can copy all rows at once
+      std::memcpy(dst_ptr, src_ptr, sizeof(converted_T) * n1 * n2);
+    } else {
+      // There is padding in between rows in memory. Must copy each row.
+      for (SIZE row = 0; row < n2; ++row) {
+        std::memcpy(dst_ptr + row * dst_ld, src_ptr + row * src_ld,
+                    sizeof(converted_T) * n1);
+      }
+    }
   }
 
   template <typename T>
