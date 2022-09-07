@@ -15,10 +15,6 @@
 // Serial backend should be always available
 #include "DeviceAdapters/DeviceAdapterSerial.h"
 
-#if MGARD_ENABLE_OPENMP
-#include <omp.h>
-#endif
-
 #if MGARD_ENABLE_CUDA
 #ifdef MGARDX_COMPILE_CUDA
 #include "DeviceAdapters/DeviceAdapterCuda.h"
@@ -39,6 +35,10 @@
 
 #if RUNTIME_X_ENABLE_KOKKOS
 #include "DeviceAdapters/DeviceAdapterKokkos.h"
+#endif
+
+#if MGARD_ENABLE_MULTI_DEVICE
+#include <omp.h>
 #endif
 
 #include "Utilities/CheckShape.hpp"

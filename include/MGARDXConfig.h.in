@@ -38,10 +38,10 @@
 #define MGARD_ENABLE_LEGACY_CUDA 0   
 #endif
 
-#if '@MGARD_ENABLE_OPENMP@' == 'ON'
-#define MGARD_ENABLE_OPENMP 1
+#if '@MGARD_ENABLE_MULTI_DEVICE@' == 'ON'
+#define MGARD_ENABLE_MULTI_DEVICE 1
 #else
-#define MGARD_ENABLE_OPENMP 0   
+#define MGARD_ENABLE_MULTI_DEVICE 0   
 #endif
 
 #endif

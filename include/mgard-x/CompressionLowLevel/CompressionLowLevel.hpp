@@ -107,11 +107,11 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     Array<1, T, DeviceType> norm_array({1});
     SubArray<1, T, DeviceType> norm_subarray(norm_array);
     if (!in_array.isPitched()) { // zero copy
-      log::info("Use zero copy when calculating norm\n");
+      log::info("Use zero copy when calculating norm");
       temp_subarray =
           SubArray<1, T, DeviceType>({total_elems}, in_array.data());
     } else { // need to linearized
-      log::info("Explicit copy used when calculating norm\n");
+      log::info("Explicit copy used when calculating norm");
       temp_array = Array<1, T, DeviceType>({(SIZE)total_elems}, false);
       MemoryManager<DeviceType>::CopyND(
           temp_array.data(), in_array.shape(D - 1), in_array.data(),
