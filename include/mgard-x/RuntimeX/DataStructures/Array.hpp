@@ -56,7 +56,7 @@ void Array<D, T, DeviceType>::initialize(std::vector<SIZE> shape) {
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::allocate(bool pitched, bool managed,
                                        int queue_idx) {
-  this->pitched = pitched;
+  this->pitched = pitched && !MemoryManager<DeviceType>::ReduceMemoryFootprint;
   this->managed = managed;
   if (this->pitched) {
     if (!this->managed) {
