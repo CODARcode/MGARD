@@ -494,7 +494,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
 
   // Set the number of threads equal to the number of devices
   // So that each thread is responsible for one device
-#if MGARD_ENABLE_OPENMP
+#if MGARD_ENABLE_MULTI_DEVICE
   omp_set_num_threads(adjusted_num_dev);
 #endif
   #pragma omp parallel for firstprivate(config)
@@ -513,7 +513,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
       ss << subdomain_hierarchy[i].level_shape(
                        subdomain_hierarchy[i].l_target(), d)
                 << " ";
-#if MGARD_ENABLE_OPENMP
+#if MGARD_ENABLE_MULTI_DEVICE
     log::info("Compressing subdomain " + std::to_string(i+1) + "/" +
                std::to_string(subdomain_data.size()) + " with shape: " + ss.str() +
                "on thread " + std::to_string(omp_get_thread_num()+1) + "/" +
@@ -757,7 +757,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   // decompress
   // Set the number of threads equal to the number of devices
   // So that each thread is responsible for one device
-#if MGARD_ENABLE_OPENMP
+#if MGARD_ENABLE_MULTI_DEVICE
   omp_set_num_threads(adjusted_num_dev);
 #endif
   #pragma omp parallel for firstprivate(config)
@@ -777,7 +777,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       ss << subdomain_hierarchy[i].level_shape(
                        subdomain_hierarchy[i].l_target(), d)
                 << " ";
-#if MGARD_ENABLE_OPENMP
+#if MGARD_ENABLE_MULTI_DEVICE
     log::info("Decompressing subdomain " + std::to_string(i+1) + "/" +
                std::to_string(compressed_subdomain_data.size()) + " with shape: " + ss.str() +
                "on thread " + std::to_string(omp_get_thread_num()+1) + "/" +
