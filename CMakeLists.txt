@@ -39,6 +39,7 @@ option(MGARD_ENABLE_SERIAL "Enable SERIAL support" ON)
 option(MGARD_ENABLE_HIP "Enable HIP support" OFF)
 option(MGARD_ENABLE_SYCL "Enable SYCL support" OFF)
 option(MGARD_ENABLE_LEGACY_CUDA "Enable legacy CUDA support" OFF)
+option(MGARD_ENABLE_MULTI_DEVICE "Enable multi-device" OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)
 
@@ -344,17 +345,22 @@ if(MGARD_ENABLE_LEGACY_CUDA)
   target_link_libraries(mgard-library PUBLIC nvcomp::nvcomp CUDA::cudart)
 endif()
 
-if(MGARD_ENABLE_OPENMP)
-  find_package(OpenMP)
-  if(OpenMP_FOUND)
-    target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
-    # A bug in CMake causing the '-fopenmp' flag missing when compiling device units during separate compilation
+if(MGARD_ENABLE_MULTI_DEVICE)
+  find_package(OpenMP REQUIRED)
+  target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
+  # A bug in CMake causing the '-fopenmp' flag missing when compiling device units during separate compilation
     # Reference: github.com/pkestene/cuda-proj-tmpl/blob/master/src/CMakeLists.txt
     target_compile_options(mgard-library PUBLIC
       $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>
       $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler ${OpenMP_CXX_FLAGS}>
       $<$<COMPILE_LANGUAGE:HIP>:${OpenMP_CXX_FLAGS}>
     )
+endif()
+
+if(MGARD_ENABLE_OPENMP)
+  find_package(OpenMP)
+  if(OpenMP_FOUND)
+    target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
   endif()
 endif()
 
@@ -458,10 +464,9 @@ message(STATUS "Options:")
 list(APPEND CMAKE_MESSAGE_INDENT "  ")
 message(STATUS "build type:    ${CMAKE_BUILD_TYPE}")
 message(STATUS "shared libs:   ${BUILD_SHARED_LIBS}")
-message(STATUS "MGARD-X portable backends:")
+message(STATUS "portable backends:")
 list(APPEND CMAKE_MESSAGE_INDENT "  ")
 message(STATUS "SERIAL:      ${MGARD_ENABLE_SERIAL}")
-message(STATUS "OPENMP:      ${MGARD_ENABLE_OPENMP}")
 message(STATUS "CUDA:        ${MGARD_ENABLE_CUDA}")
 if (MGARD_ENABLE_CUDA)
   list(APPEND CMAKE_MESSAGE_INDENT "  ")
@@ -482,6 +487,7 @@ if (MGARD_ENABLE_LEGACY_CUDA)
   message(STATUS "CUDA Arch: ${CMAKE_CUDA_ARCHITECTURES}")
   list(POP_BACK CMAKE_MESSAGE_INDENT)
 endif()
+message(STATUS "multi-device:  ${MGARD_ENABLE_MULTI_DEVICE}")
 message(STATUS "timing:        ${MGARD_ENABLE_TIMING}")
 message(STATUS "ASan:          ${MGARD_ENABLE_ASAN}")
 message(STATUS "UBSan:         ${MGARD_ENABLE_UBSAN}")
