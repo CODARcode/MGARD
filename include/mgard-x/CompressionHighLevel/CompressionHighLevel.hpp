@@ -481,7 +481,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     // Force to use ABS mode when do domain decomposition
     local_ebtype = error_bound_type::ABS;
     // Fast copy for domain decomposition need we disable pitched memory allocation
-    MemoryManager<CUDA>::ReduceMemoryFootprint = true;
+    MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
 
     if (log::level & log::TIME) {
       timer_each.end();
@@ -728,7 +728,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     // Force to use ABS mode when do domain decomposition
     local_ebtype = error_bound_type::ABS;
     // Fast copy for domain decomposition need we disable pitched memory allocation
-    MemoryManager<CUDA>::ReduceMemoryFootprint = true;
+    MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
   }
 
   SIZE byte_offset = m.metadata_size;

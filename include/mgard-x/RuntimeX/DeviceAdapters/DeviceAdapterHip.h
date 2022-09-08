@@ -755,18 +755,10 @@ public:
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    // This may not be necessary
-    if (!IsDevicePointer(dst_ptr) && !IsDevicePointer(src_ptr)) {
-      for (SIZE i = 0; i < n2; i++) {
-        memcpy(dst_ptr + i * dst_ld, src_ptr + i * src_ld,
-               n1 * sizeof(converted_T));
-      }
-    } else {
-      gpuErrchk(hipMemcpy2DAsync(dst_ptr, dst_ld * sizeof(converted_T), src_ptr,
-                                 src_ld * sizeof(converted_T),
-                                 n1 * sizeof(converted_T), n2, hipMemcpyDefault,
-                                 stream));
-    }
+    gpuErrchk(hipMemcpy2DAsync(dst_ptr, dst_ld * sizeof(converted_T), src_ptr,
+                               src_ld * sizeof(converted_T),
+                               n1 * sizeof(converted_T), n2, hipMemcpyDefault,
+                               stream));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<HIP>::SyncQueue(queue_idx);
     }
