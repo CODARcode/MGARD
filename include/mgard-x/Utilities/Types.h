@@ -54,10 +54,4 @@ enum class domain_decomposition_type : uint8_t { MaxDim, Linearize };
 #include <string>
 #include <vector>
 
-// #include "RuntimeX/DataStructures/Array.h"
-#include "../Hierarchy/Hierarchy.h"
-// #include "RuntimeX/Messages/Message.h"
-// #include "ErrorCalculator.h"
-// #include "MemoryManagement.h"
-
 #endif

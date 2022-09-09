@@ -7,7 +7,7 @@
 
 #include "mgard-x/RuntimeX/RuntimeXPublic.h"
 #include "mgard-x/Utilities/Types.h"
-#include "mgard-x/Config/Config.hpp"
+#include "mgard-x/Config/Config.h"
 #include <cstdint>
 
 #ifndef MGARD_X_API_H

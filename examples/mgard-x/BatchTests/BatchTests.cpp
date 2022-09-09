@@ -130,7 +130,7 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol, T s,
   } else {
     mgard_x::Config config;
     config.lossless = mgard_x::lossless_type::Huffman;
-    config.uniform_coord_mode = 1;
+    config.normalize_coordinates = true;
     mgard_x::data_type dtype;
     if (std::is_same<T, double>::value) {
       dtype = mgard_x::data_type::Double;
@@ -201,7 +201,7 @@ void decompression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol,
   } else {
     mgard_x::Config config;
     config.lossless = mgard_x::lossless_type::Huffman;
-    config.uniform_coord_mode = 1;
+    config.normalize_coordinates = true;
     mgard_x::data_type dtype;
     if (std::is_same<T, double>::value) {
       dtype = mgard_x::data_type::Double;
