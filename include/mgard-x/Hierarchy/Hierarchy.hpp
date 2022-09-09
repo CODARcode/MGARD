@@ -520,22 +520,18 @@ void Hierarchy<D, T, DeviceType>::destroy() {
 template <DIM D, typename T, typename DeviceType>
 std::vector<T *>
 Hierarchy<D, T, DeviceType>::create_uniform_coords(std::vector<SIZE> shape,
-                                                   int uniform_coord_mode) {
+                                                   bool normalize_coordinates) {
 
   std::vector<T *> coords(D);
   for (int d = 0; d < D; d++) {
     T *curr_coords = new T[shape[d]];
     for (int i = 0; i < shape[d]; i++) {
       // 0...n-1
-      if (uniform_coord_mode == 0) {
+      if (!normalize_coordinates) {
         curr_coords[i] = (T)i;
-      } else if (uniform_coord_mode == 1) {
+      } else {
         // 0...1
         curr_coords[i] = (T)i / (shape[d] - 1);
-      } else {
-        log::err("wrong uniform coordinates mode("
-                  + std::to_string(uniform_coord_mode) + ") !");
-        exit(-1);
       }
     }
     coords[d] = curr_coords;
@@ -558,7 +554,7 @@ template <typename T> void printShape(std::string name, std::vector<T> shape) {
 
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
-                                                   int uniform_coord_mode) {
+                                                   Config config) {
   if (domain_decomposed_size < 3) {
     log::err("domain decomposition with reduce dimension not implemented.");
     exit(-1);
@@ -571,7 +567,7 @@ void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
     // printShape("Decomposed domain " +
     // std::to_string(hierarchy_chunck.size()), chunck_shape);
     hierarchy_chunck.push_back(
-        Hierarchy<D, T, DeviceType>(chunck_shape, uniform_coord_mode));
+        Hierarchy<D, T, DeviceType>(chunck_shape, config));
   }
 
   SIZE leftover_dim_size =
@@ -582,13 +578,14 @@ void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
     // printShape("Decomposed domain " +
     // std::to_string(hierarchy_chunck.size()), leftover_shape);
     hierarchy_chunck.push_back(
-        Hierarchy<D, T, DeviceType>(leftover_shape, uniform_coord_mode));
+        Hierarchy<D, T, DeviceType>(leftover_shape, config));
   }
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
-                                                   std::vector<T *> &coords) {
+                                                   std::vector<T *> &coords,
+                                                   Config config) {
   if (domain_decomposed_size < 3) {
     log::err("domain decomposition with reduce dimension not implemented.");
     exit(-1);
@@ -607,7 +604,7 @@ void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
       decompose_dim_coord[j] -= decompose_dim_coord[0];
     chunck_coords[domain_decomposed_dim] = decompose_dim_coord;
     hierarchy_chunck.push_back(
-        Hierarchy<D, T, DeviceType>(chunck_shape, chunck_coords));
+        Hierarchy<D, T, DeviceType>(chunck_shape, chunck_coords, config));
     delete[] decompose_dim_coord;
   }
   SIZE leftover_dim_size =
@@ -627,7 +624,7 @@ void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
       decompose_dim_coord[j] -= decompose_dim_coord[0];
     leftover_coords[domain_decomposed_dim] = decompose_dim_coord;
     hierarchy_chunck.push_back(
-        Hierarchy<D, T, DeviceType>(leftover_shape, leftover_coords));
+        Hierarchy<D, T, DeviceType>(leftover_shape, leftover_coords, config));
     delete[] decompose_dim_coord;
   }
 }
@@ -638,7 +635,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy() {}
 
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
-                                       int uniform_coord_mode,
+                                       Config config,
                                        SIZE target_level) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
@@ -653,7 +650,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
     exit(-1);
   }
   dstype = data_structure_type::Cartesian_Grid_Uniform;
-  std::vector<T *> coords = create_uniform_coords(shape, uniform_coord_mode);
+  std::vector<T *> coords = create_uniform_coords(shape, config.normalize_coordinates);
   init(shape, coords, target_level);
   assert(uniform_coords_created);
   assert(coords.size() == D);
@@ -664,6 +661,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        std::vector<T *> coords,
+                                       Config config,
                                        SIZE target_level) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
@@ -683,20 +681,21 @@ template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        DIM domain_decomposed_dim,
                                        SIZE domain_decomposed_size,
-                                       int uniform_coord_mode) {
+                                       Config config) {
   this->domain_decomposed_dim = domain_decomposed_dim;
   this->domain_decomposed_size = domain_decomposed_size;
-  domain_decompose(shape, uniform_coord_mode);
+  domain_decompose(shape, config);
 }
 
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        DIM domain_decomposed_dim,
                                        SIZE domain_decomposed_size,
-                                       std::vector<T *> coords) {
+                                       std::vector<T *> coords,
+                                       Config config) {
   this->domain_decomposed_dim = domain_decomposed_dim;
   this->domain_decomposed_size = domain_decomposed_size;
-  domain_decompose(shape, coords);
+  domain_decompose(shape, coords, config);
 }
 
 template <DIM D, typename T, typename DeviceType>

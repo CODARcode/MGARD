@@ -1,3 +1,4 @@
+add_subdirectory (Config)
 add_subdirectory (DataRefactoring)
 add_subdirectory (CompressionLowLevel)
 add_subdirectory (CompressionHighLevel)

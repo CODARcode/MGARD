@@ -217,7 +217,7 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 template <typename T>
 void print_statistics(double s, enum mgard_x::error_bound_type mode,
                       std::vector<mgard_x::SIZE> shape, T *original_data,
-                      T *decompressed_data, T tol, int uniform_coord_mode) {
+                      T *decompressed_data, T tol, bool normalize_coordinates) {
   mgard_x::SIZE n = 1;
   for (mgard_x::DIM d = 0; d < shape.size(); d++)
     n *= shape[d];
@@ -243,7 +243,7 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode,
     }
   } else {
     actual_error = mgard_x::L_2_error(shape, original_data, decompressed_data,
-                                      mode, uniform_coord_mode);
+                                      mode, normalize_coordinates);
     if (mode == mgard_x::error_bound_type::ABS) {
       std::cout << mgard_x::log::log_info
                 << "Absoluate L_2 error: " << actual_error << " ("
@@ -297,7 +297,6 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   mgard_x::Config config;
   config.log_level = verbose_to_log_level(verbose);
   config.decomposition = mgard_x::decomposition_type::MultiDim;
-  config.uniform_coord_mode = 1;
   config.dev_type = dev_type;
   config.num_dev = num_dev;
   config.zstd_compress_level = 1;
@@ -370,7 +369,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                         config, false);
 
     print_statistics<T>(s, mode, shape, original_data, (T *)decompressed_data,
-                        tol, config.uniform_coord_mode);
+                        tol, config.normalize_coordinates);
   }
 
   delete[](T *) original_data;

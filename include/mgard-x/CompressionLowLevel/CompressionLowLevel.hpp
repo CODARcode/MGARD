@@ -14,7 +14,7 @@
 #include "../Utilities/Types.h"
 
 #include "../Hierarchy/Hierarchy.hpp"
-#include "../Config/Config.hpp"
+#include "../Config/Config.h"
 #include "../RuntimeX/RuntimeX.h"
 #include "CompressionLowLevel.h"
 
@@ -131,7 +131,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
                                               norm_subarray, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       norm = norm_array.hostCopy()[0];
-      if (config.uniform_coord_mode == 0) {
+      if (!config.normalize_coordinates) {
         norm = std::sqrt(norm);
       } else {
         norm = std::sqrt(norm / total_elems);
