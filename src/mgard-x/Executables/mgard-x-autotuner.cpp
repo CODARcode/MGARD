@@ -33,7 +33,6 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     enum mgard_x::device_type dev_type) {
 
   mgard_x::Config config;
-  config.uniform_coord_mode = 0;
   config.dev_type = dev_type;
   config.lossless = mgard_x::lossless_type::Huffman;
 

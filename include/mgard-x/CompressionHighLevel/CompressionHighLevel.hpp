@@ -14,7 +14,7 @@
 #include "../Hierarchy/Hierarchy.hpp"
 #include "../RuntimeX/RuntimeX.h"
 #include "Metadata.hpp"
-#include "../Config/Config.hpp"
+#include "../Config/Config.h"
 #include "compress_x.hpp"
 
 #include "../CompressionLowLevel/CompressionLowLevel.h"
@@ -308,7 +308,7 @@ void domain_recompose(std::vector<Array<D, T, DeviceType>>& decomposed_data, T *
 }
 
 template <DIM D, typename T, typename DeviceType>
-T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &decomposed_data, T s, int uniform_coord_mode,
+T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &decomposed_data, T s, bool normalize_coordinates,
                        SIZE total_num_elem) {
   T norm = 0;
   
@@ -330,7 +330,7 @@ T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &decomposed_data, T 
     }
   }
   if (s != std::numeric_limits<T>::infinity()) {
-    if (uniform_coord_mode == 0) {
+    if (!normalize_coordinates) {
       norm = std::sqrt(norm);
     } else {
       norm = std::sqrt(norm / total_num_elem);
@@ -405,9 +405,9 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
 
   if (!need_domain_decomposition<D, T, DeviceType>(shape) && adjusted_num_dev == 1) {
     if (uniform) {
-      hierarchy = Hierarchy<D, T, DeviceType>(shape, config.uniform_coord_mode);
+      hierarchy = Hierarchy<D, T, DeviceType>(shape, config);
     } else {
-      hierarchy = Hierarchy<D, T, DeviceType>(shape, coords);
+      hierarchy = Hierarchy<D, T, DeviceType>(shape, coords, config);
     }
     num_subdomains = 1;
   } else {   
@@ -416,10 +416,10 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
                                           adjusted_num_dev);
     if (uniform) {
       hierarchy = Hierarchy<D, T, DeviceType>(shape, domain_decomposed_dim, domain_decomposed_size,
-                                              config.uniform_coord_mode);
+                                              config);
     } else {
       hierarchy = Hierarchy<D, T, DeviceType>(shape, domain_decomposed_dim, domain_decomposed_size,
-                                              coords);
+                                              coords, config);
     }
     num_subdomains = (shape[domain_decomposed_dim]-1)/domain_decomposed_size+1;
     assert(num_subdomains == hierarchy.hierarchy_chunck.size());
@@ -474,7 +474,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type
     if (log::level & log::TIME) timer_each.start();
     subdomain_hierarchy = hierarchy.hierarchy_chunck;
     if (type == error_bound_type::REL) {
-      norm = calc_norm_decomposed(subdomain_data, s, config.uniform_coord_mode, total_num_elem);
+      norm = calc_norm_decomposed(subdomain_data, s, config.normalize_coordinates, total_num_elem);
     }
 
     local_tol = calc_local_abs_tol(type, norm, tol, s, subdomain_data.size());
@@ -679,20 +679,20 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   if (!m.domain_decomposed) {
     if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
-      hierarchy = Hierarchy<D, T, DeviceType> (shape, config.uniform_coord_mode);
+      hierarchy = Hierarchy<D, T, DeviceType> (shape, config);
     } else {
-      hierarchy = Hierarchy<D, T, DeviceType> (shape, coords);
+      hierarchy = Hierarchy<D, T, DeviceType> (shape, coords, config);
     }
     num_subdomains = 1;
   } else {
     if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
       hierarchy = Hierarchy<D, T, DeviceType>(shape, m.domain_decomposed_dim,
                                             m.domain_decomposed_size,
-                                            config.uniform_coord_mode);
+                                            config);
     } else {
       hierarchy = Hierarchy<D, T, DeviceType>(shape, m.domain_decomposed_dim,
                                             m.domain_decomposed_size,
-                                            coords);
+                                            coords, config);
     }
     num_subdomains = (shape[m.domain_decomposed_dim]-1)/m.domain_decomposed_size+1;
   }
