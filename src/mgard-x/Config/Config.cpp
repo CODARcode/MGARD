@@ -5,7 +5,6 @@
  * Date: March 17, 2022
  */
 
-#include "mgard-x/RuntimeX/RuntimeXPublic.h"
 #include "mgard-x/Config/Config.h"
 
 namespace mgard_x {
@@ -29,8 +28,6 @@ Config::Config() {
   log_level = log::ERR;
 }
 
-void Config::apply() {
-  log::level = log_level;
-}
+void Config::apply() { log::level = log_level; }
 
-}
+} // namespace mgard_x

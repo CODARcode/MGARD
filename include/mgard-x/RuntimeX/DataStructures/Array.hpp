@@ -172,7 +172,6 @@ void Array<D, T, DeviceType>::load(const T *data, SIZE ld, int queue_idx) {
   }
   MemoryManager<DeviceType>::CopyND(dv, __ldvs[D - 1], data, ld, __shape[D - 1],
                                     linearized_width, queue_idx);
-
 }
 
 template <DIM D, typename T, typename DeviceType>

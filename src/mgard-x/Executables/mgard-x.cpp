@@ -377,7 +377,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 }
 
 int launch_decompress(const char *input_file, const char *output_file,
-                      enum mgard_x::device_type dev_type, int num_dev, int verbose) {
+                      enum mgard_x::device_type dev_type, int num_dev,
+                      int verbose) {
 
   mgard_x::Config config;
   config.log_level = verbose_to_log_level(verbose);
@@ -575,7 +576,8 @@ bool try_decompression(int argc, char *argv[]) {
 
   if (verbose)
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
-  launch_decompress(input_file.c_str(), output_file.c_str(), dev_type, num_dev, verbose);
+  launch_decompress(input_file.c_str(), output_file.c_str(), dev_type, num_dev,
+                    verbose);
   return true;
 }
 

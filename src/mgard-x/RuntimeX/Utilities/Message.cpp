@@ -12,7 +12,7 @@ namespace log {
 
 int INFO = 1;
 int TIME = 2;
-int DBG  = 4;
+int DBG = 4;
 int WARN = 8;
 int ERR = 16;
 

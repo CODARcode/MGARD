@@ -742,9 +742,7 @@ public:
     // do nothing
   }
 
-  MGARDX_CONT static int GetDevice() {
-    return serial_dev_id;
-  }
+  MGARDX_CONT static int GetDevice() { return serial_dev_id; }
 
   MGARDX_CONT static int GetQueue(SIZE queue_id) { return 0; }
 
