@@ -5,9 +5,9 @@
  * Date: March 17, 2022
  */
 
+#include "../Config/Config.h"
 #include "../RuntimeX/RuntimeXPublic.h"
 #include "../Utilities/Types.h"
-#include "../Config/Config.h"
 
 #ifndef MGARD_X_HIERARCHY_H
 #define MGARD_X_HIERARCHY_H
@@ -17,10 +17,9 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType> struct Hierarchy {
 
   /* for general users */
-  Hierarchy(std::vector<SIZE> shape, Config config,
+  Hierarchy(std::vector<SIZE> shape, Config config, SIZE target_level = 0);
+  Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords, Config config,
             SIZE target_level = 0);
-  Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords,
-            Config config, SIZE target_level = 0);
 
   /* for Internal use only */
   Hierarchy();
@@ -91,14 +90,16 @@ private:
   // Indicating if it is uniform or non-uniform grid
   enum data_structure_type dstype;
 
-  std::vector<T *> create_uniform_coords(std::vector<SIZE> shape, bool normalize_coordinates);
+  std::vector<T *> create_uniform_coords(std::vector<SIZE> shape,
+                                         bool normalize_coordinates);
   void coord_to_dist(SIZE dof, T *coord, T *dist);
   void dist_to_ratio(SIZE dof, T *dist, T *ratio);
   void reduce_dist(SIZE dof, T *dist, T *dist2);
   void calc_am_bm(SIZE dof, T *dist, T *am, T *bm);
   void calc_volume(SIZE dof, T *dist, T *volume);
   void domain_decompose(std::vector<SIZE> shape, Config config);
-  void domain_decompose(std::vector<SIZE> shape, std::vector<T *> &coords, Config config);
+  void domain_decompose(std::vector<SIZE> shape, std::vector<T *> &coords,
+                        Config config);
   void init(std::vector<SIZE> shape, std::vector<T *> coords,
             SIZE target_level = 0);
   void destroy();

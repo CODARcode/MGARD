@@ -361,9 +361,7 @@ public:
 
   MGARDX_CONT static void SelectDevice(SIZE dev_id) { sycl_dev_id = dev_id; }
 
-  MGARDX_CONT static int GetDevice() {
-    return sycl_dev_id;
-  }
+  MGARDX_CONT static int GetDevice() { return sycl_dev_id; }
 
   MGARDX_CONT static sycl::queue GetQueue(SIZE queue_id) {
     return queues.GetQueue(sycl_dev_id, queue_id);
@@ -642,7 +640,7 @@ public:
       for (int j = 0; j < MGARDX_NUM_QUEUES; j++) {
         sycl::queue q = DeviceRuntime<SYCL>::GetQueue(j);
         if (sycl::get_pointer_type(ptr, q.get_context()) ==
-               sycl::usm::alloc::device) {
+            sycl::usm::alloc::device) {
           return true;
         }
       }
@@ -659,7 +657,8 @@ public:
       DeviceRuntime<SYCL>::SelectDevice(i);
       for (int j = 0; j < MGARDX_NUM_QUEUES; j++) {
         sycl::queue q = DeviceRuntime<SYCL>::GetQueue(j);
-        sycl::device ptr_device = sycl::get_pointer_device(ptr, q.get_context());
+        sycl::device ptr_device =
+            sycl::get_pointer_device(ptr, q.get_context());
         if (d_devices[i] == ptr_device) {
           return i;
         }

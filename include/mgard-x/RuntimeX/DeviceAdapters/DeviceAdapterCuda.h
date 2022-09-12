@@ -86,8 +86,8 @@ template <typename TaskType>
 inline void ErrorAsyncCheck(cudaError_t code, TaskType &task,
                             bool abort = true) {
   if (code != cudaSuccess) {
-    log::err(std::string(cudaGetErrorString(code)) + " while executing "
-              + task.GetFunctorName().c_str() + " with CUDA (Async-check)");
+    log::err(std::string(cudaGetErrorString(code)) + " while executing " +
+             task.GetFunctorName().c_str() + " with CUDA (Async-check)");
     if (abort)
       exit(code);
   }
@@ -97,8 +97,8 @@ template <typename TaskType>
 inline void ErrorSyncCheck(cudaError_t code, TaskType &task,
                            bool abort = true) {
   if (code != cudaSuccess) {
-    log::err(std::string(cudaGetErrorString(code)) + " while executing "
-              + task.GetFunctorName().c_str() + " with CUDA (Sync-check)");
+    log::err(std::string(cudaGetErrorString(code)) + " while executing " +
+             task.GetFunctorName().c_str() + " with CUDA (Sync-check)");
     if (abort)
       exit(code);
   }
@@ -566,13 +566,9 @@ public:
     queues.SyncQueue(cuda_dev_id, queue_id);
   }
 
-  MGARDX_CONT static void SyncAllQueues() {
-    queues.SyncAllQueues(cuda_dev_id);
-  }
+  MGARDX_CONT static void SyncAllQueues() { queues.SyncAllQueues(cuda_dev_id); }
 
-  MGARDX_CONT static void SyncDevice() {
-    gpuErrchk(cudaDeviceSynchronize());
-  }
+  MGARDX_CONT static void SyncDevice() { gpuErrchk(cudaDeviceSynchronize()); }
 
   MGARDX_CONT static std::string GetDeviceName() {
     return DeviceSpecs.GetDeviceName(cuda_dev_id);

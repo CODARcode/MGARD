@@ -1,8 +1,9 @@
 #ifndef MGARD_X_CONFIG_HPP
 #define MGARD_X_CONFIG_HPP
 
-#include "../Utilities/Types.h"
+#include "../RuntimeX/RuntimeXPublic.h"
 #include "../RuntimeX/Utilities/Message.h"
+#include "../Utilities/Types.h"
 
 namespace mgard_x {
 
@@ -24,6 +25,6 @@ struct Config {
   void apply();
 };
 
-}
+} // namespace mgard_x
 
 #endif

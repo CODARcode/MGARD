@@ -49,8 +49,8 @@ template <typename TaskType>
 inline void ErrorAsyncCheck(hipError_t code, TaskType &task,
                             bool abort = true) {
   if (code != hipSuccess) {
-    log::err(std::string(hipGetErrorString(code)) + " while executing "
-              + task.GetFunctorName().c_str() + " with HIP (Async-check)");
+    log::err(std::string(hipGetErrorString(code)) + " while executing " +
+             task.GetFunctorName().c_str() + " with HIP (Async-check)");
     if (abort)
       exit(code);
   }
@@ -59,8 +59,8 @@ inline void ErrorAsyncCheck(hipError_t code, TaskType &task,
 template <typename TaskType>
 inline void ErrorSyncCheck(hipError_t code, TaskType &task, bool abort = true) {
   if (code != hipSuccess) {
-    log::err(std::string(hipGetErrorString(code)) + " while executing "
-              + task.GetFunctorName().c_str() + " with HIP (Sync-check)");
+    log::err(std::string(hipGetErrorString(code)) + " while executing " +
+             task.GetFunctorName().c_str() + " with HIP (Sync-check)");
     if (abort)
       exit(code);
   }
@@ -529,13 +529,9 @@ public:
     queues.SyncQueue(hip_dev_id, queue_id);
   }
 
-  MGARDX_CONT static void SyncAllQueues() {
-    queues.SyncAllQueues(hip_dev_id);
-  }
+  MGARDX_CONT static void SyncAllQueues() { queues.SyncAllQueues(hip_dev_id); }
 
-  MGARDX_CONT static void SyncDevice() {
-    gpuErrchk(hipDeviceSynchronize());
-  }
+  MGARDX_CONT static void SyncDevice() { gpuErrchk(hipDeviceSynchronize()); }
 
   MGARDX_CONT static std::string GetDeviceName() {
     return DeviceSpecs.GetDeviceName(hip_dev_id);
