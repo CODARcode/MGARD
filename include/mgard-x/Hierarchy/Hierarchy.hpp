@@ -563,7 +563,9 @@ void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
 
   std::vector<SIZE> chunck_shape = shape;
   chunck_shape[domain_decomposed_dim] = domain_decomposed_size;
-  for (SIZE i = 0; i < shape[domain_decomposed_dim]/chunck_shape[domain_decomposed_dim]; i++) {
+  for (SIZE i = 0;
+       i < shape[domain_decomposed_dim] / chunck_shape[domain_decomposed_dim];
+       i++) {
     // printShape("Decomposed domain " +
     // std::to_string(hierarchy_chunck.size()), chunck_shape);
     hierarchy_chunck.push_back(
@@ -594,7 +596,9 @@ void Hierarchy<D, T, DeviceType>::domain_decompose(std::vector<SIZE> shape,
   std::vector<SIZE> chunck_shape = shape;
   chunck_shape[domain_decomposed_dim] = domain_decomposed_size;
   std::vector<T *> chunck_coords = coords;
-  for (SIZE i = 0; i < shape[domain_decomposed_dim]/chunck_shape[domain_decomposed_dim]; i++) {
+  for (SIZE i = 0;
+       i < shape[domain_decomposed_dim] / chunck_shape[domain_decomposed_dim];
+       i++) {
     T *decompose_dim_coord = new T[chunck_shape[domain_decomposed_dim]];
     MemoryManager<DeviceType>::Copy1D(decompose_dim_coord,
                                       coords[domain_decomposed_dim] + i,
@@ -634,23 +638,26 @@ template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy() {}
 
 template <DIM D, typename T, typename DeviceType>
-Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
-                                       Config config,
+Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape, Config config,
                                        SIZE target_level) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
-    log::err("Number of dimensions mismatch. mgard_x::Hierarchy not initialized!");
+    log::err(
+        "Number of dimensions mismatch. mgard_x::Hierarchy not initialized!");
     exit(-1);
   }
   if (ret == -2) {
-    log::err("Size of any dimension cannot be smaller than 3. mgard_x::Hierarchy not initialized!");
+    log::err("Size of any dimension cannot be smaller than 3. "
+             "mgard_x::Hierarchy not initialized!");
     std::stringstream ss;
-    for (DIM d = 0; d < D; d++) ss << shape[d] << " ";
+    for (DIM d = 0; d < D; d++)
+      ss << shape[d] << " ";
     log::err("Input shape: " + ss.str());
     exit(-1);
   }
   dstype = data_structure_type::Cartesian_Grid_Uniform;
-  std::vector<T *> coords = create_uniform_coords(shape, config.normalize_coordinates);
+  std::vector<T *> coords =
+      create_uniform_coords(shape, config.normalize_coordinates);
   init(shape, coords, target_level);
   assert(uniform_coords_created);
   assert(coords.size() == D);
@@ -660,16 +667,17 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
 
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
-                                       std::vector<T *> coords,
-                                       Config config,
+                                       std::vector<T *> coords, Config config,
                                        SIZE target_level) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
-    log::err("Number of dimensions mismatch. mgard_x::Hierarchy not initialized!");
+    log::err(
+        "Number of dimensions mismatch. mgard_x::Hierarchy not initialized!");
     exit(-1);
   }
   if (ret == -2) {
-    log::err("Size of any dimension cannot be smaller than 3. mgard_x::Hierarchy not initialized!");
+    log::err("Size of any dimension cannot be smaller than 3. "
+             "mgard_x::Hierarchy not initialized!");
     exit(-1);
   }
 
@@ -691,8 +699,7 @@ template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        DIM domain_decomposed_dim,
                                        SIZE domain_decomposed_size,
-                                       std::vector<T *> coords,
-                                       Config config) {
+                                       std::vector<T *> coords, Config config) {
   this->domain_decomposed_dim = domain_decomposed_dim;
   this->domain_decomposed_size = domain_decomposed_size;
   domain_decompose(shape, coords, config);
