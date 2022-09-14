@@ -9,7 +9,7 @@
 #include "DataTypes.h"
 
 #include "DataStructures/Array.h"
-#include "Utilities/Message.h"
+#include "Utilities/Log.h"
 #include "Utilities/Timer.hpp"
 
 #ifndef MGARD_X_RUNTIME_X_PUBLIC_H

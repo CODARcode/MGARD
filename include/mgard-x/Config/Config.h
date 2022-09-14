@@ -2,7 +2,7 @@
 #define MGARD_X_CONFIG_HPP
 
 #include "../RuntimeX/RuntimeXPublic.h"
-#include "../RuntimeX/Utilities/Message.h"
+#include "../RuntimeX/Utilities/Log.h"
 #include "../Utilities/Types.h"
 
 namespace mgard_x {

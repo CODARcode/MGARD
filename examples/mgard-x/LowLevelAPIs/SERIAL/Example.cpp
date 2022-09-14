@@ -13,20 +13,21 @@ int main() {
   double *in_array_cpu = new double[n1 * n2 * n3];
   //... load data into in_array_cpu
   std::vector<mgard_x::SIZE> shape{n1, n2, n3};
-  mgard_x::Hierarchy<3, double, mgard_x::SERIAL> hierarchy(shape);
+  mgard_x::Config config;
+  config.lossless = mgard_x::lossless_type::Huffman;
+  mgard_x::Hierarchy<3, double, mgard_x::SERIAL> hierarchy(shape, config);
   mgard_x::Array<3, double, mgard_x::SERIAL> in_array(shape);
   in_array.load(in_array_cpu);
   std::cout << "Done\n";
 
   std::cout << "Compressing with MGARD-X SERIAL backend...";
   double tol = 0.01, s = 0, norm;
-  mgard_x::Config config;
-  config.lossless = mgard_x::lossless_type::Huffman_Zstd;
+  mgard_x::CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
   mgard_x::Array<1, unsigned char, mgard_x::SERIAL> compressed_array =
       mgard_x::compress(hierarchy, in_array, mgard_x::error_bound_type::REL,
-                        tol, s, norm, config);
+                        tol, s, norm, config, workspace);
   // Get compressed size in number of bytes.
-  size_t compressed_size = compressed_array.shape()[0];
+  size_t compressed_size = compressed_array.shape(0);
   unsigned char *compressed_array_cpu = compressed_array.hostCopy();
   std::cout << "Done\n";
 
@@ -34,7 +35,8 @@ int main() {
   // decompression
   mgard_x::Array<3, double, mgard_x::SERIAL> decompressed_array =
       mgard_x::decompress(hierarchy, compressed_array,
-                          mgard_x::error_bound_type::REL, tol, s, norm, config);
+                          mgard_x::error_bound_type::REL, tol, s, norm, config,
+                          workspace);
   delete[] in_array_cpu;
   double *decompressed_array_cpu = decompressed_array.hostCopy();
   std::cout << "Done\n";

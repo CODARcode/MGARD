@@ -2,7 +2,7 @@
 #include <sstream>
 #include <string>
 
-#include "mgard-x/RuntimeX/Utilities/Message.h"
+#include "mgard-x/RuntimeX/Utilities/Log.h"
 
 using std::string;
 
