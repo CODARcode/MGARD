@@ -11,7 +11,7 @@
 #include "../DataTypes.h"
 #include "../Functors/Functor.h"
 #include "../Tasks/Task.h"
-#include "../Utilities/Message.h"
+#include "../Utilities/Log.h"
 
 #include <limits>
 
