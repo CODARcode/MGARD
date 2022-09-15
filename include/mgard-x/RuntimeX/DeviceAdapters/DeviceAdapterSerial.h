@@ -890,7 +890,8 @@ public:
     } else {
       // There is padding in between rows in memory. Must copy each row.
       for (SIZE row = 0; row < n2; ++row) {
-        std::memcpy(dst_ptr + row * dst_ld, src_ptr + row * src_ld,
+        std::memcpy((converted_T *)dst_ptr + row * dst_ld,
+                    (converted_T *)src_ptr + row * src_ld,
                     sizeof(converted_T) * n1);
       }
     }
