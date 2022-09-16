@@ -76,9 +76,6 @@ namespace mgard_x {
 #define MGARDX_MANAGED
 #endif
 
-#define MAX_GRID_X 2147483647
-#define MAX_GRID_Y 65536
-#define MAX_GRID_Z 65536
 #define MGARDX_WARP_SIZE 32
 #define MGARDX_MAX_NUM_WARPS_PER_TB 32
 #define MGARDX_NUM_SMs 68
