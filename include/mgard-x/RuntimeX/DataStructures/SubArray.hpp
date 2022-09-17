@@ -249,8 +249,8 @@ MGARDX_CONT SubArray<D, T, DeviceType>::SubArray(std::vector<SIZE> shape,
   initialize();
   this->dv = dv;
   for (DIM d = 0; d < D; d++) {
-    this->__shape[D - 1 - d] = shape[d];
-    this->__ldvs[D - 1 - d] = shape[d];
+    this->__shape[d] = shape[d];
+    this->__ldvs[d] = shape[d];
   }
   __lddv1 = __ldvs[D - 1];
   if (D > 1)
