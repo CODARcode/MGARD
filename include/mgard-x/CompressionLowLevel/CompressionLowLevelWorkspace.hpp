@@ -6,7 +6,7 @@
  */
 
 #ifndef MGARD_X_COMPRESSION_LOW_LEVEL_WORKSPACE_HPP
-#define MGARD_X_COMPRESSION_LOW_LEVEL_WORKSPACE_H
+#define MGARD_X_COMPRESSION_LOW_LEVEL_WORKSPACE_HPP
 
 #include "../Hierarchy/Hierarchy.hpp"
 #include "../RuntimeX/RuntimeXPublic.h"
@@ -24,6 +24,10 @@ public:
   void allocate(Hierarchy<D, T, DeviceType> &hierarchy, Config &config,
                 double estimated_outlier_ratio) {
     // Do pre-allocation
+    constexpr uint8_t bytes_per_elem = std::max(sizeof(T), sizeof(QUANTIZED_INT));
+    std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());
+    workspace_shape[D-1] *= bytes_per_elem;
+    universal_workspace = Array<D, Byte, DeviceType>(workspace_shape, false, false);
     quantizers_array = Array<1, T, DeviceType>({hierarchy.l_target() + 1});
     quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
         hierarchy.level_shape(hierarchy.l_target()), false, false);
@@ -45,6 +49,7 @@ public:
 
   void move(const CompressionLowLevelWorkspace<D, T, DeviceType> &workspace) {
     // Move instead of copy
+    universal_workspace = std::move(workspace.universal_workspace);
     quantizers_array = std::move(workspace.quantizers_array);
     quantized_array = std::move(workspace.quantized_array);
     outlier_count_array = std::move(workspace.outlier_count_array);
@@ -56,6 +61,7 @@ public:
 
   void move(CompressionLowLevelWorkspace<D, T, DeviceType> &&workspace) {
     // Move instead of copy
+    universal_workspace = std::move(workspace.universal_workspace);
     quantizers_array = std::move(workspace.quantizers_array);
     quantized_array = std::move(workspace.quantized_array);
     outlier_count_array = std::move(workspace.outlier_count_array);
@@ -92,6 +98,7 @@ public:
   }
 
   bool pre_allocated;
+  Array<D, Byte, DeviceType> universal_workspace;
   Array<1, T, DeviceType> quantizers_array;
   Array<D, QUANTIZED_INT, DeviceType> quantized_array;
   Array<1, LENGTH, DeviceType> outlier_count_array;
