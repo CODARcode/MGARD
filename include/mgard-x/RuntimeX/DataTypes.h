@@ -113,6 +113,7 @@ using SIZE = uint32_t; // unsigned int;
 using DIM = uint32_t;
 using QUANTIZED_INT = int32_t;
 using QUANTIZED_UNSIGNED_INT = uint32_t;
+using HUFFMAN_CODE = uint64_t;
 using SERIALIZED_TYPE = unsigned char;
 using Byte = unsigned char;
 using OPTION = int8_t;
