@@ -411,19 +411,19 @@ public:
                        DeviceType>::Add(outlier_count((IDX)0), (LENGTH)1);
 
             LENGTH outlier_idx = 0;
-            // if (!level_linearize) {
+            if (!level_linearize) {
               // calculate the outlier index in the non-level linearized order
               LENGTH curr_stride = 1;
               for (int d = D - 1; d >= 0; d--) {
                 outlier_idx += idx[d] * curr_stride;
                 curr_stride *= v.shape(d);
               }
-            // } else {
-            //   // calculate the outlier index in the level linearized order
-            //   SIZE level_offset = calc_level_offset();
-            //   // Assume we put it in quantized_linearized_v and calculate its offset
-            //   outlier_idx = quantized_linearized_v[level](level_offset) - quantized_v.data()
-            // }
+            } else {
+              // calculate the outlier index in the level linearized order
+              SIZE level_offset = calc_level_offset();
+              // Assume we put it in quantized_linearized_v and calculate its offset
+              outlier_idx = quantized_linearized_v[level](level_offset) - quantized_v.data();
+            }
             // Avoid out of range error
             // If we have too much outlier than our allocation
             // we return the true outlier_count and do quanziation again
@@ -443,7 +443,14 @@ public:
           *(quantized_linearized_v[level](level_offset)) = quantized_data;
         }
       } else if constexpr (OP == MGARDX_DEQUANTIZE) {
-        quantized_data = quantized_v[idx];
+        if (!level_linearize) {
+          // read quantized value in non-level linearized position
+          quantized_data = quantized_v[idx];
+        } else {
+          // read quantized value in level linearized position
+          SIZE level_offset = calc_level_offset();
+          quantized_data = *(quantized_linearized_v[level](level_offset));
+        }
         if (prep_huffman) {
           quantized_data -= dict_size / 2;
         }

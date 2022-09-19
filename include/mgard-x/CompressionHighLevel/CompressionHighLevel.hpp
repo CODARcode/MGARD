@@ -76,71 +76,13 @@ size_t estimate_memory_usgae(std::vector<SIZE> shape) {
 
   // log::info("input_space: " + std::to_string((double)input_space/1e9));
 
-  size_t norm_workspace = roundup(shape[D - 1] * sizeof(T), pitch_size);
-  for (DIM d = 0; d < D - 1; d++) {
-    norm_workspace *= shape[d];
-  }
-
-  // log::info("norm_workspace: " + std::to_string((double)norm_workspace/1e9));
+  CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
 
   estimate_memory_usgae = std::max(
-      estimate_memory_usgae, hierarchy_space + input_space + norm_workspace);
+      estimate_memory_usgae, hierarchy_space + input_space + compression_workspace.estimate_size(shape, 64, 0.1));
 
-  // log::info("estimate_memory_usgae: " +
-  // std::to_string((double)estimate_memory_usgae/1e9));
-
-  size_t decomposition_workspace =
-      roundup(shape[D - 1] * sizeof(T), pitch_size);
-  for (DIM d = 0; d < D - 1; d++) {
-    decomposition_workspace *= shape[d];
-  }
-
-  // log::info("decomposition_workspace: " +
-  // std::to_string((double)decomposition_workspace/1e9));
-
-  estimate_memory_usgae =
-      std::max(estimate_memory_usgae,
-               hierarchy_space + input_space + decomposition_workspace);
-
-  // log::info("estimate_memory_usgae: " +
-  // std::to_string((double)estimate_memory_usgae/1e9));
-
-  size_t quantization_workspace =
-      sizeof(QUANTIZED_INT) * total_elem + // quantized
-      sizeof(LENGTH) * total_elem +        // outlier index
-      sizeof(QUANTIZED_INT) * total_elem;  // outlier
-
-  // log::info("quantization_workspace: " +
-  // std::to_string((double)quantization_workspace/1e9));
-
-  estimate_memory_usgae =
-      std::max(estimate_memory_usgae,
-               hierarchy_space + input_space + quantization_workspace);
-
-  // log::info("estimate_memory_usgae: " +
-  // std::to_string((double)estimate_memory_usgae/1e9));
-
-  size_t huffman_workspace =
-      sizeof(QUANTIZED_INT) *
-      total_elem; // fix-length encoding
-                  // space taken by codebook generation is ignored
-
-  // log::info("huffman_workspace: " +
-  // std::to_string((double)huffman_workspace/1e9));
-
-  estimate_memory_usgae = std::max(
-      estimate_memory_usgae, hierarchy_space + input_space +
-                                 quantization_workspace + huffman_workspace);
-
-  // log::info("estimate_memory_usgae: " +
-  // std::to_string((double)estimate_memory_usgae/1e9));
-
-  double estimated_output_ratio = 0.7;
-
-  return estimate_memory_usgae + (double)input_space * estimated_output_ratio;
-
-  // log::info("estimate_memory_usgae: " +
-  // std::to_string((double)estimate_memory_usgae/1e9));
+ 
+  return estimate_memory_usgae;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -548,7 +490,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     // Trigger the copy constructor to copy hierarchy to corresponding device
     Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchy[i];
 
-    CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
+    CompressionLowLevelWorkspace workspace(hierarchy, 0.1);
 
     std::stringstream ss;
     for (DIM d = 0; d < D; d++)
@@ -832,7 +774,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     // Trigger the copy constructor to copy hierarchy to corresponding device
     Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchy[i];
 
-    CompressionLowLevelWorkspace workspace(hierarchy, config, 0.0);
+    CompressionLowLevelWorkspace workspace(hierarchy, 0.0);
 
     std::stringstream ss;
     for (DIM d = 0; d < D; d++)

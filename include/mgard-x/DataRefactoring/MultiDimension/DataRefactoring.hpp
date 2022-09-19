@@ -19,7 +19,7 @@ namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
 void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, int stop_level, int queue_idx) {
+               SubArray<D, T, DeviceType> &v, SubArray<D, T, DeviceType> w, SubArray<D, T, DeviceType> b, int stop_level, int queue_idx) {
 
   if (stop_level < 0 || stop_level > hierarchy.l_target()) {
     std::cout << log::log_err << "decompose: stop_level out of bound.\n";
@@ -35,13 +35,27 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
     prefix +=
         std::to_string(hierarchy.level_shape(hierarchy.l_target(), d)) + "_";
 
-  std::vector<SIZE> workspace_shape =
-      hierarchy.level_shape(hierarchy.l_target());
-  for (DIM d = 0; d < D; d++)
-    workspace_shape[d] += 2;
-  Array<D, T, DeviceType> workspace(workspace_shape);
+  Array<D, T, DeviceType> workspace;
+  bool shape_pass = true;
+  if (w.data() != nullptr) {
+    for (DIM d = 0; d < D; d++) {
+      if (w.shape(d) < hierarchy.level_shape(hierarchy.l_target())[d] + 2) {
+        shape_pass = false;
+      }
+    }
+  }
+  if (w.data() == nullptr || !shape_pass) {
+    log::info("decompose: allocating workspace as it is not pre-allocated.");
+    std::vector<SIZE> workspace_shape =
+        hierarchy.level_shape(hierarchy.l_target());
+    for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
+    workspace = Array<D, T, DeviceType>(workspace_shape);
+    w = SubArray(workspace);
+  }
+  
+  // Array<D, T, DeviceType> workspace(workspace_shape);
   // workspace.memset(0); can cause large overhead in HIP
-  SubArray w(workspace);
+  // SubArray w(workspace);
 
   SubArray<D, T, DeviceType> v_fine = v;
   SubArray<D, T, DeviceType> w_fine = w;
@@ -79,8 +93,25 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 
   if constexpr (D > 3) {
-    Array<D, T, DeviceType> workspace2(workspace_shape);
-    SubArray b(workspace2);
+    Array<D, T, DeviceType> workspace2;
+    bool shape_pass = true;
+    if (b.data() != nullptr) {
+      for (DIM d = 0; d < D; d++) {
+        if (b.shape(d) < hierarchy.level_shape(hierarchy.l_target())[d] + 2) {
+          shape_pass = false;
+        }
+      }
+    }
+    if (b.data() == nullptr || !shape_pass) {
+      log::info("decompose: allocating workspace as it is not pre-allocated.");
+      std::vector<SIZE> workspace_shape =
+          hierarchy.level_shape(hierarchy.l_target());
+      for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
+      workspace2 = Array<D, T, DeviceType>(workspace_shape);
+      b = SubArray(workspace2);
+    }
+    // Array<D, T, DeviceType> workspace2(workspace_shape);
+    // SubArray b(workspace2);
     SubArray<D, T, DeviceType> b_fine = b;
     for (int l = hierarchy.l_target(); l > stop_level; l--) {
       if (multidim_refactoring_debug_print) { // debug
@@ -118,19 +149,30 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
 
 template <DIM D, typename T, typename DeviceType>
 void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, int stop_level, int queue_idx) {
+               SubArray<D, T, DeviceType> &v, SubArray<D, T, DeviceType> w, SubArray<D, T, DeviceType> b, int stop_level, int queue_idx) {
 
   if (stop_level < 0 || stop_level > hierarchy.l_target()) {
     std::cout << log::log_err << "recompose: stop_level out of bound.\n";
     exit(-1);
   }
-  std::vector<SIZE> workspace_shape =
-      hierarchy.level_shape(hierarchy.l_target());
-  for (DIM d = 0; d < D; d++)
-    workspace_shape[d] += 2;
-  Array<D, T, DeviceType> workspace(workspace_shape);
-  // workspace.memset(0); // can cause large overhead in HIP
-  SubArray w(workspace);
+
+  Array<D, T, DeviceType> workspace;
+  bool shape_pass = true;
+  if (w.data() != nullptr) {
+    for (DIM d = 0; d < D; d++) {
+      if (w.shape(d) < hierarchy.level_shape(hierarchy.l_target())[d] + 2) {
+        shape_pass = false;
+      }
+    }
+  }
+  if (w.data() == nullptr || !shape_pass) {
+    log::info("recompose: allocating workspace as it is not pre-allocated.");
+    std::vector<SIZE> workspace_shape =
+        hierarchy.level_shape(hierarchy.l_target());
+    for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
+    workspace = Array<D, T, DeviceType>(workspace_shape);
+    w = SubArray(workspace);
+  }
 
   SubArray<D, T, DeviceType> v_fine = v;
   SubArray<D, T, DeviceType> w_fine = w;
@@ -173,8 +215,23 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
   if constexpr (D > 3) {
-    Array<D, T, DeviceType> workspace2(workspace_shape);
-    SubArray b(workspace2);
+    Array<D, T, DeviceType> workspace2;
+    bool shape_pass = true;
+    if (b.data() != nullptr) {
+      for (DIM d = 0; d < D; d++) {
+        if (b.shape(d) < hierarchy.level_shape(hierarchy.l_target())[d] + 2) {
+          shape_pass = false;
+        }
+      }
+    }
+    if (b.data() == nullptr || !shape_pass) {
+      log::info("decompose: allocating workspace as it is not pre-allocated.");
+      std::vector<SIZE> workspace_shape =
+          hierarchy.level_shape(hierarchy.l_target());
+      for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
+      workspace2 = Array<D, T, DeviceType>(workspace_shape);
+      b = SubArray(workspace2);
+    }
     SubArray<D, T, DeviceType> b_fine = b;
     for (int l = 1; l <= stop_level; l++) {
 
