@@ -25,7 +25,8 @@ template <typename C, typename DeviceType>
 Array<1, Byte, DeviceType> ZstdCompress(SubArray<1, C, DeviceType> &input_data,
                                         int compressionLevel) {
   Timer timer;
-  if (log::level & log::TIME) timer.start();
+  if (log::level & log::TIME)
+    timer.start();
   size_t input_count = input_data.shape(0);
 
   size_t const estimated_out_size = ZSTD_compressBound(input_count * sizeof(C));
@@ -53,10 +54,10 @@ Array<1, Byte, DeviceType> ZstdCompress(SubArray<1, C, DeviceType> &input_data,
 
   MemoryManager<DeviceType>::FreeHost(out_data);
   MemoryManager<DeviceType>::FreeHost(in_data);
-  log::info("Zstd compression level: " +
-              std::to_string(compressionLevel));
+  log::info("Zstd compression level: " + std::to_string(compressionLevel));
   log::info("Zstd compress ratio: " +
-            std::to_string((double)(input_count*sizeof(C)) / (actual_out_size + sizeof(size_t))));
+            std::to_string((double)(input_count * sizeof(C)) /
+                           (actual_out_size + sizeof(size_t))));
   if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncDevice();
     timer.end();
@@ -74,7 +75,8 @@ template <typename C, typename DeviceType>
 Array<1, C, DeviceType>
 ZstdDecompress(SubArray<1, Byte, DeviceType> &input_data) {
   Timer timer;
-  if (log::level & log::TIME) timer.start();
+  if (log::level & log::TIME)
+    timer.start();
   size_t input_count = input_data.shape(0);
   Byte *in_data = NULL;
   MemoryManager<DeviceType>::MallocHost(in_data, input_count, 0);

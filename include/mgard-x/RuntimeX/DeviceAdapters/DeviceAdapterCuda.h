@@ -185,13 +185,16 @@ template <> struct Math<CUDA> {
 
 template <typename Task> MGARDX_KERL void kernel() {}
 
-template <typename Task> MGARDX_KERL void Kernel(Task task, THREAD_IDX blockz_offset, THREAD_IDX blocky_offset, THREAD_IDX blockx_offset) {
+template <typename Task>
+MGARDX_KERL void Kernel(Task task, THREAD_IDX blockz_offset,
+                        THREAD_IDX blocky_offset, THREAD_IDX blockx_offset) {
   Byte *shared_memory = SharedMemory<Byte>();
-  task.GetFunctor().Init(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(), 
-                         task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(), 
-                         blockz_offset+blockIdx.z, blocky_offset+blockIdx.y, blockx_offset+blockIdx.x, 
-                         threadIdx.z, threadIdx.y, threadIdx.x,
-                         shared_memory);
+  task.GetFunctor().Init(task.GetGridDimZ(), task.GetGridDimY(),
+                         task.GetGridDimX(), task.GetBlockDimZ(),
+                         task.GetBlockDimY(), task.GetBlockDimX(),
+                         blockz_offset + blockIdx.z, blocky_offset + blockIdx.y,
+                         blockx_offset + blockIdx.x, threadIdx.z, threadIdx.y,
+                         threadIdx.x, shared_memory);
 
   task.GetFunctor().Operation1();
   SyncBlock<CUDA>::Sync();
@@ -214,14 +217,18 @@ template <typename Task> MGARDX_KERL void Kernel(Task task, THREAD_IDX blockz_of
   task.GetFunctor().Operation10();
 }
 
-template <typename Task> MGARDX_KERL void IterKernel(Task task, THREAD_IDX blockz_offset, THREAD_IDX blocky_offset, THREAD_IDX blockx_offset) {
+template <typename Task>
+MGARDX_KERL void IterKernel(Task task, THREAD_IDX blockz_offset,
+                            THREAD_IDX blocky_offset,
+                            THREAD_IDX blockx_offset) {
   Byte *shared_memory = SharedMemory<Byte>();
 
-  task.GetFunctor().Init(task.GetGridDimZ(), task.GetGridDimY(), task.GetGridDimX(), 
-                         task.GetBlockDimZ(), task.GetBlockDimY(), task.GetBlockDimX(), 
-                         blockz_offset+blockIdx.z, blocky_offset+blockIdx.y, blockx_offset+blockIdx.x, 
-                         threadIdx.z, threadIdx.y, threadIdx.x,
-                         shared_memory);
+  task.GetFunctor().Init(task.GetGridDimZ(), task.GetGridDimY(),
+                         task.GetGridDimX(), task.GetBlockDimZ(),
+                         task.GetBlockDimY(), task.GetBlockDimX(),
+                         blockz_offset + blockIdx.z, blocky_offset + blockIdx.y,
+                         blockx_offset + blockIdx.x, threadIdx.z, threadIdx.y,
+                         threadIdx.x, shared_memory);
 
   task.GetFunctor().Operation1();
   SyncBlock<CUDA>::Sync();
@@ -1991,7 +1998,7 @@ public:
 
     dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
                          task.GetBlockDimZ());
-    dim3 blockPerGrid(std::min(task.GetGridDimX(), (IDX)MGARD_CUDA_MAX_GRID_X), 
+    dim3 blockPerGrid(std::min(task.GetGridDimX(), (IDX)MGARD_CUDA_MAX_GRID_X),
                       std::min(task.GetGridDimY(), (IDX)MGARD_CUDA_MAX_GRID_Y),
                       std::min(task.GetGridDimZ(), (IDX)MGARD_CUDA_MAX_GRID_Z));
     size_t sm_size = task.GetSharedMemorySize();
@@ -2031,19 +2038,27 @@ public:
     // if constexpr evaluate at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<CUDA>,
                                   typename TaskType::Functor>::value) {
-      for (THREAD_IDX blockz_offset = 0;  blockz_offset < task.GetGridDimZ(); blockz_offset += MGARD_CUDA_MAX_GRID_Z) {
-        for (THREAD_IDX blocky_offset = 0;  blocky_offset < task.GetGridDimY(); blocky_offset += MGARD_CUDA_MAX_GRID_Y) {
-          for (THREAD_IDX blockx_offset = 0;  blockx_offset < task.GetGridDimX(); blockx_offset += MGARD_CUDA_MAX_GRID_X) {
-            Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task, blockz_offset, blocky_offset, blockx_offset);
+      for (THREAD_IDX blockz_offset = 0; blockz_offset < task.GetGridDimZ();
+           blockz_offset += MGARD_CUDA_MAX_GRID_Z) {
+        for (THREAD_IDX blocky_offset = 0; blocky_offset < task.GetGridDimY();
+             blocky_offset += MGARD_CUDA_MAX_GRID_Y) {
+          for (THREAD_IDX blockx_offset = 0; blockx_offset < task.GetGridDimX();
+               blockx_offset += MGARD_CUDA_MAX_GRID_X) {
+            Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
+                task, blockz_offset, blocky_offset, blockx_offset);
           }
         }
       }
     } else if constexpr (std::is_base_of<IterFunctor<CUDA>,
                                          typename TaskType::Functor>::value) {
-      for (THREAD_IDX blockz_offset = 0;  blockz_offset < task.GetGridDimZ(); blockz_offset += MGARD_CUDA_MAX_GRID_Z) {
-        for (THREAD_IDX blocky_offset = 0;  blocky_offset < task.GetGridDimY(); blocky_offset += MGARD_CUDA_MAX_GRID_Y) {
-          for (THREAD_IDX blockx_offset = 0;  blockx_offset < task.GetGridDimX(); blockx_offset += MGARD_CUDA_MAX_GRID_X) {
-            IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task, blockz_offset, blocky_offset, blockx_offset);
+      for (THREAD_IDX blockz_offset = 0; blockz_offset < task.GetGridDimZ();
+           blockz_offset += MGARD_CUDA_MAX_GRID_Z) {
+        for (THREAD_IDX blocky_offset = 0; blocky_offset < task.GetGridDimY();
+             blocky_offset += MGARD_CUDA_MAX_GRID_Y) {
+          for (THREAD_IDX blockx_offset = 0; blockx_offset < task.GetGridDimX();
+               blockx_offset += MGARD_CUDA_MAX_GRID_X) {
+            IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
+                task, blockz_offset, blocky_offset, blockx_offset);
           }
         }
       }
