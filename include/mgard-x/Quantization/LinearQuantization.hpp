@@ -655,6 +655,8 @@ public:
                SubArray<1, LENGTH, DeviceType> outlier_count,
                SubArray<1, LENGTH, DeviceType> outlier_indexes,
                SubArray<1, QUANTIZED_INT, DeviceType> outliers, int queue_idx) {
+    Timer timer;
+    if (log::level & log::TIME) timer.start();
 
     if constexpr (OP == MGARDX_DEQUANTIZE) {
       LENGTH outlier_count_host;
@@ -714,6 +716,24 @@ public:
 #undef LWQZK
     if (AutoTuner<DeviceType>::ProfileKernels) {
       FillAutoTunerTable<DeviceType>("lwqzk", prec, range_l, min_config);
+    }
+
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncDevice();
+      timer.end();
+      if (OP == MGARDX_QUANTIZE) timer.print("Quantization");
+      else timer.print("Dequantization");
+      timer.clear();
+    }
+    if (OP == MGARDX_QUANTIZE) {
+      LENGTH outlier_count_host;
+      MemoryManager<DeviceType>::Copy1D(&outlier_count_host,
+                                      outlier_count.data(), 1);
+      SIZE total_elems = 1;
+      for (DIM d = 0; d < D; d++) total_elems *= quantized_v.shape(d);
+      log::info("Outlier ratio: " + std::to_string(outlier_count_host) + "/" +
+              std::to_string(total_elems) + " (" +
+              std::to_string((double)100 * outlier_count_host / total_elems) + "%)");
     }
   }
 };
