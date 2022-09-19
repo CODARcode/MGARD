@@ -30,6 +30,9 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
                 SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray,
                 SubArray<1, H, DeviceType> workspace) {
 
+  Timer timer;
+  if (log::level & log::TIME) timer.start();
+
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
 
@@ -221,6 +224,25 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   time_span = duration_cast<duration<double>>(t2 - t1);
   // printf("serilization time2: %.6f s\n", time_span.count());
   delete[] h_meta;
+
+  log::info("Huffman block size: " + std::to_string(chunk_size));
+  log::info("Huffman dictionary size: " +
+            std::to_string(dict_size));
+  log::info(
+      "Huffman compress ratio: " +
+      std::to_string(primary_count * sizeof(QUANTIZED_UNSIGNED_INT)) + "/" +
+      std::to_string(compressed_data.shape(0)) + " (" +
+      std::to_string((double)primary_count * sizeof(QUANTIZED_UNSIGNED_INT) /
+                     compressed_data.shape(0)) +
+      ")");
+
+  if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer.end();
+    timer.print("Huffman compress");
+    timer.clear();
+  }
+
   return compressed_data;
 }
 
@@ -231,7 +253,8 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
                   LENGTH &outlier_count,
                   SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
                   SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray) {
-
+  Timer timer;
+  if (log::level & log::TIME) timer.start();
   size_t primary_count;
   int dict_size;
   int chunk_size;
@@ -305,6 +328,12 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
       ddata_subarray, huffmeta_subarray, primary, primary_count,
       chunk_size, nchunk, decodebook_subarray, decodebook_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
+  if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer.end();
+    timer.print("Huffman decompress");
+    timer.clear();
+  }
   return primary_allocated;
 }
 
