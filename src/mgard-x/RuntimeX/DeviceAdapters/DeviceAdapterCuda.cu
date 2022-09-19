@@ -14,7 +14,7 @@ DeviceQueues<CUDA> DeviceRuntime<CUDA>::queues;
 DeviceSpecification<CUDA> DeviceRuntime<CUDA>::DeviceSpecs;
 
 bool DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors = false;
-bool MemoryManager<CUDA>::ReduceMemoryFootprint = true;
+bool MemoryManager<CUDA>::ReduceMemoryFootprint = false;
 bool DeviceRuntime<CUDA>::TimingAllKernels = false;
 bool DeviceRuntime<CUDA>::PrintKernelConfig = false;
 
