@@ -26,7 +26,8 @@
 namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
-size_t estimate_memory_usgae(std::vector<SIZE> shape) {
+size_t estimate_memory_usgae(std::vector<SIZE> shape, double outlier_ratio,
+                             double reduction_ratio) {
   size_t estimate_memory_usgae = 0;
   size_t total_elem = 1;
   for (DIM d = 0; d < D; d++) {
@@ -80,16 +81,16 @@ size_t estimate_memory_usgae(std::vector<SIZE> shape) {
   CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
 
   estimate_memory_usgae =
-      std::max(estimate_memory_usgae,
-               hierarchy_space + input_space +
-                   compression_workspace.estimate_size(shape, 64, 0.1));
+      hierarchy_space + input_space +
+      compression_workspace.estimate_size(shape, 64, outlier_ratio) +
+      (double)input_space * reduction_ratio;
 
   return estimate_memory_usgae;
 }
 
 template <DIM D, typename T, typename DeviceType>
 bool need_domain_decomposition(std::vector<SIZE> shape) {
-  size_t estm = estimate_memory_usgae<D, T, DeviceType>(shape);
+  size_t estm = estimate_memory_usgae<D, T, DeviceType>(shape, 0.1, 0.5);
   size_t aval = DeviceRuntime<DeviceType>::GetAvailableMemory();
   log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
             "GB, Available: " + std::to_string((double)aval / 1e9) + "GB");
