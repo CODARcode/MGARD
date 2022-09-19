@@ -24,14 +24,16 @@ public:
   void initialize_subarray() {
     // Reuse refactoring_w_array
     // norm_tmp_subarray = SubArray(norm_tmp_array);
-    norm_tmp_subarray = SubArray<1, T, DeviceType>({total_elems}, (T*)refactoring_w_array.data());
+    norm_tmp_subarray = SubArray<1, T, DeviceType>(
+        {total_elems}, (T *)refactoring_w_array.data());
     norm_subarray = SubArray(norm_array);
     refactoring_w_subarray = SubArray(refactoring_w_array);
     refactoring_b_subarray = SubArray(refactoring_b_array);
     quantizers_subarray = SubArray(quantizers_array);
     // Reuse refactoring_w_array
     // quantized_subarray = SubArray(quantized_array);
-    quantized_subarray = SubArray<D, QUANTIZED_INT, DeviceType>(shape, (QUANTIZED_INT*)refactoring_w_array.data());
+    quantized_subarray = SubArray<D, QUANTIZED_INT, DeviceType>(
+        shape, (QUANTIZED_INT *)refactoring_w_array.data());
     outlier_count_subarray = SubArray(outlier_count_array);
     outlier_idx_subarray = SubArray(outlier_idx_array);
     outliers_subarray = SubArray(outliers_array);
@@ -39,9 +41,10 @@ public:
   }
 
   size_t estimate_size(std::vector<SIZE> shape, SIZE l_target,
-                double estimated_outlier_ratio) {
+                       double estimated_outlier_ratio) {
     SIZE total_num_elems = 1;
-    for (DIM d = 0; d < D; d++) total_num_elems *= shape[d];
+    for (DIM d = 0; d < D; d++)
+      total_num_elems *= shape[d];
     Array<1, T, DeviceType> array_with_pitch({1});
     size_t pitch_size = array_with_pitch.ld(0) * sizeof(T);
 
@@ -50,7 +53,7 @@ public:
     size += sizeof(T);
     size_t workspace_size = 1;
     for (DIM d = 0; d < D; d++) {
-      if (d == D-1) {
+      if (d == D - 1) {
         workspace_size *= roundup((shape[d] + 2) * sizeof(T), pitch_size);
       } else {
         workspace_size *= shape[d] + 2;
@@ -63,13 +66,17 @@ public:
     size += roundup((l_target + 1) * sizeof(T), pitch_size);
 
     // size_t quantized_size = 1;
-    // for (DIM d = 0; d < D; d++) { 
+    // for (DIM d = 0; d < D; d++) {
     //   quantized_size *= level_shape(l_target, d);
     // }
     // size += quantized_size * sizeof(QUANTIZED_INT);
     size += roundup(sizeof(LENGTH), pitch_size);
-    size += roundup((size_t)(total_num_elems * estimated_outlier_ratio * sizeof(LENGTH)), pitch_size);
-    size += roundup((size_t)(total_num_elems * estimated_outlier_ratio * sizeof(QUANTIZED_INT)), pitch_size);
+    size += roundup(
+        (size_t)(total_num_elems * estimated_outlier_ratio * sizeof(LENGTH)),
+        pitch_size);
+    size += roundup((size_t)(total_num_elems * estimated_outlier_ratio *
+                             sizeof(QUANTIZED_INT)),
+                    pitch_size);
     size += roundup(total_num_elems * sizeof(HUFFMAN_CODE), pitch_size);
     return size;
   }
@@ -84,14 +91,15 @@ public:
     norm_array = Array<1, T, DeviceType>({1});
 
     std::vector<SIZE> workspace_shape = shape;
-    for (DIM d = 0; d < D; d++) workspace_shape[d] += 2;
+    for (DIM d = 0; d < D; d++)
+      workspace_shape[d] += 2;
     refactoring_w_array = Array<D, T, DeviceType>(workspace_shape);
     if (D > 3) {
       refactoring_b_array = Array<D, T, DeviceType>(workspace_shape);
     }
     quantizers_array = Array<1, T, DeviceType>({hierarchy.l_target() + 1});
     // quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
-        // hierarchy.level_shape(hierarchy.l_target()), false, false);
+    // hierarchy.level_shape(hierarchy.l_target()), false, false);
     outlier_count_array = Array<1, LENGTH, DeviceType>({1}, false, false);
     outlier_idx_array = Array<1, LENGTH, DeviceType>(
         {(SIZE)(total_elems * estimated_outlier_ratio)});

@@ -139,8 +139,8 @@ public:
       SubArray<2, SIZE, DeviceType> level_ranges, SIZE l_target,
       SubArray<1, T, DeviceType> quantizers,
       SubArray<3, T, DeviceType> level_volumes, SubArray<D, T, DeviceType> v,
-      SubArray<D, QUANTIZED_INT, DeviceType> quantized_v, 
-      SubArray<1, QUANTIZED_INT, DeviceType> * quantized_linearized_v, 
+      SubArray<D, QUANTIZED_INT, DeviceType> quantized_v,
+      SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v,
       bool prep_huffman, bool calc_vol, bool level_linearize, SIZE dict_size,
       SubArray<1, LENGTH, DeviceType> outlier_count,
       SubArray<1, LENGTH, DeviceType> outlier_indexes,
@@ -148,7 +148,7 @@ public:
       : level_ranges(level_ranges), l_target(l_target), quantizers(quantizers),
         level_volumes(level_volumes), v(v), quantized_v(quantized_v),
         quantized_linearized_v(quantized_linearized_v),
-        prep_huffman(prep_huffman), calc_vol(calc_vol), 
+        prep_huffman(prep_huffman), calc_vol(calc_vol),
         level_linearize(level_linearize), dict_size(dict_size),
         outlier_count(outlier_count), outlier_indexes(outlier_indexes),
         outliers(outliers) {
@@ -163,7 +163,7 @@ public:
     // least signigiciant bit --> slowest dim
     SIZE curr_region = 0;
     for (int d = D - 1; d >= 0; d--) {
-      SIZE bit = (level+1) == Math<DeviceType>::ffsll(l_bit[d]);
+      SIZE bit = (level + 1) == Math<DeviceType>::ffsll(l_bit[d]);
       curr_region += bit << d;
     }
 
@@ -212,8 +212,7 @@ public:
     SIZE coarse_level_offset = 0;
     for (int d = D - 1; d >= 0; d--) {
       SIZE bit = (curr_region >> d) & 1u;
-      curr_region_thread_idx[d] =
-          bit ? idx[d] - coarse_level_size[d] : idx[d];
+      curr_region_thread_idx[d] = bit ? idx[d] - coarse_level_size[d] : idx[d];
     }
 
     SIZE global_data_idx[D];
@@ -222,8 +221,7 @@ public:
       if (level == 0) {
         global_data_idx[d] = curr_region_thread_idx[d];
       } else if (*level_ranges(level + 1, d) % 2 == 0 &&
-                 curr_region_thread_idx[d] ==
-                     *level_ranges(level + 1, d) / 2) {
+                 curr_region_thread_idx[d] == *level_ranges(level + 1, d) / 2) {
         global_data_idx[d] = *level_ranges(level + 1, d) - 1;
       } else {
         global_data_idx[d] = curr_region_thread_idx[d] * 2 + bit;
@@ -359,8 +357,8 @@ public:
         l_bit[d] += bit << l;
         // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
       }
-      level = Math<DeviceType>::Max((int)level,
-                                      Math<DeviceType>::ffsll(l_bit[d]));
+      level =
+          Math<DeviceType>::Max((int)level, Math<DeviceType>::ffsll(l_bit[d]));
     }
     level = level - 1;
 
@@ -421,8 +419,10 @@ public:
             } else {
               // calculate the outlier index in the level linearized order
               SIZE level_offset = calc_level_offset();
-              // Assume we put it in quantized_linearized_v and calculate its offset
-              outlier_idx = quantized_linearized_v[level](level_offset) - quantized_v.data();
+              // Assume we put it in quantized_linearized_v and calculate its
+              // offset
+              outlier_idx = quantized_linearized_v[level](level_offset) -
+                            quantized_v.data();
             }
             // Avoid out of range error
             // If we have too much outlier than our allocation
@@ -477,7 +477,7 @@ private:
   SubArray<3, T, DeviceType> level_volumes;
   SubArray<D, T, DeviceType> v;
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_v;
-  SubArray<1, QUANTIZED_INT, DeviceType> * quantized_linearized_v;
+  SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v;
   bool prep_huffman;
   bool calc_vol;
   bool level_linearize;
@@ -508,8 +508,8 @@ public:
                         LENGTH outlier_count,
                         SubArray<1, LENGTH, DeviceType> outlier_indexes,
                         SubArray<1, QUANTIZED_INT, DeviceType> outliers)
-      : quantized_v(quantized_v), outlier_count(outlier_count), outlier_indexes(outlier_indexes),
-        outliers(outliers) {
+      : quantized_v(quantized_v), outlier_count(outlier_count),
+        outlier_indexes(outlier_indexes), outliers(outliers) {
     Functor<DeviceType>();
   }
 
@@ -570,11 +570,13 @@ public:
     using FunctorType =
         LevelwiseLinearQuantizerNDFunctor<D, T, R, C, F, OP, DeviceType>;
 
-    SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v_host = nullptr;
+    SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v_host =
+        nullptr;
     SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v = nullptr;
 
     { // only if we need linerization
-      quantized_linearized_v_host = new SubArray<1, QUANTIZED_INT, DeviceType>[l_target + 1];
+      quantized_linearized_v_host =
+          new SubArray<1, QUANTIZED_INT, DeviceType>[l_target + 1];
       SIZE *ranges_h = level_ranges.dataHost();
       SIZE last_level_size = 0;
       for (SIZE l = 0; l < l_target + 1; l++) {
@@ -582,23 +584,25 @@ public:
         for (DIM d = 0; d < D; d++) {
           level_size *= ranges_h[(l + 1) * D + d];
         }
-        quantized_linearized_v_host[l] = SubArray<1, QUANTIZED_INT, DeviceType>({level_size - last_level_size},
-                                                quantized_v(last_level_size));
+        quantized_linearized_v_host[l] = SubArray<1, QUANTIZED_INT, DeviceType>(
+            {level_size - last_level_size}, quantized_v(last_level_size));
         last_level_size = level_size;
       }
 
-      MemoryManager<DeviceType>::Malloc1D(quantized_linearized_v, l_target + 1, queue_idx);
+      MemoryManager<DeviceType>::Malloc1D(quantized_linearized_v, l_target + 1,
+                                          queue_idx);
       DeviceRuntime<DeviceType>::SyncDevice();
-      MemoryManager<DeviceType>::Copy1D(quantized_linearized_v, quantized_linearized_v_host, l_target + 1,
-                                        queue_idx);
+      MemoryManager<DeviceType>::Copy1D(quantized_linearized_v,
+                                        quantized_linearized_v_host,
+                                        l_target + 1, queue_idx);
       DeviceRuntime<DeviceType>::SyncDevice();
     }
-
 
     bool calc_vol =
         s != std::numeric_limits<T>::infinity(); // m.ntype == norm_type::L_2;
     FunctorType functor(level_ranges, l_target, quantizers, level_volumes, v,
-                        quantized_v, quantized_linearized_v, prep_huffman, calc_vol, level_linearize, huff_dict_size,
+                        quantized_v, quantized_linearized_v, prep_huffman,
+                        calc_vol, level_linearize, huff_dict_size,
                         outlier_count, outlier_indexes, outliers);
 
     SIZE total_thread_z = v.shape(D - 3);
@@ -650,13 +654,14 @@ public:
                SubArray<1, T, DeviceType> quantizers,
                SubArray<3, T, DeviceType> level_volumes, T s,
                SIZE huff_dict_size, SubArray<D, T, DeviceType> v,
-               SubArray<D, QUANTIZED_INT, DeviceType> quantized_v, bool prep_huffman,
-               bool level_linearize,
+               SubArray<D, QUANTIZED_INT, DeviceType> quantized_v,
+               bool prep_huffman, bool level_linearize,
                SubArray<1, LENGTH, DeviceType> outlier_count,
                SubArray<1, LENGTH, DeviceType> outlier_indexes,
                SubArray<1, QUANTIZED_INT, DeviceType> outliers, int queue_idx) {
     Timer timer;
-    if (log::level & log::TIME) timer.start();
+    if (log::level & log::TIME)
+      timer.start();
 
     if constexpr (OP == MGARDX_DEQUANTIZE) {
       LENGTH outlier_count_host;
@@ -666,8 +671,9 @@ public:
       if (prep_huffman && outlier_count_host) {
         using FunctorType = OutlierRestoreFunctor<D, T, DeviceType>;
         using TaskType = Task<FunctorType>;
-        TaskType task = GenTaskOutlier<256>(quantized_v, outlier_count_host,
-                                            outlier_indexes, outliers, queue_idx);
+        TaskType task =
+            GenTaskOutlier<256>(quantized_v, outlier_count_host,
+                                outlier_indexes, outliers, queue_idx);
         DeviceAdapter<TaskType, DeviceType> adapter;
         adapter.Execute(task);
       }
@@ -690,8 +696,8 @@ public:
     using TaskType = Task<FunctorType>;                                        \
     TaskType task = GenTaskQuantizer<R, C, F>(                                 \
         level_ranges, l_target, quantizers, level_volumes, s, huff_dict_size,  \
-        v, quantized_v, prep_huffman, level_linearize, outlier_count, outlier_indexes, outliers,           \
-        queue_idx);                                                            \
+        v, quantized_v, prep_huffman, level_linearize, outlier_count,          \
+        outlier_indexes, outliers, queue_idx);                                 \
     DeviceAdapter<TaskType, DeviceType> adapter;                               \
     ret = adapter.Execute(task);                                               \
     if (AutoTuner<DeviceType>::ProfileKernels) {                               \
@@ -721,19 +727,23 @@ public:
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncDevice();
       timer.end();
-      if (OP == MGARDX_QUANTIZE) timer.print("Quantization");
-      else timer.print("Dequantization");
+      if (OP == MGARDX_QUANTIZE)
+        timer.print("Quantization");
+      else
+        timer.print("Dequantization");
       timer.clear();
     }
     if (OP == MGARDX_QUANTIZE) {
       LENGTH outlier_count_host;
       MemoryManager<DeviceType>::Copy1D(&outlier_count_host,
-                                      outlier_count.data(), 1);
+                                        outlier_count.data(), 1);
       SIZE total_elems = 1;
-      for (DIM d = 0; d < D; d++) total_elems *= quantized_v.shape(d);
+      for (DIM d = 0; d < D; d++)
+        total_elems *= quantized_v.shape(d);
       log::info("Outlier ratio: " + std::to_string(outlier_count_host) + "/" +
-              std::to_string(total_elems) + " (" +
-              std::to_string((double)100 * outlier_count_host / total_elems) + "%)");
+                std::to_string(total_elems) + " (" +
+                std::to_string((double)100 * outlier_count_host / total_elems) +
+                "%)");
     }
   }
 };

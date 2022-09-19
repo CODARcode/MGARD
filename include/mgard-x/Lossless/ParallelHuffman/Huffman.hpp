@@ -31,7 +31,8 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
                 SubArray<1, H, DeviceType> workspace) {
 
   Timer timer;
-  if (log::level & log::TIME) timer.start();
+  if (log::level & log::TIME)
+    timer.start();
 
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
@@ -88,7 +89,8 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   Array<1, H, DeviceType> huff_array;
   SubArray<1, H, DeviceType> huff_subarray;
   if (workspace.data() == nullptr || workspace.shape(0) != primary_count) {
-    log::info("Huffman::Compress need to allocate workspace since it is not pre-allocated.");
+    log::info("Huffman::Compress need to allocate workspace since it is not "
+              "pre-allocated.");
     huff_array = Array<1, H, DeviceType>({(SIZE)primary_count});
     huff_array.memset(0);
     huff_subarray = SubArray(huff_array);
@@ -226,8 +228,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   delete[] h_meta;
 
   log::info("Huffman block size: " + std::to_string(chunk_size));
-  log::info("Huffman dictionary size: " +
-            std::to_string(dict_size));
+  log::info("Huffman dictionary size: " + std::to_string(dict_size));
   log::info(
       "Huffman compress ratio: " +
       std::to_string(primary_count * sizeof(QUANTIZED_UNSIGNED_INT)) + "/" +
@@ -249,12 +250,12 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
 template <typename Q, typename H, typename DeviceType>
 Array<1, Q, DeviceType>
 HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
-                  SubArray<1, Q, DeviceType>& primary,
-                  LENGTH &outlier_count,
+                  SubArray<1, Q, DeviceType> &primary, LENGTH &outlier_count,
                   SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
                   SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray) {
   Timer timer;
-  if (log::level & log::TIME) timer.start();
+  if (log::level & log::TIME)
+    timer.start();
   size_t primary_count;
   int dict_size;
   int chunk_size;
@@ -316,7 +317,8 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
   Array<1, Q, DeviceType> primary_allocated;
   if (primary.data() == nullptr || primary.shape(0) != primary_count) {
     // we need to do allocation since the output is not pre-allocated
-    log::info("Huffman::Decompression output need to be allocated since it is not pre-allocated.");
+    log::info("Huffman::Decompression output need to be allocated since it is "
+              "not pre-allocated.");
     primary_allocated = Array<1, Q, DeviceType>({(SIZE)primary_count});
     primary = SubArray(primary_allocated);
   }
@@ -324,9 +326,9 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
   SubArray<1, uint8_t, DeviceType> decodebook_subarray({(SIZE)decodebook_size},
                                                        decodebook);
   int nchunk = (primary_count - 1) / chunk_size + 1;
-  Decode<Q, H, DeviceType>().Execute(
-      ddata_subarray, huffmeta_subarray, primary, primary_count,
-      chunk_size, nchunk, decodebook_subarray, decodebook_size, 0);
+  Decode<Q, H, DeviceType>().Execute(ddata_subarray, huffmeta_subarray, primary,
+                                     primary_count, chunk_size, nchunk,
+                                     decodebook_subarray, decodebook_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncDevice();
