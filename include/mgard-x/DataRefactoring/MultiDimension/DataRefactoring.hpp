@@ -26,6 +26,9 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
     exit(-1);
   }
 
+  Timer timer;
+  if (log::level & log::TIME) timer.start();
+
   std::string prefix = "decomp_";
   if (sizeof(T) == sizeof(double))
     prefix += "d_";
@@ -145,6 +148,11 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
   DeviceRuntime<DeviceType>::SyncDevice();
+  if (log::level & log::TIME) {
+    timer.end();
+    timer.print("Decomposition");
+    timer.clear();
+  }
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -155,6 +163,9 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
     std::cout << log::log_err << "recompose: stop_level out of bound.\n";
     exit(-1);
   }
+
+  Timer timer;
+  if (log::level & log::TIME) timer.start();
 
   Array<D, T, DeviceType> workspace;
   bool shape_pass = true;
@@ -275,6 +286,11 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
     } // deb
   }   // D > 3
   DeviceRuntime<DeviceType>::SyncDevice();
+  if (log::level & log::TIME) {
+    timer.end();
+    timer.print("Recomposition");
+    timer.clear();
+  }
 }
 
 } // namespace mgard_x
