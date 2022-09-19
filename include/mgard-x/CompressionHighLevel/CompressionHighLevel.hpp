@@ -18,6 +18,7 @@
 #include "compress_x.hpp"
 
 #include "../CompressionLowLevel/CompressionLowLevel.h"
+#include "../CompressionLowLevel/NormCalculator.hpp"
 
 #ifndef MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
 #define MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
@@ -284,17 +285,15 @@ T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &decomposed_data,
     DeviceRuntime<DeviceType>::SelectDevice(decomposed_data[i].resideDevice());
     Array<1, T, DeviceType> norm_array({1});
     SubArray<1, T, DeviceType> norm_subarray(norm_array);
-    SubArray chunck_in_subarray = SubArray(decomposed_data[i]).Linearize();
+    // decomposed_data[i] has to be not pitched to avoid copy for linearization
+    assert(!decomposed_data[i].isPitched());
+    //Disable normalize_coordinate since we do not want to void dividing total_elems
+    T local_norm = norm_calculator(decomposed_data[i], SubArray<1, T, DeviceType>(), norm_subarray, s, false);
+
     if (s == std::numeric_limits<T>::infinity()) {
-      DeviceCollective<DeviceType>::AbsMax(
-          chunck_in_subarray.shape(0), chunck_in_subarray, norm_subarray, 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm = std::max(norm, norm_array.hostCopy()[0]);
+      norm = std::max(norm, local_norm);
     } else {
-      DeviceCollective<DeviceType>::SquareSum(
-          chunck_in_subarray.shape(0), chunck_in_subarray, norm_subarray, 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm += norm_array.hostCopy()[0];
+      norm += local_norm * local_norm;
     }
   }
   if (s != std::numeric_limits<T>::infinity()) {
