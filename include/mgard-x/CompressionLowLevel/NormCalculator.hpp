@@ -10,15 +10,16 @@
 
 namespace mgard_x {
 template <DIM D, typename T, typename DeviceType>
-T norm_calculator(Array<D, T, DeviceType> &original_array, 
-                  SubArray<1, T, DeviceType> workspace_subarray, 
+T norm_calculator(Array<D, T, DeviceType> &original_array,
+                  SubArray<1, T, DeviceType> workspace_subarray,
                   SubArray<1, T, DeviceType> norm_subarray, T s,
                   bool normalize_coordinates) {
   Timer timer;
   if (log::level & log::TIME)
     timer.start();
   SIZE total_elems = 1;
-  for (DIM d = 0; d < D; d++) total_elems *= original_array.shape(d);
+  for (DIM d = 0; d < D; d++)
+    total_elems *= original_array.shape(d);
 
   T norm = 0;
   SubArray<1, T, DeviceType> temp_subarray;
@@ -30,11 +31,12 @@ T norm_calculator(Array<D, T, DeviceType> &original_array,
     log::info("Explicit copy used when calculating norm");
     temp_subarray = workspace_subarray;
     SIZE linearized_width = 1;
-    for (DIM d = 0; d < D-1; d++) linearized_width *= original_array.shape(d);
+    for (DIM d = 0; d < D - 1; d++)
+      linearized_width *= original_array.shape(d);
     MemoryManager<DeviceType>::CopyND(
-        temp_subarray.data(), original_array.shape(D - 1), original_array.data(),
-        original_array.ld(D - 1), original_array.shape(D - 1),
-        linearized_width, 0);
+        temp_subarray.data(), original_array.shape(D - 1),
+        original_array.data(), original_array.ld(D - 1),
+        original_array.shape(D - 1), linearized_width, 0);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (s == std::numeric_limits<T>::infinity()) {
@@ -63,6 +65,6 @@ T norm_calculator(Array<D, T, DeviceType> &original_array,
   return norm;
 }
 
-}
+} // namespace mgard_x
 
 #endif

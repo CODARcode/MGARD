@@ -176,7 +176,8 @@ Array<1, Byte, DeviceType> CPUCompress(SubArray<1, C, DeviceType> &input_data) {
 
   // PrintSubarray("CPUCompress input", input_data);
   Timer timer;
-  if (log::level & log::TIME) timer.start();
+  if (log::level & log::TIME)
+    timer.start();
   size_t input_count = input_data.shape(0);
 
   C *in_data = NULL;
@@ -209,12 +210,12 @@ Array<1, Byte, DeviceType> CPUCompress(SubArray<1, C, DeviceType> &input_data) {
   delete[] lossless_data;
 
   // PrintSubarray("CPUCompress output", SubArray(output_data));
-  log::info("CPU lossless compress ratio: " +
-              std::to_string(input_count * sizeof(C)) + "/" +
-              std::to_string(output_data.shape(0)) + " (" +
-              std::to_string((double)input_count * sizeof(C) /
-                             output_data.shape(0)) +
-              ")");
+  log::info(
+      "CPU lossless compress ratio: " +
+      std::to_string(input_count * sizeof(C)) + "/" +
+      std::to_string(output_data.shape(0)) + " (" +
+      std::to_string((double)input_count * sizeof(C) / output_data.shape(0)) +
+      ")");
   if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncDevice();
     timer.end();
@@ -228,7 +229,8 @@ template <typename C, typename DeviceType>
 Array<1, C, DeviceType>
 CPUDecompress(SubArray<1, Byte, DeviceType> &input_data) {
   Timer timer;
-  if (log::level & log::TIME) timer.start();
+  if (log::level & log::TIME)
+    timer.start();
   // PrintSubarray("CPUDecompress input", input_data);
   size_t input_count = input_data.shape(0);
   Byte *in_data = NULL;

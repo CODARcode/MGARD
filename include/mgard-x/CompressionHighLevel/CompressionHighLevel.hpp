@@ -79,10 +79,11 @@ size_t estimate_memory_usgae(std::vector<SIZE> shape) {
 
   CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
 
-  estimate_memory_usgae = std::max(
-      estimate_memory_usgae, hierarchy_space + input_space + compression_workspace.estimate_size(shape, 64, 0.1));
+  estimate_memory_usgae =
+      std::max(estimate_memory_usgae,
+               hierarchy_space + input_space +
+                   compression_workspace.estimate_size(shape, 64, 0.1));
 
- 
   return estimate_memory_usgae;
 }
 
@@ -160,10 +161,10 @@ void calc_domain_decompose_parameter(std::vector<SIZE> shape,
 #define SUBDOMAIN_TO_ORIGINAL 1
 
 template <DIM D, typename T, typename DeviceType>
-void copy_subdomain(T *data,
-                      Array<D, T, DeviceType> &subdomain_data,
-                      std::vector<SIZE> shape, DIM domain_decomposed_dim,
-                      SIZE domain_decomposed_size, int subdomain_idx, int option) {
+void copy_subdomain(T *data, Array<D, T, DeviceType> &subdomain_data,
+                    std::vector<SIZE> shape, DIM domain_decomposed_dim,
+                    SIZE domain_decomposed_size, int subdomain_idx,
+                    int option) {
   // Pitched memory allocation has to be disable for the correctness of the
   // following copies
   assert(MemoryManager<DeviceType>::ReduceMemoryFootprint == true);
@@ -171,8 +172,8 @@ void copy_subdomain(T *data,
 
   SIZE dst_ld, src_ld, n1, n2;
   calc_domain_decompose_parameter<D>(shape, domain_decomposed_dim,
-                                       domain_decomposed_size, dst_ld, src_ld,
-                                       n1, n2);
+                                     domain_decomposed_size, dst_ld, src_ld, n1,
+                                     n2);
   data += n1 * subdomain_idx;
   if (subdomain_idx < shape[domain_decomposed_dim] / domain_decomposed_size) {
     if (option == ORIGINAL_TO_SUBDOMAIN) {
@@ -184,8 +185,8 @@ void copy_subdomain(T *data,
     SIZE leftover_dim_size =
         shape[domain_decomposed_dim] % domain_decomposed_size;
     calc_domain_decompose_parameter<D>(shape, domain_decomposed_dim,
-                                         leftover_dim_size, dst_ld, src_ld, n1,
-                                         n2);
+                                       leftover_dim_size, dst_ld, src_ld, n1,
+                                       n2);
     if (option == ORIGINAL_TO_SUBDOMAIN) {
       std::vector<SIZE> leftover_shape = shape;
       leftover_shape[domain_decomposed_dim] = leftover_dim_size;
@@ -197,8 +198,8 @@ void copy_subdomain(T *data,
     MemoryManager<DeviceType>::CopyND(subdomain_data.data(), dst_ld, data,
                                       src_ld, n1, n2, 0);
   } else if (option == SUBDOMAIN_TO_ORIGINAL) {
-    MemoryManager<DeviceType>::CopyND(data, src_ld,
-                                    subdomain_data.data(), dst_ld, n1, n2, 0);
+    MemoryManager<DeviceType>::CopyND(data, src_ld, subdomain_data.data(),
+                                      dst_ld, n1, n2, 0);
   } else {
     log::err("copy_subdomain: wrong option.");
     exit(-1);
@@ -217,8 +218,11 @@ T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &subdomain_data,
     SubArray<1, T, DeviceType> norm_subarray(norm_array);
     // subdomain_data[i] has to be not pitched to avoid copy for linearization
     assert(!subdomain_data[i].isPitched());
-    //Disable normalize_coordinate since we do not want to void dividing total_elems
-    T local_norm = norm_calculator(subdomain_data[i], SubArray<1, T, DeviceType>(), norm_subarray, s, false);
+    // Disable normalize_coordinate since we do not want to void dividing
+    // total_elems
+    T local_norm =
+        norm_calculator(subdomain_data[i], SubArray<1, T, DeviceType>(),
+                        norm_subarray, s, false);
 
     if (s == std::numeric_limits<T>::infinity()) {
       norm = std::max(norm, local_norm);
@@ -371,9 +375,9 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     for (int i = 0; i < num_subdomains; i++) {
       DeviceRuntime<DeviceType>::SelectDevice(i % adjusted_num_dev);
       copy_subdomain<D, T, DeviceType>((T *)original_data, subdomain_data[i],
-                                         shape, hierarchy.domain_decomposed_dim,
-                                         hierarchy.domain_decomposed_size,
-                                         i, ORIGINAL_TO_SUBDOMAIN);
+                                       shape, hierarchy.domain_decomposed_dim,
+                                       hierarchy.domain_decomposed_size, i,
+                                       ORIGINAL_TO_SUBDOMAIN);
     }
 
     if (log::level & log::TIME) {
@@ -656,8 +660,8 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     log::info("Orignial domain was decomposed into " +
               std::to_string(subdomain_hierarchy.size()) +
               " subdomains during compression");
-    local_tol = calc_local_abs_tol(m.ebtype, m.norm, m.tol, m.s,
-                                   num_subdomains);
+    local_tol =
+        calc_local_abs_tol(m.ebtype, m.norm, m.tol, m.s, num_subdomains);
     // Force to use ABS mode when do domain decomposition
     local_ebtype = error_bound_type::ABS;
     // Fast copy for domain decomposition need we disable pitched memory
@@ -786,10 +790,10 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       timer_each.start();
 
     for (int i = 0; i < num_subdomains; i++) {
-      copy_subdomain<D, T, DeviceType>((T *)decompressed_data, subdomain_data[i],
-                                         shape, hierarchy.domain_decomposed_dim,
-                                         hierarchy.domain_decomposed_size,
-                                         i, SUBDOMAIN_TO_ORIGINAL);
+      copy_subdomain<D, T, DeviceType>(
+          (T *)decompressed_data, subdomain_data[i], shape,
+          hierarchy.domain_decomposed_dim, hierarchy.domain_decomposed_size, i,
+          SUBDOMAIN_TO_ORIGINAL);
     }
 
     if (log::level & log::TIME) {

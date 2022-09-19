@@ -13,7 +13,8 @@ template <typename C, typename DeviceType>
 Array<1, Byte, DeviceType> LZ4Compress(SubArray<1, C, DeviceType> &input_data,
                                        size_t chunk_size) {
   Timer timer;
-  if (log::level & log::TIME) timer.start();
+  if (log::level & log::TIME)
+    timer.start();
   nvcompType_t dtype = NVCOMP_TYPE_UCHAR;
   nvcomp::LZ4Manager nvcomp_manager{chunk_size, dtype,
                                     DeviceRuntime<DeviceType>::GetQueue(0)};
@@ -28,8 +29,9 @@ Array<1, Byte, DeviceType> LZ4Compress(SubArray<1, C, DeviceType> &input_data,
       nvcomp_manager.get_compressed_output_size(output_data.data());
   DeviceRuntime<DeviceType>::SyncQueue(0);
   log::info("LZ4 block size: " + std::to_string(chunk_size));
-  log::info("LZ4 compress ratio: " +
-              std::to_string((double)(input_count*sizeof(C)) / output_data.shape(0)));
+  log::info(
+      "LZ4 compress ratio: " +
+      std::to_string((double)(input_count * sizeof(C)) / output_data.shape(0)));
   if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncDevice();
     timer.end();
@@ -43,7 +45,8 @@ template <typename C, typename DeviceType>
 Array<1, C, DeviceType>
 LZ4Decompress(SubArray<1, Byte, DeviceType> &input_data) {
   Timer timer;
-  if (log::level & log::TIME) timer.start();
+  if (log::level & log::TIME)
+    timer.start();
   auto decomp_nvcomp_manager = nvcomp::create_manager(
       input_data.data(), DeviceRuntime<DeviceType>::GetQueue(0));
   size_t input_size = input_data.shape(0);
