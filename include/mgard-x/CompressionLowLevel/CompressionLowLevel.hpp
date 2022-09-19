@@ -21,6 +21,8 @@
 #include "../DataRefactoring/MultiDimension/DataRefactoring.h"
 #include "../DataRefactoring/SingleDimension/DataRefactoring.h"
 
+#include "NormCalculator.hpp"
+
 #include "../Quantization/LinearQuantization.hpp"
 
 #include "../Linearization/LevelLinearizer.hpp"
@@ -35,17 +37,8 @@
 #include "../Lossless/CPU.hpp"
 #include "../Lossless/Zstd.hpp"
 
-// for debugging
-// #include "../cuda/CommonInternal.h"
-// #include "../cuda/DataRefactoring.h"
-// #include "../cuda/SubArray.h"
-
 #ifndef MGARD_X_COMPRESSION_LOW_LEVEL_HPP
 #define MGARD_X_COMPRESSION_LOW_LEVEL_HPP
-
-#define BLOCK_SIZE 64
-
-using namespace std::chrono;
 
 namespace mgard_x {
 
@@ -94,50 +87,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (log::level & log::TIME)
     timer_total.start();
 
+  // Norm
   if (type == error_bound_type::REL) {
-    if (log::level & log::TIME)
-      timer_each.start();
-
-    // Array<1, T, DeviceType> temp_array;
-    SubArray<1, T, DeviceType> temp_subarray;
-    // Array<1, T, DeviceType> norm_array({1});
-    // SubArray<1, T, DeviceType> norm_subarray(norm_array);
-    if (!original_array.isPitched()) { // zero copy
-      log::info("Use zero copy when calculating norm");
-      temp_subarray =
-          SubArray<1, T, DeviceType>({total_elems}, original_array.data());
-    } else { // need to linearized
-      log::info("Explicit copy used when calculating norm");
-      temp_subarray = workspace.norm_tmp_subarray;
-      MemoryManager<DeviceType>::CopyND(
-          temp_subarray.data(), original_array.shape(D - 1), original_array.data(),
-          original_array.ld(D - 1), original_array.shape(D - 1),
-          (SIZE)hierarchy.linearized_width(), 0);
-    }
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-    if (s == std::numeric_limits<T>::infinity()) {
-      DeviceCollective<DeviceType>::AbsMax(total_elems, temp_subarray,
-                                           workspace.norm_subarray, 0);
-      MemoryManager<DeviceType>::Copy1D(&norm, workspace.norm_subarray.data(), 1, 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      log::info("L_inf norm: " + std::to_string(norm));
-    } else {
-      DeviceCollective<DeviceType>::SquareSum(total_elems, temp_subarray,
-                                              workspace.norm_subarray, 0);
-      MemoryManager<DeviceType>::Copy1D(&norm, workspace.norm_subarray.data(), 1, 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      if (!config.normalize_coordinates) {
-        norm = std::sqrt(norm);
-      } else {
-        norm = std::sqrt(norm / total_elems);
-      }
-      log::info("L_2 norm: " + std::to_string(norm));
-    }
-    if (log::level & log::TIME) {
-      timer_each.end();
-      timer_each.print("Calculate norm");
-      timer_each.clear();
-    }
+    norm = norm_calculator(original_array, workspace.norm_tmp_subarray, workspace.norm_subarray,
+                  s, config.normalize_coordinates);
   }
 
   // Decomposition
