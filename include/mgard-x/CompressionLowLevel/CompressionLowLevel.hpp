@@ -80,24 +80,13 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     if (log::level & log::TIME)
       timer_total.start();
     // Allocate workspace if not pre-allocated
-    workspace = CompressionLowLevelWorkspace(hierarchy, config);
+    workspace = CompressionLowLevelWorkspace(hierarchy);
     if (log::level & log::TIME) {
       timer_each.end();
       timer_each.print("Allocate workspace");
       timer_each.clear();
     }
   }
-
-  Array<1, T, DeviceType> &quantizers_array = workspace.quantizers_array;
-  Array<D, QUANTIZED_INT, DeviceType> &quantized_array =
-      workspace.quantized_array;
-  Array<1, LENGTH, DeviceType> &outlier_count_array =
-      workspace.outlier_count_array;
-  Array<1, LENGTH, DeviceType> &outlier_idx_array = workspace.outlier_idx_array;
-  Array<1, QUANTIZED_INT, DeviceType> &outliers_array =
-      workspace.outliers_array;
-  Array<1, QUANTIZED_INT, DeviceType> &quantized_linearized_array =
-      workspace.quantized_linearized_array;
 
   SubArray in_subarray(original_array);
   SIZE total_elems = hierarchy.total_num_elems();
@@ -111,15 +100,15 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
     // Array<1, T, DeviceType> temp_array;
     SubArray<1, T, DeviceType> temp_subarray;
-    Array<1, T, DeviceType> norm_array({1});
-    SubArray<1, T, DeviceType> norm_subarray(norm_array);
+    // Array<1, T, DeviceType> norm_array({1});
+    // SubArray<1, T, DeviceType> norm_subarray(norm_array);
     if (!original_array.isPitched()) { // zero copy
       log::info("Use zero copy when calculating norm");
       temp_subarray =
           SubArray<1, T, DeviceType>({total_elems}, original_array.data());
     } else { // need to linearized
       log::info("Explicit copy used when calculating norm");
-      temp_subarray = SubArray<1, T, DeviceType>({total_elems}, (T*)workspace.universal_workspace.data());
+      temp_subarray = workspace.norm_tmp_subarray;
       MemoryManager<DeviceType>::CopyND(
           temp_subarray.data(), original_array.shape(D - 1), original_array.data(),
           original_array.ld(D - 1), original_array.shape(D - 1),
@@ -128,15 +117,15 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
     DeviceRuntime<DeviceType>::SyncQueue(0);
     if (s == std::numeric_limits<T>::infinity()) {
       DeviceCollective<DeviceType>::AbsMax(total_elems, temp_subarray,
-                                           norm_subarray, 0);
+                                           workspace.norm_subarray, 0);
+      MemoryManager<DeviceType>::Copy1D(&norm, workspace.norm_subarray.data(), 1, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm = norm_array.hostCopy()[0];
       log::info("L_inf norm: " + std::to_string(norm));
     } else {
       DeviceCollective<DeviceType>::SquareSum(total_elems, temp_subarray,
-                                              norm_subarray, 0);
+                                              workspace.norm_subarray, 0);
+      MemoryManager<DeviceType>::Copy1D(&norm, workspace.norm_subarray.data(), 1, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
-      norm = norm_array.hostCopy()[0];
       if (!config.normalize_coordinates) {
         norm = std::sqrt(norm);
       } else {
@@ -155,7 +144,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (log::level & log::TIME)
     timer_each.start();
   if (config.decomposition == decomposition_type::MultiDim) {
-    decompose<D, T, DeviceType>(hierarchy, in_subarray, 0, 0);
+    decompose<D, T, DeviceType>(hierarchy, in_subarray, workspace.refactoring_w_subarray, workspace.refactoring_b_subarray,0, 0);
   } else if (config.decomposition == decomposition_type::SingleDim) {
     decompose_single<D, T, DeviceType>(hierarchy, in_subarray, 0, 0);
   }
@@ -174,11 +163,6 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (log::level & log::TIME)
     timer_each.start();
 
-  SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
-  SubArray<D, QUANTIZED_INT, DeviceType> quantized_subarray(hierarchy.level_shape(hierarchy.l_target()), (QUANTIZED_INT*)workspace.universal_workspace.data());
-  SubArray<1, LENGTH, DeviceType> outlier_count_subarray(outlier_count_array);
-  SubArray<1, LENGTH, DeviceType> outlier_idx_subarray(outlier_idx_array);
-  SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray(outliers_array);
   SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges(), true);
   SubArray<3, T, DeviceType> level_volumes_subarray(hierarchy.level_volumes());
   LENGTH outlier_count;
@@ -193,7 +177,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   T *quantizers = new T[hierarchy.l_target() + 1];
   calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm,
                         hierarchy.l_target(), config.decomposition, true);
-  quantizers_array.load(quantizers);
+  MemoryManager<DeviceType>::Copy1D(workspace.quantizers_subarray.data(), quantizers, hierarchy.l_target() + 1);
   delete[] quantizers;
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -201,26 +185,26 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   bool done_quantization = false;
   while (!done_quantization) {
     LevelwiseLinearQuantizerND<D, T, MGARDX_QUANTIZE, DeviceType>().Execute(
-        level_ranges_subarray, hierarchy.l_target(), quantizers_subarray,
+        level_ranges_subarray, hierarchy.l_target(), workspace.quantizers_subarray,
         level_volumes_subarray, s, config.huff_dict_size, in_subarray,
-        quantized_subarray, prep_huffman, config.reorder, outlier_count_subarray,
-        outlier_idx_subarray, outliers_subarray, 0);
+        workspace.quantized_subarray, prep_huffman, config.reorder, workspace.outlier_count_subarray,
+        workspace.outlier_idx_subarray, workspace.outliers_subarray, 0);
 
     MemoryManager<DeviceType>::Copy1D(&outlier_count,
-                                      outlier_count_subarray.data(), 1, 0);
+                                      workspace.outlier_count_subarray.data(), 1, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
-    if (outlier_count <= outliers_subarray.shape(0)) {
+    if (outlier_count <= workspace.outliers_subarray.shape(0)) {
       // outlier buffer has sufficient size
       done_quantization = true;
     } else {
       log::info("Not enough workspace for outliers. Re-allocating to " +
                 std::to_string(outlier_count));
-      outlier_idx_array = Array<1, LENGTH, DeviceType>({(SIZE)outlier_count});
-      outliers_array =
+      workspace.outlier_idx_array = Array<1, LENGTH, DeviceType>({(SIZE)outlier_count});
+      workspace.outliers_array =
           Array<1, QUANTIZED_INT, DeviceType>({(SIZE)outlier_count});
-      outlier_idx_subarray = SubArray(outlier_idx_array);
-      outliers_subarray = SubArray(outliers_array);
-      outlier_count_array.memset(0);
+      workspace.outlier_idx_subarray = SubArray(workspace.outlier_idx_array);
+      workspace.outliers_subarray = SubArray(workspace.outliers_array);
+      workspace.outlier_count_array.memset(0);
     }
   }
 
@@ -245,54 +229,19 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   Array<1, Byte, DeviceType> compressed_array;
   SubArray<1, Byte, DeviceType> compressed_subarray;
 
-  SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>
-      unsigned_quantized_linearized_subarray;
-  SubArray<1, QUANTIZED_INT, DeviceType> quantized_linearized_subarray(quantized_linearized_array);
-
-  // if (config.reorder != 0) {
-  //   if (log::level & log::TIME)
-  //     timer_each.start();
-  //   if (config.reorder == 1) {
-  //     LevelLinearizer<D, QUANTIZED_INT, Interleave, DeviceType>().Execute(
-  //         SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
-  //         hierarchy.l_target(), quantized_subarray,
-  //         quantized_linearized_subarray,
-  //         0);
-  //   } else {
-  //     log::err("wrong reodering type");
-  //   }
-  //   DeviceRuntime<DeviceType>::SyncDevice();
-  //   if (log::level & log::TIME) {
-  //     DeviceRuntime<DeviceType>::SyncQueue(0);
-  //     timer_each.end();
-  //     timer_each.print("Level linearizer type: " +
-  //                      std::to_string(config.reorder));
-  //     timer_each.clear();
-  //   }
-  //   unsigned_quantized_linearized_subarray =
-  //       SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
-  //           {total_elems},
-  //           (QUANTIZED_UNSIGNED_INT *)quantized_linearized_subarray.data());
-  //   quantized_linearized_subarray = SubArray<1, QUANTIZED_INT, DeviceType>(
-  //       {total_elems}, (QUANTIZED_INT *)quantized_linearized_subarray.data());
-  // } else {
-    // Cast to QUANTIZED_UNSIGNED_INT
-    unsigned_quantized_linearized_subarray =
-        SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
-            {total_elems}, (QUANTIZED_UNSIGNED_INT *)quantized_subarray.data());
-    quantized_linearized_subarray = SubArray<1, QUANTIZED_INT, DeviceType>(
-        {total_elems}, (QUANTIZED_INT *)quantized_subarray.data());
-  // }
-
   if (config.lossless != lossless_type::CPU_Lossless) {
     // Huffman compression
     if (log::level & log::TIME)
       timer_each.start();
+    // Cast to 1D unsigned integers when do CPU compression
+    SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType> cast_quantized_subarray =
+      SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
+          {total_elems}, (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
     compressed_array =
-        HuffmanCompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(
-            unsigned_quantized_linearized_subarray, config.huff_block_size,
-            config.huff_dict_size, outlier_count, outlier_idx_subarray,
-            outliers_subarray);
+        HuffmanCompress<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>(
+            cast_quantized_subarray, config.huff_block_size,
+            config.huff_dict_size, outlier_count, workspace.outlier_idx_subarray,
+            workspace.outliers_subarray, workspace.huffman_subarray);
     compressed_subarray = SubArray(compressed_array);
     log::info("Huffman block size: " + std::to_string(config.huff_block_size));
     log::info("Huffman dictionary size: " +
@@ -313,10 +262,12 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   } else {
     if (log::level & log::TIME)
       timer_each.start();
-    // PrintSubarray("quantized_linearized_subarray",
-    // quantized_linearized_subarray);
+    // Cast to 1D signed integers when do CPU compression
+    SubArray<1, QUANTIZED_INT, DeviceType> cast_linearized_subarray = SubArray<1, QUANTIZED_INT, DeviceType>(
+    {total_elems}, (QUANTIZED_INT *)workspace.quantized_subarray.data());
+
     compressed_array =
-        CPUCompress<QUANTIZED_INT, DeviceType>(quantized_linearized_subarray);
+        CPUCompress<QUANTIZED_INT, DeviceType>(cast_linearized_subarray);
     compressed_subarray = SubArray(compressed_array);
     log::info("CPU lossless compress ratio: " +
               std::to_string(total_elems * sizeof(QUANTIZED_INT)) + "/" +
@@ -407,7 +358,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     if (log::level & log::TIME)
       timer_total.start();
     // Allocate workspace if not pre-allocated
-    workspace = CompressionLowLevelWorkspace(hierarchy, config);
+    workspace = CompressionLowLevelWorkspace(hierarchy);
     if (log::level & log::TIME) {
       timer_each.end();
       timer_each.print("Allocate workspace");
@@ -415,23 +366,13 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
 
-  Array<1, T, DeviceType> &quantizers_array = workspace.quantizers_array;
-  Array<D, QUANTIZED_INT, DeviceType> &quantized_array =
-      workspace.quantized_array;
-  Array<1, LENGTH, DeviceType> &outlier_count_array =
-      workspace.outlier_count_array;
-
   SIZE total_elems = hierarchy.total_num_elems();
 
   SubArray compressed_subarray(compressed_array);
 
   LENGTH outlier_count;
 
-  SubArray<1, LENGTH, DeviceType> outlier_idx_subarray;
-  SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray;
-
   Array<1, Byte, DeviceType> lossless_compressed_array;
-  Array<1, Byte, DeviceType> huffman_array;
 
   if (log::level & log::TIME)
     timer_total.start();
@@ -470,13 +411,6 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
 
-  QUANTIZED_UNSIGNED_INT *unsigned_dqv;
-
-  if (debug_print_compression) {
-    // PrintSubarray("Huffman compressed_subarray",
-    // compressed_subarray);
-  }
-
   // PrintSubarray("compressed_subarray",
   // compressed_subarray);
 
@@ -484,39 +418,12 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     // Huffman compression
     if (log::level & log::TIME)
       timer_each.start();
-    Array<1, QUANTIZED_UNSIGNED_INT, DeviceType>
-        unsigned_quantized_linearized_array =
-            HuffmanDecompress<QUANTIZED_UNSIGNED_INT, uint64_t, DeviceType>(
-                compressed_subarray, outlier_count, outlier_idx_subarray,
-                outliers_subarray);
-
-    if (config.reorder != 0) {
-      if (log::level & log::TIME)
-        timer_each.start();
-      if (config.reorder == 1) {
-        LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
-            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
-            hierarchy.l_target(), SubArray(quantized_array),
-            SubArray<1, QUANTIZED_INT, DeviceType>(
-                {total_elems},
-                (QUANTIZED_INT *)unsigned_quantized_linearized_array.data()),
-            0);
-      } else {
-        log::err("wrong reodering option.");
-        exit(-1);
-      }
-      if (log::level & log::TIME) {
-        DeviceRuntime<DeviceType>::SyncQueue(0);
-        timer_each.end();
-        timer_each.print("Level linearization");
-        timer_each.clear();
-      }
-    } else {
-      MemoryManager<DeviceType>::Copy1D(
-          quantized_array.data(),
-          (QUANTIZED_INT *)unsigned_quantized_linearized_array.data(),
-          total_elems, 0);
-    }
+    SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType> cast_quantized_subarray({total_elems}, (QUANTIZED_UNSIGNED_INT*)workspace.quantized_subarray.data());
+    HuffmanDecompress<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>(
+                compressed_subarray, cast_quantized_subarray, outlier_count, workspace.outlier_idx_subarray,
+                workspace.outliers_subarray);
+    // Cast to signed integers
+    // quantized_subarray = SubArray<D, QUANTIZED_INT, DeviceType>(hierarchy.level_shape(hierarchy.l_target()), (QUANTIZED_INT*)unsigned_quantized_array.data());
 
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -527,35 +434,10 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   } else {
     if (log::level & log::TIME)
       timer_each.start();
-    Array<1, QUANTIZED_INT, DeviceType> quantized_linearized_array =
+    Array<1, QUANTIZED_INT, DeviceType> quantized_array =
         CPUDecompress<QUANTIZED_INT, DeviceType>(compressed_subarray);
+    MemoryManager<DeviceType>::Copy1D(workspace.quantized_subarray.data(), quantized_array.data(), total_elems);
 
-    if (config.reorder != 0) {
-      if (log::level & log::TIME)
-        timer_each.start();
-      if (config.reorder == 1) {
-        LevelLinearizer<D, QUANTIZED_INT, Reposition, DeviceType>().Execute(
-            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
-            hierarchy.l_target(), SubArray(quantized_array),
-            SubArray<1, QUANTIZED_INT, DeviceType>(quantized_linearized_array),
-            0);
-      } else {
-        log::err("wrong reodering type.");
-        exit(-1);
-      }
-      if (log::level & log::TIME) {
-        DeviceRuntime<DeviceType>::SyncQueue(0);
-        timer_each.end();
-        timer_each.print("Level linearization");
-        timer_each.clear();
-      }
-    } else {
-      // PrintSubarray("quantized_linearized_array",
-      // SubArray(quantized_linearized_array));
-      MemoryManager<DeviceType>::Copy1D(
-          quantized_array.data(),
-          (QUANTIZED_INT *)quantized_linearized_array.data(), total_elems, 0);
-    }
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(0);
       timer_each.end();
@@ -574,26 +456,23 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   Array<D, T, DeviceType> decompressed_data(
       hierarchy.level_shape(hierarchy.l_target()));
   SubArray<D, T, DeviceType> decompressed_subarray(decompressed_data);
-  outlier_count_array.load(&outlier_count);
+  MemoryManager<DeviceType>::Copy1D(workspace.outlier_count_subarray.data(), &outlier_count, 1);
   SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges(), true);
   SubArray<3, T, DeviceType> level_volumes_subarray(hierarchy.level_volumes());
-  SubArray<D, QUANTIZED_INT, DeviceType> quantized_subarray(quantized_array);
-  SubArray<1, LENGTH, DeviceType> outlier_count_subarray(outlier_count_array);
 
   bool prep_huffman = config.lossless != lossless_type::CPU_Lossless;
 
   T *quantizers = new T[hierarchy.l_target() + 1];
   calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm,
                         hierarchy.l_target(), config.decomposition, false);
-  quantizers_array.load(quantizers);
-  SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
+  MemoryManager<DeviceType>::Copy1D(workspace.quantizers_subarray.data(), quantizers, hierarchy.l_target() + 1);
   delete[] quantizers;
 
   LevelwiseLinearQuantizerND<D, T, MGARDX_DEQUANTIZE, DeviceType>().Execute(
-      level_ranges_subarray, hierarchy.l_target(), quantizers_subarray,
+      level_ranges_subarray, hierarchy.l_target(), workspace.quantizers_subarray,
       level_volumes_subarray, s, config.huff_dict_size, decompressed_subarray,
-      quantized_subarray, prep_huffman, false, outlier_count_subarray,
-      outlier_idx_subarray, outliers_subarray, 0);
+      workspace.quantized_subarray, prep_huffman, config.reorder, workspace.outlier_count_subarray,
+      workspace.outlier_idx_subarray, workspace.outliers_subarray, 0);
 
   if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -611,7 +490,7 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     timer_each.start();
   if (config.decomposition == decomposition_type::MultiDim) {
     recompose<D, T, DeviceType>(hierarchy, decompressed_subarray,
-                                hierarchy.l_target(), 0);
+                                workspace.refactoring_w_subarray, workspace.refactoring_b_subarray, hierarchy.l_target(), 0);
   } else if (config.decomposition == decomposition_type::SingleDim) {
     recompose_single<D, T, DeviceType>(hierarchy, decompressed_subarray,
                                        hierarchy.l_target(), 0);

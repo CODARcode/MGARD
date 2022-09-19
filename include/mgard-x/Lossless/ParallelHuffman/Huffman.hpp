@@ -27,7 +27,8 @@ Array<1, Byte, DeviceType>
 HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
                 int dict_size, LENGTH outlier_count,
                 SubArray<1, LENGTH, DeviceType> outlier_idx_subarray,
-                SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray) {
+                SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray,
+                SubArray<1, H, DeviceType> workspace) {
 
   high_resolution_clock::time_point t1, t2, start, end;
   duration<double> time_span;
@@ -81,14 +82,19 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
     // PrintSubarray("GetCodebook::decodebook_subarray", decodebook_subarray);
   }
 
-  Array<1, H, DeviceType> huff_array({(SIZE)primary_count});
-  huff_array.memset(0);
-  H *huff = huff_array.data();
-
-  // gpuErrchk(DeviceTypeDeviceSynchronize());
+  Array<1, H, DeviceType> huff_array;
+  SubArray<1, H, DeviceType> huff_subarray;
+  if (workspace.data() == nullptr || workspace.shape(0) != primary_count) {
+    log::info("Huffman::Compress need to allocate workspace since it is not pre-allocated.");
+    huff_array = Array<1, H, DeviceType>({(SIZE)primary_count});
+    huff_array.memset(0);
+    huff_subarray = SubArray(huff_array);
+  } else {
+    huff_subarray = workspace;
+  }
   DeviceRuntime<DeviceType>::SyncDevice();
 
-  SubArray<1, H, DeviceType> huff_subarray(huff_array);
+  H *huff = huff_subarray.data();
   EncodeFixedLen<unsigned int, H, DeviceType>().Execute(
       dprimary_subarray, huff_subarray, primary_count, codebook_subarray, 0);
   DeviceRuntime<DeviceType>::SyncDevice();
@@ -221,6 +227,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
 template <typename Q, typename H, typename DeviceType>
 Array<1, Q, DeviceType>
 HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
+                  SubArray<1, Q, DeviceType>& primary,
                   LENGTH &outlier_count,
                   SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
                   SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray) {
@@ -283,16 +290,22 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
   SubArray<1, H, DeviceType> ddata_subarray({(SIZE)ddata_size}, ddata);
   SubArray<1, size_t, DeviceType> huffmeta_subarray({(SIZE)huffmeta_size},
                                                     huffmeta);
-  Array<1, Q, DeviceType> dprimary({(SIZE)primary_count});
-  SubArray<1, Q, DeviceType> dprimary_subarray(dprimary);
+  Array<1, Q, DeviceType> primary_allocated;
+  if (primary.data() == nullptr || primary.shape(0) != primary_count) {
+    // we need to do allocation since the output is not pre-allocated
+    log::info("Huffman::Decompression output need to be allocated since it is not pre-allocated.");
+    primary_allocated = Array<1, Q, DeviceType>({(SIZE)primary_count});
+    primary = SubArray(primary_allocated);
+  }
+
   SubArray<1, uint8_t, DeviceType> decodebook_subarray({(SIZE)decodebook_size},
                                                        decodebook);
   int nchunk = (primary_count - 1) / chunk_size + 1;
   Decode<Q, H, DeviceType>().Execute(
-      ddata_subarray, huffmeta_subarray, dprimary_subarray, primary_count,
+      ddata_subarray, huffmeta_subarray, primary, primary_count,
       chunk_size, nchunk, decodebook_subarray, decodebook_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  return dprimary;
+  return primary_allocated;
 }
 
 template <typename Q, typename H, typename DeviceType>
