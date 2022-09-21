@@ -101,7 +101,7 @@ public:
     // domain decomposition strategy
     std::vector<SIZE> chunck_shape = shape;
 
-    // First device by the number of devices
+    // First divide by the number of devices
     chunck_shape[_domain_decomposed_dim] =
         std::ceil((double)chunck_shape[_domain_decomposed_dim] / num_dev);
 
@@ -183,6 +183,41 @@ public:
     // std::cout << "n2: " << n2 << "\n";
   }
 
+  std::vector<SIZE> subdomain_shape(int subdomain_id) {
+    if (subdomain_id >= _num_subdomains) {
+      log::err("DomainDecomposer::subdomain_shape wrong subdomain_id.");
+      exit(-1);
+    }
+    if (!_domain_decomposed) {
+      return shape;
+    } else {
+      if (subdomain_id <
+          shape[_domain_decomposed_dim] / _domain_decomposed_size) {
+        std::vector<SIZE> chunck_shape = shape;
+          chunck_shape[_domain_decomposed_dim] = _domain_decomposed_size;
+        return chunck_shape;
+      } else {
+        SIZE leftover_dim_size =
+            shape[_domain_decomposed_dim] % _domain_decomposed_size;
+        std::vector<SIZE> leftover_shape = shape;
+          leftover_shape[_domain_decomposed_dim] = leftover_dim_size;
+        return leftover_shape;
+      }
+    }
+  }
+
+  bool check_shape(Array<D, T, DeviceType> &subdomain_data, std::vector<SIZE> shape) {
+    if (subdomain_data.data() == nullptr) {
+      return false;
+    }
+    for (DIM d = 0; d < D; d++) {
+      if (subdomain_data.shape(d) != shape[d]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   void copy_subdomain(Array<D, T, DeviceType> &subdomain_data, int subdomain_id,
                       int option) {
     if (subdomain_id >= _num_subdomains) {
@@ -220,10 +255,8 @@ public:
       T *data = original_data + n1 * subdomain_id;
       if (subdomain_id <
           shape[_domain_decomposed_dim] / _domain_decomposed_size) {
-        if (option == ORIGINAL_TO_SUBDOMAIN) {
-          std::vector<SIZE> chunck_shape = shape;
-          chunck_shape[_domain_decomposed_dim] = _domain_decomposed_size;
-          subdomain_data = Array<D, T, DeviceType>(chunck_shape, pitched);
+        if (option == ORIGINAL_TO_SUBDOMAIN && !check_shape(subdomain_data, subdomain_shape(subdomain_id))) {
+          subdomain_data = Array<D, T, DeviceType>(subdomain_shape(subdomain_id), pitched);
         }
       } else {
         SIZE leftover_dim_size =
@@ -231,10 +264,8 @@ public:
         calc_domain_decompose_parameter(shape, _domain_decomposed_dim,
                                         leftover_dim_size, dst_ld, src_ld, n1,
                                         n2);
-        if (option == ORIGINAL_TO_SUBDOMAIN) {
-          std::vector<SIZE> leftover_shape = shape;
-          leftover_shape[_domain_decomposed_dim] = leftover_dim_size;
-          subdomain_data = Array<D, T, DeviceType>(leftover_shape, pitched);
+        if (option == ORIGINAL_TO_SUBDOMAIN && !check_shape(subdomain_data, subdomain_shape(subdomain_id))) {
+          subdomain_data = Array<D, T, DeviceType>(subdomain_shape(subdomain_id), pitched);
         }
       }
 
