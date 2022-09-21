@@ -28,7 +28,8 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
                 int dict_size, LENGTH outlier_count,
                 SubArray<1, LENGTH, DeviceType> outlier_idx_subarray,
                 SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray,
-                SubArray<1, H, DeviceType> workspace) {
+                SubArray<1, H, DeviceType> workspace,
+                SubArray<1, int, DeviceType> status_subarray) {
 
   Timer timer;
   if (log::level & log::TIME)
@@ -78,7 +79,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
 
   GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray,
-                                decodebook_subarray);
+                                decodebook_subarray, status_subarray);
   DeviceRuntime<DeviceType>::SyncDevice();
 
   if (debug_print_huffman) {
@@ -111,10 +112,9 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   auto nchunk = (primary_count - 1) / chunk_size + 1;
   Array<1, size_t, DeviceType> huff_bitwidths_array({(SIZE)nchunk});
   huff_bitwidths_array.memset(0);
-  size_t *huff_bitwidths = huff_bitwidths_array.data();
+  // size_t *huff_bitwidths = huff_bitwidths_array.data();
 
-  SubArray<1, size_t, DeviceType> huff_bitwidths_subarray({(SIZE)nchunk},
-                                                          huff_bitwidths);
+  SubArray<1, size_t, DeviceType> huff_bitwidths_subarray(huff_bitwidths_array);
   Deflate<H, DeviceType>().Execute(huff_subarray, primary_count,
                                    huff_bitwidths_subarray, chunk_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -130,7 +130,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   size_t *dH_bit_meta = h_meta + nchunk;
   size_t *dH_uInt_entry = h_meta + nchunk * 2;
 
-  MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths, nchunk, 0);
+  MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths_subarray.data(), nchunk, 0);
   // gpuErrchk(DeviceTypeDeviceSynchronize());
   DeviceRuntime<DeviceType>::SyncDevice();
   // transform in uInt
@@ -208,7 +208,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
     MemoryManager<DeviceType>::Copy1D(
         (H *)compressed_data_subarray(byte_offset +
                                       dH_uInt_entry[i] * sizeof(H)),
-        huff + i * chunk_size, dH_uInt_meta[i], 0);
+        huff + i * chunk_size, dH_uInt_meta[i], i % MGARDX_NUM_ASYNC_QUEUES);
   }
   advance_with_align<H>(byte_offset, ddata_size);
 
@@ -221,7 +221,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
                                 outlier_subarray.data(), outlier_count,
                                 byte_offset);
 
-  DeviceRuntime<DeviceType>::SyncQueue(0);
+  DeviceRuntime<DeviceType>::SyncAllQueues();
   t2 = high_resolution_clock::now();
   time_span = duration_cast<duration<double>>(t2 - t1);
   // printf("serilization time2: %.6f s\n", time_span.count());
