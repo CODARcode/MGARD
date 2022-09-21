@@ -229,6 +229,57 @@ int Array<D, T, DeviceType>::resideDevice() {
   return dev_id;
 }
 
+template <DIM D, typename T, typename DeviceType>
+void Array<D, T, DeviceType>::resize(std::vector<SIZE> shape, bool pitched, bool managed,
+              int queue_idx) {
+  bool inplace_resizable = false;
+  if (device_allocated) {
+    if (!isPitched()) {
+      // check total number of elements
+      SIZE original_num_elems = 1;
+      SIZE new_num_elems = 1;
+      for (DIM d = 0; d < D; d++) {
+        original_num_elems *= __shape[d];
+        new_num_elems *= shape[d];
+      }
+      if (original_num_elems >= new_num_elems) {
+        // We can reuse existing allocation
+        inplace_resizable = true;
+        __shape = shape;
+        __ldvs = __shape;
+        linearized_width = 1;
+        for (DIM d = 0; d < D - 1; d++) {
+          linearized_width *= __shape[d];
+        }
+      }
+    } else {
+      bool shape_compatiable = true;
+      for (DIM d = 0; d < D; d++) {
+        if (__shape[d] < shape[d]) {
+          shape_compatiable = false;
+          break;
+        }
+      }
+      if (shape_compatiable) {
+        // We can reuse existing allocation
+        inplace_resizable = true;
+        __shape = shape;
+        linearized_width = 1;
+        for (DIM d = 0; d < D - 1; d++) {
+          linearized_width *= __shape[d];
+        }
+      }
+    }
+  }
+  // If cannot reuse existing allocation or there is no existing allocation
+  if (!inplace_resizable) {
+    bool pitched = false;
+    bool managed = false;
+    initialize(shape);
+    allocate(pitched, managed, queue_idx);
+  }
+}
+
 } // namespace mgard_x
 
 #endif
