@@ -513,6 +513,11 @@ Array<3, T, DeviceType> &Hierarchy<D, T, DeviceType>::level_volumes() {
 }
 
 template <DIM D, typename T, typename DeviceType>
+data_structure_type Hierarchy<D, T, DeviceType>::data_structure() {
+  return dstype;
+}
+
+template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::destroy() {
   // Nothing needs to be done here.
 }
