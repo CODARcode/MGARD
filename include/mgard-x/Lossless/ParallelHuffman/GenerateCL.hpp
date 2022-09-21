@@ -724,9 +724,10 @@ public:
                SubArray<1, int, DeviceType> copyIsLeaf,
                SubArray<1, int, DeviceType> copyIndex,
                SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
+               SubArray<1, int, DeviceType> status,
                int queue_idx) {
-    Array<1, int, DeviceType> status_array({(SIZE)16}, false, true);
-    SubArray status(status_array);
+    // Array<1, int, DeviceType> status_array({(SIZE)16}, false, true);
+    // SubArray status(status_array);
     using FunctorType = GenerateCLFunctor<T, DeviceType>;
     using TaskType = Task<FunctorType>;
     TaskType task = GenTask(histogram, CL, dict_size, lNodesFreq, lNodesLeader,
