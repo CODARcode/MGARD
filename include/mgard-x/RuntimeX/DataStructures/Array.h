@@ -39,6 +39,8 @@ public:
   bool isPitched();
   bool isManaged();
   int resideDevice();
+  void resize(std::vector<SIZE> shape, bool pitched = true, bool managed = false,
+              int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
 private:
   int dev_id;
