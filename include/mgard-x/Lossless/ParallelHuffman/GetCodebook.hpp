@@ -21,7 +21,8 @@ template <typename Q, typename H, typename DeviceType>
 void GetCodebook(int dict_size,
                  SubArray<1, unsigned int, DeviceType> _d_freq_subarray,
                  SubArray<1, H, DeviceType> _d_codebook_subarray,
-                 SubArray<1, uint8_t, DeviceType> _d_decode_meta_subarray) {
+                 SubArray<1, uint8_t, DeviceType> _d_decode_meta_subarray,
+                 SubArray<1, int, DeviceType> status_subarray) {
   // Metadata
   auto type_bw = sizeof(H) * 8;
   // auto _d_first = reinterpret_cast<H *>(_d_decode_meta);
@@ -133,7 +134,7 @@ void GetCodebook(int dict_size,
                      iNodesFreq_subarray, iNodesLeader_subarray,
                      tempFreq_subarray, tempIsLeaf_subarray, tempIndex_subarray,
                      copyFreq_subarray, copyIsLeaf_subarray, copyIndex_subarray,
-                     diagonal_path_intersections_subarray, 0);
+                     diagonal_path_intersections_subarray, status_subarray, 0);
 
   unsigned int max_CL;
   MemoryManager<DeviceType>().Copy1D(&max_CL, CL_subarray(IDX(0)), 1, 0);

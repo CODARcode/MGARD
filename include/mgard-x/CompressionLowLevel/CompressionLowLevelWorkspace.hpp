@@ -38,6 +38,7 @@ public:
     outlier_idx_subarray = SubArray(outlier_idx_array);
     outliers_subarray = SubArray(outliers_array);
     huffman_subarray = SubArray(huffman_array);
+    status_subarray = SubArray(status_array);
   }
 
   size_t estimate_size(std::vector<SIZE> shape, SIZE l_target,
@@ -110,7 +111,7 @@ public:
     outlier_idx_array.memset(0);
     outliers_array.memset(0);
     huffman_array = Array<1, HUFFMAN_CODE, DeviceType>({total_elems});
-
+    status_array = Array<1, int, DeviceType> ({(SIZE)16}, false, true);
     initialize_subarray();
 
     pre_allocated = true;
@@ -130,7 +131,7 @@ public:
     outlier_idx_array = std::move(workspace.outlier_idx_array);
     outliers_array = std::move(workspace.outliers_array);
     huffman_array = std::move(workspace.huffman_array);
-
+    status_array = std::move(workspace.status_array);
     initialize_subarray();
   }
 
@@ -148,7 +149,7 @@ public:
     outlier_idx_array = std::move(workspace.outlier_idx_array);
     outliers_array = std::move(workspace.outliers_array);
     huffman_array = std::move(workspace.huffman_array);
-
+    status_array = std::move(workspace.status_array);
     initialize_subarray();
   }
 
@@ -187,22 +188,24 @@ public:
   Array<D, T, DeviceType> refactoring_w_array;
   Array<D, T, DeviceType> refactoring_b_array;
   Array<1, T, DeviceType> quantizers_array;
-  Array<1, HUFFMAN_CODE, DeviceType> huffman_array;
   Array<D, QUANTIZED_INT, DeviceType> quantized_array;
   Array<1, LENGTH, DeviceType> outlier_count_array;
   Array<1, LENGTH, DeviceType> outlier_idx_array;
   Array<1, QUANTIZED_INT, DeviceType> outliers_array;
+  Array<1, HUFFMAN_CODE, DeviceType> huffman_array;
+  Array<1, int, DeviceType> status_array;
 
   SubArray<1, T, DeviceType> norm_tmp_subarray;
   SubArray<1, T, DeviceType> norm_subarray;
   SubArray<D, T, DeviceType> refactoring_w_subarray;
   SubArray<D, T, DeviceType> refactoring_b_subarray;
   SubArray<1, T, DeviceType> quantizers_subarray;
-  SubArray<1, HUFFMAN_CODE, DeviceType> huffman_subarray;
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_subarray;
   SubArray<1, LENGTH, DeviceType> outlier_count_subarray;
   SubArray<1, LENGTH, DeviceType> outlier_idx_subarray;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray;
+  SubArray<1, HUFFMAN_CODE, DeviceType> huffman_subarray;
+  SubArray<1, int, DeviceType> status_subarray;
 };
 
 } // namespace mgard_x

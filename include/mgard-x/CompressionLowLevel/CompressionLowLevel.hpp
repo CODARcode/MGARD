@@ -178,7 +178,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
             cast_quantized_subarray, config.huff_block_size,
             config.huff_dict_size, outlier_count,
             workspace.outlier_idx_subarray, workspace.outliers_subarray,
-            workspace.huffman_subarray);
+            workspace.huffman_subarray, workspace.status_subarray);
     compressed_subarray = SubArray(compressed_array);
   } else {
     // Cast to 1D signed integers when do CPU compression
