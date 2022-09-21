@@ -77,6 +77,8 @@ void Array<D, T, DeviceType>::allocate(bool pitched, bool managed,
           dv, __shape[D - 1] * linearized_width, queue_idx);
     }
   }
+  __shape_allocation = __shape;
+  __ldvs_allocation = __ldvs;
   device_allocated = true;
 }
 
@@ -101,6 +103,8 @@ void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
   if (array.device_allocated) {
     this->dv = array.dv;
     this->__ldvs = array.__ldvs;
+    this->__shape_allocation = array.__shape_allocation;
+    this->__ldvs_allocation = array.__ldvs_allocation;
     this->device_allocated = true;
     array.device_allocated = false;
     array.dv = nullptr;
@@ -235,14 +239,21 @@ void Array<D, T, DeviceType>::resize(std::vector<SIZE> shape, bool pitched, bool
   bool inplace_resizable = false;
   if (device_allocated) {
     if (!isPitched()) {
+      std::cout << "resize: not pitched\n";
       // check total number of elements
       SIZE original_num_elems = 1;
       SIZE new_num_elems = 1;
+      std::cout << "resize: count number of elements\n";
+      std::cout << "sizeof __shape_allocation: " << __shape_allocation.size() << "\n";
+      std::cout << "sizeof shape: " << shape.size() << "\n";
       for (DIM d = 0; d < D; d++) {
-        original_num_elems *= __shape[d];
+        original_num_elems *= __shape_allocation[d];
         new_num_elems *= shape[d];
+        std::cout << "original_num_elems: " << original_num_elems << "\n";
+        std::cout << "new_num_elems: " << new_num_elems << "\n";
       }
       if (original_num_elems >= new_num_elems) {
+        std::cout << "resize: can reuse\n";
         // We can reuse existing allocation
         inplace_resizable = true;
         __shape = shape;
@@ -253,15 +264,18 @@ void Array<D, T, DeviceType>::resize(std::vector<SIZE> shape, bool pitched, bool
         }
       }
     } else {
+      std::cout << "resize: pitched\n";
       bool shape_compatiable = true;
+      std::cout << "resize: check shape\n";
       for (DIM d = 0; d < D; d++) {
-        if (__shape[d] < shape[d]) {
+        if (__shape_allocation[d] < shape[d]) {
           shape_compatiable = false;
           break;
         }
       }
       if (shape_compatiable) {
         // We can reuse existing allocation
+        std::cout << "resize: can reuse\n";
         inplace_resizable = true;
         __shape = shape;
         linearized_width = 1;
@@ -272,6 +286,7 @@ void Array<D, T, DeviceType>::resize(std::vector<SIZE> shape, bool pitched, bool
     }
   }
   // If cannot reuse existing allocation or there is no existing allocation
+  std::cout << "resize: cannot reuse\n";
   if (!inplace_resizable) {
     bool pitched = false;
     bool managed = false;
