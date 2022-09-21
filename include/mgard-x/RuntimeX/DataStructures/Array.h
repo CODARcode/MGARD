@@ -53,6 +53,8 @@ private:
   bool host_allocated = false;
   std::vector<SIZE> __ldvs;
   std::vector<SIZE> __shape;
+  std::vector<SIZE> __ldvs_allocation;
+  std::vector<SIZE> __shape_allocation;
   SIZE linearized_width;
 };
 
