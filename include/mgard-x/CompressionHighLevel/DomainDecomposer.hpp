@@ -65,6 +65,9 @@ public:
       input_space *= shape[d];
     }
 
+    // For prefetching
+    input_space *= 2;
+
     // log::info("input_space: " + std::to_string((double)input_space/1e9));
 
     CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
@@ -259,14 +262,7 @@ public:
       if (subdomain_id <
           shape[_domain_decomposed_dim] / _domain_decomposed_size) {
         if (option == ORIGINAL_TO_SUBDOMAIN) {
-          
-          for (DIM d = 0; d < D; d++) {
-            std::cout << "shape " << subdomain_shape(subdomain_id)[d] << "\n";
-          }
-
-          std::cout << "resize start\n";
           subdomain_data.resize(subdomain_shape(subdomain_id), pitched);
-          std::cout << "resize end\n";
         }
       } else {
         SIZE leftover_dim_size =
