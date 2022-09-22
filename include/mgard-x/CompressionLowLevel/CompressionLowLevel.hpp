@@ -200,9 +200,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 #endif
 
   if (config.lossless == lossless_type::Huffman_Zstd) {
-    compressed_array =
-        ZstdCompress(compressed_subarray, config.zstd_compress_level);
-    compressed_subarray = SubArray(compressed_array);
+    ZstdCompress(compressed_array, config.zstd_compress_level);
   }
 
   if (log::level & log::TIME) {
@@ -266,9 +264,8 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 
   if (config.lossless == lossless_type::Huffman_Zstd) {
-    lossless_compressed_array =
-        ZstdDecompress<Byte, DeviceType>(compressed_subarray);
-    compressed_subarray = SubArray(lossless_compressed_array);
+    ZstdDecompress(compressed_array);
+    compressed_subarray = SubArray(compressed_array);
   }
 
   // PrintSubarray("compressed_subarray",
