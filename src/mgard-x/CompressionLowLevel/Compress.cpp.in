@@ -9,13 +9,14 @@
 // clang-format off
 namespace mgard_x {
 
-template Array<1, unsigned char, @DEVICE_TYPE@>
+template void
 compress<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
     Array<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &original_array,
     enum error_bound_type type, @DATA_TYPE@ tol, @DATA_TYPE@ s,
     @DATA_TYPE@ &norm, Config config, 
-    CompressionLowLevelWorkspace<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>& workspace);
+    CompressionLowLevelWorkspace<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>& workspace,
+    Array<1, Byte, @DEVICE_TYPE@> &compressed_array);
 
 } // namespace mgard_x
 // clang-format on
