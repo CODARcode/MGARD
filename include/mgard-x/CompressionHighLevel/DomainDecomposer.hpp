@@ -219,12 +219,17 @@ public:
   }
 
   void copy_subdomain(Array<D, T, DeviceType> &subdomain_data, int subdomain_id,
-                      int option) {
+                      int option, int queue_idx) {
     if (subdomain_id >= _num_subdomains) {
       log::err("DomainDecomposer::copy_subdomain wrong subdomain_id.");
       exit(-1);
     }
 
+    Timer timer;
+    if (log::level & log::TIME) { 
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+      timer.start();
+    }
     if (!_domain_decomposed) {
       SIZE linearized_width = 1;
       for (DIM d = 0; d < D - 1; d++)
@@ -234,14 +239,12 @@ public:
         // subdomain_data.load(original_data);
         MemoryManager<DeviceType>::CopyND(
             subdomain_data.data(), subdomain_data.ld(D - 1), original_data,
-            shape[D - 1], shape[D - 1], linearized_width, 0);
+            shape[D - 1], shape[D - 1], linearized_width, queue_idx);
       } else {
         MemoryManager<DeviceType>::CopyND(
             original_data, shape[D - 1], subdomain_data.data(),
-            subdomain_data.ld(D - 1), shape[D - 1], linearized_width, 0);
+            subdomain_data.ld(D - 1), shape[D - 1], linearized_width, queue_idx);
       }
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-
     } else {
       // Pitched memory allocation has to be disable for the correctness of the
       // following copies
@@ -255,8 +258,15 @@ public:
       T *data = original_data + n1 * subdomain_id;
       if (subdomain_id <
           shape[_domain_decomposed_dim] / _domain_decomposed_size) {
-        if (option == ORIGINAL_TO_SUBDOMAIN && !check_shape(subdomain_data, subdomain_shape(subdomain_id))) {
-          subdomain_data = Array<D, T, DeviceType>(subdomain_shape(subdomain_id), pitched);
+        if (option == ORIGINAL_TO_SUBDOMAIN) {
+          
+          for (DIM d = 0; d < D; d++) {
+            std::cout << "shape " << subdomain_shape(subdomain_id)[d] << "\n";
+          }
+
+          std::cout << "resize start\n";
+          subdomain_data.resize(subdomain_shape(subdomain_id), pitched);
+          std::cout << "resize end\n";
         }
       } else {
         SIZE leftover_dim_size =
@@ -264,22 +274,27 @@ public:
         calc_domain_decompose_parameter(shape, _domain_decomposed_dim,
                                         leftover_dim_size, dst_ld, src_ld, n1,
                                         n2);
-        if (option == ORIGINAL_TO_SUBDOMAIN && !check_shape(subdomain_data, subdomain_shape(subdomain_id))) {
-          subdomain_data = Array<D, T, DeviceType>(subdomain_shape(subdomain_id), pitched);
+        if (option == ORIGINAL_TO_SUBDOMAIN) {
+          subdomain_data.resize(subdomain_shape(subdomain_id), pitched);
         }
       }
 
       if (option == ORIGINAL_TO_SUBDOMAIN) {
         MemoryManager<DeviceType>::CopyND(subdomain_data.data(), dst_ld, data,
-                                          src_ld, n1, n2, 0);
+                                          src_ld, n1, n2, queue_idx);
       } else if (option == SUBDOMAIN_TO_ORIGINAL) {
         MemoryManager<DeviceType>::CopyND(data, src_ld, subdomain_data.data(),
-                                          dst_ld, n1, n2, 0);
+                                          dst_ld, n1, n2, queue_idx);
       } else {
         log::err("copy_subdomain: wrong option.");
         exit(-1);
       }
-      DeviceRuntime<DeviceType>::SyncQueue(0);
+      
+    }
+    if (log::level & log::TIME) {
+      timer.end();
+      timer.print("Copy subdomain " + std::to_string(subdomain_id));
+      timer.clear();
     }
   }
 
