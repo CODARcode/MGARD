@@ -10,6 +10,7 @@
 
 #include "../Hierarchy/Hierarchy.hpp"
 #include "../RuntimeX/RuntimeXPublic.h"
+#include "../DataRefactoring/DataRefactoringWorkspace.hpp"
 
 namespace mgard_x {
 
@@ -23,17 +24,13 @@ public:
 
   void initialize_subarray() {
     // Reuse refactoring_w_array
-    // norm_tmp_subarray = SubArray(norm_tmp_array);
     norm_tmp_subarray = SubArray<1, T, DeviceType>(
-        {total_elems}, (T *)refactoring_w_array.data());
+        {total_elems}, (T *)data_refactoring_workspace.refactoring_w_array.data());
     norm_subarray = SubArray(norm_array);
-    refactoring_w_subarray = SubArray(refactoring_w_array);
-    refactoring_b_subarray = SubArray(refactoring_b_array);
     quantizers_subarray = SubArray(quantizers_array);
     // Reuse refactoring_w_array
-    // quantized_subarray = SubArray(quantized_array);
     quantized_subarray = SubArray<D, QUANTIZED_INT, DeviceType>(
-        shape, (QUANTIZED_INT *)refactoring_w_array.data());
+        shape, (QUANTIZED_INT *)data_refactoring_workspace.refactoring_w_array.data());
     outlier_count_subarray = SubArray(outlier_count_array);
     outlier_idx_subarray = SubArray(outlier_idx_array);
     outliers_subarray = SubArray(outliers_array);
@@ -52,25 +49,8 @@ public:
     size_t size = 0;
     // size += total_num_elems() * sizeof(T);
     size += sizeof(T);
-    size_t workspace_size = 1;
-    for (DIM d = 0; d < D; d++) {
-      if (d == D - 1) {
-        workspace_size *= roundup((shape[d] + 2) * sizeof(T), pitch_size);
-      } else {
-        workspace_size *= shape[d] + 2;
-      }
-    }
-    size += workspace_size;
-    if (D > 3) {
-      size += workspace_size;
-    }
+    size += data_refactoring_workspace.estimate_size(shape);
     size += roundup((l_target + 1) * sizeof(T), pitch_size);
-
-    // size_t quantized_size = 1;
-    // for (DIM d = 0; d < D; d++) {
-    //   quantized_size *= level_shape(l_target, d);
-    // }
-    // size += quantized_size * sizeof(QUANTIZED_INT);
     size += roundup(sizeof(LENGTH), pitch_size);
     size += roundup(
         (size_t)(total_num_elems * estimated_outlier_ratio * sizeof(LENGTH)),
@@ -90,14 +70,7 @@ public:
     // Reuse refactoring_w_array
     // norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()});
     norm_array = Array<1, T, DeviceType>({1});
-
-    std::vector<SIZE> workspace_shape = shape;
-    for (DIM d = 0; d < D; d++)
-      workspace_shape[d] += 2;
-    refactoring_w_array = Array<D, T, DeviceType>(workspace_shape);
-    if (D > 3) {
-      refactoring_b_array = Array<D, T, DeviceType>(workspace_shape);
-    }
+    data_refactoring_workspace.allocate(hierarchy);
     quantizers_array = Array<1, T, DeviceType>({hierarchy.l_target() + 1});
     // quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
     // hierarchy.level_shape(hierarchy.l_target()), false, false);
@@ -124,8 +97,7 @@ public:
     outlier_count = outlier_count;
     norm_tmp_array = std::move(workspace.norm_tmp_array);
     norm_array = std::move(workspace.norm_array);
-    refactoring_w_array = std::move(workspace.refactoring_w_array);
-    refactoring_b_array = std::move(workspace.refactoring_b_array);
+    data_refactoring_workspace = std::move(workspace.data_refactoring_workspace);
     quantizers_array = std::move(workspace.quantizers_array);
     quantized_array = std::move(workspace.quantized_array);
     outlier_count_array = std::move(workspace.outlier_count_array);
@@ -143,8 +115,7 @@ public:
     outlier_count = outlier_count;
     norm_tmp_array = std::move(workspace.norm_tmp_array);
     norm_array = std::move(workspace.norm_array);
-    refactoring_w_array = std::move(workspace.refactoring_w_array);
-    refactoring_b_array = std::move(workspace.refactoring_b_array);
+    data_refactoring_workspace = std::move(workspace.data_refactoring_workspace);
     quantizers_array = std::move(workspace.quantizers_array);
     quantized_array = std::move(workspace.quantized_array);
     outlier_count_array = std::move(workspace.outlier_count_array);
@@ -186,10 +157,10 @@ public:
   SIZE total_elems;
   LENGTH outlier_count;
 
+  DataRefactoringWorkspace<D, T, DeviceType> data_refactoring_workspace;
+
   Array<1, T, DeviceType> norm_tmp_array;
   Array<1, T, DeviceType> norm_array;
-  Array<D, T, DeviceType> refactoring_w_array;
-  Array<D, T, DeviceType> refactoring_b_array;
   Array<1, T, DeviceType> quantizers_array;
   Array<D, QUANTIZED_INT, DeviceType> quantized_array;
   Array<1, LENGTH, DeviceType> outlier_count_array;
@@ -200,8 +171,6 @@ public:
 
   SubArray<1, T, DeviceType> norm_tmp_subarray;
   SubArray<1, T, DeviceType> norm_subarray;
-  SubArray<D, T, DeviceType> refactoring_w_subarray;
-  SubArray<D, T, DeviceType> refactoring_b_subarray;
   SubArray<1, T, DeviceType> quantizers_subarray;
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_subarray;
   SubArray<1, LENGTH, DeviceType> outlier_count_subarray;

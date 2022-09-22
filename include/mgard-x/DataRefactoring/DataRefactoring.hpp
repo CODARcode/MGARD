@@ -7,6 +7,7 @@
 
 #include "MultiDimension/DataRefactoring.h"
 #include "SingleDimension/DataRefactoring.h"
+#include "DataRefactoringWorkspace.hpp"
 
 #ifndef MGARD_X_DATA_REFACTORING_HPP
 #define MGARD_X_DATA_REFACTORING_HPP
@@ -15,7 +16,7 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType>
 void Decompose(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &in_array, Config config,
-         CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
+         DataRefactoringWorkspace<D, T, DeviceType> &workspace,
          int queue_idx) {
   SubArray in_subarray(in_array);
   if (config.decomposition == decomposition_type::MultiDim) {
@@ -30,7 +31,7 @@ void Decompose(Hierarchy<D, T, DeviceType> &hierarchy,
 template <DIM D, typename T, typename DeviceType>
 void Recompose(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &in_array, Config config,
-         CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
+         DataRefactoringWorkspace<D, T, DeviceType> &workspace,
          int queue_idx) {
   SubArray in_subarray(in_array);
   if (config.decomposition == decomposition_type::MultiDim) {
