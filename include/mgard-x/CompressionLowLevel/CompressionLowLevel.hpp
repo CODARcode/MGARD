@@ -45,7 +45,7 @@ void compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
   log::info("Select device: " + DeviceRuntime<DeviceType>::GetDeviceName());
-  Timer timer_total, timer_each;
+  Timer timer_total;
   for (int d = D - 1; d >= 0; d--) {
     if (hierarchy.level_shape(hierarchy.l_target(), d) !=
         original_array.shape(d)) {
@@ -54,22 +54,6 @@ void compress(Hierarchy<D, T, DeviceType> &hierarchy,
       return;
     }
   }
-
-  // Workspaces
-  if (!workspace.pre_allocated) {
-    if (log::level & log::TIME)
-      timer_total.start();
-    // Allocate workspace if not pre-allocated
-    workspace = CompressionLowLevelWorkspace(hierarchy);
-    if (log::level & log::TIME) {
-      timer_each.end();
-      timer_each.print("Allocate workspace");
-      timer_each.clear();
-    }
-  }
-
-  SubArray in_subarray(original_array);
-  SIZE total_elems = hierarchy.total_num_elems();
 
   if (log::level & log::TIME)
     timer_total.start();
@@ -81,7 +65,7 @@ void compress(Hierarchy<D, T, DeviceType> &hierarchy,
                            config.normalize_coordinates);
   }
 
-  Decompose(hierarchy, original_array, config, workspace, 0);
+  Decompose(hierarchy, original_array, config, workspace.data_refactoring_workspace, 0);
 
   LinearQuanziation(hierarchy, original_array,
                     config, type, tol, s, norm, workspace, 0);
@@ -93,7 +77,7 @@ void compress(Hierarchy<D, T, DeviceType> &hierarchy,
     timer_total.end();
     timer_total.print("Low-level compression");
     log::time("Low-level compression throughput: " +
-              std::to_string((double)(total_elems * sizeof(T)) /
+              std::to_string((double)(hierarchy.total_num_elems() * sizeof(T)) /
                              timer_total.get() / 1e9) +
               " GB/s");
     timer_total.clear();
@@ -113,34 +97,22 @@ void decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   log::info("Select device: " + DeviceRuntime<DeviceType>::GetDeviceName());
   Timer timer_total, timer_each;
 
-  // Workspaces
-  if (!workspace.pre_allocated) {
-    if (log::level & log::TIME)
-      timer_total.start();
-    // Allocate workspace if not pre-allocated
-    workspace = CompressionLowLevelWorkspace(hierarchy);
-    if (log::level & log::TIME) {
-      timer_each.end();
-      timer_each.print("Allocate workspace");
-      timer_each.clear();
-    }
-  }
-
-  SIZE total_elems = hierarchy.total_num_elems();
+  if (log::level & log::TIME)
+    timer_total.start();
 
   LosslessDecompress(hierarchy, compressed_array, config, workspace);
 
   LinearDequanziation(hierarchy, decompressed_array, config, type, tol, s, norm,
                       workspace, 0);
 
-  Recompose(hierarchy, decompressed_array, config, workspace, 0);
+  Recompose(hierarchy, decompressed_array, config, workspace.data_refactoring_workspace, 0);
 
   if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_total.end();
     timer_total.print("Low-level decompression");
     log::time("Low-level decompression throughput: " +
-              std::to_string((double)(total_elems * sizeof(T)) /
+              std::to_string((double)(hierarchy.total_num_elems() * sizeof(T)) /
                              timer_total.get() / 1e9) +
               " GB/s");
     timer_total.clear();
