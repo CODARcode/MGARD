@@ -121,6 +121,7 @@ public:
     // Move instead of copy
     shape = workspace.shape;
     total_elems = workspace.total_elems;
+    outlier_count = outlier_count;
     norm_tmp_array = std::move(workspace.norm_tmp_array);
     norm_array = std::move(workspace.norm_array);
     refactoring_w_array = std::move(workspace.refactoring_w_array);
@@ -139,6 +140,7 @@ public:
     // Move instead of copy
     shape = workspace.shape;
     total_elems = workspace.total_elems;
+    outlier_count = outlier_count;
     norm_tmp_array = std::move(workspace.norm_tmp_array);
     norm_array = std::move(workspace.norm_array);
     refactoring_w_array = std::move(workspace.refactoring_w_array);
@@ -182,6 +184,7 @@ public:
 
   std::vector<SIZE> shape;
   SIZE total_elems;
+  LENGTH outlier_count;
 
   Array<1, T, DeviceType> norm_tmp_array;
   Array<1, T, DeviceType> norm_array;

@@ -5,8 +5,8 @@
  * Date: March 17, 2022
  */
 
-#ifndef MGARD_X_COMMON
-#define MGARD_X_COMMON
+#ifndef MGARD_X_UTILITIES_TYPES
+#define MGARD_X_UTILITIES_TYPES
 
 #include <algorithm>
 #include <cstdio>
