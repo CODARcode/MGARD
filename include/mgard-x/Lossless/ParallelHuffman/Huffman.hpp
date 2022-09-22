@@ -5,6 +5,9 @@
  * Date: March 17, 2022
  */
 
+#ifndef MGARD_X_HUFFMAN_TEMPLATE_HPP
+#define MGARD_X_HUFFMAN_TEMPLATE_HPP
+
 static bool debug_print_huffman = false;
 
 #include "Decode.hpp"
@@ -14,11 +17,7 @@ static bool debug_print_huffman = false;
 #include "Histogram.hpp"
 
 #include <chrono>
-
 using namespace std::chrono;
-
-#ifndef MGARD_X_HUFFMAN_TEMPLATE_HPP
-#define MGARD_X_HUFFMAN_TEMPLATE_HPP
 
 namespace mgard_x {
 
