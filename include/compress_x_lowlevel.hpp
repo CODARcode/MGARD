@@ -27,8 +27,7 @@ namespace mgard_x {
 //!
 //!\return Compressed dataset.
 template <DIM D, typename T, typename DeviceType>
-Array<1, unsigned char, DeviceType>
-compress(Hierarchy<D, T, DeviceType> &hierarchy,
+void compress(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &in_array, enum error_bound_type type, T tol,
          T s, T &norm, Config config, CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
          Array<1, Byte, DeviceType> &compressed_array);
@@ -46,9 +45,10 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 //!
 //!\return Decompressed dataset.
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType>
-decompress(Hierarchy<D, T, DeviceType> &hierarchy,
+void decompress(Hierarchy<D, T, DeviceType> &hierarchy,
            Array<1, unsigned char, DeviceType> &compressed_array,
-           enum error_bound_type type, T tol, T s, T norm, Config config);
+           enum error_bound_type type, T tol, T s, T norm, Config config,
+           CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
+           Array<D, T, DeviceType>& decompressed_array);
 
 } // namespace mgard_x

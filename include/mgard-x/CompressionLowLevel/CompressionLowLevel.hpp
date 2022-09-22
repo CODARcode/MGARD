@@ -45,8 +45,7 @@ namespace mgard_x {
 static bool debug_print_compression = true;
 
 template <DIM D, typename T, typename DeviceType>
-void
-compress(Hierarchy<D, T, DeviceType> &hierarchy,
+void compress(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &original_array, enum error_bound_type type,
          T tol, T s, T &norm, Config config,
          CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
@@ -161,9 +160,6 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   // PrintSubarray("quantized outlier_idx_array", outlier_idx_subarray);
   // }
 
-  // Array<1, Byte, DeviceType> compressed_array;
-  SubArray<1, Byte, DeviceType> compressed_subarray;
-
   if (config.lossless != lossless_type::CPU_Lossless) {
     // Huffman compression
     // Cast to 1D unsigned integers when do CPU compression
@@ -177,7 +173,14 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
             workspace.outlier_idx_subarray, workspace.outliers_subarray,
             compressed_array,
             workspace.huffman_subarray, workspace.status_subarray);
-    compressed_subarray = SubArray(compressed_array);
+#ifdef MGARDX_COMPILE_CUDA
+      if (config.lossless == lossless_type::Huffman_LZ4) {
+        LZ4Compress(compressed_array, config.lz4_block_size);
+      }
+#endif
+      if (config.lossless == lossless_type::Huffman_Zstd) {
+        ZstdCompress(compressed_array, config.zstd_compress_level);
+      }
   } else {
     // Cast to 1D signed integers when do CPU compression
     SubArray<1, QUANTIZED_INT, DeviceType> cast_linearized_subarray =
@@ -187,20 +190,6 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
     compressed_array =
         CPUCompress<QUANTIZED_INT, DeviceType>(cast_linearized_subarray);
-    compressed_subarray = SubArray(compressed_array);
-  }
-
-  // PrintSubarray("compressed_subarray",
-  // compressed_subarray);
-
-#ifdef MGARDX_COMPILE_CUDA
-  if (config.lossless == lossless_type::Huffman_LZ4) {
-    LZ4Compress(compressed_array, config.lz4_block_size);
-  }
-#endif
-
-  if (config.lossless == lossless_type::Huffman_Zstd) {
-    ZstdCompress(compressed_array, config.zstd_compress_level);
   }
 
   if (log::level & log::TIME) {
@@ -216,11 +205,11 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType>
-decompress(Hierarchy<D, T, DeviceType> &hierarchy,
+void decompress(Hierarchy<D, T, DeviceType> &hierarchy,
            Array<1, unsigned char, DeviceType> &compressed_array,
            enum error_bound_type type, T tol, T s, T norm, Config config,
-           CompressionLowLevelWorkspace<D, T, DeviceType> &workspace) {
+           CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
+           Array<D, T, DeviceType>& decompressed_array) {
 
   config.apply();
 
@@ -247,32 +236,26 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   LENGTH outlier_count;
 
-  Array<1, Byte, DeviceType> lossless_compressed_array;
-
   if (log::level & log::TIME)
     timer_total.start();
-
-  if (config.lossless == lossless_type::Huffman_LZ4) {
-#ifdef MGARDX_COMPILE_CUDA
-    LZ4Decompress(compressed_array);
-    compressed_subarray = SubArray(compressed_array);
-#else
-    log::err("LZ4 is only available in CUDA. Portable LZ4 is in development. "
-             "Please use the CUDA backend to decompress for now.");
-    exit(-1);
-#endif
-  }
-
-  if (config.lossless == lossless_type::Huffman_Zstd) {
-    ZstdDecompress(compressed_array);
-    compressed_subarray = SubArray(compressed_array);
-  }
-
-  // PrintSubarray("compressed_subarray",
-  // compressed_subarray);
-
   if (config.lossless != lossless_type::CPU_Lossless) {
-    // Huffman compression
+
+    if (config.lossless == lossless_type::Huffman_LZ4) {
+#ifdef MGARDX_COMPILE_CUDA
+      LZ4Decompress(compressed_array);
+      compressed_subarray = SubArray(compressed_array);
+#else
+      log::err("LZ4 is only available in CUDA. Portable LZ4 is in development. "
+               "Please use the CUDA backend to decompress for now.");
+      exit(-1);
+#endif
+    }
+
+    if (config.lossless == lossless_type::Huffman_Zstd) {
+      ZstdDecompress(compressed_array);
+      compressed_subarray = SubArray(compressed_array);
+    }
+
     SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType> cast_quantized_subarray(
         {total_elems},
         (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
@@ -291,9 +274,10 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   // PrintSubarray("Quantized primary", SubArray(primary));
   // }
 
-  Array<D, T, DeviceType> decompressed_data(
-      hierarchy.level_shape(hierarchy.l_target()));
-  SubArray<D, T, DeviceType> decompressed_subarray(decompressed_data);
+  // Array<D, T, DeviceType> decompressed_data(
+      // hierarchy.level_shape(hierarchy.l_target()));
+  decompressed_array.resize(hierarchy.level_shape(hierarchy.l_target()));
+  SubArray<D, T, DeviceType> decompressed_subarray(decompressed_array);
   MemoryManager<DeviceType>::Copy1D(workspace.outlier_count_subarray.data(),
                                     &outlier_count, 1);
   SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges(),
@@ -346,8 +330,6 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   //   PrintSubarray2("decompressed_subarray", SubArray<D, T,
   //   DeviceType>(decompressed_subarray));
   // }
-
-  return decompressed_data;
 }
 } // namespace mgard_x
 
