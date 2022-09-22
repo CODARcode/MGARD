@@ -30,7 +30,8 @@ template <DIM D, typename T, typename DeviceType>
 Array<1, unsigned char, DeviceType>
 compress(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &in_array, enum error_bound_type type, T tol,
-         T s, T &norm, Config config);
+         T s, T &norm, Config config, CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
+         Array<1, Byte, DeviceType> &compressed_array);
 
 //! Decompress a function on an N-D tensor product grid
 //!

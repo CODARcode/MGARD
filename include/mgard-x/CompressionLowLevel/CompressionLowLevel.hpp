@@ -45,11 +45,12 @@ namespace mgard_x {
 static bool debug_print_compression = true;
 
 template <DIM D, typename T, typename DeviceType>
-Array<1, unsigned char, DeviceType>
+void
 compress(Hierarchy<D, T, DeviceType> &hierarchy,
          Array<D, T, DeviceType> &original_array, enum error_bound_type type,
          T tol, T s, T &norm, Config config,
-         CompressionLowLevelWorkspace<D, T, DeviceType> &workspace) {
+         CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
+         Array<1, Byte, DeviceType> &compressed_array) {
 
   config.apply();
 
@@ -61,10 +62,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
         original_array.shape(d)) {
       log::err("The shape of input array does not match the shape initilized "
                "in hierarchy!");
-      std::vector<SIZE> empty_shape;
-      empty_shape.push_back(1);
-      Array<1, unsigned char, DeviceType> empty(empty_shape);
-      return empty;
+      return;
     }
   }
 
@@ -163,7 +161,7 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   // PrintSubarray("quantized outlier_idx_array", outlier_idx_subarray);
   // }
 
-  Array<1, Byte, DeviceType> compressed_array;
+  // Array<1, Byte, DeviceType> compressed_array;
   SubArray<1, Byte, DeviceType> compressed_subarray;
 
   if (config.lossless != lossless_type::CPU_Lossless) {
@@ -219,8 +217,6 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
               " GB/s");
     timer_total.clear();
   }
-
-  return compressed_array;
 }
 
 template <DIM D, typename T, typename DeviceType>
