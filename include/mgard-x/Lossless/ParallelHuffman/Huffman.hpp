@@ -52,7 +52,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
   Histogram<Q, unsigned int, DeviceType>().Execute(
       dprimary_subarray, freq_subarray, primary_count, dict_size, 0);
-  DeviceRuntime<DeviceType>::SyncDevice();
+  DeviceRuntime<DeviceType>::SyncQueue(0);
 
   // if (debug_print_huffman) {
   // PrintSubarray("Histogram::freq_subarray", freq_subarray);
@@ -81,8 +81,6 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
 
   GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray,
                                 decodebook_subarray, status_subarray);
-  DeviceRuntime<DeviceType>::SyncDevice();
-
   if (debug_print_huffman) {
     // PrintSubarray("GetCodebook::codebook_subarray", codebook_subarray);
     // PrintSubarray("GetCodebook::decodebook_subarray", decodebook_subarray);
@@ -99,12 +97,11 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   } else {
     huff_subarray = workspace;
   }
-  DeviceRuntime<DeviceType>::SyncDevice();
 
   H *huff = huff_subarray.data();
   EncodeFixedLen<unsigned int, H, DeviceType>().Execute(
       dprimary_subarray, huff_subarray, primary_count, codebook_subarray, 0);
-  DeviceRuntime<DeviceType>::SyncDevice();
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   if (debug_print_huffman) {
     // PrintSubarray("EncodeFixedLen::huff_subarray", huff_subarray);
   }
@@ -132,8 +129,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   size_t *dH_uInt_entry = h_meta + nchunk * 2;
 
   MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths_subarray.data(), nchunk, 0);
-  // gpuErrchk(DeviceTypeDeviceSynchronize());
-  DeviceRuntime<DeviceType>::SyncDevice();
+  DeviceRuntime<DeviceType>::SyncQueue(0);
   // transform in uInt
   memcpy(dH_uInt_meta, dH_bit_meta, nchunk * sizeof(size_t));
   std::for_each(dH_uInt_meta, dH_uInt_meta + nchunk,
@@ -149,8 +145,6 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   auto total_uInts =
       std::accumulate(dH_uInt_meta, dH_uInt_meta + nchunk, (size_t)0);
 
-  // gpuErrchk(DeviceTypeDeviceSynchronize());
-  DeviceRuntime<DeviceType>::SyncDevice();
   t2 = high_resolution_clock::now();
   time_span = duration_cast<duration<double>>(t2 - t1);
   // printf("huffman encode time: %.6f s\n", time_span.count());
@@ -239,7 +233,6 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
       ")");
 
   if (log::level & log::TIME) {
-    DeviceRuntime<DeviceType>::SyncDevice();
     timer.end();
     timer.print("Huffman compress");
     timer.clear();
@@ -330,7 +323,6 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
                                      decodebook_subarray, decodebook_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
-    DeviceRuntime<DeviceType>::SyncDevice();
     timer.end();
     timer.print("Huffman decompress");
     timer.clear();
