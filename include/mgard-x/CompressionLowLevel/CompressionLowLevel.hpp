@@ -194,10 +194,8 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
   // compressed_subarray);
 
 #ifdef MGARDX_COMPILE_CUDA
-  // LZ4 compression
   if (config.lossless == lossless_type::Huffman_LZ4) {
-    compressed_array = LZ4Compress(compressed_subarray, config.lz4_block_size);
-    compressed_subarray = SubArray(compressed_array);
+    LZ4Compress(compressed_array, config.lz4_block_size);
   }
 #endif
 
@@ -258,9 +256,8 @@ decompress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   if (config.lossless == lossless_type::Huffman_LZ4) {
 #ifdef MGARDX_COMPILE_CUDA
-    lossless_compressed_array =
-        LZ4Decompress<Byte, DeviceType>(compressed_subarray);
-    compressed_subarray = SubArray(lossless_compressed_array);
+    LZ4Decompress(compressed_array);
+    compressed_subarray = SubArray(compressed_array);
 #else
     log::err("LZ4 is only available in CUDA. Portable LZ4 is in development. "
              "Please use the CUDA backend to decompress for now.");
