@@ -23,11 +23,12 @@ using namespace std::chrono;
 namespace mgard_x {
 
 template <typename Q, typename H, typename DeviceType>
-Array<1, Byte, DeviceType>
+void
 HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
                 int dict_size, LENGTH outlier_count,
                 SubArray<1, LENGTH, DeviceType> outlier_idx_subarray,
                 SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray,
+                Array<1, Byte, DeviceType>& compressed_data,
                 SubArray<1, H, DeviceType> workspace,
                 SubArray<1, int, DeviceType> status_subarray) {
 
@@ -179,7 +180,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   advance_with_align<LENGTH>(byte_offset, outlier_count);
   advance_with_align<QUANTIZED_INT>(byte_offset, outlier_count);
 
-  Array<1, Byte, DeviceType> compressed_data({(SIZE)(byte_offset)});
+  compressed_data.resize({(SIZE)(byte_offset)});
   SubArray compressed_data_subarray(compressed_data);
 
   byte_offset = 0;
@@ -189,7 +190,7 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   SerializeArray<int>(compressed_data_subarray, &chunk_size, 1, byte_offset);
   SerializeArray<size_t>(compressed_data_subarray, &huffmeta_size, 1,
                          byte_offset);
-  SerializeArray<size_t>(compressed_data_subarray, h_meta + nchunk,
+  SerializeArray<size_t>(compressed_data_subarray, dH_bit_meta,
                          huffmeta_size, byte_offset);
   SerializeArray<size_t>(compressed_data_subarray, &decodebook_size, 1,
                          byte_offset);
@@ -243,8 +244,6 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
     timer.print("Huffman compress");
     timer.clear();
   }
-
-  return compressed_data;
 }
 
 template <typename Q, typename H, typename DeviceType>

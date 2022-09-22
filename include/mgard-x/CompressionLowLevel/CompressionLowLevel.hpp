@@ -173,11 +173,11 @@ compress(Hierarchy<D, T, DeviceType> &hierarchy,
         SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
             {total_elems},
             (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
-    compressed_array =
-        HuffmanCompress<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>(
+    HuffmanCompress<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>(
             cast_quantized_subarray, config.huff_block_size,
             config.huff_dict_size, outlier_count,
             workspace.outlier_idx_subarray, workspace.outliers_subarray,
+            compressed_array,
             workspace.huffman_subarray, workspace.status_subarray);
     compressed_subarray = SubArray(compressed_array);
   } else {
