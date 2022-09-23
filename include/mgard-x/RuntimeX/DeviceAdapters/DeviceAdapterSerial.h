@@ -946,6 +946,19 @@ public:
     return 0;
   }
 
+  template <typename T> MGARDX_CONT static bool CheckHostRegister(T *ptr) {
+    log::dbg("Calling MemoryManager<SERIAL>::CheckHostRegister");
+    return false;
+  }
+
+  template <typename T> MGARDX_CONT static void HostRegister(T *ptr, SIZE n) {
+    log::dbg("Calling MemoryManager<SERIAL>::HostRegister");
+  }
+
+  template <typename T> MGARDX_CONT static void HostUnregister(T *ptr, SIZE n) {
+    log::dbg("Calling MemoryManager<SERIAL>::HostUnregister");
+  }
+
   static bool ReduceMemoryFootprint;
 };
 

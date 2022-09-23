@@ -230,6 +230,12 @@ public:
 
   template <typename T> MGARDX_CONT static int GetPointerDevice(T *ptr);
 
+  template <typename T> MGARDX_CONT static bool CheckHostRegister(T *ptr);
+
+  template <typename T> MGARDX_CONT static void HostRegister(T *ptr, SIZE n);
+
+  template <typename T> MGARDX_CONT static void HostUnregister(T *ptr);
+
   static bool ReduceMemoryFootprint;
 };
 

@@ -496,11 +496,6 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   for (int i = 0; i < D; i++)
     total_num_elem *= shape[i];
 
-  void *original_data_pinned;
-  MemoryManager<DeviceType>::MallocHost(original_data_pinned, total_num_elem*sizeof(T));
-  MemoryManager<DeviceType>::Copy1D(original_data_pinned, original_data, total_num_elem*sizeof(T));
-  original_data = original_data_pinned;
-
   Hierarchy<D, T, DeviceType> hierarchy;
   DIM domain_decomposed_dim;
   SIZE domain_decomposed_size;
