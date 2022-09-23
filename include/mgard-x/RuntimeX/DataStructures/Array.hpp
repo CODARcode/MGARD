@@ -32,6 +32,16 @@ Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched,
 }
 
 template <DIM D, typename T, typename DeviceType>
+Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, T * dv) {
+  initialize(shape);
+  __shape_allocation = shape;
+  __ldvs_allocation = shape;
+  device_allocated = true;
+  external_allocation = true;
+  this->dv = dv;
+}
+
+template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::initialize(std::vector<SIZE> shape) {
   if (shape.size() != D) {
     std::cerr << log::log_err << "Number of dimensions mismatch ("
@@ -49,6 +59,7 @@ void Array<D, T, DeviceType>::initialize(std::vector<SIZE> shape) {
   }
   host_allocated = false;
   device_allocated = false;
+  external_allocation = false;
   pitched = false;
   managed = false;
 }
@@ -80,6 +91,7 @@ void Array<D, T, DeviceType>::allocate(bool pitched, bool managed,
   __shape_allocation = __shape;
   __ldvs_allocation = __ldvs;
   device_allocated = true;
+  external_allocation = false;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -107,6 +119,7 @@ void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
     this->__ldvs_allocation = array.__ldvs_allocation;
     this->device_allocated = true;
     array.device_allocated = false;
+    this->external_allocation = array.external_allocation;
     array.dv = nullptr;
   }
 }
@@ -124,7 +137,7 @@ void Array<D, T, DeviceType>::memset(int value, int queue_idx) {
 
 template <DIM D, typename T, typename DeviceType>
 void Array<D, T, DeviceType>::free(int queue_idx) {
-  if (device_allocated) {
+  if (device_allocated && !external_allocation) {
     MemoryManager<DeviceType>::Free(dv, queue_idx);
     device_allocated = false;
     dv = nullptr;

@@ -18,15 +18,6 @@
 #include "../RuntimeX/RuntimeX.h"
 #include "CompressionLowLevel.h"
 
-#include "../DataRefactoring/MultiDimension/DataRefactoring.h"
-#include "../DataRefactoring/SingleDimension/DataRefactoring.h"
-
-#include "NormCalculator.hpp"
-
-#include "../DataRefactoring/DataRefactoring.hpp"
-#include "../Quantization/LinearQuantization.hpp"
-#include "../Lossless/Lossless.hpp"
-
 #ifndef MGARD_X_COMPRESSION_LOW_LEVEL_HPP
 #define MGARD_X_COMPRESSION_LOW_LEVEL_HPP
 
