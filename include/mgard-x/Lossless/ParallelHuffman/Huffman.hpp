@@ -239,9 +239,9 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
 }
 
 template <typename Q, typename H, typename DeviceType>
-Array<1, Q, DeviceType>
+void
 HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
-                  SubArray<1, Q, DeviceType> &primary, LENGTH &outlier_count,
+                  Array<1, Q, DeviceType> &primary, LENGTH &outlier_count,
                   SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
                   SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray) {
   Timer timer;
@@ -305,19 +305,13 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
   SubArray<1, H, DeviceType> ddata_subarray({(SIZE)ddata_size}, ddata);
   SubArray<1, size_t, DeviceType> huffmeta_subarray({(SIZE)huffmeta_size},
                                                     huffmeta);
-  Array<1, Q, DeviceType> primary_allocated;
-  if (primary.data() == nullptr || primary.shape(0) != primary_count) {
-    // we need to do allocation since the output is not pre-allocated
-    log::info("Huffman::Decompression output need to be allocated since it is "
-              "not pre-allocated.");
-    primary_allocated = Array<1, Q, DeviceType>({(SIZE)primary_count});
-    primary = SubArray(primary_allocated);
-  }
+  primary.resize({(SIZE)primary_count});
+  SubArray primary_subarray(primary);
 
   SubArray<1, uint8_t, DeviceType> decodebook_subarray({(SIZE)decodebook_size},
                                                        decodebook);
   int nchunk = (primary_count - 1) / chunk_size + 1;
-  Decode<Q, H, DeviceType>().Execute(ddata_subarray, huffmeta_subarray, primary,
+  Decode<Q, H, DeviceType>().Execute(ddata_subarray, huffmeta_subarray, primary_subarray,
                                      primary_count, chunk_size, nchunk,
                                      decodebook_subarray, decodebook_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -326,7 +320,6 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
     timer.print("Huffman decompress");
     timer.clear();
   }
-  return primary_allocated;
 }
 
 template <typename Q, typename H, typename DeviceType>
