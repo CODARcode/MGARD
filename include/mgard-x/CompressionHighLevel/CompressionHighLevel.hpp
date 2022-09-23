@@ -28,6 +28,111 @@
 namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
+T calc_subdomain_norm_series_w_prefetch(DomainDecomposer<D, T, DeviceType>& domain_decomposer,
+                               std::vector<SIZE>& subdomain_ids, T s) {
+  Timer timer_series;
+  if (log::level & log::TIME) timer_series.start();
+
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  Array<1, T, DeviceType> norm_array({1});
+  SubArray<1, T, DeviceType> norm_subarray(norm_array);
+  T norm = 0;
+
+  // Two buffers one for current and one for next
+  Array<D, T, DeviceType> device_subdomain_buffer[2];
+  // Pre-allocate to the size of the first subdomain
+  // Following subdomains should be no bigger than the first one
+  // We shouldn't need to reallocate in the future
+  device_subdomain_buffer[0].resize(domain_decomposer.subdomain_shape(subdomain_ids[0]));
+  device_subdomain_buffer[1].resize(domain_decomposer.subdomain_shape(subdomain_ids[0]));
+
+  // Pre-fetch the first subdomain to one buffer
+  int current_buffer = 0;
+  domain_decomposer.copy_subdomain(device_subdomain_buffer[current_buffer], subdomain_ids[0], ORIGINAL_TO_SUBDOMAIN, 0);
+  
+
+  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
+    SIZE curr_subdomain_id = subdomain_ids[i];
+    SIZE next_subdomain_id;
+    int next_buffer = (current_buffer + 1) % 2;
+    if (i+1 < subdomain_ids.size()) {
+      // Prefetch the next subdomain
+      next_subdomain_id = subdomain_ids[i+1];
+      // Copy data
+      domain_decomposer.copy_subdomain(device_subdomain_buffer[next_buffer], next_subdomain_id, ORIGINAL_TO_SUBDOMAIN, 1);
+    }
+
+    // device_input_buffer[dev_id] has to be not pitched to avoid copy for linearization
+    assert(!device_subdomain_buffer[current_buffer].isPitched());
+    // Disable normalize_coordinate since we do not want to void dividing
+    // total_elems
+    T local_norm =
+        norm_calculator(device_subdomain_buffer[current_buffer], SubArray<1, T, DeviceType>(),
+                        norm_subarray, s, false);
+    if (s == std::numeric_limits<T>::infinity()) {
+      norm = std::max(norm, local_norm);
+    } else {
+      norm += local_norm * local_norm;
+    }
+    current_buffer = next_buffer;
+    DeviceRuntime<DeviceType>::SyncQueue(1);
+  }
+  if (log::level & log::TIME) {
+    timer_series.end();
+    timer_series.print("Calculate subdomains norm series");
+    timer_series.clear();
+  }
+
+  DeviceRuntime<DeviceType>::SyncDevice();
+  return norm;
+}
+
+template <DIM D, typename T, typename DeviceType>
+T calc_norm_decomposed_w_prefetch(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
+                                  T s, bool normalize_coordinates, SIZE total_num_elem,
+                                  int adjusted_num_dev) {
+
+  T norm = 0;
+  // Set the number of threads equal to the number of devices
+  // So that each thread is responsible for one device
+#if MGARD_ENABLE_MULTI_DEVICE
+  omp_set_num_threads(adjusted_num_dev);
+#endif
+#pragma omp parallel for
+  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {  
+    DeviceRuntime<DeviceType>::SelectDevice(dev_id);
+    // Create a series of subdomain ids that are assigned to the current device
+    std::vector<SIZE> subdomain_ids;
+    for (SIZE subdomain_id = dev_id; subdomain_id < domain_decomposer.num_subdomains(); subdomain_id+=adjusted_num_dev) {
+      subdomain_ids.push_back(subdomain_id);
+    }
+    // Process a series of subdomains according to the subdomain id list
+    T local_norm = calc_subdomain_norm_series_w_prefetch(domain_decomposer,subdomain_ids, s);
+    #pragma omp critical
+    {
+      if (s == std::numeric_limits<T>::infinity()) {
+        norm = std::max(norm, local_norm);
+      } else {
+        norm += local_norm;
+      }
+    }
+  }
+  if (s != std::numeric_limits<T>::infinity()) {
+    if (!normalize_coordinates) {
+      norm = std::sqrt(norm);
+    } else {
+      norm = std::sqrt(norm / total_num_elem);
+    }
+  }
+  if (s == std::numeric_limits<T>::infinity()) {
+    log::info("L_inf norm: " + std::to_string(norm));
+  } else {
+    log::info("L_2 norm: " + std::to_string(norm));
+  }
+  return norm;
+}
+
+template <DIM D, typename T, typename DeviceType>
 T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &device_input_buffer,
                        DomainDecomposer<D, T, DeviceType> &domain_decomposer,
                        T s, bool normalize_coordinates, SIZE total_num_elem) {
@@ -70,6 +175,11 @@ T calc_norm_decomposed(std::vector<Array<D, T, DeviceType>> &device_input_buffer
     } else {
       norm = std::sqrt(norm / total_num_elem);
     }
+  }
+  if (s == std::numeric_limits<T>::infinity()) {
+    log::info("L_inf norm: " + std::to_string(norm));
+  } else {
+    log::info("L_2 norm: " + std::to_string(norm));
   }
   return norm;
 }
@@ -474,8 +584,10 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
       timer_each.start();
     subdomain_hierarchies = hierarchy.hierarchy_chunck;
     if (ebtype == error_bound_type::REL) {
-      norm = calc_norm_decomposed(device_input_buffer, domain_decomposer, s,
-                                  config.normalize_coordinates, total_num_elem);
+      // norm = calc_norm_decomposed(device_input_buffer, domain_decomposer, s,
+      //                             config.normalize_coordinates, total_num_elem);
+      norm = calc_norm_decomposed_w_prefetch(domain_decomposer, s, config.normalize_coordinates, 
+                                             total_num_elem, adjusted_num_dev);
     }
     local_tol = calc_local_abs_tol(ebtype, norm, tol, s, num_subdomains);
     // Force to use ABS mode when do domain decomposition
@@ -708,13 +820,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     timer_each.clear();
   }
 
-  std::vector<Array<D, T, DeviceType>> subdomain_data(num_subdomains);
-
-  std::vector<Array<1, Byte, DeviceType>> device_input_buffer(adjusted_num_dev);
-  std::vector<Byte*> compressed_subdomain_data(num_subdomains);
-  std::vector<SIZE> compressed_subdomain_size(num_subdomains);
-  // std::vector<Array<1, Byte, DeviceType>> compressed_subdomain_data(
-  //     num_subdomains);
+  // Preparing decompression parameters
   std::vector<Hierarchy<D, T, DeviceType>> subdomain_hierarchies;
   T local_tol;
   enum error_bound_type local_ebtype;
@@ -740,6 +846,9 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
   }
 
+  // Deserialize compressed data
+  std::vector<Byte*> compressed_subdomain_data(num_subdomains);
+  std::vector<SIZE> compressed_subdomain_size(num_subdomains);
   SIZE byte_offset = m.metadata_size;
   for (uint32_t i = 0; i < subdomain_hierarchies.size(); i++) {
     DeviceRuntime<DeviceType>::SelectDevice(i % adjusted_num_dev);
@@ -780,6 +889,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     }
   }
 
+  // Initialize DomainDecomposer
   DomainDecomposer<D, T, DeviceType> domain_decomposer((T*)decompressed_data, shape, adjusted_num_dev,
                                                       m.domain_decomposed, m.domain_decomposed_dim, m.domain_decomposed_size);
 
