@@ -1,5 +1,8 @@
 add_subdirectory(ParallelHuffman)
 list(APPEND MGARD_X_HEADER
     ${CMAKE_CURRENT_SOURCE_DIR}/LZ4.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Zstd.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CPU.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Lossless.hpp
     )
 set(MGARD_X_HEADER ${MGARD_X_HEADER} PARENT_SCOPE)

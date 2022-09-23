@@ -17,6 +17,7 @@ public:
   Array();
   Array(std::vector<SIZE> shape, bool pitched = true, bool managed = false,
         int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
+  Array(std::vector<SIZE> shape, T * dv);
   void initialize(std::vector<SIZE> shape);
   void allocate(bool pitched, bool managed,
                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
@@ -51,6 +52,7 @@ private:
   T *hv = nullptr;
   bool device_allocated = false;
   bool host_allocated = false;
+  bool external_allocation = false;
   std::vector<SIZE> __ldvs;
   std::vector<SIZE> __shape;
   std::vector<SIZE> __ldvs_allocation;

@@ -84,11 +84,11 @@ LosslessDecompress(Hierarchy<D, T, DeviceType> &hierarchy,
       compressed_subarray = SubArray(compressed_array);
     }
 
-    SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType> cast_quantized_subarray(
+    Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> cast_quantized_array(
         {total_elems},
         (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
     HuffmanDecompress<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>(
-        compressed_subarray, cast_quantized_subarray, workspace.outlier_count,
+        compressed_subarray, cast_quantized_array, workspace.outlier_count,
         workspace.outlier_idx_subarray, workspace.outliers_subarray);
   } else {
     Array<1, QUANTIZED_INT, DeviceType> quantized_array =

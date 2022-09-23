@@ -574,7 +574,7 @@ public:
         nullptr;
     SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v = nullptr;
 
-    { // only if we need linerization
+    if (level_linearize) { // only if we need linerization
       quantized_linearized_v_host =
           new SubArray<1, QUANTIZED_INT, DeviceType>[l_target + 1];
       SIZE *ranges_h = level_ranges.dataHost();

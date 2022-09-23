@@ -11,6 +11,10 @@
 #include "../Hierarchy/Hierarchy.hpp"
 #include "../RuntimeX/RuntimeXPublic.h"
 #include "CompressionLowLevelWorkspace.hpp"
+#include "NormCalculator.hpp"
+#include "../DataRefactoring/DataRefactoring.hpp"
+#include "../Quantization/LinearQuantization.hpp"
+#include "../Lossless/Lossless.hpp"
 
 namespace mgard_x {
 
