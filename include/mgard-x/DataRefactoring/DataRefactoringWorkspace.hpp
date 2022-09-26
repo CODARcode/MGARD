@@ -49,7 +49,9 @@ public:
   }
 
   void allocate(Hierarchy<D, T, DeviceType> &hierarchy) {
-    std::vector<SIZE> workspace_shape = hierarchy.level_shape(hierarchy.l_target());;
+    std::vector<SIZE> workspace_shape =
+        hierarchy.level_shape(hierarchy.l_target());
+    ;
     for (DIM d = 0; d < D; d++)
       workspace_shape[d] += 2;
     refactoring_w_array = Array<D, T, DeviceType>(workspace_shape);
@@ -106,9 +108,8 @@ public:
 
   SubArray<D, T, DeviceType> refactoring_w_subarray;
   SubArray<D, T, DeviceType> refactoring_b_subarray;
-
 };
 
-}
+} // namespace mgard_x
 
 #endif

@@ -17,7 +17,7 @@ public:
   Array();
   Array(std::vector<SIZE> shape, bool pitched = true, bool managed = false,
         int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
-  Array(std::vector<SIZE> shape, T * dv);
+  Array(std::vector<SIZE> shape, T *dv);
   void initialize(std::vector<SIZE> shape);
   void allocate(bool pitched, bool managed,
                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
@@ -40,8 +40,8 @@ public:
   bool isPitched();
   bool isManaged();
   int resideDevice();
-  void resize(std::vector<SIZE> shape, bool pitched = true, bool managed = false,
-              int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
+  void resize(std::vector<SIZE> shape, bool pitched = true,
+              bool managed = false, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
 private:
   int dev_id;
