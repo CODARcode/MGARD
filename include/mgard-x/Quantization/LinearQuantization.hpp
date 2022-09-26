@@ -766,6 +766,8 @@ void LinearQuanziation(Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, Devic
                         hierarchy.l_target(), config.decomposition, true);
   MemoryManager<DeviceType>::Copy1D(workspace.quantizers_subarray.data(),
                                     quantizers, hierarchy.l_target() + 1, queue_idx);
+  LENGTH zero = 0;
+  MemoryManager<DeviceType>::Copy1D(workspace.outlier_count_subarray.data(), &zero, 1, queue_idx);
   
   bool done_quantization = false;
   while (!done_quantization) {
