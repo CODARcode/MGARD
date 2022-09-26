@@ -24,8 +24,8 @@ namespace mgard_x {
 //!\param[in] s Smoothness parameter.
 //!\param[out] norm Norm of the original data.
 //!\param[in] config Configuring the compression process
-//!
-//!\return Compressed dataset.
+//!\param[in] workspace Pre-allocated workspace
+//!\param[in] compressed_array Compressed data
 template <DIM D, typename T, typename DeviceType>
 void compress(Hierarchy<D, T, DeviceType> &hierarchy,
               Array<D, T, DeviceType> &in_array, enum error_bound_type type,
@@ -43,8 +43,8 @@ void compress(Hierarchy<D, T, DeviceType> &hierarchy,
 //!\param[in] s Smoothness parameter.
 //!\param[in] norm Norm of the original data.
 //!\param[in] config Configuring the decompression process
-//!
-//!\return Decompressed dataset.
+//!\param[in] workspace Pre-allocated workspace
+//!\param[in] decompressed_array Decompressed data
 template <DIM D, typename T, typename DeviceType>
 void decompress(Hierarchy<D, T, DeviceType> &hierarchy,
                 Array<1, unsigned char, DeviceType> &compressed_array,
