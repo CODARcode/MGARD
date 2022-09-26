@@ -855,23 +855,22 @@ public:
   template <typename T> MGARDX_CONT static bool CheckHostRegister(T *ptr) {
     log::dbg("Calling MemoryManager<HIP>::CheckHostRegister");
     unsigned int flags;
-    return (hipHostGetFlags(&flags, (void*)ptr) == hipSuccess);
+    hipHostGetFlags(&flags, (void*)ptr);
+    return hipGetLastError() == hipSuccess;
   }
 
   template <typename T> MGARDX_CONT static void HostRegister(T *ptr, SIZE n) {
     log::dbg("Calling MemoryManager<HIP>::HostRegister");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
-    unsigned int flags;
-    if (hipHostGetFlags(&flags, ptr) != hipSuccess) {
+    if (!CheckHostRegister(ptr)) {
       gpuErrchk(hipHostRegister((void*)ptr, n*sizeof(converted_T), hipHostRegisterPortable));
     }
   }
 
-  template <typename T> MGARDX_CONT static void HostUnregister(T *ptr, SIZE n) {
+  template <typename T> MGARDX_CONT static void HostUnregister(T *ptr) {
     log::dbg("Calling MemoryManager<HIP>::HostUnregister");
-    unsigned int flags;
-    if (hipHostGetFlags(&flags, ptr) == hipSuccess) {
+    if (CheckHostRegister(ptr)) {
       gpuErrchk(hipHostUnregister((void*)ptr));
     }
   }
