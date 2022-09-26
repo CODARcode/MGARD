@@ -885,21 +885,22 @@ public:
   template <typename T> MGARDX_CONT static bool CheckHostRegister(T *ptr) {
     log::dbg("Calling MemoryManager<CUDA>::CheckHostRegister");
     unsigned int flags;
-    cudaHostGetFlags(&flags, (void*)ptr);
+    cudaHostGetFlags(&flags, (void *)ptr);
     return cudaGetLastError() == cudaSuccess;
   }
 
   template <typename T> MGARDX_CONT static void HostRegister(T *ptr, SIZE n) {
     log::dbg("Calling MemoryManager<CUDA>::HostRegister");
     if (!CheckHostRegister(ptr)) {
-      gpuErrchk(cudaHostRegister((void*)ptr, n*sizeof(T), cudaHostRegisterPortable));
+      gpuErrchk(cudaHostRegister((void *)ptr, n * sizeof(T),
+                                 cudaHostRegisterPortable));
     }
   }
 
   template <typename T> MGARDX_CONT static void HostUnregister(T *ptr) {
     log::dbg("Calling MemoryManager<CUDA>::HostUnregister");
     if (CheckHostRegister(ptr)) {
-      gpuErrchk(cudaHostUnregister((void*)ptr));
+      gpuErrchk(cudaHostUnregister((void *)ptr));
     }
   }
 

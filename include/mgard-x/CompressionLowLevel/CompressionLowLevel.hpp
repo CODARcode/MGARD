@@ -27,10 +27,10 @@ static bool debug_print_compression = true;
 
 template <DIM D, typename T, typename DeviceType>
 void compress(Hierarchy<D, T, DeviceType> &hierarchy,
-         Array<D, T, DeviceType> &original_array, enum error_bound_type type,
-         T tol, T s, T &norm, Config config,
-         CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
-         Array<1, Byte, DeviceType> &compressed_array) {
+              Array<D, T, DeviceType> &original_array,
+              enum error_bound_type type, T tol, T s, T &norm, Config config,
+              CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
+              Array<1, Byte, DeviceType> &compressed_array) {
 
   config.apply();
 
@@ -56,10 +56,11 @@ void compress(Hierarchy<D, T, DeviceType> &hierarchy,
                            config.normalize_coordinates);
   }
 
-  Decompose(hierarchy, original_array, config, workspace.data_refactoring_workspace, 0);
+  Decompose(hierarchy, original_array, config,
+            workspace.data_refactoring_workspace, 0);
 
-  LinearQuanziation(hierarchy, original_array,
-                    config, type, tol, s, norm, workspace, 0);
+  LinearQuanziation(hierarchy, original_array, config, type, tol, s, norm,
+                    workspace, 0);
 
   LosslessCompress(hierarchy, compressed_array, config, workspace);
 
@@ -77,10 +78,10 @@ void compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
 template <DIM D, typename T, typename DeviceType>
 void decompress(Hierarchy<D, T, DeviceType> &hierarchy,
-           Array<1, unsigned char, DeviceType> &compressed_array,
-           enum error_bound_type type, T tol, T s, T norm, Config config,
-           CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
-           Array<D, T, DeviceType>& decompressed_array) {
+                Array<1, unsigned char, DeviceType> &compressed_array,
+                enum error_bound_type type, T tol, T s, T norm, Config config,
+                CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
+                Array<D, T, DeviceType> &decompressed_array) {
 
   config.apply();
 
@@ -96,7 +97,8 @@ void decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   LinearDequanziation(hierarchy, decompressed_array, config, type, tol, s, norm,
                       workspace, 0);
 
-  Recompose(hierarchy, decompressed_array, config, workspace.data_refactoring_workspace, 0);
+  Recompose(hierarchy, decompressed_array, config,
+            workspace.data_refactoring_workspace, 0);
 
   if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);

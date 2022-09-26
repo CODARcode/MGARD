@@ -8,9 +8,9 @@
 #ifndef MGARD_X_COMPRESSION_LOW_LEVEL_WORKSPACE_HPP
 #define MGARD_X_COMPRESSION_LOW_LEVEL_WORKSPACE_HPP
 
+#include "../DataRefactoring/DataRefactoringWorkspace.hpp"
 #include "../Hierarchy/Hierarchy.hpp"
 #include "../RuntimeX/RuntimeXPublic.h"
-#include "../DataRefactoring/DataRefactoringWorkspace.hpp"
 
 namespace mgard_x {
 
@@ -25,12 +25,14 @@ public:
   void initialize_subarray() {
     // Reuse refactoring_w_array
     norm_tmp_subarray = SubArray<1, T, DeviceType>(
-        {total_elems}, (T *)data_refactoring_workspace.refactoring_w_array.data());
+        {total_elems},
+        (T *)data_refactoring_workspace.refactoring_w_array.data());
     norm_subarray = SubArray(norm_array);
     quantizers_subarray = SubArray(quantizers_array);
     // Reuse refactoring_w_array
     quantized_subarray = SubArray<D, QUANTIZED_INT, DeviceType>(
-        shape, (QUANTIZED_INT *)data_refactoring_workspace.refactoring_w_array.data());
+        shape,
+        (QUANTIZED_INT *)data_refactoring_workspace.refactoring_w_array.data());
     outlier_count_subarray = SubArray(outlier_count_array);
     outlier_idx_subarray = SubArray(outlier_idx_array);
     outliers_subarray = SubArray(outliers_array);
@@ -84,7 +86,7 @@ public:
     outlier_idx_array.memset(0);
     outliers_array.memset(0);
     huffman_array = Array<1, HUFFMAN_CODE, DeviceType>({total_elems});
-    status_array = Array<1, int, DeviceType> ({(SIZE)16}, false, true);
+    status_array = Array<1, int, DeviceType>({(SIZE)16}, false, true);
     initialize_subarray();
 
     pre_allocated = true;
@@ -97,7 +99,8 @@ public:
     outlier_count = outlier_count;
     norm_tmp_array = std::move(workspace.norm_tmp_array);
     norm_array = std::move(workspace.norm_array);
-    data_refactoring_workspace = std::move(workspace.data_refactoring_workspace);
+    data_refactoring_workspace =
+        std::move(workspace.data_refactoring_workspace);
     quantizers_array = std::move(workspace.quantizers_array);
     quantized_array = std::move(workspace.quantized_array);
     outlier_count_array = std::move(workspace.outlier_count_array);
@@ -115,7 +118,8 @@ public:
     outlier_count = outlier_count;
     norm_tmp_array = std::move(workspace.norm_tmp_array);
     norm_array = std::move(workspace.norm_array);
-    data_refactoring_workspace = std::move(workspace.data_refactoring_workspace);
+    data_refactoring_workspace =
+        std::move(workspace.data_refactoring_workspace);
     quantizers_array = std::move(workspace.quantizers_array);
     quantized_array = std::move(workspace.quantized_array);
     outlier_count_array = std::move(workspace.outlier_count_array);
