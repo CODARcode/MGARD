@@ -18,7 +18,7 @@ mgard_x_src_dir=.
 # Build directory
 build_dir=./build-hip-spock
 # Number of processors used for building
-num_build_procs=8
+num_build_procs=$1
 # Installtaion directory
 install_dir=./install-hip-spock
 
