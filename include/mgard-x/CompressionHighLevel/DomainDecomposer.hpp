@@ -16,7 +16,7 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType> class DomainDecomposer {
 public:
   size_t estimate_memory_usgae(std::vector<SIZE> shape, double outlier_ratio,
-                               double reduction_ratio) {
+                               double reduction_ratio, bool enable_prefetch) {
     size_t estimate_memory_usgae = 0;
     size_t total_elem = 1;
     for (DIM d = 0; d < D; d++) {
@@ -65,23 +65,27 @@ public:
       input_space *= shape[d];
     }
 
+    size_t output_space = (double)input_space * reduction_ratio;
+
     // For prefetching
-    input_space *= 2;
+    if (enable_prefetch) {
+      input_space *= 2;
+      output_space *= 2;
+    }
 
     // log::info("input_space: " + std::to_string((double)input_space/1e9));
 
     CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
 
     estimate_memory_usgae =
-        hierarchy_space + input_space +
-        compression_workspace.estimate_size(shape, 64, outlier_ratio) +
-        (double)input_space * reduction_ratio;
+        hierarchy_space + input_space + output_space +
+        compression_workspace.estimate_size(shape, 64, outlier_ratio);
 
     return estimate_memory_usgae;
   }
 
-  bool need_domain_decomposition(std::vector<SIZE> shape) {
-    size_t estm = estimate_memory_usgae(shape, 0.1, 1);
+  bool need_domain_decomposition(std::vector<SIZE> shape, bool enable_prefetch) {
+    size_t estm = estimate_memory_usgae(shape, 0.1, 1, enable_prefetch);
     size_t aval = DeviceRuntime<DeviceType>::GetAvailableMemory();
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
               "GB, Available: " + std::to_string((double)aval / 1e9) + "GB");
@@ -108,11 +112,20 @@ public:
     chunck_shape[_domain_decomposed_dim] =
         std::ceil((double)chunck_shape[_domain_decomposed_dim] / num_dev);
 
+    SIZE curr_num_subdomains = (shape[_domain_decomposed_dim] - 1) /
+                                chunck_shape[_domain_decomposed_dim] + 1;
+
+    // Need prefetch if there are more subdomains than devices         
+    bool need_prefetch = curr_num_subdomains > num_dev;
     // Then check if each chunk can fit into device memory
-    while (need_domain_decomposition(chunck_shape)) {
+    while (need_domain_decomposition(chunck_shape, need_prefetch)) {
       // Divide by 2 and round up
       chunck_shape[_domain_decomposed_dim] =
           (chunck_shape[_domain_decomposed_dim] - 1) / 2 + 1;
+
+      curr_num_subdomains = (shape[_domain_decomposed_dim] - 1) /
+                                chunck_shape[_domain_decomposed_dim] + 1;
+      need_prefetch = curr_num_subdomains > num_dev;
     }
     _domain_decomposed_size = chunck_shape[_domain_decomposed_dim];
     log::info(
@@ -127,7 +140,7 @@ public:
   // Find domain decomposion method
   DomainDecomposer(T *original_data, std::vector<SIZE> shape, int _num_devices)
       : original_data(original_data), shape(shape), _num_devices(_num_devices) {
-    if (!need_domain_decomposition(shape) && this->_num_devices == 1) {
+    if (!need_domain_decomposition(shape, false) && this->_num_devices == 1) {
       this->_domain_decomposed = false;
       this->_domain_decomposed_dim = 0;
       this->_domain_decomposed_size = this->shape[0];
@@ -228,11 +241,11 @@ public:
       exit(-1);
     }
 
-    Timer timer;
-    if (log::level & log::TIME) { 
-      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-      timer.start();
-    }
+    // Timer timer;
+    // if (log::level & log::TIME) { 
+    //   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+    //   timer.start();
+    // }
     if (!_domain_decomposed) {
       SIZE linearized_width = 1;
       for (DIM d = 0; d < D - 1; d++)
@@ -287,11 +300,11 @@ public:
       }
       
     }
-    if (log::level & log::TIME) {
-      timer.end();
-      timer.print("Copy subdomain " + std::to_string(subdomain_id));
-      timer.clear();
-    }
+    // if (log::level & log::TIME) {
+    //   timer.end();
+    //   timer.print("Copy subdomain " + std::to_string(subdomain_id));
+    //   timer.clear();
+    // }
   }
 
   bool domain_decomposed() { return _domain_decomposed; }
