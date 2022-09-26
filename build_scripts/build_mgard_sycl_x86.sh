@@ -15,7 +15,7 @@ mgard_x_src_dir=.
 # Build directory
 build_dir=./build-sycl-x86
 # Number of processors used for building
-num_build_procs=8
+num_build_procs=$1
 # Installtaion directory
 install_dir=./install-sycl-x86
 
