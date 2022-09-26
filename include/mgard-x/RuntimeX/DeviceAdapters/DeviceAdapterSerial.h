@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <numeric>
+#include <thread>
 #include <utility>
 
 namespace mgard_x {
@@ -622,7 +623,8 @@ template <> class DeviceSpecification<SERIAL> {
 public:
   MGARDX_CONT
   DeviceSpecification() {
-    NumDevices = 1;
+    // Get the number of cores
+    NumDevices = std::thread::hardware_concurrency();
     MaxSharedMemorySize = new int[NumDevices];
     WarpSize = new int[NumDevices];
     NumSMs = new int[NumDevices];
@@ -641,6 +643,7 @@ public:
       MaxNumThreadsPerTB[d] = 1024;
       ArchitectureGeneration[d] = 1;
       SupportCooperativeGroups[d] = true;
+      AvailableMemory[d] = std::numeric_limits<size_t>::max(); // unlimited
       DeviceNames[d] = "CPU";
     }
   }
