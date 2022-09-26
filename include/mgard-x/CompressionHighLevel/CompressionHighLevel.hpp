@@ -237,6 +237,8 @@ void compress_subdomain_series(DomainDecomposer<D, T, DeviceType>& domain_decomp
                                T local_tol, T s, T &norm, enum error_bound_type local_ebtype, Config &config,
                                std::vector<Byte*>& compressed_subdomain_data,
                                std::vector<SIZE>& compressed_subdomain_size) {
+  assert(subdomain_ids.size() > 0);
+  assert(subdomain_hierarchies.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME) timer_series.start();
   Array<D, T, DeviceType> device_subdomain_buffer;
@@ -280,6 +282,8 @@ void compress_subdomain_series_w_prefetch(DomainDecomposer<D, T, DeviceType>& do
                                T local_tol, T s, T &norm, enum error_bound_type local_ebtype, Config &config,
                                std::vector<Byte*>& compressed_subdomain_data,
                                std::vector<SIZE>& compressed_subdomain_size) {
+  assert(subdomain_ids.size() > 0);
+  assert(subdomain_hierarchies.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME) timer_series.start();
   Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchies[subdomain_ids[0]];
@@ -338,7 +342,7 @@ void compress_subdomain_series_w_prefetch(DomainDecomposer<D, T, DeviceType>& do
     MemoryManager<DeviceType>::MallocHost(compressed_subdomain_data[curr_subdomain_id],
                                           device_compressed_buffer.shape(0));
     MemoryManager<DeviceType>::Copy1D(compressed_subdomain_data[curr_subdomain_id], 
-                                      device_compressed_buffer.data(), device_compressed_buffer.shape(0));
+                                      device_compressed_buffer.data(), device_compressed_buffer.shape(0), 2);
     compressed_subdomain_size[curr_subdomain_id] = device_compressed_buffer.shape(0);
 
     current_buffer = next_buffer;
@@ -360,6 +364,8 @@ void decompress_subdomain_series(DomainDecomposer<D, T, DeviceType>& domain_deco
                                  T local_tol, T s, T norm, enum error_bound_type local_ebtype, Config &config,
                                  std::vector<Byte*>& compressed_subdomain_data,
                                  std::vector<SIZE>& compressed_subdomain_size) {
+  assert(subdomain_ids.size() > 0);
+  assert(subdomain_hierarchies.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME) timer_series.start();
   Array<D, T, DeviceType> device_subdomain_buffer;
@@ -404,6 +410,8 @@ void decompress_subdomain_series_w_prefetch(DomainDecomposer<D, T, DeviceType>& 
                                  T local_tol, T s, T norm, enum error_bound_type local_ebtype, Config &config,
                                  std::vector<Byte*>& compressed_subdomain_data,
                                  std::vector<SIZE>& compressed_subdomain_size) {
+  assert(subdomain_ids.size() > 0);
+  assert(subdomain_hierarchies.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME) timer_series.start();
   Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchies[subdomain_ids[0]];
@@ -495,6 +503,13 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   size_t total_num_elem = 1;
   for (int i = 0; i < D; i++)
     total_num_elem *= shape[i];
+
+  bool previously_pinned = !MemoryManager<DeviceType>::IsDevicePointer((void*)original_data) &&
+                            MemoryManager<DeviceType>::CheckHostRegister((void*)original_data);
+  if (!previously_pinned) {
+    MemoryManager<DeviceType>::HostRegister((void*)original_data,
+                                            total_num_elem*sizeof(T));
+  }
 
   Hierarchy<D, T, DeviceType> hierarchy;
   DIM domain_decomposed_dim;
@@ -690,6 +705,10 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     MemoryManager<DeviceType>::FreeHost(compressed_subdomain_data[i]);
   }
   MemoryManager<DeviceType>::Free(serizalied_meta);
+
+  if (!previously_pinned) {
+    MemoryManager<DeviceType>::HostUnregister((void*)original_data);
+  }
 
   if (log::level & log::TIME) {
     timer_each.end();
