@@ -81,7 +81,7 @@ public:
   }
 
   bool need_domain_decomposition(std::vector<SIZE> shape) {
-    size_t estm = estimate_memory_usgae(shape, 0.1, 0.5);
+    size_t estm = estimate_memory_usgae(shape, 0.1, 1);
     size_t aval = DeviceRuntime<DeviceType>::GetAvailableMemory();
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
               "GB, Available: " + std::to_string((double)aval / 1e9) + "GB");
