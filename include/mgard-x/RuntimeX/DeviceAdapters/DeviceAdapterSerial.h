@@ -955,7 +955,7 @@ public:
     log::dbg("Calling MemoryManager<SERIAL>::HostRegister");
   }
 
-  template <typename T> MGARDX_CONT static void HostUnregister(T *ptr, SIZE n) {
+  template <typename T> MGARDX_CONT static void HostUnregister(T *ptr) {
     log::dbg("Calling MemoryManager<SERIAL>::HostUnregister");
   }
 
