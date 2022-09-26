@@ -21,9 +21,8 @@ namespace mgard_x {
     CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err));                   \
   } while (0)
 
-template <typename DeviceType> void
-ZstdCompress(Array<1, Byte, DeviceType> &data,
-                                        int compressionLevel) {
+template <typename DeviceType>
+void ZstdCompress(Array<1, Byte, DeviceType> &data, int compressionLevel) {
   Timer timer;
   if (log::level & log::TIME)
     timer.start();
@@ -48,11 +47,12 @@ ZstdCompress(Array<1, Byte, DeviceType> &data,
   *(size_t *)out_data = (size_t)input_count;
 
   output_data.resize({(SIZE)(actual_out_size + sizeof(size_t))});
-  MemoryManager<DeviceType>::Copy1D(output_data.data(), out_data, actual_out_size + sizeof(size_t), 0);
+  MemoryManager<DeviceType>::Copy1D(output_data.data(), out_data,
+                                    actual_out_size + sizeof(size_t), 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   MemoryManager<DeviceType>::FreeHost(out_data);
   MemoryManager<DeviceType>::FreeHost(in_data);
-  
+
   log::info("Zstd compression level: " + std::to_string(compressionLevel));
   log::info("Zstd compress ratio: " +
             std::to_string((double)(input_count) /
@@ -64,8 +64,8 @@ ZstdCompress(Array<1, Byte, DeviceType> &data,
   }
 }
 
-template <typename DeviceType> void
-ZstdDecompress(Array<1, Byte, DeviceType> &data) {
+template <typename DeviceType>
+void ZstdDecompress(Array<1, Byte, DeviceType> &data) {
   Timer timer;
   if (log::level & log::TIME)
     timer.start();
@@ -87,7 +87,8 @@ ZstdDecompress(Array<1, Byte, DeviceType> &data) {
                   input_count - sizeof(size_t));
 
   output_data.resize({(SIZE)actual_out_count});
-  MemoryManager<DeviceType>::Copy1D(output_data.data(), out_data, actual_out_count, 0);
+  MemoryManager<DeviceType>::Copy1D(output_data.data(), out_data,
+                                    actual_out_count, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   MemoryManager<DeviceType>::FreeHost(out_data);
   MemoryManager<DeviceType>::FreeHost(in_data);

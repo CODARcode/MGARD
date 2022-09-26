@@ -9,9 +9,8 @@
 
 namespace mgard_x {
 
-template <typename DeviceType> void 
-LZ4Compress(Array<1, Byte, DeviceType> &data,
-                                       size_t chunk_size) {
+template <typename DeviceType>
+void LZ4Compress(Array<1, Byte, DeviceType> &data, size_t chunk_size) {
   Timer timer;
   if (log::level & log::TIME)
     timer.start();
@@ -31,9 +30,8 @@ LZ4Compress(Array<1, Byte, DeviceType> &data,
       nvcomp_manager.get_compressed_output_size(output_data.data());
   DeviceRuntime<DeviceType>::SyncQueue(0);
   log::info("LZ4 block size: " + std::to_string(chunk_size));
-  log::info(
-      "LZ4 compress ratio: " +
-      std::to_string((double)(input_count) / output_data.shape(0)));
+  log::info("LZ4 compress ratio: " +
+            std::to_string((double)(input_count) / output_data.shape(0)));
   if (log::level & log::TIME) {
     timer.end();
     timer.print("LZ4 compress");
@@ -41,8 +39,8 @@ LZ4Compress(Array<1, Byte, DeviceType> &data,
   }
 }
 
-template <typename DeviceType> void
-LZ4Decompress(Array<1, Byte, DeviceType> &data) {
+template <typename DeviceType>
+void LZ4Decompress(Array<1, Byte, DeviceType> &data) {
   Timer timer;
   if (log::level & log::TIME)
     timer.start();

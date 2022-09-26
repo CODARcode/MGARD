@@ -32,7 +32,7 @@ Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, bool pitched,
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, T * dv) {
+Array<D, T, DeviceType>::Array(std::vector<SIZE> shape, T *dv) {
   initialize(shape);
   __shape_allocation = shape;
   __ldvs_allocation = shape;
@@ -247,8 +247,8 @@ int Array<D, T, DeviceType>::resideDevice() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-void Array<D, T, DeviceType>::resize(std::vector<SIZE> shape, bool pitched, bool managed,
-              int queue_idx) {
+void Array<D, T, DeviceType>::resize(std::vector<SIZE> shape, bool pitched,
+                                     bool managed, int queue_idx) {
   bool inplace_resizable = false;
   if (device_allocated) {
     if (!isPitched()) {

@@ -22,14 +22,13 @@ using namespace std::chrono;
 namespace mgard_x {
 
 template <typename Q, typename H, typename DeviceType>
-void
-HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
-                int dict_size, LENGTH outlier_count,
-                SubArray<1, LENGTH, DeviceType> outlier_idx_subarray,
-                SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray,
-                Array<1, Byte, DeviceType>& compressed_data,
-                SubArray<1, H, DeviceType> workspace,
-                SubArray<1, int, DeviceType> status_subarray) {
+void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
+                     int chunk_size, int dict_size, LENGTH outlier_count,
+                     SubArray<1, LENGTH, DeviceType> outlier_idx_subarray,
+                     SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray,
+                     Array<1, Byte, DeviceType> &compressed_data,
+                     SubArray<1, H, DeviceType> workspace,
+                     SubArray<1, int, DeviceType> status_subarray) {
 
   Timer timer;
   if (log::level & log::TIME)
@@ -127,7 +126,8 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   size_t *dH_bit_meta = h_meta + nchunk;
   size_t *dH_uInt_entry = h_meta + nchunk * 2;
 
-  MemoryManager<DeviceType>().Copy1D(dH_bit_meta, huff_bitwidths_subarray.data(), nchunk, 0);
+  MemoryManager<DeviceType>().Copy1D(dH_bit_meta,
+                                     huff_bitwidths_subarray.data(), nchunk, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   // transform in uInt
   memcpy(dH_uInt_meta, dH_bit_meta, nchunk * sizeof(size_t));
@@ -183,8 +183,8 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
   SerializeArray<int>(compressed_data_subarray, &chunk_size, 1, byte_offset);
   SerializeArray<size_t>(compressed_data_subarray, &huffmeta_size, 1,
                          byte_offset);
-  SerializeArray<size_t>(compressed_data_subarray, dH_bit_meta,
-                         huffmeta_size, byte_offset);
+  SerializeArray<size_t>(compressed_data_subarray, dH_bit_meta, huffmeta_size,
+                         byte_offset);
   SerializeArray<size_t>(compressed_data_subarray, &decodebook_size, 1,
                          byte_offset);
   SerializeArray<uint8_t>(compressed_data_subarray, decodebook_subarray.data(),
@@ -239,11 +239,11 @@ HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray, int chunk_size,
 }
 
 template <typename Q, typename H, typename DeviceType>
-void
-HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
-                  Array<1, Q, DeviceType> &primary, LENGTH &outlier_count,
-                  SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
-                  SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray) {
+void HuffmanDecompress(
+    SubArray<1, Byte, DeviceType> compressed_data,
+    Array<1, Q, DeviceType> &primary, LENGTH &outlier_count,
+    SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
+    SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray) {
   Timer timer;
   if (log::level & log::TIME)
     timer.start();
@@ -311,9 +311,9 @@ HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
   SubArray<1, uint8_t, DeviceType> decodebook_subarray({(SIZE)decodebook_size},
                                                        decodebook);
   int nchunk = (primary_count - 1) / chunk_size + 1;
-  Decode<Q, H, DeviceType>().Execute(ddata_subarray, huffmeta_subarray, primary_subarray,
-                                     primary_count, chunk_size, nchunk,
-                                     decodebook_subarray, decodebook_size, 0);
+  Decode<Q, H, DeviceType>().Execute(
+      ddata_subarray, huffmeta_subarray, primary_subarray, primary_count,
+      chunk_size, nchunk, decodebook_subarray, decodebook_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
     timer.end();

@@ -749,10 +749,10 @@ public:
 };
 
 template <DIM D, typename T, typename DeviceType>
-void LinearQuanziation(Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, DeviceType> &in_array,
-                        Config config, enum error_bound_type type, T tol, T s, T norm,
-                       CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
-                       int queue_idx) {
+void LinearQuanziation(
+    Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, DeviceType> &in_array,
+    Config config, enum error_bound_type type, T tol, T s, T norm,
+    CompressionLowLevelWorkspace<D, T, DeviceType> &workspace, int queue_idx) {
   SubArray in_subarray(in_array);
   bool prep_huffman =
       config.lossless != lossless_type::CPU_Lossless; // always do Huffman
@@ -765,10 +765,12 @@ void LinearQuanziation(Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, Devic
   calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm,
                         hierarchy.l_target(), config.decomposition, true);
   MemoryManager<DeviceType>::Copy1D(workspace.quantizers_subarray.data(),
-                                    quantizers, hierarchy.l_target() + 1, queue_idx);
+                                    quantizers, hierarchy.l_target() + 1,
+                                    queue_idx);
   LENGTH zero = 0;
-  MemoryManager<DeviceType>::Copy1D(workspace.outlier_count_subarray.data(), &zero, 1, queue_idx);
-  
+  MemoryManager<DeviceType>::Copy1D(workspace.outlier_count_subarray.data(),
+                                    &zero, 1, queue_idx);
+
   bool done_quantization = false;
   while (!done_quantization) {
     LevelwiseLinearQuantizerND<D, T, MGARDX_QUANTIZE, DeviceType>().Execute(
@@ -778,8 +780,9 @@ void LinearQuanziation(Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, Devic
         prep_huffman, config.reorder, workspace.outlier_count_subarray,
         workspace.outlier_idx_subarray, workspace.outliers_subarray, queue_idx);
 
-    MemoryManager<DeviceType>::Copy1D(
-        &workspace.outlier_count, workspace.outlier_count_subarray.data(), 1, queue_idx);
+    MemoryManager<DeviceType>::Copy1D(&workspace.outlier_count,
+                                      workspace.outlier_count_subarray.data(),
+                                      1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     if (workspace.outlier_count <= workspace.outliers_subarray.shape(0)) {
       // outlier buffer has sufficient size
@@ -800,10 +803,10 @@ void LinearQuanziation(Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, Devic
 }
 
 template <DIM D, typename T, typename DeviceType>
-void LinearDequanziation(Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, DeviceType> &out_array,
-                        Config config, enum error_bound_type type, T tol, T s, T norm,
-                       CompressionLowLevelWorkspace<D, T, DeviceType> &workspace,
-                       int queue_idx) {
+void LinearDequanziation(
+    Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, DeviceType> &out_array,
+    Config config, enum error_bound_type type, T tol, T s, T norm,
+    CompressionLowLevelWorkspace<D, T, DeviceType> &workspace, int queue_idx) {
   SIZE total_elems = hierarchy.total_num_elems();
   out_array.resize(hierarchy.level_shape(hierarchy.l_target()));
   SubArray<D, T, DeviceType> out_subarray(out_array);
@@ -819,15 +822,15 @@ void LinearDequanziation(Hierarchy<D, T, DeviceType> &hierarchy, Array<D, T, Dev
   calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm,
                         hierarchy.l_target(), config.decomposition, false);
   MemoryManager<DeviceType>::Copy1D(workspace.quantizers_subarray.data(),
-                                    quantizers, hierarchy.l_target() + 1, queue_idx);
+                                    quantizers, hierarchy.l_target() + 1,
+                                    queue_idx);
   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   LevelwiseLinearQuantizerND<D, T, MGARDX_DEQUANTIZE, DeviceType>().Execute(
       level_ranges_subarray, hierarchy.l_target(),
       workspace.quantizers_subarray, level_volumes_subarray, s,
-      config.huff_dict_size, out_subarray,
-      workspace.quantized_subarray, prep_huffman, config.reorder,
-      workspace.outlier_count_subarray, workspace.outlier_idx_subarray,
-      workspace.outliers_subarray, queue_idx);
+      config.huff_dict_size, out_subarray, workspace.quantized_subarray,
+      prep_huffman, config.reorder, workspace.outlier_count_subarray,
+      workspace.outlier_idx_subarray, workspace.outliers_subarray, queue_idx);
   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   delete[] quantizers;
 }

@@ -18,10 +18,11 @@
 
 namespace mgard_x {
 
-template <DIM D, typename T, typename DeviceType> void
-LosslessCompress(Hierarchy<D, T, DeviceType> &hierarchy, 
-                 Array<1, Byte, DeviceType> &compressed_array, Config config,
-                 CompressionLowLevelWorkspace<D, T, DeviceType> &workspace) {
+template <DIM D, typename T, typename DeviceType>
+void LosslessCompress(
+    Hierarchy<D, T, DeviceType> &hierarchy,
+    Array<1, Byte, DeviceType> &compressed_array, Config config,
+    CompressionLowLevelWorkspace<D, T, DeviceType> &workspace) {
   SIZE total_elems = hierarchy.total_num_elems();
   if (config.lossless != lossless_type::CPU_Lossless) {
     // Huffman compression
@@ -31,18 +32,18 @@ LosslessCompress(Hierarchy<D, T, DeviceType> &hierarchy,
             {total_elems},
             (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
     HuffmanCompress<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>(
-            cast_quantized_subarray, config.huff_block_size,
-            config.huff_dict_size, workspace.outlier_count,
-            workspace.outlier_idx_subarray, workspace.outliers_subarray,
-            compressed_array,
-            workspace.huffman_subarray, workspace.status_subarray);
+        cast_quantized_subarray, config.huff_block_size, config.huff_dict_size,
+        workspace.outlier_count, workspace.outlier_idx_subarray,
+        workspace.outliers_subarray, compressed_array,
+        workspace.huffman_subarray, workspace.status_subarray);
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
 #ifdef MGARDX_COMPILE_CUDA
       LZ4Compress(compressed_array, config.lz4_block_size);
 #else
       config.lossless = lossless_type::Huffman;
-      log::warn("LZ for is only available on CUDA devices. Portable version is in development.");
+      log::warn("LZ for is only available on CUDA devices. Portable version is "
+                "in development.");
 #endif
     }
 
@@ -61,10 +62,11 @@ LosslessCompress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 }
 
-template <DIM D, typename T, typename DeviceType> void
-LosslessDecompress(Hierarchy<D, T, DeviceType> &hierarchy, 
-                 Array<1, Byte, DeviceType> &compressed_array, Config config,
-                 CompressionLowLevelWorkspace<D, T, DeviceType> &workspace) {
+template <DIM D, typename T, typename DeviceType>
+void LosslessDecompress(
+    Hierarchy<D, T, DeviceType> &hierarchy,
+    Array<1, Byte, DeviceType> &compressed_array, Config config,
+    CompressionLowLevelWorkspace<D, T, DeviceType> &workspace) {
   SIZE total_elems = hierarchy.total_num_elems();
   SubArray compressed_subarray(compressed_array);
   if (config.lossless != lossless_type::CPU_Lossless) {
@@ -99,6 +101,6 @@ LosslessDecompress(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 }
 
-}
+} // namespace mgard_x
 
 #endif

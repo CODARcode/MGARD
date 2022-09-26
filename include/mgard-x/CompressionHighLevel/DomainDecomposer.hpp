@@ -84,7 +84,8 @@ public:
     return estimate_memory_usgae;
   }
 
-  bool need_domain_decomposition(std::vector<SIZE> shape, bool enable_prefetch) {
+  bool need_domain_decomposition(std::vector<SIZE> shape,
+                                 bool enable_prefetch) {
     size_t estm = estimate_memory_usgae(shape, 0.1, 1, enable_prefetch);
     size_t aval = DeviceRuntime<DeviceType>::GetAvailableMemory();
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
@@ -113,9 +114,10 @@ public:
         std::ceil((double)chunck_shape[_domain_decomposed_dim] / num_dev);
 
     SIZE curr_num_subdomains = (shape[_domain_decomposed_dim] - 1) /
-                                chunck_shape[_domain_decomposed_dim] + 1;
+                                   chunck_shape[_domain_decomposed_dim] +
+                               1;
 
-    // Need prefetch if there are more subdomains than devices         
+    // Need prefetch if there are more subdomains than devices
     bool need_prefetch = curr_num_subdomains > num_dev;
     // Then check if each chunk can fit into device memory
     while (need_domain_decomposition(chunck_shape, need_prefetch)) {
@@ -124,7 +126,8 @@ public:
           (chunck_shape[_domain_decomposed_dim] - 1) / 2 + 1;
 
       curr_num_subdomains = (shape[_domain_decomposed_dim] - 1) /
-                                chunck_shape[_domain_decomposed_dim] + 1;
+                                chunck_shape[_domain_decomposed_dim] +
+                            1;
       need_prefetch = curr_num_subdomains > num_dev;
     }
     _domain_decomposed_size = chunck_shape[_domain_decomposed_dim];
@@ -210,19 +213,20 @@ public:
       if (subdomain_id <
           shape[_domain_decomposed_dim] / _domain_decomposed_size) {
         std::vector<SIZE> chunck_shape = shape;
-          chunck_shape[_domain_decomposed_dim] = _domain_decomposed_size;
+        chunck_shape[_domain_decomposed_dim] = _domain_decomposed_size;
         return chunck_shape;
       } else {
         SIZE leftover_dim_size =
             shape[_domain_decomposed_dim] % _domain_decomposed_size;
         std::vector<SIZE> leftover_shape = shape;
-          leftover_shape[_domain_decomposed_dim] = leftover_dim_size;
+        leftover_shape[_domain_decomposed_dim] = leftover_dim_size;
         return leftover_shape;
       }
     }
   }
 
-  bool check_shape(Array<D, T, DeviceType> &subdomain_data, std::vector<SIZE> shape) {
+  bool check_shape(Array<D, T, DeviceType> &subdomain_data,
+                   std::vector<SIZE> shape) {
     if (subdomain_data.data() == nullptr) {
       return false;
     }
@@ -242,7 +246,7 @@ public:
     }
 
     // Timer timer;
-    // if (log::level & log::TIME) { 
+    // if (log::level & log::TIME) {
     //   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     //   timer.start();
     // }
@@ -259,7 +263,8 @@ public:
       } else {
         MemoryManager<DeviceType>::CopyND(
             original_data, shape[D - 1], subdomain_data.data(),
-            subdomain_data.ld(D - 1), shape[D - 1], linearized_width, queue_idx);
+            subdomain_data.ld(D - 1), shape[D - 1], linearized_width,
+            queue_idx);
       }
     } else {
       // Pitched memory allocation has to be disable for the correctness of the
@@ -298,7 +303,6 @@ public:
         log::err("copy_subdomain: wrong option.");
         exit(-1);
       }
-      
     }
     // if (log::level & log::TIME) {
     //   timer.end();
