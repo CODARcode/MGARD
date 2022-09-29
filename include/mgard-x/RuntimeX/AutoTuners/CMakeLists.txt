@@ -1,6 +1,7 @@
 list(APPEND MGARD_X_HEADER
     ${CMAKE_CURRENT_SOURCE_DIR}/AutoTuner.h
     ${CMAKE_CURRENT_SOURCE_DIR}/AutoTunerSerial.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/AutoTunerOpenmp.h
     ${CMAKE_CURRENT_SOURCE_DIR}/AutoTunerCuda.h
     ${CMAKE_CURRENT_SOURCE_DIR}/AutoTunerHip.h
     ${CMAKE_CURRENT_SOURCE_DIR}/AutoTunerSycl.h

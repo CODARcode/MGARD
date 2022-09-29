@@ -15,6 +15,11 @@
 // Serial backend should be always available
 #include "DeviceAdapters/DeviceAdapterSerial.h"
 
+#if MGARD_ENABLE_OPENMP
+#include "DeviceAdapters/DeviceAdapterOpenmp.h"
+#endif
+
+
 #if MGARD_ENABLE_CUDA
 #ifdef MGARDX_COMPILE_CUDA
 #include "DeviceAdapters/DeviceAdapterCuda.h"

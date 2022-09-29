@@ -136,9 +136,10 @@ message Device {
   enum Backend {
     CPU = 0;
     X_SERIAL = 1;
-    X_CUDA = 2;
-    X_HIP = 3;
-    X_SYCL = 4;
+    X_OPENMP = 2;
+    X_CUDA = 3;
+    X_HIP = 4;
+    X_SYCL = 5;
   }
 
   Backend backend = 1;

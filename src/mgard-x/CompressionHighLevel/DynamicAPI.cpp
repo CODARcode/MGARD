@@ -25,6 +25,9 @@ enum device_type auto_detect_device() {
 #if MGARD_ENABLE_SERIAL
   dev_type = device_type::SERIAL;
 #endif
+#if MGARD_ENABLE_OPENMP
+  dev_type = device_type::OPENMP;
+#endif
 #if MGARD_ENABLE_CUDA
   if (deviceAvailable<CUDA>()) {
     dev_type = device_type::CUDA;
@@ -64,6 +67,15 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      output_pre_allocated);
 #else
     log::err("MGARD-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
+                     compressed_data, compressed_size, config,
+                     output_pre_allocated);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -110,6 +122,14 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      compressed_data, compressed_size, output_pre_allocated);
 #else
     log::err("MGARD-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
+                   compressed_data, compressed_size, output_pre_allocated);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -161,6 +181,15 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
+                     compressed_data, compressed_size, coords, config,
+                     output_pre_allocated);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
+    exit(-1);
+#endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
     compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
@@ -206,6 +235,15 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      output_pre_allocated);
 #else
     log::err("MGARD-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
+                     compressed_data, compressed_size, coords,
+                     output_pre_allocated);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -256,6 +294,14 @@ void decompress(const void *compressed_data, size_t compressed_size,
     log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    decompress<OPENMP>(compressed_data, compressed_size, decompressed_data,
+                       config, output_pre_allocated);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
+    exit(-1);
+#endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
     decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
@@ -296,6 +342,14 @@ void decompress(const void *compressed_data, size_t compressed_size,
                        output_pre_allocated);
 #else
     log::err("MGARD-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    decompress<OPENMP>(compressed_data, compressed_size, decompressed_data,
+                       output_pre_allocated);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -344,6 +398,14 @@ void decompress(const void *compressed_data, size_t compressed_size,
     log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    decompress<OPENMP>(compressed_data, compressed_size, decompressed_data,
+                       dtype, shape, config, output_pre_allocated);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
+    exit(-1);
+#endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
     decompress<CUDA>(compressed_data, compressed_size, decompressed_data, dtype,
@@ -385,6 +447,14 @@ void decompress(const void *compressed_data, size_t compressed_size,
                        dtype, shape, output_pre_allocated);
 #else
     log::err("MGARD-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    decompress<OPENMP>(compressed_data, compressed_size, decompressed_data,
+                       dtype, shape, output_pre_allocated);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
@@ -429,6 +499,13 @@ void BeginAutoTuning(enum device_type dev_type) {
     log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    mgard_x::BeginAutoTuning<mgard_x::OPENMP>();
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
+    exit(-1);
+#endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
     mgard_x::BeginAutoTuning<mgard_x::CUDA>();
@@ -466,6 +543,13 @@ void EndAutoTuning(enum device_type dev_type) {
     mgard_x::EndAutoTuning<mgard_x::SERIAL>();
 #else
     log::err("MGARD-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    mgard_x::EndAutoTuning<mgard_x::OPENMP>();
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {

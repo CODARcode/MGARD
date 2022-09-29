@@ -70,6 +70,8 @@ public:
             uint64_t domain_decomposed_size) {
     if (std::is_same<DeviceType, SERIAL>::value) {
       this->ptype = processor_type::X_SERIAL;
+    } else if (std::is_same<DeviceType, OPENMP>::value) {
+      this->ptype = processor_type::X_OPENMP;
     } else if (std::is_same<DeviceType, CUDA>::value) {
       this->ptype = processor_type::X_CUDA;
     } else if (std::is_same<DeviceType, HIP>::value) {
@@ -230,6 +232,8 @@ public:
     if (ptype == processor_type::X_SERIAL) {
       std::cout << "X_SERIAL\n";
     } else if (ptype == processor_type::X_CUDA) {
+      std::cout << "X_OPENMP\n";
+    } else if (ptype == processor_type::X_OPENMP) {
       std::cout << "X_CUDA\n";
     } else if (ptype == processor_type::X_HIP) {
       std::cout << "X_HIP\n";
@@ -574,6 +578,8 @@ private:
       mgard::pb::Device &device = *header.mutable_device();
       if (ptype == processor_type::X_SERIAL) {
         device.set_backend(mgard::pb::Device::X_SERIAL);
+      } else if (ptype == processor_type::X_OPENMP) {
+        device.set_backend(mgard::pb::Device::X_OPENMP);
       } else if (ptype == processor_type::X_CUDA) {
         device.set_backend(mgard::pb::Device::X_CUDA);
       } else if (ptype == processor_type::X_HIP) {
@@ -819,6 +825,8 @@ private:
       const mgard::pb::Device device = header.device();
       if (device.backend() == mgard::pb::Device::X_SERIAL) {
         ptype = processor_type::X_SERIAL;
+      } else if (device.backend() == mgard::pb::Device::X_OPENMP) {
+        ptype = processor_type::X_OPENMP;
       } else if (device.backend() == mgard::pb::Device::X_CUDA) {
         ptype = processor_type::X_CUDA;
       } else if (device.backend() == mgard::pb::Device::X_HIP) {
