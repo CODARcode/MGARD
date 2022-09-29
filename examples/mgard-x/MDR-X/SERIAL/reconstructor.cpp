@@ -1,4 +1,5 @@
 #include "mgard/mdr_x.hpp"
+#include "mgard/mgard-x/Utilities/ErrorCalculator.h"
 #include <bitset>
 #include <cmath>
 #include <cstdlib>
@@ -28,8 +29,8 @@ std::vector<Type> readfile(const char *file, size_t &num) {
   return data;
 }
 
-template <class T>
-void print_statistics(const T *data_ori, const T *data_dec, size_t data_size) {
+template <class T_data>
+void print_statistics(const T_data *data_ori, const T_data *data_dec, size_t data_size) {
   double max_val = data_ori[0];
   double min_val = data_ori[0];
   double max_abs = fabs(data_ori[0]);
@@ -57,68 +58,26 @@ void print_statistics(const T *data_ori, const T *data_dec, size_t data_size) {
   cout << "Max value = " << max_val << ", min value = " << min_val << endl;
   cout << "Max error = " << max_err << ", pos = " << pos << endl;
   cout << "MSE = " << mse << ", PSNR = " << psnr << endl;
+  cout << "L2 error = "
+       << mgard_x::L_2_error({(mgard_x::SIZE)data_size}, data_ori, data_dec,
+                             mgard_x::error_bound_type::ABS, 0)
+       << endl;
+  cout << "L_inf error = "
+       << mgard_x::L_inf_error(data_size, data_ori, data_dec,
+                               mgard_x::error_bound_type::ABS)
+       << endl;
 }
 
-template <class T, class Reconstructor>
-void evaluate(const vector<T> &data, const vector<double> &tolerance,
-              Reconstructor reconstructor) {
-  struct timespec start, end;
-  // auto a1 = compute_average(data.data(), dims[0], dims[1], dims[2], 3);
-  // auto a12 = compute_average(data.data(), dims[0], dims[1], dims[2], 5);
-  for (int i = 0; i < tolerance.size(); i++) {
-    cout << "Start reconstruction" << endl;
-    clock_gettime(CLOCK_REALTIME, &start);
-    auto reconstructed_data =
-        reconstructor.progressive_reconstruct(tolerance[i]);
-    clock_gettime(CLOCK_REALTIME, &end);
-    cout << "Reconstruct time: "
-         << (double)(end.tv_sec - start.tv_sec) +
-                (double)(end.tv_nsec - start.tv_nsec) / (double)1000000000
-         << "s" << endl;
-    auto dims = reconstructor.get_dimensions();
-    size_t size = 1;
-    for (int i = 0; i < dims.size(); i++) {
-      size *= dims[i];
-    }
-    print_statistics(data.data(), reconstructed_data, size);
-    // COMP_UTILS::evaluate_gradients(data.data(), reconstructed_data, dims[0],
-    // dims[1], dims[2]); COMP_UTILS::evaluate_average(data.data(),
-    // reconstructed_data, dims[0], dims[1], dims[2], 0);
-  }
-}
-
-// template <class T, class Decomposer, class Interleaver, class Encoder,
-//           class Compressor, class ErrorEstimator, class SizeInterpreter,
-//           class Retriever>
-// void test(string filename, const vector<double> &tolerance,
-//           Decomposer decomposer, Interleaver interleaver, Encoder encoder,
-//           Compressor compressor, ErrorEstimator estimator,
-//           SizeInterpreter interpreter, Retriever retriever) {
-//   auto reconstructor =
-//       mgard_x::MDR::ComposedReconstructor<T, Decomposer, Interleaver,
-//       Encoder,
-//                                           Compressor, SizeInterpreter,
-//                                           ErrorEstimator, Retriever>(
-//           decomposer, interleaver, encoder, compressor, interpreter,
-//           retriever);
-//   cout << "loading metadata" << endl;
-//   reconstructor.load_metadata();
-
-//   size_t num_elements = 0;
-//   auto data = readfile<T>(filename.c_str(), num_elements);
-//   evaluate(data, tolerance, reconstructor);
-// }
-
-template <mgard_x::DIM D, class T, class T_stream, typename DeviceType,
+template <mgard_x::DIM D, class T_data, class T_stream, typename DeviceType,
           class Decomposer, class Interleaver, class Encoder, class Compressor,
           class ErrorEstimator, class SizeInterpreter, class Retriever>
-void test2(string filename, const vector<double> &tolerance,
-           mgard_x::Hierarchy<D, T, DeviceType> &hierarchy,
-           Decomposer decomposer, Interleaver interleaver, Encoder encoder,
-           Compressor compressor, ErrorEstimator estimator,
-           SizeInterpreter interpreter, Retriever retriever) {
+void test(string filename, const vector<double> &tolerance,
+          mgard_x::Hierarchy<D, T_data, DeviceType> &hierarchy,
+          Decomposer decomposer, Interleaver interleaver, Encoder encoder,
+          Compressor compressor, ErrorEstimator estimator,
+          SizeInterpreter interpreter, Retriever retriever) {
   auto reconstructor = mgard_x::MDR::ComposedReconstructor<
-      D, T, T_stream, Decomposer, Interleaver, Encoder, Compressor,
+      D, T_data, T_stream, Decomposer, Interleaver, Encoder, Compressor,
       SizeInterpreter, ErrorEstimator, Retriever, DeviceType>(
       hierarchy, decomposer, interleaver, encoder, compressor, interpreter,
       retriever);
@@ -126,8 +85,18 @@ void test2(string filename, const vector<double> &tolerance,
   reconstructor.load_metadata();
 
   size_t num_elements = 0;
-  auto data = readfile<T>(filename.c_str(), num_elements);
-  evaluate(data, tolerance, reconstructor);
+  auto data = readfile<T_data>(filename.c_str(), num_elements);
+  for (int i = 0; i < tolerance.size(); i++) {
+    cout << "Start reconstruction" << endl;
+    mgard_x::Array<D, T_data, DeviceType> reconstructed_data =
+        reconstructor.progressive_reconstruct(tolerance[i]);
+    auto dims = reconstructor.get_dimensions();
+    size_t size = 1;
+    for (int i = 0; i < dims.size(); i++) {
+      size *= dims[i];
+    }
+    print_statistics(data.data(), reconstructed_data.hostCopy(), size);
+  }
 }
 
 int main(int argc, char **argv) {
@@ -156,7 +125,7 @@ int main(int argc, char **argv) {
     printf("dim: ");
     for (int i = 0; i < num_dims; i++) {
       dims.push_back(dim[i]);
-      printf("%u ", dim[i]);
+      printf("%lu ", dim[i]);
     }
     printf("\n");
     num_levels = metadata[num_dims * sizeof(mgard_x::SIZE) + 1];
@@ -169,139 +138,64 @@ int main(int argc, char **argv) {
     files.push_back(filename);
   }
 
-  using T = float;
+  using T_data = float;
   using T_stream = uint32_t;
   using T_error = double;
   using DeviceType = mgard_x::SERIAL;
 
   const mgard_x::DIM D = 3;
-  mgard_x::Hierarchy<D, T, DeviceType> hierarchy(dims, 0, num_levels - 1);
-  // hierarchy.l_target = num_levels - 1;
+  mgard_x::Config config;
+  mgard_x::Hierarchy<D, T_data, DeviceType> hierarchy(dims, config, num_levels - 1);
 
   auto decomposer =
-      mgard_x::MDR::MGARDOrthoganalDecomposer<D, T, DeviceType>(hierarchy);
-  // auto decomposer = MDR::MGARDHierarchicalDecomposer<T>();
+      mgard_x::MDR::MGARDOrthoganalDecomposer<D, T_data, DeviceType>(hierarchy);
   auto interleaver =
-      mgard_x::MDR::DirectInterleaver<D, T, DeviceType>(hierarchy);
-  // auto interleaver = MDR::SFCInterleaver<T>();
-  // auto interleaver = MDR::BlockedInterleaver<T>();
-
-  auto encoder =
-      mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error, DeviceType>();
-  // auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<T, T_stream, T_error,
-  // DeviceType>();
-
+      mgard_x::MDR::DirectInterleaver<D, T_data, DeviceType>(hierarchy);
+  auto encoder = mgard_x::MDR::GroupedBPEncoder<T_data, T_stream, T_error,
+  DeviceType>();
+  // auto encoder =
+  //     mgard_x::MDR::GroupedWarpBPEncoder<T_data, T_stream, T_error, DeviceType>();
   auto compressor =
       mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();
-  // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
-  // auto compressor = MDR::NullLevelCompressor();
   auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);
 
   switch (error_mode) {
   case 1: {
     auto estimator =
-        mgard_x::MDR::SNormErrorEstimator<T>(num_dims, num_levels - 1, s);
+        mgard_x::MDR::SNormErrorEstimator<T_data>(num_dims, num_levels - 1, s);
     // auto interpreter =
-    // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+    // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T_data>>(estimator);
     // auto interpreter =
-    // mgard_x::MDR::NegaBinaryGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+    // mgard_x::MDR::NegaBinaryGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T_data>>(estimator);
+
     auto interpreter = mgard_x::MDR::RoundRobinSizeInterpreter<
-        mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
+        mgard_x::MDR::SNormErrorEstimator<T_data>>(estimator);
     // auto interpreter =
-    // mgard_x::MDR::InorderSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
-    // auto estimator = mgard_x::MDR::L2ErrorEstimator_HB<T>(num_dims,
+    // mgard_x::MDR::InorderSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T_data>>(estimator);
+    // auto estimator = mgard_x::MDR::L2ErrorEstimator_HB<T_data>(num_dims,
     // num_levels - 1); auto interpreter =
-    // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::L2ErrorEstimator_HB<T>>(estimator);
-    test2<D, T, T_stream, DeviceType>(
-        filename, tolerance, hierarchy, decomposer, interleaver, encoder,
-        compressor, estimator, interpreter, retriever);
+    // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::L2ErrorEstimator_HB<T_data>>(estimator);
+    test<D, T_data, T_stream, DeviceType>(filename, tolerance, hierarchy, decomposer,
+                                     interleaver, encoder, compressor,
+                                     estimator, interpreter, retriever);
     break;
   }
   default: {
-    auto estimator = mgard_x::MDR::MaxErrorEstimatorOB<T>(num_dims);
+    auto estimator = mgard_x::MDR::MaxErrorEstimatorOB<T_data>(num_dims);
     auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<
-        mgard_x::MDR::MaxErrorEstimatorOB<T>>(estimator);
+        mgard_x::MDR::MaxErrorEstimatorOB<T_data>>(estimator);
     // auto interpreter =
-    // MDR::RoundRobinSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
+    // MDR::RoundRobinSizeInterpreter<MDR::MaxErrorEstimatorOB<T_data>>(estimator);
     // auto interpreter =
-    // MDR::InorderSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
-    // auto estimator = MDR::MaxErrorEstimatorHB<T>();
+    // MDR::InorderSizeInterpreter<MDR::MaxErrorEstimatorOB<T_data>>(estimator);
+    // auto estimator = MDR::MaxErrorEstimatorHB<T_data>();
     // auto interpreter =
-    // MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorHB<T>>(estimator);
-    test2<D, T, T_stream, DeviceType>(
-        filename, tolerance, hierarchy, decomposer, interleaver, encoder,
-        compressor, estimator, interpreter, retriever);
+    // MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorHB<T_data>>(estimator);
+    test<D, T_data, T_stream, DeviceType>(filename, tolerance, hierarchy, decomposer,
+                                     interleaver, encoder, compressor,
+                                     estimator, interpreter, retriever);
   }
   }
-
-  // if (true) {
-  //   auto decomposer =
-  //       mgard_m::MDR::MGARDOrthoganalDecomposer<HandleType, D, T>(handle);
-  //   auto interleaver =
-  //       mgard_m::MDR::DirectInterleaver<HandleType, D, T>(handle);
-  //   // auto encoder = mgard_m::MDR::GroupedBPEncoder<HandleType, D, T,
-  //   T_stream,
-  //   // T_error>(handle);
-  //   auto encoder =
-  //       mgard_m::MDR::GroupedWarpBPEncoder<HandleType, D, T, T_stream,
-  //       T_error>(
-  //           handle);
-
-  //   auto compressor =
-  //       mgard_m::MDR::DefaultLevelCompressor<HandleType, D,
-  //       T_stream>(handle);
-  //   auto retriever =
-  //       mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);
-  //   switch (error_mode) {
-  //     case 1: {
-  //       auto estimator =
-  //           mgard_x::MDR::SNormErrorEstimator<T>(num_dims, num_levels - 1,
-  //           s);
-  //       // auto interpreter =
-  //       //
-  //       MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::SNormErrorEstimator<T>>(estimator);
-  //       // auto interpreter =
-  //       //
-  //       mgard_x::MDR::NegaBinaryGreedyBasedSizeInterpreter<mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
-  //       auto interpreter = mgard_x::MDR::RoundRobinSizeInterpreter<
-  //           mgard_x::MDR::SNormErrorEstimator<T>>(estimator);
-  //       // auto interpreter =
-  //       //
-  //       mgard_x::MDR::InorderSizeInterpreter<MDR::SNormErrorEstimator<T>>(estimator);
-  //       // auto estimator = mgard_x::MDR::L2ErrorEstimator_HB<T>(num_dims,
-  //       // num_levels - 1); auto interpreter =
-  //       //
-  //       mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::L2ErrorEstimator_HB<T>>(estimator);
-  //       test2<HandleType, D, T, T_stream>(filename, tolerance, handle,
-  //       decomposer,
-  //                                         interleaver, encoder, compressor,
-  //                                         estimator, interpreter, retriever);
-  //       break;
-  //     }
-  //     default: {
-  //       auto estimator = mgard_x::MDR::MaxErrorEstimatorOB<T>(num_dims);
-  //       auto interpreter =
-  //       mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<
-  //           mgard_x::MDR::MaxErrorEstimatorOB<T>>(estimator);
-  //       // auto interpreter =
-  //       //
-  //       mgard_x::MDR::RoundRobinSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
-  //       // auto interpreter =
-  //       //
-  //       mgard_x::MDR::InorderSizeInterpreter<MDR::MaxErrorEstimatorOB<T>>(estimator);
-  //       // auto estimator = mgard_x::MDR::MaxErrorEstimatorHB<T>();
-  //       // auto interpreter =
-  //       //
-  //       mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorHB<T>>(estimator);
-  //       // test2<HandleType, D, T, T_stream>(filename, tolerance, handle,
-  //       decomposer,
-  //       //                                   interleaver, encoder,
-  //       compressor,
-  //       //                                   estimator, interpreter,
-  //       retriever);
-  //     }
-  //   }
-  // }
 
   return 0;
 }
