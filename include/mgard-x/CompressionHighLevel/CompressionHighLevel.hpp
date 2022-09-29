@@ -1078,14 +1078,21 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       MemoryManager<DeviceType>::Malloc1D(decompressed_data,
                                           total_num_elem * sizeof(T));
     } else {
-      MemoryManager<DeviceType>::MallocHost(decompressed_data,
-                                            total_num_elem * sizeof(T));
+      decompressed_data = (void*)malloc(total_num_elem * sizeof(T));
     }
     if (log::level & log::TIME) {
       timer_each.end();
       timer_each.print("Prepare output buffer");
       timer_each.clear();
     }
+  }
+
+  bool previously_pinned =
+      !MemoryManager<DeviceType>::IsDevicePointer((void *)decompressed_data) &&
+      MemoryManager<DeviceType>::CheckHostRegister((void *)decompressed_data);
+  if (!previously_pinned) {
+    MemoryManager<DeviceType>::HostRegister((void *)decompressed_data,
+                                            total_num_elem * sizeof(T));
   }
 
   // Initialize DomainDecomposer
@@ -1140,6 +1147,10 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
                              timer_each.get() / 1e9) +
               " GB/s");
     timer_each.clear();
+  }
+
+  if (!previously_pinned) {
+    MemoryManager<DeviceType>::HostUnregister((void *)decompressed_data);
   }
 
   if (log::level & log::TIME) {
