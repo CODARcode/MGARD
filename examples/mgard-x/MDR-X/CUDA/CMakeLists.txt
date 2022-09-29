@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(MDR CUDA)
+project(MDR CUDA CXX)
 find_package(mgard)
 
 set (CMAKE_CXX_STANDARD 17)

@@ -8,31 +8,17 @@
 #include <vector>
 using namespace std;
 
-template <class T, class Refactor>
-void evaluate(const vector<T> &data, const vector<mgard_x::SIZE> &dims,
-              int target_level, int num_bitplanes, Refactor &refactor) {
-  struct timespec start, end;
-  cout << "Start refactoring" << endl;
-  clock_gettime(CLOCK_REALTIME, &start);
-  refactor.refactor(data.data(), dims, target_level, num_bitplanes);
-  clock_gettime(CLOCK_REALTIME, &end);
-  cout << "Refactor time: "
-       << (double)(end.tv_sec - start.tv_sec) +
-              (double)(end.tv_nsec - start.tv_nsec) / (double)1000000000
-       << "s" << endl;
-}
-
-template <mgard_x::DIM D, class T_data, class T_bitplane, typename DeviceType,
+template <mgard_x::DIM D, class T_data, class T_bitplane, class T_error, typename DeviceType,
           class Decomposer, class Interleaver, class Encoder, class Compressor,
           class ErrorCollector, class Writer>
-void test2(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
+void test(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
            int num_bitplanes,
            mgard_x::Hierarchy<D, T_data, DeviceType> &hierarchy,
            Decomposer decomposer, Interleaver interleaver, Encoder encoder,
            Compressor compressor, ErrorCollector collector, Writer writer) {
 
   auto refactor =
-      mgard_x::MDR::ComposedRefactor<D, T_data, T_bitplane, Decomposer,
+      mgard_x::MDR::ComposedRefactor<D, T_data, T_bitplane, T_error, Decomposer,
                                      Interleaver, Encoder, Compressor,
                                      ErrorCollector, Writer, DeviceType>(
           hierarchy, decomposer, interleaver, encoder, compressor, collector,
@@ -49,7 +35,10 @@ void test2(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
   fread(data.data(), 1, num_elements * sizeof(T_data), pFile);
   fclose(pFile);
   printf("done loading file\n");
-  evaluate(data, dims, target_level, num_bitplanes, refactor);
+  mgard_x::Array<D, T_data, DeviceType> input_array(dims);
+  input_array.load(data.data());
+  refactor.refactor(input_array, dims, target_level, num_bitplanes);
+  // evaluate(data, dims, target_level, num_bitplanes, refactor);
 }
 
 int main(int argc, char **argv) {
@@ -86,9 +75,10 @@ int main(int argc, char **argv) {
               << std::endl;
   }
   const mgard_x::DIM D = 3;
-  printf("dims: %u %u %u\n", dims[2], dims[1], dims[0]);
+  printf("dims: %lu %lu %lu\n", dims[2], dims[1], dims[0]);
 
-  mgard_x::Hierarchy<D, T, DeviceType> hierarchy(dims, 0, target_level);
+  mgard_x::Config config;
+  mgard_x::Hierarchy<D, T, DeviceType> hierarchy(dims, config, target_level);
 
   // if (false) {
   auto decomposer =
@@ -116,7 +106,7 @@ int main(int argc, char **argv) {
   // auto writer = mgard_x::MDR::HPSSFileWriter(metadata_file, files, 2048,
   // 512 * 1024 * 1024);
 
-  test2<D, T, T_stream, DeviceType>(filename, dims, target_level, num_bitplanes,
+  test<D, T, T_stream, T_error, DeviceType>(filename, dims, target_level, num_bitplanes,
                                     hierarchy, decomposer, interleaver, encoder,
                                     compressor, collector, writer);
 
