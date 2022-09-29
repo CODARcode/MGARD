@@ -9,7 +9,7 @@
 #include <cooperative_groups.h>
 #include <cub/cub.cuh>
 #include <iostream>
-#include <mma.h>
+// #include <mma.h>
 
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
@@ -17,7 +17,7 @@
 #include <thrust/host_vector.h>
 #include <thrust/scan.h>
 
-using namespace nvcuda;
+// using namespace nvcuda;
 namespace cg = cooperative_groups;
 
 #ifndef MGARD_X_DEVICE_ADAPTER_CUDA_H
@@ -1190,70 +1190,70 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
     // __syncthreads(); start = clock64();
   }
 
-  MGARDX_EXEC
-  static void TCU(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX, SIZE IdY) {
-    __syncthreads();
-    long long start = clock64();
+  // MGARDX_EXEC
+  // static void TCU(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX, SIZE IdY) {
+  //   __syncthreads();
+  //   long long start = clock64();
 
-    __shared__ half tile_a[16 * 16];
-    __shared__ half tile_b[32 * 32];
-    __shared__ float output[32 * 32];
-    uint8_t bit;
-    half shifted_bit;
-    SIZE i = threadIdx.x;
-    SIZE B_idx = threadIdx.y;
-    SIZE b_idx = threadIdx.x;
-    SIZE warp_idx = threadIdx.y;
-    SIZE lane_idx = threadIdx.x;
+  //   __shared__ half tile_a[16 * 16];
+  //   __shared__ half tile_b[32 * 32];
+  //   __shared__ float output[32 * 32];
+  //   uint8_t bit;
+  //   half shifted_bit;
+  //   SIZE i = threadIdx.x;
+  //   SIZE B_idx = threadIdx.y;
+  //   SIZE b_idx = threadIdx.x;
+  //   SIZE warp_idx = threadIdx.y;
+  //   SIZE lane_idx = threadIdx.x;
 
-    __syncthreads();
-    start = clock64() - start;
-    if (IdY == 0 && IdX == 0)
-      printf("time0: %llu\n", start);
+  //   __syncthreads();
+  //   start = clock64() - start;
+  //   if (IdY == 0 && IdX == 0)
+  //     printf("time0: %llu\n", start);
 
-    __syncthreads();
-    start = clock64();
-    __syncthreads();
+  //   __syncthreads();
+  //   start = clock64();
+  //   __syncthreads();
 
-    if (IdX < B * b) {
-      uint8_t bit = (v[sizeof(T_trans) * 8 - 1 - b_idx] >>
-                     (sizeof(T_org) * 8 - 1 - B_idx)) &
-                    1u;
-      shifted_bit = bit << (sizeof(T_trans) * 8 - 1 - b_idx) % 8;
-      tile_b[b_idx * 32 + B_idx] = shifted_bit;
-      if (i < 8) {
-        tile_a[i] = 1u;
-        tile_a[i + 8] = 1u << 8;
-      }
-    }
-    __syncthreads();
-    start = clock64() - start;
-    if (IdY == 0 && IdX == 0)
-      printf("time1: %llu\n", start);
+  //   if (IdX < B * b) {
+  //     uint8_t bit = (v[sizeof(T_trans) * 8 - 1 - b_idx] >>
+  //                    (sizeof(T_org) * 8 - 1 - B_idx)) &
+  //                   1u;
+  //     shifted_bit = bit << (sizeof(T_trans) * 8 - 1 - b_idx) % 8;
+  //     tile_b[b_idx * 32 + B_idx] = shifted_bit;
+  //     if (i < 8) {
+  //       tile_a[i] = 1u;
+  //       tile_a[i + 8] = 1u << 8;
+  //     }
+  //   }
+  //   __syncthreads();
+  //   start = clock64() - start;
+  //   if (IdY == 0 && IdX == 0)
+  //     printf("time1: %llu\n", start);
 
-    __syncthreads();
-    start = clock64();
-    __syncthreads();
+  //   __syncthreads();
+  //   start = clock64();
+  //   __syncthreads();
 
-    if (warp_idx < 4) {
-      wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::row_major> a_frag;
-      wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::row_major> b_frag;
-      wmma::fragment<wmma::accumulator, 16, 16, 16, float> c_frag;
-      wmma::load_matrix_sync(a_frag, tile_a, 16);
-      wmma::load_matrix_sync(
-          b_frag, tile_b + (warp_idx / 2) * 16 + (warp_idx % 2) * 16, 32);
-      wmma::fill_fragment(c_frag, 0.0f);
-      wmma::mma_sync(c_frag, a_frag, b_frag, c_frag);
-      wmma::store_matrix_sync(output + (warp_idx / 2) * 16 +
-                                  (warp_idx % 2) * 16,
-                              c_frag, 32, wmma::mem_row_major);
-    }
+  //   if (warp_idx < 4) {
+  //     wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::row_major> a_frag;
+  //     wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::row_major> b_frag;
+  //     wmma::fragment<wmma::accumulator, 16, 16, 16, float> c_frag;
+  //     wmma::load_matrix_sync(a_frag, tile_a, 16);
+  //     wmma::load_matrix_sync(
+  //         b_frag, tile_b + (warp_idx / 2) * 16 + (warp_idx % 2) * 16, 32);
+  //     wmma::fill_fragment(c_frag, 0.0f);
+  //     wmma::mma_sync(c_frag, a_frag, b_frag, c_frag);
+  //     wmma::store_matrix_sync(output + (warp_idx / 2) * 16 +
+  //                                 (warp_idx % 2) * 16,
+  //                             c_frag, 32, wmma::mem_row_major);
+  //   }
 
-    __syncthreads();
-    start = clock64() - start;
-    if (IdY == 0 && IdX == 0)
-      printf("time2: %llu\n", start);
-  }
+  //   __syncthreads();
+  //   start = clock64() - start;
+  //   if (IdY == 0 && IdX == 0)
+  //     printf("time2: %llu\n", start);
+  // }
 
   MGARDX_EXEC
   static void Transpose(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX,
