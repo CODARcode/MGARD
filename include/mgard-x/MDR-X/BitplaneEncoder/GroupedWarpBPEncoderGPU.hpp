@@ -53,6 +53,7 @@ template <typename T, typename T_fp, typename T_sfp, typename T_bitplane,
           typename DeviceType>
 class GroupedWarpEncoderFunctor : public Functor<DeviceType> {
 public:
+  MGARDX_CONT GroupedWarpEncoderFunctor() {}
   MGARDX_CONT GroupedWarpEncoderFunctor(
       LENGTH n, SIZE exp, SubArray<1, T, DeviceType> v,
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
@@ -587,6 +588,7 @@ template <typename T, typename T_fp, typename T_sfp, typename T_bitplane,
           typename DeviceType>
 class GroupedWarpDecoderFunctor : public Functor<DeviceType> {
 public:
+  MGARDX_CONT GroupedWarpDecoderFunctor() {}
   MGARDX_CONT GroupedWarpDecoderFunctor(
       LENGTH n, SIZE starting_bitplane, SIZE exp,
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,

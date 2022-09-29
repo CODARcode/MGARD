@@ -1,7 +1,7 @@
 #ifndef _MDR_MGARD_DECOMPOSER_HPP
 #define _MDR_MGARD_DECOMPOSER_HPP
 
-#include "../../DataRefactoring/MultiDimension/DataRefactoring.h"
+#include "../../DataRefactoring/DataRefactoring.hpp"
 #include "DecomposerInterface.hpp"
 #include "decompose.hpp"
 #include "recompose.hpp"
@@ -74,13 +74,17 @@ public:
       : hierarchy(hierarchy) {}
   void decompose(SubArray<D, T, DeviceType> v, SIZE target_level,
                  int queue_idx) const {
-    // hierarchy.l_target()-target_level is for reversing the level idx
-    mgard_x::decompose<D, T, DeviceType>(
-        hierarchy, v, hierarchy.l_target() - target_level, queue_idx);
+    mgard_x::DataRefactoringWorkspace<D, T, DeviceType> workspace(hierarchy);
+    mgard_x::decompose<D, T, DeviceType>(hierarchy, v,
+                                workspace.refactoring_w_subarray,
+                                workspace.refactoring_b_subarray, 0, queue_idx);
   }
   void recompose(SubArray<D, T, DeviceType> v, SIZE target_level,
                  int queue_idx) const {
-    mgard_x::recompose<D, T, DeviceType>(hierarchy, v, target_level, queue_idx);
+    mgard_x::DataRefactoringWorkspace<D, T, DeviceType> workspace(hierarchy);
+    mgard_x::recompose<D, T, DeviceType>(hierarchy, v,
+                                workspace.refactoring_w_subarray,
+                                workspace.refactoring_b_subarray, hierarchy.l_target(), queue_idx);
   }
   void print() const {
     std::cout << "MGARD orthogonal decomposer" << std::endl;
