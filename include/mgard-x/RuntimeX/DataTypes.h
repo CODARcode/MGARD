@@ -16,6 +16,9 @@
 #define MGARDX_COMPILE_SYCL
 #else
 #define MGARDX_COMPILE_SERIAL
+#if MGARD_ENABLE_OPENMP
+#define MGARDX_COMPILE_OPENMP
+#endif
 #endif
 
 #include <stdint.h>
@@ -36,7 +39,7 @@ namespace mgard_x {
 #error "Please provide a definition for MY_ALIGN macro for your host compiler!"
 #endif
 
-#ifdef MGARDX_COMPILE_SERIAL
+#if defined (MGARDX_COMPILE_SERIAL) || defined (MGARDX_COMPILE_OPENMP)
 #define MGARDX_CONT __inline__
 #define MGARDX_KERL
 #define MGARDX_EXEC __inline__
@@ -92,6 +95,7 @@ namespace mgard_x {
 
 class Device {};
 class SERIAL : public Device {};
+class OPENMP : public Device {};
 class CUDA : public Device {};
 class HIP : public Device {};
 class SYCL : public Device {};
@@ -103,13 +107,9 @@ using KOKKOS = Kokkos::DefaultExecutionSpace;
 using KOKKOS = NONE;
 #endif
 
-class DPCxx : public Device {};
-class OpenMp : public Device {};
-
 using IDX = unsigned long long int;
 using LENGTH = unsigned long long int;
-using SIZE = uint64_t; // unsigned int;
-// using SIZE = int;
+using SIZE = uint64_t;
 using DIM = uint32_t;
 using QUANTIZED_INT = int32_t;
 using QUANTIZED_UNSIGNED_INT = uint32_t;

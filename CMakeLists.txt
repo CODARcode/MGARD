@@ -90,12 +90,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 if (MGARD_ENABLE_SERIAL OR 
+    MGARD_ENABLE_OPENMP OR 
     MGARD_ENABLE_CUDA   OR
     MGARD_ENABLE_HIP    OR
     MGARD_ENABLE_SYCL)
 
   if(MGARD_ENABLE_SYCL)
     set(MGARD_ENABLE_SERIAL OFF)
+    set(MGARD_ENABLE_OPENMP OFF)
   endif()
 
   set (CMAKE_CXX_STANDARD 17)
@@ -134,6 +136,11 @@ add_library(mgard-library)
 if(MGARD_ENABLE_SERIAL)
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_SERIAL)
   set_source_files_properties(${MGARD_X_SERIAL_SRC} PROPERTIES LANGUAGE CXX)
+endif()
+
+if(MGARD_ENABLE_OPENMP)
+  target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_OPENMP)
+  set_source_files_properties(${MGARD_X_OPENMP_SRC} PROPERTIES LANGUAGE CXX)
 endif()
 
 if(MGARD_ENABLE_CUDA)
@@ -286,6 +293,7 @@ target_sources(
   ${MGARD_CUDA_SRC}
   ${MGARD_X_SRC}
   ${MGARD_X_SERIAL_SRC}
+  ${MGARD_X_OPENMP_SRC}
   ${MGARD_X_CUDA_SRC}
   ${MGARD_X_HIP_SRC}
   ${MGARD_X_SYCL_SRC}
@@ -346,7 +354,8 @@ if(MGARD_ENABLE_LEGACY_CUDA)
   target_link_libraries(mgard-library PUBLIC nvcomp::nvcomp CUDA::cudart)
 endif()
 
-if(MGARD_ENABLE_MULTI_DEVICE)
+if(MGARD_ENABLE_MULTI_DEVICE OR 
+   MGARD_ENABLE_OPENMP)
   find_package(OpenMP REQUIRED)
   target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
   # A bug in CMake causing the '-fopenmp' flag missing when compiling device units during separate compilation
@@ -356,13 +365,6 @@ if(MGARD_ENABLE_MULTI_DEVICE)
       $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler ${OpenMP_CXX_FLAGS}>
       $<$<COMPILE_LANGUAGE:HIP>:${OpenMP_CXX_FLAGS}>
     )
-endif()
-
-if(MGARD_ENABLE_OPENMP)
-  find_package(OpenMP)
-  if(OpenMP_FOUND)
-    target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
-  endif()
 endif()
 
 if(MGARD_ENABLE_TIMING)
@@ -468,6 +470,7 @@ message(STATUS "shared libs:   ${BUILD_SHARED_LIBS}")
 message(STATUS "portable backends:")
 list(APPEND CMAKE_MESSAGE_INDENT "  ")
 message(STATUS "SERIAL:      ${MGARD_ENABLE_SERIAL}")
+message(STATUS "OPENMP:      ${MGARD_ENABLE_OPENMP}")
 message(STATUS "CUDA:        ${MGARD_ENABLE_CUDA}")
 if (MGARD_ENABLE_CUDA)
   list(APPEND CMAKE_MESSAGE_INDENT "  ")
