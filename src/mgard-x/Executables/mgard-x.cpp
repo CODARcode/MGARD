@@ -37,7 +37,7 @@ void print_usage_message(std::string error) {
 \t\t -e <error>: error bound\n\
 \t\t -s <smoothness>: smoothness parameter\n\
 \t\t -l choose lossless compressor (0:Huffman 1:Huffman+LZ4 3:Huffman+Zstd)\n\
-\t\t -d <auto|serial|cuda|hip>: device type\n\
+\t\t -d <auto|serial|openmp|cuda|hip|sycl>: device type\n\
 \t\t -v enable verbose (show timing and statistics)\n\
 \n\
 \t -x: decompress data\n\
@@ -493,6 +493,9 @@ bool try_compression(int argc, char *argv[]) {
   } else if (dev.compare("serial") == 0) {
     dev_type = mgard_x::device_type::SERIAL;
     std::cout << mgard_x::log::log_info << "device type: SERIAL\n";
+  } else if (dev.compare("openmp") == 0) {
+    dev_type = mgard_x::device_type::OPENMP;
+    std::cout << mgard_x::log::log_info << "device type: OPENMP\n";
   } else if (dev.compare("cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
     std::cout << mgard_x::log::log_info << "device type: CUDA\n";
@@ -551,6 +554,9 @@ bool try_decompression(int argc, char *argv[]) {
   } else if (dev.compare("serial") == 0) {
     dev_type = mgard_x::device_type::SERIAL;
     std::cout << mgard_x::log::log_info << "device type: SERIAL\n";
+  } else if (dev.compare("openmp") == 0) {
+    dev_type = mgard_x::device_type::OPENMP;
+    std::cout << mgard_x::log::log_info << "device type: OPENMP\n";
   } else if (dev.compare("cuda") == 0) {
     dev_type = mgard_x::device_type::CUDA;
     std::cout << mgard_x::log::log_info << "device type: CUDA\n";

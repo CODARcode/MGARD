@@ -20,12 +20,13 @@ enum class processor_type : uint8_t {
   CPU,
   GPU_CUDA,
   X_SERIAL,
+  X_OPENMP,
   X_CUDA,
   X_HIP,
   X_SYCL
 };
 
-enum class device_type : uint8_t { AUTO, SERIAL, CUDA, HIP, SYCL, NONE };
+enum class device_type : uint8_t { AUTO, SERIAL, OPENMP, CUDA, HIP, SYCL, NONE };
 
 enum class error_bound_type : uint8_t { REL, ABS };
 enum class norm_type : uint8_t { L_Inf, L_2 };

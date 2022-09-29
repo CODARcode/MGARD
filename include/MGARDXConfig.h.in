@@ -14,6 +14,12 @@
 #define MGARD_ENABLE_SERIAL 0   
 #endif
 
+#if '@MGARD_ENABLE_OPENMP@' == 'ON'
+#define MGARD_ENABLE_OPENMP 1
+#else
+#define MGARD_ENABLE_OPENMP 0   
+#endif
+
 #if '@MGARD_ENABLE_CUDA@' == 'ON'
 #define MGARD_ENABLE_CUDA 1
 #else
