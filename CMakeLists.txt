@@ -11,7 +11,7 @@ endif()
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 set(MGARD_VERSION_MAJOR "1")
-set(MGARD_VERSION_MINOR "2")
+set(MGARD_VERSION_MINOR "3")
 set(MGARD_VERSION_PATCH "0")
 
 set(MGARD_FILE_VERSION_MAJOR "1")
@@ -141,6 +141,8 @@ endif()
 if(MGARD_ENABLE_OPENMP)
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_OPENMP)
   set_source_files_properties(${MGARD_X_OPENMP_SRC} PROPERTIES LANGUAGE CXX)
+  # Multi-device has to be off when using OpenMP
+  set(MGARD_ENABLE_MULTI_DEVICE OFF)
 endif()
 
 if(MGARD_ENABLE_CUDA)
