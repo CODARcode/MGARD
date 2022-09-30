@@ -196,6 +196,8 @@ MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int precision_idx,
   std::string device_type_string = "";
   if (std::is_same<DeviceType, SERIAL>::value) {
     device_type_string = "Serial";
+  } else if (std::is_same<DeviceType, OPENMP>::value) {
+    device_type_string = "Openmp";
   } else if (std::is_same<DeviceType, CUDA>::value) {
     device_type_string = "Cuda";
   } else if (std::is_same<DeviceType, HIP>::value) {
