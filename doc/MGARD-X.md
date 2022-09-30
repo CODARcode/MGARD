@@ -175,7 +175,7 @@ An object ```mgard_x::Hierarchy``` needs to be created and initialized. This ini
         + ```[In] shape```: Stores the size in each dimension (from slowest to fastest).
         + ```[In][Optional] coords```: The coordinates in each dimension (from slowest to fastest).
       	+ ```[In] config```: For configuring compression/decomrpession.
-* **Step 2: Allocate workspace** The workspace needs to be pre-allocated by creating an ```mgard_x::CompressionLowLevelWorkspace``` object. Same as ```mgard_x::Hierarchy```, It only needs to be created once if the input shape is not changed and it can be reused in between compression and decompression APIs.
+* **Step 2: Allocate workspace** The workspace needs to be pre-allocated by creating an ```mgard_x::CompressionLowLevelWorkspace``` object. Same as ```mgard_x::Hierarchy```, it only needs to be created once if the input shape is not changed and it can be reused in between compression and decompression APIs.
     + ```mgard_x::CompressionLowLevelWorkspace<NumDims, DataType, Device_type>(mgard_x::Hierarchy<NumDims, DataType, Device_type> &hierarchy)```.
 * **Step 3: Use mgard_x::Array.** ```mgard_x::Array``` is used for holding a managed array on GPU or CPU.
     +  For ***creating*** an array. ```mgard_x::Array::Array<NumDims, DataType, Device_type>(std::vector<size_t> shape)``` creates an managed array on GPU or CPU with the shape of ```shape```.
@@ -227,10 +227,11 @@ For achieving the best performance:
 * **Specifiying the suitable GPU architecture(s)**: Use CMake configuration options to specifiying the suitable GPU architecture(s)
     + For NVIDIA GPUs, use ```-DCMAKE_CUDA_ARCHITECTURES=<arch>```
     + For AMD GPUs, use ```-DCMAKE_HIP_ARCHITECTURES=<arch>```
+    + For Intel GPU, please specisify ```-fsycl-targets``` and ```-Xsycl-target-backend``` C++ compiler flags accrodingly
 * **Auto Tuning**: each kernel in MGARD-X can be auto tuned for the current hardware architecture. After MGARD-X is built, an executable ```mgard-x-autotuner``` will be generated for auto tuning. ```mgard-x-autotuner``` can be used in following ways:
     + **Full automatic mode:** run ```mgard-x-autotuner```  without arguments with make MGARD-X auto tune all its kernels for all backends that are enabled.
-    + **Tune for a specific backend:** run ```mgard-x-autotuner -d <serial|cuda|hip>```
-    + **Tune for a specific shape of data on a specific backend :** run ```mgard-x-autotuner -d <auto|serial|cuda|hip> -n <ndim> [dim1] [dim2] ... [dimN]```.
+    + **Tune for a specific backend:** run ```mgard-x-autotuner -d <serial|openmp|cuda|hip|sycl>```
+    + **Tune for a specific shape of data on a specific backend :** run ```mgard-x-autotuner -d <auto|serial|openmp|cuda|hip|sycl> -n <ndim> [dim1] [dim2] ... [dimN]```.
     + ***Note:*** MGARD-X needs to be recompiled after auto tuning to make it effective.
 
 ## Example Code
