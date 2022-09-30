@@ -9,15 +9,15 @@
 #define MGARD_X_SERIALIZER_HH
 
 namespace mgard_x {
-template <typename T> MGARDX_CONT_EXEC
-void align_byte_offset(SIZE &byte_offset) {
+template <typename T>
+MGARDX_CONT_EXEC void align_byte_offset(SIZE &byte_offset) {
   if (byte_offset % sizeof(T) != 0) {
     byte_offset = ((byte_offset - 1) / sizeof(T) + 1) * sizeof(T);
   }
 }
 
-template <typename T> MGARDX_CONT_EXEC
-void advance_with_align(SIZE &byte_offset, SIZE count) {
+template <typename T>
+MGARDX_CONT_EXEC void advance_with_align(SIZE &byte_offset, SIZE count) {
   align_byte_offset<T>(byte_offset);
   byte_offset += count * sizeof(T);
 }

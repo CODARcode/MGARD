@@ -19,7 +19,6 @@
 #include "DeviceAdapters/DeviceAdapterOpenmp.h"
 #endif
 
-
 #if MGARD_ENABLE_CUDA
 #ifdef MGARDX_COMPILE_CUDA
 #include "DeviceAdapters/DeviceAdapterCuda.h"

@@ -24,8 +24,8 @@ int main() {
   double tol = 0.01, s = 0, norm;
   mgard_x::CompressionLowLevelWorkspace workspace(hierarchy);
   mgard_x::Array<1, unsigned char, mgard_x::HIP> compressed_array;
-  mgard_x::compress(hierarchy, in_array, mgard_x::error_bound_type::REL,
-                    tol, s, norm, config, workspace, compressed_array);
+  mgard_x::compress(hierarchy, in_array, mgard_x::error_bound_type::REL, tol, s,
+                    norm, config, workspace, compressed_array);
   // Get compressed size in number of bytes.
   size_t compressed_size = compressed_array.shape(0);
   unsigned char *compressed_array_cpu = compressed_array.hostCopy();
@@ -36,7 +36,7 @@ int main() {
   mgard_x::Array<3, double, mgard_x::HIP> decompressed_array;
   mgard_x::decompress(hierarchy, compressed_array,
                       mgard_x::error_bound_type::REL, tol, s, norm, config,
-                          workspace, decompressed_array);
+                      workspace, decompressed_array);
   delete[] in_array_cpu;
   double *decompressed_array_cpu = decompressed_array.hostCopy();
   std::cout << "Done\n";
