@@ -635,7 +635,7 @@ public:
 
   template <typename T> MGARDX_CONT static bool IsDevicePointer(T *ptr) {
     log::dbg("Calling MemoryManager<SYCL>::IsDevicePointer");
-    for (int i = 0; i < DeviceRuntime<SYCL>::GetDeviceCount()) {
+    for (int i = 0; i < DeviceRuntime<SYCL>::GetDeviceCount(); i++) {
       DeviceRuntime<SYCL>::SelectDevice(i);
       for (int j = 0; j < MGARDX_NUM_QUEUES; j++) {
         sycl::queue q = DeviceRuntime<SYCL>::GetQueue(j);
@@ -653,7 +653,7 @@ public:
     sycl::default_selector d_selector;
     sycl::platform d_platform(d_selector);
     std::vector<sycl::device> d_devices = d_platform.get_devices();
-    for (int i = 0; i < DeviceRuntime<SYCL>::GetDeviceCount()) {
+    for (int i = 0; i < DeviceRuntime<SYCL>::GetDeviceCount(); i++) {
       DeviceRuntime<SYCL>::SelectDevice(i);
       for (int j = 0; j < MGARDX_NUM_QUEUES; j++) {
         sycl::queue q = DeviceRuntime<SYCL>::GetQueue(j);
