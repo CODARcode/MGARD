@@ -13,7 +13,9 @@
 #include "Tasks/Task.h"
 
 // Serial backend should be always available
+#if MGARD_ENABLE_SERIAL
 #include "DeviceAdapters/DeviceAdapterSerial.h"
+#endif
 
 #if MGARD_ENABLE_OPENMP
 #include "DeviceAdapters/DeviceAdapterOpenmp.h"
