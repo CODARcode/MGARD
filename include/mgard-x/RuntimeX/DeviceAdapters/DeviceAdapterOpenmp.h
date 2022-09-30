@@ -230,7 +230,7 @@ public:
     // do nothing
   }
 
-  MGARDX_CONT static int GetDevice() { return serial_dev_id; }
+  MGARDX_CONT static int GetDevice() { return openmp_dev_id; }
 
   MGARDX_CONT static int GetQueue(SIZE queue_id) { return 0; }
 
@@ -247,39 +247,39 @@ public:
   }
 
   MGARDX_CONT static std::string GetDeviceName() {
-    return DeviceSpecs.GetDeviceName(serial_dev_id);
+    return DeviceSpecs.GetDeviceName(openmp_dev_id);
   }
 
   MGARDX_CONT static int GetMaxSharedMemorySize() {
-    return DeviceSpecs.GetMaxSharedMemorySize(serial_dev_id);
+    return DeviceSpecs.GetMaxSharedMemorySize(openmp_dev_id);
   }
 
   MGARDX_CONT static int GetWarpSize() {
-    return DeviceSpecs.GetWarpSize(serial_dev_id);
+    return DeviceSpecs.GetWarpSize(openmp_dev_id);
   }
 
   MGARDX_CONT static int GetNumSMs() {
-    return DeviceSpecs.GetNumSMs(serial_dev_id);
+    return DeviceSpecs.GetNumSMs(openmp_dev_id);
   }
 
   MGARDX_CONT static int GetArchitectureGeneration() {
-    return DeviceSpecs.GetArchitectureGeneration(serial_dev_id);
+    return DeviceSpecs.GetArchitectureGeneration(openmp_dev_id);
   }
 
   MGARDX_CONT static int GetMaxNumThreadsPerSM() {
-    return DeviceSpecs.GetMaxNumThreadsPerSM(serial_dev_id);
+    return DeviceSpecs.GetMaxNumThreadsPerSM(openmp_dev_id);
   }
 
   MGARDX_CONT static int GetMaxNumThreadsPerTB() {
-    return DeviceSpecs.GetMaxNumThreadsPerTB(serial_dev_id);
+    return DeviceSpecs.GetMaxNumThreadsPerTB(openmp_dev_id);
   }
 
   MGARDX_CONT static size_t GetAvailableMemory() {
-    return DeviceSpecs.GetAvailableMemory(serial_dev_id);
+    return DeviceSpecs.GetAvailableMemory(openmp_dev_id);
   }
 
   MGARDX_CONT static bool SupportCG() {
-    return DeviceSpecs.SupportCG(serial_dev_id);
+    return DeviceSpecs.SupportCG(openmp_dev_id);
   }
 
   template <typename FunctorType>
