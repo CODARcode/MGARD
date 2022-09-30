@@ -40,11 +40,11 @@ public:
     timer.start();
     if (refactor(target_level, num_bitplanes, 0)) {
       timer.end();
-      timer.print("Refactor");
+      // timer.print("Refactor");
       timer.start();
       level_num = writer.write_level_components(level_components, level_sizes);
       timer.end();
-      timer.print("Write");
+      // timer.print("Write");
     }
 
     write_metadata();
@@ -113,7 +113,7 @@ private:
     // PrintSubarray("after decomposition", data);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
-    timer.print("Decompose");
+    // timer.print("Decompose");
     timer.start();
 
     // printf("level_num_elems: ");
@@ -146,7 +146,7 @@ private:
     interleaver.interleave(data, levels_data, target_level + 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
-    timer.print("Interleave");
+    // timer.print("Interleave");
 
     DeviceCollective<DeviceType> deviceReduce;
 
@@ -192,7 +192,7 @@ private:
       }
       level_squared_errors.push_back(squared_error);
       timer.end();
-      timer.print("Encoding");
+      // timer.print("Encoding");
 
       timer.start();
       std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes;
@@ -203,7 +203,7 @@ private:
       level_sizes.push_back(bitplane_sizes);
 
       timer.end();
-      timer.print("Lossless");
+      // timer.print("Lossless");
     }
 
     timer.start();
@@ -224,7 +224,7 @@ private:
     }
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
-    timer.print("Copy to CPU");
+    // timer.print("Copy to CPU");
 
     return true;
   }
