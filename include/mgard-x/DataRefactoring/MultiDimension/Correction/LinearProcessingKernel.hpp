@@ -39,28 +39,31 @@ public:
                 FunctorBase<DeviceType>::GetBlockDimX()) +
                FunctorBase<DeviceType>::GetThreadIdX();
 
-    T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
+    Byte *sm = FunctorBase<DeviceType>::GetSharedMemory();
+    SIZE offset = 0;
     ldsm1 = F * 2 + 3;
     ldsm2 = C;
-    v_sm = sm;
-    sm += ldsm1 * ldsm2 * R;
+    v_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, ldsm1 * ldsm2 * R);
 
-    dist_f_sm = sm;
-    sm += ldsm1;
-    ratio_f_sm = sm;
-    sm += ldsm1;
+    dist_f_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, ldsm1);
+    ratio_f_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, ldsm1);
 
-    SIZE *sm_size = (SIZE *)sm;
-    shape_sm = sm_size;
-    sm_size += D;
-    shape_c_sm = sm_size;
-    sm_size += D;
-    sm = (T *)sm_size;
+    // switching data type
+    align_byte_offset<SIZE>(offset);
 
-    DIM *sm_dim = (DIM *)sm;
-    processed_dims_sm = sm_dim;
-    sm_dim += D;
-    sm = (T *)sm_dim;
+    shape_sm = (SIZE *)&sm[offset];
+    advance_with_align<SIZE>(offset, D);
+    shape_c_sm = (SIZE *)&sm[offset];
+    advance_with_align<SIZE>(offset, D);
+
+    // switching data type
+    align_byte_offset<DIM>(offset);
+
+    processed_dims_sm = (DIM *)&sm[offset];
+    advance_with_align<DIM>(offset, D);
 
     if (threadId < D) {
       shape_sm[threadId] = *shape(threadId);
@@ -433,10 +436,12 @@ public:
     w.reset_offset();
   }
 
-  MGARDX_CONT size_t shared_memory_size() {
-    size_t size = 0;
+  MGARDX_CONT SIZE shared_memory_size() {
+    SIZE size = 0;
     size = (R * C * (F * 2 + 3) + (F * 2 + 3) * 2) * sizeof(T);
+    align_byte_offset<SIZE>(size);
     size += (D * 4) * sizeof(SIZE);
+    align_byte_offset<DIM>(size);
     size += (D * 1) * sizeof(DIM);
     return size;
   }
@@ -623,27 +628,31 @@ public:
                 FunctorBase<DeviceType>::GetBlockDimX()) +
                FunctorBase<DeviceType>::GetThreadIdX();
 
-    T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
+    Byte *sm = FunctorBase<DeviceType>::GetSharedMemory();
+    SIZE offset = 0;
     ldsm1 = F;
     ldsm2 = C * 2 + 3;
-    v_sm = sm;
-    sm += ldsm1 * ldsm2 * R;
+    v_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, ldsm1 * ldsm2 * R);
 
-    dist_c_sm = sm;
-    sm += ldsm2;
-    ratio_c_sm = sm;
-    sm += ldsm2;
+    dist_c_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, ldsm2);
+    ratio_c_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, ldsm2);
 
-    SIZE *sm_size = (SIZE *)sm;
-    shape_sm = sm_size;
-    sm_size += D;
-    shape_c_sm = sm_size;
-    sm_size += D;
-    sm = (T *)sm_size;
-    DIM *sm_dim = (DIM *)sm;
-    processed_dims_sm = sm_dim;
-    sm_dim += D;
-    sm = (T *)sm_dim;
+    // switching data type
+    align_byte_offset<SIZE>(offset);
+
+    shape_sm = (SIZE *)&sm[offset];;
+    advance_with_align<SIZE>(offset, D);
+    shape_c_sm = (SIZE *)&sm[offset];;
+    advance_with_align<SIZE>(offset, D);
+
+    // switching data type
+    align_byte_offset<DIM>(offset);
+
+    processed_dims_sm = (DIM *)&sm[offset];
+    advance_with_align<DIM>(offset, D);
 
     if (threadId < D) {
       shape_sm[threadId] = *shape(threadId);
@@ -921,10 +930,12 @@ public:
     w.reset_offset();
   }
 
-  MGARDX_CONT size_t shared_memory_size() {
-    size_t size = 0;
+  MGARDX_CONT SIZE shared_memory_size() {
+    SIZE size = 0;
     size = (R * (C * 2 + 3) * F + (C * 2 + 3) * 2) * sizeof(T);
+    align_byte_offset<SIZE>(size);
     size += (D * 4) * sizeof(SIZE);
+    align_byte_offset<DIM>(size);
     size += (D * 1) * sizeof(DIM);
     return size;
   }
@@ -1114,28 +1125,31 @@ public:
                 FunctorBase<DeviceType>::GetBlockDimX()) +
                FunctorBase<DeviceType>::GetThreadIdX();
 
-    T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
+    Byte *sm = FunctorBase<DeviceType>::GetSharedMemory();
+    SIZE offset = 0;
     ldsm1 = F;
     ldsm2 = C;
-    v_sm = sm;
-    sm += ldsm1 * ldsm2 * (R * 2 + 3);
+    v_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, ldsm1 * ldsm2 * (R * 2 + 3));
 
-    dist_r_sm = sm;
-    sm += (R * 2 + 3);
-    ratio_r_sm = sm;
-    sm += (R * 2 + 3);
+    dist_r_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, R * 2 + 3);
+    ratio_r_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, R * 2 + 3);
 
-    SIZE *sm_size = (SIZE *)sm;
-    shape_sm = sm_size;
-    sm_size += D;
-    shape_c_sm = sm_size;
-    sm_size += D;
-    sm = (T *)sm_size;
+    // switching data type
+    align_byte_offset<SIZE>(offset);
 
-    DIM *sm_dim = (DIM *)sm;
-    processed_dims_sm = sm_dim;
-    sm_dim += D;
-    sm = (T *)sm_dim;
+    shape_sm = (SIZE *)&sm[offset];
+    advance_with_align<SIZE>(offset, D);
+    shape_c_sm = (SIZE *)&sm[offset];
+    advance_with_align<SIZE>(offset, D);
+
+    // switching data type
+    align_byte_offset<DIM>(offset);
+
+    processed_dims_sm = (DIM *)&sm[offset];
+    advance_with_align<DIM>(offset, D);
 
     if (threadId < D) {
       shape_sm[threadId] = *shape(threadId);
@@ -1424,10 +1438,12 @@ public:
     w.reset_offset();
   }
 
-  MGARDX_CONT size_t shared_memory_size() {
-    size_t size = 0;
+  MGARDX_CONT SIZE shared_memory_size() {
+    SIZE size = 0;
     size = ((R * 2 + 3) * C * F + (R * 2 + 3) * 2) * sizeof(T);
+    align_byte_offset<SIZE>(size);
     size += (D * 4) * sizeof(SIZE);
+    align_byte_offset<DIM>(size);
     size += (D * 1) * sizeof(DIM);
     return size;
   }
