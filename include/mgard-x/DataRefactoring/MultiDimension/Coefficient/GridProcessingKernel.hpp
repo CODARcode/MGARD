@@ -65,32 +65,33 @@ public:
 
     in_next = true;
 
-    T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
+    Byte *sm = FunctorBase<DeviceType>::GetSharedMemory();
+    SIZE offset = 0;
     ldsm1 = (F / 2) * 2 + 1;
     ldsm2 = (C / 2) * 2 + 1;
 
-    v_sm = sm;
-    sm += ((F / 2) * 2 + 1) * ((C / 2) * 2 + 1) * ((R / 2) * 2 + 1);
-    ratio_f_sm = sm;
-    sm += (F / 2) * 2;
-    ratio_c_sm = sm;
-    sm += (C / 2) * 2;
-    ratio_r_sm = sm;
-    sm += (R / 2) * 2;
+    v_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, (F + 1) * (C + 1) * (R + 1));
+    ratio_f_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, F);
+    ratio_c_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, C);
+    ratio_r_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, R);
 
-    sm_size = (SIZE *)sm;
-    shape_sm = sm_size;
-    sm_size += D_GLOBAL;
-    shape_c_sm = sm_size;
-    sm_size += D_GLOBAL;
-    // ldvs_sm = sm_size; sm_size += D_GLOBAL;
-    // ldws_sm = sm_size; sm_size += D_GLOBAL;
-    sm = (T *)sm_size;
+    // switching data type
+    align_byte_offset<SIZE>(offset);
 
-    sm_dim = (DIM *)sm;
-    unprocessed_dims_sm = sm_dim;
-    sm_dim += D_GLOBAL;
-    sm = (T *)sm_dim;
+    shape_sm = (SIZE *)&sm[offset];
+    advance_with_align<SIZE>(offset, D_GLOBAL);
+    shape_c_sm = (SIZE *)&sm[offset];
+    advance_with_align<SIZE>(offset, D_GLOBAL);
+
+    // switching data type
+    align_byte_offset<DIM>(offset);
+
+    unprocessed_dims_sm = (DIM *)&sm[offset];
+    advance_with_align<DIM>(offset, D_GLOBAL);
 
     if (threadId < D_GLOBAL) {
       shape_sm[threadId] = *shape(threadId);
@@ -2128,10 +2129,12 @@ public:
     wrcf.reset_offset();
   }
 
-  MGARDX_CONT size_t shared_memory_size() {
-    size_t size = 0;
+  MGARDX_CONT SIZE shared_memory_size() {
+    SIZE size = 0;
     size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
+    align_byte_offset<SIZE>(size);
     size += (D_GLOBAL * 4) * sizeof(SIZE);
+    align_byte_offset<DIM>(size);
     size += (D_GLOBAL * 1) * sizeof(DIM);
     return size;
   }
@@ -2367,32 +2370,33 @@ public:
     r_gl_ex, c_gl_ex, f_gl_ex;
     in_next = true;
 
-    T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
+    Byte *sm = FunctorBase<DeviceType>::GetSharedMemory();
+    SIZE offset = 0;
     ldsm1 = (F / 2) * 2 + 1;
     ldsm2 = (C / 2) * 2 + 1;
 
-    v_sm = sm;
-    sm += ((F / 2) * 2 + 1) * ((C / 2) * 2 + 1) * ((R / 2) * 2 + 1);
-    ratio_f_sm = sm;
-    sm += (F / 2) * 2;
-    ratio_c_sm = sm;
-    sm += (C / 2) * 2;
-    ratio_r_sm = sm;
-    sm += (R / 2) * 2;
+    v_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, (F + 1) * (C + 1) * (R + 1));
+    ratio_f_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, F);
+    ratio_c_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, C);
+    ratio_r_sm = (T *)&sm[offset];
+    advance_with_align<T>(offset, R);
 
-    SIZE *sm_size = (SIZE *)sm;
-    shape_sm = sm_size;
-    sm_size += D_GLOBAL;
-    shape_c_sm = sm_size;
-    sm_size += D_GLOBAL;
-    // SIZE *ldvs_sm = sm_size; sm_size += D_GLOBAL;
-    // SIZE *ldws_sm = sm_size; sm_size += D_GLOBAL;
-    sm = (T *)sm_size;
+    // switching data type
+    align_byte_offset<SIZE>(offset);
 
-    DIM *sm_dim = (DIM *)sm;
-    unprocessed_dims_sm = sm_dim;
-    sm_dim += D_GLOBAL;
-    sm = (T *)sm_dim;
+    shape_sm = (SIZE *)&sm[offset];
+    advance_with_align<SIZE>(offset, D_GLOBAL);
+    shape_c_sm = (SIZE *)&sm[offset];
+    advance_with_align<SIZE>(offset, D_GLOBAL);
+
+    // switching data type
+    align_byte_offset<DIM>(offset);
+
+    unprocessed_dims_sm = (DIM *)&sm[offset];
+    advance_with_align<DIM>(offset, D_GLOBAL);
 
     // SIZE idx[D_GLOBAL];
     if (threadId < D_GLOBAL) {
@@ -4543,10 +4547,12 @@ public:
     wrcf.reset_offset();
   }
 
-  MGARDX_CONT size_t shared_memory_size() {
-    size_t size = 0;
+  MGARDX_CONT SIZE shared_memory_size() {
+    SIZE size = 0;
     size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
+    align_byte_offset<SIZE>(size);
     size += (D_GLOBAL * 4) * sizeof(SIZE);
+    align_byte_offset<DIM>(size);
     size += (D_GLOBAL * 1) * sizeof(DIM);
     return size;
   }
