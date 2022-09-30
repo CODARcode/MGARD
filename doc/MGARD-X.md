@@ -13,16 +13,15 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 |Hardware|Portability|Tested processors|
 |---|---|---|
 |NVIDIA GPUs|Yes*|V100, RTX2080 Ti|
-|AMD GPUs|Yes|MI-100|
-|x86 CPUs|Yes^|Intel CPUs, AMD CPUs|
-|Power CPUs|Yes^|IMB Power9 CPUs|
+|AMD GPUs|Yes|MI-100, MI-250X|
+|Intel GPUs|Yes|Gen9|
+|Integrated GPUs|Yes|Gen9|
+|x86 CPUs|Yes|Intel CPUs, AMD CPUs|
+|Power CPUs|Yes|IMB Power9 CPUs|
 |ARM CPUs|To be tested||
-|Intel GPUs|Under development||
-|Integrated GPUs|Under development||
+
 
 *LZ4 lossless compressor is only avaialble to choose on NVIDIA GPUs. Portable version is under development.
-
-^Serial execution is only avaialble for now. Multi-threaded version is under development.
 
 ## Interfaces
 
@@ -33,6 +32,17 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
   
 
 ## Software requirements
+### For Serial CPU
+
+* GCC 7.5.0+
+* CMake 3.19+
+
+### For Multi-core CPU
+
+* GCC 7.5.0+
+* OpenMP 3.1+
+* CMake 3.19+
+
 ### For NVIDIA GPUs
 
 * CUDA 11.0+
@@ -41,6 +51,11 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 ### For AMD GPUs
 
 * ROCm 4.5.0+
+* CMake 3.21+
+
+### For Intel GPUs
+
+* DPC++/SYCL 2022+
 * CMake 3.21+
 
 ## Software dependencies 
@@ -59,9 +74,13 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 	
 |CMake options|Value|Default|Description|
 |---|---|---|---|
+|MGARD\_ENABLE\_SERIAL|ON/OFF|ON|Enable portable serial compression/decompression on CPUs|
+|MGARD\_ENABLE\_OPENMP|ON/OFF|OFF|Enable portable multi-threaded compression/decompression on CPUs|
 |MGARD\_ENABLE\_CUDA|ON/OFF|OFF|Enable portable GPU compression/decompression with CUDA on NVIDIA GPUs|
 |MGARD\_ENABLE\_HIP|ON/OFF|OFF|Enable portable GPU compression/decompression with HIP on AMD GPUs|
-|MGARD\_ENABLE\_SERIAL|ON/OFF|ON|Enable portable serial compression/decompression on CPUs|	
+|MGARD\_ENABLE\_SYCL|ON/OFF|OFF|Enable portable GPU compression/decompression with SYCL on Intel GPUs|
+|MGARD\_ENABLE\_MULTI_DEVICE|ON/OFF|OFF|Enable multi-device (GPUs) compression/decompression|
+
 
 ## Control Errors
 MGARD can bound errors in various types of norm:
@@ -97,8 +116,9 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
 + ```-x```: enable decompression mode
     + ```-c <path>``` path to compressed file
     + ```-d <path>``` path to decompressed file
-+ ```-v``` enable verbose (show timing and statistics)
-+ ```-d <auto|cuda|hip|serial>``` choose processor (auto: Auto select | cuda: NVIDIA GPU | hip: AMD GPU | serial: CPU)
++ ```-v``` enable verbose (0:None | 1: INFO | 2: TIMING | 3: ALL)
++ ```-d <auto|serial|openmp|cuda|hip|sycl>``` choose processor (auto: Auto select | serial: CPU | openmp: multi-threaded CPU | cuda: NVIDIA GPU | hip: AMD GPU | sycl: Intel GPU )
++ ```-g <G>``` number of devices (GPUs) to use
 
 	
 ## For using both the high-level APIs and low-level API
@@ -108,14 +128,18 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
 * **Configure using ```mgard_x::Config```** Both high-level APIs and low-level APIs have an optional parameter for users to configure the compression/decomrpession process via ```mgard_x::Config``` class. To configure, create a ```mgard_x::Config``` object and configure its fields:
     + ```Config.dev_type```: sepcifying the processor for compression/decompression:
         + ```mgard_x::device_type::Auto```: Auto detect the best processor (***Default***)
+        + ```mgard_x::device_type::SERIAL```: Use CPUs (serial)
+        + ```mgard_x::device_type::OPENMP```: Use CPUs (multi-threaded)
         + ```mgard_x::device_type::CUDA```: Use NVIDIA GPUs
         + ```mgard_x::device_type::HIP ```: Use AMD GPUs
-        + ```mgard_x::device_type::Serial```: Use CPUs
+        + ```mgard_x::device_type::SYCL ```: Use Intel GPUs
+        
     + ```Config.dev_id```: sepcifying a specific GPU to use in multi-GPU systems (***Default: 0***)
-    + ```Config.timing```: (true/false) timing each steps of compression and printing them out (***Default: false***).
+    + ```Config.num_dev```: sepcifying the number of GPU to use in multi-GPU systems (***Default: 1***)
+    + ```Config.reorder```: sepcifying an internal data layout (0: Higher throughput | 1: Higher compression ratio) (***Default: 0***)
     + ```Config.lossless```: control the lossless compression used: 
-        + ```mgard_x::lossless_type::Huffman```: Huffman compression
-        + ```mgard_x::lossless_type::Huffman_LZ4```: Huffman and LZ4 compression (***Default***)
+        + ```mgard_x::lossless_type::Huffman```: Huffman compression (***Default***)
+        + ```mgard_x::lossless_type::Huffman_LZ4```: Huffman and LZ4 compression 
         + ```mgard_x::lossless_type::Huffman_Zstd```: Huffman and ZSTD compression
         + *Note:* there will be no effect configuring the lossless comrpessor for decompression as MGARD has to use the same lossless compressor that was used for compression.
     
@@ -142,53 +166,60 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
     + ```[in] output_pre_allocated:``` Indicate whether or not the output buffer is pre-allocated. If not, MGARD will allocate the output buffer.
 
 ## Using low-level APIs
-* **Step 1: Initialize mgard_x::Hierarchy.**
+* **Step 1: Create Hierarchy**
 An object ```mgard_x::Hierarchy``` needs to be created and initialized. This initializes the necessary environment for efficient compression. It only needs to be created once if the input shape is not changed. For example, compressing the same variable on different timesteps only needs the Hierarchy object to be created once. Also, the same Hierarchy object can be reused in between compression and decompression APIs.
-    + ```mgard_x:: Hierarchy<N_dims, D_type, Device_type>(std::vector<size_t> shape, std::vector<T*> coords, mgard_x::Config config)```.
-        + ```[In] D_type```: Input data type (float or double)
-        + ```[In] N_dims```: Total number of dimensions (<=5)
-        + ```[In] Device_type ```: The type of device used (mgard\_x::CUDA, mgard\_x::HIP, or mgard\_x::Serial)
+    + ```mgard_x::Hierarchy<NumDims, DataType, Device_type>(std::vector<size_t> shape, std::vector<T*> coords, mgard_x::Config config)```.
+        + ```[In] NumDims```: Total number of dimensions (1 - 5)
+	+ ```[In] DataType```: Input data type (float or double)
+        + ```[In] Device_type ```: The type of device used (mgard\_x::SERIAL, mgard\_x::OPENMP, mgard\_x::CUDA, mgard\_x::HIP, or mgard\_x::SYCL)
         + ```[In] shape```: Stores the size in each dimension (from slowest to fastest).
         + ```[In][Optional] coords```: The coordinates in each dimension (from slowest to fastest).
-      	+ ```[In][Optional] config```: For configuring compression/decomrpession.
-* **Step 2: Use mgard_x::Array.** ```mgard_x::Array``` is used for holding a managed array on GPU or CPU.
-    +  For ***creating*** an array. ```mgard_x::Array::Array<N_dims, D_type, Device_type>(std::vector<size_t> shape)``` creates an manged array on GPU or CPU with the shape of ```shape```.
-    +  For ***loading data*** into an array. ```void mgard_x::Array::load(D_type *data, size_t ld = 0)``` copies ```data``` into the the managed array on the targeting processor. ```data``` can be on either on CPU or GPU. An optional ```ld``` can be provided for specifying the size of the leading dimension. Passing ```ld = 0``` indicates that the size of the leading dimension equals to the size of the fastest dimension.
-    +  For ***accessing data from CPU*** ```D_type * mgard_x::Array::hostCopy(bool keep = false)``` returns a CPU pointer of the array. An optional flag ```keep``` can be use to indicates whether or not to keep memory allocation of host copy after the ```mgard_x::Array``` object is destructed.
-    +  For ***accessing data from GPU***```D_type * mgard_x::Array::data(size_t &ld)``` returns a pointer of the array on the targeting processor.
-    +  For ***getting the shape*** of an array. ```std::vector<mgard_x::SIZE> mgard_x::Array::shape()``` returns the shape of the managed array.
+      	+ ```[In] config```: For configuring compression/decomrpession.
+* **Step 2: Allocate workspace** The workspace needs to be pre-allocated by creating an ```mgard_x::CompressionLowLevelWorkspace``` object. Same as ```mgard_x::Hierarchy```, It only needs to be created once if the input shape is not changed and it can be reused in between compression and decompression APIs.
+    + ```mgard_x::CompressionLowLevelWorkspace<NumDims, DataType, Device_type>(mgard_x::Hierarchy<NumDims, DataType, Device_type> &hierarchy)```.
+* **Step 3: Use mgard_x::Array.** ```mgard_x::Array``` is used for holding a managed array on GPU or CPU.
+    +  For ***creating*** an array. ```mgard_x::Array::Array<NumDims, DataType, Device_type>(std::vector<size_t> shape)``` creates an managed array on GPU or CPU with the shape of ```shape```.
+    +  For ***loading data*** into an array. ```void mgard_x::Array::load(DataType *data, size_t ld = 0)``` copies ```data``` into the the managed array on the targeting processor. ```data``` can be on either on CPU or GPU. An optional ```ld``` can be provided for specifying the size of the leading dimension. Passing ```ld = 0``` indicates that the size of the leading dimension equals to the size of the fastest dimension.
+    +  For ***accessing data from CPU*** ```DataType * mgard_x::Array::hostCopy(bool keep = false)``` returns a CPU pointer of the array. An optional flag ```keep``` can be use to indicates whether or not to keep memory allocation of host copy after the ```mgard_x::Array``` object is destructed.
+    +  For ***accessing data from GPU***```DataType * mgard_x::Array::data(size_t &ld)``` returns a pointer of the array on the targeting processor.
+    +  For ***getting the shape*** of an array. ```mgard_x::SIZE mgard_x::Array::shape(<dimension>)``` returns the size of a specified dimension of the managed array.
 
    ***Note:*** ```mgard_x::Array``` will automatically release its internal CPU/GPU array when it goes out of scope.
  
-* **Step 3: Invoke compression/decompression.**:
-  	+ For ***compression***: ```
-			mgard_x::Array<1, unsigned char, DeviceType> mgard_x::compress(mgard_x::Hierarchy <NumDims, DataType, DeviceType> &hierarchy, mgard_x::Array<NumDims, DataType, DeviceType> in_array, mgard_x::error_bound_type type, DataType tol, DataType s, DataType &norm, mgard_x::Config config)```
-        - ```[In] hierarchy ```: Hierarchy object initilzied with the shape of the input data.
-     	- ```[In] in_array ```: Input data to be compressed (its value will be altered during compression).
-     	- ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound.
-		- ```[In] tol```: Error bound.
-		- ```[In] s```: Smoothness parameter.
-		- ```[Out] norm```: Norm of the original data.
-		- ```[In] config```: For configuring compression.
-		- ```[Return]```: Compressed data.
-  	+ For ***decompression***: ```mgard_x::Array<NumDims, DataType, DeviceType> mgard_x::decompress(mgard_x::hierarchy <NumDims, DataType, DeviceType> &hierarchy, mgard_x::Array<1, unsigned char, DeviceType> compressed_data, enum mgard_x::error_bound_type type, DataType tol, DataType s, DataType norm, mgard_x::Config config)```
-        - ```[In] hierarchy ```: Hierarchy object initilzied with the shape of the original data.
-  		- ```[In] compressed_data ```: Compressed data.
-  		- ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound.
-		- ```[In] tol```: Error bound.
-		- ```[In] s```: Smoothness parameter.
-		- ```[In] norm```: Norm of the original data.
-		- ```[In] config```: For configuring decomrpession.
-		- ```[Return]```: Decompressed data.
+* **Step 4: Invoke compression/decompression.**:
+    + For ***compression***: ```void mgard_x::compress(mgard_x::Hierarchy <NumDims, DataType, DeviceType> &hierarchy, mgard_x::Array<NumDims, DataType, DeviceType> in_array, mgard_x::error_bound_type type, DataType tol, DataType s, DataType &norm, mgard_x::Config config, 
+CompressionLowLevelWorkspace<NumDims, DataType, DeviceType> &workspace, mgard_x::Array<1, unsigned char, DeviceType> &compressed_data)```
+        + ```[In] hierarchy ```: Hierarchy object initilzied with the shape of the input data.
+     	+ ```[In] in_array ```: Input data to be compressed (its value will be altered during compression).
+     	+ ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound.
+        + ```[In] tol```: Error bound.
+        + ```[In] s```: Smoothness parameter.
+        + ```[Out] norm```: Norm of the original data (vaild only in relative error bound mode).
+        + ```[In] config```: For configuring compression.
+        + ```[In] workspace```: Pre-allocated workspace.
+        + ```[Out] compressed_data```: Compressed data.
+  	
+    + For ***decompression***: ```void mgard_x::decompress(mgard_x::hierarchy <NumDims, DataType, DeviceType> &hierarchy, mgard_x::Array<1, unsigned char, DeviceType> compressed_data, enum mgard_x::error_bound_type type, DataType tol, DataType s, DataType norm, mgard_x::Config config, CompressionLowLevelWorkspace<NumDims, DataType, DeviceType> &workspace, mgard_x::Array<NumDims, DataType, DeviceType> &decompressed_data)```
+        + ```[In] hierarchy ```: Hierarchy object initilzied with the shape of the original data.
+        + ```[In] compressed_data ```: Compressed data.
+        + ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound.
+        + ```[In] tol```: Error bound.
+        + ```[In] s```: Smoothness parameter.
+        + ```[In] norm```: Norm of the original data.
+        + ```[In] config```: For configuring decomrpession.
+        + ```[In] workspace```: Pre-allocated workspace.
+        + ```[Out] decompressed_data```: Decompressed data.
     + ***Template parameters***
         - ```NumDims```: Number of dimentions of the original data (1 - 5).
         - ```DataType```: Data type of the original data:
             + ```float```
             + ```double```
         - ```DeviceType```: Processor used for compression/decompression:
-            + ```mgard_x::Serial```
+            + ```mgard_x::SERIAL```
+            + ```mgard_x::OPENMP```
             + ```mgard_x::CUDA```
             + ```mgard_x::HIP```
+            + ```mgard_x::SYCL```
 	
 ## Performance optimization
 For achieving the best performance:
