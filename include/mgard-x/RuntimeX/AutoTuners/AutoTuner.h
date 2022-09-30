@@ -300,11 +300,11 @@ template <typename DeviceType> void EndAutoTuning() {
 
 } // namespace mgard_x
 
-#include "AutoTunerSerial.h"
-#include "AutoTunerOpenmp.h"
 #include "AutoTunerCuda.h"
 #include "AutoTunerHip.h"
 #include "AutoTunerKokkos.h"
+#include "AutoTunerOpenmp.h"
+#include "AutoTunerSerial.h"
 #include "AutoTunerSycl.h"
 
 #endif

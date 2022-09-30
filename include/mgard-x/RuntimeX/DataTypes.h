@@ -39,7 +39,7 @@ namespace mgard_x {
 #error "Please provide a definition for MY_ALIGN macro for your host compiler!"
 #endif
 
-#if defined (MGARDX_COMPILE_SERIAL) || defined (MGARDX_COMPILE_OPENMP)
+#if defined(MGARDX_COMPILE_SERIAL) || defined(MGARDX_COMPILE_OPENMP)
 #define MGARDX_CONT __inline__
 #define MGARDX_KERL
 #define MGARDX_EXEC __inline__

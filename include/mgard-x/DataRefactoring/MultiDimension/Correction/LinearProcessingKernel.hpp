@@ -643,9 +643,11 @@ public:
     // switching data type
     align_byte_offset<SIZE>(offset);
 
-    shape_sm = (SIZE *)&sm[offset];;
+    shape_sm = (SIZE *)&sm[offset];
+    ;
     advance_with_align<SIZE>(offset, D);
-    shape_c_sm = (SIZE *)&sm[offset];;
+    shape_c_sm = (SIZE *)&sm[offset];
+    ;
     advance_with_align<SIZE>(offset, D);
 
     // switching data type

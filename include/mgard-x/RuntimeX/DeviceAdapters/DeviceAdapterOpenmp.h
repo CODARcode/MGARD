@@ -31,7 +31,7 @@ template <typename T, OPTION MemoryType, OPTION Scope>
 struct Atomic<T, MemoryType, Scope, OPENMP> {
   MGARDX_EXEC static T Min(T *result, T value) {
     T old = 0;
-    #pragma omp critical
+#pragma omp critical
     {
       old = *result;
       *result = std::min(*result, value);
@@ -40,7 +40,7 @@ struct Atomic<T, MemoryType, Scope, OPENMP> {
   }
   MGARDX_EXEC static T Max(T *result, T value) {
     T old = 0;
-    #pragma omp critical
+#pragma omp critical
     {
       old = *result;
       *result = std::max(*result, value);
@@ -49,7 +49,7 @@ struct Atomic<T, MemoryType, Scope, OPENMP> {
   }
   MGARDX_EXEC static T Add(T *result, T value) {
     T old = 0;
-    #pragma omp atomic capture
+#pragma omp atomic capture
     {
       old = *result;
       *result += value;
@@ -585,9 +585,8 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
   }
 };
 
-
 #define ALLOC_BLOCK                                                            \
-  Byte **shared_memory = new Byte*[DeviceRuntime<OPENMP>::GetNumSMs()];        \
+  Byte **shared_memory = new Byte *[DeviceRuntime<OPENMP>::GetNumSMs()];       \
   for (SIZE core = 0; core < DeviceRuntime<OPENMP>::GetNumSMs(); core++) {     \
     shared_memory[core] = new Byte[task.GetSharedMemorySize()];                \
   }                                                                            \
@@ -668,8 +667,8 @@ template <typename TaskType> MGARDX_KERL void OpenmpKernel(TaskType task) {
   // omp_set_num_threads(DeviceRuntime<OPENMP>::GetNumSMs());
   // timer_alloc.start();
   ALLOC_BLOCK;
-  // timer_alloc.end();
-  #pragma omp parallel for collapse(3)
+// timer_alloc.end();
+#pragma omp parallel for collapse(3)
   for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
@@ -694,7 +693,6 @@ template <typename TaskType> MGARDX_KERL void OpenmpKernel(TaskType task) {
         COMPUTE_BLOCK(Operation9);
         COMPUTE_BLOCK(Operation10);
         // timer_op.end();
-        
       }
     }
   }
@@ -715,7 +713,7 @@ template <typename TaskType> MGARDX_KERL void OpenmpKernel(TaskType task) {
 }
 
 #define ALLOC_BLOCK_CONDITION                                                  \
-  Byte **shared_memory = new Byte*[DeviceRuntime<OPENMP>::GetNumSMs()];        \
+  Byte **shared_memory = new Byte *[DeviceRuntime<OPENMP>::GetNumSMs()];       \
   TaskType ****threads = new TaskType ***[DeviceRuntime<OPENMP>::GetNumSMs()]; \
   bool ****active = new bool ***[DeviceRuntime<OPENMP>::GetNumSMs()];          \
   for (SIZE core = 0; core < DeviceRuntime<OPENMP>::GetNumSMs(); core++) {     \
@@ -787,7 +785,7 @@ template <typename TaskType> MGARDX_KERL void OpenmpKernel(TaskType task) {
       }                                                                        \
     }                                                                          \
   }
-  
+
 #define RESET_BLOCK_CONDITION                                                  \
   for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {           \
     for (SIZE thready = 0; thready < task.GetBlockDimY(); thready++) {         \
@@ -824,7 +822,7 @@ template <typename TaskType> MGARDX_KERL void OpenmpKernel(TaskType task) {
 
 template <typename TaskType> MGARDX_KERL void OpenmpIterKernel(TaskType task) {
   ALLOC_BLOCK_CONDITION;
-  #pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(3)
   for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
@@ -970,8 +968,9 @@ template <typename TaskType> MGARDX_KERL void OpenmpIterKernel(TaskType task) {
   delete[] ACTIVE_VAR;
 
 #define COMPUTE_GRID(OPERATION, ACTIVE_VAR)                                    \
-  _Pragma("omp parallel for collapse(6) ")                                     \
-  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {               \
+  _Pragma("omp parallel for collapse(6) ") for (SIZE blockz = 0;               \
+                                                blockz < task.GetGridDimZ();   \
+                                                blockz++) {                    \
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {             \
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {           \
         for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {     \
@@ -991,8 +990,9 @@ template <typename TaskType> MGARDX_KERL void OpenmpIterKernel(TaskType task) {
   }
 
 #define RESER_CONDITION_GRID(ACTIVE_VAR)                                       \
-  _Pragma("omp parallel for collapse(6)")                                      \
-  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {               \
+  _Pragma("omp parallel for collapse(6)") for (SIZE blockz = 0;                \
+                                               blockz < task.GetGridDimZ();    \
+                                               blockz++) {                     \
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {             \
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {           \
         for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {     \
@@ -1008,8 +1008,9 @@ template <typename TaskType> MGARDX_KERL void OpenmpIterKernel(TaskType task) {
   }
 
 #define INHERENT_CONDITION_GRID(ACTIVE_VAR1, ACTIVE_VAR2)                      \
-  _Pragma("omp parallel for collapse(6)")                                      \
-  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {               \
+  _Pragma("omp parallel for collapse(6)") for (SIZE blockz = 0;                \
+                                               blockz < task.GetGridDimZ();    \
+                                               blockz++) {                     \
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {             \
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {           \
         for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {     \
@@ -1027,8 +1028,9 @@ template <typename TaskType> MGARDX_KERL void OpenmpIterKernel(TaskType task) {
 
 #define EVALUATE_CONDITION_GRID(CONDITION_VAR, ACTIVE_VAR, CONDITION_OP)       \
   CONDITION_VAR = false;                                                       \
-  _Pragma("omp parallel for collapse(6)")                                      \
-  for (SIZE blockz = 0; blockz < task.GetGridDimZ(); blockz++) {               \
+  _Pragma("omp parallel for collapse(6)") for (SIZE blockz = 0;                \
+                                               blockz < task.GetGridDimZ();    \
+                                               blockz++) {                     \
     for (SIZE blocky = 0; blocky < task.GetGridDimY(); blocky++) {             \
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {           \
         for (SIZE threadz = 0; threadz < task.GetBlockDimZ(); threadz++) {     \
@@ -1039,8 +1041,8 @@ template <typename TaskType> MGARDX_KERL void OpenmpIterKernel(TaskType task) {
               bool thread_active = thread.GetFunctor().CONDITION_OP();         \
               ACTIVE_VAR[blockz][blocky][blockx][threadz][thready][threadx] =  \
                   thread_active;                                               \
-              _Pragma("omp critical")                                          \
-              CONDITION_VAR = CONDITION_VAR | thread_active;                   \
+              _Pragma("omp critical") CONDITION_VAR =                          \
+                  CONDITION_VAR | thread_active;                               \
             }                                                                  \
           }                                                                    \
         }                                                                      \

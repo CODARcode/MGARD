@@ -8,14 +8,14 @@
 #include <vector>
 using namespace std;
 
-template <mgard_x::DIM D, class T_data, class T_bitplane, class T_error, typename DeviceType,
-          class Decomposer, class Interleaver, class Encoder, class Compressor,
-          class ErrorCollector, class Writer>
+template <mgard_x::DIM D, class T_data, class T_bitplane, class T_error,
+          typename DeviceType, class Decomposer, class Interleaver,
+          class Encoder, class Compressor, class ErrorCollector, class Writer>
 void test(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
-           int num_bitplanes,
-           mgard_x::Hierarchy<D, T_data, DeviceType> &hierarchy,
-           Decomposer decomposer, Interleaver interleaver, Encoder encoder,
-           Compressor compressor, ErrorCollector collector, Writer writer) {
+          int num_bitplanes,
+          mgard_x::Hierarchy<D, T_data, DeviceType> &hierarchy,
+          Decomposer decomposer, Interleaver interleaver, Encoder encoder,
+          Compressor compressor, ErrorCollector collector, Writer writer) {
 
   auto refactor =
       mgard_x::MDR::ComposedRefactor<D, T_data, T_bitplane, T_error, Decomposer,
@@ -89,8 +89,8 @@ int main(int argc, char **argv) {
   // auto interleaver = mgard_x::MDR::SFCInterleaver<T>();
   // auto interleaver = mgard_x::MDR::BlockedInterleaver<T>();
 
-  auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error,
-  DeviceType>();
+  auto encoder =
+      mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error, DeviceType>();
   // auto encoder =
   //     mgard_x::MDR::GroupedWarpBPEncoder<T, T_stream, T_error, DeviceType>();
 
@@ -106,9 +106,9 @@ int main(int argc, char **argv) {
   // auto writer = mgard_x::MDR::HPSSFileWriter(metadata_file, files, 2048,
   // 512 * 1024 * 1024);
 
-  test<D, T, T_stream, T_error, DeviceType>(filename, dims, target_level, num_bitplanes,
-                                    hierarchy, decomposer, interleaver, encoder,
-                                    compressor, collector, writer);
+  test<D, T, T_stream, T_error, DeviceType>(
+      filename, dims, target_level, num_bitplanes, hierarchy, decomposer,
+      interleaver, encoder, compressor, collector, writer);
 
   // test2<T>(filename, dims, target_level, num_bitplanes, decomposer,
   //         interleaver, encoder, compressor, collector, writer);

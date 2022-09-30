@@ -24,8 +24,8 @@ int main() {
   double tol = 0.01, s = 0, norm;
   mgard_x::CompressionLowLevelWorkspace workspace(hierarchy);
   mgard_x::Array<1, unsigned char, mgard_x::SERIAL> compressed_array;
-  mgard_x::compress(hierarchy, in_array, mgard_x::error_bound_type::REL,
-                    tol, s, norm, config, workspace, compressed_array);
+  mgard_x::compress(hierarchy, in_array, mgard_x::error_bound_type::REL, tol, s,
+                    norm, config, workspace, compressed_array);
   // Get compressed size in number of bytes.
   size_t compressed_size = compressed_array.shape(0);
   unsigned char *compressed_array_cpu = compressed_array.hostCopy();
