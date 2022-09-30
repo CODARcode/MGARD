@@ -133,8 +133,7 @@ public:
     _domain_decomposed_size = chunck_shape[_domain_decomposed_dim];
     log::info(
         "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
-        ", Domain decomposed size: " +
-        std::to_string(_domain_decomposed_size));
+        ", Domain decomposed size: " + std::to_string(_domain_decomposed_size));
     return true;
   }
 
