@@ -37,8 +37,12 @@ void test(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
   printf("done loading file\n");
   mgard_x::Array<D, T_data, DeviceType> input_array(dims);
   input_array.load(data.data());
+  mgard_x::log::level |= mgard_x::log::TIME;
+  mgard_x::Timer timer;
+  timer.start();
   refactor.refactor(input_array, dims, target_level, num_bitplanes);
-  // evaluate(data, dims, target_level, num_bitplanes, refactor);
+  timer.end();
+  timer.print("Refactor");
 }
 
 int main(int argc, char **argv) {
