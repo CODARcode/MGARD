@@ -48,7 +48,6 @@ struct Atomic {
   MGARDX_EXEC static T Add(T *result, T value);
 };
 
-
 // based on de Bruijn sequence:
 // 0000001000011000101000111001001011001101001111010101110110111111
 // = 151050438420815295
@@ -68,7 +67,7 @@ static const int MultiplyDeBruijnBitPosition[64] = {
     63, 6,  12, 18, 24, 27, 33, 39, 16, 37, 45, 47, 30, 53, 49, 56,
 
     62, 11, 23, 32, 36, 44, 52, 55, 61, 22, 43, 51, 60, 42, 59, 58};
-    
+
 template <typename DeviceType> struct Math {
   template <typename T> MGARDX_EXEC static T Min(T a, T b);
   template <typename T> MGARDX_EXEC static T Max(T a, T b);
