@@ -98,7 +98,7 @@ public:
                                               SIZE &_domain_decomposed_size,
                                               SIZE num_dev) {
     // determine max dimension
-    DIM max_dim = 0;
+    SIZE max_dim = 0;
     for (DIM d = 0; d < D; d++) {
       if (shape[d] > max_dim) {
         max_dim = shape[d];
@@ -132,8 +132,8 @@ public:
     }
     _domain_decomposed_size = chunck_shape[_domain_decomposed_dim];
     log::info(
-        "_domain_decomposed_dim: " + std::to_string(_domain_decomposed_dim) +
-        ", _domain_decomposed_size: " +
+        "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
+        ", Domain decomposed size: " +
         std::to_string(_domain_decomposed_size));
     return true;
   }
