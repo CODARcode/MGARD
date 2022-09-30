@@ -127,7 +127,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
     compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
-                   compressed_data, compressed_size, output_pre_allocated);
+                     compressed_data, compressed_size, output_pre_allocated);
 #else
     log::err("MGARD-X was not built with OPENMP backend.");
     exit(-1);
@@ -449,7 +449,8 @@ void decompress(const void *compressed_data, size_t compressed_size,
     log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
-  } if (dev_type == device_type::OPENMP) {
+  }
+  if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
     decompress<OPENMP>(compressed_data, compressed_size, decompressed_data,
                        dtype, shape, output_pre_allocated);

@@ -791,7 +791,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     // So that each thread is responsible for one device
 #if MGARD_ENABLE_MULTI_DEVICE
   omp_set_num_threads(adjusted_num_dev);
-  #pragma omp parallel for firstprivate(config)
+#pragma omp parallel for firstprivate(config)
 #endif
   for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
 #if MGARD_ENABLE_MULTI_DEVICE
@@ -1078,7 +1078,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       MemoryManager<DeviceType>::Malloc1D(decompressed_data,
                                           total_num_elem * sizeof(T));
     } else {
-      decompressed_data = (void*)malloc(total_num_elem * sizeof(T));
+      decompressed_data = (void *)malloc(total_num_elem * sizeof(T));
     }
     if (log::level & log::TIME) {
       timer_each.end();
@@ -1107,7 +1107,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     // So that each thread is responsible for one device
 #if MGARD_ENABLE_MULTI_DEVICE
   omp_set_num_threads(adjusted_num_dev);
-  #pragma omp parallel for firstprivate(config)
+#pragma omp parallel for firstprivate(config)
 #endif
   for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
 #if MGARD_ENABLE_MULTI_DEVICE

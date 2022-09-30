@@ -71,7 +71,8 @@ void autotuning(enum mgard_x::device_type dev_type,
     std::cout << mgard_x::log::log_info
               << "Start autotuning MGARD-X::SERIAL.\n";
   } else if (dev_type == mgard_x::device_type::OPENMP) {
-    std::cout << mgard_x::log::log_info << "Start auto tuning MGARD-X::OPENMP.\n";
+    std::cout << mgard_x::log::log_info
+              << "Start auto tuning MGARD-X::OPENMP.\n";
   } else if (dev_type == mgard_x::device_type::CUDA) {
     std::cout << mgard_x::log::log_info << "Start auto tuning MGARD-X::CUDA.\n";
   } else if (dev_type == mgard_x::device_type::HIP) {
@@ -95,7 +96,8 @@ void autotuning(enum mgard_x::device_type dev_type,
     std::cout << mgard_x::log::log_info
               << "Done auto tuning MGARD-X::SERIAL.\n";
   } else if (dev_type == mgard_x::device_type::OPENMP) {
-    std::cout << mgard_x::log::log_info << "Done auto tuning MGARD-X::OPENMP.\n";
+    std::cout << mgard_x::log::log_info
+              << "Done auto tuning MGARD-X::OPENMP.\n";
   } else if (dev_type == mgard_x::device_type::CUDA) {
     std::cout << mgard_x::log::log_info << "Done auto tuning MGARD-X::CUDA.\n";
   } else if (dev_type == mgard_x::device_type::HIP) {

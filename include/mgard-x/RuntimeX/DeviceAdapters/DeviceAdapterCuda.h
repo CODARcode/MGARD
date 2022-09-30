@@ -1191,7 +1191,8 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
   }
 
   // MGARDX_EXEC
-  // static void TCU(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX, SIZE IdY) {
+  // static void TCU(T_org *v, T_trans *tv, SIZE b, SIZE B, SIZE IdX, SIZE IdY)
+  // {
   //   __syncthreads();
   //   long long start = clock64();
 
@@ -1236,10 +1237,10 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
   //   __syncthreads();
 
   //   if (warp_idx < 4) {
-  //     wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::row_major> a_frag;
-  //     wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::row_major> b_frag;
-  //     wmma::fragment<wmma::accumulator, 16, 16, 16, float> c_frag;
-  //     wmma::load_matrix_sync(a_frag, tile_a, 16);
+  //     wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::row_major>
+  //     a_frag; wmma::fragment<wmma::matrix_b, 16, 16, 16, half,
+  //     wmma::row_major> b_frag; wmma::fragment<wmma::accumulator, 16, 16, 16,
+  //     float> c_frag; wmma::load_matrix_sync(a_frag, tile_a, 16);
   //     wmma::load_matrix_sync(
   //         b_frag, tile_b + (warp_idx / 2) * 16 + (warp_idx % 2) * 16, 32);
   //     wmma::fill_fragment(c_frag, 0.0f);
