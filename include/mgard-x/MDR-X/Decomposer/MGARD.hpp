@@ -78,13 +78,15 @@ public:
     mgard_x::decompose<D, T, DeviceType>(
         hierarchy, v, workspace.refactoring_w_subarray,
         workspace.refactoring_b_subarray, 0, queue_idx);
+    mgard_x::DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   }
   void recompose(SubArray<D, T, DeviceType> v, SIZE target_level,
                  int queue_idx) const {
     mgard_x::DataRefactoringWorkspace<D, T, DeviceType> workspace(hierarchy);
     mgard_x::recompose<D, T, DeviceType>(
         hierarchy, v, workspace.refactoring_w_subarray,
-        workspace.refactoring_b_subarray, hierarchy.l_target(), queue_idx);
+        workspace.refactoring_b_subarray, target_level, queue_idx);
+    mgard_x::DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   }
   void print() const {
     std::cout << "MGARD orthogonal decomposer" << std::endl;
