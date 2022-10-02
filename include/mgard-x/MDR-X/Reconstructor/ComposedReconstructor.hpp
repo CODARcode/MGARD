@@ -85,7 +85,7 @@ public:
       }
     }
     // TODO: uncomment skip level to reconstruct low resolution data
-    target_level -= skipped_level;
+    // target_level -= skipped_level;
     // printf("target_level: %u\n", target_level);
     timer.end();
     // timer.print("Interpret and retrieval");
