@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
               << std::endl;
   }
   const mgard_x::DIM D = 3;
-  printf("dims: %lu %lu %lu\n", dims[2], dims[1], dims[0]);
+  printf("dims: %lu %lu %lu\n", dims[0], dims[1], dims[2]);
 
   mgard_x::Config config;
   mgard_x::Hierarchy<D, T, DeviceType> hierarchy(dims, config, target_level);
