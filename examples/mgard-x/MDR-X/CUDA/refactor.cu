@@ -38,11 +38,11 @@ void test(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
   mgard_x::Array<D, T_data, DeviceType> input_array(dims);
   input_array.load(data.data());
   mgard_x::log::level |= mgard_x::log::TIME;
-  mgard_x::Timer timer;
-  timer.start();
+  // mgard_x::Timer timer;
+  // timer.start();
   refactor.refactor(input_array, dims, target_level, num_bitplanes);
-  timer.end();
-  timer.print("Refactor");
+  // timer.end();
+  // timer.print("Refactor");
 }
 
 int main(int argc, char **argv) {
