@@ -38,7 +38,7 @@ public:
 
   // reconstruct data from encoded streams
   Array<D, T_data, DeviceType> reconstruct(double tolerance) {
-    MDR::Timer timer;
+    mgard_x::Timer timer;
     timer.start();
     std::vector<std::vector<double>> level_abs_errors;
     uint8_t target_level = level_error_bounds.size() - 1;
@@ -66,7 +66,7 @@ public:
       exit(-1);
     }
     timer.end();
-    // timer.print("Preprocessing");
+    timer.print("Preprocessing");
 
     timer.start();
     auto prev_level_num_bitplanes(level_num_bitplanes);
@@ -88,9 +88,14 @@ public:
     // target_level -= skipped_level;
     // printf("target_level: %u\n", target_level);
     timer.end();
-    // timer.print("Interpret and retrieval");
+    timer.print("Interpret and retrieval");
 
-    return reconstruct(target_level, prev_level_num_bitplanes, 0);
+    timer.start();
+    Array<D, T_data, DeviceType> reconstructed_data = 
+      reconstruct(target_level, prev_level_num_bitplanes, 0);
+    timer.end();
+    timer.print("Reconstruct");
+    return reconstructed_data;
     // retriever.release();
     // if (success)
     //   return;

@@ -16,7 +16,7 @@ rm -rf build
 mkdir build 
 cmake -S .  -B ./build \
 	    -Dmgard_ROOT=${install_dir}\
-	    -DCMAKE_CUDA_ARCHITECTURES=70\
+	    -DCMAKE_CUDA_ARCHITECTURES=37\
 	    -DCMAKE_PREFIX_PATH="${install_dir}"
 	  
 cmake --build ./build -j
