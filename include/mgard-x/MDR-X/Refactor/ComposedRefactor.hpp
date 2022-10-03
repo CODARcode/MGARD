@@ -34,17 +34,17 @@ public:
                 const std::vector<SIZE> &dims, uint8_t target_level,
                 uint8_t num_bitplanes) {
 
-    MDR::Timer timer;
+    mgard_x::Timer timer;
     this->data_array = data_array;
 
     timer.start();
     if (refactor(target_level, num_bitplanes, 0)) {
       timer.end();
-      // timer.print("Refactor");
+      timer.print("Refactor");
       timer.start();
       level_num = writer.write_level_components(level_components, level_sizes);
       timer.end();
-      // timer.print("Write");
+      timer.print("Write");
     }
 
     write_metadata();

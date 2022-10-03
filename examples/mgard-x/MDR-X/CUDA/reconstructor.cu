@@ -89,12 +89,12 @@ void test(string filename, const vector<double> &tolerance,
   auto data = readfile<T_data>(filename.c_str(), num_elements);
   for (int i = 0; i < tolerance.size(); i++) {
     mgard_x::log::level |= mgard_x::log::TIME;
-    mgard_x::Timer timer;
-    timer.start();
+    // mgard_x::Timer timer;
+    // timer.start();
     mgard_x::Array<D, T_data, DeviceType> reconstructed_data =
         reconstructor.progressive_reconstruct(tolerance[i]);
-    timer.end();
-    timer.print("Reconstruct");
+    // timer.end();
+    // timer.print("Reconstruct");
     auto dims = reconstructor.get_dimensions();
     size_t size = 1;
     for (int i = 0; i < dims.size(); i++) {
