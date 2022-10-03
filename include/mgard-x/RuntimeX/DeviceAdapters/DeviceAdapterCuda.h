@@ -80,6 +80,25 @@ MGARDX_EXEC static uint64_t atomicAdd(uint64_t *address, uint64_t val) {
   return (uint64_t)old;
 }
 
+#if defined __CUDA_ARCH__ && __CUDA_ARCH__ < 600
+MGARDX_EXEC static double atomicAdd(double* address, double val) {
+    unsigned long long int* address_as_ull =
+                              (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
+
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                        __double_as_longlong(val +
+                               __longlong_as_double(assumed)));
+
+    // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+    } while (assumed != old);
+
+    return __longlong_as_double(old);
+}
+#endif
+
 namespace mgard_x {
 
 template <typename TaskType>
@@ -128,6 +147,7 @@ template <> struct SyncGrid<CUDA> {
 template <typename T, OPTION MemoryType, OPTION Scope>
 struct Atomic<T, MemoryType, Scope, CUDA> {
   MGARDX_EXEC static T Min(T *result, T value) {
+#if defined __CUDA_ARCH__ && __CUDA_ARCH__ >= 600
     if constexpr (Scope == AtomicSystemScope) {
       return atomicMin_system(result, value);
     } else if constexpr (Scope == AtomicDeviceScope) {
@@ -135,8 +155,12 @@ struct Atomic<T, MemoryType, Scope, CUDA> {
     } else {
       return atomicMin_block(result, value);
     }
+#else
+    return atomicMin(result, value);
+#endif
   }
   MGARDX_EXEC static T Max(T *result, T value) {
+#if defined __CUDA_ARCH__ && __CUDA_ARCH__ >= 600
     if constexpr (Scope == AtomicSystemScope) {
       return atomicMax_system(result, value);
     } else if constexpr (Scope == AtomicDeviceScope) {
@@ -144,8 +168,12 @@ struct Atomic<T, MemoryType, Scope, CUDA> {
     } else {
       return atomicMax_block(result, value);
     }
+#else
+    return atomicMax(result, value);
+#endif
   }
   MGARDX_EXEC static T Add(T *result, T value) {
+#if defined __CUDA_ARCH__ && __CUDA_ARCH__ >= 600
     if constexpr (Scope == AtomicSystemScope) {
       return atomicAdd_system(result, value);
     } else if constexpr (Scope == AtomicDeviceScope) {
@@ -153,6 +181,9 @@ struct Atomic<T, MemoryType, Scope, CUDA> {
     } else {
       return atomicAdd_block(result, value);
     }
+#else
+    return atomicAdd(result, value);
+#endif
   }
 };
 
@@ -1054,9 +1085,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
           } else {
           }
           T_trans *sum = &(tv[B_idx]);
-          // atomicAdd_block not available in CUDA
-          // atomicAdd_block(sum, shifted_bit);
-          atomicAdd(sum, shifted_bit);
+          Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, shifted_bit);
         }
       }
     }
@@ -1348,7 +1377,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, b, B, CUDA> {
         } else {
         }
         T_trans *sum = &(tv[B_idx * inc_tv]);
-        // atomicAdd_block(sum, shifted_bit);
+        Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, shifted_bit);
       }
     }
     // if (threadIdx.x == 0 && threadIdx.y == 0) { start = clock64() - start;
@@ -1576,7 +1605,7 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
           error = temp[(num_bitplanes - bitplane_idx) * num_elems + elem_idx];
         }
         T_error *sum = &(errors[num_bitplanes - bitplane_idx]);
-        atomicAdd_block(sum, error);
+        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, error);
       }
     }
   }
@@ -1794,10 +1823,10 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, num_elems,
                  mantissa;
         }
         T_error *sum = &(errors[num_bitplanes - bitplane_idx]);
-        atomicAdd_block(sum, diff * diff);
+        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, diff * diff);
       }
       T_error *sum = &(errors[0]);
-      atomicAdd_block(sum, data * data);
+      Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, data * data);
     }
   }
 
