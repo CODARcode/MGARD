@@ -8,6 +8,8 @@
 #ifndef MGARD_X_RUNTIME_X_DATA_TYPES_H
 #define MGARD_X_RUNTIME_X_DATA_TYPES_H
 
+// Types defined here are for RuntimeX
+
 #if defined __CUDACC__
 #define MGARDX_COMPILE_CUDA
 #elif defined __HIPCC__
@@ -100,6 +102,16 @@ class CUDA : public Device {};
 class HIP : public Device {};
 class SYCL : public Device {};
 class NONE : public Device {};
+
+enum class device_type : uint8_t {
+  AUTO,
+  SERIAL,
+  OPENMP,
+  CUDA,
+  HIP,
+  SYCL,
+  NONE
+};
 
 #if defined MGARDX_COMPILE_KOKKOS
 using KOKKOS = Kokkos::DefaultExecutionSpace;

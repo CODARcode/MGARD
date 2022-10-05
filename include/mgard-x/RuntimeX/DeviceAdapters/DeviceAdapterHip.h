@@ -1026,7 +1026,8 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
           } else {
           }
           T_trans *sum = &(tv[B_idx]);
-          Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, shifted_bit);
+          Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(
+              sum, shifted_bit);
         }
       }
     }
@@ -1313,7 +1314,8 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
           error = temp[(num_bitplanes - bitplane_idx) * num_elems + elem_idx];
         }
         T_error *sum = &(errors[num_bitplanes - bitplane_idx]);
-        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, error);
+        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum,
+                                                                         error);
       }
     }
   }
@@ -1485,7 +1487,8 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, b, B, HIP> {
         } else {
         }
         T_trans *sum = &(tv[B_idx * inc_tv]);
-        Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, shifted_bit);
+        Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(
+            sum, shifted_bit);
       }
     }
     // if (IdX == 0 && IdY == 0) { start = clock64() - start;
@@ -1698,10 +1701,12 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, num_elems,
               (T_error)Math<HIP>::negabinary2binary(ngb_data & mask) + mantissa;
         }
         T_error *sum = &(errors[num_bitplanes - bitplane_idx]);
-        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, diff * diff);
+        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(
+            sum, diff * diff);
       }
       T_error *sum = &(errors[0]);
-      Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum, data * data);
+      Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(
+          sum, data * data);
     }
   }
 
