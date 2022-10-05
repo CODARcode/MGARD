@@ -91,8 +91,8 @@ public:
     timer.print("Interpret and retrieval");
 
     timer.start();
-    Array<D, T_data, DeviceType> reconstructed_data = 
-      reconstruct(target_level, prev_level_num_bitplanes, 0);
+    Array<D, T_data, DeviceType> reconstructed_data =
+        reconstruct(target_level, prev_level_num_bitplanes, 0);
     timer.end();
     timer.print("Reconstruct");
     return reconstructed_data;

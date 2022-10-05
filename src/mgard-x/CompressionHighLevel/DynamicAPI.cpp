@@ -13,10 +13,10 @@
 
 #include "compress_x.hpp"
 #include "mgard-x/CompressionHighLevel/CompressionHighLevel.h"
-#include "mgard-x/CompressionHighLevel/Metadata.hpp"
 #include "mgard-x/Config/Config.h"
-#include "mgard-x/Hierarchy/Hierarchy.h"
-#include "mgard-x/RuntimeX/RuntimeXPublic.h"
+#include "mgard-x/RuntimeX/AutoTuners/AutoTuner.h"
+#include "mgard-x/RuntimeX/DataTypes.h"
+#include "mgard-x/Utilities/Types.h"
 
 namespace mgard_x {
 
@@ -495,35 +495,35 @@ void BeginAutoTuning(enum device_type dev_type) {
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    mgard_x::BeginAutoTuning<mgard_x::SERIAL>();
+    BeginAutoTuning<SERIAL>();
 #else
     log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    mgard_x::BeginAutoTuning<mgard_x::OPENMP>();
+    BeginAutoTuning<OPENMP>();
 #else
     log::err("MGARD-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    mgard_x::BeginAutoTuning<mgard_x::CUDA>();
+    BeginAutoTuning<CUDA>();
 #else
     log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    mgard_x::BeginAutoTuning<mgard_x::HIP>();
+    BeginAutoTuning<HIP>();
 #else
     log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    mgard_x::BeginAutoTuning<mgard_x::SYCL>();
+    BeginAutoTuning<SYCL>();
 #else
     log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);
@@ -541,35 +541,35 @@ void EndAutoTuning(enum device_type dev_type) {
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    mgard_x::EndAutoTuning<mgard_x::SERIAL>();
+    EndAutoTuning<SERIAL>();
 #else
     log::err("MGARD-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    mgard_x::EndAutoTuning<mgard_x::OPENMP>();
+    EndAutoTuning<OPENMP>();
 #else
     log::err("MGARD-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    mgard_x::EndAutoTuning<mgard_x::CUDA>();
+    EndAutoTuning<CUDA>();
 #else
     log::err("MGARD-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    mgard_x::EndAutoTuning<mgard_x::HIP>();
+    EndAutoTuning<HIP>();
 #else
     log::err("MGARD-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    mgard_x::EndAutoTuning<mgard_x::SYCL>();
+    EndAutoTuning<SYCL>();
 #else
     log::err("MGARD-X was not built with SYCL backend.");
     exit(-1);

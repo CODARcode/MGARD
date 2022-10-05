@@ -8,7 +8,6 @@
 
 #include "DataTypes.h"
 
-#include "DataStructures/Array.h"
 #include "Utilities/Log.h"
 #include "Utilities/Timer.hpp"
 

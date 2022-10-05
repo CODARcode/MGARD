@@ -11,9 +11,9 @@
 #include <numeric>
 #include <vector>
 
-#include "../Hierarchy/Hierarchy.h"
-#include "../RuntimeX/RuntimeXPublic.h"
-#include "Metadata.hpp"
+// #include "../Hierarchy/Hierarchy.h"
+// #include "../RuntimeX/RuntimeXPublic.h"
+// #include "Metadata.hpp"
 
 #ifndef MGARD_X_COMPRESSION_HIGH_LEVEL_API_H
 #define MGARD_X_COMPRESSION_HIGH_LEVEL_API_H
