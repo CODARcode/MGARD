@@ -165,10 +165,10 @@ const int tBLK_ENCODE = 256;
 const int tBLK_DEFLATE = 128;
 const int tBLK_CANONICAL = 128;
 
-template <typename T> MGARDX_CONT int TypeToIdx() {
-  if (std::is_same<T, float>::value) {
+template <typename T> MGARDX_CONT constexpr int TypeToIdx() {
+  if constexpr (std::is_same<T, float>::value) {
     return 0;
-  } else if (std::is_same<T, double>::value) {
+  } else if constexpr (std::is_same<T, double>::value) {
     return 1;
   } else {
     return 0;
@@ -214,25 +214,19 @@ MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int precision_idx,
 
   // std::cout << "********************curr_dir_path: " + curr_dir_path << "\n";
 
-  string intput_dir_path =
-      curr_dir_path + "/../../../../src/mgard-x/RuntimeX/AutoTuners";
+  string intput_dir_path = curr_dir_path;
 
   // std::cout << "********************intput_dir_path: " + intput_dir_path <<
   // "\n";
 
-  std::string extension;
-  if (std::is_same<DeviceType, CUDA>::value) {
-    extension = ".cu";
-  } else {
-    extension = ".cpp";
-  }
+  std::string extension = ".h";
 
   std::string input_file =
       intput_dir_path + "/AutoTuner" + device_type_string + extension;
 
   // std::cout << "********************intput_file: " + input_file << "\n";
 
-  std::string regex1_string = "(int AutoTuningTable<.*>::" + kernel_name +
+  std::string regex1_string = "(static constexpr int " + kernel_name +
                               ".*\\{)((.*\\{.*\\}.*\n){" +
                               std::to_string(precision_idx) + "})(.*\\{(., ){" +
                               std::to_string(range_l) + "})(.)";
