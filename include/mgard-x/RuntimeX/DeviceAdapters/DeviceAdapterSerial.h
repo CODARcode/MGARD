@@ -1162,6 +1162,129 @@ public:
   }
 };
 
+template <> class DeviceLauncher<SERIAL> {
+public:
+  template <typename TaskType>
+  MGARDX_CONT int static IsResourceEnough(TaskType &task) {
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
+        DeviceRuntime<SERIAL>::GetMaxNumThreadsPerTB()) {
+      return THREADBLOCK_TOO_LARGE;
+    }
+    if (task.GetSharedMemorySize() >
+        DeviceRuntime<SERIAL>::GetMaxSharedMemorySize()) {
+      return SHARED_MEMORY_TOO_LARGE;
+    }
+    return RESOURCE_ENOUGH;
+  }
+
+  template <typename TaskType>
+  MGARDX_CONT ExecutionReturn static Execute(TaskType &task) {
+
+    if (DeviceRuntime<SERIAL>::PrintKernelConfig) {
+      std::cout << log::log_info << task.GetFunctorName() << ": <"
+                << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
+                << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
+                << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
+    }
+
+    ExecutionReturn ret;
+    if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
+      if (DeviceRuntime<SERIAL>::PrintKernelConfig) {
+        if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
+          log::info("threadblock too large.");
+        }
+        if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
+          log::info("shared memory too large.");
+        }
+      }
+      ret.success = false;
+      ret.execution_time = std::numeric_limits<double>::max();
+      return ret;
+    }
+
+    Timer timer;
+    if (DeviceRuntime<SERIAL>::TimingAllKernels ||
+        AutoTuner<SERIAL>::ProfileKernels) {
+      DeviceRuntime<SERIAL>::SyncDevice();
+      timer.start();
+    }
+    // if constexpr evalute at compile time otherwise this does not compile
+    if constexpr (std::is_base_of<Functor<SERIAL>,
+                                  typename TaskType::Functor>::value) {
+      SerialKernel(task);
+    } else if constexpr (std::is_base_of<IterFunctor<SERIAL>,
+                                         typename TaskType::Functor>::value) {
+      SerialIterKernel(task);
+    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<SERIAL>,
+                                         typename TaskType::Functor>::value) {
+      SerialHuffmanCLCustomizedKernel(task);
+    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<SERIAL>,
+                                         typename TaskType::Functor>::value) {
+      SerialHuffmanCWCustomizedKernel(task);
+    }
+    // timer.end();
+    // timer.print(task.GetFunctorName());
+    // timer.clear();
+    if (DeviceRuntime<SERIAL>::TimingAllKernels ||
+        AutoTuner<SERIAL>::ProfileKernels) {
+      DeviceRuntime<SERIAL>::SyncDevice();
+      timer.end();
+      if (DeviceRuntime<SERIAL>::TimingAllKernels) {
+        timer.print(task.GetFunctorName());
+      }
+      if (AutoTuner<SERIAL>::ProfileKernels) {
+        ret.success = true;
+        ret.execution_time = timer.get();
+      }
+    }
+    return ret;
+  }
+
+  template <typename KernelType>
+  MGARDX_CONT static void AutoTune(KernelType kernel, int queue_idx) {
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+    ExecutionReturn ret;
+    // clang-format off
+    #define RUN_CONFIG(CONFIG_IDX)                                                           \
+    {                                                                                        \
+      constexpr ExecutionConfig config = GetExecutionConfig<KernelType::NumDim>(CONFIG_IDX); \
+      auto task = kernel.template GenTask<config.z, config.y, config.x>(queue_idx);          \
+      ret = Execute(task);                                                                   \
+      if (ret.success && min_time > ret.execution_time) {                                    \
+        min_time = ret.execution_time;                                                       \
+        min_config = CONFIG_IDX;                                                             \
+      }                                                                                      \
+    }
+    RUN_CONFIG(0)
+    RUN_CONFIG(1)
+    RUN_CONFIG(2)
+    RUN_CONFIG(3)
+    RUN_CONFIG(4)
+    RUN_CONFIG(5)
+    RUN_CONFIG(6)
+    #undef RUN_CONFIG
+    // clang-format on
+    int type_idx = TypeToIdx<typename KernelType::DataType>();
+    FillAutoTunerTable<SERIAL>(std::string(KernelType::Name), type_idx, 6,
+                               min_config);
+  }
+
+  template <typename KernelType>
+  MGARDX_CONT static void Execute(KernelType kernel, int queue_idx) {
+    constexpr ExecutionConfig config =
+        GetExecutionConfig<KernelType::NumDim, typename KernelType::DataType,
+                           SERIAL>(KernelType::Name);
+    auto task =
+        kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
+    Execute(task);
+
+    if (AutoTuner<SERIAL>::ProfileKernels) {
+      AutoTune(kernel, queue_idx);
+    }
+  }
+};
+
 template <> class DeviceCollective<SERIAL> {
 public:
   MGARDX_CONT

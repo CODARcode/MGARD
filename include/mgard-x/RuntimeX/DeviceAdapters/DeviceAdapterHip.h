@@ -1026,7 +1026,7 @@ struct BlockBitTranspose<T_org, T_trans, nblockx, nblocky, nblockz, ALIGN,
           } else {
           }
           T_trans *sum = &(tv[B_idx]);
-          Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(
+          Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, HIP>::Add(
               sum, shifted_bit);
         }
       }
@@ -1314,8 +1314,8 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
           error = temp[(num_bitplanes - bitplane_idx) * num_elems + elem_idx];
         }
         T_error *sum = &(errors[num_bitplanes - bitplane_idx]);
-        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(sum,
-                                                                         error);
+        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, HIP>::Add(sum,
+                                                                        error);
       }
     }
   }
@@ -1487,7 +1487,7 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, b, B, HIP> {
         } else {
         }
         T_trans *sum = &(tv[B_idx * inc_tv]);
-        Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(
+        Atomic<T_trans, AtomicSharedMemory, AtomicBlockScope, HIP>::Add(
             sum, shifted_bit);
       }
     }
@@ -1701,11 +1701,11 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, num_elems,
               (T_error)Math<HIP>::negabinary2binary(ngb_data & mask) + mantissa;
         }
         T_error *sum = &(errors[num_bitplanes - bitplane_idx]);
-        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(
+        Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, HIP>::Add(
             sum, diff * diff);
       }
       T_error *sum = &(errors[0]);
-      Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, CUDA>::Add(
+      Atomic<T_error, AtomicSharedMemory, AtomicBlockScope, HIP>::Add(
           sum, data * data);
     }
   }
@@ -2011,6 +2011,159 @@ public:
       }
     }
     return ret;
+  }
+};
+
+template <> class DeviceLauncher<HIP> {
+public:
+  template <typename TaskType>
+  MGARDX_CONT int static IsResourceEnough(TaskType &task) {
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
+        DeviceRuntime<HIP>::GetMaxNumThreadsPerTB()) {
+      return THREADBLOCK_TOO_LARGE;
+    }
+    if (task.GetSharedMemorySize() >
+        DeviceRuntime<HIP>::GetMaxSharedMemorySize()) {
+      return SHARED_MEMORY_TOO_LARGE;
+    }
+    return RESOURCE_ENOUGH;
+  }
+
+  template <typename TaskType>
+  MGARDX_CONT ExecutionReturn static Execute(TaskType &task) {
+
+    dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
+                         task.GetBlockDimZ());
+    dim3 blockPerGrid(task.GetGridDimX(), task.GetGridDimY(),
+                      task.GetGridDimZ());
+    size_t sm_size = task.GetSharedMemorySize();
+    // printf("exec config (%d %d %d) (%d %d %d) sm_size: %llu\n",
+    // threadsPerBlock.x, threadsPerBlock.y, threadsPerBlock.z,
+    //                 blockPerGrid.x, blockPerGrid.y, blockPerGrid.z, sm_size);
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(task.GetQueueIdx());
+
+    if (DeviceRuntime<HIP>::PrintKernelConfig) {
+      std::cout << log::log_info << task.GetFunctorName() << ": <"
+                << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
+                << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
+                << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
+    }
+
+    ExecutionReturn ret;
+    if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
+      if (DeviceRuntime<HIP>::PrintKernelConfig) {
+        if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
+          log::info("threadblock too large.");
+        }
+        if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
+          log::info("shared memory too large.");
+        }
+      }
+      ret.success = false;
+      ret.execution_time = std::numeric_limits<double>::max();
+      return ret;
+    }
+
+    Timer timer;
+    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+        DeviceRuntime<HIP>::TimingAllKernels ||
+        AutoTuner<HIP>::ProfileKernels) {
+      DeviceRuntime<HIP>::SyncDevice();
+      timer.start();
+    }
+
+    // if constexpr evaluate at compile time otherwise this does not compile
+    if constexpr (std::is_base_of<Functor<HIP>,
+                                  typename TaskType::Functor>::value) {
+      Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
+    } else if constexpr (std::is_base_of<IterFunctor<HIP>,
+                                         typename TaskType::Functor>::value) {
+      IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
+    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>,
+                                         typename TaskType::Functor>::value) {
+      if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
+        void *Args[] = {(void *)&task};
+        hipLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
+                                   blockPerGrid, threadsPerBlock, Args, sm_size,
+                                   stream);
+      } else {
+        HuffmanCLCustomizedNoCGKernel(task);
+      }
+    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>,
+                                         typename TaskType::Functor>::value) {
+      if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
+        void *Args[] = {(void *)&task};
+        hipLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
+                                   blockPerGrid, threadsPerBlock, Args, sm_size,
+                                   stream);
+      } else {
+        HuffmanCWCustomizedNoCGKernel(task);
+      }
+    }
+    ErrorAsyncCheck(hipGetLastError(), task);
+    gpuErrchk(hipGetLastError());
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(hipDeviceSynchronize(), task);
+    }
+
+    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+        DeviceRuntime<HIP>::TimingAllKernels ||
+        AutoTuner<HIP>::ProfileKernels) {
+      DeviceRuntime<HIP>::SyncDevice();
+      timer.end();
+      if (DeviceRuntime<HIP>::TimingAllKernels) {
+        timer.print(task.GetFunctorName());
+      }
+      if (AutoTuner<HIP>::ProfileKernels) {
+        ret.success = true;
+        ret.execution_time = timer.get();
+      }
+    }
+    return ret;
+  }
+
+  template <typename KernelType>
+  MGARDX_CONT static void AutoTune(KernelType kernel, int queue_idx) {
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+    ExecutionReturn ret;
+    // clang-format off
+    #define RUN_CONFIG(CONFIG_IDX)                                                           \
+    {                                                                                        \
+      constexpr ExecutionConfig config = GetExecutionConfig<KernelType::NumDim>(CONFIG_IDX); \
+      auto task = kernel.template GenTask<config.z, config.y, config.x>(queue_idx);          \
+      ret = Execute(task);                                                                   \
+      if (ret.success && min_time > ret.execution_time) {                                    \
+        min_time = ret.execution_time;                                                       \
+        min_config = CONFIG_IDX;                                                             \
+      }                                                                                      \
+    }
+    RUN_CONFIG(0)
+    RUN_CONFIG(1)
+    RUN_CONFIG(2)
+    RUN_CONFIG(3)
+    RUN_CONFIG(4)
+    RUN_CONFIG(5)
+    RUN_CONFIG(6)
+    #undef RUN_CONFIG
+    // clang-format on
+    int type_idx = TypeToIdx<typename KernelType::DataType>();
+    FillAutoTunerTable<HIP>(std::string(KernelType::Name), type_idx, 6,
+                            min_config);
+  }
+
+  template <typename KernelType>
+  MGARDX_CONT static void Execute(KernelType kernel, int queue_idx) {
+    constexpr ExecutionConfig config =
+        GetExecutionConfig<KernelType::NumDim, typename KernelType::DataType,
+                           HIP>(KernelType::Name);
+    auto task =
+        kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
+    Execute(task);
+
+    if (AutoTuner<HIP>::ProfileKernels) {
+      AutoTune(kernel, queue_idx);
+    }
   }
 };
 
