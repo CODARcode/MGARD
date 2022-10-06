@@ -1219,6 +1219,136 @@ public:
   }
 };
 
+template <> class DeviceLauncher<OPENMP> {
+public:
+  template <typename TaskType>
+  MGARDX_CONT int static IsResourceEnough(TaskType &task) {
+    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
+        DeviceRuntime<OPENMP>::GetMaxNumThreadsPerTB()) {
+      return THREADBLOCK_TOO_LARGE;
+    }
+    if (task.GetSharedMemorySize() >
+        DeviceRuntime<OPENMP>::GetMaxSharedMemorySize()) {
+      return SHARED_MEMORY_TOO_LARGE;
+    }
+    return RESOURCE_ENOUGH;
+  }
+
+  template <typename TaskType>
+  MGARDX_CONT ExecutionReturn static Execute(TaskType &task) {
+    if (DeviceRuntime<OPENMP>::PrintKernelConfig) {
+      std::cout << log::log_info << task.GetFunctorName() << ": <"
+                << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
+                << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
+                << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
+    }
+
+    ExecutionReturn ret;
+    if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
+      if (DeviceRuntime<OPENMP>::PrintKernelConfig) {
+        if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
+          log::info("threadblock too large.");
+        }
+        if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
+          log::info("shared memory too large.");
+        }
+      }
+      ret.success = false;
+      ret.execution_time = std::numeric_limits<double>::max();
+      return ret;
+    }
+
+    Timer timer;
+    if (DeviceRuntime<OPENMP>::TimingAllKernels ||
+        AutoTuner<OPENMP>::ProfileKernels) {
+      DeviceRuntime<OPENMP>::SyncDevice();
+      timer.start();
+    }
+    // if constexpr evalute at compile time otherwise this does not compile
+    if constexpr (std::is_base_of<Functor<OPENMP>,
+                                  typename TaskType::Functor>::value) {
+      OpenmpKernel(task);
+    } else if constexpr (std::is_base_of<IterFunctor<OPENMP>,
+                                         typename TaskType::Functor>::value) {
+      OpenmpIterKernel(task);
+    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<OPENMP>,
+                                         typename TaskType::Functor>::value) {
+      int prev_omp_thread = omp_get_max_threads();
+      // This kernel works better with 4 threads
+      omp_set_num_threads(4);
+      OpenmpHuffmanCLCustomizedKernel(task);
+      omp_set_num_threads(prev_omp_thread);
+    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<OPENMP>,
+                                         typename TaskType::Functor>::value) {
+      int prev_omp_thread = omp_get_max_threads();
+      // This kernel works better with 4 threads
+      omp_set_num_threads(4);
+      OpenmpHuffmanCWCustomizedKernel(task);
+      omp_set_num_threads(prev_omp_thread);
+    }
+    // timer.end();
+    // timer.print(task.GetFunctorName());
+    // timer.clear();
+    if (DeviceRuntime<OPENMP>::TimingAllKernels ||
+        AutoTuner<OPENMP>::ProfileKernels) {
+      DeviceRuntime<OPENMP>::SyncDevice();
+      timer.end();
+      if (DeviceRuntime<OPENMP>::TimingAllKernels) {
+        timer.print(task.GetFunctorName());
+      }
+      if (AutoTuner<OPENMP>::ProfileKernels) {
+        ret.success = true;
+        ret.execution_time = timer.get();
+      }
+    }
+    return ret;
+  }
+
+  template <typename KernelType>
+  MGARDX_CONT static void AutoTune(KernelType kernel, int queue_idx) {
+    double min_time = std::numeric_limits<double>::max();
+    int min_config = 0;
+    ExecutionReturn ret;
+    // clang-format off
+    #define RUN_CONFIG(CONFIG_IDX)                                                           \
+    {                                                                                        \
+      constexpr ExecutionConfig config = GetExecutionConfig<KernelType::NumDim>(CONFIG_IDX); \
+      auto task = kernel.template GenTask<config.z, config.y, config.x>(queue_idx);          \
+      ret = Execute(task);                                                                   \
+      if (ret.success && min_time > ret.execution_time) {                                    \
+        min_time = ret.execution_time;                                                       \
+        min_config = CONFIG_IDX;                                                             \
+      }                                                                                      \
+    }
+    RUN_CONFIG(0)
+    RUN_CONFIG(1)
+    RUN_CONFIG(2)
+    RUN_CONFIG(3)
+    RUN_CONFIG(4)
+    RUN_CONFIG(5)
+    RUN_CONFIG(6)
+    #undef RUN_CONFIG
+    // clang-format on
+    int type_idx = TypeToIdx<typename KernelType::DataType>();
+    FillAutoTunerTable<OPENMP>(std::string(KernelType::Name), type_idx, 6,
+                               min_config);
+  }
+
+  template <typename KernelType>
+  MGARDX_CONT static void Execute(KernelType kernel, int queue_idx) {
+    constexpr ExecutionConfig config =
+        GetExecutionConfig<KernelType::NumDim, typename KernelType::DataType,
+                           OPENMP>(KernelType::Name);
+    auto task =
+        kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
+    Execute(task);
+
+    if (AutoTuner<OPENMP>::ProfileKernels) {
+      AutoTune(kernel, queue_idx);
+    }
+  }
+};
+
 template <> class DeviceCollective<OPENMP> {
 public:
   MGARDX_CONT

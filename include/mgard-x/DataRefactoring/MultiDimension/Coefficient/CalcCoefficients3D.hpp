@@ -71,10 +71,11 @@ void CalcCoefficients3D(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray ratio_c(hierarchy.ratio(l, D - 2));
   SubArray ratio_r(hierarchy.ratio(l, D - 3));
 
-  GpkReo3D<D, T, DeviceType>().Execute(r, c, f, rr, cc, ff, ratio_r, ratio_c,
-                                       ratio_f, dinput, dcoarse, dcoeff_f,
-                                       dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
-                                       dcoeff_rc, dcoeff_rcf, queue_idx);
+  DeviceLauncher<DeviceType>::Execute(
+      GpkReo3DKernel(r, c, f, rr, cc, ff, ratio_r, ratio_c, ratio_f, dinput,
+                     dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf,
+                     dcoeff_rf, dcoeff_rc, dcoeff_rcf),
+      queue_idx);
 
   verify_matrix_cuda(r, c, f, doutput.data(), doutput.ld(D - 1),
                      doutput.ld(D - 2), doutput.ld(D - 1),

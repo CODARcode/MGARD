@@ -16,10 +16,10 @@ public:
   static constexpr int num_range = 9;
 
   static constexpr int gpk_reo_3d[num_precision][num_range] = {{0, 0, 0, 0, 0, 0, 2, 0, 0},
-                                                                {0, 0, 0, 0, 0, 0, 2, 0, 0}};
+                                                                {0, 0, 0, 0, 0, 0, 3, 0, 0}};
 
-  static constexpr int gpk_rev_3d[num_precision][num_range] = {{3, 3, 5, 3, 3, 5, 6, 0, 0},
-                                                              {3, 3, 5, 5, 3, 5, 6, 0, 0}};
+  static constexpr int gpk_rev_3d[num_precision][num_range] = {{3, 3, 3, 3, 3, 5, 6, 0, 0},
+                                                              {3, 3, 5, 3, 4, 5, 6, 0, 0}};
 
   static constexpr int gpk_reo_nd[num_precision][num_range] = {{5, 5, 5, 5, 5, 5, 5, 5, 5},
                                                               {5, 5, 5, 5, 5, 5, 5, 5, 5}};
@@ -28,13 +28,13 @@ public:
                                                               {0, 0, 3, 4, 5, 0, 0, 0, 0}};
 
   static constexpr int lpk1_3d[num_precision][num_range] = {{1, 0, 0, 0, 1, 1, 4, 0, 0},
-                                                            {0, 0, 1, 1, 1, 1, 1, 0, 0}};
+                                                            {1, 0, 1, 1, 1, 1, 1, 0, 0}};
 
-  static constexpr int lpk2_3d[num_precision][num_range] = {{4, 4, 4, 4, 1, 3, 3, 0, 0},
-                                                            {0, 0, 1, 1, 1, 1, 2, 0, 0}};
+  static constexpr int lpk2_3d[num_precision][num_range] = {{4, 4, 4, 4, 1, 3, 4, 0, 0},
+                                                            {0, 1, 1, 1, 1, 1, 1, 0, 0}};
 
-  static constexpr int lpk3_3d[num_precision][num_range] = {{4, 4, 4, 1, 1, 1, 4, 0, 0},
-                                                            {1, 0, 0, 3, 1, 1, 1, 0, 0}};
+  static constexpr int lpk3_3d[num_precision][num_range] = {{1, 4, 4, 1, 1, 1, 4, 0, 0},
+                                                            {1, 0, 1, 1, 1, 1, 1, 0, 0}};
 
   static constexpr int lpk1_nd[num_precision][num_range] = {{2, 0, 1, 1, 1, 0, 0, 0, 0},
                                                             {0, 0, 1, 1, 1, 0, 0, 0, 0}};
@@ -45,14 +45,14 @@ public:
   static constexpr int lpk3_nd[num_precision][num_range] = {{2, 3, 1, 1, 0, 0, 0, 0, 0},
                                                             {0, 2, 1, 1, 0, 0, 0, 0, 0}};
 
-  static constexpr int ipk1_3d[num_precision][num_range] = {{2, 4, 4, 4, 5, 3, 3, 0, 0},
-                                                            {2, 4, 5, 4, 3, 2, 2, 0, 0}};
+  static constexpr int ipk1_3d[num_precision][num_range] = {{4, 4, 4, 4, 5, 3, 4, 0, 0},
+                                                            {2, 4, 4, 3, 3, 1, 1, 0, 0}};
 
   static constexpr int ipk2_3d[num_precision][num_range] = {{2, 3, 2, 2, 2, 2, 6, 0, 0},
-                                                            {2, 2, 2, 2, 1, 2, 5, 0, 0}};
+                                                            {3, 3, 2, 2, 2, 3, 4, 0, 0}};
 
-  static constexpr int ipk3_3d[num_precision][num_range] = {{3, 2, 2, 2, 2, 2, 6, 0, 0},
-                                                            {2, 3, 2, 2, 2, 2, 4, 0, 0}};
+  static constexpr int ipk3_3d[num_precision][num_range] = {{2, 2, 2, 2, 2, 2, 6, 0, 0},
+                                                            {2, 2, 2, 2, 2, 2, 4, 0, 0}};
 
   static constexpr int ipk1_nd[num_precision][num_range] = {{0, 2, 3, 3, 0, 0, 0, 0, 0},
                                                             {0, 3, 3, 3, 0, 0, 0, 0, 0}};
@@ -64,7 +64,7 @@ public:
                                                             {0, 3, 4, 2, 0, 0, 0, 0, 0}};
 
   static constexpr int lwpk[num_precision][num_range] = {{0, 1, 0, 0, 2, 1, 2, 0, 0},
-                                                        {4, 0, 0, 2, 1, 1, 1, 0, 0}};
+                                                        {1, 2, 0, 0, 1, 1, 1, 0, 0}};
 
   static constexpr int lwqzk[num_precision][num_range] = {{0, 0, 0, 0, 0, 0, 2, 0, 0},
                                                           {0, 0, 0, 0, 0, 0, 2, 0, 0}};
