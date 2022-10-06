@@ -165,6 +165,12 @@ public:
   ExecutionReturn Execute(){};
 };
 
+template <typename DeviceType> class DeviceLauncher {
+public:
+  template <typename KernelType>
+  MGARDX_CONT static void Execute(KernelType kernel);
+};
+
 template <typename KeyT, typename ValueT> struct KeyValueComparator {
   bool operator()(std::pair<KeyT, ValueT> a, std::pair<KeyT, ValueT> b) const {
     return a.first < b.first;

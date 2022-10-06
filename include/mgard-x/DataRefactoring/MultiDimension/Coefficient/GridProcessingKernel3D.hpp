@@ -1179,23 +1179,29 @@ private:
   T *ratio_r_sm;
 };
 
-template <DIM D, typename T, typename DeviceType>
-class GpkReo3D : public AutoTuner<DeviceType> {
+template <DIM D, typename T, typename DeviceType> class GpkReo3DKernel {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "gpk_reo_3d";
+
   MGARDX_CONT
-  GpkReo3D() : AutoTuner<DeviceType>() {}
+  GpkReo3DKernel(SIZE nr, SIZE nc, SIZE nf, SIZE nr_c, SIZE nc_c, SIZE nf_c,
+                 SubArray<1, T, DeviceType> ratio_r,
+                 SubArray<1, T, DeviceType> ratio_c,
+                 SubArray<1, T, DeviceType> ratio_f,
+                 SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w,
+                 SubArray<D, T, DeviceType> wf, SubArray<D, T, DeviceType> wc,
+                 SubArray<D, T, DeviceType> wr, SubArray<D, T, DeviceType> wcf,
+                 SubArray<D, T, DeviceType> wrf, SubArray<D, T, DeviceType> wrc,
+                 SubArray<D, T, DeviceType> wrcf)
+      : nr(nr), nc(nc), nf(nf), nr_c(nr_c), nc_c(nc_c), nf_c(nf_c),
+        ratio_r(ratio_r), ratio_c(ratio_c), ratio_f(ratio_f), v(v), w(w),
+        wf(wf), wc(wc), wr(wr), wcf(wcf), wrf(wrf), wrc(wrc), wrcf(wrcf) {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<GpkReo3DFunctor<D, T, R, C, F, DeviceType>>
-  GenTask(SIZE nr, SIZE nc, SIZE nf, SIZE nr_c, SIZE nc_c, SIZE nf_c,
-          SubArray<1, T, DeviceType> ratio_r,
-          SubArray<1, T, DeviceType> ratio_c,
-          SubArray<1, T, DeviceType> ratio_f, SubArray<D, T, DeviceType> v,
-          SubArray<D, T, DeviceType> w, SubArray<D, T, DeviceType> wf,
-          SubArray<D, T, DeviceType> wc, SubArray<D, T, DeviceType> wr,
-          SubArray<D, T, DeviceType> wcf, SubArray<D, T, DeviceType> wrf,
-          SubArray<D, T, DeviceType> wrc, SubArray<D, T, DeviceType> wrcf,
-          int queue_idx) {
+  GenTask(int queue_idx) {
     using FunctorType = GpkReo3DFunctor<D, T, R, C, F, DeviceType>;
     FunctorType functor(nr, nc, nf, nr_c, nc_c, nf_c, ratio_r, ratio_c, ratio_f,
                         v, w, wf, wc, wr, wcf, wrf, wrc, wrcf);
@@ -1213,64 +1219,13 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "GpkReo3D");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SIZE nr, SIZE nc, SIZE nf, SIZE nr_c, SIZE nc_c, SIZE nf_c,
-               SubArray<1, T, DeviceType> ratio_r,
-               SubArray<1, T, DeviceType> ratio_c,
-               SubArray<1, T, DeviceType> ratio_f, SubArray<D, T, DeviceType> v,
-               SubArray<D, T, DeviceType> w, SubArray<D, T, DeviceType> wf,
-               SubArray<D, T, DeviceType> wc, SubArray<D, T, DeviceType> wr,
-               SubArray<D, T, DeviceType> wcf, SubArray<D, T, DeviceType> wrf,
-               SubArray<D, T, DeviceType> wrc, SubArray<D, T, DeviceType> wrcf,
-               int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int prec = TypeToIdx<T>();
-    int config =
-        AutoTuner<DeviceType>::autoTuningTable.gpk_reo_3d[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define GPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = GPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = GPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = GPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType = GpkReo3DFunctor<D, T, R, C, F, DeviceType>;            \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(nr, nc, nf, nr_c, nc_c, nf_c, ratio_r,    \
-                                     ratio_c, ratio_f, v, w, wf, wc, wr, wcf,  \
-                                     wrf, wrc, wrcf, queue_idx);               \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    GPK(6) if (!ret.success) config--;
-    GPK(5) if (!ret.success) config--;
-    GPK(4) if (!ret.success) config--;
-    GPK(3) if (!ret.success) config--;
-    GPK(2) if (!ret.success) config--;
-    GPK(1) if (!ret.success) config--;
-    GPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for GpkReo3D.\n";
-      exit(-1);
-    }
-#undef GPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("gpk_reo_3d", prec, range_l, min_config);
-    }
-  }
+private:
+  SIZE nr, nc, nf, nr_c, nc_c, nf_c;
+  SubArray<1, T, DeviceType> ratio_r, ratio_c, ratio_f;
+  SubArray<D, T, DeviceType> v, w, wf, wc, wr, wcf, wrf, wrc, wrcf;
 };
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
@@ -2397,21 +2352,30 @@ private:
 };
 
 template <DIM D, typename T, typename DeviceType>
-class GpkRev3D : public AutoTuner<DeviceType> {
+class GpkRev3DKernel : public AutoTuner<DeviceType> {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "gpk_rev_3d";
   MGARDX_CONT
-  GpkRev3D() : AutoTuner<DeviceType>() {}
+  GpkRev3DKernel(SIZE nr, SIZE nc, SIZE nf, SIZE nr_c, SIZE nc_c, SIZE nf_c,
+                 SubArray<1, T, DeviceType> ratio_r,
+                 SubArray<1, T, DeviceType> ratio_c,
+                 SubArray<1, T, DeviceType> ratio_f,
+                 SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> w,
+                 SubArray<D, T, DeviceType> wf, SubArray<D, T, DeviceType> wc,
+                 SubArray<D, T, DeviceType> wr, SubArray<D, T, DeviceType> wcf,
+                 SubArray<D, T, DeviceType> wrf, SubArray<D, T, DeviceType> wrc,
+                 SubArray<D, T, DeviceType> wrcf, SIZE svr, SIZE svc, SIZE svf,
+                 SIZE nvr, SIZE nvc, SIZE nvf)
+      : nr(nr), nc(nc), nf(nf), nr_c(nr_c), nc_c(nc_c), nf_c(nf_c),
+        ratio_r(ratio_r), ratio_c(ratio_c), ratio_f(ratio_f), v(v), w(w),
+        wf(wf), wc(wc), wr(wr), wrcf(wrcf), wcf(wcf), wrf(wrf), wrc(wrc),
+        svr(svr), svc(svc), svf(svf), nvr(nvr), nvc(nvc), nvf(nvf) {}
 
   template <SIZE R, SIZE C, SIZE F>
-  MGARDX_CONT Task<GpkRev3DFunctor<D, T, R, C, F, DeviceType>> GenTask(
-      SIZE nr, SIZE nc, SIZE nf, SIZE nr_c, SIZE nc_c, SIZE nf_c,
-      SubArray<1, T, DeviceType> ratio_r, SubArray<1, T, DeviceType> ratio_c,
-      SubArray<1, T, DeviceType> ratio_f, SubArray<D, T, DeviceType> v,
-      SubArray<D, T, DeviceType> w, SubArray<D, T, DeviceType> wf,
-      SubArray<D, T, DeviceType> wc, SubArray<D, T, DeviceType> wr,
-      SubArray<D, T, DeviceType> wcf, SubArray<D, T, DeviceType> wrf,
-      SubArray<D, T, DeviceType> wrc, SubArray<D, T, DeviceType> wrcf, SIZE svr,
-      SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf, int queue_idx) {
+  MGARDX_CONT Task<GpkRev3DFunctor<D, T, R, C, F, DeviceType>>
+  GenTask(int queue_idx) {
     using FunctorType = GpkRev3DFunctor<D, T, R, C, F, DeviceType>;
     FunctorType functor(nr, nc, nf, nr_c, nc_c, nf_c, ratio_r, ratio_c, ratio_f,
                         v, w, wf, wc, wr, wcf, wrf, wrc, wrcf, svr, svc, svf,
@@ -2430,65 +2394,15 @@ public:
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "GpkRev3D");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SIZE nr, SIZE nc, SIZE nf, SIZE nr_c, SIZE nc_c, SIZE nf_c,
-               SubArray<1, T, DeviceType> ratio_r,
-               SubArray<1, T, DeviceType> ratio_c,
-               SubArray<1, T, DeviceType> ratio_f, SubArray<D, T, DeviceType> v,
-               SubArray<D, T, DeviceType> w, SubArray<D, T, DeviceType> wf,
-               SubArray<D, T, DeviceType> wc, SubArray<D, T, DeviceType> wr,
-               SubArray<D, T, DeviceType> wcf, SubArray<D, T, DeviceType> wrf,
-               SubArray<D, T, DeviceType> wrc, SubArray<D, T, DeviceType> wrcf,
-               SIZE svr, SIZE svc, SIZE svf, SIZE nvr, SIZE nvc, SIZE nvf,
-               int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(nf) - 1);
-    int prec = TypeToIdx<T>();
-    int config =
-        AutoTuner<DeviceType>::autoTuningTable.gpk_rev_3d[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define GPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = GPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = GPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = GPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType = GpkRev3DFunctor<D, T, R, C, F, DeviceType>;            \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(                                          \
-        nr, nc, nf, nr_c, nc_c, nf_c, ratio_r, ratio_c, ratio_f, v, w, wf, wc, \
-        wr, wcf, wrf, wrc, wrcf, svr, svc, svf, nvr, nvc, nvf, queue_idx);     \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    GPK(6) if (!ret.success) config--;
-    GPK(5) if (!ret.success) config--;
-    GPK(4) if (!ret.success) config--;
-    GPK(3) if (!ret.success) config--;
-    GPK(2) if (!ret.success) config--;
-    GPK(1) if (!ret.success) config--;
-    GPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for GpkRev3D.\n";
-      exit(-1);
-    }
-#undef GPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("gpk_rev_3d", prec, range_l, min_config);
-    }
-  }
+private:
+  // functor parameters
+  SIZE nr, nc, nf, nr_c, nc_c, nf_c;
+  SubArray<1, T, DeviceType> ratio_r, ratio_c, ratio_f;
+  SubArray<D, T, DeviceType> v, w, wf, wc, wr, wcf, wrf, wrc, wrcf;
+  SIZE svr, svc, svf, nvr, nvc, nvf;
 };
 
 } // namespace mgard_x
