@@ -16,9 +16,8 @@ template <typename T, typename DeviceType>
 class FillArraySequenceFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT FillArraySequenceFunctor() {}
-  MGARDX_CONT FillArraySequenceFunctor(SubArray<1, T, DeviceType> array,
-                                       SIZE size)
-      : array(array), size(size) {
+  MGARDX_CONT FillArraySequenceFunctor(SubArray<1, T, DeviceType> array)
+      : array(array) {
     Functor<DeviceType>();
   }
 
@@ -26,37 +25,29 @@ public:
     unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() *
                            FunctorBase<DeviceType>::GetBlockDimX()) +
                           FunctorBase<DeviceType>::GetThreadIdX();
-    if (thread < size) {
+    if (thread < array.shape(0)) {
       *array(thread) = thread;
     }
   }
-
-  MGARDX_EXEC void Operation2() {}
-
-  MGARDX_EXEC void Operation3() {}
-
-  MGARDX_EXEC void Operation4() {}
-
-  MGARDX_EXEC void Operation5() {}
 
   MGARDX_CONT size_t shared_memory_size() { return 0; }
 
 private:
   SubArray<1, T, DeviceType> array;
-  SIZE size;
 };
 
 template <typename T, typename DeviceType>
-class FillArraySequence : public AutoTuner<DeviceType> {
+class FillArraySequenceKernel : public Kernel {
 public:
+  constexpr static bool EnableAutoTuning() { return false; }
+  constexpr static std::string_view Name = "filling array sequence";
   MGARDX_CONT
-  FillArraySequence() : AutoTuner<DeviceType>() {}
+  FillArraySequenceKernel(SubArray<1, T, DeviceType> array) : array(array) {}
 
   MGARDX_CONT
-  Task<FillArraySequenceFunctor<T, DeviceType>>
-  GenTask(SubArray<1, T, DeviceType> array, SIZE dict_size, int queue_idx) {
+  Task<FillArraySequenceFunctor<T, DeviceType>> GenTask(int queue_idx) {
     using FunctorType = FillArraySequenceFunctor<T, DeviceType>;
-    FunctorType functor(array, dict_size);
+    FunctorType functor(array);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -65,23 +56,14 @@ public:
     tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB();
     gridz = 1;
     gridy = 1;
-    gridx = (dict_size / tbx) + 1;
-    // printf("tbx: %u, gridx: %u\n", tbx, gridx);
+    gridx = (array.shape(0) / tbx) + 1;
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "FillArraySequence");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, T, DeviceType> array, SIZE dict_size,
-               int queue_idx) {
-    using FunctorType = FillArraySequenceFunctor<T, DeviceType>;
-    using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(array, dict_size, queue_idx);
-    DeviceAdapter<TaskType, DeviceType> adapter;
-    adapter.Execute(task);
-  }
+private:
+  SubArray<1, T, DeviceType> array;
 };
-
 } // namespace mgard_x
 
 #endif
