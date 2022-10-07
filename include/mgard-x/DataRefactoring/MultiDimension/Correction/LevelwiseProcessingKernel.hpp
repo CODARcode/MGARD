@@ -97,15 +97,17 @@ private:
 };
 
 template <DIM D, typename T, OPTION OP, typename DeviceType>
-class LwpkReo : public AutoTuner<DeviceType> {
+class LwpkReoKernel {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "lwpk";
   MGARDX_CONT
-  LwpkReo() : AutoTuner<DeviceType>() {}
-
+  LwpkReoKernel(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work)
+      : v(v), work(work) {}
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>>
-  GenTask(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
-          int queue_idx) {
+  GenTask(int queue_idx) {
     using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;
     FunctorType functor(v, work);
 
@@ -132,55 +134,11 @@ public:
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "LwpkReo");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> work,
-               int queue_idx) {
-
-    int range_l = std::min(6, (int)std::log2(v.shape(D - 1)) - 1);
-    int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.lwpk[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define LWPK(CONFIG)                                                           \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = LWPK_CONFIG[D - 1][CONFIG][0];                               \
-    const int C = LWPK_CONFIG[D - 1][CONFIG][1];                               \
-    const int F = LWPK_CONFIG[D - 1][CONFIG][2];                               \
-    using FunctorType = LwpkReoFunctor<D, T, R, C, F, OP, DeviceType>;         \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(v, work, queue_idx);                      \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    LWPK(6) if (!ret.success) config--;
-    LWPK(5) if (!ret.success) config--;
-    LWPK(4) if (!ret.success) config--;
-    LWPK(3) if (!ret.success) config--;
-    LWPK(2) if (!ret.success) config--;
-    LWPK(1) if (!ret.success) config--;
-    LWPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for LwpkReo.\n";
-      exit(-1);
-    }
-#undef LWPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("lwpk", prec, range_l, min_config);
-    }
-  }
+private:
+  SubArray<D, T, DeviceType> v, work;
 };
 
 } // namespace mgard_x
