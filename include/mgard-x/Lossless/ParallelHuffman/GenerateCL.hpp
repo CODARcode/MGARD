@@ -32,7 +32,7 @@ public:
   MGARDX_CONT GenerateCLFunctor() {}
   MGARDX_CONT GenerateCLFunctor(
       SubArray<1, T, DeviceType> histogram, SubArray<1, T, DeviceType> CL,
-      int size,
+      int dict_size,
       /* Global Arrays */
       SubArray<1, T, DeviceType> lNodesFreq,
       SubArray<1, int, DeviceType> lNodesLeader,
@@ -46,7 +46,7 @@ public:
       SubArray<1, int, DeviceType> copyIndex,
       SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
       SubArray<1, int, DeviceType> status)
-      : histogram(histogram), CL(CL), size(size), lNodesFreq(lNodesFreq),
+      : histogram(histogram), CL(CL), dict_size(dict_size), lNodesFreq(lNodesFreq),
         lNodesLeader(lNodesLeader), iNodesFreq(iNodesFreq),
         iNodesLeader(iNodesLeader), tempFreq(tempFreq), tempIsLeaf(tempIsLeaf),
         tempIndex(tempIndex), copyFreq(copyFreq), copyIsLeaf(copyIsLeaf),
@@ -72,7 +72,7 @@ public:
     // mergeFront = status.data() + 7;
     // mergeRear = status.data() + 8;
     /* Initialization */
-    if (i < size) {
+    if (i < dict_size) {
       *lNodesLeader((IDX)i) = -1;
       *CL((IDX)i) = 0;
     }
@@ -87,9 +87,9 @@ public:
   }
 
   MGARDX_CONT_EXEC bool LoopCondition1() {
-    // printf("LoopCondition1 %d %u %d\n", (*status((IDX)_lNodesCur)), size,
+    // printf("LoopCondition1 %d %u %d\n", (*status((IDX)_lNodesCur)), dict_size,
     // (*status((IDX)_iNodesSize)));
-    return (*status((IDX)_lNodesCur)) < size || (*status((IDX)_iNodesSize)) > 1;
+    return (*status((IDX)_lNodesCur)) < dict_size || (*status((IDX)_iNodesSize)) > 1;
   }
 
   MGARDX_EXEC void Operation2() {
@@ -105,11 +105,11 @@ public:
         midIsLeaf[j] = 0;
       }
 
-      if ((*status((IDX)_lNodesCur)) < size) {
+      if ((*status((IDX)_lNodesCur)) < dict_size) {
         midFreq[0] = *lNodesFreq((*status((IDX)_lNodesCur)));
         midIsLeaf[0] = 1;
       }
-      if ((*status((IDX)_lNodesCur)) < size - 1) {
+      if ((*status((IDX)_lNodesCur)) < dict_size - 1) {
         midFreq[1] = *lNodesFreq((*status((IDX)_lNodesCur)) + 1);
         midIsLeaf[1] = 1;
       }
@@ -118,7 +118,7 @@ public:
         midIsLeaf[2] = 0;
       }
       if ((*status((IDX)_iNodesSize)) >= 2) {
-        midFreq[3] = *iNodesFreq(MOD((*status((IDX)_iNodesFront)) + 1, size));
+        midFreq[3] = *iNodesFreq(MOD((*status((IDX)_iNodesFront)) + 1, dict_size));
         midIsLeaf[3] = 0;
       }
 
@@ -199,7 +199,7 @@ public:
         *iNodesLeader((IDX)(*status((IDX)_iNodesFront))) =
             (*status((IDX)_iNodesRear));
         (*status((IDX)_iNodesFront)) =
-            MOD((*status((IDX)_iNodesFront)) + 1, size);
+            MOD((*status((IDX)_iNodesFront)) + 1, dict_size);
       }
       if (midIsLeaf[1]) {
         *lNodesLeader((IDX)(*status((IDX)_lNodesCur))) =
@@ -211,14 +211,14 @@ public:
         // printf("*iNodesLeader(%d): %d\n", (*status((IDX)_iNodesFront)),
         // *iNodesLeader((*status((IDX)_iNodesFront))));
         (*status((IDX)_iNodesFront)) =
-            MOD((*status((IDX)_iNodesFront)) + 1, size); /* ? */
+            MOD((*status((IDX)_iNodesFront)) + 1, dict_size); /* ? */
       }
 
       // (*status((IDX)_iNodesRear)) = MOD((*status((IDX)_iNodesRear)) + 1,
-      // size);
+      // dict_size);
 
       (*status((IDX)_iNodesSize)) =
-          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)), size);
+          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)), dict_size);
 
       // printf("mine: iNodesLeader(0.leader) = %d, (*status((IDX)_iNodesRear)):
       // %u\n", *iNodesLeader(IDX(0)), (*status((IDX)_iNodesRear)));
@@ -232,7 +232,7 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     /* Select elements to copy -- parallelized */
-    if (i >= (*status((IDX)_lNodesCur)) && i < size) {
+    if (i >= (*status((IDX)_lNodesCur)) && i < dict_size) {
       // Parallel component
       int threadCurLeavesNum;
       if (*lNodesFreq((IDX)i) <= (*status((IDX)_minFreq))) {
@@ -274,11 +274,11 @@ public:
                     or (*histogram((IDX)(*status((IDX)_lNodesCur)) +
                                    (*status((IDX)_curLeavesNum))) <=
                         *iNodesFreq((IDX)MOD((*status((IDX)_iNodesRear)) - 1,
-                                             size)))) //
+                                             dict_size)))) //
       ) {
-        (*status((IDX)_mergeRear)) = MOD((*status((IDX)_mergeRear)) - 1, size);
+        (*status((IDX)_mergeRear)) = MOD((*status((IDX)_mergeRear)) - 1, dict_size);
         (*status((IDX)_iNodesFront)) =
-            MOD((*status((IDX)_iNodesRear)) - 1, size);
+            MOD((*status((IDX)_iNodesRear)) - 1, dict_size);
       } else {
         (*status((IDX)_iNodesFront)) = (*status((IDX)_iNodesRear));
         --(*status((IDX)_curLeavesNum));
@@ -286,11 +286,11 @@ public:
 
       (*status((IDX)_lNodesCur)) =
           (*status((IDX)_lNodesCur)) + (*status((IDX)_curLeavesNum));
-      (*status((IDX)_iNodesRear)) = MOD((*status((IDX)_iNodesRear)) + 1, size);
+      (*status((IDX)_iNodesRear)) = MOD((*status((IDX)_iNodesRear)) + 1, dict_size);
 
       (*status((IDX)_tempLength)) =
           ((*status((IDX)_curLeavesNum)) - 0) +
-          MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)), size);
+          MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)), dict_size);
     }
   }
 
@@ -309,11 +309,11 @@ public:
     oneorzero = &sm[5];
 
     // (*status((IDX)_tempLength)) = (cEnd - 0) + MOD((*status((IDX)_mergeRear))
-    // - (*status((IDX)_mergeFront)), size); if ((*status((IDX)_tempLength)) ==
+    // - (*status((IDX)_mergeFront)), dict_size); if ((*status((IDX)_tempLength)) ==
     // 0) return;
     A_length = (*status((IDX)_curLeavesNum)) - 0;
     B_length =
-        MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)), size);
+        MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)), dict_size);
 
     // if (!thread) {
     //   printf("A_length: %d, B_length: %d, (*status((IDX)_tempLength)): %d\n",
@@ -363,12 +363,12 @@ public:
     current_y = *y_top + ((*y_bottom - *y_top) >> 1) + threadOffset;
     getfrom_x = current_x + 0 - 1;
     // Below statement is a more efficient, divmodless version of the following
-    // int32_t getfrom_y = MOD((*status((IDX)_mergeFront)) + current_y, size);
+    // int32_t getfrom_y = MOD((*status((IDX)_mergeFront)) + current_y, dict_size);
     getfrom_y = (*status((IDX)_mergeFront)) + current_y;
 
     if (FunctorBase<DeviceType>::GetThreadIdX() < MGARDX_WARP_SIZE) {
-      if (getfrom_y >= size)
-        getfrom_y -= size;
+      if (getfrom_y >= dict_size)
+        getfrom_y -= dict_size;
 
       // Are we a '1' or '0' with respect to A[x] <= B[x]
       if (current_x > (int32_t)A_length or current_y < 0) {
@@ -459,8 +459,8 @@ public:
       // Actual indexes
       int x_start = x_block_top + 0;
       int x_end = x_block_stop + 0;
-      int y_start = MOD((*status((IDX)_mergeFront)) + y_block_top, size);
-      int y_end = MOD((*status((IDX)_mergeFront)) + y_block_stop, size);
+      int y_start = MOD((*status((IDX)_mergeFront)) + y_block_top, dict_size);
+      int y_end = MOD((*status((IDX)_mergeFront)) + y_block_stop, dict_size);
 
       int offset = x_block_top + y_block_top;
 
@@ -473,7 +473,7 @@ public:
 
       int iterCopy = x_start, iterINodes = y_start;
 
-      while (iterCopy < x_end && MOD(y_end - iterINodes, size) > 0) {
+      while (iterCopy < x_end && MOD(y_end - iterINodes, dict_size) > 0) {
         if (*copyFreq((IDX)iterCopy) <= *iNodesFreq((IDX)iterINodes)) {
           *tempFreq((IDX)offset + len) = *copyFreq((IDX)iterCopy);
           *tempIndex((IDX)offset + len) = *copyIndex((IDX)iterCopy);
@@ -483,7 +483,7 @@ public:
           *tempFreq((IDX)offset + len) = *iNodesFreq((IDX)iterINodes);
           *tempIndex((IDX)offset + len) = iterINodes;
           *tempIsLeaf((IDX)offset + len) = 0;
-          iterINodes = MOD(iterINodes + 1, size);
+          iterINodes = MOD(iterINodes + 1, dict_size);
         }
         ++len;
       }
@@ -495,11 +495,11 @@ public:
         ++iterCopy;
         ++len;
       }
-      while (MOD(y_end - iterINodes, size) > 0) {
+      while (MOD(y_end - iterINodes, dict_size) > 0) {
         *tempFreq((IDX)offset + len) = *iNodesFreq((IDX)iterINodes);
         *tempIndex((IDX)offset + len) = iterINodes;
         *tempIsLeaf((IDX)offset + len) = 0;
-        iterINodes = MOD(iterINodes + 1, size);
+        iterINodes = MOD(iterINodes + 1, dict_size);
         ++len;
       }
 
@@ -538,7 +538,7 @@ public:
     // }
     /* Melding phase -- New */
     if (i < (*status((IDX)_tempLength)) / 2) {
-      int ind = MOD((*status((IDX)_iNodesRear)) + i, size);
+      int ind = MOD((*status((IDX)_iNodesRear)) + i, dict_size);
       // printf("Melding(i=%d): %u(%d) %u(%d)\n", i, *tempFreq((IDX)2 * i),
       // *tempIsLeaf((IDX)2 * i), *tempFreq((IDX)2 * i + 1), *tempIsLeaf((IDX)2
       // * i + 1));
@@ -567,7 +567,7 @@ public:
     if (i == 0) {
       (*status((IDX)_iNodesRear)) =
           MOD((*status((IDX)_iNodesRear)) + ((*status((IDX)_tempLength)) / 2),
-              size);
+              dict_size);
     }
   }
 
@@ -580,7 +580,7 @@ public:
     //   printf("mine: iNodesLeader(0.leader) = %d, (*status((IDX)_iNodesRear)):
     //   %u\n", *iNodesLeader(IDX(0)), (*status((IDX)_iNodesRear)));
     // }
-    if (i < size) {
+    if (i < dict_size) {
       if (*lNodesLeader((IDX)i) != -1) {
         if (*iNodesLeader((IDX)*lNodesLeader((IDX)i)) != -1) {
           *lNodesLeader((IDX)i) = *iNodesLeader((IDX)*lNodesLeader((IDX)i));
@@ -597,7 +597,7 @@ public:
         FunctorBase<DeviceType>::GetThreadIdX();
     if (i == 0) {
       (*status((IDX)_iNodesSize)) =
-          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)), size);
+          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)), dict_size);
     }
   }
 
@@ -611,7 +611,7 @@ public:
 private:
   SubArray<1, T, DeviceType> histogram;
   SubArray<1, T, DeviceType> CL;
-  int size;
+  int dict_size;
   /* Global Arrays */
   SubArray<1, T, DeviceType> lNodesFreq;
   SubArray<1, int, DeviceType> lNodesLeader;
@@ -646,28 +646,37 @@ private:
 };
 
 template <typename T, typename DeviceType>
-class GenerateCL : public AutoTuner<DeviceType> {
+class GenerateCLKernel : public Kernel {
 public:
+  constexpr static bool EnableAutoTuning() { return false; }
+  constexpr static std::string_view Name = "generate codeword length";
   MGARDX_CONT
-  GenerateCL() : AutoTuner<DeviceType>() {}
+  GenerateCLKernel(
+      SubArray<1, T, DeviceType> histogram, SubArray<1, T, DeviceType> CL,
+      int dict_size,
+      /* Global Arrays */
+      SubArray<1, T, DeviceType> lNodesFreq,
+      SubArray<1, int, DeviceType> lNodesLeader,
+      SubArray<1, T, DeviceType> iNodesFreq,
+      SubArray<1, int, DeviceType> iNodesLeader,
+      SubArray<1, T, DeviceType> tempFreq,
+      SubArray<1, int, DeviceType> tempIsLeaf,
+      SubArray<1, int, DeviceType> tempIndex,
+      SubArray<1, T, DeviceType> copyFreq,
+      SubArray<1, int, DeviceType> copyIsLeaf,
+      SubArray<1, int, DeviceType> copyIndex,
+      SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
+      SubArray<1, int, DeviceType> status)
+      : histogram(histogram), CL(CL), dict_size(dict_size), lNodesFreq(lNodesFreq),
+        lNodesLeader(lNodesLeader), iNodesFreq(iNodesFreq),
+        iNodesLeader(iNodesLeader), tempFreq(tempFreq), tempIsLeaf(tempIsLeaf),
+        tempIndex(tempIndex), copyFreq(copyFreq), copyIsLeaf(copyIsLeaf),
+        copyIndex(copyIndex),
+        diagonal_path_intersections(diagonal_path_intersections),
+        status(status) {}
 
   MGARDX_CONT
-  Task<GenerateCLFunctor<T, DeviceType>>
-  GenTask(SubArray<1, T, DeviceType> histogram, SubArray<1, T, DeviceType> CL,
-          int dict_size,
-          /* Global Arrays */
-          SubArray<1, T, DeviceType> lNodesFreq,
-          SubArray<1, int, DeviceType> lNodesLeader,
-          SubArray<1, T, DeviceType> iNodesFreq,
-          SubArray<1, int, DeviceType> iNodesLeader,
-          SubArray<1, T, DeviceType> tempFreq,
-          SubArray<1, int, DeviceType> tempIsLeaf,
-          SubArray<1, int, DeviceType> tempIndex,
-          SubArray<1, T, DeviceType> copyFreq,
-          SubArray<1, int, DeviceType> copyIsLeaf,
-          SubArray<1, int, DeviceType> copyIndex,
-          SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
-          SubArray<1, int, DeviceType> status, int queue_idx) {
+  Task<GenerateCLFunctor<T, DeviceType>> GenTask(int queue_idx) {
     using FunctorType = GenerateCLFunctor<T, DeviceType>;
     FunctorType Functor(histogram, CL, dict_size, lNodesFreq, lNodesLeader,
                         iNodesFreq, iNodesLeader, tempFreq, tempIsLeaf,
@@ -706,38 +715,25 @@ public:
     }
 
     return Task(Functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "GenerateCL");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, T, DeviceType> histogram,
-               SubArray<1, T, DeviceType> CL, int dict_size,
-               /* Global Arrays */
-               SubArray<1, T, DeviceType> lNodesFreq,
-               SubArray<1, int, DeviceType> lNodesLeader,
-               SubArray<1, T, DeviceType> iNodesFreq,
-               SubArray<1, int, DeviceType> iNodesLeader,
-               SubArray<1, T, DeviceType> tempFreq,
-               SubArray<1, int, DeviceType> tempIsLeaf,
-               SubArray<1, int, DeviceType> tempIndex,
-               SubArray<1, T, DeviceType> copyFreq,
-               SubArray<1, int, DeviceType> copyIsLeaf,
-               SubArray<1, int, DeviceType> copyIndex,
-               SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
-               SubArray<1, int, DeviceType> status, int queue_idx) {
-    // Array<1, int, DeviceType> status_array({(SIZE)16}, false, true);
-    // SubArray status(status_array);
-    using FunctorType = GenerateCLFunctor<T, DeviceType>;
-    using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(histogram, CL, dict_size, lNodesFreq, lNodesLeader,
-                            iNodesFreq, iNodesLeader, tempFreq, tempIsLeaf,
-                            tempIndex, copyFreq, copyIsLeaf, copyIndex,
-                            diagonal_path_intersections, status, queue_idx);
-    DeviceAdapter<TaskType, DeviceType> adapter;
-
-    adapter.Execute(task);
-    DeviceRuntime<DeviceType>::SyncAllQueues();
-  }
+private:
+  SubArray<1, T, DeviceType> histogram;
+  SubArray<1, T, DeviceType> CL;
+  int dict_size;
+  SubArray<1, T, DeviceType> lNodesFreq;
+  SubArray<1, int, DeviceType> lNodesLeader;
+  SubArray<1, T, DeviceType> iNodesFreq;
+  SubArray<1, int, DeviceType> iNodesLeader;
+  SubArray<1, T, DeviceType> tempFreq;
+  SubArray<1, int, DeviceType> tempIsLeaf;
+  SubArray<1, int, DeviceType> tempIndex;
+  SubArray<1, T, DeviceType> copyFreq;
+  SubArray<1, int, DeviceType> copyIsLeaf;
+  SubArray<1, int, DeviceType> copyIndex;
+  SubArray<1, uint32_t, DeviceType> diagonal_path_intersections;
+  SubArray<1, int, DeviceType> status;
 };
 
 #undef MOD
