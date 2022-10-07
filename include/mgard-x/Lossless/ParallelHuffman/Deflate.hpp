@@ -22,11 +22,10 @@ template <typename H, typename DeviceType>
 class DeflateFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT DeflateFunctor() {}
-  MGARDX_CONT DeflateFunctor(SubArray<1, H, DeviceType> hcoded, SIZE len,
+  MGARDX_CONT DeflateFunctor(SubArray<1, H, DeviceType> hcoded,
                              SubArray<1, size_t, DeviceType> densely_meta,
                              int PART_SIZE)
-      : hcoded(hcoded), len(len), densely_meta(densely_meta),
-        PART_SIZE(PART_SIZE) {
+      : hcoded(hcoded), densely_meta(densely_meta), PART_SIZE(PART_SIZE) {
     Functor<DeviceType>();
   }
 
@@ -34,14 +33,15 @@ public:
     size_t gid = FunctorBase<DeviceType>::GetBlockIdX() *
                      FunctorBase<DeviceType>::GetBlockDimX() +
                  FunctorBase<DeviceType>::GetThreadIdX();
-    if (gid >= (len - 1) / PART_SIZE + 1)
+    if (gid >= (hcoded.shape(0) - 1) / PART_SIZE + 1)
       return;
     uint8_t bitwidth;
     size_t densely_coded_lsb_pos = sizeof(H) * 8, total_bitwidth = 0;
-    size_t ending =
-        (gid + 1) * PART_SIZE <= len ? PART_SIZE : len - gid * PART_SIZE;
-    //    if ((gid + 1) * PART_SIZE > len) printf("\n\ngid %lu\tending %lu\n\n",
-    //    gid, ending);
+    size_t ending = (gid + 1) * PART_SIZE <= hcoded.shape(0)
+                        ? PART_SIZE
+                        : hcoded.shape(0) - gid * PART_SIZE;
+    //    if ((gid + 1) * PART_SIZE > hcoded.shape(0)) printf("\n\ngid
+    //    %lu\tending %lu\n\n", gid, ending);
     H msb_bw_word_lsb, _1, _2;
     H *current = hcoded(gid * PART_SIZE);
     for (size_t i = 0; i < ending; i++) {
@@ -89,26 +89,25 @@ public:
 
 private:
   SubArray<1, H, DeviceType> hcoded;
-  SIZE len;
   SubArray<1, size_t, DeviceType> densely_meta;
   int PART_SIZE;
 };
 
-template <typename H, typename DeviceType>
-class Deflate : public AutoTuner<DeviceType> {
+template <typename H, typename DeviceType> class DeflateKernel : public Kernel {
 public:
+  constexpr static bool EnableAutoTuning() { return false; }
+  constexpr static std::string_view Name = "deflate";
   MGARDX_CONT
-  Deflate() : AutoTuner<DeviceType>() {}
+  DeflateKernel(SubArray<1, H, DeviceType> hcoded,
+                SubArray<1, size_t, DeviceType> densely_meta, int PART_SIZE)
+      : hcoded(hcoded), densely_meta(densely_meta), PART_SIZE(PART_SIZE) {}
 
   MGARDX_CONT
-  Task<DeflateFunctor<H, DeviceType>>
-  GenTask(SubArray<1, H, DeviceType> hcoded, SIZE len,
-          SubArray<1, size_t, DeviceType> densely_meta, int PART_SIZE,
-          int queue_idx) {
+  Task<DeflateFunctor<H, DeviceType>> GenTask(int queue_idx) {
     using FunctorType = DeflateFunctor<H, DeviceType>;
-    FunctorType functor(hcoded, len, densely_meta, PART_SIZE);
+    FunctorType functor(hcoded, densely_meta, PART_SIZE);
 
-    auto nchunk = (len - 1) / PART_SIZE + 1;
+    auto nchunk = (hcoded.shape(0) - 1) / PART_SIZE + 1;
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
     tbz = 1;
@@ -120,19 +119,13 @@ public:
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "Deflate");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, H, DeviceType> hcoded, SIZE len,
-               SubArray<1, size_t, DeviceType> densely_meta, int PART_SIZE,
-               int queue_idx) {
-    using FunctorType = DeflateFunctor<H, DeviceType>;
-    using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(hcoded, len, densely_meta, PART_SIZE, queue_idx);
-    DeviceAdapter<TaskType, DeviceType> adapter;
-    adapter.Execute(task);
-  }
+private:
+  SubArray<1, H, DeviceType> hcoded;
+  SubArray<1, size_t, DeviceType> densely_meta;
+  int PART_SIZE;
 };
 
 } // namespace mgard_x

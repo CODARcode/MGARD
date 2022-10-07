@@ -25,9 +25,8 @@ public:
   MGARDX_CONT EncodeFixedLenFunctor() {}
   MGARDX_CONT EncodeFixedLenFunctor(SubArray<1, Q, DeviceType> data,
                                     SubArray<1, H, DeviceType> hcoded,
-                                    SIZE data_len,
                                     SubArray<1, H, DeviceType> codebook)
-      : data(data), hcoded(hcoded), data_len(data_len), codebook(codebook) {
+      : data(data), hcoded(hcoded), codebook(codebook) {
     Functor<DeviceType>();
   }
 
@@ -35,7 +34,7 @@ public:
     unsigned int gid = (FunctorBase<DeviceType>::GetBlockIdX() *
                         FunctorBase<DeviceType>::GetBlockDimX()) +
                        FunctorBase<DeviceType>::GetThreadIdX();
-    if (gid >= data_len)
+    if (gid >= data.shape(0))
       return;
     *hcoded(gid) = *codebook(*data(gid)); // try to exploit cache?
   }
@@ -53,22 +52,24 @@ public:
 private:
   SubArray<1, Q, DeviceType> data;
   SubArray<1, H, DeviceType> hcoded;
-  SIZE data_len;
   SubArray<1, H, DeviceType> codebook;
 };
 
 template <typename Q, typename H, typename DeviceType>
-class EncodeFixedLen : public AutoTuner<DeviceType> {
+class EncodeFixedLenKernel : public Kernel {
 public:
+  constexpr static bool EnableAutoTuning() { return false; }
+  constexpr static std::string_view Name = "encode fixed length";
   MGARDX_CONT
-  EncodeFixedLen() : AutoTuner<DeviceType>() {}
+  EncodeFixedLenKernel(SubArray<1, Q, DeviceType> data,
+                       SubArray<1, H, DeviceType> hcoded,
+                       SubArray<1, H, DeviceType> codebook)
+      : data(data), hcoded(hcoded), codebook(codebook) {}
 
   MGARDX_CONT
-  Task<EncodeFixedLenFunctor<Q, H, DeviceType>>
-  GenTask(SubArray<1, Q, DeviceType> data, SubArray<1, H, DeviceType> hcoded,
-          SIZE data_len, SubArray<1, H, DeviceType> codebook, int queue_idx) {
+  Task<EncodeFixedLenFunctor<Q, H, DeviceType>> GenTask(int queue_idx) {
     using FunctorType = EncodeFixedLenFunctor<Q, H, DeviceType>;
-    FunctorType functor(data, hcoded, data_len, codebook);
+    FunctorType functor(data, hcoded, codebook);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -77,23 +78,15 @@ public:
     tbx = tBLK_ENCODE;
     gridz = 1;
     gridy = 1;
-    gridx = (data_len - 1) / tbx + 1;
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
-    // shape.dataHost()[0]); PrintSubarray("shape", shape);
+    gridx = (data.shape(0) - 1) / tbx + 1;
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "EncodeFixedLen");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, Q, DeviceType> data,
-               SubArray<1, H, DeviceType> hcoded, SIZE data_len,
-               SubArray<1, H, DeviceType> codebook, int queue_idx) {
-    using FunctorType = EncodeFixedLenFunctor<Q, H, DeviceType>;
-    using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(data, hcoded, data_len, codebook, queue_idx);
-    DeviceAdapter<TaskType, DeviceType> adapter;
-    adapter.Execute(task);
-  }
+private:
+  SubArray<1, Q, DeviceType> data;
+  SubArray<1, H, DeviceType> hcoded;
+  SubArray<1, H, DeviceType> codebook;
 };
 
 } // namespace mgard_x
