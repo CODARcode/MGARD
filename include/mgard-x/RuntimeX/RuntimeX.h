@@ -13,6 +13,7 @@
 #include "DataTypes.h"
 
 #include "AutoTuners/AutoTuner.h"
+#include "Kernel/Kernel.h"
 #include "Tasks/Task.h"
 
 // Serial backend should be always available

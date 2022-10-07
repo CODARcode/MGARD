@@ -568,9 +568,10 @@ private:
   SIZE f_rest, f_ghost, f_main;
 };
 
-template <DIM D, typename T, typename DeviceType> class Ipk1ReoKernel {
+template <DIM D, typename T, typename DeviceType>
+class Ipk1ReoKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "ipk1_nd";
   constexpr static SIZE G = 2;
@@ -1233,9 +1234,10 @@ private:
   SIZE c_rest, c_ghost, c_main;
 };
 
-template <DIM D, typename T, typename DeviceType> class Ipk2ReoKernel {
+template <DIM D, typename T, typename DeviceType>
+class Ipk2ReoKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "ipk2_nd";
   constexpr static SIZE G = 2;
@@ -1922,9 +1924,10 @@ private:
   SIZE r_rest, r_ghost, r_main;
 };
 
-template <DIM D, typename T, typename DeviceType> class Ipk3ReoKernel {
+template <DIM D, typename T, typename DeviceType>
+class Ipk3ReoKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "ipk3_nd";
   constexpr static SIZE G = 2;

@@ -2187,9 +2187,9 @@ private:
 
 template <DIM D_GLOBAL, DIM D_LOCAL, typename T, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE, typename DeviceType>
-class GpkReoKernel {
+class GpkReoKernel : public Kernel {
 public:
-  static const DIM NumDim = D_LOCAL;
+  constexpr static DIM NumDim = D_LOCAL;
   using DataType = T;
   constexpr static std::string_view Name = "gpk_reo_nd";
   MGARDX_CONT
@@ -4560,9 +4560,9 @@ private:
 
 template <DIM D_GLOBAL, DIM D_LOCAL, typename T, bool INTERPOLATION,
           bool CALC_COEFF, int TYPE, typename DeviceType>
-class GpkRevKernel {
+class GpkRevKernel : public Kernel {
 public:
-  static const DIM NumDim = D_LOCAL;
+  constexpr static const DIM NumDim = D_LOCAL;
   using DataType = T;
   constexpr static std::string_view Name = "gpk_rev_nd";
   MGARDX_CONT

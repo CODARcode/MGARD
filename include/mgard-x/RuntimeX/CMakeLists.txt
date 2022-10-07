@@ -1,6 +1,7 @@
 add_subdirectory(AutoTuners)
 add_subdirectory(DataStructures)
 add_subdirectory(Functors)
+add_subdirectory(Kernel)
 add_subdirectory(Tasks)
 add_subdirectory(Utilities)
 list(APPEND MGARD_X_HEADER

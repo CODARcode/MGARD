@@ -1629,7 +1629,7 @@ public:
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
     ExecutionReturn ret;
-    // clang-format off
+// clang-format off
     #define RUN_CONFIG(CONFIG_IDX)                                                           \
     {                                                                                        \
       constexpr ExecutionConfig config = GetExecutionConfig<KernelType::NumDim>(CONFIG_IDX); \
@@ -1656,15 +1656,20 @@ public:
 
   template <typename KernelType>
   MGARDX_CONT static void Execute(KernelType kernel, int queue_idx) {
-    constexpr ExecutionConfig config =
-        GetExecutionConfig<KernelType::NumDim, typename KernelType::DataType,
-                           SYCL>(KernelType::Name);
-    auto task =
-        kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
-    Execute(task);
+    if constexpr (KernelType::EnableAutoTuning()) {
+      constexpr ExecutionConfig config =
+          GetExecutionConfig<KernelType::NumDim, typename KernelType::DataType,
+                             SYCL>(KernelType::Name);
+      auto task =
+          kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
+      Execute(task);
 
-    if (AutoTuner<SYCL>::ProfileKernels) {
-      AutoTune(kernel, queue_idx);
+      if (AutoTuner<SYCL>::ProfileKernels) {
+        AutoTune(kernel, queue_idx);
+      }
+    } else {
+      auto task = kernel.template GenTask(queue_idx);
+      Execute(task);
     }
   }
 };

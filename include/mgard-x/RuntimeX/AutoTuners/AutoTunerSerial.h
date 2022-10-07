@@ -74,6 +74,12 @@ public:
 
   static constexpr int llk[num_precision][num_range] = {{0, 0, 0, 0, 0, 0, 0, 0, 0},
                                                         {0, 0, 0, 0, 0, 0, 0, 0, 0}};
+
+  static constexpr int sdck[num_precision][num_range] = {{0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                                        {0, 0, 0, 0, 0, 0, 0, 0, 0}};
+
+  static constexpr int sdmtk[num_precision][num_range] = {{0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                                        {0, 0, 0, 0, 0, 0, 0, 0, 0}};
 };
 
 template <> class AutoTuner<SERIAL> {
