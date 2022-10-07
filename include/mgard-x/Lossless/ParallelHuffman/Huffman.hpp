@@ -206,7 +206,8 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
     MemoryManager<DeviceType>::Copy1D(
         (H *)compressed_data_subarray(byte_offset +
                                       dH_uInt_entry[i] * sizeof(H)),
-        huff_subarray(i * chunk_size), dH_uInt_meta[i], i % MGARDX_NUM_ASYNC_QUEUES);
+        huff_subarray(i * chunk_size), dH_uInt_meta[i],
+        i % MGARDX_NUM_ASYNC_QUEUES);
   }
   advance_with_align<H>(byte_offset, ddata_size);
 
@@ -315,9 +316,9 @@ void HuffmanDecompress(
   SubArray<1, uint8_t, DeviceType> decodebook_subarray({(SIZE)decodebook_size},
                                                        decodebook);
   int nchunk = (primary_count - 1) / chunk_size + 1;
-  Decode<Q, H, DeviceType>().Execute(
-      ddata_subarray, huffmeta_subarray, primary_subarray, primary_count,
-      chunk_size, nchunk, decodebook_subarray, decodebook_size, 0);
+  Decode<Q, H, DeviceType>(ddata_subarray, huffmeta_subarray, primary_subarray,
+                           primary_count, chunk_size, nchunk,
+                           decodebook_subarray, decodebook_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
     timer.end();
