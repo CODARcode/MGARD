@@ -49,7 +49,7 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
 
   SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
   Histogram<Q, unsigned int, DeviceType>(dprimary_subarray, freq_subarray,
-                                          primary_count, dict_size, 0);
+                                         primary_count, dict_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
   // if (debug_print_huffman) {
@@ -96,9 +96,10 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
     huff_subarray = workspace;
   }
 
-  H *huff = huff_subarray.data();
-  EncodeFixedLen<unsigned int, H, DeviceType>().Execute(
-      dprimary_subarray, huff_subarray, primary_count, codebook_subarray, 0);
+  DeviceLauncher<DeviceType>::Execute(
+      EncodeFixedLenKernel<unsigned int, H, DeviceType>(
+          dprimary_subarray, huff_subarray, codebook_subarray),
+      0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (debug_print_huffman) {
     // PrintSubarray("EncodeFixedLen::huff_subarray", huff_subarray);
@@ -111,8 +112,10 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
   // size_t *huff_bitwidths = huff_bitwidths_array.data();
 
   SubArray<1, size_t, DeviceType> huff_bitwidths_subarray(huff_bitwidths_array);
-  Deflate<H, DeviceType>().Execute(huff_subarray, primary_count,
-                                   huff_bitwidths_subarray, chunk_size, 0);
+  DeviceLauncher<DeviceType>::Execute(
+      DeflateKernel<H, DeviceType>(huff_subarray, huff_bitwidths_subarray,
+                                   chunk_size),
+      0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
   if (debug_print_huffman) {
@@ -198,11 +201,12 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
   t1 = high_resolution_clock::now();
 
   align_byte_offset<H>(byte_offset);
+  H *huff = huff_subarray.data();
   for (auto i = 0; i < nchunk; i++) {
     MemoryManager<DeviceType>::Copy1D(
         (H *)compressed_data_subarray(byte_offset +
                                       dH_uInt_entry[i] * sizeof(H)),
-        huff + i * chunk_size, dH_uInt_meta[i], i % MGARDX_NUM_ASYNC_QUEUES);
+        huff_subarray(i * chunk_size), dH_uInt_meta[i], i % MGARDX_NUM_ASYNC_QUEUES);
   }
   advance_with_align<H>(byte_offset, ddata_size);
 
