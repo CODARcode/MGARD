@@ -494,21 +494,28 @@ private:
   SIZE actual_F;
 };
 
-template <DIM D, typename T, typename DeviceType>
-class Lpk1Reo : public AutoTuner<DeviceType> {
+template <DIM D, typename T, typename DeviceType> class Lpk1ReoKernel {
 public:
   MGARDX_CONT
-  Lpk1Reo() : AutoTuner<DeviceType>() {}
+  static const DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "lpk1_nd";
+  Lpk1ReoKernel(SubArray<1, SIZE, DeviceType> shape,
+                SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+                SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+                DIM curr_dim_c, DIM curr_dim_f,
+                SubArray<1, T, DeviceType> dist_f,
+                SubArray<1, T, DeviceType> ratio_f,
+                SubArray<D, T, DeviceType> v1, SubArray<D, T, DeviceType> v2,
+                SubArray<D, T, DeviceType> w)
+      : shape(shape), shape_c(shape_c), processed_n(processed_n),
+        processed_dims(processed_dims), curr_dim_r(curr_dim_r),
+        curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f), dist_f(dist_f),
+        ratio_f(ratio_f), v1(v1), v2(v2), w(w) {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<Lpk1ReoFunctor<D, T, R, C, F, DeviceType>>
-  GenTask(SubArray<1, SIZE, DeviceType> shape,
-          SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
-          SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
-          DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> dist_f,
-          SubArray<1, T, DeviceType> ratio_f, SubArray<D, T, DeviceType> v1,
-          SubArray<D, T, DeviceType> v2, SubArray<D, T, DeviceType> w,
-          int queue_idx) {
+  GenTask(int queue_idx) {
     using FunctorType = Lpk1ReoFunctor<D, T, R, C, F, DeviceType>;
     FunctorType functor(shape, shape_c, processed_n, processed_dims, curr_dim_r,
                         curr_dim_c, curr_dim_f, dist_f, ratio_f, v1, v2, w);
@@ -544,62 +551,18 @@ public:
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "Lpk1Reo");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape,
-               SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
-               SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
-               DIM curr_dim_c, DIM curr_dim_f,
-               SubArray<1, T, DeviceType> dist_f,
-               SubArray<1, T, DeviceType> ratio_f,
-               SubArray<D, T, DeviceType> v1, SubArray<D, T, DeviceType> v2,
-               SubArray<D, T, DeviceType> w, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(shape.dataHost()[curr_dim_f]) - 1);
-    int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.lpk1_nd[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define LPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = LPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = LPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = LPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType = Lpk1ReoFunctor<D, T, R, C, F, DeviceType>;             \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(                                          \
-        shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
-        curr_dim_f, dist_f, ratio_f, v1, v2, w, queue_idx);                    \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    LPK(6) if (!ret.success) config--;
-    LPK(5) if (!ret.success) config--;
-    LPK(4) if (!ret.success) config--;
-    LPK(3) if (!ret.success) config--;
-    LPK(2) if (!ret.success) config--;
-    LPK(1) if (!ret.success) config--;
-    LPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for Lpk1Reo.\n";
-      exit(-1);
-    }
-#undef LPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("lpk1_nd", prec, range_l, min_config);
-    }
-  }
+private:
+  SubArray<1, SIZE, DeviceType> shape;
+  SubArray<1, SIZE, DeviceType> shape_c;
+  DIM processed_n;
+  SubArray<1, DIM, DeviceType> processed_dims;
+  DIM curr_dim_r, curr_dim_c, curr_dim_f;
+  SubArray<1, T, DeviceType> dist_f;
+  SubArray<1, T, DeviceType> ratio_f;
+  SubArray<D, T, DeviceType> v1, v2, w;
 };
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
@@ -991,21 +954,28 @@ private:
   SIZE actual_C;
 };
 
-template <DIM D, typename T, typename DeviceType>
-class Lpk2Reo : public AutoTuner<DeviceType> {
+template <DIM D, typename T, typename DeviceType> class Lpk2ReoKernel {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "lpk2_nd";
   MGARDX_CONT
-  Lpk2Reo() : AutoTuner<DeviceType>() {}
+  Lpk2ReoKernel(SubArray<1, SIZE, DeviceType> shape,
+                SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+                SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+                DIM curr_dim_c, DIM curr_dim_f,
+                SubArray<1, T, DeviceType> dist_c,
+                SubArray<1, T, DeviceType> ratio_c,
+                SubArray<D, T, DeviceType> v1, SubArray<D, T, DeviceType> v2,
+                SubArray<D, T, DeviceType> w)
+      : shape(shape), shape_c(shape_c), processed_n(processed_n),
+        processed_dims(processed_dims), curr_dim_r(curr_dim_r),
+        curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f), dist_c(dist_c),
+        ratio_c(ratio_c), v1(v1), v2(v2), w(w) {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<Lpk2ReoFunctor<D, T, R, C, F, DeviceType>>
-  GenTask(SubArray<1, SIZE, DeviceType> shape,
-          SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
-          SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
-          DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> dist_c,
-          SubArray<1, T, DeviceType> ratio_c, SubArray<D, T, DeviceType> v1,
-          SubArray<D, T, DeviceType> v2, SubArray<D, T, DeviceType> w,
-          int queue_idx) {
+  GenTask(int queue_idx) {
     using FunctorType = Lpk2ReoFunctor<D, T, R, C, F, DeviceType>;
     FunctorType functor(shape, shape_c, processed_n, processed_dims, curr_dim_r,
                         curr_dim_c, curr_dim_f, dist_c, ratio_c, v1, v2, w);
@@ -1042,63 +1012,18 @@ public:
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "Lpk2Reo");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape,
-               SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
-               SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
-               DIM curr_dim_c, DIM curr_dim_f,
-               SubArray<1, T, DeviceType> dist_c,
-               SubArray<1, T, DeviceType> ratio_c,
-               SubArray<D, T, DeviceType> v1, SubArray<D, T, DeviceType> v2,
-               SubArray<D, T, DeviceType> w, int queue_idx) {
-    int range_l =
-        std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
-    int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.lpk2_nd[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define LPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = LPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = LPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = LPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType = Lpk2ReoFunctor<D, T, R, C, F, DeviceType>;             \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(                                          \
-        shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
-        curr_dim_f, dist_c, ratio_c, v1, v2, w, queue_idx);                    \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    LPK(6) if (!ret.success) config--;
-    LPK(5) if (!ret.success) config--;
-    LPK(4) if (!ret.success) config--;
-    LPK(3) if (!ret.success) config--;
-    LPK(2) if (!ret.success) config--;
-    LPK(1) if (!ret.success) config--;
-    LPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for Lpk2Reo.\n";
-      exit(-1);
-    }
-#undef LPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("lpk2_nd", prec, range_l, min_config);
-    }
-  }
+private:
+  SubArray<1, SIZE, DeviceType> shape;
+  SubArray<1, SIZE, DeviceType> shape_c;
+  DIM processed_n;
+  SubArray<1, DIM, DeviceType> processed_dims;
+  DIM curr_dim_r, curr_dim_c, curr_dim_f;
+  SubArray<1, T, DeviceType> dist_c;
+  SubArray<1, T, DeviceType> ratio_c;
+  SubArray<D, T, DeviceType> v1, v2, w;
 };
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
@@ -1499,21 +1424,28 @@ private:
   SIZE actual_R;
 };
 
-template <DIM D, typename T, typename DeviceType>
-class Lpk3Reo : public AutoTuner<DeviceType> {
+template <DIM D, typename T, typename DeviceType> class Lpk3ReoKernel {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "lpk3_nd";
   MGARDX_CONT
-  Lpk3Reo() : AutoTuner<DeviceType>() {}
+  Lpk3ReoKernel(SubArray<1, SIZE, DeviceType> shape,
+                SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
+                SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
+                DIM curr_dim_c, DIM curr_dim_f,
+                SubArray<1, T, DeviceType> dist_r,
+                SubArray<1, T, DeviceType> ratio_r,
+                SubArray<D, T, DeviceType> v1, SubArray<D, T, DeviceType> v2,
+                SubArray<D, T, DeviceType> w)
+      : shape(shape), shape_c(shape_c), processed_n(processed_n),
+        processed_dims(processed_dims), curr_dim_r(curr_dim_r),
+        curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f), dist_r(dist_r),
+        ratio_r(ratio_r), v1(v1), v2(v2), w(w) {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<Lpk3ReoFunctor<D, T, R, C, F, DeviceType>>
-  GenTask(SubArray<1, SIZE, DeviceType> shape,
-          SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
-          SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
-          DIM curr_dim_c, DIM curr_dim_f, SubArray<1, T, DeviceType> dist_r,
-          SubArray<1, T, DeviceType> ratio_r, SubArray<D, T, DeviceType> v1,
-          SubArray<D, T, DeviceType> v2, SubArray<D, T, DeviceType> w,
-          int queue_idx) {
+  GenTask(int queue_idx) {
     using FunctorType = Lpk3ReoFunctor<D, T, R, C, F, DeviceType>;
     FunctorType functor(shape, shape_c, processed_n, processed_dims, curr_dim_r,
                         curr_dim_c, curr_dim_f, dist_r, ratio_r, v1, v2, w);
@@ -1551,64 +1483,18 @@ public:
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "Lpk3Reo");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, SIZE, DeviceType> shape,
-               SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
-               SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
-               DIM curr_dim_c, DIM curr_dim_f,
-               SubArray<1, T, DeviceType> dist_r,
-               SubArray<1, T, DeviceType> ratio_r,
-               SubArray<D, T, DeviceType> v1, SubArray<D, T, DeviceType> v2,
-               SubArray<D, T, DeviceType> w, int queue_idx) {
-    int range_l =
-        std::min(6, (int)std::log2(shape_c.dataHost()[curr_dim_f]) - 1);
-    int arch = DeviceRuntime<DeviceType>::GetArchitectureGeneration();
-    int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.lpk3_nd[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define LPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = LPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = LPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = LPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType = Lpk3ReoFunctor<D, T, R, C, F, DeviceType>;             \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F>(                                          \
-        shape, shape_c, processed_n, processed_dims, curr_dim_r, curr_dim_c,   \
-        curr_dim_f, dist_r, ratio_r, v1, v2, w, queue_idx);                    \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    LPK(6) if (!ret.success) config--;
-    LPK(5) if (!ret.success) config--;
-    LPK(4) if (!ret.success) config--;
-    LPK(3) if (!ret.success) config--;
-    LPK(2) if (!ret.success) config--;
-    LPK(1) if (!ret.success) config--;
-    LPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for Lpk3Reo.\n";
-      exit(-1);
-    }
-#undef LPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("lpk3_nd", prec, range_l, min_config);
-    }
-  }
+private:
+  SubArray<1, SIZE, DeviceType> shape;
+  SubArray<1, SIZE, DeviceType> shape_c;
+  DIM processed_n;
+  SubArray<1, DIM, DeviceType> processed_dims;
+  DIM curr_dim_r, curr_dim_c, curr_dim_f;
+  SubArray<1, T, DeviceType> dist_r;
+  SubArray<1, T, DeviceType> ratio_r;
+  SubArray<D, T, DeviceType> v1, v2, w;
 };
 
 } // namespace mgard_x

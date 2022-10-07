@@ -568,17 +568,22 @@ private:
   SIZE f_rest, f_ghost, f_main;
 };
 
-template <DIM D, typename T, typename DeviceType>
-class Ipk1Reo : public AutoTuner<DeviceType> {
+template <DIM D, typename T, typename DeviceType> class Ipk1ReoKernel {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "ipk1_nd";
+  constexpr static SIZE G = 2;
   MGARDX_CONT
-  Ipk1Reo() : AutoTuner<DeviceType>() {}
+  Ipk1ReoKernel(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+                SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
+                SubArray<D, T, DeviceType> v)
+      : curr_dim_r(curr_dim_r), curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f),
+        am(am), bm(bm), v(v) {}
 
-  template <SIZE R, SIZE C, SIZE F, SIZE G>
+  template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>>
-  GenTask(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-          SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
-          SubArray<D, T, DeviceType> v, int queue_idx) {
+  GenTask(int queue_idx) {
     using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;
     FunctorType functor(curr_dim_r, curr_dim_c, curr_dim_f, am, bm, v);
 
@@ -610,57 +615,13 @@ public:
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "Ipk1Reo");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
-               SubArray<D, T, DeviceType> v, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(v.shape(curr_dim_f)) - 1);
-    int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.ipk1_nd[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define IPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
-    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
-    using FunctorType = Ipk1ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
-                                        am, bm, v, queue_idx);                 \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    IPK(6) if (!ret.success) config--;
-    IPK(5) if (!ret.success) config--;
-    IPK(4) if (!ret.success) config--;
-    IPK(3) if (!ret.success) config--;
-    IPK(2) if (!ret.success) config--;
-    IPK(1) if (!ret.success) config--;
-    IPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for Ipk1Reo.\n";
-      exit(-1);
-    }
-#undef IPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("ipk1_nd", prec, range_l, min_config);
-    }
-  }
+private:
+  DIM curr_dim_r, curr_dim_c, curr_dim_f;
+  SubArray<1, T, DeviceType> am, bm;
+  SubArray<D, T, DeviceType> v;
 };
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G,
@@ -1272,17 +1233,22 @@ private:
   SIZE c_rest, c_ghost, c_main;
 };
 
-template <DIM D, typename T, typename DeviceType>
-class Ipk2Reo : public AutoTuner<DeviceType> {
+template <DIM D, typename T, typename DeviceType> class Ipk2ReoKernel {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "ipk2_nd";
+  constexpr static SIZE G = 2;
   MGARDX_CONT
-  Ipk2Reo() : AutoTuner<DeviceType>() {}
+  Ipk2ReoKernel(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+                SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
+                SubArray<D, T, DeviceType> v)
+      : curr_dim_r(curr_dim_r), curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f),
+        am(am), bm(bm), v(v) {}
 
-  template <SIZE R, SIZE C, SIZE F, SIZE G>
+  template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>>
-  GenTask(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-          SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
-          SubArray<D, T, DeviceType> v, int queue_idx) {
+  GenTask(int queue_idx) {
     using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;
     FunctorType functor(curr_dim_r, curr_dim_c, curr_dim_f, am, bm, v);
 
@@ -1313,57 +1279,13 @@ public:
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "Ipk2Reo");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
-               SubArray<D, T, DeviceType> v, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(v.shape(curr_dim_f)) - 1);
-    int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.ipk2_nd[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define IPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
-    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
-    using FunctorType = Ipk2ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
-                                        am, bm, v, queue_idx);                 \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    IPK(6) if (!ret.success) config--;
-    IPK(5) if (!ret.success) config--;
-    IPK(4) if (!ret.success) config--;
-    IPK(3) if (!ret.success) config--;
-    IPK(2) if (!ret.success) config--;
-    IPK(1) if (!ret.success) config--;
-    IPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for Ipk2Reo.\n";
-      exit(-1);
-    }
-#undef IPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("ipk2_nd", prec, range_l, min_config);
-    }
-  }
+private:
+  DIM curr_dim_r, curr_dim_c, curr_dim_f;
+  SubArray<1, T, DeviceType> am, bm;
+  SubArray<D, T, DeviceType> v;
 };
 
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G,
@@ -2000,17 +1922,22 @@ private:
   SIZE r_rest, r_ghost, r_main;
 };
 
-template <DIM D, typename T, typename DeviceType>
-class Ipk3Reo : public AutoTuner<DeviceType> {
+template <DIM D, typename T, typename DeviceType> class Ipk3ReoKernel {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "ipk3_nd";
+  constexpr static SIZE G = 2;
   MGARDX_CONT
-  Ipk3Reo() : AutoTuner<DeviceType>() {}
+  Ipk3ReoKernel(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
+                SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
+                SubArray<D, T, DeviceType> v)
+      : curr_dim_r(curr_dim_r), curr_dim_c(curr_dim_c), curr_dim_f(curr_dim_f),
+        am(am), bm(bm), v(v) {}
 
-  template <SIZE R, SIZE C, SIZE F, SIZE G>
+  template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>>
-  GenTask(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-          SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
-          SubArray<D, T, DeviceType> v, int queue_idx) {
+  GenTask(int queue_idx) {
     using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;
     FunctorType functor(curr_dim_r, curr_dim_c, curr_dim_f, am, bm, v);
 
@@ -2041,57 +1968,13 @@ public:
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "Ipk3Reo");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(DIM curr_dim_r, DIM curr_dim_c, DIM curr_dim_f,
-               SubArray<1, T, DeviceType> am, SubArray<1, T, DeviceType> bm,
-               SubArray<D, T, DeviceType> v, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(v.shape(curr_dim_f)) - 1);
-    int prec = TypeToIdx<T>();
-    int config = AutoTuner<DeviceType>::autoTuningTable.ipk3_nd[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define IPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = IPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = IPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = IPK_CONFIG[D - 1][CONFIG][2];                                \
-    const int G = IPK_CONFIG[D - 1][CONFIG][3];                                \
-    using FunctorType = Ipk3ReoFunctor<D, T, R, C, F, G, DeviceType>;          \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task = GenTask<R, C, F, G>(curr_dim_r, curr_dim_c, curr_dim_f,    \
-                                        am, bm, v, queue_idx);                 \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    IPK(6) if (!ret.success) config--;
-    IPK(5) if (!ret.success) config--;
-    IPK(4) if (!ret.success) config--;
-    IPK(3) if (!ret.success) config--;
-    IPK(2) if (!ret.success) config--;
-    IPK(1) if (!ret.success) config--;
-    IPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err << "no suitable config for Ipk3Reo.\n";
-      exit(-1);
-    }
-#undef IPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("ipk3_nd", prec, range_l, min_config);
-    }
-  }
+private:
+  DIM curr_dim_r, curr_dim_c, curr_dim_f;
+  SubArray<1, T, DeviceType> am, bm;
+  SubArray<D, T, DeviceType> v;
 };
 
 } // namespace mgard_x
