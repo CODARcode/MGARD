@@ -65,14 +65,16 @@ void CoefficientsRestoreND(Hierarchy<D, T, DeviceType> &hierarchy,
   ratio_r = SubArray(hierarchy.ratio(l, curr_dims[0]));
   ratio_c = SubArray(hierarchy.ratio(l, curr_dims[1]));
   ratio_f = SubArray(hierarchy.ratio(l, curr_dims[2]));
-
-  GpkRev<D, 3, T, true, false, 1, DeviceType>().Execute(
-      shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
-      curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput, dcoarse,
-      dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf,
-      0, 0, 0, hierarchy.level_shape(l, curr_dims[0]),
-      hierarchy.level_shape(l, curr_dims[1]),
-      hierarchy.level_shape(l, curr_dims[2]), queue_idx);
+  DeviceLauncher<DeviceType>::Execute(
+      GpkRevKernel<D, 3, T, true, false, 1, DeviceType>(
+          shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
+          curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput,
+          dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+          dcoeff_rc, dcoeff_rcf, 0, 0, 0,
+          hierarchy.level_shape(l, curr_dims[0]),
+          hierarchy.level_shape(l, curr_dims[1]),
+          hierarchy.level_shape(l, curr_dims[2])),
+      queue_idx);
 
   for (DIM d = 3; d < D; d += 2) {
     CopyND(doutput, dinput1, queue_idx);
@@ -95,26 +97,30 @@ void CoefficientsRestoreND(Hierarchy<D, T, DeviceType> &hierarchy,
     if (D - d == 1) {
       unprocessed_idx += 1;
       unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
-      GpkRev<D, 2, T, true, false, 2, DeviceType>().Execute(
-          shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
-          curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput,
-          dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
-          dcoeff_rc, dcoeff_rcf, 0, 0, 0,
-          hierarchy.level_shape(l, curr_dims[0]),
-          hierarchy.level_shape(l, curr_dims[1]),
-          hierarchy.level_shape(l, curr_dims[2]), queue_idx);
+      DeviceLauncher<DeviceType>::Execute(
+          GpkRevKernel<D, 2, T, true, false, 2, DeviceType>(
+              shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
+              curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput,
+              dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+              dcoeff_rc, dcoeff_rcf, 0, 0, 0,
+              hierarchy.level_shape(l, curr_dims[0]),
+              hierarchy.level_shape(l, curr_dims[1]),
+              hierarchy.level_shape(l, curr_dims[2])),
+          queue_idx);
 
     } else { // D - d >= 2
       unprocessed_idx += 2;
       unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
-      GpkRev<D, 3, T, true, false, 2, DeviceType>().Execute(
-          shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
-          curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput,
-          dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
-          dcoeff_rc, dcoeff_rcf, 0, 0, 0,
-          hierarchy.level_shape(l, curr_dims[0]),
-          hierarchy.level_shape(l, curr_dims[1]),
-          hierarchy.level_shape(l, curr_dims[2]), queue_idx);
+      DeviceLauncher<DeviceType>::Execute(
+          GpkRevKernel<D, 3, T, true, false, 2, DeviceType>(
+              shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
+              curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput,
+              dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+              dcoeff_rc, dcoeff_rcf, 0, 0, 0,
+              hierarchy.level_shape(l, curr_dims[0]),
+              hierarchy.level_shape(l, curr_dims[1]),
+              hierarchy.level_shape(l, curr_dims[2])),
+          queue_idx);
     }
   }
   // Done interpolation-restore on doutput
@@ -143,14 +149,16 @@ void CoefficientsRestoreND(Hierarchy<D, T, DeviceType> &hierarchy,
   ratio_r = SubArray(hierarchy.ratio(l, curr_dims[0]));
   ratio_c = SubArray(hierarchy.ratio(l, curr_dims[1]));
   ratio_f = SubArray(hierarchy.ratio(l, curr_dims[2]));
-
-  GpkRev<D, 3, T, false, false, 1, DeviceType>().Execute(
-      shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
-      curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, dinput1, dcoarse,
-      dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc, dcoeff_rcf,
-      0, 0, 0, hierarchy.level_shape(l, curr_dims[0]),
-      hierarchy.level_shape(l, curr_dims[1]),
-      hierarchy.level_shape(l, curr_dims[2]), queue_idx);
+  DeviceLauncher<DeviceType>::Execute(
+      GpkRevKernel<D, 3, T, false, false, 1, DeviceType>(
+          shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
+          curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, dinput1,
+          dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+          dcoeff_rc, dcoeff_rcf, 0, 0, 0,
+          hierarchy.level_shape(l, curr_dims[0]),
+          hierarchy.level_shape(l, curr_dims[1]),
+          hierarchy.level_shape(l, curr_dims[2])),
+      queue_idx);
 
   DIM D_reduced = D % 2 == 0 ? D - 1 : D - 2;
   for (DIM d = 3; d < D_reduced; d += 2) {
@@ -177,13 +185,16 @@ void CoefficientsRestoreND(Hierarchy<D, T, DeviceType> &hierarchy,
 
     unprocessed_idx += 2;
     unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
-    GpkRev<D, 3, T, false, false, 2, DeviceType>().Execute(
-        shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
-        curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, dinput1, dcoarse,
-        dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
-        dcoeff_rcf, 0, 0, 0, hierarchy.level_shape(l, curr_dims[0]),
-        hierarchy.level_shape(l, curr_dims[1]),
-        hierarchy.level_shape(l, curr_dims[2]), queue_idx);
+    DeviceLauncher<DeviceType>::Execute(
+        GpkRevKernel<D, 3, T, false, false, 2, DeviceType>(
+            shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
+            curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, dinput1,
+            dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+            dcoeff_rc, dcoeff_rcf, 0, 0, 0,
+            hierarchy.level_shape(l, curr_dims[0]),
+            hierarchy.level_shape(l, curr_dims[1]),
+            hierarchy.level_shape(l, curr_dims[2])),
+        queue_idx);
   }
 
   // printf("coeff-restore %u-%dD\n", D_reduced+1, D_reduced+2);
@@ -205,24 +216,30 @@ void CoefficientsRestoreND(Hierarchy<D, T, DeviceType> &hierarchy,
     // printf("coeff-restore %u-%dD\n", D_reduced+1, D_reduced+1);
     unprocessed_idx += 1;
     unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
-    GpkRev<D, 2, T, false, true, 2, DeviceType>().Execute(
-        shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
-        curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput, dcoarse,
-        dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
-        dcoeff_rcf, 0, 0, 0, hierarchy.level_shape(l, curr_dims[0]),
-        hierarchy.level_shape(l, curr_dims[1]),
-        hierarchy.level_shape(l, curr_dims[2]), queue_idx);
+    DeviceLauncher<DeviceType>::Execute(
+        GpkRevKernel<D, 2, T, false, true, 2, DeviceType>(
+            shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
+            curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput,
+            dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+            dcoeff_rc, dcoeff_rcf, 0, 0, 0,
+            hierarchy.level_shape(l, curr_dims[0]),
+            hierarchy.level_shape(l, curr_dims[1]),
+            hierarchy.level_shape(l, curr_dims[2])),
+        queue_idx);
   } else { // D - D_reduced >= 2
     // printf("coeff-restore %u-%dD\n", D_reduced+1, D_reduced+2);
     unprocessed_idx += 2;
     unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
-    GpkRev<D, 3, T, false, true, 2, DeviceType>().Execute(
-        shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
-        curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput, dcoarse,
-        dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf, dcoeff_rc,
-        dcoeff_rcf, 0, 0, 0, hierarchy.level_shape(l, curr_dims[0]),
-        hierarchy.level_shape(l, curr_dims[1]),
-        hierarchy.level_shape(l, curr_dims[2]), queue_idx);
+    DeviceLauncher<DeviceType>::Execute(
+        GpkRevKernel<D, 3, T, false, true, 2, DeviceType>(
+            shape, shape_c, unprocessed_n, unprocessed_dims, curr_dims[0],
+            curr_dims[1], curr_dims[2], ratio_r, ratio_c, ratio_f, doutput,
+            dcoarse, dcoeff_f, dcoeff_c, dcoeff_r, dcoeff_cf, dcoeff_rf,
+            dcoeff_rc, dcoeff_rcf, 0, 0, 0,
+            hierarchy.level_shape(l, curr_dims[0]),
+            hierarchy.level_shape(l, curr_dims[1]),
+            hierarchy.level_shape(l, curr_dims[2])),
+        queue_idx);
   }
 
   if (multidim_refactoring_debug_print) { // debug
