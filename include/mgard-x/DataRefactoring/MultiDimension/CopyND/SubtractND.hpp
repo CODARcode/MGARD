@@ -21,7 +21,8 @@ template <DIM D, typename T, typename DeviceType>
 void SubtractND(SubArray<D, T, DeviceType> dinput,
                 SubArray<D, T, DeviceType> &doutput, int queue_idx) {
 
-  LwpkReo<D, T, SUBTRACT, DeviceType>().Execute(dinput, doutput, queue_idx);
+  DeviceLauncher<DeviceType>::Execute(
+      LwpkReoKernel<D, T, SUBTRACT, DeviceType>(dinput, doutput), queue_idx);
 }
 
 } // namespace mgard_x
