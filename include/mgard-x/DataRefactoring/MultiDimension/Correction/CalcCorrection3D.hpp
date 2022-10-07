@@ -71,9 +71,10 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
     dw_out = dcorrection;
     dw_out.resize({r, c, ff});
 
-    Lpk1Reo3D<D, T, DeviceType>().Execute(r, c, f, ff, rr, cc, ff, dist_f,
-                                          ratio_f, dw_in1, dw_in2, dw_out,
-                                          queue_idx);
+    DeviceLauncher<DeviceType>::Execute(
+        Lpk1Reo3DKernel<D, T, DeviceType>(r, c, f, ff, rr, cc, ff, dist_f,
+                                          ratio_f, dw_in1, dw_in2, dw_out),
+        queue_idx);
 
     verify_matrix_cuda(r, c, ff, dw_out.data(), dw_out.ld(D - 1),
                        dw_out.ld(D - 2), dw_out.ld(D - 1),
@@ -94,8 +95,10 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
     dw_out.offset({0, 0, ff});
     dw_out.resize({r, cc, ff});
 
-    Lpk2Reo3D<D, T, DeviceType>().Execute(r, c, ff, cc, dist_c, ratio_c, dw_in1,
-                                          dw_in2, dw_out, queue_idx);
+    DeviceLauncher<DeviceType>::Execute(
+        Lpk2Reo3DKernel<D, T, DeviceType>(r, c, ff, cc, dist_c, ratio_c, dw_in1,
+                                          dw_in2, dw_out),
+        queue_idx);
 
     verify_matrix_cuda(r, cc, ff, dw_out.data(), dw_out.ld(D - 1),
                        dw_out.ld(D - 2), dw_out.ld(D - 1),
@@ -116,8 +119,10 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
     dw_out.offset({0, cc, ff});
     dw_out.resize({rr, cc, ff});
 
-    Lpk3Reo3D<D, T, DeviceType>().Execute(r, cc, ff, rr, dist_r, ratio_r,
-                                          dw_in1, dw_in2, dw_out, queue_idx);
+    DeviceLauncher<DeviceType>::Execute(
+        Lpk3Reo3DKernel<D, T, DeviceType>(r, cc, ff, rr, dist_r, ratio_r,
+                                          dw_in1, dw_in2, dw_out),
+        queue_idx);
 
     verify_matrix_cuda(rr, cc, ff, dw_out.data(), dw_out.ld(D - 1),
                        dw_out.ld(D - 2), dw_out.ld(D - 1),
@@ -130,8 +135,10 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
   }
 
   if (D >= 1) {
-    Ipk1Reo3D<D, T, DeviceType>().Execute(rr, cc, ff, am_ff, bm_ff, dist_ff,
-                                          dw_out, queue_idx);
+    DeviceLauncher<DeviceType>::Execute(
+        Ipk1Reo3DKernel<D, T, DeviceType>(rr, cc, ff, am_ff, bm_ff, dist_ff,
+                                          dw_out),
+        queue_idx);
     verify_matrix_cuda(rr, cc, ff, dw_out.data(), dw_out.ld(D - 1),
                        dw_out.ld(D - 2), dw_out.ld(D - 1),
                        prefix + "ipk_1_3d" + "_level_" + std::to_string(l),
@@ -142,9 +149,10 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
   if (D >= 2) {
-    Ipk2Reo3D<D, T, DeviceType>().Execute(rr, cc, ff, am_cc, bm_cc, dist_cc,
-                                          dw_out, queue_idx);
-
+    DeviceLauncher<DeviceType>::Execute(
+        Ipk2Reo3DKernel<D, T, DeviceType>(rr, cc, ff, am_cc, bm_cc, dist_cc,
+                                          dw_out),
+        queue_idx);
     verify_matrix_cuda(rr, cc, ff, dw_out.data(), dw_out.ld(D - 1),
                        dw_out.ld(D - 2), dw_out.ld(D - 1),
                        prefix + "ipk_2_3d" + "_level_" + std::to_string(l),
@@ -155,9 +163,10 @@ void CalcCorrection3D(Hierarchy<D, T, DeviceType> &hierarchy,
     }
   }
   if (D == 3) {
-    Ipk3Reo3D<D, T, DeviceType>().Execute(rr, cc, ff, am_rr, bm_rr, dist_rr,
-                                          dw_out, queue_idx);
-
+    DeviceLauncher<DeviceType>::Execute(
+        Ipk3Reo3DKernel<D, T, DeviceType>(rr, cc, ff, am_rr, bm_rr, dist_rr,
+                                          dw_out),
+        queue_idx);
     verify_matrix_cuda(rr, cc, ff, dw_out.data(), dw_out.ld(D - 1),
                        dw_out.ld(D - 2), dw_out.ld(D - 1),
                        prefix + "ipk_3_3d" + "_level_" + std::to_string(l),
