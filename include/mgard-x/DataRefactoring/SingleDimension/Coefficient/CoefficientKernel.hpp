@@ -145,17 +145,25 @@ private:
 };
 
 template <DIM D, typename T, OPTION OP, typename DeviceType>
-class SingleDimensionCoefficient : public AutoTuner<DeviceType> {
+class SingleDimensionCoefficientKernel {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  // Just use the config of LWPK for now
+  constexpr static std::string_view Name = "lwpk";
   MGARDX_CONT
-  SingleDimensionCoefficient() : AutoTuner<DeviceType>() {}
+  SingleDimensionCoefficientKernel(DIM current_dim,
+                                   SubArray<1, T, DeviceType> ratio,
+                                   SubArray<D, T, DeviceType> v,
+                                   SubArray<D, T, DeviceType> coarse,
+                                   SubArray<D, T, DeviceType> coeff)
+      : current_dim(current_dim), ratio(ratio), v(v), coarse(coarse),
+        coeff(coeff) {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT
       Task<SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>>
-      GenTask(DIM current_dim, SubArray<1, T, DeviceType> ratio,
-              SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
-              SubArray<D, T, DeviceType> coeff, int queue_idx) {
+      GenTask(int queue_idx) {
 
     using FunctorType =
         SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>;
@@ -187,60 +195,16 @@ public:
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "SingleDimensionCoefficient");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(DIM current_dim, SubArray<1, T, DeviceType> ratio,
-               SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
-               SubArray<D, T, DeviceType> coeff, int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(coeff.shape(D - 1)));
-    int prec = TypeToIdx<T>();
-    int config =
-        AutoTuner<DeviceType>::autoTuningTable.gpk_reo_nd[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define GPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = GPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = GPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = GPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType =                                                        \
-        SingleDimensionCoefficientFunctor<D, T, R, C, F, OP, DeviceType>;      \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task =                                                            \
-        GenTask<R, C, F>(current_dim, ratio, v, coarse, coeff, queue_idx);     \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    GPK(6) if (!ret.success) config--;
-    GPK(5) if (!ret.success) config--;
-    GPK(4) if (!ret.success) config--;
-    GPK(3) if (!ret.success) config--;
-    GPK(2) if (!ret.success) config--;
-    GPK(1) if (!ret.success) config--;
-    GPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err
-                << "no suitable config for SingleDimensionCoefficient.\n";
-      exit(-1);
-    }
-#undef GPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("SingleDimensionCoefficient", prec,
-                                     range_l, min_config);
-    }
-  }
+private:
+  // functor parameters
+  DIM current_dim;
+  SubArray<1, T, DeviceType> ratio;
+  SubArray<D, T, DeviceType> v;
+  SubArray<D, T, DeviceType> coarse;
+  SubArray<D, T, DeviceType> coeff;
 };
 
 } // namespace mgard_x

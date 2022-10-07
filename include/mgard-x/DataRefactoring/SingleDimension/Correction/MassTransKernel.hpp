@@ -118,16 +118,24 @@ private:
 };
 
 template <DIM D, typename T, typename DeviceType>
-class SingleDimensionMassTrans : public AutoTuner<DeviceType> {
+class SingleDimensionMassTransKernel {
 public:
+  static const DIM NumDim = D;
+  using DataType = T;
+  // Just use the config of LWPK for now
+  constexpr static std::string_view Name = "lwpk";
   MGARDX_CONT
-  SingleDimensionMassTrans() : AutoTuner<DeviceType>() {}
+  SingleDimensionMassTransKernel(DIM current_dim,
+                                 SubArray<1, T, DeviceType> dist,
+                                 SubArray<1, T, DeviceType> ratio,
+                                 SubArray<D, T, DeviceType> coeff,
+                                 SubArray<D, T, DeviceType> v)
+      : current_dim(current_dim), dist(dist), ratio(ratio), coeff(coeff), v(v) {
+  }
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<SingleDimensionMassTransFunctor<D, T, R, C, F, DeviceType>>
-  GenTask(DIM current_dim, SubArray<1, T, DeviceType> dist,
-          SubArray<1, T, DeviceType> ratio, SubArray<D, T, DeviceType> coeff,
-          SubArray<D, T, DeviceType> v, int queue_idx) {
+  GenTask(int queue_idx) {
 
     using FunctorType =
         SingleDimensionMassTransFunctor<D, T, R, C, F, DeviceType>;
@@ -159,61 +167,16 @@ public:
     }
 
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "SingleDimensionMassTrans");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(DIM current_dim, SubArray<1, T, DeviceType> dist,
-               SubArray<1, T, DeviceType> ratio,
-               SubArray<D, T, DeviceType> coeff, SubArray<D, T, DeviceType> v,
-               int queue_idx) {
-    int range_l = std::min(6, (int)std::log2(v.shape(D - 1)) - 1);
-    int prec = TypeToIdx<T>();
-    int config =
-        AutoTuner<DeviceType>::autoTuningTable.gpk_reo_nd[prec][range_l];
-    double min_time = std::numeric_limits<double>::max();
-    int min_config = 0;
-    ExecutionReturn ret;
-
-#define GPK(CONFIG)                                                            \
-  if (config == CONFIG || AutoTuner<DeviceType>::ProfileKernels) {             \
-    const int R = GPK_CONFIG[D - 1][CONFIG][0];                                \
-    const int C = GPK_CONFIG[D - 1][CONFIG][1];                                \
-    const int F = GPK_CONFIG[D - 1][CONFIG][2];                                \
-    using FunctorType =                                                        \
-        SingleDimensionMassTransFunctor<D, T, R, C, F, DeviceType>;            \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task =                                                            \
-        GenTask<R, C, F>(current_dim, dist, ratio, coeff, v, queue_idx);       \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    ret = adapter.Execute(task);                                               \
-    if (AutoTuner<DeviceType>::ProfileKernels) {                               \
-      if (ret.success && min_time > ret.execution_time) {                      \
-        min_time = ret.execution_time;                                         \
-        min_config = CONFIG;                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
-    GPK(6) if (!ret.success) config--;
-    GPK(5) if (!ret.success) config--;
-    GPK(4) if (!ret.success) config--;
-    GPK(3) if (!ret.success) config--;
-    GPK(2) if (!ret.success) config--;
-    GPK(1) if (!ret.success) config--;
-    GPK(0) if (!ret.success) config--;
-    if (config < 0 && !ret.success) {
-      std::cout << log::log_err
-                << "no suitable config for SingleDimensionMassTrans.\n";
-      exit(-1);
-    }
-#undef GPK
-
-    if (AutoTuner<DeviceType>::ProfileKernels) {
-      FillAutoTunerTable<DeviceType>("SingleDimensionMassTrans", prec, range_l,
-                                     min_config);
-    }
-  }
+private:
+  // functor parameters
+  DIM current_dim;
+  SubArray<1, T, DeviceType> dist;
+  SubArray<1, T, DeviceType> ratio;
+  SubArray<D, T, DeviceType> coeff;
+  SubArray<D, T, DeviceType> v;
 };
 
 } // namespace mgard_x
