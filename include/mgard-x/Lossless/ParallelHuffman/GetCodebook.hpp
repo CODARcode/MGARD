@@ -46,10 +46,10 @@ void GetCodebook(int dict_size,
       {(SIZE)dict_size}, (Q *)_d_decode_meta_subarray(sizeof(H) * 2 * type_bw));
 
   // Sort Qcodes by frequency
-  int nblocks = (dict_size / 1024) + 1;
-  FillArraySequence<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
-  DeviceCollective<DeviceType>().SortByKey(dict_size, _d_freq_subarray,
-                                           _d_qcode_subarray, 0);
+  DeviceLauncher<DeviceType>::Execute(
+      FillArraySequenceKernel(_d_qcode_subarray), 0);
+  DeviceCollective<DeviceType>::SortByKey(dict_size, _d_freq_subarray,
+                                          _d_qcode_subarray, 0);
 
   unsigned int *d_first_nonzero_index;
   unsigned int first_nonzero_index;
