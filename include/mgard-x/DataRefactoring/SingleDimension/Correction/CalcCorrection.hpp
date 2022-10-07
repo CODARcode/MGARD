@@ -26,9 +26,11 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
                     SubArray<D, T, DeviceType> &correction, SIZE curr_dim,
                     SIZE l, int queue_idx) {
 
-  SingleDimensionMassTrans<D, T, DeviceType>().Execute(
-      curr_dim, SubArray(hierarchy.dist(l, curr_dim)),
-      SubArray(hierarchy.ratio(l, curr_dim)), coeff, correction, queue_idx);
+  DeviceLauncher<DeviceType>::Execute(
+      SingleDimensionMassTransKernel<D, T, DeviceType>(
+          curr_dim, SubArray(hierarchy.dist(l, curr_dim)),
+          SubArray(hierarchy.ratio(l, curr_dim)), coeff, correction),
+      queue_idx);
 
   if (singledim_refactoring_debug_print) {
     PrintSubarray("SingleDimensionMassTrans", correction);
