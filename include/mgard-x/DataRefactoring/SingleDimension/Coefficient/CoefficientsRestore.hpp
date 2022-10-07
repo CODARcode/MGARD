@@ -23,8 +23,10 @@ void CoefficientsRestore(DIM current_dim, SubArray<1, T, DeviceType> ratio,
                          SubArray<D, T, DeviceType> coarse,
                          SubArray<D, T, DeviceType> coeff, int queue_idx) {
 
-  SingleDimensionCoefficient<D, T, RECOMPOSE, DeviceType>().Execute(
-      current_dim, ratio, v, coarse, coeff, queue_idx);
+  DeviceLauncher<DeviceType>::Execute(
+      SingleDimensionCoefficientKernel<D, T, RECOMPOSE, DeviceType>(
+          current_dim, ratio, v, coarse, coeff),
+      queue_idx);
 }
 
 } // namespace mgard_x
