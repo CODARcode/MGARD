@@ -131,14 +131,15 @@ void GetCodebook(int dict_size,
   SubArray<1, int, DeviceType> copyIndex_subarray(copyIndex_array);
   SubArray<1, uint32_t, DeviceType> diagonal_path_intersections_subarray(
       diagonal_path_intersections_array);
-
-  GenerateCL<unsigned int, DeviceType> generateCL;
-  generateCL.Execute(_nz_d_freq_subarray, CL_subarray, nz_dict_size,
-                     _nz_d_freq_subarray, lNodesLeader_subarray,
-                     iNodesFreq_subarray, iNodesLeader_subarray,
-                     tempFreq_subarray, tempIsLeaf_subarray, tempIndex_subarray,
-                     copyFreq_subarray, copyIsLeaf_subarray, copyIndex_subarray,
-                     diagonal_path_intersections_subarray, status_subarray, 0);
+  
+  DeviceLauncher<DeviceType>::Execute(
+      GenerateCLKernel<unsigned int, DeviceType>(
+          _nz_d_freq_subarray, CL_subarray, nz_dict_size, _nz_d_freq_subarray,
+          lNodesLeader_subarray, iNodesFreq_subarray, iNodesLeader_subarray,
+          tempFreq_subarray, tempIsLeaf_subarray, tempIndex_subarray,
+          copyFreq_subarray, copyIsLeaf_subarray, copyIndex_subarray,
+          diagonal_path_intersections_subarray, status_subarray),
+      0);
 
   unsigned int max_CL;
   MemoryManager<DeviceType>().Copy1D(&max_CL, CL_subarray(IDX(0)), 1, 0);
