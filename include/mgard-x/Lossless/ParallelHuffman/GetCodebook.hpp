@@ -25,18 +25,6 @@ void GetCodebook(int dict_size,
                  SubArray<1, int, DeviceType> status_subarray) {
   // Metadata
   auto type_bw = sizeof(H) * 8;
-  // auto _d_first = reinterpret_cast<H *>(_d_decode_meta);
-  // auto _d_entry = reinterpret_cast<H *>(_d_decode_meta + (sizeof(H) *
-  // type_bw)); auto _d_qcode =
-  //     reinterpret_cast<Q *>(_d_decode_meta + (sizeof(H) * 2 * type_bw));
-
-  // SubArray<1, uint8_t, DeviceType> _d_decode_meta_subarray(
-  //         {(SIZE)(sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size)},
-  //         _d_decode_meta);
-
-  // SubArray<1, unsigned int, DeviceType> _d_freq_subarray({(SIZE)dict_size},
-  // _d_freq); SubArray<1, H, DeviceType>
-  // _d_codebook_subarray({(SIZE)dict_size}, _d_codebook);
 
   SubArray<1, H, DeviceType> _d_first_subarray(
       {(SIZE)type_bw}, (H *)_d_decode_meta_subarray((IDX)0));
@@ -58,8 +46,7 @@ void GetCodebook(int dict_size,
 
   SubArray<1, unsigned int, DeviceType> d_first_nonzero_index_subarray(
       {1}, d_first_nonzero_index);
-  // GetFirstNonzeroIndex<unsigned int, DeviceType>().Execute(
-  // _d_freq_subarray, first_nonzero_index_array, 0);
+
   DeviceLauncher<DeviceType>::Execute(
       GetFirstNonzeroIndexKernel<unsigned int, DeviceType>(
           _d_freq_subarray, first_nonzero_index_array),
@@ -96,18 +83,6 @@ void GetCodebook(int dict_size,
   Array<1, int, DeviceType> copyIndex_array({(SIZE)nz_dict_size});
 
   CL_array.memset(0);
-  // unsigned int *CL         = CL_array.get_dv();//nullptr;
-  // /*unsigned int* lNodesFreq*/
-  // int *lNodesLeader = lNodesLeader_array.get_dv(); //nullptr;
-  // unsigned int *iNodesFreq = iNodesFreq_array.get_dv(); //nullptr;
-  // int *iNodesLeader = iNodesLeader_array.get_dv(); //nullptr;
-  // unsigned int *tempFreq   = tempFreq_array.get_dv(); //nullptr;
-  // int *tempIsLeaf   = tempIsLeaf_array.get_dv(); //nullptr;
-  // int *tempIndex = tempIndex_array.get_dv(); //nullptr;
-  // unsigned int *copyFreq   = copyFreq_array.get_dv(); //nullptr;
-  // int *copyIsLeaf   = copyIsLeaf_array.get_dv(); //nullptr;
-  // int *copyIndex = copyIndex_array.get_dv(); //nullptr;
-  // cudaMemset(CL, 0,         nz_dict_size * sizeof(int)          );
 
   SIZE mblocks = (DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB() /
                   DeviceRuntime<DeviceType>::GetWarpSize()) *
@@ -116,7 +91,6 @@ void GetCodebook(int dict_size,
   Array<1, uint32_t, DeviceType> diagonal_path_intersections_array(
       {2 * (mblocks + 1)});
 
-  // cudaDeviceSynchronize();
   DeviceRuntime<DeviceType>::SyncDevice();
 
   SubArray<1, unsigned int, DeviceType> CL_subarray(CL_array);
@@ -131,7 +105,7 @@ void GetCodebook(int dict_size,
   SubArray<1, int, DeviceType> copyIndex_subarray(copyIndex_array);
   SubArray<1, uint32_t, DeviceType> diagonal_path_intersections_subarray(
       diagonal_path_intersections_array);
-  
+
   DeviceLauncher<DeviceType>::Execute(
       GenerateCLKernel<unsigned int, DeviceType>(
           _nz_d_freq_subarray, CL_subarray, nz_dict_size, _nz_d_freq_subarray,
@@ -144,14 +118,6 @@ void GetCodebook(int dict_size,
   unsigned int max_CL;
   MemoryManager<DeviceType>().Copy1D(&max_CL, CL_subarray(IDX(0)), 1, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
-
-  // if (std::is_same<DeviceType, Serial>::value) {
-  //   DumpSubArray("CL_subarray", CL_subarray);
-  // }
-
-  // if (std::is_same<DeviceType, HIP>::value) {
-  //   LoadSubArray("CL_subarray", CL_subarray);
-  // }
 
   if (debug_print_huffman) {
     PrintSubarray("GenerateCL::CL_subarray", CL_subarray);
@@ -169,35 +135,11 @@ void GetCodebook(int dict_size,
     exit(1);
   }
 
-  GenerateCW<unsigned int, H, DeviceType> generateCW;
-  generateCW.Execute(CL_subarray, _nz_d_codebook_subarray, _d_first_subarray,
-                     _d_entry_subarray, nz_dict_size, 0);
-
-  // PrintSubarray("_d_entry_subarray", _d_entry_subarray);
-
-  // if (std::is_same<DeviceType, Serial>::value) {
-  //   DumpSubArray("_nz_d_codebook_subarray", _nz_d_codebook_subarray);
-  // }
-
-  // if (std::is_same<DeviceType, HIP>::value) {
-  //   LoadSubArray("_nz_d_codebook_subarray", _nz_d_codebook_subarray);
-  // }
-
-  // if (std::is_same<DeviceType, Serial>::value) {
-  //   DumpSubArray("_d_first_subarray", _d_first_subarray);
-  // }
-
-  // if (std::is_same<DeviceType, HIP>::value) {
-  //   LoadSubArray("_d_first_subarray", _d_first_subarray);
-  // }
-
-  // if (std::is_same<DeviceType, Serial>::value) {
-  //   DumpSubArray("_d_entry_subarray", _d_entry_subarray);
-  // }
-
-  // if (std::is_same<DeviceType, HIP>::value) {
-  //   LoadSubArray("_d_entry_subarray", _d_entry_subarray);
-  // }
+  DeviceLauncher<DeviceType>::Execute(
+      GenerateCWKernel<unsigned int, H, DeviceType>(
+          CL_subarray, _nz_d_codebook_subarray, _d_first_subarray,
+          _d_entry_subarray, nz_dict_size, status_subarray),
+      0);
 
   ReverseArray<H, DeviceType>().Execute(_d_codebook_subarray, dict_size, 0);
   ReverseArray<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
