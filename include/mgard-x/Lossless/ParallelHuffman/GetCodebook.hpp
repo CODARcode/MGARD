@@ -58,8 +58,12 @@ void GetCodebook(int dict_size,
 
   SubArray<1, unsigned int, DeviceType> d_first_nonzero_index_subarray(
       {1}, d_first_nonzero_index);
-  GetFirstNonzeroIndex<unsigned int, DeviceType>().Execute(
-      _d_freq_subarray, first_nonzero_index_array, dict_size, 0);
+  // GetFirstNonzeroIndex<unsigned int, DeviceType>().Execute(
+  // _d_freq_subarray, first_nonzero_index_array, 0);
+  DeviceLauncher<DeviceType>::Execute(
+      GetFirstNonzeroIndexKernel<unsigned int, DeviceType>(
+          _d_freq_subarray, first_nonzero_index_array),
+      0);
 
   DeviceRuntime<DeviceType>::SyncQueue(0);
   first_nonzero_index = first_nonzero_index_array.hostCopy()[0];

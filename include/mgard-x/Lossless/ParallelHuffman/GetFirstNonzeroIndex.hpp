@@ -17,9 +17,8 @@ class GetFirstNonzeroIndexFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT GetFirstNonzeroIndexFunctor() {}
   MGARDX_CONT GetFirstNonzeroIndexFunctor(SubArray<1, T, DeviceType> array,
-                                          SubArray<1, T, DeviceType> result,
-                                          SIZE size)
-      : array(array), result(result), size(size) {
+                                          SubArray<1, T, DeviceType> result)
+      : array(array), result(result) {
     Functor<DeviceType>();
   }
 
@@ -27,40 +26,33 @@ public:
     unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() *
                            FunctorBase<DeviceType>::GetBlockDimX()) +
                           FunctorBase<DeviceType>::GetThreadIdX();
-    if (thread < size && *array(thread) != 0) {
+    if (thread < array.shape(0) && *array(thread) != 0) {
       Atomic<unsigned int, AtomicGlobalMemory, AtomicDeviceScope,
              DeviceType>::Min(result((IDX)0), thread);
     }
   }
-
-  MGARDX_EXEC void Operation2() {}
-
-  MGARDX_EXEC void Operation3() {}
-
-  MGARDX_EXEC void Operation4() {}
-
-  MGARDX_EXEC void Operation5() {}
 
   MGARDX_CONT size_t shared_memory_size() { return 0; }
 
 private:
   SubArray<1, T, DeviceType> array;
   SubArray<1, T, DeviceType> result;
-  SIZE size;
 };
 
 template <typename T, typename DeviceType>
-class GetFirstNonzeroIndex : public AutoTuner<DeviceType> {
+class GetFirstNonzeroIndexKernel : public Kernel {
 public:
+  constexpr static bool EnableAutoTuning() { return false; }
+  constexpr static std::string_view Name = "get first non-zero";
   MGARDX_CONT
-  GetFirstNonzeroIndex() : AutoTuner<DeviceType>() {}
+  GetFirstNonzeroIndexKernel(SubArray<1, T, DeviceType> array,
+                             SubArray<1, T, DeviceType> result)
+      : array(array), result(result) {}
 
   MGARDX_CONT
-  Task<GetFirstNonzeroIndexFunctor<T, DeviceType>>
-  GenTask(SubArray<1, T, DeviceType> array, SubArray<1, T, DeviceType> result,
-          SIZE dict_size, int queue_idx) {
+  Task<GetFirstNonzeroIndexFunctor<T, DeviceType>> GenTask(int queue_idx) {
     using FunctorType = GetFirstNonzeroIndexFunctor<T, DeviceType>;
-    FunctorType functor(array, result, dict_size);
+    FunctorType functor(array, result);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -69,23 +61,16 @@ public:
     tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB();
     gridz = 1;
     gridy = 1;
-    gridx = (dict_size / tbx) + 1;
+    gridx = (array.shape(0) / tbx) + 1;
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "GetFirstNonzeroIndex");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, T, DeviceType> array,
-               SubArray<1, T, DeviceType> result, SIZE dict_size,
-               int queue_idx) {
-    using FunctorType = GetFirstNonzeroIndexFunctor<T, DeviceType>;
-    using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(array, result, dict_size, queue_idx);
-    DeviceAdapter<TaskType, DeviceType> adapter;
-    adapter.Execute(task);
-  }
+private:
+  SubArray<1, T, DeviceType> array;
+  SubArray<1, T, DeviceType> result;
 };
 
 } // namespace mgard_x
