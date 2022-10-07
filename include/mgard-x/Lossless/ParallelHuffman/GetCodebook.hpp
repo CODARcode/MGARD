@@ -151,9 +151,10 @@ void GetCodebook(int dict_size,
       {_d_codebook_subarray.shape(0)});
   _d_codebook_array_org.load(_d_codebook_subarray.data());
   SubArray _d_codebook_subarray_org(_d_codebook_array_org);
-  ReorderByIndex<H, Q, DeviceType>().Execute(_d_codebook_subarray_org,
-                                             _d_codebook_subarray,
-                                             _d_qcode_subarray, dict_size, 0);
+  DeviceLauncher<DeviceType>::Execute(
+      ReorderByIndexKernel<H, Q, DeviceType>(
+          _d_codebook_subarray_org, _d_codebook_subarray, _d_qcode_subarray),
+      0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
