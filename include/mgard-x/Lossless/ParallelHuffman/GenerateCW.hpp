@@ -28,9 +28,9 @@ public:
   MGARDX_CONT GenerateCWFunctor(SubArray<1, T, DeviceType> CL,
                                 SubArray<1, H, DeviceType> CW,
                                 SubArray<1, H, DeviceType> first,
-                                SubArray<1, H, DeviceType> entry, SIZE size,
+                                SubArray<1, H, DeviceType> entry, SIZE dict_size,
                                 SubArray<1, int, DeviceType> status)
-      : CL(CL), CW(CW), first(first), entry(entry), size(size), status(status) {
+      : CL(CL), CW(CW), first(first), entry(entry), dict_size(dict_size), status(status) {
     HuffmanCWCustomizedFunctor<DeviceType>();
   }
 
@@ -42,10 +42,10 @@ public:
     type_bw = sizeof(H) * 8;
 
     /* Reverse in place - Probably a more CUDA-appropriate way */
-    if (i < size / 2) {
+    if (i < dict_size / 2) {
       T temp = *CL((IDX)i);
-      *CL((IDX)i) = *CL((IDX)size - i - 1);
-      *CL((IDX)size - i - 1) = temp;
+      *CL((IDX)i) = *CL((IDX)dict_size - i - 1);
+      *CL((IDX)dict_size - i - 1) = temp;
     }
   }
 
@@ -56,7 +56,7 @@ public:
     if (i == 0) {
       (*status((IDX)_CCL)) = *CL((IDX)0);
       (*status((IDX)_CDPI)) = 0;
-      (*status((IDX)_newCDPI)) = size - 1;
+      (*status((IDX)_newCDPI)) = dict_size - 1;
       *entry((IDX)(*status((IDX)_CCL))) = 0;
 
       // Edge case -- only one input symbol
@@ -84,9 +84,9 @@ public:
   MGARDX_CONT_EXEC bool LoopCondition1() {
     // if (! thread)
     // printf("thread: %u, (*status((IDX)_CDPI)): %d, (*status((IDX)_newCDPI)):
-    // %d, size: %u\n", thread, (*status((IDX)_CDPI)),
-    // (*status((IDX)_newCDPI)), size);
-    return (*status((IDX)_CDPI)) < size - 1;
+    // %d, dict_size: %u\n", thread, (*status((IDX)_CDPI)),
+    // (*status((IDX)_newCDPI)), dict_size);
+    return (*status((IDX)_CDPI)) < dict_size - 1;
   }
 
   MGARDX_EXEC void Operation4() {
@@ -94,7 +94,7 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     // (*status((IDX)_CDPI)) update
-    if (i < size - 1 && *CL((IDX)i + 1) > (*status((IDX)_CCL))) {
+    if (i < dict_size - 1 && *CL((IDX)i + 1) > (*status((IDX)_CCL))) {
       Atomic<int, AtomicGlobalMemory, AtomicDeviceScope, DeviceType>::Min(
           &(*status((IDX)_newCDPI)), (int)i);
     }
@@ -106,7 +106,7 @@ public:
         FunctorBase<DeviceType>::GetThreadIdX();
     type_bw = sizeof(H) * 8;
     // Last element to update
-    (*status((IDX)_updateEnd)) = ((*status((IDX)_newCDPI)) >= size - 1)
+    (*status((IDX)_updateEnd)) = ((*status((IDX)_newCDPI)) >= dict_size - 1)
                                      ? type_bw
                                      : *CL((IDX)(*status((IDX)_newCDPI)) + 1);
     // Fill base
@@ -131,7 +131,7 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     type_bw = sizeof(H) * 8;
-    if (i < size) {
+    if (i < dict_size) {
       // Parallel canonical codeword generation
       if (i >= (*status((IDX)_CDPI)) && i < (*status((IDX)_newCDPI))) {
         *CW((IDX)i) =
@@ -176,7 +176,7 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     if (i == 0) {
-      if ((*status((IDX)_newCDPI)) < size - 1) {
+      if ((*status((IDX)_newCDPI)) < dict_size - 1) {
         int CLDiff = *CL((IDX)(*status((IDX)_newCDPI)) + 1) -
                      *CL((IDX)(*status((IDX)_newCDPI)));
         // Add and shift -- Next canonical code
@@ -196,11 +196,11 @@ public:
       // Update (*status((IDX)_CDPI)) to (*status((IDX)_newCDPI)) after codeword
       // length increase
       (*status((IDX)_CDPI)) = (*status((IDX)_newCDPI));
-      (*status((IDX)_newCDPI)) = size - 1;
+      (*status((IDX)_newCDPI)) = dict_size - 1;
       // printf("thread: %u, (*status((IDX)_CDPI)): %d,
-      // (*status((IDX)_newCDPI)): %d, size: %u\n", thread,
+      // (*status((IDX)_newCDPI)): %d, dict_size: %u\n", thread,
       // (*status((IDX)_CDPI)),
-      // (*status((IDX)_newCDPI)), size);
+      // (*status((IDX)_newCDPI)), dict_size);
     }
   }
 
@@ -209,7 +209,7 @@ public:
          FunctorBase<DeviceType>::GetBlockDimX()) +
         FunctorBase<DeviceType>::GetThreadIdX();
     // encoding CL into CW (highest 8 bits)
-    if (i < size) {
+    if (i < dict_size) {
       *CW((IDX)i) = (*CW((IDX)i) |
                      (((H)*CL((IDX)i) & (H)0xffu) << ((sizeof(H) * 8) - 8))) ^
                     (((H)1 << (H)*CL((IDX)i)) - 1);
@@ -226,11 +226,11 @@ public:
         FunctorBase<DeviceType>::GetThreadIdX();
     /* Reverse partial codebook */
 
-    if (i < size / 2) {
+    if (i < dict_size / 2) {
       // printf("Reverse\n");
       H temp = *CW((IDX)i);
-      *CW((IDX)i) = *CW((IDX)size - i - 1);
-      *CW((IDX)size - i - 1) = temp;
+      *CW((IDX)i) = *CW((IDX)dict_size - i - 1);
+      *CW((IDX)dict_size - i - 1) = temp;
     }
   }
 
@@ -242,7 +242,7 @@ private:
   SubArray<1, H, DeviceType> first;
   SubArray<1, H, DeviceType> entry;
   SubArray<1, int, DeviceType> status;
-  SIZE size;
+  SIZE dict_size;
 
   // unsigned int thread;
   unsigned int i;
@@ -254,16 +254,20 @@ private:
 };
 
 template <typename T, typename H, typename DeviceType>
-class GenerateCW : public AutoTuner<DeviceType> {
+class GenerateCWKernel : public Kernel {
 public:
+  constexpr static bool EnableAutoTuning() { return false; }
+  constexpr static std::string_view Name = "generate codeword";
   MGARDX_CONT
-  GenerateCW() : AutoTuner<DeviceType>() {}
+  GenerateCWKernel(SubArray<1, T, DeviceType> CL, SubArray<1, H, DeviceType> CW,
+                   SubArray<1, H, DeviceType> first,
+                   SubArray<1, H, DeviceType> entry, SIZE dict_size,
+                   SubArray<1, int, DeviceType> status)
+      : CL(CL), CW(CW), first(first), entry(entry), dict_size(dict_size), status(status) {
+  }
 
   MGARDX_CONT
-  Task<GenerateCWFunctor<T, H, DeviceType>>
-  GenTask(SubArray<1, T, DeviceType> CL, SubArray<1, H, DeviceType> CW,
-          SubArray<1, H, DeviceType> first, SubArray<1, H, DeviceType> entry,
-          SIZE dict_size, SubArray<1, int, DeviceType> status, int queue_idx) {
+  Task<GenerateCWFunctor<T, H, DeviceType>> GenTask(int queue_idx) {
     using FunctorType = GenerateCWFunctor<T, H, DeviceType>;
     FunctorType Functor(CL, CW, first, entry, dict_size, status);
 
@@ -299,23 +303,16 @@ public:
     }
 
     return Task(Functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "GenerateCW");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, T, DeviceType> CL, SubArray<1, H, DeviceType> CW,
-               SubArray<1, H, DeviceType> first,
-               SubArray<1, H, DeviceType> entry, SIZE dict_size,
-               int queue_idx) {
-    Array<1, int, DeviceType> status({(SIZE)16}, false, true);
-    using FunctorType = GenerateCWFunctor<T, H, DeviceType>;
-    using TaskType = Task<FunctorType>;
-    TaskType task =
-        GenTask(CL, CW, first, entry, dict_size, SubArray(status), queue_idx);
-    DeviceAdapter<TaskType, DeviceType> adapter;
-    adapter.Execute(task);
-    DeviceRuntime<DeviceType>::SyncAllQueues();
-  }
+private:
+  SubArray<1, T, DeviceType> CL;
+  SubArray<1, H, DeviceType> CW;
+  SubArray<1, H, DeviceType> first;
+  SubArray<1, H, DeviceType> entry;
+  SubArray<1, int, DeviceType> status;
+  SIZE dict_size;
 };
 
 } // namespace mgard_x
