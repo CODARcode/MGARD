@@ -141,8 +141,10 @@ void GetCodebook(int dict_size,
           _d_entry_subarray, nz_dict_size, status_subarray),
       0);
 
-  ReverseArray<H, DeviceType>().Execute(_d_codebook_subarray, dict_size, 0);
-  ReverseArray<Q, DeviceType>().Execute(_d_qcode_subarray, dict_size, 0);
+  DeviceLauncher<DeviceType>::Execute(
+      ReverseArrayKernel<H, DeviceType>(_d_codebook_subarray), 0);
+  DeviceLauncher<DeviceType>::Execute(
+      ReverseArrayKernel<Q, DeviceType>(_d_qcode_subarray), 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
   Array<1, H, DeviceType> _d_codebook_array_org(
