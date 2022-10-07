@@ -16,8 +16,8 @@ template <typename T, typename DeviceType>
 class ReverseArrayFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT ReverseArrayFunctor() {}
-  MGARDX_CONT ReverseArrayFunctor(SubArray<1, T, DeviceType> array, SIZE size)
-      : array(array), size(size) {
+  MGARDX_CONT ReverseArrayFunctor(SubArray<1, T, DeviceType> array)
+      : array(array) {
     Functor<DeviceType>();
   }
 
@@ -25,10 +25,10 @@ public:
     unsigned int thread = (FunctorBase<DeviceType>::GetBlockIdX() *
                            FunctorBase<DeviceType>::GetBlockDimX()) +
                           FunctorBase<DeviceType>::GetThreadIdX();
-    if (thread < size / 2) {
+    if (thread < array.shape(0) / 2) {
       T temp = *array(thread);
-      *array(thread) = *array(size - thread - 1);
-      *array(size - thread - 1) = temp;
+      *array(thread) = *array(array.shape(0) - thread - 1);
+      *array(array.shape(0) - thread - 1) = temp;
     }
   }
 
@@ -44,20 +44,20 @@ public:
 
 private:
   SubArray<1, T, DeviceType> array;
-  SIZE size;
 };
 
 template <typename T, typename DeviceType>
-class ReverseArray : public AutoTuner<DeviceType> {
+class ReverseArrayKernel : public Kernel {
 public:
+  constexpr static bool EnableAutoTuning() { return false; }
+  constexpr static std::string_view Name = "reverse array";
   MGARDX_CONT
-  ReverseArray() : AutoTuner<DeviceType>() {}
+  ReverseArrayKernel(SubArray<1, T, DeviceType> array) : array(array) {}
 
   MGARDX_CONT
-  Task<ReverseArrayFunctor<T, DeviceType>>
-  GenTask(SubArray<1, T, DeviceType> array, SIZE dict_size, int queue_idx) {
+  Task<ReverseArrayFunctor<T, DeviceType>> GenTask(int queue_idx) {
     using FunctorType = ReverseArrayFunctor<T, DeviceType>;
-    FunctorType functor(array, dict_size);
+    FunctorType functor(array);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -66,22 +66,14 @@ public:
     tbx = DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB();
     gridz = 1;
     gridy = 1;
-    gridx = (dict_size / tbx) + 1;
-    // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
-    // shape.dataHost()[0]); PrintSubarray("shape", shape);
+    gridx = (array.shape(0) / tbx) + 1;
+
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "ReverseArray");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<1, T, DeviceType> array, SIZE dict_size,
-               int queue_idx) {
-    using FunctorType = ReverseArrayFunctor<T, DeviceType>;
-    using TaskType = Task<FunctorType>;
-    TaskType task = GenTask(array, dict_size, queue_idx);
-    DeviceAdapter<TaskType, DeviceType> adapter;
-    adapter.Execute(task);
-  }
+private:
+  SubArray<1, T, DeviceType> array;
 };
 
 } // namespace mgard_x
