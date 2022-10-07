@@ -389,6 +389,10 @@ GetExecutionConfig(std::string_view functor_name) {
     config_idx = AutoTuningTable<DeviceType>::lwdqzk[precision_idx][6];
   } else if (functor_name == "llk") {
     config_idx = AutoTuningTable<DeviceType>::llk[precision_idx][6];
+  } else if (functor_name == "sdck") {
+    config_idx = AutoTuningTable<DeviceType>::sdck[precision_idx][6];
+  } else if (functor_name == "sdmtk") {
+    config_idx = AutoTuningTable<DeviceType>::sdmtk[precision_idx][6];
   } else {
     log::err("Wrong functor_name");
     config_idx = 0;

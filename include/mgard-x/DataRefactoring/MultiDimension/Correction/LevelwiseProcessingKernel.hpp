@@ -97,9 +97,9 @@ private:
 };
 
 template <DIM D, typename T, OPTION OP, typename DeviceType>
-class LwpkReoKernel {
+class LwpkReoKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "lwpk";
   MGARDX_CONT

@@ -10,12 +10,6 @@
 
 #include "../../../RuntimeX/RuntimeX.h"
 #include "GPKFunctor.h"
-// #include "GridProcessingKernel3D.h"
-
-// #include "../../Functor.h"
-// #include "../../AutoTuners/AutoTuner.h"
-// #include "../../Task.h"
-// #include "../../DeviceAdapters/DeviceAdapter.h"
 
 namespace mgard_x {
 
@@ -1179,9 +1173,10 @@ private:
   T *ratio_r_sm;
 };
 
-template <DIM D, typename T, typename DeviceType> class GpkReo3DKernel {
+template <DIM D, typename T, typename DeviceType>
+class GpkReo3DKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "gpk_reo_3d";
 
@@ -2352,9 +2347,9 @@ private:
 };
 
 template <DIM D, typename T, typename DeviceType>
-class GpkRev3DKernel : public AutoTuner<DeviceType> {
+class GpkRev3DKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "gpk_rev_3d";
   MGARDX_CONT

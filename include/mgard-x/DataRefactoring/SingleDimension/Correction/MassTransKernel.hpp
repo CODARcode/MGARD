@@ -118,12 +118,11 @@ private:
 };
 
 template <DIM D, typename T, typename DeviceType>
-class SingleDimensionMassTransKernel {
+class SingleDimensionMassTransKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
-  // Just use the config of LWPK for now
-  constexpr static std::string_view Name = "lwpk";
+  constexpr static std::string_view Name = "sdmtk";
   MGARDX_CONT
   SingleDimensionMassTransKernel(DIM current_dim,
                                  SubArray<1, T, DeviceType> dist,
