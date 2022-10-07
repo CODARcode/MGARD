@@ -494,10 +494,11 @@ private:
   SIZE actual_F;
 };
 
-template <DIM D, typename T, typename DeviceType> class Lpk1ReoKernel {
+template <DIM D, typename T, typename DeviceType>
+class Lpk1ReoKernel : public Kernel {
 public:
   MGARDX_CONT
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "lpk1_nd";
   Lpk1ReoKernel(SubArray<1, SIZE, DeviceType> shape,
@@ -954,9 +955,10 @@ private:
   SIZE actual_C;
 };
 
-template <DIM D, typename T, typename DeviceType> class Lpk2ReoKernel {
+template <DIM D, typename T, typename DeviceType>
+class Lpk2ReoKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "lpk2_nd";
   MGARDX_CONT
@@ -1424,9 +1426,10 @@ private:
   SIZE actual_R;
 };
 
-template <DIM D, typename T, typename DeviceType> class Lpk3ReoKernel {
+template <DIM D, typename T, typename DeviceType>
+class Lpk3ReoKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "lpk3_nd";
   MGARDX_CONT

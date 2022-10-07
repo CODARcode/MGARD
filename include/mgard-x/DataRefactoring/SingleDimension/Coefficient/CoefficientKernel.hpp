@@ -145,12 +145,11 @@ private:
 };
 
 template <DIM D, typename T, OPTION OP, typename DeviceType>
-class SingleDimensionCoefficientKernel {
+class SingleDimensionCoefficientKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
-  // Just use the config of LWPK for now
-  constexpr static std::string_view Name = "lwpk";
+  constexpr static std::string_view Name = "sdck";
   MGARDX_CONT
   SingleDimensionCoefficientKernel(DIM current_dim,
                                    SubArray<1, T, DeviceType> ratio,

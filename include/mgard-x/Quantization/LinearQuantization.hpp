@@ -549,9 +549,9 @@ private:
 };
 
 template <DIM D, typename T, OPTION OP, typename DeviceType>
-class LevelwiseLinearQuantizerKernel {
+class LevelwiseLinearQuantizerKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "lwqzk";
   MGARDX_CONT
@@ -628,12 +628,14 @@ private:
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 };
 
-template <DIM D, typename T, typename DeviceType> class OutlierRestoreKernel {
+template <DIM D, typename T, typename DeviceType>
+class OutlierRestoreKernel : public Kernel {
 public:
   // 1D parallelization
-  static const DIM NumDim = 1;
+  constexpr static DIM NumDim = 1;
   using DataType = T;
-  constexpr static std::string_view Name = "lwqzk";
+  constexpr static std::string_view Name = "ork";
+  constexpr static bool EnableAutoTuning() { return false; }
   MGARDX_CONT
   OutlierRestoreKernel(SubArray<D, QUANTIZED_INT, DeviceType> quantized_v,
                        LENGTH outlier_count,
@@ -641,7 +643,7 @@ public:
                        SubArray<1, QUANTIZED_INT, DeviceType> outliers)
       : quantized_v(quantized_v), outlier_count(outlier_count),
         outlier_indexes(outlier_indexes), outliers(outliers) {}
-  template <SIZE R, SIZE C, SIZE F>
+
   MGARDX_CONT Task<OutlierRestoreFunctor<D, T, DeviceType>>
   GenTask(int queue_idx) {
     using FunctorType = OutlierRestoreFunctor<D, T, DeviceType>;
@@ -651,9 +653,9 @@ public:
     SIZE total_thread_x = outlier_count;
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
-    tbz = R;
-    tby = C;
-    tbx = F;
+    tbz = 1;
+    tby = 1;
+    tbx = 256;
     gridz = ceil((float)total_thread_z / tbz);
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);

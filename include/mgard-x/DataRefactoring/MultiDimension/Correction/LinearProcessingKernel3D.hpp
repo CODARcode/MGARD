@@ -395,9 +395,10 @@ private:
   bool debug = false;
 };
 
-template <DIM D, typename T, typename DeviceType> class Lpk1Reo3DKernel {
+template <DIM D, typename T, typename DeviceType>
+class Lpk1Reo3DKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "lpk1_3d";
   MGARDX_CONT
@@ -710,9 +711,10 @@ private:
   bool debug;
 };
 
-template <DIM D, typename T, typename DeviceType> class Lpk2Reo3DKernel {
+template <DIM D, typename T, typename DeviceType>
+class Lpk2Reo3DKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "lpk2_3d";
   MGARDX_CONT
@@ -1040,9 +1042,10 @@ private:
   bool debug;
 };
 
-template <DIM D, typename T, typename DeviceType> class Lpk3Reo3DKernel {
+template <DIM D, typename T, typename DeviceType>
+class Lpk3Reo3DKernel : public Kernel {
 public:
-  static const DIM NumDim = D;
+  constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "lpk3_3d";
   MGARDX_CONT
