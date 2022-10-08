@@ -56,4 +56,10 @@
 #define MGARD_ENABLE_COORDINATE_NORMALIZATION 0   
 #endif
 
+#if '@MGARD_ENABLE_AUTOTUNING@' == 'ON'
+#define MGARD_ENABLE_AUTOTUNING 1
+#else
+#define MGARD_ENABLE_AUTOTUNING 0   
+#endif
+
 #endif
