@@ -3,7 +3,7 @@
 
 #include "../../RuntimeX/RuntimeX.h"
 
-#include "../../DataRefactoring/MultiDimension/Correction/LevelwiseProcessingKernel.hpp"
+#include "../../DataRefactoring/MultiDimension/CopyND/AddND.hpp"
 #include "../BitplaneEncoder/BitplaneEncoder.hpp"
 #include "../Decomposer/Decomposer.hpp"
 #include "../ErrorCollector/ErrorCollector.hpp"
@@ -119,9 +119,9 @@ public:
       data_array = reconstruct(tolerance);
       // TODO: if we change resolusion here, we need to do something
       // Combine previously recomposed data with newly recomposed data
-      LwpkReo<D, T_data, ADD, DeviceType>().Execute(
-          SubArray<D, T_data, DeviceType>(curr_data_array),
-          SubArray<D, T_data, DeviceType>(data_array), 0);
+      SubArray<D, T_data, DeviceType> data_subarray(data_array);
+      AddND(SubArray<D, T_data, DeviceType>(curr_data_array),
+           data_subarray, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       return data_array;
     }
