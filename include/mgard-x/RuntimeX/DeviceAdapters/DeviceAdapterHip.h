@@ -2124,6 +2124,7 @@ public:
 
   template <typename KernelType>
   MGARDX_CONT static void AutoTune(KernelType kernel, int queue_idx) {
+    #if MGARD_ENABLE_AUTOTUNING
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
     ExecutionReturn ret;
@@ -2150,6 +2151,10 @@ public:
     int type_idx = TypeToIdx<typename KernelType::DataType>();
     FillAutoTunerTable<HIP>(std::string(KernelType::Name), type_idx, 6,
                             min_config);
+    #else
+    log::err("MGARD is not built with auto tuning enabled.");
+    exit(-1);
+    #endif
   }
 
   template <typename KernelType>

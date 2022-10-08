@@ -41,6 +41,7 @@ option(MGARD_ENABLE_SYCL "Enable SYCL support" OFF)
 option(MGARD_ENABLE_LEGACY_CUDA "Enable legacy CUDA support" OFF)
 option(MGARD_ENABLE_MULTI_DEVICE "Enable multi-device" OFF)
 option(MGARD_ENABLE_COORDINATE_NORMALIZATION "Enable coordinate normalication for uniform grid" ON)
+option(MGARD_ENABLE_AUTOTUNING "Enable auto tuning" OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)
 
