@@ -11,16 +11,21 @@ namespace mgard_x {
 namespace MDR {
 
 template <DIM D, typename T, OPTION Direction, typename DeviceType>
-class DirectInterleaverKernel : public AutoTuner<DeviceType> {
+class DirectInterleaverKernel : public Kernel {
 public:
+  constexpr static DIM NumDim = D;
+  using DataType = T;
+  constexpr static std::string_view Name = "llk";
   MGARDX_CONT
-  DirectInterleaverKernel() : AutoTuner<DeviceType>() {}
+  DirectInterleaverKernel(SubArray<2, SIZE, DeviceType> level_ranges,
+                          SIZE l_target, SubArray<D, T, DeviceType> v,
+                          SubArray<1, T, DeviceType> *level_v)
+      : level_ranges(level_ranges), l_target(l_target), v(v), level_v(level_v) {
+  }
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>>
-  GenTask(SubArray<2, SIZE, DeviceType> level_ranges, SIZE l_target,
-          SubArray<D, T, DeviceType> v, SubArray<1, T, DeviceType> *level_v,
-          int queue_idx) {
+  GenTask(int queue_idx) {
     using FunctorType =
         LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;
     FunctorType functor(level_ranges, l_target, v, level_v);
@@ -39,35 +44,14 @@ public:
       gridx *= v.shape(d);
     }
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
-                "LevelLinearizer");
+                std::string(Name));
   }
 
-  MGARDX_CONT
-  void Execute(SubArray<2, SIZE, DeviceType> level_ranges, SIZE l_target,
-               SubArray<D, T, DeviceType> v,
-               SubArray<1, T, DeviceType> *level_v, int queue_idx) {
-#define KERNEL(R, C, F)                                                        \
-  {                                                                            \
-    using FunctorType =                                                        \
-        LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;          \
-    using TaskType = Task<FunctorType>;                                        \
-    TaskType task =                                                            \
-        GenTask<R, C, F>(level_ranges, l_target, v, level_v, queue_idx);       \
-    DeviceAdapter<TaskType, DeviceType> adapter;                               \
-    adapter.Execute(task);                                                     \
-  }
-
-    if (D >= 3) {
-      KERNEL(4, 4, 16)
-    }
-    if (D == 2) {
-      KERNEL(1, 4, 32)
-    }
-    if (D == 1) {
-      KERNEL(1, 1, 64)
-    }
-#undef KERNEL
-  }
+private:
+  SubArray<2, SIZE, DeviceType> level_ranges;
+  SIZE l_target;
+  SubArray<D, T, DeviceType> v;
+  SubArray<1, T, DeviceType> *level_v;
 };
 
 // direct interleaver with in-order recording
@@ -90,9 +74,10 @@ public:
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
-    DirectInterleaverKernel<D, T, Interleave, DeviceType>().Execute(
-        SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
-        target_level, decomposed_data, levels_decomposed_data_device,
+    DeviceLauncher<DeviceType>::Execute(
+        DirectInterleaverKernel<D, T, Interleave, DeviceType>(
+            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
+            target_level, decomposed_data, levels_decomposed_data_device),
         queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -115,10 +100,12 @@ public:
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
-    DirectInterleaverKernel<D, T, Reposition, DeviceType>().Execute(
-        SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
-        target_level, decomposed_data, levels_decomposed_data_device,
+    DeviceLauncher<DeviceType>::Execute(
+        DirectInterleaverKernel<D, T, Reposition, DeviceType>(
+            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
+            target_level, decomposed_data, levels_decomposed_data_device),
         queue_idx);
+
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   }
   void print() const { std::cout << "Direct interleaver" << std::endl; }
