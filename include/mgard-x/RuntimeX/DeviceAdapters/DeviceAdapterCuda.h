@@ -2291,21 +2291,22 @@ public:
 
   template <typename KernelType>
   MGARDX_CONT static void AutoTune(KernelType kernel, int queue_idx) {
-    #if MGARD_ENABLE_AUTOTUNING
+#if MGARD_ENABLE_AUTOTUNING
     double min_time = std::numeric_limits<double>::max();
     int min_config = 0;
     ExecutionReturn ret;
-// clang-format off
-    #define RUN_CONFIG(CONFIG_IDX)                                                           \
-    {                                                                                        \
-      constexpr ExecutionConfig config = GetExecutionConfig<KernelType::NumDim>(CONFIG_IDX); \
-      auto task = kernel.template GenTask<config.z, config.y, config.x>(queue_idx);          \
-      ret = Execute(task);                                                                   \
-      if (ret.success && min_time > ret.execution_time) {                                    \
-        min_time = ret.execution_time;                                                       \
-        min_config = CONFIG_IDX;                                                             \
-      }                                                                                      \
-    }
+#define RUN_CONFIG(CONFIG_IDX)                                                 \
+  {                                                                            \
+    constexpr ExecutionConfig config =                                         \
+        GetExecutionConfig<KernelType::NumDim>(CONFIG_IDX);                    \
+    auto task =                                                                \
+        kernel.template GenTask<config.z, config.y, config.x>(queue_idx);      \
+    ret = Execute(task);                                                       \
+    if (ret.success && min_time > ret.execution_time) {                        \
+      min_time = ret.execution_time;                                           \
+      min_config = CONFIG_IDX;                                                 \
+    }                                                                          \
+  }
     RUN_CONFIG(0)
     RUN_CONFIG(1)
     RUN_CONFIG(2)
@@ -2313,15 +2314,14 @@ public:
     RUN_CONFIG(4)
     RUN_CONFIG(5)
     RUN_CONFIG(6)
-    #undef RUN_CONFIG
-    // clang-format on
+#undef RUN_CONFIG
     int type_idx = TypeToIdx<typename KernelType::DataType>();
     FillAutoTunerTable<CUDA>(std::string(KernelType::Name), type_idx, 6,
                              min_config);
-    #else
+#else
     log::err("MGARD is not built with auto tuning enabled.");
     exit(-1);
-    #endif
+#endif
   }
 
   template <typename KernelType>
