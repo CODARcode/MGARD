@@ -64,8 +64,7 @@ public:
       : old_array(old_array), new_array(new_array), index(index) {}
 
   MGARDX_CONT
-  Task<ReorderByIndexFunctor<T, Q, DeviceType>>
-  GenTask(int queue_idx) {
+  Task<ReorderByIndexFunctor<T, Q, DeviceType>> GenTask(int queue_idx) {
     using FunctorType = ReorderByIndexFunctor<T, Q, DeviceType>;
     FunctorType functor(old_array, new_array, index);
 

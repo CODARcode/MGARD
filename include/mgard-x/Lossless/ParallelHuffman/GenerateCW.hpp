@@ -28,9 +28,11 @@ public:
   MGARDX_CONT GenerateCWFunctor(SubArray<1, T, DeviceType> CL,
                                 SubArray<1, H, DeviceType> CW,
                                 SubArray<1, H, DeviceType> first,
-                                SubArray<1, H, DeviceType> entry, SIZE dict_size,
+                                SubArray<1, H, DeviceType> entry,
+                                SIZE dict_size,
                                 SubArray<1, int, DeviceType> status)
-      : CL(CL), CW(CW), first(first), entry(entry), dict_size(dict_size), status(status) {
+      : CL(CL), CW(CW), first(first), entry(entry), dict_size(dict_size),
+        status(status) {
     HuffmanCWCustomizedFunctor<DeviceType>();
   }
 
@@ -263,8 +265,8 @@ public:
                    SubArray<1, H, DeviceType> first,
                    SubArray<1, H, DeviceType> entry, SIZE dict_size,
                    SubArray<1, int, DeviceType> status)
-      : CL(CL), CW(CW), first(first), entry(entry), dict_size(dict_size), status(status) {
-  }
+      : CL(CL), CW(CW), first(first), entry(entry), dict_size(dict_size),
+        status(status) {}
 
   MGARDX_CONT
   Task<GenerateCWFunctor<T, H, DeviceType>> GenTask(int queue_idx) {

@@ -1,7 +1,7 @@
-MgardXGenerateSourceAllCombinations("CalcCoefficients3D")
-MgardXGenerateSourceAllCombinations("CoefficientsRestore3D")
-MgardXGenerateSourceAllCombinations("CalcCoefficientsND")
-MgardXGenerateSourceAllCombinations("CoefficientsRestoreND")
+MgardXGenerateSource3D("CalcCoefficients3D")
+MgardXGenerateSource3D("CoefficientsRestore3D")
+MgardXGenerateSourceND("CalcCoefficientsND")
+MgardXGenerateSourceND("CoefficientsRestoreND")
 
 set(MGARD_X_SERIAL_SRC ${MGARD_X_SERIAL_SRC} PARENT_SCOPE)
 set(MGARD_X_OPENMP_SRC ${MGARD_X_OPENMP_SRC} PARENT_SCOPE)
