@@ -120,8 +120,7 @@ public:
       // TODO: if we change resolusion here, we need to do something
       // Combine previously recomposed data with newly recomposed data
       SubArray<D, T_data, DeviceType> data_subarray(data_array);
-      AddND(SubArray<D, T_data, DeviceType>(curr_data_array),
-           data_subarray, 0);
+      AddND(SubArray<D, T_data, DeviceType>(curr_data_array), data_subarray, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
       return data_array;
     }

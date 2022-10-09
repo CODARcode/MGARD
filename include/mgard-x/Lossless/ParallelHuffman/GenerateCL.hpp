@@ -46,11 +46,11 @@ public:
       SubArray<1, int, DeviceType> copyIndex,
       SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
       SubArray<1, int, DeviceType> status)
-      : histogram(histogram), CL(CL), dict_size(dict_size), lNodesFreq(lNodesFreq),
-        lNodesLeader(lNodesLeader), iNodesFreq(iNodesFreq),
-        iNodesLeader(iNodesLeader), tempFreq(tempFreq), tempIsLeaf(tempIsLeaf),
-        tempIndex(tempIndex), copyFreq(copyFreq), copyIsLeaf(copyIsLeaf),
-        copyIndex(copyIndex),
+      : histogram(histogram), CL(CL), dict_size(dict_size),
+        lNodesFreq(lNodesFreq), lNodesLeader(lNodesLeader),
+        iNodesFreq(iNodesFreq), iNodesLeader(iNodesLeader), tempFreq(tempFreq),
+        tempIsLeaf(tempIsLeaf), tempIndex(tempIndex), copyFreq(copyFreq),
+        copyIsLeaf(copyIsLeaf), copyIndex(copyIndex),
         diagonal_path_intersections(diagonal_path_intersections),
         status(status) {
     HuffmanCLCustomizedFunctor<DeviceType>();
@@ -87,9 +87,11 @@ public:
   }
 
   MGARDX_CONT_EXEC bool LoopCondition1() {
-    // printf("LoopCondition1 %d %u %d\n", (*status((IDX)_lNodesCur)), dict_size,
+    // printf("LoopCondition1 %d %u %d\n", (*status((IDX)_lNodesCur)),
+    // dict_size,
     // (*status((IDX)_iNodesSize)));
-    return (*status((IDX)_lNodesCur)) < dict_size || (*status((IDX)_iNodesSize)) > 1;
+    return (*status((IDX)_lNodesCur)) < dict_size ||
+           (*status((IDX)_iNodesSize)) > 1;
   }
 
   MGARDX_EXEC void Operation2() {
@@ -118,7 +120,8 @@ public:
         midIsLeaf[2] = 0;
       }
       if ((*status((IDX)_iNodesSize)) >= 2) {
-        midFreq[3] = *iNodesFreq(MOD((*status((IDX)_iNodesFront)) + 1, dict_size));
+        midFreq[3] =
+            *iNodesFreq(MOD((*status((IDX)_iNodesFront)) + 1, dict_size));
         midIsLeaf[3] = 0;
       }
 
@@ -218,7 +221,8 @@ public:
       // dict_size);
 
       (*status((IDX)_iNodesSize)) =
-          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)), dict_size);
+          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)),
+              dict_size);
 
       // printf("mine: iNodesLeader(0.leader) = %d, (*status((IDX)_iNodesRear)):
       // %u\n", *iNodesLeader(IDX(0)), (*status((IDX)_iNodesRear)));
@@ -276,7 +280,8 @@ public:
                         *iNodesFreq((IDX)MOD((*status((IDX)_iNodesRear)) - 1,
                                              dict_size)))) //
       ) {
-        (*status((IDX)_mergeRear)) = MOD((*status((IDX)_mergeRear)) - 1, dict_size);
+        (*status((IDX)_mergeRear)) =
+            MOD((*status((IDX)_mergeRear)) - 1, dict_size);
         (*status((IDX)_iNodesFront)) =
             MOD((*status((IDX)_iNodesRear)) - 1, dict_size);
       } else {
@@ -286,11 +291,13 @@ public:
 
       (*status((IDX)_lNodesCur)) =
           (*status((IDX)_lNodesCur)) + (*status((IDX)_curLeavesNum));
-      (*status((IDX)_iNodesRear)) = MOD((*status((IDX)_iNodesRear)) + 1, dict_size);
+      (*status((IDX)_iNodesRear)) =
+          MOD((*status((IDX)_iNodesRear)) + 1, dict_size);
 
       (*status((IDX)_tempLength)) =
           ((*status((IDX)_curLeavesNum)) - 0) +
-          MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)), dict_size);
+          MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)),
+              dict_size);
     }
   }
 
@@ -309,11 +316,11 @@ public:
     oneorzero = &sm[5];
 
     // (*status((IDX)_tempLength)) = (cEnd - 0) + MOD((*status((IDX)_mergeRear))
-    // - (*status((IDX)_mergeFront)), dict_size); if ((*status((IDX)_tempLength)) ==
-    // 0) return;
+    // - (*status((IDX)_mergeFront)), dict_size); if
+    // ((*status((IDX)_tempLength)) == 0) return;
     A_length = (*status((IDX)_curLeavesNum)) - 0;
-    B_length =
-        MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)), dict_size);
+    B_length = MOD((*status((IDX)_mergeRear)) - (*status((IDX)_mergeFront)),
+                   dict_size);
 
     // if (!thread) {
     //   printf("A_length: %d, B_length: %d, (*status((IDX)_tempLength)): %d\n",
@@ -363,7 +370,8 @@ public:
     current_y = *y_top + ((*y_bottom - *y_top) >> 1) + threadOffset;
     getfrom_x = current_x + 0 - 1;
     // Below statement is a more efficient, divmodless version of the following
-    // int32_t getfrom_y = MOD((*status((IDX)_mergeFront)) + current_y, dict_size);
+    // int32_t getfrom_y = MOD((*status((IDX)_mergeFront)) + current_y,
+    // dict_size);
     getfrom_y = (*status((IDX)_mergeFront)) + current_y;
 
     if (FunctorBase<DeviceType>::GetThreadIdX() < MGARDX_WARP_SIZE) {
@@ -597,7 +605,8 @@ public:
         FunctorBase<DeviceType>::GetThreadIdX();
     if (i == 0) {
       (*status((IDX)_iNodesSize)) =
-          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)), dict_size);
+          MOD((*status((IDX)_iNodesRear)) - (*status((IDX)_iNodesFront)),
+              dict_size);
     }
   }
 
@@ -667,11 +676,11 @@ public:
       SubArray<1, int, DeviceType> copyIndex,
       SubArray<1, uint32_t, DeviceType> diagonal_path_intersections,
       SubArray<1, int, DeviceType> status)
-      : histogram(histogram), CL(CL), dict_size(dict_size), lNodesFreq(lNodesFreq),
-        lNodesLeader(lNodesLeader), iNodesFreq(iNodesFreq),
-        iNodesLeader(iNodesLeader), tempFreq(tempFreq), tempIsLeaf(tempIsLeaf),
-        tempIndex(tempIndex), copyFreq(copyFreq), copyIsLeaf(copyIsLeaf),
-        copyIndex(copyIndex),
+      : histogram(histogram), CL(CL), dict_size(dict_size),
+        lNodesFreq(lNodesFreq), lNodesLeader(lNodesLeader),
+        iNodesFreq(iNodesFreq), iNodesLeader(iNodesLeader), tempFreq(tempFreq),
+        tempIsLeaf(tempIsLeaf), tempIndex(tempIndex), copyFreq(copyFreq),
+        copyIsLeaf(copyIsLeaf), copyIndex(copyIndex),
         diagonal_path_intersections(diagonal_path_intersections),
         status(status) {}
 
