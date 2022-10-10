@@ -20,6 +20,7 @@ struct Config {
   enum lossless_type lossless;
   int reorder;
   int log_level;
+  SIZE max_larget_level;
 
   Config();
   void apply();
