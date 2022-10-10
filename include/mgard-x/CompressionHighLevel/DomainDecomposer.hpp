@@ -18,47 +18,14 @@ public:
   size_t estimate_memory_usgae(std::vector<SIZE> shape, double outlier_ratio,
                                double reduction_ratio, bool enable_prefetch) {
     size_t estimate_memory_usgae = 0;
-    size_t total_elem = 1;
-    for (DIM d = 0; d < D; d++) {
-      total_elem *= shape[d];
-    }
 
     Array<1, T, DeviceType> array_with_pitch({1});
     size_t pitch_size = array_with_pitch.ld(0) * sizeof(T);
 
-    // log::info("pitch_size: " + std::to_string(pitch_size));
-
-    size_t hierarchy_space = 0;
-    // space need for hiearachy
-    int nlevel = std::numeric_limits<int>::max();
-    for (DIM i = 0; i < shape.size(); i++) {
-      int n = shape[i];
-      int l = 0;
-      while (n > 2) {
-        n = n / 2 + 1;
-        l++;
-      }
-      nlevel = std::min(nlevel, l);
-    }
-    nlevel--;
-    for (DIM d = 0; d < D; d++) {
-      hierarchy_space += shape[d] * 2 * sizeof(T); // dist
-      hierarchy_space += shape[d] * 2 * sizeof(T); // ratio
-    }
-    SIZE max_dim = 0;
-    for (DIM d = 0; d < D; d++) {
-      max_dim = std::max(max_dim, shape[d]);
-    }
-
-    hierarchy_space +=
-        D * (nlevel + 1) * roundup(max_dim * sizeof(T), pitch_size); // volume
-    for (DIM d = 0; d < D; d++) {
-      hierarchy_space += shape[d] * 2 * sizeof(T); // am
-      hierarchy_space += shape[d] * 2 * sizeof(T); // bm
-    }
-
-    // log::info("hierarchy_space: " +
-    // std::to_string((double)hierarchy_space/1e9));
+    Hierarchy<D, T, DeviceType> hierarchy;
+    size_t hierarchy_space = hierarchy.estimate_memory_usgae(shape) * 2;
+    log::info("hierarchy_space: " +
+              std::to_string((double)hierarchy_space / 1e9));
 
     size_t input_space = roundup(shape[D - 1] * sizeof(T), pitch_size);
     for (DIM d = 0; d < D - 1; d++) {
@@ -73,13 +40,13 @@ public:
       output_space *= 2;
     }
 
-    // log::info("input_space: " + std::to_string((double)input_space/1e9));
+    log::info("input_space: " + std::to_string((double)input_space / 1e9));
 
     CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
 
-    estimate_memory_usgae =
-        hierarchy_space + input_space + output_space +
-        compression_workspace.estimate_size(shape, 64, outlier_ratio);
+    estimate_memory_usgae = hierarchy_space + input_space + output_space +
+                            compression_workspace.estimate_size(
+                                shape, hierarchy.l_target(), outlier_ratio);
 
     return estimate_memory_usgae;
   }
@@ -91,6 +58,29 @@ public:
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
               "GB, Available: " + std::to_string((double)aval / 1e9) + "GB");
     return estm >= aval;
+  }
+
+  std::vector<SIZE> subdomain_shape(int subdomain_id) {
+    if (subdomain_id >= _num_subdomains) {
+      log::err("DomainDecomposer::subdomain_shape wrong subdomain_id.");
+      exit(-1);
+    }
+    if (!_domain_decomposed) {
+      return shape;
+    } else {
+      if (subdomain_id <
+          shape[_domain_decomposed_dim] / _domain_decomposed_size) {
+        std::vector<SIZE> chunck_shape = shape;
+        chunck_shape[_domain_decomposed_dim] = _domain_decomposed_size;
+        return chunck_shape;
+      } else {
+        SIZE leftover_dim_size =
+            shape[_domain_decomposed_dim] % _domain_decomposed_size;
+        std::vector<SIZE> leftover_shape = shape;
+        leftover_shape[_domain_decomposed_dim] = leftover_dim_size;
+        return leftover_shape;
+      }
+    }
   }
 
   bool generate_domain_decomposition_strategy(std::vector<SIZE> shape,
@@ -137,11 +127,32 @@ public:
     return true;
   }
 
+  Hierarchy<D, T, DeviceType> subdomain_hierarchy(int subdomain_id) {
+    if (uniform) {
+      return Hierarchy<D, T, DeviceType>(subdomain_shape(subdomain_id), config);
+    } else {
+      std::vector<T *> chunck_coords = coords;
+      std::vector<SIZE> shape = subdomain_shape(subdomain_id);
+      T *decompose_dim_coord = new T[shape[_domain_decomposed_dim]];
+      MemoryManager<DeviceType>::Copy1D(decompose_dim_coord,
+                                        coords[_domain_decomposed_dim] +
+                                            subdomain_id *
+                                                _domain_decomposed_size,
+                                        shape[_domain_decomposed_dim], 0);
+      DeviceRuntime<DeviceType>::SyncQueue(0);
+      chunck_coords[_domain_decomposed_dim] = decompose_dim_coord;
+      delete[] decompose_dim_coord;
+      return Hierarchy<D, T, DeviceType>(shape, chunck_coords, config);
+    }
+  }
+
   DomainDecomposer() : _domain_decomposed(false) {}
 
   // Find domain decomposion method
-  DomainDecomposer(T *original_data, std::vector<SIZE> shape, int _num_devices)
-      : original_data(original_data), shape(shape), _num_devices(_num_devices) {
+  DomainDecomposer(T *original_data, std::vector<SIZE> shape, int _num_devices,
+                   Config config)
+      : original_data(original_data), shape(shape), _num_devices(_num_devices),
+        config(config) {
     if (!need_domain_decomposition(shape, false) && this->_num_devices == 1) {
       this->_domain_decomposed = false;
       this->_domain_decomposed_dim = 0;
@@ -155,16 +166,38 @@ public:
     this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                 this->_domain_decomposed_size +
                             1;
+    uniform = true;
+  }
+
+  // Find domain decomposion method
+  DomainDecomposer(T *original_data, std::vector<SIZE> shape, int _num_devices,
+                   Config config, std::vector<T *> coords)
+      : original_data(original_data), shape(shape), _num_devices(_num_devices),
+        config(config), coords(coords) {
+    if (!need_domain_decomposition(shape, false) && this->_num_devices == 1) {
+      this->_domain_decomposed = false;
+      this->_domain_decomposed_dim = 0;
+      this->_domain_decomposed_size = this->shape[0];
+    } else {
+      this->_domain_decomposed = true;
+      generate_domain_decomposition_strategy(
+          shape, this->_domain_decomposed_dim, this->_domain_decomposed_size,
+          this->_num_devices);
+    }
+    this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
+                                this->_domain_decomposed_size +
+                            1;
+    uniform = false;
   }
 
   // Force to use this domain decomposion method
   DomainDecomposer(T *original_data, std::vector<SIZE> shape, int _num_devices,
                    bool _domain_decomposed, DIM _domain_decomposed_dim,
-                   SIZE _domain_decomposed_size)
+                   SIZE _domain_decomposed_size, Config config)
       : original_data(original_data), shape(shape), _num_devices(_num_devices),
         _domain_decomposed_dim(_domain_decomposed_dim),
         _domain_decomposed_size(_domain_decomposed_size),
-        _domain_decomposed(_domain_decomposed) {
+        _domain_decomposed(_domain_decomposed), config(config) {
     if (!this->_domain_decomposed) {
       this->_domain_decomposed_dim = 0;
       this->_domain_decomposed_size = this->shape[0];
@@ -172,6 +205,26 @@ public:
     this->_num_subdomains = (this->shape[this->_domain_decomposed_dim] - 1) /
                                 this->_domain_decomposed_size +
                             1;
+    uniform = true;
+  }
+
+  // Force to use this domain decomposion method
+  DomainDecomposer(T *original_data, std::vector<SIZE> shape, int _num_devices,
+                   bool _domain_decomposed, DIM _domain_decomposed_dim,
+                   SIZE _domain_decomposed_size, Config config,
+                   std::vector<T *> coords)
+      : original_data(original_data), shape(shape), _num_devices(_num_devices),
+        _domain_decomposed_dim(_domain_decomposed_dim),
+        _domain_decomposed_size(_domain_decomposed_size),
+        _domain_decomposed(_domain_decomposed), config(config), coords(coords) {
+    if (!this->_domain_decomposed) {
+      this->_domain_decomposed_dim = 0;
+      this->_domain_decomposed_size = this->shape[0];
+    }
+    this->_num_subdomains = (this->shape[this->_domain_decomposed_dim] - 1) /
+                                this->_domain_decomposed_size +
+                            1;
+    uniform = false;
   }
 
   void calc_domain_decompose_parameter(std::vector<SIZE> shape,
@@ -199,29 +252,6 @@ public:
       n2 *= shape[d];
     }
     // std::cout << "n2: " << n2 << "\n";
-  }
-
-  std::vector<SIZE> subdomain_shape(int subdomain_id) {
-    if (subdomain_id >= _num_subdomains) {
-      log::err("DomainDecomposer::subdomain_shape wrong subdomain_id.");
-      exit(-1);
-    }
-    if (!_domain_decomposed) {
-      return shape;
-    } else {
-      if (subdomain_id <
-          shape[_domain_decomposed_dim] / _domain_decomposed_size) {
-        std::vector<SIZE> chunck_shape = shape;
-        chunck_shape[_domain_decomposed_dim] = _domain_decomposed_size;
-        return chunck_shape;
-      } else {
-        SIZE leftover_dim_size =
-            shape[_domain_decomposed_dim] % _domain_decomposed_size;
-        std::vector<SIZE> leftover_shape = shape;
-        leftover_shape[_domain_decomposed_dim] = leftover_dim_size;
-        return leftover_shape;
-      }
-    }
   }
 
   bool check_shape(Array<D, T, DeviceType> &subdomain_data,
@@ -326,8 +356,11 @@ public:
   DIM _domain_decomposed_dim;
   SIZE _domain_decomposed_size;
   SIZE _num_subdomains;
-
+  std::vector<Hierarchy<D, T, DeviceType>> subdomain_hierarchies;
   T *original_data;
+  Config config;
+  bool uniform;
+  std::vector<T *> coords;
 };
 
 } // namespace mgard_x

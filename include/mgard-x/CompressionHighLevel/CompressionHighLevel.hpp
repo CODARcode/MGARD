@@ -252,12 +252,26 @@ bool is_same(Hierarchy<D, T, DeviceType> &hierarchy1,
 }
 
 template <DIM D, typename T, typename DeviceType>
-void compress_subdomain(
-    DomainDecomposer<D, T, DeviceType> &domain_decomposer, SIZE subdomain_id,
-    std::vector<Hierarchy<D, T, DeviceType>> &subdomain_hierarchies,
-    T local_tol, T s, T &norm, enum error_bound_type local_ebtype,
-    Config &config, std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size) {
+bool can_reuse(Hierarchy<D, T, DeviceType> &hierarchy,
+               std::vector<SIZE> shape) {
+  if (hierarchy.data_structure() ==
+      data_structure_type::Cartesian_Grid_Non_Uniform) {
+    return false;
+  }
+  for (DIM d = 0; d < D; d++) {
+    if (hierarchy.level_shape(hierarchy.l_target(), d) != shape[d]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <DIM D, typename T, typename DeviceType>
+void compress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
+                        SIZE subdomain_id, T local_tol, T s, T &norm,
+                        enum error_bound_type local_ebtype, Config &config,
+                        std::vector<Byte *> &compressed_subdomain_data,
+                        std::vector<SIZE> &compressed_subdomain_size) {
 
   Timer timer_series;
   if (log::level & log::TIME)
@@ -269,7 +283,8 @@ void compress_subdomain(
                                    ORIGINAL_TO_SUBDOMAIN, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   // Trigger the copy constructor to copy hierarchy to the current device
-  Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchies[subdomain_id];
+  Hierarchy<D, T, DeviceType> hierarchy =
+      domain_decomposer.subdomain_hierarchy(subdomain_id);
   CompressionLowLevelWorkspace workspace(hierarchy, 0.1);
   std::stringstream ss;
   for (DIM d = 0; d < D; d++) {
@@ -297,13 +312,11 @@ void compress_subdomain(
 template <DIM D, typename T, typename DeviceType>
 void compress_subdomain_series(
     DomainDecomposer<D, T, DeviceType> &domain_decomposer,
-    std::vector<SIZE> &subdomain_ids,
-    std::vector<Hierarchy<D, T, DeviceType>> &subdomain_hierarchies,
-    T local_tol, T s, T &norm, enum error_bound_type local_ebtype,
-    Config &config, std::vector<Byte *> &compressed_subdomain_data,
+    std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
+    enum error_bound_type local_ebtype, Config &config,
+    std::vector<Byte *> &compressed_subdomain_data,
     std::vector<SIZE> &compressed_subdomain_size) {
   assert(subdomain_ids.size() > 0);
-  assert(subdomain_hierarchies.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -316,7 +329,8 @@ void compress_subdomain_series(
                                      ORIGINAL_TO_SUBDOMAIN, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
     // Trigger the copy constructor to copy hierarchy to the current device
-    Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchies[subdomain_id];
+    Hierarchy<D, T, DeviceType> hierarchy =
+        domain_decomposer.subdomain_hierarchy(subdomain_id);
     CompressionLowLevelWorkspace workspace(hierarchy, 0.1);
     std::stringstream ss;
     for (DIM d = 0; d < D; d++) {
@@ -358,20 +372,19 @@ void compress_subdomain_series(
 template <DIM D, typename T, typename DeviceType>
 void compress_subdomain_series_w_prefetch(
     DomainDecomposer<D, T, DeviceType> &domain_decomposer,
-    std::vector<SIZE> &subdomain_ids,
-    std::vector<Hierarchy<D, T, DeviceType>> &subdomain_hierarchies,
-    T local_tol, T s, T &norm, enum error_bound_type local_ebtype,
-    Config &config, std::vector<Byte *> &compressed_subdomain_data,
+    std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
+    enum error_bound_type local_ebtype, Config &config,
+    std::vector<Byte *> &compressed_subdomain_data,
     std::vector<SIZE> &compressed_subdomain_size) {
   assert(subdomain_ids.size() > 0);
-  assert(subdomain_hierarchies.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
   Hierarchy<D, T, DeviceType> hierarchy =
-      subdomain_hierarchies[subdomain_ids[0]];
+      domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
+  // The workspace can be resued since all subdomains should be equal/smaller
+  // than the first one
   CompressionLowLevelWorkspace workspace(hierarchy, 0.1);
-
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
   Array<1, Byte, DeviceType> device_compressed_buffer;
@@ -403,8 +416,9 @@ void compress_subdomain_series_w_prefetch(
                                        1);
     }
     std::stringstream ss;
-    if (!is_same(hierarchy, subdomain_hierarchies[curr_subdomain_id])) {
-      hierarchy = subdomain_hierarchies[curr_subdomain_id];
+    if (!can_reuse(hierarchy,
+                   domain_decomposer.subdomain_shape(curr_subdomain_id))) {
+      hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
       workspace = CompressionLowLevelWorkspace(hierarchy, 0.1);
     }
 
@@ -451,13 +465,11 @@ void compress_subdomain_series_w_prefetch(
 }
 
 template <DIM D, typename T, typename DeviceType>
-void decompress_subdomain(
-    DomainDecomposer<D, T, DeviceType> &domain_decomposer, SIZE subdomain_id,
-    std::vector<Hierarchy<D, T, DeviceType>> &subdomain_hierarchies,
-    T local_tol, T s, T norm, enum error_bound_type local_ebtype,
-    Config &config, std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size) {
-  assert(subdomain_hierarchies.size() > 0);
+void decompress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
+                          SIZE subdomain_id, T local_tol, T s, T norm,
+                          enum error_bound_type local_ebtype, Config &config,
+                          std::vector<Byte *> &compressed_subdomain_data,
+                          std::vector<SIZE> &compressed_subdomain_size) {
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -472,7 +484,8 @@ void decompress_subdomain(
   MemoryManager<DeviceType>::FreeHost(compressed_subdomain_data[subdomain_id]);
 
   // Trigger the copy constructor to copy hierarchy to the current device
-  Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchies[subdomain_id];
+  Hierarchy<D, T, DeviceType> hierarchy =
+      domain_decomposer.subdomain_hierarchy(subdomain_id);
 
   CompressionLowLevelWorkspace workspace(hierarchy, 0.0);
   std::stringstream ss;
@@ -499,13 +512,11 @@ void decompress_subdomain(
 template <DIM D, typename T, typename DeviceType>
 void decompress_subdomain_series(
     DomainDecomposer<D, T, DeviceType> &domain_decomposer,
-    std::vector<SIZE> &subdomain_ids,
-    std::vector<Hierarchy<D, T, DeviceType>> &subdomain_hierarchies,
-    T local_tol, T s, T norm, enum error_bound_type local_ebtype,
-    Config &config, std::vector<Byte *> &compressed_subdomain_data,
+    std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
+    enum error_bound_type local_ebtype, Config &config,
+    std::vector<Byte *> &compressed_subdomain_data,
     std::vector<SIZE> &compressed_subdomain_size) {
   assert(subdomain_ids.size() > 0);
-  assert(subdomain_hierarchies.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -523,7 +534,8 @@ void decompress_subdomain_series(
         compressed_subdomain_data[subdomain_id]);
 
     // Trigger the copy constructor to copy hierarchy to the current device
-    Hierarchy<D, T, DeviceType> hierarchy = subdomain_hierarchies[subdomain_id];
+    Hierarchy<D, T, DeviceType> hierarchy =
+        domain_decomposer.subdomain_hierarchy(subdomain_id);
 
     CompressionLowLevelWorkspace workspace(hierarchy, 0.0);
     std::stringstream ss;
@@ -554,18 +566,18 @@ void decompress_subdomain_series(
 template <DIM D, typename T, typename DeviceType>
 void decompress_subdomain_series_w_prefetch(
     DomainDecomposer<D, T, DeviceType> &domain_decomposer,
-    std::vector<SIZE> &subdomain_ids,
-    std::vector<Hierarchy<D, T, DeviceType>> &subdomain_hierarchies,
-    T local_tol, T s, T norm, enum error_bound_type local_ebtype,
-    Config &config, std::vector<Byte *> &compressed_subdomain_data,
+    std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
+    enum error_bound_type local_ebtype, Config &config,
+    std::vector<Byte *> &compressed_subdomain_data,
     std::vector<SIZE> &compressed_subdomain_size) {
   assert(subdomain_ids.size() > 0);
-  assert(subdomain_hierarchies.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
   Hierarchy<D, T, DeviceType> hierarchy =
-      subdomain_hierarchies[subdomain_ids[0]];
+      domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
+  // The workspace can be resued since all subdomains should be equal/smaller
+  // than the first one
   CompressionLowLevelWorkspace workspace(hierarchy, 0.1);
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
@@ -604,8 +616,9 @@ void decompress_subdomain_series_w_prefetch(
           compressed_subdomain_size[next_subdomain_id], 1);
     }
 
-    if (!is_same(hierarchy, subdomain_hierarchies[curr_subdomain_id])) {
-      hierarchy = subdomain_hierarchies[curr_subdomain_id];
+    if (!can_reuse(hierarchy,
+                   domain_decomposer.subdomain_shape(curr_subdomain_id))) {
+      hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
       workspace = CompressionLowLevelWorkspace(hierarchy, 0.1);
     }
 
@@ -679,11 +692,6 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
                                             total_num_elem * sizeof(T));
   }
 
-  Hierarchy<D, T, DeviceType> hierarchy;
-  DIM domain_decomposed_dim;
-  SIZE domain_decomposed_size;
-  SIZE num_subdomains;
-
   config.apply();
 
   if (config.num_dev <= 0) {
@@ -706,28 +714,13 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   if (log::level & log::TIME)
     timer_each.start();
 
-  DomainDecomposer<D, T, DeviceType> domain_decomposer((T *)original_data,
-                                                       shape, adjusted_num_dev);
-
-  if (!domain_decomposer.domain_decomposed()) {
-    if (uniform) {
-      hierarchy = Hierarchy<D, T, DeviceType>(shape, config);
-    } else {
-      hierarchy = Hierarchy<D, T, DeviceType>(shape, coords, config);
-    }
-    num_subdomains = 1;
+  DomainDecomposer<D, T, DeviceType> domain_decomposer;
+  if (uniform) {
+    domain_decomposer = DomainDecomposer<D, T, DeviceType>(
+        (T *)original_data, shape, adjusted_num_dev, config);
   } else {
-    if (uniform) {
-      hierarchy = Hierarchy<D, T, DeviceType>(
-          shape, domain_decomposer.domain_decomposed_dim(),
-          domain_decomposer.domain_decomposed_size(), config);
-    } else {
-      hierarchy = Hierarchy<D, T, DeviceType>(
-          shape, domain_decomposer.domain_decomposed_dim(),
-          domain_decomposer.domain_decomposed_size(), coords, config);
-    }
-    num_subdomains = domain_decomposer.num_subdomains();
-    assert(num_subdomains == hierarchy.hierarchy_chunck.size());
+    domain_decomposer = DomainDecomposer<D, T, DeviceType>(
+        (T *)original_data, shape, adjusted_num_dev, config, coords);
   }
 
   if (log::level & log::TIME) {
@@ -745,25 +738,24 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   // Buffers for holding input data and they are reused between subdomains
   std::vector<Array<D, T, DeviceType>> device_input_buffer(adjusted_num_dev);
   // We store compressed data on host in case they are too large for devices
-  std::vector<Byte *> compressed_subdomain_data(num_subdomains);
-  std::vector<SIZE> compressed_subdomain_size(num_subdomains);
-  std::vector<Hierarchy<D, T, DeviceType>> subdomain_hierarchies;
+  std::vector<Byte *> compressed_subdomain_data(
+      domain_decomposer.num_subdomains());
+  std::vector<SIZE> compressed_subdomain_size(
+      domain_decomposer.num_subdomains());
   T norm = 1;
   T local_tol = tol;
   enum error_bound_type local_ebtype;
 
-  if (!hierarchy.domain_decomposed) {
-    subdomain_hierarchies.push_back(hierarchy);
+  if (!domain_decomposer.domain_decomposed()) {
     local_tol = tol;
     local_ebtype = ebtype;
   } else {
     log::info("Orignial domain is decomposed into " +
-              std::to_string(hierarchy.hierarchy_chunck.size()) +
+              std::to_string(domain_decomposer.num_subdomains()) +
               " sub-domains");
 
     if (log::level & log::TIME)
       timer_each.start();
-    subdomain_hierarchies = hierarchy.hierarchy_chunck;
     if (ebtype == error_bound_type::REL) {
       // norm = calc_norm_decomposed(device_input_buffer, domain_decomposer, s,
       //                             config.normalize_coordinates,
@@ -772,7 +764,8 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
                                              config.normalize_coordinates,
                                              total_num_elem, adjusted_num_dev);
     }
-    local_tol = calc_local_abs_tol(ebtype, norm, tol, s, num_subdomains);
+    local_tol = calc_local_abs_tol(ebtype, norm, tol, s,
+                                   domain_decomposer.num_subdomains());
     // Force to use ABS mode when do domain decomposition
     local_ebtype = error_bound_type::ABS;
     // Fast copy for domain decomposition need we disable pitched memory
@@ -800,26 +793,24 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
     // Create a series of subdomain ids that are assigned to the current device
     std::vector<SIZE> subdomain_ids;
-    for (SIZE subdomain_id = dev_id; subdomain_id < num_subdomains;
+    for (SIZE subdomain_id = dev_id;
+         subdomain_id < domain_decomposer.num_subdomains();
          subdomain_id += adjusted_num_dev) {
       subdomain_ids.push_back(subdomain_id);
     }
     if (subdomain_ids.size() == 1) {
-      compress_subdomain(domain_decomposer, subdomain_ids[0],
-                         subdomain_hierarchies, local_tol, s, norm,
-                         local_ebtype, config, compressed_subdomain_data,
+      compress_subdomain(domain_decomposer, subdomain_ids[0], local_tol, s,
+                         norm, local_ebtype, config, compressed_subdomain_data,
                          compressed_subdomain_size);
     } else {
       // Compress a series of subdomains according to the subdomain id list
       // compress_subdomain_series(domain_decomposer, subdomain_ids,
-      // subdomain_hierarchies,
       //                           local_tol, s, norm, local_ebtype, config,
       //                           compressed_subdomain_data,
       //                           compressed_subdomain_size);
       compress_subdomain_series_w_prefetch(
-          domain_decomposer, subdomain_ids, subdomain_hierarchies, local_tol, s,
-          norm, local_ebtype, config, compressed_subdomain_data,
-          compressed_subdomain_size);
+          domain_decomposer, subdomain_ids, local_tol, s, norm, local_ebtype,
+          config, compressed_subdomain_data, compressed_subdomain_size);
     }
   }
 
@@ -840,13 +831,15 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   if (uniform) {
     m.Fill(ebtype, tol, s, norm, config.decomposition, config.reorder,
            config.lossless, config.huff_dict_size, config.huff_block_size,
-           shape, hierarchy.domain_decomposed, hierarchy.domain_decomposed_dim,
-           hierarchy.domain_decomposed_size);
+           shape, domain_decomposer.domain_decomposed(),
+           domain_decomposer.domain_decomposed_dim(),
+           domain_decomposer.domain_decomposed_size());
   } else {
     m.Fill(ebtype, tol, s, norm, config.decomposition, config.reorder,
            config.lossless, config.huff_dict_size, config.huff_block_size,
-           shape, hierarchy.domain_decomposed, hierarchy.domain_decomposed_dim,
-           hierarchy.domain_decomposed_size, coords);
+           shape, domain_decomposer.domain_decomposed(),
+           domain_decomposer.domain_decomposed_dim(),
+           domain_decomposer.domain_decomposed_size(), coords);
   }
 
   uint32_t metadata_size;
@@ -855,7 +848,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   // Estimate final output size
   SIZE byte_offset = 0;
   advance_with_align<SERIALIZED_TYPE>(byte_offset, metadata_size);
-  for (uint32_t i = 0; i < num_subdomains; i++) {
+  for (uint32_t i = 0; i < domain_decomposer.num_subdomains(); i++) {
     advance_with_align<SIZE>(byte_offset, 1);
     align_byte_offset<uint64_t>(byte_offset); // for zero copy when deserialize
     advance_with_align<Byte>(byte_offset, compressed_subdomain_size[i]);
@@ -878,7 +871,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   byte_offset = 0;
   Serialize<SERIALIZED_TYPE, DeviceType>(
       (Byte *)compressed_data, serizalied_meta, metadata_size, byte_offset);
-  for (uint32_t i = 0; i < num_subdomains; i++) {
+  for (uint32_t i = 0; i < domain_decomposer.num_subdomains(); i++) {
     SIZE subdomain_compressed_size = compressed_subdomain_size[i];
     Serialize<SIZE, DeviceType>((Byte *)compressed_data,
                                 &subdomain_compressed_size, 1, byte_offset);
@@ -983,33 +976,12 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   if (log::level & log::TIME)
     timer_each.start();
 
-  Hierarchy<D, T, DeviceType> hierarchy;
   SIZE num_subdomains;
-
   if (!m.domain_decomposed) {
-    if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
-      hierarchy = Hierarchy<D, T, DeviceType>(shape, config);
-    } else {
-      hierarchy = Hierarchy<D, T, DeviceType>(shape, coords, config);
-    }
     num_subdomains = 1;
   } else {
-    if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
-      hierarchy = Hierarchy<D, T, DeviceType>(shape, m.domain_decomposed_dim,
-                                              m.domain_decomposed_size, config);
-    } else {
-      hierarchy =
-          Hierarchy<D, T, DeviceType>(shape, m.domain_decomposed_dim,
-                                      m.domain_decomposed_size, coords, config);
-    }
     num_subdomains =
         (shape[m.domain_decomposed_dim] - 1) / m.domain_decomposed_size + 1;
-    assert(num_subdomains == hierarchy.hierarchy_chunck.size());
-  }
-
-  if (m.dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
-    for (DIM d = 0; d < D; d++)
-      delete[] coords[d];
   }
 
   if (log::level & log::TIME) {
@@ -1019,7 +991,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   }
 
   // Preparing decompression parameters
-  std::vector<Hierarchy<D, T, DeviceType>> subdomain_hierarchies;
   T local_tol;
   enum error_bound_type local_ebtype;
 
@@ -1027,13 +998,11 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     timer_each.start();
 
   if (!m.domain_decomposed) {
-    subdomain_hierarchies.push_back(hierarchy);
     local_tol = m.tol;
     local_ebtype = m.ebtype;
   } else {
-    subdomain_hierarchies = hierarchy.hierarchy_chunck;
     log::info("Orignial domain was decomposed into " +
-              std::to_string(subdomain_hierarchies.size()) +
+              std::to_string(num_subdomains) +
               " subdomains during compression");
     local_tol =
         calc_local_abs_tol(m.ebtype, m.norm, m.tol, m.s, num_subdomains);
@@ -1048,7 +1017,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   std::vector<Byte *> compressed_subdomain_data(num_subdomains);
   std::vector<SIZE> compressed_subdomain_size(num_subdomains);
   SIZE byte_offset = m.metadata_size;
-  for (uint32_t i = 0; i < subdomain_hierarchies.size(); i++) {
+  for (uint32_t i = 0; i < num_subdomains; i++) {
     DeviceRuntime<DeviceType>::SelectDevice(i % adjusted_num_dev);
     SIZE temp_size;
     Byte *temp_data;
@@ -1096,9 +1065,17 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   }
 
   // Initialize DomainDecomposer
-  DomainDecomposer<D, T, DeviceType> domain_decomposer(
-      (T *)decompressed_data, shape, adjusted_num_dev, m.domain_decomposed,
-      m.domain_decomposed_dim, m.domain_decomposed_size);
+  DomainDecomposer<D, T, DeviceType> domain_decomposer;
+
+  if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
+    domain_decomposer = DomainDecomposer<D, T, DeviceType>(
+        (T *)decompressed_data, shape, adjusted_num_dev, m.domain_decomposed,
+        m.domain_decomposed_dim, m.domain_decomposed_size, config);
+  } else {
+    domain_decomposer = domain_decomposer = DomainDecomposer<D, T, DeviceType>(
+        (T *)decompressed_data, shape, adjusted_num_dev, m.domain_decomposed,
+        m.domain_decomposed_dim, m.domain_decomposed_size, config, coords);
+  }
 
   if (log::level & log::TIME)
     timer_each.start();
@@ -1121,20 +1098,19 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       subdomain_ids.push_back(subdomain_id);
     }
     if (subdomain_ids.size() == 1) {
-      decompress_subdomain(domain_decomposer, subdomain_ids[0],
-                           subdomain_hierarchies, local_tol, (T)m.s, (T)m.norm,
-                           local_ebtype, config, compressed_subdomain_data,
+      decompress_subdomain(domain_decomposer, subdomain_ids[0], local_tol,
+                           (T)m.s, (T)m.norm, local_ebtype, config,
+                           compressed_subdomain_data,
                            compressed_subdomain_size);
     } else {
       // Decompress a series of subdomains according to the subdomain id list
       // decompress_subdomain_series(domain_decomposer, subdomain_ids,
-      // subdomain_hierarchies,
       //                           local_tol, (T)m.s, (T)m.norm, local_ebtype,
       //                           config, compressed_subdomain_data,
       //                           compressed_subdomain_size);
       decompress_subdomain_series_w_prefetch(
-          domain_decomposer, subdomain_ids, subdomain_hierarchies, local_tol,
-          (T)m.s, (T)m.norm, local_ebtype, config, compressed_subdomain_data,
+          domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
+          local_ebtype, config, compressed_subdomain_data,
           compressed_subdomain_size);
     }
   }
@@ -1151,6 +1127,11 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   if (!previously_pinned) {
     MemoryManager<DeviceType>::HostUnregister((void *)decompressed_data);
+  }
+
+  if (m.dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
+    for (DIM d = 0; d < D; d++)
+      delete[] coords[d];
   }
 
   if (log::level & log::TIME) {

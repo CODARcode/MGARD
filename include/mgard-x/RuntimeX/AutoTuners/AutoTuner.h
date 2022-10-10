@@ -15,153 +15,6 @@
 
 namespace mgard_x {
 
-constexpr int GPK_CONFIG[5][7][3] = {{{1, 1, 16},
-                                      {1, 1, 32},
-                                      {1, 1, 64},
-                                      {1, 1, 128},
-                                      {1, 1, 256},
-                                      {1, 1, 512},
-                                      {1, 1, 1024}},
-                                     {{1, 2, 4},
-                                      {1, 4, 4},
-                                      {1, 4, 8},
-                                      {1, 4, 16},
-                                      {1, 4, 32},
-                                      {1, 2, 64},
-                                      {1, 2, 128}},
-                                     {{2, 2, 2},
-                                      {4, 4, 4},
-                                      {4, 4, 8},
-                                      {4, 4, 16},
-                                      {4, 4, 32},
-                                      {2, 2, 64},
-                                      {2, 2, 128}},
-                                     {{2, 2, 2},
-                                      {4, 4, 4},
-                                      {4, 4, 8},
-                                      {4, 4, 16},
-                                      {4, 4, 32},
-                                      {2, 2, 64},
-                                      {2, 2, 128}},
-                                     {{2, 2, 2},
-                                      {4, 4, 4},
-                                      {4, 4, 8},
-                                      {4, 4, 16},
-                                      {4, 4, 32},
-                                      {2, 2, 64},
-                                      {2, 2, 128}}};
-
-constexpr int LPK_CONFIG[5][7][3] = {{{1, 1, 8},
-                                      {1, 1, 8},
-                                      {1, 1, 8},
-                                      {1, 1, 16},
-                                      {1, 1, 32},
-                                      {1, 1, 64},
-                                      {1, 1, 128}},
-                                     {{1, 2, 4},
-                                      {1, 4, 4},
-                                      {1, 8, 8},
-                                      {1, 4, 16},
-                                      {1, 2, 32},
-                                      {1, 2, 64},
-                                      {1, 2, 128}},
-                                     {{2, 2, 2},
-                                      {4, 4, 4},
-                                      {8, 8, 8},
-                                      {4, 4, 16},
-                                      {2, 2, 32},
-                                      {2, 2, 64},
-                                      {2, 2, 128}},
-                                     {{2, 2, 2},
-                                      {4, 4, 4},
-                                      {8, 8, 8},
-                                      {4, 4, 16},
-                                      {2, 2, 32},
-                                      {2, 2, 64},
-                                      {2, 2, 128}},
-                                     {{2, 2, 2},
-                                      {4, 4, 4},
-                                      {8, 8, 8},
-                                      {4, 4, 16},
-                                      {2, 2, 32},
-                                      {2, 2, 64},
-                                      {2, 2, 128}}};
-
-constexpr int IPK_CONFIG[5][7][4] = {{{1, 1, 8, 2},
-                                      {1, 1, 8, 4},
-                                      {1, 1, 8, 4},
-                                      {1, 1, 16, 4},
-                                      {1, 1, 32, 2},
-                                      {1, 1, 64, 2},
-                                      {1, 1, 128, 2}},
-                                     {{1, 2, 4, 2},
-                                      {1, 4, 4, 4},
-                                      {1, 8, 8, 4},
-                                      {1, 4, 16, 4},
-                                      {1, 2, 32, 2},
-                                      {1, 2, 64, 2},
-                                      {1, 2, 128, 2}},
-                                     {{2, 2, 2, 2},
-                                      {4, 4, 4, 4},
-                                      {8, 8, 8, 4},
-                                      {4, 4, 16, 4},
-                                      {2, 2, 32, 2},
-                                      {2, 2, 64, 2},
-                                      {2, 2, 128, 2}},
-                                     {{2, 2, 2, 2},
-                                      {4, 4, 4, 4},
-                                      {8, 8, 8, 4},
-                                      {4, 4, 16, 4},
-                                      {2, 2, 32, 2},
-                                      {2, 2, 64, 2},
-                                      {2, 2, 128, 2}},
-                                     {{2, 2, 2, 2},
-                                      {4, 4, 4, 4},
-                                      {8, 8, 8, 4},
-                                      {4, 4, 16, 4},
-                                      {2, 2, 32, 2},
-                                      {2, 2, 64, 2},
-                                      {2, 2, 128, 2}}};
-
-constexpr int LWPK_CONFIG[5][7][3] = {{{1, 1, 64},
-                                       {1, 1, 64},
-                                       {1, 1, 64},
-                                       {1, 1, 64},
-                                       {1, 1, 128},
-                                       {1, 1, 256},
-                                       {1, 1, 512}},
-                                      {{1, 4, 16},
-                                       {1, 4, 16},
-                                       {1, 4, 16},
-                                       {1, 4, 32},
-                                       {1, 4, 64},
-                                       {1, 4, 128},
-                                       {1, 4, 256}},
-                                      {{4, 4, 4},
-                                       {4, 4, 8},
-                                       {4, 4, 16},
-                                       {4, 4, 32},
-                                       {4, 4, 64},
-                                       {4, 4, 64},
-                                       {4, 4, 64}},
-                                      {{4, 4, 4},
-                                       {4, 4, 8},
-                                       {4, 4, 16},
-                                       {4, 4, 32},
-                                       {4, 4, 64},
-                                       {4, 4, 64},
-                                       {4, 4, 64}},
-                                      {{4, 4, 4},
-                                       {4, 4, 8},
-                                       {4, 4, 16},
-                                       {4, 4, 32},
-                                       {4, 4, 64},
-                                       {4, 4, 64},
-                                       {4, 4, 64}}};
-
-constexpr int LWQK_CONFIG[5][3] = {
-    {1, 1, 64}, {1, 4, 32}, {4, 4, 16}, {4, 4, 16}, {4, 4, 16}};
-
 const int tBLK_ENCODE = 256;
 const int tBLK_DEFLATE = 128;
 const int tBLK_CANONICAL = 128;
@@ -190,9 +43,11 @@ std::string format(const std::string &format, Args... args) {
                      buf.get() + size - 1); // We don't want the '\0' inside
 }
 
-template <typename DeviceType>
-MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int precision_idx,
-                                    int range_l, int config) {
+template <DIM D, typename T, typename DeviceType>
+MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int config) {
+
+  int precision_idx = TypeToIdx<T>();
+  DIM dim_idx = D - 1;
 
   std::string device_type_string = "";
   if (std::is_same<DeviceType, SERIAL>::value) {
@@ -230,7 +85,7 @@ MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int precision_idx,
   std::string regex1_string = "(static constexpr int " + kernel_name +
                               ".*\\{)((.*\\{.*\\}.*\n){" +
                               std::to_string(precision_idx) + "})(.*\\{(., ){" +
-                              std::to_string(range_l) + "})(.)";
+                              std::to_string(dim_idx) + "})(.)";
 
   std::string replace1_string = "$1$2$4 " + std::to_string(config);
   std::string regex2_string = ",  (.)";
@@ -348,51 +203,56 @@ template <DIM D, typename T, typename DeviceType>
 MGARDX_CONT constexpr ExecutionConfig
 GetExecutionConfig(std::string_view functor_name) {
   int precision_idx = TypeToIdx<T>();
+  DIM dim_idx = D - 1;
   int config_idx = 0;
   if (functor_name == "gpk_reo_3d") {
-    config_idx = AutoTuningTable<DeviceType>::gpk_reo_3d[precision_idx][6];
+    config_idx =
+        AutoTuningTable<DeviceType>::gpk_reo_3d[precision_idx][dim_idx];
   } else if (functor_name == "gpk_rev_3d") {
-    config_idx = AutoTuningTable<DeviceType>::gpk_rev_3d[precision_idx][6];
+    config_idx =
+        AutoTuningTable<DeviceType>::gpk_rev_3d[precision_idx][dim_idx];
   } else if (functor_name == "gpk_reo_nd") {
-    config_idx = AutoTuningTable<DeviceType>::gpk_reo_nd[precision_idx][6];
+    config_idx =
+        AutoTuningTable<DeviceType>::gpk_reo_nd[precision_idx][dim_idx];
   } else if (functor_name == "gpk_rev_nd") {
-    config_idx = AutoTuningTable<DeviceType>::gpk_rev_nd[precision_idx][6];
+    config_idx =
+        AutoTuningTable<DeviceType>::gpk_rev_nd[precision_idx][dim_idx];
   } else if (functor_name == "lpk1_3d") {
-    config_idx = AutoTuningTable<DeviceType>::lpk1_3d[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::lpk1_3d[precision_idx][dim_idx];
   } else if (functor_name == "lpk2_3d") {
-    config_idx = AutoTuningTable<DeviceType>::lpk2_3d[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::lpk2_3d[precision_idx][dim_idx];
   } else if (functor_name == "lpk3_3d") {
-    config_idx = AutoTuningTable<DeviceType>::lpk3_3d[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::lpk3_3d[precision_idx][dim_idx];
   } else if (functor_name == "lpk1_nd") {
-    config_idx = AutoTuningTable<DeviceType>::lpk1_nd[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::lpk1_nd[precision_idx][dim_idx];
   } else if (functor_name == "lpk2_nd") {
-    config_idx = AutoTuningTable<DeviceType>::lpk2_nd[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::lpk2_nd[precision_idx][dim_idx];
   } else if (functor_name == "lpk3_nd") {
-    config_idx = AutoTuningTable<DeviceType>::lpk3_nd[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::lpk3_nd[precision_idx][dim_idx];
   } else if (functor_name == "ipk1_3d") {
-    config_idx = AutoTuningTable<DeviceType>::ipk1_3d[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::ipk1_3d[precision_idx][dim_idx];
   } else if (functor_name == "ipk2_3d") {
-    config_idx = AutoTuningTable<DeviceType>::ipk2_3d[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::ipk2_3d[precision_idx][dim_idx];
   } else if (functor_name == "ipk3_3d") {
-    config_idx = AutoTuningTable<DeviceType>::ipk3_3d[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::ipk3_3d[precision_idx][dim_idx];
   } else if (functor_name == "ipk1_nd") {
-    config_idx = AutoTuningTable<DeviceType>::ipk1_nd[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::ipk1_nd[precision_idx][dim_idx];
   } else if (functor_name == "ipk2_nd") {
-    config_idx = AutoTuningTable<DeviceType>::ipk2_nd[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::ipk2_nd[precision_idx][dim_idx];
   } else if (functor_name == "ipk3_nd") {
-    config_idx = AutoTuningTable<DeviceType>::ipk3_nd[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::ipk3_nd[precision_idx][dim_idx];
   } else if (functor_name == "lwpk") {
-    config_idx = AutoTuningTable<DeviceType>::lwpk[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::lwpk[precision_idx][dim_idx];
   } else if (functor_name == "lwqzk") {
-    config_idx = AutoTuningTable<DeviceType>::lwqzk[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::lwqzk[precision_idx][dim_idx];
   } else if (functor_name == "lwdqzk") {
-    config_idx = AutoTuningTable<DeviceType>::lwdqzk[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::lwdqzk[precision_idx][dim_idx];
   } else if (functor_name == "llk") {
-    config_idx = AutoTuningTable<DeviceType>::llk[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::llk[precision_idx][dim_idx];
   } else if (functor_name == "sdck") {
-    config_idx = AutoTuningTable<DeviceType>::sdck[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::sdck[precision_idx][dim_idx];
   } else if (functor_name == "sdmtk") {
-    config_idx = AutoTuningTable<DeviceType>::sdmtk[precision_idx][6];
+    config_idx = AutoTuningTable<DeviceType>::sdmtk[precision_idx][dim_idx];
   } else {
     log::err("Wrong functor_name");
     config_idx = 0;

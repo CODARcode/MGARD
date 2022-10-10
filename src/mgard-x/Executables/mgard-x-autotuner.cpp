@@ -35,14 +35,18 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   mgard_x::Config config;
   config.dev_type = dev_type;
   config.lossless = mgard_x::lossless_type::Huffman;
+  config.max_larget_level = 1;
 
   enum mgard_x::error_bound_type mode = mgard_x::error_bound_type::REL;
   double tol = 0.1;
   double s = 0;
 
   size_t original_size = 1;
-  for (mgard_x::DIM i = 0; i < D; i++)
+  std::cout << " with shape: ";
+  for (mgard_x::DIM i = 0; i < D; i++) {
     original_size *= shape[i];
+    std::cout << shape[i] << " ";
+  }
   T *original_data;
   size_t in_size = 0;
   in_size = original_size * sizeof(T);
@@ -184,76 +188,75 @@ std::vector<mgard_x::SIZE> get_arg_dims(int argc, char *argv[],
   return shape;
 }
 
+mgard_x::device_type get_arg_dev_type(int argc, char *argv[]) {
+  enum mgard_x::device_type dev_type;
+  std::string dev = get_arg(argc, argv, "-d");
+  if (dev.compare("serial") == 0) {
+    dev_type = mgard_x::device_type::SERIAL;
+    std::cout << mgard_x::log::log_info << "device type: SERIAL\n";
+  } else if (dev.compare("openmp") == 0) {
+    dev_type = mgard_x::device_type::OPENMP;
+    std::cout << mgard_x::log::log_info << "device type: OPENMP\n";
+  } else if (dev.compare("cuda") == 0) {
+    dev_type = mgard_x::device_type::CUDA;
+    std::cout << mgard_x::log::log_info << "device type: CUDA\n";
+  } else if (dev.compare("hip") == 0) {
+    dev_type = mgard_x::device_type::HIP;
+    std::cout << mgard_x::log::log_info << "device type: HIP\n";
+  } else if (dev.compare("sycl") == 0) {
+    dev_type = mgard_x::device_type::SYCL;
+    std::cout << mgard_x::log::log_info << "device type: SYCL\n";
+  } else {
+    std::cout << "wrong device type.\n";
+    exit(-1);
+  }
+  return dev_type;
+}
+
 int main(int argc, char *argv[]) {
   enum mgard_x::device_type dev_type;
+  std::vector<std::vector<mgard_x::SIZE>> default_shapes = {
+      {512 * 512 * 512},
+      {8192, 8192},
+      {512, 512, 512},
+      {64, 64, 64, 64},
+      {32, 32, 32, 32, 32}};
   if (argc > 3) {
     mgard_x::DIM D = get_arg_int(argc, argv, "-n");
     std::vector<mgard_x::SIZE> shape = get_arg_dims(argc, argv, "-n");
-    std::cout << mgard_x::log::log_info << "Auto tuning for shape: ";
-    for (int i = 0; i < D; i++)
-      std::cout << shape[i] << " ";
-    std::cout << "\n";
-    std::string dev = get_arg(argc, argv, "-d");
-    if (dev.compare("serial") == 0) {
-      dev_type = mgard_x::device_type::SERIAL;
-      std::cout << mgard_x::log::log_info << "device type: SERIAL\n";
-    } else if (dev.compare("openmp") == 0) {
-      dev_type = mgard_x::device_type::OPENMP;
-      std::cout << mgard_x::log::log_info << "device type: OPENMP\n";
-    } else if (dev.compare("cuda") == 0) {
-      dev_type = mgard_x::device_type::CUDA;
-      std::cout << mgard_x::log::log_info << "device type: CUDA\n";
-    } else if (dev.compare("hip") == 0) {
-      dev_type = mgard_x::device_type::HIP;
-      std::cout << mgard_x::log::log_info << "device type: HIP\n";
-    } else if (dev.compare("sycl") == 0) {
-      dev_type = mgard_x::device_type::SYCL;
-      std::cout << mgard_x::log::log_info << "device type: SYCL\n";
-    } else {
-      std::cout << "wrong device type.\n";
-      exit(-1);
-    }
+    dev_type = get_arg_dev_type(argc, argv);
     autotuning(dev_type, shape);
   } else if (argc == 3) {
-    std::vector<mgard_x::SIZE> shape({513, 513, 513});
-    std::string dev = get_arg(argc, argv, "-d");
-    if (dev.compare("serial") == 0) {
-      dev_type = mgard_x::device_type::SERIAL;
-      std::cout << mgard_x::log::log_info << "device type: SERIAL\n";
-    } else if (dev.compare("openmp") == 0) {
-      dev_type = mgard_x::device_type::OPENMP;
-      std::cout << mgard_x::log::log_info << "device type: OPENMP\n";
-    } else if (dev.compare("cuda") == 0) {
-      dev_type = mgard_x::device_type::CUDA;
-      std::cout << mgard_x::log::log_info << "device type: CUDA\n";
-    } else if (dev.compare("hip") == 0) {
-      dev_type = mgard_x::device_type::HIP;
-      std::cout << mgard_x::log::log_info << "device type: HIP\n";
-    } else if (dev.compare("sycl") == 0) {
-      dev_type = mgard_x::device_type::SYCL;
-      std::cout << mgard_x::log::log_info << "device type: SYCL\n";
-    } else {
-      std::cout << "wrong device type.\n";
-      exit(-1);
+    dev_type = get_arg_dev_type(argc, argv);
+    for (int i = 0; i < default_shapes.size(); i++) {
+      autotuning(dev_type, default_shapes[i]);
     }
-    autotuning(dev_type, shape);
   } else {
     std::cout << mgard_x::log::log_info << "Full automatic mode\n";
-    std::vector<mgard_x::SIZE> shape({513, 513, 513});
 #if MGARD_ENABLE_SERIAL
-    autotuning(mgard_x::device_type::SERIAL, shape);
+    for (int i = 0; i < default_shapes.size(); i++) {
+      autotuning(mgard_x::device_type::SERIAL, default_shapes[i]);
+    }
 #endif
 #if MGARD_ENABLE_OPENMP
-    autotuning(mgard_x::device_type::OPENMP, shape);
+    for (int i = 0; i < default_shapes.size(); i++) {
+      autotuning(mgard_x::device_type::OPENMP, default_shapes[i]);
+    }
 #endif
 #if MGARD_ENABLE_CUDA
-    autotuning(mgard_x::device_type::CUDA, shape);
+    for (int i = 0; i < default_shapes.size(); i++) {
+      autotuning(mgard_x::device_type::CUDA, default_shapes[i]);
+    }
 #endif
 #if MGARD_ENABLE_HIP
-    autotuning(mgard_x::device_type::HIP, shape);
+    for (int i = 0; i < default_shapes.size(); i++) {
+      autotuning(mgard_x::device_type::HIP, default_shapes[i]);
+    }
 #endif
 #if MGARD_ENABLE_SYCL
-    autotuning(mgard_x::device_type::SYCL, shape);
+    for (int i = 0; i < default_shapes.size(); i++) {
+      autotuning(mgard_x::device_type::SYCL, default_shapes[i]);
+    }
 #endif
   }
   return 0;

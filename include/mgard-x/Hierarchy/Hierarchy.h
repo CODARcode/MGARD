@@ -17,17 +17,11 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType> struct Hierarchy {
 
   /* for general users */
-  Hierarchy(std::vector<SIZE> shape, Config config, SIZE target_level = 0);
-  Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords, Config config,
-            SIZE target_level = 0);
+  Hierarchy(std::vector<SIZE> shape, Config config);
+  Hierarchy(std::vector<SIZE> shape, std::vector<T *> coords, Config config);
 
   /* for Internal use only */
   Hierarchy();
-  Hierarchy(std::vector<SIZE> shape, DIM domain_decomposed_dim,
-            SIZE domain_decomposed_size, Config config);
-  Hierarchy(std::vector<SIZE> shape, DIM domain_decomposed_dim,
-            SIZE domain_decomposed_size, std::vector<T *> coords,
-            Config config);
   Hierarchy(const Hierarchy &hierarchy);
 
   SIZE total_num_elems();
@@ -45,16 +39,10 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Array<2, SIZE, DeviceType> &level_ranges();
   Array<3, T, DeviceType> &level_volumes();
   data_structure_type data_structure();
+  bool is_initialized();
+  size_t estimate_memory_usgae(std::vector<SIZE> shape);
 
   ~Hierarchy();
-
-  /* Refactoring env */
-
-  // For domain decomposition
-  bool domain_decomposed = false;
-  DIM domain_decomposed_dim;
-  SIZE domain_decomposed_size;
-  std::vector<Hierarchy<D, T, DeviceType>> hierarchy_chunck;
 
 private:
   // Shape of the finest grid
@@ -98,9 +86,6 @@ private:
   void reduce_dist(SIZE dof, T *dist, T *dist2);
   void calc_am_bm(SIZE dof, T *dist, T *am, T *bm);
   void calc_volume(SIZE dof, T *dist, T *volume);
-  void domain_decompose(std::vector<SIZE> shape, Config config);
-  void domain_decompose(std::vector<SIZE> shape, std::vector<T *> &coords,
-                        Config config);
   void init(std::vector<SIZE> shape, std::vector<T *> coords,
             SIZE target_level = 0);
   void destroy();
