@@ -26,6 +26,7 @@ Config::Config() {
   lossless = lossless_type::Huffman;
   reorder = 0;
   log_level = log::ERR;
+  max_larget_level = 0;
 }
 
 void Config::apply() { log::level = log_level; }
