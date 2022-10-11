@@ -213,11 +213,10 @@ template <> struct Math<CUDA> {
   }
 };
 
-template <typename Task> MGARDX_KERL void kernel() {}
-
 template <typename Task>
-MGARDX_KERL void Kernel(Task task, THREAD_IDX blockz_offset,
-                        THREAD_IDX blocky_offset, THREAD_IDX blockx_offset) {
+MGARDX_KERL void CudaKernel(Task task, THREAD_IDX blockz_offset,
+                            THREAD_IDX blocky_offset,
+                            THREAD_IDX blockx_offset) {
   Byte *shared_memory = SharedMemory<Byte>();
   task.GetFunctor().Init(task.GetGridDimZ(), task.GetGridDimY(),
                          task.GetGridDimX(), task.GetBlockDimZ(),
@@ -248,9 +247,9 @@ MGARDX_KERL void Kernel(Task task, THREAD_IDX blockz_offset,
 }
 
 template <typename Task>
-MGARDX_KERL void IterKernel(Task task, THREAD_IDX blockz_offset,
-                            THREAD_IDX blocky_offset,
-                            THREAD_IDX blockx_offset) {
+MGARDX_KERL void CudaIterKernel(Task task, THREAD_IDX blockz_offset,
+                                THREAD_IDX blocky_offset,
+                                THREAD_IDX blockx_offset) {
   Byte *shared_memory = SharedMemory<Byte>();
 
   task.GetFunctor().Init(task.GetGridDimZ(), task.GetGridDimY(),
@@ -305,7 +304,8 @@ MGARDX_KERL void IterKernel(Task task, THREAD_IDX blockz_offset,
   SyncBlock<CUDA>::Sync();
 }
 
-template <typename Task> MGARDX_KERL void HuffmanCLCustomizedKernel(Task task) {
+template <typename Task>
+MGARDX_KERL void CudaHuffmanCLCustomizedKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
   task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, blockDim.z,
@@ -377,7 +377,7 @@ SINGLE_KERNEL(Operation14);
 
 #undef SINGLE_KERNEL
 
-template <typename Task> MGARDX_KERL void ParallelMergeKernel(Task task) {
+template <typename Task> MGARDX_KERL void CudaParallelMergeKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
   task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, blockDim.z,
@@ -398,7 +398,8 @@ template <typename Task> MGARDX_KERL void ParallelMergeKernel(Task task) {
   task.GetFunctor().Operation9();
 }
 
-template <typename Task> MGARDX_KERL void HuffmanCWCustomizedKernel(Task task) {
+template <typename Task>
+MGARDX_KERL void CudaHuffmanCWCustomizedKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
   task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, blockDim.z,
@@ -653,22 +654,23 @@ public:
 
     if constexpr (std::is_base_of<Functor<CUDA>, FunctorType>::value) {
       gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-          &numBlocks, Kernel<Task<FunctorType>>, blockSize, dynamicSMemSize));
+          &numBlocks, CudaKernel<Task<FunctorType>>, blockSize,
+          dynamicSMemSize));
     } else if constexpr (std::is_base_of<IterFunctor<CUDA>,
                                          FunctorType>::value) {
       gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-          &numBlocks, IterKernel<Task<FunctorType>>, blockSize,
+          &numBlocks, CudaIterKernel<Task<FunctorType>>, blockSize,
           dynamicSMemSize));
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<CUDA>,
                                          FunctorType>::value) {
       gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-          &numBlocks, HuffmanCLCustomizedKernel<Task<FunctorType>>, blockSize,
-          dynamicSMemSize));
+          &numBlocks, CudaHuffmanCLCustomizedKernel<Task<FunctorType>>,
+          blockSize, dynamicSMemSize));
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<CUDA>,
                                          FunctorType>::value) {
       gpuErrchk(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-          &numBlocks, HuffmanCWCustomizedKernel<Task<FunctorType>>, blockSize,
-          dynamicSMemSize));
+          &numBlocks, CudaHuffmanCWCustomizedKernel<Task<FunctorType>>,
+          blockSize, dynamicSMemSize));
     } else {
       log::err("GetOccupancyMaxActiveBlocksPerSM Error!");
     }
@@ -681,22 +683,22 @@ public:
 
     if constexpr (std::is_base_of<Functor<CUDA>, FunctorType>::value) {
       gpuErrchk(cudaFuncSetAttribute(
-          Kernel<Task<FunctorType>>,
+          CudaKernel<Task<FunctorType>>,
           cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes));
     } else if constexpr (std::is_base_of<IterFunctor<CUDA>,
                                          FunctorType>::value) {
       gpuErrchk(cudaFuncSetAttribute(
-          IterKernel<Task<FunctorType>>,
+          CudaIterKernel<Task<FunctorType>>,
           cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes));
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<CUDA>,
                                          FunctorType>::value) {
       gpuErrchk(cudaFuncSetAttribute(
-          HuffmanCLCustomizedKernel<Task<FunctorType>>,
+          CudaHuffmanCLCustomizedKernel<Task<FunctorType>>,
           cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes));
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<CUDA>,
                                          FunctorType>::value) {
       gpuErrchk(cudaFuncSetAttribute(
-          HuffmanCWCustomizedKernel<Task<FunctorType>>,
+          CudaHuffmanCWCustomizedKernel<Task<FunctorType>>,
           cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes));
     } else {
       log::err("SetPreferredSharedMemoryCarveout Error!");
@@ -1896,7 +1898,7 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, num_elems,
   }
 };
 
-template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
+template <typename Task> void CudaHuffmanCLCustomizedNoCGKernel(Task task) {
   // std::cout << "calling HuffmanCLCustomizedNoCGKernel\n";
   dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
                        task.GetBlockDimZ());
@@ -1932,9 +1934,9 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
     if (task.GetFunctor().BranchCondition1()) {
       ErrorSyncCheck(cudaDeviceSynchronize(), task);
 
-      // std::cout << "calling ParallelMergeKernel\n";
-      ParallelMergeKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
-          task);
+      // std::cout << "calling CudaParallelMergeKernel\n";
+      CudaParallelMergeKernel<<<blockPerGrid, threadsPerBlock, sm_size,
+                                stream>>>(task);
       ErrorSyncCheck(cudaDeviceSynchronize(), task);
 
       // std::cout << "calling Single_Operation10_Kernel\n";
@@ -1965,7 +1967,7 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
   }
 }
 
-template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
+template <typename Task> void CudaHuffmanCWCustomizedNoCGKernel(Task task) {
   // std::cout << "calling HuffmanCWCustomizedNoCGKernel\n";
   dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
                        task.GetBlockDimZ());
@@ -2100,7 +2102,7 @@ public:
              blocky_offset += MGARD_CUDA_MAX_GRID_Y) {
           for (THREAD_IDX blockx_offset = 0; blockx_offset < task.GetGridDimX();
                blockx_offset += MGARD_CUDA_MAX_GRID_X) {
-            Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
+            CudaKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
                 task, blockz_offset, blocky_offset, blockx_offset);
           }
         }
@@ -2113,7 +2115,7 @@ public:
              blocky_offset += MGARD_CUDA_MAX_GRID_Y) {
           for (THREAD_IDX blockx_offset = 0; blockx_offset < task.GetGridDimX();
                blockx_offset += MGARD_CUDA_MAX_GRID_X) {
-            IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
+            CudaIterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
                 task, blockz_offset, blocky_offset, blockx_offset);
           }
         }
@@ -2122,21 +2124,21 @@ public:
                                          typename TaskType::Functor>::value) {
       if (task.GetFunctor().use_CG && DeviceRuntime<CUDA>::SupportCG()) {
         void *Args[] = {(void *)&task};
-        cudaLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
-                                    blockPerGrid, threadsPerBlock, Args,
-                                    sm_size, stream);
+        cudaLaunchCooperativeKernel(
+            (void *)CudaHuffmanCLCustomizedKernel<TaskType>, blockPerGrid,
+            threadsPerBlock, Args, sm_size, stream);
       } else {
-        HuffmanCLCustomizedNoCGKernel(task);
+        CudaHuffmanCLCustomizedNoCGKernel(task);
       }
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<CUDA>,
                                          typename TaskType::Functor>::value) {
       if (task.GetFunctor().use_CG && DeviceRuntime<CUDA>::SupportCG()) {
         void *Args[] = {(void *)&task};
-        cudaLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
-                                    blockPerGrid, threadsPerBlock, Args,
-                                    sm_size, stream);
+        cudaLaunchCooperativeKernel(
+            (void *)CudaHuffmanCWCustomizedKernel<TaskType>, blockPerGrid,
+            threadsPerBlock, Args, sm_size, stream);
       } else {
-        HuffmanCWCustomizedNoCGKernel(task);
+        CudaHuffmanCWCustomizedNoCGKernel(task);
       }
     }
     ErrorAsyncCheck(cudaGetLastError(), task);
@@ -2229,7 +2231,7 @@ public:
              blocky_offset += MGARD_CUDA_MAX_GRID_Y) {
           for (THREAD_IDX blockx_offset = 0; blockx_offset < task.GetGridDimX();
                blockx_offset += MGARD_CUDA_MAX_GRID_X) {
-            Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
+            CudaKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
                 task, blockz_offset, blocky_offset, blockx_offset);
           }
         }
@@ -2242,7 +2244,7 @@ public:
              blocky_offset += MGARD_CUDA_MAX_GRID_Y) {
           for (THREAD_IDX blockx_offset = 0; blockx_offset < task.GetGridDimX();
                blockx_offset += MGARD_CUDA_MAX_GRID_X) {
-            IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
+            CudaIterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
                 task, blockz_offset, blocky_offset, blockx_offset);
           }
         }
@@ -2251,21 +2253,21 @@ public:
                                          typename TaskType::Functor>::value) {
       if (task.GetFunctor().use_CG && DeviceRuntime<CUDA>::SupportCG()) {
         void *Args[] = {(void *)&task};
-        cudaLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
-                                    blockPerGrid, threadsPerBlock, Args,
-                                    sm_size, stream);
+        cudaLaunchCooperativeKernel(
+            (void *)CudaHuffmanCLCustomizedKernel<TaskType>, blockPerGrid,
+            threadsPerBlock, Args, sm_size, stream);
       } else {
-        HuffmanCLCustomizedNoCGKernel(task);
+        CudaHuffmanCLCustomizedNoCGKernel(task);
       }
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<CUDA>,
                                          typename TaskType::Functor>::value) {
       if (task.GetFunctor().use_CG && DeviceRuntime<CUDA>::SupportCG()) {
         void *Args[] = {(void *)&task};
-        cudaLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
-                                    blockPerGrid, threadsPerBlock, Args,
-                                    sm_size, stream);
+        cudaLaunchCooperativeKernel(
+            (void *)CudaHuffmanCWCustomizedKernel<TaskType>, blockPerGrid,
+            threadsPerBlock, Args, sm_size, stream);
       } else {
-        HuffmanCWCustomizedNoCGKernel(task);
+        CudaHuffmanCWCustomizedNoCGKernel(task);
       }
     }
     ErrorAsyncCheck(cudaGetLastError(), task);

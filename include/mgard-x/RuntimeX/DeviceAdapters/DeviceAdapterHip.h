@@ -145,9 +145,7 @@ template <> struct Math<HIP> {
   }
 };
 
-template <typename Task> MGARDX_KERL void kernel() {}
-
-template <typename Task> MGARDX_KERL void Kernel(Task task) {
+template <typename Task> MGARDX_KERL void HipKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
   task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, blockDim.z,
                          blockDim.y, blockDim.x, blockIdx.z, blockIdx.y,
@@ -175,7 +173,7 @@ template <typename Task> MGARDX_KERL void Kernel(Task task) {
   task.GetFunctor().Operation10();
 }
 
-template <typename Task> MGARDX_KERL void IterKernel(Task task) {
+template <typename Task> MGARDX_KERL void HipIterKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
   task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, blockDim.z,
@@ -228,7 +226,8 @@ template <typename Task> MGARDX_KERL void IterKernel(Task task) {
   SyncBlock<HIP>::Sync();
 }
 
-template <typename Task> MGARDX_KERL void HuffmanCLCustomizedKernel(Task task) {
+template <typename Task>
+MGARDX_KERL void HipHuffmanCLCustomizedKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
   task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, blockDim.z,
@@ -300,7 +299,7 @@ SINGLE_KERNEL(Operation14);
 
 #undef SINGLE_KERNEL
 
-template <typename Task> MGARDX_KERL void ParallelMergeKernel(Task task) {
+template <typename Task> MGARDX_KERL void HipParallelMergeKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
   task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, blockDim.z,
@@ -321,7 +320,8 @@ template <typename Task> MGARDX_KERL void ParallelMergeKernel(Task task) {
   task.GetFunctor().Operation9();
 }
 
-template <typename Task> MGARDX_KERL void HuffmanCWCustomizedKernel(Task task) {
+template <typename Task>
+MGARDX_KERL void HipHuffmanCWCustomizedKernel(Task task) {
   Byte *shared_memory = SharedMemory<Byte>();
 
   task.GetFunctor().Init(gridDim.z, gridDim.y, gridDim.x, blockDim.z,
@@ -577,22 +577,23 @@ public:
 
     if constexpr (std::is_base_of<Functor<HIP>, FunctorType>::value) {
       gpuErrchk(hipOccupancyMaxActiveBlocksPerMultiprocessor(
-          &numBlocks, Kernel<Task<FunctorType>>, blockSize, dynamicSMemSize));
+          &numBlocks, HipKernel<Task<FunctorType>>, blockSize,
+          dynamicSMemSize));
     } else if constexpr (std::is_base_of<IterFunctor<HIP>,
                                          FunctorType>::value) {
       gpuErrchk(hipOccupancyMaxActiveBlocksPerMultiprocessor(
-          &numBlocks, IterKernel<Task<FunctorType>>, blockSize,
+          &numBlocks, HipIterKernel<Task<FunctorType>>, blockSize,
           dynamicSMemSize));
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>,
                                          FunctorType>::value) {
       gpuErrchk(hipOccupancyMaxActiveBlocksPerMultiprocessor(
-          &numBlocks, HuffmanCLCustomizedKernel<Task<FunctorType>>, blockSize,
-          dynamicSMemSize));
+          &numBlocks, HipHuffmanCLCustomizedKernel<Task<FunctorType>>,
+          blockSize, dynamicSMemSize));
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>,
                                          FunctorType>::value) {
       gpuErrchk(hipOccupancyMaxActiveBlocksPerMultiprocessor(
-          &numBlocks, HuffmanCWCustomizedKernel<Task<FunctorType>>, blockSize,
-          dynamicSMemSize));
+          &numBlocks, HipHuffmanCWCustomizedKernel<Task<FunctorType>>,
+          blockSize, dynamicSMemSize));
     } else {
       log::err("GetOccupancyMaxActiveBlocksPerSM Error!");
     }
@@ -604,23 +605,23 @@ public:
                                                         int maxbytes) {
 
     if constexpr (std::is_base_of<Functor<HIP>, FunctorType>::value) {
-      gpuErrchk(hipFuncSetAttribute((const void *)Kernel<Task<FunctorType>>,
+      gpuErrchk(hipFuncSetAttribute((const void *)HipKernel<Task<FunctorType>>,
                                     hipFuncAttributeMaxDynamicSharedMemorySize,
                                     maxbytes));
     } else if constexpr (std::is_base_of<IterFunctor<HIP>,
                                          FunctorType>::value) {
-      gpuErrchk(hipFuncSetAttribute((const void *)IterKernel<Task<FunctorType>>,
-                                    hipFuncAttributeMaxDynamicSharedMemorySize,
-                                    maxbytes));
+      gpuErrchk(hipFuncSetAttribute(
+          (const void *)HipIterKernel<Task<FunctorType>>,
+          hipFuncAttributeMaxDynamicSharedMemorySize, maxbytes));
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>,
                                          FunctorType>::value) {
       gpuErrchk(hipFuncSetAttribute(
-          (const void *)HuffmanCLCustomizedKernel<Task<FunctorType>>,
+          (const void *)HipHuffmanCLCustomizedKernel<Task<FunctorType>>,
           hipFuncAttributeMaxDynamicSharedMemorySize, maxbytes));
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>,
                                          FunctorType>::value) {
       gpuErrchk(hipFuncSetAttribute(
-          (const void *)HuffmanCWCustomizedKernel<Task<FunctorType>>,
+          (const void *)HipHuffmanCWCustomizedKernel<Task<FunctorType>>,
           hipFuncAttributeMaxDynamicSharedMemorySize, maxbytes));
     } else {
       log::err("SetPreferredSharedMemoryCarveout Error!");
@@ -1772,8 +1773,8 @@ struct WarpErrorCollect<T, T_fp, T_sfp, T_error, METHOD, BinaryType, num_elems,
   }
 };
 
-template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
-  // std::cout << "calling HuffmanCLCustomizedNoCGKernel\n";
+template <typename Task> void HipHuffmanCLCustomizedNoCGKernel(Task task) {
+  // std::cout << "calling HipHuffmanCLCustomizedNoCGKernel\n";
   dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
                        task.GetBlockDimZ());
   dim3 blockPerGrid(task.GetGridDimX(), task.GetGridDimY(), task.GetGridDimZ());
@@ -1808,9 +1809,9 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
     if (task.GetFunctor().BranchCondition1()) {
       ErrorSyncCheck(hipDeviceSynchronize(), task);
 
-      // std::cout << "calling ParallelMergeKernel\n";
-      ParallelMergeKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
-          task);
+      // std::cout << "calling HipParallelMergeKernel\n";
+      HipParallelMergeKernel<<<blockPerGrid, threadsPerBlock, sm_size,
+                               stream>>>(task);
       ErrorSyncCheck(hipDeviceSynchronize(), task);
 
       // std::cout << "calling Single_Operation10_Kernel\n";
@@ -1841,8 +1842,8 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
   }
 }
 
-template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
-  // std::cout << "calling HuffmanCWCustomizedNoCGKernel\n";
+template <typename Task> void HipHuffmanCWCustomizedNoCGKernel(Task task) {
+  // std::cout << "calling HipHuffmanCWCustomizedNoCGKernel\n";
   dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
                        task.GetBlockDimZ());
   dim3 blockPerGrid(task.GetGridDimX(), task.GetGridDimY(), task.GetGridDimZ());
@@ -1966,29 +1967,29 @@ public:
     // if constexpr evaluate at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<HIP>,
                                   typename TaskType::Functor>::value) {
-      Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
+      HipKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (std::is_base_of<IterFunctor<HIP>,
                                          typename TaskType::Functor>::value) {
-      IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
+      HipIterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>,
                                          typename TaskType::Functor>::value) {
       if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
         void *Args[] = {(void *)&task};
-        hipLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
-                                   blockPerGrid, threadsPerBlock, Args, sm_size,
-                                   stream);
+        hipLaunchCooperativeKernel(
+            (void *)HipHuffmanCLCustomizedKernel<TaskType>, blockPerGrid,
+            threadsPerBlock, Args, sm_size, stream);
       } else {
-        HuffmanCLCustomizedNoCGKernel(task);
+        HipHuffmanCLCustomizedNoCGKernel(task);
       }
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>,
                                          typename TaskType::Functor>::value) {
       if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
         void *Args[] = {(void *)&task};
-        hipLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
-                                   blockPerGrid, threadsPerBlock, Args, sm_size,
-                                   stream);
+        hipLaunchCooperativeKernel(
+            (void *)HipHuffmanCWCustomizedKernel<TaskType>, blockPerGrid,
+            threadsPerBlock, Args, sm_size, stream);
       } else {
-        HuffmanCWCustomizedNoCGKernel(task);
+        HipHuffmanCWCustomizedNoCGKernel(task);
       }
     }
     ErrorAsyncCheck(hipGetLastError(), task);
@@ -2075,29 +2076,29 @@ public:
     // if constexpr evaluate at compile time otherwise this does not compile
     if constexpr (std::is_base_of<Functor<HIP>,
                                   typename TaskType::Functor>::value) {
-      Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
+      HipKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (std::is_base_of<IterFunctor<HIP>,
                                          typename TaskType::Functor>::value) {
-      IterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
+      HipIterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>,
                                          typename TaskType::Functor>::value) {
       if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
         void *Args[] = {(void *)&task};
-        hipLaunchCooperativeKernel((void *)HuffmanCLCustomizedKernel<TaskType>,
-                                   blockPerGrid, threadsPerBlock, Args, sm_size,
-                                   stream);
+        hipLaunchCooperativeKernel(
+            (void *)HipHuffmanCLCustomizedKernel<TaskType>, blockPerGrid,
+            threadsPerBlock, Args, sm_size, stream);
       } else {
-        HuffmanCLCustomizedNoCGKernel(task);
+        HipHuffmanCLCustomizedNoCGKernel(task);
       }
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>,
                                          typename TaskType::Functor>::value) {
       if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
         void *Args[] = {(void *)&task};
-        hipLaunchCooperativeKernel((void *)HuffmanCWCustomizedKernel<TaskType>,
-                                   blockPerGrid, threadsPerBlock, Args, sm_size,
-                                   stream);
+        hipLaunchCooperativeKernel(
+            (void *)HipHuffmanCWCustomizedKernel<TaskType>, blockPerGrid,
+            threadsPerBlock, Args, sm_size, stream);
       } else {
-        HuffmanCWCustomizedNoCGKernel(task);
+        HipHuffmanCWCustomizedNoCGKernel(task);
       }
     }
     ErrorAsyncCheck(hipGetLastError(), task);
