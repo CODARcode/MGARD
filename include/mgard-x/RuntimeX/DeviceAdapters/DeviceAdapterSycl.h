@@ -683,11 +683,11 @@ public:
   static bool ReduceMemoryFootprint;
 };
 
-template <typename FunctorType> class Kernel {
+template <typename FunctorType> class SyclKernel {
 public:
-  Kernel(FunctorType functor, LocalMemory localAccess, THREAD_IDX ngridz,
-         THREAD_IDX ngridy, THREAD_IDX ngridx, THREAD_IDX nblockz,
-         THREAD_IDX nblocky, THREAD_IDX nblockx)
+  SyclKernel(FunctorType functor, LocalMemory localAccess, THREAD_IDX ngridz,
+             THREAD_IDX ngridy, THREAD_IDX ngridx, THREAD_IDX nblockz,
+             THREAD_IDX nblocky, THREAD_IDX nblockx)
       : functor(functor), localAccess(localAccess), ngridz(ngridz),
         ngridy(ngridy), ngridx(ngridx), nblockz(nblockz), nblocky(nblocky),
         nblockx(nblockx) {}
@@ -745,11 +745,11 @@ private:
   THREAD_IDX nblockx;
 };
 
-template <typename FunctorType> class IterKernel {
+template <typename FunctorType> class SyclIterKernel {
 public:
-  IterKernel(FunctorType functor, LocalMemory localAccess, THREAD_IDX ngridz,
-             THREAD_IDX ngridy, THREAD_IDX ngridx, THREAD_IDX nblockz,
-             THREAD_IDX nblocky, THREAD_IDX nblockx)
+  SyclIterKernel(FunctorType functor, LocalMemory localAccess,
+                 THREAD_IDX ngridz, THREAD_IDX ngridy, THREAD_IDX ngridx,
+                 THREAD_IDX nblockz, THREAD_IDX nblocky, THREAD_IDX nblockx)
       : functor(functor), localAccess(localAccess), ngridz(ngridz),
         ngridy(ngridy), ngridx(ngridx), nblockz(nblockz), nblocky(nblocky),
         nblockx(nblockx) {}
@@ -927,12 +927,12 @@ SINGLE_KERNEL_1D(Operation14);
 
 #undef SINGLE_KERNEL_1D
 
-template <typename FunctorType> class ParallelMergeKernel {
+template <typename FunctorType> class SyclParallelMergeKernel {
 public:
-  ParallelMergeKernel(FunctorType functor, LocalMemory localAccess,
-                      THREAD_IDX ngridz, THREAD_IDX ngridy, THREAD_IDX ngridx,
-                      THREAD_IDX nblockz, THREAD_IDX nblocky,
-                      THREAD_IDX nblockx)
+  SyclParallelMergeKernel(FunctorType functor, LocalMemory localAccess,
+                          THREAD_IDX ngridz, THREAD_IDX ngridy,
+                          THREAD_IDX ngridx, THREAD_IDX nblockz,
+                          THREAD_IDX nblocky, THREAD_IDX nblockx)
       : functor(functor), localAccess(localAccess), ngridz(ngridz),
         ngridy(ngridy), ngridx(ngridx), nblockz(nblockz), nblocky(nblocky),
         nblockx(nblockx) {}
@@ -981,8 +981,8 @@ private:
   THREAD_IDX nblockx;
 };
 
-template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
-  // std::cout << "calling HuffmanCLCustomizedNoCGKernel\n";
+template <typename Task> void SyclHuffmanCLCustomizedNoCGKernel(Task task) {
+  // std::cout << "calling SyclHuffmanCLCustomizedNoCGKernel\n";
 #if MGARD_X_SYCL_ND_RANGE_3D
   sycl::range global_threads(task.GetBlockDimX() * task.GetGridDimX(),
                              task.GetBlockDimY() * task.GetGridDimY(),
@@ -1078,13 +1078,13 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
     if (task.GetFunctor().BranchCondition1()) {
       DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
 
-      // std::cout << "calling ParallelMergeKernel\n";
+      // std::cout << "calling SyclParallelMergeKernel\n";
       q.submit([&](sycl::handler &h) {
         LocalMemory localAccess{sm_size, h};
-        ParallelMergeKernel kernel(task.GetFunctor(), localAccess,
-                                   task.GetGridDimZ(), task.GetGridDimY(),
-                                   task.GetGridDimX(), task.GetBlockDimZ(),
-                                   task.GetBlockDimY(), task.GetBlockDimX());
+        SyclParallelMergeKernel kernel(
+            task.GetFunctor(), localAccess, task.GetGridDimZ(),
+            task.GetGridDimY(), task.GetGridDimX(), task.GetBlockDimZ(),
+            task.GetBlockDimY(), task.GetBlockDimX());
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
       DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -1171,8 +1171,8 @@ template <typename Task> void HuffmanCLCustomizedNoCGKernel(Task task) {
   }
 }
 
-template <typename Task> void HuffmanCWCustomizedNoCGKernel(Task task) {
-  // std::cout << "calling HuffmanCWCustomizedNoCGKernel\n";
+template <typename Task> void SyclHuffmanCWCustomizedNoCGKernel(Task task) {
+  // std::cout << "calling SyclHuffmanCWCustomizedNoCGKernel\n";
 #if MGARD_X_SYCL_ND_RANGE_3D
   sycl::range global_threads(task.GetBlockDimX() * task.GetGridDimX(),
                              task.GetBlockDimY() * task.GetGridDimY(),
@@ -1452,28 +1452,28 @@ public:
                                   typename TaskType::Functor>::value) {
       q.submit([&](sycl::handler &h) {
         LocalMemory localAccess{sm_size, h};
-        Kernel kernel(task.GetFunctor(), localAccess, task.GetGridDimZ(),
-                      task.GetGridDimY(), task.GetGridDimX(),
-                      task.GetBlockDimZ(), task.GetBlockDimY(),
-                      task.GetBlockDimX());
+        SyclKernel kernel(task.GetFunctor(), localAccess, task.GetGridDimZ(),
+                          task.GetGridDimY(), task.GetGridDimX(),
+                          task.GetBlockDimZ(), task.GetBlockDimY(),
+                          task.GetBlockDimX());
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     } else if constexpr (std::is_base_of<IterFunctor<SYCL>,
                                          typename TaskType::Functor>::value) {
       q.submit([&](sycl::handler &h) {
         LocalMemory localAccess{sm_size, h};
-        IterKernel kernel(task.GetFunctor(), localAccess, task.GetGridDimZ(),
-                          task.GetGridDimY(), task.GetGridDimX(),
-                          task.GetBlockDimZ(), task.GetBlockDimY(),
-                          task.GetBlockDimX());
+        SyclIterKernel kernel(task.GetFunctor(), localAccess,
+                              task.GetGridDimZ(), task.GetGridDimY(),
+                              task.GetGridDimX(), task.GetBlockDimZ(),
+                              task.GetBlockDimY(), task.GetBlockDimX());
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<SYCL>,
                                          typename TaskType::Functor>::value) {
-      HuffmanCLCustomizedNoCGKernel(task);
+      SyclHuffmanCLCustomizedNoCGKernel(task);
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<SYCL>,
                                          typename TaskType::Functor>::value) {
-      HuffmanCWCustomizedNoCGKernel(task);
+      SyclHuffmanCWCustomizedNoCGKernel(task);
     }
     if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -1581,28 +1581,28 @@ public:
                                   typename TaskType::Functor>::value) {
       q.submit([&](sycl::handler &h) {
         LocalMemory localAccess{sm_size, h};
-        Kernel kernel(task.GetFunctor(), localAccess, task.GetGridDimZ(),
-                      task.GetGridDimY(), task.GetGridDimX(),
-                      task.GetBlockDimZ(), task.GetBlockDimY(),
-                      task.GetBlockDimX());
+        SyclKernel kernel(task.GetFunctor(), localAccess, task.GetGridDimZ(),
+                          task.GetGridDimY(), task.GetGridDimX(),
+                          task.GetBlockDimZ(), task.GetBlockDimY(),
+                          task.GetBlockDimX());
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     } else if constexpr (std::is_base_of<IterFunctor<SYCL>,
                                          typename TaskType::Functor>::value) {
       q.submit([&](sycl::handler &h) {
         LocalMemory localAccess{sm_size, h};
-        IterKernel kernel(task.GetFunctor(), localAccess, task.GetGridDimZ(),
-                          task.GetGridDimY(), task.GetGridDimX(),
-                          task.GetBlockDimZ(), task.GetBlockDimY(),
-                          task.GetBlockDimX());
+        SyclIterKernel kernel(task.GetFunctor(), localAccess,
+                              task.GetGridDimZ(), task.GetGridDimY(),
+                              task.GetGridDimX(), task.GetBlockDimZ(),
+                              task.GetBlockDimY(), task.GetBlockDimX());
         h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
       });
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<SYCL>,
                                          typename TaskType::Functor>::value) {
-      HuffmanCLCustomizedNoCGKernel(task);
+      SyclHuffmanCLCustomizedNoCGKernel(task);
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<SYCL>,
                                          typename TaskType::Functor>::value) {
-      HuffmanCWCustomizedNoCGKernel(task);
+      SyclHuffmanCWCustomizedNoCGKernel(task);
     }
     if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());

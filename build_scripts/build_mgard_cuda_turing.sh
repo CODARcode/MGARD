@@ -74,7 +74,7 @@ cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DCMAKE_PREFIX_PATH="${nvcomp_install_dir};${zstd_install_dir}/lib/cmake/zstd;${protobuf_install_dir}"\
     -DMGARD_ENABLE_SERIAL=OFF\
     -DMGARD_ENABLE_CUDA=ON\
-    -DMGARD_ENABLE_AUTO_TUNING=ON\
+    -DMGARD_ENABLE_AUTO_TUNING=OFF\
     -DMGARD_ENABLE_MULTI_DEVICE=OFF\
     -DCMAKE_CUDA_ARCHITECTURES="75"\
     -DMGARD_ENABLE_OPENMP=OFF\
