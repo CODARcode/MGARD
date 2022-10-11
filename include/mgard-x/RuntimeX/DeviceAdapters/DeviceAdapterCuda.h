@@ -2193,7 +2193,8 @@ public:
       std::cout << log::log_info << task.GetFunctorName() << ": <"
                 << threadsPerBlock.x << ", " << threadsPerBlock.y << ", "
                 << threadsPerBlock.z << "> <" << blockPerGrid.x << ", "
-                << blockPerGrid.y << ", " << blockPerGrid.z << ">\n";
+                << blockPerGrid.y << ", " << blockPerGrid.z
+                << "> sm: " << sm_size << "\n";
     }
 
     ExecutionReturn ret;
@@ -2289,6 +2290,13 @@ public:
     return ret;
   }
 
+  template <typename TaskType>
+  MGARDX_CONT static void ConfigTask(TaskType task) {
+    typename TaskType::Functor functor;
+    int maxbytes = DeviceRuntime<CUDA>::GetMaxSharedMemorySize();
+    DeviceRuntime<CUDA>::SetMaxDynamicSharedMemorySize(functor, maxbytes);
+  }
+
   template <typename KernelType>
   MGARDX_CONT static void AutoTune(KernelType kernel, int queue_idx) {
 #if MGARD_ENABLE_AUTO_TUNING
@@ -2301,6 +2309,7 @@ public:
         GetExecutionConfig<KernelType::NumDim>(CONFIG_IDX);                    \
     auto task =                                                                \
         kernel.template GenTask<config.z, config.y, config.x>(queue_idx);      \
+    ConfigTask(task);                                                          \
     ret = Execute(task);                                                       \
     if (ret.success && min_time > ret.execution_time) {                        \
       min_time = ret.execution_time;                                           \
@@ -2331,6 +2340,7 @@ public:
                              CUDA>(KernelType::Name);
       auto task =
           kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
+      ConfigTask(task);
       Execute(task);
 
       if (AutoTuner<CUDA>::ProfileKernels) {
@@ -2338,6 +2348,7 @@ public:
       }
     } else {
       auto task = kernel.template GenTask(queue_idx);
+      ConfigTask(task);
       Execute(task);
     }
   }

@@ -35,7 +35,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   mgard_x::Config config;
   config.dev_type = dev_type;
   config.lossless = mgard_x::lossless_type::Huffman;
-  config.max_larget_level = 1;
+  config.max_larget_level = 0;
 
   enum mgard_x::error_bound_type mode = mgard_x::error_bound_type::REL;
   double tol = 0.1;
@@ -216,7 +216,7 @@ mgard_x::device_type get_arg_dev_type(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
   enum mgard_x::device_type dev_type;
   std::vector<std::vector<mgard_x::SIZE>> default_shapes = {
-      {512 * 512 * 512},
+      {8388608},
       {8192, 8192},
       {512, 512, 512},
       {64, 64, 64, 64},

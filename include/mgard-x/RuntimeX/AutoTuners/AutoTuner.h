@@ -114,9 +114,7 @@ MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int config) {
   // std::cout << "********************new file3: " << new_string3 << "\n";
 
   std::ofstream ofs(input_file, std::ofstream::trunc);
-
   ofs << new_string3;
-
   ofs.close();
 }
 
