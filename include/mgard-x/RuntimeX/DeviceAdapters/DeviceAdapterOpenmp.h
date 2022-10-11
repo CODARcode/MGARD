@@ -1304,6 +1304,13 @@ public:
     return ret;
   }
 
+  template <typename TaskType>
+  MGARDX_CONT static void ConfigTask(TaskType task) {
+    typename TaskType::Functor functor;
+    int maxbytes = DeviceRuntime<OPENMP>::GetMaxSharedMemorySize();
+    DeviceRuntime<OPENMP>::SetMaxDynamicSharedMemorySize(functor, maxbytes);
+  }
+
   template <typename KernelType>
   MGARDX_CONT static void AutoTune(KernelType kernel, int queue_idx) {
 #if MGARD_ENABLE_AUTO_TUNING
@@ -1317,6 +1324,7 @@ public:
     auto task =                                                                \
         kernel.template GenTask<config.z, config.y, config.x>(queue_idx);      \
     ret = Execute(task);                                                       \
+    ConfigTask(task);                                                          \
     if (ret.success && min_time > ret.execution_time) {                        \
       min_time = ret.execution_time;                                           \
       min_config = CONFIG_IDX;                                                 \
@@ -1346,6 +1354,7 @@ public:
                              OPENMP>(KernelType::Name);
       auto task =
           kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
+      ConfigTask(task);
       Execute(task);
 
       if (AutoTuner<OPENMP>::ProfileKernels) {
@@ -1353,6 +1362,7 @@ public:
       }
     } else {
       auto task = kernel.template GenTask(queue_idx);
+      ConfigTask(task);
       Execute(task);
     }
   }

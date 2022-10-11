@@ -1624,6 +1624,13 @@ public:
     return ret;
   }
 
+  template <typename TaskType>
+  MGARDX_CONT static void ConfigTask(TaskType task) {
+    typename TaskType::Functor functor;
+    int maxbytes = DeviceRuntime<SYCL>::GetMaxSharedMemorySize();
+    DeviceRuntime<SYCL>::SetMaxDynamicSharedMemorySize(functor, maxbytes);
+  }
+
   template <typename KernelType>
   MGARDX_CONT static void AutoTune(KernelType kernel, int queue_idx) {
 #if MGARD_ENABLE_AUTO_TUNING
@@ -1637,6 +1644,7 @@ public:
     auto task =                                                                \
         kernel.template GenTask<config.z, config.y, config.x>(queue_idx);      \
     ret = Execute(task);                                                       \
+    ConfigTask(task);                                                          \
     if (ret.success && min_time > ret.execution_time) {                        \
       min_time = ret.execution_time;                                           \
       min_config = CONFIG_IDX;                                                 \
@@ -1666,6 +1674,7 @@ public:
                              SYCL>(KernelType::Name);
       auto task =
           kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
+      ConfigTask(task);
       Execute(task);
 
       if (AutoTuner<SYCL>::ProfileKernels) {
@@ -1673,6 +1682,7 @@ public:
       }
     } else {
       auto task = kernel.template GenTask(queue_idx);
+      ConfigTask(task);
       Execute(task);
     }
   }
