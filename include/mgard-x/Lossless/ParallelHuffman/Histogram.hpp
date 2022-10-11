@@ -138,12 +138,6 @@ public:
     FunctorType functor(input_data, local_histogram, output, N, bins,
                         RPerBlock);
 
-    if (CACHE_HISTOGRAM) {
-      int maxbytes = DeviceRuntime<DeviceType>::GetMaxSharedMemorySize();
-      DeviceRuntime<DeviceType>::SetMaxDynamicSharedMemorySize(functor,
-                                                               maxbytes);
-    }
-
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
     tbz = 1;
