@@ -519,18 +519,25 @@ bool try_compression(int argc, char *argv[]) {
     num_dev = get_arg_int(argc, argv, "-g");
   }
 
+  int repeat = 1;
+  if (has_arg(argc, argv, "-p")) {
+    repeat = get_arg_int(argc, argv, "-p");
+  }
+
   if (verbose)
     std::cout << mgard_x::log::log_info << "Verbose: enabled\n";
-  if (dtype == mgard_x::data_type::Double) {
-    launch_compress<double>(D, dtype, input_file.c_str(), output_file.c_str(),
-                            shape, non_uniform, non_uniform_coords_file.c_str(),
-                            tol, s, mode, reorder, lossless_level, dev_type,
-                            num_dev, verbose);
-  } else if (dtype == mgard_x::data_type::Float) {
-    launch_compress<float>(D, dtype, input_file.c_str(), output_file.c_str(),
-                           shape, non_uniform, non_uniform_coords_file.c_str(),
-                           tol, s, mode, reorder, lossless_level, dev_type,
-                           num_dev, verbose);
+  for (int repeat_iter = 0; repeat_iter < repeat; repeat_iter++) {
+    if (dtype == mgard_x::data_type::Double) {
+      launch_compress<double>(
+          D, dtype, input_file.c_str(), output_file.c_str(), shape, non_uniform,
+          non_uniform_coords_file.c_str(), tol, s, mode, reorder,
+          lossless_level, dev_type, num_dev, verbose);
+    } else if (dtype == mgard_x::data_type::Float) {
+      launch_compress<float>(
+          D, dtype, input_file.c_str(), output_file.c_str(), shape, non_uniform,
+          non_uniform_coords_file.c_str(), tol, s, mode, reorder,
+          lossless_level, dev_type, num_dev, verbose);
+    }
   }
   return true;
 }
@@ -580,10 +587,17 @@ bool try_decompression(int argc, char *argv[]) {
     num_dev = get_arg_int(argc, argv, "-g");
   }
 
+  int repeat = 1;
+  if (has_arg(argc, argv, "-p")) {
+    repeat = get_arg_int(argc, argv, "-p");
+  }
+
   if (verbose)
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
-  launch_decompress(input_file.c_str(), output_file.c_str(), dev_type, num_dev,
-                    verbose);
+  for (int repeat_iter = 0; repeat_iter < repeat; repeat_iter++) {
+    launch_decompress(input_file.c_str(), output_file.c_str(), dev_type,
+                      num_dev, verbose);
+  }
   return true;
 }
 
