@@ -23,9 +23,9 @@ public:
     size_t pitch_size = array_with_pitch.ld(0) * sizeof(T);
 
     Hierarchy<D, T, DeviceType> hierarchy;
-    size_t hierarchy_space = hierarchy.estimate_memory_usgae(shape) * 2;
-    log::info("hierarchy_space: " +
-              std::to_string((double)hierarchy_space / 1e9));
+    size_t hierarchy_space = hierarchy.estimate_memory_usgae(shape);
+    // log::info("hierarchy_space: " +
+    //           std::to_string((double)hierarchy_space / 1e9));
 
     size_t input_space = roundup(shape[D - 1] * sizeof(T), pitch_size);
     for (DIM d = 0; d < D - 1; d++) {
@@ -34,19 +34,18 @@ public:
 
     size_t output_space = (double)input_space * reduction_ratio;
 
-    // For prefetching
-    if (enable_prefetch) {
-      input_space *= 2;
-      output_space *= 2;
-    }
-
-    log::info("input_space: " + std::to_string((double)input_space / 1e9));
+    // log::info("input_space: " + std::to_string((double)input_space / 1e9));
 
     CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
 
     estimate_memory_usgae = hierarchy_space + input_space + output_space +
                             compression_workspace.estimate_size(
                                 shape, hierarchy.l_target(), outlier_ratio);
+
+    // For prefetching
+    if (enable_prefetch) {
+      estimate_memory_usgae *= 2;
+    }
 
     return estimate_memory_usgae;
   }

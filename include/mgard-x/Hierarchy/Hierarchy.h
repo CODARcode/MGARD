@@ -37,7 +37,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Array<1, DIM, DeviceType> &processed(SIZE idx, DIM &processed_n);
   Array<1, DIM, DeviceType> &unprocessed(SIZE idx, DIM &processed_n);
   Array<2, SIZE, DeviceType> &level_ranges();
-  Array<3, T, DeviceType> &level_volumes();
+  Array<3, T, DeviceType> &level_volumes(bool reciprocal);
   data_structure_type data_structure();
   bool is_initialized();
   size_t estimate_memory_usgae(std::vector<SIZE> shape);
@@ -76,6 +76,7 @@ private:
   Array<2, SIZE, DeviceType> _level_ranges;
   // Pre-computed volume array for fast quantization
   Array<3, T, DeviceType> _level_volumes;
+  Array<3, T, DeviceType> _level_volumes_reciprocal;
   // Indicating if it is uniform or non-uniform grid
   enum data_structure_type dstype;
 
@@ -85,7 +86,7 @@ private:
   void dist_to_ratio(SIZE dof, T *dist, T *ratio);
   void reduce_dist(SIZE dof, T *dist, T *dist2);
   void calc_am_bm(SIZE dof, T *dist, T *am, T *bm);
-  void calc_volume(SIZE dof, T *dist, T *volume);
+  void calc_volume(SIZE dof, T *dist, T *volume, bool reciprocal);
   void init(std::vector<SIZE> shape, std::vector<T *> coords,
             SIZE target_level = 0);
   void destroy();
