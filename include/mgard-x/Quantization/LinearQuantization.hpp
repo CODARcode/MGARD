@@ -349,18 +349,29 @@ public:
 
   MGARDX_EXEC void Operation2() {
     level = 0;
+    // Old appraoch
+    // for (int d = D - 1; d >= 0; d--) {
+    //   l_bit[d] = 0l;
+    //   for (SIZE l = 0; l < l_target + 1; l++) {
+    //     long long unsigned int bit = (idx[d] >= *level_ranges(l, d)) &&
+    //                                  (idx[d] < *level_ranges(l + 1, d));
+    //     l_bit[d] += bit << l;
+    //   }
+    //   level =
+    //       Math<DeviceType>::Max((int)level,
+    //       Math<DeviceType>::ffsll(l_bit[d]));
+    // }
+    // level = level - 1;
+
     for (int d = D - 1; d >= 0; d--) {
       l_bit[d] = 0l;
       for (SIZE l = 0; l < l_target + 1; l++) {
-        long long unsigned int bit = (idx[d] >= *level_ranges(l, d)) &&
-                                     (idx[d] < *level_ranges(l + 1, d));
-        l_bit[d] += bit << l;
-        // printf("idx: %d %d d: %d l_bit: %llu\n", idx[1], idx[0], d, l_bit);
+        if (idx[d] >= *level_ranges(l, d) && idx[d] < *level_ranges(l + 1, d)) {
+          l_bit[d] = l;
+        }
       }
-      level =
-          Math<DeviceType>::Max((int)level, Math<DeviceType>::ffsll(l_bit[d]));
+      level = Math<DeviceType>::Max(level, l_bit[d]);
     }
-    level = level - 1;
 
     bool in_range = true;
     for (int d = D - 1; d >= 0; d--) {
@@ -495,7 +506,7 @@ private:
   SIZE idx0[D]; // block global idx
 
   int level;
-  long long unsigned int l_bit[D];
+  int l_bit[D];
 };
 
 template <DIM D, typename T, typename DeviceType>
