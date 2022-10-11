@@ -397,8 +397,7 @@ public:
       QUANTIZED_INT quantized_data;
 
       if constexpr (OP == MGARDX_QUANTIZE) {
-        quantized_data =
-            copysign(0.5 + fabs(t * quantizer * (1.0 / volume)), t);
+        quantized_data = copysign(0.5 + fabs(t * quantizer * volume), t);
         if (prep_huffman) {
           quantized_data += dict_size / 2;
           if (quantized_data >= 0 && quantized_data < dict_size) {
@@ -681,7 +680,8 @@ void LinearQuanziation(
   SIZE total_elems = hierarchy.total_num_elems();
   SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges(),
                                                       true);
-  SubArray<3, T, DeviceType> level_volumes_subarray(hierarchy.level_volumes());
+  SubArray<3, T, DeviceType> level_volumes_subarray(
+      hierarchy.level_volumes(false));
 
   T *quantizers = new T[hierarchy.l_target() + 1];
   calc_quantizers<D, T>(total_elems, quantizers, type, tol, s, norm,
@@ -786,7 +786,8 @@ void LinearDequanziation(
                                     &workspace.outlier_count, 1, queue_idx);
   SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges(),
                                                       true);
-  SubArray<3, T, DeviceType> level_volumes_subarray(hierarchy.level_volumes());
+  SubArray<3, T, DeviceType> level_volumes_subarray(
+      hierarchy.level_volumes(true));
 
   bool prep_huffman = config.lossless != lossless_type::CPU_Lossless;
 

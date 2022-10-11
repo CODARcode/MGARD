@@ -162,14 +162,13 @@ void Hierarchy<D, T, DeviceType>::calc_am_bm(SIZE dof, T *dist, T *am, T *bm) {
 }
 
 template <DIM D, typename T, typename DeviceType>
-void Hierarchy<D, T, DeviceType>::calc_volume(SIZE dof, T *dist, T *volume) {
+void Hierarchy<D, T, DeviceType>::calc_volume(SIZE dof, T *dist, T *volume,
+                                              bool reciprocal) {
   T *h_dist = new T[dof];
   T *h_volume = new T[dof];
   for (int i = 0; i < dof; i++) {
     h_volume[i] = 0.0;
   }
-  // cudaMemcpyAsyncHelper(*this, h_dist, dist, dof * sizeof(T), AUTO, 0);
-  // this->sync(0);
   MemoryManager<DeviceType>::Copy1D(h_dist, dist, dof, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (dof == 2) {
@@ -192,11 +191,11 @@ void Hierarchy<D, T, DeviceType>::calc_volume(SIZE dof, T *dist, T *volume) {
     }
   }
 
-  for (int i = 0; i < dof; i++) {
-    h_volume[i] = 1.0 / h_volume[i];
+  if (reciprocal) {
+    for (int i = 0; i < dof; i++) {
+      h_volume[i] = 1.0 / h_volume[i];
+    }
   }
-  // cudaMemcpyAsyncHelper(*this, volume, h_volume, dof * sizeof(T), AUTO, 0);
-  // this->sync(0);
   MemoryManager<DeviceType>::Copy1D(volume, h_volume, dof, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   delete[] h_dist;
@@ -330,11 +329,17 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     bool pitched = false;
     _level_volumes =
         Array<3, T, DeviceType>({_l_target + 1, D, volumes_width}, pitched);
+    _level_volumes_reciprocal =
+        Array<3, T, DeviceType>({_l_target + 1, D, volumes_width}, pitched);
     SubArray<3, T, DeviceType> volumes_subarray(_level_volumes);
+    SubArray<3, T, DeviceType> volumes_reciprocal_subarray(
+        _level_volumes_reciprocal);
     for (SIZE l = 0; l < _l_target + 1; l++) {
       for (DIM d = 0; d < D; d++) {
         calc_volume(_level_shape[l][d], _dist_array[l][d].data(),
-                    volumes_subarray(l, d, 0));
+                    volumes_subarray(l, d, 0), false);
+        calc_volume(_level_shape[l][d], _dist_array[l][d].data(),
+                    volumes_reciprocal_subarray(l, d, 0), true);
       }
     }
   }
@@ -466,6 +471,7 @@ Hierarchy<D, T, DeviceType>::estimate_memory_usgae(std::vector<SIZE> shape) {
     for (DIM d = 0; d < D; d++) {
       volumes_width = std::max(volumes_width, _level_shape[_l_target][d]);
     }
+    estimate_memory_usgae += (_l_target + 1) * D * volumes_width * sizeof(T);
     estimate_memory_usgae += (_l_target + 1) * D * volumes_width * sizeof(T);
   }
 
@@ -602,8 +608,13 @@ Array<2, SIZE, DeviceType> &Hierarchy<D, T, DeviceType>::level_ranges() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<3, T, DeviceType> &Hierarchy<D, T, DeviceType>::level_volumes() {
-  return _level_volumes;
+Array<3, T, DeviceType> &
+Hierarchy<D, T, DeviceType>::level_volumes(bool reciprocal) {
+  if (!reciprocal) {
+    return _level_volumes;
+  } else {
+    return _level_volumes_reciprocal;
+  }
 }
 
 template <DIM D, typename T, typename DeviceType>
