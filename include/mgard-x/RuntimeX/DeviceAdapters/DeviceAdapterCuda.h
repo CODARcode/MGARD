@@ -2349,7 +2349,7 @@ public:
         AutoTune(kernel, queue_idx);
       }
     } else {
-      auto task = kernel.template GenTask(queue_idx);
+      auto task = kernel.GenTask(queue_idx);
       ConfigTask(task);
       Execute(task);
     }
