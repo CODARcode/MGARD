@@ -5,7 +5,7 @@
  * Date: March 17, 2022
  */
 
-#include "../../../Hierarchy/Hierarchy.hpp"
+#include "../../../Hierarchy/Hierarchy.h"
 #include "../../../RuntimeX/RuntimeX.h"
 
 #ifndef MGARD_X_DATA_REFACTORING_CALC_COEFFICIENT_POINTERS

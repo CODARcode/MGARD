@@ -1658,8 +1658,10 @@ public:
     RUN_CONFIG(5)
     RUN_CONFIG(6)
 #undef RUN_CONFIG
-    FillAutoTunerTable<KernelType::NumDim, typename KernelType::DataType, SYCL>(
-        std::string(KernelType::Name), min_config);
+    if (AutoTuner<SYCL>::WriteToTable) {
+      FillAutoTunerTable<KernelType::NumDim, typename KernelType::DataType,
+                         SYCL>(std::string(KernelType::Name), min_config);
+    }
 #else
     log::err("MGARD is not built with auto tuning enabled.");
     exit(-1);

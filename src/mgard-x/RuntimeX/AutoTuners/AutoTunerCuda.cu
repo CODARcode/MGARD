@@ -10,4 +10,8 @@ namespace mgard_x {
 template void BeginAutoTuning<CUDA>();
 template void EndAutoTuning<CUDA>();
 
+AutoTuningTable<CUDA> AutoTuner<CUDA>::autoTuningTable;
+bool AutoTuner<CUDA>::ProfileKernels = false;
+bool AutoTuner<CUDA>::WriteToTable = false;
+
 } // namespace mgard_x

@@ -8,7 +8,7 @@
 #ifndef MGARD_X_DATA_REFACTORING_WORKSPACE_HPP
 #define MGARD_X_DATA_REFACTORING_WORKSPACE_HPP
 
-#include "../Hierarchy/Hierarchy.hpp"
+#include "../Hierarchy/Hierarchy.h"
 #include "../RuntimeX/RuntimeXPublic.h"
 
 namespace mgard_x {
