@@ -18,9 +18,6 @@ bool MemoryManager<HIP>::ReduceMemoryFootprint = false;
 bool DeviceRuntime<HIP>::TimingAllKernels = false;
 bool DeviceRuntime<HIP>::PrintKernelConfig = false;
 
-AutoTuningTable<HIP> AutoTuner<HIP>::autoTuningTable;
-bool AutoTuner<HIP>::ProfileKernels = false;
-
 template <> bool deviceAvailable<HIP>() {
   return DeviceRuntime<HIP>::GetDeviceCount() > 0;
 }

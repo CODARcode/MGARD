@@ -5,7 +5,7 @@
  * Date: March 17, 2022
  */
 
-#include "../../../Hierarchy/Hierarchy.hpp"
+#include "../../../Hierarchy/Hierarchy.h"
 #include "../../../RuntimeX/RuntimeX.h"
 
 #include "../DataRefactoring.h"

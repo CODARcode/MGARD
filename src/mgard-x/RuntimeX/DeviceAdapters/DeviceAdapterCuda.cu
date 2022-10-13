@@ -18,9 +18,6 @@ bool MemoryManager<CUDA>::ReduceMemoryFootprint = false;
 bool DeviceRuntime<CUDA>::TimingAllKernels = false;
 bool DeviceRuntime<CUDA>::PrintKernelConfig = false;
 
-AutoTuningTable<CUDA> AutoTuner<CUDA>::autoTuningTable;
-bool AutoTuner<CUDA>::ProfileKernels = false;
-
 template <> bool deviceAvailable<CUDA>() {
   return DeviceRuntime<CUDA>::GetDeviceCount() > 0;
 }

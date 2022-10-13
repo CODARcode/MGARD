@@ -16,7 +16,7 @@
 
 #include "NormCalculator.hpp"
 
-#include "../Hierarchy/Hierarchy.hpp"
+#include "../Hierarchy/Hierarchy.h"
 
 #include "../Lossless/Lossless.hpp"
 #include "../Quantization/LinearQuantization.hpp"

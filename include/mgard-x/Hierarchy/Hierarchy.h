@@ -6,7 +6,7 @@
  */
 
 #include "../Config/Config.h"
-#include "../RuntimeX/RuntimeXPublic.h"
+#include "../RuntimeX/RuntimeX.h"
 #include "../Utilities/Types.h"
 
 #ifndef MGARD_X_HIERARCHY_H

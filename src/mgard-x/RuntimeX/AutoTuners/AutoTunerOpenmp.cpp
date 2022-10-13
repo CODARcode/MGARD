@@ -10,4 +10,8 @@ namespace mgard_x {
 template void BeginAutoTuning<OPENMP>();
 template void EndAutoTuning<OPENMP>();
 
+AutoTuningTable<OPENMP> AutoTuner<OPENMP>::autoTuningTable;
+bool AutoTuner<OPENMP>::ProfileKernels = false;
+bool AutoTuner<OPENMP>::WriteToTable = false;
+
 } // namespace mgard_x
