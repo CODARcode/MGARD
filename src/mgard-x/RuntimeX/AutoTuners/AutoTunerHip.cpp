@@ -10,4 +10,8 @@ namespace mgard_x {
 template void BeginAutoTuning<HIP>();
 template void EndAutoTuning<HIP>();
 
+AutoTuningTable<HIP> AutoTuner<HIP>::autoTuningTable;
+bool AutoTuner<HIP>::ProfileKernels = false;
+bool AutoTuner<HIP>::WriteToTable = false;
+
 } // namespace mgard_x

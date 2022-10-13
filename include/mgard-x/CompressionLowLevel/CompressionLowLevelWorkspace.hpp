@@ -9,7 +9,7 @@
 #define MGARD_X_COMPRESSION_LOW_LEVEL_WORKSPACE_HPP
 
 #include "../DataRefactoring/DataRefactoringWorkspace.hpp"
-#include "../Hierarchy/Hierarchy.hpp"
+#include "../Hierarchy/Hierarchy.h"
 #include "../RuntimeX/RuntimeXPublic.h"
 
 namespace mgard_x {

@@ -118,12 +118,6 @@ MGARDX_CONT void FillAutoTunerTable(std::string kernel_name, int config) {
   ofs.close();
 }
 
-template <typename DeviceType> class KernelConfigs {
-public:
-  MGARDX_CONT
-  KernelConfigs(){};
-};
-
 template <typename DeviceType> class AutoTuningTable {
 public:
   MGARDX_CONT
@@ -135,17 +129,19 @@ public:
   MGARDX_CONT
   AutoTuner(){};
 
-  static KernelConfigs<DeviceType> kernelConfigs;
   static AutoTuningTable<DeviceType> autoTuningTable;
   static bool ProfileKenrles;
+  static bool WriteToTable;
 };
 
 template <typename DeviceType> void BeginAutoTuning() {
   AutoTuner<DeviceType>::ProfileKernels = true;
+  AutoTuner<DeviceType>::WriteToTable = true;
 }
 
 template <typename DeviceType> void EndAutoTuning() {
   AutoTuner<DeviceType>::ProfileKernels = false;
+  AutoTuner<DeviceType>::WriteToTable = false;
 }
 
 struct ExecutionConfig {
@@ -262,7 +258,6 @@ GetExecutionConfig(std::string_view functor_name) {
 
 #include "AutoTunerCuda.h"
 #include "AutoTunerHip.h"
-#include "AutoTunerKokkos.h"
 #include "AutoTunerOpenmp.h"
 #include "AutoTunerSerial.h"
 #include "AutoTunerSycl.h"

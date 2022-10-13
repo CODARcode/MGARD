@@ -21,6 +21,10 @@ template <DIM D> int check_shape(std::vector<SIZE> shape) {
   return 0;
 }
 
+template <typename T> T roundup(T a, T b) {
+  return ((double)(a - 1) / b + 1) * b;
+}
+
 } // namespace mgard_x
 
 #endif

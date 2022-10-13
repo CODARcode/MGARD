@@ -18,9 +18,6 @@ bool MemoryManager<SERIAL>::ReduceMemoryFootprint = false;
 bool DeviceRuntime<SERIAL>::TimingAllKernels = false;
 bool DeviceRuntime<SERIAL>::PrintKernelConfig = false;
 
-AutoTuningTable<SERIAL> AutoTuner<SERIAL>::autoTuningTable;
-bool AutoTuner<SERIAL>::ProfileKernels = false;
-
 template <> bool deviceAvailable<SERIAL>() {
   return DeviceRuntime<SERIAL>::GetDeviceCount() > 0;
 }

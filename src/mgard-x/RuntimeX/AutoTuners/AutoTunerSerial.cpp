@@ -10,4 +10,8 @@ namespace mgard_x {
 template void BeginAutoTuning<SERIAL>();
 template void EndAutoTuning<SERIAL>();
 
+AutoTuningTable<SERIAL> AutoTuner<SERIAL>::autoTuningTable;
+bool AutoTuner<SERIAL>::ProfileKernels = false;
+bool AutoTuner<SERIAL>::WriteToTable = false;
+
 } // namespace mgard_x

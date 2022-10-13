@@ -202,10 +202,6 @@ void Hierarchy<D, T, DeviceType>::calc_volume(SIZE dof, T *dist, T *volume,
   delete[] h_volume;
 }
 
-template <typename T> T roundup(T a, T b) {
-  return ((double)(a - 1) / b + 1) * b;
-}
-
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
                                        std::vector<T *> coords,

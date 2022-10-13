@@ -14,7 +14,7 @@
 #include "../Utilities/Types.h"
 
 #include "../Config/Config.h"
-#include "../Hierarchy/Hierarchy.hpp"
+#include "../Hierarchy/Hierarchy.h"
 #include "../RuntimeX/RuntimeX.h"
 #include "CompressionLowLevel.h"
 

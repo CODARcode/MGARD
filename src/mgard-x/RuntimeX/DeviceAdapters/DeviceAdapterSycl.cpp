@@ -19,9 +19,6 @@ bool MemoryManager<SYCL>::ReduceMemoryFootprint = false;
 bool DeviceRuntime<SYCL>::TimingAllKernels = false;
 bool DeviceRuntime<SYCL>::PrintKernelConfig = false;
 
-AutoTuningTable<SYCL> AutoTuner<SYCL>::autoTuningTable;
-bool AutoTuner<SYCL>::ProfileKernels = false;
-
 template <> bool deviceAvailable<SYCL>() {
   return DeviceRuntime<SYCL>::GetDeviceCount() > 0;
 }

@@ -18,9 +18,6 @@ bool MemoryManager<OPENMP>::ReduceMemoryFootprint = false;
 bool DeviceRuntime<OPENMP>::TimingAllKernels = false;
 bool DeviceRuntime<OPENMP>::PrintKernelConfig = false;
 
-AutoTuningTable<OPENMP> AutoTuner<OPENMP>::autoTuningTable;
-bool AutoTuner<OPENMP>::ProfileKernels = false;
-
 template <> bool deviceAvailable<OPENMP>() {
   return DeviceRuntime<OPENMP>::GetDeviceCount() > 0;
 }

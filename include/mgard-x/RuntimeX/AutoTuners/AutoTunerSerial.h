@@ -88,6 +88,7 @@ public:
   AutoTuner(){};
   static AutoTuningTable<SERIAL> autoTuningTable;
   static bool ProfileKernels;
+  static bool WriteToTable;
 };
 
 } // namespace mgard_x
