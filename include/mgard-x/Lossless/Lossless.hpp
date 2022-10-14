@@ -35,7 +35,6 @@ void LosslessCompress(
         cast_quantized_subarray, config.huff_block_size, config.huff_dict_size,
         workspace.outlier_count, workspace.outlier_idx_subarray,
         workspace.outliers_subarray, compressed_array,
-        workspace.huffman_subarray, workspace.status_subarray,
         workspace.huffman_workspace);
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
