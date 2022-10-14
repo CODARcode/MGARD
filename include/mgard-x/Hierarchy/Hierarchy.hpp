@@ -239,6 +239,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       curr_level_shape[d] = shape_level[d][_l_target - l];
     }
     curr_level_shape_array.load(curr_level_shape.data());
+    curr_level_shape_array.hostCopy();
     _level_shape.push_back(curr_level_shape);
     _level_shape_array.push_back(curr_level_shape_array);
   }
@@ -269,6 +270,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     bool pitched = false;
     _level_ranges = Array<2, SIZE, DeviceType>({_l_target + 2, D}, pitched);
     _level_ranges.load(ranges_h_org);
+    _level_ranges.hostCopy(); // keeping a copy on the host
     delete[] ranges_h_org;
   }
 
@@ -368,6 +370,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
       _processed_dims[D - 1 - d] =
           Array<1, DIM, DeviceType>({(SIZE)tmp.size()});
       _processed_dims[D - 1 - d].load(tmp.data());
+      _processed_dims[D - 1 - d].hostCopy(); // keep a host copy
       tmp.push_back(d);
     }
   }

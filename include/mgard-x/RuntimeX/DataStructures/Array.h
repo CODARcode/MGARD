@@ -36,9 +36,12 @@ public:
   T *data(SIZE &ld);
   SIZE &shape(DIM d);
   T *data();
+  T *dataHost();
   SIZE ld(DIM d);
   bool isPitched();
   bool isManaged();
+  bool hasDeviceAllocation();
+  bool hasHostAllocation();
   int resideDevice();
   void resize(std::vector<SIZE> shape, bool pitched = true,
               bool managed = false, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);

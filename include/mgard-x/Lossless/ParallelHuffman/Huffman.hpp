@@ -41,10 +41,7 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
 
   t1 = high_resolution_clock::now();
 
-  int ht_state_num = 2 * dict_size;
-  int ht_all_nodes = 2 * ht_state_num;
-
-  Array<1, unsigned int, DeviceType> freq_array({(SIZE)ht_all_nodes});
+  Array<1, unsigned int, DeviceType> freq_array({(SIZE)dict_size});
   freq_array.memset(0);
 
   SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);

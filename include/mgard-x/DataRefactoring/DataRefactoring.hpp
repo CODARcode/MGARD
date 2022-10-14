@@ -30,6 +30,7 @@ void Decompose(Hierarchy<D, T, DeviceType> &hierarchy,
     decompose_single<D, T, DeviceType>(hierarchy, in_subarray, 0, queue_idx);
   }
   if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Decomposition");
     log::time("Decomposition throughput: " +
@@ -58,6 +59,7 @@ void Recompose(Hierarchy<D, T, DeviceType> &hierarchy,
                                        hierarchy.l_target(), queue_idx);
   }
   if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Recomposition");
     log::time("Recomposition throughput: " +
