@@ -219,6 +219,7 @@ MGARDX_CONT void Histogram(SubArray<1, T, DeviceType> input_data,
     Array<1, int, DeviceType> local_histogram_array(
         {(SIZE)RPerBlock * bins * numBlocks}, false, true);
     local_histogram_array.memset(0);
+    // TODO: can we not sync all queues?
     DeviceRuntime<DeviceType>::SyncAllQueues();
     local_histogram = SubArray(local_histogram_array);
     DeviceLauncher<DeviceType>::Execute(
