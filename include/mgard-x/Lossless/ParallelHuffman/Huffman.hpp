@@ -28,108 +28,67 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
                      SubArray<1, LENGTH, DeviceType> outlier_idx_subarray,
                      SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray,
                      Array<1, Byte, DeviceType> &compressed_data,
-                     SubArray<1, H, DeviceType> workspace2,
-                     SubArray<1, int, DeviceType> status_subarray,
                      HuffmanWorkspace<Q, H, DeviceType> &workspace) {
 
   Timer timer;
   if (log::level & log::TIME)
     timer.start();
 
-  high_resolution_clock::time_point t1, t2, start, end;
-  duration<double> time_span;
+  workspace.reset();
 
   size_t primary_count = dprimary_subarray.shape(0);
 
-  t1 = high_resolution_clock::now();
+  Histogram<Q, unsigned int, DeviceType>(
+      dprimary_subarray, workspace.freq_subarray, primary_count, dict_size, 0);
+  // DeviceRuntime<DeviceType>::SyncQueue(0);
 
-  Array<1, unsigned int, DeviceType> freq_array({(SIZE)dict_size});
-  freq_array.memset(0);
-
-  SubArray<1, unsigned int, DeviceType> freq_subarray(freq_array);
-  Histogram<Q, unsigned int, DeviceType>(dprimary_subarray, freq_subarray,
-                                         primary_count, dict_size, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-
-  // if (debug_print_huffman) {
-  // PrintSubarray("Histogram::freq_subarray", freq_subarray);
-  // }
-
-  // if (std::is_same<DeviceType, Serial>::value) {
-  //   DumpSubArray("dprimary_subarray", dprimary_subarray);
-  // }
-
-  // if (std::is_same<DeviceType, HIP>::value) {
-  //   LoadSubArray("dprimary_subarray", dprimary_subarray);
-  // }
-
-  auto type_bw = sizeof(H) * 8;
-  size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size;
-  Array<1, H, DeviceType> codebook_array({(SIZE)dict_size});
-  codebook_array.memset(0);
-  Array<1, uint8_t, DeviceType> decodebook_array({(SIZE)decodebook_size});
-  decodebook_array.memset(0xff);
-
-  // H *codebook = codebook_array.data();
-  // uint8_t *decodebook = decodebook_array.data();
-
-  SubArray<1, H, DeviceType> codebook_subarray(codebook_array);
-  SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
-
-  GetCodebook<Q, H, DeviceType>(dict_size, freq_subarray, codebook_subarray,
-                                decodebook_subarray, status_subarray);
   if (debug_print_huffman) {
-    // PrintSubarray("GetCodebook::codebook_subarray", codebook_subarray);
-    // PrintSubarray("GetCodebook::decodebook_subarray", decodebook_subarray);
+    PrintSubarray("Histogram::freq_subarray", workspace.freq_subarray);
   }
 
-  Array<1, H, DeviceType> huff_array;
-  SubArray<1, H, DeviceType> huff_subarray;
-  if (workspace2.data() == nullptr || workspace2.shape(0) != primary_count) {
-    log::info("Huffman::Compress need to allocate workspace since it is not "
-              "pre-allocated.");
-    huff_array = Array<1, H, DeviceType>({(SIZE)primary_count});
-    huff_array.memset(0);
-    huff_subarray = SubArray(huff_array);
-  } else {
-    huff_subarray = workspace2;
+  GetCodebook<Q, H, DeviceType>(dict_size, workspace.freq_subarray,
+                                workspace.codebook_subarray,
+                                workspace.decodebook_subarray, workspace);
+  if (debug_print_huffman) {
+    PrintSubarray("GetCodebook::codebook_subarray",
+                  workspace.codebook_subarray);
+    PrintSubarray("GetCodebook::decodebook_subarray",
+                  workspace.decodebook_subarray);
   }
 
   DeviceLauncher<DeviceType>::Execute(
       EncodeFixedLenKernel<unsigned int, H, DeviceType>(
-          dprimary_subarray, huff_subarray, codebook_subarray),
+          dprimary_subarray, workspace.huff_subarray,
+          workspace.codebook_subarray),
       0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
+  // DeviceRuntime<DeviceType>::SyncQueue(0);
+
   if (debug_print_huffman) {
-    // PrintSubarray("EncodeFixedLen::huff_subarray", huff_subarray);
+    PrintSubarray("EncodeFixedLen::huff_subarray", workspace.huff_subarray);
   }
 
   // deflate
-  auto nchunk = (primary_count - 1) / chunk_size + 1;
-  Array<1, size_t, DeviceType> huff_bitwidths_array({(SIZE)nchunk});
-  huff_bitwidths_array.memset(0);
-  // size_t *huff_bitwidths = huff_bitwidths_array.data();
-
-  SubArray<1, size_t, DeviceType> huff_bitwidths_subarray(huff_bitwidths_array);
   DeviceLauncher<DeviceType>::Execute(
-      DeflateKernel<H, DeviceType>(huff_subarray, huff_bitwidths_subarray,
+      DeflateKernel<H, DeviceType>(workspace.huff_subarray,
+                                   workspace.huff_bitwidths_subarray,
                                    chunk_size),
       0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
+  // DeviceRuntime<DeviceType>::SyncQueue(0);
 
   if (debug_print_huffman) {
-    // PrintSubarray("Deflate::huff_subarray", huff_subarray);
-    // PrintSubarray("Deflate::huff_bitwidths_subarray",
-    // huff_bitwidths_subarray);
+    PrintSubarray("Deflate::huff_subarray", workspace.huff_subarray);
+    PrintSubarray("Deflate::huff_bitwidths_subarray",
+                  workspace.huff_bitwidths_subarray);
   }
 
+  auto nchunk = (primary_count - 1) / chunk_size + 1;
   size_t *h_meta = new size_t[nchunk * 3]();
   size_t *dH_uInt_meta = h_meta;
   size_t *dH_bit_meta = h_meta + nchunk;
   size_t *dH_uInt_entry = h_meta + nchunk * 2;
 
-  MemoryManager<DeviceType>().Copy1D(dH_bit_meta,
-                                     huff_bitwidths_subarray.data(), nchunk, 0);
+  MemoryManager<DeviceType>().Copy1D(
+      dH_bit_meta, workspace.huff_bitwidths_subarray.data(), nchunk, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   // transform in uInt
   memcpy(dH_uInt_meta, dH_bit_meta, nchunk * sizeof(size_t));
@@ -146,17 +105,16 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
   auto total_uInts =
       std::accumulate(dH_uInt_meta, dH_uInt_meta + nchunk, (size_t)0);
 
-  t2 = high_resolution_clock::now();
-  time_span = duration_cast<duration<double>>(t2 - t1);
   // printf("huffman encode time: %.6f s\n", time_span.count());
 
   // out_meta: |outlier count|outlier idx|outlier data|primary count|dict
   // size|chunk size|huffmeta size|huffmeta|decodebook size|decodebook|
   // out_data: |huffman data|
 
+  size_t type_bw = sizeof(H) * 8;
+  size_t decodebook_size = workspace.decodebook_subarray.shape(0);
   size_t huffmeta_size = 2 * nchunk;
 
-  t1 = high_resolution_clock::now();
   size_t ddata_size = total_uInts;
 
   SIZE byte_offset = 0;
@@ -189,23 +147,17 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
                          byte_offset);
   SerializeArray<size_t>(compressed_data_subarray, &decodebook_size, 1,
                          byte_offset);
-  SerializeArray<uint8_t>(compressed_data_subarray, decodebook_subarray.data(),
-                          (sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size),
-                          byte_offset);
+  SerializeArray<uint8_t>(
+      compressed_data_subarray, workspace.decodebook_subarray.data(),
+      (sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size), byte_offset);
   SerializeArray<size_t>(compressed_data_subarray, &ddata_size, 1, byte_offset);
-  t2 = high_resolution_clock::now();
-  time_span = duration_cast<duration<double>>(t2 - t1);
-  // printf("serilization time1: %.6f s\n", time_span.count());
-
-  t1 = high_resolution_clock::now();
 
   align_byte_offset<H>(byte_offset);
-  H *huff = huff_subarray.data();
   for (auto i = 0; i < nchunk; i++) {
     MemoryManager<DeviceType>::Copy1D(
         (H *)compressed_data_subarray(byte_offset +
                                       dH_uInt_entry[i] * sizeof(H)),
-        huff_subarray(i * chunk_size), dH_uInt_meta[i],
+        workspace.huff_subarray(i * chunk_size), dH_uInt_meta[i],
         i % MGARDX_NUM_ASYNC_QUEUES);
   }
   advance_with_align<H>(byte_offset, ddata_size);
@@ -220,9 +172,7 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
                                 byte_offset);
 
   DeviceRuntime<DeviceType>::SyncAllQueues();
-  t2 = high_resolution_clock::now();
-  time_span = duration_cast<duration<double>>(t2 - t1);
-  // printf("serilization time2: %.6f s\n", time_span.count());
+
   delete[] h_meta;
 
   log::info("Huffman block size: " + std::to_string(chunk_size));
