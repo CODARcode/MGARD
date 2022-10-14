@@ -285,7 +285,7 @@ void compress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
   // Trigger the copy constructor to copy hierarchy to the current device
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
-  CompressionLowLevelWorkspace workspace(hierarchy, 0.1);
+  CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
   std::stringstream ss;
   for (DIM d = 0; d < D; d++) {
     ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
@@ -331,7 +331,7 @@ void compress_subdomain_series(
     // Trigger the copy constructor to copy hierarchy to the current device
     Hierarchy<D, T, DeviceType> hierarchy =
         domain_decomposer.subdomain_hierarchy(subdomain_id);
-    CompressionLowLevelWorkspace workspace(hierarchy, 0.1);
+    CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
     std::stringstream ss;
     for (DIM d = 0; d < D; d++) {
       ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
@@ -384,7 +384,7 @@ void compress_subdomain_series_w_prefetch(
       domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
   // The workspace can be resued since all subdomains should be equal/smaller
   // than the first one
-  CompressionLowLevelWorkspace workspace(hierarchy, 0.1);
+  CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
   Array<1, Byte, DeviceType> device_compressed_buffer;
@@ -419,7 +419,7 @@ void compress_subdomain_series_w_prefetch(
     if (!can_reuse(hierarchy,
                    domain_decomposer.subdomain_shape(curr_subdomain_id))) {
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
-      workspace = CompressionLowLevelWorkspace(hierarchy, 0.1);
+      workspace = CompressionLowLevelWorkspace(hierarchy, config, 0.1);
     }
 
     for (DIM d = 0; d < D; d++) {
@@ -487,7 +487,7 @@ void decompress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
 
-  CompressionLowLevelWorkspace workspace(hierarchy, 0.0);
+  CompressionLowLevelWorkspace workspace(hierarchy, config, 0.0);
   std::stringstream ss;
   for (DIM d = 0; d < D; d++) {
     ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
@@ -537,7 +537,7 @@ void decompress_subdomain_series(
     Hierarchy<D, T, DeviceType> hierarchy =
         domain_decomposer.subdomain_hierarchy(subdomain_id);
 
-    CompressionLowLevelWorkspace workspace(hierarchy, 0.0);
+    CompressionLowLevelWorkspace workspace(hierarchy, config, 0.0);
     std::stringstream ss;
     for (DIM d = 0; d < D; d++) {
       ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
@@ -578,7 +578,7 @@ void decompress_subdomain_series_w_prefetch(
       domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
   // The workspace can be resued since all subdomains should be equal/smaller
   // than the first one
-  CompressionLowLevelWorkspace workspace(hierarchy, 0.1);
+  CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
   Array<1, Byte, DeviceType> device_compressed_buffer[2];
@@ -619,7 +619,7 @@ void decompress_subdomain_series_w_prefetch(
     if (!can_reuse(hierarchy,
                    domain_decomposer.subdomain_shape(curr_subdomain_id))) {
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
-      workspace = CompressionLowLevelWorkspace(hierarchy, 0.1);
+      workspace = CompressionLowLevelWorkspace(hierarchy, config, 0.1);
     }
 
     std::stringstream ss;

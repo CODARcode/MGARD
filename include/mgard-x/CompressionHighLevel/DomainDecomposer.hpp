@@ -40,7 +40,8 @@ public:
 
     estimate_memory_usgae = hierarchy_space + input_space + output_space +
                             compression_workspace.estimate_size(
-                                shape, hierarchy.l_target(), outlier_ratio);
+                                shape, hierarchy.l_target(), outlier_ratio,
+                                config.huff_dict_size, config.huff_block_size);
 
     // For prefetching
     if (enable_prefetch) {
