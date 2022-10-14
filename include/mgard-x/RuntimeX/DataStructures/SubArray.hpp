@@ -19,7 +19,7 @@ public:
   SubArray();
 
   MGARDX_CONT
-  SubArray(Array<D, T, DeviceType> &array, bool get_host_pointer = false);
+  SubArray(Array<D, T, DeviceType> &array);
 
   MGARDX_CONT
   SubArray(std::vector<SIZE> shape, T *dv);
@@ -223,8 +223,8 @@ MGARDX_CONT_EXEC SubArray<D, T, DeviceType>::SubArray() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-MGARDX_CONT SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array,
-                                                 bool get_host_pointer) {
+MGARDX_CONT
+SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array) {
   initialize();
   dv = array.data();
   for (DIM d = 0; d < D; d++) {
@@ -234,8 +234,8 @@ MGARDX_CONT SubArray<D, T, DeviceType>::SubArray(Array<D, T, DeviceType> &array,
   __lddv1 = __ldvs[D - 1];
   if (D > 1)
     __lddv2 = __ldvs[D - 2];
-  if (get_host_pointer) {
-    v = array.hostCopy();
+  if (array.hasHostAllocation()) {
+    v = array.dataHost();
     has_host_pointer = true;
   }
   pitched = array.isPitched();

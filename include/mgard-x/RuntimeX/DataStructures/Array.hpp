@@ -104,6 +104,9 @@ void Array<D, T, DeviceType>::copy(const Array<D, T, DeviceType> &array,
                                       array.__ldvs[D - 1], array.__shape[D - 1],
                                       array.linearized_width, queue_idx);
   }
+  if (array.host_allocated) {
+    hostCopy(array.keepHostCopy);
+  }
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -121,6 +124,11 @@ void Array<D, T, DeviceType>::move(Array<D, T, DeviceType> &&array) {
     array.device_allocated = false;
     this->external_allocation = array.external_allocation;
     array.dv = nullptr;
+  }
+  if (array.host_allocated) {
+    this->hv = array.hv;
+    this->host_allocated = true;
+    array.host_allocated = false;
   }
 }
 
@@ -212,6 +220,10 @@ T *Array<D, T, DeviceType>::hostCopy(bool keep, int queue_idx) {
 
 template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::data(SIZE &ld) {
+  if (!device_allocated) {
+    std::cout << log::log_err << "device buffer not initialized.\n";
+    exit(-1);
+  }
   ld = __ldvs[D - 1];
   return dv;
 }
@@ -223,7 +235,20 @@ SIZE &Array<D, T, DeviceType>::shape(DIM d) {
 
 template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::data() {
+  if (!device_allocated) {
+    std::cout << log::log_err << "device buffer not initialized.\n";
+    exit(-1);
+  }
   return dv;
+}
+
+template <DIM D, typename T, typename DeviceType>
+T *Array<D, T, DeviceType>::dataHost() {
+  if (!host_allocated) {
+    std::cout << log::log_err << "host buffer not initialized.\n";
+    exit(-1);
+  }
+  return hv;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -244,6 +269,16 @@ bool Array<D, T, DeviceType>::isManaged() {
 template <DIM D, typename T, typename DeviceType>
 int Array<D, T, DeviceType>::resideDevice() {
   return dev_id;
+}
+
+template <DIM D, typename T, typename DeviceType>
+bool Array<D, T, DeviceType>::hasDeviceAllocation() {
+  return device_allocated;
+}
+
+template <DIM D, typename T, typename DeviceType>
+bool Array<D, T, DeviceType>::hasHostAllocation() {
+  return host_allocated;
 }
 
 template <DIM D, typename T, typename DeviceType>

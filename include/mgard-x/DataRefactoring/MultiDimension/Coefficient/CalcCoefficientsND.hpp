@@ -47,9 +47,8 @@ void CalcCoefficientsND(Hierarchy<D, T, DeviceType> &hierarchy,
   DIM unprocessed_n;
   SubArray<1, DIM, DeviceType> unprocessed_dims;
 
-  shape = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l), true);
-  shape_c =
-      SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l - 1), true);
+  shape = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l));
+  shape_c = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l - 1));
 
   int unprocessed_idx = 0;
   unprocessed_dims = hierarchy.unprocessed(unprocessed_idx, unprocessed_n);
