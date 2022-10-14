@@ -35,7 +35,8 @@ void LosslessCompress(
         cast_quantized_subarray, config.huff_block_size, config.huff_dict_size,
         workspace.outlier_count, workspace.outlier_idx_subarray,
         workspace.outliers_subarray, compressed_array,
-        workspace.huffman_subarray, workspace.status_subarray);
+        workspace.huffman_subarray, workspace.status_subarray,
+        workspace.huffman_workspace);
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
 #ifdef MGARDX_COMPILE_CUDA
@@ -91,7 +92,8 @@ void LosslessDecompress(
         (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
     HuffmanDecompress<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>(
         compressed_subarray, cast_quantized_array, workspace.outlier_count,
-        workspace.outlier_idx_subarray, workspace.outliers_subarray);
+        workspace.outlier_idx_subarray, workspace.outliers_subarray,
+        workspace.huffman_workspace);
   } else {
     Array<1, QUANTIZED_INT, DeviceType> quantized_array =
         CPUDecompress<QUANTIZED_INT, DeviceType>(compressed_subarray);

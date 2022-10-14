@@ -15,6 +15,7 @@ static bool debug_print_huffman = false;
 #include "EncodeFixedLen.hpp"
 #include "GetCodebook.hpp"
 #include "Histogram.hpp"
+#include "HuffmanWorkspace.hpp"
 
 #include <chrono>
 using namespace std::chrono;
@@ -27,8 +28,9 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
                      SubArray<1, LENGTH, DeviceType> outlier_idx_subarray,
                      SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray,
                      Array<1, Byte, DeviceType> &compressed_data,
-                     SubArray<1, H, DeviceType> workspace,
-                     SubArray<1, int, DeviceType> status_subarray) {
+                     SubArray<1, H, DeviceType> workspace2,
+                     SubArray<1, int, DeviceType> status_subarray,
+                     HuffmanWorkspace<Q, H, DeviceType> &workspace) {
 
   Timer timer;
   if (log::level & log::TIME)
@@ -68,8 +70,8 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
   Array<1, uint8_t, DeviceType> decodebook_array({(SIZE)decodebook_size});
   decodebook_array.memset(0xff);
 
-  H *codebook = codebook_array.data();
-  uint8_t *decodebook = decodebook_array.data();
+  // H *codebook = codebook_array.data();
+  // uint8_t *decodebook = decodebook_array.data();
 
   SubArray<1, H, DeviceType> codebook_subarray(codebook_array);
   SubArray<1, uint8_t, DeviceType> decodebook_subarray(decodebook_array);
@@ -83,14 +85,14 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
 
   Array<1, H, DeviceType> huff_array;
   SubArray<1, H, DeviceType> huff_subarray;
-  if (workspace.data() == nullptr || workspace.shape(0) != primary_count) {
+  if (workspace2.data() == nullptr || workspace2.shape(0) != primary_count) {
     log::info("Huffman::Compress need to allocate workspace since it is not "
               "pre-allocated.");
     huff_array = Array<1, H, DeviceType>({(SIZE)primary_count});
     huff_array.memset(0);
     huff_subarray = SubArray(huff_array);
   } else {
-    huff_subarray = workspace;
+    huff_subarray = workspace2;
   }
 
   DeviceLauncher<DeviceType>::Execute(
@@ -241,11 +243,11 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
 }
 
 template <typename Q, typename H, typename DeviceType>
-void HuffmanDecompress(
-    SubArray<1, Byte, DeviceType> compressed_data,
-    Array<1, Q, DeviceType> &primary, LENGTH &outlier_count,
-    SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
-    SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray) {
+void HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
+                       Array<1, Q, DeviceType> &primary, LENGTH &outlier_count,
+                       SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
+                       SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray,
+                       HuffmanWorkspace<Q, H, DeviceType> &workspace) {
   Timer timer;
   if (log::level & log::TIME)
     timer.start();

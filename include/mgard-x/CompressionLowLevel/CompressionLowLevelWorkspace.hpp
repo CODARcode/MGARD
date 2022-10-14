@@ -10,6 +10,7 @@
 
 #include "../DataRefactoring/DataRefactoringWorkspace.hpp"
 #include "../Hierarchy/Hierarchy.h"
+#include "../Lossless/ParallelHuffman/HuffmanWorkspace.hpp"
 #include "../RuntimeX/RuntimeXPublic.h"
 
 namespace mgard_x {
@@ -36,12 +37,11 @@ public:
     outlier_count_subarray = SubArray(outlier_count_array);
     outlier_idx_subarray = SubArray(outlier_idx_array);
     outliers_subarray = SubArray(outliers_array);
-    huffman_subarray = SubArray(huffman_array);
-    status_subarray = SubArray(status_array);
   }
 
   size_t estimate_size(std::vector<SIZE> shape, SIZE l_target,
-                       double estimated_outlier_ratio) {
+                       double estimated_outlier_ratio, SIZE dict_size,
+                       SIZE chunk_size) {
     SIZE total_num_elems = 1;
     for (DIM d = 0; d < D; d++)
       total_num_elems *= shape[d];
@@ -52,6 +52,8 @@ public:
     // size += total_num_elems() * sizeof(T);
     size += sizeof(T);
     size += data_refactoring_workspace.estimate_size(shape);
+    size +=
+        huffman_workspace.estimate_size(total_num_elems, dict_size, chunk_size);
     size += roundup((l_target + 1) * sizeof(T), pitch_size);
     size += roundup(sizeof(LENGTH), pitch_size);
     size += roundup(
@@ -60,11 +62,10 @@ public:
     size += roundup((size_t)(total_num_elems * estimated_outlier_ratio *
                              sizeof(QUANTIZED_INT)),
                     pitch_size);
-    size += roundup(total_num_elems * sizeof(HUFFMAN_CODE), pitch_size);
     return size;
   }
 
-  void allocate(Hierarchy<D, T, DeviceType> &hierarchy,
+  void allocate(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
                 double estimated_outlier_ratio) {
     shape = hierarchy.level_shape(hierarchy.l_target());
     total_elems = hierarchy.total_num_elems();
@@ -73,6 +74,8 @@ public:
     // norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()});
     norm_array = Array<1, T, DeviceType>({1});
     data_refactoring_workspace.allocate(hierarchy);
+    huffman_workspace.allocate(total_elems, config.huff_dict_size,
+                               config.huff_block_size);
     quantizers_array = Array<1, T, DeviceType>({hierarchy.l_target() + 1});
     // quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
     // hierarchy.level_shape(hierarchy.l_target()), false, false);
@@ -85,8 +88,6 @@ public:
     outlier_count_array.memset(0);
     outlier_idx_array.memset(0);
     outliers_array.memset(0);
-    huffman_array = Array<1, HUFFMAN_CODE, DeviceType>({total_elems});
-    status_array = Array<1, int, DeviceType>({(SIZE)16}, false, true);
     initialize_subarray();
 
     pre_allocated = true;
@@ -101,13 +102,12 @@ public:
     norm_array = std::move(workspace.norm_array);
     data_refactoring_workspace =
         std::move(workspace.data_refactoring_workspace);
+    huffman_workspace = std::move(workspace.huffman_workspace);
     quantizers_array = std::move(workspace.quantizers_array);
     quantized_array = std::move(workspace.quantized_array);
     outlier_count_array = std::move(workspace.outlier_count_array);
     outlier_idx_array = std::move(workspace.outlier_idx_array);
     outliers_array = std::move(workspace.outliers_array);
-    huffman_array = std::move(workspace.huffman_array);
-    status_array = std::move(workspace.status_array);
     initialize_subarray();
   }
 
@@ -120,19 +120,19 @@ public:
     norm_array = std::move(workspace.norm_array);
     data_refactoring_workspace =
         std::move(workspace.data_refactoring_workspace);
+    huffman_workspace = std::move(workspace.huffman_workspace);
     quantizers_array = std::move(workspace.quantizers_array);
     quantized_array = std::move(workspace.quantized_array);
     outlier_count_array = std::move(workspace.outlier_count_array);
     outlier_idx_array = std::move(workspace.outlier_idx_array);
     outliers_array = std::move(workspace.outliers_array);
-    huffman_array = std::move(workspace.huffman_array);
-    status_array = std::move(workspace.status_array);
     initialize_subarray();
   }
 
   CompressionLowLevelWorkspace(Hierarchy<D, T, DeviceType> &hierarchy,
+                               Config config,
                                double estimated_outlier_ratio = 0.3) {
-    allocate(hierarchy, estimated_outlier_ratio);
+    allocate(hierarchy, config, estimated_outlier_ratio);
   }
 
   CompressionLowLevelWorkspace(
@@ -162,6 +162,8 @@ public:
   LENGTH outlier_count;
 
   DataRefactoringWorkspace<D, T, DeviceType> data_refactoring_workspace;
+  HuffmanWorkspace<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>
+      huffman_workspace;
 
   Array<1, T, DeviceType> norm_tmp_array;
   Array<1, T, DeviceType> norm_array;
@@ -170,8 +172,6 @@ public:
   Array<1, LENGTH, DeviceType> outlier_count_array;
   Array<1, LENGTH, DeviceType> outlier_idx_array;
   Array<1, QUANTIZED_INT, DeviceType> outliers_array;
-  Array<1, HUFFMAN_CODE, DeviceType> huffman_array;
-  Array<1, int, DeviceType> status_array;
 
   SubArray<1, T, DeviceType> norm_tmp_subarray;
   SubArray<1, T, DeviceType> norm_subarray;
@@ -180,8 +180,6 @@ public:
   SubArray<1, LENGTH, DeviceType> outlier_count_subarray;
   SubArray<1, LENGTH, DeviceType> outlier_idx_subarray;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray;
-  SubArray<1, HUFFMAN_CODE, DeviceType> huffman_subarray;
-  SubArray<1, int, DeviceType> status_subarray;
 };
 
 } // namespace mgard_x
