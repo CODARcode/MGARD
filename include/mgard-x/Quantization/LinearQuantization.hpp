@@ -689,8 +689,7 @@ void LinearQuanziation(
   bool prep_huffman =
       config.lossless != lossless_type::CPU_Lossless; // always do Huffman
   SIZE total_elems = hierarchy.total_num_elems();
-  SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges(),
-                                                      true);
+  SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges());
   SubArray<3, T, DeviceType> level_volumes_subarray(
       hierarchy.level_volumes(false));
 
@@ -795,8 +794,7 @@ void LinearDequanziation(
   SubArray<D, T, DeviceType> out_subarray(out_array);
   MemoryManager<DeviceType>::Copy1D(workspace.outlier_count_subarray.data(),
                                     &workspace.outlier_count, 1, queue_idx);
-  SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges(),
-                                                      true);
+  SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges());
   SubArray<3, T, DeviceType> level_volumes_subarray(
       hierarchy.level_volumes(true));
 

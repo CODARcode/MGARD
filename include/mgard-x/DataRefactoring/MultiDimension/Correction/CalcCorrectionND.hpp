@@ -38,9 +38,8 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray<D, T, DeviceType> dw_out = dcorrection;
 
   SubArray<1, SIZE, DeviceType> shape, shape_c;
-  shape = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l), true);
-  shape_c =
-      SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l - 1), true);
+  shape = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l));
+  shape_c = SubArray<1, SIZE, DeviceType>(hierarchy.level_shape_array(l - 1));
 
   DIM processed_n;
   SubArray<1, DIM, DeviceType> processed_dims;
@@ -69,7 +68,7 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
   dist = SubArray(hierarchy.dist(l, curr_dim_f));
   ratio = SubArray(hierarchy.ratio(l, curr_dim_f));
 
-  processed_dims = SubArray(hierarchy.processed(0, processed_n), true);
+  processed_dims = SubArray(hierarchy.processed(0, processed_n));
 
   DeviceLauncher<DeviceType>::Execute(
       Lpk1ReoKernel<D, T, DeviceType>(
@@ -103,7 +102,7 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
   dist = SubArray(hierarchy.dist(l, curr_dim_c));
   ratio = SubArray(hierarchy.ratio(l, curr_dim_c));
 
-  processed_dims = SubArray(hierarchy.processed(1, processed_n), true);
+  processed_dims = SubArray(hierarchy.processed(1, processed_n));
 
   DeviceLauncher<DeviceType>::Execute(
       Lpk2ReoKernel<D, T, DeviceType>(
@@ -137,7 +136,7 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
   dist = SubArray(hierarchy.dist(l, curr_dim_r));
   ratio = SubArray(hierarchy.ratio(l, curr_dim_r));
 
-  processed_dims = SubArray(hierarchy.processed(2, processed_n), true);
+  processed_dims = SubArray(hierarchy.processed(2, processed_n));
 
   DeviceLauncher<DeviceType>::Execute(
       Lpk3ReoKernel<D, T, DeviceType>(
@@ -172,7 +171,7 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
     dist = SubArray(hierarchy.dist(l, curr_dim_r));
     ratio = SubArray(hierarchy.ratio(l, curr_dim_r));
 
-    processed_dims = SubArray(hierarchy.processed(i, processed_n), true);
+    processed_dims = SubArray(hierarchy.processed(i, processed_n));
 
     DeviceLauncher<DeviceType>::Execute(
         Lpk3ReoKernel<D, T, DeviceType>(

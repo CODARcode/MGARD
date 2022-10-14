@@ -147,7 +147,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
       } // debug
     }
   }
-  DeviceRuntime<DeviceType>::SyncDevice();
+  // DeviceRuntime<DeviceType>::SyncDevice();
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -280,7 +280,7 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
       PrintSubarray4D(format("final output"), v);
     } // deb
   }   // D > 3
-  DeviceRuntime<DeviceType>::SyncDevice();
+  // DeviceRuntime<DeviceType>::SyncDevice();
 }
 
 } // namespace mgard_x
