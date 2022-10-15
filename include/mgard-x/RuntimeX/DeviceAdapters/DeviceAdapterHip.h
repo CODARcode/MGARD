@@ -2209,137 +2209,136 @@ public:
   DeviceCollective(){};
 
   template <typename T>
-  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, HIP> &v,
-                              SubArray<1, T, HIP> &result, int queue_idx) {
-    void *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
-    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, HIP> v,
+                              SubArray<1, T, HIP> result,
+                              Array<1, Byte, HIP> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
                               result.data(), n, stream, debug);
-    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
-                              result.data(), n, stream, debug);
-    DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, HIP>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, HIP> &v,
-                                 SubArray<1, T, HIP> &result, int queue_idx) {
-    void *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
+  MGARDX_CONT static void
+  AbsMax(SIZE n, SubArray<1, T, HIP> v, SubArray<1, T, HIP> result,
+         Array<1, Byte, HIP> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     AbsMaxOp absMaxOp;
-    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
                                  result.data(), n, absMaxOp, 0, stream, debug);
-    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    hipcub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
-                                 result.data(), n, absMaxOp, 0, stream, debug);
-    DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, HIP>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, HIP> &v,
-                                    SubArray<1, T, HIP> &result,
-                                    int queue_idx) {
+  MGARDX_CONT static void
+  SquareSum(SIZE n, SubArray<1, T, HIP> v, SubArray<1, T, HIP> result,
+            Array<1, Byte, HIP> &workspace, int queue_idx) {
     SquareOp squareOp;
     hipcub::TransformInputIterator<T, SquareOp, T *> transformed_input_iter(
         v.data(), squareOp);
-    void *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
-    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
                               transformed_input_iter, result.data(), n, stream,
                               debug);
-    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
-                              transformed_input_iter, result.data(), n, stream,
-                              debug);
-    DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, HIP>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumInclusive(SIZE n, SubArray<1, T, HIP> &v,
-                                           SubArray<1, T, HIP> &result,
-                                           int queue_idx) {
-    Byte *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
-    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+  MGARDX_CONT static void
+  ScanSumInclusive(SIZE n, SubArray<1, T, HIP> v, SubArray<1, T, HIP> result,
+                   Array<1, Byte, HIP> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
                                      v.data(), result.data(), n, stream, debug);
-    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data(), n, stream, debug);
-    DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, HIP>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExclusive(SIZE n, SubArray<1, T, HIP> &v,
-                                           SubArray<1, T, HIP> &result,
-                                           int queue_idx) {
-    Byte *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
-    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+  MGARDX_CONT static void
+  ScanSumExclusive(SIZE n, SubArray<1, T, HIP> v, SubArray<1, T, HIP> result,
+                   Array<1, Byte, HIP> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes,
                                      v.data(), result.data(), n, stream, debug);
-    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data(), n, stream, debug);
-    DeviceRuntime<HIP>::SyncQueue(queue_idx);
-    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, HIP>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, HIP> &v,
-                                          SubArray<1, T, HIP> &result,
-                                          int queue_idx) {
-    Byte *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
-    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+  MGARDX_CONT static void
+  ScanSumExtended(SIZE n, SubArray<1, T, HIP> v, SubArray<1, T, HIP> result,
+                  Array<1, Byte, HIP> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
                                      v.data(), result.data() + 1, n, stream,
                                      debug);
-    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data() + 1, n, stream,
-                                     debug);
-    T zero = 0;
-    MemoryManager<HIP>::Copy1D(result.data(), &zero, 1, queue_idx);
-    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (result.hasDeviceAllocation()) {
+      T zero = 0;
+      MemoryManager<HIP>().Copy1D(result.data(), &zero, 1, queue_idx);
+    }
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, HIP>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename KeyT, typename ValueT>
-  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, HIP> &keys,
-                                    SubArray<1, ValueT, HIP> &values,
-                                    int queue_idx) {
-    void *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
-    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+  MGARDX_CONT static void
+  SortByKey(SIZE n, SubArray<1, KeyT, HIP> in_keys,
+            SubArray<1, ValueT, HIP> in_values, SubArray<1, KeyT, HIP> out_keys,
+            SubArray<1, ValueT, HIP> out_values, Array<1, Byte, HIP> &workspace,
+            int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
-    Array<1, KeyT, HIP> out_keys({n});
-    Array<1, ValueT, HIP> out_values({n});
-
     hipcub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                       keys.data(), out_keys.data(),
-                                       values.data(), out_values.data(), n, 0,
-                                       sizeof(KeyT) * 8, stream, debug);
-    MemoryManager<HIP>::Malloc1D(d_temp_storage, temp_storage_bytes, queue_idx);
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                       keys.data(), out_keys.data(),
-                                       values.data(), out_values.data(), n, 0,
-                                       sizeof(KeyT) * 8, stream, debug);
-    MemoryManager<HIP>::Copy1D(keys.data(), out_keys.data(), n, queue_idx);
-    MemoryManager<HIP>::Copy1D(values.data(), out_values.data(), n, queue_idx);
-    MemoryManager<HIP>::Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+                                       in_keys.data(), out_keys.data(),
+                                       in_values.data(), out_values.data(), n,
+                                       0, sizeof(KeyT) * 8, stream, debug);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, HIP>({(SIZE)temp_storage_bytes});
+    }
   }
 };
 

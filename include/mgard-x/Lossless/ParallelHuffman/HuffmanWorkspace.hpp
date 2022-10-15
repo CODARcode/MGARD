@@ -28,6 +28,9 @@ public:
     huff_bitwidths_subarray = SubArray(huff_bitwidths_array);
     // Codebook
     first_nonzero_index_subarray = SubArray(first_nonzero_index_array);
+    sort_by_key_workspace_subarray = SubArray(sort_by_key_workspace);
+    _d_freq_copy_subarray = SubArray(_d_freq_copy_array);
+    _d_qcode_copy_subarray = SubArray(_d_qcode_copy_array);
     CL_subarray = SubArray(CL_array);
     lNodesLeader_subarray = SubArray(lNodesLeader_array);
     iNodesFreq_subarray = SubArray(iNodesFreq_array);
@@ -56,6 +59,14 @@ public:
     size += nchunk * sizeof(size_t);
 
     size += sizeof(unsigned int);
+    Array<1, Byte, DeviceType> tmp;
+    DeviceCollective<DeviceType>::SortByKey(
+        dict_size, SubArray<1, unsigned int, DeviceType>(),
+        SubArray<1, Q, DeviceType>(), SubArray<1, unsigned int, DeviceType>(),
+        SubArray<1, Q, DeviceType>(), tmp, 0);
+    size += tmp.shape(0);
+    size += dict_size * sizeof(unsigned int);
+    size += dict_size * sizeof(Q);
     size += sizeof(unsigned int) * dict_size * 4;
     size += sizeof(int) * dict_size * 6;
     size += sizeof(H) * dict_size;
@@ -79,6 +90,13 @@ public:
     // Codebook
     first_nonzero_index_array = Array<1, unsigned int, DeviceType>({1});
     first_nonzero_index_array.hostCopy(); // Create host allocation
+    // Allocate workspace
+    DeviceCollective<DeviceType>::SortByKey(
+        dict_size, SubArray<1, unsigned int, DeviceType>(),
+        SubArray<1, Q, DeviceType>(), SubArray<1, unsigned int, DeviceType>(),
+        SubArray<1, Q, DeviceType>(), sort_by_key_workspace, 0);
+    _d_freq_copy_array = Array<1, unsigned int, DeviceType>({(SIZE)dict_size});
+    _d_qcode_copy_array = Array<1, Q, DeviceType>({(SIZE)dict_size});
     CL_array = Array<1, unsigned int, DeviceType>({dict_size});
     lNodesLeader_array = Array<1, int, DeviceType>({dict_size});
     iNodesFreq_array = Array<1, unsigned int, DeviceType>({dict_size});
@@ -101,14 +119,14 @@ public:
     pre_allocated = true;
   }
 
-  void reset() {
-    freq_array.memset(0);
-    codebook_array.memset(0);
-    decodebook_array.memset(0xff);
-    huff_array.memset(0);
-    huff_bitwidths_array.memset(0);
-    first_nonzero_index_array.memset(0xff);
-    CL_array.memset(0);
+  void reset(int queue_idx) {
+    freq_array.memset(0, queue_idx);
+    codebook_array.memset(0, queue_idx);
+    decodebook_array.memset(0xff, queue_idx);
+    huff_array.memset(0, queue_idx);
+    huff_bitwidths_array.memset(0, queue_idx);
+    first_nonzero_index_array.memset(0xff, queue_idx);
+    CL_array.memset(0, queue_idx);
   }
 
   void move(const HuffmanWorkspace<Q, H, DeviceType> &workspace) {
@@ -120,6 +138,9 @@ public:
     huff_bitwidths_array = std::move(workspace.huff_bitwidths_array);
 
     first_nonzero_index_array = std::move(workspace.first_nonzero_index_array);
+    sort_by_key_workspace = std::move(workspace.sort_by_key_workspace);
+    _d_freq_copy_array = std::move(workspace._d_freq_copy_array);
+    _d_qcode_copy_array = std::move(workspace._d_qcode_copy_array);
     CL_array = std::move(workspace.CL_array);
     lNodesLeader_array = std::move(workspace.lNodesLeader_array);
     iNodesFreq_array = std::move(workspace.iNodesFreq_array);
@@ -146,6 +167,9 @@ public:
     huff_bitwidths_array = std::move(workspace.huff_bitwidths_array);
 
     first_nonzero_index_array = std::move(workspace.first_nonzero_index_array);
+    sort_by_key_workspace = std::move(workspace.sort_by_key_workspace);
+    _d_freq_copy_array = std::move(workspace._d_freq_copy_array);
+    _d_qcode_copy_array = std::move(workspace._d_qcode_copy_array);
     CL_array = std::move(workspace.CL_array);
     lNodesLeader_array = std::move(workspace.lNodesLeader_array);
     iNodesFreq_array = std::move(workspace.iNodesFreq_array);
@@ -194,6 +218,9 @@ public:
 
   // Codebook
   Array<1, unsigned int, DeviceType> first_nonzero_index_array;
+  Array<1, Byte, DeviceType> sort_by_key_workspace;
+  Array<1, unsigned int, DeviceType> _d_freq_copy_array;
+  Array<1, Q, DeviceType> _d_qcode_copy_array;
   Array<1, unsigned int, DeviceType> CL_array;
   Array<1, int, DeviceType> lNodesLeader_array;
   Array<1, unsigned int, DeviceType> iNodesFreq_array;
@@ -216,6 +243,9 @@ public:
 
   // Codebook
   SubArray<1, unsigned int, DeviceType> first_nonzero_index_subarray;
+  SubArray<1, Byte, DeviceType> sort_by_key_workspace_subarray;
+  SubArray<1, unsigned int, DeviceType> _d_freq_copy_subarray;
+  SubArray<1, Q, DeviceType> _d_qcode_copy_subarray;
   SubArray<1, unsigned int, DeviceType> CL_subarray;
   SubArray<1, int, DeviceType> lNodesLeader_subarray;
   SubArray<1, unsigned int, DeviceType> iNodesFreq_subarray;
