@@ -181,33 +181,47 @@ template <typename DeviceType> class DeviceCollective {
 public:
   template <typename T> MGARDX_CONT DeviceCollective(){};
   template <typename T>
-  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, DeviceType> &v,
-                              SubArray<1, T, DeviceType> &result,
-                              int queue_idx);
+  MGARDX_CONT static void
+  Sum(SIZE n, SubArray<1, T, DeviceType> v, SubArray<1, T, DeviceType> result,
+      Array<1, Byte, DeviceType> &workspace, int queue_idx);
+
   template <typename T>
-  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, DeviceType> &v,
-                                 SubArray<1, T, DeviceType> &result,
+  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, DeviceType> v,
+                                 SubArray<1, T, DeviceType> result,
+                                 Array<1, Byte, DeviceType> &workspace,
                                  int queue_idx);
+
   template <typename T>
-  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, DeviceType> &v,
-                                    SubArray<1, T, DeviceType> &result,
+  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, DeviceType> v,
+                                    SubArray<1, T, DeviceType> result,
+                                    Array<1, Byte, DeviceType> &workspace,
                                     int queue_idx);
+
   template <typename T>
   MGARDX_CONT static void
-  ScanSumInclusive(SIZE n, SubArray<1, T, DeviceType> &v,
-                   SubArray<1, T, DeviceType> &result, int queue_idx);
+  ScanSumInclusive(SIZE n, SubArray<1, T, DeviceType> v,
+                   SubArray<1, T, DeviceType> result,
+                   Array<1, Byte, DeviceType> &workspace, int queue_idx);
+
   template <typename T>
   MGARDX_CONT static void
-  ScanSumExclusive(SIZE n, SubArray<1, T, DeviceType> &v,
-                   SubArray<1, T, DeviceType> &result, int queue_idx);
+  ScanSumExclusive(SIZE n, SubArray<1, T, DeviceType> v,
+                   SubArray<1, T, DeviceType> result,
+                   Array<1, Byte, DeviceType> &workspace, int queue_idx);
+
   template <typename T>
-  MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, DeviceType> &v,
-                                          SubArray<1, T, DeviceType> &result,
+  MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, DeviceType> v,
+                                          SubArray<1, T, DeviceType> result,
+                                          Array<1, Byte, DeviceType> &workspace,
                                           int queue_idx);
+
   template <typename KeyT, typename ValueT>
-  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, DeviceType> &keys,
-                                    SubArray<1, ValueT, DeviceType> &values,
-                                    int queue_idx);
+  MGARDX_CONT static void
+  SortByKey(SIZE n, SubArray<1, KeyT, DeviceType> in_keys,
+            SubArray<1, ValueT, DeviceType> in_values,
+            SubArray<1, KeyT, DeviceType> out_keys,
+            SubArray<1, ValueT, DeviceType> out_values,
+            Array<1, Byte, DeviceType> &workspace, int queue_idx);
 };
 
 template <typename DeviceType> class MemoryManager {

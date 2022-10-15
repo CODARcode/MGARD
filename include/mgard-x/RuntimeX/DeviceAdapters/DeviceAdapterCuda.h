@@ -2378,152 +2378,136 @@ public:
   DeviceCollective(){};
 
   template <typename T>
-  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, CUDA> &v,
-                              SubArray<1, T, CUDA> &result, int queue_idx) {
-    void *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
+  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, CUDA> v,
+                              SubArray<1, T, CUDA> result,
+                              Array<1, Byte, CUDA> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
                            result.data(), n, stream, debug);
-    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
-                                   queue_idx);
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
-                           result.data(), n, stream, debug);
-    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
-    // once FreeAsync is available
-    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, CUDA> &v,
-                                 SubArray<1, T, CUDA> &result, int queue_idx) {
-    void *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
+  MGARDX_CONT static void
+  AbsMax(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
+         Array<1, Byte, CUDA> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     AbsMaxOp absMaxOp;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
                               result.data(), n, absMaxOp, 0, stream, debug);
-    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
-                                   queue_idx);
-    cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
-                              result.data(), n, absMaxOp, 0, stream, debug);
-    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
-    // once FreeAsync is available
-    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, CUDA> &v,
-                                    SubArray<1, T, CUDA> &result,
-                                    int queue_idx) {
+  MGARDX_CONT static void
+  SquareSum(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
+            Array<1, Byte, CUDA> &workspace, int queue_idx) {
     SquareOp squareOp;
     cub::TransformInputIterator<T, SquareOp, T *> transformed_input_iter(
         v.data(), squareOp);
-    void *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
                            transformed_input_iter, result.data(), n, stream,
                            debug);
-    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
-                                   queue_idx);
-    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
-                           transformed_input_iter, result.data(), n, stream,
-                           debug);
-    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
-    // once FreeAsync is available
-    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumInclusive(SIZE n, SubArray<1, T, CUDA> &v,
-                                           SubArray<1, T, CUDA> &result,
-                                           int queue_idx) {
-    Byte *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
+  MGARDX_CONT static void
+  ScanSumInclusive(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
+                   Array<1, Byte, CUDA> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
                                   result.data(), n, stream, debug);
-    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
-                                   queue_idx);
-    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data(), n, stream, debug);
-    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
-    // once FreeAsync is available
-    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExclusive(SIZE n, SubArray<1, T, CUDA> &v,
-                                           SubArray<1, T, CUDA> &result,
-                                           int queue_idx) {
-    Byte *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
+  MGARDX_CONT static void
+  ScanSumExclusive(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
+                   Array<1, Byte, CUDA> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
                                   result.data(), n, stream, debug);
-    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
-                                   queue_idx);
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data(), n, stream, debug);
-    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
-    // once FreeAsync is available
-    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, CUDA> &v,
-                                          SubArray<1, T, CUDA> &result,
-                                          int queue_idx) {
-    Byte *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
+  MGARDX_CONT static void
+  ScanSumExtended(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
+                  Array<1, Byte, CUDA> &workspace, int queue_idx) {
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
                                   result.data() + 1, n, stream, debug);
-    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
-                                   queue_idx);
-    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data() + 1, n, stream, debug);
-    T zero = 0;
-    MemoryManager<CUDA>().Copy1D(result.data(), &zero, 1, queue_idx);
-    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
-    // once FreeAsync is available
-    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+    if (result.hasDeviceAllocation()) {
+      T zero = 0;
+      MemoryManager<CUDA>().Copy1D(result.data(), &zero, 1, queue_idx);
+    }
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename KeyT, typename ValueT>
-  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, CUDA> &keys,
-                                    SubArray<1, ValueT, CUDA> &values,
+  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, CUDA> in_keys,
+                                    SubArray<1, ValueT, CUDA> in_values,
+                                    SubArray<1, KeyT, CUDA> out_keys,
+                                    SubArray<1, ValueT, CUDA> out_values,
+                                    Array<1, Byte, CUDA> &workspace,
                                     int queue_idx) {
-    void *d_temp_storage = NULL;
-    size_t temp_storage_bytes = 0;
+    Byte *d_temp_storage =
+        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+    size_t temp_storage_bytes =
+        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
-    Array<1, KeyT, CUDA> out_keys({n});
-    Array<1, ValueT, CUDA> out_values({n});
-
     cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                    keys.data(), out_keys.data(), values.data(),
-                                    out_values.data(), n, 0, sizeof(KeyT) * 8,
-                                    stream, debug);
-    MemoryManager<CUDA>().Malloc1D(d_temp_storage, temp_storage_bytes,
-                                   queue_idx);
-    cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                    keys.data(), out_keys.data(), values.data(),
-                                    out_values.data(), n, 0, sizeof(KeyT) * 8,
-                                    stream, debug);
-    MemoryManager<CUDA>().Copy1D(keys.data(), out_keys.data(), n, queue_idx);
-    MemoryManager<CUDA>().Copy1D(values.data(), out_values.data(), n,
-                                 queue_idx);
-    // MGARDX_SYNCHRONIZED_QUEUE should be replace with queue_idx
-    // once FreeAsync is available
-    MemoryManager<CUDA>().Free(d_temp_storage, MGARDX_SYNCHRONIZED_QUEUE);
+                                    in_keys.data(), out_keys.data(),
+                                    in_values.data(), out_values.data(), n, 0,
+                                    sizeof(KeyT) * 8, stream, debug);
+    if (!workspace.hasDeviceAllocation()) {
+      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    }
   }
 
   template <typename KeyT, typename ValueT, typename BinaryOpType>
