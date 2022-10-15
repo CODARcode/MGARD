@@ -34,7 +34,7 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
   if (log::level & log::TIME)
     timer.start();
 
-  workspace.reset();
+  workspace.reset(0);
 
   size_t primary_count = dprimary_subarray.shape(0);
 

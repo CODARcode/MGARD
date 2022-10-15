@@ -1706,88 +1706,110 @@ public:
   DeviceCollective(){};
 
   template <typename T>
-  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, SYCL> &v,
-                              SubArray<1, T, SYCL> &result, int queue_idx) {
-
-    sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
-    q.submit([&](sycl::handler &h) {
-      T *res = result.data();
-      T *input = v.data();
-      h.parallel_for(sycl::range{n},
-                     sycl::reduction(res, (T)0, sycl::plus<T>()),
-                     [=](sycl::id<1> i, auto &res) { res.combine(input[i]); });
-    });
-    DeviceRuntime<SYCL>::SyncDevice();
+  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, SYCL> v,
+                              SubArray<1, T, SYCL> result,
+                              Array<1, Byte, SYCL> &workspace, int queue_idx) {
+    if (workspace.hasDeviceAllocation()) {
+      sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
+      q.submit([&](sycl::handler &h) {
+        T *res = result.data();
+        T *input = v.data();
+        h.parallel_for(
+            sycl::range{n}, sycl::reduction(res, (T)0, sycl::plus<T>()),
+            [=](sycl::id<1> i, auto &res) { res.combine(input[i]); });
+      });
+      DeviceRuntime<SYCL>::SyncDevice();
+    } else {
+      workspace = Array<1, Byte, SYCL>({(SIZE)1});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, SYCL> &v,
-                                 SubArray<1, T, SYCL> &result, int queue_idx) {
-    sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
-    q.submit([&](sycl::handler &h) {
-      T *res = result.data();
-      T *input = v.data();
-      h.parallel_for(sycl::range{n}, sycl::reduction(res, (T)0, AbsMaxOp<T>()),
-                     [=](sycl::id<1> i, auto &res) { res.combine(input[i]); });
-    });
-    DeviceRuntime<SYCL>::SyncDevice();
+  MGARDX_CONT static void
+  AbsMax(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
+         Array<1, Byte, SYCL> &workspace, int queue_idx) {
+    if (workspace.hasDeviceAllocation()) {
+      sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
+      q.submit([&](sycl::handler &h) {
+        T *res = result.data();
+        T *input = v.data();
+        h.parallel_for(
+            sycl::range{n}, sycl::reduction(res, (T)0, AbsMaxOp<T>()),
+            [=](sycl::id<1> i, auto &res) { res.combine(input[i]); });
+      });
+      DeviceRuntime<SYCL>::SyncDevice();
+    } else {
+      workspace = Array<1, Byte, SYCL>({(SIZE)1});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, SYCL> &v,
-                                    SubArray<1, T, SYCL> &result,
-                                    int queue_idx) {
-    sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
-    q.submit([&](sycl::handler &h) {
-      T *res = result.data();
-      T *input = v.data();
-      h.parallel_for(
-          sycl::range{n}, sycl::reduction(res, (T)0, sycl::plus<T>()),
-          [=](sycl::id<1> i, auto &res) { res.combine(input[i] * input[i]); });
-    });
-    DeviceRuntime<SYCL>::SyncDevice();
+  MGARDX_CONT static void
+  SquareSum(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
+            Array<1, Byte, SYCL> &workspace, int queue_idx) {
+    if (workspace.hasDeviceAllocation()) {
+      sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
+      q.submit([&](sycl::handler &h) {
+        T *res = result.data();
+        T *input = v.data();
+        h.parallel_for(sycl::range{n},
+                       sycl::reduction(res, (T)0, sycl::plus<T>()),
+                       [=](sycl::id<1> i, auto &res) {
+                         res.combine(input[i] * input[i]);
+                       });
+      });
+      DeviceRuntime<SYCL>::SyncDevice();
+    } else {
+      workspace = Array<1, Byte, SYCL>({(SIZE)1});
+    }
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumInclusive(SIZE n, SubArray<1, T, SYCL> &v,
-                                           SubArray<1, T, SYCL> &result,
-                                           int queue_idx) {}
+  MGARDX_CONT static void
+  ScanSumInclusive(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
+                   Array<1, Byte, SYCL> &workspace, int queue_idx) {}
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExclusive(SIZE n, SubArray<1, T, SYCL> &v,
-                                           SubArray<1, T, SYCL> &result,
-                                           int queue_idx) {}
+  MGARDX_CONT static void
+  ScanSumExclusive(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
+                   Array<1, Byte, SYCL> &workspace, int queue_idx) {}
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, SYCL> &v,
-                                          SubArray<1, T, SYCL> &result,
-                                          int queue_idx) {}
+  MGARDX_CONT static void
+  ScanSumExtended(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
+                  Array<1, Byte, SYCL> &workspace, int queue_idx) {}
 
   template <typename KeyT, typename ValueT>
-  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, SYCL> &keys,
-                                    SubArray<1, ValueT, SYCL> &values,
+  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, SYCL> &in_keys,
+                                    SubArray<1, ValueT, SYCL> &in_values,
+                                    SubArray<1, KeyT, SYCL> &out_keys,
+                                    SubArray<1, ValueT, SYCL> &out_values,
                                     int queue_idx) {
-    KeyT *keys_array = new KeyT[n];
-    ValueT *values_array = new ValueT[n];
-    MemoryManager<SYCL>::Copy1D(keys_array, keys.data(), n, 0);
-    MemoryManager<SYCL>::Copy1D(values_array, values.data(), n, 0);
-    DeviceRuntime<SYCL>::SyncQueue(0);
+    if (workspace.hasDeviceAllocation()) {
+      KeyT *keys_array = new KeyT[n];
+      ValueT *values_array = new ValueT[n];
+      MemoryManager<SYCL>::Copy1D(keys_array, in_keys.data(), n, 0);
+      MemoryManager<SYCL>::Copy1D(values_array, in_values.data(), n, 0);
+      DeviceRuntime<SYCL>::SyncQueue(0);
 
-    std::vector<std::pair<KeyT, ValueT>> data(n);
-    for (SIZE i = 0; i < n; ++i) {
-      data[i] = std::pair<KeyT, ValueT>(keys_array[i], values_array[i]);
+      std::vector<std::pair<KeyT, ValueT>> data(n);
+      for (SIZE i = 0; i < n; ++i) {
+        data[i] = std::pair<KeyT, ValueT>(keys_array[i], values_array[i]);
+      }
+      std::stable_sort(data.begin(), data.end(),
+                       KeyValueComparator<KeyT, ValueT>{});
+      for (SIZE i = 0; i < n; ++i) {
+        keys_array[i] = data[i].first;
+        values_array[i] = data[i].second;
+      }
+      MemoryManager<SYCL>::Copy1D(out_keys.data(), keys_array, n, 0);
+      MemoryManager<SYCL>::Copy1D(out_values.data(), values_array, n, 0);
+      DeviceRuntime<SYCL>::SyncDevice();
+      delete[] keys_array;
+      delete[] values_array;
+    } else {
+      workspace = Array<1, Byte, SYCL>({(SIZE)1});
     }
-    std::stable_sort(data.begin(), data.end(),
-                     KeyValueComparator<KeyT, ValueT>{});
-    for (SIZE i = 0; i < n; ++i) {
-      keys_array[i] = data[i].first;
-      values_array[i] = data[i].second;
-    }
-    MemoryManager<SYCL>::Copy1D(keys.data(), keys_array, n, 0);
-    MemoryManager<SYCL>::Copy1D(values.data(), values_array, n, 0);
-    DeviceRuntime<SYCL>::SyncDevice();
-    delete[] keys_array;
-    delete[] values_array;
   }
 
   template <typename KeyT, typename ValueT, typename BinaryOpType>

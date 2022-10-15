@@ -40,14 +40,20 @@ T norm_calculator(Array<D, T, DeviceType> &original_array,
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (s == std::numeric_limits<T>::infinity()) {
+    Array<1, Byte, DeviceType> abs_max_workspace;
     DeviceCollective<DeviceType>::AbsMax(total_elems, temp_subarray,
-                                         norm_subarray, 0);
+                                         norm_subarray, abs_max_workspace, 0);
+    DeviceCollective<DeviceType>::AbsMax(total_elems, temp_subarray,
+                                         norm_subarray, abs_max_workspace, 0);
     MemoryManager<DeviceType>::Copy1D(&norm, norm_subarray.data(), 1, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
     log::info("L_inf norm: " + std::to_string(norm));
   } else {
-    DeviceCollective<DeviceType>::SquareSum(total_elems, temp_subarray,
-                                            norm_subarray, 0);
+    Array<1, Byte, DeviceType> square_sum_workspace;
+    DeviceCollective<DeviceType>::SquareSum(
+        total_elems, temp_subarray, norm_subarray, square_sum_workspace, 0);
+    DeviceCollective<DeviceType>::SquareSum(
+        total_elems, temp_subarray, norm_subarray, square_sum_workspace, 0);
     MemoryManager<DeviceType>::Copy1D(&norm, norm_subarray.data(), 1, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
     if (!normalize_coordinates) {

@@ -37,8 +37,14 @@ void GetCodebook(int dict_size,
   DeviceLauncher<DeviceType>::Execute(
       FillArraySequenceKernel(_d_qcode_subarray), 0);
 
-  DeviceCollective<DeviceType>::SortByKey(dict_size, _d_freq_subarray,
-                                          _d_qcode_subarray, 0);
+  MemoryManager<DeviceType>::Copy1D(workspace._d_freq_copy_subarray.data(),
+                                    _d_freq_subarray.data(), dict_size, 0);
+  MemoryManager<DeviceType>::Copy1D(workspace._d_qcode_copy_subarray.data(),
+                                    _d_qcode_subarray.data(), dict_size, 0);
+  DeviceCollective<DeviceType>::SortByKey(
+      (SIZE)dict_size, workspace._d_freq_copy_subarray,
+      workspace._d_qcode_copy_subarray, _d_freq_subarray, _d_qcode_subarray,
+      workspace.sort_by_key_workspace, 0);
 
   DeviceLauncher<DeviceType>::Execute(
       GetFirstNonzeroIndexKernel<unsigned int, DeviceType>(

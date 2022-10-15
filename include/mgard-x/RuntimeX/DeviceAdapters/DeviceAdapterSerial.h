@@ -1312,84 +1312,119 @@ public:
   DeviceCollective(){};
 
   template <typename T>
-  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, SERIAL> &v,
-                              SubArray<1, T, SERIAL> &result, int queue_idx) {
-    *result((IDX)0) = std::accumulate(v((IDX)0), v((IDX)n), 0);
-  }
-
-  template <typename T>
-  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, SERIAL> &v,
-                                 SubArray<1, T, SERIAL> &result,
-                                 int queue_idx) {
-    T max_result = 0;
-    for (SIZE i = 0; i < n; ++i) {
-      max_result = std::max((T)fabs(*v(i)), max_result);
+  MGARDX_CONT static void
+  Sum(SIZE n, SubArray<1, T, SERIAL> v, SubArray<1, T, SERIAL> result,
+      Array<1, Byte, SERIAL> &workspace, int queue_idx) {
+    if (workspace.hasDeviceAllocation()) {
+      *result((IDX)0) = std::accumulate(v((IDX)0), v((IDX)n), 0);
+    } else {
+      workspace = Array<1, Byte, SERIAL>({(SIZE)1});
     }
-    *result((IDX)0) = max_result;
   }
 
   template <typename T>
-  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, SERIAL> &v,
-                                    SubArray<1, T, SERIAL> &result,
-                                    int queue_idx) {
-    T sum_result = 0;
-    for (SIZE i = 0; i < n; ++i) {
-      T tmp = *v(i);
-      sum_result += tmp * tmp;
+  MGARDX_CONT static void
+  AbsMax(SIZE n, SubArray<1, T, SERIAL> v, SubArray<1, T, SERIAL> result,
+         Array<1, Byte, SERIAL> &workspace, int queue_idx) {
+    if (workspace.hasDeviceAllocation()) {
+      T max_result = 0;
+      for (SIZE i = 0; i < n; ++i) {
+        max_result = std::max((T)fabs(*v(i)), max_result);
+      }
+      *result((IDX)0) = max_result;
+    } else {
+      workspace = Array<1, Byte, SERIAL>({(SIZE)1});
     }
-    *result((IDX)0) = sum_result;
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumInclusive(SIZE n, SubArray<1, T, SERIAL> &v,
-                                           SubArray<1, T, SERIAL> &result,
+  MGARDX_CONT static void
+  SquareSum(SIZE n, SubArray<1, T, SERIAL> v, SubArray<1, T, SERIAL> result,
+            Array<1, Byte, SERIAL> &workspace, int queue_idx) {
+    if (workspace.hasDeviceAllocation()) {
+      T sum_result = 0;
+      for (SIZE i = 0; i < n; ++i) {
+        T tmp = *v(i);
+        sum_result += tmp * tmp;
+      }
+      *result((IDX)0) = sum_result;
+    } else {
+      workspace = Array<1, Byte, SERIAL>({(SIZE)1});
+    }
+  }
+
+  template <typename T>
+  MGARDX_CONT static void ScanSumInclusive(SIZE n, SubArray<1, T, SERIAL> v,
+                                           SubArray<1, T, SERIAL> result,
+                                           Array<1, Byte, SERIAL> &workspace,
                                            int queue_idx) {
     // Need gcc 9 and c++17
 #if (__GNUC__ >= 9)
-    std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
+    if (workspace.hasDeviceAllocation()) {
+      std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
+    } else {
+      workspace = Array<1, Byte, SERIAL>({(SIZE)1});
+    }
 #else
     log::err("Please recompile with GCC 9+ to use ScanSumInclusive<SERIAL>.");
 #endif
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExclusive(SIZE n, SubArray<1, T, SERIAL> &v,
-                                           SubArray<1, T, SERIAL> &result,
+  MGARDX_CONT static void ScanSumExclusive(SIZE n, SubArray<1, T, SERIAL> v,
+                                           SubArray<1, T, SERIAL> result,
+                                           Array<1, Byte, SERIAL> &workspace,
                                            int queue_idx) {
     // Need gcc 9 and c++17
 #if (__GNUC__ >= 9)
-    std::exclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
+    if (workspace.hasDeviceAllocation()) {
+      std::exclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
+    } else {
+      workspace = Array<1, Byte, SERIAL>({(SIZE)1});
+    }
 #else
     log::err("Please recompile with GCC 9+ to use ScanSumExclusive<SERIAL>.");
 #endif
   }
 
   template <typename T>
-  MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, SERIAL> &v,
-                                          SubArray<1, T, SERIAL> &result,
+  MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, SERIAL> v,
+                                          SubArray<1, T, SERIAL> result,
+                                          Array<1, Byte, SERIAL> &workspace,
                                           int queue_idx) {
     // Need gcc 9 and c++17
 #if (__GNUC__ >= 9)
-    std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)1));
-    *result((IDX)0) = 0;
+    if (workspace.hasDeviceAllocation()) {
+      std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)1));
+      *result((IDX)0) = 0;
+    } else {
+      workspace = Array<1, Byte, SERIAL>({(SIZE)1});
+    }
 #else
     log::err("Please recompile with GCC 9+ to use ScanSumExtended<SERIAL>.");
 #endif
   }
 
   template <typename KeyT, typename ValueT>
-  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, SERIAL> &keys,
-                                    SubArray<1, ValueT, SERIAL> &values,
+  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, SERIAL> in_keys,
+                                    SubArray<1, ValueT, SERIAL> in_values,
+                                    SubArray<1, KeyT, SERIAL> out_keys,
+                                    SubArray<1, ValueT, SERIAL> out_values,
+                                    Array<1, Byte, SERIAL> &workspace,
                                     int queue_idx) {
-    std::vector<std::pair<KeyT, ValueT>> data(n);
-    for (SIZE i = 0; i < n; ++i) {
-      data[i] = std::pair<KeyT, ValueT>(*keys(i), *values(i));
-    }
-    std::stable_sort(data.begin(), data.end(),
-                     KeyValueComparator<KeyT, ValueT>{});
-    for (SIZE i = 0; i < n; ++i) {
-      *keys(i) = data[i].first;
-      *values(i) = data[i].second;
+    if (workspace.hasDeviceAllocation()) {
+      std::vector<std::pair<KeyT, ValueT>> data(n);
+      for (SIZE i = 0; i < n; ++i) {
+        data[i] = std::pair<KeyT, ValueT>(*in_keys(i), *in_values(i));
+      }
+      std::stable_sort(data.begin(), data.end(),
+                       KeyValueComparator<KeyT, ValueT>{});
+      for (SIZE i = 0; i < n; ++i) {
+        *out_keys(i) = data[i].first;
+        *out_values(i) = data[i].second;
+      }
+    } else {
+      workspace = Array<1, Byte, SERIAL>({(SIZE)1});
     }
   }
 };
